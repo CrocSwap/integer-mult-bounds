@@ -1,7 +1,9 @@
 # Reproducing the result
 
-The primary artifacts are the [paired-network note](../artifacts/paired-note.pdf),
-[strongest patch](../patches/h50-paired-59.patch), and exact JSON certificates.
+The primary artifacts are the [parameter refinement audit](paired-tuned-parameters.md),
+[strongest patch](../patches/h50-paired-tuned.patch),
+[integrated certificate](../certificates/paired-tuned-parameters.json), and
+the inherited [paired-network note](../artifacts/paired-note.pdf).
 They are conditional on the algorithmic interfaces identified in the
 [dependency audit](audit.md).
 
@@ -50,6 +52,11 @@ This command performs these steps:
    h=50 paired-network certificate and independent patch for kappa=2^-59. They
    also check the stopped guard constants and revised Gaussian inequalities;
    these proof models are selected explicitly in the parameter checker.
+   `scripts/tune_paired_parameters.py --upstream` independently evaluates the
+   refined rational parameters, encloses their fixed-exponent supremum, rechecks
+   the real paired construction, and compares all slacks and margins with the
+   existing verifier. `scripts/make_tuned_paired_patch.py` generates an independent
+   tuned patch against the pinned source, preserving its required proof extensions.
    `scripts/research_networks.py` and `scripts/search_network_variants.py`
    record scoped family bounds and clearly marked exploratory scores.
 4. The standard-library unittest suite checks certificate boundaries, selected
@@ -79,7 +86,7 @@ existing one. It leaves the bundled source untouched:
 mkdir -p build
 mkdir build/review
 cp -R upstream/build build/review/build
-git apply --directory=build/review patches/h46-dag-63.patch
+git apply --directory=build/review patches/h50-paired-tuned.patch
 ```
 
 Read `build/review/build/main.tex` and its included sections. The other patches
