@@ -179,9 +179,10 @@ $1-\lambda'\ge z$, and
 $\tau(1+c/\beta)<\lambda<\lambda'$. Rearrangement gives
 $z(1-a+a\beta)<\beta a^2$.
 
-The first upper bound is strictly increasing in $\beta$; the second
-is strictly decreasing. Their crossing has $\beta\ge9/10$, because
-$a^2<b/10$. The maximum possible capacity is the smaller positive
+The first upper bound is strictly increasing in $\beta$; its derivative is
+$a^2(1-a)/(1-a+a\beta)^2>0$. The second bound is strictly decreasing.
+Their crossing has $\beta\ge9/10$, because
+$a^2<b/10$. The supremal capacity is the smaller positive
 root $z_*$ of
 
 $$
@@ -216,9 +217,23 @@ $$
 
 This balances the Gaussian and recurrence margins. In a sufficiently
 small neighborhood of the limit, the other margins and side conditions
-remain strictly positive with much larger slack: $\epsilon\to1/5$,
-$c\to z_*/a< a$, $g_4\to4a/5$, and the fixed guard and dimension
-bounds are not active. Rational approximations inside this open feasible
+remain strictly positive with much larger slack. Their exact limiting values
+use
+
+$$
+\epsilon_* = \frac{1}{5+4z_*}<\frac15,\qquad
+c_* = z_*/a<a,\qquad
+g_{4,*}=a(1-\epsilon_*)>\frac{4a}{5}.
+$$
+
+In particular, $z_*<a^2<\min\{a,b\}$ keeps $\lambda'_*=1-z_*$
+strictly above both $\tau$ and $\sigma$. The guard and prime-interval
+slacks exceed $3/5$, the dimension slack exceeds $2/15$, and the
+alpha and gamma slacks exceed $1/5$. The remaining cost margins obey
+$g_{1,*}>(4-a)/5>G_*$, $g_{6,*}>4/5>G_*$, and
+$g_{7,*}=\epsilon_*>\epsilon_*z_*=G_*$. Also
+$g_{4,*}>4a/5>a^2/5>G_*$. Thus these conditions do not lower the
+supremum. Rational approximations inside this open feasible
 region attain the same supremum with fixed rational parameters.
 
 The supplied checker encloses $z_*$ with 160 exact bisections on
@@ -299,11 +314,42 @@ patches. The inherited PDF describes the original paired construction; this
 Markdown audit describes the new parameters and scoped supremum.
 
 Local integration verification on 7 October 2026, using Python 3.12.14:
-`make verify` passed all 101 tests, including 16 new refinement tests, and
+`make verify` passed all 103 tests, including 18 new refinement tests, and
 all seventeen independent source-patch application checks. Regeneration left
 the inherited certificates, patches, and pinned manuscript unchanged.
 These checks validate the arithmetic and supplied finite interfaces; they do
 not independently prove the complete multiplication theorem.
+
+## Contribution review and dependency ledger
+
+The contribution review checked the proposed parameters against the written
+recurrence and assembly costs, rather than relying only on agreement between
+two transcriptions of the numerical inequalities. Paths below refer to the
+patched copy of the pinned manuscript, whose original files remain unchanged.
+
+| Source anchor | Obligation under the new parameters | Review result |
+| --- | --- | --- |
+| `03-motifs.tex`, `eq:explicit-motif-exponents` | Retain declared bit and complex savings, paired graph, and frames | Both savings unchanged; paired coefficients, frames, and source hashes rechecked |
+| `05-layers.tex`, Unrolling the recurrence | Internal exponent `tau*(1+c/beta)<lambda`; leaf exponent `sigma+beta*(1-sigma)<lambda-prime` | Both strict gaps checked exactly; `lambda<lambda-prime` absorbs the fixed logarithmic group count |
+| `05-layers.tex`, `sec:stopped-guard` | `9/10<=beta<1`, `2<=s_c<m^5`, `2*epsilon<1` | All hold; the complex network and depth constants are unchanged |
+| `07-resampling.tex`, `lem:no-sort-resampling` | Fixed `0<delta<1/8`, admissible width, and resampling separation | `delta=10^-14` is allowed; `alpha^4*theta_i>8*b>6*b=p` |
+| `08-assembly.tex`, `eq:sizes` and rational setup | Fixed positive rational powers, `K=o(ell)`, superpolynomial `r`, and growing prime intervals | Strict growth margins remain positive; both exact integer setup and stopping comparisons are updated |
+| `08-assembly.tex`, `eq:gamma` and final rounding | Keep `gamma<=b/4` beyond the declared cutoff and `p=6*b` | `gamma<46*b^(4/5)<b/4` for `b>=2^40`; precision and rounding proof retained |
+| `08-assembly.tex`, `tab:costs` and `eq:margin-list` | Derive each exponent from `d`, `K`, `ell`, and `alpha` | A separate test reconstructs all seven cost powers from these factors; every power is strictly below `1-kappa` |
+| `08-assembly.tex`, final absorption | Absorb remaining fixed powers of `log p` | Exact positive `rho=G-kappa`; `(log p)^C=O(p^rho)` for every fixed `C` |
+
+The review corrected an exact limiting statement in the original audit:
+`epsilon` approaches `1/(5+4*z*)`, rather than exactly `1/5`, and the limiting
+layout margin is `a*(1-epsilon*)`, rather than exactly `4*a/5`. The supplied
+supremum formula and explicit rational witness were already consistent with
+the corrected limits. A regression test checks the exact balancing identity.
+
+A disposable copy of the tuned manuscript patch was applied to the pinned
+source. A flattened syntax preview compiled successfully with the desktop
+LaTeX compiler. Only that preview omitted pdfTeX-specific metadata commands
+and used bibliography labels in place of external BibTeX files; neither
+adjustment is part of the contribution patch. Successful compilation is a
+syntax check; it does not establish mathematical correctness.
 
 ## Source basis and attribution
 

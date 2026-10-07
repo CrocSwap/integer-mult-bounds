@@ -98,6 +98,31 @@ class TunedPairedParameters(unittest.TestCase):
         self.assertLess(hi, Q(1, 2**58))
         self.assertGreater(KAPPA/hi, Q(99999996, 10**8))
 
+    def test_supremum_balance_has_dimension_strictly_below_one_fifth(self):
+        for z in capacity_enclosure():
+            epsilon = 1/(5+4*z)
+            self.assertLess(epsilon, Q(1, 5))
+            self.assertEqual(epsilon*z, Q(1, 4)-Q(5, 4)*epsilon)
+            self.assertGreater(A*(1-epsilon), 4*A/5)
+            self.assertGreater(A*(1-epsilon), epsilon*z)
+            self.assertGreater(Q(1, 3)-epsilon, Q(2, 15))
+
+    def test_cost_factors_independently_imply_the_reported_margins(self):
+        # Exponents of d, K, ell and alpha from eq:sizes and the tighter width.
+        p = parameters()
+        d, K, ell, alpha = p.epsilon, p.epsilon*p.c, 1-p.epsilon, (1+p.epsilon)/4
+        powers = {"g1": d+K,                         # d*K
+                  "g2": 1+(p.tau-1)*K,              # p*K^(tau-1)
+                  "g3": ell+p.lamp*d,               # ell*d^(lambda-prime)
+                  "g4": d+p.tau*ell,                # d*ell^tau dominates d
+                  "g5": d+Q(1, 2)+p.delta+alpha,     # d*p^(1/2+delta)*alpha
+                  "g6": d+p.delta,                  # d*p^delta
+                  "g7": ell}                        # log(r*p)
+        margins = evaluate(p)["margins"]
+        self.assertEqual({k: 1-v for k, v in powers.items()},
+                         {k: Q(v) for k, v in margins.items()})
+        self.assertTrue(all(power < 1-p.kappa for power in powers.values()))
+
     def test_role_budget_is_strict_and_target_is_unachieved(self):
         from math import comb
         from tune_paired_parameters import LOG_BOUND
