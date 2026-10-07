@@ -22,6 +22,8 @@ verify:
 	python3 scripts/make_shared_point_patch.py
 	python3 scripts/paired_network.py
 	python3 scripts/make_paired_patch.py
+	python3 scripts/tune_paired_parameters.py --upstream
+	python3 scripts/make_tuned_paired_patch.py
 	python3 scripts/audit_scratch_pooling.py
 	python3 scripts/reuse_network.py
 	python3 scripts/make_reuse_patch.py
@@ -42,6 +44,7 @@ verify:
 	git apply --check --directory=upstream patches/h46-dag-63.patch
 	git apply --check --directory=upstream patches/h46-shared-point.patch
 	git apply --check --directory=upstream patches/h50-paired-59.patch
+	git apply --check --directory=upstream patches/h50-paired-tuned.patch
 
 note:
 	mkdir -p artifacts

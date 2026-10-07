@@ -1,6 +1,7 @@
 # A sharper exponent for integer multiplication
 
-**Research draft by Douglas Colkitt — conditional on the underlying manuscript.**
+**Research draft by Douglas Colkitt, with a parameter refinement by Aurel Prosz
+(Paureel) — conditional on the underlying manuscript.**
 
 This repository improves the parameters, axis routing, and finite bit network in OpenAI's
 [*Integer multiplication below n log n*](https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a/preprints/Integer-multiplication-below-n-log-n-September-23-2026)
@@ -9,22 +10,51 @@ changes audited here, the strongest supplied bound is
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=2^{-59}\approx1.7347\times10^{-18}}.
+\boxed{\kappa=1.7523184\times10^{-18}>2^{-59}}.
 $$
 
 The computational model is the manuscript's fixed finite-alphabet Turing machine
 with a fixed finite number of one-dimensional tapes. The original manuscript
-uses `kappa = 2^-182`. The latest witness improves the preceding `13*2^-66`
-bound by a factor of 128/13 (about 9.85), giving a 2^123-fold increase in
-exponent saving over the original.
+uses `kappa = 2^-182`. The new parameter witness increases the exponent saving
+by about **0.603% over the preceding parameters' limiting margin**, or 1.014%
+over their rounded `2^-59` headline. It retains the paired circuits and their
+declared bit and complex exponent savings.
 These are asymptotic exponent comparisons, not measured practical speedups.
 
-**[Read the 2^-59 proof note (PDF)](artifacts/paired-note.pdf)** ·
-[Review the latest patch](patches/h50-paired-59.patch) ·
+**[Read the parameter refinement and supremum derivation](docs/paired-tuned-parameters.md)** ·
+[Review the latest patch](patches/h50-paired-tuned.patch) ·
+[Read the inherited paired proof (PDF)](artifacts/paired-note.pdf) ·
 [Inspect the routing audit](docs/nonadjacent-axis-audit.md) ·
 [Reproduce the checks](docs/reproducibility.md)
 
-## Latest improvement: paired sums and tighter downstream estimates
+## Latest improvement: a near-optimal fixed-exponent parameter witness
+
+Paureel's refinement retains `h=50`, `a=1-tau=296/10^11`, and
+`s=1-sigma=1/10^11`. It uses the exact rational choices
+`beta=0.99999912384`, `epsilon=0.1999999999999`, and `delta=10^-14`,
+with `C1=2`, `c=beta*a`, `lambda=1-(1+beta)*a^2/2`, and
+`lambda'=1-beta*a^2`. All thirty side conditions are strict. The minimum margin is
+
+$$
+G=\epsilon\beta a^2
+=1.7523184646864326407676563456\times10^{-18}>\kappa.
+$$
+
+For these fixed declared exponent savings and the revised inequalities, the
+exact supremum is `G*=q*/(5+4*q*)`, where `q*` is the smaller positive root of
+`a*q^2-(s+a^2)*q+a^2*s=0`. Exact rational bisection encloses it near
+`1.7523184646886585e-18`. The advertised witness exceeds 99.999996% of this
+scoped supremum. This does not establish optimality for other exponent estimates,
+circuits, or multiplication algorithms, or establish global priority.
+
+The [integrated certificate](certificates/paired-tuned-parameters.json) rechecks
+the inherited paired circuit, frames, source hashes, and guard, then compares
+every new slack and margin against the existing parameter verifier. The
+[independent manuscript patch](patches/h50-paired-tuned.patch) updates rational
+setup comparisons, stopping tests, and Gaussian cutoff accounting together.
+The audit also records a role-budget target for `2^-58` as **unachieved**.
+
+## Paired sums and tighter downstream estimates underlying the refinement
 
 Three changes combine to reach `2^-59`:
 
@@ -240,7 +270,8 @@ the revised accounting.
 | Nonadjacent routing, parameter dependencies, and earlier variable-beta extension | Written mathematical audits |
 | Selected finite identities | Exhaustive small cases and deterministic sampled tests |
 | Stage-sharing construction | Written frame proof, complete matching and finite scalar checks |
-| Source patch application | All twelve alternatives checked |
+| Fixed-exponent parameter refinement | Independent rational arithmetic, integrated circuit checks, scoped supremum enclosure |
+| Source patch application | All seventeen alternatives checked by `make verify` |
 | Full upstream multiplication theorem | Assumed; not independently established here |
 
 The scripts do not constitute a formal proof of the complete algorithm. This
@@ -297,13 +328,18 @@ Each patch applies independently to the unmodified pinned source.
 | [h46-shared-side-75](patches/h46-shared-side-75.patch) | `2^-75` | Stage-1/stage-3 side-role sharing, routing, and parameter tuning |
 | [h46-incidence-67](patches/h46-incidence-67.patch) | `2^-67` | Rectangle incidence circuits, full auxiliary sharing, routing, and parameter tuning |
 | **[h46-dag-63](patches/h46-dag-63.patch)** | **`2^-63`** | **Shared intermediate sums, reversible role allocation, full auxiliary sharing, routing, and parameter tuning** |
+| [h46-shared-point](patches/h46-shared-point.patch) | `13*2^-66` | Cross-common-point sharing with retained guard and assembly accounting |
+| [h50-paired-59](patches/h50-paired-59.patch) | `2^-59` | Paired circuits, stopped-depth guard, and tighter Gaussian width |
+| **[h50-paired-tuned](patches/h50-paired-tuned.patch)** | **`1.7523184e-18`** | **Paureel's fixed-exponent parameter refinement of the paired construction** |
 
 Machine-readable results are in [parameters.json](certificates/parameters.json), [network-search.json](certificates/network-search.json),
 [nonadjacent-axis.json](certificates/nonadjacent-axis.json), and
 [routing-tuned.json](certificates/routing-tuned.json), and
 [stage-reuse.json](certificates/stage-reuse.json), and
 [incidence-network.json](certificates/incidence-network.json), and
-[dag-network.json](certificates/dag-network.json). The first note also gives
+[dag-network.json](certificates/dag-network.json),
+[paired-network.json](certificates/paired-network.json), and
+[paired-tuned-parameters.json](certificates/paired-tuned-parameters.json). The first note also gives
 a closed-form supremum for the earlier fixed-`beta` parameter problem.
 
 ## Attribution, citation, and license
@@ -311,6 +347,12 @@ a closed-form supremum for the earlier fixed-`beta` parameter problem.
 Author: **Douglas Colkitt**. The research, implementation, and drafting were
 performed with assistance from OpenAI Codex. This assistance is not independent
 review or endorsement by OpenAI. No priority claim is made.
+
+The fixed-exponent paired parameter refinement and supremum analysis in this
+fork are by **Aurel Prosz (Paureel)**, developed in the “Improve Integer Mult
+Bounds” project with assistance from OpenAI ChatGPT and integrated with assistance
+from OpenAI Codex. The preceding constructions and proof extensions remain
+attributed to Douglas Colkitt and the underlying manuscript to OpenAI.
 
 The original manuscript is by OpenAI. Its source is pinned at commit
 `adc7f1241b42e322a6451854ab7e4b4c146bf78a`, with URLs and SHA-256 hashes in
