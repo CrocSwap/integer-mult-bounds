@@ -1,7 +1,7 @@
 # Next research steps after the bounded investigation
 
 **Authoritative current status:** [current contracts](current-status.md).
-The selected conditional witness is `κ=4123863984/10^14 > 2^-15`.
+The selected conditional witness is `κ=25508460085039/500000000000000000 > 2^-15`.
 The [preserved research index](preserved-research.md) records the intervening
 compression, topology, and core experiments. The roadmaps below are historical;
 their bounds and proposed next steps do not describe the current release.
