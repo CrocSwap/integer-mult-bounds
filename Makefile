@@ -26,6 +26,7 @@ verify:
 	$(MAKE) verify-balanced
 	$(MAKE) verify-indexed
 	$(MAKE) verify-final
+	$(MAKE) verify-aligned
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -473,3 +474,19 @@ final-frame-verify:
 	python3 -m unittest discover -s tests -p 'test_final_frame*.py' -v
 
 verify-final: final-frame-verify
+
+.PHONY: aligned-composition-verify verify-aligned
+aligned-composition-verify:
+	python3 scripts/experiments/verify_aligned_composition.py
+	python3 scripts/experiments/audit_aligned_composition_completion.py
+	python3 scripts/experiments/audit_aligned_composition_exchange.py
+	python3 scripts/experiments/audit_aligned_composition_cycles.py
+	python3 scripts/experiments/audit_aligned_composition_retired.py
+	python3 scripts/experiments/audit_aligned_composition_pending.py
+	python3 scripts/experiments/audit_aligned_composition_three_cycles.py
+	python3 scripts/experiments/audit_aligned_composition_pricing.py
+	python3 scripts/experiments/audit_aligned_composition_lean.py
+	python3 -m unittest discover -s tests -p 'test_aligned_composition*.py' -v
+	python3 -m unittest discover -s tests -p 'test_lean_axiom_output.py' -v
+
+verify-aligned: aligned-composition-verify

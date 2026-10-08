@@ -190,3 +190,7 @@ This project is not an official OpenAI release or endorsement.
 ### Final frame composition
 
 The [final finite composition](research/final-frame/README.md) gives conditional κ=5.2514124198891e-5 using rank-preserving envelope ties, coordinate-aware prices and bounded three-donor exchanges. Run `make final-frame-verify`; all inherited gates remain included in `make verify`. This is a finite conditional certificate, not a practical benchmark or complete formal multiplication theorem.
+
+### Aligned frame composition
+
+The [aligned finite composition](research/aligned-composition/README.md) certifies conditional κ=5.2789616935221e-5 and adds a 197-theorem Lean rational arithmetic companion. Run `make aligned-composition-verify` and `make formal-historical-verify`; all existing gates remain. The proof states the inherited all-size and analytic transfer hypotheses explicitly.
