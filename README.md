@@ -1,4 +1,42 @@
-# Integer multiplication with a conditional saving beyond 2^-21
+# Integer multiplication with a conditional saving beyond 2^-20
+
+\[
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\boxed{\kappa=\frac{9799}{10^{10}}=9.799\times10^{-7}>2^{-20}.}
+\]
+
+This main-based contribution combines a new nested controlled basis at
+bit dimension 32 with full residual batching at complex dimension 28.
+It builds on the source frames of [PR #13](https://github.com/CrocSwap/integer-mult-bounds/pull/13),
+controlled batching of [PR #10](https://github.com/CrocSwap/integer-mult-bounds/pull/10),
+the ternary construction of [PR #7](https://github.com/CrocSwap/integer-mult-bounds/pull/7),
+and the attributed dimension producer from PRs #9/#11/#12.
+
+The exponent saving is 27.28% larger than PR #13 and 2.75% above 2^-20.
+A final publication check found [PR #15](https://github.com/CrocSwap/integer-mult-bounds/pull/15)
+with a larger stated saving, 1.076678e-6. This submission contributes the
+nested-basis method and makes no current-best or first-2^-20 claim.
+The result remains conditional on the pinned upstream framework and written
+interface proofs; finite checks do not formally verify the full theorem.
+It is not a linear-time or practical runtime claim.
+
+- [New construction, scope, validation and attribution](research/nested-source/README.md).
+- [Complete bit proof](notes/nested-bit.tex) and [complex proof](notes/nested-complex.tex).
+- [Exact witness and finite checks](research/nested-source/certificate.json).
+- [Complete manuscript patch](patches/nested-source.patch) and [compiled manuscript](artifacts/nested-source-20-manuscript.pdf).
+
+```sh
+make verify
+```
+
+The new contribution is by **Zhihao Chen (jacklightChen)** with substantial
+OpenAI Codex assistance. Prior GPT-6 Astra attribution is retained without
+asserting this continuation's runtime model identity. Future work using
+these contributions should explicitly acknowledge Zhihao Chen and cite them,
+alongside icekylinx, eumemic, Rohan Arun and the other dependencies used.
+This request adds no license restriction or worldwide priority claim.
+
+## Retained PR #13 baseline: beyond 2^-21
 
 \[
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad

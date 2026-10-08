@@ -1,3 +1,9 @@
+# New conditional witness: 9799/10^10 > 2^-20
+
+See [the nested source-frame contribution](../../research/nested-source/README.md)
+for the current construction, exact certificate, inherited assumptions and attribution.
+The following entries record earlier results and are retained as historical context.
+
 # Current result
 
 The current conditional saving is `kappa = 7699/10^10 > 2^-21`, 6.26 times

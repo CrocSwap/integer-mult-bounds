@@ -1,3 +1,10 @@
+# Current nested-source patch
+
+`patches/nested-source.patch` applies independently to the pinned `upstream/`.
+Run `python3 research/nested-source/make_patch.py --materialize build/nested-manuscript`
+to reproduce the complete source tree. The historical instructions below remain
+applicable to their named independent patches; do not stack those patches.
+
 # Applying the manuscript patch
 
 `patches/batched-23.patch` applies to the original manuscript snapshot at

@@ -140,3 +140,14 @@ else
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/source-frame-21-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/source-frame-21-note.tex
 endif
+
+.PHONY: nested-certificate nested-patch
+nested-certificate:
+	python3 research/nested-source/producer.py
+	python3 research/nested-source/verify.py --full
+
+nested-patch:
+	python3 research/nested-source/make_patch.py
+	git apply --check --directory=upstream patches/nested-source.patch
+
+verify: nested-certificate nested-patch
