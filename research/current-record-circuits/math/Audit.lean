@@ -1,0 +1,43 @@
+import DirtyComplementSafety
+import FreshKernelReclaim
+import FiniteRationalChecks
+import CircuitToggleSafety
+import CurrentRecordCertificate
+
+#print axioms DirtyComplementSafety.vxor_cancel_right
+#print axioms DirtyComplementSafety.vxor_cancel_middle
+#print axioms DirtyComplementSafety.xorUpdate_involution
+#print axioms DirtyComplementSafety.xorUpdate_linear
+#print axioms DirtyComplementSafety.runWord_append
+#print axioms DirtyComplementSafety.runWord_inverse
+#print axioms DirtyComplementSafety.runWord_linear
+#print axioms DirtyComplementSafety.dirtyWord_transfer
+#print axioms DirtyComplementSafety.complement_independent_transfer
+#print axioms DirtyComplementSafety.legal_word_dirty_transfer
+#print axioms DirtyComplementSafety.legal_word_shear
+#print axioms FreshKernelReclaim.providerXor_congr
+#print axioms FreshKernelReclaim.clear_other_coordinate
+#print axioms FreshKernelReclaim.providers_unchanged
+#print axioms FreshKernelReclaim.clearing_involution
+#print axioms FreshKernelReclaim.fresh_kernel_coordinate
+#print axioms FreshKernelReclaim.fresh_mandatory_coordinate_preserved
+#print axioms FreshKernelReclaim.dirty_zero_counterexample
+#print axioms FrontierRationalCertificate.check_sound
+#print axioms FrontierRationalCertificate.rational_enclosed_moment
+#print axioms FrontierRationalCertificate.analytic_enclosure_contract
+#print axioms FrontierRationalCertificate.checked_frontier_strict
+#print axioms CircuitToggleSafety.providerXor_append
+#print axioms CircuitToggleSafety.zero_circuit_preserves_fresh_clear
+#print axioms CircuitToggleSafety.zero_circuit_preserves_dependency
+#print axioms CircuitToggleSafety.toggled_clearing_is_involution
+#print axioms CurrentRecordCertificate.weighted_numerator_exact
+#print axioms CurrentRecordCertificate.profile_rank_mass
+#print axioms CurrentRecordCertificate.profile_row_count
+#print axioms CurrentRecordCertificate.assembly_row_count
+#print axioms CurrentRecordCertificate.taylor_rounding_checked
+#print axioms CurrentRecordCertificate.finite_checks_pass
+#print axioms CurrentRecordCertificate.rational_moment_upper_below_one
+#print axioms CurrentRecordCertificate.every_assembly_slack_positive
+#print axioms CurrentRecordCertificate.exceeds_old_scoped_limit
+#print axioms CurrentRecordCertificate.published_below_old_scope
+#print axioms CurrentRecordCertificate.exceeds_old_published
