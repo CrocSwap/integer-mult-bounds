@@ -1,0 +1,408 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Conditional theorem}
+\newcommand{\FF}{\mathbb F_2}
+\newcommand{\QQ}{\mathbb Q}
+\title{Geometric envelope frames for a smaller complex network}
+\author{Research exploration prepared with OpenAI Codex}
+\date{October 8, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We propose replacing the complex motif's separate even-intersection side
+wires by two cancellation-free sum circuits. Coordinate envelopes, rather
+than spans of all input indicators, label the disjointness circuit. A single
+unused coordinate guarantees nonalternating residuals at its output boundary.
+For 25 ground points and a 26-dimensional binary label space, the exact finite
+construction supports a complex saving $4\cdot10^{-9}$. Combined with the
+retained bit network and compact-control estimates, the supplied parameter
+calculation gives $\kappa=5.9\cdot10^{-10}>2^{-31}$, about $7.11$ times the
+repository's $8.3\cdot10^{-11}$. This is an unreviewed conditional research
+argument, not a formally verified multiplication theorem or a runtime result.
+\end{abstract}
+
+\section{Scope, attribution, and what is changed}
+The baseline is CrocSwap/integer-mult-bounds at commit
+\begin{center}\texttt{6e564879f51ae16f23d392e9e196c605f36d90df}.\end{center}
+It pins the OpenAI manuscript at
+\begin{center}\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.\end{center}
+We retain its fixed finite-alphabet, fixed-number-of-one-dimensional-tapes
+model; the paired bit exponent $\tau=1-296/10^{11}$; nonadjacent routing;
+compact-control movement, reservation, repair, and recurrence arguments;
+tight Gaussian setup; and all downstream analytic and rounding interfaces.
+These retained results remain assumptions here.
+
+Only the finite complex network is replaced. The modifications are
+(i) shared scalar sum circuits, (ii) geometric envelope labels, and
+(iii) one extra \emph{label-space} coordinate. The extra coordinate increases
+the motif arity from $25^3$ to $26^3$. It is not a free address coordinate,
+scratch tape, or clean register. The layer groups its already existing axes
+into this new arity, with its usual padding and complete-row accounting.
+Every scalar auxiliary value is arbitrary and restored.
+
+Restored auxiliary circuits and complement frames are adapted from the
+repository's incidence, DAG, and paired-bit constructions. Monotone
+disjoint-set summation is established prior work; see Kaski, Koivisto, and
+Korhonen, \emph{Fast Monotone Summation over Disjoint Sets},
+\href{https://arxiv.org/abs/1208.0554}{arXiv:1208.0554}.
+Our finite experiment uses the simple exact circuit defined below, not that
+paper's asymptotic circuit-size bound. No claim of global novelty or optimality
+is made. The new point of this exploration is the binary residual argument
+for this particular complex interface.
+
+\section{Two exact scalar circuits}
+Let $n=25$, $\mathcal T=\binom{[n]}3$, $v=2300$, $h=n+1=26$, and
+$F=\FF^h$ with its ordinary dot product. Triple indicators $t_T$ have zero
+in the extra coordinate, denoted $\star$. Define
+\[
+ (D x)_S=\sum_{T\cap S=\varnothing}x_T,\qquad
+ (E x)_S=\sum_{|T\cap S|=2}x_T.
+\]
+The central gather/scatter is retained on the $n$ ground points and its
+constant channel: its coefficient from $T$ to $S$ is
+$(|T\cap S|-1)/2$. Therefore
+\[
+ \frac12D-\frac12E+R_0G=I.
+\]
+This is an identity over $\mathbb Z[i,1/2]$: the four intersection sizes
+$0,1,2,3$ give respectively $0,0,0,1$ on the left.
+
+For $D$, the output supports are the families of triples disjoint from each
+target. For $E$, fix a pair $P$ and, for each target triple $S\supset P$,
+form the partial output consisting of all triples containing $P$ except $S$.
+Inject these partial outputs into $S$. Each intersection-two pair occurs
+exactly once, indexed by its common pair.
+
+Here is a complete finite rule for constructing both DAGs. Order all triples
+lexicographically and assign them indices $0,\ldots,v-1$. A singleton support
+is its input variable. For any larger requested support, take the smallest
+dyadic interval of indices containing it and split at that interval's midpoint.
+Recursively construct the two nonempty parts and add them. Intern equal
+supports, and discard nodes not reaching any requested output. Every addition
+combines disjoint formal supports, so every coefficient is exactly one.
+This description is deterministic and independent of numerical test inputs.
+
+The companion program checks every output support, giving
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+Circuit & Additions & Partial outputs & Reversible roles\\
+\midrule
+$D$ & 212737 & 2300 & 215037\\
+$E$ & 36620 & 6900 & 43520\\
+\bottomrule
+\end{tabular}
+\end{center}
+Thus the total number of side roles per invocation is $R=258557$.
+The baseline separate-pair construction on the same 25 points requires
+$v(\binom{22}3+66)=3693800$ side roles. The new label dimension is larger;
+all subsequent counts use $h=26$ rather than silently retaining $25$.
+
+\section{Reversible embedding and arbitrary scratch}
+For a DAG with $c$ binary additions and $q$ designated output occurrences,
+allocate one role per outgoing use. At each addition identify one incoming
+role with one outgoing pivot; the other incoming role retires. At an input,
+copy its pivot into its other outgoing roles. At an addition, add its second
+incoming role into its pivot, then copy the pivot into its other outgoing
+roles. The unused destinations may be dirty: each gate is an invertible
+addition. There are $2c+q$ uses and $c$ identifications, hence $c+q$ roles.
+Different simultaneously active roles are never identified.
+
+Write $L$ for the direct sum of the two reversible DAG programs, $V$ for
+source loading, and $J$ for injection with weights $+1/2$ on $D$ and $-1/2$
+on $E$. The chronological forward schedule is
+\[
+ L,\ -J,\ L^{-1},\ -R_0,\ V,\ G,\ R_0,\ L,\ J,\ L^{-1},\ -G,\ -V.
+\]
+Here a minus on an additive update denotes its inverse. For initial side
+scratch $z$, the first injection contributes $-JLz$, and the second
+contributes $JL(z+Vx)$. Cleanup restores $z$. The central scratch cancels
+in the same way. The net target change is
+$(JLV+R_0G)x=x$, with sources and all scratch restored. The inverse schedule
+gives $y\gets y-x$. Three tensor stages, forward/inverse/forward with the
+logical banks interchanged in the middle, give $(X,Y)\mapsto(-Y,X)$.
+Use distinct scratch banks for all invocations; no stage-sharing assumption
+is needed for the counts below.
+
+\section{The geometric residual lemma}
+Merely copying the rational span argument is invalid over $\FF$: a subspace
+may be degenerate, or a nonzero orthogonal residual may be alternating.
+The upstream complex phase decomposition needs an orthonormal basis for
+every nonzero residual.
+
+\begin{lemma}[Envelope labels]
+For each node $z$ of $D$, use $U_z=\langle t_T\rangle$ if it is a singleton
+input, and otherwise use the coordinate space on the union of its source
+triples. For a node of $E$, use the span of its source triple indicators.
+These labels are nondegenerate, are nested along each DAG edge, and lie in
+$t_S^\perp$ for every output injected into target $S$. Every nonzero residual
+on a side-role path, including its entry, output, and cleanup, is
+nonalternating. The same holds for reverse paths labeled by $U_z^\perp$.
+\end{lemma}
+\begin{proof}
+A triple line has norm one. All non-input $D$ labels are coordinate spaces,
+and their supports have at least four coordinates, since they include two
+distinct triples. Coordinate spaces are nondegenerate and nested whenever
+their supports are nested. A line $\langle t_T\rangle$ entering such a space
+has a complement containing a coordinate unit outside $T$, so that complement
+is nonalternating. Between two coordinate spaces the residual is another
+coordinate space. A $D$ output uses coordinates disjoint from its target.
+
+All triples contributing to a nonsingleton $E$ node contain a fixed pair.
+Distinct triples in that pair-star have intersection two, so their indicators
+form an orthonormal family. Any subset spans a nondegenerate space; every
+difference between nested such spans is spanned by a subset of the same
+orthonormal family. A support shared between pair-stars is either a singleton
+or has the same unique common pair, so interning does not invalidate this
+argument. Output source indicators are orthogonal to their target indicator.
+
+In either circuit, $U_z$ and $\langle t_S\rangle$ are nondegenerate and
+orthogonal at an output. Thus
+$t_S^\perp\cap U_z^\perp$ is nondegenerate. It contains the unit vector
+$e_\star$, since no source or target indicator and no coordinate envelope
+uses $\star$. It is therefore nonalternating. The same unit vector lies
+in every cleanup complement $U_z^\perp$. Entry labels themselves have
+orthonormal bases as just described. Finally, complementing labels and
+reversing an inclusion preserves its orthogonal residual. This proves the
+reverse-direction statement.
+\end{proof}
+
+The extra coordinate has a specific, testable purpose. Without it, a full
+disjointness output has envelope equal to the coordinates outside $S$.
+Its residual inside $t_S^\perp$ is the even-weight plane on the three
+coordinates of $S$, a nonzero alternating space. It has no norm-one vector.
+Our verifier explicitly rejects this tempting but invalid construction.
+
+\section{Tensor-stage frames and accounting}
+Use the original three tensor stages, now in $\mathcal F=F^{\otimes3}$,
+with $m=h^3=17576$. At stage $j$, write
+$A=F^{\otimes(j-1)}=B\perp P$, where $P$ is the earlier tensor indicator
+line, and let $Q$ be the future indicator line. Suppress the factor $Q$ and
+write
+\[
+ D_0=B\otimes F,\quad D_1=A\otimes F,\quad
+ X_t=D_0\perp(P\otimes\langle t\rangle),\quad
+ Y_t=D_0\perp(P\otimes t^\perp),\quad
+ D_U=D_0\perp(P\otimes U).
+\]
+For the forward schedule in the preceding section the labels are, in order,
+\[
+ D_0,D_0,D_0,D_0,X_t,D_1,D_0,D_{U_z},Y_t,D_1,D_1,D_1.
+\]
+The middle mixer has a separate label for each DAG gate. Source and target
+updates are grouped by physical triple, with the same frame on all incidences.
+New mixer roles enter at $D_0$; retired ones next move to $D_1$ in cleanup.
+The lemma proves all side changes increase with admissible residuals.
+
+For the inverse schedule with exchanged logical banks the chronological
+operations are
+\[
+ V,G,L,-J,L^{-1},-R_0,-G,-V,R_0,L,J,L^{-1},
+\]
+with labels
+\[
+ D_0,D_0,D_0,X_t,D_{U_z^\perp},D_1,D_0,Y_t,D_1,D_1,D_1,D_1.
+\]
+Here the middle inverse mixer visits nodes in reverse topological order.
+An output slot enters it from its physical $X$ target line, contained in
+$U_z^\perp$. An input slot exits at its physical $Y$ source complement.
+This checks the often-missed reverse frame obligation.
+
+The physical data boundaries are unchanged in form:
+$X$ goes from $A\otimes\langle t\rangle$ to $A\otimes F$ and $Y$ from
+$B\otimes\langle t\rangle$ to $Y_t$, all tensored with $Q$.
+The boundary changes involving $B$, a triple complement, or a future
+complement have the original nondegenerate tensor decompositions.
+Whenever $B$ or $Q^\perp$ is nonzero, a coordinate outside the respective
+tensor indicator support gives a norm-one vector. Tensoring these vectors
+with the norm-one vectors from the lemma proves that every nonzero residual
+in the full network is nonalternating. A nondegenerate nonalternating binary
+symmetric space has an orthonormal basis, as proved in the upstream motif
+section.
+
+Only a central return $D_1\to D_0$ decreases. There are $n+1=h$ center roles
+per invocation, each losing dimension $h$, and $I=3v^2$ invocations. Hence
+\begin{align*}
+ N&=v^3=12167000000,\\
+ W&=2N+3v^2(R+n+1)=4128046210000,\\
+ L_{\mathrm{dec}}&=3v^2(n+1)h=10728120000,\\
+ s&=Wm-2N+2L_{\mathrm{dec}}=72554537309200000.
+\end{align*}
+This counts all physical roles and all edge residuals, including cleanup;
+the source and sink dimension sums telescope exactly as in the baseline.
+
+\begin{proposition}[Proposed complex interface]
+The new finite network has the original complex phase interface with the
+above $m,W,s$. Its relative deficit is
+\[
+ \eta=\frac{Wm-s}{Wm}=\frac{68}{1714426753}>0,
+ \qquad \frac{s}{W}<m^{1-4\cdot10^{-9}}.
+\]
+\end{proposition}
+\begin{proof}
+Scalar restoration, both frame orientations, and every residual type were
+checked above. For a nested edge, orthogonal weight additivity modulo four
+and an orthonormal residual basis express its phase change as one $C$ or
+$C^{-1}$ translation kernel per basis vector, exactly as in the original
+interface. All triple tensors still have Hamming weight $27$, so the original
+source/sink sign corrections and signed bank exchange apply to every data
+and auxiliary role. The extra coordinate changes ambient dimension but
+does not change these endpoint weights. Exact rational logarithm bounds
+certify $\eta>(4\cdot10^{-9})\log m$. Since $e^{-x}>1-x$ for $x>0$,
+the strict recurrence comparison follows.
+\end{proof}
+
+\section{Coefficient guard and completed layer}
+The old assertion that each wire touches at most twelve scalar gates does
+not apply to a reused DAG pivot. We supply a replacement operation count.
+One mixer uses at most $2R$ elementary additions, so its four executions
+cost at most $8R$. Two source loads use at most $4v$ additions; two weighted
+injections cost at most $4q$ additions/halvings, with $q=4v$. Two central
+gathers and two scatters cost at most $18v$. Thus the deliberately loose
+bound $32(R+v+n+1)$ suffices per invocation. The verifier checks
+\[
+ 32I(R+v+n+1)+4s+4W+4 < E_0:=64(W+m+1)^3.
+\]
+Every term is charged per coefficient; permutations do not add arithmetic
+depth. Also $2\le s<m^5$. Consequently the retained guard recurrence
+$A(e)\le sA(e/m)+E_0$, with $A(e)\le8e$ at a leaf, applies with these new
+constants. In particular $C_1=5-4\beta+\zeta$ is still valid. Recompute
+$B=s+E_0$ and
+\[
+ C_0=\left\lceil\max\{128mB^2,18mB^2(1+1/\zeta)\}\right\rceil.
+\]
+These values and the guard inequalities are in the exact certificate.
+
+No change to compact controls is required: this network supplies a fixed
+finite collection of the same admissible translation kernels, and the bit
+network implements the required binary basis changes. Distinct bit and
+complex arities are already allowed. Use
+\begin{gather*}
+ \tau=1-\frac{296}{10^{11}},\qquad \sigma=1-\frac4{10^9},\\
+ \epsilon=\frac{1999}{10000},\quad c=1,\quad
+ \beta=\frac1{1000},\quad\zeta=\frac1{10000},\quad\delta=\frac1{10^6},\\
+ C_1=\frac{49961}{10000},\quad
+ \lambda=1-\frac{2959}{10^{12}},\quad
+ \lambda'=1-\frac{2958}{10^{12}},\quad
+ \kappa=\frac{59}{10^{11}}.
+\end{gather*}
+The compact-control recurrence allows either exponent ordering. Here
+$\sigma<\tau$, so its internal exponent is $\chi=\tau$, its leaf exponent
+is $1-3996/10^{12}$, and its reservation exponent is $\max(1-c,0)=0$.
+All are below the required intermediate exponents with strict gaps.
+At $c=1$, reservation preprocessing is $O(V(\log d+\log p+1))$.
+The written reservation proof permits any fixed $c>0$; it does not require
+$c<1$. The other address conditions remain valid since
+$\epsilon(1+c)=3998/10000<1$, and
+$\epsilon C_1=99872039/10^8<1$.
+
+The seven retained assembly margins are
+\begin{align*}
+ g_1&=1-\epsilon(1+c),&g_2&=\epsilon c(1-\tau),\\
+ g_3&=\epsilon(1-\lambda'),&g_4&=(1-\tau)(1-\epsilon),\\
+ g_5&=1/4-\delta-5\epsilon/4,&g_6&=1-\delta-\epsilon,&g_7&=\epsilon.
+\end{align*}
+Their exact minimum is
+\[
+ G_*=g_3=\frac{2956521}{5\cdot10^{15}}=5.913042\cdot10^{-10},
+ \qquad G_*-\kappa=1.3042\cdot10^{-12}>0.
+\]
+All other setup inequalities are also checked with rational arithmetic.
+
+\begin{theorem}
+Conditional on the retained upstream and compact-control interfaces and the
+finite-network argument above, the retained assembly yields
+\[
+ T(\ell)=O\!\left(\ell(\log\ell)^{1-59/10^{11}}\right).
+\]
+In particular the dyadic corollary $\kappa=2^{-31}$ follows.
+\end{theorem}
+\begin{proof}
+The new motif and recomputed guard supply the same completed-layer contract.
+Its internal, leaf, reservation, repair, and padding costs are covered by the
+retained compact-control estimate. The setup inequalities and seven strict
+assembly margins therefore give the conclusion; their strict positive gap
+absorbs the fixed logarithmic factors. No downstream analytic estimate has
+been strengthened in this inference.
+\end{proof}
+
+The saving ratio is $590/83\simeq7.10843$. This measures an asymptotic exponent,
+not practical speed. Once this complex bottleneck is removed, the retained
+bit saving and $\epsilon<1/5$ imply the scoped ceiling
+$\kappa<(296/10^{11})/5=5.92\cdot10^{-10}$. The proposed witness reaches
+over $99.6\%$ of that ceiling. Further substantial improvement needs another
+bit network, layer construction, or assembly argument.
+
+\section{Audit of the complete invocation and phases}
+The side-DAG inclusions alone do not establish the full network score. The
+additional program \path{audit.py} follows every physical data, center, and
+side role through the complete twelve-step schedule, its reverse, and all
+three tensor stages at ground sizes six and seven. It constructs residual
+orthonormal bases, including the absorption of alternating planes, and checks
+at every binary address that the actual frame phase equals the product of
+its proposed $C_v$ or $C_v^{-1}$ phases. The comparison uses exact integers
+modulo four. This tests the phase factorization itself, not only ranks or
+nonalternation.
+
+If $a=h^{j-1}$, the two stage components are $B\otimes F$ and $P\otimes F$.
+The program follows their projectors separately, multiplying the $B$ rank
+by $a-1$. It also charges the full future complement at each scratch sink.
+The resulting physical-edge sum is independently compared with
+\[
+ (R+h)m+2va(h-1)+2h^2
+\]
+for every orientation and stage. The only decreases have total $h^2$.
+Multiplying the data contributions by $v^2$ and summing the three stages
+recovers $Wm-2N+2L_{\mathrm{dec}}$. Thus the rank certificate has a separate
+check on the whole schedule and its tensor accounting.
+
+A further bounded experiment varied the first/third and middle bit-network
+sizes independently. Keeping equal outer sizes allows the existing matched
+auxiliary-bank sharing. For outer size $x$ and middle size $y$, put
+$v=\binom{x}3$, $u=\binom{y}3$; the proposed counts in this experiment are
+\[
+ N=v^2u,\quad m=x^2y,\quad
+ L=2vux^2+v^2y^2,
+\]
+\[
+ W=2N+vu(R_x+x)+v^2(R_y+y).
+\]
+The script \path{bit_screen.py} computes exact logarithmic enclosures for
+all 441 choices with $x,y\in\{30,32,\ldots,70\}$. The retained $(50,50,50)$
+network is the unique winner in this finite screen. Its full circuit and both
+frame orientations are checked again. This experiment supplies no new bit
+saving and asserts no all-size or all-network optimality theorem.
+
+\section{Reproduction and proof boundary}
+Run Python 3.11 or newer from the repository root:
+\begin{verbatim}
+python3.11 research/geometric-complex/verify.py
+\end{verbatim}
+The verifier checks all source supports and scalar coefficients of both
+full-size side DAGs; every compiled role incidence in both directions;
+the geometric hypotheses for every full-size node; direct binary projector
+residuals at small sizes; every scalar input-basis direction, including dirty
+scratch, at sizes six and seven; signed three-shear composition; the invalid
+missing-coordinate control; the new guard; and all assembly margins.
+The JSON includes source hashes, retained-dependency hashes, circuit hashes,
+and the complete physical-path/phase audit. The stronger witness
+$59/10^{11}$ replaces the initial exploratory $58/10^{11}$ after checking
+all strict assembly gaps. Run the additional bounded bit experiment with
+\begin{verbatim}
+python3.11 research/geometric-complex/bit_screen.py
+\end{verbatim}
+
+Finite evidence does not by itself prove the general tape theorem.
+The tensor residual argument, precision integration, and application of the
+retained completed-layer interface above are written mathematical arguments
+requiring independent review. No full multiplication-machine implementation,
+formal proof, or combined manuscript patch is supplied. The repository's
+headline, pinned upstream source, and historical certificates are unchanged.
+This work should be treated as a reviewable conditional candidate, not an
+established new record.
+\end{document}
