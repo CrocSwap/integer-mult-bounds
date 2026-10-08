@@ -1,49 +1,50 @@
-# Integer multiplication with conditional saving 3.84569e-5
+# Integer multiplication with conditional saving 3.886224e-5
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{384569}{10000000000}=3.84569\times10^{-5}.
+\kappa=\frac{242889}{6250000000}=3.886224\times10^{-5}.
 $$
 
-Copied retained-center reads replace each local rank pair `(r,h)` by
-`(r,h-r)`, including the transformed copy. In the adopted two-stage topology,
-this reduces the total rank from `Wm-N+2L` to `Wm-N+L`.
+This composes icekylinx's copied retained-center schedule with original-envelope
+fixed `I+J` local profiles on PR36's actual `(25,23)` bit graphs. Its data
+profile is **26 singletons +21+481**. Copied transforms, all paid rank-one
+endpoint corrections, full role volumes and arbitrary scratch restoration
+remain included in the physical rank `Wm-N+L`.
 
-The selected bit construction uses dimensions `(25,23)` and the certified
-data profile `11 singletons; 21,15,481`. The complex construction uses
-`(28,28)` with mixed-center parameter `d=19`. Their strict savings are
-`384599/10000000000` and `717/10000000`, respectively. Semantic assembly
-uses `C1=1` and product row stock `p^2000`; the final absorption gap
-exceeds `4.0746e-11`.
-
-The result remains conditional on the retained multiplication framework,
-the attributed analytic and tape interfaces, and their eventual thresholds.
-Finite checks support the written proofs; they do not constitute a formal
-verification or a complete multiplication implementation.
+The strict bit saving is `19432631/500000000000`; the inherited `(28,28)`
+complex saving is `717/10^7`. Exact assembly retains `C1=1` and `p^2000`
+product row stock, with final absorption gap greater than `5.1804e-14`.
+The result is conditional on the retained analytic, recovery, finite-tape,
+prime-existence and constructive-setup interfaces and eventual thresholds.
+Finite certificates do not formally verify the full multiplication theorem.
 
 ## Proof and reproduction
 
-- [Current proof source](notes/copied-centers-note.tex).
-- [Exact certificate](certificates/copied-centers-network.json): complete
-  child lists, moments, semantic precision and 47 strict constraints.
-- [Incremental producer and corner checks](scripts/copied_centers_producer.py).
-- [Adopted two-stage and corner proofs](references/copied-centers/README.md),
-  [analytic dependencies](references/semantic-bulk/README.md),
-  [reproduction instructions](docs/reproducibility.md) and [provenance](SOURCES.json).
+- [Current proof](notes/copied-fixed-basis.tex).
+- [Exact certificate](research/copied-fixed-basis/certificate.json).
+- [Reproduction and scope](research/copied-fixed-basis/README.md).
+- [Pinned source manifest](research/copied-fixed-basis/SOURCE.json).
+- [PR36 predecessor proof](notes/copied-centers-note.tex) and
+  [analytic dependencies](references/semantic-bulk/README.md).
 
 ```sh
-make copied-centers-verify
+make copied-fixed-check
+make copied-fixed-producer
+make verify
 ```
 
-This target checks the new mixed-center producer and exact corner witness,
-reuses the unchanged verified bit producers, and certifies the new assembly.
-`make verify` additionally runs inherited checks. Proofs are supplied as
-LaTeX source; no new PDF is included.
+The focused producer rebuilds both actual scalar DAGs, original labels,
+matching and every local profile. The exact checker verifies both moments,
+controlled permutations, tree restrictions, CRT minor bounds, complete physical
+rank and all 47 assembly conditions. The full `make verify` target also runs
+inherited regressions. No PDF is generated.
 
 ## Contribution history
 
-The immediate parent is [PR #32](https://github.com/CrocSwap/integer-mult-bounds/pull/32),
-commit `0ef3aeb61f55cc0b321ce6a0ef00acee25cefe52`.
+The immediate parent is [PR #36](https://github.com/CrocSwap/integer-mult-bounds/pull/36),
+commit `11817ccacb564bb7f98789c20dc11d3fece207e3`. This composition also adopts
+the fixed-basis method of [PR #35](https://github.com/CrocSwap/integer-mult-bounds/pull/35),
+commit `9c345a2a11e5f4f3649f7c68214bf9a2a0a3fe9c`.
 The preceding contributions by **icekylinx** are:
 
 | PR | Conditional saving | Contribution |
