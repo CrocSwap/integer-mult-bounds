@@ -1,3 +1,32 @@
+# Rank-first pair assembly: conditional saving 5.102757e-5
+
+This branch proposes **κ = 5102757/10^11 > 2^-15** by applying
+[Chafik Boukhalfa's PR #60](https://github.com/CrocSwap/integer-mult-bounds/pull/60)
+rank-first reclamation to
+[Avi Eisenberg's PR #62](https://github.com/CrocSwap/integer-mult-bounds/pull/62)
+interval-strip pair graph with eumemic's PR #57 joint frame compiler.
+The physical wire count remains **137,151,806**; changed frame transitions
+improve the actual fixed-basis child profile. The bit saving is
+**5103018/10^11**. This is above #61's pinned parameter refinement
+`25508460085039/500000000000000000` at `afb7cb67`.
+
+[Proof, scope and source credits](research/rank-pair/PROOF.md) ·
+[Exact candidate certificate](research/rank-pair/screen-certificate.json)
+
+Run `make rank-pair-verify` for regenerated words, independent dirty-state
+replay, fixed profiles and exact inequalities. `make pair-assembly-verify`
+checks the underlying scalar and data construction; `make verify` retains
+main's existing verification and includes the new targets.
+
+This proposed witness is conditional on the inherited multiplication,
+all-size compiler, analytic and fixed-tape interfaces. Finite checks do not
+formally verify the full theorem, establish global optimality, or measure a
+practical speedup. The reviewed main-branch result below remains separately
+identified; its maintainer review does not cover this new increment.
+
+Composition prepared by Dominik Scholz with substantial OpenAI GPT-6 Astra /
+Codex assistance. All source-specific contributor notices are retained.
+
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original

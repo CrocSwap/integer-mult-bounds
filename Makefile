@@ -19,6 +19,9 @@ verify:
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
 	$(MAKE) verify-tests
+	$(MAKE) verify-skip-strips
+	$(MAKE) verify-pair-assembly
+	$(MAKE) verify-rank-pair
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -328,3 +331,38 @@ verify-research:
 	python3 scripts/audit_positive_side.py
 	python3 scripts/audit_parity_side.py
 	python3 scripts/audit_prime_subset_limits.py
+.PHONY: skip-strips-verify skip-strips-producer skip-strips-check
+skip-strips-producer:
+	python3 research/skip-strips/producer.py
+
+skip-strips-check:
+	python3 research/skip-strips/audit.py
+	python3 research/skip-strips/verify.py --output research/skip-strips/certificate.json
+	cd research/skip-strips && python3 -m unittest discover -s ../../tests -p 'test_skip_strips.py' -v
+
+skip-strips-verify: skip-strips-producer skip-strips-check
+
+.PHONY: skip-frame-verify
+skip-frame-verify:
+	python3 scripts/experiments/verify_skip_frame.py
+
+.PHONY: pair-assembly-verify pair-assembly-producer pair-assembly-check
+pair-assembly-producer:
+	python3 research/pair-assembly/producer.py
+
+pair-assembly-check:
+	python3 research/pair-assembly/audit.py
+	python3 research/pair-assembly/verify.py --output research/pair-assembly/certificate.json
+	python3 research/pair-assembly/frame/frame_verify.py
+	cd research/pair-assembly && python3 -m unittest discover -s ../../tests -p 'test_pair_assembly.py' -v
+
+pair-assembly-verify: pair-assembly-producer pair-assembly-check
+
+.PHONY: verify-skip-strips verify-pair-assembly verify-rank-pair rank-pair-verify
+verify-skip-strips: skip-strips-verify
+verify-pair-assembly: pair-assembly-verify
+verify-rank-pair: rank-pair-verify
+rank-pair-verify:
+	python3 research/rank-pair/frame_compile.py
+	python3 research/rank-pair/screen.py
+	python3 -m unittest discover -s tests -p 'test_rank_pair.py' -v
