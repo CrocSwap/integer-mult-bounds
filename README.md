@@ -1,19 +1,19 @@
-# Proposed balanced split frames: conditional κ = 5.1830998133565e-5
+# Proposed aligned recursion: conditional κ = 5.2782144231390e-05
 
-This branch now proposes **κ = 10366199626713/200000000000000000**,
-with **133,862,024 physical wires**. It combines balanced coarse sums,
-anchored split recursion, paid live-value reclamation, core node order and
-coordinate relabeling. Its exponent saving is **0.8097927% above pinned PR #71**.
+This branch proposes **κ = 5278214423139/100000000000000000**, using **130,468,512 physical wires**.
+Aligned multi-level splits, row/column factoring, indexed carrier exchanges,
+and coordinate-aware pricing improve the previous PR74 saving by
+**1.8350912%** and pinned PR84 by **0.9773150%**.
 
-[Construction and reproduction](research/balanced-split-frames/README.md) ·
-[Proof and credits](research/balanced-split-frames/PROOF.md) ·
-[Exact certificate](research/balanced-split-frames/certificate.json)
+[Construction and reproduction](research/aligned-exchange-frames/README.md) ·
+[Proof and credits](research/aligned-exchange-frames/PROOF.md) ·
+[Exact certificate](research/aligned-exchange-frames/certificate.json)
 
-Run `make balanced-split-frames-verify` for fresh words, complete physical and
-scalar audits, and independent exact arithmetic. This finite witness retains
-the inherited analytic and all-size transfer hypotheses. The original PR #74
-result and full verification history remain in `research/ordered-frames/`.
-The maintainer-reviewed result below is separate from this proposed increment.
+Run `make aligned-exchange-frames-verify` for fresh words, complete physical
+and scalar audits, and independent exact arithmetic. This finite witness
+retains the inherited analytic and all-size transfer hypotheses. Earlier
+results remain in `research/ordered-frames/` and `research/balanced-split-frames/`.
+The maintainer-reviewed result below is separate from this proposal.
 
 Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
 

@@ -27,6 +27,7 @@ verify:
 	$(MAKE) verify-rank-pair
 	$(MAKE) verify-ordered-frames
 	$(MAKE) verify-balanced-split
+	$(MAKE) verify-aligned-exchange
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -457,3 +458,11 @@ balanced-split-frames-verify:
 	python3 research/balanced-split-frames/graph_audit.py
 	python3 research/balanced-split-frames/check.py
 	python3 research/balanced-split-frames/independent_check.py
+
+.PHONY: verify-aligned-exchange aligned-exchange-frames-verify
+verify-aligned-exchange: aligned-exchange-frames-verify
+aligned-exchange-frames-verify:
+	python3 research/aligned-exchange-frames/producer.py
+	python3 research/aligned-exchange-frames/graph_audit.py
+	python3 research/aligned-exchange-frames/check.py
+	python3 research/aligned-exchange-frames/independent_check.py
