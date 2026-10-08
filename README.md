@@ -1,20 +1,21 @@
-# Proposed deferred span storage: conditional κ = 5.279858969335e-05
+# Proposed merged endpoints and span storage: conditional κ = 5.6299755520126e-05
 
-This branch proposes **κ = 1055971793867/20000000000000000**, using
-**130,427,779 physical wires**. Deferred reconstruction from reserved retired
-carriers saves 23 auxiliary roles in the 25-dimensional axis and improves
-the preceding aligned-recursion witness by **0.03116%**. Every additional XOR,
-frame change and reconstruction is charged in the exact profile.
+This branch proposes **κ = 28149877760063/500000000000000000**, using
+**130,377,179 physical wires**. It combines eumemic's PR96 merged auxiliary
+exteriors with the smaller PR91 axis, PR93/94 coordinate refinements, and our
+deferred retired-span storage. The complete paid profile improves our preceding
+storage witness by about **6.63%**. Every reconstruction, endpoint residual,
+frame change and recursive child is charged.
 
-[Construction and reproduction](research/deferred-span-frames/README.md) ·
-[Proof and credits](research/deferred-span-frames/PROOF.md) ·
-[Exact certificate](research/deferred-span-frames/certificate.json)
+[Construction and reproduction](research/merged-span-frames/README.md) ·
+[Proof and credits](research/merged-span-frames/PROOF.md) ·
+[Exact certificate](research/merged-span-frames/certificate.json)
 
-Run `make deferred-span-frames-verify` for fresh words, complete physical
+Run `make merged-span-frames-verify` for fresh words, complete physical
 and scalar audits, and independent exact arithmetic. This finite witness
 retains the inherited analytic and all-size transfer hypotheses. Earlier
-results remain in `research/ordered-frames/`, `research/balanced-split-frames/`
-and `research/aligned-exchange-frames/`.
+results remain in `research/ordered-frames/`, `research/balanced-split-frames/`,
+`research/aligned-exchange-frames/` and `research/deferred-span-frames/`.
 The maintainer-reviewed result below is separate from this proposal.
 
 Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.

@@ -29,6 +29,7 @@ verify:
 	$(MAKE) verify-balanced-split
 	$(MAKE) verify-aligned-exchange
 	$(MAKE) verify-deferred-span
+	$(MAKE) verify-merged-span
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -472,3 +473,8 @@ aligned-exchange-frames-verify:
 verify-deferred-span: deferred-span-frames-verify
 deferred-span-frames-verify:
 	python3 research/deferred-span-frames/verify.py
+
+.PHONY: verify-merged-span merged-span-frames-verify
+verify-merged-span: merged-span-frames-verify
+merged-span-frames-verify:
+	python3 research/merged-span-frames/verify.py
