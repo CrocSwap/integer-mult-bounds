@@ -172,3 +172,14 @@ a5-semantic-patch:
 a5-semantic-note:
 	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/a5-semantic-note.tex
 verify: a5-semantic-certificate a5-semantic-patch
+
+.PHONY: rectangular-semantic-certificate rectangular-semantic-producers rectangular-semantic-patch rectangular-semantic-note
+rectangular-semantic-certificate:
+	python3 research/rectangular-semantic/witness.py
+rectangular-semantic-producers:
+	python3 research/rectangular-semantic/producer.py
+rectangular-semantic-patch:
+	python3 research/rectangular-semantic/make_patch.py
+rectangular-semantic-note:
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/rectangular-semantic-note.tex
+verify: rectangular-semantic-certificate rectangular-semantic-producers rectangular-semantic-patch

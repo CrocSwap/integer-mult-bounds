@@ -1,3 +1,9 @@
+# Rectangular common-basis saving
+
+This branch gives the conditional saving **κ=12260937/10^12=1.2260937×10^-5** using tensor dimensions **(28,27,57)**, a proved width-25 A5 block, and the inherited semantic/bulk transfer. The changed bit network uses joint row degree96000; all47 strict assembly constraints and seven margins are checked exactly.
+
+See the [proof and reproduction guide](research/rectangular-semantic/README.md), [manuscript](notes/rectangular-semantic-note.tex), [PDF](artifacts/rectangular-semantic-note.pdf), and [validation receipt](research/rectangular-semantic/validation.json). New geometry and controls by Rohan Arun with OpenAI Codex assistance; inherited work retains attribution. All analytic and fixed-tape hypotheses remain. The following results are historical dependencies.
+
 # A contiguous A5 block beyond 2^-17
 
 This branch gives the conditional saving **κ=11447067/10^12=1.1447067×10^-5 > 2^-17**, about 4.159% above PR23. One width-21 block already present in the retained rational basis replaces 21 singleton children in each A5 corner. The physical producer and frames are unchanged; Zhihao Chen's PR23 semantic/bulk transfer of RaD/PR20 remains the analytic interface.
