@@ -1,3 +1,7 @@
+# Coordinate-flag candidate
+
+A new finite conditional witness gives **κ = 5.1428783626028×10⁻⁵**, about **0.02750% above PR71**, by changing the geometric coordinate order of its existing words. Role counts and width are unchanged. See [the argument, checks and credits](research/coordinate-flags/README.md). Run `make coordinate-flags-verify`. Full expanded verification is pending; this remains a draft under inherited hypotheses.
+
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original
