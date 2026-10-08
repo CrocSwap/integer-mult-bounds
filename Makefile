@@ -138,3 +138,18 @@ else
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
 endif
+
+.PHONY: translated-partial-certificate translated-partial-producer translated-partial-note
+translated-partial-producer:
+	python3 scripts/partial_swap_producer.py --work-dir build/translated-partial-producer --output research/translated-partial/producer-certificate.json
+
+translated-partial-certificate:
+	python3 research/translated-partial/verify.py
+
+translated-partial-note:
+	mkdir -p artifacts
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/translated-partial-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/translated-partial-note.tex
+	cp artifacts/translated-partial-note.pdf artifacts/translated-partial-18-note.pdf
+
+verify: translated-partial-certificate
