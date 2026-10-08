@@ -1,31 +1,21 @@
-# Rank-first pair assembly: conditional saving 5.102757e-5
+# Proposed ordered-frame bound: conditional κ = 5.132858076595e-5
 
-This branch proposes **κ = 5102757/10^11 > 2^-15** by applying
-[Chafik Boukhalfa's PR #60](https://github.com/CrocSwap/integer-mult-bounds/pull/60)
-rank-first reclamation to
-[Avi Eisenberg's PR #62](https://github.com/CrocSwap/integer-mult-bounds/pull/62)
-interval-strip pair graph with eumemic's PR #57 joint frame compiler.
-The physical wire count remains **137,151,806**; changed frame transitions
-improve the actual fixed-basis child profile. The bit saving is
-**5103018/10^11**. This is above #61's pinned parameter refinement
-`25508460085039/500000000000000000` at `afb7cb67`.
+This branch adds a finite conditional witness with
+**κ = 1026571615319/20000000000000000** and physical width **136,157,010**.
+It improves the exponent saving by **0.5898983%** over pinned PR #63.
 
-[Proof, scope and source credits](research/rank-pair/PROOF.md) ·
-[Exact candidate certificate](research/rank-pair/screen-certificate.json)
+[Construction and reproduction](research/ordered-frames/README.md) ·
+[Proof and credits](research/ordered-frames/PROOF.md) ·
+[Exact certificate](research/ordered-frames/certificate.json)
 
-Run `make rank-pair-verify` for regenerated words, independent dirty-state
-replay, fixed profiles and exact inequalities. `make pair-assembly-verify`
-checks the underlying scalar and data construction; `make verify` retains
-main's existing verification and includes the new targets.
+The selected source state passed the full inherited `make verify` suite;
+its receipt and raw log are included. Current upstream integration is checked
+separately. Run `make ordered-frames-verify` for the new construction.
+The unchanged PR #63 dependency is retained under `research/rank-pair/`.
+All inherited analytic and fixed-tape hypotheses remain assumed. The
+maintainer-reviewed result below is distinct from this proposed increment.
 
-This proposed witness is conditional on the inherited multiplication,
-all-size compiler, analytic and fixed-tape interfaces. Finite checks do not
-formally verify the full theorem, establish global optimality, or measure a
-practical speedup. The reviewed main-branch result below remains separately
-identified; its maintainer review does not cover this new increment.
-
-Composition prepared by Dominik Scholz with substantial OpenAI GPT-6 Astra /
-Codex assistance. All source-specific contributor notices are retained.
+Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
 
 # A sharper exponent for integer multiplication
 
@@ -36,122 +26,105 @@ The reviewed community witness gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{4123863984}{10^{14}}
-=4.123863984\times10^{-5}>2^{-15}}.
+\boxed{\kappa=\frac{25508460085039}{500000000000000000}
+=5.1016920170078\times10^{-5}>2^{-15}}.
 $$
 
-This uses the fixed finite-alphabet Turing-machine model with a fixed number of
-one-dimensional tapes in OpenAI's
+This is **23.71% above the preceding PR #49 release** and remains below 2^-14.
+It is an improvement in the asymptotic exponent saving, not a measured runtime
+speedup. The model and general reduction are inherited from OpenAI's
 [*Integer multiplication below n log n*](https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a/preprints/Integer-multiplication-below-n-log-n-September-23-2026).
-The saving is **6.10% above our previous PR #39 release**, and still below 2^-14. These numbers compare
-asymptotic exponent savings, not practical running times.
 
-**Latest circuit contribution: [Rohan Arun (@rohanarun), PR #49](https://github.com/CrocSwap/integer-mult-bounds/pull/49).**
-This composes **Chafik Boukhalfa's** reordered exclusion sums and exact recovery,
-**RaD / hipotures's** alternating producers and physical compiler, and Rohan's
-weighted matching and order search. Their full dependency chain and
-AI-assistance disclosures remain credited in the source notices.
-
-**[Proof and reproduction guide](research/climbed-48/README.md)** ·
-[Exact certificate](research/climbed-48/certificate.json) ·
-[Maintainer review](docs/research/community-followup-review.md) ·
-[Integration record](docs/research/community-followup-integration.md)
+**[Maintainer review and contribution ledger](docs/research/community-round2-review.md)** ·
+[Finite circuit proof](research/pair-assembly/PROOF.md) ·
+[Selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json) ·
+[Independent arithmetic check](docs/research/community-pair-arithmetic.json)
 
 ## What changed
 
-The community work combines recursive batching and partial-swap frames with
-semantic precision bounds, arbitrary-coordinate routing and bulk Gaussian
-resampling. Two-stage circuits, paid copied-center operations and improved
-contiguous blocks strengthen the finite networks. The latest increment
-reorders disjoint sums and retains more compatible carriers, with both local
-bases fixed and the entire physical circuit replayed exactly.
+**Avi Eisenberg's interval strips and core-aware pair assembly (#62)** arrange
+additions to allow more physical wire reuse. Combined with **eumemic's joint
+frame compiler (#57)**, this yields the strongest finite network in this batch.
+**Alejandro Zarzuelo Urdiales's exact parameter refinement and scoped Lean
+certificate (#61)** supply the selected numerical value.
 
-The selected bit network has m=575 and 177,284,805 roles. Its recursive saving
-is 4124034054/10^14; the unchanged complex network supplies 717/10^7.
-The assembly retains all seven strict exponent margins, including numerical,
-movement and normalization costs.
+The bit network has m=575 and 137,151,806 physical roles; its certified recursive
+saving is 102039046058023/2000000000000000000. The complex network retains saving
+717/10^7. All recursive children, workspace restoration, copied centers and
+endpoint costs remain charged. The seven final exponent margins are strictly positive.
 
-Also incorporated: **Alejandro Zarzuelo Urdiales's Gaussian parity and finite
-tensor proofs (PR #45)** and **Ryan S's historical Lean certificates and circuit
-checks (PR #26)**. These strengthen verification within their stated scope;
-they do not change κ or formally verify the complete multiplication theorem.
+The preceding combination of Avi's skip-prefix strips (#53), **Rohan Gupta's
+dual-suffix layout (#55)**, eumemic's compiler and **Chafik Boukhalfa's composition
+and ranked reclamation (#58/#60)** is also fully retained and reviewed.
+
+Other reviewed contributions are retained even when their numerical witnesses
+are superseded: **RaD's enlarged-frame and clone machinery (#51)**, **Rohan Arun's
+positive-frame composition and order searches (#52/#56)**, **Rohan Gupta's parallel
+order search (#50)**, **Chafik's original-envelope clones (#54)**, and **Rohan Garg's
+split-pair recursion (#59)**. The review records the exact validation scope of each.
 
 ## Attribution
 
-This is a community result. Principal incorporated contributions include:
+The names below identify GitHub contributors; they are not verified Twitter handles.
 
-- **[Rohan Arun (@rohanarun)](https://github.com/rohanarun):** corner geometry,
-  fixed-basis composition, weighted matching and the latest [#49](https://github.com/CrocSwap/integer-mult-bounds/pull/49) circuit.
-- **[Chafik Boukhalfa (@chafreaky)](https://github.com/chafreaky):** exact data
-  recovery, independent checkers and reordered exclusion sums ([#43](https://github.com/CrocSwap/integer-mult-bounds/pull/43), [#46](https://github.com/CrocSwap/integer-mult-bounds/pull/46), [#48](https://github.com/CrocSwap/integer-mult-bounds/pull/48)).
-- **icekylinx:** recursive batching, partial swaps, fixed projector profiles,
-  copied retained centers and the selected complex construction.
-- **Zhihao Chen (@jacklightChen):** controlled bases, translated frames,
-  semantic/bulk compatibility and two-stage integration.
-- **RaD project (@hipotures):** semantic precision, arbitrary-coordinate
-  routing, phase-cell inversion, bulk resampling, alternating pair order and
-  the independent physical role compiler ([#41](https://github.com/CrocSwap/integer-mult-bounds/pull/41)).
-- **James Chang (@jamesyc):** reversed two-stage geometry and exact controls.
-- **Aurel Prosz (@Paureel) and Swapnil Jain:** attributed two-stage development
-  and the paid copied-stream endpoint construction.
-- **Dominik Scholz (@DominikScholz):** dimension, parameter and fixed-basis refinements.
-- **eumemic:** complex circuits, Gaussian resampling and source-frame work;
-  **Bortlesboat** and **dleen:** aligned pairing, retained totals and sharing.
-- **[Alejandro Zarzuelo Urdiales (@alejandrozu)](https://github.com/alejandrozu):**
-  Gaussian parity, finite tensor execution proofs and mixed-center reference
-  checks ([#45](https://github.com/CrocSwap/integer-mult-bounds/pull/45)).
-- **[Ryan S (@princezuda)](https://github.com/princezuda):** historical Lean
-  certificates, frame/movement lemmas and independent circuit checks
-  ([#26](https://github.com/CrocSwap/integer-mult-bounds/pull/26)).
+- **[Avi Eisenberg (ikeboy)](https://github.com/ikeboy):** skip-prefix and interval strips, core-aware pair assembly ([#53](https://github.com/CrocSwap/integer-mult-bounds/pull/53), [#62](https://github.com/CrocSwap/integer-mult-bounds/pull/62)).
+- **[Rohan Gupta (gupt1156)](https://github.com/gupt1156):** dual-suffix strips and parallel order improvements ([#50](https://github.com/CrocSwap/integer-mult-bounds/pull/50), [#55](https://github.com/CrocSwap/integer-mult-bounds/pull/55)).
+- **[eumemic](https://github.com/eumemic):** joint frame compilation and paid reclamation ([#57](https://github.com/CrocSwap/integer-mult-bounds/pull/57)); earlier complex circuits, Gaussian resampling and source frames.
+- **[Chafik Boukhalfa (chafreaky)](https://github.com/chafreaky):** exact recovery, independent checkers, reordered sums, paid clones and joint-compiler composition/refinement ([#43/#46/#48/#54/#58/#60](docs/research/community-round2-review.md)).
+- **[Rohan Arun (rohanarun)](https://github.com/rohanarun):** corner geometry, fixed-basis composition, weighted matching, order searches and positive-frame composition ([#49](https://github.com/CrocSwap/integer-mult-bounds/pull/49), [#52](https://github.com/CrocSwap/integer-mult-bounds/pull/52), [#56](https://github.com/CrocSwap/integer-mult-bounds/pull/56)).
+- **[Rohan Garg (rohangar1)](https://github.com/rohangar1):** split-pair recursion, order refinement and paid-clone composition ([#59](https://github.com/CrocSwap/integer-mult-bounds/pull/59)).
+- **[Alejandro Zarzuelo Urdiales (alejandrozu)](https://github.com/alejandrozu):** Gaussian parity and finite tensor proofs, matrix/search tools, exact refinement and scoped Lean arithmetic ([#45](https://github.com/CrocSwap/integer-mult-bounds/pull/45), [#61](https://github.com/CrocSwap/integer-mult-bounds/pull/61)).
+- **[RaD project (hipotures)](https://github.com/hipotures):** semantic precision, routing, phase-cell inversion, bulk resampling, alternating producers, physical compiler and enlarged-frame/clone machinery ([#41](https://github.com/CrocSwap/integer-mult-bounds/pull/41), [#51](https://github.com/CrocSwap/integer-mult-bounds/pull/51)).
+- **icekylinx:** recursive batching, partial swaps, fixed projector profiles, copied retained centers and the selected complex construction.
+- **Zhihao Chen (jacklightChen):** controlled bases, translated frames, semantic/bulk compatibility and two-stage integration.
+- **James Chang (jamesyc):** reversed two-stage geometry and exact controls.
+- **Aurel Prosz (Paureel) and Swapnil Jain:** attributed two-stage development and paid copied-stream endpoints.
+- **Dominik Scholz:** dimension, parameter and fixed-basis refinements.
+- **Ryan S (princezuda):** historical Lean certificates, algebraic contracts and independent circuit checks ([#26](https://github.com/CrocSwap/integer-mult-bounds/pull/26)).
+- **Andrew Barnes (Bortlesboat) and David Leen (dleen):** aligned pairing, retained totals and sharing.
 
-The [full contribution record](CONTRIBUTORS.md) also credits parallel,
-incremental, superseded and pending work. Inclusion there does not claim incorporation
-or verification of every PR. Douglas Colkitt maintains the project and its
+The [full contribution record](CONTRIBUTORS.md) credits incorporated, parallel,
+superseded and pending work separately. Douglas Colkitt maintains the project,
 original research, review and integration, with OpenAI Codex assistance.
 OpenAI's original manuscript and Harvey–van der Hoeven's analytic work retain
 their attribution. Contributor-specific AI disclosures remain in [NOTICE](NOTICE).
 
 ## Evidence and limits
 
-The selected contribution is PR #49 at `f95d2910e027495983b53cae1693cf535abf2569`.
-The [follow-up review](docs/research/community-followup-review.md) accepts its
-increment conditionally on the retained [PR #39 audit](docs/research/community-final-audit.md)
-and original #109 framework. This is not a claim of full formal verification,
-independent human peer review, worldwide priority or optimality. No complete
-practical multiplication-machine implementation is supplied.
+The [round-two review](docs/research/community-round2-review.md) extends the
+[previous follow-up audit](docs/research/community-followup-review.md) and
+[PR #39 transfer review](docs/research/community-final-audit.md). The original
+#109 framework and retained all-size interfaces remain assumptions. This is not
+full formal verification, independent human peer review, a worldwide priority
+claim, or a practical multiplication benchmark.
 
-Validation includes fresh finite producers, exact rank profiles, full dirty
-workspace restoration, historical patch checks and an independent rational
-moment/assembly checker. Both formal submissions were built with their pinned
-Lean versions; their axiom audits accept only Lean's standard axioms.
-See the [review receipts](docs/research/community-followup-validation.json) and
-[combined integration record](docs/research/community-followup-integration.md).
+Fresh checks cover complete emitted words and dirty basis vectors, physical
+frame transitions, exact fixed-basis profiles, all 4,073,300 data pairs for the
+retained geometry, and independent rational recurrence/assembly arithmetic.
+The formal packages verify their stated finite/arithmetic contracts. PR #61's
+integrated axiom audit contains 169 distinct declarations, including 11 concrete
+frontier theorems; its input rows are bound to the replayed finite profile.
+They do not formalize the whole multiplication algorithm.
 
-The earlier PR #39 release and **2^-30 checkpoint** (`1a74950`) remain preserved,
-with all earlier certificates, proofs, patches and contributor notices.
+The [review receipt](docs/research/community-round2-validation.json) distinguishes
+fresh maintainer checks from contributor-supplied evidence. Earlier witnesses,
+patches and attribution remain available. Submissions after #62 are outside this checkpoint's review; exact reviewed heads
+are recorded in the ledger.
 
 ## Reproduce
 
-Requires Python 3.11 or newer, Git, Make and a C++17 compiler with unsigned
-128-bit integer support (tested with GCC and Clang). No third-party Python
-packages or network access are needed for the arithmetic/circuit verification.
-The separate formal targets require Lean and an initial toolchain/Mathlib download.
-
 ```sh
+make verify-pair
+make verify-joint
+make verify-positive
+make formal-matrix-verify
+# Complete arithmetic, producer, historical and unit-test suite:
 make verify
-git diff --exit-code -- certificates patches
 ```
 
-For the final witness and the independent arithmetic/source audit:
-
-```sh
-make copied-fixed-verify climbed-48-verify
-make community-followup-check
-make formal-verify
-```
-
-Allow several minutes and multiple gigabytes of memory for full producer
-rebuilds. See [reproduction details](docs/reproducibility.md).
+Python 3.11+, a C++17 compiler and Boost headers are required for the full
+arithmetic suite. The formal targets use their pinned Lean versions. See
+[reproduction details](docs/reproducibility.md) and [CI layout](docs/ci-verification.md).
 
 ## Historical witnesses and independent patches
 

@@ -1,0 +1,308 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem{claim}{Claim}
+\theoremstyle{definition}\newtheorem{definition}{Definition}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{Idea A made precise: line passes on the fine field of one axis}
+\date{Draft, October 8, 2026}
+\begin{document}
+\maketitle
+
+This replaces the paragraph ``Idea A'' of \texttt{notes/stack-notes.tex}. It refers to the
+pinned upstream sections \texttt{02-streams.tex} (machine model,
+Lemma~elementary-streams and its counter paragraph) and \texttt{07-resampling.tex}
+(lem:tensor-resampling), to \texttt{notes/segmented-inverse.tex} and to PR~\#5's
+chirped-correlation blocks. A machine-level simulation of every data movement below is
+\texttt{scripts/check\_fine\_field.py}; it checks outputs against the linewise maps
+and checks the movement bounds of Lemma~\ref{lem:fine} case by case.
+
+\section{Setting}
+
+Fix an axis $i$ of the padded box. Its box length is $n=t_i\in\{r/2,r\}$, a power of two.
+Collapse the address fields before axis $i$ to one field $X$ and those after it to one
+field $Y$ (upstream's collapsing convention). An entry is a record of $b=O(p)$ bits.
+Movement is counted in records; a record move costs $b$ head steps. Put
+$V=|X|\,n\,|Y|$ (records), choose $f$ with $2^f\mid n$, write the axis coordinate as
+\[ j=J2^f+u,\qquad 0\le u<2^f,\quad 0\le J<n_s:=n/2^f, \]
+and call $(X,J,Y,u)$, lexicographic with $X$ most significant, the \emph{slab order}. For
+fixed $X$ and $J$ the $|Y|2^f$ records with that $(X,J)$ form the \emph{slab} $(X,J)$; for
+fixed $Y$ in it, the $2^f$ consecutive records form the \emph{slab row} $(X,J,Y)$. Put
+$B=|Y|2^f$ and $G=n_sB$ (records per $X$-group).
+
+A line $(X,Y)$ is \emph{valid} when every coordinate held in $X$ and $Y$ lies below its
+current bound ($s_h$ or $t_h$, per the shape descriptor). Invalid lines are zero and must be
+mapped to zero lines (upstream proof of lem:tensor-resampling).
+
+\begin{definition}[Slab-local sweep]\label{def:sweep}
+A \emph{forward sweep} on a line of box length $n$ is given by
+\begin{itemize}
+\item an input period $\pi\in\{s_i,t_i\}$: the input $x$ is read only through the virtual
+line $\tilde x_j=x_{j\bmod\pi}$, $j\in\mathbb Z$, so box entries $j\in[\pi,n)$ are never read;
+\item an output count $m\le n$: outputs $k\in[0,m)$ are computed and $k\in[m,n)$ are written $0$;
+\item a non-decreasing centre $c:\mathbb Z\to\mathbb Z$ with $c(0)=0$ and
+$c(k+a)-c(k)\le\sigma a+1$ for $a\ge0$, where $\sigma\le5/4$, and a half-width $W$ such that
+output $k$ reads $\tilde x$ only on $[c(k)-W,c(k)+W]$;
+\item a state of $\Sigma$ records per line, an auxiliary row of $\xi$ records per slab row,
+and per-slab data $D_J$ that depend on $J$ and the axis only (not on $X$, $Y$);
+\item a kernel $K_J$ that, given $\tilde x$ on the window of Claim~\ref{cl:window}, the state
+after slab $J-1$ and $D_J$, returns the $2^f$ outputs of slab $J$, the state after slab $J$ and
+the auxiliary row of slab $J$.
+\end{itemize}
+A \emph{backward sweep} is the same with $J$ decreasing, its state seeded from the final
+forward state, and its kernel reading the auxiliary row that the forward sweep wrote for the
+same slab row. The \emph{linewise map} is the sweep run on one line in natural order.
+\end{definition}
+
+The passes Idea A must carry are instances (Section~\ref{sec:instances}): $\mathsf S'$ and
+$A$ ($\pi=s_i$, $m=t_i$, $c(k)=\lfloor s_ik/t_i\rfloor$), $B_0$ ($\pi=t_i$, $m=s_i$,
+$c(k)=\lfloor t_ik/s_i\rfloor$, so $\sigma=t_i/s_i\le5/4$), $N$, $M^{-1}$ and $E$
+($\pi=s_i$, $m=s_i$, $c(k)=k$), and the Woodbury forward and backward sweeps of the segmented
+inverse.
+
+\section{The lemma}
+
+\begin{lemma}[Fine-field line passes]\label{lem:fine}
+Let a forward sweep satisfy
+\begin{enumerate}
+\item[(W1)] $2^f\ge4W+4$;
+\item[(W2)] $\pi\ge3\cdot2^f$;
+\item[(W3)] $\Sigma\le2^f$ and $\xi\le2^f$.
+\end{enumerate}
+On a fixed set of work tapes (independent of $d$, $|X|$, $|Y|$, $n$) the following hold, with
+all counters, rewinds and returns included.
+\begin{enumerate}
+\item[(a)] \emph{Exposure.} $(X,J,u,Y)\to(X,J,Y,u)$ and its inverse are $f$ digit moves each and
+cost exactly $6fV$ record moves each.
+\item[(b)] \emph{Forward pass.} The schedule of Section~\ref{sec:fwd} writes, in slab order,
+exactly the outputs of the linewise map on every valid line and zeros elsewhere, and moves at most
+\[
+ 28V+11|X|(n_e-n_s)B+\frac{4\Sigma+2\xi+2}{2^f}V+4|X||Y|\Sigma
+\]
+records, where $n_e\le n_s+4$ is the number of extended slabs.
+\item[(c)] \emph{Backward pass.} The schedule of Section~\ref{sec:bwd} is likewise exact and moves
+at most $11V+\frac{3\xi+6\Sigma+2}{2^f}V+4|X||Y|\Sigma$ records.
+\item[(d)] \emph{Setup.} The per-slab data are computed once per axis and read in lockstep with
+$J$; the validity bitmap costs at most $2|Y|$ moves to build per pass. Kernel work is the
+linewise work plus at most two partial blocks per slab row.
+\end{enumerate}
+Hence an axis with $P_f$ forward-type and $P_b$ backward-type passes costs
+\[
+ b\,V\bigl(12f+28P_f+11P_b+o(1)\bigr)\ \text{head steps}
+\]
+plus the line algorithm's own arithmetic, when $n_s\to\infty$; for every axis this is
+$O(Vb(f+P))$ with $P=P_f+P_b=O(1)$.
+\end{lemma}
+
+The constants are worst-case bounds; the simulation's measured values are listed at the end.
+
+\section{Proof}
+
+\subsection{Exposure and restoration}
+Write $u=(u_{f-1}\dots u_0)$ in binary. Before step $\iota=0,\dots,f-1$ the order is
+$(X,J,u_{f-1}\dots u_\iota,Y,u_{\iota-1}\dots u_0)$. Step $\iota$ moves digit $u_\iota$ past $Y$:
+with prefix $P=|X|n_s2^{f-1-\iota}$ and suffix $S=2^\iota$ it maps
+$(P,u_\iota,Y,S)\to(P,Y,u_\iota,S)$, which is item~2 of Lemma~elementary-streams. Implemented as
+split on $u_\iota$ into two stream tapes ($V$ reads, $V$ writes), return of both streams ($V$ in
+total), merge in output order ($V$ reads, $V$ writes) and return of the output ($V$), it costs
+$6V$. Restoration runs the inverse moves for $\iota=f-1,\dots,0$. When $Y$ is empty (the last
+axis) nothing moves.
+
+\subsection{The window}
+\begin{claim}\label{cl:window}
+Put $J'(J)=\lfloor(c(J2^f)-W)/2^f\rfloor$. Under (W1), every input read by an output of slab $J$
+lies in virtual slabs $J',J'+1,J'+2$, and $0\le J'(J+1)-J'(J)\le2$.
+\end{claim}
+\begin{proof}
+The inputs of slab $J$ lie in $[c(J2^f)-W,\,c(J2^f+2^f-1)+W]$, an interval of length at most
+$\sigma(2^f-1)+2W+2\le\tfrac54 2^f+\tfrac12 2^f<2\cdot2^f+1$ by (W1). It starts at offset
+$o\in[0,2^f)$ from $J'2^f$, so it ends before $J'2^f+o+2\cdot2^f+1\le(J'+3)2^f$. Monotonicity
+of $c$ gives $J'(J+1)\ge J'(J)$, and $c((J+1)2^f)-c(J2^f)\le\sigma2^f+1<2\cdot2^f$ gives the step
+bound.
+\end{proof}
+
+\begin{remark}[The notes' window was wrong]
+\texttt{stack-notes.tex} centres the window at $J'=\lfloor J/\sigma\rfloor$ and reads slabs
+$J'-1,J',J'+1$. The inputs of slab $J$ end near $(J+1)2^f/\sigma+W$, which reaches slab $J'+2$
+whenever $\{J/\sigma\}>1-1/\sigma-W2^{-f}$, a positive fraction of $J$ since $\theta$ is small.
+For $(s,t,2^f,W)=(1009,1024,64,8)$, 6 of 16 slabs fail (\texttt{scripts/check\_fine\_field.py}). Anchoring at the
+lowest input, as above, keeps three slabs.
+\end{remark}
+
+\subsection{Virtual slabs and the wrap splice}
+For an X-group, the \emph{extended array} holds virtual slabs $v=v_{\rm lo},\dots,v_{\rm hi}$ in
+order $(v,Y,u)$, where entry $(v,Y,u)$ is $\tilde x_{v2^f+u}$ of line $(X,Y)$. Here
+$v_{\rm lo}=J'(0)=\lfloor-W/2^f\rfloor=-1$ and $v_{\rm hi}=\max\{J'(J)+2: J2^f<m\}$. In
+every instance $c(m-1)<\pi$, so $J'\le n_\pi$, $v_{\rm hi}\le n_\pi+2\le n_s+2$ and
+$n_e\le n_s+4$; and $(v_{\rm hi}+1)2^f\le\pi+3\cdot2^f\le2\pi$ by (W2).
+
+\begin{claim}\label{cl:splice}
+Fix $v$ and $\rho=\pi\bmod2^f$, $n_\pi=\lfloor\pi/2^f\rfloor$. Row $(v,Y)$ is drawn from at most
+two physical slab rows $(a_v,Y)$, $(b_v,Y)$, each as one run of increasing $u$:
+\begin{itemize}
+\item $0\le v<n_\pi$: the row is physical row $(v,Y)$ (aligned copy);
+\item $v=n_\pi$, $\rho\ne0$: $u<\rho$ from row $(n_\pi,Y)$ at $u$; $u\ge\rho$ from row $(0,Y)$
+at $u-\rho$ (the splice at $u=\pi\bmod2^f$);
+\item $v<0$ or $v>n_\pi$: the virtual range maps to one physical interval of length $2^f$
+starting at $v2^f+u\bmod\pi$, which meets two consecutive slabs, split at the shift $\rho$.
+\end{itemize}
+When $\rho=0$ (the input period of $B_0$ is $t_i$) every virtual row is an aligned copy.
+\end{claim}
+\begin{proof}
+$[v2^f,(v+1)2^f)$ has length $2^f<\pi$ and lies in $[-\pi,2\pi)$, so it contains at most one
+multiple of $\pi$. If none, its image mod $\pi$ is one interval of length $2^f$, which meets at
+most two slabs, each in an increasing run. If it contains $\pi$ it is $v=n_\pi$, its part below
+$\pi$ is $[n_\pi2^f,\pi)$ inside slab $n_\pi$, and its part above maps to $[0,2^f-\rho)$ inside
+slab~$0$. It cannot contain $0$ unless $v=0$, where the range starts at $0$.
+\end{proof}
+
+\paragraph{Building it.} Tape IN holds the array; first copy the X-group to tape CP ($G$ reads,
+$G$ writes, one return). For each $v$ park IN at row $(a_v,0)$ and CP at row $(b_v,0)$. For
+$Y=0,\dots,|Y|-1$ read the two runs in $u$ order, each head finishing its slab row, and write
+every value to E0, E1, E2 in the same step. Each head advances exactly $2^f$ per $Y$, so $B$ per
+virtual slab. A single head would pay $|Y|2^f$ per row to jump between the two physical slabs,
+i.e.\ $\Theta(|Y|B)$ per spliced slab; the second head is what makes the splice linear. The
+sequence of $a_v$ is $n_\pi-1$ (for $v=-1$), $0,1,\dots,n_\pi$, then small indices again, so IN
+seeks across the group at most four times and CP at most twice.
+
+\subsection{Forward schedule}\label{sec:fwd}
+Tapes: IN, CP, E0, E1, E2, OUT, ST (state), VB (validity bitmap over $Y$), AX (auxiliary rows),
+FIN (final states), BUF (window buffer), DJ (per-slab data), descriptor and counter tapes.
+
+\emph{Validity.} VB holds $\prod_h[y_h<\text{bound}_h]$ over $Y$ in $Y$ order. Build it from the
+innermost $Y$ axis outward: the bitmap for axes $h..$ is the concatenation over digit values of
+copies of the bitmap for axes $h+1..$, or of zeros above the bound. Each level costs twice its
+size and sizes at least double, so building costs at most $2|Y|$ per tape. $X$-validity is
+computed once per group by an odometer, $O(L)$ against a group of $G\ge n$ records.
+
+For each $X$ in order:
+\begin{enumerate}
+\item If $X$ is invalid, advance IN by $G$ and write $n_sB$ zeros to OUT, $n_s|Y|\xi$ to AX and
+$|Y|\Sigma$ to FIN.
+\item Otherwise build the extended array and write $|Y|\Sigma$ zero states to ST.
+\item For $J=0,\dots,n_s-1$: if $J2^f\ge m$ write a zero slab and zero auxiliary rows. Otherwise
+seek E$r$ to row $(J'(J)+r,0)$ for $r=0,1,2$, and ST, VB to their starts. For each $Y$:
+read the VB bit; copy $2^f$ records from each of E0, E1, E2 into BUF, which then holds
+$\tilde x$ on $[J'2^f,(J'+3)2^f)$; read the $\Sigma$-record state. If valid, run $K_J$ with
+$D_J$, step ST back $\Sigma$ and write the new state. Write the $2^f$ outputs (zeros if invalid
+or $k\ge m$) to OUT and the $\xi$-record auxiliary row to AX.
+\item Copy ST to FIN.
+\end{enumerate}
+
+\emph{Invariant.} At the start of $(J,Y)$, head E$r$ is at row $(J'(J)+r,Y)$, ST at record $Y$,
+VB at bit $Y$, and OUT, AX at position $(X,J,Y)$ of slab order. It holds at $Y=0$ by the seeks,
+and each step advances E$r$ by one row, ST by $\Sigma$, VB by one, OUT by $2^f$ and AX by $\xi$.
+
+\emph{Correctness.} By induction on $J$, state record $Y$ of group $X$ equals the linewise
+state of line $(X,Y)$ after slabs $0..J-1$: only step $(J,Y)$ touches record $Y$, and the slabs
+of each line are visited in increasing $J$. By Claims~\ref{cl:window} and \ref{cl:splice}, BUF
+contains the exact values the linewise kernel reads, so outputs, states and auxiliary rows
+agree. Invalid lines keep a zero state and get zero outputs, as the linewise rule writes. No
+padded box entry $j\in[\pi,n)$ is read (Claim~\ref{cl:splice}), and every output position is
+written once, so the box keeps its full size and slab order.
+
+\emph{Movement per valid group.} IN: $\le6G+n_eB$ (entering the group, copy, return, four
+cross-group seeks, the build reads). CP: $\le3G+n_eB$. Each E$r$: $n_eB$ writes, a return
+after the build and one at the next group, and in the main loop $B$ per slab plus a re-seek of
+at most $B$ (head ends at $J'+r+1$, needs $J'(J+1)+r\in[J'+r,J'+r+2]$), so $\le3n_eB+2n_sB$.
+OUT: $G$, plus one final return of $V$ in total. ST: $4|Y|\Sigma$ per slab and $4|Y|\Sigma$ at
+the ends. VB: $2|Y|$ per slab. AX: $|Y|\xi$ per slab plus a final return. Summing with
+$G=n_sB$:
+\[
+ |X|B(16n_s+11n_e)+V+\tfrac{4\Sigma+2\xi+2}{2^f}V+4|X||Y|\Sigma ,
+\]
+which is the bound in (b). Invalid groups cost less.
+
+\subsection{Backward schedule}\label{sec:bwd}
+Input is the forward output Z (slab order), AX and FIN. For each valid $X$: copy its $|Y|\Sigma$
+final states from FIN to ST; for $J$ from $\lfloor(m-1)/2^f\rfloor$ down to $0$, seek Z and the
+output tape to slab $(X,J)$ and AX to row $(X,J,0)$; for each $Y$ read the slab row into BUF and
+its auxiliary row, read the state, run the backward kernel over $u$ \emph{decreasing} inside
+BUF, write the new state, and write the $2^f$ outputs in increasing $u$. Lines are independent,
+so visiting $Y$ in increasing order inside a decreasing-$J$ sweep is legitimate; only the order
+along each line matters. Invariant and induction are as in the forward case with $J$
+descending, and AX row $(X,J,Y)$ is read at the position where it was written.
+
+Movement: Z and the output each read or write $B$ and seek back $2B$ per slab, plus entering
+the group ($\le2G$): $\le5G$ each, and one final return of the output ($V$). AX:
+$3|Y|\xi$ per slab. ST: $\le4|Y|\Sigma$ per slab plus loading. VB: $2|Y|$ per slab. This gives
+(c). If a backward-type kernel needs neighbouring slabs (the second $M^{-1}$ after the backward
+solve), use the three-tape window of Section~\ref{sec:fwd} with $J$ descending: $J'$ is
+non-increasing with steps at most $2$, and the forward bound applies.
+
+\subsection{Per-slab data and setup}
+$D_J$ consists of $J'(J)$, the centres $c(k)$ and fractional offsets for $k$ in slab $J$, the
+block boundaries and $q$-counters, the list of wraps in slab $J$, and (for Woodbury) the
+elimination factors of the wraps in slab $J$. None depends on $X$ or $Y$. They are produced once
+per axis by incrementing the $q$-counters along $J$, $O(2^fp)$ bit operations per slab, and stored
+on DJ in $J$ order; DJ is swept once per X-group. Since it is read once per group and not per
+line, the total is $|X|\cdot|D|$, with $|D|$ the size of all $D_J$ (bounded in
+Section~\ref{sec:instances}). This replaces the notes' per-chunk odometer test, which is no
+longer needed: validity is one VB bit per slab row. A block of the line algorithm that
+straddles a slab boundary is recomputed from BUF by both slabs; with blocks of length at most
+$W\le2^f/4$, at most two partial blocks occur per slab row, so kernel work is at most
+$(1+2W/2^f)\le3/2$ times linewise.
+
+\subsection{Instances and the conditions (W1)--(W3)}\label{sec:instances}
+\begin{itemize}
+\item $\mathsf S'$, $A$, $B_0$, $E$: windowed, no state ($\Sigma=\xi=0$). $W=3m+3$ for
+$\mathsf S'$ (notes), the halo of $E$.
+\item $M^{-1}$ via PR~\#5's chirped correlation: each segment block has length at most
+$\lambda=\lfloor1/\theta\rfloor+1$ and reads a halo $w$; take $W\ge\lambda+2w$ so every segment
+meeting slab $J$ lies in BUF and is recomputed there. No state. The segment crossing the period
+boundary (``stitched from the two line ends'' in \texttt{segmented-inverse.tex}) is read through
+$\tilde x$, i.e.\ through the halo slabs $v=-1$ and $v\ge n_\pi$; no separate stitching.
+\item Woodbury. $N$ is the same matrix on every line of axis $i$, so $C=I+V^{\mathsf T}M^{-1}U$
+and all its elimination factors are line-independent and live in $D_J$: $O(w^2)$ words of
+precision $P$ per wrap, $|D|=O((\theta n+1)w^2P/b)$ records per axis, read once per group, a
+fraction $O(\theta w^2P/b)$ of $V$ even when $|Y|=1$. Per line only right-hand sides are
+carried. Forward sweep: the state is the running reduced right-hand side of the current block
+row ($2w$ words) and the cyclic-border accumulator for the last block row ($2w$ words), so
+$\Sigma=4wP/b$; the auxiliary row stores the reduced right-hand side of each wrap in the slab,
+$\xi=(\lceil\theta2^f\rceil+1)\,2wP/b$. After slab $n_s-1$ every line of the group solves its
+last $2w\times2w$ border system (factor in $D$) for $x_{\rm last}$, kept in FIN. Backward sweep:
+state $(x_{k+1},x_{\rm last})$, $4w$ words; it reads the auxiliary rows in reverse.
+\item Conditions. With the recentred sub-blocks $P\le2Q+O(\log s)=O(b)$. Then (W3) needs
+$2^f\ge C w$ and $\theta w\le c$; with $\alpha^2\approx Q/(48d)$, $w=O(\sqrt d)$ and
+$\theta\approx1/(4dL^y)$, so $\theta w\to0$, and (W1) with $W\ge\lambda+2w=\Theta(dL^y)$ gives
+$2^f=\Theta(dL^y)$, $f=O(\log L)$. (W2) holds since $s_i\ge\tfrac45 t_i\ge r/4\gg2^f$.
+\end{itemize}
+
+\subsection{Total}
+Per axis: exposure and restoration $12fVb$; each forward-type pass at most $28Vb$ and each
+backward-type pass at most $11Vb$ up to the terms $11|X|(n_e-n_s)B=O(V2^f/n)$,
+$O(V(\Sigma+\xi)/2^f)$ and $O(|X||Y|\Sigma)$, all $O(V)$ by (W3) and $o(V)$ as $n_s\to\infty$;
+the setup terms above are $o(Vb)$. Over $d$ axes this is $O(Vb\,d(\log L+P))$, as the notes
+claim. \qed
+
+\section{Changes to the notes' paragraph}
+\begin{enumerate}
+\item The centred window $J'-1..J'+1$ with $J'=\lfloor J/\sigma\rfloor$ misses inputs; anchor
+$J'$ at the lowest input read and use $J',J'+1,J'+2$ (Claim~\ref{cl:window}), with
+$2^f\ge4W+4$. $J'$ moves by $0$, $1$ or $2$ per slab (2 occurs for $B_0$).
+\item The wrap splice needs two heads advancing in lockstep over $Y$ (Claim~\ref{cl:splice});
+copying ``the boundary slabs'' with one head costs $\Theta(|Y|)$ per record. The tail splice
+pairs slab $n_\pi$ with slab~$0$, and the halo slabs pair consecutive slabs shifted by
+$\pi\bmod2^f$. (W2) $\pi\ge3\cdot2^f$ keeps every virtual slab on at most two physical slabs.
+\item Per-line state for all $|Y|$ interleaved lines is an array in $Y$ order on its own tape,
+swept once per slab; auxiliary data for the backward sweep is an array in $(X,J,Y)$ order. Both
+must fit in a slab row, which is (W3), and this is what lower-bounds $2^f$ besides the window.
+\item The Woodbury factors are line-independent; only right-hand sides are per line. Storing
+factors per line (as ``per-line state'' suggests) would cost $\Theta(w^2)$ per wrap per line and
+violate (W3) when $\theta w^2P/b$ is not small.
+\item Per-chunk validity by an odometer over $Y$ is replaced by a precomputed bitmap read in
+lockstep; the hypothesis ``chunk volume $\gg\ell^2$'' is not needed.
+\end{enumerate}
+
+\section{Machine check}
+\texttt{scripts/check\_fine\_field.py} represents every array as a tape with one head and counts every head
+step. It runs exposure, a forward pass (windowed periodic map with $k$-dependent weights, a
+two-word recurrence state, sparse wrap records to AX), a backward pass seeded from FIN that
+reads AX in reverse, and restoration, for twelve shapes: $s\in\{13,29,53,61,103,107,127\}$
+(prime, so $s\bmod2^f\ne0$), $2^f\in\{4,8,16\}$, $|Y|\in\{1,\dots,32\}$ with invalid $Y$
+coordinates, $|X|\in\{2,3,4\}$ with invalid groups, and expansion, compression and $s\to s$
+maps. All outputs equal the linewise maps; every case satisfies the bounds (a)--(c). Measured
+forward $12.8$--$25.8\,V$, backward $3.8$--$9.6\,V$, exposure exactly $6V$ per bit; on longer
+lines ($n=256$--$1024$, $2^f=16$--$64$) forward $18.4$--$21.3\,V$ and backward $9.0$--$11.3\,V$,
+independent of $|Y|\in\{1,16,64\}$.
+\end{document}

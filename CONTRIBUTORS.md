@@ -1,4 +1,13 @@
-# Community contributions
+# Community contribution record
+
+**Latest reviewed batch: #50–#62.** The [round-two ledger](docs/research/community-round2-review.md)
+records the contribution and validation scope of every PR, including parallel
+and superseded numerical witnesses. The selected result combines Avi Eisenberg,
+eumemic and Alejandro Zarzuelo Urdiales. Rohan Gupta and Chafik Boukhalfa supplied
+the preceding reviewed compiler composition; Rohan Arun, RaD / hipotures and
+Rohan Garg supplied additional reviewed alternatives and tools.
+Earlier contributors retain all credit. Entries below describe their dated checkpoints.
+
 
 Thank you to everyone contributing proofs, constructions, parameter improvements,
 independent implementations, checks, corrections and unsuccessful searches with
@@ -78,7 +87,12 @@ batching development, alongside Aurel Prosz's topology and endpoint correction;
 see [#29](https://github.com/CrocSwap/integer-mult-bounds/pull/29) and
 [#36](https://github.com/CrocSwap/integer-mult-bounds/pull/36) for their pinned
 external sources. The imported source notices and the completed audit record the scope in which
-that development is used by the released composition.
+that development is used by the released composition. Zhihao's pinned note explicitly
+credits Swapnil's research as the route to two-stage topology and macro batching.
+Swapnil's later parallel repository is now [retained and checked](research/swapnil-parallel/README.md):
+round-six network histograms are reproduced, both rounds' finite arithmetic is
+cross-checked, and ten Lean declarations pass an axiom audit. This does not
+replace the selected construction or independently prove his global transfer stack.
 
 Closed [#11](https://github.com/CrocSwap/integer-mult-bounds/pull/11) records
 matching/prime-power generalizations and bounded negative screens without a new
@@ -116,3 +130,16 @@ The [follow-up credit ledger](docs/research/community-followup-review.md#credit-
 distinguishes each contribution, including parallel improvements. The original
 39-PR snapshot remains an immutable historical record; the later reviewed heads
 are recorded separately in the follow-up review and integration record.
+
+## Additional public parallel efforts
+
+- **Pranav Balakrishnan** ([pranavbalakri](https://github.com/pranavbalakri/integer-mult-bounds-improvement)) explored complex scratch sharing and announced a margin above 2^-31. The repository and [announcement](https://x.com/pranavbalakri/status/2108023898688401719) are recorded; a complete proof audit is outside this acknowledgement.
+- **Kenny Daniel** ([platypii](https://github.com/platypii/integer-mult-bounds-lean), [announcement](https://x.com/platypii/status/2108110520876421162)) is developing a separate Lean formalization. Its end-to-end theorem remains work in progress.
+- **mjones / @_numinit** [announced a parallel witness](https://x.com/_numinit/status/2108033292674990308) with a patch and Nix flake planned. No linked artifact or incorporated-code claim has been verified here.
+
+The [announcement ledger](docs/research/contributor-announcements.md) and
+[source receipt](docs/research/contributor-social-sources.json) distinguish
+verified posts, profile associations and unresolved account identities.
+
+- **Michiel Kosters** ([research repository](https://github.com/michielkosters/mathematics_ai/tree/2e0aa64ca09c87fc94f8575f59493f70cf929d71/problems/integer-multiplication-109); Douglas associates @one_line_proof) developed a parallel weighted-hypergraph/coordinate-frame candidate, compressed centers and aligned bit pairing. Our [review](research/parallel-announcements/README.md) reproduces the finite certificate with its transfer/precision limitations explicit.
+- **Abe / @abe_asfaw**, via a suggestion supplied by Douglas, identified the redundant complex center and its historical 26.5% numerical gain. We [checked the scalar identity, counts and assembly arithmetic](research/parallel-announcements/README.md), and credit this parallel observation alongside the already preserved rank-h center research.
