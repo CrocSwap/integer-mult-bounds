@@ -1,4 +1,13 @@
-# Community contributions
+# Community contribution record
+
+**Latest reviewed batch: #50–#62.** The [round-two ledger](docs/research/community-round2-review.md)
+records the contribution and validation scope of every PR, including parallel
+and superseded numerical witnesses. The selected result combines Avi Eisenberg,
+eumemic and Alejandro Zarzuelo Urdiales. Rohan Gupta and Chafik Boukhalfa supplied
+the preceding reviewed compiler composition; Rohan Arun, RaD / hipotures and
+Rohan Garg supplied additional reviewed alternatives and tools.
+Earlier contributors retain all credit. Entries below describe their dated checkpoints.
+
 
 Thank you to everyone contributing proofs, constructions, parameter improvements,
 independent implementations, checks, corrections and unsuccessful searches with
