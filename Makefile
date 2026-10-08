@@ -163,3 +163,10 @@ semantic-bulk-note:
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
 verify: semantic-bulk-certificate
+
+.PHONY: endpoint-semantic-composition
+endpoint-semantic-composition:
+	python3 scripts/endpoint_semantic_composition.py
+	git apply --check patches/endpoint-semantic-composition.patch
+
+verify: endpoint-semantic-composition

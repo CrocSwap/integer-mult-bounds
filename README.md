@@ -1,3 +1,16 @@
+# Conditional multiplication saving 1.19720853 × 10^-5
+
+This branch composes PR24's endpoint-gauge bit interface with PR23's semantic
+precision and bulk assembly, retaining PR21's complex circuit. It gives
+**κ = 119720853/10^13 = 1.19720853 × 10^-5** in `O(n (log n)^(1−κ))`,
+under the documented mathematical and fixed-tape hypotheses.
+
+See the [dependency argument and reproduction commands](docs/research/endpoint-semantic-composition.md),
+[proof extension](notes/endpoint-semantic-composition.tex), and
+[exact certificate](certificates/endpoint-semantic-composition.json).
+Run `make endpoint-semantic-composition` or the full `make verify`.
+The contribution creates no PDF. The inherited PR23 record follows.
+
 # Conditional multiplication saving beyond 2^-17
 
 This branch composes the unchanged PR21 finite interfaces with RaD/PR20's semantic precision and bulk resampling arguments, giving **κ=1099/10^8=1.099×10^-5 > 2^-17** under the documented analytic and fixed-tape hypotheses.
