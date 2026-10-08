@@ -1,3 +1,34 @@
+# Reordered rank-first regions: conditional saving 5.1028985071975e-5
+
+This branch proposes **κ = 2041159402879/(4×10^16) = 5.1028985071975×10^-5**,
+about **0.00277% above [PR #63](https://github.com/CrocSwap/integer-mult-bounds/pull/63)**.
+The bit saving is **5103158916233/10^17**. Within each frame rank, use
+cover/core order at h=23 and decreasing minimum-node order at h=25. The scalar graph, rank-first
+retired-slot policy, role counts and paid endpoints remain inherited from #63;
+the changed schedule changes the physical frame transitions and their complete
+fixed-basis child profile. W remains **137,151,806**.
+
+[Construction, proof and credits](research/reordered-rank-pair/README.md) ·
+[Exact arithmetic certificate](research/reordered-rank-pair/arithmetic/certificate.json)
+
+Run `make reordered-rank-pair-verify` to rebuild both physical words and profiles,
+then check the exact moment and inherited assembly. `make verify` includes this
+new target and all inherited verification groups. Full repository validation
+passed on research commit `49e84f9`: 467 core tests, all 20 historical patch
+checks, and complete physical/profile and exact arithmetic checks. The
+[receipt](research/reordered-rank-pair/validation.json) distinguishes that run
+from subsequent upstream integration, which leaves the witness unchanged.
+
+This is a finite conditional witness under the inherited analytic, all-size
+compiler and fixed finite-alphabet multitape hypotheses. It is not a proof
+of global optimality or a measured practical speedup. The schedule gain and
+the finer arithmetic-grid gain are distinguished in the research note.
+
+Prepared by Rohan Arun with OpenAI Codex assistance. Credit Dominik Scholz
+(#63), Avi Eisenberg (#62), Chafik Boukhalfa (#60), eumemic (#57), and the
+Alejandro Zarzuelo Urdiales (#61, parameter-refinement precedent), together with all inherited contributors.
+The reviewed main-branch result below remains separately identified.
+
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original
