@@ -447,33 +447,14 @@ balanced-split-verify:
 
 verify-balanced: balanced-split-verify
 
-.PHONY: indexed-cycle-verify verify-indexed verify-indexed-pipeline verify-indexed-core verify-indexed-audit-completion verify-indexed-audit-exchange verify-indexed-audit-cycles verify-indexed-audit-retired verify-indexed-audit-pending verify-indexed-tests
-
-verify-indexed-core:
+.PHONY: indexed-cycle-verify verify-indexed
+indexed-cycle-verify:
 	python3 scripts/experiments/verify_indexed_cycle.py
-
-verify-indexed-audit-completion:
 	python3 scripts/experiments/audit_indexed_cycle_completion.py
-
-verify-indexed-audit-exchange:
 	python3 scripts/experiments/audit_indexed_cycle_exchange.py
-
-verify-indexed-audit-cycles:
 	python3 scripts/experiments/audit_indexed_cycle_cycles.py
-
-verify-indexed-audit-retired:
 	python3 scripts/experiments/audit_indexed_cycle_retired.py
-
-verify-indexed-audit-pending:
 	python3 scripts/experiments/audit_indexed_cycle_pending.py
-
-verify-indexed-tests:
 	python3 -m unittest discover -s tests -p 'test_indexed_cycle*.py' -v
 
-verify-indexed-pipeline: verify-indexed-core verify-indexed-audit-completion verify-indexed-audit-exchange verify-indexed-audit-cycles verify-indexed-audit-retired verify-indexed-audit-pending verify-indexed-tests
-
-indexed-cycle-verify:
-	$(MAKE) -j32 verify-indexed-pipeline
-
 verify-indexed: indexed-cycle-verify
-
