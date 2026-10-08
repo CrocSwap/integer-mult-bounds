@@ -30,9 +30,11 @@ seven margins and two next-grid exclusions. Five adversarial controls reject
 unpaid cleanup, omitted retained loss, reuse of the old profile, and excessive
 complex/final exponents. Full repository verification is pending.
 
-The parent PR104 currently fails an inherited `joint` CI source-hash check
-for `Makefile`. This package does not suppress or change that check. Its
-focused checks and any later full-run result must be reported separately.
+PR104 changed `Makefile`, `README.md` and `NOTICE` without refreshing
+the inherited joint source fingerprints. This branch refreshes only those
+three pins. The affected independent h23/h25 physical replay passed;
+its derived certificate and receipt differ only in source/checksum metadata.
+No mathematical inputs or checks were changed. Full verification remains pending.
 
 This is a small finite refinement, not a proof of global optimality or a
 practical runtime claim. In particular, **the new opposite-bank factorization,
