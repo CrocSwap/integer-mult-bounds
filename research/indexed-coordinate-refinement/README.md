@@ -10,7 +10,7 @@ python3 research/indexed-coordinate-refinement/test_controls.py
 make verify
 ```
 
-`verify.py --regenerate` first invokes PR84's complete physical compiler, checks the pinned parent words, then checks the new coordinate words, all arbitrary dirty basis vectors in both orientations, every transition and three-prime profiles. The exact certificate checks both grid exclusions, independent rational moment bounds, all 47 strict constraints and seven margins, and excludes PR84's complete child list at the new saving. Full repository verification is pending at initial publication.
+`verify.py --regenerate` first invokes PR84's complete physical compiler, checks the pinned parent words, then checks the new coordinate words, all arbitrary dirty basis vectors in both orientations, every transition and three-prime profiles. The exact certificate checks both grid exclusions, independent rational moment bounds, all 47 strict constraints and seven margins, and excludes PR84's complete child list at the new saving. Full repository verification passed, including 84 isolated test modules and 20 historical patch checks; see `validation.json` for the source timeline, log hash and corrected-verifier coverage.
 
 The finite search examined identity and every adjacent-coordinate exchange in each axis, 48 proposals total. This is not a global optimality or mathematical priority claim. These bounds retain all inherited analytic, all-size compiler, residual, tape, routing, prime-selection and recovery hypotheses; passing tests does not prove those hypotheses.
 
