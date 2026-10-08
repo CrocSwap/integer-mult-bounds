@@ -41,7 +41,7 @@ python3 research/rad-left-producer/code/exact_composition.py \
   --output /tmp/rad-alternating-composition.json
 ```
 
-**Note:** The `fixtures/phase-pr36.json` input and some auxiliary producers are available at the immutable full RaD checkpoint linked below and can be supplied from there. This initial draft does not claim that the standalone reproduction command is self-contained until all small inputs and source references are copied here. The included certificates document the completed exact arithmetic.
+The small `fixtures/phase-pr36.json` input is bundled here, and the preceding command replays the exact assembly with only the Python standard library. **It does not** regenerate the large finite producer DAGs or prove inherited source-frame and all-size tape lemmas; those source records and checks are pinned to the complete RaD checkpoint.
 
 The full source/evidence, source manifests, giant-graph regeneration notes, independent accepted finite checks and pending alternating gate are preserved immutably at [RaD GPU checkpoint `7e488e6b`](https://github.com/hipotures/rad/tree/7e488e6b25dc1713c1f41baaf1cefbf677507cf3/research/integer-multiplication-bounds/campaigns/fast-integration-gpu-20261008).
 
