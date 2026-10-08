@@ -1,0 +1,185 @@
+\subsection{Auxiliary source frames}
+\label{sec:scratch-source-frames}
+
+The transfer construction assigns a rational matrix to every source,
+gate and sink, common to all incidences of a gate, and requires
+\[
+ M_{\mathrm{sink}(\rho(w))}-M_{\mathrm{source}(w)}=I_m
+\]
+for every input role $w$. The retained networks give every auxiliary
+source the zero matrix and every auxiliary sink the identity. The transfer
+does not need this choice.
+
+\begin{lemma}[Auxiliary source frames]
+\label{lem:scratch-source-frames}
+Let $w$ be an auxiliary role, so that $\rho(w)=w$, and let $M$ be a fixed
+rational $m\times m$ matrix. Assign $M$ to the source of $w$ and $I_m+M$
+to its sink, and leave every other matrix unchanged. Then the scalar
+network, every common gate matrix and every endpoint identity are
+preserved, and the address map implemented on every role is unchanged.
+Only the first and last edges of $w$ change.
+\end{lemma}
+
+\begin{proof}
+The endpoint identity for $w$ reads $(I_m+M)-M=I_m$; no other endpoint
+identity involves this source or sink. The physical input stream $f_w$ has
+the logical interpretation $g_w=\Phi_{-M}f_w$. This is a definition, not a
+tape operation, and $g_w$ is arbitrary because $f_w$ is. The scalar network
+restores arbitrary auxiliary values, so the logical value at the sink is
+again $g_w$. The common-frame identity gives the physical output
+\[
+ \Phi_{I_m+M}\Phi_{-M}f_w=\Phi_{I_m}f_w,
+\]
+the same shear as on every other role. Gates on $w$ keep their common
+matrices, so every interior edge of $w$, and every edge of every other
+role, is unchanged.
+\end{proof}
+
+The lemma moves rank between the two end edges of an auxiliary role.
+Before batching only the total mattered. With contiguous blocks, a large
+edge costs much less per rank unit than a small one, so concentrating a
+role's rank in one edge lowers the cost.
+
+\paragraph{Stage-two auxiliary roles.}
+Use the notation of Section~\ref{sec:batched-bit-rank-accounting}.
+At tensor stage two put $A=F$, $P=\langle t_{a_1}\rangle$, $B=P^\perp$ and
+$Q=\langle t_{a_3}\rangle$. Every auxiliary role of a stage-two invocation,
+including its central roles, has first gate frame
+$D_0=(B\otimes F)\otimes Q$ of dimension $h^2-h$, and last gate frame
+$D_1=(A\otimes F)\otimes Q$ of dimension $h^2$. Assign every such role the
+source matrix $P_{D_0}$, and therefore the sink matrix $I+P_{D_0}$. Then:
+\begin{enumerate}
+\item the entrance edge has matrix $P_{D_0}-P_{D_0}=0$ and makes no call;
+\item every interior edge is unchanged;
+\item since $D_0\subset D_1$ are nondegenerate, $D_0\perp D_1^\perp$, and
+the exit edge has matrix
+\[
+ I+P_{D_0}-P_{D_1}=P_{D_1^\perp}+P_{D_0}=P_{D_0\perp D_1^\perp}.
+\]
+This is an idempotent of rank $m-h$. Its nullspace is
+$D_1\cap D_0^\perp=P\otimes F\otimes Q$, of dimension $h$, because
+$A=B\perp P$.
+\end{enumerate}
+Formerly the entrance had rank $h^2-h$ and the exit rank $m-h^2$. Now the
+entrance has rank zero and the exit rank $m-h$. The total rank of each role,
+the rank sum $s$ and the deficit $Wm-s$ are therefore unchanged. The
+stage-two sink class $A_2$ of Section~\ref{sec:controlled-projector-basis}
+no longer occurs. Its replacement is
+\[
+ A_4=I-\Pi_{P\otimes F\otimes Q},
+\]
+where $\Pi_U$ denotes the orthogonal projector onto $U$ for the label form.
+
+\begin{lemma}[A common basis for the new exit class]
+\label{lem:source-frame-basis}
+In the parameter family $S=T(I_F\otimes K)$ of
+Lemma~\ref{lem:controlled-projector-basis}, there are rational
+$K,G_1,\ldots,G_H$ satisfying its first two assertions and, in addition:
+for every $A_4$, the submatrix of $SA_4S^{-1}$ in its first $h$ rows and
+last $h$ columns is nonsingular.
+\end{lemma}
+
+\begin{proof}
+Order coordinates as in Section~\ref{sec:controlled-projector-basis}: the
+original third factor $F$ is slow and $V$, the first two factors, is fast.
+Then the nullspace of $A_4$ is $\langle t\rangle\otimes X$ with
+$t=t_{a_3}$ and $X=\langle t_{a_1}\rangle\otimes F\subset V$, of dimension $h$.
+Write $\Pi=UV'$ with $V'U=I_h$. Its first-$h$-row by last-$h$-column block
+after conjugation is the product of the first $h$ rows of $SU$ and the last
+$h$ columns of $V'S^{-1}$. The corresponding block of $SA_4S^{-1}$ is its
+negative, because these row and column index sets are disjoint. It is
+therefore enough that both square factors can be nonsingular. Each is then a
+polynomial condition that is not identically zero.
+
+A nullspace vector $t\otimes x$, with $x\in X$, has coordinate
+$(G_it)_\alpha(Kx)_i$ at $(\alpha,i)$ after applying $S$. The first $h$
+coordinates have $\alpha=1$ and $1\le i\le h$, so the first factor is the
+map $x\mapsto((G_it)_1(Kx)_i)_{i\le h}$. Give every $G_i$ the first row
+$(1,\ldots,1)$, so that $(G_it)_1=|a_3|=5$, and choose $K$ sending a basis
+of $X$ to $e_1,\ldots,e_h$. The map is then nonsingular.
+
+The rows of $V'$ span the form dual $\Omega(\langle t\rangle\otimes X)
+=\langle\Omega_Ft\rangle\otimes\Omega_VX$, where $\Omega$ is the tensor label
+form. This subspace has the same shape. Since
+$S^{-\mathsf T}=T^{-\mathsf T}(I_F\otimes K^{-\mathsf T})$ and
+$T^{-\mathsf T}$ acts by $G_i^{-\mathsf T}$, the same argument at the last
+$h$ coordinates, with $\alpha=h$ and $H-h<i\le H$, shows that the second
+factor can be nonsingular.
+
+As in Lemma~\ref{lem:controlled-projector-basis}, clear denominators and
+multiply these nonzero polynomials over the finitely many $A_4$. Include
+the polynomials for its first two assertions and the invertibility of
+$K$ and every $G_i$. A nonzero rational polynomial does not vanish at every
+rational point. Its third assertion concerned $A_2$ and is no longer needed.
+\end{proof}
+
+By the large-projector factorization of Section~\ref{sec:projector-batching},
+every exit edge $A_4$ is compiled as $h$ singleton interchanges and one
+contiguous interchange of its middle $m-2h$ fields. The first and third
+classes of Section~\ref{sec:batched-bit-rank-accounting} keep their
+singleton corners and contiguous middle blocks.
+
+\subsection{The interchange rank moment with source frames}
+\label{sec:source-frame-bit-moment}
+
+Keep the retained counts
+\[
+ h=28,\quad v=\binom{28}{5}=98280,\quad m=21952,\quad R=11840940,
+\]
+\[
+ W=2v^2(v+R),\qquad s=Wm-v^3+2L,
+\]
+and put $B=v^2R=114371146876896000$, the number of stage-two auxiliary
+roles. The large classes are now
+\[
+\begin{array}{c|r|r|r|r}
+ \text{class}&\text{copies}&\text{rank}&\text{singleton pivots}&
+   \text{batched width}\\\hline
+ \text{stage 1--3 join}&B&21896&56&21840\\
+ \text{stage 3 data entrance}&2v^3&21141&811&20330\\
+ \text{stage 2 auxiliary exit}&B&21924&28&21896
+\end{array}
+\]
+Every other rank unit is a singleton interchange. Relative to the
+controlled count $S_1$ of Section~\ref{sec:controlled-projector-basis},
+each stage-two auxiliary role loses its entrance of $h^2-h$ singletons and
+gains $h$ exit corner pivots. Its former sink corner and middle blocks are
+replaced by the new exit. Hence
+\[
+ S'=S_1-B(h^2-2h)=22293445170300595200.
+\]
+The normalized child widths are
+\[
+ r=\left(\frac1{21952},\ \frac{195}{196},\ \frac{10165}{10976},\
+       \frac{391}{392}\right),
+\]
+and their rank-mass weights are
+\[
+ w=\left(\frac{2289741}{520019360},\ \frac{12827685}{26000968},\
+       \frac{20865}{2736944},\ \frac{25721153}{52001936}\right).
+\]
+The weights sum to $1-\eta$ with $\eta=39/520019360$, so batching again
+preserves the rank deficit. The positive logarithm series used before give
+\[
+ \log m<\frac{9997}{1000},\quad
+ \log\frac{196}{195}<\frac{512}{10^5},\quad
+ \log\frac{10976}{10165}<\frac{768}{10^4},\quad
+ \log\frac{392}{391}<\frac{2555}{10^6}.
+\]
+Put
+\[
+ a_{\rm b}=\frac{154}{10^8},\qquad \tau=1-a_{\rm b}.
+\]
+With $e^x\le(1-x)^{-1}$ for $0\le x<1$, exact rational arithmetic gives
+\[
+ \Psi(1-a_{\rm b})<\sum_{i=0}^3\frac{w_i}{1-a_{\rm b}\ell_i}<1,
+\]
+with gap
+\[
+ \frac{9704597579224556535778749633448639054699}
+      {20663392005574270637817582110595278287793980851574}
+ >4.69\times10^{-10}.
+\]
+The arbitrary-width recurrence of Section~\ref{sec:mixed-width-rows}
+therefore gives the interchange saving $a_{\rm b}=154/10^8$ for the
+unchanged PR~\#7 scalar producer.

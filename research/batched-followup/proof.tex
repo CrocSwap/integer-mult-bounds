@@ -1,0 +1,141 @@
+\subsection{A dimension-thirty continuation of controlled batching}
+\label{sec:dimension30-batching}
+
+The following continuation combines the ternary source geometry of
+Zhihao Chen's PR~\#7, the controlled batching and complex depth guard of
+icekylinx's PR~\#10, and the star resynthesis and matching extension of
+Rohan Arun's PRs~\#9 and~\#11. It was prepared with substantial OpenAI
+Codex assistance. These are conditional, unreviewed mathematical
+extensions, not formal verification of the multiplication theorem.
+
+\paragraph{The source family and finite producer.}
+For the bit network only, take $h=30$, $F=\mathbb Q^{30}$ with form
+$I-(2/25)J$, and the indicators $t_S$ of all five-subsets. Then
+$\langle t_S,t_T\rangle=|S\cap T|-2$ and
+$\langle t_S,t_S\rangle=3$. The scalar identity over $\mathbb F_3$ is
+\[
+ \binom j2-[j=2]=[j=5]\pmod3\qquad(0\le j\le5).
+\]
+The common-pair retained totals and exclusion outputs therefore have
+the same interpretation as in the dimension-28 network. If $u$ lies
+in a source span with common pair $C$, its two common coordinates equal
+$a$ and its coordinate sum equals $5a$. Hence
+\[
+ u^{\mathsf T}(I-(2/25)J)u=\sum_{i\notin C}u_i^2>0\quad(u\ne0).
+\]
+Indeed vanishing outside $C$ forces $3a=0$. Every such source span is
+nondegenerate, and a full retained-total span has dimension $h-2$.
+The forward and complemented reverse frame schedules, arbitrary-scratch
+cancellation, and negative-source endpoint correction are unchanged.
+
+The paired degree-three producer uses 28 points outside each common
+pair. Exact global support merging, pruning, and common-four-point
+star resynthesis give
+\[
+ c=16089992,\qquad Q=1425495,\qquad R=c+Q=17515487.
+\]
+There are $\binom{30}{4}=27405$ stars and 456 canonical boundary templates.
+All additions have disjoint input supports; every required boundary
+mask is independently reconstructed and checked. Every replacement
+remains in its original common-four-point star and therefore retains
+the common-pair positivity argument. The actual compiled role-support
+paths and all source, output, and dirty-scratch basis directions of
+each selected template are checked in both orientations.
+
+\paragraph{The bank permutation.}
+The bipartite graph on two copies of the five-sets, with adjacency at
+intersection two, is regular of positive degree
+$\binom52\binom{25}{3}$. Counting edges incident to a left subset proves
+Hall's condition and gives a neighbor bijection. An explicit bijection
+can also retain the paired-point construction: replace the Euler tour
+on the remaining pair indices by a cyclic ordering of the edges of a
+complete graph with adjacent edges sharing one endpoint. Starting from
+a triangle, insert the edges incident to a new vertex between two old
+adjacent edges, with the first and last inserted edges meeting the old
+endpoints. This inductively gives the required cycle at every order.
+Keep PR~\#7's zero- and one-full-pair cases; in its two-full-pair case
+flip the singleton and advance the pair of full-pair indices around
+this cycle. Each case is bijective and has intersection exactly two.
+All 142506 images are checked. Thus the first/third-stage join remains
+nested, removes one role and $m$ rank units per join, and adds no loss.
+
+Put $v=\binom{30}{5}=142506$, $m_{\rm b}=h^3=27000$, $N=v^3$, and
+\[
+ W=2v^2(v+R),\qquad L=3v^2\binom h2(h-2),\qquad s=Wm_{\rm b}-N+2L.
+\]
+In particular $\eta=(Wm_{\rm b}-s)/(Wm_{\rm b})=3857/52973979000$.
+
+\paragraph{Why the controlled basis still exists.}
+The proof in Section~\ref{sec:controlled-projector-basis} uses $H=h^2$,
+the independence of $q$ from the $h$-space $U$, and freely chosen
+rational $K,G_i$. It does not use the numerical value 28 or the parity
+of $h/2$. At $h=30$, the required $2h$ first rows lie in the first
+$H$ rows, the first $H+h-1$ rows comprise one whole multiplicity block
+and $h-1$ rows of the next, and these first and last index sets are
+disjoint since $2(H+h-1)<hH$. The same nonzero determinant witnesses
+and finite-product argument therefore apply literally. Orthogonality
+from the preceding bank permutation supplies $q\notin U$ and the
+zero products of the two idempotents. The controlled parameter family
+is closed under inverse transpose, as required in the dual argument.
+
+Conjugate all gate and terminal matrices by the resulting single
+rational basis. Endpoint differences remain $I$, scalar gates retain
+common matrices, and all ranks remain unchanged. The three selected
+classes have the following rank and contiguous-block data, where
+$B=v^2R$:
+\[
+\begin{array}{c|r|r|l}
+\text{copies}&\text{rank}&\text{singleton pivots}&\text{block widths}\\\hline
+B&26940&60&26880\\
+B&26100&0&25200,\ 900\\
+2N&26071&929&25142
+\end{array}
+\]
+The first and third use the large-projector Schur complement. The
+second uses the diagonal corner supplied by the controlled basis.
+The remaining singleton count is
+\[
+ S_1=s-B(26880+25200+900)-2N\cdot25142
+    =373570603170925665960.
+\]
+Thus
+\[
+ \Psi(x)=\frac{S_1+B(26880^x+25200^x+900^x)+2N\,25142^x}
+                 {W\,27000^x}.
+\]
+Using the positive rational logarithm series with sixteen terms,
+rounding each upper enclosure upward to a multiple of $10^{-9}$,
+and $e^z\le(1-z)^{-1}$, exact arithmetic gives
+\[
+ \Psi(1-253/10^9)<1,\qquad
+ 1-\text{certified upper bound}>9\cdot10^{-12}.
+\]
+Every child width is strictly below the parent width. The arbitrary
+integer-width, row-reservation, and fixed-tape proof of
+Section~\ref{sec:mixed-width-rows} applies with these new fixed constants.
+
+\begin{lemma}[Dimension-thirty batched interchange]
+\label{lem:dimension30-chunk-swap}
+Lemma~\ref{lem:batched-chunk-swap} holds with $\tau=1-253/10^9$ in place
+of $1-246/10^9$, using the dimension-thirty producer above. Its conclusion
+includes arbitrary spectator gaps, integer widths, row padding and
+removal, finite-alphabet preparation, and fixed-tape cleanup.
+\end{lemma}
+\begin{proof}
+The scalar and source-span identities, retained-total loss, matching,
+common conjugation, and strict moment comparison were established above.
+Substitute these finite data into the proof of
+Lemma~\ref{lem:batched-chunk-swap}. Its controlled-basis and row arguments
+use no additional special property of dimension 28. The alphabet is
+still $\mathbb F_3$, and the address prime is chosen after the finite
+rational factorizations. The one-bit unequal-width extension is
+unchanged.
+\end{proof}
+
+The complex network is deliberately left at $h_{\rm c}=28$,
+$m_{\rm c}=21952$, with saving $7/10^7$. Its path-depth bound,
+precision correction, and guard $C_1=11999/10000$ remain those of
+PR~\#10. The bit and complex networks need not have equal finite
+dimensions: the compact-control interface consumes the bit
+interchange bound at arbitrary widths. The following stronger layer
+interface changes only that consumed bit exponent.

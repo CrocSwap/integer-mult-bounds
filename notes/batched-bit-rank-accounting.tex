@@ -1,0 +1,138 @@
+\subsection{Three geometric rank classes in the retained ternary network}
+\label{sec:batched-bit-rank-accounting}
+
+The five-subset producer of PR~\#7 is retained. Put
+\[
+ h=28,\quad v=\binom{28}{5}=98280,\quad m=h^3=21952,
+ \quad R=11840940,\quad N=v^3,
+\]
+\[
+ W=2v^2(v+R),\qquad
+ L=3v^2\binom h2(h-2),\qquad
+ s=Wm-N+2L.
+\]
+This subsection needs the producer's proved width upper bound and frame
+schedule; it does not enumerate its internal addition graph again.
+If the producer uses fewer than $R$ roles, insert dummy auxiliary roles
+with identity gates at the ordinary low and high frames of every invocation.
+Do this before identifying the first- and third-stage banks. Every dummy
+role restores its arbitrary scalar, has no decreasing edge, and contributes
+exactly $m$ to the final rank sum. Thus the stated width and the rank classes
+below are realized exactly, including any padding.
+
+Write $a=h^{j-1}$ at tensor stage $j$. With the notation of the retained
+frame proof, the early auxiliary frame is
+\[
+ D_0=(B\otimes F)\otimes Q,\qquad \dim D_0=(a-1)h,
+\]
+and the final auxiliary frame is
+\[
+ D_1=(A\otimes F)\otimes Q,\qquad \dim D_1=ah.
+\]
+The two auxiliary banks give the following edges.
+
+\begin{enumerate}
+\item Each role joining stages one and three passes from a frame of
+      dimension $h$ to a containing frame of dimension $m-h$.
+      This is a projector edge of rank $m-2h$.
+      There are $B=v^2R$ such roles.
+\item Each stage-two auxiliary role passes from its final frame of
+      dimension $h^2$ to the full sink frame of dimension $m$.
+      Its rank is $m-h^2$, again with $B=v^2R$ copies.
+\end{enumerate}
+
+There is one further large class on the data wires. The incoming physical
+$X$ and $Y$ dimensions at stage $j$ are $a$ and $a-1$. Their first relevant
+frames have dimensions $(a-1)h+1$ and $(a-1)h$, respectively. Hence both
+entrance edges have rank
+\[
+ d_j=(a-1)(h-1).
+\]
+The remaining growth of each data role in that stage is $h-1$.
+These dimensions hold for the reverse middle-stage schedule as well:
+its low source copy and its target-line injection give precisely the same
+physical frames. At stage three,
+\[
+ d_3=(h^2-1)(h-1)=21141>m/2,
+\]
+and there are $2N$ copies. The special negative source matrix contributes
+one rank-one edge on each physical $X$ source, as in PR~\#7.
+Consequently the complete data rank sum is
+\[
+ 2N\sum_{j=1}^3\bigl(d_j+h-1\bigr)+N=2Nm-N.
+\]
+All remaining auxiliary changes inside an invocation have rank at most
+$h$, and a stage-two auxiliary entrance has rank $h^2-h$. Thus the three
+classes listed above exhaust the ranks exceeding $m/2$, although exhaustion
+is not needed for the certificate: leaving any other edge unbatched can
+only weaken the claimed upper bound.
+
+Apply the large-projector batching lemma to these classes. A rank-$a_i$
+projector with $a_i>m/2$ uses $m-a_i$ singleton pivot interchanges and
+one contiguous interchange of $(2a_i-m)$ subfields. The resulting table is
+\[
+\begin{array}{c|r|r|r|r}
+ \text{class}&\text{copies }B_i&\text{rank }a_i&
+          \text{singleton pivots}&\text{batched width }k_i\\\hline
+ \text{stage 1--3 join}&v^2R&21896&56&21840\\
+ \text{stage 2 sink}&v^2R&21168&784&20384\\
+ \text{stage 3 data entrance}&2v^3&21141&811&20330
+\end{array}
+\]
+Treat every rank unit outside these three middle blocks as a singleton
+interchange. The number of singleton calls is therefore exactly
+\[
+ S=s-\sum_{i=1}^3B_i k_i.
+\]
+At a parent width $e$, the child widths are $e/m$ with multiplicity $S$
+and $k_i e/m$ with multiplicity $B_i$; all children operate on streams of
+volume $V/W$. The finite mixed-width recurrence consequently has normalized
+moment
+\[
+ \Psi(\tau)=\frac{S}{Wm^\tau}
+   +\sum_{i=1}^3\frac{B_i}{W}\left(\frac{k_i}{m}\right)^\tau.
+\]
+At $\tau=1$ this is $s/(Wm)=1-\eta$, where
+$\eta=39/520019360$.
+
+\paragraph{The intermediate middle-block certificate.}
+This paragraph records the first batching step. The controlled basis in
+the following subsection increases its saving from $177/10^9$ to
+$246/10^9$, which is the value used in the final assembly.
+Set
+\[
+ a_{\rm b}=\frac{177}{10^9},\qquad \tau=1-a_{\rm b}.
+\]
+Let $r_0=1/m$, $r_i=k_i/m$, and
+\[
+ w_0=\frac S{Wm},\qquad w_i=\frac{B_i k_i}{Wm}.
+\]
+Then $\sum_iw_i=1-\eta$ and
+$\Psi(1-a_{\rm b})=\sum_iw_i\exp(a_{\rm b}\log(1/r_i))$.
+Use the rational logarithm upper bounds
+\[
+ \log m<\frac{9997}{1000},\quad
+ \log\frac{196}{195}<\frac{512}{100000},\quad
+ \log\frac{14}{13}<\frac{7411}{100000},\quad
+ \log\frac{21952}{20330}<\frac{768}{10000}.
+\]
+They follow from the positive series
+\[
+ \log x=2\sum_{j\ge0}\frac{z^{2j+1}}{2j+1},\qquad
+ z=\frac{x-1}{x+1},
+\]
+using sixteen terms and remainder at most
+$2z^{33}/(33(1-z^2))$; for $m$, first extract its power of two.
+For $0\le t<1$, $e^t\le(1-t)^{-1}$. Calling the four displayed upper
+bounds $\ell_i$, exact rational arithmetic gives
+\[
+ \Psi(1-a_{\rm b})
+ <\sum_{i=0}^3\frac{w_i}{1-a_{\rm b}\ell_i}<1.
+\]
+The strict gap in this last bound is greater than $1.78\times10^{-10}$.
+All integers, rational logarithm enclosures, weights and the exact gap are
+supplied by \texttt{scripts/batched\_bit\_rank\_moment.py} and its JSON
+certificate. Under the accompanying arbitrary-width recurrence lemma,
+this proves the interchange saving $a_{\rm b}=177/10^9$ for the unchanged
+finite scalar producer. A smaller role upper bound can be inserted directly
+into the same three-class formula.
