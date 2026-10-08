@@ -131,3 +131,9 @@ aligned-bit-note:
 
 fetch:
 	python3 scripts/fetch_upstream.py
+
+.PHONY: nested-stream-verify
+nested-stream-verify:
+	python3 research/nested-stream/verify.py --full
+	python3 research/nested-stream/make_patch.py
+	python3 -m unittest discover -s tests -p test_nested_stream.py -v

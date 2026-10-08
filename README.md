@@ -1,3 +1,20 @@
+# Nested geometry on the smaller producer
+
+The new conditional candidate is **κ = 1248342/10^12 = 1.248342e-6 > 2^-20**,
+15.94% above [PR #15](https://github.com/CrocSwap/integer-mult-bounds/pull/15)
+and 27.39% above [PR #16](https://github.com/CrocSwap/integer-mult-bounds/pull/16).
+It combines PR #15's smaller h30 producer, the data corners from PRs #14/#16,
+and PR #16's nested auxiliary-exit basis. This is an exponent comparison;
+the general multiplication and transfer arguments remain conditional.
+
+[Explanation and attribution](research/nested-stream/README.md) ·
+[Exact certificate](research/nested-stream/certificate.json) ·
+[Complete source patch](patches/nested-stream.patch) ·
+[Manuscript PDF](artifacts/nested-stream.pdf)
+
+Run `python3 research/nested-stream/verify.py --full` (Python 3.11+).
+The earlier PR #15 result and project history are retained below.
+
 # Experiments to raise κ
 
 The current reproduced conditional witness is **κ = 1.076678e-6 > 2^-20**:
