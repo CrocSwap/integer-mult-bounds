@@ -12,7 +12,7 @@ make verify
 
 The verifier independently regenerates both PR91 compiler words, checks canonical byte equality, transports every coordinate label, replays arbitrary dirty basis columns in both orientations and regenerates complete CRT profiles. Exact rational moment bounds, independent enclosures, both next-grid exclusions, 47 strict constraints and seven margins are required. PR91's complete child list is excluded at the new bit saving. Source manifests pin all inherited artifacts and local inputs.
 
-Full repository verification remains pending. The inherited Lean companion certifies PR91's arithmetic; it is not a Lean certificate of this new exponent. This package checks its new arithmetic with exact Python rational enclosures.
+Full repository verification passed on research commit `c42039369af319a4ccc249b11efcfedecc2cc72f`: 92 isolated test modules, 20 historical patch checks, fresh complete producer/profile regeneration and six focused controls. All 51 research-head GitHub checks passed. The run took 3726.927 seconds; hashes and scope are recorded in `validation.json`. The inherited Lean companion certifies PR91's arithmetic; it is not a Lean certificate of this new exponent. This package checks its new arithmetic with exact Python rational enclosures.
 
 The discovery scan considered identity and every adjacent transposition in both axes, 48 finite candidates. It proves no global optimum. All inherited analytic, ordered residual compiler, all-size recursion, scalar overhead, routing, prime-selection, recovery and finite-alphabet multitape hypotheses remain assumed. See PROOF.md for the coordinate transport and complete paid-cost argument.
 
