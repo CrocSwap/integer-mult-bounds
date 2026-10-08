@@ -1,3 +1,7 @@
+## New profile-aware compiler: conditional kappa = 5.10403292611078e-5
+
+[Structural compiler search and53 Lean certificates](research/profile-aware-frame-search/README.md) improve the frozen PR62 stacked witness by0.0459048992%, with unchanged wire count and4,670,081 fewer recursive child calls. Complete changed-word/profile checks and exact regeneration pass. The [paper source](research/profile-aware-frame-search/matrix-exponent-synthesis.tex) combines this result with the earlier matrix/parity and matching tools. Sources were frozen through PR62 for this one-hour run; all-size framework contracts remain conditional.
+
 ## PR #62 stacked-witness refinement: conditional κ = 5.1016920170078e-5
 
 The [exact certificate and concrete Lean proofs](research/matrix-exponent-synthesis/README.md)
