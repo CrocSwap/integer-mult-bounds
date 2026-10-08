@@ -29,7 +29,7 @@ Nothing in PR #104's interface changes: opposite-bank factorization, stopped ato
 wrapper, rational centres, common odd grid, product rows and the balanced assembly are used as they are.
 Two finite inputs change.
 
-**Bit network.** Swapnil Jain's round-seven witness (commit 741e7aa, files pinned by SHA-256 in
+**Bit network.** Swapnil Jain's round-seven witness (commit 741e7aa078392553815df7926ee17ac5e25a8c38, files pinned by SHA-256 in
 `bit_round7.py`): PR #62's producer, lifted frames, late copies, deferred readouts and V leaves. Swapnil's own
 checkers verify the word and every frame exactly, and PR #97 replays its forward and reflected ledgers. We do not
 change it. Under PR #104's rule every residual of rank r is one child of width r, so the slot chains, the gauged
@@ -101,7 +101,8 @@ new written assumption for the complex network. No global optimality is claimed.
 - **icekylinx**: PR #104's stopped product-ring interchange, opposite-bank factorization, rational centres and the
   h = 24 complex producer used unchanged; PR #10/#18/#24/#32/#36 lineage.
 - **Swapnil Jain**: deferred readouts (design B), V leaves, lifted frames, late copies and the round-seven bit
-  witness used unchanged (https://github.com/Swapnil-jain/integer-mult-kappa, commit 741e7aa).
+  witness used unchanged (https://github.com/Swapnil-jain/integer-mult-kappa, commit
+  741e7aa078392553815df7926ee17ac5e25a8c38).
 - **Zhihao Chen (jacklightChen)**: PR #97's integration of the deferred bit word and its reflected ledgers;
   PR21/PR29 translated gauges and two-stage accounting.
 - **Aurel Prosz (Paureel)**: the two-stage topology and paid endpoint correction.
