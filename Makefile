@@ -88,6 +88,19 @@ formal-ranked-pair-verify:
 
 formal-historical-verify: formal-ranked-pair-verify
 
+# Later source-bound proof and finite-certificate checkpoint from PR64.
+verify-certificates: machine-transfer-check
+
+.PHONY: machine-transfer-check formal-machine-transfer-verify
+machine-transfer-check:
+	python3 research/machine-transfer-verification/verify.py
+
+LAKE_PROJECT ?= formal/lean
+formal-machine-transfer-verify:
+	python3 research/machine-transfer-verification/verify_lean.py --lake-project "$(LAKE_PROJECT)" --output build/machine-transfer/lean
+
+formal-historical-verify: formal-machine-transfer-verify
+
 verify-ternary:
 	python3 scripts/complex_compression.py
 	python3 scripts/make_complex_compression_patch.py

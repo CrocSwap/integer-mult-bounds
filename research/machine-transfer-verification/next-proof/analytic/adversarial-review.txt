@@ -1,0 +1,92 @@
+INDEPENDENT ADVERSARIAL REVIEW OF THE REAL CHARACTERISTIC CERTIFICATE
+8 October 2026 — finite-frames reviewer
+
+Conclusion: no mathematical or literal-profile mismatch was found. The Lean
+statement actual_power_characteristic_lt_one proves the actual real inequality
+  sum_t (n_t/W) * (t/m)^(1-a) < 1
+for the selected 27-row profile, with no unproved analytic enclosure premise.
+This is an unconditional finite real inequality. It does not by itself prove
+that a physical multiplier realizes this recurrence or its final exponent.
+
+Exact binding independently checked
+----------------------------------
+I parsed every literal Row constructor directly from SelectedProfileCertificate.lean,
+rejecting unparsed row-list syntax and duplicate widths. All 27 widths and
+multiplicities agree with both outputs/selected-certificate.json and the PR
+package's selected-certificate.json. Their differing nonmathematical metadata
+does not change the selected data. All rational witness values also agree with
+selected-witnesses.json.
+
+  m = 575
+  W = 137151806
+  a = 63787735011827529/1250000000000000000000
+  sum_t t*n_t = 78860441550
+  m*W - sum_t t*n_t = 1846900
+  largest child = 529
+
+The witness provenance hash b4e395509525937d9c9a4275387cd6e800549bf9e06aef291ba909d95a1103f3
+is the actual outputs/pair-ranked-profile.json hash. Its child multiplicities
+agree with the literal Lean list. This provenance file is distinct from the
+selected-certificate JSON itself; the source hash must not be described as the
+hash of that selected file.
+
+I independently recomputed every rational inequality using Python Fraction:
+the 24-term lower exponential-polynomial checks for log bounds, the 8-term
+upper exponential bounds, all argument domains, and the final weighted sum.
+The exact positive certified gap is
+  23551960513937/4285993937500000000000000000000000000.
+The machine-readable independent receipt and reproducible checker are
+../framed/analytic-binding-review.json and ../framed/check_analytic_binding.py.
+This check did not reuse the witness generator's log or exponential routines.
+
+Analytic statement and proof direction
+-------------------------------------
+AnalyticEnclosures.lean:25-32 derives log(q)<=L from q<=P_24(L)<=exp(L),
+with q>0 and L>=0 explicit. Thus the lower Taylor polynomial is used in the
+correct direction to produce an upper logarithm bound. The generator's atanh
+calculation only proposes witnesses; correctness does not assume that routine.
+
+AnalyticEnclosures.lean:35-46 uses the pinned Mathlib Real.exp_bound' theorem
+for 0<=x<=1 and n>0. Its remainder is exactly x^n*(n+1)/(n!*n), matching the
+rational expUpper definition. I inspected that Mathlib theorem's statement
+and proof at Mathlib/Data/Complex/Exponential.lean:534-544. Range reduction
+then combines log(r)+k*log(2); no floating-point logarithm is used.
+
+SelectedProfileReal.lean:22-49 obtains all log/exp bounds from the checked
+literal-row theorem. Multiplication by saving and by each nonnegative weight
+preserves the inequality direction. Lines55-70 sum the bounds and use the
+strict rational upper-sum theorem.
+
+SelectedProfileReal.lean:73-86 proves the exact identity
+  (n/W)*(t/m)^(1-a) = (n*t/(m*W))*exp(a*log(m/t)).
+Widths and m are positive in its concrete use. The exponent is a real exponent,
+not integer truncation; the coefficient is n/W, with no missing t or extra W.
+Lines88-103 define the actual power sum and discharge the final theorem without
+remaining hypotheses. No machine recurrence or final kappa is assumed in it.
+
+Kernel/trust review
+-------------------
+The three reviewed source SHA256s equal theorem-manifest.json:
+  AnalyticEnclosures.lean bbbf93a1f68b6176e71379f6c2036e4b4379f13ba7ab8d9c749ba5ce9624cb0e
+  SelectedProfileCertificate.lean 0c6db6a2ed5d2da082e3005553b0981a9391f90273a0c1b9613cb66b39c54bd4
+  SelectedProfileReal.lean b8d0fc896348906e60b91729f41c30f464d0b7283bc5cd49b831182f01700714
+The manifest pins Lean4.21.0 and Mathlib308445d7985027f538e281e18df29ca16ede2ba3.
+The reviewed logs cover all17 declared theorems. They report only propext,
+Classical.choice and Quot.sound. Source review found no custom axioms, sorry,
+admit, native_decide, native-reduction shortcut or assumed analytic enclosure.
+The rational checks use ordinary decide +kernel. I did not rerun the expensive
+Lean build; the analytic author additionally reports a fresh isolated build.
+
+One packaging issue was found and corrected during review: check.py originally
+required historical characteristic_certificate.source_sha256 metadata that the
+PR package intentionally omitted. The checker now makes only that historical
+metadata comparison optional; exact literal rows/a/m/W/mass binding remains
+mandatory. This was a portability issue, not a theorem or profile defect.
+
+Remaining boundary
+------------------
+The literal real inequality is now formalized. Binding a concrete framed
+physical circuit to this child profile, establishing the complete all-size
+recurrence and carrying the analytic multiplication/recovery transfer through
+to a finite-alphabet machine remain separate obligations. No stronger
+end-to-end claim follows from this focused review.

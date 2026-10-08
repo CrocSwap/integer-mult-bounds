@@ -1,0 +1,960 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs,longtable}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,urlcolor=blue,linkcolor=blue]{hyperref}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newcommand{\F}{\mathbb F_2}
+\newcommand{\Q}{\mathbb Q}
+\newcommand{\R}{\mathbb R}
+\title{Integer multiplication: independent finite-network audit,\protect\\
+formal interfaces, and conditional exponent refinements}
+\author{Autonomous research with OpenAI Codex\\Prepared for the requesting user}
+\date{8 October 2026 --- working research addendum}
+\begin{document}
+\maketitle
+\begin{abstract}
+We distinguish finite algebra, exact characteristic inequalities, formal
+interfaces, and the complete uniform multitape multiplication theorem.
+The initial community inventory contains 61 pull requests, later refreshed to 68. A fork audit finds
+an interval-strip and core-aware pair construction by Avi Eisenberg, composed
+with eumemic's joint-frame compiler, claiming a larger conditional exponent
+than the initial pull requests; that construction subsequently appeared as PR62.
+Combining its graph with descending-rank slot reclamation gives a new finite
+construction with conditional saving $5.10275840622536575\cdot10^{-5}$,
+published with verification artifacts in draft PR64. The same finite words
+also appeared independently in PR63; no exclusive novelty is claimed.
+Both words were freshly generated and independently replayed. A discrete
+concavity certificate proves the new characteristic is strictly better for
+every saving in $(0,1)$, with roles and total rank unchanged.
+New Lean developments verify literal XOR-word dirty-scratch semantics,
+a general balanced-exponent ceiling, and rounded-width scalar recurrence transfer.
+A subsequent development proves the actual real characteristic inequality
+for the selected profile, together with generic framed execution and finite
+row-layout semantics. A fresh reproduction of the updated PR68 supports the stronger
+conditional saving $5.1035127217697\cdot10^{-5}$. A later 73-PR snapshot and
+fresh reproduction of the split-pair construction with PR73's parameter
+refinement support $5.1414646104194\cdot10^{-5}$. Formal certificates
+prove both profiles' actual real characteristic inequalities and instantiate
+the uniform state-indexed cost transfer. Literal finite-control tape parking
+and restoration are also proved, with explicit linear step bounds. This document
+does not prove the complete integer multiplication theorem: the physical
+compiler and analytic transfer obligations listed below remain external.
+The accompanying ledger records which computational reproductions have
+finished; an arithmetic calculation is never used as evidence that a physical
+word has been regenerated.
+\end{abstract}
+
+\section{Sources and scope}
+The original preprint is OpenAI, \emph{Integer multiplication below
+$n\log n$}, 23 September 2026. The local source snapshot is
+\texttt{fd4aeeb2ee4fc729c18d98444fed42fd0529eeeb} of
+\href{https://github.com/openai/math}{openai/math}.
+The initial community main is
+\texttt{64ed4cbf872b86b81c22f104967b88d24b8e4548} of
+\href{https://github.com/CrocSwap/integer-mult-bounds}{CrocSwap/integer-mult-bounds}.
+The independent Hrrsmjd addendum is pinned at
+\texttt{ad514e40b9a0506890d458e2f7aba623136fbbc9}; its arithmetic
+formalization uses Lean 4.34.1 and does not formalize a Turing machine.
+
+The user-specified PR58 is pinned at
+\texttt{96c52fb81cab6e714768e00ca33ca7f004ebcac4}; its construction commit is
+\texttt{bc2f7ed4c20dc18898305ab17165c0c995cbb804}.
+PR60 is \texttt{e7a492dd8bee4e6f574ced784a62af2ce735edc4}.
+PR61 is \texttt{ff8efaeacfeb3f7cdb49d72d073de64971fb70f0}.
+The independently discovered pair-assembly fork is
+\href{https://github.com/ikeboy/integer-mult-bounds/tree/ad0f25ff7b23cff7f08ad237c2254e6ecf74257e}{ikeboy/pair-assembly},
+commit \texttt{ad0f25ff7b23cff7f08ad237c2254e6ecf74257e}.
+The final inventory snapshot also records main
+\texttt{d55bcd62ceb8f322bcf311a5a66e94c3ac7724f0}; its headline is unchanged.
+PR61 subsequently moved to
+\texttt{b66ed150045be034a90105a79616a734a879e07a} and retuned PR60.
+At the final 18:02 UTC refresh, PR61 had moved again to
+\texttt{afb7cb67d1858641315cfbf4ac768ee64a8eff3a}, retuning PR62 to
+$5.1016920170078\cdot10^{-5}$. This remains below the new construction here.
+There were still 62 PRs and 22 exposed forks at that snapshot.
+An initial source inventory is not a mathematical proof review of every line
+of every branch. The audit records review depth and reproduction separately.
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Construction & Claimed $\kappa$ & Physical roles $W$\\
+\midrule
+Merged main / PR49 & $4.123863984\cdot10^{-5}$ & $177284805$\\
+PR57 & $4.669442391\cdot10^{-5}$ & $153481944$\\
+PR58 & $4.750735690\cdot10^{-5}$ & $150593466$\\
+PR60 & $4.764513337\cdot10^{-5}$ & $150167598$\\
+Pair assembly + PR57 & $5.101691\cdot10^{-5}$ & $137151806$\\
+New pair + ranked reclamation & $5.10275840622536575\cdot10^{-5}$ & $137151806$\\
+\bottomrule
+\end{tabular}
+\end{center}
+At the initial head, PR61 refines PR58 to
+$59384196136667/1250000000000000000$. Its later head refines PR60 to
+$4.76451333766568\cdot10^{-5}$, still below PR62. These exponents concern asymptotic
+savings under inherited hypotheses, not measured execution times.
+
+\section{A literal-word dirty-scratch theorem}
+Let $D$ be a set of auxiliary roles and let a binary state be an element of
+$\F^D$. A gate replaces coordinate $d$ by $d+s$, with distinct source and
+destination roles. Let $L$ be a finite chronological word of such gates.
+Each gate is linear and involutive, hence the reverse word is $L^{-1}$.
+Let $V:X\to\F^D$ be an injection rule, $J:\F^D\to\F^Z$ a linear
+scatter, and $O:X\to\F^Z$ a specified output satisfying
+\begin{equation}\label{eq:terminal} J(L(Vx))=O(x)\quad(x\in X).\end{equation}
+No linear structure on $X$ and no zero-scratch promise is needed.
+
+\begin{theorem}[Dirty-scratch wrapper]
+Starting from source $x$, target $z$, and arbitrary scratch $d$, execute
+chronologically
+\[
+ L,\ J,\ L^{-1},\ V,\ L,\ J,\ L^{-1},\ V,
+\]
+where $J$ adds the scatter to the target and $V$ adds $Vx$ to scratch.
+The result is $(x,d,z+O(x))$.
+\end{theorem}
+\begin{proof}
+The first scatter adds $JLd$. The first inverse restores $d$, and the
+injection changes it to $d+Vx$. The second scatter adds
+$JL(d+Vx)=JLd+JLVx$. The two dirty terms cancel in characteristic two.
+The last inverse restores $d+Vx$, and the last injection restores $d$.
+Equation~\eqref{eq:terminal} identifies the target increment. The source is
+read-only throughout.
+\end{proof}
+
+The new file \texttt{lean/DirtyWrapper.lean} formalizes the literal gate
+semantics, reverse-word inversion, linearity and the eight executed stages.
+The terminal identity and scatter linearity are explicit hypotheses.
+Uniform address reindexing commutes with a pointwise XOR gate, because both
+sides evaluate the same two Boolean coordinates at the same reindexed address.
+Induction extends this to a word. The Lean file also formalizes this fact.
+This proves an equal-frame semantic interface; it does not prove that every
+frame transition emitted by a particular compiler is legal or correctly charged.
+
+The inherited geometric schedule also explains why four scalar mixer sweeps
+do not require four copies of the varying-frame profile. In the notation of
+\texttt{notes/dag-construction.tex}, the early $L,J,L^{-1}$ use a common
+background $D_0$. Only the middle forward $L$ uses increasing frames
+$D_U=D_0\perp(P\otimes U)$. The final inverse uses the common background
+$D_1$; entry into $D_1$ is charged as terminal cleanup. Source injections
+and scatters retain their separately charged source/target frames, and copied
+centers use the explicit paid schedule of \texttt{notes/copied-centers-lemma.tex}.
+For the reverse orientation, reverse the word and complement these frames.
+This is a written geometric argument, not a new Lean proof of the full
+frame-changing implementation. The local equal-frame and terminal contracts
+remain necessary at every gate.
+
+\section{Rank conservation and the correct optimization objective}
+Set $h_1=23$, $h_2=25$, $m=575$, $v_h=\binom h3$, and
+$N=v_{23}v_{25}=4073300$. Assume every auxiliary physical role has a
+monotone frame path whose rank begins at zero and ends at $h$.
+Every transition is charged by its rank increase. Assume also that the $h$
+copied centers each incur the additional charged rank $h-1$.
+
+\begin{lemma}[Local rank conservation]
+With $R_h$ roles, the full local rank mass is
+$hR_h+h(h-1)$, independently of how the intermediate monotone transitions
+are grouped.
+\end{lemma}
+\begin{proof}
+For each role the successive rank differences telescope to $h$.
+Sum over roles and add the $h$ paid center contributions.
+\end{proof}
+The assertion requires the actual chronological frame path and complete
+endpoint charges; a histogram alone does not establish its hypotheses.
+
+Let $B_h=(N/v_h)R_h$, $W=2N+B_{23}+B_{25}$, and
+$L=(N/v_{23})23\cdot22+(N/v_{25})25\cdot24=2226400$.
+The retained data child list is two copies of
+$9[1]+[21]+[17]+[481]$ per source pair. It contributes $1056N$.
+The data-growth terms contribute $92N$, and paid endpoint copies contribute
+$N$. Auxiliary interior and exterior terms together contribute
+$m(B_{23}+B_{25})+L$. Consequently
+\begin{equation}\label{eq:mass}
+ s=mW-N+L,\qquad mW-s=N-L=1846900.
+\end{equation}
+Thus changes confined to this producer/compiler family preserve the deficit.
+They improve the width and child distribution, not that deficit.
+
+For child multiplicities $n_t$ define
+\[
+ F(u)=\frac{1}{mW}\sum_{0<t<m} n_t t (m/t)^u.
+\]
+At a fixed $u>0$, minimizing roles alone is not the right objective.
+Let $\phi_u(t)=t(m/t)^u$ and $n_{h,t}$ be the local internal profile.
+Then the sign of $F(u)-1$ is the sign of a fixed data contribution plus
+\begin{equation}\label{eq:separable}
+ \sum_{h\in\{23,25\}}\frac{N}{v_h}
+ \left[\sum_t n_{h,t}\phi_u(t)
+ +R_h\{\phi_u(h)+\phi_u(m-2h)-m\}\right].
+\end{equation}
+This follows by expanding all exterior and interior children and subtracting
+$mW$. If axis choices are independently compatible with the unchanged common
+basis and data geometry, each bracket can be minimized separately. Compatibility
+is a hypothesis, not a consequence of the algebraic separation.
+
+\subsection{A new composition and an exponent-independent improvement}
+Feed the PR62 interval/core-aware pair producer into the unchanged PR57
+compiler, except that retired roles are considered in descending current
+frame rank, with ascending role number as the tie breaker. This is precisely
+the priority rule introduced in PR60. The new combination is independently
+compiled at both dimensions. The roles remain $R_{23}=27918$ and
+$R_{25}=36586$, and
+$W=137151806$, $s=78860441550$. The unchanged rational address basis and
+data geometry make these two axis choices compatible. Paid clearing XORs
+remain in the literal word; arbitrary dirty-state replay, frame-transition
+reconstruction, copied-center accounting and bounded-minor CRT profiles are
+checked anew. The scatter word is also explicitly equated to the charged
+output incidences, closing a checker-interface omission in the inherited replay.
+
+\begin{lemma}[Discrete concave profile comparison]\label{lem:concave}
+Let $T\ge2$ and let two finite multiplicity profiles on $\{1,\ldots,T\}$ have signed
+difference $d_t=\widetilde n_t-n_t$ and equal rank mass. Put
+$C_k=\sum_t d_t\min(t,k)$. If $C_k\le0$ for every $k$ and $C_1<0$,
+then for every function $f:\{0,\ldots,T\}\to\R$ with $f(0)=0$, nonnegative discrete curvatures
+$b_k=2f(k)-f(k-1)-f(k+1)$ for $1\le k<T$, and $b_1>0$,
+\[
+ \sum_t\widetilde n_t f(t)<\sum_t n_t f(t).
+\]
+\end{lemma}
+\begin{proof}
+For integer $0\le t\le T$, telescoping successive slopes gives
+\[
+ f(t)=t\{f(T)-f(T-1)\}
+       +\sum_{k=1}^{T-1}b_k\min(t,k).
+\]
+Multiply by $d_t$ and sum. The linear term vanishes by equal rank mass.
+The remaining sum is $\sum b_kC_k<0$; its $k=1$ term is strictly negative
+and all other terms are nonpositive.
+\end{proof}
+For the new and original profiles, the nonzero capped differences are
+\[
+\begin{split}
+h=23:\quad&-176,-431,-591,-729,-727,-634,-538,\\
+           &-431,-305,-202,-121,-62,-24;\\
+h=25:\quad&-372,-669,-1005,-1206,-1288,-1264,-1182,\\
+           &-1013,-843,-688,-516,-366,-263,-179,\\
+           &-103,-76,-49,-32,-10.
+\end{split}
+\]
+All later capped differences are zero. The exact integer script
+\texttt{concave\_dominance.py} verifies these values and checks the
+min-basis identity coefficient by coefficient.
+The new \texttt{lean/CappedMass.lean} proves the finite expansion and
+summation-by-parts comparison, verifies both concrete signed cap tables,
+and uses real-power strict concavity to prove the all-exponent result.
+The correspondence between those literal profile tables and the compiler's
+words is independently checked outside Lean.
+
+\begin{theorem}[Uniform local improvement]
+For every $0<u<1$, the new ranked-pair characteristic is strictly smaller
+than the original PR62 stacked characteristic.
+\end{theorem}
+\begin{proof}
+Use Lemma~\ref{lem:concave} on both axes with $f(t)=t^{1-u}$, which has
+strictly positive discrete curvature. Multiply by the positive replication
+counts and $m^u/(mW)$. Exterior/data contributions and $W$ are identical,
+so they cancel. This proves strict improvement for the full characteristic.
+\end{proof}
+
+\section{Independent exact characteristic enclosures}
+The standalone checker \texttt{independent\_moment.py} imports no contributor
+arithmetic code. For $1\le x\le2$, put $z=(x-1)/(x+1)$ and
+\[
+ L_J=2\sum_{j=0}^{J-1}\frac{z^{2j+1}}{2j+1},\qquad
+ U_J=L_J+\frac{2z^{2J+1}}{(2J+1)(1-z^2)}.
+\]
+The positive atanh series proves $L_J\le\log x\le U_J$: bound every
+omitted denominator below by $2J+1$ and sum the geometric tail. Range
+reduction $x=2^k y$, $1\le y\le2$, handles all children.
+For $0\le y<1$ let
+\[
+ P_K(y)=\sum_{j=0}^K y^j/j!,\qquad
+ P_K(y)\le e^y\le P_K(y)+
+ \frac{y^{K+1}}{(K+1)!\,[1-y/(K+2)]}.
+\]
+The upper bound follows because successive omitted terms have ratio at most
+$y/(K+2)$. All arithmetic is rational, with outward rounding to multiples
+of $10^{-60}$. The implementation uses $J=72$ and $K=12$.
+
+Every summand of $F$ is positive and strictly increasing. Since
+$F(0)=s/(mW)<1$ and $F(u)\to\infty$, there is a unique positive root.
+Independent exact arithmetic gives for the pair-assembly profile
+\[
+ \frac{510195230290215848}{10^{22}}
+ < u_* <
+ \frac{510195230290215849}{10^{22}}.
+\]
+Both endpoints are verified by strict upper/lower moment enclosures, respectively.
+This is a barrier for the supplied profile and characteristic, not a proof of
+optimality over graphs, address bases, or algorithmic architectures.
+For the new ranked-pair construction the root instead satisfies
+\[
+ \frac{510301880094620232}{10^{22}}
+ <u_*^{\rm ranked}<
+ \frac{510301880094620233}{10^{22}}.
+\]
+
+\section{Balanced assembly and a formal ceiling}
+Let $a>0$ be the local bit saving, let $0<\epsilon<1$, and suppose a final
+saving is constrained by $\kappa<1-\epsilon$ and
+$\kappa<\epsilon q$, with $q\le a$.
+\begin{theorem}[Two-margin ceiling]
+Under these hypotheses, $\kappa<a/(1+a)$.
+Moreover
+$\min(1-\epsilon,\epsilon a)\le a/(1+a)$ for every real $\epsilon$;
+equality holds at $\epsilon=1/(1+a)$.
+\end{theorem}
+\begin{proof}
+If $\epsilon\le1/(1+a)$, then $\epsilon a\le a/(1+a)$.
+Otherwise $1-\epsilon<a/(1+a)$. Apply the two strict bounds for $\kappa$.
+Substitution proves the equality assertion.
+\end{proof}
+This result is formalized in \texttt{lean/BalancedCeiling.lean}. Equality in
+the relaxed two-margin problem does not satisfy all strict physical constraints.
+
+The inherited assembly uses $b=717/10^7$, $\beta=1/20$ and a positive
+backoff $\eta$, with
+\[
+ q=a(1-2\eta),\quad c=q+\eta/4,\quad
+ \epsilon=\frac{1-\eta}{1+q},\quad G=\epsilon q,
+ \quad r=(G+1-\epsilon)/2,\quad \delta=\eta/8.
+\]
+Its minimum of seven cost margins is $G$ and it checks 47 strict conditions.
+The independent transcription \texttt{independent\_assembly.py} reproduces
+all 47 published rational values before refining parameters. For the supplied
+pair profile, $a=510195230290215848/10^{22}$, $\eta=10^{-18}$ and
+\begin{equation}\label{eq:refinement}
+ \kappa=\frac{510169201700880969}{10^{22}}
+       =5.10169201700880969\cdot10^{-5}
+\end{equation}
+pass the exact moment and assembly conditions. This is only a parameter
+refinement of another contributor's construction. It is conditional on that
+construction and all the inherited transfer interfaces.
+
+For the new ranked-pair profile, choose
+\[
+ a=\frac{63787735011827529}{1250000000000000000000},\qquad
+ \eta=10^{-18},\qquad
+ \boxed{\kappa=\frac{20411033624901463}{400000000000000000000}}
+\]
+so that $\kappa=5.10275840622536575\cdot10^{-5}$.
+The independent checker verifies the strict characteristic inequality and
+all 47 constraints, with the finite bridge explicitly bound to the new
+$m,W$ and maximum child width. This is about $0.0209226\%$ above the
+original PR62 stacked witness. The uniform profile comparison, rather than
+the tiny parameter backoff, is the structural improvement.
+The resulting multiplication exponent remains conditional on every
+physical and analytic transfer obligation below.
+The new \texttt{lean/ConcreteAssembly.lean} derives these 47 slacks from
+the displayed parameters, rather than importing their numerical values,
+and proves positivity, the seven margin inequalities and the supplied
+semantic-envelope arithmetic. It does not assert the real characteristic
+bound or the physical interpretation of the supplied bridge constants.
+Across the five new Lean files, 45 declarations are compiled and axiom-audited;
+only standard foundational axioms occur. The existing main, Gaussian
+synthesis, independent addendum, and final PR61 formal packages were also
+built with their respective pinned toolchains. These counts describe the
+audited declarations, not 45 independent algorithmic breakthroughs.
+
+At the present values, $(1-\beta)b=6.8115\cdot10^{-5}>a$.
+The bit characteristic is therefore the immediate bottleneck in this
+assembly; improving only $b$ leaves the two-margin bit ceiling in force.
+This observation does not rule out a different assembly or other advantages
+from a better complex network.
+Conversely, the retained condition $a<(1-\beta)b$ limits all further
+bit-only improvements: at $\beta=1/20$,
+$\kappa<13623/200013623\simeq6.81103606627835\cdot10^{-5}$.
+Even allowing arbitrary $\beta>0$ with the same complex saving gives
+$\kappa<717/10000717\simeq7.16948594785754\cdot10^{-5}$.
+These architecture-specific bounds allow only about $1.335$ or $1.405$
+times the selected saving, respectively. An order-of-magnitude improvement
+therefore requires changing the complex saving or the assembly constraints.
+
+\section{Rounded recurrences: the finite-to-asymptotic step}
+\begin{lemma}\label{lem:rounded}
+Let $0<p\le1$, $c_i\ge0$, $0<r_i<1$ for a nonempty finite index set,
+and $\gamma=\sum_i c_i r_i^p<1$. Suppose $f:\mathbb N\to[0,\infty)$
+is finite-valued and, for all $n>N_0$,
+\[
+ f(n)\le C+\sum_i c_i f(\lceil r_i n\rceil)
+\]
+for a fixed $C\ge0$. Then $f(n)=O(n^p)$.
+\end{lemma}
+\begin{proof}
+Choose an integer $N\ge\max(1,N_0)$ large enough that
+$N>1/(1-\max_i r_i)$ and
+$N^p\ge2\sum_i c_i/(1-\gamma)$.
+Choose $A>0$ with $A\ge2C/(1-\gamma)$ and
+$f(n)\le An^p$ for $1\le n\le N$.
+For $n>N$ all children lie in $[1,n-1]$.
+The inequality $(x+1)^p\le x^p+1$ holds for $x\ge0$;
+for $0<p<1$ it follows by differentiating the decreasing increment
+$(x+1)^p-x^p$, and $p=1$ is equality.
+Strong induction now gives
+\[
+ f(n)\le C+A\gamma n^p+A\sum_i c_i\le An^p.
+\]
+The last two terms are at most $A(1-\gamma)n^p$, by the choices of
+$A,N$ and $n^p\ge1$.
+\end{proof}
+For the desired bit recurrence take $p=1-a$, $c_t=n_t/W$ and $r_t=t/m$;
+then $\gamma=F(a)$. This lemma concerns a scalar recurrence. Establishing
+that one fixed finite-alphabet machine has this recurrence, uniformly over
+all volumes, address lengths, row remainders and dirty workspaces, remains a
+separate and essential obligation.
+The retained \texttt{notes/batched-algorithms.tex} actually implements floor
+children $t\lfloor n/m\rfloor$, handling the fewer-than-$m$ remainder digits
+separately. The ceiling recurrence above is a sufficient upper envelope;
+to obtain it from the floor recurrence one may use a monotone worst-case
+normalized cost function. It is not a claim that the serialized machine
+literally recurses at the ceiling widths.
+The new \texttt{lean/RoundedRecurrence.lean} proves a quantitative form:
+given an explicit threshold and the finite budget
+$C+A\sum c_i\le A(1-\gamma)N^p$, it establishes the all-width bound using
+actual upward-rounded natural children. It also proves the two half-budget
+conditions used above imply that budget. Selection of machine-specific
+$C,N,A$ and the physical recurrence are external application obligations.
+The same Lean file proves the real exponential/power characteristic identity
+and a network-specific specialization with weights $n_t/W$ and ratios $t/m$.
+Its strict real characteristic bound is a named hypothesis. The subsequent
+development described next discharges that hypothesis for the literal
+selected profile by proving the real inequality inside Lean.
+
+\section{Post-publication proof development and refreshed frontier}
+The existing progress was published as
+\href{https://github.com/CrocSwap/integer-mult-bounds/pull/64}{draft PR64},
+head \texttt{790a14e28e935398072b9a9a68694ce7fba8940f}.
+Its full local \texttt{make verify} completed successfully, including
+419 core regression tests, four further test groups and 28 historical
+research audits. These checks are distinct from the finite-word replay
+and 45 Lean theorem audits already described. The following developments
+are preserved locally under \texttt{next-proof/}; they are not part of
+that published head.
+
+\paragraph{Actual real characteristic.}
+The three files \texttt{AnalyticEnclosures.lean},
+\texttt{SelectedProfileCertificate.lean} and
+\texttt{SelectedProfileReal.lean} prove
+\[
+ \sum_{t} \frac{n_t}{137151806}
+   \left(\frac{t}{575}\right)^{1-a}<1,
+ \qquad a=\frac{63787735011827529}{1250000000000000000000},
+\]
+for the literal 27-row selected profile. The characteristic is an actual
+real power expression, not a Boolean or floating-point surrogate.
+For a positive rational $q$, a nonnegative rational $L$ with
+$q\le\sum_{j<24}L^j/j!$ proves $\log q\le L$ using the real exponential
+series. Exact reduction $q=2^k r$ and a separately proved bound for
+$\log 2$ keep the rational witnesses short. An eight-term Taylor
+polynomial with a proved remainder bound then bounds
+$\exp(a\log(575/t))$ above. All rational witness inequalities are
+checked by Lean's kernel, without \texttt{native\_decide} or a new axiom.
+The final rational upper bound $U$ satisfies the exact identity
+\[
+ 1-U=\frac{23551960513937}
+ {4285993937500000000000000000000000000}>0.
+\]
+Seventeen theorem declarations are axiom-audited. The binding of this
+literal profile to the concrete compiler remains a separate finite
+verification interface; no physical cost theorem follows from the real
+inequality alone.
+
+\paragraph{Framed execution and fresh copies.}
+\texttt{FramedXor.lean} models a role gauge $g_r$ as a bijection from
+logical to physical addresses. Decoding reads $P_r(g_r(a))$.
+A literal reframe from $g$ to $h$ reads the previous row at
+$g(h^{-1}(b))$; it preserves decoded payloads. A typed XOR step requires
+equal current gauges at its incident roles. Induction over the typed
+trace proves that decoded physical execution equals the scalar XOR word
+obtained by erasing reframes, for arbitrary initial original rows.
+The copy lemma allocates one explicitly blank fresh row, clones a source
+by XOR, transports that row once, and uses it for an arbitrary literal
+list of targets. Duplicate targets retain their multiplicities. Every
+original nontarget row is preserved; no dirty original row is silently
+cleared. Formal counterexamples show why both current-gauge equality and
+the fresh-blank precondition are necessary. Eighteen main declarations
+are axiom-audited, using only \texttt{propext} and \texttt{Quot.sound}.
+
+\paragraph{Finite row semantics.}
+\texttt{RowInterchange.lean} constructs the actual finite bijection
+\[
+ \{0,\ldots,WR-1\}\longleftrightarrow
+ \{0,\ldots,W-1\}\times\{0,\ldots,R-1\},\quad
+ r\longmapsto(r\bmod W,\lfloor r/W\rfloor),
+\]
+whose inverse is $(w,g)\mapsto Wg+w$. It proves the split/merge laws on
+every original payload, retaining complete address fields.
+Suppose the scalar word sends input role $w$ to output role $\rho(w)$,
+and the endpoint gauges satisfy
+$g_{\rm out,\rho(w)}=\sigma\circ g_{\rm in,w}$, with $\sigma$ preserving
+the group coordinate. Undoing $\rho$ during the merge yields the exact
+payload $P(r,\sigma^{-1}(a))$ on original row $r$.
+The inverse is essential: $\sigma$ describes a pushforward of locations.
+Padding lemmas prove that a common within-row address map preserves fresh
+blank rows and restricts to the desired map on all original rows.
+Ten theorem declarations are axiom-audited. The typed concrete trace,
+its two endpoint premises, recursive row divisibility and implementation
+costs remain application obligations.
+
+\paragraph{Refreshed finite frontier.}
+The incremental inventory includes PR65--68; the audit distinguishes source
+inspection from complete reproduction. PR67, Rohan Arun's cost-aware
+retired-slot construction at
+\texttt{b3745601e947a94316bf25c2c6263d93c06e3364}, has been freshly
+reproduced with both deterministic word rebuilds, complete independent
+binary basis replay, fixed-basis CRT checks, negative controls and exact
+assembly arithmetic. It supports the conditional certificate
+\[
+ \kappa=\frac{10206752116843}{200000000000000000}
+       =5.1033760584215\cdot10^{-5}.
+\]
+Its parameters $m,W,s$ are unchanged. It retains the original PR63
+region orders despite descending from PR65 in Git. At this earlier snapshot,
+PR68's compatible live anchors suggested a combination with its witness
+search, but a combined construction had not yet been certified here.
+PR65, PR66 and that older PR68 head received source and literal-binding
+audits; their full rebuilds were not rerun in that incremental audit.
+The later PR68 reproduction below supersedes this earlier frontier.
+
+\begin{proposition}[Power comparison by integrated capped sums]
+Let $T\ge2$ and let $d_t$ be a finitely supported signed multiplicity difference with
+$\sum_{t=1}^T td_t=0$. Put
+$C_k=\sum_t d_t\min(t,k)$ and $S_j=\sum_{k=1}^j C_k$.
+If $S_j\le0$ for $1\le j<T$ and $S_{T-1}<0$, then
+$\sum_t d_t t^p<0$ for every $0<p<1$.
+\end{proposition}
+\begin{proof}
+Let $f(t)=t^p$, $f(0)=0$, and
+$b_k=2f(k)-f(k-1)-f(k+1)$. The capped-function representation and equal
+rank mass give $\sum_t d_t f(t)=\sum_{k=1}^{T-1}b_kC_k$.
+Summation by parts gives
+\[
+ \sum_{k=1}^{T-1}b_kC_k
+ =b_{T-1}S_{T-1}+\sum_{k=1}^{T-2}(b_k-b_{k+1})S_k.
+\]
+The curvatures $b_k$ are positive and strictly decreasing. Indeed,
+\[
+ b_k=p(1-p)\int_0^1\!\left[
+ u(k-1+u)^{p-2}+(1-u)(k+u)^{p-2}\right]du.
+\]
+Both summands strictly decrease with $k$ on $0<u<1$. At $k=1$ the
+first is $u^{p-1}$, which is integrable; integration by parts is
+justified by taking a positive lower cutoff and using
+$u f'(u)=pu^p\to0$. The first term in the summation formula is negative
+and all remaining terms are nonpositive.
+\end{proof}
+For those pinned complete profiles, the differences PR67 minus PR64,
+PR65 and the older PR68 head are supported through $T=25$. All 24 required prefixes
+are negative, with largest values respectively $-1765204$, $-1470091$
+and $-1446424$. Thus PR67 has a strictly smaller full power
+characteristic for every saving $0<a<1$. This new comparison is an
+ordinary mathematical proof with exact integer certificates; it has not
+been formalized in Lean. Ordinary concave dominance is false, since
+PR67 minus PR64 has $C_{16}=3542>0$.
+
+\section{Exact widths and physical tape primitives}
+The next proof package is under \texttt{transfer-proof/}. Its selected-profile
+specialization refers to the exact PR64 data; a separate namespace below
+instantiates the real inequality and state-cost transfer for public PR68.
+
+\paragraph{The literal floor recurrence.}
+\texttt{FloorDepth.lean} defines the executable depth
+\[
+ D(e)=0\quad(e<m),\qquad D(e)=1+D(t_*\lfloor e/m\rfloor)\quad(e\ge m).
+\]
+It proves termination, monotonicity, and
+$D(t\lfloor e/m\rfloor)+1\le D(e)$ whenever $t\le t_*<m$.
+Consequently, $W^{D(e)}\mid R$ gives an exact split $W(R/W)=R$ and
+$W^{D(t\lfloor e/m\rfloor)}\mid R/W$ for every child.
+The companion file proves
+\[
+ D(e)\le1+\frac{\log e}{\log(m/t_*)}\quad(e\ge1, 0<t_*<m).
+\]
+For $p\ge0$ and $\gamma=W^{-1}\sum_t n_t(t/m)^p<1$, the formal
+floor-recurrence theorem states that
+\[
+ f(e)\le C+\frac1W\sum_t n_t f(t\lfloor e/m\rfloor)\quad(e\ge m)
+ \quad\Longrightarrow\quad f(e)\le Ae^p\quad(e\ge1),
+\]
+where the finite-valued $f$ is arbitrary and
+$A=\sum_{0\le u<m}|f(u)|+|C|/(1-\gamma)$.
+No monotonicity of $f$ or ceiling envelope is assumed. Positive child
+widths are strictly smaller; floors decrease their $p$-powers; strict
+contraction pays $C$; and the finite sum covers the base cases.
+\texttt{SelectedFloorTransfer.lean} discharges the real characteristic
+for the literal selected profile, with $m=575$, $t_*=529$ and $p=1-a$.
+
+\paragraph{Uniformity over invocation states.}
+\texttt{PhysicalCostTransfer.lean} avoids assuming a finite normalized
+supremum over volumes and spectator layouts. It quantifies over an arbitrary
+type of admissible states, with width $e(s)$, volume $V(s)\ge0$ and cost
+$T(s)$. Actual children $s_{t,j}$, $0\le j<n_t$, obey the named contracts
+\[
+ e(s_{t,j})=t\lfloor e(s)/m\rfloor,\qquad V(s_{t,j})=V(s)/W.
+\]
+Assume a uniform base bound $T(s)\le BV(s)$ for $1\le e(s)<m$, and
+$T(s)\le CV(s)+\sum_{t,j}T(s_{t,j})$ internally. Then
+\[
+ T(s)\le\left(\max(0,B)+\frac{|C|}{1-\gamma}\right)V(s)e(s)^{1-a}
+ \qquad(e(s)>0).
+\]
+Strong induction on the integer width proves this uniformly: each
+child contributes at most its volume times its child-width power, and
+the finite characteristic sums those contributions to
+$\gamma V(s)e(s)^{1-a}$. The chosen constant covers both base and
+overhead. Multiplicities remain symbolic finite sums, without expanding
+billions of calls. The four modules contain 35 audited theorem declarations;
+their 17 analytic dependencies were also rebuilt. The physical state,
+cost and child interfaces remain explicit implementation obligations.
+
+\paragraph{Literal parking-tape operations.}
+\texttt{TapeStack.lean} and \texttt{TapeStackPush.lean} use Mathlib's
+bidirectional tape semantics. The alphabet has a blank, a separator and
+two bit symbols. Pop has six control states and three tapes; push has
+three states and two tapes. Instructions receive only the state and
+scanned symbols, write at most one cell per tape and move each head by
+at most one position. A refinement theorem equates these finite tables
+with the step functions used in the runtime proofs.
+
+For every bitstream of length $n$ and arbitrary finite ancestor suffix,
+push parks the stream and delimiter, erases its source and restores the
+source head within $2n+2$ transitions. Pop recovers the original stream
+order, empties its temporary, restores the former parking-stack top and
+returns the output head to its first payload cell within $3n+5$ transitions.
+Push consists of $n+1$ copying/sealing steps and $n+1$ rewind steps.
+Pop uses two entry steps, two reversing transfers of $n+1$ steps each,
+and an output rewind of $n+1$ steps. Induction on the literal input list
+proves each phase, including $n=0$. The round trip explicitly reuses
+the erased source as output. No counter or seek-to-length primitive
+is assumed. Boundary markers can be installed or removed in two local
+actions each; removal on an empty work tape restores a genuinely blank tape.
+
+All 36 tape theorem declarations are axiom-audited. The bounds concern
+specified iterations, not first-halting or optimality. Ancestor contents
+and the previous stack top are restored exactly, with no ancestor-size
+term in the bound. The complete recursive scheduler remains to be
+constructed: it must preserve the parked record and head across the child,
+restore the reusable tape interfaces, and integrate active I/O, descriptor,
+row and frame operations. The round trip composes two proved routines;
+it does not encode the entire multiplier in one transition table.
+
+\paragraph{The selected address gauges and payload field.}
+The selected payload is binary. The $\mathbb F_3$ table in the older
+batched five-subset pseudocode belongs to a different circuit. Rational
+matrices and the eligible odd radix prime describe addresses, not payloads.
+The selected gauge is the projector partial swap
+\[
+ D_P(x,y)=\bigl(x+P(y-x),\ y-P(y-x)\bigr).
+\]
+For idempotent $P$, $D_P$ is an involution. If $PQ=QP=P$, forward and
+reverse nested transport both equal $D_{Q-P}$. Complementing and
+reversing has the same residual because $(I-P)-(I-Q)=Q-P$;
+also $D_{I-P}D_P$ is the full interchange $(x,y)\mapsto(y,x)$.
+These identities are formalized over additive endomorphisms, with matrix
+and $\mathbb Z/q^f\mathbb Z$ instances and a typed binary endpoint theorem.
+Concrete rational reduction, eligible primes, emitted phase traces and
+physical residual costs remain separate bindings.
+
+\paragraph{Concrete local forward phase and its charges.}
+The new finite checker assigns actual current gauges to every XOR incidence
+in the selected PR64 forward wrapper
+$L,J,L^{-1},V,L,J,L^{-1},V$. Its first, third and seventh traversals use
+common gauges; only the middle $L$ varies auxiliary frames. All its actual
+clearing gates are included. Each retained center is cloned into one fresh
+blank stream, transported before all its fanout reads, and then discarded;
+original dirty roles are preserved. The late scatter is reordered with its
+complete literal incidence multiset unchanged. Its paid auxiliary transitions
+reproduce the existing binary CRT profiler inputs byte-for-byte. Thus four
+scalar traversals of $L$ do not imply four varying auxiliary-frame paths.
+
+For a triple $T=\{i,a,b\}$, a side envelope has basis
+$b_j=e_i+2e_j$ for $j\notin T$. With $G=I-J/9$, the checker verifies
+$\langle b_j,b_k\rangle=4\delta_{jk}$, orthogonality to $t_T$, and the
+orthogonal vector $w=e_a-e_b$ with norm squared $2$. These identities
+certify the three rank-one steps
+$E\subset E+\langle w\rangle\subset t_T^\perp\subset\Q^h$.
+There are 621482 and 855860 scalar wrapper XORs at $h=23,25$,
+plus 23 and 25 fresh clone passes respectively. Clone, erase and other
+stream operations have separately required linear costs; these figures
+are not total tape instruction counts. Seven deliberately malformed phase
+schedules are rejected.
+
+This checker covers a local forward schedule, not a generated Lean trace
+of the complete ambient tensor construction. The full reverse copied-center
+schedule, ambient backgrounds, final data correction, and inherited data
+profiles remain to be bound. Reduction modulo an eligible odd prime must
+avoid 3 and the relevant finite denominator, Gram determinant and pivot
+exceptions; the rational calculation does not establish all-prime validity.
+
+\paragraph{Updated frontier and bounded negative experiments.}
+PR68 subsequently advanced to
+\texttt{85781f662b57521743cce07cdd5ea194e6f3879d}, with conditional
+\[
+ \kappa=\frac{51035127217697}{10^{18}}=5.1035127217697\cdot10^{-5}.
+\]
+This is Dominik Scholz's public composition of PR67's cost-aware retired
+selection and PR68's live controls. Both words were reproduced
+byte-for-byte. Fresh basis replay, literal-scatter binding, paid profiles,
+CRT reconstruction and independent 47-constraint arithmetic passed.
+The updated PR68 globally capped-mass dominates pinned PR67, with
+$C_1=-214291$, proving a better power characteristic for every $0<a<1$.
+
+\paragraph{A kernel-checked real certificate for updated PR68.}
+The separate \texttt{latest-analytic/} package binds its 27 literal
+width/multiplicity rows to the candidate at that exact Git commit.
+At the claimed bit saving $a=51037731934993/10^{18}$, it proves
+\[
+ \gamma_{68}=\sum_t\frac{n_t}{W}
+       \left(\frac{t}{575}\right)^{1-a}<1.
+\]
+The proved logarithm and exponential enclosure lemmas discharge the
+analytic bounds; no enclosure premise remains. The rational upper bound
+has positive gap
+\[
+ \frac{9542461156808503791}
+ {34287951500000000000000000000000000000}
+ \mathrel{\simeq}2.783036238490\cdot10^{-19}.
+\]
+\texttt{Pr68PhysicalCost.state\_cost\_bound} then gives the same uniform
+state-indexed bound as above, with this actual characteristic and saving,
+under explicit physical child-width, volume, base and recurrence contracts.
+A fresh build audited 14 declarations in the new namespaces and 52 reused
+dependencies. One of the 14 repeats the generic power-term identity;
+13 are profile-specific certificates or specializations. This does not
+formalize the displayed global $\kappa$: its complete assembly and machine
+transfer remain separate from this unconditional finite real inequality.
+
+Three bounded axis experiments gave no stronger construction. Scoring
+live controls against their known next-use frame reproduced both public
+words. Adding PR65's cover/core order at $h=23$ yielded a legal but
+worse profile, with screened saving $5.1034994605527\cdot10^{-5}$.
+All six available axis combinations were compared with exact enclosures.
+This is a recorded negative result, not an optimality claim or a new
+numerical construction attributed to this audit.
+
+\section{Outer row stock, descriptors, and eligible address rings}
+The subsequent package \texttt{full-transfer/} advances the physical
+interfaces without assuming that every abstract operation is already a
+linear-time tape procedure.
+
+\paragraph{An all-width choice of row digits.}
+An additional bound on the executable depth is
+\[
+ (m-t_*)D(e)\le e.
+\]
+Indeed, every internal step decreases width by at least $m-t_*$:
+writing $f=\lfloor e/m\rfloor\ge1$ gives
+$(m-t_*)+t_*f\le mf\le e$. Strong induction proves the bound.
+For $m=575$, $t_*=529$, choose
+\[
+ \rho=14D(e),\qquad N=q^{2\rho},\qquad P=W^{D(e)}.
+\]
+For every $q\ge2$ and $1\le W\le137151806<2^{28}$, one has
+$P\le N$. Moreover, $2\rho<e$ for every positive integer $e$:
+if $D(e)>0$, then $28D(e)<46D(e)\le e$; otherwise $\rho=0$.
+Thus this explicit choice needs no unspecified finite exceptional set of
+small widths. It need not be the least possible row-digit count, but the
+proved logarithmic depth bound still gives $\rho=O(\log e)$.
+
+The least multiple
+\[
+ R=\left(\left\lfloor\frac{N-1}{P}\right\rfloor+1\right)P
+\]
+satisfies $N\le R<N+P\le2N$ and $P\mid R$.
+Depth monotonicity gives $W^{D(e-\rho)}\mid R$.
+The exact identity $q^{2\rho}q^{2(e-\rho)}=q^{2e}$ shows that the rows
+come from existing digits; rounding increases the full logical volume by
+strictly less than two, including arbitrary positive spectator factors.
+There is only one outer rounding. No internal recursive padding is needed.
+
+For any $p>0$, the formal power estimate is
+\[
+ \rho\le14\left(1+\frac{1}{p\log(575/529)}\right)e^p.
+\]
+It follows from the depth bound and $\log e\le e^p/p$.
+An explicit cost corollary combines this estimate with a named physical
+gathering/padding contract and the internal cost bound; it preserves the
+width exponent. Arithmetic row supply does not itself prove that contract.
+
+\paragraph{Uniform descriptor absorption.}
+Every descendant must retain the complete root main-address range
+$X=q^{2(e-\rho)}$, even when some digits become spectators. At depth
+$j\le D(e)$, with positive spectator factor $S$, put
+\[
+ V_0=RXS,\qquad V_j=(R/W^j)XS.
+\]
+Exact row divisibility gives $V_0=W^jV_j$. Since $2\rho<e$,
+\[
+ W^j\le P\le N\le X\le V_j,
+ \qquad\text{hence}\qquad V_0\le V_j^2.
+\]
+The resulting explicit estimate, for every fixed integer $k\ge1$, is
+\[
+ \bigl(\log(2V_0)\bigr)^k\le2(2k)^kV_j.
+\]
+Indeed, $\log(2V_0)\le2\log(2V_j)$ and
+$\log(2V_j)\le k(2V_j)^{1/k}$.
+The two files \texttt{OuterRows.lean} and \texttt{DescriptorVolume.lean}
+contain 22 audited declarations. These prove the quantitative uniformity
+step for fixed polynomial descriptor work. They do not implement binary
+descriptor arithmetic or prove the complete-spectator layout invariant.
+
+\paragraph{A genuine localization interface.}
+Finite rational matrices cannot be reduced by a unital ring map from all
+of $\Q$ to a finite ring. The new algebraic interface instead uses
+$\mathbb Z[1/D]$, with an injective map to $\Q$ when $D>0$.
+For any finite rational table, the product of its entry denominators is
+positive and admits exact lifts of every entry. Including the reciprocals
+of prescribed nonzero pivots or Gram determinants also includes their
+numerators in the exceptional-prime product.
+
+An odd prime $q$ coprime to $D$ exists; the same prime makes $D$ a unit in
+$\mathbb Z/q^f\mathbb Z$ for every $f$. Thus the localization has a genuine
+reduction homomorphism. Rationally checked identities are first reflected
+into the localization by injectivity, then reduced. Projector equations,
+both nested absorption directions, complements, differences, tensor products,
+zero patterns and exact matrix factorizations are preserved. Stored inverse
+tables give unit Gram and pivot minors over the target ring; field rank is
+not invoked for a prime-power residue ring.
+
+The direct address-gauge corollary constructs the modular partial swap and
+derives its inverse and nested transport laws from rational identities and
+prime eligibility. Reduced idempotence is no longer an independent premise.
+The three modules have 31 new audited declarations. The complete selected
+rational basis, inverse and factorization tables, their concrete common $D$,
+and the final trace instantiation remain finite preparation obligations.
+
+\paragraph{The split-pair frontier.}
+The next repository snapshot contains 73 PRs. Chafik Boukhalfa's PR71 at
+\texttt{1bef94fd40a746452548c84a4a8f8834670a3113} uses an anchored
+$[1,1,2]$ split-pair graph with cost-aware/live-control compilation.
+Its two freshly regenerated words match the published bytes. Independent
+complete dirty-basis checks, strict scatter bindings, actual frame paths,
+CRT profiles, all 47 assembly inequalities, seven margins and 23 focused
+tests pass. The physical parameters are
+\[
+ R_{23}=27455,\quad R_{25}=36015,\quad
+ W=135075665,\quad s=77666660475,
+\]
+with $m=575$, maximum child 529 and unchanged deficit $mW-s=1846900$.
+Dominik Scholz's PR73 at \texttt{253ecc88faeed55a950c76026d1fe67a7f690123} reproduces
+the same physical profile and finite bridge, with a tighter parameter backoff:
+\[
+ a=\frac{12854322426487}{250000000000000000},\qquad
+ \kappa=\frac{25707323052097}{500000000000000000}
+       =5.1414646104194\cdot10^{-5}.
+\]
+Its parameter certificate regenerates byte-for-byte from the pinned parent.
+A separate Lean certificate proves the actual real characteristic below one,
+with exact rational upper-bound gap
+\[
+ \frac{699597017858129667}
+ {4221114531250000000000000000000000000}>0.
+\]
+The state-cost specialization retains the explicit physical contracts.
+This newer package audits 14 declarations, including the repeated generic
+power-term identity, and rebuilds 52 dependencies. The global $\kappa$
+remains a conditional assembly conclusion; these are public constructions
+independently reproduced here, not a new numerical improvement attributed
+to this audit.
+
+Unlike the earlier equal-role profile comparisons, this improvement does
+not give dominance at every power. An exact negative control normalizes
+each profile by its own $W$, and encloses every $\sqrt t$ between adjacent
+rationals using integer square roots. At power $p=1/2$ it proves
+$\Psi_{73}(p)>\Psi_{68}(p)$; the newer profile is worse there, although
+its certified characteristic near $p=1$ is better. Role and total-rank
+reductions therefore cannot replace the actual small-saving certificate.
+
+\paragraph{Complete ambient finite schedule correspondence.}
+The local forward checker has now been extended to both ambient stages,
+including the physical inverse with data-bank renaming, both data fronts,
+auxiliary exteriors, and the final paid correction. The first stage fixes
+an actual $b$-triple projector $Q$ and embeds local frames as
+\[
+ U\longmapsto U\otimes Q.
+\]
+The second fixes an actual $a$-triple projector $P$ and uses
+\[
+ U\longmapsto (I-P)\otimes I+P\otimes U.
+\]
+The second stage starts with a nonzero auxiliary background
+$(I-P)\otimes I$. This common background cancels in each internal
+residual, but remains part of the current gauge. After the local endpoint
+$I$, the paid descending exterior takes the auxiliary to $P\otimes I$.
+Its original endpoints are therefore complementary, as required.
+The two data fronts both have residual $(I-P)\otimes(I-Q)$.
+Twenty-one Lean declarations prove the actual tensor-matrix identities,
+including both helper distributivity lemmas.
+
+The first and second scalar shears give $(x,y)\mapsto(y,x+y)$ and
+restore arbitrary original auxiliary contents. With their actual frames,
+the data outputs are $D_Iy$ and $D_Ix+D_{I-P\otimes Q}y$.
+One fresh complete-stream copy of the first output is transported by
+the rank-one residual $P\otimes Q$ and read into the second output.
+This cancels the extra summand. The final data-bank exchange at row
+merge gives full interchange on every original role. Only fresh copies
+are erased, and both their recursive transports and linear copying/erasing
+passes are accounted for separately.
+
+The finite verifier checks actual reverse gates without transposing their
+XOR direction. Its $h=25$ reverse replay covers all 41186 basis directions
+for PR64, and all 40615 for PR71/73. Each reverse auxiliary charge list
+matches its independently reconstructed forward CRT input byte-for-byte.
+The checker verifies all 4071 actual rational triple-line projectors and
+the universal controlled-basis corner index formulas. Exact indexed
+replication then covers 2300 forward and 1771 reverse local invocations,
+without expanding billions of identical gate events.
+
+For both PR64 and PR71/73, every reconstructed complete profile part agrees
+with the pinned certificate. The latter additionally binds directly to
+PR73's public parameter certificate. The local CRT profiles, exterior
+profiles $(h,m-2h)$, growth profiles $(1,h-2)$, and data-corner profile
+$(1^9,21,17,481)$ are inherited exact certificate inputs; this extension
+establishes their physical residual and multiplicity correspondence, not
+a new proof of every pivot minor. Seven deliberately malformed schedules
+are rejected, including missing exterior work and a wrong final correction.
+
+This closes the missing complete ambient finite schedule check. It remains
+an external exact checker paired with generic Lean algebra, rather than a
+mechanically generated full Lean trace. Ordered residual compilation,
+modular table preparation and uniform tape costs remain implementation
+interfaces to connect.
+
+\section{Remaining obligations and attribution}
+No unconditional new integer multiplication theorem is asserted here.
+The following proof obligations remain external to the new formal files:
+\begin{enumerate}
+\item A mechanically generated typed trace and complete modular-table binding
+for the now checked ambient schedule, with its inherited ordered pivot certificates.
+\item The all-size ordered residual compiler, contiguous recursive blocks,
+complete spectator fields and implementation of the proved row-stock split.
+\item A uniform fixed-number-of-tapes schedule with finite alphabet, explicit
+parking, restoration, descriptor handling and all movement charged.
+\item Analytic Gaussian resampling, precision loss and exact coefficient recovery.
+\item Eligible-prime selection, setup costs, eventual thresholds and the
+integration of every component into one deterministic machine.
+\end{enumerate}
+An unproved obligation leaves the stated conclusion conditional; it is not
+by itself a counterexample. Conversely, a passing finite verifier does not
+discharge it. Formal builds must be read together with declaration-to-English
+scope maps and axiom audits.
+
+The pair construction is Avi Eisenberg's; the joint frame compiler is
+eumemic's; ranked reclamation is PR60's contribution. Chafik Boukhalfa supplies
+the retained exact-recovery/profile pipeline, Rohan Arun supplies weighted
+matching and several compositions, and RaD/hipotures supplies the physical
+compiler and routing work. IcekyLinx, Zhihao Chen, James Chang, Dominik Scholz,
+Aurel Prosz, Swapnil Jain and Douglas Colkitt retain their upstream credits.
+Alejandro Zarzuelo Urdiales supplies Gaussian finite-tensor/precision formal
+work and PR61; Ryan S supplies historical Lean certificates. James Chang's
+fork idea log records a parallel cyclic-interval idea, whose unavailable
+proof artifacts have not been reproduced here. The original OpenAI preprint
+and Harvey--van der Hoeven analytic results remain foundational dependencies.
+All reused code retains its own notices. Newly written proofs and checkers
+are identified separately from inherited constructions.
+\end{document}

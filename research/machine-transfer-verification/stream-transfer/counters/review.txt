@@ -1,0 +1,48 @@
+Independent mathematical/source review of the frozen counter package
+===================================================================
+
+PASS; no correctness or scope blocker found. The reviewed source bytes match
+the final manifest and delivered build receipt. This review did not duplicate
+the Lean build. review-receipt.json records exact source/README/manifest hashes.
+
+RippleCounter is an actual head-local finite transition table with six states,
+one tape, and the existing four-symbol alphabet. The step function receives
+only a mode and head symbol; the lists occur in configuration specifications,
+not as runtime access to the counter length or cells. counter_correct proves
+the returned word, flag, head position and arbitrary exterior preservation.
+counter_running strengthens the stated2k+2 execution count to first completion,
+so an absorbing done state cannot conceal an earlier halt or wrong exact cost.
+
+The carry/borrow implementation is correct at all boundary cases: no initial
+carry, a full-width carry, and width zero. A zero-width counter has adjacent
+separators and wraps modulo1 in two transitions. Decrementing zero is destructive,
+yielding the all-ones width-w word and a true flag. Both delimiters remain fixed;
+the stop condition prevents traversal into arbitrary exterior tape contents.
+
+The arithmetic semantics use little-endian words. increment_value and
+decrement_value include the exact2^w wrap term; zero/maximum tests and width
+preservation follow correctly. The countdown begins at B-1, emits a payload,
+then decrements. Its B-th decrement detects borrow with no earlier borrow.
+There is no L-versus-L+1 emission error in the stated countdown convention.
+
+The potential is the number of bits propagating the fixed direction's carry.
+One operation satisfies steps+2potential_after<=4+2potential_before, and
+telescoping proves4N+2w for any starting width-w word, including wraparound.
+The direction is fixed throughout the iteration. The source does not assert
+this amortized estimate for arbitrary alternating increment/decrement calls.
+The6B block estimate requires w<=B explicitly; redundant leading-zero width
+is charged by the generic theorem and is not silently granted free initialization.
+
+totalSteps is a sum of separate primitive-call costs. It does not prove the
+execution time of a controller that restarts the mode, emits payload, changes
+row class or copies/resets a saved template. Those operations need separate
+costs and a composition theorem. The final README states this limitation,
+as well as the exclusion of descriptor preparation, nested routing and full
+machine recurrence. These are appropriate proof boundaries, not failures of
+the proved local primitive.
+
+The source inventory is13 RippleCounter declarations plus23 CounterArithmetic
+declarations, with23 unchanged TapeStack dependency audits. This count includes
+helper lemmas; it is not36 separate algorithms. The delivered logs/receipt list
+only standard foundational axioms. No new mathematical algorithm is claimed:
+the contribution formalizes the ripple-counter subargument in02-streams.tex.

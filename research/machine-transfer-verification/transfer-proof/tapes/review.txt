@@ -1,0 +1,101 @@
+Independent adversarial review of the fixed-tape stack primitives
+=================================================================
+
+Verdict: no correctness or specification blocker found in the final
+sources below. They establish genuine finite-control, head-local
+multitape primitives on the stated tape layouts. They do not establish
+the entire recursive scheduler or multiplication machine.
+
+Reviewed source SHA-256:
+TapeStack.lean
+  e2e0d507f3d3dda8d49c808ff12e2fdc36e0dc81f00cdba84b9308e7ebfaf156
+TapeStackPush.lean
+  10309fb8f5c9e381f9e9ced50438d06096e6882cc75da8b59eabfd1f41fe4efb
+
+The final fresh-build receipt matches both hashes: Lean 4.21.0,
+Mathlib 308445d7985027f538e281e18df29ca16ede2ba3, 23 pop/boundary
+theorems and 13 push/glue theorems, with only the listed standard axioms.
+This review inspected the sources, underlying Mathlib tape definitions,
+and final build/axiom receipts; it did not duplicate the compilation.
+
+Finite machine interpretation
+------------------------------
+Symbol has exactly four values: blank, separator, false bit, true bit.
+The pop control has six states and three tapes; push has three states
+and two tapes. Each instruction depends only on a finite mode and current
+head symbols. Action permits one head write followed by at most one unit
+move per tape. Both head_local_refinement theorems identify the proof's
+step function with this literal table on EVERY configuration, not merely
+on reachable ones. Neither transition inspects a list, length, ancestor,
+address or recursion depth. The two-tape push can leave the third tape
+idle when used with pop; no input-dependent number of tapes is needed.
+
+Mathlib Tape is a bidirectional tape with finitely many nonblank cells.
+Its left and right lists are nearest-first and are quotiented only by
+trailing blanks. The definitions use that orientation correctly. Equality
+restores physical contents relative to the head; it does not preserve the
+irrelevant length of a list representation ending in blank symbols.
+
+Layout, ordering and restoration
+---------------------------------
+push_correct accepts arbitrary finite Bool bits, source head at the first
+payload cell, a separator immediately to its left, and blank continuation
+after the payload. Parking starts at the blank cell immediately after its
+old separator; ancestor is an arbitrary finite list of Symbols, including
+embedded blanks, separators and bits.
+
+Push erases source cells, appends bits to parking, seals with a separator,
+and rewinds the source to its marker-defined origin. Its nearest-first
+parking representation contains bits.reverse, exactly as pop requires.
+Pop removes only the new closing separator and payload, stages through
+temporary, then reverses the scan again into output. The final output is
+bits in original left-to-right order with the head at its first cell; for
+an empty payload this is the blank cell immediately after its marker.
+Parking returns to its former top and preserves the entire ancestor tape.
+Temporary returns to blank contents except for its stated origin marker.
+
+The inductive stage invariants retain ancestor as an arbitrary untouched
+suffix. Inspection of the actual transitions shows that parking stops at
+the old separator and never moves into ancestor. The source currently
+does not package that non-visitation claim as a separate trace theorem;
+the formal final-state equality and uniform runtime theorem are stronger
+than testing examples but should not be mislabeled as such a trace theorem.
+
+Round-trip glue and boundary markers
+-------------------------------------
+The final park_pop_round_trip literally passes pushed.source as pop's
+output, and its first conjunct proves that source meets the required
+empty marked-tape condition. pushed.parking is the exact required parked
+record. This fixes the earlier merely implicit physical tape reuse.
+The temporary is explicitly supplied empty and marked. No arbitrary
+intervening child is modeled. The updated documentation correctly requires
+such a child to preserve/restore the parked parent record and parking head
+and return the source and temporary in the specified empty forms.
+
+setBoundary performs move-left followed by write-and-move-right, hence
+two head-local actions. install_boundary and remove_boundary preserve
+arbitrary right-side contents and the origin position. In particular,
+remove_empty_boundary restores an actually all-blank work tape; boundary
+removal after the round trip restores the original unmarked payload tape.
+Installation assumes the unmarked Tape.mk1 layout, whose left side is
+blank; it is not a permission to overwrite arbitrary live data to the left.
+These lemmas remove a permanent-work-marker assumption. Boundary setup
+and removal are additional constant work, not included in the push/pop
+budgets below. setBoundary itself is a two-action composition, rather than
+a separately instantiated finite-control run theorem.
+
+Costs and limits
+------------------
+Push uses n+1 copy/seal steps and n+1 rewind steps: 2n+2.
+Pop uses two entry steps and three stages of n+1 steps: 3n+5.
+Both formulas also handle n=0 correctly (2 and 5 steps). They are uniform
+in ancestor size. The theorem statements reach done at these budgets;
+they suffice for upper bounds and do not separately assert minimal
+halting time. A step is a standard simultaneous multitape transition,
+not Lean evaluation time or the cost of a one-tape simulation.
+
+The sum 5n+7 is the push/pop phase budget under these interfaces. No
+single combined scheduler transition system, child execution, dispatch,
+marker setup/cleanup budget, recursion charge or all-size multiplication
+runtime is proved by that arithmetic sum. Keeping these limits explicit,
+the claimed scheduler-primitive advance is supported by the checked code.

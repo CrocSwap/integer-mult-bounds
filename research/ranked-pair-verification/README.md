@@ -1,5 +1,11 @@
 # Independent verification of rank-first pair profiles
 
+This directory preserves the first PR64 checkpoint. The later completed
+real-characteristic, physical-interface, localization, ambient-frame and counter
+proofs, plus newer finite audits, are in
+[machine-transfer-verification](../machine-transfer-verification/README.md).
+Its README gives the current proof boundary and reproducible checks.
+
 This contribution certifies the rank-first pair construction and supplies the
 conditional witness
 
