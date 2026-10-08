@@ -7,24 +7,26 @@ The reviewed community witness gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{4123863984}{10^{14}}
-=4.123863984\times10^{-5}>2^{-15}}.
+\boxed{\kappa=\frac{4125007391}{10^{14}}
+=4.125007391\times10^{-5}>2^{-15}}.
 $$
 
 This uses the fixed finite-alphabet Turing-machine model with a fixed number of
 one-dimensional tapes in OpenAI's
 [*Integer multiplication below n log n*](https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a/preprints/Integer-multiplication-below-n-log-n-September-23-2026).
-The saving is **6.10% above our previous PR #39 release**, and still below 2^-14. These numbers compare
+The saving is **6.13% above our previous PR #39 release**, and still below 2^-14. These numbers compare
 asymptotic exponent savings, not practical running times.
 
-**Latest circuit contribution: [Rohan Arun (@rohanarun), PR #49](https://github.com/CrocSwap/integer-mult-bounds/pull/49).**
-This composes **Chafik Boukhalfa's** reordered exclusion sums and exact recovery,
+**Latest increment: [@maxime-fleury's searched-order descent](research/ordered-descent/README.md).**
+A complete single-bit-flip descent over PR #49's pinned orders, minimising the
+role count, gives 0.02773% above PR #49. It composes **Chafik Boukhalfa's**
+reordered exclusion sums and exact recovery,
 **RaD / hipotures's** alternating producers and physical compiler, and Rohan's
-weighted matching and order search. Their full dependency chain and
+weighted matching and order search (PR #49). Their full dependency chain and
 AI-assistance disclosures remain credited in the source notices.
 
-**[Proof and reproduction guide](research/climbed-48/README.md)** ·
-[Exact certificate](research/climbed-48/certificate.json) ·
+**[Proof and reproduction guide](research/ordered-descent/README.md)** ·
+[Exact certificate](research/ordered-descent/certificate.json) ·
 [Maintainer review](docs/research/community-followup-review.md) ·
 [Integration record](docs/research/community-followup-integration.md)
 
@@ -37,8 +39,8 @@ contiguous blocks strengthen the finite networks. The latest increment
 reorders disjoint sums and retains more compatible carriers, with both local
 bases fixed and the entire physical circuit replayed exactly.
 
-The selected bit network has m=575 and 177,284,805 roles. Its recursive saving
-is 4124034054/10^14; the unchanged complex network supplies 717/10^7.
+The selected bit network has m=575 and 177,176,337 roles. Its recursive saving
+is 825035511/2\cdot10^{13}; the unchanged complex network supplies 717/10^7.
 The assembly retains all seven strict exponent margins, including numerical,
 movement and normalization costs.
 

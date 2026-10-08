@@ -23,6 +23,7 @@ verify:
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
 	$(MAKE) climbed-48-verify
+	$(MAKE) ordered-descent-verify
 
 verify-producers:
 	$(MAKE) copied-centers-verify
@@ -278,6 +279,16 @@ climbed-48-check:
 	python3 -m unittest discover -s tests -p 'test_climbed_48.py' -v
 
 climbed-48-verify: climbed-48-producer climbed-48-check
+
+.PHONY: ordered-descent-verify ordered-descent-producer ordered-descent-check
+ordered-descent-producer:
+	python3 research/ordered-descent/producer.py
+
+ordered-descent-check:
+	python3 research/ordered-descent/witness.py --output research/ordered-descent/certificate.json
+	python3 -m unittest discover -s tests -p 'test_ordered_descent.py' -v
+
+ordered-descent-verify: ordered-descent-producer ordered-descent-check
 
 .PHONY: formal-verify formal-historical-verify formal-gaussian-verify
 formal-verify: formal-historical-verify formal-gaussian-verify
