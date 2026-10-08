@@ -172,3 +172,14 @@ two-stage-producer:
 	python3 research/two-stage/producer.py
 
 verify: two-stage-producer two-stage-check
+
+.PHONY: two-stage-corners-certificate two-stage-corners-identities two-stage-corners-patch two-stage-corners-note
+two-stage-corners-certificate:
+	python3 research/two-stage-corners/witness.py
+two-stage-corners-identities:
+	python3 research/two-stage-corners/a5-residual-two-stage.py
+two-stage-corners-patch:
+	python3 research/two-stage-corners/make_patch.py
+two-stage-corners-note:
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/two-stage-corners-note.tex
+verify: two-stage-corners-certificate two-stage-corners-patch

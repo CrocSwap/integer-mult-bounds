@@ -1,0 +1,136 @@
+Two ordered data-corner blocks in the retained PR29 (55,53) basis
+
+Scope and source
+This is an additive local refinement of the fixed construction in
+CrocSwap/integer-mult-bounds PR29, head
+9d963275075fa98f1da821e27757b238dafd6b3c. The prescribed family and
+physical topology are Zhihao Chen's compatible unequal two-stage
+composition, building on Paureel, icekylinx, Swapnil Jain and the
+credited prior work. We keep those prescriptions, all source/terminal
+frames, the paid endpoint copy correction and both auxiliary profiles.
+The new result is a data-corner profile, not a new finite producer or
+an assembled exponent. All inherited physical/tape and analytic
+assumptions remain conditional dependencies.
+
+1. The actual prescribed corner
+Let a=55,b=53,m=ab=2915,d=a+b-1=107. Retain PR29's full lists
+ R_full=[0,...,54;1,...,54;0],
+ C_full=[54;0,...,53;0,...,54], each of length110.
+The d-square null corner uses
+ R=first107(R_full)=[0,...,54;1,...,52],
+ C=last107(C_full)=[2,...,53;0,...,54].
+Its row/column second-factor coordinates are
+ beta_i=i mod53,
+ gamma_j=(m-d+j) mod53=(j-1) mod53.
+The offset52 is essential: the two coordinate lists do not start at
+the same residue.
+
+Write the two transformed rank-one projectors as p xi and v nu, with
+xi p=nu v=1. For Q=I-(I-p xi) tensor (I-v nu), the prescribed corner is
+ Q_ij=[beta_i=gamma_j]p_(R_i)xi_(C_j)
+      +[R_i=C_j]v_(beta_i)nu_(gamma_j)
+      -p_(R_i)xi_(C_j)v_(beta_i)nu_(gamma_j).
+Both boundary intervals are disjoint, so the actual large projector's
+corner is minus this matrix. On the common open set with nonzero line
+coordinates, scale row i by1/(p_(R_i)v_(beta_i)) and column j by
+1/(xi_(C_j)nu_(gamma_j)). Ordered zeros and pivots are unchanged, and
+we obtain
+ M_ij=x_(R_i)[R_i=C_j]+y_(beta_i)[beta_i=gamma_j]-1,
+ x_r=1/(p_r xi_r), y_t=1/(v_t nu_t).
+
+There are108 vertex coordinates R0..R54,B0..B52 and a constant star.
+Let f_i be the incidence vector of edge(R_(R_i),B_(beta_i)), augmented
+by a1 in star; let g_j correspond to(C_j,gamma_j), likewise augmented.
+Then M=F diag(x_0,...,x_54,y_0,...,y_52,-1) G^t exactly.
+The actual normalization constraints sum1/x=sum1/y=1 are unnecessary
+for the zero identities below.
+
+2. General rank-partition identity
+For U,V with k rows, diagonal D, and coefficient-column partition
+E=X disjoint-union Y,
+ rank(U D V^t)<=rank(U_X)+rank(V_Y).
+Indeed split the product into its X and Y summands, bounding the first
+by its left factor and the second by its right factor. If the sum is
+less than k, the k-square determinant vanishes for every diagonal D.
+For an invertible selected prefix minor, the next Schur entry is the
+augmented minor determinant divided by that prefix determinant. Thus
+an exact rank-partition certificate proves an ordered zero identically
+in all projector weights, not merely at the witness.
+
+3. Ordered runs and finite exact identities
+The proposed pivot order in corner coordinates is
+ (0,106);
+ (i,i+54), i=1,...,51;
+ (52,54),(53,53),(54,52),(55,51),(56,50),(57,49);
+ (i,i-54), i=58,...,102;
+ (103,3),(104,2),(105,1),(106,0).
+The initial singleton, the six intervening singleton pivots and the
+four final singleton pivots all use the largest remaining column.
+Only the two long runs require additional right-of-pivot zero proofs.
+
+The file a5-residual-two-stage.json gives an explicit rank partition
+for every still available column strictly larger than the selected
+pivot in each long run. There are51*50/2+45*44/2=2265 such minors.
+The coefficient-column bit convention is R vertices0..54, B vertices
+55..107 and star108. Every certificate lists the augmented minor size,
+partition bitmask and the two exact ranks whose sum is smaller.
+Prefix rows and columns are determined by the displayed pivot list.
+
+The self-contained computation, apart from its sibling exact-rank
+helper a5-residual-symbolic.py, is a5-residual-two-stage.py. It first
+finds rank partitions through matroid intersection using a forest
+incidence rank oracle, then independently verifies both ranks of every
+partition by integer Gaussian elimination with gcd reductions. The
+partition search is not part of the mathematical implication: each
+final rank bound is independently checkable and the lemma in Section2
+then proves the claimed determinant identity. These are exact finite
+polynomial-identity certificates for these dimensions, not finite-field
+sampling or a claim for arbitrary h.
+
+4. Exact normalized nonzero witness and common basis
+Use p_r=v_t=1,
+ xi_r=(r+1)^2/sum_(s=1)^55 s^2,
+ nu_t=(t+1)^3/sum_(s=1)^53 s^3.
+Every coordinate is nonzero and both normalization identities hold.
+The verifier constructs the entire107-square scaled corner over Q and
+performs rightmost-nonzero ordered elimination. All107 exact pivot
+values are saved in the certificate, with runs
+ 1,51,1,1,1,1,1,1,45,1,1,1,1.
+This proves all required prefix-minor functions are nonzero on the
+actual rank-one projector family.
+
+PR29 fixes compatible permutation completions M_beta but leaves L_a
+and L_b free. Any actual rank-one projector in characteristic zero is
+GL-conjugate to any normalized pair p,xi, and similarly in dimension b.
+Thus for each physical data pair the displayed witness proves that
+its new pivot conditions are nonzero rational functions of the same
+free GL55 x GL53 factors used by the inherited local/auxiliary minors.
+After clearing denominators, finitely many such nonzero conditions
+have nonzero product on this irreducible family. A rational common
+basis avoiding them all exists. No independent basis choice per gate
+is made, and the rational witness need not itself satisfy every other
+physical occurrence simultaneously. The zero identities already hold
+for all weights, so they impose no additional closed specialization.
+The address prime can avoid the finitely many denominators and minors
+as in the inherited construction. The reverse invocation uses the
+same positive residual and therefore the same profile.
+
+5. Physical contiguity and exact accounting
+The first run uses consecutive rows1..51 and physical columns
+(m-d)+(55..105)=2863..2913. The second run uses rows58..102 and
+physical columns2812..2856. The untouched large-projector middle
+occupies coordinates107..2807, width2701. All are disjoint; neither
+run gathers separated coordinates or reorders a basis. The inherited
+lower-triangular partial-swap conjugation and ordered climb lemma can
+therefore charge each run as one child interchange.
+
+The improved local data profile is
+ 11 singletons; blocks51,45,2701,
+with rank11+51+45+2701=2808=m-d=(a-1)(b-1).
+It replaces96 of the previous107 singleton calls per data macro by
+two children of widths51 and45. There are2N such macros, so the
+histogram delta is minus192N singleton calls, plus2N calls of width51
+and plus2N calls of width45. The graph's W, role volumes, total rank
+mass, largest child width and paid N endpoint-correction calls are
+unchanged. Any new numerical saving requires a separate complete
+moment and final-assembly check; none is asserted by this local proof.

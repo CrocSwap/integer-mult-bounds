@@ -1,3 +1,9 @@
+# Certified two-stage data corners
+
+The conditional saving is **κ=15878574/10^12=1.5878574×10^-5 >2^-16**, about2.205% above PR29. Exact weight-independent identities prove two contiguous data-corner blocks of widths51 and45 in its existing (55,53) basis. The inherited topology, producers, frame endpoints, paid correction and semantic interface remain unchanged.
+
+See the [proof and reproduction guide](research/two-stage-corners/README.md), [manuscript](notes/two-stage-corners-note.tex), [PDF](artifacts/two-stage-corners-note.pdf), and [validation receipt](research/two-stage-corners/validation.json). New corner method and certificates by Rohan Arun with OpenAI Codex assistance; PR29 and earlier contributions retain attribution. All analytic and fixed-tape hypotheses remain. Results below are historical dependencies.
+
 # Conditional multiplication saving beyond 2^-16
 
 The new unequal two-stage construction gives **κ=15536/10^9=1.5536×10^-5 > 2^-16** under the retained analytic and fixed-tape hypotheses. See [proof and reproduction](research/two-stage/README.md) and the [complete new proof](notes/two-stage-16-note.tex). The results below are preserved dependencies.
