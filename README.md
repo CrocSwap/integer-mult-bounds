@@ -1,38 +1,30 @@
-# Compatible live anchors: conditional saving 5.102938e-5
+# Cost-aware live controls, conditional κ = 5.103512721785e-5
 
-This branch proposes **κ = 5102938/10^11 = 5.102938e-5** for
-`T(n) = O(n (log n)^(1-κ))`, improving [PR #63](https://github.com/CrocSwap/integer-mult-bounds/pull/63).
-The bit-network saving is **5103199/10^11 = 5.103199e-5**; the final
-multiplication exponent includes the inherited assembly costs.
+The latest selected research witness is **κ = 1020702544357/20000000000000000**, with
+bit saving **51037731934993/10^18**. It combines Rohan Arun's PR #67
+cost-aware reclamation with compatible pending live controls at both axes.
+Every clearing XOR and frame transition remains paid. A parameter-only
+refinement reduces assembly backoff from 10^-12 to 10^-18 with unchanged
+physical words and bit saving; its larger eventual cutoff is documented in
+[the refinement proof](research/cost-live-parameters/PROOF.md). Newer public
+PRs #69–71 claim stronger bounds; this witness is not the current frontier.
 
-A pending carrier can help clear another slot when its current frame F,
-the clearing region E and its next-use frame G satisfy **F ⊆ E ⊆ G**.
-Both physical transitions are charged and full dirty-state replay checks
-restoration. Rank-first reclamation uses ascending slot ties at h=23 and
-descending ties at h=25. The scalar graph and physical wire count
-**137,151,806** remain those of Avi Eisenberg's PR #62.
+[Proof](research/cost-live-both/PROOF.md) ·
+[Exact parameter certificate](research/cost-live-parameters/certificate.json) ·
+[Completed focused validation](research/cost-live-both/validation-receipt.json)
 
-[Proof, scope and source credits](research/global-anchor-screen/PROOF.md) ·
-[Exact certificate](research/global-anchor-screen/selected-arithmetic.json) ·
-[Source and word manifest](research/global-anchor-screen/selected-manifest.json)
+Independent complete dirty-state replay, actual fixed-basis profiles/CRT,
+exact moment and all 47 constraints/seven margins pass. The candidate file
+preserves its initial draft-time pending flags; the separate validation
+receipt records completed checks. Full current-head CI/review remains pending.
+Run `make cost-live-verify`; CI runs this target on Python 3.11, 3.13 and 3.14.
 
-Run `make global-anchor-verify` to regenerate both words in temporary storage,
-replay every dirty coordinate, rebuild the actual fixed-basis profiles and
-check the exact moment, all 47 constraints, seven strict margins, next-grid
-rejection and failure controls. `make verify` retains the existing checks
-and includes this target; CI runs it on Python 3.11, 3.13 and 3.14.
-
-This proposed witness is conditional on the inherited multiplication,
-all-size compiler, analytic and fixed-tape interfaces. Finite checks do not
-formally verify the full theorem, establish global optimality, or measure a
-practical speedup. The reviewed main-branch result below remains separately
-identified; its maintainer review does not cover this new increment.
-
-Prepared by Dominik Scholz with substantial OpenAI GPT-6 Astra / Codex
-assistance, building on Chafik Boukhalfa's PR #60 ranked reclamation,
-eumemic's PR #57 joint frame compiler, and Avi Eisenberg's PR #62 graph.
-All source-specific contributor notices and the earlier
-[PR #63 proof](research/rank-pair/PROOF.md) remain preserved.
+The earlier live-anchor and combined-relation experiments remain in their
+separate research directories. All inherited analytic, all-size compiler,
+routing/recovery and fixed-tape hypotheses remain conditional. This is not
+full formal verification or a practical speedup. Prepared by Dominik Scholz
+with substantial OpenAI GPT-6 Astra/Codex assistance, retaining Rohan Arun,
+Chafik Boukhalfa, eumemic, Avi Eisenberg and all predecessor credits.
 
 # A sharper exponent for integer multiplication
 

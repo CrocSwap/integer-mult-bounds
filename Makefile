@@ -25,6 +25,7 @@ verify:
 	$(MAKE) verify-pair
 	$(MAKE) verify-rank-pair
 	$(MAKE) verify-global-anchor
+	$(MAKE) verify-cost-live
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -442,3 +443,9 @@ verify-global-anchor: global-anchor-verify
 global-anchor-verify:
 	python3 research/global-anchor-screen/verify.py
 	python3 research/global-anchor-screen/controls.py
+
+.PHONY: verify-cost-live cost-live-verify
+verify-cost-live: cost-live-verify
+cost-live-verify:
+	python3 research/cost-live-both/validate.py
+	python3 research/cost-live-parameters/refine.py
