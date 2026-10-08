@@ -21,6 +21,39 @@ speedup. The model and general reduction are inherited from OpenAI's
 [Selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json) ·
 [Independent arithmetic check](docs/research/community-pair-arithmetic.json)
 
+## Additional conditional construction: balanced coarse split frames
+
+The [balanced-split proof and reproduction guide](research/balanced-split/README.md)
+gives **κ=25872812736433/500000000000000000=5.1745625472866e-5**, approximately
+**0.6437453019850683%** above the complete published PR71 witness. It composes
+PR69 balanced coarse sums and a bounded PR70 carry exchange with PR71's
+anchored split graph, future unit completion and profile-cost pending controls.
+All actual words, dirty inputs, paid profiles and 47 strict assembly constraints
+are checked by `make balanced-split-verify`. This finite conditional construction
+retains the inherited all-size hypotheses and contributor notices. Chafik
+Boukhalfa prepared the selected composition with OpenAI Codex assistance.
+
+## Additional conditional construction: anchored split frames with live reclamation
+
+The [split-pair proof and reproduction guide](research/split-pair/README.md)
+gives **κ=51414646104039/10^18=5.1414646104039e-5**, approximately
+**0.7463402960%** above the complete pinned PR67 witness. It combines
+the PR62/63 interval pair graph, the PR59 split operation, PR65's schedules
+and exact arithmetic, PR67's profile-cost selection, and PR68's pending live
+controls on the PR60/57 reversible frame compiler.
+The new selection uses split vector `[1,1,2]` and aligns the first intact
+global pair across common-point permutations. A new integer score uses each
+live control's known next-use frame. Actual roles are R23=27455
+and R25=36015, with W=135075665.
+
+`make split-pair-verify` regenerates the words, checks arbitrary dirty scratch
+and actual fixed-I+J profiles, and certifies the complete recursive child
+list and strict assembly inequalities. This separately submitted finite
+conditional witness retains the inherited all-size hypotheses. Its namespace,
+sources and comparison remain distinct from the maintainer-reviewed statement
+above. Prepared by Chafik Boukhalfa with OpenAI Codex assistance; contributor
+credits and original notices are retained in the package.
+
 ## What changed
 
 **Avi Eisenberg's interval strips and core-aware pair assembly (#62)** arrange
