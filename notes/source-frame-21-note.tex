@@ -1,0 +1,154 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,longtable}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\setlist{itemsep=3pt,topsep=5pt}
+\setlength{\parindent}{1.25em}
+\setlength{\parskip}{2pt}
+\setlength{\emergencystretch}{2em}
+\allowdisplaybreaks[2]
+\numberwithin{equation}{section}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\title{Bulk Recursion for Integer Multiplication\\[4pt]
+  \large Large projector blocks, whole residuals, and a pathwise precision guard}
+\author{icekylinx\\\small With substantial OpenAI GPT-6 Astra and Codex assistance}
+\date{8 October 2026}
+\begin{document}
+\title{Auxiliary Source Frames for Integer Multiplication\\[4pt]
+  \large Concentrating auxiliary rank into contiguous recursive blocks}
+\author{eumemic\\\small With substantial assistance from Claude (Anthropic)}
+\date{8 October 2026}
+\maketitle
+\begin{abstract}
+The batched recursion of PR~\#10 makes a contiguous block of $t$ address
+fields cost one recursive call of width $t$, so a role's rank is cheaper
+when it is concentrated in one large edge. Auxiliary roles may start in any
+fixed frame, provided they end in that frame plus the identity. Starting
+every stage-two auxiliary role of the interchange network in the frame of
+its first gate removes its rank-$(h^2-h)$ entrance edge and turns its exit
+into one projector of rank $m-h$. The rank sum and deficit are unchanged,
+but the interchange saving rises from $246/10^9$ to $154/10^8$. A third
+whole-residual class in the complex network raises its saving to
+$18/10^7$, so it does not bind. The conclusion is conditional on the
+pinned upstream multiplication theorem and the retained interfaces of
+PR~\#10 and its predecessors.
+\end{abstract}
+\vspace{1.5em}
+\[
+\boxed{T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{7699}{10^{10}}>2^{-21}.}
+\]
+\clearpage
+\tableofcontents
+\clearpage
+
+\section{Result and retained framework}
+The model is a fixed finite-alphabet Turing machine with a fixed number of
+one-dimensional tapes. This note changes two finite choices in the
+construction of PR~\#10 by icekylinx \cite{pr10}, pinned at commit
+\begin{center}
+\texttt{62691e395a0458ce089a1c7b5d89e74291e95e29}.
+\end{center}
+That construction consumes the ternary five-subset network and the paired
+complex producer of Zhihao Chen's PR~\#7 \cite{pr7} unchanged. Sections 2
+to 5 reproduce the batched framework of PR~\#10 verbatim. Section 6 records
+its exact complex exponent and its $2^{-23}$ assembly, which the present
+note supersedes. Sections 7 to 9 contain the new arguments. No scalar
+circuit, label, producer or analytic interface changes. Only two choices
+change: the source and sink matrices of the stage-two auxiliary roles, and
+the set of complex residuals applied as whole children.
+
+\section{Large rational projectors}
+\input{notes/projector-batching.tex}
+
+\section{The explicit interchange recurrence}
+\input{notes/batched-bit-rank-accounting.tex}
+\input{notes/controlled-projector-basis.tex}
+\input{notes/batched-bit-rows.tex}
+
+\section{Complex residuals and arithmetic depth}
+\input{notes/batched-path-budget.tex}
+\input{notes/bulk-complex-guard.tex}
+
+\section{The complete layer on mixed widths}
+\input{notes/batched-complex-rows.tex}
+
+\section{The batched baseline assembly of PR \#10}
+\input{notes/batched-assembly.tex}
+
+\section{Auxiliary source frames in the interchange network}
+\input{notes/source-frame-bit.tex}
+
+\section{A third complex residual class}
+\input{notes/source-frame-complex.tex}
+
+\section{Exact conditional assembly}
+\input{notes/source-frame-assembly.tex}
+
+\section{Precision correction to the retained Gaussian interface}
+\input{notes/chirp-scaling-correction.tex}
+
+\section{Further levers}
+Two further batchable classes are not used here. The stage-two data
+entrances have rank $(h-1)^2=729>H/2$ in the fast factor $V$. Their
+pivots, after the controlled basis, lie in one row block and one column
+block, and they would give about $3.5\%$ more interchange saving. In the
+complex network the same source frames apply, but they are not needed
+because $\sigma<\tau$. The interchange denominator is now dominated by
+the singleton climbs of the stage-one and stage-three auxiliary roles,
+which are set by the side producer and its gate frames.
+
+\section{Reproduction and attribution}
+Run \texttt{make verify} for the finite producers, exact certificates,
+regression checks and manuscript patches. Run
+\texttt{make source-frame-note} to rebuild this note. The new arguments
+and certificate are by eumemic, with substantial assistance from Claude
+(Anthropic). The batched recursion is by icekylinx with OpenAI GPT-6 Astra
+and Codex assistance. The finite producers are by Zhihao Chen
+(jacklightChen) with GPT-6 Astra assistance. Earlier constructions retain
+the attribution in the bibliography and \texttt{NOTICE}.
+
+\clearpage
+{\small\raggedright
+\begin{thebibliography}{9}
+\bibitem{upstream} OpenAI.
+\emph{Integer multiplication below $n\log n$}, result family \#109.
+Pinned source commit \texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.
+\url{https://github.com/openai/math}.
+\bibitem{main} Douglas Colkitt.
+\emph{A sharper exponent for integer multiplication}.
+\texttt{CrocSwap/integer-mult-bounds}, main commit
+\texttt{6e564879f51ae16f23d392e9e196c605f36d90df}.
+\url{https://github.com/CrocSwap/integer-mult-bounds}.
+\bibitem{pr2} Bortlesboat.
+\emph{Align pair groups for a conditional $17\cdot2^{-63}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/2}.
+\bibitem{pr3} eumemic.
+\emph{Compress the complex network for a conditional $59/10^{11}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/3}.
+\bibitem{pr4} dleen.
+\emph{Combine PR \#3 shared exclusions with retained totals and stage sharing}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/4}.
+\bibitem{pr5} eumemic.
+\emph{Faster Gaussian resampling for a conditional $1479/10^{12}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/5}.
+\bibitem{pr6} eumemic.
+\emph{Aligned bit circuit with cheaper centers for a conditional
+$1624/10^{12}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/6}.
+\bibitem{pr7} Zhihao Chen (jacklightChen).
+\emph{Ternary five-subset networks for a conditional $373/10^{11}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/7}.
+\bibitem{pr10} icekylinx.
+\emph{Batch recursive networks for a conditional $\kappa>2^{-23}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/10}.
+\end{thebibliography}
+}
+\end{document}
