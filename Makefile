@@ -215,3 +215,17 @@ copied-fixed-reversed-producer:
 	python3 research/copied-fixed-reversed/review/fixed25_copied_crt_audit.py --work-dir build/copied-fixed-reversed/producer --record build/copied-fixed-reversed/producer.json --profiler-source research/copied-fixed-reversed/full_profiles25.cpp --output build/copied-fixed-reversed/crt-audit.json
 
 verify: copied-fixed-reversed-producer copied-fixed-reversed-check
+
+.PHONY: copied-both-reversed-check copied-both-reversed-producer
+copied-both-reversed-check:
+	python3 research/copied-both-reversed/geometry.py --full
+	python3 research/copied-both-reversed/review/fallback_coverage_audit.py --certificate research/copied-both-reversed/review/original-geometry-pairs.json --source research/copied-both-reversed/geometry.cpp --receipt research/copied-both-reversed/review/original-geometry-run-receipt.json --output build/copied-both-reversed/fallback-audit.json
+	python3 research/copied-both-reversed/witness.py
+	python3 -m unittest discover -s tests -p 'test_copied_both_reversed.py'
+
+copied-both-reversed-producer:
+	mkdir -p build/copied-both-reversed/producer
+	python3 research/copied-both-reversed/producer23.py --work-dir build/copied-both-reversed/producer --output build/copied-both-reversed/producer.json
+	python3 research/copied-both-reversed/review/fixed23_copied_crt_audit.py --work-dir build/copied-both-reversed/producer --record build/copied-both-reversed/producer.json --profiler-source research/copied-both-reversed/full_profiles23.cpp --output build/copied-both-reversed/crt-audit.json
+
+verify: copied-both-reversed-producer copied-both-reversed-check

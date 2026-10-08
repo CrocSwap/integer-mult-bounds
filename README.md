@@ -1,3 +1,13 @@
+# Conditional multiplication saving 3.918734894 × 10^-5
+
+Fixing both local bases while preserving copied reversed corners gives
+**κ = 1959367447/50000000000000 > 2^-15**, under the retained analytic and
+fixed-tape hypotheses: approximately **0.8248% above PR #39**.
+
+See the [proof and reproduction guide](research/copied-both-reversed/README.md).
+Full inherited verification is pending. Earlier results retain their own
+validation status below.
+
 # Conditional multiplication saving 3.886675852 × 10^-5
 
 A fixed middle basis composed with copied reversed corners gives
