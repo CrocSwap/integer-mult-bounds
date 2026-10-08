@@ -23,6 +23,7 @@ verify:
 	$(MAKE) verify-positive
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
+	$(MAKE) verify-balanced-coarse
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -428,3 +429,9 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: verify-balanced-coarse balanced-coarse-verify
+verify-balanced-coarse: balanced-coarse-verify
+balanced-coarse-verify:
+	python3 scripts/experiments/pr62_exploration/audit_balanced_coarse.py --check certificates/balanced-coarse-independent-audit.json
+	python3 scripts/experiments/verify_balanced_coarse.py
