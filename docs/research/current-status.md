@@ -1,4 +1,21 @@
-# Current release: community follow-up witness
+# Current release: joint-frame community checkpoint
+
+The selected conditional witness is **κ=25508460085039/500000000000000000
+=5.1016920170078e-5 > 2^-15**, from Avi Eisenberg's #62 pair assembly, eumemic's
+#57 compiler, and Alejandro Zarzuelo Urdiales's #61 parameter refinement.
+It is 23.71% above the previous #49 release, and remains below 2^-14.
+See the [review and contribution ledger](community-round2-review.md),
+[independent arithmetic](community-pair-arithmetic.json), and
+[selected certificate](../../research/matrix-exponent-synthesis/candidate/arithmetic.json).
+
+The original #109 framework and inherited all-size analytic/fixed-tape
+interfaces remain assumed. Scoped Lean checks do not prove the full algorithm.
+Submissions after #62 are not included in this review checkpoint.
+
+Everything below is historical; its numerical “current” and “latest” statements
+refer to the corresponding checkpoint.
+
+# Previous release: community follow-up witness
 
 The selected conditional witness is **κ=4123863984/10^14=4.123863984e-5 > 2^-15**,
 from PR #49 at `f95d2910e027495983b53cae1693cf535abf2569`. It improves the
