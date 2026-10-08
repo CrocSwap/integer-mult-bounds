@@ -71,6 +71,23 @@ verify-certificates:
 	python3 scripts/reuse_network.py
 	python3 scripts/make_reuse_patch.py
 
+# Independent verification of the pending PR62/63 rank-first construction.
+# The offline check is separate from the pinned-source, C++/CRT replay.
+verify-certificates: ranked-pair-check
+
+.PHONY: ranked-pair-check ranked-pair-verify formal-ranked-pair-verify
+ranked-pair-check:
+	python3 research/ranked-pair-verification/verify.py
+
+ranked-pair-verify: ranked-pair-check
+	test -n "$(UPSTREAM)"
+	python3 research/ranked-pair-verification/audit/ranked-word-audit.py --upstream "$(UPSTREAM)" --generated build/ranked-pair
+
+formal-ranked-pair-verify:
+	python3 research/ranked-pair-verification/lean/check.py
+
+formal-historical-verify: formal-ranked-pair-verify
+
 verify-ternary:
 	python3 scripts/complex_compression.py
 	python3 scripts/make_complex_compression_patch.py
