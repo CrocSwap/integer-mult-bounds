@@ -1,0 +1,243 @@
+--- references/frame-compiler/pr84/scripts/experiments/indexed_cycle_engine.py
++++ research/deferred-span-frames/storage_engine.py
+@@ -179,7 +179,7 @@
+  mode=globals().get('OUTPUT_MODE','baseline')
+  edges,chosen,right,stats=match(blocks,uses,matching)
+  print('matched',len(chosen),'seconds',time.time()-t0,flush=True,file=sys.stderr)
+- slots=[];frames=[];ops=[];events=[];hist=Counter();assign={};sources={};retired=set();retired_index=RetiredIndex(h);pending={};pending_index=PendingIndex(h);stats['regions']=len(blocks);stats['matched']=len(chosen);stats['multi_node_regions']=sum(len(b['nodes'])>1 for b in blocks)
++ slots=[];frames=[];ops=[];events=[];hist=Counter();assign={};sources={};retired=set();retired_index=RetiredIndex(h);pending={};pending_index=PendingIndex(h);pending_use={};retired_values=defaultdict(set);deferred={};stats['regions']=len(blocks);stats['matched']=len(chosen);stats['multi_node_regions']=sum(len(b['nodes'])>1 for b in blocks)
+  def new(g):
+   s=len(slots);slots.append(0);frames.append(g);hist[blocks[g]['rank']]+=1;events.append((s,-1,g));return s
+  def raise_(s,g):
+@@ -215,6 +215,18 @@
+   old=frames[a]+2;target=g+2
+   endpoint=pending[a]+2 if PENDING_COST and a in pending else 1
+   return profile_entropy(old,endpoint)-profile_entropy(old,target)-profile_entropy(target,endpoint)
++ def materialize(s,g):
++  if s not in deferred:return
++  controls=deferred.pop(s)
++  for q in controls:
++   assert pending[q]==g and pending_use[q] is None
++   xor(s,q,g)
++   pending_index.remove(q,blocks[frames[q]]['frame'],blocks[g]['frame'])
++   del pending[q];del pending_use[q]
++   retired.add(q);retired_values[slots[q]].add(q)
++   retired_index.insert(q,blocks[frames[q]]['frame'],blocks[frames[q]]['rank'])
++  stats['deferred_materializations']+=1
++  stats['deferred_materialization_xors']+=len(controls)
+  # Three deterministic improving exchanges, preserving both matroid constraints.
+  def carry_price(edge):
+   g,u,i=edge;producer=owner[blocks[g]['inputs'][i]];target=uses[u][1]
+@@ -273,9 +285,43 @@
+  assert len(chosen)==len(right)==initial_count
+  assert sum(prices[e] for e in chosen)<=initial_price
+  for b in blocks:assert len(basis(b['outbasis']+[1<<edges[e][2] for e in b['selected']]))==len(b['outbasis'])+len(b['selected'])
++ # Allocation requests are determined by output rank and multiplicity;
++ # source port creation is compulsory and cannot reclaim these carriers.
++ acquisition_bits=0;acquisition_counts={};frame_core=[0]*h;frame_cover=[0]*h
++ for future_step,future_g in enumerate(order):
++  block=blocks[future_g]
++  remaining=[u for u in block['uses'] if u not in right]
++  distinct={uses[u][0] for u in remaining}
++  count=len(remaining)-len(distinct)
++  if not block['source']:count+=len(distinct)-len(block['outbasis'])
++  assert count>=0
++  if not count:continue
++  bit=1<<future_step;acquisition_bits|=bit;acquisition_counts[future_step]=count
++  for arrays,mask in ((frame_core,block['frame'][0]),(frame_cover,block['frame'][1])):
++   while mask:
++    low=mask&-mask;arrays[low.bit_length()-1]|=bit;mask^=low
++ acquisition_superspaces={}
++ def reservation_opportunities(q,target):
++  frame=blocks[frames[q]]['frame']
++  if frame not in acquisition_superspaces:
++   eligible=acquisition_bits;outside=((1<<h)-1)^frame[0];cover=frame[1]
++   while outside and eligible:
++    low=outside&-outside;eligible&=~frame_core[low.bit_length()-1];outside^=low
++   while cover and eligible:
++    low=cover&-cover;eligible&=frame_cover[low.bit_length()-1];cover^=low
++   acquisition_superspaces[frame]=eligible
++  deadline=position[target]
++  assert deadline>=step
++  if deadline==step:return 0
++  interval=(1<<deadline)-(1<<(step+1))
++  possible=acquisition_superspaces[frame]&interval
++  count=0
++  while possible:
++   low=possible&-possible;count+=acquisition_counts[low.bit_length()-1];possible^=low
++  return count
+  def acquire(g,anchors):
+   if reclaim:
+-   bb={}
++   bb={};pending_relations=[];anchor_set=set(anchors)
+    def ins(s):
+     row=slots[s];expr=1<<s
+     while row:
+@@ -286,7 +332,15 @@
+    for s in anchors:ins(s)
+    for s in pending_index.eligible(blocks[g]['frame']):
+     assert contains(blocks[frames[s]]['frame'],blocks[g]['frame']) and contains(blocks[g]['frame'],blocks[pending[s]]['frame'])
+-    ins(s);stats['live_anchor_candidates']+=1
++    relation=ins(s);stats['live_anchor_candidates']+=1
++    if relation is not None and s not in anchor_set and s not in deferred and pending_use[s] is not None:
++     assert relation>>s&1;relation^=1<<s;aa=[]
++     while relation:
++      low=relation&-relation;aa.append(low.bit_length()-1);relation^=low
++     assert aa
++     pending_relations.append((s,tuple(aa)))
++     stats['pending_linear_relations']+=1
++     stats['pending_relations_with_multiple_controls']+=int(len(aa)>1)
+    best=None
+    # Inspect every eligible dependent candidate across all retired ranks.
+    # Rank the actual fixed-basis growth/cleanup profiles by an integer entropy score.
+@@ -302,10 +356,105 @@
+     if best is None or key<best[0]:best=(key,s,aa)
+    if best is not None:
+     _,s,aa=best
++    retired_values[slots[s]].remove(s)
+     for a in aa:
+      if a in pending:stats['live_anchor_xors']+=1
+      xor(s,a,g)
+     assert not slots[s];retired_index.remove(s,blocks[frames[s]]['frame'],blocks[frames[s]]['rank']);retired.remove(s);stats['reclaimed']+=1;stats['clearing_xors']+=len(aa);return s
++  if reclaim:
++   best=None;witness_cache={};retired_span_cache={}
++   for p,aa in pending_relations:
++    target=pending[p];stats['deferred_redundant_pending']+=1
++    assert slots[p]==signal[uses[pending_use[p]][0]]
++    cache_key=(slots[p],target)
++    if cache_key not in witness_cache:
++     eligible=retired_index.eligible_mask(blocks[target]['frame'])
++     witnesses=[]
++     for q in sorted(retired_values.get(slots[p],())):
++      if eligible>>q&1:witnesses.append((q,))
++     members=eligible
++     while members:
++      low=members&-members;q=low.bit_length()-1;members^=low
++      for r in sorted(retired_values.get(slots[p]^slots[q],())):
++       if q<r and eligible>>r&1:witnesses.append((q,r))
++     if target not in retired_span_cache:
++      members=eligible;candidates=[]
++      while members:
++       low=members&-members;q=low.bit_length()-1;members^=low
++       if reservation_opportunities(q,target)==0:candidates.append(q)
++      candidates.sort(key=lambda q:(-blocks[frames[q]]['rank'],slots[q].bit_count(),q))
++      rb={}
++      for q in candidates:
++       row=slots[q];expression=1<<q
++       while row:
++        pivot=row.bit_length()-1
++        if pivot not in rb:rb[pivot]=(row,expression);break
++        old,e=rb[pivot];row^=old;expression^=e
++      retired_span_cache[target]=rb
++      stats['retired_span_bases']+=1
++      stats['retired_span_basis_carriers']+=len(candidates)
++     row=slots[p];expression=0;rb=retired_span_cache[target]
++     while row:
++      pivot=row.bit_length()-1
++      if pivot not in rb:break
++      old,e=rb[pivot];row^=old;expression^=e
++     if not row and expression.bit_count()>=3:
++      witness=[]
++      while expression:
++       low=expression&-expression;witness.append(low.bit_length()-1);expression^=low
++      witnesses.append(tuple(witness))
++      stats['retired_span_extra_witnesses']+=1
++      stats['retired_span_extra_witness_carriers']+=len(witness)
++     witness_cache[cache_key]=witnesses
++    for witness in witness_cache[cache_key]:
++     stats['deferred_migration_candidates']+=1
++     stats['witnesses_with_multiple_clearing_controls']+=int(len(aa)>1)
++     opportunity=sum(reservation_opportunities(q,target) for q in witness)
++     stats['reservation_opportunity_requests']+=opportunity
++     if opportunity:
++      stats['reservation_rejections']+=1
++      continue
++     stats['reservation_zero_opportunity_candidates']+=1
++     assert witness and len(witness)==len(set(witness))
++     row=0
++     for q in witness:row^=slots[q]
++     assert row==slots[p]
++     score=(profile_entropy(frames[p]+2,target+2)+profile_entropy(0,g+2)
++            -profile_entropy(frames[p]+2,g+2)+sum(profile_cost(a,g) for a in aa)
++            +sum(profile_entropy(frames[q]+2,1)-profile_entropy(frames[q]+2,target+2) for q in witness)
++            -(len(witness)-1)*profile_entropy(target+2,1))
++     key=(score,len(witness),len(aa),p,witness,aa)
++     if best is None or key<best[0]:best=(key,p,witness,aa,target)
++   if best is not None:
++    _,p,witness,aa,target=best;u=pending_use[p];q=witness[0]
++    assert assign[u]==p and uses[u][1]==target and p not in aa
++    row=0
++    for a in aa:row^=slots[a]
++    assert slots[p]==row
++    assert contains(blocks[frames[p]]['frame'],blocks[g]['frame'])
++    assert contains(blocks[g]['frame'],blocks[target]['frame'])
++    pending_index.remove(p,blocks[frames[p]]['frame'],blocks[target]['frame'])
++    del pending[p];del pending_use[p]
++    for r in witness:
++     assert r in retired and contains(blocks[frames[r]]['frame'],blocks[target]['frame'])
++     retired_values[slots[r]].remove(r)
++     retired_index.remove(r,blocks[frames[r]]['frame'],blocks[frames[r]]['rank'])
++     retired.remove(r);pending[r]=target;pending_use[r]=u if r==q else None
++     pending_index.insert(r,blocks[frames[r]]['frame'],blocks[target]['frame'])
++    assign[u]=q
++    if len(witness)>1:deferred[q]=witness[1:]
++    for a in aa:
++     assert contains(blocks[frames[a]]['frame'],blocks[g]['frame'])
++     if a in pending:assert contains(blocks[g]['frame'],blocks[pending[a]]['frame'])
++     xor(p,a,g)
++     if a in pending:stats['live_anchor_xors']+=1
++    assert not slots[p]
++    stats['deferred_migrations']+=1;stats['clearing_xors']+=len(aa)
++    stats['span_migrations_with_three_or_more_carriers']+=int(len(witness)>=3)
++    stats['span_migration_reserved_carriers']+=len(witness)
++    stats['linear_migration_controls']+=len(aa)
++    stats['linear_migrations_with_multiple_controls']+=int(len(aa)>1)
++    return p
+   return new(g)
+  for step,g in enumerate(order):
+   b=blocks[g];outuses=[u for u in b['uses']if u not in right];outvalues=sorted({uses[u][0]for u in outuses});assert outvalues==b['outvalues']
+@@ -317,8 +466,9 @@
+   else:
+    ins=[assign[next(u for u in value_uses[y]if uses[u][1]==g and uses[u][2]is None)]for y in b['inputs']]
+    assert len(set(ins))==len(ins)
++   for s in ins:materialize(s,g)
+    for s in ins:
+-    assert pending[s]==g;pending_index.remove(s,blocks[frames[s]]['frame'],blocks[g]['frame']);del pending[s]
++    assert pending[s]==g;pending_index.remove(s,blocks[frames[s]]['frame'],blocks[g]['frame']);del pending[s];del pending_use[s]
+    for s,y in zip(ins,b['inputs']):assert slots[s]==signal[y];raise_(s,g)
+    # Independent desired output rows first, then preserved input signals,
+    # then standard-unit completion. Every row is a literal linear form
+@@ -354,8 +504,8 @@
+    value_slots={};spare=[]
+    for s,(kind,key)in zip(ins,labels):
+     if kind=='value':value_slots[key]=s;assert slots[s]==signal[key]
+-    elif kind=='carry':assign[key]=s;pending[s]=uses[key][1];pending_index.insert(s,blocks[frames[s]]['frame'],blocks[pending[s]]['frame']);assert slots[s]==signal[uses[key][0]]
+-    else:retired.add(s);retired_index.insert(s,blocks[frames[s]]['frame'],blocks[frames[s]]['rank']);spare.append(s)
++    elif kind=='carry':assign[key]=s;pending[s]=uses[key][1];pending_use[s]=key;pending_index.insert(s,blocks[frames[s]]['frame'],blocks[pending[s]]['frame']);assert slots[s]==signal[uses[key][0]]
++    else:retired.add(s);retired_values[slots[s]].add(s);retired_index.insert(s,blocks[frames[s]]['frame'],blocks[frames[s]]['rank']);spare.append(s)
+    # Express every dependent desired output in the new independent basis.
+    ob=list(value_slots);bb={}
+    for i,x in enumerate(ob):
+@@ -377,18 +527,20 @@
+    x=uses[u][0];s=value_slots[x]
+    if x in used:
+     ss=acquire(g,list(value_slots.values()));xor(ss,s,g);s=ss
+-   used.add(x);assert u not in assign;assign[u]=s;assert s not in pending;pending[s]=uses[u][1];pending_index.insert(s,blocks[frames[s]]['frame'],blocks[pending[s]]['frame'])
++   used.add(x);assert u not in assign;assign[u]=s;assert s not in pending;pending[s]=uses[u][1];pending_use[s]=u;pending_index.insert(s,blocks[frames[s]]['frame'],blocks[pending[s]]['frame'])
+   if step%5000==0:print('compile',h,step,len(slots),'reclaimed',stats['reclaimed'],'seconds',time.time()-t0,flush=True,file=sys.stderr)
+  output_slots=[];output_records=[];scatter=[0]*v;J=[]
+  for u,(x,g,target)in enumerate(uses):
+   if target is None:continue
+-  s=assign[u];assert slots[s]==signal[x];raise_(s,g);output_slots.append(s)
++  s=assign[u];materialize(s,g);assert slots[s]==signal[x];raise_(s,g);output_slots.append(s)
+   common,triple=target;output_records.append((s,g,common,triple))
+   targets=[i for i,t in enumerate(c.inputs)if common in t]if len(triple)==1 else[c.inputs.index(triple)]
+   for i in targets:scatter[i]^=slots[s];J.append((v+i,2*v+s))
+   rank=blocks[g]['rank']
+   if len(triple)==1:hist[rank]+=1;hist[h-rank]+=1
+   else:hist[h-1-rank]+=1;hist[1]+=1
++ assert not deferred
++ assert all(u is not None for u in pending_use.values())
+  assert len(set(output_slots))==len(output_slots)
+  for s in retired:hist[h-blocks[frames[s]]['rank']]+=1
+  assert len(retired)+len(output_slots)==len(slots)

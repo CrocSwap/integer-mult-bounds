@@ -1,18 +1,20 @@
-# Proposed aligned recursion: conditional κ = 5.2782144231390e-05
+# Proposed deferred span storage: conditional κ = 5.279858969335e-05
 
-This branch proposes **κ = 5278214423139/100000000000000000**, using **130,468,512 physical wires**.
-Aligned multi-level splits, row/column factoring, indexed carrier exchanges,
-and coordinate-aware pricing improve the previous PR74 saving by
-**1.8350912%** and pinned PR84 by **0.9773150%**.
+This branch proposes **κ = 1055971793867/20000000000000000**, using
+**130,427,779 physical wires**. Deferred reconstruction from reserved retired
+carriers saves 23 auxiliary roles in the 25-dimensional axis and improves
+the preceding aligned-recursion witness by **0.03116%**. Every additional XOR,
+frame change and reconstruction is charged in the exact profile.
 
-[Construction and reproduction](research/aligned-exchange-frames/README.md) ·
-[Proof and credits](research/aligned-exchange-frames/PROOF.md) ·
-[Exact certificate](research/aligned-exchange-frames/certificate.json)
+[Construction and reproduction](research/deferred-span-frames/README.md) ·
+[Proof and credits](research/deferred-span-frames/PROOF.md) ·
+[Exact certificate](research/deferred-span-frames/certificate.json)
 
-Run `make aligned-exchange-frames-verify` for fresh words, complete physical
+Run `make deferred-span-frames-verify` for fresh words, complete physical
 and scalar audits, and independent exact arithmetic. This finite witness
 retains the inherited analytic and all-size transfer hypotheses. Earlier
-results remain in `research/ordered-frames/` and `research/balanced-split-frames/`.
+results remain in `research/ordered-frames/`, `research/balanced-split-frames/`
+and `research/aligned-exchange-frames/`.
 The maintainer-reviewed result below is separate from this proposal.
 
 Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
