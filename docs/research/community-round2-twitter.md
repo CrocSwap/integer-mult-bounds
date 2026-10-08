@@ -1,7 +1,6 @@
 # Contributor-by-contributor announcement draft
 
-Prepared for Douglas Colkitt. Post only after the reviewed checkpoint reaches
-main. Each numbered entry below is a draft post; the following source line is
+Prepared for Douglas Colkitt. The reviewed checkpoint is published on main. Each numbered entry below is a draft post; the following source line is
 an editorial reference, not part of the post. The order emphasizes the advances
 that shaped the construction, then refinements, verification and parallel work.
 It is not a priority or sole-authorship claim.
@@ -22,7 +21,7 @@ measured runtime improvement. The selected value remains below 2⁻¹⁴.
 
 2. **Rohan Arun** turned new ideas into stronger, checked compositions: better dimensions, data-corner geometry, fixed bases, weighted matching and wire reuse. His PR #39 anchored our audited 2⁻¹⁵ release, and his later refinements kept advancing it.
 
-   Sources: [#31](https://github.com/CrocSwap/integer-mult-bounds/pull/31), [#39](https://github.com/CrocSwap/integer-mult-bounds/pull/39), [#44](https://github.com/CrocSwap/integer-mult-bounds/pull/44), [#49](https://github.com/CrocSwap/integer-mult-bounds/pull/49), [#56](https://github.com/CrocSwap/integer-mult-bounds/pull/56), and the full contributor ledger. **Preferred announcement:** [Rohan's PR #40 post](https://x.com/RohanArun/status/2108190499941065193), which Douglas previously quoted. It discusses the both-fixed improvement near the 2⁻¹⁵ checkpoint. [His earlier PR #14 post](https://x.com/RohanArun/status/2108125292342444442) covers source frames and data blocks. Neither announces the newest #62 result. The fetched public post identifies @RohanArun; GitHub's profile currently links @Viewforge. Prefer the actual announcement link; check the active handle before tagging.
+   Sources: [#31](https://github.com/CrocSwap/integer-mult-bounds/pull/31), [#39](https://github.com/CrocSwap/integer-mult-bounds/pull/39), [#44](https://github.com/CrocSwap/integer-mult-bounds/pull/44), [#49](https://github.com/CrocSwap/integer-mult-bounds/pull/49), [#56](https://github.com/CrocSwap/integer-mult-bounds/pull/56), and the full contributor ledger. **Suggested quote:** [Rohan's reply explaining his composable geometric approach](https://x.com/RohanArun/status/2108188579616710691), supplied by Douglas; it links directly to PR #40. [His standalone PR #40 announcement](https://x.com/RohanArun/status/2108190499941065193) was previously quoted by Douglas. It discusses the both-fixed improvement near the 2⁻¹⁵ checkpoint. [His earlier PR #14 post](https://x.com/RohanArun/status/2108125292342444442) covers source frames and data blocks. Neither announces the newest #62 result. The fetched public post identifies @RohanArun; GitHub's profile currently links @Viewforge. Prefer the actual announcement link; check the active handle before tagging.
 
 3. **eumemic** contributed complex-network compression, faster Gaussian resampling and auxiliary source frames. More recently, their joint frame compiler found cheaper ways to combine operations and reuse wires. That compiler is part of the current frontier.
 
@@ -48,41 +47,41 @@ measured runtime improvement. The selected value remains below 2⁻¹⁴.
 
    Sources: [#1](https://github.com/CrocSwap/integer-mult-bounds/pull/1), [#29 attribution](https://github.com/CrocSwap/integer-mult-bounds/pull/29), [#36 attribution](https://github.com/CrocSwap/integer-mult-bounds/pull/36). **GitHub-linked X profile:** [@aurel_pr](https://x.com/aurel_pr). Announcement post not located. The two-stage work has shared attribution, including Swapnil Jain.
 
-9. **Dominik Scholz** improved dimensions, parameter choices and fixed local bases, and combined compatible ideas from other contributors. Those refinements strengthened the two-stage family and helped expose where structural changes would pay off.
+9. **Swapnil Jain** pursued a parallel integer-multiplication project, including two-stage batching work credited by later submissions here. His updates document a separate path through the 2⁻¹⁶ and 2⁻¹⁵ milestones.
+
+    Sources: [#29](https://github.com/CrocSwap/integer-mult-bounds/pull/29), [#36](https://github.com/CrocSwap/integer-mult-bounds/pull/36), and the [linked two-stage repository](https://github.com/Swapnil-jain/integer-mult-kappa/tree/ae405eb474d1486b2d8aef90139869f927f4836a). **Announcement supplied by Douglas:** [@SJ_Swapnil_Jain's sixth update](https://x.com/SJ_Swapnil_Jain/status/2108196538568851574), reporting a separate κ=3.667×10⁻⁵ witness and Lean checks. Its [quoted fifth update](https://x.com/SJ_Swapnil_Jain/status/2108175552549118371) reports κ=1.548×10⁻⁵. These are his project's reported milestones; their complete proofs and Lean claims have not been independently audited here. The two-stage contribution credited in our chain remains supported by the pinned sources above.
+
+10. **Dominik Scholz** improved dimensions, parameter choices and fixed local bases, and combined compatible ideas from other contributors. Those refinements strengthened the two-stage family and helped expose where structural changes would pay off.
 
    Sources: [#22](https://github.com/CrocSwap/integer-mult-bounds/pull/22), [#27](https://github.com/CrocSwap/integer-mult-bounds/pull/27), [#30](https://github.com/CrocSwap/integer-mult-bounds/pull/30), [#33](https://github.com/CrocSwap/integer-mult-bounds/pull/33), [#35](https://github.com/CrocSwap/integer-mult-bounds/pull/35), [#38](https://github.com/CrocSwap/integer-mult-bounds/pull/38). X post not located. Include the concurrent #30/#38 work even where another composition overtook it.
 
-10. **James Chang** contributed reversed two-stage geometry and exact controls for the data corners, together with balanced assembly. That geometry carried forward into the stronger fixed-basis constructions and the later audited releases.
+11. **James Chang** contributed reversed two-stage geometry and exact controls for the data corners, together with balanced assembly. That geometry carried forward into the stronger fixed-basis constructions and the later audited releases.
 
     Source: [#34](https://github.com/CrocSwap/integer-mult-bounds/pull/34). GitHub: jamesyc. X post not located.
 
-11. **Alejandro Zarzuelo Urdiales** added Gaussian-parity and finite-arithmetic proofs, Lean checks and source-bound verification tools. His latest exact parameter refinement supplies the final numerical value on Avi's graph and eumemic's compiler.
+12. **Alejandro Zarzuelo Urdiales** added Gaussian-parity and finite-arithmetic proofs, Lean checks and source-bound verification tools. His latest exact parameter refinement supplies the final numerical value on Avi's graph and eumemic's compiler.
 
     Sources: [#45](https://github.com/CrocSwap/integer-mult-bounds/pull/45), [#61](https://github.com/CrocSwap/integer-mult-bounds/pull/61). **GitHub-linked X profile:** [@AlejandroZarUrd](https://x.com/AlejandroZarUrd). Announcement post not located. The Lean proofs cover their stated finite contracts, not the entire multiplication theorem.
 
-12. **Ryan S** contributed Lean checks for historical certificates and algebraic contracts, plus an independent paired-circuit checker. This strengthened verification and clarified which finite facts were checked and which larger interfaces remained assumed.
+13. **Ryan S** contributed Lean checks for historical certificates and algebraic contracts, plus an independent paired-circuit checker. This strengthened verification and clarified which finite facts were checked and which larger interfaces remained assumed.
 
     Source: [#26](https://github.com/CrocSwap/integer-mult-bounds/pull/26). GitHub: princezuda. X post not located. Do not frame this as full formal verification of the result.
 
-13. **Rohan Gupta** found the dual-suffix strip layout and a parallel order improvement. His layout combined with eumemic's compiler and Chafik's reclamation changes to produce the previous best construction—a useful step on the way to the current graph.
+14. **Rohan Gupta** found the dual-suffix strip layout and a parallel order improvement. His layout combined with eumemic's compiler and Chafik's reclamation changes to produce the previous best construction—a useful step on the way to the current graph.
 
     Sources: [#50](https://github.com/CrocSwap/integer-mult-bounds/pull/50), [#55](https://github.com/CrocSwap/integer-mult-bounds/pull/55). GitHub: gupt1156. X post not located. Distinct from Rohan Arun and Rohan Garg.
 
-14. **Rohan Garg** contributed split-pair recursion and paid-clone composition, with complete finite replay and independent arithmetic checks. It gives a validated alternative construction and another useful direction for improving the finite network.
+15. **Rohan Garg** contributed split-pair recursion and paid-clone composition, with complete finite replay and independent arithmetic checks. It gives a validated alternative construction and another useful direction for improving the finite network.
 
     Source: [#59](https://github.com/CrocSwap/integer-mult-bounds/pull/59). GitHub: rohangar1. X post not located. This alternative is retained; it is not an uncredited dependency of #62.
 
-15. **Andrew Barnes** contributed aligned pair groups and exact producer/frame checks early in the project. This was useful structural work that subsequent constructions could build on, even as the headline moved far beyond the original witness.
+16. **Andrew Barnes** contributed aligned pair groups and exact producer/frame checks early in the project. This was useful structural work that subsequent constructions could build on, even as the headline moved far beyond the original witness.
 
     Source: [#2](https://github.com/CrocSwap/integer-mult-bounds/pull/2). GitHub: Bortlesboat. **GitHub-linked X profile:** [@BTCOrangeCoin](https://x.com/BTCOrangeCoin). Announcement post not located.
 
-16. **David Leen** combined shared exclusions, retained totals and stage sharing in the complex network. That early contribution explored how more computation could be shared, adding headroom alongside the independently developed complex-compression work.
+17. **David Leen** combined shared exclusions, retained totals and stage sharing in the complex network. That early contribution explored how more computation could be shared, adding headroom alongside the independently developed complex-compression work.
 
     Source: [#4](https://github.com/CrocSwap/integer-mult-bounds/pull/4). GitHub: dleen. X post not located. Credit this as parallel work without implying it was merged into the original separately checked 2⁻³¹ checkpoint.
-
-17. **Swapnil Jain** is also credited in the incoming research for two-stage batching development, alongside Aurel Prosz's topology and endpoint work. That shared provenance matters: the current construction rests on contributions beyond the final PR author.
-
-    Sources: [#29](https://github.com/CrocSwap/integer-mult-bounds/pull/29), [#36](https://github.com/CrocSwap/integer-mult-bounds/pull/36), and the [linked two-stage repository](https://github.com/Swapnil-jain/integer-mult-kappa/tree/ae405eb474d1486b2d8aef90139869f927f4836a). No verified X identity or direct announcement located. This deliberately follows the source attribution without inventing a more specific individual claim.
 
 ## Closing
 
@@ -103,7 +102,13 @@ Rohan's PR #14 announcement was located through [Trendshift's repository mention
 and its public post text retrieved through the FxTwitter mirror. The text links
 PR #14 directly and states its 9.0799×10⁻⁷ witness. His PR #40 announcement was
 then found inside [Douglas's quote](https://x.com/0xdoug/status/2108218367962124423);
-its public text links PR #40 and states 3.918734894×10⁻⁵. X's direct pages returned 403
-in this environment. No other contributor announcement URL was established from
-indexed search, PR bodies or repository issue comments. “Not located” does not
-mean no post exists. Replace PR links with contributor announcements when supplied.
+its public text links PR #40 and states 3.918734894×10⁻⁵. Douglas subsequently supplied Swapnil's sixth update and Rohan's direct PR #40
+reply; both were retrieved through the same public mirror. Their links are now
+included above. X's direct pages returned 403 in this environment. Remaining
+“not located” entries mean no verified announcement link was found, not that
+no such post exists.
+
+Douglas also supplied [@tariusdamon's post sharing PR #37](https://x.com/tariusdamon/status/2108179436008882493).
+The text says “Fun to watch” and links Rohan Arun's submission. It supports an
+acknowledgement for sharing the project, but does not establish a contributor
+identity or authorship of that PR. Keep it separate from the technical credits.
