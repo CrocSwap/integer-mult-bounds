@@ -14,7 +14,7 @@ The h23 compiler also performs up to three bounded passes of two- or three-carri
 | Total recursive rank | 76163110225 |
 | Rank deficit | 1846900 |
 
-All eight cloud proposals passed full ordinary/dirty physical replay and fresh CRT profiles. The selected h23/h25 pair and the baseline give 25 complete pairings checked with exact moment bounds. An independent local regeneration is required and supplied by the command below. Full repository verification is pending at initial publication.
+All eight cloud proposals passed full ordinary/dirty physical replay and fresh CRT profiles. The selected h23/h25 pair and the baseline give 25 complete pairings checked with exact moment bounds. Independent regeneration and full repository verification passed on research commit `d1b2a3a7caec9a101363e5c534a4680a1d2086ba`: 84 isolated test modules, 20 historical patch checks and seven focused controls, with no tracked source drift. The successful full invocation took 3627.67 seconds (60 minutes 28 seconds). All 45 GitHub checks passed on that research commit. See `validation.json` for timing, source scope, setup history and log hashes.
 
 ```sh
 python3 research/indexed-geometric-pricing/verify.py --regenerate
