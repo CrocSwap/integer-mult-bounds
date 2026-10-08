@@ -30,6 +30,7 @@ verify-community: community-audit-check community-followup-check copied-reversed
 	$(MAKE) climbed-48-verify
 
 verify-producers:
+	$(MAKE) stopped-product-verify
 	$(MAKE) copied-centers-verify
 	$(MAKE) structured-bulk-verify
 	$(MAKE) endpoint-gauge-producer endpoint-gauge-certificate
@@ -428,3 +429,12 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: stopped-product-producer stopped-product-certificate stopped-product-verify
+stopped-product-producer:
+	python3 scripts/stopped_product_producer.py
+
+stopped-product-certificate:
+	python3 scripts/stopped_product_network.py
+
+stopped-product-verify: stopped-product-producer stopped-product-certificate
