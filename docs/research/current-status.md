@@ -1,5 +1,3 @@
-# Current construction on this branch
+# Current conditional construction
 
-The translated partial-swap and phase-frame extension certifies **κ=5499/10^9 > 2^-18**. It retains PR18's physical scalar producers and prescribed common basis, changes dedicated middle auxiliary endpoints, and uses a separately verified complex source-phase interface with a new precision guard.
-
-See [the proof and exact reproduction package](../../research/translated-partial/README.md). This is a final conditional multiplication saving, not only a bit-component saving. It does not exceed 2^-17.
+The PR21 + RaD/PR20 composition gives **κ=1099/10^8 > 2^-17**. See [the composition guide](../../research/semantic-bulk/README.md). The bit/complex graphs are unchanged; the semantic guard, actual scalar charge and product row stock are recomputed for them. The original FFT prefix is retained. This is below 2^-16.

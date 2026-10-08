@@ -153,3 +153,13 @@ translated-partial-note:
 	cp artifacts/translated-partial-note.pdf artifacts/translated-partial-18-note.pdf
 
 verify: translated-partial-certificate
+
+.PHONY: semantic-bulk-certificate semantic-bulk-controls semantic-bulk-note
+semantic-bulk-certificate:
+	python3 research/semantic-bulk/verify.py
+semantic-bulk-controls:
+	python3 research/semantic-bulk/controls.py
+semantic-bulk-note:
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
+verify: semantic-bulk-certificate

@@ -1,3 +1,9 @@
+# Conditional multiplication saving beyond 2^-17
+
+This branch composes the unchanged PR21 finite interfaces with RaD/PR20's semantic precision and bulk resampling arguments, giving **κ=1099/10^8=1.099×10^-5 > 2^-17** under the documented analytic and fixed-tape hypotheses.
+
+See [the composition and reproduction guide](research/semantic-bulk/README.md), [the proof](notes/semantic-bulk-17-note.tex), and [compiled PDF](artifacts/semantic-bulk-17-note.pdf). The original prefix layout suffices. The native graphs remain unchanged. The earlier results below are dependencies.
+
 # Conditional multiplication saving beyond 2^-18
 
 The latest construction on this branch gives **κ=5499/10^9=5.499×10^-6 > 2^-18** in `O(n (log n)^(1−κ))`, under the retained analytic and fixed-tape hypotheses. It translates the middle auxiliary source frames of PR18 and strengthens the independent complex phase interface.
