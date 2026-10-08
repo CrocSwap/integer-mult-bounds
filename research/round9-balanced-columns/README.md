@@ -14,7 +14,7 @@ conditional claims; no global optimality or unconditional theorem is claimed.
 [Proof and attribution](selected-both/PROOF.md) ·
 [Exact certificate](selected-both/arithmetic.json) ·
 [Source and word manifest](selected-both/MANIFEST.json) ·
-[Completed finite validation](validation-receipt.json) ·
+[Completed finite validation](package-validation-receipt.json) ·
 [Exact comparison](selected-both/comparison.json)
 
 Passed checks include dense scalar/data-output identities, full compiler
@@ -24,7 +24,10 @@ CRT disagreements, independent rational moments, all 47 strict assembly
 constraints and seven margins, and adjacent-grid rejection. Fresh portable
 deterministic compilation and broad repository checks remain pending.
 
-The original validation receipt binds the original freeze manifest archived
+The package validation receipt independently reproduces all saved-word, profile
+and arithmetic checks against the current manifest. Its mathematical results
+match the original receipt exactly. The original validation receipt binds
+the original freeze manifest archived
 in `provenance/frozen-manifest.json`. Runtime sources, words, profiles and
 arithmetic are byte-identical to that freeze; only proof/comparison metadata
 has been updated for this publication. The current manifest records those
