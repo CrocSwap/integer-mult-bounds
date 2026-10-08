@@ -10,56 +10,48 @@ fixed number of one-dimensional tapes, the strongest supplied witness is
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{83}{10^{12}}=8.3\times10^{-11}>2^{-34}}.
+\boxed{\kappa=\frac{591}{10^{12}}=5.91\times10^{-10}>2^{-31}}.
 $$
 
-The simpler **`kappa = 2^-34`** is a corollary. The witness remains below
-`2^-33`. It increases the exponent saving by approximately **47.85 million
-fold** over our preceding published `2^-59` witness. The original manuscript
-uses `2^-182`. These compare asymptotic exponents, not practical runtimes.
+The simpler **`kappa = 2^-31`** is a corollary. The exact saving is
+**591/83 ≈ 7.12 times** the preceding compact-control witness `83/10^12`.
+These compare asymptotic exponents, not practical runtimes.
 
-**[Read the compact-control proof note (PDF)](artifacts/compact-control-note.pdf)** ·
-[Review the combined source patch](patches/compact-control-34.patch) ·
-[Inspect the exact certificate](certificates/compact-control-layer.json) ·
-[Review guide and dependencies](docs/research/compact-control-review.md)
+**[Read the combined construction](docs/research/shared-retained-complex.md)** ·
+[Review the source patch](patches/retained-complex-31.patch) ·
+[Inspect the exact certificate](certificates/retained-complex-layer.json)
 
-This is a research claim supported by written proofs and reproducible checks.
-The complete upstream theorem is assumed; the new arguments have not received
-independent mathematical review or formal verification.
+The shared-exclusion builder is imported verbatim from [PR #3](https://github.com/CrocSwap/integer-mult-bounds/pull/3)
+by `eumemic` (Claude-assisted), at commit `dfe5b818aad4d386cb5dd7d76df108088107765d`.
+The retained-total and stage-sharing extensions are by `dleen` with substantial
+OpenAI Codex assistance.
 
 ## What changed
 
-The new construction moves **compact control fields instead of entire spaced
-windows**. For `f` selected axes, it replaces the layer's movement cost
-`O(V*((f*K)^tau+1))` by
+The existing compact-control movement and paired-bit network are retained.
+The `h=24` complex producer combines PR #3's shared-exclusion DAG with
+retained one-point exclusion totals and stage-1/3 bank sharing. Grouped scatter
+at a common low/full frame gives return loss `(h-1)²+h`, restores arbitrary
+initial scratch, and preserves both phase paths and all-role endpoints.
+The larger global coefficient is split into half-sized updates, with every
+scalar gate included in the precision guard. The bit and complex arities
+remain independent.
+
+The exact complex saving is `1-sigma=2970/10^11=2.97e-8`, about **2.12 times**
+PR #3's certified `1.4e-8`. The bit saving remains `296/10^11`, so the combined
+headline stays `591/10^12 > 2^-31`. The complete compact consumer
+uses `c=1`, with exact minimum assembly margin
 
 $$
-O\!\left(V\bigl((f\log p)^\tau+1\bigr)\right).
+G_* = \frac{2956521}{5\cdot10^{15}} > \kappa,
+\qquad G_*-\kappa=\frac{1521}{5\cdot10^{15}}>0.
 $$
 
-The proof reserves temporary fields from existing address coordinates,
-allows arbitrary initial temporary values, restores them exactly, and charges
-exceptional-address repair at every recursion node. The temporary ranges
-remain complete through padding and recursive row splitting.
-
-Removing `K^tau` removes the restriction responsible for the preceding
-quadratic dependence on the finite-network saving. The bit network stays at
-`h=50`. The original complex network is separately instantiated at `h=25`,
-and a generalized stopping-depth guard completes the new parameter witness.
-This is a change to the movement construction and its proof, beyond parameter
-tuning of the preceding algorithm.
-
-The exact minimum assembly margin is
-
-$$
-G_* = \frac{333833}{4\cdot10^{15}}
-    = 8.345825\times10^{-11} > \kappa.
-$$
-
-The remaining bottleneck is the complex layer's saving. With the **fixed
-`h=25` complex motif and retained Gaussian/leaf inequalities**, the scoped
-ceiling is below `8.369598075e-11`, hence below `2^-33`. This is not a ceiling
-for other networks or integer multiplication in general.
+The complete upstream theorem, compact-control tape proofs and analytic
+interfaces remain assumptions. Exact producer and parameter checks support
+the supplied written argument; they do not formally verify the full machine.
+The [preceding compact-control witness](artifacts/compact-control-note.pdf)
+and its [review guide](docs/research/compact-control-review.md) remain available.
 
 ## Evidence and scope
 
@@ -69,7 +61,7 @@ for other networks or integer multiplication in general.
 | Dirty-control identities, inverses and repair | Finite exhaustive cases and seeded tests |
 | Wider-control tape bound, reservations and recursion | Written general proofs |
 | Separate complex arity and precision guard | Written proofs and exact accounting |
-| Source integration | Combined patch, reference checks and manuscript build |
+| Source integration | Combined patch, reference checks and patch applicability |
 | Full upstream multiplication theorem | Assumed |
 | Independent review / full formalization | Not supplied |
 
@@ -92,13 +84,14 @@ They regenerate the certificates and patches, run the tests, verify upstream
 hashes, and check each patch against the pinned manuscript. The second command
 checks exact regeneration on a clean checkout.
 
-With Tectonic installed, rebuild the latest note using:
+The preceding rectangle variant has a preserved PDF. With Tectonic installed,
+rebuild that earlier note using:
 
 ```sh
-make compact-note
+make retained-complex-note
 ```
 
-The output is `artifacts/compact-control-note.pdf`. The first PDF build may
+The output is `artifacts/retained-complex-note.pdf`. The first PDF build may
 download TeX resources. See [reproducibility instructions](docs/reproducibility.md)
 for applying the combined patch in a disposable copy and building older notes.
 [GitHub Actions](.github/workflows/verify.yml) runs the arithmetic and patch checks.
