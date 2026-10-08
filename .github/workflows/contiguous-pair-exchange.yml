@@ -1,0 +1,23 @@
+name: Verify contiguous-pair coordinate pricing and circuit exchange
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python research/contiguous-pair-exchange/verify.py --regenerate
+        env:
+          CXX: c++ -include algorithm
+          OMP_NUM_THREADS: '2'
+          PYTHONDONTWRITEBYTECODE: '1'
+      - run: python research/contiguous-pair-exchange/test_controls.py
+        env:
+          CXX: c++ -include algorithm
+          PYTHONDONTWRITEBYTECODE: '1'
