@@ -1,5 +1,33 @@
 # Current contracts and research status
 
+Updated October 8, 2026. The latest conditional witness is
+**kappa = 373/10^11 = 3.73e-9 > 2^-28**, contributed by Zhihao Chen
+(jacklightChen), with GPT-6 Astra (OpenAI Codex) assistance as identified by
+the contributor. The [review guide](prime-field28.md) records the construction,
+verification boundary, prior contributions and requested research attribution.
+
+The ternary five-subset interchange has `a_b = 3/400000000`, and the paired
+complex producer has `a_c = 39/10^9`. Both use h=28. The exact assembly witness
+uses epsilon=4999/10000, c=9999/10000, beta=19/25, delta=1/10^6,
+zeta=1/10000, C1=19601/10000, lambda=1-749/10^11 and
+lambda'=1-748/10^11. All 29 constraints and seven final margins are strict.
+The minimum margin is 934813/250000000000000, exceeding kappa by
+2313/250000000000000.
+
+Reproduce with `make verify` and `make prime-field-note`.
+See the [certificate](../../certificates/prime-field28.json),
+[proof note](../../artifacts/prime-field28-note.pdf), and
+[independent source patch](../../patches/prime-field28.patch).
+The pinned upstream theorem and retained interfaces remain assumed; these
+checks do not constitute independent review or formal verification.
+
+The earlier status below is retained as historical context. Its statements
+about a ceiling apply only to its fixed older networks and inequalities.
+
+---
+
+## Historical compact-control status
+
 Updated October 7, 2026. Author: Douglas Colkitt. All results remain conditional
 on the pinned upstream algorithmic interfaces and the identified written
 extensions. Nothing in this page asserts formal or independent verification.

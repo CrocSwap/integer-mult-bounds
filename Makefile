@@ -1,6 +1,12 @@
-.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
+.PHONY: prime-field-note verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
 
 verify:
+	python3 scripts/prime_field_network.py
+	python3 scripts/make_prime_field_patch.py
+	python3 scripts/complex_network.py
+	python3 scripts/make_complex_circuit_patch.py
+	python3 scripts/fast_gaussian.py
+	python3 scripts/make_fast_gaussian_patch.py
 	python3 scripts/certify.py
 	python3 scripts/search_network.py
 	python3 scripts/make_patch.py
@@ -54,6 +60,14 @@ verify:
 	git apply --check --directory=upstream patches/h46-shared-point.patch
 	git apply --check --directory=upstream patches/h50-paired-59.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
+	git apply --check --directory=upstream patches/complex-circuit-31.patch
+	git apply --check --directory=upstream patches/fast-gaussian-30.patch
+	git apply --check --directory=upstream patches/prime-field28.patch
+
+prime-field-note:
+	mkdir -p artifacts
+	cd notes && pdflatex -interaction=nonstopmode -halt-on-error -output-directory=../artifacts prime-field28-note.tex
+	cd notes && pdflatex -interaction=nonstopmode -halt-on-error -output-directory=../artifacts prime-field28-note.tex
 
 note:
 	mkdir -p artifacts

@@ -176,3 +176,20 @@ rebuilt locally using the command above.
 
 Build the latest note with `make compact-note`. The earlier notes and
 patches remain available as independent witnesses.
+
+
+## Ternary five-subset witness beyond 2^-28
+
+Run `make verify` with Python 3.11+, Make, Git and a C++17 compiler (`c++`).
+The new scripts use the Python standard library only. Full exact producer
+checking requires roughly 1.2 GB memory and under 30 MB temporary storage.
+`python3 scripts/prime_field_network.py --quick` checks only the final rational
+witness and is not a replacement for the full circuit checks.
+
+`make prime-field-note` builds `artifacts/prime-field28-note.pdf` with pdfLaTeX.
+For the full manuscript, copy `upstream/build` to a disposable directory and
+apply `patches/prime-field28.patch` with `git apply --directory=<copy>`; or
+write the output of `scripts/make_prime_field_patch.py`'s `patched_files()`
+over that copy. Compile `main.tex` with pdfLaTeX, run BibTeX, then run pdfLaTeX
+twice. Keep the pinned upstream files unchanged. Each repository patch is an
+independent alternative, not a patch stack.
