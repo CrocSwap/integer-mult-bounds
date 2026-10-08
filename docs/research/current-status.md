@@ -7,10 +7,15 @@ extensions. Nothing in this page asserts formal or independent verification.
 ## Retained-total continuation
 
 The latest conditional witness is `591/10^12 > 2^-31`, a factor `591/83`
-over the compact-control witness below. See the [new proof](../../notes/retained-complex-construction.tex),
+over the compact-control witness below. See the [combined proof](shared-retained-complex.md),
 [certificate](../../certificates/retained-complex-layer.json) and
 [patch](../../patches/retained-complex-31.patch). The fixed-tape and analytic
-interfaces remain assumptions. The following record preserves the earlier
+interfaces remain assumptions. The combined producer imports PR #3
+(commit `dfe5b818aad4d386cb5dd7d76df108088107765d`) and adds retained exclusion
+totals and stage-1/3 sharing. Its complex saving is `2970/10^11`, with
+`W=761750114048`, `s=10530430586099072`, and the unchanged bit saving
+`296/10^11`. The headline remains bit-limited. The rectangle proof/PDF is a
+preserved preceding variant. The following record preserves the earlier
 compact-control construction and its parameters.
 
 ## Current and earlier results

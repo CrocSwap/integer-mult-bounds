@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Exact shared side circuit for the complex motif, with binary frame labels.
+"""Combine eumemic's shared-exclusion circuit with retained-total phase frames.
 
-Disjoint triples use coordinate-completed source trees with a spare coordinate.
-Intersection-two triples use orthonormal fixed-pair trees. This module supplies
+The base builder is copied from PR #3 at dfe5b818aad4d386cb5dd7d76df108088107765d
+(eumemic, Claude-assisted). Retained exclusion totals and stage sharing
+are the PR #4 contribution. This module supplies
 finite certificates; the general phase/tape transfer is a separate written proof.
 """
-from dataclasses import dataclass, replace
-from functools import lru_cache
+from dataclasses import replace
 from fractions import Fraction as Q
-from math import comb
 from pathlib import Path
 import json
 from hashlib import sha256
-from itertools import combinations
 from struct import pack
 
 from certify import require, constraints, margins, verify_sources
@@ -20,6 +18,7 @@ from compact_control_layer import parameters as baseline_parameters, layer_expon
 from prepare_layers import serializable
 from search_network import log_integer_bounds
 from exclusion_circuit import ExclusionCircuit
+from complex_circuit import ComplexSideCircuit, EMPTY
 
 
 def binary_rank(rows):
@@ -39,244 +38,53 @@ def dot(a, b):
     return (a & b).bit_count() & 1
 
 
-@dataclass(frozen=True)
-class Plan:
-    n: int
-    a: int
-    b: int
-    count: int
-    left: int
-    right: int
-    kind: str
-    split: int = 0
-    terms: tuple = ()
-
-    @property
-    def score(self):
-        return self.left + self.right - self.count
-
-
-@lru_cache(None)
-def best_plan(n, a, b):
-    """Restricted recursive rectangle search for D(a,b).
-
-    The search is deliberately the same row/column/split family as the
-    incidence compiler, generalized only to a,b<=3.  It is a construction,
-    not a lower bound over all biclique partitions.
-    """
-    if a < 0 or b < 0 or a + b > n:
-        return Plan(n, a, b, 0, 0, 0, "empty")
-    if a == 0 or b == 0:
-        return Plan(n, a, b, 1, comb(n, a), comb(n, b), "base")
-
-    def stars(kind):
-        if kind == "rows":
-            c = comb(n, a)
-            return Plan(n, a, b, c, c, c * comb(n - a, b), "rows")
-        c = comb(n, b)
-        return Plan(n, a, b, c, c * comb(n - b, a), c, "cols")
-
-    winner = min((stars("rows"), stars("cols")), key=lambda p: p.score)
-    for split in range(1, n):
-        right_n = n - split
-        terms = []
-        for x in range(a + 1):
-            for y in range(b + 1):
-                if x + y > split or (a - x) + (b - y) > right_n:
-                    continue
-                left = best_plan(split, x, y)
-                right = best_plan(right_n, a - x, b - y)
-                if left.count and right.count:
-                    terms.append((left, right))
-        if not terms:
-            continue
-        candidate = Plan(
-            n, a, b,
-            sum(left.count * right.count for left, right in terms),
-            sum(left.left * right.left for left, right in terms),
-            sum(left.right * right.right for left, right in terms),
-            "split", split, tuple(terms),
-        )
-        if candidate.score < winner.score:
-            winner = candidate
-    return winner
-
-
-def rectangle_stream(plan, points=None):
-    if points is None:
-        points = tuple(range(plan.n))
-    if plan.kind == "empty":
-        return
-    if plan.kind == "base":
-        yield tuple(combinations(points, plan.a)), tuple(combinations(points, plan.b))
-    elif plan.kind == "rows":
-        for source in combinations(points, plan.a):
-            rest = tuple(i for i in points if i not in source)
-            yield (source,), tuple(combinations(rest, plan.b))
-    elif plan.kind == "cols":
-        for target in combinations(points, plan.b):
-            rest = tuple(i for i in points if i not in target)
-            yield tuple(combinations(rest, plan.a)), (target,)
-    else:
-        left_points, right_points = points[:plan.split], points[plan.split:]
-        for left, right in plan.terms:
-            for source_l, target_l in rectangle_stream(left, left_points):
-                for source_r, target_r in rectangle_stream(right, right_points):
-                    yield (tuple(x + y for x in source_l for y in source_r),
-                           tuple(x + y for x in target_l for y in target_r))
-
-
-
-def triple_mask(triple):
-    return sum(1 << i for i in triple)
-
-
-def repaired_rectangles(plan, points):
-    """Split only frame-bad rectangles; singleton-target repairs preserve cost."""
-    full = (1 << plan.n) - 1
-    raw = list(rectangle_stream(plan, points))
-    repaired = []
-    bad = []
-    for source, target in raw:
-        source_union = 0
-        for s in source:
-            source_union |= triple_mask(s)
-        source_dim = source_union.bit_count()
-        frame_bad = any(
-            source_dim < plan.n - 1
-            and not ((full ^ triple_mask(t)) & ~source_union)
-            for t in target
-        )
-        if not frame_bad:
-            repaired.append((source, target))
-            continue
-        bad.append((len(source), len(target), source_dim))
-        # Every bad rectangle in the observed plans has one target.  The
-        # generic fallback splits both sides into singleton edge rectangles;
-        # this remains exact if a future plan has a wider bad target family.
-        for s in source:
-            for t in target:
-                repaired.append(((s,), (t,)))
-    return raw, repaired, bad
-
-
-
 class RetainedComplexCircuit:
     def __init__(self, h=24):
         require(h >= 8 and h % 2 == 0, 'Use an even ground size at least eight')
-        self.h = h
-        self.full = (1 << h) - 1
-        self.inputs = list(combinations(range(h), 3))
-        self.variables = {t: i + 1 for i, t in enumerate(self.inputs)}
+        self.h, self.full = h, (1 << h)-1
+        source = ComplexSideCircuit(h)
+        self.base_additions = source.additions
+        self.base_outputs = len(source.pieces)
+        self.base_active = set(source.active)
+        # Reuse PR #3's cached exclusion sums and full pair-star roots.
+        retained = source.tri(list(range(h)),1)
+        self.inputs = source.triples
+        self.variables = dict(source.input)
         self.masks = [sum(1 << i for i in t) for t in self.inputs]
-        self.args = [None] * (len(self.inputs) + 1)
-        self.union = [0] + self.masks[:]
-        self.labels = [('zero', 0)] + [('line', m) for m in self.masks]
-        self.outputs = {}
-        self.targets = []
-
-        groups = []
-        for a in range(h - 2):
-            rows = []
-            for b in range(a + 1, h - 1):
-                leaves = [self.variables[a, b, c] for c in range(b + 1, h)]
-                rows.append(self.tree(leaves))
-            groups.append(self.tree(rows))
-        root = self.tree(groups)
-        self.disjoint_end = len(self.args)
-
-        self.pair_ranges = []
-        for pair in combinations(range(h), 2):
-            mask = sum(1 << i for i in pair)
-            leaves = [self.variables[tuple(sorted((*pair, k)))]
-                      for k in range(h) if not mask & (1 << k)]
-            start = len(self.args)
-            root = self.tree(leaves, mask)
-            self.pair_ranges.append((start, len(self.args)))
-            for k in range(h):
-                if not mask & (1 << k):
-                    self.select(root, mask | (1 << k), True)
-
-        # Rectangle source sums replace only the disjoint side branch.
-        _, rectangles, _ = repaired_rectangles(best_plan(h,3,3),tuple(range(h)))
-        self.rectangle_counts = (len(rectangles),sum(len(a) for a,b in rectangles),
-                                 sum(len(b) for a,b in rectangles))
-        for source,target in rectangles:
-            node = self.tree([self.variables[t] for t in source])
-            for t in target:
-                output = len(self.targets)
-                self.outputs[output] = node
-                self.targets.append((triple_mask(t),1))
-
-        # Retain all pair roots, doubled point totals, and the global total.
-        roots = {tuple(i for i in range(h) if self.labels[end-1][1] & (1 << i)): end-1
-                 for _, end in self.pair_ranges}
+        self.args = list(source.args)
+        self.union = [0]+self.masks[:]
+        cores = [0]+self.masks[:]
+        self.labels = [('zero',0)]+[('line',m) for m in self.masks]
+        for node in range(len(self.inputs)+1,len(self.args)):
+            a,b = self.args[node]
+            union, core = self.union[a] | self.union[b], cores[a] & cores[b]
+            self.union.append(union); cores.append(core)
+            if source.kind[node] == 'd0':
+                self.labels.append(('coordinate',union))
+            else:
+                require(core.bit_count() == 2,'Pair-star node lost its common pair')
+                self.labels.append(('star',core,union & ~core))
+        self.outputs = {i:node for i,(_,node,_) in enumerate(source.pieces)}
+        self.targets = [(sum(1 << i for i in t),int(2*coef))
+                        for t,_,coef in source.pieces]
         self.total_outputs = []
-        for i in range(h-1):
-            nodes = [roots[tuple(sorted((i,j)))] for j in range(h) if j != i]
-            node = self.point_tree(nodes, i)
+        roots = [retained[frozenset([i])] for i in range(h-1)]+[retained[EMPTY]]
+        for node in roots:
             output = len(self.outputs)
-            self.outputs[output] = node
-            self.total_outputs.append(output)
-        output = len(self.outputs)
-        self.outputs[output] = self.disjoint_end-1
-        self.total_outputs.append(output)
-
-        self.active = set()
-        stack = list(self.outputs.values())
+            self.outputs[output] = node; self.total_outputs.append(output)
+        self.active = set(); stack = list(self.outputs.values())
         while stack:
             node = stack.pop()
-            if node in self.active:
-                continue
+            if node in self.active: continue
             self.active.add(node)
-            if self.args[node]:
-                stack.extend(self.args[node])
+            if self.args[node]: stack.extend(self.args[node])
         self.additions = sum(self.args[n] is not None for n in self.active)
-        self.roles = self.additions + len(self.outputs)
-
-    def point_tree(self, nodes, point):
-        if len(nodes) == 1:
-            return nodes[0]
-        mid = len(nodes)//2
-        a = self.point_tree(nodes[:mid], point)
-        b = self.point_tree(nodes[mid:], point)
-        node = len(self.args)
-        self.args.append((a,b))
-        self.union.append(self.full)
-        self.labels.append(('point',point))
-        return node
-
-    def tree(self, nodes, pair=0):
-        if len(nodes) == 1:
-            return nodes[0]
-        mid = len(nodes) // 2
-        a, b = self.tree(nodes[:mid], pair), self.tree(nodes[mid:], pair)
-        node = len(self.args)
-        union = self.union[a] | self.union[b]
-        self.args.append((a, b))
-        self.union.append(union)
-        self.labels.append(('star', pair, union & ~pair) if pair else ('coordinate', union))
-        return node
-
-    def select(self, node, target, star):
-        union = self.union[node]
-        if star:
-            accepted = ((union & target).bit_count() == 2 if self.args[node] is None
-                        else not (self.labels[node][2] & target))
-        else:
-            accepted = not union & target and union != self.full ^ target
-        if accepted:
-            index = len(self.targets)
-            self.outputs[index] = node
-            self.targets.append((target, -1 if star else 1))
-        elif self.args[node]:
-            for child in self.args[node]:
-                self.select(child, target, star)
+        self.roles = self.additions+len(self.outputs)
+        self.new_ancestors = sum(self.args[n] is not None
+                                 for n in self.active-self.base_active)
 
     def basis(self, label):
         kind = label[0]
-        if kind == 'point':
-            return [self.full ^ (1 << j) for j in range(self.h) if j != label[1]]
         if kind == 'zero':
             return []
         if kind == 'line':
@@ -288,8 +96,6 @@ class RetainedComplexCircuit:
 
     def contains(self, label, vector):
         kind = label[0]
-        if kind == 'point':
-            return dot(vector,self.full ^ (1 << label[1])) == 0
         if kind == 'zero':
             return vector == 0
         if kind == 'line':
@@ -302,16 +108,12 @@ class RetainedComplexCircuit:
         return bool(vector & pair) == bool((vector & variables).bit_count() & 1)
 
     def characteristic(self, label):
-        if label[0] == 'point':
-            return 1 << label[1]
         if label[0] != 'star':
             return label[1]
         _, pair, variables = label
         return variables ^ (pair if variables.bit_count() & 1 else 0)
 
     def dimension(self, label):
-        if label[0] == 'point':
-            return self.h-1
         if label[0] == 'line':
             return 1
         return label[-1].bit_count()
@@ -330,8 +132,7 @@ class RetainedComplexCircuit:
         supports = [0] + [1 << i for i in range(len(self.inputs))]
         for node in range(len(self.inputs) + 1, len(self.args)):
             a, b = self.args[node]
-            if self.labels[node][0] != 'point':
-                require(not supports[a] & supports[b], 'Scalar cancellation in a tree node')
+            require(not supports[a] & supports[b], 'Scalar cancellation in a tree node')
             supports.append(supports[a] | supports[b])
         by_target = {s: [0, 0] for s in self.masks}
         digest = sha256()
@@ -370,7 +171,7 @@ class RetainedComplexCircuit:
                 if intersection in (0, 2):
                     expected[intersection // 2] |= 1 << i
             require(actual == expected, 'Full complex side coefficient map failed')
-        # Integer ancestry expansion verifies multiplicity two in D_i.
+        # Integer ancestry expansion verifies the retained exclusion totals.
         cache = {}
         def expand(node):
             if node not in cache:
@@ -384,9 +185,8 @@ class RetainedComplexCircuit:
                     cache[node] = row
             return cache[node]
         for i,output in enumerate(self.total_outputs):
-            expected = {j:1 if i == self.h-1 else 2
-                        for j,t in enumerate(self.masks)
-                        if i == self.h-1 or t & (1 << i)}
+            expected = {j:1 for j,t in enumerate(self.masks)
+                        if i == self.h-1 or not t & (1 << i)}
             require(expand(self.outputs[output]) == expected, 'Wrong retained total multiplicity')
         return dict(h=self.h,inputs=len(self.inputs),additions=self.additions,
                     partial_outputs=len(self.targets),roles=self.roles,
@@ -427,28 +227,41 @@ class RetainedComplexCircuit:
 
 ROOT = Path(__file__).resolve().parents[1]
 H = 24
-SAVING = Q(750,10**11)
+SAVING = Q(2970,10**11)
 KAPPA = Q(591,10**12)
 LOG_UPPER = Q(477,50)
 
 
 def counts(c):
     h,v = c.h,len(c.inputs)
-    # Independent rectangle and fixed-pair counts.
-    nr, left, right = c.rectangle_counts
-    n = h-2
-    q2 = sum(n*(n-1)-sum(n-(c.union[j].bit_count()-2) for j in range(a,b))
-             for a,b in c.pair_ranges)
-    additions = v-1+comb(h,2)*(h-3)+(h-1)*(h-2)+left-nr
+    additions = c.base_additions+c.new_ancestors
     require((c.additions,len(c.targets),len(c.outputs)) ==
-            (additions,right+q2,right+q2+h), 'Independent counts disagree')
+            (additions,c.base_outputs,c.base_outputs+h), 'Independent counts disagree')
     m,N = h**3,v**3
     W = 2*N+2*v*v*c.roles
     loss = 3*v*v*((h-1)**2+h)
     D = 2*N-2*loss
-    return dict(h=h,v=v,m=m,N=N,additions=additions,side_outputs=right+q2,
+    return dict(h=h,v=v,m=m,N=N,additions=additions,side_outputs=c.base_outputs,base_additions=c.base_additions,
+                new_ancestors=c.new_ancestors,
                 retained_totals=h,roles=c.roles,W=W,L=loss,D=D,s=W*m-D,
                 eta=Q(D,W*m))
+
+
+def scatter_weights(c,mask,step):
+    """A normalized grouped pass: every coefficient has magnitude <=1.
+
+    E_i=sum_{T not containing i} x_T, for i<h-1; the last slot is C_*.
+    The h-5 passes commute. Later passes touch only C_* and last-point targets.
+    """
+    require(0 <= step < c.h-5,'Invalid scatter pass')
+    last = bool(mask & (1 << (c.h-1)))
+    if step:
+        return {c.h-1:Q(-1,2)} if last else {}
+    row = {c.h-1:Q(-1,2) if last else Q(1)}
+    for i in range(c.h-1):
+        if last and not mask & (1 << i): row[i] = Q(1,2)
+        elif not last and mask & (1 << i): row[i] = Q(-1,2)
+    return row
 
 
 def parameters():
@@ -466,7 +279,7 @@ def check(p,n,zeta=Q(1,10000)):
     E = 64*(W+m+1)**3
     B = s+E
     require(m >= 3 and 2 <= s < m**5, 'Stopped-depth branching premise failed')
-    gates = 3*n['v']**2*(8*n['v']+4*n['additions']+4)
+    gates = 3*n['v']**2*(8*n['v']+4*n['additions']+4+2*(n['h']-6))
     require(gates < 12*W, 'Scalar gate-count premise failed')
     require(36*W**3+4*s+4*W+4 < E, 'Quarter-coefficient depth premise failed')
     require(s*(8+E) <= 9*B*B, 'One-piece depth premise failed')
@@ -495,16 +308,19 @@ def certificate():
     frames = c.verify_role_frames()
     n = counts(c)
     main = check(parameters(),n)
-    require(n['roles'] == 365760 and n['D'] == 2990500480, 'Unexpected compiled deficit')
+    require(n['roles'] == 90950 and n['D'] == 2990500480, 'Unexpected compiled deficit')
     require(main['minimum_margin'] == Q(2956521,5*10**15), 'Unexpected final margin')
     require(main['absorption_gap'] == Q(1521,5*10**15), 'Unexpected absorption gap')
     require(KAPPA > Q(1,2**31), 'Wrong dyadic corollary')
-    files = ['scripts/retained_complex.py','scripts/make_retained_complex_patch.py',
-             'notes/retained-complex-construction.tex','notes/compact-control-movement.tex',
+    files = ['scripts/complex_circuit.py','scripts/retained_complex.py','scripts/make_retained_complex_patch.py',
+             'docs/research/shared-retained-complex.md','notes/retained-complex-construction.tex',
+             'notes/compact-control-movement.tex',
              'notes/compact-control-layout.tex','notes/compact-control-guard.tex']
     return dict(status='CONDITIONAL RETAINED-TOTAL COMPLEX WITNESS; NOT FULL FORMAL VERIFICATION',
                 upstream_commit=verify_sources(),main=main,producer=producer,frames=frames,
                 kappa=KAPPA,ratio_over_compact_witness=KAPPA/Q(83,10**12),
+                imported_builder=dict(pr='https://github.com/CrocSwap/integer-mult-bounds/pull/3',
+                    author='eumemic',commit='dfe5b818aad4d386cb5dd7d76df108088107765d'),
                 proof_sha256={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in files},
                 scope='Full h24 scalar coefficients, total multiplicities and compiled frame inclusions; '
                       'small dirty-scratch and projector/phase controls in tests. The general tensor '

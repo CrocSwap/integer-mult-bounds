@@ -6,7 +6,7 @@ import sys
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from retained_complex import RetainedComplexCircuit as Retained, binary_rank, dot, counts, check, parameters
+from retained_complex import RetainedComplexCircuit as Retained, binary_rank, dot, counts, check, parameters, scatter_weights
 
 def add_row(target, source, scale=1):
     for key, value in source.items():
@@ -29,27 +29,6 @@ def apply(matrix, vector):
 def matrix_product(a, b):
     columns = [sum((row >> j & 1) << i for i,row in enumerate(b)) for j in range(len(b))]
     return [sum(dot(row,column) << j for j,column in enumerate(columns)) for row in a]
-
-
-def scatter_row(circuit, mask, rows):
-    """The retained dyadic scatter row in terms of D_0,...,D_{h-2},C_*.
-
-    The source contribution is the scalar central coefficient.  Keeping this
-    as a row operation also checks arbitrary initial retained scratch values.
-    """
-    row = {}
-    last = circuit.h - 1
-    if mask & (1 << last):
-        add_row(row, rows[-1], 1)
-        for i in range(last):
-            if not mask & (1 << i):
-                add_row(row, rows[i], Q(-1, 4))
-    else:
-        add_row(row, rows[-1], Q(-1, 2))
-        for i in range(last):
-            if mask & (1 << i):
-                add_row(row, rows[i], Q(1, 4))
-    return row
 
 
 def scalar_control(h=8):
@@ -86,9 +65,12 @@ def scalar_control(h=8):
 
     total_rows = [scratch[code["outputs"][i]] for i in circuit.total_outputs]
 
-    def total_scatter(sign, bank):
-        for j, mask in enumerate(circuit.masks):
-            add_row(bank[j], scatter_row(circuit, mask, total_rows), sign)
+    def total_scatter(sign,bank):
+        for step in range(circuit.h-5):
+            for j,mask in enumerate(circuit.masks):
+                for i,coefficient in scatter_weights(circuit,mask,step).items():
+                    assert abs(coefficient)<=1 and coefficient.denominator<=2
+                    add_row(bank[j],total_rows[i],sign*coefficient)
 
     def invoke(inverse=False, source=None, target=None):
         source = x if source is None else source
@@ -227,6 +209,9 @@ def frame_control(h=8, reverse=False):
 
     def totals_gate(bank, frame):
         gate(bank + totals, frame)
+        for _ in range(h-6):
+            targets=[bank[j] for j,t in enumerate(circuit.masks) if t & (1 << (h-1))]
+            gate(targets+[totals[-1]],frame)
 
     if not reverse:
         mix("low"); totals_gate(y, zero); inject(y, "low"); mix("low", True)
@@ -255,7 +240,24 @@ class RetainedComplexTests(unittest.TestCase):
         self.assertTrue(scalar_control()['forward_inverse_dirty_scratch'])
         for reverse in (False,True):
             r=frame_control(reverse=reverse)
-            self.assertEqual((r['roles'],r['rank_sum'],r['decreasing_dimension']),(1279,10234,57))
+            self.assertEqual((r['roles'],r['rank_sum'],r['decreasing_dimension']),(2*56+Retained(8).roles,(2*56+Retained(8).roles)*8+2,57))
+
+    def test_normalized_scatter_and_exact_central_coefficients(self):
+        c=Retained(8)
+        for target in c.masks:
+            accumulated={}
+            for step in range(c.h-5):
+                for i,coefficient in scatter_weights(c,target,step).items():
+                    self.assertLessEqual(abs(coefficient),1)
+                    self.assertLessEqual(coefficient.denominator,2)
+                    accumulated[i]=accumulated.get(i,Q(0))+coefficient
+            self.assertEqual(accumulated[c.h-1],
+                             Q(5-c.h,2) if target & (1 << (c.h-1)) else Q(1))
+            for source in c.masks:
+                actual=sum(coefficient for i,coefficient in accumulated.items()
+                           if i==c.h-1 or not source & (1 << i))
+                self.assertEqual(actual,Q((target & source).bit_count()-1,2))
+        with self.assertRaises(ValueError):scatter_weights(c,c.masks[0],c.h-5)
 
     def test_patch_keeps_max_when_complex_saving_exceeds_bit_saving(self):
         patch=(Path(__file__).resolve().parents[1]/'patches/retained-complex-31.patch').read_text()
@@ -263,19 +265,22 @@ class RetainedComplexTests(unittest.TestCase):
                         if line.startswith('+') and not line.startswith('+++'))
         self.assertIn(r'\chi=\tau+(1-\beta)\max\{\sigma-\tau,0\}',added)
         self.assertNotIn(r'\chi=\tau+(1-\beta)(\sigma-\tau)',added)
+        self.assertIn(r'\label{prop:shared-retained-complex-interface}',added)
+        self.assertIn(r'W=W_{\rm c}=761750114048',added)
+        self.assertIn(r's=s_{\rm c}=10530430586099072',added)
+        self.assertIn('remaining $h-6$ passes',added)
 
     def test_supported_domain_and_retained_multiplicities(self):
         with self.assertRaises(ValueError): Retained(6)
         c=Retained(8)
         self.assertTrue(c.verify()['exact_total_multiplicities'])
-        node=c.outputs[c.total_outputs[0]]
-        left,_=c.args[node];c.args[node]=(left,left)
+        c.outputs[c.total_outputs[0]]=c.outputs[c.total_outputs[-1]]
         with self.assertRaisesRegex(ValueError,'multiplicity'):c.verify()
 
     def test_consumer_rejects_stale_spacing_saving_and_guard(self):
         n=counts(Retained(24))
         for p in (replace(parameters(),c=Q(1,5)),
-                  replace(parameters(),sigma=1-Q(8,10**9)),
+                  replace(parameters(),sigma=1-Q(31,10**9)),
                   replace(parameters(),kappa=Q(830,10**12)),
                   replace(parameters(),C1=Q(2))):
             with self.assertRaises(ValueError):check(p,n)

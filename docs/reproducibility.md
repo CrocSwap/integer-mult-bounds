@@ -183,7 +183,11 @@ patches remain available as independent witnesses.
 `patches/retained-complex-31.patch` using `scripts/retained_complex.py` and
 `scripts/make_retained_complex_patch.py`. Full h24 coefficients, integer total
 multiplicities and both compiled frame directions are checked; h8 tests cover
-arbitrary dirty scratch and every projector/phase edge. The general tensor and
-consumer transfer is in `notes/retained-complex-construction.tex`. Build its
-PDF with `make retained-complex-note`. The bound `591/10^12 > 2^-31` remains
+arbitrary dirty scratch and every projector/phase edge. The combined tensor and
+consumer transfer is in `docs/research/shared-retained-complex.md`, with a
+separate proposition in the generated patch. The shared-exclusion builder is
+imported verbatim from PR #3 at `dfe5b818aad4d386cb5dd7d76df108088107765d`.
+Tests include the normalized half-sized scatter passes and their phase edges.
+The preceding rectangle variant remains in `notes/retained-complex-construction.tex`;
+build that historical PDF with `make retained-complex-note`. The bound `591/10^12 > 2^-31` remains
 conditional on the existing fixed-tape and analytic interfaces.

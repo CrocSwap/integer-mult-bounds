@@ -17,24 +17,29 @@ The simpler **`kappa = 2^-31`** is a corollary. The exact saving is
 **591/83 ≈ 7.12 times** the preceding compact-control witness `83/10^12`.
 These compare asymptotic exponents, not practical runtimes.
 
-**[Read the retained-complex proof note (PDF)](artifacts/retained-complex-note.pdf)** ·
+**[Read the combined construction](docs/research/shared-retained-complex.md)** ·
 [Review the source patch](patches/retained-complex-31.patch) ·
 [Inspect the exact certificate](certificates/retained-complex-layer.json)
 
-The retained-total extension was contributed by `dleen` with substantial
+The shared-exclusion builder is imported verbatim from [PR #3](https://github.com/CrocSwap/integer-mult-bounds/pull/3)
+by `eumemic` (Claude-assisted), at commit `dfe5b818aad4d386cb5dd7d76df108088107765d`.
+The retained-total and stage-sharing extensions are by `dleen` with substantial
 OpenAI Codex assistance.
 
 ## What changed
 
 The existing compact-control movement and paired-bit network are retained.
-A new `h=24` complex producer combines the disjoint rectangle partition with
-retained pair roots and
-doubled point totals, then scatters the totals at one common low/full frame.
-This reduces its charged return loss from `h²` to `(h-1)²+h`, while restoring
-arbitrary initial scratch and preserving both phase-frame directions and
-all-role endpoints. The bit and complex arities remain independent.
+The `h=24` complex producer combines PR #3's shared-exclusion DAG with
+retained one-point exclusion totals and stage-1/3 bank sharing. Grouped scatter
+at a common low/full frame gives return loss `(h-1)²+h`, restores arbitrary
+initial scratch, and preserves both phase paths and all-role endpoints.
+The larger global coefficient is split into half-sized updates, with every
+scalar gate included in the precision guard. The bit and complex arities
+remain independent.
 
-The exact complex saving is `1-sigma=750/10^11`. The complete compact consumer
+The exact complex saving is `1-sigma=2970/10^11=2.97e-8`, about **2.12 times**
+PR #3's certified `1.4e-8`. The bit saving remains `296/10^11`, so the combined
+headline stays `591/10^12 > 2^-31`. The complete compact consumer
 uses `c=1`, with exact minimum assembly margin
 
 $$
@@ -56,7 +61,7 @@ and its [review guide](docs/research/compact-control-review.md) remain available
 | Dirty-control identities, inverses and repair | Finite exhaustive cases and seeded tests |
 | Wider-control tape bound, reservations and recursion | Written general proofs |
 | Separate complex arity and precision guard | Written proofs and exact accounting |
-| Source integration | Combined patch, reference checks and manuscript build |
+| Source integration | Combined patch, reference checks and patch applicability |
 | Full upstream multiplication theorem | Assumed |
 | Independent review / full formalization | Not supplied |
 
@@ -79,7 +84,8 @@ They regenerate the certificates and patches, run the tests, verify upstream
 hashes, and check each patch against the pinned manuscript. The second command
 checks exact regeneration on a clean checkout.
 
-With Tectonic installed, rebuild the latest note using:
+The preceding rectangle variant has a preserved PDF. With Tectonic installed,
+rebuild that earlier note using:
 
 ```sh
 make retained-complex-note
