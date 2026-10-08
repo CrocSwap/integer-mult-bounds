@@ -24,6 +24,7 @@ from certify import require
 from prepare_layers import serializable
 
 BASE_COMMIT = '5ba6cf0bfb68f2be8d15610e7972207c50254d6a'
+BASE_CERTIFICATE_SHA256 = '81258321ce47798aa699ce8cf80311db741b6ab140cf83b01324f24b20c62fca'
 BIT_SAVING = Q(2284609773, 200000000000000)
 KAPPA = Q(57114918, 10**13)
 GRID = Q(1, 10**15)
@@ -42,6 +43,8 @@ def envelope(saving, counts, rows):
 
 def certificate():
     # Recompute the entire dependency certificate before changing any parameters.
+    require(sha256((SOURCE / 'certificate.json').read_bytes()).hexdigest() ==
+            BASE_CERTIFICATE_SHA256, 'Pinned PR21 certificate hash changed')
     baseline = translated.certificate(SOURCE / 'producer-certificate.json')
     require(json.loads(json.dumps(serializable(baseline))) ==
             json.loads((SOURCE / 'certificate.json').read_text()),
