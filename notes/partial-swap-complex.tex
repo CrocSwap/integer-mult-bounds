@@ -1,0 +1,153 @@
+\subsection{Five macro classes and the internal histogram}
+Keep the retained complex producer with
+\[
+ h=28,\quad v=3276,\quad m=21952,\quad N=v^3=35158608576,
+ \quad R_c=93838,
+\]
+\[
+ B=v^2(R_c+29)=1007397164592,\qquad
+ W=2N+2B=2085111546336.
+\]
+The 29 center roles are included. The whole-residual macro classes are
+\[
+\begin{array}{c|rrrrr}
+ t&21896&21168&21141&756&729\\\hline
+ n_t&B&B&2N&B-N&3N
+\end{array}
+\]
+and before internal batching the remaining singleton count is
+$91318626008064$. The per-invocation internal histogram, indexed from
+zero, is
+\begin{small}\begin{align*}
+ H_c=[&13776,93912,23891,21224,31667,13552,9128,9240,10912,5656,\\
+ &8456,4284,7598,4872,7448,4536,7803,4228,8232,4872,7482,7224,\\
+ &5901,8400,11550,1512,5180,0,87].
+\end{align*}\end{small}
+It satisfies $\sum_r rH_c[r]=2629900=28(R_c+29)+2\cdot28\cdot29$.
+For each $r\ge2$, replace $3v^2rH_c[r]$ singleton rank units by
+$3v^2H_c[r]$ width-$r$ children. All five macro counts remain unchanged.
+The resulting singleton count is $n_1=9668617358400$, and
+\[
+ \sum_tn_tt=45772350635112192.
+\]
+
+The retained residual basis map puts all $r$ directions into a contiguous
+prefix. Their $rf$ selected axes are one child. If directional signs
+differ, the exact identity $C^{-1}=-iZCZ$ gives
+\[
+ \bigotimes_{j=1}^r(C^{\varepsilon_j})^{\otimes f}
+   =(-i)^{f|B_-|}Z_{B_-}C^{\otimes rf}Z_{B_-}.
+\]
+The two address-sign passes and fourth-root phase cost $O(V)$, make no
+recursive call, and contribute only a fixed number of coefficient
+operations per value. This also covers the uniform-sign internal
+residuals; it does not assume that arbitrary binary residual directions
+always have identical signs.
+
+Set $a_c=417/100000000$, $\sigma=1-a_c$. Using the same rational
+logarithm upper bounds $\ell_t\ge\log(m/t)$ as for the bit moment,
+\[
+ \mathcal C(\sigma)=\frac1W\sum_t n_t(t/m)^\sigma
+ \le\sum_t\frac{n_tt}{Wm}\frac1{1-a_c\ell_t}
+ <1-2.3982\times10^{-11}.
+\]
+All denominators are positive. The bound $e^u\le(1-u)^{-1}$ for
+$0\le u<1$ makes the final comparison entirely rational.
+
+\subsection{A uniform dependency-path guard}
+The retained scalar path argument counts both orientations of frame
+edges and paths changing wires at a gate: the total residual rank on
+one arithmetic dependency path is at most $q=m+6h=22120$.
+Take $\rho=6/5$. The exact integer inequality $160000^5<m^6$ gives
+$m^\rho>160000$, and at most one residual can exceed $q/2$.
+If it is 21896, the remaining rank is at most 224; no 729- or
+756-residual fits, so all remaining ranks are at most 28. Hence
+\[
+ \sum_{\text{path}}(r/m)^\rho
+ <(391/392)^{6/5}+448/160000
+ <0.996941+0.0028<\gamma:=4999/5000.
+\]
+The middle bound can be checked rationally from
+$(1-u)^{6/5}\le1-6u/5+3u^2/(25(1-u))$, at $u=1/392$.
+If the large residual is 21168 or 21141, the remaining rank is at
+most 979 and remaining widths at most 756; since $756^{1/5}<4$,
+\[
+ \sum_{\text{path}}(r/m)^\rho<27/28+4\cdot979/160000<0.989.
+\]
+If none of those three large residuals occurs, every residual is at
+most 756 and the bound is $4q/160000<0.554$. Thus $\gamma$ is uniform
+for the five macro classes and all internal children together.
+
+Stop at width $e<d^\beta$, $0<\beta<1$, and use elementary kernels
+there. At an internal node write $e=mf+r$, $r<m$. Process the $r$
+remainder axes individually, adding their bounded work to the local
+constant, and recurse on widths $tf$. For large $d$, every stopping
+leaf descended from an internal node has width at least $d^\beta/(2m)$.
+The local dependency allowance, including the sign wrappers, satisfies
+\[
+ 36W^3+4s+4W+8m+4<E:=64(W+m+1)^3.
+\]
+Put
+\[
+ C_{\rm dep}=5000(E+16m+1).
+\]
+Strong induction using the path guard gives
+\[
+ A(e)\le C_{\rm dep}d^{-\beta(\rho-1)}e^\rho.
+\]
+Indeed a leaf has $A(e)\le8e\le16m\,d^{-\beta(\rho-1)}e^\rho$;
+the child sum uses at most $\gamma$ of the asserted internal bound,
+and its remaining gap covers $E$ since $e\ge d^\beta$.
+A root already below threshold is handled directly.
+For rational $\zeta>0$ put
+\[
+ C_1=\rho-(\rho-1)\beta+\zeta,\qquad
+ C_0=\left\lceil128m(1+1/\zeta)C_{\rm dep}\right\rceil,
+ \qquad \Delta=\lceil C_0d^{C_1}\rceil.
+\]
+The retained elementary-depth induction, including reserved axes,
+outer phases and conversion, then gives $p+\Delta$ fractional bits
+and $\Delta+3$ integer/sign bits. If $\epsilon C_1<1$, their width
+is $O(p)$.
+
+\subsection{Rows, stopping, and transfer to the layer interface}
+Let $t_*<m$ be the largest child and compute
+$D(e)=0$ for $e<m$ and $D(e)=1+D(t_*\lfloor e/m\rfloor)$ otherwise.
+It is $O(\log e)$ and bounds every descendant depth.
+With the retained compact-control parameters, reserve
+\[
+ q_0=\lceil\log_2W\rceil D(d),\qquad Q_0=q_0+q_F+q_B.
+\]
+Process the first $q_0+q_F$ and last $q_B$ selected axes individually;
+if at most $Q_0$ axes exist, process them all individually. Otherwise
+the middle active interval is consecutive. Only the $q_0$ row chunks
+supply row indices, separate from the two compact fields. Pad their
+count once to a multiple of $W^{D(d)}$, by a factor below two.
+Every child retains complete compact and spectator ranges and has
+exactly $1/W$ of its parent's volume. No internal padding is needed.
+The reserved-axis bound remains
+\[
+ Q_0=O(\log(2d)+d^{\max\{1-c,0\}}\log p+1).
+\]
+Remainders commute with the completed tensor map and cost $O(V)$ per
+node. The fixed-tape depth-first scheduler and complete-row argument
+of the bit construction apply with the retained compact descriptors.
+
+Since $\mathcal C(\sigma)<1$, the total leaf $\sigma$-weighted width,
+including the volume factor $W^{-j}$ at depth $j$, is at most
+$d^\sigma$. Thus leaf work is
+$O(d^{\sigma+\beta(1-\sigma)})$. Internal compact operations cost
+$O(G^\tau e^\tau+1)$ per current volume. Summing the strict moments
+gives the retained complete normalized layer bound
+\[
+ O\!\left((\log p)^3\left[
+ d^\chi+d^{\sigma+\beta(1-\sigma)}+d^{\max\{1-c,0\}}+1
+ \right]\right),\qquad
+ \chi=\tau+(1-\beta)\max\{\sigma-\tau,0\}.
+\]
+For $\sigma\le\tau$, use $\mathcal C(\tau)\le\mathcal C(\sigma)$;
+otherwise use $e^\tau\le d^{\beta(\tau-\sigma)}e^\sigma$ at each
+internal node. These arguments do not assume equal leaf depth.
+The usual strict conditions on $\lambda,\lambda'$ therefore give
+the retained $O(Vd^{\lambda'})$ layer interface, now with the new
+moment and the new $C_{\rm dep}$.
