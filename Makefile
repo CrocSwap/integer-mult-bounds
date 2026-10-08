@@ -23,6 +23,7 @@ verify:
 	$(MAKE) verify-positive
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
+	$(MAKE) verify-deferred-product
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -438,3 +439,11 @@ stopped-product-certificate:
 	python3 scripts/stopped_product_network.py
 
 stopped-product-verify: stopped-product-producer stopped-product-certificate
+
+.PHONY: deferred-product-verify verify-deferred-product
+verify-deferred-product: deferred-product-verify
+deferred-product-verify:
+	python3 scripts/deferred_product_bit_checks.py
+	python3 scripts/deferred_product_complex.py
+	python3 scripts/deferred_product_complex_frames.py
+	python3 scripts/deferred_product_network.py certificates/deferred-product-complex-input.json certificates/deferred-product-network.json

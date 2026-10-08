@@ -1,0 +1,76 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{The round-three combination}
+\date{Draft, October 8, 2026}
+\begin{document}
+\maketitle
+
+This note assembles the conditional witness
+\[
+ T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad \kappa=\frac{13086957581}{3125\cdot10^{12}}\approx4.1878\cdot10^{-6}>2^{-18},
+\]
+from four components. It points to where each one is proved or checked.
+
+\section{Components}
+
+\paragraph{The stack.} Ideas A--E (\texttt{stack-notes.tex}, \texttt{segmented-inverse.tex},
+\texttt{fine-field-lemma.tex}) drive $\epsilon$ toward $1$. The binding row is then the simultaneous
+butterflies, $\epsilon(1-\lambda')$, with $\lambda'>\max(\tau,\sigma,\chi,\text{leaf})$. The reservations force
+$\epsilon<1/(2-\lambda')$, so the supremum of $\kappa$ is $\min(a_b,(1-\beta)a_c)/(1+\cdot)$.
+
+\paragraph{Bit side: the batched two-stage interchange.} This is the two-stage bit motif with partial-swap
+frames, with the batched recursion extended to partial-swap frames (\texttt{partial-swap-batching.tex},
+its Lemma~1). At $h=32$, $m=1024$, it certifies $a_b=22157/(5\cdot10^9)\approx4.43\cdot10^{-6}$.
+This side does not bind.
+
+\paragraph{Complex side: PR~\#7's network, fully batched.} PR~\#7's complex network at $h=28$
+($m=21952$), evaluated under PR~\#15's full batching: every nonzero residual edge, of every rank, is one
+whole-residual child call. We rebuilt the residual histogram from our own producer, labels and role
+compilation (\texttt{independent/complex-network/fullbatch\_hist.py}) and certified the saving by exact
+bisection on the moment equation with certified upper bounds on $\ln$
+(\texttt{fullbatch\_cert.py}). This gives $a_c\ge1048009/(2.5\cdot10^{11})\approx4.192\cdot10^{-6}$ (PR~\#15 reports
+$4191487/10^{12}$ from its own labels), and this side binds.
+
+\paragraph{Guard.} The coefficient-depth guard needs no path-topology assumption. Every child call of the
+batched recursion acts on at most $(m-1)/m$ of its parent's axes, and a node has at most $s_c$ children in
+sequence. So the dependency depth is at most $d^{C_1}$ with $C_1=1+m_c\ln s_c$, and Idea~D takes $x$ with
+$\epsilon C_1<1+x$ (\texttt{scripts/certificate\_round3.py}, guard mode \texttt{crude}). Any finite $C_1$
+gives the same $\kappa$, since $x$ does not enter it; with $x\approx8.4\cdot10^5$ the packed-product and
+record-regime rows hold for sufficiently large $L$. The witness is stated with this guard only.
+
+\section{Certificate}
+
+\texttt{scripts/certificate\_round3.py} evaluates the rows and constraints exactly for any pair $(a_b,a_c)$.
+With $a_b=22157/(5\cdot10^9)$, $a_c=1048009/(2.5\cdot10^{11})$, $\beta=1/1000$ and the crude guard:
+\begin{itemize}
+\item every constraint is strict;
+\item the binding row is the simultaneous butterflies;
+\item $\kappa=13086957581/(3.125\cdot10^{15})$.
+\end{itemize}
+\texttt{independent/complex-network/fullbatch\_hist.py 28} followed by \texttt{fullbatch\_cert.py}
+recomputes $a_c$ and $\kappa$. Our histogram differs from PR~\#15's in the smallest ranks, with the same total
+$s_c$, and certifies at least its value.
+
+\section{What this rests on}
+
+\begin{itemize}
+\item The pinned upstream manuscript and its interfaces.
+\item Colkitt's compact controls.
+\item PR~\#5's chirped correlation, with PR~\#10's correction of its Gaussian input error.
+\item PR~\#7's ternary producer and complex network.
+\item PR~\#10's batched recursion and controlled projector basis; we checked its edge forms and found basis witnesses at $h=8$ to $14$.
+\item PR~\#13's third whole-residual class and PR~\#15's full batching of every residual rank, with an orthonormal residual basis on every edge.
+\item Paureel's two-stage motif.
+\end{itemize}
+Our own components:
+\begin{itemize}
+\item Ideas A--E;
+\item the partial-swap batching lemma;
+\item an independent rebuild and certification of the fully batched complex saving;
+\item the topology-free guard.
+\end{itemize}
+
+\end{document}

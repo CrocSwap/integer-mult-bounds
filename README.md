@@ -3,6 +3,15 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Deferred bit word under stopped-product accounting
+
+[research/deferred-product](research/deferred-product/README.md) gives
+**κ = 1044939/10^10 = 1.044939×10^-4**. It combines Swapnil Jain's round-seven deferred
+bit word (PR #97, with jacklightChen's ledgers), charged by icekylinx's one-child stopped-product
+rule (PR #104), with a new h=24 complex producer that uses 28,705 roles in PR #104's framework.
+Run `make deferred-product-verify`. eumemic prepared the complex producer and the integration
+with Anthropic Claude assistance.
+
 ## Stopped product-ring extension
 
 The new construction contributed by **icekylinx**, extending merged

@@ -1,0 +1,110 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{Batched recursion for partial-swap frames}
+\date{Draft, October 8, 2026}
+\begin{document}
+\maketitle
+
+\paragraph{Setting.} In the two-stage bit motif (Paureel's fork of \texttt{CrocSwap/integer-mult-bounds},
+\texttt{notes/two-stage-construction.tex} and \texttt{notes/direct-swap-transfer.tex}), frames are partial
+swaps
+\[
+ S_p=\begin{pmatrix}I-p&p\\p&I-p\end{pmatrix}
+\]
+on the paired fields $(H,D)$, where $p$ is an idempotent of rank $a$ in $m$ coordinates. A frame change
+along an edge is a partial swap $S_{V\ominus U}$. In the recursion each lower--lower Bruhat transposition is
+one recursive interchange call. Batched recursion (\texttt{CrocSwap/integer-mult-bounds} PR~\#10,
+\texttt{notes/projector-batching.tex}) charges an order-preserving run of $t$ aligned transpositions as a
+single interchange of width $tb$. Below we show that the same batching applies to partial-swap frames.
+
+\begin{lemma}[Partial-swap factorization]\label{lem:psbatch}
+Let $p$ be an idempotent of rank $a$ with $m/2<a<m$. Put $k=m-a$, $t=2a-m$, and split the coordinates into
+$L=[1,k]$, $M=[k+1,m-k]$ and $R=[m-k+1,m]$. Suppose the corner $p_{L,R}$ is invertible. Then the
+lower--lower Bruhat factorization $S_p=E_1\Pi E_2$, with respect to the field order $H_1,\dots,H_m,D_1,\dots,D_m$,
+has exactly $a$ nontrivial transpositions:
+\begin{itemize}
+\item $k$ transpositions $H_l\leftrightarrow D_{\sigma(l)}$ for $l\in L$, where $\sigma:L\to R$ is the
+Bruhat permutation of the corner $p_{L,R}$;
+\item the $t$ aligned transpositions $H_i\leftrightarrow D_i$ for $i\in M$, an order-preserving run that
+forms a single interchange of width $tb$.
+\end{itemize}
+In particular the rank sum is unchanged, since $k+t=a$.
+\end{lemma}
+
+\begin{proof}
+Write $q=I-p$, an idempotent of rank $k$, as $q=UV$ with $VU=I_k$. Then $p_{L,R}=-U_LV_R$, so $U_L$ and $V_R$
+are invertible. The Bruhat permutation $w$ of $S_p$ is determined by the ranks of its blocks of rows
+$1..i$ and columns $j..2m$.
+
+\emph{$H$ rows against $D$ columns.} This block is $p$ itself, so these pivots of $S_p$ are the pivots of $p$.
+Eliminate the invertible corner $p_{L,R}$ by lower row and column operations. On rows $M\cup R$ and
+columns $L\cup M$ the Schur complement is
+\[
+ \begin{pmatrix}-U_MU_L^{-1}&I_t\\ Z&-V_R^{-1}V_M\end{pmatrix},
+\]
+which has rank $a-k=t$. Its block $I_t$ places these pivots at $(i,i)$ for $i\in M$. So the pivots of $p$
+are $\sigma$ on $L\to R$ together with the diagonal of $M$.
+
+\emph{Symmetry.} $S_p$ is an involution. Inverting $S_p=E_1wE_2$ gives a lower--lower factorization with $w^{-1}$,
+so $w$ is an involution, and it also has the pivots $D_{\sigma(l)}\to H_l$ and $D_i\to H_i$.
+
+\emph{Remaining rows.} The rows $H_R$ have no pivot in $D_L$, because $p$ has no pivot column in $L$.
+For rows $H_{\le i}$ and columns $H_{\ge j}\cup D$, the rank is $|[j,i]|+\operatorname{rank}p[1..\min(i,j-1),\,\cdot\,]$.
+On $R$ this equals the rank function of the identity. The ranks of the blocks
+$(H\cup D_{\le i'})\times D_{\ge j'}$ give the same for $D_L$. So $H_R$ and $D_L$ are fixed points of $w$.
+
+The diagonal factors are units, so every transposition costs one interchange of its width.
+\end{proof}
+
+\begin{remark}[Corners]
+For the frames of the two-stage motif the corners are mostly singular in the original coordinates.
+One fixed unimodular change of basis $S_0$, as in PR~\#10's controlled-basis lemma, makes them all invertible.
+PR~\#10's simultaneous-conjugation lemma applies unchanged: conjugating by $\operatorname{diag}(S_0,S_0)$ preserves
+the identity, the full swap, the endpoint correction $PF=E$, and the composition rule for orthogonal summands.
+\end{remark}
+
+\paragraph{Existence of $S_0$ at every $h$.} After conjugation by $S\in SL_m$ the corner of an edge is
+$-(S^{-1}U)_L(VS)_R$. Since $U$ has full column rank and $V$ full row rank, each of $\det(S^{-1}U)_L$ and
+$\det(VS)_R$ is a polynomial in the entries of $S$ (with $S^{-1}=\operatorname{adj}S$) that is not identically
+zero on $SL_m$: some $S$ sends the columns of $U$ to $e_L$, and some $S$ sends the rows of $V$ to $e_R^{\mathsf T}$,
+each with determinant fixed to $1$ by scaling a column outside the image. The motif has finitely many edge classes,
+so the product of these polynomials over all classes is a nonzero polynomial on the irreducible variety $SL_m$.
+$SL_m(\mathbb Z)$ is Zariski dense in $SL_m$, so some integral unimodular $S_0$ makes every corner invertible.
+The checks below find one explicitly at $h=6,7,8$.
+
+\paragraph{Choice of prime.} The factors $E_1,E_2$ have rational entries whose denominators divide products of
+corner minors, and $S_0^{-1}$ is integral. These are fixed for a fixed motif, so they add finitely many primes to
+the list the odd radix $q$ of the two-stage transfer must avoid, alongside the denominators of its own triangular
+factors.
+
+\paragraph{Use in the recursion.} PR~\#10's integer-width recurrence needs, for each edge, only a list of child
+widths each at most $m-1$, with a full-rank edge contributing $m$ singletons. A selected edge contributes $h$
+singleton calls and one aligned block of width $m-2h$; the copy-correction child of the two-stage transfer has
+width $1$; every other edge is compiled as in the two-stage motif. Row merging and parking are unchanged, since
+they act on the list of children and not on the frames.
+
+\paragraph{Selected edges and saving.} In the two-stage bit motif at $h=32$ ($m=1024$) every auxiliary role,
+side or centre, in either stage, has exactly one edge of rank $m-h=992$. In stage one it is the final
+enlargement $D_1\otimes Q\to F$, and in stage two it is the initial growth $0\to D_0$. There are $2v(R+c_0)$
+such edges, and each is compiled as $h$ singleton calls plus one block of width $t=m-2h=960$. With the counts
+of \texttt{certificates/two-stage.json} ($v=4960$, $R=123157$), the batched moment certifies
+\[
+ a_b=\frac{22157}{5\cdot10^{9}}\approx4.43\cdot10^{-6},
+\]
+against a true root of $4.4315\cdot10^{-6}$. That is $9.3$ times the unbatched saving $4.7\cdot10^{-7}$.
+
+\paragraph{Checks.} \texttt{independent/partial-swap/} rebuilds $E_1\Pi E_2=S_p$ exactly and verifies triangularity
+and the pivot profile. It covers 270 random and sparse idempotents with $3\le m\le12$ and every $a\in(m/2,m)$, all
+169 cases with invertible corners matching. When the corner is singular the profile fails, which shows the
+conjugation is needed. For the two-stage frames at $h=6,7,8$ it checks:
+\begin{itemize}
+\item monotonicity on $X_a$: $U_a\subset t_1\otimes t_2\subset F\otimes t_2\subset(t_1^\perp\otimes F)\perp(t_1\otimes t_2)\subset F$;
+\item the rank sums $m$ per side role, $m+2h$ per centre role and $m-1$ per data role, which reproduce the edge total $Wm-2N+2L$; the $N$ copy-correction children of width $1$ bring the total to $s=Wm-N+2L$;
+\item the selected edge classes and their Bruhat profiles after conjugation by one unimodular $S_0$:
+78/78, 20/20 and 10/10.
+\end{itemize}
+
+\end{document}
