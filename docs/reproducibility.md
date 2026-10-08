@@ -84,6 +84,11 @@ This command performs these steps:
    written [compact-control proof](../notes/compact-control-note.tex).
    `scripts/make_compact_control_patch.py` generates the independent combined
    patch, including the changed global exceptional-stream accounting.
+   `scripts/complex_network.py` builds the compressed complex side circuit of
+   `scripts/complex_circuit.py`, checks every side coefficient, binary label,
+   residual and compiled role in both stage directions, and records the
+   conditional `59/10^11 > 2^-31` witness. `scripts/make_complex_circuit_patch.py`
+   extends the compact-control patch with the new complex construction.
    `scripts/research_networks.py` and `scripts/search_network_variants.py`
    record scoped family bounds and clearly marked exploratory scores.
 4. The standard-library unittest suite checks certificate boundaries, selected
@@ -97,7 +102,8 @@ that the checked-in outputs reproduce exactly, run on a clean checkout:
 git diff --exit-code -- certificates patches
 ```
 
-The compact-control note builds with `make compact-note`. Its statement remains
+The compressed-complex note builds with `make complex-note`, and the
+compact-control note with `make compact-note`. Their statements remain
 conditional on the identified upstream interfaces and supplied written
 extensions. See the
 [current research status](research/current-status.md) before treating older
