@@ -1,0 +1,58 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{Copied centres in the two-stage interchange}
+\date{Draft, October 9, 2026}
+\begin{document}
+\maketitle
+
+This note applies PR~\#36's copied retained-centre schedule (icekylinx) to our two-stage bit interchange, where the
+centres are direct centre wires rather than retained totals. In that setting the schedule is simpler: the original
+centre never leaves its frame.
+
+\paragraph{The central return.} In each stage a centre $c$ runs the dirty-scratch word $R\,G\,R\,G$: the scatter $R$
+reads $c$ at the frame $D_0$, and the gather $G$ acts at $D_1$. So the centre's frame path is
+$D_0\to D_1\to D_0\to D_1$, with ranks $h,h,h$ beyond its endpoint edge; this descent and re-ascent is the central-return
+loss, and it is what makes the rank budget $s=Wm-N+2L$.
+
+\begin{lemma}[Copied centres]\label{lem:copy}
+In either stage, replace the second scatter's reads of $c$ by reads of a temporary copy $t$: after the first gather,
+copy $c$ into a fresh zero stream $t$ at $D_1$, move $t$ to $D_0$, let the second scatter read $t$, and erase $t$; the
+original $c$ stays at $D_1$ for the final gather. The scalar action, the endpoints of every role and the restoration of
+arbitrary scratch are unchanged. Each centre then has two children of width $h$ per stage instead of three, and the rank
+budget becomes $s=Wm-N+L$.
+\end{lemma}
+\begin{proof}
+The scatter reads do not change $c$, so after the first gather the second scatter sees the same value whether it reads
+$c$ or a copy of it; the final gather therefore receives the same value at the same frame $D_1$. The copy is a fresh
+zero stream, so erasing it touches no arbitrary scratch. The move of $t$ from $D_1$ to $D_0$ is the matrix of the old
+return edge, an involution with the same projector ($I\otimes P_t$ in stage one, $P_t\otimes I$ in stage two), so the
+flag basis compiles it to one run of width $h$, as before; the original's return and re-ascent, each of rank $h$, are
+gone. Summing over the $c_0=h$ centres of the $2v$ invocations removes $L=2vhc_0$ from the rank budget.
+\end{proof}
+
+\paragraph{Tape cost.} Making the copy is a pointwise gate on $(c,t)$ at the common frame $D_1$; the reads are pointwise
+at $D_0$; erasure is linear in the stream volume $V/W$. The copy has the full role shape, so its child calls are ordinary
+children of the batched recursion, and $F_k\le(s/W)F_{k-1}+O(1)$ holds with the new $s$. The copy is a temporary, not a
+role, so $W$ is unchanged. The schedule needs $W+1$ role tapes, and while the copy's children run it parks $W$ streams
+instead of $W-1$; both are fixed. No row of the assembly certificate changes: the bit network enters only through
+$\tau=1-a_b$, and the crude guard depends only on the complex network.
+
+\paragraph{Saving.} The deficit is now $Wm-s=N-L=v(v-2h^2)$, positive for much smaller $h$, and the optimum moves from
+$h=47$ to $h=25$. With the flag basis, the gm side circuit ($R=52788$ at $h=25$), the side roles batched one level down
+and the data-entrance run, \texttt{scripts/certificate\_round6.py} certifies $a_b=34919/10^9$.
+
+\paragraph{Retained totals.} The direct centre wires can be replaced by retained point totals
+$P_c=\operatorname{star}(c)$, built as side roles from existing side nodes (each a disjoint union of three of them, two
+additions). A total sits at $U_c$ of dimension $h-1$; its copy pays $U_c\to D_0$ (rank $h-1$) and the original
+$U_c\to F$ (rank $1$), so the loss per centre is $h-1$ and the centre roles leave $W$. At $h=23$ this certifies
+$a_b=36667/10^9$ (\texttt{independent/two-stage-bit/rtgm.py}, \texttt{cert\_rt.py}); the scalar identity, frames,
+side-edge genericity and nesting are checked as for direct centres.
+
+\paragraph{Checks.} The full-stage word (all $h$ centres, all targets, real excluded sums) is checked over
+$\mathbb F_2$ at $h=5,\dots,8$ and with signed Gaussian integers; a control that copies before the first gather fails.
+The frame sequences of old and copied centres are checked exactly at $h=5,6$. At $h=25$ every flag-basis, side-lemma,
+data-entrance and frame condition is checked at one integer point, as at $h=47$ in round five.
+
+\end{document}
