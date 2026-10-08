@@ -60,6 +60,14 @@ verify:
 	git apply --check --directory=upstream patches/compact-control-34.patch
 	git apply --check --directory=upstream patches/batched-23.patch
 	$(MAKE) batched-dimension30
+	$(MAKE) controlled-corners
+	$(MAKE) source-frame-corners
+
+.PHONY: controlled-corners
+controlled-corners:
+	python3 research/controlled-corners/witness.py
+	python3 research/controlled-corners/make_patch.py
+	git apply --check --directory=upstream patches/controlled-corners.patch
 
 .PHONY: batched-dimension30
 batched-dimension30:
@@ -127,3 +135,9 @@ else
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
 endif
+
+.PHONY: source-frame-corners
+source-frame-corners:
+	python3 research/source-frame-corners/witness.py
+	python3 research/source-frame-corners/make_patch.py
+	git apply --check --directory=upstream patches/source-frame-corners.patch

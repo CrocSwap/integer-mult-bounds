@@ -1,3 +1,20 @@
+# Source-frame and data-corner continuation
+
+The new conditional candidate is **kappa = 90799/100000000000 = 9.0799e-7**,
+about **17.94% above [PR #13](https://github.com/CrocSwap/integer-mult-bounds/pull/13)**.
+It combines eumemic's source frames with the dimension-30 producer and two
+compatible data blocks in one controlled basis. The complex construction is
+unchanged from PR #13; its exact exponent certificate is tightened.
+
+See the [new proof and review guide](research/source-frame-corners/README.md),
+[exact certificate](research/source-frame-corners/certificate.json),
+[complete manuscript patch](patches/source-frame-corners.patch), and
+[compiled manuscript](artifacts/source-frame-corners.pdf).
+This is an unreviewed conditional mathematical contribution, not formal
+verification or a measured speedup. Run `make source-frame-corners` for the
+new checks and `make verify` for the complete suite. Historical results and
+attribution are retained below.
+
 # Dimension-30 follow-up candidate
 
 This branch includes a conditional **kappa = 12649/100000000000 = 1.2649e-7**
