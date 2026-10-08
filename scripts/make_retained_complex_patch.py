@@ -36,6 +36,7 @@ def patched_files():
                 new = replace_once(new, before, after)
         elif name.endswith("08-assembly.tex"):
             replacements=((r"a_{\rm c}=418/10^{12}",r"a_{\rm c}=750/10^{11}"),
+                (r"\chi=\tau+(1-\beta)(\sigma-\tau)",r"\chi=\tau+(1-\beta)\max\{\sigma-\tau,0\}"),
                 (r"c=\frac15",r"c=1"),
                 (r"\lambda=1-\frac{1671}{4\cdot10^{12}}",r"\lambda=1-\frac{2959}{10^{12}}"),
                 (r"\lambda'=1-\frac{167}{4\cdot10^{11}}",r"\lambda'=1-\frac{2958}{10^{12}}"),

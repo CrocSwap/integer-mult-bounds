@@ -257,6 +257,13 @@ class RetainedComplexTests(unittest.TestCase):
             r=frame_control(reverse=reverse)
             self.assertEqual((r['roles'],r['rank_sum'],r['decreasing_dimension']),(1279,10234,57))
 
+    def test_patch_keeps_max_when_complex_saving_exceeds_bit_saving(self):
+        patch=(Path(__file__).resolve().parents[1]/'patches/retained-complex-31.patch').read_text()
+        added='\n'.join(line[1:] for line in patch.splitlines()
+                        if line.startswith('+') and not line.startswith('+++'))
+        self.assertIn(r'\chi=\tau+(1-\beta)\max\{\sigma-\tau,0\}',added)
+        self.assertNotIn(r'\chi=\tau+(1-\beta)(\sigma-\tau)',added)
+
     def test_supported_domain_and_retained_multiplicities(self):
         with self.assertRaises(ValueError): Retained(6)
         c=Retained(8)
