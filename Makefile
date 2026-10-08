@@ -428,3 +428,8 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: split-pair-verify
+split-pair-verify:
+	python3 scripts/experiments/verify_split_pair.py
+	python3 -m unittest discover -s tests -p 'test_split_pair*.py' -v
