@@ -10,24 +10,47 @@ fixed number of one-dimensional tapes, the strongest supplied witness is
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{59}{10^{11}}=5.9\times10^{-10}>2^{-31}}.
+\boxed{\kappa=\frac{1479}{10^{12}}=1.479\times10^{-9}>2^{-30}}.
 $$
 
-The simpler **`kappa = 2^-31`** is a corollary; the witness remains below
-`2^-30`. It is **590/83 ≈ 7.11 times** the preceding compact-control witness
+The simpler **`kappa = 2^-30`** is a corollary; the witness remains below
+`2^-29`. It is **1479/590 ≈ 2.51 times** the preceding compressed-complex
+witness `59/10^11` and about **17.8 times** the compact-control witness
 `83/10^12`. The original manuscript uses `2^-182`. These compare asymptotic
 exponents, not practical runtimes.
 
-**[Read the compressed-complex proof note (PDF)](artifacts/complex-circuit-note.pdf)** ·
-[Review the combined source patch](patches/complex-circuit-31.patch) ·
-[Inspect the exact certificate](certificates/complex-network.json) ·
-[Construction and verification summary](docs/research/complex-circuit.md)
+**[Read the fast-resampling proof note (PDF)](artifacts/fast-gaussian-note.pdf)** ·
+[Review the combined source patch](patches/fast-gaussian-30.patch) ·
+[Inspect the exact certificate](certificates/fast-gaussian.json) ·
+[Construction and verification summary](docs/research/fast-gaussian.md)
 
 This is a research claim supported by written proofs and reproducible checks.
 The complete upstream theorem is assumed; the new arguments have not received
 independent mathematical review or formal verification.
 
-## Latest improvement: a compressed complex network
+## Latest improvement: faster Gaussian resampling
+
+With the compressed complex network the remaining cap was the Gaussian
+resampling step. Its line maps cost `O(t p^(3/2+delta) alpha)`, which forces
+the dimension exponent `epsilon < 1/5` and hence `kappa < a_b/5`. Two changes
+remove that cap:
+
+- **Chirped correlations.** The identity
+  `(sigma a - b)^2 = sigma theta a^2 + sigma (a-b)^2 - theta b^2`
+  turns every block of Gaussian sums along a line into one correlation,
+  evaluated with the established integer multiplier in `O(p^(1+delta))` per
+  output, independently of the Gaussian width `alpha`.
+- **Faster Neumann series.** A potential-function argument shows that the
+  powers of the correction `E = N - I` decay like `exp(-pi alpha^2 sigma n)`
+  after a burn-in of order `alpha^2/theta` bits. The Neumann series then needs
+  `O(p/alpha^2 + 1/theta)` terms instead of `p/(alpha^2 theta)`.
+
+With `alpha = floor(sqrt(b/(8d)))` the Gaussian cost per bit becomes
+`O(d^2 p^delta)`, so `epsilon` may approach `1/2`. The compressed complex
+network supplies the room for the larger guard parameter `beta = 19/25` this
+requires. The new scoped ceiling for these networks is `kappa < a_b/2 < 2^-29`.
+
+## Preserved compressed complex network
 
 After compact control, the complex network was the binding motif. It still
 used the original side wires, one per ordered neighbor pair: **3,693,800 side
@@ -157,7 +180,8 @@ and scoped ceilings.
 | [h46-shared-point](patches/h46-shared-point.patch) | `13*2^-66` | Cross-group sharing |
 | [h50-paired-59](patches/h50-paired-59.patch) | `2^-59` | Paired sums, stopped guard and tighter Gaussian setup |
 | [compact-control-34](patches/compact-control-34.patch) | `83/10^12 > 2^-34` | Compact controls, complete reservations, local repair and separate complex arity |
-| **[complex-circuit-31](patches/complex-circuit-31.patch)** | **`59/10^11 > 2^-31`** | **Compressed complex side circuit with binary frames, on top of compact control** |
+| [complex-circuit-31](patches/complex-circuit-31.patch) | `59/10^11 > 2^-31` | Compressed complex side circuit with binary frames, on top of compact control |
+| **[fast-gaussian-30](patches/fast-gaussian-30.patch)** | **`1479/10^12 > 2^-30`** | **Chirped-correlation Gaussian maps and a sharper Neumann count, on top of the compressed complex network** |
 
 ## Attribution, citation, and license
 
@@ -167,9 +191,10 @@ with a separate research agent; the supplied note develops its tape, layout,
 repair and assembly arguments. AI assistance is not independent review or
 endorsement by OpenAI. No priority or unrestricted optimality claim is made.
 
-The compressed complex network (`complex-circuit-31`) was contributed by
-**eumemic**, prepared with assistance from Claude (Anthropic); this is likewise
-not independent review or endorsement by Anthropic.
+The compressed complex network (`complex-circuit-31`) and the faster Gaussian
+resampling (`fast-gaussian-30`) were contributed by **eumemic**, prepared with
+assistance from Claude (Anthropic); this is likewise not independent review or
+endorsement by Anthropic.
 
 The original manuscript is by OpenAI, pinned at commit
 `adc7f1241b42e322a6451854ab7e4b4c146bf78a`. Source URLs and SHA-256 hashes are in

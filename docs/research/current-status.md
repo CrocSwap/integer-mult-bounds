@@ -10,7 +10,18 @@ extensions. Nothing in this page asserts formal or independent verification.
 | --- | --- | --- |
 | Published baseline | `2^-59` | [paired note](../../artifacts/paired-note.pdf), [certificate](../../certificates/paired-network.json), [patch](../../patches/h50-paired-59.patch) |
 | Preceding conditional research draft | `83/10^12 = 8.3e-11 > 2^-34` | [proof note](../../artifacts/compact-control-note.pdf), [source](../../notes/compact-control-note.tex), [certificate](../../certificates/compact-control-layer.json), [patch](../../patches/compact-control-34.patch) |
-| Current conditional research draft (contributed) | `59/10^11 = 5.9e-10 > 2^-31` | [proof note](../../artifacts/complex-circuit-note.pdf), [source](../../notes/complex-circuit-note.tex), [certificate](../../certificates/complex-network.json), [patch](../../patches/complex-circuit-31.patch), [summary](complex-circuit.md) |
+| Preceding conditional research draft (contributed) | `59/10^11 = 5.9e-10 > 2^-31` | [proof note](../../artifacts/complex-circuit-note.pdf), [source](../../notes/complex-circuit-note.tex), [certificate](../../certificates/complex-network.json), [patch](../../patches/complex-circuit-31.patch), [summary](complex-circuit.md) |
+| Current conditional research draft (contributed) | `1479/10^12 = 1.479e-9 > 2^-30` | [proof note](../../artifacts/fast-gaussian-note.pdf), [source](../../notes/fast-gaussian-note.tex), [certificate](../../certificates/fast-gaussian.json), [patch](../../patches/fast-gaussian-30.patch), [summary](fast-gaussian.md) |
+
+**Update (fast Gaussian resampling).** The Gaussian line maps, whose cost
+forced `epsilon < 1/5`, are replaced by chirped block correlations, and the
+Neumann series for the resampling inverse uses a sharper bound on the powers
+of its correction. The Gaussian cost per bit falls from
+`p^(3/4+delta+5eps/4)` to `O(d^2 p^delta)`, so `epsilon` may approach `1/2`;
+the compressed complex network supplies room for the larger guard parameter
+`beta = 19/25`. The witness becomes `1479/10^12 > 2^-30`, a factor 1479/590
+above `59/10^11`. The scoped ceiling for these networks is now
+`kappa < a_b/2 < 2^-29`. See [the summary](fast-gaussian.md).
 
 **Update (compressed complex network).** The complex motif's side wires are
 replaced by a shared-sum circuit with binary coordinate and pair-star labels:

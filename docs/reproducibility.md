@@ -89,6 +89,11 @@ This command performs these steps:
    residual and compiled role in both stage directions, and records the
    conditional `59/10^11 > 2^-31` witness. `scripts/make_complex_circuit_patch.py`
    extends the compact-control patch with the new complex construction.
+   `scripts/fast_gaussian.py` checks the fast-resampling witness `1479/10^12`,
+   the exact step inequality behind the bound on powers of the resampling
+   correction, and the Neumann counts; `scripts/make_fast_gaussian_patch.py`
+   extends the compressed-complex patch with the chirped-correlation Gaussian
+   maps, the revised interfaces and the new assembly parameters.
    `scripts/research_networks.py` and `scripts/search_network_variants.py`
    record scoped family bounds and clearly marked exploratory scores.
 4. The standard-library unittest suite checks certificate boundaries, selected
@@ -102,15 +107,19 @@ that the checked-in outputs reproduce exactly, run on a clean checkout:
 git diff --exit-code -- certificates patches
 ```
 
-The compressed-complex note builds with `make complex-note`, and the
-compact-control note with `make compact-note`. Their statements remain
+The fast-resampling note builds with `make fast-gaussian-note`, the
+compressed-complex note with `make complex-note`, and the compact-control
+note with `make compact-note`. Their statements remain
 conditional on the identified upstream interfaces and supplied written
 extensions. See the
 [current research status](research/current-status.md) before treating older
 research pages or preparation certificates as current conclusions.
 
 The theorem certificates and all-h bound comparisons use `fractions.Fraction`;
-no floating-point result controls their acceptance. The separate exploratory
+no floating-point result controls their acceptance. The fast-resampling tests
+also compare explicit resampling matrices against the power bound at 160
+decimal digits; the certificate itself checks the underlying step inequality
+exactly. The separate exploratory
 higher-subset screen uses floating point to select candidates, then encloses
 their scores exactly; it certifies neither a new construction nor optimality.
 Sampled finite identity tests use fixed random seeds.
