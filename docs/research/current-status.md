@@ -9,9 +9,40 @@ extensions. Nothing in this page asserts formal or independent verification.
 | State | Exponent saving kappa | Artifacts |
 | --- | --- | --- |
 | Published baseline | `2^-59` | [paired note](../../artifacts/paired-note.pdf), [certificate](../../certificates/paired-network.json), [patch](../../patches/h50-paired-59.patch) |
-| Current conditional research draft | `83/10^12 = 8.3e-11 > 2^-34` | [proof note](../../artifacts/compact-control-note.pdf), [source](../../notes/compact-control-note.tex), [certificate](../../certificates/compact-control-layer.json), [patch](../../patches/compact-control-34.patch) |
+| Preceding conditional research draft | `83/10^12 = 8.3e-11 > 2^-34` | [proof note](../../artifacts/compact-control-note.pdf), [source](../../notes/compact-control-note.tex), [certificate](../../certificates/compact-control-layer.json), [patch](../../patches/compact-control-34.patch) |
+| Preceding conditional research draft (contributed) | `59/10^11 = 5.9e-10 > 2^-31` | [proof note](../../artifacts/complex-circuit-note.pdf), [source](../../notes/complex-circuit-note.tex), [certificate](../../certificates/complex-network.json), [patch](../../patches/complex-circuit-31.patch), [summary](complex-circuit.md) |
+| Preceding conditional research draft (contributed) | `1479/10^12 = 1.479e-9 > 2^-30` | [proof note](../../artifacts/fast-gaussian-note.pdf), [source](../../notes/fast-gaussian-note.tex), [certificate](../../certificates/fast-gaussian.json), [patch](../../patches/fast-gaussian-30.patch), [summary](fast-gaussian.md) |
+| Current conditional research draft (contributed) | `1624/10^12 = 1.624e-9 > 2^-30` | [proof note](../../artifacts/aligned-bit-note.pdf), [source](../../notes/aligned-bit-note.tex), [certificate](../../certificates/aligned-bit-network.json), [patch](../../patches/aligned-bit-30.patch), [summary](aligned-bit.md) |
 
-The new witness increases kappa by approximately 47,846,242 times over the
+**Update (aligned bit circuit).** With fast resampling, `kappa < a_b/2`. The
+center wires now take their values from group totals computed inside the side
+circuit, so each loses `h-1` rather than `h` dimensions per invocation, and the
+side circuit aligns its blocks across groups and shares its top-level
+pair-star chains: 494,196 roles per invocation against 509,244. The bit
+saving rises from `296/10^11` to `325/10^11` and the witness to
+`1624/10^12`. See [the summary](aligned-bit.md).
+
+**Update (fast Gaussian resampling).** The Gaussian line maps, whose cost
+forced `epsilon < 1/5`, are replaced by chirped block correlations, and the
+Neumann series for the resampling inverse uses a sharper bound on the powers
+of its correction. The Gaussian cost per bit falls from
+`p^(3/4+delta+5eps/4)` to `O(d^2 p^delta)`, so `epsilon` may approach `1/2`;
+the compressed complex network supplies room for the larger guard parameter
+`beta = 19/25`. The witness becomes `1479/10^12 > 2^-30`, a factor 1479/590
+above `59/10^11`. The scoped ceiling for these networks is now
+`kappa < a_b/2 < 2^-29`. See [the summary](fast-gaussian.md).
+
+**Update (compressed complex network).** The complex motif's side wires are
+replaced by a shared-sum circuit with binary coordinate and pair-star labels:
+108,195 side roles per invocation instead of 3,693,800. The certified complex
+saving rises from `418/10^12` to `14/10^9`, so the complex network no longer
+binds and the witness becomes `59/10^11 > 2^-31`, a factor 590/83 above
+`83/10^12`. The bit network now sets the scoped ceiling `kappa < a_b/5 < 2^-30`
+under the retained Gaussian margin. See [the summary](complex-circuit.md); the
+compact-control description below remains accurate for the movement, guard
+and assembly, which are unchanged.
+
+The compact-control witness increased kappa by approximately 47,846,242 times over the
 published `2^-59`. This compares asymptotic exponent savings, not practical
 runtime. The dyadic statement `kappa=2^-34` is a weaker convenient corollary.
 The witness remains below `2^-33`. The earlier published artifacts and pinned
