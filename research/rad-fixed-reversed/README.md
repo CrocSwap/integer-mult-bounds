@@ -102,11 +102,7 @@ make verify
 Python 3.11 or newer and a C++ compiler are required. The focused patch applies
 to the pinned parent. Inherited manuscripts are unchanged.
 
-**Validation status: fresh producer/profile and independent schedule checks,
-exact geometry compatibility and arithmetic, and 12 focused tests pass. A full
-repository rerun for this contribution is pending.** Earlier validation receipts apply
-only to their own pinned commits. The draft PR will be marked ready after a
-successful full rerun and a published validation receipt.
+**Full verification passed** at research commit `c6fc08951c1776a9685802b1810a2f15dbbd4f64`: **215 tests**, fresh exhaustive geometry, new producer/profile and complete dirty-basis audits, inherited rebuilds, and **18 historical patch checks**. The 12 focused tests pass. See the [validation receipt](validation.json) for the exact source commit and log hash. This remains conditional research requiring mathematical review.
 
 The analytic recovery, eligible prime/native tables, eventual setup constants,
 sequential fixed-tape routing and bulk interfaces, and all-size dirty-state

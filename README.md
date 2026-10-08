@@ -5,8 +5,10 @@ corners give **κ = 4099494519/10^14 > 2^-15**, under the inherited analytic
 and fixed-tape hypotheses: **1.6193% above PR #41's alternating candidate**.
 
 See the [proof and reproduction guide](research/rad-fixed-reversed/README.md).
-The full repository rerun for this contribution is pending. Earlier results
-below retain their own validation status.
+Full `make verify` passed: **215 tests**, fresh geometry/producer/profile and
+independent schedule checks, and **18 historical patch checks**. See the
+[validation receipt](research/rad-fixed-reversed/validation.json). Earlier
+results below retain their own validation status.
 
 # Conditional multiplication saving 3.918734894 × 10^-5
 
