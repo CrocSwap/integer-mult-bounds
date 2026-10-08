@@ -1,31 +1,30 @@
-# Rank-first pair assembly: conditional saving 5.102757e-5
+# Reordered rank-first regions: conditional saving 5.1028985071975e-5
 
-This branch proposes **κ = 5102757/10^11 > 2^-15** by applying
-[Chafik Boukhalfa's PR #60](https://github.com/CrocSwap/integer-mult-bounds/pull/60)
-rank-first reclamation to
-[Avi Eisenberg's PR #62](https://github.com/CrocSwap/integer-mult-bounds/pull/62)
-interval-strip pair graph with eumemic's PR #57 joint frame compiler.
-The physical wire count remains **137,151,806**; changed frame transitions
-improve the actual fixed-basis child profile. The bit saving is
-**5103018/10^11**. This is above #61's pinned parameter refinement
-`25508460085039/500000000000000000` at `afb7cb67`.
+This branch proposes **κ = 2041159402879/(4×10^16) = 5.1028985071975×10^-5**,
+about **0.00277% above [PR #63](https://github.com/CrocSwap/integer-mult-bounds/pull/63)**.
+The bit saving is **5103158916233/10^17**. Within each frame rank, use
+cover/core order at h=23 and decreasing minimum-node order at h=25. The scalar graph, rank-first
+retired-slot policy, role counts and paid endpoints remain inherited from #63;
+the changed schedule changes the physical frame transitions and their complete
+fixed-basis child profile. W remains **137,151,806**.
 
-[Proof, scope and source credits](research/rank-pair/PROOF.md) ·
-[Exact candidate certificate](research/rank-pair/screen-certificate.json)
+[Construction, proof and credits](research/reordered-rank-pair/README.md) ·
+[Exact arithmetic certificate](research/reordered-rank-pair/arithmetic/certificate.json)
 
-Run `make rank-pair-verify` for regenerated words, independent dirty-state
-replay, fixed profiles and exact inequalities. `make pair-assembly-verify`
-checks the underlying scalar and data construction; `make verify` retains
-main's existing verification and includes the new targets.
+Run `make reordered-rank-pair-verify` to rebuild both physical words and profiles,
+then check the exact moment and inherited assembly. `make verify` includes this
+new target and all inherited verification groups. Full repository validation
+is pending for this draft; focused checks passed before publication.
 
-This proposed witness is conditional on the inherited multiplication,
-all-size compiler, analytic and fixed-tape interfaces. Finite checks do not
-formally verify the full theorem, establish global optimality, or measure a
-practical speedup. The reviewed main-branch result below remains separately
-identified; its maintainer review does not cover this new increment.
+This is a finite conditional witness under the inherited analytic, all-size
+compiler and fixed finite-alphabet multitape hypotheses. It is not a proof
+of global optimality or a measured practical speedup. The schedule gain and
+the finer arithmetic-grid gain are distinguished in the research note.
 
-Composition prepared by Dominik Scholz with substantial OpenAI GPT-6 Astra /
-Codex assistance. All source-specific contributor notices are retained.
+Prepared by Rohan Arun with OpenAI Codex assistance. Credit Dominik Scholz
+(#63), Avi Eisenberg (#62), Chafik Boukhalfa (#60), eumemic (#57), and the
+Alejandro Zarzuelo Urdiales (#61, parameter-refinement precedent), together with all inherited contributors.
+The reviewed main-branch result below remains separately identified.
 
 # A sharper exponent for integer multiplication
 
