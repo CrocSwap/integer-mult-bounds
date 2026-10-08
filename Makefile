@@ -23,6 +23,7 @@ verify:
 	$(MAKE) verify-positive
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
+	$(MAKE) verify-rank-pair
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -428,3 +429,10 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: verify-rank-pair rank-pair-verify
+verify-rank-pair: rank-pair-verify
+rank-pair-verify:
+	python3 research/rank-pair/frame_compile.py
+	python3 research/rank-pair/screen.py
+	python3 -m unittest discover -s tests -p 'test_rank_pair.py' -v
