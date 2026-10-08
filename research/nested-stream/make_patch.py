@@ -61,6 +61,21 @@ C_1=\frac32-\frac\beta2+\zeta='''+tq(p['C1'])+r''',\quad
 \end{gathered}
 \end{equation}'''
     s=s[:start]+block+s[end:]
+    # Regenerate every displayed slack; retaining the prior table would leave
+    # stale h32 numbers even when the new JSON certificate is correct.
+    oldcs=verify.fast_constraints(oldp)
+    oldex=verify.layer_exponents(oldp.tau,oldp.sigma,oldp.beta,oldp.c)
+    oldcs.update(packed_overhead=oldp.lam-oldex['internal'],reserved_axes=oldp.lamp-oldex['preprocessing'])
+    start=s.index(r'\endhead')+len(r'\endhead');end=s.index(r'\bottomrule',start)
+    rows=[line for line in s[start:end].splitlines() if line.strip()]
+    assert len(rows)==len(oldcs)==len(w['constraints'])==29
+    updated=[]
+    for row,(oldkey,oldvalue),(key,value) in zip(rows,oldcs.items(),w['constraints'].items()):
+        assert key==oldkey
+        left,right=row.split(' & ',1)
+        assert right=='$'+tq(oldvalue)+r'$\\',(key,right,tq(oldvalue))
+        updated.append(left+' & $'+tq(value)+r'$\\')
+    s=s[:start]+'\n'+'\n'.join(updated)+'\n'+s[end:]
     replacements={
       'b^{'+exp(op['epsilon'])+'}':'b^{'+exp(p['epsilon'])+'}',
       rf'd^{{{op["epsilon"].denominator}}}\le b^{{{op["epsilon"].numerator}}}':rf'd^{{{p["epsilon"].denominator}}}\le b^{{{p["epsilon"].numerator}}}',
