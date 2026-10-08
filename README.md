@@ -10,25 +10,42 @@ fixed number of one-dimensional tapes, the strongest supplied witness is
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{1479}{10^{12}}=1.479\times10^{-9}>2^{-30}}.
+\boxed{\kappa=\frac{1624}{10^{12}}=1.624\times10^{-9}>2^{-30}}.
 $$
 
 The simpler **`kappa = 2^-30`** is a corollary; the witness remains below
-`2^-29`. It is **1479/590 ≈ 2.51 times** the preceding compressed-complex
-witness `59/10^11` and about **17.8 times** the compact-control witness
-`83/10^12`. The original manuscript uses `2^-182`. These compare asymptotic
-exponents, not practical runtimes.
+`2^-29`. It is **1624/1479 ≈ 1.10 times** the fast-resampling witness
+`1479/10^12`, **2.75 times** the compressed-complex witness `59/10^11`, and
+about **19.6 times** the compact-control witness `83/10^12`. The original
+manuscript uses `2^-182`. These compare asymptotic exponents, not practical
+runtimes.
 
-**[Read the fast-resampling proof note (PDF)](artifacts/fast-gaussian-note.pdf)** ·
-[Review the combined source patch](patches/fast-gaussian-30.patch) ·
-[Inspect the exact certificate](certificates/fast-gaussian.json) ·
-[Construction and verification summary](docs/research/fast-gaussian.md)
+**[Read the aligned-bit proof note (PDF)](artifacts/aligned-bit-note.pdf)** ·
+[fast-resampling note](artifacts/fast-gaussian-note.pdf) ·
+[Review the combined source patch](patches/aligned-bit-30.patch) ·
+[Inspect the exact certificate](certificates/aligned-bit-network.json) ·
+[Construction summary](docs/research/aligned-bit.md)
 
 This is a research claim supported by written proofs and reproducible checks.
 The complete upstream theorem is assumed; the new arguments have not received
 independent mathematical review or formal verification.
 
-## Latest improvement: faster Gaussian resampling
+## Latest improvement: an aligned bit circuit with cheaper centers
+
+With fast resampling, `kappa < a_b/2`, so only the bit network matters. Two
+changes raise its saving from `296/10^11` to **`325/10^11`**:
+
+- **Cheaper centers.** Each center wire takes its value from the group total
+  computed inside the side circuit. Its label then rises only to the star span
+  `H_i` (dimension `h-1`) before the scatter, so it loses `h-1` instead of `h`
+  dimensions per invocation, in both stage directions. The deficit numerator
+  goes from `v - 6h^2` to `v - 6h(h-1)`.
+- **Aligned side circuit.** Blocks `{2k, 2k+1}` are fixed across all
+  common-point groups, and each top-level pair-star chain is computed once for
+  the two groups that use it: **494,196 roles** per invocation including the
+  center wires, against 509,244.
+
+## Preserved fast Gaussian resampling
 
 With the compressed complex network the remaining cap was the Gaussian
 resampling step. Its line maps cost `O(t p^(3/2+delta) alpha)`, which forces
@@ -181,7 +198,8 @@ and scoped ceilings.
 | [h50-paired-59](patches/h50-paired-59.patch) | `2^-59` | Paired sums, stopped guard and tighter Gaussian setup |
 | [compact-control-34](patches/compact-control-34.patch) | `83/10^12 > 2^-34` | Compact controls, complete reservations, local repair and separate complex arity |
 | [complex-circuit-31](patches/complex-circuit-31.patch) | `59/10^11 > 2^-31` | Compressed complex side circuit with binary frames, on top of compact control |
-| **[fast-gaussian-30](patches/fast-gaussian-30.patch)** | **`1479/10^12 > 2^-30`** | **Chirped-correlation Gaussian maps and a sharper Neumann count, on top of the compressed complex network** |
+| [fast-gaussian-30](patches/fast-gaussian-30.patch) | `1479/10^12 > 2^-30` | Chirped-correlation Gaussian maps and a sharper Neumann count, on top of the compressed complex network |
+| **[aligned-bit-30](patches/aligned-bit-30.patch)** | **`1624/10^12 > 2^-30`** | **Aligned bit side circuit and centers fed by group totals, on top of fast resampling** |
 
 ## Attribution, citation, and license
 
@@ -191,8 +209,9 @@ with a separate research agent; the supplied note develops its tape, layout,
 repair and assembly arguments. AI assistance is not independent review or
 endorsement by OpenAI. No priority or unrestricted optimality claim is made.
 
-The compressed complex network (`complex-circuit-31`) and the faster Gaussian
-resampling (`fast-gaussian-30`) were contributed by **eumemic**, prepared with
+The compressed complex network (`complex-circuit-31`), the faster Gaussian
+resampling (`fast-gaussian-30`) and the aligned bit circuit (`aligned-bit-30`)
+were contributed by **eumemic**, prepared with
 assistance from Claude (Anthropic); this is likewise not independent review or
 endorsement by Anthropic.
 

@@ -94,6 +94,11 @@ This command performs these steps:
    correction, and the Neumann counts; `scripts/make_fast_gaussian_patch.py`
    extends the compressed-complex patch with the chirped-correlation Gaussian
    maps, the revised interfaces and the new assembly parameters.
+   `scripts/aligned_bit_network.py` builds the aligned bit circuit of
+   `scripts/bit_circuit.py`, checks every partial output, group total,
+   addition and role frame in both directions, and records the
+   `1624/10^12` witness; `scripts/make_aligned_bit_patch.py` extends the
+   fast-resampling patch with the new bit interface.
    `scripts/research_networks.py` and `scripts/search_network_variants.py`
    record scoped family bounds and clearly marked exploratory scores.
 4. The standard-library unittest suite checks certificate boundaries, selected
@@ -107,7 +112,8 @@ that the checked-in outputs reproduce exactly, run on a clean checkout:
 git diff --exit-code -- certificates patches
 ```
 
-The fast-resampling note builds with `make fast-gaussian-note`, the
+The aligned-bit note builds with `make aligned-bit-note`, the
+fast-resampling note with `make fast-gaussian-note`, the
 compressed-complex note with `make complex-note`, and the compact-control
 note with `make compact-note`. Their statements remain
 conditional on the identified upstream interfaces and supplied written
