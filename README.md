@@ -21,6 +21,16 @@ speedup. The model and general reduction are inherited from OpenAI's
 [Selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json) ·
 [Independent arithmetic check](docs/research/community-pair-arithmetic.json)
 
+## Additional conditional construction: merged auxiliary exteriors
+
+The [merged-exterior proof and reproduction guide](research/merged-exterior/README.md)
+gives **κ=55354656014473/10^18=5.5354656014473e-5**, 6.9746% above PR79. Each
+auxiliary role's exterior residual is merged into its creation or retirement
+edge, chosen per role. A corner-rank lemma for complementary projectors gives
+the exact profiles. The largest bit child becomes 552, so the bridge uses
+halving degree 17 and row stock p^2200. `make merged-exterior-verify` checks
+the result. eumemic prepared it with Anthropic Claude assistance.
+
 ## Additional conditional construction: balanced coarse split frames
 
 The [balanced-split proof and reproduction guide](research/balanced-split/README.md)

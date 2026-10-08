@@ -24,6 +24,7 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-balanced
+	$(MAKE) verify-merged
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -445,3 +446,10 @@ balanced-split-verify:
 	python3 -m unittest discover -s tests -p 'test_balanced_split*.py' -v
 
 verify-balanced: balanced-split-verify
+
+.PHONY: merged-exterior-verify verify-merged
+merged-exterior-verify:
+	python3 scripts/experiments/verify_merged_exterior.py
+	python3 -m unittest discover -s tests -p 'test_merged_exterior*.py' -v
+
+verify-merged: merged-exterior-verify
