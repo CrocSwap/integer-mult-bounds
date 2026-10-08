@@ -1,0 +1,101 @@
+\subsection{An aligned bit circuit with cheaper centers}
+\label{sec:aligned-bit}
+We change the bit network of Section~\ref{sec:paired-bit-construction} in
+two ways: a smaller side circuit, and center wires that lose $h-1$ rather
+than $h$ dimensions per invocation. The ground size $h=50$, the form
+$I-J/9$, the stage frames of the data banks, and the bank sharing between
+stages 1 and 3 are unchanged.
+
+\paragraph{Aligned blocks.} In the weighted paired recursion for the common
+point $i$, put the points $2k,2k+1$ in one block whenever both differ from
+$i$; the partner $i'$ of $i$ forms a singleton. At every coarser level group
+blocks $2k,2k+1$ in the same way. All groups therefore use the same blocks
+away from their own point, and the identification of equal pair-star sums
+across groups applies more often.
+
+\paragraph{Shared pair-star sums.} At the top level of group $i$, a vertex
+$a$ whose partner $q$ lies in its block $A$ needs, for each other block $J$,
+the sum $Y_i(a,J)$ of the triples $\{i,q,c\}$ with $c\notin A\cup J$. Let
+$\mathcal C$ consist of the blocks other than $A$ and the block of $i$. Form
+the prefix and suffix sums, in increasing block order over $\mathcal C$, of
+the pair-star block sums $\sum_{c\in C}x_{iqc}$. These chains depend only on
+the unordered pair $\{i,q\}$, since $\mathcal C$ consists of the full blocks
+avoiding both $i$ and $q$; group $q$ forms the same chains for its vertex
+$i'$. For $J\in\mathcal C$, $Y_i(a,J)$ is the prefix--suffix sum plus the
+single triple $\{i,q,i'\}$; for $J$ the block of $i$ it is the total over
+$\mathcal C$. The rest of the recursion is unchanged.
+
+\paragraph{Totals.} Each group also keeps its total
+$z_i=\sum_{T\ni i}x_T$, the top-level total of its recursion. Its source span
+is $H_i=\langle t_T:T\ni i\rangle$, which is positive definite by the
+common-point argument above.
+
+Equal supports are identified across groups as before, by the fixed pair and
+the third points of a pair-star. At $h=50$ the retained graph has
+$c=435346$ additions, the $q=58800$ partial outputs, and $h=50$ totals.
+Exact support comparison checks every partial output and total, the
+disjointness of every addition, and the common point of every node.
+
+\paragraph{Centers from the totals.} Let the center wire $C_i$ be the role
+carrying $z_i$ out of the side graph. Compile roles as before, treating the
+$h$ center uses like designated outputs, so $R=c+q+h=494196$ roles suffice.
+Let $L'$ be the product of the gates of this graph, $V$ the source copy, $J$
+the injection of the partial outputs, $R_0$ the original central scatter,
+and $J'=JR_0$. The forward schedule is
+\[
+ L',\ J',\ L'^{-1},\ V,\ L',\ J',\ L'^{-1},\ V^{-1}.
+\]
+For arbitrary scratch $z$ the injections give $J'L'z+J'L'(z+Vx)=J'L'Vx$.
+The center roles of $L'Vx$ carry $z_i=(Gx)_i$, so $J'L'V=JLV+R_0G=I$ and the
+invocation is $y\gets y+x$; the cleanup restores every auxiliary value.
+Stage 2 reverses and inverts this schedule.
+
+In a forward invocation the frames are $D_0$ for the first three operations,
+$X_{t_X}$ for $V$, the graded frames $D_{U_z}$ for the middle $L'$, $D_0$ for
+$R_0$, $Y_{t_Y}$ for $J$, and $D_1$ for the last two operations. Thus $C_i$
+passes through $D_{H_i}$ at its gate in the middle $L'$ and returns to $D_0$
+at $R_0$, losing $P\otimes H_i$, of dimension $h-1$. The physical $Y$ wires
+pass $B\otimes\langle t\rangle\subset D_0\subset Y_t$, and the physical $X$
+wires pass $A\otimes\langle t\rangle\subset X_t\subset D_1$.
+
+In stage 2 the operations are
+\[
+ V,\ L',\ J,\ R_0,\ L'^{-1},\ V^{-1},\ L',\ J,\ R_0,\ L'^{-1},
+\]
+with logical source $Y$ and target $X$. Their frames are $D_0$, $D_0$,
+$X_{t_X}$, $D_1$, the complement frames $D_{U_z^\perp}$, $Y_{t_Y}$, and then
+$D_1$. The center $C_i$ rises from $D_0$ to $D_1$ at the first $R_0$ and
+falls to $D_{H_i^\perp}$ at its gate in $L'^{-1}$, again losing
+$P\otimes H_i$. Since $H_i$ is positive definite, $H_i^\perp$ is
+nondegenerate. The physical $X$ wires pass
+$A\otimes\langle t\rangle\subset X_t\subset D_1$, and the partial-output
+roles pass $\langle t_X\rangle\subset U_z^\perp$ as before. Every other edge is
+one of the nested edges already treated. Each auxiliary role starts at $D_0$
+and ends at $D_1$, so the stage-1/stage-3 bank sharing applies unchanged.
+
+\begin{proposition}[Aligned bit interface]\label{prop:aligned-bit-interface}
+The aligned bit network restores arbitrary scratch, exchanges the data banks,
+and satisfies the original all-role endpoint identity with
+\begin{align*}
+ W_{\rm b}^{\rm al}&=2N+2v^2R=394759742720000,\\
+ s_{\rm b}^{\rm al}&=W_{\rm b}^{\rm al}m-N+6v^2h(h-1)
+                         =49344965957616000000,\\
+ W_{\rm b}^{\rm al}m-s_{\rm b}^{\rm al}&=1882384000000>0.
+\end{align*}
+\end{proposition}
+
+\begin{proof}
+The scalar schedule and both frame assignments were given above. The only
+decreasing edges are the $3v^2h$ center returns, each of dimension $h-1$.
+Telescoping gives total absolute label change
+$W_{\rm b}^{\rm al}m-2N+6v^2h(h-1)$, and the unchanged negative source
+projections add $N$ rational rank. Data endpoints are unchanged and every
+auxiliary role has endpoints zero and $I_m$, with its scalar value restored.
+The common-frame identity and rational-shear transfer apply to these fixed
+finite data.
+\end{proof}
+
+The exact deficit is $\eta_{\rm b}^{\rm al}=49/1284490000$, against
+$23/661055000$ for the paired network. With $\log m<11737/1000$,
+$\eta_{\rm b}^{\rm al}>(325/10^{11})(11737/1000)$, so
+$s_{\rm b}^{\rm al}/W_{\rm b}^{\rm al}<m^{1-325/10^{11}}$.

@@ -1,0 +1,70 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\title{An aligned bit circuit with cheaper centers and a\\
+conditional integer-multiplication saving $1624/10^{12}$}
+\author{eumemic\thanks{Prepared with assistance from Claude (Anthropic).
+This is not independent review or endorsement by Anthropic.}}
+\date{October 8, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+With fast Gaussian resampling the conditional witness is limited by the bit
+network: $\kappa<a_{\rm b}/2$. We make two changes to the paired bit network
+at $h=50$. The side circuit aligns its blocks across common points and shares
+each top-level pair-star chain between the two groups that use it:
+$494196$ roles per invocation, including the center wires, instead of
+$509244$. Each center wire now takes its value from the group total computed
+inside the side circuit, so its label rises only to the star span $H_i$, of
+dimension $h-1$, before the scatter; it loses $h-1$ instead of $h$ dimensions
+per invocation in both stage directions. The bit saving rises from
+$296/10^{11}$ to $325/10^{11}$, and the conditional witness from
+$1479/10^{12}$ to $\kappa=1624/10^{12}>2^{-30}$.
+\end{abstract}
+
+\section{Scope}
+\label{sec:paired-bit-construction}
+The source is OpenAI's \emph{Integer multiplication below $n\log n$}, pinned at
+\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}, with the compact-control
+construction, the compressed complex network and fast Gaussian resampling.
+Only the bit network changes. Its construction, the paired network of the
+compact-control manuscript, is assumed with its notation: the form $I-J/9$ on
+$F=\mathbb Q^{50}$, stage frames $D_0=B\otimes F$, $D_1=A\otimes F$,
+$D_U=(B\otimes F)\perp(P\otimes U)$, $X_t$, $Y_t$, the transparent
+schedule, and the stage-1/stage-3 bank sharing. The original central loss is
+$P\otimes F$, of dimension $h$, per center wire and invocation.
+
+\section{Construction}
+\input{aligned-bit-construction.tex}
+
+\section{Assembly}
+The fast-Gaussian assembly is unchanged except for $\tau$:
+$a=325/10^{11}$, $a_{\rm c}=14/10^9$, $\epsilon=49999/100000$,
+$c=9999/10000$, $\beta=19/25$, $\zeta=1/10^4$, $\delta=1/10^6$,
+$C_1=19601/10000$, $\lambda=1-32495/10^{13}$, $\lambda'=1-3249/10^{12}$.
+The leaf needs $(1-\beta)a_{\rm c}=3.36\cdot10^{-9}>1-\lambda'$, and the guard
+needs $\beta>3/4$; both hold. The minimum margin is
+$g_3=\epsilon(1-\lambda')=162446751/10^{17}>1624/10^{12}=\kappa$, so
+\[
+ T(n)=O\bigl(n(\log n)^{1-1624/10^{12}}\bigr),\qquad
+ 2^{-30}<\frac{1624}{10^{12}}<2^{-29},
+\]
+conditional on the identified upstream and extension proofs. The scoped
+ceiling for this bit network is $\kappa<a/2<2^{-29}$. A larger bit saving
+would also need $(1-\beta)a_{\rm c}>a$ with $\beta>3/4$, so $a_{\rm c}$ or
+the guard would have to improve too.
+
+\section{Reproducibility}
+\path{scripts/bit_circuit.py} builds the circuit and checks every partial
+output, total, addition and compiled role frame in both directions;
+\path{scripts/aligned_bit_network.py} records the counts and witness in
+\path{certificates/aligned-bit-network.json}. \path{tests/test_aligned_bit_network.py}
+simulates the new schedule exactly over $\mathbb F_2$ with dirty scratch in
+both stage directions for $h=8,\ldots,14$, and checks the star span, the
+counts, the parameter windows and the patch text. These checks support the
+written argument; they are not formal verification, and the construction has
+not been independently reviewed.
+\end{document}
