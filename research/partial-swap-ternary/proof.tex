@@ -1,0 +1,254 @@
+\subsection{Partial swaps on the dimension-thirty ternary network}
+\label{sec:partial-swap-ternary}
+This composition is by Rohan Arun with substantial OpenAI Codex assistance.
+The partial-swap address frame and its exact triangular conjugation are
+due to icekylinx (PR~\#18). We apply them to the six-block ternary
+composition of PR~\#17: eumemic's physical producer (PR~\#15) and
+auxiliary source relocation (PR~\#13), the data corners of Rohan Arun
+(PR~\#14, independently present in PR~\#16), and Zhihao Chen's nested
+controlled basis (PR~\#16). The mixed-width tape construction of
+icekylinx (PR~\#10), the earlier five-subset construction, compact
+controls, and the inherited multiplication interfaces remain dependencies.
+The contribution here is the compatibility argument and its parameter
+certificate, not priority for those ingredients.
+
+\paragraph{Address permutations and arbitrary scalar payloads.}
+For a rational idempotent $P$, define the address map
+\[
+ D_P=\begin{pmatrix}I-P&P\\ P&I-P\end{pmatrix}
+ \quad\hbox{on }(H,D).
+\]
+It satisfies $D_P^2=I$. After choosing a fixed good address prime $q$,
+the same identity holds over the residue rings $\mathbb Z/q^f\mathbb Z$ for
+every positive integer $f$. We use the same symbol for its induced
+permutation of array entries. The rational address matrices do not act
+on the scalar payload field, which remains $\mathbb F_3$.
+
+The common-frame identity holds for arbitrary address permutations.
+Assign one invertible address permutation $F_v$ to every gate, common
+to all of its incidences, and apply $F_vF_u^{-1}$ along each edge
+$u\to v$. For physical input $f_w$, define the logical input as
+$g_w=F_{\mathrm{source}(w)}^{-1}f_w$. This is an interpretation, not a
+preprocessing pass. A common permutation of addresses commutes with
+every pointwise scalar gate. Induction along the circuit therefore gives,
+when its scalar action is the role permutation $\rho$,
+\[
+ f'_{\rho(w)}=
+ F_{\mathrm{sink}(\rho(w))}
+ F_{\mathrm{source}(w)}^{-1}f_w.
+\]
+This statement includes all auxiliary inputs and requires no zero scratch.
+
+The PR~\#15 producer retains the transparent ternary wrapper: with
+source copy $V_0$, invertible mixer $L_0$, retained scatter $R_0$ and
+side injection $J_0$, its chronological schedule is
+\[
+ L_0,-R_0,-J_0,L_0^{-1},V_0,L_0,R_0,J_0,L_0^{-1},-V_0.
+\]
+It subtracts $(R_0+J_0)L_0z$, adds
+$(R_0+J_0)L_0(z+V_0x)$, restores arbitrary $z$, and adds $x$ to the
+target. The inverse wrapper supplies the middle tensor invocation.
+The three invocations send $(X,Y)$ to $(-Y,X)$; their retained final
+pointwise negation on $X$ gives the exact exchange. Negation commutes
+with every address permutation and remains at its existing full frame,
+so it adds no edge operation. Thus replacing the address frames does
+not change the scalar circuit or its arbitrary-scratch guarantee.
+
+\paragraph{Nested edges and all-role endpoints.}
+For nondegenerate nested labels $U\subset V$, orthogonal projectors
+satisfy $P_UP_V=P_VP_U=P_U$. Hence
+\[
+ D_{P_V}D_{P_U}=D_{P_V-P_U}.
+\]
+The inverse transition is the same involution. Its positive residual
+projector is $P_V-P_U$ in either orientation, and its pivot count is
+$\dim V-\dim U$. A decreasing edge must consequently be compiled
+using this positive residual, not the signed difference of its head
+and tail matrices. All ordinary edges of the retained physical producer
+join nested nondegenerate frames, including continued physical registers.
+The only exceptional additive-shear source edges are handled next.
+
+For a physical $X$ input with initial line projector $P$, assign source
+frame $D_P$ and routed sink frame $D_{I-P}$. Their product is
+\[
+ D_{I-P}D_P=D_I,
+\]
+the full interchange of the two address chunks. Its first gate already
+has frame $D_P$, so its first edge is the identity. In the additive-shear
+construction this same edge had matrix $2P$ and required one singleton
+call. Thus precisely one call disappears per $X$ input, for a total of
+$N$ calls. The $Y$ inputs have source frame $D_0=I$ and routed sink
+frame $D_I$, as do the ordinary auxiliary roles. Their endpoint product
+is again $D_I$.
+
+For each relocated stage-two auxiliary role, write $P_0=P_{D_0}$ and
+$P_1=P_{D_1}$ for its first and last gate projectors, with
+$P_0P_1=P_1P_0=P_0$. Here the subscripts $D_0,D_1$ denote the retained
+subspaces, rather than partial-swap operators. Assign source frame
+$D_{P_0}$ and sink frame $D_{I-P_0}$. The endpoint product is still
+$D_I$. The entrance is the identity and the exit is
+\[
+ D_{I-P_0}D_{P_1}=D_{I+P_0-P_1}.
+\]
+Its projector $I+P_0-P_1$ has rank $m-h$ and nullspace
+$D_1\cap D_0^\perp$. It is exactly the projector used for the nested
+exit profile in PR~\#17. Source relocation therefore preserves that
+profile and does not reintroduce an auxiliary entrance block.
+The shared stage-one/stage-three roles retain zero source and full
+sink frames and their unchanged nested join. This proves the required
+endpoint interchange on every role.
+
+\paragraph{The same pivot blocks are direct interchanges.}
+Choose the single simultaneous rational basis of
+Lemma~\ref{lem:nested-source-basis} for the entire finite projector
+family and its duals, as in Section~\ref{sec:stream-nested-composition}.
+Conjugate every label projector by this one basis. Nestedness,
+idempotence, common gate frames and the endpoint products survive.
+No separate coordinate choice is made for an individual edge.
+
+For any resulting residual projector, write its lower triangular
+factorization as $P=L\Pi R$, with $L,R$ invertible and $\Pi$ a normalized
+partial permutation. Set
+\[
+ C=RL,\quad Q_X=\Pi\Pi^{\mathsf T},\quad
+ Q_Y=\Pi^{\mathsf T}\Pi,\quad K=Q_YC-CQ_X,
+ \qquad
+ G=\begin{pmatrix}L&0\\0&R^{-1}\end{pmatrix}
+   \begin{pmatrix}I&0\\K&I\end{pmatrix}.
+\]
+Idempotence implies $\Pi C\Pi=\Pi$. Direct multiplication gives
+\[
+ G^{-1}D_PG=
+ \begin{pmatrix}I-Q_X&\Pi\\\Pi^{\mathsf T}&I-Q_Y\end{pmatrix}.
+\]
+The right side swaps exactly the coordinate pairs specified by $\Pi$
+and fixes all other coordinates. Both $G$ and $G^{-1}$ are lower
+triangular in the physical order with the $H$ fields before the $D$
+fields. The retained ordered-affine primitive implements each in
+$O(V)$ work, with arbitrary intervening spectators. First apply
+$G^{-1}$, then these swaps, then $G$. An aligned contiguous block of
+$t$ pivots uses one interchange of width $tf$; unselected pivots use
+singleton width-$f$ interchanges. No gathering of separated pivots,
+reversal, or extra recursive call is implicit in this factorization.
+If elimination instead stores $L_1PR_1=\Pi$, the factors in this
+display are $L=L_1^{-1}$ and $R=R_1^{-1}$.
+
+Choose $q$ after the finite rational basis and all factors have been
+fixed, avoiding their denominators and the nonzero diagonal numerators
+of the triangular factors. The identities then hold for every field
+width. This uses precisely the finite preparation already allowed by
+the tape model.
+
+\paragraph{Rank mass and the mixed-width moment.}
+Retain the PR~\#17 constants
+\[
+ h=30,\quad m=27000,\quad v=142506,\quad R=13056812,
+ \quad B=v^2R=265157216293565232,\quad
+ N=v^3=2894006152890216,
+\]
+\[
+ W=2v^2(v+R)=536102444892910896,\qquad
+ L=3v^2\binom h2(h-2)=742052859715440.
+\]
+The six block widths and their multiplicities remain
+\[
+\begin{array}{c|rrrrrr}
+ t_i&26880&30&26940&782&842&25142\\\hline
+ B_i&B&B&B&2N&2N&2N.
+\end{array}
+\]
+Only the $N$ exceptional source calls disappear. Accordingly,
+\[
+ s_{\rm ps}=Wm-2N+2L,\qquad
+ S_{\rm ps}=s_{\rm ps}-\sum_{i=1}^6B_it_i
+            =41126567423153946552-N.
+\]
+All other edges retain their former pivot counts, including the
+positive residuals of decreasing edges. The physical width, producer
+and downward loss are unchanged.
+
+Put $r_0=1/m$, $w_0=S_{\rm ps}/(Wm)$, and
+$r_i=t_i/m$, $w_i=B_it_i/(Wm)$. Then
+\[
+ \Psi(1-a)=\sum_{i=0}^6 w_i\exp(a\log(1/r_i)),\qquad
+ \sum_{i=0}^6w_i=\frac{s_{\rm ps}}{Wm}<1.
+\]
+The accompanying exact arithmetic certificate uses rational upper
+enclosures $\ell_i>\log(1/r_i)$ and verifies, at
+\[
+ a_{\rm b}=\frac{4187}{10^9},\qquad \tau=1-a_{\rm b},
+\]
+that $0<a_{\rm b}\ell_i<1$ and
+$\sum_iw_i/(1-a_{\rm b}\ell_i)<1$. The positive logarithm series and
+$e^x\le(1-x)^{-1}$ for $0\le x<1$ then prove $\Psi(\tau)<1$.
+No floating-point root estimate is used as the strict certificate.
+
+\begin{lemma}[Partial-swap ternary arbitrary-width interchange]
+\label{lem:partial-swap-ternary-chunk-swap}
+There is one fixed finite-alphabet multitape procedure which, for every
+$P,G,B_0\ge1$ and $u\ge1$, interchanges the two equal chunks in an
+arbitrary bit array on
+\[
+ [P]\times[2^u]\times[G]\times[2^u]\times[B_0]
+\]
+by $(p,x,g,y,z)\mapsto(p,y,g,x,z)$ in $O(Vu^\tau)$ steps, where
+$V=PGB_0\,2^{2u}$ and $\tau=1-4187/10^9$. The constant is independent
+of all field lengths and payload values. Shape processing, complete-row
+padding and removal, address-radix padding and removal, and fixed-tape
+workspace cleanup are included. Chunks differing by one bit cost
+$O(V(1+u^\tau))$, where $u$ is the smaller width, with the same arbitrary
+spectator gap.
+\end{lemma}
+\begin{proof}
+Split complete rows into the $W$ retained role streams and execute the
+unchanged pointwise ternary circuit with the partial-swap edge compiler
+above. Merge output role $\rho(w)$ back into input row position $w$.
+The all-role endpoint products show that this circuit directly performs
+the main interchange. In particular, omit the two outer ordered-affine
+passes that formerly converted the circuit's address shear into a swap:
+they would be incorrect here. In pseudocode, the main operation is
+\texttt{MAIN\_INTERCHANGE := CIRCUIT\_PARTIAL\_SWAP}.
+
+At width $e$, the children have widths $\lfloor e/m\rfloor$ with
+multiplicity $S_{\rm ps}$ and $t_i\lfloor e/m\rfloor$ with
+multiplicity $B_i$, each on volume $V/W$. Every $t_i<m$, so all
+children are smaller. The strict moment just established supplies the
+same strong-induction bound as Section~\ref{sec:mixed-width-rows}.
+The row-depth reservation, bounded digit remainders, high-digit row
+field, and one-time complete-row padding depend only on that child list
+and the already proved interchange interface. They therefore apply
+unchanged. The payload alphabet is the fixed $\mathbb F_3$ alphabet,
+while address-radix conversion remains the retained ordered numerical
+padding procedure; these are different operations. Arbitrary auxiliary
+payloads are restored by the scalar wrapper. The original two layouts
+for the one-bit unequal-width extension use this equal-width routine,
+and the retained depth-first workspace cleanup proves the stated tape
+bound.
+\end{proof}
+
+\paragraph{Complex side and conditional assembly.}
+The complex network remains the dimension-28, 34-class all-residual
+construction of Section~\ref{sec:nested-complex}, with the stopping
+guard of Section~\ref{sec:nested-complex-guard}. We use its stronger
+certified moment at
+\[
+ a_{\rm c}=\frac{4191487}{10^{12}},\qquad \sigma=1-a_{\rm c},
+\]
+rather than PR~\#17's conservative $4/10^6$. The exact certificate is
+recomputed by \texttt{scripts/experiments/complex\_all\_residuals.py};
+neither the complex producer nor its rank histogram changes. The guard
+depends on those unchanged ranks and path budgets, not on the bit
+address-frame choice. Thus with $\beta=1/1000$ and $\zeta=1/10000$,
+\[
+ C_1=\frac32-\frac\beta2+\zeta=\frac{3749}{2500},\qquad
+ (1-\beta)a_{\rm c}
+ =\frac{999}{1000}\frac{4191487}{10^{12}}
+ >\frac{4187}{10^9}=a_{\rm b}.
+\]
+The final assembly uses these two interfaces and the exact parameter
+certificate for $\kappa=2093495/10^{12}$. Every assembly constraint and
+margin must be checked with these parameters; a bit recurrence alone
+does not establish the multiplication claim. The resulting statement
+retains the original fixed-tape, analytic and precision assumptions,
+and the general finite-family basis and transfer arguments remain
+subject to independent mathematical review.

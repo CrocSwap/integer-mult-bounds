@@ -1,3 +1,19 @@
+# Partial swaps on the ternary geometric network
+
+The new conditional candidate is **κ = 2093495/10^12 = 2.093495e-6 > 2^-19**,
+about **11.09% above [PR #18](https://github.com/CrocSwap/integer-mult-bounds/pull/18)**.
+It applies icekylinx's partial-swap frames to our PR #17 geometry, removing
+the source-rank penalty while preserving all six recursive blocks.
+This compares exponent savings; the result remains conditional on the written
+transfer and inherited multiplication arguments.
+
+[Proof and reproduction](research/partial-swap-ternary/README.md) ·
+[Exact certificate](research/partial-swap-ternary/certificate.json) ·
+[Complete patch](patches/partial-swap-ternary.patch) ·
+[Manuscript PDF](artifacts/partial-swap-ternary.pdf)
+
+Earlier constructions and attribution are retained below.
+
 # Nested geometry on the smaller producer
 
 The new conditional candidate is **κ = 1248342/10^12 = 1.248342e-6 > 2^-20**,

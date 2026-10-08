@@ -137,3 +137,9 @@ nested-stream-verify:
 	python3 research/nested-stream/verify.py --full
 	python3 research/nested-stream/make_patch.py
 	python3 -m unittest discover -s tests -p test_nested_stream.py -v
+
+.PHONY: partial-swap-ternary-verify
+partial-swap-ternary-verify:
+	python3 research/partial-swap-ternary/witness.py --full
+	python3 research/partial-swap-ternary/make_patch.py
+	python3 -m unittest discover -s tests -p test_partial_swap_ternary.py -v
