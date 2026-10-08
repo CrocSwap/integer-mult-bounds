@@ -341,3 +341,10 @@ verify-research:
 	python3 scripts/audit_positive_side.py
 	python3 scripts/audit_parity_side.py
 	python3 scripts/audit_prime_subset_limits.py
+
+.PHONY: split-dual-verify
+split-dual-verify:
+	python3 scripts/experiments/verify_split_dual.py
+	python3 -m unittest discover -s tests -p 'test_split_dual.py' -v
+
+verify-community: split-dual-verify

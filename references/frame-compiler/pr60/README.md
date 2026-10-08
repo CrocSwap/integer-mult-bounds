@@ -28,24 +28,6 @@ AI-assistance disclosures remain credited in the source notices.
 [Maintainer review](docs/research/community-followup-review.md) ·
 [Integration record](docs/research/community-followup-integration.md)
 
-## Additional conditional composition: split-pair dual-suffix frames
-
-The [split-dual proof and reproduction guide](research/split-dual/README.md)
-gives **κ=120777349/2500000000000=4.83109396e-5**, approximately **1.3974275711%**
-above PR60. It combines **Rohan Garg's PR59 split-pair groups**, **Rohan Gupta's
-PR55 dual-suffix layout**, and **eumemic's PR57 joint compiler** with the
-unchanged PR60 ranked reclamation engine. It uses no paid clones or recorded
-PR59 permutation overrides. Physical roles are R23=30118 and R25=39663,
-so W=147661173.
-
-`make split-dual-verify` regenerates the complete words, independently checks
-arbitrary dirty scratch and actual fixed-I+J profiles, then certifies the
-full recursive child list and strict assembly inequalities. The complete PR60
-profile is excluded at the new bit saving. The predecessor verifier and all
-main checks remain. This additional conditional witness retains the original
-all-size hypotheses and does not enlarge the maintainer-reviewed result above.
-Prepared by Chafik Boukhalfa with OpenAI Codex assistance.
-
 ## Additional conditional composition: dual-skip strips with joint frames
 
 The [joint-dual proof and reproduction guide](research/joint-dual/README.md)
