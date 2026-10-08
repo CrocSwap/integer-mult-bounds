@@ -3,10 +3,11 @@
 **κ = 4105106623/10^14 = 4.105106623×10⁻⁵ > 2^-15**, conditional on OpenAI's
 base theorem and retained analytic and fixed-tape interfaces: **0.10918% above
 PR #46**. Pinned summand-order swaps in RaD's producers remove roles: R falls
-from 36,685 to 36,656 at h=23 and from 48,479 to 48,398 at h=25, each with an
-exact optimal carrier matching. See
+from 36,685 to 36,656 at h=23 and from 48,479 to 48,398 at h=25, each with a
+numerically selected carrier matching whose pinned output is checked exactly. See
 [research/climbed-producers](research/climbed-producers/README.md) and run
-`make climbed-producers-verify`.
+`make climbed-producers-verify`. Full `make verify` passed: 191 tests and 18 historical
+patch checks; see the [validation receipt](research/climbed-producers/validation.json).
 
 # Conditional saving 4.10062945e-5 from weighted matching and exact data recovery
 

@@ -1,4 +1,4 @@
-# Hill-climbed producers with optimal carrier matching
+# Hill-climbed producers with weighted carrier matching
 
 Under the inherited analytic and fixed finite-alphabet multitape hypotheses,
 
@@ -10,23 +10,23 @@ and 0.13690% above PR #42. The bit saving is `4105275149/10^14`.
 
 ## Idea
 
-PR #44 showed that, for a fixed scalar graph, the best carrier matching is an
-exact max-weight maximum matching. The bigger lever is the **number of
-roles** `R = c + q − matched`. Each removed role is worth far more than any
+PR #44 used numerically weighted carrier matching on a fixed scalar graph.
+The selected pinned output is checked exactly; no exact matching-optimality
+certificate is supplied. This change targets the **number of roles** `R = c + q − matched`. Each removed role is worth far more than any
 reshuffling of profiles.
 
 The summand order inside RaD's `total()` calls decides which additions share
 nested envelopes, so it decides how many carriers can be matched. Starting
 from PR #44's descending order, we pin a vector of adjacent-swap bits
 (`bits-{h}.json`) and climb greedily: flip 1–5 bits, rebuild the graph,
-solve the optimal matching, and keep the change if the exact bit moment
-improves.
+solve the weighted matching problem numerically, and keep the change if the numerical bit-moment score
+improves. The final pinned result is certified with exact arithmetic.
 
 | | PR #44 / #46 | This |
 |---|---:|---:|
 | h=23 roles R (matched) | 36,685 (5,749) | **36,656 (5,778)**, 23 swaps |
 | h=25 roles R (matched) | 48,479 (7,565) | **48,398 (7,696)**, 192 swaps |
-| Width W | 178,378,409 | smaller |
+| Width W | 178,378,409 | **178,168,258** |
 
 Unchanged from PR #46:
 - RaD's alternating point order and pairing
@@ -61,12 +61,12 @@ Unchanged from PR #46:
 make climbed-producers-verify
 ```
 
-A greedy climb over finite swap vectors is a search, not a claim of global
-optimality.
+The matching search uses floating-point logarithmic weights and SciPy
+assignment. It proposes a pinned candidate; exact arithmetic separately
+certifies its moment. Neither exact finite matching optimality nor global
+optimality of the greedy graph search is claimed.
 
-**Validation status:** the focused producer replay, the exact certificate and
-5 tests pass. A full `make verify` has not been run yet. On Linux/GCC, use
-`CXX="c++ -include algorithm"`.
+**Full verification passed** at research commit `bbd2d88fec0485ed5715d994c9cde6a8ac1d3d3a`: **191 tests**, all five new focused tests, fresh changed-producer/profile and complete dirty-basis checks, full inherited data-pair replay with exact fallback recovery, and **18 historical patch checks**. See [validation.json](validation.json) for the source commit and full log hash. This remains a conditional research witness requiring mathematical review.
 
 ## Attribution
 
@@ -74,5 +74,8 @@ Chafik Boukhalfa (PR #43/#46: composition, checkers, exact data recovery).
 RaD / hipotures (PR #41 graphs and point order). icekylinx, James Chang,
 Dominik Scholz, Zhihao Chen, Aurel Prosz / Paureel, Swapnil Jain, eumemic,
 Douglas Colkitt, OpenAI, Harvey–van der Hoeven, and all retained
-predecessors. Optimal matching (PR #44), climbed orders and certificate by
+predecessors. Weighted matching (PR #44), climbed orders and certificate by
 Rohan Arun with Anthropic Claude assistance.
+
+OpenAI Codex independently replayed the complete local repository verification,
+recorded the validation receipt and clarified the numerical search scope.
