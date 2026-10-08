@@ -24,6 +24,7 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-tests
+	$(MAKE) verify-coordinate-flags
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -428,3 +429,17 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: split-pair-verify
+split-pair-verify:
+	python3 scripts/experiments/verify_split_pair.py
+	python3 -m unittest discover -s tests -p 'test_split_pair*.py' -v
+
+verify-joint: split-pair-verify
+
+.PHONY: coordinate-flags-verify verify-coordinate-flags
+coordinate-flags-verify:
+	python3 research/coordinate-flags/verify.py
+	python3 -m unittest discover -s research/coordinate-flags -p test_controls.py -v
+
+verify-coordinate-flags: coordinate-flags-verify

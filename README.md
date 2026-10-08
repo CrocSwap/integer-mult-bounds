@@ -1,3 +1,7 @@
+# Coordinate-flag candidate
+
+A new finite conditional witness gives **κ = 5.1428783626028×10⁻⁵**, about **0.02750% above PR71**, by changing the geometric coordinate order of its existing words. Role counts and width are unchanged. See [the argument, checks and credits](research/coordinate-flags/README.md). Run `make coordinate-flags-verify`. Full expanded verification is pending; this remains a draft under inherited hypotheses.
+
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original
@@ -20,6 +24,27 @@ speedup. The model and general reduction are inherited from OpenAI's
 [Finite circuit proof](research/pair-assembly/PROOF.md) ·
 [Selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json) ·
 [Independent arithmetic check](docs/research/community-pair-arithmetic.json)
+
+## Additional conditional construction: anchored split frames with live reclamation
+
+The [split-pair proof and reproduction guide](research/split-pair/README.md)
+gives **κ=51414646104039/10^18=5.1414646104039e-5**, approximately
+**0.7463402960%** above the complete pinned PR67 witness. It combines
+the PR62/63 interval pair graph, the PR59 split operation, PR65's schedules
+and exact arithmetic, PR67's profile-cost selection, and PR68's pending live
+controls on the PR60/57 reversible frame compiler.
+The new selection uses split vector `[1,1,2]` and aligns the first intact
+global pair across common-point permutations. A new integer score uses each
+live control's known next-use frame. Actual roles are R23=27455
+and R25=36015, with W=135075665.
+
+`make split-pair-verify` regenerates the words, checks arbitrary dirty scratch
+and actual fixed-I+J profiles, and certifies the complete recursive child
+list and strict assembly inequalities. This separately submitted finite
+conditional witness retains the inherited all-size hypotheses. Its namespace,
+sources and comparison remain distinct from the maintainer-reviewed statement
+above. Prepared by Chafik Boukhalfa with OpenAI Codex assistance; contributor
+credits and original notices are retained in the package.
 
 ## What changed
 
