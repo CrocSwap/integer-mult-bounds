@@ -1,3 +1,31 @@
+# Cost-aware retired-slot selection: conditional saving 5.1033760584215e-5
+
+This branch proposes **κ = 10206752116843/(2×10^17) = 5.1033760584215×10^-5**,
+**0.009358% above [PR #65](https://github.com/CrocSwap/integer-mult-bounds/pull/65)**.
+The bit saving is **51036365162009/10^18**. The scalar graph remains PR #63's
+interval-strip pair graph. When a retired physical role can be cleared and
+reused, the compiler compares eligible dependence witnesses across all frame
+ranks using a deterministic profile-cost heuristic. Every selected XOR,
+frame raise, cleanup and endpoint correction remains paid and checked.
+
+Both axes retain their original region order and their 27,918 / 36,586 roles;
+W remains **137,151,806**. The resulting complete physical child distribution
+improves the exact characteristic moment. Search scores are heuristics;
+acceptance uses full physical replay and exact rational certificates.
+
+[Proof, source credits and reproduction](research/slot-cost-rank-pair/README.md) ·
+[Exact certificate](research/slot-cost-rank-pair/arithmetic/certificate.json)
+
+Run `make slot-cost-rank-pair-verify`. Full `make verify` is pending for this
+draft and will be recorded before it is marked ready. The bound retains the
+inherited analytic, all-size compiler and fixed finite-alphabet multitape
+hypotheses; no global optimality or practical speedup is claimed.
+
+Prepared by Rohan Arun with OpenAI Codex assistance. Credit Dominik Scholz,
+Avi Eisenberg, Chafik Boukhalfa, eumemic, Alejandro Zarzuelo Urdiales,
+RaD/hipotures and all inherited contributors. The reviewed main result below
+remains separately identified.
+
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original
