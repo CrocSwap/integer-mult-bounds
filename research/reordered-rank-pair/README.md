@@ -72,3 +72,14 @@ with additional independent verification and scoped Lean formalization.
 The present changed-schedule bound exceeds that reported value; exact
 arithmetic and the source pin are in `current-comparison.json`. This is only
 a bound comparison, not a comparison of formal proof coverage.
+
+## Repository validation
+
+Full `make verify` passed on research commit `49e84f939d15b618b50714eb039cabf97c74256a`
+in 1409.512 seconds, including 467 core unit tests, 20 historical patch checks,
+and the complete new physical rebuild, profiles, independent arithmetic and
+negative controls. All 32 GitHub CI jobs on that head passed. The
+[validation receipt](validation.json) records the log hash and subsequent
+upstream integration. That integration preserves every consumed source and
+witness byte; its newly imported upstream test groups are covered separately
+by the expanded CI matrix, not retrospectively by the earlier local run.

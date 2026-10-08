@@ -14,7 +14,10 @@ fixed-basis child profile. W remains **137,151,806**.
 Run `make reordered-rank-pair-verify` to rebuild both physical words and profiles,
 then check the exact moment and inherited assembly. `make verify` includes this
 new target and all inherited verification groups. Full repository validation
-is pending for this draft; focused checks passed before publication.
+passed on research commit `49e84f9`: 467 core tests, all 20 historical patch
+checks, and complete physical/profile and exact arithmetic checks. The
+[receipt](research/reordered-rank-pair/validation.json) distinguishes that run
+from subsequent upstream integration, which leaves the witness unchanged.
 
 This is a finite conditional witness under the inherited analytic, all-size
 compiler and fixed finite-alphabet multitape hypotheses. It is not a proof
