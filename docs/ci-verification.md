@@ -27,7 +27,7 @@ checkouts:
 | `verify-strips` | Full skip-prefix and dual-suffix producers, exact profiles and controls |
 | `verify-clones` | Original-envelope clones and split-pair producer replays |
 | `verify-positive` | Positive-frame rebuild and bounded-minor exact profiler with sufficient primes |
-| `verify-joint` | Full PR57/60 compiler words, profiles, controls and independent arithmetic |
+| `verify-joint` | Full PR57/60 and PR66 compiler words, profiles, controls and independent arithmetic |
 | `verify-pair` | PR62 plain and stacked witnesses and independent PR61 refinement check |
 
 Every group runs on **all three** Python versions (3.11, 3.13 and 3.14).

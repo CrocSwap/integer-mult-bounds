@@ -21,6 +21,24 @@ speedup. The model and general reduction are inherited from OpenAI's
 [Selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json) ·
 [Independent arithmetic check](docs/research/community-pair-arithmetic.json)
 
+## Additional conditional composition: split-pair dual-suffix frames (PR66)
+
+The [split-dual proof and reproduction guide](research/split-dual/README.md)
+gives **κ=120777349/2500000000000=4.83109396e-5**, approximately **1.3974275711%**
+above PR60 and below the current reviewed frontier. It combines **Rohan Garg's PR59 split-pair groups**, **Rohan Gupta's
+PR55 dual-suffix layout**, and **eumemic's PR57 joint compiler** with the
+unchanged PR60 ranked reclamation engine. It uses no paid clones or recorded
+PR59 permutation overrides. Physical roles are R23=30118 and R25=39663,
+so W=147661173.
+
+`make split-dual-verify` regenerates the complete words, independently checks
+arbitrary dirty scratch and actual fixed-I+J profiles, then certifies the
+full recursive child list and strict assembly inequalities. The complete PR60
+profile is excluded at the new bit saving. The predecessor verifier and all
+main checks remain. This additional conditional witness retains the original
+all-size hypotheses and does not enlarge the maintainer-reviewed result above.
+Prepared by Chafik Boukhalfa with OpenAI Codex assistance.
+
 ## What changed
 
 **Avi Eisenberg's interval strips and core-aware pair assembly (#62)** arrange
