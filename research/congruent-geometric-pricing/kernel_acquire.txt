@@ -1,0 +1,57 @@
+ def acquire(g,anchors):
+  if reclaim:
+   bb={};circuits=[];candidates=[]
+   def ins(s):
+    row=slots[s];expr=1<<s
+    while row:
+     p=row.bit_length()-1
+     if p not in bb:bb[p]=(row,expr);return None
+     old,e=bb[p];row^=old;expr^=e
+    return expr
+   for s in anchors:
+    e=ins(s)
+    if e is not None:circuits.append(e)
+   for s,target in pending.items():
+    if contains(blocks[frames[s]]['frame'],blocks[g]['frame']) and contains(blocks[g]['frame'],blocks[target]['frame']):
+     e=ins(s);stats['live_anchor_candidates']+=1
+     if e is not None:circuits.append(e)
+   for s in sorted(retired,key=lambda s:(-blocks[frames[s]]['rank'],s)):
+    if not contains(blocks[frames[s]]['frame'],blocks[g]['frame']):continue
+    e=ins(s)
+    if e is not None:assert e>>s&1;candidates.append((s,e));circuits.append(e)
+   circuits=sorted(set(circuits),key=lambda e:(e.bit_count(),e))[:64]
+   prices={}
+   def price(s):
+    if s not in prices:prices[s]=profile_cost(s,g)
+    return prices[s]
+   def bits(e):
+    out=[]
+    while e:
+     bit=e&-e;out.append(bit.bit_length()-1);e^=bit
+    return out
+   expanded=[(e,bits(e))for e in circuits]
+   best=None
+   for s,e in candidates:
+    cost=sum(price(z)for z in bits(e));count=e.bit_count()
+    for phase in range(2):
+     changed=False
+     for circuit,zz in expanded:
+      if circuit>>s&1:continue
+      delta=sum((-price(z)if e>>z&1 else price(z))for z in zz)
+      alternative=e^circuit;newcount=alternative.bit_count()
+      if (cost+delta,newcount)<(cost,count):e=alternative;cost+=delta;count=newcount;changed=True;stats['zero_circuit_toggles']+=1
+     if not changed:break
+    aa=bits(e^(1<<s));key=(cost,len(aa),s)
+    if best is None or key<best[0]:best=(key,s,aa)
+   if best is not None:
+    _,s,aa=best
+    fresh=slots[s]
+    for z in aa:fresh^=slots[z]
+    assert not fresh,'Alternative clearing relation changed signal'
+    for a in aa:
+     if a in pending:
+      assert contains(blocks[g]['frame'],blocks[pending[a]]['frame'])
+      stats['live_anchor_xors']+=1
+     xor(s,a,g)
+    assert not slots[s];retired_index.remove(s,blocks[frames[s]]['frame'],blocks[frames[s]]['rank']);retired.remove(s);stats['reclaimed']+=1;stats['clearing_xors']+=len(aa);return s
+  return new(g)

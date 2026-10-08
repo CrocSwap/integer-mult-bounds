@@ -1,0 +1,42 @@
+ # Experimental bounded multi-edge exchanges; no optimality claim.
+ indexed=defaultdict(list);byblock=defaultdict(list)
+ for e,(g,u,i) in enumerate(edges):
+  indexed[g,u].append(e);byblock[g].append(e)
+ for g in byblock:byblock[g].sort(key=lambda e:(prices[e],e))
+ for phase in range(3):
+  changed=0
+  for e in priority:
+   if e in chosen:continue
+   g,u,i=edges[e];f=right.get(u)
+   if f is None or edges[f][0]==g:continue
+   fg=edges[f][0];best=None
+   for z in sorted(blocks[g]['selected']):
+    if not carry_can(e,z):continue
+    zu=edges[z][1]
+    for t in indexed[fg,zu]:
+     if t in chosen or not carry_can(t,f):continue
+     delta=prices[e]+prices[t]-prices[z]-prices[f]
+     if delta<0 and (best is None or delta<best[0]):best=(delta,[z,f],[e,t])
+    if MAX_CYCLE<3:continue
+    # Bounded candidate frontier for the third block; exact legality for accepted moves.
+    frontier=[t for t in byblock[fg] if t not in chosen and edges[t][1] in right and edges[t][1]!=u][:16]
+    for t in frontier:
+     d=right[edges[t][1]];dg=edges[d][0]
+     if dg in (g,fg) or not carry_can(t,f):continue
+     for q in indexed[dg,zu]:
+      if q in chosen or not carry_can(q,d):continue
+      delta=prices[e]+prices[t]+prices[q]-prices[z]-prices[f]-prices[d]
+      if delta<0 and (best is None or delta<best[0]):best=(delta,[z,f,d],[e,t,q])
+   if best is None:continue
+   delta,drops,adds=best
+   assert len(set(drops))==len(drops)==len(set(adds))
+   assert {edges[d][1] for d in drops}=={edges[a][1] for a in adds}
+   for d in drops:
+    dg,du,_=edges[d];chosen.remove(d);blocks[dg]['selected'].remove(d);del right[du]
+   for a in adds:
+    ag,au,_=edges[a];assert au not in right and carry_can(a)
+    chosen.add(a);blocks[ag]['selected'].add(a);right[au]=a
+   assert delta==sum(prices[a] for a in adds)-sum(prices[d] for d in drops)<0
+   stats['cycle_moves_'+str(len(adds))]+=1;changed+=1
+  print('cycle exchanges',MAX_CYCLE,phase,changed,flush=True,file=sys.stderr)
+  if not changed:break
