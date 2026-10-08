@@ -433,5 +433,3 @@ verify-pair: pair-assembly-verify
 split-pair-verify:
 	python3 scripts/experiments/verify_split_pair.py
 	python3 -m unittest discover -s tests -p 'test_split_pair*.py' -v
-
-verify-joint: split-pair-verify
