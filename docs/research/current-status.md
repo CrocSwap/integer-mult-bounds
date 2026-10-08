@@ -1,3 +1,57 @@
+# Working status: raising κ
+
+Updated October 8, 2026. Branch `codex/raise-kappa` starts at
+`research/aligned-bit` (`5015011`). The current reproduced conditional
+witness is **κ = 1.076678e-6 > 2^-20**, about **663×** the starting value.
+
+| Construction | κ |
+| --- | --- |
+| Starting aligned-bit branch | `1.624e-9` |
+| Zhihao Chen's PR #7 | `3.73e-9` |
+| IceKylin's PR #10 | `1.2299998e-7` |
+| PR #12, dimension 30 | `1.2649e-7` |
+| Eumemic's PR #13, auxiliary source frames | `7.699e-7` |
+| PR #14, source frames and data corners | `9.0799e-7` |
+| Smaller h30 producer + source frames + all complex residuals | **`1.076678e-6`** |
+
+The [selected construction](source-frame-stream.md) uses 13,056,812
+auxiliary roles per invocation. Selected splits and star resynthesis reduce
+the producer; bilateral nested-wire reuse reduces physical registers without
+changing center loss or auxiliary invocation boundaries. PR #13's source
+relocation then removes the expensive stage-two auxiliary entrance calls.
+The bit saving is `2153359/10^12`.
+
+Batching [every complex residual](complex-all-residuals.md) supports
+`4191487/10^12`, beyond the complex saving in PR #13. Its convex path bound
+allows precision constant `C1=3749/2500`. All 29 assembly constraints and
+seven margins pass exactly. The [certificate](../../certificates/source-frame-stream-witness.json)
+binds the complete producer, scalar/support/frame checks, physical allocation,
+matching, independent small basis controls, rank moments, and source hashes.
+
+Original certificates from PR #7, #10, and #13 reproduced exactly. Their
+attribution is preserved; selective unmodified dependencies are in
+`references/`. The composition uses PR #10's corrected shifted Gaussian
+error enclosure. General compiler, source-frame, basis, transfer, precision,
+and inherited multiplication arguments remain mathematical dependencies.
+PR #14's new data-corner blocks are not part of this witness.
+
+Further work continues on additional compatible bit blocks and scratch
+reclamation. Those exploratory gains are excluded from the selected result.
+Under the present source-frame recurrence, reaching 1000× at h30 would need
+roughly 7.67 million roles instead of 13.06 million. Earlier singleton-only
+role ceilings do not apply to batching; the newer exact budget screen is
+`scripts/experiments/batched_role_targets.py`.
+
+Run `python3 scripts/source_frame_stream_network.py` for full reproduction.
+`make verify` includes inherited checks. See the
+[reproduction instructions](../reproducibility.md).
+
+## Inherited status snapshot
+
+The following snapshot, including its authorship and publication references,
+is preserved from `research/aligned-bit`. “Current” below refers to that
+starting branch, not to the experiments above.
+
 # Current contracts and research status
 
 Updated October 7, 2026. Author: Douglas Colkitt. All results remain conditional

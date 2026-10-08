@@ -1,3 +1,33 @@
+# Experiments to raise κ
+
+The current reproduced conditional witness is **κ = 1.076678e-6 > 2^-20**:
+663× the starting aligned-bit branch, 39.8% above
+[PR #13](https://github.com/CrocSwap/integer-mult-bounds/pull/13), and 18.6%
+above [PR #14](https://github.com/CrocSwap/integer-mult-bounds/pull/14).
+These compare asymptotic exponent savings, not practical runtimes.
+
+The construction combines a smaller h30 producer and bilateral wire reuse
+(13,056,812 roles), PR #13's auxiliary source frames, and batching of every
+complex residual. PR #10 supplies controlled batching and mixed-width
+transfer; PR #12 supplies the even-dimension bank matching.
+
+Reproduce with `python3 scripts/source_frame_stream_network.py`.
+Python 3, a C++17 compiler, and several GB of memory are required. Exact
+checks cover output supports, nondegenerate frames, physical allocation,
+matching, recursive moments, and all assembly inequalities. The general
+transfer arguments and inherited multiplication interfaces remain
+mathematical dependencies; this is not formal verification.
+
+[Working status](docs/research/current-status.md) ·
+[Construction](docs/research/source-frame-stream.md) ·
+[Certificate](certificates/source-frame-stream-witness.json) ·
+[Reproduction](docs/reproducibility.md)
+
+## Inherited project overview
+
+The overview below is preserved from the starting branch. Its authorship,
+results, and publication artifacts describe that earlier work.
+
 # A sharper exponent for integer multiplication
 
 **Research draft by Douglas Colkitt — conditional on the underlying manuscript

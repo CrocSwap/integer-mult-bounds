@@ -39,6 +39,22 @@ verify:
 	python3 scripts/make_fast_gaussian_patch.py
 	python3 scripts/aligned_bit_network.py
 	python3 scripts/make_aligned_bit_patch.py
+	python3 scripts/prime_field_network.py
+	python3 scripts/make_prime_field_patch.py
+	python3 scripts/audit_kappa_targets.py
+	python3 scripts/experiments/bit_breakthrough_affine_centers.py
+	python3 scripts/experiments/label_breakthrough_polynomial_screen.py
+	python3 scripts/experiments/assembly_breakthrough_guard.py --output certificates/assembly-breakthrough-guard.json
+	python3 scripts/experiments/ternary_direction.py
+	python3 scripts/experiments/ternary_depth_exchange.py --output certificates/ternary-depth.json
+	python3 scripts/experiments/ternary_reuse_core2.py
+	python3 scripts/ternary_reuse_network.py
+	python3 scripts/ternary_fused_network.py
+	python3 scripts/batched_stream_network.py
+	python3 scripts/dimension30_stream_network.py
+	python3 scripts/source_frame_stream_network.py --producer certificates/dimension30-stream-producer.json
+	python3 scripts/experiments/complex_all_residuals.py --output certificates/complex-all-residuals.json
+	python3 scripts/experiments/batched_role_targets.py --output certificates/batched-role-targets.json
 	python3 scripts/audit_scratch_pooling.py
 	python3 scripts/reuse_network.py
 	python3 scripts/make_reuse_patch.py
@@ -63,6 +79,7 @@ verify:
 	git apply --check --directory=upstream patches/complex-circuit-31.patch
 	git apply --check --directory=upstream patches/fast-gaussian-30.patch
 	git apply --check --directory=upstream patches/aligned-bit-30.patch
+	git apply --check --directory=upstream patches/prime-field28.patch
 
 note:
 	mkdir -p artifacts
