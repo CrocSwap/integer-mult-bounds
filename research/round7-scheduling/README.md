@@ -27,9 +27,8 @@ python3 verify.py --regenerate
 
 The archive is ignored and contains no local changes. The proof gives fresh
 compiler/profile regeneration commands. Assert-enabled Python and C++17 are
-required; `CXX` may specify a compiler and SDK. Existing inherited CI groups
-remain enabled; a dedicated Python 3.11/3.13/3.14 workflow also recompiles, replays and
-checks the new selected witness. All inherited all-size compiler, analytic, routing, recovery and
+required; `CXX` may specify a compiler and SDK. Inherited repository CI remains unchanged. The commands above provide local
+replay and deterministic regeneration of the selected witness. All inherited all-size compiler, analytic, routing, recovery and
 fixed-tape hypotheses remain conditional. No global optimality, unconditional
 theorem or practical speedup is claimed.
 
