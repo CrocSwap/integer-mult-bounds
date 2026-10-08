@@ -1,0 +1,287 @@
+% Research handoff, prepared with substantial OpenAI GPT-6 Astra/Codex assistance.
+% Extends icekylinx PR18/PR24, Zhihao Chen PR21/PR23, Rohan Arun PR25,
+% and attributed RaD/hipotures semantic/bulk interfaces. Apache-2.0.
+\section{A near-balanced compatible bit basis}
+The selected dimensions are
+\[
+ a=33,\quad b=31,\quad k=a+1=34,\quad H=ab=1023,\quad m=Hk=34782.
+\]
+Use exactly the retained-total binary scalar construction, positive-label
+propagation, carrier matching and dirty-scratch schedule of PR24, at these
+three dimensions. The base-four producer is unchanged as an algorithm.
+The newly reconstructed local counts $(h,v,c,q,|\mathcal M|,R,\mathrm{loss})$ are
+\[
+\begin{array}{c|rrrrrr}
+33&5456&114729&16401&3054&128076&1056\\
+31&4495&93670&13516&2683&104503&930\\
+34&5984&127823&17986&3706&142103&1122.
+\end{array}
+\]
+The positive-label matching at $h=34$ has 68 more matches than the initial
+envelope matching. This is permissible: the initial continuation arcs are
+included before positive enlargement, and every final match separately
+passes the exact positive-space inclusion and strict event-order test.
+Equality of the two matching cardinalities is unnecessary for the carrier
+proof. Each value has an unmatched first use, and no matched continuation
+can precede its donor. All saved histograms have nonnegative entries and
+\(\sum_r rH_{h,r}=hR_h+2h(h-1)\).
+
+\paragraph{One common rational family.}
+Let $I=(0,\ldots,a-1)$ and prescribe
+\[
+ R=C=[I,0,I],\qquad n=a+k=67.
+\]
+For inner physical index $i=b\alpha+\beta$, use the same family
+$K=T_2(I_a\otimes L_b)$, $J_\beta=M_\beta L_a$ as PR18/24.
+Prescribe row $\alpha$ of $M_\beta$ to be coordinate $R_i$ for $i<n$,
+and inverse column $\alpha$ to be coordinate $C_j$ at $i=H-n+j$.
+The effective residues are $\{0,2,3\}$ on the row side and
+$\{26,28,29\}$ on the inverse-column side. They are pairwise distinct
+and disjoint. The physical boundary positions are also disjoint.
+Every partial prescription completes to a permutation matrix. Thus the
+remaining entries form an affine rational space whose invertible locus
+is nonempty and irreducible. $L_a,L_b$ remain free.
+The first $a$ rows and last $a$ inverse columns have matching $I$ labels;
+all ordinary axis-$a$ corners therefore survive. Rank-one inactive-factor
+weights separate for the axis-$b$ corners, leaving a diagonal rescaling of
+$L_bPL_b^{-1}$, so all ordinary axis-$b$ corners survive as well.
+
+The outer family is $S=T(I_k\otimes K)$ with free $L_k$. Prescribe the
+first $k$ outer row functionals in $L_k$ order followed by repetitions of
+its first $a$ row functionals. Prescribe the last $k$ inverse columns in
+matching $L_k^{-1}$ order, preceded by repetitions of its first $a$
+inverse columns. The boundary intervals of length $67$ are disjoint.
+Ordinary axis-$k$ corners and the unmatched full $k$-block survive.
+
+\paragraph{The exact A5 incidence criterion.}
+The first $a+b-1=63$ inner nullspace rows of
+$(I-P_a)\otimes(I-P_b)$ correspond, after nonzero diagonal rescaling,
+to edges $(R_i,a+(i\bmod b))$ of a bipartite graph with $a+b=64$
+vertices. The last 63 inverse columns correspond to
+$(C_j,a+((H-n+j)\bmod b))$, for $n-63\le j<n$.
+Both graphs are trees: the accompanying certificate enumerates their
+63 edges, checks all vertices and connectivity, and records leaf-removal
+orders. A connected graph with 64 vertices and 63 edges is a tree;
+leaf elimination gives rank 63 for each restriction. This is an exact
+finite combinatorial proof for the selected dimensions, not a floating
+rank test. The usual large-projector identity gives the middle block
+$H-2(a+b-1)=897$.
+
+\subsection{Two A1 blocks for $k=a+1$}
+The paired A1 null projector is
+\[
+ Q=I_k\otimes P_q+P_t\otimes P_U,\quad
+ \operatorname{rank}P_q=1,\quad\operatorname{rank}P_U=a,\quad P_qP_U=0.
+\]
+Its rank is $n=2a+1=67$. The actual A1 projector is $I-Q$.
+Write $P_q=P_{x_a}\otimes P_{x_b}$ and
+$P_U=I_a\otimes P_{u_b}$, where $P_{x_b}P_{u_b}=0$.
+Absorb the free factor bases into the primal and dual coordinates.
+For the first-$n$/last-$n$ corner, the outer row labels are
+$p=[I,a,I]$, and the outer inverse-column labels are $q=[I,I,a]$.
+After nonzero diagonal row and column rescalings, the corner is exactly
+\[
+ M_{ij}=\mathbf1_{R_i=C_j}+f_i g_j\mathbf1_{p_i=q_j}.
+ \tag{A1}
+\]
+Indeed the $P_t\otimes P_U$ term supplies the coefficient-label delta,
+and the $I_k\otimes P_q$ term supplies the outer-label delta. Each $f_i$
+and $g_j$ is a product of a nonzero motif-line coordinate, a ratio of
+coordinates of the two middle-axis lines, and an inverse outer-line
+coordinate. These are rational functions on the single family above.
+
+Group the rows as $A_0,\ldots,A_{a-1};B;C_0,\ldots,C_{a-1}$,
+and the columns as $A'_0,\ldots,A'_{a-1};B';C'_0,\ldots,C'_{a-1}$.
+The first $a$ rows against the last $a$ columns give
+\[
+ T_{ij}=\delta_{ij}+\delta_{i,j+1}f_{A_i}g_{C'_j}.
+\]
+This is lower bidiagonal with diagonal one. Its pivots are therefore the
+contiguous equally ordered block $(i,a+1+i)$, $0\le i<a$.
+Left multiplication by its lower-triangular inverse uses only the retained
+ordered-affine operations. It realizes one width-$a$ recursive swap.
+
+Here is an explicit Schur computation for the rest. Put
+$d_i=1+f_{A_i}g_{A'_i}$ and $v=1+f_{A_0}g_{B'}$.
+After eliminating $T$, row $C_i$ has a common factor
+$f_{C_i}-f_{A_i}$; divide it out. Its entries on columns $A'_j,B'$ are
+\[
+ L_{ij}=\begin{cases}
+ 0&j>i,\\ g_{A'_i}&j=i,\\
+ -g_{C'_{i-1}}(T^{-1})_{i-1,j}d_j&j<i,
+ \end{cases}
+\]
+\[
+ h_0=g_{B'},\qquad
+ h_i=-g_{C'_{i-1}}(T^{-1})_{i-1,0}v\quad(i>0).
+\]
+Write $z=f_Bg_{C'_{a-1}}$. Row $B$ is
+\[
+ B_j=-f_{A_0}g_{A'_0}\delta_{j0}
+      -z(T^{-1})_{a-1,j}d_j,
+\qquad
+ w=-f_{A_0}g_{B'}-z(T^{-1})_{a-1,0}v.
+\]
+The next pivot is $w$ in column $B'$. After eliminating it,
+row $C_0$ has rightmost entry
+$-g_{B'}B_{a-1}/w$ in column $A'_{a-1}$, giving one further scalar pivot.
+For $1\le i\le a-2$, eliminating this latter pivot cancels the rank-one
+term exactly and leaves
+\[
+ L_{ij}-(h_i/g_{B'})L_{0j}.
+\]
+For $j>i$ this is zero, while at $j=i$ it is $g_{A'_i}\ne0$.
+The two preceding scalar pivot columns $B\prime,A\prime_{a-1}$ have
+already been eliminated in this Schur complement. Within the new block,
+the previously chosen block pivots are at smaller columns $j<i$; those
+rows vanish to the right of their pivots and cannot change these entries.
+Thus $(C_i,A'_i)$, $1\le i\le a-2$, form one contiguous width-$(a-2)$
+block. The last remaining pivot is scalar. The ordered corner profile is
+\[
+ a,1,1,a-2,1.
+\]
+
+\paragraph{Nonvanishing within the actual family.}
+The factors $f_{C_i}-f_{A_i}$ compare primal middle-axis coordinate ratios
+at shift $k\bmod b=3$, at the same coefficient and outer label. Distinct
+coordinate ratios of the two independent middle-axis motif lines are
+not identically equal under free $L_b$. For the primal nullspace
+restriction, eliminate the first $k$ outer-coordinate rows: the repeated
+$a$ rows then give a diagonal matrix with these nonzero differences.
+For the dual restriction, eliminate the last $k$ outer-coordinate columns.
+The first $a$ repeated columns leave a triangular matrix: coefficient zero
+compares dual ratios at shift $a\bmod b=2$, and every other column has a
+nonzero diagonal and at most one preceding coefficient. Its determinant
+is not identically zero. Hence both nullspace restrictions, and therefore
+the complete corner, are generically nonsingular.
+
+The remaining denominators and coordinates are nonzero generically.
+The scalar $B_{a-1}=-z d_{a-1}$ is not identically zero. Neither is $w$:
+after clearing the outer diagonal weights $\omega_i=t_i\varphi_i$,
+its two summands have, respectively, a product of the weights
+$\omega_1\cdots\omega_a$ and an affine dependence on $\omega_0$.
+These are not identically proportional on $\sum_i\omega_i=1$ for $a>1$.
+Thus the displayed scalar pivots are available on a nonempty open set.
+The final scalar pivot follows from full nonsingularity. These statements
+also have concrete rational witnesses, recorded in full in the certificate.
+For $a=33$ and seed 4, the control records every primal/dual vector, all
+normalized corner pivot values, the two stated scalar pivots, the last
+pivot, and the nonzero corner determinant. The middle-axis vectors are
+exactly biorthogonal. Any ordered pair of orthogonal rank-one projectors
+is rationally conjugate to these witnesses: map the two primal basis
+vectors and their common dual kernel to the target pair and its common
+dual kernel. The analogous rank-one conjugacy applies independently to
+the first and outer factors. The prescribed $M_\beta$ admit permutation
+completions, and the disjoint outer boundary prescriptions admit invertible
+rational completions. Thus this is an actual rational point in the same
+family, proving nonvanishing of each displayed pivot rational function.
+It is not a sample of unrelated corner entries. This explicit witness
+can replace the preceding polynomial argument for nonvanishing; it does
+not need to satisfy the other, separately witnessed generic minors.
+
+The corner of $I-Q$ differs by a global minus sign, which does not alter
+pivot positions. Since it is the full nullity corner, its elimination
+leaves the identity middle block $m-2n=34648$. The complete paired A1
+profile is therefore
+\[
+ \boxed{33,1,1,31,1,34648}.
+\]
+All these are actual consecutive equally ordered pivot intervals; no
+uncharged gathering, reversal or independent edge basis is used.
+
+\subsection{The A5 block and the other profiles}
+The PR25 A5 observation generalizes directly because the first $a$ row
+labels and last $a$ inverse-column labels are still $I$.
+In the 63-square A5 null corner, write $p\xi,v\nu$ for the two inner
+line projectors. Its exact entries are
+\[
+ Q_{ij}=\mathbf1_{\beta_i=\beta'_j}p_{r_i}\xi_{c_j}
+ +\mathbf1_{r_i=c_j}v_{\beta_i}\nu_{\beta'_j}
+ -p_{r_i}\xi_{c_j}v_{\beta_i}\nu_{\beta'_j}.
+\]
+The first pivot $(0,62)$ is pure rank one. After its elimination, rows
+$1\le i\le29$ have rightmost pivots at column $i+32$, equal to
+$p_i\xi_{i+2}\ne0$. The possible coefficient-label term is two columns
+to their left. This proves a width-29 block; the other 34 corner pivots
+may remain scalar. Together with its middle block, A5 has profile
+$34$ singletons and widths $29,897$. This contribution is attributed to
+Rohan Arun's PR25; only its changed dimension is specialized here.
+
+The remaining PR24 corner arguments use only matched outer intervals,
+nonzero line coordinates, and free second rows/next-to-last inverse columns.
+They apply to the present same irreducible family: the first/last $k$
+outer intervals are disjoint, $H>2k$, and $H>2(a+k)$. In particular the
+A3 full nullspace restriction is witnessed by those free second rows;
+its inner corner is a rescaled rank-$(k-1)$ projector, with one scalar
+and a $(k-2)$ block. After that perturbation, the matching interval has
+width $H-2k+2$. Its remaining $2(k-1)$ corner pivots remain scalar.
+The large-projector identity leaves $m-2H-2k+2$.
+The gauged stage-two null corner is diagonal of width $b$, by the same
+factorization as PR21/24. All its factors are nonzero coordinates in
+the prescribed family. Thus the complete macro/physical table is
+\[
+\begin{array}{c|c|l}
+\text{class}&\text{copies}&\text{widths}\\\hline
+A1&B_1&33,1,1,31,1,34648\\
+\text{unmatched stage three}&B_3-B_1&34,34714\\
+\text{gauged stage two}&B_2&31,34720\\
+A3&2N&67\text{ singletons};32,957,32670\\
+A5&2N&34\text{ singletons};29,897\\
+\text{data growth}&2N\text{ each}&(1,31),(1,29),(1,32).
+\end{array}
+\]
+For each axis $h$, replicate histogram entry $H_{h,r}$ by $N/v_h$.
+If $2r>h$, use $h-r$ scalar children and one width-$2r-h$ child;
+otherwise use $r$ scalar children. This accounts for every edge.
+Each required generic condition is a nonzero rational function on the
+same irreducible parameter family. Their finite product is nonzero.
+A simultaneous rational point can therefore be found by enumeration;
+then choose an odd address prime avoiding its finitely many bad minors
+and denominators. The construction is independent of recursive width.
+
+\subsection{Physical schedule and analytic composition}
+Set $N=v_av_bv_k$ and $B_i=NR_{h_i}/v_{h_i}$.
+The rebuilt counts satisfy $B_3\ge B_1$. The same regular intersection-one
+neighbor graph provides a perfect matching of middle-axis triples,
+so the stage-one bank shares with a subset of stage three. The unchanged
+common-frame dirty-scratch word restores every auxiliary value.
+Use the PR21/24 source gauge $D_{P_0}$ and sink $D_{I-P_0}$ on every
+stage-two auxiliary: its entrance is identity and its exit rank is $m-b$.
+The physical data enlargement precedes the first inverse copy as in PR24.
+The rank identity is
+\[
+ W=2N+B_2+B_3=7190435649232,\qquad
+ s=Wm-2N+2L,\quad L=N\sum_{h\in\{33,31,34\}}6/(h-2),
+\]
+\[
+ Wm-s=120943042880.
+\]
+The common basis above compiles the exact physical profiles; spectators,
+integer-width floors, bounded tails, arbitrary dirty scratch, one-time
+row padding and fixed-tape scheduling follow the retained arbitrary-width
+bit interchange proof. Every child is proper and the maximum is 34720.
+
+The independent complex layer remains exactly PR21's $h=28$ circuit,
+with $a_c=18/10^6$, $m_c=21952$, $W_c=2085111546336$, and maximum child
+21924. Its complete physical/phase evidence and semantic guard $C_1=1$
+are unchanged. Only the bit stock changes in PR23's product row reservoir.
+The certificate recomputes the bit halving depth, bit wire exponent,
+product-stock degree, and compressed eventual checks. It then uses the
+PR23 semantic/bulk assembly with $a_b=52007/4000000000$, $\beta=1/4$,
+$h=10^{-8}$, $q=a_b(1-2h)$, $c=q(1+h)$,
+$\epsilon=(1-h)/(1+c+q)$, $\lambda'=1-q$,
+$\lambda=(1-a_b+\lambda')/2$, and
+$r=(\epsilon q+1-\epsilon)/2$, $\delta=h/8$.
+All 47 strict constraints and seven margins are recomputed exactly.
+The chosen final witness is
+\[
+ \boxed{\kappa=13001411/10^{12}=1.3001411\times10^{-5}}.
+\]
+This assumes the same upstream multiplication theorem, ordered-affine
+compiler, arbitrary-width/common-basis transfer, fixed finite-alphabet tape
+scheduler, and the attributed RaD/PR20/PR23 semantic, routing, phase-cell
+inverse, bulk locality, prime-supply and recovery proofs. It changes the
+bit construction; it does not improve the complex circuit or introduce
+new analytic assumptions beyond those explicitly inherited from PR23.
+Exact arithmetic, finite graph checks, and the written generic-basis proof
+do not constitute formal verification of the complete multiplication theorem.

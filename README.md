@@ -1,3 +1,15 @@
+# Conditional multiplication saving 1.3001411 × 10^-5
+
+Near-balanced bit dimensions **(33,31,34)** and two compatible A1 blocks give
+**κ = 13001411/10^12 = 1.3001411 × 10^-5** in `O(n (log n)^(1−κ))`,
+under the documented mathematical and fixed-tape hypotheses.
+
+See the [construction and reproduction guide](docs/research/near-balanced-bit.md),
+[proof extension](notes/near-balanced-bit.tex), and
+[exact certificate](certificates/near-balanced-network.json).
+Run `make near-balanced-producer near-balanced-certificate` or `make verify`.
+The inherited PR27 and earlier contributions follow.
+
 # Conditional multiplication saving 1.19720853 × 10^-5
 
 This branch composes PR24's endpoint-gauge bit interface with PR23's semantic

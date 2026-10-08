@@ -170,3 +170,13 @@ endpoint-semantic-composition:
 	git apply --check patches/endpoint-semantic-composition.patch
 
 verify: endpoint-semantic-composition
+
+.PHONY: near-balanced-producer near-balanced-certificate
+near-balanced-producer:
+	python3 scripts/near_balanced_producer.py
+
+near-balanced-certificate:
+	python3 scripts/near_balanced_network.py
+	git apply --check patches/near-balanced-bit.patch
+
+verify: near-balanced-producer near-balanced-certificate
