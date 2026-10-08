@@ -5,8 +5,7 @@ Fixing both local bases while preserving copied reversed corners gives
 fixed-tape hypotheses: approximately **0.8248% above PR #39**.
 
 See the [proof and reproduction guide](research/copied-both-reversed/README.md).
-Full inherited verification is pending. Earlier results retain their own
-validation status below.
+Full `make verify` passed: **203 tests**, fresh exhaustive geometry and producer checks, and **18 historical patch checks**. See the [validation receipt](research/copied-both-reversed/validation.json). Earlier results retain their own validation status below.
 
 # Conditional multiplication saving 3.886675852 × 10^-5
 

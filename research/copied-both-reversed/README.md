@@ -98,9 +98,7 @@ inputs are pinned locally; no sibling checkout is required. The focused
 [patch](../../patches/copied-both-reversed.patch) applies to the pinned
 PR #39 commit. The inherited manuscripts are unchanged.
 
-**Draft:** full inherited make verify is pending after focused validation.
-The validation status will be updated only after the committed research
-passes that run.
+**Full verification passed** at research commit `43f59ff533598762cbc43a5e14af2bbbc76fabbd`: **203 tests**, fresh exhaustive geometry and producer/profile checks, and **18 historical patch checks**. The eleven focused tests also pass. See the [validation receipt](validation.json) for the exact source commit and full log hash. This remains a conditional research result requiring mathematical review.
 
 ## Attribution
 
