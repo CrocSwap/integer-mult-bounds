@@ -1,151 +1,77 @@
-# A sharper exponent for integer multiplication
-
-**Research draft by Douglas Colkitt — conditional on the underlying manuscript
-and the written extensions supplied here.**
-
-This draft improves OpenAI's
-[*Integer multiplication below n log n*](https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a/preprints/Integer-multiplication-below-n-log-n-September-23-2026)
-(result family #109). In its fixed finite-alphabet Turing-machine model with a
-fixed number of one-dimensional tapes, the strongest supplied witness is
+# Integer multiplication with conditional saving 3.886224e-5
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{83}{10^{12}}=8.3\times10^{-11}>2^{-34}}.
+\kappa=\frac{242889}{6250000000}=3.886224\times10^{-5}.
 $$
 
-The simpler **`kappa = 2^-34`** is a corollary. The witness remains below
-`2^-33`. It increases the exponent saving by approximately **47.85 million
-fold** over our preceding published `2^-59` witness. The original manuscript
-uses `2^-182`. These compare asymptotic exponents, not practical runtimes.
+This composes icekylinx's copied retained-center schedule with original-envelope
+fixed `I+J` local profiles on PR36's actual `(25,23)` bit graphs. Its data
+profile is **26 singletons +21+481**. Copied transforms, all paid rank-one
+endpoint corrections, full role volumes and arbitrary scratch restoration
+remain included in the physical rank `Wm-N+L`.
 
-**[Read the compact-control proof note (PDF)](artifacts/compact-control-note.pdf)** ·
-[Review the combined source patch](patches/compact-control-34.patch) ·
-[Inspect the exact certificate](certificates/compact-control-layer.json) ·
-[Review guide and dependencies](docs/research/compact-control-review.md)
+The strict bit saving is `19432631/500000000000`; the inherited `(28,28)`
+complex saving is `717/10^7`. Exact assembly retains `C1=1` and `p^2000`
+product row stock, with final absorption gap greater than `5.1804e-14`.
+The result is conditional on the retained analytic, recovery, finite-tape,
+prime-existence and constructive-setup interfaces and eventual thresholds.
+Finite certificates do not formally verify the full multiplication theorem.
 
-This is a research claim supported by written proofs and reproducible checks.
-The complete upstream theorem is assumed; the new arguments have not received
-independent mathematical review or formal verification.
+## Proof and reproduction
 
-## What changed
-
-The new construction moves **compact control fields instead of entire spaced
-windows**. For `f` selected axes, it replaces the layer's movement cost
-`O(V*((f*K)^tau+1))` by
-
-$$
-O\!\left(V\bigl((f\log p)^\tau+1\bigr)\right).
-$$
-
-The proof reserves temporary fields from existing address coordinates,
-allows arbitrary initial temporary values, restores them exactly, and charges
-exceptional-address repair at every recursion node. The temporary ranges
-remain complete through padding and recursive row splitting.
-
-Removing `K^tau` removes the restriction responsible for the preceding
-quadratic dependence on the finite-network saving. The bit network stays at
-`h=50`. The original complex network is separately instantiated at `h=25`,
-and a generalized stopping-depth guard completes the new parameter witness.
-This is a change to the movement construction and its proof, beyond parameter
-tuning of the preceding algorithm.
-
-The exact minimum assembly margin is
-
-$$
-G_* = \frac{333833}{4\cdot10^{15}}
-    = 8.345825\times10^{-11} > \kappa.
-$$
-
-The remaining bottleneck is the complex layer's saving. With the **fixed
-`h=25` complex motif and retained Gaussian/leaf inequalities**, the scoped
-ceiling is below `8.369598075e-11`, hence below `2^-33`. This is not a ceiling
-for other networks or integer multiplication in general.
-
-## Evidence and scope
-
-| Component | Evidence |
-| --- | --- |
-| Parameters, logarithm enclosures, final margins | Exact rational certificate |
-| Dirty-control identities, inverses and repair | Finite exhaustive cases and seeded tests |
-| Wider-control tape bound, reservations and recursion | Written general proofs |
-| Separate complex arity and precision guard | Written proofs and exact accounting |
-| Source integration | Combined patch, reference checks and manuscript build |
-| Full upstream multiplication theorem | Assumed |
-| Independent review / full formalization | Not supplied |
-
-The [review guide](docs/research/compact-control-review.md) identifies the new
-proof obligations and their tests. [Current research status](docs/research/current-status.md)
-is authoritative when older notes describe superseded barriers or hypothetical
-witnesses. The earlier artifacts remain available and unchanged.
-
-## Reproduce
-
-With Python 3.11 or newer, Git and Make, run from the repository root:
+- [Current proof](notes/copied-fixed-basis.tex).
+- [Exact certificate](research/copied-fixed-basis/certificate.json).
+- [Reproduction and scope](research/copied-fixed-basis/README.md).
+- [Pinned source manifest](research/copied-fixed-basis/SOURCE.json).
+- [PR36 predecessor proof](notes/copied-centers-note.tex) and
+  [analytic dependencies](references/semantic-bulk/README.md).
 
 ```sh
+make copied-fixed-check
+make copied-fixed-producer
 make verify
-git diff --exit-code -- certificates patches
 ```
 
-No third-party Python packages or network access are needed for these checks.
-They regenerate the certificates and patches, run the tests, verify upstream
-hashes, and check each patch against the pinned manuscript. The second command
-checks exact regeneration on a clean checkout.
+The focused producer rebuilds both actual scalar DAGs, original labels,
+matching and every local profile. The exact checker verifies both moments,
+controlled permutations, tree restrictions, CRT minor bounds, complete physical
+rank and all 47 assembly conditions. The full `make verify` target also runs
+inherited regressions. No PDF is generated.
 
-With Tectonic installed, rebuild the latest note using:
+## Contribution history
 
-```sh
-make compact-note
-```
+The immediate parent is [PR #36](https://github.com/CrocSwap/integer-mult-bounds/pull/36),
+commit `11817ccacb564bb7f98789c20dc11d3fece207e3`. This composition also adopts
+the fixed-basis method of [PR #35](https://github.com/CrocSwap/integer-mult-bounds/pull/35),
+commit `9c345a2a11e5f4f3649f7c68214bf9a2a0a3fe9c`.
+The preceding contributions by **icekylinx** are:
 
-The output is `artifacts/compact-control-note.pdf`. The first PDF build may
-download TeX resources. See [reproducibility instructions](docs/reproducibility.md)
-for applying the combined patch in a disposable copy and building older notes.
-[GitHub Actions](.github/workflows/verify.yml) runs the arithmetic and patch checks.
-Passing tests does not establish the complete multiplication theorem; this
-repository contains no full multiplication-machine implementation.
+| PR | Conditional saving | Contribution |
+|---|---:|---|
+| [#10](https://github.com/CrocSwap/integer-mult-bounds/pull/10) | `1.2299998e-7` | Projector batching, controlled bases and mixed-width recursion |
+| [#18](https://github.com/CrocSwap/integer-mult-bounds/pull/18) | `1.884586e-6` | Partial-swap frames, binary triples and compatible positive labels |
+| [#24](https://github.com/CrocSwap/integer-mult-bounds/pull/24) | `5.98615e-6` | Endpoint gauges and general binary phase residuals |
+| [#32](https://github.com/CrocSwap/integer-mult-bounds/pull/32) | `1.2523415e-5` | Structured blocks, mixed centers and semantic/bulk composition |
 
-## Earlier witnesses and independent patches
+The [combined manuscript patch](patches/batched-23.patch) remains the #10
+baseline; subsequent extensions have standalone proof sources.
 
-Each patch applies independently to the **unmodified** pinned source; they are
-alternatives, not a sequence to apply together. The
-[result history](docs/research/result-history.md) records the earlier mechanisms
-and scoped ceilings.
+## Attribution
 
-| Patch | Conditional saving | Scope |
-| --- | --- | --- |
-| [frozen-154](patches/frozen-154.patch) | `2^-154` | Original network and recurrence exponents |
-| [balanced-153](patches/balanced-153.patch) | `2^-153` | Balanced assembly parameters |
-| [same-network-129](patches/same-network-129.patch) | `2^-129` | Original network, sharper recurrence comparison |
-| [h46-111](patches/h46-111.patch) | `2^-111` | Smaller network, dyadic parameters |
-| [h46-109](patches/h46-109.patch) | `2^-109` | Rational recurrence saving, strict final margin |
-| [h46-108](patches/h46-108.patch) | `2^-108` | Variable stopping exponent |
-| [h46-rational](patches/h46-rational.patch) | `5.8e-33` | Strongest supplied parameter-only witness |
-| [nonadjacent-layout](patches/nonadjacent-layout.patch) | Original parameters retained | Routing proof and revised layout cost only |
-| [frozen-nonadjacent-107](patches/frozen-nonadjacent-107.patch) | `2^-107` | Direct routing, original network and recurrence exponents |
-| [h46-nonadjacent-78](patches/h46-nonadjacent-78.patch) | `2^-78` | Direct routing with the h = 46 network |
-| [h46-nonadjacent-76](patches/h46-nonadjacent-76.patch) | `2^-76` | Direct routing with tuned dimension and stopping parameters |
-| [h46-shared-side-75](patches/h46-shared-side-75.patch) | `2^-75` | Stage-1/stage-3 side-role sharing, routing, and parameter tuning |
-| [h46-incidence-67](patches/h46-incidence-67.patch) | `2^-67` | Rectangle incidence circuits, full auxiliary sharing, routing, and parameter tuning |
-| [h46-dag-63](patches/h46-dag-63.patch) | `2^-63` | Shared intermediate sums and reversible role allocation |
-| [h46-shared-point](patches/h46-shared-point.patch) | `13*2^-66` | Cross-group sharing |
-| [h50-paired-59](patches/h50-paired-59.patch) | `2^-59` | Paired sums, stopped guard and tighter Gaussian setup |
-| **[compact-control-34](patches/compact-control-34.patch)** | **`83/10^12 > 2^-34`** | **Compact controls, complete reservations, local repair and separate complex arity** |
+The copied retained-center schedule, complex endpoint transfer and selected
+composition are contributed by **icekylinx**, with substantial OpenAI GPT-6
+Astra and Codex assistance.
 
-## Attribution, citation, and license
+This round adopts **Aurel Prosz (Paureel)**'s two-stage topology and paid
+endpoint copy, **Zhihao Chen (jacklightChen)**'s PR #29 unequal-axis
+composition, **Rohan Arun**'s PR #31 corner method and **Dominik Scholz**'s
+PR #33 parameterization. PR #29 also credits **Swapnil Jain**'s linked
+two-stage development. Semantic and analytic dependencies retain the
+PR #21/#23 and **RaD (hipotures)** credits.
 
-Author: **Douglas Colkitt**. Research, implementation and drafting were performed
-with assistance from OpenAI Codex. The compact-control proposal originated
-with a separate research agent; the supplied note develops its tape, layout,
-repair and assembly arguments. AI assistance is not independent review or
-endorsement by OpenAI. No priority or unrestricted optimality claim is made.
-
-The original manuscript is by OpenAI, pinned at commit
-`adc7f1241b42e322a6451854ab7e4b4c146bf78a`. Source URLs and SHA-256 hashes are in
-[upstream/manifest.json](upstream/manifest.json). Files under `upstream/` remain
-unchanged; modifications are supplied as separate patches.
-
-Use [CITATION.cff](CITATION.cff) and also cite the
-[upstream manuscript](upstream/README.md). Until a release is archived, include
-the repository commit used. Licensed under [Apache-2.0](LICENSE); see
-[NOTICE](NOTICE) and [CONTRIBUTING.md](CONTRIBUTING.md).
+The framework and retained producers build on **Douglas Colkitt**, **eumemic**,
+**Bortlesboat**, **dleen**, and the other contributors recorded in [NOTICE](NOTICE).
+OpenAI's manuscript remains pinned at `adc7f1241b42e322a6451854ab7e4b4c146bf78a`.
+The repository retains Apache-2.0; imported RaD proof sources retain their
+separate CC0 terms and original notices.

@@ -1,0 +1,260 @@
+\subsection{A five-subset interchange motif over $\mathbb F_3$}
+Let $h=28$, $\mathcal T=\binom{[h]}5$, $v=98280$, $m=h^3=21952$,
+and $N=v^3$. Scalars in the interchange network lie in $\mathbb F_3$.
+Use the rational address-label space
+\[
+ F=\mathbb Q^h,\qquad H=I-\frac2{25}J.
+\]
+Its exceptional eigenvalue is $1-2h/25=-31/25$, so it is nondegenerate.
+For the indicator $t_T$ of a five-set,
+\[
+ \langle t_S,t_T\rangle=|S\cap T|-2,\qquad
+ \langle t_T,t_T\rangle=3.
+\]
+Neighbors have intersection two. For every pair $C\in\binom{[h]}2$, retain
+\[
+ A_C=\sum_{T\supset C}x_T,\qquad
+ D_{C,E}=\sum_{T=C\cup U,\ U\cap E=\varnothing}x_T
+ \quad\left(E\in\binom{[h]\setminus C}3\right).
+\]
+Scatter $\sum_{C\subset S}A_C$ to $y_S$ and inject
+$-\sum_{C\subset S}D_{C,S\setminus C}$. A source and target with intersection
+$k$ have coefficient $\binom{k}{2}-[k=2]$ modulo three. For $0\le k\le5$
+this is $[k=5]$. Thus their combined map is the identity.
+
+\paragraph{Cancellation-free triple exclusion.}
+The local producer works with a polynomial of degree at most three whose
+monomials have disjoint formal source supports. Pair its point indices.
+Aggregate a monomial according to the set of pairs it touches, and recurse
+on those pair indices. To exclude a set $E$ of at most three points, let $G$
+be its touched pair indices. Begin with the coarsened sum excluding $G$.
+For every nonempty subset $K$ of the surviving partners in the pairs $G$,
+add the contraction that selects exactly $K$ there and avoids the remaining
+pairs of $G$. These cases partition the permitted monomials.
+A one-point contraction has degree at most two and uses the repository's
+weighted paired-exclusion recursion. A two-point contraction is a weighted
+vector exclusion, and a three-point contraction is one original coefficient.
+At at most four points direct summation supplies the base case. The exported
+producer checks all $\binom{26}3=2600$ output coefficient vectors exactly.
+Retaining the total adds twelve ancestors to its 41427 active additions.
+
+For each common pair, order the intact global pairs first and place the
+partners of its removed points last. Identify equal source supports across
+these local producers, retaining an existing decomposition, then remove
+unused ancestors. Source-support cardinality strictly increases at every
+addition, so this identification cannot create a cycle. There are 11240978
+addition nodes and $q=10v+\binom h2=983178$ designated output uses before
+the next compression.
+
+An addition shared between different common pairs has actual source
+intersection of size three or four. In the first case its support is specified
+exactly by the common three-set and a bit vector of remaining pairs; in the
+second by the common four-set and a bit vector of remaining points.
+These are exact keys, with full equality comparison after hashing. Nodes
+with common intersection of size two belong to a unique local context.
+Consequently the global enumeration does not rely on probabilistic hashes.
+
+\paragraph{Resynthesizing four-point stars.}
+For each four-set $B$, extract every sum of $x_{B\cup\{u\}}$ used by a node
+outside that star or by a designated output. Replace the entire star
+subgraph by a cancellation-free circuit for precisely those sums. A
+reproducible greedy common-subexpression rule combines the pair of current
+terms that occurs in most requested sums; ties are broken by increasing
+support cardinality, union mask, and operand masks. An already constructed
+union is reused. Every maintained expression is a partition of its requested
+support. Thus each replacement addition is disjoint and each boundary
+coefficient vector is unchanged.
+
+Canonical ordering puts intact global pairs before the remaining partners.
+The 20475 stars require 365 distinct templates. The independent C++ checker
+verifies both operands and their disjointness at every template gate and
+checks every required boundary sum against the independently reconstructed
+global DAG. This replaces 3006276 additions by at most 2623060. Hence the
+complete producer has at most
+\[
+ c=10857762,\qquad q=983178,\qquad R=c+q=11840940
+\]
+reversible auxiliary roles. The bound remains valid if a replacement creates
+unused nodes: delete them and after stage sharing, pad by untouched auxiliary roles with source
+matrix zero and sink matrix $I_m$ when exact width is wanted.
+
+\paragraph{Nondegenerate source spans.}
+Label every producer node by the rational span $U$ of its source indicators.
+Each retained node, including every replacement star node, has a common
+pair $\{a,b\}$. Every vector $u\in U$ satisfies
+$u_a=u_b=t$ and $\sum_i u_i=5t$, so
+\[
+ u^{\mathsf T}Hu=\sum_{i\notin\{a,b\}}u_i^2.
+\]
+If the right side vanishes, $\sum_{i\notin\{a,b\}}u_i=3t$ gives $t=0$.
+Thus $U$ is positive definite. Along every addition edge source supports
+and their spans are nested. Every side-output source meets its target in
+exactly two points, so $U\subset t_S^\perp$. Orthogonal complements supply
+the increasing labels in the reversed computation as in the shared-point
+construction. No binary orthonormal-basis condition is imposed on these
+rational labels.
+
+The retained total $A_C$ has source span of dimension $h-2$. Indeed, its
+coordinates outside $C$ are the indicators of all triples on $h-2$ points,
+which span the whole rational coordinate space: differences of triples give
+all coordinate differences, and any triple has nonzero coordinate sum.
+The two coordinates on $C$ are both one third of the outside coordinate sum.
+
+\paragraph{Transparent retained-total schedule.}
+The retained-total wrapper follows PRs~\#4 and~\#6; the paired input ordering
+follows the aligned common-point idea in PR~\#2. Use the outgoing-use/pivot
+compiler on this addition DAG. Its invertible
+mixer $L$ uses one role per addition plus one per output use. Write $V$ for
+source copy, $R_0$ for retained-total scatter, and $J$ for the negative side
+injection. In chronological order apply
+\[
+ L,-R_0,-J,L^{-1},V,L,R_0,J,L^{-1},-V.
+\]
+For arbitrary initial auxiliary vector $z$, this subtracts $(R_0+J)Lz$,
+adds $(R_0+J)L(z+Vx)$, restores $z$, and changes the target by $x$.
+Its inverse gives the inverse shear. The three tensor stages send
+$(X,Y)$ to $(-Y,X)$; a final pointwise negation on $X$, at its existing full
+frame, produces the exact exchange and adds zero edge rank.
+
+Use the original prefix decomposition $A=B\perp P$ and future line $Q$.
+Set $D_0=(B\otimes F)\otimes Q$, $D_1=(A\otimes F)\otimes Q$, and
+$D_U=D_0\perp(P\otimes U\otimes Q)$. Early mixers and scatters have frame
+$D_0$, the source copy its source-line frame, the middle mixer $D_U$, the
+retained scatter $D_0$, the side injection its target-complement frame,
+and cleanup $D_1$. Only the retained output roles decrease, from $D_U$ to
+$D_0$, by $h-2$ each. In the inverse schedule the retained scatter is at
+$D_1$ and the following inverse mixer uses $D_{U^\perp}$, giving the same
+loss. The source and target data boundaries are the original tensor-stage
+boundaries. Thus total decreasing dimension is
+\[
+ L_{\rm b}=3v^2\binom h2(h-2).
+\]
+
+\paragraph{Sharing first- and third-stage banks.}
+An explicit neighbor permutation $\pi$ of the five-sets is obtained by
+pairing the ground points. For a set containing no full pair, keep the two
+singletons in its least indexed pairs and flip its other three singletons.
+For one full pair, keep it and flip the three singletons. For two full pairs,
+flip the singleton, and move the unordered pair of full-pair indices to the
+next edge of a fixed Euler circuit of the complete graph on the other
+thirteen pair indices. That graph has even degree twelve. Its Euler edges
+are distinct, consecutive edges meet in exactly one vertex, and their cyclic
+successor is a bijection. The three cases preserve their classes and all
+have $|T\cap\pi(T)|=2$.
+
+Match the stage-1 bank with fixed coordinates $(A,B)$ to the stage-3 bank
+with fixed coordinates $(B,\pi(A))$, keeping local role indices. Each
+invocation restores arbitrary auxiliary inputs. The joining labels are
+\[
+ E=F\otimes\langle t_A\rangle\otimes\langle t_B\rangle,
+ \qquad H=(\langle t_B\otimes t_{\pi(A)}\rangle)^\perp\otimes F.
+\]
+Orthogonality in the middle factor gives $E\subset H$. Their dimensions
+are $h$ and $m-h$. Replacing the separate endpoint edges by this join
+removes one role and exactly $m$ rank units, preserving the absolute deficit.
+All roles retain the required source/sink matrices. Therefore
+\[
+ W_{\rm b}=2v^2(v+R)=230640858616896000,
+ \quad s_{\rm b}=W_{\rm b}m-N+2L_{\rm b}
+ =5063027748645128371200.
+\]
+The extra $N$ source ranks come from the unchanged negative source projections.
+Consequently
+\[
+ \eta_{\rm b}=\frac{W_{\rm b}m-s_{\rm b}}{W_{\rm b}m}
+ =\frac{39}{520019360}>
+ \frac3{400000000}\frac{9997}{1000},
+ \qquad \log(21952)<\frac{9997}{1000}.
+\]
+\begin{proposition}\label{prop:prime-field-bit-interface}
+The fixed $\mathbb F_3$ circuit exchanges the two data banks, restores every
+auxiliary input, and satisfies the all-role rational endpoint identity with
+width $W_{\rm b}$ and rank sum $s_{\rm b}$ above. Its interchange exponent is
+$\tau=1-3/400000000$.
+\end{proposition}
+\begin{proof}
+The scalar schedule, nested rational frames, bank matching and negative
+source projections just established give the interface. The strict
+rank-ratio comparison and the finite-alphabet argument below give the exponent.
+\end{proof}
+
+\paragraph{Finite-alphabet interchange.}
+The address radix in the rational-shear construction is still the fixed
+prime chosen to avoid the rational matrix denominators; it is unrelated to
+the payload field $\mathbb F_3$. Represent original bits as payload symbols
+zero and one. Recursive role streams may contain symbol two. Address
+permutations commute with pointwise $\mathbb F_3$ gates exactly as they do
+with XOR gates, and all local gates are fixed finite tables. At completion
+the corrected scalar permutation restores the original payload symbols.
+Thus the all-role endpoint identity and the recurrence
+$F_k\le(s_{\rm b}/W_{\rm b})F_{k-1}+O(1)$ hold over this fixed alphabet.
+There is no conversion between binary and ternary numerical addresses and
+no multiplicative per-level encoding cost. Existing record streams may be
+processed bit-position by bit-position with this fixed payload alphabet.
+
+\subsection{Paired triple exclusion on the complex side}
+Keep the triple-based complex motif, binary labels, coefficient ring, and
+injection rule of eumemic's PR~\#3. Replace only its disjoint producer by
+the paired weighted-triple circuit above, now at $h=28$. Transfer its nodes
+with coordinate labels, and recursively split any injected node covering
+all points outside its target, exactly as in PR~\#3. The pair-star correction
+and its labels are unchanged. Every addition is disjoint; the original
+coordinate, input-line and pair-star residual proofs apply unchanged.
+The full finite check gives 61022 additions, 32816 injected pieces and
+$R_{\rm c}=93838$ roles per invocation.
+
+Share complete stage-1 and stage-3 auxiliary banks, including centers, as
+in dleen's PR~\#4. The triple permutation flipping every point to its partner
+has even intersection with its input. The join $E\subset H$ above therefore
+holds over $\mathbb F_2$. A tensor of coordinate units outside $B$ in its
+first and third factors belongs to $H\cap E^\perp$ and has norm one.
+Its nonzero residual is nonalternating and has an orthonormal basis.
+The phase interface and weight-27 endpoint corrections are unchanged.
+With $v_{\rm c}=3276$ and $m_{\rm c}=21952$,
+\[
+ W_{\rm c}=2v_{\rm c}^2(v_{\rm c}+R_{\rm c}+h+1)=2085111546336,
+ \quad L_{\rm c}=3v_{\rm c}^2h(h+1),
+ \quad s_{\rm c}=W_{\rm c}m_{\rm c}-2v_{\rm c}^3+2L_{\rm c}.
+\]
+Here $\eta_{\rm c}=5/12693352>(39/10^9)\cdot10$ and
+$\log m_{\rm c}<10$, giving $\sigma=1-39/10^9$.
+\begin{proposition}\label{prop:prime-field-complex-interface}
+The paired complex network satisfies the retained binary phase interface,
+including arbitrary auxiliary inputs and all endpoint corrections, with the
+constants $m_{\rm c},W_{\rm c},s_{\rm c}$ above and $\sigma=1-39/10^9$.
+\end{proposition}
+\begin{proof}
+The unchanged local binary residual proofs apply to the new disjoint
+producer, the verified injection splits, and the pair-star correction.
+The preceding norm-one join witness covers bank sharing. Telescoping and
+the retained weight-27 corrections therefore give the interface, and the
+strict logarithm comparison gives the exponent.
+\end{proof}
+The normalized gate coefficients remain in $\{0,\pm1,\pm1/2\}$.
+The scalar gate count is $3v_{\rm c}^2(4(61022+3276)+4v_{\rm c}+4)$,
+less than $12W_{\rm c}$; the retained stopped-depth guard applies with these
+new constants, subject to its separately checked finite inequalities.
+
+\subsection{Conditional assembly at $2^{-28}$}
+Combine these two finite interfaces with the compact-control movement and
+stopping guard and with eumemic's fast Gaussian resampling in PR~\#5.
+Take
+\[
+\begin{aligned}
+ \epsilon&=\frac{4999}{10000}, & c&=\frac{9999}{10000}, & \beta&=\frac{19}{25},\\
+ \lambda&=1-\frac{749}{10^{11}}, &
+ \lambda'&=1-\frac{748}{10^{11}}, & \delta&=10^{-6},\\
+ \zeta&=10^{-4}, & C_1&=\frac{19601}{10000}, &
+ \kappa&=\frac{373}{10^{11}}>2^{-28}.
+\end{aligned}
+\]
+
+With compact-control packed and reserved-axis exponents, every constraint
+is strict. The smallest of the seven assembly margins is
+\[
+ g_3=\frac{934813}{250000000000000},\qquad
+ g_3-\kappa=\frac{2313}{250000000000000}>0.
+\]
+This is a conditional asymptotic exponent claim under the same retained
+fixed-tape, analytic and numerical interfaces, not a full formalization of
+integer multiplication and not a practical running-time measurement.
