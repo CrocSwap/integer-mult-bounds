@@ -1,5 +1,5 @@
-// Dimension adaptation at45/47; extra primes for all source-growth cases.
-// Exact bounded-minor inequalities are checked by fixed_basis_moment.py. Original credit below.
+// Dimension adaptation at 45/47; extra primes for all source-growth cases.
+// Exact bounded-minor inequalities are checked by verify.py. Original credit below.
 // Copyright 2026 icekylinx. Apache-2.0; AI-assisted handoff integration.
 // Original round3_rankone_profiles.cpp. Requires GCC/Clang unsigned __int128.
 #include <algorithm>

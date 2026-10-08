@@ -40,6 +40,10 @@ def tree(edges,n):
 
 def run():
     assert not sys.flags.optimize, 'Assertions must remain enabled'
+    corner_sources=ROOT/'research/two-stage-dimensions/corners'
+    corner_manifest=json.loads((corner_sources/'SOURCE.json').read_text())
+    for name,digest in corner_manifest['local_sha256'].items():
+        assert hashlib.sha256((corner_sources/name).read_bytes()).hexdigest()==digest,name
     prior=predecessor.run()
     manifest=json.loads((ROOT/'references/fixed32/SOURCE.json').read_text())
     for name,record in manifest['files'].items():
