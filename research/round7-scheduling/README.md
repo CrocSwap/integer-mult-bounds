@@ -8,8 +8,9 @@ Physical width is 134,095,520, with 27,256 and 35,720 auxiliary roles.
 
 Both compiler dirty-basis checks, independent serialized replay, actual paid
 transition profiles/CRT and exact moment/assembly checks passed; see
-[the completed receipt](validation-receipt.json). Deterministic regeneration
-and broad repository checks remain pending. The source and artifact closure is pinned in
+[the completed receipt](validation-receipt.json). Both words and the complete arithmetic certificate also regenerated exactly;
+see [the reproduction receipt](reproduction-receipt.json). Broad repository
+checks and CI review remain pending. The source and artifact closure is pinned in
 [selected-both/MANIFEST.json](selected-both/MANIFEST.json); see the
 [proof and attribution](selected-both/PROOF.md) and
 [exact certificate](selected-both/arithmetic.json).
