@@ -21,6 +21,18 @@ speedup. The model and general reduction are inherited from OpenAI's
 [Selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json) ·
 [Independent arithmetic check](docs/research/community-pair-arithmetic.json)
 
+## Additional conditional construction: balanced coarse split frames
+
+The [balanced-split proof and reproduction guide](research/balanced-split/README.md)
+gives **κ=25872812736433/500000000000000000=5.1745625472866e-5**, approximately
+**0.6437453019850683%** above the complete published PR71 witness. It composes
+PR69 balanced coarse sums and a bounded PR70 carry exchange with PR71's
+anchored split graph, future unit completion and profile-cost pending controls.
+All actual words, dirty inputs, paid profiles and 47 strict assembly constraints
+are checked by `make balanced-split-verify`. This finite conditional construction
+retains the inherited all-size hypotheses and contributor notices. Chafik
+Boukhalfa prepared the selected composition with OpenAI Codex assistance.
+
 ## Additional conditional construction: anchored split frames with live reclamation
 
 The [split-pair proof and reproduction guide](research/split-pair/README.md)

@@ -23,6 +23,7 @@ verify:
 	$(MAKE) verify-positive
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
+	$(MAKE) verify-balanced
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -435,3 +436,12 @@ split-pair-verify:
 	python3 -m unittest discover -s tests -p 'test_split_pair*.py' -v
 
 verify-joint: split-pair-verify
+
+.PHONY: balanced-split-verify verify-balanced
+balanced-split-verify:
+	python3 scripts/experiments/verify_balanced_split.py
+	python3 scripts/experiments/audit_balanced_split_completion.py
+	python3 scripts/experiments/audit_balanced_split_exchange.py
+	python3 -m unittest discover -s tests -p 'test_balanced_split*.py' -v
+
+verify-balanced: balanced-split-verify
