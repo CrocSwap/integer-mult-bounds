@@ -229,3 +229,16 @@ copied-both-reversed-producer:
 	python3 research/copied-both-reversed/review/fixed23_copied_crt_audit.py --work-dir build/copied-both-reversed/producer --record build/copied-both-reversed/producer.json --profiler-source research/copied-both-reversed/full_profiles23.cpp --output build/copied-both-reversed/crt-audit.json
 
 verify: copied-both-reversed-producer copied-both-reversed-check
+
+.PHONY: rad-fixed-reversed-check rad-fixed-reversed-producer
+rad-fixed-reversed-check:
+	python3 research/rad-fixed-reversed/compatibility.py
+	python3 research/rad-fixed-reversed/witness.py --output build/rad-fixed-reversed/certificate.json
+	python3 -m unittest discover -s tests -p 'test_rad_fixed_reversed.py' -v
+
+rad-fixed-reversed-producer:
+	mkdir -p build/rad-fixed-reversed/producer
+	python3 research/rad-fixed-reversed/producer.py --work-dir build/rad-fixed-reversed/producer --output build/rad-fixed-reversed/producer-report.json
+	python3 research/rad-fixed-reversed/review/audit.py --work build/rad-fixed-reversed/producer --output build/rad-fixed-reversed/independent-audit.json
+
+verify: rad-fixed-reversed-producer rad-fixed-reversed-check

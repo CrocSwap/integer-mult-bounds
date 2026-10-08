@@ -1,0 +1,138 @@
+Original-envelope weighted carrier matching: schedule and copied-center audit
+2026-10-08. Scoped construction theorem, not an optimality claim.
+
+Sources and credit
+The original event-slot graph and rank-histogram delta are icekylinx's
+scripts/partial_swap/match_exported_dag.cpp and the Carrier matching subsection
+of notes/partial-swap-construction.tex, inherited from PR18 and subsequent
+retained-total producers. The reversible fanout construction is also visible
+in scripts/exclusion_circuit.py:compile. PR36 supplies copied retained centers.
+This audit permits changing the selected matching inside that SAME original
+envelope graph; it does not claim positive-label propagation remains unchanged
+after arbitrary changes to its propagation arcs.
+
+1. Precise allowed choices
+For an active addition u=a+b choose at most one later use e of one of its
+operands v. The use must be the exact gate operand slot (consumer,side), or
+the exact designated output index. No use may receive two selected arcs.
+Order events by (original-envelope rank, original node index), with an output
+index offset past all nodes in the second coordinate. Require donor strictly
+before receiver, and E_u subset E_target(e). Also require the unchanged
+producer dependencies E_v subset E_u. For the retained envelopes, inclusion
+is certified by core_target subset core_u and cover_u subset cover_target.
+Sources keep their original triple-line labels, not positive enlargements.
+The two operands of an addition have disjoint nonempty scalar support.
+
+The exact source order and source/terminal identity assignments remain fixed.
+The partial matching need not have maximum cardinality for validity. Having
+the same cardinality as the selected maximum matching is what preserves R.
+Merely preserving cardinality, projected donor/target-node pairs, or rank
+inequalities is NOT sufficient.
+
+2. Carrier allocation for any such matching
+Make one vertex for each use of each scalar value. A selected donor u preserving
+v joins the v-use at u to its selected receiver use of v. Every vertex has
+indegree at most one; every gate has at most one outgoing selected arc, so at
+most one of its operand-use vertices has an outgoing arc. Event order rules
+out cycles. For each value, its use vertices split into disjoint directed
+paths with at least one head. No value loses its first use.
+
+Allocate one delivery carrier per path head. At an addition, preserve the
+operand having the outgoing selected arc, if any, and overwrite the other
+operand (the pivot) by their sum. If there is no selected outgoing arc, choose
+either pivot. Fan this sum into fresh roles for every other head of the result
+value; its first head uses the pivot role. Follow each selected path in order
+on its unchanged operand carrier. No two simultaneous gate inputs alias:
+the only identifications are between chronologically disjoint uses on these
+paths. The addition never overwrites its continuing nonpivot operand.
+
+Let k_x be the number of heads for value x. Sources cost k_x roles, additions
+cost k_x-1 fresh roles. Since the original use count is 2c+q and each selected
+arc removes one head, total roles are
+    sum_x k_x - c = (2c+q-|M|)-c = c+q-|M|.
+This construction visits all original gates and all designated uses. It does
+not replace a source-to-output path by a direct bypass or change its support.
+
+The schedule_audit.py implementation reconstructs these paths and physical
+slots independently of the matching optimizer. It checks all source
+coefficient vectors exactly as bitsets, not just numerical scalar samples.
+Its dirty-wrapper replay is an additional finite regression, not the proof
+of arbitrary-scratch restoration.
+
+3. Arbitrary dirty scratch and both orientations
+The resulting scalar schedule L is a composition of invertible elementary
+XOR additions, including fanout into initially arbitrary destination roles.
+Fresh-zero coefficient correctness is the unchanged intended map JLV.
+For arbitrary scratch z, the schedule L,J,L^-1,V,L,J,L^-1,V adds
+    JLz + JL(z+Vx) = JLVx
+to the destination and returns scratch to z. Thus fresh-zero correctness
+does not assume that actual scratch starts clean. Every selected continuation
+changes frame by D_(P_target-P_donor), since projectors are nested and
+D_P is involutive. All incident scalar roles share the gate's frame. Reversing
+the complete schedule uses the inverse scalar gates and complementary frames;
+the same nested difference and the same fixed-basis child profile are charged.
+The full inherited dirty wrapper and paid endpoint corrections remain in use.
+
+4. Exact matrix-profile delta
+Write B(A) for the complete charged ordered block profile of matrix A in the
+single fixed I+J basis (B(0)=0). Each legal selected arc u -> e preserving v
+replaces the donor's retirement and one independent fresh delivery by one
+continuation. Its additive delta is exactly
+    B(P_t-P_u) - B(I-P_u) - B(P_v) - B(P_t-P_v).
+The three subtractions have distinct event provenance. Matrix profiles must
+be certified for every new residual; their ranks alone do not determine cost.
+The rank delta is
+    (r_t-r_u)-(h-r_u)-r_v-(r_t-r_v) = -h.
+The simultaneous changes sum because each donor retirement and each receiver
+delivery-head use is removed at most once. The path-head construction proves
+the final transition multiset has a nonnegative event realization, even where
+different physical events aggregate into the same matrix-key counter.
+
+5. Copied retained-center terminals survive every allowed choice
+A designated output use is a terminal vertex, not an addition donor. It has
+no outgoing selected arc, even when its scalar root also has ordinary later
+consumers. Those consumers have distinct use vertices/carriers. A matched arc
+may enter a center output use; it cannot leave it or skip its observation.
+The terminal role's last ordinary frame is the output root frame (after the
+incoming continuation), and its scalar value is still that root's value.
+
+In both h=23 and h=25 retained producers, the h kind=1 outputs have cores
+{i}, full covers, and original envelope U_i of rank h-1. Independently tag
+their paid terminal transform P_Ui and old full-identity cleanup before any
+profile aggregation. The copied-center schedule keeps the former on a paid
+copy and replaces the latter by I-P_Ui, rank one. In either orientation this
+is the PR36 local schedule on an arbitrary incoming role state and arbitrary
+fixed background frame, so a different incoming carrier changes none of it.
+
+For an arc into a designated center, the term -B(P_v) is a removed fresh
+delivery head. It is NOT permission to delete the separately tagged terminal
+copy transform, although both can have the same aggregated matrix key. The
+per-value bound number_of_incoming_arcs <= uses-1 ensures a head remains;
+at additions there are enough ordinary fanout initializations to remove.
+Sources have one initialization per head and also retain at least one head.
+All h center copy transforms and h rank-one cleanups therefore remain paid.
+The rank saving from copying is exactly h(h-1), independently of M.
+Thus the copied original-envelope local rank sum remains hR+h(h-1).
+
+6. Proof gates and counterexamples
+Required receipt: exact DAG/source pin; unique donor and receiver slots;
+same shared operand; strict event order; exact envelope inclusions; full
+physical allocation with no simultaneous aliasing; every terminal protected;
+all-source output coefficients; all h tagged center copy/cleanup occurrences;
+full actual residual profiles certified using the reviewed rank-four CRT bound;
+nonnegative final block histogram and unchanged rank/role counts. A complete
+characteristic and assembly recalculation is still required for an exponent.
+
+Invalid relaxations include two arcs from one donor (both inputs would have
+to remain nonpivots while producing their sum), two arcs into one use (role
+aliasing), a backward arc/cycle (no initial path head), an arc preserving the
+wrong operand (wrong scalar value), or an output-as-donor arc (overwrites a
+protected terminal). Matching only dimension inequalities does not establish
+projector nesting. Reusing positive labels computed from different matching
+arcs requires a fresh inclusion/propagation audit and is outside this theorem.
+
+The original envelope labels, fixed bases and tensor contraction formulas do
+not change under a legal exchange. Genericity is not silently reintroduced:
+the new nested residuals must be profiled at the same fixed bases. The old
+rank-four low-rank envelope representation applies to any such nested pair,
+but its exact actual denominators must still be used by the CRT profiler.

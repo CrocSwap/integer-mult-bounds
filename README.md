@@ -1,3 +1,13 @@
+# Conditional multiplication saving 4.099494519 × 10^-5
+
+RaD's alternating producers combined with both fixed bases and copied reversed
+corners give **κ = 4099494519/10^14 > 2^-15**, under the inherited analytic
+and fixed-tape hypotheses: **1.6193% above PR #41's alternating candidate**.
+
+See the [proof and reproduction guide](research/rad-fixed-reversed/README.md).
+The full repository rerun for this contribution is pending. Earlier results
+below retain their own validation status.
+
 # Conditional multiplication saving 3.918734894 × 10^-5
 
 Fixing both local bases while preserving copied reversed corners gives
