@@ -172,3 +172,13 @@ two-stage-producer:
 	python3 research/two-stage/producer.py
 
 verify: two-stage-producer two-stage-check
+
+.PHONY: two-stage-dimensions-producer two-stage-dimensions-check
+two-stage-dimensions-producer:
+	python3 research/two-stage-dimensions/producer.py
+
+two-stage-dimensions-check:
+	python3 research/two-stage-dimensions/verify_candidate.py
+	git apply --check patches/two-stage-dimensions.patch
+
+verify: two-stage-dimensions-producer two-stage-dimensions-check

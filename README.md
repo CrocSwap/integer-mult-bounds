@@ -1,3 +1,15 @@
+# Conditional multiplication saving 1.6038 × 10^-5
+
+The two-stage construction at dimensions **(47,45)** gives
+**κ = 16038/10^9 = 1.6038 × 10^-5** in `O(n (log n)^(1−κ))`,
+under the retained analytic and fixed-tape hypotheses.
+
+See the [proof and reproduction guide](research/two-stage-dimensions/README.md),
+[proof source](notes/two-stage-47-45-note.tex), and
+[exact certificate](research/two-stage-dimensions/certificate-47-45.json).
+Run `make two-stage-dimensions-producer two-stage-dimensions-check`.
+No PDF is generated. The inherited PR29 record follows.
+
 # Conditional multiplication saving beyond 2^-16
 
 The new unequal two-stage construction gives **κ=15536/10^9=1.5536×10^-5 > 2^-16** under the retained analytic and fixed-tape hypotheses. See [proof and reproduction](research/two-stage/README.md) and the [complete new proof](notes/two-stage-16-note.tex). The results below are preserved dependencies.
