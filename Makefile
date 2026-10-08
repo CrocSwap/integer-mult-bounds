@@ -22,6 +22,7 @@ verify:
 	$(MAKE) verify-skip-strips
 	$(MAKE) verify-pair-assembly
 	$(MAKE) verify-rank-pair
+	$(MAKE) verify-global-anchor
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -366,3 +367,9 @@ rank-pair-verify:
 	python3 research/rank-pair/frame_compile.py
 	python3 research/rank-pair/screen.py
 	python3 -m unittest discover -s tests -p 'test_rank_pair.py' -v
+
+.PHONY: verify-global-anchor global-anchor-verify
+verify-global-anchor: global-anchor-verify
+global-anchor-verify:
+	python3 research/global-anchor-screen/verify.py
+	python3 research/global-anchor-screen/controls.py

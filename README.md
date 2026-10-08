@@ -1,22 +1,26 @@
-# Rank-first pair assembly: conditional saving 5.102757e-5
+# Compatible live anchors: conditional saving 5.102938e-5
 
-This branch proposes **κ = 5102757/10^11 > 2^-15** by applying
-[Chafik Boukhalfa's PR #60](https://github.com/CrocSwap/integer-mult-bounds/pull/60)
-rank-first reclamation to
-[Avi Eisenberg's PR #62](https://github.com/CrocSwap/integer-mult-bounds/pull/62)
-interval-strip pair graph with eumemic's PR #57 joint frame compiler.
-The physical wire count remains **137,151,806**; changed frame transitions
-improve the actual fixed-basis child profile. The bit saving is
-**5103018/10^11**. This is above #61's pinned parameter refinement
-`25508460085039/500000000000000000` at `afb7cb67`.
+This branch proposes **κ = 5102938/10^11 = 5.102938e-5** for
+`T(n) = O(n (log n)^(1-κ))`, improving [PR #63](https://github.com/CrocSwap/integer-mult-bounds/pull/63).
+The bit-network saving is **5103199/10^11 = 5.103199e-5**; the final
+multiplication exponent includes the inherited assembly costs.
 
-[Proof, scope and source credits](research/rank-pair/PROOF.md) ·
-[Exact candidate certificate](research/rank-pair/screen-certificate.json)
+A pending carrier can help clear another slot when its current frame F,
+the clearing region E and its next-use frame G satisfy **F ⊆ E ⊆ G**.
+Both physical transitions are charged and full dirty-state replay checks
+restoration. Rank-first reclamation uses ascending slot ties at h=23 and
+descending ties at h=25. The scalar graph and physical wire count
+**137,151,806** remain those of Avi Eisenberg's PR #62.
 
-Run `make rank-pair-verify` for regenerated words, independent dirty-state
-replay, fixed profiles and exact inequalities. `make pair-assembly-verify`
-checks the underlying scalar and data construction; `make verify` retains
-main's existing verification and includes the new targets.
+[Proof, scope and source credits](research/global-anchor-screen/PROOF.md) ·
+[Exact certificate](research/global-anchor-screen/selected-arithmetic.json) ·
+[Source and word manifest](research/global-anchor-screen/selected-manifest.json)
+
+Run `make global-anchor-verify` to regenerate both words in temporary storage,
+replay every dirty coordinate, rebuild the actual fixed-basis profiles and
+check the exact moment, all 47 constraints, seven strict margins, next-grid
+rejection and failure controls. `make verify` retains the existing checks
+and includes this target; CI runs it on Python 3.11, 3.13 and 3.14.
 
 This proposed witness is conditional on the inherited multiplication,
 all-size compiler, analytic and fixed-tape interfaces. Finite checks do not
@@ -24,8 +28,11 @@ formally verify the full theorem, establish global optimality, or measure a
 practical speedup. The reviewed main-branch result below remains separately
 identified; its maintainer review does not cover this new increment.
 
-Composition prepared by Dominik Scholz with substantial OpenAI GPT-6 Astra /
-Codex assistance. All source-specific contributor notices are retained.
+Prepared by Dominik Scholz with substantial OpenAI GPT-6 Astra / Codex
+assistance, building on Chafik Boukhalfa's PR #60 ranked reclamation,
+eumemic's PR #57 joint frame compiler, and Avi Eisenberg's PR #62 graph.
+All source-specific contributor notices and the earlier
+[PR #63 proof](research/rank-pair/PROOF.md) remain preserved.
 
 # A sharper exponent for integer multiplication
 
