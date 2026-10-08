@@ -7,6 +7,14 @@ conditional witness remains kappa = 3.8e-9. The lemmas below are written
 arguments awaiting independent review; circuit enumeration does not formally
 verify the multiplication theorem or the general transfer arguments.
 
+After these screens finished, [PR #10](https://github.com/CrocSwap/integer-mult-bounds/pull/10)
+posted a stronger conditional claim, kappa = 6149999/50000000000000,
+using batched recursive networks. Its proof has not been reviewed here.
+The comparisons below are specifically against PR #9, not a current-best
+claim. The output-cost obstructions apply to the stated unbatched compiler
+and do not rule out PR #10's different recursive cost accounting. Reviewing
+that construction takes priority in subsequent numerical research.
+
 ## Bank sharing does not require a multiple of four
 
 Let the vertices be the r-subsets of an h-point set. Connect a left copy S to
