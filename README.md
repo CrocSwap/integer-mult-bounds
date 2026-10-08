@@ -132,6 +132,15 @@ and scoped ceilings.
 | [h50-paired-59](patches/h50-paired-59.patch) | `2^-59` | Paired sums, stopped guard and tighter Gaussian setup |
 | **[compact-control-34](patches/compact-control-34.patch)** | **`83/10^12 > 2^-34`** | **Compact controls, complete reservations, local repair and separate complex arity** |
 
+## Additional draft research record
+
+[RaD's source-framed h53 review package](research/rad-source-framed/README.md)
+preserves a separately checked conditional witness above `2^-20`, with
+portable exact arithmetic replay, pinned full evidence and explicit source
+attribution. Newer pending contributions state larger savings; this package
+makes no current-best claim and does not replace the retained release
+manuscript. Run `make rad-source-framed-check` for its targeted checks.
+
 ## Attribution, citation, and license
 
 Author: **Douglas Colkitt**. Research, implementation and drafting were performed

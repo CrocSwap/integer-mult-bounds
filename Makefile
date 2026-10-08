@@ -1,4 +1,4 @@
-.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
+.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch rad-source-framed-check
 
 verify:
 	python3 scripts/certify.py
@@ -93,3 +93,6 @@ compact-note:
 
 fetch:
 	python3 scripts/fetch_upstream.py
+
+rad-source-framed-check:
+	python3 research/rad-source-framed/verify.py
