@@ -5,7 +5,8 @@
 The conditional bound is `T(n) = O(n (log n)^(1-kappa))`.
 This is **0.9788258% above our original PR #74 result**, **0.8097927% above
 pinned PR #71**, and **0.8082664% above PR #75's claim observed on 8 October
-2026**. These compare asymptotic exponent savings; they are not measured
+2026**. The later PR #79 claim `5.1745625472866e-5`, observed at 19:55 UTC on the same
+date, is also below this result by **0.1649853%**. These compare asymptotic exponent savings; they are not measured
 multiplication speedups.
 
 | Quantity | Original PR #74 | Pinned PR #71 | This composition |
@@ -65,3 +66,5 @@ finite conditional witness, with no global-optimality or practical-speed claim.
 Prepared for Thomas DiFiore with substantial OpenAI Codex assistance. Original
 PR #74 remains available in `../ordered-frames/`; all predecessor credits and
 licenses remain applicable.
+
+Concurrent PR #75–#79 work is acknowledged; no priority claim is made.

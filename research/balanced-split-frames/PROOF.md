@@ -113,7 +113,7 @@ helper. The independent checker derives the complete paid multiset and uses
 40 exact atanh terms for logarithms and Taylor degree 10 with a geometric
 exponential tail. It imports no production arithmetic and checks each of the
 47 assembly slacks and seven margins independently. The next kappa grid value
-is rejected. Negative controls reject altered role counts, fabricated slacks
+is rejected. Negative controls reject omitted paid children, fabricated slacks
 and incorrect source hashes.
 
 Use positive backoff `10^-18`. Since W is below `2^27`, its `bit_length()` is
@@ -140,3 +140,6 @@ icekylinx, James Chang, Zhihao Chen, Aurel Prosz, Swapnil Jain, Alejandro Zarzue
 Urdiales, Douglas Colkitt, OpenAI and Harvey–van der Hoeven, and predecessor
 AI-assistance disclosures. No predecessor authorship or endorsement of this
 composition is implied. Existing licenses and notices remain in force.
+
+Concurrent PR #75–#79 contributions, including carry exchanges, balanced split
+constructions and coordinate flags, are acknowledged. No priority claim is made.
