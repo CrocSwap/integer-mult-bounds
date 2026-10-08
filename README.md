@@ -1,30 +1,30 @@
-# Reordered rank-first regions: conditional saving 5.1028985071975e-5
+# Cost-aware retired-slot selection: conditional saving 5.1033760584215e-5
 
-This branch proposes **κ = 2041159402879/(4×10^16) = 5.1028985071975×10^-5**,
-about **0.00277% above [PR #63](https://github.com/CrocSwap/integer-mult-bounds/pull/63)**.
-The bit saving is **5103158916233/10^17**. Within each frame rank, use
-cover/core order at h=23 and decreasing minimum-node order at h=25. The scalar graph, rank-first
-retired-slot policy, role counts and paid endpoints remain inherited from #63;
-the changed schedule changes the physical frame transitions and their complete
-fixed-basis child profile. W remains **137,151,806**.
+This branch proposes **κ = 10206752116843/(2×10^17) = 5.1033760584215×10^-5**,
+**0.009358% above [PR #65](https://github.com/CrocSwap/integer-mult-bounds/pull/65)**.
+The bit saving is **51036365162009/10^18**. The scalar graph remains PR #63's
+interval-strip pair graph. When a retired physical role can be cleared and
+reused, the compiler compares eligible dependence witnesses across all frame
+ranks using a deterministic profile-cost heuristic. Every selected XOR,
+frame raise, cleanup and endpoint correction remains paid and checked.
 
-[Construction, proof and credits](research/reordered-rank-pair/README.md) ·
-[Exact arithmetic certificate](research/reordered-rank-pair/arithmetic/certificate.json)
+Both axes retain their original region order and their 27,918 / 36,586 roles;
+W remains **137,151,806**. The resulting complete physical child distribution
+improves the exact characteristic moment. Search scores are heuristics;
+acceptance uses full physical replay and exact rational certificates.
 
-Run `make reordered-rank-pair-verify` to rebuild both physical words and profiles,
-then check the exact moment and inherited assembly. `make verify` includes this
-new target and all inherited verification groups. Full repository validation
-is pending for this draft; focused checks passed before publication.
+[Proof, source credits and reproduction](research/slot-cost-rank-pair/README.md) ·
+[Exact certificate](research/slot-cost-rank-pair/arithmetic/certificate.json)
 
-This is a finite conditional witness under the inherited analytic, all-size
-compiler and fixed finite-alphabet multitape hypotheses. It is not a proof
-of global optimality or a measured practical speedup. The schedule gain and
-the finer arithmetic-grid gain are distinguished in the research note.
+Run `make slot-cost-rank-pair-verify`. Full `make verify` is pending for this
+draft and will be recorded before it is marked ready. The bound retains the
+inherited analytic, all-size compiler and fixed finite-alphabet multitape
+hypotheses; no global optimality or practical speedup is claimed.
 
-Prepared by Rohan Arun with OpenAI Codex assistance. Credit Dominik Scholz
-(#63), Avi Eisenberg (#62), Chafik Boukhalfa (#60), eumemic (#57), and the
-Alejandro Zarzuelo Urdiales (#61, parameter-refinement precedent), together with all inherited contributors.
-The reviewed main-branch result below remains separately identified.
+Prepared by Rohan Arun with OpenAI Codex assistance. Credit Dominik Scholz,
+Avi Eisenberg, Chafik Boukhalfa, eumemic, Alejandro Zarzuelo Urdiales,
+RaD/hipotures and all inherited contributors. The reviewed main result below
+remains separately identified.
 
 # A sharper exponent for integer multiplication
 

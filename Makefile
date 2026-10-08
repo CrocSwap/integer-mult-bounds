@@ -23,6 +23,7 @@ verify:
 	$(MAKE) verify-pair-assembly
 	$(MAKE) verify-rank-pair
 	$(MAKE) verify-reordered-rank-pair
+	$(MAKE) verify-slot-cost-rank-pair
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -376,3 +377,12 @@ reordered-rank-pair-verify:
 	python3 research/reordered-rank-pair/arithmetic/refine.py
 	python3 research/reordered-rank-pair/arithmetic/audit.py
 	python3 -m unittest discover -s research/reordered-rank-pair/arithmetic -p 'test_arithmetic.py' -v
+
+.PHONY: verify-slot-cost-rank-pair slot-cost-rank-pair-verify
+verify-slot-cost-rank-pair: slot-cost-rank-pair-verify
+slot-cost-rank-pair-verify:
+	python3 research/slot-cost-rank-pair/verify.py --rebuild
+	python3 research/slot-cost-rank-pair/test_negative.py
+	python3 research/slot-cost-rank-pair/arithmetic/refine.py
+	python3 research/slot-cost-rank-pair/arithmetic/audit.py
+	python3 -m unittest discover -s research/slot-cost-rank-pair/arithmetic -p 'test_arithmetic.py' -v
