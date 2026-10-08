@@ -163,3 +163,12 @@ semantic-bulk-note:
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
 verify: semantic-bulk-certificate
+
+.PHONY: a5-semantic-certificate a5-semantic-patch a5-semantic-note
+a5-semantic-certificate:
+	python3 research/a5-semantic/witness.py
+a5-semantic-patch:
+	python3 research/a5-semantic/make_patch.py
+a5-semantic-note:
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/a5-semantic-note.tex
+verify: a5-semantic-certificate a5-semantic-patch

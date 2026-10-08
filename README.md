@@ -1,3 +1,9 @@
+# A contiguous A5 block beyond 2^-17
+
+This branch gives the conditional saving **κ=11447067/10^12=1.1447067×10^-5 > 2^-17**, about 4.159% above PR23. One width-21 block already present in the retained rational basis replaces 21 singleton children in each A5 corner. The physical producer and frames are unchanged; Zhihao Chen's PR23 semantic/bulk transfer of RaD/PR20 remains the analytic interface.
+
+See the [proof and reproduction guide](research/a5-semantic/README.md), [manuscript](notes/a5-semantic-note.tex), [PDF](artifacts/a5-semantic-note.pdf), and [validation status](research/a5-semantic/validation.json). New A5 argument and controls by Rohan Arun with OpenAI Codex assistance; all inherited contributions retain attribution. The following results are historical dependencies.
+
 # Conditional multiplication saving beyond 2^-17
 
 This branch composes the unchanged PR21 finite interfaces with RaD/PR20's semantic precision and bulk resampling arguments, giving **κ=1099/10^8=1.099×10^-5 > 2^-17** under the documented analytic and fixed-tape hypotheses.
