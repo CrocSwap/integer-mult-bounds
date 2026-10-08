@@ -1,3 +1,15 @@
+# Dimension-30 follow-up candidate
+
+This branch includes a conditional **kappa = 12649/100000000000 = 1.2649e-7**
+follow-up to icekylinx's PR #10, approximately 2.84% above its stated witness.
+It combines that controlled batching model with the star rules of PR #9
+and the geometric bank-matching extension of PR #11. The result remains
+unreviewed and conditional. See the [incremental proof and reproduction guide](research/batched-followup/README.md),
+[exact certificate](research/batched-followup/certificate.json), and
+[updated manuscript patch](patches/batched-dimension30.patch).
+The preceding contribution's documentation is retained below for attribution
+and its original parameter witness; the new candidate uses the follow-up files.
+
 # Integer multiplication with a conditional saving beyond 2^-23
 
 \[

@@ -59,6 +59,13 @@ verify:
 	git apply --check --directory=upstream patches/h50-paired-59.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
 	git apply --check --directory=upstream patches/batched-23.patch
+	$(MAKE) batched-dimension30
+
+.PHONY: batched-dimension30
+batched-dimension30:
+	python3 research/batched-followup/verify.py
+	python3 research/batched-followup/make_patch.py
+	git apply --check --directory=upstream patches/batched-dimension30.patch
 
 note:
 	mkdir -p artifacts
