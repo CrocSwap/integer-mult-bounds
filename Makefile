@@ -2,6 +2,7 @@
 
 verify:
 	$(MAKE) copied-fixed-verify
+	$(MAKE) climbed-producers-verify
 	$(MAKE) copied-centers-verify
 	$(MAKE) structured-bulk-verify
 	$(MAKE) endpoint-gauge-producer endpoint-gauge-certificate
@@ -202,3 +203,13 @@ copied-fixed-check:
 	python3 -m unittest discover -s tests -p 'test_copied_fixed.py' -v
 
 copied-fixed-verify: copied-fixed-producer copied-fixed-check
+
+.PHONY: climbed-producers-verify climbed-producers-producer climbed-producers-check
+climbed-producers-producer:
+	python3 research/climbed-producers/producer.py
+
+climbed-producers-check:
+	python3 research/climbed-producers/witness.py --output research/climbed-producers/certificate.json
+	python3 -m unittest discover -s tests -p 'test_climbed_producers.py' -v
+
+climbed-producers-verify: climbed-producers-producer climbed-producers-check
