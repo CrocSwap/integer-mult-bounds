@@ -2,7 +2,7 @@
 
 The finite conditional witness gives **kappa = 5203279888519/100000000000000000 = 5.2032798885190e-05**,
 0.49049670% above PR80. Bit saving is 13008876609597/250000000000000000.
-This is a draft pending the full expanded repository verification.
+The full expanded repository verification passed on research commit `3410b940aa26e5876202152dfa7c4f66451ee22c`; see `validation.json` for the log hash, timing and coverage.
 
 PR80 selected already-compiled axes from PR76 and PR79. Here we compose
 their construction methods before compilation on both axes: PR79's balanced
