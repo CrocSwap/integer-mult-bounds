@@ -23,6 +23,10 @@ verify:
 	$(MAKE) verify-positive
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
+	$(MAKE) verify-balanced
+	$(MAKE) verify-indexed
+	$(MAKE) verify-final
+	$(MAKE) verify-aligned
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -428,3 +432,61 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: split-pair-verify
+split-pair-verify:
+	python3 scripts/experiments/verify_split_pair.py
+	python3 -m unittest discover -s tests -p 'test_split_pair*.py' -v
+
+verify-joint: split-pair-verify
+
+.PHONY: balanced-split-verify verify-balanced
+balanced-split-verify:
+	python3 scripts/experiments/verify_balanced_split.py
+	python3 scripts/experiments/audit_balanced_split_completion.py
+	python3 scripts/experiments/audit_balanced_split_exchange.py
+	python3 -m unittest discover -s tests -p 'test_balanced_split*.py' -v
+
+verify-balanced: balanced-split-verify
+
+.PHONY: indexed-cycle-verify verify-indexed
+indexed-cycle-verify:
+	python3 scripts/experiments/verify_indexed_cycle.py
+	python3 scripts/experiments/audit_indexed_cycle_completion.py
+	python3 scripts/experiments/audit_indexed_cycle_exchange.py
+	python3 scripts/experiments/audit_indexed_cycle_cycles.py
+	python3 scripts/experiments/audit_indexed_cycle_retired.py
+	python3 scripts/experiments/audit_indexed_cycle_pending.py
+	python3 -m unittest discover -s tests -p 'test_indexed_cycle*.py' -v
+
+verify-indexed: indexed-cycle-verify
+
+.PHONY: final-frame-verify verify-final
+final-frame-verify:
+	python3 scripts/experiments/verify_final_frame.py
+	python3 scripts/experiments/audit_final_frame_completion.py
+	python3 scripts/experiments/audit_final_frame_exchange.py
+	python3 scripts/experiments/audit_final_frame_cycles.py
+	python3 scripts/experiments/audit_final_frame_retired.py
+	python3 scripts/experiments/audit_final_frame_pending.py
+	python3 scripts/experiments/audit_final_frame_three_cycles.py
+	python3 scripts/experiments/audit_final_frame_pricing.py
+	python3 -m unittest discover -s tests -p 'test_final_frame*.py' -v
+
+verify-final: final-frame-verify
+
+.PHONY: aligned-composition-verify verify-aligned
+aligned-composition-verify:
+	python3 scripts/experiments/verify_aligned_composition.py
+	python3 scripts/experiments/audit_aligned_composition_completion.py
+	python3 scripts/experiments/audit_aligned_composition_exchange.py
+	python3 scripts/experiments/audit_aligned_composition_cycles.py
+	python3 scripts/experiments/audit_aligned_composition_retired.py
+	python3 scripts/experiments/audit_aligned_composition_pending.py
+	python3 scripts/experiments/audit_aligned_composition_three_cycles.py
+	python3 scripts/experiments/audit_aligned_composition_pricing.py
+	python3 scripts/experiments/audit_aligned_composition_lean.py
+	python3 -m unittest discover -s tests -p 'test_aligned_composition*.py' -v
+	python3 -m unittest discover -s tests -p 'test_lean_axiom_output.py' -v
+
+verify-aligned: aligned-composition-verify
