@@ -1,0 +1,168 @@
+\subsection{A whole-residual complex child}
+\label{sec:bulk-complex-child}
+
+The complex phase interface admits a further batching step. On an edge
+with residual dimension $a$, the existing binary change of basis puts
+an orthonormal residual basis into the first $a$ slots. If each slot has
+$f$ selected axes, those first $a$ slots form one contiguous interval
+of $af$ axes. Instead of $a$ child calls on $f$ axes, use one child
+on that interval.
+
+The directions need not all have the same sign. A basis vector's weight
+modulo four may make its directional kernel an inverse even on an
+increasing edge. Let $B$ be the set of negative residual slots and
+let $Z_B$ multiply an address by $-1$ precisely when the parity of its
+selected bits in those slots is odd. The exact identity
+$C^{-1}=-iZCZ$ gives
+\[
+ \bigotimes_{j=1}^{a}(C^{\varepsilon_j})^{\otimes f}
+ =(-i)^{f|B|}Z_B C^{\otimes af}Z_B,
+ \qquad \varepsilon_j\in\{1,-1\}.
+\]
+Thus one forward child, two address-sign passes and one fixed
+fourth-root phase implement the mixed signs. The same binary basis
+changes before and after the child are retained. The wrappers cost
+$O(V)$: their sign is computed from the current address descriptor,
+whose polynomial work per record is absorbed by the existing
+superpolynomial record length. They introduce at most four elementary
+coefficient operations per value and no further recursive call.
+
+We batch only the two specified auxiliary edge classes of ranks
+\[
+ a_1=m-2h,\qquad a_2=m-h^2.
+\]
+All other edges continue to use their old one-direction children.
+The first class is the increasing join between a completed stage-1
+auxiliary bank, at dimension $h$, and its matched stage-3 bank, at
+dimension $m-h$. The second is the stage-2 auxiliary exit from
+dimension $h^2$ to the full terminal frame. These are complete
+auxiliary banks, including the central roles when those are shared.
+If a width bound requires padding, add dummy auxiliary roles with
+identity scalar gates at the ordinary low and high frames before
+matching the first- and third-stage banks. Their labels only increase,
+their arbitrary scalar values are restored, and both counted auxiliary
+classes are then present for every padded role. The changed
+volume-weighted time expression is consequently
+\[
+ \frac1W\left[
+    \left(s-n_1a_1-n_2a_2\right)m^{-\sigma}
+    +n_1\left(\frac{a_1}{m}\right)^\sigma
+    +n_2\left(\frac{a_2}{m}\right)^\sigma
+ \right],
+\]
+where $n_1,n_2$ count the chosen edges. It has value $s/(Wm)<1$
+at $\sigma=1$. Strict comparison below one supplies the new complex
+recursion exponent. The separate mixed-width row construction handles
+$f=\lfloor e/m\rfloor$, the at most $m-1$ individually processed
+remaining axes, and a row reservation sufficient for the longer but
+still $O(\log d)$ recursion.
+
+\subsection{A depth guard for the unequal complex children}
+\label{sec:bulk-complex-guard}
+
+The dependency-path argument of Section~\ref{sec:pathwise-guard}
+still bounds the sum of edge ranks on one scalar path by
+\[
+ q=m+6h.
+\]
+For $h=28$ its relevant constants are
+\[
+ m=21952,\quad q=22120,\quad a_1=21896,\quad a_2=21168.
+\]
+Both selected ranks exceed $q/2$. Therefore every arithmetic dependency
+path encounters at most one selected bulk edge. At a call on $e$ axes,
+put $f=\lfloor e/m\rfloor$. Ignoring the local additive operations,
+the path has one of the following child-depth bounds:
+\[
+ qA(f),\qquad
+ (q-a_1)A(f)+A(a_1f),\qquad
+ (q-a_2)A(f)+A(a_2f).
+\]
+The weight budget accounts for both increasing and decreasing frame
+edges and for paths that switch wires at a scalar gate. Inverse-child
+and endpoint sign corrections add no child. Individually processing
+the fewer than $m$ leftover axes adds at most $8m$ elementary
+operations, absorbed into the local constant below.
+
+Take $\rho=6/5$. The following three normalized path expressions have
+a rational common upper bound strictly below one:
+\begin{equation}\label{eq:bulk-path-moments}
+ \max\left\{\frac q{m^\rho},\quad
+ \frac{q-a_1}{m^\rho}+\left(\frac{a_1}m\right)^\rho,\quad
+ \frac{q-a_2}{m^\rho}+\left(\frac{a_2}m\right)^\rho\right\}
+ <\overline\theta:=\frac{999}{1000}.
+\end{equation}
+Here is an entirely rational verification. First
+$160000^5<m^6$, so $m^\rho>160000$. For $0<t<1$, Taylor's formula
+with its second derivative bounded on $[0,t]$ gives
+\[
+ (1-t)^{6/5}
+ \le1-\frac65t+\frac3{25}\frac{t^2}{1-t}.
+\]
+Indeed its second derivative is
+$(6/25)(1-t)^{-4/5}\le(6/25)/(1-t)$.
+Putting $t=(m-a_i)/m$ gives upper bounds, in the displayed order,
+\[
+ \frac{553}{4000},\qquad
+ \frac{47817969}{47897500},\qquad
+ \frac{1213697}{1260000},
+\]
+all strictly below $999/1000$.
+
+\paragraph{Stopping and exact arithmetic.}
+Retain a global stopping threshold $d^\beta$, with $0<\beta<1$.
+For sufficiently large $d$, this threshold exceeds $2m$. A leaf reached
+from an internal call has width at least $d^\beta/(2m)$: every child
+has width at least $f=\lfloor e/m\rfloor\ge e/(2m)$. Put
+\[
+ E=64(W+m+1)^3,
+ \qquad C_{\rm dep}=1000(E+16m+1).
+\]
+The exact finite inequality
+$36W^3+4s+4W+8m+4<E$ covers all local scalar operations, the new
+leftover-axis work and the retained endpoint and inverse wrappers.
+For every descendant width $e$ reached before or just after stopping,
+strong induction gives
+\begin{equation}\label{eq:bulk-depth-power}
+ A(e)\le C_{\rm dep}d^{-\beta(\rho-1)}e^\rho.
+\end{equation}
+At a leaf, use
+\[
+ 8e\le8(2m)^{\rho-1}d^{-\beta(\rho-1)}e^\rho
+       \le16m\,d^{-\beta(\rho-1)}e^\rho.
+\]
+At an internal call, child widths are at most their stated fractions
+of $e$, so \eqref{eq:bulk-path-moments} bounds their total by
+$\overline\theta C_{\rm dep}d^{-\beta(\rho-1)}e^\rho$.
+Since $e\ge d^\beta$, the remaining gap is at least
+$(1-\overline\theta)C_{\rm dep}d^\beta\ge E$. This proves the induction.
+A root that is already a leaf separately satisfies $A(e)\le8d^\beta$,
+which is smaller than the final bound below.
+
+For rational $\zeta>0$, set
+\[
+ C_1=\rho-(\rho-1)\beta+\zeta,
+ \qquad
+ C_0=\left\lceil128m(1+1/\zeta)C_{\rm dep}\right\rceil,
+ \qquad \Delta=\lceil C_0d^{C_1}\rceil.
+\]
+The root bound from \eqref{eq:bulk-depth-power} is
+$C_{\rm dep}d^{\rho-(\rho-1)\beta}$. This covers the direct arbitrary-width
+root construction; it also covers every retained base-$m$ piece.
+Even retaining the older bound of
+$m(1+1/\zeta)d^\zeta$ such pieces, their concatenation, all reserved
+axis kernels, the outer phases and the $b^D$ conversion have depth
+at most $C_0d^{C_1}$. The original elementary-depth induction
+therefore supplies exact denominator and magnitude guards of
+$p+\Delta$ fractional bits and $\Delta+3$ integer/sign bits.
+The width remains $O(p)$ when $\epsilon C_1<1$.
+
+In particular, $\beta=1/1000$ and $\zeta=1/10000$ give
+\[
+ C_1=\frac{11999}{10000},\qquad
+ 1-\frac{7999999}{16000000}C_1
+   =\frac{64008011999}{160000000000}>0.
+\]
+Thus bulk complex children preserve the near-half dimension exponent
+while allowing the improved complex time exponent to be used with
+almost no loss at the stopping leaves.

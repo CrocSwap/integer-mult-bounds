@@ -1,0 +1,135 @@
+% Copyright 2026 Zhihao Chen (jacklightChen). Apache-2.0.
+% Extension of pinned PR18 f2ab41aebad47861caf6316282c1793e5513845e.
+% A fragment for integration, not an independently assembled multiplication bound.
+\subsection{Dirty auxiliary sources for partial-swap frames}
+\label{sec:partial-swap-source-extension}
+
+For an idempotent $P$ on the rational address space, write
+\[
+ D_P=\begin{pmatrix}I-P&P\\P&I-P\end{pmatrix}.
+\]
+If $P,Q$ commute, direct block multiplication gives
+\[
+ D_PD_Q=D_{P+Q-2PQ},\qquad D_P^{-1}=D_P,
+ \qquad D_{I-P}D_P=D_I.
+\]
+These are multiplicative frame identities; an additive-shear source
+identity is not being substituted into the partial-swap construction.
+
+\begin{lemma}[Free auxiliary source frame]
+Suppose a scalar auxiliary role is restored for every possible initial
+value.  Its source frame may be any fixed invertible address permutation
+$F$, provided its sink frame is $D_IF$.  All common gate frames and all
+interior edges can remain unchanged.  Its physical endpoint map is $D_I$,
+as required by the retained all-role interchange interface.
+\end{lemma}
+\begin{proof}
+For physical initial stream $f$, define its logical interpretation to
+be $g=F^{-1}f$.  This is a choice of coordinates, requiring no preliminary
+tape operation.  Because $F$ is invertible and $f$ arbitrary, $g$ is also
+arbitrary.  The scalar dirty-scratch identity returns the same logical
+$g$, so the physical sink holds $(D_IF)g=D_If$.
+
+Every gate still has one common frame on all its incident roles; hence
+the retained conjugation argument implements the same scalar gate.
+Only the transition from the source to the first common gate frame,
+and from the last common gate frame to the sink, change.  No value of
+the initial auxiliary stream is assumed, and no new register is added.
+\end{proof}
+
+Apply the lemma separately to the dedicated stage-two auxiliary bank.
+Keep the PR18 tensor order $(F_3,F_1,F_2)$ with
+\[
+ \dim F_1=25,\quad \dim F_2=23,\quad\dim F_3=57,
+ \quad H=575,\quad m=32775.
+\]
+For its fixed first-factor line $p$ and future third-factor line $t$,
+the first and last common gate subspaces are
+\[
+ U_0=\langle t\rangle\otimes p^\perp\otimes F_2,
+ \qquad U_1=\langle t\rangle\otimes F_1\otimes F_2.
+\]
+Their orthogonal projectors $P_0,P_1$ are commuting and satisfy
+$P_0P_1=P_0$.  Both subspaces are nondegenerate.  These are the same
+common frames used in PR18 after moving its initial inverse-stage data
+enlargement before the first copy; no gate schedule is altered here.
+
+Assign the auxiliary source frame $D_{P_0}$ and sink frame $D_{I-P_0}$.
+The first transition is the identity.  The last transition is
+\[
+ D_{I-P_0}D_{P_1}=D_A,\qquad
+ A=I-P_1+P_0
+   =I-\Pi_t\otimes\Pi_p\otimes I_{23}.
+\]
+The omitted subspace has dimension $23$, so $A^2=A$ and
+$\operatorname{rank}A=m-23$.  The former entrance and exit ranks were
+$H-23$ and $m-H$, respectively; their sum remains $m-23$.
+Every stage-two physical auxiliary role, including a central role,
+has these endpoint gate frames.  The dedicated bank is separate from
+the paired stage-one/stage-three roles, so the latter's endpoint
+identities and paired-join compiler are unchanged.  Both scalar
+orientations retain arbitrary scratch restoration.
+
+\subsection{Compatibility with the PR18 prescribed common basis}
+\label{sec:partial-swap-source-basis-extension}
+
+Use exactly the PR18 parameter family
+\[
+ S=T_3(I_{57}\otimes K),\qquad
+ K=T_2(I_{25}\otimes L_2),\qquad J_\beta=M_\beta L_1,
+\]
+including its prescribed rows and inverse columns of $M_\beta$ and
+$G_i$.  Write $\Pi_p=p\xi$, $\Pi_t=t\varphi$, with
+$\xi p=\varphi t=1$.  The $L_2$ factors cancel on the identity factor.
+For the null projector $Q=I-A$, its conjugate has entries
+\[
+ (SQS^{-1})_{(\gamma,\alpha,\beta),(\delta,a,b)}
+ =\mathbf1_{\beta=b}
+ (G_{(\alpha,\beta)}t)_\gamma
+ (J_\beta p)_\alpha
+ (\xi J_b^{-1})_a
+ (\varphi G_{(a,b)}^{-1})_\delta.
+\]
+Consequently the first-23-row/last-23-column corner is diagonal.
+Its $\beta$th entry is
+\[
+ d_\beta=(G_{(0,\beta)}t)_0(J_\beta p)_0
+ (\xi J_\beta^{-1})_{24}
+ (\varphi G_{(24,\beta)}^{-1})_{56},\qquad0\le\beta<23.
+\]
+The PR18 boundary prescriptions specialize its factors to coordinates
+of $L_0t$, $L_1p$, $\xi L_1^{-1}$, and $\varphi L_0^{-1}$.
+More explicitly they are, in that order,
+\[
+ (L_0t)_\beta,\quad (L_1p)_\beta,\quad
+ (\xi L_1^{-1})_{\beta+2},\quad
+ (\varphi L_0^{-1})_{\beta+34}.
+\]
+All indices lie in their stated factors.  For any fixed nonzero line
+vector and dual functional, each specified coordinate is a nonzero
+rational function on the appropriate general linear group.  The bases
+$L_0,L_1$ remain free in PR18's nonempty irreducible parameter family.
+Thus the finitely many conditions $d_\beta\ne0$, for every actual
+stage-two invocation and both orientations, can be multiplied with
+all PR18 invertibility and minor conditions.  They impose no new
+structural restriction and admit one simultaneous rational choice.
+
+The corresponding corner of $SAS^{-1}$ is $-\operatorname{diag}(d_\beta)$.
+It supplies 23 equally ordered contiguous pivots.  Since its size is
+the full nullity of $A$, the ordinary large-projector Schur-complement
+identity leaves the matching middle identity of width $m-46=32729$.
+The physical lower-lower profile is therefore
+\[
+ \boxed{23,32729},
+\]
+with no singleton children.  The retained exact partial-swap triangular
+conjugation applies to $A$, so these are genuine contiguous recursive
+interchanges, with no gathering or reversal of fields.  The sole
+compiler change replaces, on each of the $B_2$ stage-two roles,
+\[
+ (575,31625,23,529)\quad\hbox{by}\quad(23,32729).
+\]
+Their equal rank sums are $32752$.  Hence $W$, $m$, $L$, the complete
+rank sum and its deficit are unchanged.  All other local and macro
+profiles remain the PR18 profiles.  A new exact moment and final
+assembly are required before claiming a new multiplication bound.

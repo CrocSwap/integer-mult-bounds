@@ -1,0 +1,230 @@
+% Modified by icekylinx, 8 October 2026: shifted chirp error enclosure.
+% Original fast-Gaussian construction: eumemic; see NOTICE.
+\subsection{Faster Gaussian maps}
+\label{sec:fast-gaussian}
+
+This subsection supplies the two ingredients used in the proof of
+Lemma~\ref{lem:no-sort-resampling}. We keep the notation of that proof and
+put $\sigma=t/s$, $\theta=\sigma-1$. Define $q_j$ and $\beta_j$ by the
+same formulas for every integer $j$, so that $q_{j+s}=q_j+t$ and
+$\beta_{j+s}=\beta_j$. Write $E=N-I$. By \cite[Section~4.2]{HarveyHoeven2021},
+\[
+ (Eu)_\ell=\sum_{h\ne0}e^{-\pi\alpha^2X_{\ell,h}}u_{\ell+h},\qquad
+ X_{\ell,h}=(\sigma h+\beta_\ell)^2-\beta_{\ell+h}^2,
+\]
+with indices of $u$ taken modulo $s$, and every $X_{\ell,h}$ is
+nonnegative.
+
+\begin{lemma}[Powers of the correction]
+\label{lem:correction-powers}
+Assume $\alpha\geq2$ and $0<\theta<1$. For every integer $n\geq1$,
+\[
+ \|E^n\|\leq e^{\pi\alpha^2(1/(4\theta)+1/2)}
+   \bigl(2.01\,e^{-\pi\alpha^2\sigma}\bigr)^n.
+\]
+\end{lemma}
+
+\begin{proof}
+Expanding the product, $(E^nu)_\ell$ is the sum over
+$h_1,\ldots,h_n\in\mathbb Z\setminus\{0\}$ of $e^{-\pi\alpha^2X}u_{j_n}$,
+where $j_0=\ell$, $j_i=j_{i-1}+h_i$ and $X=\sum_iX_{j_{i-1},h_i}$.
+Moving each subtracted square to the following step,
+\[
+ X=\sum_{i=1}^nc(j_{i-1},h_i)+\beta_{j_0}^2-\beta_{j_n}^2,\qquad
+ c(j,h)=(\sigma h+\beta_j)^2-\beta_j^2=\sigma h(\sigma h+2\beta_j).
+\]
+Put $\Phi(j)=\sigma(\beta_j^2+1/4)/\theta$. For one step $(j,h)$ let
+$y=\beta_j+h\theta$ and $w=q_{j+h}-q_j-h\in\mathbb Z$. Then
+$\beta_{j+h}=\beta_j+\sigma h-(q_{j+h}-q_j)=y-w$, so $|y-w|\leq1/2$.
+Substitute $\beta_j=y-h\theta$ in $c(j,h)$ and in
+$\Phi(j+h)-\Phi(j)=\sigma\bigl((y-w)^2-(y-h\theta)^2\bigr)/\theta$.
+Expanding and using $\sigma-\theta=1$ gives
+\[
+ c(j,h)-\Phi(j+h)+\Phi(j)=\sigma h^2+\frac\sigma\theta\,w(2y-w)
+ \geq\sigma h^2,
+\]
+because $w(2y-w)=w^2+2w(y-w)\geq w^2-|w|\geq0$. Sum over the path.
+Since $\sigma/(4\theta)\leq\Phi\leq\sigma/(2\theta)$ and
+$\beta_{j_n}^2\leq1/4$,
+\[
+ X\geq\sigma\sum_ih_i^2-\frac\sigma{4\theta}-\frac14
+  =\sigma\sum_ih_i^2-\frac1{4\theta}-\frac12.
+\]
+Consequently
+\[
+ \|E^n\|\leq e^{\pi\alpha^2(1/(4\theta)+1/2)}
+  \Bigl(\sum_{h\ne0}e^{-\pi\alpha^2\sigma h^2}\Bigr)^n .
+\]
+As $\pi\alpha^2\sigma>4\pi$, the inner sum is less than
+$2e^{-\pi\alpha^2\sigma}(1+2e^{-3\pi\alpha^2\sigma})<2.01e^{-\pi\alpha^2\sigma}$.
+\end{proof}
+
+The original estimate $\|E\|^n<2^{-\alpha^2\theta n}$ gains only
+$\alpha^2\theta$ bits per term. The lemma gains about
+$\pi\alpha^2\log_2e$ bits per term after a burn-in of order
+$\alpha^2/\theta$ bits.
+
+\begin{corollary}
+\label{cor:neumann-count}
+Assume $\alpha\geq2$, $\alpha^2\theta\geq1$ and $\theta<1$, and let
+$n_{\alpha,\theta}$ be as in Lemma~\ref{lem:no-sort-resampling}.
+Then $n_{\alpha,\theta}\leq p$ and $\|E^{n_{\alpha,\theta}}\|\leq2^{-p}$.
+\end{corollary}
+
+\begin{proof}
+If $n_{\alpha,\theta}=\lceil p/(\alpha^2\theta)\rceil$, then
+$n_{\alpha,\theta}\le p$ and $\|E^{n}\|\le\|E\|^n<2^{-\alpha^2\theta n}\le2^{-p}$
+by \eqref{eq:gaussian-public-facts}. Otherwise
+$n=n_{\alpha,\theta}\geq(p+1)/(4\alpha^2)+1/\theta$ and $n<\lceil p/(\alpha^2\theta)\rceil\le p$.
+Put $\kappa_0=\pi\log_2e$, so $4.531<\kappa_0<4.534$, and note
+$\log_22.01<1.01$. Taking base-two logarithms in
+Lemma~\ref{lem:correction-powers},
+\[
+ \log_2\|E^n\|\leq\kappa_0\alpha^2\Bigl(\frac1{4\theta}+\frac12\Bigr)
+   -n(\kappa_0\alpha^2\sigma-1.01).
+\]
+Since $\sigma>1$ and $\alpha\ge2$, the last bracket is at least
+$4\alpha^2$. Also $4.534(1/(4\theta)+1/2)\le4/\theta$ because
+$\theta<1$. Hence
+$\log_2\|E^n\|\leq4\alpha^2/\theta-4\alpha^2n\leq-p-1$.
+\end{proof}
+
+\begin{lemma}[Gaussian maps by chirped correlation]
+\label{lem:chirped-gaussian}
+Assume the hypotheses of Lemma~\ref{lem:no-sort-resampling}. There are
+fixed multitape algorithms computing approximations
+$\widetilde{\mathsf S}':\mathbb D_p^s\to\mathbb D_p^t$ of $\mathsf S'$
+and $\widetilde E:\mathbb D_p^s\to\mathbb D_p^s$ of $E$, with errors less
+than $16p$ and $p/3$ respectively, outputs in the disk grid, and time
+$O((t+p)p^{1+\delta})$ each. Inputs and outputs occur in increasing
+coordinate order. The constants are uniform in $p,s,t,\alpha$.
+\end{lemma}
+
+\begin{proof}
+\emph{Chirp identity.} For a rational $y$ and integers $a,b$, put
+$\hat a=a+y/\sigma$. Expanding both sides and using $\sigma-\theta=1$,
+\[
+ (\sigma\hat a-b)^2
+   =\sigma\theta\hat a^2+\sigma(\hat a-b)^2-\theta b^2 .
+\]
+Hence, for rational $\lambda>0$,
+\begin{equation}\label{eq:chirp-split}
+ e^{-\pi\lambda(\sigma a+y-b)^2}
+  =e^{\pi\lambda\theta b^2}\,
+   e^{-\pi\lambda\sigma\theta(a+y/\sigma)^2}\,
+   e^{-\pi\lambda\sigma(a-b+y/\sigma)^2}.
+\end{equation}
+For inputs $f_a$, $0\le a<L_A$, the sums
+$F_b=\sum_ae^{-\pi\lambda(\sigma a+y-b)^2}f_a$, $0\le b<L_B$, are therefore
+$F_b=e^{\pi\lambda\theta b^2}c_b$, where
+\[
+ c_b=\sum_ag_aK_{a-b},\qquad
+ g_a=e^{-\pi\lambda\sigma\theta(a+y/\sigma)^2}f_a,\qquad
+ K_r=e^{-\pi\lambda\sigma(r+y/\sigma)^2}.
+\]
+This is one correlation of finite sequences; $K_r\in(0,1]$ and
+$|g_a|\le|f_a|$.
+
+\emph{One block.} Let $P\ge p$ be an integer, $|f_a|\le F$ with $F\ge1$,
+and $e^{\pi\lambda\theta b^2}\le2^{\Gamma}$ for $0\le b<L_B$, with
+$\Gamma\le2P$. Suppose approximations $\widetilde f_a$ with
+$|\widetilde f_a-f_a|\le2^{4-P}F$ are available. All exponents below are $\pi$
+times rationals whose numerators and denominators have $O(p)$ bits.
+Lemmas~2.13 and~2.14 of \cite{HarveyHoeven2021}, at precision $P$, give the
+decaying factors and kernel values, and the numbers
+$2^{-\Gamma}e^{\pi\lambda\theta b^2}$, each with absolute error at most
+$2^{1-P}$. Multiply each $\widetilde f_a$ by its factor and round to
+precision $P$.
+Represent every resulting real or imaginary part as an integer multiple of
+$2^{-P}$, split it into its nonnegative and negative parts, and pack each
+sequence into one integer with slots of $2P+\lceil\log_2(FL_A)\rceil+8$
+bits. A constant number of products by the established multiplier
+\cite[Theorem~1.1]{HarveyHoeven2021} then gives every rounded $c_b$
+exactly, because no slot overflows. Multiply by the approximate factor
+$2^{-\Gamma}e^{\pi\lambda\theta b^2}$, shift by $\Gamma$, and round to
+precision $p$.
+
+The rounded $g_a$ and $K_r$ have errors at most $2^{5-P}F$ and $2^{1-P}$,
+so the rounded correlation differs from $c_b$ by at most $2^{7-P}FL_A$,
+while $|c_b|\le FL_A$. After the shift, the final factor has absolute
+error at most $2^{\Gamma+1-P}$. Therefore the computed value differs from
+$F_b$ by at most $2^{\Gamma+9-P}FL_A$, which is at most $2^{-p-2}$ whenever
+\[
+ P\ge p+\Gamma+\lceil\log_2(FL_A)\rceil+11.
+\]
+The block uses $O(L_A+L_B)$ exponentials and products at precision $P$
+and integer products on $O((L_A+L_B)(P+\log(FL_A)))$ bits. When
+$P=O(p)$ and $\log(FL_A)=O(p)$, its cost is
+$O((L_A+L_B)p^{1+\delta})$.
+
+\emph{The map $\mathsf S'$.} Here
+$(\mathsf S'u)_k=(2\alpha)^{-1}\sum_je^{-\pi\lambda(\sigma j-k)^2}u_j$
+with $\lambda=(\sigma\alpha)^{-2}$. Let $m=\lceil\sqrt p\rceil\alpha$, the
+window of \cite[Lemma~4.9]{HarveyHoeven2021}. Partition $0\le k<t$ into
+consecutive blocks of at most $m$ outputs. For a block starting at $k_0$,
+take inputs $j=j_0+a$, $0\le a<L_A=3m+3$, where $j_0=\lfloor k_0/\sigma\rfloor-m$,
+with the periodic indices of $u$, and put $k=k_0+b$, $y=\sigma j_0-k_0$.
+These inputs contain every $j$ with $|j-k/\sigma|<m$ for every $k$ in the
+block. The block sums therefore omit only terms omitted by the truncated sums
+of that lemma, so they differ from $(\mathsf S'u)_k$ by less than $2^{-p}$.
+Here $f_a=u_{j_0+a}$ is exact, $F=1$, and for $b<m$,
+$\pi\lambda\theta b^2\le\pi\theta(\sqrt p+1)^2\le(\pi/4)(1.21p)$ because
+$\theta\le1/4$ and $p>100$, so $\Gamma=\lceil1.4p\rceil$ suffices. Take
+$P=3p$, and apply the factor $(2\alpha)^{-1}$ by one more product at
+precision $P$. Each output then has error less than
+$2^{-p}(1+1/4+1)<3\cdot2^{-p}$, and its norm is less than
+$\|\mathsf S'\|+3\cdot2^{-p}<1$.
+
+\emph{The map $E$.} With $f_j=e^{\pi\alpha^2\beta_j^2}u_j$ and
+$\lambda=\alpha^2$, the definition of $N$ gives
+\[
+ (Nu)_\ell=\sum_je^{-\pi\lambda(\sigma j-q_\ell)^2}f_j,
+\]
+and its term $j=\ell$ is exactly $u_\ell$. The inputs $f_j$ are formed by
+Lemma~2.14 of \cite{HarveyHoeven2021} for
+$2^{-\lceil1.14\alpha^2\rceil}e^{\pi\alpha^2\beta_j^2}$, a shift, and one
+product with $u_j$. Put $B=\lceil1.14\alpha^2\rceil$ and $F=2^B$.
+The shift multiplies the generator's absolute error by $2^B$;
+including the product and rounding, the input errors are at most
+$2^{4-P}F$. This same $F$ also bounds $|f_j|$. Let
+$m=\lceil\sqrt p/(2\alpha)\rceil$, the window of
+\cite[Lemma~4.11]{HarveyHoeven2021}. Partition $0\le\ell<s$ into blocks
+of at most $m$ indices. For a block starting at $\ell_0$, take inputs
+$j=j_0+a$, $0\le a<L_A=3m+1$, with $j_0=\ell_0-m$, and evaluate the
+correlation at every integer $b=q_{\ell_0}+b'$, $0\le b'<L_B=2m+2$; these
+include all $q_\ell$ of the block because $\sigma<2$. Put
+$y=\sigma j_0-q_{\ell_0}$. The choice
+$F=2^{\lceil1.14\alpha^2\rceil}\le2^{1.15p}$ uses
+$\alpha^2<p$ and $p>100$. In particular it bounds the shifted
+approximation error as well as the exact chirp magnitude. Moreover,
+\[
+ \pi\lambda\theta b'^2\le\pi\theta\alpha^2(2m+2)^2
+   \le\frac\pi4\bigl(\sqrt p+4\alpha\bigr)^2<\frac{25\pi}4p,
+\]
+so $\Gamma=29p$ suffices, using
+$(\sqrt p+4\alpha)^2<25p$ and $\theta\le1/4$.
+For $\alpha\ge2$ and integer $p>100$,
+$L_A=3\lceil\sqrt p/(2\alpha)\rceil+1\le p$ and
+$\lceil\log_2 L_A\rceil\le p-1$. Hence the block precision requirement is
+\[
+ p+\Gamma+\lceil\log_2(FL_A)\rceil+11
+ \le 32.14p+11<34p.
+\]
+Thus $P=34p$ still suffices with the enlarged error enclosure.
+Select the outputs
+$b=q_\ell$ in order, subtract the exact $u_\ell$, and round. The block
+contains every term $0<|h|\le m$ of the truncated sum in that lemma, so
+the computed $(\widetilde Eu)_\ell$ differs from $(Eu)_\ell$ by less than
+$(3+1+1)2^{-p}<(p/3)2^{-p}$. Its norm is less than
+$\|E\|+5\cdot2^{-p}<1$.
+
+\emph{Cost and tape movement.} The selected indices $q_\ell$, the numerators
+$s\beta_\ell$, and the block offsets are generated by the
+counters already used for $C$, in $O(p)$ time per index. Before a line,
+copy $u$ with $3m+3$ periodic records appended at each end, in $O((s+m)p)$
+time; then every block reads one consecutive interval. Consecutive input
+intervals overlap in $O(m)$ records, so all reads, packing and unpacking
+cost $O((t+m)p)$. There are $O(t/m+1)$ blocks, each costing
+$O(mp^{1+\delta})$; in both cases $m<2p$. This gives the time bound
+$O((t+p)p^{1+\delta})$.
+\end{proof}

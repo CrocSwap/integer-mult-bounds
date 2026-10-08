@@ -1,0 +1,265 @@
+\subsection{Constructive algorithm for batched integer-width interchange}
+\label{sec:batched-algorithms}
+
+The following pseudocode specifies how the fixed finite circuit becomes
+an interchange procedure.  It uses the retained single-digit streaming,
+ordered-affine streaming, finite-circuit transfer, and depth-first tape
+primitives.
+
+\paragraph{One-time finite preparation in the controlled tensor basis.}
+Start from the prime-field five-subset circuit, its corrected role
+permutation, and its all-role rational endpoint matrices.  The payload
+alphabet is $\mathbb F_3$; the integer-address radix below is a separate
+fixed odd prime $q$.
+
+Put $H_0=h^2=784$ and reorder the finite label-space tensor factors so
+that the original third factor is first.  Write the resulting space as
+$F\otimes V$, where $\dim F=h$ and $\dim V=H_0$, with coordinates
+$(\alpha,i)$, $1\le\alpha\le h$, $1\le i\le H_0$, and $i$ varying
+fastest.  The controlled basis of
+Lemma~\ref{lem:controlled-projector-basis} has the form
+\[
+ T(u\otimes e_i)=G_i u\otimes e_i,
+ \qquad S=T(I_F\otimes K),
+\]
+where $K\in\operatorname{GL}_{H_0}(\mathbb Q)$ and the
+$G_i\in\operatorname{GL}_h(\mathbb Q)$ are chosen independently.
+This choice applies to the assigned finite matrices; it introduces no
+extra change of coordinates on the tape streams.
+
+\begin{verbatim}
+PREPARE_FINITE_DATA(circuit):
+    Reorder the finite tensor coordinates as (third, first-and-second).
+    Enumerate rational invertible K and rational invertible G_i.
+    Form T(u tensor e_i) = G_i*u tensor e_i; S = T*(I tensor K).
+    Retain the first choice satisfying the finite controlled-basis tests:
+        A1: its first 2h by last 2h corner is nonsingular.
+        A3: its first H0+h-1 by last H0+h-1 corner is nonsingular.
+        A2: its first H0 by last H0 corner is diagonal and nonsingular.
+    Conjugate every terminal and gate matrix by this same S.
+    For each edge, form A = matrix_at_head - matrix_at_tail.
+    If A belongs to A1 or A3, of rank a:
+        r = m-a; t = 2*a-m.
+        Store lower-triangular factors A = E1*Pi*E2.
+        Store r corner pivots and one middle identity block of t slots.
+    If A belongs to A2:
+        Store lower-triangular factors A = E1*Pi*E2.
+        Store the aligned corner identity block of H0 slots and
+            the middle identity block of m-2*H0 slots.
+        Store no singleton corner pivots.
+    Otherwise:
+        Store the ordinary lower-triangular partial-permutation form.
+    Choose an odd prime q avoiding all prepared denominators and
+        all diagonal numerators needed to keep the factors invertible.
+    Form the fixed list of child multipliers t_i in [1, m-1].
+    Set tau = 1 - 246/10^9, using the certified strict moment bound.
+    Return the finite tables, q, tau, and t_star = 21840.
+\end{verbatim}
+
+The corner tests are applied to the conjugated projectors in the three
+selected classes.  The controlled-basis lemma proves that the required
+rational parameter choice exists, hence that this finite search
+terminates.  Every test can be performed by rational elimination.
+The lower-triangular factorization normalizes every stored pivot to one.
+For the second class,
+\[
+ A_2=(I_F-\Pi_t)\otimes I_V,
+\]
+the factor $I_F\otimes K$ commutes with $A_2$.  Its first-to-last block
+after conjugation by $T$ is diagonal in $i$, with entries
+$[G_i(I_F-\Pi_t)G_i^{-1}]_{1,h}$.  These nonzero entries are normalized
+by fixed diagonal units.  They therefore give one identity block in
+matching physical order between the first $H_0$ fields of $H$ and the
+last $H_0$ fields of $D$.  The Schur complement supplies the second,
+contiguous middle identity block.  It is this prescribed matching order
+that permits the corner to use a single block interchange.
+
+The common conjugation preserves every edge rank and every all-role
+endpoint difference $I_m$.  Ordinary rational elimination constructs
+all unselected factorizations.  The prime can be selected by trial
+division after the finite forbidden factors are known.  None of this
+preparation depends on the input width.
+
+For $m=21952$ and $h=28$, write $B=v^2R$ and $N=v^3$.
+The prepared calls for the three selected classes are
+\[
+\begin{array}{c|c|r|r|l}
+ \text{class}&\text{copies}&\text{rank}&\text{singletons}&
+                   \text{contiguous block sizes}\\ \hline
+ A_1\text{, stage 1--3 join}&B&21896&56&21840\\
+ A_2\text{, stage 2 sink}&B&21168&0&784,\ 20384\\
+ A_3\text{, stage 3 data entrance}&2N&21141&811&20330
+\end{array}
+\]
+The singleton count, including all ordinary calls on other edges, is
+\[
+ n_1=s-B(21840+20384+784)-2N\cdot20330
+     =105555640096680883200.
+\]
+Thus the child multipliers are exactly
+\[
+ 1,\quad 784,\quad 21840,\quad 20384,\quad 20330,
+\]
+with multiplicities $n_1,B,B,B,2N$, respectively.  The exact moment is
+\[
+ \Psi(x)=\frac{n_1+B(784^x+21840^x+20384^x)+2N\,20330^x}{Wm^x},
+ \qquad \Psi(1)=\frac{s}{Wm}.
+\]
+The controlled-basis certificate proves
+\[
+ \Psi\!\left(1-\frac{246}{10^9}\right)<1.
+\]
+All other edges retain the ordinary rank-one implementation, including
+any full-rank edge.
+
+\paragraph{Depth and row contract.}
+Every recursive invocation below receives an explicit row field preceding
+both target chunks.  Its row count $R$ is divisible by $W^{D(e)}$.
+Spectator fields of arbitrary lengths may occur elsewhere.
+
+\begin{verbatim}
+DEPTH(e):
+    depth = 0
+    while e >= m:
+        e = t_star * floor(e/m)
+        depth = depth + 1
+    return depth
+\end{verbatim}
+
+This computes the function $D$ of Section~\ref{sec:mixed-width-rows}.
+It terminates, is nondecreasing, and bounds the number of recursive
+circuit invocations on every dependency path.  Every child of a width-$e$
+node has depth bound at most $D(e)-1$.
+
+\paragraph{The elementary componentwise shear.}
+Suppose two groups each contain $t$ contiguous width-$f$ fields, with the
+first group before the second.  The groups can be separated by arbitrary
+spectators.  Addition and subtraction in the following routine are
+componentwise modulo $q^f$.
+
+\begin{verbatim}
+BLOCK_SHEAR(H_block, D_block, t, f, R):
+    for i = 1,...,t:
+        D_i = D_i + H_i                 # ordered-affine streaming
+    INTERCHANGE_WITH_ROWS(H_block, D_block, t*f, R)
+    for i = 1,...,t:
+        D_i = H_i - D_i                 # ordered-affine streaming
+\end{verbatim}
+
+The returned pair is $(H+D,D)$.  The sole recursive call exchanges the
+two contiguous blocks without reversing their internal field order.
+For $t=1$ the same routine implements an ordinary pivot shear, including
+when its two fields have different coordinate indices.
+
+\begin{verbatim}
+EDGE_SHEAR(A, H, D, f, R_role):
+    Read the stored factors A = E1 * Pi * E2.
+    Apply D = E2*D and H = inverse(E1)*H by ordered streaming.
+    For each stored singleton pivot (i,j):
+        BLOCK_SHEAR(H_i, D_j, 1, f, R_role).
+    For each stored identity block (row_start, column_start, t):
+        BLOCK_SHEAR(the t consecutive H fields at row_start,
+                    the t consecutive D fields at column_start,
+                    t, f, R_role).
+    Apply H = E1*H and D = inverse(E2)*D by ordered streaming.
+\end{verbatim}
+
+This is the address shear $(H,D)\mapsto(H+AD,D)$.
+The finite factors are invertible over $\mathbb Z/q^f\mathbb Z$ for
+all positive $f$.  Each unbatched pivot uses one width-$f$ call.  Classes $A_1,A_3$
+use their singleton corner calls and one middle-block call.  Class $A_2$
+uses two block calls, of widths $784f$ and $20384f$, with no singleton
+corner calls.  All these widths are strictly less than $mf$.
+
+\paragraph{The finite circuit on complete rows.}
+For a main width $mf$, let $H,D$ denote its two $m$-component field
+vectors.  All edges below act on one role stream, whose row count is
+$R/W$ and logical volume is $V/W$.
+
+\begin{verbatim}
+CIRCUIT_SHEAR(H, D, f, R):
+    Split each complete row by its index u = W*g + w.
+    Process the fixed circuit in chronological order:
+        On each edge e:
+            EDGE_SHEAR(A_e, H, D, f, R/W) on its role stream.
+        At each scalar gate:
+            Apply its fixed F_3 table pointwise at matching addresses.
+    Merge roles, undoing the known final role permutation.
+    Return the original row order.
+
+MAIN_INTERCHANGE(H, D, f, R):
+    Apply D = D - H componentwise by ordered-affine streaming.
+    CIRCUIT_SHEAR(H, D, f, R)
+    Apply D = H - D componentwise by ordered-affine streaming.
+\end{verbatim}
+
+The all-role endpoint identity makes \texttt{CIRCUIT\_SHEAR} equal to
+$H\leftarrow H+D$ on every original row, including rows assigned to
+auxiliary roles.  The three displayed operations in
+\texttt{MAIN\_INTERCHANGE} therefore exchange the two main chunks.
+All gates allow arbitrary initial auxiliary payloads.  Pointwise
+operations preserve the row and spectator coordinates, and the final
+merge returns every row to its original index.
+
+\paragraph{An integer width with already available rows.}
+
+\begin{verbatim}
+INTERCHANGE_WITH_ROWS(H, D, e, R):
+    Require R to be divisible by W^DEPTH(e).
+    if e < m:
+        Interchange the e corresponding digits individually; return.
+    f = floor(e/m);  r = e - m*f.
+    Split H = (H_plus,H_minus), D = (D_plus,D_minus),
+        with the two high parts of length r.
+    Interchange the corresponding high-part digits individually.
+    Gather H_plus immediately before H_minus, obtaining
+        (D_plus, H_plus, H_minus, gap, D_minus).
+    MAIN_INTERCHANGE(H_minus, D_minus, f, R).
+    Move H_plus back immediately before the final H_minus.
+\end{verbatim}
+
+The result is
+$(D^+,D^-,\mathrm{gap},H^+,H^-)$.  Fewer than a fixed multiple of $m$
+single-digit operations handle the remainder.  No chunk range is padded
+inside this routine.  Every recursive child width is at most
+$t_*\lfloor e/m\rfloor$, so splitting the rows once supplies its full
+row-divisibility requirement.
+
+\paragraph{An arbitrary radix-$q$ call without a row promise.}
+
+\begin{verbatim}
+INTERCHANGE_RADIX_Q(H, D, e):
+    depth = DEPTH(e)
+    rho = least nonnegative integer with q^(2*rho) >= W^depth
+    if e < m or 2*rho >= e:
+        Interchange corresponding digits individually; return.
+    Split the high rho digits from each chunk.
+    Interchange those high parts digit by digit.
+    Gather the two high parts before both remaining chunks.
+    Regard their joint range q^(2*rho) as an opaque row field.
+    Pad complete rows to R = W^depth * ceil(q^(2*rho)/W^depth).
+    INTERCHANGE_WITH_ROWS(the remaining chunks, e-rho, R).
+    Remove the padded rows.
+    Undo the gathering move, preserving the completed high-part swap.
+\end{verbatim}
+
+The row range is enlarged by less than two, once.  The existing high
+digits supply all its other capacity.  Since $\rho=O(\log e)$, the
+fallback condition $2\rho\ge e$ holds for only a fixed finite set of
+widths.  Thus its individual-digit cost changes only the constant in
+the asymptotic bound.  Computing the displayed powers and comparisons
+uses ordinary integer arithmetic; no real logarithm is required at
+runtime.  The row count is divisible by $W^{D(e)}$, hence also by
+$W^{D(e-\rho)}$.
+
+\paragraph{Binary input chunks.}
+For equal binary chunk widths $u$, choose the least integer $e$ with
+$q^e\ge2^u$.  Pad each target range numerically from $[2^u]$ to $[q^e]$,
+putting zeros on invalid addresses.  Call
+\texttt{INTERCHANGE\_RADIX\_Q}, then delete the invalid addresses.
+This is the original streaming radix conversion: numerical order is
+preserved, each target range expands by less than $q$, and total volume
+expands by less than $q^2$.  The completed exchange preserves the set of
+valid address pairs.  Since $q$ is fixed and $e=O(u)$, this gives
+$O(Vu^\tau)$ for arbitrary binary chunk widths and arbitrary prefix,
+gap, and suffix ranges.
