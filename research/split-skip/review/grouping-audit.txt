@@ -1,0 +1,158 @@
+AI-assisted review record. This examines the general argument/checker and earlier snapshots; use certificate.json and validation.json for the selected final constants and completed runs. This is not independent human peer review.
+
+Independent structural search and proof audit, 2026-10-08
+
+Scope and attribution
+
+This audit was prepared with OpenAI Codex assistance. The skip-prefix strip
+layout is Avi Eisenberg's PR53, with Anthropic Claude assistance. The paired
+exclusion recursion comes from icekylinx PR18/32/36. Alternating common-point
+order is RaD/hipotures PR41. Weighted carrier matching is Rohan Arun PR44.
+The fixed-profile, data-recovery and exact-certificate pipeline retains
+Chafik Boukhalfa PR43/46/48, Dominik Scholz PR35, James Chang PR34 and the
+earlier credited contributions. Paid whole-chain source-partition cloning
+originates in RaD/hipotures PR51, with the original-envelope specialization by Chafik Boukhalfa in PR54. Upstream Apache-2.0 notices remain applicable.
+
+General validity of singleton/pair grouping
+
+Let V be the current weighted complete graph, with vertex weights w_a and
+edge values e_ab, all representing disjoint families of original inputs.
+For S contained in V, write
+
+  F(S) = sum_{a in S} w_a + sum_{{a,b} contained in S} e_ab.
+
+Partition V into disjoint groups G_i of size one or two. Their order and
+choice of partners are arbitrary. The coarse vertex weight is
+
+  W_i = sum_{a in G_i} w_a + sum_{{a,b} contained in G_i} e_ab,
+
+and the coarse edge E_ij is the sum of edges from G_i to G_j. Therefore the
+coarse weighted graph's induced sum on any set of groups equals F on their
+union. By induction the recursive outputs give total F(V), outside[i] =
+F(V minus G_i), and far[i,j] = F(V minus (G_i union G_j)).
+
+For a in G_i let H_i = G_i minus {a}. Since |H_i| is at most one, it has no
+internal edge. The carry and value list in the implementation give
+
+  sums[a] = sum_{u in H_i} w_u + sum_{j != i} sum_{u in H_i,v in G_j} e_uv,
+
+  strips[a][j] = sum_{u in H_i} w_u
+                + sum_{k != i,j} sum_{u in H_i,v in G_k} e_uv.
+
+Hence outside[i] + sums[a] = F(V minus {a}). If a,b belong to one group,
+that group is exactly {a,b}, so outside[i] is the required leave-two-out
+value. If a is in G_i and b is in G_j, the required value is the disjoint
+sum of four terms: far[i,j], strips[a][j], strips[b][i], and the edges
+joining G_i minus {a} to G_j minus {b}. These are exactly the four terms
+in the current producer. No vertex weight or edge is duplicated or lost.
+
+For a singleton group H_i is empty: its carry, strips, sums, and relevant
+remaining cross edges are zero. The inherited zero-filtering code handles
+this case correctly. Thus introducing singleton groups does not require a
+new scalar identity or a new asymptotic transfer theorem.
+
+Termination must also be explicit: at each nonbase step there must be at
+least one size-two group, so the number of groups is strictly less than
+the number of vertices. The current split-skip one-pair-split code applies
+only when len(points)>3 and guarantees that condition. More general
+multiple-split searches must forbid splitting every remaining pair.
+Groups of size three or larger are NOT covered by this argument or the
+unmodified recurrence: H_i can then contain internal edges, and deleting
+two vertices within one group can leave part of that group behind.
+
+Structural search results
+
+The baseline h=23 PR53 graph has 40,329 additions, 12,719 matched donors,
+and 32,946 physical roles. All following role counts use exhaustive
+maximum-cardinality matching through the inherited admissibility graph;
+they are screening results, not independently completed fixed-profile
+certificates.
+
+1. Longer skip distances 2 through 6 were tested with sequential and
+   aggregate near-prefix construction. All were worse than baseline. The
+   best among those was skip distance 3 with aggregate near prefix,
+   R=35,727. Ordinary prefix/suffix gave R=36,432.
+
+2. Balanced leave-one-out recursion gave R=37,814. Chunk sizes 2 through 6,
+   ordinary/skip inner layout and skip/balanced outer layout, all lost.
+   The best chunked result was R=36,146.
+
+3. All 256 top-strip mixed left-skip/right-skip masks at h=23 were checked.
+   None improved R=32,946. All 256 masks selecting original skip versus
+   ordinary prefix/suffix at interior positions were also checked; none
+   improved it. Deeper strip layouts remained the PR53 baseline in these
+   enumerations. These are bounded negative results, not global lower
+   bounds or a proof that skip-prefix is optimal.
+
+4. Ordered singleton/pair compositions were explored beyond splitting
+   preexisting pairs, allowing singleton positions that shift the pairing
+   of later vertices. The h=23 search completed 962 configurations; its
+   best R was 32,667. The h=25 scan was stopped after reaching R=42,969,
+   since the root/order-agent combined searches had already produced
+   stronger candidates. The best h=25 third-level group sizes were
+   (1,2,1,2,2), which are not expressible solely by splitting original
+   consecutive pairs. This family is a possible future search direction,
+   although the present result is not competitive with the final winner.
+
+5. An independent exact-support enumeration looked for alternative
+   non-original source partitions for PR54 paid clones. It indexes all
+   scalar supports, restricts to parents with at least two unmatched
+   continuation chains, and requires each partition child to be an actual
+   operand of an unused nested provider. It found no eligible alternative
+   partition on the original PR53 h=23 or h=25 graphs, and no eligible job
+   on the final order-search h=23 weighted graph. This says nothing about
+   possibilities after additional clone rounds or with other matchings.
+   The reusable discover_alternative_candidates(c, links) returns complete
+   job dictionaries and also checks provider times and the whole chain.
+
+Implementation audit
+
+Reviewed research/split-skip/graph.py, producer.py and witness.py as they
+stood during construction, together with the inherited verifier,
+producer, balanced assembly and timeline interfaces. No concrete
+arithmetic or replay error was found in that version.
+
+The producer redirects the original audit's record directory and graph
+factory to the new construction, while preserving the inherited exactness
+and source checks. It regenerates scalar supports, envelope labels,
+admissible pinned matching uses, independent role/rank recount, ordered
+fixed-basis profiles with CRT checks, physical timelines, every dirty
+basis vector in both orientations, and the unchanged data-corner pairs.
+
+The arithmetic witness alone does not perform all that physical replay.
+It checks fresh scalar graph identity, pinned hashes, stored timeline and
+profile summary consistency, exact characteristic bounds, and the 47
+assembly inequalities/seven margins. Therefore a complete reproduction
+must report successful runs of BOTH the full producer and the arithmetic
+witness, and retain the producer receipt. Hash-pinning a profile is not
+equivalent to regenerating it.
+
+Explicit checks that each configured summand order and common-point order
+is a permutation of the proper indices were recommended. They make a
+malformed configuration fail at its source, even though the full dense
+support/output audit already supplies the essential finite correctness
+check. The root agent accepted this hardening recommendation.
+
+Remaining proof dependencies and review caveat
+
+The grouping argument establishes the new scalar recurrence for arbitrary
+singleton/pair partitions. The finite replay establishes the particular
+graphs and selected carrier/clone actions only if its exact checks finish
+successfully. Neither settles the inherited general transfer obligations:
+the stated base theorem, residual compiler, fixed-alphabet multitape
+recursion, analytic/semantic/routing/recovery interfaces, and eventual
+threshold arguments remain dependencies. This is an independent agent
+audit of a conditional finite witness, not formal verification or
+independent external mathematical peer review. A lower role count alone
+is not sufficient to assert a better final exponent; the recomputed fixed
+profiles, exact characteristic bound, and full assembly must all pass.
+
+Local files
+
+search.py: reusable layouts and role-screening harness.
+counts23.json: initial alternative-layout screening.
+hybrid23.json and hybrid23-kind0.json: complete top-strip mask sweeps.
+compositions.py: ordered singleton/pair grouping search.
+composition-search23.json: completed 962-configuration h=23 search.
+best-composition23.json and best-composition25.json: best observed sizes.
+alternative_partitions.py: exact alternative-source clone job discovery.

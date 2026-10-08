@@ -1,8 +1,8 @@
 # Reproducing the result
 
-The selected release is documented in the [community follow-up integration record](research/community-followup-integration.md)
+The selected release is documented in the [joint-frame community review](research/community-round2-review.md)
 and [current status](research/current-status.md), with the
-[exact PR49 certificate](../research/climbed-48/certificate.json).
+[selected parameter certificate](../research/matrix-exponent-synthesis/candidate/arithmetic.json).
 The bound is conditional on the retained original #109 framework. Earlier notes,
 patches, and the [preserved research](research/preserved-research.md) are historical
 reproduction targets. Run `make verify-research` to regenerate its certificates;
@@ -11,8 +11,10 @@ the expanded tests also run in `make verify-tests`.
 ## Requirements
 
 The verification path needs Python 3.11 or newer, Git, Make, and a C++17 compiler supporting
-unsigned 128-bit integers (GCC or Clang), with no
-third-party Python packages. Run commands from the repository root. All input
+unsigned 128-bit integers and OpenMP (GCC, or Clang with libomp), with no
+third-party Python packages. The enlarged-frame profiler additionally needs Boost
+multiprecision headers (`libboost-dev` on Ubuntu); the ordinary joint-frame
+witness does not use Boost. Run commands from the repository root. All input
 source files are bundled, so verification runs without network access.
 
 The local preparation checks used Python 3.14.6 and Tectonic 0.16.9. The supplied
