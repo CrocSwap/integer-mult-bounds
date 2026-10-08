@@ -29,8 +29,8 @@ def rational(x):
 def required():
  return set(json.loads((PARENT/'SOURCE.json').read_text())['files'])|{
   'research/deferred-signed/SOURCE.json','research/copied-fixed/balanced_assembly.py',
-  'research/copied-fixed/PROOF.md','.github/workflows/deferred-balanced.yml'}|{str(p.relative_to(ROOT)) for p in (ROOT/'references/copied-fixed/pr34').rglob('*') if p.is_file()}|{
-  str(p.relative_to(ROOT))for p in HERE.rglob('*')if p.is_file()and p!=HERE/'SOURCE.json'and p!=HERE/'validation.json'}
+  'research/copied-fixed/PROOF.md','.github/workflows/deferred-balanced.yml'}|{str(p.relative_to(ROOT)) for p in (ROOT/'references/copied-fixed/pr34').rglob('*') if p.is_file()and '__pycache__'not in p.parts and p.suffix not in('.pyc','.pyo')}|{
+  str(p.relative_to(ROOT))for p in HERE.rglob('*')if p.is_file()and '__pycache__'not in p.parts and p.suffix not in('.pyc','.pyo')and p!=HERE/'SOURCE.json'and p!=HERE/'validation.json'}
 
 def sources():
  upstream.verify_pins()
