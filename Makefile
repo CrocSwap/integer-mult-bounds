@@ -25,6 +25,7 @@ verify:
 	$(MAKE) verify-pair
 	$(MAKE) verify-balanced
 	$(MAKE) verify-indexed
+	$(MAKE) verify-final
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -458,3 +459,17 @@ indexed-cycle-verify:
 	python3 -m unittest discover -s tests -p 'test_indexed_cycle*.py' -v
 
 verify-indexed: indexed-cycle-verify
+
+.PHONY: final-frame-verify verify-final
+final-frame-verify:
+	python3 scripts/experiments/verify_final_frame.py
+	python3 scripts/experiments/audit_final_frame_completion.py
+	python3 scripts/experiments/audit_final_frame_exchange.py
+	python3 scripts/experiments/audit_final_frame_cycles.py
+	python3 scripts/experiments/audit_final_frame_retired.py
+	python3 scripts/experiments/audit_final_frame_pending.py
+	python3 scripts/experiments/audit_final_frame_three_cycles.py
+	python3 scripts/experiments/audit_final_frame_pricing.py
+	python3 -m unittest discover -s tests -p 'test_final_frame*.py' -v
+
+verify-final: final-frame-verify
