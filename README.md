@@ -182,3 +182,7 @@ The project is [Apache-2.0](LICENSE). Bundled RaD sources retain their separate
 CC0 license and notices. The pinned original OpenAI manuscript remains unchanged
 under `upstream/`; its source hashes are in [upstream/manifest.json](upstream/manifest.json).
 This project is not an official OpenAI release or endorsement.
+
+### Indexed two-cycle finite witness
+
+[Indexed-cycle proof and evidence](research/indexed-cycle/README.md) gives κ = 261356445457/5000000000000000 with W=132466108. It combines attributed balanced multi-splits, exact frame indexes, bounded carry two-cycles, PR74 node ordering and coordinate flags; all-size transfer remains inherited. Verify with `make indexed-cycle-verify`. The comparison is to pinned historical PR74/PR79 witnesses observed 2026-10-08.

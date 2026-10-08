@@ -24,6 +24,7 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-balanced
+	$(MAKE) verify-indexed
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -445,3 +446,15 @@ balanced-split-verify:
 	python3 -m unittest discover -s tests -p 'test_balanced_split*.py' -v
 
 verify-balanced: balanced-split-verify
+
+.PHONY: indexed-cycle-verify verify-indexed
+indexed-cycle-verify:
+	python3 scripts/experiments/verify_indexed_cycle.py
+	python3 scripts/experiments/audit_indexed_cycle_completion.py
+	python3 scripts/experiments/audit_indexed_cycle_exchange.py
+	python3 scripts/experiments/audit_indexed_cycle_cycles.py
+	python3 scripts/experiments/audit_indexed_cycle_retired.py
+	python3 scripts/experiments/audit_indexed_cycle_pending.py
+	python3 -m unittest discover -s tests -p 'test_indexed_cycle*.py' -v
+
+verify-indexed: indexed-cycle-verify
