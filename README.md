@@ -149,3 +149,12 @@ The project is [Apache-2.0](LICENSE). Bundled RaD sources retain their separate
 CC0 license and notices. The pinned original OpenAI manuscript remains unchanged
 under `upstream/`; its source hashes are in [upstream/manifest.json](upstream/manifest.json).
 This project is not an official OpenAI release or endorsement.
+
+## Additional conditional interface audit
+
+[Deferred endpoints and signed complex transfer](research/deferred-signed/README.md)
+provides an independently audited integration of pinned Swapnil round7/round6
+networks with the retained main assembly, certifying `kappa=63965813/10^12 > 2^-14`.
+The [proof](research/deferred-signed/PROOF.md) states the inherited analytic and
+fixed-tape conditions and distinguishes this contribution from the maintainer-reviewed
+release and the external author's different assembly. No global priority claim is made.
