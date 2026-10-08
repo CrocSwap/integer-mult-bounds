@@ -1,0 +1,199 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}[lemma]{Corollary}
+\title{Faster Gaussian resampling and a conditional\\
+integer-multiplication saving above $2^{-30}$}
+\author{eumemic\thanks{Prepared with assistance from Claude (Anthropic).
+This is not independent review or endorsement by Anthropic.}}
+\date{October 8, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+After the compressed complex network, the conditional witness
+$\kappa=59/10^{11}$ was capped by the Gaussian resampling maps, whose cost
+$O(tp^{3/2+\delta}\alpha)$ per line forces the dimension exponent
+$\epsilon<1/5$. We make two changes to those maps. First, a chirp identity
+writes every Gaussian sum along a line as one correlation per block, which the
+established integer multiplier evaluates in $O(p^{1+\delta})$ per output,
+independently of the Gaussian width. Second, a potential-function argument
+shows that the powers of the correction $E=N-I$ decay like
+$e^{-\pi\alpha^2\sigma n}$ after a burn-in of order $\alpha^2/\theta$ bits,
+so the Neumann series needs $O(p/\alpha^2+1/\theta)$ terms rather than
+$p/(\alpha^2\theta)$. With $\alpha=\lfloor\sqrt{b/(8d)}\rfloor$ the Gaussian
+cost per bit becomes $O(d^2p^\delta)$, and $\epsilon$ may approach $1/2$. The
+compressed complex network leaves room for the larger guard parameter this
+needs. The result is the conditional witness $\kappa=1479/10^{12}>2^{-30}$, a
+factor $1479/590\approx2.51$ above the preceding witness. The underlying
+manuscript's interfaces remain assumptions.
+\end{abstract}
+
+\section{Scope and dependencies}
+The source is OpenAI's \emph{Integer multiplication below $n\log n$}, pinned at
+\begin{center}\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a},\end{center}
+with the compact-control construction and the compressed complex network. The
+computational model is a fixed finite alphabet and a fixed number of
+one-dimensional tapes. We retain the paired bit network ($\tau=1-296/10^{11}$),
+the compressed complex network ($\sigma=1-14/10^9$), the compact-control
+movement, reservation, repair and generalized guard, and all transform, error
+and rounding interfaces. Only the one-dimensional resampling algorithms, the
+Gaussian width $\alpha$ and the assembly parameters change. Numbered results of
+Harvey and van der Hoeven~\cite{HarveyHoeven2021} refer to their author-hosted
+manuscript.
+
+\section{The one-dimensional interface}
+For integers $2\le s<t<2^p$ with $\gcd(s,t)=1$ and $2\le\alpha<\sqrt p$, the
+resampling argument of \cite[Section~4]{HarveyHoeven2021} uses the Gaussian
+maps $\mathsf S,\mathsf T:\mathbb C^s\to\mathbb C^t$,
+\[
+ (\mathsf Su)_k=\frac1\alpha\sum_{j\in\mathbb Z}e^{-\pi\alpha^{-2}(j-sk/t)^2}u_j,
+ \qquad
+ (\mathsf Tu)_k=\sum_{j\in\mathbb Z}e^{-\pi\alpha^2(tj/s-k)^2}u_j,
+\]
+the nearest indices $q_j=\lfloor tj/s+1/2\rfloor$ with $\beta_j=tj/s-q_j$, the
+selection $(Cv)_j=v_{q_j}$, the diagonal $(\mathsf Du)_j=e^{\pi\alpha^2\beta_j^2}u_j$,
+and $N=C\mathsf T\mathsf D$. Put $\sigma=t/s$ and $\theta=\sigma-1$. The cited
+Theorem~4.2 and Lemma~4.6 give
+\begin{equation}\label{eq:gaussian-public-facts}
+ \mathsf TP_sF_s=P_tF_t\mathsf S,\qquad
+ \|N-I\|<2.01e^{-\pi\alpha^2\theta/2}<2^{-\alpha^2\theta}
+ \quad(\alpha^2\theta\ge1).
+\end{equation}
+The manuscript's no-sort interface keeps the permutations $P_s,P_t$ in the
+transform identity and approximates $\mathsf S'=\mathsf S/2$,
+$\mathsf J'=N^{-1}/2$ and $\mathsf D'=2^{2-2\alpha^2}\mathsf D$. We change its
+hypotheses and time bounds as follows.
+
+\begin{lemma}[One-dimensional interface, revised]
+\label{lem:no-sort-resampling}
+Assume in addition
+\[
+ \alpha^{-2}\le\theta\le\tfrac14,\qquad
+ n_{\alpha,\theta}:=\min\Bigl\{\Bigl\lceil\frac p{\alpha^2\theta}\Bigr\rceil,
+   \Bigl\lceil\frac{p+1}{4\alpha^2}+\frac1\theta\Bigr\rceil\Bigr\}.
+\]
+Then $P_sF_s=2^{2\alpha^2}B_0P_tF_tA$ with contractions $A=\mathsf S'$ and
+$B_0=\mathsf D'\mathsf J'C$, and there are approximations $\widetilde A$ and
+$\widetilde B_0$ with errors less than $p^2$, in time
+$O((t+p)p^{1+\delta})$ and $O(n_{\alpha,\theta}(t+p)p^{1+\delta})$.
+\end{lemma}
+
+\begin{proof}
+The exact identity and the norm bounds $\|\mathsf S'\|<3/4$,
+$\|\mathsf J'\|<7/8$, $\|\mathsf D'\|<1$ are those of the manuscript: the cited
+Lemma~4.6 needs only $\alpha^2\theta\ge1$, which gives $\|N-I\|<0.42$, and
+the proof of the cited Proposition~4.7(i) uses only that bound, $\alpha\ge2$ and the cited
+Lemma~4.5. The original hypothesis $\theta>p/\alpha^4$ was used only to bound
+the cost of the Neumann evaluation. Lemma~4.8 of~\cite{HarveyHoeven2021} gives
+$\widetilde{\mathsf D}'$ with error less than $4$ in time $O(tp^{1+\delta})$;
+Lemma~\ref{lem:chirped-gaussian} below gives $\widetilde{\mathsf S}'$ and
+$\widetilde E$; and the Neumann evaluation of the cited Lemma~4.12, run for
+$n_{\alpha,\theta}$ terms with this $\widetilde E$, gives
+$\widetilde{\mathsf J}'$ with error less than $3p^2/4$. Its analysis uses only
+$\|E\|<1/2$, $\varepsilon(\widetilde E)<p/3$, $n\le p$ and $\|E^n\|\le2^{-p}$,
+with $\|E^{n+k}\|\le\|E^n\|\|E\|^k$ for the tail;
+Corollary~\ref{cor:neumann-count} supplies the last two. The selection $C$ and
+the record adapters cost $O(tp)$ as before.
+\end{proof}
+
+\input{fast-gaussian-resampling.tex}
+
+\section{Parameters and assembly}
+The tensor interface applies the one-dimensional maps line by line. With
+$n_*=\max_in_{\alpha,\theta_i}$ and every $t_i\ge p$, its time becomes
+$\sum_i(T/t_i)O(n_*(t_i+p)p^{1+\delta})=O(dTp^{1+\delta}(1+n_*))$.
+
+\paragraph{Gaussian width.} With $b=\lceil\log_2n\rceil$, $p=6b$,
+$d=\lfloor b^\epsilon\rfloor$ and $\eta=1/(4d)$ as in the manuscript, set
+\[
+ \alpha=\Bigl\lfloor\sqrt{b/(8d)}\Bigr\rfloor,\qquad\gamma=2d\alpha^2\le b/4.
+\]
+The bound $\gamma\le b/4$ is the one used by the retained final rounding
+argument. For large $n$, $b\ge96d$, so $\alpha\ge2$ and $\alpha^2\ge b/(16d)$;
+also $\alpha^2<p$. The chosen primes satisfy
+$\eta<\theta_i<1/(2d-1)\le1/4$, so $\alpha^2\theta_i>b/(64d^2)\ge1$ once
+$b\ge64d^2$, which holds eventually because $2\epsilon<1$. Hence
+\[
+ n_{\alpha,\theta_i}\le\frac{p+1}{4\alpha^2}+\frac1{\theta_i}+1
+ \le\frac{(6b+1)16d}{4b}+4d+1\le30d.
+\]
+The original choice $\alpha=\lceil(32db)^{1/4}\rceil$ would need
+$\lceil p/(\alpha^2\theta_i)\rceil$ Neumann terms, of order $(dp)^{1/2}$;
+with the larger width the old windowed Gaussian sums would cost
+$\Theta(p/\sqrt d)$ times more per output than the chirped correlations.
+
+\paragraph{Cost row.} Each axis has at most $T/t_i$ lines of length
+$t_i>p$, so the Gaussian maps cost $O(d^2Tp^{1+\delta})$, that is
+$O(d^2p^\delta)$ per bit, with power $2\epsilon+\delta$. This replaces the
+power $3/4+\delta+5\epsilon/4$. All other rows of the cost table are unchanged.
+
+\paragraph{Parameters.} Put $a=296/10^{11}$, $a_{\rm c}=14/10^9$ and choose
+\begin{gather*}
+ \tau=1-a,\quad\sigma=1-a_{\rm c},\quad
+ \epsilon=\frac{49999}{100000},\quad c=\frac{9999}{10000},\quad
+ \beta=\frac{19}{25},\quad\zeta=\frac1{10000},\quad\delta=\frac1{10^6},\\
+ C_1=5-4\beta+\zeta=\frac{19601}{10000},\quad
+ \lambda=1-\frac{29595}{10^{13}},\quad
+ \lambda'=1-\frac{2959}{10^{12}},\quad
+ \kappa=\frac{1479}{10^{12}}.
+\end{gather*}
+Since $\sigma<\tau$, the compact-control internal exponent is $\chi=\tau$.
+Exact comparisons give
+\[
+ \max\{\tau,\sigma,\chi\}<\lambda<\lambda'<1,\quad
+ \max\{\sigma+\beta(1-\sigma),\,1-c\}<\lambda',\quad
+ \epsilon C_1=\frac{980030399}{10^{9}}<1.
+\]
+At this $\epsilon$ the guard condition $\epsilon C_1<1$ forces $\beta>3/4$,
+and the leaf condition forces $(1-\beta)a_{\rm c}>1-\lambda'$. Both hold only because the
+compressed complex saving $a_{\rm c}$ exceeds $a$ by a factor $4.7$; with the
+original complex saving $418/10^{12}$ no $\beta$ satisfies both. The remaining
+setup conditions $\epsilon(1+c)<1$, $1-2\epsilon>0$ and $\epsilon+\delta<1$
+hold.
+
+The seven assembly margins are
+\begin{align*}
+ g_1&=1-\epsilon(1+c),&g_2&=\epsilon c(1-\tau),\\
+ g_3&=\epsilon(1-\lambda'),&g_4&=(1-\tau)(1-\epsilon),\\
+ g_5&=1-\delta-2\epsilon,&g_6&=1-\delta-\epsilon,\qquad g_7=\epsilon,
+\end{align*}
+and exact arithmetic gives
+\[
+ G_*=\min_ig_i=g_3=\frac{147947041}{10^{17}},\qquad
+ G_*-\kappa=\frac{47041}{10^{17}}>0.
+\]
+This strict gap absorbs all remaining fixed powers of $\log p$, and the
+retained assembly yields
+\[
+ T(n)=O\bigl(n(\log n)^{1-1479/10^{12}}\bigr),\qquad
+ 2^{-30}<\frac{1479}{10^{12}}<2^{-29},
+\]
+conditional on the identified upstream and extension proofs.
+
+\paragraph{The next ceiling.} Now $g_2,g_3,g_4\le a\min\{\epsilon,1-\epsilon\}$,
+so these networks and assembly inequalities give $\kappa<a/2<2^{-29}$. The
+witness is above $99.9\%$ of this bound. Further progress needs a stronger
+bit network; the complex network would then need to keep
+$(1-\beta)a_{\rm c}>a$ with $\beta>3/4$.
+
+\section{Reproducibility and review boundary}
+\path{scripts/fast_gaussian.py} checks the witness, the guard, the exact
+step inequality of Lemma~\ref{lem:correction-powers} on several $(s,t)$, and the
+Neumann counts; its certificate is \path{certificates/fast-gaussian.json}.
+\path{tests/test_fast_gaussian.py} verifies the chirp identity exactly, the
+power bound against explicit $E$ matrices at $160$ decimal digits, the block
+correlation against direct sums, negative parameter cases, and the patch
+text. \path{scripts/make_fast_gaussian_patch.py} writes
+\path{patches/fast-gaussian-30.patch}. These checks support the written
+arguments; they are not a formal verification of the upstream theorem, and
+the new construction has not received independent review.
+
+\begin{thebibliography}{1}
+\bibitem{HarveyHoeven2021}
+D.~Harvey and J.~van der Hoeven, \emph{Integer multiplication in time
+$O(n\log n)$}, Ann. of Math. (2) \textbf{193} (2021), no.~2, 563--617.
+\end{thebibliography}
+\end{document}
