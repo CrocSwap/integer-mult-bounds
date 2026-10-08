@@ -8,7 +8,7 @@ All eight cloud experiments passed. Exact complete-profile comparison included t
 
 ## Validation
 
-Both cloud words passed scalar checks, arbitrary-dirty physical replay in both orientations, fresh CRT profiles, independent exact moments, next-grid rejection, 47 constraints and seven margins. Independent local compiler regeneration, focused controls and the full repository verification are pending. The PR remains draft until full verification completes.
+Both cloud words passed scalar checks, arbitrary-dirty physical replay in both orientations, fresh CRT profiles, independent exact moments, next-grid rejection, 47 constraints and seven margins. Independent local compiler regeneration and nine focused controls passed. Full `make -j1 verify`, both inherited and new compiler regenerations, seven inherited controls and nine new controls passed on research commit `b2df9de3147006cb6a652e5409ce2f44bbd71926` in 3367.923 seconds (56 minutes 8 seconds), including 84 isolated test modules and 20 historical patch checks. The checkout had no source drift; all 48 GitHub checks passed on that research commit. See [validation.json](validation.json) for timings, commands and evidence hashes. Only this validation documentation and receipt changed afterwards.
 
 ```sh
 python3 research/congruent-geometric-pricing/verify.py --regenerate
