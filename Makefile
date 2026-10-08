@@ -1,6 +1,10 @@
 .PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
 
 verify:
+	python3 scripts/prime_field_network.py
+	python3 scripts/complex_network.py
+	python3 scripts/fast_gaussian.py
+	$(MAKE) batched-certificate batched-patch
 	python3 scripts/certify.py
 	python3 scripts/search_network.py
 	python3 scripts/make_patch.py
@@ -54,6 +58,14 @@ verify:
 	git apply --check --directory=upstream patches/h46-shared-point.patch
 	git apply --check --directory=upstream patches/h50-paired-59.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
+	git apply --check --directory=upstream patches/batched-23.patch
+	$(MAKE) batched-dimension30
+
+.PHONY: batched-dimension30
+batched-dimension30:
+	python3 research/batched-followup/verify.py
+	python3 research/batched-followup/make_patch.py
+	git apply --check --directory=upstream patches/batched-dimension30.patch
 
 note:
 	mkdir -p artifacts
@@ -93,3 +105,25 @@ compact-note:
 
 fetch:
 	python3 scripts/fetch_upstream.py
+
+.PHONY: batched-certificate batched-patch batched-note
+PDFLATEX ?= pdflatex
+TEX_ENGINE ?= pdflatex
+TECTONIC ?= tectonic
+
+batched-certificate:
+	python3 scripts/controlled_bit_rank_moment.py --output certificates/controlled-bit-rank-moment.json > /dev/null
+	python3 scripts/batched_network.py --output certificates/batched-network.json --summary
+
+batched-patch:
+	python3 scripts/make_batched_patch.py
+
+batched-note:
+	mkdir -p artifacts
+ifeq ($(TEX_ENGINE),tectonic)
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/batched-23-note.tex
+else
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+endif
