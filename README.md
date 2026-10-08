@@ -1,3 +1,7 @@
+# Conditional multiplication saving beyond 2^-16
+
+The new unequal two-stage construction gives **κ=15536/10^9=1.5536×10^-5 > 2^-16** under the retained analytic and fixed-tape hypotheses. See [proof and reproduction](research/two-stage/README.md) and the [complete new proof](notes/two-stage-16-note.tex). The results below are preserved dependencies.
+
 # Conditional multiplication saving beyond 2^-17
 
 This branch composes the unchanged PR21 finite interfaces with RaD/PR20's semantic precision and bulk resampling arguments, giving **κ=1099/10^8=1.099×10^-5 > 2^-17** under the documented analytic and fixed-tape hypotheses.

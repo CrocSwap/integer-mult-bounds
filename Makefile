@@ -163,3 +163,12 @@ semantic-bulk-note:
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
 verify: semantic-bulk-certificate
+
+.PHONY: two-stage-check two-stage-producer
+two-stage-check:
+	python3 research/two-stage/verify.py
+	python3 -m unittest discover -s tests -p test_two_stage.py -v
+two-stage-producer:
+	python3 research/two-stage/producer.py
+
+verify: two-stage-producer two-stage-check
