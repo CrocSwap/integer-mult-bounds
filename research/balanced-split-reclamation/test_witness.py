@@ -1,5 +1,6 @@
 """Failure modes of the concrete finite certificate and its literal interface."""
 from copy import deepcopy
+from hashlib import sha256
 from fractions import Fraction as Q
 import gzip
 import json
@@ -69,7 +70,7 @@ class WitnessTests(unittest.TestCase):
         self.assertGreater(rejected[0], 1)
 
     def test_complete_predecessor_is_excluded(self):
-        old = json.loads((HERE/'vendor/pr71-certificate.json').read_text())['bit']
+        old = json.loads((HERE/'vendor/pr82-certificate.json').read_text())['bit']
         self.assertGreater(arithmetic.independent_moment(old, Q(self.cert['bit_saving']))[0], 1)
 
     def test_float_saving_rejected(self):
@@ -80,6 +81,32 @@ class WitnessTests(unittest.TestCase):
         result = subprocess.run([sys.executable, '-O', str(HERE/'verify.py')], capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Assertions must remain enabled', result.stderr)
+
+    def test_commuting_scatter_order(self):
+        changed = deepcopy(self.word)
+        changed['scatter'].reverse()
+        verify.validate_word(changed)
+
+    def reject_stale_bridge(self, section, key, value):
+        bridge = arithmetic.bridge_for(self.cert['bit'])
+        bridge[section][key] = value
+        with self.assertRaises(arithmetic.balanced.InvalidAssembly):
+            arithmetic.balanced.assembly(bridge, Q(self.cert['bit_saving']), Q(self.cert['kappa']), h=arithmetic.BACKOFF)
+
+    def test_stale_wire_bits(self):
+        self.reject_stale_bridge('bit', 'wire_bits', 28)
+
+    def test_stale_row_coefficient(self):
+        self.reject_stale_bridge('rows', 'coefficient', 852)
+
+    def test_stale_degree_gap(self):
+        self.reject_stale_bridge('rows', 'degree_gap', Q(6548, 25))
+
+    def test_pin_help_does_not_refresh_sources(self):
+        before = sha256((HERE/'SOURCE.json').read_bytes()).hexdigest()
+        result = subprocess.run([sys.executable, str(HERE/'pin.py'), '--help'], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(before, sha256((HERE/'SOURCE.json').read_bytes()).hexdigest())
 
 
 if __name__ == '__main__':

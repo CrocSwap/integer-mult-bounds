@@ -24,16 +24,49 @@ AFTER_ROWS = '''            def coarse_sum(i, j):
                 rows = [self.total([e(a,b) for b in groups[j]]) for a in groups[i]]
                 return self.total(rows)
             coarse = {(i,j):coarse_sum(i,j) for i,j in combinations(range(ng),2)}'''
+AFTER_HALF = '''            def coarse_sum(i, j):
+                if i+j < ng-1+COARSE_SHIFT:
+                    pieces = [self.total([e(a,b) for a in groups[i]]) for b in groups[j]]
+                else:
+                    pieces = [self.total([e(a,b) for b in groups[j]]) for a in groups[i]]
+                return self.total(pieces)
+            coarse = {(i,j):coarse_sum(i,j) for i,j in combinations(range(ng),2)}'''
 
 
-def graph(h, groups=(1, 1, 2), anchor='first', coarse='none'):
+def reorder_envelopes(c):
+    """Thomas DiFiore's PR74 scalar-envelope order, also used by PR76."""
+    regions = {}
+    for node in sorted(c.active):
+        if c.args[node]:
+            regions.setdefault((c.core[node], c.union[node]), []).append(node)
+    def key(item):
+        (core, union), nodes = item
+        return union.bit_count()-core.bit_count(), -core, union, min(nodes)
+    variables = len(c.inputs)
+    ids = list(range(variables+1))+[x for _, nodes in sorted(regions.items(), key=key) for x in nodes]
+    mapping = {x: i for i, x in enumerate(ids)}
+    args, core, union, provenance = c.args, c.core, c.union, c.provenance
+    c.args = [tuple(mapping[y] for y in args[x]) if args[x] else None for x in ids]
+    c.core = [core[x] for x in ids]
+    c.union = [union[x] for x in ids]
+    c.provenance = [provenance[x] for x in ids]
+    c.active = {mapping[x] for x in c.active}
+    c.outputs = {k: mapping[v] for k, v in c.outputs.items()}
+    # The pre-reorder audit populated keys (self,node,common). Their node
+    # numbers now have different meanings; invalidate that derived cache.
+    c.support_in.cache_clear()
+    c.verify()
+    return c
+
+
+def graph(h, groups=(1, 1, 2), anchor='first', coarse='none', node_order='original', coarse_shift=0):
     if h not in (23, 25) or any(type(x) is not int or not 0 <= x <= 3 for x in groups):
         raise ValueError('Unsupported finite graph configuration')
     source = BASE.read_text()
     if coarse != 'none':
         assert source.count(BEFORE) == 1
-        source = source.replace(BEFORE, {'columns': AFTER_COLUMNS, 'rows': AFTER_ROWS}[coarse])
-    namespace = {'__file__': str(BASE), '__name__': 'next_use_graph_composition'}
+        source = source.replace(BEFORE, {'columns': AFTER_COLUMNS, 'rows': AFTER_ROWS, 'half': AFTER_HALF}[coarse])
+    namespace = {'__file__': str(BASE), '__name__': 'next_use_graph_composition', 'COARSE_SHIFT':coarse_shift}
     exec(compile(source, str(BASE)+':next_use_composition', 'exec'), namespace)
     original_class = namespace['circuit_class']
 
@@ -65,4 +98,8 @@ def graph(h, groups=(1, 1, 2), anchor='first', coarse='none'):
         namespace['alternating_points'] = points
     result = namespace['graph'](h)
     result.verify()
+    if node_order == 'envelope':
+        result = reorder_envelopes(result)
+    elif node_order != 'original':
+        raise ValueError(node_order)
     return result

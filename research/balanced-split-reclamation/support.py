@@ -40,5 +40,15 @@ def config(h):
     if type(h) is not int or h not in (23, 25):
         raise ValueError('Only h=23 and h=25 are certified')
     return dict(order='cover-core' if h == 23 else 'reverse-node',
-                horizon='next-use', live_order='cost', weight='entropy',
-                live=True, completion='unit', retired_order='cost')
+                horizon='next-use', live_order='insertion' if h == 23 else 'cost', weight='entropy',
+                live=True, completion='future', retired_order='rank' if h == 23 else 'cost',
+                oracle_permutation=None if h == 23 else permutation(h), enlarge=0)
+
+
+def permutation(h):
+    if h == 23:
+        order = [1, 3, 2, *range(4, 20), 21, 20, 22, 0]
+        return [order.index(i) for i in range(h)]
+    if h == 25:
+        return [(i+1) % h for i in range(h)]
+    raise ValueError('Unsupported coordinate permutation')

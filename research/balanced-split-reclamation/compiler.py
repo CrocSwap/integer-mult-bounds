@@ -30,6 +30,11 @@ import argparse,json,time,struct
 # Discovery choices only. Every accepted word must pass the independent replay.
 CONFIG = {}
 
+def oracle_frame(frame):
+ permutation=CONFIG.get('oracle_permutation')
+ if not permutation:return frame
+ return tuple(sum(1<<permutation[i] for i in range(len(permutation)) if mask>>i&1) for mask in frame)
+
 def independent(rows,vec):
  for row in rows:
   vec=min(vec,vec^row)
@@ -43,8 +48,35 @@ def basis(rows):
 
 def build(h):
  c=graph(h);groups={};owner={};signal={};blocks=[]
+ labels={x:(c.core[x],c.union[x]) for x in c.active}
+ growth=CONFIG.get('enlarge',0)
+ if growth:
+  consumers=defaultdict(list)
+  terminals=set(c.outputs.values())
+  for x in sorted(c.active):
+   for y in c.args[x] or ():consumers[y].append(x)
+  changed=0
+  for x in sorted(c.active,reverse=True):
+   if not c.args[x] or x in terminals:continue
+   cap=(1<<h)-1
+   for y in consumers[x]:cap &= labels[y][1]
+   core,cover=labels[x]
+   assert not cover&~cap
+   extra=cap&~cover
+   if growth<h:
+    allowed=0
+    for _ in range(growth):
+     if not extra:break
+     bit=extra&-extra;allowed|=bit;extra^=bit
+    cap=cover|allowed
+   labels[x]=(core,cap);changed+=cap!=cover
+  for x in c.active:
+   for y in c.args[x] or ():
+    a,b=labels[y],labels[x]
+    assert not(b[0]&~a[0]) and not(a[1]&~b[1]), 'Enlarged edge is not nested'
+  print('ENLARGED',h,changed,'of',len(c.active),flush=True,file=sys.stderr)
  for x in sorted(c.active):
-  key=(c.core[x],c.union[x])
+  key=labels[x]
   if key not in groups:
    groups[key]=len(blocks);blocks.append(dict(nodes=[],frame=key,inputs=set(),uses=[]))
   g=groups[key];owner[x]=g;blocks[g]['nodes'].append(x)
@@ -132,6 +164,7 @@ def match(blocks,uses,enabled):
 
 def compile_(h,matching=True,reclaim=False,dirty=True):
  t0=time.time();c,blocks,uses,value_uses,owner,signal,order,contains=build(h);v=len(c.inputs)
+ position={g:i for i,g in enumerate(order)}
  print('built',h,len(blocks),'regions',flush=True,file=sys.stderr)
  edges,chosen,right,stats=match(blocks,uses,matching)
  print('matched',len(chosen),'seconds',time.time()-t0,flush=True,file=sys.stderr)
@@ -186,7 +219,7 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
  with oracle_input.open('wb') as stream:
   stream.write(struct.pack('<6I2Q',h,v,0,len(blocks)+2,0,0,h*(h-1),h*(h-1)))
   stream.write(struct.pack('<2QI',0,0,0));stream.write(struct.pack('<2QI',0,0,h))
-  for b in blocks:stream.write(struct.pack('<2QI',*b['frame'],b['rank']))
+  for b in blocks:stream.write(struct.pack('<2QI',*oracle_frame(b['frame']),b['rank']))
  oracle=subprocess.Popen([ORACLE_EXE,str(oracle_input)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1)
  oracles.append(oracle)
  cache={}
@@ -284,7 +317,13 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
       rows.append(expr);labels.append(('retire',-1));echelon=basis(rows)
       stats['pending_completion_rows']+=1
       if len(rows)==len(ins):break
-   for i in range(len(ins)):
+   unit_order=list(range(len(ins)))
+   if CONFIG.get('completion','unit')=='future':
+    def future_priority(i):
+     compatible=sum(position[uses[u][1]]>step and contains(b['frame'],blocks[uses[u][1]]['frame']) for u in value_uses[b['inputs'][i]])
+     return (-compatible,slots[ins[i]].bit_count(),i)
+    unit_order.sort(key=future_priority)
+   for i in unit_order:
     if independent(echelon,1<<i):rows.append(1<<i);labels.append(('retire',i));echelon=basis(rows)
    assert len(rows)==len(ins)
    rr=rows.copy();elim=[]

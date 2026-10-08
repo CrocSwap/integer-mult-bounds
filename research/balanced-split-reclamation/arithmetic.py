@@ -52,7 +52,12 @@ def bridge_for(profile):
     bridge['bit']['W'] = profile['W']
     assert bridge['bit']['m'] == profile['m'] == 575
     assert bridge['bit']['maxchild'] == profile['maxchild'] == 529
-    assert bridge['bit']['wire_bits'] == profile['W'].bit_length() == 28
+    bridge['bit']['wire_bits'] = profile['W'].bit_length()
+    coefficient = sum(bridge[x]['halving_degree']*bridge[x]['wire_bits'] for x in ('bit', 'complex'))
+    bridge['rows']['coefficient'] = coefficient
+    bridge['rows']['degree_gap'] = Q(bridge['rows']['degree'])-Q(51, 25)*coefficient
+    assert bridge['bit']['wire_bits'] == 27 and coefficient == 843
+    assert bridge['rows']['degree_gap'] == Q(7007, 25)
     assert 2*529**9 < 575**9 and 2*529**8 >= 575**8
     assert bridge['bit']['halving_degree'] == 9
     return bridge
@@ -84,19 +89,21 @@ def certify(profile):
         next_rejection = str(error)
     else:
         raise AssertionError('Next kappa grid point unexpectedly passed')
-    predecessor = json.loads((HERE/'vendor/pr71-certificate.json').read_text())
+    predecessor = json.loads((HERE/'vendor/pr82-certificate.json').read_text())
     old_profile = predecessor['bit']
     old_test = moment(old_profile, saving)
-    assert old_test['lower'] > 1, 'The complete PR71 profile must be excluded'
+    assert old_test['lower'] > 1, 'The complete PR82 profile must be excluded'
     a, b = moment(profile, saving), moment(profile, Q(high, GRID))
     assert a['upper'] < 1 < b['lower']
     return dict(status='Finite conditional witness; inherited all-size and analytic interfaces remain assumptions',
                 kappa=kappa, bit_saving=saving, next_bit_saving=Q(high, GRID), bit=profile,
                 accepted_moment=a, rejected_moment=b, assembly=accepted, finite_bridge=bridge,
                 next_kappa_rejection=next_rejection, eventual_bounds=balanced.cutoffs(bridge, accepted),
-                comparison=dict(pr71_commit='1bef94fd40a746452548c84a4a8f8834670a3113',
-                    pr71_kappa=Q(predecessor['kappa']), difference=kappa-Q(predecessor['kappa']),
-                    ratio=kappa/Q(predecessor['kappa']), complete_pr71_moment_lower=old_test['lower']))
+                comparison=dict(pr82_commit='3410b940aa26e5876202152dfa7c4f66451ee22c',
+                    pr82_kappa=Q(predecessor['kappa']), difference=kappa-Q(predecessor['kappa']),
+                    ratio=kappa/Q(predecessor['kappa']), complete_pr82_moment_lower=old_test['lower'],
+                    initial_pr77_commit='83298467291d3bd4b53f76faaef60dbf585be171',
+                    initial_pr77_kappa=Q(12886963972497,250000000000000000)))
 
 
 @lru_cache(None)

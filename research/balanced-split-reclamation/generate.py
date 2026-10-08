@@ -7,10 +7,12 @@ import os
 from pathlib import Path
 import shlex
 import subprocess
-from support import HERE, ROOT, SELECTED, EXP, load, write_json, config
+from support import HERE, ROOT, SELECTED, EXP, load, write_json, config, permutation
 from binary_frame_replay import replay
 from binary_frame_profile_prepare import prepare
 from arithmetic import certify, independent_audit
+from geometry import relabel
+import carry_exchanges
 
 
 def binaries(work):
@@ -25,11 +27,13 @@ def binaries(work):
 def generate_axis(h, work, oracle, profiler):
     compiler = load(HERE/'compiler.py', 'balanced_split_compiler')
     graph = load(HERE/'graph.py', 'balanced_split_graph')
-    compiler.graph = lambda dimension: graph.graph(dimension, groups=(1, 1, 2), anchor='first', coarse='columns')
+    compiler.graph = lambda dimension: graph.graph(dimension, groups=(1, 1, 2), anchor='first',
+        coarse='half' if h == 23 else 'rows', coarse_shift=2 if h == 23 else 0, node_order='envelope')
     compiler.CONFIG = config(h)
     compiler.ORACLE_EXE = str(oracle)
     compiler.ORACLE_INPUT = str(work/f'oracle-{h}.bin')
     compiler.oracles = []
+    carry_exchanges.install(compiler, h, work, passes=3, two_cycles=True, two_paths=True)
     try:
         compiled, word = compiler.compile_(h, matching=True, reclaim=True, dirty=True)
     finally:
@@ -37,6 +41,9 @@ def generate_axis(h, work, oracle, profiler):
             process.stdin.close()
             assert process.wait() == 0, 'Discovery oracle failed'
     compiled.pop('seconds')
+    original = (json.dumps(word, separators=(',', ':'))+'\n').encode()
+    (work/f'original-{h}.json.gz').write_bytes(gzip.compress(original, mtime=0))
+    word = relabel(word, permutation(h))
     raw = (json.dumps(word, separators=(',', ':'))+'\n').encode()
     packed = work/f'word-{h}.json.gz'
     with packed.open('wb') as stream:

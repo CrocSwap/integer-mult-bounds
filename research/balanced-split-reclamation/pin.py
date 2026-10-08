@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Explicitly freeze the candidate; verification never refreshes this file."""
 from hashlib import sha256
+import argparse
 import json
 from pathlib import Path
 from support import HERE, ROOT, write_json
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--record', action='store_true', help='Explicitly replace SOURCE.json')
+    args = parser.parse_args()
+    if not args.record:
+        parser.error('Pass --record for the intentional source-freeze operation')
     local = [p for p in HERE.rglob('*') if p.is_file() and p.name not in ('SOURCE.json', 'VALIDATION.json')
              and p.suffix not in ('.pyc', '.log', '.aux', '.out') and '__pycache__' not in p.parts]
     inherited = [ROOT/p for p in (
@@ -23,7 +29,9 @@ def main():
         upstream=dict(pr67='b3745601e947a94316bf25c2c6263d93c06e3364',
                       pr68='8778fdb52e834a2a14371590d80ea6e0c734a866',
                       pr69='91aa1f17e6e3fc063241686a41a34ddd0dc24c50',
-                      pr71='1bef94fd40a746452548c84a4a8f8834670a3113')))
+                      pr71='1bef94fd40a746452548c84a4a8f8834670a3113',
+                      pr76='2333abcea79793fe301b479a7c971cc2be45596c',
+                      pr82='3410b940aa26e5876202152dfa7c4f66451ee22c')))
     print('Pinned', len(files), 'source and artifact files')
 
 

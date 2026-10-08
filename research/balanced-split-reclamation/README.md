@@ -1,90 +1,106 @@
-# Balanced coarse sums on anchored split frames
+# Coarse-threshold and coordinate refinement on anchored split frames
 
-The selected finite construction gives the conditional integer-multiplication
-bound
+The selected finite construction gives the conditional bound
 
 \[
 T(n)=O\bigl(n(\log n)^{1-\kappa}\bigr),\qquad
-\kappa=\frac{12886963972497}{250000000000000000}
-=5.1547855889988\times10^{-5}.
+\kappa=\frac{52062354654791}{10^{18}}
+=5.2062354654791\times10^{-5}.
 \]
 
-This is **0.2590891819% above PR71** at commit
-`1bef94fd40a746452548c84a4a8f8834670a3113`. It is a comparison of conditional
-asymptotic exponent bounds, with no global-optimality or measured-runtime claim.
+This is **0.0568021906% above the complete PR82 witness** frozen at
+`3410b940aa26e5876202152dfa7c4f66451ee22c`. Newer community submissions have
+larger reported values. This is a scoped historical comparison, not a claim
+to the latest record, global optimality, or measured multiplication speed.
+The initial PR77 witness `5.1547855889988e-5` remains reproducible at commit
+`83298467291d3bd4b53f76faaef60dbf585be171`.
 
-The construction combines eumemic's PR69 balanced coarse columns with Chafik
-Boukhalfa's PR71 anchored `[1,1,2]` split graph. It uses the inherited joint
-reversible frame compiler and compatible pending controls, and orders both
-eligible live controls and retired dependency candidates by their actual
-profile cost. The latter changes the temporary dependency basis, not just the
-choice among the first basis's dependent rows. Pending controls are priced
-against their known next use. Every selected clearing expression is emitted
-as literal XORs, and all frame moves and final cleanup remain charged.
-
-| Quantity | Pinned PR71 | This construction |
+| Paid quantity | Pinned PR82 | This construction |
 |---|---:|---:|
-| Roles at h=23 | 27,455 | 27,338 |
-| Roles at h=25 | 36,015 | 35,939 |
-| Physical width W | 135,075,665 | 134,671,969 |
-| Complete rank mass | 77,666,660,475 | 77,434,535,275 |
+| Roles at h=23 | 27,075 | 27,043 |
+| Roles at h=25 | 35,500 | 35,505 |
+| Physical width W | 133,289,600 | 133,224,855 |
+| Complete recursive rank mass | 76,639,673,100 | 76,602,444,725 |
 | Rank deficit | 1,846,900 | 1,846,900 |
 
-The strict bit-saving witness is `51550513208569/10^18`. The full paid child
-list of PR71 has a rigorous moment lower bound above one at this value. The
-new list has a rigorous upper bound below one. Its next `10^-18` bit grid
-point is rejected, as is the next kappa grid point in the unchanged balanced
-assembly. All 47 strict inequalities and seven margins are checked exactly.
+The strict bit witness is `26032532642421/(5*10^17)`. The complete old
+PR82 child list, evaluated with its own width, has a rigorous lower moment
+above one at this saving. The new list has an upper moment below one. Both
+the adjacent `10^-18` bit grid point and the next kappa point are rejected.
+
+## Selected construction
+
+Both axes retain the anchored split vector `[1,1,2]`, the original common-point
+envelopes, PR74's envelope ordering, and the inherited reversible compiler.
+The h23 region schedule is `cover-core`; h25 uses `reverse-node`.
+
+- At h23, a coarse cell `(i,j)` uses column sums when `i+j < ng+1`, and row
+  sums otherwise, with zero-based group indices and current group count `ng`.
+  This shifts the earlier half-plane boundary by two. At h25, every cell uses
+  row sums. Both parenthesizations compute the same disjoint edge sum.
+- Independent unit-completion rows are ordered by compatible future uses,
+  as in PR79. Three passes of the inherited improving single carry exchanges
+  are supplemented by legal two-region carry cycles. The selected words use
+  113 such cycles at h23 and 86 at h25. Open two-region reassignment paths
+  were also searched; none was selected in these words.
+- h23 retains rank-ordered retired candidates and insertion-ordered live
+  controls. h25 orders both by actual profile cost against the next use.
+- h23 uses the preserved PR82 coordinate flag. h25 uses the point map
+  `i -> (i+1) mod 25` in both oracle pricing and the final physical word.
+  h23 oracle pricing remains in the original coordinates.
+
+Every selected scalar operation is a literal XOR and every operand promotion,
+center copy, endpoint correction, source growth and cleanup is charged.
+The score is a deterministic discovery heuristic. Only the complete actual
+physical profile decides whether a candidate improves the bound.
+
+The actual width is below `2^27`. The bridge derives wire bits 27, row
+coefficient 843 and degree gap `7007/25`; degree 2000, suffix slope 8000,
+the complex branch and its scalar charge remain unchanged. Stale width
+metadata is rejected.
 
 ## Reproduction
 
-From the repository root, with Python 3.11+ and a C++17 compiler:
+From the repository root, using Python 3.11+ and a C++17 compiler:
 
 ```sh
 make -C research/balanced-split-reclamation verify
 make -j1 verify
 ```
 
-The first command regenerates both selected words byte-for-byte, independently
-replays every input/target/dirty basis vector in both orientations, derives
-all physical transitions from literal XOR incidences, recomputes every
-fixed-basis profile with the inherited bounded-minor/CRT checks, rebuilds
-the complete global profile and exact arithmetic, and runs twelve failure-mode
-tests. A second logarithm/exponential evaluation uses a different range
-reduction and Taylor degree. This is a second arithmetic implementation,
-not independent expert review of the theorem.
+The focused target regenerates both complete words byte-for-byte, checks every
+input/target/arbitrary-dirty basis vector in both orientations, reconstructs
+actual frame transitions, recomputes the bounded-minor/CRT profiles, and
+rebuilds the complete recursive profile and exact certificate. A separately
+evaluated rational logarithm/exponential enclosure confirms the accepted and
+rejected grid points. All 47 strict assembly constraints and seven margins
+are recomputed. Seventeen tests cover malformed or aliased ports, uncharged
+canceling scatter gates, omitted children, adjacent-grid rejection, three
+stale bridge fields, assertion-disabled Python, and read-only pin help.
 
-`selected/` contains the words, actual profiles, receipts and exact certificate.
-`SOURCE.json` freezes consumed sources and deliverables; verification never
-rewrites this manifest. `pin.py` is an explicit maintenance operation.
-`generate.py --output <directory>` produces fresh artifacts without modifying
-the selected witness. The proof is in [paper.tex](paper.tex) and [paper.pdf](paper.pdf).
+`selected/` contains the frozen words, profiles and certificates. `SOURCE.json`
+pins consumed sources and deliverables; verification never refreshes it.
+An intentional maintainer update uses `python3 pin.py --record`.
+`generate.py --output <directory>` writes a fresh reconstruction outside the
+selected artifacts. The proof is in [paper.tex](paper.tex) and [paper.pdf](paper.pdf).
+Run receipts, including any environmental interruption of the broad suite,
+are recorded separately in `VALIDATION.json`.
 
-The selected graph uses columns rather than a three-addition coarse chain,
-split vector `[1,1,2]`, and the lowest intact pair first in each common-point
-ordering. The h23 region order is `cover-core`; h25 uses `reverse-node`.
-The oracle's integer entropy score is only a deterministic search heuristic.
-The final complete physical profile, not the score, determines acceptance.
+## Scope and credit
 
-## Proof boundary and attribution
+The base theorem, all-size residual/frame compiler, fixed finite-alphabet tape
+representation, semantic/analytic reduction, routing, prime setup and exact
+recovery remain inherited hypotheses. These are finite checks and a written
+conditional argument, not a complete formal multiplication theorem or
+independent human expert review.
 
-The original-envelope interpretation, all-size residual/frame compiler,
-fixed finite-alphabet tape layout, semantic and analytic multiplication
-reduction, routing, prime setup and exact recovery remain inherited
-assumptions. The complex branch is unchanged. Exact finite checks do not
-constitute a complete formal proof of the multiplication theorem.
-
-This composition, cost-ordered dependency basis experiment, independent
-reproduction and package were prepared for **huxint with OpenAI Codex
-assistance**. Credit eumemic for PR57's reversible region compiler and PR69's
-coarse-column identity; Avi Eisenberg for PR62's interval/core-aware graph;
-Rohan Garg for PR59's split operation; Rohan Arun for PR65's schedules and
-PR67's cost oracle and numerical refinement; Dominik Scholz for PR63's
-composition and PR68's compatible pending controls; and Chafik Boukhalfa for
-PR60's ranked reclamation and PR71's anchored split/next-use composition.
-All prior contributors retain their original notices. See [NOTICE](NOTICE).
-
-The preserved contributor files in `vendor/` are unmodified snapshots, used
-for provenance and the complete PR71 comparison. The inherited repository
-files are retained unchanged. No endorsement or completed expert review by
-those contributors is implied.
+The initial balanced split/cost-basis experiment and this explicit shifted
+coarse rule, coordinate/cost choice, exchange search and reproducible package
+were prepared for **huxint with substantial OpenAI Codex assistance**.
+Credit eumemic (PR57/69), Avi Eisenberg (PR62), Rohan Garg (PR59), Rohan Arun
+(PR65/67/78/82), Dominik Scholz (PR63/68/76), Chafik Boukhalfa (PR60/71/79),
+Thomas DiFiore (PR74), Alejandro Zarzuelo Urdiales (PR70), and all earlier
+contributors preserved in [NOTICE](NOTICE). Carry exchanges and coordinate
+conjugacy are inherited methods; no general novelty claim is made for them.
+Original licenses, contributor snapshots and AI-assistance disclosures remain
+attached. No contributor endorsement is implied.

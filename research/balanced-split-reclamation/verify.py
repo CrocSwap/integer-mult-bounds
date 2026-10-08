@@ -2,6 +2,7 @@
 """Verify the frozen sources, literal words, actual profiles and arithmetic."""
 import argparse
 from copy import deepcopy
+from collections import Counter
 import gzip
 from hashlib import sha256
 from itertools import combinations
@@ -31,7 +32,7 @@ def validate_word(word):
     require(type(h) is int and h in (23, 25), 'Unsupported axis')
     triples = list(combinations(range(h), 3))
     require(type(v) is int and v == len(triples), 'Source dimension')
-    require(type(roles) is int and roles == {23: 27338, 25: 35939}[h], 'Selected role count')
+    require(type(roles) is int and roles == {23: 27043, 25: 35505}[h], 'Selected role count')
     frames = word['frames']
     require(type(frames) is list and len(frames) > 0, 'Missing frames')
     for frame in frames:
@@ -69,7 +70,15 @@ def validate_word(word):
         require(triple == sorted(set(triple)) and common in triple, 'Canonical output triple')
         targets = [i for i, t in enumerate(triples) if common in t] if len(triple) == 1 else [triple_index[tuple(triple)]]
         expected_scatter.extend([[v+i, 2*v+s] for i in targets])
-    require(word['scatter'] == expected_scatter, 'Literal scatter must equal the charged terminal ports')
+    for port in word['scatter']:
+        require(type(port) is list and len(port) == 2, 'Scatter pair schema')
+        a, b = port
+        require(type(a) is int and v <= a < 2*v, 'Scatter destination bounds')
+        require(type(b) is int and 2*v <= b < 2*v+roles, 'Scatter control bounds')
+    # All these gates read scratch and write targets, so they commute. Point
+    # conjugation changes their lexical order, but every multiplicity is paid.
+    require(Counter(map(tuple, word['scatter'])) == Counter(map(tuple, expected_scatter)),
+            'Literal scatter multiset must equal the charged terminal ports')
 
 
 def check_manifest():
@@ -116,7 +125,7 @@ def verify(rebuild=False):
     recorded = json.loads((SELECTED/'certificate.json').read_text())
     require(json_value(actual) == recorded, 'Complete exact arithmetic certificate changed')
     require(json_value(independent_audit(recorded)) == json.loads((SELECTED/'audit.json').read_text()), 'Independent arithmetic receipt changed')
-    print('PASS complete PR71 exclusion, adjacent grid rejection, 47 strict constraints and seven margins', flush=True)
+    print('PASS complete PR82 exclusion, adjacent grid rejection, 47 strict constraints and seven margins', flush=True)
 
 
 if __name__ == '__main__':
