@@ -117,7 +117,7 @@ def validate_bridge(bridge, width):
     for section, key in (('bit','W'), ('bit','wire_bits'), ('rows','coefficient'),
                          ('rows','degree'), ('rows','degree_gap'), ('rows','suffix_slope')):
         assert Q(bridge[section][key]) == Q(expected[section][key]), 'Stale finite bridge: '+section+'.'+key
-    assert (width,bridge['bit']['wire_bits'],bridge['rows']['coefficient'],Q(bridge['rows']['degree_gap'])) == (132466108,27,843,Q(7007,25))
+    assert (width,bridge['bit']['wire_bits'],bridge['rows']['coefficient'],Q(bridge['rows']['degree_gap'])) == (131795727,27,843,Q(7007,25))
     return True
 
 

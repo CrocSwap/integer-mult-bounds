@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE = ROOT / 'references/frame-compiler/pr65'
-EXPECTED_CONFIGS = {23: {'anchor': True, 'carry_exchange_passes': 3, 'carry_two_cycle_passes': 3, 'coarse': 'half', 'coordinate_permutation': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 0], 'future_completion': True, 'groups': [4, 1, 1], 'output_mode': 'baseline', 'pending_next_use_cost': True, 'schedule': 'natural'}, 25: {'anchor': True, 'carry_exchange_passes': 3, 'carry_two_cycle_passes': 3, 'coarse': 'half', 'coordinate_permutation': [2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 21, 23, 24, 0], 'future_completion': True, 'groups': [1, 4, 1], 'output_mode': 'route-late', 'pending_next_use_cost': True, 'schedule': 'natural'}}
+EXPECTED_CONFIGS = {23: {'anchor': True, 'carry_exchange_passes': 3, 'carry_two_cycle_passes': 3, 'coarse': 'half', 'coordinate_permutation': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 0], 'future_completion': True, 'groups': [4, 4, 1], 'output_mode': 'baseline', 'pending_next_use_cost': True, 'schedule': 'natural'}, 25: {'anchor': True, 'carry_exchange_passes': 3, 'carry_two_cycle_passes': 3, 'coarse': 'half', 'coordinate_permutation': [2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 21, 23, 24, 0], 'future_completion': True, 'groups': [4, 4, 1], 'output_mode': 'baseline', 'pending_next_use_cost': True, 'schedule': 'natural'}}
 
 
 def checked_manifest(directory):

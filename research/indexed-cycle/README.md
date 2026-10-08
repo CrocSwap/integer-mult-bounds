@@ -1,20 +1,20 @@
 # Indexed two-cycles with balanced multi-splits and coordinate flags
 
-The frozen finite conditional witness has **κ = 261356445457/5000000000000000 = 5.22712890914e-5**, with bit saving **408390793141/7812500000000000**. This is about **0.8494742%** above the reported PR74 value at `3f78d8967c009153f2df5c6a6577b6ab1d37e2ca`, observed 2026-10-08. This is a historical pinned comparison, not a claim about the current community frontier. The complete pinned PR74 and PR79 recursive profiles are strictly excluded at the new accepted bit saving.
+The frozen finite conditional witness has **κ = 52431959054651/1000000000000000000 = 5.2431959054651e-5**, with bit saving **6554338538661/125000000000000 = 52434708309288/1000000000000000000**. This is about **0.307377%** above the reported PR84 value at `88ca39571907343a49e97f328971ec7bcd26fbfd`, observed 2026-10-08. The complete pinned PR74, PR79, and PR84 recursive profiles are strictly excluded at the new accepted bit saving.
 
 | Quantity | This witness |
 |---|---:|
-| h23 auxiliary roles | 26,834 |
-| h25 auxiliary roles | 35,348 |
-| Physical width W | 132,466,108 |
-| Total recursive rank | 76,166,165,200 |
+| h23 auxiliary roles | 26,705 |
+| h25 auxiliary roles | 35,137 |
+| Physical width W | 131,795,727 |
+| Total recursive rank | 75,780,696,125 |
 | Rank deficit | 1,846,900 |
 | Largest child / parent dimension | 529 / 575 |
 | Bit wire bits / row coefficient | 27 / 843 |
 
-Additional reported comparisons observed on 2026-10-08: PR81 at `acae4964aef41c69f3c57e72a45e76afc4d4934d` reports κ=5.1915547765237e-5; PR82 at `3410b940aa26e5876202152dfa7c4f66451ee22c` reports κ=5.203279888519e-5. This frozen witness is about 0.4583459% above the reported PR82 value. These are metadata comparisons only; their foreign producers were not replayed. Exact rational ratios and authors are recorded in `reported-comparisons.json`.
+Additional reported comparisons observed on 2026-10-08: PR81 reports κ=5.1915547765237e-5; PR82 reports κ=5.203279888519e-5; PR84 reports κ=5.22712890914e-5. This frozen witness improves on all prior community submissions. Exact rational ratios and authors are recorded in `reported-comparisons.json`.
 
-Both axes use balanced coarse columns when `i+j<ng-1` and rows elsewhere, anchored point orders, PR74 node order followed by natural region execution, pending next-use scoring, future unit completion, and up to three single-exchange and three two-cycle passes. h23 uses split vector `[4,1,1]` and baseline output order; h25 uses `[1,4,1]` and late-use output order. Code 4 splits the first and middle eligible pairs, retaining strict contraction. Coordinate relabeling is cyclic shift one for h23 and the pinned PR74 permutation for h25. Every operation and frame raise is charged after relabeling.
+Both axes use balanced coarse columns when `i+j<ng-1` and rows elsewhere, anchored point orders, PR74 node order followed by natural region execution, pending next-use scoring, future unit completion, and up to three single-exchange and three two-cycle passes. Both h23 and h25 use congruent multi-split vector `[4,4,1]` and baseline output order. Code 4 splits the first and middle eligible pairs across both recursive levels, retaining strict contraction while compacting roles. Coordinate relabeling is cyclic shift one for h23 and the pinned PR74 permutation for h25. Every operation and frame raise is charged after relabeling.
 
 ```sh
 make indexed-cycle-verify

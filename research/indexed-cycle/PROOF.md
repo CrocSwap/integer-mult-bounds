@@ -2,7 +2,7 @@
 
 ## 1. Frozen construction and general weighted recursion
 
-At level d, start with the inherited ordered groups of size one or two. The chosen vector requests first/middle pair splits: h23 `[4,1,1]`, h25 `[1,4,1]`, where 1 requests the first group and 4 requests first then middle. Requested indices are deduplicated, valid, and must contain two points. Before admitting the kth split require `number_of_groups + admitted_splits + 1 < number_of_points`. Apply admitted splits in decreasing index order so earlier indices keep their meaning. Each split replaces one pair by its two ordered singletons; the point partition and ordering are unchanged.
+At level d, start with the inherited ordered groups of size one or two. The chosen vector requests first/middle pair splits: h23 `[4,4,1]`, h25 `[4,4,1]`, where 1 requests the first group and 4 requests first then middle across both levels 0 and 1. Requested indices are deduplicated, valid, and must contain two points. Before admitting the kth split require `number_of_groups + admitted_splits + 1 < number_of_points`. Apply admitted splits in decreasing index order so earlier indices keep their meaning. Each split replaces one pair by its two ordered singletons; the point partition and ordering are unchanged.
 
 The admission guard proves that the final number of groups is strictly less than the number of points, even for multiple requested splits and overlapping first/middle indices. Splits are disabled for n≤3; n=3 has two coarse groups and n≤2 uses the direct base case. Thus every recursive call strictly contracts, for every input size allowed by the grouping interface.
 
@@ -32,7 +32,7 @@ Candidate edges remain subject to inherited temporal/frame eligibility. A single
 
 A two-cycle swaps carriers between distinct regions and distinct already-owned future uses. For new edge e and its complementary edge other, `carry_can(e,z)` checks the receiving region after removing z and `carry_can(other,f)` checks the other region after removing f. Because the regions differ, these tests describe exactly the final two bases. Remove both old edges before inserting either new edge; the two freed future uses are distinct, so unique ownership and global cardinality are preserved. Both regions lose and gain one carrier. The `(region,use)` lookup is checked for uniqueness. Accept only a strictly positive decrease of the sum of the two fixed integer scores; execute at most three passes. The source audit instruments every accepted exchange in 1,204 cases, including adverse linear dependence, equal-price, missing-complement and duplicate-key cases. This is a bounded legal heuristic, not an optimality proof.
 
-For h25, outgoing non-carrier uses are visited by descending fixed future-region deadline, with original use ID as tie-breaker. Terminal uses keep the explicit terminal deadline. This permutes a fixed list of uses; each is still assigned exactly once to a physical role. It may affect later reclamation choices, but changes no scalar target or candidate legality. h23 retains baseline output order. Both final physical words are independently regenerated and checked, including every charged allocation, XOR, raise and copy.
+Both axes retain baseline output order. Both final physical words are independently regenerated and checked, including every charged allocation, XOR, raise and copy.
 
 ## 5. Coordinate bijection and physical evidence
 
@@ -42,15 +42,15 @@ The fixed I+J geometry is preserved by coordinate permutations, but the ordered 
 
 ## 6. Complete recursive multiset and exact inequalities
 
-Let a=23, b=25, m=575, and N=binom(23,3)binom(25,3)=4,073,300. With R23=26,834 and R25=35,348,
+Let a=23, b=25, m=575, and N=binom(23,3)binom(25,3)=4,073,300. With R23=26,705 and R25=35,137,
 
-    W = 2N + (N/binom(23,3))R23 + (N/binom(25,3))R25 = 132,466,108.
+    W = 2N + (N/binom(23,3))R23 + (N/binom(25,3))R25 = 131,795,727.
 
-Include all 18N rank-one data children and 2N at each data rank 21,17,481; N endpoint-copy singletons; every axis profile block replicated N/binom(h,3) times; (N/binom(h,3))Rh exterior children at each rank h and m−2h; and 2N growth children at each rank 1 and h−2. Each axis has rank sum hRh+h(h−1). Thus total rank is 76,166,165,200, deficit from mW is 1,846,900, and every child lies between 1 and 529<m. Copied centers and all cleanup costs remain included.
+Include all 18N rank-one data children and 2N at each data rank 21,17,481; N endpoint-copy singletons; every axis profile block replicated N/binom(h,3) times; (N/binom(h,3))Rh exterior children at each rank h and m−2h; and 2N growth children at each rank 1 and h−2. Each axis has rank sum hRh+h(h−1). Thus total rank is 75,780,696,125, deficit from mW is 1,846,900, and every child lies between 1 and 529<m. Copied centers and all cleanup costs remain included.
 
-The exact moment is M(s)=Σt nt·t/(mW)·exp(s log(m/t)). PR65's unchanged rational logarithm enclosure and directed degree-eight exponential bound give M(s)<1 at s=408390793141/7812500000000000, and M(s+10^-18)>1. The exponential tail bound is `(v^9/9!)/(1-v/10)` for upper argument v<1. An independent atanh log expansion at base 3/2 with 60 terms and a degree-12 exponential bound confirms both signs. Complete pinned PR79 and reported PR74 child lists separately have lower moment greater than one at s. These are complete-profile historical comparisons; the foreign PR74 claim is an accepted working input, not an independent audit of its entire construction.
+The exact moment is M(s)=Σt nt·t/(mW)·exp(s log(m/t)). PR65's unchanged rational logarithm enclosure and directed degree-eight exponential bound give M(s)<1 at s=6554338538661/125000000000000 = 52434708309288/1000000000000000000, and M(s+10^-18)>1. The exponential tail bound is `(v^9/9!)/(1-v/10)` for upper argument v<1. An independent atanh log expansion at base 3/2 with 60 terms and a degree-12 exponential bound confirms both signs. Complete pinned PR79, reported PR74, and PR84 child lists separately have lower moment greater than one at s. These are complete-profile historical comparisons; the foreign PR74 claim is an accepted working input, not an independent audit of its entire construction.
 
-The reconstructed bridge has bit wire bits 27, row coefficient 843, row degree 2000, gap `2000-(51/25)*843=7007/25`, and suffix slope 8000. Tests reject stale values. The complex saving stays 717/10^7 and the backoff stays 10^-12. All 47 strict assembly constraints and seven margins hold for κ=261356445457/5000000000000000. The next 10^-18 κ point violates a controlling strict margin; coarser-grid reassembly and original-prefix/old-guard/old-exposure negative controls also execute. Eventual arithmetic cutoffs are recomputed by the unchanged inherited routine.
+The reconstructed bridge has bit wire bits 27, row coefficient 843, row degree 2000, gap `2000-(51/25)*843=7007/25`, and suffix slope 8000. Tests reject stale values. The complex saving stays 717/10^7 and the backoff stays 10^-12. All 47 strict assembly constraints and seven margins hold for κ=52431959054651/1000000000000000000. The next 10^-18 κ point violates a controlling strict margin; coarser-grid reassembly and original-prefix/old-guard/old-exposure negative controls also execute. Eventual arithmetic cutoffs are recomputed by the unchanged inherited routine.
 
 ## 7. Provenance and proof boundary
 

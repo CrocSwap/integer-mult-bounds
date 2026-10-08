@@ -185,4 +185,4 @@ This project is not an official OpenAI release or endorsement.
 
 ### Indexed two-cycle finite witness
 
-[Indexed-cycle proof and evidence](research/indexed-cycle/README.md) gives κ = 261356445457/5000000000000000 with W=132466108. It combines attributed balanced multi-splits, exact frame indexes, bounded carry two-cycles, PR74 node ordering and coordinate flags; all-size transfer remains inherited. Verify with `make indexed-cycle-verify`. The comparison is to pinned historical PR74/PR79 witnesses observed 2026-10-08.
+[Indexed-cycle proof and evidence](research/indexed-cycle/README.md) gives κ = 52431959054651/1000000000000000000 with W=131795727. It combines attributed balanced multi-splits, exact frame indexes, bounded carry two-cycles, PR74 node ordering and coordinate flags; all-size transfer remains inherited. Verify with `make indexed-cycle-verify`. The comparison is to pinned historical PR74, PR79, and PR84 witnesses observed 2026-10-08.

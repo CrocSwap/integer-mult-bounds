@@ -225,13 +225,13 @@ class SplitPairControls(unittest.TestCase):
 
     def test_all_threshold_dependent_bridge_fields_are_checked(self):
         from indexed_cycle_compose import finite_bridge, validate_bridge
-        expected = finite_bridge(132466108)
-        self.assertTrue(validate_bridge(expected, 132466108))
+        expected = finite_bridge(131795727)
+        self.assertTrue(validate_bridge(expected, 131795727))
         for section,key in (('bit','wire_bits'),('rows','coefficient'),('rows','degree'),('rows','degree_gap'),('rows','suffix_slope')):
             changed = deepcopy(expected)
             changed[section][key] = Fraction(changed[section][key])+1
             with self.subTest(field=section+'.'+key), self.assertRaisesRegex(AssertionError, 'Stale finite bridge'):
-                validate_bridge(changed, 132466108)
+                validate_bridge(changed, 131795727)
 
     def test_optimized_python_is_rejected_by_every_new_entry(self):
         for name in ('indexed_cycle_graph.py', 'indexed_cycle_engine.py', 'indexed_cycle_compiler.py', 'split_pair_arithmetic.py', 'indexed_cycle_compose.py', 'verify_indexed_cycle.py'):
