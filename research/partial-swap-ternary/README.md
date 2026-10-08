@@ -45,8 +45,10 @@ The new full certificate includes those controls, both exact moments, the
 precision guard and final assembly. The full manuscript appends the new
 interface, updates the active layer/transform consumers and regenerates
 every displayed parameter slack and margin. Earlier interfaces are retained
-as historical dependencies. The repository-wide rerun status is reported
-in the PR; it is distinct from these completed candidate-specific checks.
+as historical dependencies. The repository-wide `make verify` rerun passed at commit `56d4216`: 312
+published tests and 21 inherited patch checks. Four additional unpublished
+follow-up tests were also present and passed (316 observed in total). See
+[validation record](validation.json) for the scope and log digest.
 
 Finite checks do not establish the general simultaneous-basis, arbitrary-width
 tape, precision or multiplication arguments. This is a conditional research
