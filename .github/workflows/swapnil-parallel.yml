@@ -1,0 +1,42 @@
+name: Verify Swapnil parallel reference
+
+on:
+  push:
+    paths:
+      - 'research/swapnil-parallel/**'
+      - 'scripts/audit_community_candidate.py'
+      - '.github/workflows/swapnil-parallel.yml'
+  pull_request:
+    paths:
+      - 'research/swapnil-parallel/**'
+      - 'scripts/audit_community_candidate.py'
+      - '.github/workflows/swapnil-parallel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Install pinned Lean toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain leanprover/lean4:v4.31.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Replay author's default checks
+        working-directory: research/swapnil-parallel/upstream
+        run: make verify
+      - name: Bind fresh counts, independent arithmetic and Lean axiom audit
+        run: |
+          python3 research/swapnil-parallel/verify.py --lean --output /tmp/swapnil-verification.json
+          diff -u research/swapnil-parallel/verification.json /tmp/swapnil-verification.json
+          git diff --exit-code

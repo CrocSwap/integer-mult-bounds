@@ -1,0 +1,68 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{Source frames for the complex interchange}
+\date{Draft, October 8, 2026}
+\begin{document}
+\maketitle
+
+This note moves the stage-two rank of every auxiliary role of the complex interchange into a single
+child, by starting the role in a nonzero phase frame. It is the complex analogue of PR~\#13's auxiliary
+source frames on the bit side.
+
+\paragraph{Phase frames.} For $\phi:\mathbb F_2^m\to\mathbb Z/4$ write $D_\phi=H^{\otimes m}\operatorname{diag}(i^{\phi})H^{\otimes m}$.
+All phase frames share the eigenbasis $H^{\otimes m}$, so $D_\psi D_\phi^{-1}=D_{\psi-\phi}$. For a subspace $U$ let
+$q_U(y)$ be the weight of the orthogonal projection of $y$ onto $U$ modulo $4$ when $U$ has an orthonormal basis;
+the frame of a label $U$ is $D_{q_U}$.
+
+\begin{lemma}[Auxiliary source frames]\label{lem:src}
+In the common-frame form of the complex interchange, route $w$ applies $\epsilon_w D_{\phi_{\mathrm{sink}}(\rho w)-\phi_{\mathrm{src}}(w)}$.
+An auxiliary role ($\rho(w)=w$, $\epsilon_w=+1$) may start at $D_{q_{D_0}}$ provided its sink is $D_{\mathrm{wt}+q_{D_0}}$.
+Every gate, interior edge and other role is unchanged, and the network still restores arbitrary scratch.
+\end{lemma}
+\begin{proof}
+The common-frame identity holds for any invertible frames, so the route operator is
+$D_{\mathrm{wt}+q_{D_0}-q_{D_0}}=D_{\mathrm{wt}}=C^{\otimes m}$, the same as with source $0$ and sink $D_{\mathrm{wt}}$.
+The logical scratch is $g=D_{-q_{D_0}}f$; since $f$ is arbitrary so is $g$, and the output is
+$D_{\mathrm{wt}+q_{D_0}}D_{-q_{D_0}}f=C^{\otimes m}f$.
+\end{proof}
+
+\begin{lemma}[Costs]\label{lem:cost}
+Suppose $D_0\subseteq U$ and $D_0\subseteq V$, where $U$ and $V$ are the role's first and last stage-two labels,
+$U=D_0\perp L_1$ and $V=D_0\perp L_2$. Then the entrance edge costs $\dim L_1$ and the exit edge to the sink costs
+$m-\dim L_2$. The exit residual $G=D_0\perp V^\perp$ has an orthonormal basis.
+\end{lemma}
+\begin{proof}
+Weights of orthogonal parts add modulo $4$, because orthogonal parts overlap in an even number of coordinates.
+So $q_U-q_{D_0}=q_{U\cap D_0^\perp}=q_{L_1}$, of rank $\dim L_1$, and
+$\mathrm{wt}+q_{D_0}-q_V=q_{V^\perp}+q_{D_0}=q_G$, of rank $m-\dim L_2$. $G$ is an orthogonal sum of nondegenerate
+spaces, so it is nondegenerate. It is nonalternating because $D_0$ contains an odd vector
+($e_j\otimes e_k\otimes t_B$ with $j\notin A$). A nondegenerate nonalternating space over $\mathbb F_2$ has an orthonormal basis.
+\end{proof}
+
+So the exit is exactly the operator of an increasing edge $0\to G$, and PR~\#10's whole-residual child and its
+$Z_B$ sign wrapper apply to it. Every stage-two label of the form $(B\otimes F\perp P\otimes L)\otimes Q$ contains
+$D_0=B\otimes F\otimes Q$, so the hypothesis holds for every addition and piece role.
+
+\begin{remark}[Excluded roles]
+Retained roles end at $D_0$; a source frame would give them an exit of rank $m$, which is not a contraction, so
+they keep source $0$. Input-pivot slots meet stage two first at the copy into the data frame, which is not a
+frame above $D_0$; they also keep source $0$. The rank sum $s$ and the deficit are unchanged.
+\end{remark}
+
+\paragraph{Effect.} For each affected role the stage-two entrance child (rank $h^2-h$) and exit child (rank $m-h^2$)
+merge into one child of rank $m-h$. In \texttt{independent/complex-network/fullbatch\_hist.py} this is the
+\texttt{sf} option. For PR~\#7's network at $h=28$ under full batching the certified saving rises from
+$1048009/(2.5\cdot10^{11})$ to $4079603/(2.5\cdot10^{11})\approx1.632\cdot10^{-5}$; every child has width at most
+$m-h\le m-1$, so the topology-free guard is unchanged.
+
+\paragraph{Checks.} On PR~\#7's network at $h=8$ and $h=10$, every source-framed role has $D_0$ inside its first
+and last stage-two labels (\texttt{sourceframe\_trace.py}, which traces every role through PR~\#7's stage-two schedule), and the exact label and phase checks pass: entrance and exit phase identities, $G$
+nondegenerate and nonalternating, ranks $m-h$ and $m-h+1$ (\texttt{sourceframe\_labels.py}). A full three-stage
+scalar simulation of PR~\#7's network with source frames (\texttt{sourceframe\_sim.py}), in the Hadamard domain
+modulo $2^{64}-59$ with random gate phases, random data-endpoint phases and arbitrary scratch, restores scratch
+and exchanges the data exactly at $h=8$. The same script runs a negative control (sink $\mathrm{wt}$ alone, which
+must fail to restore scratch) and a baseline without source frames.
+
+\end{document}

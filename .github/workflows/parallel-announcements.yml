@@ -1,0 +1,40 @@
+name: Verify parallel historical candidates
+
+on:
+  push:
+    paths:
+      - 'research/parallel-announcements/**'
+      - '.github/workflows/parallel-announcements.yml'
+  pull_request:
+    paths:
+      - 'research/parallel-announcements/**'
+      - '.github/workflows/parallel-announcements.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Check out referenced source without importing it into the project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: michielkosters/mathematics_ai
+          ref: 2e0aa64ca09c87fc94f8575f59493f70cf929d71
+          path: .external/kosters
+          sparse-checkout: problems/integer-multiplication-109
+          persist-credentials: false
+      - name: Replay and compare exact receipt
+        run: |
+          python3 research/parallel-announcements/verify.py --kosters-root .external/kosters/problems/integer-multiplication-109 --output /tmp/parallel-verification.json
+          diff -u research/parallel-announcements/verification.json /tmp/parallel-verification.json
+          git diff --exit-code
