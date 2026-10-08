@@ -1,6 +1,8 @@
-.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
+.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note retained-complex-note fetch
 
 verify:
+	python3 scripts/retained_complex.py
+	python3 scripts/make_retained_complex_patch.py
 	python3 scripts/certify.py
 	python3 scripts/search_network.py
 	python3 scripts/make_patch.py
@@ -54,6 +56,7 @@ verify:
 	git apply --check --directory=upstream patches/h46-shared-point.patch
 	git apply --check --directory=upstream patches/h50-paired-59.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
+	git apply --check --directory=upstream patches/retained-complex-31.patch
 
 note:
 	mkdir -p artifacts
@@ -93,3 +96,7 @@ compact-note:
 
 fetch:
 	python3 scripts/fetch_upstream.py
+
+retained-complex-note:
+	mkdir -p artifacts
+	tectonic --outdir artifacts notes/retained-complex-note.tex

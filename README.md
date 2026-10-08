@@ -10,56 +10,43 @@ fixed number of one-dimensional tapes, the strongest supplied witness is
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{83}{10^{12}}=8.3\times10^{-11}>2^{-34}}.
+\boxed{\kappa=\frac{591}{10^{12}}=5.91\times10^{-10}>2^{-31}}.
 $$
 
-The simpler **`kappa = 2^-34`** is a corollary. The witness remains below
-`2^-33`. It increases the exponent saving by approximately **47.85 million
-fold** over our preceding published `2^-59` witness. The original manuscript
-uses `2^-182`. These compare asymptotic exponents, not practical runtimes.
+The simpler **`kappa = 2^-31`** is a corollary. The exact saving is
+**591/83 ≈ 7.12 times** the preceding compact-control witness `83/10^12`.
+These compare asymptotic exponents, not practical runtimes.
 
-**[Read the compact-control proof note (PDF)](artifacts/compact-control-note.pdf)** ·
-[Review the combined source patch](patches/compact-control-34.patch) ·
-[Inspect the exact certificate](certificates/compact-control-layer.json) ·
-[Review guide and dependencies](docs/research/compact-control-review.md)
+**[Read the retained-complex proof note (PDF)](artifacts/retained-complex-note.pdf)** ·
+[Review the source patch](patches/retained-complex-31.patch) ·
+[Inspect the exact certificate](certificates/retained-complex-layer.json)
 
-This is a research claim supported by written proofs and reproducible checks.
-The complete upstream theorem is assumed; the new arguments have not received
-independent mathematical review or formal verification.
+The retained-total extension was contributed by `dleen` with substantial
+OpenAI Codex assistance.
 
 ## What changed
 
-The new construction moves **compact control fields instead of entire spaced
-windows**. For `f` selected axes, it replaces the layer's movement cost
-`O(V*((f*K)^tau+1))` by
+The existing compact-control movement and paired-bit network are retained.
+A new `h=24` complex producer combines the disjoint rectangle partition with
+retained pair roots and
+doubled point totals, then scatters the totals at one common low/full frame.
+This reduces its charged return loss from `h²` to `(h-1)²+h`, while restoring
+arbitrary initial scratch and preserving both phase-frame directions and
+all-role endpoints. The bit and complex arities remain independent.
+
+The exact complex saving is `1-sigma=750/10^11`. The complete compact consumer
+uses `c=1`, with exact minimum assembly margin
 
 $$
-O\!\left(V\bigl((f\log p)^\tau+1\bigr)\right).
+G_* = \frac{2956521}{5\cdot10^{15}} > \kappa,
+\qquad G_*-\kappa=\frac{1521}{5\cdot10^{15}}>0.
 $$
 
-The proof reserves temporary fields from existing address coordinates,
-allows arbitrary initial temporary values, restores them exactly, and charges
-exceptional-address repair at every recursion node. The temporary ranges
-remain complete through padding and recursive row splitting.
-
-Removing `K^tau` removes the restriction responsible for the preceding
-quadratic dependence on the finite-network saving. The bit network stays at
-`h=50`. The original complex network is separately instantiated at `h=25`,
-and a generalized stopping-depth guard completes the new parameter witness.
-This is a change to the movement construction and its proof, beyond parameter
-tuning of the preceding algorithm.
-
-The exact minimum assembly margin is
-
-$$
-G_* = \frac{333833}{4\cdot10^{15}}
-    = 8.345825\times10^{-11} > \kappa.
-$$
-
-The remaining bottleneck is the complex layer's saving. With the **fixed
-`h=25` complex motif and retained Gaussian/leaf inequalities**, the scoped
-ceiling is below `8.369598075e-11`, hence below `2^-33`. This is not a ceiling
-for other networks or integer multiplication in general.
+The complete upstream theorem, compact-control tape proofs and analytic
+interfaces remain assumptions. Exact producer and parameter checks support
+the supplied written argument; they do not formally verify the full machine.
+The [preceding compact-control witness](artifacts/compact-control-note.pdf)
+and its [review guide](docs/research/compact-control-review.md) remain available.
 
 ## Evidence and scope
 
@@ -95,10 +82,10 @@ checks exact regeneration on a clean checkout.
 With Tectonic installed, rebuild the latest note using:
 
 ```sh
-make compact-note
+make retained-complex-note
 ```
 
-The output is `artifacts/compact-control-note.pdf`. The first PDF build may
+The output is `artifacts/retained-complex-note.pdf`. The first PDF build may
 download TeX resources. See [reproducibility instructions](docs/reproducibility.md)
 for applying the combined patch in a disposable copy and building older notes.
 [GitHub Actions](.github/workflows/verify.yml) runs the arithmetic and patch checks.

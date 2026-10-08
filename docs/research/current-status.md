@@ -4,12 +4,21 @@ Updated October 7, 2026. Author: Douglas Colkitt. All results remain conditional
 on the pinned upstream algorithmic interfaces and the identified written
 extensions. Nothing in this page asserts formal or independent verification.
 
+## Retained-total continuation
+
+The latest conditional witness is `591/10^12 > 2^-31`, a factor `591/83`
+over the compact-control witness below. See the [new proof](../../notes/retained-complex-construction.tex),
+[certificate](../../certificates/retained-complex-layer.json) and
+[patch](../../patches/retained-complex-31.patch). The fixed-tape and analytic
+interfaces remain assumptions. The following record preserves the earlier
+compact-control construction and its parameters.
+
 ## Current and earlier results
 
 | State | Exponent saving kappa | Artifacts |
 | --- | --- | --- |
 | Published baseline | `2^-59` | [paired note](../../artifacts/paired-note.pdf), [certificate](../../certificates/paired-network.json), [patch](../../patches/h50-paired-59.patch) |
-| Current conditional research draft | `83/10^12 = 8.3e-11 > 2^-34` | [proof note](../../artifacts/compact-control-note.pdf), [source](../../notes/compact-control-note.tex), [certificate](../../certificates/compact-control-layer.json), [patch](../../patches/compact-control-34.patch) |
+| Preceding compact-control witness | `83/10^12 = 8.3e-11 > 2^-34` | [proof note](../../artifacts/compact-control-note.pdf), [source](../../notes/compact-control-note.tex), [certificate](../../certificates/compact-control-layer.json), [patch](../../patches/compact-control-34.patch) |
 
 The new witness increases kappa by approximately 47,846,242 times over the
 published `2^-59`. This compares asymptotic exponent savings, not practical
