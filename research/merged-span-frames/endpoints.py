@@ -35,6 +35,7 @@ def load_word(h, directory=HERE):
     return d, first, last, outputs, sha256(raw).hexdigest()
 
 def select(h, workers=4, directory=HERE, retirement_only=False):
+    """Optional floating-point discovery; this is not a certificate acceptance gate."""
     original.load_word = lambda dimension: load_word(dimension, directory)
     if not retirement_only:
         return original.select(h, workers)
@@ -56,6 +57,44 @@ def select(h, workers=4, directory=HERE, retirement_only=False):
     return dict(h=h, R=d['R'], word_sha256=digest, entrance=[], exit=exits,
                 merged_edges={f'exit:{g}': dict(rank=results['exit', g][1][0], runs=results['exit', g][1][1]) for g in used},
                 candidate_edges=len(keys))
+
+def verify_selection(frozen, h, workers=4, directory=HERE, retirement_only=False):
+    """Verify a frozen witness using exact profiles for every eligible candidate.
+
+    Per-role choices are source-pinned witness inputs. Float discovery can break
+    equal-cost ties differently across Python versions; no discovery score is
+    used by this acceptance path. Every chosen matrix and all subsequent paid
+    arithmetic are still regenerated exactly.
+    """
+    d, first, last, outputs, digest = load_word(h, directory)
+    assert set(frozen) == {'h', 'R', 'word_sha256', 'entrance', 'exit', 'merged_edges', 'candidate_edges'}
+    assert frozen['h'] == h and frozen['R'] == d['R'] and frozen['word_sha256'] == digest
+    entrances, exits = frozen['entrance'], frozen['exit']
+    for roles in (entrances, exits):
+        assert isinstance(roles, list) and all(type(s) is int and 0 <= s < d['R'] for s in roles)
+        assert roles == sorted(set(roles)), 'Duplicate or unordered selected role'
+    assert not set(entrances) & set(exits), 'Role selected twice'
+    assert not set(exits) & outputs, 'Output role selected for retirement'
+    assert not retirement_only or not entrances, 'Creation edge in retirement-only witness'
+    keys = {('exit', last[s]) for s in range(d['R']) if s not in outputs}
+    if not retirement_only:
+        keys |= {('entrance', first[s]) for s in range(d['R'])}
+    assert frozen['candidate_edges'] == len(keys), 'Eligible candidate inventory differs'
+    jobs = [(h, kind, frame, *d['frames'][frame]) for kind, frame in sorted(keys)]
+    with Pool(workers) as pool:
+        results = {key: (removed, merged) for key, removed, merged in pool.map(original.evaluate, jobs, chunksize=8)}
+    assert set(results) == keys
+    for key, ((removed_rank, removed), (merged_rank, merged)) in results.items():
+        assert sum(removed) == removed_rank and sum(merged) == merged_rank
+        assert merged_rank == removed_rank + original.M_ - h
+        assert all(type(t) is int and 0 < t < original.M_ for t in merged)
+    used = {('entrance', first[s]) for s in entrances} | {('exit', last[s]) for s in exits}
+    assert used <= keys
+    actual = dict(h=h, R=d['R'], word_sha256=digest, entrance=entrances, exit=exits,
+                  merged_edges={f'{kind}:{frame}': dict(rank=results[kind, frame][1][0], runs=results[kind, frame][1][1])
+                                for kind, frame in sorted(used)}, candidate_edges=len(keys))
+    assert actual == frozen, 'Frozen merged profile differs from exact regeneration'
+    return actual
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)

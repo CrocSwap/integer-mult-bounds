@@ -46,6 +46,7 @@ def main():
         commands = [
             [sys.executable, str(HERE / 'producer.py'), '--output', str(work)],
             [sys.executable, str(HERE / 'check.py'), '--work', str(work), '--workers', str(args.workers)],
+            [sys.executable, str(HERE / 'test_controls.py')],
             [sys.executable, str(HERE / 'endpoint_check.py')],
             [sys.executable, str(HERE / 'corner_check.py')],
             [sys.executable, str(HERE / 'independent_check.py')],

@@ -57,6 +57,13 @@ most one choice, explicitly listed in `selection-23.json` and
 `selection-25.json`. The production and independent ledgers verify those
 conditions directly against the literal word.
 
+These source-pinned choices are finite witness inputs. Their original
+floating-point discovery scores are not proof obligations: equal-score
+choices can be ordered differently by Python versions. Verification retains
+the frozen choices and regenerates every eligible exact candidate profile,
+then checks each selected matrix, all role restrictions and the complete
+paid certificate. This does not claim that the selected choices are optimal.
+
 ## 3. Exact residual profiles and accounting
 
 The archived PR96 complementary-projector lemma computes every merged
@@ -75,6 +82,11 @@ CRT-certified local profiler, and also by independent dense integer ordered
 elimination. Their multiplicities are rebuilt from actual first/last events.
 The complete paid ledger subtracts only those local children and the
 corresponding exterior [h,575−2h], then adds each exact merged residual.
+Before inherited replay, the verifier also checks every slot/frame identifier
+against its nonnegative range (with −1 permitted only as the actual initial
+event sentinel), reconstructs the complete event chronology on each role, and compares
+the literal scatter-incidence multiset to the prescribed output incidences.
+Thus even-cancelling added scatter gates cannot disappear from the inventory.
 For every selected role,
 
 \[

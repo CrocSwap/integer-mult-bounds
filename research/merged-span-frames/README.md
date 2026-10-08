@@ -23,6 +23,13 @@ This regenerates both parent circuits, performs the final coordinate actions,
 replays every ordinary and arbitrary dirty basis vector in both orientations,
 rebuilds literal transitions, recomputes all exact local and merged profiles,
 and runs independent endpoint, corner-rank, ledger and arithmetic checks.
+The source-pinned per-role endpoint choices are witness inputs. Verification
+regenerates every eligible candidate's exact profile and checks the selected
+matrices and complete paid ledger. Floating-point discovery is optional;
+its platform-dependent tie decisions are not an acceptance requirement.
+Literal scatter multiplicities and nonnegative slot/frame identifiers are
+checked before the inherited replay, so cancelling extra gates and Python
+negative-index aliases cannot bypass the paid inventory.
 Temporary construction files live outside the repository. Ordinary
 verification compares every frozen source and result without changing them.
 `--record` changes only `verification.log` and the timing receipt
