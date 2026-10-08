@@ -6,8 +6,11 @@ source attribution, and stated scope are welcome through issues or pull requests
 For a mathematical issue, identify the exact proposition, source label, or
 inequality; give a counterexample or the missing implication when possible;
 and distinguish numerical validation from an algorithmic proof obligation.
-For the current result, start with the
-[ternary review guide](docs/research/ternary-review.md).
+For the current reviewed main checkpoint, start with the
+[joint-frame community review](docs/research/community-round2-review.md),
+[selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json),
+and [reproduction guide](docs/reproducibility.md).
+The [ternary review guide](docs/research/ternary-review.md) covers a historical checkpoint.
 The [original audit](docs/audit.md) describes the retained upstream assumptions.
 
 For a parameter improvement, supply exact rational choices, the full dependency
@@ -21,8 +24,8 @@ make verify
 ```
 
 Include regenerated certificates and patches in the same change. If the note
-changes, also run its corresponding PDF target (`make ternary-note` for the
-current result) and include the updated PDF. Review changes to
+changes, also run its corresponding PDF target and include the updated PDF.
+`make ternary-note` rebuilds the historical ternary note. Review changes to
 claims in the README and note together. Finite tests should address a mathematical
 identity or a failure mode, rather than simply restating implementation details.
 
