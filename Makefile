@@ -1,6 +1,11 @@
 .PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
 
 verify:
+	$(MAKE) partial-swap-producer partial-swap-certificate
+	python3 scripts/prime_field_network.py
+	python3 scripts/complex_network.py
+	python3 scripts/fast_gaussian.py
+	$(MAKE) batched-certificate batched-patch
 	python3 scripts/certify.py
 	python3 scripts/search_network.py
 	python3 scripts/make_patch.py
@@ -54,6 +59,7 @@ verify:
 	git apply --check --directory=upstream patches/h46-shared-point.patch
 	git apply --check --directory=upstream patches/h50-paired-59.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
+	git apply --check --directory=upstream patches/batched-23.patch
 
 note:
 	mkdir -p artifacts
@@ -93,3 +99,106 @@ compact-note:
 
 fetch:
 	python3 scripts/fetch_upstream.py
+
+.PHONY: batched-certificate batched-patch batched-note
+PDFLATEX ?= pdflatex
+TEX_ENGINE ?= pdflatex
+TECTONIC ?= tectonic
+
+batched-certificate:
+	python3 scripts/controlled_bit_rank_moment.py --output certificates/controlled-bit-rank-moment.json > /dev/null
+	python3 scripts/batched_network.py --output certificates/batched-network.json --summary
+
+batched-patch:
+	python3 scripts/make_batched_patch.py
+
+batched-note:
+	mkdir -p artifacts
+ifeq ($(TEX_ENGINE),tectonic)
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/batched-23-note.tex
+else
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+endif
+
+.PHONY: partial-swap-producer partial-swap-certificate partial-swap-note
+partial-swap-producer:
+	python3 scripts/partial_swap_producer.py
+
+partial-swap-certificate:
+	python3 scripts/partial_swap_network.py
+
+partial-swap-note:
+	mkdir -p artifacts
+ifeq ($(TEX_ENGINE),tectonic)
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/partial-swap-note.tex
+else
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
+endif
+
+.PHONY: translated-partial-certificate translated-partial-producer translated-partial-note
+translated-partial-producer:
+	python3 scripts/partial_swap_producer.py --work-dir build/translated-partial-producer --output research/translated-partial/producer-certificate.json
+
+translated-partial-certificate:
+	python3 research/translated-partial/verify.py
+
+translated-partial-note:
+	mkdir -p artifacts
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/translated-partial-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/translated-partial-note.tex
+	cp artifacts/translated-partial-note.pdf artifacts/translated-partial-18-note.pdf
+
+verify: translated-partial-certificate
+
+.PHONY: semantic-bulk-certificate semantic-bulk-controls semantic-bulk-note
+semantic-bulk-certificate:
+	python3 research/semantic-bulk/verify.py
+semantic-bulk-controls:
+	python3 research/semantic-bulk/controls.py
+semantic-bulk-note:
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/semantic-bulk-17-note.tex
+verify: semantic-bulk-certificate
+
+.PHONY: two-stage-check two-stage-producer
+two-stage-check:
+	python3 research/two-stage/verify.py
+	python3 -m unittest discover -s tests -p test_two_stage.py -v
+two-stage-producer:
+	python3 research/two-stage/producer.py
+
+verify: two-stage-producer two-stage-check
+
+.PHONY: two-stage-dimensions-producer two-stage-dimensions-check
+two-stage-dimensions-producer:
+	python3 research/two-stage-dimensions/producer.py
+
+two-stage-dimensions-check:
+	python3 research/two-stage-dimensions/verify_candidate.py
+	git apply --check patches/two-stage-dimensions.patch
+
+verify: two-stage-dimensions-producer two-stage-dimensions-check
+
+.PHONY: two-stage-corners-47-regenerate two-stage-corners-47-check
+two-stage-corners-47-regenerate:
+	python3 research/two-stage-dimensions/corners/corner_search.py 47 45
+
+two-stage-corners-47-check:
+	python3 research/two-stage-dimensions/corners/verify_corners.py
+	git apply --check patches/two-stage-corners-47.patch
+
+verify: two-stage-corners-47-check
+
+.PHONY: fixed-basis-two-stage-producer fixed-basis-two-stage-check
+fixed-basis-two-stage-producer:
+	python3 research/fixed-basis-two-stage/producer.py
+
+fixed-basis-two-stage-check:
+	python3 research/fixed-basis-two-stage/verify.py
+	git apply --check patches/fixed-basis-two-stage.patch
+
+verify: fixed-basis-two-stage-producer fixed-basis-two-stage-check
