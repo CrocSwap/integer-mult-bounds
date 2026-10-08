@@ -1,0 +1,218 @@
+\subsection{A compressed side circuit for the complex network}
+\label{sec:complex-side-circuit}
+Keep the complex motif of Section~\ref{sec:independent-complex}: $h=25$,
+$v=\binom{25}3=2300$, $N=v^3$, $m=h^3=15625$, scalars in
+$\mathbb Z[i,1/2]$, labels in $F=\mathbb F_2^{25}$ with the dot product, the
+$h+1$ central wires, and the gather and scatter maps. For a triple $S$ write
+$t_S$ for its indicator. The original side wires add
+\begin{equation}\label{eq:complex-side-map}
+ \frac12\sum_{T\cap S=\varnothing}x_T-\frac12\sum_{|T\cap S|=2}x_T
+\end{equation}
+to $y_S$. With the central coefficient $(|S\cap T|-1)/2$ this gives
+$y\gets y+x$. They use one wire per ordered neighbor pair, that is
+$vz_{\rm c}=3693800$ side wires per invocation. We compute the same map with
+shared sums.
+
+All sums below are formal sums of inputs $x_T$ whose two summands have
+disjoint supports, so a source contributes to a node exactly when a directed
+path joins them. Equal supports are identified within each of the two
+families below, and nodes that feed no injected piece are removed.
+
+\paragraph{Disjoint sums.}
+Order the points $0,\ldots,24$. For a list of nodes indexed by distinct
+points and $k\le3$, the routine $\mathrm{vec}$ returns, for every set $E$ of
+at most $k$ of these points, the sum of the nodes whose points avoid $E$. It
+splits the list at $\lfloor n/2\rfloor$, recurses, and forms each output by one
+addition of a left and a right output whose exclusion sets have total size at
+most $k$. For a point list $X$ and weights $w(u,v)$ on its pairs, the routine
+$\mathrm{pairs}$ returns the sums over pairs avoiding $E$, $|E|\le3$: split $X$
+into halves $L,R$, recurse on both, apply $\mathrm{vec}$ to each cross row
+$(w(u,r))_{r\in R}$, then apply $\mathrm{vec}$ down the columns of these
+row outputs with the remaining exclusion budget, and add the three disjoint
+regions. The routine $\mathrm{tri}$ does the same for triple sums: with halves
+$L,R$ of $X$, put
+\[
+ P_r=\mathrm{pairs}\bigl(L,(u,v)\mapsto x_{uvr}\bigr),\qquad
+ P'_u=\mathrm{pairs}\bigl(R,(a,b)\mapsto x_{uab}\bigr),
+\]
+apply $\mathrm{vec}$ over $r\in R$ to $P_r[E_L]$ and over $u\in L$ to
+$P'_u[E_R]$, and add the four disjoint regions: triples in $L$, triples in $R$,
+two points in $L$ with one in $R$, and one point in $L$ with two in $R$.
+
+At the top level $L=\{0,\ldots,11\}$ and $R=\{12,\ldots,24\}$. For a target
+$S$ with $S_L=S\cap L$ and $S_R=S\cap R$ the disjoint pieces are
+\[
+ \mathrm{tri}(L)[S_L],\qquad \mathrm{tri}(R)[S_R],
+\]
+the two $\mathrm{vec}$ outputs over the halves $R_1=\{12,\ldots,17\}$ and
+$R_2=\{18,\ldots,24\}$ of the family $P_r[S_L]$, and the two $\mathrm{vec}$
+outputs over the halves $L_1=\{0,\ldots,5\}$ and $L_2=\{6,\ldots,11\}$ of
+the family $P'_u[S_R]$. These six pieces partition the triples disjoint from
+$S$. They are internal nodes of the full computations because
+$\mathrm{vec}$ splits at the same halves.
+
+\paragraph{Pair stars.}
+For a pair $a<b$, list the other points as $u_1<\cdots<u_{23}$ and form
+prefix sums $\pi_i=\sum_{j\le i}x_{abu_j}$ and suffix sums
+$\sigma_i=\sum_{j\ge i}x_{abu_j}$. Target $\{a,b,u_i\}$ receives
+$\pi_{i-1}$ and $\sigma_{i+1}$. Over its three pairs, $S$ receives exactly the
+triples meeting it in two points.
+
+\paragraph{Injection rule.}
+Inject every disjoint piece with coefficient $1/2$ and every pair-star piece
+with coefficient $-1/2$, subject to one rule: if the triples of a piece cover
+every point outside $S$, inject its two summands instead, recursively. A single
+triple covers three of the $22$ outside points, so the rule terminates. At
+$h=25$ it never splits a disjoint piece. It splits $\pi_{22}$ for $i=23$ and
+$\sigma_2$ for $i=1$. Each target therefore receives twelve pieces.
+
+The circuit has $80595$ additions ($68595$ disjoint, $12000$ pair-star) and
+$27600$ injected pieces. Exact support comparison checks every coefficient
+of \eqref{eq:complex-side-map}: all $3693800$ nonzero entries, their signs,
+and all required zeros.
+
+\subsection{The transparent schedule}
+Allocate reversible roles as for the bit network: a node's outgoing edges are
+its later uses and its injected pieces; an input slot fans out, and an
+addition reuses its first incoming role as a pivot and retires the second.
+This uses $R=c+q=80595+27600=108195$ roles. Let $L$ be the product of the
+node mixers, $V$ the copy into input slots, and $J$ the injection, which adds
+$\pm\frac12$ times a piece role to its target. With $G,\mathcal R$ the
+original gather and scatter, a forward invocation performs
+\[
+ L,\ -J,\ L^{-1},\ -\mathcal R,\ V,\ G,\ \mathcal R,\ L,\ J,\ L^{-1},\
+ G^{-1},\ V^{-1}.
+\]
+For initial side values $z$ and central values $w$, the target changes by
+\[
+ -JLz-\mathcal Rw+\mathcal R(w+Gx)+JL(z+Vx)=(JLV+\mathcal RG)x=x,
+\]
+and the last four operations restore $z$ and $w$. The inverse schedule, with
+logical source $Y$ and target $X$, gives $X\gets X-Y$; forward, inverse and
+forward invocations send $(X,Y)$ to $(-Y,X)$ and restore every auxiliary
+value. Every gate is pointwise linear with coefficients in
+$\{0,\pm1,\pm\frac12\}$.
+
+\subsection{Binary labels}
+Assign each node $z$ a subspace $U_z\subset F$:
+\begin{itemize}
+\item an input node $T$ receives $\langle t_T\rangle$;
+\item a disjoint-sum node receives the coordinate space
+ $F_{X}=\langle e_x:x\in X\rangle$, where $X$ is the union of its triples;
+\item a pair-star node for $\{a,b\}$ with leaf set $\Lambda$ receives
+ $\langle t_{abu}:u\in\Lambda\rangle$.
+\end{itemize}
+The vectors $t_{abu}$ have weight three and pairwise intersections of size
+two, so they form an orthonormal basis of the pair-star label. Coordinate
+spaces have orthonormal coordinate bases. Every label is therefore
+nondegenerate. Along a dataflow edge $z\to w$ the support grows, so
+$U_z\subset U_w$. The injection gate for target $S$ uses the physical $Y$
+frame, whose active component is $t_S^\perp$. Every triple of a piece meets
+$S$ in an even number of points, so the piece label lies in $t_S^\perp$.
+
+\begin{lemma}\label{lem:complex-piece-residual}
+If a piece leaves some point $y\notin S$ uncovered, then the residual
+$t_S^\perp\cap U_z^\perp$ of its injection edge has an orthonormal basis.
+If instead a disjoint piece covers every point outside $S=\{a,b,c\}$, its
+injection residual is $\langle e_a+e_b,e_b+e_c\rangle$, which has none.
+\end{lemma}
+\begin{proof}
+Both $U_z$ and $t_S^\perp$ are nondegenerate, so the residual is
+nondegenerate. The vector $e_y$ is orthogonal to $t_S$, to every coordinate
+vector in a disjoint label, to every $t_{abu}$ with $u\ne y$, and to an
+input line $t_T$ with $y\notin T$. Thus the residual contains a vector of norm
+one and is nonalternating; the manuscript's absorption argument then gives
+an orthonormal basis. In the second case
+$t_S^\perp=F_{[h]\setminus S}\mathbin\perp\langle e_a+e_b,e_b+e_c\rangle$.
+The displayed plane is nondegenerate, and all its vectors have even weight,
+hence norm zero.
+\end{proof}
+
+A nondegenerate label between $F_{[h]\setminus S}$ and $t_S^\perp$ must be
+one of these two spaces, since a proper nonzero part of the plane is an
+isotropic line. A full-coverage disjoint piece thus cannot be repaired by
+relabeling; the injection rule avoids it. Any partition of the disjoint
+triples into pieces that each miss an outside point needs at least four
+missed points, so four pieces per target are necessary for this label class.
+
+The remaining residuals are covered by the following list, which the checker
+verifies by exact binary linear algebra for every node, edge, piece and
+compiled role.
+\begin{itemize}
+\item Coordinate to coordinate: $F_{X'\setminus X}$, a coordinate space.
+\item Input line to coordinate space: $F_X\cap t_T^\perp$ contains $e_x$ for
+ $x\in X\setminus T$, which is nonempty for an addition node.
+\item Pair-star chain: the span of the new $t_{abu}$.
+\item Entry from the early frame: the label itself.
+\item Exit to the late frame: $U_z^\perp$, which contains a unit coordinate
+ vector outside the covered points; for a pair-star node, outside
+ $\{a,b\}\cup\Lambda$, which omits at least the excluded third point.
+\end{itemize}
+Each nonzero residual is nondegenerate and contains a vector of odd weight,
+so it has an orthonormal basis.
+
+\subsection{Frames in both stage directions}
+Use the frames of the bit construction with these binary labels. With
+$A=B\mathbin\perp P$ and future line factor $Q$, put $D_0=B\otimes F$,
+$D_1=A\otimes F$ and $D_U=(B\otimes F)\mathbin\perp(P\otimes U)$, all
+tensored by $Q$. Early mixers and the early injection use $D_0$; middle node
+gates use $D_{U_z}$; copy gates use the physical $X$ frame
+$D_{\langle t_T\rangle}$ and injection gates the physical $Y$ frame
+$D_{t_S^\perp}$; late cleanup uses $D_1$. An edge residual is
+$P\otimes E\otimes Q$ for a residual $E\subset F$ from the list above. The
+lines $P,Q$ are spanned by tensor products of triple indicators, which have
+norm one, so tensoring an orthonormal basis of $E$ gives one of the residual.
+The data wires pass through the same frames as in the original motif and
+have the same residuals.
+
+In the inverse schedule the nontrivial labels occur in the first $L^{-1}$.
+Assign $D_{U_z^\perp}$ to node $z$ there, $D_0$ to the preceding $L$, and $D_1$
+to the second $L$, $J$ and $L^{-1}$. A forward inclusion $U_z\subset U_w$ gives
+$U_w^\perp\subset U_z^\perp$ with the same residual $U_w\cap U_z^\perp$. A piece
+role enters from the physical $X$ line $\langle t_S\rangle\subset U_z^\perp$
+with residual $t_S^\perp\cap U_z^\perp$, the forward injection residual. An input
+role starts at the physical $Y$ frame $B\otimes\langle t_T\rangle$ of the first
+copy, passes $D_0$ with residual $B\otimes t_T^\perp$ as a data wire does, and
+ends at $t_T^\perp$, exactly its physical $Y$ frame. Entries and exits
+exchange the forward residuals $U_z$ and $U_z^\perp$. Thus every residual of the
+inverse stage is one already shown to have an orthonormal basis.
+
+\subsection{Rank, phases and depth}
+\begin{proposition}[Compressed complex interface]\label{prop:compressed-complex-interface}
+The complex network with this side circuit has
+\begin{align*}
+ W_{\rm c}&=2N+3v^2(R+h+1)=1741801270000,\\
+ L_{\rm c}&=3v^2h(h+1)=10315500000,\\
+ s_{\rm c}&=W_{\rm c}m-2N+2L_{\rm c}=27215641140750000,
+\end{align*}
+satisfies the binary phase interface of
+Proposition~\ref{prop:compact-complex-interface} with these constants, and has
+$\eta_{\rm c}=(W_{\rm c}m-s_{\rm c})/(W_{\rm c}m)=28/205789375$.
+\end{proposition}
+\begin{proof}
+The schedule gives the signed exchange and restores arbitrary scratch. Every
+side role has source label $0$ and sink label $F^{\otimes3}$, and its labels
+increase, so it contributes exactly $m$ to the residual count. Data wires and
+central wires are unchanged, so the only decreases remain the $h$-dimensional
+central returns. Telescoping gives $s_{\rm c}$. Every residual has an
+orthonormal basis, so each edge is a product of one translation kernel per
+basis vector, as in the original phase interface. The endpoint phases of the
+data roles and the signed-exchange correction are unchanged, and every
+auxiliary role still runs from frame $I$ to $C^{\otimes m}$.
+
+The coefficient-depth argument needs a bound on gates, not on gates per wire.
+An invocation has $4\cdot82895$ mixer gates, $2v$ copy gates, $2v$ injection
+gates (one per target) and four central gates. Over $3v^2$ invocations this is
+$5408242080000\le12W_{\rm c}$. Each gate has at most $W_{\rm c}$ inputs and
+outputs and coefficients in $\{0,\pm1,\pm\frac12\}$, so
+$E=64(W_{\rm c}+m+1)^3$ bounds the depth of one invocation as before. Also
+$2\le s_{\rm c}<m^5$, so the generalized stopped guard applies with these
+constants. All gates, labels and bases are fixed finite data.
+\end{proof}
+
+The rational log bound $\log m<966/100$ and
+$\eta_{\rm c}>(14/10^9)(966/100)$ give, by $e^{-x}>1-x$,
+\begin{equation}\label{eq:compressed-complex-exponent}
+ s_{\rm c}/W_{\rm c}<m^{\sigma},\qquad \sigma=1-\frac{14}{10^9}.
+\end{equation}
+This is $33.49$ times the previous complex saving $418/10^{12}$.
