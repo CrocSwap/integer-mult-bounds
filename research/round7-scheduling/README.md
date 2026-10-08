@@ -6,10 +6,10 @@ The frozen witness in `selected-both` has conditional
 PR #71 anchored split frames and PR #70-style carried-signal exchanges.
 Physical width is 134,095,520, with 27,256 and 35,720 auxiliary roles.
 
-Both compiler dirty-basis checks, actual paid transition profiles/CRT and
-exact moment/assembly checks passed. Independent serialized replay,
-deterministic regeneration and broad repository checks are pending at this
-initial draft. The source and artifact closure is pinned in
+Both compiler dirty-basis checks, independent serialized replay, actual paid
+transition profiles/CRT and exact moment/assembly checks passed; see
+[the completed receipt](validation-receipt.json). Deterministic regeneration
+and broad repository checks remain pending. The source and artifact closure is pinned in
 [selected-both/MANIFEST.json](selected-both/MANIFEST.json); see the
 [proof and attribution](selected-both/PROOF.md) and
 [exact certificate](selected-both/arithmetic.json).
@@ -20,14 +20,16 @@ Prepare the exact inherited sources from the repository root:
 mkdir -p research/round6-pr71/baseline
 git archive 1bef94fd40a746452548c84a4a8f8834670a3113 | tar -x -C research/round6-pr71/baseline
 cd research/round7-scheduling
-python3 validate_selected.py --bundle selected-both --output validation-receipt.json
+python3 verify.py
+# Include deterministic compilation of both complete words:
+python3 verify.py --regenerate
 ```
 
 The archive is ignored and contains no local changes. The proof gives fresh
 compiler/profile regeneration commands. Assert-enabled Python and C++17 are
 required; `CXX` may specify a compiler and SDK. Existing inherited CI groups
-remain enabled; integration of the new selected-witness checker into CI is
-pending. All inherited all-size compiler, analytic, routing, recovery and
+remain enabled; a dedicated Python 3.11/3.13/3.14 workflow also recompiles, replays and
+checks the new selected witness. All inherited all-size compiler, analytic, routing, recovery and
 fixed-tape hypotheses remain conditional. No global optimality, unconditional
 theorem or practical speedup is claimed.
 
