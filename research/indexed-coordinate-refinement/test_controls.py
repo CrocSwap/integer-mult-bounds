@@ -19,6 +19,13 @@ class Controls(unittest.TestCase):
    if key=='width':bad['finite_bridge']['bit']['W']-=1
    else:bad['kappa']='1/100'
    with self.subTest(key=key),self.assertRaises(AssertionError):v.exact(profiles,bad)
+ def test_regeneration_serialization_preserves_typed_compiler_structures(self):
+  for h in (23,25):
+   raw=gzip.decompress((v.ROOT/f'certificates/indexed-cycle-word-{h}.json.gz').read_bytes());word=json.loads(raw)
+   word['sources']={int(k):value for k,value in word['sources'].items()};word['ops']=[tuple(row)for row in word['ops']]
+   encode=lambda w:(json.dumps(w,separators=(',',':'))+'\n').encode()
+   self.assertEqual(encode(word),raw)
+   word['ops'].pop();self.assertNotEqual(encode(word),raw)
  def test_optimized_python_rejected(self):
   r=subprocess.run([sys.executable,'-O',str(v.HERE/'verify.py')],capture_output=True,text=True);self.assertNotEqual(r.returncode,0);self.assertIn('Assertions must remain enabled',r.stderr)
 if __name__=='__main__':unittest.main()

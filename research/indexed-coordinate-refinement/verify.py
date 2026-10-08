@@ -59,7 +59,7 @@ def verify(regenerate=False):
   for h in (23,25):
    parent=json.loads(gzip.decompress((ROOT/f'certificates/indexed-cycle-word-{h}.json.gz').read_bytes()))
    if regenerate:
-    _,rebuilt=compile_axis(h);assert rebuilt==parent,'Inherited compiler regeneration differs'
+    _,rebuilt=compile_axis(h);rebuilt_raw=(json.dumps(rebuilt,separators=(',',':'))+'\n').encode();assert rebuilt_raw==gzip.decompress((ROOT/f'certificates/indexed-cycle-word-{h}.json.gz').read_bytes()),'Inherited compiler regeneration differs'
    permutation=json.loads((HERE/f'permutation-{h}.json').read_text());word=relabel(parent,permutation);raw=(json.dumps(word,separators=(',',':'))+'\n').encode();assert raw==gzip.decompress((HERE/f'word-{h}.json.gz').read_bytes())
    path=work/f'word-{h}.json';path.write_bytes(raw);receipt=replay(path);assert arithmetic.js(receipt)==json.loads((HERE/f'replay-{h}.json').read_text())
    trans=work/f'transitions-{h}.bin';prepare(path,trans);subprocess.run([str(exe),str(trans)],check=True)
