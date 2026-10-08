@@ -1,3 +1,15 @@
+# Conditional multiplication saving 1.6631776 × 10^-5
+
+Fixed local **I+J** bases at dimensions **(47,45)** give
+**κ = 16631776/10^12 = 1.6631776 × 10^-5** in `O(n (log n)^(1−κ))`,
+under the retained analytic and fixed-tape hypotheses.
+
+See the [construction and reproduction guide](research/fixed-basis-two-stage/README.md),
+[proof](notes/fixed-basis-two-stage.tex), and
+[exact certificate](research/fixed-basis-two-stage/certificate.json).
+Run `make fixed-basis-two-stage-check`, `make fixed-basis-two-stage-producer`,
+or `make verify`. No PDF is generated. Historical results follow.
+
 # Conditional multiplication saving 1.638103206 × 10^-5
 
 Two-stage dimensions **(47,45)** with contiguous data blocks **43 and 37** give

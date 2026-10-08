@@ -192,3 +192,13 @@ two-stage-corners-47-check:
 	git apply --check patches/two-stage-corners-47.patch
 
 verify: two-stage-corners-47-check
+
+.PHONY: fixed-basis-two-stage-producer fixed-basis-two-stage-check
+fixed-basis-two-stage-producer:
+	python3 research/fixed-basis-two-stage/producer.py
+
+fixed-basis-two-stage-check:
+	python3 research/fixed-basis-two-stage/verify.py
+	git apply --check patches/fixed-basis-two-stage.patch
+
+verify: fixed-basis-two-stage-producer fixed-basis-two-stage-check
