@@ -22,6 +22,11 @@ verify:
 	$(MAKE) verify-skip-strips
 	$(MAKE) verify-pair-assembly
 	$(MAKE) verify-rank-pair
+	$(MAKE) rank-pair-refinement-verify
+
+.PHONY: rank-pair-refinement-verify
+rank-pair-refinement-verify:
+	python3 research/rank-pair-refinement/refine.py
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -361,8 +366,15 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-skip-strips verify-pair-assembly verify-rank-pair rank-pair-verify
 verify-skip-strips: skip-strips-verify
 verify-pair-assembly: pair-assembly-verify
-verify-rank-pair: rank-pair-verify
+verify-rank-pair: rank-pair-verify ordered-frames-verify
 rank-pair-verify:
 	python3 research/rank-pair/frame_compile.py
 	python3 research/rank-pair/screen.py
 	python3 -m unittest discover -s tests -p 'test_rank_pair.py' -v
+
+.PHONY: ordered-frames-verify
+ordered-frames-verify:
+	python3 research/ordered-frames/producer.py
+	python3 research/ordered-frames/graph_audit.py
+	python3 research/ordered-frames/check.py
+	python3 research/ordered-frames/independent_check.py
