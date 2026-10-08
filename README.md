@@ -1,6 +1,21 @@
-# Conditional multiplication saving beyond 2^-18
+# Conditional multiplication saving 5.7114918 × 10^-6
 
-The latest construction on this branch gives **κ=5499/10^9=5.499×10^-6 > 2^-18** in `O(n (log n)^(1−κ))`, under the retained analytic and fixed-tape hypotheses. It translates the middle auxiliary source frames of PR18 and strengthens the independent complex phase interface.
+An exact parameter refinement of [PR21](https://github.com/CrocSwap/integer-mult-bounds/pull/21)
+gives **κ = 57114918/10^13 = 5.7114918 × 10^-6** in
+`O(n (log n)^(1−κ))`, under the same analytic and fixed-tape hypotheses.
+This raises the exponent saving by about 3.86419% using the unchanged construction.
+See the [dependency argument and reproduction commands](docs/research/translated-partial-refinement.md),
+[exact certificate](certificates/translated-partial-refinement.json), and
+[incremental proof patch](patches/translated-partial-refinement.patch).
+Run `make translated-partial-refinement` for the arithmetic and `make verify`
+for the repository checks. This refinement creates no PDF.
+
+Dominik Scholz, with substantial OpenAI Codex assistance. Zhihao Chen
+(jacklightChen)'s PR21 construction and earlier attribution are retained below.
+
+# Retained PR21 construction beyond 2^-18
+
+The PR21 construction gives **κ=5499/10^9=5.499×10^-6 > 2^-18** in `O(n (log n)^(1−κ))`, under the retained analytic and fixed-tape hypotheses. It translates the middle auxiliary source frames of PR18 and strengthens the independent complex phase interface.
 
 See [the construction, exact parameters and reproduction commands](research/translated-partial/README.md), [the complete proof](notes/translated-partial-note.tex), and [the compiled PDF](artifacts/translated-partial-18-note.pdf). Zhihao Chen (jacklightChen), with substantial OpenAI Codex assistance; preceding attribution is retained in NOTICE.
 

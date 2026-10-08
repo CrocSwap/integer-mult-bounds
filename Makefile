@@ -153,3 +153,10 @@ translated-partial-note:
 	cp artifacts/translated-partial-note.pdf artifacts/translated-partial-18-note.pdf
 
 verify: translated-partial-certificate
+
+.PHONY: translated-partial-refinement
+translated-partial-refinement:
+	python3 scripts/refine_translated_partial.py
+	git apply --check patches/translated-partial-refinement.patch
+
+verify: translated-partial-refinement
