@@ -1,21 +1,23 @@
 # Current result
 
-The current conditional saving is
-`kappa = 6149999/50000000000000 > 2^-23`.
-See the [proof](../../artifacts/batched-23-note.pdf),
-[certificate](../../certificates/batched-network.json), and
-[combined patch](../../patches/batched-23.patch).
+The conditional saving is `kappa = 942293/500000000000 = 1.884586e-6`.
+The [proof](../../artifacts/partial-swap-note.pdf) extends
+[PR #10](https://github.com/CrocSwap/integer-mult-bounds/pull/10), pinned at
+`62691e395a0458ce089a1c7b5d89e74291e95e29`.
 
-The result uses the PR7 finite producers with controlled projector-block
-recursion, whole complex residuals, integer-width row handling, and a dependency
-path precision guard. Parameters and strict margins are in the certificate.
-The inherited Gaussian scaling enclosure is corrected while retaining `P=34p`.
+Partial swaps give rank budget `Wm-2N+2L`. The selected binary triple producer
+has dimensions `(25,23,57)` and compatible positive frames and carrier reuse.
+Its common rational basis batches the paired boundary into widths
+`25,7,25,25,32611`. The complex construction batches all internal residuals
+in addition to its five macro classes.
 
-[The review guide](batched-review.md) maps the proof obligations and correction.
-The statement remains conditional on the pinned upstream interfaces; finite
-checks are not a formal proof of the full multiplication machine.
+The [certificate](../../certificates/partial-swap-network.json) records exact
+moments, precision guard, finite basis combinatorics, and assembly margins.
+The [producer checker](../../scripts/partial_swap_producer.py) regenerates
+all selected graphs, label assignments, matchings, and internal histograms.
+Generic common-basis existence and the tape/analytic interfaces are written
+proof obligations, not consequences of the arithmetic checker.
 
-The earlier main-branch result `83/10^12` remains in the
-[compact-control note](../../artifacts/compact-control-note.pdf) and
-[certificate](../../certificates/compact-control-layer.json).
-Older research pages document their historical assumptions and targets.
+The earlier [#10 proof](../../artifacts/batched-23-note.pdf) and
+[patch](../../patches/batched-23.patch) remain baseline references, including
+the Gaussian scaling correction. Older research pages describe earlier results.

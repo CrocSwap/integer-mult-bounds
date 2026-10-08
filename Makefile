@@ -1,6 +1,7 @@
 .PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
 
 verify:
+	$(MAKE) partial-swap-producer partial-swap-certificate
 	python3 scripts/prime_field_network.py
 	python3 scripts/complex_network.py
 	python3 scripts/fast_gaussian.py
@@ -119,4 +120,21 @@ else
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+endif
+
+.PHONY: partial-swap-producer partial-swap-certificate partial-swap-note
+partial-swap-producer:
+	python3 scripts/partial_swap_producer.py
+
+partial-swap-certificate:
+	python3 scripts/partial_swap_network.py
+
+partial-swap-note:
+	mkdir -p artifacts
+ifeq ($(TEX_ENGINE),tectonic)
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/partial-swap-note.tex
+else
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/partial-swap-note.tex
 endif

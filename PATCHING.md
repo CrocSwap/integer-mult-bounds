@@ -1,4 +1,8 @@
-# Applying the manuscript patch
+# Applying the inherited manuscript patch
+
+This patch is the PR #10 baseline. The current partial-swap extension is
+presented in `notes/partial-swap-note.tex` and its PDF; it is not included
+in this historical combined manuscript patch.
 
 `patches/batched-23.patch` applies to the original manuscript snapshot at
 `adc7f1241b42e322a6451854ab7e4b4c146bf78a`, retained under `upstream/`.

@@ -1,0 +1,211 @@
+\subsection{Exact lower-triangular conjugation}
+For a rational projector $P$, define
+\[
+ D_P=\begin{pmatrix}I-P&P\\P&I-P\end{pmatrix}.
+\]
+Then $D_P^2=I$ and $\operatorname{rank}(D_P-I)=\operatorname{rank}P$.
+For nondegenerate $U\subseteq V$, their orthogonal projectors satisfy
+$P_UP_V=P_VP_U=P_U$, whence
+\[
+ D_{P_V}D_{P_U}=D_{P_V-P_U}.
+\]
+Thus either orientation of a nested frame edge costs its absolute dimension
+change. A scalar gate whose incident roles share one frame commutes with
+that frame's common address permutation.
+
+Write the ordered lower-lower elimination as $P=L\Pi R$, where $L,R$ are
+invertible lower triangular and $\Pi$ is a partial permutation. Put
+\[
+ C=RL,\quad Q_X=\Pi\Pi^t,\quad Q_Y=\Pi^t\Pi,\quad
+ K=Q_YC-CQ_X,\qquad
+ G=\begin{pmatrix}L&0\\0&R^{-1}\end{pmatrix}
+   \begin{pmatrix}I&0\\K&I\end{pmatrix}.
+\]
+Idempotence gives $\Pi C\Pi=\Pi$. Multiplication, using
+$\Pi Q_Y=\Pi=Q_X\Pi$, yields the exact identity
+\[
+ G^{-1}D_PG=
+ \begin{pmatrix}I-Q_X&\Pi\\\Pi^t&I-Q_Y\end{pmatrix}.
+\]
+Both $G$ and $G^{-1}$ are lower triangular in the physical order of the
+two banks. The displayed matrix is exactly the collection of cross-bank
+swaps specified by $\Pi$. A contiguous identity block of $t$ pivots is
+therefore one width-$t$ interchange, surrounded by the retained $O(V)$
+ordered-affine passes. No reversal or gathering of separated pivots is
+assumed. Choose the address prime only after fixing all rational bases
+and factorizations, excluding their finitely many bad denominators and
+nonzero minors.
+
+\subsection{Scalar map and dirty-scratch wrapper}
+For $h\in\{25,23,57\}$ write $v_h=\binom h3$. There is one input $X_T$
+for each triple. In common-point context $i$ put $y_{ab}=X_{\{i,a,b\}}$
+and compute
+\[
+ A_i=\sum_{a<b,\ a,b\ne i}y_{ab},\qquad
+ D_{i,\{a,b\}}=\sum_{u<v,\ u,v\notin\{i,a,b\}}y_{uv}.
+\]
+The $q_h=3v_h+h$ designated outputs retain all totals. The local
+cancellation-free producer pairs consecutive vertices, sums coarse edges
+between pairs, and puts internal edges into the corresponding coarse
+vertex weights. Recurse on these weighted vertices down to at most two
+vertices; leave-one and leave-two group sums, together with the surviving
+strips, partition each desired exclusion sum. This proves correctness by
+induction. The order in context $i$ lists intact global pairs first, then
+the unlisted vertices other than $i$. Intern equal supports; pair-star
+supports shared across contexts are identified by their actual common
+mask and union mask. Retain total ancestors and prune unused nodes.
+
+Let $V$ copy physical inputs into source-use roles, $L$ be the reversible
+addition/fanout circuit, and $J$ inject the designated outputs. For target
+$T$, inject the three side outputs indexed by $i\in T$ and the three
+totals $A_i$, $i\in T$. If a source triple is $S$, the first coefficient
+is $[|S\cap T|=1]$, and the second is $|S\cap T|\bmod2$.
+Their sum in $\mathbb F_2$ equals $[S=T]$. Hence $JLV=I$.
+For arbitrary initial auxiliary vector $z$, the chronological schedule
+\[
+ L,\ J,\ L^{-1},\ V,\ L,\ J,\ L^{-1},\ V
+\]
+injects $JLz+JL(z+Vx)=x$ and restores $z$. This description treats $J,V$
+as elementary copy/injection sequences, which are self-inverse over
+$\mathbb F_2$. Three alternating data shears exchange the two data banks;
+use the inverse schedule for the middle invocation. Scratch is restored
+for every initial value, not only zero.
+
+\subsection{Positive labels preserving carrier dependencies}
+Use $H_h=I-J/9$ on $\mathbb Q^h$ and triple indicator $t_T$. Then
+\[
+ \langle t_S,t_T\rangle=|S\cap T|-1,\qquad
+ U_i=\{x:\textstyle\sum_jx_j=3x_i\},\qquad
+ x^tH_hx=\sum_{j\ne i}x_j^2\quad(x\in U_i).
+\]
+Thus $U_i$ is positive definite, each triple line has norm $2$, and
+intersection-one triple lines are orthogonal. A side output receives
+$U_i\cap\{x_a+x_b=0\}$, of dimension $h-2$; a total receives $U_i$,
+of dimension $h-1$.
+
+For an original cancellation-free node with common set $C$ and union
+$M$, its envelope is
+\[
+ E(C,M)=\{x:\operatorname{supp}x\subseteq M,\ x_i=t\ (i\in C),\
+                    \textstyle\sum_jx_j=3t\}.
+\]
+Identify addition nodes having equal envelopes for label propagation,
+keeping sources separate. Find the initial carrier matching using these
+envelopes and add its continuation arcs as label-only dependencies.
+They respect envelope inclusion and strict event order. Backward
+intersection of all reachable output constraints gives
+\[
+ W_g=\{x:\textstyle\sum_jx_j=3x_a\ (a\in F_g),\
+                    x_b+x_c=0\ (\{b,c\}\in E(G_g))\}.
+\]
+Here $F_g$ lists reachable common points and $G_g$ their excluded-pair
+graph. Sources keep their triple lines. We have $E_g\subseteq W_g$ and
+$W_g\subseteq W_{g'}$ along every augmented arc. Every retained node
+reaches an output, so $W_g$ lies in a positive $U_a$. Nondegeneracy,
+nesting, retained matches, and side-output orthogonality follow.
+
+For addition nodes $|F_g|\in\{1,2\}$ and $G_g$ avoids $F_g$.
+A nonbipartite component forces zero; each bipartite component, including
+isolated vertices, supplies a signed parameter $z_j$. If its color
+classes are $A_j,B_j$, the remaining relation is
+\[
+ (3-|F_g|)t=\sum_j(|A_j|-|B_j|)z_j.
+\]
+Consequently $\dim W_g$ is the number of bipartite components on the
+coordinates outside $F_g$. Signed component relations also give an exact
+rational containment test. Orthogonal complements and tensor products
+of these nondegenerate spaces are nondegenerate; ambient $H_h$ is
+nondegenerate since $h\ne9$. Reversed invocations use orthogonal
+complement frames, so reverse dependencies remain nested.
+
+\subsection{Carrier matching and its rank histogram}
+A donor is an addition $u$; a receiver is an individual later operand
+use or designated output use. A donor can preserve either operand as
+its nonpivot and continue that operand's carrier to a later use $w$
+when $W_u\subseteq W_w$. A matching joins carrier paths without cycles
+or simultaneous identification of occupied roles. Every value retains
+an unmatched first use, which supplies its carrier path. Thus
+\[
+ R_h=c_h+q_h-|\mathcal M_h|.
+\]
+Use events ordered by new dimension, old envelope dimension, and original
+node/output number. Deterministic Hopcroft--Karp orders donors by node
+number, first operand before second, and uses by consumer then output
+order, in both breadth-first and shortest augmenting-path searches.
+Initial matching arcs were propagated before enlargement; they remain
+valid with this event order.
+
+For rank $r_x$ and number of uses $d_x$, the unmatched histogram is
+\begin{align*}
+ H^{(0)}(z)={}&\sum_{s\text{ source}}d_sz
+ +\sum_{x\text{ addition}}\left((d_x-1)z^{r_x}+z^{h-r_x}
+                  +\sum_{y\text{ operand of }x}z^{r_x-r_y}\right)\\
+ &+\sum_{x\text{ side}}(z^{h-1-r_x}+z)
+ +\sum_{x\text{ total}}(z^{r_x}+z^h).
+\end{align*}
+For a match $u\to w$ preserving $y$, add
+\[
+ -z^{h-r_u}-z^{r_y}-z^{r_w-r_y}+z^{r_w-r_u}.
+\]
+Rank-zero terms are bookkeeping. The selected counts satisfy
+\[
+\begin{array}{c|rrrrr}
+ h&v_h&c_h&q_h&|\mathcal M_h|&R_h\\\hline
+ 25&2300&45963&6925&1589&51299\\
+ 23&1771&34764&5336&1324&38776\\
+ 57&29260&651213&87837&9264&729786
+\end{array}
+\qquad
+ \sum_r rH_{h,r}=hR_h+2h(h-1).
+\]
+Only retained totals drop, by $h-1$ each. The compatible complete
+histograms are recorded below (entries start at rank zero).
+\begin{small}\begin{align*}
+ H_{23}=[&9840,38409,32471,8898,9754,2116,5737,1725,4145,1547,\\
+ &3128,1551,2893,1925,2841,2450,2327,3096,2344,3628,9435,2110,23,23],\\
+ H_{25}=[&12884,50477,41948,11341,13202,2948,6911,1451,5205,2429,\\
+ &3751,1361,3720,2639,3241,1571,3334,3366,2963,4019,2608,4868,\\
+ &12360,2802,25,25],\\
+ H_{57}=[&171318,651573,566364,137233,164158,15372,75503,8071,52184,\\
+ &13888,20431,7625,32053,10364,19167,8889,27939,11286,19271,8785,\\
+ &21602,9814,19261,8795,22732,12389,19365,8691,21012,10404,\\
+ &19355,8701,22142,12352,19459,8597,20422,10196,19449,8607,\\
+ &19956,16818,19553,8503,19604,20476,18289,8171,18510,37106,\\
+ &16535,46799,14592,52132,167608,40250,57,57].
+\end{align*}\end{small}
+These histograms count auxiliary transitions within one invocation only.
+They exclude physical data growth and outer macro transitions.
+
+\subsection{Endpoint and asymmetric bank accounting}
+Use source frame $D_{P_U}$ and destination frame $D_{P_{U^\perp}}$.
+Their product is $D_I$, the full address interchange. Together with the
+scalar bank exchange and arbitrary scratch restoration, this is the
+retained all-role endpoint identity. In particular the extra source
+rank charge of additive-shear framing is absent.
+
+Put $N=v_{25}v_{23}v_{57}$ and
+\[
+ B_1=N R_{25}/v_{25},\quad B_2=N R_{23}/v_{23},\quad
+ B_3=N R_{57}/v_{57},\quad E=B_3-B_1,\quad
+ W=2N+B_2+B_3.
+\]
+Match all real stage-one roles to a subset of stage-three roles using
+an intersection-one neighbor permutation of middle-axis triples.
+The intersection-one graph has a regular bipartite double cover of
+positive degree; edge counting proves Hall's condition, hence such a
+permutation exists. Orthogonality makes each stage-one terminal
+25-space a subspace of the matched stage-three entry $(m-57)$-space.
+Thus the paired rank is $m-57-25$; each of the $E\ge0$ unmatched
+stage-three roles enters directly with rank $m-57$. No extra scalar
+role is introduced. With $m=25\cdot23\cdot57=32775$,
+\[
+ L=N\left(\frac6{23}+\frac6{21}+\frac6{55}\right),\qquad
+ s=Wm-2N+2L=190768577823254200,
+ \qquad 2N-2L=82076640800>0.
+\]
+Before the initial inverse-stage copy, raise the physical $Y$ data
+frame to its common starting frame $D_0$ and copy with both roles at
+$D_0$. This moves an existing enlargement earlier; all later frames
+contain $D_0$. The direct auxiliary entrance replaces the split entrance
+with equal rank mass. It gives exactly $B_2$ copies of class A4 and
+$2N$ copies of A5 in the following table.

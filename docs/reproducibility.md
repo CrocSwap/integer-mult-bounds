@@ -1,61 +1,61 @@
 # Reproducing the current result
 
-Run commands from the repository root. Numerical verification needs Python
-3.11+, a C++17 compiler, Git, and Make; no third-party Python package or network
-access is required. The full h28 support check uses about 1.2 GB of memory.
+Run from the repository root with Python 3.11+, a C++17 compiler, Git, and Make.
+No third-party Python package or network access is required for verification.
+The inherited full h28 support check uses about 1.2 GB of memory.
 
 ```sh
 make verify
 ```
 
-This rebuilds the retained ternary and complex producers, regenerates the
-current and historical certificates and patches, runs the unittest suite,
-and checks patch applicability against the pinned manuscript. The new batching
-checks are part of this target. On a committed checkout, confirm reproducibility:
+This retains the #10 checks and additionally regenerates the selected
+`(25,23,57)` scalar graphs, original carrier dependencies, positive labels,
+final carrier matches and full rank histograms. The complex h28 histogram is
+reconstructed from its retained producer. The new rational certificate
+rebuilds the recursive width multiset, checks both moments and the precision
+guard, and evaluates all 29 strict constraints and seven assembly margins.
+Basis checks cover the prescribed coordinate compatibility and both A5 trees.
+The remaining generic-minor and interface arguments are in the proof.
+
+All large intermediate graph and label files are temporary. To retain them:
 
 ```sh
-git diff --exit-code -- certificates patches
+python3 scripts/partial_swap_producer.py --work-dir /tmp/partial-swap-producers
 ```
 
-For the new arithmetic alone:
+The portable producer sources are in `scripts/partial_swap/`. They adapt the
+retained paired-exclusion and shared-point circuits with base threshold two,
+aligned point ordering, retained totals, and dependency-preserving labels.
+The selected data in `certificates/partial-swap-input.json` are compared with
+regeneration; they are not accepted as the sole producer justification.
+
+For exact arithmetic alone:
 
 ```sh
-make batched-certificate batched-patch
+make partial-swap-certificate
 ```
 
-The output reports `kappa=6149999/50000000000000 > 2^-23`, 29 strict constraints,
-seven margins, and the positive final absorption gap. These programs check
-exact rational inequalities; the matrix construction and tape-time bounds
-also require the written proofs in the [review guide](research/batched-review.md).
+The output certificate uses exact rational numbers. Rounded decimal values in
+the prose are explanatory. On a committed checkout, generated artifacts can
+be checked with `git diff --exit-code -- certificates patches`.
 
-## PDF and complete manuscript
+## Proof PDF
 
 ```sh
-make batched-note
+make partial-swap-note
+# Alternatively:
+make partial-swap-note TEX_ENGINE=tectonic
 ```
 
-This uses pdfLaTeX with AMS, Latin Modern, geometry, hyperref, enumitem,
-mathtools, booktabs, and microtype, producing
-`artifacts/batched-23-note.pdf`. PDF bytes may differ across TeX environments.
-For Tectonic, run from the repository root:
+The target produces `artifacts/partial-swap-note.pdf`. The default engine is
+pdfLaTeX. PDF bytes can differ across TeX environments. The standalone note is
+the current proof; the [combined manuscript patch](../PATCHING.md) and its
+generator remain the inherited #10 result.
 
-```sh
-make batched-note TEX_ENGINE=tectonic
-```
+## Provenance
 
-The [patch instructions](../PATCHING.md) describe materializing the complete
-manuscript. With Tectonic, its three pdfTeX-only metadata commands need
-compatibility definitions in a disposable wrapper; the mathematical source
-remains unchanged.
-
-## Sources and automation
-
-[SOURCES.json](../SOURCES.json) records the retained PR7 commit and the supplied
-archive's hash. [upstream/manifest.json](../upstream/manifest.json) pins the
-original manuscript files. `make fetch` optionally retrieves those exact files
-and refuses to overwrite modified source.
-
-The existing [GitHub workflow](../.github/workflows/verify.yml) runs `make verify`
-and checks regenerated certificates and patches. Local success does not imply
-that a hosted workflow has run. Older main-branch witnesses remain available
-through their existing targets and version history.
+[SOURCES.json](../SOURCES.json) records the handoff archive hash, #10 parent,
+and retained source pins. The original archive and exploratory alternatives
+are kept outside this submission. Existing copyright notices and the Gaussian
+scaling correction are preserved. The GitHub workflow runs `make verify` and
+checks certificate/patch reproducibility.
