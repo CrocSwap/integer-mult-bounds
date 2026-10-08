@@ -1,13 +1,15 @@
-# Conditional saving 4.100629254e-5 from optimal carrier matching
+# Conditional saving 4.100629254e-5 from weighted carrier matching
 
 **κ = 2050314627/(5·10^13) = 4.100629254×10⁻⁵ > 2^-15**, conditional on OpenAI's
 base theorem and the retained analytic and fixed-tape interfaces: **0.02681%
 above PR #43** and 0.02768% above PR #42. With the matching cardinality fixed,
 the bit moment is linear in the chosen carrier edges. We replace the
-Hopcroft–Karp traversal choice with the exact max-weight maximum matching, and
+Hopcroft–Karp traversal choice with a numerically weighted matching whose
+pinned output is certified exactly, and
 apply PR #43's descending summand order at both dimensions. Everything else is
 PR #43. See [research/optimal-matching](research/optimal-matching/README.md).
-Run `make optimal-matching-verify`.
+Run `make optimal-matching-verify`. Full `make verify` passed: 189 tests and 18 historical
+patch checks; see the [validation receipt](research/optimal-matching/validation.json).
 
 # Conditional saving 4.09953e-5 from changed graphs and fixed bases
 

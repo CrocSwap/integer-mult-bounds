@@ -1,4 +1,4 @@
-# Optimal carrier matching on RaD's fixed-basis graphs
+# Weighted carrier matching on RaD's fixed-basis graphs
 
 Under the inherited analytic and fixed finite-alphabet multitape hypotheses,
 
@@ -7,7 +7,7 @@ $$T(n)=O(n(\log n)^{1-\kappa}),\qquad
 
 This is **0.02681% above PR #43** (`409953/10^10`) and 0.02768% above PR #42
 (`4099494519/10^14`). The bit saving is `4100797413/10^14 = 4.100797413e-5`,
-against `4.09970639e-5`, the exact maximum certifiable for PR #43's own child
+against `4.09970639e-5`, the reported certified grid bound for PR #43's own child
 list. These compare conditional asymptotic exponents, not running times.
 
 ## The idea
@@ -32,12 +32,13 @@ Every transition's lower-lower pivot profile, including PR #43's 3-prime
 max-corner rule, depends only on its frame pair. So each admissible edge has a
 fixed signed effect on the child-width multiset, and each removes exactly `h`
 rank units (checked for every edge). The moment `Σ c_t t^τ / (W m^τ)` then
-differs between maximum matchings only through the first-order term
-`Σ c_t · t · ln t`.
+depends linearly on the selected edges for a fixed exponent. The quantity
+`Σ c_t · t · ln t` is a first-order approximation, not the exact objective.
 
-We maximize that sum exactly over all maximum-cardinality matchings. This is
-a bipartite assignment, with a private penalized dummy column per donor so
-that cardinality comes first. The candidate edges are exactly the admissible
+The supplied search uses floating-point logarithmic weights and SciPy
+bipartite assignment, with a private penalized dummy column per donor and an
+independent maximum-cardinality check. It proposes the pinned matching; it
+does not supply an exact rational optimality certificate. The candidate edges are exactly the admissible
 adjacency of `profiles.cpp`: causal order plus frame inclusion.
 
 | | Donors | Uses | Admissible edges | Matched |
@@ -46,20 +47,21 @@ adjacency of `profiles.cpp`: causal order plus frame inclusion.
 | h=25 | 8,756 | 8,108 | 13,686 | 7,565 |
 
 We also apply PR #43's descending (support size, bitmask) summand sort at
-h=25, not only at h=23. With optimal matching, this choice helps; it keeps
+h=25, not only at h=23. With the selected weighted matching, this choice helps; it keeps
 R=48,479. At h=23 the DAG is byte-identical to PR #43's.
 
 | h=23 graph | h=25 graph | Matching | Bit saving |
 |---|---|---|---:|
 | #43 | #43 | descending HK (#43) | 4.09970639e-5 |
-| #43 | #43 | optimal | 4.10069931e-5 |
-| #43 | descending sort | **optimal** | **4.10079741e-5** |
+| #43 | #43 | weighted | 4.10069931e-5 |
+| #43 | descending sort | **weighted** | **4.10079741e-5** |
 
 The matchings are pinned in `links-23.uses` and `links-25.uses`. They use the
 same binary format PR #43 exports. `optimize_matching.py` regenerates them;
 it needs scipy and is not part of `make verify`. The certificate needs only the
-pinned links. Optimality over matchings for these finite graphs is not a
-claim of global optimality.
+pinned links. Neither finite matching optimality nor global optimality is claimed. The
+bound relies on exact certification of the pinned output, independently of
+the floating-point search objective.
 
 ## Checks
 
@@ -95,9 +97,7 @@ make verify
 On Linux/GCC the profiler is compiled with `-include algorithm`, because
 `scripts/partial_swap/binary_io.hpp` uses `std::reverse`.
 
-**Validation status:** draft. The focused producer replay and the exact
-certificate pass. The full repository `make verify` is running and will be
-recorded in `validation.json`.
+**Full verification passed** at research commit `061414a529f1123668872db44d737e362fbe066f`: **189 tests**, all five new focused tests, fresh pinned-matching producer/profile and full dirty-basis checks, complete inherited data-pair replay, and **18 historical patch checks**. See [validation.json](validation.json) for the source commit and full log hash. This remains a conditional research witness requiring mathematical review.
 
 ## Attribution
 
@@ -105,5 +105,8 @@ Chafik Boukhalfa (PR #43: composition, descending matching, independent
 checkers, balanced assembly reuse). RaD / hipotures (PR #41 graphs and point
 order). icekylinx, James Chang, Dominik Scholz, Zhihao Chen, Aurel Prosz /
 Paureel, Swapnil Jain, eumemic, Douglas Colkitt, OpenAI, Harvey–van der
-Hoeven, and all retained predecessors. Optimal matching, h=25 order and
+Hoeven, and all retained predecessors. Weighted matching, h=25 order and
 certificate by Rohan Arun with Anthropic Claude assistance.
+
+OpenAI Codex independently replayed the complete repository verification locally,
+recorded its receipt and clarified the numerical optimizer scope.
