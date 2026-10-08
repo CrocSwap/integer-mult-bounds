@@ -1,0 +1,52 @@
+name: Verify depth-coarse family
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selected:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Regenerate selected words and verify exact certificate
+        run: python3 research/depth-coarse/verify.py --regenerate
+      - name: Independently verify the root and finite-family ceiling
+        run: python3 research/depth-coarse/independent.py
+      - name: Check mathematical and adversarial controls
+        run: python3 -m unittest discover -s tests -p test_depth_coarse.py -v
+      - name: Require unchanged source and certificates
+        run: git diff --exit-code
+
+  family:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        choice: [ccc, ccr, crc, crr, rcc, rcr, rrc, rrr]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Regenerate and replay both axes for this family member
+        run: python3 research/depth-coarse/verify.py --menu-choice ${{ matrix.choice }}
+      - name: Require unchanged source and certificates
+        run: git diff --exit-code
