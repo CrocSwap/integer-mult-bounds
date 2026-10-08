@@ -24,9 +24,6 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-tests
-	$(MAKE) verify-rank-pair
-	$(MAKE) verify-ordered-frames
-	$(MAKE) verify-balanced-split
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -432,28 +429,9 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
 
-.PHONY: verify-rank-pair rank-pair-verify rank-pair-refinement-verify
-verify-rank-pair: rank-pair-verify rank-pair-refinement-verify
-rank-pair-verify:
-	python3 research/rank-pair/frame_compile.py
-	python3 research/rank-pair/screen.py
-	python3 -m unittest discover -s tests -p 'test_rank_pair.py' -v
+.PHONY: split-pair-verify
+split-pair-verify:
+	python3 scripts/experiments/verify_split_pair.py
+	python3 -m unittest discover -s tests -p 'test_split_pair*.py' -v
 
-rank-pair-refinement-verify:
-	python3 research/rank-pair-refinement/refine.py
-
-.PHONY: verify-ordered-frames ordered-frames-verify
-verify-ordered-frames: ordered-frames-verify
-ordered-frames-verify:
-	python3 research/ordered-frames/producer.py
-	python3 research/ordered-frames/graph_audit.py
-	python3 research/ordered-frames/check.py
-	python3 research/ordered-frames/independent_check.py
-
-.PHONY: verify-balanced-split balanced-split-frames-verify
-verify-balanced-split: balanced-split-frames-verify
-balanced-split-frames-verify:
-	python3 research/balanced-split-frames/producer.py
-	python3 research/balanced-split-frames/graph_audit.py
-	python3 research/balanced-split-frames/check.py
-	python3 research/balanced-split-frames/independent_check.py
+verify-joint: split-pair-verify

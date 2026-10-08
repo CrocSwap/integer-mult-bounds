@@ -1,22 +1,3 @@
-# Proposed balanced split frames: conditional κ = 5.1830998133565e-5
-
-This branch now proposes **κ = 10366199626713/200000000000000000**,
-with **133,862,024 physical wires**. It combines balanced coarse sums,
-anchored split recursion, paid live-value reclamation, core node order and
-coordinate relabeling. Its exponent saving is **0.8097927% above pinned PR #71**.
-
-[Construction and reproduction](research/balanced-split-frames/README.md) ·
-[Proof and credits](research/balanced-split-frames/PROOF.md) ·
-[Exact certificate](research/balanced-split-frames/certificate.json)
-
-Run `make balanced-split-frames-verify` for fresh words, complete physical and
-scalar audits, and independent exact arithmetic. This finite witness retains
-the inherited analytic and all-size transfer hypotheses. The original PR #74
-result and full verification history remain in `research/ordered-frames/`.
-The maintainer-reviewed result below is separate from this proposed increment.
-
-Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
-
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original
@@ -39,6 +20,27 @@ speedup. The model and general reduction are inherited from OpenAI's
 [Finite circuit proof](research/pair-assembly/PROOF.md) ·
 [Selected parameter certificate](research/matrix-exponent-synthesis/candidate/arithmetic.json) ·
 [Independent arithmetic check](docs/research/community-pair-arithmetic.json)
+
+## Additional conditional construction: anchored split frames with live reclamation
+
+The [split-pair proof and reproduction guide](research/split-pair/README.md)
+gives **κ=51414646104039/10^18=5.1414646104039e-5**, approximately
+**0.7463402960%** above the complete pinned PR67 witness. It combines
+the PR62/63 interval pair graph, the PR59 split operation, PR65's schedules
+and exact arithmetic, PR67's profile-cost selection, and PR68's pending live
+controls on the PR60/57 reversible frame compiler.
+The new selection uses split vector `[1,1,2]` and aligns the first intact
+global pair across common-point permutations. A new integer score uses each
+live control's known next-use frame. Actual roles are R23=27455
+and R25=36015, with W=135075665.
+
+`make split-pair-verify` regenerates the words, checks arbitrary dirty scratch
+and actual fixed-I+J profiles, and certifies the complete recursive child
+list and strict assembly inequalities. This separately submitted finite
+conditional witness retains the inherited all-size hypotheses. Its namespace,
+sources and comparison remain distinct from the maintainer-reviewed statement
+above. Prepared by Chafik Boukhalfa with OpenAI Codex assistance; contributor
+credits and original notices are retained in the package.
 
 ## What changed
 
