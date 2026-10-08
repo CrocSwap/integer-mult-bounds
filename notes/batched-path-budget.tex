@@ -1,0 +1,68 @@
+\subsection{The weighted arithmetic-path budget}
+\label{sec:pathwise-guard}
+
+The precision analysis uses the length of an arithmetic dependency path
+through the framed complex network. We first measure this path in
+directional rank units, before grouping some units into bulk children.
+
+\paragraph{A weighted path bound.}
+Use the retained triple-based complex motif on $h$ points, with
+$m=h^3$. This includes the paired complex producer and its shared
+first- and third-stage auxiliary banks. Regard every scalar gate as a
+map from saved inputs to its outputs. All of its inputs and outputs
+have one common subspace label. A directed dependency path can therefore
+enter a gate on one physical wire and leave on another without changing
+label dimension at the gate itself.
+
+For a network edge $a$, let $U_a^-$ and $U_a^+$ be its labels and write
+$r_a=|\dim U_a^+-\dim U_a^-|$. The edge implementation has exactly
+$r_a$ recursive calls, each implementing one directional $C$ tensor
+on $e/m$ selected axes. Binary changes of coordinates before and after
+these calls permute coefficients and add no arithmetic depth. An inverse
+direction is implemented using one forward child and its sign and
+fourth-root wrappers, so it has the same recursive-call count.
+
+If $P$ is a directed scalar dependency path, its common gate labels give
+the exact identity
+\[
+ \sum_{a\in P}r_a
+ =\dim U_{\rm end}-\dim U_{\rm start}
+   +2\sum_{\substack{a\in P\\\dim U_a^+<\dim U_a^-}}
+       (\dim U_a^--\dim U_a^+).
+\]
+The endpoint difference is at most $m$.
+
+Every side-producer edge is increasing. This follows from nested source
+labels for the nonconstant middle mixer, complemented labels in its
+reverse-direction counterpart, and constant early and late frames.
+The data-wire and interstage edges are increasing as in the retained
+motif. The stage-sharing joins are also increasing. The only decreasing
+edges are the retained central returns, each of dimension loss $h$.
+
+There are three tensor stages. Within a stage, the $v^2$ invocations
+use disjoint data and auxiliary wires, and each invocation has a single
+central-return frontier. Equivalently, its point and total central wires
+all return between the same two blocks of the transparent schedule.
+A directed path crosses that frontier at most once. Gates acting on
+different invocations do not connect their wires. Thus a path encounters
+at most one central return per stage, even though the machine executes
+all invocations sequentially on its fixed tapes. Sharing stage-1 and
+stage-3 banks only links their existing stage boundaries and creates no
+additional return. Consequently
+\begin{equation}\label{eq:pathwise-child-bound}
+ \sum_{a\in P}r_a\le q:=m+6h.
+\end{equation}
+The bound also applies to a path ending at an intermediate gate or inside
+an edge implementation: complete its current edge, and then any suffix
+to a terminal vertex. All weights are nonnegative.
+
+\paragraph{From a scalar path to a coefficient path.}
+A coefficient dependency path in the actual tape algorithm projects to
+a directed path of the scalar network: inside a scalar gate it follows
+one of the saved operands that contributes to the chosen output; inside
+an edge it stays on the edge's role stream. A child can permute or combine
+addresses within that role, but cannot move a value into a different
+parent role. The row split, parking, padding and reassembly operations
+do not create arithmetic dependencies between distinct parent roles.
+This projection justifies using \eqref{eq:pathwise-child-bound} for the
+implemented recursion, rather than merely for a drawn finite circuit.
