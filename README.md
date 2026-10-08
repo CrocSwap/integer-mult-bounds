@@ -1,109 +1,75 @@
 # A sharper exponent for integer multiplication
 
-**Research draft by Douglas Colkitt — conditional on the underlying manuscript
-and the written extensions supplied here.**
+**Conditional research draft: Douglas Colkitt's framework, with a new
+construction contributed by Zhihao Chen (jacklightChen).**
 
-This draft improves OpenAI's
-[*Integer multiplication below n log n*](https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a/preprints/Integer-multiplication-below-n-log-n-September-23-2026)
-(result family #109). In its fixed finite-alphabet Turing-machine model with a
-fixed number of one-dimensional tapes, the strongest supplied witness is
+In the pinned OpenAI manuscript's fixed finite-alphabet Turing-machine model
+with a fixed number of one-dimensional tapes, the strongest supplied witness is
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{83}{10^{12}}=8.3\times10^{-11}>2^{-34}}.
+\boxed{\kappa=\frac{373}{10^{11}}=3.73\times10^{-9}>2^{-28}}.
 $$
 
-The simpler **`kappa = 2^-34`** is a corollary. The witness remains below
-`2^-33`. It increases the exponent saving by approximately **47.85 million
-fold** over our preceding published `2^-59` witness. The original manuscript
-uses `2^-182`. These compare asymptotic exponents, not practical runtimes.
+The simpler `kappa = 2^-28` is a corollary. These compare asymptotic exponents,
+not practical runtimes. The complete upstream theorem and retained analytic
+interfaces remain assumptions; the new arguments have not received independent
+mathematical review or formal verification.
 
-**[Read the compact-control proof note (PDF)](artifacts/compact-control-note.pdf)** ·
-[Review the combined source patch](patches/compact-control-34.patch) ·
-[Inspect the exact certificate](certificates/compact-control-layer.json) ·
-[Review guide and dependencies](docs/research/compact-control-review.md)
-
-This is a research claim supported by written proofs and reproducible checks.
-The complete upstream theorem is assumed; the new arguments have not received
-independent mathematical review or formal verification.
+**[Read the construction note (PDF)](artifacts/prime-field28-note.pdf)** ·
+[Combined manuscript patch](patches/prime-field28.patch) ·
+[Exact certificate](certificates/prime-field28.json) ·
+[Review guide and attribution](docs/research/prime-field28.md)
 
 ## What changed
 
-The new construction moves **compact control fields instead of entire spaced
-windows**. For `f` selected axes, it replaces the layer's movement cost
-`O(V*((f*K)^tau+1))` by
+A new interchange motif uses five-subsets of 28 points and scalar arithmetic
+over F3. Paired degree-three recursion, retained pair totals and exact
+four-point-star resynthesis reduce the auxiliary role upper bound to
+11,840,940. Stage sharing and the written rational-frame argument support
+`a_b = 3/400000000`. A paired complex producer gives `a_c = 39/10^9`.
+Together with the existing compact-control construction and PR #5's fast
+Gaussian resampling, these give the stated conditional bound. The payload
+alphabet changes; the address-prime construction is retained.
 
-$$
-O\!\left(V\bigl((f\log p)^\tau+1\bigr)\right).
-$$
+The exact minimum final margin is
+`934813/250000000000000`, with a strict gap of
+`2313/250000000000000` above the declared kappa.
 
-The proof reserves temporary fields from existing address coordinates,
-allows arbitrary initial temporary values, restores them exactly, and charges
-exceptional-address repair at every recursion node. The temporary ranges
-remain complete through padding and recursive row splitting.
-
-Removing `K^tau` removes the restriction responsible for the preceding
-quadratic dependence on the finite-network saving. The bit network stays at
-`h=50`. The original complex network is separately instantiated at `h=25`,
-and a generalized stopping-depth guard completes the new parameter witness.
-This is a change to the movement construction and its proof, beyond parameter
-tuning of the preceding algorithm.
-
-The exact minimum assembly margin is
-
-$$
-G_* = \frac{333833}{4\cdot10^{15}}
-    = 8.345825\times10^{-11} > \kappa.
-$$
-
-The remaining bottleneck is the complex layer's saving. With the **fixed
-`h=25` complex motif and retained Gaussian/leaf inequalities**, the scoped
-ceiling is below `8.369598075e-11`, hence below `2^-33`. This is not a ceiling
-for other networks or integer multiplication in general.
+This branch is based directly on `main`. Necessary files from eumemic's
+Claude-assisted PRs #3 and #5 are imported unchanged and credited. Aligned
+pairing (PR #2), retained totals and stage sharing (PR #4), and cheaper centers
+(PR #6) are also credited. See the [construction ledger](docs/research/prime-field28.md).
 
 ## Evidence and scope
 
-| Component | Evidence |
-| --- | --- |
-| Parameters, logarithm enclosures, final margins | Exact rational certificate |
-| Dirty-control identities, inverses and repair | Finite exhaustive cases and seeded tests |
-| Wider-control tape bound, reservations and recursion | Written general proofs |
-| Separate complex arity and precision guard | Written proofs and exact accounting |
-| Source integration | Combined patch, reference checks and manuscript build |
-| Full upstream multiplication theorem | Assumed |
-| Independent review / full formalization | Not supplied |
-
-The [review guide](docs/research/compact-control-review.md) identifies the new
-proof obligations and their tests. [Current research status](docs/research/current-status.md)
-is authoritative when older notes describe superseded barriers or hypothetical
-witnesses. The earlier artifacts remain available and unchanged.
+The checks cover every local coefficient, global support equality and
+resynthesized boundary value; every replacement gate has disjoint support.
+All 98,280 matching images are checked. Small complete F3 cases test arbitrary
+dirty scratch and exact rational frames in both directions. The full h=28
+complex producer and all final parameter inequalities are checked exactly.
+General tensor-stage and finite-alphabet tape-transfer arguments are supplied
+as written proofs. These checks do not formalize the complete multiplication
+machine or replace independent mathematical review.
 
 ## Reproduce
 
-With Python 3.11 or newer, Git and Make, run from the repository root:
+With Python 3.11 or newer, a C++17 compiler, Git and Make:
 
 ```sh
 make verify
 git diff --exit-code -- certificates patches
 ```
 
-No third-party Python packages or network access are needed for these checks.
-They regenerate the certificates and patches, run the tests, verify upstream
-hashes, and check each patch against the pinned manuscript. The second command
-checks exact regeneration on a clean checkout.
+No third-party Python packages or network access are needed. The new producer
+uses roughly 1.2 GB memory and under 30 MB temporary storage. Checks regenerate
+the certificates and patches, run the tests, verify pinned upstream hashes,
+and check each independent patch against the unmodified manuscript.
 
-With Tectonic installed, rebuild the latest note using:
-
-```sh
-make compact-note
-```
-
-The output is `artifacts/compact-control-note.pdf`. The first PDF build may
-download TeX resources. See [reproducibility instructions](docs/reproducibility.md)
-for applying the combined patch in a disposable copy and building older notes.
-[GitHub Actions](.github/workflows/verify.yml) runs the arithmetic and patch checks.
-Passing tests does not establish the complete multiplication theorem; this
-repository contains no full multiplication-machine implementation.
+With pdfLaTeX installed, build the latest note using `make prime-field-note`.
+See [reproducibility instructions](docs/reproducibility.md) for full manuscript
+builds. [Current research status](docs/research/current-status.md) distinguishes
+this witness from historical bounds and scoped ceilings.
 
 ## Earlier witnesses and independent patches
 
@@ -133,6 +99,15 @@ and scoped ceilings.
 | **[compact-control-34](patches/compact-control-34.patch)** | **`83/10^12 > 2^-34`** | **Compact controls, complete reservations, local repair and separate complex arity** |
 
 ## Attribution, citation, and license
+
+The new ternary construction is contributed by **Zhihao Chen (jacklightChen)**
+with substantial **GPT-6 Astra (OpenAI Codex)** assistance, as identified by
+the contributor. Future research using this contribution should explicitly
+acknowledge Zhihao Chen and cite the note and PR. This records the first
+submission of this specific construction by these contributors to this
+repository, not worldwide priority. Earlier contributors retain their credit;
+see [the dependency and attribution ledger](docs/research/prime-field28.md).
+
 
 Author: **Douglas Colkitt**. Research, implementation and drafting were performed
 with assistance from OpenAI Codex. The compact-control proposal originated
