@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.13', '3.14']
-        group: [community, producers, certificates, ternary, research, tests]
+        group: [community, producers, certificates, ternary, research, tests, strips, clones, positive, joint, pair]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -24,6 +24,13 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install headers for the exact enlarged-frame profiler
+        if: matrix.group == 'positive'
+        run: |
+          if ! test -f /usr/include/boost/multiprecision/cpp_int.hpp; then
+            sudo apt-get update
+            sudo apt-get install -y libboost-dev
+          fi
       - name: Check arithmetic, source hashes, finite identities, and patches
         run: make verify-${{ matrix.group }}
       - name: Require reproducible certificates and patches
@@ -35,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [historical, gaussian]
+        package: [historical, gaussian, matrix]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

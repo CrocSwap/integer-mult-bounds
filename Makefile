@@ -18,6 +18,11 @@ verify:
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
+	$(MAKE) verify-strips
+	$(MAKE) verify-clones
+	$(MAKE) verify-positive
+	$(MAKE) verify-joint
+	$(MAKE) verify-pair
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -78,7 +83,7 @@ verify-ternary:
 	python3 scripts/make_ternary_patch.py
 
 verify-tests:
-	python3 -m unittest discover -s tests -v
+	python3 scripts/run_isolated_tests.py
 	git apply --check --directory=upstream patches/frozen-154.patch
 	git apply --check --directory=upstream patches/balanced-153.patch
 	git apply --check --directory=upstream patches/same-network-129.patch
@@ -297,19 +302,6 @@ formal-gaussian-verify:
 	$(MAKE) -C research/gaussian-parity-synthesis verify
 	python3 scripts/check_lean_axioms.py --project research/gaussian-parity-synthesis --audit research/gaussian-parity-synthesis/AuditAll.lean
 
-.PHONY: skip-frame-verify
-skip-frame-verify:
-	python3 scripts/experiments/verify_skip_frame.py
-
-verify-community: skip-frame-verify
-
-.PHONY: joint-dual-verify
-joint-dual-verify:
-	python3 scripts/experiments/verify_joint_dual.py
-	python3 -m unittest discover -s tests -p 'test_joint_reclaim.py' -v
-
-verify-community: joint-dual-verify
-
 .PHONY: verify-research
 # Historical finite searches; no current witness or production certificates change.
 verify-research:
@@ -341,10 +333,105 @@ verify-research:
 	python3 scripts/audit_positive_side.py
 	python3 scripts/audit_parity_side.py
 	python3 scripts/audit_prime_subset_limits.py
+.PHONY: skip-frame-verify
+skip-frame-verify:
+	python3 scripts/experiments/verify_skip_frame.py
+
+
+.PHONY: joint-dual-verify
+joint-dual-verify:
+	python3 scripts/experiments/verify_joint_dual.py
+	python3 -m unittest discover -s tests -p 'test_joint_reclaim.py' -v
+
+
+.PHONY: skip-strips-verify skip-strips-producer skip-strips-check
+skip-strips-producer:
+	python3 research/skip-strips/producer.py
+
+skip-strips-check:
+	python3 research/skip-strips/audit.py
+	python3 research/skip-strips/verify.py --output research/skip-strips/certificate.json
+	cd research/skip-strips && python3 -m unittest discover -s ../../tests -p 'test_skip_strips.py' -v
+
+skip-strips-verify: skip-strips-producer skip-strips-check
+
+.PHONY: positive-skip-verify positive-skip-build positive-skip-check
+positive-skip-build:
+	python3 scripts/audit_positive_skip_exact.py
+
+positive-skip-check:
+	python3 research/positive-skip/witness.py --output research/positive-skip/certificate.json
+	python3 -m unittest discover -s tests -p 'test_positive_skip.py' -v
+
+positive-skip-verify: positive-skip-build positive-skip-check
+
+.PHONY: split-skip-producer split-skip-check split-skip-verify
+split-skip-producer:
+	python3 research/split-skip/producer.py --work-dir build/split-skip --output build/split-skip-receipt.json
+
+split-skip-check:
+	python3 research/split-skip/witness.py
+	python3 research/split-skip/independent_arithmetic.py
+	python3 -m unittest discover -s tests -p 'test_split_skip.py' -v
+
+split-skip-verify: split-skip-producer split-skip-check
+
+.PHONY: skip-suffix-verify skip-suffix-producer skip-suffix-check
+skip-suffix-producer:
+	python3 research/skip-suffix/producer.py
+
+skip-suffix-check:
+	python3 research/skip-suffix/audit.py
+	python3 research/skip-suffix/verify.py --output research/skip-suffix/certificate.json
+	cd research/skip-suffix && python3 -m unittest discover -s ../../tests -p 'test_skip_suffix.py' -v
+
+skip-suffix-verify: skip-suffix-producer skip-suffix-check
+
+.PHONY: skip-clones-verify skip-clones-producer skip-clones-check
+skip-clones-producer:
+	python3 research/skip-clones/producer.py
+
+skip-clones-check:
+	python3 research/skip-clones/witness.py --output research/skip-clones/certificate.json
+	python3 -m unittest discover -s tests -p 'test_skip_clones.py' -v
+
+skip-clones-verify: skip-clones-producer skip-clones-check
+
+.PHONY: verify-strips verify-clones verify-positive verify-joint formal-matrix-verify
+verify-strips: skip-strips-verify skip-suffix-verify
+verify-clones: skip-clones-verify split-skip-verify
+verify-positive: positive-skip-verify
+verify-joint: skip-frame-verify joint-dual-verify
+	python3 scripts/audit_joint_candidate.py --check docs/research/community-round2-arithmetic.json
+
+formal-verify: formal-matrix-verify
+formal-matrix-verify:
+	mkdir -p build
+	cd research/matrix-exponent-synthesis && lake build
+	python3 scripts/check_lean_axioms.py --project research/matrix-exponent-synthesis --audit research/matrix-exponent-synthesis/AuditAll.lean
+	python3 research/matrix-exponent-synthesis/run_checks.py --work "$$(mktemp -d build/matrix-synthesis.XXXXXX)"
+	python3 scripts/audit_joint_candidate.py --check docs/research/community-round2-arithmetic.json
+	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: pair-assembly-verify pair-assembly-producer pair-assembly-check
+pair-assembly-producer:
+	python3 research/pair-assembly/producer.py
+
+pair-assembly-check:
+	python3 research/pair-assembly/audit.py
+	python3 research/pair-assembly/verify.py --output research/pair-assembly/certificate.json
+	python3 research/pair-assembly/frame/frame_verify.py
+	cd research/pair-assembly && python3 -m unittest discover -s ../../tests -p 'test_pair_assembly.py' -v
+
+pair-assembly-verify: pair-assembly-producer pair-assembly-check
+
+.PHONY: verify-pair
+verify-pair: pair-assembly-verify
+	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
 
 .PHONY: split-dual-verify
 split-dual-verify:
 	python3 scripts/experiments/verify_split_dual.py
 	python3 -m unittest discover -s tests -p 'test_split_dual.py' -v
 
-verify-community: split-dual-verify
+verify-joint: split-dual-verify
