@@ -1,3 +1,31 @@
+# Cost-aware live controls, conditional κ = 5.103512721785e-5
+
+The latest selected research witness is **κ = 1020702544357/20000000000000000**, with
+bit saving **51037731934993/10^18**. It combines Rohan Arun's PR #67
+cost-aware reclamation with compatible pending live controls at both axes.
+Every clearing XOR and frame transition remains paid. A parameter-only
+refinement reduces assembly backoff from 10^-12 to 10^-18 with unchanged
+physical words and bit saving; its larger eventual cutoff is documented in
+[the refinement proof](research/cost-live-parameters/PROOF.md). Newer public
+PRs #69–71 claim stronger bounds; this witness is not the current frontier.
+
+[Proof](research/cost-live-both/PROOF.md) ·
+[Exact parameter certificate](research/cost-live-parameters/certificate.json) ·
+[Completed focused validation](research/cost-live-both/validation-receipt.json)
+
+Independent complete dirty-state replay, actual fixed-basis profiles/CRT,
+exact moment and all 47 constraints/seven margins pass. The candidate file
+preserves its initial draft-time pending flags; the separate validation
+receipt records completed checks. Full current-head CI/review remains pending.
+Run `make cost-live-verify`; CI runs this target on Python 3.11, 3.13 and 3.14.
+
+The earlier live-anchor and combined-relation experiments remain in their
+separate research directories. All inherited analytic, all-size compiler,
+routing/recovery and fixed-tape hypotheses remain conditional. This is not
+full formal verification or a practical speedup. Prepared by Dominik Scholz
+with substantial OpenAI GPT-6 Astra/Codex assistance, retaining Rohan Arun,
+Chafik Boukhalfa, eumemic, Avi Eisenberg and all predecessor credits.
+
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original
