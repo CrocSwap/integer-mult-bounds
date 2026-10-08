@@ -80,6 +80,13 @@ def witness(p, n):
                 absorption_gap=min(gs.values())-p.kappa)
 
 
+def witness_only():
+    """Counts and parameter witness without the full finite checks (for the patch)."""
+    n = counts(ComplexSideCircuit(H))
+    require(n['eta'] > COMPLEX_SAVING*LOG_BOUND, 'Complex saving failed')
+    return witness(parameters(), n)
+
+
 def certificate():
     c = ComplexSideCircuit(H); checks = Checks(c); code = compile_roles(c)
     side = checks.verify_map(); labels = checks.verify_labels()

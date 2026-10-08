@@ -8,7 +8,7 @@ circuit, and the layer constants and assembly parameters are updated.
 import difflib
 from pathlib import Path
 
-from complex_network import certificate
+from complex_network import witness_only
 from make_patch import replace_once
 from make_compact_control_patch import patched_files as compact_files
 
@@ -100,7 +100,7 @@ $p^{30001/50000}$.''')
 
 
 def patched_files():
-    certificate()
+    witness_only()  # full checks run in complex_network.py and the tests
     for name, old, new in compact_files():
         if name.endswith(('main.tex', '00-introduction.tex')):
             new = replace_once(new, r'\kappa=83/10^{12}', r'\kappa=59/10^{11}')

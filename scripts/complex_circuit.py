@@ -265,7 +265,8 @@ def tmask(t):
 class Checks:
     """Exact verification of the side map, labels and compiled roles."""
     def __init__(self, c):
-        self.c = c; self.h = c.h; self.cache = {}
+        self.c = c; self.h = c.h; self.cache = {}; self.verdicts = {}
+        self.everything = Label([1 << p for p in range(c.h)])
 
     def label(self, node):
         if node in self.cache: return self.cache[node]
@@ -294,9 +295,20 @@ class Checks:
 
     def residual_ok(self, small, big):
         """small ⊆ big and big ⊖ small is zero or has an odd vector."""
-        if not big.contains(small): return False
-        res = small.complement_in(big)
-        return not res or odd(res)
+        key = (small.key, big.key)
+        if key not in self.verdicts:
+            res = small.complement_in(big) if big.contains(small) else None
+            self.verdicts[key] = res is not None and (not res or odd(res))
+        return self.verdicts[key]
+
+    def label_ok(self, lab):
+        """Nondegenerate, contains an odd vector, and its complement is zero or does."""
+        key = ('label', lab.key)
+        if key not in self.verdicts:
+            perp = lab.complement_in(self.everything)
+            self.verdicts[key] = (lab.nondegenerate() and odd(lab.basis.values())
+                                  and (not perp or odd(perp)))
+        return self.verdicts[key]
 
     def verify_map(self):
         c = self.c
@@ -321,17 +333,14 @@ class Checks:
                     side_map_exact=True, coefficients='+1/2 disjoint, -1/2 intersection two')
 
     def verify_labels(self):
-        c = self.c; checked = 0; everything = Label([1 << p for p in range(self.h)])
+        c = self.c; checked = 0
         for node in sorted(c.active):
             lab = self.label(node)
-            assert lab.nondegenerate() and odd(lab.basis.values()), node
+            assert self.label_ok(lab), node  # includes the exit to the full space
             if c.args[node]:
                 for child in c.args[node]:
                     assert self.residual_ok(self.label(child), lab), (node, child)
                     checked += 1
-            # Exit to the full space: complement must be zero or nonalternating.
-            perp = lab.complement_in(everything)
-            assert not perp or odd(perp), node
         for S, node, coef in c.pieces:
             assert self.residual_ok(self.label(node), self.target_frame(S)), (S, node)
             checked += 1
@@ -366,25 +375,21 @@ def compile_roles(c):
 
 def verify_role_frames(c, checks, code=None):
     """Follow every physical role in both directions through its frames."""
-    code = code or compile_roles(c); everything = Label([1 << p for p in range(c.h)])
-    ok = {}
-    def step(small, big):
-        key = (small.key, big.key)
-        if key not in ok: ok[key] = checks.residual_ok(small, big)
-        assert ok[key]
+    code = code or compile_roles(c)
+    def step(small, big): assert checks.residual_ok(small, big)
     frames = [None]*code['roles']
     for T, slot in code['sources'].items(): frames[slot] = checks.label(c.input[T])
     for node, ins, outs in code['gates']:
         lab = checks.label(node)
         for slot in set(ins+outs):
-            if frames[slot] is None: assert odd(lab.basis.values())  # entry from D0
+            if frames[slot] is None: assert checks.label_ok(lab)  # entry from D0
             else: step(frames[slot], lab)
             frames[slot] = lab
     for i, slot in code['outputs'].items():
         S = c.pieces[i][0]; J = checks.target_frame(S)
         step(frames[slot], J); frames[slot] = J
     for lab in frames:
-        perp = lab.complement_in(everything); assert not perp or odd(perp)  # exit to D1
+        assert checks.label_ok(lab)  # includes the exit residual to D1
     # Reverse stage: complements, traversed backward. U^perp grows iff U shrinks.
     # Its entries and exits have the forward residuals U^perp and U, checked above.
     back = [None]*code['roles']
@@ -394,7 +399,7 @@ def verify_role_frames(c, checks, code=None):
         for slot in set(ins+outs):
             prev = back[slot]
             if prev is None:
-                perp = lab.complement_in(everything); assert not perp or odd(perp)
+                assert checks.label_ok(lab)  # reverse entry residual is lab^perp
             elif prev[0] == 'line':  # <t_S> ⊆ U^perp  iff  U ⊆ t_S^perp
                 step(lab, checks.target_frame(prev[1]))
             else:
@@ -403,7 +408,7 @@ def verify_role_frames(c, checks, code=None):
     for T, slot in code['sources'].items():
         assert back[slot][1].key == checks.label(c.input[T]).key  # ends at t_T^perp
     return dict(roles=code['roles'], forward_frames_nested=True,
-                reverse_complement_frames_nested=True, distinct_residual_checks=len(ok))
+                reverse_complement_frames_nested=True)
 
 
 def simulate_invocation(c, code, x, y, side, center, inverse=False):
