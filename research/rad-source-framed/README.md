@@ -3,11 +3,11 @@
 This draft contributes an alternative finite construction and a conditional assembly for review:
 
 $$
-T(n)=O(n(\log n)^{1-\kappa}).
+T(n)=O(n(\log n)^{1-\kappa})
 $$
 
 $$
-\kappa=\frac{5834475279233921242758637328164947}{5\cdot10^{39}}\approx1.1668950558467842\times10^{-6}>2^{-20}.
+\kappa=\frac{5834475279233921242758637328164947}{5\cdot10^{39}}\approx1.1668950558467842\times10^{-6}>2^{-20}
 $$
 
 The multiplication theorem, computational model and most analytic interfaces are inherited. This package represents a limited contribution within that collective work. It is conditional on the retained assumptions and the linked written transfer arguments. Separate research agents reviewed the finite graph, transfer and exact arithmetic; this is not external human peer review, a formal proof, an unconditional theorem, or a practical multiplication benchmark.
