@@ -1,0 +1,139 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,longtable}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\setlist{itemsep=3pt,topsep=5pt}
+\setlength{\parindent}{1.25em}
+\setlength{\parskip}{2pt}
+\setlength{\emergencystretch}{2em}
+\allowdisplaybreaks[2]
+\numberwithin{equation}{section}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\title{Bulk Recursion for Integer Multiplication\\[4pt]
+  \large Large projector blocks, whole residuals, and a pathwise precision guard}
+\author{icekylinx\\\small With substantial OpenAI GPT-6 Astra and Codex assistance}
+\date{8 October 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We batch rational projector blocks and whole complex residuals in the
+retained finite networks. A controlled common basis yields contiguous
+recursive calls; mixed-width moment bounds and a dependency-path precision
+guard give a saving beyond $2^{-23}$. The construction includes integer
+remainders, bounded row padding, and a corrected Gaussian input error
+bound. The conclusion is conditional on the pinned upstream multiplication
+theorem and the retained finite-network and analytic interfaces.
+\end{abstract}
+\vspace{1.5em}
+\[
+\boxed{T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{6149999}{5\cdot10^{13}}>2^{-23}.}
+\]
+\clearpage
+\tableofcontents
+\clearpage
+
+\section{Result and retained framework}
+The model is a fixed finite-alphabet Turing machine with a fixed number
+of one-dimensional tapes. Section~\ref{sec:batched-final-assembly} gives
+the rational parameters and strict assembly margins.
+All constants defining the finite networks, their rational bases,
+the address radix, and the number of tapes are fixed independently
+of $n$. The scalar domains and the address-label fields are distinct.
+The interchange network carries fixed $\mathbb F_3$ payloads and uses
+rational address matrices. The complex network carries Gaussian dyadic
+values and uses binary subspace labels.
+
+The finite constructions are those of Zhihao Chen's PR~\#7
+\cite{pr7}, at commit
+\begin{center}
+\texttt{6725c6a17b17871a35353fd29157f4ed851bc114}.
+\end{center}
+That contribution supplies the ternary five-subset network, the paired
+complex producer, their frame schedules, and their finite counts.
+It builds on Douglas Colkitt's compact-control framework
+\cite{main}, Bortlesboat's alignment \cite{pr2}, eumemic's complex
+producer and Gaussian resampling \cite{pr3,pr5,pr6}, and dleen's
+retained totals and stage sharing \cite{pr4}. The upstream manuscript
+is pinned at OpenAI commit
+\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}
+\cite{upstream}.
+
+\section{Large rational projectors}
+\input{notes/projector-batching.tex}
+
+\section{The explicit interchange recurrence}
+\input{notes/batched-bit-rank-accounting.tex}
+\input{notes/controlled-projector-basis.tex}
+
+\section{Integer widths and bit-stream rows}
+\input{notes/batched-bit-rows.tex}
+
+\section{Complex residuals and arithmetic depth}
+\input{notes/batched-path-budget.tex}
+\input{notes/bulk-complex-guard.tex}
+
+\section{The complete layer on mixed widths}
+\input{notes/batched-complex-rows.tex}
+
+\section{Exact conditional assembly}
+\input{notes/batched-assembly.tex}
+
+\section{Precision correction to the retained Gaussian interface}
+\input{notes/chirp-scaling-correction.tex}
+
+\section{Constructive algorithm specification}
+\input{notes/batched-algorithms.tex}
+
+\section{Reproduction and attribution}
+Run \texttt{make verify} for the finite producers, exact certificates,
+regression checks, and manuscript patches. Run \texttt{make batched-note}
+to rebuild this note. The source pins and licenses are in
+\texttt{SOURCES.json} and \texttt{NOTICE}.
+
+The bulk-recursion contribution is by icekylinx, with substantial
+OpenAI GPT-6 Astra assistance. Review corrections and integration used
+OpenAI Codex assistance. Prior constructions retain the attribution
+listed above and in the bibliography.
+
+\clearpage
+{\small\raggedright
+\begin{thebibliography}{9}
+\bibitem{upstream} OpenAI.
+\emph{Integer multiplication below $n\log n$}, result family \#109.
+Pinned source commit \texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.
+\url{https://github.com/openai/math}.
+\bibitem{main} Douglas Colkitt.
+\emph{A sharper exponent for integer multiplication}.
+\texttt{CrocSwap/integer-mult-bounds}, main commit
+\texttt{6e564879f51ae16f23d392e9e196c605f36d90df}.
+\url{https://github.com/CrocSwap/integer-mult-bounds}.
+\bibitem{pr2} Bortlesboat.
+\emph{Align pair groups for a conditional $17\cdot2^{-63}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/2}.
+\bibitem{pr3} eumemic.
+\emph{Compress the complex network for a conditional $59/10^{11}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/3}.
+\bibitem{pr4} dleen.
+\emph{Combine PR \#3 shared exclusions with retained totals and stage sharing}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/4}.
+\bibitem{pr5} eumemic.
+\emph{Faster Gaussian resampling for a conditional $1479/10^{12}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/5}.
+\bibitem{pr6} eumemic.
+\emph{Aligned bit circuit with cheaper centers for a conditional
+$1624/10^{12}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/6}.
+\bibitem{pr7} Zhihao Chen (jacklightChen).
+\emph{Ternary five-subset networks for a conditional $373/10^{11}$ bound}.
+\url{https://github.com/CrocSwap/integer-mult-bounds/pull/7}.
+\end{thebibliography}
+}
+\end{document}
