@@ -1,8 +1,10 @@
 # Reproducing the result
 
-The selected release is documented in the [joint-frame community review](research/community-round2-review.md)
+The selected reviewed main checkpoint is documented in the [joint-frame community review](research/community-round2-review.md)
 and [current status](research/current-status.md), with the
 [selected parameter certificate](../research/matrix-exponent-synthesis/candidate/arithmetic.json).
+The [published GitHub release](releases/community-kappa-15.md) records the earlier
+PR #39 witness; it is distinct from the reviewed main checkpoint.
 The bound is conditional on the retained original #109 framework. Earlier notes,
 patches, and the [preserved research](research/preserved-research.md) are historical
 reproduction targets. Run `make verify-research` to regenerate its certificates;
