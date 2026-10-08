@@ -2,6 +2,7 @@
 
 verify:
 	$(MAKE) copied-fixed-verify
+	$(MAKE) optimal-matching-verify
 	$(MAKE) copied-centers-verify
 	$(MAKE) structured-bulk-verify
 	$(MAKE) endpoint-gauge-producer endpoint-gauge-certificate
@@ -202,3 +203,13 @@ copied-fixed-check:
 	python3 -m unittest discover -s tests -p 'test_copied_fixed.py' -v
 
 copied-fixed-verify: copied-fixed-producer copied-fixed-check
+
+.PHONY: optimal-matching-verify optimal-matching-producer optimal-matching-check
+optimal-matching-producer:
+	python3 research/optimal-matching/producer.py
+
+optimal-matching-check:
+	python3 research/optimal-matching/witness.py --output research/optimal-matching/certificate.json
+	python3 -m unittest discover -s tests -p 'test_optimal_matching.py' -v
+
+optimal-matching-verify: optimal-matching-producer optimal-matching-check
