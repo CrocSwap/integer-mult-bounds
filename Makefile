@@ -5,6 +5,7 @@ verify:
 	python3 scripts/complex_network.py
 	python3 scripts/fast_gaussian.py
 	$(MAKE) batched-certificate batched-patch
+	$(MAKE) source-frame-certificate source-frame-patch
 	python3 scripts/certify.py
 	python3 scripts/search_network.py
 	python3 scripts/make_patch.py
@@ -59,6 +60,7 @@ verify:
 	git apply --check --directory=upstream patches/h50-paired-59.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
 	git apply --check --directory=upstream patches/batched-23.patch
+	git apply --check --directory=upstream patches/source-frame-21.patch
 
 note:
 	mkdir -p artifacts
@@ -119,4 +121,22 @@ else
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
 	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/batched-23-note.tex
+endif
+
+.PHONY: source-frame-certificate source-frame-patch source-frame-note
+
+source-frame-certificate:
+	python3 scripts/source_frame_network.py --output certificates/source-frame-network.json --summary
+
+source-frame-patch:
+	python3 scripts/make_source_frame_patch.py
+
+source-frame-note:
+	mkdir -p artifacts
+ifeq ($(TEX_ENGINE),tectonic)
+	$(TECTONIC) -Z search-path=$(CURDIR) --outdir artifacts notes/source-frame-21-note.tex
+else
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/source-frame-21-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/source-frame-21-note.tex
+	$(PDFLATEX) -interaction=nonstopmode -halt-on-error -output-directory=artifacts notes/source-frame-21-note.tex
 endif
