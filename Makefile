@@ -182,3 +182,13 @@ two-stage-dimensions-check:
 	git apply --check patches/two-stage-dimensions.patch
 
 verify: two-stage-dimensions-producer two-stage-dimensions-check
+
+.PHONY: two-stage-corners-47-regenerate two-stage-corners-47-check
+two-stage-corners-47-regenerate:
+	python3 research/two-stage-dimensions/corners/corner_search.py 47 45
+
+two-stage-corners-47-check:
+	python3 research/two-stage-dimensions/corners/verify_corners.py
+	git apply --check patches/two-stage-corners-47.patch
+
+verify: two-stage-corners-47-check

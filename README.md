@@ -1,3 +1,15 @@
+# Conditional multiplication saving 1.638103206 × 10^-5
+
+Two-stage dimensions **(47,45)** with contiguous data blocks **43 and 37** give
+**κ = 1638103206/10^14 = 1.638103206 × 10^-5** in `O(n (log n)^(1−κ))`,
+under the retained analytic and fixed-tape hypotheses.
+
+See the [composed construction](research/two-stage-dimensions/corners/README.md),
+[proof](notes/two-stage-corners-47-45-note.tex), and
+[exact certificate](research/two-stage-dimensions/corners/certificate-corners-47-45.json).
+Run `make two-stage-corners-47-check` or `make verify`.
+The dimension-only witness and all historical contributions follow.
+
 # Conditional multiplication saving 1.6038 × 10^-5
 
 The two-stage construction at dimensions **(47,45)** gives
