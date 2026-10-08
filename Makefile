@@ -1,4 +1,4 @@
-.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note fetch
+.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note complex-note fast-gaussian-note fetch
 
 verify:
 	python3 scripts/certify.py
@@ -33,6 +33,10 @@ verify:
 	python3 scripts/audit_compact_controls.py
 	python3 scripts/compact_control_layer.py
 	python3 scripts/make_compact_control_patch.py
+	python3 scripts/complex_network.py
+	python3 scripts/make_complex_circuit_patch.py
+	python3 scripts/fast_gaussian.py
+	python3 scripts/make_fast_gaussian_patch.py
 	python3 scripts/audit_scratch_pooling.py
 	python3 scripts/reuse_network.py
 	python3 scripts/make_reuse_patch.py
@@ -54,6 +58,8 @@ verify:
 	git apply --check --directory=upstream patches/h46-shared-point.patch
 	git apply --check --directory=upstream patches/h50-paired-59.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
+	git apply --check --directory=upstream patches/complex-circuit-31.patch
+	git apply --check --directory=upstream patches/fast-gaussian-30.patch
 
 note:
 	mkdir -p artifacts
@@ -90,6 +96,14 @@ paired-note:
 compact-note:
 	mkdir -p artifacts
 	tectonic --outdir artifacts notes/compact-control-note.tex
+
+complex-note:
+	mkdir -p artifacts
+	tectonic --outdir artifacts notes/complex-circuit-note.tex
+
+fast-gaussian-note:
+	mkdir -p artifacts
+	tectonic --outdir artifacts notes/fast-gaussian-note.tex
 
 fetch:
 	python3 scripts/fetch_upstream.py
