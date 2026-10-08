@@ -1,22 +1,22 @@
-# Proposed merged endpoints and span storage: conditional κ = 5.6299755520126e-05
+# Proposed saturated deferred composition: conditional κ = 6.398282083297e-05
 
-This branch proposes **κ = 28149877760063/500000000000000000**, using
-**130,377,179 physical wires**. It combines eumemic's PR96 merged auxiliary
-exteriors with the smaller PR91 axis, PR93/94 coordinate refinements, and our
-deferred retired-span storage. The complete paid profile improves our preceding
-storage witness by about **6.63%**. Every reconstruction, endpoint residual,
-frame change and recursive child is charged.
+This branch proposes **κ = 6398282083297/100000000000000000**, integrating
+djsmanchanda's PR99 saturated readouts with Zhihao Chen's PR97 reflected and
+signed endpoint construction, Swapnil Jain's networks, and Rohan Arun's PR100
+balanced transfer. The gain over pinned PR100 is approximately **0.0061%**.
+All copied-center losses, connectors and signed endpoint corrections are paid.
 
-[Construction and reproduction](research/merged-span-frames/README.md) ·
-[Proof and credits](research/merged-span-frames/PROOF.md) ·
-[Exact certificate](research/merged-span-frames/certificate.json)
+[Construction and reproduction](research/saturated-deferred/README.md) ·
+[Proof and credits](research/saturated-deferred/PROOF.md) ·
+[Exact certificate](research/saturated-deferred/certificate.json)
 
-Run `make merged-span-frames-verify` for fresh words, complete physical
-and scalar audits, and independent exact arithmetic. This finite witness
-retains the inherited analytic and all-size transfer hypotheses. Earlier
-results remain in `research/ordered-frames/`, `research/balanced-split-frames/`,
-`research/aligned-exchange-frames/` and `research/deferred-span-frames/`.
-The maintainer-reviewed result below is separate from this proposal.
+With SymPy 1.14.0 and mpmath 1.3.0 installed, run
+`make saturated-deferred-verify` for fresh frame and scalar audits, reflected
+ledgers, endpoint controls, bridge reconstruction and independent exact
+arithmetic. This finite witness retains the inherited analytic and all-size
+transfer hypotheses. Earlier constructions remain in the research directory,
+including `research/merged-span-frames/` and `research/deferred-span-frames/`.
+The inherited reviewed result below is separate from this proposal.
 
 Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
 

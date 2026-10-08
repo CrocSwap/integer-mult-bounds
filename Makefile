@@ -30,6 +30,7 @@ verify:
 	$(MAKE) verify-aligned-exchange
 	$(MAKE) verify-deferred-span
 	$(MAKE) verify-merged-span
+	$(MAKE) verify-saturated-deferred
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -478,3 +479,8 @@ deferred-span-frames-verify:
 verify-merged-span: merged-span-frames-verify
 merged-span-frames-verify:
 	python3 research/merged-span-frames/verify.py
+
+.PHONY: verify-saturated-deferred saturated-deferred-verify
+verify-saturated-deferred: saturated-deferred-verify
+saturated-deferred-verify:
+	python3 research/saturated-deferred/verify.py
