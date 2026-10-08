@@ -9,9 +9,20 @@ extensions. Nothing in this page asserts formal or independent verification.
 | State | Exponent saving kappa | Artifacts |
 | --- | --- | --- |
 | Published baseline | `2^-59` | [paired note](../../artifacts/paired-note.pdf), [certificate](../../certificates/paired-network.json), [patch](../../patches/h50-paired-59.patch) |
-| Current conditional research draft | `83/10^12 = 8.3e-11 > 2^-34` | [proof note](../../artifacts/compact-control-note.pdf), [source](../../notes/compact-control-note.tex), [certificate](../../certificates/compact-control-layer.json), [patch](../../patches/compact-control-34.patch) |
+| Preceding conditional research draft | `83/10^12 = 8.3e-11 > 2^-34` | [proof note](../../artifacts/compact-control-note.pdf), [source](../../notes/compact-control-note.tex), [certificate](../../certificates/compact-control-layer.json), [patch](../../patches/compact-control-34.patch) |
+| Current conditional research draft (contributed) | `59/10^11 = 5.9e-10 > 2^-31` | [proof note](../../artifacts/complex-circuit-note.pdf), [source](../../notes/complex-circuit-note.tex), [certificate](../../certificates/complex-network.json), [patch](../../patches/complex-circuit-31.patch), [summary](complex-circuit.md) |
 
-The new witness increases kappa by approximately 47,846,242 times over the
+**Update (compressed complex network).** The complex motif's side wires are
+replaced by a shared-sum circuit with binary coordinate and pair-star labels:
+108,195 side roles per invocation instead of 3,693,800. The certified complex
+saving rises from `418/10^12` to `14/10^9`, so the complex network no longer
+binds and the witness becomes `59/10^11 > 2^-31`, a factor 590/83 above
+`83/10^12`. The bit network now sets the scoped ceiling `kappa < a_b/5 < 2^-30`
+under the retained Gaussian margin. See [the summary](complex-circuit.md); the
+compact-control description below remains accurate for the movement, guard
+and assembly, which are unchanged.
+
+The compact-control witness increased kappa by approximately 47,846,242 times over the
 published `2^-59`. This compares asymptotic exponent savings, not practical
 runtime. The dyadic statement `kappa=2^-34` is a weaker convenient corollary.
 The witness remains below `2^-33`. The earlier published artifacts and pinned

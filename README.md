@@ -10,26 +10,48 @@ fixed number of one-dimensional tapes, the strongest supplied witness is
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\boxed{\kappa=\frac{83}{10^{12}}=8.3\times10^{-11}>2^{-34}}.
+\boxed{\kappa=\frac{59}{10^{11}}=5.9\times10^{-10}>2^{-31}}.
 $$
 
-The simpler **`kappa = 2^-34`** is a corollary. The witness remains below
-`2^-33`. It increases the exponent saving by approximately **47.85 million
-fold** over our preceding published `2^-59` witness. The original manuscript
-uses `2^-182`. These compare asymptotic exponents, not practical runtimes.
+The simpler **`kappa = 2^-31`** is a corollary; the witness remains below
+`2^-30`. It is **590/83 ≈ 7.11 times** the preceding compact-control witness
+`83/10^12`. The original manuscript uses `2^-182`. These compare asymptotic
+exponents, not practical runtimes.
 
-**[Read the compact-control proof note (PDF)](artifacts/compact-control-note.pdf)** ·
-[Review the combined source patch](patches/compact-control-34.patch) ·
-[Inspect the exact certificate](certificates/compact-control-layer.json) ·
-[Review guide and dependencies](docs/research/compact-control-review.md)
+**[Read the compressed-complex proof note (PDF)](artifacts/complex-circuit-note.pdf)** ·
+[Review the combined source patch](patches/complex-circuit-31.patch) ·
+[Inspect the exact certificate](certificates/complex-network.json) ·
+[Construction and verification summary](docs/research/complex-circuit.md)
 
 This is a research claim supported by written proofs and reproducible checks.
 The complete upstream theorem is assumed; the new arguments have not received
 independent mathematical review or formal verification.
 
-## What changed
+## Latest improvement: a compressed complex network
 
-The new construction moves **compact control fields instead of entire spaced
+After compact control, the complex network was the binding motif. It still
+used the original side wires, one per ordered neighbor pair: **3,693,800 side
+wires per invocation** at `h=25`. A shared-sum circuit computes the same side
+correction with **108,195 reversible roles**, raising the certified complex
+saving from `418/10^12` to **`14/10^9`**.
+
+The complex labels are binary, and every frame residual needs an orthonormal
+basis. Coordinate labels for disjoint sums and pair-star spans for
+intersection-two sums satisfy this, with one necessary rule: an injected
+disjoint piece must leave a point outside its target uncovered. Otherwise the
+injection residual is an alternating hyperbolic plane with no orthonormal
+basis. Exact checks cover every coefficient, label, inclusion and compiled
+role in both stage directions.
+
+With the complex saving no longer binding, the compact-control recurrence has
+internal exponent `chi = tau`, and the paired bit network sets the bound:
+`kappa < a_b/5 < 2^-30` for the retained Gaussian margin. See the
+[construction summary](docs/research/complex-circuit.md) for the remaining
+ceiling and next targets.
+
+## Preserved compact-control movement
+
+The compact-control construction moves **compact control fields instead of entire spaced
 windows**. For `f` selected axes, it replaces the layer's movement cost
 `O(V*((f*K)^tau+1))` by
 
@@ -56,7 +78,8 @@ G_* = \frac{333833}{4\cdot10^{15}}
     = 8.345825\times10^{-11} > \kappa.
 $$
 
-The remaining bottleneck is the complex layer's saving. With the **fixed
+The remaining bottleneck at that stage was the complex layer's saving, which
+the compressed complex network above removes. With the **fixed
 `h=25` complex motif and retained Gaussian/leaf inequalities**, the scoped
 ceiling is below `8.369598075e-11`, hence below `2^-33`. This is not a ceiling
 for other networks or integer multiplication in general.
@@ -69,12 +92,14 @@ for other networks or integer multiplication in general.
 | Dirty-control identities, inverses and repair | Finite exhaustive cases and seeded tests |
 | Wider-control tape bound, reservations and recursion | Written general proofs |
 | Separate complex arity and precision guard | Written proofs and exact accounting |
+| Compressed complex side circuit and binary frames | Exact full-size coefficient, label and role checks; written transfer proof |
 | Source integration | Combined patch, reference checks and manuscript build |
 | Full upstream multiplication theorem | Assumed |
 | Independent review / full formalization | Not supplied |
 
-The [review guide](docs/research/compact-control-review.md) identifies the new
-proof obligations and their tests. [Current research status](docs/research/current-status.md)
+The [review guide](docs/research/compact-control-review.md) identifies the
+compact-control proof obligations and their tests; the
+[complex-circuit summary](docs/research/complex-circuit.md) lists the new ones. [Current research status](docs/research/current-status.md)
 is authoritative when older notes describe superseded barriers or hypothetical
 witnesses. The earlier artifacts remain available and unchanged.
 
@@ -95,10 +120,11 @@ checks exact regeneration on a clean checkout.
 With Tectonic installed, rebuild the latest note using:
 
 ```sh
-make compact-note
+make complex-note
 ```
 
-The output is `artifacts/compact-control-note.pdf`. The first PDF build may
+The output is `artifacts/complex-circuit-note.pdf`; `make compact-note`
+rebuilds the preceding compact-control note. The first PDF build may
 download TeX resources. See [reproducibility instructions](docs/reproducibility.md)
 for applying the combined patch in a disposable copy and building older notes.
 [GitHub Actions](.github/workflows/verify.yml) runs the arithmetic and patch checks.
@@ -130,7 +156,8 @@ and scoped ceilings.
 | [h46-dag-63](patches/h46-dag-63.patch) | `2^-63` | Shared intermediate sums and reversible role allocation |
 | [h46-shared-point](patches/h46-shared-point.patch) | `13*2^-66` | Cross-group sharing |
 | [h50-paired-59](patches/h50-paired-59.patch) | `2^-59` | Paired sums, stopped guard and tighter Gaussian setup |
-| **[compact-control-34](patches/compact-control-34.patch)** | **`83/10^12 > 2^-34`** | **Compact controls, complete reservations, local repair and separate complex arity** |
+| [compact-control-34](patches/compact-control-34.patch) | `83/10^12 > 2^-34` | Compact controls, complete reservations, local repair and separate complex arity |
+| **[complex-circuit-31](patches/complex-circuit-31.patch)** | **`59/10^11 > 2^-31`** | **Compressed complex side circuit with binary frames, on top of compact control** |
 
 ## Attribution, citation, and license
 
@@ -139,6 +166,10 @@ with assistance from OpenAI Codex. The compact-control proposal originated
 with a separate research agent; the supplied note develops its tape, layout,
 repair and assembly arguments. AI assistance is not independent review or
 endorsement by OpenAI. No priority or unrestricted optimality claim is made.
+
+The compressed complex network (`complex-circuit-31`) was contributed by
+**eumemic**, prepared with assistance from Claude (Anthropic); this is likewise
+not independent review or endorsement by Anthropic.
 
 The original manuscript is by OpenAI, pinned at commit
 `adc7f1241b42e322a6451854ab7e4b4c146bf78a`. Source URLs and SHA-256 hashes are in
