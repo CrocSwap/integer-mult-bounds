@@ -38,15 +38,24 @@ it is not an unconditional theorem or full formal verification.
 - [Independent dense scalar-graph audit](graph-audit.json)
 - [Full verification receipt](validation.json)
 - [Full verification log](verification.log)
+- [Current-upstream integration receipt](integration-validation.json)
+- [Current-upstream integration log](integration-verification.log)
 - [Dated leaderboard comparison](benchmark.json)
 
-Full `make verify` passed: **467 broad tests, 92 focused test executions and
+On the recorded PR #63-based source state, full `make verify` passed: **467 broad tests, 92 focused test executions and
 20 historical patch checks**, plus fresh construction producers, both
 complete dirty-basis orientations, all paid fixed-basis profiles with zero
 CRT disagreements, 47 strict assembly inequalities and seven margins.
 The adjacent bit-saving and kappa grid points are rejected. The independent
 arithmetic checker also rejects three deliberately corrupted fixtures.
 No inherited generated certificate or patch changed.
+
+After merging upstream main at `56b66d58297deca1d7dd130247d720e960f77a37`,
+a fresh `make ordered-frames-verify`, parameter-refinement check and six
+inherited rank-pair regression tests passed in 131 seconds at `dfc3681`.
+All source pins still match and regeneration changed no tracked artifact.
+The complete integrated upstream suite and formal packages are separate
+GitHub CI checks; the historical full-suite receipt does not cover them.
 
 ## Reproduce
 

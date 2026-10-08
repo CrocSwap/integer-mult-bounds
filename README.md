@@ -9,8 +9,9 @@ It improves the exponent saving by **0.5898983%** over pinned PR #63.
 [Exact certificate](research/ordered-frames/certificate.json)
 
 The selected source state passed the full inherited `make verify` suite;
-its receipt and raw log are included. Current upstream integration is checked
-separately. Run `make ordered-frames-verify` for the new construction.
+its receipt and raw log are included. Fresh construction and targeted checks also passed after
+merging current upstream; [separate evidence](research/ordered-frames/integration-validation.json)
+records that validation. Run `make ordered-frames-verify` for the new construction.
 The unchanged PR #63 dependency is retained under `research/rank-pair/`.
 All inherited analytic and fixed-tape hypotheses remain assumed. The
 maintainer-reviewed result below is distinct from this proposed increment.
