@@ -8,8 +8,8 @@ balanced assembly with PR184's finite bridge. Only the inputs change:
 
 - the complex profile is this package's contract-checked profile, with the
   complex half of PR184's construction receipts checked here;
-- the bit profile is the certified PR189 bit profile (chafreaky), read from
-  research/paired-cube-twin-local-168/certificate.json, which PR189's own
+- the bit profile is the certified PR200 bit profile (chafreaky), read from
+  research/paired-cube-diagonal-bit-168/certificate.json, which PR200's own
   verify.py regenerates.
 
 PR184's select() recomputes the bit coarse saving on its 10^-10 grid with the
@@ -29,7 +29,7 @@ import sys
 PKG = Path(__file__).resolve().parent
 REPO = PKG.parents[1]
 SA = REPO / 'research/source-assisted'
-BIT = REPO / 'research/paired-cube-twin-local-168/certificate.json'
+BIT = REPO / 'research/paired-cube-diagonal-bit-168/certificate.json'
 
 
 def load_pr184():
@@ -79,15 +79,15 @@ def main():
         sys.set_int_max_str_digits(0)
     pr184 = load_pr184()
     cdata = json.loads(args.complex.read_text())
-    row, bit_sha, pr189_coarse = bit_profile()
+    row, bit_sha, pr200_coarse = bit_profile()
     c = pr184.select(pr184.normalize(cdata))
     b = pr184.select(pr184.normalize(row), True)
     # PR184's 10^-10 bit grid must not exceed PR189's own 10^-18 certificate.
-    assert b['saving'] <= pr184.Q(pr189_coarse['coarse_saving'])
+    assert b['saving'] <= pr184.Q(pr200_coarse['coarse_saving'])
     out = dict(status='Exact arithmetic; construction and finite bridge are explicit proof dependencies',
                complex=c, bit=b,
                source_sha256=dict(complex=sha256(args.complex.read_bytes()).hexdigest(), bit_certificate=bit_sha),
-               bit_source='research/paired-cube-twin-local-168/certificate.json bit.profile (PR189)',
+               bit_source='research/paired-cube-diagonal-bit-168/certificate.json bit.profile (PR200)',
                arithmetic='PR184 assemble_profiles: 32-term rational logarithm enclosure; rational exponential majorant; upward 2^120 rounding',
                construction_receipts=complex_receipts(cdata))
     out.update(pr184.assemble(c, b, REPO, SA / 'global/FINITE_BRIDGE.txt'))

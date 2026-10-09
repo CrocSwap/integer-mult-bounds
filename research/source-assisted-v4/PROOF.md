@@ -4,9 +4,9 @@
 
 Under the retained interfaces, T(n) = O(n (log n)^(1−κ)) with
 
-    κ = 1668581/2500000000 = 0.0006674324.
+    κ = 6768823/10^10 = 0.0006768823  (with PR200's bit supplier; PR194 had 1668581/2500000000 = 0.0006674324 with PR189's).
 
-The complex saving is b = 219037/312500000 = 0.0007009184, on PR184's 10^-10 selection grid. The bit supplier is PR189's face-diagonal bit word. PR184's pricing gives it the coarse saving 6682989/10^10 and the effective saving 133575648846809489/(2·10^20) ≈ 0.00066787824. The bit side binds. The previous record, PR186, has κ = 0.000661885549259598, and the gain is about 0.838%. The gain over PR193 (κ = 0.0006647872) is about 0.398%.
+The complex saving is b = 219037/312500000 = 0.0007009184, on PR184's 10^-10 selection grid. The bit supplier is PR200's (R = 17,114, W = 20,634; previously PR189's face-diagonal bit word. PR184's pricing gives it the coarse saving 6682989/10^10 and the effective saving 133575648846809489/(2·10^20) ≈ 0.00066787824. The bit side binds. The previous record, PR186, has κ = 0.000661885549259598, and the gain is about 0.838%. The gain over PR193 (κ = 0.0006647872) is about 0.398%.
 
 ## What changes
 
@@ -41,4 +41,4 @@ The bit supplier binds: PR189's effective bit saving is below the complex saving
 
 ## Scope
 
-The validation scope is PR184's. The exact lift and the contract checks establish the local maps and the flow ledger. A globally renumbered scalar transcript of the new complex word is not exported, and no full Clifford/router replay is done. The bit supplier is PR189's, with PR189's stated scope. The analytic, recursion, precision, weighted frame, fixed-tape routing, restored-row and all-size semantic interfaces are retained assumptions, as in PR184. This is a conditional finite witness, not a global optimum.
+The validation scope is PR184's. The exact lift and the contract checks establish the local maps and the flow ledger. A globally renumbered scalar transcript of the new complex word is not exported, and no full Clifford/router replay is done. The bit supplier is PR200's (R = 17,114, W = 20,634; previously PR189's, with PR189's stated scope. The analytic, recursion, precision, weighted frame, fixed-tape routing, restored-row and all-size semantic interfaces are retained assumptions, as in PR184. This is a conditional finite witness, not a global optimum.
