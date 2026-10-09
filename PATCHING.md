@@ -1,6 +1,6 @@
 # Applying the inherited manuscript patch
 
-This patch is the PR #10 baseline. The current copied-center extension is
+This patch is the PR #10 baseline. The PR #36 copied-center extension is
 presented in `notes/copied-centers-note.tex`; it is not included
 in this historical combined manuscript patch.
 
@@ -30,3 +30,6 @@ alternatives for the same base. PR7 is pinned at
 `6725c6a17b17871a35353fd29157f4ed851bc114` for the retained producer sources.
 The old uniform recurrences keep their original exponents. The active consumers
 use `lem:batched-chunk-swap` and `prop:batched-simultaneous-layer`.
+
+The stopped product-ring extension is supplied separately in
+`notes/stopped-product-note.tex`; it does not regenerate this historical patch.
