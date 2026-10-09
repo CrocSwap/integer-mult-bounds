@@ -258,6 +258,12 @@ scoped negative results and reproducible certificates.
 
 ## Citation and license
 
+The [independent rank-first pair verification](research/ranked-pair-verification/README.md)
+records a conditional parameter refinement for the pending PR62/63 construction,
+exact word/profile checks, and 45 scoped Lean theorems. Its construction matches
+concurrent PR63; it does not replace the released bound or verify the full
+multiplication machine.
+
 Use [CITATION.cff](CITATION.cff), cite the individual contributions used and
 include the repository version or commit. [CONTRIBUTORS.md](CONTRIBUTORS.md),
 [NOTICE](NOTICE) and source-specific manifests preserve the dependency credits.
