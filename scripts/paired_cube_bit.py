@@ -5,10 +5,13 @@ Copyright 2026 icekylinx. Apache-2.0. Construction with GPT-6 Astra;
 integration with OpenAI Codex. The inherited PR97 ledger is by Zhihao Chen,
 and its frozen scalar/frame witness is Swapnil Jain's construction. Their
 original credits, licenses and disclosures remain in the pinned snapshot.
+Global-optimal bit gauge subset via exact telescoping interval-min-cut:
+Prepared by Thomas Marchand with Google Antigravity assistance.
 No complete-basis replay or inherited rational-frame audit is repeated.
 """
 import argparse
-from collections import Counter
+from collections import Counter, defaultdict, deque
+from fractions import Fraction as Q
 import gzip
 from hashlib import sha256
 import importlib.util
@@ -16,8 +19,11 @@ import json
 from pathlib import Path
 
 from partial_gauge_bit import ROOT, require, encoded, frozen_sources
+from three_stage_cover_network import log_upper, exp_upper
 
 INPUT = ROOT / 'certificates/paired-cube-bit-input.json'
+COARSE_OPT = Q(461877426979, 10**15)
+BAD_OPT = Q(1, 10**16)
 
 
 def histogram(value):
@@ -61,6 +67,142 @@ def child_histogram(h, v, aux, source, target, gauges):
     return children
 
 
+def verify_global_mincut(schedule, adjoint, old_aux, source, chosen, children):
+    """Certify global optimality over all 2^11565 readout subsets via exact integer min-cut."""
+    h, v, R = schedule.h, schedule.v, schedule.R
+    m, W = 3 * h, 2 * v + R
+    fallback = 32 * m * m
+    scale = W * m * (10**16) * (1 << 120)
+    logs = {r: log_upper(Q(m, r)) for r in range(1, m)}
+    exp_m = exp_upper(COARSE_OPT * log_upper(Q(m)))
+    w_int = {0: 0}
+    for r in range(1, m):
+        val = (Q(r, W * m) * exp_upper(COARSE_OPT * logs[r])
+               + BAD_OPT * Q(fallback, W * m) * exp_m) * scale
+        require(val.denominator == 1, 'Non-integer scaled moment weight')
+        w_int[r] = int(val.numerator)
+    slot_ben = {}
+    pos_slots = []
+    chosen_rank22 = []
+    target_ranks = defaultdict(set)
+    for s in schedule.readout:
+        first = schedule.dim(schedule.start_key(s))
+        g = schedule.f[s]
+        ben = 3 * w_int[first] - (w_int[3 * g] + 3 * w_int[first - g])
+        slot_ben[s] = ben
+        if ben > 0:
+            if g == h - 1:
+                chosen_rank22.append(s)
+            else:
+                pos_slots.append(s)
+                for t in adjoint[s]:
+                    target_ranks[t].add(g)
+    S, T = 0, 1
+    idx = 2
+    s_idx = {s: idx + i for i, s in enumerate(pos_slots)}
+    idx += len(pos_slots)
+    u_node = {}
+    for t in sorted(target_ranks):
+        k = len(target_ranks[t])
+        for p in range(1, k + 1):
+            for q in range(p, k + 1):
+                u_node[(t, p, q)] = idx
+                idx += 1
+    graph = [[] for _ in range(idx)]
+    orig_edges = []
+    def add_edge(u, v_node, cap):
+        orig_edges.append((u, v_node, cap))
+        graph[u].append([v_node, cap, len(graph[v_node])])
+        graph[v_node].append([u, 0, len(graph[u]) - 1])
+    inf = sum(slot_ben[s] for s in pos_slots) + 1
+    for s in pos_slots:
+        add_edge(S, s_idx[s], slot_ben[s])
+    for t in sorted(target_ranks):
+        cand = sorted(target_ranks[t])
+        d_full = [0] + cand + [h - 1]
+        k = len(cand)
+        for p in range(1, k + 1):
+            c_pp = 3 * (w_int[d_full[p] - d_full[p - 1]]
+                        + w_int[d_full[p + 1] - d_full[p]]
+                        - w_int[d_full[p + 1] - d_full[p - 1]])
+            require(c_pp > 0, 'Nonpositive diagonal target cut capacity')
+            add_edge(u_node[(t, p, p)], T, c_pp)
+            for q in range(p + 1, k + 1):
+                c_pq = 3 * (w_int[d_full[q + 1] - d_full[p]]
+                            + w_int[d_full[q] - d_full[p - 1]]
+                            - w_int[d_full[q + 1] - d_full[p - 1]]
+                            - w_int[d_full[q] - d_full[p]])
+                require(c_pq > 0, 'Nonpositive telescoping interval capacity')
+                add_edge(u_node[(t, p, q)], T, c_pq)
+                add_edge(u_node[(t, p, q - 1)], u_node[(t, p, q)], inf)
+                add_edge(u_node[(t, p + 1, q)], u_node[(t, p, q)], inf)
+    for s in pos_slots:
+        g = schedule.f[s]
+        for t in adjoint[s]:
+            p = sorted(target_ranks[t]).index(g) + 1
+            add_edge(s_idx[s], u_node[(t, p, p)], inf)
+    flow = 0
+    while True:
+        level = [-1] * idx
+        q = deque([S])
+        level[S] = 0
+        while q:
+            u = q.popleft()
+            for v_node, cap, _ in graph[u]:
+                if cap > 0 and level[v_node] < 0:
+                    level[v_node] = level[u] + 1
+                    q.append(v_node)
+        if level[T] < 0:
+            break
+        ptr = [0] * idx
+        def dfs(u, pushed):
+            if u == T or pushed == 0:
+                return pushed
+            for i in range(ptr[u], len(graph[u])):
+                ptr[u] = i
+                v_node, cap, rev = graph[u][i]
+                if level[v_node] == level[u] + 1 and cap > 0:
+                    tr = dfs(v_node, pushed if pushed < cap else cap)
+                    if tr > 0:
+                        graph[u][i][1] -= tr
+                        graph[v_node][rev][1] += tr
+                        return tr
+            return 0
+        while True:
+            pushed = dfs(S, inf)
+            if pushed == 0:
+                break
+            flow += pushed
+    vis = [False] * idx
+    q = deque([S])
+    vis[S] = True
+    while q:
+        u = q.popleft()
+        for v_node, cap, _ in graph[u]:
+            if cap > 0 and not vis[v_node]:
+                vis[v_node] = True
+                q.append(v_node)
+    cut_cap = sum(cap for u, v_node, cap in orig_edges if vis[u] and not vis[v_node])
+    require(cut_cap == flow, 'Max-flow min-cut duality mismatch')
+    mincut_chosen = set(chosen_rank22) | {s for s in pos_slots if vis[s_idx[s]]}
+    require(mincut_chosen == chosen, 'Selected subset differs from exact global min-cut optimum')
+    empty_aux = Counter(old_aux)
+    for s in schedule.readout:
+        first = schedule.dim(schedule.start_key(s))
+        g = schedule.f[s]
+        if first - g:
+            empty_aux[first - g] -= 1
+        empty_aux[first] += 1
+    empty_children = child_histogram(h, v, empty_aux, source, Counter({h - 1: v}), Counter())
+    empty_moment = sum(n * w_int[r] for r, n in empty_children.items())
+    opt_moment = sum(n * w_int[r] for r, n in children.items())
+    total_pos_ben = sum(slot_ben[s] for s in chosen_rank22) + sum(slot_ben[s] for s in pos_slots)
+    require(empty_moment - (total_pos_ben - flow) == opt_moment and opt_moment < scale,
+            'Exact telescoping min-cut moment identity failed')
+    return dict(network_nodes=idx, positive_benefit_slots=len(pos_slots) + len(chosen_rank22),
+                max_flow_equals_min_cut=True, exact_moment_identity=True)
+
+
 def reconstruct(input_path=INPUT):
     record = json.loads(Path(input_path).read_text())
     folder, provenance = frozen_sources(record)
@@ -84,7 +226,7 @@ def reconstruct(input_path=INPUT):
     selected = selection['retained_readout_order']
     omitted = selection['omitted_readout_order']
     chosen, skipped = set(selected), set(omitted)
-    require(len(chosen) == len(selected) == 9543 and len(skipped) == len(omitted) == 2022,
+    require(len(chosen) == len(selected) == 9730 and len(skipped) == len(omitted) == 1835,
             'Selected gauge counts differ')
     require(chosen.isdisjoint(skipped) and chosen | skipped == schedule.sel,
             'Selection does not partition the inherited gauges')
@@ -124,6 +266,7 @@ def reconstruct(input_path=INPUT):
     require(all(n >= 0 for n in aux.values()), 'Negative changed auxiliary count')
     gauges = Counter(schedule.f[s] for s in selected)
     children = child_histogram(h,v,aux,source,target,gauges)
+    mincut_receipt = verify_global_mincut(schedule, adjoint, old_aux, source, chosen, children)
     values = dict(h=h,v=v,R=R,m=3*h,W_per_vertex=2*v+R,loss=h*(h-1),
                   deficit_per_vertex=2*v-3*h*(h-1),selected_roles=len(selected),
                   omitted_roles=len(omitted),rank_per_vertex=sum(r*n for r,n in children.items()))
@@ -140,7 +283,9 @@ def reconstruct(input_path=INPUT):
     result['checks'] = dict(source_hashes_equal=True, selected_slot_partition_equal=True,
         target_chains_inherited_subsequences=True, positive_integer_support=True,
         omitted_dirty_reads_at_zero=True, changed_chain_histograms_equal=True,
-        selected_profile_equal=True, full_upstream_audits_repeated=False)
+        selected_profile_equal=True, global_mincut_optimum_verified=True,
+        full_upstream_audits_repeated=False)
+    result['global_mincut_receipt'] = mincut_receipt
     result['changed_transition_histogram'] = [dict(old_rank=a,new_rank=b,count=n)
                                              for (a,b),n in sorted(changed.items())]
     result['zero_prelude_receipt'] = dict(omitted_slots=len(omitted),
@@ -148,9 +293,10 @@ def reconstruct(input_path=INPUT):
         source_frame=['0'],target_frame=['0'],scalar_coefficients='exact inherited adjoint',
         placement='before every positive-rank local operation')
     result['provenance'] = dict(pr97=provenance['pr97'], underlying=provenance['underlying'])
-    result['scope'] = ('Incremental selected-gauge rank and zero-prelude check; actual nested '
-                       'subspaces and unchanged complete scalar word remain inherited. '
-                       'Strict rational supplier moments are checked by paired_cube_network.py.')
+    result['scope'] = ('Incremental selected-gauge rank, zero-prelude and exact global min-cut '
+                       'optimality check; actual nested subspaces and unchanged complete scalar '
+                       'word remain inherited. Strict rational supplier moments are checked by '
+                       'paired_cube_network.py.')
     return result
 
 

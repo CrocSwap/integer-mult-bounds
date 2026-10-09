@@ -5,21 +5,23 @@ OpenAI #109 framework.**
 
 ## Paired-cube and shared-core extension
 
-The construction contributed by **icekylinx**, extending
-[PR #130](https://github.com/CrocSwap/integer-mult-bounds/pull/130), gives
+The construction contributed by **icekylinx** ([PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), extending
+[PR #130](https://github.com/CrocSwap/integer-mult-bounds/pull/130)) and
+optimized on the bit gauge schedule by **Thomas Marchand** gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{4609169}{10000000000}=4.609169\times10^{-4}.
+\kappa=\frac{461028508707}{1000000000000000}=4.61028508707\times10^{-4}.
 $$
 
 A signed paired-cube producer and coordinate-star centers complete the
 identity using the original source registers. Completed dirty cores reuse
 one auxiliary bank across three orthogonal blocks, adopting an664's PR #128
-sharing principle. The bit branch selects certified gauges from the retained
-PR #97 / Swapnil word. All local transitions, copied centers, complement
-calls, finite routers and rare-class fallback remain charged. The analytic,
-uniform-recursion and fixed-tape hypotheses are retained.
+sharing principle. The bit branch selects the globally optimal 9,730-slot
+subset of certified gauges from the retained PR #97 / Swapnil word via an
+exact telescoping interval-min-cut reduction. All local transitions, copied
+centers, complement calls, finite routers and rare-class fallback remain
+charged. The analytic, uniform-recursion and fixed-tape hypotheses are retained.
 
 [Proof source](notes/paired-cube-note.tex) ·
 [Exact certificate](certificates/paired-cube-network.json) ·

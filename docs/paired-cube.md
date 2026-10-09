@@ -1,8 +1,10 @@
 # Paired-cube and shared-core reproduction
 
 This extension inherits PR #130 at
-`6a9970a530119174507904e23592fd59ede19a5d` and gives the conditional saving
-`4609169/10000000000 = 4.609169e-4`.
+`6a9970a530119174507904e23592fd59ede19a5d` (and extends PR #144 at
+`c8b22bc5c10dba497ac25804e27d9647d818e2ff` with the exact globally optimal
+PR #97 bit gauge subset) and gives the conditional saving
+`461028508707/1000000000000000 = 4.61028508707e-4`.
 
 From the repository root with Python 3.11+:
 
@@ -20,8 +22,10 @@ CI runs it in its own `paired-cube` matrix group. The checks are:
   every scalar coefficient of `H+K+B=I`, the original-source K involution and
   inverse, actual frame containment and reverse target chains.
 - Reconstruct the bit subset from the existing PR #97 witness and readout
-  order. Check the retained 9,543 and omitted 2,022 slots, moved zero-frame
-  dirty reads, changed first transitions and target subsequences. Unchanged
+  order. Check the retained 9,730 and omitted 1,835 slots, moved zero-frame
+  dirty reads, changed first transitions, target subsequences and exact
+  integer max-flow/min-cut duality on the 36,760-vertex telescoping interval
+  network certifying global optimality over all $2^{11565}$ subsets. Unchanged
   complete-basis and rational-frame suites remain inherited checks.
 - Rebuild both shared-core child lists and certify strict moments, full
   rare-class fallback, stopped bit saving, actual finite group/router charge,
@@ -57,8 +61,10 @@ implementations may choose different optima. No SciPy dependency or matching
 optimality claim is needed. Only compact arcs, source pins and generators are
 submitted; raw graph/frame dumps and unselected research are excluded.
 
-The contribution map in `SOURCES.json` and `NOTICE` explicitly credits an664's
-PR #128 sharing principle, eumemic's PR #117 DAG and the PR #97 / Swapnil word.
+The contribution map in `SOURCES.json` and `NOTICE` explicitly credits
+icekylinx's PR #144 paired-cube/shared-core construction, an664's PR #128
+sharing principle, eumemic's PR #117 DAG, the PR #97 / Swapnil word, and
+Thomas Marchand's exact telescoping interval-min-cut bit subset optimization.
 Their source-specific legal and assistance notices remain unchanged. Proof
 sources are included without a PDF.
 
