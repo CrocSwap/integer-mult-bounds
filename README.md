@@ -3,6 +3,117 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Paired-cube and shared-core extension
+
+The construction contributed by **icekylinx** ([PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), extending
+[PR #130](https://github.com/CrocSwap/integer-mult-bounds/pull/130)) and
+optimized on the bit gauge schedule by **Thomas Marchand** gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{461028508707}{1000000000000000}=4.61028508707\times10^{-4}
+$$
+
+(and $\kappa = 461239827139 / 10^{15} = 4.61239827139\times10^{-4}$ with the tightened subordinate atom-wrapper exponent $\beta_{\text{atom}} = 1/2000$ from Rohan Gupta's [PR #148](https://github.com/CrocSwap/integer-mult-bounds/pull/148)).
+
+A signed paired-cube producer and coordinate-star centers complete the
+identity using the original source registers. Completed dirty cores reuse
+one auxiliary bank across three orthogonal blocks, adopting an664's PR #128
+sharing principle. The bit branch selects the globally optimal 9,730-slot
+subset of certified gauges from the retained PR #97 / Swapnil word via an
+exact telescoping interval-min-cut reduction. All local transitions, copied
+centers, complement calls, finite routers and rare-class fallback remain
+charged. The analytic, uniform-recursion and fixed-tape hypotheses are retained.
+
+[Proof source](notes/paired-cube-note.tex) ·
+[Exact certificate](certificates/paired-cube-network.json) ·
+[Incremental reproduction](docs/paired-cube.md)
+
+```sh
+make paired-cube-verify
+```
+
+## Three-stage cover extension
+
+The construction contributed by **icekylinx**, extending
+[PR #115](https://github.com/CrocSwap/integer-mult-bounds/pull/115), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{3146011}{10000000000}=3.146011\times10^{-4}.
+$$
+
+Three signed shears on a regular Cayley cover align all interstage data
+frames. The complex branch combines eumemic's PR #117 local DAG with
+arbitrary-subspace Clifford frames; the bit branch retains the PR #97 /
+Swapnil physical word and uses a batched weighted q-adic cover. Local
+transitions, copied centers, rare-class fallback, finite routers and
+internal row borrowing are charged. The retained analytic and fixed-tape
+hypotheses still apply.
+
+[Proof source](notes/three-stage-cover-note.tex) ·
+[Exact certificate](certificates/three-stage-cover-network.json) ·
+[Incremental reproduction](docs/three-stage-cover.md)
+
+```sh
+make three-stage-cover-verify
+```
+
+## Partial-gauge extension
+
+The construction contributed by **icekylinx**, extending
+[PR #104](https://github.com/CrocSwap/integer-mult-bounds/pull/104), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{7237}{78125000}=9.26336\times10^{-5}.
+$$
+
+It applies the stopped whole-projector bit interface to the physical deferred
+word of Zhihao Chen's PR #97, based on Swapnil Jain's witness. The new complex
+producer combines cyclic interval contractions, pair-first cube assembly,
+compatible frame enlargement and partial source gauges. Every residual,
+endpoint correction and target-data transition is charged. The bound retains
+the analytic and fixed-tape hypotheses of the preceding construction.
+
+[Proof source](notes/partial-gauge-note.tex) ·
+[Exact certificate](certificates/partial-gauge-network.json) ·
+[Incremental reproduction](docs/partial-gauge.md)
+
+```sh
+make partial-gauge-verify
+```
+
+## Stopped product-ring extension
+
+The new construction contributed by **icekylinx**, extending merged
+[PR #36](https://github.com/CrocSwap/integer-mult-bounds/pull/36), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{194869}{2500000000}=7.79476\times10^{-5}.
+$$
+
+It combines a stopped product-ring bit interchange on `(23,23)` with an
+all-disjoint rational-center complex network on `(24,24)`. The new generic
+opposite-bank factorization pays one reversed child per projector rank;
+atom adapters, ordinary leaves, endpoint copies and the exact denominator-21
+grid are included in the proof. The bound retains the original analytic
+and fixed-tape hypotheses.
+
+[Proof source](notes/stopped-product-note.tex) ·
+[Exact certificate](certificates/stopped-product-network.json) ·
+[Incremental reproduction](docs/stopped-product.md)
+
+```sh
+make stopped-product-verify
+```
+
+The maintainer-reviewed community checkpoint below remains its own result
+and validation record.
+
+## Reviewed community checkpoint
+
 The reviewed community witness gives
 
 $$

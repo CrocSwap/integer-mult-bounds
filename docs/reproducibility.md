@@ -1,5 +1,22 @@
 # Reproducing the result
 
+For the paired-cube/shared-core extension, run `make paired-cube-verify`.
+The [incremental guide](paired-cube.md) covers the signed producer, selected
+bit gauges, exact moments and assembly.
+
+For the three-stage cover extension, run `make three-stage-cover-verify`.
+The [incremental guide](three-stage-cover.md) covers the new PR #117 local
+word, cover moments and exact assembly.
+
+For the partial-gauge extension, run `make partial-gauge-verify`. Its
+[incremental guide](partial-gauge.md) separates the pinned PR #97 bit input,
+new complex producer and exact assembly.
+
+For the new stopped product-ring extension, run `make stopped-product-verify`.
+Its [incremental reproduction guide](stopped-product.md) covers the h24
+rational-center producer, new moments, stopping parameters and assembly.
+The community checkpoint and historical targets below retain their own scope.
+
 The selected release is documented in the [joint-frame community review](research/community-round2-review.md)
 and [current status](research/current-status.md), with the
 [selected parameter certificate](../research/matrix-exponent-synthesis/candidate/arithmetic.json).
