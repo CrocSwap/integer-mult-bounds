@@ -1,0 +1,208 @@
+\subsection{A rectangle circuit for the bit network}
+\label{sec:incidence-circuit}
+Retain $h=46$, $\mathcal T=\binom{[h]}3$, $v=15180$, $N=v^3$, and
+$m=h^3=97336$. We change only the bit network. The complex network and its
+guard constants are unchanged. On $F=\mathbb Q^h$ use the form $I-J/9$;
+the indicator $t_T$ has norm two, and neighboring indicators are orthogonal.
+
+Every ordered neighbor pair has a unique common point $i$. Removing $i$
+leaves an ordered pair of disjoint two-subsets of the other 45 points.
+Partition this disjointness relation into rectangles $\mathcal S\times
+\mathcal U$. In each rectangle every source subset is disjoint from every
+target subset. Restoring $i$ gives source and target triple families, all
+cross pairs of which are neighbors.
+
+Here is an explicit finite procedure for the partition used below. Let
+$D_{a,b}(n)$ be the relation between disjoint $a$- and $b$-subsets, with
+$0\le a,b\le2$. For a partition let $(C,L,R)$ count its rectangles,
+source memberships, and target memberships. An empty relation contributes
+$(0,0,0)$; if $a=0$ or $b=0$, one full rectangle contributes
+$(1,\binom na,\binom nb)$. Available nontrivial choices are singleton-row
+stars, singleton-column stars, or any split $n=l+(n-l)$, $1\le l<n$.
+For a split, separate pairs by their source and target sizes in the first
+part. Each case is a product
+$D_{x,y}(l)\times D_{a-x,b-y}(n-l)$.
+Product partitions multiply the three counts coordinatewise; disjoint cases
+add them. Thus the procedure always produces an exact partition.
+
+Select a plan by minimizing $\alpha L+\beta R-C$, initially
+$\alpha=\beta=1$. A product with a complete factor having counts $(1,L_0,R_0)$
+passes weights $(\alpha L_0,\beta R_0)$ to the other factor. If both factors
+are nontrivial, both are $D_{1,1}$: try for each its selected unweighted plan,
+row stars, and column stars, and take the least product cost. Try all split
+sizes and the two star alternatives; ties retain the first plan in the order
+just specified, with row stars before column stars and increasing split sizes.
+This is a finite recursive construction, not a global optimality claim.
+The companion integer implementation and exhaustive pair check give
+\[
+ (C,L,R)=(2759,27278,27534),\qquad L+R-C=52053.
+\]
+Its rectangles contain each of the
+$\binom{45}2\binom{43}2=893970$ ordered disjoint pairs exactly once.
+
+For a rectangle with $a$ sources and $b$ targets allocate $a+b-1$ auxiliary
+roles: $a$ input slots and $b$ output slots sharing one pivot. Let $L$ now
+denote the invertible bit mixer that adds the other input slots into the
+pivot and then adds the pivot into the other output slots. Its output-by-input
+submatrix is all ones. Its inverse reverses these two operations.
+Let $V$ copy sources into their input slots and $J$ inject output slots into
+their targets. Then $JLV$ is exactly this rectangle's neighbor contribution.
+Use separate roles for distinct rectangles. The side-role count per invocation is
+\[
+ R_{\rm side}=46(52053)=2394438.
+\]
+
+\subsection{Restoration and common frames}
+Let $G,R$ denote the original central gather and scatter. The forward
+chronological schedule is
+\[
+ L,\ J,\ L^{-1},\ R,\ V,\ G,\ R,\ L,\ J,\ L^{-1},\ G,\ V.
+\]
+Here $L$ is applied independently on each rectangle and all other operations
+are their indicated bit additions. For arbitrary initial side vector $z$,
+the first three operations add $JLz$ to the target and restore $z$.
+The copy changes it to $z+Vx$; the later mixer and injection add
+$JL(z+Vx)$. Their dirty-scratch contributions cancel, and the last inverse
+mixer and copy restore $z$. The centers contribute $RGx$ and are also restored.
+Since $JLV$ is precisely the neighbor matrix,
+$(JLV+RG)x=x$. Thus the invocation implements $y\gets y+x$ on arbitrary
+inputs. Reversing and inverting its gates implements the inverse invocation.
+
+At stage $j$ write, as in the original tensor construction,
+\[
+ A=F^{\otimes(j-1)}=B\mathbin\perp P,\quad
+ P=\langle t_{a_1}\otimes\cdots\otimes t_{a_{j-1}}\rangle,
+ \quad Q=\langle t_{a_{j+1}}\otimes\cdots\otimes t_{a_3}\rangle.
+\]
+Suppress the future factor $Q$ and abbreviate the following labels:
+\begin{align*}
+ D_0&=B\otimes F,& D_1&=A\otimes F,\\
+ X_t&=(B\otimes F)\mathbin\perp(P\otimes\langle t\rangle),&
+ Y_t&=(B\otimes F)\mathbin\perp(P\otimes t^\perp),\\
+ D_U&=(B\otimes F)\mathbin\perp(P\otimes U).
+\end{align*}
+For a forward rectangle $U$ is the span of its physical $X$ indicators.
+Every indicator contains its common point $i$. For any vector in this span,
+$\sum_j u_j=3u_i$, whence
+\[
+ \langle u,u\rangle=\sum_{j\ne i}u_j^2>0\quad(u\ne0).
+\]
+Indeed zero outside coordinates also force $u_i=0$. Thus $U$ is
+nondegenerate, including when the ambient form is indefinite. Orthogonality
+of all cross pairs gives $\langle t_X\rangle\subset U\subset t_Y^\perp$.
+
+The common frames of the forward gates, in the displayed chronological order,
+are
+\[
+ D_0,\ D_0,\ D_0,\ D_0,\ X_{t_X},\ D_1,\ D_0,\
+ D_U,\ Y_{t_Y},\ D_1,\ D_1,\ D_1.
+\]
+The gates at $X_{t_X}$ and $Y_{t_Y}$ are grouped separately by data triple;
+the middle mixers at $D_U$ are grouped by rectangle. The early side injection
+is instead at the common label $D_0$, allowing the earlier scratch mixers.
+This is a monotone enlargement of the incoming physical $Y$ label.
+
+For stage 2 reverse and invert the scalar schedule with logical source $Y$
+and target $X$. Its operations and common frames are respectively
+\begin{gather*}
+ V,\ G,\ L,\ J,\ L^{-1},\ R,\ G,\ V,\ R,\ L,\ J,\ L^{-1},\\
+ D_0,\ D_0,\ D_0,\ X_{t_X},\ D_U,\ D_1,\ D_0,\
+ Y_{t_Y},\ D_1,\ D_1,\ D_1,\ D_1.
+\end{gather*}
+Now $U$ is the span of the physical $X$ indicators, which are the rectangle's
+logical targets. The same nondegeneracy and orthogonality proof applies.
+
+All frames above are tensored with $Q$. An input-only side role follows
+$D_0\subset X_t\subset D_U\subset D_1$ in a forward invocation;
+an output-only role follows $D_0\subset D_U\subset Y_t\subset D_1$;
+the pivot follows both. In the reverse invocation the two roles exchange
+these physical descriptions. All side edges are therefore increasing, with
+nondegenerate orthogonal residuals. Physical $X$ still changes from
+$A\otimes\langle t\rangle\otimes Q$ to $(A\otimes F)\otimes Q$,
+and physical $Y$ from $B\otimes\langle t\rangle\otimes Q$ to
+$Y_t\otimes Q$. These are the original interstage boundaries.
+Each central role has one decreasing edge, from $D_1$ to $D_0$, losing
+dimension $h$. Thus the total decreasing dimension remains
+\[
+ L_{\rm dec}=3v^2h^2.
+\]
+
+\subsection{Sharing all first-stage and third-stage auxiliary roles}
+Pair the ground points consecutively. Define a permutation $\pi$ of triples
+as follows. A triple containing a full pair and a singleton keeps the singleton
+and cycles its full pair among the pairs other than the singleton's pair.
+A triple using three different pairs keeps the point in the least indexed
+pair and flips the other two points to their partners. The first rule is a
+cycle on each fixed-singleton class and the second an involution on the
+remaining classes. Hence $\pi$ is bijective and $|T\cap\pi(T)|=1$.
+
+Match the whole auxiliary bank of the stage-1 invocation with fixed triples
+$(A,B)$ to that of stage 3 with fixed triples $(B,\pi(A))$, keeping the local
+role index. Both invocations restore arbitrary auxiliary inputs, and the
+matching is bijective. No simultaneous roles are identified. It includes
+centers as well as side roles.
+
+Every auxiliary first gate now has label $D_0\otimes Q$ and every last gate
+has label $D_1\otimes Q$. In a matched pair the joining labels are
+\[
+ E=F\otimes\langle t_A\rangle\otimes\langle t_B\rangle,
+ \qquad
+ H=\langle t_B\otimes t_{\pi(A)}\rangle^\perp_{F\otimes F}\otimes F.
+\]
+Both are nondegenerate and $E\subset H$, because $t_A\perp t_{\pi(A)}$.
+The edge $E\to H$ replaces $E\to F^{\otimes3}$ and $0\to H$,
+reducing total projection-difference rank by exactly $m$ per removed role.
+No additional decreasing edge arises. The final role count and rank sum are
+\begin{align*}
+ W_{\rm b}^{\rm rect}&=2N+2v^2(R_{\rm side}+h)=1110529317427200,\\
+ s_{\rm b}^{\rm rect}&=W_{\rm b}^{\rm rect}m-N+2L_{\rm dec}
+                         =108094481068699857600,\\
+ W_{\rm b}^{\rm rect}m-s_{\rm b}^{\rm rect}&=572394081600>0.
+\end{align*}
+
+\begin{proposition}[Rectangle bit interface]\label{prop:incidence-bit-interface}
+The rectangle network exchanges the two scalar bit banks and fixes every
+auxiliary input. Its rational frames satisfy the original all-role endpoint
+identity, with $W_{\rm b}^{\rm rect}$ roles and total edge rank
+$s_{\rm b}^{\rm rect}<W_{\rm b}^{\rm rect}m$.
+\end{proposition}
+\begin{proof}
+The forward, inverse, forward stages give the scalar bank exchange. The
+restoration proof permits the auxiliary identifications. Every surviving
+auxiliary role still starts with matrix zero and ends with $I_m$ and is fixed
+by that exchange; data-role endpoints are unchanged. Thus the original
+endpoint identity holds on every role. All side and data changes are nested;
+only the stated central decreases remain. Telescoping gives total absolute
+label change $W_{\rm b}^{\rm rect}m-2N+2L_{\rm dec}$, and the unchanged
+rational source correction adds $N$. The common-frame identity therefore
+applies with the displayed rank sum. The mixers, rational bases, and shear
+factorizations are all fixed finite data, independent of the eventual input
+length. The original fixed-tape interchange interface consequently applies.
+\end{proof}
+
+\subsection{Explicit rational bounds for the two recurrences}
+Put
+\[
+ a_{\rm b}=\frac{46}{10^{11}},\qquad
+ a_{\rm c}=\frac9{500000000000},\qquad L_0=\frac{5743}{500}.
+\]
+The new bit deficit and retained complex deficit satisfy
+\[
+ \eta_{\rm b}^{\rm rect}=\frac{27}{5098849024}>a_{\rm b}L_0,
+ \qquad \eta_{\rm c}=\frac7{22253827054}>a_{\rm c}L_0.
+\]
+For $1\le x\le2$, write $z=(x-1)/(x+1)$ and
+\[
+ S(x)=2\sum_{j=0}^{23}\frac{z^{2j+1}}{2j+1},\qquad
+ E(x)=\frac{2z^{49}}{49(1-z^2)}.
+\]
+The logarithm series bounds $S(x)\le\log x\le S(x)+E(x)$.
+Exact rational comparison gives
+$\log m\le16(S(2)+E(2))+S(m/2^{16})+E(m/2^{16})<L_0$.
+Therefore $m^{1-a}>m(1-aL_0)>m(1-\eta)$ for either corresponding pair.
+We may take
+\begin{equation}\label{eq:explicit-motif-exponents}
+ \tau=1-a_{\rm b},\qquad\sigma=1-a_{\rm c},
+\end{equation}
+with $s_{\rm b}^{\rm rect}/W_{\rm b}^{\rm rect}<m^\tau$ and
+$s_{\rm c}/W_{\rm c}<m^\sigma$.

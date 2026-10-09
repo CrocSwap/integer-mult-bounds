@@ -1,0 +1,104 @@
+\subsection{A direct partial-swap transfer}
+\label{sec:direct-swap-transfer}
+The preceding shear transfer is retained as a historical construction. The
+new bit network instead uses direct partial-swap frames. For a nondegenerate
+rational subspace $U\subset\mathbb Q^m$, let $p_U$ be its orthogonal
+projector and define the address matrix
+\[
+ S_U=\begin{pmatrix}I-p_U&p_U\\p_U&I-p_U\end{pmatrix}
+ \quad\text{on }(H,D).
+\]
+It is an involution. Orthogonal summands give commuting factors:
+$S_US_V=S_{U\perp V}$ when $U\perp V$. In particular
+$S_{U^\perp}S_U=S_{\mathcal F}$, the full interchange.
+These rational address matrices induce permutations of bit arrays; the
+pointwise scalar circuit still operates over $\mathbb F_2$.
+
+\begin{lemma}[One interchange for a partial-swap line]
+\label{lem:direct-swap-line}
+For a fixed nonisotropic rational vector $v$, the address permutation
+$S_{\langle v\rangle}$ uses one interchange of an earlier and a later
+equal-width field and $O(V)$ additional work on the retained fixed tapes.
+\end{lemma}
+\begin{proof}
+Write $d=v^{\mathsf T}Gv\ne0$ and
+\[
+ u=(v,-v)^{\mathsf T},\qquad
+ \phi=(v^{\mathsf T}G,-v^{\mathsf T}G)/d.
+\]
+Then $S_{\langle v\rangle}=I-u\phi$ and $\phi u=2$.
+Let $i$ be the first nonzero coordinate of $u$ and $j$ the last nonzero
+coordinate of $\phi$. The first is in $H$ and the second in $D$, so $i<j$.
+A lower triangular change first sends $u$ to $e_i$. Its diagonal entries
+are nonzero; elimination below $i$ does not annihilate the last coefficient
+of $\phi$. Now $\phi_i=2$, $\phi_j\ne0$, and no coefficients follow $j$.
+Lower triangular row additions from coordinates before $i$ to coordinate
+$i$ clear the coefficients of $\phi$ before $i$ while preserving $e_i$.
+Row additions from coordinates $i<k<j$ to coordinate $j$ clear the remaining
+coefficients between $i,j$, again preserving $e_i$. Thus a lower triangular
+conjugation reduces the reflection to
+\[
+ (x,y)\longmapsto(-x-ty,y),\qquad t\ne0,
+\]
+on positions $i,j$, with every other coordinate fixed. It is implemented by
+\[
+ y\gets x+ty,\quad (x,y)\gets(y,x),\quad
+ y\gets(x-y)/t,\quad x\gets-x.
+\]
+All nonswap updates use earlier controls for later targets, or a unit
+scaling, and are covered by the ordered-affine streaming lemma.
+Compile the finitely many triangular matrices, their inverses and pivots
+into the machine. Choose one odd prime $q$ avoiding all their nonzero
+numerators and denominators as in the retained rational shear proof.
+The identities and invertibility hold over every $\mathbb Z/q^b\mathbb Z$.
+No change of coordinate order is assumed free.
+\end{proof}
+
+Every nondegenerate rational residual has an orthogonal basis of
+nonisotropic vectors: a nonzero symmetric form over a characteristic-zero
+field has a nonzero quadratic value, and orthogonal splitting gives
+induction. For nested labels, their partial-swap frames consequently differ
+by exactly one line reflection per residual dimension. An edge of absolute
+dimension change $r$ costs $r$ recursive interchanges.
+
+\begin{proposition}[Direct power-width interchange]
+\label{prop:two-stage-power-interchange}
+For the certified two-stage bit constants, two disjoint width-$e=m^k$
+radix-$q$ address chunks can be interchanged in $O(Ve^\tau)$ time on fixed
+tapes, if a preceding row field has length divisible by $W^k$. All other
+fields are arbitrary spectators and are preserved. The constants are
+uniform in their lengths and values.
+\end{proposition}
+\begin{proof}
+For the two-stage network, let $P=S_{U_a}$, $E=S_{U_a^\perp}$ and
+$F=S_{\mathcal F}$. Its common-frame identity gives
+\[
+ A=Fy,\qquad B=Fx+Ey.
+\]
+Copy $A$ to a temporary tape, apply $P$ to the copy, and XOR it into $B$.
+Because $PF=E$, the result is $(Fy,Fx)$. The one-dimensional $U_a$ costs
+one child interchange. Retain the original $A$: transforming and then
+recursively restoring it would cost a second child and remove the saving.
+The copy is a duplicate of one role stream, of logical volume $V/W$,
+with the same rows and address ranges. It is not an extra routed role or
+an independent address coordinate. Copy, XOR and erasure cost $O(V/W)$.
+Park the original stream with the other inactive parent streams while
+processing the copy. The retained depth-first parking-stack proof applies
+with this one additional fixed stream; push/pop never scans parked ancestors.
+It charges $O(V)$ per parent node on the same fixed number of tapes.
+
+After undoing the data-bank exchange at row merge, every role, including
+arbitrary scratch, receives the full interchange. With $s$ counting edges
+\emph{and} these corrections, the recurrence is
+$F_k\le(s/W)F_{k-1}+O(1)$, exactly as in the retained power-width proof.
+The base case is the retained single-digit operation. The geometric bound
+and descriptor accounting are the ones proved above. Every recursive call
+acts on $V/W$ with rows divisible by $W^{k-1}$; all original address ranges
+remain complete, including the spectators outside its two subfields.
+\end{proof}
+The arbitrary-width padding, high-digit row construction and radix conversion
+consume only this power-width contract and its exponent. They apply to this
+replacement without alteration. We use the rational
+$\tau=1-47/10^8$ from the two-stage certificate, rather than the preceding
+historical shear exponent.
+

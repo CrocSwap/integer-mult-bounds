@@ -1,0 +1,242 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}[proposition]{Corollary}
+\title{Direct axis routing removes a cubic exponent loss}
+\author{Douglas Colkitt\thanks{Prepared with assistance from OpenAI Codex. This is not independent review or endorsement by OpenAI.}}
+\date{October 7, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We audit a scheduling improvement to OpenAI's integer multiplication manuscript.
+Its existing arbitrary-gap interchange primitive permits the CRT axis reversal
+and resampling axis exposure to use $O(d)$ field interchanges rather than
+$O(d^2)$ adjacent interchanges. The resulting layout cost removes the constraint
+that the dimension exponent must be as small as the network saving. Conditional
+on the upstream algorithmic interfaces, exact parameters give
+$T(n)=O(n(\log n)^{1-\kappa})$ with $\kappa=2^{-78}$ using the previously
+audited $h=46$ network. Keeping the original network and recurrence exponents
+instead gives $\kappa=2^{-107}$. The earlier cubic ceiling concerns the original
+cost accounting and does not apply to the improved schedules.
+\end{abstract}
+
+\section{Scope and primitive}
+The source is OpenAI's \emph{Integer multiplication below $n\log n$}, pinned at
+commit
+\begin{center}
+\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.
+\end{center}
+We use its fixed
+finite-alphabet Turing-machine model with a fixed finite number of
+one-dimensional tapes. The source algorithmic interfaces, including their
+uniform time bounds, remain assumptions of this conditional improvement.
+
+Let $V$ be the stored bit volume of a complete padded tensor with axes of
+lengths $t_i\in\{2^{\ell-1},2^\ell\}$ and complete coefficient records.
+Lemma \texttt{lem:chunk-swap} accepts the address shape
+\[
+ [P]\times[2^u]\times[G]\times[2^u]\times[B]
+\]
+and interchanges the two width-$u$ fields in $O(Vu^\tau)$ steps. Prefix,
+gap, and suffix lengths are arbitrary positive integers; $B$ may include the
+entire coefficient word. The paragraph following the lemma already extends
+this to widths differing by one. Writing $e$ for the extra bit gives
+\[
+ (e,x,G,y)\longmapsto(e,y,G,x)\longmapsto(y,G,e,x),
+\]
+\[
+ (x,G,e,y)\longmapsto(e,x,G,y)\longmapsto(e,y,G,x),
+\]
+where $x,y$ have equal width. Each case costs one interchange and one
+$O(V)$ single-bit move. Thus a nonadjacent full-field swap costs
+$O(V(1+\ell^\tau))$. Empty equal-width pieces require no swap.
+These are permutations of complete records; they preserve every record's
+internal bit order. No new network or interchange primitive is introduced.
+
+\section{The two schedules}
+\begin{proposition}[Linear count of field interchanges]
+Conditional on the stated stream and swap primitives, CRT axis reversal and
+exposure/restoration of every resampling axis cost
+$O(Vd(1+\ell^\tau))$, including descriptors and cleanup.
+\end{proposition}
+\begin{proof}
+For the CRT map, the padded input order is $(a_d,\ldots,a_1)$.
+Swap positions $j$ and $d+1-j$ for $1\le j\le\lfloor d/2\rfloor$.
+The disjoint swaps produce exactly $(a_1,\ldots,a_d)$. In the existing
+triangular formula
+\[
+ b_i=a_i+\mu_i\sum_{j<i}a_jP_j\pmod{s_i},\qquad
+ P_i=\prod_{j<i}s_j,\quad \mu_i=P_i^{-1}\pmod{s_i},
+\]
+targets are still processed in order $d,d-1,\ldots,1$. All controls precede
+the target and still contain the required original digits. The inverse
+recovers digits in order $1,\ldots,d$ and then reverses the field permutation.
+Padding insertion precedes the forward reversal; deletion follows the inverse.
+The original enumerations are therefore unchanged.
+
+For resampling, swap the next named axis with the innermost field, process
+its lines, and undo that swap. An already innermost axis needs no swap.
+This uses at most $2(d-1)$ field interchanges per tensor map. Axis names,
+widths, and validity bounds move with their fields. A line fixes all other
+named coordinates and traverses the target in increasing numerical order.
+Their temporary physical order does not affect its validity predicate.
+
+Keep the original axis-processing order and restore the original physical
+field order after every axis. The resulting operator is exactly the original
+coordinatewise map, with the same line arithmetic and truncations. Expansion
+writes all $t_i$ outputs; compression writes $s_i$ outputs and pads with zeros.
+The full box stays allocated. Invalid entries remain zero at the completed
+axis-map boundaries. An intermediate bit move or the internal arithmetic of a
+swap need not preserve an intermediate physical validity mask: only the
+completed permutation is used by the next numerical operation. Exact
+permutations preserve norms, so the contraction and error bounds are unchanged.
+
+Each call collapses all intervening axes into its single spectator field.
+Since $t_i\ge2$, $d\le\log_2 T$, where $T=\prod_i t_i$. The named-axis
+list, record-width description, and all collapsed lengths have size polynomial
+in $\log(2V)$. A call descriptor can be computed by ordinary integer arithmetic
+in $\operatorname{poly}(\log(2V))=O(V)$ time. Thus list scans and updates are
+charged at every interchange. The primitives run sequentially, clean their
+workspaces, and reuse a fixed tape collection. All growing lists are stored
+data. Multiplying the per-interchange bound by the linear count proves the claim.
+\end{proof}
+
+The $d$ controlled CRT rotations cost $O(dV)$ as before. Numerical resampling
+costs and per-line setup do not change. In particular, no assertion that
+approximate maps commute is needed: the axis-processing order is preserved.
+
+\section{Changed accounting and explicit witnesses}
+The source has $p=\Theta(\log n)$, $V=\Theta(n)$,
+$d=\Theta(p^\epsilon)$ and $\ell=\Theta(p^{1-\epsilon})$. The old layout
+term and its exponent were
+\[
+ d^2(1+\ell^\tau),\qquad \tau+\epsilon(2-\tau).
+\]
+The proposition replaces these by
+\[
+ d(1+\ell^\tau),\qquad \tau+\epsilon(1-\tau).
+\]
+Consequently the fourth margin becomes
+\[
+ g_4=(1-\tau)(1-\epsilon).
+\]
+The other six margins retain their original formulas:
+\begin{align*}
+ g_1&=1-\epsilon(1+c),&g_2&=\epsilon c(1-\tau),\\
+ g_3&=\epsilon(1-\lambda'),&g_5&=\tfrac14-\delta-\tfrac32\epsilon,\\
+ g_6&=1-\delta-\epsilon,&g_7&=\epsilon.
+\end{align*}
+No analytic $d^2$ factor in the precision or prime-interval bounds is removed.
+
+\begin{proposition}[Parameter substitution]
+For either $a=2^{-50}$ with the original network, or
+$a=9/500000000000$ with the previously audited $h=46$ network, set
+\begin{gather*}
+ \tau=\sigma=1-a,\quad \beta=\tfrac12,\quad
+ \delta=\tfrac1{16},\quad C_1=20,\\
+ \epsilon=\tfrac1{40},\quad c=a/2,\quad
+ \lambda=1-3a^2/4,\quad \lambda'=1-a^2/2.
+\end{gather*}
+The modified assembly constraints and all recorded side conditions hold.
+The minimum final margin is $G=a^2/80$.
+\end{proposition}
+\begin{proof}
+The layer inequalities follow from
+\[
+ \tau(1+c/\beta)=(1-a)(1+a)=1-a^2<\lambda<\lambda'<1,
+ \qquad 1-a/2<\lambda'.
+\]
+Also $\max\{\tau,\sigma\}<\lambda$. Both values of $a$ are less than
+$1/16$, which is more than sufficient for these comparisons. The guard and
+dimension conditions are $\epsilon C_1=1/2<1$ and $\epsilon<1/12$.
+Direct substitution gives
+\[
+ g_2=g_3=\frac{a^2}{80},\quad
+ g_4=\frac{39a}{40},\quad g_5=\frac3{20},\quad
+ g_6=\frac{73}{80},\quad g_7=\frac1{40},\quad g_1>\frac12.
+\]
+The first two are the minima for either stated $a$.
+
+The remaining dependencies can be checked explicitly:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Quantity & Exponent or implication\\
+\midrule
+Guard $d^{20}$ & $p^{1/2}=o(p)$\\
+Resampling $\alpha$ & $\Theta(p^{21/80})=o(p^{1/2})$\\
+Resampling $\gamma$ & $O(p^{11/20})=o(p)$\\
+Prime-interval ratio & $p^{1-2\epsilon}=p^{19/20}\to\infty$\\
+Chunk $K$ & $\Theta(p^{a/80})$, hence $K/\log p\to\infty$\\
+Axis width $\ell$ & $\Theta(p^{39/40})$, hence $K=o(\ell)$\\
+Record length $r$ & $2^{\Theta(p^{39/40})}$ dominates every fixed polynomial\\
+\bottomrule
+\end{tabular}
+\end{center}
+Thus polynomially many exceptional repairs, descriptor preparations and
+per-line setup retain their asymptotic bounds. Since $d\to\infty$, prime
+search still takes $n^{o(1)}$ time. The explicit root calculation is the
+fixed-power comparison $d^{40}\le b$. The original error bound still yields
+correct rounding beyond one common cutoff because $\gamma=o(b)$ and $p=6b$.
+\end{proof}
+
+\begin{corollary}[Conditional multiplication bounds]
+With the original network and recurrence exponents, the modified schedule
+permits $\kappa=2^{-107}$. With the audited $h=46$ network and rational
+recurrence saving, it permits $\kappa=2^{-78}$.
+\end{corollary}
+\begin{proof}
+In the original-network case,
+$G=2^{-100}/80>2^{-107}$, since $128>80$.
+For $h=46$, exact arithmetic gives
+\[
+ G=\frac{81}{20000000000000000000000000}
+   =4.05\cdot10^{-24}>2^{-78}.
+\]
+For the chosen $\kappa$ put $\rho=G-\kappa>0$. Every fixed power of
+$\log p$ is eventually at most $p^\rho$, so the total normalized bound is
+$O(p^{1-\kappa})$. Apply the unchanged final assembly and finite-cutoff argument.
+\end{proof}
+
+\section{Relationship to the earlier ceiling}
+Under the original adjacent-layout accounting, positivity of
+$g_4=a-\epsilon(1+a)$ forces $\epsilon<a$. The other layer inequalities
+force $\min\{ac,1-\lambda'\}<a^2$, yielding $\kappa<a^3$.
+The new $g_4=a(1-\epsilon)$ no longer forces $\epsilon<a$.
+The explicit witnesses above are therefore outside the hypotheses of that
+ceiling. They are rejected by the original numerical constraint checker and
+accepted only when the nonadjacent layout model is explicitly selected.
+
+This improvement retains the finite-network construction, butterfly recursion,
+precision bound, and analytic reductions. It changes two routing schedules and
+one row of cost accounting. It does not claim an optimal exponent for the new
+accounting. Further tuning of $\epsilon$, the stopping exponent, or the guard
+bound is a separate question.
+
+\section{Artifacts and review boundary}
+The \href{https://github.com/CrocSwap/integer-mult-bounds}{companion repository}
+contains the note, certificates, and source patches.
+This follow-up is supplied as a separate audit with three alternative patches:
+\begin{itemize}
+\item \texttt{nonadjacent-layout.patch}: the routing proof and cost changes only;
+  two source files, original parameters retained.
+\item \texttt{frozen-nonadjacent-107.patch}: four source files, retaining the
+  original network, recurrence exponents, and $\beta=1/2$.
+\item \texttt{h46-nonadjacent-78.patch}: seven source files, retaining the
+  previously audited $h=46$ network and $\beta=1/2$.
+\end{itemize}
+All apply independently to the pinned upstream source. Run \texttt{make verify}
+for exact certificates, the finite tests, source integrity, and patch application
+checks. Run \texttt{make audit-note} to build this document.
+
+Finite tests compare the schedules with independent tuple-coordinate oracles,
+check padded CRT conversion and inversion, and compare routed resampling with
+exact tensor-product sums. They do not establish the upstream swap routine's
+Turing-machine time bound. The written argument supplies the new linear
+schedule count and its composition; the unchanged upstream interfaces retain
+their conditional status. Independent review of this extension and those
+interfaces is still needed before an unconditional multiplication claim.
+\end{document}

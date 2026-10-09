@@ -1,0 +1,170 @@
+\subsection{A paired-block circuit for the bit correction}
+\label{sec:paired-bit-construction}
+Use $h=50$, $v=\binom h3=19600$, $N=v^3$, and $m=h^3=125000$.
+The complex network above is retained at this ground size. For the bit
+network, we replace the intersection-one side correction by a smaller circuit.
+Fix a common point $i$. On the other $n=h-1=49$ points, inputs $x_{ab}$
+represent source triples $\{i,a,b\}$. The required partial output is
+\[
+ z_{cd}=\sum_{\{a,b\}\cap\{c,d\}=\varnothing}x_{ab}.
+\]
+All scalar additions are in $\mathbb F_2$, but the computation below always
+adds disjoint formal input supports.
+
+It is useful to solve a weighted version. Give a graph an edge value $e_{uv}$
+and a vertex value $w_u$, with pairwise disjoint supports. Return its total
+value and the values left after deleting each one or two vertices, including
+all their incident edges. At the root, take $w_u=0$ and $e_{uv}=x_{uv}$.
+Group the ordered vertices consecutively into pairs, with a final singleton
+when necessary. A block $A$ becomes a vertex of a smaller graph with weight
+\[
+ \widetilde w_A=\sum_{u\in A}w_u+\sum_{\{u,v\}\subset A}e_{uv},
+ \qquad
+ \widetilde e_{AB}=\sum_{u\in A,\ v\in B}e_{uv}.
+\]
+Recursively compute the smaller graph's total, its value $O_A$ after deleting
+block $A$, and its value $F_{AB}$ after deleting both $A,B$.
+
+For $a\in A$, put
+\[
+ C_a=\sum_{u\in A\setminus\{a\}}w_u,\qquad
+ E_{a,B}=\sum_{u\in A\setminus\{a\},\ v\in B}e_{uv},\qquad
+ H_{a;B}=C_a+\sum_{C\ne A,B}E_{a,C}.
+\]
+Compute all $H_{a;B}$ by the leave-one-out prefix/suffix routine on the
+vector $(C_a,(E_{a,C})_{C\ne A})$, requesting only the outputs that omit
+one of the $E$ terms. The total of this vector is denoted $H_a$.
+If $a,b$ are in different blocks $A,B$, their exclusion output is
+\[
+ F_{AB}+H_{a;B}+H_{b;A}
+   +\sum_{u\in A\setminus\{a\},\ v\in B\setminus\{b\}}e_{uv}.
+\]
+For two vertices in one block it is $O_A$; the single exclusion of $a$ is
+$O_A+H_a$. These are disjoint partitions of the surviving weighted graph.
+This proves the recursion by induction. The weights created by internal edges
+remain inside the recursion, avoiding a separate exclusion circuit for them.
+
+Use direct sums for at most four vertices. Compute other totals by balanced
+binary addition. In the four-term formula, first add $F_{AB}+H_{a;B}$,
+then add the other two terms, then combine those two results. Intern equal
+formal supports and remove unused nodes. At $n=49$, the exact circuit has
+9813 additions and 1176 designated outputs. All 1271256 nonzero coefficients,
+and every required zero, are checked by comparing all output supports with
+their definitions.
+
+Identify equal inputs and equal sums across the $h$ common-point groups.
+A sum shared by groups $i\ne j$ consists entirely of triples $\{i,j,k\}$;
+its fixed pair and variable vertices identify it exactly. Keep the first
+encountered decomposition, in common-point and then local-node order. Retain
+all $q=h\binom{h-1}{2}=58800$ partial outputs, injecting their sum into each
+physical target. Since every neighbor pair has a unique common point, this
+remains exactly the intersection-one matrix. The global graph has
+\[
+ c=450394,\qquad q=58800,\qquad c+q=509194.
+\]
+Here 40256 additions have been merged from the separate local graphs.
+
+\subsection{Reversible roles and frames in both directions}
+For every node, regard its later uses and designated outputs as outgoing edges.
+At an input node, allocate one role per outgoing edge and copy a pivot into
+the others. At an addition node, add the second incoming role into the first,
+reuse the first as one outgoing pivot, and copy it into fresh roles for the
+other outgoing edges. The other input role retires. These are invertible
+pointwise gates. There are $2c+q$ outgoing uses and $c$ pivot identifications,
+so $R=c+q=509194$ roles suffice. Roles are compiled from the merged graph;
+no simultaneously occupied physical slots are identified.
+
+Let $L$ be the product of these gates, $V$ the source copy, $J$ the injection
+of the designated partial outputs, and $G,R_0$ the original central operations.
+The chronological schedule is
+\[
+ L,\ J,\ L^{-1},\ R_0,\ V,\ G,\ R_0,\ L,\ J,\ L^{-1},\ G,\ V.
+\]
+The two injections give $JLz+JL(z+Vx)=JLVx$ for arbitrary initial scratch $z$.
+The cleanup restores $z$ and all central scratch. Since $JLV+R_0G=I$,
+the invocation is $y\gets y+x$. Reverse and invert the schedule for stage 2.
+Forward, inverse, forward invocations therefore exchange the two data banks.
+
+Use the original rational form $I-J/9$ on $F=\mathbb Q^{50}$. At a stage,
+write $A=B\mathbin\perp P$ as before, suppressing the future line factor $Q$.
+Set $D_0=B\otimes F$, $D_1=A\otimes F$, and
+$D_U=(B\otimes F)\mathbin\perp(P\otimes U)$.
+Let $U_z$ be the span of the source indicators reaching node $z$.
+Every retained node is a sum from an original common-point group, so all its
+triples contain some $i$. For a vector $u$ in that span,
+\[
+ \sum_j u_j=3u_i,\qquad
+ \langle u,u\rangle=\sum_{j\ne i}u_j^2>0\quad(u\ne0).
+\]
+Thus $U_z$ is nondegenerate. Along every graph edge $z\to w$,
+$U_z\subset U_w$. Forward middle gates use $D_{U_z}$; the physical roles
+follow paths, so these frames increase. A designated output for target $T$
+has $U_z\subset t_T^\perp$, because every contributing triple is a neighbor.
+
+For the reversed middle computation use $D_{U_z^\perp}$. The ambient form
+is nondegenerate, so all these complements are nondegenerate. Reversing an
+edge reverses inclusion: $U_w^\perp\subset U_z^\perp$.
+The original output begins at the physical $X$ line
+$\langle t_T\rangle\subset U_z^\perp$; an original input ends at exactly
+its physical $Y$ complement $t_S^\perp$. No positivity assumption on the
+reachable-target spans is needed. At every gate all incident roles receive
+the same frame. Early mixers use $D_0$, and late cleanup uses $D_1$.
+Newly active roles enter from $D_0$ and retired roles grow to $D_1$.
+Tensoring by $Q$ gives the original data-stage boundaries in both orientations.
+The only decreases remain the central returns, each of dimension $h$.
+
+Share the complete auxiliary bank of a stage-1 invocation $(A,B)$ with stage 3
+at $(B,\pi(A))$, matching local role indices. Here $\pi$ is a bijection of
+triples with $|T\cap\pi(T)|=1$: pair consecutive ground points; for a triple
+with a full pair and singleton, keep the singleton and cycle the full pair
+among pairs not containing it; otherwise keep the point in the least indexed
+pair and flip the other two to their partners. Each rule is bijective on its
+class. All invocations restore arbitrary scratch, and the joining labels are
+\[
+ E=F\otimes\langle t_A\rangle\otimes\langle t_B\rangle,
+ \qquad H=\langle t_B\otimes t_{\pi(A)}\rangle^\perp\otimes F.
+\]
+They are nondegenerate and $E\subset H$ by the chosen orthogonality.
+Each join removes one auxiliary role and exactly $m$ of edge rank.
+
+\begin{proposition}[Paired-block bit interface]\label{prop:paired-bit-interface}
+The new bit network restores arbitrary scratch, exchanges the data banks,
+and satisfies the original all-role endpoint identity with
+\begin{align*}
+ W_{\rm b}^{\rm pair}&=2N+2v^2(R+h)=406321422080000,\\
+ s_{\rm b}^{\rm pair}&=W_{\rm b}^{\rm pair}m-N+6v^2h^2
+                         =50790175992864000000,\\
+ W_{\rm b}^{\rm pair}m-s_{\rm b}^{\rm pair}&=1767136000000>0.
+\end{align*}
+\end{proposition}
+\begin{proof}
+The scalar schedule and both frame assignments were verified above. The total
+decreasing dimension is $3v^2h^2$. Telescoping gives total absolute label change
+$W_{\rm b}^{\rm pair}m-2N+6v^2h^2$; the unchanged negative source projections
+add $N$ rational rank. Data endpoints are unchanged and every surviving
+auxiliary role has endpoints zero and $I_m$, with its scalar value restored.
+The original common-frame identity and rational-shear transfer apply. All
+circuits, rational bases, and gates are fixed finite data.
+\end{proof}
+
+\subsection{Explicit exponents at ground size fifty}
+Take $a=296/10^{11}$, $a_{\rm c}=1/10^{11}$, and $L_0=11737/1000$.
+The exact deficits satisfy
+\[
+ \eta_{\rm b}^{\rm pair}=\frac{23}{661055000}>aL_0,\qquad
+ \eta_{\rm c}=\frac{239}{1202215191250}>a_{\rm c}L_0.
+\]
+For $1\le x\le2$, put $z=(x-1)/(x+1)$,
+$S(x)=2\sum_{j=0}^{23}z^{2j+1}/(2j+1)$, and
+$E_0(x)=2z^{49}/(49(1-z^2))$. Then
+$S(x)\le\log x\le S(x)+E_0(x)$, and exact rational comparison gives
+\[
+ \log m\le16(S(2)+E_0(2))+S(m/2^{16})+E_0(m/2^{16})<L_0.
+\]
+The inequality $e^{-x}>1-x$ therefore proves the required strict bounds with
+\begin{equation}\label{eq:explicit-motif-exponents}
+ \tau=1-\frac{296}{10^{11}},\qquad \sigma=1-\frac1{10^{11}}.
+\end{equation}
+The complex network itself is unchanged apart from the ground size $h=50$;
+its construction, binary residual bases, and scalar corrections remain those
+proved above.

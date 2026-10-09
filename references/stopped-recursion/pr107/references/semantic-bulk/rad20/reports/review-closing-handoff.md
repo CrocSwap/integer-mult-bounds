@@ -1,0 +1,21 @@
+# Closing independent-review handoff
+
+The final promoted finite bit program is h53 R529181, direct first allocation from the original graph followed by actual inherited-frame rounds. Its complete independent finite certificate is `c957b06e16a781c11bc2a454b6c323a666e8ec2d47a17af7fe89089f3518939e`; [review-final-early-compound.md](review-final-early-compound.md) records the exact reconstruction, all 86,090,550 coefficients, every native frame/target, actual rank timeline, and fresh complete h12 dirty bases. The two protected bit central gathers are the separately reviewed F2-payload construction in [review-two-disjoint-centers.md](review-two-disjoint-centers.md).
+
+The final new source-frame construction uses eumemic's PR13 auxiliary endpoint lemma with this circuit and the accepted generic metric isometry. The all-size proof and actual first/last-incidence acceptance are [review-auxiliary-source-frames.md](review-auxiliary-source-frames.md) and [review-auxiliary-source-boundary-acceptance.md](review-auxiliary-source-boundary-acceptance.md). They preserve the scalar program and its deficit while replacing the middle endpoint ranks with a zero entrance and rank-(m-h) exit. The strict bit saving is `583448208746222253/(5*10^23)` and the new least halving depth is974. The new joint product reservation is p^123000, not the earlier p^73000.
+
+The campaign root independently checked the complete twelve-row final assembly in [20261008T094604Z-review-source-framed-whole-assembly](../runs/20261008T094604Z-review-source-framed-whole-assembly/protocol.json), certificate SHA256 `f5f67e1b25c56f9c06a6dbf362cba8484d5bf8a675719d90f1293f4350f5fd85`. Its strongest exact composed value is
+
+`kappa = 5834475279233921242758637328164947/(5*10^39) > 2^-20`.
+
+It uses only the already reviewed three whole-complex residual families, with homogeneous saving 1.4e-6 and beta1/8. The new PR15 all-residual complex construction and new h30 ternary producer are not required. All twelve prior final-circuit rows are retained as unchanged regressions. This independently accepted assembly supersedes the finite-only component status, without changing any executed reviewer or proof bytes.
+
+The material limitations are as follows.
+
+- The multiplication claim remains conditional on the retained upstream algorithmic theorem and its interfaces. Exact finite certificates and these written mathematical reviews are not formal verification of the whole theorem.
+- The common giant h53 rational isometry, its full triangular-factor table, and one shared admissible odd prime have not been instantiated. Their finite deterministic construction is proved. Additional denominator/pivot exclusions and the resulting fixed setup constant C remain separate eventual conditions; the numeric geometry/precision cutoff is not a complete instantiated input-size threshold by itself.
+- Sparse or restricted native-address tests have their stated domains. The final h53 graph audit checks its complete scalar coefficient and frame program, not every address in the huge native alphabet. The general common-frame and dirty-restoration proofs supply that extension.
+- The circuit ranking is over the completed specified cohorts and explicit feasible retention plans. No globally optimal role count, primitive saving, or multiplication exponent is asserted. Ratios between kappa values compare asymptotic savings, not measured multiplication runtimes.
+- PR14's data corners and PR15's all-residual complex transfer are unpromoted follow-up inputs. The earlier false protected-first-frame concern was corrected from the actual reversed chronology before final source-frame promotion; the source-frame proof preserves the correction and its concrete audit.
+
+All required new own source, reports, protocols, compact results, exact reproduction commands and literature provenance were handed to the root for the mandatory final RaD commit/push. No own math worker or reservation remains active. Full immutable export/log payloads remain external and their paths, hashes and deterministic recovery commands are recorded. The active user-authorized deadline is 2026-10-08 10:00:00 UTC; the original campaign start and historical 08:25:21 UTC deadline remain preserved.

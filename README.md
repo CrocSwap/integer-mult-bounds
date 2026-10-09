@@ -1,3 +1,33 @@
+# Proposed stopped pair-tree refinement: conditional κ = 7.808981744031e-5
+
+This branch proposes **κ = 7808981744031/100000000000000000**, combining a
+new binary pair-star exclusion tree and deterministic integer-weighted carrier
+exchanges with icekylinx's PR104 stopped product-ring/rational-center interface
+and Rohan Arun's PR107 comparison and PR100 balanced transfer. It improves the
+pinned PR107 witness by approximately **0.13553%**. The complete paid recursive
+moment improves despite a larger auxiliary role count.
+
+[Construction and reproduction](research/stopped-pairtree/README.md) ·
+[Proof and credits](research/stopped-pairtree/PROOF.md) ·
+[Exact certificate](research/stopped-pairtree/certificate.json)
+
+Run `make stopped-pairtree-verify` with Python 3.11+ and a C++17 compiler.
+The gate freshly reproduces the complex producers and matching, checks every
+signed scalar coefficient, actual binary frame, carrier edge and literal role
+operation, and independently checks the recurrence, three row reserves,
+47 strict constraints and seven margins. The unchanged coarse bit producer
+and ordinary leaf are inherited, source-pinned inputs. Finite interface
+controls accompany the written stopped-recursion and balanced-layout review.
+The result retains all inherited and newly proposed analytic, streaming and
+all-size tape hypotheses; it is not a measured runtime speedup.
+
+Earlier constructions remain available, including
+[the saturated deferred composition](research/saturated-deferred/README.md),
+`research/merged-span-frames/` and `research/deferred-span-frames/`.
+The inherited reviewed result below is separate from this proposal.
+
+Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
+
 # A sharper exponent for integer multiplication
 
 **Community research maintained by Douglas Colkitt — conditional on the original

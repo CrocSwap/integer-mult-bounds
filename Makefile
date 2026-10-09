@@ -24,6 +24,14 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-tests
+	$(MAKE) verify-rank-pair
+	$(MAKE) verify-ordered-frames
+	$(MAKE) verify-balanced-split
+	$(MAKE) verify-aligned-exchange
+	$(MAKE) verify-deferred-span
+	$(MAKE) verify-merged-span
+	$(MAKE) verify-saturated-deferred
+	$(MAKE) verify-stopped-pairtree
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -428,3 +436,57 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: verify-rank-pair rank-pair-verify rank-pair-refinement-verify
+verify-rank-pair: rank-pair-verify rank-pair-refinement-verify
+rank-pair-verify:
+	python3 research/rank-pair/frame_compile.py
+	python3 research/rank-pair/screen.py
+	python3 -m unittest discover -s tests -p 'test_rank_pair.py' -v
+
+rank-pair-refinement-verify:
+	python3 research/rank-pair-refinement/refine.py
+
+.PHONY: verify-ordered-frames ordered-frames-verify
+verify-ordered-frames: ordered-frames-verify
+ordered-frames-verify:
+	python3 research/ordered-frames/producer.py
+	python3 research/ordered-frames/graph_audit.py
+	python3 research/ordered-frames/check.py
+	python3 research/ordered-frames/independent_check.py
+
+.PHONY: verify-balanced-split balanced-split-frames-verify
+verify-balanced-split: balanced-split-frames-verify
+balanced-split-frames-verify:
+	python3 research/balanced-split-frames/producer.py
+	python3 research/balanced-split-frames/graph_audit.py
+	python3 research/balanced-split-frames/check.py
+	python3 research/balanced-split-frames/independent_check.py
+
+.PHONY: verify-aligned-exchange aligned-exchange-frames-verify
+verify-aligned-exchange: aligned-exchange-frames-verify
+aligned-exchange-frames-verify:
+	python3 research/aligned-exchange-frames/producer.py
+	python3 research/aligned-exchange-frames/graph_audit.py
+	python3 research/aligned-exchange-frames/check.py
+	python3 research/aligned-exchange-frames/independent_check.py
+
+.PHONY: verify-deferred-span deferred-span-frames-verify
+verify-deferred-span: deferred-span-frames-verify
+deferred-span-frames-verify:
+	python3 research/deferred-span-frames/verify.py
+
+.PHONY: verify-merged-span merged-span-frames-verify
+verify-merged-span: merged-span-frames-verify
+merged-span-frames-verify:
+	python3 research/merged-span-frames/verify.py
+
+.PHONY: verify-saturated-deferred saturated-deferred-verify
+verify-saturated-deferred: saturated-deferred-verify
+saturated-deferred-verify:
+	python3 research/saturated-deferred/verify.py
+
+.PHONY: verify-stopped-pairtree stopped-pairtree-verify
+verify-stopped-pairtree: stopped-pairtree-verify
+stopped-pairtree-verify:
+	python3 research/stopped-pairtree/verify.py

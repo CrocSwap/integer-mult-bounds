@@ -1,0 +1,205 @@
+\subsection{Shared intermediate sums for the bit network}
+\label{sec:shared-sums}
+We retain $h=46$, $v=\binom h3=15180$, $N=v^3$, $m=h^3=97336$, and
+the rational form $I-J/9$ on $F=\mathbb Q^h$. Only the bit network changes;
+the complex primitive is retained. Fix a common point $i$ of a neighboring
+triple pair. On the other $n=h-1$ points, introduce inputs $x_{ab}$ indexed
+by unordered pairs and compute all outputs
+\[
+ z_{cd}=\sum_{\{a,b\}\cap\{c,d\}=\varnothing}x_{ab}
+ \qquad(\{c,d\}\in\tbinom{[n]}2).
+\]
+The sums are over $\mathbb F_2$. We use a circuit in which the two input
+supports of every binary addition are disjoint. Equal formal sums are shared
+as single nodes. Thus the circuit has no cancellation: a source contributes
+to an output exactly when a directed path joins them, and that path is unique.
+
+An explicit construction uses a balanced recursive split of the point set.
+For a vector of disjoint-support values, compute the total and all sums
+omitting one or two positions. The leave-two-out routine splits the vector
+in half: exclusions in one half use that half's corresponding sum plus the
+other half's total; split exclusions combine the two leave-one-out sums.
+Totals use balanced binary addition. When only leave-one-out sums are needed,
+use prefix and suffix sums, adding the prefix before a position to the suffix
+after it. Zero terms are omitted throughout.
+
+For pair inputs, return sums excluding zero, one, or two vertices. Recursively
+compute these quantities for the left-left and right-right input pairs.
+The cross pairs form a matrix. Its row sums and column sums feed the vector
+routine just described. To omit one row and one column, apply leave-one-out
+first within each row and then down each column of the resulting matrix.
+For two excluded vertices in the left half, combine the recursive left-left
+answer, the right-right total, and the cross-matrix row sum omitting those
+two rows. The right-half case is symmetric. For one excluded vertex in each
+half, combine the two recursive leave-one-out answers with the cross-matrix
+answer omitting that row and column. Single exclusions and totals combine
+the same three disjoint input regions. This proves correctness by induction.
+
+Use the natural point order and splits at $\lfloor n/2\rfloor$, and identify
+nodes whenever their formal input-support sets agree. Discard nodes not
+feeding a requested leave-two-out output. The supplied implementation records
+every support as an integer bit set and checks disjointness at every addition.
+At $n=45$ the resulting circuit has
+\[
+ p=990\text{ inputs},\quad q=990\text{ outputs},\quad c=11566
+ \text{ active binary additions}.
+\]
+Exact support comparison checks all 990 outputs, including all 893970 nonzero
+matrix coefficients and all required zeros. The construction is a finite
+explicit circuit; these counts make no optimality claim.
+
+\subsection{Reversible embedding and the auxiliary-role count}
+We next give a reusable transfer for such circuits. Treat each use of a node
+by a later addition, or by a designated output, as an outgoing edge. Remove
+unused nodes. At an input node, allocate one role per outgoing edge, select
+one pivot as its input slot, and copy the pivot into the other outgoing roles.
+At a binary addition node, the two incoming roles already exist. Reuse the
+first as the pivot for one outgoing edge and allocate a fresh role for every
+other outgoing edge. Add the second input into the pivot and then copy the
+pivot into the other outgoing roles. The second incoming role is thereafter
+inactive during the forward circuit. Each node operation is an invertible
+linear map, with inverse obtained by undoing fanout and then the addition.
+
+This rule identifies roles only along directed paths. In particular, two
+simultaneous inputs never coincide. If there are $c$ addition nodes and $q$
+designated outputs, the total number of outgoing edges is $2c+q$. One role
+identification is made at each addition node, giving
+\[
+ R_{\rm local}=c+q=12556.
+\]
+Equivalently, an input contributes its outdegree in new roles and an addition
+contributes its outdegree minus one. Inputs with one outgoing edge may be
+regarded as identity gates, so every role participates in the finite mixer.
+Let $L$ be the product of these node maps in topological order, $V$ the copy
+into input slots, and $J$ the injection from designated output slots.
+Then $JLV$ is precisely the disjoint-pair map. Each of the $h$ choices of
+common point gets its own circuit, so
+\[
+ R_{\rm side}=h(c+q)=577576
+\]
+side roles suffice per invocation.
+
+Arbitrary initial scratch is handled by the same transparent schedule as for
+the rectangle circuit. With $G,R$ denoting the old central gather and scatter,
+the chronological operations are
+\[
+ L,\ J,\ L^{-1},\ R,\ V,\ G,\ R,\ L,\ J,\ L^{-1},\ G,\ V.
+\]
+An initial side vector $z$ contributes $JLz$ in the early injection and
+$JL(z+Vx)$ in the later one, leaving exactly $JLVx$. The final inverse mixer
+and copy restore $z$; centers are restored as before. The complete side map
+is the intersection-one neighbor matrix, since each neighbor has a unique
+common point. Thus $JLV+RG=I$ and the invocation is $y\gets y+x$ on all inputs.
+
+\subsection{Frames from source and target supports}
+Write the original tensor decomposition at a stage as
+$A=B\mathbin\perp P$, with $P$ and the future factor $Q$ nondegenerate lines.
+Suppress $Q$ and put
+\[
+ D_0=B\otimes F,\qquad D_1=A\otimes F,\qquad
+ D_U=(B\otimes F)\mathbin\perp(P\otimes U).
+\]
+During the middle forward application of $L$, assign each node the span $U$
+of the physical source triple indicators reaching it. At an input node this
+is its source line. Along every dataflow edge the source-support sets grow,
+so these spans are nested. Along the physical roles, which follow paths
+through the circuit, the labels are therefore increasing. A role allocated
+at a branching node enters from $D_0$; a retired input role subsequently
+grows to $D_1$ in the final cleanup.
+
+Every triple in a source-support span contains its circuit's common point
+$i$. For any vector $u$ in such a span, $\sum_j u_j=3u_i$, and hence
+\[
+ \langle u,u\rangle=\sum_{j\ne i}u_j^2>0\qquad(u\ne0).
+\]
+Thus all these spans are nondegenerate. At an output, every contributing
+source triple is a neighbor of the target triple $T$, giving
+$U\subset t_T^\perp$. The output role can consequently grow to the original
+physical target frame without decreasing rank. Every node gate has one
+common frame on all its incoming and outgoing roles, as required by the
+common-frame identity.
+
+The reversed stage requires a different span assignment. Reverse and invert
+the scalar schedule with logical source $Y$ and target $X$. In the middle
+$L^{-1}$, label a node by the span of the physical $X$ target indicators
+reachable from it in the forward dataflow graph. These descendant sets grow
+along reversed edges. Every such triple still contains the same point $i$,
+so its span is nondegenerate by the same norm identity. At an original input,
+all its reachable targets are neighbors of its physical $Y$ triple; the span
+therefore lies in that triple's orthogonal complement. This verifies the
+reverse middle computation as well as its endpoints. The source-support
+frames of the forward computation are not incorrectly reused in reverse.
+
+All early mixers and their inverses use $D_0\otimes Q$, and all late cleanup
+mixers and inverses use $D_1\otimes Q$. The data-copy and injection gates are
+grouped by data triple, with the same individual line and orthogonal-complement
+frames as in the rectangle construction. Physical $X$ grows from
+$A\otimes\langle t\rangle\otimes Q$ to $(A\otimes F)\otimes Q$;
+physical $Y$ grows from $B\otimes\langle t\rangle\otimes Q$ to
+$((B\otimes F)\mathbin\perp(P\otimes t^\perp))\otimes Q$.
+These are exactly the original stage boundaries. The only decreasing edges
+remain the $h$ central returns per invocation, each losing dimension $h$.
+Consequently $L_{\rm dec}=3v^2h^2$ is unchanged.
+
+\subsection{Stage sharing and rank accounting}
+Use a bijection $\pi$ of triples with $|T\cap\pi(T)|=1$. One explicit
+choice pairs the ground points consecutively. For a triple with a full pair
+and a singleton, keep the singleton and cycle the full pair among all pairs
+other than the singleton's pair. Otherwise keep the point in the least
+indexed pair and flip the other two to their partners. This is a bijection
+on the two disjoint classes, with the stated intersection property.
+
+Share the entire auxiliary bank of the stage-1 invocation with fixed triples
+$(A,B)$ with that of stage 3 at $(B,\pi(A))$, keeping each local role index.
+Every invocation restores arbitrary scratch, and the sharing is bijective.
+The joining labels are
+\[
+ E=F\otimes\langle t_A\rangle\otimes\langle t_B\rangle,
+ \qquad H=\langle t_B\otimes t_{\pi(A)}\rangle^\perp\otimes F.
+\]
+They are nondegenerate and $E\subset H$ since $t_A\perp t_{\pi(A)}$.
+Replacing the two former terminal edges by this join saves exactly $m$ in
+edge rank per removed role. Thus
+\begin{align*}
+ W_{\rm b}^{\rm dag}&=2N+2v^2(R_{\rm side}+h)=273201575169600,\\
+ s_{\rm b}^{\rm dag}&=W_{\rm b}^{\rm dag}m-N+6v^2h^2
+                         =26592347948314104000,\\
+ W_{\rm b}^{\rm dag}m-s_{\rm b}^{\rm dag}&=572394081600>0.
+\end{align*}
+
+\begin{proposition}[Shared-computation bit interface]\label{prop:dag-bit-interface}
+The new bit network exchanges the two scalar data banks, restores every
+auxiliary value, and satisfies the original all-role endpoint identity with
+$W_{\rm b}^{\rm dag}$ roles and total edge rank $s_{\rm b}^{\rm dag}$.
+\end{proposition}
+\begin{proof}
+The transparent schedule proves the scalar shear and arbitrary restoration.
+Forward, inverse, forward invocations give the bank exchange. The support
+labels and their reverse counterparts establish all common frames and nested
+side transitions. Central decreases are unchanged. Telescoping therefore gives
+$W_{\rm b}^{\rm dag}m-2N+2L_{\rm dec}$ absolute label change; the original
+rational source correction adds $N$. Every surviving auxiliary role still
+has endpoint matrices zero and $I_m$ and is fixed by the scalar permutation;
+the data endpoints are unchanged. The original common-frame and rational-shear
+transfer consequently applies. All compiled gates and bases are fixed finite
+data, independent of the eventual input length.
+\end{proof}
+
+\subsection{Explicit rational bounds for the two recurrences}
+Put
+\[
+ a_{\rm b}=\frac{187}{10^{11}},\qquad
+ a_{\rm c}=\frac9{500000000000},\qquad L_0=\frac{5743}{500}.
+\]
+The exact deficits satisfy
+\[
+ \eta_{\rm b}^{\rm dag}=\frac{27}{1254369032}>a_{\rm b}L_0,
+ \qquad \eta_{\rm c}=\frac7{22253827054}>a_{\rm c}L_0.
+\]
+The retained rational logarithm enclosure proves $\log m<L_0$. Therefore
+$m^{1-a}>m(1-aL_0)>m(1-\eta)$ for either corresponding pair, and we may take
+\begin{equation}\label{eq:explicit-motif-exponents}
+ \tau=1-a_{\rm b},\qquad\sigma=1-a_{\rm c}.
+\end{equation}
+This gives $s_{\rm b}^{\rm dag}/W_{\rm b}^{\rm dag}<m^\tau$ and the
+unchanged complex bound $s_{\rm c}/W_{\rm c}<m^\sigma$.

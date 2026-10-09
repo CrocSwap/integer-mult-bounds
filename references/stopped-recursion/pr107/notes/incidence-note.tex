@@ -1,0 +1,73 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\title{Rectangle incidence circuits for a stronger integer-multiplication exponent}
+\author{Douglas Colkitt\thanks{Prepared with assistance from OpenAI Codex.
+This is not independent review or endorsement by OpenAI.}}
+\date{October 7, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We replace individual neighbor channels in the finite bit network of OpenAI's
+integer-multiplication manuscript by rectangle circuits with shared intermediate
+computations. Nondegenerate common frames preserve the absolute rank deficit.
+Together with nonadjacent axis routing and the previously audited parameter
+recipe, the construction supports the conditional saving $\kappa=2^{-67}$,
+a factor $256$ above our preceding $2^{-75}$ witness. The complex network is
+unchanged. No practical runtime improvement or global optimality is claimed.
+\end{abstract}
+
+\section{Scope and construction}
+The model is a fixed finite-alphabet Turing machine with a fixed finite number
+of one-dimensional tapes. We assume the unchanged algorithmic interfaces of
+\emph{Integer multiplication below $n\log n$}, pinned at
+\begin{center}\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.\end{center}
+The construction below replaces the bit primitive. The remaining parts of
+the manuscript's multiplication theorem are assumed.
+\input{incidence-construction.tex}
+
+\section{Conditional multiplication exponent}
+Put $a=a_{\rm b}$ and use the nonadjacent-axis parameter recipe
+\begin{gather*}
+ \epsilon=1/21,\quad \beta=9/10,\quad c=9a/10,\quad
+ \lambda=1-19a^2/20,\quad\lambda'=1-9a^2/10,\\
+ \delta=1/16,\qquad C_1=20.
+\end{gather*}
+The packed comparison is $\tau(1+c/\beta)=1-a^2<\lambda<\lambda'<1$.
+The separate complex conditions follow from $19a^2/20<a_{\rm c}$ and
+$9a^2<a_{\rm c}$. Exact arithmetic gives
+\[
+ \min_j g_j=g_2=g_3=\frac{3a^2}{70}
+ =\frac{1587}{175000000000000000000000}>2^{-67}.
+\]
+The other margins are $g_1>1/2$, $g_4=20a/21$, $g_5=13/112$,
+$g_6=299/336$, and $g_7=1/21$, all strictly larger. The positive gap absorbs
+the fixed logarithmic factors as in the existing strict-margin argument,
+yielding $O(n(\log n)^{1-2^{-67}})$ conditionally.
+
+The dimension exponent, stopping threshold, complex network, and guard
+analysis are retained: the guard is $p^{20/21}=o(p)$, the new chunk has
+$K=\Theta(p^{3a/70})=o(\ell)$ with $\ell=\Theta(p^{20/21})$, and
+$K/\log p\to\infty$. The numerical maps and final rounding are unchanged.
+No use is made of the separate recurrence refinement requiring
+$\sigma\le\tau$; the original separate layer inequalities pass here.
+
+\section{Reproduction and boundary of verification}
+The companion artifacts are:
+\begin{itemize}
+\item \path{scripts/incidence_rectangles.py} and \path{scripts/incidence_network.py};
+\item \path{certificates/incidence-network.json};
+\item \path{patches/h46-incidence-67.patch}.
+\end{itemize}
+The rectangle checker enumerates every
+ordered disjoint pair at the target size. Small forward and inverse invocations
+are checked on every input basis vector, including every scratch input. A full
+three-stage small network checks bank exchange and restoration with shared
+nonzero scratch. Rational tests verify the norm identity and sharing inclusion.
+The written frame argument and the unchanged upstream machinery remain
+mathematical proof obligations; these checks are not a formal proof of the
+complete algorithm.
+\end{document}

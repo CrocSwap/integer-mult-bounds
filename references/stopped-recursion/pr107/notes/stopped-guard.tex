@@ -1,0 +1,67 @@
+\subsection{A guard bound using the actual stopping depth}
+\label{sec:stopped-guard}
+The complex network is still evaluated exactly until a complete normalized
+butterfly layer is finished. Write $W=W_{\rm c}$ and $s=s_{\rm c}$ for that
+network, and retain
+\[
+ E=64(W+m+1)^3,\quad B=s+E,\quad C_0=128mB^2.
+\]
+At $h=50$ the exact values are
+\[
+ m=125000,\quad W=369474390296480000,\quad
+ s=46184298777878576000000,
+\]
+so $m\ge3$ and $2\le s<m^5$ by integer comparison. We will use $C_1=2$ and
+$\Delta=\lceil C_0d^2\rceil$ for every rational $9/10\le\beta<1$.
+
+Measure dependency depth by complex additions, subtractions, halvings, sign
+changes, and multiplication by $i$. A chain follows an operand into a later
+result. Concatenating every scalar gate and recursive edge call is a valid
+upper bound, even though most do not belong to one dependency chain.
+In the retained complex motif each wire touches at most twelve scalar gates,
+so there are at most $12W$ gates. A gate output sums at most $W$ terms,
+with at most a halving and an addition per term. Evaluating all outputs from
+saved inputs uses at most $2W^2$ operations per gate. Inverse-child corrections
+cost at most $4s$, and source, sink, and bank corrections at most $4W+4$.
+Thus their total is bounded by $24W^3+4s+4W+4<E$.
+The new bit motif performs exact permutations of coefficient encodings; it
+does not introduce coefficient arithmetic into this depth count.
+
+The individual $C$-kernel formula uses at most eight elementary operations.
+Consequently the same conservative recurrence remains valid:
+\[
+ A(e)\le sA(e/m)+E\quad\hbox{at an internal node},\qquad
+ A(e)\le8e\quad(e<d^\beta).
+\]
+For a root $e\le d$, the actual number $j$ of internal levels is at most
+$(1-\beta)\log_m d+1$. If $j>0$, this follows from the last internal size
+$e/m^{j-1}\ge d^\beta$; for $j=0$ it is immediate. Hence
+\[
+ s^j\le s\,d^{5(1-\beta)},\qquad
+ A(e)\le8d^\beta s^j+E\sum_{i<j}s^i
+       \le s(8+E)d^{5-4\beta}
+       \le9B^2d^{7/5}.
+\]
+Here $s\ge2$, $d\ge1$, $\beta\ge9/10$, and
+$s(8+E)\le9B^2$; the estimate also covers a root that is already a leaf.
+Keeping $E$ additive is essential: it is a fixed cost at a node, not another
+branching factor.
+
+The base-$m$ partition has at most $(m-1)(1+\lfloor\log_m d\rfloor)$
+pieces. Since $m\ge3$ and $\log d\le\sqrt d$ for $d\ge1$, this is at most
+$2m\sqrt d$. Concatenating their depths therefore costs at most
+$18mB^2d^{19/10}$. Preprocessing uses at most $d$ individual kernels, costing
+$8d$. The two outer diagonals and the scalar $b^D$ contribute at most
+$t+9$ further units, where $t=\lfloor D/2\rfloor$; a shift by $t$ is charged
+$t$ denominator bits. Together $8d+t+9\le18d$. Thus the total depth and
+shift charge are bounded by
+\[
+ 18mB^2d^{19/10}+18d\le36mB^2d^2<C_0d^2.
+\]
+As in the original induction, an input in $2^{-p}\mathbb Z[i]$ with modulus
+at most one has denominator exponent at most $p+\Delta$ and magnitude at most
+$2^\Delta$ throughout. Reserving $p+\Delta$ fractional bits and $\Delta+3$
+integer and sign bits per real component therefore represents all values
+exactly. Address-swap routines restore complete encodings before coefficient
+arithmetic resumes and do not change this argument. If $2\epsilon<1$, then
+$\Delta=o(p)$ and the full coefficient width remains $O(p)$.

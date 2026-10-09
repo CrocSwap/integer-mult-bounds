@@ -1,0 +1,262 @@
+\section{Weighted side computations with binary phase frames}
+\label{sec:complex-compression}
+We retain the complex motif's data banks, central operations, three tensor
+stages, and endpoint corrections. Scalars lie in $\mathbb Z[i,1/2]$ and
+labels in $F=\mathbb F_2^h$ with its standard dot product. Throughout this
+construction $h\ge8$ is even. Write $\mathcal T=\binom{[h]}3$,
+$v=\binom h3$, $N=v^3$ and $m=h^3$.
+
+For triples $S,T$, the central operation has coefficient
+$(|S\cap T|-1)/2$. Its side correction has coefficient $+1/2$ for
+disjoint triples and $-1/2$ for intersection-two triples. Intersection-one
+pairs need no side correction; the diagonal central coefficient is one.
+We compress these two side relations separately. All coefficients below
+are characteristic-zero coefficients; binary labels do not turn the scalar
+arithmetic into XOR arithmetic.
+
+\subsection{A reusable weighted circuit transfer}
+An all-ones rectangle with $a$ sources and $b$ targets uses $a+b-1$ roles.
+Allocate $a$ input slots and $b$ output slots sharing one pivot. Add the
+other inputs into the pivot, then add it into the other outputs. This
+invertible mixer $L$ has an all-ones output-by-input submatrix. Its inverse
+undoes these additions in reverse order. A fixed dyadic rectangle weight
+is placed in the output injection $J$, not in the binary labels.
+
+More generally, a circuit of disjoint-support binary sums with $c$ addition
+nodes and $q$ output uses has an invertible embedding on $c+q$ roles.
+Allocate one outgoing role per use of each input. At an addition, reuse
+its first incoming role as one outgoing pivot, allocate the other outgoing
+roles freshly, add the second input to the pivot, and fan it out. The
+second incoming role retires. There are $2c+q$ uses and $c$ role
+identifications, proving the count. Starting from zero side values,
+disjoint input supports give the exact integer coefficients, not merely
+their reductions modulo two. Equal sums may have shared fanout.
+
+Let $V$ copy data into the input slots, let $J$ inject weighted outputs,
+and retain the central gather $G$ and scatter $R$. The signed chronological
+schedule is
+\[
+ L,\ -J,\ L^{-1},\ -R,\ V,\ G,\ R,\ L,\ J,\ L^{-1},\ -G,\ -V.
+\]
+An arbitrary side vector $z$ contributes $-JLz+JL(z+Vx)=JLVx$.
+The two inverse mixers and final negative copy restore $z$. Similarly the
+centers contribute $RGx$ and return to their original values. Thus the
+invocation is $y\gets y+x$ precisely when $JLV+RG=I$. Reversing and
+inverting the signed operations implements $y\gets y-x$.
+
+For the frame transfer use the original decomposition $A=B\perp P$,
+where $P$ is the earlier tensor-indicator line, and suppress the future
+norm-one tensor line $Q$. Put
+\[
+ D_0=B\otimes F,\quad D_1=A\otimes F,\quad
+ D_U=(B\otimes F)\perp(P\otimes U),
+\]
+\[
+ X_t=D_{\langle t\rangle},\qquad Y_t=D_{t^\perp}.
+\]
+The forward schedule's common gate frames, in the displayed order, are
+\[
+ D_0,D_0,D_0,D_0,X_t,D_1,D_0,D_U,Y_t,D_1,D_1,D_1.
+\]
+Copy and injection gates are grouped by data triple. In a rectangle the
+middle mixer has one common $U$. In a sum circuit it has one $U$ per node.
+For the inverse invocation with logical banks exchanged, the frames are
+\[
+ D_0,D_0,D_0,X_t,D_U,D_1,D_0,Y_t,D_1,D_1,D_1,D_1.
+\]
+The inverse middle mixer uses physical-$X$ target supports reachable from
+each forward node. These grow along reversed edges; forward source supports
+must not be substituted for them.
+
+A valid assignment must make every side-role transition increasing and
+nondegenerate, with each nonzero orthogonal residual nonalternating. Merely
+having nested source sets is insufficient over $\mathbb F_2$. The following
+two constructions explicitly meet this stronger condition in both directions.
+
+\subsection{Disjoint triples: coordinate enclosures}
+Partition the ordered disjoint-triple relation into rectangles
+$\mathcal S\times\mathcal U$. Their ground-point unions are disjoint.
+In a forward middle mixer choose its frame $U$ as follows:
+\begin{itemize}
+\item If $\mathcal S=\{S\}$, use $U=\langle t_S\rangle$.
+\item Otherwise, if $\mathcal U=\{T\}$, use $U=t_T^\perp$.
+\item Otherwise, use the coordinate subspace on $\bigcup\mathcal S$.
+\end{itemize}
+For the inverse invocation interchange the two families in this rule.
+In every case $\langle t_S\rangle\subset U\subset t_T^\perp$ for
+every rectangle pair. These spaces are nondegenerate. In the two singleton
+cases the only new nontrivial local complement is that of two orthogonal
+triple lines. It has a norm-one coordinate vector outside their six-point
+union, since $h>6$.
+
+In the third case both unions have at least four points. The complement
+of any source triple line within $U$ contains a coordinate unit outside
+that triple. The complement of $U$ within $t_T^\perp$ contains a coordinate
+unit in the target union outside $T$. The spaces $U$ and $U^\perp$ are
+coordinate spaces. Consequently all nonzero residuals in
+$0\subset\langle t_S\rangle\subset U\subset t_T^\perp\subset F$,
+and all skipped transitions actually used by input-only or output-only
+roles, have norm-one vectors. Every such nondegenerate residual has an
+orthonormal basis by the retained binary-space lemma.
+
+The partition is explicit. For disjoint $a$- and $b$-subsets of $[n]$,
+$0\le a,b\le3$, allow row stars, column stars, and a split into $l$ and
+$n-l$ points. Split cases by the source and target cardinalities in the
+first part, and use the product of the already chosen smaller partitions.
+For a plan let $(C,L,R)$ be its rectangle count and source/target membership
+counts. Products multiply these counts coordinatewise and cases add them.
+An empty relation has zero counts; if one subset size is zero, use the full
+rectangle. Try all split sizes and choose the least $L+R-C$, breaking ties
+by row stars, then column stars, then increasing split size. This finite
+recursion is a construction, not a global rectangle optimality claim.
+
+At $h=26$, the counts are
+\[
+ (C,L,R)=(24870,217255,299571),\qquad R_0=L+R-C=491956.
+\]
+The exact checker verifies that each of the $4604600$ ordered disjoint
+triple pairs appears once. It also checks the frame-case hypotheses for
+every generated rectangle. Every such rectangle has scalar weight $+1/2$.
+
+\subsection{Intersection two: an orthonormal sum compiler}
+Fix the unique common pair $P=\{i,j\}$. The source and target triples
+are $P\cup\{a\}$ and $P\cup\{b\}$ with $a\ne b$ outside $P$.
+The binary vectors
+\[
+ t_a=e_i+e_j+e_a\quad(a\notin P)
+\]
+are pairwise orthonormal. Since $h$ is even, adjoining
+\[
+ r_i=e_i+\sum_{a\notin P}e_a,\qquad
+ r_j=e_j+\sum_{a\notin P}e_a
+\]
+gives an orthonormal basis of the entire $F$: each extra vector has odd
+weight $h-1$, their mutual product is $h-2=0$ in $\mathbb F_2$, and both
+are orthogonal to every $t_a$.
+
+Compute each leave-one-out sum with prefix and suffix sums on the $n=h-2$
+inputs. Omit unused totals and intern equal input-support sets. The active
+circuit has $3n-6$ additions and $n$ outputs, hence $4n-6$ roles. Each sum
+is cancellation-free over the integers. Inject each output with weight
+$-1/2$. Distinct triples intersecting in two points have a unique common
+pair, so these circuits give every required coefficient exactly once.
+
+At a forward node let $U$ span its ancestor vectors $t_a$; in the inverse
+middle circuit let $U$ span the reachable output vectors $t_b$. Nested
+support differences are spanned by subsets of an orthonormal family.
+No source can reach its excluded output. At the final transition into
+the relevant $t_b^\perp$, the residual has an orthonormal basis consisting
+of the remaining $t_a$ and the two extra vectors $r_i,r_j$. Cleanup
+complements have the same property. Thus every required residual is
+zero or nonalternating and nondegenerate in both directions.
+
+This argument applies to any disjoint-support circuit for the same relation,
+not only prefix/suffix sums. It is a reusable phase-frame transfer criterion.
+At $h=26$ the role count is
+\[
+ R_2=\binom{26}{2}(4\cdot24-6)=29250,
+ \qquad R_{\rm side}=R_0+R_2=521206.
+\]
+
+\section{Whole-network composition and accounting}
+All local frames above are tensored with the original future line $Q$.
+The original data boundaries remain
+$A\otimes\langle t\rangle\otimes Q$ to $D_1\otimes Q$ on $X$ and
+$B\otimes\langle t\rangle\otimes Q$ to $Y_t\otimes Q$ on $Y$.
+Their residuals and the original tensor complements have norm-one witnesses
+as in the retained proof. Tensoring nonalternating nondegenerate factors
+preserves a norm-one witness. All new side transitions are increasing.
+Only the $h+1$ centers decrease once per invocation, by dimension $h$.
+Thus $L=3v^2h(h+1)$ is unchanged.
+
+Pair consecutive ground points and put $\pi(T)=\{x\mathbin\oplus1:x\in T\}$.
+This is an involution of triples. A triple with a full ground-point pair
+intersects its image in two points; otherwise the intersection is empty.
+Hence $t_T\perp t_{\pi(T)}$. Match the complete stage-1 auxiliary bank
+at fixed triples $(A,B)$ to the stage-3 bank at $(B,\pi(A))$, preserving
+each local role index. These banks have equal size, the matching is bijective,
+and no simultaneous roles are identified. Each invocation restores arbitrary
+scratch, so its scalar correctness is preserved.
+
+All auxiliary first frames are $D_0\otimes Q$ and all last frames are
+$D_1\otimes Q$. The joining labels are therefore
+\[
+ E=F\otimes\langle t_A\rangle\otimes\langle t_B\rangle,
+ \qquad H=\langle t_B\otimes t_{\pi(A)}\rangle^\perp\otimes F.
+\]
+They are nondegenerate and $E\subset H$. The residual $H\cap E^\perp$
+contains a norm-one coordinate tensor whose second coordinate lies outside
+$A\cup\pi(A)$; such a coordinate exists because $h>6$. Thus the join
+also has an orthonormal residual basis. Replacing the old edges
+$E\to F^{\otimes3}$ and $0\to H$ by $E\to H$ saves exactly $m$
+residual dimensions per removed role and introduces no decrease.
+
+Consequently the entire network has
+\[
+ W=2N+2v^2(R_{\rm side}+h+1),\qquad s=Wm-2N+2L.
+\]
+Forward, inverse, forward stages send $(X,Y)$ to $(-Y,X)$ and restore every
+surviving auxiliary role. Data endpoint labels and all scratch endpoints
+$0,F^{\otimes3}$ are unchanged. The retained weight-27 phase corrections,
+signed-bank correction and return permutation therefore give the same
+$C^{\otimes m}$ operator on every role, for any number of columns. Each
+orthonormal residual contributes precisely its dimension in forward or
+inverse translation kernels. These are the full complex-interface obligations.
+
+At $h=26$,
+\[
+ m=17576,\quad v=2600,\quad N=17576000000,\quad L=14236560000,
+\]
+\[
+ W=7082222160000,\quad s=124477130005280000,
+ \quad Wm-s=6678880000,\quad \eta=\frac{19}{354111108}.
+\]
+Exact logarithm bounds give $\eta>(5/10^9)\log m$, and hence
+$s/W<m^{1-5/10^9}$. Thus this construction supports
+$a_{\rm c}=1-\sigma=5\cdot10^{-9}$. The exact saving is approximately
+$5.48945\cdot10^{-9}$. The finite even-$h$ screen is not an all-$h$ ceiling.
+
+\section{Conditional assembly and precision}
+Keep the published bit saving $a_{\rm b}=296/10^{11}$ and the supplied
+compact-control movement proof. Choose
+\[
+ \epsilon=199/1000,\quad c=1,\quad\beta=1/100,\quad
+ \zeta=1/1000,\quad\delta=1/10000,\quad C_1=4961/1000,
+\]
+\[
+ \lambda=1-293/10^{11},\qquad\lambda'=1-29/10^{10},\qquad
+ \kappa=2^{-31}.
+\]
+Here $\sigma<\tau$, so the internal exponent is $\chi=\tau$.
+The leaf saving is $(1-\beta)a_{\rm c}>a_{\rm b}$ and the reservation
+exponent is zero. The seven retained margins have exact minimum
+\[
+ G_*=\epsilon(1-\lambda')=5771/10^{13}>2^{-31}.
+\]
+All parameter inequalities have strict slack. The compact reserved-axis
+cost is now $O(V\log p)$, and $\epsilon(1+c)<1$ still holds.
+
+The new scalar mixers use only additions, subtractions and half scalings.
+For explicit guard accounting let $M_0=R_0-C$ be the number of additions
+in all disjoint-rectangle mixers per invocation. Each pair circuit has
+$2(3n-6)$ mixer additions. Let $M$ be their combined mixer count, $V_0$
+the number of input-copy incidences, and $J_0$ the output incidences.
+The signed schedule uses at most
+\[
+ T_{\rm scalar}=3v^2(4M+2V_0+4J_0+18v)
+\]
+elementary scalar operations, including half scalings. The exact checker
+verifies $4T_{\rm scalar}+8s+8W+8m<64(W+m+1)^3$ and $2\le s<m^5$.
+Thus the retained additive node charge $E=64(W+m+1)^3$ dominates these
+operations, per-kernel scalar corrections, and fixed endpoint corrections.
+Binary basis changes only
+permute coefficient encodings. The generalized stopped-depth proof applies
+with the new $W,m,s$, $C_1=5-4\beta+\zeta$ and its explicit $C_0$.
+Since $\epsilon C_1<1$, coefficient widths remain $O(p)$.
+
+This conditional construction is integrated in the independent combined
+patch listed below, including the new complex
+constants, generalized guard and final assembly. The previously published
+$2^{-34}$ note and patch remain unchanged.
+Neither the computations nor this note provide independent review or a
+formal verification of the upstream theorem or the new transfer.

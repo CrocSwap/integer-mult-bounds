@@ -1,0 +1,152 @@
+\subsection{Batching a large-rank projector edge}
+\label{sec:projector-batching}
+
+The usual matrix-shear compiler uses one smaller interchange per rank
+unit. For a projector of rank close to the ambient dimension, most of
+these pivot interchanges can instead be one interchange of two
+contiguous longer fields. The construction below does not gather
+separated fields or reverse their digits.
+
+\paragraph{A simultaneous rational change of basis.}
+Let $\mathcal P$ be a fixed finite family of rational idempotents of
+dimension $m$. For $P\in\mathcal P$ with
+$m/2<a:=\operatorname{rank}P<m$, put $r=m-a$. There is one
+$S\in\operatorname{GL}_m(\mathbb Q)$ such that, for every such $P$,
+the submatrix of $SPS^{-1}$ on its first $r$ rows and last $r$ columns
+is invertible.
+
+To prove this, first consider one rank-$a$ idempotent. Every rational
+idempotent is rationally similar to $\operatorname{diag}(I_a,0)$,
+by concatenating rational bases of its image and kernel. Put
+$t=m-2r>0$. On the first and last $r$ coordinates take $r$ disjoint
+rank-one blocks
+\[
+ \frac12\begin{pmatrix}1&1\\1&1\end{pmatrix},
+\]
+pairing coordinate $i$ with $m+1-i$, and take the identity on the middle
+$t$ coordinates. This is a rational rank-$a$ idempotent whose indicated
+corner is invertible. Hence the determinant of that corner of $SPS^{-1}$
+is not the zero rational function of the entries of $S$. Clear powers
+of $\det S$ from its denominator. The product of the resulting nonzero
+polynomials for the finite family, and $\det S$, is nonzero over
+$\mathbb Q$. A nonzero polynomial over the infinite field $\mathbb Q$
+cannot vanish at every rational point. This proves simultaneous existence.
+
+The choice is effective: enumerate integer matrices and retain the first
+invertible one satisfying all the indicated rational determinant tests.
+This search terminates. The family and $m$ are fixed, so this finite
+calculation is part of the fixed-machine preparation. Conjugate every
+terminal and gate matrix by this same $S$. Common gate matrices,
+every edge rank, the scalar circuit, and the endpoint identity are
+preserved, since $SIS^{-1}=I$. The address prime is then chosen after
+this conjugation and the triangular factorizations, avoiding their
+finitely many denominators and invertible diagonal numerators as in the
+original construction.
+
+Only the edges selected for batching need belong to $\mathcal P$.
+All other matrices can continue to use the original rank-by-rank
+compiler. In the present finite network, every selected edge is a
+nonzero scalar multiple of an idempotent: for nested nondegenerate
+labels $U\subset V$,
+\[
+ (P_V-P_U)^2=P_V-P_U,
+\]
+and reversing the edge only changes its sign. Scalar multiples do not
+change the pivot locations and are absorbed into the triangular factors.
+
+\paragraph{The contiguous middle pivots.}
+Let $P^2=P$ have rank $a>m/2$, let $r=m-a>0$, and assume its
+first-$r$-row, last-$r$-column corner is invertible. Split the ordered
+coordinates into
+\[
+ L=[1,r],\qquad M=[r+1,m-r],\qquad R=[m-r+1,m].
+\]
+The complement $Q=I-P$ has rank $r$. Write $Q=UV$, where $U$ has
+$r$ columns, $V$ has $r$ rows, and $VU=I_r$. Such a factorization
+comes from a basis of $\operatorname{im}Q$. As $L$ and $R$ are disjoint,
+\[
+ P_{L,R}=-U_LV_R.
+\]
+Its invertibility makes both square matrices $U_L,V_R$ invertible.
+
+Run the lower-lower elimination in the retained physical order. Its
+first $r$ pivots occupy the rows $L$ and the columns $R$, in some
+permutation. Indeed their corner is invertible, so at each of these
+steps the next row has a nonzero entry in an as-yet active column of
+$R$, which precedes all other candidates in the rightmost-pivot rule.
+The active Schur complement on rows $M\cup R$ and columns $L\cup M$
+has middle block
+\begin{align*}
+ P_{M,M}-P_{M,R}P_{L,R}^{-1}P_{L,M}
+ &=I-U_MV_M
+   -(-U_MV_R)(-V_R^{-1}U_L^{-1})(-U_LV_M)\\
+ &=I_{m-2r}.
+\end{align*}
+Thus the next $m-2r$ pivots are precisely the diagonal positions
+$(i,i)$ with $i\in M$. Columns $L$ lie to their left and are cleared
+by the allowed lower-triangular column operations. The remaining
+block has rank zero, because the number of isolated pivots is already
+$r+(m-2r)=m-r=a$.
+
+Consequently the factorization $P=E_1\Pi E_2$, with $E_1,E_2$
+invertible lower triangular, has exactly $r$ corner pivots and one
+contiguous identity block of size
+\[
+ t=m-2r=2a-m.
+\]
+The same conclusion holds for $cP$ with any fixed nonzero rational $c$.
+No assertion that an arbitrary rank-$a$ matrix has this pivot profile
+is needed; the idempotent identity is what makes the middle block
+exactly an identity matrix.
+
+\paragraph{One call for the identity block.}
+Subdivide each original contiguous chunk into $m$ consecutive fields
+of width $b$. The triangular factors still cost $O(V)$ in the retained
+later-field affine primitive. Each of the $r$ corner pivots uses one
+ordinary width-$b$ interchange. For all $i\in M$ together, perform
+\[
+ D_i\leftarrow D_i+H_i,
+ \qquad
+ (H_M,D_M)\leftarrow(D_M,H_M),
+ \qquad
+ D_i\leftarrow H_i-D_i,
+\]
+over $\mathbb Z/q^b\mathbb Z$.
+The first and last maps are coordinatewise later-field updates, each
+using a fixed number of linear scans. The middle map is a single
+interchange of the two contiguous width-$tb$ chunks $H_M,D_M$.
+It preserves the order of their $b$-digit fields and hence implements
+all diagonal pivots exactly. The intervening fields are spectators.
+In particular, addition is componentwise modulo $q^b$, not addition
+with carries across the concatenated width-$tb$ chunks.
+
+The edge cost therefore has $r$ recursive calls of width $b$ and one
+of width $tb$, in place of $a$ calls of width $b$, with the same
+$O(V)$ nonrecursive work. If $a=m$, one may leave the edge in its
+original $m$-singleton form. This avoids any same-width recursion.
+For every batched edge in this paragraph, $0<t\le m-2$, so every
+child contracts its width by a fixed factor less than one.
+
+\paragraph{The resulting characteristic expression.}
+Let $\mathcal B$ be the selected large-rank projector edges, let
+$r_e=m-a_e$ and $t_e=m-2r_e$ for $e\in\mathcal B$, and retain the
+total rank sum $s$. For an exponent $0<\tau<1$, the volume-weighted
+recursive contribution is
+\begin{equation}\label{eq:batched-characteristic}
+ \mathcal C(\tau)
+ =\frac1W\left[
+   \left(s-\sum_{e\in\mathcal B}t_e\right)m^{-\tau}
+   +\sum_{e\in\mathcal B}\left(\frac{t_e}{m}\right)^\tau
+   \right].
+\end{equation}
+At $\tau=1$ this is exactly $s/(Wm)$: batching preserves the existing
+rank deficit. The strict inequality $\mathcal C(\tau)<1$ is the
+new time-exponent comparison. It uses only the original rank sum and
+the count of selected ranks; no complete edge-rank histogram is needed.
+Non-power widths use equal fields of width $\lfloor e/m\rfloor$,
+at most $m-1$ separately handled high digits, and the same fixed-tape
+row recursion. With sufficient rows the nonrecursive work is $O(V)$,
+so the usual strong induction gives $O(Ve^\tau)$ whenever
+\eqref{eq:batched-characteristic} is strict. The separate row and
+arbitrary-width construction specifies this rounding step and removes
+the initial row divisibility restriction.

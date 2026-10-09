@@ -1,0 +1,93 @@
+--- PR107/research/reversed-rational-centers/producer.py
++++ selected/pairtree_producer.py
+@@ -96,20 +96,27 @@
+         assert ranks[node]==h-1
+     for a,b in combinations(range(h),2):
+         others=[i for i in range(h) if i not in (a,b)]
+-        others.sort(key=lambda i:((i^1) in (a,b),-i))
+-        pre=[0]
+-        for i in others:pre.append(add(pre[-1],inputs[tuple(sorted((a,b,i)))]))
+-        suf=[0]*(len(others)+1)
+-        for j in range(len(others)-1,-1,-1):suf[j]=add(inputs[tuple(sorted((a,b,others[j])))],suf[j+1])
+-        for j,i in enumerate(others):
+-            node=add(pre[j],suf[j+1])
++        others.sort(key=lambda i:((i^1) in (a,b),i))
++        vals=[inputs[tuple(sorted((a,b,i)))] for i in others]
++        def node_tree(xs):
++            if len(xs)==1:return (xs[0],None,None)
++            split=1 << ((len(xs)-1).bit_length()-1)
++            left=node_tree(xs[:split]);right=node_tree(xs[split:])
++            return (add(left[0],right[0]),left,right)
++        tree=node_tree(vals);exclusions=[]
++        def emit(tree,outside):
++            root,left,right=tree
++            if left is None:exclusions.append(outside);return
++            emit(left,add(outside,right[0]));emit(right,add(outside,left[0]))
++        emit(tree,0)
++        for i,node in zip(others,exclusions):
+             roots.append(node);kind.append(0)
+             pair_outputs[a,b,i]=node
+             assert support[node] == point_masks[a]&point_masks[b]&~point_masks[i]
+             assert types[node]==1
+             assert not support[node]&(point_masks[a]^point_masks[b]^point_masks[i])
+-        pairtotals[a,b]=pre[-1]
+-        assert support[pre[-1]] == point_masks[a]&point_masks[b]
++        pairtotals[a,b]=tree[0]
++        assert support[tree[0]] == point_masks[a]&point_masks[b]
+     for a in range(d,h):
+         root=total([pairtotals[tuple(sorted((a,b)))] for b in range(h) if b!=a],center=a)
+         assert center_coeff[root] == 2*packed(point_masks[a]), "Center coefficients must be exactly doubled"
+--- PR107/scripts/endpoint_gauge/match_complex_general.cpp
++++ selected/weighted_matching_dump.cpp
+@@ -9,7 +9,7 @@
+ #include <vector>
+ using U=uint32_t;using V=uint64_t;
+ #include "../partial_swap/binary_io.hpp"
+-int main(int argc,char**argv){assert(argc==3);std::ifstream f(argv[1],std::ios::binary);U hdr[4];read_array(f,hdr);U h=hdr[0],v=hdr[1],n=hdr[2],q=hdr[3];assert(h>=6&&h<64&&h%2==0);
++int main(int argc,char**argv){assert(argc==4);std::ifstream f(argv[1],std::ios::binary);U hdr[4];read_array(f,hdr);U h=hdr[0],v=hdr[1],n=hdr[2],q=hdr[3];assert(h>=6&&h<64&&h%2==0);
+ std::vector<std::array<U,2>>args(n);std::vector<V>core(n),cover(n);std::vector<U>roots(q),kind(q);std::vector<uint8_t>active(n);readv(f,args);readv(f,core);readv(f,cover);readv(f,roots);readv(f,kind);readv(f,active);
+ std::vector<U>ranks(n),degree(n),begin(n+1);V c=0,inputs=0,loss=0;
+ for(U x=1;x<n;x++)if(active[x]){if(args[x][0]){c++;assert(args[x][0]<x&&args[x][1]<x);ranks[x]=popcount64(cover[x])-popcount64(core[x]);for(U y:args[x])degree[y]++;}else{ranks[x]=1;inputs++;}}
+@@ -31,10 +31,42 @@
+ std::vector<U>leftmatch(n),rightmatch(uses.size()),distance(n,UINT32_MAX),queue;V matches=0;U phase=0,inf=UINT32_MAX,shortest=inf;
+ while(true){queue.clear();shortest=inf;for(U x:donors){if(!leftmatch[x]){distance[x]=0;queue.push_back(x);}else distance[x]=inf;}for(U at=0;at<queue.size();at++){U x=queue[at];if(distance[x]>=shortest)continue;adjacency(x,[&](U j){U y=rightmatch[j];if(!y)shortest=distance[x]+1;else if(distance[y]==inf){distance[y]=distance[x]+1;queue.push_back(y);}return false;});}if(shortest==inf)break;
+ auto aug=[&](auto&&self,U x)->bool{bool ok=adjacency(x,[&](U j){U y=rightmatch[j];if((!y&&distance[x]+1==shortest)||(y&&distance[y]==distance[x]+1&&self(self,y))){leftmatch[x]=j+1;rightmatch[j]=x;return true;}return false;});if(!ok)distance[x]=inf;return ok;};V gained=0;for(U x:donors)if(!leftmatch[x]&&aug(aug,x)){matches++;gained++;}std::cerr<<"h="<<h<<" phase "<<++phase<<" length "<<shortest<<" gained "<<gained<<" total "<<matches<<"\n";assert(gained);}
++
++// Fixed literal integer prices select a legal witness only. Every accepted
++// edit preserves matching cardinality; the full integer histogram follows.
++assert(h==24); const int64_t prices[]={0,496535241,884750065,1232084102,1552871023,1853918153,2139234832,2411470255,2672507285,2923753724,3166302293,3401025926,3628638102,3849732930,4064812814,4274308189,4478591954,4677990301,4872790971,5063249681,5249595190,5432033350,5610750384,5785915566,5957683435}; auto cost=[&](U r){return prices[r];};
++auto profit=[&](U donor,U j){U e=uses[j],target=nd(e),value=e>>31?target:args[target][e&1];U ru=ranks[donor],rv=ranks[value],rt=ranks[target];assert(rt>=ru&&ru>=rv);return cost(h-ru)+cost(rv)+cost(rt-rv)-cost(rt-ru);};
++auto legal=[&](U donor,U j){U e=uses[j],target=nd(e),value=e>>31?target:args[target][e&1];return(value==args[donor][0]||value==args[donor][1])&&before(donor*2,e)&&incl(donor*2,e);};
++for(U pass=0;pass<3;pass++){
++ U exchanged=0;int64_t gain=0;
++ for(U x:donors){
++  U old=leftmatch[x];
++  adjacency(x,[&](U j){
++   U y=rightmatch[j];if(y==x)return false;
++   if(!old){
++    assert(y);int64_t delta=profit(x,j)-profit(y,j);
++    if(delta>10){leftmatch[x]=j+1;leftmatch[y]=0;rightmatch[j]=x;gain+=delta;exchanged++;return true;}
++   }else if(!y){
++    int64_t delta=profit(x,j)-profit(x,old-1);
++    if(delta>10){rightmatch[old-1]=0;rightmatch[j]=x;leftmatch[x]=j+1;gain+=delta;exchanged++;return true;}
++   }else if(legal(y,old-1)){
++    int64_t delta=profit(x,j)+profit(y,old-1)-profit(x,old-1)-profit(y,j);
++    if(delta>10){leftmatch[x]=j+1;leftmatch[y]=old;rightmatch[j]=x;rightmatch[old-1]=y;gain+=delta;exchanged++;return true;}
++   }
++   return false;
++  });
++ }
++ std::cerr<<"weighted pass "<<pass<<" exchanges "<<exchanged<<" excess gain "<<gain<<"\n";
++ if(!exchanged)break;
++}
++V count_check=0;for(U donor:donors)if(leftmatch[donor]){count_check++;assert(rightmatch[leftmatch[donor]-1]==donor&&legal(donor,leftmatch[donor]-1));}assert(count_check==matches);
++
+ std::vector<int64_t>hist(h+1);for(U x=1;x<n;x++)if(active[x]){assert(degree[x]);U r=ranks[x];if(args[x][0]){hist[r]+=degree[x]-1;hist[h-r]++;for(U y:args[x]){assert(r>=ranks[y]);hist[r-ranks[y]]++;}}else hist[1]+=degree[x];}
+ for(U j=0;j<q;j++){U r=ranks[roots[j]];if(kind[j]){hist[r]++;hist[h]++;loss+=r;}else{assert(r<=h-1);hist[h-1-r]++;hist[1]++;}}
+ V changed=0;for(U donor:donors)if(leftmatch[donor]){U e=uses[leftmatch[donor]-1],target=nd(e),value=e>>31?target:args[target][e&1];assert(value==args[donor][0]||value==args[donor][1]);if(value==args[donor][0])changed++;U ru=ranks[donor],rv=ranks[value],rt=ranks[target];assert(rt>=ru&&ru>=rv);hist[h-ru]--;hist[rv]--;hist[rt-rv]--;hist[rt-ru]++;}
+ V R=c+q-matches,sum=0;for(U r=0;r<=h;r++){assert(hist[r]>=0);sum+=r*hist[r];}assert(sum==h*R+2*loss);
+ 
++std::ofstream dump(argv[3],std::ios::binary);U count=matches;dump.write((char*)&count,4);
++for(U donor:donors)if(leftmatch[donor]){U e=uses[leftmatch[donor]-1];dump.write((char*)&donor,4);dump.write((char*)&e,4);}assert(dump);
+ std::cout<<"{\"h\":"<<h<<",\"v\":"<<v<<",\"c\":"<<c<<",\"q\":"<<q<<",\"baseline_R\":"<<c+q<<",\"matched\":"<<matches<<",\"R\":"<<R<<",\"orientation_changes\":"<<changed<<",\"rank_sum\":"<<sum<<",\"loss\":"<<loss<<",\"histogram\":[";for(U r=0;r<=h;r++){if(r)std::cout<<",";std::cout<<hist[r];}std::cout<<"]}"<<std::endl;
+ }
