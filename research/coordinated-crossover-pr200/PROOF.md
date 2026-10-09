@@ -1,6 +1,6 @@
 # Executable proof map
 
-The conditional claim is κ = 6.94726300537215e-4, exactly `138945260107443/200000000000000000`. The inherited all-width supplier, restored selector, source-line, routing, analytic fixed-tape and finite bridge conditions remain assumptions.
+The conditional claim is κ = 6.9473148015849e-4, exactly `69473148015849/100000000000000000`. The inherited all-width supplier, restored selector, source-line, routing, analytic fixed-tape and finite bridge conditions remain assumptions.
 
 1. `joint/replay_joint.py` admits the retained 82-gauge frame word, terminal actions, both integer signs, dirty restoration and prime witnesses.
 2. `borrow/replay.py` executes the actual modified word. The 440 original-source aliases replace physical dirty slots; initial copies are omitted, adjoints recomputed, partner mixes advanced and inverse mixes postponed until source restoration. Every one of 20194 formal columns is checked over F2 and both defining integer signs. All source and dirty columns are restored. Three source-reuse mutations are rejected, and every gauge adjoint is independently unchanged.
@@ -9,3 +9,5 @@ The conditional claim is κ = 6.94726300537215e-4, exactly `138945260107443/2000
 5. Replay the frozen exact complex local lift and contract. Check both independent rational paid moments including the bad-class fallback, four finite ordinary-leaf levels, and all 47 strict assembly inequalities. Reject the adjacent final grid point.
 
 The full immutable offline entry point is `verify.py`. `verify_inner.py` compares the derived exact assembly with `certificate.json`. `SOURCE-BORROWING.md` and `JOINT-GAUGES.md` explain the physical construction. The top-level standalone `arithmetic.py` is retained historical material.
+
+The final frame word also admits 117 operation-basis replacements selected from 17 compatible connected components of PR216 at `34abdc58ed77329c8bf9af5634531fc41939ba3c`. `CUT-COMPONENTS.md` records the exact physical delta and provenance. The complete scalar, prime, borrowed-source and paid-profile checks run on this composed word.
