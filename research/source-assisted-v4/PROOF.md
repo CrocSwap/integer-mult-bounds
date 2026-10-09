@@ -2,11 +2,11 @@
 
 ## Claim
 
-Under PR184's retained interfaces, T(n) = O(n (log n)^(1−κ)) with
+Under the retained interfaces, T(n) = O(n (log n)^(1−κ)) with
 
-    κ = 103873/156250000 = 0.0006647872.
+    κ = 1668581/2500000000 = 0.0006674324.
 
-The complex saving is b = 219037/312500000 = 0.0007009184, on PR184's 10^-10 selection grid. PR184's effective bit saving 1663073692132636741/(25·10^20) ≈ 0.00066522948 is smaller, so the bit supplier binds. The previous record, PR186, has κ = 0.000661885549259598, and the gain is about 0.438%. The gain over PR191 (κ = 0.0006626307) is about 0.325%.
+The complex saving is b = 219037/312500000 = 0.0007009184, on PR184's 10^-10 selection grid. The bit supplier is PR189's face-diagonal bit word. PR184's pricing gives it the coarse saving 6682989/10^10 and the effective saving 133575648846809489/(2·10^20) ≈ 0.00066787824. The bit side binds. The previous record, PR186, has κ = 0.000661885549259598, and the gain is about 0.838%. The gain over PR193 (κ = 0.0006647872) is about 0.398%.
 
 ## What changes
 
@@ -20,6 +20,12 @@ It also changes the donor/recipient pairs. PR184 pairs each live gauge (recipien
 
 The old word that supplies the inherited frames is PR168 v4's own complex word: the producer cache and `references/paired-cube/physical/frames.json`. PR184's code transports the old matching arcs and the old preferred operation frames to the new local word, clips each frame to its exact future cap, and closes the frames forward. It then matches donors to recipients and checks the physical layer with the original `paired_cube_physical.physical()`.
 
+## Bit supplier
+
+PR189 (chafreaky) builds a PR168 v4 bit word whose sums A[2,0] and A[2,1] come from the two face diagonals. It regenerates the carrier matching, the gauges and a physical layer, and it deletes 34 terminal sinks. Its own `verify.py` checks every formal column over F2, the frames, the aliases, the sinks and the paid moment, and it reproduces `research/paired-cube-twin-local-168/certificate.json`. That certificate gives the profile R = 17,554, W = 21,074, rank mass 1,515,392, deficit 1,936 and largest child 60.
+
+`assemble.py` reads this profile and prices it with PR184's `select()`: the bad-row allowance 10^-16 with fallback 32 m^2 per edge, the coarse saving on the 10^-10 grid, the least payable atom exponent on the 10^-12 grid, and the ordinary leaf saving 384599/10^10. It checks that this coarse value does not exceed PR189's own 10^-18 certificate value. PR184's finite bridge needs only m ≤ 72, W < 10^7 and the uniform bit interface, which PR189's word shares with PR168 v4. PR184's `assemble()` then runs the unchanged balanced assembly: 47 strict constraints and seven margins.
+
 ## Checks
 
 `verify.py` runs these steps:
@@ -29,10 +35,10 @@ The old word that supplies the inherited frames is PR168 v4's own complex word: 
 3. PR184's `complex_frame_flow.py` prices the equal-frame flow with source-donor purification enabled and the frozen kernel reuse pairs in `data/kernel-pairs.json` (an empty list for these pairs).
 4. PR184's `exact_complex_flow_lift.py` builds exact rational local lifts and inverse gate programs. It verifies the monotone flow and the zero-fresh kernel reuse DAG.
 5. `contract_v4.py` runs PR184's contract validation unchanged: all fresh columns equal the identity over the integers, source controls sit at paid parity frames, original V injections precede all controls, controls precede K, centers finish in phase 1, target cap reads occur in phase 2, and target chains nest. It recounts the complete child histogram.
-6. PR184's `assemble_profiles.py` certifies the complex and bit moments with rational enclosures, applies the finite bridge, and checks all 47 strict constraints and seven margins.
+6. `assemble.py` checks the complex half of PR184's construction receipts, certifies the complex and bit moments with PR184's rational enclosures, applies PR184's finite bridge, and checks all 47 strict constraints and seven margins. PR189's `verify.py` separately regenerates the bit certificate.
 
-The bit supplier binds: PR184's effective bit saving is below the complex saving. A stronger bit supplier would raise κ further, up to the complex saving.
+The bit supplier binds: PR189's effective bit saving is below the complex saving. A stronger bit supplier would raise κ further, up to the complex saving.
 
 ## Scope
 
-The validation scope is PR184's. The exact lift and the contract checks establish the local maps and the flow ledger. A globally renumbered scalar transcript of the new complex word is not exported, and no full Clifford/router replay is done. The bit supplier is PR184's, with PR184's stated scope. The analytic, recursion, precision, weighted frame, fixed-tape routing, restored-row and all-size semantic interfaces are retained assumptions, as in PR184. This is a conditional finite witness, not a global optimum.
+The validation scope is PR184's. The exact lift and the contract checks establish the local maps and the flow ledger. A globally renumbered scalar transcript of the new complex word is not exported, and no full Clifford/router replay is done. The bit supplier is PR189's, with PR189's stated scope. The analytic, recursion, precision, weighted frame, fixed-tape routing, restored-row and all-size semantic interfaces are retained assumptions, as in PR184. This is a conditional finite witness, not a global optimum.

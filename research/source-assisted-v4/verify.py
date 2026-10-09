@@ -29,6 +29,7 @@ SA = REPO / 'research/source-assisted'
 WORK = PKG / '.work'
 PR186_KAPPA = Q(330942774629799, 500000000000000000)
 PR191_KAPPA = Q(6626307, 10**10)
+PR193_KAPPA = Q(103873, 156250000)
 PR184_COMPLEX = Q(25667, 39062500)
 
 
@@ -113,15 +114,14 @@ def build():
             '--flow-profile', flow, '--lift-profile', lift, '--out', profile)
         profile_data = strip(profile)
         assembled = WORK / 'global.json'
-        run(SA / 'global/assemble_profiles.py', '--complex', profile,
-            '--bit', SA / 'bit/source_aligned_profile.json', '--source', REPO, '--output', assembled)
+        run(PKG / 'assemble.py', '--complex', profile, '--output', assembled)
         final = read(assembled)
         for branch in ('complex', 'bit'):
             final[branch].pop('numerical_root_for_discovery_only', None)
         kappa = Q(final['kappa'])
         complex_saving = Q(final['complex']['saving'])
         bit_saving = Q(final['bit']['effective_saving'])
-        assert kappa > PR191_KAPPA > PR186_KAPPA, 'No gain over PR191'
+        assert kappa > PR193_KAPPA > PR191_KAPPA > PR186_KAPPA, 'No gain over PR193'
         for name, check in profile_data['contract_checks'].items():
             assert check is not False, name
         return canon(dict(
@@ -132,11 +132,12 @@ def build():
             binding_supplier='bit' if bit_saving < complex_saving else 'complex',
             gain_over_pr186=str(kappa / PR186_KAPPA - 1),
             gain_over_pr191=str(kappa / PR191_KAPPA - 1),
+            gain_over_pr193=str(kappa / PR193_KAPPA - 1),
             complex_gain_over_pr184=str(complex_saving / PR184_COMPLEX - 1),
             witness_sha256=sha(witness),
             lift_certificate_sha256=sha(lift.with_suffix('.certificate.json.gz')),
             flow=flow_data, lift=lift_data, complex_profile=profile_data, assembly=final,
-            scope='PR184 contract, finite bridge and bit supplier unchanged; the complex supplier is '
+            scope='PR184 contract and finite bridge unchanged; the bit supplier is PR189 (verified by its own verify.py); the complex supplier is '
                   "PR184's source-parity local word and frame flow on PR168 v4's query modules and physical layer, "
                   'with donor/recipient pairs that avoid parity purification. '
                   'No new flattened bit transcript or full Clifford/router replay, as in PR184.'))
