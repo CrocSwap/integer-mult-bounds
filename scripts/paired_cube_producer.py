@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 import sys
 from paired_cube.graph import Graph
-from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one
+from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one, restricted_triples_from, restricted_pairs_from
 from paired_cube.frames import compile_graph
 from paired_cube.gauges import select
 from paired_cube.verify import verify
@@ -33,7 +33,10 @@ def regenerate(expected,work=None):
     frozen=reference/'matching-arcs.json'
     assert hashlib.sha256(frozen.read_bytes()).hexdigest()==pin['matching_arcs_sha256']
     stage('Regenerating paired-cube signed DAG from inherited PR117 restrictions')
-    g=Graph(12).finish(restricted_triples(12),restricted_pairs(11),all_but_one(10))
+    src=ROOT/'references/paired-cube/sources'
+    srcpin=json.loads((src/'SOURCE.json').read_text())['files']
+    for name,digest in srcpin.items():assert hashlib.sha256((src/name).read_bytes()).hexdigest()==digest
+    g=Graph(11).finish(restricted_triples_from(src/'h20_g1.json.gz',[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 16]),restricted_pairs_from(src/'h18_c2.json.gz',[2, 3, 8, 9, 10, 11, 12, 13, 14, 15],17,16),all_but_one(9))
     g['matching_frames']='coordinate'
     binding={k:g[k] for k in ('inputs','labels','args','signs','roots','centers')}
     assert hashlib.sha256(json.dumps(binding,separators=(',',':')).encode()).hexdigest()==pin['graph_sha256']
