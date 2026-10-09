@@ -16,7 +16,7 @@ python research/saturated-balanced/verify.py --full
 make verify
 ```
 
-Validation status: focused integration PASSED in 62.701 seconds, including both parent physical ledgers, PR99 exact review, the fresh candidate forward/reflected ledger, exact arithmetic and six controls. Repository-wide rerun pending. Independent pre-integration PR99 full checks passed in 231.150 seconds and PR97 candidate ledger replay passed in 12.414 seconds; these are preserved as prior evidence and do not substitute for the new committed-package checks.
+Validation status: focused integration PASSED in 62.701 seconds, including both parent physical ledgers, PR99 exact review, the fresh candidate forward/reflected ledger, exact arithmetic and six controls. Full verification PASSED on `01c39ee9bdc9da298f68e8a424bb2a8ad5574d73` in 3612.794 seconds, completed 2026-10-09T00:10:56.566581+00:00. This includes `make -j1 verify`, all 78 isolated test modules, the explicit package replay and controls listed in [validation.json](validation.json), with no source drift. All 45 research-head GitHub checks passed. Independent pre-integration PR99 full checks passed in 231.150 seconds and PR97 candidate ledger replay passed in 12.414 seconds; these are preserved as prior evidence and do not substitute for the new committed-package checks.
 
 See [PROOF.md](PROOF.md) for the extension and inherited assumptions. All-size ordered-frame compilation, exact routing/recovery, scalar control and the analytic fixed-alphabet/tape transfer remain conditional. No new formal Lean theorem, global optimum or measured runtime gain is claimed.
 
