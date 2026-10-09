@@ -7,6 +7,7 @@ assembly of the RaD interfaces. Integration for eumemic with OpenAI Codex
 assistance. Apache-2.0. General transfer hypotheses remain inherited.
 """
 import argparse
+from unit_readouts import MAX_PIECES
 import json
 import sys
 from fractions import Fraction as Q
@@ -56,8 +57,10 @@ def exact(bit=None, phase=None):
     # <=R+q readouts, each containing <=h center coefficients and <=v direct
     # coefficients; <=4*v*(h+1) scalar groups suffice per readout. A factor
     # eight covers forward/inverse words, both reflected words, and copies.
+    # Multiply the entire bound by MAX_PIECES to pay for splitting coefficients
+    # such as 55/42 into 1 + 13/42; audit.py verifies every split exactly.
     h,v,R,q,c = (phase[k] for k in ('h','v','R','roots','additions'))
-    local = 8*(c+2*R+(R+q)*v*(h+1)+h*h+h+1)
+    local = MAX_PIECES*8*(c+2*R+(R+q)*v*(h+1)+h*h+h+1)
     G = phase['N'] + 2*v*local
     m,W,s = (phase[k] for k in ('m','W','total_rank'))
     E=64*(W+m+G+1)**3
@@ -66,7 +69,7 @@ def exact(bit=None, phase=None):
     assert charge<E and 2*B*(m-phase['maxchild']) >= s+E and 2*B+18<C0
     bridge['complex']['scalar_group_upper']=G
     bridge['complex']['scalar_terms']=[dict(h=h,v=v,c=c,R=R,q=q,invocations=v,
-        local_group_upper=local,description='Expanded deferred readouts and forward/inverse/reflected words')]*2
+        local_group_upper=local,maximum_unit_pieces=MAX_PIECES,description='Expanded readouts split into unit-magnitude shears; forward/inverse/reflected words')]*2
     bridge['semantic'].update(E=E,literal_charge=charge,strict_literal_gap=E-charge,
         B=B,C0=C0,C1=1,induction_gap=2*B*(m-phase['maxchild'])-s-E,
         fixed_odd_divisor=21,exact_grid='2^(-P)*21^(-K), K=G*(D_complex+1); completed children preserve incoming odd denominator; no child rounding')
