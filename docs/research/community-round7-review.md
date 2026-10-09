@@ -8,7 +8,7 @@ based on main `d1d6c070f5a8c684727ee7ec35d930f9ebfa9758`.
 
 ## Selected composition
 
-The candidate is **κ = 94428617/200000000000 = 0.000472143085**,
+The candidate is **κ = 472154791/1000000000000 = 0.000472154791**,
 about 2.44% above the preceding `0.0004609169`. It composes:
 
 | PR | Author | Pinned head | Contribution |
@@ -16,9 +16,10 @@ about 2.44% above the preceding `0.0004609169`. It composes:
 | #147 | William Porter / hpst3r | `29383a28d96b9880edbe59ed930f1da1dd6fdfa6` | 1,549 terminal accumulators eliminated |
 | #150 | DaysSky | `40d4038760ebb6d6d3d702ce88fa3645de29f0c1` | Delayed reads and 3,338 physical register handoffs |
 | #146 | Thomas Marchand / Th0rgal | `70355a3192028852598e96624ae29b389e664451` | 187 additional selected gauges |
+| #151 | SovereignSteak | `5a46ac37ae2e2f8f75637cb2cf6b9d0b36afc436` | Parallel identical gauge/recycling composition; atom 473/10^6 |
 | #148 | Rohan Gupta / gupt1156 | `975c3cf5d4ee0c90d5a76500d431bfc59102bb72` | Atom exponent reduced to 1/2000 |
 
-The #147/#150 histories are retained as merge ancestors. #146/#148 are
+The #147/#150/#151 histories are retained as merge ancestors. #146/#148 are
 selectively composed, with source heads, original selection bytes and credit
 in the [source manifest](../../research/recycled-bit-integration/SOURCE.json).
 Their old root documents and mutually incompatible selected certificates are
@@ -29,6 +30,14 @@ terminal elimination are explicit dependencies. All #144, #130, #128, #117,
 #97, Swapnil Jain and earlier framework credits remain applicable. The
 [notice](../../research/recycled-bit-integration/NOTICE) distinguishes direct
 contributions, inherited mechanisms and integration work.
+
+The initially checked composition used atom 1/2000 and gave
+0.000472143085. #151 arrived during the review, independently supplying the
+same finite row and physical plan plus the tighter atom choice. Its complete
+scalar and exact arithmetic checks pass; the existing full rational-frame
+check applies to the identical word. Both parallel gauge contributions are
+credited. The original 106-PR snapshot remains immutable; #151 is separately
+recorded as the sole late addition to this review batch.
 
 ## Mathematical review
 
@@ -63,7 +72,7 @@ rank mass is 1,896,925 in dimension 69; W is 27,521 and deficit is 2,024.
 The largest child is 60. The old dimension-69 row reserve remains conservative.
 The complex supplier, full router and semantic precision guard are unchanged.
 
-The #148 atom setting passes both strict subordinate-adapter inequalities on
+The #148 atom setting and #151’s tighter 473/10^6 setting pass both strict subordinate-adapter inequalities on
 the composed profile. All 47 final inequalities and seven margins must pass
 with the full effective bit saving. Adjacent-grid exclusion is specific to
 this profile and parameter choice. In particular #146's min-cut optimality

@@ -1,6 +1,6 @@
 # Selected construction in this checkout: recycled bit registers
 
-The selected conditional witness is **κ=94428617/200000000000=0.000472143085**,
+The selected conditional witness is **κ=472154791/1000000000000=0.000472154791**,
 composing #147, #150, #146 and #148 on #144. This improves the preceding
 paired-cube checkpoint by about 2.44%. Main publication is a separate action;
 the integration review and CI receipt identify the tested branch and head.

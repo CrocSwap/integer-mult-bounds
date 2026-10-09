@@ -1,10 +1,16 @@
 # Composed bit-register witness
 
 This package composes #147's terminal elimination, #150's delayed dirty-read
-register reuse, #146's gauge subset, and #148's atom exponent. It retains
+register reuse, #146's gauge subset, and the #148/#151 atom refinement. It retains
 #144's complex construction and all its stated transfer hypotheses. The
-candidate is `kappa = 94428617/200000000000 = 0.000472143085`.
+candidate is `kappa = 472154791/1000000000000 = 0.000472154791`.
 Source heads and attribution are pinned in SOURCE.json and NOTICE.
+
+SovereignSteak’s #151 independently supplies the same finite plan and row,
+verified equal here (allowing only the irrelevant ordering of the retained
+slot list). Its further atom tightening improves the initial 1/2000
+composition, which gave 0.000472143085. This is a parallel contribution;
+no priority for the gauge composition is claimed.
 
 ## Complete operation and composition
 
@@ -59,7 +65,7 @@ unrecycled inverse order. The changed rational frames add only finitely
 many bad primes, which the retained fixed-prime choice must avoid.
 
 The exact characteristic includes the entire retained rare-class fallback.
-The atom exponent is 1/2000; the effective bit saving is the convex
+The atom exponent is 473/10^6; the effective bit saving is the convex
 combination of the new coarse saving and the retained ordinary-leaf saving.
 The verifier checks both strict atom inequalities, the unchanged complex
 supplier, all 47 assembly constraints and all seven margins. The existing

@@ -29,8 +29,8 @@ import price147
 from frames147 import Exact
 import paired_cube_network as pcn
 
-ATOM = Q(1, 2000)
-KAPPA = Q(94428617, 200000000000)
+ATOM = Q(473, 10**6)
+KAPPA = Q(472154791, 10**12)
 START = time.monotonic()
 
 def log(message):
@@ -44,6 +44,7 @@ def sources():
                                'selection146.json', 'plan.json', 'row.json')]
     paths += sorted((ROOT / 'research/bit-reuse-147').glob('*.py'))
     paths += [ROOT / 'research/bit-reuse-147' / n for n in ('plan.json', 'row.json', 'PROOF.md')]
+    paths += [ROOT / 'research/gauge-recycling' / n for n in ('README.md', 'verify.py', 'plan.json', 'row.json')]
     paths += [ROOT / 'research/bit-elim-144/plan.json',
               ROOT / 'scripts/paired_cube_network.py', ROOT / 'scripts/paired_cube_bit.py',
               ROOT / 'scripts/structured_bulk_assembly.py', ROOT / 'scripts/three_stage_cover_network.py',
@@ -83,6 +84,10 @@ def main():
     led = word.ledger()
     row = word.row(led, record)
     assert row == read(HERE / 'row.json')
+    parallel = read(ROOT / 'research/gauge-recycling/plan.json')
+    assert plan['elim'] == parallel['elim'] and plan['pairs'] == parallel['pairs']
+    assert set(plan['retained']) == set(parallel['retained'])
+    assert row == read(ROOT / 'research/gauge-recycling/row.json')
     assert (row['R'], row['W_per_vertex'], row['rank_per_vertex'], row['deficit_per_vertex']) == (23979, 27521, 1896925, 2024)
     old = word147.Word(S, base['elim'], base['retained'], base['pairs'])
     old_led = old.ledger()

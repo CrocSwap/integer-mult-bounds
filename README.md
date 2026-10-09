@@ -13,13 +13,15 @@ icekylinx's #144 construction, gives the conditional witness
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{94428617}{200000000000}=4.72143085\times10^{-4}.
+\kappa=\frac{472154791}{1000000000000}=4.72154791\times10^{-4}.
 $$
 
 William Porter (hpst3r) eliminates unused terminal accumulators; DaysSky
 schedules dirty reads later and reuses dead bit registers. Thomas Marchand
 (Th0rgal) contributes the selected gauge subset and Rohan Gupta (gupt1156)
-the tighter stopping parameter. The composition retains the actual complete
+the tighter stopping parameter. SovereignSteak's [#151](https://github.com/CrocSwap/integer-mult-bounds/pull/151)
+independently composes the same gauge refinement and recycling, and supplies
+the further atom tightening used here. The composition retains the actual complete
 word, exact restoration and every frame transition. James Chang's compensated
 birth-read reuse and SovereignSteak's terminal-elimination mechanism are
 explicit dependencies. All prior construction and framework credits remain.

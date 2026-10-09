@@ -28,7 +28,8 @@ class RecycledBitControls(unittest.TestCase):
 
     def test_optimized_entry_points_reject_before_verification(self):
         for path in ('research/recycled-bit-integration/verify.py',
-                     'research/bit-reuse-147/verify.py', 'research/bit-elim-144/verify.py'):
+                     'research/bit-reuse-147/verify.py', 'research/bit-elim-144/verify.py',
+                     'research/gauge-recycling/verify.py'):
             for flags, opt in ((['-O'], ''), (['-OO'], ''), ([], '1')):
                 with self.subTest(path=path, flags=flags, opt=opt):
                     env = dict(os.environ, PYTHONOPTIMIZE=opt)

@@ -115,6 +115,10 @@ Snapshot: 106 open PRs (16 drafts), 2026-10-09. References below are author-ment
 
 See [dispositions.json](dispositions.json) for the per-PR reasons and [source-inventory.json](source-inventory.json) for exact heads and paths.
 
+## Late addition: #151
+
+[SovereignSteak’s #151](https://github.com/CrocSwap/integer-mult-bounds/pull/151), pinned at `5a46ac37ae2e2f8f75637cb2cf6b9d0b36afc436`, independently submits the identical gauge/recycling composition and improves the atom exponent to 473/10^6. Its plan/row equality, complete scalar identities, negative controls and exact assembly pass. It is incorporated with credit for the parallel work. This is the sole late addition to the initial 106-PR batch.
+
 ## Dependency spine selected for this review
 
 - #97 / Swapnil word → #144 shared bit cores → #147 terminal elimination → #150 delayed reads and physical reuse.
