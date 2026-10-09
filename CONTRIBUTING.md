@@ -19,8 +19,15 @@ change stays within the parameter ceiling or changes one of its hypotheses.
 Keep `upstream/` unchanged. Edit the generators under `scripts/`, then run:
 
 ```sh
-make verify
+make verify-parallel
 ```
+
+This runs the groups of `make verify` concurrently, each in a fresh snapshot of
+your working tree as CI does, and fails if a group changes a committed file.
+Logs go to `build/verify-parallel/`. It starts one group per CPU and per 2 GiB
+of memory (all groups at once peak near 13 GB); to change that, run
+`python3 scripts/verify_parallel.py -j N`. `make verify` runs the same groups
+one after another in place.
 
 Include regenerated certificates and patches in the same change. Run the
 selected incremental target, `make paired-cube-verify`, as well as the checks

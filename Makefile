@@ -9,9 +9,13 @@ community-audit-check:
 community-followup-check:
 	python3 scripts/audit_followup_candidate.py --candidate-root . --check docs/research/community-followup-arithmetic.json
 
-.PHONY: verify-community verify-producers verify-certificates verify-ternary verify-tests
+.PHONY: verify-community verify-producers verify-certificates verify-ternary verify-tests verify-parallel
 # CI runs these in separate checkouts. Keep local verification sequential:
 # different groups regenerate certificates that another group may read.
+# verify-parallel runs the groups concurrently, each in its own snapshot.
+verify-parallel:
+	MAKE="$(MAKE)" python3 scripts/verify_parallel.py
+
 verify:
 	$(MAKE) verify-community
 	$(MAKE) verify-producers
@@ -291,13 +295,20 @@ climbed-48-verify: climbed-48-producer climbed-48-check
 .PHONY: formal-verify formal-historical-verify formal-gaussian-verify
 formal-verify: formal-historical-verify formal-gaussian-verify
 
+.PHONY: formal-historical-lean formal-historical-circuit
+# The Python circuit check is independent of Lean, so it runs alongside the build.
 formal-historical-verify:
+	$(MAKE) -j2 formal-historical-lean formal-historical-circuit
+
+formal-historical-lean:
 	cd formal/lean && lake build
 	python3 scripts/check_lean_axioms.py --project formal/lean --audit formal/lean/AuditAll.lean
 	python3 formal/lean/sources.py
 	python3 formal/open-prs/drift_A.py
 	python3 formal/open-prs/drift_B.py --selftest
 	python3 formal/open-prs/drift_C.py
+
+formal-historical-circuit:
 	mkdir -p build/formal
 	python3 formal/circuit/export_paired.py build/formal/paired50.json
 	python3 -I formal/circuit/check_paired.py build/formal/paired50.json
@@ -308,35 +319,14 @@ formal-gaussian-verify:
 
 .PHONY: verify-research
 # Historical finite searches; no current witness or production certificates change.
+# Each audit writes only its own certificate, so they run concurrently, slowest first.
+RESEARCH_AUDITS := quadratic_affine positive_side mixed_point parity_side bit_compression \
+	early_sharing stage_pair inplace_side single_intersection affine_vectors complex_centers \
+	stronger_screens disjoint_tensor block_core shared_core split_centers cyclic_topology \
+	joint_return block_carry rank_product_core subset_cores fano_permutation signed_sparse \
+	prime_subset_limits fano_completion core_limits cube_cores general_guard
 verify-research:
-	python3 scripts/audit_bit_compression.py
-	python3 scripts/audit_mixed_point.py
-	python3 scripts/audit_early_sharing.py
-	python3 scripts/audit_split_centers.py
-	python3 scripts/audit_stage_pair.py
-	python3 scripts/audit_block_carry.py
-	python3 scripts/audit_joint_return.py
-	python3 scripts/audit_cyclic_topology.py
-	python3 scripts/audit_fano_completion.py
-	python3 scripts/audit_fano_permutation.py
-	python3 scripts/audit_rank_product_core.py
-	python3 scripts/audit_stronger_screens.py
-	python3 scripts/audit_subset_cores.py
-	python3 scripts/audit_cube_cores.py
-	python3 scripts/audit_single_intersection.py
-	python3 scripts/audit_shared_core.py
-	python3 scripts/audit_general_guard.py
-	python3 scripts/audit_disjoint_tensor.py
-	python3 scripts/audit_core_limits.py
-	python3 scripts/audit_affine_vectors.py
-	python3 scripts/audit_block_core.py
-	python3 scripts/audit_complex_centers.py
-	python3 scripts/audit_inplace_side.py
-	python3 scripts/audit_quadratic_affine.py
-	python3 scripts/audit_signed_sparse.py
-	python3 scripts/audit_positive_side.py
-	python3 scripts/audit_parity_side.py
-	python3 scripts/audit_prime_subset_limits.py
+	python3 scripts/run_parallel.py $(RESEARCH_AUDITS:%=scripts/audit_%.py)
 .PHONY: skip-frame-verify
 skip-frame-verify:
 	python3 scripts/experiments/verify_skip_frame.py
