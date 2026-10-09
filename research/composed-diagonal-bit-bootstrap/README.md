@@ -285,6 +285,29 @@ absorption, the paid moment's adjacent-grid exclusion, and the assembly's own ar
 re-prices the first four sound rungs from that certificate without using `rungs.py`, and
 requires each recorded kappa to follow from its own schedule.
 
+**Which rungs their construction may bank.** `allocate.py` answers that from the suppliers'
+own code rather than from this model. Their proof banks exactly one dirt family: the
+selected entrance gauges' exteriors, which its word builder emits as
+`hist[3*z['dim']] += 1` outside the donor set (2,200 children of rank `3*20 = 60`) and
+`pack-pr200.py` removes with `H.pop(60)` -- and on this word that family is already taken.
+Every rank this ladder would absorb is one of the *retained* families ("Retain every
+internal, source, target, center, compensating and terminal-substitution child"), so each
+rung needs the "future genuinely different residual types" that same proof reserves; two
+bins are excluded outright, since rank 2 is the alias children (`hist[2] += 2*v`, two per
+compensated alias) and rank 1 carries the source births
+(`if s in self.source.values(): H[1] += 1`), which the proof excludes "from fresh bank
+allocation" along with deleted terminals. And the construction banks one *role* family at a
+time, so the 1,760 recipient gauges -- "internal splices [that] receive no separate bank
+allocation" -- are not available either. A rung is therefore a priced target with a named
+family, never a pending build.
+
+`allocation.json` also fixes what a builder would hand that generator for the two headline
+rungs: the cheapest certified one is bit rank 22, 6,116 banks of 72 registers, volume
+440,352, retained `W = 50,286`; the two-family tiling one is ranks 6 and 8, 1,824 banks in
+608 whole banks per stage, retained `W = 54,578`. `verify.py` re-derives both from the
+queue's certificate and re-checks the block patterns (each fills 72), the retained ledger
+and the row identity.
+
 **These are targets, and the physical side is not done here.** The chart and normalizer
 conjugations, the F2 and defining-integer columns, the group-indexed role bookkeeping and
 the per-bank prime witnesses are the supplier's harness, and `rungs.json` records that
@@ -375,7 +398,14 @@ python3 -B research/composed-diagonal-bit-bootstrap/rungs.py
 
 prints the bank-absorption ladder: which whole child families of the frontier word can
 be taken together, what the schedule is worth, and how many new residual types each rung
-would need.
+would need, and
+
+```bash
+python3 -B research/composed-diagonal-bit-bootstrap/allocate.py
+```
+
+marks each rung against the suppliers' own allocation rules and prints the schedule a
+builder would hand their generator.
 
 ## Credits
 

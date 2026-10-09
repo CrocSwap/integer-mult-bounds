@@ -441,6 +441,55 @@ def main():
               volume, prec["banks_three_copies"],
               Q(rungs["volume_only"]["type_ladder"]["1"]["kappa"]),
               float(Q(rungs["volume_only"]["type_ladder"]["1"]["gain"]))))
+    # 15. Where the rungs stand against the suppliers' own allocation rules, and the schedule
+    #     a builder would hand their generator. The classification and the schedule are both
+    #     re-derived here from the queue's certificate, not taken from allocate.py.
+    alloc_out = WORK / "allocation.json"
+    if alloc_out.exists():
+        alloc_out.unlink()
+    subprocess.run([sys.executable, "-B", str(HERE / "allocate.py"), "--out", str(alloc_out)],
+                   check=True, stdout=subprocess.DEVNULL)
+    alloc = json.loads(alloc_out.read_text())
+    assert alloc == json.loads((HERE / "allocation.json").read_text()), "allocation.json drift"
+    assert alloc["status"].startswith("BLUEPRINT_FOR_THE_SUPPLIERS_GENERATOR")
+    assert alloc["replicas"] == 9
+    for name, item in alloc["rungs"].items():
+        assert "not buildable" in item["verdict"], name
+        for side, arm in item["arms"].items():
+            if arm is None:
+                continue
+            m, W, deficit, hist = rows_and_histogram(side)
+            families = [int(r) for r in arm["absorbed"]]
+            taken = sum(r * hist[r] for r in families)
+            assert taken == arm["volume"] == arm["banks"] * m, "the arm must fill whole banks"
+            kept = {r: n for r, n in hist.items() if r not in families}
+            profile = arm["retained_profile"]
+            assert {int(k): v for k, v in profile["histogram"].items()} == kept, \
+                "the retained profile must be the queue's own ledger minus the family"
+            assert Q(profile["deficit"]) == deficit
+            assert Q(profile["W"]) * m - profile["rank_mass"] == deficit, "row identity"
+            assert all(kind["status"] in ("retained", "excluded", "banked") and kind["why"]
+                       for kind in arm["classification"].values())
+            assert all(pattern["fills_bank"] == m for pattern in arm["patterns"])
+    cheap_arm = alloc["rungs"]["cheapest_certified"]["arms"]["bit"]
+    assert [int(r) for r in cheap_arm["absorbed"]] == [22] and cheap_arm["banks"] == 6116
+    assert cheap_arm["retained_profile"]["W"] == 50286
+    assert Q(cheap_arm["banks_per_stage"]) == Q(6116, 3) and not cheap_arm["banks_per_stage_exact"]
+    two_arm = alloc["rungs"]["two_type_tiling"]["arms"]["bit"]
+    assert [int(r) for r in two_arm["absorbed"]] == [6, 8] and two_arm["banks"] == 1824
+    assert two_arm["retained_profile"]["W"] == 54578
+    assert Q(two_arm["banks_per_stage"]) == 608 and two_arm["banks_per_stage_exact"]
+    assert all(kind["status"] == "retained" for kind in two_arm["classification"].values())
+    print("[allocation] against the suppliers' own rules, no rung of this ladder is bankable "
+          "by the construction as published: it banks one family -- the selected entrance-gauge "
+          "exteriors, already taken in this word -- and retains every other, with alias "
+          "children, source births and deleted terminals excluded outright. The schedule a "
+          "builder would hand its generator is fixed here: the cheapest certified rung is "
+          "bit rank 22, {} banks of 72 registers, volume {}, retained W {}; the two-family "
+          "tiling rung is ranks 6 and 8, {} banks in {} whole banks per stage, retained W "
+          "{}".format(cheap_arm["banks"], cheap_arm["volume"],
+                      cheap_arm["retained_profile"]["W"], two_arm["banks"],
+                      two_arm["banks_per_stage"], two_arm["retained_profile"]["W"]))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
           "and 7 margins per depth".format(best, best_depth))
 
