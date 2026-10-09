@@ -19,7 +19,7 @@ Per matched local role, put e=dim E and s=dim sigma_B. Remove children24−e and
 
     576^p+(s−e)^p < (24−e)^p+(552+s)^p,
 
-by strict concavity and majorization, so each legal reuse improves the paid moment.
+by strict concavity and majorization, so each legal reuse increases the unnormalized feasibility slack W*576^p−sum(n_t*t^p). The normalized moment decreases at previously feasible exponents (moment at most one); no monotonicity claim is made for arbitrary infeasible exponents.
 
 ## Actual witness and costs
 
