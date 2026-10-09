@@ -17,6 +17,7 @@ verify:
 	$(MAKE) verify-producers
 	$(MAKE) verify-partial-gauge
 	$(MAKE) verify-three-stage-cover
+	$(MAKE) verify-shrunk-paired-cover
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -466,3 +467,14 @@ three-stage-cover-certificate:
 three-stage-cover-verify: three-stage-cover-producer three-stage-cover-certificate
 
 verify-three-stage-cover: three-stage-cover-verify
+
+.PHONY: shrunk-paired-cover-producer shrunk-paired-cover-certificate shrunk-paired-cover-verify verify-shrunk-paired-cover
+shrunk-paired-cover-producer:
+	python3 research/shrunk-paired-cover/producer.py > /dev/null
+
+shrunk-paired-cover-certificate:
+	python3 research/shrunk-paired-cover/certificate.py
+
+shrunk-paired-cover-verify: shrunk-paired-cover-producer shrunk-paired-cover-certificate
+
+verify-shrunk-paired-cover: shrunk-paired-cover-verify
