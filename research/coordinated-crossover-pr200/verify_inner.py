@@ -42,7 +42,7 @@ for side in ['bit','complex']:
  try:public.moment(corrupt,a)
  except ValueError:pass
  else:raise AssertionError('Rank-mass negative control accepted')
-chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==178159541040<2**40
-assert chart['charts']==231 and chart['assignments']==3595536 and chart['literal_stock']==1316730
+chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==178148841264<2**40
+assert chart['charts']==231 and chart['assignments']==3595320 and chart['literal_stock']==1316658
 assert before=={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in before}
 print('PASS full offline bit/frame/bank/chart/complex-lift/contract replay, independent paid moments, 47 inequalities and controls; kappa='+cert['kappa'])

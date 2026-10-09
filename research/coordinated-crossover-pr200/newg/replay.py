@@ -6,7 +6,7 @@ from collections import Counter,defaultdict
 import json,sys,importlib.util,time,gc,hashlib
 sys.dont_write_bytecode=True
 HERE=Path(__file__).resolve().parent;D=HERE.parent/'joint';spec=importlib.util.spec_from_file_location('source82',D/'joint_word.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-W=m.Candidate();C=W.C;C.decoder();C.geometry();selection=json.loads((HERE.parent/'borrow/selection.json').read_text());new_gauge_selection=json.loads((HERE/'selection.json').read_text());new_gauge_selection=new_gauge_selection['selection']if isinstance(new_gauge_selection,dict)else new_gauge_selection;gauge_selection=json.loads((HERE.parent/'gaugeb/selection.json').read_text())+new_gauge_selection
+W=m.Candidate();C=W.C;C.decoder();C.geometry();selection=json.loads((HERE.parent/'borrow/selection.json').read_text());new_gauge_selection=json.loads((HERE/'selection.json').read_text());new_gauge_selection=new_gauge_selection['selection']if isinstance(new_gauge_selection,dict)else new_gauge_selection;control_row=next(r for r in new_gauge_selection if r['role']==13088);gauge_selection=json.loads((HERE.parent/'gaugeb/selection.json').read_text())+new_gauge_selection
 knew={e['passive']:e for e in W.k['entries']};raw_response=W.adjoint();newroles=[];target_frames={};touched={s for i in W.phase1 for s in W.ops[i][:2]}
 for r in new_gauge_selection:
  role,source=r['role'],r['source'];mix=knew[source]['mix_frame'];f=W.register(r['gauge_basis'])if 'gauge_basis'in r else mix;targets=sorted(raw_response[role]);assert targets==r['targets'] and mix==r['mix_frame'] and C.sub(mix,f)
@@ -66,7 +66,7 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
   else:z[s]=track(val)
  responses=W.adjoint() if mutation=='old_adjoint' else adj
  def read(s):
-  if mutation=='omit_gauge_compensation' and s==new_gauge_selection[0]['role']:return
+  if mutation=='omit_gauge_compensation' and s==control_row['role']:return
   for t,c in responses[s].items():y[t]=track(add(y[t],-direction*c,value(s)))
  def gate(i,sign):
   a,b,_=W.ops[i];assign(a,add(value(a),sign,value(b)))
@@ -74,7 +74,7 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
   if s not in W.gauge and s not in borrow and s not in removed:read(s)
  for n,s in W.source.items():assign(s,add(value(s),1,x[n]))
  for r in gauge_selection:
-  if mutation!='omit_gauge_mix' or r is not new_gauge_selection[0]:x[r['partner']]=track(add(x[r['partner']],1,x[r['source']]))
+  if mutation!='omit_gauge_mix' or r is not control_row:x[r['partner']]=track(add(x[r['partner']],1,x[r['source']]))
  def forward(i):
   if i in early:
    r=early[i];a,b=r['partner'],r['source']
@@ -148,4 +148,4 @@ if __name__=='__main__':
  assert input_pins=={str(p):hashlib.sha256(p.read_bytes()).hexdigest()for p in input_paths}
  out['input_pins']=input_pins
  (HERE/'replay.json').write_text(json.dumps(out,indent=2)+'\n')
- print('PASS complete468 shared source word, both integer signs and all five controls',flush=True)
+ print('PASS complete469 shared source word, both integer signs and all five controls',flush=True)

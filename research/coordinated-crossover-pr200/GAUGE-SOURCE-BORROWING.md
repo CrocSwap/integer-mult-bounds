@@ -1,4 +1,4 @@
-The final package retains this construction and adds 25 source-backed entrances, including two at a shared rank-4 frame. See NEW-SOURCE-GAUGES.md for the final word, target chronology and bank counts.
+Historical predecessor description: numerical counts below describe that predecessor. The final construction has 469 source aliases, including 26 new source-backed entrances. See NEW-SOURCE-GAUGES.md for the current scalar word, target chronology and bank counts.
 
 # Three source inputs occupy genuine gauge slots
 
