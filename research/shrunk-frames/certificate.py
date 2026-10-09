@@ -21,7 +21,7 @@ ATOM = Q(1, 1000)
 OLD = Q(384599, 10**10)
 BETA = Q(1, 10**6)
 COARSE = Q(620523, 5000000000)
-COMPLEX = Q(110616162, 10**12)
+COMPLEX = Q(13862528107, 125000000000000)
 KGRID = 10**15
 
 def profile(name):
@@ -59,7 +59,8 @@ def exact(bit=None, phase=None):
     # coefficients; <=4*v*(h+1) scalar groups suffice per readout. A factor
     # eight covers forward/inverse words, both reflected words, and copies.
     h,v,R,q,c = (phase[k] for k in ('h','v','R','roots','additions'))
-    local = 8*(c+2*R+(R+q)*v*(h+1)+h*h+h+1)
+    terminal_direct_updates = phase.get('terminal_direct_updates', 0)
+    local = 8*(c+2*R+(R+q)*v*(h+1)+h*h+h+1+terminal_direct_updates)
     G = phase['N'] + 2*v*local
     m,W,s = (phase[k] for k in ('m','W','total_rank'))
     E=64*(W+m+G+1)**3
@@ -68,7 +69,8 @@ def exact(bit=None, phase=None):
     assert charge<E and 2*B*(m-phase['maxchild']) >= s+E and 2*B+18<C0
     bridge['complex']['scalar_group_upper']=G
     bridge['complex']['scalar_terms']=[dict(h=h,v=v,c=c,R=R,q=q,invocations=v,
-        local_group_upper=local,description='Expanded deferred readouts and forward/inverse/reflected words')]*2
+        terminal_direct_updates=terminal_direct_updates,
+        local_group_upper=local,description='Expanded deferred readouts, source-time terminal redirects, and forward/inverse/reflected words')]*2
     bridge['semantic'].update(E=E,literal_charge=charge,strict_literal_gap=E-charge,
         B=B,C0=C0,C1=1,induction_gap=2*B*(m-phase['maxchild'])-s-E,
         fixed_odd_divisor=21,exact_grid='2^(-P)*21^(-K), K=G*(D_complex+1); completed children preserve incoming odd denominator; no child rounding')

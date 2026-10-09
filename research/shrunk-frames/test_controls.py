@@ -49,6 +49,31 @@ class FrozenControls(unittest.TestCase):
         actual = self.certificate.js(self.certificate.exact())
         self.assertEqual(actual, expected)
 
+    def test_terminal_direct_updates_are_in_the_scalar_bound(self):
+        module = self.certificate
+        phase = module.profile('complex-profile.json')
+        expected = json.loads((HERE / 'certificate.json').read_text())
+        terms = expected['finite_bridge']['complex']['scalar_terms'][0]
+        self.assertEqual(phase['terminal_elimination_count'], 381)
+        self.assertEqual(phase['terminal_direct_updates'], 1167)
+        self.assertEqual(terms['terminal_direct_updates'], 1167)
+        self.assertEqual(terms['local_group_upper'], 14753732688)
+        changed = copy.deepcopy(phase)
+        changed['terminal_direct_updates'] -= 1
+        reduced_charge = module.js(module.exact(phase=changed))
+        self.assertEqual(reduced_charge['finite_bridge']['complex']['scalar_terms'][0]
+                         ['local_group_upper'], terms['local_group_upper'] - 8)
+
+    def test_pinned_pr125_parent_is_strictly_below_composed_candidate(self):
+        module = self.certificate
+        previous = json.loads((HERE / 'controls/pr125-complex-profile.json').read_text())
+        validate_profile(previous, 'complex-parent')
+        previous['child_multiplicities'] = {int(t): c for t, c in previous['child_multiplicities'].items()}
+        self.assertEqual((previous['R'], previous['deferred_roles']), (28705, 4706))
+        self.assertTrue(module.contracts(previous, module.Q(110616162, 10**12)))
+        self.assertFalse(module.contracts(previous, module.COMPLEX))
+        self.assertTrue(module.contracts(module.profile('complex-profile.json'), module.COMPLEX))
+
     def test_omitted_endpoint_charge_rejected(self):
         for label, original in self.profiles.items():
             changed = copy.deepcopy(original)

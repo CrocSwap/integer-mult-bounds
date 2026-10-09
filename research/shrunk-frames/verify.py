@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Read-only verification of the frozen shrunk-frame deferred finite package.
+"""Read-only verification of the frozen terminal-elided shrunk-frame package.
 
 Regeneration occurs only in a temporary repository-shaped copy. Source hashes,
-complete profile ledgers, the exact certificate, and the independent reflection
-audit are required. General transfer proofs and the inherited round-seven bit
-word/frame justification remain separate dependencies. Prepared for eumemic
-with OpenAI Codex assistance; inherited authorship and licenses are retained.
+complete profile ledgers, exact certificate, parent reflection audit, and an
+independent terminal-elision audit are required. General transfer proofs and
+the inherited round-seven bit word/frame justification remain dependencies.
+Prepared with OpenAI Codex assistance; inherited authorship and licenses are retained.
 """
 import sys
 sys.dont_write_bytecode = True
@@ -25,15 +25,21 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 COMPLEX_DAG_PIN = '3c034d0aae388ef567a454826f4f48b26fd8a94c71e8ffed4835271b349a783b'
+PR125_HEAD = 'dda535bdcfc321a13a1ebd3c2d70e2b5bb72368e'
+PR122_HEAD = 'b1a6f24e57141637b3ff040d6f2ce9d896ffb9bb'
 BIT_PINS = {
     'witness_23.json.gz': 'b2486aa2bb222bacea6e52162a3920780e45dd8edc5d7cb03eabea336a1c6588',
     'deferred_23.json.gz': '8c38e947ff9e021e308000dd82bb5e2194eb265d8b75194e22ce783d3e75317c',
 }
 REQUIRED = {
-    'verify.py', 'test_controls.py', 'producer.py', 'complex_deferred.py',
+    'README.md', 'verify.py', 'test_controls.py', 'producer.py', 'complex_deferred.py',
     'bit_round7.py', 'certificate.py', 'bit-profile.json',
-    'complex-profile.json', 'certificate.json', 'replayed_producer.py',
+    'complex-profile.json', 'certificate.json',
+    'replayed_producer.py', 'prepare.py', 'terminal_elision.py',
+    'terminal_elision_audit.py', 'terminal-elision.json.gz',
+    'terminal-selection.json', 'terminal-elision-audit.json',
     'inputs/complex-dag.json.gz', 'controls/pr114-complex-profile.json',
+    'controls/pr125-complex-profile.json',
     *('inputs/' + name for name in BIT_PINS),
 }
 DATA_DEPENDENCIES = {'certificates/copied-centers-network.json'}
@@ -111,8 +117,8 @@ def create_manifest(package, repository, reflection_script, reflection_receipt):
     names = REQUIRED | set(scripts) | {reflection_script, reflection_receipt}
     dependencies = dependency_closure(package, repository, scripts)
     return dict(
-        schema=1,
-        scope='Frozen finite producer, profiles, exact assembly and reflection audit; inherited all-size transfer remains conditional.',
+        schema=2,
+        scope='Frozen finite terminal-elided producer, profiles, exact assembly, parent reflection and independent terminal audit; inherited all-size transfer remains conditional.',
         package_files={name: digest(safe_file(package, name)) for name in sorted(names)},
         repository_files={name: digest(safe_file(repository, name)) for name in sorted(dependencies)},
         reflection=dict(script=reflection_script, receipt=reflection_receipt),
@@ -124,15 +130,19 @@ def create_manifest(package, repository, reflection_script, reflection_receipt):
             scalar_dag=dict(pull_request='https://github.com/CrocSwap/integer-mult-bounds/pull/117',
                             commit='cbb05ce504d571546d9b7794c186a613c659c3bf',
                             file='inputs/complex-dag.json.gz', sha256=COMPLEX_DAG_PIN),
+            shrunk_frame_parent=dict(pull_request='https://github.com/CrocSwap/integer-mult-bounds/pull/125',
+                                     commit=PR125_HEAD),
+            terminal_elision=dict(pull_request='https://github.com/CrocSwap/integer-mult-bounds/pull/122',
+                                  commit=PR122_HEAD),
             round7_repository='https://github.com/Swapnil-jain/integer-mult-kappa',
             round7_commit='741e7aa078392553815df7926ee17ac5e25a8c38',
             round7_sha256=BIT_PINS),
-        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Saturated deferred-frame integration and verification for eumemic with OpenAI Codex assistance. Shrunk-frame step by Joel Pulikkan with Anthropic Claude assistance (PR114 base). Original source notices remain authoritative.')
+        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. PR125 shrunk-frame step by Joel Pulikkan with Anthropic Claude assistance. PR122 terminal-role elimination by SovereignSteak is the predecessor for source-time redirects. Their work is preserved and cited; the fixed-parent composition, candidate generation, independent audit, and certificate integration were prepared with OpenAI Codex assistance. Original source notices remain authoritative.')
 
 
 def check_sources(package, repository, manifest=None):
     manifest = manifest or json.loads((package / 'SOURCE.json').read_text())
-    require(manifest['schema'] == 1, 'Unsupported source-manifest schema')
+    require(manifest['schema'] == 2, 'Unsupported source-manifest schema')
     names = set(manifest['package_files'])
     reflection = manifest['reflection']
     require(REQUIRED | {reflection['script'], reflection['receipt']} <= names,
@@ -150,6 +160,9 @@ def check_sources(package, repository, manifest=None):
                 'Round-seven provenance digest mismatch: ' + name)
     require(manifest['package_files']['inputs/complex-dag.json.gz'] == COMPLEX_DAG_PIN,
             'PR117 scalar-DAG provenance digest mismatch')
+    require(manifest['provenance']['shrunk_frame_parent']['commit'] == PR125_HEAD and
+            manifest['provenance']['terminal_elision']['commit'] == PR122_HEAD,
+            'PR122/PR125 source lineage changed')
     return manifest
 
 
@@ -170,9 +183,19 @@ def validate_profile(profile, label):
             label + ': deficit or maximum child')
     require(rows.get((h-1)**2) == 2*N and rows.get(1, 0) >= N,
             label + ': omitted data projector or endpoint charge')
-    if label == 'complex':
-        require(R == profile['additions']+profile['roots']-profile['links'],
-                'complex: addition/roots/matching role ledger')
+    if label in ('complex', 'complex-parent'):
+        compiled_roles = profile['additions']+profile['roots']-profile['links']
+        if label == 'complex' and 'terminal_elimination_count' in profile:
+            removed = profile['terminal_elimination_count']
+            require(profile['pre_elimination_R'] == compiled_roles and R + removed == compiled_roles,
+                    'complex: addition/roots/matching role ledger')
+            require(type(profile.get('terminal_direct_updates')) is int and
+                    profile['terminal_direct_updates'] >= removed,
+                    'complex: direct terminal updates not charged')
+            require(profile.get('role_count_scope', '').startswith('Terminal-elided physical word'),
+                    'complex: physical role-count scope')
+        else:
+            require(R == compiled_roles, 'complex: addition/roots/matching role ledger')
         require(sum(profile['deferred_dims'].values()) == profile['deferred_roles'],
                 'complex: deferral inventory')
     return rows
@@ -217,16 +240,21 @@ def verify(package, repository):
         run('bit_round7.py', target / 'inputs')
         compare_json(target / 'bit-profile.json', package / 'bit-profile.json')
         print('PASS pinned round-seven bit ledger regenerated', flush=True)
-        run('complex_deferred.py')
+        parent_word = root / 'pr125-parent-word.json.gz'
+        run('prepare.py', '--parent-word', parent_word)
         compare_json(target / 'complex-profile.json', package / 'complex-profile.json')
-        print('PASS complete complex producer and deferred profile regenerated', flush=True)
+        print('PASS pinned PR #125 parent and terminal-elided profile regenerated', flush=True)
+        terminal_audit = root / 'terminal-elision-audit.json'
+        run('terminal_elision_audit.py',
+            '--parent-word', parent_word,
+            '--parent-profile', target / 'controls/pr125-complex-profile.json',
+            '--parent-audit', target / 'reflection-audit.json',
+            '--receipt', target / 'terminal-elision.json.gz',
+            '--profile', target / 'complex-profile.json',
+            '--output', terminal_audit)
+        compare_json(terminal_audit, target / 'terminal-elision-audit.json')
+        print('PASS independent terminal event, scalar, and reflected-frame audit', flush=True)
         run('certificate.py')
-        reflection = manifest['reflection']
-        actual_reflection = root / 'actual-reflection.json'
-        run(reflection['script'], '--source', target / 'complex_deferred.py',
-            '--output', actual_reflection)
-        compare_json(actual_reflection, package / reflection['receipt'])
-        print('PASS independent literal reflection and scalar-charge audit', flush=True)
         run('test_controls.py', '--repository-root', root)
     require(snapshot(package, repository, manifest) == before,
             'Verification changed the frozen package or a dependency')

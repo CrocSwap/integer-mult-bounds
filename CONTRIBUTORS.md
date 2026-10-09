@@ -143,3 +143,24 @@ verified posts, profile associations and unresolved account identities.
 
 - **Michiel Kosters** ([research repository](https://github.com/michielkosters/mathematics_ai/tree/2e0aa64ca09c87fc94f8575f59493f70cf929d71/problems/integer-multiplication-109); Douglas associates @one_line_proof) developed a parallel weighted-hypergraph/coordinate-frame candidate, compressed centers and aligned bit pairing. Our [review](research/parallel-announcements/README.md) reproduces the finite certificate with its transfer/precision limitations explicit.
 - **Abe / @abe_asfaw**, via a suggestion supplied by Douglas, identified the redundant complex center and its historical 26.5% numerical gain. We [checked the scalar identity, counts and assembly arithmetic](research/parallel-announcements/README.md), and credit this parallel observation alongside the already preserved rank-h center research.
+
+## Terminal-elision and shrunk-frame submissions
+
+**SovereignSteak, PR #122**, submitted the Round 15 terminal-accumulator
+elimination candidate and its exact majorization audit. The package redirects
+updates at their original gate indices and charges the transformed schedule.
+The PR's conditional finite certificate is not an unconditional multiplication
+theorem.
+
+**Joel Pulikkan (GamingPuzzled), PR #125**, submitted shrunk lifted frames with
+saturated deferral. The contribution delays selected frame growth while
+preserving the stated frame contract and exact downstream checks.
+
+The current stacked research candidate, prepared by **Sennemmi with substantial
+OpenAI Codex assistance**, composes those two ideas: it removes terminal roles
+from the #125 shrunk-frame profile and charges all direct redirects in the
+scalar bound. This is a distinct composition submitted for review; it does not
+claim global optimality, a complete theorem proof, or priority over either
+source. The independent review status and exact head are recorded with its PR
+once submitted. Original source licenses and each contributor's AI disclosures
+remain applicable.

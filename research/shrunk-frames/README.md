@@ -1,13 +1,17 @@
-# Shrunk lifted frames with saturated deferred readouts
+# Terminal-elided shrunk frames with saturated deferred readouts
 
-Conditional **κ = 110591581647/10¹⁵ = 1.10591581647×10⁻⁴**, about
-**1.19920% above PR114** (1.09281094468×10⁻⁴), 1.35%
-above PR120 and 1.89% above PR118. The complex side still binds.
+Conditional **κ = 110875518403/10¹⁵ = 1.10875518403×10⁻⁴**, about
+**0.257% above the pinned PR #125 parent**
+(110591581647/10¹⁵ = 1.10591581647×10⁻⁴). The complex side still binds.
 
 This package keeps PR114's complete construction: PR117's immutable
 91,770-addition complex DAG (eumemic), the same carrier matching and 28,705
 dirty roles, PR110's lifted binary frames and deferred readouts, and PR114's
-saturated placement with priority 2^dim / reached_targets². One step is new.
+saturated placement with priority 2^dim / reached_targets². The frame shrink
+is PR #125 by Joel Pulikkan. The terminal-role deletion and source-time
+redirect idea follows PR #122 by SovereignSteak. This candidate composes them
+on the fixed PR #125 word; it does not claim either predecessor's mechanism as
+new.
 
 ## Shrunk frames
 
@@ -30,17 +34,28 @@ frames. Shrinking stays monotone. Lb_x contains every predecessor frame, and
 successors are processed later against the updated frames. Deferral
 candidates use the shrunk start frames.
 
-| Complex network (PR117 DAG) | PR114 | This |
+| Complex network (PR117 DAG) | PR #125 parent | This composition |
 |---|---:|---:|
-| roles / carrier links | 28,705 / 71,185 | 28,705 / 71,185 |
-| shrunk frames | — | 16,031 |
-| deferred readouts | 4,706 | 4,706 |
-| strict complex saving | 109305097/10¹² | **110616162/10¹²** |
-| κ | 1.09281094468e-4 | **1.10591581647e-4** |
+| physical roles / carrier links | 28,705 / 71,185 | 28,324 / 71,185* |
+| shrunk frames | 16,031 | 16,031 |
+| deferred readouts | 4,706 | 4,325 |
+| terminal roles removed / direct updates | — | 381 / 1,167 |
+| strict complex saving | 110616162/10¹² | **13862528107/125000000000000** |
+| κ | 1.10591581647e-4 | **1.10875518403e-4** |
 
-W = 124,390,992, recursive rank mass 71,647,349,312 and maximum child 574 of
-576 are unchanged. Only the split of each role chain into children changes.
-Every copied centre, exterior, source/target front, data projector and
+*The matched DAG's 71,185 links are retained; its `additions + roots - links`
+role count is the pre-elimination count. The final physical word removes 381
+terminal roles. Each is an ordinary deferred output role with no later
+consumer. For a removed role with old scratch value z and incoming updates
+uᵢ, the old pair of readouts contributes `-αz + α(z + Σuᵢ)`. The replacement
+adds each `αuᵢ` to its target at the original update time. The independent
+audit checks all 1,167 source-time updates, their frames and signs, and two
+modular dirty-scratch replays.
+
+W = 122,848,704, recursive rank mass 70,758,991,424 and maximum child 574 of
+576. The deficit remains 1,862,080. The full paid child histogram is
+reconstructed from both the forward and reflected frame traces. Every
+surviving copied centre, exterior, source/target front, data projector and
 endpoint correction remains paid. The bit supplier is unchanged:
 Swapnil Jain's round-seven word, stopped saving 1240189553/10¹³.
 
@@ -50,24 +65,25 @@ Swapnil Jain's round-seven word, stopped saving 1240189553/10¹³.
 python3 research/shrunk-frames/verify.py
 ```
 
-The verifier regenerates everything in a temporary tree. It pins the
-shrunk-frame count and all inherited graph counts. Section D of
-`complex_deferred.py` rechecks each role chain against the actual shrunk frames:
-start, every gate, linked continuations, root frame and F. It checks that each
-chain is nested and each frame nondegenerate. It also checks every deferral
-frame and target chain. Arbitrary-scratch replays are run over Z/(2^61−1).
+The verifier regenerates the PR #125 parent in memory, checks its frozen
+profile and reflection receipt, writes a transient parent word, and builds the
+combined output in a temporary tree. Section D of `complex_deferred.py`
+rechecks each parent role chain against the actual shrunk frames: start, every
+gate, linked continuations, root frame and F. It checks each chain is nested
+and every frame is nondegenerate.
 
-The independent reflection audit consumes the same frames. It covers the
-literal inverse, sign-negate and bank-swap word and the complemented frame
-incidences. It also checks the paid histogram in both directions, the
-bounded readout chunks and three mutations. `certificate.py` recomputes both
-moments exactly and rejects the next complex grid point. It also checks the
-expanded scalar charge, all 47 strict constraints, seven margins and the next
-κ grid point.
+`terminal_elision_audit.py` independently rediscovers the eligible terminal
+roles and rebuilds the simultaneous target schedule. It checks every event in
+chronological order, source-time snapshots, the exact local dirty-scratch
+identity, modular replay, forward and reflected frame transitions, and the
+complete child histogram. Four event mutations are rejected. `certificate.py`
+recomputes both moments exactly and rejects the next complex grid point. Its
+scalar-group bound explicitly includes all 1,167 direct updates; it checks all
+47 strict constraints, seven margins and the next κ grid point.
 
-A new control loads PR114's frozen unshrunk profile, which is
-`controls/pr114-complex-profile.json`. That profile contracts at PR114's saving
-and fails at the new one.
+Frozen comparison profiles are `controls/pr114-complex-profile.json` and
+`controls/pr125-complex-profile.json`. The PR #125 parent profile contracts at
+its own saving and fails at the composed candidate's larger saving.
 
 All retained transfer hypotheses remain unchanged:
 - simultaneous rational bases and opposite-bank factorization;
@@ -81,7 +97,10 @@ are not a new general theorem. This is a finite conditional witness, not an
 unconditional theorem, a measured speedup or a global optimum.
 
 Credits: eumemic (PR117 producer, PR114 saturated placement, reflection audit
-and scalar charge, with Anthropic Claude and OpenAI Codex assistance); Avi
+and scalar charge); Joel Pulikkan (PR #125 shrunk-frame step, Anthropic Claude
+assistance); SovereignSteak (PR #122 terminal-role elimination); this fixed-
+parent composition, independent audit and certificate integration were
+prepared with OpenAI Codex assistance. Avi
 Eisenberg / ikeboy (PR110 deferred complex compiler, PR62); Rohan Arun
 (PR111/113/116/118); icekylinx (PR104/115); Swapnil Jain (round-seven words,
 lifted frames, deferred readouts); Zhihao Chen / jacklightChen; Aurel Prosz /
