@@ -45,7 +45,7 @@ complex: every exact support, center, rational-scatter and frame-nesting asserti
 `match_complex_general`), certifies the stopped coarse moment at the new COARSE and rejects
 COARSE+10⁻¹³, certifies the complex moment and rejects b+10⁻¹⁴, and checks all 47 strict
 constraints and seven margins, rejecting κ+10⁻¹⁷. Controls reject the PR104 bit row, the
-PR108 complex row, unpaid cleanup, omitted loss and an unpaid role. Full `make verify` pending.
+PR108 complex row, unpaid cleanup, omitted loss and an unpaid role. Full verification passed on `fb550b9b1a3c60cc419701e530494ed754d08cef` in 2409.831 seconds, completed 2026-10-09T00:45:01.380047+00:00: `make -j1 verify` (78 isolated test modules and 20 historical patch checks), both producer regenerations, exact assembly and six adversarial controls. All 39 research-head GitHub checks passed; no source drift. See `research/cyclic-strips-both-axes/validation.json` for evidence hashes.
 
 Scope: finite conditional witness; PR104's opposite-bank factorization, stopped streaming and
 odd-denominator grid interfaces remain written proof dependencies. No optimality/runtime claim.
