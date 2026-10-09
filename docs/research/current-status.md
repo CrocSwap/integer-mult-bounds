@@ -1,4 +1,38 @@
-# Current main: reviewed paired-cube construction
+# Selected construction: coordinated frames and completed entrance banks
+
+The selected conditional witness is **κ=330942774629799/500000000000000000
+=0.000661885549259598**, from Dugongue's #186, on chafreaky's #181 and
+eumemic's #168. It is approximately 2^-10.56113: 43.60% above the preceding
+published checkpoint and 40.18% above the recycled-bit review checkpoint.
+
+See the [round-eight review](community-round8-review.md),
+[selected record](../../certificates/selected-result.json),
+[construction](../../research/coordinated-frames-and-entrance-banks/PROOF.md),
+[bank scheduling supplement](../../research/community-round8-audit/BANK-SCHEDULE.md),
+and [integration validation](community-round8-integration.json).
+Reproduce with `make entrance-bank-verify`.
+Published on main on 2026-10-09; the receipt identifies the tested branch/head.
+The retained analytic, uniform-recursion and fixed-tape interfaces remain
+assumptions. Finite replay and scoped formal contributions do not formalize
+the multiplication theorem. #185's reviewed leaf bootstrap does not further
+raise this witness, whose complex supplier already binds.
+
+The [assembly-domain audit](assembly-domain-audit.md) distinguishes the
+enforced `b<1/32` range from the balance `kappa<a/(1+a)` and the independent
+retained Gaussian condition `kappa<1/4`. Its larger-supplier examples are
+arithmetic diagnostics, not new witnesses or an enlarged theorem domain.
+
+The preceding reviewed recycled-bit composition was κ=0.000472154791;
+its [round-seven review](community-round7-review.md) retains the evidence.
+
+Earlier local experiments and rounds-three-through-five reviews are now
+[preserved as dated historical records](preserved-local-history-20261009.md).
+Their old frontier and pending-work statements do not supersede this page;
+the retired shared-aggregate search remains retired.
+
+Everything below is historical and retains its checkpoint-specific scope.
+
+# Preceding main: reviewed paired-cube construction
 
 The selected conditional witness is **κ=4609169/10000000000=0.0004609169**,
 from icekylinx's [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144).

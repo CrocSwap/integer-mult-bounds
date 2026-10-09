@@ -1,5 +1,10 @@
 # Contribution review: release update and historical triage
 
+For the current checkpoint, see the [round-eight review](community-round8-review.md),
+[selected record](../../certificates/selected-result.json) and
+[contributor ledger](../../CONTRIBUTORS.md). The entries below are historical;
+they do not describe the present PR queue or selected bound.
+
 The selected PR #39 chain has now passed the [conditional maintainer audit](community-final-audit.md)
 and is incorporated in the community release at kappa=3.886675852e-5 > 2^-15.
 The dated snapshot and original triage below are preserved as historical records;

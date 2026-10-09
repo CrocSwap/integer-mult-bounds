@@ -3,7 +3,78 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: paired cubes and shared cores
+## Current reviewed result: coordinated frames and completed entrance banks
+
+[Dugongue's #186](https://github.com/CrocSwap/integer-mult-bounds/pull/186)
+gives the conditional witness
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{330942774629799}{500000000000000000}=6.61885549259598\times10^{-4}.
+$$
+
+The construction combines Chafik Boukhalfa's shared-edge complex supplier
+(#181) with eumemic's physical bit word and searched modules (#168), then
+coordinates operation frames and completes shared entrance banks. The
+[bank scheduling supplement](research/community-round8-audit/BANK-SCHEDULE.md)
+supplies a conflict-free schedule and its additional finite prime exclusions.
+The source package, dependency notices and assistance disclosures are preserved.
+
+This is **43.60% above the preceding published saving**, and 40.18% above
+the intervening reviewed recycled-bit checkpoint. It is approximately
+`2^-10.56113`; a factor 2.95085 remains to `2^-9`. These compare asymptotic
+exponent savings, not measured runtime speedups. The retained analytic,
+uniform-recursion and fixed-tape hypotheses remain assumptions. Finite replay
+and written review do not formally verify the multiplication theorem.
+
+[Review and validation scope](docs/research/community-round8-review.md) ·
+[Selected record](certificates/selected-result.json) ·
+[Construction argument](research/coordinated-frames-and-entrance-banks/PROOF.md) ·
+[Exact certificate](research/coordinated-frames-and-entrance-banks/certificate.json) ·
+[Integration checks](docs/research/community-round8-integration.json) ·
+[Contributor record](CONTRIBUTORS.md)
+
+```sh
+make entrance-bank-verify
+```
+
+## Preceding reviewed result: recycled bit registers and shared cores
+
+The composition of [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147),
+[#150](https://github.com/CrocSwap/integer-mult-bounds/pull/150),
+[#146](https://github.com/CrocSwap/integer-mult-bounds/pull/146) and
+[#148](https://github.com/CrocSwap/integer-mult-bounds/pull/148), built on
+icekylinx's #144 construction, gives the conditional witness
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{472154791}{1000000000000}=4.72154791\times10^{-4}.
+$$
+
+William Porter (hpst3r) eliminates unused terminal accumulators; DaysSky
+schedules dirty reads later and reuses dead bit registers. Thomas Marchand
+(Th0rgal) contributes the selected gauge subset and Rohan Gupta (gupt1156)
+the tighter stopping parameter. SovereignSteak's [#151](https://github.com/CrocSwap/integer-mult-bounds/pull/151)
+independently composes the same gauge refinement and recycling, and supplies
+the further atom tightening used here. The composition retains the actual complete
+word, exact restoration and every frame transition. James Chang's compensated
+birth-read reuse and SovereignSteak's terminal-elimination mechanism are
+explicit dependencies. All prior construction and framework credits remain.
+
+This is **2.44% above the preceding reviewed saving**. It is an asymptotic
+exponent improvement, not a measured runtime speedup. The retained analytic,
+uniform-recursion and fixed-tape hypotheses remain assumptions.
+
+[Review and validation scope](docs/research/community-round7-review.md) ·
+[Selected record](certificates/selected-result.json) ·
+[Construction argument](research/recycled-bit-integration/PROOF.md) ·
+[Exact certificate](research/recycled-bit-integration/certificate.json)
+
+```sh
+make recycled-bit-verify
+```
+
+## Preceding paired-cube and shared-core construction
 
 The construction contributed by **[icekylinx](https://github.com/icekylinx)** in
 [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), building on
@@ -160,6 +231,20 @@ split-pair recursion (#59)**. The review records the exact validation scope of e
 
 ## Attribution
 
+The current #186 construction is contributed by Dugongue, building on
+Chafik Boukhalfa/chafreaky (#181/#175), eumemic (#168), and the cumulative
+framework and physical-word lineage. The [contributor ledger](CONTRIBUTORS.md)
+also credits reviewed parallel work, including Rohan Arun’s #185 bootstrap
+and Chafik’s #182 refinement, without adding their gains to this witness.
+
+Newly incorporated contributions include **DaysSky** (#150), **William Porter /
+hpst3r** (#147), **Thomas Marchand / Th0rgal** (#146), and **Rohan Gupta /
+gupt1156** (#148), building on **James Chang / jamesyc** (#124) and
+**SovereignSteak** (#122). **Andrew Barnes / Bortlesboat** (#101) strengthens
+physical-word verification using **rfu08**'s counterexample. **rfu08** (#64)
+contributes the separately scoped formal-transfer and finite-audit package.
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for their roles and the retained credits.
+
 The names below identify GitHub contributors; they are not verified Twitter handles.
 
 - **[Avi Eisenberg (ikeboy)](https://github.com/ikeboy):** skip-prefix and interval strips, core-aware pair assembly ([#53](https://github.com/CrocSwap/integer-mult-bounds/pull/53), [#62](https://github.com/CrocSwap/integer-mult-bounds/pull/62)).
@@ -257,6 +342,12 @@ scoped negative results and reproducible certificates.
 | **[ternary-30](patches/ternary-30.patch)** | **`2^-30`** | **Ternary five-subset circuit, rational frames and fixed-alphabet interchange** |
 
 ## Citation and license
+
+The [independent rank-first pair verification](research/ranked-pair-verification/README.md)
+and [formal-transfer checkpoint](research/machine-transfer-verification/README.md)
+record exact word/profile checks and 298 audited declarations across 27 unique
+Lean modules. Literal profile instantiations concern historical checkpoints,
+not the new selected witness. They do not verify the full multiplication machine.
 
 Use [CITATION.cff](CITATION.cff), cite the individual contributions used and
 include the repository version or commit. [CONTRIBUTORS.md](CONTRIBUTORS.md),

@@ -1,6 +1,59 @@
 # Community contribution record
 
-**Current reviewed construction: [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), κ=0.0004609169.**
+**Current reviewed construction: #186 on #181 and #168, κ=0.000661885549259598.**
+The [round-eight review](docs/research/community-round8-review.md) and
+[bank scheduling supplement](research/community-round8-audit/BANK-SCHEDULE.md)
+state the finite checks and retained all-size assumptions.
+
+| Contributor | Contribution and relationship to this checkpoint |
+|---|---|
+| [Dugongue](https://github.com/Dugongue) | [#186](https://github.com/CrocSwap/integer-mult-bounds/pull/186): coordinated complex frames, rematched/retimed handoffs, completed entrance banks and the selected exact assembly. |
+| [Chafik Boukhalfa / chafreaky](https://github.com/chafreaky) | [#181](https://github.com/CrocSwap/integer-mult-bounds/pull/181): shared-edge complex supplier used by #186; [#175](https://github.com/CrocSwap/integer-mult-bounds/pull/175): compiler speedup in its frozen prerequisite. [#182](https://github.com/CrocSwap/integer-mult-bounds/pull/182) adds independently reviewed bit-frame and terminal refinements. |
+| [eumemic](https://github.com/eumemic) | [#168](https://github.com/CrocSwap/integer-mult-bounds/pull/168): searched signed modules, output fusion, terminal sinks and the physical bit word underlying this composition; earlier positive-producer and frame/compiler work remains credited. |
+| [DaysSky](https://github.com/DaysSky) | #162 extended carrier closure and #150 physical register recycling in the prerequisite lineage. |
+| [James Chang / jamesyc](https://github.com/jamesyc) | #166 terminal substitution, #124 compensated birth-read reuse and #34 balanced assembly in the prerequisite lineage. |
+| [Abhinav Ramachandran / geckods](https://github.com/geckods) | #158 paid stopping/atom-toll refinement, alongside gupt1156’s #148, retained in the assembly lineage. |
+| [Joel Pulikkan / GamingPuzzled](https://github.com/GamingPuzzled) | #160 searched-bit-module composition retained in the prerequisite lineage. |
+| [Rohan Arun](https://github.com/rohanarun) | [#185](https://github.com/CrocSwap/integer-mult-bounds/pull/185): independently reviewed finite-depth ordinary-leaf bootstrap on #182. A reusable parallel mechanism; it does not improve #186's headline because its complex supplier already binds. |
+
+The construction retains icekylinx's paired-cube/recursive compiler framework,
+an664's shared-core principle, Zhihao Chen's physical bit ledger and Swapnil
+Jain's underlying word, as well as the earlier analytic, geometry, semantic,
+routing and verification contributions recorded below and in the frozen notices.
+Douglas Colkitt integrated the checkpoint and supplied the scheduling supplement
+with OpenAI Codex assistance. Original author notices and AI disclosures remain
+in the [package](research/coordinated-frames-and-entrance-banks/UPSTREAM-NOTICE.md).
+No exclusive priority claim is made; parallel and superseded work keeps its credit.
+
+### Preceding recycled-bit checkpoint
+
+**Current reviewed composition: #147 + #150 + #146 + #148 on #144,
+with #151’s parallel composition and further atom tightening, κ=0.000472154791.** The [round-seven review](docs/research/community-round7-review.md)
+separates exact finite verification from retained all-size hypotheses.
+
+| Contributor | Contribution incorporated in this round |
+|---|---|
+| [DaysSky](https://github.com/DaysSky) | [#150](https://github.com/CrocSwap/integer-mult-bounds/pull/150): delayed bit dirty reads, physical register recycling, exact scalar and frame checks. |
+| [William Porter / hpst3r](https://github.com/hpst3r) | [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147): terminal elimination on the shared bit word. |
+| [Thomas Marchand / Th0rgal](https://github.com/Th0rgal) | [#146](https://github.com/CrocSwap/integer-mult-bounds/pull/146): telescoping min-cut gauge subset, independently composed with the new schedule. |
+| [Rohan Gupta / gupt1156](https://github.com/gupt1156) | [#148](https://github.com/CrocSwap/integer-mult-bounds/pull/148): tighter atom exponent and adapter toll. |
+| [James Chang / jamesyc](https://github.com/jamesyc) | [#124](https://github.com/CrocSwap/integer-mult-bounds/pull/124): compensated birth-read reuse principle used by #150. |
+| [SovereignSteak](https://github.com/SovereignSteak) | [#122](https://github.com/CrocSwap/integer-mult-bounds/pull/122): terminal accumulator elimination used by #147; [#151](https://github.com/CrocSwap/integer-mult-bounds/pull/151): independent matching gauge/recycling composition and the selected 473/10^6 atom exponent. |
+| [Andrew Barnes / Bortlesboat](https://github.com/Bortlesboat) | [#101](https://github.com/CrocSwap/integer-mult-bounds/pull/101): binds literal scatter operations to paid incidences and rejects malformed or unchecked inputs. |
+| [rfu08](https://github.com/rfu08) | [#64](https://github.com/CrocSwap/integer-mult-bounds/pull/64): cancelling-scatter counterexample, finite audits and scoped Lean transfer proofs; full multiplier remains unformalized. |
+| [anxkhn](https://github.com/anxkhn) | [#90](https://github.com/CrocSwap/integer-mult-bounds/pull/90): requested current-review and historical-release documentation clarification, reflected in the current guides. |
+
+Related parallel work remains acknowledged: eumemic's #143 develops later
+per-target read deadlines and joint frame refinement on another producer;
+Joel Pulikkan / GamingPuzzled's #125 develops frame shrinking; Joseph Demarest's
+#83 proves a scoped fixed-profile recursion barrier. These are relevant
+research contributions, not additional unverified gains in the selected bound.
+No exclusive priority claim is made. Assistance disclosures remain in the
+original packages and [integration notice](research/recycled-bit-integration/NOTICE).
+
+### Preceding paired-cube checkpoint
+
+**Preceding reviewed construction: [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), κ=0.0004609169.**
 The [round-six review](docs/research/community-round6-review.md) records the
 checked source heads, dependency arguments, finite controls and replay limits.
 

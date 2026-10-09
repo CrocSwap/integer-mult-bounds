@@ -1,0 +1,13 @@
+--- research/cost-live-both/compiler.py
++++ research/audit-next25/compiler.py
+@@ -151,7 +151,9 @@
+   return cache[a,b]
+  def profile_cost(a,g):
+   old=frames[a]+2;target=g+2
+-  return profile_entropy(old,1)-profile_entropy(old,target)-profile_entropy(target,1)
++  # Local audit variant: compare a live control to its known next use.
++  future=pending[a]+2 if a in pending else 1
++  return profile_entropy(old,future)-profile_entropy(old,target)-profile_entropy(target,future)
+  def acquire(g,anchors):
+   if reclaim:
+    bb={}

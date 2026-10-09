@@ -1,5 +1,28 @@
 # Reproducing the result
 
+For the selected coordinated-frame/entrance-bank construction, run
+`make entrance-bank-verify`. This runs the publication-to-certificate binding,
+the full frozen offline finite replay and the bank-scheduling diagnostic.
+The [construction](../research/coordinated-frames-and-entrance-banks/PROOF.md)
+and [scheduling supplement](../research/community-round8-audit/BANK-SCHEDULE.md)
+state the arguments and conditional interfaces. The supplement's small
+exhaustive model is a diagnostic, not a proof of the all-size machine.
+This target uses Python 3.11+ and the standard library only. Preserve the
+package bytes: `.gitattributes` prevents normalization of its hash-pinned JSON.
+`make selected-record-check` is a fast metadata/inventory check, not a replay.
+The complete Linux matrix includes this target on 3.11, 3.13 and 3.14.
+
+For the arithmetic-only parameter-domain diagnostic, see the
+[assembly-domain audit](research/assembly-domain-audit.md). Its pinned replay
+and tests distinguish hypothetical supplier values from the published witness;
+they do not extend the admitted theorem range.
+
+For the preceding recycled-bit composition, run `make recycled-bit-verify`.
+The [construction and scope](../research/recycled-bit-integration/PROOF.md)
+describe full formal-variable scalar replay, exact rational frame checks and
+all paid costs. Use `make recycled-bit-full-verify` to recheck every inherited
+frame inclusion as well. Earlier targets below reproduce their own checkpoints.
+
 For the paired-cube/shared-core extension, run `make paired-cube-verify`.
 The [incremental guide](paired-cube.md) covers the signed producer, selected
 bit gauges, exact moments and assembly.
@@ -17,9 +40,9 @@ Its [incremental reproduction guide](stopped-product.md) covers the h24
 rational-center producer, new moments, stopping parameters and assembly.
 The community checkpoint and historical targets below retain their own scope.
 
-The selected main witness is documented in the [paired-cube maintainer review](research/community-round6-review.md)
+The selected witness is documented in the [round-eight maintainer review](research/community-round8-review.md)
 and [current status](research/current-status.md), with the
-[selected certificate](../certificates/paired-cube-network.json).
+[selected certificate](../research/coordinated-frames-and-entrance-banks/certificate.json).
 The [joint-frame review](research/community-round2-review.md) remains a historical checkpoint.
 The bound is conditional on the retained original #109 framework. Earlier notes,
 patches, and the [preserved research](research/preserved-research.md) are historical
@@ -38,6 +61,22 @@ source files are bundled, so verification runs without network access.
 The local preparation checks used Python 3.14.6 and Tectonic 0.16.9. The supplied
 GitHub workflow targets Python 3.11, 3.13, and 3.14 on Ubuntu 24.04; a workflow
 configuration is not a claim that those hosted runs have already passed.
+
+The shared finite-word replay and transition preparation require assertions:
+run without `-O`, `-OO` or a nonzero `PYTHONOPTIMIZE`. Both entry points reject
+an optimized interpreter before loading a word or writing profiler inputs.
+They also check physical index domains and bind the complete scatter multiset
+to the output records. Extra cancelling XORs cannot substitute for paid
+incidences; valid reorderings remain accepted because scatter gates change only
+output slots using unchanged scratch sources.
+
+The cancelling-scatter counterexample was identified by **rfu08** in
+[PR #64](https://github.com/CrocSwap/integer-mult-bounds/pull/64), at inspected
+head `2d970ab3ca0271cfb2b609dc9aae1b7073b7774d`. The common checkers now enforce
+that binding; the finite-word controls run in `make verify-joint` and
+`make verify-tests`. `make verify-pair` also replays the selected pair-assembly
+words through these helpers. This strengthens checker coverage while retaining
+the numerical witnesses and the stated full-theorem assumptions.
 
 ## Arithmetic, identities, and patches
 

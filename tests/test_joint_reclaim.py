@@ -4,6 +4,7 @@ from fractions import Fraction
 from pathlib import Path
 import gzip
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -30,11 +31,13 @@ class JointReclamationControls(unittest.TestCase):
                 mutate(changed)
                 path = Path(directory)/'word.json'
                 path.write_text(json.dumps(changed, separators=(',', ':'))+'\n')
-                with self.assertRaises((AssertionError, ValueError, IndexError, KeyError)):
-                    if checker != 'transitions':
-                        replay(path)
-                    if checker != 'replay':
-                        prepare(path, Path(directory)/'transitions.bin')
+                checks = {'replay': lambda: replay(path),
+                          'transitions': lambda: prepare(path, Path(directory)/'transitions.bin')}
+                for name, check in checks.items():
+                    if checker in ('both', name):
+                        with self.subTest(checker=name):
+                            with self.assertRaises((AssertionError, ValueError, IndexError, KeyError)):
+                                check()
 
     def test_selected_words_pass_independent_replay(self):
         recorded = json.loads((ROOT/'certificates/joint-dual-compiler.json').read_text())
@@ -76,6 +79,64 @@ class JointReclamationControls(unittest.TestCase):
         def mutate(word):
             word['R'] -= 1
         self.reject_mutation(mutate)
+
+    def test_self_cancelling_uncharged_scatter_is_rejected(self):
+        # PR #64 (rfu08) supplies this checker counterexample. Algebraic
+        # cancellation cannot authorize extra incidences absent from outputs.
+        def mutate(word):
+            outputs = {record[0] for record in word['outputs']}
+            slot = next(s for s in range(word['R']) if s not in outputs)
+            rogue = [word['v'], 2*word['v']+slot]
+            word['scatter'].extend([rogue, rogue])
+        self.reject_mutation(mutate)
+
+    def test_negative_operation_frame_index_is_rejected(self):
+        # Python aliases this to the original frame; the physical format uses
+        # nonnegative indices, as does the unsigned native profiler.
+        def mutate(word):
+            word['ops'][0][2] -= len(word['frames'])
+        self.reject_mutation(mutate, 'replay')
+
+    def test_cancelled_repetitions_of_paid_scatter_are_rejected(self):
+        def mutate(word):
+            word['scatter'].extend([word['scatter'][0], word['scatter'][0]])
+        self.reject_mutation(mutate)
+
+    def test_missing_scatter_is_rejected_by_each_helper(self):
+        self.reject_mutation(lambda word: word['scatter'].pop(0))
+
+    def test_scatter_order_preserves_the_complete_basis_receipt(self):
+        recorded = json.loads((ROOT/'certificates/joint-dual-compiler.json').read_text())
+        for h, original in self.words.items():
+            with self.subTest(h=h), tempfile.TemporaryDirectory() as directory:
+                changed = deepcopy(original)
+                changed['scatter'].reverse()
+                path = Path(directory)/'word.json'
+                path.write_text(json.dumps(changed)+'\n')
+                self.assertEqual(json.loads(json.dumps(replay(path))), recorded['axes'][str(h)]['replay'])
+
+    def test_optimized_helpers_reject_unchecked_word(self):
+        # This word omits every output. Optimized entry points must reject the
+        # interpreter before unchecked replay or profiler artifacts are emitted.
+        word = dict(h=3, v=1, R=1, frames=[[7,7]], sources={'0':0},
+                    ops=[], outputs=[], scatter=[], events=[[0,-1,0]])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'word.json'
+            path.write_text(json.dumps(word)+'\n')
+            for name in ('binary_frame_replay.py', 'binary_frame_profile_prepare.py'):
+                for flags, optimization in ((['-O'], ''), (['-OO'], ''), ([], '1')):
+                    with self.subTest(entry=name, flags=flags, env=optimization):
+                        destination = Path(directory)/'transitions.bin'
+                        args = [str(path)]
+                        if name == 'binary_frame_profile_prepare.py':
+                            args.append(str(destination))
+                        env = dict(os.environ, PYTHONOPTIMIZE=optimization)
+                        result = subprocess.run([sys.executable, *flags, str(EXPERIMENTS/name), *args],
+                                                capture_output=True, text=True, env=env)
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn('Assertions must remain enabled', result.stderr)
+                        self.assertNotIn('PASS', result.stdout)
+                        self.assertFalse(destination.exists())
 
     def test_complete_pr58_profile_fails_new_bit_saving(self):
         previous = json.loads((ROOT/'references/frame-compiler/pr58/certificates/joint-dual-kappa.json').read_text())

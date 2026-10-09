@@ -18,6 +18,8 @@ verify:
 	$(MAKE) verify-partial-gauge
 	$(MAKE) verify-three-stage-cover
 	$(MAKE) verify-paired-cube
+	$(MAKE) verify-recycled-bit
+	$(MAKE) verify-entrance-banks
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -27,6 +29,16 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-tests
+
+.PHONY: selected-record-check entrance-bank-verify verify-entrance-banks
+selected-record-check:
+	python3 -B scripts/verify_selected_result.py
+
+entrance-bank-verify: selected-record-check
+	python3 -B research/coordinated-frames-and-entrance-banks/verify.py
+	python3 -B research/community-round8-audit/bank_schedule.py
+
+verify-entrance-banks: entrance-bank-verify
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -79,6 +91,36 @@ verify-certificates:
 	python3 scripts/audit_scratch_pooling.py
 	python3 scripts/reuse_network.py
 	python3 scripts/make_reuse_patch.py
+
+# Independent verification of the pending PR62/63 rank-first construction.
+# The offline check is separate from the pinned-source, C++/CRT replay.
+verify-certificates: ranked-pair-check
+
+.PHONY: ranked-pair-check ranked-pair-verify formal-ranked-pair-verify
+ranked-pair-check:
+	python3 research/ranked-pair-verification/verify.py
+
+ranked-pair-verify: ranked-pair-check
+	test -n "$(UPSTREAM)"
+	python3 research/ranked-pair-verification/audit/ranked-word-audit.py --upstream "$(UPSTREAM)" --generated build/ranked-pair
+
+formal-ranked-pair-verify:
+	python3 research/ranked-pair-verification/lean/check.py
+
+formal-historical-verify: formal-ranked-pair-verify
+
+# Later source-bound proof and finite-certificate checkpoint from PR64.
+verify-certificates: machine-transfer-check
+
+.PHONY: machine-transfer-check formal-machine-transfer-verify
+machine-transfer-check:
+	python3 research/machine-transfer-verification/verify.py
+
+LAKE_PROJECT ?= formal/lean
+formal-machine-transfer-verify:
+	python3 research/machine-transfer-verification/verify_lean.py --lake-project "$(LAKE_PROJECT)" --output build/machine-transfer/lean
+
+formal-historical-verify: formal-machine-transfer-verify
 
 verify-ternary:
 	python3 scripts/complex_compression.py
@@ -481,3 +523,13 @@ paired-cube-certificate:
 paired-cube-verify: paired-cube-producer paired-cube-bit paired-cube-certificate
 
 verify-paired-cube: paired-cube-verify
+
+.PHONY: recycled-bit-verify recycled-bit-full-verify verify-recycled-bit
+recycled-bit-verify:
+	python3 research/recycled-bit-integration/verify.py
+
+recycled-bit-full-verify:
+	python3 research/recycled-bit-integration/verify.py --all
+
+verify-recycled-bit: recycled-bit-full-verify
+	python3 -m unittest discover -s tests -p 'test_recycled_bit_integration.py' -v
