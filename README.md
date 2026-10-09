@@ -10,7 +10,7 @@ The construction contributed by **icekylinx**, extending
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{4609169}{10000000000}=4.609169\times10^{-4}.
+\kappa=\frac{4611281}{10000000000}=4.611281\times10^{-4}.
 $$
 
 A signed paired-cube producer and coordinate-star centers complete the

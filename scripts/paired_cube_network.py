@@ -26,13 +26,13 @@ if hasattr(sys,'set_int_max_str_digits'):
 ROOT = Path(__file__).resolve().parents[1]
 AC = Q(4856569,10**10)
 COARSE = Q(4617656,10**10)
-ATOM = Q(1,1000)
+ATOM = Q(1,2000)
 OLD = Q(384599,10**10)
 AB = (1-ATOM)*COARSE+ATOM*OLD
 BAD = Q(1,10**16)
 PHASE_STOP = Q(1,10**6)
 ASSEMBLY_BIT = min(AB,(1-PHASE_STOP)*AC-Q(1,10**10))
-KAPPA = Q(4609169,10**10)
+KAPPA = Q(4611281,10**10)
 
 
 def clean(hist):
@@ -187,7 +187,7 @@ def main():
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
     args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
-    print('PASS kappa=4609169/10000000000 = 4.609169e-4; both moments, shared cores, finite router and 47 strict constraints')
+    print('PASS kappa=4611281/10000000000 = 4.611281e-4; both moments, shared cores, finite router and 47 strict constraints')
 
 
 if __name__ == '__main__':

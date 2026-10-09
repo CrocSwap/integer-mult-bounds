@@ -2,7 +2,7 @@
 
 This extension inherits PR #130 at
 `6a9970a530119174507904e23592fd59ede19a5d` and gives the conditional saving
-`4609169/10000000000 = 4.609169e-4`.
+`4611281/10000000000 = 4.611281e-4`.
 
 From the repository root with Python 3.11+:
 
