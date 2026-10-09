@@ -1,5 +1,10 @@
 # Reproducing the result
 
+For the source-assisted extension, run `make source-assisted-verify` after installing
+`research/source-assisted/requirements-round13.txt`. The [guide](source-assisted.md)
+separates construction regeneration, scalar dirty probes and recorded arithmetic.
+Unchanged historical targets need not be rerun to validate this increment.
+
 For the paired-cube/shared-core extension, run `make paired-cube-verify`.
 The [incremental guide](paired-cube.md) covers the signed producer, selected
 bit gauges, exact moments and assembly.

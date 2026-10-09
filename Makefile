@@ -18,6 +18,7 @@ verify:
 	$(MAKE) verify-partial-gauge
 	$(MAKE) verify-three-stage-cover
 	$(MAKE) verify-paired-cube
+	$(MAKE) verify-source-assisted
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -481,3 +482,13 @@ paired-cube-certificate:
 paired-cube-verify: paired-cube-producer paired-cube-bit paired-cube-certificate
 
 verify-paired-cube: paired-cube-verify
+
+.PHONY: source-assisted-verify source-assisted-arithmetic verify-source-assisted
+SOURCE_ASSISTED_PYTHON ?= python3
+source-assisted-verify:
+	$(SOURCE_ASSISTED_PYTHON) scripts/source_assisted_verify.py
+
+source-assisted-arithmetic:
+	$(SOURCE_ASSISTED_PYTHON) scripts/source_assisted_verify.py --arithmetic-only
+
+verify-source-assisted: source-assisted-verify
