@@ -7,7 +7,7 @@ the open pull requests (not from this package):
 
 | PR | author | kappa | lever | notes |
 | --- | --- | --- | --- | --- |
-| #200 | chafreaky | **6.65046903615388e-4** (`166261725903847/25e16`) | new bit **and** complex supplier | With its own complex word *the complex branch binds*, so the headline equals #196. It also states that composed with #193/#194's complex word its bit supplier "would give about 6.769e-4, which I am preparing as a separate stacked composition". |
+| #200 | chafreaky | 6.65046903615388e-4 (`166261725903847/25e16`) | new bit **and** complex supplier | With its own complex word *the complex branch binds*, so its headline equals #196 and is *below* #197. It also states that composed with #193/#194's complex word its bit supplier "would give about 6.769e-4, which I am preparing as a separate stacked composition" — the composition computed below. |
 | #197 | evmckinney9 | **6.76080316519385e-4** (`135216063303877/2e17`) | packs #187 rank-4/rank-24 residuals; #193 complex | Its own body: +0.8398% packing gain over `0.000670450176035363`, 1.2957% above #194. **The highest standing kappa claim.** |
 | #198 | sennemmi | **6.679123e-4** (`6679123/10^10`) | 102 lowered PR189 endpoint frames + the finite leaf wrapper | Draft. Explicitly "not claimed as the current public record" and "do not claim to beat #197". Credited here: "the finite depth-2 ordinary-leaf wrapper uses the PR185 recurrence **first applied to PR189 by PR199**". |
 | #199 | this package | 6.678525e-4 (`267141/400000000`) | finite leaf bootstrap on PR194's inputs | Reproduces PR194's kappa exactly from PR194's own profiles; the wrapper is the only change. |
