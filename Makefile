@@ -31,6 +31,7 @@ verify:
 	$(MAKE) verify-deferred-span
 	$(MAKE) verify-merged-span
 	$(MAKE) verify-saturated-deferred
+	$(MAKE) verify-stopped-pairtree
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
@@ -484,3 +485,8 @@ merged-span-frames-verify:
 verify-saturated-deferred: saturated-deferred-verify
 saturated-deferred-verify:
 	python3 research/saturated-deferred/verify.py
+
+.PHONY: verify-stopped-pairtree stopped-pairtree-verify
+verify-stopped-pairtree: stopped-pairtree-verify
+stopped-pairtree-verify:
+	python3 research/stopped-pairtree/verify.py

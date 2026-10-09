@@ -1,0 +1,70 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\title{Sharing intermediate sums in the finite integer-multiplication network}
+\author{Douglas Colkitt\thanks{Prepared with assistance from OpenAI Codex.
+This is not independent review or endorsement by OpenAI.}}
+\date{October 7, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+A cancellation-free computation graph replaces the separate rectangle mixers
+in our preceding finite bit network. Reusing roles along computation paths
+needs one auxiliary role per output plus one per binary addition. Source
+supports and reachable-target supports supply nondegenerate frames for the
+forward and reversed stages, without extra rank loss. The resulting conditional
+integer-multiplication saving is $\kappa=2^{-63}$, a factor 16 above the prior
+$2^{-67}$ witness. No practical runtime improvement or optimality is claimed.
+\end{abstract}
+
+\section{Scope and construction}
+We retain the fixed finite-alphabet, fixed finite number of one-dimensional
+tapes model and assume the unchanged interfaces of OpenAI's
+\emph{Integer multiplication below $n\log n$}, pinned at
+\begin{center}\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.\end{center}
+The complex network, numerical maps, and final rounding are unchanged.
+\input{dag-construction.tex}
+
+\section{Conditional exponent and checks}
+The logarithm enclosure used above follows from
+\[
+ 2\sum_{j=0}^{23}\frac{z^{2j+1}}{2j+1}\le\log x\le
+ 2\sum_{j=0}^{23}\frac{z^{2j+1}}{2j+1}
+ +\frac{2z^{49}}{49(1-z^2)},\quad z=\frac{x-1}{x+1},\quad 1\le x\le2,
+\]
+applied to $2$ and $m/2^{16}$ with exact rational arithmetic.
+With $a=a_{\rm b}$, take
+\begin{gather*}
+ \epsilon=1/21,\quad\beta=9/10,\quad c=9a/10,\quad
+ \lambda=1-19a^2/20,\quad\lambda'=1-9a^2/10,\\
+ \delta=1/16,\qquad C_1=20.
+\end{gather*}
+Then $\tau(1+c/\beta)=1-a^2<\lambda<\lambda'<1$; the separate complex
+conditions follow from $19a^2/20<a_{\rm c}$ and $9a^2<a_{\rm c}$. The exact
+minimum of the seven exponent margins is
+\[
+ G=\frac{3a^2}{70}=\frac{104907}{700000000000000000000000}>2^{-63}.
+\]
+The remaining margins are $g_1>1/2$, $g_4=20a/21$, $g_5=13/112$,
+$g_6=299/336$, and $g_7=1/21$. The strict gap absorbs fixed logarithmic
+factors, giving $O(n(\log n)^{1-2^{-63}})$ under the retained assumptions.
+The previous dimension, stopping, and guard audits still apply: the guard
+is $p^{20/21}=o(p)$ and $K=\Theta(p^{3a/70})=o(\ell)$ for
+$\ell=\Theta(p^{20/21})$, with $K/\log p\to\infty$.
+
+The companion artifacts are
+\begin{itemize}
+\item \path{scripts/exclusion_circuit.py} and \path{scripts/dag_network.py};
+\item \path{certificates/dag-network.json};
+\item \path{patches/h46-dag-63.patch}.
+\end{itemize}
+The certificate checks every output support at $n=45$, the reversible slot
+assignment, and both directions of support nesting. Small complete invocations
+are checked on every input basis vector, including dirty scratch. A full small
+three-stage model checks auxiliary sharing and bank exchange. These checks
+support the written transfer argument and do not formally verify the complete
+upstream multiplication theorem.
+\end{document}

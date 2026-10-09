@@ -1,0 +1,106 @@
+\section{Shared tensor contractions for the complex side map}
+\label{sec:disjoint-tensor-compression}
+This section changes only the disjoint-triple side circuit of
+Section~\ref{sec:complex-compression}. The scalar field, intersection-two
+circuit, centers, twelve signed operations, tensor stages, endpoint
+corrections, and first/third-stage matching remain as there. It supplies
+complex-network headroom, not a new multiplication exponent.
+
+\subsection{An exact sum recurrence}
+Let $D_{a,b}(n)$ send values on $a$-subsets to their sums over subsets
+disjoint from each specified $b$-subset. Split the ground set into $l+r=n$.
+For sources with left size $i$ and targets with left size $j$, the map is
+$D_{i,j}(l)\otimes D_{a-i,b-j}(r)$. Applying its two factors in either order
+uses at most
+\[
+ \min\left\{\binom r{a-i}c(l,i,j)+\binom lj c(r,a-i,b-j),\quad
+ \binom li c(r,a-i,b-j)+\binom r{b-j}c(l,i,j)\right\}
+\]
+additions. Here $c$ is the already constructed smaller circuit's addition
+bound. Sum these costs over feasible $i,j$, then add
+$\binom lj\binom r{b-j}(p_j-1)$ for each $j$ with $p_j>0$ feasible source
+splits. Try every split up to $n/2$, as well as the direct row-sum circuit.
+Empty maps, copies, and the one-output total are the base cases.
+All combined supports are disjoint: the tensor factors partition sources
+by their two parts, and the final sum partitions them by $i$.
+This proves the integer coefficient map inductively.
+
+Intern equal formal supports, retaining the first decomposition, and prune
+unused nodes. These operations preserve the map and do not increase the
+number of additions. Each noninput retained node is still the sum of two
+disjoint nonempty supports. At $h=26$ the unshared recurrence gives $74162$
+additions; exact interning and pruning give $57772$ additions and $2600$
+outputs, hence $60372$ reversible roles by the $c+q$ embedding.
+
+\subsection{A phase enclosure for any disjoint-triple sum DAG}
+For a retained node $z$, let $\mathcal S_z$ be its ancestor input triples
+and $\mathcal T_z$ the output triples reachable from it. Every pair in
+$\mathcal S_z\times\mathcal T_z$ is disjoint. Both families are nonempty.
+Write $A_z=\bigcup\mathcal S_z$ and $B_z=\bigcup\mathcal T_z$; thus
+$A_z\cap B_z=\varnothing$. In the forward middle mixer assign
+\[
+ U_z=\begin{cases}
+ \langle t_S\rangle,&\mathcal S_z=\{S\},\\
+ t_T^\perp,&|\mathcal S_z|>1,\ \mathcal T_z=\{T\},\\
+ \mathbb F_2^{A_z},&|\mathcal S_z|,|\mathcal T_z|>1.
+ \end{cases}
+\]
+Use the same rule with $\mathcal S,\mathcal T$ exchanged for the reverse
+middle mixer. This is not obtained by assuming complements preserve
+nonalternation.
+
+Along a forward DAG edge, ancestor families grow and reachable-output
+families shrink. Consequently the displayed spaces increase. Lines remain
+the same until a second source appears; complements remain the same once
+only one target remains. Coordinate spaces increase by inclusion. A line
+can enter a coordinate enclosure or target complement, and a coordinate
+enclosure can enter a target complement. There are no other distinct
+internal transitions. The same proof applies in reverse with the families
+exchanged. Initial physical source lines and final physical target
+complements fit these inclusions, including nodes that are themselves
+outputs and have other later uses.
+
+Every space is nondegenerate under the standard binary dot product.
+A nonzero coordinate residual has a coordinate unit. For a source-line
+to coordinate transition, two distinct ancestor triples ensure a point in
+$A_z\setminus S$, giving a norm-one residual vector. For a coordinate
+space on $A$ entering $t_T^\perp$, the earlier node has another reachable
+triple $T'\ne T$ disjoint from $A$. A point in $T'\setminus T$ gives a
+coordinate unit orthogonal to both $A$ and $T$. A line-to-complement
+transition has a coordinate unit outside $S\cup T$, since $h>6$.
+Transitions from zero or to the full space likewise have coordinate units,
+except the complement-to-full residual, which is the norm-one line $t_T$.
+Thus every nonzero orthogonal residual is nonalternating. The retained
+binary-space lemma constructs an orthonormal basis for each residual.
+Tensoring and the three-stage frame schedule are consequently licensed
+exactly as in Section~\ref{sec:complex-compression}.
+
+The explicit checker traverses every physical role segment of both middle
+orientations, including source, target, fresh, and retired roles. At small
+sizes it also constructs every distinct residual basis independently of
+the case proof. The scalar checker verifies every output coefficient over
+the integers, and the signed dirty-workspace invocation is checked on
+independent formal inputs in both directions.
+
+\subsection{Complete finite accounting}
+With $v=\binom h3$, retain $R_2=\binom h2(4(h-2)-6)$ intersection-two roles.
+Let $R_0=c+v$ be the new disjoint roles. Then
+\[
+ W=2v^3+2v^2(R_0+R_2+h+1),\quad m=h^3,\quad
+ L=3v^2h(h+1),\quad s=Wm-2v^3+2L.
+\]
+All side and central inputs are arbitrary and restored. The join uses the
+same paired-point label permutation as before; its binary residual has a
+norm-one coordinate tensor outside the two relevant triple supports.
+It removes one auxiliary role and $m$ rank per join without further loss.
+At $h=26$, $R_0+R_2=89622$ and $Wm-s=6678880000$; exact logarithm bounds
+certify $1-\log_m(s/W)>3\cdot10^{-8}$.
+
+If the mixer uses $M$ scalar additions, has $C$ data copies and $J$ weighted
+output injections, the three-stage scalar step bound remains
+$3v^2(4M+2C+4J+18v)$. The checker computes these numbers from the expanded
+DAG. With $E=64(W+m+1)^3$, it verifies
+$4\,\mathrm{steps}+8s+8W+8m<E$ and $2\le s<m^5$.
+Thus the existing stopped-depth guard lemma applies with this enlarged
+complex saving and the same residual exponent five. This check changes no
+retained multiplication witness.

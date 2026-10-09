@@ -1,0 +1,158 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\title{Sharing auxiliary roles without losing the finite-network rank deficit}
+\author{Douglas Colkitt\thanks{Prepared with assistance from OpenAI Codex. This is not independent review or endorsement by OpenAI.}}
+\date{October 7, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We identify first-stage and third-stage side roles in the finite bit network
+used by OpenAI's integer-multiplication manuscript. An explicit matching makes
+the new frame transitions nested, removing one third of the side roles while
+preserving the absolute rank deficit. Combined with our previous routing and
+parameter audits, this supports the conditional exponent saving $\kappa=2^{-75}$.
+The complex network is unchanged. The improvement concerns an asymptotic
+exponent; no practical runtime comparison is claimed.
+\end{abstract}
+
+\section{Setting and the matching}
+We retain the finite-alphabet, fixed finite number of one-dimensional tapes
+model of \emph{Integer multiplication below $n\log n$}, pinned at
+\begin{center}\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.\end{center}
+All unchanged algorithmic interfaces remain assumptions. We use the previously
+audited $h=46$ instance. Let $\mathcal T$ be the triples of $[h]$,
+$v=\binom h3$, $N=v^3$, $m=h^3$, and $z=3\binom{h-3}{2}$.
+Two triples are neighbors when their intersection has size one.
+The rational label space is $F=\mathbb Q^h$ with form $I-J/9$;
+triple indicators have norm two and neighboring indicators are orthogonal.
+
+Pair consecutive ground points. Define a permutation $\pi$ of $\mathcal T$.
+If a triple contains a full pair and a singleton, keep the singleton and cycle
+its full pair among the pairs other than the singleton's pair. Otherwise it
+uses three different pairs: keep the point in the least indexed pair and flip
+the other two points to their partners. The first rule is a cycle for each fixed
+singleton; the second is an involution. Their classes are disjoint, and
+\[
+ |T\cap\pi(T)|=1\quad\text{for every }T\in\mathcal T.
+\]
+Thus $\pi$ is explicit and $t_T\perp t_{\pi(T)}$.
+
+Fix a common ordering of triples, and let $n_S(j)$ be the $j$th neighbor of $S$.
+A stage-1 side role has fixed second and third triples $(A,B)$ and physical
+first-factor target/source triples $(S,n_S(j))$. Pair it with the stage-3 side
+role with fixed first and second triples $(S,\pi(A))$ and third-factor
+target/source triples $(B,n_B(j))$. This is bijective: recover $A$ with
+$\pi^{-1}$ and $j$ from the final neighbor list. There are $R=Nz$ such pairs.
+Only these side roles are shared; stage-2 side roles and all central roles
+remain separate.
+
+\section{Scalar correctness and frame accounting}
+Every first-stage invocation finishes before the third stage starts. A scalar
+invocation restores all its auxiliary values, regardless of their initial
+values. Identifying the paired roles therefore preserves the scalar bank
+exchange and restoration of every remaining auxiliary value. No simultaneous
+roles within an invocation are identified.
+
+Scalar restoration alone does not prove an improvement in the rank count.
+The last stage-1 gate on the shared role has label
+\[
+ E=F\otimes\langle t_A\rangle\otimes\langle t_B\rangle,\qquad \dim E=h.
+\]
+The first stage-3 gate has label
+\[
+ H=\langle t_S\otimes t_{\pi(A)}\rangle^\perp_{F\otimes F}
+       \otimes\langle t_B\rangle,\qquad \dim H=h^2-1.
+\]
+For any $x\in F$, the inner product of $x\otimes t_A$ with
+$t_S\otimes t_{\pi(A)}$ vanishes. Hence $E\subset H$. Both labels are
+nondegenerate under the source's tensor decompositions.
+
+\begin{proposition}[Exact saving per shared role]
+The identification removes one role and exactly $m$ units of total rational
+edge rank, while preserving all gate compatibility and endpoint conditions.
+\end{proposition}
+\begin{proof}
+The old terminal edges are $E\to F^{\otimes3}$ and $0\to H$. Their total
+projection-difference rank is $(m-h)+(h^2-1)$. The new edge $E\to H$ has
+rank $h^2-1-h$, exactly $m$ less. All other edges and gate labels remain
+unchanged. The shared role still has initial matrix zero and final matrix
+$I_m$ and is fixed by the completed scalar permutation. All data endpoints
+are unchanged. Thus the identity
+$M_{\mathrm{sink}(\rho(w))}-M_{\mathrm{source}(w)}=I_m$ holds on every role.
+The common-frame and rational-shear arguments apply to this fixed circuit.
+\end{proof}
+
+Consequently
+\begin{align*}
+ R&=9475984020888000,\\
+ W_{\rm b}^*&=W_{\rm b}-R=18958995769111200,\\
+ s_{\rm b}^*&=s_{\rm b}-mR=1845392811609813681600,\\
+ W_{\rm b}^*m-s_{\rm b}^*&=N-2L_{\rm b}>0.
+\end{align*}
+The relative deficit increases because the absolute deficit is preserved while
+the denominator decreases. The resulting new relative deficit is
+\[
+ \eta_{\rm b}^*=\frac9{29015910268}.
+\]
+This changes a network hypothesis of the previous fixed-network tuning bound;
+it does not contradict that bound.
+
+\section{Conditional multiplication witness}
+Put
+\[
+ a=\frac{27}{10^{12}},\qquad a_{\rm c}=\frac9{500000000000},
+ \qquad L=\frac{5743}{500}.
+\]
+The existing exact logarithm certificate proves $\log m<L$, and exact arithmetic
+proves $\eta_{\rm b}^*>aL$. Therefore
+$m^{1-a}>m(1-aL)>m(1-\eta_{\rm b}^*)$.
+The unchanged complex network supports $\sigma=1-a_{\rm c}$ as before.
+Choose
+\begin{gather*}
+ \tau=1-a,\quad \sigma=1-a_{\rm c},\quad
+ \epsilon=\frac1{21},\quad \beta=\frac9{10},\quad c=\frac{9a}{10},\\
+ \lambda=1-\frac{19a^2}{20},\quad \lambda'=1-\frac{9a^2}{10},\quad
+ \delta=\frac1{16},\quad C_1=20.
+\end{gather*}
+The packed condition is $\tau(1+c/\beta)=1-a^2<\lambda<\lambda'<1$.
+The separate conditions involving $\sigma$ follow from
+$19a^2/20<a_{\rm c}$ and $9a^2<a_{\rm c}$. The seven margins are
+\[
+ g_2=g_3=G=\frac{3a^2}{70}
+ =\frac{2187}{70000000000000000000000000}>2^{-75},
+\]
+with $g_1>1/2$, $g_4=20a/21$, $g_5=13/112$, $g_6=299/336$ and
+$g_7=1/21$, all larger than $G$.
+For $\rho=G-2^{-75}>0$, the existing strict-gap argument absorbs fixed
+logarithmic factors and yields $O(n(\log n)^{1-2^{-75}})$ conditionally.
+
+The dimension exponent, stopping threshold and guard bound match the 2$^{-76}$
+tuning note. Thus the guard is $p^{20/21}=o(p)$,
+$\alpha=\Theta(p^{23/84})$ and $\gamma=O(p^{25/42})=o(p)$.
+The enlarged chunk has $K=\Theta(p^{3a/70})$, still $K=o(\ell)$ and
+$K/\log p\to\infty$, where $\ell=\Theta(p^{20/21})$.
+Record length remains superpolynomial. The bit-network change affects only
+finite constants in its fixed-tape implementation; the complex network, its
+arithmetic guard analysis, the numerical maps and final rounding are retained.
+No appeal is made to the separate recurrence refinement, which had assumed
+$\sigma\le\tau$; here $\sigma>\tau$ and the original layer inequalities pass.
+
+\section{Artifacts and review boundary}
+The companion repository supplies an exact parameter and count certificate,
+a standalone patch, and finite checks:
+\begin{itemize}
+\item \path{scripts/reuse_network.py} and \path{certificates/stage-reuse.json};
+\item \path{patches/h46-shared-side-75.patch};
+\item \path{tests/test_reuse_network.py}.
+\end{itemize}
+The matching is checked on every one of the 15,180 triples at $h=46$.
+Small rational projection checks verify the orthogonality used in the nesting
+argument. A complete $h=6$ scalar model checks the bank exchange and restoration
+of 151,200 auxiliary roles with nonzero initial values. These
+finite tests support the written proof; they do not independently establish the
+upstream algorithm or its time bounds. No global optimality claim is made.
+\end{document}

@@ -1,0 +1,256 @@
+\section{A ternary five-subset network}
+\label{sec:ternary-five-subsets}
+
+This section changes the finite scalar alphabet for the bit interchange
+network. It retains the rational-frame contract and the compact-control
+movement proof. The complex network and its guard constants are unchanged.
+The result remains conditional on the pinned upstream manuscript and the
+previously identified compact-control and Gaussian extensions.
+
+Zhihao Chen's earlier
+\href{https://github.com/CrocSwap/integer-mult-bounds/pull/7}{PR~\#7}
+introduces the same ternary five-subset motif, with a different producer and
+a stronger claimed witness. The circuit below is a separate implementation;
+no priority claim for the motif or verification of that pending PR is made.
+
+\subsection{The two fields and the side map}
+Let $h=29$, let $\mathcal T=\binom{[h]}5$, and put
+$n=\binom h5=118755$, $r=\binom h2=406$. Over $\mathbb F_3$ let $B$ be
+the incidence matrix of five-subsets against pairs. Then
+\[
+ C=BB^{\mathsf T},\qquad C_{ST}=\binom{|S\cap T|}{2}\pmod3.
+\]
+For $t=0,1,2,3,4,5$ the binomial residues are $0,0,1,0,0,1$.
+Consequently $C=I+A_2$, where $A_2$ is the adjacency matrix for
+intersection exactly two. The side map is $-A_2$; thus the central
+and side maps add to the identity. Only the displayed factor size $r$
+is needed, not a claim that it is a minimal factor.
+
+The rational label space is $F=\mathbb Q^h$ with form
+\[
+ H=I-\frac2{25}J.
+\]
+It is nondegenerate, since $1-2h/25=-33/25\ne0$. Write $t_T$ for the
+indicator of $T$. Then
+\[
+ t_S^{\mathsf T}Ht_T=|S\cap T|-2,\qquad
+ t_T^{\mathsf T}Ht_T=3.
+\]
+Let $P_T$ be projection onto $\langle t_T\rangle$ in this form.
+Intersection-two neighbors have mutually annihilating projections.
+The scalar characteristic and rational label field are different;
+the address prime in the matrix-shear procedure is a third, independently
+chosen fixed prime avoiding its rational denominators.
+
+\subsection{An aligned side sum circuit}
+For each pair $J\subset[h]$, take all source variables $x_{J\cup S}$
+with $|S|=3$ and $S\cap J=\varnothing$. For each triple $T$ disjoint
+from $J$ compute
+\[
+ z_{J,T}=\sum_{S\cap(J\cup T)=\varnothing,\ |S|=3}x_{J\cup S}.
+\]
+Inject $-z_{J,T}$ into target $J\cup T$. An ordered intersection-two
+pair has the unique common pair $J$, so these partial outputs implement
+$-A_2$ exactly. There are $q=\binom h2\binom{h-2}3=10n$ output uses.
+
+Use the deterministic disjoint-triple sum DAG of the tensor construction
+on all $h$ points. In group $J$, delete formal source variables meeting
+$J$ and retain only output triples disjoint from $J$. A zero in this
+substitution denotes an absent formal input, not a cleared physical
+scratch register. Every retained addition still has disjoint source
+supports. The fixed global partition order aligns intermediate sums
+between different common-pair groups.
+
+For completeness, the tensor sum recipe is a finite recursion on ordered
+ground sets. Let $Z(n,a,b)$ be its uninterned addition count for summing
+$a$-subset inputs over all $b$-subset disjointness queries. If $a+b>n$,
+the outputs are empty sums; if $a=0$, copy the sole input. Both have
+zero cost. If $b=0$, sum the $\binom na$ inputs at cost $\binom na-1$.
+Otherwise start with separate query sums, costing
+$\binom nb(\binom{n-b}a-1)$. For each $1\le l\le\lfloor n/2\rfloor$,
+put $r_0=n-l$ and split the ground set into its first $l$ and last $r_0$
+points. For every feasible input split $i$ and query split $j$, contract
+one factor and then the other, at cost
+\[
+ \min\left\{
+ \binom{r_0}{a-i}Z(l,i,j)+\binom lj Z(r_0,a-i,b-j),\quad
+ \binom li Z(r_0,a-i,b-j)+\binom{r_0}{b-j}Z(l,i,j)
+ \right\}.
+\]
+Feasibility requires the subset sizes to fit their factors and
+$i+j\le l$, $a-i+b-j\le r_0$. For each $j$, add the resulting terms
+for each full query: if there are $t_j>0$ feasible $i$, this costs
+$\binom lj\binom{r_0}{b-j}(t_j-1)$. Choose a split only if its total
+strictly improves the current best, testing $l$ in increasing order.
+For the displayed minimum prefer its first contraction order on a tie.
+Use lexicographic subset order and increasing split indices; sum lists
+by recursively splitting them into two halves. Intern every equal formal
+support at each addition, retaining its first decomposition. The initial
+template is the resulting $(n,a,b)=(h,3,3)$ DAG. This describes a
+cancellation-free integer coefficient computation: disjointness factors
+across the two ground sets, and the input split partitions the sources.
+
+Within a group, intern equal full formal support sets. Across groups,
+let $I$ be the intersection of all full five-subset source labels of a
+nontrivial sum. A sum shared by distinct groups has $|I|\ge3$.
+If $|I|=3$, its exact signature is $I$ and the set of residual pairs
+$S\setminus I$; if $|I|=4$, use $I$ and its residual points. These
+signatures reconstruct the full set of five-subset variables, so there
+are no hash collisions at the mathematical level. A nontrivial sum
+cannot have $|I|=5$. Sums with $|I|=2$ belong only to that common-pair
+group. Equal singleton inputs are identified by their five-subset labels.
+Retain the first decomposition of each sum and prune unused nodes after
+all groups are processed.
+
+The exact integer DAG-array construction at $h=29$ gives
+\[
+ c=19593239,\qquad q=1187550,\qquad S=c+q=20780789.
+\]
+Here $c$ counts active additions after pruning, not allocated nodes.
+The implementation independently expands every support and output row
+at $h=8,9$, checks the signature identifications there, and regenerates
+the full integer DAG counts at $h=29$. The general exact-signature
+argument above justifies the large sharing operation; the small tests
+are implementation controls, not an extrapolated proof.
+
+\subsection{Restoration and rational side frames}
+A cancellation-free addition DAG with $c$ additions and $q$ output uses
+has an invertible gather-and-fanout embedding on $S=c+q$ roles: each
+binary addition identifies one input pivot with an output use, while
+all other uses receive their own role. No initial side value is assumed
+zero. Let its invertible scalar operation be $L$, its data copy be $V$,
+and its signed output injection be $J$ (coefficient $-1$ at every partial
+output). With central gather $G=B^{\mathsf T}$ and scatter $R=B$, use
+\[
+ L,\ -J,\ L^{-1},\ -R,\ V,\ G,\ R,\ L,\ J,\ L^{-1},\ -G,\ -V.
+\]
+On arbitrary side input $z$, the two injections contribute
+$-JLz+JL(z+Vx)=JLVx=-A_2x$. The inverse mixers and final negative copy
+restore $z$. Central input cancels in the same way, leaving $RGx=Cx$.
+Thus $y\gets y+x$ and every auxiliary input is restored. The actual
+reverse inverse schedule gives $y\gets y-x$.
+
+Every nonzero vector $u$ in the span of five-subset indicators containing
+one fixed pair $\{a,b\}$ satisfies
+\[
+ u_a=u_b,\quad \sum_i u_i=5u_a,\quad
+ u^{\mathsf T}Hu=\sum_{i\notin\{a,b\}}u_i^2>0.
+\]
+If the last sum vanished, the first two identities would give
+$2u_a=5u_a$, hence $u=0$. Therefore every source span appearing in an
+original group is nondegenerate. Interning an equal formal sum does not
+change its span, so this remains true after cross-group sharing.
+
+For a DAG node $v$ choose the orthogonal projection $E_v$ onto its source
+span. These projections increase along forward edges. Every ancestor
+source is orthogonal to every reachable target, so the final projection
+at a partial output lies below $I-P_T$ for its target $T$. For the
+reverse mixer use $I-E_v$. Orthogonal complementation reverses the
+inclusions and gives increasing reverse edges, including the target
+lines at entry and source complements at exit. Rational nondegeneracy
+suffices; no characteristic-two orthonormal-residual assumption is used.
+
+\subsection{Complete tensor circuit and rank ledger}
+Index the data banks by $\mathcal T^3$, with $N=n^3$ and $m=h^3$.
+Use the first-coordinate shears, inverse second-coordinate shears with
+logical banks exchanged, and third-coordinate shears. The scalar action
+is $(X,Y)\mapsto(-Y,X)$. Negate the physical $X$ bank at its final identity
+frame to obtain the unsigned bank exchange. This fixed pointwise gate
+has zero added edge rank and leaves all restored auxiliaries unchanged.
+
+For a stage write $A=B_0\mathbin\perp P$, where $P$ is its preceding
+label tensor line, and suppress the future tensor line $Q$. Put
+\[
+ D_0=B_0\otimes I,\quad D_1=A\otimes I,\quad
+ D(E)=D_0+P\otimes E.
+\]
+The common frames of the forward twelve operations are
+\[
+ D_0,D_0,D_0,D_0,D(P_T),D_1,D_0,D(E_v),D(I-P_T),D_1,D_1,D_1.
+\]
+For the reversed inverse invocation they are
+\[
+ D_0,D_0,D_0,D(P_T),D(I-E_v),D_1,D_0,D(I-P_T),D_1,D_1,D_1,D_1.
+\]
+Copy and injection gates are grouped by their data role, including all
+partial outputs for that target. Central gates retain every data and
+central incidence, including zero factor coefficients. All frames are
+tensored with $Q$. These are the same tensor boundaries as the general
+three-stage compiler. All side changes increase; only the central return
+decreases, by $h$ on each of the $r$ central roles in each invocation.
+Thus the total decreasing dimension is
+\[
+ L_{\mathrm{dec}}=3n^2rh.
+\]
+The signed dimension telescoping gives $Wm-2N+2L_{\mathrm{dec}}$.
+Replace the physical $X$ source projections $P_a$ by $-P_a$; because
+$2\ne0$ in the rational frame field, this adds exactly $N$ to the rank
+sum. Source frames are now $-P_a,0$, sink frames $I,I-P_a$, and each
+restored auxiliary has source $0$, sink $I$. The unsigned scalar exchange
+therefore satisfies every endpoint difference $I_m$.
+
+The bipartite double cover of the intersection-two graph is regular of
+positive degree $10\binom{h-5}3$. Hall's condition follows by edge
+counting, and a fixed deterministic matching algorithm supplies an
+orthogonal label permutation $\pi$. Share stage-one invocation $(A,B)$
+with stage-three invocation $(B,\pi(A))$, keeping local auxiliary indices.
+The boundary projections are
+\[
+ E=I\otimes P_A\otimes P_B,\qquad
+ H_0=(I-P_B\otimes P_{\pi(A)})\otimes I.
+\]
+They satisfy $EH_0=H_0E=E$. The twelve-operation schedule already has
+initial frame $D_0$ on every auxiliary, so the join replaces two boundary
+segments by one and saves exactly $m$ ranks per identified role.
+Consequently
+\[
+ W=2n^3+2n^2(S+r),\quad
+ \Delta=Wm-s=n^3-6n^2rh.
+\]
+Numerically,
+\[
+\begin{split}
+ m&=24389,\qquad N=1674772079218875,\\
+ W&=589493540769997500,\\
+ L_{\mathrm{dec}}&=498137336383050,\\
+ \Delta&=678497406452775,\\
+ s&=14377157287342062574725.
+\end{split}
+\]
+Writing $\eta=\Delta/(Wm)$, the exact logarithm enclosure verifies
+\[
+ \eta>\frac{467}{10^{11}}\log m.
+\]
+Since $1-\eta<e^{-\eta}$, this proves
+$s/W<m^{1-a_{\rm b}}$ with $a_{\rm b}=467/10^{11}$.
+The finite-alphabet transfer therefore supplies the bit interchange
+exponent $\tau=1-467/10^{11}$.
+
+\subsection{Conditional assembly witness}
+Retain the separately integrated complex network with
+$a_{\rm c}=5/10^9$, its arity $17576$, and its existing node charge.
+Its stopped-depth constants remain $\beta=1/100$, $\zeta=1/1000$ and
+$C_1=4961/1000$. The bit alphabet extension is exact and introduces no
+complex rounding operations. Its fixed symbol width and circuit size
+alter constants only, not the complex precision recurrence.
+
+Take
+\[
+ \epsilon=\frac{1999}{10000},\quad c=1,\quad\delta=10^{-6},\quad
+ \lambda=1-\frac{4669}{10^{12}},\quad
+ \lambda'=1-\frac{4668}{10^{12}},\quad\kappa=2^{-30}.
+\]
+Since $\sigma<\tau$, the compact-control internal exponent is
+$\chi=\tau$. The reserved-axis preprocessing exponent is zero. Exact
+rational arithmetic checks every compact-control, Gaussian, leaf,
+prefix, dimension, guard and assembly constraint, with these two proved
+substitutions for the old packed overhead. All seven final margins exceed
+$\kappa$; the minimum is
+\[
+ g_3=\frac{2332833}{2500000000000000},\qquad
+ g_3-2^{-30}=\frac{296652863}{163840000000000000000}>0.
+\]
+Subject to the retained upstream and written extension hypotheses, this
+therefore supports $T(n)=O(n(\log n)^{1-2^{-30}})$. It is an asymptotic
+exponent comparison, not a practical runtime claim or independent
+verification of the upstream multiplication theorem.

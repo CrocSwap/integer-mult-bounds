@@ -1,0 +1,124 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\title{A conditional $2^{-59}$ exponent saving for integer multiplication}
+\author{Douglas Colkitt\thanks{Prepared with assistance from OpenAI Codex.
+This is not independent review or endorsement by OpenAI.}}
+\date{October 7, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+A weighted paired-block circuit reduces the finite bit network, while two
+refinements of the downstream accounting permit a larger transform dimension:
+the guard bound uses the actual early stopping depth, and the Gaussian width
+is chosen to meet its stated interface directly. At ground size $h=50$, these
+changes give the conditional saving $\kappa=2^{-59}$, with a strictly positive
+exact margin. This is a factor $128/13$ above the preceding $13\cdot2^{-66}$
+witness. The underlying multiplication theorem remains an assumption.
+\end{abstract}
+\section{Scope}
+The source patch is against OpenAI's \emph{Integer multiplication below
+$n\log n$}, pinned at
+\begin{center}\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.\end{center}
+The computational model uses a fixed finite alphabet and a fixed number of
+one-dimensional tapes. We retain nonadjacent routing, frames from orthogonal
+complements, and auxiliary stage sharing. The ground size is
+now 50 for both finite networks. The complex motif uses its original family;
+only the bit motif receives the new sum circuit. No practical runtime or
+unrestricted optimality claim is made.
+\input{paired-construction.tex}
+\section{The guard refinement}
+\input{stopped-guard.tex}
+\section{A smaller Gaussian width}
+Keep $p=6b$, $\eta=1/(4d)$, and the same prime intervals. They still give
+$\theta_i=t_i/s_i-1>1/(4d)$. Replace the earlier Gaussian width by
+\[
+ \alpha=\left\lceil(32db)^{1/4}\right\rceil,\qquad
+ \gamma=2d\alpha^2.
+\]
+Then $\alpha^4\theta_i>8b>p$, precisely the strict hypothesis needed by
+the unchanged one-dimensional resampling interface. Also
+\[
+ \alpha\le2(32db)^{1/4},\qquad
+ \gamma<46d^{3/2}\sqrt b.
+\]
+For $d=\Theta(p^\epsilon)$, we now have
+$\alpha=\Theta(p^{1/4+\epsilon/4})$ and
+$\gamma=O(p^{1/2+3\epsilon/2})$.
+Thus $\epsilon<1/3$ implies $\gamma=o(p)$ and
+$2\le\alpha<\sqrt p$ eventually. The previous convenient condition
+$\epsilon<1/12$ and its bound $\gamma\le28b^{2/3}$ are not needed.
+
+The unchanged Gaussian line-map cost $O(dTp^{3/2+\delta}\alpha)$ now has
+normalized exponent $3/4+\delta+5\epsilon/4$. The other six assembly
+exponents are unchanged. Prime selection still requires $1-2\epsilon>0$;
+the product of the selected primes remains between $T/2$ and $T$, with the
+same separation and coprimality guarantees. The new width satisfies every
+stated resampling hypothesis without changing that analytic lemma.
+
+For the chosen $\epsilon=199/1000$, the exponents of $\alpha$ and $\gamma$
+are respectively $1199/4000$ and $1597/2000$. The explicit cutoff
+$b\ge2^{40}$ ensures $46b^{1597/2000}\le b/4$ by integer comparison
+$184^{2000}<2^{16120}$. Replacing the former $2^{24}$ cutoff by $2^{40}$
+therefore preserves the source-scaling and final rounding bounds, together
+with the other existing eventual cutoffs. All grid, contraction, and error
+lemmas are retained with their original hypotheses verified.
+
+\section{Exact parameters and final margin}
+With $a=296/10^{11}$ and $a_{\rm c}=1/10^{11}$ take
+\begin{gather*}
+ \tau=1-a,\quad\sigma=1-a_{\rm c},\quad\beta=999/1000,
+ \quad\epsilon=199/1000,\quad\delta=1/10000,\quad C_1=2,\\
+ c=999a/1000,\quad\lambda=1-1999a^2/2000,
+ \quad\lambda'=1-999a^2/1000.
+\end{gather*}
+Here $\tau(1+c/\beta)=1-a^2<\lambda<\lambda'<1$;
+$\sigma<\lambda$ and $\sigma+\beta(1-\sigma)<\lambda'$ hold by exact
+rational comparison. The stopping test is $e^{1000}<d^{999}$.
+The seven margins, with nonadjacent routing and the new Gaussian width, are
+\begin{align*}
+ g_1&=1-\epsilon(1+c),&g_2&=\epsilon c(1-\tau),\\
+ g_3&=\epsilon(1-\lambda'),&g_4&=(1-\tau)(1-\epsilon),\\
+ g_5&=1/4-\delta-5\epsilon/4,&g_6&=1-\delta-\epsilon,\qquad g_7=\epsilon.
+\end{align*}
+Exact arithmetic gives
+\[
+ G=\min_j g_j=g_2=g_3
+ =\frac{272158569}{156250000000000000000000000}>2^{-59}.
+\]
+The ratio $G/2^{-59}$ is approximately $1.00408789$; the displayed strict
+rational comparison, not this decimal, is the certificate. The fixed gap
+absorbs the remaining fixed powers of $\log p$.
+
+The guard exponent is $2\epsilon=199/500<1$, the prime-interval growth
+exponent is $301/500>0$, and $\ell=\Theta(p^{801/1000})$.
+We have $K=\Theta(p^{\epsilon c})=o(\ell)$ and $K/\log p\to\infty$.
+The Gaussian margin is $23/20000>0$. Thus all setup, stopping, precision,
+layout, and absorption conditions in the patched proof hold, yielding
+\[
+ T(n)=O\bigl(n(\log n)^{1-2^{-59}}\bigr)
+\]
+under the retained upstream assumptions.
+
+\section{Reproducibility and boundary of verification}
+The reproducible artifacts are
+\begin{itemize}
+\item \path{certificates/paired-network.json};
+\item \path{patches/h50-paired-59.patch};
+\item \path{scripts/paired_exclusion_circuit.py};
+\item \path{scripts/shared_point_circuit.py};
+\item \path{scripts/paired_network.py}.
+\end{itemize}
+
+The checks compare every local and global output support exactly, verify both
+frame directions on every compiled role, and check small forward and reverse
+invocations on every input basis vector, including dirty scratch. Full small
+three-stage models check bank exchange and shared auxiliary restoration.
+Separate tests cover weighted recursion, stopping-depth bounds, guard-model
+selection, revised assembly constraints, and source-patch dependencies.
+These checks support the written proofs; they do not independently establish
+or formally verify the complete upstream algorithmic theorem.
+\end{document}

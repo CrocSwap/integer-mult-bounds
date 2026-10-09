@@ -1,0 +1,399 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}[proposition]{Corollary}
+\title{A sharper exponent for integer multiplication}
+\author{Douglas Colkitt\thanks{Prepared with assistance from OpenAI Codex. This assistance is not independent review or endorsement by OpenAI.}}
+\date{October 6, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We give exact certificates for improvements to the parameter choices in
+OpenAI's manuscript \emph{Integer multiplication below $n\log n$}.
+The strongest supplied substitution uses the same symbolic network construction
+at $h=46$, a rational recurrence saving, and a variable stopping exponent to give
+$\kappa=29/(5\cdot10^{33})=5.8\cdot10^{-33}$.
+This exceeds $2^{-111}$ by a factor of approximately $15.1$ and is more
+than $99\%$ of a certified upper bound for the stated parameter family.
+We also retain simpler substitutions with earlier interfaces frozen.
+This is a conditional consequence of the manuscript's algorithmic
+interfaces, not an independent verification of its multiplication theorem.
+We also determine the supremum of the symmetric numerical constraint
+problem and certify $h=46$ as optimal within the specified network-counting
+family when a common recurrence exponent is required.
+\end{abstract}
+
+\section{Scope and source}
+The source is OpenAI's September 23, 2026 manuscript, released in the
+\texttt{openai/math} repository. This note uses commit
+\texttt{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.
+The repository contains immutable copies of its source and a SHA-256 manifest.
+All algorithmic assertions below are conditional on the corresponding
+upstream interfaces and their uniform time bounds, on its fixed finite-alphabet
+Turing machine with a fixed finite number of one-dimensional tapes. Rational arithmetic
+checks prove numerical inequalities; finite tests of selected identities
+do not prove the full multitape algorithm.
+
+The starting parameter choices are
+\[
+ \tau=\sigma=1-2^{-50},\quad \beta=\tfrac12,\quad
+ \delta=\tfrac1{16},\quad C_1=20.
+\]
+The upstream simultaneous-layer proposition permits varying
+$c,\epsilon,\lambda,\lambda'$ subject to
+\begin{align}
+ \max\{\tau,\sigma\}&<\lambda<\lambda'<1,\label{eq:layer1}\\
+ \tau(1+2c)&<\lambda,\label{eq:layer2}\\
+ \sigma+\tfrac12(1-\sigma)&<\lambda',\qquad 20\epsilon<1.
+ \label{eq:layer3}
+\end{align}
+Its final assembly requires positive $c,\epsilon$, $\epsilon<1/12$,
+and positivity of seven margins:
+\begin{align*}
+ g_1&=1-\epsilon(1+c),&g_2&=\epsilon c(1-\tau),\\
+ g_3&=\epsilon(1-\lambda'),&g_4&=1-\tau-\epsilon(2-\tau),\\
+ g_5&=\tfrac14-\delta-\tfrac32\epsilon,
+ &g_6&=1-\delta-\epsilon,\qquad g_7=\epsilon.
+\end{align*}
+The final proof reserves half the minimum margin:
+$2\kappa\le\min_i g_i$. This absorbs any fixed power of $\log p$ into
+$p^\kappa$. This half-margin rule is a convenient convention; mathematically
+any fixed $\kappa<\min_i g_i$ would suffice for that absorption.
+
+\section{A substitution with the network frozen}
+\begin{proposition}\label{prop:balanced}
+Let $0<a\le1/16$ be rational. Suppose the upstream interfaces hold with
+$\tau=\sigma=1-a$, $\beta=1/2$, $\delta=1/16$ and $C_1=20$.
+Set
+\[
+ \epsilon=c=a/2,\qquad
+ \lambda=1-3a^2/4,\qquad \lambda'=1-a^2/2.
+\]
+All constraints above hold and $\min_i g_i=a^3/4$. Consequently the
+upstream final accounting permits $\kappa=a^3/8$.
+\end{proposition}
+\begin{proof}
+The key layer comparison is
+\[
+ \tau(1+2c)=(1-a)(1+a)=1-a^2
+ <1-3a^2/4<1-a^2/2<1.
+\]
+Also $1-a<\lambda$ and $1-a/2<\lambda'$.
+The dimension and guard constraints follow from
+$\epsilon\le1/32<1/12$ and $20\epsilon=10a\le5/8<1$.
+Direct substitution gives
+\[
+\begin{array}{lll}
+g_1=1-a/2-a^2/4,&g_2=a^3/4,&g_3=a^3/4,\\[2pt]
+g_4=a(1-a)/2,&g_5=3/16-3a/4,&g_6=15/16-a/2,\quad g_7=a/2.
+\end{array}
+\]
+For the stated range, each other margin is greater than $a^3/4$.
+\end{proof}
+
+Taking $a=2^{-50}$ gives
+\[
+ \epsilon=c=2^{-51},\quad
+ \lambda=1-3\cdot2^{-102},\quad \lambda'=1-2^{-101},\quad
+ \boxed{\kappa=2^{-153}}.
+\]
+This changes neither finite network nor the exponents in any earlier
+proposition. The weaker original proposal,
+$\lambda=1-2^{-101}$ and $\lambda'=1-2^{-102}$, instead has
+$g_3=2^{-153}$ and permits $\kappa=2^{-154}$ by the same convention.
+Both review patches are supplied.
+
+The patch must also change the explicit comparison used to compute
+$\lfloor b^\epsilon\rfloor$ from $d^{2^{75}}\le b$ to
+$d^{2^{51}}\le b$. Two old displayed estimates cannot be retained:
+the intermediate bound $\tau(1+2c)<1-31\cdot2^{-55}$ fails after
+substitution, and the new $g_4=2^{-51}-2^{-101}$ is less than
+$2^{-51}$. The patches replace the former with its exact identity and
+weaken the latter bound to $g_4>2^{-52}$.
+
+\section{Dependencies outside the final inequalities}
+The following implications account for uses of the changed exponents
+elsewhere in the construction. They use fixed parameters and permit the
+common finite cutoff to increase.
+\begin{itemize}
+\item $\epsilon C_1<1$ implies $d^{C_1}=o(p)$, so the exact intermediate
+dyadic formats still have $O(p)$ bits.
+\item $\epsilon c>0$ implies $K=\Theta(p^{\epsilon c})$ grows faster than
+$\log p$. Every fixed polynomial times $2^{-K}$ tends to zero, including
+the repair cost summed over the polynomially many recursive visits.
+\item $\epsilon<1$ gives $r=2^{\Theta(p^{1-\epsilon})}$, which dominates
+every fixed polynomial in $p$. It pays for per-record and per-line setup.
+\item $1-\epsilon-\epsilon c>0$ gives $K=o(\ell)$, as required for the
+synthetic-transform layout.
+\item $1-2\epsilon>0$ yields the prime-interval hypotheses eventually.
+The trial-division setup remains $n^{o(1)}$ since $d\to\infty$.
+\item $\epsilon<1/12$ retains
+$\alpha=\Theta(p^{1/4+\epsilon/2})<\sqrt p$ and
+$\gamma=O(p^{1/2+2\epsilon})=o(p)$.
+Thus the upstream error bound $448b\,2^{-b+\gamma}<1/2$ still holds
+eventually with $p=6b$.
+\item The integer-root exponents are fixed integers. Their size affects
+the fixed machine description and constants, not uniformity in input length.
+\end{itemize}
+No unchanged algorithmic interface is established merely by these
+implications. They close the parameter-dependence part of the audit.
+
+\section{The numerical supremum}
+\begin{proposition}\label{prop:supremum}
+For fixed rational $0<a\le1/32$, with $\tau=\sigma=1-a$,
+$\beta=1/2$, $\delta=1/16$ and $C_1=20$, the supremum of
+$\min_i g_i$ under the strict layer and assembly constraints is
+\[
+ G_*(a)=\frac{a^3}{2+a}.
+\]
+Under the half-margin convention, the supremum of $\kappa$ is
+$a^3/(4+2a)$. Neither supremum is attained.
+\end{proposition}
+\begin{proof}
+Put $d_0=1-\lambda'$ and $q=\min\{ac,d_0\}$. The layer conditions give
+\[
+ d_0< a-2(1-a)c,\qquad d_0<a/2.
+\]
+The increasing line $ac$ and decreasing line $a-2(1-a)c$ meet at
+\[
+ c_*=a/(2-a),\qquad q_*=a^2/(2-a).
+\]
+Strictness implies $q<q_*$. Moreover
+\[
+ \min_i g_i\le\min\{\epsilon q,\ a-(1+a)\epsilon\}
+ \le\frac{a q}{1+a+q}<\frac{a^3}{2+a}.
+\]
+The middle bound follows by intersecting the two affine functions of
+$\epsilon$.
+
+For attainability in the limit, choose rational $0<\xi<1$ and set
+\[
+ q=(1-\xi)q_*,\quad c=q/a,\quad
+ \epsilon=\frac{a}{1+a+q},\quad
+ \lambda'=1-q,\quad
+ \lambda=\frac{\lambda'+(1-a)(1+2c)}2.
+\]
+The two endpoints defining $\lambda$ differ by $a\xi>0$.
+Also $\lambda>1-a$, $\lambda'<1$ and
+$\lambda'>1-a/2$. Since $\epsilon<a\le1/32$, the dimension bound holds
+and $20\epsilon<20a\le5/8<1$. The remaining large margins do not bind.
+In this family $g_2=g_3=g_4=a q/(1+a+q)$, which tends to $G_*(a)$.
+\end{proof}
+The certificate uses $\xi=1/100$. Its value of $\kappa$ exceeds
+$99/100$ of the half-margin supremum and is strictly below it. Thus
+``the strongest safe rational $\kappa$'' is not a maximum in this open
+constraint problem. One must specify a slack requirement or a simplicity
+criterion for the parameter encoding.
+
+\section{Changing the common recurrence exponent}
+Write $v=\binom h3$, $m=h^3$, $N=v^3$, and $I=3v^2$.
+The generalized counts from the original construction are
+\begin{align*}
+ z_b&=3\binom{h-3}{2},&z_c&=\binom{h-3}{3}+3(h-3),\\
+ W_b&=2N+I(vz_b+h),&W_c&=2N+I(vz_c+h+1),\\
+ L_b&=Ih^2,&L_c&=Ih(h+1),\\
+ \eta_b&=\frac{N-2L_b}{W_bm},&
+ \eta_c&=\frac{2N-2L_c}{W_cm}.
+\end{align*}
+If $\log m<L$ and both deficits exceed $La$, then
+\[
+ m^{1-a}=m e^{-a\log m}>m(1-aL)>m(1-\eta),
+\]
+which supplies the strict recurrence comparison for either network.
+All comparisons used here have rational certificates. A positive Taylor
+partial sum exceeding $m$ proves $e^L>m$ without floating-point arithmetic.
+
+For $h=100$, the published deficits exceed $14\cdot2^{-42}$ and
+$\log(10^6)<14$. Thus the same network supports the comparison with
+$a=2^{-42}$. Proposition~\ref{prop:balanced} then gives the candidate
+$\kappa=2^{-129}$, improving on the unbalanced $2^{-130}$ candidate.
+The separate \texttt{same-network-129.patch} updates the proposition statements
+that fix the recurrence exponents and the displayed exponent comparison.
+
+For $h=46$, the formulas give
+\[
+ m=97336,\quad \eta_b=\frac9{43518487588},\quad
+ \eta_c=\frac7{22253827054}.
+\]
+Both deficits exceed $12\cdot2^{-36}$ and $\log m<12$.
+The guard calculation has
+$B=s_c+64(W_c+m+1)^3$ with $m^{10}<B<m^{11}$, so $C_1=20$
+still suffices. Proposition~\ref{prop:balanced} gives the numerical
+candidate $\kappa=2^{-111}$. The \texttt{h46-111.patch} updates six source
+files with these counts, recurrence exponents, and assembly parameters.
+
+At this $h$, the rational form $I-J/9$ has exceptional eigenvalue
+$1-h/9=-37/9\ne0$. Triple vectors retain rational norm two and
+binary norm one. The support arguments for nonalternating residuals
+still have spare coordinates because $h>6$. The tensor depth remains
+three and the endpoint weight remains $27$. These observations explain
+why the symbolic construction is a plausible extension; the counting
+certificate alone does not certify that extension or its implementation.
+
+\section{A certified discrete optimum}
+For the stated admissible family ($h\ge7$, $h\ne9$, and both
+$L_b,L_c<N/2$), the supremum of the shared recurrence saving is
+\[
+ A(h)=\frac{-\log(1-\min(\eta_b,\eta_c))}{\log(h^3)}.
+\]
+The supplied search certifies $A(46)>A(h)$ for all other admissible
+integers $h$. It compares rational logarithm enclosures for $h<200$,
+and bounds the infinite tail as follows:
+\[
+ \eta_b<\frac1{3z_bm},\qquad
+ A(h)\le\frac{-\log(1-\eta_b)}{\log m}
+ <\frac1{3z_bm-1}\quad(h\ge200).
+\]
+Both $z_b$ and $m$ increase with $h$, and the bound at $200$ is already
+below the certified lower bound for $A(46)$.
+
+For $1\le x\le2$, the logarithm enclosures use
+\[
+ z=\frac{x-1}{x+1},\quad
+ 2\sum_{j=0}^{J-1}\frac{z^{2j+1}}{2j+1}
+ \le\log x\le
+ 2\sum_{j=0}^{J-1}\frac{z^{2j+1}}{2j+1}
+ +\frac{2z^{2J+1}}{(2J+1)(1-z^2)}.
+\]
+Integer logarithms are reduced using
+$\log m=k\log2+\log(m/2^k)$.
+This proves an optimum for a common recurrence exponent within these
+counting formulas. It does not optimize separate $\tau,\sigma$, altered
+tensor depth, different networks, or the full space of multiplication algorithms.
+
+\section{Rational parameters and variable stopping exponent}
+The sharper rational choice
+\[
+ a=\frac9{500000000000},\qquad L=\frac{5743}{500}
+\]
+is certified at $h=46$: both exact rank deficits exceed $aL$, and the
+logarithm enclosure above with $J=24$ proves $\log(97336)<L$.
+Hence both network comparisons support $\tau=\sigma=1-a$.
+
+\begin{proposition}[Variable stopping exponent]
+Conditional on the same network and stream interfaces, the proof of the
+simultaneous-layer proposition works for any fixed rational $0<\beta<1$
+provided its displayed layer inequalities hold with that $\beta$.
+\end{proposition}
+\begin{proof}
+At an internal node $e\ge d^\beta$, the packed overhead satisfies
+$K\le d^c\le e^{c/\beta}$ and hence is $O(e^\lambda)$ when
+$\tau(1+c/\beta)<\lambda$. The internal geometric sum uses
+$s/W\le m^\sigma<m^\lambda$. At a leaf $u<d^\beta$, the normalized
+cost summed over leaves is at most
+$O(e^\sigma u^{1-\sigma})\le O(e^\sigma d^{\beta(1-\sigma)})$.
+The logarithmic number of base-$m$ pieces is absorbed when
+$\lambda'>\max\{\lambda,\sigma+\beta(1-\sigma)\}$.
+
+The initial row preprocessing remains $O(V\log d)$. The depth is at most
+$\lceil\log_m d\rceil$ and each leaf has $e\le d$, so the same row
+padding and guard-depth bounds apply. For $\beta=u/v$ the stopping test
+is the exact integer comparison $e^v<d^u$. The powers are fixed and their
+polynomial descriptor work is absorbed by the length of each polynomial record
+$r=2^{\Theta(p^{1-\epsilon})}$ as before. No tape-count change is needed.
+\end{proof}
+
+\begin{proposition}[Strongest supplied witness]
+With the rational $a$ above, set
+\begin{gather*}
+ \tau=\sigma=1-a,\quad \delta=\tfrac1{16},\quad C_1=20,\\
+ \beta=\frac{999}{1000},\quad
+ \epsilon=\frac{999a}{1000},\quad c=\frac{998a}{1000},\\
+ \lambda'=1-ac,\qquad
+ \lambda=\frac{\lambda'+(1-a)(1+c/\beta)}2.
+\end{gather*}
+All layer, assembly, and recorded side conditions hold, and the
+conditional final bound permits
+\[
+ \boxed{\kappa=\frac{29}{5\cdot10^{33}}=5.8\cdot10^{-33}}.
+\]
+\end{proposition}
+\begin{proof}
+The endpoint gap defining $\lambda$ is
+\[
+ \lambda'-(1-a)(1+c/\beta)
+ =\frac{a}{999}+\frac{998a^2}{999000}>0.
+\]
+Both endpoints exceed $1-a$. The leaf inequality is
+$1-a/1000<1-998a^2/1000$, which holds since $998a<1$.
+The dimension and guard requirements hold because $\epsilon<a<1/20$.
+Direct substitution gives
+\[
+ G:=g_2=g_3=\frac{498501}{500000}a^3
+   =5.814515664\cdot10^{-33}>\kappa.
+\]
+Here $g_1,g_6>1/2$, $g_5>1/8$, $g_4>a/2000$ and $g_7>a/2$;
+all exceed $G$. The other side conditions in the dependency section hold
+by substitution. Put $\rho=G-\kappa>0$. Every fixed logarithmic factor
+is eventually at most $p^\rho$, giving
+$p^{1-G}(\log p)^{O(1)}=O(p^{1-\kappa})$.
+\end{proof}
+
+Two simpler intermediate witnesses are also supplied:
+\[
+\begin{array}{c|c|c|c|c|c}
+\kappa&\beta&\epsilon&c&\lambda&\lambda'\\\hline
+2^{-109}&1/2&3a/4&a/2&1-3a^2/4&1-a^2/2\\
+2^{-108}&3/4&3a/4&3a/4&1-7a^2/8&1-3a^2/4
+\end{array}
+\]
+Their minimum margins are respectively $3a^3/8$ and $9a^3/16$,
+strictly above the listed $\kappa$. Each patch updates the rational
+integer-power setup, network comparison, and final absorption argument.
+
+\section{A ceiling for further parameter tuning}
+This ceiling allows variable $\beta$ and unequal $\tau,\sigma$, but retains
+the stated network rank bounds and seven-margin accounting.
+Write $a=1-\tau$. Since $g_4>0$, we have $\epsilon<a/(1+a)<a$.
+If $c<a$ then $ac<a^2$. If $c\ge a$, the packed-overhead condition and
+$\beta<1$ give
+\[
+ 1-\lambda'<1-(1-a)(1+c/\beta)
+ <1-(1-a)(1+a)=a^2.
+\]
+In either case
+\[
+ \kappa<\min\{g_2,g_3\}
+ =\epsilon\min\{ac,1-\lambda'\}<a^3.
+\]
+The certified search was repeated for the bit-network saving alone,
+\[
+ A_b(h)=\frac{-\log(1-\eta_b(h))}{\log(h^3)}.
+\]
+Its unique maximum is again at $h=46$ over the stated admissible integers;
+the same decreasing tail bound covers $h\ge200$. The cubed upper
+logarithm enclosure certifies
+\[
+ \kappa<A_b(46)^3<5.838\cdot10^{-33}<2^{-107}.
+\]
+The supplied $5.8\cdot10^{-33}$ exceeds $99\%$ of that upper enclosure.
+Thus a further improvement to $2^{-107}$ requires changing these rank
+bounds, the admissible network construction, or the cost accounting.
+This is not a lower bound for arbitrary multiplication algorithms.
+
+\section{Reproduction and remaining proof work}
+Run \texttt{make verify} to regenerate exact certificates, all seven review
+patches, and the finite checks. Run \texttt{make note} to build this note.
+The dependency audit is recorded in \texttt{docs/audit.md}.
+
+The first patch changes three source files and no substantive lemma.
+The arithmetic and parameter implications are reviewable independently.
+Establishing the unconditional multiplication result still requires accepting
+or independently validating the upstream finite-network interfaces,
+fixed-tape implementations, and analytic reductions. No complete Lean
+formalization or executable implementation of the full multiplication
+machine is supplied here. No priority or publication claim is made.
+
+\begin{thebibliography}{9}
+\bibitem{openai} OpenAI, \emph{Integer multiplication below $n\log n$},
+September 23, 2026. Source in
+\url{https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a}.
+\bibitem{hh} D. Harvey and J. van der Hoeven,
+\emph{Integer multiplication in time $O(n\log n)$},
+Annals of Mathematics 193 (2021), 563--617.
+\url{https://www.texmacs.org/joris/nlogn/nlogn.pdf}.
+\end{thebibliography}
+\end{document}

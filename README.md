@@ -1,21 +1,29 @@
-# Proposed saturated deferred composition: conditional κ = 6.398282083297e-05
+# Proposed stopped pair-tree refinement: conditional κ = 7.808981744031e-5
 
-This branch proposes **κ = 6398282083297/100000000000000000**, integrating
-djsmanchanda's PR99 saturated readouts with Zhihao Chen's PR97 reflected and
-signed endpoint construction, Swapnil Jain's networks, and Rohan Arun's PR100
-balanced transfer. The gain over pinned PR100 is approximately **0.0061%**.
-All copied-center losses, connectors and signed endpoint corrections are paid.
+This branch proposes **κ = 7808981744031/100000000000000000**, combining a
+new binary pair-star exclusion tree and deterministic integer-weighted carrier
+exchanges with icekylinx's PR104 stopped product-ring/rational-center interface
+and Rohan Arun's PR107 comparison and PR100 balanced transfer. It improves the
+pinned PR107 witness by approximately **0.13553%**. The complete paid recursive
+moment improves despite a larger auxiliary role count.
 
-[Construction and reproduction](research/saturated-deferred/README.md) ·
-[Proof and credits](research/saturated-deferred/PROOF.md) ·
-[Exact certificate](research/saturated-deferred/certificate.json)
+[Construction and reproduction](research/stopped-pairtree/README.md) ·
+[Proof and credits](research/stopped-pairtree/PROOF.md) ·
+[Exact certificate](research/stopped-pairtree/certificate.json)
 
-With SymPy 1.14.0 and mpmath 1.3.0 installed, run
-`make saturated-deferred-verify` for fresh frame and scalar audits, reflected
-ledgers, endpoint controls, bridge reconstruction and independent exact
-arithmetic. This finite witness retains the inherited analytic and all-size
-transfer hypotheses. Earlier constructions remain in the research directory,
-including `research/merged-span-frames/` and `research/deferred-span-frames/`.
+Run `make stopped-pairtree-verify` with Python 3.11+ and a C++17 compiler.
+The gate freshly reproduces the complex producers and matching, checks every
+signed scalar coefficient, actual binary frame, carrier edge and literal role
+operation, and independently checks the recurrence, three row reserves,
+47 strict constraints and seven margins. The unchanged coarse bit producer
+and ordinary leaf are inherited, source-pinned inputs. Finite interface
+controls accompany the written stopped-recursion and balanced-layout review.
+The result retains all inherited and newly proposed analytic, streaming and
+all-size tape hypotheses; it is not a measured runtime speedup.
+
+Earlier constructions remain available, including
+[the saturated deferred composition](research/saturated-deferred/README.md),
+`research/merged-span-frames/` and `research/deferred-span-frames/`.
 The inherited reviewed result below is separate from this proposal.
 
 Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
