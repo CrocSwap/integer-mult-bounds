@@ -1,0 +1,36 @@
+name: Verify bit-leaf bootstrap 189 record composition
+on:
+  push:
+    paths:
+      - 'research/bit-leaf-bootstrap-189/**'
+      - 'research/source-assisted-v4/certificate.json'
+      - 'research/paired-cube-twin-local-168/certificate.json'
+      - 'research/source-assisted/global/**'
+      - 'research/source-assisted/public/pr168_fd25adb7.tar.gz'
+      - '.github/workflows/bit-leaf-bootstrap-189.yml'
+  pull_request:
+    paths:
+      - 'research/bit-leaf-bootstrap-189/**'
+      - 'research/source-assisted-v4/certificate.json'
+      - 'research/paired-cube-twin-local-168/certificate.json'
+      - 'research/source-assisted/global/**'
+      - 'research/source-assisted/public/pr168_fd25adb7.tar.gz'
+      - '.github/workflows/bit-leaf-bootstrap-189.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Re-price the assembly with the bootstrapped bit leaf
+        run: python -B research/bit-leaf-bootstrap-189/verify.py
+      - name: Require an unchanged tree
+        run: git diff --exit-code
