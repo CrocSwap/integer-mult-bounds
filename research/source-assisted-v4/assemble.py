@@ -87,7 +87,7 @@ def main():
     out = dict(status='Exact arithmetic; construction and finite bridge are explicit proof dependencies',
                complex=c, bit=b,
                source_sha256=dict(complex=sha256(args.complex.read_bytes()).hexdigest(), bit_certificate=bit_sha),
-               bit_source='research/paired-cube-twin-local-168/certificate.json bit.profile (PR189)',
+               bit_source='research/paired-cube-twin-local-168/certificate.json bit.profile after 102-operation endpoint-frame descent (PR189 supplier)',
                arithmetic='PR184 assemble_profiles: 32-term rational logarithm enclosure; rational exponential majorant; upward 2^120 rounding',
                construction_receipts=complex_receipts(cdata))
     out.update(pr184.assemble(c, b, REPO, SA / 'global/FINITE_BRIDGE.txt'))
