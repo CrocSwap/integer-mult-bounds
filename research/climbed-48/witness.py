@@ -29,8 +29,8 @@ _spec.loader.exec_module(base)
 from balanced_assembly import assembly, cutoffs  # noqa: E402  (PR #43 / PR #34 audit)
 
 require, read, moment, js = base.require, base.read, base.moment, base.js
-AB = Q(4124034054, 10**14)
-KAPPA = Q(4123863984, 10**14)
+AB = Q(5164059, 125000000000)
+KAPPA = Q(826215307, 20000000000000)
 AC = base.AC
 PR48_KAPPA = Q(411862541, 10**13)
 PR47_KAPPA = Q(4105106623, 10**14)
