@@ -95,3 +95,7 @@ The research, proof text, programs, and verification were prepared with
 substantial assistance from OpenAI Codex at Rohan Arun's request. Independent
 mathematical review remains necessary. Contributions follow the repository's
 [Apache-2.0 license](../../LICENSE).
+
+## Independent rerun
+
+Full verification was independently rerun on research commit `428bb215bb8a28a9177bc310c39586a4b21c2e22` and passed in 125.045 seconds on 2026-10-09 at 00:42:38 UTC: all 163 unit tests and 17 historical patch checks, followed by the candidate verifier, physical phase audit and bounded bit screen. No source drift occurred. This historical branch has no GitHub CI checks configured. See [validation.json](validation.json) for the exact commands and log hash. Mathematical review of the stated conditional interfaces remains requested; this is not a current record claim.
