@@ -1,0 +1,34 @@
+name: Verify source-assisted complex word on PR168 v4 modules
+on:
+  push:
+    paths:
+      - 'research/source-assisted-v4/**'
+      - 'research/paired-cube-twin-local-168/**'
+      - '.github/workflows/source-assisted-v4.yml'
+  pull_request:
+    paths:
+      - 'research/source-assisted-v4/**'
+      - 'research/paired-cube-twin-local-168/**'
+      - '.github/workflows/source-assisted-v4.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install finite construction dependencies
+        run: python -m pip install -r research/source-assisted/requirements-round13.txt
+      - name: Regenerate the complex word, flow, exact lift, contract and assembly
+        run: python -B research/source-assisted-v4/verify.py
+      - name: Regenerate the PR189 bit certificate that the assembly reads
+        run: python -B research/paired-cube-twin-local-168/verify.py
+      - name: Require an unchanged tree
+        run: git diff --exit-code
