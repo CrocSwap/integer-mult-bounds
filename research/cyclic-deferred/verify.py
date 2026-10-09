@@ -125,7 +125,7 @@ def create_manifest(package, repository, reflection_script, reflection_receipt):
             round7_repository='https://github.com/Swapnil-jain/integer-mult-kappa',
             round7_commit='741e7aa078392553815df7926ee17ac5e25a8c38',
             round7_sha256=BIT_PINS),
-        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Saturated deferred-frame integration and verification for eumemic with OpenAI Codex assistance. Original source notices remain authoritative.')
+        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Saturated deferred-frame integration and verification for eumemic with OpenAI Codex assistance; radical-complement frame lifting, phase-aware role compilation, lazy effective-target placement and exact-moment frame/placement optimization by Thomas Marchand with Google Antigravity assistance. Original source notices remain authoritative.')
 
 
 def check_sources(package, repository, manifest=None):

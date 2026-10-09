@@ -1,27 +1,55 @@
-# Saturated deferred frames on the PR117 complex producer
+# Saturated and optimized deferred frames on the PR117 complex producer
 
-Conditional **κ = 1.09281094468e-4 = 27320273617/250000000000000**.
-Human-readable form: **κ ≈ 109281094468/10¹⁵ > 2⁻¹⁴**.
+Conditional **κ = 1.11513943837e-4 = 111513943837/1000000000000000**.
+Human-readable form: **κ = 111513943837/10¹⁵ > 2⁻¹⁴**.
 
 This package reuses the immutable 91,770-addition complex DAG from PR117
 (eumemic, with Anthropic Claude assistance). It reconstructs its scalar
-supports and frames, compiles 28,705 dirty roles, lifts their legal binary
-frames, and selects 4,706 deferred readouts. When target-chain intersections
-are degenerate, symmetric binary elimination retains a nondegenerate direct
-complement to the radical. Target containment is rechecked after extraction.
-The exact candidate priority is 2^dim(frame) / number_of_reached_targets²,
-with deterministic ties. The producer search itself is PR117's contribution.
+supports and frames, compiles 28,705 dirty roles using a phase-aware free-use
+schedule, lifts their legal binary frames via radical-complement saturation,
+selects 4,464 deferred readouts from 8,876 copy-role candidates via lazy
+effective-target placement and exact-moment local search, and optimizes internal
+addition-node frames via bidirectional and plateau-peeling sweeps:
 
-The complex saving is **109305097/10¹² = 1.09305097e-4**. Its physical word has
-71,185 carrier links, W = 124,390,992, recursive rank 71,647,349,312 and maximum
-child 574 of 576. Every copied center, exterior, source/target front, data
-projector and endpoint correction remains paid. The graph and role count
-agree with PR117; the changed frame and readout schedule gives the improvement.
+1. **Radical-complement initial frame lifting**: When the top-down orthogonal
+   kernel intersection $W_x = \ker(K_x) \cap \bigcap_{t \in \text{succ}(x)} U_t$
+   is degenerate over $\mathbb{F}_2$, instead of dropping all the way down to
+   the elementary label envelope $E_x$, we extract a maximal nondegenerate
+   direct complement inside $W_x \cap E_x^\perp$ so $U_x = E_x \oplus C_x$
+   remains nondegenerate and nested ($E_x \subseteq U_x \subseteq W_x$).
+2. **Phase-aware role compilation**: At each addition node $x$ with multiple
+   unlinked uses, uses that do not reach a centre root in Phase 1 are separated
+   from centre-reaching uses: the largest-reach non-centre use is assigned to
+   the continuing carrier `piv`, centre-reaching copies are emitted first, and
+   the remaining non-centre copies are emitted after all Phase-1 operations on
+   `piv`. This reduces `phase_one_ops` from 18,844 to 16,353, reduces
+   `phase_one_roles` from 13,555 to 11,064, expands copy-role deferral
+   candidates from 6,385 to 8,876, and cuts mean candidate target reach from
+   8.67 to 4.36.
+3. **Lazy effective-target placement and exact-moment local search**: Candidate
+   deferral frames are scheduled with a lazy priority queue weighted by
+   $2^{\dim(X)} / (r \cdot r_{\text{eff}})$, where $r_{\text{eff}}$ counts
+   targets in $\text{reach}(s)$ that do not already carry the exact subspace $X$,
+   followed by exact-moment steepest-ascent pruning and downward snapping of
+   singleton and small-cluster target-front levels.
+4. **Bidirectional and plateau-peeling frame sweeps**: After placement, internal
+   addition-node frames $U_x \in [L_x, W_x]$ are swept bottom-up and top-down
+   with directional tie-breaking and connected-component plateau peeling to
+   collapse intermediate steps along role chains into fewer, larger steps under
+   the strictly concave moment function $t \mapsto t \ln(m/t)$.
+
+The complex saving is **111538935/10¹² = 1.11538935e-4** (up from PR114's
+109305097/10¹²). Its physical word has 71,185 carrier links, W = 124,390,992,
+recursive rank 71,647,349,312 and maximum child 574 of 576. Every copied center,
+exterior, source/target front, data projector and endpoint correction remains
+paid. The graph and role count agree with PR117; the improved role schedule,
+frame lifting, placement and frame optimization give the improvement.
 
 The bit supplier remains Swapnil Jain's pinned round-seven word under PR104's
 stopped-product interface, with stopped saving 1240189553/10¹³. The complex
 side still binds. Compared with PR117's κ = 1.044939e-4, the selected κ is
-about 4.58131% larger. This is a finite conditional witness.
+about 6.7181% larger (and 2.0432% larger than PR114's κ = 1.09281094468e-4).
+This is a finite conditional witness.
 
 Run `python3 research/cyclic-deferred/verify.py` from the repository root.
 Verification regenerates in a temporary tree and preserves frozen inputs.
@@ -40,11 +68,11 @@ rejects wrong inverse signs, missing complements and flipped root readouts.
 
 The exact assembly includes both moments, the stopped ordinary-bit saving,
 three product-row reserves, all 47 strict constraints and seven margins, and
-next-grid rejection. An old-readout coefficient can reach 55/42. Each numerator over 42 is
-therefore split into signed unit chunks and a remainder, preserving its exact
-sum at the same frame. These bounded shears are explicitly counted in the
-forward and inverse words. A conservative literal scalar guard covers them. Enlarging this guard changes precision constants and
-eventual thresholds; it does not increase the exponent.
+next-grid rejection. Each numerator over 42 is split into signed unit chunks
+and a remainder, preserving its exact sum at the same frame. These bounded
+shears are explicitly counted in the forward and inverse words. A conservative
+literal scalar guard covers them. Enlarging this guard changes precision
+constants and eventual thresholds; it does not increase the exponent.
 
 All retained transfer hypotheses remain: simultaneous rational bases and
 opposite-bank factorization for the listed residuals, stopped atom streaming,
@@ -62,5 +90,8 @@ Aurel Prosz / Paureel (two-stage topology); RaD / hipotures (analytic and tape
 interfaces). Earlier PR114 research adopted Rohan Arun's PR111/PR113 and
 icekylinx's PR115 with concurrent PR116 credited; those earlier producer
 experiments remain in Git history. Original notices and AI disclosures remain.
-The saturated frame construction, this integration and the independent
-scalar/reflection audit were prepared for eumemic with OpenAI Codex assistance.
+The saturated frame construction and independent scalar/reflection audit were
+prepared for eumemic with OpenAI Codex assistance; the radical-complement frame
+lifting, phase-aware role compilation, lazy effective-target placement and
+exact-moment frame/placement optimization were prepared by Thomas Marchand with
+Google Antigravity assistance.

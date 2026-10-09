@@ -4,7 +4,8 @@
 Built on Avi Eisenberg's PR110 (Anthropic Claude assistance), icekylinx's
 PR104 stopped-product and copied-center interfaces, and Zhihao Chen's
 assembly of the RaD interfaces. Integration for eumemic with OpenAI Codex
-assistance. Apache-2.0. General transfer hypotheses remain inherited.
+assistance; extended by Thomas Marchand with Google Antigravity assistance.
+Apache-2.0. General transfer hypotheses remain inherited.
 """
 import argparse
 import json
@@ -21,7 +22,7 @@ ATOM = Q(1, 1000)
 OLD = Q(384599, 10**10)
 BETA = Q(1, 10**6)
 COARSE = Q(620523, 5000000000)
-COMPLEX = Q(109305097, 10**12)
+COMPLEX = Q(111538935, 10**12)
 KGRID = 10**15
 
 def profile(name):
