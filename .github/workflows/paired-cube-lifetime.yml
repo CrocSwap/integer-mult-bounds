@@ -1,0 +1,23 @@
+name: Paired-cube lifetime certificate
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  exact-witness:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Rebuild both words and check the complete certificate
+        run: python3 -B research/paired-cube-lifetime/verify.py
+      - name: Ensure verification did not change tracked sources
+        run: git diff --exit-code
