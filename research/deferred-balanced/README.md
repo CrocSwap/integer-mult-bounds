@@ -16,7 +16,7 @@ The balanced result uses an additional inherited layout argument: group common l
 
 The imported PR97 checkout omitted four logs that its manifest required. Fresh frame, lifted, staircase and negative-control replays recover those artifacts. The original manifest and expected hashes are preserved here; only the corresponding log hashes are refreshed. Original physical and analytic source bytes are unchanged. The original failed invocation and fresh replay receipts are retained, without representing it as a passing run.
 
-Draft: independent focused integration PASSED in 29.631 seconds, including both complete physical ledgers, tensor/signed controls, dense complex identity and exact assembly. Two independent moment enclosures, next-grid tests, 47 strict constraints, seven margins and six adversarial controls pass. The full repository rerun remains pending. A first attempt stopped because SymPy was absent; installing the upstream-pinned SymPy 1.14.0 resolved that setup failure.
+Verification complete: the full `make verify` passed on research commit `3dbe4e1` (78 isolated test modules and 20 historical patch checks). The following package replay then failed only on its accidentally pinned, ignored Python bytecode cache. After the existing cache-only fix at `ae56b9f`, the complete package/native geometry replay and all six controls passed in 809.215 seconds. Both invocations and their exact hashes are recorded in [validation.json](validation.json); the original monolithic invocation is correctly recorded as failed. All 42 GitHub checks passed on the corrected research head. Neither run changed source files. The earlier missing-SymPy setup failure is retained; the validated environment used SymPy 1.14.0.
 
 ```sh
 python3 -m pip install sympy==1.14.0
