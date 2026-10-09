@@ -254,6 +254,14 @@ the curve's width-66 row is exactly the pinned stock reproducing the top kappa),
   step below its budget.  The curve itself is a *specification*: the engine prices a row no
   supplier in the pins owns, and the scan reports other packages' certificates at their own
   conventions rather than re-deriving them.
+* Also machine-checked: the *unconditionality* record.  The four pinned readings it quotes --
+  the supplier's `PASS conditional finite witness` status, its `not exported` operation-program
+  line, its `downstream integration task` receipt, and the vendored package's `not an
+  unconditional multiplication theorem in any case` -- are matched back against the pinned files
+  by `verify.py` (`check_unconditionality`), together with the per-item table for all eleven
+  obligations.  The verdict is therefore evidence rather than commentary: discharging C1-C7 and
+  R1-R4 buys a conditional finite witness -- the house-standard status -- and the label
+  'unconditional' is closed by the pins.
 * Not run: upstream CI, and any contributor verifier other than the vendored #219 package
   invoked in place.
 * The `10^-10` supplier field is priced as a conservative variant; on it the ladder's top sits

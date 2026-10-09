@@ -238,6 +238,55 @@ def check_obligations():
     return owed + inherited
 
 
+def check_unconditionality():
+    """The pinned bytes' own verdict on unconditionality, read back rather than asserted.
+
+    The record in `obligations.json` quotes four strings from the pinned files. This reads the
+    files and matches the quotes, so the package's claim about what is and is not reachable is
+    a checked fact about the pins: the supplier is published as a conditional finite witness,
+    the operation program the normalizer needs is declared not exported, the literal program is
+    a downstream integration task, and the vendored package states the house convention that
+    discharging its obligations is not an unconditional multiplication theorem.
+    """
+    vendored = HERE / 'references' / 'pr219-run1'
+    supplier = json.loads((vendored / 'references'
+                           / 'pr193-source-assisted-v4.certificate.json').read_text())
+    readings = {
+        'references/pr219-run1/references/pr193-source-assisted-v4.certificate.json#status':
+            supplier['status'],
+        'references/pr219-run1/references/pr193-source-assisted-v4.certificate.json'
+        '#complex_profile.status': supplier['complex_profile']['status'],
+        'references/pr219-run1/references/pr193-source-assisted-v4.certificate.json'
+        '#assembly.construction_receipts.status':
+            supplier['assembly']['construction_receipts']['status'],
+        'references/pr219-run1/obligations.json#claim_scope':
+            json.loads((vendored / 'obligations.json').read_text())['claim_scope'],
+    }
+    assert readings[list(readings)[0]] == 'PASS conditional finite witness', \
+        'the complex supplier must be published as a conditional finite witness'
+    assert 'not exported' in readings[list(readings)[1]], \
+        'the operation program must still be declared not exported'
+    assert 'downstream integration task' in readings[list(readings)[2]], \
+        'the literal program must still be a downstream task'
+    assert 'not an unconditional multiplication theorem' in readings[list(readings)[3]], \
+        'the house convention must still be stated by the vendored package'
+    block = json.loads((HERE / 'obligations.json').read_text())['unconditionality']
+    recorded = {row['source'] + '#' + row['path']: row['value']
+                for row in block['evidence']}
+    assert len(block['evidence']) == 4 and len(recorded) == 4, 'one row per reading'
+    for key, value in readings.items():
+        assert key in recorded, 'the record must name every pinned reading: %s' % key
+        quoted = recorded[key]
+        if quoted.startswith('...'):                    # a quoted tail of a long string
+            assert value.endswith(quoted[3:]), 'the recorded tail must be the pinned tail'
+        else:
+            assert value == quoted, 'the recorded value must be the pinned value: %s' % key
+    needs = block['what_each_item_needs']
+    assert sorted(needs) == ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7',
+                             'R1', 'R2', 'R3', 'R4'], 'all eleven items must be named'
+    return block
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -254,6 +303,7 @@ def main():
     check_scan_and_construction(record)
     ceiling, scan, curve = check_suppliers_and_requirements(record)
     check_obligations()
+    unconditionality = check_unconditionality()
     target = HERE / 'certificate.json'
     if args.write:
         (HERE / 'SOURCE.json').write_text(
@@ -286,6 +336,10 @@ def main():
           % (record['construction']['totals']['items'],
              record['construction']['totals']['banks'],
              record['construction']['totals']['padding_registers']))
+    print('unconditional not available: supplier status %s; operation program not exported; %s'
+          % (json.loads((HERE / 'references' / 'pr219-run1' / 'references'
+                         / 'pr193-source-assisted-v4.certificate.json').read_text())['status'],
+             unconditionality['status']))
     print('rungs %s at %s banks, kappa %s'
           % (record['top']['families_absorbed'], record['top']['banks'], record['kappa']))
     print('suppliers     %d poseable ledgers scored, %d below the pinned density %s; least '

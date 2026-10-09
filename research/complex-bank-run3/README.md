@@ -273,6 +273,40 @@ at least the budget column, and a complex supplier that can clear the same budge
 margin -- the bit word because the leaf caps the budget, the complex supplier because the bank
 mechanism has nothing left to take at width 66.
 
+## Can the obligations be discharged, and can this be made unconditional?
+
+The first answer is yes and the second is no, and both are readings of the pinned bytes rather
+than positions -- `verify.py -> check_unconditionality` matches the four quotes back against the
+files, so the record cannot drift from what the pins say.
+
+**C1-C7 and R1-R4 are one missing artifact, not eleven gaps.** Every one of them needs the same
+thing: the literal operation program, then the columns, charts, witnesses and envelope re-run on
+the word it is banked by. The supplier this whole ladder is priced on certifies its flow and its
+all-column fresh identity, and states in the same breath that *"a literal globally renumbered
+operation program is not exported"*; its construction receipts call the literal
+program/replay *"a downstream integration task"*. So the work is reserved upstream, not
+invented here, and it is the work of a construction rather than of arithmetic: C1's normalizer
+has to move projectors that exist only in that program, C2 has to re-run the columns of a word
+that program defines, C3 has to chart frames those columns create, and C5-C7 need each child's
+frame/chain identity, which the pins export as a *count* per bin (`1,062`, `264`, `66` per
+vertex) and not as an identity. The one item that could be closed from the pins alone -- once
+C1's completion children are named -- is the moment-envelope parity (C4), because the envelope
+this package prices is already the certified arithmetic. R1 is the exception on the other side:
+the bit word's banked precedent *is* pinned (the entrance-gauge pack, 45,842 physical banks with
+gauge roles), so that obligation has a shape to extend instead of a mechanism to invent.
+
+**Unconditional is not a reachable label.** Three independent pinned facts close it: the
+supplier's own certificate is published as `PASS conditional finite witness`; the vendored #219
+package states that discharging R1-R4 buys a completed finite witness and that the result is
+`not an unconditional multiplication theorem in any case`; and this package's own scope says the
+same for the finite bridge and the all-size interfaces it inherits (general Clifford/tensor,
+uniform weighted compilation, restored rows, routing, paid layout, prime supply,
+precision/recovery, fixed tape). Discharging the eleven obligations would raise this ladder's
+kappa from a *scheduled target* to the **house-standard conditional finite witness** -- the same
+status the queue's published rungs carry, and the strongest status anything in the repository
+claims. That is the whole of what the work buys, and the package now says so with the quotes
+attached rather than in general terms.
+
 ## Verify
 
 ```sh
