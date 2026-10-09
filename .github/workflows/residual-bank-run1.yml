@@ -1,0 +1,25 @@
+name: residual-bank-run1
+
+on:
+  push:
+    paths:
+      - 'research/residual-bank-run1/**'
+      - '.github/workflows/residual-bank-run1.yml'
+  pull_request:
+    paths:
+      - 'research/residual-bank-run1/**'
+      - '.github/workflows/residual-bank-run1.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Offline accounting replay
+        run: python3 -B research/residual-bank-run1/verify.py
