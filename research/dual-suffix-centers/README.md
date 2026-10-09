@@ -49,7 +49,7 @@ binary frame nesting assertion is retained), recompiles the inherited matcher,
 checks every histogram entry, then all 47 strict constraints, seven margins and
 both next-grid exclusions (complex 7989584038/10^14 and κ 7988289348442/10^17).
 Controls reject unpaid cleanup, omitted retained loss, and both the PR104 and
-PR107 producer histograms at the new bound. Full repository verification is pending.
+PR107 producer histograms at the new bound. Full repository verification passed on `e72978fa40fa01e23583c58d40e42dab316ddc1a` in 2436.677 seconds, completed 2026-10-09T00:35:17.720947+00:00: `make -j1 verify` (78 isolated test modules, 20 historical patch checks), fresh producer/certificate regeneration and six adversarial controls. All 39 research-head GitHub checks passed, with no source drift. See [validation.json](validation.json) for evidence hashes.
 
 Scope: a finite conditional witness. The opposite-bank factorization, stopped
 atom streaming and odd-denominator grid interfaces of PR104 remain written proof
