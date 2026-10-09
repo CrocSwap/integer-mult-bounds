@@ -92,6 +92,20 @@ fresh maintainer checks from contributor-supplied evidence. Earlier witnesses,
 patches and attribution remain available. Submissions after #62 are outside this checkpoint's review; exact reviewed heads
 are recorded in the ledger.
 
+## Additional conditional composition
+
+The separate [shrunk-frame / birth-reuse / terminal-elision package](research/shrunk-birth-terminal/README.md)
+certifies `kappa = 112802185097556/10^18 > 2^-14` under the inherited OpenAI #109
+all-size interfaces. It combines Joel Pulikkan's shrunk frames (PR125), James
+Chang's birth identity (PR124), SovereignSteak's terminal identity (PR122) and
+eumemic's PR117 graph with protected placement, joint matching and a paid
+three-stock balanced transfer. The explicit word has 26,216 physical auxiliary
+roles. Complete source/dirty and frame audits, two exact arithmetic methods and
+240 scoped Lean theorems accompany the [proof](research/shrunk-birth-terminal/PROOF.md)
+and [reproduction commands](research/shrunk-birth-terminal/REPRODUCE.md).
+Original authorship and assistance disclosures are retained. This separate
+candidate does not change the historical maintainer-review ledger above.
+
 ## Reproduce
 
 ```sh
