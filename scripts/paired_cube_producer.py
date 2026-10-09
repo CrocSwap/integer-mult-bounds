@@ -33,7 +33,7 @@ def regenerate(expected,work=None):
     frozen=reference/'matching-arcs.json'
     assert hashlib.sha256(frozen.read_bytes()).hexdigest()==pin['matching_arcs_sha256']
     stage('Regenerating paired-cube signed DAG from inherited PR117 restrictions')
-    g=Graph(12).finish(restricted_triples(12),restricted_pairs(11),all_but_one(10))
+    g=Graph(11).finish(restricted_triples(11),restricted_pairs(10),all_but_one(9))
     g['matching_frames']='coordinate'
     binding={k:g[k] for k in ('inputs','labels','args','signs','roots','centers')}
     assert hashlib.sha256(json.dumps(binding,separators=(',',':')).encode()).hexdigest()==pin['graph_sha256']

@@ -2,7 +2,7 @@
 
 This extension inherits PR #130 at
 `6a9970a530119174507904e23592fd59ede19a5d` and gives the conditional saving
-`4609169/10000000000 = 4.609169e-4`.
+`5108289/10000000000 = 5.108289e-4`.
 
 From the repository root with Python 3.11+:
 
@@ -16,11 +16,12 @@ CI runs it in its own `paired-cube` matrix group. The checks are:
 - Rebuild the selected signed H-channel graph from exact zero restrictions of
   the pinned PR #117 positive DAG. Replay the frozen 6,074 carrier arcs,
   coordinate frames, full backward intersections, signed physical mixer,
-  center closure and 4,840 rank-20 partial gauges. Independent checks cover
+  center closure and 3,630 rank-18 partial gauges. Independent checks cover
   every scalar coefficient of `H+K+B=I`, the original-source K involution and
   inverse, actual frame containment and reverse target chains.
-- Reconstruct the bit subset from the existing PR #97 witness and readout
-  order. Check the retained 9,543 and omitted 2,022 slots, moved zero-frame
+- Reconstruct the bit subset from the hash-pinned h = 21 word in
+  `references/paired-cube/fib-bit-h21/` (PR #97 format and reader) and its
+  readout order. Check the retained 7,575 and omitted 1,335 slots, moved zero-frame
   dirty reads, changed first transitions and target subsequences. Unchanged
   complete-basis and rational-frame suites remain inherited checks.
 - Rebuild both shared-core child lists and certify strict moments, full

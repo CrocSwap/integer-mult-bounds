@@ -24,15 +24,15 @@ if hasattr(sys,'set_int_max_str_digits'):
     sys.set_int_max_str_digits(0)
 
 ROOT = Path(__file__).resolve().parents[1]
-AC = Q(4856569,10**10)
-COARSE = Q(4617656,10**10)
+AC = Q(5113520,10**10)
+COARSE = Q(5164125,10**10)
 ATOM = Q(1,1000)
 OLD = Q(384599,10**10)
 AB = (1-ATOM)*COARSE+ATOM*OLD
 BAD = Q(1,10**16)
 PHASE_STOP = Q(1,10**6)
 ASSEMBLY_BIT = min(AB,(1-PHASE_STOP)*AC-Q(1,10**10))
-KAPPA = Q(4609169,10**10)
+KAPPA = Q(5108289,10**10)
 
 
 def clean(hist):
@@ -48,14 +48,14 @@ def shared_profile(row,complex_word):
         require(0 < r < h and n > 0,'Proper local gauges')
         H[3*r] += n
     if complex_word:
-        require((h,v,R,ell) == (24,1760,26417,528),'Paired-cube local dimensions')
+        require((h,v,R,ell) == (22,1320,18473,440),'Paired-cube local dimensions')
         require(R == row['c']+row['q']-row['matched'],'Compatible carrier roles')
-        require(selected == {20:4840},'Selected rank20 gauges')
+        require(selected == {18:3630},'Selected rank18 gauges')
         for r,n in enumerate(row['remaining_internal_histogram']):
             H[r] += 3*n
         parts = ('source_data_histogram','target_data_histogram')
     else:
-        require((h,v,R,ell) == (23,1771,28866,506),'Retained bit local dimensions')
+        require((h,v,R,ell) == (21,1330,21526,420),'Retained bit local dimensions')
         parts = ('auxiliary_histogram','source_data_histogram','target_data_histogram','copied_center_histogram')
     for name in parts:
         for r,n in row[name].items():
@@ -187,7 +187,7 @@ def main():
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
     args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
-    print('PASS kappa=4609169/10000000000 = 4.609169e-4; both moments, shared cores, finite router and 47 strict constraints')
+    print('PASS kappa=5108289/10000000000 = 5.108289e-4; both moments, shared cores, finite router and 47 strict constraints')
 
 
 if __name__ == '__main__':

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Incremental reconstruction of the selected PR97 shared-core bit profile.
+"""Incremental reconstruction of the selected h=21 shared-core bit profile.
 
 Copyright 2026 icekylinx. Apache-2.0. Construction with GPT-6 Astra;
 integration with OpenAI Codex. The inherited PR97 ledger is by Zhihao Chen,
 and its frozen scalar/frame witness is Swapnil Jain's construction. Their
 original credits, licenses and disclosures remain in the pinned snapshot.
 No complete-basis replay or inherited rational-frame audit is repeated.
+
+The bit word is the hash-pinned h=21 Fibonacci-strip word in PR97's frozen format,
+read by PR97's unchanged reader; prepared by eumemic with Anthropic Claude
+assistance (references/paired-cube/fib-bit-h21/README.md).
 """
 import argparse
 from collections import Counter
@@ -15,9 +19,22 @@ import importlib.util
 import json
 from pathlib import Path
 
-from partial_gauge_bit import ROOT, require, encoded, frozen_sources
+from partial_gauge_bit import ROOT, require, encoded
 
 INPUT = ROOT / 'certificates/paired-cube-bit-input.json'
+PR97_READER = '9b2acaeb6f1beb2a53c15e00c027f9ba22397a12071ad0b71131e12012a98036'
+
+
+def frozen_sources(record):
+    manifest_path = ROOT / record['source_manifest']
+    require(sha256(manifest_path.read_bytes()).hexdigest() == record['source_manifest_sha256'],
+            'Bit word manifest changed')
+    manifest = json.loads(manifest_path.read_text())
+    for name, digest in manifest['sha256'].items():
+        require(sha256((manifest_path.parent/name).read_bytes()).hexdigest() == digest,
+                'Pinned bit word source changed: '+name)
+    require(manifest['sha256']['deferred.py'] == PR97_READER, 'PR97 reader changed')
+    return manifest_path.parent, manifest
 
 
 def histogram(value):
@@ -71,9 +88,9 @@ def reconstruct(input_path=INPUT):
     spec = importlib.util.spec_from_file_location('paired_cube_pinned_deferred', folder/'deferred.py')
     deferred = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(deferred)
-    with gzip.open(folder/'witness_23.json.gz', 'rt') as stream:
+    with gzip.open(folder/'witness_21.json.gz', 'rt') as stream:
         witness = json.load(stream)
-    with gzip.open(folder/'deferred_23.json.gz', 'rt') as stream:
+    with gzip.open(folder/'deferred_21.json.gz', 'rt') as stream:
         data = json.load(stream)
     schedule = deferred.Schedule(witness, data)
     ledger = json.loads((folder/'bit-ledger-result.json').read_text())
@@ -84,16 +101,16 @@ def reconstruct(input_path=INPUT):
     selected = selection['retained_readout_order']
     omitted = selection['omitted_readout_order']
     chosen, skipped = set(selected), set(omitted)
-    require(len(chosen) == len(selected) == 9543 and len(skipped) == len(omitted) == 2022,
+    require(len(chosen) == len(selected) == 7575 and len(skipped) == len(omitted) == 1335,
             'Selected gauge counts differ')
     require(chosen.isdisjoint(skipped) and chosen | skipped == schedule.sel,
             'Selection does not partition the inherited gauges')
-    require(len(schedule.sel) == 11565, 'Inherited gauge count differs')
+    require(len(schedule.sel) == 8910, 'Inherited gauge count differs')
     for slots, subset in ((selected, chosen), (omitted, skipped)):
         require(slots == [s for s in schedule.readout if s in subset],
                 'Gauge order is not the inherited subsequence')
     h, v, R = schedule.h, schedule.v, schedule.R
-    require((h,v,R) == (23,1771,28866), 'Inherited dimensions differ')
+    require((h,v,R) == (21,1330,21526), 'Inherited dimensions differ')
     old_aux = deferred.chain_ranks(schedule)
     require(encoded(old_aux) == ledger['rank_histograms']['aux'],
             'Inherited auxiliary chain receipt differs')
@@ -133,7 +150,7 @@ def reconstruct(input_path=INPUT):
                        ('target_data_histogram', target), ('selected_rank_histogram', gauges),
                        ('copied_center_histogram', Counter({h-1:h})), ('child_histogram', children)):
         require(histogram(record[key]) == +value, 'Selected profile differs: '+key)
-    require(values['W_per_vertex']*values['m']-values['rank_per_vertex'] == 2024,
+    require(values['W_per_vertex']*values['m']-values['rank_per_vertex'] == 1400,
             'Shared-core rank deficit differs')
     require(all(0 < r < 3*h and n > 0 for r,n in children.items()), 'Invalid child')
     result = dict(record)
