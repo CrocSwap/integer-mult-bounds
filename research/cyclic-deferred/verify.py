@@ -25,6 +25,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 COMPLEX_DAG_PIN = '3c034d0aae388ef567a454826f4f48b26fd8a94c71e8ffed4835271b349a783b'
+PARTITION_PIN = '9117d3f010354fa2f32d5c5fb324b280977e82e76060a70a867767a90989ccaa'
 BIT_PINS = {
     'witness_23.json.gz': 'b2486aa2bb222bacea6e52162a3920780e45dd8edc5d7cb03eabea336a1c6588',
     'deferred_23.json.gz': '8c38e947ff9e021e308000dd82bb5e2194eb265d8b75194e22ce783d3e75317c',
@@ -34,6 +35,9 @@ REQUIRED = {
     'bit_round7.py', 'certificate.py', 'bit-profile.json',
     'complex-profile.json', 'certificate.json', 'replayed_producer.py',
     'inputs/complex-dag.json.gz',
+    'sharing.py', 'phase_check.py', 'phase_check.json',
+    'shared-complex-profile.json', 'inputs/shared-partition.json',
+    'README.md', 'SHARING.md', 'PR128-NOTICE',
     *('inputs/' + name for name in BIT_PINS),
 }
 DATA_DEPENDENCIES = {'certificates/copied-centers-network.json'}
@@ -122,10 +126,13 @@ def create_manifest(package, repository, reflection_script, reflection_receipt):
             scalar_dag=dict(pull_request='https://github.com/CrocSwap/integer-mult-bounds/pull/117',
                             commit='cbb05ce504d571546d9b7794c186a613c659c3bf',
                             file='inputs/complex-dag.json.gz', sha256=COMPLEX_DAG_PIN),
+            completed_core_partition=dict(pull_request='https://github.com/CrocSwap/integer-mult-bounds/pull/128',
+                            commit='530588a019b4a74f09180680c9e3961bf649ec89',
+                            file='inputs/shared-partition.json', sha256=PARTITION_PIN),
             round7_repository='https://github.com/Swapnil-jain/integer-mult-kappa',
             round7_commit='741e7aa078392553815df7926ee17ac5e25a8c38',
             round7_sha256=BIT_PINS),
-        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Saturated deferred-frame integration and verification for eumemic with OpenAI Codex assistance. Original source notices remain authoritative.')
+        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Completed-core sharing and signed orthogonal partition: an664 PR128 with OpenAI Codex assistance, using Xiande Zhang and Gennian Ge (2010). Physical hull-frame composition and verification for eumemic with OpenAI Codex assistance. Original source notices remain authoritative.')
 
 
 def check_sources(package, repository, manifest=None):
@@ -148,6 +155,8 @@ def check_sources(package, repository, manifest=None):
                 'Round-seven provenance digest mismatch: ' + name)
     require(manifest['package_files']['inputs/complex-dag.json.gz'] == COMPLEX_DAG_PIN,
             'PR117 scalar-DAG provenance digest mismatch')
+    require(manifest['package_files']['inputs/shared-partition.json'] == PARTITION_PIN,
+            'PR128 completed-core partition provenance digest mismatch')
     return manifest
 
 
@@ -157,7 +166,17 @@ def validate_profile(profile, label):
             label + ': nonpositive or noninteger ledger value')
     h, v, R, m, N, W, L = (profile[key] for key in fields[:7])
     require(v == comb(h, 3) and m == h*h and N == v*v, label + ': dimensions')
-    require(W == 2*N + 2*v*R and L == 2*v*h*(h-1), label + ': physical ledger')
+    if label == 'shared-complex':
+        groups = {int(g): count for g, count in profile['group_sizes'].items()}
+        require(groups == {8: 4, 24: 83} and profile['shared_groups'] == sum(groups.values()),
+                label + ': completed-core group ledger')
+        require(profile['core_source_rank'] == 0 and profile['core_sink_rank'] == h and
+                profile['deferred_roles'] == 0 and profile['deferred_dims'] == {},
+                label + ': completed-core gauges')
+        outer_width = profile['shared_groups']
+    else:
+        outer_width = v
+    require(W == 2*N + 2*outer_width*R and L == 2*v*h*(h-1), label + ': physical ledger')
     rows = {int(t): count for t, count in profile['child_multiplicities'].items()}
     require(len(rows) == len(profile['child_multiplicities']), label + ': duplicate child widths')
     require(all(0 < t < m and type(count) is int and count > 0 for t, count in rows.items()),
@@ -168,12 +187,44 @@ def validate_profile(profile, label):
             label + ': deficit or maximum child')
     require(rows.get((h-1)**2) == 2*N and rows.get(1, 0) >= N,
             label + ': omitted data projector or endpoint charge')
-    if label == 'complex':
+    if label in ('complex', 'shared-complex'):
         require(R == profile['additions']+profile['roots']-profile['links'],
                 'complex: addition/roots/matching role ledger')
         require(sum(profile['deferred_dims'].values()) == profile['deferred_roles'],
                 'complex: deferral inventory')
     return rows
+
+
+def validate_shared_composition(package):
+    from sharing import profile as shared_profile
+    local = json.loads((package / 'complex-profile.json').read_text())
+    shared = json.loads((package / 'shared-complex-profile.json').read_text())
+    partition = json.loads((package / 'inputs/shared-partition.json').read_text())
+    phase = json.loads((package / 'phase_check.json').read_text())
+    reconstructed = shared_profile(local, partition, phase)
+    require(json.loads(json.dumps(reconstructed)) == shared,
+            'Shared profile does not match local completed cores and paid exterior')
+
+
+def check_completed_core_audit(audit, local, certificate):
+    require(audit['completed_core_source_frames_zero'] is True and
+            audit['completed_core_pre_exterior_frames_full'] is True,
+            'Completed cores require zero source and full pre-exterior frames')
+    require((audit['h'], audit['v'], audit['R']) == (local['h'], local['v'], local['R']) and
+            audit['child_multiplicities'] == local['child_multiplicities'],
+            'Local reflection audit does not bind the completed-core profile')
+    actual = audit['literal_global_scalar_groups']
+    account = certificate['finite_bridge']['complex']
+    upper = account['scalar_group_upper']
+    core_upper = account['core_scalar_group_upper']
+    phase_upper = account['shared_basis_phase_group_upper']
+    shared = certificate['complex_profile']
+    expected_phase = 64 * shared['m']**2 * (2 * shared['shared_groups'] * shared['R'])
+    require(type(actual) is int and type(upper) is int and type(core_upper) is int and
+            0 < actual <= core_upper and upper == core_upper + phase_upper,
+            'Literal reflected scalar charge exceeds exact certificate guard')
+    require(type(phase_upper) is int and phase_upper == expected_phase,
+            'Missing paid shared basis and phase-wrapper reserve')
 
 
 def compare_json(actual, expected):
@@ -192,8 +243,9 @@ def snapshot(package, repository, manifest):
 def verify(package, repository):
     manifest = check_sources(package, repository)
     before = snapshot(package, repository, manifest)
-    for label in ('bit', 'complex'):
+    for label in ('bit', 'complex', 'shared-complex'):
         validate_profile(json.loads((package / (label + '-profile.json')).read_text()), label)
+    validate_shared_composition(package)
     environment = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
     environment.pop('PYTHONPATH', None)
     with tempfile.TemporaryDirectory(prefix='cyclic-deferred-verify-') as directory:
@@ -218,12 +270,21 @@ def verify(package, repository):
         run('complex_deferred.py')
         compare_json(target / 'complex-profile.json', package / 'complex-profile.json')
         print('PASS complete complex producer and deferred profile regenerated', flush=True)
+        run('phase_check.py', target / 'inputs/shared-partition.json')
+        compare_json(target / 'phase_check.json', package / 'phase_check.json')
+        run('sharing.py')
+        compare_json(target / 'shared-complex-profile.json', package / 'shared-complex-profile.json')
+        validate_shared_composition(target)
+        print('PASS signed partition phases and completed-core shared profile regenerated', flush=True)
         run('certificate.py')
         reflection = manifest['reflection']
         actual_reflection = root / 'actual-reflection.json'
         run(reflection['script'], '--source', target / 'complex_deferred.py',
             '--output', actual_reflection)
         compare_json(actual_reflection, package / reflection['receipt'])
+        check_completed_core_audit(json.loads(actual_reflection.read_text()),
+                                  json.loads((package / 'complex-profile.json').read_text()),
+                                  json.loads((package / 'certificate.json').read_text()))
         print('PASS independent literal reflection and scalar-charge audit', flush=True)
         run('test_controls.py', '--repository-root', root)
     require(snapshot(package, repository, manifest) == before,

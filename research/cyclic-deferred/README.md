@@ -1,66 +1,75 @@
-# Saturated deferred frames on the PR117 complex producer
+# Physical hull frames with completed-core sharing
 
-Conditional **κ = 1.09281094468e-4 = 27320273617/250000000000000**.
-Human-readable form: **κ ≈ 109281094468/10¹⁵ > 2⁻¹⁴**.
+Conditional **κ = 61994098903/500000000000000 = 1.23988197806e-4 > 2⁻¹³**.
 
-This package reuses the immutable 91,770-addition complex DAG from PR117
-(eumemic, with Anthropic Claude assistance). It reconstructs its scalar
-supports and frames, compiles 28,705 dirty roles, lifts their legal binary
-frames, and selects 4,706 deferred readouts. When target-chain intersections
-are degenerate, symmetric binary elimination retains a nondegenerate direct
-complement to the radical. Target containment is rechecked after extraction.
-The exact candidate priority is 2^dim(frame) / number_of_reached_targets²,
-with deterministic ties. The producer search itself is PR117's contribution.
+This finite witness combines the immutable PR117 scalar DAG, locally optimized
+physical gate frames, and an664's PR128 completed-core sharing. Its exact
+complex saving is **125008315/10¹² = 1.25008315e-4**. The retained stopped
+round-seven bit saving, **1240189553/10¹³**, now limits the final assembly.
 
-The complex saving is **109305097/10¹² = 1.09305097e-4**. Its physical word has
-71,185 carrier links, W = 124,390,992, recursive rank 71,647,349,312 and maximum
-child 574 of 576. Every copied center, exterior, source/target front, data
-projector and endpoint correction remains paid. The graph and role count
-agree with PR117; the changed frame and readout schedule gives the improvement.
+The compiler reconstructs PR117's 91,770 additions and 28,705 roles, chooses
+nested nondegenerate frames at individual mixer occurrences, and sets every
+auxiliary source gauge to zero. There are no deferred readouts in the selected
+word. Each completed core restores arbitrary dirty scratch and leaves a
+separately checked full auxiliary frame before its exterior correction.
 
-The bit supplier remains Swapnil Jain's pinned round-seven word under PR104's
-stopped-product interface, with stopped saving 1240189553/10¹³. The complex
-side still binds. Compared with PR117's κ = 1.044939e-4, the selected κ is
-about 4.58131% larger. This is a finite conditional witness.
+The pinned signed orthogonal partition covers all 2,024 outer triples with
+83 groups of 24 and four groups of eight. Complete restored cores run
+sequentially on shared banks within each group. All internal transitions,
+copied centers, data projectors and endpoint copies remain charged. Full
+groups require no exterior child; partial groups pay 229,640 width-384
+complement children in total. The resulting physical width is **13,187,822**,
+total child rank **7,594,323,392**, and maximum child width **529 of 576**.
 
-Run `python3 research/cyclic-deferred/verify.py` from the repository root.
-Verification regenerates in a temporary tree and preserves frozen inputs.
-`certificate.py` checks the frozen exact certificate; `--write` is an explicit
-authoring operation. The shipped DAG, both bit inputs, all local Python
-sources and transitive arithmetic dependencies are SHA-256 pinned.
+From the repository root, run:
 
-The upstream producer replayer checks all source supports, rational center
-scatter and inherited binary-frame rules. The compiler checks every role
-chain, nondegeneracy and nested deferred target chain, and replays arbitrary
-scratch and data over Z/(2^61-1). A separate audit checks the exact integer
-source map and signed old-readout transpose, arbitrary dirty cancellation,
-the literal inverse word after swapping banks, and complemented frame
-incidences. It reconstructs the paid child histogram in both directions and
-rejects wrong inverse signs, missing complements and flipped root readouts.
+```sh
+python3 research/cyclic-deferred/verify.py
+```
 
-The exact assembly includes both moments, the stopped ordinary-bit saving,
-three product-row reserves, all 47 strict constraints and seven margins, and
-next-grid rejection. An old-readout coefficient can reach 55/42. Each numerator over 42 is
-therefore split into signed unit chunks and a remainder, preserving its exact
-sum at the same frame. These bounded shears are explicitly counted in the
-forward and inverse words. A conservative literal scalar guard covers them. Enlarging this guard changes precision constants and
-eventual thresholds; it does not increase the exponent.
+Verification uses a temporary repository-shaped copy and leaves the frozen
+package unchanged. It regenerates the pinned bit profile, local complex word,
+exact signed partition phases, shared profile, final certificate and literal
+reflection audit. It checks both local and shared physical ledgers, the
+zero-source/full-pre-exterior interface, and the audited scalar count against
+the exact certificate's guard. All 47 strict constraints and seven final
+margins are positive; the next bit, complex and final κ grid points fail.
 
-All retained transfer hypotheses remain: simultaneous rational bases and
-opposite-bank factorization for the listed residuals, stopped atom streaming,
-ordinary wrapper, translated complex endpoint gauges, exact odd-denominator
-grid, routing, recovery, prime selection, analytic estimates and fixed-tape
-implementation. This is not an unconditional multiplication theorem or a
-practical running-time claim.
+The 23 standalone controls include altered or omitted immutable inputs,
+incorrect shared width, missing exterior charge, a nonorthogonal partition
+that still covers every triple, understated scalar work and invalid completed
+core gauges. The reflection audit additionally rejects wrong inverse signs,
+missing frame complements, altered root readouts and invalid bounded scalar
+chunks. Readout numerators over 42 are split into signed unit chunks and a
+remainder; every resulting shear is charged.
 
-Credits: eumemic with Anthropic Claude assistance (PR117's producer and
-stopped-product integration); icekylinx (PR104); Avi Eisenberg / ikeboy
-(PR110's complex compiler, with Anthropic Claude assistance); Swapnil Jain
-(round-seven words, lifted frames, V leaves and deferred readouts); Zhihao
-Chen / jacklightChen (reflected bit integration, gauges and assembly);
-Aurel Prosz / Paureel (two-stage topology); RaD / hipotures (analytic and tape
-interfaces). Earlier PR114 research adopted Rohan Arun's PR111/PR113 and
-icekylinx's PR115 with concurrent PR116 credited; those earlier producer
-experiments remain in Git history. Original notices and AI disclosures remain.
-The saturated frame construction, this integration and the independent
-scalar/reflection audit were prepared for eumemic with OpenAI Codex assistance.
+The signed complement adapters and phase wrappers reserve 64*m² ordinary-bit
+atoms for every group-role in both orientations, with their count also added
+to the conservative scalar guard. These are paid calls through the inherited
+ordinary-bit interface. [SHARING.md](SHARING.md) gives the completed-core
+identity, allocation formula, wrapper accounting and retained assumptions.
+
+`certificate.py` checks the frozen certificate by default; `--write` is an
+explicit authoring operation. `verify.py --freeze-manifest` explicitly
+replaces the source manifest and does not itself certify the package. The
+DAG, bit inputs, signed partition, local scripts, proof/notice files and all
+transitive arithmetic dependencies are SHA-256 pinned.
+
+Credits: eumemic with Anthropic Claude assistance (PR117's scalar DAG);
+an664 with OpenAI Codex assistance (PR128's completed-core allocation and
+signed partition); Xiande Zhang and Gennian Ge (the orthogonal packing,
+Journal of Combinatorial Designs 18 (2010), 209–223, DOI 10.1002/jcd.20234);
+Avi Eisenberg / ikeboy with Anthropic Claude assistance (PR110's compiler);
+Swapnil Jain (round-seven bit word); icekylinx, Zhihao Chen / jacklightChen,
+Rohan Arun, Aurel Prosz / Paureel, and RaD / hipotures (retained finite,
+two-stage, analytic and tape interfaces). Per-operation frame optimization
+was developed concurrently with DanieleCorso's PR126 and GamingPuzzled's
+PR125 node-frame shrink. This hull optimizer, composition and verification
+were prepared for eumemic with OpenAI Codex assistance. Original notices
+remain authoritative; [PR128-NOTICE](PR128-NOTICE) is retained verbatim.
+
+This is a conditional finite witness. Completed-core transparency, signed
+normal forms and binary adapters, stopped ordinary-bit transfer, exact odd
+grids, streaming, routing, recovery, prime selection, analytic estimates and
+fixed-tape implementation remain inherited assumptions. These finite checks
+do not prove those general interfaces or a practical running-time improvement.

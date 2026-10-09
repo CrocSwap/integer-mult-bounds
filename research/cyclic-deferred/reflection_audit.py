@@ -227,8 +227,8 @@ def audit(d):
     def read(s,sgn,F,targets,row):word.append(('read',A(s),tuple(Y(t) for t in targets),sgn,F,row))
     def run(i,sign=1,F=None):
         o=ops[i]
-        if o[0]=='add':gate(A(o[1]),A(o[2]),sign,U[o[3]] if F is None else F)
-        elif o[0]=='copy':gate(A(o[2]),A(o[1]),sign,U[o[3]] if F is None else F)
+        if o[0]=='add':gate(A(o[1]),A(o[2]),sign,(basis(d['op_frames'][i]) if 'op_frames' in d else U[o[3]]) if F is None else F)
+        elif o[0]=='copy':gate(A(o[2]),A(o[1]),sign,(basis(d['op_frames'][i]) if 'op_frames' in d else U[o[3]]) if F is None else F)
     deferred=set(d['deferred'])
     for s in range(R):
         if s not in deferred:read(s,-1,ZERO,actual_reach[s],('old',s,*chunk_rows[s]))
@@ -326,7 +326,8 @@ def audit(d):
     G=v*v+2*v*scalar
     safe=8*(d['c_add']+2*R+(R+q)*v*(h+1)+h*h+h+1) if 'c_add' in d else 8*(d['out']['additions']+2*R+(R+q)*v*(h+1)+h*h+h+1)
     assert safe>=scalar
-    return dict(h=h,v=v,R=R,exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
+    return dict(h=h,v=v,R=R,completed_core_source_frames_zero=not bool(sigma),
+                completed_core_pre_exterior_frames_full=True,exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
                 exact_arbitrary_dirty_cancellation_by_dependency_cut=True,
                 reflected_word_rule='Reverse literal order including each bounded readout chunk, negate every shear, swap X/Y ports, complement every frame; auxiliary bank is separate.',
                 reflected_scalar_map='X becomes X-Y; Y unchanged; all auxiliary coordinates restored.',

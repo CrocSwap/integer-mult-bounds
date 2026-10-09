@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Saturated deferred readouts on the immutable PR117 complex DAG.
+"""Optimized physical gate frames on the immutable PR117 complex DAG.
+
+After saturated deferral, each mixer gate frame is optimized within its two
+role chains. Maximal nondegenerate extensions and minimal nondegenerate hulls
+are accepted only when they improve the local moment objective; every actual
+source, mixer, copied-center and root incidence is checked exactly.
+Physical-frame optimization prepared with OpenAI Codex assistance.
 
 PR117 credits its searched DAG to eumemic with Anthropic Claude assistance;
 this experiment imports and replays that witness unchanged. PR110/PR114
@@ -272,6 +278,72 @@ def saturated_placement(cand, reach):
         assert all(sat_contained(placed[a], placed[b]) for a, b in zip(ss, ss[1:]))
     return placed
 
+def frame_restrict(A,B):return sat_basis(restrict(A,B))
+
+@lru_cache(None)
+def frame_protected_part(X, L):
+    Q = sat_nonsingular_part(X)
+    rad = frame_restrict(X, Q)
+    if not L:
+        return Q
+    red = {}
+    for q, r in [(q, 0) for q in Q] + [(0, r) for r in rad]:
+        x = q ^ r
+        for p in sorted(red, reverse=True):
+            if x >> p & 1:
+                y, a, b = red[p]
+                x ^= y
+                q ^= a
+                r ^= b
+        assert x
+        red[x.bit_length() - 1] = (x, q, r)
+    lin = {}
+    for x in L:
+        q = r = 0
+        for p in sorted(red, reverse=True):
+            if x >> p & 1:
+                y, a, b = red[p]
+                x ^= y
+                q ^= a
+                r ^= b
+        if x:
+            return ()
+        for p in sorted(lin, reverse=True):
+            if q >> p & 1:
+                a, b = lin[p]
+                q ^= a
+                r ^= b
+        if not q:
+            if r:
+                return ()
+        else:
+            lin[q.bit_length() - 1] = (q, r)
+    out = []
+    for x in Q:
+        q = x
+        r = 0
+        for p in sorted(lin, reverse=True):
+            if q >> p & 1:
+                a, b = lin[p]
+                q ^= a
+                r ^= b
+        out.append(x ^ r)
+    out = sat_basis(out)
+    assert sat_nondeg(out) and sat_contained(out, X) and sat_contained(L, out)
+    return out
+
+@lru_cache(None)
+def frame_smallest_hull(L, ambient):
+    L = sat_basis(L)
+    while not sat_nondeg(L):
+        radical = frame_restrict(L, L)
+        assert radical
+        r = radical[0]
+        partner = next((x for x in ambient if sat_dot(r, x)))
+        L = sat_basis(L + (partner,))
+    assert sat_contained(L, ambient)
+    return L
+
 def main():
     with tempfile.TemporaryDirectory(prefix='deferred-stopped-') as work:
         prefix = Path(work) / 'complex'
@@ -448,6 +520,59 @@ def main():
     print('PR117 placed',len(placed),flush=True)
     deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
 
+    # Optimize the actual mixer word. Source injection and root frames stay fixed.
+    # Floating objective values choose legal finite frames only; the complete
+    # child profile and its contraction are certified independently and exactly.
+    root_frame={s:([1<<i for i in range(h)if i!=centre_of[j]] if kind[j] else kernel([tmask[target[j]]],h)) for s,j in role_root.items()}
+    frame_U={x:sat_basis(B)for x,B in U.items()}
+    FULL=sat_basis(1<<i for i in range(h))
+    sigma={s:sat_basis(B)for s,B in placed.items()}
+    role_events=defaultdict(list);frames={};birth={};lifted=Counter()
+    for i,o in enumerate(ops):
+     if o[0]=='src':
+      frames[i]=frame_U[o[2]];role_events[o[1]].append(i)
+     else:
+      frames[i]=frame_U[o[3]]
+      for s in o[1:3]:role_events[s].append(i)
+    prev={};after={};end={s:sat_basis(root_frame[s])if s in root_frame else FULL for s in range(R)}
+    for s,events in role_events.items():
+     for j,i in enumerate(events):prev[i,s]=events[j-1]if j else None;after[i,s]=events[j+1]if j+1<len(events)else None
+    vals=[x**(1-0.0001093)for x in range(h+1)]
+    for turn in range(5):
+     changes=0;delta=0
+     for i in (reversed(range(len(ops)))if turn%2==0 else range(len(ops))):
+      o=ops[i]
+      if o[0]=='src':continue
+      _,a,b,x=o;old=frames[i];ends=[frames[after[i,s]]if after[i,s]is not None else end[s]for s in (a,b)]
+      starts=[frames[prev[i,s]]if prev[i,s]is not None else sigma.get(s,())for s in (a,b)]
+      cap=sat_cap(*ends);lower=sat_basis(starts[0]+starts[1])
+      options=[frame_protected_part(cap,old),frame_smallest_hull(lower,old)]
+      best=old;bestdelta=-1e-10
+      for F in options:
+       assert sat_nondeg(F)and all(sat_contained(P,F)and sat_contained(F,N)for P,N in zip(starts,ends))
+       df=sum(vals[len(F)-len(P)]+vals[len(N)-len(F)]-vals[len(old)-len(P)]-vals[len(N)-len(old)]for P,N in zip(starts,ends))
+       if df<bestdelta:best=F;bestdelta=df
+      if best!=old:frames[i]=best;changes+=1;delta+=bestdelta
+     print('Physical frame descent',turn,changes,delta,flush=True)
+     if not changes:break
+    for i,o in enumerate(ops):
+     if o[0]=='src':birth[o[1]]=frames[i]
+     elif o[0]=='copy':birth[o[2]]=frames[i]
+     if o[0]!='src':lifted[len(frame_U[o[3]]),len(frames[i])]+=1
+    assert len(birth)==R
+    op_frames=frames
+    role_frames={s:[]for s in range(R)}
+    for i,o in enumerate(ops):
+        if o[0]=='src':role_frames[o[1]].append(op_frames[i])
+        else:
+            for s in o[1:3]:role_frames[s].append(op_frames[i])
+    def F0(s):return birth[s]
+
+    # Gauges guide finite frame search, but the selected physical word uses
+    # zero source gauges. Its completed-core residual is therefore C_A,
+    # exactly the interface required by the inherited signed group sharing.
+    placed = {}; deferred = []; dset = set()
+
     # ------------------------------------------------------------ C. replay with arbitrary scratch and data
     inv = lambda a: pow(a % P, P - 2, P); HALF = inv(2); I21 = inv(21)
     cvec = [None] * Rr; dpart = [dict() for _ in range(Rr)]
@@ -508,7 +633,7 @@ def main():
     FULLB = [1 << i for i in range(h)]
     chain_dims = []
     for s in range(Rr):
-        seq = [placed.get(s, []), F0(s)] + [U[x] for x in holds[s][1:]]
+        seq = [placed.get(s, [])] + role_frames[s]
         if s in root_frame: seq.append(root_frame[s])
         seq.append(FULLB)
         require(all(contains(A, B) for A, B in zip(seq, seq[1:])), 'role chain nesting %d' % s)
@@ -551,7 +676,8 @@ def main():
                deficit=N - L, maxchild=max(z), phase_one_ops=len(Anc), phase_one_roles=len(touched),
                deferred_roles=len(deferred),
                deferred_dims=dict(sorted(Counter(len(X) for X in placed.values()).items())),
-               lifted_additions=sum(1 for x in U if args[x][0] and dimU[x] > ranks[x]),
+               lifted_additions=sum(1 for i,o in enumerate(ops) if o[0]=='add' and len(op_frames[i])>ranks[o[3]]),
+               physical_gate_frame_changes=sum(op_frames[i]!=frame_U[o[3]] for i,o in enumerate(ops) if o[0]!='src'),
                replay=dict(seeds=[1, 2], scratch_restored=True, y_plus_x=True, field='Z/(2^61-1)'),
                child_multiplicities=dict(sorted(z.items())))
     (HERE / 'complex-profile.json').write_text(json.dumps(out, indent=1) + '\n')

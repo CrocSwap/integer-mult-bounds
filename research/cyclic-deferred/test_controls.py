@@ -22,7 +22,8 @@ import subprocess
 import tempfile
 import unittest
 
-from verify import check_sources, compare_json, digest, safe_file, validate_profile
+from verify import (check_completed_core_audit, check_sources, compare_json,
+                    digest, safe_file, validate_profile, validate_shared_composition)
 
 HERE = Path(__file__).resolve().parent
 REPOSITORY = HERE.parents[1]
@@ -33,7 +34,7 @@ class FrozenControls(unittest.TestCase):
     def setUpClass(cls):
         cls.manifest = check_sources(HERE, REPOSITORY)
         cls.profiles = {label: json.loads((HERE / (label + '-profile.json')).read_text())
-                        for label in ('bit', 'complex')}
+                        for label in ('bit', 'complex', 'shared-complex')}
         sys.path.insert(0, str(REPOSITORY / 'scripts'))
         spec = importlib.util.spec_from_file_location('checked_cyclic_certificate', HERE / 'certificate.py')
         cls.certificate = importlib.util.module_from_spec(spec)
@@ -48,6 +49,59 @@ class FrozenControls(unittest.TestCase):
         expected = json.loads((HERE / 'certificate.json').read_text())
         actual = self.certificate.js(self.certificate.exact())
         self.assertEqual(actual, expected)
+
+    def test_shared_profile_reconstructed_from_paid_local_cores(self):
+        validate_shared_composition(HERE)
+
+    def test_wrong_shared_width_rejected(self):
+        changed = copy.deepcopy(self.profiles['shared-complex'])
+        changed['W'] += 2 * changed['R']
+        with self.assertRaisesRegex(ValueError, 'physical ledger'):
+            validate_profile(changed, 'shared-complex')
+
+    def test_missing_shared_exterior_rejected(self):
+        changed = copy.deepcopy(self.profiles['shared-complex'])
+        changed['child_multiplicities']['384'] -= 2 * changed['R']
+        with self.assertRaisesRegex(ValueError, 'rank mass'):
+            validate_profile(changed, 'shared-complex')
+
+    def test_nonorthogonal_partition_rejected(self):
+        from itertools import combinations
+        partition = json.loads((HERE / 'inputs/shared-partition.json').read_text())
+        masks = [sum(1 << j for j in triple) for triple in combinations(range(24), 3)]
+        groups = partition['groups']
+        i, j = next((i, j) for i in range(1, len(groups)) for j, t in enumerate(groups[i])
+                    if any((masks[t] & masks[u]).bit_count() & 1 for u in groups[0][1:]))
+        groups[0][0], groups[i][j] = groups[i][j], groups[0][0]
+        with tempfile.TemporaryDirectory(prefix='shared-core-nonorthogonal-') as directory:
+            path = Path(directory)
+            shutil.copyfile(HERE / 'phase_check.py', path / 'phase_check.py')
+            (path / 'partition.json').write_text(json.dumps(partition))
+            result = subprocess.run([sys.executable, '-B', str(path / 'phase_check.py'),
+                                     str(path / 'partition.json')], cwd=path,
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('non-orthonormal completed group basis', result.stderr)
+
+    def test_understated_scalar_guard_and_nonzero_core_source_rejected(self):
+        audit = json.loads((HERE / 'reflection-audit.json').read_text())
+        certificate = json.loads((HERE / 'certificate.json').read_text())
+        local = self.profiles['complex']
+        check_completed_core_audit(audit, local, certificate)
+        changed = copy.deepcopy(certificate)
+        changed['finite_bridge']['complex']['scalar_group_upper'] = audit['literal_global_scalar_groups'] - 1
+        with self.assertRaisesRegex(ValueError, 'scalar charge exceeds'):
+            check_completed_core_audit(audit, local, changed)
+        changed = copy.deepcopy(certificate)
+        account = changed['finite_bridge']['complex']
+        account['scalar_group_upper'] -= account['shared_basis_phase_group_upper']
+        account['shared_basis_phase_group_upper'] = 0
+        with self.assertRaisesRegex(ValueError, 'Missing paid shared basis'):
+            check_completed_core_audit(audit, local, changed)
+        changed = copy.deepcopy(audit)
+        changed['completed_core_source_frames_zero'] = False
+        with self.assertRaisesRegex(ValueError, 'zero source'):
+            check_completed_core_audit(changed, local, certificate)
 
     def test_omitted_endpoint_charge_rejected(self):
         for label, original in self.profiles.items():
@@ -99,6 +153,31 @@ class FrozenControls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'finite-input closure'):
             check_sources(HERE, REPOSITORY, changed)
 
+    def test_omitted_pinned_partition_rejected(self):
+        changed = copy.deepcopy(self.manifest)
+        del changed['package_files']['inputs/shared-partition.json']
+        with self.assertRaisesRegex(ValueError, 'finite-input closure'):
+            check_sources(HERE, REPOSITORY, changed)
+
+    def test_changed_partition_rejected_even_when_rehashed(self):
+        with tempfile.TemporaryDirectory(prefix='shared-core-altered-partition-') as directory:
+            package = Path(directory)
+            for name in self.manifest['package_files']:
+                target = package / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(HERE / name, target)
+            name = 'inputs/shared-partition.json'
+            path = package / name
+            partition = json.loads(path.read_text())
+            partition['groups'][0][0] = partition['groups'][0][1]
+            path.write_text(json.dumps(partition))
+            with self.assertRaisesRegex(ValueError, 'hash mismatch'):
+                check_sources(package, REPOSITORY, self.manifest)
+            changed = copy.deepcopy(self.manifest)
+            changed['package_files'][name] = digest(path)
+            with self.assertRaisesRegex(ValueError, 'partition provenance digest mismatch'):
+                check_sources(package, REPOSITORY, changed)
+
     def test_changed_complex_dag_digest_rejected(self):
         with tempfile.TemporaryDirectory(prefix='cyclic-deferred-altered-dag-') as directory:
             package = Path(directory)
@@ -146,7 +225,9 @@ class FrozenControls(unittest.TestCase):
         from fractions import Fraction as Q
         module = self.certificate
         self.assertFalse(module.contracts(module.profile('bit-profile.json'), module.COARSE + Q(1, 10**10)))
-        self.assertFalse(module.contracts(module.profile('complex-profile.json'), module.COMPLEX + Q(1, 10**12)))
+        shared = module.profile('shared-complex-profile.json')
+        self.assertTrue(module.contracts(shared, module.COMPLEX))
+        self.assertFalse(module.contracts(shared, module.COMPLEX + Q(1, 10**12)))
 
     def test_optimized_verifier_rejected_before_any_regeneration(self):
         result = subprocess.run([sys.executable, '-O', str(HERE / 'verify.py')],

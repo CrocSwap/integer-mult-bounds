@@ -21,7 +21,7 @@ ATOM = Q(1, 1000)
 OLD = Q(384599, 10**10)
 BETA = Q(1, 10**6)
 COARSE = Q(620523, 5000000000)
-COMPLEX = Q(109305097, 10**12)
+COMPLEX = Q(125008315, 10**12)
 KGRID = 10**15
 
 def profile(name):
@@ -40,7 +40,7 @@ def contracts(p, a):
 
 def exact(bit=None, phase=None):
     bit = profile('bit-profile.json') if bit is None else bit
-    phase = profile('complex-profile.json') if phase is None else phase
+    phase = profile('shared-complex-profile.json') if phase is None else phase
     assert (bit['h'], phase['h']) == (23,24)
     bm = moment(bit['m'],bit['W'],bit['child_multiplicities'],COARSE,True)
     cm = moment(phase['m'],phase['W'],phase['child_multiplicities'],COMPLEX,True)
@@ -60,15 +60,24 @@ def exact(bit=None, phase=None):
     # eight covers forward/inverse words, both reflected words, and copies.
     h,v,R,q,c = (phase[k] for k in ('h','v','R','roots','additions'))
     local = 8*(c+2*R+(R+q)*v*(h+1)+h*h+h+1)
-    G = phase['N'] + 2*v*local
+    core_G = phase['N'] + 2*v*local
+    # Gaussian elimination uses at most m^2 elementary binary basis steps;
+    # both adapters and the signed phase directions fit in this atom reserve.
+    # Binary address atoms remain paid ordinary-bit adapter calls at the
+    # inherited exponent, not constant-time tape instructions. Including
+    # their number in G also conservatively enlarges the semantic guard.
+    sharing_G = 64 * phase['m']**2 * (2 * phase['shared_groups'] * R)
+    G = core_G + sharing_G
     m,W,s = (phase[k] for k in ('m','W','total_rank'))
     E=64*(W+m+G+1)**3
     charge=2*G*W*W+8*s+4*W+4+32*m
     B=s+E; C0=32*m*B*B
     assert charge<E and 2*B*(m-phase['maxchild']) >= s+E and 2*B+18<C0
     bridge['complex']['scalar_group_upper']=G
+    bridge['complex']['core_scalar_group_upper']=core_G
+    bridge['complex']['shared_basis_phase_group_upper']=sharing_G
     bridge['complex']['scalar_terms']=[dict(h=h,v=v,c=c,R=R,q=q,invocations=v,
-        local_group_upper=local,description='Expanded deferred readouts and forward/inverse/reflected words')]*2
+        local_group_upper=local,description='Expanded rational old readouts and forward/inverse/reflected words')]*2
     bridge['semantic'].update(E=E,literal_charge=charge,strict_literal_gap=E-charge,
         B=B,C0=C0,C1=1,induction_gap=2*B*(m-phase['maxchild'])-s-E,
         fixed_odd_divisor=21,exact_grid='2^(-P)*21^(-K), K=G*(D_complex+1); completed children preserve incoming odd denominator; no child rounding')
