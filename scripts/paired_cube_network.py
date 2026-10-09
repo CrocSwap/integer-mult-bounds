@@ -16,23 +16,39 @@ import json
 import sys
 
 from certify import require
-from paired_cube_bit import reconstruct
+from paired_cube_physical import checked_record
+
+
+def bitcube_row():
+    """Paired-cube bit word with partner-pair source mixing (research/paired-cube-bit, p = 12). Its standalone
+    checker recomputes the exact frames, the mod-2 decoder identity, every role and target chain, the
+    partner-pair chronology, G-nondegeneracy, a literal F2 replay and the ledger recount; the generator and
+    mutation controls run in research/paired-cube-bit."""
+    folder = ROOT/'research/paired-cube-bit'
+    sys.path.insert(0,str(folder))
+    from check_paired_cube_bit import Checker
+    checked = Checker(folder/'out',12).run()
+    row = json.loads((folder/'out/profile_p12.json').read_text())
+    require((checked['roles'],checked['W'],checked['m'],checked['deficit']) ==
+            (row['R'],row['W_per_vertex'],row['m'],row['deficit_per_vertex']),'Checked bit word profile')
+    return row
 from three_stage_cover_network import log_upper, exp_upper
-from structured_bulk_assembly import assembly, halving, js
+from structured_bulk_assembly import assembly as prefix_assembly, halving, js
+from paired_cube_assembly import assembly
 
 if hasattr(sys,'set_int_max_str_digits'):
     sys.set_int_max_str_digits(0)
 
 ROOT = Path(__file__).resolve().parents[1]
-AC = Q(4856569,10**10)
-COARSE = Q(4617656,10**10)
+AC = Q(6139542,10**10)
+COARSE = Q(6105820,10**10)
 ATOM = Q(1,1000)
 OLD = Q(384599,10**10)
 AB = (1-ATOM)*COARSE+ATOM*OLD
 BAD = Q(1,10**16)
-PHASE_STOP = Q(1,10**6)
+PHASE_STOP = Q(1,10**9)
 ASSEMBLY_BIT = min(AB,(1-PHASE_STOP)*AC-Q(1,10**10))
-KAPPA = Q(4609169,10**10)
+KAPPA = Q(6096379,10**10)
 
 
 def clean(hist):
@@ -48,9 +64,9 @@ def shared_profile(row,complex_word):
         require(0 < r < h and n > 0,'Proper local gauges')
         H[3*r] += n
     if complex_word:
-        require((h,v,R,ell) == (24,1760,26417,528),'Paired-cube local dimensions')
+        require((h,v,R,ell) == (22,1320,15171,440),'Paired-cube local dimensions')
         require(R == row['c']+row['q']-row['matched'],'Compatible carrier roles')
-        require(selected == {20:4840},'Selected rank20 gauges')
+        require(selected == {18:2970},'Selected rank18 gauges')
         for r,n in enumerate(row['remaining_internal_histogram']):
             H[r] += 3*n
         parts = ('source_data_histogram','target_data_histogram')
@@ -72,6 +88,30 @@ def shared_profile(row,complex_word):
         deficit_per_vertex=W*m-mass,child_multiplicities=H,maxchild=max(H),edge_count=sum(H.values()))
 
 
+def bitcube_profile(row):
+    """Shared-core profile of the paired-cube bit word, in the complex word's ledger format."""
+    h,v,R,ell = (row[k] for k in ('h','v','R','loss'))
+    require((h,v,R,ell) == (24,1760,22252,528),'Paired-cube bit dimensions')
+    m,W,H = 3*h,2*v+R,Counter()
+    selected = {int(r):n for r,n in row['selected_rank_histogram'].items()}
+    require(selected == {20:5720} and sum(selected.values()) == row['selected_roles'],'Selected bit gauges')
+    for r,n in selected.items():
+        H[3*r] += n
+    for name in ('remaining_internal_histogram','source_data_histogram','target_data_histogram'):
+        for r,n in row[name].items():
+            H[int(r)] += 3*n
+    H[2] += 2*v
+    H = clean(H)
+    require(all(0 < r < m and n > 0 for r,n in H.items()),'Proper shared-core children')
+    mass = sum(r*n for r,n in H.items())
+    require(H == clean(row['child_histogram']),'Saved complete child histogram')
+    require((m,W,mass,W*m-mass) == (row['m'],row['W_per_vertex'],row['rank_per_vertex'],row['deficit_per_vertex']),
+            'Saved sharing dimensions and rank')
+    require(W*m-mass == 2*v-3*ell,'Shared-core telescoping deficit')
+    return dict(m=m,local_dimension=h,W_per_vertex=W,rank_per_vertex=mass,deficit_per_vertex=W*m-mass,
+        child_multiplicities=H,maxchild=max(H),edge_count=sum(H.values()))
+
+
 def exact_moment(p,saving):
     m,W = p['m'],p['W_per_vertex']
     logs = {r:log_upper(Q(m,r)) for r in p['child_multiplicities']}
@@ -82,7 +122,7 @@ def exact_moment(p,saving):
 
 
 def bit_certificate(row):
-    p = shared_profile(row,False)
+    p = bitcube_profile(row)
     exact = exact_moment(p,COARSE)
     m,W = p['m'],p['W_per_vertex']
     fallback = 32*m*m
@@ -98,8 +138,32 @@ def bit_certificate(row):
         row_stock='O(w log e) internally borrowed radix-q digits; retained stopped wrapper restores them')
 
 
-def complex_certificate(row):
-    p = shared_profile(row,True)
+def physical_profile(phys,row):
+    """Shared-core profile of the physical word (paired_cube_physical.py): descended frames, compensated reuse."""
+    h,v,R,ell = (row[k] for k in ('h','v','R','loss'))
+    shared_profile(row,True)
+    require((phys['h'],phys['v'],phys['R'],phys['loss']) == (h,v,R,ell),'Physical word dimensions')
+    require(phys['physical_R'] == R-phys['pairs'] and phys['W_per_vertex'] == 2*v+phys['physical_R'],'Physical stock')
+    m,W,H = 3*h,phys['W_per_vertex'],Counter()
+    for name in ('local_histogram','source_data_histogram','target_data_histogram'):
+        for r,n in phys[name].items():
+            H[int(r)] += 3*n
+    for d,n in phys['physical_gauge_histogram'].items():
+        H[3*int(d)] += n
+    H[2] += 2*v
+    H = clean(H)
+    require(H == clean(phys['child_histogram']),'Saved physical child histogram')
+    require(all(0 < r < m and n > 0 for r,n in H.items()),'Proper shared-core children')
+    mass = sum(r*n for r,n in H.items())
+    require((m,mass,W*m-mass) == (phys['m'],phys['rank_per_vertex'],phys['deficit_per_vertex']),'Saved physical rank')
+    require(W*m-mass == 2*v-3*ell,'Shared-core telescoping deficit')
+    return dict(m=m,local_dimension=h,W_per_vertex=W,rank_per_vertex=mass,deficit_per_vertex=W*m-mass,
+        child_multiplicities=H,maxchild=max(H),edge_count=sum(H.values()),physical_roles=phys['physical_R'],
+        reuse_pairs=phys['pairs'],late_reads=phys['late_pairs'],moved_operation_frames=phys['changed_operation_frames'])
+
+
+def complex_certificate(row,phys):
+    p = physical_profile(phys,row)
     exact = exact_moment(p,AC)
     m = p['m']
     n = m//2
@@ -148,12 +212,18 @@ def certificate():
     def read(name):
         return json.loads((ROOT/'certificates'/name).read_text())
     expected = read('paired-cube-input.json')
-    bit_row = reconstruct()
+    bit_row = bitcube_row()
     row = read('paired-cube-complex-input.json')
-    bit,phase = bit_certificate(bit_row),complex_certificate(row)
+    bit,phase = bit_certificate(bit_row),complex_certificate(row,checked_record())
     bridge = finite_bridge(phase,bit,row)
     require(Q(read('copied-centers-network.json')['bit']['saving']) == OLD,'Retained ordinary leaf')
     result = assembly(ASSEMBLY_BIT,AC,bridge,KAPPA,beta=PHASE_STOP)
+    try:  # control: the same inputs under PR23's original prefix 1-eps(1+c) do not reach KAPPA
+        prefix_assembly(ASSEMBLY_BIT,AC,bridge,KAPPA,beta=PHASE_STOP)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('Original-prefix control accepted')
     result['parameters']['actual_bit_saving'] = AB
     require(ASSEMBLY_BIT <= AB,'Supported bit interface')
     for actual,key in ((bit['strict_gap'],'bit_moment_gap'),(phase['strict_gap'],'complex_moment_gap'),
@@ -170,10 +240,14 @@ def certificate():
     sources += sorted(p for folder in ('scripts/paired_cube','references/paired-cube')
                       for p in (ROOT/folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
     sources += sorted((ROOT/'notes').glob('paired-cube-*.tex'))
+    sources += sorted(p for p in (ROOT/'research/paired-cube-bit').rglob('*')
+                      if p.is_file() and '__pycache__' not in p.parts)
     sources += [ROOT/p for p in ('scripts/three_stage_cover_network.py','scripts/structured_bulk_assembly.py',
         'scripts/partial_gauge_bit.py','certificates/partial-gauge-bit-input.json',
         'references/partial-gauge/pr97/SOURCE.json','certificates/copied-centers-network.json',
-        'certificates/three-stage-cover-network.json','notes/general-clifford-frames.tex')]
+        'certificates/three-stage-cover-network.json','notes/general-clifford-frames.tex',
+        'references/semantic-bulk/rad20/reports/review-balanced-transform.md',
+        'research/copied-fixed/balanced_assembly.py')]
     return dict(status='Conditional paired-cube multiplication witness',kappa=KAPPA,bit=bit,complex=phase,
         finite_bridge=bridge,assembly=result,predecessor_commit='6a9970a530119174507904e23592fd59ede19a5d',
         source_sha256={str(p.relative_to(ROOT)):sha256(p.read_bytes()).hexdigest() for p in sources},
@@ -187,7 +261,7 @@ def main():
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
     args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
-    print('PASS kappa=4609169/10000000000 = 4.609169e-4; both moments, shared cores, finite router and 47 strict constraints')
+    print('PASS kappa=6096379/10000000000 = 6.096379e-4; both moments, shared cores, finite router and 47 strict constraints')
 
 
 if __name__ == '__main__':

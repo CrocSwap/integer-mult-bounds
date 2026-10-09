@@ -2,7 +2,9 @@
 
 This extension inherits PR #130 at
 `6a9970a530119174507904e23592fd59ede19a5d` and gives the conditional saving
-`4609169/10000000000 = 4.609169e-4`.
+`6096379/10000000000 = 6.096379e-4`. The complex word adds physical frame descent and compensated late-read
+reuse (`scripts/paired_cube_physical.py`); the bit supplier is the paired-cube bit word in
+`research/paired-cube-bit`.
 
 From the repository root with Python 3.11+:
 
@@ -13,16 +15,22 @@ make paired-cube-verify
 The selected incremental target uses only the Python standard library.
 CI runs it in its own `paired-cube` matrix group. The checks are:
 
-- Rebuild the selected signed H-channel graph from exact zero restrictions of
-  the pinned PR #117 positive DAG. Replay the frozen 6,074 carrier arcs,
+- Rebuild the selected signed H-channel graph (p = 11) from exact zero
+  restriction of a pinned complex DAG and a pinned pair-disjoint module in
+  `references/paired-cube/sources`, with a nested-prefix all-but-one module and merged face-2/edge-02 outputs.
+  Replay the frozen 7,701 carrier arcs (compiled under #162's closure conditions),
   coordinate frames, full backward intersections, signed physical mixer,
-  center closure and 4,840 rank-20 partial gauges. Independent checks cover
+  center closure and 2,970 rank-18 partial gauges. Independent checks cover
   every scalar coefficient of `H+K+B=I`, the original-source K involution and
   inverse, actual frame containment and reverse target chains.
-- Reconstruct the bit subset from the existing PR #97 witness and readout
-  order. Check the retained 9,543 and omitted 2,022 slots, moved zero-frame
-  dirty reads, changed first transitions and target subsequences. Unchanged
-  complete-basis and rational-frame suites remain inherited checks.
+- Apply the frozen physical frames and late-read reuse pairs and check chains,
+  chronology, target order and an aliased dirty-scratch replay
+  (`scripts/paired_cube_physical.py`).
+- Check the paired-cube bit word with its standalone checker
+  (`research/paired-cube-bit/check_paired_cube_bit.py`): exact frames, decoder
+  identity, chains, partner-pair chronology, nondegeneracy, F2 replay and
+  ledger. `python3 research/paired-cube-bit/paired_cube_bit_word.py --p 12 --check`
+  regenerates its outputs byte for byte.
 - Rebuild both shared-core child lists and certify strict moments, full
   rare-class fallback, stopped bit saving, actual finite group/router charge,
   semantic guard, row stock, 47 strict inequalities and seven assembly margins.
