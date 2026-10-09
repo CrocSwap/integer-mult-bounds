@@ -32,6 +32,9 @@ def independent_plan(g,witness,word,row,profile,frames,pairs):
         for name,value in data.items():
             name+='.json.gz'
             content=gzip.compress((json.dumps(value,separators=(',',':'))+'\n').encode(),mtime=0)
+            # Python 3.11/3.12 delegate mtime=0 headers to zlib (OS=3 on
+            # Linux); Python 3.13+ emits OS=255. Normalize only this metadata.
+            content=content[:9]+b'\xff'+content[10:]
             (work/name).write_bytes(content);pins[name]=sha256(content).hexdigest()
         (work/'result.json').write_text(json.dumps(dict(pins=pins)))
         out=work/'checked.json'
