@@ -1,5 +1,11 @@
 # Reproducing the result
 
+For the selected recycled-bit composition, run `make recycled-bit-verify`.
+The [construction and scope](../research/recycled-bit-integration/PROOF.md)
+describe full formal-variable scalar replay, exact rational frame checks and
+all paid costs. Use `make recycled-bit-full-verify` to recheck every inherited
+frame inclusion as well. Earlier targets below reproduce their own checkpoints.
+
 For the paired-cube/shared-core extension, run `make paired-cube-verify`.
 The [incremental guide](paired-cube.md) covers the signed producer, selected
 bit gauges, exact moments and assembly.
@@ -17,9 +23,9 @@ Its [incremental reproduction guide](stopped-product.md) covers the h24
 rational-center producer, new moments, stopping parameters and assembly.
 The community checkpoint and historical targets below retain their own scope.
 
-The selected main witness is documented in the [paired-cube maintainer review](research/community-round6-review.md)
+The selected main witness is documented in the [paired-cube maintainer review](research/community-round7-review.md)
 and [current status](research/current-status.md), with the
-[selected certificate](../certificates/paired-cube-network.json).
+[selected certificate](../research/recycled-bit-integration/certificate.json).
 The [joint-frame review](research/community-round2-review.md) remains a historical checkpoint.
 The bound is conditional on the retained original #109 framework. Earlier notes,
 patches, and the [preserved research](research/preserved-research.md) are historical

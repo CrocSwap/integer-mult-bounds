@@ -18,6 +18,7 @@ verify:
 	$(MAKE) verify-partial-gauge
 	$(MAKE) verify-three-stage-cover
 	$(MAKE) verify-paired-cube
+	$(MAKE) verify-recycled-bit
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -511,3 +512,13 @@ paired-cube-certificate:
 paired-cube-verify: paired-cube-producer paired-cube-bit paired-cube-certificate
 
 verify-paired-cube: paired-cube-verify
+
+.PHONY: recycled-bit-verify recycled-bit-full-verify verify-recycled-bit
+recycled-bit-verify:
+	python3 research/recycled-bit-integration/verify.py
+
+recycled-bit-full-verify:
+	python3 research/recycled-bit-integration/verify.py --all
+
+verify-recycled-bit: recycled-bit-full-verify
+	python3 -m unittest discover -s tests -p 'test_recycled_bit_integration.py' -v

@@ -7,9 +7,9 @@ For a mathematical issue, identify the exact proposition, source label, or
 inequality; give a counterexample or the missing implication when possible;
 and distinguish numerical validation from an algorithmic proof obligation.
 For the current result, start with the
-[current maintainer review](docs/research/community-round6-review.md),
-[selected certificate](certificates/paired-cube-network.json), and
-[reproduction guide](docs/paired-cube.md). Earlier notes are historical checkpoints.
+[current maintainer review](docs/research/community-round7-review.md),
+[selected certificate](research/recycled-bit-integration/certificate.json), and
+[reproduction guide](research/recycled-bit-integration/PROOF.md). Earlier notes are historical checkpoints.
 The [original audit](docs/audit.md) describes the retained upstream assumptions.
 
 For a parameter improvement, supply exact rational choices, the full dependency
@@ -23,7 +23,7 @@ make verify
 ```
 
 Include regenerated certificates and patches in the same change. Run the
-selected incremental target, `make paired-cube-verify`, as well as the checks
+selected incremental target, `make recycled-bit-verify`, as well as the checks
 affected by your changes. The current proof is supplied as LaTeX source;
 historical PDF targets belong to their respective checkpoints. Review changes to
 claims in the README and note together. Finite tests should address a mathematical

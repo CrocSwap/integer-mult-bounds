@@ -3,7 +3,41 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: paired cubes and shared cores
+## Current reviewed result: recycled bit registers and shared cores
+
+The composition of [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147),
+[#150](https://github.com/CrocSwap/integer-mult-bounds/pull/150),
+[#146](https://github.com/CrocSwap/integer-mult-bounds/pull/146) and
+[#148](https://github.com/CrocSwap/integer-mult-bounds/pull/148), built on
+icekylinx's #144 construction, gives the conditional witness
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{94428617}{200000000000}=4.72143085\times10^{-4}.
+$$
+
+William Porter (hpst3r) eliminates unused terminal accumulators; DaysSky
+schedules dirty reads later and reuses dead bit registers. Thomas Marchand
+(Th0rgal) contributes the selected gauge subset and Rohan Gupta (gupt1156)
+the tighter stopping parameter. The composition retains the actual complete
+word, exact restoration and every frame transition. James Chang's compensated
+birth-read reuse and SovereignSteak's terminal-elimination mechanism are
+explicit dependencies. All prior construction and framework credits remain.
+
+This is **2.44% above the preceding reviewed saving**. It is an asymptotic
+exponent improvement, not a measured runtime speedup. The retained analytic,
+uniform-recursion and fixed-tape hypotheses remain assumptions.
+
+[Review and validation scope](docs/research/community-round7-review.md) ·
+[Selected record](certificates/selected-result.json) ·
+[Construction argument](research/recycled-bit-integration/PROOF.md) ·
+[Exact certificate](research/recycled-bit-integration/certificate.json)
+
+```sh
+make recycled-bit-verify
+```
+
+## Preceding paired-cube and shared-core construction
 
 The construction contributed by **[icekylinx](https://github.com/icekylinx)** in
 [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), building on
@@ -160,6 +194,14 @@ split-pair recursion (#59)**. The review records the exact validation scope of e
 
 ## Attribution
 
+Newly incorporated contributions include **DaysSky** (#150), **William Porter /
+hpst3r** (#147), **Thomas Marchand / Th0rgal** (#146), and **Rohan Gupta /
+gupt1156** (#148), building on **James Chang / jamesyc** (#124) and
+**SovereignSteak** (#122). **Andrew Barnes / Bortlesboat** (#101) strengthens
+physical-word verification using **rfu08**'s counterexample. **rfu08** (#64)
+contributes the separately scoped formal-transfer and finite-audit package.
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for their roles and the retained credits.
+
 The names below identify GitHub contributors; they are not verified Twitter handles.
 
 - **[Avi Eisenberg (ikeboy)](https://github.com/ikeboy):** skip-prefix and interval strips, core-aware pair assembly ([#53](https://github.com/CrocSwap/integer-mult-bounds/pull/53), [#62](https://github.com/CrocSwap/integer-mult-bounds/pull/62)).
@@ -259,10 +301,10 @@ scoped negative results and reproducible certificates.
 ## Citation and license
 
 The [independent rank-first pair verification](research/ranked-pair-verification/README.md)
-records a conditional parameter refinement for the pending PR62/63 construction,
-exact word/profile checks, and 45 scoped Lean theorems. Its construction matches
-concurrent PR63; it does not replace the released bound or verify the full
-multiplication machine.
+and [formal-transfer checkpoint](research/machine-transfer-verification/README.md)
+record exact word/profile checks and 298 audited declarations across 27 unique
+Lean modules. Literal profile instantiations concern historical checkpoints,
+not the new selected witness. They do not verify the full multiplication machine.
 
 Use [CITATION.cff](CITATION.cff), cite the individual contributions used and
 include the repository version or commit. [CONTRIBUTORS.md](CONTRIBUTORS.md),

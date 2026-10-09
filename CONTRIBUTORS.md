@@ -1,6 +1,32 @@
 # Community contribution record
 
-**Current reviewed construction: [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), κ=0.0004609169.**
+**Current reviewed composition: #147 + #150 + #146 + #148 on #144,
+κ=0.000472143085.** The [round-seven review](docs/research/community-round7-review.md)
+separates exact finite verification from retained all-size hypotheses.
+
+| Contributor | Contribution incorporated in this round |
+|---|---|
+| [DaysSky](https://github.com/DaysSky) | [#150](https://github.com/CrocSwap/integer-mult-bounds/pull/150): delayed bit dirty reads, physical register recycling, exact scalar and frame checks. |
+| [William Porter / hpst3r](https://github.com/hpst3r) | [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147): terminal elimination on the shared bit word. |
+| [Thomas Marchand / Th0rgal](https://github.com/Th0rgal) | [#146](https://github.com/CrocSwap/integer-mult-bounds/pull/146): telescoping min-cut gauge subset, independently composed with the new schedule. |
+| [Rohan Gupta / gupt1156](https://github.com/gupt1156) | [#148](https://github.com/CrocSwap/integer-mult-bounds/pull/148): tighter atom exponent and adapter toll. |
+| [James Chang / jamesyc](https://github.com/jamesyc) | [#124](https://github.com/CrocSwap/integer-mult-bounds/pull/124): compensated birth-read reuse principle used by #150. |
+| [SovereignSteak](https://github.com/SovereignSteak) | [#122](https://github.com/CrocSwap/integer-mult-bounds/pull/122): terminal accumulator elimination used by #147. |
+| [Andrew Barnes / Bortlesboat](https://github.com/Bortlesboat) | [#101](https://github.com/CrocSwap/integer-mult-bounds/pull/101): binds literal scatter operations to paid incidences and rejects malformed or unchecked inputs. |
+| [rfu08](https://github.com/rfu08) | [#64](https://github.com/CrocSwap/integer-mult-bounds/pull/64): cancelling-scatter counterexample, finite audits and scoped Lean transfer proofs; full multiplier remains unformalized. |
+| [anxkhn](https://github.com/anxkhn) | [#90](https://github.com/CrocSwap/integer-mult-bounds/pull/90): requested current-review and historical-release documentation clarification, reflected in the current guides. |
+
+Related parallel work remains acknowledged: eumemic's #143 develops later
+per-target read deadlines and joint frame refinement on another producer;
+Joel Pulikkan / GamingPuzzled's #125 develops frame shrinking; Joseph Demarest's
+#83 proves a scoped fixed-profile recursion barrier. These are relevant
+research contributions, not additional unverified gains in the selected bound.
+No exclusive priority claim is made. Assistance disclosures remain in the
+original packages and [integration notice](research/recycled-bit-integration/NOTICE).
+
+### Preceding paired-cube checkpoint
+
+**Preceding reviewed construction: [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), κ=0.0004609169.**
 The [round-six review](docs/research/community-round6-review.md) records the
 checked source heads, dependency arguments, finite controls and replay limits.
 

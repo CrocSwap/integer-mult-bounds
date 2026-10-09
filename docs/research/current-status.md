@@ -1,4 +1,21 @@
-# Current main: reviewed paired-cube construction
+# Selected construction in this checkout: recycled bit registers
+
+The selected conditional witness is **κ=94428617/200000000000=0.000472143085**,
+composing #147, #150, #146 and #148 on #144. This improves the preceding
+paired-cube checkpoint by about 2.44%. Main publication is a separate action;
+the integration review and CI receipt identify the tested branch and head.
+
+See the [round-seven review](community-round7-review.md),
+[selected record](../../certificates/selected-result.json),
+[construction argument](../../research/recycled-bit-integration/PROOF.md), and
+[pinned queue dispositions](../../research/overnight-pr-review-20261009/QUEUE.md).
+The retained analytic, uniform-recursion and fixed-tape contracts remain
+assumptions; finite checks and scoped Lean contributions do not formalize
+integer multiplication.
+
+Everything below is historical and retains its checkpoint-specific scope.
+
+# Preceding main: reviewed paired-cube construction
 
 The selected conditional witness is **κ=4609169/10000000000=0.0004609169**,
 from icekylinx's [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144).
