@@ -41,6 +41,37 @@ frame slack -- it is a different word with its own, slightly higher, ceiling. PR
 scope statement already said that non-frame changes are unbounded by it; this note only
 confirms that the bounded part still binds after the change.
 
+## Can PR216's admitted cuts be carried onto this word?
+
+PR216 (`research/coordinated-crossover-pr200-v2`, head `34abdc5`) is a third layout on
+this same lineage: it keeps PR211's cascade frames, adds 220 further operation-frame
+changes, and admits them natively (κ = 6.838643131376e-4). Because the ceiling above
+bounds *every* frame layout of PR217's word, the natural next question -- combine the
+two -- has a bounded answer, and `transfer_check.py` checks its structural side against
+the two packages themselves:
+
+* **The two words are one operation-index space.** Both have 41,288 operations, and the
+  parts that fix the DAG are identical: 11,856 arcs, 25,900 order entries, 1,760 reuse
+  pairs, 3,960 gauges, 6,624 root roles, 17,688 phase-1 and 7,728 plain operations, and
+  the same 1,760 sources and reads. Exactly **880 operation contents** differ -- PR217's
+  reassociation set -- and 7,068 operation frames differ.
+* **PR216's admitted frames are keyed by that same index.** Its records are
+  `[op_index, [basis vectors …]]` pairs: 6,191 current bases, 6,258 override records and
+  2,268 canonical subspaces, all with indices inside the shared list. Only **3 of the
+  6,258** override records land on a rewritten operation, and **none of the 2,268**
+  genuinely different subspaces does.
+* **So a merge is well defined at the index level, and that is the whole of what is
+  free.** PR216 admits its cuts with "scalar operations, source/target contracts, …"
+  fixed, and PR217's change is exactly in those operations: a merged layout is a new
+  submission that needs fresh global admission and a fresh column replay, not a
+  transplant of an existing certificate.
+* **And the prize is capped.** Any frame layout of this word gives κ < 6.968e-4, i.e. at
+  most **+1.77%** over the 6.84696826673891e-4 record, while PR216's own layout on the
+  plain word sits **0.122% below** that record -- the merge would have to recover the
+  butterflies' whole contribution before it recovers anything. For scale, the bank
+  absorption of #219 claims +2.30% over the same record with an accounting ledger, which
+  is the route this comparison actually favours.
+
 ## How the word was obtained and checked
 
 1. PR217's own constructor, `research/butterfly-coordinated-bit-211/candidate.py`, was
@@ -82,6 +113,14 @@ python3 build_tree.py   --emit <fresh dir> --bit-root <pr202 checkout> \
 python3 <pr212 checkout>/research/bit-frame-ceiling-200/ceiling.py --tree <fresh tree> --rounds 1200
 ```
 
+`transfer_check.py` compares PR217's emitted word with PR216's, from the same emit
+directory:
+
+```sh
+python3 transfer_check.py --emit <fresh dir> \
+    --pr216-package <pr216 checkout>/research/coordinated-crossover-pr200-v2
+```
+
 ## Scope and limits
 
 * This bounds **frame layouts of PR217's word only**, and only in the sense PR212's floor
@@ -104,5 +143,8 @@ python3 <pr212 checkout>/research/bit-frame-ceiling-200/ceiling.py --tree <fresh
 PR212 (Chafik Boukhalfa) supplies the method and the script, unmodified; PR217 (hcg890)
 supplies the word, its overlay and `candidate.py`; PR211 (Rohan Arun) supplies the pinned
 cascade frames; PR200/PR168 v4 (Chafik Boukhalfa, eumemic, icekylinx) supply the base
-word and the vendored checker. This note adds only the run, the shim and the reading.
+word and the vendored checker; PR216 (Dugongue) supplies the cut package whose admitted
+frames are compared above -- that comparison reads PR216's own witness files, its native
+admission was not run here. This note adds only the run, the shim, the comparison and the
+reading.
 Prepared with Anthropic Claude assistance; Apache-2.0.
