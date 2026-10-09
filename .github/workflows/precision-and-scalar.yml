@@ -1,0 +1,48 @@
+name: Verify precision refinement and exact scalar maps
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Reproduce prerequisite frame geometry, profiles and native audits
+        run: python -B research/paired-cube-frame-refinement/verify.py
+      - name: Check precision certificate and controls in both Python modes
+        run: |
+          python -B research/precision-certificate/verify.py
+          python -B research/precision-certificate/test_precision.py
+          python -O -B research/precision-certificate/verify.py
+          python -O -B research/precision-certificate/test_precision.py
+      - name: Check independent scalar fixtures in both Python modes
+        run: |
+          python -B research/paired-cube-scalar-audit/test_bit.py
+          python -B research/paired-cube-scalar-audit/test_sinks.py
+          python -B research/paired-cube-scalar-audit/test_source.py
+          python -O -B research/paired-cube-scalar-audit/test_bit.py
+          python -O -B research/paired-cube-scalar-audit/test_sinks.py
+          python -O -B research/paired-cube-scalar-audit/test_source.py
+      - name: Reconstruct raw complex witness and audit every scalar coefficient
+        run: |
+          python -B scripts/paired_cube_producer.py --work-dir "$RUNNER_TEMP/paired-cube-audit" --output "$RUNNER_TEMP/paired-cube-audit-report.json"
+          python -c 'import pathlib,resource,runpy,sys; resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3)); sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(sys.argv[0]).resolve().parent)); runpy.run_path(sys.argv[0],run_name="__main__")' research/paired-cube-scalar-audit/verify.py --complex-work-dir "$RUNNER_TEMP/paired-cube-audit"
+          python -O -c 'import pathlib,resource,runpy,sys; resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3)); sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(sys.argv[0]).resolve().parent)); runpy.run_path(sys.argv[0],run_name="__main__")' research/paired-cube-scalar-audit/verify.py --complex-work-dir "$RUNNER_TEMP/paired-cube-audit"
+      - name: Require reproducible tracked files
+        run: git diff --exit-code
