@@ -1,11 +1,15 @@
-"""Read-only diagnostic for #202 (head 8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d).
+"""Diagnostic for #202 (head 8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d).
 
 `research/source-assisted-v4/verify.py` asserts that its rebuilt certificate equals
 the committed one ("Canonical certificate does not reproduce"). This script calls
 the package's own `build()`, then prints every leaf of the rebuilt certificate that
-differs from the committed `certificate.json`. It writes nothing in the repository.
+differs from the committed `certificate.json`. It modifies no tracked file, but
+`build()` creates and then deletes the package's temporary directory
+`research/source-assisted-v4/.work/` (verify.py:29, 89-91, 145).
 
-Usage, from the repository root at the #202 head:
+The package exists only at the #202 head, not on main or in this PR. Usage: copy
+this file into a checkout of #202 at 8d8d67b, under
+`research/independent-reproduction-20261009/`, then from that checkout's root:
     python -B research/independent-reproduction-20261009/certificate_diff.py
 """
 import sys

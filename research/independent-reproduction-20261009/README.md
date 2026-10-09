@@ -1,7 +1,9 @@
 # Independent reproductions and audit notes: #207, #202, #197, #199
 
 Snapshot: 2026-10-09, runs between 13:43Z and 17:33Z; PR heads re-read at 17:35Z.
-Repository base at the time: `main` = `3b6b66891c0ac888521cf591fe306c6286601d4f`.
+CI states and the sources cited in items 1 to 3 re-read at 18:05Z; all heads
+unchanged. Repository base at the time: `main` =
+`3b6b66891c0ac888521cf591fe306c6286601d4f`.
 
 This directory records independent replays of four open submissions, with
 pinned heads, exact commands and outputs. It is a reproduction report, not a
@@ -15,8 +17,8 @@ Each item carries one of three labels:
 - **reproduced**: the submission's own verifier ran unmodified at the pinned
   head and printed the claimed value;
 - **not reproduced**: the submission's own verifier failed in our environment;
-- **audit finding**: an observation from reading the sources or from a
-  read-only diagnostic. It is not a claim of mathematical error.
+- **audit finding**: an observation from reading the sources, the CI records
+  or a diagnostic run. It is not a claim of mathematical error.
 
 ## Environment (all runs)
 
@@ -61,16 +63,28 @@ Full SHAs, interpreter and package versions per run are in
 - The printed κ equals the PR's claim exactly.
 - Note: the complex-lift step printed `certificate_sha256`
   `72a9626394aff05457ba5d25fc312608effba611f1f184ad8a6ddf186c7b150f`. The
-  verifier does not compare this hash. `verify_inner.py:23` asserts only that
-  `exact_scalar_program_sha256` equals the committed value
+  verifier does not compare this hash, and #207's `certificate.json` does not
+  record it. For the complex lift, `verify_inner.py:23` asserts that
+  `exact_scalar_program_sha256` equals #202's committed value
   (`3b4e671d7c6630570b04788bb2c81629e2c52f8dc2fcc5805952f0b403921027`), and
-  that assertion passed. This design matters for item 2b.
+  `verify_inner.py:29-30` asserts that the mathematical fields of the replayed
+  complex profile (`m`, `W_per_vertex`, `rank_per_vertex`,
+  `deficit_per_vertex`, `child_histogram`, `contract_checks`,
+  `exact_scalar_program_sha256`) equal #202's committed `complex_profile`.
+  Both checks passed. This design matters for item 2b.
+- CI: the six workflow runs recorded for this head (for example run
+  37955916437, "Verify research artifacts") are awaiting maintainer approval
+  (`action_required`).
 
 ## 2. #202: bit package reproduced; headline verifier not reproduced here
 
 Head `8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d`, tree
 `4d07f3f18343da5a0f474d6d830afe64c0c18505`. The head is unchanged at 17:35Z.
-No CI checks are reported on this branch.
+No CI run exists for this head. The PR is in conflict with `main`
+(`CONFLICTING`), and GitHub does not run `pull_request` workflows on a
+conflicting PR. Its workflow `.github/workflows/source-assisted-v4.yml` would
+run `python -B research/source-assisted-v4/verify.py` under Python 3.13
+(lines 26 and 30).
 
 **2a. Bit package (reproduced).**
 `python -B research/paired-cube-diagonal-bit-168/verify.py` exited 0 in
@@ -86,9 +100,12 @@ The 6.768823e-4 headline is checked by `research/source-assisted-v4/verify.py`.
 In our environment this verifier stops at `verify.py:162` with
 `AssertionError: Canonical certificate does not reproduce`, after 1:00.09.
 
-The read-only diagnostic [certificate_diff.py](certificate_diff.py) calls the
-PR's own `build()` and compares the result leaf by leaf with the committed
-certificate. Exactly 7 leaves differ:
+The diagnostic [certificate_diff.py](certificate_diff.py), copied into a #202
+checkout at `8d8d67b` and run from its root, calls the PR's own `build()` and
+compares the result leaf by leaf with the committed certificate. It modifies
+no tracked file; like `verify.py`, `build()` creates and then deletes the
+package's temporary `.work/` directory (`verify.py:29`, `89-91`, `145`).
+Exactly 7 leaves differ:
 
 | Leaf | Built here | Committed at `8d8d67b` |
 |---|---|---|
@@ -96,49 +113,68 @@ certificate. Exactly 7 leaves differ:
 | `/complex_profile/proof_chain_sha256/…/.work/lift.json` | `c41fee34c5c6…` | `89b0d949852a…` |
 | `/assembly/source_sha256/complex` | `7374c75b7d6e…f0cb` | `b80de5b00f75…e3a3` |
 
+All seven come from one value: the sha256 of the compressed lift certificate
+`lift.certificate.json.gz`, which
+`research/source-assisted/decision/exact_complex_flow_lift.py:408-409` writes
+with `gzip.compress(..., compresslevel=9, mtime=0)`. `lift.json` records that
+hash (same file, line 419), the complex profile records both files' hashes,
+and `/assembly/source_sha256/complex` is the sha256 of the complex profile
+file (`research/source-assisted-v4/assemble.py:89`).
+
 Every other leaf is equal, including κ = 6768823/10^10, the complex saving,
 the bit effective saving and the assembly records. Two independent builds in
-fresh clones (15:12Z, and 17:25Z with the script as committed here: exit 0,
-1:01.63) gave identical values. In this environment the build is therefore
-stable from run to run.
+fresh clones (15:12Z, and 17:25Z with this script, whose code has not changed
+since, only its docstring: exit 0, 1:01.63) gave identical values. In this
+environment the build is therefore stable from run to run.
 
-Observations (audit findings, read-only `git show` / `git diff`):
+Observations (audit findings, from `git show` / `git diff`, GitHub's compare
+and CI records):
 
 1. #194 at `a8c87783785be6fe20c4a8bb2ac4b3eec295a179` commits exactly the
    values built here (`1d81a79b…`, `c41fee34…`, `7374c75b…`). Its
    `source-assisted-v4/verify.py` passes in the same environment (exit 0,
-   0:57.89). #194's CI also reports a passing `source-assisted` job.
-2. Between `a8c8778` and `8d8d67b`, the `SOURCE.json` pins change only for the
-   bit-certificate path, `assemble.py`, `pin_sources.py`, `NOTICE`,
-   `PROOF.md` and `README.md`. The pins of `verify.py`, `contract_v4.py`,
-   `source_aligned_local_v4.py` and `data/*.json` are unchanged, and
-   `research/source-assisted/` is unchanged. `exact_scalar_program_sha256`
-   (`3b4e671d…1027`) is identical in both committed certificates.
-3. Control run with CPython 3.12.3 (same numpy and scipy): #194's own
-   `source-assisted-v4/verify.py` also fails the same assertion (exit 1,
-   1:05.71). Which leaves differ under 3.12.3 was not recorded. The canonical
-   lift serialization therefore depends on the interpreter, at least between
-   3.12.3 and 3.13.16.
+   0:57.89). #194's CI ran the same command and passed under CPython 3.13.16
+   with numpy 2.3.5 and scipy 1.17.0, the versions used here (workflow
+   `source-assisted-v4.yml`, run 37931952877, job 113824581619).
+2. #202 is #194 plus one commit: GitHub's compare `a8c8778...8d8d67b` reports
+   1 commit ahead and 0 behind. In that commit the `SOURCE.json` pins change
+   only for the bit-certificate path, `assemble.py`, `pin_sources.py`,
+   `NOTICE`, `PROOF.md` and `README.md`. The pins of `verify.py`,
+   `contract_v4.py`, `source_aligned_local_v4.py` and `data/*.json` are
+   unchanged, and `research/source-assisted/` is unchanged. Between the two
+   committed certificates, the `/lift` record differs only by
+   `certificate_sha256`, and `/complex_profile` only by the three lift hashes
+   above; `exact_scalar_program_sha256` (`3b4e671d…1027`) and the witness hash
+   are identical. The other differences come from the new bit supplier and κ.
+3. Control run with CPython 3.12.3, the system interpreter (same numpy and
+   scipy): #194's own `source-assisted-v4/verify.py` also fails the same
+   assertion (exit 1, 1:05.71). Which leaves differ under 3.12.3 was not
+   recorded. The canonical check is therefore sensitive to the environment;
+   we did not separate the interpreter from the zlib build it uses.
 
-Reading: the pinned complex-lift inputs did not change from #194 to #202, yet
-#202's committed lift hashes differ from #194's. Our environment reproduces
-#194's. The most likely explanation is that #202's lift was regenerated in an
-environment whose serialization differs, for example in the interpreter
-version. We have **not isolated** the cause and do not claim a defect in the
-mathematics of #202: κ and all other non-hash leaves are reproduced. Two
-remedies seem possible, at the author's or maintainers' discretion. One is to
-record the reference interpreter version and regenerate the canonical
-certificate in it. The other is to compare the lift through
-`exact_scalar_program_sha256`, as #207's verifier does (item 1).
+Reading: every leaf of #202's certificate that does not derive from the lift
+gzip hash reproduces here. With unchanged lift inputs, our environment and
+#194's CI produce the same gzip hash, and #202's committed hash is a different
+one. This points to an environment-sensitive step (interpreter or zlib
+build), which we have not isolated. It is a reproducibility observation, not a
+claim about the mathematics of #202. Two remedies seem possible, at the
+author's or maintainers' discretion. One is to record the reference
+environment (interpreter and zlib versions) and regenerate the canonical
+certificate in it. The other is to check the lift through
+`exact_scalar_program_sha256` and the mathematical fields of the complex
+profile rather than through the compressed file's hash, as #207's verifier
+does (item 1, `verify_inner.py:23` and `29-30`).
 
 #207 consumes #202's complex supplier at `8d8d67b` and passes (item 1). This is
 consistent with the reading above.
 
-## 3. #197: reproduced, with its named proof obligation
+## 3. #197: reproduced
 
 - Head `8c5e1cf07c23d843642bf2d4c76f882669edc43f` (tree
-  `98ee8c8e5c0f2214a9250f8390fbffea11ba1652`), unchanged at 17:35Z. No CI
-  checks are reported on this branch. The pinned unmerged dependencies were
+  `98ee8c8e5c0f2214a9250f8390fbffea11ba1652`), unchanged at 17:35Z. CI: the
+  four workflow runs recorded for this head (including run 37936952135,
+  "Verify packed source-assisted bit supplier") are awaiting maintainer
+  approval (`action_required`). The pinned unmerged dependencies were
   checked out as separate worktrees: #187 at
   `201737a1ec4f936e166e2481fb9e88104cb2ccc7` and #193 at
   `187e1010ac8b259af8e9b5166f68b64bc27b4b47`. Both heads are unchanged.
@@ -164,12 +200,20 @@ consistent with the reading above.
 
 Audit finding (reading, not a counterexample): the removal of the 6,600
 rank-60 exterior children rests on the bank-endpoint identity of `PROOF.md`
-§4. By the PR's own words, its finite controls cover "all 144 formal columns
-over Z/9, Z/25 and Z/125 … These checks support the identity above; they do not
-simulate the full cover or prove the inherited Clifford interface"
-(`PROOF.md:95-98`). The identity on the full cover therefore remains a
-paper-proof obligation. The package also depends on the unmerged #187 and #193
-checkouts, so it is not self-contained.
+§4, which the PR proves on paper (`PROOF.md:81-93`: for disjoint projectors,
+D_P D_Q = D_(P+Q) = D_Q D_P; "This is an operator identity on arbitrary bank
+contents"). Its finite controls, on all 144 formal columns over Z/9, Z/25 and
+Z/125, "support the identity above; they do not simulate the full cover or
+prove the inherited Clifford interface" (`PROOF.md:95-98`). On the full cover
+the removal therefore rests on the paper argument, not on the replayed
+checks. `main` already holds the maintainer review of a comparable removal
+of rank-60 exterior corrections for #186, which #197 cites as "#186's related
+bank construction": `research/community-round8-audit/BANK-SCHEDULE.md:6-8`
+states that #186's coordinate-projector calculation proves a bank's endpoint,
+with a comparable limit ("does not instantiate the 72-dimensional production
+word", lines 94-95), and `CONTRIBUTING.md:13` asks readers to consult it. We
+did not check whether #197's banks match that schedule. The package also
+depends on the unmerged #187 and #193 checkouts, so it is not self-contained.
 
 What remains useful now that #205 and #207 report higher κ:
 
@@ -178,9 +222,9 @@ What remains useful now that #205 and #207 report higher κ:
   exterior children. #207 cites #197 for its three-level bootstrap. This
   reproduction is an independent data point that the reference implementation
   of the packing regenerates exactly from pinned inputs.
-- The proof obligation above carries over to any construction that removes
-  these children by the same identity. We did not assess whether the
-  full-column bank checks of #205 or #207 discharge it for their own words.
+- Any construction that removes these children by the same identity relies on
+  the same paper argument. We did not assess whether the full-column bank
+  checks of #205 or #207 cover this step for their own words.
 
 ## 4. #199: donor-reuse diagnostic reproduced byte for byte
 
@@ -212,15 +256,18 @@ What remains useful now that #205 and #207 report higher κ:
 
 All constructions, certificates and verifiers are the cited authors' work
 (#207, #202, #200, #197, #194, #193, #189, #187, #185 and their lineage). This
-directory adds only independent replays at pinned heads, one read-only
-diagnostic script, and the reproducibility observation of item 2b. It changes
-no generator, certificate, test or `upstream/` file. It claims no bound.
+directory adds only independent replays at pinned heads, one diagnostic
+script (it modifies no tracked file), and the reproducibility observation of
+item 2b. It changes no generator, certificate, test or `upstream/` file. It
+claims no bound.
 
-## Proof obligations not addressed here
+## Not addressed here
 
-- Item 3: the bank-endpoint identity on the full cover (`PROOF.md` §4 of #197),
-  and its counterpart in #205.
-- Item 2b: the cause of the lift-hash difference.
+- Item 3: a review of the paper argument of `PROOF.md` §4 of #197 on the full
+  cover, and of its counterpart in #205. This report replays finite checks
+  only.
+- Item 2b: which part of the environment (interpreter or zlib build) changes
+  the lift gzip hash.
 - For all items: the retained conditional interfaces stated by each
   submission (Clifford/tensor realization, weighted local-ring compilation,
   restored rows, fixed tape, routing, prime supply, precision and analytic
