@@ -13,8 +13,8 @@ import json
 from pathlib import Path
 import sys
 from paired_cube.graph import Graph
-from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one
-from paired_cube.frames import compile_graph
+from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one, restricted_triples_from, restricted_pairs_from, pair_module_from, all_but_one_from, triple_module_from, merge_outputs
+from paired_cube.closure import compile_closure
 from paired_cube.gauges import select
 from paired_cube.verify import verify
 
@@ -33,12 +33,15 @@ def regenerate(expected,work=None):
     frozen=reference/'matching-arcs.json'
     assert hashlib.sha256(frozen.read_bytes()).hexdigest()==pin['matching_arcs_sha256']
     stage('Regenerating paired-cube signed DAG from inherited PR117 restrictions')
-    g=Graph(12).finish(restricted_triples(12),restricted_pairs(11),all_but_one(10))
+    src=ROOT/'references/paired-cube/sources'
+    srcpin=json.loads((src/'SOURCE.json').read_text())['files']
+    for name,digest in srcpin.items():assert hashlib.sha256((src/name).read_bytes()).hexdigest()==digest
+    _G=Graph(11,local=json.loads((src/'local_L1.json').read_text()));g=_G.finish(triple_module_from(src/'tmod_TE_TD_TB3_1_1_4_full_6.0617964e-4.json',11),pair_module_from(src/'pmod_J0_full_6.0666810e-4.json',10),all_but_one_from(src/'qmod_climb3u_best.json',9));g=merge_outputs(g,_G,'f8:00111100')
     g['matching_frames']='coordinate'
     binding={k:g[k] for k in ('inputs','labels','args','signs','roots','centers')}
     assert hashlib.sha256(json.dumps(binding,separators=(',',':')).encode()).hexdigest()==pin['graph_sha256']
     stage('Replaying frozen carrier matching and full binary intersections')
-    baseline,witness=compile_graph(g,json.loads(frozen.read_text()))
+    baseline,witness=compile_closure(g,json.loads(frozen.read_text()))
     stage('Selecting chronological partial gauges and constructing signed physical M')
     actual,word=select(g,baseline,witness);actual=json.loads(json.dumps(actual))
     for key in ('numerical_complex_root','status','gauge_selection',
