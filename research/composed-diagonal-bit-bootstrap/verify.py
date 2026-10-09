@@ -266,6 +266,136 @@ def main():
           "reaches the complex side (bit coarse {} vs the {} it needs)".format(
               first["thousandths"], Q(first["coarse"]),
               Q(targets["complex_side_cap"]["bit_coarse_needed"])))
+
+    # 13. The big rungs: absorbing whole child families into the banks, which is the
+    #     construction the audit's ledger bound says the room is in. Every candidate must
+    #     fill a whole number of width-m banks; the ladder must start at the frontier's own
+    #     price; its cheap rungs must beat the frontier; and the recorded headline rungs are
+    #     re-priced here from the queue's certificate, independently of rungs.py.
+    rungs_out = WORK / "rungs.json"
+    if rungs_out.exists():
+        rungs_out.unlink()
+    subprocess.run([sys.executable, "-B", str(HERE / "rungs.py"), "--out", str(rungs_out)],
+                   check=True, stdout=subprocess.DEVNULL)
+    rungs = json.loads(rungs_out.read_text())
+    assert rungs == json.loads((HERE / "rungs.json").read_text()), "rungs.json drift"
+    assert rungs["status"].startswith("MODEL"), "the rungs must not present a construction"
+    assert Q(rungs["frontier"]["kappa"]) == Q(targets["frontier"]["kappa"]), "frontier price"
+    assert abs(Q(rungs["frontier"]["published_claim"]) - Q(rungs["frontier"]["kappa"])) \
+        < Q(1, GRID), "the ladder must start at #207's published kappa"
+    for tier in ("strict", "volume_only"):
+        summary = rungs[tier]
+        assert 0 < summary["pairs_above_frontier"] <= summary["pairs_considered"]
+        assert summary["cheapest_pair"] and summary["best_pair"]
+    for side, item in rungs["sides"].items():
+        m, deficit = item["m"], Q(item["deficit"])
+        for schedule in item["strict_schedules"] + item["volume_schedules"]:
+            assert m * schedule["stock"] - schedule["rank_mass"] == deficit, \
+                "scheduled row identity on the " + side + " word"
+            assert schedule["banks"] * m == schedule["absorbed_rank_mass"], \
+                "a schedule must fill whole banks on the " + side + " word"
+            assert schedule["stock"] <= item["W"] and schedule["maxchild"] <= item["maxchild"]
+            assert schedule["types"] == len(schedule["families"])
+        # A strict schedule must bank each family on its own: its rank tiles the bank and
+        # its own volume is a whole number of banks. This is re-derived below from the
+        # queue's certificate, independently of rungs.py.
+        assert all(sorted(schedule["families"]) != [] for schedule in item["strict_schedules"])
+        for schedule in item["strict_schedules"]:
+            assert set(schedule["families"]) <= set(item["tiles_the_bank"])
+
+    ladder = {tier: rungs[tier]["type_ladder"] for tier in ("strict", "volume_only")}
+    gains = [[Q(ladder[tier][key]["gain"]) for key in sorted(ladder[tier], key=int)]
+             for tier in ("strict", "volume_only")]
+    for values in gains:
+        assert all(left <= right for left, right in zip(values, values[1:])), \
+            "a bigger type budget must not buy less"
+    assert all(Q(ladder["strict"][key]["kappa"]) <= Q(ladder["volume_only"][key]["kappa"])
+               for key in ladder["strict"]), "the sound tier must sit inside the bracket"
+    for tier in ("strict", "volume_only"):
+        for item in ladder[tier].values():
+            assert Q(item["bit_coarse"]) > Q(rungs["sides"]["bit"]["coarse"]) \
+                or not item["bit_families"]
+            assert Q(item["complex_coarse"]) > Q(rungs["sides"]["complex"]["coarse"]) \
+                or not item["complex_families"]
+    cheap = rungs["strict"]["cheapest_pair"]
+    cap = Q(targets["complex_side_cap"]["kappa"])
+    assert cheap["types"] == 1, "the cheapest sound rung must be a single new residual type"
+    assert cheap["complex"]["families"] == [], "the one-type rung must not move the complex word"
+    # The two-type rung reaches the ceiling the *frontier calculator* prices for the
+    # unmoved complex side: two independent tools must agree on that number.
+    assert Q(ladder["strict"]["2"]["kappa"]) == cap, \
+        "the two-type sound rung must land on the unmoved complex cap"
+    assert Q(ladder["strict"]["3"]["kappa"]) > cap, \
+        "the complex word's own family must beat the unmoved cap"
+    assert Q(ladder["strict"]["3"]["gain"]) > Q(1, 30), "the sound rung must be worth a few percent"
+    assert Q(ladder["volume_only"]["5"]["gain"]) > Q(1, 3), "the bracket's rung must be worth a third"
+
+    targets_mod = load(HERE / "targets.py", "verify_targets")
+    levers_mod = load(HERE / "levers.py", "verify_levers")
+    interval_mod = load(HERE / "references/pr200/interval_moment.py", "verify_interval")
+    queue = json.loads(
+        (HERE / "references/queue/pr207-coordinated-crossover.certificate.json").read_text())
+
+    def rows_and_histogram(side):
+        return targets_mod.rows(queue[side + "_profile"])
+
+    def repriced(m, W, deficit, hist, families):
+        """Re-price an arm from the queue's certificate, from scratch."""
+        if not families:
+            # An untouched arm is the frontier word's own row, absorbed nothing.
+            return levers_mod.certified(interval_mod, levers_mod.row(m, W, deficit, hist))
+        taken = sum(r * n for r, n in hist.items() if r in families)
+        assert taken and taken % m == 0, "the arm must fill whole banks"
+        kept = {r: n for r, n in hist.items() if r not in families}
+        stock = (m * W - taken) // m
+        assert m * stock - sum(r * n for r, n in kept.items()) == deficit, "arm identity"
+        return levers_mod.certified(interval_mod, levers_mod.row(m, int(stock), deficit, kept))
+
+    # The sound tier, re-derived: every family must tile the bank by itself and hold a
+    # whole number of banks of its own, then the recorded kappa must follow from the arms.
+    banked = {}
+    for side in ("bit", "complex"):
+        m, W, deficit, hist = rows_and_histogram(side)
+        tiles = [r for r in sorted(hist) if m % r == 0 and (r * hist[r]) % m == 0]
+        banked[side] = tiles
+    for side, tiles in banked.items():
+        assert tiles == rungs["sides"][side]["tiles_the_bank"], \
+            "the bankable families of the " + side + " word must be re-derivable"
+    for key in ("1", "2", "3", "4"):
+        item = ladder["strict"][key]
+        arms = {}
+        for side in ("bit", "complex"):
+            m, W, deficit, hist = rows_and_histogram(side)
+            families = item[side + "_families"]
+            assert set(families) <= set(banked[side]), \
+                "a sound arm must bank each family on its own"
+            arms[side] = repriced(m, W, deficit, hist, families)
+        budget = min(arms["bit"], (1 - Q(1, 10 ** 9)) * arms["complex"] - Q(1, GRID))
+        assert targets_mod.assembly_kappa(budget) == Q(item["kappa"]), \
+            "the recorded rung must follow from its own schedule"
+    for key, item in ladder["volume_only"].items():
+        for side in ("bit", "complex"):
+            m, W, deficit, hist = rows_and_histogram(side)
+            taken = sum(r * hist[r] for r in item[side + "_families"])
+            assert taken % m == 0, "every bracket arm must at least fill whole banks"
+    print("[rungs] absorbing whole families into the banks, two tiers. Sound schedules "
+          "(each family's blocks tile the bank by themselves): the bit word can bank ranks "
+          "{}, the complex word rank {} -- {} new residual type on rank {} is {} ({:+.2%}), "
+          "two types reach the unmoved complex cap at {} ({:+.2%}), and three types (adding "
+          "the complex word's own rank {}) reach {} ({:+.2%})".format(
+              banked["bit"], banked["complex"], cheap["types"], cheap["bit"]["families"][0],
+              Q(cheap["kappa"]), float(Q(cheap["gain"])), Q(ladder["strict"]["2"]["kappa"]),
+              float(Q(ladder["strict"]["2"]["gain"])), ladder["strict"]["3"]["complex_families"][0],
+              Q(ladder["strict"]["3"]["kappa"]), float(Q(ladder["strict"]["3"]["gain"]))))
+    print("[rungs bracket] keeping only the volume condition -- the shape the certified "
+          "#197/#205/#207 banks have, whose absorbed rank 60 does not divide 72 either -- "
+          "{} candidate pairs, {} of them above the frontier, rising to {} ({:+.2%}) at {} "
+          "types".format(
+              rungs["volume_only"]["pairs_considered"],
+              rungs["volume_only"]["pairs_above_frontier"],
+              Q(rungs["volume_only"]["best_pair"]["kappa"]),
+              float(Q(rungs["volume_only"]["best_pair"]["gain"])),
+              rungs["volume_only"]["best_pair"]["types"]))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
           "and 7 margins per depth".format(best, best_depth))
 

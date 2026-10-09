@@ -203,6 +203,90 @@ pair, and it reproduces #205's and #207's published kappa to within one grid ste
 so a rung is a usable target rather than a guess, in the same way the lever model's
 banked row was.
 
+### The big rungs: absorbing whole families into the banks
+
+Re-ranking children keeps the stock. The bank construction does something strictly
+stronger: the dirt of an *absorbed* family leaves the ledger, so by the row identity
+`W = (mass + D)/m` the stock falls with it, and the paid moment pays twice over. That is
+exactly the mechanism #197 used on the rank-60 exterior corrections and #205 used to
+reach this frontier, and it is the mechanism the audit's `76.6%` bound says the
+remaining room is in.
+
+`rungs.py` prices it for whole child families. Every combination of up to four families
+of either word is screened across **all** ranks with this package's own ledger form
+(`C = (1 - mass/(W m))/L`, the decomposition `targets.py` documents), the best of each
+subset size is priced *exactly*, and the first search's window is kept alongside so that
+nothing regresses.
+
+A bank is a width-`m` coordinate-block partition, so a family set is a schedule only
+when its blocks *tile* a bank. That gives two tiers, and the difference between them is
+the whole story:
+
+* **sound.** Every family's rank divides the bank width and its own volume is a whole
+  number of banks, so the families can be banked one at a time with no block shape the
+  word does not already use. #207's own schedule is this shape (`18 x rank-4`,
+  `3 x rank-24`, and the mixed `6 x rank-4 + 2 x rank-24`).
+* **volume only.** Only the total fills whole banks. This is exactly what the
+  *certified* banks of #197/#205/#207 satisfy -- their absorbed rank 60 does not divide
+  72 either -- but it is an upper bracket here: it needs the supplier to bank a family
+  whose blocks are drawn from the construction's own residual shapes, which this package
+  cannot verify.
+
+On the two frontier words, only these families are sound: the bit word's ranks
+**6, 8 and 18**, and the complex word's rank **11**.
+
+| rung | new residual types | bit word absorbs | complex word absorbs | bit coarse saving | complex coarse saving | kappa | gain | binds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| today | 0 | -- | -- | 6.836575e-4 | 7.009184e-4 | 213497/312500000 = 6.831904e-4 | -- | bit |
+| sound | **1** | rank 6: 1,008 banks | -- | 174621103751517/2.5e17 = 6.984844e-4 | -- | 54531/78125000 = 6.979968e-4 | **+2.17%** | bit |
+| sound | 2 | ranks 6, 8: 1,824 banks | -- | 141899511517939/2e17 = 7.094975e-4 | -- | 7004273/10^10 = 7.004273e-4 | **+2.52%** | complex |
+| sound | **3** | ranks 6, 8 | rank 11: 177 banks | 7.094975e-4 | 708793601534531/10^18 = 7.087936e-4 | 3541457/5e9 = 7.082914e-4 | **+3.67%** | complex |
+| sound | 4 | ranks 6, 8, 18: 2,823 banks | rank 11 | 718242431279183/10^18 = 7.182424e-4 | 7.087936e-4 | 3541457/5e9 = 7.082914e-4 | +3.67% | complex |
+| bracket | 1 | rank 22: 6,116 banks | -- | 728397865314023/10^18 = 7.283979e-4 | -- | 7.004273e-4 | +2.52% | complex |
+| bracket | 3 | rank 22 | ranks 1, 8 | 7.283979e-4 | 9.174610e-4 | 7.278676e-4 | +6.54% | bit |
+| bracket | 5 | ranks 1, 7, 21 | ranks 1, 8 | 1.052207e-3 | 9.174610e-4 | 9.166198e-4 | +34.17% | complex |
+| bracket | 8 | ranks 1, 3, 13, 21 | ranks 1, 2, 3, 9 | 1.227995e-3 | 1.406861e-3 | 1.226488e-3 | +79.52% | bit |
+
+Four readings matter:
+
+* **one sound new residual type moves the record.** Absorbing the bit word's rank-6
+  children alone, with the complex word untouched, takes the frontier from
+  `6.831904e-4` to `6.979968e-4`, **+2.17%** -- and unlike the re-ranking rung it needs no
+  cooperation from the complex side, because it lowers the stock instead of leaning on
+  the other branch's ceiling.
+* **two sound types reach the complex side's cap exactly.** Bank the bit word's ranks 6
+  and 8 and its coarse saving passes `7.009184e-4`, so the pair prices at the unmoved
+  complex side's own ceiling, `7.004273e-4` (**+2.52%**) -- the same number the re-ranking
+  ladder reached, now with `W` down from `56,402` to `54,578`.
+* **three sound types pass the cap, and it is the complex word that then binds.** Adding
+  the complex word's single sound family (rank 11, 177 banks) takes the pair to
+  **+3.67%**; the bit word's fourth family (rank 18) then buys nothing, because the
+  complex side is binding again. The sound tier stops there: only ranks that tile the
+  bank width are bankable one family at a time, and this word has three on the bit side
+  and one on the complex side.
+* **the volume bracket is where the big numbers live, and it is not the claim.** Ranking
+  by volume alone (which is what the queue's certified banks actually did -- rank 60 does
+  not divide 72) opens rungs at `+2.52%` for one type, `+6.54%` for three, `+34.17%` for
+  five and `+79.52%` for eight. Whether those are schedules depends on the supplier's
+  construction accepting a family whose blocks are not its own children, which is exactly
+  the question its own "ready for future genuinely different residual types" leaves open:
+  so the bracket is recorded as a bracket, and the claim is the sound tier.
+
+Every schedule in the table also satisfies the checks the package can make on its own:
+whole banks (`banks * m` equals the absorbed rank mass), the row identity after
+absorption, the paid moment's adjacent-grid exclusion, and the assembly's own arithmetic.
+`verify.py` re-derives the sound families of both words from the queue's certificate,
+re-prices the first four sound rungs from that certificate without using `rungs.py`, and
+requires each recorded kappa to follow from its own schedule.
+
+**These are targets, and the physical side is not done here.** The chart and normalizer
+conjugations, the F2 and defining-integer columns, the group-indexed role bookkeeping and
+the per-bank prime witnesses are the supplier's harness, and `rungs.json` records that
+status literally. What is proven here is the accounting: *if* a family of the frontier
+word's children is absorbed into the banks the way #197 and #205 absorbed residuals,
+*then* the frontier's own assembly returns the kappa in the table -- and `rungs.py` says
+which families can be banked at all, which is a tiling condition no proposal can dodge.
+
 ## Cross-checks against published numbers
 
 The harness is independent of the numbers it is asked to confirm, and this package
@@ -250,8 +334,8 @@ published cross-checks above, requires the claim to beat #197, requires it to si
 inside one grid step of the word's ceiling, re-derives the leaf tolls in closed
 form, refuses three corruption controls, and re-runs the lever model, requiring it
 to reproduce its three published references *exactly* and to keep its `MODELLED,
-NOT CONSTRUCTED` status. The lever run takes about two seconds; the whole harness
-is under a minute.
+NOT CONSTRUCTED` status. The lever run takes about two seconds and the bank-absorption search about
+thirty; the whole harness runs in roughly seventy seconds.
 
 ```bash
 python3 -B research/composed-diagonal-bit-bootstrap/levers.py
@@ -269,7 +353,15 @@ prints the queue audit against the banked rows the lever predicted, and
 python3 -B research/composed-diagonal-bit-bootstrap/targets.py
 ```
 
-prints the ladder of what each next ledger move on the two suppliers would be worth.
+prints the ladder of what each next ledger move on the two suppliers would be worth, and
+
+```bash
+python3 -B research/composed-diagonal-bit-bootstrap/rungs.py
+```
+
+prints the bank-absorption ladder: which whole child families of the frontier word can
+be taken together, what the schedule is worth, and how many new residual types each rung
+would need.
 
 ## Credits
 
