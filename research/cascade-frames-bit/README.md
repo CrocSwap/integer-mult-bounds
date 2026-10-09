@@ -4,16 +4,18 @@ Under the retained multiplication interfaces, this finite witness certifies
 
 $$
 T(n)=O\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{683847872495777}{10^{18}}=0.000683847872495777 .
+\kappa=\frac{683847872497761}{10^{18}}=0.000683847872497761 .
 $$
 
-That is **+0.0962%** over PR207 (`1366380910073/(2*10^15)` = 0.0006831904550365) and **+0.1152%** over PR205 (0.000683061299399923). The bit supplier still binds; PR193's complex saving `700918443859411/10^18` is unchanged.
+That is **+0.0962%** over PR207 (`1366380910073/(2*10^15)` = 0.0006831904550365) and **+0.1152%** over PR205 (0.000683061299399923). The bit supplier still binds; PR193's complex saving `700918443859411/10^18` is unchanged. Two additional fixed finite-leaf levels raise PR211's exact κ by `1984/10^18`; the fifth level adds the final `10^-18` grid step over the four-level version.
 
 | Construction | Unpacked bit coarse | Packed bit coarse | Conditional kappa |
 |---|---:|---:|---:|
 | PR205: PR200 word + completed banks | 6.77774e-4 | 6.835282e-4 | 0.000683061299399923 |
 | PR207: 302 coordinated frames + banks | | | 0.0006831904550365 |
-| **This: 6,191 cascade-optimized frames + banks** | **6.785484e-4** | **6.843158e-4** | **0.000683847872495777** |
+| PR211: 6,191 cascade-optimized frames + three finite levels | 6.785484e-4 | 6.843158e-4 | 0.000683847872495777 |
+| Intermediate: same frames + four finite levels | 6.785484e-4 | 6.843158e-4 | 0.000683847872497760 |
+| **This: same frames + five finite levels** | **6.785484e-4** | **6.843158e-4** | **0.000683847872497761** |
 
 ## What is new
 
@@ -35,7 +37,7 @@ The resulting unpacked coarse saving is `135709678471459/(2*10^17)`.
 
 **Banks.** Same as PR205. Role counts, gauges and aliases are unchanged, so there are 45,842 banks, W = 56,402, deficit 5,808, maximum child 22, and at most 171 chart factors. The conservative selector-call bound is 5,368,513,266.
 
-**Composition.** The finite ordinary-leaf recurrence uses three levels from the re-certified ordinary saving. It is followed by the balanced 47-constraint assembly with eta = beta = 10^-24. The next 10^-18 grid point fails.
+**Composition.** The finite ordinary-leaf recurrence uses five levels from the re-certified ordinary saving. It is followed by the balanced 47-constraint assembly with eta = beta = 10^-24. The next 10^-18 grid point fails. The exact limiting grid ceiling at the coarse bit saving is also the five-level value, so deeper fixed levels cannot raise κ on this grid; the unattained limit is used only as an upper bound, not as a supplier.
 
 ## Reproduce
 

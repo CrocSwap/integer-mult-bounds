@@ -11,6 +11,7 @@ import importlib.util, json
 BIT_PACKAGE = 'research/paired-cube-diagonal-bit-168'
 PR207_KAPPA = Q(1366380910073, 2 * 10 ** 15)   # PR207: 302 coordinated frames + completed banks on PR200
 PR205_KAPPA = Q(683061299399923, 10 ** 18)     # PR205: completed banks on PR200
+PR211_KAPPA = Q(683847872495777, 10 ** 18)     # PR211: cascade-optimized frames with three finite levels
 
 
 def load(name, path):
@@ -60,7 +61,7 @@ def build(ROOT, BIT, physical, admitted):
     assert paid(packed, original['saving'], True)['upper'] < paid(unpacked, original['saving'], True)['lower']
     # Finite-depth ordinary supplier composition, as in PR185/187/197, from PR200's completed ordinary supplier.
     old = Q(b200['coarse']['ordinary_saving']); coarse = new['saving']; chain = [old]
-    for _ in range(3):
+    for _ in range(5):
         a = (1 - coarse) * coarse + coarse * chain[-1]
         assert chain[-1] < a < coarse < 1 - a
         chain.append(a)
@@ -80,14 +81,14 @@ def build(ROOT, BIT, physical, admitted):
         try: assembly.assembly(a, b, bridge, k + Q(1, den), eta=eta, beta=beta)
         except AssertionError: pass
         else: raise AssertionError('Next final grid accepted')
-        constraints = out.pop('strict_constraints')
+        constraints = out['strict_constraints']
         out['strict_constraint_count'] = len(constraints)
         out['minimum_constraint'] = min(constraints.values())
         return dict(kappa=k, assembly=out, binding='complex' if a == (1 - beta) * b - weak else 'bit')
     before = assemble(old); after = assemble(chain[-1])
     del before['assembly']
     assert before['kappa'] < after['kappa'] and after['binding'] == 'bit'
-    assert after['kappa'] > PR207_KAPPA and after['kappa'] > PR205_KAPPA
+    assert after['kappa'] > PR207_KAPPA and after['kappa'] > PR205_KAPPA and after['kappa'] > PR211_KAPPA
     controls = []
     bad = dict(packed, total_rank=packed['total_rank'] + 1)
     try: paid(bad, coarse, True)
@@ -100,7 +101,7 @@ def build(ROOT, BIT, physical, admitted):
                 bit_before=original, bit_after=new, bit_coarse_relative_gain=new['saving'] / original['saving'] - 1,
                 stock_relative_reduction=1 - Q(p['W'], 3 * unpacked['W']), ordinary_chain=chain,
                 extra_selector_calls=p['conservative_selector_calls'], selector_toll_gap=1 - chain[-1] - coarse,
-                comparison_pr207_kappa=PR207_KAPPA, comparison_pr205_kappa=PR205_KAPPA,
+                comparison_pr207_kappa=PR207_KAPPA, comparison_pr205_kappa=PR205_KAPPA, comparison_pr211_kappa=PR211_KAPPA,
                 before_packing=before, after_packing=after,
                 kappa_gain_from_packing=after['kappa'] - before['kappa'],
                 relative_gain_over_pr207=after['kappa'] / PR207_KAPPA - 1, controls=controls)

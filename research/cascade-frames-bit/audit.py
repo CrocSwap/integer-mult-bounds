@@ -67,7 +67,7 @@ def run(record,original):
     assert 3*original['W']==61902
     assert packed['N']==3*original['N']==5808
     c=Q(record['bit_after']['saving']);chain=list(map(Q,record['ordinary_chain']))
-    assert len(chain)==4
+    assert len(chain)==6
     for j,a in enumerate(chain[1:],1):
         assert a==(1-c)*c+c*chain[j-1]==c-c**j*(c-chain[0])
         assert chain[j-1]<a<c<1-a
@@ -79,4 +79,7 @@ def run(record,original):
         assert a==saving<b
     assert Q(record['after_packing']['kappa'])>Q(record['comparison_pr207_kappa'])
     assert Q(record['after_packing']['kappa'])>Q(record['comparison_pr205_kappa'])
-    return dict(status='PASS',moment_intervals=intervals,finite_leaf_levels=3,adjacent_final_grids_checked=2)
+    assert Q(record['after_packing']['kappa'])>Q(record['comparison_pr211_kappa'])
+    constraints=record['after_packing']['assembly']['strict_constraints']
+    assert len(constraints)==47 and all(Q(v)>0 for v in constraints.values())
+    return dict(status='PASS',moment_intervals=intervals,finite_leaf_levels=5,adjacent_final_grids_checked=2)
