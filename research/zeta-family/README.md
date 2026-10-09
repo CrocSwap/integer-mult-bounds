@@ -31,9 +31,12 @@ quantity: `kappa ~ 1/(3h (2 + R/v) E)`.
 
     python3 research/zeta-family/verify.py
 
-Stdlib only, run without `-O`, about 1 second. It checks (1) a literal semantic
+Stdlib only, run without `-O`, about 2 seconds. It checks (1) a literal semantic
 evaluation of the DAG: every root equals `sum_{u: u&t=0} x_u` for random inputs,
-both seeds; (2) their compiler's full assert chain on each graph (value spans
+both seeds; (1b) the scalar word and its transparency replay (`word.py`) on two
+rings (mod 2^61-1 and the integers), three seeds each, with four tamper controls
+(skipped adjoint pre-read, skipped post-read, skipped inverse gate, flipped
+coefficient) required to fail; (2) their compiler's full assert chain on each graph (value spans
 inside frames, backward-intersection annotators, root legality, target chains,
 `mass == h*R + ell`, `deficit == 2v - 3*ell`); (3) their 47-constraint
 assembly with both sides at the family saving, all slacks and seven margins,
@@ -55,8 +58,10 @@ C. The DAG computes the orthogonal-broadcast map `y_t = sum_{u: u&t=0} x_u`
    (checked literally above). Its service to the upstream reduction - the
    analogue of the `H+K+B = I` scalar ledger - is not established here and is
    the main open obligation.
-D. The scalar word (ops/replay), the physical layer, and the scalar-domain
-   realizations are not built here. The graph is verified through the merged
+D. The scalar word/replay IS included (`word.py`: adjoint pre-reads, V-gates,
+   compute, reads, full inverse; dirty scratch; tamper controls; two rings).
+   Not built here: the physical placement/recycling layer and the scalar-domain
+   realizations. The graph is verified through the merged
    complex-side compiler path; the bit-side path carries its own H0 = (I-J/9)/2
    cap geometry and does not accept this graph as-is (checked: it rejects with
    'root physical compatibility'). The bit-side construction is therefore an

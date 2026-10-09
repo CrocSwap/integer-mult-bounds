@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / 'research/zeta-family'))
 from paired_cube.frames import compile_graph          # THEIR compiler
 from structured_bulk_assembly import assembly          # THEIR 47-constraint assembly
 from zeta import zeta_graph
+from word import run_controls, replay
 
 FRONTIER = Q(593970203079492, 10**18)                 # PR #163, for reference only
 EXPECTED = {3: '3.0519e-02', 4: '1.7960e-02', 5: '1.2279e-02',
@@ -47,6 +48,7 @@ def main():
         g = zeta_graph(h)
         for seed in (1, 7):
             assert semantics(g, seed), 'semantic evaluation failed at seed %d' % seed
+        assert run_controls(g), 'scalar word/replay controls failed'   # the word layer
         prof, _ = compile_graph(g, [])                 # THEIR compiler, all asserts
         root = prof['numerical_complex_root']
         assert root is not None
@@ -57,7 +59,7 @@ def main():
         assert float(kap) / float(FRONTIER) > 9.0, 'frontier multiple'
         print('%d %4d %5d %6.2f %10.4e %10.4e %8.1fx' % (
             h, prof['v'], prof['R'], prof['R'] / prof['v'], root, float(kap), float(kap) / float(FRONTIER)))
-    print('PASS: semantic evaluation, in-tree compiler identities, in-tree assembly')
+    print('PASS: semantic evaluation, scalar word/replay with tamper controls, in-tree compiler identities, in-tree assembly')
 
 
 if __name__ == '__main__':
