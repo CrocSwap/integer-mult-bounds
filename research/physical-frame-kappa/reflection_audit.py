@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Literal inverse/reflection and exact finite scalar/frame audit.
 
-Captures an unchanged deferred producer before its output write, then checks
+Captures the physical-frame producer before its output write, then checks
 the scalar computation on every source symbol, the exact signed old-readout
-transpose, the dependency cut and the complete complemented incidence ledger.
+transpose, its exact paid unit-shear decomposition, the dependency cut
+and the complete complemented incidence ledger.
 This is finite verification; the inherited residual-to-child implementation,
 all-size transfer and analytic interfaces are not proved by this script.
 """
@@ -13,6 +14,7 @@ from functools import lru_cache
 from hashlib import sha256
 from itertools import combinations
 import argparse,json,pickle,sys
+from unit_readouts import MAX_PIECES, DENOMINATOR, split_numerator
 from pathlib import Path
 sys.dont_write_bytecode=True
 assert not sys.flags.optimize,'Assertions must remain enabled'
@@ -151,12 +153,14 @@ def audit(d):
     for o in reversed(ops):
         if o[0]=='add':addrow(o[2],o[1])
         elif o[0]=='copy':addrow(o[1],o[2])
-    maxcoef=0;readcount=0;actual_reach={};coefficient_digest=sha256()
+    maxcoef=0;readcount=0;actual_reach={};unit_counts={};coefficient_digest=sha256()
     for s in range(R):
         assert cc[s] is None and d['cvec'][s] is None or cc[s] is not None and [x%p for x in cc[s]]==d['cvec'][s]
         assert {t:(x*pow(2,-1,p))%p for t,x in dd[s].items()}==d['dpart'][s]
-        # Exact expanded readout numerators over the single denominator42.
+        # Exact expanded readout numerators over the single denominator 42.
+        unit_counts[s]=0
         if cc[s] is None:
+            unit_counts[s]=sum(len(split_numerator(21*x)) for x in dd[s].values())
             reached=tuple(t for t,x in sorted(dd[s].items()) if x)
             maxcoef=max(maxcoef,max((abs(21*x) for x in dd[s].values()),default=0))
             coefficient_digest.update(repr((s,[(t,21*dd[s][t]) for t in reached])).encode()+b'\n')
@@ -164,13 +168,15 @@ def audit(d):
             total=2*sum(cc[s]);reached=[]
             for t,T in enumerate(trip):
                 num=total-21*sum(cc[s][i] for i in T)+21*dd[s].get(t,0)
+                unit_counts[s]+=len(split_numerator(num))
                 maxcoef=max(maxcoef,abs(num))
                 if num:
                     reached.append(t)
                     coefficient_digest.update(s.to_bytes(4,'little')+t.to_bytes(4,'little')+num.to_bytes(8,'little',signed=True))
             reached=tuple(reached)
         readcount+=len(reached);actual_reach[s]=reached
-    assert maxcoef<=42,'Expanded readout coefficient exceeds one in absolute value'
+    assert maxcoef<=DENOMINATOR*MAX_PIECES,'Expanded readout exceeds paid unit decomposition'
+    assert sum(unit_counts.values())<=MAX_PIECES*readcount
     # Early/remainder order is a legal commutation of independent shears.
     # Deferred inputs are untouched by the early word; completed centre
     # roles are untouched by its remainder. These facts make deferred
@@ -261,7 +267,8 @@ def audit(d):
             if k=='gate':promote(b,F);scalar+=1
             elif k=='read':
                 for t in b:promote(t,F)
-                scalar+=len(b)
+                row=rest[0]
+                scalar+=unit_counts[row[1]] if row[0]=='old' else len(b)
             else:
                 assert k=='centre';G=rest[0]
                 assert contained(G,F) or contained(F,G)
@@ -289,7 +296,7 @@ def audit(d):
     assert dict(sorted(z.items()))=={int(r):n for r,n in d['out']['child_multiplicities'].items()},'Literal reflected child histogram'
     assert sum(r*n for r,n in z.items())==d['out']['total_rank']
     G=v*v+2*v*scalar
-    safe=8*(d['c_add']+2*R+(R+q)*v*(h+1)+h*h+h+1) if 'c_add' in d else 8*(d['out']['additions']+2*R+(R+q)*v*(h+1)+h*h+h+1)
+    safe=MAX_PIECES*8*(d['c_add']+2*R+(R+q)*v*(h+1)+h*h+h+1) if 'c_add' in d else MAX_PIECES*8*(d['out']['additions']+2*R+(R+q)*v*(h+1)+h*h+h+1)
     assert safe>=scalar
     return dict(h=h,v=v,R=R,exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
                 exact_arbitrary_dirty_cancellation_by_dependency_cut=True,
@@ -299,7 +306,8 @@ def audit(d):
                 literal_frame_incidences_both_directions=True,all_frames_nondegenerate=True,
                 reflected_residual_rank_histogram_equal=True,child_multiplicities=dict(sorted(z.items())),
                 word_blocks=len(word),expanded_scalar_operations_per_stage=scalar,
-                expanded_old_readout_additions=readcount,largest_readout_numerator_over_42=maxcoef,
+                expanded_old_readout_additions=readcount,expanded_old_readout_unit_shears=sum(unit_counts.values()),
+                maximum_paid_unit_pieces=MAX_PIECES,largest_readout_numerator_over_42=maxcoef,
                 old_readout_coefficients_over_42_sha256=coefficient_digest.hexdigest(),
                 literal_global_scalar_groups=G,conservative_local_G=safe,
                 forward_incidence_sha256=digest,reflected_incidence_sha256=reverse_digest,
