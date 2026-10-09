@@ -1,16 +1,18 @@
 # Discovery (not run by verify.py)
 
-`flow_frames.py` runs this package's descent (`harness.descend`: `physical_opt.py` endpoint moves of single
-operations, `bundles.py` equal-frame components, `joint.py`/`deep.py` connected bundles, `pairs_mw.py` reuse
-pairing; PR #200's physical layer code) on the source-aligned cache of PR #194's pipeline, writes the resulting
-frames and pairs into a copy of the aligned tree and prices them with PR #184's `complex_frame_flow.py`:
+The physical layer of the certified package is PR #168's operation frames with PR #200's late compensated reuse
+pairing (`physical_opt.py:pairs`, the maximum-weight pairing of `pairs_mw.py` (transversal-matroid greedy with augmenting paths, donor weight the gain heuristic of PR #200)). `flow_frames.py` runs `harness.descend` on the source-aligned cache of
+PR #194's pipeline with all frame moves frozen (`DESCENT_LIGHT_ROUNDS=1 DESCENT_FREEZE_FRAC=1.0 --light
+--seed-frames`), recomputes the pairs and prices the layer with PR #184's `complex_frame_flow.py`:
 
-    SA_TREE=<PR202 tree> SA_PY=<python with numpy/scipy> python3 -B flow_frames.py --aligned <aligned tree> --seed-frames --keep out/
+    SA_TREE=<PR202 tree> SA_PY=<python with numpy/scipy> DESCENT_LIGHT_ROUNDS=1 DESCENT_FREEZE_FRAC=1.0 \
+      python3 -B flow_frames.py --aligned <aligned tree> --seed-frames --light --mw 1 --keep out/
 
-With `--seed-frames` the descent starts from PR #168's physical frames (the aligned tree's own layer). Float screens:
-unseeded light 7.0419e-4, unseeded full 7.0691e-4, seeded full 7.08613e-4, seeded light (`--light`) 7.0950e-4,
-seeded light with a movability mask (`DESCENT_LIGHT_ROUNDS=1 DESCENT_FREEZE_FRAC=0.98 DESCENT_SEED=8`, i.e. 98% of
-the operations frozen; `physical_opt.py`) 7.09767e-4, the layer certified in `../certificate.json`. The flow prefers
-layers close to PR #168's; the sweep over freeze fractions 0 to 0.98 is monotone. `matching.py` and
-`extend.py` are needed only to import `harness` (the matching itself is PR #168's frozen one here).
+Float flow roots: PR #168's pairing 7.00918e-4; PR #200's default pairing (donors ordered by the gain heuristic)
+7.09765e-4; donors ordered by widest end frame with recipients in reverse chronology (`PAIR_ORDER=wide
+PAIR_RECIPIENTS=reverse`) 7.09882e-4; the maximum-weight pairing (`--mw 1`, `pairs_mw.py`, every donor-weight variant
+tried) 7.09907e-4, the certified layer; random donor orders 6.4e-4 to 6.6e-4. With frames also descended: full cycle
+7.08613e-4, one light round 7.0950e-4, 98% of operations frozen 7.09767e-4; a screen over every single endpoint move
+on top of PR #168's frames (`flow_moves.py`) finds no improving move, so the frames are left untouched. The matching
+itself is PR #168's frozen carrier matching (`matching.py`, `extend.py` are needed only to import `harness`).
 Prepared by Chafik Boukhalfa with Anthropic Claude and OpenAI Codex assistance; Apache-2.0.
