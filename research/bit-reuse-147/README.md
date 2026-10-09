@@ -45,8 +45,9 @@ Not composed here: Th0rgal's exact min-cut gauge subset (#146). #144's own 9,543
    row rebuilt from the actual moves must equal `row.json`.
 4. It checks all 4,878 new adjacent frame pairs for exact nesting over Q, with bases rebuilt by `check_lifted.py`.
    A control must reject mismatched hand-offs.
-5. It replays the literal word on the 23,979 physical registers over Z and F2 with arbitrary scratch and data.
-   Three tampered words must break the identity.
+5. It runs the literal word on the 23,979 physical registers with all 27,521 inputs as formal variables, over F2
+   and over Z, and requires the exact identity. This is complete, with no random vectors. A random replay then
+   confirms that three tampered words break the identity.
 6. It prices the row with #144's assembly (47 constraints, 7 margins); the next grid points are rejected.
 
 ## Files
@@ -65,6 +66,6 @@ Not composed here: Th0rgal's exact min-cut gauge subset (#146). #144's own 9,543
   frame audits are relied on, not rerun.
 - The replay runs one core on its own bank, as in #147.
 - The plan is one legal choice from a matching heuristic. No optimality is claimed.
-- Only this package's verifier and the existing `paired-cube` group were run for this submission.
+- The complete `make verify` and the formal targets were not run locally; the fork's CI runs them.
 
 Credits are in [NOTICE](NOTICE).

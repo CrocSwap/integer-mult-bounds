@@ -79,6 +79,7 @@ class Word:
         assert not (self.level & self.elim) and not (set(self.recipient_of) & self.elim)
         assert len(self.recipient_of) == len(self.donor_of), 'one recipient per donor'
         assert not (set(self.recipient_of) & set(S.out)), 'an output slot is read at the end and never dies'
+        assert not (set(self.recipient_of) & set(S.ret)), 'a retained centre is not used as a donor'
         for b, d in self.donor_of.items(): assert b != d
 
     # ---------------------------------------------------------------------------------------- timetable
@@ -231,6 +232,84 @@ class Word:
                 if c in T: want[t] += tot
         if any(mod(y[t] - y0[t] - want[t]) for t in range(v)): return False
         if ring == 2 and any(mod(y[t] - y0[t] - x[t]) for t in range(v)): return False
+        return True
+
+    def complete(self, ring, outputs):
+        """The same literal word on formal variables: every data port, target and physical register starts as its
+        own variable.  ring 2: bitmasks over the variables; ring 0: sparse integer linear forms.  Deterministic and
+        complete: returns True iff every register ends as its own variable and every target ends as its start
+        variable plus exactly its defining sum (over F2: plus x_T).  No random vectors are involved."""
+        S = self.S; trip, v = S.trip, S.v; ops = self.ops; srcop = S.srcop; elim = self.elim
+        phys = self.physical(); regs = sorted(set(phys.values()))
+        index = {r: 2 * v + k for k, r in enumerate(regs)}
+        want = [dict() for _ in range(v)]
+        for (c, T), n in outputs.items():
+            A_, B_ = [q for q in T if q != c]
+            row = want[S.tid[T]]
+            for i, Sx in enumerate(trip):
+                if c in Sx and A_ not in Sx and B_ not in Sx: row[i] = row.get(i, 0) + 1
+        for c in range(S.h):
+            star = [i for i, Sx in enumerate(trip) if c in Sx]
+            for t, T in enumerate(trip):
+                if c in T:
+                    for i in star: want[t][i] = want[t].get(i, 0) + 1
+        if ring == 2:
+            a = {r: 1 << index[r] for r in regs}; y = [1 << (v + t) for t in range(v)]; x = [1 << i for i in range(v)]
+            def into_y(t, value, c):
+                if c & 1: y[t] ^= value
+            def into_a(r, value, sign): a[r] ^= value
+        else:
+            a = {r: {index[r]: 1} for r in regs}; y = [{v + t: 1} for t in range(v)]; x = [{i: 1} for i in range(v)]
+            def accumulate(dst, value, c):
+                for k, z in value.items():
+                    z = dst.get(k, 0) + c * z
+                    if z: dst[k] = z
+                    else: del dst[k]
+            def into_y(t, value, c): accumulate(y[t], value, c)
+            def into_a(r, value, sign): accumulate(a[r], value, sign)
+        done = []
+        def read(s):
+            value = a[phys[s]]
+            for t, c in self.adj[s].items(): into_y(t, value, -c)
+        def vgate(s, sign=1): into_a(phys[s], x[srcop[s] - 1], sign)
+        def runop(i, sign=1):
+            op = ops[i]
+            if op[0] == 'add':
+                if op[1] in elim:
+                    if sign == 1: into_y(self.target_of[op[1]], a[phys[op[2]]], 1)
+                    return
+                into_a(phys[op[1]], a[phys[op[2]]], sign)
+            else:
+                for g in op[2]:
+                    if g in elim:
+                        if sign == 1: into_y(self.target_of[g], a[phys[op[1]]], 1)
+                        continue
+                    into_a(phys[g], a[phys[op[1]]], sign)
+        for s in range(self.R):
+            if s not in self.level and s not in elim: read(s)
+        for s in self.early_v: vgate(s); done.append(('v', s))
+        for i in self.ph1: runop(i); done.append(('op', i))
+        for s, c in S.ret.items():
+            for t, T in enumerate(trip):
+                if c in T: into_y(t, a[phys[s]], 1)
+        for kind, s in self.events():
+            if kind == 'read': read(s)
+            elif kind == 'v': vgate(s); done.append(('v', s))
+            elif kind == 'vred': into_y(self.target_of[s], x[srcop[s] - 1], 1)
+            else: runop(s); done.append(('op', s))
+        for s, (c, T) in S.out.items():
+            if s not in elim: into_y(S.tid[T], a[phys[s]], 1)
+        for kind, s in reversed(done):
+            if kind == 'v': vgate(s, -1)
+            else: runop(s, -1)
+        if ring == 2:
+            if any(a[r] != 1 << index[r] for r in regs): return False
+            if any({i for i, c in want[t].items() if c & 1} != {t} for t in range(v)): return False
+            return all(y[t] == (1 << (v + t)) ^ (1 << t) for t in range(v))
+        if any(a[r] != {index[r]: 1} for r in regs): return False
+        for t in range(v):
+            expected = dict(want[t]); expected[v + t] = 1
+            if y[t] != expected: return False
         return True
 
     # ---------------------------------------------------------------------------------------- frame ledger

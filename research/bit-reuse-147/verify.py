@@ -11,8 +11,10 @@
   4. Every adjacent frame pair that is not an ordered pair of one inherited certified chain is nested exactly over Q
      and both frames are nondegenerate.  Control: a recipient given a donor whose frame is not inside sigma is
      rejected by the same test.
-  5. Literal scalar replay on the physical registers over Z (exact integer read coefficients) and over F2, with
-     arbitrary scratch and data.  Three tampered words must break the Z identity: a recycled read of the register's
+  5. The literal scalar word on the physical registers.  First on formal variables, over F2 and over Z with the
+     exact integer read coefficients: every register must end as its own variable and every target as its start
+     variable plus exactly its defining sum.  This is complete and uses no random vectors.  Then with random
+     scratch and data, where three tampered words must break the Z identity: a recycled read of the register's
      entrance value, a recycled read taken before its donor's last write, and the inherited inverse order.
   6. #144's assembly on the new row: kappa and its next grid point, at the merged atom exponent 1/1000 and at 1/2000.
 Usage: python3 research/bit-reuse-147/verify.py [--all]
@@ -99,6 +101,8 @@ def main():
         for reg, a, b in every: assert exact.inside(a, b), ('not nested', reg, a, b)
         log('PASS exact nesting over Q of all %d distinct ledger moves, inherited ones included' % len(every))
 
+    assert word.complete(2, outputs) and word.complete(0, outputs), 'scalar identity on formal variables'
+    log('PASS complete scalar identity on all %d formal variables, over F2 and over Z (no random vectors)' % (2 * S.v + row['R']))
     rng = random.Random(20261009)
     okF = all(word.replay(2, rng, outputs) for _ in range(3)); okZ = all(word.replay(0, rng, outputs) for _ in range(2))
     assert okF and okZ, 'scalar identity'

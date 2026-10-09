@@ -6,7 +6,7 @@ does not depend on how the plan was found, and no optimality is claimed.
 
   elim      taken unchanged from the existing plan.json (hpst3r's #147 plan at 29383a28d96b9880edbe59ed930f1da1dd6fdfa6);
   level     #144's selected gauges that survive the elimination;
-  donors    every remaining slot that is not an output slot, at the frame of its last operation;
+  donors    every remaining slot that is neither an output slot nor a retained centre, at its last frame;
   edge      donor D -> level slot B when D's last operation precedes B's read in the latest timetable and U_D is
             inside sigma_B (screened modulo a prime here, verified exactly over Q by verify.py);
   weight    the first-order moment saved, 3 phi(23 - d) + phi(3f) - 3 phi(f - d);
@@ -36,7 +36,7 @@ def main():
     level = [s for s in sel['retained_readout_order'] if s not in gone]
     word = word147.Word(S, elim, level, [])
     exact = Exact(S, W, folder)
-    donors = [s for s in range(S.R) if s not in S.out and s not in gone]
+    donors = [s for s in range(S.R) if s not in S.out and s not in S.ret and s not in gone]
     last = {d: [k for k in S.chain_keys(d) if k[0] != 'F'][-1] for d in donors}
     rows, owner = [], []
     for i, d in enumerate(donors):

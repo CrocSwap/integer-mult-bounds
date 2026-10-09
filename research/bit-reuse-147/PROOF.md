@@ -20,8 +20,8 @@ unchanged, as is #144's choice of 9,543 selected gauges.
    - a read precedes the first operation that touches its slot, and that slot's V gate follows the read;
    - the V gates of one leaf keep their inherited chain order;
    - every read on a target precedes the first redirected write into that target.
-2. *Dead registers are reused.* A slot D that is not an output slot is never touched again after its last
-   operation, where it sits at the frame U_D of that operation. For 3,338 pairs (B, D) with D's last operation
+2. *Dead registers are reused.* A slot D that is neither an output slot nor a retained centre is never touched
+   again after its last operation, where it sits at the frame U_D of that operation. For 3,338 pairs (B, D) with D's last operation
    before B's read and U_D inside sigma_B, the register of D is moved from U_D to sigma_B and becomes B. B is then a
    deferred slot without an entrance gauge. This is jamesyc's #124 birth-read operation, applied to the bit word.
 
@@ -39,12 +39,16 @@ the exact integer adjoint.
   On a recycled register this removes B's V gate before D's operations are undone. The inherited order, with every
   V^-1 after L^-1, would not restore the registers; `verify.py` checks that it fails.
 
-`word147.replay` runs the literal word on the 23,979 physical registers with random scratch and data, over Z with
-the exact integer coefficients and over F2. Every register is restored and every target receives its defining sum.
-Three tampered words must break the Z identity: a recycled read of the register's entrance value, a recycled read
-taken before its donor's last write, and the inherited inverse order.
+`word147.complete` runs the literal word on the 23,979 physical registers with every data port, target and
+register as its own formal variable, over F2 (bitmasks) and over Z (integer linear forms with the exact integer
+coefficients). Every register must end as its own variable and every target as its start variable plus exactly
+its defining sum. This check is complete and uses no random vectors. `word147.replay` then runs the word on random
+scratch and data, where three tampered words must break the Z identity: a recycled read of the register's entrance
+value, a recycled read taken before its donor's last write, and the inherited inverse order.
 
-**Frames.** Every frame is an original frame key of the PR97 word, so nondegeneracy is inherited. `word147.ledger`
+**Frames.** Every frame is an original frame key of the PR97 word, so nondegeneracy is inherited. A hand-off is the
+difference of two inherited projectors; it adds finitely many rank-witness primes for the fixed prime q of #130's
+weighted compiler to avoid, and nothing else. `word147.ledger`
 executes the forward word on frame keys. Each scalar gate must find all its registers at one common key, and no
 register may retreat in dimension. The check of actual nesting is separate:
 
