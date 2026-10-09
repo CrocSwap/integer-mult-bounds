@@ -1,0 +1,62 @@
+name: Verify partial complex stopped witness
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finite-and-sources:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Swapnil-jain/integer-mult-kappa
+          ref: 741e7aa078392553815df7926ee17ac5e25a8c38
+          path: build/source-round7
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: icekylinx/integer-mult-bounds
+          ref: 948ce1510df750f4c18b96bdaef436a86f8bf834
+          path: build/source-pr104
+          persist-credentials: false
+      - name: Reproduce assembly and both finite words
+        run: >-
+          make -C research/partial-complex-stopped verify-sources
+          SWAPNIL_SOURCE="$PWD/build/source-round7" PR104_SOURCE="$PWD/build/source-pr104"
+      - name: Require reproducible certificates
+        run: git diff --exit-code
+
+  finite-kernel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Install the pinned Lean toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Rebuild and kernel-check the finite inequalities
+        working-directory: research/partial-complex-stopped/kernel
+        run: |
+          python3 generate.py
+          lean KernelNew.lean
+      - name: Require reproducible finite certificate
+        run: git diff --exit-code
