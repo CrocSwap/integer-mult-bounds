@@ -28,7 +28,7 @@ run(CP/'contract_v4.py','--tree',WORK/'aligned','--cache',WORK/'aligned/cache','
 actual=read(HERE/'complex-profile-replayed.json')
 for key in ['m','W_per_vertex','rank_per_vertex','deficit_per_vertex','child_histogram','contract_checks','exact_scalar_program_sha256']:
  assert actual[key]==expected['complex_profile'][key],('Complex mathematical output changed',key)
-# Paid two-supplier moments, three finite leaf levels, and unchanged 47 constraints.
+# Paid two-supplier moments, four finite leaf levels, and unchanged 47 constraints.
 run(HERE/'arithmetic.py');assert read(HERE/'assembly.json')==read(HERE/'certificate.json'),'Derived final certificate differs'
 cert=read(HERE/'assembly.json');assert all(Q(x)>0 for x in cert['assembly']['strict_constraints'].values());assert len(cert['assembly']['strict_constraints'])==47
 # Independent base-two enclosure, no imports from the public moment implementation.

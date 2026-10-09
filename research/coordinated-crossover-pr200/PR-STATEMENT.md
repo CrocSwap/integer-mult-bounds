@@ -1,6 +1,6 @@
 Title:
 
-Conditional kappa 6.831904550365e-4: coordinated frame optimization and completed entrance banks
+κ = 6.83190455036641e-4: coordinated frame optimization, completed banks, and four finite bootstrap levels
 
 Body:
 
@@ -9,17 +9,17 @@ Body:
 Add `research/coordinated-crossover-pr200`, a finite supplier certificate and conditional assembly claiming
 
 ```
-kappa = 1366380910073 / 2000000000000000
-      = 0.0006831904550365.
+kappa = 683190455036641 / 1000000000000000000
+      = 6.83190455036641e-4.
 ```
 
-This is approximately 0.0189% above the newly displayed [PR205](https://github.com/CrocSwap/integer-mult-bounds/pull/205) claim of 0.000683061299399923. PR205 also supplies a completed-bank construction on PR200; no exclusive originality is asserted for bank packing. The earlier comparison with PR204 was approximately +0.8675% and is now historical. It combines a new, explicitly paid bit supplier with the retained source-assisted complex supplier; component improvements are not added.
+This is approximately 2.06e-11% above the current [PR207](https://github.com/CrocSwap/integer-mult-bounds/pull/207) claim of 6.831904550365e-4. The extra gain is one additional finite stopped-leaf level on the same fully replayed PR207 supplier. PR205 and PR207 supply related completed-bank constructions; no exclusive originality is asserted for bank packing. Earlier PR204 and PR205 comparisons are historical. It combines a new, explicitly paid bit supplier with the retained source-assisted complex supplier; component improvements are not added.
 
 The bit construction starts from [PR200](https://github.com/CrocSwap/integer-mult-bounds/pull/200), pinned at `a1175449f34d39ff933d9d8ab23ced1f32b290ec`. Coordinated changes to 302 operation frames reduce the actual internal child histogram while keeping the source and target interfaces fixed. Completed entrance banks then replace the real rank-4 and rank-24 dirty residual completions with explicit coordinate partitions of width 72. Nine physical replicas make every bank full. Internal alias recipients, source births and deleted terminals are excluded from fresh bank allocation. Arbitrary incoming dirty contents and spectator fields are restored.
 
 The resulting integer-normalized bit profile has width 72, stock 56,402, rank mass 4,055,136, deficit 5,808 and largest child 22. Its certified paid coarse saving is `136731504666219/200000000000000000`. The complex side uses [PR202](https://github.com/CrocSwap/integer-mult-bounds/pull/202), pinned at `8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d`, with saving `700918443859411/10^18`.
 
-Exactly three stopped-leaf bootstrap levels are used, following [PR185](https://github.com/CrocSwap/integer-mult-bounds/pull/185) and [PR197](https://github.com/CrocSwap/integer-mult-bounds/pull/197). Each level calls only its predecessor for ordinary leaves and routing. The unattained limiting saving is not substituted. The final paired assembly uses eta = beta = 10^-24 and preserves the original strict scalar, router, row and recovery constraints.
+Exactly four stopped-leaf bootstrap levels are used, following [PR185](https://github.com/CrocSwap/integer-mult-bounds/pull/185) and [PR197](https://github.com/CrocSwap/integer-mult-bounds/pull/197). Each level calls only its predecessor for ordinary leaves and routing. The unattained limiting saving is not substituted. The final paired assembly uses eta = beta = 10^-24 and preserves the original strict scalar, router, row and recovery constraints.
 
 ## Validation and scope
 

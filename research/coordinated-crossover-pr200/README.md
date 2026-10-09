@@ -1,10 +1,12 @@
+κ = 6.83190455036641e-4
+
 # Coordinated frame cuts and entrance banks on PR200
 
-Conditional kappa: **0.0006831904550365**, exactly `1366380910073/2000000000000000`.
+Conditional kappa: **6.83190455036641e-4**, exactly `683190455036641/1000000000000000000`.
 
-Latest pinned comparator: PR205 at `95c58706ad231d532bd7038308946a0344d08186`, kappa 0.000683061299399923. This package is approximately **0.01890835% higher**. Public PR205 independently uses completed PR200 banks; the additional gain here comes from the admitted 302-frame refinement.
+Latest pinned comparator: PR207 at `cd14825023b75af4f5919a30e5e6d548b6ade5bc`, kappa 6.831904550365e-4. This package is approximately **2.06e-11% higher**. The additional gain here comes from one extra finite stopped-leaf bootstrap level on PR207’s fully replayed supplier; PR205 and PR207 independently carry completed PR200 banks.
 
-This composes 302 admitted rational operation-frame changes and completed stage-private entrance banks on PR200 with PR202's source-assisted complex supplier, then applies three fixed ordinary-leaf bootstrap levels and the unchanged balanced assembly. Gains are composed through actual profiles; they are not added.
+This composes 302 admitted rational operation-frame changes and completed stage-private entrance banks on PR200 with PR202's source-assisted complex supplier, then applies four fixed ordinary-leaf bootstrap levels and the unchanged balanced assembly. Gains are composed through actual profiles; they are not added.
 
 ## Reproduce
 

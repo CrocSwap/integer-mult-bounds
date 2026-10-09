@@ -16,11 +16,11 @@ a(j) = (1-c)c + c a(j-1) = c - c^j(c-a0).
 
 Here 0<a0<c<1/2. Hence a(j-1)<a(j)<c<1-a(j), with fixed positive rational gaps. The ordinary toll, its logarithmic factor and any fixed finite number of additional bank selectors are absorbed by the existing strict row/adapter gap. For this packaged construction the retained finite chart/router bound is K=21,900,544,398. These extra calls are paid ordinary work; they must not be silently removed or recounted as free recursive children. Internally borrowed rows are restored by each completed leaf while complete outer fields remain spectators. The retained external reserve is unused slack, not a newly available workspace.
 
-After exactly three levels, use a3 in the original paired assembly, alongside the certified complex supplier and its retained bridge. All 47 inequalities are rechecked from the actual complete bit histogram. This proves the advertised bound only conditional on the preceding interfaces.
+After exactly four levels, use a4 in the original paired assembly, alongside the certified complex supplier and its retained bridge. All 47 inequalities are rechecked from the actual complete bit histogram. This proves the advertised bound only conditional on the preceding interfaces.
 
 ## What the current arithmetic does and does not establish
 
-The final assembly receipt checks three exact recurrence steps, their strict ordering, the two paid moments and all 47 arithmetic constraints. The expression for a3 agrees with the finite PR185/197 recurrence. No contradiction or circular infinite bootstrap was found.
+The final assembly receipt checks four exact recurrence steps, their strict ordering, the two paid moments and all 47 arithmetic constraints. The expression for a4 agrees with the finite PR185/197 recurrence. No contradiction or circular infinite bootstrap was found.
 
 The arithmetic routine reads the inherited semantic/row bridge; it does not independently implement or verify its all-width completed-leaf contract. Thus wording such as "47 inequalities fully prove the new all-size compiler" would be unjustified. Wording such as "conditional finite certificate under retained completed-leaf and all-size interfaces" is accurate. A finite column replay likewise establishes literal finite endpoint and restoration identities, not those global interfaces.
 

@@ -33,7 +33,7 @@ def certify(row,bit):
  return dict(saving=a,accepted=paid(row,a,bit),next_excluded=paid(row,z,bit))
 c=certify(cp,False);b=certify(bp,True);assert b['saving']==Q(p['coarse']['coarse_saving'])
 coarse=b['saving'];chain=[Q(p['coarse']['ordinary_saving'])]
-for i in range(3):
+for i in range(4):
  a=(1-coarse)*coarse+coarse*chain[-1];assert chain[-1]<a<coarse<1-a;chain.append(a)
 bridge=base['assembly']['finite_bridge'];bridge['rows']['degree_gap']=Q(bridge['rows']['degree_gap'])
 eta=beta=Q(1,10**24);weak=Q(1,10**30);a=min(chain[-1],(1-beta)*c['saving']-weak);q=a*(1-2*eta);ceiling=(1-eta)*q/(1+q);grid=10**18;scaled=ceiling*grid;k=Q((scaled.numerator-1)//scaled.denominator,grid)
