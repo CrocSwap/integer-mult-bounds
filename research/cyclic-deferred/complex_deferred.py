@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-"""Cyclic strips and core-aware pair assembly with lifted frames and deferred readouts.
+"""Saturated deferred frames on the cyclic/core-aware complex producer.
 
-The scalar h=24 producer uses PR111's cyclic PairedTriple strips and dual-suffix
-pair stars, with PR62's core-aware pair assembly, a two-point base case, and
-column-pair coarse sums inside contracted pair subproblems. PR110's maximum
-carrier matching, explicit role compiler, lifted binary frames, deferred
-readouts, finite-field replay, exact F2 frame checks, and actual one-child
-profile are retained. The selected graph has 68,800 additions, 8,120 roots,
-39,061 carrier links, and 37,859 roles.
+The selected scalar graph and role compile are unchanged. Whenever target-chain
+intersection creates a degenerate subspace, explicit symmetric elimination
+extracts a nondegenerate direct complement to its radical. Comparability
+is checked again after every extraction. All original role/target frame checks
+and arbitrary-scratch word replays are retained; the actual one-child profile
+is counted from the resulting frames.
 
-Credits: Avi Eisenberg (PR110 deferred complex compiler and PR62 pair assembly),
-Rohan Arun (PR111 cyclic-strip and dual-suffix producer), Swapnil Jain (deferred
-readouts), icekylinx (PR104 stopped product-ring and PairedTriple lineage), and
-all predecessors credited in those sources. Integration and the contracted
-pair replacement were prepared with OpenAI Codex assistance. Apache-2.0.
-
-This script checks the original assertions and writes complex-profile.json
-next to itself. Reflected-word verification is a separate audit.
+Based on PR110 deferred complex compilation (Avi Eisenberg), PR111 cyclic
+strips/dual stars (Rohan Arun), PR62 core-aware pairs (Avi Eisenberg), and the
+inherited PR104/icekylinx and Swapnil Jain constructions. Saturation and
+integration prepared with OpenAI Codex assistance. Apache-2.0.
 """
 import array
 import json
@@ -168,6 +163,117 @@ def hopcroft_karp(left, adj):
     return mate_l
 
 
+from functools import lru_cache
+from fractions import Fraction
+
+def sat_basis(vectors):
+    piv = {}
+    for x in vectors:
+        for p in sorted(piv, reverse=True):
+            if x >> p & 1:
+                x ^= piv[p]
+        if x:
+            p = x.bit_length() - 1
+            for q in piv:
+                if piv[q] >> p & 1:
+                    piv[q] ^= x
+            piv[p] = x
+    return tuple((piv[p] for p in sorted(piv, reverse=True)))
+
+def sat_dot(a, b):
+    return (a & b).bit_count() & 1
+
+@lru_cache(None)
+def sat_contained(A, B):
+    for x in A:
+        for r in B:
+            if x >> r.bit_length() - 1 & 1:
+                x ^= r
+        if x:
+            return False
+    return True
+
+@lru_cache(None)
+def sat_cap(A, B):
+    if not A or not B:
+        return ()
+    red = {}
+    out = []
+    for i, x in enumerate(A + B):
+        tag = 1 << i
+        for p in sorted(red, reverse=True):
+            if x >> p & 1:
+                r, t = red[p]
+                x ^= r
+                tag ^= t
+        if x:
+            red[x.bit_length() - 1] = (x, tag)
+        else:
+            y = 0
+            for j, r in enumerate(A):
+                if tag >> j & 1:
+                    y ^= r
+            if y:
+                out.append(y)
+    return sat_basis(out)
+
+@lru_cache(None)
+def sat_nondeg(B):
+    return len(sat_basis((sum((sat_dot(a, b) << j for j, b in enumerate(B))) for a in B))) == len(B)
+
+@lru_cache(None)
+def sat_nonsingular_part(B):
+    rows = list(B)
+    out = []
+    while rows:
+        i = next((i for i, x in enumerate(rows) if sat_dot(x, x)), None)
+        if i is not None:
+            a = rows.pop(i)
+            out.append(a)
+            rows = [x ^ a if sat_dot(x, a) else x for x in rows]
+            continue
+        pair = next(((i, j) for i in range(len(rows)) for j in range(i + 1, len(rows)) if sat_dot(rows[i], rows[j])), None)
+        if pair is None:
+            break
+        i, j = pair
+        a, b = (rows[i], rows[j])
+        out.extend((a, b))
+        rows = [x ^ (a if sat_dot(x, b) else 0) ^ (b if sat_dot(x, a) else 0) for k, x in enumerate(rows) if k not in (i, j)]
+    return sat_basis(out)
+
+def saturated_placement(cand, reach):
+    # Each extracted block is orthogonal to previously selected blocks.
+    # A diagonal-one pivot contributes a nondegenerate line; when all
+    # remaining diagonals vanish, a dot-one pair contributes a hyperbolic
+    # plane. The residual radical is discarded, not counted as a frame.
+    cand = {s: sat_basis(B) for s, B in cand.items()}
+    order = sorted(cand, key=lambda s: (Fraction(-len(cand[s])**2, max(1, len(reach[s]))), -len(cand[s]), s))
+    byT = defaultdict(list); placed = {}
+    for s in order:
+        X = cand[s]; changed = True
+        while changed and X:
+            changed = False
+            for t in sorted(reach[s]):
+                for w in byT[t]:
+                    B = placed[w]
+                    if (len(B) >= len(X) and not sat_contained(X, B)) or (len(B) < len(X) and not sat_contained(B, X)):
+                        X = sat_cap(X, B); changed = True
+                    if not X: break
+                if not X: break
+            if X and not sat_nondeg(X):
+                before = X; X = sat_nonsingular_part(X)
+                assert sat_contained(X, before) and sat_nondeg(X)
+                assert len(X) < len(before)
+                changed = True  # Extraction can break containment of a smaller target frame.
+        if X:
+            assert sat_nondeg(X) and sat_contained(X, cand[s])
+            placed[s] = X
+            for t in reach[s]: byT[t].append(s)
+    for t, ss in byT.items():
+        ss.sort(key=lambda s: (len(placed[s]), s))
+        assert all(sat_contained(placed[a], placed[b]) for a, b in zip(ss, ss[1:]))
+    return placed
+
 def main():
     with tempfile.TemporaryDirectory(prefix='deferred-stopped-') as work:
         prefix = Path(work) / 'complex'
@@ -206,8 +312,7 @@ def main():
     mate = hopcroft_karp(left, adj)
     links = {x: r for x, r in mate.items() if r is not None}
     R = c_add + q - len(links)
-    require((c_add, q, len(links), R) == (68800, 8120, 39061, 37859),
-            'selected graph size: additions=%d, roots=%d, matching=%d, roles=%d' % (c_add, q, len(links), R))
+    require((c_add, q, len(links), R) == (68800, 8120, 39061, 37859), 'selected graph size')
     linked_use = {(y, k): x for x, (y, k) in links.items()}
 
     # ------------------------------------------------------------ root targets, read coefficients, root functionals
@@ -337,21 +442,7 @@ def main():
         if s in touched or reach_all[s]: continue
         S_ = restrict(F0(s), [tmask[t] for t in reach[s]])
         if S_ and nondeg(S_): cand[s] = S_
-    byT = defaultdict(list); placed = {}
-    for s in sorted(cand, key=lambda s: (-len(cand[s]), s)):
-        X = cand[s]; changed = True
-        while changed and X:
-            changed = False
-            for t in reach[s]:
-                for w in byT[t]:
-                    B = placed[w]
-                    if (len(B) >= len(X) and not contains(X, B)) or (len(B) < len(X) and not contains(B, X)):
-                        X = cap(X, B); changed = True
-                    if not X: break
-                if not X: break
-        if X and nondeg(X):
-            placed[s] = X
-            for t in reach[s]: byT[t].append(s)
+    placed = saturated_placement(cand, reach)
     deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
 
     # ------------------------------------------------------------ C. replay with arbitrary scratch and data

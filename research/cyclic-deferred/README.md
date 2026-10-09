@@ -1,7 +1,7 @@
 # Core-aware cyclic strips with deferred readouts
 
-Conditional **κ = 9.4744627892e-5 = 23686156973/250000000000000**.
-Human-readable form: **κ ≈ 94744627892/10¹⁵ > 2⁻¹⁴**.
+Conditional **κ = 9.8019072765e-5 = 19603814553/200000000000000**.
+Human-readable form: **κ ≈ 98019072765/10¹⁵ > 2⁻¹⁴**.
 
 Concurrent PR113 independently publishes the direct PR110+PR111 combination.
 This package adds the core-aware pair refinement and independent reflection audit.
@@ -13,17 +13,28 @@ sums from PR69. The bit supplier remains Swapnil Jain's pinned round-seven
 word under PR104's stopped product-ring interface.
 
 The resulting complex word has 68,800 additions, 39,061 carrier links,
-37,859 roles, 5,182 deferred roles, W = 161,446,384 and largest child 574 of
+37,859 roles, 9,249 deferred roles, W = 161,446,384 and largest child 574 of
 576. Every center, copied-center loss, exterior child, data correction and
 endpoint copy remains charged. Its strict complex saving is
-47381341/500000000000 = 9.4762682e-5. The stopped bit saving is
+98038393/10¹² = 9.8038393e-5. The stopped bit saving is
 1240189553/10¹³ = 1.240189553e-4, so the complex side still limits κ.
 
-On the same deferred compiler, the direct PR110+PR111 combination has
-38,506 roles and complex saving 9.3925307e-5. The core-aware pair change
-improves that complete profile by about 0.89%; it is not a scalar-count-only
-claim. A cyclic pair-star variant reduced roles further but worsened the
-moment and was rejected.
+After the core-aware pair change, target-chain intersections can be degenerate.
+The previous greedy rule discarded these candidates entirely. Symmetric binary
+elimination now keeps a nondegenerate direct complement to the radical:
+norm-one lines and dot-one hyperbolic planes are retained. Every extraction is
+followed by fresh target-chain containment checks. Candidates use exact
+priority dim(frame)² / number_of_reached_targets, with deterministic ties.
+The graph, matching, role count, total rank and maximum child remain unchanged.
+The complex saving rises from 9.4762682e-5 to 9.8038393e-5 through its changed
+paid rank distribution. All 3,012 extractions in the selected run were checked
+independently for containment, nondegeneracy, Gram rank and direct sum with
+the radical.
+
+Concurrent PR113 independently publishes the direct PR110+PR111 composition
+with 38,506 roles and complex saving 9.39253e-5. The core-aware pair and
+nondegenerate subspace changes improve that profile. A cyclic pair-star variant
+reduced roles further but worsened the moment and was rejected.
 
 Run `python3 research/cyclic-deferred/verify.py` from the repository root.
 The default verifier preserves frozen inputs and regenerates into a temporary
