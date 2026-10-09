@@ -9,6 +9,10 @@ Global-optimal bit gauge subset via exact telescoping interval-min-cut:
 Prepared by Thomas Marchand with Google Antigravity assistance.
 No complete-basis replay or inherited rational-frame audit is repeated.
 """
+import sys
+if sys.flags.optimize:
+    raise ValueError('Assertions must remain enabled')
+
 import argparse
 from collections import Counter, defaultdict, deque
 from fractions import Fraction as Q
