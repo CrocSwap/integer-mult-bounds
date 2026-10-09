@@ -1,4 +1,4 @@
-# Shared nonmaximal entrance gauges on actual physical chains
+# Shared nonmaximal entrance gauges and current literal banks
 
 The new step chooses a common subspace of several roles' admissible entrance frames. Individually maximal frames can differ and force separate target transitions. A smaller shared frame lets many actual compensation reads use the same target climb.
 
@@ -22,7 +22,9 @@ For a gauged donor the physical path is its entrance gauge, donor operations, th
 
 ## Completed mixed banks
 
-The 17114 surviving physical chains have residual dimensions 4×2200,5×3,6×13,11×48,12×18,24×14832. Use 72 complete physical replicas. Allocate the following literal patterns in each tensor stage:
+The final word reuses 440 original sources for full-residual auxiliary branches; `SOURCE-BORROWING.md` gives that separately checked transformation. The entrance gauges and charts below are unchanged.
+
+The 16674 surviving physical chains have residual dimensions 4×2200,5×3,6×13,11×48,12×18,24×14392. Use 72 complete physical replicas. Allocate the following literal patterns in each tensor stage:
 
 | Residual blocks per bank | Banks per stage |
 | --- | ---: |
@@ -31,18 +33,18 @@ The 17114 surviving physical chains have residual dimensions 4×2200,5×3,6×13,
 | 18×4 | 8425 |
 | 12×6 | 78 |
 | 6×12 | 216 |
-| 3×24 | 355968 |
+| 3×24 | 345408 |
 
-Every bank partitions all 72 coordinates. The checker enumerates each actual role, replica, stage, bank and coordinate offset. All 3696624 role-copy-stage assignments occur exactly once. There are 365605 banks per stage and 1096815 across three stages. Adding 253440 source/target data registers gives literal stock 1350255.
+Every bank partitions all 72 coordinates. The checker enumerates each actual role, replica, stage, bank and coordinate offset. All 3601584 role-copy-stage assignments occur exactly once. There are 355045 banks per stage and 1065135 across three stages. Adding 253440 source/target data registers gives literal stock 1318575.
 
 For each gauge annihilator row a, the residual row 15a−(sum a)1 is G-orthogonal to the gauge. Normalize by its gcd; put residual columns before gauge columns in the 24×24 chart. The 234 actual charts pass both inverse identities and elementary-factor replay. Maximum factor count is 200, numerator 41 and denominator 54. These coefficients are units under the inherited prime condition q>2^80.
 
 Each chart sends its residual projector to a literal coordinate block. Disjoint partial swaps over each completed bank compose to the full swap on arbitrary correlated dirty inputs. Reversing the block sequence restores them and all spectators. Common weighted charts cancel between successive blocks. Every pattern rejects omitted and repeated blocks.
 
-Normalizers use the actual inverse chart, an explicit coordinate permutation and distinct scalars b+1. An outside-stage identity column witnesses distinctness. Charts, permutations and scalar factors are included in the fixed extra selector bill K=183166962336<2^40. The inherited positive ordinary-leaf exponent gap absorbs that fixed restored-selector cost.
+Normalizers use the actual inverse chart, an explicit coordinate permutation and distinct scalars b+1. An outside-stage identity column witnesses distinctness. Charts, permutations and scalar factors are included in the fixed extra selector bill K=178459060896<2^40. The inherited positive ordinary-leaf exponent gap absorbs that fixed restored-selector cost.
 
 ## Full paid profile and conditional composition
 
-After literal bank completion remove only the actual entrance exteriors: rank 60×2200,rank 54×13,rank 57×3,rank 36×18,rank 39×48. No internal donor/recipient increment or target split is removed. Factor 24 gives m=72, W=450085, rank=32359656, deficit=46464 and maximum child 22. The 72 literal physical replicas and factor 24 arithmetic normalization have distinct roles.
+After literal bank completion remove only the actual entrance exteriors: rank 60×2200,rank 54×13,rank 57×3,rank 36×18,rank 39×48. No internal donor/recipient increment or target split is removed. Factor 24 gives m=72, W=439525, rank=31599336, deficit=46464 and maximum child 22. The 72 literal physical replicas and factor 24 arithmetic normalization have distinct roles.
 
 Both rational moment engines include the full bad-class fallback. Four fixed ordinary-leaf levels use their preceding level. The unchanged 47-constraint assembly then composes with the exactly replayed frozen complex local-flow supplier. All-size compiler, selector, routing, precision, prime and analytic hypotheses remain conditional.

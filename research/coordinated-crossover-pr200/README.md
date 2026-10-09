@@ -1,8 +1,10 @@
-κ = 6.83957366994457e-4
+κ = 6.94726300537215e-4
 
-# Shared nonmaximal entrance gauges
+# Reuse source registers and share entrance gauges
 
-Conditional κ ≈ **6.83957366994457 × 10⁻⁴**, exactly `683957366994457/1000000000000000000`. Eighteen rank-12 and 48 rank-13 shared entrances extend the earlier 16 shared/nested gauges, for 82 new physical entrances. A smaller common frame lets roles with different maximal frames share one target climb. The scalar DAG and operation frames remain unchanged by this new step. The two earlier donor substitutions and the relaxed PR211 frame refinement are retained.
+Conditional κ ≈ **6.94726300537215 × 10⁻⁴**. The actual word reuses 440 original passive-source registers in place of singleton-copy auxiliary branches. Each source follows an exact path from its original source line to the full frame and is restored. The 82 shared entrance gauges and verified frame/alias refinements are retained.
+
+The source reuse deletes 440 actual dirty slots and their initial copies. Complete dirty responses are recomputed. Partner mixing happens at a checked early point; its original target delivery is retained, and its inverse waits until the borrowed source is restored. This changes the actual program and its paid source/internal paths. All target frames and every gauge's complete adjoint remain unchanged.
 
 ## Reproduce
 
@@ -12,14 +14,16 @@ Python 3.11+, assertions enabled:
 python3 -B research/coordinated-crossover-pr200/verify.py --temp-root /tmp
 ```
 
-The five pinned archive parts include source and frozen complex witnesses. Verification extracts into a temporary directory, uses no git or network, and leaves submitted files unchanged. It runs the actual joint word, complete charts and banks, exact frozen complex lift/contract, both paid moment engines and all 47 strict assembly inequalities. Numerical discovery is not rerun. The top-level standalone `arithmetic.py` and retained geometry/search files describe predecessor constructions.
+The five pinned archives include source and frozen complex witnesses. Verification uses a temporary extraction without git or network and leaves every submitted file unchanged. It first admits the retained 82-gauge baseline, then executes the modified source-owned word over F2 and the defining integers in both reflected signs. It independently checks each source boundary and rebuilds the entire source, internal and target ledger. The literal banks, exact frozen complex lift/contract, two paid moment engines, four finite leaf levels and all 47 strict assembly inequalities are replayed. Numerical discovery is not repeated.
 
-`JOINT-GAUGES.md` explains the new compensation chronology, complete response supports, exact target paths, gauged donor chains and literal bank allocation. Selections and executable admission are in `joint/`. Float min-cut scores propose candidates; full scalar replay and rational moments determine the claim.
+`SOURCE-BORROWING.md` explains the new program. `JOINT-GAUGES.md` explains the retained entrances and current bank allocation. Executable source reuse and the frozen selection are in `borrow/`; entrance geometry and literal banks are in `joint/`. The top-level standalone `arithmetic.py` and retained search/geometry files describe predecessor constructions.
 
-The normalized profile has m=72, W=450085, rank mass 32359656, deficit 46464 and maximum child 22. There are 72 literal physical replicas and stock 1350255; factor 24 is the arithmetic normalization. Every one of 3696624 role-copy-stage assignments and 234 actual charts is checked. Controls reject omitted compensation at all four new gauge ranks, reversed nested read order, and incomplete banks. Verification checks both reflected integer words, dirty restoration, prime witnesses, distinct normalizers and adjacent-grid exclusion.
+There are 72 physical replicas, 16674 remaining auxiliary chains, 3601584 role-copy-stage assignments, 234 actual charts and literal stock 1318575. Factor 24 gives m=72, W=439525, rank mass 31599336, deficit 46464 and largest child 22. The fixed additional selector bill is 178459060896<2^40. Exact κ is `138945260107443/200000000000000000`; the adjacent final grid point is rejected and the bit branch binds.
+
+Controls reject a missing early partner mix, stale original adjoints, premature inverse mixing, omitted gauge compensation, reversed nested read order and incomplete banks. Every source and every remaining dirty register is restored.
 
 ## Scope and attribution
 
-All-size compiler, completed weighted/restored selector, routing, prime, precision, fixed analytic tape and finite bridge hypotheses remain inherited. The complex supplier retains its exact local-flow contract. This is a conditional finite certificate.
+The inherited all-size compiler, completed weighted/restored selector, source-line, routing, prime, precision, fixed analytic tape and finite bridge hypotheses remain conditional. The complex supplier keeps its exact local-flow contract.
 
-PR211: Rohan Arun, c63e50a5dde96fe1459d6b29e55e47f42f104347, with Anthropic Claude assistance. PR207: Dugongue, cd14825023b75af4f5919a30e5e6d548b6ade5bc. PR200: Chafik Boukhalfa, a1175449f34d39ff933d9d8ab23ced1f32b290ec. PR202: 8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d. PR197: Evan McKinney, completed-bank machinery. All original licenses, notices and AI disclosures are retained. The new shared nonmaximal gauges, integration and verification were prepared by eumemic with substantial OpenAI Codex assistance.
+PR211: Rohan Arun, c63e50a5dde96fe1459d6b29e55e47f42f104347, with Anthropic Claude assistance. PR207: Dugongue, cd14825023b75af4f5919a30e5e6d548b6ade5bc. PR200: Chafik Boukhalfa, a1175449f34d39ff933d9d8ab23ced1f32b290ec. PR202: 8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d. PR197: Evan McKinney, completed-bank machinery. All original licenses, notices and AI disclosures remain. Source reuse, shared gauges, integration and verification were prepared by eumemic with substantial OpenAI Codex assistance.

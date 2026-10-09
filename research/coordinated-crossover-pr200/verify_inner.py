@@ -14,8 +14,8 @@ def load(n,p):
 def read(p):return json.loads(p.read_text())
 assert not sys.flags.optimize
 before={p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in [ROOT/'scripts/paired_cube_assembly.py',SA/'decision/exact_complex_flow_lift.py',CP/'contract_v4.py']}
-# Replay the actual82 new gauges, complete reflected ledgers and all new banks.
-run(HERE/'joint/replay_joint.py');run(HERE/'joint/pack_joint.py')
+# Replay the 82-gauge baseline, then the source-owned word and complete new banks.
+run(HERE/'joint/replay_joint.py');run(HERE/'borrow/replay.py');run(HERE/'borrow/boundary.py');run(HERE/'borrow/derive_profile.py');run(HERE/'joint/pack_joint.py')
 # The portable witness is checked again; original numerical search need not be repeated.
 run(SA/'decision/exact_complex_flow_lift.py','--witness',WORK/'flow.witness.json','--profile',WORK/'flow.json','--out',WORK/'lift.json')
 lift=read(WORK/'lift.json');expected=read(CP/'certificate.json');assert lift['exact_scalar_program_sha256']==expected['lift']['exact_scalar_program_sha256']
@@ -42,7 +42,7 @@ for side in ['bit','complex']:
  try:public.moment(corrupt,a)
  except ValueError:pass
  else:raise AssertionError('Rank-mass negative control accepted')
-chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==183166962336<2**40
-assert chart['charts']==234 and chart['assignments']==3696624 and chart['literal_stock']==1350255
+chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==178459060896<2**40
+assert chart['charts']==234 and chart['assignments']==3601584 and chart['literal_stock']==1318575
 assert before=={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in before}
 print('PASS full offline bit/frame/bank/chart/complex-lift/contract replay, independent paid moments, 47 inequalities and controls; kappa='+cert['kappa'])

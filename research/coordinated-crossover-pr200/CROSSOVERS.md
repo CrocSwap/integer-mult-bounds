@@ -1,3 +1,5 @@
+The current word additionally reuses 440 original sources for actual auxiliary branches. It recomputes adjoints and source paths, rather than deleting a histogram family from an unchanged word. See SOURCE-BORROWING.md.
+
 # Current structural refinement
 
 The current construction changes 82 actual entrance gauges, their nested compensation order, and two aliases, in addition to operation-frame refinements. It crosses the fixed-word scope of PR212, which holds gauges and reuse pairs fixed; that does not refute its stated ceiling.
