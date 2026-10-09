@@ -38,6 +38,20 @@ and written review do not formally verify the multiplication theorem.
 make entrance-bank-verify
 ```
 
+## Further research candidate: complex-frame refinement
+
+A separately reproduced [frame refinement](research/frame-closure-refinement/PROOF.md)
+supports conditional **κ=662684929829677/10^18=0.000662684929829677**,
+an increase of **0.1207732320%** over the selected saving. It contracts
+1,953 operation frames in the PR186 complex word and replays its complete
+physical, terminal, rational-moment and 47-constraint assembly checks.
+The inherited all-size assumptions remain. This candidate awaits independent
+review; the selected-result record remains the reviewed PR186 checkpoint.
+
+```sh
+make frame-closure-verify
+```
+
 ## Preceding reviewed result: recycled bit registers and shared cores
 
 The composition of [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147),

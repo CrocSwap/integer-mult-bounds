@@ -20,6 +20,7 @@ verify:
 	$(MAKE) verify-paired-cube
 	$(MAKE) verify-recycled-bit
 	$(MAKE) verify-entrance-banks
+	$(MAKE) verify-frame-closure
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -39,6 +40,12 @@ entrance-bank-verify: selected-record-check
 	python3 -B research/community-round8-audit/bank_schedule.py
 
 verify-entrance-banks: entrance-bank-verify
+
+.PHONY: frame-closure-verify verify-frame-closure
+frame-closure-verify:
+	python3 -B research/frame-closure-refinement/verify.py
+
+verify-frame-closure: frame-closure-verify
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
