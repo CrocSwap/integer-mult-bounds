@@ -25,6 +25,11 @@ arithmetic diagnostics, not new witnesses or an enlarged theorem domain.
 The preceding reviewed recycled-bit composition was κ=0.000472154791;
 its [round-seven review](community-round7-review.md) retains the evidence.
 
+Earlier local experiments and rounds-three-through-five reviews are now
+[preserved as dated historical records](preserved-local-history-20261009.md).
+Their old frontier and pending-work statements do not supersede this page;
+the retired shared-aggregate search remains retired.
+
 Everything below is historical and retains its checkpoint-specific scope.
 
 # Preceding main: reviewed paired-cube construction
