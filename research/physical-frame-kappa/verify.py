@@ -51,7 +51,7 @@ def main():
     print('PASS exact moments, next-grid rejections, 47 constraints and 7 margins', flush=True)
     from reflection_audit import capture, audit
     state=capture(HERE/'complex_deferred.py')
-    assert state['out'] == phase, 'regenerated profile differs'
+    assert json.loads(json.dumps(state['out'])) == phase, 'regenerated profile differs'
     print('PASS full compiler, arbitrary-scratch replay and exact binary frame chains', flush=True)
     result=audit(state)
     result['source_sha256']=hashlib.sha256((HERE/'complex_deferred.py').read_bytes()).hexdigest()
