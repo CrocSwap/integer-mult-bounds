@@ -57,7 +57,9 @@ The verifier checks immutable hashes and works in a temporary repository-shaped
 copy. It first runs the nested bit verifier and exposes its checked profile.
 It then regenerates the complex compiler, literal reflection, signed outer
 partition, physical-gauge phases and witnesses, shared profile, and exact
-certificate. Source inventory hashes bind those stages together. The expanded
+certificate. Source inventory hashes bind those stages together; the local
+complex profile and reflection receipt must also regenerate byte for byte
+before their hashes feed the gauge audit. The expanded
 core scalar count is bounded by its certificate reserve; the separate paid
 basis/phase-wrapper reserve is also checked. Bit adapter call counts and the
 new halving degree are bound to the nested exact certificate.
@@ -65,11 +67,12 @@ new halving degree are bound to the nested exact certificate.
 All 47 final strict constraints and seven margins are positive. The next
 bit/complex grid points fail the chosen moment enclosure, and the next κ grid
 point fails exact assembly; these checks do not claim an optimal true
-characteristic root. The 31 outer controls reject missing/altered immutable
+characteristic root. The 33 outer controls reject missing/altered immutable
 inputs, repinned nested bit inputs, incorrect shared width or exterior charge,
 resurrected roles, duplicate source frames, ungauged exterior substitution,
 missing gauge complements, a one-stage-only bit loss, missing paid adapters,
-and understated scalar or phase-wrapper reserves. The nested and reflection
+understated scalar or phase-wrapper reserves, and serialization drift in
+hash-bound generated records. The nested and reflection
 verifiers retain their own corruption controls.
 
 `certificate.py` checks its frozen result by default; `--write` is an explicit
