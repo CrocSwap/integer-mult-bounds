@@ -27,7 +27,15 @@ jobs:
       - name: Install finite construction dependencies
         run: python -m pip install -r research/source-assisted/requirements-round13.txt
       - name: Regenerate the complex word, flow, exact lift, contract and assembly
-        run: python -B research/source-assisted-v4/verify.py
+        run: python -B research/source-assisted-v4/verify.py --candidate-output "$RUNNER_TEMP/source-assisted-v4-candidate.json"
+      - name: Upload regenerated certificate after a mismatch
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: source-assisted-v4-generated-candidate
+          path: ${{ runner.temp }}/source-assisted-v4-candidate.json
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Regenerate the PR189 bit certificate that the assembly reads
         run: python -B research/paired-cube-twin-local-168/verify.py
       - name: Require an unchanged tree

@@ -183,6 +183,8 @@ def build():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--write', action='store_true', help='Authoring only: rewrite certificate.json')
+    parser.add_argument('--candidate-output', type=Path,
+                        help='Write the regenerated canonical certificate here before comparison')
     args = parser.parse_args()
     assert not sys.flags.optimize, 'Assertions must remain enabled'
     if hasattr(sys, 'set_int_max_str_digits'):
@@ -190,6 +192,8 @@ def main():
     before = pins()
     result = build()
     assert pins() == before, 'Source closure changed during verification'
+    if args.candidate_output:
+        write(args.candidate_output, result)
     target = PKG / 'certificate.json'
     if args.write:
         write(target, result)
