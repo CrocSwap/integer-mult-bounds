@@ -3,6 +3,31 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Partial-gauge extension
+
+The construction contributed by **icekylinx**, extending
+[PR #104](https://github.com/CrocSwap/integer-mult-bounds/pull/104), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{7237}{78125000}=9.26336\times10^{-5}.
+$$
+
+It applies the stopped whole-projector bit interface to the physical deferred
+word of Zhihao Chen's PR #97, based on Swapnil Jain's witness. The new complex
+producer combines cyclic interval contractions, pair-first cube assembly,
+compatible frame enlargement and partial source gauges. Every residual,
+endpoint correction and target-data transition is charged. The bound retains
+the analytic and fixed-tape hypotheses of the preceding construction.
+
+[Proof source](notes/partial-gauge-note.tex) ·
+[Exact certificate](certificates/partial-gauge-network.json) ·
+[Incremental reproduction](docs/partial-gauge.md)
+
+```sh
+make partial-gauge-verify
+```
+
 ## Stopped product-ring extension
 
 The new construction contributed by **icekylinx**, extending merged

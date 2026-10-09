@@ -15,6 +15,7 @@ community-followup-check:
 verify:
 	$(MAKE) verify-community
 	$(MAKE) verify-producers
+	$(MAKE) verify-partial-gauge
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -438,3 +439,18 @@ stopped-product-certificate:
 	python3 scripts/stopped_product_network.py
 
 stopped-product-verify: stopped-product-producer stopped-product-certificate
+
+.PHONY: partial-gauge-bit partial-gauge-producer partial-gauge-certificate partial-gauge-verify
+partial-gauge-bit:
+	python3 scripts/partial_gauge_bit.py
+
+partial-gauge-producer:
+	python3 scripts/partial_gauge_producer.py
+
+partial-gauge-certificate:
+	python3 scripts/partial_gauge_network.py
+
+partial-gauge-verify: partial-gauge-bit partial-gauge-producer partial-gauge-certificate
+
+.PHONY: verify-partial-gauge
+verify-partial-gauge: partial-gauge-verify

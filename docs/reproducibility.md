@@ -1,5 +1,9 @@
 # Reproducing the result
 
+For the partial-gauge extension, run `make partial-gauge-verify`. Its
+[incremental guide](partial-gauge.md) separates the pinned PR #97 bit input,
+new complex producer and exact assembly.
+
 For the new stopped product-ring extension, run `make stopped-product-verify`.
 Its [incremental reproduction guide](stopped-product.md) covers the h24
 rational-center producer, new moments, stopping parameters and assembly.
