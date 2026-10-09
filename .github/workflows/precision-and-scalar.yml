@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -47,5 +47,21 @@ jobs:
         run: |
           python -c 'import pathlib,resource,runpy,sys; resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3)); sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(sys.argv[0]).resolve().parent)); runpy.run_path(sys.argv[0],run_name="__main__")' research/paired-cube-scalar-audit/verify.py
           python -O -c 'import pathlib,resource,runpy,sys; resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3)); sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(sys.argv[0]).resolve().parent)); runpy.run_path(sys.argv[0],run_name="__main__")' research/paired-cube-scalar-audit/verify.py
+      - name: Reproduce native186 immutable archive and complete selected aggregate
+        run: python -B research/coordinated-frames-and-entrance-banks/verify.py
+      - name: Check independent186 precision, banks and guards in both modes
+        run: |
+          python -B research/frontier-refinement186/verify.py
+          python -B research/frontier-refinement186/check_banks.py
+          python -B research/frontier-refinement186/test_refinement.py
+          python -B research/frontier-refinement186/test_source.py
+          python -O -B research/frontier-refinement186/verify.py
+          python -O -B research/frontier-refinement186/check_banks.py
+          python -O -B research/frontier-refinement186/test_refinement.py
+          python -O -B research/frontier-refinement186/test_source.py
+      - name: Audit every186 scalar coefficient with unchanged signed core
+        run: |
+          python -c 'import pathlib,resource,runpy,sys; resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3)); sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(sys.argv[0]).resolve().parent)); runpy.run_path(sys.argv[0],run_name="__main__")' research/frontier-refinement186/scalar.py
+          python -O -c 'import pathlib,resource,runpy,sys; resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3)); sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(sys.argv[0]).resolve().parent)); runpy.run_path(sys.argv[0],run_name="__main__")' research/frontier-refinement186/scalar.py
       - name: Require reproducible tracked files
         run: git diff --exit-code
