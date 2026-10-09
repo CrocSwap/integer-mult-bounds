@@ -111,6 +111,45 @@ accounting reproduced the certified value exactly. The other known lever is an
 order of magnitude smaller: PR198's endpoint-frame descent bought `+0.0090%` of
 coarse saving on PR189's word.
 
+## The frontier moved, and this package priced the move first
+
+This composition was priced at 15:33 UTC on 2026-10-09. Within the next half hour
+the banked rows the lever model had predicted were built and opened as three PRs:
+
+| PR | author | kappa | row |
+| --- | --- | --- | --- |
+| #205 | rohanarun | 683061299399923/10^18 = 6.83061299399923e-4 | PR200's word with its rank-60 exterior corrections banked |
+| #206 | EcmaXp | 6830611/10^10 = 6.830611e-4 | the same row, PR186's entrance banks |
+| #207 | Dugongue | 1366380910073/2e15 = 6.831904550365e-4 | the same row after 302 coordinated frame changes |
+
+#205's coarse saving is `683528191056257/10^18` -- **the exact value the lever model above
+predicted for the banked word** (`W_per_vertex = 56402/3`, deficit 1,936, no rank-60
+child left), which #205 records in its own credits. So this package's composition is
+superseded, and what it still supplies is the model that called the move and can price
+the rows that followed it.
+
+`audit.py` does that: it prices the queue's banked rows from byte-identical copies of
+their authors' certificates and requires the result to appear *verbatim* in those
+certificates.
+
+| row | W | deficit | rank mass | children | model coarse saving |
+| --- | --- | --- | --- | --- | --- |
+| #205 packed diagonal bit | 56,402 | 5,808 | 4,055,136 | 877,638 | 683528191056257/10^18 |
+| #206 entrance banks on #200 | 56,402 | 5,808 | 4,055,136 | 877,638 | 683528191056257/10^18 |
+| #207 coordinated crossover | 56,402 | 5,808 | 4,055,136 | 879,231 | 136731504666219/2e17 |
+
+Every one of the three is reproduced to the last digit, and every one is at its own
+word's ceiling: with the bit branch binding there is no pricing room left in any of
+them. What is left is the *ledger*. Per unit of rank mass a child of rank `r` costs
+`(m/r)^a/(W m)`, which falls as `r` grows, so the cheapest integral ledger with the same
+stock, deficit and mass packs it from the largest admissible child downwards. For the
+frontier row that is 184,325 children instead of 879,231, and it would raise the coarse
+saving by **76.6%**, from `6.8366e-4` to `1.2072e-3` (kappa ceiling `1.2057e-3`). No
+schedule admits that ledger, so this is a **bound on the ledger term, not a
+construction** -- but it is the whole of the remaining room, and it says the next move
+is a frame or bank schedule whose residual dirt is packed in fewer, larger children,
+not more packing of the same shapes.
+
 ## Cross-checks against published numbers
 
 The harness is independent of the numbers it is asked to confirm, and this package
@@ -165,7 +204,13 @@ is under a minute.
 python3 -B research/composed-diagonal-bit-bootstrap/levers.py
 ```
 
-prints the lever table on its own.
+prints the lever table on its own, and
+
+```bash
+python3 -B research/composed-diagonal-bit-bootstrap/audit.py
+```
+
+prints the queue audit against the banked rows the lever predicted.
 
 ## Credits
 

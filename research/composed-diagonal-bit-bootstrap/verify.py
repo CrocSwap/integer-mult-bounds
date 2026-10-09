@@ -204,6 +204,31 @@ def main():
               levers["gain_vs_claim"] * 100,
               float(Q(levers["pr200_unpacked"]["ceiling"])),
               float(Q(banked["ceiling"]))))
+    # 11. The queue audit: the model must price the banked rows now in the queue to exactly
+    #     the coarse savings their own certificates state, and the frontier must be the
+    #     banked row this package's lever predicted.
+    audit_out = WORK / "audit.json"
+    if audit_out.exists():
+        audit_out.unlink()
+    subprocess.run([sys.executable, "-B", str(HERE / "audit.py"), "--out", str(audit_out)],
+                   check=True, stdout=subprocess.DEVNULL)
+    audit = json.loads(audit_out.read_text())
+    assert audit == json.loads((HERE / "audit.json").read_text()), "audit.json drift"
+    for item in audit["rows"]:
+        assert item["stated_in_certificate"], (
+            "the model must reproduce " + item["name"] + " to the last digit")
+    queue_best = max(audit["rows"], key=lambda item: Q(item["coarse"]))
+    assert queue_best["name"] == audit["frontier"]["name"], "frontier row"
+    assert Q(audit["frontier"]["ceiling"]) > best, "the banked rows must now stand above this claim"
+    assert audit["cheapest_ledger_gain"] > Q(1, 2), "the ledger must be where the room is"
+    assert audit["status"].startswith("MODELLED"), "the audit must not present a construction"
+    print("[audit] {} banked rows priced to their own certificates exactly; the frontier is "
+          "{} at {:.15g}, and its cheapest admissible ledger would reach {:.10g} ({:+.1f}%), "
+          "a bound rather than a construction".format(
+              len(audit["rows"]), audit["frontier"]["name"],
+              float(Q(audit["frontier"]["ceiling"])),
+              float(Q(audit["frontier"]["cheapest_ledger"]["coarse"])),
+              audit["cheapest_ledger_gain"] * 100))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
           "and 7 margins per depth".format(best, best_depth))
 
