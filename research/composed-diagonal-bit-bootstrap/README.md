@@ -218,59 +218,65 @@ of either word is screened across **all** ranks with this package's own ledger f
 subset size is priced *exactly*, and the first search's window is kept alongside so that
 nothing regresses.
 
-A bank is a width-`m` coordinate-block partition, so a family set is a schedule only
-when its blocks *tile* a bank. That gives two tiers, and the difference between them is
-the whole story:
+A bank is a width-`m` coordinate-block partition. Reading the suppliers' own bank proof
+settles what that requires, and it is **not** what this tool first assumed:
 
-* **sound.** Every family's rank divides the bank width and its own volume is a whole
-  number of banks, so the families can be banked one at a time with no block shape the
-  word does not already use. #207's own schedule is this shape (`18 x rank-4`,
-  `3 x rank-24`, and the mixed `6 x rank-4 + 2 x rank-24`).
-* **volume only.** Only the total fills whole banks. This is exactly what the
-  *certified* banks of #197/#205/#207 satisfy -- their absorbed rank 60 does not divide
-  72 either -- but it is an upper bracket here: it needs the supplier to bank a family
-  whose blocks are drawn from the construction's own residual shapes, which this package
-  cannot verify.
+* the **absorbed family's rank is free.** #205, #206 and #207 removed the 2,200 rank-60
+  entrance exteriors per vertex from a width-72 word -- and 60 does not divide 72.
+* what must hold is that the **absorbed volume fills whole banks**: those exteriors are
+  396,000 registers over three copies, `396000 = 72 x 5500`.
+* a bank's **blocks come from the word's residual families**, which must tile the width.
+  Their proof allocates "1,100 banks with 18 four-coordinate blocks" and "44,742 banks
+  with three 24-coordinate blocks" (`18 x 4 = 72`, `3 x 24 = 72`), and `retained-packing.py`
+  also runs the mixed `6 x rank-4 + 2 x rank-24` pattern. The bit word's own families 4
+  and 24 do tile 72.
 
-On the two frontier words, only these families are sound: the bit word's ranks
-**6, 8 and 18**, and the complex word's rank **11**.
+So the **certified-shape** ladder is the primary one, and it is what the table prices. The
+tiling tier stays alongside it as a conservative subset: a family whose own rank divides
+the width and whose own volume is a whole number of banks can be banked on its own blocks,
+needing no block shape beyond the word's own. On the two frontier words those ranks are
+the bit word's **6, 8 and 18** and the complex word's rank **11**.
 
 | rung | new residual types | bit word absorbs | complex word absorbs | bit coarse saving | complex coarse saving | kappa | gain | binds |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | today | 0 | -- | -- | 6.836575e-4 | 7.009184e-4 | 213497/312500000 = 6.831904e-4 | -- | bit |
-| sound | **1** | rank 6: 1,008 banks | -- | 174621103751517/2.5e17 = 6.984844e-4 | -- | 54531/78125000 = 6.979968e-4 | **+2.17%** | bit |
-| sound | 2 | ranks 6, 8: 1,824 banks | -- | 141899511517939/2e17 = 7.094975e-4 | -- | 7004273/10^10 = 7.004273e-4 | **+2.52%** | complex |
-| sound | **3** | ranks 6, 8 | rank 11: 177 banks | 7.094975e-4 | 708793601534531/10^18 = 7.087936e-4 | 3541457/5e9 = 7.082914e-4 | **+3.67%** | complex |
-| sound | 4 | ranks 6, 8, 18: 2,823 banks | rank 11 | 718242431279183/10^18 = 7.182424e-4 | 7.087936e-4 | 3541457/5e9 = 7.082914e-4 | +3.67% | complex |
-| bracket | 1 | rank 22: 6,116 banks | -- | 728397865314023/10^18 = 7.283979e-4 | -- | 7.004273e-4 | +2.52% | complex |
-| bracket | 3 | rank 22 | ranks 1, 8 | 7.283979e-4 | 9.174610e-4 | 7.278676e-4 | +6.54% | bit |
-| bracket | 5 | ranks 1, 7, 21 | ranks 1, 8 | 1.052207e-3 | 9.174610e-4 | 9.166198e-4 | +34.17% | complex |
-| bracket | 8 | ranks 1, 3, 13, 21 | ranks 1, 2, 3, 9 | 1.227995e-3 | 1.406861e-3 | 1.226488e-3 | +79.52% | bit |
+| tiles | **1** | rank 6: 1,008 banks | -- | 174621103751517/2.5e17 = 6.984844e-4 | -- | 54531/78125000 = 6.979968e-4 | **+2.17%** | bit |
+| tiles | 2 | ranks 6, 8: 1,824 banks | -- | 141899511517939/2e17 = 7.094975e-4 | -- | 7004273/10^10 = 7.004273e-4 | **+2.52%** | complex |
+| tiles | **3** | ranks 6, 8 | rank 11: 177 banks | 7.094975e-4 | 708793601534531/10^18 = 7.087936e-4 | 3541457/5e9 = 7.082914e-4 | **+3.67%** | complex |
+| tiles | 4 | ranks 6, 8, 18: 2,823 banks | rank 11 | 718242431279183/10^18 = 7.182424e-4 | 7.087936e-4 | 3541457/5e9 = 7.082914e-4 | +3.67% | complex |
+| certified | 1 | rank 22: 6,116 banks | -- | 728397865314023/10^18 = 7.283979e-4 | -- | 7.004273e-4 | +2.52% | complex |
+| certified | 3 | rank 22 | ranks 1, 8 | 7.283979e-4 | 9.174610e-4 | 7.278676e-4 | +6.54% | bit |
+| certified | 5 | ranks 1, 7, 21 | ranks 1, 8 | 1.052207e-3 | 9.174610e-4 | 9.166198e-4 | +34.17% | complex |
+| certified | 8 | ranks 1, 3, 13, 21 | ranks 1, 2, 3, 9 | 1.227995e-3 | 1.406861e-3 | 1.226488e-3 | +79.52% | bit |
 
 Four readings matter:
 
-* **one sound new residual type moves the record.** Absorbing the bit word's rank-6
+* **one tiled new residual type moves the record.** Absorbing the bit word's rank-6
   children alone, with the complex word untouched, takes the frontier from
   `6.831904e-4` to `6.979968e-4`, **+2.17%** -- and unlike the re-ranking rung it needs no
   cooperation from the complex side, because it lowers the stock instead of leaning on
   the other branch's ceiling.
-* **two sound types reach the complex side's cap exactly.** Bank the bit word's ranks 6
+* **two tiled types reach the complex side's cap exactly.** Bank the bit word's ranks 6
   and 8 and its coarse saving passes `7.009184e-4`, so the pair prices at the unmoved
   complex side's own ceiling, `7.004273e-4` (**+2.52%**) -- the same number the re-ranking
   ladder reached, now with `W` down from `56,402` to `54,578`.
-* **three sound types pass the cap, and it is the complex word that then binds.** Adding
-  the complex word's single sound family (rank 11, 177 banks) takes the pair to
+* **three tiled types pass the cap, and it is the complex word that then binds.** Adding
+  the complex word's single tiled family (rank 11, 177 banks) takes the pair to
   **+3.67%**; the bit word's fourth family (rank 18) then buys nothing, because the
-  complex side is binding again. The sound tier stops there: only ranks that tile the
+  complex side is binding again. The tiling tier stops there: only ranks that divide the
   bank width are bankable one family at a time, and this word has three on the bit side
-  and one on the complex side.
-* **the volume bracket is where the big numbers live, and it is not the claim.** Ranking
-  by volume alone (which is what the queue's certified banks actually did -- rank 60 does
-  not divide 72) opens rungs at `+2.52%` for one type, `+6.54%` for three, `+34.17%` for
-  five and `+79.52%` for eight. Whether those are schedules depends on the supplier's
-  construction accepting a family whose blocks are not its own children, which is exactly
-  the question its own "ready for future genuinely different residual types" leaves open:
-  so the bracket is recorded as a bracket, and the claim is the sound tier.
+  and one on the complex side. The certified-shape ladder does not stop there, because
+  the absorbed rank is free.
+* **the certified shape is where the big numbers live, and the rank freedom is what gets
+  them.** One new residual type -- the bit word's rank-22 family, 6,116 banks -- reaches
+  `7.004273e-4` (**+2.52%**) on its own, the same ceiling the tiling tier needs two
+  families for; three types reach `+6.54%`, five `+34.17%` and eight `+79.52%` (750 pairs
+  above the frontier). One caveat belongs here, from the supplier's own proof: *which*
+  families may be banked is a family-allocation question, not an arithmetic one. #207
+  excludes internal alias recipients, source births and deleted terminals "from fresh bank
+  allocation", and its CROSSOVERS notes the construction is "ready for future genuinely
+  different residual types" -- so a rung is a priced target precisely in the sense of the
+  family it would need the supplier to allocate banks to.
 
 Every schedule in the table also satisfies the checks the package can make on its own:
 whole banks (`banks * m` equals the absorbed rank mass), the row identity after
@@ -321,6 +327,14 @@ checks it twice against public statements:
 * This is not claimed as a new word, a new all-size hypothesis, or the public
   record: it is a composition, and it is superseded the moment a lower-`W` bit word
   appears.
+* **Building a rung physically is the supplier's harness, and this package cannot do it.**
+  The rungs fix the arithmetic interface their generator consumes -- for the certified-shape
+  rung two, that is bit ranks 6 and 8, 1,824 banks of 72 registers, `W` down to `54,578`,
+  volume `131,328 = 72 x 1,824`, on the bit word's residual families 4 and 24 -- but the
+  construction itself needs their pinned tree (a 51,416,352-byte baseline archive plus
+  PR200 at `a1175449...`), `numpy==2.3.5`/`scipy==1.17.0`, the exact gauge charts, the
+  normalizer routing, the F2 and defining-integer columns and the 24,401 frame prime
+  witnesses. Those are named here as the work that remains, not as work that was done.
 
 ## Reproduce
 

@@ -289,6 +289,37 @@ def main():
                <= Q(bracket["type_ladder"][key]["kappa"]) for key in strict["type_ladder"]), \
         "the strict rungs must not price above the volume bracket"
 
+    # What a bank requires is settled by the queue's own banked rows and the supplier's
+    # published bank proof, and it is *not* the tiling I first assumed: PR205/PR206/PR207
+    # removed the rank-60 entrance exteriors from a width-72 word, so an absorbed family's
+    # rank is free. What must hold is that the absorbed volume fills whole banks (their
+    # 5,500 banks over three copies) and that a bank's blocks -- the word's own residual
+    # families, 4 and 24 -- tile the width exactly, as their proof's "18 four-coordinate
+    # blocks", "three 24-coordinate blocks" and `6 x rank-4 + 2 x rank-24` patterns do.
+    patterns = [[(18, 4)], [(3, 24)], [(6, 4), (2, 24)]]
+    volume = 3 * 2200 * 60
+    precedent = dict(
+        source="the queue's banked rows (#205/#206/#207), priced exactly by audit.py",
+        supplier_proof="geometry/BANK-PROOF-PR200.md and retained-packing.py pin rank 60 on "
+                        "width 72 and tile each bank with the word's residual families",
+        absorbed_rank=60,
+        bank_width=72,
+        rank_divides_width=bool(72 % 60 == 0),
+        absorbed_children_per_copy=2200,
+        volume_three_copies=volume,
+        banks_three_copies=volume // 72,
+        volume_fills_whole_banks=bool(volume % 72 == 0),
+        residual_families=[4, 24],
+        block_patterns=patterns,
+        blocks_sum_to_width=all(sum(count * size for count, size in pattern) == 72
+                                for pattern in patterns),
+        conclusion="an absorbed family's rank is free; only its volume must fill whole banks, "
+                   "and a bank's blocks come from the word's residual families, which must "
+                   "tile the width",
+        effect="the certified-shape ladder below is the primary one; banking each family on "
+               "its own tiled blocks is the conservative subset that needs no new shape",
+    )
+
     def compact(summary, label):
         return dict(label=label, pairs_considered=summary["pairs_considered"],
                     pairs_above_frontier=summary["pairs_above_frontier"],
@@ -314,10 +345,13 @@ def main():
                       - Q(1, targets.SELECT_GRID) else "complex"),
         sides={side: dict(item, coarse_decimal=float(Q(item["coarse"])))
                for side, item in sides.items()},
-        strict=compact(strict, "families whose blocks tile a bank by themselves and whose "
-                               "own volume is a whole number of banks: sound as a schedule"),
-        volume_only=compact(bracket, "whole banks in total only: an upper bracket, the shape "
-                                     "the certified #197/#205/#207 banks have"),
+        precedent=precedent,
+        strict=compact(strict, "conservative sub-tier: each family's own blocks tile a bank "
+                               "and its own volume is a whole number of banks, so no block "
+                               "shape beyond the word's residual families is used"),
+        volume_only=compact(bracket, "the certified shape: the absorbed family's rank is "
+                                     "free and only its volume must fill whole banks, "
+                                     "exactly as #205/#206/#207 banked rank 60 on width 72"),
     )
     # Explicit LF: the committed JSON is pinned by its bytes, and a Windows checkout
     # must produce the same file a Linux one does.

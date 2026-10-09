@@ -353,22 +353,21 @@ def main():
 
     # The sound tier, re-derived: every family must tile the bank by itself and hold a
     # whole number of banks of its own, then the recorded kappa must follow from the arms.
-    banked = {}
+    tileable = {}
     for side in ("bit", "complex"):
         m, W, deficit, hist = rows_and_histogram(side)
-        tiles = [r for r in sorted(hist) if m % r == 0 and (r * hist[r]) % m == 0]
-        banked[side] = tiles
-    for side, tiles in banked.items():
+        tileable[side] = [r for r in sorted(hist) if m % r == 0 and (r * hist[r]) % m == 0]
+    for side, tiles in tileable.items():
         assert tiles == rungs["sides"][side]["tiles_the_bank"], \
-            "the bankable families of the " + side + " word must be re-derivable"
+            "the tileable families of the " + side + " word must be re-derivable"
     for key in ("1", "2", "3", "4"):
         item = ladder["strict"][key]
         arms = {}
         for side in ("bit", "complex"):
             m, W, deficit, hist = rows_and_histogram(side)
             families = item[side + "_families"]
-            assert set(families) <= set(banked[side]), \
-                "a sound arm must bank each family on its own"
+            assert set(families) <= set(tileable[side]), \
+                "a conservative-tier arm must bank each family on its own"
             arms[side] = repriced(m, W, deficit, hist, families)
         budget = min(arms["bit"], (1 - Q(1, 10 ** 9)) * arms["complex"] - Q(1, GRID))
         assert targets_mod.assembly_kappa(budget) == Q(item["kappa"]), \
@@ -383,19 +382,65 @@ def main():
           "{}, the complex word rank {} -- {} new residual type on rank {} is {} ({:+.2%}), "
           "two types reach the unmoved complex cap at {} ({:+.2%}), and three types (adding "
           "the complex word's own rank {}) reach {} ({:+.2%})".format(
-              banked["bit"], banked["complex"], cheap["types"], cheap["bit"]["families"][0],
+              tileable["bit"], tileable["complex"], cheap["types"], cheap["bit"]["families"][0],
               Q(cheap["kappa"]), float(Q(cheap["gain"])), Q(ladder["strict"]["2"]["kappa"]),
               float(Q(ladder["strict"]["2"]["gain"])), ladder["strict"]["3"]["complex_families"][0],
               Q(ladder["strict"]["3"]["kappa"]), float(Q(ladder["strict"]["3"]["gain"]))))
-    print("[rungs bracket] keeping only the volume condition -- the shape the certified "
-          "#197/#205/#207 banks have, whose absorbed rank 60 does not divide 72 either -- "
-          "{} candidate pairs, {} of them above the frontier, rising to {} ({:+.2%}) at {} "
-          "types".format(
+    print("[rungs certified shape] with the absorbed family's rank free, only the volume "
+          "must fill whole banks: {} candidate pairs, {} of them above the frontier, {} new "
+          "residual type reaching {} ({:+.2%}), {} types {} ({:+.2%}), and {} types {} "
+          "({:+.2%})".format(
               rungs["volume_only"]["pairs_considered"],
               rungs["volume_only"]["pairs_above_frontier"],
+              rungs["volume_only"]["cheapest_pair"]["types"],
+              Q(rungs["volume_only"]["cheapest_pair"]["kappa"]),
+              float(Q(rungs["volume_only"]["cheapest_pair"]["gain"])),
+              rungs["volume_only"]["type_ladder"]["3"]["types"],
+              Q(rungs["volume_only"]["type_ladder"]["3"]["kappa"]),
+              float(Q(rungs["volume_only"]["type_ladder"]["3"]["gain"])),
+              rungs["volume_only"]["best_pair"]["types"],
               Q(rungs["volume_only"]["best_pair"]["kappa"]),
-              float(Q(rungs["volume_only"]["best_pair"]["gain"])),
-              rungs["volume_only"]["best_pair"]["types"]))
+              float(Q(rungs["volume_only"]["best_pair"]["gain"]))))
+
+    # 14. What a bank actually requires, settled from the queue's own banked rows and the
+    #     supplier's published bank proof. PR205/PR206/PR207 removed the rank-60 entrance
+    #     exteriors from a width-72 word, so an absorbed family's rank is free; the absorbed
+    #     volume must fill whole banks, and a bank's blocks -- the word's residual families --
+    #     must tile the width. This is what promotes the volume ladder to the primary one.
+    prec = rungs["precedent"]
+    assert prec["absorbed_rank"] == 60 and prec["bank_width"] == 72
+    assert prec["rank_divides_width"] is False, "the certified absorbed rank must not divide 72"
+    assert Q(banked["rank60_children_per_copy"]) == prec["absorbed_children_per_copy"] == 2200
+    volume = 3 * prec["absorbed_children_per_copy"] * prec["absorbed_rank"]
+    assert volume == prec["volume_three_copies"] == 396000, "the certified absorbed volume"
+    assert prec["volume_fills_whole_banks"] and prec["banks_three_copies"] == volume // 72 == 5500
+    assert prec["residual_families"] == [4, 24] and prec["blocks_sum_to_width"]
+    assert all(sum(count * size for count, size in pattern) == 72
+               for pattern in [[(18, 4)], [(3, 24)], [(6, 4), (2, 24)]]), \
+        "the word's residual families must tile the bank width exactly"
+    assert prec["conclusion"].startswith("an absorbed family's rank is free")
+    # With the rank free the cheapest rung reaches the unmoved complex cap outright, where
+    # the conservative tier's own cheapest rung needs a second family to get there.
+    assert Q(rungs["volume_only"]["type_ladder"]["1"]["kappa"]) == cap, \
+        "with the rank free, a single absorbed family reaches the unmoved complex cap"
+    assert Q(rungs["strict"]["type_ladder"]["1"]["kappa"]) < cap, \
+        "the conservative tier's single family must fall short of the cap"
+    assert Q(rungs["strict"]["type_ladder"]["2"]["kappa"]) == cap
+    for key in rungs["strict"]["type_ladder"]:
+        assert set(rungs["strict"]["type_ladder"][key]["bit_families"]) \
+            <= set(rungs["sides"]["bit"]["tiles_the_bank"]), \
+            "the conservative sub-tier must bank each family on its own blocks"
+        assert set(rungs["strict"]["type_ladder"][key]["complex_families"]) \
+            <= set(rungs["sides"]["complex"]["tiles_the_bank"]), \
+            "the conservative sub-tier must bank each complex family on its own blocks"
+    print("[banks] the queue's own banked rows removed rank-60 exteriors from a width-72 word "
+          "(60 does not divide 72), volume {} = 72 x {}, with blocks of 4 and 24 tiling the "
+          "width as 18 x 4, 3 x 24 or 6 x 4 + 2 x 24 -- so an absorbed family's rank is free, "
+          "the volume condition is the certified one, and the certified-shape ladder is the "
+          "primary one at {} ({:+.2%}) for a single new residual type".format(
+              volume, prec["banks_three_copies"],
+              Q(rungs["volume_only"]["type_ladder"]["1"]["kappa"]),
+              float(Q(rungs["volume_only"]["type_ladder"]["1"]["gain"]))))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
           "and 7 margins per depth".format(best, best_depth))
 
