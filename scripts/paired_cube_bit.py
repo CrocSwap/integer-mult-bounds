@@ -7,6 +7,10 @@ and its frozen scalar/frame witness is Swapnil Jain's construction. Their
 original credits, licenses and disclosures remain in the pinned snapshot.
 No complete-basis replay or inherited rational-frame audit is repeated.
 """
+import sys
+if sys.flags.optimize:
+    raise ValueError('Assertions must remain enabled')
+
 import argparse
 from collections import Counter
 import gzip

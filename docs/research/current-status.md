@@ -1,4 +1,27 @@
-# Current release: joint-frame community checkpoint
+# Current main: reviewed paired-cube construction
+
+The selected conditional witness is **κ=4609169/10000000000=0.0004609169**,
+from icekylinx's [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144).
+This is about 9.03 times the preceding main saving, approximately `2^-11.0832`.
+It is above `2^-12` and below `2^-11`.
+
+The construction builds on icekylinx's compiler lineage, an664's #128
+completed-core sharing, eumemic's #117 producer, Zhihao Chen's #97 physical
+ledger and Swapnil Jain's underlying frozen word. See the
+[review and attribution](community-round6-review.md),
+[validation receipt](community-round6-validation.json),
+[selected result record](../../certificates/selected-result.json), and
+[reproduction guide](../paired-cube.md).
+
+The retained upstream analytic, semantic and fixed-tape interfaces remain
+assumed. The finite controls and written audit do not formally verify the
+full multiplication theorem. The review distinguishes local checks from
+head-pinned Linux CI evidence; no independent human peer review is claimed.
+
+Everything below is historical. Its “current” and “selected” statements refer
+to the corresponding checkpoint.
+
+# Previous checkpoint: joint-frame community construction
 
 The selected conditional witness is **κ=25508460085039/500000000000000000
 =5.1016920170078e-5 > 2^-15**, from Avi Eisenberg's #62 pair assembly, eumemic's
