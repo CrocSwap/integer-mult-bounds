@@ -16,7 +16,7 @@ python3 research/final-coordinate-pricing/verify.py --regenerate
 make verify
 ```
 
-Draft: independent focused verification passed in 92.777 seconds: pristine-engine h25 regeneration, both complete arbitrary-dirty replays and CRT profiles, exact arithmetic, and six controls. Full repository verification is pending and must be recorded on the committed research before readiness.
+Full verification passed on research commit `f07c7db7d1fd378b0deae68e33b53421456319ae` in 6,633.390 seconds, completed 2026-10-09 00:33:40 UTC: `make -j1 verify` (92 isolated test modules and 20 historical patch checks), both parent control suites, complete producer-chain regeneration and six own controls. All 57 research-head GitHub checks passed. There was no source drift. See [validation.json](validation.json) for commands and evidence hashes. The earlier independent focused run also passed in 92.777 seconds.
 
 The certificate checks exact and independent moment enclosures, 47 constraints, seven margins, both next-grid rejections and exclusion of PR95's complete profile at the new saving. See [PROOF.md](PROOF.md) for the general parameter-transfer argument and complete costs. No optimality, new Lean proof or practical speedup is claimed.
 
