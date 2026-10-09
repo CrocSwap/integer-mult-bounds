@@ -1,38 +1,48 @@
-# Shared and nested gauges on actual physical chains
+# Shared nonmaximal entrance gauges on actual physical chains
 
-The predecessor generated ungauged donors. This extension permits a true physical entrance to carry a gauge when the entire chronological chain and compensated scalar word satisfy the frame, response and restoration contracts. Recipient gauges remain internal splices.
+The new step chooses a common subspace of several roles' admissible entrance frames. Individually maximal frames can differ and force separate target transitions. A smaller shared frame lets many actual compensation reads use the same target climb.
 
-Thirteen rank-18 gauges form four groups: [14740,14745,14750,14755], [14701,14706,14711], [14702,14707,14712], and [14704,14709,14714]. Within a group the actual gauge frame is identical. Each group has eight response targets in total; the four target sets are disjoint and avoid every terminal target group. Three further rank-19 gauges, on roles 14696,14697,14699, have four targets each. Each rank-19 frame contains the already selected rank-18 frame on its targets and lies in the unchanged next target frame. The executable adapter orders all new rank-18 reads before the new rank-19 reads and then the original reads.
+Eighteen rank-12 gauges use one common frame. Six further groups of eight rank-13 gauges use six other frames. These 66 entrances extend the verified 13 rank-18 and three rank-19 entrances, for 82 new physical entrances in total. The exact role IDs, bases and complete response supports are in `joint/joint-selection.json`. No operation frame or scalar DAG edge changes in this step.
 
-Every gauge is G-nondegenerate, lies in its role's first operation frame, and annihilates that role's complete response targets. Every selected role is untouched by source injection and the center phase. No terminal role or source birth is selected.
+The rank-12 group's union is targets 216–223 and864–871. The six rank-13 groups use disjoint blocks 872–879,880–887,888–895,896–903,904–911,912–919. The rank-12 frame lies below the retained rank-18 frame on targets864–871. The adapter orders all new compensation reads by increasing gauge dimension, then retains the original reads and their chronology. Every resulting target path is checked exactly.
 
-## Scalar chronology and paid target paths
+## Discovery and complete paid accounting
 
-The original ungauged word already subtracts each dirty role's full integer adjoint response at time zero. Move that existing compensation read to the start of the side phase. The role has not been touched, so its value is unchanged. The original adjoint coefficients remain intact. Several reads in the same frame make the target climb once and then stay in that frame. The additional rank-19 reads use the actual nested path rank 18→rank 19→the original target frame. Every increment is recounted; no target split is omitted.
+The search intersects distinct admissible entrance frames, instead of retaining only individually maximal frames. For each fixed common frame, selecting compatible roles is a maximum-weight closure problem: a selected role requires all of its response targets. At a fixed coarse exponent, the role's benefit is its saved initial increment less its literal bank-stock reduction; each newly split target interval is charged once. A min-cut proposes the profitable subset. Float flow and scores are used only for discovery. The complete actual physical word, literal banks and two independent rational moment engines determine the certified result.
 
-For an aliased donor the physical path is now entrance σ18 or σ19→donor operation frames→the unchanged recipient σ21→recipient operations→full frame 24. Exact containment is checked throughout. The later recipient compensation reads current donor contents, including the donor's signal and dirty value. The complete scalar replay checks the defining decoder and restores every source and dirty column over F2 and the integers, in both reflected signs. Omitting either kind of new compensation is rejected; putting a rank-19 read before its rank-18 predecessor fails the target-chain check. This extends the old ungauged-donor eligibility condition with an actual admitted chronological program.
+Every selected gauge is nondegenerate for G=9I−J, lies in its role's first operation frame and annihilates its complete target response. Every selected role is untouched by source injection and the center phase, is not a terminal role and is not a recipient/birth alias. Physical donor starts are allowed when the entire chronological chain and scalar replay pass.
 
-Two independent substitutions use donors 8292/8293 instead of 7756/7757 for births 18892/18894. Their rank-8 endpoints fit the original rank-21 recipient gauges, and the donors die before the unchanged reads. All 238 source-injection aliases remain fixed. The adapter reconstructs all 1760 pairs and the complete physical map; it does not merely edit a histogram. The rematch endpoints are disjoint from the 16 new gauges.
+The two earlier donor substitutions remain: births18892/18894 use donors8292/8293 rather than7756/7757. Their rank-8 endpoints fit the original rank-21 recipient gauges and die before the unchanged reads. All 238 source aliases remain fixed. The adapter reconstructs all 1760 pairs and the actual physical map.
+
+## Scalar chronology and target paths
+
+The original ungauged word already subtracts each dirty role's complete integer adjoint response at time zero. Move that existing compensation read to the start of the side phase. The selected role has not been touched, so its value is unchanged. No response coefficient is dropped. Several reads in one frame make the target climb once and stay there. Different shared frames are ordered along actual nested target paths; every increment remains charged.
+
+For a gauged donor the physical path is its entrance gauge, donor operations, the unchanged recipient gauge, recipient operations and the full 24-dimensional frame. Exact containment is checked throughout. The recipient reads the current donor contents, including signal and dirty value. Full scalar replay checks every source, target and dirty-register column over F2 and the defining integers in both reflected signs. All sources and dirty registers are restored. Omitted compensation at ranks 12,13,18,19 is rejected, and placing the rank-19 read before its rank-18 predecessor fails exact target chronology.
 
 ## Completed mixed banks
 
-The 17114 surviving physical chains comprise 2200 rank-20 entrances,13 rank-18 entrances,3 rank-19 entrances and 14898 undeferred chains. Their true exterior residual dimensions are respectively 4,6,5,24. Use 72 full physical replicas. In each tensor stage allocate:
+The 17114 surviving physical chains have residual dimensions 4×2200,5×3,6×13,11×48,12×18,24×14832. Use 72 complete physical replicas. Allocate the following literal patterns in each tensor stage:
 
-* 54 banks containing four rank-5 blocks and thirteen rank-4 blocks;
-* 8761 banks containing eighteen rank-4 blocks;
-* 78 banks containing twelve rank-6 blocks;
-* 357552 banks containing three rank-24 blocks.
+| Residual blocks per bank | Banks per stage |
+| --- | ---: |
+| 4×5 + 13×4 | 54 |
+| 4×11 + 7×4 | 864 |
+| 18×4 | 8425 |
+| 12×6 | 78 |
+| 6×12 | 216 |
+| 3×24 | 355968 |
 
-Each bank partitions all 72 coordinates. The rank-4 occurrences total 54·13+8761·18=72·2200; rank-5 occurrences total 54·4=72·3; rank-6 occurrences total 78·12=72·13; rank-24 occurrences total 357552·3=72·14898. All 3696624 role-copy-stage assignments occur exactly once. There are 366445 banks per stage,1099335 over three stages. Adding 253440 original source/target data registers gives literal stock 1352775.
+Every bank partitions all 72 coordinates. The checker enumerates each actual role, replica, stage, bank and coordinate offset. All 3696624 role-copy-stage assignments occur exactly once. There are 365605 banks per stage and 1096815 across three stages. Adding 253440 source/target data registers gives literal stock 1350255.
 
-For each gauge with annihilator rows a and G=9 I-J, form the residual rows 15 a−(sum a)1 and normalize by their gcd. They are G-orthogonal to the gauge. Put residual columns before gauge columns in B. Both inverse identities and every elementary factor are checked for all 227 actual charts. Maximum factor count is 190, factor numerator 14 and denominator 18; all are units for the inherited primes q>2^80.
+For each gauge annihilator row a, the residual row 15a−(sum a)1 is G-orthogonal to the gauge. Normalize by its gcd; put residual columns before gauge columns in the 24×24 chart. The 234 actual charts pass both inverse identities and elementary-factor replay. Maximum factor count is 200, numerator 41 and denominator 54. These coefficients are units under the inherited prime condition q>2^80.
 
-A role's chart sends its residual projector to its literal coordinate block. Disjoint partial swaps over each full bank compose to the complete swap on arbitrary correlated dirty inputs. Reversing the block sequence restores those inputs and spectators. The common weighted chart cancels between successive blocks. Every block pattern rejects both omitted and repeated blocks.
+Each chart sends its residual projector to a literal coordinate block. Disjoint partial swaps over each completed bank compose to the full swap on arbitrary correlated dirty inputs. Reversing the block sequence restores them and all spectators. Common weighted charts cancel between successive blocks. Every pattern rejects omitted and repeated blocks.
 
-Normalizers use the actual chart, an explicit coordinate permutation, and distinct scalars b+1. An outside-stage identity column records the resulting row and scalar, proving distinctness for all q>2^80. Chart factors, permutations and scalar factors are included in K=177844912416<2^40. Their fixed restored-selector cost is absorbed under the inherited positive ordinary-leaf exponent gap; the routing is not free.
+Normalizers use the actual inverse chart, an explicit coordinate permutation and distinct scalars b+1. An outside-stage identity column witnesses distinctness. Charts, permutations and scalar factors are included in the fixed extra selector bill K=183166962336<2^40. The inherited positive ordinary-leaf exponent gap absorbs that fixed restored-selector cost.
 
-## Complete paid profile and conditional composition
+## Full paid profile and conditional composition
 
-Recount every source, internal and target increment in the modified word. After literal bank completion remove exactly 2200 rank-60 entrance exteriors,13 rank-54 entrance exteriors and 3 rank-57 entrance exteriors. No internal recipient splice is removed. Factor 24 gives W 450925, rank 32420136, deficit 46464 and maximum child 22. This normalization differs from the 72 literal replicas.
+After literal bank completion remove only the actual entrance exteriors: rank 60×2200,rank 54×13,rank 57×3,rank 36×18,rank 39×48. No internal donor/recipient increment or target split is removed. Factor 24 gives m=72, W=450085, rank=32359656, deficit=46464 and maximum child 22. The 72 literal physical replicas and factor 24 arithmetic normalization have distinct roles.
 
-The two rational moment engines include the full inherited bad-class fallback. Four fixed ordinary-leaf levels use their preceding level, then the unchanged 47-constraint assembly composes the bit saving with the exactly replayed complex local-flow supplier. The all-size compiler, selector, routing, precision, prime and analytic hypotheses remain conditional; finite verification does not discharge them.
+Both rational moment engines include the full bad-class fallback. Four fixed ordinary-leaf levels use their preceding level. The unchanged 47-constraint assembly then composes with the exactly replayed frozen complex local-flow supplier. All-size compiler, selector, routing, precision, prime and analytic hypotheses remain conditional.

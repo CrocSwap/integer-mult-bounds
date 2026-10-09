@@ -37,3 +37,11 @@ except ValueError as error:
  assert 'defining decoder' in str(error),str(error)
  print('PASS omitted nested rank19 compensation rejected',flush=True)
 else:raise AssertionError('Omitted nested compensation was accepted')
+
+for dim in (12,13):
+ control=Candidate();role=next(s for s in control.newroles if control.gauge[s]['dim']==dim);control.order.remove(role)
+ try:control.formal(2)
+ except ValueError as error:
+  assert 'defining decoder' in str(error),str(error)
+  print('PASS omitted rank'+str(dim)+' shared gauge compensation rejected',flush=True)
+ else:raise AssertionError('Shared compensation omission accepted')
