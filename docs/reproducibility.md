@@ -1,8 +1,26 @@
 # Reproducing the result
 
-The selected release is documented in the [joint-frame community review](research/community-round2-review.md)
+For the paired-cube/shared-core extension, run `make paired-cube-verify`.
+The [incremental guide](paired-cube.md) covers the signed producer, selected
+bit gauges, exact moments and assembly.
+
+For the three-stage cover extension, run `make three-stage-cover-verify`.
+The [incremental guide](three-stage-cover.md) covers the new PR #117 local
+word, cover moments and exact assembly.
+
+For the partial-gauge extension, run `make partial-gauge-verify`. Its
+[incremental guide](partial-gauge.md) separates the pinned PR #97 bit input,
+new complex producer and exact assembly.
+
+For the new stopped product-ring extension, run `make stopped-product-verify`.
+Its [incremental reproduction guide](stopped-product.md) covers the h24
+rational-center producer, new moments, stopping parameters and assembly.
+The community checkpoint and historical targets below retain their own scope.
+
+The selected main witness is documented in the [paired-cube maintainer review](research/community-round6-review.md)
 and [current status](research/current-status.md), with the
-[selected parameter certificate](../research/matrix-exponent-synthesis/candidate/arithmetic.json).
+[selected certificate](../certificates/paired-cube-network.json).
+The [joint-frame review](research/community-round2-review.md) remains a historical checkpoint.
 The bound is conditional on the retained original #109 framework. Earlier notes,
 patches, and the [preserved research](research/preserved-research.md) are historical
 reproduction targets. Run `make verify-research` to regenerate its certificates;

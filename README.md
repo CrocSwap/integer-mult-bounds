@@ -3,6 +3,120 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Current reviewed result: paired cubes and shared cores
+
+The construction contributed by **[icekylinx](https://github.com/icekylinx)** in
+[PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), building on
+[PR #130](https://github.com/CrocSwap/integer-mult-bounds/pull/130), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{4609169}{10000000000}=4.609169\times10^{-4}.
+$$
+
+A signed paired-cube producer and coordinate-star centers complete the
+identity using the original source registers. Completed dirty cores reuse
+one auxiliary bank across three orthogonal blocks, adopting an664's PR #128
+sharing principle. The bit branch selects certified gauges from the retained
+PR #97 / Swapnil word. All local transitions, copied centers, complement
+calls, finite routers and rare-class fallback remain charged. The analytic,
+uniform-recursion and fixed-tape hypotheses are retained.
+
+This is **9.03 times the preceding reviewed main saving**, approximately
+`2^-11.0832`: above `2^-12` and below `2^-11`. It measures the asymptotic
+exponent saving, not a practical runtime speedup.
+
+**[Maintainer review and validation scope](docs/research/community-round6-review.md)** ·
+[Current result record](certificates/selected-result.json) ·
+[Proof source](notes/paired-cube-note.tex) ·
+[Exact certificate](certificates/paired-cube-network.json) ·
+[Incremental reproduction](docs/paired-cube.md)
+
+```sh
+make paired-cube-verify
+```
+
+## Preceding three-stage cover extension
+
+The construction contributed by **icekylinx**, extending
+[PR #115](https://github.com/CrocSwap/integer-mult-bounds/pull/115), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{3146011}{10000000000}=3.146011\times10^{-4}.
+$$
+
+Three signed shears on a regular Cayley cover align all interstage data
+frames. The complex branch combines eumemic's PR #117 local DAG with
+arbitrary-subspace Clifford frames; the bit branch retains the PR #97 /
+Swapnil physical word and uses a batched weighted q-adic cover. Local
+transitions, copied centers, rare-class fallback, finite routers and
+internal row borrowing are charged. The retained analytic and fixed-tape
+hypotheses still apply.
+
+[Proof source](notes/three-stage-cover-note.tex) ·
+[Exact certificate](certificates/three-stage-cover-network.json) ·
+[Incremental reproduction](docs/three-stage-cover.md)
+
+```sh
+make three-stage-cover-verify
+```
+
+## Preceding partial-gauge extension
+
+The construction contributed by **icekylinx**, extending
+[PR #104](https://github.com/CrocSwap/integer-mult-bounds/pull/104), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{7237}{78125000}=9.26336\times10^{-5}.
+$$
+
+It applies the stopped whole-projector bit interface to the physical deferred
+word of Zhihao Chen's PR #97, based on Swapnil Jain's witness. The new complex
+producer combines cyclic interval contractions, pair-first cube assembly,
+compatible frame enlargement and partial source gauges. Every residual,
+endpoint correction and target-data transition is charged. The bound retains
+the analytic and fixed-tape hypotheses of the preceding construction.
+
+[Proof source](notes/partial-gauge-note.tex) ·
+[Exact certificate](certificates/partial-gauge-network.json) ·
+[Incremental reproduction](docs/partial-gauge.md)
+
+```sh
+make partial-gauge-verify
+```
+
+## Preceding stopped product-ring extension
+
+The new construction contributed by **icekylinx**, extending merged
+[PR #36](https://github.com/CrocSwap/integer-mult-bounds/pull/36), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{194869}{2500000000}=7.79476\times10^{-5}.
+$$
+
+It combines a stopped product-ring bit interchange on `(23,23)` with an
+all-disjoint rational-center complex network on `(24,24)`. The new generic
+opposite-bank factorization pays one reversed child per projector rank;
+atom adapters, ordinary leaves, endpoint copies and the exact denominator-21
+grid are included in the proof. The bound retains the original analytic
+and fixed-tape hypotheses.
+
+[Proof source](notes/stopped-product-note.tex) ·
+[Exact certificate](certificates/stopped-product-network.json) ·
+[Incremental reproduction](docs/stopped-product.md)
+
+```sh
+make stopped-product-verify
+```
+
+The maintainer-reviewed community checkpoint below remains its own result
+and validation record.
+
+## Historical reviewed community checkpoint
+
 The reviewed community witness gives
 
 $$
@@ -56,7 +170,10 @@ The names below identify GitHub contributors; they are not verified Twitter hand
 - **[Rohan Garg (rohangar1)](https://github.com/rohangar1):** split-pair recursion, order refinement and paid-clone composition ([#59](https://github.com/CrocSwap/integer-mult-bounds/pull/59)).
 - **[Alejandro Zarzuelo Urdiales (alejandrozu)](https://github.com/alejandrozu):** Gaussian parity and finite tensor proofs, matrix/search tools, exact refinement and scoped Lean arithmetic ([#45](https://github.com/CrocSwap/integer-mult-bounds/pull/45), [#61](https://github.com/CrocSwap/integer-mult-bounds/pull/61)).
 - **[RaD project (hipotures)](https://github.com/hipotures):** semantic precision, routing, phase-cell inversion, bulk resampling, alternating producers, physical compiler and enlarged-frame/clone machinery ([#41](https://github.com/CrocSwap/integer-mult-bounds/pull/41), [#51](https://github.com/CrocSwap/integer-mult-bounds/pull/51)).
-- **icekylinx:** recursive batching, partial swaps, fixed projector profiles, copied retained centers and the selected complex construction.
+- **[icekylinx](https://github.com/icekylinx):** stopped recursion, three-stage covers, weighted local-ring compilation, paired-cube construction and the selected integration ([#104](https://github.com/CrocSwap/integer-mult-bounds/pull/104), [#115](https://github.com/CrocSwap/integer-mult-bounds/pull/115), [#130](https://github.com/CrocSwap/integer-mult-bounds/pull/130), [#144](https://github.com/CrocSwap/integer-mult-bounds/pull/144)); earlier batching, partial swaps and copied centers.
+- **[an664](https://github.com/an664):** completed-core workspace sharing ([#128](https://github.com/CrocSwap/integer-mult-bounds/pull/128)), a substantial dependency of the current result.
+- **[eumemic](https://github.com/eumemic):** the restricted positive producer used by the paired-cube construction ([#117](https://github.com/CrocSwap/integer-mult-bounds/pull/117)), alongside the earlier work credited above.
+- **Zhihao Chen and Swapnil Jain:** the deferred physical bit ledger ([#97](https://github.com/CrocSwap/integer-mult-bounds/pull/97)) and underlying frozen word and lifted frames used by the selected bit construction.
 - **Zhihao Chen (jacklightChen):** controlled bases, translated frames, semantic/bulk compatibility and two-stage integration.
 - **James Chang (jamesyc):** reversed two-stage geometry and exact controls.
 - **Aurel Prosz (Paureel) and Swapnil Jain:** attributed two-stage development and paid copied-stream endpoints.
