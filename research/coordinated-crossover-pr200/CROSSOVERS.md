@@ -1,3 +1,5 @@
+The final package retains this construction and adds 25 source-backed entrances, including two at a shared rank-4 frame. See NEW-SOURCE-GAUGES.md for the final word, target chronology and bank counts.
+
 The current package adds three genuine gauge-backed source slots and further exact frame cuts. See GAUGE-SOURCE-BORROWING.md and CUT-COMPONENTS.md.
 
 The current word additionally reuses 440 original sources for actual auxiliary branches. It recomputes adjoints and source paths, rather than deleting a histogram family from an unchanged word. See SOURCE-BORROWING.md.

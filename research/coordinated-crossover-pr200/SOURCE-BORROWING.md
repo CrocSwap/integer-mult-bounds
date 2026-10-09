@@ -1,3 +1,5 @@
+The final package retains this construction and adds 25 source-backed entrances, including two at a shared rank-4 frame. See NEW-SOURCE-GAUGES.md for the final word, target chronology and bank counts.
+
 # Original sources replace singleton-copy auxiliaries
 
 The frozen selection removes 440 physical auxiliary slots, one for each selected original passive source. It replaces a later singleton-copy branch, rather than the source's injection branch. Every selected branch has fresh value X_s after its initial copy and an unchanged-value prefix before its selected local partner mix. Its original initial copy may already use a padded rank-two frame.

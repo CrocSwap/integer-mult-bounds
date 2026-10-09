@@ -1,3 +1,5 @@
+The final package retains this construction and adds 25 source-backed entrances, including two at a shared rank-4 frame. See NEW-SOURCE-GAUGES.md for the final word, target chronology and bank counts.
+
 # Three source inputs occupy genuine gauge slots
 
 The selected assignments are role 14697 from X106 (partner X105), role 14696 from X138 (partner X137), and role 14699 from X346 (partner X345). Each role has a rank-19 genuine entrance gauge; its physical slot later continues as gauge recipient 17224, 17192 or 17152, respectively. `gaugeb/selection.json` is the literal selection.
