@@ -13,6 +13,7 @@ Payload F2. Mod-2 decoder, for every target T:
 At p = 12 each cube merges its face-1 and edge-01 outputs into u(b0,b1) and its face-2 and edge-02 outputs into
 w(b0,b2) (variant u); each merged node is read by two single roots and the mod-2 sums are unchanged. Its local
 channels use the L1 association (local_l1): three of the six G sums add long face diagonals instead of edges.
+Its all-but-one modules are the pinned annealed module data/qmod_p12.json (pinned_all_but_one).
 Compiler: the PR #144 frames.py/gauges.py ledger on rational frames (target cap ker(3 chi_T - 1), centre frame =
 span of the star), coordinate-padded maximum carrier matching (frozen arcs), plain frames span(n) for additions of
 span dimension <= PLAIN (closed under operands; a linked donor's span must lie in the plain target), PR #144
@@ -32,7 +33,8 @@ HERE = Path(__file__).resolve().parent
 P = (1 << 127) - 1
 PLAIN = 8
 L1_DIAGONAL = {(0, 1, 0), (0, 1, 1), (1, 2, 1)}  # (cube positions j < k, mode) of the diagonal G sums at p = 12
-MODULES ={11: 'pair_module_p11.json', 12: 'pair_module_p12.json', 13: 'pair_module_p13.json'}
+MODULES = {11: 'pair_module_p11.json', 12: 'pair_module_p12.json', 13: 'pair_module_p13.json'}
+QMODULES = {12: 'qmod_p12.json'}
 
 
 def require(cond, msg):
@@ -739,7 +741,7 @@ def dumps(obj):
 
 def build(p, frozen_arcs=None, log=print):
     mod = json.loads((HERE / 'data' / MODULES[p]).read_text())
-    abo = nested_prefix(p - 2) if p == 12 else all_but_one(p - 2)
+    abo = pinned_all_but_one(QMODULES[p], p - 2) if p in QMODULES else all_but_one(p - 2)
     g = BitGraph(p).finish(mod, abo, merge=p == 12, l1=p == 12)
     require(check_decoder(g) == 0, 'mod-2 decoder identity')
     t0 = time.time()
@@ -822,7 +824,8 @@ def export(p, g, prof, wit, word, prf):
 def nested_prefix(n):
     """Nested-prefix all-but-one module (QMOD lane; eumemic, Claude assistance): prefix p_{k+1} = p_k + x_k, suffix
     s_k = x_k + s_{k+1}; y_0 = s_1, y_{n-1} = p_{n-1}, y_{i+1} = p_i + (x_i + s_{i+2}). Each prefix is used twice with
-    nested supports, which gives the carrier matching more links than the balanced tree. Contract-checked."""
+    nested supports, which gives the carrier matching more links than the balanced tree. Contract-checked. It is the
+    seed of the pinned p = 12 module data/qmod_p12.json."""
     args = [None] * n
 
     def add(a, b):
@@ -848,6 +851,22 @@ def nested_prefix(n):
             support.append(support[a[0]] | support[a[1]])
     full = (1 << n) - 1
     require(all(support[r] == full ^ (1 << i) for i, r in enumerate(roots)), 'nested prefix all-but-one roots')
+    return dict(input_count=n, args=args, roots=roots)
+
+
+def pinned_all_but_one(name, n):
+    """Pinned all-but-one module {input_count, args, roots} in data/ (eumemic, Claude assistance). The p = 12
+    module was annealed from nested_prefix(10) by split-function moves, scored by the p = 12 bit word.
+    Contract-checked: disjoint supports, root i sums every input but i."""
+    mod = json.loads((HERE / 'data' / name).read_text())
+    args, roots = mod['args'], mod['roots']
+    require(mod['input_count'] == n == len(roots) and args[:n] == [None] * n, 'pinned all-but-one arity')
+    support = [1 << x for x in range(n)]
+    for x, a in enumerate(args[n:], n):
+        require(a and 0 <= a[0] < x and 0 <= a[1] < x and not support[a[0]] & support[a[1]], 'pinned all-but-one disjoint')
+        support.append(support[a[0]] | support[a[1]])
+    full = (1 << n) - 1
+    require(all(support[r] == full ^ (1 << i) for i, r in enumerate(roots)), 'pinned all-but-one roots')
     return dict(input_count=n, args=args, roots=roots)
 
 

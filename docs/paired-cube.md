@@ -2,7 +2,7 @@
 
 This extension inherits PR #130 at
 `6a9970a530119174507904e23592fd59ede19a5d` and gives the conditional saving
-`6489120/10000000000 = 6.489120e-4`. The complex word adds physical frame descent and compensated late-read
+`6558894/10000000000 = 6.558894e-4`. The complex word adds physical frame descent and compensated late-read
 reuse (`scripts/paired_cube_physical.py`); the bit supplier is the paired-cube bit word in
 `research/paired-cube-bit`.
 
@@ -17,7 +17,7 @@ CI runs it in its own `paired-cube` matrix group. The checks are:
 
 - Rebuild the selected signed H-channel graph (p = 11) from the pinned annealed triple, pair and all-but-one
   modules and the L1 local circuit in `references/paired-cube/sources`, with fused face-2/edge-02/edge-12 outputs.
-  Replay the frozen 10,237 carrier arcs (compiled under #162's closure conditions),
+  Replay the frozen 10,704 carrier arcs (compiled under #162's closure conditions),
   coordinate frames, full backward intersections, signed physical mixer,
   center closure and 2,310 rank-18 partial gauges. Independent checks cover
   every scalar coefficient of `H+K+B=I`, the original-source K involution and

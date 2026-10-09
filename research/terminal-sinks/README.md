@@ -41,18 +41,19 @@ unchanged.
    - an uncomplemented reflected pivot write;
    - a post-shear moved after its pivot's first correction.
 
-## Results (p11N1b_TB31: TMOD TB31 triple module, the depth-4 maximum-weight layer)
+## Results (p11N1d_J0TEc3u: J0 pair module, TE triple module, climb3u Q module, the depth-4 maximum-weight layer)
 
 | | W | complex AC |
 |---|---|---|
-| layer | 13,936 | 6479443/1e10 = 6.479443e-4 |
-| + 42 sinks | 13,894 | 6493335/1e10 = 6.493335e-4 (+0.214%) |
+| layer | 13,702 | 3273661/5e9 = 6.547322e-4 |
+| + 47 sinks | 13,655 | 6563200/1e10 = 6.563200e-4 (+0.243%) |
 
-On p11N1_Qb01 the same rule gives 42 sinks and 6466544/1e10 -> 6480380/1e10.
+The same rule gave 42 sinks on p11N1b_TB31 (6479443/1e10 -> 6493335/1e10) and on p11N1_Qb01
+(6466544/1e10 -> 6480380/1e10).
 
-**Why only 42.** Only all-eight (disjoint) roots are sinks here. Of the 165 roots, 123 have retained producer
-consumers, 15 are source-injection roles, and 15 are written in phase one; some roots fail more than one test.
-The face0 sinks that meet the conditions fail the frame scan: the post-shear at their rank-19 `U` raises target
+**Why only 47.** Only all-eight (disjoint) roots are sinks here. Of the 165 roots, 118 have retained producer
+consumers, 14 are source-injection roles, and 14 are written in phase one; some roots fail more than one test.
+The face0 sinks that meet the conditions (10 here) fail the frame scan: the post-shear at their rank-19 `U` raises target
 registers above later rank-18 reads, so the target chains stop nesting.
 
 ## Use

@@ -42,15 +42,15 @@ if hasattr(sys,'set_int_max_str_digits'):
 
 ROOT = Path(__file__).resolve().parents[1]
 SINKS = ROOT/'research/terminal-sinks'
-AC = Q(6493335,10**10)
-COARSE = Q(6549403,10**10)
+AC = Q(6563200,10**10)
+COARSE = Q(6600253,10**10)
 OLD = Q(384599,10**10)
 ATOM = Q(int(COARSE/(1+COARSE-OLD)*10**12)+1,10**12)  # first 10^-12 grid point above the toll edge (geckods, PR158)
 AB = (1-ATOM)*COARSE+ATOM*OLD
 BAD = Q(1,10**16)
 PHASE_STOP = Q(1,10**9)
 ASSEMBLY_BIT = min(AB,(1-PHASE_STOP)*AC-Q(1,10**10))
-KAPPA = Q(6489120,10**10)
+KAPPA = Q(6558894,10**10)
 
 
 def clean(hist):
@@ -75,7 +75,7 @@ def shared_profile(row,complex_word):
         require(0 < r < h and n > 0,'Proper local gauges')
         H[3*r] += n
     if complex_word:
-        require((h,v,R,ell) == (22,1320,13606,440),'Paired-cube local dimensions')
+        require((h,v,R,ell) == (22,1320,13372,440),'Paired-cube local dimensions')
         require(R == row['c']+row['q']-row['matched'],'Compatible carrier roles')
         require(selected == {18:2310},'Selected rank18 gauges')
         for r,n in enumerate(row['remaining_internal_histogram']):
@@ -102,7 +102,7 @@ def shared_profile(row,complex_word):
 def bitcube_profile(row):
     """Shared-core profile of the paired-cube bit word, in the complex word's ledger format."""
     h,v,R,ell = (row[k] for k in ('h','v','R','loss'))
-    require((h,v,R,ell) == (24,1760,20052,528),'Paired-cube bit dimensions')
+    require((h,v,R,ell) == (24,1760,19788,528),'Paired-cube bit dimensions')
     m,W,H = 3*h,2*v+R,Counter()
     selected = {int(r):n for r,n in row['selected_rank_histogram'].items()}
     require(selected == {20:2200,21:1760} and sum(selected.values()) == row['selected_roles'],'Selected bit gauges')
@@ -286,7 +286,7 @@ def main():
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
     args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
-    print('PASS kappa=6489120/10000000000 = 6.489120e-4; both moments, shared cores, finite router and 47 strict constraints')
+    print('PASS kappa=6558894/10000000000 = 6.558894e-4; both moments, shared cores, finite router and 47 strict constraints')
 
 
 if __name__ == '__main__':

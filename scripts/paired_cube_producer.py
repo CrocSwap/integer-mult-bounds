@@ -36,7 +36,7 @@ def regenerate(expected,work=None):
     src=ROOT/'references/paired-cube/sources'
     srcpin=json.loads((src/'SOURCE.json').read_text())['files']
     for name,digest in srcpin.items():assert hashlib.sha256((src/name).read_bytes()).hexdigest()==digest
-    _G=Graph(11,local=json.loads((src/'local_L1.json').read_text()));g=_G.finish(triple_module_from(src/'tmod_TB31_L1f8_5.9717259e-4.json',11),pair_module_from(src/'pmod_H56snap_w02_5.6251423e-4.json',10),all_but_one_from(src/'qmod_anneal_best01.json',9));g=merge_outputs(g,_G,'f8:00111100')
+    _G=Graph(11,local=json.loads((src/'local_L1.json').read_text()));g=_G.finish(triple_module_from(src/'tmod_TE_TD_TB3_1_1_4_full_6.0617964e-4.json',11),pair_module_from(src/'pmod_J0_full_6.0666810e-4.json',10),all_but_one_from(src/'qmod_climb3u_best.json',9));g=merge_outputs(g,_G,'f8:00111100')
     g['matching_frames']='coordinate'
     binding={k:g[k] for k in ('inputs','labels','args','signs','roots','centers')}
     assert hashlib.sha256(json.dumps(binding,separators=(',',':')).encode()).hexdigest()==pin['graph_sha256']
