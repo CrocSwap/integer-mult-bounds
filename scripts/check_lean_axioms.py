@@ -20,7 +20,7 @@ result = subprocess.run(['lake', 'env', 'lean', str(audit)],
 output = result.stdout + result.stderr
 rows = re.findall(r"^'([^']+)' (?:depends on axioms: \[([^\]]*)\]|does not depend on any axioms)",
                   output, re.M)
-bad = [(name, ax) for name, ax in rows if set(ax.split(', '))-{''}-ALLOWED]
+bad = [(name, ax) for name, ax in rows if {name.strip() for name in ax.split(',')}-{''}-ALLOWED]
 if result.returncode or len(rows) != len(expected) or {n for n, _ in rows} != set(expected) or bad:
     print(output)
     raise SystemExit(f'Axiom audit failed: reported {len(rows)}/{len(expected)}; unexpected {bad}')
