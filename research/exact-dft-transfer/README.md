@@ -11,7 +11,8 @@ moment root `a` into
 |---|---:|---|
 | PR #144 (main) | 4.856·10⁻⁴ | eumemic's published value |
 | PR #200 | 6.654·10⁻⁴ | +37% |
-| **PR #194 (source-assisted)** | **7.009·10⁻⁴** | **+44%** |
+| PR #194 (source-assisted) | 7.009·10⁻⁴ | +44% |
+| **PR #233 (source-assisted, PR #200's layer)** | **7.086·10⁻⁴** | **+46%** |
 
 [PROOF.md](PROOF.md) states the transfer and the three supplier propositions (by reference). The same two new
 propositions are eumemic/exact-dft-bounds pull request #1.
@@ -21,7 +22,7 @@ propositions are eumemic/exact-dft-bounds pull request #1.
     python3 -B research/exact-dft-transfer/verify.py --check     # stdlib only, about 20 seconds; -O is refused
 
 The script checks every pin in `SOURCE.json` (the main certificate of PR #144 and the vendored certificates of
-PR #200 and PR #194, byte for byte as `git show <commit>:<path>`), rebuilds the three child histograms from those
+PR #200, PR #194 and PR #233, byte for byte as `git show <commit>:<path>`), rebuilds the three child histograms from those
 certificates, checks the ledger identities (rank sum, deficit = Wm − rank = 2v − 3ℓ, largest child < m), certifies
 the batched moment at each claimed saving in exact rational arithmetic, rejects the next 10⁻⁷ grid point for each,
 and compares with `expected.json`. `--write` regenerates the certificates.
@@ -30,5 +31,5 @@ and compares with `expected.json`. `--write` regenerates the certificates.
 
 `verify.py`, `scripts/moment.py` (the exact bounds, adapted from eumemic's `verify_moment.py`),
 `certificates/network-children-*.json` and `certificates/moment-*.json`, `references/pr200-certificate.json`,
-`references/pr194-certificate.json`, `SOURCE.json`, `expected.json`, `PROOF.md`, `NOTICE`.
+`references/pr194-certificate.json`, `references/pr233-certificate.json`, `SOURCE.json`, `expected.json`, `PROOF.md`, `NOTICE`.
 `.github/workflows/exact-dft-transfer.yml` runs `--check` on Python 3.11 and 3.14.

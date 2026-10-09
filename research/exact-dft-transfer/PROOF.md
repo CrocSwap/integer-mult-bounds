@@ -16,11 +16,12 @@ repository as its pull request #1 (`c92cf70`).
 |---|---|---:|---:|---:|---:|---:|---|
 | PR #144 (main `d1d6c07`) | `certificates/paired-cube-complex-input.json` | 72 | 29,937 | 1,936 | 60 | 607/1250000 = 4.856·10⁻⁴ | 1 − 4.856·10⁻⁴ |
 | PR #200 (`a1175449`) | `research/paired-cube-diagonal-bit-168/certificate.json`, `complex.profile` | 66 | 13,163 | 1,320 | 20 | 3327/5000000 = 6.654·10⁻⁴ | 1 − 6.654·10⁻⁴ |
-| PR #194 (`a8c8778`) | `research/source-assisted-v4/certificate.json`, `complex_profile` | 66 | 12,052 | 1,320 | 20 | **7009/10⁷ = 7.009·10⁻⁴** | **1 − 7.009·10⁻⁴** |
+| PR #194 (`a8c8778`) | `research/source-assisted-v4/certificate.json`, `complex_profile` | 66 | 12,052 | 1,320 | 20 | 7009/10⁷ = 7.009·10⁻⁴ | 1 − 7.009·10⁻⁴ |
+| PR #233 (`52c6fba`) | `research/source-assisted-v4-layer/certificate.json`, `complex_profile` | 66 | 12,052 | 1,320 | 20 | **7086/10⁷ = 7.086·10⁻⁴** | **1 − 7.086·10⁻⁴** |
 
-For every fixed κ < 7009/10⁷ the exact DFT and exact convolution take O(n (log n)^(1−κ)) operations. In OpenAI's
+For every fixed κ < 7086/10⁷ the exact DFT and exact convolution take O(n (log n)^(1−κ)) operations. In OpenAI's
 preprint the saving is about 2.1·10⁻¹³; eumemic's batched recursion with the PR #144 supplier gives 4.856·10⁻⁴;
-the PR #194 supplier gives 7.009·10⁻⁴.
+the PR #194 supplier gives 7.009·10⁻⁴; the PR #233 supplier (the same word with PR #200's physical layer, Proposition D below) gives 7.086·10⁻⁴.
 
 ## The transfer (by reference)
 
@@ -72,9 +73,11 @@ vertex), so each transition is adapters around one child of its Fourier rank, wi
 and the compression removes roles, not children; (4) `contract_v4.py` certifies fresh columns, read chronology,
 target chains and the normalized profile, and PR #194 certifies the moment root 7.00918…·10⁻⁴.
 
+**Proposition D (PR #233).** The complex supplier of `research/source-assisted-v4-layer` is PR #194's word with only the physical layer (operation frames and reuse pairs) replaced by PR #200's descent; the flow, exact lift and contract are PR #184/#194's unchanged, and PR #200's complete complex checker admits the layer on the aligned word. Proposition C applies verbatim: the same gates, the same monotone nested chains and lifts, the ledger identity Σ ρ n_ρ = 794112 = 66·12052 − 1320 with a different child histogram, and the certified moment root 3543063/5000000000 = 7.0861…·10⁻⁴.
+
 **Moments.** `verify.py` bounds Σ n_ρ (ρ/m)^θ above in exact rational arithmetic (artanh series with a tail bound
 for the logarithms, exp(x) ≤ 1 + x + x²/(2(1 − x/3))) and records the margins: 3.16·10⁻³ (PR #144), 2.69·10⁻³
-(PR #200), 5.27·10⁻⁴ (PR #194). For each supplier the next 10⁻⁷ grid point is rejected.
+(PR #200), 5.27·10⁻⁴ (PR #194), 3.58·10⁻⁴ (PR #233). For each supplier the next 10⁻⁷ grid point is rejected.
 
 ## Scope and limits
 
