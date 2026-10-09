@@ -1,27 +1,23 @@
-κ = 6.83190455036641e-4
+κ = 6.8386028917304e-4
 
-# Coordinated frame cuts and entrance banks on PR200
+# Plateau frame refinement beyond PR211
 
-Conditional kappa: **6.83190455036641e-4**, exactly `683190455036641/1000000000000000000`.
-
-Latest pinned comparator: PR207 at `cd14825023b75af4f5919a30e5e6d548b6ade5bc`, kappa 6.831904550365e-4. This package is approximately **2.06e-11% higher**. The additional gain here comes from one extra finite stopped-leaf bootstrap level on PR207’s fully replayed supplier; PR205 and PR207 independently carry completed PR200 banks.
-
-This composes 302 admitted rational operation-frame changes and completed stage-private entrance banks on PR200 with PR202's source-assisted complex supplier, then applies four fixed ordinary-leaf bootstrap levels and the unchanged balanced assembly. Gains are composed through actual profiles; they are not added.
+Conditional κ ≈ 6.8386028917304 × 10⁻⁴, exactly `8548253614663/12500000000000000`. Paired-component moves and seeded raise/lower cascades change 274 operation subspaces beyond PR211. The final file lists 6,416 replacement bases; some re-register equivalent original subspaces, so this file count is not a count of mathematical changes. Complete paid accounting raises the bit coarse saving to `684328274104459/10^18`; the improvement over PR211's final claim is approximately 0.001816%.
 
 ## Reproduce
 
-Python 3.11 or later; assertions enabled. Install `numpy==2.3.5` and `scipy==1.17.0`, then run:
+Python 3.11 or later, assertions enabled:
 
 ```sh
-python -B research/coordinated-crossover-pr200/verify.py
+python3 -B research/coordinated-crossover-pr200/verify.py --temp-root /tmp
 ```
 
-The pinned source and witnesses are included in five archive parts. No git, network, account, or download is used by verification. Allow about 250 MB scratch space; on Windows with a nearly full system drive, use `--temp-root F:/your-existing-scratch-directory`. Verification uses a temporary extraction and leaves the submitted files unchanged.
+Pinned sources and frozen witnesses are included in five archive parts. The verifier uses temporary extraction, no network or git, and leaves the submitted files unchanged. It checks complete bit formal columns, exact frames and prime witnesses, both reflected ledgers, all bank assignments/charts/router charges, the frozen complex exact lift/contract, two independent paid moments, four finite ordinary-leaf levels and all 47 assembly inequalities. It rejects the adjacent final grid point. Numerical complex discovery is not repeated.
 
-The verifier executes the complete bit formal-column replay, modified rational frames, terminal actions, actual prime witnesses, explicit bank assignment and chart/inverse/routing checks. It replays the exact complex local lifts and fresh-column/target contract against pinned witnesses, recomputes paid moments with two independent rational enclosures, and checks all 47 strict assembly inequalities. Rank corruption and adjacent-grid controls must fail. The numerical complex search is not rerun; its frozen witness is rechecked exactly.
+Search sources, frozen PR211 input, the initial plateau delta and final canonical difference counts are under `search/`; see `search/SEARCH-NOTE.txt` and `PLATEAU-REFINEMENT.md`. Search uses floating entropy only to propose moves. The claimed κ comes from exact rational replay.
 
-## Scope
+## Scope and sources
 
-This is a **conditional finite supplier certificate**, with the same all-size compiler, completed weighted/restored selector, routing, precision, fixed analytic tape and finite bridge conditions as the cited public work. It does not independently prove those conditions or provide a new Lean certificate. The complex branch retains the source-assisted local-flow contract: no newly flattened global scalar transcript or full Clifford/router replay is claimed.
+The same inherited all-size compiler, completed weighted/restored selector, routing, prime, precision, fixed analytic tape and finite bridge assumptions remain. The complex branch uses the source-assisted exact local-flow contract, without a newly flattened global scalar transcript or a new full Clifford/router replay.
 
-Base bit: PR200, `a1175449f34d39ff933d9d8ab23ced1f32b290ec`. Base complex/assembly: PR202, `8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d`. The included tracked source is the LF checkout of PR202; its PR200 bit program agrees with the separate PR200 pin (only SOURCE.json differs). Original attribution and licensing are retained. Prepared with substantial OpenAI Codex assistance; no new personal byline.
+PR211: Rohan Arun, `c63e50a5dde96fe1459d6b29e55e47f42f104347`, Anthropic Claude assistance. PR207: Dugongue, `cd14825023b75af4f5919a30e5e6d548b6ade5bc`, offline admission/bank package. Base bit: Chafik Boukhalfa's PR200, `a1175449f34d39ff933d9d8ab23ced1f32b290ec`. Base complex/assembly: PR202, `8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d`. All original licenses and assistance disclosures are retained. This refinement was prepared by eumemic with substantial OpenAI Codex assistance.

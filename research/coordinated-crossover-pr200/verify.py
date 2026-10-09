@@ -26,4 +26,4 @@ with tempfile.TemporaryDirectory(prefix='crossover-pr200-',dir=args.temp_root) a
  result=subprocess.run([sys.executable,'-B',str(package/'verify_inner.py')],text=True)
  assert result.returncode==0,'Full finite replay failed'
 assert pins()==before,'Upload files changed during replay'
-print('PASS immutable manual-upload package; no network, git, or publication required')
+print('PASS immutable offline package; no network or git required')
