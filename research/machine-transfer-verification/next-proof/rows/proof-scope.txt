@@ -1,0 +1,53 @@
+FINITE CYCLIC ROW TRANSFER — Lean4.21.0
+
+RowInterchange.lean uses the new FramedXor.lean and the previously published
+DirtyWrapper.lean, plus the existing pinned Mathlib project. It introduces no
+axiom and no admitted proof. check.py rebuilds all three modules from sources
+in an empty temporary directory, then audits ten row theorem declarations.
+
+The mathematical payload has finite rows Fin(W*R), arbitrary address type A,
+and arbitrary values B. The address-aware interpreter specialization uses Bool.
+There is no assumption of blank original rows or nonempty address type.
+
+join_split, role_join, group_join:
+  The explicit row number W*g+w is inverse to (r mod W,r div W), for W>0.
+  The rowEquiv definition makes the resulting finite bijection explicit:
+  every role has exactly R complete rows, with all addresses retained.
+
+merge_split:
+  Literal split and merge are inverse on every original payload.
+
+merge_uniform:
+  If terminal role destination(w) has input role w with the same group and
+  a common address pullback, undoing destination during merge gives exactly
+  that address pullback on each original row, without changing row identity.
+
+framed_rows:
+  Applies FramedXor.terminal_role_transport to the literal typed interpreter.
+  Its scalar_roles premise states the scalar word's terminal role permutation.
+  Its terminal_frames premise states g_out(destination w)=sigma ∘ g_in(w),
+  where sigma preserves the group coordinate and acts on the address only.
+  The conclusion is pullback by sigma.inverse, not by sigma.forward.
+  Gauge bijectivity is part of Gauge; role bijectivity is part of Equiv.
+
+restrict_pad, padding_commutes, padded_endpoint_restrict,
+padded_endpoint_blank:
+  Padding adds only blank new rows. A row-preserving common address map
+  preserves these blanks, and restriction gives the desired map on every
+  original row. The original data remain arbitrary. No linearity or zero
+  original auxiliary state is assumed.
+
+Remaining application obligations:
+  - Construct the concrete word as a typed Trace with its actual gauges.
+  - Discharge its scalar role endpoint and common terminal-gauge identity.
+  - Prove every recursive invocation has the required divisible row stock.
+  - Construct and charge split/merge, frame paths, parking, routing, fresh
+    blank allocation/erase, and residual operations on one fixed-tape machine.
+  - Bind exact finite profiles to those operations and to all-size costs.
+
+These theorems close semantic layout interfaces. They do not establish any
+new exponent or an unconditional integer-multiplication algorithm.
+
+Reproduction from any cached checkout of the pinned project:
+  python3 check.py --mathlib-project /path/to/formal/lean \
+    --lean-bin /path/to/lean-4.21.0/bin

@@ -4,10 +4,12 @@ from hashlib import sha256
 from itertools import combinations
 from pathlib import Path
 import json,struct,sys,gzip,argparse
+from binary_frame_replay import check_word
 
 
 def prepare(path,destination):
     raw=Path(path).read_bytes();raw=gzip.decompress(raw) if str(path).endswith('.gz') else raw;d=json.loads(raw)
+    check_word(d)
     h,v,R=d['h'],d['v'],d['R']
     frames=[(0,0,0),(0,0,h)]+[(c,u,1 if c==u else u.bit_count()-c.bit_count()) for c,u in d['frames']]
     physical=[None]*R;transitions=Counter()
