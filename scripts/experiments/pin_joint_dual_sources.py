@@ -12,7 +12,7 @@ NAMES = ('joint_dual_compiler.py', 'joint_dual_compose.py', 'verify_joint_dual.p
 
 def run():
     names = {'scripts/experiments/'+name for name in NAMES}
-    names.update(('Makefile', 'README.md', 'NOTICE', 'research/joint-dual/README.md',
+    names.update(('research/joint-dual/README.md',
                   'research/joint-dual/PROOF.md', 'certificates/joint-dual-compiler.json',
                   'certificates/skip-frame-kappa.json', 'tests/test_joint_reclaim.py'))
     for h in (23,25):
