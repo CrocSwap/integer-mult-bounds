@@ -1,0 +1,19 @@
+name: paired-cube-refinement
+on: [push, pull_request]
+jobs:
+  conditional-finite-witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -B research/paired-cube-bit-descent/search.py
+      - run: python3 -B research/paired-cube-refinement/test_arithmetic.py
+      - run: python3 -B research/paired-cube-bit-reuse/check_obstruction.py --check
+      - run: python3 -B research/paired-cube-refinement/verify.py
+      - run: python3 -B research/paired-cube-refinement/compare_pr169.py
+      - run: git diff --exit-code
