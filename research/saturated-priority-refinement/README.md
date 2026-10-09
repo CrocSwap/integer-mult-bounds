@@ -1,7 +1,6 @@
 # Saturated frame priority refinement
 
-Draft: focused regeneration and the independent exact reflected audit passed;
-full repository verification remains pending.
+Full verification passed on research commit `06f174c48b06856a3d6c96ee232dc3fc44145c39`: `make -j1 verify` and package `verify.py --full` completed in 3663.98 seconds with no source drift. All 45 GitHub checks on that research commit passed. See [validation.json](validation.json) for commands, log/archive hashes and scope. The inherited general interfaces remain conditional.
 
 Under the inherited analytic, stopped-product and fixed-tape interfaces,
 κ = 54642831733/500000000000000 = **1.09285663466e-4**.
