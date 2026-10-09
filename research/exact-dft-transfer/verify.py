@@ -35,7 +35,7 @@ SUPPLIERS = {
     'pr144': dict(field=('child_histogram',), profile=lambda d: d, a=Q(607, 1250000)),
     'pr200': dict(field=('complex', 'profile'), profile=lambda d: d['complex']['profile'], a=Q(3327, 5000000)),
     'pr194': dict(field=('complex_profile',), profile=lambda d: d['complex_profile'], a=Q(7009, 10**7)),
-    'pr233': dict(field=('complex_profile',), profile=lambda d: d['complex_profile'], a=Q(7086, 10**7)),
+    'pr233': dict(field=('complex_profile',), profile=lambda d: d['complex_profile'], a=Q(7099, 10**7)),
 }
 
 

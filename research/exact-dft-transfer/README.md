@@ -12,7 +12,7 @@ moment root `a` into
 | PR #144 (main) | 4.856·10⁻⁴ | eumemic's published value |
 | PR #200 | 6.654·10⁻⁴ | +37% |
 | PR #194 (source-assisted) | 7.009·10⁻⁴ | +44% |
-| **PR #233 (source-assisted, PR #200's layer)** | **7.086·10⁻⁴** | **+46%** |
+| **PR #233 (source-assisted, PR #200's pairing)** | **7.099·10⁻⁴** | **+46%** |
 
 [PROOF.md](PROOF.md) states the transfer and the three supplier propositions (by reference). The same two new
 propositions are eumemic/exact-dft-bounds pull request #1.
