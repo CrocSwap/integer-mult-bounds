@@ -1,8 +1,11 @@
 # The zeta family: Boolean-lattice finite networks
 
 Under the retained fixed-alphabet interfaces, the construction below compiles
-through the in-tree compiler (`scripts/paired_cube/frames.py::compile_graph`)
-and prices through the in-tree assembly (`scripts/structured_bulk_assembly.py`):
+through the merged in-tree compiler
+(`scripts/paired_cube/frames.py::compile_graph`, the #144 path) and its profile
+prices through the in-tree assembly (`scripts/structured_bulk_assembly.py`) with
+both sides configured at the family saving (the two-sided projection; the
+bit-side realization is an open obligation, see D):
 
 | h | v | R | R/v | saving (both sides) | kappa | x PR #163 |
 |---|---|---|---|---|---|---|
@@ -52,9 +55,14 @@ C. The DAG computes the orthogonal-broadcast map `y_t = sum_{u: u&t=0} x_u`
    (checked literally above). Its service to the upstream reduction - the
    analogue of the `H+K+B = I` scalar ledger - is not established here and is
    the main open obligation.
-D. The scalar word (ops/replay), the physical layer, and the two scalar
-   domains (F2 / Z[i,1/2]) are not built here; this package is the compiled
-   graph and its in-tree-verified profile, not a certificate of multiplication.
+D. The scalar word (ops/replay), the physical layer, and the scalar-domain
+   realizations are not built here. The graph is verified through the merged
+   complex-side compiler path; the bit-side path carries its own H0 = (I-J/9)/2
+   cap geometry and does not accept this graph as-is (checked: it rejects with
+   'root physical compatibility'). The bit-side construction is therefore an
+   explicit obligation, and every table number is a two-sided projection under
+   obligations A-C. This package is a compiled graph and its in-tree-verified
+   profile, not a certificate of multiplication.
 
 **Credits.** The compiler (`frames.py`), the assembly, the side-root
 orthogonality contract and the identity bookkeeping are icekylinx's PR #144
