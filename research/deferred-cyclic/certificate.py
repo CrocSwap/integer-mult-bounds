@@ -82,6 +82,26 @@ def main():
     old_bit = previous['finite_bridge']['bit']
     old_degree = old_bit['halving_degree'] * old_bit['wire_bits']
     require(old_degree == 252, 'inherited ordinary leaf row stock')
+    # Conservative expanded-readout charge, adapted from eumemic PR114
+    # (51cd8934128be37830981ca391d3d6fd28b0fce8), Apache-2.0.
+    # Charge literal readouts, including forward/inverse/reflected words;
+    # the original addition-DAG count alone does not bound those operations.
+    h, v, R, q, c = (phase[k] for k in ('h', 'v', 'R', 'roots', 'additions'))
+    local = 8 * (c + 2 * R + (R + q) * v * (h + 1) + h * h + h + 1)
+    G = phase['N'] + 2 * v * local
+    m, W, total_rank = (phase[k] for k in ('m', 'W', 'total_rank'))
+    E = 64 * (W + m + G + 1) ** 3
+    charge = 2 * G * W * W + 8 * total_rank + 4 * W + 4 + 32 * m
+    B = total_rank + E
+    C0 = 32 * m * B * B
+    require(charge < E and 2 * B * (m - phase['maxchild']) >= total_rank + E
+            and 2 * B + 18 < C0, 'expanded literal scalar charge')
+    bridge['complex']['scalar_group_upper'] = G
+    bridge['complex']['scalar_terms'] = [dict(h=h, v=v, c=c, R=R, q=q,
+        invocations=v, local_group_upper=local,
+        description='Expanded deferred readouts and forward/inverse/reflected words')] * 2
+    bridge['semantic'].update(E=E, literal_charge=charge, strict_literal_gap=E-charge,
+        B=B, C0=C0, C1=1, induction_gap=2*B*(m-phase['maxchild'])-total_rank-E)
     coarse_bridge = bridge.pop('bit'); cpx = bridge['complex']
     coefficient = (coarse_bridge['halving_degree'] * coarse_bridge['wire_bits'] + old_degree +
                    cpx['halving_degree'] * cpx['wire_bits'])

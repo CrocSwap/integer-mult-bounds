@@ -41,3 +41,10 @@ are asserted by its producer and re-checked by the deferral pipeline.
 Credit: Avi Eisenberg (PR #110 deferral on stopped networks, PR #62 interval strips), Swapnil Jain (deferred
 readouts, round-seven word), icekylinx (PR #104), the PR #55 dual-suffix authors, PR #107–#109, and all
 predecessors credited in PR #104's NOTICE/SOURCES. Composition by Rohan Arun with Anthropic Claude assistance.
+
+
+### Expanded scalar-work charge (PR114 accounting correction)
+
+The initial inherited PR110 certificate counted the original addition DAG when forming its scalar guard. Deferred readouts expand into additional operations, so that charge was insufficiently justified. Following eumemic's PR114, the certificate now conservatively charges the literal expanded forward, inverse and reflected words. A local row has at most c+R mixer operations, R leaf copies, and R+q readouts with at most h center and v direct coefficients each. The bound 8(c+2R+(R+q)v(h+1)+h²+h+1), applied to both sets of v rows plus the data term, covers these operations and copies. It raises G from 2,019,773,888 to 76,407,506,746,560. Precision constants and eventual cutoffs increase; the physical profiles, strict savings and κ=9.39074e-5 are unchanged. All 47 inequalities, seven margins and next-grid exclusions are recertified with the enlarged guard. Credit: eumemic, PR114 commit51cd8934128be37830981ca391d3d6fd28b0fce8, OpenAI Codex assistance.
+
+The already-running full suite tests the preceding fingerprint-repaired head. Its receipt must identify that head and a separate corrected-certificate replay; it must not represent the old certificate as including this correction.
