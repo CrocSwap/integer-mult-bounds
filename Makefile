@@ -24,6 +24,7 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-deferred-product
+	$(MAKE) verify-deferred-replayed
 	$(MAKE) verify-tests
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
@@ -447,3 +448,13 @@ deferred-product-verify:
 	python3 scripts/deferred_product_complex.py
 	python3 scripts/deferred_product_complex_frames.py
 	python3 scripts/deferred_product_network.py certificates/deferred-product-complex-input.json certificates/deferred-product-network.json
+
+.PHONY: deferred-replayed-verify verify-deferred-replayed
+verify-deferred-replayed: deferred-replayed-verify
+deferred-replayed-verify:
+	tmp=$$(mktemp -d) && \
+	DEFER_DUMP=$$tmp/word.json python3 research/deferred-replayed/complex_deferred.py && \
+	python3 scripts/deferred_product/deferred_word.py $$tmp/word.json certificates/deferred-product-complex-dag.json.gz \
+	    --profile research/deferred-replayed/complex-profile.json --controls && \
+	rm -rf $$tmp
+	python3 research/deferred-replayed/network.py

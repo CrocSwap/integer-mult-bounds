@@ -3,6 +3,13 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Deferred readouts on the replayed complex network
+
+[research/deferred-replayed](research/deferred-replayed/README.md) gives
+**κ = 1363953833/(1.25·10^13) = 1.0911630664×10^-4**. It applies PR #110's deferred complex readouts
+(Avi Eisenberg), with PR #114's saturated deferral frames, to the h=24 complex DAG of the section below.
+An independent two-stage word check passes. Run `make deferred-replayed-verify`.
+
 ## Deferred bit word under stopped-product accounting
 
 [research/deferred-product](research/deferred-product/README.md) gives
