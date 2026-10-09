@@ -1,5 +1,9 @@
 # Reproducing the result
 
+For the three-stage cover extension, run `make three-stage-cover-verify`.
+The [incremental guide](three-stage-cover.md) covers the new PR #117 local
+word, cover moments and exact assembly.
+
 For the partial-gauge extension, run `make partial-gauge-verify`. Its
 [incremental guide](partial-gauge.md) separates the pinned PR #97 bit input,
 new complex producer and exact assembly.

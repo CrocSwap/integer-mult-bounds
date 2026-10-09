@@ -3,6 +3,32 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Three-stage cover extension
+
+The construction contributed by **icekylinx**, extending
+[PR #115](https://github.com/CrocSwap/integer-mult-bounds/pull/115), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{3146011}{10000000000}=3.146011\times10^{-4}.
+$$
+
+Three signed shears on a regular Cayley cover align all interstage data
+frames. The complex branch combines eumemic's PR #117 local DAG with
+arbitrary-subspace Clifford frames; the bit branch retains the PR #97 /
+Swapnil physical word and uses a batched weighted q-adic cover. Local
+transitions, copied centers, rare-class fallback, finite routers and
+internal row borrowing are charged. The retained analytic and fixed-tape
+hypotheses still apply.
+
+[Proof source](notes/three-stage-cover-note.tex) ·
+[Exact certificate](certificates/three-stage-cover-network.json) ·
+[Incremental reproduction](docs/three-stage-cover.md)
+
+```sh
+make three-stage-cover-verify
+```
+
 ## Partial-gauge extension
 
 The construction contributed by **icekylinx**, extending

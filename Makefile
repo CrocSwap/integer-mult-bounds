@@ -16,6 +16,7 @@ verify:
 	$(MAKE) verify-community
 	$(MAKE) verify-producers
 	$(MAKE) verify-partial-gauge
+	$(MAKE) verify-three-stage-cover
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -454,3 +455,14 @@ partial-gauge-verify: partial-gauge-bit partial-gauge-producer partial-gauge-cer
 
 .PHONY: verify-partial-gauge
 verify-partial-gauge: partial-gauge-verify
+
+.PHONY: three-stage-cover-producer three-stage-cover-certificate three-stage-cover-verify verify-three-stage-cover
+three-stage-cover-producer:
+	python3 scripts/three_stage_cover_producer.py
+
+three-stage-cover-certificate:
+	python3 scripts/three_stage_cover_network.py
+
+three-stage-cover-verify: three-stage-cover-producer three-stage-cover-certificate
+
+verify-three-stage-cover: three-stage-cover-verify
