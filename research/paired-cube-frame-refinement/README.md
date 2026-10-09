@@ -30,9 +30,11 @@ assembly checks all 47 strict inequalities and seven margins. The adjacent
 10^-14 complex point fails the same conservative rational moment enclosure;
 this concerns that fixed enclosure and parameter choice only.
 
-Validation status: fresh producer, focused baseline, candidate physical and
-reflected-word checks, independent full formal execution, and exact assembly
-passed locally. The packaged gate is checked before submission. Full repository
-verification and research-head GitHub CI are pending; keep this PR draft until
-both complete. Finite verification does not establish the inherited all-size
-interfaces. See PROOF.md and NOTICE.
+Validation status: full repository `make -j1 verify` and the packaged verifier
+passed on frozen research commit `2c4a380126640abfcdce398ced255d1dd5d1d007`
+on 2026-10-09, in 3340.2324075698853 seconds. The run completed 79 isolated
+test modules, 20 patch checks and the package's ten corruption controls, with
+no source drift. All 48 research-head GitHub CI checks passed. See
+validation.json for the source-bound receipt and evidence hashes. Finite
+verification does not establish the inherited all-size interfaces. See PROOF.md
+and NOTICE.
