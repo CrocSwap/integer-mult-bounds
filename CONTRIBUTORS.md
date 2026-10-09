@@ -161,6 +161,8 @@ OpenAI Codex assistance**, composes those two ideas: it removes terminal roles
 from the #125 shrunk-frame profile and charges all direct redirects in the
 scalar bound. This is a distinct composition submitted for review; it does not
 claim global optimality, a complete theorem proof, or priority over either
-source. The independent review status and exact head are recorded with its PR
-once submitted. Original source licenses and each contributor's AI disclosures
-remain applicable.
+source. It is submitted as [Draft PR #1](https://github.com/GamingPuzzled/integer-mult-bounds/pull/1)
+against `GamingPuzzled:research/shrunk-frames`, at head
+`101cff3ec7c8ebe711439a3a14723e051b9c02a4`; independent mathematical review is
+pending. Inclusion is an attribution record, not external acceptance. Original
+source licenses and each contributor's AI disclosures remain applicable.

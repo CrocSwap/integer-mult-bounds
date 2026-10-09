@@ -120,3 +120,11 @@ See [CONTRIBUTORS.md](../../CONTRIBUTORS.md) for contributions and parallel work
 
 - [#40](https://github.com/CrocSwap/integer-mult-bounds/pull/40), rohanarun: Both fixed bases and copied reversed corners: conditional κ = 3.918734894e-5 > 2^-15.
   Pinned `43f59ff533598762cbc43a5e14af2bbbc76fabbd`; not imported in the #39 integration pass.
+
+## Later stacked candidate: terminal elimination on shrunk frames (9 October 2026)
+
+- **Submission:** [Draft PR #1](https://github.com/GamingPuzzled/integer-mult-bounds/pull/1), based on `GamingPuzzled:research/shrunk-frames`.
+- **Head:** `101cff3ec7c8ebe711439a3a14723e051b9c02a4`.
+- **Pinned sources:** Joel Pulikkan's PR #125 head `dda535bdcfc321a13a1ebd3c2d70e2b5bb72368e`; SovereignSteak's PR #122 head `b1a6f24e57141637b3ff040d6f2ce9d896ffb9bb`.
+- **Submitted result:** conditional κ = `110875518403/10^15`, about 0.257% above the fixed #125 parent. The live upstream PR #138 has a higher κ on the separate paid padded-triple-cover route; this candidate makes no global-frontier claim.
+- **Review status:** draft awaiting independent mathematical review. Its finite verifier and controls pass; inherited transfer, analytic, fixed-tape and all-size assembly interfaces remain open proof obligations.
