@@ -57,6 +57,41 @@ def canon(value):
     return value
 
 
+def differences(actual, expected, limit=24):
+    found = []
+
+    def show(value):
+        text = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+        return text if len(text) <= 240 else text[:237] + '...'
+
+    def walk(a, e, path='$'):
+        if len(found) >= limit:
+            return
+        if isinstance(a, dict) and isinstance(e, dict):
+            for key in sorted(set(a) | set(e)):
+                if len(found) >= limit:
+                    break
+                child = path + '.' + str(key)
+                if key not in a:
+                    found.append((child, '<missing>', show(e[key])))
+                elif key not in e:
+                    found.append((child, show(a[key]), '<missing>'))
+                else:
+                    walk(a[key], e[key], child)
+        elif isinstance(a, list) and isinstance(e, list):
+            if len(a) != len(e):
+                found.append((path + '.length', str(len(a)), str(len(e))))
+            for i, (av, ev) in enumerate(zip(a, e)):
+                if len(found) >= limit:
+                    break
+                walk(av, ev, path + '[' + str(i) + ']')
+        elif a != e:
+            found.append((path, show(a), show(e)))
+
+    walk(actual, expected)
+    return found
+
+
 def rel(path):
     return Path(path).resolve().relative_to(REPO).as_posix()
 
@@ -159,7 +194,11 @@ def main():
     if args.write:
         write(target, result)
     else:
-        assert result == read(target), 'Canonical certificate does not reproduce'
+        expected = read(target)
+        if result != expected:
+            for path, generated, saved in differences(result, expected):
+                print('Certificate mismatch at ' + path + ': generated=' + generated + ' saved=' + saved)
+            raise AssertionError('Canonical certificate does not reproduce')
     print('PASS source-assisted-v4 kappa = ' + result['kappa'] + ' (' + str(float(Q(result['kappa']))) + ')')
 
 
