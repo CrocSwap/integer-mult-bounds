@@ -38,5 +38,50 @@ jobs:
           retention-days: 3
       - name: Regenerate the PR189 bit certificate that the assembly reads
         run: python -B research/paired-cube-twin-local-168/verify.py
+      - name: Capture fresh dependent certificates after a verifier failure
+        if: failure()
+        run: |
+          python -B research/paired-cube-twin-local-168/bit/prime_witnesses.py --write
+          python -B research/paired-cube-twin-local-168/verify.py --write
+          python -B research/source-assisted-v4/pin_sources.py
+          python -B research/source-assisted-v4/verify.py --write
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          manifest_path = Path('research/paired-cube-twin-local-168/SOURCE.json')
+          manifest = json.loads(manifest_path.read_text())
+          changed = []
+          for name, expected in manifest['files'].items():
+              actual = hashlib.sha256(Path(name).read_bytes()).hexdigest()
+              if actual != expected:
+                  manifest['files'][name] = actual
+                  changed.append(name)
+          manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+          print('Updated PR189 pins for changed workflow/certificate inputs:', changed)
+          PY
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          for package in ('research/paired-cube-twin-local-168', 'research/source-assisted-v4'):
+              manifest = json.loads((Path(package) / 'SOURCE.json').read_text())
+              mismatches = [name for name, expected in manifest['files'].items()
+                            if hashlib.sha256(Path(name).read_bytes()).hexdigest() != expected]
+              if mismatches:
+                  raise SystemExit(f'{package}: stale pins: {mismatches}')
+              print(f'{package}: {len(manifest["files"])} source pins verified')
+          PY
+      - name: Upload refreshed certificates for review
+        if: always() && failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: refreshed-pr189-and-source-assisted-certificates
+          path: |
+            research/paired-cube-twin-local-168/bit/prime-witnesses.json.gz
+            research/paired-cube-twin-local-168/certificate.json
+            research/paired-cube-twin-local-168/SOURCE.json
+            research/source-assisted-v4/certificate.json
+            research/source-assisted-v4/SOURCE.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Require an unchanged tree
         run: git diff --exit-code
