@@ -24,6 +24,11 @@ selection, full signed-rational adjoint replay, the repaired physical access
 closure, and the independent finite kernel audit. This comparison is against
 the pinned PR113 witness, rather than a claim of optimality.
 
+[PR115](https://github.com/CrocSwap/integer-mult-bounds/pull/115) independently
+develops partial source gauges on a cube producer. Its stated
+`7237/78125000 = 0.0000926336` is below this witness by
+`16466139/10^13`; the relative improvement is approximately 1.7776%.
+
 The complex producer is the exact cyclic-strip and dual-suffix producer from
 [PR113](https://github.com/CrocSwap/integer-mult-bounds/pull/113), pinned at
 `0eee4d507092a96bde88de703f07574ba17401a8`. Its sources are PR111's cyclic
@@ -99,7 +104,8 @@ PairedTriple producer, copied-center and complex endpoint work, legal carrier
 matching, and the retained OpenAI #109 framework. Original notices and source
 attribution are preserved in the imported files. Related concurrent work
 includes Rohan Arun's PR107/108/111/113, Avi Eisenberg's PR110, and Rohan
-Gupta's dual-suffix strips in PR55.
+Gupta's dual-suffix strips in PR55. icekylinx's PR115 independently combines
+partial source gauges with compatible frame enlargement and cube producers.
 
 The partial complex readout construction, its selection, audits, and packaging
 were prepared with OpenAI Codex assistance and GPT-6-sol research agents. New
