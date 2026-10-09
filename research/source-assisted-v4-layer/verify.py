@@ -140,6 +140,8 @@ def main():
         run(root, BIT / 'complex/physical.py', '--candidate', cand, '--source', root, '--out', work / 'audit.json')
         audit = read(work / 'audit.json')
         assert audit['status'].startswith('PASS'), audit['status']
+        # the checker keys its source hashes by absolute path; record them relative to the rebuilt tree
+        audit['source_sha256'] = {Path(k).resolve().relative_to(root).as_posix(): v for k, v in audit['source_sha256'].items()}
         log('admitted this package\'s physical layer with PR #200\'s complex checker: %s; %d frames, %d pairs, %d of PR #168\'s %d frames changed'
             % (audit['status'][:60], len(frames), len(pairs), sum(1 for (i, F), (j, G) in zip(sorted(frames), sorted(theirs)) if tuple(F) != tuple(G)), len(theirs)))
         # 4. frame flow, exact lift and contract on this layer
