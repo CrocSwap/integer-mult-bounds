@@ -39,6 +39,48 @@ On the complex ledger (`m = 66`, one copy `W = 12,052`, deficit `1,320`, 20 fami
 eyeballed. After rungs 2-4 all three are out of the ledger, and the eligibility scan on the
 retained row is empty -- the criterion cannot be applied again at this width, on this ledger.
 
+### 2b. The criterion is not sufficient: T1, enumerated
+
+A bank is a partition of 66 coordinates into blocks.  Absorbing a family *uniformly* -- the
+same block pattern in every bank, as the certified bit-side construction uses (eighteen
+4-coordinate cores, or three 24-coordinate cores, per width-72 bank) -- means `k_f` blocks of
+family `f` per bank and `n_f = k_f * B` items for one **common** `B`.  Hence `B` divides
+every `n_f` in the absorbed set and the pattern must fit: `sum_f k_f * f <= 66`.  So the scan
+(`schedule66.py`) is over the **common divisors** of the item counts, not over partitions of
+66; it is exhaustive and therefore a decision, not a search.
+
+| family | `n_f` (three copies) | capacity `66 // f` | banks by volume criterion | banks its capacity needs | uniform patterns |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 11 | 3,186 | 6 | 531 | 531 | 4, `B` in {3186, 1593, 1062, **531**} |
+| 16 | 792 | 4 | 192 | **198** | 4, `B` in {**198**, 264, 396, 792} |
+| 20 | 198 | 3 | 60 | **66** | 3, `B` in {**66**, 99, 198} |
+
+Three consequences, all asserted in `verify.py` and recorded in `certificate.json` ->
+`tiling`:
+
+1. **Rank 11 is exactly consistent**, and rung 2's 531 is the tightest of its four patterns
+   (six blocks per bank, no padding).  `66 = 6 * 11` is what makes the volume criterion and
+   the capacity criterion agree.
+2. **Ranks 16 and 20 are not.**  `66 = 4 * 16 + 2` and `66 = 3 * 20 + 6`: a bank holds four
+   or three whole blocks, so 792 items need 198 banks and 198 items need 66 -- six three-copy
+   banks (two per copy) more than the volume criterion prices, the padding being 2 and 6
+   registers per bank (396 three-copy registers in both cases).  At the priced counts the
+   required items per bank are `33/8 = 4.125` and `33/10 = 3.3`, above the capacities 4
+   and 3; a bank cannot hold a fraction of a block.
+3. **No mixture is admissible.**  For a set of families absorbed together, `B` divides the
+   `gcd` of their counts: {11,16} -> 18 (531 and 132 blocks per bank), {16,20} -> 198 (four
+   and one, 84 registers into a 66-wide bank), {11,20} -> 18 (177 and 11), {11,16,20} -> 18
+   (177, 44, 11).  Every one overflows the bank, so no uniform tiling of width 66 absorbs two
+   whole bins at once -- which is also why the padding cannot be paid from a *retained*
+   family, since that would remove part of a bin, while the priced ledger removes bins whole.
+
+The obligation T1 therefore has a determined answer, and it is negative: rungs 3 and 4 are
+priced on bank counts that no admissible tiling of a width-66 bank realises.  Making them
+physical needs either partial-bin removals (a ledger change, which would move the retained
+histogram and so the price) or a different bank width (which moves the whole ladder).  That
+is a sharper statement of the blocker than "a construction is owed", and it is the reason the
+upper two rows of the price table carry a caveat rather than a status.
+
 ## 3. The ledgers, step by step (three-copy rows)
 
 | after | W | rank mass | children | largest child | rule applied |
@@ -99,11 +141,14 @@ volume (asserted). Two consequences follow, and they are the useful part of the 
 * Machine-checked here: the pinned bytes (21 files, sha256), the frontier reproduction, rung 1
   rebuilt by the vendored #219 package, rung 2 rebuilt by this package's own ledger module,
   rungs 3 and 4 (volumes, row identities, stock drops, both paid moments, adjacency
-  rejections), the branch ceilings, the eligibility exhaustion and the PR208 replica.
+  rejections), the branch ceilings, the eligibility exhaustion, the PR208 replica and the T1
+  enumeration of the width-66 tilings (both the pinned scan and its findings).
 * **Not** checked here: any physical realization. C1-C7 and T1 are open, and #219's R1-R4 are
   inherited open; the complex supplier has no bank construction in the pins
-  (machine-checked), and neither new family has an occurrence inventory. The kappa is
-  conditional on all of them, exactly as #219's rung 1 and #224's rung 2 are.
+  (machine-checked), and neither new family has an occurrence inventory. T1's *enumeration*
+  is done here and comes out negative (~2b), so the rungs above rung 2 are priced targets
+  whose bank counts are not realisable by any uniform tiling -- not merely unconstructed. The
+  kappa is conditional on all of them, exactly as #219's rung 1 and #224's rung 2 are.
 * Not run: upstream CI, and any contributor verifier other than the vendored #219 package
   invoked in place.
 * The `10^-10` supplier field is priced as a conservative variant; on it the ladder's top sits

@@ -14,6 +14,11 @@ ledger -- and records where the accounting criterion the built rungs use stops.
 | **rung 3, this package** | + complex rank-16 family, 192 banks | `710572698755137/10^18` = **0.000710572698755137** | complex | **+0.3221%** over rung 2; blocked (below) |
 | **rung 4, this package** | + complex rank-20 family, 60 banks | `355587847933979/5*10^17` = **0.000711175695867958** | complex | **+0.4072%** over rung 2, **+4.0963%** over the frontier; blocked (below) |
 
+The two bank counts above are the ones the whole-bank volume criterion gives. The T1 scan
+below shows a width-66 bank cannot host them: the rank-16 and rank-20 absorptions need 198
+and 66 banks by their own capacity, and no uniform tiling absorbs either family together with
+another. Rungs 3 and 4 are priced targets on a bank count no admissible tiling realises.
+
 The price is the same ledger in two independent conventions: the `10^-18` grid of the queue's
 latest rungs (`eta = beta = 10^-24`, `weak = 10^-30`), and PR208's pricing model
 (`stop = 10^-9`, `eta = 10^-8`, `10^-10` grid) as an independent replica -- where rung 2
@@ -56,12 +61,42 @@ the status are read from the pins, not asserted:
   rank-20 children, exactly as nothing enumerates its rank-11 family or #219's rank-22 bin
   before its own inventory was written. A rung that cannot name its items cannot be built.
 
-One further obligation is specific to rungs 3 and 4 and worth stating precisely because it is
-**not** a construction: rank 11 divides the bank width (`66 = 6 * 11`) and needed no mixture,
-but `66 = 4 * 16 + 2` and `66 = 3 * 20 + 6`, so the rank-16 and rank-20 blocks cannot tile a
-66-wide bank alone. Their banks must mix block sizes (T1), which is the same obligation #219
-carries for the bit word as R1 -- admissible tilings of width 72 over families {4, 24, 22} --
-with no analogous enumeration to inherit.
+One further obligation is specific to rungs 3 and 4, and this package no longer merely owes it:
+it **enumerates** it (`schedule66.py`, `schedule66.json`, checked by `verify.py`) and the
+answer is negative. A bank is a width-66 block partition, and a *uniform* pattern -- the same
+pattern in every bank, which is what the certified bit-side construction uses (eighteen
+4-coordinate cores, or three 24-coordinate cores, per width-72 bank) -- absorbing a family
+forces one common bank count `B` with `k_f = n_f / B`. So `B` divides `gcd(n_f)`, and
+`sum_f k_f * f <= 66`. That is finite and exhaustive:
+
+| family | blocks per bank (capacity) | banks by volume criterion | banks its capacity needs | admissible uniform patterns |
+| --- | ---: | ---: | ---: | --- |
+| 11 (rung 2) | 6 (`66 = 6 * 11`) | 531 | 531 | 4, `B` in {3186, 1593, 1062, **531**} |
+| **16 (rung 3)** | 4 (`66 = 4 * 16 + 2`) | 192 | **198** | 4, `B` in {**198**, 264, 396, 792} |
+| **20 (rung 4)** | 3 (`66 = 3 * 20 + 6`) | 60 | **66** | 3, `B` in {**66**, 99, 198} |
+
+Three findings, each machine-checked:
+
+* **rank 11 tiles alone**, four ways, and rung 2's 531 (six blocks per bank, no padding) is the
+  tightest of them -- which is why rung 2 is consistent and rungs 3 and 4 are not;
+* **ranks 16 and 20 tile alone only above the bank counts their own volume criterion prices**:
+  792 rank-16 items need 198 banks, not the 192 that `12,672 / 66` gives (192 banks hold
+  4.125 items each where 4 is the capacity), and 198 rank-20 items need 66, not 60. The
+  unused registers are the padding: 2 per rank-16 bank, 6 per rank-20 bank, 396 three-copy
+  registers in both cases;
+* **no subset admits a uniform tiling.** The common divisor for {11,16} is 18 (531 and 132
+  blocks per bank), for {16,20} it is 198 (four and one, 84 registers into a 66-wide bank),
+  for all three it is 18 (177, 44 and 11). Every one overflows the bank.
+
+So the mixed tiling T1 asks for has **no uniform solution**, and the padding cannot be paid
+from a retained family either: that would mean removing *part* of a bin, while the priced
+ledger removes bins whole. The two rungs' kappas are therefore conditional on bank counts a
+tiling cannot realise at all -- a stronger condition than "not constructed". A construction
+must either pad with partial-bin removals (a change the ledger does not model) or change the
+bank width. The volume criterion and the capacity criterion coincide exactly when the rank
+divides the width, which is true of rank 22 at width 72, rank 11 at width 66 and the
+certified bit-side rank-60 exteriors (`396,000 / 72 = 5,500` banks, cores of 4 and 24), and
+false of ranks 16 and 20.
 
 ## What the top rung implies for the next step
 
@@ -82,11 +117,12 @@ python3 -B verify.py           # check: pins, rebuild, compare with certificate.
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
 ```
 
-`verify.py` passes with exit 0, pins 21 files by sha256, rebuilds the whole complex-side
+`verify.py` passes with exit 0, pins 23 files by sha256, rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
-assemblies with adjacent-grid rejection, the eligibility scan and the PR208 replica, and
-reproduces #207's, #219's and #224's published grid points exactly. The vendored rung-1
-package also self-verifies in place:
+assemblies with adjacent-grid rejection, the eligibility scan, the PR208 replica, and re-runs
+the T1 tiling enumeration against the pinned `schedule66.json`; it reproduces #207's, #219's
+and #224's published grid points exactly. The vendored rung-1 package also self-verifies in
+place:
 
 ```sh
 cd research/complex-bank-run3/references/pr219-run1 && python3 -B verify.py
@@ -99,7 +135,9 @@ cd research/complex-bank-run3/references/pr219-run1 && python3 -B verify.py
   states for rung 1 and #224 for rung 2. It is not an unconditional multiplication theorem,
   not a practical multiplier, and not a Lean/kernel certificate.
 * The whole-bank volume condition is necessary and is the criterion the built rungs use; it
-  is not sufficient on its own for the two new families, which owe T1's tiling.
+  is not sufficient, and for the two new families it is not even compatible with a width-66
+  tiling at the bank counts it prices (see the T1 scan above). Rungs 3 and 4 carry that
+  caveat explicitly.
 * Nothing here bounds any *other* complex-side lever: the ladder is over this supplier's
   child ledger at this bank width. A different word, width or frame layout is not priced.
 * The ladder inherits every interface #207/#219/#224 inherit (all-size compiler, weighted and
@@ -119,5 +157,5 @@ rests on are **PR224** (`research/complex-bank-run2`); the bank-absorption ladde
 `10^-10` replica price are **PR208** (`research/composed-diagonal-bit-bootstrap`); the
 underlying bank proof and engine chain is PR200/PR205 (Chafik Boukhalfa and the PR197/PR205
 line) and PR184/PR168-v4 (icekylinx/eumemic) as inherited through them. This package adds
-rungs 3 and 4, their prices, the exhaustion of the ledger's whole-bank criterion and the
-next-step arithmetic. Apache-2.0; no existing file is changed.
+rungs 3 and 4, their prices, the exhaustion of the ledger's whole-bank criterion, the T1
+enumeration of the width-66 tilings (with its negative result) and the next-step arithmetic. Apache-2.0; no existing file is changed.

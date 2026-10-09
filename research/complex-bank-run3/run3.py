@@ -30,6 +30,10 @@ What this script does, all in exact rational arithmetic from pinned inputs:
    and the point at which the bit branch starts binding instead.
 7. **The blocker**, as facts rather than assertions (`obligations.json` C1-C7 + T1, plus
    #219's inherited R1-R4).
+8. **T1's enumeration** (`schedule66.py`): the admissible uniform tilings of a width-66
+   bank, exhaustively.  Rank 11 tiles alone (four patterns, rung 2's 531 the tightest);
+   ranks 16 and 20 tile alone only *above* the bank counts their own volume criterion
+   prices (198 and 66, against 192 and 60); and no uniform tiling absorbs two bins at once.
 
     python3 -B run3.py [--out certificate.json]
 """
@@ -46,6 +50,7 @@ if str(HERE) not in sys.path:
 
 import ledger3  # noqa: E402  (local module, imported after the path is set)
 import pins  # noqa: E402
+import schedule66  # noqa: E402
 
 REFERENCES = HERE / 'references'
 FRONTIER = REFERENCES / 'pr207-coordinated-crossover.certificate.json'
@@ -258,6 +263,33 @@ def build():
     assert Q(part['ladder'][0]['saving']) == RUN2_COARSE, "rung 2 must reproduce PR224"
     assert part['final_eligibility'] == [], 'the ladder must be exhausted at the top'
 
+    # --- 3b. T1: the width-66 tilings the rungs above rung 2 owe --------------
+    tiling = schedule66.tiling()
+    families = tiling['families']
+    assert families['11']['priced_banks'] == families['11']['capacity_minimum_banks'] \
+        == part['ladder'][0]['banks'] == 531, \
+        "rung 2's rank-11 absorption must be the tightest admissible tiling"
+    for family, entry in families.items():
+        assert entry['whole_bank_volume'] == (entry['volume_registers'] % tiling['width'] == 0)
+        assert entry['capacity_minimum_banks'] == -(-entry['three_copies']
+                                                    // entry['capacity_per_bank'])
+        assert entry['fits_the_priced_banks'] == (entry['priced_banks']
+                                                  >= entry['capacity_minimum_banks'])
+    assert not families['16']['fits_the_priced_banks'], 'rung 3 prices 192 of 198 banks'
+    assert not families['20']['fits_the_priced_banks'], 'rung 4 prices 60 of 66 banks'
+    assert families['11']['divides_width'] and not families['16']['divides_width'] \
+        and not families['20']['divides_width'], 'rank-divides-width is what separates them'
+    assert [step['banks'] for step in part['ladder']] \
+        == [families[f]['priced_banks'] for f in ('11', '16', '20')], \
+        'the ledger must price exactly the volume counts the tiling scan examines'
+    assert tiling['findings']['mixed_uniform_tilings'] == 0, \
+        'no uniform tiling may absorb two bins at once'
+    assert all(not tiling['subsets'][key]['admissible']
+               for key in ('11,16', '11,20', '16,20', '11,16,20')), \
+        'every mixed subset must be infeasible'
+    assert tiling['subsets']['16,20']['closest_attempt']['overflow'] == 18, \
+        'the tightest mixed attempt on {16, 20} must be 84 registers into a 66 bank'
+
     rungs = [rung_record(supplier, step, leaf, index + 3)
              for index, step in enumerate(part['ladder'][1:])]
     top = rungs[-1]
@@ -311,6 +343,7 @@ def build():
                               note='rebuilt here by this package\'s own ledger module '
                                    'from the pinned complex profile, not imported')),
         ledgers=part,
+        tiling=tiling,
         rungs=rungs,
         replica=replica,
         top=dict(kappa=str(kappa_top), coarse=str(coarse_top), binding=top['binding'],
@@ -325,7 +358,10 @@ def build():
                  note='no family of the remaining complex ledger has a whole-bank volume, '
                       'so the accounting criterion the built rungs use cannot be applied '
                       'again without a different bank width or a mixed tiling that reopens '
-                      'the volume condition'),
+                      'the volume condition; the T1 scan of this certificate shows the '
+                      'mixed tiling has no uniform solution either, and that rungs 3 and 4 '
+                      'are priced at 192 and 60 banks where their own capacities require '
+                      '198 and 66'),
         needed_for=needs,
         conservative_variant=dict(
             supplier_field=str(supplier_field), certified_moment=str(a_complex),

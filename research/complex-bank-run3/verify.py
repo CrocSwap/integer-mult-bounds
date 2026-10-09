@@ -28,6 +28,7 @@ if hasattr(sys, 'set_int_max_str_digits'):
 
 import pins  # noqa: E402
 import run3  # noqa: E402
+import schedule66  # noqa: E402
 
 
 def digest(path):
@@ -42,6 +43,27 @@ def check_manifest():
     actual = pins.manifest()
     assert actual == read_manifest(), 'pinned input bytes changed'
     return actual
+
+
+def check_schedule():
+    """T1's enumeration: the pinned scan must equal a fresh one, findings and all."""
+    pinned = json.loads((HERE / 'schedule66.json').read_text())
+    fresh = json.loads(json.dumps(schedule66.tiling(), default=str))
+    assert pinned == fresh, 'schedule66.json differs from a fresh enumeration'
+    families = pinned['families']
+    assert pinned['width'] == 66 and pinned['copies'] == 3, 'the scan must be width 66'
+    assert families['11']['priced_banks'] == families['11']['capacity_minimum_banks'] == 531
+    for family in ('16', '20'):
+        entry = families[family]
+        assert entry['whole_bank_volume'], 'the family must fill whole banks by volume'
+        assert entry['priced_banks'] < entry['capacity_minimum_banks'], \
+            'the priced bank count must fall below the capacity bound'
+        assert not entry['fits_the_priced_banks'], 'and the priced count must not fit'
+    assert pinned['findings']['mixed_uniform_tilings'] == 0
+    assert all(not pinned['subsets'][key]['admissible']
+               for key in ('11,16', '11,20', '16,20', '11,16,20')), \
+        'no mixed subset may admit a uniform tiling'
+    return pinned
 
 
 def check_obligations():
@@ -75,6 +97,7 @@ def main():
 
     if not args.write:
         check_manifest()
+    check_schedule()
     record = run3.build()
     check_obligations()
     target = HERE / 'certificate.json'
@@ -89,6 +112,13 @@ def main():
     read = json.loads(target.read_text())
     assert read == json.loads(json.dumps(record, default=str)), 'certificate.json differs'
     print('certificate.json matches a fresh rebuild')
+    print('tiling        rank 16 and rank 20 price %s and %s banks where their capacity '
+          'requires %s and %s; mixed uniform tilings: %d'
+          % (record['tiling']['families']['16']['priced_banks'],
+             record['tiling']['families']['20']['priced_banks'],
+             record['tiling']['families']['16']['capacity_minimum_banks'],
+             record['tiling']['families']['20']['capacity_minimum_banks'],
+             record['tiling']['findings']['mixed_uniform_tilings']))
     print('rungs %s at %s banks, kappa %s'
           % (record['top']['families_absorbed'], record['top']['banks'], record['kappa']))
 
