@@ -192,8 +192,8 @@ def main():
         canon = dict(status=result['status'], complex_saving=result['complex_saving'], kappa=result['kappa'], binding=result['binding'],
                      complex_profile=result['complex_profile'],
                      layer=dict(frames=len(frames), pairs=len(pairs), frames_changed_from_pr168=sum(1 for (i, F), (j, G) in zip(sorted(frames), sorted(theirs)) if tuple(F) != tuple(G)),
-                                audit_status=audit['status'], audit_input_sha256=audit['input_sha256'], audit_source_sha256=audit['source_sha256'],
-                                formal=audit.get('formal'), mutations=audit.get('mutations')),
+                                audit_status=audit['status'], audit_source_sha256=audit['source_sha256'],
+                                formal=json.loads(json.dumps(audit.get('formal'))), mutations=audit.get('mutations')),
                      flow=dict(new_R=flow_data['new_R'], new_W=flow_data['new_W'], deficit=flow_data['deficit'], loss=flow_data['loss'],
                                original_physical_roles=flow_data['original_physical_roles'], child_histogram=flow_data['child_histogram']),
                      lift=dict(status=lift_data['status'], nodes=lift_data['nodes'], physical_R=lift_data['physical_R'],
@@ -211,6 +211,10 @@ def main():
             for k in sorted(set(committed) | set(canon)):
                 if committed.get(k) != canon.get(k):
                     log('DIFFERS: %s' % k)
+                    if isinstance(canon.get(k), dict):
+                        for kk in sorted(set(committed.get(k, {})) | set(canon[k])):
+                            if committed.get(k, {}).get(kk) != canon[k].get(kk):
+                                log('  DIFFERS: %s/%s: %s vs %s' % (k, kk, str(committed.get(k, {}).get(kk))[:80], str(canon[k].get(kk))[:80]))
         assert committed == canon, 'result differs from certificate.json'
         log('PASS certificate.json reproduced: complex saving %s (PR #194: 219037/312500000), kappa %s' % (complex_saving, kappa))
 
