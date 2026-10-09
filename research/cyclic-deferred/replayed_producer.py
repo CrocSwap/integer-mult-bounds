@@ -1,11 +1,11 @@
-"""Replayed h=24 complex producer with all centers disjoint (rational divisor 21).
+"""Generalized exact replay of the restricted PR117 complex producer.
 
 Copyright 2026 eumemic, Apache-2.0. AI-assisted (Claude). The DAG was found by an
 automated search over producers of the retained paired-triple, pair-star and
 center-disjoint interfaces. The checks below are adapted from
 stopped_product/complex.py (copyright 2026 icekylinx, Apache-2.0, PR #104).
 
-The witness complex-dag.json.gz lists the ordinary
+The derived restricted witness lists the ordinary
 additions after the v triple inputs and the retained roots: the disjoint sums
 D[t], the pair stars P(a,b,i) and the center-disjoint sums A_i. Every support,
 core, cover, type and rank is recomputed here from the operands; nothing is
@@ -28,7 +28,7 @@ def write_array(f, values):
 def build(witness, prefix):
     w = json.loads(gzip.decompress(Path(witness).read_bytes()))
     h, v, d = w['h'], w['v'], w['central_disjoint']
-    assert (h, d, w['center_denominator']) == (24, 24, 21)
+    assert h >= 12 and h%2 == 0 and (d,w['center_denominator']) == (h,h-3)
     triples = list(combinations(range(h), 3))
     assert v == len(triples)
     args = [(0, 0)]; support = [0]; core = [0]; cover = [0]; types = [0]; ranks = [0]
@@ -80,16 +80,16 @@ def build(witness, prefix):
         assert types[node] == 2 and cover[node] == ((1 << h)-1) ^ (1 << i)
         assert ranks[node] == h-1
         roots.append(node); kind.append(1)
-    # Every A_i avoids i, so sum A_i = (h-3)T. The decoder is T=sum A_i/21
+    # Every A_i avoids i, so sum A_i = (h-3)T. The decoder is T=sum A_i/(h-3)
     # and the scatter is T-(1/2)sum_{i in target} A_i.
     decoder = Fraction(1, h-3)
-    assert decoder == Fraction(1, 21)
+    assert decoder == Fraction(1, h-3)
     scatter_coefficients = [decoder, decoder-Fraction(1, 2)]
     for coefficient in scatter_coefficients:
         odd_denominator = coefficient.denominator
         while odd_denominator % 2 == 0:
             odd_denominator //= 2
-        assert 21 % odd_denominator == 0 and abs(coefficient) <= 1
+        assert (h-3) % odd_denominator == 0 and abs(coefficient) <= 1
     for source in triples:
         assert sum(i not in source for i in range(h))*decoder == 1
     Dset = set(range(d))
@@ -162,9 +162,9 @@ def build(witness, prefix):
     result = dict(h=h, v=v, c=c, q=q, R=R, loss=loss, central_disjoint=d, histogram=H,
                   rank_sum=sum(r*m for r, m in enumerate(H)))
     assert loss == h*(h-1) and result['rank_sum'] == h*R+2*loss
-    result['center_denominator'] = 21
+    result['center_denominator'] = h-3
     result['scalar_validation'] = dict(ordinary_supports_exact=True, centers_exact=True,
-        center_decoder='sum A_i / 21', scatter_coefficients=list(map(str, scatter_coefficients)),
+        center_decoder='sum A_i / '+str(h-3), scatter_coefficients=list(map(str, scatter_coefficients)),
         rational_scalar_identity_exact=True, mixed_center_scatter_exact=True, binary_frames_nested=True,
         binary_frames_nondegenerate=True)
     with open(str(prefix)+'.bin', 'wb') as f:

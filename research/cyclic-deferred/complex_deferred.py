@@ -13,9 +13,11 @@ equal-frame plateau moves under PR130, preserving the selected reuse mapping.
 The changed deferred readout and injection chronology is replayed in full.
 
 PR117 credits its searched DAG to eumemic with Anthropic Claude assistance;
-this experiment imports and replays that witness unchanged. PR110/PR114
+this experiment preserves the original witness and exactly restricts its
+input coordinates to the first22 (omitting22,23). Zero summands disappear
+and nodes with identical exact support merge before the generalized replay. PR110/PR114
 saturation and exact finite checks are applied to the resulting graph.
-Logical readout macros are realized as signed numerator/42 chunks of magnitude
+Logical readout macros are realized as signed numerator/(2*(h-3)) chunks of magnitude
 at most one. The literal audit expands and charges those same-frame shears,
 checks exact reconstruction, and reverses the chunks under reflection.
 Inherited Avi Eisenberg, Rohan Arun, icekylinx and Swapnil Jain credits retained.
@@ -33,6 +35,7 @@ from pathlib import Path
 from reuse import select_reuse, check_pairs, check_compensation, mutation_controls
 from arbitrary_frames import optimize as optimize_arbitrary_frames, general_frame
 from gauge_frames import optimize as optimize_gauge_frames
+from gauge_padded_frames import optimize as optimize_padded_gauge_frames
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -355,7 +358,8 @@ def frame_smallest_hull(L, ambient):
 def main():
     with tempfile.TemporaryDirectory(prefix='deferred-stopped-') as work:
         prefix = Path(work) / 'complex'
-        build(24, prefix, central_disjoint=24)
+        built = build(22, prefix, central_disjoint=22)
+        restriction_stats = built['restriction']
         h, v, n, q, args, core, cover, roots, kind, active, ranks, types = load(prefix)
     trip = list(combinations(range(h), 3)); require(len(trip) == v, 'triple count')
     m = h * h; N = v * v; FULL = (1 << h) - 1
@@ -390,7 +394,7 @@ def main():
     mate = hopcroft_karp(left, adj)
     links = {x: r for x, r in mate.items() if r is not None}
     R = c_add + q - len(links)
-    require((c_add,q,len(links),R)==(91770,8120,71185,28705),'selected PR117 graph')
+    require((c_add,q,len(links),R)==(64140,6182,47345,22977),'selected restricted PR117 graph')
     print('PR117 graph matched', c_add, q, len(links), R, flush=True)
     linked_use = {(y, k): x for x, (y, k) in links.items()}
 
@@ -580,7 +584,8 @@ def main():
     merge = check_pairs(locals(), reuse_pairs)
     reuse_rejected_controls = mutation_controls(locals(), reuse_pairs)
     op_frames, arbitrary_frame_stats = optimize_arbitrary_frames(locals())
-    placed, op_frames, gauge_frame_stats = optimize_gauge_frames(locals())
+    placed, op_frames, initial_gauge_frame_stats = optimize_gauge_frames(locals())
+    placed, op_frames, gauge_frame_stats = optimize_padded_gauge_frames(locals())
     sigma = placed
     deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
     for pair in reuse_pairs:
@@ -601,7 +606,7 @@ def main():
     print('Compensated birth reuse', len(reuse_pairs), 'physical roles', len(live), flush=True)
 
     # ------------------------------------------------------------ C. replay with arbitrary scratch and data
-    inv = lambda a: pow(a % P, P - 2, P); HALF = inv(2); I21 = inv(21)
+    inv = lambda a: pow(a % P, P - 2, P); HALF = inv(2); I21 = inv(h-3)
     cvec = [None] * Rr; dpart = [dict() for _ in range(Rr)]
     for s, j in role_root.items():
         if kind[j]: c = [0] * h; c[centre_of[j]] = 1; cvec[s] = c
@@ -618,7 +623,7 @@ def main():
     scatter = [[(I21 - (HALF if i in trip[t] else 0)) % P for t in range(v)] for i in range(h)]
     def readout(y, s, value, sign, seed=False):
         # Logical readout macro: the literal audit combines its exact rational
-        # target coefficients and expands each numerator/42 into bounded shears.
+        # target coefficients and expands each numerator/(2*(h-3)) into bounded shears.
         cv = seed_c[s] if seed else cvec[s]; dp = seed_d[s] if seed else dpart[s]
         if cv is not None:
             for i, ci in enumerate(cv):
@@ -741,6 +746,9 @@ def main():
                physical_auxiliary_source_frames=physical_auxiliary_source_frames,
                generalized_lagrangian_frames=True, arbitrary_frame_stats=arbitrary_frame_stats,
                generalized_source_gauges=True, gauge_frame_stats=gauge_frame_stats,
+               initial_gauge_frame_stats=initial_gauge_frame_stats,restriction=restriction_stats,
+               total_operations=len(ops),total_M_operations=sum(o[0]!='src' for o in ops),
+               conservative_M_operations=c_add+R-v,readout_denominator=2*(h-3),
                deferred_roles=len(deferred),
                deferred_dims=dict(sorted(Counter(len(X) for X in placed.values()).items())),
                lifted_additions=sum(1 for i,o in enumerate(ops) if o[0]=='add' and len(op_frames[i])>ranks[o[3]]),

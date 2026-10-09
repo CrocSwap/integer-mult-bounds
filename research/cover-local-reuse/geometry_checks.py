@@ -101,7 +101,7 @@ for h in (1,2,3,4):
  records.append(dict(h=h,all_subspaces=len(spaces),degenerate_subspaces=degenerate,all_ordered_pairs=len(spaces)**2,nested_tail_pairs=nested))
  print('Clifford',records[-1],flush=True)
 
-h=24;m=3*h-2;A=tuple(1<<i for i in range(h));B=tuple(1<<i for i in range(h,2*h-1));C=tuple(1<<i for i in range(2*h-1,m));E=basis(A+B+C)
+h=22;m=3*h-2;A=tuple(1<<i for i in range(h));B=tuple(1<<i for i in range(h,2*h-1));C=tuple(1<<i for i in range(2*h-1,m));E=basis(A+B+C)
 checks=0
 for triple in combinations(range(h),3):
  q=sum(1<<i for i in triple);d=next(i for i in range(h)if i not in triple);w=q^(1<<d)
@@ -123,10 +123,10 @@ for triple in combinations(range(h),3):
  for xs,xe,ys,ye in stages:assert contains(xs,xe)and contains(ys,ye)
  assert stages[-1][3]==perp((q,),m)
  checks+=1
-print('Cayley actual h24 triples',checks,flush=True)
+print('Cayley actual h22 triples',checks,flush=True)
 P=D.resolve().parents[1]
 files=['notes/general-clifford-frames.tex','notes/three-stage-cover-complex.tex','notes/three-stage-cover-note.tex']
-out=dict(status='PASS independent exact binary symplectic and actual h24 port geometry',clifford_checks=records,actual_h24_port_triples_checked=checks,
+out=dict(status='PASS independent exact binary symplectic and actual h22 port geometry',clifford_checks=records,actual_port_triples_checked=checks,
  source_sha256={f:hashlib.sha256((P/f).read_bytes()).hexdigest()for f in files},
  scope='Finite checks substantiate the written all-subspace algebra and all selected port identities. They do not verify exact operator phases or all-size fixed-tape/weighted-bit interfaces.',
  source_review_findings=['K_G fixes L0 and LF, transports L_U, and has rank-zero adapters; arbitrary degenerate subspaces are allowed.', 'Dirty-tail Fourier rank holds for direct complement V_sigma, without claiming V_sigma=sigma_perp.', 'Reverse D_U=T_U F_inverse transitions cancel exactly at operator level.', 'The three Cayley port maps preserve source line and make every adjacent data frame equal.', 'Rank-zero adapters reconcile exact representatives; full finite router bound must remain paid.'],publication_blocker_in_reviewed_scope=None)

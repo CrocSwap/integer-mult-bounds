@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exact padded72D cover, sequential triple sharing and paid data endings."""
+"""Exact padded66D cover, sequential triple sharing and paid data endings."""
 import argparse,json,sys
 from collections import Counter
 from hashlib import sha256
@@ -63,7 +63,7 @@ def nd(U):return len(basis(sum(((x&y).bit_count()&1)<<j for j,y in enumerate(U))
 
 def profile(local):
     h,v,R=(local[k]for k in ('h','v','R'));m=3*h;old_m=3*h-2
-    assert (h,v)==(24,comb(24,3))
+    assert (h,v)==(22,comb(22,3))
     inv=local['physical_auxiliary_source_frames'];assert sum(row['count']for row in inv)==R
     H=Counter({int(r):n for r,n in local['child_multiplicities'].items()})
     removed=Counter({(h-1)**2:2*v*v,1:v*v})
@@ -78,7 +78,7 @@ def profile(local):
         else:zero_tails+=3*c
     data=Counter({m-old_m:6*v});children.update(exteriors);children.update(data)
     w=6*v+3*R;s=sum(r*n for r,n in children.items())
-    assert w*m-s==3*(2*v-3*h*(h-1))==7176
+    assert w*m-s==3*(2*v-3*h*(h-1))==5082
     assert all(0<r<m and n>0 for r,n in children.items())
     return dict(h=h,m=m,v=v,R=R,vertices_per_cell=3,stages=3,roles_per_cell=w,rank_per_cell=s,
       deficit_per_cell=w*m-s,maxchild=max(children),local_copies_per_cell=9,
@@ -169,18 +169,18 @@ def check(local):
     unpaid=p['rank_per_cell']-sum(r*n for r,n in p['data_finish_cell_child_multiplicities'].items())
     assert p['roles_per_cell']*m-unpaid!=p['deficit_per_cell']
     controls.add('omitted-data-finishes-rejected')
-    return dict(status='PASS exact72D padded ports and sequential triple-bank geometry',profile=p,
+    return dict(status='PASS exact66D padded ports and sequential triple-bank geometry',profile=p,
       source_frame_types_checked=types,degenerate_source_frame_types=degenerate,
-      stage_source_frame_checks=dict(sorted(count.items())),actual_h24_ports_checked=ports,
+      stage_source_frame_checks=dict(sorted(count.items())),actual_ports_checked=ports,
       order_three_orthogonal_permutation=True,right_cosets_have_three_vertices=True,
       stages_shared=[1,2,3],completed_offsets_cancel=True,reversed_residual_is_forward_inverse=True,
       all_three_active_spaces_disjoint=True,all_stage_tail_ranks_three_times_source_dimension=True,
       zero_rank_exteriors_are_rank_zero_adapters=True,all_local_histograms_retained_nine_times=True,
       both_data_bank_finishes_paid=True,data_finish_rank_per_bank=2,data_finish_ports_per_cell=6*p['v'],
-      data_before_finish_dimension=70,ambient_dimension=72,negative_controls=sorted(controls),
+      data_before_finish_dimension=3*h-2,ambient_dimension=3*h,negative_controls=sorted(controls),
       exact_tail_definition='E_stage = F_total (R3 R2 R1)^-1; forward Rj=F_active,j T_sigma,j^-1; reverse Rj=R_forward,j^-1',
-      exact_data_finish='Choose completed70D endpoints (F_E0, F_E0 T_q^-1); apply F_total F_E0^-1 on each data bank. Its rank is2 on both endpoint frames and the original Pauli input correction and bank exchange still give two copies of F_total.',
-      scope='Checks every actual h24 port and every physical source frame, including degenerate gauges. Exact phases cancel by the displayed inverse definitions. Retains inherited scalar transparency, general Clifford adapters, common generic basis, finite routing and all-size/tape/analytic hypotheses.')
+      exact_data_finish='Choose completed64D endpoints (F_E0, F_E0 T_q^-1); apply F_total F_E0^-1 on each data bank. Its rank is2 on both endpoint frames and the original Pauli input correction and bank exchange still give two copies of F_total.',
+      scope='Checks every actual h22 port and every physical source frame, including degenerate gauges. Exact phases cancel by the displayed inverse definitions. Retains inherited scalar transparency, general Clifford adapters, common generic basis, finite routing and all-size/tape/analytic hypotheses.')
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--root',type=Path,default=HERE.parents[1]);ap.add_argument('--write',action='store_true');args=ap.parse_args()
@@ -197,5 +197,5 @@ def main():
     path=HERE/'padded-geometry.json';text=json.dumps(out,indent=2,sort_keys=True)+'\n'
     if args.write:path.write_text(text)
     else:assert path.read_text()==text,'Padded geometry receipt mismatch'
-    print(out['status'],out['source_frame_types_checked'],'sourceframes',out['actual_h24_ports_checked'],'ports',flush=True)
+    print(out['status'],out['source_frame_types_checked'],'sourceframes',out['actual_ports_checked'],'ports',flush=True)
 if __name__=='__main__':main()

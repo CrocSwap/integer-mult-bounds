@@ -1,66 +1,77 @@
-# Padded three-stage covers with sequential triple sharing
+# Restricted 22-dimensional padded triple covers
 
-Conditional **κ = 206798116851/500000000000000 = 4.13596233702e-4**.
-This is about 31.467% above PR130's 3.146011e-4. The exact complex saving is
-**413939067/10¹²**. The weighted bit supplier now uses the same completed
-triple construction in dimension 69.
+Conditional **κ = 420151003347/10¹⁵ = 0.000420151003347**.
+The exact complex saving is **210252177/500000000000 = 0.000420504354**.
+The complex side binds; the retained padded bit saving is 0.00045060418316.
+The assembly uses positive rational slack parameters β = 10⁻¹⁸, η = 10⁻¹⁵
+and backoff 10⁻²⁶, with all strict constraints checked explicitly.
 
-The construction places the independently replayed physical complex word
-from PR129 inside PR130's three-stage cover. Its 28,705 virtual roles use
-26,597 physical scratch roles after 2,108 compensated birth-cut reuses. The
-full source/workspace chronology and inverse retain every compensation.
-The local source inventory has 542 distinct frames, including 2,342 roles
-with nonzero source gauges. The physical source dimensions sum to 24,221.
-There are 4,450 deferred virtual roles, including all 2,108 compensated
-recipients; 1,318 deferred gauges are degenerate.
+The complex supplier deterministically restricts the immutable PR117
+24-dimensional scalar DAG to its first 22 coordinates. The original
+compressed witness stays pinned at SHA-256
+`3c034d0aae388ef567a454826f4f48b26fd8a94c71e8ffed4835271b349a783b`.
+The restriction removes zero summands, collapses unary additions and merges
+identical supports. It independently checks every resulting root support,
+then regenerates the physical producer, carrier matching, frames, gauges
+and compensated reuses. The restricted record has 66,234 additions; pruning
+unused nodes leaves 64,140 live additions and 47,345 carrier links for 1,540
+triple ports. Its scalar readouts use exact numerator/38 chunks.
 
-The first local pass changes 3,521 common mixer frames using
-the complete arbitrary binary subspaces permitted by PR130's Clifford
-theorem. Sources, roots, source gauges and compensated reuse handoffs stay
-fixed. Every resulting chain is checked by exact containment. The compiler
-checks each canonical frame's actual Lagrangian dimension and symplectic
-pairings; it does not discard radical directions. The reflection audit
-honestly records that not all intermediate frames are nondegenerate. Frozen
-integer search weights make the chosen descent reproducible; all emitted
-rank accounting and characteristic moments are exact.
+The reconstructed local word has 22,977 virtual roles in 21,274 physical
+slots, with 1,703 compensated birth-cut reuses. The complete source/workspace
+chronology and its actual inverse retain every compensation. There are
+2,865 deferred virtual roles, including all reused recipients; 111 deferred
+gauges are degenerate. The physical inventory has 764 distinct source-frame
+types, 1,162 nonzero source gauges and source-dimension sum 19,488.
 
-A further deterministic descent optimizes individual source gauges,
-components of equal gauges sharing target reads, and compatible operation
-frames. Each candidate is an exact lower span or upper intersection between
-its neighboring frames. The final source chains, target chains and donor-to-
-recipient birth containments are checked explicitly. The reuse mapping,
-source injections and root frames stay fixed; source gauge dimensions and
-deferred chronology are regenerated before the complete reflected replay.
-The descent ends only at a checked fixed point, with no remaining improving
-single-gauge, grouped-gauge or operation-frame move from its search families.
+Arbitrary binary operation frames and source gauges use PR130's generalized
+Clifford contract, including degenerate subspaces. Exact containment checks
+fix the source injections, root frames and compensated handoffs. A second
+gauge descent uses the paid padded-triple objective. All search choices use
+frozen integer weights; the resulting children and characteristic moments
+are certified with exact arithmetic. The complete reflected audit checks
+literal frame incidences, exact source/readout coefficients, arbitrary dirty
+scratch cancellation and every bounded scalar operation.
 
-The complex cover has dimension 72, with three orthogonal active spaces of
-24 coordinates. Each cell of three invocation vertices pays 91,935
-persistent roles, recursive rank 6,612,144 and deficit 7,176. Every local
-child, including all source and target data moves, is retained nine times.
-Each stage has a separate shared auxiliary bank. A physical source frame
-of dimension s pays three exterior children of rank **3s**; zero-width tails
-still require their paid rank-zero adapters. The largest child is 66.
+The complex cover has dimension 66, with three orthogonal active spaces of
+22 coordinates. A cell of three invocation vertices pays:
 
-The original 70-dimensional port transitions extend by the identity on two
-padding coordinates. After the three stages, both data banks pay a rank-two
-finish into the full 72-dimensional endpoint. This is 12,144 extra rank-two
-children per three-vertex cell. The port audit checks all 2,024 triples and
-both exact endpoint transitions; their cost is included in the ledger.
+| Quantity | Complex cover |
+|---|---:|
+| Persistent roles | 73,062 |
+| Recursive rank | 4,817,010 |
+| Rank deficit | 5,082 |
+| Largest child | 60 |
+| Complete local histogram copies | 9 |
+| Rank-two data finishes | 9,240 |
 
-Every core finishes its entire scalar and inverse word before its partner
-begins. Each accepts arbitrary incoming scratch and cancels its dirty scalar
-contributions, leaving the prescribed frame residual. Stage offsets cancel
-inside their own complete cores. Forward stages use
-R = F_active T_sigma^(-1), and the reversed second stage uses its inverse.
-The tail is defined exactly by **E = F_total (R3 R2 R1)^(-1)**, so the product
-including its phases equals F_total. The full finite group order, router
-charge and row reserve remain paid; the original virtual-role reserve still
-covers all compensated scalar work. An explicit supplemental scalar reserve
-charges every completed auxiliary adapter, including zero-width tails, and
-both data finishes; the semantic budget is recomputed with this reserve.
-[PADDED-GEOMETRY.md](PADDED-GEOMETRY.md)
+The original 64-dimensional ports extend by the identity on two padding
+coordinates. Both data banks then pay a rank-two finish. Each stage has a
+separate shared scratch bank, and every core finishes its entire scalar and
+inverse word before the next core begins. Each accepts arbitrary incoming
+scratch and leaves its exact completed frame residual. The forward residual
+is `F_active T_sigma^-1`; the reversed middle stage uses its inverse.
+Offsets cancel inside each completed core.
+
+For each physical source gauge of dimension d, the final exterior pays
+three children of width **3d**, one for each independent stage bank. The
+exact tail is `F_total (R3 R2 R1)^-1`, so its product with the completed
+residuals includes the correct phases. Zero-width tails still pay their
+rank-zero Clifford adapters. An explicit supplemental scalar reserve pays
+all auxiliary adapters and both data finishes, and the semantic budget is
+recomputed. The full group order, finite router, virtual-role scalar guard
+and row reserve remain charged. [PADDED-GEOMETRY.md](PADDED-GEOMETRY.md)
 gives the exact port, residual, padding and cost arguments.
+
+The unchanged padded bit supplier surrounds the retained PR97 word with a
+69-dimensional cover. Its per-cell ledger has 97,224 roles, rank 6,702,384
+and deficit 6,072. It retains all nine local copies, both data finishes and
+the complete rare-class fallback. The bad-class bound includes the factor
+of three from conditioning on a coset representative. Its effective saving
+is **11265104579/25000000000000 = 0.00045060418316**.
+[BIT-PADDED.md](BIT-PADDED.md) states the weighted residual and fallback
+arguments. The upstream complete-basis and rational-frame suites remain
+inherited, as in PR130; this package does not claim to rerun them.
 
 Run from the repository root:
 
@@ -68,60 +79,40 @@ Run from the repository root:
 python3 research/cover-local-reuse/verify.py
 ```
 
-The verifier checks a closed frozen source inventory, copies it into a
-temporary repository-shaped tree, rebuilds the complete local compiler and
+The verifier checks the closed frozen source inventory and copies it to a
+temporary repository-shaped tree. It reconstructs the deterministic
+restriction from the original DAG, rebuilds the complete local compiler and
 reuse pairs, independently replays literal reflection and dirty cleanup,
-recounts bounded scalar work, regenerates finite geometry, padded triple
-sharing and padded bit checks, and verifies the exact cover certificate. The generated local profile and reflection
-receipt must reproduce byte for byte. Verification leaves its source tree
-unchanged and has no options to omit these stages.
+recounts scalar work, regenerates finite and padded geometry, checks the
+weighted bit ledger and verifies exact assembly. Generated JSON profiles
+and receipts must reproduce byte for byte. The restricted compressed DAG
+is checked against the exactly reconstructed record; its frozen bytes are
+also source-hashed. Verification requires an unchanged source snapshot.
 
-The finite geometry check covers every subspace and ordered pair through
-dimension four, including degenerate subspaces, and all 2,024 actual h24
-triple ports. It checks symplectic adapters, transition and dirty-tail ranks,
-reflected identities and data-frame seams. The separate padded audit checks
-the order-three orthogonal permutation, every physical source frame in all
-three stage orientations, exact completed residuals, both padded data-bank
-endings and the complete local profile. Exact operator phases and general
-uniform interfaces remain written proof dependencies.
+The finite geometry audit checks every subspace and ordered pair through
+dimension four, including degenerate cases, and all 1,540 actual ports.
+The separate padded audit checks every physical source frame in all three
+stage orientations, completed residuals and both data-bank endings.
 
-The bit supplier uses a padded cover of dimension 69 around the retained
-23-dimensional PR97 word. It reconstructs local ranks from pinned physical
-frame chains and binds the prior complete-basis/reflection receipts. Its
-per-cell ledger has 97,224 roles, rank 6,702,384 and deficit 6,072; all data
-padding and the complete rare-class fallback remain charged. The rare-class
-bound includes the factor of three from conditioning on a coset representative.
-[BIT-PADDED.md](BIT-PADDED.md) states the weighted residual and paid fallback
-arguments. The unchanged
-upstream complete-basis and rational-frame suites remain inherited, as in
-PR130; this package does not claim to rerun them.
+The 37 package controls reject omitted dependencies, changed original or
+restricted DAGs, unsupported coordinate restrictions, wrong root supports,
+omitted reuse roles or paid children, missing compensation/reflection
+claims, changed source bindings, insufficient scalar reserves, formatting
+drift and optimized Python. They also verify every local copy, both data
+finishes, the auxiliary adapter charge, weighted fallback and atom
+conversion. The local replay retains its literal-word, frame and
+compensation corruption controls. Exact assembly checks 47 strict
+constraints, seven positive margins and rejection of the next complex and
+kappa grid points; no true-root optimum is claimed.
 
-The 33 outer controls reject missing dependencies, altered and repinned DAG
-inputs, omitted reuse roles or paid children, missing compensation or
-reflection flags, changed source bindings, insufficient scalar guards,
-formatting drift and optimized Python. They also check the generalized-frame
-binding, fixed reuse handoffs, a valid degenerate frame, an invalid ambient
-frame, a noncontained physical gate, generalized source-gauge bindings,
-unchanged reuse mapping, fixed source/root frames, all nine local copies and
-both data finishes, all-stage offset/reversal and three-vertex geometry flags,
-complete receipt source hashes, the auxiliary adapter reserve, all paid bit
-children, the coset-conditioned fallback bound and the atom conversion.
-The independent local replay retains
-its frame, literal-word and compensation corruption controls. All 47 strict
-assembly constraints and seven margins are positive. The next complex and
-κ grid points fail the chosen enclosure or assembly; no true-root optimum
-is claimed.
+`certificate.py` checks its frozen record by default. `--write` and
+`verify.py --freeze-manifest` are explicit authoring operations; they are
+never performed by the verifier.
 
-`certificate.py` checks the frozen certificate by default. `--write` is an
-explicit authoring operation. `verify.py --freeze-manifest` explicitly
-replaces the source manifest and does not certify it. Neither operation is
-performed during verification.
-
-This remains a conditional finite witness. PR130's finite group geometry,
-weighted local-ring compilation, uniform batching and restored internal row
-borrowing are written proof dependencies, together with inherited common
-bases, address adapters, exact grids, prime selection, analytic estimates,
-streaming, recovery and fixed-tape interfaces. Finite checks do not establish
-those all-size contracts or a practical speedup. [NOTICE](NOTICE) preserves
-attribution; the adopted proof sources and original notices are pinned in
-the source manifest.
+This remains a conditional finite witness. General Clifford normal forms,
+the common generic basis, uniform weighted local-ring compilation, affine
+batching, restored internal rows, prime selection, analytic estimates,
+streaming, recovery and fixed-tape transfer remain explicit inherited proof
+contracts. Finite checks do not establish those all-size contracts or a
+practical speedup. [NOTICE](NOTICE) preserves attribution and the source
+manifest pins all adopted proof sources and original notices.

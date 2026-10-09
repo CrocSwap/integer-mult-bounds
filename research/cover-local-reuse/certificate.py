@@ -28,7 +28,9 @@ from padded_checks import profile as padded_profile
 from bit_padded import certificate as bit_certificate
 KGRID=10**15
 BGRID=10**12
-STOP=Q(1,10**6)
+STOP=Q(1,10**18)
+BACKOFF=Q(1,10**26)
+ETA=Q(1,10**15)
 
 
 def load(name):return json.loads((LOCAL/name).read_text())
@@ -38,8 +40,8 @@ def digest(path):return sha256(path.read_bytes()).hexdigest()
 def cover_profile():
     local=load('complex-profile.json');audit=load('reflection-audit.json')
     h,v,R=(local[k]for k in('h','v','R'))
-    assert (h,v,R)==(24,2024,26597)
-    assert local['virtual_R']==28705 and local['reused_roles']==2108
+    assert (h,v,R)==(22,1540,21274)
+    assert local['virtual_R']==22977 and local['reused_roles']==1703
     assert local['generalized_lagrangian_frames'] is True
     assert audit['generalized_lagrangian_frames'] is True
     assert local['generalized_source_gauges'] is True
@@ -78,8 +80,8 @@ def cover_profile():
     children.update(exteriors)
     data_finishes=Counter({2:6*v});children.update(data_finishes)
     rank=sum(r*n for r,n in children.items())
-    assert w*m-rank==3*(2*v-3*ell)==7176
-    assert max(children)==66 and all(0<r<m and n>0 for r,n in children.items())
+    assert w*m-rank==3*(2*v-3*ell)==5082
+    assert max(children)==60 and all(0<r<m and n>0 for r,n in children.items())
     independent=padded_profile(local)
     assert independent['child_multiplicities']==dict(sorted(children.items()))
     receipt=json.loads((HERE/'padded-geometry.json').read_text())
@@ -91,7 +93,7 @@ def cover_profile():
                 'both_data_bank_finishes_paid'):
         assert receipt[key] is True,key
     assert receipt['stages_shared']==[1,2,3]
-    assert receipt['actual_h24_ports_checked']==v
+    assert receipt['actual_ports_checked']==v
     assert receipt['data_finish_rank_per_bank']==2 and receipt['data_finish_ports_per_cell']==6*v
     assert receipt['checker_sha256']==digest(HERE/'padded_checks.py')
     assert set(receipt['source_sha256'])=={
@@ -137,9 +139,18 @@ def exact():
         group_order_bits=vertices.bit_length(),per_cell=p,**cm)
     # Use virtual roles in the source-witness scalar reserve: compensated
     # recipients still have readouts even though they have no persistent bank.
-    row=json.loads((ROOT/'certificates/three-stage-cover-complex-input.json').read_text())
-    assert row['R']==p['virtual_R']and row['total_M_operations']==118451
+    local=load('complex-profile.json');audit=load('reflection-audit.json')
+    assert (local['additions'],local['roots'])==(64140,6182)
+    assert local['total_operations']==87117 and local['total_M_operations']==76778
+    for key,value in (('total_operations',87117),('total_M_operations',76778),
+                      ('conservative_M_operations',85577),('readout_denominator',38)):
+        assert local[key]==audit[key]==value,(key,local[key],audit[key])
+    # This conservative virtual-role guard also pays unused input-copy slots.
+    row=dict(h=p['h'],v=p['v'],R=p['virtual_R'],c=local['additions'],q=local['roots'],
+             total_M_operations=local['additions']+p['virtual_R']-p['v'])
+    assert row['total_M_operations']==85577>=local['total_M_operations']
     bridge=inherited.finite_bridge(phase,row)
+    bridge['semantic']['exact_grid']='One common dyadic grid times 19^(-K); K=G*(D_complex+1); no child rounding'
     # Charge every completed auxiliary tail, including rank-zero tails, and
     # both finishing data maps explicitly in addition to the inherited router.
     supplemental=32*(m+1)**3*(vertices*p['R']+2*vertices*p['v'])
@@ -155,6 +166,7 @@ def exact():
     audit=load('reflection-audit.json')
     assert bridge['complex']['local_group_upper']>=audit['conservative_local_G']>=audit['expanded_scalar_operations_per_stage']
     bridge['complex'].update(physical_R=p['R'],virtual_R=p['virtual_R'],
+        actual_M_operations=local['total_M_operations'],guarded_M_operations=row['total_M_operations'],
         independently_audited_local_scalar_operations=audit['expanded_scalar_operations_per_stage'],
         local_scalar_guard_from_reflection=audit['conservative_local_G'],
         scalar_contract='Virtual-role reserve covers all compensated readouts and inverse chronology; actual persistent stock and finite routers use physical roles.')
@@ -163,9 +175,9 @@ def exact():
     bridge['bit_uniform'].update(coarse_saving=bit['coarse_saving'],ordinary_saving=actual_bit,
         atom_beta=bit['atom_exponent'],padded_dimension=bit['m'],grouping=3,
         paid_data_finishes=bit['data_finish_child_multiplicities'])
-    a=min(actual_bit,(1-STOP)*b-Q(1,10**14))
+    a=min(actual_bit,(1-STOP)*b-BACKOFF)
     def accepts(n):
-        try:assembly(a,b,bridge,Q(n,KGRID),beta=STOP)
+        try:assembly(a,b,bridge,Q(n,KGRID),beta=STOP,eta=ETA)
         except AssertionError:return False
         return True
     low,high=0,int(b*KGRID)+1
@@ -174,7 +186,7 @@ def exact():
         mid=(low+high)//2
         if accepts(mid):low=mid
         else:high=mid
-    k=Q(low,KGRID);result=assembly(a,b,bridge,k,beta=STOP)
+    k=Q(low,KGRID);result=assembly(a,b,bridge,k,beta=STOP,eta=ETA)
     assert len(result['strict_constraints'])==47 and len(result['margins'])==7
     return dict(status='Conditional padded covers with completed sequential triples, audited arbitrary frames and source gauges, compensated reuse, and weighted bit fallback',
         kappa=k,complex_saving=b,assembly_bit_saving=a,actual_bit_saving=actual_bit,

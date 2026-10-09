@@ -12,6 +12,7 @@ if hasattr(sys, 'set_int_max_str_digits'):
 import copy
 from collections import Counter
 from fractions import Fraction as Q
+import gzip
 import json
 from pathlib import Path
 import shutil
@@ -53,13 +54,19 @@ class CoverControls(unittest.TestCase):
         c = self.result['complex']
         bridge = self.result['finite_bridge']
         b, semantic = bridge['complex'], bridge['semantic']
+        self.assertEqual(b['coefficient_denominator_divides'], 38)
+        self.assertEqual(semantic['fixed_odd_divisor'], 19)
         # Three stage banks have V/3 cells each. Every physical source gets
         # an adapter, including zero-width tails; both data banks finish.
         adapters = c['vertices_per_stage'] * (self.result['profile']['R'] + 2*self.result['profile']['v'])
         paid = 32*(c['m']+1)**3*adapters
         self.assertEqual(b['completed_adapter_group_upper'], paid)
-        old = certificate.inherited.finite_bridge(c, json.loads(
-            (ROOT / 'certificates/three-stage-cover-complex-input.json').read_text()))
+        local = json.loads((ROOT / LOCAL / 'complex-profile.json').read_text())
+        self.assertEqual(b['actual_M_operations'], 76778)
+        self.assertEqual(b['guarded_M_operations'], 85577)
+        row = dict(h=22, v=1540, R=local['virtual_R'], c=local['additions'],
+                   q=local['roots'], total_M_operations=b['guarded_M_operations'])
+        old = certificate.inherited.finite_bridge(c, row)
         self.assertEqual(b['scalar_group_upper'] - old['complex']['scalar_group_upper'], paid)
         self.assertGreater(semantic['E'], old['semantic']['E'])
         self.assertGreater(semantic['literal_charge'], old['semantic']['literal_charge'])
@@ -112,7 +119,9 @@ class CoverControls(unittest.TestCase):
 
     def test_local_cover_telescoping(self):
         p = certificate.cover_profile()
-        self.assertEqual(p['roles_per_cell'] * p['m'] - p['rank_per_cell'], 7176)
+        self.assertEqual(p['h'], 22)
+        self.assertEqual(p['v'], 1540)
+        self.assertEqual(p['roles_per_cell'] * p['m'] - p['rank_per_cell'], 5082)
         self.assertEqual(sum(int(r) * n for r, n in p['child_multiplicities'].items()), p['rank_per_cell'])
         self.assertEqual(p['R'] + p['reused_roles'], p['virtual_R'])
 
@@ -244,6 +253,43 @@ class CoverControls(unittest.TestCase):
         del changed['files'][PACKAGE + '/BIT-PADDED.md']
         with self.assertRaisesRegex(ValueError, 'source dependency closure'):
             check_sources(ROOT, changed)
+
+    def test_missing_restriction_dependency_rejected(self):
+        for filename in ('restrict_dag.py', 'restriction-audit.json', 'inputs/restricted-dag.json.gz'):
+            with self.subTest(filename=filename):
+                changed = copy.deepcopy(self.manifest)
+                del changed['files'][LOCAL + '/' + filename]
+                with self.assertRaisesRegex(ValueError, 'source dependency closure'):
+                    check_sources(ROOT, changed)
+
+    def test_different_coordinate_restriction_rejected(self):
+        sys.path.insert(0, str(ROOT / LOCAL))
+        from restrict_dag import restrict_record
+        original = json.loads(gzip.decompress((ROOT / LOCAL / 'inputs/complex-dag.json.gz').read_bytes()))
+        with self.assertRaisesRegex(AssertionError, 'Only the certified first22 restriction'):
+            restrict_record(original, (21, 23))
+
+    def test_corrupted_restricted_dag_rejected(self):
+        sys.path.insert(0, str(ROOT / LOCAL))
+        import restrict_dag
+        with tempfile.TemporaryDirectory(prefix='cover-restricted-control-') as directory:
+            local = Path(directory)
+            (local / 'inputs').mkdir()
+            shutil.copyfile(ROOT / LOCAL / 'inputs/complex-dag.json.gz', local / 'inputs/complex-dag.json.gz')
+            record = json.loads(gzip.decompress((ROOT / LOCAL / 'inputs/restricted-dag.json.gz').read_bytes()))
+            record['D'][0] = record['D'][1]
+            (local / 'inputs/restricted-dag.json.gz').write_bytes(gzip.compress(json.dumps(record).encode()))
+            with patch.object(restrict_dag, 'HERE', local):
+                with self.assertRaisesRegex(AssertionError, 'Frozen restricted DAG differs'):
+                    restrict_dag.checked_record()
+
+    def test_wrong_restricted_root_support_rejected(self):
+        sys.path.insert(0, str(ROOT / LOCAL))
+        from restrict_dag import restrict_record
+        original = json.loads(gzip.decompress((ROOT / LOCAL / 'inputs/complex-dag.json.gz').read_bytes()))
+        original['D'][0] = original['D'][1]
+        with self.assertRaises(AssertionError):
+            restrict_record(original)
 
     def test_altered_dag_rejected_even_after_outer_rehash(self):
         with tempfile.TemporaryDirectory(prefix='cover-repinned-dag-') as directory:

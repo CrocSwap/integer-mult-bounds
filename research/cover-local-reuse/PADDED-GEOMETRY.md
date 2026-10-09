@@ -7,9 +7,9 @@ core uses its scratch bank.
 
 ## Cover and paid data endings
 
-Start with the inherited spaces `A`, `B`, `C` of dimensions 24, 23, 23 and add an
+Start with the inherited spaces `A`, `B`, `C` of dimensions 22, 21, 21 and add an
 orthogonal two-dimensional space `D`. Write `E0 = A + B + C` and `E = E0 + D`, so
-`dim E = 72`. The inherited port involutions `R12,S` and `R23,S` act identically on
+`dim E = 66`. The inherited port involutions `R12,S` and `R23,S` act identically on
 `D`; use the full finite group `G = O(E)`. Its order and the resulting wire stock
 remain in the finite scalar/router and assembly charges.
 
@@ -29,7 +29,7 @@ because their binary symplectic matrices agree.
 
 ## Sequential sharing in every stage
 
-Let `tau` cycle the three coordinate blocks of size 24. It is orthogonal and has
+Let `tau` cycle the three coordinate blocks of size 22. It is orthogonal and has
 order three. Right cosets of `<tau>` partition every stage's invocation set into
 three distinct vertices `k`, `k tau`, `k tau^2`; their active spaces are mutually
 orthogonal and cover `E`. Each stage allocates a separate bank of `R` physical
@@ -89,11 +89,12 @@ For a three-vertex accounting cell, all three stages contribute:
 - `6v` data-ending children of width two.
 
 The persistent stock is `W_cell = 6v + 3R`. For the frozen audited supplier,
-`v = 2024`, `R = 26597`, so `W_cell = 91935`, rank mass is `6612144`, deficit is
-`7176`, and the largest child has width `66 < 72`. The deficit is exactly
-`3(2v - 3 ell)` with `ell = 552`; the two new data dimensions are fully paid.
+`v = 1540`, `R = 21274`, so `W_cell = 73062`, rank mass is `4817010`, deficit is
+`5082`, and the largest child has width `60 < 66`. The deficit is exactly
+`3(2v - 3 ell)` with `ell = 462`; the two new data dimensions are fully paid.
+Both data finishes contribute `6v = 9240` children of width two per cell.
 
-`padded_checks.py` checks every physical source-frame type, every one of the 2024
+`padded_checks.py` checks every physical source-frame type, every one of the 1540
 actual ports, every stage's offset and orientation, the three-cycle partition,
 the complete histogram and controls rejecting omitted data endings or residuals.
 These finite checks retain the inherited all-size Clifford, scalar transparency,

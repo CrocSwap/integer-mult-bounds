@@ -90,11 +90,11 @@ def dual_frames(A,B,h):
 
 def check_chunks(numerator,parts):
     assert sum(parts)==numerator,'Split readout reconstruction'
-    assert all(0<abs(x)<=42 for x in parts),'Bounded readout chunk'
+    assert all(0<abs(x)<=DENOM for x in parts),'Bounded readout chunk'
 
 def bounded_chunks(numerator):
-    q,r=divmod(abs(numerator),42);sign=1 if numerator>=0 else -1
-    parts=(sign*42,)*q+((sign*r,) if r else ())
+    q,r=divmod(abs(numerator),DENOM);sign=1 if numerator>=0 else -1
+    parts=(sign*DENOM,)*q+((sign*r,) if r else ())
     check_chunks(numerator,parts)
     return parts
 
@@ -118,8 +118,15 @@ def check_reflection(forward,backward,h,v):
 
 
 def audit(d):
+    global DENOM
+    DENOM=2*(d['h']-3)
     h,v,R=d['h'],d['v'],d['R'];ops=d['ops'];q=d['q'];p=(1<<61)-1
     trip=list(combinations(range(h),3));assert d['trip']==trip
+    total_M_operations=sum(o[0]!='src' for o in ops)
+    assert d['out']['total_operations']==len(ops), 'Producer operation count'
+    assert d['out']['total_M_operations']==total_M_operations, 'Producer M-operation count'
+    assert d['out']['conservative_M_operations']==d['c_add']+R-v>=total_M_operations, 'Conservative M-operation guard'
+    assert d['out']['readout_denominator']==DENOM, 'Readout denominator binding'
     for s in d['role_root']:root_readout(d,s)
     full=(1<<v)-1;point=[sum(1<<j for j,T in enumerate(trip) if i in T) for i in range(h)]
     # All fresh-source coefficients, exactly over the integers. No modular
@@ -152,9 +159,9 @@ def audit(d):
         A,B,C=(point[i] for i in T)
         assert positive[t]==full^(A|B|C)
         assert negative[t]==((A&B&~C)|(A&C&~B)|(B&C&~A))
-    assert h-3==21
+    assert h>=4
     assert [((k-1)+(k==0)-(k==2)) for k in range(4)]==[0,0,0,2]
-    # Every centre decoder coefficient is 1/21-[i in T]/2. Thus the
+    # Every centre decoder coefficient is 1/(h-3)-[i in T]/2. Thus the
     # preceding source-support identities prove J L V = I over Q.
 
     # Independently form J L on arbitrary scratch as integer centre rows
@@ -177,15 +184,15 @@ def audit(d):
         assert cc[s] is None and d['cvec'][s] is None or cc[s] is not None and [x%p for x in cc[s]]==d['cvec'][s]
         assert {t:(x*pow(2,-1,p))%p for t,x in dd[s].items()}==d['dpart'][s]
         # Exact aggregate coefficients are logical macros. Compile each
-        # numerator/42 into signed unit chunks and one signed remainder. All
+        # numerator/DENOM into signed unit chunks and one signed remainder. All
         # chunks share the same ports/frame and their exact sum is checked.
         if cc[s] is None:
-            numerators=[(t,21*x) for t,x in sorted(dd[s].items()) if x]
+            numerators=[(t,(h-3)*x) for t,x in sorted(dd[s].items()) if x]
             coefficient_digest.update(repr((s,numerators)).encode()+b'\n')
         else:
             total=2*sum(cc[s]);numerators=[]
             for t,T in enumerate(trip):
-                num=total-21*sum(cc[s][i] for i in T)+21*dd[s].get(t,0)
+                num=total-(h-3)*sum(cc[s][i] for i in T)+(h-3)*dd[s].get(t,0)
                 if num:
                     numerators.append((t,num))
                     coefficient_digest.update(s.to_bytes(4,'little')+t.to_bytes(4,'little')+num.to_bytes(8,'little',signed=True))
@@ -200,7 +207,7 @@ def audit(d):
         chunk_rows[s]=(sha256(forward_bytes).hexdigest(),sha256(backward_bytes).hexdigest())
         chunk_digest.update(s.to_bytes(4,'little')+forward_bytes)
         actual_reach[s]=tuple(reached)
-    assert maxchunk<=42,'Expanded scalar chunk exceeds one in absolute value'
+    assert maxchunk<=DENOM,'Expanded scalar chunk exceeds one in absolute value'
     # Early/remainder order is a legal commutation of independent shears.
     # Deferred inputs are untouched by the early word; completed centre
     # roles are untouched by its remainder. These facts make deferred
@@ -278,7 +285,7 @@ def audit(d):
         if s in d['leaf_of']:n=d['leaf_of'][s];gate(A(s),X(n-1),1,U[n])
     for i in d['rest']:run(i)
     for s,j in d['role_root'].items():
-        if not d['kind'][j]:read(s,1,rootframe[s],(d['target'][j],),('root',21 if j<v else -21))
+        if not d['kind'][j]:read(s,1,rootframe[s],(d['target'][j],),('root',h-3 if j<v else -(h-3)))
     for a,b,c,F in reversed(forward_workspace):gate(a,b,-c,FULL)
 
     def swap(s):return s+v if s<v else s-v if s<2*v else s
@@ -292,7 +299,7 @@ def audit(d):
     check_reflection(word,reverse,h,v)
     # Reuse this exact captured word for targeted failure controls.
     rejected=list(reuse_rejected)
-    for failure,num,parts in (('oversized-readout-chunk',55,(55,)),('split-readout-sum',55,(42,12))):
+    for failure,num,parts in (('oversized-readout-chunk',DENOM+13,(DENOM+13,)),('split-readout-sum',DENOM+13,(DENOM,12))):
         try:check_chunks(num,parts)
         except AssertionError:rejected.append(failure)
         else:raise AssertionError('Accepted bounded readout mutation: '+failure)
@@ -372,7 +379,7 @@ def audit(d):
     G=v*v+2*v*scalar
     safe=8*(d['c_add']+2*R+(R+q)*v*(h+1)+h*h+h+1) if 'c_add' in d else 8*(d['out']['additions']+2*R+(R+q)*v*(h+1)+h*h+h+1)
     assert safe>=scalar
-    return dict(generalized_source_gauges=True,source_gauge_chronology_recomputed=True,source_gauge_deferred_roles=len(sigma),source_gauge_degenerate_roles=sum(not nondeg(F)for F in sigma.values()),physical_source_gauge_dimension_sum=sum(len(F)*n for F,n in source_counts.items()),h=h,v=v,R=len(live),virtual_R=R,reused_roles=len(merge),exact_birth_cut_invariants=True,last_uses_recomputed=True,physical_aliased_numeric_replay=True,omitted_compensation_numeric_control=True,inverse_source_order='True reverse chronological source/workspace word',exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
+    return dict(total_operations=len(ops),total_M_operations=total_M_operations,conservative_M_operations=d['c_add']+R-v,generalized_source_gauges=True,source_gauge_chronology_recomputed=True,source_gauge_deferred_roles=len(sigma),source_gauge_degenerate_roles=sum(not nondeg(F)for F in sigma.values()),physical_source_gauge_dimension_sum=sum(len(F)*n for F,n in source_counts.items()),h=h,v=v,R=len(live),virtual_R=R,reused_roles=len(merge),exact_birth_cut_invariants=True,last_uses_recomputed=True,physical_aliased_numeric_replay=True,omitted_compensation_numeric_control=True,inverse_source_order='True reverse chronological source/workspace word',exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
                 physical_auxiliary_source_frames=physical_auxiliary_source_frames,
                 completed_core_source_inventory_bound=True,completed_core_pre_exterior_frames_full=True,
                 reflected_core_active_frames_complement_source=all(revfinish[2*v+i]==complement(start[2*v+i],h) for i in range(len(live))),
@@ -385,13 +392,13 @@ def audit(d):
                 all_frames_nondegenerate=all(nondeg(basis(F))for F in d['op_frames'].values()),
                 reflected_residual_rank_histogram_equal=True,child_multiplicities=dict(sorted(z.items())),
                 word_blocks=len(word),expanded_scalar_operations_per_stage=scalar,
-                expanded_old_readout_additions=readcount,largest_readout_numerator_over_42=maxcoef,
+                expanded_old_readout_additions=readcount,largest_readout_numerator_over_denominator=maxcoef,
                 unsplit_old_readout_macros=unsplit_readcount,split_readout_macros=split_macros,
-                largest_bounded_chunk_numerator_over_42=maxchunk,
+                largest_bounded_chunk_numerator_over_denominator=maxchunk,
                 bounded_readout_chunks_sha256=chunk_digest.hexdigest(),
-                scalar_readout_normalization='Each exact numerator n/42 becomes signed42 chunks plus a signed remainder. Exact reconstruction and chunk magnitude<=1 checked; every same-frame shear is charged; reflection reverses chunk order.',
+                readout_denominator=DENOM,scalar_readout_normalization='Each exact numerator n/DENOM becomes signedDENOM chunks plus a signed remainder. Exact reconstruction and chunk magnitude<=1 checked; every same-frame shear is charged; reflection reverses chunk order.',
                 exact_chunk_reconstruction=True,bounded_chunk_coefficients=True,
-                old_readout_coefficients_over_42_sha256=coefficient_digest.hexdigest(),
+                old_readout_coefficients_over_denominator_sha256=coefficient_digest.hexdigest(),
                 literal_global_scalar_groups=G,conservative_local_G=safe,
                 forward_incidence_sha256=digest,reflected_incidence_sha256=reverse_digest,
                 rejected_controls=rejected,

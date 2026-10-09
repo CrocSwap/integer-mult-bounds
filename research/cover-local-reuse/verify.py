@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only finite replay of physical local reuse under the PR130 cover.
+"""Read-only replay of the restricted PR117 word under padded triple covers.
 
 Prepared for eumemic with OpenAI Codex assistance. Apache-2.0;
 the pinned upstream sources retain their original notices and proof scope.
@@ -31,9 +31,10 @@ BIT_MANIFEST = 'references/partial-gauge/pr97/SOURCE.json'
 BIT_PIN = '68fb539abcd6df21d142e4e204b6e9482eb7f9cd3907650f54bd058070266596'
 LOCAL_FILES = {
     'complex_deferred.py', 'producer.py', 'replayed_producer.py', 'reuse.py',
-    'reflection_audit.py', 'arbitrary_frames.py', 'gauge_frames.py',
+    'reflection_audit.py', 'arbitrary_frames.py', 'gauge_frames.py', 'gauge_padded_frames.py',
     'complex-profile.json', 'reuse-pairs.json',
     'reflection-audit.json', 'inputs/complex-dag.json.gz',
+    'restrict_dag.py', 'restriction-audit.json', 'inputs/restricted-dag.json.gz',
 }
 PACKAGE_FILES = {
     'verify.py', 'test_controls.py', 'certificate.py', 'certificate.json',
@@ -145,13 +146,14 @@ def inventory(root):
 
 def create_manifest(root):
     return dict(schema=1,
-        scope='Finite arbitrary-frame and source-gauge local replay, padded complex/bit geometry and exact paid cover assembly; general cover/bit/analytic interfaces remain conditional.',
+        scope='Deterministic restriction to the first 22 coordinates of the immutable PR117 DAG, finite local frame/gauge replay, padded complex/bit geometry and exact paid cover assembly; general cover/bit/analytic interfaces remain conditional.',
         files={name: digest(safe_file(root, name)) for name in sorted(inventory(root))},
         provenance=dict(cover_commit='6a9970a530119174507904e23592fd59ede19a5d',
                         cover_certificate_sha256=BASE_PIN,
                         scalar_dag_commit='cbb05ce504d571546d9b7794c186a613c659c3bf',
                         scalar_dag_sha256=DAG_PIN,
-                        physical_local_source='PR129 physical-frame/reuse word extended by PR130 arbitrary-subspace Clifford frames; PR124 compensated birth-cut reuse'))
+                        scalar_dag_restriction='Retain the first 22 coordinates of the pinned h24 witness, regenerate its restricted output supports and deterministic physical producer; no alternate searched DAG is substituted.',
+                        physical_local_source='PR129 physical-frame/reuse method on the deterministic h22 restriction, extended by PR130 arbitrary-subspace Clifford frames; PR124 compensated birth-cut reuse'))
 
 
 def check_sources(root, manifest=None):
@@ -191,6 +193,9 @@ def verify(root):
         def run(name, *args):
             subprocess.run([sys.executable, str(target / name), *map(str, args)],
                            cwd=target, env=environment, check=True)
+        run(LOCAL + '/restrict_dag.py')
+        compare_json(target / LOCAL / 'restriction-audit.json', root / LOCAL / 'restriction-audit.json')
+        print('PASS deterministic first-22 restriction reconstructed from immutable PR117 DAG', flush=True)
         run(LOCAL + '/complex_deferred.py')
         for name in ('complex-profile.json', 'reuse-pairs.json'):
             compare_json(target / LOCAL / name, root / LOCAL / name)
