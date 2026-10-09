@@ -180,6 +180,29 @@ def main():
                 accept_only_a_better_composition),
     ]
     print("[controls] rejected: " + ", ".join(rejected))
+
+    # 10. The lever model: what the next word-side move is worth. It must reproduce the
+    #     three published values it can be checked on, and it must stay a model.
+    lever_out = WORK / "levers.json"
+    if lever_out.exists():
+        lever_out.unlink()
+    subprocess.run([sys.executable, "-B", str(HERE / "levers.py"), "--out", str(lever_out)],
+                   check=True, stdout=subprocess.DEVNULL)
+    levers = json.loads(lever_out.read_text())
+    assert levers == json.loads((HERE / "levers.json").read_text()), "levers.json drift"
+    for item in levers["validations"]:
+        assert Q(item["relative_error"]) < Q(1, 10 ** 11), item["name"]
+    banked = levers["pr200_banked"]
+    assert Q(banked["W_per_vertex"]) == Q(56402, 3), "banked stock"
+    assert Q(banked["ceiling"]) / Q(levers["claim"]["kappa"]) - 1 > Q(1, 200), "lever too small"
+    assert levers["status"].startswith("MODELLED"), "the lever must not be presented as built"
+    print("[levers] three published values reproduced to {:.1e}; banking the rank-60 "
+          "exterior corrections is worth {:+.4f}% of kappa ({:.10g} -> {:.10g}), which "
+          "this package models and does not build".format(
+              max(float(Q(i["relative_error"])) for i in levers["validations"]),
+              float(levers["gain_vs_claim"]) * 100,
+              float(Q(levers["pr200_unpacked"]["ceiling"])),
+              float(Q(banked["ceiling"]))))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
           "and 7 margins per depth".format(best, best_depth))
 

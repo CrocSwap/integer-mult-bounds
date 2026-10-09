@@ -61,6 +61,46 @@ constructions on #200's graph rather than a recomposition:
 Because the bit branch binds, complex-side work is worthless here until a bit
 coarse saving passes the complex word's `7.009184e-4`.
 
+## Where the next gain is, measured
+
+The bit branch's coarse saving is the largest `a` whose paid moment is below 1,
+and the row identity `m*W - sum_r n_r*r = D` means two words with the same `D`
+differ only through the child ledger. `levers.py` solves that inequality exactly
+over the rationals and models the one lever that has already been validated on a
+word of this family: PR197's banking of the rank-60 exterior corrections, which
+drops those entries from the ledger and leaves the stock at what the identity
+requires.
+
+The model is checked against the three published values it can be checked on, all
+to `1e-13` relative or better:
+
+| row | model | published | source |
+| --- | --- | --- | --- |
+| PR187's word, unpacked | 6.70899981048782e-4 | 6.70899981048852e-4 | PR187's certificate |
+| PR187's word, banked | 6.76537710350471e-4 | 6.76537710350481e-4 | PR197's **certified** packed word |
+| PR200's word, unpacked | 6.77773948354529e-4 | 6.77773948354561e-4 | PR200's certificate |
+
+The second row is the meaningful one: the model reproduces, from the unpacked
+ledger alone, the value PR197 certified after building the banks.
+
+Applied to this package's bit word, banking its 2,200 rank-60 exterior
+corrections (132,000 of 1,483,712 rank mass, 8.90% of the child ledger) leaves
+`W_per_vertex = 56402/3`, `D = 1936` and a ledger with no child above rank 22, and
+gives
+
+| | coarse saving | kappa ceiling |
+| --- | --- | --- |
+| this package's word, as certified | 6.77773948354529e-4 | 6.77314882e-4 |
+| the same word, banked | 6.83528191056250e-4 | **6.83061299e-4** (**+0.8484%**) |
+
+**This is a prediction, not a claim.** The bank construction on PR200's word is
+not built here, and the package's `levers.json` records that status literally.
+What the model does give is a falsifiable target for whoever builds it: over the
+three copies, a bank allocation must reach a total stock of `56,402` roles with
+the per-copy deficit unchanged at `1,936` and no rank-60 child remaining. The
+other known lever is an order of magnitude smaller: PR198's endpoint-frame
+descent bought `+0.0090%` of coarse saving on PR189's word.
+
 ## Cross-checks against published numbers
 
 The harness is independent of the numbers it is asked to confirm, and this package
@@ -104,7 +144,15 @@ python3 -B research/composed-diagonal-bit-bootstrap/verify.py
 `SOURCE.json`, reproduces `certificate.json` from the pins, re-checks the two
 published cross-checks above, requires the claim to beat #197, requires it to sit
 inside one grid step of the word's ceiling, re-derives the leaf tolls in closed
-form, and refuses three corruption controls.
+form, refuses three corruption controls, and re-runs the lever model, requiring it
+to reproduce its three published references and to keep its `MODELLED, NOT
+CONSTRUCTED` status.
+
+```bash
+python3 -B research/composed-diagonal-bit-bootstrap/levers.py
+```
+
+prints the lever table on its own.
 
 ## Credits
 
