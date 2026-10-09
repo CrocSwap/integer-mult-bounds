@@ -51,12 +51,21 @@ class CoverControls(unittest.TestCase):
         self.assertEqual(p['roles_per_vertex'] * p['m'] - p['rank_per_vertex'], 2392)
         self.assertEqual(sum(int(r) * n for r, n in p['child_multiplicities'].items()), p['rank_per_vertex'])
         self.assertEqual(p['R'] + p['reused_roles'], p['virtual_R'])
+        pp = p['paired_per_pair']
+        self.assertEqual(pp['roles_per_pair'] * p['m'] - pp['rank_per_pair'], 4784)
+        self.assertEqual(sum(int(r) * n for r, n in pp['child_multiplicities'].items()), pp['rank_per_pair'])
 
     def test_omitted_reused_role_rejected(self):
         self.local_change('complex-profile.json', lambda p: p.update(reused_roles=p['reused_roles']-1))
 
     def test_omitted_endpoint_or_move_rejected(self):
         self.local_change('complex-profile.json', lambda p: p['child_multiplicities'].__setitem__('1', p['child_multiplicities']['1']-1))
+
+    def test_corrupted_internal_role_histogram_rejected(self):
+        self.local_change('complex-profile.json', lambda p: p['internal_role_histogram'].__setitem__('1', p['internal_role_histogram']['1']-1))
+
+    def test_corrupted_target_data_histogram_rejected(self):
+        self.local_change('reflection-audit.json', lambda p: p['target_data_histogram'].__setitem__('1', p['target_data_histogram']['1']-1))
 
     def test_unbound_source_inventory_rejected(self):
         self.local_change('reflection-audit.json', lambda p: p.update(completed_core_source_inventory_bound=False))

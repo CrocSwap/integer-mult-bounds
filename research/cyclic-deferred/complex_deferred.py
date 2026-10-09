@@ -1,30 +1,35 @@
 #!/usr/bin/env python3
-"""Optimized physical gate frames on the immutable PR117 complex DAG.
+"""Optimized physical gate frames and reuse-aware deferral on the PR117 complex DAG.
 
-After saturated deferral, each mixer gate frame is optimized within its two
-role chains. Maximal nondegenerate extensions and minimal nondegenerate hulls
-are accepted only when they improve the local moment objective; every actual
-source, mixer, copied-center and root incidence is checked exactly.
-Physical-frame optimization prepared with OpenAI Codex assistance.
-Compensated birth-cut reuse follows jamesyc PR124; this composition regenerates
-all pairings, replays arbitrary aliased scratch, and retains every scalar charge.
+After radical-complement frame lifting and phase-aware role compilation, mixer
+gate frames and deferred birth gauges are jointly optimized for the three-stage
+Cayley cover (both unpaired and paired first-stage lockstep) together with
+compensated birth-cut scratch reuse. Every actual source, mixer, copied-center
+and root incidence is checked exactly.
 
 PR117 credits its searched DAG to eumemic with Anthropic Claude assistance;
 this experiment imports and replays that witness unchanged. PR110/PR114
 saturation and exact finite checks are applied to the resulting graph.
+Compensated birth-cut reuse follows jamesyc PR124; physical gate-frame
+descent follows eumemic PR129/PR131; radical-complement lifting, phase-aware
+role compilation, donor-chain shrinking, and recipient frame snapping prepared
+by Thomas Marchand with Google Antigravity assistance.
 Logical readout macros are realized as signed numerator/42 chunks of magnitude
 at most one. The literal audit expands and charges those same-frame shears,
 checks exact reconstruction, and reverses the chunks under reflection.
-Inherited Avi Eisenberg, Rohan Arun, icekylinx and Swapnil Jain credits retained.
-This integration prepared with OpenAI Codex assistance. Apache-2.0.
+Inherited Avi Eisenberg, Rohan Arun, Joel Pulikkan, Daniele Corso, icekylinx
+and Swapnil Jain credits retained. Apache-2.0.
 """
 import array
+import heapq
 import json
 import random
 import struct
 import sys
 import tempfile
 from collections import Counter, defaultdict
+from fractions import Fraction
+from functools import lru_cache
 from itertools import combinations
 from pathlib import Path
 from reuse import select_reuse, check_pairs, check_compensation, mutation_controls
@@ -33,6 +38,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 sys.path.insert(0, str(HERE))
+from partial_swap_network import log_upper
 import importlib.util
 producer_path = HERE / 'producer.py'
 spec = importlib.util.spec_from_file_location('replayed_producer_wrapper', producer_path)
@@ -170,9 +176,6 @@ def hopcroft_karp(left, adj):
     return mate_l
 
 
-from functools import lru_cache
-from fractions import Fraction
-
 def sat_basis(vectors):
     piv = {}
     for x in vectors:
@@ -187,8 +190,10 @@ def sat_basis(vectors):
             piv[p] = x
     return tuple((piv[p] for p in sorted(piv, reverse=True)))
 
+
 def sat_dot(a, b):
     return (a & b).bit_count() & 1
+
 
 @lru_cache(None)
 def sat_contained(A, B):
@@ -199,6 +204,7 @@ def sat_contained(A, B):
         if x:
             return False
     return True
+
 
 @lru_cache(None)
 def sat_cap(A, B):
@@ -224,9 +230,11 @@ def sat_cap(A, B):
                 out.append(y)
     return sat_basis(out)
 
+
 @lru_cache(None)
 def sat_nondeg(B):
     return len(sat_basis((sum((sat_dot(a, b) << j for j, b in enumerate(B))) for a in B))) == len(B)
+
 
 @lru_cache(None)
 def sat_nonsingular_part(B):
@@ -248,40 +256,108 @@ def sat_nonsingular_part(B):
         rows = [x ^ (a if sat_dot(x, b) else 0) ^ (b if sat_dot(x, a) else 0) for k, x in enumerate(rows) if k not in (i, j)]
     return sat_basis(out)
 
-def saturated_placement(cand, reach):
-    # Each extracted block is orthogonal to previously selected blocks.
-    # A diagonal-one pivot contributes a nondegenerate line; when all
-    # remaining diagonals vanish, a dot-one pair contributes a hyperbolic
-    # plane. The residual radical is discarded, not counted as a frame.
-    cand = {s: sat_basis(B) for s, B in cand.items()}
-    order = sorted(cand, key=lambda s: (Fraction(-(1 << len(cand[s])), max(1, len(reach[s]))**2), -len(cand[s]), s))
-    byT = defaultdict(list); placed = {}
-    for s in order:
-        X = cand[s]; changed = True
-        while changed and X:
-            changed = False
-            for t in sorted(reach[s]):
-                for w in byT[t]:
-                    B = placed[w]
-                    if (len(B) >= len(X) and not sat_contained(X, B)) or (len(B) < len(X) and not sat_contained(B, X)):
-                        X = sat_cap(X, B); changed = True
-                    if not X: break
-                if not X: break
-            if X and not sat_nondeg(X):
-                before = X; X = sat_nonsingular_part(X)
-                assert sat_contained(X, before) and sat_nondeg(X)
-                assert len(X) < len(before)
-                changed = True  # Extraction can break containment of a smaller target frame.
-        if X:
-            assert sat_nondeg(X) and sat_contained(X, cand[s])
-            placed[s] = X
-            for t in reach[s]: byT[t].append(s)
+
+def frame_restrict(A, B):
+    return sat_basis(restrict(A, B))
+
+
+def fast_restrict(basis_tup, funcs):
+    B = list(basis_tup)
+    for f in funcs:
+        if not B:
+            break
+        vals = [(b & f).bit_count() & 1 for b in B]
+        if not any(vals):
+            continue
+        k = vals.index(1)
+        pv = B[k]
+        B = [b ^ pv if val else b for b, val in zip(B, vals)]
+        B.pop(k)
+    return sat_basis(B)
+
+
+def max_nondeg_between(L, W):
+    perp = fast_restrict(W, L)
+    return sat_basis(L + sat_nonsingular_part(perp))
+
+
+def min_nondeg_between(L, W):
+    B = L
+    while not sat_nondeg(B):
+        k = len(B)
+        gram = [sum(sat_dot(B[i], B[j]) << j for j in range(k)) for i in range(k)]
+        rad = []; red = []
+        for i, row in enumerate(gram):
+            tag = 1 << i
+            for rv, rt in red:
+                if row >> (rv.bit_length() - 1) & 1:
+                    row ^= rv; tag ^= rt
+            if row:
+                red.append((row, tag))
+            else:
+                v_rad = 0
+                for j in range(k):
+                    if tag >> j & 1:
+                        v_rad ^= B[j]
+                rad.append(v_rad)
+        r0 = rad[0]
+        cand_v = [u for u in W if sat_dot(u, r0) and not sat_contained((u,), B)]
+        if not cand_v:
+            return W if sat_nondeg(W) else (max_nondeg_between(L, W) if sat_nondeg(L) else None)
+        B = sat_basis(B + (cand_v[0],))
+    return B
+
+
+def reduce_against(X, t_list, byT, placed, skip_s=None):
+    changed = True
+    while changed and X:
+        changed = False
+        for t in t_list:
+            for w in byT[t]:
+                if w == skip_s or w not in placed:
+                    continue
+                B = placed[w]
+                if (len(B) >= len(X) and not sat_contained(X, B)) or (len(B) < len(X) and not sat_contained(B, X)):
+                    X = sat_cap(X, B); changed = True
+                if not X:
+                    break
+            if not X:
+                break
+        if X and not sat_nondeg(X):
+            before = X
+            X = sat_nonsingular_part(X)
+            assert sat_contained(X, before) and sat_nondeg(X)
+            assert len(X) < len(before)
+            changed = True
+    return X
+
+
+def lazy_saturated_placement(cand, t_lists):
+    cur = {s: sat_basis(B) for s, B in cand.items()}
+    byT = defaultdict(list); byT_set = defaultdict(set); placed = {}
+    prio_fn = lambda s, d, r, r_eff: (Fraction(-(1 << d), max(1, r * r_eff)), -d, r, s)
+    heap = [(prio_fn(s, len(B), len(t_lists[s]), len(t_lists[s])), len(B), len(t_lists[s]), s) for s, B in cur.items()]
+    heapq.heapify(heap)
+    while heap:
+        _, old_d, old_reff, s = heapq.heappop(heap)
+        X = reduce_against(cur[s], t_lists[s], byT, placed)
+        if not X:
+            continue
+        r_eff = sum(1 for t in t_lists[s] if X not in byT_set[t])
+        if len(X) < old_d or r_eff < old_reff:
+            cur[s] = X
+            heapq.heappush(heap, (prio_fn(s, len(X), len(t_lists[s]), r_eff), len(X), r_eff, s))
+            continue
+        assert sat_nondeg(X) and sat_contained(X, cand[s])
+        placed[s] = X
+        for t in t_lists[s]:
+            byT[t].append(s)
+            byT_set[t].add(X)
     for t, ss in byT.items():
         ss.sort(key=lambda s: (len(placed[s]), s))
         assert all(sat_contained(placed[a], placed[b]) for a, b in zip(ss, ss[1:]))
     return placed
 
-def frame_restrict(A,B):return sat_basis(restrict(A,B))
 
 @lru_cache(None)
 def frame_protected_part(X, L):
@@ -295,9 +371,7 @@ def frame_protected_part(X, L):
         for p in sorted(red, reverse=True):
             if x >> p & 1:
                 y, a, b = red[p]
-                x ^= y
-                q ^= a
-                r ^= b
+                x ^= y; q ^= a; r ^= b
         assert x
         red[x.bit_length() - 1] = (x, q, r)
     lin = {}
@@ -306,16 +380,13 @@ def frame_protected_part(X, L):
         for p in sorted(red, reverse=True):
             if x >> p & 1:
                 y, a, b = red[p]
-                x ^= y
-                q ^= a
-                r ^= b
+                x ^= y; q ^= a; r ^= b
         if x:
             return ()
         for p in sorted(lin, reverse=True):
             if q >> p & 1:
                 a, b = lin[p]
-                q ^= a
-                r ^= b
+                q ^= a; r ^= b
         if not q:
             if r:
                 return ()
@@ -323,17 +394,16 @@ def frame_protected_part(X, L):
             lin[q.bit_length() - 1] = (q, r)
     out = []
     for x in Q:
-        q = x
-        r = 0
+        q = x; r = 0
         for p in sorted(lin, reverse=True):
             if q >> p & 1:
                 a, b = lin[p]
-                q ^= a
-                r ^= b
+                q ^= a; r ^= b
         out.append(x ^ r)
     out = sat_basis(out)
     assert sat_nondeg(out) and sat_contained(out, X) and sat_contained(L, out)
     return out
+
 
 @lru_cache(None)
 def frame_smallest_hull(L, ambient):
@@ -346,6 +416,7 @@ def frame_smallest_hull(L, ambient):
         L = sat_basis(L + (partner,))
     assert sat_contained(L, ambient)
     return L
+
 
 def main():
     with tempfile.TemporaryDirectory(prefix='deferred-stopped-') as work:
@@ -385,7 +456,7 @@ def main():
     mate = hopcroft_karp(left, adj)
     links = {x: r for x, r in mate.items() if r is not None}
     R = c_add + q - len(links)
-    require((c_add,q,len(links),R)==(91770,8120,71185,28705),'selected PR117 graph')
+    require((c_add, q, len(links), R) == (91770, 8120, 71185, 28705), 'selected PR117 graph')
     print('PR117 graph matched', c_add, q, len(links), R, flush=True)
     linked_use = {(y, k): x for x, (y, k) in links.items()}
 
@@ -393,7 +464,6 @@ def main():
     target = [None] * q
     for j in range(v): target[j] = j
     idx = v
-    # PR117 witness stores pair-star roots in natural excluded-point order.
     for a, b in combinations(range(h), 2):
         others = [i for i in range(h) if i not in (a, b)]
         for i in others: target[idx] = tid[tuple(sorted((a, b, i)))]; idx += 1
@@ -405,7 +475,7 @@ def main():
     require(idx + len(centre_of) == q, 'root order')
     rootfun = [(1 << centre_of[j]) if kind[j] else tmask[target[j]] for j in range(q)]
 
-    # ------------------------------------------------------------ lifted binary frames, monotone
+    # ------------------------------------------------------------ lifted binary frames, radical-complement saturation
     succ = defaultdict(set); droot = defaultdict(set)
     for x in range(1, n):
         if not active[x]: continue
@@ -415,37 +485,66 @@ def main():
     for x, (y, k) in links.items():
         u = uses[y][k]; (succ[x].add(u[1]) if u[0] == 'gate' else droot[x].add(u[1]))
     order_desc = sorted((x for x in range(1, n) if active[x]), key=lambda x: (ranks[x], x), reverse=True)
+    order = list(reversed(order_desc))
     K = {}
     for x in order_desc:
         rows = [rootfun[j] for j in droot[x]]
         for t in succ[x]: rows += K[t]
-        K[x] = reduce(rows)
+        K[x] = sat_basis(rows)
     def envelope(x):
-        if not args[x][0]: return [tmask[x - 1]]
-        if types[x] == 2: return [1 << i for i in range(h) if cover[x] >> i & 1]
+        if not args[x][0]: return sat_basis([tmask[x - 1]])
+        if types[x] == 2: return sat_basis([1 << i for i in range(h) if cover[x] >> i & 1])
         require(types[x] == 1, 'only ordinary and common-pair labels occur')
         ks = [i for i in range(h) if (cover[x] & ~core[x]) >> i & 1]
         require(len(ks) == ranks[x], 'common-pair support')
-        return [core[x] | (1 << k) for k in ks]
+        return sat_basis([core[x] | (1 << k) for k in ks])
+    env_map = {x: envelope(x) for x in order}
+    K_ker = {x: sat_basis(kernel(K[x], h)) for x in order_desc if args[x][0]}
     U = {}
-    for x in range(1, n):
-        if not active[x]: continue
-        if not args[x][0]: U[x] = envelope(x); continue
-        B = kernel(K[x], h)
-        require(contains(envelope(x), B), 'label outside lifted frame')
-        U[x] = B if nondeg(B) else envelope(x)
-    changed = True
-    while changed:
-        changed = False
-        for x in order_desc:
-            if args[x][0] and any(not contains(U[x], U[t]) for t in succ[x]):
-                env = envelope(x)
-                if len(reduce(U[x])) != len(reduce(env)) or not contains(U[x], env): U[x] = env; changed = True
-    dimU = {x: len(reduce(B)) for x, B in U.items()}
-    print('PR117 frames lifted',sum(dimU[x]>ranks[x] for x in U),flush=True)
+    for x in order_desc:
+        if not args[x][0]: U[x] = env_map[x]; continue
+        W = K_ker[x]
+        require(sat_contained(env_map[x], W), 'label outside lifted frame')
+        for t in succ[x]:
+            if not sat_contained(W, U[t]):
+                W = sat_cap(W, U[t])
+        if not sat_nondeg(W):
+            W = max_nondeg_between(env_map[x], W)
+        U[x] = W
+    dimU = {x: len(U[x]) for x in U}
+    print('PR117 frames lifted', sum(dimU[x] > ranks[x] for x in U), flush=True)
 
-    # ------------------------------------------------------------ explicit role compile
-    order = sorted((x for x in range(1, n) if active[x]), key=lambda x: (ranks[x], x))
+    # ------------------------------------------------------------ explicit phase-aware role compile
+    node_in_anc = {}
+    for x in order_desc:
+        node_in_anc[x] = any(kind[j] for j in droot[x]) or any(node_in_anc[t] for t in succ[x])
+    def use_in_anc(x, k):
+        u = uses[x][k]
+        return bool(kind[u[1]]) if u[0] == 'root' else node_in_anc[u[1]]
+    gate_in_reach = {}; gate_in_all = {}
+    def u_reach(u):
+        if u[0] == 'root':
+            j = u[1]
+            return (set(), True) if kind[j] else ({target[j]}, False)
+        return gate_in_reach[(u[1], u[2])], gate_in_all[(u[1], u[2])]
+    for y in order_desc:
+        if not args[y][0]: continue
+        free_y = [k for k in range(len(uses[y])) if (y, k) not in linked_use]
+        fr_set = set(); fr_all = False
+        for k in free_y:
+            rs, ra = u_reach(uses[y][k])
+            fr_set |= rs; fr_all = fr_all or ra
+        a, b = args[y]
+        oth_pos = 0 if (y in links and links[y][0] == a) else 1
+        piv_pos = 1 - oth_pos
+        gate_in_reach[(y, piv_pos)] = fr_set; gate_in_all[(y, piv_pos)] = fr_all
+        oth_set = set(fr_set); oth_all = fr_all
+        if y in links:
+            ly, lk = links[y]
+            rs, ra = u_reach(uses[ly][lk])
+            oth_set |= rs; oth_all = oth_all or ra
+        gate_in_reach[(y, oth_pos)] = oth_set; gate_in_all[(y, oth_pos)] = oth_all
+
     holds = []; first_node = []; ops = []; edge_key = {}; role_root = {}
     def new_role(node): holds.append([node]); first_node.append(node); return len(holds) - 1
     def serve(s, y, k):
@@ -467,6 +566,13 @@ def main():
         ops.append(('add', piv, oth, x)); holds[piv].append(x); holds[oth].append(x)
         if x in links: serve(oth, *links[x])
         require(free, 'every use linked at node %d' % x)
+        if len(free) > 1:
+            non_c = [k for k in free if not use_in_anc(x, k)]
+            yes_c = [k for k in free if use_in_anc(x, k)]
+            if non_c:
+                if len(non_c) > 1:
+                    non_c.sort(key=lambda k: (-int(u_reach(uses[x][k])[1]), -len(u_reach(uses[x][k])[0]), k))
+                free = [non_c[0]] + yes_c + non_c[1:]
         serve(piv, x, free[0])
         for k in free[1:]:
             f = new_role(x); ops.append(('copy', piv, f, x)); serve(f, x, k)
@@ -511,67 +617,419 @@ def main():
         if o[0] == 'add': reach[o[2]] |= reach[o[1]]; reach_all[o[2]] = reach_all[o[2]] or reach_all[o[1]]
         elif o[0] == 'copy': reach[o[1]] |= reach[o[2]]; reach_all[o[1]] = reach_all[o[1]] or reach_all[o[2]]
 
-    # ------------------------------------------------------------ deferral frames, insertion nesting
-    def F0(s): return U[first_node[s]]
+    # ------------------------------------------------------------ deferral frames, insertion nesting, and cover-weighted optimization
+    root_frame = {s: sat_basis([1 << i for i in range(h) if i != centre_of[j]] if kind[j] else kernel([tmask[target[j]]], h)) for s, j in role_root.items()}
+    FULLB = sat_basis(1 << i for i in range(h))
+
     cand = {}
     for s in range(Rr):
-        if s in touched or reach_all[s]: continue
-        S_ = restrict(F0(s), [tmask[t] for t in reach[s]])
-        if S_ and nondeg(S_): cand[s] = S_
-    print('PR117 candidates',len(cand),flush=True)
-    placed = saturated_placement(cand, reach)
-    print('PR117 placed',len(placed),flush=True)
-    deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
+        if s in touched or reach_all[s] or first_node[s] <= v: continue
+        cand[s] = U[first_node[s]]
+    t_lists = {s: sorted(reach[s]) for s in cand}
+    print('PR117 candidates', len(cand), flush=True)
+    p_cur = lazy_saturated_placement(cand, t_lists)
+    print('Initial lazy_saturated_placement', len(p_cur), flush=True)
+
+    # Exact m=70 cover weights using rational log_upper (no platform libm variation)
+    SAV = 3.68e-4
+    W70 = [0.0] * 70
+    for t in range(1, 70):
+        ell = float(log_upper(Fraction(70, t)))
+        u = SAV * ell
+        W70[t] = t * (u + u * u / (2.0 * (1.0 - u / 3.0)))
+    G_INT = [0.0] + [W70[2 * r] + 4.0 * W70[r] for r in range(1, 25)]
+    G_EXT = [W70[22 + 2 * d] + 4.0 * W70[46 + d] for d in range(24)]
+    G_TARG = [0.0] + [6.0 * W70[r] for r in range(1, 25)]
+    g_int = lambda r: 0.0 if r <= 0 else G_INT[r]
+    g_targ = lambda r: 0.0 if r <= 0 else G_TARG[r]
+
+    roles_of = defaultdict(list)
+    for s, hs in enumerate(holds):
+        for x in hs: roles_of[x].append(s)
+    preds = defaultdict(list)
+    for y, ts in succ.items():
+        for t in ts: preds[t].append(y)
+
+    def role_chain_cost(s, U_map, placed_map):
+        seq = [placed_map.get(s, ()), U_map[first_node[s]]] + [U_map[x] for x in holds[s][1:]]
+        if s in root_frame: seq.append(root_frame[s])
+        seq.append(FULLB)
+        ds = [len(B) for B in seq]
+        cost = 0.0
+        for a, b in zip(ds[:-1], ds[1:-1]):
+            if b > a: cost += g_int(b - a)
+        lastd = ds[-2]
+        cost += g_int(h - lastd)
+        return cost
+
+    def optimize_U_for_placed(U_init, placed_map, n_sweeps=4, dirty_init=None):
+        U_map = dict(U_init)
+        starts = defaultdict(list)
+        for s, X in placed_map.items():
+            starts[first_node[s]].append(X)
+        dirty = set(order_desc) if dirty_init is None else set(dirty_init)
+        for sweep in range(n_sweeps):
+            top_down = (sweep % 2 == 1)
+            nodes_iter = order_desc if top_down else order
+            next_dirty = set()
+            visit_all = (sweep < 2 and dirty_init is None)
+            for x in nodes_iter:
+                if not args[x][0]: continue
+                if not visit_all and x not in dirty: continue
+                vecs = list(env_map[x])
+                for X in starts[x]: vecs.extend(X)
+                for y in preds[x]: vecs.extend(U_map[y])
+                L_x = sat_basis(vecs)
+                W_x = K_ker[x]
+                for t in succ[x]:
+                    if not sat_contained(W_x, U_map[t]):
+                        W_x = sat_cap(W_x, U_map[t])
+                if len(L_x) == len(W_x):
+                    if U_map[x] != L_x:
+                        U_map[x] = L_x
+                        next_dirty.update(preds[x]); next_dirty.update(succ[x])
+                        for s in roles_of[x]: next_dirty.update(holds[s])
+                    continue
+                cands_B = [U_map[x]]
+                if sat_nondeg(L_x):
+                    cands_B.append(L_x)
+                    if not sat_nondeg(W_x):
+                        cands_B.append(max_nondeg_between(L_x, W_x))
+                else:
+                    B_min = min_nondeg_between(L_x, W_x)
+                    if B_min is not None and sat_nondeg(B_min):
+                        cands_B.append(B_min)
+                        if not sat_nondeg(W_x):
+                            cands_B.append(max_nondeg_between(B_min, W_x))
+                if sat_nondeg(W_x):
+                    cands_B.append(W_x)
+                for s in roles_of[x]:
+                    for z_node in holds[s]:
+                        cands_B.append(U_map[z_node])
+                    if s in root_frame:
+                        cands_B.append(root_frame[s])
+                uniq_B = []
+                for B in cands_B:
+                    if B not in uniq_B and sat_nondeg(B) and sat_contained(L_x, B) and sat_contained(B, W_x):
+                        uniq_B.append(B)
+                if len(uniq_B) <= 1: continue
+                cur_B = U_map[x]
+                best_B = cur_B
+                best_c = sum(role_chain_cost(s, U_map, placed_map) for s in roles_of[x])
+                for B in uniq_B:
+                    if B == cur_B: continue
+                    U_map[x] = B
+                    c = sum(role_chain_cost(s, U_map, placed_map) for s in roles_of[x])
+                    if c < best_c - 1e-12 or (abs(c - best_c) <= 1e-12 and ((top_down and len(B) > len(best_B)) or (not top_down and len(B) < len(best_B)))):
+                        best_c = c; best_B = B
+                U_map[x] = best_B
+                if best_B != cur_B:
+                    dirty.update(preds[x]); dirty.update(succ[x])
+                    for s in roles_of[x]: dirty.update(holds[s])
+                    next_dirty.update(preds[x]); next_dirty.update(succ[x])
+                    for s in roles_of[x]: next_dirty.update(holds[s])
+            if not visit_all and not next_dirty:
+                break
+            if sweep >= 1:
+                dirty = next_dirty
+        return U_map
+
+    U_cur = optimize_U_for_placed(U, p_cur, n_sweeps=4)
+    for outer in range(3):
+        d1_map = {s: len(U_cur[first_node[s]]) for s in cand}
+        def role_benefit(s, d):
+            if d <= 0: return 0.0
+            d1 = max(d, d1_map[s])
+            return (g_int(d1) - g_int(d1 - d)) - (G_EXT[d] - G_EXT[0])
+        pruned = dict(p_cur)
+        level_counts = [Counter() for _ in range(v)]
+        byT = defaultdict(set)
+        for s, X in pruned.items():
+            d = len(X)
+            for t in t_lists[s]:
+                level_counts[t][d] += 1; byT[t].add(s)
+        def target_cost(ds_set):
+            ds = sorted(ds_set)
+            return sum(g_targ(b - a) for a, b in zip(ds, ds[1:]))
+        target_cur_cost = [target_cost(set(level_counts[t].keys()) | {0, 23}) for t in range(v)]
+        def eval_group_move(group_moves):
+            ben_delta = 0.0; affected_t = set()
+            for s, B_new in group_moves.items():
+                d_old = len(pruned[s]) if s in pruned else 0
+                d_new = 0 if B_new is None else len(B_new)
+                ben_delta += role_benefit(s, d_new) - role_benefit(s, d_old)
+                affected_t.update(t_lists[s])
+            for s, B_new in group_moves.items():
+                d_old = len(pruned[s]) if s in pruned else 0
+                d_new = 0 if B_new is None else len(B_new)
+                for t in t_lists[s]:
+                    if d_old > 0: level_counts[t][d_old] -= 1
+                    if d_new > 0: level_counts[t][d_new] += 1
+            t_cost_delta = 0.0
+            for t in affected_t:
+                ds_set = {d for d, c in level_counts[t].items() if c > 0} | {0, 23}
+                t_cost_delta += target_cost(ds_set) - target_cur_cost[t]
+            for s, B_new in group_moves.items():
+                d_old = len(pruned[s]) if s in pruned else 0
+                d_new = 0 if B_new is None else len(B_new)
+                for t in t_lists[s]:
+                    if d_new > 0:
+                        level_counts[t][d_new] -= 1
+                        if level_counts[t][d_new] == 0: del level_counts[t][d_new]
+                    if d_old > 0: level_counts[t][d_old] += 1
+            return ben_delta - t_cost_delta
+        changed_roles_in_outer = set()
+        def apply_group_move(group_moves):
+            affected_t = set()
+            for s, B_new in group_moves.items():
+                changed_roles_in_outer.add(s)
+                d_old = len(pruned[s]) if s in pruned else 0
+                for t in t_lists[s]:
+                    if d_old > 0:
+                        level_counts[t][d_old] -= 1
+                        if level_counts[t][d_old] == 0: del level_counts[t][d_old]
+                    affected_t.add(t)
+                if B_new is None:
+                    if s in pruned:
+                        del pruned[s]
+                        for t in t_lists[s]: byT[t].discard(s)
+                else:
+                    if s not in pruned:
+                        for t in t_lists[s]: byT[t].add(s)
+                    pruned[s] = B_new
+                    d_new = len(B_new)
+                    for t in t_lists[s]: level_counts[t][d_new] += 1
+            for t in affected_t:
+                target_cur_cost[t] = target_cost(set(level_counts[t].keys()) | {0, 23})
+            return affected_t
+        def valid_lower_frames(s, exclude_set=()):
+            d = len(pruned[s]); cands_B = {}
+            for t in t_lists[s]:
+                for w in byT[t]:
+                    if w != s and w not in exclude_set and w in pruned and len(pruned[w]) < d:
+                        cands_B[len(pruned[w])] = pruned[w]
+            out = [None]
+            for d_low, B_low in sorted(cands_B.items(), reverse=True):
+                ok = True
+                for t in t_lists[s]:
+                    for w in byT[t]:
+                        if w == s or w in exclude_set or w not in pruned: continue
+                        Bw = pruned[w]
+                        if (len(Bw) >= d_low and not sat_contained(B_low, Bw)) or (len(Bw) < d_low and not sat_contained(Bw, B_low)):
+                            ok = False; break
+                    if not ok: break
+                if ok: out.append(B_low)
+            return out
+        role_best = {}
+        def compute_role_best(s):
+            best_g = 1e-12; best_B = None; found = False
+            for B_new in valid_lower_frames(s):
+                gv = eval_group_move({s: B_new})
+                if gv > best_g: best_g = gv; best_B = B_new; found = True
+            if found: role_best[s] = (best_g, best_B)
+            else: role_best.pop(s, None)
+        for s in list(pruned.keys()): compute_role_best(s)
+        while True:
+            if role_best:
+                best_s = max(role_best, key=lambda s: role_best[s][0])
+                _, best_B = role_best[best_s]
+                aff_t = apply_group_move({best_s: best_B})
+                role_best.pop(best_s, None)
+                aff_roles = {w for t in aff_t for w in byT[t]}
+                if best_s in pruned: aff_roles.add(best_s)
+                for w in aff_roles: compute_role_best(w)
+                continue
+            best_move = None; best_gain = 1e-12; checked_groups = set()
+            for t in range(v):
+                for d, cnt in list(level_counts[t].items()):
+                    if 2 <= cnt <= 20:
+                        grp = tuple(sorted(w for w in byT[t] if w in pruned and len(pruned[w]) == d))
+                        if len(grp) == cnt and grp not in checked_groups:
+                            checked_groups.add(grp); grp_set = set(grp)
+                            gain_rem = eval_group_move({w: None for w in grp})
+                            if gain_rem > best_gain: best_gain = gain_rem; best_move = {w: None for w in grp}
+                            snap_map = {}
+                            for w in grp:
+                                lows = [B for B in valid_lower_frames(w, grp_set) if B is not None]
+                                snap_map[w] = lows[0] if lows else None
+                            vals_list = [B for B in snap_map.values() if B is not None]
+                            if len(set(vals_list)) <= 1:
+                                gain_snap = eval_group_move(snap_map)
+                                if gain_snap > best_gain: best_gain = gain_snap; best_move = snap_map
+            if best_move is not None:
+                aff_t = apply_group_move(best_move)
+                for w in best_move: role_best.pop(w, None)
+                aff_roles = {w for t in aff_t for w in byT[t]}
+                for w in aff_roles: compute_role_best(w)
+                continue
+            break
+        for s in sorted(cand, key=lambda s: (-len(cand[s]), len(t_lists[s]), s)):
+            d_cur = len(pruned[s]) if s in pruned else 0
+            cand_s_cur = fast_restrict(U_cur[first_node[s]], [tmask[t] for t in reach[s]])
+            if cand_s_cur and not sat_nondeg(cand_s_cur):
+                cand_s_cur = sat_nonsingular_part(cand_s_cur)
+            if not cand_s_cur or len(cand_s_cur) <= d_cur: continue
+            X_up = reduce_against(cand_s_cur, t_lists[s], byT, pruned, skip_s=s)
+            if len(X_up) > d_cur and eval_group_move({s: X_up}) > 1e-12:
+                apply_group_move({s: X_up})
+        p_cur = pruned
+        dirty_nodes = set()
+        for s in changed_roles_in_outer:
+            x0 = first_node[s]
+            dirty_nodes.add(x0); dirty_nodes.update(preds[x0]); dirty_nodes.update(succ[x0]); dirty_nodes.update(holds[s])
+        U_cur = optimize_U_for_placed(U_cur, p_cur, n_sweeps=4, dirty_init=dirty_nodes)
+
+    U = U_cur
+    placed = dict(p_cur)
+    print('Cover-weighted local search placed', len(placed), flush=True)
 
     # Optimize the actual mixer word. Source injection and root frames stay fixed.
     # Floating objective values choose legal finite frames only; the complete
     # child profile and its contraction are certified independently and exactly.
-    root_frame={s:([1<<i for i in range(h)if i!=centre_of[j]] if kind[j] else kernel([tmask[target[j]]],h)) for s,j in role_root.items()}
-    frame_U={x:sat_basis(B)for x,B in U.items()}
-    FULL=sat_basis(1<<i for i in range(h))
-    sigma={s:sat_basis(B)for s,B in placed.items()}
-    role_events=defaultdict(list);frames={};birth={};lifted=Counter()
-    for i,o in enumerate(ops):
-     if o[0]=='src':
-      frames[i]=frame_U[o[2]];role_events[o[1]].append(i)
-     else:
-      frames[i]=frame_U[o[3]]
-      for s in o[1:3]:role_events[s].append(i)
-    prev={};after={};end={s:sat_basis(root_frame[s])if s in root_frame else FULL for s in range(R)}
-    for s,events in role_events.items():
-     for j,i in enumerate(events):prev[i,s]=events[j-1]if j else None;after[i,s]=events[j+1]if j+1<len(events)else None
-    # Frozen IEEE-754 search weights remove platform libm variation.
-    vals=[float.fromhex(x) for x in ['0x0.0p+0', '0x1.0000000000000p+0', '0x1.fff611fabad2cp+0', '0x1.7ff4324fbceecp+1', '0x1.ffec2426c27bdp+1', '0x1.3ff197310b8c8p+2', '0x1.7fecc00663620p+2', '0x1.bfe79c1e23586p+2', '0x1.ffe2368416067p+2', '0x1.1fee4bbd449aep+3', '0x1.3feb62b54ad1bp+3', '0x1.5fe862b99e2f4p+3', '0x1.7fe54de202531p+3', '0x1.9fe225ec96cafp+3', '0x1.bfdeec529ef76p+3', '0x1.dfdba257523b3p+3', '0x1.ffd84912b47dep+3', '0x1.0fea70bcdaf4fp+4', '0x1.1fe8b63233d76p+4', '0x1.2fe6f54967551p+4', '0x1.3fe52e5858b9ap+4', '0x1.4fe361ac5190ep+4', '0x1.5fe18f8b3cb6dp+4', '0x1.6fdfb834a8020p+4', '0x1.7fdddbe2990a6p+4']]
-    for turn in range(5):
-     changes=0;delta=0
-     for i in (reversed(range(len(ops)))if turn%2==0 else range(len(ops))):
-      o=ops[i]
-      if o[0]=='src':continue
-      _,a,b,x=o;old=frames[i];ends=[frames[after[i,s]]if after[i,s]is not None else end[s]for s in (a,b)]
-      starts=[frames[prev[i,s]]if prev[i,s]is not None else sigma.get(s,())for s in (a,b)]
-      cap=sat_cap(*ends);lower=sat_basis(starts[0]+starts[1])
-      options=[frame_protected_part(cap,old),frame_smallest_hull(lower,old)]
-      best=old;bestdelta=-1e-10
-      for F in options:
-       assert sat_nondeg(F)and all(sat_contained(P,F)and sat_contained(F,N)for P,N in zip(starts,ends))
-       df=sum(vals[len(F)-len(P)]+vals[len(N)-len(F)]-vals[len(old)-len(P)]-vals[len(N)-len(old)]for P,N in zip(starts,ends))
-       if df<bestdelta:best=F;bestdelta=df
-      if best!=old:frames[i]=best;changes+=1;delta+=bestdelta
-     print('Physical frame descent',turn,changes,delta,flush=True)
-     if not changes:break
-    for i,o in enumerate(ops):
-     if o[0]=='src':birth[o[1]]=frames[i]
-     elif o[0]=='copy':birth[o[2]]=frames[i]
-     if o[0]!='src':lifted[len(frame_U[o[3]]),len(frames[i])]+=1
-    assert len(birth)==R
-    op_frames=frames
-    role_frames={s:[]for s in range(R)}
-    for i,o in enumerate(ops):
-        if o[0]=='src':role_frames[o[1]].append(op_frames[i])
+    frame_U = {x: sat_basis(B) for x, B in U.items()}
+    FULL = sat_basis(1 << i for i in range(h))
+    sigma = {s: sat_basis(B) for s, B in placed.items()}
+    role_events = defaultdict(list); frames = {}; birth = {}; lifted = Counter(); first_op = {}
+    for i, o in enumerate(ops):
+        if o[0] == 'src':
+            frames[i] = frame_U[o[2]]; role_events[o[1]].append(i); first_op.setdefault(o[1], i)
         else:
-            for s in o[1:3]:role_frames[s].append(op_frames[i])
-    def F0(s):return birth[s]
+            frames[i] = frame_U[o[3]]
+            for s in o[1:3]:
+                role_events[s].append(i); first_op.setdefault(s, i)
+    prev = {}; after = {}; end = {s: sat_basis(root_frame[s]) if s in root_frame else FULL for s in range(R)}
+    for s, events in role_events.items():
+        for j, i in enumerate(events):
+            prev[i, s] = events[j - 1] if j else None
+            after[i, s] = events[j + 1] if j + 1 < len(events) else None
+
+    def run_frame_descent(n_turns, end_map, sig_map):
+        for turn in range(n_turns):
+            changes = 0
+            for i in (reversed(range(len(ops))) if turn % 2 == 0 else range(len(ops))):
+                o = ops[i]
+                if o[0] == 'src': continue
+                _, a, b, x = o; old = frames[i]
+                ends = [frames[after[i, s]] if after[i, s] is not None else end_map[s] for s in (a, b)]
+                starts = [frames[prev[i, s]] if prev[i, s] is not None else sig_map.get(s, ()) for s in (a, b)]
+                cap_ = sat_cap(*ends); lower = sat_basis(starts[0] + starts[1])
+                options = [frame_protected_part(cap_, old), frame_smallest_hull(lower, old)]
+                best = old; bestdelta = -1e-10
+                for F in options:
+                    if not F: continue
+                    assert sat_nondeg(F) and all(sat_contained(P, F) and sat_contained(F, N_) for P, N_ in zip(starts, ends))
+                    df = sum(g_int(len(F) - len(P)) + g_int(len(N_) - len(F)) - g_int(len(old) - len(P)) - g_int(len(N_) - len(old)) for P, N_ in zip(starts, ends))
+                    if df < bestdelta: best = F; bestdelta = df
+                if best != old: frames[i] = best; changes += 1
+            if not changes: break
+
+    run_frame_descent(6, end, sigma)
+    op_frames = frames
+    pairs0 = select_reuse(locals())
+    matched_donors = {r['donor'] for r in pairs0}
+    unmatched_donors = {a for a, i in last.items() if i in Anc and a not in role_root and a not in matched_donors}
+    shrink_ops = set(); stack = [last[a] for a in unmatched_donors]
+    while stack:
+        i = stack.pop()
+        if i is None or i in shrink_ops or ops[i][0] == 'src': continue
+        shrink_ops.add(i)
+        for s in ops[i][1:3]: stack.append(prev[i, s])
+    for i in sorted(shrink_ops):
+        o = ops[i]; _, a, b, x = o; old = frames[i]
+        starts = [frames[prev[i, s]] if prev[i, s] is not None else sigma.get(s, ()) for s in (a, b)]
+        lower = sat_basis(starts[0] + starts[1])
+        F = frame_smallest_hull(lower, old)
+        ends = [frames[after[i, s]] if after[i, s] is not None else end[s] for s in (a, b)]
+        if all(sat_contained(F, N_) for N_ in ends): frames[i] = F
+    pairs1 = select_reuse(locals())
+    end_s = dict(end)
+    for r in pairs1: end_s[r['donor']] = sat_basis(r['birth_frame'])
+    run_frame_descent(4, end_s, sigma)
+    pairs2 = select_reuse(locals())
+
+    # Snap split recipient birth frames toward their matched donor frame A when profitable
+    byT_snap = defaultdict(set); level_counts_snap = [Counter() for _ in range(v)]
+    for s, X in placed.items():
+        for t in reach[s]:
+            byT_snap[t].add(s); level_counts_snap[t][len(X)] += 1
+    def target_cost_snap(ds_set):
+        ds = sorted(ds_set)
+        return sum(g_targ(b - a) for a, b in zip(ds, ds[1:]))
+    target_cur_snap = [target_cost_snap(set(level_counts_snap[t].keys()) | {0, 23}) for t in range(v)]
+
+    def snap_recipients(pairs_list):
+        for _ in range(3):
+            snapped = 0
+            for r in pairs_list:
+                b = r['recipient']
+                A = sat_basis(r['donor_frame'])
+                F_old = placed[b]
+                e, f_old = len(A), len(F_old)
+                d1 = len(frames[first_op[b]])
+                if e >= f_old: continue
+                cands_B = {A}
+                for t in t_lists[b]:
+                    for w in byT_snap[t]:
+                        if w == b: continue
+                        Bw = placed[w]
+                        if e <= len(Bw) < f_old and sat_contained(A, Bw) and sat_contained(Bw, F_old):
+                            cands_B.add(Bw)
+                best_gain = 1e-12; best_B = None
+                for B_new in cands_B:
+                    f_new = len(B_new)
+                    ok = True
+                    for t in t_lists[b]:
+                        for w in byT_snap[t]:
+                            if w == b: continue
+                            Bw = placed[w]
+                            if (len(Bw) >= f_new and not sat_contained(B_new, Bw)) or (len(Bw) < f_new and not sat_contained(Bw, B_new)):
+                                ok = False; break
+                        if not ok: break
+                    if not ok: continue
+                    aux_gain = (g_int(f_old - e) + g_int(d1 - f_old)) - (g_int(f_new - e) + g_int(d1 - f_new))
+                    t_delta = 0.0
+                    for t in t_lists[b]:
+                        level_counts_snap[t][f_old] -= 1; level_counts_snap[t][f_new] += 1
+                        ds_new = {d for d, c in level_counts_snap[t].items() if c > 0} | {0, 23}
+                        t_delta += target_cost_snap(ds_new) - target_cur_snap[t]
+                        level_counts_snap[t][f_new] -= 1
+                        if level_counts_snap[t][f_new] == 0: del level_counts_snap[t][f_new]
+                        level_counts_snap[t][f_old] += 1
+                    if aux_gain - t_delta > best_gain:
+                        best_gain = aux_gain - t_delta; best_B = B_new
+                if best_B is not None:
+                    f_new = len(best_B)
+                    placed[b] = best_B; sigma[b] = best_B
+                    r['birth_frame'] = best_B; r['s'] = f_new
+                    for t in t_lists[b]:
+                        level_counts_snap[t][f_old] -= 1
+                        if level_counts_snap[t][f_old] == 0: del level_counts_snap[t][f_old]
+                        level_counts_snap[t][f_new] += 1
+                        target_cur_snap[t] = target_cost_snap({d for d, c in level_counts_snap[t].items() if c > 0} | {0, 23})
+                    snapped += 1
+            if not snapped: break
+
+    snap_recipients(pairs2)
+    end_s = dict(end)
+    for r in pairs2: end_s[r['donor']] = sat_basis(r['birth_frame'])
+    run_frame_descent(6, end_s, sigma)
     reuse_pairs = select_reuse(locals())
+    snap_recipients(reuse_pairs)
+    reuse_pairs = select_reuse(locals())
+
+    deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
+    for i, o in enumerate(ops):
+        if o[0] == 'src': birth[o[1]] = frames[i]
+        elif o[0] == 'copy': birth[o[2]] = frames[i]
+        if o[0] != 'src': lifted[len(frame_U[o[3]]), len(frames[i])] += 1
+    assert len(birth) == R
+    op_frames = frames
+    role_frames = {s: [] for s in range(R)}
+    for i, o in enumerate(ops):
+        if o[0] == 'src': role_frames[o[1]].append(op_frames[i])
+        else:
+            for s in o[1:3]: role_frames[s].append(op_frames[i])
+    def F0(s): return birth[s]
     merge = check_pairs(locals(), reuse_pairs)
     reuse_rejected_controls = mutation_controls(locals(), reuse_pairs)
     live = [s for s in range(Rr) if s not in merge]
@@ -678,20 +1136,30 @@ def main():
 
     # ------------------------------------------------------------ E. one-child histogram
     z = Counter()
+    internal_role_histogram = Counter()
     for s in range(Rr):
         ds = chain_dims[s]
         for a, b in zip(ds[:-1], ds[1:-1]):
-            if b > a: z[b - a] += 2 * v
+            if b > a:
+                z[b - a] += 2 * v
+                internal_role_histogram[b - a] += 1
         lastd = ds[-2]
-        if s in role_root and kind[role_root[s]]: z[h - 1] += 2 * v           # copied centre transform
+        if s in role_root and kind[role_root[s]]:
+            z[h - 1] += 2 * v                                                  # copied centre transform
+            internal_role_histogram[h - 1] += 1
         z[h - lastd] += 2 * v                                                  # final growth to F
+        internal_role_histogram[h - lastd] += 1
         z[m - h + ds[0]] += 2 * v                                              # exterior, gauged by sigma
     levels = defaultdict(set)
     for s in deferred:
         for t in reach[s]: levels[t].add(len(placed[s]))
+    target_data_histogram = Counter()
     for t in range(v):
         ds = sorted(levels[t] | {0, h - 1})
-        for a, b in zip(ds, ds[1:]): z[b - a] += 2 * v                       # target fronts
+        for a, b in zip(ds, ds[1:]):
+            z[b - a] += 2 * v                                                  # target fronts
+            target_data_histogram[b - a] += 1
+    source_data_histogram = Counter({h - 1: v})
     z[h - 1] += 2 * N                                                          # data-wire fronts
     z[(h - 1) ** 2] += 2 * N                                                   # data macros
     z[1] += N                                                                  # endpoint copies
@@ -701,9 +1169,14 @@ def main():
         e, f = pair['e'], pair['s']
         z[h - e] -= 2 * v
         z[m - h + f] -= 2 * v
-        if f > e: z[f - e] += 2 * v
+        internal_role_histogram[h - e] -= 1
+        if f > e:
+            z[f - e] += 2 * v
+            internal_role_histogram[f - e] += 1
     require(all(count >= 0 for count in z.values()), 'reuse histogram subtraction')
+    require(all(count >= 0 for count in internal_role_histogram.values()), 'internal role histogram subtraction')
     z = Counter({width: count for width, count in z.items() if count})
+    internal_role_histogram = Counter({width: count for width, count in internal_role_histogram.items() if count})
     physical_R = len(live)
     # Canonical inventory of actual physical source gauges. Recipients have
     # disappeared; every reused donor remains a separate zero-gauge slot.
@@ -718,10 +1191,13 @@ def main():
     out = dict(h=h, v=v, additions=c_add, roots=q, links=len(links), R=physical_R, virtual_R=virtual_R, reused_roles=len(reuse_pairs), m=m, N=N, W=W, L=L, total_rank=s_,
                deficit=N - L, maxchild=max(z), phase_one_ops=len(Anc), phase_one_roles=len(touched),
                physical_auxiliary_source_frames=physical_auxiliary_source_frames,
+               source_data_histogram=dict(sorted(source_data_histogram.items())),
+               target_data_histogram=dict(sorted(target_data_histogram.items())),
+               internal_role_histogram=dict(sorted(internal_role_histogram.items())),
                deferred_roles=len(deferred),
                deferred_dims=dict(sorted(Counter(len(X) for X in placed.values()).items())),
-               lifted_additions=sum(1 for i,o in enumerate(ops) if o[0]=='add' and len(op_frames[i])>ranks[o[3]]),
-               physical_gate_frame_changes=sum(op_frames[i]!=frame_U[o[3]] for i,o in enumerate(ops) if o[0]!='src'),
+               lifted_additions=sum(1 for i, o in enumerate(ops) if o[0] == 'add' and len(op_frames[i]) > ranks[o[3]]),
+               physical_gate_frame_changes=sum(op_frames[i] != frame_U[o[3]] for i, o in enumerate(ops) if o[0] != 'src'),
                replay=dict(seeds=[1, 2], scratch_restored=True, y_plus_x=True, field='Z/(2^61-1)',
                            physically_aliased=True, inverse_order='true source/workspace chronology',
                            omitted_compensation_rejected=True),

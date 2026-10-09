@@ -102,6 +102,13 @@ for h in (1,2,3,4):
  print('Clifford',records[-1],flush=True)
 
 h=24;m=3*h-2;A=tuple(1<<i for i in range(h));B=tuple(1<<i for i in range(h,2*h-1));C=tuple(1<<i for i in range(2*h-1,m));E=basis(A+B+C)
+perm=list(range(m))
+for i in range(h):perm[i],perm[h+i]=h+i,i
+K_pair=tuple(1<<perm[i]for i in range(m))
+assert mul(K_pair,K_pair)==tuple(1<<i for i in range(m))
+assert all(((x&y).bit_count()&1)==int(i==j)for i,x in enumerate(K_pair)for j,y in enumerate(K_pair))
+assert contains(image(K_pair,A),basis(B+C))and intersectdim(A,image(K_pair,A))==0
+assert all(((x&y).bit_count()&1)==0 for x in A for y in image(K_pair,A))
 checks=0
 for triple in combinations(range(h),3):
  q=sum(1<<i for i in triple);d=next(i for i in range(h)if i not in triple);w=q^(1<<d)
@@ -118,6 +125,8 @@ for triple in combinations(range(h),3):
  R12=swap(B,C);R23=swap(C,B)
  assert image(R12,A)==basis(B+(q,)) and image(R12,Aq)==basis(B)
  assert image(R23,A)==basis(C+(q,)) and image(R23,B+C)==basis(B+Aq)
+ assert all(((x&y).bit_count()&1)==0 for x in image(R12,A)for y in image(mul(R12,K_pair),A))
+ assert all(((x&y).bit_count()&1)==0 for x in image(R23,A)for y in image(mul(R23,K_pair),A))
  # All six data segments telescope without a positive-rank connector.
  stages=[((q,),basis(B+(q,)),(),basis(B)),(basis(B+(q,)),basis(A+B),basis(B),basis(Aq+B)),(basis(A+B),E,basis(Aq+B),basis(Aq+B+C))]
  for xs,xe,ys,ye in stages:assert contains(xs,xe)and contains(ys,ye)
@@ -126,8 +135,9 @@ for triple in combinations(range(h),3):
 print('Cayley actual h24 triples',checks,flush=True)
 P=D.resolve().parents[1]
 files=['notes/general-clifford-frames.tex','notes/three-stage-cover-complex.tex','notes/three-stage-cover-note.tex']
-out=dict(status='PASS independent exact binary symplectic and actual h24 port geometry',clifford_checks=records,actual_h24_port_triples_checked=checks,
+out=dict(status='PASS independent exact binary symplectic, actual h24 port geometry, and Stage-1 pairing involution',clifford_checks=records,actual_h24_port_triples_checked=checks,
+ stage1_pairing_involution_checked=True,
  source_sha256={f:hashlib.sha256((P/f).read_bytes()).hexdigest()for f in files},
- scope='Finite checks substantiate the written all-subspace algebra and all selected port identities. They do not verify exact operator phases or all-size fixed-tape/weighted-bit interfaces.',
- source_review_findings=['K_G fixes L0 and LF, transports L_U, and has rank-zero adapters; arbitrary degenerate subspaces are allowed.', 'Dirty-tail Fourier rank holds for direct complement V_sigma, without claiming V_sigma=sigma_perp.', 'Reverse D_U=T_U F_inverse transitions cancel exactly at operator level.', 'The three Cayley port maps preserve source line and make every adjacent data frame equal.', 'Rank-zero adapters reconcile exact representatives; full finite router bound must remain paid.'],publication_blocker_in_reviewed_scope=None)
+ scope='Finite checks substantiate the written all-subspace algebra, all selected port identities, and the Stage-1 coordinate pairing involution. They do not verify exact operator phases or all-size fixed-tape/weighted-bit interfaces.',
+ source_review_findings=['K_G fixes L0 and LF, transports L_U, and has rank-zero adapters; arbitrary degenerate subspaces are allowed.', 'Dirty-tail Fourier rank holds for direct complement V_sigma, without claiming V_sigma=sigma_perp.', 'Reverse D_U=T_U F_inverse transitions cancel exactly at operator level.', 'The three Cayley port maps preserve source line and make every adjacent data frame equal.', 'The coordinate involution exchanging e_i and e_{24+i} maps A into B+C orthogonally to A, giving fixed-point-free orthogonal active spaces in Stage 1.', 'Rank-zero adapters reconcile exact representatives; full finite router bound must remain paid.'],publication_blocker_in_reviewed_scope=None)
 (D/'geometry-audit.json').write_text(json.dumps(out,indent=2)+'\n')

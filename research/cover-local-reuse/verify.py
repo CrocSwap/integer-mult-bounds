@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Read-only finite replay of physical local reuse under the PR130 cover.
+"""Read-only finite replay of physical local reuse under the PR130/PR132 cover.
 
-Prepared for eumemic with OpenAI Codex assistance. Apache-2.0;
-the pinned upstream sources retain their original notices and proof scope.
+Prepared for eumemic with OpenAI Codex assistance (PR131); paired lockstep
+cover from Avi Eisenberg (PR132); radical-complement lifting, phase-aware role
+compilation, donor-chain shrinking, recipient snapping and per-bank literal
+reflection audit prepared by Thomas Marchand with Google Antigravity assistance
+(PR133). Apache-2.0; the pinned upstream sources retain their original notices
+and proof scope.
 """
 import sys
 sys.dont_write_bytecode = True
@@ -142,13 +146,15 @@ def inventory(root):
 
 def create_manifest(root):
     return dict(schema=1,
-        scope='Finite local complex replay, geometry checks and exact cover assembly; general cover/bit/analytic interfaces remain conditional.',
+        scope='Finite local complex replay, geometry checks and exact unpaired/paired cover assembly; general cover/bit/analytic interfaces remain conditional.',
         files={name: digest(safe_file(root, name)) for name in sorted(inventory(root))},
         provenance=dict(cover_commit='6a9970a530119174507904e23592fd59ede19a5d',
                         cover_certificate_sha256=BASE_PIN,
+                        paired_cover_commit='f7bc7a9073fd45d5d72a61795409033997288202',
+                        physical_reuse_commit='3acf2f9c026858b2525216f45e1650df24ef2d8e',
                         scalar_dag_commit='cbb05ce504d571546d9b7794c186a613c659c3bf',
                         scalar_dag_sha256=DAG_PIN,
-                        physical_local_source='PR129 completed-core frames and PR124 compensated birth-cut reuse'))
+                        physical_local_source='PR129/PR131 physical gate frames, PR124 compensated birth-cut reuse, PR132 first-stage lockstep pairing, and PR133 radical-complement lifting, phase-aware role compilation, donor-chain shrinking and recipient snapping'))
 
 
 def check_sources(root, manifest=None):

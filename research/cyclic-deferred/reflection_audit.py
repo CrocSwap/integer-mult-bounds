@@ -3,6 +3,8 @@
 
 Birth-cut reuse follows jamesyc PR124; original contributors retained.
 Composition with saturated and physical frames prepared with OpenAI Codex.
+Per-bank forward/reflected histogram audit prepared by Thomas Marchand with
+Google Antigravity assistance.
 
 Captures an unchanged deferred producer before its output write, then checks
 the scalar computation on every source symbol, the exact signed old-readout
@@ -315,11 +317,14 @@ def audit(d):
     finally:d['seed_d'][s]=original
 
     def framescan(events,initial,expected):
-        current=list(initial);hist=Counter();copies=Counter();scalar=0;digest=sha256()
+        current=list(initial);hist=Counter();banks=[Counter(),Counter(),Counter()];copies=Counter();scalar=0;digest=sha256()
         def promote(s,F):
             old=current[s];assert contained(old,F),(s,old,F)
             assert nondeg(F);assert nondeg(complement(F,h))
-            if len(F)>len(old):hist[len(F)-len(old)]+=1
+            if len(F)>len(old):
+                step=len(F)-len(old)
+                hist[step]+=1
+                banks[0 if s<v else (1 if s<2*v else 2)][step]+=1
             current[s]=F
         for event in events:
             k,a,b,c,F,*rest=event
@@ -340,7 +345,7 @@ def audit(d):
         # endpoint is still represented explicitly in the expected chain.
         for s,F in enumerate(expected):promote(s,F)
         assert current==expected
-        return hist,copies,scalar,digest.hexdigest()
+        return hist,banks,copies,scalar,digest.hexdigest()
     start=tm+[ZERO]*v+[sigma.get(s,ZERO) for s in live]
     finish=[FULL]*v+[complement(T,h) for T in tm]+[FULL]*len(live)
     # Independently bind the inventory to the actual literal physical ports.
@@ -353,12 +358,19 @@ def audit(d):
     assert physical_auxiliary_source_frames==d['out']['physical_auxiliary_source_frames'], 'Literal physical source frame inventory'
     assert all(start[A(a)]==ZERO for a in merge.values()), 'Reused donor starts at zero'
     assert all(F==FULL for F in finish[2*v:]), 'Completed physical scratch finish'
-    H,C,scalar,digest=framescan(word,start,finish)
+    H,B_fwd,C,scalar,digest=framescan(word,start,finish)
     revstart=[None]*len(start);revfinish=[None]*len(start)
     for s in range(len(start)):
         revstart[swap(s)]=complement(finish[s],h);revfinish[swap(s)]=complement(start[s],h)
-    HR,CR,scalarR,reverse_digest=framescan(reverse,revstart,revfinish)
+    HR,B_rev,CR,scalarR,reverse_digest=framescan(reverse,revstart,revfinish)
     assert (H,C,scalar)==(HR,CR,scalarR)
+    assert (B_fwd[0],B_fwd[1],B_fwd[2]+C)==(B_rev[1],B_rev[0],B_rev[2]+CR),'Reflected per-bank histograms'
+    src_hist=dict(sorted(B_fwd[0].items()))
+    tgt_hist=dict(sorted(B_fwd[1].items()))
+    int_hist=dict(sorted((B_fwd[2]+C).items()))
+    assert src_hist=={int(r):n for r,n in d['out']['source_data_histogram'].items()},'Literal source data histogram'
+    assert tgt_hist=={int(r):n for r,n in d['out']['target_data_histogram'].items()},'Literal target data histogram'
+    assert int_hist=={int(r):n for r,n in d['out']['internal_role_histogram'].items()},'Literal internal role histogram'
     z=Counter({r:2*v*n for r,n in (H+C).items()})
     for s in live:z[h*h-h+len(sigma.get(s,ZERO))]+=2*v
     z[(h-1)**2]+=2*v*v;z[1]+=v*v
@@ -370,6 +382,9 @@ def audit(d):
     assert safe>=scalar
     return dict(h=h,v=v,R=len(live),virtual_R=R,reused_roles=len(merge),exact_birth_cut_invariants=True,last_uses_recomputed=True,physical_aliased_numeric_replay=True,omitted_compensation_numeric_control=True,inverse_source_order='True reverse chronological source/workspace word',exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
                 physical_auxiliary_source_frames=physical_auxiliary_source_frames,
+                source_data_histogram=src_hist,
+                target_data_histogram=tgt_hist,
+                internal_role_histogram=int_hist,
                 completed_core_source_inventory_bound=True,completed_core_pre_exterior_frames_full=True,
                 reflected_core_active_frames_complement_source=all(revfinish[2*v+i]==complement(start[2*v+i],h) for i in range(len(live))),
                 exact_arbitrary_dirty_cancellation_by_dependency_cut=True,

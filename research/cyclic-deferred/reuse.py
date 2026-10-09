@@ -2,7 +2,9 @@
 
 Birth-cut reuse follows jamesyc PR124. Composition with saturated deferrals
 and physical hull frames prepared for eumemic with OpenAI Codex assistance.
-Apache-2.0; inherited authorship remains in the surrounding package.
+Reuse-aware recipient ordering prepared by Thomas Marchand with Google
+Antigravity assistance. Apache-2.0; inherited authorship remains in the
+surrounding package.
 """
 from collections import defaultdict
 from functools import lru_cache
@@ -117,9 +119,16 @@ def select_reuse(data):
                 break
         eligible[F] = mask
         capacity[F] = sum(len(pool[i]) for i in range(len(frames)) if mask >> i & 1)
+    first = {}
+    for i, op in enumerate(data['ops']):
+        if op[0] == 'src':
+            first.setdefault(op[1], i)
+        else:
+            for s in op[1:3]:
+                first.setdefault(s, i)
     available, pairs = allgroups, []
-    for F in sorted(births, key=lambda F: (capacity[F], len(F), F)):
-        for b in sorted(births[F]):
+    for F in sorted(births, key=lambda F: (len(F), capacity[F], F)):
+        for b in sorted(births[F], key=lambda b: (len(data['op_frames'][first[b]]) - len(F), b)):
             mask = eligible[F] & available
             if not mask:
                 break
