@@ -61,6 +61,18 @@ def regenerate(work, expected, compiler):
     save('selection.json',selection)
     stage('Checking scalar coefficients, actual frames, physical word and readout chains')
     checks=verify(dag,matching,ann,lifted,word,selection['selected'],result)
+    # Control: PR130's unmodified verifier must reject these frames, and only at
+    # the full-lift equality that verify_shrunk.py relaxes to containment. Every
+    # check that precedes it in the original code (supports, labels, nesting)
+    # therefore also passes there.
+    from three_stage_cover.verify import verify as original_verify
+    try:
+        original_verify(dag,matching,ann,lifted,word,selection['selected'],result)
+    except AssertionError as error:
+        assert str(error)=='Not the full backward intersection', repr(error)
+    else:
+        raise AssertionError('PR130 verifier accepted shrunk frames; the shrink pass did nothing')
+    checks['original_pr130_verifier_rejects_only_full_lift_equality']=True
     return dict(source_pin_verified=True,regenerated_from_source=True,certificate_equal=True,selected=result,checks=checks)
 
 

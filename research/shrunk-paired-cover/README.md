@@ -37,6 +37,9 @@ make shrunk-paired-cover-verify
   exact supports and divisor 21, labels contained in frames, dependency and carrier nesting,
   236,902 replayed physical frame transitions, histogram recount, full incident source gauges,
   and reverse readout chains.
+- Control: `producer.py` also runs PR #130's **unmodified** verifier on the same data. It must
+  reject the frames, and only with `Not the full backward intersection`. Every check that precedes
+  that assertion in PR #130's code (supports, labels, nesting) therefore passes in the original too.
 - `certificate.py` is PR #132's paired certificate on the new inventory. It checks the exact
   moment, the finite bridge, all 47 strict constraints and 7 margins, and next-grid rejection.
   It also checks that the shrunk unpaired saving exceeds PR #130's.
