@@ -1,5 +1,10 @@
 # Reproducing the result
 
+For the new stopped product-ring extension, run `make stopped-product-verify`.
+Its [incremental reproduction guide](stopped-product.md) covers the h24
+rational-center producer, new moments, stopping parameters and assembly.
+The community checkpoint and historical targets below retain their own scope.
+
 The selected release is documented in the [joint-frame community review](research/community-round2-review.md)
 and [current status](research/current-status.md), with the
 [selected parameter certificate](../research/matrix-exponent-synthesis/candidate/arithmetic.json).
