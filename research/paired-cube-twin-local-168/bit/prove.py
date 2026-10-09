@@ -66,6 +66,12 @@ def certify(row):
 def main():
     need(not sys.flags.optimize,'assertions enabled')
     word=Candidate();word.exact_frames();row=word.row()
+    descent=json.loads((HERE/'frame-descent.json').read_text())
+    need(descent['selected_count']==len(descent['selected_operations']),'frozen frame descent operation count')
+    need(all(word.opframe[z['operation']]==z['new_frame'] for z in descent['selected_operations']),
+         'frozen frame descent operation assignments')
+    for frame,basis in descent['new_frame_records'].items():
+        need([list(r) for r in word.C.B[int(frame)]]==basis,'frozen frame descent basis rows')
     need(row['reused_registers']==len(word.pairs),'physical aliases counted')
     # The package word itself (node frames, no pairs) passes the retained package checker with its five mutation controls.
     Checker=word.module.Checker;checked=Checker(HERE.parent/'selected/bit',12).run()
@@ -93,6 +99,7 @@ def main():
     need(row['terminal_sinks']==len(selection) and terminal['scalar_addition_delta']<=0,'terminal sink count and retained scalar bill')
     need(row['W_per_vertex']==overridden_row['W_per_vertex']-len(selection) and row['R']==overridden_row['R']-len(selection),'terminal removals reduce stock by the sink count')
     coarse=certify(row)
+    need(descent['candidate_bit_coarse']==str(coarse['coarse_saving']),'exact frame descent bit moment receipt')
     primes=prime_certificate(word)
     need(primes==json.loads(gzip.decompress((HERE/'prime-witnesses.json.gz').read_bytes())),'source-bound all-frame prime witness reproduction')
     need(primes['total_operation_frames']==row['changed_operation_frames'] and primes['h']==row['h'],'prime witnesses cover changed frames')

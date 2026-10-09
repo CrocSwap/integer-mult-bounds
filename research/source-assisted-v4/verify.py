@@ -137,7 +137,7 @@ def build():
             witness_sha256=sha(witness),
             lift_certificate_sha256=sha(lift.with_suffix('.certificate.json.gz')),
             flow=flow_data, lift=lift_data, complex_profile=profile_data, assembly=final,
-            scope='PR184 contract and finite bridge unchanged; the bit supplier is PR189 (verified by its own verify.py); the complex supplier is '
+            scope='PR184 contract and finite bridge unchanged; the bit supplier is PR189 after 102 exact endpoint-frame lowerings (verified by its own verify.py); the complex supplier is '
                   "PR184's source-parity local word and frame flow on PR168 v4's query modules and physical layer, "
                   'with donor/recipient pairs that avoid parity purification. '
                   'No new flattened bit transcript or full Clifford/router replay, as in PR184.'))

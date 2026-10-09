@@ -79,7 +79,7 @@ def certificate(word=None):
         else:raise ValueError('Invalid prime witness accepted: '+name)
     return dict(status='PASS exact prime witnesses for every used physical frame',h=h,
         source_commit='4a3c769e5c5430e7114c4d3e099ff34664677f17',
-        input_sha256={str(p.relative_to(HERE.parents[2])):hashlib.sha256(p.read_bytes()).hexdigest() for p in word.input_paths},
+        input_sha256={p.relative_to(HERE.parents[2]).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in word.input_paths},
         script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         stripped_primes=list(PRIMES),frame_witnesses=records,unique_used_bases=len(records),
         total_used_frames=len(used),total_operation_frames=len(word.changed_frames),

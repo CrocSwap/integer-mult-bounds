@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble the source-assisted v4 complex profile with PR189's bit supplier.
+"""Assemble the source-assisted v4 complex profile with PR189's descended bit supplier.
 
 This script reuses PR184's research/source-assisted/global/assemble_profiles.py
 (GPT-6 Astra for icekylinx, Apache-2.0) as a module: its normalize(), select()
@@ -8,11 +8,11 @@ balanced assembly with PR184's finite bridge. Only the inputs change:
 
 - the complex profile is this package's contract-checked profile, with the
   complex half of PR184's construction receipts checked here;
-- the bit profile is the certified PR189 bit profile (chafreaky), read from
-  research/paired-cube-twin-local-168/certificate.json, which PR189's own
-  verify.py regenerates.
+- the bit profile is the PR189 bit profile (chafreaky) after the exact 102-op
+  endpoint-frame descent, read from research/paired-cube-twin-local-168/
+  certificate.json, which that package's verify.py regenerates.
 
-PR184's select() recomputes the bit coarse saving on its 10^-10 grid with the
+PR184's select() recomputes the descended bit coarse saving on its 10^-10 grid with the
 bad-row allowance 10^-16 and fallback 32 m^2 per edge, the least payable atom
 exponent on the 10^-12 grid, and the effective saving with the ordinary leaf
 saving 384599/10^10.

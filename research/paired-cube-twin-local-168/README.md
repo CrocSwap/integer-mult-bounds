@@ -22,12 +22,12 @@ The exact prerequisite is eumemic's PR168 at `4a3c769e5c5430e7114c4d3e099ff34664
 | Rank deficit | 1,320 | 1,936 |
 | Largest child | 20 | 60 |
 
-The complex saving is $b=132438677973/(2\cdot10^{14})=0.000662193389865$. The bit coarse saving is $a_0=668298937775631/10^{18}=0.000668298937775631$. Its established ordinary wrapper uses
+The complex saving is $b=132438677973/(2\cdot10^{14})=0.000662193389865$. The bit coarse saving after the follow-up endpoint-frame descent is $a_0=167089706787281/250000000000000000=0.000668358827149124$. Its established ordinary wrapper uses
 
 $$
-\theta=\frac{133575656392233867107}{2\cdot10^{23}},\qquad
+\theta=\frac{83492261707565650509}{125000000000000000000000},\qquad
 A_B=(1-\theta)a_0+\theta\frac{384599}{10^{10}}
-\approx0.000667878281961169.
+\approx0.000667938066546329.
 $$
 
 Both supplier moments use outward rational intervals. The bit moment includes the complete worst-case rare-class fallback; the strict atom and internally borrowed-row tolls are paid. **The complex supplier now limits the selected bound again:** the transfer saving is $a=(1-\beta)b-\zeta<A_B$.
@@ -40,7 +40,9 @@ python3 -B research/paired-cube-twin-local-168/verify.py
 
 It verifies the full source closure, signed graph, original and terminal-modified complex words in both directions, every formal source/target/dirty column, complete target chronology, the new bit graph through the retained package checker, our physical bit layer, the terminal-modified bit word's F2 identity and its defining integer decoder, all used-frame prime witnesses, exact paid moments, full scalar/group/router/row bills, 47 strict inequalities, seven margins and adverse controls. It reproduces `certificate.json` and rejects source drift. No foreign producer or aggregate checker runs for package admission. `--write` is an authoring operation before source freeze.
 
-All 24,459 used bit frame IDs, including every descended operation frame, have distinct integer Gram witnesses. Their largest cleared determinant has 118 bits; exact factor identities leave every prime factor below $2^{80}$. The original range $q>2^{80}$ is therefore retained.
+The follow-up bit descent selects 102 nonadjacent operation-frame lowerings from 2,534 structurally eligible endpoint candidates. Each selected frame is the join of its actual physical predecessor frames and the node's value span, lies inside both physical successor frames, and leaves all terminal-sink writes untouched. The donor/gauge splice is included in the chain order. The exact per-rank internal histogram delta and selected frame assignments are in [frame-descent.json](bit/frame-descent.json). The new bit coarse saving is $167089706787281/250000000000000000$ and its PR184-priced effective saving is $6679380665463285737/10^{22}$. In the source-assisted v4 composition this raises $\kappa$ from $1668581/2500000000$ to $3337461/5000000000$, a gain of $299/5000000000$; the complex supplier in this package's own arithmetic remains the binding side.
+
+All 24,553 used bit frame IDs, including every descended operation frame, have distinct integer Gram witnesses. Their largest cleared determinant has 118 bits; exact factor identities leave every prime factor below $2^{80}$. The original range $q>2^{80}$ is therefore retained.
 
 The full repository gate applies PR154's isolated snapshot technique:
 

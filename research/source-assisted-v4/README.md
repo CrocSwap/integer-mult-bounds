@@ -1,6 +1,6 @@
 # Source-assisted complex word on PR168 v4 modules
 
-This package applies the [PR184](https://github.com/CrocSwap/integer-mult-bounds/pull/184) source-parity local word and source-assisted frame flow to the PR168 v4 query modules. PR184 used the older PR168 snapshot `fd25adb7fbaa12ee761d02c733c54d1d2a7687ee`. The newer modules and a new choice of donor/recipient pairs give a much stronger complex supplier. The bit supplier is the face-diagonal bit word of [PR189](https://github.com/CrocSwap/integer-mult-bounds/pull/189) (chafreaky).
+This package applies the [PR184](https://github.com/CrocSwap/integer-mult-bounds/pull/184) source-parity local word and source-assisted frame flow to the PR168 v4 query modules. PR184 used the older PR168 snapshot `fd25adb7fbaa12ee761d02c733c54d1d2a7687ee`. The newer modules and a new choice of donor/recipient pairs give a much stronger complex supplier. The bit supplier starts with the face-diagonal bit word of [PR189](https://github.com/CrocSwap/integer-mult-bounds/pull/189) (chafreaky), then applies the 102-operation endpoint-frame descent recorded in `research/paired-cube-twin-local-168/bit/frame-descent.json`.
 
 ## Complex supplier
 
@@ -16,15 +16,16 @@ PR193 changed the donor/recipient pairs. PR184 matches donors to recipients with
 
 ## Bit supplier and κ
 
-The complex saving is now far above every published bit supplier, so the bit side binds. `assemble.py` takes PR189's certified bit profile (R = 17,554, W = 21,074, deficit 1,936) and runs PR184's own moment pricing, finite bridge and 47-constraint assembly. PR184's 10^-10 grid gives the bit coarse saving 6682989/10^10 and the effective saving 133575648846809489/(2·10^20) ≈ 6.678782e-4.
+The complex saving is 219037/312500000 = 0.0007009184, so the bit side binds. The descended physical profile retains R = 17,554, W = 21,074, deficit 1,936. PR184's exact pricing gives bit coarse saving 1670897/2500000000 and effective saving 6679380665463285737/10^22. The source word's Boolean operations and terminal sink writes are unchanged; the committed operation frames use the actual physical donor/gauge/recipient chain order.
 
 | Version | Bit supplier | Binding side | κ |
 | --- | --- | --- | ---: |
 | PR191 | PR184 | complex | 6.626307e-4 |
 | PR193 | PR184 | bit | 6.647872e-4 |
-| this version | PR189 | bit | **6.674324e-4** |
+| PR194 baseline | PR189 | bit | 6.674324e-4 |
+| this version | PR189 + 102 frame lowerings | bit | **6.674922e-4** |
 
-The result is κ = 1668581/2500000000 = 0.0006674324. This is about 0.838% above PR186 (0.000661885549259598) and 0.398% above PR193. The exact values are in `certificate.json`.
+The result is κ = 3337461/5000000000 = 0.0006674922, an exact gain of 299/5000000000 over PR194's 1668581/2500000000. The bit coarse saving is certified at PR189's finer 10^-18 precision as 167089706787281/250000000000000000 before PR184's 10^-10-grid pricing. Exact assembly values are in `certificate.json`.
 
 Run from the repository root with Python assertions enabled:
 
