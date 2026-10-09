@@ -1,5 +1,5 @@
-"""Literal4/5/6/11/12/24 banks and charts after490 original-source aliases.
-Source490 integration prepared with OpenAI Codex assistance; Apache-2.0.
+"""Literal4/5/6/11/12/24 banks and charts after492 original-source aliases.
+Source492 integration prepared with OpenAI Codex assistance; Apache-2.0.
 """
 from pathlib import Path
 from collections import Counter
@@ -20,18 +20,18 @@ new_gauge_sources={r['role']for r in json.loads((PACKAGE/'newg/selection.json').
 assert len(new_gauge_sources)==28 and not new_gauge_sources&(set(W.gauge)|borrowed|gauge_borrowed|set(W.donor)|removed)
 extra_rows=json.loads((PACKAGE/'extra/selection.json').read_text())
 extra_source_roles={r['role']for r in extra_rows}
-assert len(extra_rows)==len(extra_source_roles)==19
+assert len(extra_rows)==len(extra_source_roles)==21
 # Every newly reused register had a full-width24 physical bank in source471.
 assert not extra_source_roles&(set(W.gauge)|set(W.source.values())|set(W.donor)|removed|borrowed|gauge_borrowed|new_gauge_sources)
-assert len({r['source']for r in extra_rows})==len({r['partner']for r in extra_rows})==19
-assert len({s for r in extra_rows for s in (r['source'],r['partner'])})==38
+assert len({r['source']for r in extra_rows})==len({r['partner']for r in extra_rows})==21
+assert len({s for r in extra_rows for s in (r['source'],r['partner'])})==42
 physical=set(range(W.R))-set(W.donor)-removed-borrowed-gauge_borrowed-new_gauge_sources-extra_source_roles
 selected={s for s in W.gauge if s in physical}
 assert Counter(W.gauge[s]['dim']for s in selected)=={20:2200,18:13,12:18,13:48}
 families={r:sorted(s for s in selected if 24-W.gauge[s]['dim']==r)for r in [4,5,6,11,12]}
 families[24]=sorted(physical-selected)
-assert {r:len(xs)for r,xs in families.items()}=={4:2200,6:13,5:0,11:48,12:18,24:14345}
-assert set().union(*map(set,families.values()))==physical and len(physical)==16624
+assert {r:len(xs)for r,xs in families.items()}=={4:2200,6:13,5:0,11:48,12:18,24:14343}
+assert set().union(*map(set,families.values()))==physical and len(physical)==16622
 # Every actual gauge chart and its two-sided inverse.
 charts=[];maxops=maxnum=maxden=0
 for f,count in sorted(Counter(W.gauge[s]['frame']for s in selected).items()):
@@ -55,7 +55,7 @@ for f,count in sorted(Counter(W.gauge[s]['frame']for s in selected).items()):
 assert max(maxnum,maxden)<2**80
 print('PASS charts',len(charts),'max factors',maxops,flush=True)
 
-T=72;patterns=[([11]*4+[4]*7,864),([4]*18,8464),([6]*12,78),([12]*6,216),([24]*3,344280)]
+T=72;patterns=[([11]*4+[4]*7,864),([4]*18,8464),([6]*12,78),([12]*6,216),([24]*3,344232)]
 assert all(sum(blocks)==72 for blocks,_ in patterns)
 incidence=hashlib.sha256();assignments=0;normalizers=[];controls=[]
 for stage in range(3):
@@ -72,7 +72,7 @@ for stage in range(3):
     q=used[rank];role=families[rank][q//T];replica=q%T;used[rank]+=1
     incidence.update(f'{stage},{rank},{role},{replica},{bank},{offset}\n'.encode());assignments+=1;offset+=rank
    assert offset==72;bank+=1
- assert bank==353902 and used=={r:T*len(rs)for r,rs in families.items()if rs}
+ assert bank==353854 and used=={r:T*len(rs)for r,rs in families.items()if rs}
  if stage==0:
   for widths,_ in patterns:
    def endpoint(indices):
@@ -85,9 +85,9 @@ for stage in range(3):
    assert endpoint(list(range(blocks))+list(reversed(range(blocks))))==list(range(144))
    assert endpoint(range(blocks-1))!=full;controls.append(dict(widths=widths,mutation='omitted last block',status='REJECTED'))
    assert endpoint(list(range(blocks))+[0])!=full;controls.append(dict(widths=widths,mutation='repeated first block',status='REJECTED'))
-assert assignments==3*T*16624==3590784
-banks=3*353902;literal_stock=banks+T*2*W.v;assert literal_stock==1315146
-K=2*3*T*((literal_stock-1)+16624*72*(maxops+71+72));assert 0<K<2**40
-out=dict(extra_source_roles=sorted(extra_source_roles),status='PASS_ACTUAL_JOINT_GAUGE_CHARTS_AND_COMPLETE_BANKS',families={r:len(rs)for r,rs in families.items()},physical_replicas=T,bank_patterns=[dict(widths=widths,banks_per_stage=n)for widths,n in patterns],banks_total=banks,assignments=assignments,literal_stock=literal_stock,integer_normalization=24,W=438382,deficit=46464,m=72,charts=len(charts),max_chart_factors=maxops,max_factor_numerator=maxnum,max_denominator=maxden,incidence_sha256=incidence.hexdigest(),normalizers=normalizers,controls=controls,conservative_extra_selector_calls=K,chart_sha256=hashlib.sha256(json.dumps(charts,sort_keys=True,separators=(',',':')).encode()).hexdigest())
+assert assignments==3*T*16622==3590352
+banks=3*353854;literal_stock=banks+T*2*W.v;assert literal_stock==1315002
+K=2*3*T*((literal_stock-1)+16622*72*(maxops+71+72));assert 0<K<2**40
+out=dict(extra_source_roles=sorted(extra_source_roles),status='PASS_ACTUAL_JOINT_GAUGE_CHARTS_AND_COMPLETE_BANKS',families={r:len(rs)for r,rs in families.items()},physical_replicas=T,bank_patterns=[dict(widths=widths,banks_per_stage=n)for widths,n in patterns],banks_total=banks,assignments=assignments,literal_stock=literal_stock,integer_normalization=24,W=438334,deficit=46464,m=72,charts=len(charts),max_chart_factors=maxops,max_factor_numerator=maxnum,max_denominator=maxden,incidence_sha256=incidence.hexdigest(),normalizers=normalizers,controls=controls,conservative_extra_selector_calls=K,chart_sha256=hashlib.sha256(json.dumps(charts,sort_keys=True,separators=(',',':')).encode()).hexdigest())
 (D/'joint-charts.json').write_text(json.dumps(charts,separators=(',',':'))+'\n');(D/'joint-banks.json').write_text(json.dumps(out,indent=2)+'\n')
 print('PASS complete banks',patterns,'stock',literal_stock,'routing',K,flush=True)
