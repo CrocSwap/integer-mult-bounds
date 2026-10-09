@@ -397,7 +397,9 @@ class CoverControls(unittest.TestCase):
 
     def test_noncanonical_reflection_receipt_rejected(self):
         path = ROOT / LOCAL / 'reflection-audit.json'
-        expected = json.dumps(json.loads(path.read_text()), indent=2, sort_keys=True) + '\n'
+        record = json.loads(path.read_text())
+        self.assertNotIn('reproduction', record, 'Authoring-only metadata is not emitted by the audit CLI')
+        expected = json.dumps(record, indent=2, sort_keys=True) + '\n'
         self.assertEqual(path.read_bytes(), expected.encode())
 
     def test_parent_escape_rejected(self):
