@@ -1,0 +1,29 @@
+name: Verify terminal paired-cube composition
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finite-certificate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check finite words, exact paid moments, source closure and all 47 inequalities
+        run: python3 -B research/paired-cube-terminal-168/verify.py
+      - name: Require read-only reproduction
+        run: git diff --exit-code
