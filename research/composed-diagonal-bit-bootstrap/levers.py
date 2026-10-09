@@ -123,11 +123,13 @@ def main():
     print("[PR200 banked]  W_per_vertex {} -> coarse {:.15g} (grid {:.10g}) -> ceiling "
           "{:.10g}".format(packed_W2, float(packed_a2), float(grid(packed_a2)),
                            float(ceiling_packed)))
+    lever_gain = float(ceiling_packed / ceiling_now - 1) * 100
+    claim_gain = float(ceiling_packed / CLAIM - 1) * 100
     print("[lever]         banking the rank-60 exterior corrections is worth {:.4f}% of "
-          "kappa ({:.10g} -> {:.10g})".format(100 * (ceiling_packed / ceiling_now - 1),
-                                              float(ceiling_now), float(ceiling_packed)))
+          "kappa ({:.10g} -> {:.10g})".format(lever_gain, float(ceiling_now),
+                                              float(ceiling_packed)))
     print("[vs the claim]  {} ({:.10g}) -> {:.4f}%".format(
-        CLAIM, float(CLAIM), 100 * (ceiling_packed / CLAIM - 1)))
+        CLAIM, float(CLAIM), claim_gain))
 
     out = dict(
         status="MODELLED, NOT CONSTRUCTED: the banked row is validated against PR197's "

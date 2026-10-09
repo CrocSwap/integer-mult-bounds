@@ -53,6 +53,23 @@ def rejects(name, operation, errors=(AssertionError, ValueError, KeyError)):
     raise AssertionError("control accepted: " + name)
 
 
+def same(left, right, tolerance=1e-12):
+    """Structural equality with a tolerance on floats and exactness elsewhere."""
+    if isinstance(left, dict) and isinstance(right, dict):
+        return (left.keys() == right.keys()
+                and all(same(left[k], right[k], tolerance) for k in left))
+    if isinstance(left, list) and isinstance(right, list):
+        return (len(left) == len(right)
+                and all(same(a, b, tolerance) for a, b in zip(left, right)))
+    if isinstance(left, bool) or isinstance(right, bool):
+        return left is right
+    if isinstance(left, float) and isinstance(right, float):
+        return abs(left - right) <= tolerance * max(1.0, abs(left), abs(right))
+    if isinstance(left, (int, str)) and isinstance(right, (int, str)):
+        return left == right and type(left) is type(right)
+    return left == right
+
+
 def tolls(coarse, leaf):
     """compose.py's own guard, mirrored so the control exercises that condition."""
     assert Q(leaf) < Q(coarse) < 1 - Q(leaf), "strict paid tolls"
@@ -189,7 +206,10 @@ def main():
     subprocess.run([sys.executable, "-B", str(HERE / "levers.py"), "--out", str(lever_out)],
                    check=True, stdout=subprocess.DEVNULL)
     levers = json.loads(lever_out.read_text())
-    assert levers == json.loads((HERE / "levers.json").read_text()), "levers.json drift"
+    # The model's shipped numbers are compared with a tolerance: its bisection
+    # compares floats, so a different libm can move the last digits without moving
+    # anything that matters. Integers and exact rationals must still match exactly.
+    assert same(levers, json.loads((HERE / "levers.json").read_text())), "levers.json drift"
     for item in levers["validations"]:
         assert Q(item["relative_error"]) < Q(1, 10 ** 11), item["name"]
     banked = levers["pr200_banked"]
