@@ -166,6 +166,12 @@ def certificate():
     require(phase['vertices_per_stage'] == expected['complex_group_order'],'Group order')
     require(bridge['rows']['degree'] == expected['row_degree'] and bridge['rows']['coefficient'] == expected['row_coefficient'],'Saved row stock')
     require(KAPPA == Q(expected['kappa']) and len(result['strict_constraints']) == 47 and len(result['margins']) == 7,'Complete assembly')
+    atom_2000 = Q(1,2000)
+    ab_2000 = (1-atom_2000)*COARSE+atom_2000*OLD
+    kappa_2000 = Q(461239827139,10**15)
+    require(atom_2000 > ab_2000 and atom_2000 < 1-ab_2000,'Tightened subordinate adapter and row tolls')
+    result_2000 = assembly(ab_2000,AC,bridge,kappa_2000,beta=PHASE_STOP)
+    require(len(result_2000['strict_constraints']) == 47 and len(result_2000['margins']) == 7,'Complete tightened assembly')
     sources = sorted(p for p in (ROOT/'certificates').glob('paired-cube-*.json')
                      if p.name != 'paired-cube-network.json')
     sources += sorted((ROOT/'scripts').glob('paired_cube*.py'))
@@ -176,8 +182,13 @@ def certificate():
         'scripts/partial_gauge_bit.py','certificates/partial-gauge-bit-input.json',
         'references/partial-gauge/pr97/SOURCE.json','certificates/copied-centers-network.json',
         'certificates/three-stage-cover-network.json','notes/general-clifford-frames.tex')]
-    return dict(status='Conditional paired-cube multiplication witness',kappa=KAPPA,bit=bit,complex=phase,
-        finite_bridge=bridge,assembly=result,predecessor_commit='6a9970a530119174507904e23592fd59ede19a5d',
+    return dict(status='Conditional paired-cube multiplication witness',kappa=KAPPA,
+        kappa_atom_2000=kappa_2000,bit=bit,complex=phase,
+        finite_bridge=bridge,assembly=result,
+        tightened_atom_2000=dict(atom_exponent=atom_2000,effective_bit_saving=ab_2000,
+            kappa=kappa_2000,minimum_margin=result_2000['minimum_margin'],
+            absorption_gap=result_2000['absorption_gap']),
+        predecessor_commit='6a9970a530119174507904e23592fd59ede19a5d',
         source_sha256={str(p.relative_to(ROOT)):sha256(p.read_bytes()).hexdigest() for p in sources},
         scope='Exact inventories, supplier moments, full fallback/router charge and semantic assembly. '
               'Local scalar/frame verification is separate; paired source scheduling, completed-core sharing '
@@ -189,7 +200,7 @@ def main():
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
     args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
-    print('PASS kappa=461028508707/1000000000000000 = 4.61028508707e-4; both moments, shared cores, finite router and 47 strict constraints')
+    print('PASS kappa=461028508707/1000000000000000 = 4.61028508707e-4 (atom=1/2000: 461239827139/1000000000000000 = 4.61239827139e-4); both moments, shared cores, finite router and 47 strict constraints')
 
 
 if __name__ == '__main__':

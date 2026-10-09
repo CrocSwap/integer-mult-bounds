@@ -11,8 +11,10 @@ optimized on the bit gauge schedule by **Thomas Marchand** gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{461028508707}{1000000000000000}=4.61028508707\times10^{-4}.
+\kappa=\frac{461028508707}{1000000000000000}=4.61028508707\times10^{-4}
 $$
+
+(and $\kappa = 461239827139 / 10^{15} = 4.61239827139\times10^{-4}$ with the tightened subordinate atom-wrapper exponent $\beta_{\text{atom}} = 1/2000$ from Rohan Gupta's [PR #148](https://github.com/CrocSwap/integer-mult-bounds/pull/148)).
 
 A signed paired-cube producer and coordinate-star centers complete the
 identity using the original source registers. Completed dirty cores reuse
