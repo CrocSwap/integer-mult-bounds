@@ -11,7 +11,8 @@ Payload F2. Mod-2 decoder, for every target T:
         + partner-pair sum of the opposite pair of T's parity class, mixed on two SOURCE registers and
           delivered at the shared cap of {T, T'} (no auxiliary role).
 At p = 12 each cube merges its face-1 and edge-01 outputs into u(b0,b1) and its face-2 and edge-02 outputs into
-w(b0,b2) (variant u); each merged node is read by two single roots and the mod-2 sums are unchanged.
+w(b0,b2) (variant u); each merged node is read by two single roots and the mod-2 sums are unchanged. Its local
+channels use the L1 association (local_l1): three of the six G sums add long face diagonals instead of edges.
 Compiler: the PR #144 frames.py/gauges.py ledger on rational frames (target cap ker(3 chi_T - 1), centre frame =
 span of the star), coordinate-padded maximum carrier matching (frozen arcs), plain frames span(n) for additions of
 span dimension <= PLAIN (closed under operands; a linked donor's span must lie in the plain target), PR #144
@@ -30,7 +31,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 P = (1 << 127) - 1
 PLAIN = 8
-MODULES = {11: 'pair_module_p11.json', 12: 'pair_module_p12.json', 13: 'pair_module_p13.json'}
+L1_DIAGONAL = {(0, 1, 0), (0, 1, 1), (1, 2, 1)}  # (cube positions j < k, mode) of the diagonal G sums at p = 12
+MODULES ={11: 'pair_module_p11.json', 12: 'pair_module_p12.json', 13: 'pair_module_p13.json'}
 
 
 def require(cond, msg):
@@ -217,9 +219,36 @@ class BitGraph:
                     ids = [edges[(ii, jj, a, b) if ii < jj else (jj, ii, b, a)] for b in range(2)]
                     self.A[I, I[ii], a] = self.add(*ids)
 
-    def finish(self, pair, allbut, merge=False):
+    def local_l1(self):
+        """L1 local-channel association (eumemic, Claude assistance): the G sums listed in L1_DIAGONAL add the two
+        long diagonals of their cube face, the other G sums and the A sums add two edges; same supports as
+        local_channels, with the nodes created in channel order."""
+        for I in self.cubes:
+            def at(bits):
+                b = [0] * 3
+                for q, x in bits.items():
+                    b[q] = x
+                return self.source[I, tuple(b)]
+
+            def edge(d, fixed):
+                return self.add(at({**fixed, d: 0}), at({**fixed, d: 1}))
+            for j, k in combinations(range(3), 2):
+                r = 3 - j - k
+                for mode in range(2):
+                    if (j, k, mode) in L1_DIAGONAL:
+                        node = self.add(self.add(at({j: 0, k: mode, r: 0}), at({j: 1, k: 1 - mode, r: 1})),
+                                        self.add(at({j: 0, k: mode, r: 1}), at({j: 1, k: 1 - mode, r: 0})))
+                    else:
+                        node = self.add(edge(r, {j: 0, k: mode}), edge(r, {j: 1, k: 1 - mode}))
+                    self.G[I, I[j], I[k], mode] = node
+            for i in range(3):
+                j, k = [q for q in range(3) if q != i]
+                for a in range(2):
+                    self.A[I, I[i], a] = self.add(edge(k, {i: a, j: 0}), edge(k, {i: a, j: 1}))
+
+    def finish(self, pair, allbut, merge=False, l1=False):
         p = self.p
-        self.local_channels()
+        self.local_l1() if l1 else self.local_channels()
         Pm, Qm = {}, {}
         for i in range(p):
             pairs = list(combinations([a for a in range(p) if a != i], 2))
@@ -711,7 +740,7 @@ def dumps(obj):
 def build(p, frozen_arcs=None, log=print):
     mod = json.loads((HERE / 'data' / MODULES[p]).read_text())
     abo = nested_prefix(p - 2) if p == 12 else all_but_one(p - 2)
-    g = BitGraph(p).finish(mod, abo, merge=p == 12)
+    g = BitGraph(p).finish(mod, abo, merge=p == 12, l1=p == 12)
     require(check_decoder(g) == 0, 'mod-2 decoder identity')
     t0 = time.time()
     prof, wit = compile_word(g, frozen=frozen_arcs)

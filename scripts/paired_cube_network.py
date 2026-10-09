@@ -41,19 +41,29 @@ if hasattr(sys,'set_int_max_str_digits'):
     sys.set_int_max_str_digits(0)
 
 ROOT = Path(__file__).resolve().parents[1]
-AC = Q(6463958,10**10)
-COARSE = Q(6465186,10**10)
+SINKS = ROOT/'research/terminal-sinks'
+AC = Q(6493335,10**10)
+COARSE = Q(6549403,10**10)
 OLD = Q(384599,10**10)
 ATOM = Q(int(COARSE/(1+COARSE-OLD)*10**12)+1,10**12)  # first 10^-12 grid point above the toll edge (geckods, PR158)
 AB = (1-ATOM)*COARSE+ATOM*OLD
 BAD = Q(1,10**16)
 PHASE_STOP = Q(1,10**9)
 ASSEMBLY_BIT = min(AB,(1-PHASE_STOP)*AC-Q(1,10**10))
-KAPPA = Q(6457084,10**10)
+KAPPA = Q(6489120,10**10)
 
 
 def clean(hist):
     return dict(sorted((int(r),n) for r,n in hist.items() if int(r) and n))
+
+
+def checked_complex_record():
+    """#161's checked physical record; with research/terminal-sinks/sinks.json, the terminal-sink record on top."""
+    if not (SINKS/'sinks.json').exists():
+        return checked_record()
+    sys.path.insert(0,str(SINKS))
+    from sinks_gate import checked_sinks_record
+    return checked_sinks_record()
 
 
 def shared_profile(row,complex_word):
@@ -65,7 +75,7 @@ def shared_profile(row,complex_word):
         require(0 < r < h and n > 0,'Proper local gauges')
         H[3*r] += n
     if complex_word:
-        require((h,v,R,ell) == (22,1320,13633,440),'Paired-cube local dimensions')
+        require((h,v,R,ell) == (22,1320,13606,440),'Paired-cube local dimensions')
         require(R == row['c']+row['q']-row['matched'],'Compatible carrier roles')
         require(selected == {18:2310},'Selected rank18 gauges')
         for r,n in enumerate(row['remaining_internal_histogram']):
@@ -92,7 +102,7 @@ def shared_profile(row,complex_word):
 def bitcube_profile(row):
     """Shared-core profile of the paired-cube bit word, in the complex word's ledger format."""
     h,v,R,ell = (row[k] for k in ('h','v','R','loss'))
-    require((h,v,R,ell) == (24,1760,20492,528),'Paired-cube bit dimensions')
+    require((h,v,R,ell) == (24,1760,20052,528),'Paired-cube bit dimensions')
     m,W,H = 3*h,2*v+R,Counter()
     selected = {int(r):n for r,n in row['selected_rank_histogram'].items()}
     require(selected == {20:2200,21:1760} and sum(selected.values()) == row['selected_roles'],'Selected bit gauges')
@@ -156,7 +166,7 @@ def bit_physical_profile(phys,row):
 
 
 def physical_counts(phys,h,v,ell):
-    require(phys['physical_R'] == phys['R']-phys['pairs'] and phys['W_per_vertex'] == 2*v+phys['physical_R'],
+    require(phys['physical_R'] == phys['R']-phys['pairs']-phys.get('sinks',0) and phys['W_per_vertex'] == 2*v+phys['physical_R'],
             'Physical stock')
     m,W,H = 3*h,phys['W_per_vertex'],Counter()
     for name in ('local_histogram','source_data_histogram','target_data_histogram'):
@@ -228,7 +238,7 @@ def certificate():
     expected = read('paired-cube-input.json')
     bit_row = bitcube_row()
     row = read('paired-cube-complex-input.json')
-    bit,phase = bit_certificate(bit_row,checked_bit_record()),complex_certificate(row,checked_record())
+    bit,phase = bit_certificate(bit_row,checked_bit_record()),complex_certificate(row,checked_complex_record())
     bridge = finite_bridge(phase,bit,row)
     require(Q(read('copied-centers-network.json')['bit']['saving']) == OLD,'Retained ordinary leaf')
     result = assembly(ASSEMBLY_BIT,AC,bridge,KAPPA,beta=PHASE_STOP)
@@ -254,6 +264,7 @@ def certificate():
     sources += sorted(p for folder in ('scripts/paired_cube','references/paired-cube')
                       for p in (ROOT/folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
     sources += sorted((ROOT/'notes').glob('paired-cube-*.tex'))
+    sources += sorted(p for p in SINKS.rglob('*') if p.is_file() and '__pycache__' not in p.parts)
     sources += sorted(p for p in (ROOT/'research/paired-cube-bit').rglob('*')
                       if p.is_file() and '__pycache__' not in p.parts)
     sources += [ROOT/p for p in ('scripts/three_stage_cover_network.py','scripts/structured_bulk_assembly.py',
@@ -275,7 +286,7 @@ def main():
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
     args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
-    print('PASS kappa=6457084/10000000000 = 6.457084e-4; both moments, shared cores, finite router and 47 strict constraints')
+    print('PASS kappa=6489120/10000000000 = 6.489120e-4; both moments, shared cores, finite router and 47 strict constraints')
 
 
 if __name__ == '__main__':
