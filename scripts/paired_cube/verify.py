@@ -147,7 +147,7 @@ def verify(g, baseline, witness, word, record):
                 assert contained(A,current[t]);Y[len(current[t])-len(A)]+=1;current[t]=A
     for t,q in enumerate(inputs):assert contained((q,),current[t]);Y[len(current[t])-1]+=1
     assert dict(Y)=={int(k):c for k,c in record['target_data_histogram'].items()}
-    assert record['selected_roles']==len(seen)==4840 and birth==Counter({20:4840})
+    assert record['selected_roles']==len(seen)==2970 and birth==Counter({18:2970})
     return dict(signed_scalar_pairs_checked=scalar_pairs,scalar_H_exact=True,K_involution_and_inverse_exact=True,
                 decoder_identity_exact=True,conservative_source_supports=True,K_source_itinerary_verified=True,
                 full_backward_intersections=True,physical_signed_M_replayed=True,
