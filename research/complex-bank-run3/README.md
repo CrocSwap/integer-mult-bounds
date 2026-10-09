@@ -173,6 +173,44 @@ the ladder; the ledger's density is.  A **less** dense complex word -- more stoc
 rank mass -- would admit a narrower modulus where far more of its ledger tiles at once.  That
 is the concrete thing to look for in a new supplier, and it is a measurement, not a guess.
 
+## Which suppliers exist, and the word a narrower modulus would take (`suppliers.py`)
+
+The width scan ends on a measurement -- what caps the ladder is the ledger's *density*, not the
+criterion -- and `suppliers.py` turns that into two measurements over the tree itself.
+
+* **No less dense supplier exists to be reused.**  Every ledger-bearing certificate in the
+  repository is read and scored on the same four numbers: modulus, density `mass / (m * W)`, the
+  smallest modulus the row admits (`floor(mass / W) + 1`), and the mass share that tiles whole
+  banks there -- keeping only rows that satisfy the row identity `m * W - mass = D` with every
+  child inside the width.  **20** distinct poseable ledgers are found (the densest are the two
+  `certificates/endpoint-gauge*` rows at modulus 38,400, density 0.9999996), and **none is less
+  dense than the word priced here**: the complex word, at density `3008/3013 = 0.9983405`, is
+  itself the least dense poseable ledger in the repository.  So the narrower modulus the width
+  scan wants cannot be reached by reusing anything already pinned; it has to be built.
+* **What a word of a given width would have to look like.**  Holding the pinned *shape* (the same
+  bins and counts) and its occupancy fixed and varying only the modulus, the cheapest stock that
+  poses the row is `ceil(mass / (density * m))`, and the module prices it wherever the vendored
+  certifier's bracket still holds:
+
+| modulus | stock it needs | density | what tiles there | coarse saving | kappa |
+| ---: | ---: | ---: | --- | ---: | ---: |
+| 48 | 16,572 | 0.99831 | the same families | 8.2678e-4 | `1819302815717/25*10^16` **+2.2655%** |
+| 54 | 14,731 | 0.99829 | padding exceeds the kept rank-1 bin | -- | not priced |
+| 60 | 13,258 | 0.99828 | the same families | 7.7898e-4 | `1819302815717/25*10^16` **+2.2655%** |
+| **66** | **12,052** | **0.99834** | the pinned ladder | 7.1211e-4 | `711599961413937/10^18` (the calibration) |
+| 72 | 11,048 | 0.99831 | nothing | -- | not priceable |
+| 84 | 9,470 | 0.99828 | a smaller set | 7.0686e-4 | -0.7364% |
+| 96 | 8,286 | 0.99831 | a smaller set | 6.1836e-4 | -13.1559% |
+
+At the pinned width the row the curve requires is *exactly* the pinned ledger -- the same stock,
+12,052 -- and it reproduces this package's top kappa: that is the curve's calibration, asserted
+in `verify.py`.  At widths 48 and 60 the complex branch stops binding altogether and the kappa
+rises to the budget the pinned **bit** leaf allows, `7.277211...e-4` -- **+2.2655%** over the top
+rung, and the whole of the complex headroom that is left.  The curve is **synthetic** (the pinned
+engine pricing a row that no supplier in the pins owns), so it specifies a word rather than
+reporting a result about one; the width-72 entry is what the pinned word itself does, and every
+wider word is strictly worse.
+
 ## What is instanced, and what is still owed (`instantiate66.py`)
 
 The padded schedule is now instanced, which is C1's combinatorial half and C5-C7's
@@ -209,8 +247,31 @@ the budget capped in turn by the bit leaf of #219's rung-1 bit word (7.2825e-4).
 * reaching `kappa = 7.2e-4` needs a complex coarse saving of `7.20518773516934e-4`, i.e.
   **+1.181%** over the top rung's own coarse saving -- more banking than this ledger contains;
 * reaching `7.5e-4`, `8e-4` or `1e-3` is **impossible on this bit word**: the leaf caps kappa
-  at `1819302815717/25*10^16 = 7.277251...e-4` there, so those targets need a new bit word
+  at `1819302815717/25*10^16 = 7.277211...e-4` there, so those targets need a new bit word
   before any complex-side work can matter.
+
+### The same three targets, inverted onto both branches (`bit_requirement`)
+
+`kappa` is read off `budget = min(bit leaf, (1-beta) * C - weak)`, so a target is met only when
+**both** branches clear the budget it needs.  The certificate inverts the rule per target and
+checks each line twice: the pair (budget, required complex coarse saving) reaches the target, and
+one `10^-18` step below the budget misses it.  Because the cap must *clear* the budget after the
+`beta` and `weak` haircuts, a complex saving on the grid must sit one grid step **above** the
+budget it has to supply.
+
+| target | required budget | required bit leaf (gain over the pinned leaf) | required complex coarse (gain over the top rung) |
+| ---: | ---: | ---: | ---: |
+| 7.2e-4 | 7.20518773516933e-4 | 7.2825e-4 -- already enough | 7.20518773516934e-4 (+1.181%, as above) |
+| 7.5e-4 | 7.50562922191644e-4 | 7.50562922191644e-4 (**+3.064%**) | 7.50562922191645e-4 (**+5.400%**, +7.083% over rung 1) |
+| 8e-4 | 8.00640512409928e-4 | 8.00640512409928e-4 (**+9.940%**) | 8.00640512409929e-4 (**+12.433%**, +14.227% over rung 1) |
+| 1e-3 | 1.001001001001002e-3 | 1.001001001001002e-3 (**+37.453%**) | 1.001001001001003e-3 (**+40.569%**, +42.813% over rung 1) |
+
+Only `7.2e-4` is short on the complex branch alone; the three higher targets are short on **both**
+-- and the complex ceiling the density curve finds above (`7.27721126e-4`) is still below every
+one of them.  That is the package's answer to "what would a new bit word have to bring": a leaf of
+at least the budget column, and a complex supplier that can clear the same budget by the same
+margin -- the bit word because the leaf caps the budget, the complex supplier because the bank
+mechanism has nothing left to take at width 66.
 
 ## Verify
 
@@ -220,14 +281,16 @@ python3 -B verify.py           # check: pins, rebuild, compare with certificate.
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
 ```
 
-`verify.py` passes with exit 0, pins 27 files by sha256, rebuilds the whole complex-side
+`verify.py` passes with exit 0, pins 28 files by sha256, rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
 assemblies with adjacent-grid rejection, the eligibility scan, the PR208 replica, the padded
 schedule (795 banks, padding 0/2/6 registers per bank, stock drops 531/198/66), the instanced
 inventories (4,176 items, 795 banks, the digests), the modulus scan (which widths the pinned
-row admits, and that only the pinned width is priced), and re-runs the T1 tiling enumeration
-against the pinned `schedule66.json`; it reproduces #207's, #219's and #224's published grid
-points exactly. The vendored rung-1 package also self-verifies in place:
+row admits, and that only the pinned width is priced), the supplier scan and the density curve
+with both of their calibrations, the per-target requirement table (each line re-derived from the
+assembly rule and tested one `10^-18` step below its budget), and re-runs the T1 tiling
+enumeration against the pinned `schedule66.json`; it reproduces #207's, #219's and #224's
+published grid points exactly. The vendored rung-1 package also self-verifies in place:
 
 ```sh
 cd research/complex-bank-run3/references/pr219-run1 && python3 -B verify.py

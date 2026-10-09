@@ -190,14 +190,47 @@ volume (asserted). Two consequences follow, and they are the useful part of the 
 * **Above the top, the bank mechanism has nothing left to take.** Reaching `kappa = 7.2e-4`
   needs a complex coarse saving of `7.20518773516934e-4`, i.e. +1.181% over the top rung's
   coarse saving -- more banking than this ledger's remaining mass can supply at this width.
-* **Above `kappa = 7.277251e-4` the bit word is the wall.** While the complex branch caps the
+* **Above `kappa = 7.277211e-4` the bit word is the wall.** While the complex branch caps the
   budget, the ceiling is `budget/(1+budget)`, and the budget is in turn capped by #219's
   rung-1 bit leaf (7.2825e-4). Targets `7.5e-4`, `8e-4` and `1e-3` are therefore unreachable
   on this bit word, whatever the complex ledger does; they need a new bit supplier first.
 
+### 5b. The wall quantified (`suppliers.py` and `bit_requirement`)
+
+Two measurements bound the next step rather than describing it.  First, the density question the
+width scan raises is answered over the tree: every ledger-bearing certificate in the repository
+is scored on modulus, density `mass/(m*W)`, the smallest modulus the row admits and the mass
+share tiling there, keeping only rows that satisfy `m*W - mass = D` with every child inside the
+width.  20 distinct poseable ledgers are found and **none is less dense than the complex word**
+(`3008/3013 = 0.9983405`), which is itself the least dense one in the repository -- so a narrower
+modulus must be built, not found.  Second, holding the pinned shape and occupancy fixed and
+varying only the modulus, the cheapest stock that poses the row is priced: at the pinned width
+the required row is *exactly* the pinned ledger (stock 12,052) and it reproduces the top kappa,
+which calibrates the curve; at widths 48 and 60 the complex branch stops binding and the kappa
+rises to the budget the bit leaf allows, `7.277211...e-4` (+2.2655% over the top); at 72 nothing
+tiles and every wider word is strictly worse (-0.74% at 84, -13.2% at 96).  The curve is
+synthetic, so it specifies a word instead of reporting one.
+
+With the ceiling of the complex side established by measurement, the targets invert onto both
+branches.  Since `kappa` is read off `budget = min(bit leaf, (1-beta) C - weak)`, a target needs
+*both* branches above its budget, and because the cap must clear the budget after the `beta` and
+`weak` haircuts the complex saving must sit one `10^-18` step above it:
+
+| target | required budget | required bit leaf | required complex coarse saving |
+| ---: | ---: | ---: | ---: |
+| 7.2e-4 | 7.20518773516933e-4 | 7.2825e-4 (already enough) | 7.20518773516934e-4 (+1.181%) |
+| 7.5e-4 | 7.50562922191644e-4 | 7.50562922191644e-4 (+3.064%) | 7.50562922191645e-4 (+5.400%) |
+| 8e-4 | 8.00640512409928e-4 | 8.00640512409928e-4 (+9.940%) | 8.00640512409929e-4 (+12.433%) |
+| 1e-3 | 1.001001001001002e-3 | 1.001001001001002e-3 (+37.453%) | 1.001001001001003e-3 (+40.569%) |
+
+Each line is checked twice -- the pair reaches its target, and one grid step below the budget it
+misses -- so the requirement is sufficient and tight on the grid.  Only 7.2e-4 is short on the
+complex branch alone; the three higher targets are short on both, and the complex ceiling that
+the density curve finds above is still below all of them.
+
 ## 6. Verification boundary
 
-* Machine-checked here: the pinned bytes (27 files, sha256), the frontier reproduction, rung 1
+* Machine-checked here: the pinned bytes (28 files, sha256), the frontier reproduction, rung 1
   rebuilt by the vendored #219 package, rung 2 rebuilt by this package's own ledger module,
   rungs 3 and 4 (volumes, row identities, stock drops, both paid moments, adjacency
   rejections), the branch ceilings, the eligibility exhaustion, the PR208 replica, the T1
@@ -214,6 +247,13 @@ volume (asserted). Two consequences follow, and they are the useful part of the 
   (~2b and ~3b): no uniform width-66 tiling hosts the rungs, the padded schedule does, and the
   padded top is what this package claims. The kappa is conditional on C1-C7 and R1-R4, exactly
   as #219's rung 1 and #224's rung 2 are.
+* Also machine-checked: the supplier scan and the density curve, including their two
+  calibrations (the least dense poseable ledger in the repository is the word priced here, and
+the curve's width-66 row is exactly the pinned stock reproducing the top kappa), and the
+  per-target requirement table, each line re-derived from the assembly rule and tested one grid
+  step below its budget.  The curve itself is a *specification*: the engine prices a row no
+  supplier in the pins owns, and the scan reports other packages' certificates at their own
+  conventions rather than re-deriving them.
 * Not run: upstream CI, and any contributor verifier other than the vendored #219 package
   invoked in place.
 * The `10^-10` supplier field is priced as a conservative variant; on it the ladder's top sits

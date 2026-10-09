@@ -134,6 +134,79 @@ def check_scan_and_construction(record):
     return scan, construction
 
 
+def check_suppliers_and_requirements(record):
+    """The two density measurements and the inverted targets, rebuilt from the record.
+
+    Everything here is re-derived from the certificate's own numbers with the package's own
+    assembly rule: the ceiling the pinned bit leaf allows, each target's minimal budget, the
+    one-grid-step miss below it, the required complex coarse saving clearing that budget after
+    the beta and weak haircuts, and the two calibrations of the density curve.
+    """
+    GRID = run3.GRID
+    top = Q(record['kappa'])
+    leaf = Q(record['calibrations']['run1']['bit_leaf'])
+    ceiling = Q(record['weighted_ceiling']['kappa_suppliers_admit_today'])
+    assert ceiling == run3.kappa_of_budget(leaf), \
+        'the complex-side ceiling must be the budget the pinned bit leaf allows'
+    assert ceiling > top, 'and it must sit above this certificate\'s top'
+    assert Q(record['weighted_ceiling']['gain_vs_top']) == ceiling / top - 1
+
+    lines = record['bit_requirement']
+    assert [line['target'] for line in lines] == ['9/12500', '3/4000', '1/1250', '1/1000'], \
+        'the targets are 7.2e-4, 7.5e-4, 8e-4 and 1e-3'
+    for line in lines:
+        target, budget = Q(line['target']), Q(line['required_budget'])
+        assert line['required_bit_leaf'] == line['required_budget'], \
+            'the required budget is read off the bit leaf'
+        assert run3.kappa_of_budget(budget) >= target > run3.kappa_of_budget(budget - Q(1, GRID)), \
+            'the required budget must be the minimal grid point reaching the target'
+        coarse = Q(line['required_complex_coarse_saving'])
+        assert (1 - run3.BETA) * coarse - run3.WEAK > budget, \
+            'the complex cap must clear the budget, not merely meet it'
+        selected, _bound, kappa = run3.frontier_kappa(budget, coarse)
+        assert selected == budget and kappa >= target, \
+            'the pair (budget, coarse) must reach the target'
+        assert Q(line['bit_leaf_now']) == leaf and Q(line['complex_coarse_now']) \
+            == Q(record['top']['coarse']), 'the two branches must be the certified ones'
+        assert line['bit_branch_short'] == (budget > leaf), 'bit-branch reading'
+        assert line['complex_branch_short'] == (coarse > Q(record['top']['coarse'])), \
+            'complex-branch reading'
+        assert Q(line['bit_leaf_gain']) == budget / leaf - 1
+    assert not lines[0]['bit_branch_short'] and lines[0]['complex_branch_short'], \
+        '7.2e-4 needs more complex supply only'
+    assert all(line['bit_branch_short'] and line['complex_branch_short'] for line in lines[1:]), \
+        'the three higher targets are short on both branches, the bit word included'
+    for need, line in zip(record['needed_for'], lines):
+        if need['needs_new_bit']:
+            assert need['required_bit_leaf'] == line['required_bit_leaf'], \
+                'the two inversions of the same target must agree'
+            assert Q(line['kappa_at_the_bit_ceiling_now']) < Q(line['target']), \
+                'the pinned bit leaf must not already reach a target that needs a new word'
+
+    measured = record['supplier_density']
+    scan = measured['corpus']
+    assert scan['profiles_scanned'] >= 10, 'the corpus scan must find the pinned ledgers'
+    assert scan['below_pinned_count'] == 0, \
+        'no poseable ledger may be less dense than the word priced here'
+    assert Q(scan['least_dense_overall']['density']) == Q(measured['pinned_density']), \
+        'the least dense poseable ledger in the repository must be this word itself'
+    curve = {entry['modulus']: entry for entry in measured['curve']}
+    assert curve[66]['priced'] and Q(curve[66]['kappa']) == top, \
+        'the curve must reproduce the top at the pinned width'
+    assert Q(curve[66]['stock_min']) == 12052, \
+        'and require exactly the stock the pinned ledger carries'
+    for width in (48, 54, 60):
+        entry = curve[width]
+        if entry['priced']:
+            assert Q(entry['kappa']) == ceiling, \
+                'that narrow a word stops binding on the complex side'
+            assert Q(entry['saving']) > Q(record['calibrations']['run1']['complex_coarse'])
+    assert not curve[72]['priced'], 'the pinned width must not tile after the ladder'
+    assert all(Q(entry['kappa']) < top for entry in measured['curve']
+               if entry['priced'] and entry['modulus'] > 66), 'a wider word must be worse'
+    return ceiling, scan, curve
+
+
 def check_obligations():
     obligations = json.loads((HERE / 'obligations.json').read_text())
     owed = [item['id'] for item in obligations['obligations']]
@@ -179,6 +252,7 @@ def main():
     record = run3.build()
     check_prototype(record)
     check_scan_and_construction(record)
+    ceiling, scan, curve = check_suppliers_and_requirements(record)
     check_obligations()
     target = HERE / 'certificate.json'
     if args.write:
@@ -214,6 +288,23 @@ def main():
              record['construction']['totals']['padding_registers']))
     print('rungs %s at %s banks, kappa %s'
           % (record['top']['families_absorbed'], record['top']['banks'], record['kappa']))
+    print('suppliers     %d poseable ledgers scored, %d below the pinned density %s; least '
+          'dense overall: %d wide at %.5f'
+          % (scan['profiles_scanned'], scan['below_pinned_count'],
+             Q(record['supplier_density']['pinned_density']),
+             scan['least_dense_overall']['m'], scan['least_dense_overall']['density_decimal']))
+    print('density curve %s'
+          % ', '.join('w%d %s' % (entry['modulus'],
+                                  (Q(entry['kappa']) if entry['priced'] else entry['status']))
+                      for entry in record['supplier_density']['curve']))
+    print('ceiling       a width 48-60 word with this shape pays %s; every target above 7.2e-4 '
+          'still needs the bit word'
+          % ceiling)
+    for line in record['bit_requirement']:
+        print('target %-8s bit leaf %-20s (%+.3f%%), complex coarse %-20s (%+.3f%% over the top)'
+              % (line['target'], line['required_bit_leaf'], float(Q(line['bit_leaf_gain'])) * 100,
+                 line['required_complex_coarse_saving'],
+                 float(Q(line['complex_coarse_gain_vs_ladder_top'])) * 100))
 
 
 if __name__ == '__main__':

@@ -68,6 +68,7 @@ import ledger3  # noqa: E402  (local module, imported after the path is set)
 import pins  # noqa: E402
 import prototype66  # noqa: E402
 import schedule66  # noqa: E402
+import suppliers  # noqa: E402
 import widths66  # noqa: E402
 
 REFERENCES = HERE / 'references'
@@ -88,7 +89,7 @@ RUN2_KAPPA = Q(354145785295363, 5 * 10 ** 17)      # PR224's published rung-2 cl
 RUN2_COARSE = Q(708793603125109, 10 ** 18)         # PR224's published rung-2 coarse saving
 RUN2_REPLICA = Q(3541457, 5 * 10 ** 9)             # PR208's priced rung-2 target
 RUNGS = (11, 16, 20)                               # every whole-bank family of this ledger
-TARGETS = (Q(72, 10 ** 5), Q(75, 10 ** 5), Q(8, 10 ** 3), Q(1, 10 ** 3))
+TARGETS = (Q(72, 10 ** 5), Q(75, 10 ** 5), Q(8, 10 ** 4), Q(1, 10 ** 3))
 
 
 def frontier_kappa(bit_saving, complex_saving):
@@ -152,6 +153,53 @@ def complex_for_target(target, bit_leaf):
                 coarse_decimal=float(coarse), kappa=str(kappa),
                 binding='complex' if a == (1 - BETA) * coarse - WEAK else 'bit',
                 needs_new_bit=(a != (1 - BETA) * coarse - WEAK))
+
+
+def bit_requirement(leaf, coarse_top, bit_coarse, complex_coarse_1, targets=TARGETS):
+    """What each target costs, inverted from the assembly rule on *both* branches.
+
+    `kappa` is read off `budget = min(bit leaf, (1 - beta) C - weak)` and is monotone in the
+    budget, so a target is met only when *both* branches clear the budget the target needs:
+    a new bit word with leaf >= budget, and a complex supplier whose coarse saving clears the
+    budget after the beta and weak haircuts.  Each line below is checked to reach its target
+    as a pair and to miss it one 10^-18 step below, so the requirement is sufficient and tight
+    on the grid rather than merely necessary.
+    """
+    out = []
+    for target in targets:
+        info = complex_for_target(target, leaf)
+        budget = Q(info['budget'])
+        assert kappa_of_budget(budget) >= target > kappa_of_budget(budget - Q(1, GRID)), \
+            'the budget must be the minimal grid point that reaches the target'
+        exact = (budget + WEAK) / (1 - BETA)
+        z = exact * GRID
+        coarse_needed = Q(-((-z.numerator) // z.denominator), GRID)      # ceil to the grid
+        assert (1 - BETA) * coarse_needed - WEAK > budget, \
+            'the complex cap must clear the budget, not merely meet it'
+        selected, _bound, kappa = frontier_kappa(budget, coarse_needed)
+        assert selected == budget and kappa >= target, \
+            'the pair (budget, coarse_needed) must reach the target'
+        out.append(dict(
+            target=str(target), target_decimal=float(target),
+            binding_at_the_requirement=info['binding'],
+            required_budget=str(budget), required_budget_decimal=float(budget),
+            required_bit_leaf=str(budget), bit_leaf_now=str(leaf),
+            bit_leaf_gain=budget / leaf - 1,
+            required_bit_coarse_saving=str(budget + (Q(bit_coarse) - leaf)),
+            bit_coarse_now=str(bit_coarse),
+            required_complex_coarse_saving=str(coarse_needed),
+            required_complex_coarse_decimal=float(coarse_needed),
+            complex_coarse_now=str(coarse_top),
+            complex_coarse_gain_vs_ladder_top=coarse_needed / coarse_top - 1,
+            complex_coarse_gain_vs_rung1=coarse_needed / complex_coarse_1 - 1,
+            bit_branch_short=(budget > leaf), complex_branch_short=(coarse_needed > coarse_top),
+            kappa_at_the_bit_ceiling_now=str(kappa_of_budget(leaf)),
+            kappa_at_the_bit_ceiling_decimal=float(kappa_of_budget(leaf)),
+            reached_by_the_pair=str(kappa),
+            status='needs a new bit word and more complex supply: both branches sit below the '
+                   'budget this target needs, and the bank ladder cannot raise the complex '
+                   'side again (its whole-bank criterion is exhausted at the top rung)'))
+    return out
 
 
 def serial(value):
@@ -431,6 +479,47 @@ def build():
         info['gain_vs_top'] = (Q(info['coarse']) / coarse_top - 1
                                if info['coarse'] is not None else None)
         needs.append(info)
+    requirement = bit_requirement(leaf, coarse_top, Q(calibration_run1['bit_coarse_after']),
+                                 Q(calibration_run1['complex_coarse']))
+    for info, line in zip(needs, requirement):
+        if info['needs_new_bit']:
+            assert info['required_bit_leaf'] == line['required_bit_leaf'], \
+                'the two inversions of the same target must agree on the required bit leaf'
+            assert line['bit_branch_short'] and line['complex_branch_short'], \
+                'these targets must be short on both branches'
+            assert Q(line['kappa_at_the_bit_ceiling_now']) < Q(line['target']), \
+                'the current bit leaf must not reach the target'
+
+    # --- 6. suppliers and density: is a less dense word already pinned, and what
+    #        would one of a given width have to look like ----------------------
+    base_one_copy = ledger3.profile(supplier['complex_profile'])
+    pinned_density = Q(base_one_copy['total_rank'], base_one_copy['m'] * base_one_copy['W'])
+    corpus = suppliers.corpus_scan(pinned_density=pinned_density)
+    curve = suppliers.density_curve(base_one_copy, interval=interval, leaf=leaf)
+    by_width = {entry['modulus']: entry for entry in curve}
+    assert corpus['profiles_scanned'] >= 10, 'the corpus scan must find the pinned ledgers'
+    assert corpus['below_pinned_count'] == 0, \
+        'no poseable ledger in the repository may be less dense than the word priced here'
+    assert corpus['least_dense_overall'] is not None
+    assert Q(corpus['least_dense_overall']['density']) == pinned_density, \
+        'the least dense poseable ledger in the repository must be this word itself'
+    assert by_width[66]['priced'] and Q(by_width[66]['kappa']) == kappa_top, \
+        'the curve must reproduce the pinned top at the pinned width (its calibration)'
+    assert Q(by_width[66]['stock_min']) == base_one_copy['W'], \
+        'and the required stock there must be the stock the pinned ledger carries'
+    cap_now = kappa_of_budget(leaf)
+    for width in (48, 54, 60):
+        entry = by_width[width]
+        if not entry['priced']:
+            continue
+        assert Q(entry['kappa']) == cap_now, \
+            'a word that narrow with this shape and occupancy stops binding on the complex side'
+        assert Q(entry['saving']) > Q(calibration_run1['complex_coarse']), \
+            'and its saving must beat rung 1 (its widened headroom, not its kappa, is what moves)'
+    assert not by_width[72]['priced'], 'the pinned width must not tile after the ladder'
+    for entry in curve:
+        if entry['priced'] and entry['modulus'] > 66:
+            assert Q(entry['kappa']) < kappa_top, 'a wider word must be strictly worse'
 
     certificate = dict(
         status='MODEL AND TARGET, NOT CONSTRUCTED: the ledger and the bank schedule above '
@@ -482,6 +571,34 @@ def build():
                       'are priced at 192 and 60 banks where their own capacities require '
                       '198 and 66'),
         needed_for=needs,
+        bit_requirement=requirement,
+        supplier_density=dict(
+            corpus=corpus, curve=curve, pinned_density=str(pinned_density),
+            note='Two measurements, both read off the tree rather than assumed. (1) Every '
+                 'ledger-bearing certificate in the repository is scored on the same numbers: '
+                 'modulus, density mass/(m*W), the smallest modulus the row admits and the mass '
+                 'share that tiles whole banks there. No poseable ledger is less dense than the '
+                 'complex word priced here, and that word is itself the least dense one found, '
+                 'so the narrower modulus the width scan wants cannot be reached by reusing a '
+                 'supplier that already exists anywhere in the pins. (2) Holding this word\'s own '
+                 'bin shape and occupancy fixed and varying only the modulus, the cheapest stock '
+                 'that poses the row is priced: at widths 48, 54 and 60 the complex branch stops '
+                 'binding altogether and the kappa rises to the bit leaf\'s own ceiling, while '
+                 'the pinned width 72 no longer tiles and every wider word is strictly worse. '
+                 'The curve is synthetic -- same shape, invented width and stock, priced by the '
+                 'pinned engine on a row no supplier in the pins owns -- so it specifies what a '
+                 'word would have to look like; it is not a result about an existing word. Its '
+                 'width-66 point is the calibration: there the stock it requires is exactly the '
+                 'stock the pinned ledger carries and it reproduces this certificate\'s top kappa.'),
+        weighted_ceiling=dict(
+            kappa_suppliers_admit_today=str(cap_now),
+            kappa_suppliers_admit_today_decimal=float(cap_now),
+            gain_vs_top=cap_now / kappa_top - 1,
+            note='What the complex side would pay if a word of width 48-60 with this shape and '
+                 'occupancy existed: the complex branch stops binding and the kappa rises to the '
+                 'budget the bit leaf itself allows. That is the whole of the complex headroom '
+                 'left, and it is still short of every target, which is why the bit word is the '
+                 'wall and why the bit requirement above is the next real step.'),
         conservative_variant=dict(
             supplier_field=str(supplier_field), certified_moment=str(a_complex),
             delta=str(supplier_field - a_complex),
@@ -550,6 +667,35 @@ def main():
             print('to reach  %-8s needs complex coarse %-20s (%+.3f%% over the top, binding %s)'
                   % (need['target'], need['coarse'], float(Q(need['gain_vs_top'])) * 100,
                      need['binding']))
+    for line in record['bit_requirement']:
+        print('target %-8s both branches short (bit %s, complex %s): bit leaf must reach %-20s '
+              '(%+.3f%%), complex coarse %-20s (%+.3f%% over the top, %+.3f%% over rung 1)'
+              % (line['target'], line['bit_branch_short'], line['complex_branch_short'],
+                 line['required_bit_leaf'], float(Q(line['bit_leaf_gain'])) * 100,
+                 line['required_complex_coarse_saving'],
+                 float(Q(line['complex_coarse_gain_vs_ladder_top'])) * 100,
+                 float(Q(line['complex_coarse_gain_vs_rung1'])) * 100))
+    ceiling = record['weighted_ceiling']
+    print('ceiling   a word of width 48-60 with this shape and occupancy pays kappa %s '
+          '(%+.4f%% over the top); every target still needs the bit word'
+          % (ceiling['kappa_suppliers_admit_today'],
+             float(Q(ceiling['gain_vs_top'])) * 100))
+    scan = record['supplier_density']['corpus']
+    print('suppliers %d poseable ledgers scored, %d less dense than the pinned word; least dense '
+          'overall is %d wide at %.5f (%s)'
+          % (scan['profiles_scanned'], scan['below_pinned_count'],
+             scan['least_dense_overall']['m'], scan['least_dense_overall']['density_decimal'],
+             scan['least_dense_overall']['source']))
+    for entry in record['supplier_density']['curve']:
+        if entry['priced']:
+            print('curve     width %-3d stock %-6s density %.5f  coarse %-20s kappa %-20s %+.4f%%'
+                  % (entry['modulus'], entry['stock_min'], entry['density_decimal'],
+                     entry['saving'], entry['kappa'],
+                     float(Q(entry['kappa']) / Q(record['kappa']) - 1) * 100))
+        else:
+            print('curve     width %-3d stock %-6s density %.5f  %s'
+                  % (entry['modulus'], entry['stock_min'], entry['density_decimal'],
+                     entry['status']))
     print('replica   rung 2 %s matches PR208: %s; rungs 3/4 %s'
           % (record['replica'][0]['kappa'], record['replica'][0]['matches_published'],
              [r['kappa'] for r in record['replica'][1:]]))
