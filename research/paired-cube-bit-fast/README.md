@@ -1,8 +1,8 @@
 # Faster paired-cube bit-word generator
 
 Drop-in `paired_cube_bit_word.py` (pure Python, stdlib only): `--p 12` takes about 12 s instead of about 110 s (about 9x).
-Its outputs are byte-identical to those of the original pinned in `SOURCE.json` (PR #182 at `af90b94`; the
-generator is not on main yet).
+Its outputs are byte-identical to those of the original pinned in `SOURCE.json` (PR #168 at `4a3c769`, also carried unchanged by #178, #182, #189
+and #198; the generator is not on main yet).
 
     python3 -B research/paired-cube-bit-fast/verify.py                  # about 12 s
     python3 -B research/paired-cube-bit-fast/verify.py --original PATH  # also runs the pinned original (about 2 min)
