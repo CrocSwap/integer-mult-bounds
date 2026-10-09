@@ -11,7 +11,7 @@ See the [round-eight review](community-round8-review.md),
 [bank scheduling supplement](../../research/community-round8-audit/BANK-SCHEDULE.md),
 and [integration validation](community-round8-integration.json).
 Reproduce with `make entrance-bank-verify`.
-Main publication is separate; the receipt identifies the tested branch/head.
+Published on main on 2026-10-09; the receipt identifies the tested branch/head.
 The retained analytic, uniform-recursion and fixed-tape interfaces remain
 assumptions. Finite replay and scoped formal contributions do not formalize
 the multiplication theorem. #185's reviewed leaf bootstrap does not further
