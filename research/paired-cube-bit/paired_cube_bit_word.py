@@ -28,7 +28,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 P = (1 << 127) - 1
 PLAIN = 8
-MODULES = {11: 'pair_module_p11.json', 12: 'pair_module_p12.json', 13: 'pair_module_p13.json'}
+MODULES = {11: 'pair_module_p11_annealed.json', 12: 'pair_module_p12.json', 13: 'pair_module_p13.json'}
+# p = 11 uses the searched pair-disjoint module of PR157's complex word (pmod_sa1), unchanged; the derived
+# pair_module_p11.json remains pinned by derive_pair_modules.py.
+ARCS = {11: 'arcs_p11_annealed.json'}
 
 
 def require(cond, msg):
@@ -829,7 +832,7 @@ def main():
     ap.add_argument('--solve-matching', action='store_true', help='recompute the carrier matching (Hopcroft-Karp)')
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
-    arcs_path = HERE / 'data' / ('arcs_p%d.json' % a.p)
+    arcs_path = HERE / 'data' / ARCS.get(a.p, 'arcs_p%d.json' % a.p)
     frozen = None if a.solve_matching or not arcs_path.exists() else json.loads(arcs_path.read_text())
     out, prf, arcs, exp = build(a.p, frozen)
     root = float_root(prf['child_histogram'], prf['W_per_vertex'], prf['m'])

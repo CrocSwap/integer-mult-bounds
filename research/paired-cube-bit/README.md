@@ -24,6 +24,25 @@ The effective saving is `(1 - 1e-3) a0 + 1e-3 * 384599/1e10`. For comparison:
 
 So p=12 is +7.0% over the h=21 word and +20.5% over #144's bit supplier.
 
+## Selected certificate: p = 11 with the searched pair module
+
+The certified bit word now uses **p = 11** with the searched pair-disjoint module of PR #157's complex word
+(`references/paired-cube/sources/pmod_sa1_5.310516e-4.json`, copied unchanged as
+`data/pair_module_p11_annealed.json`). The pair-disjoint contract is identical on both sides. The carrier
+matching is re-solved and frozen in `data/arcs_p11_annealed.json`. The derived modules and their pins are
+unchanged.
+
+| p | pair module | R | W | gauges | coarse a0 (cert) |
+|---|---|---|---|---|---|
+| 11 | derived (cut) | 18964 | 21604 | 4290 | 5502556/10^10 |
+| 12 | derived (cut) | 25624 | 29144 | 5720 | 5566382/10^10 |
+| **11** | **searched (#157)** | **18106** | **20746** | **4290 (dim 18)** | **5641569/10^10** |
+
+    python3 paired_cube_bit_word.py --p 11 --check    # byte-identical regeneration from the frozen arcs
+    python3 check_paired_cube_bit.py --dir out --p 11 # independent checker + 5 mutation controls
+
+The bit side then exceeds the complex side, and the assembly gives kappa = 2808223/(5*10^9) = 5.616446e-4.
+
 ## What the construction is
 
 The word is a mod-2 decoder on transversal triples:

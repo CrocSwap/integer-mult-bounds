@@ -20,15 +20,16 @@ from paired_cube_physical import checked_record
 
 
 def bitcube_row():
-    """Paired-cube bit word with partner-pair source mixing (research/paired-cube-bit, p = 12). Its standalone
+    """Paired-cube bit word with partner-pair source mixing (research/paired-cube-bit, p = 11, with PR157's searched
+    pair-disjoint module). Its standalone
     checker recomputes the exact frames, the mod-2 decoder identity, every role and target chain, the
     partner-pair chronology, G-nondegeneracy, a literal F2 replay and the ledger recount; the generator and
     mutation controls run in research/paired-cube-bit."""
     folder = ROOT/'research/paired-cube-bit'
     sys.path.insert(0,str(folder))
     from check_paired_cube_bit import Checker
-    checked = Checker(folder/'out',12).run()
-    row = json.loads((folder/'out/profile_p12.json').read_text())
+    checked = Checker(folder/'out',11).run()
+    row = json.loads((folder/'out/profile_p11.json').read_text())
     require((checked['roles'],checked['W'],checked['m'],checked['deficit']) ==
             (row['R'],row['W_per_vertex'],row['m'],row['deficit_per_vertex']),'Checked bit word profile')
     return row
@@ -40,14 +41,14 @@ if hasattr(sys,'set_int_max_str_digits'):
 
 ROOT = Path(__file__).resolve().parents[1]
 AC = Q(5622769,10**10)
-COARSE = Q(5566382,10**10)
+COARSE = Q(5641569,10**10)
 ATOM = Q(1,1000)
 OLD = Q(384599,10**10)
 AB = (1-ATOM)*COARSE+ATOM*OLD
 BAD = Q(1,10**16)
 PHASE_STOP = Q(1,10**6)
 ASSEMBLY_BIT = min(AB,(1-PHASE_STOP)*AC-Q(1,10**10))
-KAPPA = Q(5555021,10**10)
+KAPPA = Q(2808223,5*10**9)
 
 
 def clean(hist):
@@ -90,10 +91,10 @@ def shared_profile(row,complex_word):
 def bitcube_profile(row):
     """Shared-core profile of the paired-cube bit word, in the complex word's ledger format."""
     h,v,R,ell = (row[k] for k in ('h','v','R','loss'))
-    require((h,v,R,ell) == (24,1760,25624,528),'Paired-cube bit dimensions')
+    require((h,v,R,ell) == (22,1320,18106,440),'Paired-cube bit dimensions')
     m,W,H = 3*h,2*v+R,Counter()
     selected = {int(r):n for r,n in row['selected_rank_histogram'].items()}
-    require(selected == {20:5720} and sum(selected.values()) == row['selected_roles'],'Selected bit gauges')
+    require(selected == {18:4290} and sum(selected.values()) == row['selected_roles'],'Selected bit gauges')
     for r,n in selected.items():
         H[3*r] += n
     for name in ('remaining_internal_histogram','source_data_histogram','target_data_histogram'):
@@ -252,7 +253,7 @@ def main():
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
     args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
-    print('PASS kappa=5555021/10000000000 = 5.555021e-4; both moments, shared cores, finite router and 47 strict constraints')
+    print('PASS kappa=2808223/5000000000 = 5.616446e-4; both moments, shared cores, finite router and 47 strict constraints')
 
 
 if __name__ == '__main__':
