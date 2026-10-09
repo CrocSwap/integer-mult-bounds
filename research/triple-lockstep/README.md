@@ -1,77 +1,53 @@
-# PR137 three-way first-stage lockstep: conservative finite screen
+# PR #139 correction: the proposed triple-core lockstep is invalid
 
-## Research status
+**Retracted:** the proposed conditional kappa 0.00045019844704 is NOT an established bound, nor does its rank-3r child histogram correspond to a valid physical shared-scratch implementation. This branch is now a **negative-control research artifact**, not a new multiplication exponent.
 
-**Candidate conditional κ = 0.00045019844704** if the proposed
-three-core lockstep can be implemented physically. Relative to PR137's
-κ = 0.000413596233702, this is +8.8497453% and exceeds the 4×10^-4
-research target. **This is not yet a proved or independently replayed
-multiplication bound.** The current source only certifies the numerical
-consequence of a proposed, unimplemented physical composition.
+## Reviewer feedback and exact counterexample
 
-## Method
+Swapnil Jain identified the fundamental interference in PR #139:
+https://github.com/CrocSwap/integer-mult-bounds/pull/139#issuecomment-6073712785
 
-Start from exactly PR137's h24 local source inventory, compensated scratch
-reuse, padded 72D three-stage cover, and completed sequential triple
-sharing. Each group has three mutually orthogonal local 24D spaces.
+The same issue was independently replayed and acknowledged by ikeboy, who retracted PR #132:
+https://github.com/CrocSwap/integer-mult-bounds/pull/132#issuecomment-6073596754
 
-Instead of running all three first-stage completed cores sequentially,
-the hypothesis is to execute the corresponding *auxiliary and centre*
-frame transitions in lockstep. Each stage-one trio of rank-r local
-increments would be replaced by one rank-3r increment. Keep all three
-other (second and third stage) local invocations separate. All sources
-and target data fronts remain separate, all physical source gauges and
-final completed tails are retained, and both padded rank-two data
-finishes remain paid.
+The local core's address frame labels identify directions in one **shared physical stream**. Orthogonality of those labels does NOT create disjoint physical storage. When all cores' source contributions are live simultaneously, each readout receives other cores' sources. A joint rank-3r Clifford child may equal the *product* of the three individual frame transforms, but that algebra does not validate the interleaved scalar schedule.
 
-The *optimistic* merged full local inventory is adjusted with a
-conservative positive exact moment penalty for the source/target data
-fronts that cannot be merged. Each local circuit's data rank mass is
-D=2v(h-1)=93,104. If a triple rank-r datum is actually three separate
-children rather than a rank-3r child, the added normalized moment is
-3r(m/r)^a(1-3^-a)/(mW), bounded above by
-3r*m^a*a*log(3)/(mW). Sum over every such data front and use inherited
-PR130 rational upward log/exp enclosures.
+For one dirty auxiliary stream z and three inputs x1,x2,x3, the transparent macro for core i is:
 
-## Exact finite calculations, conditional on implementation
+    yi -= z;  z += xi;  yi += z;  z -= xi
 
-- ambient dimension m=72; total persistent role stock per cell W=91,935
-- rank mass 6,612,144; deficit 7,176
-- largest combined child 69, smaller than 72
-- conservative complex saving 0.000468719485 on 10^-12 grid
-- retained PR137 stopped bit saving 0.00045060418316 (now binding)
-- candidate assembly κ=0.00045019844704 on 10^-15 grid
-- 47 strict assembly constraints, seven margins and next grid rejection
-- retained conservative scalar, router, adapter, semantic and row charges
+Executed **consecutively**, each yi receives only xi and z is restored. Executed **lockstep**, all three initial yi subtractions occur before any xi is removed; each receives x1+x2+x3, with contributions from both other cores.
 
-Run from root:
+The new executable regression uses exact Q(i) arithmetic (Python Fraction), 64 address entries, nontrivial Clifford C and its inverse on three orthogonal two-coordinate active blocks. It independently verifies the frame gates commute and all scratch is restored. All 3 x 64 target entries are nevertheless incorrect under lockstep; the consecutive schedule has 0 target errors.
 
-```sh
-python3 research/triple-lockstep/certificate.py
-```
+This counterexample tests the claimed **shared-dirty scheduling principle**, not every PR137 circuit gate. Along with the cited PR #132 independent replay, it is sufficient to invalidate the submitted lockstep *justification*. Retaining separate data-front child charges cannot repair values already mixed in the shared auxiliary streams.
 
-The verifier regenerates PR137's pinned cover certificate and source
-inventory, then recomputes the hypothetical paired histogram and
-conservative moment penalty. The original PR137 files remain unchanged.
+## Implemented fix: no unsupported merged children
 
-## Critical missing proof
+The executable certificate has been replaced. It **does not build or accept** the optimistic triple-lockstep rank histogram. Instead it imports and recomputes the original frozen PR #137 sequential three-core certificate, checks its complete 47 strict inequalities and 7 margins, and requires its original 9 separate local word copies to remain paid.
 
-A valid use of the new rank-3r children requires an explicit **joint
-physical scalar and Clifford execution** for three *overlapping-in-time*
-cores with the same scratch streams. PR137 proves three fully completed
-sequential cores can share scratch, but does **not** prove that their
-intermediate scratch dependencies, dirty input amplitudes, compensated
-readouts, inverse gates, and signed phases can be interleaved.
-PR132 establishes a two-core lockstep in a different first-stage setting;
-its argument does not automatically extend to PR137's triple sequential
-schedule. This fundamental gate is NOT checked by certificate.py.
+Safe reference (under PR137 inherited conditional contracts):
 
-Additional review must show the complete literal three-way compiler,
-arbitrary-dirty and all-column replay, cross-core noninterference,
-normalized frames, signed phases, rank-zero adapters and reflection.
-Only then is the candidate κ suitable as a new conditional record.
-The current script must not be described as a full mathematical proof.
+- ambient dimension 72
+- physical streams per three-vertex cell: 91,935
+- recursive rank mass: 6,612,144
+- deficit: 7,176
+- largest recursive child: 66
+- PR137 conditional kappa: **0.000413596233702**
 
-Credit: PR137 eumemic; PR132 ikeboy; PR130 icekylinx; PR124 jamesyc,
-and all original contributors and licenses. New research hypothesis and
-conservative numerical screen prepared with OpenAI assistance.
+PR #138 separately refines the slack parameters, reporting kappa **0.000413596659368**, which is HIGHER than this inherited PR137 baseline.
+
+**No new higher kappa is claimed on this branch.**
+
+## Reproduce
+
+    python3 research/triple-lockstep/lockstep_counterexample.py
+    python3 research/triple-lockstep/certificate.py
+
+CI now runs the exact negative control and the inherited sequential check, and fails if the lockstep corruption disappears unexpectedly. The PR137 source package, licenses and compiler remain unchanged.
+
+## Work needed for an actual improvement
+
+A new construction would require an *explicit* alternative way of maintaining independent live data in shared auxiliary storage (or provably paid cancellation), with a full literal signed forward/reflected and arbitrary-dirty replay. The physical schedule must be certified **before** replacing 3 rank-r children by rank-3r children in the recurrence. A new exponent additionally needs the full positive moment and assembly accounting.
+
+This PR remains a Draft negative control and must not be merged as a new bound. Thanks to Swapnil Jain and ikeboy for the counterexample and acknowledgement. Original PR137/PR130/PR124 author attributions and licenses are retained; this correction and regression were prepared with OpenAI assistance.

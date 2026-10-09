@@ -1,4 +1,4 @@
-name: PR137 triple lockstep - arithmetic-only screen
+name: PR139 shared-scratch lockstep negative control
 on:
   push:
     branches: [research/pr137-triple-first-stage-lockstep]
@@ -6,14 +6,28 @@ on:
 permissions:
   contents: read
 jobs:
-  exact-finite-screen:
+  exact-counterexample-and-safe-baseline:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with: {persist-credentials: false}
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with: {python-version: '3.11'}
-      - run: python3 research/triple-lockstep/certificate.py --output /tmp/triple-finite.json
-      - run: python3 -m json.tool /tmp/triple-finite.json > /dev/null
+        with:
+          python-version: '3.11'
+      - name: Reject invalid triple-core shared-stream lockstep
+        run: python3 research/triple-lockstep/lockstep_counterexample.py
+      - name: Reproduce pinned safe sequential PR137 assembly
+        run: python3 research/triple-lockstep/certificate.py --output /tmp/sequential.json
+      - name: Confirm explicit retraction in machine-readable result
+        run: |
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/sequential.json'))
+          assert r['new_exponent_claimed'] is False
+          assert r['negative_control']['lockstep_target_errors_total']==192
+          assert r['inherited_assembly_strict_constraints']==47
+          assert r['inherited_assembly_margins']==7
+          print('PASS: retracted, no unsupported kappa')
+          PY
       - run: git diff --exit-code
