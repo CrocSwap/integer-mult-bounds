@@ -6,8 +6,16 @@ Derived from research/source-assisted/decision/source_aligned_local.py
 query modules change: this copy reads PR168 v4's selected modules
 (eumemic, Claude assistance) from references/paired-cube/sources instead
 of the PR168 fd25adb7 modules. The local configuration, arc transport,
-frame inheritance, pair matching and physical layer code are unchanged.
-Its output is a candidate, not a final supplier.
+frame inheritance and physical layer code are unchanged.
+
+One option is new: --avoid-parity-erasure replaces the plain maximum
+matching of donors to recipients by a minimum-weight full matching of the
+recipients. A pair costs 2 if PR184's source-donor purification could
+erase it (the donor's last frame has rank at most 3 and lies in a cube
+parity frame inside the recipient's gauge frame), and 1 otherwise. The
+verified package passes frozen pairs with --pairs, so this option only
+documents how those pairs were found. Its output is a candidate, not a
+final supplier.
 """
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -53,6 +61,7 @@ def main():
     ap.add_argument('--out',type=Path,required=True)
     ap.add_argument('--pairs',type=Path,help='Use this frozen, independently checked physical pair/deadline witness.')
     ap.add_argument('--g-only',action='store_true')
+    ap.add_argument('--avoid-parity-erasure',action='store_true')
     a=ap.parse_args();start=time.monotonic()
     sys.path.insert(0,str(a.tree/'scripts'))
     from paired_cube.graph import Graph
@@ -197,7 +206,27 @@ def main():
         indptr.append(len(indices))
     matrix=csr_matrix((np.ones(len(indices),dtype=np.int8),np.array(indices,dtype=np.int32),
                        np.array(indptr,dtype=np.int32)),shape=(len(donors),len(recipients)))
-    matched=maximum_bipartite_matching(matrix,perm_type='column')
+    if a.avoid_parity_erasure:
+        from scipy.sparse.csgraph import min_weight_full_bipartite_matching
+        parity=[]
+        for cube in range(v//8):
+            for bit in range(2):
+                parity.append(basis(tuple(g['inputs'][8*cube+j] for j in range(8) if j.bit_count()%2==bit)))
+        erasable={}
+        def weight(slot,j):
+            key=(frames[role_ops[slot][-1]],gauge[recipients[j]])
+            if key not in erasable:
+                U,V=key
+                erasable[key]=len(U)<=3 and any(contained(U,S) and contained(S,V) for S in parity)
+            return 2.0 if erasable[key] else 1.0
+        weights=np.array([weight(slot,indices[k]) for r,slot in enumerate(donors) for k in range(indptr[r],indptr[r+1])])
+        wmatrix=csr_matrix((weights,np.array(indices,dtype=np.int32),np.array(indptr,dtype=np.int32)),
+                           shape=(len(donors),len(recipients)))
+        rows,cols=min_weight_full_bipartite_matching(wmatrix.T.tocsr())
+        matched=np.full(len(donors),-1)
+        matched[cols]=rows
+    else:
+        matched=maximum_bipartite_matching(matrix,perm_type='column')
     pairs=[[slot,recipients[j],None if role_ops[slot][-1] in pset else role_ops[recipients[j]][0]]
            for slot,j in zip(donors,matched) if j>=0]
     if a.pairs:

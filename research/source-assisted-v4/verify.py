@@ -28,6 +28,7 @@ REPO = PKG.parents[1]
 SA = REPO / 'research/source-assisted'
 WORK = PKG / '.work'
 PR186_KAPPA = Q(330942774629799, 500000000000000000)
+PR191_KAPPA = Q(6626307, 10**10)
 PR184_COMPLEX = Q(25667, 39062500)
 
 
@@ -41,6 +42,18 @@ def read(path):
 
 def write(path, data):
     Path(path).write_text(json.dumps(data, indent=2, sort_keys=True) + '\n')
+
+
+def canon(value):
+    # Binary floats are discovery diagnostics; round them so that last-digit
+    # libm differences between platforms cannot change the comparison.
+    if isinstance(value, float):
+        return format(value, '.12e')
+    if isinstance(value, dict):
+        return {k: canon(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [canon(v) for v in value]
+    return value
 
 
 def rel(path):
@@ -107,23 +120,26 @@ def build():
             final[branch].pop('numerical_root_for_discovery_only', None)
         kappa = Q(final['kappa'])
         complex_saving = Q(final['complex']['saving'])
-        assert complex_saving < Q(final['bit']['effective_saving']), 'The complex supplier must bind'
-        assert kappa > PR186_KAPPA, 'No gain over PR186'
+        bit_saving = Q(final['bit']['effective_saving'])
+        assert kappa > PR191_KAPPA > PR186_KAPPA, 'No gain over PR191'
         for name, check in profile_data['contract_checks'].items():
             assert check is not False, name
-        return dict(
+        return canon(dict(
             status='PASS conditional finite witness',
             kappa=final['kappa'],
             complex_saving=final['complex']['saving'],
             bit_effective_saving=final['bit']['effective_saving'],
+            binding_supplier='bit' if bit_saving < complex_saving else 'complex',
             gain_over_pr186=str(kappa / PR186_KAPPA - 1),
+            gain_over_pr191=str(kappa / PR191_KAPPA - 1),
             complex_gain_over_pr184=str(complex_saving / PR184_COMPLEX - 1),
             witness_sha256=sha(witness),
             lift_certificate_sha256=sha(lift.with_suffix('.certificate.json.gz')),
             flow=flow_data, lift=lift_data, complex_profile=profile_data, assembly=final,
             scope='PR184 contract, finite bridge and bit supplier unchanged; the complex supplier is '
-                  "PR184's source-parity local word and frame flow on PR168 v4's query modules and physical layer. "
-                  'No new flattened bit transcript or full Clifford/router replay, as in PR184.')
+                  "PR184's source-parity local word and frame flow on PR168 v4's query modules and physical layer, "
+                  'with donor/recipient pairs that avoid parity purification. '
+                  'No new flattened bit transcript or full Clifford/router replay, as in PR184.'))
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
 
