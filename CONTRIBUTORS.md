@@ -1,13 +1,28 @@
 # Community contribution record
 
-**Latest reviewed batch: #50–#62.** The [round-two ledger](docs/research/community-round2-review.md)
-records the contribution and validation scope of every PR, including parallel
-and superseded numerical witnesses. The selected result combines Avi Eisenberg,
-eumemic and Alejandro Zarzuelo Urdiales. Rohan Gupta and Chafik Boukhalfa supplied
-the preceding reviewed compiler composition; Rohan Arun, RaD / hipotures and
-Rohan Garg supplied additional reviewed alternatives and tools.
-Earlier contributors retain all credit. Entries below describe their dated checkpoints.
+**Current reviewed construction: [PR #144](https://github.com/CrocSwap/integer-mult-bounds/pull/144), κ=0.0004609169.**
+The [round-six review](docs/research/community-round6-review.md) records the
+checked source heads, dependency arguments, finite controls and replay limits.
 
+- **icekylinx:** the principal construction and integration lineage: stopped
+  recursion (#104), partial gauges (#115), three-stage covers and weighted
+  local-ring compilation (#130), then paired cubes and the selected assembly
+  (#144), with the original assistance disclosures retained.
+- **an664:** completed-core workspace sharing (#128), adopted and explicitly
+  credited as a substantial conceptual dependency.
+- **eumemic:** the positive producer (#117) whose exact restrictions supply
+  the paired-cube query modules; original Claude disclosure retained.
+- **Zhihao Chen (jacklightChen):** the deferred physical bit word and reflected
+  ledger (#97), including fan order and endpoint accounting.
+- **Swapnil Jain:** the underlying deferred word, lifted frames and frozen
+  witness used by #97 and the selected bit subset.
+
+This is a cumulative community construction. Earlier semantic, routing,
+geometry, compiler and analytic contributions remain credited in `SOURCES.json`
+and `NOTICE`; acknowledging a dependency does not approve every separate claim
+in its author's other submissions. The [round-two ledger](docs/research/community-round2-review.md)
+retains the #50–#62 checkpoint, including parallel and superseded work.
+Entries below describe their dated checkpoints.
 
 Thank you to everyone contributing proofs, constructions, parameter improvements,
 independent implementations, checks, corrections and unsuccessful searches with

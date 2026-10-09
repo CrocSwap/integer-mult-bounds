@@ -11,6 +11,10 @@ The bit word is the hash-pinned h=21 Fibonacci-strip word in PR97's frozen forma
 read by PR97's unchanged reader; prepared by eumemic with Anthropic Claude
 assistance (references/paired-cube/fib-bit-h21/README.md).
 """
+import sys
+if sys.flags.optimize:
+    raise ValueError('Assertions must remain enabled')
+
 import argparse
 from collections import Counter
 import gzip
