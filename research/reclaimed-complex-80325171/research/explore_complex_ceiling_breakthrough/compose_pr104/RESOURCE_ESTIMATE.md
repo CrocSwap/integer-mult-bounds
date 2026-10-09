@@ -1,0 +1,3 @@
+# Original exact substitution check, predeclared23:33UTC
+
+Read immutable104 certificate/profile/assembly text and the independently checked97-component witness. No producer rebuild or upstream program import/execution. Verify source hashes; independently evaluate three small rational moments with forty-term atanh logarithm enclosures and degree-eight exponentials; construct all47 strict assembly slacks and7margins from explicit formulas; reprice W/rank/G/guard and the three-factor row stock. Expected under5seconds/64MiB; hard cap60CPU seconds/256MiB and65wall seconds. This is arithmetic/compatibility preparation, not acceptance of104’s new atom/tape hypothesis or a global theorem.
