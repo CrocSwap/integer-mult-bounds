@@ -123,8 +123,8 @@ See [CONTRIBUTORS.md](../../CONTRIBUTORS.md) for contributions and parallel work
 
 ## Later stacked candidate: terminal elimination on shrunk frames (9 October 2026)
 
-- **Submission:** [Draft PR #1](https://github.com/GamingPuzzled/integer-mult-bounds/pull/1), based on `GamingPuzzled:research/shrunk-frames`.
-- **Head:** `101cff3ec7c8ebe711439a3a14723e051b9c02a4`.
+- **Submission:** [Draft PR #140](https://github.com/CrocSwap/integer-mult-bounds/pull/140), based on upstream `main` with head `sennemmi:research/terminal-elision-shrunk-frames`.
+- **Candidate snapshot:** `9cdf73e8682fb12749482e710e50bc585d282a7c`.
 - **Pinned sources:** Joel Pulikkan's PR #125 head `dda535bdcfc321a13a1ebd3c2d70e2b5bb72368e`; SovereignSteak's PR #122 head `b1a6f24e57141637b3ff040d6f2ce9d896ffb9bb`.
-- **Submitted result:** conditional κ = `110875518403/10^15`, about 0.257% above the fixed #125 parent. The live upstream PR #138 has a higher κ on the separate paid padded-triple-cover route; this candidate makes no global-frontier claim.
+- **Submitted result:** conditional κ = `110875518403/10^15`, about 0.257% above the fixed #125 parent. The live upstream Draft PR #139 has a higher finite candidate on the separate triple-core lockstep route; this candidate makes no global-frontier claim.
 - **Review status:** draft awaiting independent mathematical review. Its finite verifier and controls pass; inherited transfer, analytic, fixed-tape and all-size assembly interfaces remain open proof obligations.
