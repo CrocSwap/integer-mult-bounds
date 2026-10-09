@@ -98,7 +98,7 @@ counter primitives, floor-child recurrence and conditional state-cost proofs.
 The complete scheduler, routing and analytic multiplier instantiation remains
 unfinished. The full source-bound package is integrated with offline checks,
 pinned-source finite replay and kernel-audit CI targets. Fresh offline checks
-pass; final Linux and kernel validation is recorded separately.
+pass; all 298 declaration audits also pass on Linux. The final validation receipt records the run and its limited scope.
 
 ## Queue review and next mechanisms
 
@@ -136,3 +136,5 @@ The [validation receipt](community-round7-validation.json) records local
 results and final Linux status separately. The committed CI configuration
 alone is not evidence of a successful run. No change to main is authorized
 by this report alone.
+
+The final implementation head `86b30e035fcdffb72db93f759b4fda6a41b24de5` passed all 53 Linux jobs across the main suite and the two original contribution workflows. The [morning handoff](community-round7-morning.md) records the candidate and next steps. A subsequent evidence-only commit preserves every tested implementation and dependency blob.

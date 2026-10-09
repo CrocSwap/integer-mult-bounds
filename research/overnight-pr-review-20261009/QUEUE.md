@@ -6,10 +6,10 @@ Snapshot: 106 open PRs (16 drafts), 2026-10-09. References below are author-ment
 
 | PR | Contributor | Category | Disposition | Referenced PRs |
 |---|---|---|---|---|
-| [#150](https://github.com/CrocSwap/integer-mult-bounds/pull/150) | DaysSky | finite-construction | locally-validated | #104, #122, #124, #128, #130, #144, #146, #147, #148 |
-| [#148](https://github.com/CrocSwap/integer-mult-bounds/pull/148) | gupt1156 | parameter-refinement | composition-candidate | #144 |
-| [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147) | hpst3r | finite-construction | locally-validated | #104, #122, #124, #128, #130, #144, #146 |
-| [#146](https://github.com/CrocSwap/integer-mult-bounds/pull/146) | Th0rgal | gauge-selection | composition-candidate | #97, #104, #115, #117, #128, #130, #144, #147, #148 |
+| [#150](https://github.com/CrocSwap/integer-mult-bounds/pull/150) | DaysSky | finite-construction | integrated-validated | #104, #122, #124, #128, #130, #144, #146, #147, #148 |
+| [#148](https://github.com/CrocSwap/integer-mult-bounds/pull/148) | gupt1156 | parameter-refinement | integrated-validated | #144 |
+| [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147) | hpst3r | finite-construction | integrated-validated | #104, #122, #124, #128, #130, #144, #146 |
+| [#146](https://github.com/CrocSwap/integer-mult-bounds/pull/146) | Th0rgal | gauge-selection | integrated-validated | #97, #104, #115, #117, #128, #130, #144, #147, #148 |
 | [#145](https://github.com/CrocSwap/integer-mult-bounds/pull/145) | Th0rgal | frame-and-reuse | alternative-needs-adapter | #97, #104, #110, #113, #117, #118, #120, #123, #124, #125, #126, #127, #128, #129, #130, #131, #132, #133, #134, #135 |
 | [#143](https://github.com/CrocSwap/integer-mult-bounds/pull/143) | eumemic | frame-and-schedule | mechanism-followup | #117, #124, #130, #142 |
 | [#142](https://github.com/CrocSwap/integer-mult-bounds/pull/142) | eumemic | restricted-geometry | alternative-not-selected | #117, #124, #130, #137, #138, #139 |
@@ -42,7 +42,7 @@ Snapshot: 106 open PRs (16 drafts), 2026-10-09. References below are author-ment
 | [#106](https://github.com/CrocSwap/integer-mult-bounds/pull/106) | Th0rgal | compiler-refinement | alternative-not-selected | #91, #93, #94, #95, #97, #98, #99 |
 | [#103](https://github.com/CrocSwap/integer-mult-bounds/pull/103) | rohanarun | deferred-producer-family | alternative-or-parent |  |
 | [#102](https://github.com/CrocSwap/integer-mult-bounds/pull/102) | SovereignSteak | deferred-producer-family | alternative-or-parent | #2, #97 |
-| [#101](https://github.com/CrocSwap/integer-mult-bounds/pull/101) | Bortlesboat | verification | integrated-awaiting-linux | #64 |
+| [#101](https://github.com/CrocSwap/integer-mult-bounds/pull/101) | Bortlesboat | verification | integrated-validated | #64 |
 | [#100](https://github.com/CrocSwap/integer-mult-bounds/pull/100) | rohanarun | earlier-compiler-family | alternative-not-selected |  |
 | [#99](https://github.com/CrocSwap/integer-mult-bounds/pull/99) | djsmanchanda | earlier-compiler-family | alternative-not-selected | #36, #41, #44, #62, #97 |
 | [#98](https://github.com/CrocSwap/integer-mult-bounds/pull/98) | rohanarun | earlier-compiler-family | alternative-not-selected | #91, #93, #94, #95, #97 |
@@ -76,7 +76,7 @@ Snapshot: 106 open PRs (16 drafts), 2026-10-09. References below are author-ment
 | [#67](https://github.com/CrocSwap/integer-mult-bounds/pull/67) | rohanarun | earlier-compiler-family | alternative-not-selected | #57, #60, #61, #62, #63, #65 |
 | [#66](https://github.com/CrocSwap/integer-mult-bounds/pull/66) | chafreaky | earlier-compiler-family | alternative-not-selected | #1, #2, #4, #7, #26, #29, #34, #35, #36, #41, #44, #45, #49, #51, #53, #55, #57, #59, #60 |
 | [#65](https://github.com/CrocSwap/integer-mult-bounds/pull/65) | rohanarun | earlier-compiler-family | alternative-not-selected | #57, #60, #61, #62, #63, #64 |
-| [#64](https://github.com/CrocSwap/integer-mult-bounds/pull/64) | rfu08 | formal-verification | integrated-awaiting-linux | #57, #60, #62, #63, #65, #67, #68, #69, #70, #71, #73, #74, #76 |
+| [#64](https://github.com/CrocSwap/integer-mult-bounds/pull/64) | rfu08 | formal-verification | integrated-validated-scoped | #57, #60, #62, #63, #65, #67, #68, #69, #70, #71, #73, #74, #76 |
 | [#63](https://github.com/CrocSwap/integer-mult-bounds/pull/63) | DominikScholz | earlier-compiler-family | alternative-not-selected | #53, #57, #60, #61, #62 |
 | [#47](https://github.com/CrocSwap/integer-mult-bounds/pull/47) | rohanarun | historical-construction | historical-credit-retained | #41, #43, #46 |
 | [#44](https://github.com/CrocSwap/integer-mult-bounds/pull/44) | rohanarun | historical-construction | historical-credit-retained | #41, #42, #43 |
@@ -137,3 +137,8 @@ See [dispositions.json](dispositions.json) for the per-PR reasons and [source-in
 ## Lockstep dependency warning
 
 #145 explicitly retracts its paired stage-1 value following [Swapnil Jain’s restoration counterexample](https://github.com/CrocSwap/integer-mult-bounds/pull/132#issuecomment-6073516734). #135 depends on that paired schedule and is not eligible for integration without repair. The valid sequential completed-core sharing used here does not run live cores concurrently. This review inspected the counterexample report and the retraction; it did not independently replay the commenter’s small instance.
+
+Final validation: the selected composition and scoped #101/#64 packages passed
+all 53 Linux jobs at `86b30e035fcdffb72db93f759b4fda6a41b24de5`.
+See [CI receipts](final-linux-runs.json). This applies to the named packages;
+the remaining dispositions remain triage, not blanket proof validation.
