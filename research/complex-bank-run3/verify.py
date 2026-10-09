@@ -326,8 +326,25 @@ def check_export_contract():
     supplier = pinned('references/pr219-run1/references/pr193-source-assisted-v4.certificate.json')
     assert supplier['status'] == 'PASS conditional finite witness'
     assert 'not exported' in supplier['complex_profile']['status']
-    assert contract['today']['bodies_present'] == 0, \
+    assert    contract['today']['bodies_present'] == 0, \
         'no body export exists in the pins and the contract must say so'
+    bodies = set()
+    for row in contract['today']['evidence']:
+        if isinstance(row['value'], str) and row['value'].endswith('.gz'):
+            bodies.add(row['value'].rsplit('/', 1)[-1])
+        if row['keys'] and row['keys'][-1].endswith('.json'):
+            bodies.add(row['keys'][-1])
+    for export in contract['required_exports']:
+        for row in export['must_reproduce']:
+            if row['keys'] and row['keys'][-1].endswith('.json'):
+                bodies.add(row['keys'][-1])
+    assert bodies, 'the contract must name the bodies it waits for'
+    pinned_names = set(pins.manifest())
+    assert not any(name.rsplit('/', 1)[-1] in bodies for name in pinned_names), \
+        'no body the contract requires may be pinned: the 0-of-6 reading must be a reading'
+    assert not any('.work' in name for name in pinned_names), \
+        'the supplier workspace the contract names must not be in the pins'
+    assert len(bodies) >= 4, 'program, frames, graph, record, witness and lift bodies: %s' % bodies
     assert contract['today']['of_required'] == len(contract['required_exports']) == 6, \
         '0 of the six required bodies'
 
