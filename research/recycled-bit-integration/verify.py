@@ -5,6 +5,7 @@ Douglas Colkitt, with OpenAI Codex assistance. Apache-2.0.
 Finite conditional verification; retained analytic and uniform interfaces are assumptions.
 Default: reconstruct, check exact new frame pairs and complete symbolic scalar maps.
 --all: additionally check every distinct inherited frame transition over Q.
+Both frame-pair loops run on forked workers (VERIFY_JOBS, default the CPU count); each check is unchanged.
 --write: write the deterministic certificate after all checks pass.
 """
 import sys
@@ -17,6 +18,8 @@ from decimal import Decimal, localcontext
 from fractions import Fraction as Q
 from hashlib import sha256
 import json
+import multiprocessing
+import os
 from pathlib import Path
 import random
 import time
@@ -52,6 +55,32 @@ def sources():
               ROOT / 'certificates/paired-cube-bit-input.json',
               ROOT / 'certificates/paired-cube-complex-input.json']
     return {str(p.relative_to(ROOT)): sha256(p.read_bytes()).hexdigest() for p in sorted(set(paths))}
+
+_EXACT = None
+_NONDEG = False
+
+def _failures(chunk):
+    E = _EXACT
+    return [(reg, a, b) for reg, a, b in chunk
+            if not (E.inside(a, b) and (not _NONDEG or (E.nondegenerate(a) and E.nondegenerate(b))))]
+
+def check_moves(exact, moves, nondegenerate=False):
+    """The moves (reg, a, b) whose frame a is not inside b (or, with nondegenerate, either frame is degenerate).
+
+    Each check is a pure function of the shared exact frames, exactly as in the serial loop, so the moves are
+    split across forked worker processes (VERIFY_JOBS, default the CPU count). Moves are grouped by target key
+    so each worker builds each annihilator basis once. Without fork, or with one job, it runs serially.
+    """
+    global _EXACT, _NONDEG
+    _EXACT, _NONDEG = exact, nondegenerate
+    moves = sorted(moves, key=lambda m: (str(m[2]), str(m[1]), str(m[0])))
+    jobs = int(os.environ.get('VERIFY_JOBS', os.cpu_count() or 1))
+    if jobs <= 1 or len(moves) < 2 * jobs or 'fork' not in multiprocessing.get_all_start_methods():
+        return _failures(moves)
+    size = -(-len(moves) // (4 * jobs))
+    chunks = [moves[i:i + size] for i in range(0, len(moves), size)]
+    with multiprocessing.get_context('fork').Pool(jobs) as pool:
+        return [m for part in pool.map(_failures, chunks) for m in part]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -95,11 +124,11 @@ def main():
     assert set(fresh) == set(old.new_moves(old_led)), 'Composition changed the new-frame obligations'
     log('PASS exact composed plan, chronological ledger and unchanged set of new frame pairs')
     exact = Exact(S, W, folder)
-    for reg, a, b in fresh:
-        assert exact.inside(a, b) and exact.nondegenerate(a) and exact.nondegenerate(b), (reg, a, b)
+    failed = check_moves(exact, fresh, nondegenerate=True)
+    assert not failed, failed[:5]
     if args.all:
-        for reg, a, b in led['moves']:
-            assert exact.inside(a, b), (reg, a, b)
+        failed = check_moves(exact, led['moves'])
+        assert not failed, failed[:5]
     log('PASS exact rational nesting (%d new pairs%s)' % (len(fresh), '; all inherited pairs checked' if args.all else ''))
     outputs = {(c, tuple(T)): n for c, T, n in W['outputs']}
     assert word.complete(2, outputs) and word.complete(0, outputs)
