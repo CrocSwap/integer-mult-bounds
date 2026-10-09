@@ -1,0 +1,38 @@
+name: Verify served diagonal bit supplier
+on:
+  pull_request:
+    paths:
+      - 'research/served-diagonal-bit/**'
+      - 'research/source-assisted-v4/**'
+      - 'research/source-assisted/**'
+      - 'scripts/paired_cube_assembly.py'
+      - '.github/workflows/served-diagonal-bit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CrocSwap/integer-mult-bounds
+          ref: a1175449f34d39ff933d9d8ab23ced1f32b290ec
+          path: .dependencies/pr200
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CrocSwap/integer-mult-bounds
+          ref: 187e1010ac8b259af8e9b5166f68b64bc27b4b47
+          path: .dependencies/pr193
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .dependencies/pr193/research/source-assisted/requirements-round13.txt
+      - run: python -B research/served-diagonal-bit/verify.py --complex-root .dependencies/pr193 --bit-root .dependencies/pr200 --full
+      - run: git diff --exit-code
