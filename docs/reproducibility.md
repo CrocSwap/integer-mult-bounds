@@ -12,6 +12,11 @@ package bytes: `.gitattributes` prevents normalization of its hash-pinned JSON.
 `make selected-record-check` is a fast metadata/inventory check, not a replay.
 The complete Linux matrix includes this target on 3.11, 3.13 and 3.14.
 
+For the arithmetic-only parameter-domain diagnostic, see the
+[assembly-domain audit](research/assembly-domain-audit.md). Its pinned replay
+and tests distinguish hypothetical supplier values from the published witness;
+they do not extend the admitted theorem range.
+
 For the preceding recycled-bit composition, run `make recycled-bit-verify`.
 The [construction and scope](../research/recycled-bit-integration/PROOF.md)
 describe full formal-variable scalar replay, exact rational frame checks and

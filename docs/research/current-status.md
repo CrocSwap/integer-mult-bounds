@@ -17,6 +17,11 @@ assumptions. Finite replay and scoped formal contributions do not formalize
 the multiplication theorem. #185's reviewed leaf bootstrap does not further
 raise this witness, whose complex supplier already binds.
 
+The [assembly-domain audit](assembly-domain-audit.md) distinguishes the
+enforced `b<1/32` range from the balance `kappa<a/(1+a)` and the independent
+retained Gaussian condition `kappa<1/4`. Its larger-supplier examples are
+arithmetic diagnostics, not new witnesses or an enlarged theorem domain.
+
 The preceding reviewed recycled-bit composition was κ=0.000472154791;
 its [round-seven review](community-round7-review.md) retains the evidence.
 
