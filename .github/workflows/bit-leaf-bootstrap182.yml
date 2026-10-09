@@ -1,0 +1,27 @@
+name: Verify finite bit leaf bootstrap
+on:
+  push:
+    paths:
+      - 'research/bit-leaf-bootstrap182/**'
+      - '.github/workflows/bit-leaf-bootstrap182.yml'
+  pull_request:
+    paths:
+      - 'research/bit-leaf-bootstrap182/**'
+      - '.github/workflows/bit-leaf-bootstrap182.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.11'
+      - name: Exact bootstrap, source pins and independent algebra
+        run: python3 -B research/bit-leaf-bootstrap182/verify.py
+      - name: Unchanged prerequisite complete physical words
+        run: python3 -B research/paired-cube-local-bit-168/verify.py
