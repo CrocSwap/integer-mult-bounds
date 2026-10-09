@@ -2,9 +2,9 @@
 
 Under #168's retained interfaces, this finite witness certifies
 
-$$T(n)=O\big(n(\log n)^{1-\kappa}\big),\qquad \kappa=\frac{6105562}{10^{10}}=6.105562\times10^{-4}.$$
+$$T(n)=O\big(n(\log n)^{1-\kappa}\big),\qquad \kappa=\frac{6107787}{10^{10}}=6.107787\times10^{-4}.$$
 
-That is **+0.151% over #168** (6.096379e-4). The bit supplier binds in #168, and #168 ships its p = 12 bit word with no operation-frame descent. This package descends 1,716 of that word's operation frames; 264 of them leave their original frame, as in #165. The scalar word, gauges, persistent roles and complex supplier are unchanged.
+That is **+0.0364% over the same witness with the inherited atom exponent** \(10^{-3}\) (6.105562e-4). The bit word, the 1,716 descended frames, the complex supplier and the balanced-prefix assembly are unchanged. Only the stopped-atom exponent moves, from \(10^{-3}\) to \(6111521/10^{10}\), which is still strictly above the resulting bit saving. The tie point for coarse saving \(6115023/10^{10}\) is \(6115023/10005730424\); the next \(10^{-10}\) kappa grid point is rejected.
 
 | Bit supplier, p = 12 | Replaced frames | R | W | Coarse saving |
 |---|---:|---:|---:|---:|

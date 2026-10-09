@@ -29,6 +29,11 @@ import paired_cube_network as N
 from structured_bulk_assembly import js
 
 GRID = 10**10
+# Stopped-atom exponent. #169 retained theta = 1/1000. The ordinary wrapper
+# only needs theta > a_b = (1-theta)*a_star + theta*a_old. For the certified
+# coarse saving 6115023/10^10 the tie point is 6115023/10005730424, so
+# theta = 6111521/10^10 is admissible and raises the balanced-prefix kappa.
+ATOM = Q(6111521, GRID)
 
 
 def profile(row):
@@ -68,6 +73,7 @@ def largest(ok, lo, hi):
 
 def main():
     need(not sys.flags.optimize, 'run without -O')
+    N.ATOM = ATOM
     word = Candidate([]); word.exact_frames(); row = word.row()
     formal = [word.formal(r) for r in (2, 0)]
     controls = []
