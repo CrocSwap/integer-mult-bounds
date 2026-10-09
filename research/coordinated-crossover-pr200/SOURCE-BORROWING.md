@@ -1,4 +1,4 @@
-Historical predecessor description: numerical counts below describe that predecessor. The final construction has 469 source aliases, including 26 new source-backed entrances. See NEW-SOURCE-GAUGES.md for the current scalar word, target chronology and bank counts.
+Historical predecessor description: numerical counts below describe that predecessor. The final construction has 471 source aliases, including 28 new source-backed entrances. See NEW-SOURCE-GAUGES.md for the current scalar word, target chronology and bank counts.
 
 # Original sources replace singleton-copy auxiliaries
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent exact full-path and target-ledger audit of26 new source gauges.
+"""Independent exact full-path and target-ledger audit of28 new source gauges.
 No scalar claim. Prepared with OpenAI Codex assistance.
 """
 from pathlib import Path
@@ -7,15 +7,22 @@ from collections import defaultdict,Counter
 import importlib.util,json,sys
 sys.dont_write_bytecode=True
 D=Path(__file__).resolve().parent;P=D.parent/'joint';sp=importlib.util.spec_from_file_location('ind_newgauges',P/'joint_word.py');m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m)
-w=m.Candidate();C=w.C;w.exact_frames();base=w.row();selected=json.loads((D/'selection.json').read_text());co=w.adjoint();recipient={d:b for b,d in w.pairs};kpair={e['passive']:e for e in w.k['entries']};touched={s for i in w.phase1 for s in w.ops[i][:2]};roots=defaultdict(list)
+w=m.Candidate();C=w.C;w.exact_frames();base=w.row();selected=json.loads((D/'selection.json').read_text());co=w.adjoint();recipient={d:b for b,d in w.pairs};kpair={e['passive']:e for e in w.k['entries']};roots=defaultdict(list)
+schedule=json.loads((D/'schedule.json').read_text());original_rest=w.rest[:];w.phase1=schedule['new_phase1'];w.rest=schedule['deferred_ops']+original_rest
+actual_order=w.phase1+w.rest;w.role_ops=defaultdict(list)
+for i in actual_order:
+ for s in w.ops[i][:2]:w.role_ops[s].append(i)
+w.readtime={s:t+168 for s,t in w.readtime.items()}
+touched={s for i in w.phase1 for s in w.ops[i][:2]}
+new_phase_roles={8584,9424}
 for j,s in enumerate(w.w['rootroles']):roots[s].append((j,w.w['root_frame'][j]))
 term=json.loads((P/'joint-replay.json').read_text())['selected'];removed={r['role']for r in term};deleted={r['root']for r in term};bywrite={i:e for e in term for i in e['writes']};after={e['writes'][-1]:e for e in term};tt={t for e in term for t in e['targets']};source_roles=set(w.source.values())
 old=json.loads((D.parent/'borrow/selection.json').read_text())+json.loads((D.parent/'gaugeb/selection.json').read_text());old_sources={r['source']for r in old};old_roles={r['role']for r in old};old_members=old_sources|{r['partner']for r in old}
 assert not old_members&({r['source']for r in selected}|{r['partner']for r in selected})
-assert len({r['source']for r in selected})==len(selected)==26
+assert len({r['source']for r in selected})==len(selected)==28
 assert not(old_sources&{r['source']for r in selected})and not(old_roles&{r['role']for r in selected})
-assert len({r['role']for r in selected})==26
-assert sum(len(r['targets'])for r in selected)==104 and len({t for r in selected for t in r['targets']})==100
+assert len({r['role']for r in selected})==28
+assert sum(len(r['targets'])for r in selected)==112 and len({t for r in selected for t in r['targets']})==108
 local_delta=Counter();endpoint_rows=[];gframes={};prime_records=[]
 from prime_witnesses import det,factor_witness,validate_factor
 def H(chain,start_dim):
@@ -42,6 +49,7 @@ for r in selected:
  for a,b in zip(new,new[1:]):assert C.sub(a,b)and all(w.module.dot(x,y)==0 for x in C.A[b]for y in C.B[a])
  reflected=Counter(C.dimf[b]-C.dimf[a]for a,b in zip(new,new[1:])if C.dimf[b]>C.dimf[a]);assert reflected==new_source
  local_delta.update(delta);endpoint_rows.append(dict(role=s,source=n,alias_recipient=recipient.get(s),source_line=C.dimf[new[0]],K_mix=C.dimf[mix],source_gauge=C.dimf[f],final_dimension=C.dimf[new[-1]],auxiliary_delta=delta,old_aux_histogram=dict(old_aux),old_source_histogram=dict(old_source),complete_source_histogram=dict(new_source),reflected_equal=True))
+assert not(set(schedule['deferred_ops'])&set(bywrite))
 # Complete actual target chronology, including all terminal substitutions and K.
 at=defaultdict(list)
 for s in w.order:at[w.readtime[s]].append(s)
@@ -56,10 +64,11 @@ def target_hist(extra):
   d=C.dimf[f]-(0 if previous is None else C.dimf[previous]);assert d>=0
   if d:hist[d]+=1
   current[t]=f;paths[t].append(f);events+=1
- if extra:
-  for r in selected:
-   for t in r['targets']:move(t,gframes[r['role']])
  for j,i in enumerate(w.rest):
+  if extra:
+   for r in selected:
+    if j==(0 if r['role']in new_phase_roles else 168):
+     for t in r['targets']:move(t,gframes[r['role']])
   for s in at[j]:
    for t in w.gauge[s]['targets']:move(t,w.gauge[s]['frame'])
   if i in bywrite:move(bywrite[i]['pivot'],w.opframe[i])
@@ -92,11 +101,11 @@ def target_hist(extra):
  return hist,events
 Y0,e0=target_hist(False);Y1,e1=target_hist(True);ydelta=Counter(Y1);ydelta.subtract(Y0);local_delta.update(ydelta)
 compact=lambda c:{str(d):n for d,n in sorted(c.items())if n}
-assert sum(d*c for d,c in local_delta.items())==-26*24
+assert sum(d*c for d,c in local_delta.items())==-28*24
 for f in sorted(set(gframes.values())):
  B=C.B[f];ss=list(map(sum,B));gram=[[9*sum(a*b for a,b in zip(x,y))-ss[i]*ss[j]for j,y in enumerate(B)]for i,x in enumerate(B)]
  determinant=det(gram);powers,residual=factor_witness(determinant);validate_factor(determinant,powers,residual)
  prime_records.append(dict(frame=f,dimension=len(B),basis=B,cleared_gram_determinant=determinant,small_prime_powers=powers,remaining_factor=residual))
 assert any(r['dimension']==4 for r in prime_records)
-res=dict(status='PASS_EXACT_26_SHARED_SOURCE_GAUGE_PATHS_TARGETS_AND_PRIMES',scope='Complete physical source paths, donor-recipient chains, reflected annihilator nesting, complete terminal/gauge/root/K target chronology, all exact paid local deltas. Whole scalar replay and global assembly owned separately.',selected=26,touched_targets=100,explicit_reflected_target_histograms_equal=True,additional_target_events=e1-e0,target_delta=compact(ydelta),old_complete_target_histogram=compact(Y0),new_complete_target_histogram=compact(Y1),local_delta=compact(local_delta),local_rank_delta=sum(d*c for d,c in local_delta.items()),W_delta=-26,shared_rank_delta=3*sum(d*c for d,c in local_delta.items()),deficit_delta=-26*72-3*sum(d*c for d,c in local_delta.items()),endpoint_rows=endpoint_rows,source_gauge_prime_witnesses=prime_records)
+res=dict(status='PASS_EXACT_28_SHARED_SOURCE_GAUGE_PATHS_TARGETS_AND_PRIMES',scope='Complete physical source paths, donor-recipient chains, reflected annihilator nesting, complete terminal/gauge/root/K target chronology, all exact paid local deltas. Whole scalar replay and global assembly owned separately.',selected=28,touched_targets=108,explicit_reflected_target_histograms_equal=True,additional_target_events=e1-e0,target_delta=compact(ydelta),old_complete_target_histogram=compact(Y0),new_complete_target_histogram=compact(Y1),local_delta=compact(local_delta),local_rank_delta=sum(d*c for d,c in local_delta.items()),W_delta=-28,shared_rank_delta=3*sum(d*c for d,c in local_delta.items()),deficit_delta=-28*72-3*sum(d*c for d,c in local_delta.items()),endpoint_rows=endpoint_rows,source_gauge_prime_witnesses=prime_records)
 (D/'boundary.json').write_text(json.dumps(res,indent=2)+'\n');print(json.dumps({k:v for k,v in res.items()if k not in ('endpoint_rows','source_gauge_prime_witnesses')},indent=2),flush=True)
