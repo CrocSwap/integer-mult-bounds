@@ -301,6 +301,24 @@ time, so the 1,760 recipient gauges -- "internal splices [that] receive no separ
 allocation" -- are not available either. A rung is therefore a priced target with a named
 family, never a pending build.
 
+**The same boundary, from the suppliers' papers, is now published.** #215
+(`research/bank-gauge-boundary`) reaches it independently of this model: by
+`notes/paired-cube-sharing.tex` a gauged role's forward correction `F_A T_σ F_A⁻¹` has
+Fourier rank `dim σ` and its three stage blocks tensor into one child of width `3·dim σ`,
+which #186 and #207 replace exactly -- so "the bankable children are exactly the gauge
+exteriors", and on this word all 2,200 genuine entrance gauges are already banked while
+the 1,760 rank-21 recipients are internal splices. It then names the condition
+`allocate.py` reads out of the code: an entrance gauge needs content that is both
+don't-care and restored. Targets accumulate, so no single end correction applies and a
+joint start correction breaks the stage gates' inactive-offset cancellation; sources are
+restored but consumed by the injections. The rank-22 rung and every later one are
+therefore outside gauge reinterpretation, and #215 prices two near-misses (on #173's
+word: re-gauging auxiliaries once banks make exteriors free has a +4.17% upper bound,
+loses 1.46% to the target splits and accepts zero roles greedily; target entrance gauges
++3.9%, +4.5% merged) that are invalid for the same reason. This package's verdict is
+unchanged and now has the mechanism named: a rung needs a family the supplier allocates
+banks to, or a construction other than gauge reinterpretation.
+
 `allocation.json` also fixes what a builder would hand that generator for the two headline
 rungs: the cheapest certified one is bit rank 22, 6,116 banks of 72 registers, volume
 440,352, retained `W = 50,286`; the two-family tiling one is ranks 6 and 8, 1,824 banks in
