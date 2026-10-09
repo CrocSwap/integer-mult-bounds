@@ -60,7 +60,7 @@ def check_sources():
     required.update(f'certificates/joint-dual-{kind}-{h}.{extension}'
                     for h in (23,25) for kind, extension in (('word','json.gz'),('profiles','json'),('transitions','json')))
     required.update(('certificates/joint-dual-compiler.json', 'certificates/skip-frame-kappa.json',
-                     'scripts/experiments/pin_joint_dual_sources.py', 'Makefile', 'README.md', 'NOTICE'))
+                     'scripts/experiments/pin_joint_dual_sources.py'))
     comparison = ROOT/'references/frame-compiler/pr58'
     required.add('references/frame-compiler/pr58/SOURCE.json')
     required.update('references/frame-compiler/pr58/'+name

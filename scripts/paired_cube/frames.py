@@ -11,18 +11,23 @@ from collections import Counter
 import json, math, sys, functools
 
 def basis(rows):
-    b={}
+    b={};mask=0  # pivot bits; b stays reduced, so x needs only the pivots set in it, in any order
     for x in rows:
-        for p,y in sorted(b.items(),reverse=True):
-            if x>>p&1:x^=y
+        m=x&mask
+        while m:
+            p=m.bit_length()-1;x^=b[p];m^=1<<p
         if x:
             p=x.bit_length()-1
             for k,y in list(b.items()):
                 if y>>p&1:b[k]=y^x
-            b[p]=x
+            b[p]=x;mask|=1<<p
     return tuple(b[p] for p in sorted(b,reverse=True))
 
 def perp(rows,h):
+    return _perp(tuple(rows),h)
+
+@functools.lru_cache(maxsize=500000)
+def _perp(rows,h):
     rows=basis(rows); piv={r.bit_length()-1:r for r in rows}; out=[]
     for j in range(h):
         if j in piv:continue
@@ -33,9 +38,23 @@ def perp(rows,h):
     return basis(out)
 
 @functools.lru_cache(maxsize=500000)
+def _support(A):
+    u=0
+    for x in A:u|=x
+    return u
+
+@functools.lru_cache(maxsize=500000)
+def _tops(B):
+    # min(x,x^y) == x^y exactly when x has the top bit of y set
+    return tuple((y.bit_length()-1,y) for y in B if y)
+
+@functools.lru_cache(maxsize=500000)
 def contained(A,B):
+    if _support(A)&~_support(B):return False  # XORs of rows of B cannot leave the union of their supports
+    tops=_tops(B)
     for x in A:
-        for y in B:x=min(x,x^y)
+        for t,y in tops:
+            if x>>t&1:x^=y
         if x:return False
     return True
 
