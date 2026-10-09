@@ -15,6 +15,8 @@ community-followup-check:
 verify:
 	$(MAKE) verify-community
 	$(MAKE) verify-producers
+	$(MAKE) verify-partial-gauge
+	$(MAKE) verify-three-stage-cover
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -30,6 +32,7 @@ verify-community: community-audit-check community-followup-check copied-reversed
 	$(MAKE) climbed-48-verify
 
 verify-producers:
+	$(MAKE) stopped-product-verify
 	$(MAKE) copied-centers-verify
 	$(MAKE) structured-bulk-verify
 	$(MAKE) endpoint-gauge-producer endpoint-gauge-certificate
@@ -428,3 +431,38 @@ pair-assembly-verify: pair-assembly-producer pair-assembly-check
 .PHONY: verify-pair
 verify-pair: pair-assembly-verify
 	python3 scripts/audit_pair_candidate.py --check docs/research/community-pair-arithmetic.json
+
+.PHONY: stopped-product-producer stopped-product-certificate stopped-product-verify
+stopped-product-producer:
+	python3 scripts/stopped_product_producer.py
+
+stopped-product-certificate:
+	python3 scripts/stopped_product_network.py
+
+stopped-product-verify: stopped-product-producer stopped-product-certificate
+
+.PHONY: partial-gauge-bit partial-gauge-producer partial-gauge-certificate partial-gauge-verify
+partial-gauge-bit:
+	python3 scripts/partial_gauge_bit.py
+
+partial-gauge-producer:
+	python3 scripts/partial_gauge_producer.py
+
+partial-gauge-certificate:
+	python3 scripts/partial_gauge_network.py
+
+partial-gauge-verify: partial-gauge-bit partial-gauge-producer partial-gauge-certificate
+
+.PHONY: verify-partial-gauge
+verify-partial-gauge: partial-gauge-verify
+
+.PHONY: three-stage-cover-producer three-stage-cover-certificate three-stage-cover-verify verify-three-stage-cover
+three-stage-cover-producer:
+	python3 scripts/three_stage_cover_producer.py
+
+three-stage-cover-certificate:
+	python3 scripts/three_stage_cover_network.py
+
+three-stage-cover-verify: three-stage-cover-producer three-stage-cover-certificate
+
+verify-three-stage-cover: three-stage-cover-verify
