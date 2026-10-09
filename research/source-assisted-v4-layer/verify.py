@@ -187,11 +187,30 @@ def main():
                       lift={k: lift_data[k] for k in ('status', 'nodes', 'physical_R', 'all_actual_coefficients_dyadic', 'max_denominator', 'exact_scalar_program_sha256')},
                       contract_checks=cdata['contract_checks'], assembly=strip_seconds(fdata),
                       prerequisites=dict(pr202=src['commit'], pr194_complex_saving='219037/312500000', pr200_bit='research/paired-cube-diagonal-bit-168/certificate.json'))
-        canon = json.loads(json.dumps(result, sort_keys=True))
+        # certificate.json holds exact, platform-independent fields only (no floats, no hashes of generated gzip
+        # artifacts); the full run record goes to report.json (informational, written only with --write)
+        canon = dict(status=result['status'], complex_saving=result['complex_saving'], kappa=result['kappa'], binding=result['binding'],
+                     complex_profile=result['complex_profile'],
+                     layer=dict(frames=len(frames), pairs=len(pairs), frames_changed_from_pr168=sum(1 for (i, F), (j, G) in zip(sorted(frames), sorted(theirs)) if tuple(F) != tuple(G)),
+                                audit_status=audit['status'], audit_input_sha256=audit['input_sha256'], audit_source_sha256=audit['source_sha256'],
+                                formal=audit.get('formal'), mutations=audit.get('mutations')),
+                     flow=dict(new_R=flow_data['new_R'], new_W=flow_data['new_W'], deficit=flow_data['deficit'], loss=flow_data['loss'],
+                               original_physical_roles=flow_data['original_physical_roles'], child_histogram=flow_data['child_histogram']),
+                     lift=dict(status=lift_data['status'], nodes=lift_data['nodes'], physical_R=lift_data['physical_R'],
+                               all_actual_coefficients_dyadic=lift_data['all_actual_coefficients_dyadic'], max_denominator=lift_data['max_denominator']),
+                     contract_checks=cdata['contract_checks'],
+                     assembly=dict(kappa=fdata['kappa'], complex_saving=fdata['complex']['saving'], bit_effective_saving=fdata['bit']['effective_saving'], status=fdata.get('status')),
+                     prerequisites=result['prerequisites'])
+        canon = json.loads(json.dumps(canon, sort_keys=True))
         if a.write:
             (HERE / 'certificate.json').write_text(json.dumps(canon, indent=1, sort_keys=True) + '\n')
-            log('wrote certificate.json')
+            (HERE / 'report.json').write_text(json.dumps(json.loads(json.dumps(result, sort_keys=True)), indent=1, sort_keys=True) + '\n')
+            log('wrote certificate.json and report.json')
         committed = read(HERE / 'certificate.json')
+        if committed != canon:
+            for k in sorted(set(committed) | set(canon)):
+                if committed.get(k) != canon.get(k):
+                    log('DIFFERS: %s' % k)
         assert committed == canon, 'result differs from certificate.json'
         log('PASS certificate.json reproduced: complex saving %s (PR #194: 219037/312500000), kappa %s' % (complex_saving, kappa))
 
