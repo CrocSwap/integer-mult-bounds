@@ -18,6 +18,7 @@ sys.path[:0]=[str(ROOT/'scripts'),str(ROOT/'research/copied-fixed')]
 from changed_graph import graph
 from collections import defaultdict,Counter,deque
 import argparse,json,time,struct
+from bisect import bisect_left, insort
 
 def independent(rows,vec):
  for row in rows:
@@ -117,10 +118,26 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
  edges,chosen,right,stats=match(blocks,uses,matching)
  print('matched',len(chosen),'seconds',time.time()-t0,flush=True,file=sys.stderr)
  slots=[];frames=[];ops=[];events=[];hist=Counter();assign={};sources={};retired=set();stats['regions']=len(blocks);stats['matched']=len(chosen);stats['multi_node_regions']=sum(len(b['nodes'])>1 for b in blocks)
+ # Keep the original descending-rank, ascending-slot selection order.
+ # A retired anchor can move during clearing: raise_ updates this index too.
+ retired_by_rank=[[] for _ in range(h+1)]
+ def retire_add(s):
+  assert s not in retired
+  retired.add(s);insort(retired_by_rank[blocks[frames[s]]['rank']],s)
+ def retire_remove(s):
+  bucket=retired_by_rank[blocks[frames[s]]['rank']]
+  i=bisect_left(bucket,s);assert i<len(bucket) and bucket[i]==s
+  bucket.pop(i);retired.remove(s)
  def new(g):
   s=len(slots);slots.append(0);frames.append(g);hist[blocks[g]['rank']]+=1;events.append((s,-1,g));return s
  def raise_(s,g):
-  old=frames[s];assert contains(blocks[old]['frame'],blocks[g]['frame']);hist[blocks[g]['rank']-blocks[old]['rank']]+=1;frames[s]=g;events.append((s,old,g))
+  old=frames[s];assert contains(blocks[old]['frame'],blocks[g]['frame'])
+  oldrank,newrank=blocks[old]['rank'],blocks[g]['rank']
+  if s in retired and oldrank!=newrank:
+   bucket=retired_by_rank[oldrank];i=bisect_left(bucket,s)
+   assert i<len(bucket) and bucket[i]==s
+   bucket.pop(i);insort(retired_by_rank[newrank],s)
+  hist[newrank-oldrank]+=1;frames[s]=g;events.append((s,old,g))
  def xor(a,b,g):
   assert a!=b;raise_(a,g);raise_(b,g);slots[a]^=slots[b];ops.append((a,b,g))
  def acquire(g,anchors):
@@ -134,7 +151,7 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
      old,e=bb[p];row^=old;expr^=e
     return expr
    for s in anchors:ins(s)
-   for s in sorted(retired,key=lambda s:(-blocks[frames[s]]['rank'],s)):
+   for s in (s for rank in range(h,-1,-1) for s in retired_by_rank[rank]):
     if not contains(blocks[frames[s]]['frame'],blocks[g]['frame']):continue
     e=ins(s)
     if e is None:continue
@@ -142,7 +159,7 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
     while e:
      bit=e&-e;aa.append(bit.bit_length()-1);e^=bit
     for a in aa:xor(s,a,g)
-    assert not slots[s];retired.remove(s);stats['reclaimed']+=1;stats['clearing_xors']+=len(aa);return s
+    assert not slots[s];retire_remove(s);stats['reclaimed']+=1;stats['clearing_xors']+=len(aa);return s
   return new(g)
  for step,g in enumerate(order):
   b=blocks[g];outuses=[u for u in b['uses']if u not in right];outvalues=sorted({uses[u][0]for u in outuses});assert outvalues==b['outvalues']
@@ -179,7 +196,7 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
    for s,(kind,key)in zip(ins,labels):
     if kind=='value':value_slots[key]=s;assert slots[s]==signal[key]
     elif kind=='carry':assign[key]=s;assert slots[s]==signal[uses[key][0]]
-    else:retired.add(s);spare.append(s)
+    else:retire_add(s);spare.append(s)
    # Express every dependent desired output in the new independent basis.
    ob=list(value_slots);bb={}
    for i,x in enumerate(ob):
