@@ -1,0 +1,9 @@
+# Scientific status at the second milestone
+
+Accepted conditional construction: first changedleft23/25 κ3941587961/10^14; scalar, positiveframe, commonbasis and compiledrole/timeline review passes. Dirtyscope: complete h8 twoorientation basis simulation plus written allsize projector invariants. A stricter actual reversed/transposed scalarword control supersedes the initial orientation adapter.
+
+The further support-right23/seeded-left25 association pair is independently checked and has exactκ3946432011/10^14. The new alternatingcomplete-pairblock DAG family lowers roles36685/48479 and has complete exact conditional arithmetic at κ1008542031/(25·10^12)=4.034168124e-5,4.762607006% above pinnedPR37. Its selectedwitness compiler acceptance is inprogress; this row remains a candidate until that gate passes. [Alternating arithmetic](../runs/alternating23-alternating25-composition/certificate.json) and [association arithmetic](../runs/association23-association25-composition/certificate.json) preserve both.
+
+FixedI+J localprofiles are reconstructed from ORIGINALenvelopes, not substitutedpositive ranks. Bothfixedleft axes with conservative25/23 data26singletons+[21,481] support exactcandidateκ995348619/(25·10^12)=3.981394476e-5; generic23+fixed25 retains creditedPR39 data9singletons+[21,17,481] and supportsκ3980605549/10^14. All47strict constraints pass. ActualCRT rankproof and original-envelope matching are independently audited; literalcompileddirtyclosure remains separate. [Fixed candidate arithmetic](../runs/fixed-left-composition/certificate.json). Newassociationfixedprofiles are complete; alternatingfixedprofiles are next.
+
+Newscoped exclusions: sampledGPU2block failssecondprime; rectangularflag familyloses17block; exactrank2localrefinement makesnochange; freepointwise outputmixers cannotremovepaidPaureelcorrection. No globaloptimality, formalverification, unconditionalresult orpracticalruntimeisclaimed.
