@@ -1,3 +1,5 @@
+> Historical predecessor proof. The current16-gauge construction, including mixed4/5/6/24 residual banks, is specified and replayed by JOINT-GAUGES.md and joint/.
+
 Historical predecessor note. The current joint-gauge extension is specified in JOINT-GAUGES.md and PROOF.md; current execution starts at verify.py.
 
 # Frame refinement, concrete charts and completed banks

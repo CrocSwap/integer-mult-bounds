@@ -37,14 +37,14 @@ class Candidate(Original):
   for a,b,n in reversed(self.ops):co[b].update(co[a])
   newroles=[]
   for group in groups:
-   f=self.register(group['gauge_basis']);assert self.C.dimf[f]==18 and self.C.nondeg(f)
+   f=self.register(group['gauge_basis']);assert self.C.dimf[f] in (18,19) and self.C.nondeg(f)
    for s in group['roles']:
     assert s not in self.gauge and s not in sources and s not in touched and s not in self.donor
     assert self.C.sub(f,self.opframe[self.role_ops[s][0]])
     targets=sorted(co[s]);assert targets==group['role_targets'][str(s)]
-    z=dict(role=s,frame=f,dim=18,targets=targets)
+    z=dict(role=s,frame=f,dim=self.C.dimf[f],targets=targets)
     self.gauge[s]=z;self.w['gauges'].append(z);self.w['reads'][str(s)]=len(self.phase1);self.readtime[s]=0;newroles.append(s)
-  self.order=list(reversed(newroles))+oldorder
-  assert len(newroles)==13 and len(set(newroles))==13
+  self.order=sorted(newroles,key=lambda s:self.gauge[s]['dim'])+oldorder
+  assert len(newroles)==16 and len(set(newroles))==16
   self.newroles=newroles
   assert self.original_w==json.loads(__import__('gzip').decompress(self.input_paths[2].read_bytes()))

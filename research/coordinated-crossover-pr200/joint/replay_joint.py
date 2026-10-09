@@ -21,3 +21,19 @@ except ValueError as error:
  assert 'defining decoder' in str(error),str(error)
  print('PASS omitted new compensation read rejected',flush=True)
 else:raise AssertionError('Omitted new gauge compensation was accepted')
+
+control=Candidate()
+role=next(s for s in control.newroles if control.gauge[s]['dim']==19)
+control.order.remove(role);control.order.insert(0,role)
+control.exact_frames()
+try:control.row()
+except (ValueError,AssertionError) as error:
+ assert 'target frame chronology' in str(error),str(error)
+ print('PASS reversed nested gauge read order rejected',flush=True)
+else:raise AssertionError('Rank19 read before rank18 was accepted')
+control=Candidate();control.order.remove(role)
+try:control.formal(2)
+except ValueError as error:
+ assert 'defining decoder' in str(error),str(error)
+ print('PASS omitted nested rank19 compensation rejected',flush=True)
+else:raise AssertionError('Omitted nested compensation was accepted')

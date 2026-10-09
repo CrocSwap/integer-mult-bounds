@@ -1,3 +1,5 @@
+> Historical predecessor proof. The current16-gauge construction, including mixed4/5/6/24 residual banks, is specified and replayed by JOINT-GAUGES.md and joint/.
+
 Historical predecessor bank construction. The current 4/6/24 extension, 36 replicas and gauged-donor proof are in ../JOINT-GAUGES.md; current execution starts at ../verify.py.
 
 # Completed entrance banks on the PR200 physical bit word

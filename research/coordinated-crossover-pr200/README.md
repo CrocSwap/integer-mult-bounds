@@ -1,8 +1,8 @@
-κ = 6.83883297459132e-4
+κ = 6.83921676706449e-4
 
-# Shared entrance gauges and refined physical bit word
+# Nested shared entrance gauges and refined physical bit word
 
-Conditional κ ≈ **6.83883297459132 × 10⁻⁴**, exactly `170970824364783/250000000000000000`. Four groups of shared rank-18 gauges change 13 physical entrances; two donor substitutions improve the internal paid profile. The operation frames inherit our checked plateau/cascade refinement of PR211. The final bit coarse saving is `342175656946149/500000000000000000`.
+Conditional κ ≈ **6.83921676706449 × 10⁻⁴**, exactly `683921676706449/1000000000000000000`. Thirteen shared rank-18 gauges and three nested rank-19 gauges change 16 actual physical entrances. Two donor substitutions and the checked plateau/cascade refinement of PR211 improve the remaining paid profile. The bit coarse saving is `342194872844421/500000000000000000`.
 
 ## Reproduce
 
@@ -12,11 +12,11 @@ Python 3.11+, assertions enabled:
 python3 -B research/coordinated-crossover-pr200/verify.py --temp-root /tmp
 ```
 
-The five pinned archive parts include source and frozen complex witnesses. Verification uses a temporary extraction without git or network and leaves submitted files unchanged. The current executable path is `verify_inner.py` → `joint/replay_joint.py`, `joint/pack_joint.py`, exact frozen complex replay, then `joint/price_joint.py`. The retained geometry and frame-search files document and support the predecessor construction; its standalone `arithmetic.py` is not the current entry point.
+The five pinned archive parts include source and frozen complex witnesses. Verification uses a temporary extraction without git or network and leaves submitted files unchanged. It executes `joint/replay_joint.py`, `joint/pack_joint.py`, the exact frozen complex lift/contract, and `joint/price_joint.py`. It does not rerun numerical discovery. The retained geometry and frame-search files describe predecessor constructions; the top-level standalone `arithmetic.py` is historical.
 
-The actual word adapter and selection are in `joint/`. See `JOINT-GAUGES.md` for the new gauged-donor argument, physical banks and complete paid ledger; `PLATEAU-REFINEMENT.md` records the preceding frame search. Float scores propose candidates only. Exact scalar/frame replay and rational moments determine the final claim.
+The adapter and selections are in `joint/`. `JOINT-GAUGES.md` explains the new physical entrances, ordered target reads, generalized gauged-donor chains and mixed residual banks. `PLATEAU-REFINEMENT.md` records the earlier frame search. Float scores only proposed candidates; exact scalar/frame replay and rational moments determine the claim.
 
-The normalized profile has m=72, W=225491, rank mass16212120 and deficit23232. There are 36 physical replicas, with literal stock676473; the moment normalization is a factor12 and is not the physical replica count. Full bank assignments, normalizers, both reflected word ledgers and the adjacent-grid rejection are checked.
+The normalized profile is m=72, W=450925, rank mass 32420136, deficit 46464 and maximum child 22. There are 72 literal physical replicas, with stock 1352775; factor 24 clears the moment profile and is not the replica count. All 3696624 role-copy-stage assignments and 227 charts are checked. New controls reject reversed rank 18/rank 19 read order and omitted compensation. Both reflected integer words, dirty restoration, normalizers, complete target costs and adjacent-grid exclusion are included.
 
 ## Scope and attribution
 
