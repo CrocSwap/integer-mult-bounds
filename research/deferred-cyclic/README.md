@@ -1,5 +1,7 @@
 # Deferred readouts on the cyclic-strip complex network
 
+Validation complete: full repository verification (78 isolated test modules and 20 historical patch checks), fresh bit/complex producer replay, and corrected expanded-charge certificate replay passed. All 36 research-head CI checks passed. Coverage combines the original full run at `4dcb515` with the narrowly corrected certificate at `070b4d6`; see `validation.json` for both commits, logs and source-drift checks.
+
 Conditional κ = 469537/5000000000 = **9.39074 × 10^-5** — **+9.39% over PR #110** (429239/5·10^9)
 and +9.47% over the cyclic-strips witness (1715630240171/2·10^16).
 
