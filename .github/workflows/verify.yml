@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.13', '3.14']
-        group: [community, producers, certificates, ternary, research, tests, strips, clones, positive, joint, pair]
+        group: [community, producers, certificates, ternary, research, tests, strips, clones, positive, joint, pair, deferred-signed]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -31,6 +31,9 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y libboost-dev
           fi
+      - name: Install exact rational tensor control dependency
+        if: matrix.group == 'deferred-signed'
+        run: python -m pip install sympy==1.14.0
       - name: Check arithmetic, source hashes, finite identities, and patches
         run: make verify-${{ matrix.group }}
       - name: Require reproducible certificates and patches
