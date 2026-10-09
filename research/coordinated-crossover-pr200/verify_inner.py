@@ -14,6 +14,8 @@ def load(n,p):
 def read(p):return json.loads(p.read_text())
 assert not sys.flags.optimize
 before={p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in [ROOT/'scripts/paired_cube_assembly.py',SA/'decision/exact_complex_flow_lift.py',CP/'contract_v4.py']}
+# Recreate the committed operation-frame plateau from the pinned PR210 parent.
+run(HERE/'search/joint-plateau-search-prdf958.py','--verify-committed')
 # Replay the actual82 new gauges, complete reflected ledgers and all new banks.
 run(HERE/'joint/replay_joint.py');run(HERE/'borrow/replay.py');run(HERE/'borrow/boundary.py');run(HERE/'borrow/derive_profile.py');run(HERE/'gaugeb/replay.py');run(HERE/'gaugeb/boundary.py');run(HERE/'gaugeb/derive_profile.py');run(HERE/'newg/replay.py');run(HERE/'newg/schedule_audit.py');run(HERE/'newg/boundary.py');run(HERE/'newg/derive_profile.py');run(HERE/'joint/pack_joint.py')
 # The portable witness is checked again; original numerical search need not be repeated.
