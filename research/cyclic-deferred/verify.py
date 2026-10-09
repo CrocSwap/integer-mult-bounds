@@ -3,8 +3,8 @@
 
 Regeneration occurs only in a temporary repository-shaped copy. Source hashes,
 complete profile ledgers, the exact certificate, and the independent reflection
-audit are required. General transfer proofs and the inherited round-seven bit
-word/frame justification remain separate dependencies. Prepared for eumemic
+audit are required. General transfer and common-basis/address-adapter assumptions remain
+separate dependencies; the nested finite bit word is independently replayed. Prepared for eumemic
 with OpenAI Codex assistance; inherited authorship and licenses are retained.
 """
 import sys
@@ -22,6 +22,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from bit_adapter import package_inventory as bit_package_inventory
 
 HERE = Path(__file__).resolve().parent
 COMPLEX_DAG_PIN = '3c034d0aae388ef567a454826f4f48b26fd8a94c71e8ffed4835271b349a783b'
@@ -33,11 +34,14 @@ BIT_PINS = {
 REQUIRED = {
     'verify.py', 'test_controls.py', 'producer.py', 'complex_deferred.py',
     'bit_round7.py', 'certificate.py', 'bit-profile.json',
+    'bit_adapter.py', 'shared-bit-profile.json',
     'complex-profile.json', 'certificate.json', 'replayed_producer.py',
     'inputs/complex-dag.json.gz',
     'sharing.py', 'phase_check.py', 'phase_check.json',
     'shared-complex-profile.json', 'inputs/shared-partition.json',
-    'README.md', 'SHARING.md', 'PR128-NOTICE',
+    'reuse.py', 'reuse-pairs.json', 'gauge_phase.py',
+    'gauge-phase-audit.json', 'gauge-phase-witness.json',
+    'README.md', 'SHARING.md', 'BITSHARING.md', 'PR128-NOTICE',
     *('inputs/' + name for name in BIT_PINS),
 }
 DATA_DEPENDENCIES = {'certificates/copied-centers-network.json'}
@@ -65,9 +69,11 @@ def digest(path):
 def dependency_closure(package, repository, package_scripts):
     """Include every local Python import, including package __init__ modules.
 
-    All package scripts are roots, also covering explicit importlib loading of
-    the producer and audited source. Only stdlib imports may be unresolved.
-    The sole external data read used by exact assembly is listed separately.
+    All outer package scripts are roots, covering explicit importlib loading.
+    The independently frozen nested bit package is checked through its exact
+    manifest/verifier boundary; unused inherited APIs are not entry points.
+    Only stdlib outer imports may be unresolved. The sole external arithmetic
+    data read is listed separately.
     """
     pending = [package / name for name in package_scripts]
     seen, dependencies = set(), set(DATA_DEPENDENCIES)
@@ -112,7 +118,8 @@ def dependency_closure(package, repository, package_scripts):
 
 def create_manifest(package, repository, reflection_script, reflection_receipt):
     scripts = sorted(path.name for path in package.glob('*.py'))
-    names = REQUIRED | set(scripts) | {reflection_script, reflection_receipt}
+    nested_bit = bit_package_inventory(package)
+    names = REQUIRED | set(scripts) | {reflection_script, reflection_receipt} | set(nested_bit)
     dependencies = dependency_closure(package, repository, scripts)
     return dict(
         schema=1,
@@ -129,10 +136,15 @@ def create_manifest(package, repository, reflection_script, reflection_receipt):
             completed_core_partition=dict(pull_request='https://github.com/CrocSwap/integer-mult-bounds/pull/128',
                             commit='530588a019b4a74f09180680c9e3961bf649ec89',
                             file='inputs/shared-partition.json', sha256=PARTITION_PIN),
+            compensated_birth_reuse='https://github.com/CrocSwap/integer-mult-bounds/pull/124',
+            bit161=dict(manifest='bit-sharing/MANIFEST.json',
+                        manifest_sha256=nested_bit['bit-sharing/MANIFEST.json'],
+                        verifier='bit-sharing/verify.py',
+                        scope='Independent frozen full geometry, physical word, partition and moment replay'),
             round7_repository='https://github.com/Swapnil-jain/integer-mult-kappa',
             round7_commit='741e7aa078392553815df7926ee17ac5e25a8c38',
             round7_sha256=BIT_PINS),
-        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Completed-core sharing and signed orthogonal partition: an664 PR128 with OpenAI Codex assistance, using Xiande Zhang and Gennian Ge (2010). Physical hull-frame composition and verification for eumemic with OpenAI Codex assistance. Original source notices remain authoritative.')
+        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Completed-core sharing and signed orthogonal partition: an664 PR128 with OpenAI Codex assistance, using Xiande Zhang and Gennian Ge (2010). Compensated birth-cut reuse follows jamesyc PR124. Physical hull frames, generalized gauge sharing, 161-group bit sharing and verification for eumemic with OpenAI Codex assistance. Original source notices remain authoritative.')
 
 
 def check_sources(package, repository, manifest=None):
@@ -142,11 +154,16 @@ def check_sources(package, repository, manifest=None):
     reflection = manifest['reflection']
     require(REQUIRED | {reflection['script'], reflection['receipt']} <= names,
             'Incomplete package source/finite-input closure')
+    bit_files = bit_package_inventory(package)
+    require({name for name in names if name.startswith('bit-sharing/')} == set(bit_files),
+            'Incomplete or stale nested bit-package closure')
+    require(all(manifest['package_files'][name] == expected for name, expected in bit_files.items()),
+            'Nested bit-package manifest binding mismatch')
     for collection, base in ((manifest['package_files'], package),
                              (manifest['repository_files'], repository)):
         for name, expected in collection.items():
             require(digest(safe_file(base, name)) == expected, 'Source hash mismatch: ' + name)
-    scripts = sorted(name for name in names if name.endswith('.py'))
+    scripts = sorted(name for name in names if name.endswith('.py') and not name.startswith('bit-sharing/'))
     expected = dependency_closure(package, repository, scripts)
     require(set(manifest['repository_files']) == expected,
             'Incomplete or stale transitive repository dependency closure')
@@ -170,10 +187,14 @@ def validate_profile(profile, label):
         groups = {int(g): count for g, count in profile['group_sizes'].items()}
         require(groups == {8: 4, 24: 83} and profile['shared_groups'] == sum(groups.values()),
                 label + ': completed-core group ledger')
-        require(profile['core_source_rank'] == 0 and profile['core_sink_rank'] == h and
-                profile['deferred_roles'] == 0 and profile['deferred_dims'] == {},
+        require(profile['core_pre_exterior_inner_sink_rank'] == h,
                 label + ': completed-core gauges')
         outer_width = profile['shared_groups']
+    elif label == 'shared-bit':
+        groups = {int(g): count for g, count in profile['group_sizes'].items()}
+        require(groups == {11: 161} and profile['groups'] == 161,
+                label + ': completed-core group ledger')
+        outer_width = profile['groups']
     else:
         outer_width = v
     require(W == 2*N + 2*outer_width*R and L == 2*v*h*(h-1), label + ': physical ledger')
@@ -188,10 +209,21 @@ def validate_profile(profile, label):
     require(rows.get((h-1)**2) == 2*N and rows.get(1, 0) >= N,
             label + ': omitted data projector or endpoint charge')
     if label in ('complex', 'shared-complex'):
-        require(R == profile['additions']+profile['roots']-profile['links'],
+        require(profile['virtual_R'] == profile['additions']+profile['roots']-profile['links'] and
+                type(profile['reused_roles']) is int and profile['reused_roles'] >= 0 and
+                R + profile['reused_roles'] == profile['virtual_R'],
                 'complex: addition/roots/matching role ledger')
         require(sum(profile['deferred_dims'].values()) == profile['deferred_roles'],
                 'complex: deferral inventory')
+        from gauge_phase import validate_inventory
+        validate_inventory(profile['physical_auxiliary_source_frames'], R, h)
+    if label == 'shared-bit':
+        require(profile['paid_projector_calls'] == sum(rows.values()),
+                label + ': paid projector adapter calls')
+        classes = profile['classes']
+        require(sum(part['rank'] for part in classes.values()) == profile['total_rank'] and
+                sum(part['calls'] for part in classes.values()) == profile['paid_projector_calls'],
+                label + ': class-wise paid rank/call ledger')
     return rows
 
 
@@ -201,15 +233,42 @@ def validate_shared_composition(package):
     shared = json.loads((package / 'shared-complex-profile.json').read_text())
     partition = json.loads((package / 'inputs/shared-partition.json').read_text())
     phase = json.loads((package / 'phase_check.json').read_text())
-    reconstructed = shared_profile(local, partition, phase)
+    gauge = json.loads((package / 'gauge-phase-audit.json').read_text())
+    require(gauge['local_profile_sha256'] == digest(package / 'complex-profile.json') and
+            gauge['reflection_receipt_sha256'] == digest(package / 'reflection-audit.json') and
+            gauge['checker_sha256'] == digest(package / 'gauge_phase.py'),
+            'Physical gauge audit does not bind the local source evidence')
+    reconstructed = shared_profile(local, partition, phase, gauge)
     require(json.loads(json.dumps(reconstructed)) == shared,
             'Shared profile does not match local completed cores and paid exterior')
 
 
+def validate_bit_composition(package, certificate=None):
+    bit = json.loads((package / 'shared-bit-profile.json').read_text())
+    nested = json.loads((package / 'bit-sharing/profile161.json').read_text())
+    nested_certificate = json.loads((package / 'bit-sharing/certificate.json').read_text())
+    require(bit == nested, 'Shared bit profile differs from its independently verified supplier')
+    validate_profile(bit, 'shared-bit')
+    if certificate is not None:
+        account = certificate['finite_bridge']['bit_coarse']
+        require(certificate['coarse_bit_saving'] == nested_certificate['certified_bit_saving'] and
+                account['halving_degree'] == nested_certificate['halving_degree'],
+                'Shared bit exact saving or halving degree mismatch')
+        require(account['completed_core_groups'] == bit['groups'] and
+                account['paid_projector_adapter_calls'] == bit['paid_projector_calls'],
+                'Shared bit paid adapter call binding mismatch')
+
+
 def check_completed_core_audit(audit, local, certificate):
-    require(audit['completed_core_source_frames_zero'] is True and
-            audit['completed_core_pre_exterior_frames_full'] is True,
-            'Completed cores require zero source and full pre-exterior frames')
+    require(audit['completed_core_source_inventory_bound'] is True and
+            audit['completed_core_pre_exterior_frames_full'] is True and
+            audit['reflected_core_active_frames_complement_source'] is True and
+            audit['exact_birth_cut_invariants'] is True and
+            audit['physical_aliased_numeric_replay'] is True,
+            'Completed cores require bound source gauges and reflected active frames')
+    require(audit['physical_auxiliary_source_frames'] == local['physical_auxiliary_source_frames'] and
+            audit['virtual_R'] == local['virtual_R'] and audit['reused_roles'] == local['reused_roles'],
+            'Physical source inventory or reused-role binding mismatch')
     require((audit['h'], audit['v'], audit['R']) == (local['h'], local['v'], local['R']) and
             audit['child_multiplicities'] == local['child_multiplicities'],
             'Local reflection audit does not bind the completed-core profile')
@@ -243,9 +302,10 @@ def snapshot(package, repository, manifest):
 def verify(package, repository):
     manifest = check_sources(package, repository)
     before = snapshot(package, repository, manifest)
-    for label in ('bit', 'complex', 'shared-complex'):
+    for label in ('bit', 'shared-bit', 'complex', 'shared-complex'):
         validate_profile(json.loads((package / (label + '-profile.json')).read_text()), label)
     validate_shared_composition(package)
+    validate_bit_composition(package, json.loads((package / 'certificate.json').read_text()))
     environment = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
     environment.pop('PYTHONPATH', None)
     with tempfile.TemporaryDirectory(prefix='cyclic-deferred-verify-') as directory:
@@ -264,24 +324,32 @@ def verify(package, repository):
             subprocess.run([sys.executable, str(target / script), *map(str, arguments)],
                            cwd=root, env=environment, check=True)
 
+        run('bit_adapter.py')
+        compare_json(target / 'shared-bit-profile.json', package / 'shared-bit-profile.json')
+        print('PASS independent full bit replay and 161-group profile regenerated', flush=True)
         run('bit_round7.py', target / 'inputs')
         compare_json(target / 'bit-profile.json', package / 'bit-profile.json')
         print('PASS pinned round-seven bit ledger regenerated', flush=True)
         run('complex_deferred.py')
         compare_json(target / 'complex-profile.json', package / 'complex-profile.json')
+        compare_json(target / 'reuse-pairs.json', package / 'reuse-pairs.json')
         print('PASS complete complex producer and deferred profile regenerated', flush=True)
+        reflection = manifest['reflection']
+        actual_reflection = target / reflection['receipt']
+        run(reflection['script'], '--source', target / 'complex_deferred.py',
+            '--output', actual_reflection)
+        compare_json(actual_reflection, package / reflection['receipt'])
         run('phase_check.py', target / 'inputs/shared-partition.json')
         compare_json(target / 'phase_check.json', package / 'phase_check.json')
+        run('gauge_phase.py')
+        for name in ('gauge-phase-audit.json', 'gauge-phase-witness.json'):
+            compare_json(target / name, package / name)
         run('sharing.py')
         compare_json(target / 'shared-complex-profile.json', package / 'shared-complex-profile.json')
         validate_shared_composition(target)
         print('PASS signed partition phases and completed-core shared profile regenerated', flush=True)
         run('certificate.py')
-        reflection = manifest['reflection']
-        actual_reflection = root / 'actual-reflection.json'
-        run(reflection['script'], '--source', target / 'complex_deferred.py',
-            '--output', actual_reflection)
-        compare_json(actual_reflection, package / reflection['receipt'])
+        validate_bit_composition(target, json.loads((target / 'certificate.json').read_text()))
         check_completed_core_audit(json.loads(actual_reflection.read_text()),
                                   json.loads((package / 'complex-profile.json').read_text()),
                                   json.loads((package / 'certificate.json').read_text()))

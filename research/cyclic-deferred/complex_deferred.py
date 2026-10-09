@@ -6,6 +6,8 @@ role chains. Maximal nondegenerate extensions and minimal nondegenerate hulls
 are accepted only when they improve the local moment objective; every actual
 source, mixer, copied-center and root incidence is checked exactly.
 Physical-frame optimization prepared with OpenAI Codex assistance.
+Compensated birth-cut reuse follows jamesyc PR124; this composition regenerates
+all pairings, replays arbitrary aliased scratch, and retains every scalar charge.
 
 PR117 credits its searched DAG to eumemic with Anthropic Claude assistance;
 this experiment imports and replays that witness unchanged. PR110/PR114
@@ -25,6 +27,7 @@ import tempfile
 from collections import Counter, defaultdict
 from itertools import combinations
 from pathlib import Path
+from reuse import select_reuse, check_pairs, check_compensation, mutation_controls
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -537,7 +540,8 @@ def main():
     prev={};after={};end={s:sat_basis(root_frame[s])if s in root_frame else FULL for s in range(R)}
     for s,events in role_events.items():
      for j,i in enumerate(events):prev[i,s]=events[j-1]if j else None;after[i,s]=events[j+1]if j+1<len(events)else None
-    vals=[x**(1-0.0001093)for x in range(h+1)]
+    # Frozen IEEE-754 search weights remove platform libm variation.
+    vals=[float.fromhex(x) for x in ['0x0.0p+0', '0x1.0000000000000p+0', '0x1.fff611fabad2cp+0', '0x1.7ff4324fbceecp+1', '0x1.ffec2426c27bdp+1', '0x1.3ff197310b8c8p+2', '0x1.7fecc00663620p+2', '0x1.bfe79c1e23586p+2', '0x1.ffe2368416067p+2', '0x1.1fee4bbd449aep+3', '0x1.3feb62b54ad1bp+3', '0x1.5fe862b99e2f4p+3', '0x1.7fe54de202531p+3', '0x1.9fe225ec96cafp+3', '0x1.bfdeec529ef76p+3', '0x1.dfdba257523b3p+3', '0x1.ffd84912b47dep+3', '0x1.0fea70bcdaf4fp+4', '0x1.1fe8b63233d76p+4', '0x1.2fe6f54967551p+4', '0x1.3fe52e5858b9ap+4', '0x1.4fe361ac5190ep+4', '0x1.5fe18f8b3cb6dp+4', '0x1.6fdfb834a8020p+4', '0x1.7fdddbe2990a6p+4']]
     for turn in range(5):
      changes=0;delta=0
      for i in (reversed(range(len(ops)))if turn%2==0 else range(len(ops))):
@@ -567,11 +571,13 @@ def main():
         else:
             for s in o[1:3]:role_frames[s].append(op_frames[i])
     def F0(s):return birth[s]
-
-    # Gauges guide finite frame search, but the selected physical word uses
-    # zero source gauges. Its completed-core residual is therefore C_A,
-    # exactly the interface required by the inherited signed group sharing.
-    placed = {}; deferred = []; dset = set()
+    reuse_pairs = select_reuse(locals())
+    merge = check_pairs(locals(), reuse_pairs)
+    reuse_rejected_controls = mutation_controls(locals(), reuse_pairs)
+    live = [s for s in range(Rr) if s not in merge]
+    physical_id = {s: i for i, s in enumerate(live)}
+    def alias(s): return physical_id[merge.get(s, s)]
+    print('Compensated birth reuse', len(reuse_pairs), 'physical roles', len(live), flush=True)
 
     # ------------------------------------------------------------ C. replay with arbitrary scratch and data
     inv = lambda a: pow(a % P, P - 2, P); HALF = inv(2); I21 = inv(21)
@@ -600,31 +606,52 @@ def main():
                     for t in range(v): y[t] = (y[t] + f * row[t]) % P
         for t, c in dp.items(): y[t] = (y[t] + sign * c * value) % P
     phase1 = sorted(Anc); rest = [i for i in range(len(ops)) if i not in Anc]
-    def replay(seed):
+    def replay(seed, omit_compensation=None):
         rng = random.Random(seed)
-        x = [rng.randrange(P) for _ in range(v)]; z = [rng.randrange(P) for _ in range(Rr)]
+        x = [rng.randrange(P) for _ in range(v)]
+        z = [rng.randrange(P) for _ in live]
         y0 = [rng.randrange(P) for _ in range(v)]; a = list(z); y = list(y0)
-        for s in range(Rr):
-            if s not in dset: readout(y, s, a[s], -1)
-        for s, leaf in leaf_of.items():
-            if s not in dset: a[s] = (a[s] + x[leaf - 1]) % P
-        def run(i, sign=1):
+        chronology = []
+        def inject(s, leaf):
+            dst = alias(s)
+            a[dst] = (a[dst] + x[leaf - 1]) % P
+            chronology.append(('src', dst, leaf - 1))
+        def run(i):
             o = ops[i]
-            if o[0] == 'add': a[o[1]] = (a[o[1]] + sign * a[o[2]]) % P
-            elif o[0] == 'copy': a[o[2]] = (a[o[2]] + sign * a[o[1]]) % P
+            if o[0] == 'src': return
+            dst, src = (o[1], o[2]) if o[0] == 'add' else (o[2], o[1])
+            dst, src = alias(dst), alias(src)
+            require(dst != src, 'aliased gate ports')
+            a[dst] = (a[dst] + a[src]) % P
+            chronology.append(('work', dst, src))
+        for s in range(Rr):
+            if s not in dset: readout(y, s, a[alias(s)], -1)
+        for s, leaf in leaf_of.items():
+            if s not in dset: inject(s, leaf)
         for i in phase1: run(i)
-        for s in centre_roles: readout(y, s, a[s], +1, True)
-        for s in deferred: readout(y, s, a[s], -1)
+        for s in centre_roles: readout(y, s, a[alias(s)], +1, True)
+        compensated = []
         for s in deferred:
-            if s in leaf_of: a[s] = (a[s] + x[leaf_of[s] - 1]) % P
+            if s != omit_compensation:
+                readout(y, s, a[alias(s)], -1)
+                compensated.append(s)
+        if omit_compensation is None: check_compensation(merge, compensated)
+        for s in deferred:
+            if s in leaf_of: inject(s, leaf_of[s])
         for i in rest: run(i)
         for s, j in role_root.items():
-            if not kind[j]: readout(y, s, a[s], +1, True)
-        for i in reversed(range(len(ops))): run(i, -1)
-        for s, leaf in leaf_of.items(): a[s] = (a[s] - x[leaf - 1]) % P
+            if not kind[j]: readout(y, s, a[alias(s)], +1, True)
+        # Aliased births require reversal of the actual source/workspace
+        # chronology, including delayed source injections.
+        for kind_, dst, src in reversed(chronology):
+            value = x[src] if kind_ == 'src' else a[src]
+            a[dst] = (a[dst] - value) % P
         return a == z, all((y[t] - y0[t] - x[t]) % P == 0 for t in range(v))
     rep = [replay(seed) for seed in (1, 2)]
-    require(all(r == (True, True) for r in rep), 'replay %s' % rep)
+    require(all(r == (True, True) for r in rep), 'aliased replay %s' % rep)
+    missing_compensation = replay(3, omit_compensation=reuse_pairs[0]['recipient'])
+    require(missing_compensation == (True, False), 'omitted compensation unexpectedly accepted')
+    compensated_births = sorted(merge)
 
     # ------------------------------------------------------------ D. exact F2 frame facts
     root_frame = {}
@@ -669,19 +696,40 @@ def main():
     z[(h - 1) ** 2] += 2 * N                                                   # data macros
     z[1] += N                                                                  # endpoint copies
     z.pop(0, None)
-    W = 2 * N + 2 * v * R; L = 2 * v * h * (h - 1); s_ = W * m - N + L
+    virtual_R = R
+    for pair in reuse_pairs:
+        e, f = pair['e'], pair['s']
+        z[h - e] -= 2 * v
+        z[m - h + f] -= 2 * v
+        if f > e: z[f - e] += 2 * v
+    require(all(count >= 0 for count in z.values()), 'reuse histogram subtraction')
+    z = Counter({width: count for width, count in z.items() if count})
+    physical_R = len(live)
+    # Canonical inventory of actual physical source gauges. Recipients have
+    # disappeared; every reused donor remains a separate zero-gauge slot.
+    source_counts = Counter(sat_basis(placed.get(s, ())) for s in live)
+    physical_auxiliary_source_frames = [dict(basis=list(F), count=count)
+        for F, count in sorted(source_counts.items(), key=lambda item: (len(item[0]), item[0]))]
+    require(sum(source_counts.values()) == physical_R, 'physical source inventory')
+    require(all(not placed.get(a) for a in merge.values()), 'reused donor source gauge')
+    W = 2 * N + 2 * v * physical_R; L = 2 * v * h * (h - 1); s_ = W * m - N + L
     require(sum(t * c for t, c in z.items()) == s_, 'complex rank mass')
     require(all(0 < t < m for t in z), 'children below m')
-    out = dict(h=h, v=v, additions=c_add, roots=q, links=len(links), R=R, m=m, N=N, W=W, L=L, total_rank=s_,
+    out = dict(h=h, v=v, additions=c_add, roots=q, links=len(links), R=physical_R, virtual_R=virtual_R, reused_roles=len(reuse_pairs), m=m, N=N, W=W, L=L, total_rank=s_,
                deficit=N - L, maxchild=max(z), phase_one_ops=len(Anc), phase_one_roles=len(touched),
+               physical_auxiliary_source_frames=physical_auxiliary_source_frames,
                deferred_roles=len(deferred),
                deferred_dims=dict(sorted(Counter(len(X) for X in placed.values()).items())),
                lifted_additions=sum(1 for i,o in enumerate(ops) if o[0]=='add' and len(op_frames[i])>ranks[o[3]]),
                physical_gate_frame_changes=sum(op_frames[i]!=frame_U[o[3]] for i,o in enumerate(ops) if o[0]!='src'),
-               replay=dict(seeds=[1, 2], scratch_restored=True, y_plus_x=True, field='Z/(2^61-1)'),
+               replay=dict(seeds=[1, 2], scratch_restored=True, y_plus_x=True, field='Z/(2^61-1)',
+                           physically_aliased=True, inverse_order='true source/workspace chronology',
+                           omitted_compensation_rejected=True),
+               reuse_rejected_controls=reuse_rejected_controls,
                child_multiplicities=dict(sorted(z.items())))
     (HERE / 'complex-profile.json').write_text(json.dumps(out, indent=1) + '\n')
-    print('PASS complex: R=%d, deferred roles %d, maxchild %d, rank mass %d' % (R, len(deferred), max(z), s_))
+    (HERE / 'reuse-pairs.json').write_text(json.dumps(reuse_pairs, indent=1) + '\n')
+    print('PASS complex: R=%d, deferred roles %d, maxchild %d, rank mass %d' % (physical_R, len(deferred), max(z), s_))
 
 
 if __name__ == '__main__':

@@ -1,25 +1,51 @@
-# Physical hull frames with completed-core sharing
+# Completed-core sharing on both finite suppliers
 
-Conditional **κ = 61994098903/500000000000000 = 1.23988197806e-4 > 2⁻¹³**.
+Conditional **κ = 64593102899/500000000000000 = 1.29186205798e-4 > 2⁻¹³**.
 
-This finite witness combines the immutable PR117 scalar DAG, locally optimized
-physical gate frames, and an664's PR128 completed-core sharing. Its exact
-complex saving is **125008315/10¹² = 1.25008315e-4**. The retained stopped
-round-seven bit saving, **1240189553/10¹³**, now limits the final assembly.
+This package combines 161-group bit sharing with physical hull frames,
+compensated scratch reuse and signed gauge-aware complex sharing. The exact
+coarse bit saving is **129310447/10¹²**; the stopped ordinary-bit saving is
+**129219596453/10¹⁵**. The complex saving is **130696544/10¹²**. Both suppliers,
+the ordinary wrapper, three row reserves, scalar work and final assembly are
+charged under the retained interfaces.
 
-The compiler reconstructs PR117's 91,770 additions and 28,705 roles, chooses
-nested nondegenerate frames at individual mixer occurrences, and sets every
-auxiliary source gauge to zero. There are no deferred readouts in the selected
-word. Each completed core restores arbitrary dirty scratch and leaves a
-separately checked full auxiliary frame before its exterior correction.
+| Finite supplier | Shared bit | Shared complex |
+|---|---:|---:|
+| block dimension | 529 | 576 |
+| physical local scratch roles | 28,866 | 26,597 |
+| completed-core groups | 161 | 87 |
+| original stream count W | 15,567,734 | 12,821,030 |
+| total recursive rank | 8,233,987,097 | 7,383,051,200 |
+| rank deficit | 1,344,189 | 1,862,080 |
+| largest child | 518 | 560 |
 
-The pinned signed orthogonal partition covers all 2,024 outer triples with
-83 groups of 24 and four groups of eight. Complete restored cores run
-sequentially on shared banks within each group. All internal transitions,
-copied centers, data projectors and endpoint copies remain charged. Full
-groups require no exterior child; partial groups pay 229,640 width-384
-complement children in total. The resulting physical width is **13,187,822**,
-total child rank **7,594,323,392**, and maximum child width **529 of 576**.
+The bit partition covers all 1,771 triples with 161 rationally orthogonal
+classes of eleven. Its independently frozen supplier replays the unchanged
+PR128 minimal-V word: exact original/new-frame geometry, 1,076,483 physical
+events, 32,408 formal input/dirty columns, reflected chronology and the PR104
+opposite-bank compiler. Its complete profile retains **659,476,769 paid
+projector adapter calls** and has exact halving degree 33. [BITSHARING.md](BITSHARING.md)
+gives the projector, partition and common-basis argument. The nested package
+keeps its own manifest, verifier, immutable word pin and original notices.
+
+The complex supplier retains PR117's 91,770 scalar additions and 71,185 carrier
+links. It optimizes nested nondegenerate frames at physical mixer occurrences,
+then identifies 2,108 disjoint completed-donor/deferred-recipient lifetimes.
+Each reused birth keeps its exact negative old-value compensation. The
+physical source/workspace word is inverted in its actual chronological order.
+A replay with arbitrary initial scratch verifies restoration and the target
+map; deliberately omitting compensation gives the expected wrong output.
+
+After reuse, the complex source inventory has 470 distinct frames on 26,597
+physical roles, including 2,598 nonzero source gauges. The independent literal
+reflection audit binds this inventory and the full local child histogram.
+The gauge checker verifies each rational projector and exact Gaussian phase,
+including alternating binary blocks, in both stage orientations. Grouping
+uses PR128's pinned signed partition: 83 groups of 24 outer triples and four
+of eight. A source frame of dimension s in a group of size g pays one complete
+complement child of width **576 − g(24 − s)** whenever that width is nonzero.
+Every internal transition, copied center, data projector and endpoint remains
+paid. [SHARING.md](SHARING.md) gives the operator and allocation argument.
 
 From the repository root, run:
 
@@ -27,49 +53,50 @@ From the repository root, run:
 python3 research/cyclic-deferred/verify.py
 ```
 
-Verification uses a temporary repository-shaped copy and leaves the frozen
-package unchanged. It regenerates the pinned bit profile, local complex word,
-exact signed partition phases, shared profile, final certificate and literal
-reflection audit. It checks both local and shared physical ledgers, the
-zero-source/full-pre-exterior interface, and the audited scalar count against
-the exact certificate's guard. All 47 strict constraints and seven final
-margins are positive; the next bit, complex and final κ grid points fail.
+The verifier checks immutable hashes and works in a temporary repository-shaped
+copy. It first runs the nested bit verifier and exposes its checked profile.
+It then regenerates the complex compiler, literal reflection, signed outer
+partition, physical-gauge phases and witnesses, shared profile, and exact
+certificate. Source inventory hashes bind those stages together. The expanded
+core scalar count is bounded by its certificate reserve; the separate paid
+basis/phase-wrapper reserve is also checked. Bit adapter call counts and the
+new halving degree are bound to the nested exact certificate.
 
-The 23 standalone controls include altered or omitted immutable inputs,
-incorrect shared width, missing exterior charge, a nonorthogonal partition
-that still covers every triple, understated scalar work and invalid completed
-core gauges. The reflection audit additionally rejects wrong inverse signs,
-missing frame complements, altered root readouts and invalid bounded scalar
-chunks. Readout numerators over 42 are split into signed unit chunks and a
-remainder; every resulting shear is charged.
+All 47 final strict constraints and seven margins are positive. The next
+bit/complex grid points fail the chosen moment enclosure, and the next κ grid
+point fails exact assembly; these checks do not claim an optimal true
+characteristic root. The 31 outer controls reject missing/altered immutable
+inputs, repinned nested bit inputs, incorrect shared width or exterior charge,
+resurrected roles, duplicate source frames, ungauged exterior substitution,
+missing gauge complements, a one-stage-only bit loss, missing paid adapters,
+and understated scalar or phase-wrapper reserves. The nested and reflection
+verifiers retain their own corruption controls.
 
-The signed complement adapters and phase wrappers reserve 64*m² ordinary-bit
-atoms for every group-role in both orientations, with their count also added
-to the conservative scalar guard. These are paid calls through the inherited
-ordinary-bit interface. [SHARING.md](SHARING.md) gives the completed-core
-identity, allocation formula, wrapper accounting and retained assumptions.
+`certificate.py` checks its frozen result by default; `--write` is an explicit
+authoring operation. `verify.py --freeze-manifest` replaces the outer manifest
+and does not certify the package. The outer source closure includes every
+file in the independently pinned nested bit manifest. Its entry-point verifier
+is fixed independently; unused inherited helper APIs are outside that entry
+point. Verification has no option to skip the nested physical replay or the
+complex reflection checks.
 
-`certificate.py` checks the frozen certificate by default; `--write` is an
-explicit authoring operation. `verify.py --freeze-manifest` explicitly
-replaces the source manifest and does not itself certify the package. The
-DAG, bit inputs, signed partition, local scripts, proof/notice files and all
-transitive arithmetic dependencies are SHA-256 pinned.
+Credit: an664 with OpenAI Codex assistance (PR128's completed-core allocation,
+signed partition and minimal-V package); Xiande Zhang and Gennian Ge (the
+orthogonal packing, JCD 18 (2010), 209–223, DOI 10.1002/jcd.20234); eumemic with
+Anthropic Claude assistance (PR117's scalar DAG); jamesyc (PR124's compensated
+birth-cut reuse); Avi Eisenberg / ikeboy with Anthropic Claude assistance
+(PR110's compiler); Swapnil Jain (round-seven bit word); icekylinx, Zhihao
+Chen / jacklightChen, Rohan Arun, Aurel Prosz / Paureel and RaD / hipotures
+(retained finite, two-stage, analytic and tape interfaces). Concurrent frame
+optimization in DanieleCorso's PR126 and GamingPuzzled's PR125 is credited.
+The hull optimizer, 161-group bit partition, generalized gauge/reuse
+composition and verification were prepared for eumemic with OpenAI Codex
+assistance. Original notices remain authoritative, including
+[PR128-NOTICE](PR128-NOTICE) and the nested bit package's retained licenses.
 
-Credits: eumemic with Anthropic Claude assistance (PR117's scalar DAG);
-an664 with OpenAI Codex assistance (PR128's completed-core allocation and
-signed partition); Xiande Zhang and Gennian Ge (the orthogonal packing,
-Journal of Combinatorial Designs 18 (2010), 209–223, DOI 10.1002/jcd.20234);
-Avi Eisenberg / ikeboy with Anthropic Claude assistance (PR110's compiler);
-Swapnil Jain (round-seven bit word); icekylinx, Zhihao Chen / jacklightChen,
-Rohan Arun, Aurel Prosz / Paureel, and RaD / hipotures (retained finite,
-two-stage, analytic and tape interfaces). Per-operation frame optimization
-was developed concurrently with DanieleCorso's PR126 and GamingPuzzled's
-PR125 node-frame shrink. This hull optimizer, composition and verification
-were prepared for eumemic with OpenAI Codex assistance. Original notices
-remain authoritative; [PR128-NOTICE](PR128-NOTICE) is retained verbatim.
-
-This is a conditional finite witness. Completed-core transparency, signed
-normal forms and binary adapters, stopped ordinary-bit transfer, exact odd
+This is a conditional finite witness. Common rational bases and compatible
+address primes, paid ordered-affine adapters, nondegenerate Gaussian normal
+forms, completed-core transparency, stopped ordinary-bit transfer, exact odd
 grids, streaming, routing, recovery, prime selection, analytic estimates and
-fixed-tape implementation remain inherited assumptions. These finite checks
-do not prove those general interfaces or a practical running-time improvement.
+fixed-tape implementation remain inherited assumptions. The finite checks do
+not prove those general interfaces or a practical running-time improvement.

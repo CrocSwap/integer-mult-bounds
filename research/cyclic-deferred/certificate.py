@@ -20,8 +20,8 @@ from structured_bulk_assembly import assembly, js
 ATOM = Q(1, 1000)
 OLD = Q(384599, 10**10)
 BETA = Q(1, 10**6)
-COARSE = Q(620523, 5000000000)
-COMPLEX = Q(125008315, 10**12)
+COARSE = Q(129310447, 10**12)
+COMPLEX = Q(130696544, 10**12)
 KGRID = 10**15
 
 def profile(name):
@@ -39,12 +39,12 @@ def contracts(p, a):
     return True
 
 def exact(bit=None, phase=None):
-    bit = profile('bit-profile.json') if bit is None else bit
+    bit = profile('shared-bit-profile.json') if bit is None else bit
     phase = profile('shared-complex-profile.json') if phase is None else phase
     assert (bit['h'], phase['h']) == (23,24)
     bm = moment(bit['m'],bit['W'],bit['child_multiplicities'],COARSE,True)
     cm = moment(phase['m'],phase['W'],phase['child_multiplicities'],COMPLEX,True)
-    assert not contracts(bit,COARSE+Q(1,10**10))
+    assert not contracts(bit,COARSE+Q(1,10**12))
     assert not contracts(phase,COMPLEX+Q(1,10**12))
     ab = (1-ATOM)*COARSE+ATOM*OLD
     assert 0 < OLD < COARSE < ATOM and ab < ATOM
@@ -59,7 +59,8 @@ def exact(bit=None, phase=None):
     # coefficients; <=4*v*(h+1) scalar groups suffice per readout. A factor
     # eight covers forward/inverse words, both reflected words, and copies.
     h,v,R,q,c = (phase[k] for k in ('h','v','R','roots','additions'))
-    local = 8*(c+2*R+(R+q)*v*(h+1)+h*h+h+1)
+    virtual_R = phase.get('virtual_R', R)
+    local = 8*(c+2*virtual_R+(virtual_R+q)*v*(h+1)+h*h+h+1)
     core_G = phase['N'] + 2*v*local
     # Gaussian elimination uses at most m^2 elementary binary basis steps;
     # both adapters and the signed phase directions fit in this atom reserve.
@@ -76,12 +77,15 @@ def exact(bit=None, phase=None):
     bridge['complex']['scalar_group_upper']=G
     bridge['complex']['core_scalar_group_upper']=core_G
     bridge['complex']['shared_basis_phase_group_upper']=sharing_G
-    bridge['complex']['scalar_terms']=[dict(h=h,v=v,c=c,R=R,q=q,invocations=v,
+    bridge['complex']['scalar_terms']=[dict(h=h,v=v,c=c,R=virtual_R,physical_R=R,q=q,invocations=v,
         local_group_upper=local,description='Expanded rational old readouts and forward/inverse/reflected words')]*2
     bridge['semantic'].update(E=E,literal_charge=charge,strict_literal_gap=E-charge,
         B=B,C0=C0,C1=1,induction_gap=2*B*(m-phase['maxchild'])-s-E,
         fixed_odd_divisor=21,exact_grid='2^(-P)*21^(-K), K=G*(D_complex+1); completed children preserve incoming odd denominator; no child rounding')
     coarse_bridge=bridge.pop('bit')
+    coarse_bridge['completed_core_groups'] = bit['groups']
+    coarse_bridge['paid_projector_adapter_calls'] = bit['paid_projector_calls']
+    coarse_bridge['adapter_contract'] = 'Each complete projector and group complement retains paid ordered-affine atom adapters under one common rational basis; choose a fixed odd execution prime avoiding the enlarged finite bad-prime set. O(Vn) local work is absorbed by the stopped adapter gap.'
     previous=json.loads((ROOT/'certificates/copied-centers-network.json').read_text())
     oldbit=previous['finite_bridge']['bit']
     old_degree=oldbit['halving_degree']*oldbit['wire_bits']
@@ -111,7 +115,7 @@ def exact(bit=None, phase=None):
         bit_parameter=a,complex_profile=phase,bit_profile=bit,
         bit_moment_gap=bm['strict_gap'],complex_moment_gap=cm['strict_gap'],
         finite_bridge=bridge,assembly=assembled,
-        next_grid_rejections=dict(bit='1e-10',complex='1e-12',kappa='1e-15'))
+        next_grid_rejections=dict(bit='1e-12',complex='1e-12',kappa='1e-15'))
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--write',action='store_true');args=parser.parse_args()

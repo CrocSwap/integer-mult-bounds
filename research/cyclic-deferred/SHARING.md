@@ -1,68 +1,105 @@
-# Physical frame compression with completed-core sharing
+# Shared completed cores with physical source gauges
 
-The scalar DAG, exact rational readouts and their bounded coefficient chunks
-are retained from the checked PR117/PR114 word. Each physical mixer occurrence
-has its own nondegenerate binary frame, nested between the previous and next
-frames of both incident roles. Extending or shrinking that frame changes only
-the split into recursive children. The independent audit checks every actual
-incidence, source support, rational readout and the signed reflected word.
+Completed-core sharing with deferred starts: construction check
 
-The optimizer uses the earlier deferred frames to find useful gate frames.
-The selected word then sets every auxiliary source gauge to zero and performs
-all negative old-value reads at zero. The earlier frames are search data;
-there are no deferred reads in the selected completed core. Source injection
-and output frames remain fixed. Its exact logical word is
-`-JM; V; M; J; M^-1; -V`, with the center closure legally moved before the
-ordinary roots. Each auxiliary is individually restored and the data transfer
-is `JMV = I` for arbitrary, correlated dirty inputs. Frame telescoping leaves
-exactly `C_A` on each physical auxiliary before its exterior, where
-`A = F_2^24 tensor <t_b>`. In the reflected stage the source inverse gives
-`C_F C_(A-perp)^-1 = C_A`, with the tensor factors transposed.
+Let sigma_s be the initial inner frame of physical scratch slot s and let
+E_s = sigma_s^perp in F_2^24. A completed scalar core restores every physical
+scratch slot individually and has no data/scratch off-diagonal block.
+Frame telescoping therefore gives actual scratch map C_end C_start^-1.
+In stage one this is C_F24 C_sigma^-1 = C_E. The reflected stage starts at
+zero and ends at E; after the retained outer background source is inverted,
+stage two has the same C_E residual. The inverse scalar word does not change
+this sign. Arbitrary physical input a is interpreted as C_start^-1 a; no
+unpaid entrance conversion or clean-value hypothesis is introduced.
 
-Adopt an664's PR128 completed-core allocation and its exact signed orthogonal
-partition, pinned at commit `530588a019b4a74f09180680c9e3961bf649ec89`.
-The partition covers all 2,024 outer triples with 83 groups of 24 and four
-of eight. Original roles within a core and the two stage banks stay distinct.
-Each group executes whole restored cores sequentially on one shared dirty
-bank. Orthogonal residuals compose as `C_U C_V = C_(U direct-sum V)`, including
-the weight-modulo-four phases. Full groups need no exterior correction;
-partial groups pay one width-384 signed complement child for every shared
-role and orientation.
+At outer triple t_b, the residual is C_(E_s tensor <t_b>), or its transpose.
+For an orthonormal outer group J the subspaces for distinct b are orthogonal,
+so exact weight modulo four gives product residual C_(E_s tensor span J).
+Its required complement has explicit orthogonal decomposition
 
-The imported phase checker verifies all group Gram entries and quadratic
-phase coefficients, explicit complementary bases and stage-two source signs.
-Each partial complement has eight negative triple axes and eight positive
-unit axes. The inherited signed/Gauss normal form supplies the binary basis
-adapters and phase wrappers. The wrapper ledger reserves 64*m^2 paid atoms for every group-role in
-both orientations. Gaussian elimination needs at most 2*m^2+4*m binary
-XOR atoms for a basis map and inverse; diagonal and quadratic phase
-wrappers fit within the remaining reserve. These are ordinary-bit adapter
-calls at the inherited exponent, not constant-time tape instructions.
-They run sequentially and require no additional row stock. Their atom count
-is also conservatively added to G alongside every expanded core readout. No odd divisor is introduced by the
-new wrappers; the rational decoder's divisor 21 cancels on each completed core.
-The semantic guard charges all child ranks and all scalar work across the
-shared history, retaining the common odd grid and exact child returns.
+ D_(s,J) = (sigma_s tensor span J) + (F_2^24 tensor (span J)^perp),
 
-The allocation is `W = 2*2024^2 + 2*87*28705 = 13187822`. The profile retains
-every internal transition, copied center, data projector and endpoint child.
-It removes only the separately audited rank-552 exterior of each unshared
-role and inserts the 229,640 rank-384 group complements. Its total rank is
-7,594,323,392, the deficit is 1,862,080, and the largest child is 529. The
-standalone verifier reconstructs the unshared word, signed partition, shared
-profile, scalar reserve and exact assembly from pinned inputs.
+of dimension 576 - |J| (24 - dim sigma_s). Thus full groups of 24 pay
+24 dim sigma_s; groups of 8 pay 384 + 8 dim sigma_s. The unchanged exterior
+of rank 384 is correct only when sigma_s=0.
 
-The orthogonal packing implements Xiande Zhang and Gennian Ge, Journal of
-Combinatorial Designs 18 (2010), 209–223, DOI 10.1002/jcd.20234, as supplied
-and credited by an664 in PR128. PR117's DAG is eumemic's work with Anthropic
-Claude assistance. PR110's compiler is Avi Eisenberg's work; Swapnil Jain,
-icekylinx, Zhihao Chen, Rohan Arun, Aurel Prosz, RaD and all inherited notices
-remain credited. Per-operation frame optimization was developed concurrently
-with DanieleCorso's PR126 and GamingPuzzled's node-frame shrink in PR125.
-This frame optimizer, integration and independent audit were prepared for
-eumemic with OpenAI Codex assistance. PR128's notice is retained verbatim.
+Each triple basis vector of J has weight 3, so its quadratic form contributes
+one copy of -q_sigma. For the four partial groups, PR128 supplies 8 negative
+triple axes and 8 positive unit axes in the outer complement. Tensoring these
+with 24 unit inner axes adds 192 negative and 192 positive axes. The retained
+endpoint-gauge-complex normal form applies to every nondegenerate quadratic
+module, including alternating planes, as one child of the full residual
+rank with paid binary address changes and quadratic unit-phase passes.
+Its normalized scalar for each sigma block is a fourth root of unity.
+There are 8 or 24 identical blocks, so that scalar cancels exactly. The 192
+additional negative-axis phases also cancel. Tensor transposition preserves
+all weights and hence the stage-two signed conclusion.
 
-This is a conditional finite witness. Completed-core transparency, signed
-normal forms and binary adapters, stopped ordinary-bit transfer, precision,
-streaming, routing, prime, analytic and recovery interfaces remain inherited.
-The finite checks do not prove those general interfaces.
+The companion `gauge_phase.py` checks all 470 distinct physical source frames, covering
+26597 live slots after compensated reuse: orthogonal decomposition into odd lines and hyperbolic
+planes, projector symmetry/idempotence, actual mod4 weights on all 301
+quadratic coefficient points, exact small-block Gauss sums, all 87 outer
+bases and full 2,024-label coverage. It verifies the complement ranks and
+unit scalar cancellation. It is a finite algebraic audit, not execution
+of the enormous expanded Gaussian word; individually restored core validity
+and the stated residual-to-child/all-size interfaces remain prerequisites.
+
+Compensated birth-cut slot reuse composes by applying this formula to each
+remaining PHYSICAL slot's initial frame. A donor starting at zero and ending
+at full inner frame has sigma=0; its aliased recipient contributes no separate
+slot or exterior. Literal inverse chronology and birth-cut frame containment
+must first establish the individually restored physical-core interface.
+
+The literal scalar word first subtracts the exact old response from each
+nondeferred slot, injects the fresh sources and completes the center closure.
+At the birth cut each deferred read subtracts its exact future response.
+For a reused recipient this read uses the donor's actual current value,
+including any fresh-source component. The recipient had no earlier use and
+the donor has no later use under its old role; the compensating response
+therefore cancels the entire substituted value. Side roots are then completed
+and read. Every physical source injection and workspace shear is undone in
+true reverse chronological order. This restores each live original scratch
+coordinate individually for arbitrary correlated inputs. Treating cleanup
+as an unqualified virtual `M^-1; -V` after aliasing would be incorrect.
+
+The producer has 28,705 virtual roles and 2,108 disjoint birth-cut pairs.
+Removing the recipients leaves 26,597 original physical slots. A donor's
+initial frame is zero even when its aliased recipient had nonzero sigma;
+the actual final forward frame is full dimension 24. For an unpaired deferred
+slot the initial frame is its recorded sigma and the final frame is also
+full. The reflected scan starts at zero and ends at sigma-perp on that same
+physical role. Both orientations consequently have the active residual used
+above, and their complete paid rank histograms agree.
+
+The independent reflection audit expands every exact old-readout numerator
+n/42 into signed unit chunks plus a remainder of absolute value at most one.
+It checks the integer coefficient sum, reverses chunk order and signs under
+reflection, and rejects oversize chunks, wrong sums, wrong signs, changed
+complements and incorrect signed root readouts. Birth-cut controls reject
+nondead donors, unavailable births, overlapping pairs and omitted compensation.
+The new sharing checker requires the complete local exterior inventory:
+for each physical source frame sigma there are exactly 2v children of rank
+552+dim(sigma). Replacing these by an ungauged rank-552 inventory, omitting a
+physical slot or dropping a paid group correction cannot satisfy its profile
+binding. The Gauss checker also detects the wrong reflected residual sign.
+
+Sharing retains all core gates and their actual scalar costs. In particular,
+the bounded direct old-readout compiler has a larger G than PR128's transparent
+PR117 word; its own audited scalar count and semantic guard must be retained. The core
+scalar bound uses the 28,705 virtual roles, since aliased recipient readouts
+still occur; the new group-wrapper reserve uses the 26,597 physical roles.
+For every group-role and both orientations, 64*m^2 paid adapter atoms cover
+binary basis maps and inverse maps plus quadratic unit-phase wrappers. These
+are paid bit-interface calls with width-dependent costs, not constant-time
+tape instructions. Sequential calls reuse restored row stock.
+Completed blocks remain Gaussian dyadic, so their local odd 21 denominators
+cancel at each core boundary even when incoming dirty values are correlated.
+
+Provenance: completed-core sharing and signed outer partition are PR128
+(an664), whose partition implementation cites Xiande Zhang and Gennian Ge.
+The one-child arbitrary nondegenerate Gauss normal form is retained PR104
+lineage; the underlying carrier DAG is eumemic's PR117. Physical-frame descent,
+deferral saturation and this exact composition check were developed with
+OpenAI Codex assistance. This note does not assert priority over concurrent work.
+
+Package binding: `complex_deferred.py` emits the canonical `physical_auxiliary_source_frames` inventory of live slots only. `reflection_audit.py` independently rebuilds it from the literal starting physical ports and binds it to the full forward/reflected scan. `gauge_phase.py` verifies exactly those frames and their multiplicities, then `sharing.py` removes all local auxiliary exteriors and inserts the resulting signed group complements. `complex-profile.json` remains the complete unshared profile; `shared-complex-profile.json` is the combined profile. The root certificate and verifier must consume the latter and retain the actual local scalar and paid group-wrapper charges.

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Literal inverse/reflection and exact finite scalar/frame audit.
+"""Compensated reuse: literal inverse/reflection and exact finite scalar/frame audit.
+
+Birth-cut reuse follows jamesyc PR124; original contributors retained.
+Composition with saturated and physical frames prepared with OpenAI Codex.
 
 Captures an unchanged deferred producer before its output write, then checks
 the scalar computation on every source symbol, the exact signed old-readout
@@ -14,6 +17,7 @@ from hashlib import sha256
 from itertools import combinations
 import argparse,json,pickle,struct,sys
 from pathlib import Path
+from reuse import check_pairs, check_compensation, mutation_controls
 sys.dont_write_bytecode=True
 assert not sys.flags.optimize,'Assertions must remain enabled'
 
@@ -202,6 +206,11 @@ def audit(d):
     # readout placement equivalent to the canonical -JL, V, L, J,L^-1,-V.
     early=set(d['phase1']);assert early==set(d['Anc'])
     assert sorted(d['phase1'])==d['phase1'] and d['rest']==[i for i in range(len(ops)) if i not in early]
+    actual_last={}
+    for i,o in enumerate(ops):
+        if o[0] in ('add','copy'):
+            for role in o[1:3]:actual_last[role]=i
+    assert actual_last==d['last'],'Exact recomputed last-use map'
     seen_late=set();early_touched=set();late_touched=set()
     for i,o in enumerate(ops):
         touched=set(o[1:3]) if o[0] in ('add','copy') else set()
@@ -221,9 +230,29 @@ def audit(d):
     sigma={s:basis(B) for s,B in d['placed'].items()}
     rootframe={s:basis(B) for s,B in d['root_frame'].items()}
     tm=[basis((sum(1<<i for i in T),)) for T in trip]
-    X=lambda t:t;Y=lambda t:v+t;A=lambda s:2*v+s
+    merge=check_pairs(d,d['reuse_pairs'])
+    reuse_rejected=mutation_controls(d,d['reuse_pairs'])
+    assert d['compensated_births']==sorted(merge),'Compensated birth inventory'
+    assert d['out']['reuse_rejected_controls']==reuse_rejected
+    assert all(result==(True,True) for result in d['rep']),'Physical aliased numeric replay'
+    assert d['missing_compensation']==(True,False),'Omitted compensation numerical control'
+    live=[s for s in range(R)if s not in merge]
+    assert len(set(merge.values()))==len(merge) and not set(merge)&set(merge.values())
+    for b,a in merge.items():
+        assert a not in sigma and b in sigma and b not in d['leaf_of']
+        assert a not in d['role_root'] and d['last'][a] in early
+        assert b not in early_touched
+        assert all(a not in ops[i][1:3] for i in d['rest'] if ops[i][0]!='src')
+        lastframe=basis(d['op_frames'][d['last'][a]]) if 'op_frames'in d else U[d['holds'][a][-1]]
+        assert contained(lastframe,sigma[b])
+    physical_id={s:i for i,s in enumerate(live)}
+    X=lambda t:t;Y=lambda t:v+t;A=lambda s:2*v+physical_id[merge.get(s,s)]
     word=[]
-    def gate(a,b,c,F):word.append(('gate',a,b,c,F))
+    forward_workspace=[]
+    def gate(a,b,c,F):
+        assert a!=b
+        word.append(('gate',a,b,c,F))
+        if c==1:forward_workspace.append((a,b,c,F))
     def read(s,sgn,F,targets,row):word.append(('read',A(s),tuple(Y(t) for t in targets),sgn,F,row))
     def run(i,sign=1,F=None):
         o=ops[i]
@@ -236,14 +265,17 @@ def audit(d):
         if s not in deferred:gate(A(s),X(n-1),1,U[n])
     for i in d['phase1']:run(i)
     for s in d['centre_roles']:word.append(('centre',A(s),tuple(Y(t) for t in range(v)),1,rootframe[s],ZERO,d['centre_of'][d['role_root'][s]]))
-    for s in d['deferred']:read(s,-1,sigma[s],actual_reach[s],('old',s,*chunk_rows[s]))
+    compensated=[]
+    for s in d['deferred']:
+        read(s,-1,sigma[s],actual_reach[s],('old',s,*chunk_rows[s]))
+        compensated.append(s)
+    check_compensation(merge,compensated)
     for s in d['deferred']:
         if s in d['leaf_of']:n=d['leaf_of'][s];gate(A(s),X(n-1),1,U[n])
     for i in d['rest']:run(i)
     for s,j in d['role_root'].items():
         if not d['kind'][j]:read(s,1,rootframe[s],(d['target'][j],),('root',21 if j<v else -21))
-    for i in reversed(range(len(ops))):run(i,-1,FULL)
-    for s,n in d['leaf_of'].items():gate(A(s),X(n-1),-1,FULL)
+    for a,b,c,F in reversed(forward_workspace):gate(a,b,-c,FULL)
 
     def swap(s):return s+v if s<v else s-v if s<2*v else s
     def reflect(event):
@@ -255,7 +287,7 @@ def audit(d):
     assert [reflect(e) for e in reversed(reverse)]==word
     check_reflection(word,reverse,h,v)
     # Reuse this exact captured word for targeted failure controls.
-    rejected=[]
+    rejected=list(reuse_rejected)
     for failure,num,parts in (('oversized-readout-chunk',55,(55,)),('split-readout-sum',55,(42,12))):
         try:check_chunks(num,parts)
         except AssertionError:rejected.append(failure)
@@ -309,8 +341,18 @@ def audit(d):
         for s,F in enumerate(expected):promote(s,F)
         assert current==expected
         return hist,copies,scalar,digest.hexdigest()
-    start=tm+[ZERO]*v+[sigma.get(s,ZERO) for s in range(R)]
-    finish=[FULL]*v+[complement(T,h) for T in tm]+[FULL]*R
+    start=tm+[ZERO]*v+[sigma.get(s,ZERO) for s in live]
+    finish=[FULL]*v+[complement(T,h) for T in tm]+[FULL]*len(live)
+    # Independently bind the inventory to the actual literal physical ports.
+    # This reconstruction uses the frame scan's starting list, not the
+    # producer's virtual role inventory or its selected-pair accounting.
+    source_counts=Counter(basis(F) for F in start[2*v:])
+    physical_auxiliary_source_frames=[dict(basis=list(F),count=count)
+        for F,count in sorted(source_counts.items(),key=lambda item:(len(item[0]),item[0]))]
+    assert sum(source_counts.values())==len(live)
+    assert physical_auxiliary_source_frames==d['out']['physical_auxiliary_source_frames'], 'Literal physical source frame inventory'
+    assert all(start[A(a)]==ZERO for a in merge.values()), 'Reused donor starts at zero'
+    assert all(F==FULL for F in finish[2*v:]), 'Completed physical scratch finish'
     H,C,scalar,digest=framescan(word,start,finish)
     revstart=[None]*len(start);revfinish=[None]*len(start)
     for s in range(len(start)):
@@ -318,7 +360,7 @@ def audit(d):
     HR,CR,scalarR,reverse_digest=framescan(reverse,revstart,revfinish)
     assert (H,C,scalar)==(HR,CR,scalarR)
     z=Counter({r:2*v*n for r,n in (H+C).items()})
-    for s in range(R):z[h*h-h+len(sigma.get(s,ZERO))]+=2*v
+    for s in live:z[h*h-h+len(sigma.get(s,ZERO))]+=2*v
     z[(h-1)**2]+=2*v*v;z[1]+=v*v
     z.pop(0,None)
     assert dict(sorted(z.items()))=={int(r):n for r,n in d['out']['child_multiplicities'].items()},'Literal reflected child histogram'
@@ -326,9 +368,12 @@ def audit(d):
     G=v*v+2*v*scalar
     safe=8*(d['c_add']+2*R+(R+q)*v*(h+1)+h*h+h+1) if 'c_add' in d else 8*(d['out']['additions']+2*R+(R+q)*v*(h+1)+h*h+h+1)
     assert safe>=scalar
-    return dict(h=h,v=v,R=R,completed_core_source_frames_zero=not bool(sigma),
-                completed_core_pre_exterior_frames_full=True,exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
+    return dict(h=h,v=v,R=len(live),virtual_R=R,reused_roles=len(merge),exact_birth_cut_invariants=True,last_uses_recomputed=True,physical_aliased_numeric_replay=True,omitted_compensation_numeric_control=True,inverse_source_order='True reverse chronological source/workspace word',exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
+                physical_auxiliary_source_frames=physical_auxiliary_source_frames,
+                completed_core_source_inventory_bound=True,completed_core_pre_exterior_frames_full=True,
+                reflected_core_active_frames_complement_source=all(revfinish[2*v+i]==complement(start[2*v+i],h) for i in range(len(live))),
                 exact_arbitrary_dirty_cancellation_by_dependency_cut=True,
+                dirty_reuse_identity="Every recipient is untouched before its compensated birth; donor has no future gate/root reads. Recipient old-response coefficient cancels its arbitrary current donor value. All physical shears are reversed in true chronology.",
                 reflected_word_rule='Reverse literal order including each bounded readout chunk, negate every shear, swap X/Y ports, complement every frame; auxiliary bank is separate.',
                 reflected_scalar_map='X becomes X-Y; Y unchanged; all auxiliary coordinates restored.',
                 two_stage_scalar_map='(X,Y) becomes (-Y,X+Y) before inherited endpoint correction.',

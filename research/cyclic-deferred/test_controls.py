@@ -23,7 +23,8 @@ import tempfile
 import unittest
 
 from verify import (check_completed_core_audit, check_sources, compare_json,
-                    digest, safe_file, validate_profile, validate_shared_composition)
+                    digest, safe_file, validate_profile, validate_shared_composition,
+                    validate_bit_composition)
 
 HERE = Path(__file__).resolve().parent
 REPOSITORY = HERE.parents[1]
@@ -34,7 +35,7 @@ class FrozenControls(unittest.TestCase):
     def setUpClass(cls):
         cls.manifest = check_sources(HERE, REPOSITORY)
         cls.profiles = {label: json.loads((HERE / (label + '-profile.json')).read_text())
-                        for label in ('bit', 'complex', 'shared-complex')}
+                        for label in ('bit', 'shared-bit', 'complex', 'shared-complex')}
         sys.path.insert(0, str(REPOSITORY / 'scripts'))
         spec = importlib.util.spec_from_file_location('checked_cyclic_certificate', HERE / 'certificate.py')
         cls.certificate = importlib.util.module_from_spec(spec)
@@ -52,6 +53,7 @@ class FrozenControls(unittest.TestCase):
 
     def test_shared_profile_reconstructed_from_paid_local_cores(self):
         validate_shared_composition(HERE)
+        validate_bit_composition(HERE, json.loads((HERE / 'certificate.json').read_text()))
 
     def test_wrong_shared_width_rejected(self):
         changed = copy.deepcopy(self.profiles['shared-complex'])
@@ -83,7 +85,7 @@ class FrozenControls(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('non-orthonormal completed group basis', result.stderr)
 
-    def test_understated_scalar_guard_and_nonzero_core_source_rejected(self):
+    def test_understated_scalar_guard_and_unbound_core_source_rejected(self):
         audit = json.loads((HERE / 'reflection-audit.json').read_text())
         certificate = json.loads((HERE / 'certificate.json').read_text())
         local = self.profiles['complex']
@@ -99,9 +101,60 @@ class FrozenControls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Missing paid shared basis'):
             check_completed_core_audit(audit, local, changed)
         changed = copy.deepcopy(audit)
-        changed['completed_core_source_frames_zero'] = False
-        with self.assertRaisesRegex(ValueError, 'zero source'):
+        changed['completed_core_source_inventory_bound'] = False
+        with self.assertRaisesRegex(ValueError, 'bound source'):
             check_completed_core_audit(changed, local, certificate)
+
+    def test_resurrected_role_and_duplicate_source_frame_rejected(self):
+        from gauge_phase import validate_inventory
+        local = self.profiles['complex']
+        inventory = copy.deepcopy(local['physical_auxiliary_source_frames'])
+        inventory[0]['count'] += 1
+        with self.assertRaisesRegex(AssertionError, 'role count'):
+            validate_inventory(inventory, local['R'], local['h'])
+        inventory = copy.deepcopy(local['physical_auxiliary_source_frames'])
+        inventory.append(copy.deepcopy(inventory[0]))
+        with self.assertRaisesRegex(AssertionError, 'distinct source inventory'):
+            validate_inventory(inventory, local['R'], local['h'])
+
+    def test_ungauged_old_exterior_inventory_rejected(self):
+        from sharing import profile
+        local = copy.deepcopy(self.profiles['complex'])
+        local['child_multiplicities'] = {r: n for r, n in local['child_multiplicities'].items() if int(r) < 552}
+        local['child_multiplicities']['552'] = 2 * local['v'] * local['R']
+        partition = json.loads((HERE / 'inputs/shared-partition.json').read_text())
+        phase = json.loads((HERE / 'phase_check.json').read_text())
+        gauge = json.loads((HERE / 'gauge-phase-audit.json').read_text())
+        with self.assertRaisesRegex(AssertionError, 'auxiliary exterior inventory'):
+            profile(local, partition, phase, gauge)
+
+    def test_missing_grouped_gauge_complement_rejected(self):
+        from sharing import profile
+        partition = json.loads((HERE / 'inputs/shared-partition.json').read_text())
+        phase = json.loads((HERE / 'phase_check.json').read_text())
+        gauge = json.loads((HERE / 'gauge-phase-audit.json').read_text())
+        width = next(iter(gauge['grouped_exterior_histogram']))
+        gauge['grouped_exterior_histogram'][width] -= 2
+        with self.assertRaisesRegex(AssertionError, 'gauge complement profile'):
+            profile(self.profiles['complex'], partition, phase, gauge)
+
+    def test_one_stage_bit_loss_rejected(self):
+        changed = copy.deepcopy(self.profiles['shared-bit'])
+        changed['L'] //= 2
+        with self.assertRaisesRegex(ValueError, 'physical ledger'):
+            validate_profile(changed, 'shared-bit')
+
+    def test_omitted_paid_bit_adapter_calls_rejected(self):
+        changed = json.loads((HERE / 'certificate.json').read_text())
+        changed['finite_bridge']['bit_coarse']['paid_projector_adapter_calls'] -= 1
+        with self.assertRaisesRegex(ValueError, 'paid adapter call binding'):
+            validate_bit_composition(HERE, changed)
+
+    def test_omitted_reuse_role_charge_rejected(self):
+        changed = copy.deepcopy(self.profiles['complex'])
+        changed['reused_roles'] -= 1
+        with self.assertRaisesRegex(ValueError, 'matching role ledger'):
+            validate_profile(changed, 'complex')
 
     def test_omitted_endpoint_charge_rejected(self):
         for label, original in self.profiles.items():
@@ -158,6 +211,28 @@ class FrozenControls(unittest.TestCase):
         del changed['package_files']['inputs/shared-partition.json']
         with self.assertRaisesRegex(ValueError, 'finite-input closure'):
             check_sources(HERE, REPOSITORY, changed)
+
+    def test_omitted_nested_bit_dependency_rejected(self):
+        changed = copy.deepcopy(self.manifest)
+        del changed['package_files']['bit-sharing/profile161.json']
+        with self.assertRaisesRegex(ValueError, 'nested bit-package closure'):
+            check_sources(HERE, REPOSITORY, changed)
+
+    def test_changed_nested_bit_input_and_rehashed_manifest_rejected(self):
+        from bit_adapter import MINIMAL_V_PATH, package_inventory
+        with tempfile.TemporaryDirectory(prefix='dual-core-altered-bit-') as directory:
+            package = Path(directory)
+            shutil.copytree(HERE / 'bit-sharing', package / 'bit-sharing')
+            path = package / 'bit-sharing' / MINIMAL_V_PATH
+            path.write_bytes(path.read_bytes() + b'corrupted')
+            with self.assertRaisesRegex(ValueError, 'Nested bit source hash mismatch'):
+                package_inventory(package)
+            manifest_path = package / 'bit-sharing/MANIFEST.json'
+            manifest = json.loads(manifest_path.read_text())
+            manifest['sha256'][MINIMAL_V_PATH] = digest(path)
+            manifest_path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, 'Immutable bit-package manifest digest mismatch'):
+                package_inventory(package)
 
     def test_changed_partition_rejected_even_when_rehashed(self):
         with tempfile.TemporaryDirectory(prefix='shared-core-altered-partition-') as directory:
@@ -224,7 +299,9 @@ class FrozenControls(unittest.TestCase):
     def test_next_bit_and_complex_grid_points_rejected(self):
         from fractions import Fraction as Q
         module = self.certificate
-        self.assertFalse(module.contracts(module.profile('bit-profile.json'), module.COARSE + Q(1, 10**10)))
+        bit = module.profile('shared-bit-profile.json')
+        self.assertTrue(module.contracts(bit, module.COARSE))
+        self.assertFalse(module.contracts(bit, module.COARSE + Q(1, 10**12)))
         shared = module.profile('shared-complex-profile.json')
         self.assertTrue(module.contracts(shared, module.COMPLEX))
         self.assertFalse(module.contracts(shared, module.COMPLEX + Q(1, 10**12)))
