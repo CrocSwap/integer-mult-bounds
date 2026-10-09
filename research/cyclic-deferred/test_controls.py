@@ -13,14 +13,16 @@ if sys.flags.optimize:
 
 import argparse
 import copy
+import gzip
 import importlib.util
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
 
-from verify import check_sources, compare_json, safe_file, validate_profile
+from verify import check_sources, compare_json, digest, safe_file, validate_profile
 
 HERE = Path(__file__).resolve().parent
 REPOSITORY = HERE.parents[1]
@@ -90,6 +92,42 @@ class FrozenControls(unittest.TestCase):
         changed['package_files']['inputs/witness_23.json.gz'] = '0' * 64
         with self.assertRaisesRegex(ValueError, 'hash mismatch'):
             check_sources(HERE, REPOSITORY, changed)
+
+    def test_omitted_pinned_complex_dag_rejected(self):
+        changed = copy.deepcopy(self.manifest)
+        del changed['package_files']['inputs/complex-dag.json.gz']
+        with self.assertRaisesRegex(ValueError, 'finite-input closure'):
+            check_sources(HERE, REPOSITORY, changed)
+
+    def test_changed_complex_dag_digest_rejected(self):
+        with tempfile.TemporaryDirectory(prefix='cyclic-deferred-altered-dag-') as directory:
+            package = Path(directory)
+            for name in self.manifest['package_files']:
+                target = package / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(HERE / name, target)
+            name = 'inputs/complex-dag.json.gz'
+            path = package / name
+            graph = json.loads(gzip.decompress(path.read_bytes()))
+            graph['args'][0] = graph['args'][1]
+            path.write_bytes(gzip.compress(json.dumps(graph).encode(), mtime=0))
+            with self.assertRaisesRegex(ValueError, 'hash mismatch'):
+                check_sources(package, REPOSITORY, self.manifest)
+            # Rehashing a substituted DAG must not erase its immutable provenance.
+            changed = copy.deepcopy(self.manifest)
+            changed['package_files'][name] = digest(path)
+            with self.assertRaisesRegex(ValueError, 'scalar-DAG provenance digest mismatch'):
+                check_sources(package, REPOSITORY, changed)
+
+    def test_replayed_complex_dag_rejects_duplicated_operand(self):
+        from replayed_producer import build
+        with tempfile.TemporaryDirectory(prefix='cyclic-deferred-invalid-dag-') as directory:
+            graph = json.loads(gzip.decompress((HERE / 'inputs/complex-dag.json.gz').read_bytes()))
+            graph['args'][0] = graph['args'][1]
+            path = Path(directory) / 'invalid.json.gz'
+            path.write_bytes(gzip.compress(json.dumps(graph).encode(), mtime=0))
+            with self.assertRaisesRegex(AssertionError, 'cancellation-free'):
+                build(path, Path(directory) / 'invalid-producer')
 
     def test_manifest_parent_escape_rejected(self):
         with self.assertRaisesRegex(ValueError, 'Unsafe manifest path'):

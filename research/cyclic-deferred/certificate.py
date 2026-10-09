@@ -21,7 +21,7 @@ ATOM = Q(1, 1000)
 OLD = Q(384599, 10**10)
 BETA = Q(1, 10**6)
 COARSE = Q(620523, 5000000000)
-COMPLEX = Q(98038393, 10**12)
+COMPLEX = Q(109305097, 10**12)
 KGRID = 10**15
 
 def profile(name):
@@ -51,7 +51,9 @@ def exact(bit=None, phase=None):
     a = min(ab,(1-BETA)*COMPLEX-Q(1,10**14))
     row = dict(h=phase['h'],v=phase['v'],c=phase['additions'],central_disjoint=24)
     bridge = copied_bridge(bit,phase,[row,row])
-    # A literal expanded readout is charged even if it could be factored.
+    # Logical readouts are expanded into same-frame shears with |coefficient|<=1.
+    # Exact numerators over42 are split into signed42 chunks and a remainder.
+    # The independent audit counts every chunk and checks this guard covers it.
     # Each row has <=c+R mixer operations and <=R leaf copies. There are
     # <=R+q readouts, each containing <=h center coefficients and <=v direct
     # coefficients; <=4*v*(h+1) scalar groups suffice per readout. A factor

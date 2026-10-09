@@ -12,7 +12,7 @@ from collections import Counter
 from functools import lru_cache
 from hashlib import sha256
 from itertools import combinations
-import argparse,json,pickle,sys
+import argparse,json,pickle,struct,sys
 from pathlib import Path
 sys.dont_write_bytecode=True
 assert not sys.flags.optimize,'Assertions must remain enabled'
@@ -83,6 +83,21 @@ def dual_frames(A,B,h):
     return len(A)+len(B)==h and all(not dot(x,y) for x in A for y in B)
 
 
+def check_chunks(numerator,parts):
+    assert sum(parts)==numerator,'Split readout reconstruction'
+    assert all(0<abs(x)<=42 for x in parts),'Bounded readout chunk'
+
+def bounded_chunks(numerator):
+    q,r=divmod(abs(numerator),42);sign=1 if numerator>=0 else -1
+    parts=(sign*42,)*q+((sign*r,) if r else ())
+    check_chunks(numerator,parts)
+    return parts
+
+def reverse_row(row):
+    if row[0]=='old':return (row[0],row[1],row[3],row[2])
+    return row
+
+
 def check_reflection(forward,backward,h,v):
     def bank(s):return s+v if s<v else s-v if s<2*v else s
     assert len(forward)==len(backward),'Reflected event count'
@@ -93,6 +108,7 @@ def check_reflection(forward,backward,h,v):
         assert dual_frames(F,FF,h),'Reflected frame complement'
         if k=='centre':
             assert dual_frames(tail[0],tt[0],h) and tail[1:]==tt[1:],'Reflected centre copy'
+        elif k=='read':assert tt==[reverse_row(tail[0])],'Reflected bounded coefficient-row binding'
         else:assert tail==tt,'Reflected coefficient-row binding'
 
 
@@ -151,26 +167,35 @@ def audit(d):
     for o in reversed(ops):
         if o[0]=='add':addrow(o[2],o[1])
         elif o[0]=='copy':addrow(o[1],o[2])
-    maxcoef=0;readcount=0;actual_reach={};coefficient_digest=sha256()
+    maxcoef=0;readcount=0;unsplit_readcount=0;split_macros=0;actual_reach={};chunk_rows={};coefficient_digest=sha256();chunk_digest=sha256();maxchunk=0
     for s in range(R):
         assert cc[s] is None and d['cvec'][s] is None or cc[s] is not None and [x%p for x in cc[s]]==d['cvec'][s]
         assert {t:(x*pow(2,-1,p))%p for t,x in dd[s].items()}==d['dpart'][s]
-        # Exact expanded readout numerators over the single denominator42.
+        # Exact aggregate coefficients are logical macros. Compile each
+        # numerator/42 into signed unit chunks and one signed remainder. All
+        # chunks share the same ports/frame and their exact sum is checked.
         if cc[s] is None:
-            reached=tuple(t for t,x in sorted(dd[s].items()) if x)
-            maxcoef=max(maxcoef,max((abs(21*x) for x in dd[s].values()),default=0))
-            coefficient_digest.update(repr((s,[(t,21*dd[s][t]) for t in reached])).encode()+b'\n')
+            numerators=[(t,21*x) for t,x in sorted(dd[s].items()) if x]
+            coefficient_digest.update(repr((s,numerators)).encode()+b'\n')
         else:
-            total=2*sum(cc[s]);reached=[]
+            total=2*sum(cc[s]);numerators=[]
             for t,T in enumerate(trip):
                 num=total-21*sum(cc[s][i] for i in T)+21*dd[s].get(t,0)
-                maxcoef=max(maxcoef,abs(num))
                 if num:
-                    reached.append(t)
+                    numerators.append((t,num))
                     coefficient_digest.update(s.to_bytes(4,'little')+t.to_bytes(4,'little')+num.to_bytes(8,'little',signed=True))
-            reached=tuple(reached)
-        readcount+=len(reached);actual_reach[s]=reached
-    assert maxcoef<=42,'Expanded readout coefficient exceeds one in absolute value'
+        reached=[];records=[]
+        for t,num in numerators:
+            maxcoef=max(maxcoef,abs(num));parts=bounded_chunks(num)
+            unsplit_readcount+=1;split_macros+=int(len(parts)>1)
+            readcount+=len(parts);maxchunk=max(maxchunk,max(map(abs,parts)))
+            for part in parts:
+                reached.append(t);records.append(struct.pack('<Ih',t,part))
+        forward_bytes=b''.join(records);backward_bytes=b''.join(reversed(records))
+        chunk_rows[s]=(sha256(forward_bytes).hexdigest(),sha256(backward_bytes).hexdigest())
+        chunk_digest.update(s.to_bytes(4,'little')+forward_bytes)
+        actual_reach[s]=tuple(reached)
+    assert maxchunk<=42,'Expanded scalar chunk exceeds one in absolute value'
     # Early/remainder order is a legal commutation of independent shears.
     # Deferred inputs are untouched by the early word; completed centre
     # roles are untouched by its remainder. These facts make deferred
@@ -206,12 +231,12 @@ def audit(d):
         elif o[0]=='copy':gate(A(o[2]),A(o[1]),sign,U[o[3]] if F is None else F)
     deferred=set(d['deferred'])
     for s in range(R):
-        if s not in deferred:read(s,-1,ZERO,actual_reach[s],('old',s))
+        if s not in deferred:read(s,-1,ZERO,actual_reach[s],('old',s,*chunk_rows[s]))
     for s,n in d['leaf_of'].items():
         if s not in deferred:gate(A(s),X(n-1),1,U[n])
     for i in d['phase1']:run(i)
     for s in d['centre_roles']:word.append(('centre',A(s),tuple(Y(t) for t in range(v)),1,rootframe[s],ZERO,d['centre_of'][d['role_root'][s]]))
-    for s in d['deferred']:read(s,-1,sigma[s],actual_reach[s],('old',s))
+    for s in d['deferred']:read(s,-1,sigma[s],actual_reach[s],('old',s,*chunk_rows[s]))
     for s in d['deferred']:
         if s in d['leaf_of']:n=d['leaf_of'][s];gate(A(s),X(n-1),1,U[n])
     for i in d['rest']:run(i)
@@ -224,13 +249,23 @@ def audit(d):
     def reflect(event):
         k,a,b,c,F,*rest=event
         if k=='gate':return (k,swap(a),swap(b),-c,complement(F,h))
-        tail=(complement(rest[0],h),rest[1]) if k=='centre' else tuple(rest)
+        tail=(complement(rest[0],h),rest[1]) if k=='centre' else (reverse_row(rest[0]),)
         return (k,swap(a),tuple(swap(t) for t in reversed(b)),-c,complement(F,h),*tail)
     reverse=[reflect(e) for e in reversed(word)]
     assert [reflect(e) for e in reversed(reverse)]==word
     check_reflection(word,reverse,h,v)
     # Reuse this exact captured word for targeted failure controls.
     rejected=[]
+    for failure,num,parts in (('oversized-readout-chunk',55,(55,)),('split-readout-sum',55,(42,12))):
+        try:check_chunks(num,parts)
+        except AssertionError:rejected.append(failure)
+        else:raise AssertionError('Accepted bounded readout mutation: '+failure)
+    damaged=list(reverse)
+    i=next(i for i,e in enumerate(damaged) if e[0]=='read' and e[-1][0]=='old' and e[-1][2]!=e[-1][3])
+    event=list(damaged[i]);event[-1]=reverse_row(event[-1]);damaged[i]=tuple(event)
+    try:check_reflection(word,damaged,h,v)
+    except AssertionError:rejected.append('reflected-chunk-order')
+    else:raise AssertionError('Accepted reflected chunk-order mutation')
     for failure in ('inverse-sign','uncomplemented-frame'):
         damaged=list(reverse);first=list(damaged[0])
         if failure=='inverse-sign':first[3]*=-1
@@ -293,13 +328,18 @@ def audit(d):
     assert safe>=scalar
     return dict(h=h,v=v,R=R,exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
                 exact_arbitrary_dirty_cancellation_by_dependency_cut=True,
-                reflected_word_rule='Reverse literal order, negate every shear, swap X/Y ports, complement every frame; auxiliary bank is separate.',
+                reflected_word_rule='Reverse literal order including each bounded readout chunk, negate every shear, swap X/Y ports, complement every frame; auxiliary bank is separate.',
                 reflected_scalar_map='X becomes X-Y; Y unchanged; all auxiliary coordinates restored.',
                 two_stage_scalar_map='(X,Y) becomes (-Y,X+Y) before inherited endpoint correction.',
                 literal_frame_incidences_both_directions=True,all_frames_nondegenerate=True,
                 reflected_residual_rank_histogram_equal=True,child_multiplicities=dict(sorted(z.items())),
                 word_blocks=len(word),expanded_scalar_operations_per_stage=scalar,
                 expanded_old_readout_additions=readcount,largest_readout_numerator_over_42=maxcoef,
+                unsplit_old_readout_macros=unsplit_readcount,split_readout_macros=split_macros,
+                largest_bounded_chunk_numerator_over_42=maxchunk,
+                bounded_readout_chunks_sha256=chunk_digest.hexdigest(),
+                scalar_readout_normalization='Each exact numerator n/42 becomes signed42 chunks plus a signed remainder. Exact reconstruction and chunk magnitude<=1 checked; every same-frame shear is charged; reflection reverses chunk order.',
+                exact_chunk_reconstruction=True,bounded_chunk_coefficients=True,
                 old_readout_coefficients_over_42_sha256=coefficient_digest.hexdigest(),
                 literal_global_scalar_groups=G,conservative_local_G=safe,
                 forward_incidence_sha256=digest,reflected_incidence_sha256=reverse_digest,

@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Saturated deferred frames on the cyclic/core-aware complex producer.
+"""Saturated deferred readouts on the immutable PR117 complex DAG.
 
-The selected scalar graph and role compile are unchanged. Whenever target-chain
-intersection creates a degenerate subspace, explicit symmetric elimination
-extracts a nondegenerate direct complement to its radical. Comparability
-is checked again after every extraction. All original role/target frame checks
-and arbitrary-scratch word replays are retained; the actual one-child profile
-is counted from the resulting frames.
-
-Based on PR110 deferred complex compilation (Avi Eisenberg), PR111 cyclic
-strips/dual stars (Rohan Arun), PR62 core-aware pairs (Avi Eisenberg), and the
-inherited PR104/icekylinx and Swapnil Jain constructions. Saturation and
-integration prepared with OpenAI Codex assistance. Apache-2.0.
+PR117 credits its searched DAG to eumemic with Anthropic Claude assistance;
+this experiment imports and replays that witness unchanged. PR110/PR114
+saturation and exact finite checks are applied to the resulting graph.
+Logical readout macros are realized as signed numerator/42 chunks of magnitude
+at most one. The literal audit expands and charges those same-frame shears,
+checks exact reconstruction, and reverses the chunks under reflection.
+Inherited Avi Eisenberg, Rohan Arun, icekylinx and Swapnil Jain credits retained.
+This integration prepared with OpenAI Codex assistance. Apache-2.0.
 """
 import array
 import json
@@ -26,9 +23,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+sys.path.insert(0, str(HERE))
 import importlib.util
 producer_path = HERE / 'producer.py'
-spec = importlib.util.spec_from_file_location('cyclic_producer', producer_path)
+spec = importlib.util.spec_from_file_location('replayed_producer_wrapper', producer_path)
 producer = importlib.util.module_from_spec(spec); spec.loader.exec_module(producer)
 build = producer.build
 
@@ -247,7 +245,7 @@ def saturated_placement(cand, reach):
     # remaining diagonals vanish, a dot-one pair contributes a hyperbolic
     # plane. The residual radical is discarded, not counted as a frame.
     cand = {s: sat_basis(B) for s, B in cand.items()}
-    order = sorted(cand, key=lambda s: (Fraction(-len(cand[s])**2, max(1, len(reach[s]))), -len(cand[s]), s))
+    order = sorted(cand, key=lambda s: (Fraction(-(1 << len(cand[s])), max(1, len(reach[s]))**2), -len(cand[s]), s))
     byT = defaultdict(list); placed = {}
     for s in order:
         X = cand[s]; changed = True
@@ -312,15 +310,17 @@ def main():
     mate = hopcroft_karp(left, adj)
     links = {x: r for x, r in mate.items() if r is not None}
     R = c_add + q - len(links)
-    require((c_add, q, len(links), R) == (68800, 8120, 39061, 37859), 'selected graph size')
+    require((c_add,q,len(links),R)==(91770,8120,71185,28705),'selected PR117 graph')
+    print('PR117 graph matched', c_add, q, len(links), R, flush=True)
     linked_use = {(y, k): x for x, (y, k) in links.items()}
 
     # ------------------------------------------------------------ root targets, read coefficients, root functionals
     target = [None] * q
     for j in range(v): target[j] = j
     idx = v
+    # PR117 witness stores pair-star roots in natural excluded-point order.
     for a, b in combinations(range(h), 2):
-        others = sorted((i for i in range(h) if i not in (a, b)), key=lambda i: ((i ^ 1) in (a, b), i))
+        others = [i for i in range(h) if i not in (a, b)]
         for i in others: target[idx] = tid[tuple(sorted((a, b, i)))]; idx += 1
     centre_of = {}
     for j in range(q):
@@ -367,6 +367,7 @@ def main():
                 env = envelope(x)
                 if len(reduce(U[x])) != len(reduce(env)) or not contains(U[x], env): U[x] = env; changed = True
     dimU = {x: len(reduce(B)) for x, B in U.items()}
+    print('PR117 frames lifted',sum(dimU[x]>ranks[x] for x in U),flush=True)
 
     # ------------------------------------------------------------ explicit role compile
     order = sorted((x for x in range(1, n) if active[x]), key=lambda x: (ranks[x], x))
@@ -442,7 +443,9 @@ def main():
         if s in touched or reach_all[s]: continue
         S_ = restrict(F0(s), [tmask[t] for t in reach[s]])
         if S_ and nondeg(S_): cand[s] = S_
+    print('PR117 candidates',len(cand),flush=True)
     placed = saturated_placement(cand, reach)
+    print('PR117 placed',len(placed),flush=True)
     deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
 
     # ------------------------------------------------------------ C. replay with arbitrary scratch and data
@@ -462,6 +465,8 @@ def main():
         elif o[0] == 'copy': addc(o[1], o[2])
     scatter = [[(I21 - (HALF if i in trip[t] else 0)) % P for t in range(v)] for i in range(h)]
     def readout(y, s, value, sign, seed=False):
+        # Logical readout macro: the literal audit combines its exact rational
+        # target coefficients and expands each numerator/42 into bounded shears.
         cv = seed_c[s] if seed else cvec[s]; dp = seed_d[s] if seed else dpart[s]
         if cv is not None:
             for i, ci in enumerate(cv):

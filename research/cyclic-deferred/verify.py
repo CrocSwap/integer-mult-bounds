@@ -24,6 +24,7 @@ import subprocess
 import tempfile
 
 HERE = Path(__file__).resolve().parent
+COMPLEX_DAG_PIN = '3c034d0aae388ef567a454826f4f48b26fd8a94c71e8ffed4835271b349a783b'
 BIT_PINS = {
     'witness_23.json.gz': 'b2486aa2bb222bacea6e52162a3920780e45dd8edc5d7cb03eabea336a1c6588',
     'deferred_23.json.gz': '8c38e947ff9e021e308000dd82bb5e2194eb265d8b75194e22ce783d3e75317c',
@@ -31,7 +32,8 @@ BIT_PINS = {
 REQUIRED = {
     'verify.py', 'test_controls.py', 'producer.py', 'complex_deferred.py',
     'bit_round7.py', 'certificate.py', 'bit-profile.json',
-    'complex-profile.json', 'certificate.json',
+    'complex-profile.json', 'certificate.json', 'replayed_producer.py',
+    'inputs/complex-dag.json.gz',
     *('inputs/' + name for name in BIT_PINS),
 }
 DATA_DEPENDENCIES = {'certificates/copied-centers-network.json'}
@@ -117,11 +119,13 @@ def create_manifest(package, repository, reflection_script, reflection_receipt):
         provenance=dict(
             base='https://github.com/CrocSwap/integer-mult-bounds/pull/110',
             cyclic_strips='https://github.com/CrocSwap/integer-mult-bounds/pull/111',
-            core_aware_pair_assembly='https://github.com/CrocSwap/integer-mult-bounds/pull/62',
+            scalar_dag=dict(pull_request='https://github.com/CrocSwap/integer-mult-bounds/pull/117',
+                            commit='cbb05ce504d571546d9b7794c186a613c659c3bf',
+                            file='inputs/complex-dag.json.gz', sha256=COMPLEX_DAG_PIN),
             round7_repository='https://github.com/Swapnil-jain/integer-mult-kappa',
             round7_commit='741e7aa078392553815df7926ee17ac5e25a8c38',
             round7_sha256=BIT_PINS),
-        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). Core-aware pair transfer, integration and verification for eumemic with OpenAI Codex assistance. Original source notices remain authoritative.')
+        attribution='Avi Eisenberg / ikeboy (PR62 and PR110, Anthropic Claude assistance); Rohan Arun (PR111, Anthropic Claude assistance); Swapnil Jain (round-seven bit word); icekylinx (retained stopped-product, copied-center and finite assembly interfaces); Zhihao Chen and RaD (retained assembly). PR117 scalar DAG is separate upstream work by eumemic with Anthropic Claude assistance, retained byte for byte with its original attribution. Saturated deferred-frame integration and verification for eumemic with OpenAI Codex assistance. Original source notices remain authoritative.')
 
 
 def check_sources(package, repository, manifest=None):
@@ -142,6 +146,8 @@ def check_sources(package, repository, manifest=None):
     for name, expected in BIT_PINS.items():
         require(manifest['package_files']['inputs/' + name] == expected,
                 'Round-seven provenance digest mismatch: ' + name)
+    require(manifest['package_files']['inputs/complex-dag.json.gz'] == COMPLEX_DAG_PIN,
+            'PR117 scalar-DAG provenance digest mismatch')
     return manifest
 
 
