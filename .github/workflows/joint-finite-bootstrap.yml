@@ -1,0 +1,26 @@
+name: Joint finite bootstrap
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  exact-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        python: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CrocSwap/integer-mult-bounds
+          ref: 1e7c15afb12b28321e12bf47b1180cba70f4a75b
+          path: .prerequisite
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r research/joint-finite-bootstrap/requirements.txt
+      - run: python -B research/joint-finite-bootstrap/verify.py --parent-root .prerequisite
+      - run: make paired-cube-verify
+      - run: git diff --exit-code
+      - run: git -C .prerequisite diff --exit-code
