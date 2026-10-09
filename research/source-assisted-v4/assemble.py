@@ -20,6 +20,7 @@ saving 384599/10^10.
 Prepared by Avi Eisenberg with Claude (Anthropic) assistance. Apache-2.0.
 """
 from hashlib import sha256
+from fractions import Fraction as Q
 from pathlib import Path
 import argparse
 import importlib.util
@@ -30,6 +31,7 @@ PKG = Path(__file__).resolve().parent
 REPO = PKG.parents[1]
 SA = REPO / 'research/source-assisted'
 BIT = REPO / 'research/paired-cube-twin-local-168/certificate.json'
+BOOTSTRAP_DEPTH = 2
 
 
 def load_pr184():
@@ -69,6 +71,40 @@ def bit_profile():
     return row, sha256(BIT.read_bytes()).hexdigest(), certificate['bit']['coarse']
 
 
+def bootstrap_bit_leaf(bit):
+    """Apply PR185's finite completed-leaf wrapper to PR184's priced supplier."""
+    coarse = Q(bit['saving'])
+    base = Q(bit['effective_saving'])
+    leaves = [base]
+    for _ in range(BOOTSTRAP_DEPTH):
+        leaves.append((1 - coarse) * coarse + coarse * leaves[-1])
+    selected = leaves[-1]
+    assert selected == coarse - coarse**BOOTSTRAP_DEPTH * (coarse - base)
+    assert 0 < base < leaves[1] < selected < coarse < 1 - selected
+
+    bootstrapped = dict(bit)
+    bootstrapped.update(effective_saving=selected,
+                        effective_saving_decimal=float(selected),
+                        ordinary_leaf_saving=selected,
+                        atom_exponent=coarse)
+    receipt = dict(
+        construction='PR185 finite acyclic ordinary-leaf wrapper',
+        prior_artifact='PR199 depth-2 pricing recurrence',
+        depth=BOOTSTRAP_DEPTH,
+        recurrence='a_(j+1) = (1-C)*C + C*a_j',
+        coarse_saving=str(coarse),
+        input_effective_saving=str(base),
+        finite_leaf_savings=[str(value) for value in leaves],
+        closed_form=str(coarse - coarse**BOOTSTRAP_DEPTH * (coarse - base)),
+        strict_atom_toll=str(coarse - selected),
+        strict_row_borrowing_toll=str(1 - selected - coarse),
+        checks=dict(recurrence_matches_closed_form=True,
+                    input_leaf_below_finite_leaf=base < selected,
+                    finite_leaf_below_coarse=selected < coarse,
+                    atom_and_row_tolls_positive=True))
+    return bootstrapped, receipt
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--complex', type=Path, required=True)
@@ -84,16 +120,18 @@ def main():
     b = pr184.select(pr184.normalize(row), True)
     # PR184's 10^-10 bit grid must not exceed PR189's own 10^-18 certificate.
     assert b['saving'] <= pr184.Q(pr189_coarse['coarse_saving'])
+    b, bootstrap = bootstrap_bit_leaf(b)
     out = dict(status='Exact arithmetic; construction and finite bridge are explicit proof dependencies',
                complex=c, bit=b,
                source_sha256=dict(complex=sha256(args.complex.read_bytes()).hexdigest(), bit_certificate=bit_sha),
-               bit_source='research/paired-cube-twin-local-168/certificate.json bit.profile after 102-operation endpoint-frame descent (PR189 supplier)',
+               bit_source='research/paired-cube-twin-local-168/certificate.json bit.profile after 102-operation endpoint-frame descent (PR189 supplier), then PR185 depth-2 ordinary-leaf bootstrap',
                arithmetic='PR184 assemble_profiles: 32-term rational logarithm enclosure; rational exponential majorant; upward 2^120 rounding',
                construction_receipts=complex_receipts(cdata))
     out.update(pr184.assemble(c, b, REPO, SA / 'global/FINITE_BRIDGE.txt'))
     for key in ('reviewed_baseline', 'fixed_doubling_target', 'ratio_to_reviewed_baseline',
                 'ratio_to_reviewed_baseline_decimal', 'doubling_achieved'):
         out.pop(key, None)
+    out['bit_leaf_bootstrap'] = bootstrap
     args.output.write_text(json.dumps(pr184.serial(out), indent=2) + '\n')
     print(json.dumps(dict(kappa=str(out['kappa']), complex=str(c['saving']), bit_effective=str(b['effective_saving']))))
 

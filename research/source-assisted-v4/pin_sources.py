@@ -21,6 +21,13 @@ FILES = ['scripts/paired_cube_producer.py', 'scripts/paired_cube_physical.py',
          'research/source-assisted/bit/source_aligned_profile.json',
          'notes/source-assisted-note.tex',
          'research/paired-cube-twin-local-168/certificate.json']
+FILES += ['research/bit-leaf-bootstrap182/PROOF.md',
+          'research/bit-leaf-bootstrap182/README.md',
+          'research/bit-leaf-bootstrap182/NOTICE',
+          'research/bit-leaf-bootstrap182/SOURCE.json',
+          'research/bit-leaf-bootstrap182/certificate.json',
+          'research/bit-leaf-bootstrap182/validation.json',
+          'research/bit-leaf-bootstrap182/verify.py']
 DIRECTORIES = ['scripts/paired_cube', 'references/paired-cube/sources', 'references/paired-cube/selected-module',
                'references/paired-cube/physical', 'references/three-stage-cover/pr117']
 OWN = ['README.md', 'PROOF.md', 'NOTICE', 'verify.py', 'pin_sources.py', 'source_aligned_local_v4.py', 'assemble.py',
