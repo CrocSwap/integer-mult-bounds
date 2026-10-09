@@ -1,0 +1,19 @@
+name: Conservative paired PR131 + PR132 finite certificate
+on:
+  push:
+    branches: [research/pr132-pr131-conservative-lockstep]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-finance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with: {python-version: '3.11'}
+      - run: python3 research/paired-pr131-conservative/certificate.py --output /tmp/paired-conservative.json
+      - run: python3 -m json.tool /tmp/paired-conservative.json > /dev/null
+      - run: git diff --exit-code
