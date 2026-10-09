@@ -43,11 +43,6 @@ for G in groups:
  for s in range(R):
   width=m-(h-len(sigma.get(s,())))*len(G);assert 0<width<m;new_ext[width]+=2
 z.update(new_ext);assert min(z.values())>=0;z=Counter({r:n for r,n in z.items()if n});W=2*N+2*len(groups)*R;mass=sum(r*n for r,n in z.items());assert W*m-mass==base['deficit'];assert mass==W*m-N+2*v*h*(h-1)
-lo,hi=0.,.001
-for _ in range(60):
- b=(lo+hi)/2
- if math.fsum(n*r*math.exp(b*math.log(m/r))for r,n in z.items())<m*W:lo=b
- else:hi=b
 ledger=D/'literal-replay'
 physical=gzip.decompress((ledger/'forward-events.i32.gz').read_bytes())
 assert hashlib.sha256(physical).hexdigest()=='f98d52b6d8fb04e30a0a46df4df95d2e7999ff97a89826e5b0f44b4120a69e28'
@@ -56,5 +51,5 @@ frame_raw=(ledger/'frames-and-paths.json').read_bytes();frame_data=json.loads(fr
 classes={name:part for name,part in base['classes'].items()if name!='auxiliary_exteriors'}
 classes['auxiliary_exteriors']=dict(calls=sum(new_ext.values()),rank=sum(r*n for r,n in new_ext.items()),hist=dict(sorted(new_ext.items())))
 assert sum(c['calls']for c in classes.values())==sum(z.values())
-out=dict(h=h,m=m,v=v,N=N,R=R,L=2*v*h*(h-1),groups=len(groups),group_sizes=dict(sorted(Counter(map(len,groups)).items())),W=W,total_rank=mass,deficit=W*m-mass,maxchild=max(z),complex_saving_numerical=None,bit_saving_numerical=lo,child_multiplicities=dict(sorted(z.items())),classes=classes,paid_projector_calls=sum(z.values()),local_forward_event_counts=dict(sorted(event_counts.items())),literal_frame_keys=len(frame_data['keys']),literal_frame_inventory_sha256=hashlib.sha256(frame_raw).hexdigest(),literal_event_sha256=hashlib.sha256(physical).hexdigest(),old_exteriors=dict(sorted(old_ext.items())),new_exteriors=dict(sorted(new_ext.items())),minimal_v_word_sha256=hashlib.sha256(raw).hexdigest(),exact_coverage=True,exact_pairwise_H_orthogonality=True,exact_projector_idempotence=True,exact_projector_self_adjointness=True,scope='Exact completed-core rational projector identities and complete one-child profile. Requires unchanged PR128 minimal-V literal-word contract, common generic-basis/opposite-bank compiler and scalar/adapter work charge. Each recorded projector call pays its fixed PR104 atom adapters; the generic-basis existence argument does not specify a numerical primitive-operation constant.')
+out=dict(h=h,m=m,v=v,N=N,R=R,L=2*v*h*(h-1),groups=len(groups),group_sizes=dict(sorted(Counter(map(len,groups)).items())),W=W,total_rank=mass,deficit=W*m-mass,maxchild=max(z),child_multiplicities=dict(sorted(z.items())),classes=classes,paid_projector_calls=sum(z.values()),local_forward_event_counts=dict(sorted(event_counts.items())),literal_frame_keys=len(frame_data['keys']),literal_frame_inventory_sha256=hashlib.sha256(frame_raw).hexdigest(),literal_event_sha256=hashlib.sha256(physical).hexdigest(),old_exteriors=dict(sorted(old_ext.items())),new_exteriors=dict(sorted(new_ext.items())),minimal_v_word_sha256=hashlib.sha256(raw).hexdigest(),exact_coverage=True,exact_pairwise_H_orthogonality=True,exact_projector_idempotence=True,exact_projector_self_adjointness=True,scope='Exact completed-core rational projector identities and complete one-child profile. Requires unchanged PR128 minimal-V literal-word contract, common generic-basis/opposite-bank compiler and scalar/adapter work charge. Each recorded projector call pays its fixed PR104 atom adapters; the generic-basis existence argument does not specify a numerical primitive-operation constant.')
 (D/'profile161.json').write_text(json.dumps(out,indent=2)+'\n');print({k:v for k,v in out.items()if k not in('child_multiplicities','old_exteriors','new_exteriors')},flush=True)

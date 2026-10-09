@@ -15,8 +15,8 @@ import os
 import subprocess
 
 HERE = Path(__file__).resolve().parent
-BIT_MANIFEST_PIN = '38633d1b03cb671bcaf0b5a11b7e990bc2192505987d90469cb89a9b011e16b7'
-BIT_VERIFIER_PIN = 'c6d7bc3ab07a298a6fdd7e568c5d2a75e42192acdd7a38d7297055a089bdc04b'
+BIT_MANIFEST_PIN = '1f8afd0109706437445fcc9b3bacff455c0d229b8ad2d3d106f3cd6c43bc58b3'
+BIT_VERIFIER_PIN = '58ccce67e0a6ca9db91d195250eb9fdb8ccae27b5fe22fb6b1b32f512a476146'
 MINIMAL_V_PIN = '298c11fb29ab0afdf8d762c64a9b99d19a1e58465f3a0cbc9d2a59367c438fb7'
 MINIMAL_V_PATH = 'inputs/research/round8-foundations-minimal-v-word.json.gz'
 

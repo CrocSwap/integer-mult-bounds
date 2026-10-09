@@ -62,7 +62,9 @@ complex profile and reflection receipt must also regenerate byte for byte
 before their hashes feed the gauge audit. The expanded
 core scalar count is bounded by its certificate reserve; the separate paid
 basis/phase-wrapper reserve is also checked. Bit adapter call counts and the
-new halving degree are bound to the nested exact certificate.
+new halving degree are bound to the nested exact certificate. Proof profiles
+contain exact ledgers; platform-dependent numerical root diagnostics are
+excluded. Regenerated proof records still require complete equality.
 
 All 47 final strict constraints and seven margins are positive. The next
 bit/complex grid points fail the chosen moment enclosure, and the next κ grid

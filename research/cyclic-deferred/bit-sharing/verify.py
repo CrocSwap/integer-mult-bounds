@@ -6,6 +6,12 @@ import gzip,json,shutil,subprocess,sys,tempfile,time
 
 HERE=Path(__file__).resolve().parent
 def read(path):return json.loads(path.read_text())
+def equal_json(actual_path,expected_path):
+    actual,expected=read(actual_path),read(expected_path)
+    keys=set(actual)|set(expected)
+    different={key:dict(actual=actual.get(key),expected=expected.get(key)) for key in sorted(keys) if actual.get(key)!=expected.get(key) or (key in actual)!=(key in expected)}
+    assert not different, 'JSON mismatch '+actual_path.name+': '+json.dumps(different,sort_keys=True)
+
 def run(script,*args,reject=False):
     started=time.monotonic()
     p=subprocess.run([sys.executable,str(script),*map(str,args)],capture_output=True,text=True,timeout=900)
@@ -39,7 +45,7 @@ def main():
         receipt=read(work/'partition161-receipt.json');old=read(HERE/'partition161-receipt.json')
         for key in old:
             if key!='seconds':assert receipt[key]==old[key],('partition receipt',key)
-        run(work/'profile161.py');assert read(work/'profile161.json')==read(HERE/'profile161.json')
+        run(work/'profile161.py');equal_json(work/'profile161.json',HERE/'profile161.json')
         run(work/'certify161.py');assert read(work/'certificate.json')==read(HERE/'certificate.json')
         # Coverage-preserving swap deliberately violates pairwise H-orthogonality.
         groups=read(work/'groups161.json');a=set(groups[0][0]);found=False
