@@ -13,8 +13,8 @@ import json
 from pathlib import Path
 import sys
 from paired_cube.graph import Graph
-from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one
-from paired_cube.frames import compile_graph
+from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one, restricted_triples_from, restricted_pairs_from, pair_module_from, all_but_one_from, merge_outputs
+from paired_cube.closure import compile_closure
 from paired_cube.gauges import select
 from paired_cube.verify import verify
 
@@ -33,12 +33,15 @@ def regenerate(expected,work=None):
     frozen=reference/'matching-arcs.json'
     assert hashlib.sha256(frozen.read_bytes()).hexdigest()==pin['matching_arcs_sha256']
     stage('Regenerating paired-cube signed DAG from inherited PR117 restrictions')
-    g=Graph(12).finish(restricted_triples(12),restricted_pairs(11),all_but_one(10))
+    src=ROOT/'references/paired-cube/sources'
+    srcpin=json.loads((src/'SOURCE.json').read_text())['files']
+    for name,digest in srcpin.items():assert hashlib.sha256((src/name).read_bytes()).hexdigest()==digest
+    _G=Graph(11);g=_G.finish(restricted_triples_from(src/'h20_g1.json.gz',[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 16]),pair_module_from(src/'pmod_G37_w02_5.6098194e-4.json',10),all_but_one_from(src/'qmod_nested_prefix.json',9));g=merge_outputs(g,_G,'w02')
     g['matching_frames']='coordinate'
     binding={k:g[k] for k in ('inputs','labels','args','signs','roots','centers')}
     assert hashlib.sha256(json.dumps(binding,separators=(',',':')).encode()).hexdigest()==pin['graph_sha256']
     stage('Replaying frozen carrier matching and full binary intersections')
-    baseline,witness=compile_graph(g,json.loads(frozen.read_text()))
+    baseline,witness=compile_closure(g,json.loads(frozen.read_text()))
     stage('Selecting chronological partial gauges and constructing signed physical M')
     actual,word=select(g,baseline,witness);actual=json.loads(json.dumps(actual))
     for key in ('numerical_complex_root','status','gauge_selection',
