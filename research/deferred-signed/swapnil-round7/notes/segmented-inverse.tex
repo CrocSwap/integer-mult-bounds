@@ -1,0 +1,316 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{Segmented inversion of the Gaussian correction and large-coefficient precision}
+\date{Draft, October 8, 2026}
+\begin{document}
+\maketitle
+
+\section*{Setting}
+This uses PR~\#5's chirped-correlation lemma for the correlations and its parameter conventions. PR~\#5 is unmerged on \texttt{CrocSwap/integer-mult-bounds}.
+
+Keep the notation of the one-dimensional resampling lemma:
+$2\le s<t$, $\sigma=t/s$, $\theta=\sigma-1\le1/4$, $\alpha\ge2$ with $\alpha^2\theta\ge1$,
+$q_j=\lfloor tj/s+1/2\rfloor$, $\beta_j=tj/s-q_j\in[-1/2,1/2)$, defined for all
+integers $j$, so $q_{j+s}=q_j+t$ and $\beta_{j+s}=\beta_j$. The matrix $N=C\mathsf T\mathsf D$
+acts on $s$-periodic sequences by
+\[
+ (Nu)_\ell=\sum_{j\in\mathbb Z}e^{-\pi\alpha^2X_{\ell,j}}u_j,\qquad
+ X_{\ell,j}=(\sigma j-q_\ell)^2-\beta_j^2 .
+\]
+
+\section{Exact structure}
+
+\begin{lemma}[Closed form]\label{lem:closed}
+Put $n=q_j-q_\ell\in\mathbb Z$. Then $X_{\ell,j}=n(n+2\beta_j)$.
+\end{lemma}
+\begin{proof}
+$\sigma j-q_\ell=(q_j+\beta_j)-q_\ell=n+\beta_j$, so
+$X=(n+\beta_j)^2-\beta_j^2=n(n+2\beta_j)$.
+\end{proof}
+
+Since $\sigma=1+\theta$ with $\theta<1$, consecutive values satisfy
+$q_{j+1}-q_j\in\{1,2\}$. Call $j$ a \emph{wrap} when the difference is $2$;
+between wraps $\beta_{j+1}=\beta_j+\theta$. A \emph{segment} is a maximal run of
+indices containing no wrap step. Each segment has $\lfloor1/\theta\rfloor$ or
+$\lceil1/\theta\rceil$ indices, up to one boundary index, and wraps have density
+$t/s-1=\theta$.
+
+\begin{lemma}[Chirp--Toeplitz segments]\label{lem:segment}
+Let $\ell,j$ lie in one segment and choose the real centre
+$\ell^*=\ell-(\beta_\ell+1/2)/\theta$, which is the same for the whole segment.
+With $u=\ell-\ell^*$, $v=j-\ell^*$ and $h=j-\ell$,
+\[
+ e^{-\pi\alpha^2X_{\ell,j}}
+  =e^{\pi\alpha^2\theta u^2}\;\tau_h\;e^{-\pi\alpha^2\theta v^2},
+ \qquad \tau_h=e^{-\pi\alpha^2(\sigma h^2-h)} .
+\]
+Thus the principal block $M_k$ of $N$ on segment $k$ equals $D_kT_{L_k}D_k^{-1}$, a similarity,
+where $T_L$ is the $L\times L$ Toeplitz matrix with symbol $(\tau_h)$, which does not
+depend on the segment, and $D_k=\operatorname{diag}(e^{\pi\alpha^2\theta u^2})$.
+\end{lemma}
+\begin{proof}
+Inside a segment $n=h$ and $\beta_j=\beta_\ell+\theta h=\theta v-1/2$. By
+Lemma~\ref{lem:closed}, $X=h(h+2\theta v-1)$. Using $2hv=v^2-u^2+h^2$ gives
+$X=(1+\theta)h^2-h+\theta v^2-\theta u^2$, which is the stated factorisation.
+\end{proof}
+
+\begin{lemma}[Cross-wrap entries]\label{lem:cross}
+If $\ell,j$ lie in different segments then $|n|\ge|h|+1\ge2$ and
+$X_{\ell,j}\ge|n|(|n|-1)\ge2$. In particular every cross-segment entry is at most
+$e^{-2\pi\alpha^2}$. An entry exceeds $2^{-Q}$ only if $|n|(|n|-1)<Q/(\pi\alpha^2\log_2e)$.
+\end{lemma}
+\begin{proof}
+Crossing $k\ge1$ wrap steps adds $k$ to $|q_j-q_\ell|$ beyond $|h|$. Lemma~\ref{lem:closed}
+with $|\beta_j|\le1/2$ gives $X\ge|n|(|n|-1)$.
+\end{proof}
+
+The identities in Lemmas~\ref{lem:closed}--\ref{lem:cross} were checked in exact rational
+arithmetic for five $(s,t)$ pairs from $(113,128)$ to $(4093,4096)$, over three periods and $|j-\ell|\le30$:
+no mismatches, and the minimum cross-segment exponent was $228/113$ and $2020/1009$.
+
+\paragraph{Indexing.} Indices live in $\mathbb Z/s\mathbb Z$. Index $0$ has $\beta_0=0$, so it lies mid-segment, and one segment always crosses the period boundary; on tape it is stitched from the two line ends. Aliased terms $j+ms$ belong to $\Delta$, not to $M_k$. They matter only if one segment covers a whole period ($t-s=1$), which the parameters exclude.
+
+\section{Applying $N^{-1}$}
+
+Write $N=M+\Delta$ with $M=\bigoplus_kM_k$. Fix a target accuracy $2^{-Q}$ and drop
+entries of $\Delta$ below $2^{-Q-\log_2 s-4}$. By Lemma~\ref{lem:cross}, what remains of
+$\Delta$ sits in $w\times w$ corner blocks at each wrap, with
+\[
+ w\le1+\sqrt{Q/(4.53\,\alpha^2)} .
+\]
+
+\begin{proposition}[Segmented inverse]\label{prop:inverse}
+Assume $\|N-I\|<1/2$, which holds when $\alpha^2\theta\ge1$. Then $N^{-1}u$ can be computed
+to absolute error $2^{-Q}$, for $\|u\|\le1$, using
+\begin{enumerate}
+\item two applications of $M^{-1}$;
+\item per wrap, $O(w^3)$ arithmetic operations at precision $P$ to form and factor the
+capacitance block, and $O(w^2)$ to apply it;
+\end{enumerate}
+with working precision $P=Q+\lceil10.2\,\alpha^2/\theta\rceil+O(\log s)$ when whole segments are used as blocks. With the recentred sub-blocks of the last section, the reserve is at most $Q$ instead.
+Each application of $M^{-1}$ costs a constant number of chirped correlations of segment
+length, hence $O(P^{1+\delta})$ per output. The setup computes the Gohberg--Semencul
+vectors of $T_L$ and $T_{L+1}$ once per line, in $O(L^2)$ operations.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+\emph{Segment blocks.} $M_k$ is a principal submatrix of $N=I+E$, so
+$\|M_k-I\|\le\|E\|<1/2$ and $\|M_k^{-1}\|\le2$. Also
+$\|T_L-I\|\le\sum_{h\ne0}\tau_h<2e^{-\pi\alpha^2\theta}<0.1$, so $T_L$ is well conditioned
+and has a Gohberg--Semencul representation
+$T_L^{-1}=x_0^{-1}\bigl(L(x)U(y)-L(z)U(w)\bigr)$ with triangular Toeplitz factors.
+Applying $M_k^{-1}=D_kT_L^{-1}D_k^{-1}$ means: scale by
+$e^{-\pi\alpha^2\theta u^2}\le1$, perform four triangular Toeplitz products (correlations,
+evaluated as in the chirped-correlation lemma), then scale by
+$e^{\pi\alpha^2\theta v^2}\le e^{\pi\alpha^2\theta(L+1)^2}$. Since $L\le1/\theta+1$, the
+last factor is at most $2^{10.2\alpha^2/\theta}$ for $\theta\le1/4$ (and about $2^{4.53\alpha^2/\theta}$ as $\theta\to0$), and this is the precision
+reserve in $P$. The exact result has norm at most $2\|u\|$.
+
+\emph{Coupling.} Write $\Delta=UV^{\mathsf T}$, where $V$ selects the $2w$ columns
+around each wrap and $U$ holds the corresponding columns of $\Delta$. Woodbury gives
+\[
+ N^{-1}=M^{-1}-M^{-1}U\,C^{-1}V^{\mathsf T}M^{-1},\qquad C=I+V^{\mathsf T}M^{-1}U .
+\]
+$C$ is cyclic block tridiagonal with $2w\times2w$ blocks, because $M^{-1}$ is block diagonal, each block of $U$ touches the two segments adjacent to its wrap, and indices are taken modulo $s$. This needs $2w<L$, which holds for $d\ge3$. Solve it by bordered (cyclic) block elimination, still $O(w^3)$ per wrap, with one forward and one backward sweep. Its entries need only
+the corner entries of each $M_k^{-1}$. From the Gohberg--Semencul form, entry $(a,b)$ is a sum of $\min(a,b)+1$ products. For the bottom-right corner use persymmetry, $(T^{-1})_{L-1-a,L-1-b}=(T^{-1})_{b,a}$, so every corner entry costs $O(w)$, and $O(w^3)$ per wrap. Also
+$\|C-I\|\le\|M^{-1}\|\,\|\Delta\|\le4we^{-2\pi\alpha^2}$, so block elimination without
+pivoting is stable, at $O(w^3)$ per wrap.
+$V^{\mathsf T}M^{-1}u$ reads entries of the first $M^{-1}u$. The vector $Uz$ is supported
+near wraps, and the second $M^{-1}$ application handles it.
+\end{proof}
+
+\begin{remark}[Cost per output]
+Wraps have density $\theta$. Per output the coupling therefore costs
+$O(\theta w^3)$ operations at precision $P$.
+\end{remark}
+
+\section{Large coefficients}
+
+Split the inputs into $b'$-bit digits instead of $b=\lceil\log_2n\rceil$-bit digits, with
+$b'=\lceil b^{1+x}\rceil$ for a fixed $x>0$, and set $p=6b'$. Then $T\in[4n/b',8n/b')$,
+the volume is $Tp=\Theta(n)$, and the address length is $\log_2T=b-(1+x)\log_2b+O(1)$.
+Choose $d=\lfloor b^\epsilon\rfloor$ and $r$, $\ell$ from $T$ as before.
+The capacity bound becomes $c_j<2^{3b'}$, and the final error bound becomes
+\[
+ 2^{2b'+4}S\cdot28\cdot2^\gamma T^2L\cdot2^{-6b'}<448\,b'\,2^{-b'+\gamma}<\tfrac12
+ \quad\text{whenever }\gamma\le b'/4 .
+\]
+With $\alpha^2=\lfloor b'/(8d)\rfloor$ we have $\gamma=2d\alpha^2\le b'/4$, and with
+$\theta\approx1/(4dL^y)$, $\alpha^2\theta\ge b'/(32d^2L^y)\ge1$ once $2\epsilon+y<1+x$. All uses of
+$r\ge2^{a_rp/d}$ in the layer and transform proofs only need $r$ to outgrow every fixed
+power of $p$. Here $r=2^{\Theta(b^{1-\epsilon})}$ and $p=\Theta(b^{1+x})$, so that still holds.
+
+\paragraph{Cutoffs.} Every ``for large $L$'' in this note and in the stack notes is asymptotic only: with $\epsilon=0.9999$ the axis width is $\ell=L^{10^{-4}}$, and conditions such as $\ell-1>3G$ or $\lambda^2\le s/p$ hold only for astronomically large $L$. This is enough for the $O(\cdot)$ statement and gives no concrete range.
+
+\section{Gaussian row}
+
+With whole segments as blocks, $w^2=O(d)$ and the oversampling $\theta\approx1/(4d)$ give
+$\theta w^3=O(d^{1/2})$ coupling work per output. With the recentred sub-blocks and reduced
+oversampling of the next section, the coupling work is $O(1)$ per output. The Gaussian row is
+then $O(d\,p^\delta)$, with exponent $\epsilon+(1+x)\delta$ measured in powers of $\log n$. This
+is the row used in the certificate.
+
+\section{Sub-blocks with recentred chirps}
+
+\begin{lemma}[Recentred blocks]\label{lem:recentred}
+Let $\ell,j$ and a centre $c$ lie in one segment. Put $u=\ell-c$, $v=j-c$ and $h=j-\ell$. Then
+\[
+ X_{\ell,j}=\sigma h^2+2\beta_ch+\theta(v^2-u^2).
+\]
+Hence the principal block of $N$ on any run of consecutive indices inside a segment
+starting at $c$ equals $D_cT_cD_c^{-1}$, with $D_c=\operatorname{diag}(e^{\pi\alpha^2\theta u^2})$ and
+$T_c$ the Toeplitz matrix with symbol $e^{-\pi\alpha^2(\sigma h^2+2\beta_ch)}$.
+\end{lemma}
+\begin{proof}
+In a segment $\beta_\ell=\beta_c+\theta u$ and $\beta_j=\beta_c+\theta v$. Expand
+$X=(\sigma h+\beta_\ell)^2-\beta_j^2$, use $\sigma-\theta=1$ and $2hu=v^2-u^2-h^2$.
+\end{proof}
+This was checked in exact rational arithmetic for three centres per pair on all five test cases.
+
+\paragraph{One Toeplitz inverse serves all blocks.} For $b\in[-1/2,1/2]$ let $T^{(b)}$ be the
+$\lambda\times\lambda$ Toeplitz matrix with symbol $e^{-\pi\alpha^2(\sigma h^2+2bh)}$, so
+$T_c=T^{(\beta_c)}$ and $T_\lambda=T^{(-1/2)}$. With $\rho_c=e^{-\pi\alpha^2(2\beta_c+1)}\in(0,1]$
+and $G_c=\operatorname{diag}(\rho_c^{-i})$ we have $T_c=G_cT_\lambda G_c^{-1}$, so
+$(T_c^{-1})_{ab}=\rho_c^{\,b-a}(T_\lambda^{-1})_{ab}$.
+
+\begin{lemma}[Envelope]\label{lem:envelope}
+Let $|b|\le1/2$, $\alpha^2\ge4$, $\alpha^2\theta\ge1$, $\mu_\pm=e^{-\pi\alpha^2(\sigma\pm2b)}\le e^{-\pi\alpha^2\theta}$
+and $c_\pm=2\mu_\pm\le2e^{-\pi}$. Then
+$|(T^{(b)})^{-1}_{ij}|\le\mathcal E(j-i)$, where $\mathcal E(0)=1.12$,
+$\mathcal E(h)=2.0001\,c_+^{h}$ for $h>0$ and $\mathcal E(h)=2.0001\,c_-^{|h|}$ for $h<0$.
+\end{lemma}
+\begin{proof}
+$\|T^{(b)}-I\|_\infty\le\mu_++\mu_-+\sum_{|h|\ge2}e^{-\pi\alpha^2(\sigma h^2-|h|)}<0.087$, which gives
+the bound $1/(1-0.087)<1.12$ for every entry. For $h=j-i>0$ conjugate by $R=\operatorname{diag}(c_+^{\,i})$:
+$RT^{(b)}R^{-1}$ has entries $t_hc_+^{-h}$, whose off-diagonal row sums are at most
+$\tfrac12+\sum_{h\ge2}2^{-h}e^{-\pi\alpha^2\sigma h(h-1)}+\sum_{m\ge1}2^{m}e^{-\pi\alpha^2\sigma m(m+1)}<\tfrac12+10^{-10}$.
+So $\|(RT^{(b)}R^{-1})^{-1}\|_\infty<2.0001$ and $|(T^{(b)})^{-1}_{ij}|\le2.0001\,c_+^{h}$. The case
+$h<0$ is the same with $R=\operatorname{diag}(c_-^{-i})$.
+\end{proof}
+
+\emph{Gohberg--Semencul vectors.} Put $x_c=T_c^{-1}e_0$, $y_c=T_c^{-1}e_{\lambda-1}$, $J$ the
+reversal and $Z$ the down shift. Then
+$T_c^{-1}=x_{c,0}^{-1}\bigl(L(x_c)U(Jy_c)-L(Zy_c)U(ZJx_c)\bigr)$, with $x_{c,0}\in[0.9,1.1]$.
+Every entry of the four vectors is an entry of $T_c^{-1}$, so Lemma~\ref{lem:envelope} bounds it,
+and each triangular factor has $\infty$-norm at most $\sum_h\mathcal E(h)\le1.31$.
+The partial products need no cancellation: for all $a,b$,
+\[
+ \sum_k|x_{c,a-k}(Jy_c)_{b-k}|\le1.13\,\mathcal E(b-a),\qquad
+ \sum_k|(Zy_c)_{a-k}(ZJx_c)_{b-k}|\le4c_+c_-\,\mathcal E(b-a)\le16e^{-2\pi\alpha^2}\mathcal E(b-a),
+\]
+because the second sum is dominated by $|(T_c^{-1})_{a-1,\lambda-1}(T_c^{-1})_{\lambda-b,0}|$. So
+$L(Zy_c)U(ZJx_c)$ is a correction of relative size $e^{-2\pi\alpha^2}$ to $L(x_c)U(Jy_c)$, and both obey the envelope of $T_c^{-1}$ itself.
+
+\emph{Rescaling.} The vectors of $T_c$ are those of $T_\lambda$ rescaled by $G_c$ as whole
+\emph{columns}: $x_{c,i}=\rho_c^{-i}x_i$ and $y_{c,i}=\rho_c^{\lambda-1-i}y_i$. Conjugating each
+triangular factor by $G_c$ separately gives the same product, but moves a factor $\rho_c^{\mp\lambda}$
+into $L(Zy)$ and $U(ZJx)$. That factor is up to $2^{9.06\alpha^2\lambda}$, which a fixed-point
+correlation would have to carry as extra bits. Under the parameters of the last section
+$9.06\alpha^2\lambda\approx1.23\,QL^{y/2}$, which is not $O(p)$, so the column rescaling is required.
+
+\emph{Storage in two frames.} Store $x^+=(T^{(1/2)})^{-1}e_0$ and $y=T_\lambda^{-1}e_{\lambda-1}$,
+both bounded by Lemma~\ref{lem:envelope}, in fixed point with absolute precision $2^{-P}$. Then
+\[
+ x_{c,i}=r_c^{\,i}x^+_i,\quad r_c=e^{-\pi\alpha^2(1-2\beta_c)}\le1,\qquad
+ y_{c,i}=\rho_c^{\,\lambda-1-i}y_i,\quad\rho_c\le1 .
+\]
+Every rescaling factor is at most $1$, so it only contracts stored errors. Storing $T_\lambda$'s
+own $x$ in fixed point instead loses $\min(2^{-P},|x_i|)$, which $\rho_c^{-i}$ amplifies by up to
+$2^{9.06\alpha^2 i}$. Storing it in floating point avoids that loss, but the setup then needs absolute
+precision $P+9.06\alpha^2\lambda$.
+
+\emph{Error.} Form $r_c^{\,i}$ and $\rho_c^{\,i}$ by repeated multiplication in fixed point, so
+every vector entry has error at most $(\lambda+1)2^{-P}$. Let the four correlations round to
+$2^{-P}$. Then for $\|z\|_\infty\le1$, the computed $T_c^{-1}z$ is within
+$7(\lambda+1)^22^{-P}$. Applying $M_c^{-1}=D_cT_c^{-1}D_c^{-1}$ scales the input by
+$D_c^{-1}\le1$ and the output by at most $2^{R_D}$, with $R_D=4.53\,\alpha^2\theta(\lambda-1)^2\le Q$.
+The block error is therefore at most $7(\lambda+1)^22^{R_D-P}\|v\|_\infty$. Corner entries for
+the capacitance are single entries of the same form, with error at most $7(\lambda+1)2^{-P}$.
+Hence
+\[
+ P=2Q+2\log_2(\lambda+1)+\log_2s+8=O(p)
+\]
+suffices, with $\lambda=O(dL^{y/2})$ under the parameters of the last section.
+
+\paragraph{Cuts.} Cut every segment into near-equal blocks of length between $2w$ and
+$\lambda$, and treat each cut like a wrap.
+\begin{itemize}
+\item Coupling entries across a cut have $n=h$ and $X=h(h+2\beta_j)\ge|h|(|h|-1)$, which is
+at least $2\theta$ for $h=\pm1$. So they are at most $e^{-2\pi\alpha^2\theta}\le e^{-2\pi}$, and
+only entries with $|h|\le w$ matter.
+\item All block solves use principal blocks of $N=I+E$, hence $\|M^{-1}\|\le2$.
+\item With $\|\Delta\|\le e^{-2\pi\alpha^2\theta}+2.01e^{-2\pi\alpha^2}$, we get
+$\|C-I\|\le\|M^{-1}\|\|\Delta\|<0.005$. Also $C^{-1}=I-V^{\mathsf T}N^{-1}U$ gives
+$\|C^{-1}\|\le1+\|N^{-1}\|\|\Delta\|<1.01$.
+\item The capacitance is cyclic block tridiagonal, with one block per cut or wrap, because
+every block has length at least $2w$. Eliminate without pivoting.
+\end{itemize}
+
+\paragraph{Precision and cost.} Inside a block, the chirp $D_c$ spans at most
+$e^{\pi\alpha^2\theta\lambda^2}$, that is $4.53\,\alpha^2\theta\lambda^2$ bits. Choose
+\[
+ \lambda=\Bigl\lfloor\sqrt{Q/(4.53\,\alpha^2\theta)}\Bigr\rfloor,
+\]
+so that the $D_c$ precision reserve is at most $Q$. The working precision is $P=2Q+O(\log s)=O(p)$. Couplings occur with density
+$1/\lambda+\theta$ per output, each costing $O(w^3)$ with $w^2=O(Q/\alpha^2)$.
+
+\paragraph{Replaced hypothesis.} Upstream's resampling lemma assumes $\theta>p/\alpha^4$, which is used only
+to get $\alpha^2\theta>1$ and to bound its Neumann count. Here the Neumann series is gone, so that
+hypothesis is replaced by $\alpha^2\theta\ge1$. PR~\#5's lemmas, which assume the hypotheses of the
+upstream lemma, are used under this replacement. Every remaining use of $\alpha^2\theta\ge1$ is
+$\|N-I\|<2.01e^{-\pi\alpha^2\theta/2}<0.42$.
+
+\paragraph{Reduced oversampling.} Take $\theta_i\approx\eta=1/(4dL^y)$ in prime selection
+(Section~1 of the stack notes), so the padding factor is $\prod_i(1+\theta_i)=1+o(1)$.
+Take $\alpha^2=\lfloor Q/(48d)\rfloor$ with $Q=\Theta(p)$. Then $\gamma=2d\alpha^2\le b'/4$, and
+$\alpha^2\theta\ge1$ once $Q\ge192\,d^2L^y$, which holds when $2\epsilon+y<1+x$. This gives
+$w^2=O(d)$ and $\lambda=\Theta(dL^{y/2})$, so the coupling costs
+$O(w^3(1/\lambda+\theta))=O(d^{1/2}L^{-y/2}+d^{1/2}L^{-y})=O(1)$ per output for $y=\epsilon$.
+Including the $O(1)$ chirped correlations, each axis costs $O(p^{1+\delta})$ per output. The
+Gaussian row is therefore $O(d\,p^\delta)$: exponent $\epsilon+(1+x)\delta$.
+
+
+\paragraph{Tape schedule and setup.} Process one line in increasing index order.
+\begin{itemize}
+\item For each block, compute $\beta_c$ from the counters that already generate $q_j$, in $O(p)$
+time.
+\item Form $r_c^{\,i}$ and $\rho_c^{\,i}$ for $0\le i\le\lambda$ by repeated multiplication in
+fixed point at precision $P$. Both are at most $1$. That is $2\lambda$ products, so
+$O(P^{1+\delta})$ per output.
+\item Rescale the two stored vectors $x^+$ and $y$ into the four Gohberg--Semencul vectors of
+$T_c$, and apply the four triangular Toeplitz products as correlations of length $\lambda$ in
+fixed point. Each block uses the packed multiplication of the chirped-correlation lemma, at
+$O(\lambda P^{1+\delta})$ per block.
+\item Write the block's corner entries ($O(w^2)$ numbers) to a capacitance tape in index order.
+\item The cyclic block-tridiagonal solve makes one forward sweep and one backward sweep over
+that tape, reading fixed-width records in each direction. The single cyclic border is carried
+on a separate work tape.
+\item A second pass applies $M^{-1}$ to $Uz$, which is supported near cuts and wraps, and then
+subtracts.
+\end{itemize}
+All passes move the line tape $O(1)$ times, so the line costs $O(sP)$ in movement. Arithmetic
+costs $O(s(1+w^3(1/\lambda+\theta))P^{1+\delta})$. Setup solves $T^{(1/2)}x^+=e_0$ and
+$T_\lambda y=e_{\lambda-1}$, and the same for $\lambda'$ (the final short block of each segment),
+once per line at precision $P+O(\log\lambda)$. The Neumann iteration $x\leftarrow e+(I-T)x$
+contracts by $0.087$ per step, so $O(P)$ steps of $O(\lambda^2)$ operations suffice, in
+$O(\lambda^2P^{2+\delta})$. This is negligible when $\lambda^2P\le s$, which holds for large $L$.
+No step needs more than $P$ bits.
+
+
+\paragraph{Numerical check.} \texttt{scripts/check\_subblock\_inverse.py} cuts the
+segments of the $(60,67)$, $\alpha^2=9$ instance into blocks of length $2$ and $3$, solves each
+block by its own recentred Toeplitz system at $120$ digits, couples all cuts and wraps by
+Woodbury, and matches the direct solve to $3\cdot10^{-64}$, against a target of $2^{-200}$.
+\texttt{scripts/check\_reuse\_inverse.py} checks a dense stored inverse of $T_\lambda$ rescaled per block, with a fixed-point negative control. \texttt{scripts/check\_gs\_path.py} tests this path itself: two stored vectors per block
+length in fixed point, contracting rescales, four fixed-point triangular products per block,
+and Woodbury coupling. On $(241,256)$ with $\alpha^2=17,24$ and $(113,128)$ with $\alpha^2=8$, at
+$P=Q+R_D+2\log_2\lambda+8$ bits, it matches the direct solve to $2.1\cdot10^{-49}$,
+$3.6\cdot10^{-50}$ and $2.8\cdot10^{-35}$, against targets $7.0\cdot10^{-46}$ and $7.9\cdot10^{-31}$.
+It fails as predicted in two negative controls. Dropping the reserve $R_D$ from $P$ gives
+errors of $10^{-26}$ to $1$. Storing $T_\lambda$'s vectors in fixed point gives
+$4.7\cdot10^{-10}$ and $1.1\cdot10^{-13}$ on $(241,256)$.
+
+\end{document}
