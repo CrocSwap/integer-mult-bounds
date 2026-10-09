@@ -50,6 +50,5 @@ if __name__ == '__main__':
         out = a.work_dir/f'links-{h}.uses'
         out.write_bytes(struct.pack('<2I', n, len(sel))+b''.join(struct.pack('<2I', x, e) for x, e in sel))
         pin = HERE/f'links-{h}.uses'
-        same = pin.exists() and sorted(struct.unpack_from('<2I', out.read_bytes(), 8+8*i) for i in range(len(sel))) == \
-               sorted(struct.unpack_from('<2I', pin.read_bytes(), 8+8*i) for i in range(len(sel)))
+        same = pin.exists() and len(pin.read_bytes()) == len(out.read_bytes()) and sorted(struct.unpack_from('<2I', out.read_bytes(), 8+8*i) for i in range(len(sel))) == sorted(struct.unpack_from('<2I', pin.read_bytes(), 8+8*i) for i in range(len(sel)))
         print(f'h={h} matched {len(sel)}; equals pinned links: {same}')
