@@ -1,0 +1,111 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{Deferred readouts in the two-stage bit interchange}
+\date{Draft, October 9, 2026}
+\begin{document}
+\maketitle
+
+This note describes the round-seven bit side. It keeps the round-six interchange (flag basis, retained point totals
+with copied centres, side roles batched one level down, data-entrance run) and changes three things: the side
+program comes from PR~\#62's producer, its frames are lifted and its fan-out copies are made late, and the stage-one
+word is reordered so that most slots read their garbage out at a nonzero frame. All objects are frozen in
+\texttt{certificates/round7/}; \texttt{scripts/certificate\_round7.py} rebuilds the child-width histogram from the
+schedule, and the checks in \texttt{independent/deferred-readout/} verify every fact used below. Throughout, $h=23$,
+$m=h^2$, $v=\binom h3$, $N=v^2$, $G=I-J/9$, and for a triple $T$ the root frame of the output wire $y_T$ is
+$t_T^\perp=\ker\,(9t_T-3\mathbf 1)^{\mathsf T}$; the frame of a retained total of $c$ is $U_c=\ker(\mathbf 1-3e_c)^{\mathsf T}$.
+
+\section{The side program: PR \#62's producer}
+The side DAG has the $v$ triples as leaves and disjoint additions as nodes; its roots are the $3v$ outputs
+$\mathrm{out}(c,T)=\{S: S\cap T=\{c\}\}$ and the $h$ retained totals $\mathrm{star}(c)$. We build it with PR~\#62's
+producer (ikeboy): interval strips and core-aware pair assembly, with PR~\#41's alternating order and links
+(RaD/hipotures), and links chosen by a moment-weighted matching in the spirit of PR~\#44 (rohanarun). A link hands the
+non-pivot slot of a donor gate to a later use of the same value, so the number of slots is
+$R=\#\text{additions}+3v+h-\#\text{links}=28866$. Only the DAG enters the certificate, and it is checked from the
+definitions: every addition is disjoint, every output and total has the support above, and every node is reachable
+from a root (\texttt{check\_lifted.py}, part~A; \texttt{check\_word.py}, part~A).
+
+\section{Lifted frames and late copies}
+For an addition $n$ let $U_n$ be the common kernel of the root covectors reachable from $n$ and $F_j$ the span of
+the first $j$ rows of a fixed integer flag matrix. The gate of $n$ acts at
+\[ M_n=\operatorname{span}(n)+(U_n\cap F_{j(n)}), \]
+with a lift index $j(n)$ per addition. This is Paureel's complement-frame construction: it is valid for any frames
+with (H1) leaf frames $\langle t_S\rangle$, (H2) frames nested along every slot (DAG edges, links, copies),
+(H3) roots inside $t_T^\perp$ or $U_c$, (H4) $G$ nondegenerate on every frame. Nesting is a theorem given
+$j(n)\le j(t)$ on every slot successor pair, $\operatorname{span}(x)\le\operatorname{span}(t)$ on every link and
+$\operatorname{span}(n)$ inside every root it reaches directly; then $U_n\le U_t$ and $M_n\le M_t$. In this witness
+every lifted frame equals $U_n$. Dimensions are exact (modular law, ranks with Hadamard certificates or Bareiss).
+
+\paragraph{Late copies.} A node with several free uses is copied for each of them. A copy made early sits at $M_n$;
+a \emph{late} copy for the user $\ell_i$ of an ordered list $\ell_1,\dots,\ell_k$ is made when the pivot has climbed to
+\[ C_i=\textstyle\bigcap_{i'\ge i} M(\ell_{i'}), \qquad M_n\le C_1\le\dots\le C_{k-1}\le M(\ell_k), \]
+and starts there, so the copy saves the rank $\dim C_i-\dim M_n$. Each copy is placed as late as possible (before its
+user's gate, the pivot's next gate and the next copy). The intersections are needed: without them consecutive pivot
+frames are not nested (1396 of 1396), and a copy moved after the pivot's next gate breaks the replay.
+
+\section{The B-defer word}
+In stage one each slot $u$ starts with its garbage $z_u$, and the word reads it out of every target it reaches:
+$y_T\mathrel{-}=C_{T,u}z_u$, where $C=JL$ is given by the transpose sweep of $L$. In rounds five and six all these
+readouts happen at frame $0$, before the second pass. B-defer splits the second pass in two phases.
+
+\begin{itemize}
+\item \emph{Phase 1} is the closure of the retained totals' last operations under per-slot sequence precedence: every
+  op that must precede a total's completion. The totals complete, and their copies read every target containing
+  their centre at $0$ (copied centres, as in round six).
+\item A slot that phase 1 neither reads nor writes still holds its garbage after phase 1. It reads it out
+  \emph{now}, at a frame $\sigma_u\le F_0(u)\cap\bigcap_{T}t_T^\perp$ (over its targets $T$), then the rest of $L$ runs,
+  then the output reads at $t_T^\perp$, then $L^{-1}$ and $V^{-1}$ exactly mirror it.
+\end{itemize}
+Only the topological order of the word changes, so it is still a mirror and still restores arbitrary scratch. The
+slot's chain now starts at $\sigma_u$: its corner has rank $r_u=h-\dim\sigma_u$ and its auxiliary edge rank $m-r_u$.
+
+\paragraph{The sorting rule.} On a target $y_T$ the readout frames, in time order, are $0$ (non-deferred slots and
+centre copies), the deferred $\sigma_u$, and $t_T^\perp$; they must form a chain. The word reads the deferred slots
+in increasing $\dim\sigma_u$, and applies the deferred $V$ gates (below) in increasing $\dim F_0$. With this rule
+every $y_T$ sequence is nested in time order, exactly over $\mathbb Q$, for both the $\mathbb Z$ and the
+$\mathbb F_2$ supports of $C$; the reversed order breaks 11879 chains.
+
+\section{V leaves as late copies on $X_S$}
+A leaf $S$ is used by several gates. Instead of copying $x_S$ by fan-out, every use $i$ gets its own $V$ gate on the
+data wire $X_S$, into a slot that starts at
+\[ s_i=N_i\cap N_{i+1}\cap\cdots \qquad(\text{falling back to }\langle t_S\rangle\text{ if $G$ is degenerate on it}), \]
+where $N_j$ is the first frame of use $j$. The $V$ gates are then late copies on $X_S$: its frame chain
+$\langle t_S\rangle\le s_{i_1}\le s_{i_2}\le\dots\le F$ has total rank $h-1$, as before, and the use slots start at
+$s_i$ instead of $\langle t_S\rangle$. The $V$ gates of deferred slots come after their readouts; in time the $X_S$ chain
+is $\langle t_S\rangle$, the early $V$ frames (by dimension), the deferred $V$ frames (by the rule above), $F$, and it
+is checked nested exactly in that order. The number of slots is unchanged.
+
+\section{What the certificate uses}
+\paragraph{Only the $\mathbb F_2$ flag identity.} The bit network is used over $\mathbb F_2$: the word must add exactly
+$x_T$ to every $y_T$ and restore every slot, for arbitrary scratch. The replay checks this over $\mathbb F_2$ with
+the parity coefficients (the actual circuit) and, separately, over $\mathbb Z$ with the exact path-count
+coefficients; the histogram and $a_b$ are the same with either support.
+
+\paragraph{The stage-two complement.} Stage two is the complement time-reversal of stage one, with the same edge
+multiset. This is the same assumption as in round six; it is stated, not machine-checked here.
+
+\paragraph{Frames and genericity.} Every $\sigma_u$ and $s_i$ is a primitive integer basis (entries at most 13).
+Exactly over $\mathbb Q$: $\sigma_u\le F_0(u)$, $\sigma_u\le t_T^\perp$, $t_S\le s_i\le N_i$, $G$ nondegenerate. Every
+high-rank step ($2r>h$) that the reordered word adds (slot starts, gauged corners $\sigma_u\to F$, $y_T$ and $X_S$
+chain steps) has the generic north-east pivots under both conjugations at the integer point of
+\texttt{check\_lifted.py}, so the side lemma batches it.
+
+\section{Accounting}
+Per stage and invocation: every slot contributes its auxiliary edge (block $m-2r_u$) and its corner, both batched
+by the inner lemma, and its chain steps; every centre copy its step $U_c\to0$ of rank $h-1$; every $y_T$ and every
+$X_S$ its chain of total rank $h-1$; the data entrance its block $m-4h+2$ and corner; one copy-correction singleton per
+pair. The rank sum is exactly $s=Wm-N+L$ with $W=2N+2vR$, $L=2vh(h-1)$, so the histogram re-partitions the round-six
+budget. The moment certificate gives
+\begin{align*}
+ a_b&=31987/(5\cdot10^8) &&\text{(staircase entrance corner, runs $h-2,h-5,1^6$)},\\
+ a_b&=12599/(2\cdot10^8) &&\text{(round-six entrance corner)},
+\end{align*}
+and with round six's complex interchange ($a_c=36926111/(5\cdot10^{11})$, $h=24$) the assembly gives
+$\kappa=1599247689723/(2.5\cdot10^{16})\approx6.39699\times10^{-5}$ with the staircase corner and
+$\kappa=6299103187973/10^{17}$ with the round-six corner. The staircase corner is certified by
+\texttt{check\_stair.py} at the same integer point; the entrance edge is not changed by the reordering.
+
+\end{document}
+
