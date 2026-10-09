@@ -1,0 +1,65 @@
+name: Fixed prime finite bootstrap
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  exact-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        python: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CrocSwap/integer-mult-bounds
+          ref: af3fe331ca60c936229e060681ffccbc1c208678
+          path: .prerequisite
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CrocSwap/integer-mult-bounds
+          ref: a8b0ce212bc9f09353a8161bf8a5cee9cefd600c
+          path: .banks
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r research/fixed-prime-bootstrap/requirements.txt
+      - run: python -B research/fixed-prime-bootstrap/verify.py --parent-root .prerequisite --banks-root .banks
+      - run: make paired-cube-verify
+      - run: git diff --exit-code
+      - run: git -C .prerequisite diff --exit-code
+      - run: git -C .banks diff --exit-code
+  prime-kernel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install the fixed Lean release in runner temporary storage
+        run: |
+          python -m pip install zstandard==0.25.0
+          curl -fsSL https://github.com/leanprover/lean4/releases/download/v4.24.0/lean-4.24.0-linux.tar.zst -o "$RUNNER_TEMP/lean.tar.zst"
+          python - <<'PY'
+          import hashlib,os,tarfile,zstandard
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])
+          expected='b14f5e5159219dd1a1956c3b806813319f5e94ccd5bdfd56f54520609a5bb5ec'
+          assert hashlib.sha256((root/'lean.tar.zst').read_bytes()).hexdigest()==expected
+          with (root/'lean.tar.zst').open('rb') as f:
+              with zstandard.ZstdDecompressor().stream_reader(f) as reader:
+                  with tarfile.open(fileobj=reader,mode='r|') as archive:
+                      archive.extractall(root,filter='data')
+          PY
+          echo "$RUNNER_TEMP/lean-4.24.0-linux/bin" >> "$GITHUB_PATH"
+      - name: Kernel-check the prime in a separate project copy
+        env:
+          MATHLIB_CACHE_DIR: ${{ runner.temp }}/mathlib-cache
+        run: |
+          cp -R research/fixed-prime-bootstrap "$RUNNER_TEMP/prime-proof"
+          cd "$RUNNER_TEMP/prime-proof"
+          lake update
+          lake exe cache get Mathlib.NumberTheory.LucasLehmer
+          lake env lean Prime.lean
