@@ -167,3 +167,22 @@ def run(context):
  raw=dict(schema='source527-fresh-raw-ledger/1',source_head=context.get('source_head','source527'),h=h,v=v,physical_R=R,source_aliases=len(m.borrow),terminal_sinks=len(m.terminal),physical_donor_recipient_identifications=len(W.pairs),physical_internal_excluding_center_copies=compact(withoutcopies),paid_center_copy_histogram=compact(copies),physical_source_histogram=compact(sources),physical_target_histogram=compact(target),one_stage_helper_histogram_including_copies=compact(helper),auxiliary_entrance_rank_histogram=compact(gauges),auxiliary_entrance_count=sum(gauges.values()),helper_rank_mass=sum(k*n for k,n in helper.items()),five_stage_profile=dict(m=M,W=stock,histogram=compact(five),idle_histogram=compact(idle),calls=sum(five.values()),rank_mass=mass,deficit=M*stock-mass,maxchild=max(five)),source_aux_paths=count,target_paths=1760,extra_source_paths=len(sourcepaths),paired_dirty_paths=len(dirtypaths),all_reflected_ledgers=True,all_zero_response_relations=True,scope='Fresh complete source527 raw physical source/internal/target and copied-center ledger. Both reflected chains checked; no saved execution receipt consumed.')
  assert raw['five_stage_profile']['calls']==494994 and mass==2830840
  return raw
+
+def rebind_parity(raw,receipt):
+ """Bind the fresh required-use census to the retained producer source ledger."""
+ from copy import deepcopy
+ def hist(x):return Counter({int(r):n for r,n in x.items()if n})
+ assert receipt['status']=='PASS_FRESH_PARITY_FUSION_AND_INDEPENDENT_REQUIRED_FRAME_CENSUS'
+ assert receipt['both_reflected_ledgers']and receipt['unchanged_all_input_output_frames']
+ source=hist(receipt['source_histogram']);target=hist(receipt['target_histogram']);internal=hist(receipt['internal_histogram_including_copies']);copies=hist(receipt['copied_center_histogram'])
+ assert source==hist(raw['physical_source_histogram'])
+ assert internal==hist(raw['physical_internal_excluding_center_copies'])+copies
+ delta=target.copy();delta.subtract(hist(raw['physical_target_histogram']));assert {r:n for r,n in delta.items()if n}=={8:-3,12:-3,20:3}
+ producer=deepcopy(raw);helper=source+target+internal;five=Counter({r:5*n for r,n in helper.items()});five.update(hist(raw['five_stage_profile']['idle_histogram']))
+ for a,n in hist(raw['auxiliary_entrance_rank_histogram']).items():five[5*a]+=n
+ assert sum(five.values())==494979 and sum(r*n for r,n in five.items())==2830840
+ raw['schema']='source527-parity-fused-fresh-raw-ledger/1';raw['producer_ledger']=producer
+ raw['physical_target_histogram']={str(r):n for r,n in sorted(target.items())};raw['one_stage_helper_histogram_including_copies']={str(r):n for r,n in sorted(helper.items())}
+ raw['five_stage_profile'].update(histogram={str(r):n for r,n in sorted(five.items())},calls=sum(five.values()))
+ raw['parity_transform']=receipt;raw['scope']='Fresh retained source527 producer ledger plus independently rebuilt actual surviving-use ledger after F2 payload identity elision and same-stream nested MOVE fusion. Both reflected endpoint inclusions checked. No address arithmetic reduced modulo2.'
+ return raw

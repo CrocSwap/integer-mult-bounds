@@ -5,7 +5,7 @@ and freshly emitted local physical records. Assisted with ChatGPT.
 from collections import Counter
 import hashlib,json,time
 
-EXPECTED_EVENT='b266e69af903698cd8c10d8928525d5e9a3ef6241a44924801cf1d275038cf34'
+EXPECTED_EVENT='aeeb17ee9162b8f6469e7205c2cb2abdd1a383e1b4876a68d791d26382160ded'
 
 
 def events(records,reverse=False):
@@ -27,19 +27,20 @@ def events(records,reverse=False):
     assert center is None
 
 
-def replay_projection(records,reverse=False):
+def replay_projection(records,reverse=False,omit_event=None):
     n=20107;v=1760
     columns=[1<<i for i in range(n)];norms=[1]*n
     wanted=columns[:]
     for i in range(v):wanted[v+i]^=1<<i
     largest=1;counts=Counter();digest=hashlib.sha256();count=0
-    for a,b,c in events(records,reverse):
+    for event_index,(a,b,c) in enumerate(events(records,reverse)):
+        if event_index==omit_event:continue
         if c&1:columns[a]^=columns[b]
         norms[a]+=abs(c)*norms[b];largest=max(largest,norms[a])
         counts[abs(c)]+=1
         digest.update(json.dumps([a,b,c],separators=(',',':')).encode());digest.update(b'\n');count+=1
     assert columns==wanted,'independent literal all-column endpoint'
-    assert count==2569817 and counts=={1:785301,2:1783196,3:1320}
+    assert count==786621 and counts=={1:785301,3:1320}
     if not reverse:assert digest.hexdigest()==EXPECTED_EVENT
     return dict(all_formal_columns=n,all_source_and_dirty_restored=True,
                 arbitrary_target_contents_preserved=True,
@@ -59,7 +60,10 @@ def run(context,records,progress=lambda text:None):
     exact=ns['replay']('F2');assert exact['formal_columns']==20107 and exact['all_targets']and exact['all_source_and_dirty_restored']
     progress('Checking independent literal physical projection and inverse')
     forward=replay_projection(records);inverse=replay_projection(records,True)
-    assert forward['max_intermediate_row_l1']==64360 and inverse['max_intermediate_row_l1']==9747166
+    assert forward['max_intermediate_row_l1']==37631 and inverse['max_intermediate_row_l1']==3295796
+    try:replay_projection(records,omit_event=786620)
+    except AssertionError:filtered_control='omitted surviving odd payload ADD rejected'
+    else:raise AssertionError('filtered odd payload omission accepted')
     bound=ns['replay']('bound');bits=8*((bound.bit_length()+2+7)//8);assert 1<<bits>2*bound
     progress('Checking the signed integer source decoder and dirty restoration')
     integer=[]
@@ -69,4 +73,4 @@ def run(context,records,progress=lambda text:None):
         try:ns['replay']('Z'if mutation in('flip_echelon_sign','wrong_pair_restore_sign','wrong_sparse_sign')else'F2',bits=bits,mutation=mutation)
         except AssertionError as error:controls[mutation]=dict(rejected=True,reason=str(error))
         else:raise AssertionError('invalid source mutation accepted: '+mutation)
-    return dict(status='PASS_FRESH527_F2_SIGNED_DECODER_INDEPENDENT_INVERSE_AND_25_CONTROLS',F2=exact,integer=integer,majorant=dict(residual_bound=bound,packing_bits=bits),forward=forward,inverse=inverse,controls=controls,source_sha256=hashlib.sha256(source.encode()).hexdigest(),seconds=time.monotonic()-started,scope='Fresh source527 F2 all-column supplier and both signed defining integer decoders, independently projected literal word/inverse majorants. Five-stage signed lift uses the literal primitive inverse; the F2 endpoint specifies its supplier property.')
+    return dict(status='PASS_FRESH527_PRODUCER_SIGNED_DECODER_AND_PARITY_FUSED_F2_INVERSE_AND_CONTROLS',filtered_control=filtered_control,F2=exact,integer=integer,majorant=dict(residual_bound=bound,packing_bits=bits),forward=forward,inverse=inverse,controls=controls,source_sha256=hashlib.sha256(source.encode()).hexdigest(),seconds=time.monotonic()-started,scope='The unchanged source527 producer retains both signed defining-integer decoder proofs and25controls. The emitted parity-filtered word is independently checked on all20107formal F2columns and literalreverse, with its own cancellation-free signed-lift prefix bounds. Its integer endpoint is not asserted equal to the producer decoder; F2payload identity supplies the bit contract. Odd-prime address arithmetic is unchanged.')

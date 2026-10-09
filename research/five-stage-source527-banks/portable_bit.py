@@ -29,7 +29,10 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  if raw is None:raw=load('portable527_raw_ledger',package/'raw_ledger.py').run(prepared_context)
  physical_module=load('portable527_physical',package/'code/physical527.py');global_module=load('portable527_global',package/'code/global_lowering.py')
  context=dict(prepared_context);source=context['SOURCE_TEXT']
- physical_run=physical_module.run(context,source,output_dir=output_dir)
+ producer_output=Path(output_dir)/'producer-bit' if output_dir is not None else None
+ producer=physical_module.run(context,source,output_dir=producer_output)
+ physical_run=load('portable527_parity',package/'parity_transform.py').run(producer,output_dir=output_dir)
+ raw=load('portable527_parity_raw',package/'raw_ledger.py').rebind_parity(raw,physical_run['parity_census'])
  physical=physical_run['physical'];physical['source_head']=raw['source_head']
  assert physical['source_heads']==raw['source_aliases']and physical['independent_dirty_registers']==raw['physical_R']
  assert physical['paid_histogram']=={int(k):v for k,v in raw['one_stage_helper_histogram_including_copies'].items()}
@@ -44,7 +47,7 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  result=dict(context=context,W=context['W'],C=context['C'],records=physical_run['records'],lower=lower,raw=raw,physical=physical,global_result=global_result,geometry=geometry,phase_major_schedule=phases,scalar_observer_result=physical_run['scalar_result'],seconds=time.monotonic()-begun)
  if output_dir is not None:
   out=Path(output_dir);out.mkdir(parents=True,exist_ok=True)
-  for name in('physical','global_result','geometry'):
+  for name in('physical','global_result','geometry','raw'):
    if result[name]is not None:(out/(name+'.json')).write_text(json.dumps(result[name],indent=2)+'\n')
  return result
 

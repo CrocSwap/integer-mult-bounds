@@ -1,8 +1,10 @@
-κ = 7.10046193349537e-4
+κ = 7.10069340338651e-4
 
-# Source527 five-stage completed banks
+# Parity-fused source527 five-stage completed banks
 
-A conditional finite construction with **κ ≈ 7.10046193349537 × 10⁻⁴**. The package combines a source527 helper with PR234's five-stage cover and a concrete stage-private width-120 bank allocation. See `PR-STATEMENT.md` for the result and attribution, `PROOF.md` for the verification chain and inherited assumptions, and the retained upstream notices for the full lineage.
+This version removes 1,783,196 even-coefficient F₂ payload additions and combines three now-adjacent target movements. It retains the complete source527 producer and bank construction.
+
+A conditional finite construction with **κ ≈ 7.10069340338651 × 10⁻⁴**. The package combines a source527 helper with PR234's five-stage cover and a concrete stage-private width-120 bank allocation. See `PR-STATEMENT.md` for the result and attribution, `PROOF.md` for the verification chain and inherited assumptions, and the retained upstream notices for the full lineage.
 
 Run with Python 3.11+ and assertions enabled:
 
