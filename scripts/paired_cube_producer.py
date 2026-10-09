@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 import sys
 from paired_cube.graph import Graph
-from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one, restricted_triples_from, restricted_pairs_from, pair_module_from, all_but_one_from, merge_outputs
+from paired_cube.modules import restricted_pairs, restricted_triples, all_but_one, restricted_triples_from, restricted_pairs_from, pair_module_from, all_but_one_from, triple_module_from, merge_outputs
 from paired_cube.closure import compile_closure
 from paired_cube.gauges import select
 from paired_cube.verify import verify
@@ -36,7 +36,7 @@ def regenerate(expected,work=None):
     src=ROOT/'references/paired-cube/sources'
     srcpin=json.loads((src/'SOURCE.json').read_text())['files']
     for name,digest in srcpin.items():assert hashlib.sha256((src/name).read_bytes()).hexdigest()==digest
-    _G=Graph(11);g=_G.finish(restricted_triples_from(src/'h20_g1.json.gz',[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 16]),pair_module_from(src/'pmod_G37_w02_5.6098194e-4.json',10),all_but_one_from(src/'qmod_nested_prefix.json',9));g=merge_outputs(g,_G,'w02')
+    _G=Graph(11,local=json.loads((src/'local_L1.json').read_text()));g=_G.finish(triple_module_from(src/'tmod_TA24snap2_L1f8_5.9580885e-4.json',11),pair_module_from(src/'pmod_H56snap_w02_5.6251423e-4.json',10),all_but_one_from(src/'qmod_anneal_best01.json',9));g=merge_outputs(g,_G,'f8:00111100')
     g['matching_frames']='coordinate'
     binding={k:g[k] for k in ('inputs','labels','args','signs','roots','centers')}
     assert hashlib.sha256(json.dumps(binding,separators=(',',':')).encode()).hexdigest()==pin['graph_sha256']

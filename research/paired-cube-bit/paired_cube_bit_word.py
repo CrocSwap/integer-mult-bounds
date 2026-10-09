@@ -10,6 +10,8 @@ Payload F2. Mod-2 decoder, for every target T:
         + partner        x_{T'}, T' = T with the selectors of cube pairs 1,2 flipped (single-source root)
         + partner-pair sum of the opposite pair of T's parity class, mixed on two SOURCE registers and
           delivered at the shared cap of {T, T'} (no auxiliary role).
+At p = 12 each cube merges its face-1 and edge-01 outputs into u(b0,b1) and its face-2 and edge-02 outputs into
+w(b0,b2) (variant u); each merged node is read by two single roots and the mod-2 sums are unchanged.
 Compiler: the PR #144 frames.py/gauges.py ledger on rational frames (target cap ker(3 chi_T - 1), centre frame =
 span of the star), coordinate-padded maximum carrier matching (frozen arcs), plain frames span(n) for additions of
 span dimension <= PLAIN (closed under operands; a linked donor's span must lie in the plain target), PR #144
@@ -215,7 +217,7 @@ class BitGraph:
                     ids = [edges[(ii, jj, a, b) if ii < jj else (jj, ii, b, a)] for b in range(2)]
                     self.A[I, I[ii], a] = self.add(*ids)
 
-    def finish(self, pair, allbut):
+    def finish(self, pair, allbut, merge=False):
         p = self.p
         self.local_channels()
         Pm, Qm = {}, {}
@@ -239,11 +241,20 @@ class BitGraph:
             for a in range(2):
                 for m12 in range(2):
                     emit(I, [b for b in allb if b[0] == a and (b[1] ^ b[2]) == m12], Qm[I, I[1], I[2], 1 - m12], 'edge12')
+            if merge:
+                # variant u output merge (eumemic, Claude assistance): u(b0,b1) = face1 + edge01 and
+                # w(b0,b2) = face2 + edge02, each read by two single roots, replace the four single reads
+                u = {(b0, b1): self.add(Pm[I, I[1], b1], Qm[I, I[0], I[1], 1 - (b0 ^ b1)]) for b0 in range(2) for b1 in range(2)}
+                w = {(b0, b2): self.add(Pm[I, I[2], b2], Qm[I, I[0], I[2], 1 - (b0 ^ b2)]) for b0 in range(2) for b2 in range(2)}
             for b in allb:
-                emit(I, [b], Pm[I, I[1], b[1]], 'face1')
-                emit(I, [b], Qm[I, I[0], I[1], 1 - (b[0] ^ b[1])], 'edge01')
-                emit(I, [b], Pm[I, I[2], b[2]], 'face2')
-                emit(I, [b], Qm[I, I[0], I[2], 1 - (b[0] ^ b[2])], 'edge02')
+                if merge:
+                    emit(I, [b], u[b[0], b[1]], 'u01')
+                    emit(I, [b], w[b[0], b[2]], 'w02')
+                else:
+                    emit(I, [b], Pm[I, I[1], b[1]], 'face1')
+                    emit(I, [b], Qm[I, I[0], I[1], 1 - (b[0] ^ b[1])], 'edge01')
+                    emit(I, [b], Pm[I, I[2], b[2]], 'face2')
+                    emit(I, [b], Qm[I, I[0], I[2], 1 - (b[0] ^ b[2])], 'edge02')
                 emit(I, [b], self.source[I, (b[0], 1 - b[1], 1 - b[2])], 'partner')
             # partner-pair source mixing: in each parity class the pair with selector a on cube pair 0
             # (carrier = smaller bits, passive = its partner) is delivered to the opposite pair of the class.
@@ -700,7 +711,7 @@ def dumps(obj):
 def build(p, frozen_arcs=None, log=print):
     mod = json.loads((HERE / 'data' / MODULES[p]).read_text())
     abo = nested_prefix(p - 2) if p == 12 else all_but_one(p - 2)
-    g = BitGraph(p).finish(mod, abo)
+    g = BitGraph(p).finish(mod, abo, merge=p == 12)
     require(check_decoder(g) == 0, 'mod-2 decoder identity')
     t0 = time.time()
     prof, wit = compile_word(g, frozen=frozen_arcs)

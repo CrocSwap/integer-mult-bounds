@@ -225,6 +225,29 @@ def pair_module_from(path, n):
                 source='Direct pair module JSON; contract checked above')
 
 
+# ---- Direct triple-module source (TMOD lane; eumemic, Claude assistance; Apache-2.0).
+def triple_module_from(path, p):
+    """One-based disjoint-triples module given as JSON (the layout of restricted_triples(p)); same contract:
+    additions combine disjoint supports and the root indexed by J sums input I exactly when I and J are disjoint."""
+    d = json.loads(Path(path).read_text())
+    labels = list(combinations(range(p), 3))
+    assert d['input_count'] == len(labels) == len(d['roots'])
+    assert [tuple(x) for x in d['input_labels']] == labels == [tuple(x) for x in d['target_labels']]
+    args = d['args']
+    assert all(list(a) == [0, 0] for a in args[:len(labels) + 1])
+    support = [0] + [1 << i for i in range(len(labels))]
+    for x in range(len(labels) + 1, len(args)):
+        a, b = args[x]
+        assert 0 < a < x and 0 < b < x and not support[a] & support[b]
+        support.append(support[a] | support[b])
+    for J, r in zip(labels, d['roots']):
+        assert support[r] == sum(1 << i for i, I in enumerate(labels) if not set(I) & set(J))
+    return dict(kind='disjoint_triples', p=p, input_labels=labels, target_labels=labels, input_count=len(labels),
+                args=[list(a) for a in args], roots=list(d['roots']),
+                source='Direct triple module JSON; contract checked above',
+                contract='Root indexed by J sums input I exactly when I and J are disjoint.')
+
+
 # ---- Direct all-but-one source (QMOD lane; eumemic, Claude assistance; Apache-2.0).
 def all_but_one_from(path, n):
     """Zero-based all-but-one module given as JSON {input_count, args, roots}; same contract as all_but_one(n):
@@ -246,17 +269,67 @@ def all_but_one_from(path, n):
                 source='Direct all-but-one module JSON; contract checked above')
 
 
-# ---- Output merging (eumemic, Claude assistance; Apache-2.0).
+# ---- Output merging (pmerge.py variants; eumemic, Claude assistance; Apache-2.0).
 def merge_outputs(g, G, variant):
     """Replace #144's single-target channels of each port T=(I,b) -- face2 P[I,I2,1-b2] (1/2), edge02
     Q[I,I0,I2,b0^b2] ((2b0-1)/2), edge12 Q[I,I1,I2,b1^b2] ((2b1-1)/2) -- by signed sums read with coefficient 1/2.
     w02: face2 + (2b0-1)*edge02, one node per (b0,b2) shared by the ports b1=0,1; edge12 stays single.  The decoder
     contribution is unchanged and Graph.add asserts disjoint supports."""
     from fractions import Fraction
-    specs = {'w02': [('face2', 'edge02')], 'w12': [('face2', 'edge12')],
-             's': [('face2', 'edge02', 'edge12')]}[variant]
     side = [r for r in g['roots'] if r['kind'] == 'side']
     centre = [r for r in g['roots'] if r['kind'] != 'side']
+    if variant.startswith('f8:'):
+        # per-class fold orders: port t folds its face2, edge02, edge12 singles in order PERMS[code[t % 8]]
+        perms = [(0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)]
+        code = variant[3:]
+        assert len(code) == 8 and all(ch in '012345' for ch in code)
+        names = ('face2', 'edge02', 'edge12')
+        single = {}
+        keep = []
+        for r in side:
+            if r['channel'] in names:
+                assert len(r['targets']) == 1
+                single[r['targets'][0], r['channel']] = (r['node'], Fraction(r['coefficients'][0]))
+            else:
+                keep.append(r)
+        new = []
+        for t in range(g['v']):
+            parts = [single[t, ch] for ch in names]
+            order = perms[int(code[t % 8])]
+            node, c0 = parts[order[0]]
+            for k in order[1:]:
+                nd, c = parts[k]
+                sg = c / c0
+                assert sg in (1, -1)
+                node = G.add(node, nd, int(sg))
+            new.append(dict(node=node, targets=[t], coefficients=[str(c0)], kind='side', channel='fused'))
+        return dict(g, roots=keep + new + centre, args=G.a, signs=G.signs)
+    if variant == 'pf':
+        # PR #163's fold rule: each port's three single-target channels face2, edge02, edge12 become one signed
+        # sum, folded left with the positive-coefficient channels first (in that channel order), then the negatives.
+        names = ('face2', 'edge02', 'edge12')
+        single = {}
+        keep = []
+        for r in side:
+            if r['channel'] in names:
+                assert len(r['targets']) == 1
+                single[r['targets'][0], r['channel']] = (r['node'], Fraction(r['coefficients'][0]))
+            else:
+                keep.append(r)
+        new = []
+        for t in range(g['v']):
+            parts = [single[t, ch] for ch in names]
+            order = [k for k in range(3) if parts[k][1] > 0] + [k for k in range(3) if parts[k][1] < 0]
+            node, c0 = parts[order[0]]
+            for k in order[1:]:
+                nd, c = parts[k]
+                sg = c / c0
+                assert sg in (1, -1)
+                node = G.add(node, nd, int(sg))
+            new.append(dict(node=node, targets=[t], coefficients=[str(c0)], kind='side', channel='fused'))
+        return dict(g, roots=keep + new + centre, args=G.a, signs=G.signs)
+    specs = {'w02': [('face2', 'edge02')], 'w12': [('face2', 'edge12')],
+             's': [('face2', 'edge02', 'edge12')]}[variant]
     chan = {c: k for k, spec in enumerate(specs) for c in spec}
     found = {}
     keep = []

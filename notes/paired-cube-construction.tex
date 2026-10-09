@@ -130,29 +130,38 @@ dirty coordinate. All later inverses occur after the original sources
 have been restored. Exact frame representatives and rank-zero phase
 adapters are those of the arbitrary-subspace Clifford interface.
 
-The selected graph has $p=11$. Its triple module is an exact restriction
-of a pinned searched complex DAG, and its pair module is a pinned searched
-pair-disjoint module (\path{references/paired-cube/sources}), both in place
-of PR117's. Its all-but-one module is a nested prefix
-(\path{references/paired-cube/sources/qmod_nested_prefix.json}, loaded by
-\texttt{all\_but\_one\_from}): with prefix sums $p_{k+1}=p_k+x_k$ and suffix
-sums $s_k=x_k+s_{k+1}$, the outputs are $y_0=s_1$, $y_{n-1}=p_{n-1}$ and
-$y_{i+1}=p_i+(x_i+s_{i+2})$. Each prefix is used twice with nested supports,
-which admits more carrier links than the balanced tree. For every port $T=(I,b)$ the face-2 and edge-02 outputs are
-merged into one signed node $P\pm Q$ per $(b_0,b_2)$, read with coefficient
-$1/2$ by both ports $b_1=0,1$ (\texttt{merge\_outputs}); the decoder
+The selected graph has $p=11$. Its triple-disjoint, pair-disjoint and
+all-but-one modules are pinned annealed modules
+(\path{references/paired-cube/sources}), each loaded with its contract checked
+(\texttt{triple\_module\_from}, \texttt{pair\_module\_from},
+\texttt{all\_but\_one\_from}), in place of PR117's restrictions and PR144's
+balanced tree. The all-but-one module was annealed from a nested prefix: with
+prefix sums $p_{k+1}=p_k+x_k$ and suffix sums $s_k=x_k+s_{k+1}$, the outputs
+$y_0=s_1$, $y_{n-1}=p_{n-1}$ and $y_{i+1}=p_i+(x_i+s_{i+2})$ use each prefix
+twice with nested supports, which admits more carrier links than the
+balanced tree.
+The local channel circuit follows \path{references/paired-cube/sources/local_L1.json}:
+every cube's thirteen local outputs keep their values, but $G_{01}$ (both
+modes) and $G_{12}$ (mode 1) are sums of two shared long-diagonal
+differences and $F$ is built on axis 2, with 27 additions per cube instead
+of 25. Fewer edges carry $G$ duty, so the carrier matching gains links;
+\texttt{Graph(p, local=None)} runs PR144's circuit unchanged.
+For every port the three single-target outputs face-2, edge-02 and edge-12
+are fused into one signed node read with coefficient $1/2$, in a fixed
+order per port class (\texttt{merge\_outputs}, variant
+\texttt{f8:00111100}), following PR163's same-singleton fusion; the decoder
 contribution is unchanged and every addition keeps disjoint supports.
 The carrier arcs are compiled by PR162's \texttt{compile\_closure}
 (\path{scripts/paired_cube/closure.py}), which admits an arc when the
 generalized dependency graph stays acyclic and every value span stays inside
 its full backward intersection; \path{scripts/paired_cube/verify.py} checks
 both conditions independently.
-Its 18,395 active additions and 4,477 root uses, with 7,701 actual
+Its 20,714 active additions and 3,157 root uses, with 10,238 actual
 monotone carrier links, give
 \[
- h=22,\quad v=1320,\quad R=15171,\quad\ell=440.
+ h=22,\quad v=1320,\quad R=13633,\quad\ell=440.
 \]
-The frozen chronological gauge witness selects 2,970 roles, each of
+The frozen chronological gauge witness selects 2,310 roles, each of
 dimension 18. Its graph, matching/frame witness and gauge-selection file,
 not an abstract circuit-rank bound, determine the paid internal histogram.
 The selected source histogram is $[2,18,1]$ per port; the target histogram

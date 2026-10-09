@@ -6,11 +6,14 @@ This package is a bit-side analog of PR #144's paired-cube decoder, for integrat
 | p | h | v | R | R/v | loss h(h-2) | deficit 2v-3l | W=2v+R | gauges | coarse a0 (cert) | effective a_b |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 11 | 22 | 1320 | 18964 | 14.37 | 440 | 1320 | 21604 | 4290 | 5502556/10^10 | 5.4974380e-4 |
-| **12** | **24** | **1760** | **22252** | **12.64** | **528** | **1936** | **25772** | **5720 (dim 20)** | **6105820/10^10** | **6.1000988e-4** |
+| **12** | **24** | **1760** | **20492** | **11.64** | **528** | **1936** | **24012** | **3960 (dim 20, 21)** | **6351442/10^10** | **6.3454752e-4** |
 | 13 | 26 | 2288 | 33514 | 14.65 | 624 | 2704 | 38090 | 7436 | 5541517/10^10 | 5.5363601e-4 |
 
 At p = 12 the word uses the annealed pair module `data/pair_module_p12.json` and the nested-prefix all-but-one
-module (`nested_prefix` in the generator); p = 11 and p = 13 keep the witness-cut modules and #144's balanced tree.
+module (`nested_prefix` in the generator), and merges its face-1/edge-01 and face-2/edge-02 outputs (variant u);
+p = 11 and p = 13 keep the witness-cut modules, #144's balanced tree and single reads. In the repository tree the
+p = 12 word runs a physical layer (`scripts/paired_cube_bit_physical.py`, frozen word in
+`references/paired-cube/bit-physical`): late copies and late-read reuse raise its coarse saving to 6465186/10^10.
 
 The accounting is PR #144's bit ledger:
 

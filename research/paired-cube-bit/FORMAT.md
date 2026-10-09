@@ -26,7 +26,8 @@ written with gzip `mtime = 0`, and `profile_pP.json`. Nodes, ports and roles are
 - `roots[j]`: an object with fields `node`, `targets` (a list of ports), `kind` and `coefficient`:
   - `kind` is `side` or `center`; `coefficient` is always 1.
   - Side roots carry `channel`, one of `face0`, `edge12`, `face1`, `edge01`, `face2`, `edge02` or
-    `partner`. A `partner` root's node is a source leaf (single-source root).
+    `partner`. A `partner` root's node is a source leaf (single-source root). At p = 12 (variant u) the
+    merged channels `u01` (face1 + edge01) and `w02` (face2 + edge02) replace the four single reads.
   - Centre roots carry `coordinate c`. Their node is `star(c)` (the sum of all ports containing `c`), and
     their targets are all ports containing `c`.
   - Root `j` adds its node's value into `Y_t` for every `t` in `targets`. Broadcast roots have several

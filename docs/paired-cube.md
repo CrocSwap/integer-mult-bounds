@@ -2,7 +2,7 @@
 
 This extension inherits PR #130 at
 `6a9970a530119174507904e23592fd59ede19a5d` and gives the conditional saving
-`6096379/10000000000 = 6.096379e-4`. The complex word adds physical frame descent and compensated late-read
+`6457084/10000000000 = 6.457084e-4`. The complex word adds physical frame descent and compensated late-read
 reuse (`scripts/paired_cube_physical.py`); the bit supplier is the paired-cube bit word in
 `research/paired-cube-bit`.
 
@@ -15,12 +15,11 @@ make paired-cube-verify
 The selected incremental target uses only the Python standard library.
 CI runs it in its own `paired-cube` matrix group. The checks are:
 
-- Rebuild the selected signed H-channel graph (p = 11) from exact zero
-  restriction of a pinned complex DAG and a pinned pair-disjoint module in
-  `references/paired-cube/sources`, with a nested-prefix all-but-one module and merged face-2/edge-02 outputs.
-  Replay the frozen 7,701 carrier arcs (compiled under #162's closure conditions),
+- Rebuild the selected signed H-channel graph (p = 11) from the pinned annealed triple, pair and all-but-one
+  modules and the L1 local circuit in `references/paired-cube/sources`, with fused face-2/edge-02/edge-12 outputs.
+  Replay the frozen 10,238 carrier arcs (compiled under #162's closure conditions),
   coordinate frames, full backward intersections, signed physical mixer,
-  center closure and 2,970 rank-18 partial gauges. Independent checks cover
+  center closure and 2,310 rank-18 partial gauges. Independent checks cover
   every scalar coefficient of `H+K+B=I`, the original-source K involution and
   inverse, actual frame containment and reverse target chains.
 - Apply the frozen physical frames and late-read reuse pairs and check chains,
@@ -30,7 +29,9 @@ CI runs it in its own `paired-cube` matrix group. The checks are:
   (`research/paired-cube-bit/check_paired_cube_bit.py`): exact frames, decoder
   identity, chains, partner-pair chronology, nondegeneracy, F2 replay and
   ledger. `python3 research/paired-cube-bit/paired_cube_bit_word.py --p 12 --check`
-  regenerates its outputs byte for byte.
+  regenerates its outputs byte for byte. Apply the frozen physical bit word in
+  `references/paired-cube/bit-physical` and check it with `scripts/paired_cube_bit_physical.py`: register
+  contents, frames, spliced chains, pair chronology, target order and an aliased F2 replay with controls.
 - Rebuild both shared-core child lists and certify strict moments, full
   rare-class fallback, stopped bit saving, actual finite group/router charge,
   semantic guard, row stock, 47 strict inequalities and seven assembly margins.
