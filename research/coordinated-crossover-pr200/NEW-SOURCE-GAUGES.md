@@ -1,5 +1,7 @@
 # Twenty-eight source-backed entrances, including a shared rank-4 frame
 
+Retained source471 construction stage, before the final target aggregation. The source/auxiliary word and paths below are unchanged. Final compensation uses 28 pivot reads in place of the 112 target reads described here; see `TARGET-AGGREGATION.md`.
+
 The final word retains 443 source aliases and adds 28 more: 26 use rank-2 pair planes and two share a rank-4 frame. The common-frame assignments are role 14079 from X322 and role 14077 from X378. Their four targets are 24, 25, 26 and 27. The exact common basis is in `newg/selection.json` as `gauge_basis`; all other new entrances use their exact `mix_frame`.
 
 The 28 pairs are distinct and disjoint from all prior aliases. The selected roles are previously ungauged, untouched in the admitted retimed center prefix, and outside source-injection and removed terminal roles. New target sets are disjoint except the two common-frame rows, which use exactly the same frame on their common four targets. There are 112 reads on 108 distinct targets; no new target intersects a terminal substitution.
