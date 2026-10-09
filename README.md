@@ -3,6 +3,36 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Source-assisted common-frame extension
+
+The new construction contributed by **icekylinx**, with **OpenAI GPT-6 Astra**
+research assistance, gives the retained conditional bound
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{6566436}{10000000000}=6.566436\times10^{-4}.
+$$
+
+It extends eumemic's substantial [PR #168](https://github.com/CrocSwap/integer-mult-bounds/pull/168)
+reference at `fd25adb7fbaa12ee761d02c733c54d1d2a7687ee` with source controls at
+already paid frames, exact invertible dirty lifts and compatible fresh-zero
+reuse. Complete complex and bit ledgers feed the retained balanced assembly.
+The immutable reference retains its original authorship and Claude disclosure.
+
+[Construction and validation scope](docs/source-assisted.md) ·
+[Proof source](notes/source-assisted-note.tex) ·
+[Exact certificate](certificates/source-assisted-network.json)
+
+```sh
+python3 -m pip install -r research/source-assisted/requirements-round13.txt
+make source-assisted-verify
+```
+
+The new increment checks exact flow and boundary reconstruction and supplements
+them with a globally allocated complex scalar dirty replay. The new bit global
+transcript and full Clifford/router replay remain outside that validation scope.
+The reviewed main result below retains its independent maintainer status.
+
 ## Current reviewed result: paired cubes and shared cores
 
 The construction contributed by **[icekylinx](https://github.com/icekylinx)** in
