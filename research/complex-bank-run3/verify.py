@@ -325,7 +325,7 @@ def check_import_harness():
     observed = importer66.self_test(contract)
     failed = sorted(name for name, ok in observed.items() if not ok)
     assert not failed, 'the harness self-test must pass every case: %s' % failed
-    assert len(observed) >= 10, 'the self-test must exercise the refusals too'
+    assert len(observed) == 13, 'the self-test must exercise the refusals and the partial report too'
     code, report = importer66.run(contract, HERE / harness['exports_dir'])
     assert code == 2 and report['missing'], \
         'the real drop must still be refused: nothing has been published yet'
@@ -387,7 +387,9 @@ def check_export_contract():
             if row['keys'] and row['keys'][-1].endswith('.json'):
                 bodies.add(row['keys'][-1])
     assert bodies, 'the contract must name the bodies it waits for'
-    pinned_names = set(pins.manifest())
+    # the pins are the two vendored sources: this package's own files, the bit drop included, are
+    # not the supplier's publication and are read separately below
+    pinned_names = {name for name in pins.pinned_paths() if name.startswith('references/')}
     assert not any(name.rsplit('/', 1)[-1] in bodies for name in pinned_names), \
         'no body the contract requires may be pinned: the 0-of-6 reading must be a reading'
     assert not any('.work' in name for name in pinned_names), \
@@ -422,6 +424,176 @@ def check_export_contract():
     return contract
 
 
+def check_bit_export_contract():
+    """The bit-side twin contract, resolved against the pinned bit bytes.
+
+    The twin's citations are the pinned rank-22 package's own data, so this reads every digest,
+    count, status and obligation statement back out of the pinned file and compares it: the
+    obligations it answers are quoted word for word and all four are still OPEN, the checker it pins
+    is the one the pinned inventory carries (and is not the complex side's), the bodies it waits for
+    are named and none of them is in the pins, and the harness is proved on synthetic bit bodies --
+    so the gate and the refusals it will perform on the real bit drop are demonstrated while that
+    drop is absent.
+    """
+    contract = json.loads((HERE / 'export-contract-bit.json').read_text())
+    cache = {}
+
+    def pinned(source):
+        if source not in cache:
+            cache[source] = json.loads((HERE / source).read_text())
+        return cache[source]
+
+    def check(citations, where):
+        for row in citations:
+            found = resolve(pinned(row['source']), row['keys'])
+            assert found == row['value'], \
+                '%s: %s -> %s is %r, contract records %r' % (where, row['source'],
+                                                            row['keys'], found, row['value'])
+
+    assert contract['version'] == 2 and contract['scope'], 'the twin must state its scope'
+    for name, block in contract['precedent'].items():
+        check(block['citations'], 'precedent/' + name)
+    check(contract['today']['evidence'], 'today/evidence')
+
+    obligations = pinned('references/pr219-run1/obligations.json')['obligations']
+    assert [row['id'] for row in obligations] == ['R1', 'R2', 'R3', 'R4'], 'the four obligations'
+    assert all(row['status'] == 'OPEN' for row in obligations), 'and all four still open'
+    quoted = contract['precedent']['what_the_obligations_say']['citations']
+    assert [row['keys'][1] for row in quoted] == [0, 1, 2, 3], 'every obligation is quoted'
+    assert 'generated and hashed' in quoted[0]['value'], 'R1 asks for a hashed assignment'
+    assert 'fallback 32*72^2 per retained child' in quoted[3]['value'], \
+        'R4 must be quoted with its numbers'
+    assert 'recomputed' in quoted[3]['value'], 'including its one licence to move a published value'
+
+    assert contract['today']['bodies_present'] == 0, \
+        'no bit body export exists in the pins and the contract must say so'
+    assert contract['today']['of_required'] == len(contract['required_exports']) == 6, '0 of the six'
+    bodies = [body for export in contract['required_exports'] for body in export['bodies']]
+    wanted = {body['file'] for body in bodies}
+    assert len(wanted) == len(bodies) == 15, 'fifteen distinct bodies: %d' % len(bodies)
+    pinned_names = {name.rsplit('/', 1)[-1] for name in pins.pinned_paths()
+                    if name.startswith(pins.VENDORED_RUN1 + '/')}
+    assert not (wanted & pinned_names), \
+        'the pinned supplier publishes no body, only the digests: %s' % sorted(wanted & pinned_names)
+    anchored = [body['file'] for body in bodies if body['anchored_digest']]
+    assert anchored == ['word.json.gz', 'frames.json.gz', 'graph.json', 'kchron.json',
+                        'profile.json', 'charts.json', 'incidence.json', 'prime-witnesses.json.gz'], \
+        "eight bodies carry a digest the word's certificates already published: %s" % anchored
+
+    tests = {test['id'] for test in contract['acceptance_tests']}
+    assert tests == {'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'}, \
+        'the same seven acceptance tests as the complex side'
+    declared = set()
+    for export in contract['required_exports']:
+        assert export['id'] in ('B1', 'B2', 'B3', 'B4', 'B5', 'B6'), export['id']
+        assert export['publishes'] and export['form'] and export['cardinality'], export['id']
+        assert export['unblocks'], 'every export must unblock an obligation'
+        assert export['acceptance'] and set(export['acceptance']) <= tests, \
+            'the acceptance tests must exist: %s' % export['id']
+        assert export['bodies'] and all(body.get('file') for body in export['bodies']), export['id']
+        assert set(export['gate']['test']) <= tests, \
+            'the gate may only declare acceptance tests: %s' % export['id']
+        check(export['must_reproduce'], 'export/' + export['id'])
+        declared |= set(export['gate']['test'])
+    assert declared == tests, \
+        "the twin's gate must decide every acceptance test: %s" % sorted(tests - declared)
+
+    mapping = contract['obligation_mapping']
+    assert sorted(mapping) == ['R1', 'R2', 'R3', 'R4'], 'all four obligations mapped'
+    assert all(mapping[key] for key in mapping), 'no obligation may map to nothing'
+    exports = {export['id'] for export in contract['required_exports']}
+    for key, value in mapping.items():
+        assert set(value) <= exports, '%s must map to required exports' % key
+    assert set().union(*mapping.values()) == exports, \
+        'every export must be reachable from the obligations it exists for'
+    assert contract['failure_semantics']['today'].startswith('0 of 6')
+    assert 'never' in contract['failure_semantics'] and contract['not_required'], \
+        'the twin must say what it does not ask for, and what it can never buy'
+    for test in contract['acceptance_tests']:
+        assert test['bound'] and test['reject_control'], \
+            'every test needs a bound and a reject control: %s' % test['id']
+
+    harness = contract['import_harness']
+    assert harness['module'] == 'importer66.py' and (HERE / harness['module']).is_file(), \
+        'the same module implements the twin'
+    assert harness['contract'] == 'export-contract-bit.json', 'and it names the twin contract'
+    assert harness['exports_dir'] == 'exports-bit', 'the twin has its own drop'
+    assert sorted(harness['exit_codes']) == ['0', '1', '2', '3', '4'], \
+        'the twin publishes the partial report as its own exit code'
+    assert 'gate' in harness['layers'] and 'replay' in harness['layers'], \
+        'the two layers must be described, so that no replay is ever claimed by the gate'
+    assert harness['replay_requirement']['checker_digest'] == \
+        resolve(pinned('references/pr219-run1/inputs/absorbed-occurrences.json'),
+                ['source_pins', 'checker_sha256']), \
+        "the twin must pin the checker the bit word's own inventory carries"
+    assert harness['replay_requirement']['checker_digest'] != \
+        resolve(pinned('references/pr219-run1/references/pr193-source-assisted-v4.certificate.json'),
+                ['lift', 'checker_sha256']), \
+        "the two contracts pin their own supplier's checker, never each other's"
+
+    observed = importer66.self_test(contract)
+    failed = sorted(name for name, ok in observed.items() if not ok)
+    assert not failed, "the twin's self-test must pass every case: %s" % failed
+    assert len(observed) == 13, 'the twin gets the same thirteen-case proof as the complex side'
+
+    # The drop beside the pins: the bytes behind the digests the certificates publish, and what the
+    # gate makes of them.  pins.py pins these files, so the same claim is read twice -- once as a
+    # manifest and once as an import -- and the second reading is the one that decides tests.
+    drop = HERE / harness['exports_dir']
+    drop_bodies = [body for export in contract['required_exports'] for body in export['bodies']]
+    present = [body for body in drop_bodies if (drop / body['file']).is_file()]
+    anchored = [body for body in drop_bodies if body['anchored_digest']]
+    absent = sorted(body['file'] for body in drop_bodies if body not in present)
+    assert len(present) == contract['drop']['bodies'] == 10, \
+        'the drop holds ten of the thirteen required bodies: %d' % len(present)
+    assert len(anchored) == contract['drop']['anchored'] == 8, \
+        'eight bodies carry a digest the certificates already published: %d' % len(anchored)
+    assert sorted(name.rsplit('/', 1)[-1] for name in pins.pinned_paths()
+                  if name.startswith('exports-bit/')) == sorted(
+        [body['file'] for body in present] + ['physical.rebuilt.json']), \
+        'the drop is pinned body for body, reproduction evidence included'
+    for body in anchored:
+        assert pins.digest(drop / body['file']) == body['anchored_digest'], \
+            '%s must be the bytes the certificates hash' % body['file']
+    published = pinned('references/pr219-run1/references/pr205-packed.certificate.json')['physical']
+    rebuilt = json.loads((drop / 'physical.rebuilt.json').read_text())
+    assert set(rebuilt) == set(published) and all(rebuilt[key] == published[key] for key in published), \
+        "PR205's packer re-derived the published physical block, and no field of it may differ"
+
+    code, report = importer66.run(contract, drop)
+    refused = sorted(row.split(': ', 1)[1] for row in report['missing'])
+    assert code == 2 and refused == absent, \
+        'the default import must still refuse the drop: nothing is discharged from bodies alone'
+    code, report = importer66.run(contract, drop, partial=True)
+    tests = report['tests']
+    assert code == 4 and report['replay']['status'] == 'NOT RUN', \
+        'a partial run is reportable and never admissible, and it never claims the replay'
+    assert not any(row['failed'] for row in tests.values()), \
+        'no check may fail on the published bytes: %s' % sorted(
+            key for key, row in tests.items() if row['failed'])
+    assert [key for key, row in sorted(tests.items()) if row['status'] == importer66.PASS] == \
+        ['A2', 'A3'], 'the published bytes decide exactly the index and chart tests'
+    assert [(key, row['passed']) for key, row in sorted(tests.items())] == \
+        [('A1', 17), ('A2', 9), ('A3', 17), ('A4', 0), ('A5', 0), ('A6', 17), ('A7', 17)], \
+        'the gate decides what the present bodies declare and nothing more: %s' % [
+            (key, row['passed']) for key, row in sorted(tests.items())]
+    for key, row in tests.items():
+        if row['status'] == importer66.NOT_RUN:
+            assert any(name in row['reason'] for name in absent), \
+                '%s may only be held by a body this drop does not hold: %s' % (key, row['reason'])
+    recorded = contract['drop']['gate']
+    assert recorded['exit_code'] == code == 4 and recorded['default_exit_code'] == 2, \
+        'the contract must record the codes the drop actually produces'
+    assert recorded['by_test']['A2'].startswith('PASS') and recorded['by_test']['A3'].startswith('PASS') \
+        and 'integrity.json' in recorded['by_test']['A1'] \
+        and 'controls.json' in recorded['by_test']['A6'], \
+        'and the per-test reading must name the same two tests and the same two blockers'
+    stored = json.loads((HERE / recorded['report']).read_text())
+    assert stored['tests'] == tests and stored['missing'] == report['missing'], \
+        'the stored partial report must be this run, not an earlier one'
+    return contract
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -440,6 +612,7 @@ def main():
     check_obligations()
     unconditionality = check_unconditionality()
     contract = check_export_contract()
+    bit_contract = check_bit_export_contract()
     harness = check_import_harness()
     target = HERE / 'certificate.json'
     if args.write:
@@ -481,6 +654,21 @@ def main():
              ','.join(export['id'] for export in contract['required_exports']),
              len(contract['acceptance_tests']), contract['today']['bodies_present'],
              contract['today']['of_required']))
+    drop = bit_contract['drop']
+    print('bit twin      %d exports (%s), %d acceptance tests, bodies published by the pins: %d/%d, '
+          'checker pinned from source_pins.checker_sha256 = %s'
+          % (len(bit_contract['required_exports']),
+             ','.join(export['id'] for export in bit_contract['required_exports']),
+             len(bit_contract['acceptance_tests']), bit_contract['today']['bodies_present'],
+             bit_contract['today']['of_required'],
+             bit_contract['import_harness']['replay_requirement']['checker_digest'][:16]))
+    print('bit drop      %d of %d bodies, %d anchored; %s complete, %s absent; the gate decides '
+          'A2 and A3 on the published bytes and the default import still refuses (exit %d) what '
+          'the partial report shows (exit %d)'
+          % (drop['bodies'], sum(len(export['bodies'])
+                                 for export in bit_contract['required_exports']), drop['anchored'],
+             ' and '.join(drop['exports_complete']), ' '.join(drop['exports_absent']),
+             drop['gate']['default_exit_code'], drop['gate']['exit_code']))
     print('unconditional not available: supplier status %s; operation program not exported; %s'
           % (json.loads((HERE / 'references' / 'pr219-run1' / 'references'
                          / 'pr193-source-assisted-v4.certificate.json').read_text())['status'],

@@ -272,14 +272,46 @@ the curve's width-66 row is exactly the pinned stock reproducing the top kappa),
   `lift`/witness pair, not the flow block, whose own status says *"Not an exact supplier
   certificate"*.
 * Also machine-checked: the contract's executable form, `importer66.py`.  Its self-test is run
-  as part of the verification and must pass all twelve of its cases -- seven acceptance checks
-  broken in turn (a tampered body, a wrong cardinality, a denominator above the published bound,
-  counts that do not come out of the exported tables, a foreign family and bin, an accepted
-  colouring conflict, a repeated prime witness), an absent body, a checker the contract does not
-  pin, the pinned checker passing, and the gate green without any checker -- and the real drop,
-  which does not exist yet, must still be refused with the refusal code.  The harness never
-  claims the physics: the replay needs the checker whose digest E3 pins, and until it is supplied
-  the import stops at *gate green, replay not run*.
+  as part of the verification and must pass all thirteen of its cases -- every declared check
+  broken in turn (a tampered body, a broken equality bound, a bound above `at_most`, a false flag,
+  a broken bijection, a denominator above the published bound, counts that do not come out of the
+  exported tables, a foreign table, a repeated prime witness), an absent body, a checker the
+  contract does not pin, the pinned checker passing, and the gate green without any checker -- and
+  the complex side's real drop, which does not exist yet, must still be refused with the refusal
+  code.  Running the gate on the bit side's real drop found and fixed three defects in the harness,
+  which is what shipping the bodies was for: an absent *named* body was being recorded as a
+  *failed check* rather than as a missing datum, so a partial run reported refusals for bodies it
+  had never read; the anchored-digest loop and the manifest loop raised `FileNotFoundError`
+  instead of reporting an absent body; and, once those are separated, a body that is *present but
+  unparseable* is still a hard failure rather than a missing datum.  The harness never claims the
+  physics: the replay needs the checker whose digest E3 pins, and until
+  it is supplied the import stops at *gate green, replay not run*.  Because the self-test is
+  derived from the contract rather than written beside it, this proof is not specific to one
+  contract: both are handed to the same thirteen cases.
+* Also machine-checked: the bit-side **twin** of that contract (`EXPORT-CONTRACT-BIT.md`,
+  `export-contract-bit.json`), which asks what the *bit* supplier must publish for the rank-22
+  realization obligations R1-R4.  Its six exports, seven acceptance tests and the mapping of all
+  four obligations are checked; the four obligation statements are quoted from the pinned
+  `obligations.json` and resolved, so the twin cannot answer an obligation the package did not
+  state; every other citation is resolved against the pinned bit bytes; the 0-of-6 reading is
+  asserted; and the checker it pins is asserted to be the one the pinned rank-22 inventory
+  carries and **different** from this side's (`4d7c86cd…` against `9d841bcf…`), so neither
+  contract can be discharged with the other side's checker.  The same harness runs on it: the
+  twin's thirteen cases pass, the default import still refuses its drop (`exports-bit`, exit 2),
+  and the partial run is where the twin stops being synthetic.  That drop ships **10 of the 15
+  required bodies, 8 of them anchored**; the five word bodies and the witness body are the
+  supplier's own bytes, each hashing to the digest its certificate published, and the chart and
+  incidence streams are re-derived by running PR205's packer unmodified on those bodies --
+  `22662b85…` and `76bff256…`, with `exports-bit/physical.rebuilt.json` differing from PR205's
+  published `physical` block in **0 of its 26 fields**.  The two index bodies are derived by
+  `bitindex.py` rather than typed in and are deliberately not anchored.  On that drop the gate
+  **decides `A2` and `A3`** (9 and 17 checks) and reports the other five tests instead of guessing:
+  `A1` passes its eight digest anchors and nine index checks with no failure and stays not
+  runnable while `integrity.json` is absent, `A6` and `A7` pass seventeen checks each and stay not
+  runnable while `B5`'s `controls.json` is absent, `A4` and `A5` have no checks.  The report is
+  checked in as `bit-drop-report.json`, the exit code is 4 and the replay is NOT RUN, so R1-R4
+  stay OPEN.  Like this side's contract, it is a *conditional* increment at best: it can make
+  R1-R4 a completed finite witness and never a theorem.
 * Not run: upstream CI, and any contributor verifier other than the vendored #219 package
   invoked in place.
 * The `10^-10` supplier field is priced as a conservative variant; on it the ladder's top sits

@@ -335,12 +335,63 @@ and the defining integers, fraction-free charts, the moment envelope -- is the s
 checker: the contract pins its digest (`lift.checker_sha256`), so the harness requires that exact
 file and reports the replay `NOT RUN` until it arrives, and exit code 3 says so rather than
 certifying anything. `--self-test` builds synthetic bodies, patches the anchored digests to their
-synthetic hashes, and then breaks each check in turn: twelve cases, including a tampered body, a
-wrong cardinality, a denominator above the bound, counts that do not come out of the tables, a
-foreign family and a foreign bin, an accepted colouring conflict, a repeated prime witness, an
-absent body, a checker the contract does not pin, and the pinned checker passing. All twelve
-pass in `verify.py`, so the refusals the harness will perform on the real drop are demonstrated
-now rather than promised.
+synthetic hashes, and then breaks each check in turn: thirteen cases, including a tampered body, a broken equality bound, a
+bound above `at_most`, a false flag, a broken bijection, a denominator above the bound, counts
+that do not come out of the tables, a foreign table, a repeated prime witness, an absent body, a
+checker the contract does not pin, and the pinned checker passing --with the complex side's real drop, still absent, refused at the end. All thirteen pass in `verify.py`, so the refusals the harness will
+perform on the real drop are demonstrated now rather than promised. Both contracts get the same
+thirteen cases, because the proof is derived from the contract rather than written beside it:
+`importer66.py --self-test` builds the synthetic bodies, the anchored digests and the mutation
+that must be rejected out of whichever contract it is handed.
+
+**Its twin for the bit side.** [EXPORT-CONTRACT-BIT.md](research/complex-bank-run3/EXPORT-CONTRACT-BIT.md)
+and [export-contract-bit.json](research/complex-bank-run3/export-contract-bit.json) are this same
+contract turned on the *other* half of the ledger pair: what the bit supplier must publish for
+#219's rank-22 realization obligations R1-R4 to close. The schema, the seven acceptance tests
+`A1-A7`, the gate/replay split and the fail-closed reading are this side's, unchanged; only the
+content differs. The bit twin is **half-met** where this side is empty: the pins already carry
+that word's built physical layer (PR200's formal columns and prime witnesses, PR205's charts,
+incidence and colouring), the rank-22 family enumerated occurrence by occurrence in the exact
+shape of `inputs/absorbed-occurrences.json`, the whole-bank schedule and the retained ledger.
+What is missing is those bodies *re-published and re-run on the banked word*, plus the one
+genuinely new artifact R1 asks for -- the per-occurrence assignment (item -> bank, offset) and
+its normalizer, whose admissible tilings `schedule.py` already enumerates. The cross-reading that
+makes it a closed checklist rather than an open question: the inventory's
+`source_pins.word_p12_sha256` **is** PR205's `physical.word_sha256`, so the twin asks for bodies
+behind digests of a word this repository already half-holds, and it pins that supplier's own
+checker (`source_pins.checker_sha256 = 4d7c86cd...`) rather than this side's
+`lift.checker_sha256 = 9d841bcf...` -- `verify.py` asserts the two digests differ, so neither
+contract can be discharged with the other side's checker.
+
+The same executable form consumes it, unchanged:
+`python3 -B importer66.py --contract export-contract-bit.json` runs the twin's gate on its own
+drop (`exports-bit`) and still refuses it (exit **2**), while the same command with `--partial`
+reports what the bodies present decide (exit **4**, never admissible) and `--self-test` gives the
+twin the identical thirteen-case proof.
+
+**The bit drop: two of the seven acceptance tests now decide on published bytes.**
+`exports-bit/` holds **10 of the 15 required bodies, 8 of them anchored**, and the export groups
+they complete are `B1` and `B3`; `B2` (`assignment.json`), `B4` (`columns.json`), `B5`
+(`controls.json`) and `B6` (`envelope.json`, `integrity.json`) are absent. The five word bodies
+(`word.json.gz` `1cb7e8ed…`, `frames.json.gz` `ad8e2705…`, `graph.json` `31a09a55…`,
+`kchron.json` `0fab548e…`, `profile.json` `c44ef864…`) and the witness body
+(`prime-witnesses.json.gz` `612f0b91…`) are the supplier's own bytes, each hashing to the digest
+its certificate already published. The chart and incidence streams do not exist upstream as
+files, so they are **re-derived** by running PR205's packer unmodified on those word bodies:
+`22662b85…` and `76bff256…`, byte for byte, with `exports-bit/physical.rebuilt.json` differing
+from PR205's published `physical` block in **0 of its 26 fields**. What the bodies do not declare
+is declared by two **index** bodies, derived by `bitindex.py` from the bodies and the pinned
+certificates rather than typed in (`index.json.gz` for `B1`, `charts.index.json.gz` for `B3`);
+neither is anchored, because an index is a declaration and the bodies it describes are what carry
+the digests. On that drop the gate **decides `A2` (9 checks) and `A3` (17 checks)** -- `A2` on the
+index's six counts, its frame-record bijection and its foreign-replay bound, `A3` on the chart and
+witness bounds -- and reports the rest instead of guessing: `A1` passes all eight digest anchors
+and nine index checks with no failure but stays not runnable while `integrity.json` is absent,
+`A6` and `A7` pass seventeen chart/index checks each and stay not runnable while `B5`'s
+`controls.json` is absent, and `A4` and `A5` have no checks at all. The run is recorded as
+[bit-drop-report.json](research/complex-bank-run3/bit-drop-report.json); the default import still
+refuses the five absent bodies, the replay is **NOT RUN** because the pinned checker `4d7c86cd…`
+is not supplied, and R1-R4 therefore stay OPEN with nothing discharged.
 
 ## Verify
 
@@ -349,16 +400,26 @@ cd research/complex-bank-run3
 python3 -B verify.py           # check: pins, rebuild, compare with certificate.json
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
 python3 -B importer66.py                 # the export import: refuses, codes 0/1/2/3
-python3 -B importer66.py --self-test     # the harness's own twelve cases
+python3 -B importer66.py --self-test     # the harness's own thirteen cases
+python3 -B importer66.py --contract export-contract-bit.json              # the bit twin: same codes
+python3 -B importer66.py --contract export-contract-bit.json --exports exports-bit --partial
+                                                                          # the real bit drop: reports, code 4
+python3 -B importer66.py --contract export-contract-bit.json --self-test  # and its own proof
 ```
 
-`verify.py` passes with exit 0, pins 31 files by sha256, rebuilds the whole complex-side
+`verify.py` passes with exit 0, pins 47 files by sha256 -- the 20 this package owns, the 16 the
+vendored rung-1 package carries and the 11 in the bit drop, its reproduction evidence included --
+and rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
 assemblies with adjacent-grid rejection, the eligibility scan, the PR208 replica, the padded
 schedule (795 banks, padding 0/2/6 registers per bank, stock drops 531/198/66), the instanced
 inventories (4,176 items, 795 banks, the digests), the normalizer export contract (all 6
 exports, 7 acceptance tests and 11 obligations mapped, every citation resolved against the pins,
-and the 0-of-6 body reading), the modulus scan (which widths the pinned
+and the 0-of-6 body reading), the bit-side twin contract (its 6 exports, the four obligations
+quoted word for word and mapped, the 0-of-6 reading, the checker it pins -- asserted to be
+the bit word's own and not this side's -- and the drop it now ships: 10 of the 15 bodies, 8
+anchored, the gate deciding A2 and A3 on them and reporting the other five, exit 4), the modulus
+scan (which widths the pinned
 row admits, and that only the pinned width is priced), the supplier scan and the density curve
 with both of their calibrations, the per-target requirement table (each line re-derived from the
 assembly rule and tested one `10^-18` step below its budget), and re-runs the T1 tiling

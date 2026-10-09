@@ -29,6 +29,7 @@ any existing word -- and where the certifier's own bracket cannot reach the row,
 recorded instead of quoted.
 """
 import json
+import os
 import sys
 from fractions import Fraction as Q
 from pathlib import Path
@@ -129,6 +130,20 @@ def score(profile):
         tiling_share_decimal=float(Q(mass_out, mass)))
 
 
+def relative_to_package(path):
+    """A path the scan walked, as this package sees it.
+
+    The certificate records the scan's root so that a reader can repeat it.  Recording it
+    absolutely would make the record depend on where it was built -- it would not rebuild in a
+    clone, and the commit would carry a local directory name -- so it is stored relative to this
+    package instead.
+    """
+    try:
+        return Path(os.path.relpath(Path(path).resolve(), HERE)).as_posix()
+    except ValueError:                 # another drive on Windows: nothing relative to say
+        return str(path)
+
+
 def corpus_scan(root=REPO, limit=14, pinned_density=None):
     """Rank every poseable ledger in the tree, densest last.
 
@@ -150,7 +165,7 @@ def corpus_scan(root=REPO, limit=14, pinned_density=None):
     by_density = sorted(rows, key=lambda row: row['density'])
     below = [row for row in by_density
              if pinned_density is not None and row['density'] < pinned_density]
-    return dict(root=str(root), profiles_scanned=len(rows), ranked=rows[:limit],
+    return dict(root=relative_to_package(root), profiles_scanned=len(rows), ranked=rows[:limit],
                 pinned_density=str(pinned_density) if pinned_density is not None else None,
                 least_dense_overall=(by_density[0] if by_density else None),
                 below_pinned_count=len(below), below_pinned_sample=below[:limit])
