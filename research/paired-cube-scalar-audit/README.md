@@ -1,61 +1,56 @@
-# Exact scalar audits of the pinned paired-cube schedules
+# Exact scalar audits of the selected local-circuit schedules
 
-These independent standard-library checkers verify the finite complex and bit
-scalar maps at PR178 commit `2c4a380126640abfcdce398ced255d1dd5d1d007`,
-which retains PR168's graph, signed word, bit witness, reuse pairs and sinks.
-They complement the [precision refinement](../precision-certificate/README.md).
-The audit implementations import no upstream producer or upstream checker.
-The separate upstream producer supplies a raw complex witness; frozen bit
-witnesses are read directly. `SOURCE.json` binds the upstream dependency
-closure, audit source bytes and canonical regenerated complex witness hashes.
+The pure checkers audit the finite complex and unchanged bit scalar maps at
+PR181 `7fb2194801e3a10f54772c7f0d5505035a4fc0ad`. They import no upstream
+producer or checker. The wrapper reads that package's frozen raw graph, word,
+annihilator frames, physical frames and pairs; sinks are explicitly projected
+to(role,pivot). Six canonical witness hashes, all1700 native Git-file hashes,
+all audit source hashes and the entire owned precision package are locked
+together by SOURCE.json and a hardcoded joint digest.
 
-For the complex schedule, sparse integer numerator vectors with adaptive
-denominators cover 1,320 source variables, 1,320 initial target variables and
-11,015 independent retained dirty variables. The forward map must be
-`(X,Y,Z) -> (X,Y+X,Z)`, and the literally reflected scalar schedule must be
-`(X,Y,Z) -> (X-Y,Y,Z)`. Both maps are checked coefficient by coefficient.
-The 47 sink substitutions include their pre-shears, redirected writes and
-post-shears. Center scatter completes before targets become controls.
-The response matrices are rebuilt independently in both original operation
-order and phase-first execution order. Four mathematical corruptions must fail.
+The complex word has13042 logical roles,10688 arbitrary retained dirty slots,
+44 terminal sinks and330 signed destination reflections. Both directions
+cover1320 source,1320 initial target and10688 dirty columns: all13328 formal
+variables. The required maps are(X,Y+X,Z) forward and(X-Y,Y,Z) reflected.
+Exact rational sparse rows check every present/absent coefficient. The raw
+operation and phase-first adjoint responses are independently compared;
+signed shears use their literal signed inverse. K/inverse, center flush,
+compensation reads and dirty/source restoration are included. Five full-word
+mathematical corruptions must fail, including missing reflection sign.
 
-For the bit schedule, integer bitsets encode all 1,760 source and 18,028
-physical dirty columns. Every source and dirty register must restore, and
-every target increment must equal its source. Initial target values remain
-arbitrary: targets are additive destinations throughout and never controls.
-All 3,960 gauge reads are included, comprising 2,200 unpaired reads and 1,760
-late paired reads. Read times are execution positions; partner-K injections
-follow the corresponding side-root deliveries. Six corruptions must fail.
-
-From the repository root, using Python 3.12 or later:
+The unchanged bit checker verifies all1760 source and18028 dirty columns,
+all3960 gauge reads and partner-K scheduling with six adverse controls.
+Targets remain arbitrary additive destinations. This is the F2 identity,
+separate from the native integer decoder and local-ring compiler contracts.
 
 ```sh
-python -B scripts/paired_cube_producer.py --work-dir /tmp/paired-cube-audit --output /tmp/paired-cube-audit-report.json
-python -B research/paired-cube-scalar-audit/verify.py --complex-work-dir /tmp/paired-cube-audit
-python -O -B research/paired-cube-scalar-audit/verify.py --complex-work-dir /tmp/paired-cube-audit
+python -B research/paired-cube-scalar-audit/verify.py
+python -O -B research/paired-cube-scalar-audit/verify.py
 python -B research/paired-cube-scalar-audit/test_bit.py
 python -B research/paired-cube-scalar-audit/test_sinks.py
+python -B research/paired-cube-scalar-audit/test_signed.py
+python -B research/paired-cube-scalar-audit/test_source.py
 ```
 
-On Windows, substitute a writable scratch directory for the `/tmp` paths.
-`--bit-only` runs the bit audit without reconstructing a complex witness.
-The complex producer must run without optimized Python; the independent
-audits and their tests keep all mathematical guards active under `-O`.
-Each checker has a 300-second wall limit. Run the full audit with an external
-4 GiB memory limit; the complex checker declares that requirement and does
-not claim to enforce it internally.
+Use Python3.12 or later. All pure guards remain active under -O.
+No original PR168 producer is invoked for the new local circuit. Optional
+--complex-work-dir accepts external raw181 graph/selection/frames only if
+they match the pinned canonical hashes; default reads the selected witnesses.
+--bit-only skips the complex execution. Each core has a300-second wall guard;
+full execution requires an external4GiB memory limit, enforced in CI.
 
-The upstream native gates separately check the actual frame chains and paid
-ledger. This package additionally checks sink eligibility and exact scalar
-identities. It does not establish general Gaussian/Pauli phases, completed-core
-sharing, the literal charge theorem, the uniform weighted compiler or all-size
-analytic/precision/fixed-tape interfaces. Those hypotheses remain explicit in
-the upstream notes and the precision package's proof document. Finite checks
-and AI agent reviews do not constitute a complete theorem proof.
+The wrapper also checks the precision input/native component binding. That
+step is consistency evidence: it compares all positive bins and dimensions,
+and reports target zero diagnostics6270(native) versus6323(literal recount).
+Zero-rank events have no child/moment/rank charge; c/R/M scalar bills remain
+complete. General phase/cost, weighted compiler, restored rows, analytic,
+precision/recovery and fixed-tape all-size interfaces remain hypotheses.
 
-Prepared with substantial OpenAI Codex assistance. Preserve the construction
-credits and Apache-2.0 notices in [NOTICE](NOTICE) and [LICENSE](LICENSE).
-
-The complex audit uses PR178's selected physical frames, retaining PR168's
-raw DAG, signed word, reuse pairs and all 47 sinks. The source closure also
-binds every PR178 addition, including its independently reproduced profile.
+Chafik Boukhalfa's PR181 local circuit, prepared with substantial Anthropic
+Claude and OpenAI Codex assistance, is built on eumemic's PR168 construction.
+James Chang supplies terminal accumulation and icekylinx shared-core accounting.
+Rohan Arun's earlier PR178 frame refinement remains superseded lineage.
+Independent scalar and signed extensions were developed and reviewed by
+different AI agents in this contribution with substantial OpenAI Codex
+assistance. See NOTICE and unchanged Apache-2.0 LICENSE; no human peer review
+or all-size theorem acceptance is claimed.

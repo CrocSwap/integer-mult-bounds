@@ -1,6 +1,8 @@
 """Independent exact scalar sink protocol; stdlib only, no producer imports.
 
 Sparse integer numerator vectors carry an adaptive exact denominator per row.
+Signed unit gates use z[a] <- ca*z[a]+cb*z[b]; their inverse is
+z[a] <- ca*z[a]-ca*cb*z[b]. Reflected events invert this signed map.
 Both input banks and every retained dirty slot have disjoint formal variables.
 Frame eligibility of sinks is checked; this is not a complete phase/frame proof.
 Apache-2.0. Prepared with Codex assistance.
@@ -51,6 +53,14 @@ class Row:
             else: self.data.pop(column,None)
             if not count%4096: meter.check()
         meter.operations+=len(source.data)
+    def scale(self, sign, meter):
+        need(type(sign) is int and sign in (-1,1), 'exact row sign')
+        if sign == -1:
+            for count, column in enumerate(self.data):
+                self.data[column] = -self.data[column]
+                if not count % 4096: meter.check()
+            meter.operations += len(self.data)
+
     def equals(self, coefficients):
         return self.data=={k:self.denominator*v for k,v in coefficients.items() if v}
 
@@ -106,8 +116,11 @@ def check_response_correspondence(ops,coef,order,cs,ds,actual_c,actual_d,R):
     d=[dict(ds.get(s,{})) for s in range(R)]
     for i in reversed(range(len(ops))):
         a,b,_=ops[i];ca,cb=coef[i]
-        need(type(ca) is int and ca==1 and type(cb) is int and cb in (-1,1),'response shear coefficient')
+        need(type(ca) is int and ca in (-1,1) and type(cb) is int and cb in (-1,1),'response signed coefficient')
         add_integer(c[b],c[a],cb);add_integer(d[b],d[a],cb)
+        if ca == -1:
+            c[a] = {k:-v for k,v in c[a].items()}
+            d[a] = {k:-v for k,v in d[a].items()}
     need(c==actual_c and d==actual_d,'native raw/phase adjoint responses equal')
     return {'per_role_order_preserved':True,'exact_all_center_and_side_responses_equal':True,
             'roles':R,'operations':len(ops),
@@ -127,7 +140,7 @@ class Protocol:
         self.ops=[tuple(o) for o in word['ops']]
         self.coef=[tuple(o) for o in word['opcoeff']]
         need(len(self.ops)==len(self.coef) and all(len(o)==3 and all(type(x) is int and x>=0 for x in o) for o in self.ops),'operation schema')
-        need(all(ca==1 and type(ca) is int and type(cb) is int and cb in (-1,1) for ca,cb in self.coef),'selected sink word must use shear gates')
+        need(all(type(ca) is int and ca in (-1,1) and type(cb) is int and cb in (-1,1) for ca,cb in self.coef),'selected word must use signed unit gates')
         self.phase=sorted(word['phase1'])
         need(len(set(self.phase))==len(self.phase) and all(type(i) is int and 0<=i<len(self.ops) for i in self.phase),'phase schema')
         phase=set(self.phase)
@@ -182,8 +195,11 @@ class Protocol:
         self.c=[dict(self.cs.get(s,{})) for s in range(self.R)]
         self.d=[dict(self.ds.get(s,{})) for s in range(self.R)]
         for i in reversed(self.order):
-            a,b,_=self.ops[i]; cb=self.coef[i][1]
+            a,b,_=self.ops[i]; ca,cb=self.coef[i]
             add_integer(self.c[b],self.c[a],cb); add_integer(self.d[b],self.d[a],cb)
+            if ca == -1:
+                self.c[a] = {k:-v for k,v in self.c[a].items()}
+                self.d[a] = {k:-v for k,v in self.d[a].items()}
         self.response_correspondence=check_response_correspondence(self.ops,self.coef,self.order,
                                       self.cs,self.ds,self.c,self.d,self.R)
         ann=witness['annihilators']
@@ -207,6 +223,7 @@ class Protocol:
             need(s not in self.merge and s not in donors and s not in deferred and s not in self.sources.values() and s not in self.cs,'sink has no alias, gauge or injection')
             writes=[i for i in self.order if self.ops[i][0]==s]
             need(writes and not any(b==s for _,b,_ in self.ops) and not set(writes)&phase,'sink destination-only second-phase writes')
+            need(all(self.coef[i][0]==1 for i in writes),'sink destination writes must use shear gates')
             U=complement(binary_basis(self.inputs[t] for t in targets),self.h)
             chain=[()]+[operation_frames[i] for i in writes]+[U]
             need(all(subspace(a,b) for a,b in zip(chain,chain[1:])),'sink nested write frame')
@@ -231,9 +248,17 @@ class Protocol:
             events.append({'kind':'add','dest':dest,'source':source,'factor':factor,'tag':tag,'identity':identity})
         def read(s,sign,seed=False):
             events.append({'kind':'read','source':self.port(s),'role':s,'sign':sign,'seed':seed,'bank':'Y'})
+        def signed_gate(i, inverse=False):
+            a,b,_=self.ops[i]; ca,cb=self.coef[i]
+            factor=(-ca*cb if inverse else cb,1)
+            tag='gate_inverse' if inverse else 'gate'
+            if ca == 1:
+                addition(self.port(a),self.port(b),factor,tag,i)
+            else:
+                events.append({'kind':'signed_add','dest':self.port(a),'source':self.port(b),
+                               'sign':ca,'factor':factor,'tag':tag,'identity':i})
         def gate(i):
-            a,b,_=self.ops[i]
-            addition(self.port(a),self.port(b),(self.coef[i][1],1),'gate',i)
+            signed_gate(i)
             retained.append(i)
         for s in range(self.R):
             if s not in self.selected and s not in self.merge and s not in self.sinks: read(s,-1)
@@ -276,8 +301,7 @@ class Protocol:
                 for j,t in enumerate(targets): addition(('Y',base+t),ports[j],(1,1),'K_delivery')
                 events.append({'kind':'linear4','ports':ports,'matrix':[list(c) for c in zip(*matrix)]})
         for i in reversed(retained):
-            a,b,_=self.ops[i]
-            addition(self.port(a),self.port(b),(-self.coef[i][1],1),'gate_inverse',i)
+            signed_gate(i, inverse=True)
         for x,s in sorted(self.sources.items(),reverse=True): addition(self.port(s),('X',x),(-1,1),'uninjection',x)
         return events
 
@@ -289,6 +313,9 @@ class Protocol:
             if e['kind']=='add':
                 e['dest']=swap(e['dest']); e['source']=swap(e['source'])
                 n,d=e['factor']; e['factor']=(-n,d)
+            elif e['kind']=='signed_add':
+                e['dest']=swap(e['dest']); e['source']=swap(e['source'])
+                n,d=e['factor']; e['factor']=(-e['sign']*n,d)
             elif e['kind']=='read': e['bank']='X' if e['bank']=='Y' else 'Y'; e['sign']=-e['sign']
             elif e['kind']=='linear4':
                 e['ports']=[swap(p) for p in e['ports']]
@@ -318,6 +345,11 @@ class Protocol:
             if kind=='add':
                 source=get(e['source'])
                 banks[e['dest'][0]][e['dest'][1]].add(source,e['factor'],meter)
+            elif kind=='signed_add':
+                need(e['dest']!=e['source'], 'distinct signed row ports')
+                source=get(e['source']); target=get(e['dest'])
+                target.scale(e['sign'],meter)
+                target.add(source,e['factor'],meter)
             elif kind=='read':
                 value=get(e['source']); sign=e['sign']; role=e['role']; bank=e['bank']
                 c=self.cs.get(role,{}) if e['seed'] else self.c[role]
@@ -353,7 +385,9 @@ def audit_raw(graph,word,witness,frames,pairs,sinks,*,seconds=300):
     events=protocol.events()
     positive={'forward':protocol.replay(events),'reflected':protocol.replay(protocol.reflected(events),True)}
     controls={}
-    for name in ('omit_post_shear','wrong_pivot_sign','omit_compensated_read','wrong_dirty_inverse'):
+    names=['omit_post_shear','wrong_pivot_sign','omit_compensated_read','wrong_dirty_inverse']
+    if any(e['kind']=='signed_add' for e in events): names.append('wrong_reflection_sign')
+    for name in names:
         changed=list(events)
         if name=='omit_post_shear':
             index=next(i for i,e in enumerate(changed) if e.get('tag')=='sink_post')
@@ -365,6 +399,9 @@ def audit_raw(graph,word,witness,frames,pairs,sinks,*,seconds=300):
             recipient=next(b for b in protocol.merge if protocol.c[b] or protocol.d[b])
             index=next(i for i,e in enumerate(changed) if e['kind']=='read' and e['role']==recipient and e['sign']==-1)
             del changed[index]
+        elif name=='wrong_reflection_sign':
+            index=next(i for i,e in enumerate(changed) if e['kind']=='signed_add' and e.get('tag')=='gate')
+            changed[index]=dict(changed[index]); changed[index]['sign']=1
         else:
             index=next(i for i,e in enumerate(changed) if e.get('tag')=='gate_inverse')
             changed[index]=dict(changed[index]); n,d=changed[index]['factor']; changed[index]['factor']=(-n,d)
@@ -375,6 +412,7 @@ def audit_raw(graph,word,witness,frames,pairs,sinks,*,seconds=300):
             'positive':positive,'controls':controls,'sink_count':len(protocol.sinks),'role_count':protocol.R,
             'retained_dirty':len(protocol.live),'aliases':len(protocol.merge),
             'native_response_correspondence':protocol.response_correspondence,
+            'reflection_gates':sum(ca==-1 for ca,cb in protocol.coef),
             'elapsed_seconds':time.monotonic()-meter.start,'sparse_term_additions':meter.operations,
             'limits':{'seconds':seconds,'workers':1,'required_external_memory_limit_bytes':4*1024**3},
             'scope':'Exact finite scalar maps on the full source, target and retained dirty basis; sink eligibility checks. Full frame/phase/all-size proof not certified.'}

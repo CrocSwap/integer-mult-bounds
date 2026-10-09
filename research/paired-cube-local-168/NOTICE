@@ -1,0 +1,54 @@
+Prepared by Chafik Boukhalfa with substantial Anthropic Claude and OpenAI
+Codex assistance. Apache-2.0. Inherited files retain their original notices
+and assistance disclosures. This package claims no exclusive priority over
+concurrent work.
+
+Retained sources and lineage:
+- icekylinx: PR144 paired cubes, signed decoder, shared-core accounting,
+  original compiler, configurable local channels and finite bridge;
+  PR130/generalized Clifford frames.
+- eumemic: PR117 module infrastructure; PR155/157 scalar modules, physical
+  frames/reuse and partner-pair bit word; PR161 output merging and searched
+  p12 module; PR168 annealed pair, triple and all-but-one modules on both
+  words, nested-prefix schedules, the L1 local circuit this package varies,
+  fused outputs, bundle descent, both physical layers, the terminal-sink
+  gate and the physical bit word, pinned at
+  4a3c769e5c5430e7114c4d3e099ff34664677f17. Their Anthropic Claude and
+  OpenAI Codex disclosures are retained. PR131/143 supply frame/reuse and
+  late-read lineage; PR154 supplies isolated snapshot verification.
+- DaysSky: PR162 generalized carrier extension (`compile_closure` and the
+  extension rule reused here on the new graph) and full-intersection
+  compiler lineage. The selected graph retains the PR168 nested schedule.
+- jamesyc / James Chang: PR124 compensated birth cuts, PR34 balanced
+  assembly, and PR166 terminal-output accumulation and exact simultaneous
+  target-chain checking. The PR166 proof is retained in references/pr166.
+- GamingPuzzled / Joel Pulikkan: PR160 searched-bit-module composition.
+- gupt1156 PR148 and Abhinav Ramachandran/geckods PR158 (Hermes assistance):
+  paid atom-toll re-instantiation, including PR158 at
+  6e086603f936dbb95c6d7171132ed943cc024db9.
+- jacklightChen / Zhihao Chen: PR23/29 ordinary supplier; Rohan Arun
+  (rohanarun): PR100/103 paid positional layout and deferred signed words.
+- Earlier bit lineage retained by the prerequisite: Zhihao Chen PR97,
+  Swapnil Jain's round-seven checkers, an664 PR128, DaysSky PR150, hpst3r
+  PR147, SovereignSteak PR122, and the source-notice contributors.
+
+This package contributes a coordinate search over PR144's configurable
+local channel circuit on the PR168 v4 word, selecting direction-0 edge
+sums for A[1,0], A[1,1] and A[2,1] so that the carrier closure gains 660
+arcs; our own legal-edge Hopcroft-Karp carrier matching with PR162's
+extension; endpoint frame descent and compensated handoffs for the new
+graph; independent complete admission of the resulting physical word and
+its 44 terminal deletions; independent physical-bit admission and exact
+prime witnesses for every used bit frame; and the fully paid balanced
+composition with finer positive backoffs. Scalar virtual stock, physical
+handoffs, terminal removals and every external row reserve remain
+distinct. The complete 47-inequality body is source-normalized to PR141.
+Prerequisite constructions, the configurable circuit itself and the
+terminal-compilation concept are not claimed as original here.
+
+Verification infrastructure: Chafik Boukhalfa, PR175 at
+f1081fabbfadaaaaf7292a40d428dbbb865ce920, with substantial OpenAI Codex
+assistance. Its ordered retired-register compiler buckets and three
+provenance/certificate updates are carried byte for byte. The PR57 compiler
+and all existing notices remain. This overlay changes no mathematical
+field or emitted word and is included in the complete native verification gate.

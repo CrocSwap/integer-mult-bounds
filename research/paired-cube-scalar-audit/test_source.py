@@ -26,8 +26,21 @@ class SourceControls(unittest.TestCase):
         data=self.manifest();data['audit_sha256']['independent_bit.py']='0'*64
         with self.assertRaisesRegex(ValueError,'wrong reviewed checker pin'):self.check(data)
     def test_omitted_wrapper_or_source_test_rejected(self):
-        for name in ('verify.py','test_source.py'):
+        for name in ('verify.py','test_source.py','test_signed.py'):
             data=self.manifest();del data['audit_sha256'][name]
             with self.assertRaisesRegex(ValueError,'incomplete audit source closure'):self.check(data)
+    def test_precision_cannot_rebind_derived_input(self):
+        data=self.manifest();name=next(iter(data['precision_sha256']))
+        data['precision_sha256'][name]='0'*64
+        with self.assertRaisesRegex(ValueError,'wrong frozen input closure'):self.check(data)
+    def test_precision_source_bytes_rejected(self):
+        data=self.manifest()
+        with self.assertRaisesRegex(ValueError,'precision source changed'):
+            V.check_source_manifest(data,lambda p:(V.ROOT/p).read_bytes(),lambda p:(V.HERE/p).read_bytes(),
+                                    lambda p:(V.ROOT/p).read_bytes()+b' ')
+    def test_selected_six_raw_witness_bindings(self):
+        lock=V.source_lock();raw=V.load_complex(lock)
+        self.assertEqual(set(raw),{'graph','word','witness','operation_frames','pairs','sinks'})
+        self.assertEqual(len(raw['sinks']),44)
 
 if __name__=='__main__':unittest.main()

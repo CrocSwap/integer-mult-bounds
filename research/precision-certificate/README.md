@@ -1,58 +1,57 @@
-# Precision refinement of the pinned paired-cube witness
+# Precision refinement of the pinned local-circuit witness
 
-This certifies a small arithmetic refinement of PR178 at commit
-`2c4a380126640abfcdce398ced255d1dd5d1d007`. The pinned headline is
-`13118356069/20000000000000 = 0.00065591780345`; the refined conditional headline is
-`655917923729/1000000000000000 = 0.000655917923729`, an increase of
-`120279/1000000000000000 = 0.000000000120279`.
-
-The contribution changes precision and positive backoffs. It preserves the
-upstream graph, matching, physical word, terminal sinks, and all upstream
-files. It does not claim an independently reconstructed local schedule or
-a complete integer-multiplication theorem.
+This contribution refines Chafik Boukhalfa's PR181 at
+`7fb2194801e3a10f54772c7f0d5505035a4fc0ad`. Its conditional headline is
+`659180578557293/10^18`. The refined point is
+`659180578557294852359/10^24`, an increase of `1852359/10^24`.
+The bit supplier limits this assembly. No upstream scientific file changes.
 
 From the repository root, with Python 3.12 or later:
 
 ```sh
-python -B research/precision-certificate/verify.py
+python -B research/precision-certificate/verify.py --native-inputs
 python -B research/precision-certificate/test_precision.py
-python -O -B research/precision-certificate/verify.py
+python -B research/precision-certificate/test_native.py
+python -O -B research/precision-certificate/verify.py --native-inputs
 python -O -B research/precision-certificate/test_precision.py
+python -O -B research/precision-certificate/test_native.py
 ```
 
-The package also runs by itself: the three inputs and both generic checkers
-are included, and the verifier has no imports from upstream scripts. To
-recompute the saved certificate, run the first command with `--write`.
-The ordinary command recomputes everything and demands exact byte equality
-with the checked-in certificate. It requires no third-party packages.
+The verifier reassembles every paid child, independently bounds both supplier
+moments, reconstructs the full finite bridge and all47 strict inequalities,
+and rejects the next supplier/headline grid points. It uses no producer or
+submitted arithmetic imports. The two generic arithmetic cores are unchanged
+from their reviewed versions. `--write` regenerates the owned certificate;
+the ordinary command requires exact equality with the saved answer.
 
-`SOURCE.json` records the exact input revision, raw hashes, checker provenance,
-and package source closure. The verifier independently fixes the three input
-hashes and the two checker hashes, checks every source byte, and binds the
-source manifest hash into the certificate. The supplied controls reject
-the next supplier/headline grid points, a missing paid child, invalid ranks,
-an underpaid literal guard, a wrong revision label, and altered source bytes.
+The three copied inputs have explicit provenance in SOURCE.json. The logical
+scalar input projects PR181's selected raw record by removing four search
+diagnostics. The terminal inventory is an independent fixed-witness recount,
+with44 sinks, from that raw graph/word/frame data. These derived JSON files
+are not described as Git-verbatim native records. The bit inventory is an
+exact unchanged native Git record. Default verification also works with this
+standalone folder; `--native-inputs` additionally requires the native repository.
 
-The independent moment implementation uses the `-log(1-u)` series and
-rational exponential bounds; the independent assembly implementation derives
-the bridge and 47 slacks from relational inequalities. Both are copied
-unchanged from reviewed generic checkers, with their hashes recorded. The
-certificate uses the pinned stored component inventories as mathematical
-inputs, not imported supplier or assembly answers.
+The native binding module compares every positive component bin and every paid
+dimension against PR181's native aggregate and selected inputs. Native target
+rank-zero diagnostics count6270 events; the literal-event recount counts6323.
+Both counts are preserved and explicitly reported. Rank-zero events create no
+child, rank mass or characteristic charge. The complete logical c/R/M scalar
+bill remains paid. This is input consistency, separate from independent
+geometry and scalar execution.
 
-The new terminal-sink schedule and L1 bit aliases require their own geometry
-and scalar verification. The upstream sink checker has exhaustive frame and
-ledger scans with seeded modular scalar replay; the upstream physical bit
-checker uses seeded 64-lane replay. This arithmetic package adds no exhaustive
-formal-basis or Gaussian/Pauli phase claim. The retained compiler, analytic,
-exact-recovery, and fixed-tape contracts remain explicit in [PROOF.md](PROOF.md).
+The companion [scalar audit](../paired-cube-scalar-audit/README.md) checks all
+formal source, target and retained dirty coefficients of the selected new
+signed word, including330 destination reflections. The native PR181 gate
+checks its own circuit/frame/profile/formal witnesses. Finite evidence does
+not establish the general phase, weighted compiler, precision/recovery,
+analytic or fixed-tape contracts in [PROOF.md](PROOF.md).
 
 Prepared by Muhammed Ali Mehmood with substantial OpenAI Codex assistance.
-The refined witness retains Rohan Arun's PR178 operation-frame refinement,
-prepared with OpenAI Codex assistance, and eumemic's upstream module, physical bit, and
-terminal-sink integration, developed with Anthropic Claude assistance. The
-terminal-sink lemma is due to jamesyc (PR166); shared-core accounting and the
-finite bridge are due to icekylinx (PR144), with earlier local words and
-assembly interfaces by eumemic and Zhihao Chen/Swapnil Jain. The balanced
-positional transform is from hipotures/RaD. See [NOTICE](NOTICE) for attribution
-and [LICENSE](LICENSE) for the unchanged Apache-2.0 license.
+PR181's local circuit and finite integration are Chafik Boukhalfa's work with
+substantial Anthropic Claude and OpenAI Codex assistance, on eumemic's PR168 construction with
+Anthropic Claude assistance. James Chang supplies the terminal-sink lemma;
+icekylinx supplies shared-core accounting and the finite bridge. Earlier local
+interfaces include Zhihao Chen/Swapnil Jain, and the balanced positional layout
+is due to hipotures/RaD. Rohan Arun's superseded PR178 frame refinement is
+retained as development lineage. See NOTICE and the unchanged Apache-2.0 LICENSE.

@@ -18,23 +18,23 @@ import independent_assembly as A
 HERE = Path(__file__).resolve().parent
 if hasattr(sys, 'set_int_max_str_digits'):
     sys.set_int_max_str_digits(100000)
-PIN = '2c4a380126640abfcdce398ced255d1dd5d1d007'
-GRID = 10**15
-COMPLEX = Q(656348434433, 1000000000000000)
-COARSE = Q(660025378359, 1000000000000000)
-ATOM = Q(41225961513, 62500000000000)
-KAPPA = Q(655917923729, 1000000000000000)
+PIN = '7fb2194801e3a10f54772c7f0d5505035a4fc0ad'
+GRID = 10**24
+COMPLEX = Q(132438677973141606647, 200000000000000000000000)
+COARSE = Q(82503172294962610849, 125000000000000000000000)
+ATOM = Q(659615384207882296543, 1000000000000000000000000)
+KAPPA = Q(659180578557294852359, 1000000000000000000000000)
 ETA = BETA = PHASE_GAP = Q(1, GRID)
-BASELINE = Q(13118356069, 20000000000000)
+BASELINE = Q(659180578557293, 1000000000000000000)
 FIXED_HASHES = {
-    'inputs/paired-cube-sinks-input.json': '17c190e8a812c2be31a06816fa6f5305d8b82f2ff7ba5a182203f6a19b10f773',
+    'inputs/paired-cube-sinks-input.json': 'aeb7b2c053f6eacd55837c4c597a9cb3626d681495b783cc6310789e35b5fc9a',
     'inputs/paired-cube-bit-physical-input.json': '6735294e8639da09eb3eb2234cbc5814298442a6c946b5534bcf6e48903547f3',
-    'inputs/paired-cube-complex-input.json': 'b1898950f95a7ce618f376d14e628061b345a519e7bcac76b67d277deeec9af5',
+    'inputs/paired-cube-complex-input.json': '9adcc1e7da7222e19dce989cd6f86200997a677642b4c2a580aaae0c0a31a855',
     'independent_moments.py': '4d398b4600f7aeaf73a36c68ebc9727de0451399512769282684ae9d4804f594',
     'independent_assembly.py': '99584fe21922926ed9766ec5bc75a06ae531f396bf41ef87baafde248e1f9b9b',
     'LICENSE': 'c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4',
 }
-SOURCE_FILES = set(FIXED_HASHES) | {'verify.py', 'test_precision.py', 'README.md', 'PROOF.md', 'NOTICE'}
+SOURCE_FILES = set(FIXED_HASHES) | {'verify.py', 'test_precision.py', 'README.md', 'PROOF.md', 'NOTICE', 'profile_binding.py', 'test_native.py'}
 
 
 def check_source_manifest(manifest, read_bytes):
@@ -126,7 +126,11 @@ def regenerate():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--write', action='store_true', help='write the recomputed precision certificate')
+    parser.add_argument('--native-inputs', action='store_true', help='also bind every copied profile to pinned native181 components')
     args = parser.parse_args()
+    if args.native_inputs:
+        import profile_binding as P
+        print(json.dumps(P.check_native_inputs(HERE.parents[1], {name: json.loads((HERE/'inputs'/name).read_bytes()) for name in P.INPUT_NAMES}),sort_keys=True))
     text = json.dumps(regenerate(), indent=2, sort_keys=True)+'\n'
     path = HERE/'certificate.json'
     if args.write:

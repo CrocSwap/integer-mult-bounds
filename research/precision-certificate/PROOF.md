@@ -1,88 +1,66 @@
-# Exact finite arithmetic and retained hypotheses
+# Exact finite arithmetic and retained contracts
 
-The claim is an arithmetic implication of the three frozen inventories at
-PR178 commit `2c4a380126640abfcdce398ced255d1dd5d1d007`, together with the
-existing paid-child, compiler, phase, router, analytic, and tape interfaces.
-It is conditional on those interfaces and on the inventories representing
-legal physical words. It does not establish these hypotheses independently.
+All inputs are pinned to PR181 `7fb2194801e3a10f54772c7f0d5505035a4fc0ad`.
+This is a conditional finite arithmetic implication. It is not an all-size
+integer multiplication theorem or a global parameter optimum.
 
-The physical complex record includes 47 terminal sinks: ambient width 66,
-role stock 13655, rank mass 899910, deficit 1320, and maximum child 20. The
-physical bit record has width 72, role stock 21548, rank mass 1549520, and
-deficit 1936. The verifier reconstructs their paid inventories from three
-copies of the local/source/target histograms, each physical gauge of dimension
-`d` charged as a child of rank `3d`, and `2v` rank-two finishing children.
-It checks the saved complete histogram, dimensions, physical register stock,
-and telescoping deficit `2v - 3 loss`.
+The new logical local circuit has h22, v1320, c21249, q3157,11364 matched
+carriers, R13042 and32971 mixer operations. Its loss is440. After2310
+handoffs and44 terminal sinks, physical R is10688 and ambient stock13328.
+The width is66, rank mass878328, deficit1320 and maximum child20. The bit
+record remains width72, stock21548, rank1549520 and deficit1936. Source,
+local and target component multiplicities each pay three copies; a gauge
+dimension d pays rank3d, and2v finishing children have rank2. The verifier
+reconstructs the complete paid histogram and checks every stock/mass identity.
 
-For width `m`, stock `w`, and multiplicities `n_r`, the characteristic is
+The independent characteristic uses sum(n_r*(r/m)^(1-a))/w. Natural log is
+enclosed through the120-term -log(1-u) series after range reduction; exp uses
+16 terms and a geometric bound on its tail. Outward rational rounding uses
+10^36. The supplier/grid/atom/headline grid is10^24.
 
-`sum(n_r * (r/m)^(1-a))/w`.
+Complex saving is132438677973141606647/200000000000000000000000.
+Coarse bit saving is82503172294962610849/125000000000000000000000.
+Both exact upper characteristic bounds are below one; each next10^-24 grid
+point has a lower bound at least one. The bit envelope adds the entire
+32m^2 rank-one fallback on10^-16 of every ideal edge and checks contaminated
+rank contraction plus2m^3/2^80<10^-16. This does not by itself prove the
+uniform local-ring compiler, determinant exclusions or prime supply theorem.
 
-The exact logarithm checker reduces to an argument in `[1,2]` and bounds
-`-log(1-u)` by 120 terms with tail
-`u^121/(121(1-u))`. It bounds the exponential by 16 terms with a geometric
-tail on the first omitted term. Outward rational rounding uses denominator
-`10^36`. Thus it bounds both sides of the characteristic independently of the
-upstream producer's moment implementation.
+The ordinary saving is384599/10^10. Atom659615384207882296543/10^24
+is the first strict grid point above coarse/(1+coarse-ordinary). Effective bit
+saving is(1-atom)*coarse+atom*ordinary, with effective<atom<1-effective.
+This bit branch limits the final assembly. Set eta=beta=phase_gap=10^-24,
+a=min(effective_bit,(1-beta)*complex-phase_gap), q=a(1-2eta), c=q+eta/4,
+epsilon=(1-eta)/(1+q). The compact phase margin epsilon*q is the minimum
+of seven margins; every one of the47 strict inequalities is checked.
+Headline659180578557294852359/10^24 is below that margin; its next grid point
+fails. These maximal-grid statements concern fixed supplied profiles/envelopes
+and stated positive backoffs only.
 
-The selected complex saving is `656348434433/1000000000000000` and the selected
-coarse bit saving is `660025378359/1000000000000000`. Both have strict upper
-characteristic bounds below one; their `10^-15` successors have lower bounds
-at least one. The bit bound adds the entire `32m^2` rank-one fallback on a
-fraction `10^-16` of every ideal edge. It never subtracts an ideal child. The
-contaminated rank moment also contracts, and `2m^3/2^80 < 10^-16` is checked.
-The fixed-prime construction still requires a prime outside the finite
-denominator and bad-minor exclusion set; this inequality alone does not
-choose that prime or prove the compiler theorem.
+The bridge retains all13042 logical scalar roles and all32971 operations
+despite handoffs and deleted sinks. It pays the full orthogonal-group stock,
+router, literal charge, decoder coefficient/denominator and exact-child
+induction allowances. The separate old reserve9909 and ordinary reserve252
+remain. The halving degree66->20 is one; row coefficient is12320 and degree
+70000 gives gap224336/5. None of these numerical charges independently
+establishes the general physical router or phase theorem.
 
-The ordinary leaf saving remains `384599/10^10`. The atom exponent
-`659615384208/10^15` is the first grid point strictly above
-`coarse/(1+coarse-ordinary)`. The effective stopped bit saving is
-`41225961512948862431602833/62500000000000000000000000000`.
-Both adapter and internally borrowed-row tolls are strictly subordinate.
-The external row reserve remains `9909 + 252`; selectors are borrowed and
-restored internally under the retained theorem.
+The copied terminal component histograms come from an independent selected
+frame/role/donor/target recount, with a recorded44-sink population adaptation.
+The copied logical input projects the exact raw selected logical record,
+removing only numerical/search diagnostics; source compilation remains a
+written input contract. The native binding gate compares all positive bins
+to native181 components and all paid dimensions. It preserves target zero
+diagnostics6270(native) versus6323(literal recount); zero rank has no recursive
+charge and does not reduce the full scalar c/R/M bill. Native stored replay
+metadata is not copied into these derived inputs or claimed as fresh execution.
 
-The independent checker reconstructs the finite bridge, including the full
-role-stock permutation/router allowance, literal charge, coefficient and
-precision allowances, and external reserve. The least halving degree for
-`66 -> 20` is one; the row coefficient is `2159+9909+252=12320`, and
-`70000-(51/25)*12320=224336/5 > 0`. It verifies every exact finite semantic
-guard. These are numerical implications of the documented charge rules;
-the checker does not prove the physical charge theorem.
-
-Set `eta = beta = phase_gap = 10^-15` and
-`a = min(effective_bit, (1-beta)*complex_saving - phase_gap)`.
-The balanced assembly uses `q=a(1-2 eta)`, `c=q+eta/4`, and
-`epsilon=(1-eta)/(1+q)`. It derives all 47 strict constraints and seven
-reported margins, including `epsilon(1+c)<1`. The compact phase layer
-`epsilon*q` is the minimum margin. The claimed saving
-`655917923729/1000000000000000` is below that margin, while its `10^-15`
-successor fails the compact-phase inequality. This is grid optimality at
-these fixed inventories and backoffs, not global optimization.
-
-The additional geometric obligations of the pinned upstream witness are:
-
-1. The direct TMOD, pair, all-but-one, local L1, and fused singleton modules
-   preserve their exact signed output contracts and legal carrier/frame chains.
-2. Each terminal sink is destination-only, has no injection/gauge/pair role,
-   has nested write frames, one uniform root coefficient, a legal pivot with
-   no intervening correction, and disjoint target group. Its pre-shear,
-   redirected writes, post-shear, and reflected word must give the same exact
-   transformation for arbitrary source and dirty scratch values. Its removal
-   drops the two children `r` and `h-r` per core while preserving the deficit.
-3. The 1760 bit aliases have legal deadlines and spliced frame chains, restore
-   every scratch/source value, and satisfy the exact F2 and partner-K identities.
-4. Original-source K scheduling, arbitrary-subspace Gaussian/Pauli phases,
-   completed-core sharing, and the extra sink shears satisfy the full finite
-   router, coefficient, and odd-denominator precision charge.
-5. The uniform weighted compiler, residue bounds, internally restored rows,
-   analytic outer wrapper, exact recovery, and fixed-tape all-size construction
-   satisfy the existing hypotheses. Passing finite arithmetic tests does not
-   close any of these all-size obligations.
-
-This package verifies neither the upstream scalar schedules nor those
-all-size claims. Those checks are separate contribution acceptance gates.
-The generic checkers were reviewed by other AI agents and tested independently;
-this description makes no claim of human peer review or formal proof.
+The companion signed scalar checker verifies finite forward(X,Y+X,Z) and
+literally reflected(X-Y,Y,Z) maps on every source, target and retained dirty
+column, including330 signed destination reflections, K/inverse and scratch
+restoration. Native181 separately verifies its selected geometry and finite
+words. General Clifford/Gaussian/Pauli phases, common generic bases, completed
+core sharing, weighted source compilation, arbitrary-width routing, restored
+internal rows, uniform setup, prime supply, precision/recovery, analytic outer
+transfer and fixed-tape contracts remain inherited hypotheses. AI-agent
+reviews and finite tests are not formal proof or independent human peer review.
