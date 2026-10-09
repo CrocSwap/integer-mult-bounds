@@ -28,13 +28,13 @@ the parent and selected scalar/frame producers, recompiles the inherited
 matcher, checks every histogram entry, then checks all 47 strict constraints,
 seven margins and two next-grid exclusions. Five adversarial controls reject
 unpaid cleanup, omitted retained loss, reuse of the old profile, and excessive
-complex/final exponents. Full repository verification is pending.
+complex/final exponents. Full verification PASSED on `b06b82a456409968ae3f2c6765ae63c3f0343548` in 2447.924 seconds, completed 2026-10-09T00:11:47.546276+00:00. This includes `make -j1 verify`, all 78 isolated test modules, the explicit package replay and controls listed in [validation.json](validation.json), with no source drift. All 39 research-head GitHub checks passed.
 
 PR104 changed `Makefile`, `README.md` and `NOTICE` without refreshing
 the inherited joint source fingerprints. This branch refreshes only those
 three pins. The affected independent h23/h25 physical replay passed;
 its derived certificate and receipt differ only in source/checksum metadata.
-No mathematical inputs or checks were changed. Full verification remains pending.
+No mathematical inputs or checks were changed. The complete rerun also passed after this fingerprint repair.
 
 This is a small finite refinement, not a proof of global optimality or a
 practical runtime claim. In particular, **the new opposite-bank factorization,
