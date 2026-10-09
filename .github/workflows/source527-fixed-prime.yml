@@ -1,0 +1,71 @@
+name: Retimed source527 fixed-prime refinement
+
+on:
+  pull_request:
+    paths:
+      - 'research/five-stage-source527-banks/**'
+      - 'research/five-stage-source527-fixed-prime/**'
+      - '.github/workflows/source527-fixed-prime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-refinement:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Install the pinned arithmetic dependency
+        run: python -m pip install --disable-pip-version-check -r research/five-stage-source527-fixed-prime/requirements.txt
+      - name: Replay the complete pinned source527 construction and refinement
+        run: |
+          python -B research/five-stage-source527-fixed-prime/verify.py \
+            --output "$RUNNER_TEMP/source527-fixed-prime-${{ github.run_id }}-${{ github.run_attempt }}"
+          git diff --exit-code
+
+  prime-kernel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install checksum verifier
+        run: python -m pip install --disable-pip-version-check zstandard==0.25.0
+      - name: Install the pinned Lean release in runner temporary storage
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/leanprover/lean4/releases/download/v4.24.0/lean-4.24.0-linux.tar.zst \
+            --output "$RUNNER_TEMP/lean.tar.zst"
+          python - <<'PY'
+          import hashlib, os, tarfile, zstandard
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          expected = 'b14f5e5159219dd1a1956c3b806813319f5e94ccd5bdfd56f54520609a5bb5ec'
+          assert hashlib.sha256((root / 'lean.tar.zst').read_bytes()).hexdigest() == expected
+          with (root / 'lean.tar.zst').open('rb') as stream:
+              with zstandard.ZstdDecompressor().stream_reader(stream) as reader:
+                  with tarfile.open(fileobj=reader, mode='r|') as archive:
+                      archive.extractall(root, filter='data')
+          PY
+          echo "$RUNNER_TEMP/lean-4.24.0-linux/bin" >> "$GITHUB_PATH"
+      - name: Kernel-check the selected prime and exact density in a clean project copy
+        env:
+          MATHLIB_CACHE_DIR: ${{ runner.temp }}/mathlib-cache
+        run: |
+          cp -R research/five-stage-source527-fixed-prime "$RUNNER_TEMP/prime-proof"
+          cd "$RUNNER_TEMP/prime-proof"
+          lake update
+          lake exe cache get Mathlib.NumberTheory.LucasLehmer
+          lake env lean Prime.lean
+          git -C "$GITHUB_WORKSPACE" diff --exit-code
