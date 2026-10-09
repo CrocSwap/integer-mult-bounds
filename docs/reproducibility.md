@@ -1,6 +1,18 @@
 # Reproducing the result
 
-For the selected recycled-bit composition, run `make recycled-bit-verify`.
+For the selected coordinated-frame/entrance-bank construction, run
+`make entrance-bank-verify`. This runs the publication-to-certificate binding,
+the full frozen offline finite replay and the bank-scheduling diagnostic.
+The [construction](../research/coordinated-frames-and-entrance-banks/PROOF.md)
+and [scheduling supplement](../research/community-round8-audit/BANK-SCHEDULE.md)
+state the arguments and conditional interfaces. The supplement's small
+exhaustive model is a diagnostic, not a proof of the all-size machine.
+This target uses Python 3.11+ and the standard library only. Preserve the
+package bytes: `.gitattributes` prevents normalization of its hash-pinned JSON.
+`make selected-record-check` is a fast metadata/inventory check, not a replay.
+The complete Linux matrix includes this target on 3.11, 3.13 and 3.14.
+
+For the preceding recycled-bit composition, run `make recycled-bit-verify`.
 The [construction and scope](../research/recycled-bit-integration/PROOF.md)
 describe full formal-variable scalar replay, exact rational frame checks and
 all paid costs. Use `make recycled-bit-full-verify` to recheck every inherited
@@ -23,9 +35,9 @@ Its [incremental reproduction guide](stopped-product.md) covers the h24
 rational-center producer, new moments, stopping parameters and assembly.
 The community checkpoint and historical targets below retain their own scope.
 
-The selected main witness is documented in the [paired-cube maintainer review](research/community-round7-review.md)
+The selected witness is documented in the [round-eight maintainer review](research/community-round8-review.md)
 and [current status](research/current-status.md), with the
-[selected certificate](../research/recycled-bit-integration/certificate.json).
+[selected certificate](../research/coordinated-frames-and-entrance-banks/certificate.json).
 The [joint-frame review](research/community-round2-review.md) remains a historical checkpoint.
 The bound is conditional on the retained original #109 framework. Earlier notes,
 patches, and the [preserved research](research/preserved-research.md) are historical

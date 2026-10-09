@@ -19,6 +19,7 @@ verify:
 	$(MAKE) verify-three-stage-cover
 	$(MAKE) verify-paired-cube
 	$(MAKE) verify-recycled-bit
+	$(MAKE) verify-entrance-banks
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -28,6 +29,16 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-tests
+
+.PHONY: selected-record-check entrance-bank-verify verify-entrance-banks
+selected-record-check:
+	python3 -B scripts/verify_selected_result.py
+
+entrance-bank-verify: selected-record-check
+	python3 -B research/coordinated-frames-and-entrance-banks/verify.py
+	python3 -B research/community-round8-audit/bank_schedule.py
+
+verify-entrance-banks: entrance-bank-verify
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify

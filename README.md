@@ -3,7 +3,42 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: recycled bit registers and shared cores
+## Current reviewed result: coordinated frames and completed entrance banks
+
+[Dugongue's #186](https://github.com/CrocSwap/integer-mult-bounds/pull/186)
+gives the conditional witness
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{330942774629799}{500000000000000000}=6.61885549259598\times10^{-4}.
+$$
+
+The construction combines Chafik Boukhalfa's shared-edge complex supplier
+(#181) with eumemic's physical bit word and searched modules (#168), then
+coordinates operation frames and completes shared entrance banks. The
+[bank scheduling supplement](research/community-round8-audit/BANK-SCHEDULE.md)
+supplies a conflict-free schedule and its additional finite prime exclusions.
+The source package, dependency notices and assistance disclosures are preserved.
+
+This is **43.60% above the preceding published saving**, and 40.18% above
+the intervening reviewed recycled-bit checkpoint. It is approximately
+`2^-10.56113`; a factor 2.95085 remains to `2^-9`. These compare asymptotic
+exponent savings, not measured runtime speedups. The retained analytic,
+uniform-recursion and fixed-tape hypotheses remain assumptions. Finite replay
+and written review do not formally verify the multiplication theorem.
+
+[Review and validation scope](docs/research/community-round8-review.md) ·
+[Selected record](certificates/selected-result.json) ·
+[Construction argument](research/coordinated-frames-and-entrance-banks/PROOF.md) ·
+[Exact certificate](research/coordinated-frames-and-entrance-banks/certificate.json) ·
+[Integration checks](docs/research/community-round8-integration.json) ·
+[Contributor record](CONTRIBUTORS.md)
+
+```sh
+make entrance-bank-verify
+```
+
+## Preceding reviewed result: recycled bit registers and shared cores
 
 The composition of [#147](https://github.com/CrocSwap/integer-mult-bounds/pull/147),
 [#150](https://github.com/CrocSwap/integer-mult-bounds/pull/150),
@@ -195,6 +230,12 @@ order search (#50)**, **Chafik's original-envelope clones (#54)**, and **Rohan G
 split-pair recursion (#59)**. The review records the exact validation scope of each.
 
 ## Attribution
+
+The current #186 construction is contributed by Dugongue, building on
+Chafik Boukhalfa/chafreaky (#181/#175), eumemic (#168), and the cumulative
+framework and physical-word lineage. The [contributor ledger](CONTRIBUTORS.md)
+also credits reviewed parallel work, including Rohan Arun’s #185 bootstrap
+and Chafik’s #182 refinement, without adding their gains to this witness.
 
 Newly incorporated contributions include **DaysSky** (#150), **William Porter /
 hpst3r** (#147), **Thomas Marchand / Th0rgal** (#146), and **Rohan Gupta /

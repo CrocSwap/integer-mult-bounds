@@ -1,17 +1,24 @@
-# Selected construction in this checkout: recycled bit registers
+# Selected construction: coordinated frames and completed entrance banks
 
-The selected conditional witness is **κ=472154791/1000000000000=0.000472154791**,
-composing #147, #150, #146 and #148 on #144. This improves the preceding
-paired-cube checkpoint by about 2.44%. Main publication is a separate action;
-the integration review and CI receipt identify the tested branch and head.
+The selected conditional witness is **κ=330942774629799/500000000000000000
+=0.000661885549259598**, from Dugongue's #186, on chafreaky's #181 and
+eumemic's #168. It is approximately 2^-10.56113: 43.60% above the preceding
+published checkpoint and 40.18% above the recycled-bit review checkpoint.
 
-See the [round-seven review](community-round7-review.md),
+See the [round-eight review](community-round8-review.md),
 [selected record](../../certificates/selected-result.json),
-[construction argument](../../research/recycled-bit-integration/PROOF.md), and
-[pinned queue dispositions](../../research/overnight-pr-review-20261009/QUEUE.md).
-The retained analytic, uniform-recursion and fixed-tape contracts remain
-assumptions; finite checks and scoped Lean contributions do not formalize
-integer multiplication.
+[construction](../../research/coordinated-frames-and-entrance-banks/PROOF.md),
+[bank scheduling supplement](../../research/community-round8-audit/BANK-SCHEDULE.md),
+and [integration validation](community-round8-integration.json).
+Reproduce with `make entrance-bank-verify`.
+Main publication is separate; the receipt identifies the tested branch/head.
+The retained analytic, uniform-recursion and fixed-tape interfaces remain
+assumptions. Finite replay and scoped formal contributions do not formalize
+the multiplication theorem. #185's reviewed leaf bootstrap does not further
+raise this witness, whose complex supplier already binds.
+
+The preceding reviewed recycled-bit composition was κ=0.000472154791;
+its [round-seven review](community-round7-review.md) retains the evidence.
 
 Everything below is historical and retains its checkpoint-specific scope.
 

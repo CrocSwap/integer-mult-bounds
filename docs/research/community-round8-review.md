@@ -2,6 +2,10 @@
 
 Douglas Colkitt, with OpenAI Codex assistance; 2026-10-09.
 
+This is the review snapshot. The subsequent [integration receipt](community-round8-integration.json)
+records selection of this witness, publication metadata and integration checks;
+statements below about an unchanged selected pointer describe the review phase.
+
 The strongest candidate reviewed in this batch is PR186's conditional
 **κ = 330942774629799 / 500000000000000000 = 0.000661885549259598**.
 This is about 40.184% above the overnight integration candidate and 43.602%

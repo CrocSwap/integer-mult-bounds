@@ -1,5 +1,32 @@
 # Community contribution record
 
+**Current reviewed construction: #186 on #181 and #168, κ=0.000661885549259598.**
+The [round-eight review](docs/research/community-round8-review.md) and
+[bank scheduling supplement](research/community-round8-audit/BANK-SCHEDULE.md)
+state the finite checks and retained all-size assumptions.
+
+| Contributor | Contribution and relationship to this checkpoint |
+|---|---|
+| [Dugongue](https://github.com/Dugongue) | [#186](https://github.com/CrocSwap/integer-mult-bounds/pull/186): coordinated complex frames, rematched/retimed handoffs, completed entrance banks and the selected exact assembly. |
+| [Chafik Boukhalfa / chafreaky](https://github.com/chafreaky) | [#181](https://github.com/CrocSwap/integer-mult-bounds/pull/181): shared-edge complex supplier used by #186; [#175](https://github.com/CrocSwap/integer-mult-bounds/pull/175): compiler speedup in its frozen prerequisite. [#182](https://github.com/CrocSwap/integer-mult-bounds/pull/182) adds independently reviewed bit-frame and terminal refinements. |
+| [eumemic](https://github.com/eumemic) | [#168](https://github.com/CrocSwap/integer-mult-bounds/pull/168): searched signed modules, output fusion, terminal sinks and the physical bit word underlying this composition; earlier positive-producer and frame/compiler work remains credited. |
+| [DaysSky](https://github.com/DaysSky) | #162 extended carrier closure and #150 physical register recycling in the prerequisite lineage. |
+| [James Chang / jamesyc](https://github.com/jamesyc) | #166 terminal substitution, #124 compensated birth-read reuse and #34 balanced assembly in the prerequisite lineage. |
+| [Abhinav Ramachandran / geckods](https://github.com/geckods) | #158 paid stopping/atom-toll refinement, alongside gupt1156’s #148, retained in the assembly lineage. |
+| [Joel Pulikkan / GamingPuzzled](https://github.com/GamingPuzzled) | #160 searched-bit-module composition retained in the prerequisite lineage. |
+| [Rohan Arun](https://github.com/rohanarun) | [#185](https://github.com/CrocSwap/integer-mult-bounds/pull/185): independently reviewed finite-depth ordinary-leaf bootstrap on #182. A reusable parallel mechanism; it does not improve #186's headline because its complex supplier already binds. |
+
+The construction retains icekylinx's paired-cube/recursive compiler framework,
+an664's shared-core principle, Zhihao Chen's physical bit ledger and Swapnil
+Jain's underlying word, as well as the earlier analytic, geometry, semantic,
+routing and verification contributions recorded below and in the frozen notices.
+Douglas Colkitt integrated the checkpoint and supplied the scheduling supplement
+with OpenAI Codex assistance. Original author notices and AI disclosures remain
+in the [package](research/coordinated-frames-and-entrance-banks/UPSTREAM-NOTICE.md).
+No exclusive priority claim is made; parallel and superseded work keeps its credit.
+
+### Preceding recycled-bit checkpoint
+
 **Current reviewed composition: #147 + #150 + #146 + #148 on #144,
 with #151’s parallel composition and further atom tightening, κ=0.000472154791.** The [round-seven review](docs/research/community-round7-review.md)
 separates exact finite verification from retained all-size hypotheses.
