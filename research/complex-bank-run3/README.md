@@ -38,8 +38,9 @@ exhausted and the complex-side accounting ladder terminates.
 
 Each step is checked rather than relabelled: the volume fills whole banks, the retained
 ledger satisfies the row identity `66 * W - rank_mass = 3,960`, and the stock falls by
-exactly the bank count. The top row is `W = 35,373`, rank mass `2,330,658`, 635,265 children
-in 17 families, largest child 19.
+exactly the bank count. The ladder's three absorptions occupy **783 width-66 banks** in total
+(531 + 192 + 60), and the top row is `W = 35,373`, rank mass `2,330,658`, 635,265 children in
+17 families, largest child 19.
 
 ## What the pins do not provide (the blocker, unchanged from rung 2)
 
