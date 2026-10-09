@@ -1,0 +1,28 @@
+name: Verify subspace frame witness
+on:
+  push:
+    paths: ['research/subspace-bundle-frames/**', '.github/workflows/subspace-bundle-frames.yml']
+  pull_request:
+    paths: ['research/subspace-bundle-frames/**', '.github/workflows/subspace-bundle-frames.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python3 -B research/subspace-bundle-frames/check_moves.py
+      - run: python3 -B research/subspace-bundle-frames/verify.py
+      - run: python3 -B research/subspace-bundle-frames/check_report.py
+      - run: git diff --exit-code
