@@ -3,6 +3,32 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Paired-cube and shared-core extension
+
+The construction contributed by **icekylinx**, extending
+[PR #130](https://github.com/CrocSwap/integer-mult-bounds/pull/130), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{4609169}{10000000000}=4.609169\times10^{-4}.
+$$
+
+A signed paired-cube producer and coordinate-star centers complete the
+identity using the original source registers. Completed dirty cores reuse
+one auxiliary bank across three orthogonal blocks, adopting an664's PR #128
+sharing principle. The bit branch selects certified gauges from the retained
+PR #97 / Swapnil word. All local transitions, copied centers, complement
+calls, finite routers and rare-class fallback remain charged. The analytic,
+uniform-recursion and fixed-tape hypotheses are retained.
+
+[Proof source](notes/paired-cube-note.tex) ·
+[Exact certificate](certificates/paired-cube-network.json) ·
+[Incremental reproduction](docs/paired-cube.md)
+
+```sh
+make paired-cube-verify
+```
+
 ## Three-stage cover extension
 
 The construction contributed by **icekylinx**, extending

@@ -17,6 +17,7 @@ verify:
 	$(MAKE) verify-producers
 	$(MAKE) verify-partial-gauge
 	$(MAKE) verify-three-stage-cover
+	$(MAKE) verify-paired-cube
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -466,3 +467,17 @@ three-stage-cover-certificate:
 three-stage-cover-verify: three-stage-cover-producer three-stage-cover-certificate
 
 verify-three-stage-cover: three-stage-cover-verify
+
+.PHONY: paired-cube-producer paired-cube-bit paired-cube-certificate paired-cube-verify verify-paired-cube
+paired-cube-producer:
+	python3 scripts/paired_cube_producer.py
+
+paired-cube-bit:
+	python3 scripts/paired_cube_bit.py
+
+paired-cube-certificate:
+	python3 scripts/paired_cube_network.py
+
+paired-cube-verify: paired-cube-producer paired-cube-bit paired-cube-certificate
+
+verify-paired-cube: paired-cube-verify

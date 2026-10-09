@@ -1,5 +1,9 @@
 # Reproducing the result
 
+For the paired-cube/shared-core extension, run `make paired-cube-verify`.
+The [incremental guide](paired-cube.md) covers the signed producer, selected
+bit gauges, exact moments and assembly.
+
 For the three-stage cover extension, run `make three-stage-cover-verify`.
 The [incremental guide](three-stage-cover.md) covers the new PR #117 local
 word, cover moments and exact assembly.
