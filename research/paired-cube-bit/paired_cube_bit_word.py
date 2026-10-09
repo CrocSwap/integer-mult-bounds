@@ -699,7 +699,7 @@ def dumps(obj):
 
 def build(p, frozen_arcs=None, log=print):
     mod = json.loads((HERE / 'data' / MODULES[p]).read_text())
-    abo = all_but_one(p - 2)
+    abo = nested_prefix(p - 2) if p == 12 else all_but_one(p - 2)
     g = BitGraph(p).finish(mod, abo)
     require(check_decoder(g) == 0, 'mod-2 decoder identity')
     t0 = time.time()
@@ -777,6 +777,38 @@ def export(p, g, prof, wit, word, prf):
                           ' root deliver_after_root; undo at full frame; inverse ops; V removal')
     return dict(graph=graph, word=wordj, frames=dict(h=h, P_used_for_ranks='2^127-1', conventions=conv, frames=table),
                 kchron=dict(h=h, entries=kchron, conventions=conv))
+
+
+def nested_prefix(n):
+    """Nested-prefix all-but-one module (QMOD lane; eumemic, Claude assistance): prefix p_{k+1} = p_k + x_k, suffix
+    s_k = x_k + s_{k+1}; y_0 = s_1, y_{n-1} = p_{n-1}, y_{i+1} = p_i + (x_i + s_{i+2}). Each prefix is used twice with
+    nested supports, which gives the carrier matching more links than the balanced tree. Contract-checked."""
+    args = [None] * n
+
+    def add(a, b):
+        args.append([a, b])
+        return len(args) - 1
+    pre = {1: 0}
+    for k in range(1, n - 1):
+        pre[k + 1] = add(pre[k], k)
+    suf = {n - 1: n - 1}
+    for k in range(n - 2, 0, -1):
+        suf[k] = add(k, suf[k + 1])
+    roots = [None] * n
+    roots[0], roots[n - 1] = suf[1], pre[n - 1]
+    roots[1] = add(0, suf[2])
+    for i in range(1, n - 2):
+        roots[i + 1] = add(pre[i], add(i, suf[i + 2]))
+    support = []
+    for x, a in enumerate(args):
+        if a is None:
+            support.append(1 << x)
+        else:
+            require(0 <= a[0] < x and 0 <= a[1] < x and not support[a[0]] & support[a[1]], 'nested prefix disjoint')
+            support.append(support[a[0]] | support[a[1]])
+    full = (1 << n) - 1
+    require(all(support[r] == full ^ (1 << i) for i, r in enumerate(roots)), 'nested prefix all-but-one roots')
+    return dict(input_count=n, args=args, roots=roots)
 
 
 def all_but_one(n):

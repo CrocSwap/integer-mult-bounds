@@ -225,6 +225,27 @@ def pair_module_from(path, n):
                 source='Direct pair module JSON; contract checked above')
 
 
+# ---- Direct all-but-one source (QMOD lane; eumemic, Claude assistance; Apache-2.0).
+def all_but_one_from(path, n):
+    """Zero-based all-but-one module given as JSON {input_count, args, roots}; same contract as all_but_one(n):
+    additions combine disjoint supports and root i sums exactly the inputs other than i."""
+    d = json.loads(Path(path).read_text())
+    assert d['input_count'] == n == len(d['roots'])
+    support = []
+    for x, a in enumerate(d['args']):
+        if x < n:
+            assert a is None
+            support.append(1 << x)
+        else:
+            assert a is not None and 0 <= a[0] < x and 0 <= a[1] < x and not support[a[0]] & support[a[1]]
+            support.append(support[a[0]] | support[a[1]])
+    full = (1 << n) - 1
+    assert all(support[r] == full ^ (1 << i) for i, r in enumerate(d['roots']))
+    return dict(kind='all_but_one', n=n, input_count=n, input_labels=list(range(n)), output_labels=list(range(n)),
+                args=[None if a is None else list(a) for a in d['args']], roots=list(d['roots']),
+                source='Direct all-but-one module JSON; contract checked above')
+
+
 # ---- Output merging (eumemic, Claude assistance; Apache-2.0).
 def merge_outputs(g, G, variant):
     """Replace #144's single-target channels of each port T=(I,b) -- face2 P[I,I2,1-b2] (1/2), edge02
