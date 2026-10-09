@@ -230,7 +230,7 @@ the density curve finds above is still below all of them.
 
 ## 6. Verification boundary
 
-* Machine-checked here: the pinned bytes (28 files, sha256), the frontier reproduction, rung 1
+* Machine-checked here: the pinned bytes (30 files, sha256), the frontier reproduction, rung 1
   rebuilt by the vendored #219 package, rung 2 rebuilt by this package's own ledger module,
   rungs 3 and 4 (volumes, row identities, stock drops, both paid moments, adjacency
   rejections), the branch ceilings, the eligibility exhaustion, the PR208 replica, the T1
@@ -262,6 +262,15 @@ the curve's width-66 row is exactly the pinned stock reproducing the top kappa),
   obligations.  The verdict is therefore evidence rather than commentary: discharging C1-C7 and
   R1-R4 buys a conditional finite witness -- the house-standard status -- and the label
   'unconditional' is closed by the pins.
+* Also machine-checked: the normalizer export contract (`EXPORT-CONTRACT.md`,
+  `export-contract.json`).  Six required exports, seven acceptance tests and the mapping of all
+  eleven obligations are checked, and every citation the contract makes -- the digests
+  `3b4e671d…`, `1d81a79b…`, `51da02c6…`, the three cache digests, the column and read counts, the
+  status strings, and the banked word's and inventory's precedent values -- is resolved back
+  against the pinned bytes, with the declared state (0 of 6 bodies exported) asserted rather
+  than described.  The contract's one design reading is also pinned: it addresses the
+  `lift`/witness pair, not the flow block, whose own status says *"Not an exact supplier
+  certificate"*.
 * Not run: upstream CI, and any contributor verifier other than the vendored #219 package
   invoked in place.
 * The `10^-10` supplier field is priced as a conservative variant; on it the ladder's top sits

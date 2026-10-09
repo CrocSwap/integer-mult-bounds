@@ -287,6 +287,76 @@ def check_unconditionality():
     return block
 
 
+def resolve(node, keys):
+    """Walk a citation's key list through a pinned JSON document."""
+    for key in keys:
+        node = node[key]
+    return node
+
+
+def check_export_contract():
+    """The normalizer export contract, resolved against the pinned bytes.
+
+    The contract's whole point is that its citations are real: every digest, count and status it
+    quotes from the supplier is read back out of the pinned file and compared, the precedent
+    values are read back out of the pinned banked word and inventory, and the state it declares
+    -- 0 of 6 bodies exported -- is asserted rather than described.
+    """
+    contract = json.loads((HERE / 'export-contract.json').read_text())
+    cache = {}
+
+    def pinned(source):
+        if source not in cache:
+            cache[source] = json.loads((HERE / source).read_text())
+        return cache[source]
+
+    def check(citations, where):
+        for row in citations:
+            found = resolve(pinned(row['source']), row['keys'])
+            assert found == row['value'], \
+                '%s: %s -> %s is %r, contract records %r' % (where, row['source'],
+                                                            row['keys'], found, row['value'])
+
+    assert contract['version'] == 1 and contract['scope'], 'the contract must state its scope'
+    check(contract['precedent']['banked_word_export_shape']['citations'], 'precedent/banked word')
+    check(contract['precedent']['occurrence_inventory_shape']['citations'], 'precedent/inventory')
+    check(contract['precedent']['exact_object_disclaimer']['citations'], 'precedent/disclaimer')
+    check(contract['today']['evidence'], 'today/evidence')
+
+    supplier = pinned('references/pr219-run1/references/pr193-source-assisted-v4.certificate.json')
+    assert supplier['status'] == 'PASS conditional finite witness'
+    assert 'not exported' in supplier['complex_profile']['status']
+    assert contract['today']['bodies_present'] == 0, \
+        'no body export exists in the pins and the contract must say so'
+    assert contract['today']['of_required'] == len(contract['required_exports']) == 6, \
+        '0 of the six required bodies'
+
+    tests = {test['id'] for test in contract['acceptance_tests']}
+    assert tests == {'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'}, 'the seven acceptance tests'
+    for export in contract['required_exports']:
+        assert export['id'] in ('E1', 'E2', 'E3', 'E4', 'E5', 'E6'), export['id']
+        assert export['publishes'] and export['form'] and export['cardinality'], export['id']
+        assert export['unblocks'], 'every export must unblock something'
+        assert set(export['acceptance']) <= tests, 'the acceptance tests must exist: %s' % export['id']
+        check(export['must_reproduce'], 'export/' + export['id'])
+    assert len({export['id'] for export in contract['required_exports']}) == 6, 'unique ids'
+
+    mapping = contract['obligation_mapping']
+    assert sorted(mapping) == ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7',
+                               'R1', 'R2', 'R3', 'R4'], 'all eleven obligations mapped'
+    assert all(mapping[key] for key in mapping), 'no obligation may map to nothing'
+    exports = {export['id'] for export in contract['required_exports']}
+    for key, value in mapping.items():
+        assert set(value) <= exports, '%s must map to required exports' % key
+    assert contract['failure_semantics']['today'].startswith('0 of 6')
+    assert 'never' in contract['failure_semantics'] and contract['not_required'], \
+        'the contract must say what it does not ask for, and what it can never buy'
+    for test in contract['acceptance_tests']:
+        assert test['bound'] and test['reject_control'], \
+            'every test needs a bound and a reject control: %s' % test['id']
+    return contract
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -304,6 +374,7 @@ def main():
     ceiling, scan, curve = check_suppliers_and_requirements(record)
     check_obligations()
     unconditionality = check_unconditionality()
+    contract = check_export_contract()
     target = HERE / 'certificate.json'
     if args.write:
         (HERE / 'SOURCE.json').write_text(
@@ -336,6 +407,11 @@ def main():
           % (record['construction']['totals']['items'],
              record['construction']['totals']['banks'],
              record['construction']['totals']['padding_registers']))
+    print('export contract %d exports (%s), %d acceptance tests, bodies exported today: %d/%d'
+          % (len(contract['required_exports']),
+             ','.join(export['id'] for export in contract['required_exports']),
+             len(contract['acceptance_tests']), contract['today']['bodies_present'],
+             contract['today']['of_required']))
     print('unconditional not available: supplier status %s; operation program not exported; %s'
           % (json.loads((HERE / 'references' / 'pr219-run1' / 'references'
                          / 'pr193-source-assisted-v4.certificate.json').read_text())['status'],

@@ -307,6 +307,21 @@ status the queue's published rungs carry, and the strongest status anything in t
 claims. That is the whole of what the work buys, and the package now says so with the quotes
 attached rather than in general terms.
 
+**The contract that would turn it into an increment.** [EXPORT-CONTRACT.md](research/complex-bank-run3/EXPORT-CONTRACT.md)
+and its machine-readable twin [export-contract.json](research/complex-bank-run3/export-contract.json)
+put the missing artifact in the form an interface can carry: six required exports -- the
+operation program, the frame bodies behind the three published cache digests, the lift and
+witness pair, the chronology tables, the per-child occurrence inventory, and the envelope plus
+integrity manifest -- each with the digest it must *reproduce* (so the contract asks for bodies
+behind hashes the supplier already publishes, never for new trust), seven acceptance tests with
+their bounds and reject controls, and the mapping from every export to the obligations it
+unblocks. Two readings shape it: the exports are addressed to the `lift`/witness pair and not to
+the flow block, because the supplier's own `flow.status` says "Not an exact supplier
+certificate"; and the per-child export is asked in the exact shape of the bit word's
+`inputs/absorbed-occurrences.json`, because our side of that bijection already exists
+(`occurrences66.json`, 4,176 items over 795 banks). Today it fails closed -- **0 of 6 bodies** --
+and `verify.py` asserts that reading against the pins rather than asserting it in prose.
+
 ## Verify
 
 ```sh
@@ -315,11 +330,13 @@ python3 -B verify.py           # check: pins, rebuild, compare with certificate.
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
 ```
 
-`verify.py` passes with exit 0, pins 28 files by sha256, rebuilds the whole complex-side
+`verify.py` passes with exit 0, pins 30 files by sha256, rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
 assemblies with adjacent-grid rejection, the eligibility scan, the PR208 replica, the padded
 schedule (795 banks, padding 0/2/6 registers per bank, stock drops 531/198/66), the instanced
-inventories (4,176 items, 795 banks, the digests), the modulus scan (which widths the pinned
+inventories (4,176 items, 795 banks, the digests), the normalizer export contract (all 6
+exports, 7 acceptance tests and 11 obligations mapped, every citation resolved against the pins,
+and the 0-of-6 body reading), the modulus scan (which widths the pinned
 row admits, and that only the pinned width is priced), the supplier scan and the density curve
 with both of their calibrations, the per-target requirement table (each line re-derived from the
 assembly rule and tested one `10^-18` step below its budget), and re-runs the T1 tiling

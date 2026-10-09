@@ -15,7 +15,8 @@ VENDORED_RUN1 = 'references/pr219-run1'
 
 OWN = ('ledger3.py', 'run3.py', 'schedule66.py', 'schedule66.json', 'prototype66.py',
        'widths66.py', 'suppliers.py', 'instantiate66.py', 'occurrences66.json', 'pins.py',
-       'obligations.json', 'references/pr207-coordinated-crossover.certificate.json')
+       'obligations.json', 'EXPORT-CONTRACT.md', 'export-contract.json',
+       'references/pr207-coordinated-crossover.certificate.json')
 
 
 def pinned_paths():
