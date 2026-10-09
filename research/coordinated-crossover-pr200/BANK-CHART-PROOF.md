@@ -1,3 +1,5 @@
+Historical predecessor note. The current joint-gauge extension is specified in JOINT-GAUGES.md and PROOF.md; current execution starts at verify.py.
+
 # Frame refinement, concrete charts and completed banks
 
 2026-10-09. This supersedes the234-frame candidate for packaging. It is a sufficient finite construction under the unchanged all-size interfaces, not an unconditional multiplication theorem.

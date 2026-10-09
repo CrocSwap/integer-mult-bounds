@@ -14,10 +14,8 @@ def load(n,p):
 def read(p):return json.loads(p.read_text())
 assert not sys.flags.optimize
 before={p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in [ROOT/'scripts/paired_cube_assembly.py',SA/'decision/exact_complex_flow_lift.py',CP/'contract_v4.py']}
-# Every source, target and dirty-register formal column, exact frames and all primes.
-run(HERE/'frames/verify-bit-frames.py','--package',ROOT/'research/paired-cube-diagonal-bit-168','--frames',HERE/'frames/opframe-bases.json','--out',HERE/'frames/checked','--full')
-run(HERE/'geometry/pack-admitted-frames.py','--candidate',HERE/'frames')
-run(HERE/'geometry/audit-gauge-charts.py');run(HERE/'geometry/check-normalizer-routing.py')
+# Replay the actual 13 new gauges, complete reflected ledgers and all new banks.
+run(HERE/'joint/replay_joint.py');run(HERE/'joint/pack_joint.py')
 # The portable witness is checked again; original numerical search need not be repeated.
 run(SA/'decision/exact_complex_flow_lift.py','--witness',WORK/'flow.witness.json','--profile',WORK/'flow.json','--out',WORK/'lift.json')
 lift=read(WORK/'lift.json');expected=read(CP/'certificate.json');assert lift['exact_scalar_program_sha256']==expected['lift']['exact_scalar_program_sha256']
@@ -29,8 +27,8 @@ actual=read(HERE/'complex-profile-replayed.json')
 for key in ['m','W_per_vertex','rank_per_vertex','deficit_per_vertex','child_histogram','contract_checks','exact_scalar_program_sha256']:
  assert actual[key]==expected['complex_profile'][key],('Complex mathematical output changed',key)
 # Paid two-supplier moments, four finite leaf levels, and unchanged 47 constraints.
-run(HERE/'arithmetic.py');assert read(HERE/'assembly.json')==read(HERE/'certificate.json'),'Derived final certificate differs'
-cert=read(HERE/'assembly.json');assert all(Q(x)>0 for x in cert['assembly']['strict_constraints'].values());assert len(cert['assembly']['strict_constraints'])==47
+run(HERE/'joint/price_joint.py');assert read(HERE/'joint/assembly.json')==read(HERE/'certificate.json'),'Derived final certificate differs'
+cert=read(HERE/'joint/assembly.json');assert all(Q(x)>0 for x in cert['assembly']['strict_constraints'].values());assert len(cert['assembly']['strict_constraints'])==47
 # Independent base-two enclosure, no imports from the public moment implementation.
 im=load('independent_base_two',HERE/'geometry/base_two_moment.py')
 for side in ['bit','complex']:
@@ -44,6 +42,7 @@ for side in ['bit','complex']:
  try:public.moment(corrupt,a)
  except ValueError:pass
  else:raise AssertionError('Rank-mass negative control accepted')
-chart=read(HERE/'geometry/PR200-GAUGE-CHART-AUDIT.json');assert chart['conservative_extra_selector_calls']==21900544398<2**40
+chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==88776374976<2**40
+assert chart['charts']==224 and chart['assignments']==1848312 and chart['literal_stock']==676473
 assert before=={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in before}
 print('PASS full offline bit/frame/bank/chart/complex-lift/contract replay, independent paid moments, 47 inequalities and controls; kappa='+cert['kappa'])

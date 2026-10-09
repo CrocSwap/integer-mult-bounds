@@ -1,23 +1,25 @@
-κ = 6.8386028917304e-4
+κ = 6.83883297459132e-4
 
-# Plateau frame refinement beyond PR211
+# Shared entrance gauges and refined physical bit word
 
-Conditional κ ≈ 6.8386028917304 × 10⁻⁴, exactly `8548253614663/12500000000000000`. Paired-component moves and seeded raise/lower cascades change 274 operation subspaces beyond PR211. The final file lists 6,416 replacement bases; some re-register equivalent original subspaces, so this file count is not a count of mathematical changes. Complete paid accounting raises the bit coarse saving to `684328274104459/10^18`; the improvement over PR211's final claim is approximately 0.001816%.
+Conditional κ ≈ **6.83883297459132 × 10⁻⁴**, exactly `170970824364783/250000000000000000`. Four groups of shared rank-18 gauges change 13 physical entrances; two donor substitutions improve the internal paid profile. The operation frames inherit our checked plateau/cascade refinement of PR211. The final bit coarse saving is `342175656946149/500000000000000000`.
 
 ## Reproduce
 
-Python 3.11 or later, assertions enabled:
+Python 3.11+, assertions enabled:
 
 ```sh
 python3 -B research/coordinated-crossover-pr200/verify.py --temp-root /tmp
 ```
 
-Pinned sources and frozen witnesses are included in five archive parts. The verifier uses temporary extraction, no network or git, and leaves the submitted files unchanged. It checks complete bit formal columns, exact frames and prime witnesses, both reflected ledgers, all bank assignments/charts/router charges, the frozen complex exact lift/contract, two independent paid moments, four finite ordinary-leaf levels and all 47 assembly inequalities. It rejects the adjacent final grid point. Numerical complex discovery is not repeated.
+The five pinned archive parts include source and frozen complex witnesses. Verification uses a temporary extraction without git or network and leaves submitted files unchanged. The current executable path is `verify_inner.py` → `joint/replay_joint.py`, `joint/pack_joint.py`, exact frozen complex replay, then `joint/price_joint.py`. The retained geometry and frame-search files document and support the predecessor construction; its standalone `arithmetic.py` is not the current entry point.
 
-Search sources, frozen PR211 input, the initial plateau delta and final canonical difference counts are under `search/`; see `search/SEARCH-NOTE.txt` and `PLATEAU-REFINEMENT.md`. Search uses floating entropy only to propose moves. The claimed κ comes from exact rational replay.
+The actual word adapter and selection are in `joint/`. See `JOINT-GAUGES.md` for the new gauged-donor argument, physical banks and complete paid ledger; `PLATEAU-REFINEMENT.md` records the preceding frame search. Float scores propose candidates only. Exact scalar/frame replay and rational moments determine the final claim.
 
-## Scope and sources
+The normalized profile has m=72, W=225491, rank mass16212120 and deficit23232. There are 36 physical replicas, with literal stock676473; the moment normalization is a factor12 and is not the physical replica count. Full bank assignments, normalizers, both reflected word ledgers and the adjacent-grid rejection are checked.
 
-The same inherited all-size compiler, completed weighted/restored selector, routing, prime, precision, fixed analytic tape and finite bridge assumptions remain. The complex branch uses the source-assisted exact local-flow contract, without a newly flattened global scalar transcript or a new full Clifford/router replay.
+## Scope and attribution
 
-PR211: Rohan Arun, `c63e50a5dde96fe1459d6b29e55e47f42f104347`, Anthropic Claude assistance. PR207: Dugongue, `cd14825023b75af4f5919a30e5e6d548b6ade5bc`, offline admission/bank package. Base bit: Chafik Boukhalfa's PR200, `a1175449f34d39ff933d9d8ab23ced1f32b290ec`. Base complex/assembly: PR202, `8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d`. All original licenses and assistance disclosures are retained. This refinement was prepared by eumemic with substantial OpenAI Codex assistance.
+All-size compiler, completed weighted/restored selector, routing, prime, precision, fixed analytic tape and finite bridge hypotheses remain inherited. The complex supplier retains its exact local-flow contract; no new global scalar transcript or unconditional theorem is claimed.
+
+PR211: Rohan Arun, c63e50a5dde96fe1459d6b29e55e47f42f104347 (Anthropic Claude assistance). PR207: Dugongue, cd14825023b75af4f5919a30e5e6d548b6ade5bc. PR200: Chafik Boukhalfa, a1175449f34d39ff933d9d8ab23ced1f32b290ec. PR202: 8d8d67bcf69c5ea67d3a29dbc64ba588156d6e8d. PR197: Evan McKinney, completed-bank construction. All original licenses/notices and AI disclosures remain. This refinement was prepared by eumemic with substantial OpenAI Codex assistance.

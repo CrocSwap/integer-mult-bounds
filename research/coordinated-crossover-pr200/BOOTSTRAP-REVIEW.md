@@ -1,3 +1,5 @@
+Historical predecessor note. The current joint-gauge extension is specified in JOINT-GAUGES.md and PROOF.md; current execution starts at verify.py.
+
 # Finite-bootstrap proof scope review
 
 ## Sufficient conditional argument

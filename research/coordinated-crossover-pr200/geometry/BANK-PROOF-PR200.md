@@ -1,3 +1,5 @@
+Historical predecessor bank construction. The current 4/6/24 extension, 36 replicas and gauged-donor proof are in ../JOINT-GAUGES.md; current execution starts at ../verify.py.
+
 # Completed entrance banks on the PR200 physical bit word
 
 2026-10-09. A sufficient finite construction, retaining the upstream all-size interfaces. This is not an unconditional multiplication theorem and is not a new Lean certificate.
