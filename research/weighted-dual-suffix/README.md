@@ -34,7 +34,7 @@ points for complex saving and κ are rejected. Ten controls include duplicate
 links, invalid donors, out-of-range uses, corrupted ranks, omitted loss, unpaid
 cleanup, histogram mutations and exclusion of PR108 at this new saving.
 
-Full repository verification is pending. A passing finite verifier does not
+Full repository verification passed on `b054739841f9e106bc15064c79cbc958811a709c` in 2435.331 seconds, completed 2026-10-09T00:40:51.103942+00:00: `make -j1 verify` (78 isolated test modules, 20 historical patch checks), fresh parent/selected producer and certificate regeneration, and ten adversarial controls. All 42 research-head GitHub checks passed, with no source drift. See `research/weighted-dual-suffix/validation.json` for commands and evidence hashes. A passing finite verifier does not
 independently establish PR104's all-size opposite-bank, stopped streaming or
 odd-grid interfaces. No global optimality or practical runtime gain is claimed.
 See [proof.md](proof.md) for the unchanged proof obligations and local transfer.
