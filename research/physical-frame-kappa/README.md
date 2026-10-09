@@ -24,11 +24,16 @@ their exterior, first-transition and target-front costs included.
 
 The scalar DAG, matching, rational center decoder (divisor 21), source
 injections, retained center copies and endpoint charges remain unchanged.
+Old-readout coefficients up to 55/42 are now split exactly into at most
+two unit-magnitude shears at the same frame, charged in both literal
+directions, with a doubled conservative scalar-work guard.
+This adapts the independent unit-shear audit correction from PR #118.
 The bit side is Swapnil Jain's pinned round-seven word under PR104's
 one-child accounting, as used by PR118. No optimality is claimed.
 
 ```sh
 python3 research/physical-frame-kappa/test_controls.py
+python3 research/physical-frame-kappa/test_unit_readouts.py
 python3 research/physical-frame-kappa/verify.py
 ```
 
