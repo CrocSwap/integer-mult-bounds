@@ -1,0 +1,36 @@
+name: extended-links
+
+on:
+  pull_request:
+    paths:
+      - 'research/extended-links/**'
+      - 'scripts/paired_cube/**'
+      - 'scripts/paired_cube_physical.py'
+      - 'scripts/paired_cube_network.py'
+      - 'references/paired-cube/**'
+      - 'certificates/paired-cube-*.json'
+      - '.github/workflows/extended-links.yml'
+  push:
+    paths:
+      - 'research/extended-links/**'
+      - '.github/workflows/extended-links.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify the extended carrier matching
+        run: python3 research/extended-links/verify.py
+      - name: Regenerate the plan and compare
+        run: |
+          python3 research/extended-links/make_plan.py "$RUNNER_TEMP/plan"
+          cmp "$RUNNER_TEMP/plan/arcs.json" research/extended-links/data/arcs.json
+          cmp "$RUNNER_TEMP/plan/frames.json" research/extended-links/data/frames.json
+          cmp "$RUNNER_TEMP/plan/pairs.json" research/extended-links/data/pairs.json
