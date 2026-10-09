@@ -3,6 +3,45 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
+## Deferred bit word under stopped-product accounting
+
+[research/deferred-product](research/deferred-product/README.md) gives
+**κ = 1044939/10^10 = 1.044939×10^-4**. It combines Swapnil Jain's round-seven deferred
+bit word (PR #97, with jacklightChen's ledgers), charged by icekylinx's one-child stopped-product
+rule (PR #104), with a new h=24 complex producer that uses 28,705 roles in PR #104's framework.
+Run `make deferred-product-verify`. eumemic prepared the complex producer and the integration
+with Anthropic Claude assistance.
+
+## Stopped product-ring extension
+
+The new construction contributed by **icekylinx**, extending merged
+[PR #36](https://github.com/CrocSwap/integer-mult-bounds/pull/36), gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{194869}{2500000000}=7.79476\times10^{-5}.
+$$
+
+It combines a stopped product-ring bit interchange on `(23,23)` with an
+all-disjoint rational-center complex network on `(24,24)`. The new generic
+opposite-bank factorization pays one reversed child per projector rank;
+atom adapters, ordinary leaves, endpoint copies and the exact denominator-21
+grid are included in the proof. The bound retains the original analytic
+and fixed-tape hypotheses.
+
+[Proof source](notes/stopped-product-note.tex) ·
+[Exact certificate](certificates/stopped-product-network.json) ·
+[Incremental reproduction](docs/stopped-product.md)
+
+```sh
+make stopped-product-verify
+```
+
+The maintainer-reviewed community checkpoint below remains its own result
+and validation record.
+
+## Reviewed community checkpoint
+
 The reviewed community witness gives
 
 $$
