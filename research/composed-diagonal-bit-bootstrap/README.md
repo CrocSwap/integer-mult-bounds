@@ -117,9 +117,11 @@ The harness is independent of the numbers it is asked to confirm, and this packa
 checks it twice against public statements:
 
 * **depth 0 reproduces #200's own value** for this composition: `6.768823e-4`
-  against its announced "about 6.769e-4". Since depth 0 is PR184's legacy wrapper
+  against its announced "about 6.769e-4", and against #202, which published that
+  same composition at that same value. Since depth 0 is PR184's legacy wrapper
   applied to #200's certificate, agreement pins the whole pricing path (profile
-  reading, `select()`, assembly, grid).
+  reading, `select()`, assembly, grid), and the whole of the improvement claimed
+  here is the finite leaf the other PR does not apply.
 * **PR184's grid legacy leaf agrees with #200's published atom wrapper**:
   `6.77340866500955e-4` versus `6.77340914792209e-4` from its documented
   `theta = 677340914792209011107/10^24` and `a_0 = 677773948354561/10^18`, a
