@@ -17,6 +17,7 @@ consistent and the prices are exact -- not that the rung is physical.
 import argparse
 import json
 import sys
+from fractions import Fraction as Q
 from hashlib import sha256
 from pathlib import Path
 
@@ -66,11 +67,43 @@ def check_schedule():
     return pinned
 
 
+def check_prototype(record):
+    """The padded schedule's own invariants, as rebuilt into the certificate."""
+    padded = record['padded_schedule']
+    assert padded['width'] == 66 and padded['copies'] == 3, 'the prototype is width 66'
+    assert [step['family'] for step in padded['ladder']] == [11, 16, 20], 'rung order'
+    assert [step['banks'] for step in padded['ladder']] == [531, 198, 66], \
+        'the prototype must use the capacity minimum, not the volume criterion'
+    assert [step['padding_per_bank'] for step in padded['ladder']] == [0, 2, 6], \
+        'the padding of T1'
+    for step in padded['ladder']:
+        assert step['pattern_sum'] == 66, 'every bank must be exactly filled'
+        assert step['blocks_per_bank'] * step['banks'] == step['items'], \
+            'the schedule must be saturated'
+        assert step['stock_drop'] == step['banks'], \
+            'the stock must fall by exactly the bank count'
+        assert step['family'] == 11 or step['padding_registers'] % step['banks'] == 0
+        assert step['eligibility_after'] in ([16, 20], [20], []), 'the ladder climbs'
+    assert padded['exhaustive'] and padded['residual_eligibility'] == [], \
+        'the whole-bank criterion must be exhausted at the padded top'
+    assert Q(record['top']['kappa']) > Q(record['comparison']['volume_criterion_top']), \
+        'the padded schedule must beat the volume-criterion accounting it replaces'
+    assert record['top']['banks'] == 795, '531 + 198 + 66 banks, the padded schedule'
+    return padded
+
+
 def check_obligations():
     obligations = json.loads((HERE / 'obligations.json').read_text())
     owed = [item['id'] for item in obligations['obligations']]
     assert owed == ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'T1'], owed
-    assert all(item['status'] == 'OPEN' for item in obligations['obligations'])
+    status = {item['id']: item['status'] for item in obligations['obligations']}
+    assert all(status[key] == 'OPEN' for key in owed if key != 'T1'), \
+        'every obligation but T1 must still be open'
+    assert status['T1'] == 'SETTLED_AT_SCHEDULE_LEVEL', \
+        "T1 is settled by the schedule prototype, and must be recorded as such"
+    t1 = next(item for item in obligations['obligations'] if item['id'] == 'T1')
+    assert 'resolution' in t1 and 'prototype66' in t1['resolution'], \
+        'T1 must name the artifact that settles it'
     inherited = [item['id'] for item in obligations['inherited']]
     assert inherited == ['R1', 'R2', 'R3', 'R4'], inherited
     assert all(item['status'] == 'OPEN' for item in obligations['inherited'])
@@ -99,6 +132,7 @@ def main():
         check_manifest()
     check_schedule()
     record = run3.build()
+    check_prototype(record)
     check_obligations()
     target = HERE / 'certificate.json'
     if args.write:
@@ -119,6 +153,12 @@ def main():
              record['tiling']['families']['16']['capacity_minimum_banks'],
              record['tiling']['families']['20']['capacity_minimum_banks'],
              record['tiling']['findings']['mixed_uniform_tilings']))
+    print('prototype     padded schedule %s banks (%s + %s + %s), padding %s per bank, '
+          'stock drops %s'
+          % (record['top']['banks'], *[step['banks']
+                                       for step in record['padded_schedule']['ladder']],
+             [step['padding_per_bank'] for step in record['padded_schedule']['ladder']],
+             [step['stock_drop'] for step in record['padded_schedule']['ladder']]))
     print('rungs %s at %s banks, kappa %s'
           % (record['top']['families_absorbed'], record['top']['banks'], record['kappa']))
 

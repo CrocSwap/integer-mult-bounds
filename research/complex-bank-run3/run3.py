@@ -34,6 +34,12 @@ What this script does, all in exact rational arithmetic from pinned inputs:
    bank, exhaustively.  Rank 11 tiles alone (four patterns, rung 2's 531 the tightest);
    ranks 16 and 20 tile alone only *above* the bank counts their own volume criterion
    prices (198 and 66, against 192 and 60); and no uniform tiling absorbs two bins at once.
+9. **The prototype** (`prototype66.py`): the bank schedule those rungs need, at the bank
+   count their capacity requires -- every bank exactly filled (four rank-16 blocks and 2
+   registers of padding, three rank-20 blocks and 6), the item-to-block assignment, the
+   padding drawn from a retained bin, the ledger it induces (the stock falling by exactly
+   the bank count) and the price of every padding option.  The padded schedule beats the
+   volume-criterion accounting it replaces, so the certificate's top rung is the padded one.
 
     python3 -B run3.py [--out certificate.json]
 """
@@ -50,6 +56,7 @@ if str(HERE) not in sys.path:
 
 import ledger3  # noqa: E402  (local module, imported after the path is set)
 import pins  # noqa: E402
+import prototype66  # noqa: E402
 import schedule66  # noqa: E402
 
 REFERENCES = HERE / 'references'
@@ -292,10 +299,52 @@ def build():
 
     rungs = [rung_record(supplier, step, leaf, index + 3)
              for index, step in enumerate(part['ladder'][1:])]
-    top = rungs[-1]
+
+    # --- 3c. the prototype: the padded schedule those rungs need --------------
+    padded = prototype66.priced_ladder(FRONTIER, interval)
+    assert Q(padded['base_saving']) == a_complex, 'the prototype prices the same supplier'
+    assert [step['family'] for step in padded['ladder']] == list(RUNGS), 'rung order'
+    pad_rung2 = padded['ladder'][0]
+    assert pad_rung2['banks'] == part['ladder'][0]['banks'] == 531 \
+        and Q(pad_rung2['saving']) == RUN2_COARSE, \
+        'the prototype must reproduce rung 2 exactly, and it needs no padding there'
+    assert pad_rung2['padding_per_bank'] == 0, 'rank 11 tiles its banks on its own'
+    for step, priced_step in zip(part['ladder'], padded['ladder']):
+        assert step['banks'] <= priced_step['banks'], 'the padded count is the upper one'
+        assert priced_step['banks'] == families[str(priced_step['family'])][
+            'capacity_minimum_banks'], 'the prototype must use the capacity minimum'
+        assert priced_step['stock_drop'] == priced_step['banks'], \
+            'the stock must fall by exactly the bank count'
+        assert priced_step['pattern_sum'] == 66, 'every bank must be exactly filled'
+        assert priced_step['blocks_per_bank'] * priced_step['banks'] \
+            == priced_step['items'], 'the schedule must be saturated'
+    assert all(step['whole_bank_volume'] for step in padded['ladder']), \
+        'the padded families are the ones the volume criterion already selects'
+    assert padded['ladder'][1]['banks'] == 198 and padded['ladder'][2]['banks'] == 66
+    assert padded['ladder'][1]['padding_registers'] == 396 \
+        and padded['ladder'][2]['padding_registers'] == 396, 'the padding of T1'
+    assert padded['exhaustive'] and padded['residual_eligibility'] == [], \
+        'the padded top must still exhaust the whole-bank criterion'
+    for step in padded['ladder']:
+        assert step['options'] >= 1, 'every step must offer a padding option'
+        assert all(Q(option['saving']) <= Q(step['saving'])
+                   for option in step['alternatives']), 'the chosen option is the best one'
+        assert any(Q(option['saving']) == Q(step['saving'])
+                   for option in step['alternatives']), 'the best must be among the options'
+        assert all(Q(option['saving']) > Q(part['base_saving'])
+                   for option in step['alternatives']), \
+            'every padding option must raise the complex coarse saving'
+        assert step['whole_bank_volume'], 'the padded families are the volume ones'
+    assert all(Q(step['saving']) > Q(part['base_saving']) for step in padded['ladder']), \
+        'every rung must raise the complex coarse saving'
+    padded_rungs = [rung_record(supplier, step, leaf, index + 3)
+                    for index, step in enumerate(padded['ladder'][1:])]
+    top = padded_rungs[-1]                      # the realizable top, not the volume one
     kappa_top, coarse_top = top['kappa'], top['coarse']
-    assert coarse_top == Q(part['final_saving']) == Q(part['ladder'][-1]['saving'])
+    assert coarse_top == Q(padded['ladder'][-1]['saving'])
     assert kappa_top > RUN2_KAPPA, 'the top rung must beat rung 2'
+    assert kappa_top > rungs[-1]['kappa'], \
+        'the padded top must beat the unpadded count it replaces'
 
     # --- 4. the independent replica at PR208's convention ---------------------
     bit_row = ledger3.profile(frontier['bit_profile'])
@@ -324,13 +373,15 @@ def build():
         needs.append(info)
 
     certificate = dict(
-        status='MODEL AND TARGET, NOT CONSTRUCTED: the rung-3 and rung-4 ledgers '
-               '(whole-bank volume, retained row identities, stock drops, both paid '
-               'moments on the 10^-18 grid, the two 47-constraint assemblies) are certified '
-               'here, but every rung above rung 2 needs a bank construction on the complex '
-               'supplier that no package in the pins provides (obligations.json C1-C7 and '
-               "T1, plus #219's inherited R1-R4). The kappa below is conditional on those "
-               'and is not a completed finite witness.',
+        status='MODEL AND TARGET, NOT CONSTRUCTED: the ledger and the bank schedule above '
+               'rung 2 are certified here -- whole-bank volumes, the padded width-66 schedule '
+               'itself (banks, blocks per bank, item-to-block assignment, padding draw), the '
+               'retained row identities with the stock falling by exactly the bank count, both '
+               'paid moments on the 10^-18 grid, and the two 47-constraint assemblies -- but '
+               'the physical construction on the complex supplier is still owed '
+               '(obligations.json C1-C7, plus #219\'s inherited R1-R4; T1 is settled by the '
+               'schedule prototype and its negative uniform-tiling result). The kappa below '
+               'is conditional on those and is not a completed finite witness.',
         rung=4,
         kappa=kappa_top, decimal=float(kappa_top), binding=top['binding'],
         gain_vs_rung1=kappa_top / RUN1_KAPPA - 1,
@@ -345,14 +396,20 @@ def build():
         ledgers=part,
         tiling=tiling,
         rungs=rungs,
+        padded_schedule=padded,
+        padded_rungs=padded_rungs,
         replica=replica,
         top=dict(kappa=str(kappa_top), coarse=str(coarse_top), binding=top['binding'],
                  families_absorbed=list(RUNGS), banks=sum(step['banks']
-                                                          for step in part['ladder']),
-                 stock=part['final_row']['W'], rank_mass=part['final_row']['mass'],
-                 children=part['final_row']['children'],
-                 families_left=part['final_row']['families'],
-                 largest_child=part['final_row']['maxchild'],
+                                                          for step in padded['ladder']),
+                 banks_by_volume_criterion=sum(step['banks'] for step in part['ladder']),
+                 schedule='padded prototype (prototype66.py): 531 + 198 + 66 = 795 banks, '
+                          'the rank-16 and rank-20 banks padded with 2 and 6 registers of '
+                          'retained blocks',
+                 stock=padded['final']['W'], rank_mass=padded['final']['mass'],
+                 children=padded['final']['children'],
+                 families_left=padded['final']['families'],
+                 largest_child=padded['final']['largest_child'],
                  eligibility_exhausted=True,
                  ceiling=str(top['complex_ceiling']), ceiling_gap=str(top['ceiling_gap']),
                  note='no family of the remaining complex ledger has a whole-bank volume, '
@@ -375,7 +432,12 @@ def build():
         blocked_on=bank_evidence(),
         obligations=['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'T1', 'R1', 'R2', 'R3', 'R4'],
         comparison=dict(rung1=str(RUN1_KAPPA), rung2=str(RUN2_KAPPA), frontier=str(
-            Q(frontier['kappa'])), pr208_priced_rung2=str(RUN2_REPLICA)),
+            Q(frontier['kappa'])), pr208_priced_rung2=str(RUN2_REPLICA),
+            volume_criterion_top=str(rungs[-1]['kappa']),
+            padded_top=str(padded_rungs[-1]['kappa']),
+            note='the volume-criterion rows are the accounting the criterion gives; the padded '
+                 'prototype is the schedule a width-66 bank actually admits, and it is '
+                 'higher, so the top of the ladder is the padded rung 4'),
         source_pins=pins.manifest(),
     )
     return certificate
@@ -397,18 +459,25 @@ def main():
     print('rung 2    coarse %s, kappa %s (reproduced exactly)'
           % (record['calibrations']['run2']['coarse'], record['calibrations']['run2']['published']))
     for step, rung in zip(record['ledgers']['ladder'][1:], record['rungs']):
-        print('rung %d    rank %-3s volume %-7s = %-4s banks   coarse %-19s kappa %-19s %+.4f%% vs rung 2'
-              % (rung['rung'], step['family'], step['volume'], step['banks'], step['saving'],
+        print('volume    rank %-3s volume %-7s = %-4s banks   coarse %-19s kappa %-19s %+.4f%% vs rung 2'
+              % (step['family'], step['volume'], step['banks'], step['saving'],
                  rung['kappa'], float(Q(rung['kappa']) / RUN2_KAPPA - 1) * 100))
+    for step, rung in zip(record['padded_schedule']['ladder'][1:], record['padded_rungs']):
+        print('prototype rank %-3s %4d items = %4d banks x %d blocks + %d pad  coarse %-19s '
+              'kappa %-19s %+.4f%% vs rung 2'
+              % (step['family'], step['items'], step['banks'], step['blocks_per_bank'],
+                 step['padding_per_bank'], step['saving'], rung['kappa'],
+                 float(Q(rung['kappa']) / RUN2_KAPPA - 1) * 100))
     print('top       kappa = %s = %.17g  (binding %s, %+.4f%% over rung 1, %+.4f%% over rung 2, '
           '%+.4f%% over the frontier)'
           % (record['kappa'], float(Q(record['kappa'])), record['binding'],
              float(Q(record['gain_vs_rung1'])) * 100, float(Q(record['gain_vs_rung2'])) * 100,
              float(Q(record['gain_vs_frontier'])) * 100))
-    print('top row   W=%s rank mass=%s children=%s families=%s largest child=%s'
+    print('top row   W=%s rank mass=%s children=%s families=%s largest child=%s (padded ledger)'
           % (record['top']['stock'], record['top']['rank_mass'], record['top']['children'],
              record['top']['families_left'], record['top']['largest_child']))
-    print('exhausted %s (families with a whole-bank volume left)' % record['ledgers']['final_eligibility'])
+    print('exhausted %s (families with a whole-bank volume left)'
+          % record['padded_schedule']['residual_eligibility'])
     for need in record['needed_for']:
         if need['coarse'] is None:
             print('to reach  %-8s needs a NEW BIT WORD: the bit leaf %s caps the budget at %s '

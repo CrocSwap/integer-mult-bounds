@@ -74,12 +74,15 @@ Three consequences, all asserted in `verify.py` and recorded in `certificate.jso
    whole bins at once -- which is also why the padding cannot be paid from a *retained*
    family, since that would remove part of a bin, while the priced ledger removes bins whole.
 
-The obligation T1 therefore has a determined answer, and it is negative: rungs 3 and 4 are
-priced on bank counts that no admissible tiling of a width-66 bank realises.  Making them
-physical needs either partial-bin removals (a ledger change, which would move the retained
-histogram and so the price) or a different bank width (which moves the whole ladder).  That
-is a sharper statement of the blocker than "a construction is owed", and it is the reason the
-upper two rows of the price table carry a caveat rather than a status.
+T1's enumeration therefore has a determined answer, and for *uniform* tilings it is negative:
+rungs 3 and 4 cannot be priced on the bank counts the volume criterion gives.  What the
+criterion leaves is the padding -- and the padding is constructible, in exactly the way this
+section's third bullet forbids for a *retained* bin but allows for the banks themselves: the
+2 or 6 registers are filled by blocks of a retained family, drawn as a partial removal from
+that bin.  The retained histogram then carries the reduced count, the mass that leaves is
+`banks * 66` by construction, and the row identity and the stock-drop-equals-bank-count rule
+both survive.  Section 3b builds that schedule and prices it; it is what the certificate's top
+rung now is, and it prices *above* the unpadded rows because it removes more.
 
 ## 3. The ledgers, step by step (three-copy rows)
 
@@ -87,12 +90,45 @@ upper two rows of the price table carry a caveat rather than a status.
 | --- | ---: | ---: | ---: | ---: | --- |
 | base | 36,156 | 2,382,336 | 639,441 | 20 | row identity `66 * 12,052 - 794,112 = 1,320` |
 | rung 2 (+11) | 35,625 | 2,347,290 | 636,255 | 20 | removed 35,046 = 66 x 531; stock drop 531 |
-| **rung 3 (+16)** | **35,433** | **2,334,618** | **635,463** | 19 | removed 12,672 = 66 x 192; stock drop 192 |
-| **rung 4 (+20)** | **35,373** | **2,330,658** | **635,265** | 19 | removed 3,960 = 66 x 60; stock drop 60 |
+| rung 3 (+16), volume criterion | 35,433 | 2,334,618 | 635,463 | 19 | removed 12,672 = 66 x 192; stock drop 192 (not a width-66 tiling, 2b) |
+| rung 4 (+20), volume criterion | 35,373 | 2,330,658 | 635,265 | 19 | removed 3,960 = 66 x 60; stock drop 60 (not a width-66 tiling, 2b) |
 
 Every row re-satisfies `66 * W - rank_mass = 3,960` (= three copies of the deficit `1,320`,
 unchanged by banking). The deficit is untouched, which is the point: banking moves dirt from
 paid children into bank structure, it does not create or destroy rank mass.
+
+### 3b. The padded schedule (`prototype66.py`)
+
+The rows above are the volume criterion's; the schedule a width-66 bank admits is the padded
+one, and this is where it is built. A bank carries the family's whole blocks plus a fixed
+pattern of retained ones, with item `i` of the family going to bank `i // k_f`, block
+`i % k_f`:
+
+| rung | banks | per bank | padding per bank | draw (best option) |
+| ---: | ---: | --- | ---: | --- |
+| 11 | 531 | 6 x rank 11 | 0 | none |
+| 16 | 198 | 4 x rank 16 | 2 | 2 rank-1 blocks, i.e. 396 rank-1 children of 262,602 (0.15%) |
+| 20 | 66 | 3 x rank 20 | 6 | 6 rank-1 blocks, i.e. 396 rank-1 children |
+
+Every bank is exactly full (`4 * 16 + 2 = 3 * 20 + 6 = 66`), every item of the family lands in
+some block with no slot unused (`4 * 198 = 792`, `3 * 66 = 198`, `6 * 531 = 3,186`), and the
+padding is a partial removal from a bin the ledger keeps, so the retained histogram carries the
+reduced count. The ledger follows mechanically, because the mass that leaves is `banks * 66`:
+
+| after | W | rank mass | children | rule applied |
+| --- | ---: | ---: | ---: | --- |
+| rung 2 (unpadded, as PR224) | 35,625 | 2,347,290 | 636,255 | removed 35,046 = 66 x 531 |
+| **rung 3 (padded)** | **35,427** | **2,334,222** | **635,067** | removed 198 x 66 = 12,672 + 396; stock drop **198** |
+| **rung 4 (padded)** | **35,361** | **2,329,866** | **634,473** | removed 66 x 66 = 3,960 + 396; stock drop **66** |
+
+Each padded step re-satisfies the row identity, the stock falls by exactly the bank count, and
+the eligibility scan is still empty afterwards, so the padded top is still the top of the
+criterion. The padding pattern is a free parameter and every option is enumerated and compared
+on the coarse saving it induces (rank 16: two options, `177822495639541/25*10^16` or
+`88906856814031/125*10^15`; rank 20: eleven, from `356053348255849/5*10^17` down to
+`712015725758741/10^18`); the best is the one claimed, and rank-1 padding wins in both rungs.
+What this does *not* do is construct anything physically: the padding blocks are ordinary
+retained children, and the normalizer, frames, charts and prime witnesses remain C1-C7.
 
 ## 4. The prices
 
@@ -104,8 +140,10 @@ complex side), on the `10^-18` grid with the adjacent grid point rejected in bot
 | --- | ---: | ---: |
 | base | 7.00918443859411e-4 | — |
 | rung 2 | 7.08793603125109e-4 | (PR224, reproduced to the digit) |
-| **rung 3** | **7.11077971348264e-4** | adjacent point rejected |
-| **rung 4** | **7.11681826686289e-4** | adjacent point rejected |
+| rung 3, volume criterion | 7.11077971348264e-4 | adjacent point rejected; not a width-66 tiling (2b) |
+| rung 4, volume criterion | 7.11681826686289e-4 | adjacent point rejected; not a width-66 tiling (2b) |
+| **rung 3, padded schedule** | **7.11289982558164e-4** | adjacent point rejected; 198 banks of (4 rank-16 + 2 registers) |
+| **rung 4, padded schedule (the top)** | **7.12106696511698e-4** | adjacent point rejected; 66 banks of (3 rank-20 + 6 registers) |
 
 The assembly rule is the queue's own: `a = min(bit_leaf, (1-beta) * C - weak)`,
 `q = a(1-2 eta)`, `kappa = floor((1-eta) q/(1+q) * 10^18)/10^18`, with
@@ -116,8 +154,10 @@ rather than chosen here.
 | rung | kappa | binding | assembly bound | ceiling gap |
 | --- | ---: | --- | ---: | ---: |
 | rung 2 | 7.08291570590726e-4 | complex | 7.082915705907269e-4 | 8.6e-19 |
-| **rung 3** | **7.10572698755137e-4** | complex | 7.105726987551371e-4 | < 1e-18 |
-| **rung 4** | **7.11175695867958e-4** | complex | 7.111756958679581e-4 | < 1e-18 |
+| rung 3, volume criterion | 7.10572698755137e-4 | complex | 7.105726987551371e-4 | < 1e-18 |
+| rung 4, volume criterion | 7.11175695867958e-4 | complex | 7.111756958679581e-4 | < 1e-18 |
+| **rung 3, padded schedule** | **7.10784408728476e-4** | complex | 7.107844087284761e-4 | < 1e-18 |
+| **rung 4, padded schedule (the top)** | **7.11599961413937e-4** | complex | 7.115999614139371e-4 | < 1e-18 |
 
 Each rung lands on its own branch ceiling: the complex budget `(1-beta) C - weak` is what the
 minimum selects (asserted), the adjacent `10^-18` point is rejected by the unchanged
@@ -129,8 +169,8 @@ Rung 4 is the top of the accounting ladder: no family of the remaining 17 has a 
 volume (asserted). Two consequences follow, and they are the useful part of the result:
 
 * **Above the top, the bank mechanism has nothing left to take.** Reaching `kappa = 7.2e-4`
-  needs a complex coarse saving of `7.2051877e-4`, i.e. +1.242% over the top rung's coarse
-  saving -- more banking than this ledger's remaining mass can supply at this width.
+  needs a complex coarse saving of `7.20518773516934e-4`, i.e. +1.181% over the top rung's
+  coarse saving -- more banking than this ledger's remaining mass can supply at this width.
 * **Above `kappa = 7.277251e-4` the bit word is the wall.** While the complex branch caps the
   budget, the ceiling is `budget/(1+budget)`, and the budget is in turn capped by #219's
   rung-1 bit leaf (7.2825e-4). Targets `7.5e-4`, `8e-4` and `1e-3` are therefore unreachable
@@ -138,17 +178,19 @@ volume (asserted). Two consequences follow, and they are the useful part of the 
 
 ## 6. Verification boundary
 
-* Machine-checked here: the pinned bytes (21 files, sha256), the frontier reproduction, rung 1
+* Machine-checked here: the pinned bytes (24 files, sha256), the frontier reproduction, rung 1
   rebuilt by the vendored #219 package, rung 2 rebuilt by this package's own ledger module,
   rungs 3 and 4 (volumes, row identities, stock drops, both paid moments, adjacency
-  rejections), the branch ceilings, the eligibility exhaustion, the PR208 replica and the T1
-  enumeration of the width-66 tilings (both the pinned scan and its findings).
-* **Not** checked here: any physical realization. C1-C7 and T1 are open, and #219's R1-R4 are
-  inherited open; the complex supplier has no bank construction in the pins
-  (machine-checked), and neither new family has an occurrence inventory. T1's *enumeration*
-  is done here and comes out negative (~2b), so the rungs above rung 2 are priced targets
-  whose bank counts are not realisable by any uniform tiling -- not merely unconstructed. The
-  kappa is conditional on all of them, exactly as #219's rung 1 and #224's rung 2 are.
+  rejections), the branch ceilings, the eligibility exhaustion, the PR208 replica, the T1
+  enumeration of the width-66 tilings (both the pinned scan and its findings) and the padded
+  schedule of 3b (795 banks, every bank exactly filled, stock drops 531/198/66, the residual
+  eligibility empty, the padded top above the volume-criterion rows it replaces).
+* **Not** checked here: any physical realization. C1-C7 are open and #219's R1-R4 are inherited
+  open; the complex supplier has no bank construction in the pins (machine-checked), and
+  neither new family has an occurrence inventory. T1 is settled here at the *schedule* level
+  (~2b and ~3b): no uniform width-66 tiling hosts the rungs, the padded schedule does, and the
+  padded top is what this package claims. The kappa is conditional on C1-C7 and R1-R4, exactly
+  as #219's rung 1 and #224's rung 2 are.
 * Not run: upstream CI, and any contributor verifier other than the vendored #219 package
   invoked in place.
 * The `10^-10` supplier field is priced as a conservative variant; on it the ladder's top sits
