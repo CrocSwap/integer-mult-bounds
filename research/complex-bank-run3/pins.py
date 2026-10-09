@@ -14,8 +14,8 @@ HERE = Path(__file__).resolve().parent
 VENDORED_RUN1 = 'references/pr219-run1'
 
 OWN = ('ledger3.py', 'run3.py', 'schedule66.py', 'schedule66.json', 'prototype66.py',
-       'pins.py', 'obligations.json',
-       'references/pr207-coordinated-crossover.certificate.json')
+       'widths66.py', 'instantiate66.py', 'occurrences66.json', 'pins.py',
+       'obligations.json', 'references/pr207-coordinated-crossover.certificate.json')
 
 
 def pinned_paths():

@@ -40,6 +40,15 @@ What this script does, all in exact rational arithmetic from pinned inputs:
    padding drawn from a retained bin, the ledger it induces (the stock falling by exactly
    the bank count) and the price of every padding option.  The padded schedule beats the
    volume-criterion accounting it replaces, so the certificate's top rung is the padded one.
+10. **The width question** (`widths66.py`): the bank width is the word's modulus, so a scan
+   over widths is a scan over words.  66 is the smallest modulus the pinned row admits (at 65
+   its rank mass exceeds `W * w`), and every wider modulus is a different word whose stock and
+   deficit this ledger does not fix -- recorded, not priced.  At the pinned width the scan
+   reproduces this package's own top exactly, which is its calibration.
+11. **The instanced schedule** (`instantiate66.py`): C1's combinatorial half and the C5-C7
+   inventories -- every item of the three families addressed to a bank, a block and an offset,
+   with the bank tables, the padding draw, the digests and a machine-read statement of what the
+   pins still do not export (the residual projectors, not the counts).
 
     python3 -B run3.py [--out certificate.json]
 """
@@ -54,10 +63,12 @@ sys.dont_write_bytecode = True
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
+import instantiate66  # noqa: E402
 import ledger3  # noqa: E402  (local module, imported after the path is set)
 import pins  # noqa: E402
 import prototype66  # noqa: E402
 import schedule66  # noqa: E402
+import widths66  # noqa: E402
 
 REFERENCES = HERE / 'references'
 FRONTIER = REFERENCES / 'pr207-coordinated-crossover.certificate.json'
@@ -339,6 +350,55 @@ def build():
         'every rung must raise the complex coarse saving'
     padded_rungs = [rung_record(supplier, step, leaf, index + 3)
                     for index, step in enumerate(padded['ladder'][1:])]
+
+    # --- 3d. is the bank width a dial?  (widths66.py) ------------------------
+    padded_base = ledger3.three_copies(ledger3.profile(
+        json.loads(FRONTIER.read_text())['complex_profile']))
+    ledger3.check_row(padded_base)
+    assert [padded_base['W'], padded_base['N'], padded_base['total_rank']] == [
+        part['three_copy']['W'], part['three_copy']['deficit'], part['three_copy']['mass']], \
+        'the scan must start from the same three-copy row the ladder prices'
+    scan = {str(width): widths66.scan_width(padded_base, width, interval, leaf,
+                                             ladder=padded if width == widths66.PINNED_WIDTH
+                                             else None)
+            for width in widths66.WIDTHS}
+    pinned_width = str(widths66.PINNED_WIDTH)
+    assert scan[pinned_width]['priced'] \
+        and scan[pinned_width]['kappa'] == Q(padded_rungs[-1]['kappa']), \
+        'the width scan must reproduce this package\'s top at the pinned width'
+    assert scan[pinned_width]['banks'] == padded['ladder'][0]['banks'] \
+        + padded['ladder'][1]['banks'] + padded['ladder'][2]['banks']
+    narrower = [w for w, entry in scan.items() if not entry['poseable']]
+    assert narrower, 'some narrower modulus must be unposeable, or the claim is empty'
+    assert all(int(w) < 66 for w in narrower), 'only narrower moduli may be unposeable'
+    assert all(entry['poseable'] for w, entry in scan.items() if int(w) >= 66), \
+        'every width at or above the pinned one must be poseable'
+    assert min(int(w) for w, entry in scan.items() if entry['poseable']) == 66, \
+        '66 must be the smallest modulus the pinned row admits'
+    assert all(not entry['priced'] for w, entry in scan.items() if int(w) > 66), \
+        'no width other than the pinned one may be priced (it is a different word)'
+    widest = max(scan, key=lambda w: scan[w]['density_decimal'] if scan[w]['poseable'] else 0)
+    assert widest == pinned_width, 'the pinned word must be the densest row in the scan'
+
+    # --- 3e. the instanced schedule (instantiate66.py) ------------------------
+    construction = instantiate66.build(padded_base, interval, padded)
+    for family in RUNGS:
+        inv = construction['inventories'][str(family)]
+        step = next(s for s in padded['ladder'] if s['family'] == family)
+        assert inv['banks'] == step['banks'] and inv['items'] == step['items'], 'schedules agree'
+        assert inv['padding_registers'] == step['padding_registers'], 'and the padding'
+        assert inv['banks'] * inv['capacity_per_bank'] == inv['items'], 'saturated'
+        assert inv['banks'] * (inv['padding_per_bank'] + family * inv['capacity_per_bank']) \
+            == inv['banks'] * 66, 'every bank exactly filled'
+        assert len(inv['bank_table_digest']) == 64, 'the digest must be recorded'
+    assert construction['totals']['banks'] == sum(
+        padded['ladder'][i]['banks'] for i in range(3)), '795 banks over the three rungs'
+    assert construction['totals']['items'] == sum(
+        construction['inventories'][str(f)]['items'] for f in RUNGS)
+    assert construction['pins_gap']['complex_supplier_bank_keys'] == [], \
+        'the complex supplier must still have no bank construction in the pins'
+    assert construction['pins_gap']['complex_supplier_status_says_no_operation_program'], \
+        "the supplier's own status must say the operation program is not exported"
     top = padded_rungs[-1]                      # the realizable top, not the volume one
     kappa_top, coarse_top = top['kappa'], top['coarse']
     assert coarse_top == Q(padded['ladder'][-1]['saving'])
@@ -398,6 +458,8 @@ def build():
         rungs=rungs,
         padded_schedule=padded,
         padded_rungs=padded_rungs,
+        width_scan=scan,
+        construction=construction,
         replica=replica,
         top=dict(kappa=str(kappa_top), coarse=str(coarse_top), binding=top['binding'],
                  families_absorbed=list(RUNGS), banks=sum(step['banks']
@@ -494,6 +556,18 @@ def main():
     print('blocked   complex supplier bank keys: %s; pinned bit bank construction: %s banks'
           % (record['blocked_on']['complex_supplier_has_bank_keys'],
              record['blocked_on']['pinned_bit_bank_construction']['physical_banks']))
+    unpose = sorted(int(w) for w, entry in record['width_scan'].items()
+                    if not entry['poseable'])
+    print('widths    pinned row unposeable at %s; priced widths: [%s] (the modulus is the word)'
+          % (unpose, ','.join(w for w, entry in record['width_scan'].items()
+                              if entry['priced'])))
+    inst = record['construction']['inventories']
+    print('instanced %s items addressed over %d banks; padding %d registers (%s of the kept '
+          'rank-1 bin); digests %s'
+          % (record['construction']['totals']['items'], record['construction']['totals']['banks'],
+             record['construction']['totals']['padding_registers'],
+             record['construction']['totals']['padding_share_of_the_kept_bin'][:12] + '...',
+             [inst[str(f)]['bank_table_digest'][:12] for f in RUNGS]))
     print('write     ' + str(args.out))
 
 

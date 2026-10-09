@@ -130,6 +130,25 @@ on the coarse saving it induces (rank 16: two options, `177822495639541/25*10^16
 What this does *not* do is construct anything physically: the padding blocks are ordinary
 retained children, and the normalizer, frames, charts and prime witnesses remain C1-C7.
 
+### 3c. The instanced schedule, and the width question
+
+`instantiate66.py` instances the schedule: item `i` of a family goes to bank `i // k_f`, block
+`i % k_f`, offset `(i % k_f) * rank`, which addresses 3,186 + 792 + 198 = **4,176 items** over
+531 + 198 + 66 = **795 banks** with 792 registers of padding, each family's table digested
+(`fb9bd2d1...`, `f96efd45...`, `f9d9567b...`) and the ledger re-derived with the stock falling
+by exactly the bank count.  That is C1's combinatorial half plus the C5-C7 inventories; the
+physical half (the normalizer) and C2-C4 are still owed, because the supplier's own status line
+says its operation program is not exported.
+
+`widths66.py` then settles whether the bank width is a dial.  It is not: the pinned precedent
+makes it the word's modulus (`M = 72` for the bit word, 66 here).  The engine's contraction is
+`rank mass < W * modulus`, the pinned row has `rank mass / W = 65.8905...`, so every `w <= 65`
+leaves the row unposeable -- 66 is the smallest modulus this ledger admits -- and every wider
+modulus leaves a row whose density has moved (99.834% at 66, 95.5% at 69, 91.5% at 72), i.e. a
+different word, which the scan records rather than prices.  At `w = 54` nine families would tile
+whole banks and 1,549,098 registers (65% of the rank mass) could leave, against 52,470 (2.2%)
+here: the criterion is not the cap, the density is, so the dial to turn is the supplier.
+
 ## 4. The prices
 
 For each rung the complex paid moment is recomputed by the pinned engine on the retained row
@@ -178,15 +197,19 @@ volume (asserted). Two consequences follow, and they are the useful part of the 
 
 ## 6. Verification boundary
 
-* Machine-checked here: the pinned bytes (24 files, sha256), the frontier reproduction, rung 1
+* Machine-checked here: the pinned bytes (27 files, sha256), the frontier reproduction, rung 1
   rebuilt by the vendored #219 package, rung 2 rebuilt by this package's own ledger module,
   rungs 3 and 4 (volumes, row identities, stock drops, both paid moments, adjacency
   rejections), the branch ceilings, the eligibility exhaustion, the PR208 replica, the T1
   enumeration of the width-66 tilings (both the pinned scan and its findings) and the padded
   schedule of 3b (795 banks, every bank exactly filled, stock drops 531/198/66, the residual
-  eligibility empty, the padded top above the volume-criterion rows it replaces).
-* **Not** checked here: any physical realization. C1-C7 are open and #219's R1-R4 are inherited
-  open; the complex supplier has no bank construction in the pins (machine-checked), and
+  eligibility empty, the padded top above the volume-criterion rows it replaces), the instanced
+  inventories of 3c (4,176 items, 795 banks, 792 registers of padding, the digests, the ledger
+  cross-check) and the modulus scan of 3c (which widths are poseable, and that only the pinned
+  one is priced).
+* **Not** checked here: any physical realization. C1's physical half, C2-C4 and #219's R1-R4
+  are open (C5-C7 have their inventories instanced, each child's frame/chain identity still
+  owed); the complex supplier has no bank construction in the pins (machine-checked), and
   neither new family has an occurrence inventory. T1 is settled here at the *schedule* level
   (~2b and ~3b): no uniform width-66 tiling hosts the rungs, the padded schedule does, and the
   padded top is what this package claims. The kappa is conditional on C1-C7 and R1-R4, exactly

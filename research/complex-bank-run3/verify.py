@@ -31,6 +31,8 @@ import pins  # noqa: E402
 import run3  # noqa: E402
 import schedule66  # noqa: E402
 
+WIDTH = 66
+
 
 def digest(path):
     return sha256(Path(path).read_bytes()).hexdigest()
@@ -92,15 +94,58 @@ def check_prototype(record):
     return padded
 
 
+def check_scan_and_construction(record):
+    """The width scan and the instanced schedule, as rebuilt into the certificate."""
+    scan = record['width_scan']
+    pinned = scan[str(WIDTH)]
+    assert pinned['priced'] and Q(pinned['kappa']) == Q(record['top']['kappa']), \
+        'the scan must reproduce the top at the pinned width'
+    assert pinned['banks'] == record['top']['banks'], 'and its bank count'
+    for width, entry in scan.items():
+        if not entry['poseable']:
+            assert int(width) < WIDTH, 'only narrower moduli may be unposeable'
+            assert Q(entry['density']) >= 1, 'an unposeable row has rank mass >= W * w'
+        elif int(width) != WIDTH:
+            assert not entry['priced'], 'a different modulus is a different word'
+        else:
+            assert entry['priced'], 'the pinned width must be priced'
+    assert min(int(w) for w, e in scan.items() if e['poseable']) == WIDTH, \
+        'the pinned width must be the smallest poseable modulus'
+
+    construction = record['construction']
+    totals = construction['totals']
+    assert totals['banks'] == record['top']['banks'] == 795, '795 banks addressed'
+    items = 0
+    for family, inv in construction['inventories'].items():
+        assert inv['banks'] * inv['capacity_per_bank'] == inv['items'], 'saturated'
+        assert inv['banks'] * 66 \
+            == inv['items'] * int(family) + inv['padding_registers'], 'banks exactly filled'
+        assert inv['padding_registers'] == inv['banks'] * inv['padding_per_bank']
+        assert len(inv['bank_table_digest']) == 64, 'a digest per family'
+        items += inv['items']
+    assert items == totals['items'] == 4176, '4,176 items addressed'
+    assert totals['padding_registers'] == 792, '792 registers of padding, as in the schedule'
+    assert construction['pins_gap']['complex_supplier_bank_keys'] == []
+    assert construction['pins_gap']['complex_supplier_status_says_no_operation_program']
+    assert construction['pins_gap']['pinned_item_inventory']['per_vertex_keys'], \
+        'the shape the complex side owes must be recorded from the pinned bit inventory'
+    assert construction['ledger_cross_check']['stock_drops'] == [531, 198, 66]
+    assert construction['ledger_cross_check']['criterion_exhausted']
+    return scan, construction
+
+
 def check_obligations():
     obligations = json.loads((HERE / 'obligations.json').read_text())
     owed = [item['id'] for item in obligations['obligations']]
     assert owed == ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'T1'], owed
     status = {item['id']: item['status'] for item in obligations['obligations']}
-    assert all(status[key] == 'OPEN' for key in owed if key != 'T1'), \
-        'every obligation but T1 must still be open'
+    assert all(status[key] == 'OPEN' for key in ('C1', 'C2', 'C3', 'C4')), \
+        'the physical obligations must still be open'
     assert status['T1'] == 'SETTLED_AT_SCHEDULE_LEVEL', \
         "T1 is settled by the schedule prototype, and must be recorded as such"
+    assert all(status[key] == 'INVENTORY_INSTANCED_AT_SCHEDULE_LEVEL'
+               for key in ('C5', 'C6', 'C7')), \
+        'the inventories are instanced at the schedule level and must say so'
     t1 = next(item for item in obligations['obligations'] if item['id'] == 'T1')
     assert 'resolution' in t1 and 'prototype66' in t1['resolution'], \
         'T1 must name the artifact that settles it'
@@ -133,6 +178,7 @@ def main():
     check_schedule()
     record = run3.build()
     check_prototype(record)
+    check_scan_and_construction(record)
     check_obligations()
     target = HERE / 'certificate.json'
     if args.write:
@@ -159,6 +205,13 @@ def main():
                                        for step in record['padded_schedule']['ladder']],
              [step['padding_per_bank'] for step in record['padded_schedule']['ladder']],
              [step['stock_drop'] for step in record['padded_schedule']['ladder']]))
+    print('widths        unposeable at %s; priced: %s; the modulus is the word'
+          % (sorted(int(w) for w, e in record['width_scan'].items() if not e['poseable']),
+             sorted(int(w) for w, e in record['width_scan'].items() if e['priced'])))
+    print('instanced     %d items addressed over %d banks, %d registers of padding'
+          % (record['construction']['totals']['items'],
+             record['construction']['totals']['banks'],
+             record['construction']['totals']['padding_registers']))
     print('rungs %s at %s banks, kappa %s'
           % (record['top']['families_absorbed'], record['top']['banks'], record['kappa']))
 

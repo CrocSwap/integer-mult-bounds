@@ -142,6 +142,65 @@ normalizer that sends each item's residual projector to its block, the frames, c
 witnesses are C1-C7 and remain open. No new frame family is introduced -- the padding blocks
 are ordinary retained children.
 
+## Is the bank width a lever? (`widths66.py`)
+
+The bank width is not a schedule parameter: the pinned precedent makes it **the word's own
+modulus**. In `references/pr219-run1/schedule.py` the bit word has `M = 72`, its rank-22 bin's
+20,016 occurrences carry `22 * 20,016 = 440,352` registers into `440,352 / 72 = 6,116` banks,
+the row identity is `M * W - mass = D`, and the stock drops by exactly the bank count. The
+complex word's modulus is 66, which is why its banks are width 66. So "use another width" is a
+question about the word, and the scan answers it in three machine-checked parts:
+
+* **No narrower modulus exists for this ledger.**  The engine's contraction is
+  `rank mass < W * modulus`, and the pinned row has `rank mass / W = 65.8905...`, so every
+  `w <= 65` leaves the row unposeable (`mass >= w * W`) -- checked at 48, 54, 58, 60, 63, 64
+  and 65 in the certificate.  66 is the *smallest* modulus this ledger admits, by exact
+  arithmetic rather than by sampling.
+* **At the pinned width the scan reproduces this package.**  Running the whole criterion at
+  `w = 66` returns the same schedule and the same κ, which is the scan's calibration
+  (asserted in `verify.py`).
+* **Wider moduli are different words, and the scan shows why instead of quoting a number.**
+  Holding the pinned ledger fixed while raising `w` leaves a row whose rank mass fills only
+  `mass / (W * w)` of its capacity: 99.834% at 66, **95.5% at 69, 91.5% at 72, 68.6% at 96**.
+  That is no longer the dense ledger the moment is calibrated on -- and the vendored
+  certifier's own bracket stops holding there, which is why the scan prices `66` and records
+  the rest as arithmetic.
+
+The useful part is what the scan exposes about the *criterion*: at `w = 54`, nine of the 20
+families would tile whole banks and **1,549,098 registers (65% of the rank mass)** could leave
+-- for comparison, the pinned ladder leaves 52,470 (2.2%).  The criterion is not what caps
+the ladder; the ledger's density is.  A **less** dense complex word -- more stock per unit of
+rank mass -- would admit a narrower modulus where far more of its ledger tiles at once.  That
+is the concrete thing to look for in a new supplier, and it is a measurement, not a guess.
+
+## What is instanced, and what is still owed (`instantiate66.py`)
+
+The padded schedule is now instanced, which is C1's combinatorial half and C5-C7's
+inventories: every item of every absorbed family has a bank, a block and an offset, under the
+rule *item `i` -> bank `i // k_f`, block `i % k_f`, offset `(i % k_f) * rank`*.
+
+| family | per vertex | items (3 copies) | banks | blocks per bank | padding registers | table digest |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 11 | 1,062 | 3,186 | 531 | 6 | 0 | `fb9bd2d17f69...` |
+| 16 | 264 | 792 | 198 | 4 | 396 | `f96efd45d9d9...` |
+| 20 | 66 | 198 | 66 | 3 | 396 | `f9d9567b4b41...` |
+
+**795 banks, 4,176 items addressed**, 792 registers of padding (0.30% of the kept rank-1 bin),
+every bank exactly filled, every block holding exactly one item, the map a bijection onto the
+bank/block/offset grid, a digest per family over the whole table, and the ledger re-derived
+with the stock falling by exactly the bank count.  The artifact is pinned in
+[occurrences66.json](research/complex-bank-run3/occurrences66.json).
+
+What is still owed is stated as facts read from the pins, not as prose: the complex supplier's
+certificate carries **no key containing `bank`** and its own status line declares that a literal
+globally renumbered operation program **is not exported** -- so the residual projectors the
+normalizer must move (C1's physical half) are not in the pins, only the item counts are.  C2,
+C3 and C4 (formal columns, charts and prime witnesses, moment-envelope parity) follow the same
+gap, and C5-C7 still owe each child's frame/chain identity.  The *shape* of the inventory the
+complex side owes is pinned -- for the bit word, at
+`references/pr219-run1/inputs/absorbed-occurrences.json`, whose per-vertex keys
+(`H`, `H_center`, `Y`, `src`) are recorded in the certificate.
+
 ## What the top rung implies for the next step
 
 While the complex branch caps the budget, the assembly's ceiling is `budget/(1+budget)` with
@@ -161,12 +220,14 @@ python3 -B verify.py           # check: pins, rebuild, compare with certificate.
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
 ```
 
-`verify.py` passes with exit 0, pins 24 files by sha256, rebuilds the whole complex-side
+`verify.py` passes with exit 0, pins 27 files by sha256, rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
 assemblies with adjacent-grid rejection, the eligibility scan, the PR208 replica, the padded
-schedule (795 banks, padding 0/2/6 registers per bank, stock drops 531/198/66), and re-runs the
-T1 tiling enumeration against the pinned `schedule66.json`; it reproduces #207's, #219's and
-#224's published grid points exactly. The vendored rung-1 package also self-verifies in place:
+schedule (795 banks, padding 0/2/6 registers per bank, stock drops 531/198/66), the instanced
+inventories (4,176 items, 795 banks, the digests), the modulus scan (which widths the pinned
+row admits, and that only the pinned width is priced), and re-runs the T1 tiling enumeration
+against the pinned `schedule66.json`; it reproduces #207's, #219's and #224's published grid
+points exactly. The vendored rung-1 package also self-verifies in place:
 
 ```sh
 cd research/complex-bank-run3/references/pr219-run1 && python3 -B verify.py
@@ -178,9 +239,10 @@ cd research/complex-bank-run3/references/pr219-run1 && python3 -B verify.py
   are certified; C1-C7 and the inherited R1-R4 are open, so the kappa is conditional on them in
   exactly the sense #219 states for rung 1 and #224 for rung 2. It is not an unconditional
   multiplication theorem, not a practical multiplier, and not a Lean/kernel certificate.
-* T1 is settled here (the enumeration above, plus the padded schedule), and what it settles is
-  a *schedule*, not a construction: the bank geometry, the item-to-block map and the padding
-  draw are checked, the normalizer, frames, charts and prime witnesses are C1-C7.
+* T1 is settled here (the enumeration above, plus the padded schedule), and C1's combinatorial
+  half with C5-C7's inventories are instanced on top of it; what all of that settles is a
+  *schedule*: the bank geometry, the item addresses and the padding draw are checked, the
+  normalizer, frames, charts and prime witnesses are C1 (physical half), C2, C3 and C4.
 * The whole-bank volume condition is necessary and is the criterion the built rungs use; it is
   not sufficient -- for the two new families it is not even compatible with a width-66 tiling
   at the bank count it prices, which is why the padded schedule exists.
