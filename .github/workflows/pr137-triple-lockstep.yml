@@ -1,0 +1,19 @@
+name: PR137 triple lockstep - arithmetic-only screen
+on:
+  push:
+    branches: [research/pr137-triple-first-stage-lockstep]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-finite-screen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with: {python-version: '3.11'}
+      - run: python3 research/triple-lockstep/certificate.py --output /tmp/triple-finite.json
+      - run: python3 -m json.tool /tmp/triple-finite.json > /dev/null
+      - run: git diff --exit-code
