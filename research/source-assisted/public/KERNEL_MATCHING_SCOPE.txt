@@ -1,0 +1,139 @@
+PREFIX-OPTIMAL KERNEL REUSE ON THE FIXED ROUND-13 COMPLEX INCIDENCE
+
+GPT-6 Astra, 9 October 2026. New finite matching certificate and proof.
+
+1. Precisely fixed problem
+
+Fix the selected frame-flow vertices, their actual binary frames and
+phases, every incoming/outgoing fresh boundary space, the source-control
+spaces, read interfaces, and the minimal local dirty completions. There
+are 18,369 vertices. The 706 zero-fresh retiring coordinates occur at
+129 vertices, all at frame dimension3. There are 10,442 potential new
+dirty birth slots. A donor is eligible for a birth precisely when its
+vertex differs from the birth vertex, its phase is no later, and its
+actual frame is contained in the birth frame. This gives 385,085 eligible
+slot-to-slot edges. All births with an eligible donor have dimension at
+least4, so these extra edges cannot create a rank/phase cycle.
+
+A donor identifier (i,a) means zero-fresh complement ordinal a at witness
+vertex i; a recipient (j,b) means new-dirty slot b at vertex j. The receipt
+stores these two ordered lists and the selected quadruples [i,a,j,b].
+It does not confuse a fresh-zero auxiliary with a zero dirty input.
+
+The canonical incidence SHA256 is
+
+  b03bdc3dfcb1e26c351217854f2ed6eccba9e81e4b64f91c58d7165d2ddb088c.
+
+It hashes every witness field EXCEPT kernel_pairs, using UTF-8 JSON with
+sorted object keys and compact separators. Thus it binds nodes, frames,
+phases, fresh vectors, source controls, edges, and read/retirement data
+without circularly fixing the matching being optimized. The final selected
+witness has full SHA256
+
+  ecb23813f8c6d9f3cefe3bcda43312a1b788db7d97ef31a635f9bd01eaefa3e3.
+
+2. Why smaller recipient dimensions are always preferable
+
+Let h=22, m=66, and 0<a<1. Set f(r)=m^a r^(1-a)-r, with f(0)=0.
+Replacing a rank3 retirement and a dimension-v birth by one handoff
+changes the three-core excess by the positive saving
+
+  w_a(v) = 3 [ f(h-3) + f(v) - f(v-3) ].
+
+For v>3,
+
+  w_a'(v) = 3 [ f'(v) - f'(v-3) ] < 0,
+
+because f is strictly concave. Thus recipient weights decrease strictly
+with dimension for EVERY 0<a<1; no exponent-specific weight tuning is
+needed. All 706 donors can be matched, so the physical count R=11,056,
+W=13,696, and deficit1,320 stay fixed while comparing full matchings.
+
+3. Prefix rank certificate
+
+The recipient subsets that can be matched injectively to donors form a
+transversal matroid. Process recipients by increasing dimension and use
+an augmenting path whenever the current recipient can be added while
+keeping every previously accepted recipient. Matroid greedy attains the
+rank of every dimension prefix simultaneously.
+
+The implementation does not ask the reader to trust that optimization
+claim as a black box. For every k from0 through19 the JSON receipt gives
+both a matching in the graph restricted to recipient dimension<=k and
+a vertex cover of exactly the same cardinality. The checker verifies
+the matching's distinct endpoints and every eligible edge's coverage.
+These are direct lower and upper certificates for the prefix maximum.
+It then checks that the final selected matching attains every maximum.
+
+The nonconstant prefix ranks are:
+
+  k       4    6    7    8    9   10   11   12   13   14   15   16   17   19
+  rank  193  213  217  319  324  381  388  436  449  564  599  613  626  706
+
+The rank at k=5 equals that at4, at k=18 equals that at17, and ranks
+below4 are zero. The selected recipient histogram is
+
+  4:193, 6:20, 7:4, 8:102, 9:5, 10:57, 11:7, 12:48,
+  13:13, 14:115, 15:35, 16:14, 17:13, 19:80.
+
+For any other full matching, summation by parts expresses the difference
+in total saving as a sum of nonnegative prefix-count differences times
+the positive gaps w_a(k)-w_a(k+1). Hence this selected matching maximizes
+the excess saving for every 0<a<1 on this fixed graph. It also maximizes
+the resulting local characteristic root, because W and the deficit are
+unchanged. Matchings within equal-dimension ties need not be unique.
+
+4. Historical correction, not a further result in the final receipt
+
+The first maximum-cardinality matching did not attain every prefix rank:
+at dimension8 it had313 matches rather than319. Replacing only that
+matching changed the local histogram by
+
+  {5:+6, 7:+1, 8:-6, 10:-1, 12:+1, 13:+3, 14:+13,
+   15:-1, 16:-27, 17:-13, 19:+24}.
+
+The child-histogram change is three times this vector. It preserves
+rank mass and saves0.0757434863639142 excess at a=0.0009218338. The local
+numerical root changed from approximately0.000657048421824477 to
+0.000657075267168550. This small change was selected to close the fixed
+route's matching optimality argument, not presented as the requested
+doubling. The final receipt starts from the already selected matching:
+selected_prefix_optimal is true and its further histogram delta is zero.
+
+The earlier witness hash was
+217d34f26756c0fb81cb374086ddea2391a93469a6ce222b74099cd81f249498.
+Before its old exact-lift receipt was superseded, substituting its saved
+kernel_pairs into the new witness reproduced that exact original hash.
+No other witness field changed. The complex agent reran exact lifts,
+source erasures, fresh identity, and target-chain checks after adoption.
+
+5. Scope of the optimality statement
+
+The local lift formula b=max(0,t+d-r-n), or its source-control quotient
+version, is separately minimal for each FIXED local boundary problem.
+This matching certificate closes kernel-only reuse for those fixed
+minimal completions. It does not prove a global optimum over other
+frames, query modules, phase cuts, source-control opportunities, output
+schedules, boundary bases carrying different requests, nonzero-fresh
+complement routing, or different multiplication constructions. It also
+does not replace the physical/affine cleanup and all-size bridge proofs.
+
+6. Reproduction
+
+From the round13 directory, to regenerate without changing frozen files:
+
+  python public/kernel_matching_prefix.py \
+    --witness decision/aligned_parity_purified_flow.result.witness.json \
+    --profile decision/aligned_parity_purified_flow.result.json \
+    --output reproduced/kernel_matching_prefix.json
+
+To inspect that saved receipt without rewriting it, add --verify with
+the same three paths. Defaults point to the selected witness/profile and
+public/kernel_matching_prefix.json. The default mode requires the input
+matching to attain every prefix maximum. The optional --optimize mode is
+only for producing an explicitly unselected proposal from another input.
+
+Upstream physical inputs remain pinned to eumemic's PR168 fd25adb7, with
+all source notices retained. The graph was created by the Round-13
+source-aligned common-frame construction. This note does not claim
+priority for matroid greedy, matching duality, or Gaussian elimination.
