@@ -1,0 +1,73 @@
+name: Physical frame kappa witness
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  regenerate-and-verify:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: true
+          ref: research/physical-frame-kappa
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.11'
+      - name: Regenerate exact certificate, independent receipt and source pins
+        run: |
+          python3 research/physical-frame-kappa/test_controls.py
+          python3 research/physical-frame-kappa/test_unit_readouts.py
+          python3 research/physical-frame-kappa/certificate.py --write
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path('.')
+          p=root/'research/physical-frame-kappa/SOURCE.json'
+          obj=json.loads(p.read_text())
+          for name in ('README.md','PROOF.md','certificate.py','certificate.json','reflection_audit.py','unit_readouts.py','test_unit_readouts.py'):
+              f='research/physical-frame-kappa/'+name
+              obj['sha256'][f]=hashlib.sha256((root/f).read_bytes()).hexdigest()
+          p.write_text(json.dumps(obj,indent=2,ensure_ascii=False)+'\n')
+          PY
+          python3 research/physical-frame-kappa/verify.py --write-receipt
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path('.')
+          p=root/'research/physical-frame-kappa/SOURCE.json'
+          obj=json.loads(p.read_text())
+          f='research/physical-frame-kappa/reflection-audit.json'
+          obj['sha256'][f]=hashlib.sha256((root/f).read_bytes()).hexdigest()
+          p.write_text(json.dumps(obj,indent=2,ensure_ascii=False)+'\n')
+          PY
+          make verify-physical-frame
+          git diff --stat
+      - name: Commit validated certificate and audit back to PR branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/physical-frame-kappa
+          if ! git diff --cached --quiet; then
+            git commit -m "Regenerate verified unit-shear certificate and physical-frame audit"
+            git push origin HEAD:research/physical-frame-kappa
+          fi
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11','3.13','3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: make verify-physical-frame
+      - run: git diff --exit-code
