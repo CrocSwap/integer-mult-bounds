@@ -1,18 +1,11 @@
-# Integer target-response compression
+# Seven integer-response groups
 
-Eight disjoint groups cover targets216–223 and864–919. Their complete prefix response rows have exact integer dependencies, recorded in `rank/selection.json`. A response row is a target's coefficient vector against the independent signed compensation symbols in its specified prefix. The relations concern these response rows, not the arbitrary initial target values.
+Seven disjoint groups cover targets216–223 and872–919. Their exact integer dependencies are recorded in `rank/selection.json`. A response row gives one target's coefficients against its specified prefix compensation symbols; these relations do not constrain arbitrary initial target values.
 
-For retained targets R and a dependent row t with response r_t=Σ_j a_tj r_j, perform Y_t←Y_t−Σ_j a_tj Y_j at the common post-center D0. Execute the retained prefix reads and omit the dependent reads. Immediately before the group's first nonprefix read, restore Y_t←Y_t+Σ_j a_tj Y_j at the recorded common rank-20 frame. The output equals the old Y_t plus its required response. The transformation is block triangular with identity diagonal blocks and determinant one; arbitrary dirty coordinates restore exactly over the integers and F₂. Dependencies use only retained rows, so the order of dependent-coordinate updates does not change the transfer.
+For a dependent row r_t=Σ_j a_tj r_j, subtract Σ_j a_tj Y_j at post-center D0, execute retained prefix reads and omit the dependent reads, then add the combination back at the recorded common rank-20 frame before the first nonprefix read. Dependencies involve only retained rows. The transformation has identity diagonal blocks and determinant one, so it restores arbitrary dirty values over the integers and F₂.
 
-For example, for targets872–879 retain872,873,874,876 and use response relations:
+The seven groups compress27 dependent coordinates and omit108 prefix reads. Setup and inverse use174 scaled additions, conservatively expanded to186 unit additions. The complete fixed-call bill retains the earlier eight-group198-unit charge without crediting the removed octet864–871, which is now handled by the fourth signed echelon transformation.
 
-- r875=r873−r874+r872
-- r877=r873−r876+r872
-- r878=r874+r876−r872
-- r879=r873−r874+2r872−r876
-
-The eight groups have29 dependent rows and eliminate122 prefix reads. The local target histogram delta relative to the same 492-source/equal-response word is C1+32,C2+2,C3−4,C6−2,C8−23,C9−4,C12−5,C13−24,C20+29. Stock and rank mass are unchanged. Setup and inverse use186 scaled additions, conservatively expanded to198 unit additions in the fixed-call bill.
-
-`targetagg/word.py` executes this transformation literally. `targetagg/boundary.py` independently reconstructs the response matrices, tests arbitrary-variable local transfers for both integer signs, checks the common closing frame and its primal/dual prime witnesses, and rejects missing-setup, missing-inverse and repeated-read controls. The full scalar word and complete paid profile include every source, ordinary recipient, copied-center scatter, terminal action and restored target path.
+The local target histogram delta relative to the same word without these seven groups is C1+28,C8−23,C9−4,C12−3,C13−24,C20+27. Stock and rank mass are unchanged. The literal scalar replay, independent arbitrary-variable integer transfer tests, both reflected ledgers and primal/dual prime witnesses check these groups together with the whole word.
 
 Prepared by eumemic with substantial OpenAI Codex assistance. Apache-2.0; inherited contributor and assistance notices remain.

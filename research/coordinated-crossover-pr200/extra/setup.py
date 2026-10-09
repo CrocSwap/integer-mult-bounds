@@ -1,6 +1,6 @@
-"""Source492 role setup; actual word executed by targetagg/replay.py.
+"""Source493 role setup; actual word executed by targetagg/replay.py.
 Prepared with substantial OpenAI Codex assistance; Apache-2.0.
-The21 extra source mixes retime existing K mixes and unmixes.
+The22 extra source mixes retime existing K mixes and unmixes.
 """
 from pathlib import Path
 from collections import defaultdict
@@ -17,8 +17,12 @@ for r in extra:
  assert all(all(m.W.module.dot(m.C.cov[t],b)==0 for b in m.C.B[f])for t in r['targets'])
  z=dict(role=role,frame=f,dim=m.C.dimf[f],targets=r['targets']);m.W.gauge[role]=z;m.W.w['gauges'].append(z);m.W.readtime[role]=0;m.W.w['reads'][str(role)]=len(m.W.phase1)
  m.borrow[role]=n;m.by_source[n]=r;m.gauge_borrow[role]=n;m.gauge_selection.append(r)
-m.W.order=[r['role']for r in extra]+m.W.order;m.at=defaultdict(list)
+m.W.order=[r['role']for r in extra]+m.W.order
+# The third ordered rank4 source entrance follows all retained new-source gauges.
+m.W.readtime[14073]=168;m.W.w['reads']['14073']=len(m.W.phase1)+168
+m.W.order.remove(14073);at_index=max(m.W.order.index(r['role'])for r in m.new_gauge_selection)+1;m.W.order.insert(at_index,14073)
+m.at=defaultdict(list)
 for role in m.W.order:m.at[m.W.readtime[role]].append(role)
-m.regs=sorted(set(m.W.phys.values())-set(m.borrow)-m.removed);m.idx={r:2*m.W.v+j for j,r in enumerate(m.regs)};assert len(m.borrow)==492 and len(m.regs)==16622
+m.regs=sorted(set(m.W.phys.values())-set(m.borrow)-m.removed);m.idx={r:2*m.W.v+j for j,r in enumerate(m.regs)};assert len(m.borrow)==493 and len(m.regs)==16621
 assert all(0<=m.W.readtime[s]<=m.W.first[s]for s in m.W.gauge);m.W.exact_frames()
 m.extra_roles={r['role']for r in extra};m.extra_selection=extra

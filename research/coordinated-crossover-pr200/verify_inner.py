@@ -42,8 +42,8 @@ for side in ['bit','complex']:
  try:public.moment(corrupt,a)
  except ValueError:pass
  else:raise AssertionError('Rank-mass negative control accepted')
-chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==177902746416<2**40
-aggregation=read(HERE/'targetagg/profile.json');assert aggregation['conservative_added_fixed_calls']==376704 and chart['conservative_extra_selector_calls']+aggregation['conservative_added_fixed_calls']==177903123120<2**40
-assert chart['charts']==231 and chart['assignments']==3590352 and chart['literal_stock']==1315002
+chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==177892046640<2**40
+aggregation=read(HERE/'targetagg/profile.json');assert aggregation['conservative_added_fixed_calls']==427680 and chart['conservative_extra_selector_calls']+aggregation['conservative_added_fixed_calls']==177892474320<2**40
+assert chart['charts']==231 and chart['assignments']==3590136 and chart['literal_stock']==1314930
 assert before=={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in before}
 print('PASS full offline bit/frame/bank/chart/complex-lift/contract replay, independent paid moments, 47 inequalities and controls; kappa='+cert['kappa'])

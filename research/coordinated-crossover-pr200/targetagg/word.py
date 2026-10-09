@@ -5,6 +5,7 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
  target_frames=[None]*v;target_paths=[[]for _ in range(v)];center_reads=[];target_hist=Counter()
  aggregation_active=[True]*len(agg);aggregation_read=[set()for _ in agg];aggregation_restores=[];aggregation_pivot_reads=0
  rank_active=set(range(len(rankgroups)));rank_seen=[set()for _ in rankgroups];rank_restores=[];rank_skipped=0
+ echelon_active=set(range(len(echelon)));echelon_seen=[set()for _ in echelon];echelon_restores=[];echelon_reads=0
  def target_move(t,f):
   previous=target_frames[t];assert previous is None or C.sub(previous,f),('actual target chronology',t,previous,f)
   assert all(W.module.dot(C.cov[t],b)==0 for b in C.B[f]),('actual target cap',t,f)
@@ -44,8 +45,27 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
    for t,cs in group['dependent'].items():
     for p,c in cs.items():y[t]=track(add(y[t],c,y[p]))
   rank_active.remove(k);rank_restores.append(dict(group=k,before_role=trigger,frame=group['frame']))
+ def echelon_restore(k,trigger):
+  group=echelon[k];assert echelon_seen[k]==group['roles']
+  for t in group['targets']:target_move(t,group['frame'])
+  if mutation!='omit_echelon_inverse'or k!=0:
+   for t,p,c in reversed(group['moves']):y[t]=track(add(y[t],-c,y[p]))
+  echelon_active.remove(k);echelon_restores.append(dict(group=k,before_role=trigger,frame=group['frame']))
  def read(s):
-  nonlocal aggregation_pivot_reads,rank_skipped
+  nonlocal aggregation_pivot_reads,rank_skipped,echelon_reads
+  echelon_skip=set()
+  if s in W.gauge:
+   for k,group in enumerate(echelon):
+    if k not in echelon_active:continue
+    if s not in group['roles']:
+     if set(responses[s])&set(group['targets']):echelon_restore(k,s)
+     continue
+    echelon_seen[k].add(s);echelon_skip.update(group['targets'])
+    for t,a in group['response'].items():
+     c=a.get(s,0)
+     if not c:continue
+     if mutation=='flip_echelon_sign'and k==0 and c<0:c=-c
+     source_move(s,W.gauge[s]['frame']);target_move(t,W.gauge[s]['frame']);y[t]=track(add(y[t],-direction*c,value(s)));echelon_reads+=1
   if s in W.gauge:
    for k in sorted({rankowner[t]for t in responses[s]if t in rankowner}):
     if k not in rank_active:continue
@@ -65,7 +85,7 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
     t=next(t for t in group['targets']if t!=pivot);target_move(t,read_frames[s,k]);y[t]=track(add(y[t],-direction*c,value(s)))
    skipped.update(group['targets']);aggregation_read[k].add(s);aggregation_pivot_reads+=1
   for t,c in responses[s].items():
-   if t in skipped:continue
+   if t in skipped or t in echelon_skip:continue
    rk=rankowner.get(t)
    if s in W.gauge and rk in rank_active and t in rankgroups[rk]['dependent']:
     rank_skipped+=1
@@ -97,6 +117,10 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
    for t in r['targets']:
     assert all(f is None for f in target_frames),'copied centers scatter before any nonzero target movement'
     center_reads.append((s,t));y[t]=track(add(y[t],direction,value(s)))
+ for k,group in enumerate(echelon):
+  assert all(target_frames[t]is None for t in group['targets'])
+  if mutation!='omit_echelon_setup'or k!=0:
+   for t,p,c in group['moves']:y[t]=track(add(y[t],c,y[p]))
  for k,group in enumerate(rankgroups):
   assert all(target_frames[t]is None for t in group['targets'])
   if mutation!='omit_rank_setup'or k!=0:
@@ -127,14 +151,18 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
  for s in at[len(W.rest)]:read(s)
  assert not any(aggregation_active),'all quotient inverses precede original side/K reads'
  assert not rank_active,'rank quotient inverses precede side/K reads'
+ assert not echelon_active,'echelon inverses precede side/K reads'
  for j,(r,s)in enumerate(zip(W.g['roots'],W.w['rootroles'])):
   if r['kind']=='side' and j not in deletedroots:
+   for k in sorted({target_group[t]for t in r['targets']if t in target_group}):aggregate_restore(k,('root',j))
    source_move(s,W.w['root_frame'][j])
    for t in r['targets']:target_move(t,W.w['root_frame'][j]);y[t]=track(add(y[t],direction,value(s)))
   for e in deliveries[j]:
    a,b=e['carrier'],e['passive']
    if b not in by_source:x[a]=track(add(x[a],1,x[b]))
+   for k in sorted({target_group[t]for t in e['receivers']if t in target_group}):aggregate_restore(k,('K',j))
    for t in e['receivers']:target_move(t,e['deliver_frame']);y[t]=track(add(y[t],direction,x[a]))
+ assert not any(aggregation_active),'all target inverses completed beforecleanup'
  for e in W.k['entries']:
   if e['passive']not in by_source:x[e['carrier']]=track(add(x[e['carrier']],-1,x[e['passive']]))
  if mutation=='undo_before_restore':
@@ -192,4 +220,4 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
  assert y==want,('wrong targets',mode,[t for t in range(v)if y[t]!=want[t]][:10])
  assert x==X0,('source restoration',mode,[s for s in range(v)if x[s]!=X0[s]][:10])
  assert z==Z0,('dirty restoration',mode)
- return dict(mode=mode,direction=direction,formal_columns=2*v+len(regs),sources=v,targets=v,dirty=len(regs),all_targets=True,all_source_and_dirty_restored=True,copied_center_target_reads=len(center_reads),all_forward_centers_at_D0=True,all_reflected_centers_at_D1=True,actual_target_histogram={str(k):n for k,n in sorted(target_hist.items())},actual_reflected_target_histogram={str(k):n for k,n in sorted(reflected.items())},aggregation_groups=len(agg),aggregation_pivot_reads=aggregation_pivot_reads,aggregation_restores=aggregation_restores,actual_extra_source_paths=source_paths,rank_groups=len(rankgroups),rank_targets=len(rankowner),rank_restores=rank_restores,rank_removed_reads=rank_skipped,actual_extra_source_histogram=dict(source_histogram),actual_extra_reflected_source_histogram=dict(source_reflected))
+ return dict(mode=mode,direction=direction,formal_columns=2*v+len(regs),sources=v,targets=v,dirty=len(regs),all_targets=True,all_source_and_dirty_restored=True,copied_center_target_reads=len(center_reads),all_forward_centers_at_D0=True,all_reflected_centers_at_D1=True,actual_target_histogram={str(k):n for k,n in sorted(target_hist.items())},actual_reflected_target_histogram={str(k):n for k,n in sorted(reflected.items())},aggregation_groups=len(agg),aggregation_pivot_reads=aggregation_pivot_reads,aggregation_restores=aggregation_restores,actual_extra_source_paths=source_paths,rank_groups=len(rankgroups),rank_targets=len(rankowner),rank_restores=rank_restores,rank_removed_reads=rank_skipped,actual_extra_source_histogram=dict(source_histogram),actual_extra_reflected_source_histogram=dict(source_reflected),echelon_restores=echelon_restores,echelon_reads=echelon_reads)
