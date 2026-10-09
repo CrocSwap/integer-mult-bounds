@@ -12,13 +12,15 @@ W=Candidate();C=W.C
 removed={W.w['rootroles'][e['root']]for e in json.loads((P/'selected/bit/sinks.json').read_text())}
 borrowed={r['role']for r in json.loads((PACKAGE/'borrow/selection.json').read_text())}
 assert len(borrowed)==440 and not borrowed&(set(W.gauge)|set(W.source.values())|set(W.donor)|removed)
-physical=set(range(W.R))-set(W.donor)-removed-borrowed
-selected={s for s in W.gauge if s not in W.donor}
-assert Counter(W.gauge[s]['dim']for s in selected)=={20:2200,18:13,19:3,12:18,13:48}
+gauge_borrowed={r['role']for r in json.loads((PACKAGE/'gaugeb/selection.json').read_text())}
+assert len(gauge_borrowed)==3 and gauge_borrowed<=set(W.gauge) and not gauge_borrowed&(borrowed|set(W.donor)|removed)
+physical=set(range(W.R))-set(W.donor)-removed-borrowed-gauge_borrowed
+selected={s for s in W.gauge if s in physical}
+assert Counter(W.gauge[s]['dim']for s in selected)=={20:2200,18:13,12:18,13:48}
 families={r:sorted(s for s in selected if 24-W.gauge[s]['dim']==r)for r in [4,5,6,11,12]}
 families[24]=sorted(physical-selected)
-assert {r:len(xs)for r,xs in families.items()}=={4:2200,6:13,5:3,11:48,12:18,24:14392}
-assert set().union(*map(set,families.values()))==physical and len(physical)==16674
+assert {r:len(xs)for r,xs in families.items()}=={4:2200,6:13,5:0,11:48,12:18,24:14392}
+assert set().union(*map(set,families.values()))==physical and len(physical)==16671
 # Every actual gauge chart and its two-sided inverse.
 charts=[];maxops=maxnum=maxden=0
 for f,count in sorted(Counter(W.gauge[s]['frame']for s in selected).items()):
@@ -42,7 +44,7 @@ for f,count in sorted(Counter(W.gauge[s]['frame']for s in selected).items()):
 assert max(maxnum,maxden)<2**80
 print('PASS charts',len(charts),'max factors',maxops,flush=True)
 
-T=72;patterns=[([5]*4+[4]*13,54),([11]*4+[4]*7,864),([4]*18,8425),([6]*12,78),([12]*6,216),([24]*3,345408)]
+T=72;patterns=[([11]*4+[4]*7,864),([4]*18,8464),([6]*12,78),([12]*6,216),([24]*3,345408)]
 assert all(sum(blocks)==72 for blocks,_ in patterns)
 incidence=hashlib.sha256();assignments=0;normalizers=[];controls=[]
 for stage in range(3):
@@ -59,7 +61,7 @@ for stage in range(3):
     q=used[rank];role=families[rank][q//T];replica=q%T;used[rank]+=1
     incidence.update(f'{stage},{rank},{role},{replica},{bank},{offset}\n'.encode());assignments+=1;offset+=rank
    assert offset==72;bank+=1
- assert bank==355045 and used=={r:T*len(rs)for r,rs in families.items()}
+ assert bank==355030 and used=={r:T*len(rs)for r,rs in families.items()if rs}
  if stage==0:
   for widths,_ in patterns:
    def endpoint(indices):
@@ -72,9 +74,9 @@ for stage in range(3):
    assert endpoint(list(range(blocks))+list(reversed(range(blocks))))==list(range(144))
    assert endpoint(range(blocks-1))!=full;controls.append(dict(widths=widths,mutation='omitted last block',status='REJECTED'))
    assert endpoint(list(range(blocks))+[0])!=full;controls.append(dict(widths=widths,mutation='repeated first block',status='REJECTED'))
-assert assignments==3*T*16674==3601584
-banks=3*355045;literal_stock=banks+T*2*W.v;assert literal_stock==1318575
-K=2*3*T*((literal_stock-1)+16674*72*(maxops+71+72));assert 0<K<2**40
-out=dict(status='PASS_ACTUAL_JOINT_GAUGE_CHARTS_AND_COMPLETE_BANKS',families={r:len(rs)for r,rs in families.items()},physical_replicas=T,bank_patterns=[dict(widths=widths,banks_per_stage=n)for widths,n in patterns],banks_total=banks,assignments=assignments,literal_stock=literal_stock,integer_normalization=24,W=439525,deficit=46464,m=72,charts=len(charts),max_chart_factors=maxops,max_factor_numerator=maxnum,max_denominator=maxden,incidence_sha256=incidence.hexdigest(),normalizers=normalizers,controls=controls,conservative_extra_selector_calls=K,chart_sha256=hashlib.sha256(json.dumps(charts,sort_keys=True,separators=(',',':')).encode()).hexdigest())
+assert assignments==3*T*16671==3600936
+banks=3*355030;literal_stock=banks+T*2*W.v;assert literal_stock==1318530
+K=2*3*T*((literal_stock-1)+16671*72*(maxops+71+72));assert 0<K<2**40
+out=dict(status='PASS_ACTUAL_JOINT_GAUGE_CHARTS_AND_COMPLETE_BANKS',families={r:len(rs)for r,rs in families.items()},physical_replicas=T,bank_patterns=[dict(widths=widths,banks_per_stage=n)for widths,n in patterns],banks_total=banks,assignments=assignments,literal_stock=literal_stock,integer_normalization=24,W=439510,deficit=46464,m=72,charts=len(charts),max_chart_factors=maxops,max_factor_numerator=maxnum,max_denominator=maxden,incidence_sha256=incidence.hexdigest(),normalizers=normalizers,controls=controls,conservative_extra_selector_calls=K,chart_sha256=hashlib.sha256(json.dumps(charts,sort_keys=True,separators=(',',':')).encode()).hexdigest())
 (D/'joint-charts.json').write_text(json.dumps(charts,separators=(',',':'))+'\n');(D/'joint-banks.json').write_text(json.dumps(out,indent=2)+'\n')
 print('PASS complete banks',patterns,'stock',literal_stock,'routing',K,flush=True)

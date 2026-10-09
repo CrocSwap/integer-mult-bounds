@@ -1,3 +1,5 @@
+The current package adds three genuine gauge-backed source slots and further exact frame cuts. See GAUGE-SOURCE-BORROWING.md and CUT-COMPONENTS.md.
+
 The current word additionally reuses 440 original sources for actual auxiliary branches. It recomputes adjoints and source paths, rather than deleting a histogram family from an unchanged word. See SOURCE-BORROWING.md.
 
 # Current structural refinement

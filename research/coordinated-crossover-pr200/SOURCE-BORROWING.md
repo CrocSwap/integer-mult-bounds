@@ -15,3 +15,5 @@ The independent actual path recount removes one local rank-two child and one loc
 Retimed partner mixes and inverse mixes have the same scalar counts. Deleting each copy and its reverse removes 880 scalar operations. The recomputed positive adjoint coefficients do not increase, and the remaining dirty inventory decreases. The previous conservative scalar charge remains valid for both reflected words.
 
 This construction uses the existing bit-word, partner-pair, restored dirty-response, source-line and weighted-rank interfaces. The inherited all-size compiler, selector, routing and analytic conditions remain conditional. The new source borrowing, exact executor and integration were prepared with substantial OpenAI Codex assistance; upstream authorship, licenses and AI disclosures remain unchanged.
+
+The final package additionally uses three original sources as genuine rank-19 gauge inputs; see GAUGE-SOURCE-BORROWING.md. The 440-copy construction and its independent path delta above remain unchanged.

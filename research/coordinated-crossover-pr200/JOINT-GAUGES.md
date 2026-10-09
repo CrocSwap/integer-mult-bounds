@@ -1,3 +1,5 @@
+The final package retains all 82 gauge reads, but three rank-19 gauges occupy original source registers. Current literal bank counts and the complete reconstruction appear in GAUGE-SOURCE-BORROWING.md; counts below describe the retained source440 predecessor.
+
 # Shared nonmaximal entrance gauges and current literal banks
 
 The new step chooses a common subspace of several roles' admissible entrance frames. Individually maximal frames can differ and force separate target transitions. A smaller shared frame lets many actual compensation reads use the same target climb.
