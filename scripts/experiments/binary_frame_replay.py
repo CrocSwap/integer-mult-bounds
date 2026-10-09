@@ -3,9 +3,63 @@ import json,sys,gzip
 from pathlib import Path
 from itertools import combinations
 from collections import Counter
+from math import comb
+
+if sys.flags.optimize:
+ raise ValueError('Assertions must remain enabled')
+
+
+def check_word(d):
+ """Bind physical indices and every scatter incidence to the output plan.
+
+ PR #64's separate audit (rfu08) identified the cancelling-scatter gap:
+ https://github.com/CrocSwap/integer-mult-bounds/pull/64
+ Scatter gates commute: each changes an output using an unchanged scratch
+ source. Compare multisets so reordering remains valid, but extra gates do not.
+ """
+ h,v,R=d['h'],d['v'],d['R']
+ assert type(h) is int and h>=3
+ assert type(v) is int and v==comb(h,3)
+ assert type(R) is int and R>=v
+ frames=d['frames'];universe=(1<<h)-1
+ for c,u in frames:
+  assert type(c) is int and type(u) is int and 0<c<=u<=universe and not c&~u
+  assert (c==u and c.bit_count()==3) or (c!=u and c.bit_count() in (1,2))
+ assert set(d['sources'])=={str(i) for i in range(v)}
+ assert all(type(s) is int and 0<=s<R for s in d['sources'].values())
+ assert len(set(d['sources'].values()))==v
+ for a,b,g in d['ops']:
+  assert type(a) is int and type(b) is int and 0<=a<R and 0<=b<R and a!=b
+  assert type(g) is int and 0<=g<len(frames)
+ triples=list(combinations(range(h),3));lookup={t:i for i,t in enumerate(triples)}
+ center_destinations=[[] for _ in range(h)]
+ for i,triple in enumerate(triples):
+  for common in triple:center_destinations[common].append(i)
+ expected=Counter();outputs=set();centers=set()
+ for s,g,common,triple in d['outputs']:
+  assert type(s) is int and 0<=s<R and s not in outputs
+  assert type(g) is int and 0<=g<len(frames)
+  assert type(common) is int and 0<=common<h
+  assert all(type(point) is int for point in triple)
+  outputs.add(s)
+  if len(triple)==1:
+   assert triple==[common] and common not in centers
+   centers.add(common)
+   destinations=center_destinations[common]
+  else:
+   assert len(triple)==3 and triple==sorted(triple) and common in triple
+   destinations=[lookup[tuple(triple)]]
+  expected.update((v+i,2*v+s) for i in destinations)
+ assert centers==set(range(h))
+ for target,source in d['scatter']:
+  assert type(target) is int and v<=target<2*v
+  assert type(source) is int and 2*v<=source<2*v+R
+ assert Counter(map(tuple,d['scatter']))==expected, 'Scatter differs from paid output incidences'
 
 def replay(path):
- d=json.loads(gzip.decompress(Path(path).read_bytes()) if str(path).endswith('.gz') else Path(path).read_bytes());h,v,R=d['h'],d['v'],d['R'];F=d['frames'];triples=list(combinations(range(h),3));assert len(triples)==v
+ d=json.loads(gzip.decompress(Path(path).read_bytes()) if str(path).endswith('.gz') else Path(path).read_bytes())
+ check_word(d)
+ h,v,R=d['h'],d['v'],d['R'];F=d['frames'];triples=list(combinations(range(h),3));assert len(triples)==v
  ranks=[1 if c==u else u.bit_count()-c.bit_count()for c,u in F]
  for c,u in F:assert c and not c&~u and(c.bit_count()in(1,2)or c==u and c.bit_count()==3)
  physical=[None]*R;symbols=[0]*R;hist=Counter();sources={int(i):s for i,s in d['sources'].items()};assert len(sources)==v and len(set(sources.values()))==v

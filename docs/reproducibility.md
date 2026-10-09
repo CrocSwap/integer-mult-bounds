@@ -39,6 +39,22 @@ The local preparation checks used Python 3.14.6 and Tectonic 0.16.9. The supplie
 GitHub workflow targets Python 3.11, 3.13, and 3.14 on Ubuntu 24.04; a workflow
 configuration is not a claim that those hosted runs have already passed.
 
+The shared finite-word replay and transition preparation require assertions:
+run without `-O`, `-OO` or a nonzero `PYTHONOPTIMIZE`. Both entry points reject
+an optimized interpreter before loading a word or writing profiler inputs.
+They also check physical index domains and bind the complete scatter multiset
+to the output records. Extra cancelling XORs cannot substitute for paid
+incidences; valid reorderings remain accepted because scatter gates change only
+output slots using unchanged scratch sources.
+
+The cancelling-scatter counterexample was identified by **rfu08** in
+[PR #64](https://github.com/CrocSwap/integer-mult-bounds/pull/64), at inspected
+head `2d970ab3ca0271cfb2b609dc9aae1b7073b7774d`. The common checkers now enforce
+that binding; the finite-word controls run in `make verify-joint` and
+`make verify-tests`. `make verify-pair` also replays the selected pair-assembly
+words through these helpers. This strengthens checker coverage while retaining
+the numerical witnesses and the stated full-theorem assumptions.
+
 ## Arithmetic, identities, and patches
 
 ```sh
