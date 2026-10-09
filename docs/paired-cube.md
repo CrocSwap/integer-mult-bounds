@@ -64,12 +64,14 @@ sources are included without a PDF.
 
 ## Shared source bindings
 
-The final `Makefile`, `README.md` and `NOTICE` changes also update the inherited
-joint-dual manifest. Explicitly refresh its hashes, regenerate joint arithmetic
-and update the validation receipt's certificate digest. Its mathematical
-fields and previous complete replay payload must remain equal when their
-producer/verifier inputs are unchanged. The complete affected replay command,
-when needed, is `make verify-joint`.
+The inherited joint-dual manifest no longer binds `Makefile`, `README.md` or
+`NOTICE`, so editing them does not touch it. Earlier round notes describe the
+time when it did. If a bound producer, certificate or finite input changes,
+explicitly refresh its hashes, regenerate joint arithmetic and update the
+validation receipt's certificate digest. Its mathematical fields and previous
+complete replay payload must remain equal when their producer/verifier inputs
+are unchanged. The complete affected replay command, when needed, is
+`make verify-joint`.
 
 Stage the final artifacts before the deterministic certificate regeneration
 and require `git diff --exit-code` to remain clean. CI checks the committed
