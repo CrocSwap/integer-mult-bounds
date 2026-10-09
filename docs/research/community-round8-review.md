@@ -21,8 +21,9 @@ claims, not blanket maintainer acceptance of the entire queue.
 | #168 | eumemic | Core lineage reviewed through #182's independent full physical replay; local signed modules, output fusion, physical bit word and terminal sinks |
 | #181/#182 | Chafik Boukhalfa / chafreaky | Full local finite replay passes: shared-edge complex circuit, regenerated matching, operation frames and terminal sinks; κ=0.000660216552061722 |
 | #185 | Rohan Arun | Exact arithmetic and acyclic ordinary-leaf composition reviewed; κ=0.000660627334074291; physical inputs exactly match #182; all 46 public CI checks passed |
-| #186 | Dugongue | Full local finite replay passes; strongest candidate, with the bank scheduling supplement below; branch-specific Linux gate required |
+| #186 | Dugongue | Full local finite replay passes; strongest candidate, with the bank scheduling supplement below; both branch-specific Linux jobs passed |
 | #154 | eumemic | Verification parallelism, frame speedups and removal of irrelevant repository-wide hash pins; useful separate integration task, not merged in this round |
+| #183 | Romain Hedouin | 22 focused tests pass; closed-form assembly reduction reviewed as arithmetic-only work, no new κ; separate integration |
 | #175 | Chafik Boukhalfa / chafreaky | Ordered retired-register buckets preserve selection order; exact overlay already included in the reviewed #181/#182 prerequisite and its CI; main integration still separate |
 
 PR186 is imported as its original self-contained package, with all file pins,
@@ -111,3 +112,29 @@ weighted compiler, common-chart and routing interfaces, restored rows,
 precision/recovery, prime supply, uniform setup and analytic fixed-tape
 multiplier are not established from scratch or fully formalized by this audit.
 Main publication and PR closures remain separate maintainer actions.
+
+## Final validation receipt
+
+The new complete package and scheduling diagnostic passed on Linux Python 3.11
+and 3.14 at `c799bddbacb0d5bcc6f4938914c041f27780a570`:
+[dedicated run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37928942214).
+Both jobs also passed the unchanged-tracked-tree gate. Git initially normalized
+two pinned CRLF JSON artifacts; a path-specific `.gitattributes` rule now
+preserves all original package bytes. The initial failure and fix are recorded.
+
+The previous full 53-job Linux result is reused for the old implementation:
+all existing scripts, tests, certificates, formal sources, notes, references,
+Makefile and workflow blobs are identical to that tested baseline. Only earlier
+review receipts and the new-package-specific attribute rule differ among existing
+paths. The [reuse receipt](../../research/community-round8-audit/baseline-reuse.json)
+records this comparison. Redundant automatic baseline reruns were cancelled;
+they are not described as new successful runs. A final evidence-only commit
+uses `[skip ci]` and preserves all tested candidate and dependency bytes.
+
+For #154, 12,000 deterministic exact comparisons agree for canonical bases,
+orthogonal complements and containment, in dimensions 1..32. Its concurrency
+runner still needs integration-level checks; in particular `--jobs 0` should
+be rejected rather than permitting an idle queue. #175's ordered-bucket change
+preserves the old descending-rank/ascending-slot selection: bucket mutations
+occur only after a clearing candidate is accepted and that scan then returns.
+Both speedups remain separate from the reviewed numerical candidate.
