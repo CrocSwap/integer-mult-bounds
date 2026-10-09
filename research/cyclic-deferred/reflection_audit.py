@@ -247,13 +247,27 @@ def audit(d):
     assert d['out']['reuse_rejected_controls']==reuse_rejected
     assert all(result==(True,True) for result in d['rep']),'Physical aliased numeric replay'
     assert d['missing_compensation']==(True,False),'Omitted compensation numerical control'
+    assert d['missing_late_compensation']==(True,False),'Omitted late compensation numerical control'
+    assert d['premature_late_compensation']==(True,False),'Premature late compensation numerical control'
+    assert d['out']['late_birth_stats']['new_pairs']==len(d['late_recipients'])
+    assert d['out']['late_birth_compensation_rejected'] is True
+    assert d['out']['premature_compensation_rejected'] is True
+
     live=[s for s in range(R)if s not in merge]
     assert len(set(merge.values()))==len(merge) and not set(merge)&set(merge.values())
     for b,a in merge.items():
         assert a not in sigma and b in sigma and b not in d['leaf_of']
-        assert a not in d['role_root'] and d['last'][a] in early
+        assert a not in d['role_root']
         assert b not in early_touched
-        assert all(a not in ops[i][1:3] for i in d['rest'] if ops[i][0]!='src')
+        if b not in d.get('late_recipients',()):
+            assert d['last'][a] in early
+            assert all(a not in ops[i][1:3] for i in d['rest'] if ops[i][0]!='src')
+        else:
+            order=[i for i in d['phase1']+d['rest']if ops[i][0]!='src'];position={i:j for j,i in enumerate(order)}
+            birth=next(i for i in order if ops[i][0]=='copy'and ops[i][2]==b)
+            assert position[d['last'][a]]<d['read_deadlines'][b]<=position[birth]
+            assert not any(b in ops[i][1:3]for i in order[:position[birth]]if ops[i][0]!='src')
+
         lastframe=basis(d['op_frames'][d['last'][a]]) if 'op_frames'in d else U[d['holds'][a][-1]]
         assert contained(lastframe,sigma[b])
     physical_id={s:i for i,s in enumerate(live)}
@@ -276,14 +290,23 @@ def audit(d):
         if s not in deferred:gate(A(s),X(n-1),1,U[n])
     for i in d['phase1']:run(i)
     for s in d['centre_roles']:word.append(('centre',A(s),tuple(Y(t) for t in range(v)),1,rootframe[s],ZERO,d['centre_of'][d['role_root'][s]]))
-    compensated=[]
-    for s in d['deferred']:
-        read(s,-1,sigma[s],actual_reach[s],('old',s,*chunk_rows[s]))
-        compensated.append(s)
-    check_compensation(merge,compensated)
+    delayed=set(d.get('late_recipients',()));compensated=[]
+    order=[i for i in d['phase1']+d['rest']if ops[i][0]!='src'];positions={i:j for j,i in enumerate(order)}
+    cut=len(d['phase1']);scheduled={}
+    for s,t in d['read_deadlines'].items():scheduled.setdefault(t,[]).append(s)
+    def emit_old(t):
+        for s in sorted(scheduled.get(t,()),key=lambda s:(len(sigma[s]),s)):
+            assert s not in compensated
+            read(s,-1,sigma[s],actual_reach[s],('old',s,*chunk_rows[s]));compensated.append(s)
+    emit_old(cut)
+
     for s in d['deferred']:
         if s in d['leaf_of']:n=d['leaf_of'][s];gate(A(s),X(n-1),1,U[n])
-    for i in d['rest']:run(i)
+    for i in d['rest']:
+        if ops[i][0]=='src':continue
+        if positions[i]>cut:emit_old(positions[i])
+        run(i)
+    check_compensation(merge,compensated)
     for s,j in d['role_root'].items():
         if not d['kind'][j]:read(s,1,rootframe[s],(d['target'][j],),('root',h-3 if j<v else -(h-3)))
     for a,b,c,F in reversed(forward_workspace):gate(a,b,-c,FULL)
@@ -381,7 +404,7 @@ def audit(d):
     assert safe>=scalar
     return dict(total_operations=len(ops),total_M_operations=total_M_operations,conservative_M_operations=d['c_add']+R-v,generalized_source_gauges=True,source_gauge_chronology_recomputed=True,source_gauge_deferred_roles=len(sigma),source_gauge_degenerate_roles=sum(not nondeg(F)for F in sigma.values()),physical_source_gauge_dimension_sum=sum(len(F)*n for F,n in source_counts.items()),h=h,v=v,R=len(live),virtual_R=R,reused_roles=len(merge),exact_birth_cut_invariants=True,last_uses_recomputed=True,physical_aliased_numeric_replay=True,omitted_compensation_numeric_control=True,inverse_source_order='True reverse chronological source/workspace word',exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
                 physical_auxiliary_source_frames=physical_auxiliary_source_frames,
-                completed_core_source_inventory_bound=True,completed_core_pre_exterior_frames_full=True,
+                deadline_target_order_checked=True,late_birth_compensation_checked=True,late_reused_roles=len(d.get('late_recipients',())),completed_core_source_inventory_bound=True,completed_core_pre_exterior_frames_full=True,
                 reflected_core_active_frames_complement_source=all(revfinish[2*v+i]==complement(start[2*v+i],h) for i in range(len(live))),
                 exact_arbitrary_dirty_cancellation_by_dependency_cut=True,
                 dirty_reuse_identity="Every recipient is untouched before its compensated birth; donor has no future gate/root reads. Recipient old-response coefficient cancels its arbitrary current donor value. All physical shears are reversed in true chronology.",

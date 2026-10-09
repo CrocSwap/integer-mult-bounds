@@ -46,7 +46,7 @@ def nondeg(A):
                          for j, y in enumerate(A)) for x in A)) == len(A)
 
 
-def check_pairs(data, pairs):
+def initial_check_pairs(data, pairs):
     """Reject aliases, unfinished donors and unavailable recipient births."""
     donors = [row['donor'] for row in pairs]
     recipients = [row['recipient'] for row in pairs]
@@ -79,6 +79,68 @@ def check_pairs(data, pairs):
         B = basis(data['op_frames'][first[b]])
         from arbitrary_frames import general_frame
         assert all(general_frame(X, data['h']) for X in (A,F,B)), 'Reuse invalid generalized frame'
+        assert contained(A, F) and contained(F, B), 'Reuse frame containment'
+        assert basis(row['donor_frame']) == A and basis(row['birth_frame']) == F, 'Reuse recorded frames'
+        assert (row['e'], row['s']) == (len(A), len(F)), 'Reuse recorded dimensions'
+    return dict(zip(recipients, donors))
+
+
+
+def check_pairs(data, pairs):
+    """Reject aliases, unfinished donors and unavailable recipient births."""
+    if 'read_deadlines' not in data:return initial_check_pairs(data,pairs)
+    donors = [row['donor'] for row in pairs]
+    recipients = [row['recipient'] for row in pairs]
+    assert (len(set(donors)) == len(donors) and
+            len(set(recipients)) == len(recipients) and
+            not set(donors) & set(recipients)), 'Reuse pair alias'
+    early = set(data['Anc'])
+    first = {}
+    late_touched = set()
+    for i, op in enumerate(data['ops']):
+        if op[0] == 'src':
+            first.setdefault(op[1], i)
+            continue
+        for s in op[1:3]:
+            first.setdefault(s, i)
+        if i not in early:
+            late_touched.update(op[1:3])
+    position={i:j for j,i in enumerate(k for k in data['phase1']+data['rest']if data['ops'][k][0]!='src')}
+    deadlines=data['read_deadlines']
+    delayed=set(data.get('late_recipients',()))
+    top=[()for _ in range(data['v'])]
+    for s,F in data['placed'].items():
+        for t in data['reach'][s]:
+            if len(F)>len(top[t]):top[t]=basis(F)
+    assert delayed<=set(recipients),'Late recipient lacks physical alias'
+    assert set(deadlines)==set(data['placed'])
+    for b in deadlines:
+        upper=len(data['phase1'])if b in data['leaf_of']else position[first[b]]
+        assert len(data['phase1'])<=deadlines[b]<=upper,'Read after first workspace gate'
+    current=[()for _ in range(data['v'])]
+    for b in sorted(deadlines,key=lambda b:(deadlines[b],len(data['placed'][b]),b)):
+        F=basis(data['placed'][b])
+        for t in data['reach'][b]:
+            assert contained(current[t],F),'Deadline target frame retreat'
+            current[t]=F
+
+    for row in pairs:
+        a, b = row['donor'], row['recipient']
+        assert type(a) is int and type(b) is int, 'Reuse role type'
+        assert 0 <= a < data['R'] and 0 <= b < data['R'], 'Reuse role range'
+        assert a not in data['placed'] and a not in data['role_root'], 'Reuse nondead donor'
+        if b in delayed:
+            assert position[data['last'][a]] < deadlines[b] <= position[first[b]], 'Reuse nondead donor'
+        else:
+            assert data['last'].get(a) in early and a not in late_touched, 'Reuse nondead donor'
+        assert (b in data['placed'] and b not in data['leaf_of'] and
+                b not in data['touched'] and first.get(b) not in early), 'Reuse unavailable birth'
+        birth = data['ops'][first[b]]
+        assert birth[0] == 'copy' and birth[2] == b, 'Reuse unavailable birth'
+        A = basis(data['op_frames'][data['last'][a]])
+        F = basis(data['placed'][b])
+        B = basis(data['op_frames'][first[b]])
+        assert A == basis(A) and F == basis(F) and B == basis(B), 'Reuse noncanonical frame'
         assert contained(A, F) and contained(F, B), 'Reuse frame containment'
         assert basis(row['donor_frame']) == A and basis(row['birth_frame']) == F, 'Reuse recorded frames'
         assert (row['e'], row['s']) == (len(A), len(F)), 'Reuse recorded dimensions'

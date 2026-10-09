@@ -160,6 +160,67 @@ class CoverControls(unittest.TestCase):
         self.local_change('complex-profile.json',
                           lambda p: p['gauge_frame_stats'].update(source_injection_and_root_frames_fixed=False))
 
+    def test_missing_late_compensation_rejection_rejected(self):
+        for flag in ('late_birth_compensation_rejected', 'premature_compensation_rejected'):
+            self.local_change('complex-profile.json', lambda p: p.update({flag: False}))
+
+    def test_missing_late_deadline_audit_rejected(self):
+        for flag in ('deadline_target_order_checked', 'late_birth_compensation_checked'):
+            self.local_change('reflection-audit.json', lambda p: p.update({flag: False}))
+
+    def test_changed_late_reuse_inventory_rejected(self):
+        self.local_change('complex-profile.json',
+                          lambda p: p['late_birth_stats'].update(new_pairs=p['late_birth_stats']['new_pairs']-1))
+        self.local_change('reflection-audit.json', lambda p: p.update(late_reused_roles=p['late_reused_roles']-1))
+
+    def test_changed_late_local_word_or_target_histogram_rejected(self):
+        for flag in ('scalar_dag_unchanged', 'operation_frames_unchanged',
+                     'source_gauges_unchanged', 'target_histograms_unchanged'):
+            self.local_change('complex-profile.json', lambda p: p['late_birth_stats'].update({flag: False}))
+
+    def test_late_birth_deadline_between_donor_death_and_first_use(self):
+        sys.path.insert(0, str(ROOT / LOCAL))
+        from late_birth import select
+        from reuse import check_pairs
+        data = dict(h=2, v=1, R=3,
+                    ops=[('add', 0, 1, 0), ('copy', 1, 2, 1)],
+                    op_frames={0: (1,), 1: (1,)}, phase1=[], rest=[0, 1],
+                    last={0: 0, 1: 1, 2: 1}, placed={2: (1,)},
+                    reach=[set(), set(), {0}], reuse_pairs=[], leaf_of={},
+                    touched=set(), role_root={1: 0}, Anc=set())
+        pairs, deadlines, recipients, stats = select(data)
+        self.assertEqual([(p['donor'], p['recipient']) for p in pairs], [(0, 2)])
+        self.assertEqual(deadlines, {2: 1})
+        self.assertEqual(stats['new_pairs'], 1)
+        data.update(read_deadlines=deadlines, late_recipients=recipients)
+        self.assertEqual(check_pairs(data, pairs), {2: 0})
+        for deadline, message in ((0, 'nondead donor'), (2, 'after first workspace gate')):
+            with self.subTest(deadline=deadline):
+                changed = copy.deepcopy(data)
+                changed['read_deadlines'][2] = deadline
+                with self.assertRaisesRegex(AssertionError, message):
+                    check_pairs(changed, pairs)
+
+    def test_changed_refinement_chronology_rejected(self):
+        for flag in ('scalar_dag_unchanged', 'chronology_unchanged',
+                     'read_deadlines_unchanged', 'deferred_inventory_unchanged'):
+            self.local_change('complex-profile.json',
+                              lambda p: p['reuse_refinement_stats'].update({flag: False}))
+
+    def test_unbound_refinement_frame_or_gauge_contract_rejected(self):
+        for stage, flags in (
+                ('plateau', ('fixed_source_gauges', 'fixed_read_deadlines',
+                             'fixed_reuse_handoffs', 'fixed_source_injection_frames', 'fixed_root_frames')),
+                ('gauges', ('read_deadlines_fixed', 'existing_deferred_inventory_fixed',
+                            'all_operation_frames_fixed', 'reuse_mapping_fixed')),
+                ('handoffs', ('fixed_source_gauges', 'fixed_read_deadlines',
+                              'fixed_source_injection_frames', 'fixed_root_frames',
+                              'reuse_donor_ends_at_recipient_gauge'))):
+            for flag in flags:
+                with self.subTest(stage=stage, flag=flag):
+                    self.local_change('complex-profile.json',
+                                      lambda p: p['reuse_refinement_stats'][stage].update({flag: False}))
+
     def test_padded_profile_keeps_all_nine_local_copies(self):
         from padded_checks import profile
         independent = profile(json.loads((ROOT / LOCAL / 'complex-profile.json').read_text()))
@@ -259,6 +320,26 @@ class CoverControls(unittest.TestCase):
             with self.subTest(filename=filename):
                 changed = copy.deepcopy(self.manifest)
                 del changed['files'][LOCAL + '/' + filename]
+                with self.assertRaisesRegex(ValueError, 'source dependency closure'):
+                    check_sources(ROOT, changed)
+
+    def test_missing_late_reuse_dependency_rejected(self):
+        for name in (LOCAL + '/late_birth.py', PACKAGE + '/LATE-REUSE.md'):
+            with self.subTest(name=name):
+                changed = copy.deepcopy(self.manifest)
+                del changed['files'][name]
+                with self.assertRaisesRegex(ValueError, 'source dependency closure'):
+                    check_sources(ROOT, changed)
+
+    def test_missing_refinement_dependency_rejected(self):
+        names = [LOCAL + '/' + filename for filename in
+                 ('refine_reuse.py', 'operation_plateaus.py', 'late_birth_weighted.py',
+                  'gauge_deadlines.py', 'operation_handoffs.py')]
+        names.append(PACKAGE + '/REFINEMENT.md')
+        for name in names:
+            with self.subTest(name=name):
+                changed = copy.deepcopy(self.manifest)
+                del changed['files'][name]
                 with self.assertRaisesRegex(ValueError, 'source dependency closure'):
                     check_sources(ROOT, changed)
 

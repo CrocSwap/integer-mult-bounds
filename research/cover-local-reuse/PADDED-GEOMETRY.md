@@ -89,8 +89,8 @@ For a three-vertex accounting cell, all three stages contribute:
 - `6v` data-ending children of width two.
 
 The persistent stock is `W_cell = 6v + 3R`. For the frozen audited supplier,
-`v = 1540`, `R = 21274`, so `W_cell = 73062`, rank mass is `4817010`, deficit is
-`5082`, and the largest child has width `60 < 66`. The deficit is exactly
+`v = 1540`, `R = 20494`, so `W_cell = 70722`, rank mass is `4662570`, deficit is
+`5082`, and the largest child has width `57 < 66`. The deficit is exactly
 `3(2v - 3 ell)` with `ell = 462`; the two new data dimensions are fully paid.
 Both data finishes contribute `6v = 9240` children of width two per cell.
 

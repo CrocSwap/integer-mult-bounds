@@ -31,16 +31,18 @@ BIT_MANIFEST = 'references/partial-gauge/pr97/SOURCE.json'
 BIT_PIN = '68fb539abcd6df21d142e4e204b6e9482eb7f9cd3907650f54bd058070266596'
 LOCAL_FILES = {
     'complex_deferred.py', 'producer.py', 'replayed_producer.py', 'reuse.py',
-    'reflection_audit.py', 'arbitrary_frames.py', 'gauge_frames.py', 'gauge_padded_frames.py',
+    'reflection_audit.py', 'arbitrary_frames.py', 'gauge_frames.py', 'gauge_padded_frames.py', 'late_birth.py',
     'complex-profile.json', 'reuse-pairs.json',
     'reflection-audit.json', 'inputs/complex-dag.json.gz',
     'restrict_dag.py', 'restriction-audit.json', 'inputs/restricted-dag.json.gz',
+    'refine_reuse.py', 'operation_plateaus.py', 'late_birth_weighted.py',
+    'gauge_deadlines.py', 'operation_handoffs.py',
 }
 PACKAGE_FILES = {
     'verify.py', 'test_controls.py', 'certificate.py', 'certificate.json',
     'README.md', 'geometry_checks.py', 'geometry-audit.json',
     'padded_checks.py', 'padded-geometry.json', 'PADDED-GEOMETRY.md',
-    'bit_padded.py', 'bit-padded.json', 'BIT-PADDED.md',
+    'bit_padded.py', 'bit-padded.json', 'BIT-PADDED.md', 'LATE-REUSE.md', 'REFINEMENT.md',
 }
 
 

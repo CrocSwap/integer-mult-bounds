@@ -1,10 +1,9 @@
-# Restricted 22-dimensional padded triple covers
+# Refined reuse under 22-dimensional padded triple covers
 
-Conditional **κ = 420151003347/10¹⁵ = 0.000420151003347**.
-The exact complex saving is **210252177/500000000000 = 0.000420504354**.
-The complex side binds; the retained padded bit saving is 0.00045060418316.
-The assembly uses positive rational slack parameters β = 10⁻¹⁸, η = 10⁻¹⁵
-and backoff 10⁻²⁶, with all strict constraints checked explicitly.
+Conditional **κ ≈ 4.24830828577 × 10⁻⁴**.
+The exact complex saving is **4.25192098 × 10⁻⁴**. The retained bit saving is
+**4.5060418316 × 10⁻⁴**. The assembly uses positive rational slack parameters
+β = 10⁻¹⁸, η = 10⁻¹⁵ and backoff 10⁻²⁶; all strict margins are checked.
 
 The complex supplier deterministically restricts the immutable PR117
 24-dimensional scalar DAG to its first 22 coordinates. The original
@@ -17,12 +16,31 @@ and compensated reuses. The restricted record has 66,234 additions; pruning
 unused nodes leaves 64,140 live additions and 47,345 carrier links for 1,540
 triple ports. Its scalar readouts use exact numerator/38 chunks.
 
-The reconstructed local word has 22,977 virtual roles in 21,274 physical
-slots, with 1,703 compensated birth-cut reuses. The complete source/workspace
+The reconstructed local word has 22,977 virtual roles in 20,494 physical
+slots, with 2,483 compensated birth-cut reuses. The complete source/workspace
 chronology and its actual inverse retain every compensation. There are
-2,865 deferred virtual roles, including all reused recipients; 111 deferred
-gauges are degenerate. The physical inventory has 764 distinct source-frame
-types, 1,162 nonzero source gauges and source-dimension sum 19,488.
+2,865 deferred virtual roles, including all reused recipients; 107 deferred
+gauges are degenerate. The regenerated audit binds 246 physical source-frame
+types, including 382 nonzero source gauges, with source-dimension sum 5,729.
+The full literal forward and reflected word each pay 7,075,117 scalar
+operations per stage.
+
+A further 780 reuses delay compensated old-response reads to their latest
+admissible deadlines. Every read remains before the recipient's first
+workspace use and before larger frames on any reached target. Its donor
+must finish before that read, and all aliases remain disjoint pairs.
+This matching step keeps the scalar DAG, operation frames and source gauges
+unchanged. The full
+physical forward word and inverse are replayed with this actual chronology;
+controls reject omitted and premature compensation. [LATE-REUSE.md](LATE-REUSE.md)
+states the deadline and dirty-scratch arguments.
+
+The combined refinement then retunes physical operation plateaus, selects
+late aliases using exact frozen rank-cost weights, updates source gauges
+under the checked read deadlines and improves eligible handoff frames.
+Every stage is deterministic and followed by the complete physical replay.
+[REFINEMENT.md](REFINEMENT.md) records the extra containment and chronology
+requirements.
 
 Arbitrary binary operation frames and source gauges use PR130's generalized
 Clifford contract, including degenerate subspaces. Exact containment checks
@@ -38,10 +56,10 @@ The complex cover has dimension 66, with three orthogonal active spaces of
 
 | Quantity | Complex cover |
 |---|---:|
-| Persistent roles | 73,062 |
-| Recursive rank | 4,817,010 |
+| Persistent roles | 70,722 |
+| Recursive rank | 4,662,570 |
 | Rank deficit | 5,082 |
-| Largest child | 60 |
+| Largest child | 57 |
 | Complete local histogram copies | 9 |
 | Rank-two data finishes | 9,240 |
 
@@ -94,13 +112,14 @@ dimension four, including degenerate cases, and all 1,540 actual ports.
 The separate padded audit checks every physical source frame in all three
 stage orientations, completed residuals and both data-bank endings.
 
-The 37 package controls reject omitted dependencies, changed original or
+The 46 package controls reject omitted dependencies, changed original or
 restricted DAGs, unsupported coordinate restrictions, wrong root supports,
 omitted reuse roles or paid children, missing compensation/reflection
 claims, changed source bindings, insufficient scalar reserves, formatting
 drift and optimized Python. They also verify every local copy, both data
 finishes, the auxiliary adapter charge, weighted fallback and atom
-conversion. The local replay retains its literal-word, frame and
+conversion, late-birth deadlines, unchanged local frames and required
+compensation controls. The local replay retains its literal-word, frame and
 compensation corruption controls. Exact assembly checks 47 strict
 constraints, seven positive margins and rejection of the next complex and
 kappa grid points; no true-root optimum is claimed.

@@ -40,8 +40,35 @@ def digest(path):return sha256(path.read_bytes()).hexdigest()
 def cover_profile():
     local=load('complex-profile.json');audit=load('reflection-audit.json')
     h,v,R=(local[k]for k in('h','v','R'))
-    assert (h,v,R)==(22,1540,21274)
-    assert local['virtual_R']==22977 and local['reused_roles']==1703
+    assert (h,v,R)==(22,1540,20494)
+    assert local['virtual_R']==22977 and local['reused_roles']==2483
+    late=local['late_birth_stats']
+    for key,value in (('new_pairs',780),('previous_pairs',1703),('all_pairs',2483),
+                      ('physical_roles_after',20494),('delayed_read_roles',2865)):
+        assert late[key]==value,(key,late[key])
+    for key in ('scalar_dag_unchanged','operation_frames_unchanged',
+                'source_gauges_unchanged','target_histograms_unchanged'):
+        assert late[key] is True,key
+    for key in ('late_birth_compensation_rejected','premature_compensation_rejected'):
+        assert local[key] is True,key
+    for key in ('deadline_target_order_checked','late_birth_compensation_checked'):
+        assert audit[key] is True,key
+    assert audit['late_reused_roles']==780
+    refinement=local['reuse_refinement_stats']
+    for key in ('scalar_dag_unchanged','chronology_unchanged',
+                'read_deadlines_unchanged','deferred_inventory_unchanged'):
+        assert refinement[key] is True,key
+    for key in ('fixed_source_gauges','fixed_read_deadlines','fixed_reuse_handoffs',
+                'fixed_source_injection_frames','fixed_root_frames'):
+        assert refinement['plateau'][key] is True,key
+    for key in ('read_deadlines_fixed','existing_deferred_inventory_fixed',
+                'all_operation_frames_fixed','reuse_mapping_fixed'):
+        assert refinement['gauges'][key] is True,key
+    for key in ('fixed_source_gauges','fixed_read_deadlines',
+                'fixed_source_injection_frames','fixed_root_frames',
+                'reuse_donor_ends_at_recipient_gauge'):
+        assert refinement['handoffs'][key] is True,key
+    assert refinement['handoffs']['fixed_reuse_handoffs'] is False
     assert local['generalized_lagrangian_frames'] is True
     assert audit['generalized_lagrangian_frames'] is True
     assert local['generalized_source_gauges'] is True
@@ -81,7 +108,7 @@ def cover_profile():
     data_finishes=Counter({2:6*v});children.update(data_finishes)
     rank=sum(r*n for r,n in children.items())
     assert w*m-rank==3*(2*v-3*ell)==5082
-    assert max(children)==60 and all(0<r<m and n>0 for r,n in children.items())
+    assert max(children)==57 and all(0<r<m and n>0 for r,n in children.items())
     independent=padded_profile(local)
     assert independent['child_multiplicities']==dict(sorted(children.items()))
     receipt=json.loads((HERE/'padded-geometry.json').read_text())

@@ -11,6 +11,9 @@ all pairings, replays arbitrary aliased scratch, and retains every scalar charge
 Arbitrary source gauges are then optimized by exact chain insertion and joint
 equal-frame plateau moves under PR130, preserving the selected reuse mapping.
 The changed deferred readout and injection chronology is replayed in full.
+Late compensated reuse is refined by equal operation plateaus, donor frame
+dimension priority, deadline-aware source gauges, and flexible handoff frames.
+The physical word and its complete paid inventory are audited independently.
 
 PR117 credits its searched DAG to eumemic with Anthropic Claude assistance;
 this experiment preserves the original witness and exactly restricts its
@@ -32,6 +35,8 @@ import tempfile
 from collections import Counter, defaultdict
 from itertools import combinations
 from pathlib import Path
+from late_birth import select as select_late_birth
+from refine_reuse import optimize as refine_reuse
 from reuse import select_reuse, check_pairs, check_compensation, mutation_controls
 from arbitrary_frames import optimize as optimize_arbitrary_frames, general_frame
 from gauge_frames import optimize as optimize_gauge_frames
@@ -599,8 +604,28 @@ def main():
         else:
             for s in o[1:3]: role_frames[s].append(op_frames[i])
             if o[0] == 'copy': birth[o[2]] = op_frames[i]
+    phase1 = sorted(Anc); rest = [i for i in range(len(ops)) if i not in Anc]
+    reuse_pairs, read_deadlines, late_recipients, late_birth_stats = select_late_birth(locals())
+    (placed, op_frames, reuse_pairs, read_deadlines, late_recipients,
+     late_birth_stats, reuse_refinement_stats) = refine_reuse(locals())
+    sigma = placed
+    deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
+    frames = op_frames
+    role_frames = {s: [] for s in range(R)}
+    for i, o in enumerate(ops):
+        if o[0] == 'src':
+            role_frames[o[1]].append(op_frames[i]); birth[o[1]] = op_frames[i]
+        else:
+            for s in o[1:3]: role_frames[s].append(op_frames[i])
+            if o[0] == 'copy': birth[o[2]] = op_frames[i]
     merge = check_pairs(locals(), reuse_pairs)
+    reuse_rejected_controls = mutation_controls(locals(), reuse_pairs)
+    work_order = [i for i in phase1 + rest if ops[i][0] != 'src']
+    work_positions = {i: j for j, i in enumerate(work_order)}
+    phase_cut = len(phase1); scheduled_reads = defaultdict(list)
+    for s, t in read_deadlines.items(): scheduled_reads[t].append(s)
     live = [s for s in range(Rr) if s not in merge]
+
     physical_id = {s: i for i, s in enumerate(live)}
     def alias(s): return physical_id[merge.get(s, s)]
     print('Compensated birth reuse', len(reuse_pairs), 'physical roles', len(live), flush=True)
@@ -632,7 +657,7 @@ def main():
                     for t in range(v): y[t] = (y[t] + f * row[t]) % P
         for t, c in dp.items(): y[t] = (y[t] + sign * c * value) % P
     phase1 = sorted(Anc); rest = [i for i in range(len(ops)) if i not in Anc]
-    def replay(seed, omit_compensation=None):
+    def replay(seed, omit_compensation=None, premature_compensation=None):
         rng = random.Random(seed)
         x = [rng.randrange(P) for _ in range(v)]
         z = [rng.randrange(P) for _ in live]
@@ -657,14 +682,21 @@ def main():
         for i in phase1: run(i)
         for s in centre_roles: readout(y, s, a[alias(s)], +1, True)
         compensated = []
-        for s in deferred:
-            if s != omit_compensation:
-                readout(y, s, a[alias(s)], -1)
-                compensated.append(s)
-        if omit_compensation is None: check_compensation(merge, compensated)
+        def old_reads(t):
+            for s in sorted(scheduled_reads.get(t, ()), key=lambda s: (len(placed[s]), s)):
+                if s != omit_compensation and s != premature_compensation:
+                    readout(y, s, a[alias(s)], -1); compensated.append(s)
+        old_reads(phase_cut)
+        if premature_compensation is not None:
+            readout(y, premature_compensation, a[alias(premature_compensation)], -1)
         for s in deferred:
             if s in leaf_of: inject(s, leaf_of[s])
-        for i in rest: run(i)
+        for i in rest:
+            if ops[i][0] == 'src': continue
+            if work_positions[i] > phase_cut: old_reads(work_positions[i])
+            run(i)
+        if omit_compensation is None and premature_compensation is None:
+            check_compensation(merge, compensated)
         for s, j in role_root.items():
             if not kind[j]: readout(y, s, a[alias(s)], +1, True)
         # Aliased births require reversal of the actual source/workspace
@@ -677,7 +709,15 @@ def main():
     require(all(r == (True, True) for r in rep), 'aliased replay %s' % rep)
     missing_compensation = replay(3, omit_compensation=reuse_pairs[0]['recipient'])
     require(missing_compensation == (True, False), 'omitted compensation unexpectedly accepted')
+    missing_late_compensation = replay(4, omit_compensation=late_recipients[0])
+    require(missing_late_compensation == (True, False), 'omitted late compensation accepted')
+    late_written = {o[1] if o[0] == 'add' else o[2]
+                    for i in rest for o in (ops[i],) if o[0] in ('add', 'copy')}
+    premature_control_recipient = next(b for b in late_recipients if merge[b] in late_written)
+    premature_late_compensation = replay(5, premature_compensation=premature_control_recipient)
+    require(premature_late_compensation == (True, False), 'premature late compensation accepted')
     compensated_births = sorted(merge)
+
 
     # ------------------------------------------------------------ D. exact F2 frame facts
     root_frame = {}
@@ -747,6 +787,7 @@ def main():
                generalized_lagrangian_frames=True, arbitrary_frame_stats=arbitrary_frame_stats,
                generalized_source_gauges=True, gauge_frame_stats=gauge_frame_stats,
                initial_gauge_frame_stats=initial_gauge_frame_stats,restriction=restriction_stats,
+               late_birth_stats=late_birth_stats,reuse_refinement_stats=reuse_refinement_stats,late_birth_compensation_rejected=True,premature_compensation_rejected=True,
                total_operations=len(ops),total_M_operations=sum(o[0]!='src' for o in ops),
                conservative_M_operations=c_add+R-v,readout_denominator=2*(h-3),
                deferred_roles=len(deferred),
