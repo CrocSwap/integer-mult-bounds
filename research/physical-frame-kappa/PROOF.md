@@ -93,3 +93,28 @@ implementation, exact odd-denominator grid, translated endpoints and
 residual-to-child/all-size transfer. It is not a formalization of the full
 integer multiplication algorithm. The bit word's previously established
 frame proof is inherited; this package regenerates its SHA-bound ledger.
+
+## Exact readout coefficient decomposition and paid scalar work
+
+An exact transpose expansion of the PR117/118 scalar DAG yields coefficients
+with numerators as large as 55 over the common denominator 42. The inherited
+old audit's assertion that every coefficient has magnitude <= 1 is therefore
+false for this DAG; modular replay alone does not prove unit-shear execution.
+
+For each integer numerator n, write abs(n) = 42q + r, with 0 <= r < 42,
+and implement the readout as q shears with signed numerator 42, followed
+by one signed remainder shear if r is nonzero. The audit requires at most
+two pieces per coefficient, each of magnitude <= 1, and verifies their
+exact sum equals n/42. In particular 55/42 = 1 + 13/42.
+The pieces operate at the same source, target, and binary frame:
+their elementary shear E satisfies E^2 = 0, so they compose exactly
+without any new frame transition or recursive child. Their inverse
+negates the pieces in reverse order, with complementary reflected frames.
+
+The forward and reflected scalar ledgers charge the actual number of
+unit shears rather than only counting nonzero coefficients. The local
+conservative scalar guard is doubled to
+2*8*(c + 2R + (R+q)*v*(h+1) + h*h + h + 1).
+The finite assembly certificate must be regenerated under this guard;
+the recursive child histogram is unchanged. The unit-shear method and
+control tests follow Rohan Arun's PR #118 correction (Apache-2.0).
