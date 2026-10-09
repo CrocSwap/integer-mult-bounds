@@ -205,13 +205,17 @@ def exact():
         scalar_contract='Virtual-role reserve covers all compensated readouts and inverse chronology; actual persistent stock and finite routers use physical roles with paired lockstep Stage-1 auxiliary banks.')
     a_paired, k_paired, result_paired = solve_assembly(b_paired, bridge_paired)
 
-    return dict(status='Conditional PR130/PR132 cover with independently audited physical local frames and compensated reuse',
-        kappa=k_paired, complex_saving=b_paired, assembly_bit_saving=a_paired, actual_bit_saving=inherited.AB,
-        unpaired_kappa=k_unpaired, unpaired_complex_saving=b_unpaired,
-        profile=p, complex=phase_paired, bit=bit, finite_bridge=bridge_paired, assembly=result_paired,
+    return dict(status='Conditional PR130 cover with independently audited physical local frames and compensated reuse',
+        kappa=k_unpaired, complex_saving=b_unpaired, assembly_bit_saving=a_unpaired, actual_bit_saving=inherited.AB,
+        retracted_paired_lockstep_kappa=k_paired, retracted_paired_lockstep_complex_saving=b_paired,
+        profile=p, complex=phase_unpaired, bit=bit, finite_bridge=bridge_unpaired, assembly=result_unpaired,
         unpaired_cover=unpaired_cover,
+        retracted_paired_lockstep_cover=dict(
+            status='Retracted PR132/PR134 lockstep pairing accounting retained for historical comparison only; see #132#issuecomment-6073516734',
+            kappa=k_paired, complex_saving=b_paired, assembly_bit_saving=a_paired,
+            complex=phase_paired, finite_bridge=bridge_paired, assembly=result_paired),
         next_grid_rejections=dict(complex='1e-12 enclosure', kappa='1e-15 assembly'),
-        scope='Finite local word and complete unpaired/paired cover and assembly arithmetic. PR130 group geometry, PR132 first-stage lockstep pairing, weighted local-ring compilation, uniform batching and borrowed rows remain explicit written proof dependencies, together with inherited analytic/tape interfaces.')
+        scope='Finite local word and complete unpaired cover and assembly arithmetic. PR130 group geometry, weighted local-ring compilation, uniform batching and borrowed rows remain explicit written proof dependencies, together with inherited analytic/tape interfaces. PR132 first-stage lockstep pairing is marked retracted.')
 
 
 def main():
@@ -219,8 +223,7 @@ def main():
     result = js(exact()); path = HERE / 'certificate.json'
     if args.write: path.write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
     else: assert result == json.loads(path.read_text()), 'Frozen cover certificate mismatch'
-    print('PASS paired kappa', result['kappa'], float(Q(result['kappa'])), 'paired complex', result['complex_saving'],
-          '| unpaired kappa', result['unpaired_kappa'], float(Q(result['unpaired_kappa'])), 'unpaired complex', result['unpaired_complex_saving'],
+    print('PASS unpaired kappa', result['kappa'], float(Q(result['kappa'])), 'unpaired complex', result['complex_saving'],
           '47 constraints, 7 margins', flush=True)
 
 

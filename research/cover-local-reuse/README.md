@@ -1,17 +1,23 @@
-# Paired lockstep and physical local reuse under the three-stage cover
+# Optimized physical local reuse under the three-stage cover
 
-Conditional **κ = 368552409947/1000000000000000 = 3.68552409947e-4** (paired
-first-stage lockstep cover) and **κ_unpaired = 84386598001/250000000000000 =
-3.37546392004e-4** (unpaired three-stage cover).
+Conditional **κ = 84386598001/250000000000000 = 3.37546392004e-4** on the
+unpaired three-stage cover (`complex_saving = 337774769/10¹² = 3.37774769e-4`).
 
-| Construction | Physical roles R | Streams (per vertex / pair) | Complex saving | Certified κ |
+| Construction | Physical roles R | Streams per vertex | Complex saving | Certified κ |
 | --- | ---: | ---: | ---: | ---: |
-| PR #130 (unpaired baseline) | 28,705 | 90,163 / vertex | 3.147997e-4 | 3.146011e-4 |
-| PR #131 (unpaired + local reuse) | 26,597 | 83,839 / vertex | 3.32426609e-4 | 3.32205398986e-4 |
-| **This package (unpaired + optimized local reuse)** | **26,549** | **83,695 / vertex** | **3.37774769e-4** (`337774769/10¹²`) | **3.37546392004e-4** |
-| PR #132 (paired Stage-1 lockstep) | 28,705 | 151,621 / pair | 3.418543e-4 | 3.416202e-4 |
-| PR #134 (paired + shrunk frames) | 28,705 | 151,621 / pair | 3.483450e-4 | 3.481020e-4 |
-| **This package (paired + optimized local reuse)** | **26,549** | **140,841 / pair** | **3.68824652e-4** (`92206163/250000000000`) | **3.68552409947e-4** |
+| PR #130 (unpaired baseline) | 28,705 | 90,163 | 3.147997e-4 | 3.146011e-4 |
+| PR #131 (unpaired + local reuse) | 26,597 | 83,839 | 3.32426609e-4 | 3.32205398986e-4 |
+| **This package (unpaired + optimized local reuse)** | **26,549** | **83,695** | **3.37774769e-4** (`337774769/10¹²`) | **3.37546392004e-4** |
+
+> **Note on PR #132 / PR #134 first-stage lockstep pairing**: The paired Stage-1
+> lockstep accounting (`3.68552409947e-4`) is marked retracted in
+> `certificate.json` (`retracted_paired_lockstep_cover`) following the
+> counterexample in [#132#issuecomment-6073516734](https://github.com/CrocSwap/integer-mult-bounds/pull/132#issuecomment-6073516734)
+> (confirmed by `@ikeboy`, `@Swapnil-jain`, and #134). Only the **unpaired**
+> three-stage cover bound **`κ = 3.37546392004e-4`** (`w = 2v + 3R = 83,695`
+> streams per vertex) is claimed as the active certificate here; for cross-stage
+> completed-core sharing on paired cubes, see [#146](https://github.com/CrocSwap/integer-mult-bounds/pull/146)
+> (`κ = 4.61028508707e-4`).
 
 The inherited weighted bit supplier (`a_bit,eff = 3.731650e-4`) remains unchanged.
 
