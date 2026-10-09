@@ -19,9 +19,11 @@ with tempfile.TemporaryDirectory(prefix='crossover-pr200-',dir=args.temp_root) a
   for entry in z.infolist():assert (root/entry.filename).resolve().is_relative_to(root.resolve()),'Unsafe archive entry'
   z.extractall(root)
  package=root/'research/coordinated-crossover-pr200';package.mkdir()
- skip={x['file'] for x in baseline['parts']}
  for p in HERE.rglob('*'):
-  if p.is_file() and p.name not in skip:
+  # Keep the split baseline archive inputs in the isolated package. The
+  # deterministic plateau-search replay reads them again when rebuilding its
+  # pinned PR202 source tree.
+  if p.is_file():
    target=package/p.relative_to(HERE);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,target)
  result=subprocess.run([sys.executable,'-B',str(package/'verify_inner.py')],text=True)
  assert result.returncode==0,'Full finite replay failed'
