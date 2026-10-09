@@ -1,10 +1,13 @@
-κ = 7.10069340338651e-4
+κ = 7.10346589668175e-4
 
-# Parity-fused source527 five-stage completed banks
+The current frame retiming runs each of the 353 unborrowed source-pair mixes at its existing rank-22 common delivery frame. For each pair the paid children of ranks 1, 1, 20 and 22 become children of ranks 21, 21 and 2. Eleven additional gate-frame changes make smaller improvements. In total 364 ADD frame tags change and 355 local recursive calls disappear, while the scalar ADD/COPY sequence, every mathematical endpoint and total rank mass remain unchanged. `retiming_transform.py` reconstructs every MOVE from the selected gate needs and checks an independent complete path census, exact nondegeneracy and both reflected annihilator ledgers. The frozen selection contains actual rational bases and input record bindings. Prime checks cover all newly consumed bases and the retained producer inventory. The complete five-stage word has 493,204 calls before entrance completion removal, 490,925 after it and 5,891,100 after moment normalization. The bit rank mass remains 31,265,640 and the deficit remains 52,800.
 
-This version removes 1,783,196 even-coefficient F₂ payload additions and combines three now-adjacent target movements. It retains the complete source527 producer and bank construction.
 
-A conditional finite construction with **κ ≈ 7.10069340338651 × 10⁻⁴**. The package combines a source527 helper with PR234's five-stage cover and a concrete stage-private width-120 bank allocation. See `PR-STATEMENT.md` for the result and attribution, `PROOF.md` for the verification chain and inherited assumptions, and the retained upstream notices for the full lineage.
+# Retimed source527 five-stage completed banks
+
+The preceding version removed 1,783,196 even-coefficient F₂ payload additions and combined three target movements. This version retains those changes and improves the common frames of 364 surviving additions.
+
+A conditional finite construction with **κ ≈ 7.10346589668175 × 10⁻⁴**. The package combines a source527 helper with PR234's five-stage cover and a concrete stage-private width-120 bank allocation. See `PR-STATEMENT.md` for the result and attribution, `PROOF.md` for the verification chain and inherited assumptions, and the retained upstream notices for the full lineage.
 
 Run with Python 3.11+ and assertions enabled:
 

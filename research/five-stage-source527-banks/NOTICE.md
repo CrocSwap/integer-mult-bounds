@@ -7,3 +7,5 @@ The five-stage architecture and finite interface package come from Henry Grant /
 The source527 construction builds on eumemic's PR210 source reuse and target transforms, sennemmi's PR230 operation-frame changes, Dugongue's PR216 and PR207, Rohan Arun's PR211, Chafik Boukhalfa's PR200, Evan McKinney's completed bank work, and their retained dependencies. The complex input preserves Jacob Sussman's published five-stage certificate and Avi Eisenberg / ikeboy's PR193 helper, with the original Claude assistance disclosures.
 
 The 31 new zero-response source aliases, 48 retained dirty-anchor paths, physical event tagging and source527 integration were prepared by eumemic with substantial OpenAI Codex assistance. All earlier contributor notices and assistance disclosures remain in the supplied source material.
+
+The parity-filtered common-frame retiming and exact reconstruction were prepared by eumemic with substantial OpenAI Codex assistance. The 353 unborrowed pair mixes use their existing common delivery frames; source527 and all earlier construction credits remain retained.

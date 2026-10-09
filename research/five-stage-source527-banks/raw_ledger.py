@@ -186,3 +186,29 @@ def rebind_parity(raw,receipt):
  raw['five_stage_profile'].update(histogram={str(r):n for r,n in sorted(five.items())},calls=sum(five.values()))
  raw['parity_transform']=receipt;raw['scope']='Fresh retained source527 producer ledger plus independently rebuilt actual surviving-use ledger after F2 payload identity elision and same-stream nested MOVE fusion. Both reflected endpoint inclusions checked. No address arithmetic reduced modulo2.'
  return raw
+
+def rebind_retiming(raw,receipt):
+ """Recount the complete retimed word from its independently checked gate needs."""
+ from copy import deepcopy
+ hist=lambda x:Counter({int(r):n for r,n in x.items()if n})
+ compact=lambda x:{str(r):n for r,n in sorted(x.items())if n}
+ assert receipt['status']=='PASS_EXACT_COMMON_FRAME_RETIMING_AND_BOTH_REFLECTED_LEDGERS'
+ assert receipt['both_reflected_ledgers']and receipt['unchanged_all_input_output_frames']and receipt['unchanged_copy_lifetimes']
+ assert receipt['selected_gate_count']==364 and receipt['remaining_payload_additions']==786621
+ source=hist(receipt['source_histogram']);target=hist(receipt['target_histogram']);internal=hist(receipt['internal_histogram_including_copies']);copies=hist(receipt['copied_center_histogram'])
+ assert copies==hist(raw['paid_center_copy_histogram'])=={22:24}
+ helper=source+target+internal;delta=helper.copy();delta.subtract(hist(raw['one_stage_helper_histogram_including_copies']))
+ assert {r:n for r,n in delta.items()if n}=={1:-708,2:356,3:-2,4:-3,5:2,7:-2,9:3,10:-1,20:-354,21:707,22:-353}
+ assert {r:n for r,n in delta.items()if n}==hist(receipt['local_histogram_delta'])
+ assert sum(source.values())>0 and sum(r*n for r,n in source.items())==1760*23
+ assert sum(r*n for r,n in target.items())==1760*23
+ assert sum(r*n for r,n in helper.items())==434502
+ original=deepcopy(raw);five=Counter({r:5*n for r,n in helper.items()});five.update(hist(raw['five_stage_profile']['idle_histogram']))
+ for a,n in hist(raw['auxiliary_entrance_rank_histogram']).items():five[5*a]+=n
+ assert sum(five.values())==493204 and sum(r*n for r,n in five.items())==2830840
+ withoutcopies=internal.copy();withoutcopies.subtract(copies);assert min(withoutcopies.values())>=0
+ raw['schema']='source527-parity-retimed-fresh-raw-ledger/1';raw['parity_fused_ledger']=original
+ raw['physical_source_histogram']=compact(source);raw['physical_target_histogram']=compact(target);raw['physical_internal_excluding_center_copies']=compact(withoutcopies)
+ raw['one_stage_helper_histogram_including_copies']=compact(helper);raw['five_stage_profile'].update(histogram=compact(five),calls=sum(five.values()))
+ raw['retiming_transform']=receipt;raw['scope']='Fresh source527 producer, parity-elision census and complete independently rebuilt census of all retimed scalar gate needs; actual frames, both reflections, fixed endpoints and copied-center lifetimes checked. Full physical histogram is used in exact assembly.'
+ return raw

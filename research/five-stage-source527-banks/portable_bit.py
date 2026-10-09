@@ -33,6 +33,8 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  producer=physical_module.run(context,source,output_dir=producer_output)
  physical_run=load('portable527_parity',package/'parity_transform.py').run(producer,output_dir=output_dir)
  raw=load('portable527_parity_raw',package/'raw_ledger.py').rebind_parity(raw,physical_run['parity_census'])
+ physical_run=load('portable527_retiming',package/'retiming_transform.py').run(physical_run,output_dir=output_dir)
+ raw=load('portable527_retimed_raw',package/'raw_ledger.py').rebind_retiming(raw,physical_run['retiming_census'])
  physical=physical_run['physical'];physical['source_head']=raw['source_head']
  assert physical['source_heads']==raw['source_aliases']and physical['independent_dirty_registers']==raw['physical_R']
  assert physical['paid_histogram']=={int(k):v for k,v in raw['one_stage_helper_histogram_including_copies'].items()}

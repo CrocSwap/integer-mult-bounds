@@ -74,6 +74,8 @@ def run(raw,physical,scalar,prime_result,math_result,banks,banked_result,global_
  assert f['max_intermediate_row_l1']==37631 and b['max_intermediate_row_l1']==3295796
  assert raw['parity_transform']['both_reflected_ledgers'] and raw['parity_transform']['remaining_payload_additions']==786621
  assert raw['parity_transform']['removed_even_add_count']==1783196
+ assert raw['retiming_transform']['both_reflected_ledgers']and raw['retiming_transform']['unchanged_all_input_output_frames']
+ assert raw['retiming_transform']['selected_gate_count']==364 and raw['retiming_transform']['unchanged_copy_lifetimes']
  assert physical['copied_centers']==24 and len(physical['copied_center_blocks'])==24
  assert all(z['rank']==22 and z['scatter_reads']==220 for z in physical['copied_center_blocks'])
  assert hist(physical['paid_histogram'])==hist(raw['one_stage_helper_histogram_including_copies'])
