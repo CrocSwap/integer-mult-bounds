@@ -13,8 +13,9 @@ from itertools import combinations, product
 
 
 class Graph:
-    def __init__(self, p):
+    def __init__(self, p, local=None):
         self.p = p
+        self.local = local
         self.h = 2*p
         self.cubes = list(combinations(range(p), 3))
         self.labels = [tuple(2*i+b for i, b in zip(I, bits))
@@ -69,6 +70,8 @@ class Graph:
         return [image[x] for x in data['roots']]
 
     def local_channels(self):
+        if self.local is not None:
+            return self.configured_local_channels(self.local)
         for I in self.cubes:
             edges = {}
             for ii, jj in combinations(range(3), 2):
@@ -93,6 +96,62 @@ class Graph:
                         ids.append(edges[key])
                     self.A[I, I[ii], a] = self.add(*ids)
             self.F[I] = self.add(self.A[I, I[0], 0], self.A[I, I[0], 1])
+
+    def configured_local_channels(self, cfg):
+        """The same 13 outputs per cube (positions 0,1,2 of I) by a configured circuit:
+        A[i,a] = sum of the ports with bit i = a; 'e<d>': two edges along direction d, 'fd': two face diagonals.
+        G[j,k,m] = [bits (j,k) = (0,m)] - [bits (j,k) = (1,1-m)], [.] summing the third bit r; 'e': edges along r,
+        'l': long-diagonal differences, 's': differences at fixed r.  F = A[f,0] + A[f,1].
+        Signed pairs take the smaller port as minuend so equal differences are shared."""
+        A_cfg = {tuple(int(c) for c in k.split(',')): v for k, v in cfg['A'].items()}
+        G_cfg = {tuple(int(c) for c in k.split(',')): v for k, v in cfg['G'].items()}
+
+        def signed(xa, xb):
+            return (self.add(xa, xb, -1), 1) if xa < xb else (self.add(xb, xa, -1), -1)
+
+        def combine(t1, t2):
+            (n1, s1), (n2, s2) = t1, t2
+            if s1 == 1:
+                return self.add(n1, n2, s2)
+            assert s2 == 1, 'negated local output'
+            return self.add(n2, n1, -1)
+        for I in self.cubes:
+            def at(values):
+                bits = [0]*3
+                for q, b in values.items():
+                    bits[q] = b
+                return self.source[I, tuple(bits)]
+
+            def edge(d, fixed):
+                return self.add(at({**fixed, d: 0}), at({**fixed, d: 1}))
+            for j, k in combinations(range(3), 2):
+                r = 3-j-k
+                for mode in range(2):
+                    u, v = 0, mode
+                    kind = G_cfg[j, k, mode]
+                    if kind == 'e':
+                        node = self.add(edge(r, {j: u, k: v}), edge(r, {j: 1-u, k: 1-v}), -1)
+                    else:
+                        assert kind in ('l', 's')
+                        far = (1, 0) if kind == 'l' else (0, 1)
+                        node = combine(signed(at({j: u, k: v, r: 0}), at({j: 1-u, k: 1-v, r: far[0]})),
+                                       signed(at({j: u, k: v, r: 1}), at({j: 1-u, k: 1-v, r: far[1]})))
+                    self.G[I, I[j], I[k], mode] = node
+            for i in range(3):
+                j, k = [q for q in range(3) if q != i]
+                for a in range(2):
+                    kind = A_cfg[i, a]
+                    if kind == 'fd':
+                        n1 = self.add(at({i: a, j: 0, k: 0}), at({i: a, j: 1, k: 1}))
+                        n2 = self.add(at({i: a, j: 0, k: 1}), at({i: a, j: 1, k: 0}))
+                    else:
+                        d = int(kind[1])
+                        assert kind[0] == 'e' and d != i
+                        o = j if d == k else k
+                        n1, n2 = edge(d, {i: a, o: 0}), edge(d, {i: a, o: 1})
+                    self.A[I, I[i], a] = self.add(n1, n2)
+            f = cfg['F']
+            self.F[I] = self.add(self.A[I, I[f], 0], self.A[I, I[f], 1])
 
     def center_channels(self):
         # Route each cube total to maximal binary-tree intervals avoiding I.
