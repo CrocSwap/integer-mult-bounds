@@ -8,6 +8,9 @@ source, mixer, copied-center and root incidence is checked exactly.
 Physical-frame optimization prepared with OpenAI Codex assistance.
 Compensated birth-cut reuse follows jamesyc PR124; this composition regenerates
 all pairings, replays arbitrary aliased scratch, and retains every scalar charge.
+Arbitrary source gauges are then optimized by exact chain insertion and joint
+equal-frame plateau moves under PR130, preserving the selected reuse mapping.
+The changed deferred readout and injection chronology is replayed in full.
 
 PR117 credits its searched DAG to eumemic with Anthropic Claude assistance;
 this experiment imports and replays that witness unchanged. PR110/PR114
@@ -28,6 +31,8 @@ from collections import Counter, defaultdict
 from itertools import combinations
 from pathlib import Path
 from reuse import select_reuse, check_pairs, check_compensation, mutation_controls
+from arbitrary_frames import optimize as optimize_arbitrary_frames, general_frame
+from gauge_frames import optimize as optimize_gauge_frames
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -574,6 +579,22 @@ def main():
     reuse_pairs = select_reuse(locals())
     merge = check_pairs(locals(), reuse_pairs)
     reuse_rejected_controls = mutation_controls(locals(), reuse_pairs)
+    op_frames, arbitrary_frame_stats = optimize_arbitrary_frames(locals())
+    placed, op_frames, gauge_frame_stats = optimize_gauge_frames(locals())
+    sigma = placed
+    deferred = sorted(placed, key=lambda s: (len(placed[s]), s)); dset = set(deferred)
+    for pair in reuse_pairs:
+        A = op_frames[last[pair['donor']]]; F = placed[pair['recipient']]
+        pair.update(donor_frame=A, birth_frame=F, e=len(A), s=len(F))
+    frames = op_frames
+    role_frames = {s: [] for s in range(R)}
+    for i, o in enumerate(ops):
+        if o[0] == 'src':
+            role_frames[o[1]].append(op_frames[i]); birth[o[1]] = op_frames[i]
+        else:
+            for s in o[1:3]: role_frames[s].append(op_frames[i])
+            if o[0] == 'copy': birth[o[2]] = op_frames[i]
+    merge = check_pairs(locals(), reuse_pairs)
     live = [s for s in range(Rr) if s not in merge]
     physical_id = {s: i for i, s in enumerate(live)}
     def alias(s): return physical_id[merge.get(s, s)]
@@ -664,10 +685,10 @@ def main():
         if s in root_frame: seq.append(root_frame[s])
         seq.append(FULLB)
         require(all(contains(A, B) for A, B in zip(seq, seq[1:])), 'role chain nesting %d' % s)
-        require(all(nondeg(B) for B in seq[1:-1] if B), 'degenerate frame on role %d' % s)
+        require(all(general_frame(sat_basis(B), h) for B in seq[1:-1]), 'invalid generalized frame on role %d' % s)
         chain_dims.append([len(reduce(B)) for B in seq])
     for s, X in placed.items():
-        require(contains(X, F0(s)) and nondeg(X), 'deferral frame %d' % s)
+        require(contains(X, F0(s)) and general_frame(sat_basis(X), h), 'deferral frame %d' % s)
         require(all(not any(dot(xv, tmask[t]) for xv in X) for t in reach[s]), 'target frame %d' % s)
     byT2 = defaultdict(list)
     for s in deferred:
@@ -718,6 +739,8 @@ def main():
     out = dict(h=h, v=v, additions=c_add, roots=q, links=len(links), R=physical_R, virtual_R=virtual_R, reused_roles=len(reuse_pairs), m=m, N=N, W=W, L=L, total_rank=s_,
                deficit=N - L, maxchild=max(z), phase_one_ops=len(Anc), phase_one_roles=len(touched),
                physical_auxiliary_source_frames=physical_auxiliary_source_frames,
+               generalized_lagrangian_frames=True, arbitrary_frame_stats=arbitrary_frame_stats,
+               generalized_source_gauges=True, gauge_frame_stats=gauge_frame_stats,
                deferred_roles=len(deferred),
                deferred_dims=dict(sorted(Counter(len(X) for X in placed.values()).items())),
                lifted_additions=sum(1 for i,o in enumerate(ops) if o[0]=='add' and len(op_frames[i])>ranks[o[3]]),

@@ -31,12 +31,15 @@ BIT_MANIFEST = 'references/partial-gauge/pr97/SOURCE.json'
 BIT_PIN = '68fb539abcd6df21d142e4e204b6e9482eb7f9cd3907650f54bd058070266596'
 LOCAL_FILES = {
     'complex_deferred.py', 'producer.py', 'replayed_producer.py', 'reuse.py',
-    'reflection_audit.py', 'complex-profile.json', 'reuse-pairs.json',
+    'reflection_audit.py', 'arbitrary_frames.py', 'gauge_frames.py',
+    'complex-profile.json', 'reuse-pairs.json',
     'reflection-audit.json', 'inputs/complex-dag.json.gz',
 }
 PACKAGE_FILES = {
     'verify.py', 'test_controls.py', 'certificate.py', 'certificate.json',
     'README.md', 'geometry_checks.py', 'geometry-audit.json',
+    'padded_checks.py', 'padded-geometry.json', 'PADDED-GEOMETRY.md',
+    'bit_padded.py', 'bit-padded.json', 'BIT-PADDED.md',
 }
 
 
@@ -142,13 +145,13 @@ def inventory(root):
 
 def create_manifest(root):
     return dict(schema=1,
-        scope='Finite local complex replay, geometry checks and exact cover assembly; general cover/bit/analytic interfaces remain conditional.',
+        scope='Finite arbitrary-frame and source-gauge local replay, padded complex/bit geometry and exact paid cover assembly; general cover/bit/analytic interfaces remain conditional.',
         files={name: digest(safe_file(root, name)) for name in sorted(inventory(root))},
         provenance=dict(cover_commit='6a9970a530119174507904e23592fd59ede19a5d',
                         cover_certificate_sha256=BASE_PIN,
                         scalar_dag_commit='cbb05ce504d571546d9b7794c186a613c659c3bf',
                         scalar_dag_sha256=DAG_PIN,
-                        physical_local_source='PR129 completed-core frames and PR124 compensated birth-cut reuse'))
+                        physical_local_source='PR129 physical-frame/reuse word extended by PR130 arbitrary-subspace Clifford frames; PR124 compensated birth-cut reuse'))
 
 
 def check_sources(root, manifest=None):
@@ -198,6 +201,10 @@ def verify(root):
         print('PASS full independent reflection, dirty cleanup and scalar audit', flush=True)
         run(PACKAGE + '/geometry_checks.py')
         compare_json(target / PACKAGE / 'geometry-audit.json', root / PACKAGE / 'geometry-audit.json')
+        run(PACKAGE + '/padded_checks.py')
+        compare_json(target / PACKAGE / 'padded-geometry.json', root / PACKAGE / 'padded-geometry.json')
+        run(PACKAGE + '/bit_padded.py')
+        compare_json(target / PACKAGE / 'bit-padded.json', root / PACKAGE / 'bit-padded.json')
         run(PACKAGE + '/certificate.py')
         run(PACKAGE + '/test_controls.py')
     require(snapshot(root, manifest) == before, 'Verification mutated a frozen source or artifact')

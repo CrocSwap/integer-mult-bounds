@@ -18,6 +18,7 @@ from itertools import combinations
 import argparse,json,pickle,struct,sys
 from pathlib import Path
 from reuse import check_pairs, check_compensation, mutation_controls
+from arbitrary_frames import general_frame
 sys.dont_write_bytecode=True
 assert not sys.flags.optimize,'Assertions must remain enabled'
 
@@ -228,6 +229,9 @@ def audit(d):
     ZERO=();FULL=basis(1<<i for i in range(h))
     U={n:basis(B) for n,B in d['U'].items()}
     sigma={s:basis(B) for s,B in d['placed'].items()}
+    assert d['deferred']==sorted(sigma,key=lambda s:(len(sigma[s]),s)), 'Source gauge chronology'
+    assert d['out']['generalized_source_gauges'] is True, 'Generalized source gauge profile binding'
+    assert d['out']['gauge_frame_stats']['deferred_roles']==len(sigma), 'Source gauge count binding'
     rootframe={s:basis(B) for s,B in d['root_frame'].items()}
     tm=[basis((sum(1<<i for i in T),)) for T in trip]
     merge=check_pairs(d,d['reuse_pairs'])
@@ -318,7 +322,7 @@ def audit(d):
         current=list(initial);hist=Counter();copies=Counter();scalar=0;digest=sha256()
         def promote(s,F):
             old=current[s];assert contained(old,F),(s,old,F)
-            assert nondeg(F);assert nondeg(complement(F,h))
+            assert general_frame(F,h);assert general_frame(complement(F,h),h)
             if len(F)>len(old):hist[len(F)-len(old)]+=1
             current[s]=F
         for event in events:
@@ -332,7 +336,7 @@ def audit(d):
             else:
                 assert k=='centre';G=rest[0]
                 assert contained(G,F) or contained(F,G)
-                assert nondeg(G);copies[abs(len(F)-len(G))]+=1
+                assert general_frame(G,h);copies[abs(len(F)-len(G))]+=1
                 for t in b:promote(t,G)
                 scalar+=len(b)+2 # temporary copy and erasure
             digest.update(repr(event).encode()+b'\n')
@@ -368,7 +372,7 @@ def audit(d):
     G=v*v+2*v*scalar
     safe=8*(d['c_add']+2*R+(R+q)*v*(h+1)+h*h+h+1) if 'c_add' in d else 8*(d['out']['additions']+2*R+(R+q)*v*(h+1)+h*h+h+1)
     assert safe>=scalar
-    return dict(h=h,v=v,R=len(live),virtual_R=R,reused_roles=len(merge),exact_birth_cut_invariants=True,last_uses_recomputed=True,physical_aliased_numeric_replay=True,omitted_compensation_numeric_control=True,inverse_source_order='True reverse chronological source/workspace word',exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
+    return dict(generalized_source_gauges=True,source_gauge_chronology_recomputed=True,source_gauge_deferred_roles=len(sigma),source_gauge_degenerate_roles=sum(not nondeg(F)for F in sigma.values()),physical_source_gauge_dimension_sum=sum(len(F)*n for F,n in source_counts.items()),h=h,v=v,R=len(live),virtual_R=R,reused_roles=len(merge),exact_birth_cut_invariants=True,last_uses_recomputed=True,physical_aliased_numeric_replay=True,omitted_compensation_numeric_control=True,inverse_source_order='True reverse chronological source/workspace word',exact_fresh_source_map=True,exact_integer_old_readout_transpose=True,
                 physical_auxiliary_source_frames=physical_auxiliary_source_frames,
                 completed_core_source_inventory_bound=True,completed_core_pre_exterior_frames_full=True,
                 reflected_core_active_frames_complement_source=all(revfinish[2*v+i]==complement(start[2*v+i],h) for i in range(len(live))),
@@ -377,7 +381,8 @@ def audit(d):
                 reflected_word_rule='Reverse literal order including each bounded readout chunk, negate every shear, swap X/Y ports, complement every frame; auxiliary bank is separate.',
                 reflected_scalar_map='X becomes X-Y; Y unchanged; all auxiliary coordinates restored.',
                 two_stage_scalar_map='(X,Y) becomes (-Y,X+Y) before inherited endpoint correction.',
-                literal_frame_incidences_both_directions=True,all_frames_nondegenerate=True,
+                literal_frame_incidences_both_directions=True,generalized_lagrangian_frames=True,
+                all_frames_nondegenerate=all(nondeg(basis(F))for F in d['op_frames'].values()),
                 reflected_residual_rank_histogram_equal=True,child_multiplicities=dict(sorted(z.items())),
                 word_blocks=len(word),expanded_scalar_operations_per_stage=scalar,
                 expanded_old_readout_additions=readcount,largest_readout_numerator_over_42=maxcoef,

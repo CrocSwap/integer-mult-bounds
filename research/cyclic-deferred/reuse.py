@@ -77,7 +77,8 @@ def check_pairs(data, pairs):
         A = basis(data['op_frames'][data['last'][a]])
         F = basis(data['placed'][b])
         B = basis(data['op_frames'][first[b]])
-        assert nondeg(A) and nondeg(F) and nondeg(B), 'Reuse degenerate frame'
+        from arbitrary_frames import general_frame
+        assert all(general_frame(X, data['h']) for X in (A,F,B)), 'Reuse invalid generalized frame'
         assert contained(A, F) and contained(F, B), 'Reuse frame containment'
         assert basis(row['donor_frame']) == A and basis(row['birth_frame']) == F, 'Reuse recorded frames'
         assert (row['e'], row['s']) == (len(A), len(F)), 'Reuse recorded dimensions'
