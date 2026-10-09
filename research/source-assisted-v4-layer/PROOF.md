@@ -3,12 +3,12 @@
 **Claim.** The source-assisted complex word of PR #184 (icekylinx) on the PR #168 v4 modules (PR #193/#194,
 ikeboy), with every input of PR #194's pipeline unchanged except the physical layer, certifies the complex saving
 
-    a_C = 3543063 / 5000000000 = 7.0861260·10⁻⁴      (PR #194: 219037/312500000 = 7.0091844·10⁻⁴, +1.10%).
+    a_C = 7097667 / 10000000000 = 7.0976670·10⁻⁴      (PR #194: 219037/312500000 = 7.0091844·10⁻⁴, +1.26%).
 
 Composed with PR #200's bit supplier through PR #194's unchanged 47-constraint assembly the result is
 κ = 6768823/10¹⁰, the same as PR #202, because the bit branch binds (effective 6.7734·10⁻⁴). **No new κ.** The
-complex cap of every composition on this lineage rises from 7.0092·10⁻⁴ to 7.0861·10⁻⁴, and the exact-DFT
-exponent saving of `research/exact-dft-transfer` (PR #225) rises with it to 7086/10⁷.
+complex cap of every composition on this lineage rises from 7.0092·10⁻⁴ to 7.0977·10⁻⁴, and the exact-DFT
+exponent saving of `research/exact-dft-transfer` (PR #225) rises with it.
 
 ## What changes
 
@@ -21,9 +21,11 @@ assembly. The flow's child histogram depends on the physical layer it receives: 
 equal-frame and compress.
 
 This package replaces only that physical layer. The frames and reuse pairs in `witness/` are produced by PR #200's
-descent (`discovery/`): endpoint moves of single operations, equal-frame components and connected bundles, started
-from PR #168's frames, on the aligned word's own cache. 5,577 of PR #168's 17,789 operation frames change; the
-2,310 reuse pairs are recomputed by the same late compensated pairing. The matching arcs, modules, local circuit,
+descent (`discovery/`): one round of endpoint moves of single operations, started from PR #168's frames on the
+aligned word's own cache, with 98% of the operations frozen (seed 8 of the movability mask): 435 of PR #168's 17,789
+operation frames change; the 2,310 reuse pairs are recomputed by the same late compensated pairing. The flow prefers
+layers close to PR #168's: the full descent cycle gives 7.0861·10⁻⁴, one light round 7.0950·10⁻⁴, and freezing most
+operations 7.0977·10⁻⁴ (`discovery/README.md`). The matching arcs, modules, local circuit,
 gauges, aligned rewrite, flow options and kernel pairs are PR #194's (the kernel pairs the flow finds on this layer
 are recorded in `witness/kernel-pairs.json`, as PR #194 records its own).
 
@@ -49,7 +51,7 @@ are recorded in `witness/kernel-pairs.json`, as PR #194 records its own).
    target chains and the normalized profile (13 checks), with the package's physical and kernel pairs as the frozen
    witnesses that PR #194's contract compares against.
 5. **Assembly.** PR #194's `assemble.py` composes the certified complex profile with PR #200's bit certificate and
-   reproduces `certificate.json` exactly: complex saving 3543063/5000000000, κ 6768823/10¹⁰, the next grid point
+   reproduces `certificate.json` exactly: complex saving 7097667/10000000000, κ 6768823/10¹⁰, the next grid point
    rejected by the unchanged assembly.
 
 The complex profile: m = 66, W = 12,052 roles per vertex, rank mass 794,112, deficit 1,320, largest child 20, the
@@ -66,4 +68,5 @@ roles, 13,372 physical to 9,412, but splits the remaining increments differently
   this lineage (for example the banked rows of #205–#223 and the conditional rungs of #219/#224) and the exact-DFT
   exponent.
 - The descent is a discovery heuristic; no optimality is claimed. The float screen varies with the descent options
-  (light 7.0419·10⁻⁴, plain 7.0691·10⁻⁴, seeded 7.0861·10⁻⁴); only the seeded layer is certified here.
+  (unseeded light 7.0419·10⁻⁴, unseeded full 7.0691·10⁻⁴, seeded full 7.0861·10⁻⁴, seeded light 7.0950·10⁻⁴,
+  seeded light with 98% frozen 7.0977·10⁻⁴); only the last layer is certified here.

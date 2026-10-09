@@ -1,13 +1,13 @@
 # source-assisted-v4-layer
 
-**Complex saving 7.0861·10⁻⁴ (no new κ).** PR #194's source-assisted complex word with this package's physical
-layer (PR #200's descent, seeded from PR #168's frames) certifies
+**Complex saving 7.0977·10⁻⁴ (no new κ).** PR #194's source-assisted complex word with this package's physical
+layer (one round of PR #200's descent from PR #168's frames with 98% of the operations frozen) certifies
 
-    a_C = 3543063/5000000000 = 7.0861260·10⁻⁴       (PR #194: 7.0091844·10⁻⁴, +1.10%),
+    a_C = 7097667/10000000000 = 7.0976670·10⁻⁴       (PR #194: 7.0091844·10⁻⁴, +1.26%),
 
 through PR #184's flow, exact lift and contract and PR #194's assembly, which with PR #200's bit supplier gives
 κ = 6768823/10¹⁰ (the bit branch binds, as in PR #202). The complex cap of this lineage and the exact-DFT exponent
-saving (`research/exact-dft-transfer`) rise to 7.0861·10⁻⁴. [PROOF.md](PROOF.md) states what changes and what is
+saving (`research/exact-dft-transfer`) rise to 7.0977·10⁻⁴. [PROOF.md](PROOF.md) states what changes and what is
 checked.
 
 ## Verify
