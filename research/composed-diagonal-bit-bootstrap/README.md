@@ -150,6 +150,50 @@ construction** -- but it is the whole of the remaining room, and it says the nex
 is a frame or bank schedule whose residual dirt is packed in fewer, larger children,
 not more packing of the same shapes.
 
+## New ways to raise kappa, priced with the assembly's own formula
+
+PR184's unchanged assembly takes `a = min(bit leaf, (1-1e-9)*C_complex - 1e-10)` and
+returns `kappa = a/(1+a)` on the `10^-10` grid, so **the smaller branch is the whole
+constraint** and a gain on the stronger side is worth nothing until the other side
+catches up. Today the bit branch binds at `6.831904e-4`, while the complex side caps
+at `7.004273e-4`: **+2.52% is available with no complex-side work at all**, as soon as
+the bit word's coarse saving reaches `7.009184e-4` instead of `6.836575e-4`.
+
+`targets.py` prices the ladder of moves that can get there. For a fixed stock and
+deficit the coarse saving is `C = (1 - mass/(W m)) / L` with `L` the rank-mass-weighted
+mean of `ln(m/r)`, so the lever is `L`: a ledger whose residual dirt sits in fewer,
+larger children. Soaking every child of rank at or below a threshold into the largest
+admissible child gives, on the queue's own two rows:
+
+| soak | bit coarse saving | complex coarse saving | kappa | gain | binds |
+| --- | --- | --- | --- | --- | --- |
+| today | 136731504666219/2e17 | 350459221139329/5e17 | 6.831904e-4 | — | bit |
+| bit only, rank-1 | 792978386838687/10^18 | — | 7.004273e-4 | +2.52% | complex |
+| both, rank-1 | 792978386838687/10^18 | 814442339516203/10^18 | 7.923515e-4 | +15.98% | bit |
+| both, rank-2 | 898167154125293/10^18 | 918515942111545/10^18 | 8.973611e-4 | +31.35% | bit |
+| both, rank-3 | 981391149202381/10^18 | 1041436537175764/10^18 | 9.804289e-4 | +43.51% | bit |
+| both, rank-4 | 1015042828910707/10^18 | 1112905588874264/10^18 | 1.014014e-3 | +48.42% | bit |
+| both, rank-8 | 1096975618911405/10^18 | 1243672552482743/10^18 | 1.095774e-3 | +60.39% | bit |
+| both, rank-16 | 1178908992537918/10^18 | 1367642974340202/10^18 | 1.177521e-3 | +72.36% | bit |
+| cheapest ledgers | 1207154248293627/10^18 | 1391081382485139/10^18 | 1.205699e-3 | +76.48% | — |
+
+The first rung is the cheapest and it is a single identifiable population: the bit
+word's 377,316 rank-1 children, 9.3% of its rank mass, are dirt the banks currently
+refuse -- #207's own note lists alias recipients, source births, deleted terminals and
+spectator fields as excluded from fresh bank allocation. Letting the banks absorb
+those, so that the ledger entry is a completed child rather than a singleton, takes the
+bit coarse saving from `6.836575e-4` to `7.929784e-4` (+16%) and clears the complex cap
+in one step. The complex word's own 87,534 rank-1 children (11% of its mass) do the
+same for its side, `7.009184e-4` to `8.144423e-4` (+16.2%), which is what the second
+rung needs.
+
+**All of this is MODELLED, NOT CONSTRUCTED.** No ledger is built here: each rung is a
+shape the assembly would price this way, computed from the queue's certified rows. The
+calculator is checked two ways -- it equals PR184's own `assemble()` on the vendored
+pair, and it reproduces #205's and #207's published kappa to within one grid step --
+so a rung is a usable target rather than a guess, in the same way the lever model's
+banked row was.
+
 ## Cross-checks against published numbers
 
 The harness is independent of the numbers it is asked to confirm, and this package
@@ -210,7 +254,13 @@ prints the lever table on its own, and
 python3 -B research/composed-diagonal-bit-bootstrap/audit.py
 ```
 
-prints the queue audit against the banked rows the lever predicted.
+prints the queue audit against the banked rows the lever predicted, and
+
+```bash
+python3 -B research/composed-diagonal-bit-bootstrap/targets.py
+```
+
+prints the ladder of what each next ledger move on the two suppliers would be worth.
 
 ## Credits
 

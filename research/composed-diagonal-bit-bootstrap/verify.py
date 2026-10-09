@@ -229,6 +229,35 @@ def main():
               float(Q(audit["frontier"]["ceiling"])),
               float(Q(audit["frontier"]["cheapest_ledger"]["coarse"])),
               audit["cheapest_ledger_gain"] * 100))
+    # 12. The frontier calculator: what each next move on the two suppliers would be
+    #     worth, from the queue's own rows. It must reproduce the published kappa of two
+    #     different authors' banked rows, keep its ladder monotone, and stay a model.
+    targets_out = WORK / "targets.json"
+    if targets_out.exists():
+        targets_out.unlink()
+    subprocess.run([sys.executable, "-B", str(HERE / "targets.py"), "--out", str(targets_out)],
+                   check=True, stdout=subprocess.DEVNULL)
+    targets = json.loads(targets_out.read_text())
+    assert targets == json.loads((HERE / "targets.json").read_text()), "targets.json drift"
+    for name, item in targets["published_checks"].items():
+        assert item["within_one_grid_step"], (
+            "the assembly replica must reproduce " + name + " to within a grid step")
+    assert targets["status"].startswith("MODELLED"), "the targets must not present a construction"
+    assert Q(targets["complex_side_cap"]["gain"]) > 0, "the complex side must cap the frontier"
+    ladder = [Q(targets["both_soaked"][key]["gain"])
+              for key in sorted(targets["both_soaked"], key=int)]
+    assert all(left < right for left, right in zip(ladder, ladder[1:])), \
+        "soaking more rank mass into larger children must buy more"
+    assert Q(targets["cheapest_ledger_both"]["gain"]) > Q(1, 2), "the ledger must be the room"
+    print("[targets] the frontier is {} at {}; taking the bit word's rank-1 children into "
+          "larger ones reaches the complex side's {:.10g} ({:+.2%}), and soaking both words' "
+          "cheap children buys {:+.2%}, rising to {:+.2%} at the cheapest admissible "
+          "ledgers".format(
+              targets["frontier"]["binding"], Q(targets["frontier"]["kappa"]),
+              targets["complex_side_cap"]["kappa_decimal"],
+              float(Q(targets["complex_side_cap"]["gain"])),
+              float(Q(targets["both_soaked"]["1"]["gain"])),
+              float(Q(targets["cheapest_ledger_both"]["gain"]))))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
           "and 7 margins per depth".format(best, best_depth))
 
