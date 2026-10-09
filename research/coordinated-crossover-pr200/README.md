@@ -1,21 +1,27 @@
-κ = 6.95191451687307e-4
+κ = 6.95438468244789e-4
 
-# Aggregate early gauge compensation across target quartets
+# Reuse nineteen more sources through target aggregation
 
-Conditional **κ ≈ 6.95191451687307 × 10⁻⁴**. A reversible change of target coordinates reduces 112 early gauge compensation reads to 28. Three targets in each of 27 quartets skip a rank-2 or rank-4 frame and move directly to their next rank-21 frame. The actual source/auxiliary word still reuses 471 original sources and restores every source and dirty register.
+Conditional **κ ≈ 6.95438468244789 × 10⁻⁴** from 490 original-source aliases and 85 reversible target groups.
 
-After all copied-center scatters, subtract the pivot target from the other three targets at D0. Apply each early compensation only to the pivot. Add the pivot back immediately before the quartet's first original gauge read. Exact frame containment and complete target/reflected ledgers verify the new timing. `TARGET-AGGREGATION.md` gives the scalar identity, paid histogram and fixed-call charge.
+Target aggregation makes 19 more source-backed entrances profitable. The new source paths reuse an original input as the selected physical head, including every later donor/recipient alias, and restore the source after the reverse word. A compatible exact selection uses 19 disjoint source pairs and 46 additional target quartets. Together with 27 retained quartets and 12 additional pairs, there are 85 groups on 316 targets. Generic compensation can visit several group pivots and ordinary recipients outside those groups.
+
+After all copied-center scatters at D0, subtract each pivot target from its group neighbors. Send each grouped compensation only to that pivot, then add it back at the exact common frame before the next ungrouped read. The full word uses 98 pivot compensations. Every inverse restores the target coordinates before subsequent ordinary reads, and the scalar identity holds for arbitrary dirty data and both integer signs.
+
+F2 and both defining integer signs pass on all 20144 formal columns; all 1760 sources and 16624 dirty registers restore. Eleven corruption controls reject. The independent source and target audits rebuild complete paths, both reflected ledgers, all 5280 copied-center target reads and exact primal/dual prime witnesses. The revised banks enumerate 3590784 literal assignments and 231 charts with unchanged exact matrices and factors.
+
+The complete normalized profile has m=72, W=438382, rank mass 31517040, deficit 46464 and maximum child 22. Literal stock is 1315146. The scalar bill charges all 184 new source compensation deliveries before compression and all 462 target setup/inverse additions, without crediting removed operations. This adds 279072 fixed calls; the complete additional bill 177924425040 remains below 2^40. The 19 source mix/unmix pairs retime existing K operations.
+
+Two exact moment engines, four finite leaf levels, the retained complex lift/contract and all 47 strict assembly inequalities pass. The adjacent final grid point is rejected; the bit supplier binds. Exact κ is recorded in certificate.json.
 
 ```sh
 python3 -B research/coordinated-crossover-pr200/verify.py --temp-root /tmp
 ```
 
-Python 3.11+, assertions enabled. Five pinned archives supply dependencies. Verification extracts a temporary source tree without network or git. It replays F2 and both defining integer signs on all 20163 formal columns, source/dirty restoration, both reflected frame ledgers, exact prime conditions, actual charts/banks, the retained complex lift/contract, two exact moment engines, four finite leaf levels and 47 strict assembly inequalities. The adjacent final grid point is rejected.
+Python 3.11+ with assertions enabled. Five pinned archives supply dependencies. Verification extracts a temporary source tree without network or git. The submitted files are checked before and after execution.
 
-There are 16643 dirty registers, 3594888 bank assignments, 231 charts and literal stock 1316514. Factor-24 normalization gives m=72, W=438838, rank mass=31549872, deficit=46464 and maximum child=22. The 162 added target additions receive a conservative 69984 fixed-call charge; the complete additional bill is 178127511696<2^40. No row or rank mass is removed by this target rewrite.
+The result remains conditional on inherited compiler, weighted/restored selector, source-line, routing, precision/recovery, prime, analytic-transfer and finite-bridge assumptions. The complex supplier keeps its exact local-flow contract.
 
-The preceding source reuse, shared-gauge, center-retiming and physical-frame refinements are retained. Their construction-stage notes describe the source471 input before target aggregation. `PROOF.md` maps the full executable admission, and `TARGET-AGGREGATION.md` records the final target counts. Exact κ is `695191451687307/1000000000000000000`; the bit branch binds.
+The earlier construction notes describe the retained source471 input. `EXTRA-SOURCE-BORROWING.md`, `TARGET-AGGREGATION.md` and `PROOF.md` document the final 490-source construction.
 
-The result remains conditional on the inherited all-size compiler, completed weighted/restored selector, source-line, routing, prime, precision, fixed analytic tape and finite-bridge hypotheses. The complex supplier retains its exact local-flow contract.
-
-Provenance: Dugongue's PR216, head 34abdc58ed77329c8bf9af5634531fc41939ba3c, supplies compatible extremal cuts and the majorant idea with OpenAI Codex assistance. PR211's cascade frames are Rohan Arun's work with Anthropic Claude assistance. PR207 (Dugongue), PR200 (Chafik Boukhalfa), PR202/193 and PR197 (Evan McKinney) supply the retained admission, physical word, complex witness and completed banks. Source reuse, shared gauges, further cuts, target aggregation and integration were prepared by eumemic with substantial OpenAI Codex assistance. Original licenses, notices and all prior AI disclosures remain.
+Provenance: Dugongue's PR216 (34abdc58ed77329c8bf9af5634531fc41939ba3c), prepared with OpenAI Codex assistance, supplies compatible cuts and the majorant idea. PR211's cascade frames are Rohan Arun's work with Anthropic Claude assistance. PR207 (Dugongue) supplies offline admission; PR200 (Chafik Boukhalfa) supplies the physical word/checkers; PR202/193 supply the complex witness; PR197 (Evan McKinney) supplies completed banks. Source reuse, shared gauges, further cuts, target aggregation and integration were prepared by eumemic with substantial OpenAI Codex assistance. All original licenses, contributor notices and upstream AI disclosures remain.

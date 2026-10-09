@@ -1,7 +1,3 @@
-"""Actual target-aggregation scalar program, derived from source471 newg/replay.py.
-Prepared with substantial OpenAI Codex assistance; Apache-2.0.
-All retained source notices and inherited assistance disclosures remain.
-"""
 def replay(mode='F2',direction=1,bits=24,mutation=None):
  major=mode=='bound';binary=mode=='F2';v=W.v
  unit=(lambda i:1)if major else(lambda i:1<<i)if binary else(lambda i:1<<(bits*i))
@@ -30,23 +26,27 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
   if not aggregation_active[k]:return
   group=agg[k];pivot=group['pivot'];assert aggregation_read[k]==set(group['roles']),('early aggregation inverse',k,trigger,aggregation_read[k])
   for t in group['targets']:target_move(t,group['frame'])
-  if mutation!='omit_aggregation_inverse' or k!=0:
+  if mutation!='omit_aggregation_inverse' or k!=39:
    for t in group['targets']:
     if t!=pivot:y[t]=track(add(y[t],1,y[pivot]))
   aggregation_active[k]=False;aggregation_restores.append(dict(group=k,before_role=trigger,frame=group['frame']))
  def read(s):
   nonlocal aggregation_pivot_reads
-  if mutation=='omit_gauge_compensation' and s==new_gauge_selection[-1]['role']:return
-  if s in role_group:
-   k=role_group[s];group=agg[k];pivot=group['pivot'];assert aggregation_active[k]
-   assert set(responses[s])==set(group['targets'])and len(set(responses[s].values()))==1
+  if mutation=='omit_gauge_compensation'and s==new_gauge_selection[-1]['role']:return
+  if mutation=='omit_extra_compensation'and s==extra_selection[0]['role']:return
+  grouped=role_groups.get(s,[])
+  for k in sorted({target_group[t]for t in responses[s]if t in target_group}) if s in W.gauge else []:
+   if k not in grouped:aggregate_restore(k,s)
+  skipped=set()
+  for k in grouped:
+   group=agg[k];pivot=group['pivot'];assert aggregation_active[k]
+   assert set(group['targets'])<=set(responses[s])and len({responses[s][t]for t in group['targets']})==1
    c=responses[s][pivot];target_move(pivot,W.gauge[s]['frame']);y[pivot]=track(add(y[pivot],-direction*c,value(s)))
-   if mutation=='repeat_aggregation_read'and k==0:
+   if mutation=='repeat_aggregation_read'and k==39:
     t=next(t for t in group['targets']if t!=pivot);target_move(t,W.gauge[s]['frame']);y[t]=track(add(y[t],-direction*c,value(s)))
-   aggregation_read[k].add(s);aggregation_pivot_reads+=1;return
-  if s in W.gauge:
-   for k in sorted({target_group[t]for t in responses[s]if t in target_group}):aggregate_restore(k,s)
+   skipped.update(group['targets']);aggregation_read[k].add(s);aggregation_pivot_reads+=1
   for t,c in responses[s].items():
+   if t in skipped:continue
    if s in W.gauge:target_move(t,W.gauge[s]['frame'])
    else:assert target_frames[t]is None,'initial correction leaves target atD0'
    y[t]=track(add(y[t],-direction*c,value(s)))
@@ -56,6 +56,7 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
   if s not in W.gauge and s not in borrow and s not in removed:read(s)
  for n,s in W.source.items():assign(s,add(value(s),1,x[n]))
  for r in gauge_selection:
+  if mutation=='omit_extra_mix'and r is extra_selection[0]:continue
   if mutation!='omit_gauge_mix' or r is not new_gauge_selection[-1]:x[r['partner']]=track(add(x[r['partner']],1,x[r['source']]))
  def forward(i):
   if i not in omitted:gate(i,1);done.append(i)
@@ -72,7 +73,7 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
     center_reads.append((s,t));y[t]=track(add(y[t],direction,value(s)))
  for k,group in enumerate(agg):
   assert all(target_frames[t]is None for t in group['targets']), 'aggregation setup after all D0 center scatters'
-  if mutation!='omit_aggregation_setup'or k!=0:
+  if mutation!='omit_aggregation_setup'or k!=39:
    for t in group['targets']:
     if t!=group['pivot']:y[t]=track(add(y[t],-1,y[group['pivot']]))
  for e in terminal:
@@ -93,7 +94,7 @@ def replay(mode='F2',direction=1,bits=24,mutation=None):
     target_move(t,e['root_frame'])
     if t!=e['pivot']:y[t]=track(add(y[t],1,y[e['pivot']]))
  for s in at[len(W.rest)]:read(s)
- assert not any(aggregation_active),'all group inverses precede original side/K reads'
+ assert not any(aggregation_active),'all quotient inverses precede original side/K reads'
  for j,(r,s)in enumerate(zip(W.g['roots'],W.w['rootroles'])):
   if r['kind']=='side' and j not in deletedroots:
    for t in r['targets']:target_move(t,W.w['root_frame'][j]);y[t]=track(add(y[t],direction,value(s)))

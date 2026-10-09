@@ -15,7 +15,7 @@ def read(p):return json.loads(p.read_text())
 assert not sys.flags.optimize
 before={p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in [ROOT/'scripts/paired_cube_assembly.py',SA/'decision/exact_complex_flow_lift.py',CP/'contract_v4.py']}
 # Replay the actual82 new gauges, complete reflected ledgers and all new banks.
-run(HERE/'joint/replay_joint.py');run(HERE/'borrow/replay.py');run(HERE/'borrow/boundary.py');run(HERE/'borrow/derive_profile.py');run(HERE/'gaugeb/replay.py');run(HERE/'gaugeb/boundary.py');run(HERE/'gaugeb/derive_profile.py');run(HERE/'newg/replay.py');run(HERE/'newg/schedule_audit.py');run(HERE/'newg/boundary.py');run(HERE/'newg/derive_profile.py');run(HERE/'joint/pack_joint.py');run(HERE/'targetagg/replay.py');run(HERE/'targetagg/boundary.py');run(HERE/'targetagg/derive_profile.py')
+run(HERE/'joint/replay_joint.py');run(HERE/'borrow/replay.py');run(HERE/'borrow/boundary.py');run(HERE/'borrow/derive_profile.py');run(HERE/'gaugeb/replay.py');run(HERE/'gaugeb/boundary.py');run(HERE/'gaugeb/derive_profile.py');run(HERE/'newg/replay.py');run(HERE/'newg/schedule_audit.py');run(HERE/'newg/boundary.py');run(HERE/'newg/derive_profile.py');run(HERE/'extra/boundary.py');run(HERE/'joint/pack_joint.py');run(HERE/'targetagg/replay.py');run(HERE/'targetagg/boundary.py');run(HERE/'targetagg/derive_profile.py')
 # The portable witness is checked again; original numerical search need not be repeated.
 run(SA/'decision/exact_complex_flow_lift.py','--witness',WORK/'flow.witness.json','--profile',WORK/'flow.json','--out',WORK/'lift.json')
 lift=read(WORK/'lift.json');expected=read(CP/'certificate.json');assert lift['exact_scalar_program_sha256']==expected['lift']['exact_scalar_program_sha256']
@@ -42,8 +42,8 @@ for side in ['bit','complex']:
  try:public.moment(corrupt,a)
  except ValueError:pass
  else:raise AssertionError('Rank-mass negative control accepted')
-chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==178127441712<2**40
-aggregation=read(HERE/'targetagg/profile.json');assert aggregation['conservative_added_fixed_calls']==69984 and chart['conservative_extra_selector_calls']+aggregation['conservative_added_fixed_calls']==178127511696<2**40
-assert chart['charts']==231 and chart['assignments']==3594888 and chart['literal_stock']==1316514
+chart=read(HERE/'joint/joint-banks.json');assert chart['conservative_extra_selector_calls']==177924145968<2**40
+aggregation=read(HERE/'targetagg/profile.json');assert aggregation['conservative_added_fixed_calls']==279072 and chart['conservative_extra_selector_calls']+aggregation['conservative_added_fixed_calls']==177924425040<2**40
+assert chart['charts']==231 and chart['assignments']==3590784 and chart['literal_stock']==1315146
 assert before=={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in before}
 print('PASS full offline bit/frame/bank/chart/complex-lift/contract replay, independent paid moments, 47 inequalities and controls; kappa='+cert['kappa'])
