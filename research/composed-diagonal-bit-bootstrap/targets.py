@@ -98,6 +98,26 @@ def soak(m, W, D, hist, threshold):
     return kept
 
 
+def partial_soak(m, W, D, hist, threshold, thousandths):
+    """Soak only `thousandths/1000` of the mass sitting in children of rank <= threshold."""
+    kept, moved = {}, 0
+    for rank, count in hist.items():
+        if rank > threshold or thousandths == 0:
+            kept[rank] = count
+            continue
+        move = count * thousandths // 1000
+        kept[rank] = count - move
+        moved += rank * move
+    top = max(hist)
+    count, remaining = divmod(moved, top)
+    if count:
+        kept[top] = kept.get(top, 0) + count
+    if remaining:
+        kept[remaining] = kept.get(remaining, 0) + 1
+    assert sum(r * n for r, n in kept.items()) == m * W - D
+    return {r: n for r, n in kept.items() if n}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=HERE / "targets.json")
@@ -162,6 +182,20 @@ def main():
                             coarse=str(coarse),
                             within_one_grid_step=abs(modelled - claimed) <= Q(1, SELECT_GRID))
 
+    # The cheapest first step: the smallest part of the bit word's smallest children
+    # that stops the bit branch binding, in thousandths of that population.
+    m, W, D, hist = rows(newest["bit_profile"])
+    top = max(hist)
+    first = None
+    for thousandths in range(1, 1001):
+        candidate = levers.row(m, W, D, partial_soak(m, W, D, hist, top - 1, thousandths))
+        saving = levers.certified(interval, candidate)
+        if saving >= (1 - STOP) * Q(suppliers["complex"]["coarse"]) - Q(1, SELECT_GRID):
+            first = dict(thousandths=thousandths, coarse=str(saving),
+                         share_of_smallest=float(Q(thousandths, 1000)))
+            break
+    assert first is not None, "some part of the smallest children must clear the complex side"
+
     bit_coarse = Q(suppliers["bit"]["coarse"])
     complex_coarse = Q(suppliers["complex"]["coarse"])
     bit_budget, complex_budget, binding = branch_budgets(bit_coarse, complex_coarse)
@@ -190,6 +224,7 @@ def main():
                            ladder={t: str(c) for t, c in v["ladder"].items()},
                            cheapest_ledger=str(v["cheapest_ledger"]))
                    for k, v in suppliers.items()},
+        first_rung=first,
         frontier=dict(binding=binding, kappa=str(now), kappa_decimal=float(now),
                       bit_budget=str(bit_budget), complex_budget=str(complex_budget)),
         complex_side_cap=dict(kappa=str(complex_only), kappa_decimal=float(complex_only),
@@ -219,6 +254,9 @@ def main():
             print("        soak children <= {t:>2}: coarse = {v}".format(t=threshold, v=value))
         print("        cheapest ledger: coarse = " + str(item["cheapest_ledger"]))
     print("[frontier] {binding} binds: kappa = {k}".format(k=now, **out["frontier"]))
+    print("[first rung] moving {t}/1000 of the mass in the bit word's children below rank "
+          "{top} into rank-{top} children is enough to clear the complex side".format(
+              t=first["thousandths"], top=top))
     print("[complex cap] kappa = {k} ({g:+.2%}), reached when the bit coarse saving is "
           "{n}".format(k=complex_only, g=float(complex_only / now - 1), n=needed))
     for threshold, item in out["bit_ladder"].items():

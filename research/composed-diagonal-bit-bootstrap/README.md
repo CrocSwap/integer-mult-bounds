@@ -177,15 +177,24 @@ admissible child gives, on the queue's own two rows:
 | both, rank-16 | 1178908992537918/10^18 | 1367642974340202/10^18 | 1.177521e-3 | +72.36% | bit |
 | cheapest ledgers | 1207154248293627/10^18 | 1391081382485139/10^18 | 1.205699e-3 | +76.48% | — |
 
-The first rung is the cheapest and it is a single identifiable population: the bit
-word's 377,316 rank-1 children, 9.3% of its rank mass, are dirt the banks currently
-refuse -- #207's own note lists alias recipients, source births, deleted terminals and
-spectator fields as excluded from fresh bank allocation. Letting the banks absorb
-those, so that the ledger entry is a completed child rather than a singleton, takes the
-bit coarse saving from `6.836575e-4` to `7.929784e-4` (+16%) and clears the complex cap
-in one step. The complex word's own 87,534 rank-1 children (11% of its mass) do the
-same for its side, `7.009184e-4` to `8.144423e-4` (+16.2%), which is what the second
-rung needs.
+The cheapest step is smaller than the table suggests. The bit word needs a coarse
+saving of `7.009184e-4` to stop binding, and the cheapest 5.7% of its smallest
+children already delivers it: `targets.py` bisects that population and reports that
+**moving 57/1000 of the mass sitting in the bit word's rank-1 children into
+rank-22 children takes the bit coarse saving to `7.009717e-4`**, past the complex
+word, for `kappa = 7.004273e-4` (+2.52%). The whole rank-1 population (377,316
+children, 9.3% of the rank mass) is worth +16% on its own, and the complex word's
+own 87,534 rank-1 children (11% of its mass) do the same for its side,
+`7.009184e-4` to `8.144423e-4` (+16.2%).
+
+**What has to change is the child inventory, not the packing.** #207's bank proof
+settles the packing side itself: its banks tile width 72 exactly with the word's two
+residual families (`6 x rank-4 + 2 x rank-24`, or `3 x rank-24`), and it states that
+the current word "has exactly the 4/24 residual families and both tile 72 exactly ...
+there is no new LP improvement to add". The children the moment actually charges are
+the word's own retained children -- internal, source, target, center, compensating
+and terminal-substitution children -- and it is their inventory, set by the weighted
+compilation and by the frame schedule, that holds the `L` above `ln(m/22)`.
 
 **All of this is MODELLED, NOT CONSTRUCTED.** No ledger is built here: each rung is a
 shape the assembly would price this way, computed from the queue's certified rows. The

@@ -249,6 +249,10 @@ def main():
     assert all(left < right for left, right in zip(ladder, ladder[1:])), \
         "soaking more rank mass into larger children must buy more"
     assert Q(targets["cheapest_ledger_both"]["gain"]) > Q(1, 2), "the ledger must be the room"
+    first = targets["first_rung"]
+    assert first and Q(first["coarse"]) >= Q(targets["complex_side_cap"]["bit_coarse_needed"]), \
+        "the first rung must clear the complex side"
+    assert Q(first["thousandths"], 1000) < Q(1, 5), "the first rung must be a small part"
     print("[targets] the frontier is {} at {}; taking the bit word's rank-1 children into "
           "larger ones reaches the complex side's {:.10g} ({:+.2%}), and soaking both words' "
           "cheap children buys {:+.2%}, rising to {:+.2%} at the cheapest admissible "
@@ -258,6 +262,10 @@ def main():
               float(Q(targets["complex_side_cap"]["gain"])),
               float(Q(targets["both_soaked"]["1"]["gain"])),
               float(Q(targets["cheapest_ledger_both"]["gain"]))))
+    print("[first rung] coarsening {:d}/1000 of the mass in the bit word's smallest children "
+          "reaches the complex side (bit coarse {} vs the {} it needs)".format(
+              first["thousandths"], Q(first["coarse"]),
+              Q(targets["complex_side_cap"]["bit_coarse_needed"])))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
           "and 7 margins per depth".format(best, best_depth))
 
