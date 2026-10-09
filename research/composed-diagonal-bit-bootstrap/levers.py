@@ -1,92 +1,128 @@
 #!/usr/bin/env python3
 """Where the next gain is on this word, modelled exactly.
 
-The bit branch's coarse saving is the largest `a` whose paid moment is below 1:
+The bit branch's coarse saving is the largest `a` on the 10^-18 grid whose paid
+moment is below 1:
 
-    sum_r n_r * r * (m/r)^a  +  BAD * 32 m^2 * edges * m^a  <  W * m,
+    sum_r n_r * r/(W*m) * exp(a*ln(m/r))  +  BAD * 32 m^2 * edges/(W*m) * exp(a*ln m) < 1,
 
-with `m*W - sum n_r r = D` the row identity. Because the moment is increasing in
-`a`, two words with the same `D` differ only through the child ledger.
+with `m*W - sum n_r r = D` the row identity. The moment increases in `a`, so two
+words with the same `D` differ only through the child ledger.
 
 PR197 lowered a word's ledger by *banking* the rank-60 exterior corrections: the
-2,200 rank-60 children (one per selected gauge) are replaced by shared banks, so
-the rank-60 entries leave the ledger and the stock falls to what the identity
-requires. This script models that transformation exactly -- drop the rank-60
-entries, keep `D`, set `W = (mass + D)/m` -- and validates the model against the
-three published values it can be checked on, then applies it to this package's
-bit word.
+rank-60 children, one per selected gauge, are replaced by shared banks, so those
+entries leave the ledger and the stock falls to what the identity still requires.
+This script models that transformation exactly -- drop the rank-60 entries, keep
+`D`, set `W = (mass + D)/m` -- checks the model against the three published values
+it can be checked on, and then applies it to this package's bit word.
 
-The model is accounting, validated on another word of the same family. On PR200's
-word it is a *prediction*: realizing it needs the bank construction itself, which
-this package does not build.
+Everything is exact rational arithmetic, on the enclosure implementation of the
+supplier whose certificate is being reproduced (`references/pr200/interval_moment.py`,
+the arithmetic PR200's own `bit/prove.py` prices with). The reported grid points
+are therefore identical on every platform, and the three checks are *exact*
+reproductions rather than tolerances. Rows are taken over the family's three
+copies so that the stock stays integral, which leaves the saving unchanged.
+
+The transformation is accounting, validated on another word of the same family. On
+PR200's word it is a *prediction*: the bank construction is not built here.
 
     python3 -B levers.py [--out levers.json]
 """
 import argparse
+import importlib.util
 import json
 import sys
 from fractions import Fraction as Q
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-BAD = Q(1, 10 ** 16)
+COPIES = 3
 RANK60 = 60
+GRID = 10 ** 18
+BAD = Q(1, 10 ** 16)
 CLAIM = Q(1693287, 2500000000)
-GRID = 10 ** 10
 
-# Published values the model is checked against.
+# Published values the model is checked against, exactly.
 PR187_COARSE = Q(167724995262213, 250000000000000000)
-PR187_PACKED = Q(676537710350481, 10 ** 18)     # PR197's certified packed word
-PR200_COARSE = Q(677773948354561, 10 ** 18)     # PR200's certified bit word
-PR200_PACKED_EXCLUDED = None
+PR187_PACKED = Q(676537710350481, GRID)         # PR197's certified banked word
+PR200_COARSE = Q(677773948354561, GRID)         # PR200's certified bit word
 
 
-def row(profile):
+def module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    loaded = importlib.util.module_from_spec(spec)
+    sys.modules[name] = loaded
+    spec.loader.exec_module(loaded)
+    return loaded
+
+
+def three_copies(profile):
+    """The family's three-copy row: integral stock, same saving as one copy."""
     m = int(profile["m"])
     W = Q(profile["W_per_vertex"] if "W_per_vertex" in profile else profile["W"])
     D = Q(profile["deficit_per_vertex"] if "deficit_per_vertex" in profile else profile["N"])
     key = "child_multiplicities" if "child_multiplicities" in profile else "child_histogram"
-    hist = {int(r): int(n) for r, n in profile[key].items() if n}
-    assert m * W - sum(r * n for r, n in hist.items()) == D, "row identity"
-    return m, W, D, hist
+    hist = {int(r): COPIES * int(n) for r, n in profile[key].items() if n}
+    mass = sum(r * n for r, n in hist.items())
+    D, W = D * COPIES, W * COPIES
+    assert m * W - mass == D, "row identity"
+    assert W.denominator == 1, "three-copy stock must be integral"
+    return row(m, int(W), D, hist)
 
 
-def paid_root(m, W, D, hist):
-    """The largest a with paid moment below 1, on exact rationals."""
-    fallback = BAD * 32 * m * m * sum(hist.values())
+def row(m, W, D, hist):
+    return dict(m=m, W=W, N=D, L=0, total_rank=sum(r * n for r, n in hist.items()),
+                maxchild=max(hist), child_multiplicities=dict(sorted(hist.items())))
 
-    def excess(a):
-        return (sum(Q(n * r) * pow(Q(m, r), a) for r, n in hist.items())
-                + fallback * pow(Q(m), a))
 
-    target = W * m
-    assert excess(0) < target, "zero-saving rank contraction"
-    lo, hi = Q(0), Q(1)
-    assert excess(hi) > target, "upper bracket"
-    for _ in range(400):
-        mid = (lo + hi) / 2
-        if excess(mid) < target:
-            lo = mid
+def paid_moment(interval, profile, a):
+    """PR200's `bit/prove.py` price: the child ledger plus the rare-class fallback."""
+    raw = interval.moment(profile, a)
+    m, W = profile["m"], profile["W"]
+    edges = sum(profile["child_multiplicities"].values())
+    low, high = interval.log_interval(Q(m))
+    exp_low, exp_high = interval.exp_interval(a * low, a * high)
+    weight = BAD * Q(32 * m * m * edges, W * m)
+    return dict(upper=raw["upper"] + weight * exp_high,
+                lower=raw["lower"] + weight * exp_low)
+
+
+def certified(interval, profile):
+    """The largest 10^-18 grid point that pays, as PR200's own `certify` finds it."""
+    low, high = 0, GRID // 100
+    assert paid_moment(interval, profile, Q(low, GRID))["upper"] < 1, "zero-saving contraction"
+    assert paid_moment(interval, profile, Q(high, GRID))["lower"] > 1, "upper bracket"
+    while high - low > 1:
+        mid = (low + high) // 2
+        if paid_moment(interval, profile, Q(mid, GRID))["upper"] < 1:
+            low = mid
         else:
-            hi = mid
-    return lo
+            high = mid
+    accepted = paid_moment(interval, profile, Q(low, GRID))["upper"]
+    rejected = paid_moment(interval, profile, Q(high, GRID))["lower"]
+    assert accepted < 1 < rejected, "adjacent grid exclusion"
+    return Q(low, GRID)
 
 
-def banked(m, W, D, hist):
+def banked(profile):
     """PR197's accounting: the rank-60 exterior corrections become banked roles."""
+    hist = profile["child_multiplicities"]
     assert hist.get(RANK60), "no rank-60 exterior corrections to bank"
     trimmed = {r: n for r, n in hist.items() if r != RANK60}
     mass = sum(r * n for r, n in trimmed.items())
-    packed_W = (mass + D) / m
-    assert packed_W < W, "the stock must fall"
-    return packed_W, trimmed
+    packed = row(profile["m"], (mass + profile["N"]) // profile["m"], profile["N"], trimmed)
+    assert packed["W"] * packed["m"] - mass == packed["N"], "banked row identity"
+    assert packed["W"] < profile["W"], "the stock must fall"
+    return packed
 
 
-def check(name, model, published):
-    rel = abs(model / published - 1)
-    assert rel < Q(1, 10 ** 11), (name, float(rel))
+def check(interval, name, profile, published):
+    model = certified(interval, profile)
+    assert model == published, (name, str(model), str(published))
     return dict(name=name, published=str(published), published_decimal=float(published),
-                model=str(model), model_decimal=float(model), relative_error=float(rel))
+                model=str(model), model_decimal=float(model),
+                W=profile["W"], deficit=str(profile["N"]),
+                maxchild=profile["maxchild"])
 
 
 def main():
@@ -96,60 +132,60 @@ def main():
     if hasattr(sys, "set_int_max_str_digits"):
         sys.set_int_max_str_digits(0)
     assert not sys.flags.optimize, "assertions must stay enabled"
+    interval = module("levers_interval_moment", HERE / "references/pr200/interval_moment.py")
 
     validations = []
-    pr187 = json.loads((HERE / "references/pr187/certificate.json").read_text())
-    m1, W1, D1, hist1 = row(pr187["profile"])
-    a1 = paid_root(m1, W1, D1, hist1)
-    validations.append(check("PR187 unpacked row", a1, PR187_COARSE))
-    packed_W1, trimmed1 = banked(m1, W1, D1, hist1)
-    packed_a1 = paid_root(m1, packed_W1, D1, trimmed1)
-    validations.append(check("PR187 banked row (PR197)", packed_a1, PR187_PACKED))
+    pr187 = three_copies(json.loads((HERE / "references/pr187/certificate.json").read_text())["profile"])
+    validations.append(check(interval, "PR187 unpacked row", pr187, PR187_COARSE))
+    validations.append(check(interval, "PR187 banked row (PR197)", banked(pr187), PR187_PACKED))
 
-    bit = json.loads((HERE / "inputs/pr200-bit-certificate.json").read_text())
-    m2, W2, D2, hist2 = row(bit["bit"]["profile"])
-    a2 = paid_root(m2, W2, D2, hist2)
-    validations.append(check("PR200 unpacked row", a2, PR200_COARSE))
+    bit = json.loads((HERE / "inputs/pr200-bit-certificate.json").read_text())["bit"]["profile"]
+    per_copy = {int(r): int(n) for r, n in bit["child_histogram"].items() if n}
+    pr200 = three_copies(bit)
+    validations.append(check(interval, "PR200 unpacked row", pr200, PR200_COARSE))
 
-    packed_W2, trimmed2 = banked(m2, W2, D2, hist2)
-    packed_a2 = paid_root(m2, packed_W2, D2, trimmed2)
-    ceiling_now, ceiling_packed = a2 / (1 + a2), packed_a2 / (1 + packed_a2)
-    grid = lambda x: Q(int(x * GRID), GRID)
+    packed = banked(pr200)
+    packed_saving = certified(interval, packed)
+    now = Q(validations[-1]["model"])
+    ceiling_now, ceiling_packed = now / (1 + now), packed_saving / (1 + packed_saving)
+    gain = ceiling_packed / CLAIM - 1
     for v in validations:
-        print("[validated] {name}: model {model_decimal:.15g} vs published "
-              "{published_decimal:.15g} (rel {relative_error:.1e})".format(**v))
-    print("[PR200 now]     coarse {:.15g} (grid {:.10g}) -> ceiling {:.10g}".format(
-        float(a2), float(grid(a2)), float(ceiling_now)))
-    print("[PR200 banked]  W_per_vertex {} -> coarse {:.15g} (grid {:.10g}) -> ceiling "
-          "{:.10g}".format(packed_W2, float(packed_a2), float(grid(packed_a2)),
-                           float(ceiling_packed)))
-    lever_gain = float(ceiling_packed / ceiling_now - 1) * 100
-    claim_gain = float(ceiling_packed / CLAIM - 1) * 100
+        print("[validated] {name}: model {model} = published {published} exactly "
+              "(W={W}, N={deficit}, maxchild={maxchild})".format(**v))
+    print("[PR200 now]     coarse {} ({:.10g}) -> ceiling {:.10g}".format(
+        now, float(now), float(ceiling_now)))
+    print("[PR200 banked]  W={} (= {:d}/3 per vertex) -> coarse {} ({:.10g}) -> "
+          "ceiling {:.10g}".format(packed["W"], 3 * packed["W"], packed_saving,
+                                   float(packed_saving), float(ceiling_packed)))
     print("[lever]         banking the rank-60 exterior corrections is worth {:.4f}% of "
-          "kappa ({:.10g} -> {:.10g})".format(lever_gain, float(ceiling_now),
-                                              float(ceiling_packed)))
+          "kappa ({:.10g} -> {:.10g})".format(float(ceiling_packed / ceiling_now - 1) * 100,
+                                              float(ceiling_now), float(ceiling_packed)))
     print("[vs the claim]  {} ({:.10g}) -> {:.4f}%".format(
-        CLAIM, float(CLAIM), claim_gain))
+        CLAIM, float(CLAIM), float(gain) * 100))
 
     out = dict(
         status="MODELLED, NOT CONSTRUCTED: the banked row is validated against PR197's "
                "certified word, but the bank construction on PR200's word is not built here "
                "and no claim is made about it.",
-        method="paid moment < 1 solved by exact rational bisection; row identity m*W - mass = D",
+        method="PR200's exact interval arithmetic on the 10^-18 grid, three-copy rows; the "
+               "three published values are reproduced exactly, not to a tolerance",
+        copies=COPIES,
         validations=validations,
-        pr200_unpacked=dict(coarse=str(a2), coarse_decimal=float(a2),
+        pr200_unpacked=dict(coarse=str(now), coarse_decimal=float(now),
                             ceiling=str(ceiling_now), ceiling_decimal=float(ceiling_now)),
-        pr200_banked=dict(W_per_vertex=str(packed_W2),
-                          W_per_vertex_decimal=float(packed_W2),
-                          coarse=str(packed_a2), coarse_decimal=float(packed_a2),
-                          coarse_grid=str(grid(packed_a2)),
+        pr200_banked=dict(W_three_copies=packed["W"],
+                          W_per_vertex=str(Q(packed["W"], COPIES)),
+                          W_per_vertex_decimal=float(Q(packed["W"], COPIES)),
+                          coarse=str(packed_saving), coarse_decimal=float(packed_saving),
                           ceiling=str(ceiling_packed), ceiling_decimal=float(ceiling_packed),
-                          rank60_children=hist2[RANK60], rank60_mass=RANK60 * hist2[RANK60],
+                          rank60_children_per_copy=per_copy[RANK60],
+                          rank60_mass_per_copy=RANK60 * per_copy[RANK60],
                           ledger_share_of_rank60=float(
-                              Q(RANK60 * hist2[RANK60], sum(r * n for r, n in hist2.items()))),
-                          deficit=str(D2)),
+                              Q(RANK60 * per_copy[RANK60],
+                                sum(r * n for r, n in per_copy.items()))),
+                          deficit_three_copies=str(pr200["N"])),
         claim=dict(kappa=str(CLAIM), kappa_decimal=float(CLAIM)),
-        gain_vs_claim=float(ceiling_packed / CLAIM - 1),
+        gain_vs_claim=float(gain),
     )
     args.out.write_text(json.dumps(out, indent=1, sort_keys=True) + "\n")
     print("[write] " + str(args.out))

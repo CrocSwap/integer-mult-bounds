@@ -53,23 +53,6 @@ def rejects(name, operation, errors=(AssertionError, ValueError, KeyError)):
     raise AssertionError("control accepted: " + name)
 
 
-def same(left, right, tolerance=1e-12):
-    """Structural equality with a tolerance on floats and exactness elsewhere."""
-    if isinstance(left, dict) and isinstance(right, dict):
-        return (left.keys() == right.keys()
-                and all(same(left[k], right[k], tolerance) for k in left))
-    if isinstance(left, list) and isinstance(right, list):
-        return (len(left) == len(right)
-                and all(same(a, b, tolerance) for a, b in zip(left, right)))
-    if isinstance(left, bool) or isinstance(right, bool):
-        return left is right
-    if isinstance(left, float) and isinstance(right, float):
-        return abs(left - right) <= tolerance * max(1.0, abs(left), abs(right))
-    if isinstance(left, (int, str)) and isinstance(right, (int, str)):
-        return left == right and type(left) is type(right)
-    return left == right
-
-
 def tolls(coarse, leaf):
     """compose.py's own guard, mirrored so the control exercises that condition."""
     assert Q(leaf) < Q(coarse) < 1 - Q(leaf), "strict paid tolls"
@@ -206,21 +189,19 @@ def main():
     subprocess.run([sys.executable, "-B", str(HERE / "levers.py"), "--out", str(lever_out)],
                    check=True, stdout=subprocess.DEVNULL)
     levers = json.loads(lever_out.read_text())
-    # The model's shipped numbers are compared with a tolerance: its bisection
-    # compares floats, so a different libm can move the last digits without moving
-    # anything that matters. Integers and exact rationals must still match exactly.
-    assert same(levers, json.loads((HERE / "levers.json").read_text())), "levers.json drift"
+    assert levers == json.loads((HERE / "levers.json").read_text()), "levers.json drift"
     for item in levers["validations"]:
-        assert Q(item["relative_error"]) < Q(1, 10 ** 11), item["name"]
+        assert item["model"] == item["published"], (
+            "the lever model must reproduce " + item["name"] + " exactly")
     banked = levers["pr200_banked"]
     assert Q(banked["W_per_vertex"]) == Q(56402, 3), "banked stock"
+    assert banked["W_three_copies"] == 56402 and banked["rank60_children_per_copy"] == 2200
     assert Q(banked["ceiling"]) / Q(levers["claim"]["kappa"]) - 1 > Q(1, 200), "lever too small"
     assert levers["status"].startswith("MODELLED"), "the lever must not be presented as built"
-    print("[levers] three published values reproduced to {:.1e}; banking the rank-60 "
+    print("[levers] three published values reproduced exactly; banking the rank-60 "
           "exterior corrections is worth {:+.4f}% of kappa ({:.10g} -> {:.10g}), which "
           "this package models and does not build".format(
-              max(float(Q(i["relative_error"])) for i in levers["validations"]),
-              float(levers["gain_vs_claim"]) * 100,
+              levers["gain_vs_claim"] * 100,
               float(Q(levers["pr200_unpacked"]["ceiling"])),
               float(Q(banked["ceiling"]))))
     print("PASS composed-diagonal-bit-bootstrap kappa = {} at depth {}; 47 strict constraints "
