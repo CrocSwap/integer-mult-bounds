@@ -27,6 +27,7 @@ sys.path.insert(0, str(HERE))
 if hasattr(sys, 'set_int_max_str_digits'):
     sys.set_int_max_str_digits(0)
 
+import importer66  # noqa: E402
 import pins  # noqa: E402
 import run3  # noqa: E402
 import schedule66  # noqa: E402
@@ -287,6 +288,53 @@ def check_unconditionality():
     return block
 
 
+def check_import_harness():
+    """The import contract's executable form: coverage, refusals, and that it really works.
+
+    Three things are checked rather than described.  The contract must name the module and the
+    four exit codes; the gate must be able to decide all seven acceptance tests, i.e. every test
+    appears in some export's declared gate; and the harness's own self-test -- which builds
+    synthetic bodies and then breaks each check in turn -- must pass every case, so the refusals
+    it will perform on the real drop are demonstrably real.  Finally the real drop, which does
+    not exist yet, must be refused with the refusal code.
+    """
+    contract = json.loads((HERE / 'export-contract.json').read_text())
+    harness = contract['import_harness']
+    assert harness['module'] == 'importer66.py' and (HERE / harness['module']).is_file(), \
+        'the contract must name the module that implements it, and it must exist'
+    assert sorted(harness['exit_codes']) == ['0', '1', '2', '3'], 'all four exit codes'
+    assert 'gate' in harness['layers'] and 'replay' in harness['layers'], \
+        'the two layers must be described, so that no replay is ever claimed by the gate'
+    assert harness['replay_requirement']['checker_digest'] == \
+        resolve(json.loads((HERE / 'references' / 'pr219-run1' / 'references'
+                            / 'pr193-source-assisted-v4.certificate.json').read_text()),
+                ['lift', 'checker_sha256']), 'the replay checker digest must be the pinned one'
+
+    declared = set()
+    for export in contract['required_exports']:
+        assert export['bodies'], 'every required export must name the bodies it waits for'
+        assert all(body.get('file') for body in export['bodies']), 'every body needs a file name'
+        for body in export['bodies']:
+            if body['anchored_digest'] is not None:
+                assert len(body['anchored_digest']) == 64, 'anchored digests are sha256 hex'
+        declared |= set(export['gate']['test'])
+    tests = {test['id'] for test in contract['acceptance_tests']}
+    assert declared == tests, \
+        'the gate must be able to decide every acceptance test: %s' % sorted(tests - declared)
+
+    observed = importer66.self_test(contract)
+    failed = sorted(name for name, ok in observed.items() if not ok)
+    assert not failed, 'the harness self-test must pass every case: %s' % failed
+    assert len(observed) >= 10, 'the self-test must exercise the refusals too'
+    code, report = importer66.run(contract, HERE / harness['exports_dir'])
+    assert code == 2 and report['missing'], \
+        'the real drop must still be refused: nothing has been published yet'
+    assert len(report['missing']) == sum(len(export['bodies'])
+                                         for export in contract['required_exports']), \
+        'every required body is missing today'
+    return dict(observed=observed, missing=len(report['missing']), verdict=report['verdict'])
+
+
 def resolve(node, keys):
     """Walk a citation's key list through a pinned JSON document."""
     for key in keys:
@@ -392,6 +440,7 @@ def main():
     check_obligations()
     unconditionality = check_unconditionality()
     contract = check_export_contract()
+    harness = check_import_harness()
     target = HERE / 'certificate.json'
     if args.write:
         (HERE / 'SOURCE.json').write_text(
@@ -424,6 +473,9 @@ def main():
           % (record['construction']['totals']['items'],
              record['construction']['totals']['banks'],
              record['construction']['totals']['padding_registers']))
+    print('import harness  self-test %d/%d, %d bodies still missing: %s'
+          % (sum(1 for ok in harness['observed'].values() if ok), len(harness['observed']),
+             harness['missing'], harness['verdict'][:58]))
     print('export contract %d exports (%s), %d acceptance tests, bodies exported today: %d/%d'
           % (len(contract['required_exports']),
              ','.join(export['id'] for export in contract['required_exports']),

@@ -322,15 +322,37 @@ certificate"; and the per-child export is asked in the exact shape of the bit wo
 (`occurrences66.json`, 4,176 items over 795 banks). Today it fails closed -- **0 of 6 bodies** --
 and `verify.py` asserts that reading against the pins rather than asserting it in prose.
 
+**The contract in executable form** is [importer66.py](research/complex-bank-run3/importer66.py).
+It consumes the exports, runs the seven acceptance tests with their bounds and refuses cleanly
+while a body is absent -- which is the state today: `python3 -B importer66.py` exits **2** after
+naming all ten bodies that are missing, and no obligation moves. The module separates the two
+things that are easy to confuse. The **gate** is decidable from what the bodies declare: hashes
+anchored to the digests the supplier already published, cardinalities, the published bounds
+(denominators, colouring, prime threshold), the two bijections (the frame id map, and A5's
+families against this package's own `occurrences66.json`) and the counts that must come out of
+the exported tables rather than out of the certificate. The **replay** -- formal columns over F2
+and the defining integers, fraction-free charts, the moment envelope -- is the supplier's own
+checker: the contract pins its digest (`lift.checker_sha256`), so the harness requires that exact
+file and reports the replay `NOT RUN` until it arrives, and exit code 3 says so rather than
+certifying anything. `--self-test` builds synthetic bodies, patches the anchored digests to their
+synthetic hashes, and then breaks each check in turn: twelve cases, including a tampered body, a
+wrong cardinality, a denominator above the bound, counts that do not come out of the tables, a
+foreign family and a foreign bin, an accepted colouring conflict, a repeated prime witness, an
+absent body, a checker the contract does not pin, and the pinned checker passing. All twelve
+pass in `verify.py`, so the refusals the harness will perform on the real drop are demonstrated
+now rather than promised.
+
 ## Verify
 
 ```sh
 cd research/complex-bank-run3
 python3 -B verify.py           # check: pins, rebuild, compare with certificate.json
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
+python3 -B importer66.py                 # the export import: refuses, codes 0/1/2/3
+python3 -B importer66.py --self-test     # the harness's own twelve cases
 ```
 
-`verify.py` passes with exit 0, pins 30 files by sha256, rebuilds the whole complex-side
+`verify.py` passes with exit 0, pins 31 files by sha256, rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
 assemblies with adjacent-grid rejection, the eligibility scan, the PR208 replica, the padded
 schedule (795 banks, padding 0/2/6 registers per bank, stock drops 531/198/66), the instanced

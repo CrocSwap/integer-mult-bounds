@@ -230,7 +230,7 @@ the density curve finds above is still below all of them.
 
 ## 6. Verification boundary
 
-* Machine-checked here: the pinned bytes (30 files, sha256), the frontier reproduction, rung 1
+* Machine-checked here: the pinned bytes (31 files, sha256), the frontier reproduction, rung 1
   rebuilt by the vendored #219 package, rung 2 rebuilt by this package's own ledger module,
   rungs 3 and 4 (volumes, row identities, stock drops, both paid moments, adjacency
   rejections), the branch ceilings, the eligibility exhaustion, the PR208 replica, the T1
@@ -271,6 +271,15 @@ the curve's width-66 row is exactly the pinned stock reproducing the top kappa),
   than described.  The contract's one design reading is also pinned: it addresses the
   `lift`/witness pair, not the flow block, whose own status says *"Not an exact supplier
   certificate"*.
+* Also machine-checked: the contract's executable form, `importer66.py`.  Its self-test is run
+  as part of the verification and must pass all twelve of its cases -- seven acceptance checks
+  broken in turn (a tampered body, a wrong cardinality, a denominator above the published bound,
+  counts that do not come out of the exported tables, a foreign family and bin, an accepted
+  colouring conflict, a repeated prime witness), an absent body, a checker the contract does not
+  pin, the pinned checker passing, and the gate green without any checker -- and the real drop,
+  which does not exist yet, must still be refused with the refusal code.  The harness never
+  claims the physics: the replay needs the checker whose digest E3 pins, and until it is supplied
+  the import stops at *gate green, replay not run*.
 * Not run: upstream CI, and any contributor verifier other than the vendored #219 package
   invoked in place.
 * The `10^-10` supplier field is priced as a conservative variant; on it the ladder's top sits
