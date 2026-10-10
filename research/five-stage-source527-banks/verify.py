@@ -71,11 +71,11 @@ def main():
   finite=stage('finite',lambda:load('finite_check').run(raw,bit['physical'],scalar,primes,math,banks,banked,bit['global_result']))
   assert math['mathematics']['finite_bridge']['rows']['coefficient']==complex_result['precision_guard']['retained_row_coefficient']==finite['row_reserve']['external_complex_coefficient']
   validate_required(results);assert len(scalar['controls'])==25 and len(primes['controls'])==6
-  assert Fraction(math['mathematics']['kappa'])==Fraction(710433687047883,1000000000000000000)
+  assert Fraction(math['mathematics']['kappa'])==Fraction(710436534421701,1000000000000000000)
   after,_=integrity();assert after==digest,'Package changed during replay'
-  certificate=dict(schema='source527-parity-regauged-five-stage-banks/1',**math['mathematics'],scope='Conditionalfiniteconstruction; inheritedallsizecompiler,weightedselector,commonancestorchart,restoredrow,routing,prime,recovery,complexsymbolicandanalyticinterfacesremainassumptions.')
+  certificate=dict(schema='source527-parity-regauged-descent-five-stage-banks/1',**math['mathematics'],scope='Conditionalfiniteconstruction; inheritedallsizecompiler,weightedselector,commonancestorchart,restoredrow,routing,prime,recovery,complexsymbolicandanalyticinterfacesremainassumptions.')
   save('certificate.json',certificate)
-  report=dict(status='PASS_IMMUTABLE_PARITY_REGAUGED_SOURCE527_FIVE_STAGE_BANKED_CONSTRUCTION',manifest_sha256=digest,files=count,kappa=math['mathematics']['kappa'],kappa_scientific=math['mathematics']['kappa_scientific'],fresh_stages=sorted(REQUIRED),inputs_unchanged=True,timings=timings,seconds=time.monotonic()-start,negative_controls=controls())
+  report=dict(status='PASS_IMMUTABLE_PARITY_REGAUGED_DESCENT_SOURCE527_FIVE_STAGE_BANKED_CONSTRUCTION',manifest_sha256=digest,files=count,kappa=math['mathematics']['kappa'],kappa_scientific=math['mathematics']['kappa_scientific'],fresh_stages=sorted(REQUIRED),inputs_unchanged=True,timings=timings,seconds=time.monotonic()-start,negative_controls=controls())
   save('verification.json',report);print(json.dumps(report),flush=True)
  except BaseException as exc:
   save('failure.json',dict(status='FAIL',error=str(exc),completed_stages=sorted(results),timings=timings,traceback=traceback.format_exc()));raise

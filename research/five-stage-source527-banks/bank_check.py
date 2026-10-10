@@ -136,7 +136,7 @@ def run(context,global_result,lower,progress=lambda text:None):
     H=Counter({int(r):n for r,n in global_result['paid_histogram'].items()})
     assert sum(H.values())==global_result['paid_calls']
     for r,n in removed.items():assert H[r]==n;del H[r]
-    assert max(H)==50 and sum(H.values())==491345 and sum(r*n for r,n in H.items())==2602725
+    assert max(H)==50 and sum(H.values())==491340 and sum(r*n for r,n in H.items())==2602725
     literal=Counter({r:24*n for r,n in H.items()})
     assert 120*plan.live_families-sum(r*n for r,n in literal.items())==24*4400
     # Independently enumerate each physical role/replica/stage slot.

@@ -13,3 +13,5 @@ The parity-filtered common-frame retiming (PR244) and exact reconstruction were 
 The thirty-seven additional F2 gauge entrances, exact compensation transport, cloned producer/execution contexts and new completed-bank charts were prepared by eumemic with substantial OpenAI Codex assistance.
 
 This extension retains eumemic's PR249 compensation transport and its 21 selected entrances. Sixteen further entrances use shared allowed-frame intersections, adding 224 entrance-rank units. Prepared with substantial OpenAI Codex assistance.
+
+The concave-descent frame retiming (`descent_transform.py`, `descent-selection.json`, `raw_ledger.rebind_descent`) and this package's rebinding were prepared by Rohan Arun (rohanarun) with Anthropic Claude assistance, Apache-2.0. All inherited PR251/PR249/PR244/PR210 material and notices above are retained unchanged.
