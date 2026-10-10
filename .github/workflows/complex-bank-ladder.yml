@@ -1,0 +1,45 @@
+name: Verify the complex bank ladder and its rank-3 rung
+
+on:
+  push:
+    paths:
+      - 'research/complex-bank-run3/**'
+      - 'tests/test_complex_bank_run3.py'
+      - '.github/workflows/complex-bank-ladder.yml'
+  pull_request:
+    paths:
+      - 'research/complex-bank-run3/**'
+      - 'tests/test_complex_bank_run3.py'
+      - '.github/workflows/complex-bank-ladder.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certificate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Reproduce the ladder, re-derive both rungs' ledgers and reprice the points
+        run: python3 -B research/complex-bank-run3/verify.py
+      - name: Self-check the vendored rung-1 package in place
+        working-directory: research/complex-bank-run3/references/pr219-run1
+        run: python3 -B verify.py
+      - name: Run the export gate on all three contracts, and the gate's own thirteen cases
+        run: |
+          python3 -B research/complex-bank-run3/importer66.py --self-test
+          python3 -B research/complex-bank-run3/importer66.py --contract research/complex-bank-run3/export-contract-bit.json --self-test
+          python3 -B research/complex-bank-run3/importer66.py --contract research/complex-bank-run3/export-contract-rank3.json --self-test
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
