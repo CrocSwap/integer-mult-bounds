@@ -3,7 +3,71 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: coordinated frames and completed entrance banks
+## Current reviewed result: gen4 circuits and common-delivery frames
+
+The composition of **DreamingOfClouds' [#276](https://github.com/CrocSwap/integer-mult-bounds/pull/276)**
+and **Rohan Arun's [#279](https://github.com/CrocSwap/integer-mult-bounds/pull/279)** gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{90446448750933}{125000000000000000}=0.000723571590007464.
+$$
+
+DreamingOfClouds redesigned the local bit circuits to use fewer auxiliary
+registers. Rohan reassigned 880 mixing gates to their existing common delivery
+frames, applying eumemic's earlier retiming technique. The composition retains
+Henry Grant and Jacob Sussman's five-stage construction, Evan McKinney and
+Rohan's completed banks, Chafik Boukhalfa's physical checkers, Avi Eisenberg's
+complex supplier and the earlier community framework.
+
+This is **1.90% above the recently audited 0.000710046193349537 witness**,
+and **56.99% above 0.0004609169**. It is approximately `2^-10.43258`.
+These compare exponent savings, not practical runtime. The all-size compiler,
+chart, routing, restored-row, precision/recovery and analytic interfaces remain
+conditional. Finite replay and written review do not prove the complete
+asymptotic theorem in Lean.
+
+[Review and validation scope](docs/research/community-pr279-review.md) ·
+[Selected record](certificates/selected-result.json) ·
+[Construction argument](research/five-stage-gen4-banks/PROOF.md) ·
+[Exact certificate](research/community-pr279-audit/certificate.json) ·
+[Integration checks](docs/research/community-pr279-integration.json) ·
+[Contributor record](CONTRIBUTORS.md)
+
+```sh
+python3 -m pip install -r research/five-stage-gen4-banks/requirements.txt
+make gen4-bank-verify
+```
+
+## Historical audited checkpoint: 527 reused sources
+
+**eumemic's [#210](https://github.com/CrocSwap/integer-mult-bounds/pull/210)**,
+pinned at `298f7c1`, gives the conditional witness
+**κ = 710046193349537 / 10¹⁸ = 0.000710046193349537**.
+This is the intermediate result announced before the gen4 update above.
+Its complete source package and audit are now preserved on main; the newer
+gen4 result remains selected.
+
+The construction combines internal response cancellations and source reuse
+with Henry Grant and Jacob Sussman's five-stage geometry, Evan McKinney's
+completed-bank method and Rohan Arun's width-120 banking work. Chafik
+Boukhalfa's physical helper/checkers, Avi Eisenberg's complex helper,
+Dugongue's refinements and Romyxen / sennemmi's operation frames remain
+credited in the source notices. All eight mandatory finite stages passed,
+with every one of the 121 pinned inputs unchanged. The retained all-size
+interfaces remain conditional.
+
+[Checkpoint and publication review](docs/research/community-pr210-review.md) ·
+[Exact certificate](research/community-round9-audit/pr210-certificate.json) ·
+[Construction source](research/five-stage-source527-banks/PROOF.md) ·
+[Full round-nine review](research/community-round9-audit/REPORT.md)
+
+```sh
+python3 -m pip install -r research/five-stage-source527-banks/requirements.txt
+make source527-verify
+```
+
+## Preceding reviewed result: coordinated frames and completed entrance banks
 
 [Dugongue's #186](https://github.com/CrocSwap/integer-mult-bounds/pull/186)
 gives the conditional witness

@@ -1,5 +1,46 @@
 # Community contribution record
 
+**Current reviewed construction: #279 on #276, κ=0.000723571590007464.**
+The [review](docs/research/community-pr279-review.md) records the exact heads,
+finite checks, corrected prime coverage and retained all-size assumptions.
+
+| Contributor | Contribution to this checkpoint |
+|---|---|
+| [DreamingOfClouds](https://github.com/DreamingOfClouds) | [#276](https://github.com/CrocSwap/integer-mult-bounds/pull/276): redesigned local bit circuits, shared pair-module centers, physical producers and five-stage integration. |
+| [Rohan Arun](https://github.com/rohanarun) | [#279](https://github.com/CrocSwap/integer-mult-bounds/pull/279): 880-gate common-delivery frame retiming, exact transform, final composition and prime-coverage correction; earlier width-120 bank work in #237. |
+| [eumemic](https://github.com/eumemic) | #244 common-frame retiming principle; #210 package/scalar machinery and #168 circuit/checker framework. |
+| [Henry Grant / hcg890](https://github.com/hcg890) and [Jacob Sussman](https://github.com/jacobalansussman) | #234 five-stage construction and its complex baseline. |
+| [Evan McKinney](https://github.com/evmckinney9) | #197 completed-bank method. |
+| [Chafik Boukhalfa](https://github.com/chafreaky) | #200 physical-word classes, exact checker and predecessor circuit. |
+| [Avi Eisenberg / ikeboy](https://github.com/ikeboy) | #193 retained complex helper. |
+
+The notices retain icekylinx's paired-cube framework, an664's shared cores,
+DaysSky, James Chang, Zhihao Chen, Swapnil Jain, RaD and the other predecessor
+contributions. The intermediate source527 record also credits Dugongue,
+Romyxen / sennemmi, Rohan and the other contributors recorded in its pinned
+notices. Superseded and parallel work keeps its credit; this composition does
+not import every numerical refinement from the source527 branch. Original
+commits, licenses and AI-assistance disclosures are preserved. Douglas Colkitt
+performed the maintainer review and integration with OpenAI Codex assistance.
+
+### Historical source527 checkpoint
+
+**eumemic's [#210](https://github.com/CrocSwap/integer-mult-bounds/pull/210),
+κ=0.000710046193349537**, is now preserved as a complete historical package,
+with its [review and reproduction record](docs/research/community-pr210-review.md).
+eumemic contributed internal response cancellation, source reuse, target
+transformations and the final composition. Its cumulative credits include
+Henry Grant / hcg890 and Jacob Sussman (five-stage geometry), Evan McKinney
+(completed banks), Rohan Arun (width-120 banking and helper refinements),
+Chafik Boukhalfa (physical helper/checkers), Avi Eisenberg (complex helper),
+Dugongue (coordinated frames and retiming), and Romyxen / sennemmi
+(nineteen operation-frame improvements), with the full predecessor chain
+retained in the original notices. Gabriele Nespoli's parallel fixed-prime
+and finite-depth refinement remains acknowledged in the published
+[round-nine ledger](research/community-round9-audit/INDEX.md).
+
+### Preceding coordinated-frame checkpoint
+
 **Current reviewed construction: #186 on #181 and #168, κ=0.000661885549259598.**
 The [round-eight review](docs/research/community-round8-review.md) and
 [bank scheduling supplement](research/community-round8-audit/BANK-SCHEDULE.md)
