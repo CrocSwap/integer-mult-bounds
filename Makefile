@@ -46,6 +46,14 @@ gen4-bank-verify: selected-record-check
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-gen4.XXXXXX"); \
 	python3 -B research/five-stage-gen4-banks/verify.py --output "$$work/replay"
 
+.PHONY: source527-record-check source527-verify
+source527-record-check:
+	python3 -B scripts/verify_selected_result.py --record certificates/checkpoints/source527.json
+
+source527-verify: source527-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-source527.XXXXXX"); \
+	python3 -B research/five-stage-source527-banks/verify.py --output "$$work/replay"
+
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
 	$(MAKE) climbed-48-verify
@@ -57,7 +65,7 @@ verify-producers:
 	$(MAKE) endpoint-gauge-producer endpoint-gauge-certificate
 	$(MAKE) partial-swap-producer partial-swap-certificate
 
-verify-certificates:
+verify-certificates: source527-record-check
 	python3 scripts/prime_field_network.py
 	python3 scripts/complex_network.py
 	python3 scripts/fast_gaussian.py

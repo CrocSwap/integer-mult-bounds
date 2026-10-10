@@ -23,6 +23,22 @@ not import every numerical refinement from the source527 branch. Original
 commits, licenses and AI-assistance disclosures are preserved. Douglas Colkitt
 performed the maintainer review and integration with OpenAI Codex assistance.
 
+### Historical source527 checkpoint
+
+**eumemic's [#210](https://github.com/CrocSwap/integer-mult-bounds/pull/210),
+κ=0.000710046193349537**, is now preserved as a complete historical package,
+with its [review and reproduction record](docs/research/community-pr210-review.md).
+eumemic contributed internal response cancellation, source reuse, target
+transformations and the final composition. Its cumulative credits include
+Henry Grant / hcg890 and Jacob Sussman (five-stage geometry), Evan McKinney
+(completed banks), Rohan Arun (width-120 banking and helper refinements),
+Chafik Boukhalfa (physical helper/checkers), Avi Eisenberg (complex helper),
+Dugongue (coordinated frames and retiming), and Romyxen / sennemmi
+(nineteen operation-frame improvements), with the full predecessor chain
+retained in the original notices. Gabriele Nespoli's parallel fixed-prime
+and finite-depth refinement remains acknowledged in the published
+[round-nine ledger](research/community-round9-audit/INDEX.md).
+
 ### Preceding coordinated-frame checkpoint
 
 **Current reviewed construction: #186 on #181 and #168, κ=0.000661885549259598.**
