@@ -37,6 +37,8 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  raw=load('portable527_descent_raw',package/'raw_ledger.py').rebind_descent(raw,physical_run['descent_census'])
  targetmod=load('portable527_target',package/'target_transform.py');physical_run=targetmod.run(physical_run,output_dir=output_dir)
  raw=targetmod.rebind(raw,physical_run['target_census'])
+ extrememod=load('portable527_extreme',package/'extreme_transform.py');physical_run=extrememod.run(physical_run,output_dir=output_dir)
+ raw=extrememod.rebind(raw,physical_run['extreme_census'])
  physical=physical_run['physical'];physical['source_head']=raw['source_head']
  assert physical['source_heads']==raw['source_aliases']and physical['independent_dirty_registers']==raw['physical_R']
  assert physical['paid_histogram']=={int(k):v for k,v in raw['one_stage_helper_histogram_including_copies'].items()}
