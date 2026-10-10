@@ -1,4 +1,4 @@
-# Logical and Functional Diagrams, Explanations, and Build Tools
+# Functional Architecture and Supporting References for PR #277
 
 This package documents the verified PR259-derived construction checkpoint in
 [PR #277](https://github.com/CrocSwap/integer-mult-bounds/pull/277).
@@ -10,17 +10,16 @@ The later PR266 result is stronger; this checkpoint's conditional exponent is
 
 ![Functional overview](summary-functional.svg)
 
-[Open the complete functional architecture](functional_architecture.pdf)
-
-![Logical/wiring overview](summary-logical.svg)
-
-[Open the complete logical/wiring document](logical_wiring.pdf)
+[Open the architecture reference PDF (51 pages; visual block-and-arrow views on pages 2–5)](functional_architecture.pdf)
 
 ## Read the diagrams
 
-Each PDF has contents, outline bookmarks, clickable block explanations,
-requirements, source anchors and cross-page references. The separate
-complete_system.pdf combines both views.
+The retained PDF has contents, outline bookmarks, clickable block explanations,
+requirements, source anchors and cross-page references. Pages 2–5 are visual
+block-and-arrow architecture views; pages 6–51 are supporting reference material.
+The rejected logical/wiring and combined PDFs and the logical preview have been
+removed from this public submission. Purpose-fit review of a short architecture
+extract is pending; no new extract is published yet.
 
 There are three deliberately separate layers:
 
@@ -45,7 +44,7 @@ cohorts; seven closed delayed-inverse intervals replacing five conflicting
 quartets; the same 25 PR258/PR260 retimings applied once. PR251's extra sixteen
 entrances are excluded. PR254 is ancestry, not an additional independent gain.
 
-## Rebuild PDF and SVG
+## Build tools and publication scope
 
 Use Python 3.11 or later. Install the pinned dependencies:
 
@@ -91,10 +90,11 @@ converter.
 
 ## What is regenerated
 
-The one command regenerates both PDF families, the combined PDF, two PR summary
-SVGs, linked per-page vector SVGs, source/requirement/connection indexes,
-hierarchy reconciliation, sanitized scientific reproduction facts and build
-receipts. Every diagram family consumes the same models.
+The retained build tools reproduce the previously reviewed documentation
+outputs locally from the same models. Public publication is limited to the
+functional architecture reference and functional overview. Other generated
+outputs are excluded from this PR. These tools and reference inventories do
+not claim that this submission supplies a wiring schematic.
 
 The incremental build records each page's actual vector drawing commands, then
 reuses only cache entries with matching schema, drawing plan, source/dependency
