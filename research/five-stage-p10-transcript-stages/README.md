@@ -1,9 +1,16 @@
-κ = 7.69198971896986e-4
+κ = 7.69553898621543e-4
 
 # The p = 10 bit word with the transcript stage stack
 
-A conditional finite construction with **κ = 384599485948493/(5·10¹⁷) ≈ 7.69198971896986 × 10⁻⁴**, +0.650% over
-#315 (7.64230861320245e-4). The bit supplier binds.
+A conditional finite construction with **κ = 769553898621543/10¹⁸ ≈ 7.69553898621543 × 10⁻⁴**, +0.697% over
+#315 (7.64230861320245e-4) and +0.046% over our #320 (7.69198971896986e-4). The bit supplier binds.
+
+Relative to #320 only the kernel selection changes: it is now a **shared-donor kernel** found by maximum-weight
+closure per entrance (`discovery/coll/closure_pack.py`), 1,047 entries of total entrance rank 1,200 instead of
+#320's 775-entry restart packing (rank 970). The idea of sharing donors across many high-cardinality entries is
+eumemic's #319 (90 shared-donor rank-one kernels appended after #317); here the closure is run before the kernel
+stage on the post-target word, over rank-one lines and exact rank 2–14 frame intersections, so it replaces the
+packing instead of appending to it. The kernel transform and every check are #320's.
 
 #315 (DreamingOfClouds) put the paired-cube bit word at cube size p = 10 (h = 20, v = 960, m = 100) into the gen5
 five-stage completed-bank pipeline, with no transcript stages. This package keeps #315's word, banks, complex
@@ -17,27 +24,28 @@ the p = 10 word:
 | #315 (no stages) | R 8,230, 1,270 entrances | 7.64230861320245e-4 | 7.64230861320245e-4 |
 | + descent (#287 rule) | 480 gates, −480 calls | 7.65146115390441e-4 | 7.65146115390441e-4 |
 | + target squares (#268/#287) | 120 groups | 7.65802240659923e-4 | 7.65802240659923e-4 |
-| + kernel entries (#272/#299/#300) | 775 entries (536 pairs, 239 families), rank 970 | 7.67751918266997e-4 | 7.67751918266997e-4 |
-| + early restorations (#280/#283) | 240 helpers | 7.68386813092527e-4 | 7.68386813092527e-4 |
-| + terminal sinks (#283) | 7 sinks, R → 8,223 | 7.68798619422518e-4 | 7.68798619422518e-4 |
-| + reorder (#299) | 133 moves | 7.69198971896986e-4 | **7.69198971896986e-4** |
+| + kernel entries, shared-donor closure (#272/#299, #319's shared donors) | 1,047 entries (1,015 distinct donors, up to 31 per entry, a donor in up to 30 entries), rank 1,200 | 7.68105513378630e-4 | 7.68105513378630e-4 |
+| + early restorations (#280/#283) | 240 helpers | 7.68740991856791e-4 | 7.68740991856791e-4 |
+| + terminal sinks (#283) | 7 sinks, R → 8,223 | 7.69153177272007e-4 | 7.69153177272007e-4 |
+| + reorder (#299) | 133 moves | 7.69553898621543e-4 | **7.69553898621543e-4** |
 
 The predictions come from the deficit-fixed φ ledger (the one-stage histogram delta of each frozen selection,
 ×5, normalized ×12, W = (mass + 12·2,040)/100, the bit-bound assembly of `math_check.py`), calibrated on #315's
 own ledger (it reproduces #315's κ exactly). The verified values are full `verify.replay` runs of the package
-truncated after each stage. A second descent and a second reorder round were searched and found nothing on this
-word, so they are not stages.
+truncated after each stage. A second descent, a second reorder round and a second shared-donor kernel round after
+the reorder (4 entries, φ −0.77; `kernel_transform.run(..., tag='kernel2')` supports it) were searched and found
+nothing worth a stage on this word.
 
 | one invocation | #315 | this package |
 | --- | ---: | ---: |
 | independent dirty registers R | 8,230 | **8,223** |
-| independent entrances | 1,270 (16, 17) | 2,045 (adds 775 kernel pivots of ranks 1–14) |
+| independent entrances | 1,270 (16, 17) | 2,317 (adds 1,047 kernel pivots of ranks 1–14) |
 | early-restored endpoints | 0 | 240 |
-| banks per stage / literal stock (60 replicas) | 86,526 / 663,030 | 85,716 / 658,980 |
-| bit coarse saving (certified root) | 7.64815357146385e-4 | **7.69791094751301e-4** |
+| banks per stage / literal stock (60 replicas) | 86,526 / 663,030 | 85,578 / 658,290 |
+| bit coarse saving (certified root) | 7.64815357146385e-4 | **7.70146568251934e-4** |
 | complex coarse saving (unchanged) | 7.72714351296671e-4 | 7.72714351296671e-4 |
-| binding side | bit | **bit** (root 0.38% below the complex leaf cap) |
-| κ | 7.64230861320245e-4 | **7.69198971896986e-4** |
+| binding side | bit | **bit** (root 0.33% below the complex leaf cap) |
+| κ | 7.64230861320245e-4 | **7.69553898621543e-4** |
 
 Run with Python 3.12 or newer, sympy 1.14.0 and assertions enabled:
 

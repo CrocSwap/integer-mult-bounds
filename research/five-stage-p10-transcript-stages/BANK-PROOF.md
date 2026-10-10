@@ -157,8 +157,8 @@ attribution remains unchanged.
 With the transcript stages (`STAGES-PROOF.md`) the banks hold more residual widths. The kernel pivots of rank e
 have residual 20 − e (widths 19, 18, 16, 15, 13, 12, 10, 7, 6 here), the 240 early-restored helpers have residual
 P_E − P_σ of rank 19 − 16 = 3, and the seven terminal sinks remove seven full-width helpers. The residual census
-(`residual_families` in `word-pins.json`) is {20: 6,178, 19: 709, 18: 41, 16: 9, 15: 3, 13: 1, 12: 3, 10: 7, 7: 1,
-6: 1, 4: 960, 3: 310}.
+(`residual_families` in `word-pins.json`) is {20: 5,906, 19: 1,007, 18: 20, 16: 5, 15: 3, 13: 1, 12: 3, 10: 6,
+7: 1, 6: 1, 4: 960, 3: 310}.
 
 #315's filler search fails on this census: it mixes every width that does not divide 100 with the most numerous
 filler first and needs six rank-4 blocks per four 19-wide pivots, and the 57,600 rank-4 blocks run out (the p = 12
@@ -168,10 +168,10 @@ the bank w^a F^c f^b with the fewest f blocks per w block (then the largest a), 
 (18⁴, 20, 4²), (16⁵, 20), (15⁴, 20²), (3²⁰, 20²), with at most one remainder bank per width; the leftover fillers
 fill (20⁵), (4²⁵) and residue banks (20^j, 4^k). The same post-conditions are asserted as before: every bank sums
 to m = 100 and every block is used exactly once, so there is no padding and the stock is the same as for any exact
-tiling: banks per stage = 60 · Σ residual / 100 = 85,716, literal stock 230,400 + 5 · 85,716 = 658,980. The
+tiling: banks per stage = 60 · Σ residual / 100 = 85,578, literal stock 230,400 + 5 · 85,578 = 658,290. The
 patterns are pinned (`bank_patterns`). The baseline word (no stages) still tiles by the original search.
 
 Restored helpers are charted by the pair (σ, E): the chart basis is (residual rows of P_E − P_σ, the basis of σ,
 the E-perp rows), checked to be G-orthogonal blocks and exactly inverted like the plain charts (`residual_rows` in
-`bank_check.py`). 769 charts are rebuilt; the completion rows carry the endpoint frame E and the completion rank
+`bank_check.py`). 759 charts are rebuilt; the completion rows carry the endpoint frame E and the completion rank
 5(a + h − dim E).

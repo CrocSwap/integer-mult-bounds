@@ -27,19 +27,31 @@ The mechanisms and checks are unchanged. The p = 12 literals were replaced:
 | --- | --- | --- | --- |
 | descent | `descent-selection.json` | concave frame retiming of ADD gates to frames on an operand chain (Rohan Arun, #287) | 480 gates, 480 calls removed, delta {1:−960, 2:+480, 16:−480, 17:+960, 18:−480} |
 | target | `target-selection.json` | target-prefix squares (eumemic #268/#273, used in #287) | 120 groups, delta {1:−120, 16:−120, 17:+120} |
-| kernel | `kernel-selection.json` | response-kernel entries: twin pairs (PR254/#268) and multi-donor families (#272), per-entry cuts, shared donors on nested chains, multi-seed restart packing (#300) | 775 entries (536 pairs, 239 families), total entrance rank 970 |
+| kernel | `kernel-selection.json` | response-kernel entries (PR254/#268 pairs, #272 multi-donor families, per-entry cuts), selected as a shared-donor kernel (#319's idea): maximum-weight closure per entrance over alternate response bases (`discovery/coll/closure_pack.py`) | 1,047 entries, total entrance rank 1,200 (ranks 1:1,007, 2:20, 4:5, 5:3, 7:1, 8:3, 10:6, 13:1, 14:1); 1,015 distinct donors, 1–31 donors per entry, a donor shared by up to 30 entries |
 | restore | `restore-selection.json` | early helper restoration (#280, endpoint-aware #283) | 240 helpers (16, 18, 18, 19), endpoint saving 240 |
 | sink | `sink-selection.json` | terminal sinks (#283 rule, #295 screen) | 7 sinks, delta {3:−7, 17:−7}, R 8,230 → 8,223 |
 | reorder | `reorder-selection.json` | reordering single additions into a neighbouring incidence frame (#299) | 133 moves, delta {2:+73, 3:−113, 4:+20, 17:−113, 18:+113} |
 
-The kernel packing excluded the seven helpers that the sink screen admits on the post-target word: on that word
-the screen finds 7 sinks, and an unrestricted packing consumes 3 of them as kernel members (φ −1,360.3 with 4 sinks
-left). The restricted packing (φ −1,355.95) keeps all 7, which is worth more (κ 7.68799e-4 against 7.68628e-4
-after the sink stage).
+**Shared-donor kernel.** For an entrance E (a nondegenerate rank-e subspace) let G_E be the plain helpers whose
+first frame contains E. A pivot p in G_E gains φ(d_p − e) − φ(d_p); a donor d pays φ(e) + φ(d_d − e) − φ(d_d)
+once, however many entries it serves at E (its path ZERO → E → first frame is the same for every entry). Choosing
+a response basis of G_E at a common cut point (all members read before it and untouched until after it), every
+dependent member is a candidate pivot whose donors are its basis representation; picking pivots and donors is then
+a maximum-weight closure (pivot → its donors), solved exactly by a minimum cut. The search tries several
+cost-ordered bases and cut points per entrance, over 24,203 rank-one lines and 10,541 exact pairwise frame
+intersections of rank 2–14, and accepts entrances greedily with helper exclusivity (randomised acceptance order,
+best of 16 seeds). The transform is #320's `kernel_transform.py` unchanged in mechanism (entries with any number of
+donors, a donor reused along a nested chain); the selection gives φ −1,601.47 against #320's packing −1,355.95.
+The seven helpers the sink screen admits are excluded (they are worth ≈ −40 φ each as sinks), and the total
+entrance rank is trimmed to a multiple of 5 for the width-100 banks. The restorations (240), sinks (7) and reorder
+(133) were re-derived on the new word with #320's builders and have the same deltas as in #320.
 
 Searched and empty on this word (not stages): a second concave descent (`discovery/descent2_search.py`, with the
 #291 constructed join/meet frames and #270 connected blocks) finds 0 gates after the sinks and 0 after the
-reorder; a second reorder round finds 0 moves.
+reorder; a second reorder round finds 0 moves; a second shared-donor kernel round after the reorder finds 4 entries
+(φ −0.77). #312's zero-response singles do not exist here (every plain helper has a nonzero response), and #309's
+local dirty-response transport has no positive closure (targets' next frames have rank 16–18 and admit at most one
+helper per entrance).
 
 ## What each stage checks
 
@@ -86,4 +98,4 @@ The deficit is fixed (4v − 5h(h − 2) = 2,040 per replica), so κ is a functi
 the five-stage profile without completions, normalized ×12, W = (mass + 12·2,040)/100. Each stage was predicted
 with this ledger from its frozen local delta before it was built, and verified by a full `verify.replay` of the
 package truncated after that stage (record mode). See `README.md` for the table. The total entrance rank plus
-the restoration saving must be a multiple of 5 for the width-100 banks to tile exactly (970 + 240 = 1,210).
+the restoration saving must be a multiple of 5 for the width-100 banks to tile exactly (1,200 + 240 = 1,440).

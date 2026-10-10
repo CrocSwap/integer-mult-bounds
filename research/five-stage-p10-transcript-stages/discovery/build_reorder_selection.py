@@ -18,7 +18,7 @@ TAG=sys.argv[1];rm=load('portable527_reorder',ROOT/'reorder_transform.py')
 # The stages before the reorder rounds, in portable_bit.STAGES order (the package's own stage list).
 STAGES=load('portable527_bitstages',ROOT/'portable_bit.py').STAGES;assert TAG in STAGES
 for st in STAGES[:STAGES.index(TAG)]:
-    run=rm.run(run,tag=st)if st.startswith('reorder')else load('portable527_'+st,ROOT/(st+'_transform.py')).run(run)
+    run=rm.run(run,tag=st)if st.startswith('reorder')else load('portable527_'+st,ROOT/'kernel_transform.py').run(run,tag=st)if st.startswith('kernel')else load('portable527_'+st,ROOT/(st+'_transform.py')).run(run)
 W,C=run['W'],run['C'];old=run['records'];v=W.v;n=2*v+len(run['context']['regs']);init=dict(run['initial_state']);final=dict(run['final_state'])
 cats=list(run['physical']['category_names']);ev=[tuple(old[k:k+6])for k in range(0,len(old),6)]
 phi=lambda r:r*math.log(100/r)if r else 0.0

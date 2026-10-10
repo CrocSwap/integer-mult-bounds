@@ -130,6 +130,10 @@ re-derived on this word. Credits, without implying review or endorsement:
 - **Kernel entries:** PR254's kernel pairs and eumemic's #268 kernel transform; the collective (multi-donor)
   families follow #272; per-entry cuts, shared donors and the collective census/packing are from our PR #282/#284/
   #290/#299 (Chafik Boukhalfa, Claude assistance); the multi-seed restart packing is Rohan Arun's PR #300.
+  The shared-donor selection (donors shared by many high-cardinality entries, alternate response bases,
+  maximum-weight closure) follows eumemic's PR #319 (OpenAI Codex assistance), read as a description only; the
+  closure search here (`discovery/coll/lines.py`, `planes.py`, `closure_pack.py`) is our own re-implementation
+  run before the kernel stage.
 - **Early restorations:** utcorvusvolat-dotcom, PR #280 (cleanup screen and emitter), with Dugongue's
   endpoint-aware composition in PR #283; ported to this pipeline in our PR #295.
 - **Terminal sinks:** Dugongue, PR #283; the stricter screen of our PR #295.

@@ -25,14 +25,14 @@ from word_pins import shape as _shape
 _S=_shape();_H=_S['h'];_V=_S['v'];_M=_S['m'];_CR=_S['center_rank'];_NC=_S['centers'];_SCAT=_S['scatter_reads'];_DEF=_S['deficit']
 sha=lambda b:hashlib.sha256(b).hexdigest()
 
-def transform(producer,selection):
+def transform(producer,selection,tag='kernel'):
     W,C=producer['W'],producer['C'];old=producer['records'];initial=dict(producer['initial_state']);context=producer['context'];v=W.v;n=2*v+len(context['regs']);ZERO=producer['ZERO'];FULL=producer['FULL']
     assert n==selection['n'] and v==selection['v']
     assert sha(old.tobytes())==selection['input_raw_sha256']
     assert producer['physical']['scalar_projection_sha256']==selection['input_scalar_sha256']
     cats=list(producer['physical']['category_names']);readcat=cats.index('dirty_read')
-    assert 'kernel_setup' not in cats and 'kernel_restore' not in cats
-    setupcat=len(cats);restorecat=setupcat+1;cats+=['kernel_setup','kernel_restore']
+    assert tag+'_setup' not in cats and tag+'_restore' not in cats
+    setupcat=len(cats);restorecat=setupcat+1;cats+=[tag+'_setup',tag+'_restore']
     final=dict(initial)
     for k in range(0,len(old),6):
         if old[k]==0:final[old[k+1]]=old[k+3]
@@ -156,10 +156,10 @@ def replay(records,n,v,reverse=False,omit_category=None):
     else:assert wrong,'vacuous kernel omitted-gate control'
     return dict(reverse=reverse,formal_columns=n,wrong_rows=len(wrong),all_sources_and_dirty_restored=not wrong,scalar_additions=count,coefficient_counts=dict(coeff),event_sha256=digest.hexdigest(),max_intermediate_row_l1=largest)
 
-def run(producer,output_dir=None,selection_path=None):
-    start=time.monotonic();W,C=producer['W'],producer['C'];path=Path(selection_path)if selection_path else HERE/'kernel-selection.json';selection=json.loads(path.read_text())
-    out,initial,final,entries,context,cats,proof,n,v=transform(producer,selection);ZERO=producer['ZERO'];FULL=producer['FULL']
-    forward=replay(out,n,v);inverse=replay(out,n,v,True);controls=[replay(out,n,v,omit_category=cats.index('kernel_setup')),replay(out,n,v,omit_category=cats.index('kernel_restore'))]
+def run(producer,output_dir=None,selection_path=None,tag='kernel'):
+    start=time.monotonic();W,C=producer['W'],producer['C'];path=Path(selection_path)if selection_path else HERE/(tag+'-selection.json');selection=json.loads(path.read_text())
+    out,initial,final,entries,context,cats,proof,n,v=transform(producer,selection,tag);ZERO=producer['ZERO'];FULL=producer['FULL']
+    forward=replay(out,n,v);inverse=replay(out,n,v,True);controls=[replay(out,n,v,omit_category=cats.index(tag+'_setup')),replay(out,n,v,omit_category=cats.index(tag+'_restore'))]
     needs={s:[]for s in initial};copies=Counter();temporary=None
     for k in range(0,len(out),6):
         op,a,b,c,f,z=out[k:k+6]
@@ -208,12 +208,14 @@ def run(producer,output_dir=None,selection_path=None):
         if isinstance(inventory,dict):inherited.update(row['frame_id']for row in inventory.get('used_frames',[]))
     sourceH=Counter();targetH=Counter();internalH=Counter(copies)
     for s,H in per_role.items():(sourceH if s<v else targetH if s<2*v else internalH).update(H)
-    receipt=dict(status='PASS_GEN4_PER_ENTRY_CUT_KERNEL_ON_ACTUAL_WORD_AND_BOTH_REFLECTED_LEDGERS',proof=proof,scalar=dict(forward=forward,inverse=inverse,controls=controls),selected_pairs=proof['kinds'].get('pair',0),selected_entries=len(entries),rank_drop=proof['total_entrance_rank'],local_histogram_delta=delta,unchanged_data_input_output_and_dirty_output_frames=True,unchanged_copy_lifetimes=True,both_reflected_ledgers=True,unique_required_frame_pairs=len(pairs),source_histogram=dict(sourceH),target_histogram=dict(targetH),internal_histogram_including_copies=dict(internalH),copied_center_histogram=dict(copies),input_raw_sha256=sha(producer['records'].tobytes()),output_raw_sha256=sha(out.tobytes()),selection_sha256=sha(path.read_bytes()),transform_sha256=sha(Path(__file__).read_bytes()),seconds=time.monotonic()-start)
-    meta=dict(producer['physical']);meta.update(status='PASS_PHYSICAL_GEN4_KERNEL_ENTRIES',scalar_projection_sha256=forward['event_sha256'],tagged_scalar_sha256=tagged.hexdigest(),weighted_scalar_events=count,coefficient_histogram=dict(coeff),categories=dict(cat),category_names=cats,copied_center_blocks=centers,paid_histogram=dict(sorted(hist.items())),paid_rank_mass=sum(r*c for r,c in hist.items()),positive_rank_moves=sum(hist.values())-_NC,used_frames=[dict(frame_id=f,dimension=C.dimf[f],basis_sha256=sha(json.dumps(C.B[f],separators=(',',':')).encode()))for f in sorted(used|inherited)],kernel_transform=receipt,initial_independent_entrances=dict(Counter(C.dimf[initial[s]]for s in range(2*v,n)if C.dimf[initial[s]])),producer_physical_emitter_sha256=producer['physical'].get('physical_emitter_sha256'),physical_emitter_sha256=receipt['transform_sha256'])
-    result=dict(producer);result.update(records=out,physical=meta,result=meta,kernel_census=receipt,initial_state=initial,context=context,W=context['W'],kernel_entrances=entries)
+    receipt=dict(status='PASS_GEN4_PER_ENTRY_CUT_KERNEL_ON_ACTUAL_WORD_AND_BOTH_REFLECTED_LEDGERS',tag=tag,proof=proof,scalar=dict(forward=forward,inverse=inverse,controls=controls),selected_pairs=proof['kinds'].get('pair',0),selected_entries=len(entries),rank_drop=proof['total_entrance_rank'],local_histogram_delta=delta,unchanged_data_input_output_and_dirty_output_frames=True,unchanged_copy_lifetimes=True,both_reflected_ledgers=True,unique_required_frame_pairs=len(pairs),source_histogram=dict(sourceH),target_histogram=dict(targetH),internal_histogram_including_copies=dict(internalH),copied_center_histogram=dict(copies),input_raw_sha256=sha(producer['records'].tobytes()),output_raw_sha256=sha(out.tobytes()),selection_sha256=sha(path.read_bytes()),transform_sha256=sha(Path(__file__).read_bytes()),seconds=time.monotonic()-start)
+    meta=dict(producer['physical']);meta.update(status='PASS_PHYSICAL_GEN4_KERNEL_ENTRIES',scalar_projection_sha256=forward['event_sha256'],tagged_scalar_sha256=tagged.hexdigest(),weighted_scalar_events=count,coefficient_histogram=dict(coeff),categories=dict(cat),category_names=cats,copied_center_blocks=centers,paid_histogram=dict(sorted(hist.items())),paid_rank_mass=sum(r*c for r,c in hist.items()),positive_rank_moves=sum(hist.values())-_NC,used_frames=[dict(frame_id=f,dimension=C.dimf[f],basis_sha256=sha(json.dumps(C.B[f],separators=(',',':')).encode()))for f in sorted(used|inherited)],**{tag+'_transform':receipt},initial_independent_entrances=dict(Counter(C.dimf[initial[s]]for s in range(2*v,n)if C.dimf[initial[s]])),producer_physical_emitter_sha256=producer['physical'].get('physical_emitter_sha256'),physical_emitter_sha256=receipt['transform_sha256'])
+    # A later kernel round (tag kernel2, ...) appends its entrances to the earlier rounds' list.
+    result=dict(producer);result.update(records=out,physical=meta,result=meta,initial_state=initial,context=context,W=context['W'],kernel_entrances=list(producer.get('kernel_entrances',[]))+entries)
+    result[tag+'_census']=receipt
     if output_dir is not None:
-        p=Path(output_dir);p.mkdir(parents=True,exist_ok=True);(p/'kernel-records.bin.gz').write_bytes(gzip.compress(out.tobytes(),mtime=0))
-        for name,value in [('kernel',receipt),('kernel-initial',initial),('kernel-entrances',[{k:v for k,v in e.items()if k!='prefix_response_targets'}for e in entries])]:
+        p=Path(output_dir);p.mkdir(parents=True,exist_ok=True);(p/(tag+'-records.bin.gz')).write_bytes(gzip.compress(out.tobytes(),mtime=0))
+        for name,value in [(tag,receipt),(tag+'-initial',initial),(tag+'-entrances',[{k:v for k,v in e.items()if k!='prefix_response_targets'}for e in entries])]:
             (p/(name+'.json')).write_text(json.dumps(value,indent=2)+'\n')
-    print('PASS kernel entries',len(entries),dict(proof['kinds']),'rank',proof['total_entrance_rank'],count,'scalar ADDs',sum(hist.values()),'paid calls',len(out)//6,'records',flush=True)
+    print('PASS',tag,'entries',len(entries),dict(proof['kinds']),'rank',proof['total_entrance_rank'],count,'scalar ADDs',sum(hist.values()),'paid calls',len(out)//6,'records',flush=True)
     return result
