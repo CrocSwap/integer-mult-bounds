@@ -44,5 +44,14 @@ jobs:
         run: python -m pip install -r build/pinned-pr272/research/filtered-kernel-target120/requirements.txt
       - name: Fresh baseline, target restores and complete exact checks
         run: python -B research/zero-frame-target-restores/verify.py --base build/pinned-pr272/research/filtered-kernel-target120 --cleanup-base build/pinned-pr271/research/cleanup-sandwich-272 --output /tmp/zero-frame-restores-replay
+      - name: Show nested verifier diagnostics on failure
+        if: failure()
+        run: |
+          python - <<'PYDIAG'
+          from pathlib import Path
+          for path in sorted(Path('/tmp/zero-frame-restores-replay').rglob('*.log')):
+              print('\n---', path, '---')
+              print('\n'.join(path.read_text(errors='replace').splitlines()[-40:]))
+          PYDIAG
       - name: Require unchanged tracked artifacts
         run: git diff --exit-code
