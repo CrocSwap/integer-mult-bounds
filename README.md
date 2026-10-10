@@ -405,6 +405,24 @@ scoped negative results and reproducible certificates.
 | [complex-compression-31](patches/complex-compression-31.patch) | `2^-31` | Weighted complex circuits, binary phase frames and complete auxiliary sharing |
 | **[ternary-30](patches/ternary-30.patch)** | **`2^-30`** | **Ternary five-subset circuit, rational frames and fixed-alphabet interchange** |
 
+## Preserved aligned paired refinement
+
+The [aligned paired construction](docs/research/aligned-paired-network.md)
+refines the earlier `2^-59` paired witness. At `h=50`, it removes 14,944 binary
+additions, reducing side roles from 509,194 to 494,250 with the same absolute
+rank deficit. Its independent conditional target is `17*2^-63`, using the
+earlier retained parameter recipe. It does not replace the newer checkpoint
+above, and its counts and analytic interfaces must not be combined with the
+newer constructions without a separate argument.
+
+The [exact certificate](certificates/aligned-paired-network.json),
+[independent manuscript patch](patches/h50-aligned-paired.patch),
+[proof note](artifacts/aligned-paired-note.pdf) and
+[focused review packet](docs/research/aligned-paired-review.md)
+([PDF](artifacts/aligned-paired-review.pdf)) remain available. Independent
+review of its frame/rank transfer, dirty-scratch restoration, fixed-tape
+recurrence and retained downstream interfaces remains pending.
+
 ## Citation and license
 
 The [independent rank-first pair verification](research/ranked-pair-verification/README.md)

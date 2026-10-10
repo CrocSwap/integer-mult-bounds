@@ -1,0 +1,219 @@
+\documentclass[10pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb}
+\usepackage[margin=0.8in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=*}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\newcommand{\src}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\repo}{https://github.com/Bortlesboat/integer-mult-bounds/blob/research/paired-circuit-improvement}
+\begin{document}
+\begin{center}
+{\Large Focused review of the aligned paired circuit}\\[4pt]
+Andrew Barnes\quad October 7, 2026
+\end{center}
+\textbf{Status: review requested; no external assessment recorded.}
+This packet builds on Douglas Colkitt's paired construction and OpenAI's
+\emph{Integer multiplication below $n\log n$}. The complete upstream theorem
+remains assumed. Pinned manuscript commit:\\
+\src{adc7f1241b42e322a6451854ab7e4b4c146bf78a}.\\
+Original aligned contribution in
+\href{https://github.com/CrocSwap/integer-mult-bounds/pull/2}{PR \#2}:\\
+\src{a961c43eecacb72929021936798dc049771f8536}.
+
+\textbf{Finite claim F.} For formal inputs $x_S$ indexed by three-element
+subsets of $\{0,\ldots,49\}$, every three-element target $T$ and $i\in T$ has
+\[
+ y_{i,T}=\sum_{S\cap T=\{i\}}x_S.
+\]
+The graph uses 435,450 binary additions with disjoint supports and 58,800 partial
+outputs: 14,944 fewer additions than the preceding paired graph. Summing the
+three outputs for $T$ gives the intersection-one map. These finite identities
+and counts are independently reproducible.
+
+\textbf{Conditional consequence C.} Assume the retained embedding and motif
+argument realize the stated finite shear contract, the power-width and
+arbitrary-width interchange procedures have their claimed uniform fixed-tape
+costs, and the retained layer, stopped-guard, resampling, transform, precision
+and assembly interfaces apply. Then
+\[
+ T(n)=O\bigl(n(\log n)^{1-17\cdot2^{-63}}\bigr).
+\]
+The machine has a fixed finite alphabet and a fixed finite number of
+one-dimensional tapes. The network is fixed independently of $n$.
+No worldwide priority or practical speedup is established here.
+
+\textbf{Construction and local frames.} For common point $i$, order the other
+points increasingly except for $i\mathbin{\oplus}1$, which goes last. Relabel
+inputs and outputs of the unchanged weighted paired circuit (9,813 additions,
+1,176 outputs). Complete root pairs agree across groups. Intern equal fixed-pair
+star supports, retain the first decomposition, prune and recompile physical roles.
+
+For node support $A$, let $U_A$ span its source indicators in the rational form
+$B=I-J/9$ on $\mathbb Q^{50}$. The sources share a point $i$, so
+\[
+ \sum_j u_j=3u_i,\qquad u^TBu=\sum_{j\ne i}u_j^2\quad(u\in U_A).
+\]
+Zero forces $u=0$. Thus $U_A$ is positive definite, and $U_A^\perp$ is
+nondegenerate because the ambient form is nondegenerate ($50\ne9$).
+At an output $1_S^TB1_T=|S\cap T|-1=0$. Support inclusion nests forward spans;
+orthogonal complements reverse inclusions for the backward graph. These local
+premises do not by themselves prove the entire tensor/motif transfer.
+
+Gather/fanout compilation has $2C+Q$ outgoing uses and reuses one incoming role
+per addition, giving $R=C+Q=494250$ side roles. The retained schedule cancels
+$JLz$ and $JL(z+Vx)$ for arbitrary initial scratch $z$, leaving $JLVx$ and
+restoring scratch. Here $L,V,J$ denote mixers, source copy and output injection.
+\textbf{R1:} check the full forward/reverse schedule, tensor frames,
+first/third-stage matching and every role's endpoint. The negative X-source
+correction adds $N$ ranks. Asserted counts:
+\[
+\begin{gathered}
+ h=50,\quad v=19600,\quad N=v^3,\quad m=125000,\quad L_{\rm loss}=3v^2h^2,\\
+ W=2N+2v^2(R+h)=394839648000000,\\
+ s=Wm-N+2L_{\rm loss}=49354954232864000000,\\
+ D=Wm-s=1767136000000,\qquad\eta=D/(Wm)=23/642375000.
+\end{gathered}
+\]
+
+\newpage
+\begin{center}{\large R2: circuit to fixed-tape recurrence}\end{center}
+The required contract routes every scalar input by a permutation $\rho$ of
+all $W$ roles, including arbitrary scratch. Each gate has one common rational
+$m\times m$ matrix $M$; its edge matrices satisfy
+\[
+\begin{gathered}
+ M_{\rm out(\rho(w))}-M_{\rm in(w)}=I_m\quad(1\le w\le W),\\
+ s=\sum_e\operatorname{rank}_{\mathbb Q}
+ (M_{\rm head(e)}-M_{\rm tail(e)})<Wm.
+\end{gathered}
+\]
+This is \src{eq:finite-shear-contract} in \src{04-swap.tex}. A correct sum
+circuit alone does not imply the contract.
+
+\textbf{Logical volume.} In \src{prop:power-interchange}, width $e=m^k$ has a
+preceding row count divisible by $W^k$. Cyclic splitting creates $W$ role
+streams of the same remaining shape, each with logical volume $V_{\rm log}/W$
+and row count divisible by $W^{k-1}$. By \src{lem:matrix-shear}, each edge shear
+uses exactly its rational rank in recursive pivot interchanges. Every spectator
+range remains present. One fixed prime avoids the finite rational table's
+denominators and invertible-factor diagonal numerators.
+
+\textbf{Uniform node bound to audit.} There must be exactly $s$ child calls
+on volume $V_{\rm log}/W$, with at most $C_0V_{\rm log}$ other tape steps.
+$C_0$ may depend on the fixed network and prime, but not on depth, field lengths
+or data. The existing proof reserves $W$ role tapes, fixed I/O/work tapes, and
+parking and descriptor stacks. It parks inactive streams, copies the active
+stream to child I/O, erases current parent work and pushes its descriptor. On
+return, streams are restored from the stack top without traversing ancestors.
+Charge every copy, erasure and head movement. A fixed tape count can be huge.
+
+\textbf{Descriptors and one-bit payloads.} The pinned proof includes both a
+parking schedule and a descriptor argument. At depth $j$ of root width
+$e_0=m^{k_0}$, all original chunk ranges remain as targets or spectators:
+\[
+ V_j=V_0/W^j\ge q^{2e_0},\qquad
+ j\log W\le(\log_m e_0)\log W=O(e_0),\qquad
+ \log V_0=O(\log(2V_j)).
+\]
+The child keeps its two targets and collapses consecutive spectators into a
+bounded number of intervals. Its descriptor processing has fixed polynomial
+cost in $\log(2V_0)$, absorbable in $O(V_j)$. Check every allowed shape and that
+cleanup stays within the current call's extent. The question is the validity
+of this existing argument, not the absence of a schedule.
+
+\textbf{Conditional recurrence.} Under that uniform node bound, time divided
+by logical volume satisfies
+\[
+ F_0=O(1),\qquad F_k\le(s/W)F_{k-1}+C_0.
+\]
+The exact enclosure gives $\log m<11737/1000$ and $\eta>a(11737/1000)$ with
+$a=305/10^{11}$. Therefore
+\[
+ 1-\eta<\exp(-a\log m),\qquad s/W<m^{1-a},
+\]
+and the geometric recurrence gives $O(V_{\rm log}e^{1-a})$.
+\src{lem:chunk-swap} must preserve this exponent when removing row/width
+restrictions, including padding and cleanup. A fixed number $s$ of parking
+operations fits in $C_0$; using total workspace as the child's logical volume
+loses the claimed coefficient $s/W$.
+
+\textbf{Requested assessment.} An expert uninvolved in the original
+construction or audit should examine this uniform bound, complete address
+ranges, spectator compression, stack discipline and primitive stream costs.
+Finite coefficient and dirty-scratch tests do not prove the machine time bound.
+
+\newpage
+\begin{center}{\large R3: downstream implication and verification}\end{center}
+Retain $a_c=1/10^{11}$, $\beta=999/1000$, $\epsilon=199/1000$,
+$\delta=1/10000$, $C_1=2$. Set
+\[
+ \tau=1-a,\quad\sigma=1-a_c,\quad c=\beta a,\quad
+ \lambda=1-(1+\beta)a^2/2,\quad\lambda'=1-\beta a^2.
+\]
+The stopped guard uses the unchanged complex motif. The Gaussian width is
+$\alpha=\lceil(32db)^{1/4}\rceil$, with cutoff $b\ge2^{40}$.
+The exact certificate checks 30 strict inequalities and all seven margins:
+\[
+ G=\epsilon\beta a^2=
+ \frac{739738521}{400000000000000000000000000}>17\cdot2^{-63}.
+\]
+\textbf{R3:} verify that these inequalities match actual retained algorithmic
+hypotheses and costs. Strict rational margins absorb fixed logarithmic factors
+after the cost, transform, precision and rounding contracts are justified.
+
+\textbf{Dependency map.} LaTeX anchors are in the unchanged pinned source under
+\src{upstream/build/sections/}; the aligned patch supplies revised parameters.
+\begingroup\small\raggedright
+\begin{itemize}
+\item \textbf{F:} \src{scripts/aligned_paired_network.py},
+\src{scripts/shared_point_circuit.py}; complete coefficient oracle in
+\src{tests/test_aligned_paired_network.py}.
+\item \textbf{R1:} \src{03-motifs.tex}:
+\src{eq:motif-schedule}, \src{eq:common-frame-identity},
+\src{prop:bit-motif-interface}; shared-computation and complement refinement
+proofs in \src{docs/research/}.
+\item \textbf{R2:} \src{04-swap.tex}:
+\src{lem:matrix-shear}, \src{eq:finite-shear-contract},
+\src{prop:power-interchange}, \src{eq:swap-recurrence}, \src{lem:chunk-swap};
+\src{02-streams.tex}: \src{lem:elementary-streams},
+\src{lem:ordered-affine-streams}.
+\item \textbf{R3:} \src{05-layers.tex}: \src{prop:simultaneous-layer};
+paired stopped-guard/Gaussian audit; \src{07-resampling.tex}:
+\src{lem:no-sort-resampling}, \src{lem:tensor-resampling};
+\src{08-assembly.tex}: \src{eq:sizes}, \src{eq:final-error},
+\src{tab:costs}, \src{eq:margin-list}.
+\end{itemize}
+\endgroup
+
+\textbf{Reproduce the finite evidence.} From the repository root, with Python 3
+and Git (enter the first command on one line in PowerShell):
+{\small
+\begin{verbatim}
+python -m unittest discover -s tests \
+    -p test_aligned_paired_network.py -v
+python scripts/aligned_paired_network.py
+git diff --exit-code -- certificates/aligned-paired-network.json
+git apply --check --directory=upstream patches/h50-aligned-paired.patch
+\end{verbatim}
+}
+Do not use Python's \src{-O}; several checks use assertions. The six tests cover
+every full-size DAG coefficient in 1,024-input chunks without \src{support_in}
+or compressed provenance; small complete forward/reverse dirty-input basis
+vectors; both frame directions; and three-stage bank exchange. The certificate
+separately checks production provenance, symbolic inclusions, counts and exact
+rational parameters. Run \src{make verify} for all regressions and historical
+patch checks. These commands do not prove uniform machine costs.
+
+\textbf{Response requested.} Report separately on R1, R2 and R3: reviewed
+commit, source anchor, argument or counterexample, and unreviewed prerequisites.
+Accept a bounded obligation with justification, reject it with a concrete
+failure/repair, or name an unresolved prerequisite. Finite graph approval alone
+closes neither R2 nor R3. The complete theorem remains conditional.
+
+\href{\repo/docs/research/aligned-paired-review.md}{Full packet and source links}
+\quad\href{\repo/certificates/aligned-paired-network.json}{Exact certificate}
+\quad\href{https://github.com/CrocSwap/integer-mult-bounds/pull/2}{PR \#2}
+\end{document}

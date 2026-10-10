@@ -1,0 +1,898 @@
+--- a/build/main.tex
++++ b/build/main.tex
+@@ -27,7 +27,7 @@
+ \begin{abstract}
+ We give a deterministic algorithm that multiplies two $n$-bit integers
+ in $O(n(\lg n)^{1-\kappa})$ worst-case time, with
+-$\kappa=2^{-182}$, on one fixed finite-alphabet Turing machine with a
++$\kappa=17\cdot2^{-63}$, on one fixed finite-alphabet Turing machine with a
+ fixed finite number of one-dimensional tapes. The algorithm is exact
+ for every input length and disproves the $n\log n$ optimality conjecture
+ of Sch\"onhage and Strassen in this model.
+--- a/build/sections/00-introduction.tex
++++ b/build/sections/00-introduction.tex
+@@ -25,7 +25,7 @@
+ inputs. Its worst-case running time satisfies
+ \[
+  T_A(n)=O\!\left(n(\lg n)^{1-\kappa}\right),
+- \qquad \kappa=2^{-182}.
++ \qquad \kappa=17\cdot2^{-63}.
+ \]
+ \end{theorem}
+ 
+--- a/build/sections/08-assembly.tex
++++ b/build/sections/08-assembly.tex
+@@ -16,35 +16,31 @@
+ \subsection{A fixed rational choice}
+ 
+ The two motif exponents were fixed in \eqref{eq:explicit-motif-exponents}.
+-Take the following fixed rational numbers:
++Put $a=305/10^{11}$ and $a_{\rm c}=1/10^{11}$. Take
+ \begin{equation}\label{eq:fixed-parameters}
+ \begin{gathered}
+- \tau=\sigma=1-2^{-50},\qquad \beta=\frac12,\qquad \delta=\frac1{16},\\
+- \lambda=1-2^{-52},\qquad c=2^{-56},\qquad
+- \lambda'=1-2^{-54},\\
+- C_1=20,\qquad \epsilon=2^{-75},\qquad \kappa=2^{-182}.
++ \tau=1-a,\quad\sigma=1-a_{\rm c},\quad\beta=\frac{999}{1000},
++ \quad\delta=\frac1{10000},\quad C_1=2,\\
++ \epsilon=\frac{199}{1000},\quad c=\frac{999a}{1000},\quad
++ \lambda=1-\frac{1999a^2}{2000},\quad
++ \lambda'=1-\frac{999a^2}{1000},\quad\kappa=17\cdot2^{-63}.
+ \end{gathered}
+ \end{equation}
+-These constants are deliberately conservative; no optimization is claimed.
+-
+-The layer conditions hold with room to spare:
+-\[
+- \max\{\tau,\sigma\}<\lambda<1,\qquad
+- \tau(1+c/\beta)<1-31\cdot2^{-55}<\lambda,
+-\]
+-and
+-\[
+- \sigma+\beta(1-\sigma)=1-2^{-51}<\lambda<\lambda'<1.
+-\]
+-The strict final inequality absorbs the logarithmic number of groups in
+-a base-$m$ partition.  The dimension exponent also satisfies
+-\[
+-\begin{gathered}
+- \epsilon<\frac1{12},\quad \epsilon C_1<1,\quad
+- \epsilon(2-\tau)<1-\tau,\quad
+- \frac34+\delta+\frac32\epsilon<1,\\
+- \epsilon(1+c)<1,\qquad \epsilon+\delta<1.
+-\end{gathered}
++The layer conditions follow by exact comparison:
++\[
++ \tau(1+c/\beta)=1-a^2<\lambda<\lambda'<1,\qquad
++ \sigma<\lambda,\qquad \sigma+\beta(1-\sigma)<\lambda'.
++\]
++The rational stopping test is $e^{1000}<d^{999}$.
++Section~\ref{sec:stopped-guard} justifies $C_1=2$ for this stopping rule.
++The tighter Gaussian choice below replaces the former sufficient restriction
++$\epsilon<1/12$ by the sublinear-scaling condition $\epsilon<1/3$.
++The dimension and cost comparisons are
++\[
++ \epsilon<\frac13,\quad 2\epsilon<1,\quad
++ \epsilon(1-\tau)<1-\tau,\quad
++ \frac34+\delta+\frac54\epsilon<1,\quad
++ \epsilon(1+c)<1,\quad \epsilon+\delta<1.
+ \]
+ 
+ \subsection{Input and transform sizes}
+@@ -100,17 +96,17 @@
+ 
+ Set
+ \[
+- \alpha=\left\lceil(12d^2b)^{1/4}\right\rceil,
++ \alpha=\left\lceil(32db)^{1/4}\right\rceil,
+  \qquad \gamma=2d\alpha^2,\qquad \eta=\frac1{4d}.
+ \]
+ The ceiling does not affect the needed bounds: for $A\ge1$,
+ $\lceil A\rceil\le2A$, and hence
+ \begin{equation}\label{eq:gamma}
+- \alpha\le2(12d^2b)^{1/4},\qquad
+- \gamma<28d^2\sqrt b\le28b^{1/2+2\epsilon}\le28b^{2/3}.
++ \alpha\le2(32db)^{1/4},\qquad
++ \gamma<46d^{3/2}\sqrt b\le46b^{1/2+3\epsilon/2}=46b^{1597/2000}.
+ \end{equation}
+ It follows that $2\le\alpha<\sqrt p$ eventually and $\gamma=o(b)$.
+-For example $b\ge2^{24}$ implies $\gamma\le b/4$.
++For example $b\ge2^{40}$ implies $\gamma\le b/4$.
+ 
+ \subsubsection{Prime source lengths}
+ 
+@@ -158,10 +154,10 @@
+ Writing $\theta_i=t_i/s_i-1$, the upper bound on $s_i$ gives
+ $\theta_i\geq\eta/(1-\eta)>\eta$. Therefore
+ \[
+- \alpha^4\theta_i>\frac{12d^2b}{4d}=3db\geq6b=p.
++ \alpha^4\theta_i>\frac{32db}{4d}=8b>6b=p.
+ \]
+ The choice of $\alpha$ gives
+-$\alpha=\Theta(p^{1/4+\epsilon/2})$, and \eqref{eq:gamma} already
++$\alpha=\Theta(p^{1/4+\epsilon/4})$, and \eqref{eq:gamma} already
+ ensures $2\leq\alpha<\sqrt p$ for large $n$. We also have
+ $t_i\leq r\leq T<8n/b<2^{6b}=2^p$.
+ Thus every hypothesis of Lemma~\ref{lem:no-sort-resampling} holds for
+@@ -184,8 +180,8 @@
+ All remaining scalar setup, including comparisons for fixed rational
+ powers, modular inverses,
+ prime products and shape descriptors, has cost polynomial in $p$.
+-For example, $d=\lfloor b^{2^{-75}}\rfloor$ is found by binary search
+-using exact comparisons $d^{2^{75}}\le b$; the exponent is fixed.
++For example, $d=\lfloor b^{199/1000}\rfloor$ is found by binary search
++using exact comparisons $d^{1000}\le b^{199}$; the exponent is fixed.
+ The same procedure computes $K$ and all other fixed rational powers.
+ All primes and length parameters are therefore generated by the machine;
+ they are not advice.
+@@ -292,15 +288,28 @@
+ offsets therefore cost $O(dTp^C/r)=o(Tp)$ to prepare, since
+ $t_i\ge r/2$ and $r$ exceeds every fixed power of $p$.
+ 
+-The axis widths are $\ell$ or $\ell-1$.  To exchange two adjacent axes
+-of unequal width, move the longer axis's leading bit outside their
+-equal-width pair, swap that pair by the proved chunk-swap procedure,
+-and put the leading bit at its new position.  This adds a fixed number
+-of linear passes to the equal-width swap cost.  Reversing all axes
+-uses $O(d^2)$ such moves.  Therefore the map $\Phi$, its inverse, and
+-their padding operations cost
+-\[
+- O\bigl(Tp\,d^2(1+\ell^\tau)\bigr).
++The axis widths are $\ell$ or $\ell-1$. Reverse the axis order by
++interchanging physical positions $j$ and $d+1-j$ for
++$j=1,\ldots,\lfloor d/2\rfloor$. Every pair is disjoint, so this uses
++$\lfloor d/2\rfloor$ full-field interchanges, not a sequence of adjacent moves.
++Each is covered by Lemma~\ref{lem:chunk-swap} and its subsequent one-bit-width
++extension, with all intervening fields collapsed into its spectator gap.
++Its cost is $O(Tp(1+\ell^\tau))$. Keep each axis name and width attached
++to that field in the descriptor. The final order is exactly
++$(a_1,\ldots,a_d)$, as required by the triangular updates above. Their target
++order and their requirement that controls precede targets are unchanged.
++The inverse uses the reversed interchange schedule after recovering the digits.
++
++The completed reversal and its inverse preserve complete records and their
++internal bit order. Padding is inserted before the forward reversal and
++removed only after the inverse reversal, so the insertion/deletion enumeration
++is unchanged. Since $d\le\log_2T$, the named-axis list and all collapsed
++lengths have polynomial length in $\log(2Tp)$. Each call descriptor can thus
++be prepared in $\operatorname{poly}(\log(2Tp))=O(Tp)$ time. The $d$ controlled
++rotations and the padding scans cost $O(dTp)$ as above. Therefore $\Phi$,
++its inverse, and their padding operations cost
++\[
++ O\bigl(Tp\,d(1+\ell^\tau)\bigr).
+ \]
+ This construction describes payload movement from address $a$ to its
+ new address.  It is distinct from the operator convention
+@@ -558,7 +567,7 @@
+ \subsection{Precision and exact recovery}
+ 
+ Proposition~\ref{prop:simultaneous-layer} uses
+-$C_1=20$, so $\epsilon C_1<1$ makes its coefficient width $O(p)$.
++$C_1=2$, so $\epsilon C_1<1$ makes its coefficient width $O(p)$.
+ Lemma~\ref{lem:synthetic-transform-cost} therefore applies to every
+ synthetic transform here, with error less than
+ $\sqrt2\ell\,2^{-p}<L2^{-p}$, where $L=\log_2T$, for all
+@@ -670,7 +679,7 @@
+ Conjugation preserves the grid and norm, so the opposite procedure
+ has the same error and disk guarantee.
+ All these margins may be enforced by one fixed cutoff.  For example,
+-$b\ge2^{24}$, together with the other eventual construction conditions,
++$b\ge2^{40}$, together with the other eventual construction conditions,
+ makes $dp^2h_p$, $8TLh_p$, $E_sh_p$ and
+ $28\,2^\gamma T^2Lh_p$ smaller than $10^{-3}$.
+ 
+@@ -834,8 +843,8 @@
+ Prefix-slot moves and individual butterfly rounds & $dK$ & $\epsilon(1+c)$\\
+ Chunk exchanges for transform layout & $pK^{\tau-1}$ & $1-\epsilon c(1-\tau)$\\
+ Simultaneous butterfly rounds & $\ell d^{\lambda'}$ & $1-\epsilon(1-\lambda')$\\
+-CRT and axis layouts & $d^2(1+\ell^\tau)$ & $\tau+\epsilon(2-\tau)$\\
+-Gaussian line maps & $dp^{1/2+\delta}\alpha$ & $3/4+\delta+3\epsilon/2$\\
++CRT and axis layouts & $d(1+\ell^\tau)$ & $\tau+\epsilon(1-\tau)$\\
++Gaussian line maps & $dp^{1/2+\delta}\alpha$ & $3/4+\delta+5\epsilon/4$\\
+ Chirps, twists and scalar products & $dp^\delta$ & $\epsilon+\delta$\\
+ Packed polynomial products & $\log(rp)$ & $1-\epsilon$\\
+ Final scaling and rounding & $p^\delta$ & absorbed above\\
+@@ -853,20 +862,27 @@
+  g_1&=1-\epsilon(1+c),\qquad
+  g_2=\epsilon c(1-\tau),\qquad
+  g_3=\epsilon(1-\lambda'),\\
+- g_4&=1-\tau-\epsilon(2-\tau),\qquad
+- g_5=1/4-\delta-3\epsilon/2,\\
++ g_4&=(1-\tau)(1-\epsilon),\qquad
++ g_5=1/4-\delta-5\epsilon/4,\\
+  g_6&=1-\delta-\epsilon,\qquad g_7=\epsilon.
+ \end{split}
+ \end{equation}
+-Direct substitution gives
+-\[
+- g_1>\frac12,\quad g_2=2^{-181},\quad g_3=2^{-129},\quad
+- g_4>2^{-51},\quad g_5>\frac18,\quad g_6>\frac12,\quad g_7=2^{-75}.
+-\]
+-Thus $\min_i g_i=2^{-181}=2\kappa$.  This explicit slack will cover
+-any remaining fixed power of $\log p$.
+-
+-Here $d^2$ is absorbed by $d^2\ell^\tau$, and
++Exact substitution, using the new Gaussian width and the nonadjacent
++layout bound, gives
++\[
++ G:=\min_i g_i=g_2=g_3=\epsilon\beta a^2
++ =\frac{739738521}{400000000000000000000000000}>17\cdot2^{-63}=\kappa.
++\]
++The Gaussian margin is $g_5=23/20000$; the other margins are positive
++and exceed $G$. Put $\rho=G-\kappa>0$. This strict gap absorbs every
++remaining fixed power of $\log p$.
++The guard is $O(d^2)=O(p^{199/500})=o(p)$, while
++$\alpha=\Theta(p^{1199/4000})$ and $\gamma=O(p^{1597/2000})=o(p)$.
++Also $K=\Theta(p^{\epsilon c})=o(\ell)$ with $K/\log p\to\infty$,
++and $\ell=\Theta(p^{801/1000})$. The prime-interval ratio grows as
++$p^{301/500}$. All eventual construction and precision conditions still hold.
++
++Here $d$ is absorbed by $d\ell^\tau$, and
+ $\log(rp)=O(p^{1-\epsilon}+\log p)=O(p^{1-\epsilon})$.
+ The first three rows are the terms in
+ \eqref{eq:synthetic-transform-cost}. The prefix-slot moves and
+@@ -883,9 +899,12 @@
+ deterministic repair, row padding and removal, all base-$m$ groups,
+ and fixed-tape cleanup.
+ 
+-Axis exposure and restoration require $O(d^2)$ adjacent axis moves.
+-Each costs $O(V(1+\ell^\tau))$: peel a single excess bit when widths
+-differ by one, exchange their equal-width parts, and restore the bit.
++Axis exposure and restoration require $O(d)$ nonadjacent full-field
++interchanges by Lemma~\ref{lem:tensor-resampling}; the CRT reversal also
++uses $O(d)$ such interchanges. Each costs $O(V(1+\ell^\tau))$, using the
++arbitrary spectator gap and the one-bit-width extension of
++Lemma~\ref{lem:chunk-swap}. Thus this row has exponent
++$\epsilon+\tau(1-\epsilon)$ rather than $2\epsilon+\tau(1-\epsilon)$.
+ The $d$ CRT rotations copy valid and invalid intervals in $O(dV)$ time.
+ Their offset setup was bounded above by $O(dTp^C/r)=o(Tp)$,
+ using at most $T/t_i$ control prefixes for target $i$.
+@@ -898,7 +917,7 @@
+  =O(dTp^{3/2+\delta}\alpha).
+ \]
+ Dividing by $V=Tp$ gives the fifth row.  The factor
+-$\alpha=\Theta(p^{1/4+\epsilon/2})$ explains its displayed power of $p$.
++$\alpha=\Theta(p^{1/4+\epsilon/4})$ explains its displayed power of $p$.
+ 
+ Chirp numerators have $O(p)$ bits and can be computed modulo $2r$ as
+ sums of $d$ terms $s_i j_i^2(r/t_i)$.  Computing their squares and
+@@ -992,8 +1011,8 @@
+ alphabet symbols.  Global setup and prime search cost $o(V)$, as
+ proved earlier.
+ 
+-Each of the seven displayed powers is at most $1-2\kappa$ by
+-\eqref{eq:margin-list}.  Any fixed power of $\log p$ is at most $p^\kappa$
++Each of the seven displayed powers is at most $1-G$ by
++\eqref{eq:margin-list}. Any fixed power of $\log p$ is at most $p^\rho$
+ eventually.  The complete large-input bound is consequently
+ \[
+  O(Tp\,p^{1-\kappa})=O(n(\log n)^{1-\kappa}).
+--- a/build/sections/03-motifs.tex
++++ b/build/sections/03-motifs.tex
+@@ -13,8 +13,8 @@
+ 
+ Put
+ \[
+- h=100,\qquad v=\binom h3=161700,\qquad
+- N=v^3=4227952113000000,\qquad m=h^3=1000000.
++ h=50,\qquad v=\binom h3=19600,\qquad
++ N=v^3=7529536000000,\qquad m=h^3=125000.
+ \]
+ Let $\mathcal T$ be the set of three-element subsets of $[h]$.
+ There are two data banks $X_a,Y_a$, indexed by
+@@ -34,7 +34,7 @@
+ Each such invocation has its own auxiliary wires, distinct from all
+ other invocations, including those in other stages.  There are
+ \[
+- I=3v^2=78440670000
++ I=3v^2=1152480000
+ \]
+ invocations.  In a forward invocation, write $x_T$ for the data used as
+ controls and $y_S$ for the data to be updated; $S,T\in\mathcal T$ are
+@@ -127,19 +127,19 @@
+ 
+ A fixed triple has
+ \[
+- z_{\rm b}=3\binom{97}{2}=13968,\qquad
+- z_{\rm c}=\binom{97}{3}+3\cdot97=147731
++ z_{\rm b}=3\binom{47}{2}=3243,\qquad
++ z_{\rm c}=\binom{47}{3}+3\cdot47=16356
+ \]
+ neighbors in the two constructions, respectively.  The second count
+ separates intersection zero and intersection two.  Ordered pairs must
+ be counted: there are $vz$ side wires in each invocation, not $vz/2$.
+-With $c_{\rm b}=100$ and $c_{\rm c}=101$ central wires per invocation,
++With $c_{\rm b}=50$ and $c_{\rm c}=51$ central wires per invocation,
+ the total wire counts are
+ \begin{align}
+  W_{\rm b}&=2N+I(vz_{\rm b}+c_{\rm b})
+-          =177176569091445000000,\label{eq:bit-wire-count}\\
++          =73269972440000000,\label{eq:bit-wire-count}\\
+  W_{\rm c}&=2N+I(vz_{\rm c}+c_{\rm c})
+-          =1873807244643542670000.\label{eq:complex-wire-count}
++          =369474390296480000.\label{eq:complex-wire-count}
+ \end{align}
+ All these numbers are fixed, independently of any eventual input length.
+ 
+@@ -212,7 +212,7 @@
+  \langle x,y\rangle=x^{\mathsf T}(I-J/9)y,
+ \]
+ where $J$ is the all-one matrix.  This form has eigenvalues $1$ and
+-$1-h/9=-91/9$, so it is nondegenerate.  For a triple $T$ let $t_T$ be
++$1-h/9=-41/9$, so it is nondegenerate.  For a triple $T$ let $t_T$ be
+ its indicator vector.  Then
+ \[
+  \langle t_S,t_T\rangle=|S\cap T|-1,
+@@ -225,7 +225,7 @@
+ The scalar domain need not equal the label field.
+ These degree-one intersection formulas specialize the construction
+ described by Alon~\cite[Section~3, remark after Theorem~1.1]{Alon1998}
+-to the prime $2$, with the ground-set size changed to $h=100$.
++to the prime $2$, with the ground-set size changed to $h=50$.
+ 
+ The ambient label space is $\mathcal F=F^{\otimes3}$ with its tensor
+ bilinear form.  It has dimension $m$ and is nondegenerate.  Write
+@@ -458,8 +458,8 @@
+ 
+ The loss ratios have the exact values
+ \[
+- \frac{L_{\rm b}}{N}=\frac{100}{539},\qquad
+- \frac{L_{\rm c}}{N}=\frac{101}{539}.
++ \frac{L_{\rm b}}{N}=\frac{75}{196},\qquad
++ \frac{L_{\rm c}}{N}=\frac{153}{392}.
+ \]
+ In particular, both are smaller than $1/2$.  We now turn the dimension
+ count into the two interfaces needed later.
+@@ -503,7 +503,7 @@
+  &=\sum_{e}\operatorname{rank}_{\mathbb Q}
+       (M_{\mathrm{head}(e)}-M_{\mathrm{tail}(e)})\\
+  &=W_{\rm b}m-N+2L_{\rm b}
+-  =177176569088785861287000000<W_{\rm b}m.
++  =9158746553232864000000<W_{\rm b}m.
+ \end{align}
+ \end{proposition}
+ 
+@@ -574,7 +574,7 @@
+ The sum of these basis lengths is
+ \[
+  s_{\rm c}=W_{\rm c}m-2N+2L_{\rm c}
+- =1873807244636671267308000000<W_{\rm c}m.
++ =46184298777878576000000<W_{\rm c}m.
+ \]
+ After source and sink diagonal corrections, and undoing the signed
+ bank exchange, telescoping these phase frames gives $C^{\otimes m}$
+@@ -668,33 +668,178 @@
+ the required forward tensor product.
+ \end{proof}
+ 
+-\subsection{Explicit rational bounds for the two recurrences}
+-
+-The relative rank deficits are
+-\[
+- \eta_{\rm b}=\frac{W_{\rm b}m-s_{\rm b}}{W_{\rm b}m}
+-       =\frac{339}{22587335000000},\qquad
+- \eta_{\rm c}=\frac{W_{\rm c}m-s_{\rm c}}{W_{\rm c}m}
+-       =\frac{73}{19906842167500}.
+-\]
+-For both recurrences we may use the fixed rational exponent
+-\begin{equation}
+- \tau=\sigma=1-2^{-50}.
+- \label{eq:explicit-motif-exponents}
++\subsection{A paired-block circuit for the bit correction}
++\label{sec:paired-bit-construction}
++Use $h=50$, $v=\binom h3=19600$, $N=v^3$, and $m=h^3=125000$.
++The complex network above is retained at this ground size. For the bit
++network, we replace the intersection-one side correction by a smaller circuit.
++Fix a common point $i$. On the other $n=h-1=49$ points, inputs $x_{ab}$
++represent source triples $\{i,a,b\}$. The required partial output is
++\[
++ z_{cd}=\sum_{\{a,b\}\cap\{c,d\}=\varnothing}x_{ab}.
++\]
++All scalar additions are in $\mathbb F_2$, but the computation below always
++adds disjoint formal input supports.
++
++It is useful to solve a weighted version. Give a graph an edge value $e_{uv}$
++and a vertex value $w_u$, with pairwise disjoint supports. Return its total
++value and the values left after deleting each one or two vertices, including
++all their incident edges. At the root, take $w_u=0$ and $e_{uv}=x_{uv}$.
++Fix the global pairs $\{0,1\},\{2,3\},\ldots,\{48,49\}$.
++For common point $i$, order the other points increasingly after removing
++$i$ and its partner $i\mathbin{\oplus}1$, then append that partner.
++Relabel the local inputs and outputs by this permutation. Group these
++ordered vertices consecutively into pairs, with a final singleton.
++Thus all complete root pairs agree across common-point groups;
++the weighted recursion itself is unchanged. A block $A$ becomes a vertex of a smaller graph with weight
++\[
++ \widetilde w_A=\sum_{u\in A}w_u+\sum_{\{u,v\}\subset A}e_{uv},
++ \qquad
++ \widetilde e_{AB}=\sum_{u\in A,\ v\in B}e_{uv}.
++\]
++Recursively compute the smaller graph's total, its value $O_A$ after deleting
++block $A$, and its value $F_{AB}$ after deleting both $A,B$.
++
++For $a\in A$, put
++\[
++ C_a=\sum_{u\in A\setminus\{a\}}w_u,\qquad
++ E_{a,B}=\sum_{u\in A\setminus\{a\},\ v\in B}e_{uv},\qquad
++ H_{a;B}=C_a+\sum_{C\ne A,B}E_{a,C}.
++\]
++Compute all $H_{a;B}$ by the leave-one-out prefix/suffix routine on the
++vector $(C_a,(E_{a,C})_{C\ne A})$, requesting only the outputs that omit
++one of the $E$ terms. The total of this vector is denoted $H_a$.
++If $a,b$ are in different blocks $A,B$, their exclusion output is
++\[
++ F_{AB}+H_{a;B}+H_{b;A}
++   +\sum_{u\in A\setminus\{a\},\ v\in B\setminus\{b\}}e_{uv}.
++\]
++For two vertices in one block it is $O_A$; the single exclusion of $a$ is
++$O_A+H_a$. These are disjoint partitions of the surviving weighted graph.
++This proves the recursion by induction. The weights created by internal edges
++remain inside the recursion, avoiding a separate exclusion circuit for them.
++
++Use direct sums for at most four vertices. Compute other totals by balanced
++binary addition. In the four-term formula, first add $F_{AB}+H_{a;B}$,
++then add the other two terms, then combine those two results. Intern equal
++formal supports and remove unused nodes. At $n=49$, the exact circuit has
++9813 additions and 1176 designated outputs. All 1271256 nonzero coefficients,
++and every required zero, are checked by comparing all output supports with
++their definitions.
++
++Identify equal inputs and equal sums across the $h$ common-point groups.
++A sum shared by groups $i\ne j$ consists entirely of triples $\{i,j,k\}$;
++its fixed pair and variable vertices identify it exactly. Keep the first
++encountered decomposition, in common-point and then local-node order. Retain
++all $q=h\binom{h-1}{2}=58800$ partial outputs, injecting their sum into each
++physical target. Since every neighbor pair has a unique common point, this
++remains exactly the intersection-one matrix. The global graph has
++\[
++ c=435450,\qquad q=58800,\qquad c+q=494250.
++\]
++Here 55200 additions have been merged from the separate local graphs.
++
++\subsection{Reversible roles and frames in both directions}
++For every node, regard its later uses and designated outputs as outgoing edges.
++At an input node, allocate one role per outgoing edge and copy a pivot into
++the others. At an addition node, add the second incoming role into the first,
++reuse the first as one outgoing pivot, and copy it into fresh roles for the
++other outgoing edges. The other input role retires. These are invertible
++pointwise gates. There are $2c+q$ outgoing uses and $c$ pivot identifications,
++so $R=c+q=494250$ roles suffice. Roles are compiled from the merged graph;
++no simultaneously occupied physical slots are identified.
++
++Let $L$ be the product of these gates, $V$ the source copy, $J$ the injection
++of the designated partial outputs, and $G,R_0$ the original central operations.
++The chronological schedule is
++\[
++ L,\ J,\ L^{-1},\ R_0,\ V,\ G,\ R_0,\ L,\ J,\ L^{-1},\ G,\ V.
++\]
++The two injections give $JLz+JL(z+Vx)=JLVx$ for arbitrary initial scratch $z$.
++The cleanup restores $z$ and all central scratch. Since $JLV+R_0G=I$,
++the invocation is $y\gets y+x$. Reverse and invert the schedule for stage 2.
++Forward, inverse, forward invocations therefore exchange the two data banks.
++
++Use the original rational form $I-J/9$ on $F=\mathbb Q^{50}$. At a stage,
++write $A=B\mathbin\perp P$ as before, suppressing the future line factor $Q$.
++Set $D_0=B\otimes F$, $D_1=A\otimes F$, and
++$D_U=(B\otimes F)\mathbin\perp(P\otimes U)$.
++Let $U_z$ be the span of the source indicators reaching node $z$.
++Every retained node is a sum from an original common-point group, so all its
++triples contain some $i$. For a vector $u$ in that span,
++\[
++ \sum_j u_j=3u_i,\qquad
++ \langle u,u\rangle=\sum_{j\ne i}u_j^2>0\quad(u\ne0).
++\]
++Thus $U_z$ is nondegenerate. Along every graph edge $z\to w$,
++$U_z\subset U_w$. Forward middle gates use $D_{U_z}$; the physical roles
++follow paths, so these frames increase. A designated output for target $T$
++has $U_z\subset t_T^\perp$, because every contributing triple is a neighbor.
++
++For the reversed middle computation use $D_{U_z^\perp}$. The ambient form
++is nondegenerate, so all these complements are nondegenerate. Reversing an
++edge reverses inclusion: $U_w^\perp\subset U_z^\perp$.
++The original output begins at the physical $X$ line
++$\langle t_T\rangle\subset U_z^\perp$; an original input ends at exactly
++its physical $Y$ complement $t_S^\perp$. No positivity assumption on the
++reachable-target spans is needed. At every gate all incident roles receive
++the same frame. Early mixers use $D_0$, and late cleanup uses $D_1$.
++Newly active roles enter from $D_0$ and retired roles grow to $D_1$.
++Tensoring by $Q$ gives the original data-stage boundaries in both orientations.
++The only decreases remain the central returns, each of dimension $h$.
++
++Share the complete auxiliary bank of a stage-1 invocation $(A,B)$ with stage 3
++at $(B,\pi(A))$, matching local role indices. Here $\pi$ is a bijection of
++triples with $|T\cap\pi(T)|=1$: pair consecutive ground points; for a triple
++with a full pair and singleton, keep the singleton and cycle the full pair
++among pairs not containing it; otherwise keep the point in the least indexed
++pair and flip the other two to their partners. Each rule is bijective on its
++class. All invocations restore arbitrary scratch, and the joining labels are
++\[
++ E=F\otimes\langle t_A\rangle\otimes\langle t_B\rangle,
++ \qquad H=\langle t_B\otimes t_{\pi(A)}\rangle^\perp\otimes F.
++\]
++They are nondegenerate and $E\subset H$ by the chosen orthogonality.
++Each join removes one auxiliary role and exactly $m$ of edge rank.
++
++\begin{proposition}[Paired-block bit interface]\label{prop:paired-bit-interface}
++The new bit network restores arbitrary scratch, exchanges the data banks,
++and satisfies the original all-role endpoint identity with
++\begin{align*}
++ W_{\rm b}^{\rm pair}&=2N+2v^2(R+h)=394839648000000,\\
++ s_{\rm b}^{\rm pair}&=W_{\rm b}^{\rm pair}m-N+6v^2h^2
++                         =49354954232864000000,\\
++ W_{\rm b}^{\rm pair}m-s_{\rm b}^{\rm pair}&=1767136000000>0.
++\end{align*}
++\end{proposition}
++\begin{proof}
++The scalar schedule and both frame assignments were verified above. The total
++decreasing dimension is $3v^2h^2$. Telescoping gives total absolute label change
++$W_{\rm b}^{\rm pair}m-2N+6v^2h^2$; the unchanged negative source projections
++add $N$ rational rank. Data endpoints are unchanged and every surviving
++auxiliary role has endpoints zero and $I_m$, with its scalar value restored.
++The original common-frame identity and rational-shear transfer apply. All
++circuits, rational bases, and gates are fixed finite data.
++\end{proof}
++
++\subsection{Explicit exponents at ground size fifty}
++Take $a=305/10^{11}$, $a_{\rm c}=1/10^{11}$, and $L_0=11737/1000$.
++The exact deficits satisfy
++\[
++ \eta_{\rm b}^{\rm pair}=\frac{23}{642375000}>aL_0,\qquad
++ \eta_{\rm c}=\frac{239}{1202215191250}>a_{\rm c}L_0.
++\]
++For $1\le x\le2$, put $z=(x-1)/(x+1)$,
++$S(x)=2\sum_{j=0}^{23}z^{2j+1}/(2j+1)$, and
++$E_0(x)=2z^{49}/(49(1-z^2))$. Then
++$S(x)\le\log x\le S(x)+E_0(x)$, and exact rational comparison gives
++\[
++ \log m\le16(S(2)+E_0(2))+S(m/2^{16})+E_0(m/2^{16})<L_0.
++\]
++The inequality $e^{-x}>1-x$ therefore proves the required strict bounds with
++\begin{equation}\label{eq:explicit-motif-exponents}
++ \tau=1-\frac{305}{10^{11}},\qquad \sigma=1-\frac1{10^{11}}.
+ \end{equation}
+-Both exact deficits displayed above are greater than $20\cdot2^{-50}$.
+-Since $m<2^{20}$ and $\log 2<1$, we have $\log m<20$, whence
+-\[
+- m^{1-2^{-50}}
+- =m\exp(-2^{-50}\log m)
+- >m(1-20\cdot2^{-50})>m(1-\eta)
+-\]
+-for either $\eta=\eta_{\rm b}$ or $\eta=\eta_{\rm c}$.
+-Consequently
+-\[
+- \frac{s_{\rm b}}{W_{\rm b}}<m^\tau,
+- \qquad \frac{s_{\rm c}}{W_{\rm c}}<m^\sigma,
+- \qquad 0<\tau=\sigma<1.
+-\]
+-Here $\sigma$ is a rational upper bound for the logarithmic exponent
+-of the complex recurrence.
++The complex network itself is unchanged apart from the ground size $h=50$;
++its construction, binary residual bases, and scalar corrections remain those
++proved above.
+--- a/build/sections/04-swap.tex
++++ b/build/sections/04-swap.tex
+@@ -121,8 +121,8 @@
+  M_{\mathrm{out}(\rho(w))}-M_{\mathrm{in}(w)}=I_m
+  \quad(1\le w\le W),\qquad s<Wm.
+ \end{equation}
+-All these data are finite and fixed. Proposition~\ref{prop:bit-motif-interface}
+-supplies these conditions with $W=W_{\rm b}$ and $s=s_{\rm b}$.
++All these data are finite and fixed. Proposition~\ref{prop:paired-bit-interface}
++supplies these conditions with $W=W_{\rm b}^{\rm pair}$ and $s=s_{\rm b}^{\rm pair}$.
+ Its negative source projection is essential to the endpoint identity and
+ has already been included in the rank sum.
+ 
+@@ -270,7 +270,7 @@
+ \end{proof}
+ 
+ 
+-We use the rational value $\tau=1-2^{-50}$ established in
++We use the rational value $\tau=1-\frac{305}{10^{11}}$ established in
+ \eqref{eq:explicit-motif-exponents}. Its verification uses fixed integer
+ comparisons and the displayed exponential inequality; it needs no
+ real-arithmetic oracle.
+--- a/build/sections/05-layers.tex
++++ b/build/sections/05-layers.tex
+@@ -629,7 +629,7 @@
+ have completed. Intermediate scratch values may be arbitrary.
+ 
+ \paragraph{Unrolling the recurrence.}
+-Fix \(\beta=1/2\), and choose real exponents satisfying
++Fix a rational \(9/10\le\beta<1\), and choose real exponents satisfying
+ \[
+  0<\tau<1,\qquad
+  \max\{0,\log_m(s/W)\}\le\sigma<1,
+@@ -685,149 +685,79 @@
+ active chunks, was handled by individual kernels.  Thus all constants
+ and all tape counts are independent of \(p,d,r\) and the input data.
+ 
+-\subsection{An explicit guard-width bound}
+-
+-The accelerated network is evaluated exactly until an entire
+-normalized butterfly layer is complete.  Its intermediate operators
+-need not be contractions.  We now give explicit constants that bound
+-denominator and magnitude growth within one layer.
+-
+-For the complex network, let
+-\[
+- E=64(W+m+1)^3,\qquad B=s+E,
+- \qquad \nu=\min\{j\ge1:m^j\ge B\},
+-\]
+-and set
+-\[
+- C_1=\max\{20,\nu+3\},\qquad C_0=128mB^2,
+- \qquad \Delta=\lceil C_0d^{C_1}\rceil.
+-\]
+-For the stated \(h=100\) construction, the complex network has
+-\[
+-\begin{split}
+- m&=1{,}000{,}000,\\
+- W&=1{,}873{,}807{,}244{,}643{,}542{,}670{,}000,\\
+- s&=1{,}873{,}807{,}244{,}636{,}671{,}267{,}308{,}000{,}000.
+-\end{split}
+-\]
+-These values give \(m^{10}<B<m^{11}\), hence \(\nu=11\) and
+-\(C_1=20\).  In fact the bound below needs only exponent fourteen;
+-the choice twenty leaves an explicit additional margin.
+-
+-We measure arithmetic dependency depth using complex additions,
+-subtractions, halvings, sign changes and multiplication by \(i\).
+-For a group of \(e\) axes, let \(A(e)\) bound the number of these
+-operations on any chain from an input coefficient to an intermediate
+-coefficient in its recursive \(C\)-layer.  A chain follows an operand
+-into a later arithmetic result.  Work on other coefficients or records
+-that do not feed this value lies on other chains, even though the
+-fixed-tape machine executes that work sequentially.  To obtain a
+-conservative bound, we concatenate all scalar gates and all recursive
+-edge calls within one network invocation.
+-
+-The scalar schedule \eqref{eq:motif-schedule} touches a data wire
+-at most four times in each of the three stages.  A scratch wire belongs
+-to one invocation and is touched at most four times there.  Thus every
+-physical wire occurs in at most twelve scalar gates, and there are
+-at most \(12W\) gates.  A gate has at most \(W\) inputs and outputs
+-and coefficients in \(\{0,\pm1,\pm1/2\}\).  One output is a sum of
+-at most \(W\) terms, each requiring at most one halving and one
+-addition or subtraction.  Evaluating all outputs from saved inputs
+-therefore takes at most \(2W^2\) elementary operations.
+-
+-For an inverse child, each \(Z^{\otimes f}\) is one sign chosen by
+-the parity of the selected address bits, and the scalar fourth-root
+-phase takes at most one sign change and one multiplication by \(i\).
+-This gives at most \(4s\) operations for the child corrections.
+-The source, sink and bank corrections take at most \(4W+4\) more.
+-Calculating the address parities and phase exponents is address or descriptor
+-work, not arithmetic on coefficients.  Since \(s<Wm\), the total
+-\(24W^3+4s+4W+4\) is less than
+-\(E=64(W+m+1)^3\).  Binary address permutations add no coefficient
+-arithmetic at their interfaces.
+-
+-The paired evaluation in \eqref{eq:individual-C-pair} uses at most
+-eight elementary operations: form the sum and difference, multiply
+-the difference by \(i\), then form the two half-sums.  We may therefore use
+-\[
+- A(e)\le sA(e/m)+E
+- \quad\hbox{at an internal node},\qquad A(e)\le8e
+- \quad\hbox{at a leaf}.
+-\]
+-The depth estimate concatenates the \(s\) calls, so it uses \(s\).
+-The factor \(1/W\) in the earlier time recurrence accounted for
+-their smaller stream volumes.
+-
+-There are at most \(k\le\lceil\log_m d\rceil\) internal levels.
+-For any bound \(x\ge1\), \(sx+E\le(s+E)x=Bx\).
+-Starting with \(8e\le8d\le8dB\) at a leaf and applying this
+-inequality through the levels gives the first bound below.
+-For the second, use \(B\le m^\nu\) and
+-\[
+- B^{k+1}\le B^{\log_m d+2}
+-          =B^2d^{\log_m B}\le B^2d^\nu.
+-\]
+-Thus
+-\[
+- A(e)\le 8dB^{k+1}\le8B^2d^{\nu+1}.
+-\]
+-For the sufficiently large sizes under consideration, the earlier
+-piece count is at most \(md\).  Concatenating their depths contributes
+-at most \(8mB^2d^{\nu+2}\).  In either preprocessing branch, at most
+-\(d\) individual kernels are used, contributing at most \(8d\).
+-Splitting rows, padding, copying and removing padding add no
+-coefficient arithmetic.
+-
+-Each of the two outer diagonals applies a fourth-root phase and costs
+-at most two elementary phase operations.  Put
+-\(t=\lfloor D/2\rfloor\).  Since \(b^2=-i/2\), the scalar \(b^D\)
+-is \((-i)^t2^{-t}b^{D\bmod2}\).  Its phase costs at most two
+-operations, and the possible factor \(b\) is computed as
+-\((z-iz)/2\) in three operations.  The shift by \(t\) consumes
+-\(t\) fractional bits, so we charge it \(t\) units of denominator
+-growth even though one tape scan performs the shift.  Charging these
+-same units to magnitude growth gives a common upper bound for both:
+-\[
+-\begin{aligned}
+- 8mB^2d^{\nu+2}+8d+t+9
+- &\le 8mB^2d^{\nu+2}+18d\\
+- &\le 26mB^2d^{\nu+2}\\
+- &<128mB^2d^{\nu+3}\le C_0d^{C_1}.
+-\end{aligned}
+-\]
+-Here \(d\ge1\), \(mB^2\ge1\), and \(C_1\ge\nu+3\).
+-
+-To see how this count controls numerical size, start with disk-valued
+-coefficients in \(2^{-p}\mathbb Z[i]\).  A value at depth \(\ell\)
+-lies in \(2^{-(p+\ell)}\mathbb Z[i]\) and has modulus at most
+-\(2^\ell\).  This follows by induction: addition or subtraction
+-can at most double the maximum modulus of its operands; halving adds
+-at most one denominator bit; and signs and multiplication by \(i\)
+-preserve both bounds.  The charge of \(t\) for the final shift is
+-the same as \(t\) successive halvings.  Thus reserving \(p+\Delta\)
+-fractional bits and \(\Delta+3\) integer and sign bits per real
+-component represents every intermediate coefficient exactly and
+-prevents overflow.  Shifts consume the reserved fractional zeros
+-and discard no bits.
+-
+-An address-swap subroutine may temporarily hold XOR combinations of
+-the fixed-width encoding bits.  These strings are not used as
+-coefficients during the swap.  It returns an exact permutation of
+-the encodings before coefficient arithmetic resumes, so these
+-internal bit operations cause no numerical rounding or denominator
+-growth.
+-
+-Choose \(\epsilon C_1<1\).  Since \(d=\Theta(p^\epsilon)\),
+-\(\Delta=o(p)\), and the full coefficient width is \(O(p)\), as
+-required in the time analysis.  Addition, signed shifts, copying and
+-phase changes consequently take \(O(p)\) bit operations per
+-coefficient.
++\subsection{A guard bound using the actual stopping depth}
++\label{sec:stopped-guard}
++The complex network is still evaluated exactly until a complete normalized
++butterfly layer is finished. Write $W=W_{\rm c}$ and $s=s_{\rm c}$ for that
++network, and retain
++\[
++ E=64(W+m+1)^3,\quad B=s+E,\quad C_0=128mB^2.
++\]
++At $h=50$ the exact values are
++\[
++ m=125000,\quad W=369474390296480000,\quad
++ s=46184298777878576000000,
++\]
++so $m\ge3$ and $2\le s<m^5$ by integer comparison. We will use $C_1=2$ and
++$\Delta=\lceil C_0d^2\rceil$ for every rational $9/10\le\beta<1$.
++
++Measure dependency depth by complex additions, subtractions, halvings, sign
++changes, and multiplication by $i$. A chain follows an operand into a later
++result. Concatenating every scalar gate and recursive edge call is a valid
++upper bound, even though most do not belong to one dependency chain.
++In the retained complex motif each wire touches at most twelve scalar gates,
++so there are at most $12W$ gates. A gate output sums at most $W$ terms,
++with at most a halving and an addition per term. Evaluating all outputs from
++saved inputs uses at most $2W^2$ operations per gate. Inverse-child corrections
++cost at most $4s$, and source, sink, and bank corrections at most $4W+4$.
++Thus their total is bounded by $24W^3+4s+4W+4<E$.
++The new bit motif performs exact permutations of coefficient encodings; it
++does not introduce coefficient arithmetic into this depth count.
++
++The individual $C$-kernel formula uses at most eight elementary operations.
++Consequently the same conservative recurrence remains valid:
++\[
++ A(e)\le sA(e/m)+E\quad\hbox{at an internal node},\qquad
++ A(e)\le8e\quad(e<d^\beta).
++\]
++For a root $e\le d$, the actual number $j$ of internal levels is at most
++$(1-\beta)\log_m d+1$. If $j>0$, this follows from the last internal size
++$e/m^{j-1}\ge d^\beta$; for $j=0$ it is immediate. Hence
++\[
++ s^j\le s\,d^{5(1-\beta)},\qquad
++ A(e)\le8d^\beta s^j+E\sum_{i<j}s^i
++       \le s(8+E)d^{5-4\beta}
++       \le9B^2d^{7/5}.
++\]
++Here $s\ge2$, $d\ge1$, $\beta\ge9/10$, and
++$s(8+E)\le9B^2$; the estimate also covers a root that is already a leaf.
++Keeping $E$ additive is essential: it is a fixed cost at a node, not another
++branching factor.
++
++The base-$m$ partition has at most $(m-1)(1+\lfloor\log_m d\rfloor)$
++pieces. Since $m\ge3$ and $\log d\le\sqrt d$ for $d\ge1$, this is at most
++$2m\sqrt d$. Concatenating their depths therefore costs at most
++$18mB^2d^{19/10}$. Preprocessing uses at most $d$ individual kernels, costing
++$8d$. The two outer diagonals and the scalar $b^D$ contribute at most
++$t+9$ further units, where $t=\lfloor D/2\rfloor$; a shift by $t$ is charged
++$t$ denominator bits. Together $8d+t+9\le18d$. Thus the total depth and
++shift charge are bounded by
++\[
++ 18mB^2d^{19/10}+18d\le36mB^2d^2<C_0d^2.
++\]
++As in the original induction, an input in $2^{-p}\mathbb Z[i]$ with modulus
++at most one has denominator exponent at most $p+\Delta$ and magnitude at most
++$2^\Delta$ throughout. Reserving $p+\Delta$ fractional bits and $\Delta+3$
++integer and sign bits per real component therefore represents all values
++exactly. Address-swap routines restore complete encodings before coefficient
++arithmetic resumes and do not change this argument. If $2\epsilon<1$, then
++$\Delta=o(p)$ and the full coefficient width remains $O(p)$.
+ 
+ \begin{proposition}[Simultaneous normalized butterfly layer]
+ \label{prop:simultaneous-layer}
+ Fix
+ \[
+- \tau=\sigma=1-2^{-50},\qquad \beta=\frac12,\qquad C_1=20.
++ \tau=1-\frac{305}{10^{11}},\quad\sigma=1-\frac1{10^{11}},\quad 9/10\le\beta<1\ (\beta\in\mathbb Q),\quad C_1=2.
+ \]
+ Let $c,\epsilon,\lambda,\lambda'$ be fixed positive rational numbers
+ satisfying
+--- a/build/sections/07-resampling.tex
++++ b/build/sections/07-resampling.tex
+@@ -330,7 +330,7 @@
+ full padded box of $T$ entries, and each entry occupies $O(p)$ bits,
+ then exposing and restoring all the lines costs
+ \[
+- O\bigl(Tp\,d^2(1+\ell^\tau)\bigr)
++ O\bigl(Tp\,d(1+\ell^\tau)\bigr)
+ \]
+ using the equal-width chunk-swap bound $O(Vu^\tau)$ and the fixed-digit
+ movement primitive. Any fixed polynomial in $p$ of setup per line is
+@@ -377,21 +377,49 @@
+ tapes. Loop indices and the growing shape descriptor reside on tapes;
+ they are not extra heads.
+ 
+-The descriptor records which coordinate each physical address field
+-holds. Thus moving fields changes their positions, but not the validity
+-conditions above. To move an axis past its neighbor, interchange their
+-$\ell$-bit or $(\ell-1)$-bit address fields. Equal widths use
+-Lemma~\ref{lem:chunk-swap}. For unequal widths, write the longer field as
+-a leading bit $e$ followed by $\ell-1$ bits. If it comes first, the order
+-is $e\,x\,y$, with $x,y$ of equal width. Interchange $x,y$, then move $e$
+-between them, obtaining $y\,e\,x$. If the longer field comes second,
+-first move its leading bit left of the shorter field, then interchange
+-the two equal-width pieces. The bit move uses
+-Lemma~\ref{lem:elementary-streams}. Each adjacent interchange therefore
+-costs $O(Tp(1+\ell^\tau))$. Exposing and restoring one axis needs
+-$O(d)$ adjacent interchanges, hence all axes need $O(d^2)$. These are
+-exact permutations of the padded box, so they change neither norms nor
+-errors.
++The descriptor records which named coordinate each physical address field
++holds, together with its width and valid range. Before processing axis $i$,
++interchange its entire address field with the innermost field; after processing
++its lines, undo precisely that interchange. If it is already innermost, no
++interchange is needed. Thus each axis starts and ends in the original field
++order, and all axes together require at most $2(d-1)$ field interchanges.
++
++These interchanges need not be adjacent. Lemma~\ref{lem:chunk-swap} permits
++an arbitrary intervening field $[G]$, obtained by collapsing the intervening
++axes, and a suffix containing the complete coefficient word. For widths that
++differ by one, use the explicit nonadjacent construction following that lemma.
++Suppressing the prefix and suffix, its two cases are
++\[
++ (e,x,G,y)\longmapsto(e,y,G,x)\longmapsto(y,G,e,x),
++\]
++\[
++ (x,G,e,y)\longmapsto(e,x,G,y)\longmapsto(e,y,G,x),
++\]
++where $x,y$ have equal bit width and $e$ is one bit. Each uses one equal-width
++interchange and one single-bit move. Empty equal-width pieces require no swap.
++The intervening axes keep their internal order, and each complete record keeps
++its bit order. The cost of a full field interchange is
++$O(Tp(1+\ell^\tau))$, including workspace cleanup.
++
++At a completed interchange the descriptor moves the coordinate names, widths,
++and validity bounds with their fields. A processed line therefore still runs
++through the same named coordinate in increasing numerical order. Other named
++coordinates retain their values; their physical order is immaterial to the
++validity test. After the line algorithm, the inverse interchange restores the
++original field order. The padded box keeps its full physical size throughout.
++Invalid entries remain zero at the completed axis-map boundaries specified
++above; temporary bit moves and the internal arithmetic of a swap need not
++preserve an intermediate validity mask. The completed permutations and their
++inverses are exact, so the contraction and error arguments do not change.
++
++The list and collapsed descriptors are stored on tapes, not in new heads.
++Here $t_i\ge2$, so $d\le\log_2T$. With $V$ the physical bit volume,
++each collapsed length is at most $V$, and the list of axis names, ranges,
++and widths has length polynomial in $\log(2V)$. Ordinary integer arithmetic
++therefore prepares each call descriptor in $\operatorname{poly}(\log(2V))=O(V)$
++time. Each primitive reuses its fixed work tapes. Thus all exposure and
++restoration costs
++$O(Tp\,d(1+\ell^\tau))$.
+ 
+ Since $t_i\geq r/2$, each tensor map invokes at most
+ $\sum_iT/t_i\leq2dT/r$ lines. For any fixed setup degree $c$, work

@@ -314,3 +314,14 @@ original licenses, notices and hash manifests.
 sources. Raw graphs, alternatives, terminal-eligibility experiments and
 recursive copies of predecessor archives remain outside the submission.
 The [historical manuscript patch](../PATCHING.md) retains the #10 result.
+
+## Preserved aligned paired checks
+
+`make verify` also runs `aligned_paired_network.py` and
+`make_aligned_paired_patch.py`, the aligned-circuit tests and the independent
+`h50-aligned-paired.patch` applicability check. These reproduce the earlier
+conditional `17*2^-63` witness and do not alter the newer checkpoints.
+Rebuild its proof note with `make aligned-paired-note`. The
+[focused review packet](research/aligned-paired-review.md) identifies the
+remaining mathematical obligations; passing finite checks does not discharge
+them or verify the complete multiplication theorem.

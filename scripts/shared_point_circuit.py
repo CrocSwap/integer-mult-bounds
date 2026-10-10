@@ -15,7 +15,7 @@ from exclusion_circuit import ExclusionCircuit
 
 
 class SharedPointCircuit:
-    def __init__(self,h,circuit=None):
+    def __init__(self,h,circuit=None,*,point_orders=None):
         assert h>=6 and h!=9, 'The ambient form I-J/9 must be nondegenerate'
         self.h=h
         self.local=circuit or ExclusionCircuit(h-1)
@@ -26,8 +26,12 @@ class SharedPointCircuit:
         self.core=[0]+[sum(1<<i for i in t) for t in self.inputs]
         self.union=list(self.core)
         self.provenance=[None]*len(self.args)
-        self.points=[[j for j in range(h) if j!=i] for i in range(h)]
-        self.pair_ids=[{tuple(points[k] for k in pair):i+1
+        self.points=([[j for j in range(h) if j!=i] for i in range(h)]
+                     if point_orders is None else [list(points) for points in point_orders])
+        assert len(self.points)==h, 'One point order per common point is required'
+        assert all(len(points)==h-1 and set(points)==set(range(h))-{i}
+                   for i,points in enumerate(self.points)), 'Invalid point permutation'
+        self.pair_ids=[{tuple(sorted(points[k] for k in pair)):i+1
                        for i,pair in enumerate(self.local.inputs)} for points in self.points]
         lookup={};self.outputs={};self.merged=0
         for common in range(h):
@@ -102,7 +106,7 @@ class SharedPointCircuit:
             digest.update(json.dumps((node,self.args[node],self.provenance[node]),
                                      separators=(',',':')).encode()+b'\n')
         for (common,target),node in sorted(self.outputs.items()):
-            excluded=tuple(self.points[common].index(x) for x in target if x!=common)
+            excluded=tuple(sorted(self.points[common].index(x) for x in target if x!=common))
             assert self.support_in(node,common)==self.local.support[self.local.outputs[excluded]]
             digest.update(json.dumps((common,target,node),separators=(',',':')).encode()+b'\n')
         return dict(h=self.h,inputs=len(self.inputs),partial_outputs=len(self.outputs),

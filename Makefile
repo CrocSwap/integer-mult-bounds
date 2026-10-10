@@ -1,4 +1,4 @@
-.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note complex-note ternary-note fetch
+.PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note aligned-paired-note compact-note complex-note ternary-note fetch
 .DEFAULT_GOAL := verify
 
 .PHONY: community-audit-check
@@ -91,6 +91,8 @@ verify-certificates: source527-record-check
 	python3 scripts/make_shared_point_patch.py
 	python3 scripts/paired_network.py
 	python3 scripts/make_paired_patch.py
+	python3 scripts/aligned_paired_network.py
+	python3 scripts/make_aligned_paired_patch.py
 	python3 scripts/prepare_layers.py
 	python3 scripts/audit_sparse_fusion.py
 	python3 scripts/audit_fused_block.py
@@ -160,6 +162,7 @@ verify-tests:
 	git apply --check --directory=upstream patches/h46-dag-63.patch
 	git apply --check --directory=upstream patches/h46-shared-point.patch
 	git apply --check --directory=upstream patches/h50-paired-59.patch
+	git apply --check --directory=upstream patches/h50-aligned-paired.patch
 	git apply --check --directory=upstream patches/compact-control-34.patch
 	git apply --check --directory=upstream patches/complex-compression-31.patch
 	git apply --check --directory=upstream patches/ternary-30.patch
@@ -196,6 +199,10 @@ shared-point-note:
 paired-note:
 	mkdir -p artifacts
 	tectonic --outdir artifacts notes/paired-note.tex
+
+aligned-paired-note:
+	mkdir -p artifacts
+	tectonic --outdir artifacts notes/aligned-paired-note.tex
 
 compact-note:
 	mkdir -p artifacts
