@@ -80,7 +80,11 @@ def main():
     assert native["baseline_regenerated_from_source"] is True
     assert native["new_record_sha256"] == SOURCE["base_candidate"]["new_record_sha256"]
     assert native["kappa"] == SOURCE["base_candidate"]["kappa"]
-    assert native["package_manifest_sha256"] == SOURCE["base_candidate"]["package_manifest_sha256"]
+    # The parent verifier reports the raw manifest-byte hash, while our source
+    # pin normalizes CRLF to LF. Check each representation against the same
+    # checked-out file, then record the normalized, cross-platform pin below.
+    assert native["package_manifest_sha256"] == sha(PARENT / "MANIFEST.json")
+    assert canonical_sha(PARENT / "MANIFEST.json") == SOURCE["base_candidate"]["package_manifest_sha256"]
 
     native_price = json.loads((native_output / "lead/COHORT-EXACT-PRICE.json").read_text(encoding="utf-8"))
     native_invoice = json.loads((native_output / "temporal/COHORT-FINITE-INVOICE.json").read_text(encoding="utf-8"))
@@ -105,7 +109,7 @@ def main():
         schema="cohort-kernel-entrances132-fixed-prime-candidate/1",
         parent=dict(commit=SOURCE["base_candidate"]["commit"],
                     kappa=SOURCE["base_candidate"]["kappa"],
-                    package_manifest_sha256=native["package_manifest_sha256"],
+                    package_manifest_sha256=SOURCE["base_candidate"]["package_manifest_sha256"],
                     result_sha256=native["new_record_sha256"],
                     native_status=native["status"],
                     native_checkers=7),
