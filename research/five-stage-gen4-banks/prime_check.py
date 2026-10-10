@@ -31,6 +31,11 @@ def run(context,physical,progress=lambda text:None):
         f=row['frame_id'];assert f not in used;used.add(f)
         h=basis_hash(c.B[f]);assert h==row['basis_sha256'] and len(c.B[f])==c.dimf[f]==row['dimension'],'fresh physical basis identity'
         groups.setdefault(h,f)
+    # Retiming may remove a producer frame from the executed word. Retain its
+    # determinant obligation as well as every fresh physically consumed basis.
+    actual_basis_hashes=set(groups)
+    for f in required:groups.setdefault(basis_hash(c.B[f]),f)
+    assert actual_basis_hashes<=set(groups)
     assert {basis_hash(c.B[f])for f in required}<=set(groups),'base and added transform coverage'
     determinants={};largest=0;prime_factors=set();witnesses={}
     for j,(h,f)in enumerate(sorted(groups.items())):
