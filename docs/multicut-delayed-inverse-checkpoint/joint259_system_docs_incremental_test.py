@@ -60,6 +60,19 @@ def run(source, dpi=40, svg=True):
     if dpi:
         version = subprocess.run(["pdftoppm", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         report["raster_renderer"] = (version.stdout + version.stderr).decode("utf8").strip()
+    rejected = []
+    for kind in ("logical", "combined"):
+        for label, call in (("renderer", lambda: r.render(kind, model, refs)),
+                            ("planning", lambda: inc.plan(kind, model, refs)),
+                            ("cache engine", lambda: inc.Engine(model).render(kind, model, refs))):
+            try:
+                call()
+            except ValueError as error:
+                assert "Unsupported architecture output kind" in str(error)
+            else:
+                raise AssertionError(("Rejected output family recreated", kind, label))
+            rejected.append({"kind": kind, "entry_point": label})
+    report["unsupported_output_kinds_rejected"] = rejected
     cache, baseline = {}, {}
     for kind in inc.KINDS:
         cold = inc.Engine(model, cache)
@@ -90,14 +103,14 @@ def run(source, dpi=40, svg=True):
                                    "clean_warm_byte_identical": True,
                                    "original_decoded_streams_text_links_identical": True,
                                    "all_pages_raster_identical": bool(dpi)}
-    base_raw, base_details = baseline["combined"]
+    base_raw, base_details = baseline["functional"]
 
     def compare(label, changed_model, expected=None, changed_refs=None):
         current_refs = changed_refs if changed_refs is not None else r.source_index(source, changed_model)
         incremental = inc.Engine(changed_model, cache)
-        actual, details = incremental.render("combined", changed_model, current_refs)
+        actual, details = incremental.render("functional", changed_model, current_refs)
         clean = inc.Engine(changed_model)
-        expected_raw, _ = clean.render("combined", changed_model, current_refs)
+        expected_raw, _ = clean.render("functional", changed_model, current_refs)
         assert actual == expected_raw, label
         assert pdf_structure(actual) == pdf_structure(expected_raw), label
         event = incremental.events[-1]
@@ -145,15 +158,6 @@ def run(source, dpi=40, svg=True):
     with patched(inc.PlanningDoc, "arrow", change_wire):
         compare("diagram wiring coordinate", model, ["FVIEW1"])
 
-    def change_formula(old):
-        def wrapped(self, x, y, text, *args, **kwargs):
-            if self.pages[-1]["id"] == "L04" and "helper family=" in str(text):
-                text = str(text).replace("helper family=", "helper family=1+")
-            return old(self, x, y, text, *args, **kwargs)
-        return wrapped
-    with patched(inc.PlanningDoc, "text", change_formula):
-        compare("index formula drawing", model, ["L04"])
-
     def change_target(old):
         def wrapped(self, contents, destinationname, *args, **kwargs):
             if destinationname == "B_F01":
@@ -196,11 +200,11 @@ def finish_checks(report, source, model, refs, cache, base_raw, base_details, so
     # Controlled dependency digests avoid writing scientific inputs.
     for dependency in ("renderer_code", "font_bytes", "requirements_pin", "source_manifest", "configuration"):
         engine = inc.Engine(model, cache, extra_dependencies={dependency: "controlled different digest"})
-        raw, details = engine.render("combined", model, refs)
+        raw, details = engine.render("functional", model, refs)
         assert len(engine.events[-1]["rendered_pages"]) == len(details["pages"])
         assert raw == base_raw
         report["invalidation"].append({"dependency": dependency, "rendered_page_count": len(details["pages"])})
-    pages, _ = inc.plan("combined", model, refs)
+    pages, _ = inc.plan("functional", model, refs)
     engine = inc.Engine(model, cache)
     plan_hash = inc.digest(inc.canonical(pages[0]["paint"]))
     first_key = inc.digest(inc.canonical([engine.dependency_hash, plan_hash]))
@@ -210,7 +214,7 @@ def finish_checks(report, source, model, refs, cache, base_raw, base_details, so
         damaged = dict(cache)
         damaged[first_key] = dict(cache[first_key], **{field: value})
         repair = inc.Engine(model, damaged)
-        raw, _ = repair.render("combined", model, refs)
+        raw, _ = repair.render("functional", model, refs)
         assert raw == base_raw
         assert repair.events[-1]["rendered_pages"] == ["CONTENTS"]
         report["stale_cache"].append({"damaged_field": field, "rebuilt": ["CONTENTS"], "clean_equality": True})
@@ -230,9 +234,9 @@ def finish_checks(report, source, model, refs, cache, base_raw, base_details, so
     report["all_clean_warm_artifacts_identical_after_cache_json_roundtrip"] = sorted(warm_files)
     if svg:
         exporter = inc.Engine(model, cache, svg=True)
-        exporter.render("combined", model, refs)
+        exporter.render("functional", model, refs)
         first = dict(exporter.svg_files)
-        exporter.render("combined", model, refs)
+        exporter.render("functional", model, refs)
         assert first == exporter.svg_files
         all_links, external_links = 0, 0
         for name, value in first.items():

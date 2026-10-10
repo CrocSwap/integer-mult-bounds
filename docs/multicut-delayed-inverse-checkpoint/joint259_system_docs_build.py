@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate both selected-construction diagrams, master PDF and connection index.
+"""Regenerate the selected functional architecture reference and its indexes.
 
 No Graphviz is used. Diagrams are vector paths in deterministic ReportLab PDFs.
 The source package is read-only. The default build writes only to a new --output.
@@ -144,18 +144,14 @@ class Doc:
         for page in r.pages:assert (page.extract_text()or"").strip()
         return raw,{"pages":self.pages,"internal_links":len(self.links),"blocks":sorted(self.used_blocks),"sha256":sha(raw)}
 def cover(d):
-    d.page("CONTENTS","The selected construction, at three levels","Functional architecture and logical wiring")
+    d.page("CONTENTS","The selected construction, at three levels","Functional architecture and compiler workflow")
     d.text(42,673,d.model["title"],14,INK,width=1000,bold=True)
     d.panel(42,458,500,155,"THE NUMERICAL CONTRACT","513 retained PR259 cohorts + seven delayed-inverse intervals + the same 25 PR258/260 retimings applied once.\nConditional kappa: 0.000711045547624400.\nLiteral stock 867,045; 19,786,600 paid children.",TEAL)
-    d.panel(566,458,512,155,"HOW TO READ THE CONNECTIONS",str(len(d.model['blocks']))+" current blocks and "+str(len(d.model['edges']))+" typed block dependencies. All 87 original hierarchy IDs are reconciled separately.\nL01-L05 expand parametric wiring. The literal event inventory is separate; inherited all-size internals remain contracts.",GOLD)
+    d.panel(566,458,512,155,"HOW TO READ THE CONNECTIONS",str(len(d.model['blocks']))+" current blocks and "+str(len(d.model['edges']))+" typed block dependencies. All 87 original hierarchy IDs are reconciled separately.\nArchitecture views show high-level process and compiler flow. Inherited all-size internals remain contracts.",GOLD)
     y=418
     d.link(46,y,"Full integer-product hierarchy and all 87 original blocks","H_SYSTEM",850,12);y-=27
-    if d.kind in ("functional","combined"):
-        for key,t in [("FVIEW1","Functional: source-bound local supplier"),("FVIEW2","Functional: global assembly and exact closure")]:
-            d.link(46,y,t,key,600,13);y-=29
-    if d.kind in ("logical","combined"):
-        for key,t in [("L01","Logical: stream ABI and state transitions"),("L02","Logical: seven delayed-inverse interval wires"),("L03","Logical: five-stage data-bank wiring"),("L04","Logical: bank address and replica mapping"),("L05","Logical: proof ports and unexpanded interfaces")]:
-            d.link(46,y,t,key,750,13);y-=29
+    for key,t in [("FVIEW1","Functional: source-bound local supplier"),("FVIEW2","Functional: global assembly and exact closure")]:
+        d.link(46,y,t,key,600,13);y-=29
     for key,t in [("CATALOG","Block catalog: what, why, ports, requirements and proof"),("REQUIREMENTS","Requirements and source traceability"),("SOURCES","Exact source anchors and hashes"),("SCOPE","Coverage, heritage and reproduction boundary")]:
         d.link(46,y,t,key,820,12);y-=27
     d.text(46,y-12,"Navigation: clickable blocks open the catalog; source IDs open exact proof anchors; every page returns here.",11,MUTED,width=1000)
@@ -180,69 +176,6 @@ def fviews(d):
     d.text(42,663,"The bit and complex suppliers remain distinct. Scalar, geometric, bank, moment and finite proof ports must all close.",13,MUTED)
     d.panel(42,128,589,135,"SIDE INPUTS AND BOUNDARIES","F10 semantics/prefix and F15 geometry/primes feed F20. F11 records feed F14; F16 guards also feed F19. The connection index names all declared block inputs.\nF21 requires raw, bit, scalar, primes, banks, complex, math and finite results, then rechecks the source manifest.",TEAL)
     d.text(42,77,"The arrows are compiler/proof dataflow. No local optimization or individual PR contributes an independent additive kappa gain.",11,MUTED)
-def lviews(d):
-    d.page("L01","Logical wiring | actual stream ABI","Six-field local word to eight-field global record")
-    d.panel(42,502,498,148,"LOCAL REGISTER INTERFACE","source s: 0 <= s < 1,760\nold target t: 1,760 <= t < 3,520\nindependent helper h: 3,520 <= h < 20,107\ntemporary work: 20,107, live only inside COPY/ERASE",BLUE)
-    d.panel(565,502,513,148,"LOCAL RECORD (op,a,b,c,f,z)","MOVE: (0, q, before, after, rank, 0)\nADD: (1, dst, src, coefficient, common_frame, category)\nCOPY: (2, source, temporary, input_frame, output_frame, rank)\nERASE: (3, source, temporary, input_frame, output_frame, rank)\nThe local center rank is 22 for both COPY and ERASE.",TEAL,True)
-    y=419
-    for title,txt in [("ADD state transition","dst[v+1] <- dst[v] + coefficient * src[u]; every other payload version survives. MOVE changes address-frame state, not the scalar payload version."),("COPY lifecycle","COPY creates a temporary view of an immutable source in an explicit frame. Its 220 scatter consumers occur before ERASE; reflected stages create a fresh copy and never invert erasure."),("Global record","(op, family_a, family_b, coefficient_or_frame, frame_or_rank, category_or_boundary, stage, complement). Interpretation is opcode-specific; frame fields are never mistaken for stream IDs."),("Connection extraction boundary","The authoritative word has explicit source/destination IDs and lifetime delimiters. SSA-style versions and producer/consumer edges are a derived inventory, not native fields. Block-edge E IDs do not enumerate these operations.")]:
-        y=d.text(45,y,title,14,TEAL,bold=True);y=d.text(45,y-5,txt,12,INK,1020)-20
-    d.link(45,88,"F03 emitter","B_F03",140);d.link(215,88,"F10 semantic replay","B_F10",180);d.link(430,88,"F11 global ABI","B_F11",165)
-    d.page("L02","Logical wiring | delayed target inverse","Exact parametric six-stream network; repeated seven times")
-    d.text(42,666,"For one interval j: targets [p,t1,t2,t3], helpers [low,high]. All old target and helper values are arbitrary.",13,MUTED)
-    xs=[155,370,585,800,1000];ys=[580,516,452,388,324,260];names=["pivot p","target t1","target t2","target t3","helper low","helper high"]
-    for yy,name in zip(ys,names):
-        d.text(42,yy-4,name,12,INK,bold=True);d.c.setStrokeColor(HexColor("#C0CFD5"));d.c.line(142,yy,1044,yy)
-    for x,lab in zip(xs[1:4],["frame ZERO","L: rank 5 / H: rank 14","K: rank 20"]):d.text(x-73,620,lab,12,TEAL,width=215,bold=True)
-    # Three target subtractions, then two pivot compensations, then inverse.
-    for yy in ys[1:4]:
-        d.c.setStrokeColor(HexColor(BLUE));d.c.line(xs[1],ys[0],xs[1],yy)
-        d.c.setFillColor(HexColor(BLUE));d.c.circle(xs[1],yy,6,fill=1,stroke=0);d.text(xs[1]+11,yy+7,"-p",10,BLUE)
-    for off,yy,label in [(-15,ys[4],"-low @L"),(15,ys[5],"-high @H")]:
-        d.c.setStrokeColor(HexColor(TEAL));d.c.line(xs[2]+off,yy,xs[2]+off,ys[0]);d.c.setFillColor(HexColor(TEAL));d.c.circle(xs[2]+off,ys[0],6,fill=1,stroke=0);d.text(xs[2]-65,yy+12,label,10,TEAL)
-    for yy in ys[1:4]:
-        d.c.setStrokeColor(HexColor(GOLD));d.c.line(xs[3],ys[0],xs[3],yy)
-        d.c.setFillColor(HexColor(GOLD));d.c.circle(xs[3],yy,6,fill=1,stroke=0);d.text(xs[3]+12,yy+7,"+p",10,GOLD)
-    d.panel(42,78,502,121,"EXACT ENDPOINT","Each of p,t1,t2,t3 receives -low-high. Helpers retain their values. The literal inverse restores all six columns.\n8 ADDs per interval; 56 total replacement ADDs.",TEAL)
-    d.panel(566,78,512,121,"FRAME / OBSERVER CONTRACT","L <= H <= K, with nonzero exact Gram determinants. No surviving external observer crosses the interval. Four retained-cohort cuts see zero on all 14 chosen helper-prefix columns.",GOLD)
-    d.link(800,226,"F08 proof and witnesses","B_F08",230)
-    d.page("L03","Logical wiring | five-stage data paths","One logical replica; literal expansion repeats forty times")
-    d.text(42,666,"Every stage iterates its complete local word for all cover classes. Helper families are reused logically, then banked stage-privately.",13,MUTED)
-    lanes=[("X1",578),("Y1",492),("X2",406),("Y2",320)]
-    for name,yy in lanes:
-        d.text(42,yy-4,name,14,INK,bold=True);d.c.setStrokeColor(HexColor("#C0CFD5"));d.c.line(113,yy,1070,yy)
-    pairs=[(0,1),(1,0),(0,1),(3,2),(2,3)]
-    for i,((a,b),x) in enumerate(zip(pairs,[175,354,533,712,891])):
-        d.text(x-39,620,"stage %d %s"%(i,"R" if i in(1,3)else"F"),13,TEAL,bold=True)
-        ya,yb=lanes[a][1],lanes[b][1];d.c.setStrokeColor(HexColor(BLUE));d.c.setLineWidth(2);d.c.line(x,ya,x,yb)
-        for yy in [ya,yb]:d.c.setFillColor(HexColor(BLUE));d.c.circle(x,yy,8,fill=1,stroke=0)
-        d.text(x-56,245,"source %s"%lanes[a][0],10,MUTED,140);d.text(x-56,229,"target %s"%lanes[b][0],10,MUTED,140)
-        if i in(1,2,4):d.text(x-66,286,"idle + bridges",10,GOLD,width=150)
-    d.panel(42,73,1028,111,"EXACT BOUNDARY CONNECTIONS","After stage 1: X1 += X2; Y2 -= Y1. After stage 2: Y2 += Y1; X1 -= X2.\nAfter stage 4: Y1 -= Y2; X2 += X1. Final pairs (X1,Y1) and (X2,Y2) exchange as newX=oldY, newY=-oldX.\nIDLE projector widths: (46,46), (23,23), then (50,50,4,4). Each applies across all 1,760 ports.",TEAL)
-    d.link(842,208,"F11 exact route projectors","B_F11",240)
-    d.page("L04","Logical wiring | exact bank and replica map","Parametric expansion, not millions of drawn edges")
-    d.panel(42,491,485,157,"INDEX DOMAIN","stage i in [0,5); replica r in [0,40); port t in [0,1760).\nResidual width a=24-dim(entrance(u)). Index j_a(u) is local to the sorted role family of width a, not the global helper census.\nOccurrence q=40*j_a(u)+r; symbolic cover class d.",BLUE)
-    d.panel(554,491,524,157,"FULL ADDRESS","data family=(4*r+bank)*1760+t\nhelper family=281600+i*117089+stage_bank\nhelper route=d*tau_i*N^-1\nexternal work family=867045, route=(external_work,0)\nN=(block+1)*Pi*embed_i(B^-1)",TEAL)
-    d.text(43,459,"E-BANK: choose the unique rank-a segment [lo,hi) containing q, with block-slot list S and stage-bank base beta.",11,INK)
-    d.text(43,439,"k=floor((q-lo)/len(S)); b=S[(q-lo) mod len(S)]; stage_bank=beta+k; offset=sum(widths[0:b]); widths is this pattern.",11,TEAL)
-    d.text(43,418,'Example pattern 17: five residual blocks of width 24, totaling 120 coordinates.',10,MUTED)
-    x=43;y=337;unit=8.4
-    for k,rank in enumerate([24,24,24,24,24]):
-        d.c.setFillColor(HexColor(["#C4E2E9","#A8D2DA"][k%2]));d.c.rect(x,y,rank*unit,60,fill=1,stroke=0)
-        d.text(x+20,y+22,"block %d: rank %d"%(k,rank),12,INK,width=rank*unit-22);x+=rank*unit
-    d.panel(42,133,503,163,"RECONCILIATION","3,317,400 assignments = 5*40*16,587.\n200 complete stage/replica namespaces are injective in (family,route), even with 34,965 intentional same-family coincidences.\n770 frame-ID charts; 459 distinct entrance bases.",TEAL)
-    d.panel(568,133,510,163,"COMPLETION DISCHARGE","Match all 2,827 tagged entrances and prove each full 240-column bank/work swap. Subtract only tagged counts.\nOrdinary children sharing widths 5,10,15,20,50 survive. map_boundary_row rejects COMPLETE opcode 6.",GOLD)
-    d.link(43,86,"F12 assignment","B_F12",180);d.link(260,86,"F13 actual charts","B_F13",180);d.link(480,86,"F14 full addresses","B_F14",200)
-    d.page("L05","Logical wiring | closed proof ports","What is expanded, parameterized, and still inherited")
-    d.panel(42,456,322,186,"EXPANDED / EXACT","Local ADD/MOVE/COPY/ERASE ABI; seven interval templates; five active data-bank pairs; boundary shears/exchanges; exact stage/replica/helper address formulas.\nAll F01-F21 ports have source anchors.",TEAL)
-    d.panel(389,456,332,186,"PARAMETRIC REPETITION","513 retained cohorts with exact candidate bases; 25 scalar-keyed retimings; 18 packing patterns; 40 replicas; 200 stage/replica namespaces; all symbolic cover classes.\nWitness IDs remain authoritative.",BLUE)
-    d.panel(747,456,331,186,"UNEXPANDED INTERNALS","All-size weighted compiler, full GL-cover/common-ancestor charts, restored-row routing primitives, eligible-prime supply, recovery and complex symbolic/analytic theorems.\nThese are contracts, not gate-level drawings.",GOLD)
-    d.text(44,412,"Required proof ports into F21",19,INK,bold=True)
-    ports=[("raw","reconstructed source ledger"),("bit","physical / global / geometry"),("scalar","F2, chosen lift, source decoder"),("primes","actual determinant inventory"),("banks","full-address callable bank word"),("complex","pinned complex source and guard"),("math","two moments + bootstrap + outer47"),("finite","complete bill and full cutoff")]
-    for i,(a,b) in enumerate(ports):
-        x=45+(i%2)*526;y=342-(i//2)*60
-        d.text(x,y,a,13,TEAL,bold=True);d.text(x+84,y,b,12,INK,width=418)
-    d.text(44,71,"Coverage limit: these PDFs do not claim an individual-operation connection inventory. See connection_index.json for exact level and extraction status.",11,RED,width=1010)
 def catalog(d):
     for i in range(0,len(d.model["blocks"]),2):
         bs=d.model["blocks"][i:i+2]
@@ -284,30 +217,30 @@ def scope(d):
     sections=[
     ("Selected active heritage","PR249's 21 transported entrances -> PR259's 513 retained cohorts (five quartets removed) + seven new delayed-inverse intervals -> 25 same-gate PR258/PR260 retimings once. PR254 is ancestry, not another additive saving. PR251's extra sixteen entrances are excluded."),
     ("Architectural and theorem heritage","PR234 supplies Henry Grant / hcg890's five-stage architecture and finite interfaces. PR237 is a prior width-120 bank extension; no exclusive priority is claimed. The source527 and completed-bank chains retain all upstream licenses and contributor notices. Complex source is Jacob Sussman's f010392 snapshot; PR209 is its documentation pointer, and PR193 supplies the helper lineage."),
-    ("Coverage stated exactly","The current block catalog and connection index account for every declared input port. All 87 original hierarchy IDs are explicitly reconciled. Logical sheets give compact parametric wiring; the separate local event extractor provides value/frame versions and producer-consumer edges. The symbolic cover domain and inherited theorem internals remain unexpanded."),
+    ("Coverage stated exactly","The current architecture catalog and dependency index account for every declared block input port. All 87 original hierarchy IDs are explicitly reconciled. The visual views summarize architecture and compiler flow; reference pages preserve source and requirement traceability. Inherited theorem internals remain unexpanded."),
     ("Evidence and pending checks","The recorded cloud admission freshly executed changed stages and reused byte/AST-bound unchanged signed-source and complex evidence. Mac standalone replay has now reported all eight stages passing with 143 unchanged source files. This explicit PR259 hybrid checkpoint remains mathematically conditional and is below the later PR266 frontier. Documentation checks are separate from scientific replay."),
     ("Public follow-up only","Construction checkpoint PR #277: https://github.com/CrocSwap/integer-mult-bounds/pull/277. Public source commit c2f07d311bfdad0d89bf961e4da133ee97bb78de is linked in README.md. Source anchors retain exact relative paths, symbols, line numbers and hashes. The historical combined_system_schematic_20261010 generator is preserved unchanged.")
     ]
     y=666
     for title,body in sections:
         y=d.text(43,y,title,15,TEAL,bold=True)-4;y=d.text(43,y,body,12,INK,1018)-21
-    d.page("BUILD","Reproduce both diagram families","Pinned Python dependencies; no Graphviz requirement")
+    d.page("BUILD","Reproduce the architecture reference","Pinned Python dependencies; no Graphviz requirement")
     y=672
     for title,body in [
     ("Install","Python 3.11+; python -m pip install -r joint259_system_docs_requirements.txt. Pinned reportlab 4.4.9, pypdf 6.10.0, Pillow 12.3.0, charset-normalizer 3.5.1. Graphviz is not used or required."),
-    ("One build command","python -B joint259_system_docs_incremental.py --source /path/to/public-package --output joint259-docs-build --svg. An admitted source ZIP also works. Actual consumed manifest is recorded separately from the tested science archive in source_binding.json and QA.json."),
-    ("Outputs","functional_architecture.pdf; logical_wiring.pdf; complete_system.pdf; connection_index.json; source_index.json; requirement_traceability.json; diagram_model.json; QA.json. Both families are regenerated from the same block/edge model and same pinned source."),
+    ("Architecture build command","python -B joint259_system_docs_incremental.py --source /path/to/public-package --output joint259-docs-build --svg. An admitted source ZIP also works. Actual consumed manifest is recorded separately from the tested science archive in source_binding.json and QA.json."),
+    ("Outputs","functional_architecture.pdf; summary-functional.svg; QA.json; incremental_receipt.json. The retained renderer also emits local source, requirement and dependency indexes from the same pinned source."),
     ("Automatic reproducibility checks","Build every PDF twice in memory and require byte-identical SHA256, unchanged manifest, no missing/extra source files, valid proof anchors, all catalog block IDs present, all internal links resolved, nonempty extractable page text and no layout overflow. QA.json records counts, pins and output digests."),
-    ("Independent visual check","Use Poppler: pdftoppm -png -r 100 complete_system.pdf review/page. Inspect every page for clipping, missing glyphs and readable connectors. Poppler is an optional renderer, not a generation dependency; record its actual version in visual QA."),
+    ("Independent visual check","Use Poppler: pdftoppm -png -r 100 functional_architecture.pdf review/page. Inspect every page for clipping, missing glyphs and readable connectors. Poppler is an optional renderer, not a generation dependency; record its actual version in visual QA."),
     ("Scientific verification remains separate","From a clean source package, use Python 3.11+ and SymPy 1.14.0 with assertions enabled: python -B verify.py --output /new/output/directory. Never write inside the immutable source package; never use -O. A successful documentation build is not an all-eight-stage science replay.")
     ]:
         y=d.text(43,y,title,15,TEAL,bold=True)-5;y=d.text(43,y,body,12,INK,1015)-25
 def render(kind,model,refs):
+    if kind != "functional":raise ValueError("Unsupported architecture output kind")
     validate_model(model)
     d=Doc(kind,model,refs);cover(d)
     hierarchy_views.overview(d);hierarchy_views.transforms(d)
-    if kind in("functional","combined"):fviews(d)
-    if kind in("logical","combined"):lviews(d)
+    fviews(d)
     catalog(d);hierarchy_views.catalog(d);hierarchy_views.connections(d);hierarchy_views.requirements(d);requirements(d);sources(d);scope(d)
     return d.finish()
 def integrity(root,expected):
@@ -318,11 +251,11 @@ def main(source_override=None):
     consumed_manifest=sha((root/'MANIFEST.json').read_bytes())
     source_binding={**source_views.BINDING,'consumed_manifest_sha256':consumed_manifest,'consumed_manifest_members':count,'consumed_total_paths':count+1,'source_binding_configuration_sha256':sha((BASE/'joint259_system_docs_source_binding.json').read_bytes())}
     files={};reports={}
-    for kind,name in [("functional","functional_architecture.pdf"),("logical","logical_wiring.pdf"),("combined","complete_system.pdf")]:
+    for kind,name in [("functional","functional_architecture.pdf")]:
         one,report=render(kind,model,refs);two,_=render(kind,model,refs)
         if one!=two:raise ValueError("Nondeterministic "+kind)
         files[name]=one.decode("ascii");reports[name]=report
-    index={"schema":"selected-construction-connections/1","source_manifest_sha256":model["source_manifest_sha256"],"level":"functional blocks with exact parametric wiring contracts","complete_individual_operation_inventory":False,"blocks":model["blocks"],"block_edges":model["edges"],"operation_schema":{"local_fields":["op","a","b","c","f","z"],"global_fields":["op","operand_a","operand_b","coefficient_or_frame","frame_or_rank","category_or_boundary","stage","complement"],"opcodes":{"MOVE":0,"ADD":1,"COPY":2,"ERASE":3,"IDLE":4,"BRIDGE":5,"COMPLETE":6,"EXCHANGE":7},"local_source_ids":[0,1759],"local_target_ids":[1760,3519],"local_helper_ids":[3520,20106],"local_work_id":20107},"parametric_domains":{"stages":5,"replicas":40,"ports":1760,"helper_roles":16587,"helper_assignments":3317400,"cover_classes":"symbolic finite GL cover; compiler theorem supplies enumeration"},"state_versions":{"native":False,"derived_ssa_extraction":"Separate JOINT259_CONNECTION_EXTRACT.py generates complete local value/frame producer-consumer inventory; this overview index is not that trace."},"unexpanded":["all-size weighted compiler internals","full GL-cover and common-ancestor charts","restored-row and routing primitive internals","prime-supply theorem","recovery theorem","complex symbolic and analytic theorems"],"coverage_limits":["E-series IDs are block dependencies, not scalar/COPY events.","Global numerical operation counts do not prove complete per-operation extraction.","Parametric address formulas are anchored to BankPlan; no fabricated gate-level internals."]}
+    index={"schema":"selected-functional-architecture/1","source_manifest_sha256":model["source_manifest_sha256"],"level":"functional architecture block dependencies","complete_individual_operation_inventory":False,"blocks":model["blocks"],"block_edges":model["edges"],"unexpanded":["all-size weighted compiler internals","full GL-cover and common-ancestor charts","restored-row and routing primitive internals","prime-supply theorem","recovery theorem","complex symbolic and analytic theorems"],"coverage_limits":["Block dependencies describe architecture and compiler/proof flow, not individual physical-operation wires.","The visual views and reference indexes do not expand inherited theorem internals."]}
     files["connection_index.json"]=stable(index)
     index['source_manifest_sha256']=consumed_manifest
     index['scientific_archive_manifest_sha256']=model['source_manifest_sha256']

@@ -37,7 +37,7 @@ import joint259_system_docs_build as renderer
 SCHEMA = "joint259-vector-page-cache/1"
 BASE_DOC = renderer.Doc
 BASE_RENDER = renderer.render
-KINDS = {"functional": "functional_architecture", "logical": "logical_wiring", "combined": "complete_system"}
+KINDS = {"functional": "functional_architecture"}
 
 
 def canonical(value):
@@ -161,6 +161,8 @@ class PlanningDoc(BASE_DOC):
 
 
 def plan(kind, model, refs):
+    if kind not in KINDS:
+        raise ValueError("Unsupported architecture output kind")
     """Uses the authoritative renderer; no duplicated page-dispatch logic."""
     previous = renderer.Doc
     renderer.Doc = PlanningDoc
@@ -321,6 +323,8 @@ class Engine:
         self.svg_version = svg_version() if svg else None
 
     def render(self, kind, model, refs):
+        if kind not in KINDS:
+            raise ValueError("Unsupported architecture output kind")
         start = time.perf_counter()
         pages, report = plan(kind, model, refs)
         planning_seconds = time.perf_counter() - start
