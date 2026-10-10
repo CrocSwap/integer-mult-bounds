@@ -1,0 +1,35 @@
+name: p10 presink three quads
+on:
+  pull_request:
+    paths:
+      - 'research/p10-presink-three-quads/**'
+      - '.github/workflows/p10-presink-three-quads.yml'
+  push:
+    paths:
+      - 'research/p10-presink-three-quads/**'
+      - '.github/workflows/p10-presink-three-quads.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -m pip install -r research/p10-presink-three-quads/requirements.txt
+      - name: Replay complete immutable construction
+        run: python -B research/p10-presink-three-quads/verify.py --output "$RUNNER_TEMP/p10-three-quads-proof" --cxx g++ --boost-include /usr/include
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p10-three-quads-verification
+          path: |
+            ${{ runner.temp }}/p10-three-quads-proof/VERIFICATION.json
+            ${{ runner.temp }}/p10-three-quads-proof/CERTIFICATE.json
+            ${{ runner.temp }}/p10-three-quads-proof/FAILURE.json
+            ${{ runner.temp }}/p10-three-quads-proof/logs/
