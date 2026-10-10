@@ -1,0 +1,42 @@
+name: Verify PR254 plus 25 exact frame retimings
+
+on:
+  pull_request:
+    paths:
+      - 'research/cohort-kernel-retiming25/**'
+      - '.github/workflows/cohort-retiming25.yml'
+  push:
+    paths:
+      - 'research/cohort-kernel-retiming25/**'
+      - '.github/workflows/cohort-retiming25.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install exact-arithmetic dependencies
+        run: |
+          if ! test -f /usr/include/boost/multiprecision/cpp_int.hpp; then
+            sudo apt-get update
+            sudo apt-get install -y g++ libboost-dev
+          fi
+          python3 -m pip install -r research/cohort-kernel-retiming25/requirements.txt
+      - name: Regenerate source, replay all native checks and independently reprice
+        run: python3 -B research/cohort-kernel-retiming25/verify.py --output "$RUNNER_TEMP/cohort-retiming25-replay"
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
