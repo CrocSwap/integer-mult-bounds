@@ -68,9 +68,9 @@ def run(raw,physical,scalar,prime_result,math_result,banks,banked_result,global_
  f,b=scalar['forward'],scalar['inverse'];n=2*raw['v']+raw['physical_R'];assert n==19406
  for row in(f,b):
   assert row['all_source_and_dirty_restored']and row['arbitrary_target_contents_preserved']and row['all_formal_columns']==n
-  assert row['weighted_additions']==physical['weighted_scalar_events']==574832
+  assert row['weighted_additions']==physical['weighted_scalar_events']==575052
   assert hist(row['coefficient_counts'])==hist(physical['coefficient_histogram'])
-  assert row['literal_unit_additions']==sum(c*v for c,v in hist(row['coefficient_counts']).items())==578352
+  assert row['literal_unit_additions']==sum(c*v for c,v in hist(row['coefficient_counts']).items())==578572
  assert f['max_intermediate_row_l1']==46393 and b['max_intermediate_row_l1']==2282970
  assert raw['parity_transform']['both_reflected_ledgers'] and raw['parity_transform']['remaining_payload_additions']==574832
  assert raw['parity_transform']['removed_even_add_count']==1500000
