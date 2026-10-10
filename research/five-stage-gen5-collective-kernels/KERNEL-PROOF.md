@@ -17,7 +17,7 @@ retimed gates on source-pair mixes and internal gates, so the stages compose (th
 post-target word's hashes and the census was run on that word).
 
 ## Selection (discovery/)
-Twin census (twin-census.log) and collective census (coll/: families.py, fameval.py, pack.py adapted from the gen4
+Twin census (twin-census.txt) and collective census (coll/: families.py, fameval.py, pack.py adapted from the gen4
 collective census): 450 entries = 260 twin pairs (244 e=1, 16 e=3) + 190 families (151 quads, 39 tris), total
 entrance rank 1022, ranks 1..18. Greedy phi packing (phi(r) = r ln(120/r)), best prefix on the package's own ledger.
 
