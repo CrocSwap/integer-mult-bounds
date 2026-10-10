@@ -10,8 +10,8 @@ from collections import Counter,defaultdict
 from copy import copy
 import hashlib,json,time
 
-EXPECTED_EVENT='c0f4da07311f1998e0813b39098da9015969c180fa55d72f281e45cdd50aaba8'
-N=19930;V=1760;EVENTS=626360;COUNTS={1:624600,3:1760}
+EXPECTED_EVENT='08d7943ed2c334cda13e5ae3c61b4b4e14e296b532940fa036c4e56361681888'
+N=19930;V=1760;EVENTS=626580;COUNTS={1:624820,3:1760}
 
 
 def events(records,reverse=False):
