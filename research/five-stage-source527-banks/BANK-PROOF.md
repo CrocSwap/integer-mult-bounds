@@ -16,23 +16,27 @@ Complete the entire cover sweep for each stage and replica in fixed order before
 
 The five bank collections remain separate, and each is touched only in its own stage. This gives every physical bank its full required endpoint once. The data stage routes, bridge maps, idle children and final exchanges remain PR234's. Consequently there are no independent exterior rank5a children. Their removal follows from the completed bank endpoint; no internal, data, compensation or copied-center child is removed.
 
-For source527 the actual residual families are4:2200,6:13,11:48,12:18,24:14308. Sixty physical replicas fill each stage with these exact120-dimensional patterns:
+The executed helper adds21 checked entrance gauges of ranks9:2,12:5,17:5,18:9, with total rank325. Their dirty compensation reads are transported through the actual441-operation target prefix. The original producer context remains separate from the execution context. The literal transformed word, its inverse, both reflected frame ledgers and every changed entrance are checked before bank admission.
+
+For source527 the actual residual families are4:2200,6:22,7:5,11:48,12:23,15:2,24:14287. Forty physical replicas fill each stage with these exact120-dimensional patterns:
 
 | Blocks | Banks per stage |
 | --- | ---: |
-| 8 of dimension11 and8 of dimension4 | 360 |
-| 30 of dimension4 | 4304 |
-| 20 of dimension6 | 39 |
-| 10 of dimension12 | 108 |
-| 5 of dimension24 | 171696 |
+| 8 of dimension11 and8 of dimension4 | 240 |
+| 4 of dimension7 and23 of dimension4 | 50 |
+| 30 of dimension4 | 2831 |
+| 20 of dimension6 | 44 |
+| 10 of dimension12 | 92 |
+| 8 of dimension15 | 10 |
+| 5 of dimension24 | 114296 |
 
-There are176507 banks per stage,882535 total banks and422400 data families. Literal stock is1304935. Its per-replica normalized value is260987/12. The checker enumerates each of4976100 actual role/replica/stage assignments exactly once, verifies the actual role's chart rank, and hashes the complete allocation.
+There are117563 banks per stage,587815 total banks and281600 data families. Literal stock is869415. Its per-replica normalized value is173883/8. The checker enumerates each of3317400 actual role/replica/stage assignments exactly once, verifies the actual role's chart rank, and hashes the complete allocation. All200 full address namespaces are injective, including10170 intentional coincidences of family identifiers whose route keys remain distinct. The phase schedule contains200 helper sweeps and480 phases in total.
 
-Every actual chart uses at most200 factors. At most119 coordinate transpositions and120 scalar-coordinate factors give439 normalizer factors. A conservative added out-and-back selector bill, in addition to all retained PR234 route and scalar bills, is
+The243 actual charts use at most548 factors each. At most119 coordinate transpositions and120 scalar-coordinate factors give787 normalizer factors. A conservative added out-and-back selector bill, in addition to all retained PR234 route and scalar bills, is
 
-    2*5*60*((1304935-1)+16587*120*439)=525064856400 < 2^40.
+    2*5*40*((869415-1)+16587*120*787)=626938277600 < 2^40.
 
-The literal stock, not the rational per-replica stock, must be used for physical role routing and finite storage. All60 scalar replicas execute, and all recursive child counts are multiplied by60 in a literal realization. Any smaller integer normalization used only in the moment arithmetic must be distinguished from the literal replica count. Serial execution may share an external copied-center work stream only after erasure. The fixed bank selector bill is explicitly charged before the inherited positive ordinary-leaf gap absorbs it. After completion removal the maximum child is50 of120, so a single level halves; the histogram remains a one-level profile.
+The literal stock, not the rational per-replica stock, must be used for physical role routing and finite storage. All40 scalar replicas execute, and all recursive child counts are multiplied by40 in a literal realization. Precisely2300 independent completions are discharged per replica, with ranks45:2,60:23,65:48,85:5,90:22,100:2200. The remaining literal profile has19649000 calls, rank mass104153800 and deficit176000. Dividing this complete literal profile and stock by five gives the integer moment normalization8, stock173883,3929800 calls, rank mass20830760 and deficit35200. This arithmetic normalization is distinct from the40 executed replicas. Serial execution may share an external copied-center work stream only after erasure. The fixed bank selector bill is explicitly charged before the inherited positive ordinary-leaf gap absorbs it. After completion removal the maximum child is50 of120, so a single level halves; the histogram remains a one-level profile.
 
 This witness leaves the full source527 scalar/integer/sign audits, frame ledgers, exact global lowering, prime guard, complete fallback profile and47 outer inequalities to the integrator. Its input charts/census are the independently admitted source527 bank package. Existing compiler, common weighted chart, restored selectors, complete-stream routing and all-size analytic hypotheses remain conditional as in the cited sources.
 

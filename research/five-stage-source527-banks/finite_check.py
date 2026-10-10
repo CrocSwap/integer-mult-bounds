@@ -1,4 +1,4 @@
-"""Finite bill for the literal60-replica bankedfive-stage527word.
+"""Finite bill for the literal40-replica bankedfive-stage527word.
 Prepared with substantial OpenAI Codex assistance; Apache-2.0.
 Retains PR234exact-tape/prime/ordinary-leaf hypotheses, and pays bankroutes.
 """
@@ -68,34 +68,37 @@ def run(raw,physical,scalar,prime_result,math_result,banks,banked_result,global_
  f,b=scalar['forward'],scalar['inverse'];n=2*raw['v']+raw['physical_R'];assert n==20107
  for row in(f,b):
   assert row['all_source_and_dirty_restored']and row['arbitrary_target_contents_preserved']and row['all_formal_columns']==n
-  assert row['weighted_additions']==physical['weighted_scalar_events']==786621
+  assert row['weighted_additions']==physical['weighted_scalar_events']==786623
   assert hist(row['coefficient_counts'])==hist(physical['coefficient_histogram'])
-  assert row['literal_unit_additions']==sum(c*v for c,v in hist(row['coefficient_counts']).items())==789261
+  assert row['literal_unit_additions']==sum(c*v for c,v in hist(row['coefficient_counts']).items())==789263
  assert f['max_intermediate_row_l1']==37631 and b['max_intermediate_row_l1']==3295796
  assert raw['parity_transform']['both_reflected_ledgers'] and raw['parity_transform']['remaining_payload_additions']==786621
  assert raw['parity_transform']['removed_even_add_count']==1783196
  assert raw['retiming_transform']['both_reflected_ledgers']and raw['retiming_transform']['unchanged_all_input_output_frames']
  assert raw['retiming_transform']['selected_gate_count']==364 and raw['retiming_transform']['unchanged_copy_lifetimes']
+ assert raw['regauge_transform']['selected_gauge_count']==21 and raw['regauge_transform']['total_added_entrance_rank']==325
+ assert raw['regauge_transform']['both_reflected_ledgers']and raw['regauge_transform']['transport']['producer_context_unchanged']
+ assert raw['regauge_transform']['remaining_payload_additions']==786623
  assert physical['copied_centers']==24 and len(physical['copied_center_blocks'])==24
  assert all(z['rank']==22 and z['scatter_reads']==220 for z in physical['copied_center_blocks'])
  assert hist(physical['paid_histogram'])==hist(raw['one_stage_helper_histogram_including_copies'])
  assert prime_result['all_remaining_factors_below_2_power_80']and prime_result['physical_inventory_bound']
- assert prime_result['independent_entrances']==2279 and prime_result['bundled_unique_bases']==231
+ assert prime_result['independent_entrances']==2300 and prime_result['bundled_unique_bases']==243
  assert hist(prime_result['entrance_rank_counts'])==hist(raw['auxiliary_entrance_rank_histogram'])
- assert banks['conservative_extra_selector_calls']==525064856400 and banks['normalizer_factor_bound']==439
- assert banks['physical_replicas']==60 and banks['literal_stock']==1304935 and banks['assignments']==4976100
- assert banked_result['all_assignments_match']and banked_result['all_logical_helpers_bound']and banked_result['independent_completions_removed']==2279
+ assert banks['conservative_extra_selector_calls']==626938277600 and banks['normalizer_factor_bound']==787
+ assert banks['physical_replicas']==40 and banks['literal_stock']==869415 and banks['assignments']==3317400
+ assert banked_result['all_assignments_match']and banked_result['all_logical_helpers_bound']and banked_result['independent_completions_removed']==2300
  m=120;v=raw['v'];R=raw['physical_R'];T=banks['physical_replicas'];stock=banks['literal_stock'];d=m*m;N=2*m
  H=hist(raw['five_stage_profile']['histogram']);assert H==hist(global_result['paid_histogram'])
  for a,cnt in hist(raw['auxiliary_entrance_rank_histogram']).items():assert H.pop(5*a)==cnt
  literal=Counter({r:T*cnt for r,cnt in H.items()});E=sum(literal.values());mass=sum(r*cnt for r,cnt in literal.items())
- assert m*stock-mass==264000 and max(literal)==50 and Q(max(literal),m)<Q(1,2)
+ assert m*stock-mass==176000 and max(literal)==50 and Q(max(literal),m)<Q(1,2)
  assert hist(banked_result['literal_paid_histogram'])==literal and banked_result['literal_stock']==stock
  mathematics=math_result['mathematics'];bp=mathematics['bit_profile'];assert bp['literal_stock']==stock and bp['literal_children']==E and bp['literal_rank_mass']==mass
  weighted=T*(5*f['weighted_additions']+6*v);unit=T*(5*f['literal_unit_additions']+6*v)
  assert weighted==T*global_result['total_weighted_additions']
  # Preserve alloriginalroutes/bridges, paidcopies and finiteprimitiveovercharges.
- # The actual physicalstock and60replicas enter this bill; normalizedmomentW doesnot.
+ # The actual physicalstock and40replicas enter this bill; normalizedmomentW doesnot.
  J=T*(24*v+10*R);good=8*m*m+8;high=16*(d+1)**2;K=banks['conservative_extra_selector_calls']
  payload=64*f['max_intermediate_row_l1']**3*b['max_intermediate_row_l1']**2;payloadbits=payload.bit_length();assert payload<2**104
  fallback=6*N*(N-1)+3*N+6*(N-1);assert fallback==346314<32*m*m==460800
@@ -123,4 +126,4 @@ def run(raw,physical,scalar,prime_result,math_result,banks,banked_result,global_
   try:test()
   except AssertionError:controls.append(name)
   else:raise AssertionError('bad finitecutoff accepted')
- return dict(status='PASS_LITERAL_PARITY_FUSED_BANKED_FIVE_STAGE527_FINITE_BILL',theorem_pins=THEOREM_PINS,source_binding=dict(event=physical['scalar_projection_sha256'],tagged=physical['tagged_scalar_sha256'],global_program=global_result['program_sha256']),paid_inventory=dict(m=m,literal_stock=stock,physical_replicas=T,positive_rank_children=E,rank_mass=mass,weighted_additions=weighted,unit_expanded_additions=unit,bridge_additions=T*6*v,route_families=J,terminal_exchange_stream_movements=T*4*v,high_affine_factors=J*high,low_transposition_coefficient=J*(stock+24),generic_wrappers=E*good,matrix_preparation=E*128*N**3,copy_erase_episodes=120*T,fallback_per_child=32*m*m,extra_bank_selector_calls=K,normalizer_factor_bound=439,simultaneous_extra_work_streams=1,payload_prefix_upper=payload,payload_prefix_bits=payloadbits),q_power_bound=dict(coefficient=coefficient,low_matrix_power=14400,strict_upper='q^14401'),rational_route=route,row_reserve=row_reserve,moment=dict(coarse=str(c),tau=str(1-c),delta_tau_lower=str(delta_tau),delta_linear=str(delta1),fallback_added_in_full=True),recurrence=dict(bound='A*(n+n^(1-c)*w^(1-a_j))',A='C*(1+1/delta_linear+1/delta_tau)',halving_degree=1,one_level_histogram=True),bootstrap=dict(chain=list(map(str,chain)),ordinary=str(chain[-1]),gaps=gaps),rejected_controls=controls,scope='Actual60replicas/literalbankstock andallfixedbanknormalizerschargedbefore finiteordinaryleaf absorption. Inheritedweightedcompiler,commonancestorchart,restoredrow,routing,prime,recoveryandanalyticinterfacesremainconditional.')
+ return dict(status='PASS_LITERAL_PARITY_FUSED_BANKED_FIVE_STAGE527_FINITE_BILL',theorem_pins=THEOREM_PINS,source_binding=dict(event=physical['scalar_projection_sha256'],tagged=physical['tagged_scalar_sha256'],global_program=global_result['program_sha256']),paid_inventory=dict(m=m,literal_stock=stock,physical_replicas=T,positive_rank_children=E,rank_mass=mass,weighted_additions=weighted,unit_expanded_additions=unit,bridge_additions=T*6*v,route_families=J,terminal_exchange_stream_movements=T*4*v,high_affine_factors=J*high,low_transposition_coefficient=J*(stock+24),generic_wrappers=E*good,matrix_preparation=E*128*N**3,copy_erase_episodes=120*T,fallback_per_child=32*m*m,extra_bank_selector_calls=K,normalizer_factor_bound=banks['normalizer_factor_bound'],simultaneous_extra_work_streams=1,payload_prefix_upper=payload,payload_prefix_bits=payloadbits),q_power_bound=dict(coefficient=coefficient,low_matrix_power=14400,strict_upper='q^14401'),rational_route=route,row_reserve=row_reserve,moment=dict(coarse=str(c),tau=str(1-c),delta_tau_lower=str(delta_tau),delta_linear=str(delta1),fallback_added_in_full=True),recurrence=dict(bound='A*(n+n^(1-c)*w^(1-a_j))',A='C*(1+1/delta_linear+1/delta_tau)',halving_degree=1,one_level_histogram=True),bootstrap=dict(chain=list(map(str,chain)),ordinary=str(chain[-1]),gaps=gaps),rejected_controls=controls,scope='Actual40replicas/literalbankstock andallfixedbanknormalizerschargedbefore finiteordinaryleaf absorption. Inheritedweightedcompiler,commonancestorchart,restoredrow,routing,prime,recoveryandanalyticinterfacesremainconditional.')

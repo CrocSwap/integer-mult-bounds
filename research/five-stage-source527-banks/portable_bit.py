@@ -35,6 +35,9 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  raw=load('portable527_parity_raw',package/'raw_ledger.py').rebind_parity(raw,physical_run['parity_census'])
  physical_run=load('portable527_retiming',package/'retiming_transform.py').run(physical_run,output_dir=output_dir)
  raw=load('portable527_retimed_raw',package/'raw_ledger.py').rebind_retiming(raw,physical_run['retiming_census'])
+ physical_run=load('portable527_regauge',package/'regauge_transform.py').run(physical_run,output_dir=output_dir)
+ raw=load('portable527_regauged_raw',package/'raw_ledger.py').rebind_regauge(raw,physical_run['regauge_census'])
+ context=physical_run['context']
  physical=physical_run['physical'];physical['source_head']=raw['source_head']
  assert physical['source_heads']==raw['source_aliases']and physical['independent_dirty_registers']==raw['physical_R']
  assert physical['paid_histogram']=={int(k):v for k,v in raw['one_stage_helper_histogram_including_copies'].items()}
@@ -46,7 +49,7 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  assert phases==[('helper',0),('helper',1),('idle',0),('bridge',0),('helper',2),('idle',1),('bridge',1),('helper',3),('helper',4),('idle',2),('bridge',2),('completion',0),('terminal_exchange',0)]
  geometry=None
  if run_geometry:geometry=load('portable527_geometry',package/'code/geometry527.py').run(context,global_module)
- result=dict(context=context,W=context['W'],C=context['C'],records=physical_run['records'],lower=lower,raw=raw,physical=physical,global_result=global_result,geometry=geometry,phase_major_schedule=phases,scalar_observer_result=physical_run['scalar_result'],seconds=time.monotonic()-begun)
+ result=dict(context=context,W=context['W'],C=context['C'],records=physical_run['records'],lower=lower,raw=raw,physical=physical,global_result=global_result,geometry=geometry,phase_major_schedule=phases,scalar_observer_result=physical_run['scalar_result'],regauge_census=physical_run['regauge_census'],new_entrances=physical_run['new_entrances'],producer_source_context=physical_run['producer_source_context'],seconds=time.monotonic()-begun)
  if output_dir is not None:
   out=Path(output_dir);out.mkdir(parents=True,exist_ok=True)
   for name in('physical','global_result','geometry','raw'):

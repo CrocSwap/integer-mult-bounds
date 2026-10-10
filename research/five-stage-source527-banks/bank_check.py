@@ -51,12 +51,12 @@ def census(context):
     assert set(roles)==set(W.phys.values())-set(context['borrow'])-context['removed']
     assert not(set(roles)&set(context['borrow']))
     gauge_frames={role:W.gauge[role]['frame']for role in roles if role in W.gauge}
-    assert Counter(C.dimf[f]for f in gauge_frames.values())=={12:18,13:48,18:13,20:2200}
+    assert Counter(C.dimf[f]for f in gauge_frames.values())=={9:2,12:23,13:48,17:5,18:22,20:2200}
     families={}
     for role in roles:
         rank=24-C.dimf[gauge_frames[role]]if role in gauge_frames else 24
         families.setdefault(rank,[]).append(role)
-    assert {r:len(xs)for r,xs in families.items()}=={4:2200,6:13,11:48,12:18,24:14308}
+    assert {r:len(xs)for r,xs in families.items()}=={4:2200,6:22,7:5,11:48,12:23,15:2,24:14287}
     return families,gauge_frames
 
 class BankLowerer:
@@ -80,14 +80,14 @@ class BankLowerer:
     def phases(self):
         """Each iterator is expanded over all cover classes before next phase."""
         for stage in range(5):
-            for replica in range(60):
+            for replica in range(40):
                 yield('helper',stage,replica,lambda s=stage,r=replica:self.iter_stage(s,r))
             if stage in(1,2,4):
                 which={1:0,2:1,4:2}[stage]
-                for replica in range(60):
+                for replica in range(40):
                     yield('idle',which,replica,lambda i=which,r=replica:self.iter_idle(i,r))
                     yield('bridge',which,replica,lambda i=which,r=replica:self.iter_bridges(i,r))
-        for replica in range(60):yield('terminal_exchange',0,replica,lambda r=replica:self.iter_exchanges(r))
+        for replica in range(40):yield('terminal_exchange',0,replica,lambda r=replica:self.iter_exchanges(r))
 
 def bind(context,lower):return BankLowerer(context,lower)
 
@@ -120,25 +120,25 @@ def run(context,global_result,lower,progress=lambda text:None):
         assert all(x==int(i==j)for i,row in enumerate(replay)for j,x in enumerate(row))
         maxops=max(maxops,len(ops));maxnum=max(maxnum,max(abs(op[3])for op in ops));maxden=max(maxden,d,max(op[4]for op in ops))
         charts.append(dict(frame=frame,count=count,residual_rank=rank,basis=B,inverse_numerator=A,inverse_denominator=d,factors=ops))
-    assert len(charts)==231 and max(maxnum,maxden)<2**80 and maxops==200
-    progress('Rebuilt231 exact actual gauge charts')
+    assert len(charts)==243 and max(maxnum,maxden)<2**80 and maxops==548
+    progress('Rebuilt243 exact actual gauge charts')
     # Match each consumed completion to one actual independent entrance.
     expected=[]
     for j,role in enumerate(context['regs']):
         f=gauge_frames.get(role,lower.ZERO)
         assert lower.initial[2*W.v+j]==f
         if role in gauge_frames:expected.append((4*W.v+j,f,C.dimf[f]))
-    assert list(lower.entrances)==expected and len(expected)==2279
+    assert list(lower.entrances)==expected and len(expected)==2300
     completions=list(lower.iter_completions())
     assert completions==[(6,family,-1,0,5*a,f,-1,0)for family,f,a in expected]
     removed=Counter(row[4]for row in completions)
-    assert removed=={60:18,65:48,90:13,100:2200}
+    assert removed=={45:2,60:23,65:48,85:5,90:22,100:2200}
     H=Counter({int(r):n for r,n in global_result['paid_histogram'].items()})
     assert sum(H.values())==global_result['paid_calls']
     for r,n in removed.items():assert H[r]==n;del H[r]
-    assert max(H)==50 and sum(H.values())==490925 and sum(r*n for r,n in H.items())==2605470
-    literal=Counter({r:60*n for r,n in H.items()})
-    assert 120*plan.live_families-sum(r*n for r,n in literal.items())==60*4400
+    assert max(H)==50 and sum(H.values())==491225 and sum(r*n for r,n in H.items())==2603845
+    literal=Counter({r:40*n for r,n in H.items()})
+    assert 120*plan.live_families-sum(r*n for r,n in literal.items())==40*4400
     # Independently enumerate each physical role/replica/stage slot.
     incidence=hashlib.sha256();assignments=0;normalizers_checked=set();endpoint_controls=[]
     for stage in range(5):
@@ -165,7 +165,7 @@ def run(context,global_result,lower,progress=lambda text:None):
             for b in range(bank,bank+count):
                 offset=0
                 for block,rank in enumerate(widths):
-                    q=used[rank];role=families[rank][q//60];replica=q%60;used[rank]+=1
+                    q=used[rank];role=families[rank][q//40];replica=q%40;used[rank]+=1
                     assert(role,replica)not in assigned;assigned.add((role,replica))
                     a=plan.assignment(stage,replica,role);frame=gauge_frames.get(role)
                     assert a==dict(family=plan.data_families+stage*plan.banks_per_stage+b,stage_bank=b,pattern=pattern,block=block,offset=offset,rank=rank,frame=frame,scalar=block+1)
@@ -179,21 +179,21 @@ def run(context,global_result,lower,progress=lambda text:None):
                     assignments+=1;offset+=rank
                 assert offset==120
             bank+=count
-        assert bank==plan.banks_per_stage and len(assigned)==60*len(context['regs'])and used=={r:60*len(xs)for r,xs in families.items()}
-    assert assignments==4976100
-    progress('Matched all4976100 literal bank assignments')
+        assert bank==plan.banks_per_stage and len(assigned)==40*len(context['regs'])and used=={r:40*len(xs)for r,xs in families.items()}
+    assert assignments==3317400
+    progress('Matched all3317400 literal bank assignments')
     namespace=hashlib.sha256();collisions=0
     for stage in range(5):
-        for replica in range(60):
+        for replica in range(40):
             addresses=[plan.local_address(stage,replica,i)for i in range(plan.local_work+1)]
             assert len(set(addresses))==len(addresses)and addresses[-1]==(plan.work_family,('external_work',0))
             assert all(f<plan.live_families for f,route in addresses[:-1])
             collisions+=len(addresses)-len({f for f,route in addresses})
             for f,route in addresses:namespace.update(f'{stage},{replica},{f},{route}\n'.encode())
-    assert collisions==14400
+    assert collisions==10170
     # Bind every actual logical operand and mathematical field to the callable
-    # address substitution once per stage. The300 injective namespace maps
-    # above then instantiate all sixty replicas without replaying scalar algebra.
+    # address substitution once per stage. The200 injective namespace maps
+    # above then instantiate all forty replicas without replaying scalar algebra.
     stream=struct.Struct('<8i');stage_checks=[];actual_helper_uses=set();paid=Counter()
     for stage in range(5):
         digest=hashlib.sha256();rows=0;stage_paid=Counter();kinds=Counter()
@@ -223,24 +223,24 @@ def run(context,global_result,lower,progress=lambda text:None):
     exchanges=sum(1 for row in lower.iter_exchanges()if plan.map_boundary_row(0,row)[0]==7)
     assert exchanges==2*W.v and paid==H
     phases=[(kind,stage,replica)for kind,stage,replica,fn in bound.phases()]
-    assert len(phases)==720 and sum(kind=='helper'for kind,s,r in phases)==300
-    assert all(phases.index(('idle',which,r))<phases.index(('bridge',which,r))for which in range(3)for r in range(60))
+    assert len(phases)==480 and sum(kind=='helper'for kind,s,r in phases)==200
+    assert all(phases.index(('idle',which,r))<phases.index(('bridge',which,r))for which in range(3)for r in range(40))
     controls=[]
     try:plan.map_boundary_row(0,completions[0])
     except AssertionError:controls.append('silent completion discharge')
     else:raise AssertionError('completion passed address mapper')
     assert hashlib.sha256((HERE/'bank_template.py').read_bytes()).hexdigest()==api_pin
-    factors=maxops+119+120;K=2*5*60*((plan.live_families-1)+len(context['regs'])*120*factors)
-    assert factors==439 and K==525064856400<2**40
+    factors=maxops+119+120;K=2*5*40*((plan.live_families-1)+len(context['regs'])*120*factors)
+    assert factors==787 and K==626938277600<2**40
     result=dict(status='PASS_FRESH_CONTEXT_BOUND_COMPLETE_BANKS_AND_CALLABLE_LOWERING',
         all_assignments_match=True,all_logical_helpers_bound=True,independent_completions_removed=len(completions),
         removed_completion_histogram=dict(removed),literal_paid_histogram=dict(sorted(literal.items())),literal_stock=plan.live_families,
-        normalized_stock=str(Q(plan.live_families,60)),physical_replicas=60,bank_families=5*plan.banks_per_stage,data_families=plan.data_families,
+        normalized_stock=str(Q(plan.live_families,40)),physical_replicas=40,bank_families=5*plan.banks_per_stage,data_families=plan.data_families,
         assignments=assignments,incidence_sha256=incidence.hexdigest(),charts=len(charts),
         chart_sha256=hashlib.sha256(json.dumps(charts,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
         max_chart_factors=maxops,max_factor_numerator=maxnum,max_denominator=maxden,normalizer_factor_bound=factors,
         conservative_extra_selector_calls=K,distinct_actual_normalizers=len(normalizers_checked),
-        full_namespaces_checked=300,namespace_sha256=namespace.hexdigest(),intentional_family_collisions=collisions,
+        full_namespaces_checked=200,namespace_sha256=namespace.hexdigest(),intentional_family_collisions=collisions,
         local_instruction_bindings=stage_checks,endpoint_checks=endpoint_controls,phase_schedule=phases,
         completions_discharged_by='Each stage-private bank partitions all120 coordinates; all240 arbitrary-dirty address columns and inverse checked.',
         inherited_geometry='Helper originalclass d*tau_i maps to bank d*tau_i*N^-1. N conjugates its actual residual in H_i into the assigned coordinate block. Data routes and boundary projectors remain PR234s.',

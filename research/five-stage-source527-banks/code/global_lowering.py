@@ -84,7 +84,7 @@ class Lowerer:
         self.ZERO,self.FULL = context['ZERO'],context['FULL']
         self.entrances = [(4*V+j,self.initial[2*V+j],self.C.dimf[self.initial[2*V+j]])
                          for j in range(R) if self.C.dimf[self.initial[2*V+j]]]
-        assert Counter(a for f,s,a in self.entrances) == {12:18,13:48,18:13,20:2200}
+        assert Counter(a for f,s,a in self.entrances) == {9:2,12:23,13:48,17:5,18:22,20:2200}
         check_namespace()
 
     def local_rows(self,reverse=False):
@@ -268,7 +268,7 @@ def verify(lower,raw):
     expected.update({5*int(a):n for a,n in raw['auxiliary_entrance_rank_histogram'].items()})
     assert paid==expected and sum(paid.values())==raw['five_stage_profile']['calls']
     assert sum(r*n for r,n in paid.items())==raw['five_stage_profile']['rank_mass'] and LIVE*M-sum(r*n for r,n in paid.items())==4400
-    assert opcode_counts[BRIDGE]==6*V and opcode_counts[COMPLETE]==2279
+    assert opcode_counts[BRIDGE]==6*V and opcode_counts[COMPLETE]==2300
     # Independent four-bank all-column F2 composition, no source helper replay.
     def bank_endpoint(skip_bridge=None):
         banks=[1<<j for j in range(4)];bindex=0

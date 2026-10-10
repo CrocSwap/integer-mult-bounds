@@ -8,4 +8,6 @@ The source527 construction builds on eumemic's PR210 source reuse and target tra
 
 The 31 new zero-response source aliases, 48 retained dirty-anchor paths, physical event tagging and source527 integration were prepared by eumemic with substantial OpenAI Codex assistance. All earlier contributor notices and assistance disclosures remain in the supplied source material.
 
-The parity-filtered common-frame retiming and exact reconstruction were prepared by eumemic with substantial OpenAI Codex assistance. The 353 unborrowed pair mixes use their existing common delivery frames; source527 and all earlier construction credits remain retained.
+The parity-filtered common-frame retiming (PR244) and exact reconstruction were prepared by eumemic with substantial OpenAI Codex assistance. The 353 unborrowed pair mixes use their existing common delivery frames; source527 and all earlier construction credits remain retained.
+
+The twenty-one additional F2 gauge entrances, exact compensation transport, cloned producer/execution contexts and new completed-bank charts were prepared by eumemic with substantial OpenAI Codex assistance.

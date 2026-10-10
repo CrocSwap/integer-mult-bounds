@@ -25,18 +25,18 @@ def run(raw,complex_histogram,banks,global_result):
  assert raw['source_aliases']==527 and raw['physical_R']==16587 and raw['h']==24 and raw['v']==1760
  H=hist(raw['five_stage_profile']['histogram']);assert H==hist(global_result['paid_histogram'])
  assert global_result['paid_rank_mass']==sum(k*n for k,n in H.items())==2830840
- gauges=hist(raw['auxiliary_entrance_rank_histogram']);assert gauges=={20:2200,18:13,12:18,13:48}
- assert banks['assignments']==4976100 and banks['source527_roles']==16587 and banks['physical_replicas']==60
- assert banks['literal_stock']==1304935 and banks['banks_total']==882535 and banks['charts']==231
+ gauges=hist(raw['auxiliary_entrance_rank_histogram']);assert gauges=={20:2200,18:22,17:5,12:23,13:48,9:2}
+ assert banks['assignments']==3317400 and banks['source527_roles']==16587 and banks['physical_replicas']==40
+ assert banks['literal_stock']==869415 and banks['banks_total']==587815 and banks['charts']==243
  for a,n in gauges.items():assert H.pop(5*a)==n
  assert len(H)>0 and min(H.values())>0 and max(H)==50
- literal={k:n*60 for k,n in H.items()};literal_mass=sum(k*n for k,n in literal.items());literal_W=banks['literal_stock']
- assert 120*literal_W-literal_mass==60*4400
+ literal={k:n*40 for k,n in H.items()};literal_mass=sum(k*n for k,n in literal.items());literal_W=banks['literal_stock']
+ assert 120*literal_W-literal_mass==40*4400
  # Divide the literal profile by5 to an integer normalization. The executed
- # realization is still60replicas, and finite accounting uses its literalstock.
+ # realization is still40replicas, and finite accounting uses its literalstock.
  assert literal_W%5==0 and all(n%5==0 for n in literal.values())
  normalized={k:n//5 for k,n in literal.items()};W=literal_W//5;m=120;mass=sum(k*n for k,n in normalized.items())
- bp=dict(m=m,W=W,histogram=normalized,calls=sum(normalized.values()),rank_mass=mass,deficit=m*W-mass,maxchild=max(normalized),normalization=12,physical_replicas=60,literal_stock=literal_W,literal_children=sum(literal.values()),literal_rank_mass=literal_mass)
+ bp=dict(m=m,W=W,histogram=normalized,calls=sum(normalized.values()),rank_mass=mass,deficit=m*W-mass,maxchild=max(normalized),normalization=8,physical_replicas=40,literal_stock=literal_W,literal_children=sum(literal.values()),literal_rank_mass=literal_mass)
  root=cost.certify(normalized,m,W,True);c=Q(int(Q(root['lower'])*10**18),10**18);bm=cost.moment(normalized,m,W,c,True);nextbm=cost.moment(normalized,m,W,c+Q(1,10**18),True);assert bm[1]<1<nextbm[0]
  fallback=32*m*m*sum(normalized.values())
  _,upper=other.moment(m,W,list(normalized.items()),c);_,bad=other.moment(m,W,[(1,fallback)],c)

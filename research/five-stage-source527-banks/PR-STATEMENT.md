@@ -1,33 +1,22 @@
-κ = 7.10346589668175e-4
+κ = 7.10392186446856e-4
 
-Conditional **κ ≈ 7.10346589668175 × 10⁻⁴**, a 0.0390% improvement over PR210's **κ ≈ 7.10069340338651 × 10⁻⁴**.
+Twenty-one additional dirty entrances reduce the bank stock per replica by 325/24. Nine entrances have rank 18, five rank 17, five rank 12 and two rank 9. Each selected helper is untouched up to the pinned cut after all 441 target-coordinate setup additions. Moving its original zero-frame compensation through that exact F₂ prefix changes its response to the corresponding transformed column. Eighty-four old reads become eighty-six reads at the new nondegenerate entrance frames. Every new entrance lies in the helper's first required frame and each affected target's next required frame. Several helpers share one entrance frame so the target paths can serve the whole cohort.
 
-This is a new PR based on PR210 at `b0c058ba979c748bb3a8604bfb6502e9fac9b84d`. That PR and its branch remain at the earlier result so other contributors can use a stable reference. The new work is the common-frame retiming and its verification in this branch's final commit; the diff against `main` also contains the unmerged predecessor.
+The emitted word is checked on all 20,107 formal F₂ columns in both directions, including arbitrary dirty and source restoration. Both reflected frame ledgers are reconstructed from actual gate uses. The signed source527 producer keeps its original execution context; only the lowered word receives the separately cloned entrance context. The emitted signed prefix bounds remain 37,631 forward and 3,295,796 backward. This uses the retained F₂ payload contract and does not assert that the new integer lift has the old target decoder.
 
-The main change delays each of 353 unborrowed source-pair additions to its existing rank-22 common delivery frame. Per pair, recursive children of ranks **1, 1, 20, 22** become **21, 21, 2**. Eleven additional gate-frame changes give smaller savings. Overall, 364 ADD frame tags change and 355 recursive calls disappear from each local helper. The scalar ADD/COPY sequence, source and dirty restoration, endpoints and total rank mass are preserved.
+All five stages, bank assignments, exact charts, prime witnesses, routing, copied centers, cleanup and fallback remain charged. The new charts require up to 548 elementary factors and normalizers up to 787 factors; the added bank selector bill is 626,938,277,600. This higher fixed bill is included in the finite accounting. The literal construction executes 40 replicas with stock 869,415. Dividing its paid moment by five gives normalization 8, stock 173,883, 3,929,800 calls, rank mass 20,830,760 and deficit 35,200. The bit supplier binds.
 
-The verifier reconstructs every actual movement from the selected rational gate frames. A separate census rebuilds all required paths from surviving gate uses and endpoints; both reflected annihilator ledgers and nondegeneracy pass. Fresh prime checks cover the new bases and the retained producer inventory. The complete five-stage lowering, all 4,976,100 bank assignments, every chart and normalizer, scalar work, copied centers, bridges, cleanup and bad-class fallback remain paid.
+This extends PR244, the common-frame retiming construction at κ ≈ 7.10346589668175 × 10⁻⁴. It is submitted as a separate branch and PR so the earlier result remains a stable reference.
 
-| Final bit profile | Value |
-| --- | ---: |
-| Dimension | 120 |
-| Literal physical stock, 60 replicas | 1,304,935 |
-| Moment stock, normalization 12 | 260,987 |
-| Normalized recursive calls | 5,891,100 |
-| Normalized rank mass | 31,265,640 |
-| Normalized deficit | 52,800 |
-| Largest child | 50 |
-| Additional bank selector calls | 525,064,856,400 |
-
-Two independent full immutable replays pass all eight mandatory stages and produce identical certificates. They include all 20,107 formal F₂ columns and the literal inverse, the retained producer's two signed integer decoders and 25 corruption controls, fresh exact basis determinants, full bank restoration, two independent rational moment engines, three completed ordinary-leaf levels, all 47 assembly inequalities and seven margins. The adjacent κ grid point is rejected; the bit supplier binds.
+The immutable verification reconstructs all eight mandatory stages: source527 producer, actual five-stage bit word, scalar columns/restoration, exact prime witnesses, completed banks, complex supplier, rational moments/outer assembly, and full finite accounting. All 3,317,400 bank assignments and 243 exact charts are enumerated. Two moment engines, three completed ordinary-leaf levels, 47 strict assembly constraints and seven margins pass; the adjacent κ grid point fails. Two independent complete immutable replays and byte-identical final certificates are required for publication.
 
 ```sh
 python3 -m pip install -r research/five-stage-source527-banks/requirements.txt
-python3 -B research/five-stage-source527-banks/verify.py --output /tmp/retimed-source527-verification
+python3 -B research/five-stage-source527-banks/verify.py --output /tmp/regauged-source527-verification
 ```
 
-Use Python 3.11+ and a new output directory outside the package. Verification needs no network. The submitted package is byte-identical to the immutable package used for the full replays.
+Python 3.11+, SymPy 1.14.0 and a new output directory outside the package are required. Replay uses no network.
 
-The claim retains the inherited all-size compiler, weighted/common-ancestor chart, restored-row, selector, routing, prime-supply, precision/recovery, complex symbolic-correctness and analytic-transfer assumptions. Finite replay does not prove those interfaces from scratch. No new Lean build or practical multiplication benchmark is claimed.
+This conditional result retains the all-size compiler, common weighted chart, restored rows, selectors, tape routing, prime supply, precision/recovery, complex symbolic correctness and analytic reduction assumptions. The finite checks do not prove those interfaces from scratch and do not claim a practical multiplication benchmark or new Lean build.
 
-Provenance: PR210's source527 construction and F₂ parity elision; hcg890's PR234 and Jacob Sussman's five-stage construction; Rohan Arun's earlier PR237 width-120 banking; Evan McKinney's PR197 completed banks; Chafik Boukhalfa's PR200 physical helper; Avi Eisenberg's PR193 complex supplier; and the retained PR207/211/216/230 improvements. Original notices, contributor names, licenses and AI disclosures remain included. The new common-frame retiming and its integration were prepared by eumemic with substantial OpenAI Codex assistance.
+Provenance: PR210's source527 helper and parity elision, plus PR244's common-frame retiming; hcg890's PR234 and Jacob Sussman's five-stage construction; Rohan Arun's earlier PR237 width-120 banking; Evan McKinney's PR197 completed banks; Chafik Boukhalfa's PR200 helper; Avi Eisenberg's PR193 complex supplier; and the retained PR207/211/216/230 improvements. Original source notices, licenses and AI disclosures are included. The new F₂ compensation transport, twenty-one entrance gauges, exact bank charts and integration were prepared by eumemic with substantial OpenAI Codex assistance.

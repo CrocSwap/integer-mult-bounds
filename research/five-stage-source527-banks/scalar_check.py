@@ -5,7 +5,7 @@ and freshly emitted local physical records. Assisted with ChatGPT.
 from collections import Counter
 import hashlib,json,time
 
-EXPECTED_EVENT='aeeb17ee9162b8f6469e7205c2cb2abdd1a383e1b4876a68d791d26382160ded'
+EXPECTED_EVENT='36e6a02f81609bd2b2a9b201cfefe180d6b29dc345f288732ccf59aee7f31f1a'
 
 
 def events(records,reverse=False):
@@ -40,7 +40,7 @@ def replay_projection(records,reverse=False,omit_event=None):
         counts[abs(c)]+=1
         digest.update(json.dumps([a,b,c],separators=(',',':')).encode());digest.update(b'\n');count+=1
     assert columns==wanted,'independent literal all-column endpoint'
-    assert count==786621 and counts=={1:785301,3:1320}
+    assert count==786623 and counts=={1:785303,3:1320}
     if not reverse:assert digest.hexdigest()==EXPECTED_EVENT
     return dict(all_formal_columns=n,all_source_and_dirty_restored=True,
                 arbitrary_target_contents_preserved=True,
@@ -61,7 +61,7 @@ def run(context,records,progress=lambda text:None):
     progress('Checking independent literal physical projection and inverse')
     forward=replay_projection(records);inverse=replay_projection(records,True)
     assert forward['max_intermediate_row_l1']==37631 and inverse['max_intermediate_row_l1']==3295796
-    try:replay_projection(records,omit_event=786620)
+    try:replay_projection(records,omit_event=786622)
     except AssertionError:filtered_control='omitted surviving odd payload ADD rejected'
     else:raise AssertionError('filtered odd payload omission accepted')
     bound=ns['replay']('bound');bits=8*((bound.bit_length()+2+7)//8);assert 1<<bits>2*bound
