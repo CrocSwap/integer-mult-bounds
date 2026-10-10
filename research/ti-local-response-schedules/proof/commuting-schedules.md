@@ -1,0 +1,7 @@
+# Sufficient commuting schedule transformation
+
+Over an arbitrary commutative ring, an addition x_a <- x_a+c*x_b commutes through an interval in which no instruction reads x_a, writes x_b, or changes the lifetime of x_a through COPY/DISCARD. The pinned selected pairs have disjoint operands and unmoved anchors. The independent checker inspects every crossed operation and compares the full non-MOVE scalar/COPY sequence against that obtained by exactly relocating the selected additions. This is an integer identity for all dirty inputs, not an F2-only experiment.
+
+The changed frame must additionally contain both operand source spans. A separate cpp_int propagation checks every original-source direction at all occurrences of selected new frames; target rows are excluded because their initial content is arbitrary and handled by the response law. The physical emitter reconstructs all frame moves and demands nested frames and unchanged COPY lifetimes. Prime/Gram checks and the global arbitrary-input and signed-prefix checks remain independent. Only after those checks do actual bank tiling, primitive arithmetic and both exact moment engines establish a conditional kappa.
+
+The two frozen batches contain236 and2 additions. Discovery used greedy disjoint selection and weighted matching as nominations; matching gave no gain over the greedy witness. No optimization or maximum-kappa theorem is asserted. The schedule law is the mechanism of PR299, re-derived on the different weighted predecessor rather than transplanting incompatible public witnesses.
