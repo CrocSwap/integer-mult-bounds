@@ -1,14 +1,14 @@
-# The bank ladder and its new row: rungs 3 and 4 on the published profiles, and the rank-3 rung on PR233's row at κ = 7.277211262868e-4
+# The bank ladder and its new row: rungs 3 and 4 on the published profiles, the rank-3 rung on PR233's row, and the bit word's own retained ledger banked a second time, which lands the package on that row's complex branch at κ = 8.339545889388e-4
 
 **A scheduled target, not a witness, and the same blocker as rung 2.** This package prices the
 rest of the bank ladder above PR224's rung 2 -- two more whole-bank families of the complex
 ledger -- records where the accounting criterion the built rungs use stops, and then builds the
 bank schedule those rungs need: a width-66 bank tiled by the family's blocks plus a fixed
 pattern of retained ones (`prototype66.py`). The padded schedule is admissible where the
-unpadded bank count was not, and it prices **higher**, so the top of the ladder is the padded
+unpadded bank count was not, and it prices **higher**, so the top of the complex ladder is the padded
 rung 4 at `711599961413937/10^18` = 7.11599961413937e-4 -- until PR233's source-assisted v4 layer
 is read as a *row*, where the same ledger's first whole-bank family is rank 3, needs no padding
-at all, and prices **7.277211262868e-4** (the section below, and the top of this package).
+at all, and prices **7.277211262868e-4** -- and then, one lever further, because the rank-3 rung is *bit-bound*, the bit word's own retained ledger is banked a second time ([bitrung.py](research/complex-bank-run3/bitrung.py)), which lifts the leaf the whole ladder had been sitting under and prices **`416977294469409/500000000000000000` = 8.339545889388e-4**. That last point is the top of this package: it is PR233's row's complex branch, reached from the bit side, and it is still conditional on C1-C7 and on the inherited R1-R4.
 
 ## Result
 
@@ -20,7 +20,8 @@ at all, and prices **7.277211262868e-4** (the section below, and the top of this
 | rung 3, **volume criterion** | + complex rank-16 family, 192 banks | `710572698755137/10^18` = 0.000710572698755137 | complex | accounting only: no width-66 tiling hosts 192 banks (T1) |
 | rung 3, **padded schedule** | + rank-16 family, 198 banks x (4 blocks + 2 registers) | `177696102182119/25*10^16` = **0.000710784408728476** | complex | **+0.3520%** over rung 2 |
 | rung 4, **volume criterion** | + complex rank-20 family, 60 banks | `355587847933979/5*10^17` = 0.000711175695867958 | complex | accounting only: no width-66 tiling hosts 60 banks (T1) |
-| **rung 4, padded schedule (the top)** | + rank-20 family, 66 banks x (3 blocks + 6 registers) | `711599961413937/10^18` = **0.000711599961413937** | complex | **+0.4671%** over rung 2, **+1.5951%** over rung 1, **+4.1584%** over the frontier |
+| rung 4, padded schedule (the top of the complex ladder) | + rank-20 family, 66 banks x (3 blocks + 6 registers) | `711599961413937/10^18` = **0.000711599961413937** | complex | **+0.4671%** over rung 2, **+1.5951%** over rung 1, **+4.1584%** over the frontier |
+| **the bit-side rung (the top of this package, above rung 4)** | + the bit word's ranks 7, 8 and 20, 7,342 width-72 banks (rank 7 padded 10+2, rank 8 exact, rank 20 padded 3+12) | `416977294469409/500000000000000000` = **0.000833954588938818** | complex | **+17.1943%** over the rung-4 top here, **+14.5981%** over the rank-3 rung, **+22.07%** over the frontier |
 
 The 192- and 60-bank rows are what the whole-bank volume criterion gives, and they are kept
 because they are the accounting the criterion produces -- but a width-66 bank cannot host
@@ -538,6 +539,81 @@ table: κ's next `10^-18` step needs the leaf's next grid point (`72825108999022
 `verify.py -> check_rank4_rung` re-derives the criterion, every head, the padded schedule's
 shortfall, the whole enumeration and every price, and asserts the three findings above.
 
+## The bit side: a second absorption on #219's word, and the new top (`bitrung.py`)
+
+The ladder has been **bit-bound since rung 2**, and the leaf that bounded it was treated as a
+constant.  #219's rung 1 absorbs the rank-22 family of the PR200/PR205 packed bit word into
+6,116 whole width-72 banks and leaves a retained row of `W = 50,286` roles, rank mass 3,614,784,
+deficit 5,808 and 857,622 children over 21 ranks, whose certified paid saving -- bootstrapped
+through #185's three-level chain -- is the leaf `7.282510899902e-4`.  Every later reading of this
+package priced *that* row as it stands, which is why the rank-4 section above concluded that the
+bit word's ceiling was the leaf and that `7.5e-4`, `8e-4` and `1e-3` were out of reach on it.
+[bitrung.py](research/complex-bank-run3/bitrung.py) prices the row one rung further: a second
+family can leave the **same** retained ledger into whole banks, the way the rank-22 bin did, and
+every absorption lowers the retained mass -- so the leaf itself is a lever, not a constant.
+
+The criterion is rung 1's, restated on the retained row and read two ways, because the two
+readings are not the same rung:
+
+* the **volume** reading: the family's own volume is a whole number of width-72 banks,
+  `72 | rank * n_rank`;
+* the **padded** reading: what a bank can actually host when the rank does not divide the width --
+  `capacity = 72 // rank` blocks of the family plus `72 mod rank` registers of padding in every
+  bank, so it needs saturation (`capacity | n_rank`) and a retained bin that can supply the
+  padding.  This is T1's padded schedule, one word over.
+
+Thirteen of the retained row's 21 families satisfy one reading or the other -- ranks 4, 6, 7, 8,
+9, 11, 12, 15, 16, 17, 19, 20 and 21 -- so the module prices every rung of up to three of them
+(13 + 78 + 286 = 377 rungs) with the vendored interval-moment engine, and reads the block
+schedule each family needs.  The climb, in three rows of that screen (the gains are the recorded
+kappas divided by the rank-3 rung's `1819302815717/25*10^14`):
+
+| absorb | banks | retained W | bit leaf | kappa | binding | gain |
+| --- | ---: | ---: | ---: | ---: | --- | ---: |
+| rank 20 | 5,280 of 3 blocks + 12 registers | 45,006 | 7.957727174054441e-4 | `397569983356707/500000000000000000` = 7.95139966713414e-4 | bit | +9.2644% |
+| ranks 4, 20 | 6,878 (rank 4 exactly filled, rank 20 as above) | 43,408 | 8.337650404202950e-4 | `104133806924797/125000000000000000` = 8.33070455398376e-4 | bit | +14.4766% |
+| **ranks 7, 8, 20** | **7,342** (1,224 of 10 blocks + 2 registers; 838 of 9, exact; 5,280 of 3 + 12) | **42,944** | **8.349765438523530e-4** | **`416977294469409/500000000000000000` = 8.339545889388e-4** | **complex** | **+14.5981%** |
+
+The last row is the rung this module claims, and it is the *cheapest* rung that reaches its own
+kappa, not the only one: **108 of the 377 rungs** price `416977294469409/500000000000000000`,
+because once a rung's bit leaf clears the complex branch the budget is the branch and every such
+rung lands on the same point -- the screen is not choosing among them, the cap is.  The leader
+rule is the package's own (highest kappa, ties broken by the fewest banks, then by the sorted
+ranks), which is why the claimed rung is ranks 7, 8 and 20 at 7,342 banks rather than rank 21
+alone (15,018 banks) or ranks 4 and 21 (16,616).  Its schedule keeps the retained row identical
+-- `W = 42,944`, rank mass 3,086,160, deficit 5,808, 756,192 children over 18 families -- the
+stock drops by exactly the 7,342 banks, and the padding is drawn from the retained singleton bin:
+rank 7 needs 1,224 banks of 10 blocks plus 2 registers, rank 8 divides the width and needs 838
+exactly filled banks of 9 blocks, rank 20 needs 5,280 banks of 3 blocks plus 12 registers, so
+**65,808 registers of padding in all**, a partial removal from one bin exactly as T1 does on the
+complex side.  The module checks rather than asserts that each padded step needs its own bank
+count: `volume_reading_hosts_the_items` is `false` for both of them, rank 7's volume reading
+prices 1,190 banks where its schedule needs 1,224, and the reading the module writes for rank 20
+is `4,400 * 3 = 13,200 < 15,840 items`.  The rung prices the schedule, not the accounting.
+
+The binding side changes here, and that is the result.  The leader's leaf, 8.349765438523530e-4,
+sits **above** the complex branch it has to clear -- the leader reaches `1.000390455784346` of it
+-- so the budget is the branch `417325324839138999999999582174675160861/5*10^41` and the kappa is
+`416977294469409/500000000000000000`, the last `10^-18` grid point at or below PR233's row's
+complex ceiling `417325324839139/500417325324839139`, which the unchanged 47-constraint assembly
+accepts with its adjacent grid point rejected.  So the wall moves rather than disappears: every
+further bit rung is capped by the complex side, and the next increment is the complex supplier
+again (or a new bit word that lifts the leaf without spending the branch).  That **revises the
+reading two sections up**: the bit *word* was never the wall, the retained *ledger's* leaf was,
+and it moves by two absorptions.
+
+Nothing here is built, and the boundary is the package's: the absorbed families need the new
+residual types the suppliers' proofs reserve, the rows are pinned by digest to unmerged branches,
+and C1-C7 and the inherited R1-R4 stand exactly as the rest of the package states them.  This is
+a **priced target**, one rung deeper into the side that had been binding, and it is the top of
+this package.
+
+`verify.py -> check_bit_rung` re-derives the retained row, re-checks every absorption's volume,
+bank count, stock drop and padding draw, re-runs the whole 377-rung screen and compares it with
+[bitrung.json](research/complex-bank-run3/bitrung.json), and re-prices the point through the
+assembly rule -- asserting the leader's minimality, the plateau of 108 rungs, the switch of the
+binding side and the gain over the rank-3 rung rather than restating them.
+
 ## Verify
 
 ```sh
@@ -545,6 +621,7 @@ cd research/complex-bank-run3
 python3 -B verify.py           # check: pins, rebuild, compare with certificate.json
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
 python3 -B rank4rung.py        # the rank-4 measurement: writes rank4-rung.json
+python3 -B bitrung.py          # the bit-side rung: writes bitrung.json
 python3 -B importer66.py                 # the export import: refuses, codes 0/1/2/3
 python3 -B importer66.py --self-test     # the harness's own thirteen cases
 python3 -B importer66.py --contract export-contract-bit.json              # the bit twin: same codes
@@ -556,8 +633,9 @@ python3 -B importer66.py --contract export-contract-rank3.json --partial  # ... 
 python3 -B importer66.py --contract export-contract-rank3.json --self-test # ... and proves itself, thirteen cases
 ```
 
-`verify.py` passes with exit 0, pins 60 files by sha256 -- the 33 this package owns (the five
-ranked heads of #233 among them), the 16 the
+`verify.py` passes with exit 0, pins 64 files by sha256 -- the 35 this package owns (bitrung.py and
+its artifact bitrung.json, and the five ranked heads of #233 among them), the two upstream
+certificates it is priced against (#207's frontier and #233's source-assisted v4 layer), the 16 the
 vendored rung-1 package carries and the 11 in the bit drop, its reproduction evidence included --
 and rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
@@ -578,7 +656,11 @@ the row's own key set), the rank-3 rung's stability across the six ranked heads 
 nine width-66 rows of the repository (the criterion checked against the ledger's own test on every
 row, and the four findings asserted), the rank-4 rung on the pinned row (the volume criterion on
 every head, the padded schedule's nine-slot shortfall, the whole T1 tiling enumeration, every
-price, the unmoved κ and the required bit leaves, all re-derived), the rank-3 rung's gate as
+price, the unmoved κ and the required bit leaves, all re-derived), the bit-side rung on #219's rung-1
+word (the retained row re-derived, every absorption's volume, bank count, stock drop and padding
+draw re-checked, the whole 377-rung screen re-run and compared with bitrung.json, the leader's
+minimality, the 108-rung plateau and the switch of the binding side asserted, and the point
+re-priced through the assembly rule and its unchanged 47 constraints), the rank-3 rung's gate as
 code runs it (the contract in the importer's dialect, the ten bodies, the thirteen-case
 self-test, the refusal and the partial report), the modulus
 scan (which widths the pinned

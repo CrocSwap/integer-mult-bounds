@@ -33,6 +33,7 @@ OWN = ('ledger3.py', 'run3.py', 'schedule66.py', 'schedule66.json', 'prototype66
        'EXPORT-CONTRACT-RANK3.md', 'export-contract-rank3.json',
        'rank3stability.py', 'rank3-stability.json',
        'rank4rung.py', 'rank4-rung.json',
+       'bitrung.py', 'bitrung.json',
        'references/pr207-coordinated-crossover.certificate.json',
        'references/pr233-source-assisted-v4-layer.certificate.json')
 

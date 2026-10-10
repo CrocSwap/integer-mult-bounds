@@ -15,6 +15,7 @@ certificate's scope says so literally.  Passing this script means the accounting
 consistent and the prices are exact -- not that the rung is physical.
 """
 import argparse
+import itertools
 import json
 import sys
 from fractions import Fraction as Q
@@ -27,6 +28,7 @@ sys.path.insert(0, str(HERE))
 if hasattr(sys, 'set_int_max_str_digits'):
     sys.set_int_max_str_digits(0)
 
+import bitrung  # noqa: E402
 import importer66  # noqa: E402
 import instantiate_rank3  # noqa: E402
 import pins  # noqa: E402
@@ -212,10 +214,16 @@ def check_suppliers_and_requirements(record):
     return ceiling, scan, curve
 
 
-def check_obligations():
+def check_obligations(record):
+    """The obligation set of `obligations.json` against a **rebuilt** certificate.
+
+    The rebuilt record is what this compares, not the stored file: authoring mode rewrites the
+    certificate after the checks run, so reading it back here would make the check vacuous on the
+    first run and stale on every later one.
+    """
     obligations = json.loads((HERE / 'obligations.json').read_text())
     owed = [item['id'] for item in obligations['obligations']]
-    assert owed == ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'T1'], owed
+    assert owed == ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'T1', 'B1'], owed
     status = {item['id']: item['status'] for item in obligations['obligations']}
     assert all(status[key] == 'OPEN' for key in ('C1', 'C2', 'C3', 'C4')), \
         'the physical obligations must still be open'
@@ -227,19 +235,19 @@ def check_obligations():
     t1 = next(item for item in obligations['obligations'] if item['id'] == 'T1')
     assert 'resolution' in t1 and 'prototype66' in t1['resolution'], \
         'T1 must name the artifact that settles it'
+    b1 = next(item for item in obligations['obligations'] if item['id'] == 'B1')
+    assert status['B1'] == 'OPEN' and 'bitrung' in b1['resolution'], \
+        'B1 must stay open and must name the module that measures its schedule'
     inherited = [item['id'] for item in obligations['inherited']]
     assert inherited == ['R1', 'R2', 'R3', 'R4'], inherited
     assert all(item['status'] == 'OPEN' for item in obligations['inherited'])
     vendored = json.loads((HERE / 'references' / 'pr219-run1' / 'obligations.json').read_text())
     assert [item['id'] for item in vendored['obligations']] == inherited, \
         "the inherited obligation set must be #219's own"
-    certificate = json.loads((HERE / 'certificate.json').read_text()) \
-        if (HERE / 'certificate.json').exists() else {}
-    if certificate:
-        assert certificate['obligations'] == owed + inherited, 'certificate obligation list'
-        assert not any('bank' in key for key in certificate['blocked_on']
-                       ['complex_supplier_has_bank_keys']), \
-            'the complex supplier must still have no bank keys'
+    assert record['obligations'] == owed + inherited, 'the rebuilt obligation list'
+    assert not any('bank' in key for key in record['blocked_on']
+                   ['complex_supplier_has_bank_keys']), \
+        'the complex supplier must still have no bank keys'
     return owed + inherited
 
 
@@ -1020,6 +1028,178 @@ def check_rank4_rung():
     return stored
 
 
+def check_bit_rung():
+    """The bit-side rung on #219's word: the criterion, the screen, the plateau and the point.
+
+    The whole measurement is rebuilt and compared with `bitrung.json`, and the reading it turns on
+    is then re-derived a second time from the **pinned packed certificate** with plain integer and
+    `Fraction` arithmetic -- no package module and no engine: the rung-1 retained row and its row
+    identity, the families a bank can host (whole-bank volume, or the padded schedule a rank that
+    does not divide the width admits), the leader's three absorptions applied by hand (a whole
+    family out, the padding drawn per bank out of the singleton bin, the stock falling by exactly
+    the bank count), the vendored three-level bootstrap chain on the extended row, and the queue's
+    assembly rule on the extended leaf.  The plateau is asserted rather than described: 108 of the
+    377 rungs carry the same kappa, so the point this package quotes does not depend on which rung
+    is chosen -- only the cheapest bank count does -- and the binding side of the assembly has
+    switched from the bit leaf to the complex branch, which is what makes #233's row's complex
+    ceiling the wall for the next increment.
+    """
+    stored = json.loads((HERE / 'bitrung.json').read_text())
+    fresh = json.loads(json.dumps(bitrung.build_artifact(), default=str))
+    assert stored == fresh, 'bitrung.json differs from a fresh measurement'
+
+    # 1. the rung-1 retained row, from the pinned packed certificate and nothing else
+    packed = json.loads((HERE / 'references' / 'pr219-run1' / 'references'
+                         / 'pr205-packed.certificate.json').read_text())['physical']
+    packed_row = {int(r): int(n) for r, n in packed['child_histogram'].items()}
+    deficit, stock = int(packed['deficit']), int(packed['W'])
+    mass_before = sum(r * n for r, n in packed_row.items())
+    assert 72 * stock - mass_before == deficit == 5808, 'the packed bit row identity'
+    absorbed = 22 * packed_row[22]
+    assert absorbed == 440352 and absorbed // 72 == 6116, 'rung 1 takes the rank-22 bin whole'
+    row = {r: n for r, n in packed_row.items() if r != 22}
+    mass = mass_before - absorbed
+    retained_W = (mass + deficit) // 72
+    assert 72 * retained_W == mass + deficit and retained_W == stock - 6116 == 50286, \
+        'the retained row identity, with the stock dropped by the bank count'
+    rung1 = stored['rung1']
+    assert (rung1['retained_W'], rung1['retained_deficit'], rung1['retained_mass']) == \
+        (retained_W, deficit, mass), 'the row this rung starts from'
+    assert rung1['retained_children'] == sum(row.values()) == 857622 \
+        and rung1['retained_families'] == len(row) == 21 \
+        and rung1['retained_maxchild'] == max(row) == 21, 'its children, families and largest'
+    assert Q(rung1['coarse_saving']) == Q(json.loads((HERE / 'certificate.json').read_text())
+                                          ['calibrations']['run1']['bit_coarse_after']), \
+        'the rung-1 row must be the one the package already calibrates against'
+
+    # 2. the criterion, family by family, on the retained row alone
+    measured = {entry['rank']: entry for entry in stored['families']}
+    assert sorted(measured) == sorted(row) == list(range(1, 22)), 'every family is measured'
+    absorbable = []
+    for rank, children in sorted(row.items()):
+        entry, volume = measured[rank], rank * children
+        capacity, padding = 72 // rank, 72 % rank
+        whole, saturated = volume % 72 == 0, padding != 0 and children % capacity == 0
+        assert entry['items'] == children and entry['volume'] == volume, 'rank %d' % rank
+        assert entry['divides_the_width'] == (padding == 0), 'rank %d and the width' % rank
+        assert entry['volume_is_whole'] == whole, 'rank %d whole-bank volume' % rank
+        assert entry['volume_banks'] == (volume // 72 if whole else None), 'rank %d banks' % rank
+        assert (entry['capacity_blocks_per_bank'], entry['padding_registers_per_bank']) == \
+            (capacity, padding), 'rank %d geometry' % rank
+        assert entry['padded_saturates'] == saturated, 'rank %d padded schedule' % rank
+        if saturated or (whole and padding == 0):
+            absorbable.append(rank)
+    assert absorbable == stored['absorbable'] \
+        == [4, 6, 7, 8, 9, 11, 12, 15, 16, 17, 19, 20, 21], 'the families a bank can host'
+
+    # 3. the screen, and its completeness
+    combos = set()
+    for depth in (1, 2, 3):
+        combos |= {tuple(combo) for combo in itertools.combinations(absorbable, depth)}
+    screened = {tuple(entry['ranks']) for entry in stored['screen']['rungs']}
+    assert screened == combos and len(screened) == 13 + 78 + 286 == 377, \
+        'the screen is every rung of up to three absorbable families, and nothing else'
+    assert stored['screen']['depth'] == 3 and len(stored['screen']['rungs']) == 377
+
+    # 4. the leader, applied by hand: whole families out, the padding out of the singleton bin
+    leader = stored['leader']
+    ledger, banks_total, padding_total = dict(row), 0, 0
+    for step in stored['leader_schedule']['steps']:
+        rank, children = step['rank'], ledger[step['rank']]
+        capacity, padding = 72 // rank, 72 % rank
+        if step['reading'] == 'volume':
+            assert padding == 0 and (rank * children) % 72 == 0, 'rank %d leaves whole' % rank
+            banks, draw = rank * children // 72, 0
+            ledger = {r: n for r, n in ledger.items() if r != rank}
+        else:
+            assert padding and children % capacity == 0, 'rank %d takes a padded schedule' % rank
+            banks, draw, kept = children // capacity, (children // capacity) * padding, dict(ledger)
+            del kept[rank]
+            kept[1] = kept[1] - draw
+            assert kept[1] >= 0, 'the singleton bin must be able to supply the padding'
+            ledger = kept
+        assert (banks, draw) == (step['banks'], step['padding_registers']), \
+            'rank %d: the schedule the module reads' % rank
+        banks_total, padding_total = banks_total + banks, padding_total + draw
+        mass_now = sum(r * n for r, n in ledger.items())
+        assert mass_now == step['mass_after'] \
+            and (mass_now + deficit) // 72 == step['stock_after'], \
+            'the row identity after rank %d' % rank
+    assert banks_total == leader['banks'] == 7342 and padding_total == 65808, 'the leader rung'
+    assert leader['ranks'] == [7, 8, 20] and leader['binding'] == 'complex'
+    assert ledger == {int(r): n for r, n in stored['leader_schedule']['retained_histogram'].items()}
+    assert sum(ledger.values()) == stored['leader_schedule']['retained_children'] == 756192 \
+        and len(ledger) == stored['leader_schedule']['retained_families'] == 18 \
+        and max(ledger) == stored['leader_schedule']['retained_maxchild'] == 21, 'the retained row'
+    assert (sum(r * n for r, n in ledger.items()) + deficit) // 72 \
+        == stored['leader_schedule']['retained_W'] == leader['stock'] == 42944
+    assert row[1] - ledger[1] == padding_total == 65808, \
+        'every padding register comes out of the singleton bin, and nothing else touches it'
+
+    # 5. the leaf: the vendored three-level bootstrap, on the rung-1 row and on the leader's
+    seed = Q(rung1['seed'])
+    chain = [Q(value) for value in rung1['bootstrap_chain']]
+    assert chain[0] == seed and len(chain) == 4, 'the chain starts at PR200\'s published leaf'
+    for previous, current in zip(chain, chain[1:]):
+        coarse = Q(rung1['coarse_saving'])
+        assert current == (1 - coarse) * coarse + coarse * previous, 'the bootstrap recurrence'
+    assert chain[-1] == Q(rung1['leaf']), 'and reproduces the published rung-1 leaf'
+    leaf, leader_coarse = seed, Q(leader['coarse'])
+    for _ in range(3):
+        leaf = (1 - leader_coarse) * leader_coarse + leader_coarse * leaf
+    assert leaf == Q(leader['leaf']) == Q(stored['point']['leaf']) \
+        and Q(rung1['leaf']) < leaf < leader_coarse, \
+        'the same chain on the retained row gives the leader leaf'
+
+    # 6. the point: the assembly rule, the switch of the binding side, and the plateau
+    point = stored['point']
+    contract = json.loads((HERE / 'export-contract-rank3.json').read_text())
+    complex_coarse = Q(point['complex_coarse'])
+    assert complex_coarse == Q(contract['point']['coarse']), \
+        'the complex branch must be the one the rank-3 rung already sells'
+    branch = (1 - run3.BETA) * complex_coarse - run3.WEAK
+    assert branch == Q(point['complex_branch']) \
+        and Q(point['complex_ceiling']) == complex_coarse / (1 + complex_coarse), \
+        'the branch and its ceiling, from the coarse saving alone'
+    assert leaf > branch, 'the extended leaf clears the complex branch'
+    assert Q(point['budget']) == Q(leader['budget']) == min(leaf, branch) == branch, \
+        'so the budget is the complex branch, not the leaf'
+    q = branch * (1 - 2 * run3.ETA)
+    bound = (1 - run3.ETA) * q / (1 + q)
+    on_the_grid = bound * 10 ** 18
+    below = Q((on_the_grid.numerator - 1) // on_the_grid.denominator, 10 ** 18)
+    assert Q(point['kappa']) == below and below < bound, \
+        'the kappa is the assembly bound, on the grid strictly below it'
+    assert point['binding'] == 'complex' and point['adjacent_grid_rejected'] is True, \
+        'and the assembly rejects the adjacent 10^-18 point, so the grid step is what it costs'
+    assert Q(point['tightest_constraint']) == run3.WEAK, \
+        'the tightest of the 47 constraints is the weak haircut that put the budget there'
+    assert point['strict_constraints'] == 47 and point['margins'] == 7
+    frontier = Q(json.loads((HERE / 'references'
+                             / 'pr207-coordinated-crossover.certificate.json').read_text())['kappa'])
+    assert Q(point['previous_top']) == Q(contract['point']['kappa']) \
+        == Q(1819302815717, 25 * 10 ** 14), 'the rung below is the one this package prices'
+    assert Q(point['kappa']) > Q(contract['point']['kappa']) > frontier, 'and both are beaten'
+    gain = Q(point['gain_vs_the_rank3_rung'])
+    assert gain == Q(point['kappa']) / Q(contract['point']['kappa']) - 1 \
+        and Q(14, 100) < gain < Q(15, 100), 'the gain over the rung below'
+    assert abs(float(gain) * 100 - point['gain_vs_the_rank3_rung_percent']) < 1e-9, \
+        'and its decimal twin, which the JSON records for the reader'
+    cap = Q(point['kappa'])
+    plateau = [entry for entry in stored['screen']['rungs'] if Q(entry['kappa']) == cap]
+    assert len(plateau) == stored['screen']['plateau']['rungs_at_the_cap'] == 108, \
+        'the plateau: every rung whose leaf clears the branch lands on the same point'
+    assert all(entry['binding'] == 'complex' for entry in plateau) \
+        and all(Q(entry['kappa']) < cap for entry in stored['screen']['rungs']
+                if entry['binding'] == 'bit'), 'the two sides of the plateau'
+    cheapest = min(plateau, key=lambda entry: (entry['banks'], entry['ranks']))
+    assert cheapest['ranks'] == leader['ranks'] == [7, 8, 20], \
+        'the leader is the cheapest rung on the plateau, and the point does not depend on it'
+    assert 'MEASURED AND MACHINE-CHECKED' in stored['status'] and stored['next_step']['cap'], \
+        'the module must state its status and what caps the next increment'
+    return stored
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1035,13 +1215,14 @@ def main():
     check_prototype(record)
     check_scan_and_construction(record)
     ceiling, scan, curve = check_suppliers_and_requirements(record)
-    check_obligations()
+    check_obligations(record)
     unconditionality = check_unconditionality()
     contract = check_export_contract()
     bit_contract = check_bit_export_contract()
     rung3_contract, rung3_gate = check_rank3_export_contract()
     stability = check_rank3_stability()
     rung4 = check_rank4_rung()
+    bit_rung = check_bit_rung()
     harness = check_import_harness()
     target = HERE / 'certificate.json'
     if args.write:
@@ -1152,6 +1333,19 @@ def main():
              Q(rung4['targets'][0]['required_bit_leaf']),
              Q(rung4['targets'][1]['required_bit_leaf']),
              Q(rung4['targets'][2]['required_bit_leaf'])))
+    bit_point, bit_leader = bit_rung['point'], bit_rung['leader']
+    print('bit rung      %d rungs of up to %d families of the retained bit row, %d absorbable '
+          '(%s); %d of them land on the same kappa; leader %s at %d banks, leaf %s -> %s, binding '
+          '%s, the point %s = %s (%+.4f%% over the rank-3 rung), %d strict constraints'
+          % (bit_rung['screen']['rungs_priced'], bit_rung['screen']['depth'],
+             len(bit_rung['absorbable']), bit_rung['absorbable'],
+             bit_rung['screen']['plateau']['rungs_at_the_cap'], bit_leader['ranks'],
+             bit_leader['banks'], bit_rung['rung1']['leaf'], bit_leader['leaf'], bit_point['binding'],
+             Q(bit_point['kappa']), bit_point['kappa_decimal'],
+             bit_point['gain_vs_the_rank3_rung_percent'], bit_point['strict_constraints']))
+    print('bit cap       the extended leaf clears the complex branch, so the budget is the complex '
+          'side: this rung reaches the branch and its ceiling %s caps every further bit '
+          'absorption' % bit_point['complex_ceiling'])
     print('unconditional not available: supplier status %s; operation program not exported; %s'
           % (json.loads((HERE / 'references' / 'pr219-run1' / 'references'
                          / 'pr193-source-assisted-v4.certificate.json').read_text())['status'],

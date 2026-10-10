@@ -24,6 +24,9 @@ PACKAGE = ROOT / "research" / "complex-bank-run3"
 # is compared against it here as well as inside the package's own certificate.
 REVIEWED_KAPPA = Q(330942774629799, 5 * 10 ** 17)
 RUNG_KAPPA = Q(1819302815717, 25 * 10 ** 14)
+# The bit-side rung above it: #219's retained bit row banked a second time, which lands the
+# assembly on #233's row's complex branch instead of on the bit leaf.
+BIT_RUNG_KAPPA = Q(416977294469409, 5 * 10 ** 17)
 
 
 def package_command(*argv):
@@ -69,6 +72,19 @@ class ComplexBankRun3(unittest.TestCase):
         self.assertEqual((geometry["banks"], geometry["blocks_per_bank"],
                           geometry["padding_registers"], geometry["banks_per_copy"]),
                          (4086, 22, 0, 1362))
+
+    def test_the_bit_rung_lands_on_the_complex_branch(self):
+        rung = json.loads((PACKAGE / "bitrung.json").read_text())
+        point, leader = rung["point"], rung["leader"]
+        self.assertEqual(Q(point["kappa"]), BIT_RUNG_KAPPA)
+        self.assertEqual(point["binding"], "complex")
+        self.assertTrue(Q(point["kappa"]) > RUNG_KAPPA, "the rung must beat the rank-3 rung")
+        self.assertGreater(float(Q(point["gain_vs_the_rank3_rung"])), 0.14)
+        self.assertTrue(Q(leader["leaf"]) > Q(point["complex_branch"]), "the leaf clears the branch")
+        self.assertEqual(leader["ranks"], [7, 8, 20])
+        self.assertEqual((rung["screen"]["rungs_priced"],
+                          rung["screen"]["plateau"]["rungs_at_the_cap"]), (377, 108))
+        self.assertEqual(len(rung["absorbable"]), 13)
 
     def test_the_rank4_rung_is_measured_negative(self):
         rung = json.loads((PACKAGE / "rank4-rung.json").read_text())

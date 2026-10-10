@@ -609,7 +609,8 @@ def build():
                  "and #219's rung 1 also price. A reviewer who prefers the coarser field "
                  'sees a smaller top rung: recorded here rather than hidden.'),
         blocked_on=bank_evidence(),
-        obligations=['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'T1', 'R1', 'R2', 'R3', 'R4'],
+        obligations=['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'T1', 'B1',
+                     'R1', 'R2', 'R3', 'R4'],
         comparison=dict(rung1=str(RUN1_KAPPA), rung2=str(RUN2_KAPPA), frontier=str(
             Q(frontier['kappa'])), pr208_priced_rung2=str(RUN2_REPLICA),
             volume_criterion_top=str(rungs[-1]['kappa']),
