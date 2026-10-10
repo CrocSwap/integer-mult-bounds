@@ -1,0 +1,40 @@
+name: Verify extreme-frame retiming on PR284's gen4 word
+
+on:
+  push:
+    paths:
+      - 'research/gen4-extreme-frame-retiming/**'
+      - '.github/workflows/gen4-extreme-frame-retiming.yml'
+  pull_request:
+    paths:
+      - 'research/gen4-extreme-frame-retiming/**'
+      - '.github/workflows/gen4-extreme-frame-retiming.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install toolchain and SymPy
+        run: |
+          sudo apt-get update && sudo apt-get install -y g++ libboost-dev
+          python3 -m pip install sympy==1.14.0
+      - name: Check out pinned PR284 separately
+        run: |
+          git init "$RUNNER_TEMP/pr284"
+          git -C "$RUNNER_TEMP/pr284" fetch --depth 1 https://github.com/CrocSwap/integer-mult-bounds.git 2c991a3ac400057059145c837e8b32bba9128346
+          git -C "$RUNNER_TEMP/pr284" checkout --quiet FETCH_HEAD
+      - name: Replay PR284, apply the passes, rerun every native check
+        run: python3 -B research/gen4-extreme-frame-retiming/verify.py --pr284 "$RUNNER_TEMP/pr284/research/gen4-collective-families-283" --output "$RUNNER_TEMP/replay" --cxx g++
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
