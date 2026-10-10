@@ -28,9 +28,11 @@ Python only. Graphviz is not used. Reuse a --cache path for later builds, or
 use --clean to ignore the cache.
 
 The default build emits only the functional PDF family and functional summary.
-It also emits local source, requirement and dependency indexes. The minimal
-public output set is functional_architecture.pdf, summary-functional.svg,
-QA.json and incremental_receipt.json. EXPECTED_ARTIFACTS.json pins their hashes.
+It also emits local source, requirement and dependency indexes. The public output set contains the functional PDF and summary, QA/runtime
+receipts, and generated architecture-dependency, source, requirement, model,
+hierarchy and scientific-reproduction indexes: exactly 12 generated artifacts
+with 18 static build/support files. EXPECTED_ARTIFACTS.json pins eleven hashes;
+the incremental runtime receipt is intentionally environment-specific.
 The page cache is local build state and is not a proof receipt.
 
 The retained Python modules and JSON models form the dependency closure for
