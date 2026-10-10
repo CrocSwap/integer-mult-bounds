@@ -1,0 +1,39 @@
+name: Verify the p10b word with the transcript stage stack and the p = 10 complex supplier
+
+on:
+  push:
+    paths:
+      - 'research/five-stage-p10b-transcript-stages/**'
+      - '.github/workflows/five-stage-p10b-transcript-stages.yml'
+  pull_request:
+    paths:
+      - 'research/five-stage-p10b-transcript-stages/**'
+      - '.github/workflows/five-stage-p10b-transcript-stages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  immutable-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the pinned arithmetic dependency
+        run: python -m pip install --disable-pip-version-check -r research/five-stage-p10b-transcript-stages/requirements.txt
+      - name: Replay every mandatory stage (virtual, raw, bit, scalar, primes, banks, complex, math, finite)
+        run: python -B research/five-stage-p10b-transcript-stages/verify.py --output "$RUNNER_TEMP/p10b-stages-verification"
+      - name: Regenerate the pinned bit word from the generator and both physical-layer producers
+        run: python -B research/five-stage-p10b-transcript-stages/bitword/producer/regenerate.py --work "$RUNNER_TEMP/p10-regeneration"
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
