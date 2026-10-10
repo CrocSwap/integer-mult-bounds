@@ -1,0 +1,58 @@
+name: Verify gen5 retiming and target composition
+on:
+  push:
+    paths:
+      - 'research/gen5-retiming-targets/**'
+      - '.github/workflows/gen5-retiming-targets.yml'
+  pull_request:
+    paths:
+      - 'research/gen5-retiming-targets/**'
+      - '.github/workflows/gen5-retiming-targets.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Obtain immutable PR285 prerequisite
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: DreamingOfClouds/integer-mult-bounds
+          ref: b40c1a3d8f40ee3764b9f13fe850f663f2d8c834
+          path: build/pinned-pr285
+          sparse-checkout: research/five-stage-gen5-banks
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Prepare declared Boost headers
+        run: |
+          if ! test -f /usr/include/boost/multiprecision/cpp_int.hpp; then
+            sudo apt-get update
+            sudo apt-get install -y libboost-dev
+          fi
+          printf '#include <boost/multiprecision/cpp_int.hpp>\nint main() { boost::multiprecision::cpp_int n = 1; return n == 1 ? 0 : 1; }\n' | g++ -std=c++17 -x c++ -fsyntax-only -
+      - name: Install pinned arithmetic dependency
+        run: python -m pip install -r build/pinned-pr285/research/five-stage-gen5-banks/requirements.txt
+      - name: Replay complete prerequisites and composed construction
+        run: python -B research/gen5-retiming-targets/verify.py --base build/pinned-pr285/research/five-stage-gen5-banks --output /tmp/gen5-retiming-targets
+      - name: Show bounded diagnostics on failure
+        if: failure()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for path in sorted(Path('/tmp/gen5-retiming-targets').rglob('*.log')):
+              print(path)
+              print('\n'.join(path.read_text(errors='replace').splitlines()[-30:]))
+          PY
+      - name: Require unchanged tracked artifacts
+        run: git diff --exit-code

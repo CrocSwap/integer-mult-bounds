@@ -1,0 +1,58 @@
+name: Verify extra target pairs on gen4 composition
+on:
+  push:
+    paths:
+      - 'research/gen4-extra-target-pairs/**'
+      - '.github/workflows/gen4-extra-target-pairs.yml'
+  pull_request:
+    paths:
+      - 'research/gen4-extra-target-pairs/**'
+      - '.github/workflows/gen4-extra-target-pairs.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Obtain immutable PR283 prerequisite
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Dugongue/integer-mult-bounds
+          ref: 65768f62d4fde0d1fa7fc84f71678522a84aaa6c
+          path: build/pinned-pr283
+          sparse-checkout: research/gen4-composed-endpoints120
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Prepare declared Boost headers
+        run: |
+          if ! test -f /usr/include/boost/multiprecision/cpp_int.hpp; then
+            sudo apt-get update
+            sudo apt-get install -y libboost-dev
+          fi
+          printf '#include <boost/multiprecision/cpp_int.hpp>\nint main() { boost::multiprecision::cpp_int n = 1; return n == 1 ? 0 : 1; }\n' | g++ -std=c++17 -x c++ -fsyntax-only -
+      - name: Install pinned arithmetic dependency
+        run: python -m pip install -r build/pinned-pr283/research/gen4-composed-endpoints120/requirements.txt
+      - name: Replay complete prerequisites and composed construction
+        run: python -B research/gen4-extra-target-pairs/verify.py --base build/pinned-pr283/research/gen4-composed-endpoints120 --output /tmp/gen4-extra-target-pairs
+      - name: Show bounded diagnostics on failure
+        if: failure()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for path in sorted(Path('/tmp/gen4-extra-target-pairs').rglob('*.log')):
+              print(path)
+              print('\n'.join(path.read_text(errors='replace').splitlines()[-30:]))
+          PY
+      - name: Require unchanged tracked artifacts
+        run: git diff --exit-code
