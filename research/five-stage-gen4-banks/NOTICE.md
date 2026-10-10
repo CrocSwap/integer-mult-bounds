@@ -50,3 +50,5 @@ All of this was prepared by DreamingOfClouds with Anthropic Claude assistance. T
 search was run by Claude agents (simulated annealing, CP-SAT and exact one-instance compiles), and every
 reported number was re-run with the exact generator. No exclusive priority is claimed for any inherited
 design or theorem interface.
+
+The concave-descent frame retiming stage (`descent_transform.py`, `descent-selection.json`, `raw_ledger.rebind_descent`) and this package's rebinding were prepared by Rohan Arun (rohanarun) with Anthropic Claude assistance, Apache-2.0. The gen4 bit word and the five-stage completed-bank package are DreamingOfClouds' and eumemic's work with the notices above retained unchanged.

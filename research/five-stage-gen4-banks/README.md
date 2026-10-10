@@ -1,3 +1,13 @@
+# Concave-descent frame retiming on the gen4 five-stage completed banks
+
+**κ = 90446448750933/(1.25·10^17) = 7.23571590007464e-4**, conditional, with the bit supplier binding: +7.02 × 10⁻⁷ (+0.097 %) over the gen4 package below (7.22869827347495e-4).
+
+This package is DreamingOfClouds' `five-stage-gen4-banks` with one added stage, `descent_transform.py` (frozen selection `descent-selection.json`), run after `parity_transform.py`. The gen4 word had no frame retiming; local descent on the concave paid-rank objective Σ r·ln(120/r) reassigns 880 ADD frames, running each unborrowed source-pair mix at its rank-22 common delivery frame exactly as PR244 did for source527: per pair the paid children of ranks 1, 1, 20, 22 become 21, 21, 2 (local paid histogram delta {1: −1760, 2: +880, 20: −880, 21: +1760, 22: −880}), so 880 local recursive calls disappear at unchanged rank mass 425,742. The transform rebuilds every MOVE from the retimed gate needs and independently checks the byte-identical scalar/COPY projection, nested chains, fixed source/dirty/target endpoints, unchanged COPY lifetimes, nondegenerate endpoint bases, both reflected annihilator ledgers, and the exact integer source span of every non-target operand inside its new frame; `raw_ledger.rebind_descent` recounts the five-stage profile (483,146 calls, rank mass 2,809,600) and `bank_check`/`verify.py` require the new counts and κ. Banks, entrances, charts, the scalar word and all endpoints are unchanged.
+
+Prepared by Rohan Arun with Anthropic Claude assistance; Apache-2.0. Everything below is the gen4 package's own description.
+
+---
+
 κ = 7.22869827347495e-4
 
 # gen4 bit word in the five-stage completed banks
