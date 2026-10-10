@@ -3,11 +3,13 @@
 Prepared by Chafik Boukhalfa with substantial Anthropic Claude assistance. Apache-2.0. Inherited files retain
 their original notices and assistance disclosures. This package claims no exclusive priority over concurrent work.
 
-What this package contributes: the twin-helper census on the gen4 word with per-pair cuts, the 424-pair selection
-and its entrance lines, `kernel_transform.py` (eumemic's #268 kernel stage adapted to per-pair cuts),
-`raw_ledger.rebind_kernel`, the (23⁴, 4⁷) bank tiling for rank-23 residuals at 60 replicas, the pin plumbing
-(`pins.py`, `expected/kernel-pins.json`) that turns every changed literal of #276's checkers into a recomputed
-pinned value, the composition with #279's descent stage, `KERNEL-PROOF.md`, and `discovery/`. Everything else is
+What this package contributes: the twin and collective censuses on the gen4 word with per-entry cuts, the
+695-entry selection (416 line pairs, 24 pairs on 16-dimensional entrances, 255 multi-donor families) and its entrance
+bases, `kernel_transform.py` (eumemic's #268 kernel stage generalised to per-entry cuts, entrances of any dimension
+and shared donors), `raw_ledger.rebind_kernel`, the (r⁴, 4³⁰⁻ʳ) bank tiling for every residual width at 60 replicas,
+the per-rank geometry sample, the pin plumbing (`pins.py`, `expected/kernel-pins.json`) that turns every changed
+literal of #276's checkers into a recomputed pinned value, the composition with #279's descent stage,
+`KERNEL-PROOF.md`, and `discovery/`. Everything else is
 retained and credited:
 
 - DreamingOfClouds (Anthropic Claude assistance): PR #276, the gen4 bit word and its package
@@ -19,8 +21,8 @@ retained and credited:
 - eumemic (Anthropic Claude and OpenAI Codex assistance): PR #268 (the kernel_transform.py mechanism for
   response-kernel pairs in this pipeline, and its pinned-value form for bank, math and finite checks), the source527
   five-stage package (PR #251/#249/#244/#210) that #276 carries, PR #168 modules.
-- Dugongue (OpenAI Codex assistance): PR #254 (response-kernel helper pairs) and PR #259 (multi-cut condensation),
-  the mechanism's origin; PR #207/#216 finite and bank admissions.
+- Dugongue (OpenAI Codex assistance): PR #254 (response-kernel helper pairs), PR #259/#272 (multi-cut condensation,
+  collective kernels), PR #283 (the (r⁴, 4³⁰⁻ʳ) tiling rule), the mechanism's origin; PR #207/#216 finite and bank admissions.
 - hcg890 PR #234 (five-stage layout), Jacob Sussman (five-stage construction, gcert/1), Evan McKinney PR #197 and
   rohanarun PR #237 (completed width-120 banks), ikeboy PR #193 (complex helper), icekylinx PR #144, James Chang
   PR #166, sennemmi PR #230, Chafik Boukhalfa PR #200 (physical-word classes vendored in gen4bit/bit).

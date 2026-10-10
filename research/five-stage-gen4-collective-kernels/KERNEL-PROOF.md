@@ -1,4 +1,4 @@
-# Response-kernel twin pairs on the gen4 word (per-pair cuts)
+# Response-kernel entries on the gen4 word (per-entry cuts, rank-e entrances)
 
 This package is #276's `research/five-stage-gen4-banks` with #279's concave-descent retiming stage (rohanarun,
 `descent_transform.py` + `descent-selection.json`, 880 source-pair mix gates, unchanged) followed by one added
@@ -57,5 +57,22 @@ entrances share the five-stage bucket 5 with ordinary rank-5 children. No check 
 
 ## Result
 
-kappa = 180985932153783/250000000000000000 = 7.239437286151320e-4 (composed with #279's 7.23571590007464e-4; kernel-only package: 7.232412442944060e-4), bit side binding.
+kappa = 724733001963261/10^18 = 7.247330019632610e-4 with the 695 entries of this package (the first version, 424 e=1 pairs only, gave 7.239437286151320e-4 composed with #279's 7.23571590007464e-4 and 7.232412442944060e-4 without it), bit side binding.
 Same retained interfaces as #276; no Lean, no benchmark.
+
+
+## Rank-e entrances and multi-donor families (this package)
+
+`kernel_transform.py` now admits entries {pivot p, donors D, entrance E of rank e >= 1}: twin pairs (|D| = 1) and
+collective families (|D| = 2, 3; pivot response = XOR of the donors' responses, checked on the literal prefix). The
+entry cut is the later of the members' last frame-ZERO reads, bound by content; the pivot enters at E (residual rank
+24 - e), every donor pays d += p at E after the cut and d -= p at the full frame; a donor may serve several entries
+along a nested entrance chain (the emitted MOVEs are checked nested). Correctness is still the F2 replay of all 19,930
+columns forward and inverse with both omission controls. Bank tiling (`bank_template.build_patterns`, #283's rule):
+for each residual width r with k_r pivots, 15 k_r banks (r^4, 4^(30-r)) of width 120, whose rank-4 blocks come out
+of the (4^30) banks; the pivot residual census is pinned (`pivot_residual_census`, `bank_families`, `literal_stock`).
+`code/geometry527.py` checks one actual entrance basis of every new rank (projector, 5-window completion, residual
+decomposition) exactly as for the rank-20/21 entrances. Every new entrance basis gets a prime witness
+(`prime_check`); all selected bases factor completely over the primes <= 31.
+
+This package: 416 e=1 + 24 e=16 twin pairs and 255 multi-donor families (208 quads, 47 tris; 59 donors shared along nested chains) of the gen4coll selA census: 695 entries, total entrance rank 2028, residual widths 6..23. kappa = 724733001963261/1000000000000000000 = 7.247330019632610e-4.

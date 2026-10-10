@@ -57,7 +57,7 @@ def census(context):
     for role in roles:
         rank=24-C.dimf[gauge_frames[role]]if role in gauge_frames else 24
         families.setdefault(rank,[]).append(role)
-    assert {r:len(xs)for r,xs in families.items()}=={3:266,4:2200,23:424,24:13520}
+    pin('bank_families',{r:len(xs)for r,xs in families.items()})
     return families,gauge_frames
 
 class BankLowerer:
@@ -96,7 +96,7 @@ def run(context,global_result,lower,progress=lambda text:None):
     begun=time.monotonic();W,C=context['W'],context['C']
     api_pin=hashlib.sha256((HERE/'bank_template.py').read_bytes()).hexdigest()
     families,gauge_frames=census(context);bound=bind(context,lower);plan=bound.plan
-    assert lower.W is W and lower.C is C
+    assert lower.W is W and lower.C is C;pin('pivot_residual_census',{r:len(xs)for r,xs in families.items()if r not in(3,4,24)});pin('literal_stock',plan.live_families)
     # Derive all actual chart bases and exact inverse/factor programs afresh.
     charts=[];maxops=maxnum=maxden=0
     for frame,count in sorted(Counter(gauge_frames.values()).items()):

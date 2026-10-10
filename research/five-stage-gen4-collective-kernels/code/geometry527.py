@@ -67,11 +67,13 @@ def run(ctx,L,source_pins=None):
  assert len(frames)==2
  # gen4 also has rank-21 independent entrances (266); check one actual basis of that family.
  frame21=next(frame for _,frame,rank in lower.entrances if rank==21)
+ # Kernel entries add rank-e pivot entrances (e>=1); check one actual basis of every new rank the same way.
+ new_ranks=sorted({rank for _,_,rank in lower.entrances if rank not in(20,21)});kernel_frames=[next(frame for _,frame,rank in lower.entrances if rank==r)for r in new_ranks]
  sigma=[S(lower.frame_projector(f))for f in frames]
  assert sigma[0]!=sigma[1]
  helpers=[]
- for frame,P in zip(frames+[frame21],sigma+[S(lower.frame_projector(frame21))]):
-     rank=C.dimf[frame];assert rank in(20,21)
+ for frame,P in zip(frames+[frame21]+kernel_frames,sigma+[S(lower.frame_projector(frame21))]+[S(lower.frame_projector(f))for f in kernel_frames]):
+     rank=C.dimf[frame];assert rank in(20,21)or rank in new_ranks
      assert P*P==P and sp.trace(P)==rank
      completion=S(lower.completion_projector(frame))
      residual=S(I)-completion

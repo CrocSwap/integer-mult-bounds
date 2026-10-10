@@ -5,24 +5,31 @@ chart IDs. This module owns no paths, global frame registry or source loading.
 Prepared with OpenAI Codex assistance; Apache-2.0.
 """
 from collections import Counter
+from pins import pivot_residual_census
 
 
 class BankPlan:
     m, h, stages, replicas, v = 120, 24, 5, 60, 1760
-    # 424 kernel pivots enter at rank 1, so 424 roles have residual rank 23 (60*424 slots).
-    # They tile with (23^4,4^7) banks: 15*424 = 6360 banks per stage, whose 7*6360 = 44520
-    # rank-4 blocks are taken from the former (4^30) banks (4400 -> 2916). The (24^5) banks
-    # drop to 60*(13944-424)/5 = 162240. Every bank is exactly 120 wide and fully filled.
-    patterns = ((tuple([3]*40),399),
-                (tuple([4]*30),2916),
-                (tuple([23]*4+[4]*7),6360),
-                (tuple([24]*5),162240))
-
+    # Kernel pivots enter at rank e and have residual rank r = 24-e. For each residual width r the 60*k_r slots
+    # tile with 15*k_r banks (r^4, 4^(30-r)) (#283's rule: four r-blocks and 30-r rank-4 filler blocks, width
+    # 4r+4(30-r) = 120), whose rank-4 blocks come out of the (4^30) banks; the (24^5) banks hold the remaining
+    # full-residual helpers. The pivot residual census is pinned here and in expected/kernel-pins.json.
+    @staticmethod
+    def build_patterns(residuals, plain=13944, gauge3=266, gauge4=2200):
+        used4=0;patterns=[(tuple([3]*40),gauge3*60//40)]
+        for r,k in sorted(residuals.items(),reverse=True):
+            assert 4<r<24 and k>0;patterns.append((tuple([r]*4+[4]*(30-r)),15*k));used4+=15*k*(30-r)
+        assert (gauge4*60-used4)%30==0 and used4<=gauge4*60;patterns.append((tuple([4]*30),(gauge4*60-used4)//30))
+        patterns.append((tuple([24]*5),60*(plain-sum(residuals.values()))//5))
+        return tuple(patterns)
     active = ((0,1),(1,0),(0,1),(3,2),(2,3))
 
     def __init__(self, families, gauge_frames, helper_roles=None):
+        self.PIVOT_RESIDUALS = pivot_residual_census()
+        self.patterns = self.build_patterns(self.PIVOT_RESIDUALS)
         self.families = {r:tuple(rows) for r,rows in families.items() if rows}
-        assert {r:len(rows) for r,rows in self.families.items()} == {3:266,4:2200,23:424,24:13520}
+        expected={3:266,4:2200,24:13944-sum(self.PIVOT_RESIDUALS.values())};expected.update(self.PIVOT_RESIDUALS)
+        assert {r:len(rows) for r,rows in self.families.items()} == expected
         self.role_index = {}
         for rank,rows in self.families.items():
             assert tuple(sorted(rows)) == rows and len(set(rows)) == len(rows)
@@ -38,7 +45,7 @@ class BankPlan:
         self.data_families=self.replicas*4*self.v
         self.live_families=self.data_families+self.stages*self.banks_per_stage
         self.work_family=self.live_families
-        assert (self.banks_per_stage,self.data_families,self.live_families)==(171915,422400,1281975)
+        assert self.data_families==422400 and self.live_families==self.data_families+5*self.banks_per_stage
         self.segments={}
         used=Counter();bank_start=0
         for pattern,(widths,count) in enumerate(self.patterns):

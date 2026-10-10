@@ -1,14 +1,14 @@
-name: Verify the gen4 word with 424 kernel twin pairs and the 880-gate descent retiming
+name: Verify the gen4 word with 695 collective kernel entries and the 880-gate descent retiming
 
 on:
   push:
     paths:
-      - 'research/five-stage-gen4-kernel-pairs/**'
-      - '.github/workflows/five-stage-gen4-kernel-pairs.yml'
+      - 'research/five-stage-gen4-collective-kernels/**'
+      - '.github/workflows/five-stage-gen4-collective-kernels.yml'
   pull_request:
     paths:
-      - 'research/five-stage-gen4-kernel-pairs/**'
-      - '.github/workflows/five-stage-gen4-kernel-pairs.yml'
+      - 'research/five-stage-gen4-collective-kernels/**'
+      - '.github/workflows/five-stage-gen4-collective-kernels.yml'
   workflow_dispatch:
 
 permissions:
@@ -30,10 +30,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install the pinned arithmetic dependency
-        run: python -m pip install --disable-pip-version-check -r research/five-stage-gen4-kernel-pairs/requirements.txt
+        run: python -m pip install --disable-pip-version-check -r research/five-stage-gen4-collective-kernels/requirements.txt
       - name: Replay every mandatory stage (virtual, raw, bit, scalar, primes, banks, complex, math, finite)
-        run: python -B research/five-stage-gen4-kernel-pairs/verify.py --output "$RUNNER_TEMP/gen4-kernel-pairs-verification"
+        run: python -B research/five-stage-gen4-collective-kernels/verify.py --output "$RUNNER_TEMP/gen4-collective-kernels-verification"
       - name: Regenerate the pinned bit word from the generator and both physical-layer producers
-        run: python -B research/five-stage-gen4-kernel-pairs/gen4bit/producer/regenerate.py --work "$RUNNER_TEMP/gen4-regeneration"
+        run: python -B research/five-stage-gen4-collective-kernels/gen4bit/producer/regenerate.py --work "$RUNNER_TEMP/gen4-regeneration"
       - name: Require committed files to remain unchanged
         run: git diff --exit-code

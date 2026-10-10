@@ -223,15 +223,15 @@ def rebind_kernel(raw,receipt):
  from pins import pin
  hist=lambda x:Counter({int(k):v for k,v in x.items()if v})
  compact=lambda x:{str(k):v for k,v in sorted(x.items())if v}
- assert receipt['status']=='PASS_GEN4_PER_PAIR_CUT_KERNEL_ON_ACTUAL_WORD_AND_BOTH_REFLECTED_LEDGERS'
+ assert receipt['status']=='PASS_GEN4_PER_ENTRY_CUT_KERNEL_ON_ACTUAL_WORD_AND_BOTH_REFLECTED_LEDGERS'
  assert receipt['both_reflected_ledgers']and receipt['unchanged_data_input_output_and_dirty_output_frames']and receipt['unchanged_copy_lifetimes']
- pairs=pin('kernel_pairs',receipt['selected_pairs']);assert receipt['rank_drop']==pairs and receipt['proof']['source_context_preserved']
+ pairs=pin('kernel_pairs',receipt['selected_pairs']);pin('kernel_entries',receipt['selected_entries']);ranks=hist(receipt['proof']['entrance_rank_histogram']);assert receipt['rank_drop']==sum(r*c for r,c in ranks.items())==pin('kernel_entrance_rank',receipt['rank_drop']) and receipt['proof']['source_context_preserved']
  source=hist(receipt['source_histogram']);target=hist(receipt['target_histogram']);internal=hist(receipt['internal_histogram_including_copies']);copies=hist(receipt['copied_center_histogram'])
  assert source==hist(raw['physical_source_histogram'])and target==hist(raw['physical_target_histogram'])and copies=={22:24}
  helper=source+target+internal;delta=helper.copy();delta.subtract(hist(raw['one_stage_helper_histogram_including_copies']))
  assert {k:v for k,v in delta.items()if v}==hist(receipt['local_histogram_delta'])==hist(pin('kernel_local_delta',{k:v for k,v in delta.items()if v}))
  pin('kernel_helper_rank_mass',sum(k*v for k,v in helper.items()))
- before=deepcopy(raw);gauges=hist(raw['auxiliary_entrance_rank_histogram']);gauges[1]+=pairs
+ before=deepcopy(raw);gauges=hist(raw['auxiliary_entrance_rank_histogram']);gauges.update(ranks)
  pin('entrance_rank_histogram',dict(gauges))
  five=Counter({r:5*n for r,n in helper.items()});five.update(hist(raw['five_stage_profile']['idle_histogram']))
  for a,n in gauges.items():five[5*a]+=n
