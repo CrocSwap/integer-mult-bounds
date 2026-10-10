@@ -51,6 +51,7 @@ def main():
   run('price',py+[code/'price.py',c,'--bank',out/'BANK.json','--complex',out/'predecessor/complex.json','--complex-reserve',reserve,'--complex-reserve-proof',out/'complex-reserve','--output',out/'PRICE.json'])
   run('finite-invoice',[bin/'invoice',c/'COHORT249-RECORDS.bin',out/'PRICE.json',out/'BANK.json',out/'COLUMNS.json',out/'INVOICE.json'])
   run('prime-threshold-bootstrap',py+[code/'threshold_bootstrap.py','--arithmetic-stage','--source',ROOT,'--replay',out,'--expected-word',json.loads((ROOT/'SOURCE.json').read_text())['final_word_sha256'],'--require-frame-primes','--output',out/'REFINEMENT.json'])
+  run('producer-binding-controls',py+[code/'producer_binding_controls.py',out/'PRODUCER-BINDING-CONTROLS.json'])
   run('complete-admission',py+[code/'finish.py',out])
   assert integrity()==digest,'Source changed during replay';cert=json.loads((out/'CERTIFICATE.json').read_text())
   report=dict(status=cert['status'],kappa=cert['kappa'],word_sha256=cert['word_sha256'],manifest_sha256=digest,inputs_unchanged=True,fresh_stages=stages,seconds=time.monotonic()-start,scope=cert['scope'])

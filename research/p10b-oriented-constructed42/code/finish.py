@@ -22,6 +22,22 @@ def census(path):
   elif op==2:H[z]+=1;copies+=1
  return H,adds,units,copies,records
 
+
+def verify_regenerated_files(src,work,files):
+ # Gzip containers can differ across OS/zlib builds. Bind both containers and
+ # compare the complete expanded bytes, without parsing or normalizing JSON.
+ names={'graph_p10.json','kchron_p10.json','profile_p10.json','word_p10.json.gz','frames_p10.json.gz'}
+ assert set(files)==names,'Exactly five regenerated source files required'
+ for name,r in files.items():
+  pinned=(src/'bitword/selected/bit'/name).read_bytes()
+  rebuilt=(work/'final1'/name).read_bytes()
+  assert hashlib.sha256(pinned).hexdigest()==r['pinned'],name+' pinned container hash'
+  assert hashlib.sha256(rebuilt).hexdigest()==r['rebuilt'],name+' rebuilt container hash'
+  if name.endswith('.gz'):
+   pinned=gzip.decompress(pinned);rebuilt=gzip.decompress(rebuilt)
+  assert pinned==rebuilt,name+' complete expanded bytes'
+  assert hashlib.sha256(rebuilt).hexdigest()==r['expanded'],name+' expanded hash'
+
 def finish(out):
  out=Path(out);pin=read(ROOT/'SOURCE.json');E=pin['expected'];src=ROOT/'vendor/predecessor';pred=out/'predecessor';base=out/'base';candidate=out/'candidate';mat=out/'materialized';ver=read(pred/'verification.json');oldcert=read(pred/'certificate.json');oldst=read(base/'249-states.json');st=read(candidate/'249-states.json')
  assert ver['status']=='PASS_IMMUTABLE_PARITY_FUSED_P10_FIVE_STAGE_BANKED_CONSTRUCTION' and ver['inputs_unchanged']
@@ -38,9 +54,12 @@ def finish(out):
  assert ex['all_used_frames']==E['frames'] and ex['new_used_frames']==E['new_charts']
  for path,d in ex['input_hashes'].items():assert sha(path)==d
  regen=read(out/'source-regeneration/REGENERATION.json');assert regen['status']=='PASS_STRUCTURAL_PRODUCER_REGENERATION_ALL_FIVE_FILES' and regen['rounds']==2 and regen['source_unchanged'] and regen['source_manifest_sha256']==pin['predecessor']['manifest_sha256'] and regen['checker_sha256']==sha(src/'bitword/producer/regenerate_structural.py')
- assert len(regen['files'])==5 and all(r['pinned']==r['rebuilt'] for r in regen['files'].values())
- for name,r in regen['files'].items():assert sha(src/'bitword/selected/bit'/name)==r['pinned'] and sha(out/'source-regeneration/final1'/name)==r['rebuilt']
- receipts=['source-regeneration/REGENERATION.json','predecessor/verification.json','predecessor/certificate.json','predecessor/complex.json','predecessor/primes.json','predecessor/banks.json','EXPORT.json','ROLE-MAP.json']
+ verify_regenerated_files(src,out/'source-regeneration',regen['files'])
+ controls=read(out/'PRODUCER-BINDING-CONTROLS.json')
+ expected_controls={'forged-pinned','forged-rebuilt','forged-expanded','missing-file','extra-file'}|{'changed-complete-bytes-'+name for name in regen['files']}
+ assert controls['status']=='PASS_EXACT_PRODUCER_CONTENT_BINDING_CONTROLS' and len(controls['negative_controls'])==len(expected_controls) and set(controls['negative_controls'])==expected_controls
+
+ receipts=['PRODUCER-BINDING-CONTROLS.json','source-regeneration/REGENERATION.json','predecessor/verification.json','predecessor/certificate.json','predecessor/complex.json','predecessor/primes.json','predecessor/banks.json','EXPORT.json','ROLE-MAP.json']
  stages={}
  previous=pin['source_parity_sha256']
  for name in ('descent','target','kernel','restore','sink','reorder','descent2'):

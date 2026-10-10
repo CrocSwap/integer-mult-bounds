@@ -52,3 +52,24 @@ construction, with no unconditional theorem, fixed modulus or new Lean build
 claimed. See `PROOF.md`, `REFINEMENT-PROOF.md`, `SOURCE.json` and `NOTICE.md`.
 New source search, selections, validation and integration were prepared with
 substantial OpenAI Codex assistance; all upstream author and AI credits remain.
+
+## Portable producer-file binding
+
+This successor repairs the final admission check from frozen PR #332 without
+changing its scalar word, complete paid profile, source suppliers or conditional
+κ. The original producer already compares all five complete file payloads; its
+gzip containers may differ across operating systems and zlib builds.
+
+The final check now verifies the exact five filenames, both actual compressed
+file hashes and exact expanded byte equality for the two gzip files. The three
+plaintext files must still match byte for byte. The expanded hash is checked
+against those exact bytes; no JSON normalization or selected-field comparison
+is used. The stored package bytes remain pinned by the unchanged supplier
+manifest and the new outer manifest. A fresh mandatory control stage accepts
+alternative gzip metadata/compression and rejects altered full payloads,
+forged hashes, missing files and extra files.
+
+The #332 Linux run passed all twenty preceding stages, including producer
+regeneration, before its overly strict compressed-container equality failed.
+The new verifier has twenty-two stages. This repair makes no stronger κ claim.
+Prepared with substantial OpenAI Codex assistance; inherited notices apply.
