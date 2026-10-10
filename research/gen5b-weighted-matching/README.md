@@ -1,14 +1,16 @@
-# Gen5b donor-rank-weighted compensated matching
+# Gen5b weighted matching with second scalar descent
 
 This package rebuilds compensated reuse after the producer's endpoint descent,
 choosing donors by their actual final-frame ranks. It composes the resulting word
-with all 1,720 PR299 kernel entries, 440 early restorations and seven terminal sinks.
+with all 1,720 PR299 kernel entries, PR300's second scalar descent, 440 early
+restorations and seven terminal sinks.
 The exact conditional finite bound is
 
-**κ = 375528459906701 / 500000000000000000 = 0.000751056919813402.**
+**κ = 46942230864663 / 62500000000000000 = 0.000751075693834608.**
 
-This is about **0.15438% above independently reproduced PR299**, whose bound is
-0.000749899215319498. The improvement is a matching and composition result;
+This is about **0.15688% above independently reproduced PR299**, whose bound is
+0.000749899215319498, and **0.00249968% above our preceding weighted-matching
+checkpoint** (`03acc26`). The improvement is a matching and composition result;
 all inherited all-size hypotheses remain conditional. No global-optimality or
 practical runtime claim is made.
 
@@ -23,7 +25,10 @@ objective, not the whole construction; see [MATCHING-PROOF.md](MATCHING-PROOF.md
 
 All 904 scalar retimings and 220 target groups are rebound to the changed word.
 Kernel entries are mapped through logical roles to the new indices and rechecked;
-restorations and sinks are freshly screened. The original kernel, restoration,
+PR300's 89 post-kernel scalar retimings are bound by logical role, identical
+scalar occurrence census and exact old-frame basis. Restorations and sinks are
+freshly screened after this second descent. See
+[SECOND-DESCENT-PROOF.md](SECOND-DESCENT-PROOF.md). The original kernel, restoration,
 sink, bank-checking, prime, moment, outer, mathematical and finite checker cores
 remain unchanged. Exact initial counts, the global namespace, residual census
 and expected derived values are specialized to the new word, retaining assertions.
@@ -39,7 +44,9 @@ and expected derived values are specialized to the new word, retaining assertion
 
 The final invoice charges 913 endpoint charts, the conservative normalizer 815,
 and 905,876,840,400 selector calls. Both cleanup and dirty old-value return remain
-paid. The exact checks bind these costs to the actual emitted word and bank
+paid. The second descent changes local paid calls from 93,539 to 93,604 while
+preserving rank mass and all scalar ADD events. Its complete primitive coefficient
+is 90,322,316,339,049,601, including the additional calls. The exact checks bind these costs to the actual emitted word and bank
 assignments. The signed decoder is checked over the integers; only its F2
 reduction is asserted to equal the identity target contract.
 
@@ -59,7 +66,8 @@ python -B research/gen5b-weighted-matching/gen5bit/producer/regenerate.py \
 `verify.py` freshly runs twelve stages: virtual, raw, bit, kernel, restoration,
 sink, scalar, primes, banks, complex, mathematics and finite admission. It rejects
 pin-recording mode, runs all retained negative controls, rejects missing stages,
-and verifies the complete source manifest before and after execution. The result
+checks that skipping the second descent is rejected by the unchanged restoration
+input-word guard, and verifies the complete source manifest before and after execution. The result
 is `verification.json` with detailed receipts beside it.
 
 `regenerate.py` starts with the inherited module data and producers, rebuilds the
@@ -74,7 +82,8 @@ The final virtual-word SHA-256 after decompression is
 `9144bc371104df43abf65f8fcff7a0f195301118ccb4c37b02799799d9f2eec1`.
 `SOURCE.json` records the exact PR299 commit and original-file differences;
 `MANIFEST.json` hashes every packaged file. The original PR299 README and notice
-are preserved as README-PR299.md and NOTICE-PR299.md. Other inherited discovery
+are preserved as README-PR299.md and NOTICE-PR299.md. PR300's full notice is
+preserved as NOTICE-PR300.md; SECOND-DESCENT-PROVENANCE.json pins its contribution. Other inherited discovery
 scripts document upstream searches; the commands above reproduce and verify this
 submitted construction.
 

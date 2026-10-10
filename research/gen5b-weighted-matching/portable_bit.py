@@ -33,6 +33,17 @@ def completion_census(run):
   if a:H[a+24-C.dimf[ends.get(s,run['FULL'])]]+=1
  return H
 
+def second_descent_control(producer,restore_module,selection):
+ """Require the unchanged successor to reject actual pre-descent word bytes."""
+ actual=hashlib.sha256(producer['records'].tobytes()).hexdigest()
+ assert actual!=selection['input_raw_sha256']
+ try:restore_module.transform(producer,selection)
+ except AssertionError as exc:
+  assert str(exc)=='restoration selection bound to a different word'
+ else:raise AssertionError('Omitted second descent accepted')
+ return dict(status='PASS_OMITTED_SECOND_DESCENT_REJECTED_BY_NATIVE_SUCCESSOR',
+             presecond_word_sha256=actual,required_postsecond_word_sha256=selection['input_raw_sha256'])
+
 def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package_root=None):
  begun=time.monotonic();package=Path(package_root or HERE).resolve()
  if prepared_context is None:prepared_context=load('portable527_prepare',package/'prepare.py').prepare()
@@ -49,7 +60,11 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  raw=targetmod.rebind(raw,physical_run['target_census'])
  physical_run=load('portable527_kernel',package/'kernel_transform.py').run(physical_run,output_dir=output_dir)
  raw=load('portable527_kernel_raw',package/'raw_ledger.py').rebind_kernel(raw,physical_run['kernel_census'])
- physical_run=load('portable527_restore',package/'restore_transform.py').run(physical_run,output_dir=output_dir)
+ restoremod=load('portable527_restore',package/'restore_transform.py')
+ omission_control=second_descent_control(physical_run,restoremod,json.loads((package/'restore-selection.json').read_text()))
+ physical_run=load('portable527_descent2',package/'descent_transform.py').run(physical_run,output_dir=(Path(output_dir)/'descent2'if output_dir is not None else None),selection_path=package/'descent2-selection.json')
+ raw=load('portable527_descent2_raw',package/'raw_ledger.py').rebind_descent2(raw,physical_run['descent_census'])
+ physical_run=restoremod.run(physical_run,output_dir=output_dir)
  raw=load('portable527_restore_raw',package/'raw_ledger.py').rebind_restore(raw,physical_run['restore_census'],completion_census(physical_run))
  physical_run=load('portable527_sink',package/'sink_transform.py').run(physical_run,output_dir=output_dir)
  raw=load('portable527_sink_raw',package/'raw_ledger.py').rebind_sink(raw,physical_run['sink_census'],completion_census(physical_run))
@@ -65,7 +80,7 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  assert phases==[('helper',0),('helper',1),('idle',0),('bridge',0),('helper',2),('idle',1),('bridge',1),('helper',3),('helper',4),('idle',2),('bridge',2),('completion',0),('terminal_exchange',0)]
  geometry=None
  if run_geometry:geometry=load('portable527_geometry',package/'code/geometry527.py').run(context,global_module)
- result=dict(context=context,helper_endpoints=physical_run['helper_endpoints'],restore_census=physical_run['restore_census'],sink_census=physical_run['sink_census'],W=context['W'],C=context['C'],records=physical_run['records'],lower=lower,raw=raw,physical=physical,global_result=global_result,geometry=geometry,phase_major_schedule=phases,scalar_observer_result=physical_run['scalar_result'],kernel_census=physical_run['kernel_census'],kernel_entrances=physical_run['kernel_entrances'],seconds=time.monotonic()-begun)
+ result=dict(second_descent_omission_control=omission_control,context=context,helper_endpoints=physical_run['helper_endpoints'],restore_census=physical_run['restore_census'],sink_census=physical_run['sink_census'],W=context['W'],C=context['C'],records=physical_run['records'],lower=lower,raw=raw,physical=physical,global_result=global_result,geometry=geometry,phase_major_schedule=phases,scalar_observer_result=physical_run['scalar_result'],kernel_census=physical_run['kernel_census'],kernel_entrances=physical_run['kernel_entrances'],seconds=time.monotonic()-begun)
  if output_dir is not None:
   out=Path(output_dir);out.mkdir(parents=True,exist_ok=True)
   for name in('physical','global_result','geometry','raw'):
@@ -73,4 +88,4 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  return result
 
 def summary(result):
- return dict(status='PASS_PORTABLE_GEN5_FRESH_PHYSICAL_GLOBAL_AND_GEOMETRY',source_head=result['raw']['source_head'],local_record_count=len(result['records'])//6,scalar_projection_sha256=result['physical']['scalar_projection_sha256'],physical_tagged_sha256=result['physical']['tagged_scalar_sha256'],global_result=result['global_result'],geometry=result['geometry'],phase_major_schedule=result['phase_major_schedule'],seconds=result['seconds'])
+ return dict(second_descent_omission_control=result['second_descent_omission_control'],status='PASS_PORTABLE_GEN5_FRESH_PHYSICAL_GLOBAL_AND_GEOMETRY',source_head=result['raw']['source_head'],local_record_count=len(result['records'])//6,scalar_projection_sha256=result['physical']['scalar_projection_sha256'],physical_tagged_sha256=result['physical']['tagged_scalar_sha256'],global_result=result['global_result'],geometry=result['geometry'],phase_major_schedule=result['phase_major_schedule'],seconds=result['seconds'])

@@ -5,12 +5,14 @@ import sys,json,importlib.util,hashlib
 from collections import Counter
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent;sys.path.insert(0,str(ROOT))
+import pins;pins.RECORD={}   # discovery: record mode, the pins are regenerated afterwards
 def load(name,path):
     s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);sys.modules[name]=m;s.loader.exec_module(m);return m
 ctx=load('portable527_prepare',ROOT/'prepare.py').prepare()
 producer=load('portable527_physical',ROOT/'code/physical527.py').run(dict(ctx),ctx['SOURCE_TEXT'],output_dir=None)
 run=load('portable527_parity',ROOT/'parity_transform.py').run(producer)
 for st in ('descent_transform','target_transform','kernel_transform'):run=load('portable527_'+st,ROOT/(st+'.py')).run(run)
+run=load('portable527_descent2',ROOT/'descent_transform.py').run(run,selection_path=ROOT/'descent2-selection.json')
 rt=load('portable527_restore',ROOT/'restore_transform.py')
 W,C=run['W'],run['C'];old=run['records'];v=W.v;n=2*v+len(run['context']['regs']);initial=dict(run['initial_state'])
 cats=list(run['physical']['category_names'])
