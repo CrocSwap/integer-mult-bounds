@@ -40,6 +40,13 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Prepare declared Boost headers
+        run: |
+          if ! test -f /usr/include/boost/multiprecision/cpp_int.hpp; then
+            sudo apt-get update
+            sudo apt-get install -y libboost-dev
+          fi
+          printf '#include <boost/multiprecision/cpp_int.hpp>\nint main() { boost::multiprecision::cpp_int n = 1; return n == 1 ? 0 : 1; }\n' | g++ -std=c++17 -x c++ -fsyntax-only -
       - name: Use predecessor dependencies
         run: python -m pip install -r build/pinned-pr272/research/filtered-kernel-target120/requirements.txt
       - name: Fresh baseline, target restores and complete exact checks
