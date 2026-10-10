@@ -28,6 +28,7 @@ sys.path.insert(0, str(HERE))
 if hasattr(sys, 'set_int_max_str_digits'):
     sys.set_int_max_str_digits(0)
 
+import bitinstance  # noqa: E402
 import bitrung  # noqa: E402
 import importer66  # noqa: E402
 import instantiate_rank3  # noqa: E402
@@ -214,6 +215,107 @@ def check_suppliers_and_requirements(record):
     return ceiling, scan, curve
 
 
+def check_bit_instancing():
+    """B1's schedule half: the item maps, the bank tables, the padding draw and the gap.
+
+    The whole instancing is rebuilt and compared with `occurrences-bitrung.json`, and the parts a
+    reviewer would check by hand are then re-derived from the artifact with plain arithmetic: the
+    addressing rule as a bijection onto bank x block x offset, **both digests recomputed from the
+    rule rather than trusted**, the padding as a partial removal from the retained singleton bin
+    with the leftover the measured rung holds, and the induced ledger against the row
+    `check_bit_rung` prices -- so the two modules cannot disagree about the same rung. What the
+    pins do not export is asserted to still be absent, which is what keeps B1's provenance half
+    open on paper and not by convention.
+    """
+    stored = json.loads((HERE / 'occurrences-bitrung.json').read_text())
+    fresh = json.loads(json.dumps(bitinstance.build(), default=str))
+    assert stored == fresh, 'occurrences-bitrung.json differs from a fresh instantiation'
+
+    row = bitinstance.retained_row()
+    assert row == bitinstance.vendored_retained_row(), 'the retained row, both readings of it'
+    retained = stored['retained_row']
+    assert (retained['W'], retained['deficit'], retained['rank_mass']) \
+        == (row['W'], row['deficit'], row['mass']) == (50286, 5808, 3614784), \
+        'the ledger this rung absorbs from'
+    assert retained['children'] == sum(row['histogram'].values()) == 857622 \
+        and retained['families'] == len(row['histogram']) == 21
+
+    draws = {int(key): draw for key, draw in stored['padding']['draws'].items()}
+    padding_total = 0
+    for key, table in sorted(stored['inventories'].items(), key=lambda entry: int(entry[0])):
+        rank, children = int(key), row['histogram'][int(key)]
+        capacity, padding = 72 // rank, 72 % rank
+        assert table['children_per_vertex'] == children // 3, 'rank %d per vertex' % rank
+        assert table['copies'] == 3 and table['items'] == children, 'rank %d items' % rank
+        assert (table['capacity_per_bank'], table['padding_per_bank']) == (capacity, padding) \
+            and children % capacity == 0 and table['banks'] == children // capacity, \
+            'rank %d: the schedule a bank admits' % rank
+        addresses = [(item, item // capacity, item % capacity, (item % capacity) * rank)
+                     for item in range(children)]
+        assert len({(bank, block) for _, bank, block, _ in addresses}) == children \
+            and all(offset + rank <= 72 for _, _, _, offset in addresses), \
+            'rank %d: bank i // k, block i %% k, offset (i %% k) * rank is a bijection' % rank
+        digest = sha256('\n'.join('%d,%d,%d,%d' % address
+                                  for address in addresses).encode()).hexdigest()
+        assert digest == table['bank_table_digest'], 'rank %d: the table digest' % rank
+        draw = draws[rank]
+        assert draw['banks'] == table['banks'] \
+            and draw['padding_registers_per_bank'] == padding \
+            and draw['registers'] == table['banks'] * padding, 'rank %d padding draw' % rank
+        assert draw['singleton_bin_before'] == row['histogram'][1] == 377316 \
+            and draw['singleton_bin_after'] == 377316 - draw['registers'], 'the bin it comes from'
+        assert draw['digest'] == sha256('\n'.join(str(index)
+                                                  for index in range(draw['registers']))
+                                        .encode()).hexdigest(), 'rank %d draw digest' % rank
+        if padding:
+            assert draw['last_index'] == draw['registers'] - 1 \
+                and draw['first_bank']['offsets'] == [72 - padding + j for j in range(padding)] \
+                and draw['first_bank']['items'] == list(range(padding)), \
+                'rank %d: the draw is named, per bank, at the tail of each bank' % rank
+        padding_total += draw['registers']
+    assert padding_total == stored['totals']['padding_registers'] == 65808 \
+        and stored['padding']['singleton_after'] == 377316 - padding_total == 311508, \
+        'the whole draw, and what the measured rung keeps'
+    assert stored['totals']['banks'] == 7342 and stored['totals']['items'] == 35622 \
+        and stored['totals']['blocks'] == 35622, 'the rung: one item per block'
+
+    ledger = stored['induced_ledger']
+    assert (ledger['stock_after'], ledger['mass_after'], ledger['children_after'],
+            ledger['families_after'], ledger['singleton_after']) \
+        == (42944, 3086160, 756192, 18, 311508), 'the row the assignment induces'
+    assert ledger['stock_drop'] == stored['totals']['banks'] == 7342 \
+        and ledger['mass_before'] - ledger['mass_after'] == 7342 * 72, \
+        'the stock falls by the bank count, the mass by 72 registers a bank'
+    rung = json.loads((HERE / 'bitrung.json').read_text())
+    schedule = rung['leader_schedule']
+    assert list(bitinstance.RUNGS) == rung['leader']['ranks'] == [7, 8, 20], 'the same rung'
+    assert (schedule['retained_W'], schedule['retained_mass'], schedule['retained_children'],
+            schedule['retained_families']) == (ledger['stock_after'], ledger['mass_after'],
+                                               ledger['children_after'],
+                                               ledger['families_after']), \
+        'the ledger this instancing induces must be the row check_bit_rung prices'
+    histogram = {int(rank): count for rank, count in schedule['retained_histogram'].items()}
+    assert histogram == {entry['family']: entry['children']
+                         for entry in stored['remaining_families']}, 'and its histogram'
+    assert ledger['histogram_digest'] == bitinstance.histogram_digest(histogram), \
+        'and the digest of that histogram'
+
+    gap = stored['pins_gap']
+    assert gap['packed_certificate_block_keys'] == [] \
+        and gap['packed_certificate_occurrence_keys'] == [] \
+        and gap['bit_certificate_occurrence_keys'] == [], \
+        'the pins must still export no block and no occurrence of this word'
+    assert gap['packed_certificate_assignment_keys'] \
+        == ['/physical/conflicting_assignment_rejected'], \
+        "the only key the packed certificate carries that says 'assign' is its own rejection "\
+        'control, not an item assignment: the map instanced here has no counterpart in the pins'
+    assert gap['pinned_item_inventory']['per_vertex_keys'] == ['H', 'H_center', 'Y', 'src'], \
+        "the shape B1's provenance half owes is #219's rank-22 inventory, key for key"
+    assert 'INSTANCED' in stored['status'] and 'provenance half' in stored['status'], \
+        'the artifact must state what is instanced and what is still owed'
+    return stored
+
+
 def check_obligations(record):
     """The obligation set of `obligations.json` against a **rebuilt** certificate.
 
@@ -236,8 +338,10 @@ def check_obligations(record):
     assert 'resolution' in t1 and 'prototype66' in t1['resolution'], \
         'T1 must name the artifact that settles it'
     b1 = next(item for item in obligations['obligations'] if item['id'] == 'B1')
-    assert status['B1'] == 'OPEN' and 'bitrung' in b1['resolution'], \
-        'B1 must stay open and must name the module that measures its schedule'
+    assert status['B1'] == 'INVENTORY_INSTANCED_AT_SCHEDULE_LEVEL' \
+        and 'bitrung' in b1['resolution'] and 'bitinstance' in b1['resolution'], \
+        'B1 must name both the measurement and the module that instances its schedule'
+    assert 'OPEN' not in b1['status'], 'the instanced half must not be reported as open'
     inherited = [item['id'] for item in obligations['inherited']]
     assert inherited == ['R1', 'R2', 'R3', 'R4'], inherited
     assert all(item['status'] == 'OPEN' for item in obligations['inherited'])
@@ -1223,6 +1327,7 @@ def main():
     stability = check_rank3_stability()
     rung4 = check_rank4_rung()
     bit_rung = check_bit_rung()
+    bit_instance = check_bit_instancing()
     harness = check_import_harness()
     target = HERE / 'certificate.json'
     if args.write:
@@ -1343,6 +1448,23 @@ def main():
              bit_leader['banks'], bit_rung['rung1']['leaf'], bit_leader['leaf'], bit_point['binding'],
              Q(bit_point['kappa']), bit_point['kappa_decimal'],
              bit_point['gain_vs_the_rank3_rung_percent'], bit_point['strict_constraints']))
+    assigned = bit_instance['totals']
+    print('B1 instanced  %d items addressed by rule over %d banks (rank 7: %d x %d blocks + %d '
+          'padding, rank 8: %d x %d + 0, rank 20: %d x %d + %d), %d registers of padding named '
+          'and digested, induced row W %d / mass %d / children %d; the pins still export no '
+          'occurrence of these families'
+          % (assigned['items'], assigned['banks'],
+             bit_instance['inventories']['7']['banks'],
+             bit_instance['inventories']['7']['capacity_per_bank'],
+             bit_instance['padding']['draws']['7']['registers'],
+             bit_instance['inventories']['8']['banks'],
+             bit_instance['inventories']['8']['capacity_per_bank'],
+             bit_instance['inventories']['20']['banks'],
+             bit_instance['inventories']['20']['capacity_per_bank'],
+             bit_instance['padding']['draws']['20']['registers'],
+             assigned['padding_registers'], bit_instance['induced_ledger']['stock_after'],
+             bit_instance['induced_ledger']['mass_after'],
+             bit_instance['induced_ledger']['children_after']))
     print('bit cap       the extended leaf clears the complex branch, so the budget is the complex '
           'side: this rung reaches the branch and its ceiling %s caps every further bit '
           'absorption' % bit_point['complex_ceiling'])

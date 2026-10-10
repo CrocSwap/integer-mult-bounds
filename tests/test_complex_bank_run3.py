@@ -86,6 +86,24 @@ class ComplexBankRun3(unittest.TestCase):
                           rung["screen"]["plateau"]["rungs_at_the_cap"]), (377, 108))
         self.assertEqual(len(rung["absorbable"]), 13)
 
+    def test_the_bit_rung_is_instanced_item_by_item(self):
+        inst = json.loads((PACKAGE / "occurrences-bitrung.json").read_text())
+        self.assertEqual(inst["totals"], {"banks": 7342, "items": 35622, "blocks": 35622,
+                                          "padding_registers": 65808})
+        self.assertEqual((inst["induced_ledger"]["stock_after"],
+                          inst["induced_ledger"]["mass_after"],
+                          inst["induced_ledger"]["children_after"],
+                          inst["induced_ledger"]["families_after"]), (42944, 3086160, 756192, 18))
+        for family, blocks in (("7", 10), ("8", 9), ("20", 3)):
+            table = inst["inventories"][family]
+            self.assertEqual(table["capacity_per_bank"], blocks)
+            self.assertEqual(table["banks"] * blocks, table["items"])
+        self.assertEqual(inst["padding"]["singleton_after"], 311508)
+        self.assertEqual(inst["padding"]["draws"]["8"]["registers"], 0)
+        self.assertEqual(inst["pins_gap"]["packed_certificate_occurrence_keys"], [])
+        self.assertEqual(inst["pins_gap"]["pinned_item_inventory"]["per_vertex_keys"],
+                         ["H", "H_center", "Y", "src"])
+
     def test_the_rank4_rung_is_measured_negative(self):
         rung = json.loads((PACKAGE / "rank4-rung.json").read_text())
         schedule = rung["rung"]["padded_schedule"]

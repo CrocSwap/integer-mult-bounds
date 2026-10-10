@@ -602,17 +602,46 @@ again (or a new bit word that lifts the leaf without spending the branch).  That
 reading two sections up**: the bit *word* was never the wall, the retained *ledger's* leaf was,
 and it moves by two absorptions.
 
+The rung's schedule is not only measured but **instanced**, family by family
+([bitinstance.py](research/complex-bank-run3/bitinstance.py) ->
+[occurrences-bitrung.json](research/complex-bank-run3/occurrences-bitrung.json)): every item of
+the three families is given a bank, a block and an offset by the rule `bank i // k_f`,
+`block i % k_f`, `offset (i % k_f) * rank`, over 7,342 banks -- 1,224 rank-7 banks of 10 blocks,
+838 rank-8 banks of 9, and 5,280 rank-20 banks of 3 -- for 35,622 items one per block.  Every
+bank is exactly filled by the family's blocks plus the padding it draws, and the padding is named
+item by item rather than counted: it is a partial removal from the retained singleton bin,
+2,448 rank-7 registers and 63,360 rank-20 registers (rank 8 divides the width and draws none),
+**65,808 of the bin's 377,316 children -- `1828/10481` of it** -- leaving the 311,508 the measured
+rung's own retained histogram holds, with a digest over the draw and one over each family's bank
+table.  The ledger the assignment induces is re-derived here from the pinned packed certificate,
+not read from `bitrung.json`: stock 50,286 -> 42,944 with the drop equal to the 7,342 banks, rank
+mass 3,614,784 -> 3,086,160, 857,622 children -> 756,192 over 18 families.
+
+What is still owed is the other half of B1, and it is read from the pins rather than asserted:
+**each child's frame/chain identity.**  The pinned word exports no key containing `block` or
+`occurrence` at all, and the one key that says `assign` is the packed certificate's own
+rejection control, not an item assignment; the only per-child inventory the pins hold is #219's
+rank-22 one, whose key set (`H`, `H_center`, `Y`, `src`) is the shape this half owes for three
+families.  That is why `obligations.json` now records B1 as
+`INVENTORY_INSTANCED_AT_SCHEDULE_LEVEL` rather than `OPEN` -- the schedule is labelled, the
+provenance is not.
+
 Nothing here is built, and the boundary is the package's: the absorbed families need the new
-residual types the suppliers' proofs reserve, the rows are pinned by digest to unmerged branches,
-and C1-C7 and the inherited R1-R4 stand exactly as the rest of the package states them.  This is
-a **priced target**, one rung deeper into the side that had been binding, and it is the top of
-this package.
+residual types the suppliers' proofs reserve, no frame, chart or normalizer is constructed for
+them, the rows are pinned by digest to unmerged branches, and C1-C7 and the inherited R1-R4 stand
+exactly as the rest of the package states them.  This is a **priced target**, one rung deeper into
+the side that had been binding, and it is the top of this package.
 
 `verify.py -> check_bit_rung` re-derives the retained row, re-checks every absorption's volume,
 bank count, stock drop and padding draw, re-runs the whole 377-rung screen and compares it with
 [bitrung.json](research/complex-bank-run3/bitrung.json), and re-prices the point through the
 assembly rule -- asserting the leader's minimality, the plateau of 108 rungs, the switch of the
-binding side and the gain over the rank-3 rung rather than restating them.
+binding side and the gain over the rank-3 rung rather than restating them.  `verify.py ->
+check_bit_instancing` rebuilds the instancing, compares it with
+[occurrences-bitrung.json](research/complex-bank-run3/occurrences-bitrung.json), recomputes both
+digests from the addressing rule rather than trusting them, re-checks the padding as a partial
+removal from the singleton bin, and asserts that the induced ledger is the row `check_bit_rung`
+prices and that the pins still export no occurrence of these families.
 
 ## Verify
 
@@ -622,6 +651,7 @@ python3 -B verify.py           # check: pins, rebuild, compare with certificate.
 python3 -B verify.py --write   # authoring: regenerate certificate.json and SOURCE.json
 python3 -B rank4rung.py        # the rank-4 measurement: writes rank4-rung.json
 python3 -B bitrung.py          # the bit-side rung: writes bitrung.json
+python3 -B bitinstance.py      # the B1 instancing: writes occurrences-bitrung.json
 python3 -B importer66.py                 # the export import: refuses, codes 0/1/2/3
 python3 -B importer66.py --self-test     # the harness's own thirteen cases
 python3 -B importer66.py --contract export-contract-bit.json              # the bit twin: same codes
@@ -633,10 +663,11 @@ python3 -B importer66.py --contract export-contract-rank3.json --partial  # ... 
 python3 -B importer66.py --contract export-contract-rank3.json --self-test # ... and proves itself, thirteen cases
 ```
 
-`verify.py` passes with exit 0, pins 64 files by sha256 -- the 35 this package owns (bitrung.py and
-its artifact bitrung.json, and the five ranked heads of #233 among them), the two upstream
-certificates it is priced against (#207's frontier and #233's source-assisted v4 layer), the 16 the
-vendored rung-1 package carries and the 11 in the bit drop, its reproduction evidence included --
+`verify.py` passes with exit 0, pins 66 files by sha256 -- the 37 this package owns (bitrung.py and
+bitinstance.py and their two artifacts among them, and the five ranked heads of #233), the two
+upstream certificates it is priced against (#207's frontier and #233's source-assisted v4 layer),
+the 16 the vendored rung-1 package carries and the 11 in the bit drop, its reproduction evidence
+included --
 and rebuilds the whole complex-side
 ladder (base, rung 2, rungs 3 and 4), both paid moments per rung, the two 47-constraint
 assemblies with adjacent-grid rejection, the eligibility scan, the PR208 replica, the padded
@@ -660,7 +691,12 @@ price, the unmoved κ and the required bit leaves, all re-derived), the bit-side
 word (the retained row re-derived, every absorption's volume, bank count, stock drop and padding
 draw re-checked, the whole 377-rung screen re-run and compared with bitrung.json, the leader's
 minimality, the 108-rung plateau and the switch of the binding side asserted, and the point
-re-priced through the assembly rule and its unchanged 47 constraints), the rank-3 rung's gate as
+re-priced through the assembly rule and its unchanged 47 constraints), the bit-side rung's
+instancing (every item of the three families addressed by rule over 7,342 banks, every bank
+exactly filled by the family's blocks plus the padding it draws, the padding named item by item
+out of the singleton bin with its digest, both digests recomputed from the rule, the induced
+ledger compared with the row the screen prices, and the pins' silence on each child's frame/chain
+identity asserted rather than assumed), the rank-3 rung's gate as
 code runs it (the contract in the importer's dialect, the ten bodies, the thirteen-case
 self-test, the refusal and the partial report), the modulus
 scan (which widths the pinned
