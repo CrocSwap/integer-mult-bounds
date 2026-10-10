@@ -71,6 +71,10 @@ def main():
         (X / name).write_bytes(data)
     candidates = out / 'candidates.json'
     candidates.write_bytes(gzip.decompress((HERE / 'inputs/candidates.json.gz').read_bytes()))
+    # Supplementary equal-response pair families (disjoint from the base selection); the transform merges
+    # extra candidate files itself and every native checker re-examines the combined word.
+    supplementary = out / 'candidates-supplementary.json'
+    supplementary.write_bytes(gzip.decompress((HERE / 'inputs/candidates-supplementary.json.gz').read_bytes()))
     if not args.snapshots_only:
         generated = out / 'regenerated'
         run('01-regenerate-upstream', [sys.executable, HERE / 'code/export249.py', out / 'upstream', generated])
@@ -93,7 +97,7 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         list(pool.map(compile_source, sources))
     lead = out / 'lead'; compiler = out / 'compiler'; temporal = out / 'temporal'; review = out / 'review'
-    run('02-transform', [exe('cohort-transform'), X, candidates, lead])
+    run('02-transform', [exe('cohort-transform'), X, candidates, lead, supplementary])
     result = load(HERE / 'RESULT.json')
     need(digest(lead / 'COHORT249-RECORDS.bin') == result['cohort_record_sha256'], 'cohort physical transcript hash mismatch')
     # Concave-descent frame retiming of 25 selected ADD gates on the cohort-rewritten transcript. The stage
