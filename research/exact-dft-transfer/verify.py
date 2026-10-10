@@ -36,7 +36,34 @@ SUPPLIERS = {
     'pr200': dict(field=('complex', 'profile'), profile=lambda d: d['complex']['profile'], a=Q(3327, 5000000)),
     'pr194': dict(field=('complex_profile',), profile=lambda d: d['complex_profile'], a=Q(7009, 10**7)),
     'pr233': dict(field=('complex_profile',), profile=lambda d: d['complex_profile'], a=Q(7099, 10**7)),
+    # the same two words in Jacob Sussman's five-stage bridged layout (m = 5h = 110, W = 4v + R): per cover vertex
+    # H5 = 5 * H_inv + 2v (e42 + e21 + e46 + e4), where H_inv = (H_3 - 2v e2) / 3 is the per-invocation ledger
+    'pr194-five': dict(field=('complex_profile',), profile=lambda d: five_stage(d['complex_profile']), a=Q(7474, 10**7)),
+    'pr233-five': dict(field=('complex_profile',), profile=lambda d: five_stage(d['complex_profile']), a=Q(7547, 10**7)),
 }
+
+
+def five_stage(p):
+    """Sussman's five-stage bridged layout of a three-stage source-assisted profile (h = 22, v = 1320, R = 9412):
+    the per-invocation histogram H_inv = (H_3 - 2v e_2)/3 (the three stages each run one invocation, and the
+    three-stage ledger adds 2v data children of width 2); five stages run five invocations and the bridged
+    exchange adds, per cover vertex, 2v children of widths 42, 21, 46 and 4 (PR #250's statement of the ledger
+    of PR #234/#209); width m = 5h = 110, stock W = 4v + R."""
+    v, h = 1320, 22
+    H3 = {int(r): n for r, n in p['child_histogram'].items() if n}
+    assert p['m'] == 3 * h and p['W_per_vertex'] == 12052, 'five-stage transfer is stated for the h = 22 source-assisted words'
+    H3[2] -= 2 * v
+    assert all(n % 3 == 0 for n in H3.values()) and all(n >= 0 for n in H3.values()), 'per-invocation ledger'
+    Hinv = {r: n // 3 for r, n in H3.items() if n}
+    R = p['W_per_vertex'] - 2 * v
+    H5 = {r: 5 * n for r, n in Hinv.items()}
+    for r in (42, 21, 46, 4):
+        H5[r] = H5.get(r, 0) + 2 * v
+    W = 4 * v + R
+    rank = sum(r * n for r, n in H5.items())
+    return dict(m=5 * h, h=h, v=v, loss=p.get('loss', 440), R=R, W_per_vertex=W, rank_per_vertex=rank,
+                deficit_per_vertex=W * 5 * h - rank, child_histogram={str(r): n for r, n in sorted(H5.items())})
+
 
 
 def sha(path):
@@ -64,7 +91,7 @@ def main():
     src = json.loads((HERE / 'SOURCE.json').read_text())
     out = {}
     for name, spec in SUPPLIERS.items():
-        pin = src['suppliers'][name]
+        pin = src['suppliers'][name.replace('-five', '')]
         c = children(name, pin)
         cpath = HERE / 'certificates' / ('network-children-%s.json' % name)
         if o.write:
@@ -75,7 +102,7 @@ def main():
         hist = {int(r): n for r, n in c['child_histogram'].items()}
         rank = sum(r * n for r, n in hist.items())
         assert rank == c['rank_per_vertex'] and W * m - rank == c['deficit_per_vertex'], '%s: ledger identity' % name
-        if c['v'] is not None and c['loss'] is not None:
+        if c['v'] is not None and c['loss'] is not None and not name.endswith('-five'):
             assert c['deficit_per_vertex'] == 2 * c['v'] - 3 * c['loss'], '%s: deficit 2v - 3 loss' % name
         a = spec['a']
         margin, total = moment_margin(m, W, hist, a)

@@ -17,9 +17,11 @@ repository as its pull request #1 (`c92cf70`).
 | PR #144 (main `d1d6c07`) | `certificates/paired-cube-complex-input.json` | 72 | 29,937 | 1,936 | 60 | 607/1250000 = 4.856·10⁻⁴ | 1 − 4.856·10⁻⁴ |
 | PR #200 (`a1175449`) | `research/paired-cube-diagonal-bit-168/certificate.json`, `complex.profile` | 66 | 13,163 | 1,320 | 20 | 3327/5000000 = 6.654·10⁻⁴ | 1 − 6.654·10⁻⁴ |
 | PR #194 (`a8c8778`) | `research/source-assisted-v4/certificate.json`, `complex_profile` | 66 | 12,052 | 1,320 | 20 | 7009/10⁷ = 7.009·10⁻⁴ | 1 − 7.009·10⁻⁴ |
-| PR #233 (`109a857`) | `research/source-assisted-v4-layer/certificate.json`, `complex_profile` | 66 | 12,052 | 1,320 | 20 | **7099/10⁷ = 7.099·10⁻⁴** | **1 − 7.099·10⁻⁴** |
+| PR #233 (`109a857`) | `research/source-assisted-v4-layer/certificate.json`, `complex_profile` | 66 | 12,052 | 1,320 | 20 | 7099/10⁷ = 7.099·10⁻⁴ | 1 − 7.099·10⁻⁴ |
+| PR #194, five-stage layout (Sussman) | derived: H5 from the row above | 110 | 14,692 | 3,080 | 46 | 7474/10⁷ (Lean: 7.474546·10⁻⁴) | 1 − 7.474·10⁻⁴ |
+| **PR #233, five-stage layout** | derived: H5 from PR #233's profile | 110 | 14,692 | 3,080 | 46 | **7547/10⁷ = 7.547·10⁻⁴** | **1 − 7.547·10⁻⁴** |
 
-For every fixed κ < 7099/10⁷ the exact DFT and exact convolution take O(n (log n)^(1−κ)) operations. In OpenAI's
+For every fixed κ < 7099/10⁷ the exact DFT and exact convolution take O(n (log n)^(1−κ)) operations by Propositions B–D, and for every κ < 7547/10⁷ by Proposition E (five-stage layout, priced transfer). In OpenAI's
 preprint the saving is about 2.1·10⁻¹³; eumemic's batched recursion with the PR #144 supplier gives 4.856·10⁻⁴;
 the PR #194 supplier gives 7.009·10⁻⁴; the PR #233 supplier (the same word with PR #200's reuse pairing, Proposition D below) gives 7.099·10⁻⁴.
 
@@ -74,6 +76,27 @@ and the compression removes roles, not children; (4) `contract_v4.py` certifies 
 target chains and the normalized profile, and PR #194 certifies the moment root 7.00918…·10⁻⁴.
 
 **Proposition D (PR #233).** The complex supplier of `research/source-assisted-v4-layer` is PR #194's word with only the reuse pairs replaced by PR #200's maximum-weight pairing (PR #168's frames unchanged); the flow, exact lift and contract are PR #184/#194's unchanged, and PR #200's complete complex checker admits the layer on the aligned word. Proposition C applies verbatim: the same gates, the same monotone nested chains and lifts, the ledger identity Σ ρ n_ρ = 794112 = 66·12052 − 1320 with a different child histogram, and the certified moment root 3549537/5000000000 = 7.0991…·10⁻⁴.
+
+**Proposition E (five-stage layout).** Jacob Sussman's five-stage bridged layout (`wht-power-saving-lean`, `f010392`)
+runs the same helper circuit in five stages instead of three: every source pair has a twin whose labels agree with
+its own at three moments, so two pairs are exchanged with five invocations in place of six; the width becomes
+m = 5h = 110 and the stock W = 4v + R. In OpenAI's family-130 model he proves in Lean, for the #193 helper circuit
+(PR #194's word), the DFT of every length in O(n (log n)^z) with z = 1 − 7474546/10¹⁰ (`OAI.PowerSaving.transform_mainZ`)
+and the block-form WHT bound with z = 1 − 7474547/10¹⁰. The per-vertex ledger of that layout, as stated by PR #250 for the
+five-stage complex supplier of PR #234, is H5 = 5·H_inv + 2v·(e42 + e21 + e46 + e4), where H_inv = (H3 − 2v·e2)/3 is the
+per-invocation ledger of the three-stage word (the three-stage ledger runs one invocation per stage and adds the 2v data
+children of width 2). `verify.py` derives H5 from the certified three-stage profiles and prices it: for PR #194's word it
+recovers a = 7474/10⁷ (Sussman's Lean figure, rounded down to this package's grid), and for PR #233's word it gives
+
+    a = 7547/10⁷ = 7.547·10⁻⁴      (margin 1.35·10⁻³; 7548/10⁷ rejected).
+
+*By reference:* the layout is a batched network for the #193 word by Sussman's Lean development (the certificate
+checker's soundness, the frame lemma, the generalized engine, the kernel-evaluated certificate); the pairing of PR #233
+changes neither the ports nor the source pairs on which the twin structure rests, nor the frames, so the same layout
+applies to its word with the ledger above. The kernel-checked certificate for PR #233's word has not been produced
+(Sussman's rebuild scripts are not published; issue #1 there asks for a rerun with PR #233's pairs), so this row is a
+priced transfer, one step less checked than Propositions B–D; PR #250 prices the same composition at 7.5474·10⁻⁴ with
+an additional terminal-query step and the same provenance.
 
 **Moments.** `verify.py` bounds Σ n_ρ (ρ/m)^θ above in exact rational arithmetic (artanh series with a tail bound
 for the logarithms, exp(x) ≤ 1 + x + x²/(2(1 − x/3))) and records the margins: 3.16·10⁻³ (PR #144), 2.69·10⁻³
