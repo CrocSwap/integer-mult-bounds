@@ -1,0 +1,37 @@
+name: PR256 complex proof audit
+
+on:
+  push:
+    paths:
+      - 'research/pr256-fourier-audit/**'
+      - '.github/workflows/pr256-fourier-audit.yml'
+  pull_request:
+    paths:
+      - 'research/pr256-fourier-audit/**'
+      - '.github/workflows/pr256-fourier-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finite-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Replay finite program, source bindings, and retained evidence
+        run: python3 -B research/pr256-fourier-audit/verify.py
+      - name: Reject corrupted programs, statements, and evidence
+        run: python3 -B research/pr256-fourier-audit/test_audit.py
+      - name: Require unchanged tracked artifacts
+        run: git diff --exit-code
