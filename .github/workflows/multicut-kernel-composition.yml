@@ -1,0 +1,32 @@
+name: multicut-kernel-composition
+
+on:
+  pull_request:
+    paths:
+      - 'research/multicut-kernel-composition/**'
+      - '.github/workflows/multicut-kernel-composition.yml'
+  push:
+    paths:
+      - 'research/multicut-kernel-composition/**'
+      - '.github/workflows/multicut-kernel-composition.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the native toolchain of PR 259's checkers
+        run: sudo apt-get update && sudo apt-get install -y g++ libboost-dev
+      - name: Install SymPy for the pinned upstream regeneration
+        run: python -m pip install -r research/multicut-kernel-composition/requirements.txt
+      - name: Regenerate PR 249's word, compile and run the seven checkers on the 883-pivot selection, compare receipts and price
+        run: python3 -I research/multicut-kernel-composition/verify.py --output /tmp/mkc-replay
+      - name: Require an unchanged tree
+        run: git diff --exit-code
