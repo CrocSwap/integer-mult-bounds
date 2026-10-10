@@ -20,14 +20,14 @@ import sympy as sp
 
 H = 24
 BOUND = 2 ** 80
-MAX_FACTORS = 548       # the inherited chart-factor bound of #259
+MAX_FACTORS = 548       # #259's chart-factor bound, below #272's normalizer ceiling
 G = 9 * sp.eye(H) - sp.ones(H)
 
 
-def frames_of(replay, new_frames):
+def frames_of(export, lead, new_frames):
     def load(p): return json.loads(p.read_text())
-    frames = load(replay / 'temporal/CURRENT249-EXPORT/frames.json')['frames']
-    frames.update(load(replay / 'lead/COHORT249-FRAMES.json'))
+    frames = load(export / 'frames.json')['frames']
+    frames.update(load(lead / 'COHORT249-FRAMES.json'))
     frames.update(new_frames)
     return frames
 
@@ -83,9 +83,15 @@ def make_guard():
     return guard, state
 
 
-def banks(replay, new_frames, receipt):
-    """Shortened endpoints are rank-3 partial swaps; re-tile the width-120 banks; return the new bank inventory."""
-    frames = frames_of(replay, new_frames)
+def banks(export, lead, new_frames, receipt, bank):
+    """Shortened endpoints are rank-3 partial swaps; re-tile the base bank review and return the new inventory.
+
+    The base bank review charges each role the residual 24 - dim(entrance), as if every chain ended at full. A
+    retired helper ends at its four-dimensional frame instead, so its residual is 3, not 23. With R replicas, R*k
+    width-23 slots become width-3 slots: R*k/4 banks [23]*4 + [4]*7 are dissolved, their width-4 blocks refill
+    7*R*k/120 banks [4]*30, and the width-3 residuals fill R*k/40 banks [3]*40.
+    """
+    frames = frames_of(export, lead, new_frames)
     guard, state = make_guard()
     for e in receipt['edits']:
         assert frames[str(e['entrance_frame'])]['dim'] == 1
@@ -95,35 +101,41 @@ def banks(replay, new_frames, receipt):
         E = F - S
         assert E * E == E and E.rank() == 3
         chart(E, 3, guard)
-    bank = json.loads((replay / 'compiler/COHORT-BANK-REVIEW.json').read_text())
-    assert len(receipt['edits']) == 45
-    patterns = [dict(p) for p in bank['bank_patterns']]
-    # 40 replicas: 45 helpers x 40 = 1800 width-23 residuals become width-3 residuals.
-    # 450 banks [23]*4 + [4]*7 release their 1800 width-23 slots; their 3150 width-4 slots refill 105 banks [4]*30;
-    # the 1800 width-3 residuals fill 45 new banks [3]*40. Net: 300 fewer banks per stage, 1500 fewer in the stock.
-    next(p for p in patterns if p['widths'] == [23] * 4 + [4] * 7)['count'] -= 450
-    next(p for p in patterns if p['widths'] == [4] * 30)['count'] += 105
-    patterns.append({'widths': [3] * 40, 'count': 45})
+    k = len(receipt['edits'])
     family = Counter({int(r): c for r, c in bank['residual_families'].items()})
-    family[23] -= 45
-    family[3] += 45
+    patterns = [dict(p) for p in bank['bank_patterns']]
+    slots = Counter()
+    for p in patterns:
+        for r in p['widths']:
+            slots[r] += p['count']
+    R = slots[23] // family[23]
+    assert all(slots[r] == R * c for r, c in family.items() if c), 'replica count is not uniform'
+    assert R * k % 120 == 0, 'width-4 blocks do not refill whole banks'
+    dissolve, refill, added = R * k // 4, 7 * R * k // 120, R * k // 40
+    next(p for p in patterns if p['widths'] == [23] * 4 + [4] * 7)['count'] -= dissolve
+    next(p for p in patterns if p['widths'] == [4] * 30)['count'] += refill
+    patterns.append({'widths': [3] * 40, 'count': added})
+    family[23] -= k
+    family[3] += k
     slots, count = Counter(), 0
     for p in patterns:
         assert p['count'] >= 0 and sum(p['widths']) == 120, 'bank pattern does not fill width 120'
         count += p['count']
         for r in p['widths']:
             slots[r] += p['count']
-    assert slots == Counter({r: 40 * c for r, c in family.items() if c}), 'residuals do not tile the banks exactly'
-    assert count == bank['banks_per_stage'] - 300
-    return {'literal_stock': bank['literal_stock'] - 1500, 'banks_per_stage': count,
-            'actual_role_replica_stage_assignments': bank['actual_role_replica_stage_assignments'],
-            'bank_patterns': patterns, 'residual_families': {str(r): c for r, c in sorted(family.items()) if c},
-            'endpoint_max_entry': state['max']}
+    assert slots == Counter({r: R * c for r, c in family.items() if c}), 'residuals do not tile the banks exactly'
+    saved = dissolve - refill - added
+    stock = bank['literal_stock'] - 5 * saved
+    new = dict(bank, bank_patterns=patterns, residual_families={str(r): c for r, c in sorted(family.items()) if c},
+               banks_per_stage=bank['banks_per_stage'] - saved, literal_stock=stock, normalized_stock=stock // 5,
+               saved_literal_banks=bank['saved_literal_banks'] + 5 * saved,
+               selector_charge=2 * 5 * R * ((stock - 1) + 16587 * R * bank['normalizer_factor_ceiling']))
+    return new, {'replicas': R, 'banks_saved_per_stage': saved, 'endpoint_max_entry': state['max']}
 
 
-def normalizers(replay, new_frames, records, receipt):
+def normalizers(export, lead, new_frames, records, receipt):
     """Charts for every new frame, every connector touching a new frame and every new endpoint."""
-    frames = frames_of(replay, new_frames)
+    frames = frames_of(export, lead, new_frames)
     guard, state = make_guard()
     for f in new_frames:
         _, gram = projector(frames, f)

@@ -1,4 +1,4 @@
-"""Remove the cleanup sandwich of 45 helpers in #263's word and check the result on every formal column.
+"""Remove the cleanup sandwich of 99 helpers in #272's word and check the result on every formal column.
 
 For a selected helper a, the suffix of the word after the first cut contains exactly three gates on a:
 
@@ -81,10 +81,9 @@ def histogram(records):
     return h
 
 
-def rewrite(replay, helpers):
-    """Return (records, new frames, receipt) for the frozen helper list on a completed #263 replay."""
+def rewrite(export, lead, helpers):
+    """Return (records, new frames, receipt) for the frozen helpers; export and lead are base replay directories."""
     def load(p): return json.loads(p.read_text())
-    export, lead = replay / 'temporal/CURRENT249-EXPORT', replay / 'lead'
     frames = load(export / 'frames.json')['frames']
     frames.update(load(lead / 'COHORT249-FRAMES.json'))
     states = load(export / '249-states.json')
