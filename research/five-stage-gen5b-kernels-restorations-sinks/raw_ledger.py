@@ -298,3 +298,35 @@ def rebind_sink(raw,receipt,completions):
  raw['five_stage_profile'].update(W=stock,histogram=compact(five),calls=sum(five.values()),rank_mass=mass,deficit=120*stock-mass)
  raw['scope']='Fresh complete actual gen5 word after kernel entries, early restoration and terminal sinks.'
  return raw
+
+def rebind_descent2(raw,receipt,completions):
+ """Complete physical census after the post-sink concave-descent retiming: rank mass, registers, stock, entrances and
+ endpoints are unchanged; only the one-stage histogram regroups, so the five-stage deficit 4400 is rechecked."""
+ from copy import deepcopy
+ from pins import pin
+ hist=lambda x:Counter({int(k):v for k,v in x.items()if v})
+ compact=lambda x:{str(k):v for k,v in sorted(x.items())if v}
+ assert receipt['status']=='PASS_POST_SINK_CONCAVE_DESCENT_RETIMING_AND_BOTH_REFLECTED_LEDGERS'
+ assert receipt['both_reflected_ledgers']and receipt['unchanged_all_input_output_frames']and receipt['unchanged_helper_endpoints']and receipt['unchanged_copy_lifetimes']and receipt['operand_source_spans_contained']
+ assert raw['schema']=='gen5-terminal-sinks-fresh-ledger/1'and 'sink_transform'in raw
+ pin('descent2_selected_gates',receipt['selected_gate_count']);pin('descent2_removed_calls',receipt['removed_calls']);pin('descent2_new_bases',receipt['new_bases'])
+ assert receipt['scalar']['forward']['all_sources_and_dirty_restored']and receipt['scalar']['inverse']['all_sources_and_dirty_restored']
+ source=hist(receipt['source_histogram']);target=hist(receipt['target_histogram']);internal=hist(receipt['internal_histogram_including_copies']);copies=hist(receipt['copied_center_histogram'])
+ assert copies==hist(raw['paid_center_copy_histogram'])=={22:24}
+ helper=source+target+internal;delta=helper.copy();delta.subtract(hist(raw['one_stage_helper_histogram_including_copies']))
+ assert {a:b for a,b in delta.items()if b}==hist(receipt['local_histogram_delta'])==hist(pin('descent2_local_delta',{a:b for a,b in delta.items()if b}))
+ # Source, target and internal paths may each regroup; every endpoint mass and the total rank mass are retained exactly.
+ assert sum(r*n for r,n in source.items())==sum(r*n for r,n in hist(raw['physical_source_histogram']).items())==1760*23
+ assert sum(r*n for r,n in target.items())==sum(r*n for r,n in hist(raw['physical_target_histogram']).items())==1760*23
+ assert sum(a*b for a,b in helper.items())==raw['helper_rank_mass']and sum(helper.values())==sum(hist(raw['one_stage_helper_histogram_including_copies']).values())-receipt['removed_calls']
+ completions=Counter(completions);assert completions==hist(raw['completion_rank_histogram']),'retiming keeps every entrance'
+ five=Counter({r:5*n for r,n in helper.items()});five.update(hist(raw['five_stage_profile']['idle_histogram']))
+ for c,n in completions.items():five[5*c]+=n
+ stock=4*1760+raw['physical_R'];mass=sum(r*n for r,n in five.items());assert stock==raw['five_stage_profile']['W'] and mass==raw['five_stage_profile']['rank_mass'] and 120*stock-mass==4400,'retiming keeps the five-stage deficit'
+ pin('descent2_five_stage_calls',sum(five.values()))
+ without=internal.copy();without.subtract(copies);assert min(without.values())>=0
+ before=deepcopy(raw)
+ raw.update(schema='gen5-post-sink-descent-fresh-ledger/1',sink_ledger=before,physical_source_histogram=compact(source),physical_target_histogram=compact(target),physical_internal_excluding_center_copies=compact(without),one_stage_helper_histogram_including_copies=compact(helper),descent2_transform=receipt)
+ raw['five_stage_profile'].update(histogram=compact(five),calls=sum(five.values()))
+ raw['scope']='Fresh complete actual gen5 word after kernel entries, early restoration, terminal sinks and a second (post-sink) concave-descent retiming.'
+ return raw

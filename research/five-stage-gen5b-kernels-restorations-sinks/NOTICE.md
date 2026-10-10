@@ -3,6 +3,11 @@
 Prepared by Chafik Boukhalfa with substantial Anthropic Claude assistance. Apache-2.0. Inherited files retain their
 original notices and assistance disclosures. This package claims no exclusive priority over concurrent work.
 
+The post-sink descent revision (same author, Anthropic Claude assistance) adds `descent2_transform.py`, a second
+concave-descent retiming after the terminal sinks: rule from rohanarun's PR #287 (and its second pass with constructed
+join/meet frames, PR #291), extreme meet/join frames as in GamingPuzzled's #286 and gupt1156's #289, connected
+blocks as in PR #270 (utcorvusvolat-dotcom); credited, not claimed.
+
 This g5q10alt revision (same author, Anthropic Claude assistance) rebases everything on the stagealt bit word (#285's
 generator with #285's pair module, an alternative 28/12 local design and a 35-addition debt-10 all-but-one module;
 #287's descent and target stages re-derived on it; PR #233's complex certificate), re-runs the twin/collective

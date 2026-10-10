@@ -10,7 +10,7 @@ from datetime import datetime,timezone
 from fractions import Fraction
 import argparse,hashlib,importlib.util,json,time,traceback
 ROOT=Path(__file__).resolve().parent
-REQUIRED={'virtual','raw','bit','kernel','restore','sink','scalar','primes','banks','complex','math','finite'}
+REQUIRED={'virtual','raw','bit','kernel','restore','sink','descent2','scalar','primes','banks','complex','math','finite'}
 
 def progress(message):print(datetime.now(timezone.utc).strftime('%H:%M:%S UTC')+'  '+message,flush=True)
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
@@ -61,7 +61,7 @@ def main():
   stage('virtual',lambda:load('virtual_check').run(output,progress))
   context=load('prepare').prepare()
   raw=stage('raw',lambda:load('raw_ledger').run(context))
-  portable=load('portable_bit');bit=portable.run(prepared_context=context,raw=raw,output_dir=output,run_geometry=True,package_root=ROOT);raw=bit['raw'];results['raw']=raw;save('raw.json',raw);results['bit']=portable.summary(bit);timings['bit']=bit['seconds'];save('bit.json',results['bit']);results['kernel']=bit['kernel_census'];timings['kernel']=bit['kernel_census']['seconds'];save('kernel.json',results['kernel']);results['restore']=bit['restore_census'];timings['restore']=bit['restore_census']['seconds'];save('restore.json',results['restore']);results['sink']=bit['sink_census'];timings['sink']=bit['sink_census']['seconds'];save('sink.json',results['sink']);progress('bit physical/kernel/restore/sink/global/geometry PASS')
+  portable=load('portable_bit');bit=portable.run(prepared_context=context,raw=raw,output_dir=output,run_geometry=True,package_root=ROOT);raw=bit['raw'];results['raw']=raw;save('raw.json',raw);results['bit']=portable.summary(bit);timings['bit']=bit['seconds'];save('bit.json',results['bit']);results['kernel']=bit['kernel_census'];timings['kernel']=bit['kernel_census']['seconds'];save('kernel.json',results['kernel']);results['restore']=bit['restore_census'];timings['restore']=bit['restore_census']['seconds'];save('restore.json',results['restore']);results['sink']=bit['sink_census'];timings['sink']=bit['sink_census']['seconds'];save('sink.json',results['sink']);results['descent2']=bit['descent2_census'];timings['descent2']=bit['descent2_census']['seconds'];save('descent2.json',results['descent2']);progress('bit physical/kernel/restore/sink/descent2/global/geometry PASS')
   scalar=stage('scalar',lambda:load('scalar_check').run(context,bit['records'],progress,2*1760+len(bit['context']['regs'])))
   primes=stage('primes',lambda:load('prime_check').run(bit['context'],bit['physical'],progress))
   bankresult=stage('banks',lambda:load('bank_check').run(bit['context'],bit['global_result'],bit['lower']))
