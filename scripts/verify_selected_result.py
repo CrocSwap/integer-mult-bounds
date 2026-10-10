@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bind the published selection to its frozen finite certificate and proof files.
 
-This fast check does not replay the construction. Run make entrance-bank-verify
+This fast check does not replay the construction. Run make gen4-bank-verify
 for the complete selected finite replay. Douglas Colkitt, with OpenAI Codex
 assistance. Apache-2.0.
 """

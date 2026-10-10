@@ -3,7 +3,43 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: coordinated frames and completed entrance banks
+## Current reviewed result: gen4 circuits and common-delivery frames
+
+The composition of **DreamingOfClouds' [#276](https://github.com/CrocSwap/integer-mult-bounds/pull/276)**
+and **Rohan Arun's [#279](https://github.com/CrocSwap/integer-mult-bounds/pull/279)** gives
+
+$$
+T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
+\kappa=\frac{90446448750933}{125000000000000000}=0.000723571590007464.
+$$
+
+DreamingOfClouds redesigned the local bit circuits to use fewer auxiliary
+registers. Rohan reassigned 880 mixing gates to their existing common delivery
+frames, applying eumemic's earlier retiming technique. The composition retains
+Henry Grant and Jacob Sussman's five-stage construction, Evan McKinney and
+Rohan's completed banks, Chafik Boukhalfa's physical checkers, Avi Eisenberg's
+complex supplier and the earlier community framework.
+
+This is **1.90% above the recently audited 0.000710046193349537 witness**,
+and **56.99% above 0.0004609169**. It is approximately `2^-10.43258`.
+These compare exponent savings, not practical runtime. The all-size compiler,
+chart, routing, restored-row, precision/recovery and analytic interfaces remain
+conditional. Finite replay and written review do not prove the complete
+asymptotic theorem in Lean.
+
+[Review and validation scope](docs/research/community-pr279-review.md) ·
+[Selected record](certificates/selected-result.json) ·
+[Construction argument](research/five-stage-gen4-banks/PROOF.md) ·
+[Exact certificate](research/community-pr279-audit/certificate.json) ·
+[Integration checks](docs/research/community-pr279-integration.json) ·
+[Contributor record](CONTRIBUTORS.md)
+
+```sh
+python3 -m pip install -r research/five-stage-gen4-banks/requirements.txt
+make gen4-bank-verify
+```
+
+## Preceding reviewed result: coordinated frames and completed entrance banks
 
 [Dugongue's #186](https://github.com/CrocSwap/integer-mult-bounds/pull/186)
 gives the conditional witness

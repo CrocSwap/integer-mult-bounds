@@ -20,6 +20,7 @@ verify:
 	$(MAKE) verify-paired-cube
 	$(MAKE) verify-recycled-bit
 	$(MAKE) verify-entrance-banks
+	$(MAKE) gen4-bank-verify
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -39,6 +40,11 @@ entrance-bank-verify: selected-record-check
 	python3 -B research/community-round8-audit/bank_schedule.py
 
 verify-entrance-banks: entrance-bank-verify
+
+.PHONY: gen4-bank-verify
+gen4-bank-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-gen4.XXXXXX"); \
+	python3 -B research/five-stage-gen4-banks/verify.py --output "$$work/replay"
 
 verify-community: community-audit-check community-followup-check copied-reversed-producer copied-reversed-check copied-fixed-reversed-producer copied-fixed-reversed-check
 	$(MAKE) copied-fixed-verify
