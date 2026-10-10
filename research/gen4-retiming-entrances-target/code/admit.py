@@ -175,7 +175,7 @@ def admit(candidate, export, baseline, chart_path, price_path):
     chart_details_path = chart_path.with_name("COMBINED-CHARTS.json")
     charts = read(chart_details_path)
     assert {(c["before"], c["after"], c["rank"]) for c in charts} == required_charts
-    assert len(charts) == len(required_charts) == chart["unique_projectors_checked"] == 3784
+    assert len(charts) == len(required_charts) == chart["unique_projectors_checked"] == 4004
     assert chart["retired_endpoints"] == 500 and chart["all_entries_below_two_to_80"]
     assert int(chart["max_numerator"]) < 2**80 and int(chart["max_denominator"]) < 2**80
     assert chart["max_factors"] == max(c["factors"] for c in charts) == 208
@@ -185,7 +185,7 @@ def admit(candidate, export, baseline, chart_path, price_path):
     stock, normalized_stock = bank["literal_stock"], bank["normalized_stock"]
     assert normalized_stock == price["stock"] == 255841
     adds, units, copies = operations[1], sum(c * n for c, n in coefficients.items()), operations[2]
-    assert adds == native["local_scalar_additions"] == 626360 and units == 629880 and copies == 24
+    assert adds == native["local_scalar_additions"] == 626610 and units == 630130 and copies == 24
     assert dict(local) == dict(native["local_raw_H"]) == {int(k): n for k, n in price["local_histogram"].items()}
     bounds = signed_bounds(records, 19930)
     assert bounds == native["signed_lift_prefix"]
@@ -211,7 +211,7 @@ def admit(candidate, export, baseline, chart_path, price_path):
                  copy_erase_episodes=120*replicas, edge_descriptors=children,
                  bank_selectors=selectors, fixed_unit=1)
     coefficient = sum(items.values())
-    assert coefficient == 92488203535344001 < 2**80 and stock+24 < 2**80
+    assert coefficient == 92323631924982001 < 2**80 and stock+24 < 2**80
     prime, residue = pricing.PRIME, 4
     for _ in range(125):
         residue = (residue * residue - 2) % prime
