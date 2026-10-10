@@ -1,0 +1,37 @@
+name: p10b hybrid transfer frame optimization
+on:
+  pull_request:
+    paths:
+      - 'research/p10b-hybrid-frame-transfer/**'
+      - '.github/workflows/p10b-hybrid-frame-transfer.yml'
+  push:
+    paths:
+      - 'research/p10b-hybrid-frame-transfer/**'
+      - '.github/workflows/p10b-hybrid-frame-transfer.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -m pip install -r research/p10b-hybrid-frame-transfer/requirements.txt
+      - name: Replay complete immutable construction
+        run: python -B research/p10b-hybrid-frame-transfer/verify.py --output "$RUNNER_TEMP/p10b-hybrid-frame-transfer-proof" --cxx g++ --boost-include /usr/include
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p10b-hybrid-frame-transfer-verification
+          path: |
+            ${{ runner.temp }}/p10b-hybrid-frame-transfer-proof/VERIFICATION.json
+            ${{ runner.temp }}/p10b-hybrid-frame-transfer-proof/CERTIFICATE.json
+            ${{ runner.temp }}/p10b-hybrid-frame-transfer-proof/FAILURE.json
+            ${{ runner.temp }}/p10b-hybrid-frame-transfer-proof/source-regeneration/REGENERATION.json
+            ${{ runner.temp }}/p10b-hybrid-frame-transfer-proof/PRODUCER-BINDING-CONTROLS.json
+            ${{ runner.temp }}/p10b-hybrid-frame-transfer-proof/logs/
