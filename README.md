@@ -3,15 +3,22 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: coordinated frames and completed entrance banks
+## Proposed continuation of the current reviewed result
 
-[Dugongue's #186](https://github.com/CrocSwap/integer-mult-bounds/pull/186)
-gives the conditional witness
+The maintainer-reviewed base is
+[Dugongue's #186](https://github.com/CrocSwap/integer-mult-bounds/pull/186).
+A branch-local continuation by
+[dataisfire](https://github.com/dataisfire) applies a replayable global-majorant
+operation-frame contraction pass and gives the conditional witness
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{330942774629799}{500000000000000000}=6.61885549259598\times10^{-4}.
+\kappa=\frac{662502871668435}{1000000000000000000}
+=6.62502871668435\times10^{-4}.
 $$
+
+This continuation is mechanically verified on this branch but is not yet
+maintainer-reviewed or merged.
 
 The construction combines Chafik Boukhalfa's shared-edge complex supplier
 (#181) with eumemic's physical bit word and searched modules (#168), then
@@ -20,9 +27,10 @@ coordinates operation frames and completes shared entrance banks. The
 supplies a conflict-free schedule and its additional finite prime exclusions.
 The source package, dependency notices and assistance disclosures are preserved.
 
-This is **43.60% above the preceding published saving**, and 40.18% above
-the intervening reviewed recycled-bit checkpoint. It is approximately
-`2^-10.56113`; a factor 2.95085 remains to `2^-9`. These compare asymptotic
+The continuation is approximately **0.09326724% above #186's selected
+headline**, **43.73586% above the preceding published saving**, and **40.31476%
+above the intervening reviewed recycled-bit checkpoint**. It is approximately
+`2^-10.55979`; a factor 2.94810 remains to `2^-9`. These compare asymptotic
 exponent savings, not measured runtime speedups. The retained analytic,
 uniform-recursion and fixed-tape hypotheses remain assumptions. Finite replay
 and written review do not formally verify the multiplication theorem.

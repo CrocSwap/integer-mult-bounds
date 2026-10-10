@@ -4,7 +4,7 @@
 
 Under the retained all-size interfaces, T(n)=O(n(log n)^(1−κ)) with
 
-    κ=330942774629799/500000000000000000 = 0.000661885549259598.
+    κ=662502871668435/1000000000000000000 = 0.000662502871668435.
 
 The exact prerequisite is PR181 at7fb2194801e3a10f54772c7f0d5505035a4fc0ad, incorporating PR168 v4 at4a3c769e5c5430e7114c4d3e099ff34664677f17 and the PR175 compiler overlay. No new all-size oracle or strengthened hypothesis is inserted.
 
@@ -22,7 +22,7 @@ The final complete complex inventory is
 
 The terminal executor checks all13326 modified source/target/dirty columns and restores all10686 dirty registers, for both directions. Removing a pivot write, deleting an ancestor dirty response or omitting the initial target shears is rejected. Handoffs and terminal sinks stay distinct, and the retained full scalar reserve pays the literal signed word.
 
-The exact complete moment gives b=662323931899051/1000000000000000000. The actual full child histogram and outward rational bounds are in certificate.json. Numeric search scores or older frame-cut gains are not added to b.
+The exact complete moment gives b=662942072695346/1000000000000000000. The actual full child histogram and outward rational bounds are in certificate.json. The replayable global-majorant search nominates the 923-operation contraction schedule, while the exact physical, terminal, formal and moment verifiers certify the resulting witness; numeric search scores or older frame-cut gains are not added to b.
 
 ## Completed entrance-bank bit supplier
 

@@ -1,13 +1,20 @@
 # Community contribution record
 
-**Current reviewed construction: #186 on #181 and #168, κ=0.000661885549259598.**
+**Current maintainer-reviewed construction on main: #186 on #181 and #168,
+κ=0.000661885549259598.**
+
+**Proposed branch-local continuation: dataisfire,
+κ=0.000662502871668435. This continuation is not yet reviewed or merged.**
+
 The [round-eight review](docs/research/community-round8-review.md) and
 [bank scheduling supplement](research/community-round8-audit/BANK-SCHEDULE.md)
-state the finite checks and retained all-size assumptions.
+cover the inherited #186 checkpoint. The continuation adds a deterministic
+global-majorant frame-search replay and a newly regenerated exact certificate.
 
 | Contributor | Contribution and relationship to this checkpoint |
 |---|---|
 | [Dugongue](https://github.com/Dugongue) | [#186](https://github.com/CrocSwap/integer-mult-bounds/pull/186): coordinated complex frames, rematched/retimed handoffs, completed entrance banks and the selected exact assembly. |
+| [dataisfire](https://github.com/dataisfire) | Proposed continuation of #186: applies the repository's existing concavity-majorant / directed-min-cut machinery to the h=22 coordinated witness, selecting 923 operation contractions. The checked-in replay regenerates the exact 13,810-entry certified physical-frame witness and improves the conditional headline to κ=0.000662502871668435. Developed with substantial OpenAI ChatGPT assistance; no novelty claim is made for directed minimum cut or the predecessor constructions. |
 | [Chafik Boukhalfa / chafreaky](https://github.com/chafreaky) | [#181](https://github.com/CrocSwap/integer-mult-bounds/pull/181): shared-edge complex supplier used by #186; [#175](https://github.com/CrocSwap/integer-mult-bounds/pull/175): compiler speedup in its frozen prerequisite. [#182](https://github.com/CrocSwap/integer-mult-bounds/pull/182) adds independently reviewed bit-frame and terminal refinements. |
 | [eumemic](https://github.com/eumemic) | [#168](https://github.com/CrocSwap/integer-mult-bounds/pull/168): searched signed modules, output fusion, terminal sinks and the physical bit word underlying this composition; earlier positive-producer and frame/compiler work remains credited. |
 | [DaysSky](https://github.com/DaysSky) | #162 extended carrier closure and #150 physical register recycling in the prerequisite lineage. |
