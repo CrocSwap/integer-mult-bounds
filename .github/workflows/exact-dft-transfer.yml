@@ -1,0 +1,26 @@
+name: exact-dft-transfer
+
+on:
+  pull_request:
+    paths:
+      - 'research/exact-dft-transfer/**'
+      - 'certificates/paired-cube-complex-input.json'
+      - '.github/workflows/exact-dft-transfer.yml'
+  push:
+    paths:
+      - 'research/exact-dft-transfer/**'
+      - '.github/workflows/exact-dft-transfer.yml'
+
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Exact-DFT exponent transfer, compared with expected.json
+        run: python3 -B research/exact-dft-transfer/verify.py --check
