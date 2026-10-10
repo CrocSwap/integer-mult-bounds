@@ -220,24 +220,24 @@ def rebind_regauge(raw,receipt):
  compact=lambda x:{str(r):n for r,n in sorted(x.items())if n}
  assert receipt['status']=='PASS_SELECTED_GAUGE_TRANSPORT_AND_BOTH_REFLECTED_LEDGERS'
  assert receipt['both_reflected_ledgers']and receipt['unchanged_data_input_output_and_dirty_output_frames']and receipt['unchanged_copy_lifetimes']
- assert receipt['selected_gauge_count']==21 and receipt['total_added_entrance_rank']==325 and receipt['remaining_payload_additions']==786623
+ assert receipt['selected_gauge_count']==37 and receipt['total_added_entrance_rank']==549 and receipt['remaining_payload_additions']==786623
  transport=receipt['transport'];assert transport['literal_prefix_transfer_matches']and transport['selected_helpers_untouched_before_cut']and transport['noise_before_cut_only_in_targets']and transport['producer_context_unchanged']
  source=hist(receipt['source_histogram']);target=hist(receipt['target_histogram']);internal=hist(receipt['internal_histogram_including_copies']);copies=hist(receipt['copied_center_histogram']);assert copies=={22:24}
  helper=source+target+internal;delta=helper.copy();delta.subtract(hist(raw['one_stage_helper_histogram_including_copies']))
- assert {r:n for r,n in delta.items()if n}=={1:12,2:45,3:9,4:8,8:4,9:7,11:-2,12:8,13:-4,14:-6,17:14,18:31,19:-15,20:-41,21:-10}
+ assert {r:n for r,n in delta.items()if n}=={1: 12, 2: 49, 3: 25, 6: 4, 11: -2, 12: 16, 8: 8, 4: 12, 9: 11, 14: 2, 17: 16, 15: -6, 18: 31, 13: -4, 20: -53, 7: 4, 19: -19, 21: -22}
  assert {r:n for r,n in delta.items()if n}==hist(receipt['local_histogram_delta'])
  assert source==hist(raw['physical_source_histogram'])
  assert sum(r*n for r,n in target.items())==1760*23
- assert sum(r*n for r,n in helper.items())==434177
- original=deepcopy(raw);gauges=hist(raw['auxiliary_entrance_rank_histogram']);gauges.update({9:2,12:5,17:5,18:9});assert gauges=={9:2,12:23,13:48,17:5,18:22,20:2200}
+ assert sum(r*n for r,n in helper.items())==433953
+ original=deepcopy(raw);gauges=hist(raw['auxiliary_entrance_rank_histogram']);gauges.update({9:2,12:11,14:6,17:9,18:9});assert gauges=={9: 2, 12: 29, 13: 48, 14: 6, 17: 9, 18: 22, 20: 2200}
  five=Counter({r:5*n for r,n in helper.items()});five.update(hist(raw['five_stage_profile']['idle_histogram']))
  for a,n in gauges.items():five[5*a]+=n
- assert sum(five.values())==493525 and sum(r*n for r,n in five.items())==2830840
+ assert sum(five.values())==493661 and sum(r*n for r,n in five.items())==2830840
  withoutcopies=internal.copy();withoutcopies.subtract(copies);assert min(withoutcopies.values())>=0
  raw['schema']='source527-parity-regauged-fresh-raw-ledger/1';raw['retimed_ledger']=original
  raw['physical_source_histogram']=compact(source);raw['physical_target_histogram']=compact(target);raw['physical_internal_excluding_center_copies']=compact(withoutcopies)
- raw['one_stage_helper_histogram_including_copies']=compact(helper);raw['helper_rank_mass']=434177
- raw['auxiliary_entrance_rank_histogram']=compact(gauges);raw['auxiliary_entrance_count']=2300
+ raw['one_stage_helper_histogram_including_copies']=compact(helper);raw['helper_rank_mass']=433953
+ raw['auxiliary_entrance_rank_histogram']=compact(gauges);raw['auxiliary_entrance_count']=2316
  raw['five_stage_profile'].update(histogram=compact(five),calls=sum(five.values()))
- raw['regauge_transform']=receipt;raw['scope']='Fresh actual word after transporting twenty-one untouched dirty compensation columns through the exact F2 target prefix. Every scalar column, changed entrance and required frame path is checked; all data endpoints, dirty output endpoints, reflected inclusions and copied-center lifetimes are retained.'
+ raw['regauge_transform']=receipt;raw['scope']='Fresh actual word after transporting thirty-seven untouched dirty compensation columns through the exact F2 target prefix. Every scalar column, changed entrance and required frame path is checked; all data endpoints, dirty output endpoints, reflected inclusions and copied-center lifetimes are retained.'
  return raw

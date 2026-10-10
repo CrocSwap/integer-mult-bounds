@@ -52,7 +52,7 @@ def run(context,physical,progress=lambda text:None):
         a=g['dim'];h=basis_hash(c.B[g['frame']]);d=determinants[h]
         assert 0<5*a<120 and d!=0;ranks[a]+=1;bundle_bases.add(h)
         assert abs(d**5)==abs(d)**5
-    assert ranks=={9:2,12:23,13:48,17:5,18:22,20:2200}and len(bundle_bases)==243
+    assert ranks=={9: 2, 12: 29, 13: 48, 14: 6, 17: 9, 18: 22, 20: 2200}and len(bundle_bases)==245
     assert 2*120**3*10**16<2**80
     from copy import deepcopy
     controls=[]

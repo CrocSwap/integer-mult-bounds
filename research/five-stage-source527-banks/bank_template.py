@@ -8,20 +8,23 @@ from collections import Counter
 
 
 class BankPlan:
-    m, h, stages, replicas, v = 120, 24, 5, 40, 1760
-    patterns = ((tuple([11]*8+[4]*8),240),
-                (tuple([7]*4+[4]*23),50),
-                (tuple([4]*30),2831),
-                (tuple([6]*20),44),
-                (tuple([12]*10),92),
-                (tuple([15]*8),10),
-                (tuple([24]*5),114296))
+    m, h, stages, replicas, v = 120, 24, 5, 24, 1760
+    patterns = ((tuple([11]*8+[4]*8),144),
+                (tuple([7]*4+[4]*23),54),
+                (tuple([4]*30),1680),
+                (tuple([6]*20),26),
+                (tuple([10]*12),12),
+                (tuple([12]*10),69),
+                (tuple([15]*8),6),
+                (tuple([12]*6+[6]*8),1),
+                (tuple([24]*4+[4]*6),1),
+                (tuple([24]*5),68500))
 
     active = ((0,1),(1,0),(0,1),(3,2),(2,3))
 
     def __init__(self, families, gauge_frames, helper_roles=None):
         self.families = {r:tuple(rows) for r,rows in families.items() if rows}
-        assert {r:len(rows) for r,rows in self.families.items()} == {4:2200,6:22,7:5,11:48,12:23,15:2,24:14287}
+        assert {r:len(rows) for r,rows in self.families.items()} == {4:2200,6:22,7:9,10:6,11:48,12:29,15:2,24:14271}
         self.role_index = {}
         for rank,rows in self.families.items():
             assert tuple(sorted(rows)) == rows and len(set(rows)) == len(rows)
@@ -37,7 +40,7 @@ class BankPlan:
         self.data_families=self.replicas*4*self.v
         self.live_families=self.data_families+self.stages*self.banks_per_stage
         self.work_family=self.live_families
-        assert (self.banks_per_stage,self.data_families,self.live_families)==(117563,281600,869415)
+        assert (self.banks_per_stage,self.data_families,self.live_families)==(70493,168960,521425)
         self.segments={}
         used=Counter();bank_start=0
         for pattern,(widths,count) in enumerate(self.patterns):
@@ -172,7 +175,7 @@ class BankPlan:
 
         Each emitted stage phase means: for the indicated replica, iterate
         every cover class and execute the entire local scalar telescope.
-        Boundary phases occur after all40 replicas of that stage finish.
+        Boundary phases occur after all24 replicas of that stage finish.
         """
         for stage in range(self.stages):
             for replica in range(self.replicas):

@@ -10,4 +10,6 @@ The 31 new zero-response source aliases, 48 retained dirty-anchor paths, physica
 
 The parity-filtered common-frame retiming (PR244) and exact reconstruction were prepared by eumemic with substantial OpenAI Codex assistance. The 353 unborrowed pair mixes use their existing common delivery frames; source527 and all earlier construction credits remain retained.
 
-The twenty-one additional F2 gauge entrances, exact compensation transport, cloned producer/execution contexts and new completed-bank charts were prepared by eumemic with substantial OpenAI Codex assistance.
+The thirty-seven additional F2 gauge entrances, exact compensation transport, cloned producer/execution contexts and new completed-bank charts were prepared by eumemic with substantial OpenAI Codex assistance.
+
+This extension retains eumemic's PR249 compensation transport and its 21 selected entrances. Sixteen further entrances use shared allowed-frame intersections, adding 224 entrance-rank units. Prepared with substantial OpenAI Codex assistance.
