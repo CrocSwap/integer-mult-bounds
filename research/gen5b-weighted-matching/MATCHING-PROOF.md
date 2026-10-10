@@ -59,11 +59,16 @@ The independent matching producer re-derives all 65,920 edges and compares its
 complete regeneration command compares all five bit files with the pinned
 submission, comparing compressed JSON after decompression.
 
-The final composition retains all 1,720 PR299 kernel entries, mapped by logical
-role to the new literal indices; all 440 restorations and seven terminal sinks
-are re-derived. The unchanged checker cores verify those stages, all physical
-columns and both reflected ledgers. The final global namespace uses 15,425 dirty
-registers. All twelve immutable stages and the complete finite invoice must
-pass under verify.py; the admitted conditional kappa is
-375528459906701/500000000000000000. This does not establish whole-construction
-optimality or eliminate any inherited all-size assumption.
+The historical weighted-matching checkpoint at
+`03acc26f9624ce15c4149f927b7b9aeb0de301b8` retained all 1,720 PR299 kernel entries,
+mapped by logical role to the new literal indices; all 440 restorations and seven
+terminal sinks were re-derived. The unchanged checker cores verified those
+stages, all physical columns and both reflected ledgers. Its final global
+namespace used 15,425 dirty registers. All twelve immutable stages and the
+complete finite invoice passed under verify.py; that checkpoint's admitted
+conditional kappa was 375528459906701/500000000000000000.
+
+The current composition adds the second descent described in
+[SECOND-DESCENT-PROOF.md](SECOND-DESCENT-PROOF.md), with admitted conditional
+kappa 46942230864663/62500000000000000. Neither result establishes
+whole-construction optimality or eliminates any inherited all-size assumption.
