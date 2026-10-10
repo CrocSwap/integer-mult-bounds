@@ -1,3 +1,13 @@
+# Concave-descent frame retiming on the gen5 five-stage completed banks
+
+**κ = 92941106462441/(1.25·10^17) = 7.43528851699528e-4**, conditional, with the bit supplier binding: +7.43 × 10⁻⁷ (+0.100 %) over the gen5 package below (7.42785663120535e-4).
+
+This package is DreamingOfClouds' `five-stage-gen5-banks` with one added stage, `descent_transform.py` (frozen `descent-selection.json`), run after `parity_transform.py`. The gen5 word had no frame retiming; local descent on the concave paid-rank objective Σ r·ln(120/r) reassigns 904 ADD frames: each unborrowed source-pair mix runs at its rank-22 common delivery frame exactly as PR244 did for source527 (per pair the paid children of ranks 1, 1, 20, 22 become 21, 21, 2) plus 24 further internal gates; local paid histogram delta {1: −1760, 2: +880, 6: +24, 7: −48, 8: +24, 20: −880, 21: +1760, 22: −880}, so 880 local recursive calls disappear at unchanged rank mass 411,356. The transform rebuilds every MOVE from the retimed gate needs and independently checks the byte-identical scalar/COPY projection, nested chains, fixed source/dirty/target endpoints, unchanged COPY lifetimes, nondegenerate endpoint bases, both reflected annihilator ledgers, and the exact integer source span of every non-target operand inside its new frame; `raw_ledger.rebind_descent` recounts the five-stage profile (474,744 calls, rank mass 2,746,720) and `bank_check`/`verify.py` require the new counts and κ. `prime_check` retains the determinant obligation for producer frames the retiming removes (PR244's rule). Banks, entrances, charts, the scalar word and all endpoints are unchanged.
+
+Prepared by Rohan Arun with Anthropic Claude assistance; Apache-2.0. Everything below is the gen5 package's own description.
+
+---
+
 κ = 7.42785663120535e-4
 
 # Source-bound finite verification
