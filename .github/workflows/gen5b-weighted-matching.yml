@@ -1,0 +1,58 @@
+name: Verify gen5b weighted matching
+on:
+  push:
+    paths:
+      - 'research/gen5b-weighted-matching/**'
+      - '.github/workflows/gen5b-weighted-matching.yml'
+  pull_request:
+    paths:
+      - 'research/gen5b-weighted-matching/**'
+      - '.github/workflows/gen5b-weighted-matching.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pinned arithmetic dependency
+        run: python -m pip install -r research/gen5b-weighted-matching/requirements.txt
+      - name: Replay all twelve stages and complete finite invoice
+        run: python -B research/gen5b-weighted-matching/verify.py --output /tmp/gen5b-weighted-verification
+      - name: Show bounded diagnostics on failure
+        if: failure()
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          p = Path('/tmp/gen5b-weighted-verification/failure.json')
+          if p.exists(): print(p.read_text())
+          PYTHON
+      - name: Require unchanged tracked artifacts
+        run: git diff --exit-code
+  regeneration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Install pinned arithmetic dependency
+        run: python -m pip install -r research/gen5b-weighted-matching/requirements.txt
+      - name: Rebuild all five bit files including weighted matching
+        run: python -B research/gen5b-weighted-matching/gen5bit/producer/regenerate.py --work /tmp/gen5b-weighted-regeneration
+      - name: Require unchanged tracked artifacts
+        run: git diff --exit-code
