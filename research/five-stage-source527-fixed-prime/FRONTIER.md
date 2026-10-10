@@ -4,7 +4,7 @@ Checked against the open PR list and reported GitHub checks on 2026-10-10, befor
 
 | Candidate | Exact κ | Commit | Status and comparison |
 |---|---:|---|---|
-| [PR244](https://github.com/CrocSwap/integer-mult-bounds/pull/244) | `710346589668175/10^18` | `a568d94f941929232ab393c7d33dc5a30e017892` | Open; 57/59 reported GitHub checks passed and 2 were still running. Its pinned certificate records two identical full eight-stage replays. This refinement is stacked on its common-frame retiming. |
+| [PR244](https://github.com/CrocSwap/integer-mult-bounds/pull/244) | `710346589668175/10^18` | `a568d94f941929232ab393c7d33dc5a30e017892` | Open; 58/59 reported GitHub checks passed and 1 was still running. Its pinned certificate records two identical full eight-stage replays. This refinement is stacked on its common-frame retiming. |
 | [PR245](https://github.com/CrocSwap/integer-mult-bounds/pull/245) | `693078488574615/10^18` | `e347f31c5960323f6dca8bfb5a1f529ebac4537e` | Open; its body explicitly makes no record claim, and its exact κ is below PR244. |
 | [PR246](https://github.com/CrocSwap/integer-mult-bounds/pull/246) | target `7.277211262868e-4` | `b21f0963da45e7728a47ed1138d438141ef3c1db` | Open; no GitHub checks reported. Its own proof section says C1-C7 and R1-R4 remain open, six required construction bodies are absent (0/6), and calls the number a priced target, not a witness. Excluded from the valid leaderboard. |
 | [PR210](https://github.com/CrocSwap/integer-mult-bounds/pull/210) | `710069340338651/10^18` | `b0c058ba979c748bb3a8604bfb6502e9fac9b84d` | Open; all 59 reported checks passed. It is PR244's parity-fused, pre-retiming source527 base. |
