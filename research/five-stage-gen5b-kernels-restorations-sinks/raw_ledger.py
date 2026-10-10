@@ -330,3 +330,31 @@ def rebind_descent2(raw,receipt,completions):
  raw['five_stage_profile'].update(histogram=compact(five),calls=sum(five.values()))
  raw['scope']='Fresh complete actual gen5 word after kernel entries, early restoration, terminal sinks and a second (post-sink) concave-descent retiming.'
  return raw
+
+def rebind_reorder(raw,receipt,completions,tag='reorder'):
+ """Complete physical census after the reordering stage: the same registers, endpoints and rank mass; only the split
+ of the paid paths changes. The five-stage profile is recomputed and the deficit 4400 is rechecked."""
+ from copy import deepcopy
+ from pins import pin
+ hist=lambda x:Counter({int(k):v for k,v in x.items()if v})
+ compact=lambda x:{str(k):v for k,v in sorted(x.items())if v}
+ assert receipt['status']=='PASS_GEN5_REORDER_ON_ACTUAL_WORD_AND_BOTH_REFLECTED_LEDGERS'
+ assert receipt['tag']==tag and receipt['all_gate_frames_contain_operand_source_spans'] and receipt['both_reflected_ledgers']and receipt['unchanged_endpoints']and receipt['unchanged_copy_lifetimes']and receipt['integer_replay']['identical']
+ k=pin(tag+'_count',receipt['selected']);R=raw['physical_R']
+ source=hist(receipt['source_histogram']);target=hist(receipt['target_histogram']);internal=hist(receipt['internal_histogram_including_copies']);copies=hist(receipt['copied_center_histogram'])
+ assert copies=={22:24}
+ assert sum(r*n for r,n in target.items())==1760*23
+ helper=source+target+internal;delta=helper.copy();delta.subtract(hist(raw['one_stage_helper_histogram_including_copies']))
+ assert {a:b for a,b in delta.items()if b}==hist(receipt['local_histogram_delta'])==hist(pin(tag+'_local_delta',{a:b for a,b in delta.items()if b}))
+ assert sum(a*b for a,b in helper.items())==raw['helper_rank_mass'],'reordering keeps the rank mass'
+ completions=Counter(completions);assert completions==hist(raw['completion_rank_histogram']),'reordering keeps every entrance and endpoint'
+ five=Counter({r:5*n for r,n in helper.items()});five.update(hist(raw['five_stage_profile']['idle_histogram']))
+ for c,n in completions.items():five[5*c]+=n
+ stock=4*1760+R;mass=sum(r*n for r,n in five.items());assert 120*stock-mass==4400,'reordering keeps the five-stage deficit'
+ pin(tag+'_five_stage_calls',sum(five.values()));pin(tag+'_five_stage_rank_mass',mass)
+ without=internal.copy();without.subtract(copies);assert min(without.values())>=0
+ before=deepcopy(raw)
+ raw.update(schema='gen5-'+tag+'-fresh-ledger/1',**{'before_'+tag+'_ledger':before,tag+'_transform':receipt},physical_source_histogram=compact(source),physical_target_histogram=compact(target),physical_internal_excluding_center_copies=compact(without),one_stage_helper_histogram_including_copies=compact(helper),helper_rank_mass=sum(a*b for a,b in helper.items()))
+ raw['five_stage_profile'].update(W=stock,histogram=compact(five),calls=sum(five.values()),rank_mass=mass,deficit=120*stock-mass)
+ raw['scope']='Fresh complete actual gen5 word after kernel entries, early restoration, terminal sinks, post-sink descent and reordering.'
+ return raw

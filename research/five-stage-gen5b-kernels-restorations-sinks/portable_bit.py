@@ -55,6 +55,10 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  raw=load('portable527_sink_raw',package/'raw_ledger.py').rebind_sink(raw,physical_run['sink_census'],completion_census(physical_run))
  physical_run=load('portable527_descent2',package/'descent2_transform.py').run(physical_run,output_dir=output_dir)
  raw=load('portable527_descent2_raw',package/'raw_ledger.py').rebind_descent2(raw,physical_run['descent2_census'],completion_census(physical_run))
+ reorder_module=load('portable527_reorder',package/'reorder_transform.py')
+ for tag in('reorder','reorder2'):
+  physical_run=reorder_module.run(physical_run,output_dir=output_dir,tag=tag)
+  raw=load('portable527_'+tag+'_raw',package/'raw_ledger.py').rebind_reorder(raw,physical_run[tag+'_census'],completion_census(physical_run),tag)
  context=physical_run['context']
  physical=physical_run['physical'];physical['source_head']=raw['source_head']
  assert physical['source_heads']==raw['source_aliases']and physical['independent_dirty_registers']==raw['physical_R']
@@ -67,7 +71,7 @@ def run(prepared_context=None,raw=None,output_dir=None,run_geometry=True,package
  assert phases==[('helper',0),('helper',1),('idle',0),('bridge',0),('helper',2),('idle',1),('bridge',1),('helper',3),('helper',4),('idle',2),('bridge',2),('completion',0),('terminal_exchange',0)]
  geometry=None
  if run_geometry:geometry=load('portable527_geometry',package/'code/geometry527.py').run(context,global_module)
- result=dict(context=context,helper_endpoints=physical_run['helper_endpoints'],restore_census=physical_run['restore_census'],sink_census=physical_run['sink_census'],descent2_census=physical_run['descent2_census'],W=context['W'],C=context['C'],records=physical_run['records'],lower=lower,raw=raw,physical=physical,global_result=global_result,geometry=geometry,phase_major_schedule=phases,scalar_observer_result=physical_run['scalar_result'],kernel_census=physical_run['kernel_census'],kernel_entrances=physical_run['kernel_entrances'],seconds=time.monotonic()-begun)
+ result=dict(context=context,helper_endpoints=physical_run['helper_endpoints'],restore_census=physical_run['restore_census'],sink_census=physical_run['sink_census'],descent2_census=physical_run['descent2_census'],reorder_census=physical_run['reorder_census'],reorder2_census=physical_run['reorder2_census'],W=context['W'],C=context['C'],records=physical_run['records'],lower=lower,raw=raw,physical=physical,global_result=global_result,geometry=geometry,phase_major_schedule=phases,scalar_observer_result=physical_run['scalar_result'],kernel_census=physical_run['kernel_census'],kernel_entrances=physical_run['kernel_entrances'],seconds=time.monotonic()-begun)
  if output_dir is not None:
   out=Path(output_dir);out.mkdir(parents=True,exist_ok=True)
   for name in('physical','global_result','geometry','raw'):

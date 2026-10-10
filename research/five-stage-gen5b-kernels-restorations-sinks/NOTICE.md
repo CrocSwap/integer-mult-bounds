@@ -3,6 +3,11 @@
 Prepared by Chafik Boukhalfa with substantial Anthropic Claude assistance. Apache-2.0. Inherited files retain their
 original notices and assistance disclosures. This package claims no exclusive priority over concurrent work.
 
+The reorder revision (Chafik Boukhalfa, Anthropic Claude assistance) adds `reorder_transform.py` (two rounds), its
+discovery screen and the raw/finite/verify wiring. The idea of the census that led to it is from Khattar–Gidney,
+arXiv:2407.17966 (conditionally clean ancillae). Frame retiming as a lever is from the #287/#291 lineage; this stage moves
+additions in time as well as in frame.
+
 The post-sink descent revision (same author, Anthropic Claude assistance) adds `descent2_transform.py`, a second
 concave-descent retiming after the terminal sinks: rule from rohanarun's PR #287 (and its second pass with constructed
 join/meet frames, PR #291), extreme meet/join frames as in GamingPuzzled's #286 and gupt1156's #289, connected

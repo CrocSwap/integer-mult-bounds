@@ -1,3 +1,23 @@
+# five-stage-gen5b-kernels-restorations-sinks (+ post-sink descent, + reorder)
+
+**Conditional κ = 187559490435341 / (2.5·10¹⁷) = 7.50237961741364·10⁻⁴** (+3.176·10⁻⁷, +0.0424% over the post-sink-descent
+package's 7.49920356821633·10⁻⁴, recorded below).
+
+This revision adds two instances of one transcript stage after the post-sink descent, `reorder_transform.py`
+(section 3 of [LEVERS-PROOF.md](LEVERS-PROOF.md)):
+
+| step | moves | local delta | φ-ledger | κ predicted = verified |
+| --- | ---: | --- | ---: | ---: |
+| post-sink descent (base) | 113 gates | — | −33.29 | 7.49920356821633·10⁻⁴ |
+| **reorder** | 235 | {2:+235, 3:−215, 4:−22, 5:+2, 6:−20, 8:+20, 21:−213, 22:+213} | −495.45 | 7.50237203209721·10⁻⁴ |
+| **reorder2** (screen re-run on the reordered word) | 2 | {2:+2, 3:−2, 4:−2, 5:+2} | −1.18 | 7.50237961741364·10⁻⁴ |
+
+A moved addition is executed, unchanged, next to a neighbouring incidence of one of its operands and in that
+incidence's frame. 213 root deliveries y += h (rank 21) go behind h's sibling deliveries into y's next rank-22 frame,
+and 22 forward gates go back from a rank-18 frame to an earlier rank-16 frame. Rank mass, endpoints, entrances and copies
+are unchanged. The reorder moves share no register with the descent gates, so the order of the two stages does not
+change the φ prediction. Everything below describes the base.
+
 # five-stage-gen5b-kernels-restorations-sinks (+ post-sink descent)
 
 **Conditional κ = 749920356821633 / 10¹⁸ = 7.49920356821633·10⁻⁴** (+2.114·10⁻⁸, +0.00282% over the five-stage

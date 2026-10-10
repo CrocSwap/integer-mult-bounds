@@ -78,3 +78,33 @@ sources; 1,910 of the 1,975 untouched plain helpers have a target in a square an
 the rest only 8 (four reads, first frame 19, entrance 19) have a negative φ balance (helper gain φ(19) against four
 target climbs split at E), total −68.8 (≈ +0.006% κ); after the sinks only 4 remain (−34.4, ≈ +0.003%), the others'
 targets now carry sink setups. Not implemented.
+
+## 3. Reordering stages after the post-sink descent (`reorder_transform.py`, tags reorder and reorder2)
+
+Origin. This came out of a census of "conditionally clean" helpers (Khattar–Gidney, arXiv:2407.17966): a helper use
+that could be replaced by free additions because its content at that moment is a known combination of registers in
+the same frame. On this word that class is empty. All transcript operations are invertible, so at every moment the F₂
+(and integer) rows of the registers form a basis, and no register's content is a combination of the others'. The
+endpoint form (a helper restored early from known partner contents, multi-incidence, partners expanded by a backward
+closure x(t) = x(T) − Σ d·w(u)) is empty too: 11,979 of 12,017 helpers already sit at FULL at their last read. What
+the census did find is a plain reordering, which is the move shipped here.
+
+Rule. An ADD a += c·b at record i is moved next to an ADD incidence (record T) of a or b among their six previous or
+next incidences (before T if T > i, after T if T < i) and is executed in that record's frame F. Conditions on the
+actual word: no gate strictly between i and T reads a or writes b, and no COPY/ERASE between them touches a. The
+rebuilt frame chains of a and b are nested, and the φ-ledger of the two paths decreases. Moves are kept greedily by
+gain with pairwise-disjoint operand sets {a, b}. On the post-descent2 word 235 moves are admitted (frozen in `reorder-selection.json`). The same screen re-run on the
+reordered word admits 2 more (`reorder2-selection.json`). Both come from discovery/build_reorder_selection.py.
+
+Integer argument. The moved ADD commutes over Z with every crossed gate u += d·w: w ≠ a (a is not read), u ≠ b (b is
+not written), and additions into a commute. With disjoint operand sets, crossed moved ADDs commute as well. The scalar
+map is therefore identical for all inputs, including dirty helpers. Endpoints, entrances, copies and the rank mass are
+unchanged, so the completion histogram, the stock and the deficit 4,400 are unchanged too.
+
+Checks. The frozen moves are re-derived on the actual input word: record content, anchor frame basis, the crossed-
+interval contract and disjointness. Then: F₂ replay of all 18,947 columns forward and inverse; omitting the moved ADDs
+is rejected; an independent integer replay modulo 2⁶¹−1 with pseudo-random dirty inputs agrees on every register;
+every MOVE is rebuilt with both reflected ledgers; all frames are nondegenerate; the multiset of scalar ADDs is
+unchanged; the local delta equals the frozen one. Every gate of the output word, not only the moved ones, is checked
+against PR #287/#291's rule: the gate frame contains the exact integer source span of each non-target operand. `raw_ledger.rebind_reorder` recomputes the five-stage profile and
+pins the count, the delta and the profile literals.

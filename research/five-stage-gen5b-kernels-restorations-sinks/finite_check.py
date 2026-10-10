@@ -76,6 +76,8 @@ def run(raw,physical,scalar,prime_result,math_result,banks,banked_result,global_
  assert raw['kernel_transform']['both_reflected_ledgers'] and raw['kernel_transform']['selected_entries']==pin('kernel_entries',raw['kernel_transform']['selected_entries'])
  assert raw['restore_transform']['both_reflected_ledgers'] and raw['restore_transform']['selected']==pin('restore_helpers',raw['restore_transform']['selected'])
  assert raw['restore_transform']['scalar']['controls'][0]['wrong_rows']>0 and not raw['restore_transform']['scalar']['forward']['wrong_rows']
+ assert raw['reorder_transform']['both_reflected_ledgers'] and raw['reorder_transform']['integer_replay']['identical'] and raw['reorder_transform']['all_gate_frames_contain_operand_source_spans'] and raw['reorder_transform']['selected']==pin('reorder_count',raw['reorder_transform']['selected']) and all(c['wrong_rows']>0 for c in raw['reorder_transform']['scalar']['controls'])
+ assert raw['reorder2_transform']['both_reflected_ledgers'] and raw['reorder2_transform']['integer_replay']['identical'] and raw['reorder2_transform']['all_gate_frames_contain_operand_source_spans'] and raw['reorder2_transform']['selected']==pin('reorder2_count',raw['reorder2_transform']['selected']) and all(c['wrong_rows']>0 for c in raw['reorder2_transform']['scalar']['controls'])
  assert raw['sink_transform']['both_reflected_ledgers'] and raw['sink_transform']['selected']==pin('sink_count',raw['sink_transform']['selected']) and all(c['wrong_rows']>0 for c in raw['sink_transform']['scalar']['controls'])
  assert raw['parity_transform']['both_reflected_ledgers'] and raw['parity_transform']['remaining_payload_additions']==753472
  assert raw['parity_transform']['removed_even_add_count']==1586240
