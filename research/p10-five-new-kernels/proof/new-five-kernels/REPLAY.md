@@ -1,0 +1,5 @@
+# Optional independent new-kernel audit
+
+The full package verifier needs only Python. This appendix additionally reproduces the independent native prefix check using a C++17 compiler. Decompress prefix-records.bin.gz to a temporary file outside the package, compile kernel_prefix_check.cpp, then run the executable with kernel-new-input.txt and the decompressed prefix file as its two arguments. The uncompressed SHA-256 must equal actual_prefix_sha256 in NEW5-INDEPENDENT-AUDIT.json and input_raw_sha256 in the frozen derived kernel selection.
+
+Each relation and its omitted-donor control is checked at its own declared cut; nonescape is additionally checked at the maximum cut. The log records 4800 target-column relations and five negative controls. The generic sufficient helper-moment improvement theorem and its exact rational native proof are separate explanatory evidence. Neither appendix replaces the complete source, geometry, bank, fallback, finite and 47-constraint outer verification.
