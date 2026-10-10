@@ -1,0 +1,11 @@
+# Attribution and licence
+
+This additional shared-donor selection, source-bound wrapper, documentation and audits were prepared for **eumemic with substantial OpenAI Codex assistance**. Apache-2.0 applies to these additions and inherited Apache code, subject to the preserved third-party notices. Credits identify dependencies and do not imply endorsement or review.
+
+The complete frozen PR317 package is retained unchanged under `vendor/pr317/`, including its licence, notices, source pins, AI disclosures and unchanged PR315 dependency. PR317 supplied the p10 kernel/target/retiming/restoration/reordering composition and full native admission used here. **DreamingOfClouds, with Anthropic Claude assistance**, supplied the PR315 p10 cube-size construction, annealed modules, centre-sharing complex supplier and parameterized source package. This successor does not change or make new claims about their inherited all-size interfaces or unpinned local Lean checks.
+
+The kernel mechanism follows **Dugongue** (PR254/259/272), **eumemic** (PR268), **utcorvusvolat-dotcom** (shared donors, PR270), **Rohan Arun** (PR269/273/281), and **Chafik Boukhalfa** (per-entry-cut and multi-donor implementations). `code/higher_kernel_transform.py` preserves its inherited Anthropic Claude assistance and Apache notice. Its stage categories were adapted for appending a second independently bound kernel stage. The new search uses exact F₂ response relations, common-frame and alternate-basis maximum-weight closure with compatible-group packing; no global optimality is claimed.
+
+Native source-bound geometry, banks, scalar replay, exact moments and invoice code is reused directly from the unchanged predecessor. Its notices credit **utcorvusvolat-dotcom**, **Dugongue**, **Evan McKinney**, **Rohan Arun**, **Henry Grant**, **Jacob Sussman**, **Chafik Boukhalfa**, **Avi Eisenberg**, **icekylinx**, and the complete earlier lineage. **Niels Lohmann**'s JSON library retains its MIT header. All upstream licences and AI disclosures remain in their original vendored locations.
+
+The new contribution is the additional compatible shared-donor selection on PR317's frozen word, its separately named artifacts, and complete fresh successor admission. No inherited scalar mechanism, frame theorem, complex program, checker or cube-size construction is claimed as new.
