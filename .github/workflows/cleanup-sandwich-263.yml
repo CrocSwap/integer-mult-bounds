@@ -1,0 +1,41 @@
+name: Verify cancelled cleanup sandwiches on the PR263 bit word
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certificate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install SymPy and Boost headers
+        run: |
+          python3 -m pip install -r research/cleanup-sandwich-263/requirements.txt
+          sudo apt-get update && sudo apt-get install -y libboost-dev
+      - name: Fetch the pinned PR263 package
+        run: |
+          git fetch --no-tags https://github.com/CrocSwap/integer-mult-bounds 87129308f762f86a9d8e9a60f5d6c8ef23ce1f6e
+          mkdir -p "$RUNNER_TEMP/base263"
+          git archive 87129308f762f86a9d8e9a60f5d6c8ef23ce1f6e research/multicut-kernel-condensation | tar -x -C "$RUNNER_TEMP/base263"
+      - name: Replay PR263, rewrite the 45 sandwiches, check endpoints and banks, reprice and run the finite invoice
+        run: >
+          python3 -B research/cleanup-sandwich-263/verify.py
+          --base "$RUNNER_TEMP/base263/research/multicut-kernel-condensation"
+          --boost-include /usr/include --output "$RUNNER_TEMP/cleanup-sandwich-263"
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
