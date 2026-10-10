@@ -3,8 +3,8 @@
 Prepared by Chafik Boukhalfa with substantial Anthropic Claude assistance. Apache-2.0.
 This package claims no exclusive priority over concurrent work.
 
-What this package contributes: the census of twin dirty helpers at PR #259's earliest cut, the 333 added
-response-kernel pairs (`inputs/candidates.json.gz`, entries with round "union-early-cut"), the regenerated
+What this package contributes: the census of twin dirty helpers at PR #259's earliest cut, the 365 added
+response-kernel families (`inputs/candidates.json.gz`, entries with round "union-early-cut" and "headroom-2"), the regenerated
 receipts, and the discovery scripts in `discovery/`. Everything else is PR #259's package, retained byte for
 byte except the frozen selection, the receipts, RESULT.json, MANIFEST.json, one field name added to the
 platform-dependent list of verify.py, and these notes:

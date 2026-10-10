@@ -1,8 +1,8 @@
-# The early cut carries 333 more response-kernel pairs
+# The early cut carries 365 more response-kernel families
 
-**Claim.** On PR #249's bit word (commit `96495746`), PR #259's multi-cut kernel condensation extended by 333
+**Claim.** On PR #249's bit word (commit `96495746`), PR #259's multi-cut kernel condensation extended by 365
 twin-pair rewrites at its earliest cut (record 676,559) is a legal word of the same model with literal bank stock
-866,620 and κ = 177850930927433/(25·10¹⁶) = 7.11403723709732·10⁻⁴, checked by PR #259's seven native checkers
+866,565 and κ = 44463833535321/(625·10¹⁴) = 7.11421336565136·10⁻⁴, checked by PR #259's seven native checkers
 and priced by its exact pricer, under the retained public all-size hypotheses of PR #249/#254/#259.
 
 ## 1. The mechanism (PR #254/#259, unchanged)
@@ -31,6 +31,16 @@ with Gram 36) for the (2, 2) pairs and ±1-four lines for the others. Each is a 
 `basis`, `dim = 1`, `E_dimension = 1`, `cut = 676559`, `first_frames`, `kind`, `round = "union-early-cut"`)
 after PR #259's 518 items, which are unchanged.
 
+Second round. Among the 12,427 clean helpers not used by the 851 families, the response classes at twelve cuts from
+676,559 to 727,593 (every class of any size, pairs and XOR triples R_c = R_a ⊕ R_b, entrance a nondegenerate line or
+the full intersection when its Gram is nondegenerate) contain 64 net-positive pair candidates and no net-positive
+triple (a partner costs φ(1) + φ(r − 1) − φ(r) > 0, so only the pivot gains); a greedy packing by gain keeps 32
+disjoint families, all at cut 676,559: 28 pairs (3, 3) with e = 1, two (3, 6), one (3, 5) with e = 1 and one (3, 5)
+entering on its full two-dimensional intersection (e = 2), entrance rank 33, so the total 1,710 is ≡ 0 mod 3 with
+no drop (`round = "headroom-2"`). The later cuts add nothing: at 680,080 and 700,582 the candidate set is the same,
+from 705,000 on it shrinks to nothing. After these 32 no net-positive pair or triple remains among unused helpers at
+any cut, so this lever is exhausted on this word under the φ ledger.
+
 Why they pay: with the deficit pinned at 35,200 per replica (120·W − mass is invariant under the rewrite, because
 the pivot's residual 24 → 23 shrinks the bank capacity by exactly the mass saved), the coarse exponent is driven by
 the log-weighted mass Σ r·n·ln(120/r); a pair with first ranks (r_a, r_b) and e = 1 changes it by
@@ -41,12 +51,12 @@ PR #259's exact pricer confirms the sign and the size on the whole selection.
 
 | checker | receipt |
 |---|---|
-| `cohort-transform` (all-column F₂ replay) | 851 pivots, entrance rank 1,677, 52,752 initial reads removed, 2,208 gates, raw mass 434,177 → 432,500, 835,788 records; omitted-Q control 32,383 wrong columns, omitted-Q⁻¹ control 1,052 |
-| `cohort-legality-independent` | 1,860 selected helpers, 0 source-owner and 0 donor intersections, 736,079 common-frame ADDs, 99,661 nested MOVEs, 24 COPY/ERASE windows, all final frames |
-| `cohort-prefix-independent` | 4 cuts, 1,497,760 target-kernel equalities, 35,868,385 non-target identity bits |
-| `cohort-bank-review` | literal stock 866,620 (saved 2,795), 22 patterns, residual families 23: 702 and 24: 13,436 (others unchanged), 3,317,400 assignments, selector 626,937,159,600 |
+| `cohort-transform` (all-column F₂ replay) | 883 pivots, entrance rank 1,710, 59,192 initial reads removed, 2,272 gates, raw mass 434,177 → 432,467, 829,444 records; omitted-Q control 37,450 wrong columns, omitted-Q⁻¹ control 1,084 |
+| `cohort-legality-independent` | 1,924 selected helpers, 0 source-owner and 0 donor intersections, 729,703 common-frame ADDs, 99,693 nested MOVEs, 24 COPY/ERASE windows, all final frames |
+| `cohort-prefix-independent` | 4 cuts, 1,554,080 target-kernel equalities, 37,042,593 non-target identity bits |
+| `cohort-bank-review` | literal stock 866,565 (saved 2,850), residual families 23: 733, 22: 42 and 24: 13,404 (others unchanged), 3,317,400 assignments, 883 exact charts (at most 200 factors), selector 626,937,137,600 |
 | `cohort-five-stage-columns` | 23,627 columns, payload 98 bits |
-| `cohort-price` | coarse 711910179507329/10¹⁸, W 173,324, 3,970,160 calls, mass 20,763,680, deficit 35,200, 47/47 constraints, adjacent grid rejected, pinned-baseline regression exact |
+| `cohort-price` | coarse 711927817449537/10¹⁸, W 173,313, 3,971,440 calls, mass 20,762,360, deficit 35,200, 47/47 constraints, adjacent grid rejected, pinned-baseline regression exact |
 | `cohort-finite-invoice` | coefficient 56 bits, deficit 176,000, cutoffs positive |
 
 Control: PR #259's own selection through the same pipeline reproduces its κ exactly and six of its seven
@@ -66,5 +76,6 @@ changes; `discovery/` lists the diff.
 ## 4. Not claimed
 
 No Lean certificate; the public all-size compiler, chart, routing, prime-supply, precision and analytic interfaces
-of PR #249 are retained as hypotheses, as in PR #254/#259. The 24 size-nine response classes at this cut (96
-possible pairs) and 4 pairs with one helper already used by PR #259 are not exploited.
+of PR #249 are retained as hypotheses, as in PR #254/#259. The 4 pairs whose twin is a PR #259 helper have no
+other twin at any cut; PR #263's 25 frame retimings do not apply verbatim (18 of their registers are among the
+helpers used here, and their selection is bound to #259's transcript), and were not re-derived.
