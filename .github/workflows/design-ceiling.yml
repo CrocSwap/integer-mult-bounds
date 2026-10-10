@@ -1,0 +1,32 @@
+name: design-ceiling
+
+on:
+  pull_request:
+    paths:
+      - 'research/design-ceiling/**'
+      - 'scripts/paired_cube/**'
+      - 'scripts/paired_cube_producer.py'
+      - 'certificates/paired-cube-complex-input.json'
+      - '.github/workflows/design-ceiling.yml'
+  push:
+    paths:
+      - 'research/design-ceiling/**'
+      - '.github/workflows/design-ceiling.yml'
+
+jobs:
+  ceiling:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: The ceiling, exact, compared with expected.json
+        run: python3 research/design-ceiling/ceiling.py --check
+      - name: Counting lemmas at small p
+        run: python3 research/design-ceiling/ceiling.py --brute
+      - name: The lemmas on the certified #144 word
+        run: python3 research/design-ceiling/model_check.py
