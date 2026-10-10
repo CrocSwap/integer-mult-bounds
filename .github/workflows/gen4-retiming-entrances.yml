@@ -1,0 +1,30 @@
+name: Gen4 composed finite construction
+on:
+  push:
+    branches: [codex/gen4-compatible-improvement]
+    paths:
+      - 'research/gen4-retiming-entrances/**'
+      - '.github/workflows/gen4-retiming-entrances.yml'
+  pull_request:
+    paths:
+      - 'research/gen4-retiming-entrances/**'
+      - '.github/workflows/gen4-retiming-entrances.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y g++ libboost-dev
+      - run: python -m pip install -r research/gen4-retiming-entrances/requirements.txt
+      - run: python -B research/gen4-retiming-entrances/verify.py --output "$RUNNER_TEMP/gen4-composed"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gen4-composed-verification
+          path: ${{ runner.temp }}/gen4-composed
