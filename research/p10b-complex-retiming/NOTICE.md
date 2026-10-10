@@ -17,7 +17,13 @@ reorder mechanisms byte for byte, including their named provenance headers.
 The new PR325-specific selections are frozen separately under `stages`.
 `discovery/build_reorder_selection.py` retains the inherited selection algorithm
 and its provenance; its core is executed against the new producer in a fresh
-output directory. Upstream mechanisms descend from the public PR275/279/280/283
+output directory. The wrapper explicitly preserves Python 3.11 left-to-right
+float summation for discovery ranking ties on every supported Python version.
+The discovery-only phi values for ranks 0 through 20 are frozen as exact IEEE
+hexadecimal floats in discovery/phi-hex.json; replacing just that one scoring
+definition avoids platform libm changes in mathematically tied rankings.
+All selected moves, their source incidences and the complete output word remain
+subject to exact admission, independently of floating discovery scores. Upstream mechanisms descend from the public PR275/279/280/283
 family and subsequent source-preserving p10 adaptations. All upstream claims
 remain conditional on their stated theorem interfaces.
 

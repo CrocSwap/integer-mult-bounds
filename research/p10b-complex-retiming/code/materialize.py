@@ -7,6 +7,16 @@ sys.dont_write_bytecode=True
 ROOT=pathlib.Path(__file__).resolve().parents[1];PKG=ROOT/'vendor/predecessor';PROOF=pathlib.Path(sys.argv[1]);OUT=PROOF/'materialized';KSEL=ROOT/'stages/kernel-selection.json';OUT.mkdir();sys.path.insert(0,str(PKG))
 def load(name,path):
  s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);sys.modules[name]=m;s.loader.exec_module(m);return m
+# Python 3.12 changed built-in float sum to compensated summation. The
+# inherited discovery used Python 3.11's ordered left fold for its floating
+# ranking ties. Pin that discovery-only numerical convention explicitly;
+# every selected move and resulting word is still admitted exactly.
+def discovery_sum(values,start=0):
+ total=start
+ for value in values:total+=value
+ return total
+DISCOVERY_PHI={int(k):float.fromhex(v)for k,v in json.loads((ROOT/'discovery/phi-hex.json').read_text()).items()}
+assert set(DISCOVERY_PHI)==set(range(21))
 mods={}
 def mod(st):
  if st not in mods:mods[st]=load('portable527_p10b_'+st,(PKG if st=='parity' else ROOT/'engines')/(st+'_transform.py'))
@@ -56,6 +66,6 @@ for r in rows:
  used.update(r['targets']);keep.append(r)
 assert len(keep)==len(rows)
 sel=bind(dict(status='P10B_FRESH_TERMINAL_SINKS_SCREEN',entry=entry,selected=len(keep),sinks=[dict(role=run['context']['regs'][r['stream']-2*W.v],stream=r['stream'],targets=r['targets'],pivot=r['pivot'],root_frame_basis=[list(x)for x in run['C'].B[r['root_frame']]],forward_writes=len(r['writes']),cleanups=len(r['cleanups']))for r in keep],expected_local_delta={}),run);out,*_=sm.transform(run,sel);sel['expected_local_delta']=delta(out,run);run=emit('sink',run,sel);rolemap={i:i for i in range(2*run['W'].v)};lookup={r:i+2*run['W'].v for i,r in enumerate(run['context']['regs'])};rolemap.update({i+2*run['W'].v:lookup[r]for i,r in enumerate(base_regs)if r in lookup});(OUT/'baseline-compacted-initial.json').write_text(json.dumps({rolemap[i]:f for i,f in base_initial.items()if i in rolemap}));(OUT/'baseline-compacted-final.json').write_text(json.dumps({rolemap[i]:f for i,f in base_final.items()if i in rolemap}));(OUT/'role-map.json').write_text(json.dumps(rolemap));export('post-sink',run)
-rm=mod('reorder');TAG='reorder';src=(ROOT/'discovery/build_reorder_selection.py').read_text();env=dict(globals());env['ROOT']=OUT;exec('import math,bisect\nfrom collections import Counter,defaultdict\n'+src[src.index("W,C=run['W']"):],env);sel=env['sel'];run=emit('reorder',run,sel,tag='reorder');export('final',run);print('COMPLETE',flush=True)
+rm=mod('reorder');TAG='reorder';src=(ROOT/'discovery/build_reorder_selection.py').read_text();phi_definition='phi=lambda r:r*math.log(100/r)if r else 0.0';assert src.count(phi_definition)==1;src=src.replace(phi_definition,'phi=lambda r:DISCOVERY_PHI[r]');env=dict(globals());env['ROOT']=OUT;env['sum']=discovery_sum;exec('import math,bisect\nfrom collections import Counter,defaultdict\n'+src[src.index("W,C=run['W']"):],env);sel=env['sel'];run=emit('reorder',run,sel,tag='reorder');export('final',run);print('COMPLETE',flush=True)
 
 assert hashlib.sha256(run['records'].tobytes()).hexdigest()=='688d4706d9b083fc43951a47a9b95d31c51b1283d5b1e14a20671d2b652186ed'
