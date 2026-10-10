@@ -1,3 +1,15 @@
+# Concave-descent frame retiming on the multi-cut kernel condensation
+
+**Conditional kappa = 355516119100349 / 500000000000000000 = 0.000711032238200698**, +2.85 × 10⁻⁹ over the 518-entrance condensation below (0.000711029386054035).
+
+This package is [PR259](https://github.com/CrocSwap/integer-mult-bounds/pull/259)'s multi-cut kernel condensation (Dugongue) with one additional stage, `code/descent_retiming.py`, run between `cohort-transform` and the seven native checkers. It reassigns the frames of twenty-five internal forward-gate ADDs (frozen in `inputs/descent-selection.json`, explicit rational bases) by local descent on the concave paid-rank objective Σ r·ln(120/r). The local paid histogram changes by {2: −2, 4: +24, 5: −48, 6: +25, 11: −1, 13: +2, 17: −1}: one local recursive call disappears at unchanged rank mass 432,833; the normalized retained profile becomes stock 173,435, 3,956,800 calls, rank mass 20,777,000. The selected registers are disjoint from every pivot and donor of the 518 cohorts, so the same twenty-five moves are valid here as on PR251's word (PR260) and PR254's (PR258).
+
+The stage rebuilds every MOVE from the retimed gate needs and checks the byte-identical scalar/COPY projection, nested chains, unchanged initial/final frames and COPY lifetimes, nondegenerate endpoint bases, and the exact integer source span of every non-target operand inside its new frame; it writes `lead/DESCENT-RETIMING.json` and updates the replay histogram and total delta. All seven native checkers then re-examine the retimed transcript independently (chronological frames, prefix kernels, banks, five-stage columns, exact price, finite invoice); their receipts are pinned in `expected/`. `cohort-transform.cpp` now uses `stable_sort` for the cut gauges so the emitted transcript is byte-identical across standard libraries (`std::sort` is unstable; the previous pinned hash was libstdc++'s tie order). The cohort transcript hash is pinned as `cohort_record_sha256` and the retimed one as `new_record_sha256` in `RESULT.json`.
+
+Prepared by Rohan Arun with Anthropic Claude assistance; Apache-2.0. Everything below is PR259's own description of the inherited construction.
+
+---
+
 # Multi-cut response-kernel condensation
 
 **Conditional kappa = 142205877210807 / 200000000000000000 = 0.000711029386054035.**

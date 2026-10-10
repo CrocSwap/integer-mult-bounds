@@ -95,6 +95,12 @@ def main():
     lead = out / 'lead'; compiler = out / 'compiler'; temporal = out / 'temporal'; review = out / 'review'
     run('02-transform', [exe('cohort-transform'), X, candidates, lead])
     result = load(HERE / 'RESULT.json')
+    need(digest(lead / 'COHORT249-RECORDS.bin') == result['cohort_record_sha256'], 'cohort physical transcript hash mismatch')
+    # Concave-descent frame retiming of 25 selected ADD gates on the cohort-rewritten transcript. The stage
+    # rebuilds every MOVE from the retimed gate needs and self-checks; every native checker below re-examines
+    # the retimed transcript independently (chronological frames, columns, banks, price, invoice).
+    run('02b-descent-retiming', [sys.executable, '-B', HERE / 'code/descent_retiming.py', X, lead, HERE / 'inputs/descent-selection.json'])
+    need(digest(lead / 'COHORT249-PRE-DESCENT-RECORDS.bin') == result['cohort_record_sha256'], 'retained cohort transcript changed')
     need(digest(lead / 'COHORT249-RECORDS.bin') == result['new_record_sha256'], 'new physical transcript hash mismatch')
     run('03-independent-legality', [exe('cohort-legality-independent'), X, lead, review / 'INDEPENDENT-LEGALITY.json'])
     run('04-independent-prefix', [exe('cohort-prefix-independent'), X, lead, review / 'INDEPENDENT-PREFIX.json'])
