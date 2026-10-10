@@ -65,7 +65,7 @@ def main():
     row.update(R=paid['physical_R'],scalar_role_reserve=raw['R'],reuse_pairs=paid['pairs'],terminal_sinks=n,maxchild=max(map(int,paid['child_histogram'])))
     p=dict(m=row['m'],W=row['W_per_vertex'],N=row['deficit_per_vertex'],L=0,total_rank=row['rank_per_vertex'],maxchild=row['maxchild'],child_multiplicities=row['child_histogram'])
     moment=saving_grid(p,10**18)
-    assert moment['accepted']['saving']==Q('662323931899051/1000000000000000000')
+    assert moment['accepted']['saving']==Q('662942072695346/1000000000000000000')
     moment['complex_saving']=moment['accepted']['saving']
     moment['scope']='Strict contraction and adjacent point exclusion for this fixed complete complex profile.'
     print(json.dumps(js(dict(status='PASS',profile=row,physical=physical,moment=moment)),sort_keys=True))

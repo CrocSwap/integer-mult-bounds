@@ -23,7 +23,7 @@ if hasattr(sys,'set_int_max_str_digits'):sys.set_int_max_str_digits(0)
 from shared_bridge import require,halving,validate_shared_bridge,nofloat
 from balanced_shared import assembly
 
-AC=Q('662323931899051/1000000000000000000')
+AC=Q('662942072695346/1000000000000000000')
 COARSE=Q('665481166955987/1000000000000000000')
 ATOM=Q('665064157585290854737/1000000000000000000000000')
 OLD=Q(384599,10**10)
@@ -113,7 +113,7 @@ def normalized_body_check():
 def certificate(row,physical):
     nofloat(row);normalized_body_check()
     final=price(row,AC,COARSE,BETA,ETA,WEAKENING,'balanced')
-    require(final['kappa']==Q('330942774629799/500000000000000000'),'Selected final kappa differs')
+    require(final['kappa']==Q('662502871668435/1000000000000000000'),'Selected final kappa differs')
     counts=physical['scalar_bound']
     require(counts['terminal_sinks']==row['terminal_sinks']==physical['terminal_compiler']['eligible_count'],'Terminal sink inventory mismatch')
     require(counts['terminal_scalar_gate_delta']<=0 and counts['terminal_original_scalar_reserve_retained'],'Terminal compiler must fit the retained scalar reserve')

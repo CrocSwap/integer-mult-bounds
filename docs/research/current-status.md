@@ -1,9 +1,20 @@
-# Selected construction: coordinated frames and completed entrance banks
+# Proposed continuation: coordinated frames and completed entrance banks
 
-The selected conditional witness is **κ=330942774629799/500000000000000000
-=0.000661885549259598**, from Dugongue's #186, on chafreaky's #181 and
-eumemic's #168. It is approximately 2^-10.56113: 43.60% above the preceding
-published checkpoint and 40.18% above the recycled-bit review checkpoint.
+The maintainer-reviewed base on main is Dugongue's #186, on chafreaky's #181
+and eumemic's #168, with κ=0.000661885549259598.
+
+This branch contains a proposed continuation by
+[dataisfire](https://github.com/dataisfire) with
+
+**κ=662502871668435/1000000000000000000
+=0.000662502871668435**.
+
+The continuation applies a replayable global-majorant contraction pass to the
+existing h=22 coordinated witness. It is approximately 0.09326724% above the
+reviewed #186 headline, 43.73586% above the preceding published checkpoint,
+and 40.31476% above the recycled-bit review checkpoint. It has been
+mechanically replayed and exactly certified on this branch, but is not yet
+maintainer-reviewed or merged.
 
 See the [round-eight review](community-round8-review.md),
 [selected record](../../certificates/selected-result.json),
@@ -11,8 +22,10 @@ See the [round-eight review](community-round8-review.md),
 [bank scheduling supplement](../../research/community-round8-audit/BANK-SCHEDULE.md),
 and [integration validation](community-round8-integration.json).
 Reproduce with `make entrance-bank-verify`.
-Published on main on 2026-10-09; the receipt identifies the tested branch/head.
-The retained analytic, uniform-recursion and fixed-tape interfaces remain
+The referenced round-eight review and integration receipt describe the
+maintainer-reviewed #186 base. They do not constitute review of the later
+dataisfire continuation. The retained analytic, uniform-recursion and
+fixed-tape interfaces remain
 assumptions. Finite replay and scoped formal contributions do not formalize
 the multiplication theorem. #185's reviewed leaf bootstrap does not further
 raise this witness, whose complex supplier already binds.
