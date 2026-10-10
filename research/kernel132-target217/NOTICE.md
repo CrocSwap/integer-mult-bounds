@@ -1,0 +1,17 @@
+# Attribution and licence
+
+Apache-2.0 applies. Original headers, licences, notices and AI assistance disclosures are preserved. `UPSTREAM-PR234-NOTICE.md` contains the complete inherited five-stage credits; the individual source roots retain their original notices. Credits do not imply review or endorsement.
+
+The five-stage architecture and finite interface package come from Henry Grant / hcg890's PR234. Rohan Arun's PR237 published the width-120 bank extension before this integration; no exclusive priority for that bank extension is claimed. The stage-private bank assignment and address adapter in this package were developed independently and are checked explicitly.
+
+The source527 construction builds on eumemic's PR210 source reuse and target transforms, sennemmi's PR230 operation-frame changes, Dugongue's PR216 and PR207, Rohan Arun's PR211, Chafik Boukhalfa's PR200, Evan McKinney's completed bank work, and their retained dependencies. The complex input preserves Jacob Sussman's published five-stage certificate and Avi Eisenberg / ikeboy's PR193 helper, with the original Claude assistance disclosures.
+
+The 31 new zero-response source aliases, 48 retained dirty-anchor paths, physical event tagging and source527 integration were prepared by eumemic with substantial OpenAI Codex assistance. All earlier contributor notices and assistance disclosures remain in the supplied source material.
+
+The parity-filtered common-frame retiming (PR244) and exact reconstruction were prepared by eumemic with substantial OpenAI Codex assistance. The 353 unborrowed pair mixes use their existing common delivery frames; source527 and all earlier construction credits remain retained.
+
+The thirty-seven additional F2 gauge entrances, exact compensation transport, cloned producer/execution contexts and new completed-bank charts were prepared by eumemic with substantial OpenAI Codex assistance.
+
+This extension retains eumemic's PR249 compensation transport and its 21 selected entrances. Sixteen further entrances use shared allowed-frame intersections, adding 224 entrance-rank units. Prepared with substantial OpenAI Codex assistance.
+
+This derivative composes PR251 (2b030c06a811473ae8ed49dce07bc7ea50b72e9e) with PR254 (9ce32efb421132420242cfdb91ddd9eabe2c3795). The 132 response-kernel helper pairs are credited to PR254; kernel_transform.py is an independently reconstructed adapter to the PR251 word. Target-prefix compression, integration, validation and this packaging were prepared by eumemic with substantial OpenAI Codex assistance.
