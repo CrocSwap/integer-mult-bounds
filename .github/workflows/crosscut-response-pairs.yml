@@ -1,0 +1,45 @@
+name: Verify 887 entrances and connected-block retiming
+
+on:
+  push:
+    paths:
+      - 'research/crosscut-response-pairs/**'
+      - 'research/crosscut-response-pairs-evidence/**'
+      - '.github/workflows/crosscut-response-pairs.yml'
+  pull_request:
+    paths:
+      - 'research/crosscut-response-pairs/**'
+      - 'research/crosscut-response-pairs-evidence/**'
+      - '.github/workflows/crosscut-response-pairs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-bound-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install native tools and pinned arithmetic dependency
+        run: |
+          if ! test -f /usr/include/boost/multiprecision/cpp_int.hpp; then
+            sudo apt-get update
+            sudo apt-get install -y g++ libboost-dev
+          fi
+          python -m pip install --disable-pip-version-check -r research/crosscut-response-pairs/requirements.txt
+      - name: Regenerate baseline and replay the complete composition
+        run: |
+          python -B research/crosscut-response-pairs/verify.py --output "$RUNNER_TEMP/crosscut-replay"
+          git diff --exit-code
