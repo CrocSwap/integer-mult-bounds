@@ -216,3 +216,33 @@ def rebind_descent(raw,receipt):
  raw['five_stage_profile'].update(histogram=compact(five),calls=sum(five.values()))
  raw['descent_transform']=receipt;raw['scope']='Fresh actual gen5 word after the concave-descent retiming of 904 ADD gate frames. Every scalar column, operand source span, required frame path, reflected inclusion, data endpoint and copied-center lifetime is checked; 880 local recursive calls disappear at unchanged rank mass.'
  return raw
+
+def rebind_descent2(raw,receipt):
+ """Recount the complete word after the second concave-descent retiming (constructed joins and meets) that follows the target-prefix squares."""
+ from copy import deepcopy
+ hist=lambda x:Counter({int(r):n for r,n in x.items()if n})
+ compact=lambda x:{str(r):n for r,n in sorted(x.items())if n}
+ assert receipt['status']=='PASS_CONCAVE_DESCENT_RETIMING_AND_BOTH_REFLECTED_LEDGERS'
+ assert receipt['both_reflected_ledgers']and receipt['unchanged_all_input_output_frames']and receipt['unchanged_copy_lifetimes']and receipt['operand_source_spans_contained']
+ assert raw['schema']=='source527-target-prefix-fresh-raw-ledger/1'and 'target_transform'in raw
+ assert receipt['selected_gate_count']==111 and receipt['remaining_payload_additions']==575052 and receipt['removed_calls']==-87
+ source=hist(receipt['source_histogram']);target=hist(receipt['target_histogram']);internal=hist(receipt['internal_histogram_including_copies']);copies=hist(receipt['copied_center_histogram'])
+ assert copies==hist(raw['paid_center_copy_histogram'])=={22:24}
+ helper=source+target+internal;delta=helper.copy();delta.subtract(hist(raw['one_stage_helper_histogram_including_copies']))
+ assert {r:n for r,n in delta.items()if n}=={1:63,2:198,3:-126,4:-48,5:24,7:-48,9:24,12:-24,14:24,18:-63,19:63}
+ assert {r:n for r,n in delta.items()if n}==hist(receipt['local_histogram_delta'])
+ # The second descent trades 87 extra calls for a lower concave weight; every endpoint mass is retained exactly.
+ assert source==hist(raw['physical_source_histogram'])and target==hist(raw['physical_target_histogram'])
+ assert sum(r*n for r,n in source.items())==sum(r*n for r,n in target.items())==1760*23
+ assert sum(r*n for r,n in helper.items())==411356==raw['helper_rank_mass']and sum(helper.values())==sum(hist(raw['one_stage_helper_histogram_including_copies']).values())+87
+ original=deepcopy(raw);gauges=hist(raw['auxiliary_entrance_rank_histogram']);assert gauges=={20:2182,21:354,18:16,17:2}
+ five=Counter({r:5*n for r,n in helper.items()});five.update(hist(raw['five_stage_profile']['idle_histogram']))
+ for a,n in gauges.items():five[5*a]+=n
+ assert sum(five.values())==474034 and sum(r*n for r,n in five.items())==2746720==raw['five_stage_profile']['rank_mass']
+ withoutcopies=internal.copy();withoutcopies.subtract(copies);assert min(withoutcopies.values())>=0
+ raw['schema']='gen5-parity-descent-target-descent-fresh-raw-ledger/1';raw['before_second_descent_ledger']=original
+ raw['physical_internal_excluding_center_copies']=compact(withoutcopies)
+ raw['one_stage_helper_histogram_including_copies']=compact(helper)
+ raw['five_stage_profile'].update(histogram=compact(five),calls=sum(five.values()))
+ raw['second_descent_transform']=receipt;raw['scope']='Fresh actual gen5 word after the concave-descent retiming of 904 ADD gate frames, the 220 target-prefix squares and a second concave-descent retiming of 111 internal ADD gate frames at constructed join/meet frames. Every scalar column, operand source span, required frame path, reflected inclusion, data endpoint and copied-center lifetime is checked; the second retiming adds 87 local recursive calls at unchanged rank mass and lower concave weight.'
+ return raw

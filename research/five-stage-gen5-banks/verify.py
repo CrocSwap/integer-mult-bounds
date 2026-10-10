@@ -72,7 +72,7 @@ def main():
   finite=stage('finite',lambda:load('finite_check').run(raw,bit['physical'],scalar,primes,math,banks,banked,bit['global_result']))
   assert math['mathematics']['finite_bridge']['rows']['coefficient']==complex_result['precision_guard']['retained_row_coefficient']==finite['row_reserve']['external_complex_coefficient']
   validate_required(results);assert len(scalar['controls'])==11 and len(primes['controls'])==6
-  assert math['mathematics']['kappa']=='372060348198521/500000000000000000'
+  assert math['mathematics']['kappa']=='372068073050471/500000000000000000'
   after,_=integrity();assert after==digest,'Package changed during replay'
   certificate=dict(schema='gen5-parity-fused-five-stage-banks/1',**math['mathematics'],scope='Conditionalfiniteconstruction; inheritedallsizecompiler,weightedselector,commonancestorchart,restoredrow,routing,prime,recovery,complexsymbolicandanalyticinterfacesremainassumptions.')
   save('certificate.json',certificate)
