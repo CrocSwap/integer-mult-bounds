@@ -1,0 +1,39 @@
+name: Verify gen5 with descent, target squares, 450 collective kernel entries and a second descent
+
+on:
+  push:
+    paths:
+      - 'research/five-stage-gen5-kernels-descent/**'
+      - '.github/workflows/five-stage-gen5-kernels-descent.yml'
+  pull_request:
+    paths:
+      - 'research/five-stage-gen5-kernels-descent/**'
+      - '.github/workflows/five-stage-gen5-kernels-descent.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  immutable-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the pinned arithmetic dependency
+        run: python -m pip install --disable-pip-version-check -r research/five-stage-gen5-kernels-descent/requirements.txt
+      - name: Replay every mandatory stage (virtual, raw, bit, scalar, primes, banks, complex, math, finite)
+        run: python -B research/five-stage-gen5-kernels-descent/verify.py --output "$RUNNER_TEMP/gen5-kernels-descent-verification"
+      - name: Regenerate the pinned bit word from the generator and both physical-layer producers
+        run: python -B research/five-stage-gen5-kernels-descent/gen5bit/producer/regenerate.py --work "$RUNNER_TEMP/gen5-regeneration"
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
