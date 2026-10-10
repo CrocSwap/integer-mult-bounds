@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline source-bound reproduction. No stored PASS result is accepted without execution."""
 from pathlib import Path, PurePosixPath
-import argparse, concurrent.futures, gzip, hashlib, json, os, subprocess, sys, time, zipfile
+import argparse, concurrent.futures, gzip, hashlib, json, os, shutil, subprocess, sys, time, zipfile
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 
@@ -41,7 +41,7 @@ def main():
     for name, expected in manifest.items():
         need(digest(HERE / name) == expected, 'package hash mismatch: ' + name)
     out.mkdir(parents=True)
-    for part in ('logs', 'bin', 'lead', 'compiler', 'review', 'temporal/CURRENT249-EXPORT', 'upstream'):
+    for part in ('logs', 'bin', 'lead', 'compiler', 'review', 'temporal/CURRENT249-EXPORT', 'upstream'):  # plateau/ is created by the 02c stage
         (out / part).mkdir(parents=True)
     start = time.monotonic()
     def run(label, cmd):
@@ -95,6 +95,20 @@ def main():
     lead = out / 'lead'; compiler = out / 'compiler'; temporal = out / 'temporal'; review = out / 'review'
     run('02-transform', [exe('cohort-transform'), X, candidates, lead])
     result = load(HERE / 'RESULT.json')
+    need(digest(lead / 'COHORT249-RECORDS.bin') == result['cohort_record_sha256'], 'cohort physical transcript hash mismatch')
+    # 02b: concave-descent frame retiming of 25 ADD gates (rohanarun, PR263 stage), selection pre-bound by full
+    # scalar-core alignment to this package's cohort transcript; the stage self-checks and every native checker reruns.
+    (lead / 'DESCENT-REBIND-EVIDENCE.json').write_text(json.dumps(dict(status='SELECTION_PREBOUND_TO_COMMITTED_COHORT_TRANSCRIPT', cohort_record_sha256=result['cohort_record_sha256'], binding='full unchanged scalar-core event alignment (rebind_descent.py of PR270) from PR259 transcript 1ae06b18c7c23e0f96f9309fcfc4a64a59b670c21d99207192d93440021e4897'), indent=2) + '\n', encoding='utf-8')
+    shutil.copy(HERE / 'inputs/descent-selection.json', lead / 'descent-selection.json')
+    run('02b-descent-retiming', [sys.executable, '-B', HERE / 'code/descent_retiming.py', X, lead, lead / 'descent-selection.json'])
+    need(digest(lead / 'COHORT249-PRE-DESCENT-RECORDS.bin') == result['cohort_record_sha256'], 'retained cohort transcript changed')
+    need(digest(lead / 'COHORT249-RECORDS.bin') == result['descent_record_sha256'], 'descent transcript hash mismatch')
+    # 02c-02e: connected-block plateau retiming of 29 blocks / 57 ADDs (PR270 stage), witness pre-bound to the descent transcript.
+    plateau = out / 'plateau'
+    run('02c-plateau-retiming', [sys.executable, '-B', HERE / 'code/plateau_retiming.py', X, lead, HERE / 'inputs/plateau-selection.json', plateau])
+    lead = plateau
+    run('02d-plateau-source-spans', [sys.executable, '-B', HERE / 'code/verify_plateau_spans.py', X, lead, lead / 'PLATEAU-RETIMING.json'])
+    run('02e-frame-tables', [sys.executable, '-B', HERE / 'code/verify_frame_tables.py', X, lead, '--output', lead / 'FRAME-TABLE-AUDIT.json'])
     need(digest(lead / 'COHORT249-RECORDS.bin') == result['new_record_sha256'], 'new physical transcript hash mismatch')
     run('03-independent-legality', [exe('cohort-legality-independent'), X, lead, review / 'INDEPENDENT-LEGALITY.json'])
     run('04-independent-prefix', [exe('cohort-prefix-independent'), X, lead, review / 'INDEPENDENT-PREFIX.json'])
