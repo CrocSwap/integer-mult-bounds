@@ -1,0 +1,36 @@
+name: Finite eight-level arithmetic
+on:
+  push:
+    paths:
+      - 'research/finite-eight-frontier/**'
+      - 'research/five-stage-gen5-collective-kernels/**'
+      - '.github/workflows/finite-eight-frontier.yml'
+  pull_request:
+    paths:
+      - 'research/finite-eight-frontier/**'
+      - 'research/five-stage-gen5-collective-kernels/**'
+      - '.github/workflows/finite-eight-frontier.yml'
+  workflow_dispatch:
+jobs:
+  complete-public-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Original pinned dependencies
+        run: python -m pip install -r research/five-stage-gen5-collective-kernels/requirements.txt
+      - name: Original ten stages and both arithmetic modes
+        run: python -X utf8 -B research/finite-eight-frontier/verify.py --output /tmp/pr290-finite-eight-fresh
+      - name: Preserve first result or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finite-eight-${{ matrix.python-version }}
+          path: /tmp/pr290-finite-eight-fresh
