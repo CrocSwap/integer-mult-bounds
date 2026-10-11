@@ -547,3 +547,18 @@ recycled-bit-full-verify:
 
 verify-recycled-bit: recycled-bit-full-verify
 	python3 -m unittest discover -s tests -p 'test_recycled_bit_integration.py' -v
+
+.PHONY: complex-nine-verify
+complex-nine-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-complex-nine.XXXXXX"); \
+	python3 -B research/nine-stage-complex-e8/verify.py --work "$$work/replay"
+
+.PHONY: e8-bit-complex-nine-verify
+e8-bit-complex-nine-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-e8-nine.XXXXXX"); \
+	python3 -B research/e8-bit-complex-nine/verify.py --work "$$work/replay"
+
+.PHONY: hamming-complex-verify
+hamming-complex-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-hamming.XXXXXX"); \
+	python3 -B research/hamming-mutable-basis-complex/verify.py --work "$$work/replay"
