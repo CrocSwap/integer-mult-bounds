@@ -255,7 +255,10 @@ for ori in ['forward','backward']:
  assert scalar_ok(ori,K,B)
  assert not scalar_ok(ori,STALE_K,B);negative.append(dict(orientation=ori,control='stale_pre_prefix_response_rejected'))
  badK=copy.deepcopy(K);e=badK[0];badK[0]=e[:3]+(-e[3],e[4]);assert not scalar_ok(ori,badK,B);negative.append(dict(orientation=ori,control='flipped_recomputed_response_rejected'))
- j=next(j for j,(t,s,q) in enumerate(B) if t==124 and s==563)
+ # Select a changed helper-to-target delivery from the actual reindexed word.
+ # Counter subtraction retains multiplicities; no legacy register ID is assumed.
+ changed_deliveries=Counter(B)-Counter(B0)
+ j=next(j for j,(t,s,q) in enumerate(B) if v<=t<2*v and s>=2*v and changed_deliveries[(t,s,q)]>0)
  badB=B[:j]+B[j+1:];assert not scalar_ok(ori,K,badB);negative.append(dict(orientation=ori,control='omitted_new_prefix_delivery_rejected'))
 (OUT/'RESPONSE-CONTROLS.json').write_text(json.dumps(negative,indent=2))
 # All phase pairs are freshly lowered for the derived R779 reference.
