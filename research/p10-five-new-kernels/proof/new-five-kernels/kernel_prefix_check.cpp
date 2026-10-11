@@ -1,0 +1,11 @@
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <cstdint>
+#include <algorithm>
+using namespace std;
+struct E{int pivot,cut;vector<int>donors,basis;};
+int main(int argc,char**argv){if(argc!=3)return 2;ifstream meta(argv[1]);int n,v,k;meta>>n>>v>>k;vector<E>es;vector<int>members;int latest=0;for(int i=0;i<k;i++){E e;int t;meta>>e.pivot>>e.cut>>t;e.donors.resize(t);for(int&d:e.donors)meta>>d;e.basis.resize(20);for(int&b:e.basis)meta>>b;es.push_back(e);members.push_back(e.pivot);for(int d:e.donors)members.push_back(d);latest=max(latest,e.cut);int norm=0,sum=0;for(int b:e.basis){norm+=b*b;sum+=b;}if(9*norm-sum*sum<=0)return 3;}sort(members.begin(),members.end());members.erase(unique(members.begin(),members.end()),members.end());if(members.size()>63)return 4;vector<uint64_t>a(n+1),initial(n+1);for(int i=0;i<(int)members.size();i++)a[members[i]]=initial[members[i]]=uint64_t(1)<<i;
+int controls=0;auto check=[&](const E&e){int ib=lower_bound(members.begin(),members.end(),e.pivot)-members.begin();uint64_t bit=uint64_t(1)<<ib;bool negative=false;for(int t=v;t<2*v;t++){int x=bool(a[t]&bit),y=0,omit=0;for(int j=0;j<(int)e.donors.size();j++){int d=e.donors[j],db=lower_bound(members.begin(),members.end(),d)-members.begin();int z=bool(a[t]&(uint64_t(1)<<db));y^=z;if(j)omit^=z;}if(x!=y){cerr<<"relation mismatch "<<e.pivot<<" owncut "<<e.cut<<" target "<<t<<"\n";return false;}if(x!=omit)negative=true;}if(!negative)return false;controls++;cout<<"PASS pivot "<<e.pivot<<" own cut "<<e.cut<<" rank1 exact prefix relation; omitted donor rejected\n";return true;};
+ifstream in(argv[2],ios::binary);int temp=-1;for(int i=0;i<=latest;i++){int32_t rec[6];in.read((char*)rec,sizeof rec);if(!in)return 5;auto [op,d,s,c,f,z]=rec;if(op==1){if(d<0||d>n||s<0||s>n)return 6;if(c%2)a[d]^=a[s];}else if(op==2){if(temp!=-1||s!=n)return 7;temp=d;a[n]=a[d];}else if(op==3){if(temp!=d)return 8;temp=-1;a[n]=0;}for(auto&e:es)if(i==e.cut&&!check(e))return 10;}
+for(int i=0;i<n;i++)if(!(v<=i&&i<2*v)&&a[i]!=initial[i]){cerr<<"escaping response "<<i<<"\n";return 9;}if(controls!=k)return 11;cout<<"PASS "<<es.size()<<" relations "<<es.size()*v<<" columns; "<<controls<<" controls; each own declared cut; nondegenerate rank1; no response escapes targets\n";return 0;}

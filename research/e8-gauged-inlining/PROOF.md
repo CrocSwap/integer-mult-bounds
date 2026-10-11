@@ -1,0 +1,9 @@
+# Gauged helper inlining on the PR422 construction
+
+First enlarge helper838 from [204] to [304,204], nominated by an exact backward-capacity search on our word and admitted by the immutable PR423 constructor. Independently, PR424 reports the same enlargement on its lineage.
+
+Remove original helpers556 and577 using PR426's nonconstant substitutions: 556=-2*354-2*461 and577=-2*402-2*478 at all their reads. These two are existing exterior gauges on our word. First remove their two read-only preparation shears, remove their exterior-input declarations and restore zero start frames. Then use the immutable PR426 inliner to derive the paid frame repair and erase the helper. Reindex every surviving exterior declaration explicitly. Each step checks protected X/Y columns of all data outputs and every remaining zero gauged-response column. This is not an addition of independent gains.
+
+The ungauged helper reference is reconstructed independently from pinned PR404 helper781 by the same two substitutions. Its scalar suffix and structural interfaces must equal the final candidate's, after stripping only frames from original A. The local checker binds both generated hashes, recomputes actual dirty response, and freshly lowers every old/new/reflected Gaussian phase pair; no inherited phase cache is used for the changed reference.
+
+The result has R779,213 gauges and583 chronological entrance shears. Exact price remains provisional until scalar orientations, private erasure, phase, physical owner/bank assembly, finite invoice and fresh bit pass. The broader chronological/dyadic conditions and all inherited all-size compiler, arbitrary dirty-bank, fixed-tape, restored-row, common-grid precision and analytic assumptions remain. No legacy gx/gxcore acceptance, Lean proof or unconditional exponent is claimed.

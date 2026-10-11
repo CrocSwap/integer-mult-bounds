@@ -1,0 +1,15 @@
+# Current bounded search and composition record
+
+The starting point is the admittedPR401119-gauge construction. This round catalogued all401PR entries and downloaded the four new/changed heads400,376,401,186. The source head of376 advanced during the initial download to7aa9d9f0247bb60c0519704bbca18990011e2a37; that actual downloaded frame edit, not the earlier catalogue head, is pinned. No refresh occurred during packaging. Unchanged public pipelines were not rerun.
+
+The new overlap search lifted the full-role disjointness restriction: donors may be reused if their assigned entrance spaces are nested and all pivots remain outside all donor sets. Native C++ weighted response searches first added54pivots in six bounded rounds, then21pivots in ten positive reserve rounds and stopped on the next unsuccessful bounded round. The reserve search checked621648trials. Exact rational replay and gate-omission controls accepted the final194-pivot witness; floating scores only nominated it. General acyclic pivot/donor overlap was not required or claimed.
+
+A native prefix screen tested219492 exact rational bases and found1008positive nominations. The 168recovery-cut variants that survived reduced to one targetpair124/125. This pair had been missed by a prior three-target-basis screen because it lacked a compatible third target. Its overlap with existing125→172 recovery is admitted by exact chronological target-matrix identity, not by assuming disjoint roles. The wrong setup placement is rejected. No further internal-cut gain is claimed.
+
+Native HiGHS, through a thin Python wrapper, nominated the integer738-bank witness. All multiplicities and inventories are independently rechecked as integers, and both exact moment engines consume the actually emitted profile. Solver optimality for that finite model is not global algorithm optimality.
+
+The prewhitening lane proved a sufficient Schur/block construction but found that the three known free sinks couple through inverse helper columns to five retained entrance pivots. Its lost-gauge tradeoff was not included in the final witness. The evidence is retained in partial-prewhitening.md; no new padding-fusion gain is claimed.
+
+Bounded structural DAG retrieval used the full canonical database without restricting library origin: shared-functional composition8hits,dual transvections39,block composition3,nilpotent inverse80(limit reached),nested-subspace composition42. Most are source-only; two nilpotent hits have typed nodes. These are retrieval evidence, not import/kernel validation or an exhaustive search of every theorem. The explicit sufficient algebra is proved directly in shared/PROOF.md.
+
+Current research outputs are preserved alongside the prior unsuccessful basis/readout/geometry screens. No bounded negative search is a theorem of impossibility. Further work could allow pivot/donor dependencies with an explicitly acyclic ordered inverse, optimize nested chains jointly with integer bank costs, or prove an entrance-preserving prewhitening composition. None is assumed by the present conditional price.

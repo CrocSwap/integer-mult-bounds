@@ -1,0 +1,40 @@
+Provenance of inputs/complex/gcert1-p11-cmod-centre-mw-flow.json.gz (local research, not published)
+
+Prepared by DreamingOfClouds with Anthropic Claude assistance. Apache-2.0. No exclusive priority is claimed.
+
+The program is the source-assisted complex word of PR #184/#194, built with PR #304's recipe on three query
+modules, all shipped here:
+
+  pmod46_ptc1_final.json   centre-sharing pair module (new): besides its 45 pair outputs it returns one extra
+                           root, the sum of all its inputs, which is the star centre S(2i+bit)
+  tmod_final.json          disjoint-triple module (p = 11): an earlier re-annealed version (v1, 2,069 additions),
+                           NOT PR #304's modules/tmod_cmod_v2.json (2,067 additions)
+  qmod_q1_snap1.json       all-but-one module: the same args and roots as PR #304's modules/qmod_cmod.json
+
+How it was built. PR #304's aligned_word.py cannot build this graph unchanged: its pair-module loader expects 45
+roots, and PR #144's Graph.finish sums every centre separately. The program was built by a local loader
+(agent-cmod's cmgraph.build46 / exact_chain.py, not shipped). It loads the 46-root pair module and runs PR #144's
+scripts/paired_cube/graph.py with the 10-line Graph.finish patch centre46_graph.diff (icekylinx, Apache-2.0;
+graph.py itself is not vendored here). When a pair module returns more roots than pairs, the patched graph uses
+the extra root as the centre instead of summing it separately; with any other module it is unchanged. The rest
+of the recipe is PR #304's:
+
+- the merge f8:00111100 and coordinate frames;
+- PR #233's maximum-weight late compensated reuse pairing;
+- PR #184's frame flow and exact lift;
+- PR #256's gcert_emit.py (credits in ../NOTICE-PR304).
+
+A separate local audit rebuilt the graph from this patch and these modules and reproduced the program's graph
+exactly.
+
+exact_result.json is the exact chain's record: flow R = 9,036 and W = 4v + R = 14,316 at m = 110, gx.check1
+ACCEPTED, and the five-stage saving 7727/10^7 certified with 7728/10^7 rejected (priced without the 10^-16
+fallback). The emitter wrote the scatter as the star rule directly (every retained-total unit is +1), so no
+normalize_scatter.py step was needed. The gzip file is gzip.compress(gcert1.json, compresslevel=9, mtime=0) of
+the emitted bytes. Its JSON keys are not in canonical (sorted) order, and it records derived_from
+'agent-cmod candidate'. The bytes are kept as emitted, because a separate Lean run checks exactly these bytes.
+
+verify.py consumes only the gcert/1 program. Every run checks it fresh with Jacob Sussman's gx.check1 (exact
+scalar identity) and gxcore mirror (code/complex_gx.py), and prices it with the 10^-16 fallback included
+(772714351296671/10^18; without the fallback, 772714354722691/10^18). The files in this directory are not read
+by any check. No Lean check of this program is pinned in this package.
