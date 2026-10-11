@@ -1,0 +1,41 @@
+name: Verify complex gauge-kernel supplier
+
+on:
+  push:
+    paths:
+      - 'research/e8-complex-gauge-kernel/**'
+      - 'research/idle-axis-hosting/**'
+      - 'research/split-centres-global/**'
+      - '.github/workflows/e8-complex-gauge-kernel.yml'
+  pull_request:
+    paths:
+      - 'research/e8-complex-gauge-kernel/**'
+      - 'research/idle-axis-hosting/**'
+      - 'research/split-centres-global/**'
+      - '.github/workflows/e8-complex-gauge-kernel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install numpy and scipy (Lemma G stage, --discover-check)
+        run: python3 -m pip install numpy scipy
+      - name: Replay PR442 parent, build the gauge-kernel words, check Lemma G, rediscover hosting, assemble
+        run: python3 -B research/e8-complex-gauge-kernel/verify.py "$RUNNER_TEMP/e8-complex-gauge-kernel" --all --discover-check
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
