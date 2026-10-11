@@ -1,0 +1,3 @@
+Rank137 kernel selection, composition and evidence by Rohan Arun with OpenAI Codex assistance. Apache-2.0.
+
+The unchanged source snapshots in vendor450 and vendor448 retain their original notices and licenses. Target mixing, eleven-stage generalization and cross-copy template tools: DreamingOfClouds with Anthropic Claude assistance (#450). Cross-copy hosting: higherbeing with Anthropic Claude assistance (#448). Kernel/replica foundations: chafreaky (#443), with the prior Rohan Arun (#434/#447), DaysSky (#442), icekylinx (#433), eumemic, Zhihao Chen, Dylan Crow and Jacob Sussman contributions and assistance disclosures retained by the parent packages.
