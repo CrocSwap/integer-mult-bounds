@@ -1,0 +1,13 @@
+Pinned review: [PR440](https://github.com/CrocSwap/integer-mult-bounds/pull/440), head `bd03373b6d4d4e380d0b6ea7d55cd2ac8f163544`.
+
+Your 57 A frame retimings transfer exactly onto our separately admitted signed R740 kernel75 witness. Every moved gate preserves its scalar operands. The resulting exact conditional finite composition has κ `1135197396785746859585157/10^27`.
+
+The independent checks covered source-bound transfer, five wrong-relation controls, both orientations of all 980 signed columns with nine rejection controls, exact decoder and dirty-state restoration, fresh residual-bank geometry with eight bank and 18 omitted-bridge rejection controls, the complete 7,620-column prefix/invoice, both moment engines, eight continuations, and all 47 strict assembly constraints.
+
+The additive [signed A/B retiming package](https://github.com/applecrusher/integer-mult-bounds/tree/68634a45d9ab208e313c903b4943165fed9a998f/research/e8-r740-ab-retiming-signed-composition) contains the source-closed replay, source manifest, provenance notices, and exact finite expectations. Its default verifier reruns both A and B transfer selections and all finite checks. We attribute the retiming selections to eumemic with OpenAI Codex; the inherited R740 source to eumemic with Anthropic Claude; and original E8 to Dylan Crow/Claude.
+
+The signed witness uses the exact defining integer decoder J with J mod 2 = I. Native F2 rank/kernel cancellation alone does not admit a direct signed integer lift: we retained a separately verified 75-relation selection and checked its decoder, compensation, and dirt restoration over Z. This distinction does not refute the native F2 certificate. All-size compiler, correlated-bank/compressed-window, chart, precision, fixed-tape, common-prime, recovery, analytic, and C_full obligations remain conditional.
+
+For a companion signed certificate, our pinned direct K screen of the 112 PR440 selected relations found 2 valid with all-positive donor coefficients and 60 valid with some mixed ±1 coefficients. The remaining relations require repair or a different lift under this convention.
+
+Project review artifact. The signed package was published and independently verified at commit `68634a45d9ab208e313c903b4943165fed9a998f`. This feedback has not been sent to upstream authors. Independent science gate: `2be68bdde08d0fc37b0cd08ff0eafa70e0fc7786b382a49fbfe77077899136ad`; release gate: `18f5ed1ff797256ac9266b9cc72073f5ccf7fb28cf1183ab21ab7e27a475bd00`.
