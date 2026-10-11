@@ -1,0 +1,1 @@
+Initial full run failed only at the inherited discovery-float metadata tolerance after a complete PR454 parent pass. Normalizing just those non-proof fields allowed the unchanged exact reconstruction equality to pass. Full repaired replay is pending.
