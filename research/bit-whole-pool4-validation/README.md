@@ -1,0 +1,1 @@
+Full default Python3.14.8 reconstruction passed, including the repaired full PR460 supplier chain and all changed whole-pooling checks. The proof package remained unchanged throughout this run. This is local execution evidence; no CI pass is asserted.
