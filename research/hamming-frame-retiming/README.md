@@ -4,7 +4,9 @@ Retimes 112 scalar events in #425's mutable-basis Hamming construction to later 
 
 The exact complex lower bound becomes `0.001058093696336318`. It exceeds the inherited bit bound `0.001057833103534317`, so the bootstrap now chooses its seed strictly below both suppliers. Three bootstrap steps and 47 exact outer inequalities give the stated κ.
 
-**Before draft:** fresh complete #425 replay passed; all unchanged scalar columns, forward/inverse-transpose dirty restoration, nested frames and joint paid histogram pass for the changed word; two exact moment engines and next-grid rejection pass; exact combined price passes. **Pending:** changed Gaussian phase replay, physical invoice and independent emitted-program replay, fresh full packaged wrapper, and Python3.11/3.14 CI. This is a draft candidate, not a verified new theorem. Failures will be retained.
+**Full local verification passed:** fresh immutable #425 reconstruction; all scalar columns and both 920-column forward/inverse-transpose replays; all 3,072 changed directed Gaussian phase pairs and endpoint adapters; physical owners, finite invoice, independent emitted-program replay, two exact moments, next-grid rejection and 47 strict outer inequalities. The uninterrupted packaged wrapper passed on Python3.11 against code commit `935e17bd43a46571d0e781710ee51848dad4d185`. Evidence is included in `local-evidence/`. **Python3.11/3.14 GitHub CI remains queued.**
+
+The initial use of the unchanged parent integrator rejected the improved complex parameter at `s < bit`; that failed log is retained. The explicit two-supplier seed policy passes both strict bounds and the complete wrapper. The original bit supplier remains inherited from #425; no fresh standalone bit proof is claimed.
 
 Run `python -B research/hamming-frame-retiming/verify.py /absolute/path/to/new/output`. It first freshly reproduces immutable #425, then reconstructs the changed word and recomputes phases, physical assembly, both symbolic orientations and exact prices. Parent #425: `e11ccea1d092beb1b01b4ee4ce49da478234254c`.
 
