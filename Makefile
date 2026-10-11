@@ -557,3 +557,8 @@ complex-nine-verify:
 e8-bit-complex-nine-verify:
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-e8-nine.XXXXXX"); \
 	python3 -B research/e8-bit-complex-nine/verify.py --work "$$work/replay"
+
+.PHONY: hamming-complex-verify
+hamming-complex-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-hamming.XXXXXX"); \
+	python3 -B research/hamming-mutable-basis-complex/verify.py --work "$$work/replay"
