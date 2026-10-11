@@ -9,7 +9,7 @@ chain of frames 0 ⊂ T1 ⊂ … ⊂ t^⊥ and receives registers at those frame
 
 A π-coset partner pair (t, w) of a Hamming block receives the same three registers D4(c^), M(p5) and N. They are
 received at the same frames of dimensions 4, 5 and 6, and the dimension-6 frame is t^⊥ ∩ w^⊥.
-`code/mixgen.py` selects a receiver u and a donor w with these properties:
+`code/mix_target.py` selects a receiver u and a donor w with these properties:
 - they share a frame G of w's chain;
 - the F₂ sum of the registers u receives at frames inside G equals the F₂ sum that w receives there;
 - u's later frames all contain G.
@@ -44,7 +44,7 @@ The preconditioner adds y_w⁰ + D_w s + P_w to y_u at frame 0. The corrected sc
 y_w(τ). Each of these terms then cancels in pairs, and X_w(G) = X_u(G) replaces exactly the deliveries u dropped. So
 every receiver ends with the parent's value, y_u⁰ + x_u. All other registers are unaffected.
 
-This is checked exactly, not inferred. `code/check_mix.py` replays all 980 F₂ columns (sources, target inputs and every
+This is checked exactly, not inferred. `code/mix_check.py` replays all 980 F₂ columns (sources, target inputs and every
 helper's dirt) with PR443's `e8core.replay`, and a second, independent identity replay. The parent word's own checkers
 replay the same word again: PR266-lineage `legality` and `columns_h`/`columns_k4`, and PR443's global template and
 audit. The checks reject four mutants:
@@ -79,7 +79,7 @@ The new element for the bit supplier is a target used as an operand. The inherit
 - `e8core` exempts target operands from its source-span test;
 - the PR266-lineage legality checker counts it as an ordinary common-frame ADD.
 
-`check_mix.py` adds a stricter test: each operand target's integer x-support, from its deliveries, lies in the gate
+`mix_check.py` adds a stricter test: each operand target's integer x-support, from its deliveries, lies in the gate
 frame. There are 0 violations.
 
 What is not proved: that the physical bit label is a single operator per frame that acts identically on target
@@ -88,11 +88,4 @@ used as an operand. This is the principal review point.
 
 ## Global composition
 
-The R740 word keeps R, start frames and therefore every helper residual width. PR443's global template, bank
-admission and residual isometries are regenerated freshly from the mixed word. PR444's idle-hosting selection is
-reused unchanged: its windows depend only on the schedule, and its capacities only on the widths. Its independent
-audit re-derives every window, owner and bank.
-
-Target additions occur only inside the local invocation of the active pair. They therefore touch neither a hosted
-family's untouched window (PR442 §2) nor the banks. Hosted stock (37,464 live families) and hosted residuals
-(159,168) are unchanged.
+See PROOF.md §6 for the global composition of the mixed word with eleven stages and cross-copy hosting.

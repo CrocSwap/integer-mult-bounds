@@ -4,7 +4,7 @@
 For a receiver target u and donor w whose delivered B-phase registers at frames inside G coincide (as an F2 multiset),
 u drops those deliveries and instead takes y_w with ONE addition y_u += y_w at the common frame G.  Exactness:
 frame-0 preconditioner y_u += y_w (D phase, after w's own D gates) and scatter_u ^= scatter_w.  Helpers, sources,
-A and C phases are untouched.  Deterministic greedy choice by climb-cost saving.  usage: mixgen.py WORD(.json[.gz]) OUT.json"""
+A and C phases are untouched.  Deterministic greedy choice by climb-cost saving.  usage: mix_target.py WORD(.json[.gz]) OUT.json"""
 import gzip, json, math, sys
 from collections import Counter, defaultdict
 from fractions import Fraction as Fr

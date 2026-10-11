@@ -2,19 +2,19 @@
 
 Prepared by DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code. Apache-2.0.
 
-This package changes the **stage count** of the bit supplier from nine to eleven and, in its default word, the bit word by
-target mixing (section 6). The unmixed word at eleven stages is verified as well; it reproduces PR #445's value. Everything
-else is inherited and run unchanged: PR #443's R740 rank-138 word and its local checks, PR #442's complex word at s = 9
-and its hosted complex template, PR #442's hosting lemma, the moment engines and the outer assembly. The complex supplier
-binds the final kappa; the per-side record of this package is the bit supplier's saving c.
+This package stacks three independent levers on the R740 bit word of PR #443/#444: the **stage count** of the bit supplier
+(nine to eleven, section 2-4), **cross-copy idle-axis hosting** of PR #448 (section 5), and, in its default word, **target
+mixing** (section 6). The unmixed word is verified as well (`stacked_unmixed`). Everything else is inherited and run
+unchanged: PR #443's local checks, PR #448's complex word and its cross-copy hosting (the complex supplier stays at nine
+stages and does not bind), PR #442's hosting lemma, the moment engines and the outer assembly.
 
 ## 1. What is unchanged
 
 - **Local word.** PR #443's R740 word (R = 740, 9 retained totals of rank 8, entrance rank 138). Its legality, formal
   columns, source spans, Gram and negative controls run unchanged in `verify.sh` of the parent.
-- **Complex supplier.** PR #442's hosted complex word (s = 9, m = 73, b = 1267453159029119/10^18), reconstructed by
-  running PR #442's verifier.
-- **Hosting lemma** (PR #442, `../idle-axis-hosting/PROOF.md` sections 1-2), the engines `moment.py`,
+- **Complex supplier.** PR #448's cross-copy hosted complex word (s = 9, m = 73, b = 718766148669433/(5 10^17) = 1.437532e-3),
+  reconstructed by running PR #448's verifier. It does not bind: the bit supplier does.
+- **Hosting lemmas** (PR #442, `../idle-axis-hosting/PROOF.md` sections 1-2; PR #448, `../cross-copy-hosting/PROOF.md` section 2), the engines `moment.py`,
   `base_two_moment.py`, `outer.py`, and the strict 47-inequality outer assembly.
 
 ## 2. The S-stage compressed layout (S = 2K+1)
@@ -45,7 +45,7 @@ them; after all stages apply the K-1 closing bridges in reverse; finish with the
   exchange, with chronological lowering of every local program (the same events as the parent, 217,019 emitted).
 - The C++ formal-column checker of PR #381 (`columns_k.cpp`, `-DKPAIRS=5`) is built with the parent's flags and run on
   the parent's cohort records: 1,940 physical formal columns (10 V + R), 24 twin-bridge additions x 120, 11 stages,
-  all 24 omitted-bridge controls rejected, payload prefix 64 bits.
+  all 24 omitted-bridge controls rejected, payload prefix 65 bits.
 - `verify.py` also checks that `global_k.py` rejects the nine-stage geometry when asked for eleven stages.
 
 ## 4. Idle increments and the deficit
@@ -63,23 +63,27 @@ The sum per data member is 7 (K-1) S = 308 (189 at S = 9). With V = 120 ports, T
 invocation, the rank deficit is exactly D = m W - (rank mass) = T (2KV - 72 S): 312 T at S = 9 and **408 T at S = 11**.
 Both emitters assert it from the emitted profile, so it is a computed identity, not a formula that is trusted.
 
-## 5. Hosting every residual
+## 5. Cross-copy hosting of every residual
 
 PR #442 moves whole dirty helper residuals from bank streams onto pending coordinates of idle data families, under the
-window condition (the family is untouched between the hosting invocation and its advance). The pool grows
-with S faster than the supply: per replica, the pending coordinates are 45,360 against 52,038 residual coordinates at
-S = 9 (so 26% of the residual width stays in banks, as in PR #444), and **73,920 against 63,602 at S = 11**.
-`code/hosting_k.py` solves PR #442's integer programme with every residual hosted
-(`--host-all`, optionally with a cap on the remainder of every idle child). The optimum hosts all 8,140 residuals
-(11 stages x 740 helpers) for the 63,602 coordinates, so no bank stream remains and the stock is the data alone,
-W = 2KVT = 1,200 T.
+window condition (the family is untouched between the hosting invocation and its advance). PR #448 lets a residual lie
+across the pending sets of **two copies of the same idle child**: with P = P1 + P2, D_P1 D_P2 = D_P writes the dirty
+invocation's factor on the residual as a product of a factor on each family, each is moved to the child exactly as in
+#442 section 2 (the window is a property of the pair, not of the copy), and each copy's remainder is exact; one further
+route factor per helper selector is charged (three instead of #442's two). That is PR #448's lemma and review point
+(`../cross-copy-hosting/PROOF.md` section 2); it is used here unchanged.
 
-Replicas T exist in PR #443 so that residuals tile complete width-64 banks. With no bank there is nothing to tile, so
-the eleven-stage package uses T = 1. The two-moment price is independent of T (every term scales by T); the finite
-invoice is evaluated at T = 1 with its T-dependent terms.
-
-At the nine-stage defaults `emit_k.py` and `audit_hosted_k.py` reproduce PR #444's hosted template byte for byte and its
-audit (see section 8).
+`emit_tape_k.py` is PR #448's `bit_split.py` for any odd stage count: the pending sets of a child's 240 copies are laid
+into a tape, residuals are placed contiguously widest first, and a residual that straddles a copy boundary becomes a
+two-piece slot (`hosted-split`). With the tape rule the copies of a child are absorbed in order: x copies are emptied,
+one copy is partly used, and the others are untouched.
+- **Selection.** `hosting_k.solve_tape` maximises the exact paid-cost saving (r ln(m/r), concave) instead of PR #448's
+  first-order proxy; the feasible set is PR #448's (counts n(child, stage, width) with capacity copies x r). With every
+  residual hosted there is no bank tiling constraint. `--discover-check` recomputes the frozen selection.
+- **Capacity grows with S.** Per replica, the pending coordinates are 45,360 against 52,038 residual coordinates at S = 9
+  (PR #448: 46,160 of 53,784 residuals hosted, 8,592 live), and **73,920 against 63,602 at S = 11**, so all 8,140
+  residuals (1,807 of them split) are hosted, no bank remains and the stock is the data alone (1,200 families).
+- **Replicas.** T = 1: replicas exist in PR #443/#448 only to fill width-64 banks, and the price is independent of T.
 
 ## 6. Target mixing: the bit-label conjugation lemma (principal review point)
 
@@ -151,33 +155,38 @@ untouched window nor any bank.
 
 ## 7. Finite invoice at S = 11
 
-`code/assemble_k.py` is PR #444's assembly with L, K, T, m, the deficit and the halving depth as parameters.
-- **Halving.** The largest child after hosting is 52 with the cap used by the combined variant (2 * 52^2 = 5,408 < 78^2 =
-  6,084, so two levels suffice, as in PR #386) and 56 without it (2 * 56^3 = 351,232 < 78^3 = 474,552, three levels).
-  The unmixed variant is shown at both depths. The combined variant is complex-bound, so it uses depth 2 and needs no
-  third halving level.
-- **Row allowance.** The rows of PR #386 are 2 (m^2 + 1) + 9909 + 252 (bit side) = 18,355 < 20,161 at m = 64. With depth d the
-  bit row is d (m^2 + 1) + 10,161: 22,331 at m = 78 and d = 2 (28,416 at d = 3). That exceeds the inherited allowance, and
-  20,161 itself was chosen as 10,000 + 9,909 + 252, a deliberately conservative figure. The outer assembly only needs
-  10^6 - (51/25) A > 0; the package uses A = max(20,161, bit row, complex row) and passes the 47 strict inequalities.
-- **Prefix.** 2^24 c_f^6 c_b^5 has 153 bits (123 at K = 4); it is charged 192 bits. The finite coefficient has 153 bits;
-  its d-th power times (E+1)^d has 336 bits at d = 2 (504 at d = 3), both charged at most 512.
-- **Routes.** Every helper route keeps PR #444's charge: 77 factors, 144 for the residual isometry and 2 hosting
-  factors, per helper selector.
+`code/assemble_k.py` is PR #448's assembly (itself PR #442's) with L, K, T, m, the deficit and the halving depth as
+parameters.
+- **Halving.** The largest child after hosting is 56 (184 untouched copies of the rank-56 children): 2 * 56^2 = 6,272 >
+  78^2 = 6,084, but 2 * 56^3 = 351,232 < 78^3 = 474,552, so three halving levels are used, as in PR #445 and #447. The
+  finite coefficient has 153 bits, its cube times (E+1)^3 has 504 bits (511 for the mixed word), both within the 512 bits
+  charged.
+- **Row allowance.** The bit row is d (m^2 + 1) + 10,161 = 28,416 at m = 78 and d = 3 (18,355 at m = 64, d = 2), above the
+  inherited 20,161, which was itself chosen as 10,000 + 9,909 + 252. The outer assembly needs only 10^6 - (51/25) A > 0
+  and passes with A = max(20,161, bit row, complex row). (PR #445 keeps 20,161 with an elementary orthogonal-cover count;
+  that argument is not used here.)
+- **Prefix.** 2^24 c_f^6 c_b^5 has 153 bits (155 for the mixed word), charged 192.
+- **Routes.** Every helper route is charged 77 factors, 144 for the residual isometry, and 3 hosting factors (slot
+  permutation, idle basis U_q, cross-copy split), per helper selector.
+- **Complex.** PR #448's complex supplier is priced by the same code; b = 1.4375e-3 is 6.5% above the bit
+  saving c = 1.3496e-3, so the bit supplier binds.
 
-## 8. The regression anchor
+## 8. The regression anchors
 
-At S = 9 with 32 replicas the generalised generators reproduce PR #443 and PR #444 exactly. `verify.py` checks
-- `GEOMETRY.json` of PR #386 (all fields except `seconds`);
-- the parent `GLOBAL-TEMPLATE.json.gz` of PR #443 byte for byte, and `GLOBAL.json` except `seconds`;
-- PR #444's hosted template byte for byte against the output of PR #444's own `emit.py`, and the assembled result
-  against PR #444's `EXPECTED.json` key by key (kappa 623036752743971/5*10^17).
+`verify.py` checks
+- at S = 9 with 32 replicas, `GEOMETRY.json` of PR #386 (all fields but `seconds`) and PR #443's parent template byte for
+  byte (`global_k.py`), with PR #443's `GLOBAL.json` except `seconds`;
+- PR #448's bit template byte for byte, regenerated from PR #434's R747 bit template and PR #448's frozen selection by
+  `emit_tape_k.py` (GLOBAL.json except `seconds`), the tape audit on it, and PR #448's result recomputed by `assemble_k.py`
+  (`--residual-isometry 0 --route-extra 3`): kappa 1330733966732373/10^18, both lower endpoints and both template hashes
+  equal PR #448's `EXPECTED.json`.
 
 ## 9. Scope
 
 This is a conditional finite certificate. The compressed windows at 11 stages (m = 78) are checked finitely, as the
-nine-stage windows were, not proved: the claim that the window bound m = 1 + S (h - 1) is attained at S = 11 is
-the same inherited interface extended by two stages, with every projector, route, schedule and ownership checked.
-No Lean proof and no unconditional integer-multiplication theorem is claimed. The all-size compiler, restored-work,
-tape/common-grid, precision and analytic interfaces, the correlated dirty-bank interface and the hosting lemma
-(extended in PR #442 to data streams during idle windows) remain inherited assumptions.
+nine-stage windows were, not proved: the claim that the window bound m = 1 + S (h - 1) is attained at S = 11 is the same
+inherited interface extended by two stages, with every projector, route, schedule and ownership checked. The cross-copy
+hosting lemma of PR #448 and the hosting lemma of PR #442 are applied to every residual. The target-mixing lemma (section
+6) is the principal new review point. No Lean proof and no unconditional integer-multiplication theorem is claimed. The
+all-size compiler, restored-work, tape/common-grid, precision and analytic interfaces and the correlated dirty-bank
+interface remain inherited assumptions.

@@ -7,6 +7,10 @@ hosting programme; target-mixing generator and checks; release wrapper: Dreaming
 This package builds on, and runs unchanged, the following complete packages, which are copied byte-identically with
 their notices and licenses (exact pins in `SOURCE.json`):
 
+- higherbeing, PR #448 (`research/cross-copy-hosting`): cross-copy idle-axis hosting, its lemma, `tape_core.py` (imported
+  unchanged), the hosted complex supplier that pairs with this bit supplier, and the assembly. `emit_tape_k.py`,
+  `audit_tape_k.py` and `assemble_k.py` derive from its `bit_split.py`, `audit_split.py` and `assemble_split.py`; at the
+  nine-stage defaults they reproduce its outputs. The package is copied byte-identically with its notices and license.
 - chafreaky, PR #444 (`research/r740-idle-hosted-replicas`, OpenAI Codex assistance): the R740 replicated hosted
   composition. `emit_k.py`, `audit_hosted_k.py` and `assemble_k.py` derive from its `emit.py`, `audit.py` and
   `assemble.py`; at the nine-stage defaults they reproduce its outputs. Also the regression anchor.
