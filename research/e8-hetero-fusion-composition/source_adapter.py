@@ -1,7 +1,8 @@
 """Build a minimal pinned-source runtime; no recovered unpublished tree required.
 
 Six PR390 leaves and three PR394 leaves use readable LF transport. The exact
-per-line CRLF pattern and terminal state are restored and original hashes
+per-line CRLF pattern and terminal state are restored (removing one transport
+LF only for a source with no terminal LF) and original hashes
 checked before execution. Regenerated PR390 preconditioning is compared with
 canonical projections of its original four arrays, not called byte-identical
 JSON. Original source provenance is recorded separately from generated inputs.
@@ -19,6 +20,9 @@ def leaves(meta,out):
  pins=read(HERE/meta);files={}
  for name,p in pins['files'].items():
   carrier=(HERE/name).read_bytes();assert b'\r'not in carrier and sha(HERE/name)==p['carrier_sha256']
+  if not p['terminal_lf']:
+   assert carrier.endswith(b'\n')and not carrier.endswith(b'\n\n')
+   carrier=carrier[:-1] # only the single publication-transport LF; original SHA remains mandatory
   rows=carrier.splitlines(keepends=True);assert p['crlf_lines']==sorted(set(p['crlf_lines']))
   assert all(1<=i<=len(rows)and rows[i-1].endswith(b'\n')for i in p['crlf_lines'])
   native=b''.join(x[:-1]+b'\r\n'if i in p['crlf_lines']else x for i,x in enumerate(rows,1))
