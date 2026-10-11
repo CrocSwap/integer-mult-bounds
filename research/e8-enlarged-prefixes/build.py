@@ -20,7 +20,7 @@ def main():
   run('phase',SOURCE/'architecture/phase.py',cp,ROOT/'deps',baseline/'baseline/baseline/baseline/phase-replay',out/'phase',SOURCE/'architecture/phase-replay.cpp')
   run('expand',ROOT/'expand.py',out/'expanded')
   prior=out/'expanded/PRIOR.json.gz';cfg=ROOT/'CONFIG.json';phase=out/'phase/RESIDUALS.json';local=out/'local/LOCAL-PROGRAMS.json.gz';banks=out/'banks'
-  run('banks',BANK/'banks.py',cp,ROOT/'PATTERNS.json',phase,local,out/'local/RESULT.json',prior,ROOT/'deps',banks,SOURCE/'architecture/inputs/DATA-PHASES.json',cfg)
+  run('banks',ROOT/'banks.py',cp,ROOT/'PATTERNS.json',phase,local,out/'local/RESULT.json',prior,ROOT/'deps',banks,SOURCE/'architecture/inputs/DATA-PHASES.json',cfg)
   run('independent-audit',BANK/'audit.py',banks,cp,phase,local,prior,cfg)
   run('bridge',BANK/'bridge.py',banks,cfg)
   run('outer',SOURCE/'code/outer.py',banks/'OUTER-INPUT.json',out/'OUTER.json')
