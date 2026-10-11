@@ -59,7 +59,9 @@ reuses pinned PR377 and PR373 dependencies, and regenerates the original
 preconditioning arrays with exact canonical-projection hash comparisons.
 
 Readable LF carriers reconstruct every original CRLF position, including mixed
-line endings, and original SHA256 hashes are checked before execution. PR394's
+line endings. For an original without terminal LF, its carrier has exactly one
+publication-transport LF that is removed before reconstruction. Original SHA256
+hashes and terminal states are checked before execution. PR394's
 emitter, sink selection and proof are pinned separately. Deterministic stored
 DEFLATE transports generated compressed data. Full raw provenance is retained
 in generated evidence. The canonical scientific template drops only fields
