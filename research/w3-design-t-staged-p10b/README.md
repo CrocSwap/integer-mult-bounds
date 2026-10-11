@@ -1,17 +1,43 @@
-κ = 8.04303459176812e-4
+κ = 8.04849251275843e-4
 
-# w3 Design T on our transcript-staged p10b bit word, plus a shared-donor kernel, retiming and reorder re-derived on the Design T word, with Sussman's E8 complex unit
+# w3 Design T, then a shared-donor kernel, retiming and reorder on the Design T word, on #353/#357's reordered p10b base, with Sussman's E8 complex unit
 
-A conditional finite construction with **κ = 201075864794203/(2.5·10¹⁷) ≈ 8.04303459176812 × 10⁻⁴**.
-That is +1.16629·10⁻⁶ (+0.1452 %) over our #354 (80313716516349/10¹⁷ ≈ 8.03137165163490e-4), and +0.4019 % over #352.
+A conditional finite construction with **κ = 804849251275843/10¹⁸ ≈ 8.04849251275843 × 10⁻⁴**.
+
+- +5.45792·10⁻⁷ (+0.0679 %) over our #359 (8.04303459176812e-4).
+- +1.16955·10⁻⁶ (+0.1455 %) over #358 (8.03679711866262e-4).
+
 The bit side binds.
 
 | side | supplier | coarse saving |
 | --- | --- | ---: |
-| bit | #325's p10b word → our #329 stages (descent, target, restore, sink) → #310's w3 Design T and twin condensation (as ported to h = 20 by #346), reimplemented (= #354's word) → **shared-donor kernel, retiming, reorder, reorder2 on the Design T word (new)** | c = 804950884359437/10¹⁸ ≈ 8.04950884359437e-4 |
-| complex | Jacob Sussman's E8 unit `gcert1-e8-r783` (wht-power-saving-lean `9c94857`), as used by #352 | b = 876248285600677/10¹⁸ ≈ 8.76248285600677e-4 |
+| bit | rohanarun's reordered-design PLAIN12 base word (#353/#357) → our #329 stages (descent, target, restore, sink; #357's staged word, vendored) → our Design T + completion reads + **all 471** twins → **our #359 post-Design-T stages, re-derived on this word**: shared-donor kernel, retiming, reorder, reorder2 | c = 12585899309117/(1.5625·10¹⁶) ≈ 8.05497555783488e-4 |
+| complex | Jacob Sussman's E8 unit `gcert1-e8-r783` (wht-power-saving-lean `9c94857`), as in #352/#354/#359 | b = 876248285600677/10¹⁸ |
 
-## New in this update: the transcript stages after Design T
+## What changed relative to #359
+
+- **Base word.** `data/staged` and `data/parity` are #357's shipped snapshots (rohanarun):
+  - #325's producer, as vendored in our #329, re-run with the local design reordered by one transposition (`producer/local_design_p10_reordered.json`, from #357) and PLAIN = 12 (#353's recipe);
+  - then our #329 discovery re-derives descent (480), target (120), restore (240) and sinks (10).
+  - #325's original parity word is kept as `data/parity325` for the #346 byte-for-byte control.
+- **Twins.** #357 kept 470 of 471 eligible twins so that the residual sum stays ≡ 0 (mod 5). Here all 471 are kept, as #358 also does; the mod-5 condition is met by trimming the kernel to total rank ≡ 4 (mod 5) instead.
+- **Stages after Design T.** These are #359's mechanisms, re-derived on this word:
+  - kernel: 334 entries, rank 439, 554 donors, φ −402.05;
+  - retiming: 93 gates, φ −48.79;
+  - reorder: 130 moves, φ −296.89;
+  - reorder2: 2 moves, φ −5.55.
+- **Not included.** #358's eighteen signed helper-pair condensations and its T = 300 / eight-level arithmetic.
+
+| word | bit coarse c | κ (E8 b) |
+| --- | ---: | ---: |
+| #357 (470 twins) | 8.04300919521300e-4 | 8.03654539036015e-4 |
+| Design T word here (471 twins; root, not tileable alone) | ≈ 8.043038e-4 | — |
+| + kernel (334, rank 439) | 8.04938e-4 | 8.04291732418766e-4 |
+| + retiming (93) | 8.05016641237225e-4 | 8.04369110315724e-4 |
+| + reorder (130) | 8.05488722823169e-4 | 8.04840432528145e-4 |
+| **+ reorder2 (2), this package** | **8.05497555783488e-4** | **8.04849251275843e-4** |
+
+## The transcript stages after Design T (introduced in #359; the counts in this section are #359's, on #354's word)
 
 #354 left out the kernel, the post-sink retiming and the reorder rounds of our #329 stack. Design T rewrites or frees
 the cube-layer helpers that most of #329's kernel families used. Here those three stages are **re-derived on the
@@ -48,7 +74,7 @@ Each stage is bound to the exact input records hash. After applying it, `stageli
 The output must equal the frozen records hash. The official #266 checkers, the nondegeneracy audit and the bank
 tiling (step 3) then run on the final word.
 
-| word | bit coarse c | κ (E8 b) |
+| #359's word | bit coarse c | κ (E8 b) |
 | --- | ---: | ---: |
 | #354 (Design T on descent+target+restore+sink) | 8.03782713332806e-4 | 8.03137165163490e-4 |
 | + kernel (323 entries, rank 435) | 8.04391808014727e-4 | 8.03745281493820e-4 |
@@ -56,9 +82,9 @@ tiling (step 3) then run on the final word.
 | + reorder (130) | 8.04942063398220e-4 | 8.04294652399288e-4 |
 | **+ reorder2 (2), this package** | **8.04950884359437e-4** | **8.04303459176812e-4** |
 
-Final word: 405,603 records, 1,064 frames new relative to #325's word (all nondegenerate). Residual census
-{20: 5,607, 19: 756, 18: 29, 16: 8, 15: 3, 13: 2, 12: 5, 4: 960, 3: 240, 0: 480 freed}. The exact width-100 tiling
-with 60 replicas uses our #329 bank template's economy fallback.
+Final word here: 405,317 records, 1,085 frames new relative to the reordered parity word (all nondegenerate).
+Residual census {20: 5,605, 19: 763, 18: 25, 16: 7, 15: 3, 13: 2, 12: 5, 4: 960, 3: 240, 0: 480 freed}. The exact
+width-100 tiling with 60 replicas uses our #329 bank template's economy fallback.
 
 ## #354's construction (unchanged; summary)
 
@@ -98,8 +124,8 @@ Needs Python 3.11+ with numpy and mpmath, a C++17 compiler (`CXX`) and Boost hea
 
 0. `MANIFEST.sha256` (every file, none unlisted).
 1. The vendored staged word and the parity word are decompressed and hash-checked, and the staged word is priced.
-2. Design T, completion reads and twin condensation are applied; the result must equal #354's final word
-   (`data/designt`). Full mode also rebuilds #346's final word from the parity word.
+2. Design T, completion reads and twin condensation (all 471 twins) are applied; the result must equal
+   `data/designt`. Full mode also rebuilds #346's final word from #325's parity word (`data/parity325`).
    2b. The four frozen post-Design-T stages (kernel, retime, reorder, reorder2), each with its full check and frozen
    output hash; the result must equal the shipped final word (`data/final`).
 3. Our exact replay: MOVE nesting by exact integer annihilators, ADD common frames, the COPY window, final frames,
@@ -132,10 +158,12 @@ conditional finite construction, not a formal verification of the multiplication
 - Bit base word and the p = 10 five-stage pipeline: DreamingOfClouds (#325 on #315).
 - Design T and twin condensation: utcorvusvolat-dotcom's w3 work (#310), ported to h = 20 by LJH-217 (#346).
   Both were read as data and reimplemented here.
+- Reordered-design PLAIN12 base word and its staged snapshot: rohanarun (#353/#357). Keeping all 471 twins follows
+  eumemic's #358.
 - E8 supplier as complex side: DaysSky (#352).
 - E8 unit and the gx/gxcore checkers: Jacob Sussman.
 - Official checkers: #266.
-- Transcript stages: our #329 and #354, with the #268/#280/#283/#287/#295 lineage (eumemic's #268/#273, Rohan Arun's
+- Transcript stages: our #329 and #354, with the #268/#280/#283/#287/#295 lineage (eumemic's #268/#273, rohanarun's
   descent and #300 restart loop) and the #272/#299/#319/#320 shared-donor kernel lineage. The reorder screen follows
   our #299/#306; eumemic's later #330–#347 stages (cross-entrance retimings, nested donors, carrier switches) are not
   used here.

@@ -2,10 +2,13 @@
 
 Apache-2.0 (`LICENSE`). Prepared by Chafik Boukhalfa (chafreaky) with substantial Anthropic Claude assistance.
 
-- `data/parity`: #325's p10b parity-fused word (DreamingOfClouds), exported in PR249 snapshot format. It is identical to
+- `data/parity`, `data/staged`, `producer/local_design_p10_reordered.json`: rohanarun's #357 (on #353) snapshots: the
+  reordered-design PLAIN12 p10b base word and that word after our #329 stages descent, target, restore and sink, vendored
+  byte for byte from #357's package (Apache-2.0).
+- `data/parity325`: #325's p10b parity-fused word (DreamingOfClouds), exported in PR249 snapshot format. It is identical to
   #346's `BASE-*` snapshot (records sha256 f1933dbf…).
-- `data/staged`: that word after our #329 stages descent, target, restore and sink. These stages come from the
-  #268/#273 (eumemic), #280/#283/#287/#295 (incl. Rohan Arun's descent) and #320/#329 lineage.
+- The #329 stages come from the
+  #268/#273 (eumemic), #280/#283/#287/#295 (incl. rohanarun's descent) and #320/#329 lineage.
 - `data/labels.json`: the cube labels of the p10b word, as shipped by #346.
 - `code/dt.py`, `classify.py`, `comp.py`, `twin.py`: our reimplementation of utcorvusvolat-dotcom's w3 Design T
   and twin condensation (#310), following LJH-217's h = 20 port (#346). Neither was run here; both were read as data.
@@ -20,5 +23,5 @@ Apache-2.0 (`LICENSE`). Prepared by Chafik Boukhalfa (chafreaky) with substantia
   re-implement on PR249 snapshots the mechanisms of our #329 package: the shared-donor kernel (#272/#299/#319/#320
   lineage), descent2 (#287/#291/#299) and reorder (#299/#306). The selections come from our #329 discovery tools
   (`discovery/coll`, `descent2_search.py`) and a reorder screen run on the Design T word.
-- `data/designt`: #354's final word (the input of the stages). `data/final`: this package's final word.
+- `data/designt`: Design T + twins (all 471) on `data/staged` (the input of the stages). `data/final`: this package's final word.
 - `code/tile.py`: `tile()` and `economy_tile()` from our #329 `bank_template.py`, verbatim.

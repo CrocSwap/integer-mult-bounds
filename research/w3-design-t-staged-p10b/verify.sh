@@ -20,14 +20,14 @@ extra=files-listed
 if extra: print('UNLISTED',sorted(extra));bad+=1
 sys.exit(1 if bad else 0)") && echo "   all files match MANIFEST.sha256"
 unz(){ mkdir -p "$2"; for f in 249-records.bin 249-states.json frames.json; do gunzip -c "$1/$f.gz" > "$2/$f"; done; }
-unz $DA/staged $WD/staged; unz $DA/parity $WD/parity
-(cd $WD && sha256sum -c "$DA/SHA256SUMS-inputs" --quiet 2>/dev/null || shasum -a 256 -c "$DA/SHA256SUMS-inputs" --quiet) && echo "== 1. staged base word (PR #329 stack: descent, target, restore, sink; no kernel) and parity word: hashes OK"
+unz $DA/staged $WD/staged; unz $DA/parity $WD/parity; unz $DA/parity325 $WD/parity325
+(cd $WD && sha256sum -c "$DA/SHA256SUMS-inputs" --quiet 2>/dev/null || shasum -a 256 -c "$DA/SHA256SUMS-inputs" --quiet) && echo "== 1. staged base word (PR #353/#357 reordered PLAIN12 base + PR #329 stack: descent, target, restore, sink; no kernel), its parity word and PR #325's parity word: hashes OK"
 $PY -B $C/price.py $WD/staged | tail -2
 echo "== 2. Design T + twin condensation on the staged word (own reimplementation)"
 $PY -B $C/dt.py $WD/staged $WD/T
 $PY -B $C/comp.py $WD/T
 $PY -B $C/twin.py $WD/T $WD/TT
-gunzip -c $DA/designt/249-records.bin.gz | cmp - $WD/TT/249-records.bin && echo "   rebuilt Design T word equals the shipped one (PR #354's final word)"
+gunzip -c $DA/designt/249-records.bin.gz | cmp - $WD/TT/249-records.bin && echo "   rebuilt Design T word (all 471 twins) equals the shipped one"
 (cd $WD && sha256sum -c "$DA/SHA256SUMS-designt" --quiet 2>/dev/null || shasum -a 256 -c "$DA/SHA256SUMS-designt" --quiet) && echo "   Design T word records hash OK"
 echo "== 2b. transcript stages on the Design T word: shared-donor kernel, retiming, reorder, reorder2 (frozen selections)"
 $PY -B $C/stages.py kernel $WD/TT $WD/K $HERE/stages/kernel-selection.json $DA/labels.json
@@ -37,8 +37,8 @@ $PY -B $C/stages.py reorder $WD/KRO $WD/F $HERE/stages/reorder2-selection.json $
 gunzip -c $DA/final/249-records.bin.gz | cmp - $WD/F/249-records.bin && echo "   rebuilt final word equals the shipped word"
 (cd $WD && sha256sum -c "$DA/SHA256SUMS-final" --quiet 2>/dev/null || shasum -a 256 -c "$DA/SHA256SUMS-final" --quiet) && echo "   final records hash OK"
 if [ $QUICK = 0 ]; then
-  echo "== 2c. control: the same transform on the unstaged parity word gives PR #346's published final word byte for byte"
-  $PY -B $C/dt.py $WD/parity $WD/T346 > /dev/null && $PY -B $C/comp.py $WD/T346 > /dev/null && $PY -B $C/twin.py $WD/T346 $WD/TT346 > /dev/null
+  echo "== 2c. control: the same transform on PR #325's unstaged parity word gives PR #346's published final word byte for byte"
+  $PY -B $C/dt.py $WD/parity325 $WD/T346 > /dev/null && $PY -B $C/comp.py $WD/T346 > /dev/null && $PY -B $C/twin.py $WD/T346 $WD/TT346 > /dev/null
   test "$( (sha256sum $WD/TT346/249-records.bin 2>/dev/null || shasum -a 256 $WD/TT346/249-records.bin) | cut -c1-64)" = c6a9311acfcf85f4a5775ed0187e31f84531614bb08434ef887ae1e63dda99c4 && echo "   PR #346 final records c6a9311a... reproduced"
 fi
 echo "== 3. legality and F2 (own exact replay), official PR #266 checkers (h = 20 port), nondegeneracy, bank tiling"
@@ -57,4 +57,4 @@ $PY -B $C/complex_b.py $HERE/complex/gcert1-e8-r783.json.gz $HERE/complex/gx | t
 grep -q "complex b = 876248285600677/1000000000000000000" $WD/complex.txt
 echo "== 5. bit coarse saving and PR #315 outer assembly (bit-bound)"
 $PY -B $C/price.py $WD/F 876248285600677/1000000000000000000 | tail -2
-$PY -c "import json;k=json.load(open('$WD/F/kappa.json'));assert k['kappa']=='201075864794203/250000000000000000' and k['binding']=='bit',k;print('PASS conditional kappa =',k['kappa'],'=',k['kappa_float'])"
+$PY -c "import json;k=json.load(open('$WD/F/kappa.json'));assert k['kappa']=='804849251275843/1000000000000000000' and k['binding']=='bit',k;print('PASS conditional kappa =',k['kappa'],'=',k['kappa_float'])"
