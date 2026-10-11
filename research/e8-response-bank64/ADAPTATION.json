@@ -1,0 +1,132 @@
+{
+  "banks.py": {
+    "source_sha256": "7a8d81894dd7c35f05122bca19c5fc30f04ddf0dc4f2c8d73e334cdd3b64e396",
+    "changes": [
+      {
+        "old": "m,T,L=73,8,9",
+        "new": "CONFIG=Path(sys.argv[10]);parameters=read(CONFIG);m=prior['m'];T=parameters['replicas'];L=len({e['stage'] for e in prior['recipe'] if e['kind']=='local'});DATA_FAMILIES=2*((L-1)//2)*v*T;INVOCATIONS=L*T",
+        "count": 1
+      },
+      {
+        "old": "len(prior['calls'])==72",
+        "new": "len(prior['calls'])==INVOCATIONS",
+        "count": 1
+      },
+      {
+        "old": "7680",
+        "new": "DATA_FAMILIES",
+        "count": 4
+      },
+      {
+        "old": "==2496",
+        "new": "==parameters['deficit_per_replica']*T",
+        "count": 1
+      },
+      {
+        "old": "[CP,PAT,PHASE",
+        "new": "[CONFIG,CP,PAT,PHASE",
+        "count": 1
+      }
+    ]
+  },
+  "audit.py": {
+    "source_sha256": "c69bd2ac387a944ffa33bb9660f7ee407ca75648ec937217851780333df28f22",
+    "changes": [
+      {
+        "old": "n=2*c['v']+c['R'];m=73;bank=",
+        "new": "CONFIG=Path(sys.argv[6]);parameters=read(CONFIG);T=parameters['replicas'];L=len({e['stage'] for e in prior['recipe'] if e['kind']=='local'});DATA_FAMILIES=2*((L-1)//2)*c['v']*T;INVOCATIONS=L*T;n=2*c['v']+c['R'];m=prior['m'];bank=",
+        "count": 1
+      },
+      {
+        "old": " lookup={};used=defaultdict(set);nonsymmetric=0",
+        "new": " lookup={};used=defaultdict(set);nonsymmetric=0;padindex=defaultdict(list)\n for entry in t['bank_padding']:padindex[entry['family']].append(entry)\n assert all(DATA_FAMILIES<=f<DATA_FAMILIES+L*bank for f in padindex)",
+        "count": 1
+      },
+      {
+        "old": "[p for p in t['bank_padding'] if p['family']==7680+s*bank+b]",
+        "new": "padindex.get(DATA_FAMILIES+s*bank+b,[])",
+        "count": 1
+      },
+      {
+        "old": "len(lookup)==8*c['R']",
+        "new": "len(lookup)==T*c['R']",
+        "count": 1
+      },
+      {
+        "old": "owner_routes=8*c['R']",
+        "new": "owner_routes=T*c['R']",
+        "count": 1
+      },
+      {
+        "old": "range(9)",
+        "new": "range(L)",
+        "count": 1
+      },
+      {
+        "old": "7680",
+        "new": "DATA_FAMILIES",
+        "count": 3
+      },
+      {
+        "old": "9*bank",
+        "new": "L*bank",
+        "count": 2
+      },
+      {
+        "old": "len(t['calls'])==72",
+        "new": "len(t['calls'])==len(prior['calls'])==INVOCATIONS",
+        "count": 1
+      },
+      {
+        "old": "==2496",
+        "new": "==parameters['deficit_per_replica']*T",
+        "count": 1
+      },
+      {
+        "old": "ba=2*120*8*bridges;ts=4*120*8;tm=DATA_FAMILIES",
+        "new": "ba=2*c['v']*T*bridges;ts=((L-1)//2)*c['v']*T;tm=DATA_FAMILIES",
+        "count": 1
+      },
+      {
+        "old": "6*120*8*9+2*9*8*c['R']+len(ir['idle_children'])*8",
+        "new": "6*c['v']*T*L+2*L*T*c['R']+len(ir['idle_children'])*T",
+        "count": 1
+      },
+      {
+        "old": "4*72*len(ext)",
+        "new": "4*INVOCATIONS*len(ext)",
+        "count": 1
+      },
+      {
+        "old": "72*adapters",
+        "new": "INVOCATIONS*adapters",
+        "count": 1
+      },
+      {
+        "old": "2*72*len(ext)",
+        "new": "2*INVOCATIONS*len(ext)",
+        "count": 1
+      },
+      {
+        "old": "[CP,PHASE,LOCAL,PRIOR",
+        "new": "[CONFIG,CP,PHASE,LOCAL,PRIOR",
+        "count": 1
+      }
+    ]
+  },
+  "bridge.py": {
+    "source_sha256": "92456fe1df26f51233fa5f8b96c1f8dd6118df3f3b385654c26de8c205db6bb0",
+    "changes": [
+      {
+        "old": "a=read(OUT/'ADMISSION.json');",
+        "new": "CONFIG=Path(sys.argv[2]);parameters=read(CONFIG);a=read(OUT/'ADMISSION.json');",
+        "count": 1
+      },
+      {
+        "old": "==2496",
+        "new": "==parameters['deficit_per_replica']*parameters['replicas']",
+        "count": 1
+      }
+    ]
+  }
+}

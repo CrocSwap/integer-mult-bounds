@@ -1,0 +1,1 @@
+Derived from Dugongue PR401 (commit 7844f72c6051a4408284c3092490687061675c1a), Apache-2.0. The immutable sibling package retains all original notices and upstream credits. New replica expansion, packing, orchestration and independent adaptations by Rohan Arun with substantial OpenAI Codex assistance. ADAPTATION.json records exact source changes.
