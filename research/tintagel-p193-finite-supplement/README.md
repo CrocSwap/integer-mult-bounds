@@ -1,9 +1,20 @@
 # Independent P193 contract validation for the signed B3 bridge
 
-**NOT YET LEAN-CERTIFIED.** This is independent exact replication of existing
-upstream scalar contracts, a written re-derivation of the upstream helper
-argument, and an instantiation of the existing signed B3 interface. Its P193
-adapter has not passed a clean Lean build and transitive axiom inspection.
+**FINITE SCALAR ENDPOINT KERNEL-VERIFIED.** `P193Adapter.lean` passed an
+independent offline build with official Lean 4.34.1 at trust level zero. Its
+closed concrete provider discharges the existing signed B3 interface for
+1320-dimensional complex bank vectors and all 9412 live helper coordinates.
+The audit checked 33 named axiom targets and all 180 declarations in the four
+newly compiled modules (92 theorem declarations), using only `propext`,
+`Classical.choice` and `Quot.sound`. This closes the prior adapter compilation
+gap; it establishes no physical B3 construction or compiler certification.
+
+The only executable repair to the previously reviewed adapter is
+`open OAI.PowerSaving.SS Matrix`; theorem statements, hypotheses and proof
+bodies are unchanged. `KERNEL-RECEIPT.json` records the source, dependency and
+axiom bindings; `AXIOMS.txt` contains the exact 33 target outputs and endpoint
+type. The exact arithmetic replication and written helper re-derivation below
+remain separate evidence routes.
 
 The mathematical content is already present in the pinned upstream Lean source:
 
@@ -17,9 +28,10 @@ The mathematical content is already present in the pinned upstream Lean source:
 - `GX.Scal.fwd_scalar` and `bwd_scalar` in `Phased.lean:158–189` state the
   completed shears for arbitrary live slots with erased scratch copies.
 
-These are attributions to existing source declarations, not claims that those
-declarations have been successfully elaborated here. The independent checkers
-re-verify their computational premises without running upstream's checker.
+These are attributions to existing source declarations. The independent kernel
+audit rebuilt the required upstream/dependency closure and checked the adapter
+against those declarations. The separate exact checkers re-verify their
+computational premises without running upstream's checker.
 The argument below re-derives the already-stated helper result; the B3
 application is a direct instantiation. No novelty or priority claim is made
 for the helper identity or the arbitrary/correlated-helper qualification.
@@ -188,7 +200,7 @@ actual phased word with zero scratch, run that word, and decode. The argument
 above proves both `Invocation` fields for this concrete provider.
 
 The previously reviewed `Tintagel.Abelian.sourceB3_correlated_signed_endpoint`
-therefore applies. For every parameter type \(\Omega\), every
+therefore applies. For every parameter type \(\Omega : \mathrm{Type}\) (universe zero), every
 \(p,q,r:\Omega\to A\times A\), every \(h:\Omega\to H\), and every
 \(\omega\in\Omega\), use the same completed P193 provider at all seven calls.
 The literal B3 word followed on each bank pair by the **signed** exchange
@@ -240,17 +252,63 @@ only progress/results to stdout, needs no third-party Python package and never
 fetches sources. Do not use Python `-O` or `-OO`; they are explicitly rejected.
 The SHA manifest can be checked with `shasum -a 256 -c SHA256SUMS`.
 
-The prospective Lean adapter uses the upstream `GXD.P193.scalOK` kernel
-computation to discharge its premises; it does not import or turn the Python
-or C++ result files into Lean proofs. A future successful Lean certification
-would therefore be a separate evidence route from these exact replications.
+The Python replay still reports `lean_certified: false`: that field describes
+what this exact arithmetic checker itself proves. `review-evidence.json`
+preserves the earlier review and publication status. The later kernel result
+is recorded separately in `KERNEL-RECEIPT.json`; neither Python nor C++ results
+are imported as Lean proofs. The adapter uses the existing upstream
+`GXD.P193.scalOK` computation to discharge its concrete scalar premises.
 
-This acceptance level trusts the parser, exact arithmetic implementation,
-source interpretation and written matrix proof. Upstream P193 commit attribution
-comes from the offline provisioned provenance; the portable replay verifies
-those upstream bytes, not their remote Git reachability. The original upstream `scalOK` source is not itself new evidence
-of kernel certification. A clean exact-toolchain build and transitive axiom
-inspection of the P193 adapter are still required for that stronger claim.
+## Lean reproduction and scope
 
-This supplement establishes no geometric provider, label or cost claim,
-all-size compiler theorem, analytic transfer, or E8 parameter instance.
+Use an already installed official Lean 4.34.1 and a separately rebuilt,
+hash-checked dependency closure for upstream commit
+`f010392c923279e3dd59ef3aa5fedad23affc5fd` and the package revisions in
+`KERNEL-RECEIPT.json`. The independent audit rehashed 9,133 rebuilt modules;
+2,357 official modules account for the remaining imports. This small supplement
+does not contain those dependencies, their full rebuild manifests, or a download
+script. Do not substitute unverified compiled artifacts.
+
+In a new writable build directory, copy the exact `BridgeChain.lean`,
+`IndexedBridge.lean` and `SourceBound.lean` from the sibling
+`../tintagel-scalar-bridge-lean/` directory and this `P193Adapter.lean` into
+`src/`, and create an empty `lib/`. Set `LEAN_BIN` to the installed Lean binary,
+`LEAN_STDLIB` to its `lib/lean`, and `VERIFIED_DEP_LIB` to the independently
+rebuilt dependency library. From that build directory:
+
+```sh
+export LEAN_PATH="$PWD/lib:$VERIFIED_DEP_LIB:$LEAN_STDLIB"
+export LEAN_SRC_PATH="$PWD/src"
+for module in BridgeChain IndexedBridge SourceBound P193Adapter; do
+  "$LEAN_BIN" -t 0 -j 1 -M 8192 -DmaxSynthPendingDepth=3 \
+    -R "$PWD/src" -o "$PWD/lib/$module.olean" "$PWD/src/$module.lean" || exit
+done
+```
+
+Leave `autoImplicit` at its default. The four `#print axioms` commands at the
+end of `P193Adapter.lean` print its upstream scalar premise, scalar provider,
+invocation and endpoint dependencies. Every build must succeed; each of those
+four outputs must contain only `propext`, `Classical.choice` and `Quot.sound`.
+The independent audit additionally checked all 33 named targets and every new
+declaration, an independently transcribed B3 word and endpoint, four positive
+examples, and three sign/unsigned-exchange negative controls. Those broader
+checks are reported with evidence hashes in the receipt; the commands above
+repeat the four-module build and four adapter axiom reports.
+
+The endpoint permits arbitrary bank/helper dependence on a common
+`Ω : Type` and a supplied `ω : Ω`. The 22 scratch copies are initialized and
+erased to zero; the theorem preserves arbitrary live helpers, not arbitrary
+initial scratch contents. An empty Ω supplies no ω; ordinary inputs can use
+`Ω = Unit`.
+
+The audit's upstream commit-to-tree association relied on saved GitHub receipts;
+it reconstructed source trees but did not authenticate raw commit bytes. The
+publication step separately refreshes the three remote PR397 interface pins.
+The external `gcert1-p11-pr193.json.gz` binding covers compressed/decompressed
+identity and five scalar header fields only. Full serialized gate/frame-to-Lean
+reconstruction and the original PR168/193 derivation remain outside this result.
+
+This supplement establishes no geometric provider, stage/frame legality, label
+or paid physical cost claim, all-size compiler theorem, analytic transfer, E8/bit
+implementation, or broad B17 result. Existing Jacob Sussman scalar/helper and
+bridge mechanisms retain their attribution; no novelty or priority is claimed.
