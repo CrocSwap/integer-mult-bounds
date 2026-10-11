@@ -1,7 +1,7 @@
 # Far retiming, two complex helper substitutions and exact composition
 
-**Conditional Îº = 200010933894259105209673 / (2 Ã— 10Â²â¶)
-â‰ˆ 0.0010000546694712955 > 1/1000.**
+**Conditional κ = 200010933894259105209673 / (2 × 10²⁶)
+≈ 0.0010000546694712955 > 1/1000.**
 
 This package composes Chafik Boukhalfa's unchanged
 [PR378 far-retimed E8 word](https://github.com/CrocSwap/integer-mult-bounds/pull/378)
@@ -14,13 +14,13 @@ and the frozen `e8-nine-stage-composition` baseline remain unchanged.
 | --- | ---: | ---: |
 | Complex local helpers | 783 | 781 |
 | Complex live / physical stock | 14727 / 15520 | 14709 / 15500 |
-| Complex coarse saving | 999240641319551 / 10Â¹â¸ | 3128299315561 / 3125000000000000 |
-| Bit coarse saving | 8128527708459 / (8 Ã— 10Â¹âµ) | unchanged |
-| Conditional Îº | 199648631038144442893941 / (2 Ã— 10Â²â¶) | 200010933894259105209673 / (2 Ã— 10Â²â¶) |
+| Complex coarse saving | 999240641319551 / 10¹⁸ | 3128299315561 / 3125000000000000 |
+| Bit coarse saving | 8128527708459 / (8 × 10¹⁵) | unchanged |
+| Conditional κ | 199648631038144442893941 / (2 × 10²⁶) | 200010933894259105209673 / (2 × 10²⁶) |
 
 The complex supplier still binds. The bit word, its 128 frame changes, 43 helper
 reuses, unsplit idle profile, and finite coefficient 56223565806031 are unchanged.
-The excess over 1/1000 is exactly 10933894259105209673 / (2 Ã— 10Â²â¶). No new search runs
+The excess over 1/1000 is exactly 10933894259105209673 / (2 × 10²⁶). No new search runs
 inside the helper reconstruction; PR378's own full verifier regenerates its
 upstream far-retimed certificate.
 
@@ -53,9 +53,9 @@ copy. Fresh admission checks both 1021-column dirty scalar maps, gx/gxcore,
 72 invocation owner maps, bank assignments, paid profile and finite invoice.
 
 Both complex moment engines and fallback are rerun at the derived saving and
-next 10â»Â¹â¸ tick. The unchanged baseline assembly then reruns both bit moments,
+next 10⁻¹⁸ tick. The unchanged baseline assembly then reruns both bit moments,
 all eight counted-bill bootstrap cutoffs, the 47 strict constraints, adjacent
-10â»Â²â· rejection and complex-cap rejection. Changed-source, wrong-donor,
+10⁻²⁷ rejection and complex-cap rejection. Changed-source, wrong-donor,
 self-substitution and retained-helper controls must fail. Expected values are
 comparisons, never substitutes for fresh construction or verification.
 
