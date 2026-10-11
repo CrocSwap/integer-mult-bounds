@@ -1,0 +1,3 @@
+# Attribution
+
+Apache-2.0. Included public project sources and their historical attribution are retained byte-for-byte. PR250 is credited to SovereignSteak with substantial OpenAI Codex assistance; inherited PR233/234/244 notices remain in the sources. PR344 is credited to eumemic with substantial OpenAI Codex assistance and retained PR283 terminal-sink attribution. Exact source Git revisions and blob/SHA256 pins are in the source ledgers. The new scoped toy cache check and collaboration questions were prepared and independently reviewed with OpenAI Codex assistance. No private-memory material or desktop chat history is included.

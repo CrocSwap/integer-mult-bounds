@@ -1,0 +1,9 @@
+# Retained-query and terminal-cache collaboration
+
+This reproducible research note shares two constructive design leads: SovereignSteak/Codex PR250 query retention, pinnedc5aedbe94158adf04e97800e713517eaa711a267, and eumemic/Codex PR344 restored original-register caches, pinnedda0c805eab7e88d8b9fcce112ff8ed4b720bea8a. Their exact public source bytes, attribution and the scoped tiny algebra checks passed independent factual review. The detailed author questions are in sources/README.md and sources/sources/pr250/FEEDBACK-DRAFT.md.
+
+A retained dirty query may occupy an existing retiring pivot at its literal common frame until its last read, followed by a delayed paid transition and a revised chronological inverse. A restored cache may retain x_old, deliver its actual dirty saved value, then restore dirt by subtracting x_current and adding the unchanged correction. The checks here establish the small algebraic witnesses; they do not establish clean target values, actual-frame availability, complete historical PR344 reconstruction, full hosting or a improved integer-multiplication score.
+
+For a useful next construction, bind every query/cache to a physical slot, exact frame, complete incoming/outgoing dirty coefficient rows, read/copy/erase chronology, still-available controls, inverse and complete selector/child/coefficient/lifetime/opportunity invoice. The throughput caveat applies to the specified invertible dirty-flow model, not arbitrary redesigned circuits.
+
+Run ./verify.sh with Python3 and the standard library. It checks every bound public byte and reruns the immutable scoped query/cache witnesses in a fresh derived copy. FACTUAL-REVIEW records the independent source pins, counts and claim limits. This is an additive research artifact in the authorized fork; no upstream comment or external message to an author is claimed.
