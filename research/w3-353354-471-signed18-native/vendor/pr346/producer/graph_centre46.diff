@@ -1,0 +1,33 @@
+--- /home/claude/pr202/scripts/paired_cube/graph.py	2026-10-09 14:39:14.000000000 +0000
++++ tree/scripts/paired_cube/graph.py	2026-10-10 17:12:20.465707749 +0000
+@@ -190,14 +190,18 @@
+         self.local_channels()
+         base_nodes = len(self.a)
+         D = dict(zip(self.cubes, self.module(triple, [self.F[I] for I in self.cubes])))
+-        P, Q = {}, {}
++        P, Q, star = {}, {}, {}
+         for i in range(self.p):
+             others = [a for a in range(self.p) if a != i]
+             pairs = list(combinations(others, 2))
+             for bit in range(2):
+                 inputs = [self.A[tuple(sorted((i, *K))), i, bit] for K in pairs]
+-                for K, node in zip(pairs, self.module(pair, inputs)):
++                outs = self.module(pair, inputs)
++                for K, node in zip(pairs, outs[:len(pairs)]):
+                     P[tuple(sorted((i, *K))), i, bit] = node
++                if len(outs) > len(pairs):
++                    # centre-sharing pair module: its extra root is the sum of all inputs = star(2i+bit)
++                    star[i, bit] = outs[len(pairs)]
+         for i, j in combinations(range(self.p), 2):
+             others = [a for a in range(self.p) if a not in (i, j)]
+             for mode in range(2):
+@@ -231,7 +235,8 @@
+             # Their scatter is 1/2 sum_(i in T) S_i - 1/6 sum_i S_i.
+             for i in range(self.p):
+                 for e in range(2):
+-                    self.centers.append(self.sum(self.A[I, i, e] for I in self.cubes if i in I))
++                    self.centers.append(star[i, e] if (i, e) in star else
++                                        self.sum(self.A[I, i, e] for I in self.cubes if i in I))
+             incidences = 0
+             center_scatter = '1/2 sum_(i in T) S_i - 1/6 sum_i S_i'
+         else:
