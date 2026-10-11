@@ -1,0 +1,7 @@
+import CGInputInverseNodes008
+namespace CurrentMain.ComplexGeometryInputs
+open CurrentMain.ComplexGeometry CurrentMain.ComplexGeometryData CurrentMain.SignedTrace CurrentMain.BinaryFrame
+set_option maxRecDepth 100000
+set_option maxHeartbeats 16000000
+def inverseTable : Table Nat := inverseNode8877
+end CurrentMain.ComplexGeometryInputs
