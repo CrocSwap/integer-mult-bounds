@@ -7,8 +7,10 @@ as one fresh uninterruptedPR456wrapper. The current proof package manifest is
 bound by the component receipt. Initial shell-path/dependency setup failures and
 the successful dependency installation are retained.
 
-The independent fresh fullPython3.14wrapper is still running. GitHubCI is separate
-and was last observed queued. No3.14PASS is claimed in this revision.
+The independent fresh full Python 3.14.8 wrapper PASSed, including the complete
+parent chain and regenerated phases: PASS_FULL_WHOLE_REPLICA7. Its receipt binds
+the unchanged proof manifest and all six step logs. GitHub CI remains separate
+and was observed queued at this publication. Evidence is in python314-full/.
 
 The packing-bound directory proves a restricted exact optimization ceiling for
 the fixed whole-rank9complex inventory. It does not replace supplier verification.
