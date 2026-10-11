@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Bind the published selection to its frozen finite certificate and proof files.
 
-This fast check does not replay the construction. Run make entrance-bank-verify
+This fast check does not replay the construction. Run make gen4-bank-verify
 for the complete selected finite replay. Douglas Colkitt, with OpenAI Codex
 assistance. Apache-2.0.
 """
 from fractions import Fraction
 from hashlib import sha256
 from pathlib import Path
+import argparse
 import json
 import sys
 
@@ -53,7 +54,11 @@ def check(record, root=ROOT):
 
 def main():
     require(not sys.flags.optimize, 'Assertions must remain enabled for the verification pipeline')
-    record = json.loads((ROOT / 'certificates/selected-result.json').read_text())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--record', type=Path, default=ROOT / 'certificates/selected-result.json',
+                        help='Selected or historical checkpoint record to verify')
+    args = parser.parse_args()
+    record = json.loads(args.record.read_text())
     kappa = check(record)
     print('PASS selected record, exact kappa, original source inventory and proof supplement: ' + str(kappa))
 
