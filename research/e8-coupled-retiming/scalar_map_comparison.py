@@ -34,12 +34,8 @@ def row(additions, output):
     return result
 
 
-def main():
-    if sys.flags.optimize:
-        raise SystemExit("Assertions must remain enabled for verification")
-    raws = [gzip.decompress(Path(path).read_bytes()) for path in sys.argv[1:]]
-    certificates = [json.loads(raw) for raw in raws]
-    assert len(certificates) == 2
+def compare(certificates):
+    """Compare the complete scalar maps, including all initial helper values."""
     a, b = certificates
     assert all(a[key] == b[key] for key in ("h", "v", "R", "ports", "scat"))
     n = 2 * a["v"] + a["R"]
@@ -50,16 +46,25 @@ def main():
         original, candidate = (row(additions, output) for additions in words)
         assert original == candidate, output
         counts.append(len(original))
-    print(json.dumps({
-        "uncompressed_sha256": [hashlib.sha256(raw).hexdigest() for raw in raws],
-        "source_files": sys.argv[1:],
+    return {
         "complete_scalar_maps_equal": True,
         "rows": n,
         "columns": n,
         "nonzero_entries": sum(counts),
         "elementary_additions": len(words[0]),
         "scope": "Exact full rational scalar map, including arbitrary source, target, and helper initial values. Frame transforms and compiled cleanup are separate obligations."
-    }, indent=2))
+    }
+
+
+def main():
+    if sys.flags.optimize:
+        raise SystemExit("Assertions must remain enabled for verification")
+    assert len(sys.argv) == 3
+    raws = [gzip.decompress(Path(path).read_bytes()) for path in sys.argv[1:]]
+    result = compare([json.loads(raw) for raw in raws])
+    result["uncompressed_sha256"] = [hashlib.sha256(raw).hexdigest() for raw in raws]
+    result["source_files"] = sys.argv[1:]
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

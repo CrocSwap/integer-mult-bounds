@@ -6,15 +6,13 @@ from fractions import Fraction as Q
 import gzip
 import hashlib
 import json
-import os
 from pathlib import Path
-import subprocess
 import sys
-import tempfile
 
 sys.dont_write_bytecode = True
 from reconstruct import moment, reconstruct
 from retime import build
+from scalar_map_comparison import compare
 
 
 ROOT = Path(__file__).resolve().parent
@@ -68,7 +66,7 @@ def main():
     for key in ("helpers", "copy_cost", "invocation_mass", "rank_mass", "deficit", "m", "W"):
         assert old[key] == new[key], key
 
-    # These damaged inputs test three separate proof obligations.
+    # These damaged inputs test separate proof obligations.
     controls = []
     bad = deepcopy(candidate)
     bad["scat"]["table"][0][0][1] *= -1
@@ -79,6 +77,9 @@ def main():
     bad = deepcopy(candidate)
     bad["cst"] -= 1
     controls.append(("copy undercharge", bad, "Copy cost"))
+    bad = deepcopy(candidate)
+    bad["A"] += [["out", 1, 0, [[1, 1, 1]], []], ["out", 1, 0, [[1, -1, 1]], []]]
+    controls.append(("forbidden phase-A cancellation", bad, "Unsupported phase-A scalar direction"))
     rejected = []
     for name, broken, expected in controls:
         try:
@@ -89,28 +90,8 @@ def main():
         else:
             raise AssertionError("Damaged input accepted: " + name)
 
-    checks = []
-    with tempfile.TemporaryDirectory(prefix="e8-retiming-") as scratch:
-        env = dict(os.environ, GX_OUT=scratch, PYTHONDONTWRITEBYTECODE="1")
-        commands = [
-            ("complete_scalar_map", [ROOT / "scalar_map_comparison.py", ROOT / "data/original.json.gz", ROOT / "data/retimed.json.gz"]),
-            ("reference", [ROOT / "vendor/tools/gx/refcheck.py", ROOT / "data/retimed.json.gz"]),
-            ("mirror", [ROOT / "vendor/tools/gx/gxdry.py", ROOT / "data/retimed.json.gz"]),
-            ("standalone_replay", [ROOT / "vendor/tools/e8/replay.py", ROOT / "data/retimed.json.gz", "e8", "json"]),
-        ]
-        for name, arguments in commands:
-            run = subprocess.run([sys.executable, "-B", *map(str, arguments)],
-                                 capture_output=True, text=True, env=env, check=True)
-            if name == "complete_scalar_map":
-                scalar = json.loads(run.stdout)
-                assert scalar["complete_scalar_maps_equal"] and scalar["rows"] == 1023
-            elif name == "reference":
-                assert "ACCEPTED by gx.check1" in run.stdout
-            elif name == "mirror":
-                assert "MIRROR ACCEPTS" in run.stdout and "whole-block 8764122" in run.stdout
-            else:
-                assert "REPLAY ACCEPTED: R=783 W=1263 D=120 cst=72 N=9039 figure=8764122" in run.stdout
-            checks.append(name)
+    scalar = compare((original, candidate))
+    assert scalar["complete_scalar_maps_equal"] and scalar["rows"] == 1023
     result = {"status": "PASS", "source_commit": pins["commit"],
               "uncompressed_sha256": list(map(digest, raw)),
               "histogram_delta": delta, "histogram": new["invocation_histogram"],
@@ -118,7 +99,8 @@ def main():
               "baseline": check_bound(old, OLD), "candidate": check_bound(new, NEW),
               "m": new["m"], "W": new["W"], "helpers": new["helpers"],
               "copy_cost": new["copy_cost"], "rank_mass": new["rank_mass"], "deficit": new["deficit"],
-              "scalar_map_rows_and_columns": 1023, "checks": checks,
+              "scalar_map_rows_and_columns": scalar["rows"],
+              "checks": ["frame_paths", "clean_source_identity", "complete_scalar_map", "exact_moments", "strict_concavity_identity"],
               "rejected_controls": rejected,
               "scope": "Finite E8 circuit and exact recursive moment. No new Lean build or full multiplication theorem is claimed."}
     print(json.dumps(result, indent=2))

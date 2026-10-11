@@ -7,13 +7,11 @@ the same 783 helpers, copy cost 72, rank mass 56,715, and deficit 120.
 | Quantity | Original | Candidate |
 | --- | ---: | ---: |
 | Conditional complex saving under PR352's fallback convention | 876248285600677 / 10^18 | 876412559609473 / 10^18 |
-| Published checker's conservative figure, denominator 10^10 | 8762479 | 8764122 |
 | Children in one invocation | 3974 | 3973 |
 | Children in five stages | 20830 | 20825 |
 | Scalar additions, including scatter | 3876 | 3876 |
 
-The first saving increases by about 0.01875%. The checker figure uses a different
-reserve convention; the two rows must not be treated as the same bound.
+The conditional saving increases by about 0.01875%.
 
 Four phase-A additions move to two later frames. Two sets of phase-B gates use
 larger frames. The original frame table gains two entries. All scalar coefficients,
@@ -34,10 +32,10 @@ python3 -B research/e8-coupled-retiming/verify.py
 
 The script uses Python and its standard library. It checks source hashes,
 rebuilds the candidate, checks every frame path, reconstructs the scalar source
-map and histogram, compares all 1,046,529 entries of the complete scalar maps,
-and runs three unchanged upstream checkers. A coefficient identity checks the
+map and histogram, and compares all 1,046,529 entries of the complete scalar maps.
+A coefficient identity checks the
 strict-concavity proof for the full saving interval. Exact rational bounds prove both
-reported savings. In each case the next 10^-18 grid point fails. Three damaged
+reported savings. In each case the next 10^-18 grid point fails. Four damaged
 inputs must fail for their stated reasons.
 
 To write the candidate to another file, run:
@@ -59,11 +57,13 @@ Lean data and theorem do not certify this changed file. A formal extension must
 generate and compile new data. The general frame-transfer, helper cleanup,
 recursive construction, and multiplication assembly remain inherited
 dependencies. The complete scalar-map comparison does not prove those steps.
+The script does not run the upstream checkers or their Lean representation
+checks for separate positive and negative parts and digit limits.
 
 ## Source and search
 
 The baseline is Sussman's `tools/certificate/gcert1-e8-r783.json.gz`. The exact
-commit and hashes of all imported files are in `sources.json`. The E8 complex
+commit and original-data hash are in `sources.json`. The E8 complex
 connection and fallback convention follow CrocSwap PR352 at
 `04b4c3c478b5bd8797d2663d89d8db4dfd0ad9f2`. The exact reference paths and
 hashes are recorded as mathematical provenance in `sources.json`; those files

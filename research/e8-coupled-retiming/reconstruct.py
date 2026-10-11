@@ -21,7 +21,9 @@ def require(condition, message):
 
 def add(row, source, coefficient):
     for key, value in source.items():
-        result = row.get(key, Q(0)) + coefficient * value
+        increment = coefficient * value
+        require(6 % increment.denominator == 0, "Scalar increment is not in sixths")
+        result = row.get(key, Q(0)) + increment
         if result:
             row[key] = result
         else:
@@ -86,17 +88,27 @@ def moment(histogram, dimension, stock, saving, fallback=True):
 
 
 def reconstruct(c):
+    require(c["format"] == "gcert/1", "Certificate format")
     h, v, helpers = c["h"], c["v"], c["R"]
     require((h, v) == (9, 120), "This audit is for the E8 label family")
     require(not c["ext"], "Exterior gauges are outside this audit")
     ports = c["ports"]
-    require(set(ports) == {p for p in range(512) if p.bit_count() in (3, 7)}, "E8 ports")
+    require(len(ports) == v and set(ports) == {p for p in range(512) if p.bit_count() in (3, 7)}, "E8 ports")
+    require(c["frames"][0] == [] and c["frames"][1] == [1 << i for i in range(h - 1, -1, -1)], "Frame endpoints")
+    for basis in c["frames"]:
+        require(all(0 < vector < 512 for vector in basis), "Frame outside ambient space")
+        pivots = [vector.bit_length() - 1 for vector in basis]
+        require(pivots == sorted(set(pivots), reverse=True) and all(
+            not (vector >> pivot & 1)
+            for i, vector in enumerate(basis) for j, pivot in enumerate(pivots) if i != j
+        ), "Noncanonical frame basis")
     spaces = [elements(f) for f in c["frames"]]
     dimensions = [len(f) for f in c["frames"]]
     require(len(set(spaces)) == len(spaces), "Duplicate frame spaces")
     require(all(all(0 <= x < 512 for x in s) for s in spaces), "Frame outside ambient space")
     total = 2 * v + helpers
     require(len(c["start"]) == len(c["final"]) == total, "Endpoint count")
+    require(all(0 <= frame < len(spaces) for frame in c["start"] + c["final"]), "Endpoint frame index")
     current = list(c["start"])
     rows = [{i: Q(1)} if i < v else {} for i in range(total)]
     by_role = {kind: Counter() for kind in "xysc"}
@@ -122,8 +134,9 @@ def reconstruct(c):
 
     def run(gates, phase):
         for gate in gates:
+            require(gate[0] in ("in", "out") and len(gate) == (5 if gate[0] == "out" else 4), "Unsupported gate")
             tag, frame, pivot, terms = gate[:4]
-            require(tag in ("in", "out"), "Unsupported gate")
+            require(0 <= frame < len(spaces), "Gate frame index")
             spectators = gate[4] if tag == "out" else []
             registers = [pivot] + [r for r, _, _ in terms] + spectators
             require(len(set(registers)) == len(registers), "Aliased gate ports")
@@ -134,6 +147,7 @@ def reconstruct(c):
             for register, numerator, denominator in terms:
                 target, source = (pivot, register) if tag == "in" else (register, pivot)
                 require((kind(source), kind(target)) in allowed, "Unsupported scalar direction")
+                require(phase == "B" or (kind(source), kind(target)) in {("x", "s"), ("s", "s")}, "Unsupported phase-A scalar direction")
                 require(denominator > 0, "Coefficient denominator")
                 add(rows[target], rows[source], Q(numerator, denominator))
 
@@ -142,13 +156,14 @@ def reconstruct(c):
     require(sorted(k for k, _, _ in retained) == list(range(len(retained))), "Retained total indices")
     totals = {}
     for k, register, frame in retained:
-        require(kind(register) == "s" and current[register] == frame, "Retained total frame")
+        require(2 * v <= register < total and current[register] == frame, "Retained total frame")
         totals[k] = dict(rows[register])
         by_role["c"][dimensions[frame]] += 1
     require(all(spaces[current[v + i]] == {0} for i in range(v)), "Target moved before scatter")
     require(len(c["scat"]["table"]) == v, "Scatter size")
     for target, entries in enumerate(c["scat"]["table"]):
         for k, numerator, denominator in entries:
+            require(k in totals and denominator > 0, "Scatter entry")
             add(rows[v + target], totals[k], Q(numerator, denominator))
     run(c["B"], "B")
     require(all(rows[i] == {i: Q(1)} and rows[v + i] == {i: Q(1)} for i in range(v)), "Clean-source scalar identity")

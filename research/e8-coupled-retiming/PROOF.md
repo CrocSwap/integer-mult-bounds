@@ -159,3 +159,12 @@ stated convention. The general frame-transfer and recursion theorems remain
 dependencies. A complete scalar identity is not a proof of the tape compiler
 or the integer-multiplication assembly. No global optimum or larger final
 integer-multiplication saving is claimed.
+
+The local verifier checks the finite rational circuit, its frame paths, and
+the stated moment. It does not run the upstream checkers or their Lean
+representation checks for separate positive and negative parts and digit
+limits. The disjoint operations in the first two changes commute in those
+representations as well: each moved addition crosses only operations on other
+registers. The last two changes leave the scalar operations in place. This
+preserves the scalar computation from the pinned baseline; it does not replace
+a build of new Lean data.
