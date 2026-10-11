@@ -1,0 +1,24 @@
+from pathlib import Path
+from collections import Counter
+import json,struct,hashlib
+P=Path(__file__).resolve().parent;R=P.parents[2];S=R/'experiments/architecture/collective-common-frame-bit/composed';B=json.load(open(S/'baseline.json'));sel=json.load(open(S/'SELECTION.json'));entries=sel['entries'];assert len(entries)==95
+K={}
+for h in range(240,980):
+ x=[0]*980;x[h]=1
+ for f,d,ss in B['A']:x[d]+=sum(x[s] for s in ss)
+ ret=[x[i] for i in B['ret']]
+ for i,ks in enumerate(B['scatter']):x[120+i]+=sum(ret[k] for k in ks)
+ for f,d,ss in B['B']:x[d]+=sum(x[s] for s in ss)
+ K[h]=x[120:240]
+ps={e['pivot'] for e in entries};ds={d for e in entries for d,c in e['donor_coefficients']};assert len(ps)==95 and not ps&ds
+for e in entries:
+ assert all(K[e['pivot']][i]==sum(c*K[d][i] for d,c in e['donor_coefficients']) for i in range(120))
+H=Counter()
+for op,a,b,c,f,z in struct.iter_unpack('<6i',(S/'records/249-records.bin').read_bytes()):
+ if op==0 and f:H[f]+=1
+ elif op==2:H[z]+=1
+mass=sum(r*n for r,n in H.items());assert mass==7553
+st=json.load(open(S/'records/249-states.json'));fs=json.load(open(S/'records/frames.json'))['frames'];widths=Counter(8-fs[str(st['initial'][str(h)])]['dim'] for h in range(240,980));assert widths==Counter({8:645,7:87,4:8})
+raw=list(struct.iter_unpack('<6i',(S/'records/249-records.bin').read_bytes()));signed=list(struct.iter_unpack('<6i',(S/'signed-records.bin').read_bytes()));assert [(op,a,b,c%2 if op==1 else c,f,z) for op,a,b,c,f,z in signed if op!=1 or c%2]==raw
+out={'status':'PASS_INDEPENDENT_ALL95_EXACT_KERNEL_RELATIONS_NILPOTENT_PRELUDE_RANK_AND_PROFILE','pivots':95,'entrance_rank':sum(e['rank'] for e in entries),'signed_and_native_independence':'Every relation has a distinct pivot coefficient1, and no pivot appears among any donors. Thus pivot rows are independent over bothQ andF2; donor-update prelude N satisfiesN²=0.','profile':dict(H),'rank_mass':mass,'width_inventory':dict(widths),'source_word_sha256':hashlib.sha256((S/'word.json').read_bytes()).hexdigest(),'scope':'Actual95chosenrelations/profile only. No assertion MILPglobal optimality overlarger supports, no allsize/fullsupplier score. Forwardphysicalframe/scalar gate separate receipt; reflected and globalcompiler/invoice pending.'}
+(P/'COLLECTIVE95-RELATIONS.json').write_text(json.dumps(out,indent=2)+'\n');print(out)
