@@ -1,0 +1,1 @@
+Draft conditional kappa 0.001019646575559504. R779 gauged helper inlining on #422. Run `python -B research/e8-gauged-inlining/verify.py /absolute/path/to/new/output`. Reconstructs parent, new word and derived helper reference, fresh local phases, physical assembly/invoice and bit. Ten manifests checked. Exact construction and price pass; full current verification is pending.
