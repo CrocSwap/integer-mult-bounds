@@ -1,0 +1,45 @@
+name: Split-centre signed finite composition
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'research/e8-split-centres-signed-composition/**'
+      - 'research/e8-bit-signed-validation/**'
+      - '.github/workflows/e8-split-centres-signed-composition.yml'
+  pull_request:
+    paths:
+      - 'research/e8-split-centres-signed-composition/**'
+      - 'research/e8-bit-signed-validation/**'
+      - '.github/workflows/e8-split-centres-signed-composition.yml'
+permissions:
+  contents: read
+concurrency:
+  group: e8-split-centres-signed-composition-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pinned geometry dependencies
+        run: python -m pip install -r research/e8-split-centres-signed-composition/requirements.txt
+      - name: Replay complete split-centre signed composition and every phase
+        run: PYTHONDONTWRITEBYTECODE=1 python -B research/e8-split-centres-signed-composition/verify.py "$RUNNER_TEMP/e8-split-centres-signed-composition"
+      - name: Confirm tracked source files unchanged
+        run: git diff --exit-code
+      - name: Preserve replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e8-split-centres-signed-composition-${{ matrix.python-version }}
+          path: ${{ runner.temp }}/e8-split-centres-signed-composition

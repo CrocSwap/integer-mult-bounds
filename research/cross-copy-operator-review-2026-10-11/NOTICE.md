@@ -1,0 +1,5 @@
+# Attribution and scope
+
+Apache-2.0. PR448 cross-copy hosting: higherbeing, with Anthropic Claude assistance. PR442 idle-child hosting: DaysSky, with Anthropic Claude assistance. The inherited PR386 operator proof, early-reset compiler, complete-stream manuscript and bank proof are reproduced byte-for-byte with immutable source pins; their original notices remain in those files. The signed95 source word and records are retained from the separately published bot release, including the Dugongue/Codex PR272 common-frame basis attribution and earlier E8/kernel attributions in that release. Independent review, tiny encoded model and portable wrapper: OpenAI Codex assistance, 2026-10-11.
+
+This is constructive project research feedback published in the authorized fork. It is not a direct message or comment to upstream authors and admits no improved supplier or score. Frozen evidence is copied unchanged. The new README, FEEDBACK and verification wrapper distinguish the complete-stream theorem from its still-conditional compressed instantiation and from possible new encoded contracts.

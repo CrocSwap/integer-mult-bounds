@@ -1,0 +1,9 @@
+# Signed complete-call provider portfolio
+
+This conditional finite increment uses exactly eight alternate complete signed calls at stage5 and80 unchanged calls from the preserved published pooled60 parent. The exact kappa is1259574957280999831405951/10^27. Run python3 -B verify.py using Python3.12 or newer with assertions enabled. The default materializes the new sigma, then invokes parent materialize and parent verify exactly once each before rebuilding and independently checking the portfolio.
+
+SOURCE-PROJECTION.json binds the frozen originals to an anonymous repository-relative projection. Only personal filesystem prefixes and hashes necessarily changed by that projection differ in scientific JSON. Programs, signed records, operators, owners, frames, geometry and all finite arithmetic remain bound; parent1134 files remain byte and mode exact. The new140MB sigma is transported as a lossless gzip. The complete signed operator/dirt/inverse, charts, owner assignment, route ledger, fees,159-bit prefix,532-bit three-level coefficient, row19431, dual endpoint engines,8bootstrap and47assembly conditions are regenerated.
+
+All inherited expanded compiler/commonprime/correlateddirty-bank/cover/precision/tape/recovery/analytic/C_full hypotheses remain explicit conditional interfaces. Source attestations and original historical gates record provenance; their projected hashes do not constitute a new scientific audit. Publication requires the independent projected-byte/privacy gate and full fresh relocated default.
+
+The complete parent default runs through its explicitly pinned verify-portable.py shim, which permits gzip container metadata differences only after strict single-member and exact plain-byte binding. Original parent1134 files are preserved; the three additions are bound by PORTABLE-GZIP-REPAIR.json.

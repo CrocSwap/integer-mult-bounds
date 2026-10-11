@@ -1,0 +1,118 @@
+[
+  {
+    "derived_sha256": "79ecdb028ad2f77c319ddfd476749cddda9d4d287305b48d2e99a21462d3c65e",
+    "diff": "--- \n+++ \n@@ -8,7 +8,7 @@\n from collections import Counter\n from pathlib import Path\n \n-H,V,R,L,K,T,M=8,120,747,9,4,8,64\n+H,V,R,L,K,T,M=8,120,740,9,4,64,64\n LOCAL=2*V+R; DATA=2*K*V*T\n \n def tile_banks(width):\n@@ -65,7 +65,7 @@\n     base=Path('work/pr370-source/research/e8-bit/data/bit/bitE8-r865.json.gz')\n     original=json.loads(gzip.decompress(base.read_bytes()))\n     assert geo['word_sha256']==sha(base)\n-    assert w['lines']==original['lines'] and w['frames'][:len(original['frames'])]==original['frames'] and w['form']==original['form']\n+    assert w['lines']==original['lines'] and len(w['frames'])==len(original['frames'])==len(set(map(tuple,w['frames']))) and set(map(tuple,w['frames']))==set(map(tuple,original['frames'])) and w['form']==original['form']\n     kr=json.loads((a.source/'bit-kernel-receipt.json').read_text()); assert kr['output_sha256'] and len(w['frames'])==len(original['frames'])+kr['new_frames']\n     geo['inherited_geometry_sha256']=sha(inherited);geo['word_sha256']=sha(wp)\n     geo['reuse_scope']='Unchanged ports, rational frames, compressed windows and whole rank-eight bank slots; changed owners are replayed separately.'\n@@ -79,8 +79,8 @@\n     initial=[state['initial'][str(i)] for i in range(LOCAL)]\n     final=[state['final'][str(i)] for i in range(LOCAL)]\n     assert all(dims[final[i]]==H for i in range(2*V,LOCAL))\n-    width={i-2*V:H-dims[initial[i]] for i in range(2*V,LOCAL)}; ENT=sum(H-x for x in width.values()); assert ENT%8==0\n-    place,NB=tile_banks(width); assert NB==(8*R-ENT)//8\n+    width={i-2*V:H-dims[initial[i]] for i in range(2*V,LOCAL)}; ENT=sum(H-x for x in width.values()); assert (T*(8*R-ENT))%M==0\n+    place,NB=tile_banks(width); assert NB==T*(8*R-ENT)//M\n     LIVE=DATA+L*NB\n     streams={}; checks={}; localH=None\n     for reverse in (False,True):\n@@ -225,10 +225,10 @@\n                 expanded.update((json.dumps(mapped,separators=(',',':'))+'\\n').encode()); full_event_count+=1\n             calls.append(dict(stage=s,replica=rep,pair=p,orientation=ori,owners=owners,local_hash=checks[ori]['sha256']))\n     paid.pop(0,None)\n-    assert len(assignment)==L*T*R==53784 and len(calls)==72\n+    assert len(assignment)==L*T*R==426240 and len(calls)==576\n     for e in schedule:\n         if e['kind']=='idle' and e['rank']: paid[e['rank']]+=2*V*T\n-    mass=sum(r*c for r,c in paid.items()); assert M*LIVE-mass==2496\n+    mass=sum(r*c for r,c in paid.items()); assert M*LIVE-mass==19968\n     cf=checks['forward']['cancellation_free_row_l1']; cb=checks['reverse']['cancellation_free_row_l1']\n     prefix=(1<<nb)*cf**5*cb**4; charged_prefix=64*((prefix.bit_length()+63)//64);assert prefix<1<<charged_prefix\n     print('Fresh prefix bits',prefix.bit_length(),'charged',charged_prefix,flush=True)\n@@ -248,7 +248,7 @@\n                 bank_assignments=len(assignment),banks_per_stage=NB,entrance_rank_total=ENT,mixed_width_slots=True,padding_calls=0,\n                 profile=dict(sorted(paid.items())),paid_calls=sum(paid.values()),rank_mass=mass,deficit=2496,\n                 maxchild=max(paid),halving_depth=2,halving_integer_inequality=[64**2,2*42**2],\n-                local_additions=expected_adds,bridge_additions=18*V*T,copy_erase_episodes=9*72,\n+                local_additions=expected_adds,bridge_additions=18*V*T,copy_erase_episodes=9*576,\n                 global_prefix_bound=str(prefix),global_prefix_bits=prefix.bit_length(),charged_prefix_bits=charged_prefix,\n                 omitted_bridge_shears_rejected=bridge_controls,\n                 scope='Complete source-bound finite cover template. Local and unbanked global F2 columns are replayed; arbitrary physical bank dirt follows by injective owner routes and the all-column local theorem. Astronomical cover enumeration and all-size compiler interfaces remain explicit inherited assumptions.',\n",
+    "edits": [
+      [
+        "8,120,747,9,4,8,64",
+        "8,120,740,9,4,64,64"
+      ],
+      [
+        "w['frames'][:len(original['frames'])]==original['frames']",
+        "len(w['frames'])==len(original['frames'])==len(set(map(tuple,w['frames']))) and set(map(tuple,w['frames']))==set(map(tuple,original['frames']))"
+      ],
+      [
+        "assert ENT%8==0",
+        "assert (T*(8*R-ENT))%M==0"
+      ],
+      [
+        "NB==(8*R-ENT)//8",
+        "NB==T*(8*R-ENT)//M"
+      ],
+      [
+        "==53784",
+        "==426240"
+      ],
+      [
+        "len(calls)==72",
+        "len(calls)==576"
+      ],
+      [
+        "copy_erase_episodes=9*72",
+        "copy_erase_episodes=9*576"
+      ],
+      [
+        "M*LIVE-mass==2496",
+        "M*LIVE-mass==19968"
+      ]
+    ],
+    "name": "bit_global.py",
+    "original_sha256": "79c7dc84e65dca10c35c842cf170e4719d45c38a25d03bf762332b24c700b6c9"
+  },
+  {
+    "derived_sha256": "f55ca6ccaf10c4daad19fdf68865c42a1f6814e4b6674fcfcafed870e8a040e2",
+    "diff": "--- \n+++ \n@@ -56,32 +56,32 @@\n     assert t['local_programs']==expected\n \n     st=json.loads((a.local_check/'records/249-states.json').read_text())\n-    width=[8-dimensions[st['initial'][str(i)]] for i in range(240,987)]; ENT=sum(8-x for x in width); assert ENT%8==0\n-    NB=(8*747-ENT)//8; LIVE=7680+9*NB; assert g['live']==LIVE\n+    width=[8-dimensions[st['initial'][str(i)]] for i in range(240,980)]; ENT=sum(8-x for x in width); assert (64*(8*740-ENT))%64==0\n+    NB=64*(8*740-ENT)//64; LIVE=61440+9*NB; assert g['live']==LIVE\n     def validate(q,check_profile=True):\n-        assert (q['m'],q['live'],q['replicas'],q['stages'])==(64,LIVE,8,9)\n+        assert (q['m'],q['live'],q['replicas'],q['stages'])==(64,LIVE,64,9)\n         assert q['bank_padding'] is None and q['local_programs']==expected\n         hist=Counter(); occupation=defaultdict(set); calls=set()\n         for c in q['calls']:\n             st,rep,p=c['stage'],c['replica'],c['pair']; rev=c['orientation']=='reverse'\n-            assert 0<=st<9 and 0<=rep<8 and p==max(0,(st-1)//2)\n+            assert 0<=st<9 and 0<=rep<64 and p==max(0,(st-1)//2)\n             assert rev==(st in (1,3,5,7)) and (st,rep) not in calls; calls.add((st,rep))\n-            own=c['owners']; assert len(own)==987\n-            assert len({(f,tuple(r)) for f,r in own})==987\n+            own=c['owners']; assert len(own)==980\n+            assert len({(f,tuple(r)) for f,r in own})==980\n             for i,(family,route) in enumerate(own):\n                 assert 0<=family<LIVE\n                 if i<240:\n                     side=i//120; side=1-side if rev else side\n                     assert family==rep*960+(2*p+side)*120+i%120 and route==['data',st,i%120]\n                 else:\n-                    j=i-240; assert route[0]=='bank' and route[2]==width[j] and 7680+st*NB<=family<7680+(st+1)*NB\n+                    j=i-240; assert route[0]=='bank' and route[2]==width[j] and 61440+st*NB<=family<61440+(st+1)*NB\n                     cells=set(range(route[1],route[1]+route[2])); assert cells<=set(range(64)) and not (cells & occupation[family])\n                     occupation[family]|=cells\n             for e in q['local_programs'][c['orientation']]:\n                 if e[0]==0 and e[4]: hist[e[4]]+=1\n                 if e[0]==2: hist[e[5]]+=1\n-        assert calls=={(s,r) for s in range(9) for r in range(8)}\n-        assert set(occupation)==set(range(7680,LIVE)) and all(s==set(range(64)) for s in occupation.values())\n+        assert calls=={(s,r) for s in range(9) for r in range(64)}\n+        assert set(occupation)==set(range(61440,LIVE)) and all(s==set(range(64)) for s in occupation.values())\n         levels=[-1]*4; scalar=[1<<i for i in range(8)]; seen=[]; br=0; exchanged=False\n         for e in q['schedule']:\n             if e['kind']=='local_cover_sweep':\n@@ -92,7 +92,7 @@\n                 p,src,dst,r=e['pair'],e['source_level'],e['target_level'],e['rank']\n                 assert levels[p]==src and src<=dst<=8\n                 assert r==7*(dst-src); levels[p]=dst\n-                if r: hist[r]+=1920\n+                if r: hist[r]+=15360\n             elif e['kind']=='bridge':\n                 d,s=e['dst'],e['src']; assert levels[d]==levels[s] and e['coefficient'] in (-1,1)\n                 scalar[2*d]^=scalar[2*s]; scalar[2*s+1]^=scalar[2*d+1]; br+=1\n@@ -101,7 +101,7 @@\n                 for p in range(4): scalar[2*p],scalar[2*p+1]=scalar[2*p+1],scalar[2*p]\n                 exchanged=True\n         assert exchanged and scalar==[1<<i for i in range(8)] and seen==list(range(9)) and br==9\n-        assert 64*LIVE-sum(r*n for r,n in hist.items())==2496\n+        assert 64*LIVE-sum(r*n for r,n in hist.items())==19968\n         if check_profile: assert hist==Counter({int(k):v for k,v in g['profile'].items()})\n         return hist\n     hist=validate(t)\n@@ -122,7 +122,7 @@\n     result=dict(status='PASS_INDEPENDENT_COMPRESSED_BIT_TEMPLATE_AUDIT',template_sha256=g['template_sha256'],\n                 source_frames=len(proj),exact_nested_frame_pairs=len(pairs),exact_reflected_pairs=len(pairs),\n                 orthogonal_lift_argument='Adding the same orthogonal E_s leaves P_V-P_U unchanged; each audited projector is therefore the literal child projector in every one of the nine windows.',\n-                exact_bank_families=LIVE-7680,mixed_width_slots=True,entrance_rank_total=ENT,mutations_rejected=controls,\n+                exact_bank_families=LIVE-61440,mixed_width_slots=True,entrance_rank_total=ENT,mutations_rejected=controls,\n                 profile=dict(sorted(hist.items())),seconds=time.monotonic()-start)\n     (out/'AUDIT.json').write_text(json.dumps(result,indent=2)+'\\n'); print(json.dumps(result),flush=True)\n \n",
+    "edits": [
+      [
+        "range(240,987)",
+        "range(240,980)"
+      ],
+      [
+        "assert ENT%8==0",
+        "assert (64*(8*740-ENT))%64==0"
+      ],
+      [
+        "NB=(8*747-ENT)//8; LIVE=7680+9*NB",
+        "NB=64*(8*740-ENT)//64; LIVE=61440+9*NB"
+      ],
+      [
+        "(64,LIVE,8,9)",
+        "(64,LIVE,64,9)"
+      ],
+      [
+        "0<=rep<8",
+        "0<=rep<64"
+      ],
+      [
+        "==987",
+        "==980"
+      ],
+      [
+        "7680+st*NB",
+        "61440+st*NB"
+      ],
+      [
+        "7680+(st+1)*NB",
+        "61440+(st+1)*NB"
+      ],
+      [
+        "range(8)}",
+        "range(64)}"
+      ],
+      [
+        "range(7680,LIVE)",
+        "range(61440,LIVE)"
+      ],
+      [
+        "hist[r]+=1920",
+        "hist[r]+=15360"
+      ],
+      [
+        "==2496",
+        "==19968"
+      ],
+      [
+        "LIVE-7680",
+        "LIVE-61440"
+      ]
+    ],
+    "name": "bit_audit.py",
+    "original_sha256": "203bb609952ad7b7ca761e9f9883ee9fa35a0a0474503b396d47a31169102e7d"
+  },
+  {
+    "derived_sha256": "f4e65e518176afe7980864102d72b2d88e9a7943ed39f3c746430aae640ad3ba",
+    "diff": "--- \n+++ \n@@ -11,8 +11,8 @@\n cx=read(C/'INTEGRATION.json');ca=read(C/'INDEPENDENT-REPLAY.json')\n assert audit['template_sha256']==g['template_sha256'] and ca['template_sha256']==cx['global_template_sha256']\n assert len(audit['mutations_rejected'])==8 and len(ca['mutation_controls_rejected'])==7\n-P={int(r):z for r,z in audit['profile'].items()};m,W=64,g['live'];E=sum(P.values());T,L,R,V,K=8,9,747,120,4\n-mass=sum(r*z for r,z in P.items());assert m*W-mass==2496 and g['live']==W\n+P={int(r):z for r,z in audit['profile'].items()};m,W=64,g['live'];E=sum(P.values());T,L,R,V,K=64,9,740,120,4\n+mass=sum(r*z for r,z in P.items());assert m*W-mass==19968 and g['live']==W\n physical=g['physical'];d=m*m;N=2*m\n unit=L*T*g['local_additions']+g['bridge_additions']\n J=8*T*L*(2*V+R)+8*(2*K*V*T)+2*g['bank_assignments']+2*g['copy_erase_episodes']\n",
+    "edits": [
+      [
+        "8,9,747,120,4",
+        "64,9,740,120,4"
+      ],
+      [
+        "m*W-mass==2496",
+        "m*W-mass==19968"
+      ]
+    ],
+    "name": "combined.py",
+    "original_sha256": "4d514b6c70e969ec306d8c2bb38edec95b0cb7fa09f48dadbec8aa1eead69ce1"
+  }
+]

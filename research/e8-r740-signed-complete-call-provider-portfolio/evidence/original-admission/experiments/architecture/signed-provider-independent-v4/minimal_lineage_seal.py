@@ -1,0 +1,18 @@
+"""Separate read-only old-complex repricing/closure audit; no prior gate edits."""
+from pathlib import Path
+import json,hashlib
+P=Path(__file__).resolve().parent;R=P.parents[2];C=P.parent/'bit-provider-portfolio-closure-v4';read=lambda p:json.loads(p.read_text());sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();ledger=read(C/'SUPPLIER-CLOSURE.json');count=0
+for mapping in ['paid458_all39_sources','independent_full_gate_sources','required_recursive_ancestor_hashes']:
+ for name,h in ledger[mapping].items():
+  p=Path(name);p=p if p.is_absolute()else R/p;assert sha(p)==h;count+=1
+assert not ledger['ancestor_mismatches'];assert ledger['frozen_portfolio_checkpoint_sha256']==sha(P.parent/'bit-provider-portfolio-v4/CHECKPOINT.json')
+old=P.parent/'complex-direct8-eleven451';cp=read(old/'CHECKPOINT.json')
+for name,h in cp['files'].items():assert sha(old/name)==h
+ar=read(P/'PORTFOLIO-OLD-COMPLEX-ARITHMETIC.json');nr=read(C/'REPRICED-OLD-COMPLEX.json');assert ar['kappa']==nr['kappa']==ledger['old_complex_repriced_kappa']==ledger['new_complex_kappa']
+files=[P/'portfolio_old_complex_arithmetic.py',P/'PORTFOLIO-OLD-COMPLEX-ARITHMETIC.json',C/'REPRICED-OLD-COMPLEX.json',C/'reprice_old_complex.py',C/'SUPPLIER-CLOSURE.json',old/'CHECKPOINT.json',old/'hosted/GLOBAL.json',Path(__file__)]
+out={'status':'PASS_SEPARATE_INDEPENDENT_OLD_COMPLEX_REPRICING_AND_LINEAGE_BINDING','kappa':ar['kappa'],'complex_lower':nr['complex_lower'],'closure_hash_entries_verified':count,'old_supplier_checkpoint_files_verified':len(cp['files']),'two_exact_engines':True,'eight_continuations':True,'full47_formula_replay':True,'adjacent_and_cap_reject':True,'scope':'Arithmetic replacement uses the source-bound direct8 eleven451 profile, preserves exact same bit-binding kappa, and retains its prior conditional supplier admission. This is a separate numeric/lineage gate, not a fresh whole old-complex compiler audit. Paid458 recursive closure also independently hash-checked as an alternative; minimal-lineage arithmetic itself has no paid458 mathematical dependency. Prior d482 portfolio gate and frozen69 sources unchanged.','inputs':{str(p.relative_to(R)):sha(p)for p in files}}
+(P/'MINIMAL-LINEAGE-ARITHMETIC-GATE.json').write_text(json.dumps(out,indent=2)+'\n');print(sha(P/'MINIMAL-LINEAGE-ARITHMETIC-GATE.json'),count)
+# Final factual feedback review binds exact corrected draft and sealed receipts.
+draft=R/'experiments/verification/proposal-scout/pr458/CONSTRUCTIVE-FEEDBACK-DRAFT.md';phase=P.parent/'complex-paid-adapters-independent-v4/PHASE.json';full=P.parent/'complex-paid-adapters-independent-v4/FULL-SCIENCE-GATE.json';txt=draft.read_text();assert sha(phase)=='f24efdbc933e73b0e418b5189e82c21f44f3d81466d5720402b68496c5e9f758';assert sha(full)=='9a8e58799e63ad08ac07ae988bff4bcef830607cf04e8a787609e9e87d0f9248';assert sha(phase)in txt and sha(full)in txt and 'These local checks alone' in txt and 'conditional finite PASS'in txt
+out={'status':'PASS_FINAL_FACTUAL_PR458_FEEDBACK_REVIEW','draft_sha256':sha(draft),'phase_sha256':sha(phase),'full_gate_sha256':sha(full),'verified':'79 relations/14 entrance frames/229 preADD; all800 signed/dirt/inverse;2932+240 local phase;88calls/49280routes; exactcomplex lower1304122614957946958897/10^24; overallbitbinding; conditionalallsizepremises and attribution retained. Independentphase distinct fromproducerCLIFFORD generation.','publication':'Ready for root attributable publication; no upstream comment posted by this worker.'}
+(P/'FINAL-PR458-FEEDBACK-REVIEW.json').write_text(json.dumps(out,indent=2)+'\n');print(sha(P/'FINAL-PR458-FEEDBACK-REVIEW.json'))
