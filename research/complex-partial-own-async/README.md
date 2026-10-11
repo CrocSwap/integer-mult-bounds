@@ -10,7 +10,7 @@ The unchanged complex provider was reused from a completed byte-pinned replay; i
 
 The changed asynchronous program was freshly emitted and independently audited:3525 actual orthogonal charts,40320 helper roles and19 rejected mutations. The exact finite invoice passes, with205 prefix bits,512 charged and row coefficient16467<20161. Both exact moment engines, six bootstrap steps,47 strict outer inequalities and four outer controls pass. Full receipts are under validation/. Root EXACT-ARITHMETIC.json is the preserved early nomination receipt; EXPECTED.json and validation/composition/RECEIPT.json describe the completed result.
 
-The unchanged PR493 bit operator remains cited in this local run, while its profile is repriced. No cold packaged-verifier or GitHub CI pass is claimed. The portable packaged wrapper is tested after this admission update, with the reuse mode made explicit in its receipt.
+The unchanged PR493 bit operator remains cited in this local run, while its profile is repriced. No cold packaged-verifier or GitHub CI pass is claimed. The portable packaged wrapper subsequently passed with published byte-pinned completed local/guarded evidence and fresh asynchronous replay; validation/PACKAGED-RECEIPT.json records that reuse mode.
 
 ## Reproduction
 
