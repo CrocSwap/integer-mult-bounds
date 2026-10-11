@@ -8,7 +8,7 @@ import argparse, gzip, hashlib, json, struct, time
 from collections import Counter
 from pathlib import Path
 
-H,V,R,L,K,T,M=8,120,747,9,4,8,64
+H,V,R,L,K,T,M=8,120,746,9,4,8,64
 LOCAL=2*V+R; DATA=2*K*V*T
 
 def tile_banks(width):
@@ -225,7 +225,7 @@ def main():
                 expanded.update((json.dumps(mapped,separators=(',',':'))+'\n').encode()); full_event_count+=1
             calls.append(dict(stage=s,replica=rep,pair=p,orientation=ori,owners=owners,local_hash=checks[ori]['sha256']))
     paid.pop(0,None)
-    assert len(assignment)==L*T*R==53784 and len(calls)==72
+    assert len(assignment)==L*T*R==53712 and len(calls)==72
     for e in schedule:
         if e['kind']=='idle' and e['rank']: paid[e['rank']]+=2*V*T
     mass=sum(r*c for r,c in paid.items()); assert M*LIVE-mass==2496
