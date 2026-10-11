@@ -1,4 +1,4 @@
-"""Bind fresh split-centre evidence, then canonicalize only transport and clocks.
+"""Bind fresh evidence; project named transport, clock and display-only fields.
 
 Prepared with OpenAI Codex assistance. Apache-2.0; native notices apply.
 """
@@ -7,6 +7,7 @@ from hashlib import sha256
 import copy
 import gzip
 import json
+import math
 
 
 def digest(path):
@@ -23,6 +24,22 @@ def canonical(value):
 
 def semantic(value):
     return sha256(canonical(value)).hexdigest()
+
+
+def full_word_science(payload):
+    """Omit only native discovery display floats, after raw receipt binding.
+
+    These two fields are produced after construction by floating-point
+    bisection. They are not consumed by any native admission or price check.
+    Exact rational prices, the complete word and every other report field
+    remain bound by the resulting canonical hash.
+    """
+    value = json.loads(payload)
+    report = value['report']
+    for key in ('complex_coarse_float', 'gain_percent_float'):
+        display = report.pop(key)
+        assert type(display) is float and math.isfinite(display)
+    return value
 
 
 def complex_science(fresh, primitive_receipt):
@@ -45,10 +62,10 @@ def complex_science(fresh, primitive_receipt):
     full_word = gzip.decompress((native / 'FULL-WORD.json.gz').read_bytes())
     template = gzip.decompress((native / 'GLOBAL-TEMPLATE.json.gz').read_bytes())
     word_hash = sha256(word).hexdigest()
-    full_hash = sha256(full_word).hexdigest()
     template_hash = sha256(template).hexdigest()
     assert integration['canonical_word_sha256'] == audit['canonical_word_sha256'] == phases['canonical_word_sha256'] == digest(native / 'CANONICAL-WORD.json.gz')
     assert audit['full_word_sha256'] == digest(native / 'FULL-WORD.json.gz')
+    full_hash = semantic(full_word_science(full_word))
     assert integration['scalar_audit_sha256'] == digest(native / 'SCALAR-FRAME-AUDIT.json')
     assert integration['exact_phase_receipt_sha256'] == digest(native / 'CLIFFORD-REVIEW.json')
     assert integration['global_template_sha256'] == independent['template_sha256'] == template_hash
@@ -78,7 +95,8 @@ def complex_science(fresh, primitive_receipt):
         assert p['omitted_actual_first_halve_rejected']
         assert p['real_component_primitives'] == integration['local_program_checks'][orientation]['real_component_primitive_bound']
     # Native receipts and raw compressed inputs are fully bound above. Replace
-    # only their transport hashes and elapsed times in this portable projection.
+    # only transport hashes, elapsed times and the two unused display floats
+    # named in full_word_science in this portable projection.
     audit = copy.deepcopy(audit)
     phases = copy.deepcopy(phases)
     integration = copy.deepcopy(integration)
@@ -97,6 +115,6 @@ def complex_science(fresh, primitive_receipt):
                 exact_phases=phases, integration=integration,
                 independent_template=independent, actual_primitives=primitive,
                 canonical_word_uncompressed_sha256=word_hash,
-                full_word_uncompressed_sha256=full_hash,
+                full_word_scientific_sha256=full_hash,
                 global_template_uncompressed_sha256=template_hash,
-                projection='All mathematical and interface fields retained. Raw native inputs and receipts are checked first; only compressed transport hashes and elapsed seconds are projected or rebound.')
+                projection='All mathematical and interface fields retained. Raw native inputs and receipts are checked first; compressed transport hashes and elapsed seconds are projected or rebound. Only report.complex_coarse_float and report.gain_percent_float, unused native discovery displays, are omitted from the canonical full-word hash.')

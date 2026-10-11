@@ -76,7 +76,13 @@ interval argument.
 
 The native source files and the signed dependency are checked before and after
 replay. Science projections first bind raw inputs, then remove only named clocks
-and provenance or replace compressed hashes by decoded payload hashes. Full
+and provenance or replace compressed hashes by decoded payload hashes. The
+canonical full-word hash additionally omits exactly
+`report.complex_coarse_float` and `report.gain_percent_float`: finite native
+discovery displays computed after word construction, never read by admission
+or exact pricing. Their platform-dependent rounding is not a mathematical
+input. Both fields must exist and be finite floats; raw full-word bytes remain
+checked against the fresh native audit before projection. Full
 templates, schedules, operators, owners, costs, inequalities and negative-control
 outcomes remain bound. No absolute research path is a source dependency.
 

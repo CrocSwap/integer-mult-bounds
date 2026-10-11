@@ -73,8 +73,13 @@ All costs are recomputed; independently reported score gains are never added.
 
 `VALIDATION.json` must equal `EXPECTED.json` byte for byte. Raw receipts retain
 fresh provenance. Portable science retains complete decoded templates and all
-mathematical fields, excluding only explicitly named clocks, provenance and
-compressed cross-hashes. PR433 already binds its phase witness by decoded
+mathematical fields, excluding explicitly named clocks, provenance, compressed
+cross-hashes and two unused native discovery displays:
+`FULL-WORD.report.complex_coarse_float` and `gain_percent_float`. These two
+floating-point bisection displays differ slightly across platform math
+libraries; exact rational prices remain fully bound. The raw full-word gzip
+hash is checked against the fresh native audit before this narrow projection.
+PR433 already binds its phase witness by decoded
 payload; no gzip-header hook or native-source change is used here.
 
 The generalized mutable-source/common-frame scalar interface, correlated dirty
