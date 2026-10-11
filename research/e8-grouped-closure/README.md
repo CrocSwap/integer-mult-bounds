@@ -1,0 +1,1 @@
+Draft conditional kappa 0.001017969374986727. Run `python -B research/e8-grouped-closure/verify.py /absolute/path/to/new/output`. Full parent PR418, changed construction and fresh bit are replayed; nine package manifests are checked. At submission, full raw-column/frame controls and exact price pass. Full finite admission and CI remain pending. See VALIDATION.json and PROOF.md.
