@@ -30,7 +30,10 @@ def tile_banks(width):
                 rep,h=take(8); cont.append((rep,h,off,8)); off+=8
             else:
                 assert 64%w_==0
-                for _ in range(64//w_): rep,h=take(w_); cont.append((rep,h,off,w_)); off+=w_
+                for _ in range(min(64//w_,len(by[w_]))): rep,h=take(w_); cont.append((rep,h,off,w_)); off+=w_
+                assert (64-off)%8==0
+                while off<64:
+                    rep,h=take(8); cont.append((rep,h,off,8)); off+=8
             assert off==64; bins.append(cont)
     while by.get(8):
         cont=[]; off=0

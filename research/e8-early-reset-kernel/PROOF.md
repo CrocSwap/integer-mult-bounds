@@ -11,3 +11,5 @@ No separately reported numerical gains are added. The complex supplier is unchan
 ## Frame retiming
 
 After response cancellation, flatten gates into the identical ordered primitive ADD sequence. Apply only the ten source-bound frame substitutions in RETIMING.json. Require the old frame at each unique phase/index, preserve every target/source pair and all other word fields, and bind the resulting byte hash. Independent integer source-span and global rational frame checks prove legality of the final word; the exact scalar replay proves its identity. Recompute transition histograms and all costs after retiming, rather than adding isolated gains.
+
+A remaining half-bank of width-four slots is completed with width-eight slots. Every slot keeps its exact residual width; the independent auditor checks full coverage and disjoint ownership, rather than relying on the packing algorithm.
