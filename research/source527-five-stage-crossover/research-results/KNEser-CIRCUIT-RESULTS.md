@@ -1,0 +1,11 @@
+# Kneser and producer pilot: exact final findings
+
+The nested-interval and oriented-prefix constructions were implemented as explicit addition DAGs with exact Kneser disjointness decoder coefficients. The paid local arc search found no improvement over the inherited selected pair module. K1 reached 405 additions, 155 accepted arcs, 250 unshared roles. K2 reached 425 additions, 165 arcs, 260 roles. The inherited selected module reached 356 additions, 211 arcs, 145 roles in the same local search. A bounded support-reassociation search reached 352 additions, 208 arcs, 144 roles, only a one-role isolated improvement; no full-word saving is claimed for it.
+
+The 29-node producer was also ported into every one of the 220 actual source492 bit cubes. All 13 integer boundary functions and every unchanged query output were preserved. The splice removes 220 raw nodes and 440 active additions, but it loses carrier reuse. The fresh complete rational compiler yields20,668 independent helpers, compared with 16,622 in the current paid source492 program. No kappa improvement is claimed.
+
+This complete producer pilot passed the independent integer Gram/nesting/frame audit, all five frame mutations, all 24,188 formal source/target/dirty columns in F2 and the defining integer lift in both signed directions. Every original source and dirty helper is restored; the maximum absolute integer coefficient is 3. Three additional scalar mutations are rejected. The raw one-stage histogram and paid five-stage input are preserved under producer-bit/.
+
+Transporting the old arc tape accepts 9,216 of 11,856 arcs and rejects 2,640, exactly 12 per cube. No unverified transport closure is counted as a paid construction. These complete, preserved negative candidates are not part of the improved deliverable.
+
+The useful positive output from this lane is the exact source492-to-five-stage composition interface: all 95 Q8/quotient common frames pass 193,728 coordinate route equalities and the independent entrance inventory is unchanged. See CURRENT492-FIVE-STAGE-COMPOSITION.md and CURRENT492-ROUTE-INTERFACE.json. This supplies a sufficient mathematical substitution argument; the parent's combined whole-word telescope/banking/price checks establish the final candidate value.
