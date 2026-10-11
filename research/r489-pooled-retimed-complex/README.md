@@ -45,7 +45,10 @@ separately in each run's receipts.
 `PROOF.md` gives the retiming, placement and serial execution argument.
 The independent frame reviewer checks both 25,082-event ledgers, all fixed
 scalar payloads, raw-to-canonical orthogonality and 12 targeted rejection
-controls. Fresh source mutation suites and Lemma G necessity controls also run.
+controls. Fresh source mutation suites and all 14 Lemma G necessity controls also run.
+A derivative adapter nominates an available nonnested frame for control M8;
+its two transition ranks are recomputed, preserving the same total charge.
+All other source mutation code and the pinned source files stay unchanged.
 `SOURCE.json` pins all 266 original supplier files. `MANIFEST.json` binds this
 entire package. `EXPECTED.json` fixes the exact result. `NOTICE.md` preserves
 provenance and AI disclosures. The original bit/complex packages and previously

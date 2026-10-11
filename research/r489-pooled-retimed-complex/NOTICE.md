@@ -26,3 +26,9 @@ from PR484 and frozen PR496 (00cf70efd6a8637531deafef698157ca83e249ee).
 PR496's complete sources and all previous published heads remain frozen.
 The new word uses recompiled Gaussian recipes; the vendored PR484 source files
 remain byte-identical to their pinned originals.
+
+The derivative M8 necessity-test adapter changes only the choice of an
+available invalid intermediate frame and its actual codimension charge.
+It preserves the source checker and physical test, and requires all 14
+controls to be rejected. The original source suite still runs unchanged
+on the original PR484 word.
