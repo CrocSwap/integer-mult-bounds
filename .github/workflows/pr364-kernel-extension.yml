@@ -1,0 +1,41 @@
+name: Verify kernel and coupled frame extension
+on:
+  pull_request:
+    paths:
+      - 'research/pr364-kernel-extension/**'
+      - 'research/pr366-propagation-extension/**'
+      - 'research/w3-design-t-staged-p10b-reorder-mc/**'
+      - '.github/workflows/pr364-kernel-extension.yml'
+  push:
+    paths:
+      - 'research/pr364-kernel-extension/**'
+      - 'research/pr366-propagation-extension/**'
+      - 'research/w3-design-t-staged-p10b-reorder-mc/**'
+      - '.github/workflows/pr364-kernel-extension.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install verifier dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ libboost-dev
+          python -m pip install -r research/pr366-propagation-extension/requirements.txt
+      - name: Replay pinned source and new certificate
+        run: python -B research/pr366-propagation-extension/verify.py --output "$RUNNER_TEMP/propagation-extension"
+      - name: Confirm source tree unchanged
+        run: git diff --exit-code
