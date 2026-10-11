@@ -13,6 +13,7 @@ community-followup-check:
 # CI runs these in separate checkouts. Keep local verification sequential:
 # different groups regenerate certificates that another group may read.
 verify:
+	$(MAKE) pr288-sign-cycle-verify
 	$(MAKE) verify-community
 	$(MAKE) verify-producers
 	$(MAKE) verify-partial-gauge
@@ -30,6 +31,10 @@ verify:
 	$(MAKE) verify-joint
 	$(MAKE) verify-pair
 	$(MAKE) verify-tests
+
+.PHONY: pr288-sign-cycle-verify
+pr288-sign-cycle-verify:
+	python3 -B research/pr288-sign-cycle-certificate/run_checks.py
 
 .PHONY: selected-record-check entrance-bank-verify verify-entrance-banks
 selected-record-check:
