@@ -1,0 +1,20 @@
+--- /home/claude/pr202/scripts/paired_cube/modules.py	2026-10-09 14:39:14.000000000 +0000
++++ tree/scripts/paired_cube/modules.py	2026-10-10 17:12:20.493213431 +0000
+@@ -209,7 +209,7 @@
+     additions combine disjoint supports and root (i,j) sums exactly the inputs {a,b} disjoint from {i,j}."""
+     d = json.loads(Path(path).read_text())
+     pairs = list(combinations(range(n), 2))
+-    assert d['input_count'] == len(pairs) == len(d['roots'])
++    assert d['input_count'] == len(pairs) and len(d['roots']) in (len(pairs), len(pairs) + 1)
+     support = []
+     for x, a in enumerate(d['args']):
+         if x < len(pairs):
+@@ -220,6 +220,8 @@
+             support.append(support[a[0]] | support[a[1]])
+     for (i, j), r in zip(pairs, d['roots']):
+         assert support[r] == sum(1 << k for k, (a, b) in enumerate(pairs) if i not in (a, b) and j not in (a, b))
++    if len(d['roots']) == len(pairs) + 1:
++        assert support[d['roots'][-1]] == (1 << len(pairs)) - 1, 'centre root must sum all inputs'
+     return dict(kind='pair_disjoint', n=n, input_count=len(pairs), input_labels=pairs, output_labels=pairs,
+                 args=[None if a is None else list(a) for a in d['args']], roots=list(d['roots']),
+                 source='Direct pair module JSON; contract checked above')

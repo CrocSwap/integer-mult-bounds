@@ -1,0 +1,102 @@
+Lean evidence for the COMPANION program (spec/uniform.json, 7932/10^7; tag CU32, bank B2Gcu32)
+==============================================================================================
+
+This is NOT the program this package prices (certificates/gcert1-p10-b325-c2.json.gz, 7940/10^7), whose Lean run is
+pending. The companion is the same recipe with one shared PR #325 pair module; its certificate is not in this
+package (sha256 below; verify.py regenerates its word only as the builder anchor (f)). It is the Lean-checked counterpart of PR #346's supplier (same coarse saving b).
+
+What this file is. These are the console outputs of the Lean run, copied from the session log of the run
+(2026-10-11, host "spark", Ubuntu; a checkout of jacobalansussman/wht-power-saving-lean at commit f010392 with the
+Lean toolchain and Mathlib that commit pins, the same commit as PR #327's Lean runs). The generated Lean modules and the full build log stayed
+on that host; they are not in this package, and nothing here is re-run by verify.py. The run used Sussman's
+generator unchanged. Lines are verbatim; "..." marks omitted lines and [ ] marks notes added here.
+
+Program built: the committed certificate, gz sha256
+aff3f5d1445bacfbb4f0b22fabe4c18fc18ef3e9a0e15f3122600832e7577509, canonical uncompressed sha256
+56e1139aa4a420219d37b9af00d8894d4c21df83b3d9c266d36a787676e9ad4e (the program was emitted under the name
+p10-b325-pmqm).
+
+
+1. Generate the Lean modules (Sussman's tools/gx/regen_check.py, unchanged)
+---------------------------------------------------------------------------
+
+$ cd ~/wht-lean && GX_OUT=$HOME/cxup/lean/gen python3 -B tools/gx/regen_check.py \
+      $HOME/cxup/lean/gcert1-p10-b325-pmqm.json.gz CU32 B2Gcu32 --keep $HOME/cxup/lean/gen > ~/cxup/lean/regen.log 2>&1
+
+$ grep -i -m8 "accept\|rate\|1 - \|exponent\|segments" ~/cxup/lean/regen.log
+CU32: mirror accepts; h=20 v=960 R=6265 N=162140; pairs=38262; replay segments=4; scalar batches=2
+$ GX_OUT=<fresh directory> python3 tools/gx/gxrate.py B2Gcu32 CU32
+RateB2Gcu32: block 79320/10^8 (evaluated 79320, fails 79321), rank 43876 (evaluated 43876, fails 43883), s=13, slack 1.62e-08, rank slack 1.53e-05
+RateB2Gcu32x: block 7932084/10^10 (evaluated 7932087, fails 7932088), rank 4388203 (evaluated 4388205, fails 4388209), s=40, slack 2.24e-10, rank slack 1.23e-07
+packed B2Gcu32x wht_main_block_B2Gcu32x 1 - 7932084/10^10 challenge code lines changed (0-based): [321, 322, 323]
+packed B2Gcu32 wht_main_block_B2Gcu32 1 - 79320/10^8 challenge code lines changed (0-based): [321, 322, 323]
+(not in the repository)        Work/GCert/Data/RateB2Gcu32.lean
+(not in the repository)        Work/GCert/Data/RateB2Gcu32x.lean
+
+$ tail -30 ~/cxup/lean/regen.log
+(not in the repository)        Work/GCert/Data/Gen/CU32.lean
+(not in the repository)        Work/GCert/Data/Gen/CU32/S0.lean
+...
+(not in the repository)        Work/GCert/Data/SolutionB2Gcu32x.lean
+(not in the repository)        comparator/B2Gcu32.json
+(not in the repository)        comparator/B2Gcu32x.json
+generated files kept in /home/cfky/cxup/lean/gen
+RESULT: FAIL (0 repository files reproduced byte for byte, 0 different, 35 generated files not in the repository)
+
+[regen_check.py's own RESULT line compares the generated files with files of the same name committed in Sussman's
+ repository. For a new program none exist, so it reports 35 files "not in the repository", 0 different, and prints
+ FAIL. That line does not judge the program; the mirror line above ("CU32: mirror accepts") and the Lean build
+ below do. PR #327's CC95/CP37 runs and our CX97 run went through the same step.]
+
+$ ls ~/cxup/lean/gen/Work/GCert/Data
+B2Gcu32.lean  B2Gcu32Main.lean  ChallengeB2Gcu32.lean  ChallengeB2Gcu32x.lean  CU32Cert.lean  CU32Price.lean
+CU32ScalOK.lean  Gen  InstB2Gcu32.lean  RateB2Gcu32.lean  RateB2Gcu32x.lean  SolutionB2Gcu32.lean  SolutionB2Gcu32x.lean
+
+
+2. Kernel-check the solution module
+-----------------------------------
+
+$ cd ~/wht-lean && cp -R ~/cxup/lean/gen/Work/GCert/Data/. Work/GCert/Data/
+$ lake build Work.GCert.Data.SolutionB2Gcu32x > ~/cxup/lean/build.log 2>&1; echo BUILD_EXIT $? >> ~/cxup/lean/build.log
+
+$ grep -c "error" ~/cxup/lean/build.log; grep BUILD_EXIT ~/cxup/lean/build.log; grep -i "Build completed\|jobs" ~/cxup/lean/build.log | tail -2
+0
+BUILD_EXIT 0
+Build completed successfully (9220 jobs).
+
+$ grep "wht_main_block_B2Gcu32x" ~/cxup/lean/build.log | tail -2
+info: Work/GCert/Data/SolutionB2Gcu32x.lean:38:0: 'OAI.PowerSaving.WHT.wht_main_block_B2Gcu32x' depends on axioms: [propext, Classical.choice, Quot.sound]
+
+
+3. Compare the solution with the challenge statement (Sussman's tools/Compare.lean)
+-----------------------------------------------------------------------------------
+
+[The first Compare.lean attempt stopped because the challenge module had not been built yet ("object file ...
+ ChallengeB2Gcu32x.olean ... does not exist", CMP_EXIT 1). The challenge module was then built and the comparison
+ re-run:]
+
+$ lake build Work.GCert.Data.ChallengeB2Gcu32x 2>&1 | tail -2
+warning: Work/GCert/Data/ChallengeB2Gcu32x.lean:323:8: declaration uses `sorry`
+Build completed successfully (8924 jobs).
+
+$ lake env lean --run tools/Compare.lean Work.GCert.Data.ChallengeB2Gcu32x Work.GCert.Data.SolutionB2Gcu32x \
+      OAI.PowerSaving.WHT.wht_main_block_B2Gcu32x 2>&1 | tail -8
+...
+  identical: OAI.PowerSaving.WHT.wht   [solution: WHTCheck.Solution]
+  identical: OAI.PowerSaving.WHT.whtInKind   [solution: WHTCheck.Solution]
+  identical: OAI.PowerSaving.WHT.whtOutKind   [solution: WHTCheck.Solution]
+OK: every statement dependency is identical in the solution
+solution proof reaches 37839 constants; axioms: #[Classical.choice, Quot.sound, propext]
+OK: only permitted axioms
+
+RESULT: PASS
+
+[The `sorry` is in the challenge module, which states the theorem without proof (as in Sussman's own challenge
+ files); the solution module proves it, and Compare.lean checks that the two statements agree.]
+
+
+Scope
+-----
+The theorem is the Walsh-Hadamard power-saving statement of Sussman's repository at exponent 1 - 7932084/10^10,
+built from this program with his unchanged generator. It is not an integer-multiplication κ assembly. The official
+comparator (landrun sandbox) and a clean build from an empty cache were not run for this program.

@@ -1,0 +1,5 @@
+Prepared with substantial OpenAI Codex assistance; Apache-2.0. This new wrapper and adapter independently admit PR348 through mandatory fresh full regeneration and the generic PR327 operational transfer.
+
+PR348 was prepared by Chafik Boukhalfa with substantial Anthropic Claude assistance. Its unmodified full attribution, AI disclosures, modules, builders, expected results, and pinned references are retained at upstream/pr348/NOTICE. Those include LJH-217 / Louis Harrison, DreamingOfClouds, Jacob Sussman, and the complete source lineage. Inherited generic transfer attributions are retained in NOTICE-PR327-TRANSFER.md. Crediting a source does not imply its author reviewed or endorsed this adapter.
+
+The per-point program has no claimed Lean run. The PR348 verification and generic transfer are exact Python checks; all inherited analytic/geometry interfaces remain conditional. The consuming bit package must freshly admit its literal bit word, banks, prime minors, complete finite invoice, and assembly.
