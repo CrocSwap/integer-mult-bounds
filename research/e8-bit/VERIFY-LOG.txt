@@ -1,0 +1,87 @@
+== 0. package manifest
+   all files match MANIFEST.sha256
+== 1. the word: regenerate from the producer parameters; export the PR249 records
+R 865 gates D/A/B/C 120 1756 472 1756 frames 944
+   regenerated word equals the shipped word
+exported 18824 records, 944 frames, n 1105 ZERO 0
+   exported records/states/frames match RECORD-SHA256SUMS
+== 2. independent all-column checker (no shared code with the producer) and its negative controls
+labels: 120 distinct lines of norm 2 (pairwise |ip| <= 1), spanning rank 8
+legality + exact F2 on all 1105 columns: PASS (gates D/A/B/C = 120/1756/472/1756)
+nondegeneracy: 943 used frames, all Gram dets > 0 (positive-definite form); primes in dets: [2]
+histogram {1: 10380, 2: 4710, 3: 2240, 4: 2330, 5: 1540, 6: 10, 7: 240, 8: 90, 14: 240, 18: 240} m 40 W 1345 mass 53680 deficit 120 (4v-5L = 120 ) maxchild 18
+no envelope  saving in [0.00090407282109368831, 0.00090407282109368831]
+bad envelope saving in [0.00090407282024252275, 0.00090407282024252275]
+REJECTED drop a phase-B gate :: AssertionError: ('target', 65)
+REJECTED phase-B gate at the full frame (y beyond its cap) :: AssertionError: ('frame not nested', 239, 1, 943)
+REJECTED drop a dirt compensation read :: AssertionError: ('target', 0)
+REJECTED drop a cleanup gate :: AssertionError: ('helper not restored', 936)
+REJECTED wrong scatter row :: AssertionError: ('target', 5)
+REJECTED phase-A gate frame not nested :: AssertionError: ('frame not nested', 512, 122, 2)
+PASS all 6 word-level negative controls rejected
+== 3. official PR #266 cohort checkers, generalized: h = 8 frames, NCOPY = 9 copied centres
+PASS pairs 0 ADD 14603 mass 8672 COPY24
+   five-stage formal columns PASS (PASS_NEW_COHORT249_ALL_FIVE_STAGE_FORMAL_COLUMNS_AND_PREFIX_BILL 1345 columns)
+   REJECTED  drop a phase-B delivery ADD (columns: defining decoder)  [local defining-decoder full formal column]
+   REJECTED  ADD at a frame its registers do not stand at  [  what():  ADD not in common frame]
+   REJECTED  MOVE with a wrong rank  [  what():  illegal or mispriced MOVE]
+   REJECTED  COPY with a cheaper rank  [  what():  COPY rank]
+   REJECTED  drop a dirt-compensation ADD (columns)  [local defining-decoder full formal column]
+   REJECTED  unchanged word with the copy count pinned to h = 8 (NCOPY unset)  [  what():  unclosed COPY]
+PASS all 6 record-level negative controls rejected
+   regression: unmodified PR #346/#352 sources vs generalized sources (no -DNCOPY), h = 20, on the PR #325 p10b word
+   legality receipts byte-identical
+   five-stage columns receipts identical (except wall-clock seconds)
+== 4. exact nondegeneracy (E8 Gram) and prime witnesses on every frame
+PASS e8ham Gram: 944 frames checked, all nondegenerate and positive definite; prime witnesses valid; max determinant bits 17; primes [2]; by dim {0: 1, 1: 120, 2: 168, 3: 168, 4: 14, 5: 168, 6: 184, 7: 120, 8: 1}
+   regression (G = I - J/9, h = 20, PR #325 p10b word): the original prime_new.py and the generalized check
+PASS prime witnesses for 12885 new frames; max determinant bits 97 ; primes [2, 3, 11]
+PASS triple9 Gram: 12885 frames checked, all nondegenerate; prime witnesses valid; max determinant bits 97; primes [2, 3, 11]; by dim {0: 1, 1: 960, 2: 1440, 3: 1440, 5: 940, 6: 180, 7: 520, 8: 279, 10: 359, 12: 275, 13: 500, 14: 352, 15: 698, 16: 120, 17: 1440, 18: 1460, 19: 1920, 20: 1}
+   same frame count, determinant bits and primes: ('12885', '97', '[2, 3, 11]')
+== 5. PR234 five-stage geometry for the E8 labels (W(E8) reflection words as port isometries)
+  port 1/120 checked (0 reflections) 0s
+  port 21/120 checked (1 reflections) 1s
+  port 41/120 checked (1 reflections) 2s
+  port 61/120 checked (2 reflections) 3s
+  port 81/120 checked (2 reflections) 4s
+  port 101/120 checked (2 reflections) 5s
+PASS E8 five-stage geometry: all 120 ports (W(E8) reflection words as port isometries), routes involutive, stage boundaries chained, idle gap ranks [14, 14, 7, 7, 18, 18, 4, 4], D_I D_P identity; entrance census {0: 865 helpers}: five-window completion exact, duplicate window rejected
+PASS regression: on paired-cube labels (h = 20, G = I - J/9) the generalized routes equal the original literal rho for 3 ports and every stage, and give idle ranks (38, 38, 19, 19, 42, 42, 4, 4)
+== 6. banks: exact width-40 tiling of the helper residuals
+residual census {8: 865} | freed roles (r = 0) are deleted, not banked
+PASS exact width-40 tiling with 1 replicas: (((8, 8, 8, 8, 8), 173),)
+   regression: generalized tiling output byte-identical to PR #346's tile_check on the p10b word
+== 7. copied centres: 9 retained totals at h = 8 (admitted; charged as NCOPY = 9 everywhere)
+   retained totals 9 > h = 8 ; COPY ranks [8] (full frame); copy loss L = 72, deficit 4v - 5L = 120
+   7b. CP-SAT: no F2 decoder with 8 centres; 9 suffice
+k 8 status INFEASIBLE 0s
+k 9 status OPTIMAL 5s
+== 8. complex supplier: Jacob Sussman's E8 unit, PR #352's checks unchanged
+  Checking the complex program: gx.check1 with the exact scalar identity, and the gxcore mirror.
+  Checking every complex source label and paid child.
+  Deriving both complex scalar words and temporary lifetimes.
+  Merging scalar events, exact frames and all final climbs.
+  Recomputing complex cover, router, precision and row inequalities.
+guard: PASS_FRESH_COMPLEX_LABEL_SCALAR_SPLICE_PRECISION | gx.check1: ACCEPTED (labels, bl | rows 11119 < 20161
+Lean binding: RESULT: REPRODUCED (25 repository files reproduced byte for byte, 0 different, 3 generated files not in the repository) (wht_main_block_B2Ge8x modules regenerated from this certificate)
+stand-alone replay: REPLAY ACCEPTED: R=783 W=1263 D=120 cst=72 N=9039 figure=8762479  E8 family: True  (0.6 s)
+PASS complex coarse saving b = 876248285600677/1000000000000000000 0.000876248285600677 (two engines, 10^-16 fallback, adjacent grid point excluded)
+== 9. bit coarse saving and outer assembly (47 constraints), PR #315 engines, h = 8, T = 1
+normalized W 1345 calls 22020 mass 53680 deficit 120 maxchild 18
+bit coarse c = 452036410121261/500000000000000000 0.000904072820242522 (two engines + 1e-16 fallback, adjacent grid excluded)
+complex leaf cap itself rejected (leaf_saving_above_bit), as in PR #315 math_check
+complex b = 876248285600677/1000000000000000000 0.000876248285600677 | binding: complex
+KAPPA = 875481145306751/1000000000000000000 = 8.754811453068e-04 | 47 strict constraints positive, adjacent grid point rejected
+   regression: generalized vs original certify_bit on the PR #325 p10b word (h = 20, T = 12)
+   identical kappa receipt fields; p10b kappa 384842019691667/500000000000000000
+== 10. finite bill at m = 40
+finite-bill input: m 40, v 120, R 865, T 1, stock 1345, NCOPY 9, unit additions 14603, rows 742/6308, K 27347440
+PASS finite bill (E8, m = 40): coefficient 1916288151501 (41 bits) < 2^80, q-power bound q^1601, payload prefix 60 bits < 104, delta_tau 25054818195901, reference route {'swap': 7}; all 120 port routes exact elementary programs, at most 77 factors, denominators [1, 2, 4] (powers of two: units modulo every odd q)
+PASS regression: on the p = 10 receipts in <DIR>/regression/loans the generalized bill reproduces the coefficient 24463942022302301 , the moment gaps, the bootstrap chain and the 40-dimensional route program (sha cf655bf5356b...)
+== 11. SECONDARY (conditional on PR #363): kappa under the seven-stage complex value; the bit word in B_3
+bit word in B_2 (5 stages, m 40, W 1345, idle [18, 14, 7, 4]): bit coarse c = 452036410121261/500000000000000000 = 9.040728202425e-04
+bit word in B_3 (7 stages, m 56, W 1585, idle [27, 7, 14, 7, 20, 27, 1, 7, 6]): bit coarse c = 968197503705007/1000000000000000000 = 9.681975037050e-04
+kappa [five-stage bit + #352 five-stage complex (PRIMARY)]: 875481145306751/1000000000000000000 = 8.754811453068e-04 (complex-bound)
+kappa [five-stage bit + #363 seven-stage complex]: 112907026276423/125000000000000000 = 9.032562102114e-04 (bit-bound)
+kappa [seven-stage bit (no construction yet) + #363 seven-stage complex]: 93191395651209/100000000000000000 = 9.319139565121e-04 (complex-bound)
+PASS conditional kappa = 875481145306751/1000000000000000000 = 0.000875481145306751 (complex-bound; bit coarse 452036410121261/500000000000000000 = 0.000904072820242522 )
