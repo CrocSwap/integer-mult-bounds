@@ -1,0 +1,35 @@
+name: Verify seven-replica whole-residual hosting
+on:
+  pull_request:
+    paths:
+      - 'research/e8-whole-replica7/**'
+      - '.github/workflows/e8-whole-replica7.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r research/e8-r740-replica32/parent436/requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -B research/e8-whole-replica7/verify.py "$RUNNER_TEMP/whole-replica7"
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONINTMAXSTRDIGITS: '0'
+          E8_REPLAY_PHASES: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: whole-replica7-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/whole-replica7/RECEIPT.json
+            ${{ runner.temp }}/whole-replica7/FAILURE.json
+            ${{ runner.temp }}/whole-replica7/RESULT.json
+            ${{ runner.temp }}/whole-replica7/*.log
