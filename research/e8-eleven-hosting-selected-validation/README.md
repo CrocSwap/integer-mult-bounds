@@ -1,5 +1,7 @@
-# Full verification receipts for PR447
+# Verification evidence for PR447
 
-Python3.11.15: **PASS_FULL_ELEVEN_HOSTING_SELECTED**, κ=0.001265848755025708. Tested package at commit f5c7eb5cb52da8f6330ad3e8b2fade620b3bbd91, manifest SHA256 58048a268e837f4e8a30521435b2c3dad77fd0e74b38f020b7b7e11367ecf5b7. Includes uninterrupted rank147/rank138 lineage and complex phase replay, new geometry, emitted program,22 negative controls and exact assembly. Exact tested manifest, logs, result and parent receipt are retained.
+Uninterrupted full Python3.11.15 and3.14.8 wrappers passed for κ=0.001265848755025708, with the same tested manifest58048a268e837f4e8a30521435b2c3dad77fd0e74b38f020b7b7e11367ecf5b7. See python311/ and python314/ for receipts, full logs, exact results and tested manifests. Both nested nine-stage rank147 parents also passed.
 
-Python3.14 is running; GitHub CI remains pending. The proof package's original VALIDATION/README records the draft-time state; these receipts supply the later status. No source, witness, verifier or package-manifest changes are made by this evidence update. OpenAI Codex assistance; original proof-scope limitations remain.
+The current κ=0.001265848755025709 keeps the full rational complex lower endpoint. Only two executable assembly lines changed: remove truncation at1e-18; compare the refined endpoint >= the inherited weaker one. All supplier, geometry, program, ownership, phase and row-bound code/witnesses remain byte-identical to the full runs. precision/ retains the exact diff and both runtime receipts: both rational moments, both invoices, six bootstrap levels,47 strict outer constraints and controls pass against each fully verified supplier artifact. No fresh uninterrupted current-manifest wrapper is claimed. GitHub CI remains pending.
+
+The research/ directory contains subsequent negative screens, including failures and scope limits. OpenAI Codex assistance; inherited proof assumptions remain.
