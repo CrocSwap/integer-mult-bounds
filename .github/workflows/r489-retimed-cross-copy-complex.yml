@@ -1,0 +1,33 @@
+name: r489-retimed-cross-copy-complex
+on:
+  pull_request:
+    paths:
+      - 'research/r489-retimed-cross-copy-complex/**'
+      - 'research/r489-cross-copy-complex/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - 'research/idle-axis-hosting/**'
+      - '.github/workflows/r489-retimed-cross-copy-complex.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -m pip install numpy sympy
+      - name: PR 494 in full, then the new complex supplier and the exact assembly
+        run: PYTHONINTMAXSTRDIGITS=0 python -B research/r489-retimed-cross-copy-complex/verify.py "$RUNNER_TEMP/r489-retimed-cross-copy-complex"
+      - name: Require an unchanged tracked tree
+        run: git diff --exit-code
