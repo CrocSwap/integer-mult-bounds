@@ -1,0 +1,30 @@
+name: Verify whole bit residual pooling
+on:
+  pull_request:
+    paths: ['research/bit-whole-pool4/**', '.github/workflows/bit-whole-pool4.yml']
+  push:
+    paths: ['research/bit-whole-pool4/**', '.github/workflows/bit-whole-pool4.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: sudo apt-get update && sudo apt-get install -y g++ libboost-dev
+      - run: python -m pip install -r research/e8-r740-replica32/parent436/requirements.txt
+      - run: python -B research/bit-whole-pool4/verify.py "$RUNNER_TEMP/pool4"
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONINTMAXSTRDIGITS: '0'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pool4-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/pool4/*.json
+            ${{ runner.temp }}/pool4/*.log

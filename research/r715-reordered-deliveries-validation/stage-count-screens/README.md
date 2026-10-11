@@ -1,0 +1,1 @@
+Fixed final delivery word, eight replicas. Both thirteen-stage exact moment screens lose to the eleven-stage construction. The nine-stage all-hosted MILP instance is infeasible; this is not a universal impossibility theorem. No physical admission or final bound is claimed for these experiments. Failures and losing screens are intentionally retained.
