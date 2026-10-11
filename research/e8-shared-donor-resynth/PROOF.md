@@ -1,0 +1,13 @@
+# Finite composition
+
+Reconstruct all four pinned PR404 stages: the 119-gauge source, shared-donor chains, chronological overlapping recovery and public target201 frame edit. For each PR402 delivery, match its original predecessor gate to an identical unique complete gate in the changed B word. The structural matching is independently bound to exact full-operator equality; an accidental legal-looking location cannot pass without preserving every raw input column and retained total. Setup omission and flipped delivery are rejected.
+
+The two target walks change (3,5) to (6,2), giving local histogram delta {2:+2,3:-2,5:-2,6:+2}. A, every frame, helper start/final state, all 194 gauges, scatter and retained totals are unchanged. PR404's exact chronological target-matrix identity is applied to the new combined B word, including its noncommuting overlapping target recovery. The unmodified PR404 admission checks complete raw equality with the same entrance-gauged baseline, zero gauged response, both independent formal entrance charts, every common-frame condition and restoration of private work.
+
+All new/reflected target Gaussian edges are compiled with full global phase, together with the changed word's entire required local phase set. All 37 residuals are normalized using the same complete pre-old-response/post-cleanup boundary monomials, with exact native address-column replay. Nothing is commuted through the dirty scalar circuit.
+
+The complete eight-replica, nine-stage program is re-emitted and independently decoded. The unchanged residual inventory uses 738 banks per stage and 394 rank1 paddings. The changed scalar program is expanded and charged anew, and all finite compiler/router/literal/stock/row/halving/induction reserves are recomputed. Physical stock is 15113, live stock 14322, rank mass 1043010, deficit 2496. Target re-synthesis does not alter rank mass or helper residuals.
+
+Two exact rational moment engines with the retained fallback enclose the complex saving between 203500783810111213217/200000000000000000000000 and 508751959525278033043/500000000000000000000000. The unchanged bit saving is 255384852701747/250000000000000000 and is freshly replayed at the new complex bound. Six bootstrap stages and all 47 strict inequalities give kappa 63529353574423/62500000000000000.
+
+This proves the finite conditional checks stated above. The inherited all-size window, arbitrary correlated-bank semantics, recursive compiler, ordinary-call/fixed-tape, restored-row, common-grid, precision and analytic interfaces remain assumptions. No global optimality or unconditional multiplication theorem is claimed.
