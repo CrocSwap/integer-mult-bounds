@@ -547,3 +547,8 @@ recycled-bit-full-verify:
 
 verify-recycled-bit: recycled-bit-full-verify
 	python3 -m unittest discover -s tests -p 'test_recycled_bit_integration.py' -v
+
+.PHONY: complex-nine-verify
+complex-nine-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-complex-nine.XXXXXX"); \
+	python3 -B research/nine-stage-complex-e8/verify.py --work "$$work/replay"
