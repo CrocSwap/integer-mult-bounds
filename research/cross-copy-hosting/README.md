@@ -15,7 +15,7 @@ Neither local word changes: complex #433 (R = 560, m = 73), bit #434 (R = 747, m
 | bit, m = 64 | 1.239085·10⁻³ | **1.332507·10⁻³** | 9,457 → 8,592 | 39,568 → 46,160 (12,496 split) |
 | complex, m = 73 | 1.267453·10⁻³ | **1.437532·10⁻³** | 8,400 → 7,680 | 34,560 → 40,320 (13,720 split) |
 
-[PROOF.md](PROOF.md) gives the extension, its argument from #442's two facts, and its scope.
+[PROOF.md](PROOF.md) gives the extension, its argument from #442's two facts, and its scope; §7 answers the trace note of #451, and `toy_two_family_check.py` checks the two-family program identity exactly in that note's model.
 
 ## Verify
 

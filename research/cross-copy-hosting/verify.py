@@ -24,6 +24,8 @@ try:
     run('complex-cross-copy-hosting', ROOT / 'complex_split.py', 'split-centres', out / 'complex', cwd=changed)
     run('independent-audit', ROOT / 'audit_split.py', changed, out / 'bit', out / 'complex', out / 'AUDIT.json')
     run('exact-assembly', ROOT / 'assemble_split.py', changed, out / 'bit', out / 'complex', out / 'AUDIT.json', out / 'RESULT.json')
+    run('toy-two-family-program-identity', ROOT / 'toy_two_family_check.py')
+    assert json.loads((out / 'toy-two-family-program-identity.log').read_text()) == read(ROOT / 'TOY-EXPECTED.json'), 'toy check output differs'
     actual = read(out / 'RESULT.json'); expected = read(ROOT / 'EXPECTED.json')
     for k, v in expected.items(): assert actual[k] == v, (k, actual[k], v)
     for side, d in (('bit', 'bit'), ('complex', 'complex')):

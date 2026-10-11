@@ -123,3 +123,9 @@ interface admits a local register whose route lands in two families. In the coor
 does; a model in which a residual's action is not a tensor product over its coordinates would be a different
 interface, and then the same question would apply to #442's banks, which also place sequential residuals of several
 helpers in one family.
+
+`toy_two_family_check.py` makes this exact in the note's own model. For q = 3, m = 2 it reproduces the note's traces
+(the residual factor fixes 90 addresses when whole on A and 54 when split), and it shows that the complete program,
+factor(s) followed by the remainder children, equals the original children Γ_A × Γ_B as a permutation of the
+two-family address space for both placements; for w > r only the split placement exists. `verify.py` runs it and
+compares its output with `TOY-EXPECTED.json`.
