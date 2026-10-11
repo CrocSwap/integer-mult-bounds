@@ -1,0 +1,24 @@
+name: R489 pooled whole complex
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/r489-pooled-whole-complex/**'
+      - '.github/workflows/r489-pooled-whole-complex.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -m pip install numpy==2.3.5 sympy==1.14.0
+      - run: python -B research/r489-pooled-whole-complex/verify.py "$RUNNER_TEMP/r489-pooled-proof" --boost-include /usr/include --cxx g++
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r489-pooled-proof
+          path: ${{ runner.temp }}/r489-pooled-proof
