@@ -1,0 +1,14 @@
+# Attribution and scoped modifications
+
+Apache-2.0; exact LICENSE and every original parent license and notice are preserved. Whole-family cross-replica allocation is adapted from Dugongue/OpenAI Codex PR455, immutable f76fc4e36030d4e00b4cbb83b1dbc661a0974c4e, with public proofs/allocator Git blob and SHA256 pins retained. Rohan Arun/OpenAI Codex PR456 is retained as a related seven-replica allocation/control review, with its exact source pins and LICENSE/NOTICE. It supplies contextual proof/control ideas rather than a substituted signed provider. No exclusive priority claim is made.
+
+The unchanged signed60 local word is our exact signed adaptation of PR454 chafreaky/OpenAI Codex target-prefix discovery, retaining DreamingOfClouds/Claude Opus5.5 PR450 inspiration and all historical contributors/notices. The direct8 eleven-stage complex foundation adapts chafreaky/OpenAI Codex PR451 f3a38153678b55063fc005901cc968266166507d whole-helper hosting with our separately verified direct8 centre refinement. PR377, PR433, PR442 and inherited E8/bit/complex source notices and immutable pins remain included through the complete parent and source closure.
+
+Own modifications change whole-owner assignments and their complete emitted program, selector/cut invoices and assembly. The native PR455 rank147/provider portfolio, helper-splitting rules, or native F2 score are not imported as signed proofs. PATH-ADAPTERS describes engine-path relocation only. Public provenance projection is separate and may not change mathematics, owner replica/family/axis assignments, signs, fees or precision bounds. This remains conditional research evidence, not an unconditional expanded compiler or global optimum.
+
+
+# Complete signed provider portfolio increment
+
+The complete-call provider portfolio idea is adapted with attribution from Dugongue/OpenAI Codex PR455, pinned f76fc4e36030d4e00b4cbb83b1dbc661a0974c4e. Its native rank147 word and F2/Q-span checks are not imported as signed proofs. Our signed970/E4 and948/E0 donor orientations, zero-frame dirt compensation, delayed donor climbs and full980-column operators are independently rebuilt from the admitted signed60 parent. Eight stage5reverse complete calls use the alternative provider;80 calls retain the parent. All hereditary notices and exact Apache-2.0 LICENSE remain byte-exact in parent-pool60.
+
+The execution complex supplier remains the parent direct8 eleven451 supplier, with independent old-complex repricing. Two raw paid458 records and the historical d482 admission receipt are retained solely to bind the original frozen69-source experiment; no paid45839-source compiler dependency is added to this increment. Actual provider registry selectors and dispatch are explicitly charged. All inherited universal dirty-slot/cover, weighted source/current-target compiler, C_full/chart/commonprime/precision/tape/recovery/analytic premises remain conditional.
