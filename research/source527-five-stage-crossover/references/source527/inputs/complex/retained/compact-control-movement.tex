@@ -1,0 +1,167 @@
+\subsection{Compact dirty controls for selected-bit additions}
+\label{sec:compact-control-movement}
+The following replacement for the wide-slot packed operation moves only
+compact control fields. Temporary address fields have arbitrary contents;
+they are complete ranges of existing address bits, not newly allocated
+independent coordinates. Their availability in every recursive call is
+proved separately below.
+
+\begin{lemma}[Controlled rotations with record-paid offset work]
+\label{lem:record-paid-rotation}
+Consider $M$ records of $R$ bits on a complete rectangular address set, of
+volume $V=MR$. Its fixed number of field lengths and controls have at most
+$A=\lceil\log_2(2V)\rceil$ bits each. A binary target field follows all its
+controls. Suppose its rotation offset, independent of that target, is
+computable from the controls and descriptors in $O(A^C)$ tape steps for
+some fixed $C$. Then the rotation can be performed on fixed tapes in
+$O(V+MA^{C'})$ time for a fixed $C'$. In particular, this is $O(V)$ when
+$A=O(p)$ and $R$ exceeds every fixed power of $p$.
+\end{lemma}
+\begin{proof}
+Fix the prefix before the target. If its range is $Q$ and each target block
+has $B$ suffix bits, rotate by $a$ through the two-piece split at $Q-a$ and
+merge in the opposite piece order. This is the controlled-rotation
+construction from the ordered-affine streaming lemma. Each data bit is
+copied a bounded number of times. There are at most $M$ prefix fibers, since
+every fiber contains at least one complete record. At each fiber, compute
+the offset, initialize its two piece lengths, and reset the finite collection
+of counters; recompute the offset at the merge. Ordinary binary arithmetic
+and descriptor copies cost a fixed polynomial in $A$ per fiber. The controls
+can be wider than the target: their lengths are bounded by $A$, not by the
+target width. Local suffix-length copies and ripple counters are charged as
+in the original streaming proof, so no growing descriptor is scanned per
+payload bit. Two piece tapes, output and fixed arithmetic work tapes suffice;
+rewinds and clearing are over the regions just written. This gives the stated
+bound. Finally $MA^{C'}/V=A^{C'}/R=o(1)$ in the specified record regime.
+\end{proof}
+
+Let $x,y$ be disjoint slots of $fK$ bits, with corresponding selected
+positions $j_i=\rho+iK$, $0\le i<f$, $0\le\rho<K$. Put $n=f-1$.
+For $f=1$ use the elementary two-bit XOR. Otherwise fix a positive integer
+$G$, put $B=2^G$, and assume two disjoint complete $nG$-bit fields $u,t$
+precede both slots and a third such field $b$ follows both slots. Arbitrary
+spectator fields may intervene. Each compact field has $n$ radix-$B$ digits.
+The selected-bit operation will preserve these three entire fields.
+
+\paragraph{Earlier source.}
+Suppose $x$ precedes $y$. The unused field $u$ is a spectator. For an integer
+target segment $v$, a bit $z$, and an arbitrary integer temporary $w$, perform
+\[
+ v\gets v+2zw,\qquad w\gets w+(v\bmod2),\qquad
+ v\gets v+z(1-2w),\qquad w\gets w-((v\bmod2)\mathbin\oplus z).
+\]
+Writing the original parity as $a$, the first update leaves it unchanged.
+The final values are $v+z(1-2a)$ and the original $w$. Thus this toggles
+only the parity of $v$ when $z=1$, and restores the dirty temporary.
+
+Apply these four updates simultaneously, with $z_i=x_{j_i}$, to the low
+$n$ selected segments of $y$ and the digits $t_i$ of $t$. A target-slot
+update is one modular rotation of $y$, whose offsets are respectively
+\[
+ \sum_{i<n}2x_{j_i}t_i2^{j_i},\qquad
+ \sum_{i<n}x_{j_i}(1-2t_i)2^{j_i} \pmod{2^{fK}}.
+\]
+Both control fields precede $y$. For a temporary update, swap $t$ with $b$,
+rotate the back field by the packed selected bits of the current $y$, and
+swap back. For unloading, use minus the packed bits
+$y_{j_i}\mathbin\oplus x_{j_i}$. These controls precede the back field.
+There are four width-$nG$ swaps and four rotations. The arbitrary original
+contents of $b$ return after each pair of swaps.
+
+\paragraph{Later source.}
+If $x$ follows $y$, first execute the earlier-source construction with control
+bits $u_i\bmod2$. Load the selected bits of $x$ into $u$ by swapping $u,b$,
+rotating the back field by their packed radix-$B$ representation, and swapping
+back. Repeat the earlier-source construction with the new parities of $u$,
+then unload the selected bits of $x$ from $u$ by the inverse load.
+When the digit loads do not overflow, the two control parities differ by
+exactly $x_{j_i}$. The resulting target update is the required XOR, with
+$u,t,b$ restored. This version uses twelve compact swaps and ten rotations.
+Every offset depends on a fixed number of fields preceding its target.
+
+\paragraph{Guards and deterministic repair.}
+Temporarily omit the highest selected position. The low $n$ segments
+$[j_i,j_i+K)$ are disjoint and fit inside $y$, including when $\rho=K-1$.
+Write each initial segment as $2g_i+a_i$, $a_i\in\{0,1\}$.
+Declare an address bad if a $t$ digit is $B-1$, or a target guard fails
+\[
+ 2B\le g_i<2^{K-1}-2B.
+\]
+For a later source also declare it bad if any $u$ digit is $B-1$.
+On a good address each temporary load stays within its digit, and the target
+displacement is at most $2B$ in either execution of the four-step identity.
+The conservative guard interval therefore prevents every carry or borrow
+between the wide segments. After each completed identity the guard is
+unchanged. Induction through the later-source sequence proves the desired
+map on the good set, including restoration of every temporary and every
+unselected address bit.
+
+Uniform complete ranges give the common bound
+\[
+ \delta=\min\{1,n(2\cdot2^{-G}+8\cdot2^{G-K})\}
+\]
+on the bad fraction; for an earlier source the first factor 2 can be omitted.
+The ideal map $T$ changes only the selected target parities, so it preserves
+the bad set. The actual sequence $S$ is a bijection on the entire rectangle:
+each rotation is independent of its target and all swaps are bijections.
+Since $S=T$ off the bad set, $S$ preserves that set too. Thus $TS^{-1}$ is
+supported there, exactly as in the original exceptional-stream repair.
+
+Extract the bad records, retaining marked holes in the full stream. For each
+extracted address $q$, reverse the swaps and modular rotations to compute
+$S^{-1}q$, then compute $T(S^{-1}q)$. All fields and descriptors have $O(A)$
+bits. A constant number of offset calculations each scan at most $n\le A$
+digits and combine shifted integers of $O(A)$ bits. Integer arithmetic,
+mixed-radix decoding, inverse offsets and the destination key can consequently
+be computed in $O(A^3)$ per record. Sort only the extracted records by their
+$O(A)$-bit destination keys, using stable binary radix passes, then reinsert
+them in their marked holes. Keys are distinct and fill precisely those holes
+because $TS^{-1}$ permutes the bad set. This uses fixed tapes and costs
+\[
+ O(V+MA^3+\delta MA(R+A)).
+\]
+Every inverse offset is evaluated on the current inverse controls; modular
+overflow on bad addresses is handled exactly, rather than treated as an
+integer identity. Finally, supply the omitted highest selected position
+through the elementary two-bit XOR in $O(V)$ time.
+
+\begin{proposition}[Compact-control selected-bit addition]
+\label{prop:compact-selected-addition}
+Under the stated complete-field hypotheses, take
+\[
+ G=4\lceil\log_2 p\rceil+6,\quad f\le p,\quad A=O(p),
+ \quad K/\log p\longrightarrow\infty,
+\]
+and let $R$ exceed every fixed power of $p$. The exact selected-bit row
+addition, with all temporary fields restored, costs
+\[
+ O\bigl(V((f\log p)^\tau+1)\bigr)
+\]
+on a fixed number of tapes, for either order of the two slots. Constants and
+cutoffs are uniform within each fixed parameter family of the layer theorem.
+\end{proposition}
+\begin{proof}
+Use the retained arbitrary-width chunk-swap primitive for the at most twelve
+swaps, each of width $nG$. Its padding, cleanup and all spectator intervals
+are covered by that interface. For every rotation, apply
+Lemma~\ref{lem:record-paid-rotation}; its offset arithmetic is polynomial
+in $A$. No new record volume is introduced by describing the compact fields.
+For $\ell_p=\lceil\log_2 p\rceil$, eventually
+$K\ge G+4\ell_p+10$. Then
+\[
+ \delta\le \frac{5}{128p^3},\qquad
+ \frac{A^3}{R}=o(1),\qquad
+ \delta A(1+A/R)=O(p^{-2}).
+\]
+The repair is therefore $O(V)$ per call, including predicate scans and key
+arithmetic. The elementary highest-bit operation costs $O(V)$. All calls
+reuse their fixed work tapes and finish in the declared physical field order.
+\end{proof}
+
+\paragraph{Application to a fixed binary change of basis.}
+The original phase-frame construction expresses each binary basis change
+as a fixed number of row additions on $m$ slots of $f=e/m$ axes. Use the
+two slots of each addition as $x,y$ and the reserved front/back compact
+fields as controls. The complete basis change and its inverse cost
+$O(V((e\log p)^\tau+1))$. The reservations below guarantee their complete
+ranges, independently of which slots are involved, at every recursive node.
