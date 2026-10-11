@@ -46,6 +46,11 @@ gen4-bank-verify: selected-record-check
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-gen4.XXXXXX"); \
 	python3 -B research/five-stage-gen4-banks/verify.py --output "$$work/replay"
 
+.PHONY: deep-retiming-verify
+deep-retiming-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-deep-retiming.XXXXXX"); \
+	python3 -B research/five-stage-gen4-deep-retiming/verify.py --output "$$work/replay"
+
 .PHONY: source527-record-check source527-verify
 source527-record-check:
 	python3 -B scripts/verify_selected_result.py --record certificates/checkpoints/source527.json
