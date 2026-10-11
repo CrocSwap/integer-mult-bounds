@@ -1,0 +1,13 @@
+# Signed R740 kernel75 with PR440 A and PR441 B retimings
+
+Exact conditional kappa: `1135197396785746859585157/10^27`, improving the prior verified PR440-retimed signed checkpoint by approximately0.210%.
+
+Run `./verify.sh`, optionally setting `PYTHON=/path/to/python3`. The default checks every shipped hash, reconstructs all126 net B changes through two pinned pair/window transition selections, retains57 source-bound A changes, independently reconstructs75 signed integer kernel relations with five rejecting controls, exports native records, checks rational source spans, replays native nine-stage global geometry and banks with eight mutations and eighteen bridge omissions, checks all980 signed integer columns with nine controls, rebuilds the complete scalar prefix/invoice against exact targets, then runs both exact moment engines, eight continuations,47 strict constraints and adjacent grid/cap controls. Derived outputs remain under `derived/`; assertions must remain enabled. Python3.12 and3.13 are CI targets.
+
+PR441 head: `6160c13526f5f957902910b462164c93c1d8f39a`; PR440 head: `bd03373b6d4d4e380d0b6ea7d55cd2ac8f163544`. Candidate: `fd493e985657899e06cf4cb0dc4ac2a67b69f059b8620731dce544cb185e3208`. The112-pivot native kernel is not imported. This preserves75 pivots,99 entrance rank,110 donors,R740,T64,5821 banks per stage,113829 live and113838 physical families,426240 placements,576calls,733824 additional signed units. Prefix126bits and two-level293bits fit128/512charges. Decoder and helper dirt are byte-identical to the prior verified signed75 checkpoint.
+
+The complex supplier is frozen from the published PR433 split-centres signed repair (`6d9244518175caf9e0089f92486959bc2c317273`). This default rechecks source closure and arithmetic for that inherited supplier; new native/signed/geometry replay applies to the bit supplier. Native GLOBAL retains stale deficit2496 metadata; exact T64 subtraction is19968 and all pricing uses it.
+
+Attribution: PR441 pair/window B and PR440 A retimings eumemic with OpenAI Codex; PR436 producer eumemic with Anthropic Claude; original E8 Dylan Crow with Anthropic Claude; signed75 and this transfer OpenAI Codex. Apache-2.0 source licenses and notices remain supplied. PROVENANCE-PROJECTION.json records only neutral path projection and dependent receipt hashes; mathematical fields are unchanged.
+
+Finite conditional evidence only. All inherited all-size compiler, compressed-window/correlated-bank, rational chart/precision/tape/common-prime/recovery, analytic and stage-specific C_full hypotheses remain. No unconditional theorem, global optimality or practical runtime claim.

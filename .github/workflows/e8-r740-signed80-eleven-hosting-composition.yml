@@ -1,0 +1,35 @@
+name: E8 R740 signed80 eleven-stage hosting composition
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'research/e8-r740-signed80-eleven-hosting-composition/**'
+      - '.github/workflows/e8-r740-signed80-eleven-hosting-composition.yml'
+  pull_request:
+    paths:
+      - 'research/e8-r740-signed80-eleven-hosting-composition/**'
+      - '.github/workflows/e8-r740-signed80-eleven-hosting-composition.yml'
+permissions:
+  contents: read
+concurrency:
+  group: e8-r740-signed80-eleven-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  finite-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Full source-closed signed native geometry and arithmetic default
+        run: research/e8-r740-signed80-eleven-hosting-composition/verify.sh
+      - name: Require committed source files to remain unchanged
+        run: git diff --exit-code
