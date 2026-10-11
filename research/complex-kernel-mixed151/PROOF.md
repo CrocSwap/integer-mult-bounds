@@ -38,3 +38,15 @@ The union of the retained all-size compiler, mutable-basis/target-label,
 correlated-helper, restored-work, compressed-window, common-grid/tape, precision,
 row-divisor and analytic-transfer assumptions remains. No cross-family split,
 new unconditional theorem, new Lean proof or global optimality is claimed.
+
+## Parent reconstruction metadata portability
+
+The first full Python3.11 run passed the entire PR454 chain but PR458 stopped
+at its absolute1e-12 comparison of two inherited floating-point discovery
+estimates. The gain estimate differed by2.09e-12. These are explicitly
+non-proof metadata in the pinned rebuild source. The external parent runner
+normalizes only those two fields in a generated copy supplied to that rebuild;
+all other JSON fields are checked unchanged, all pinned source files stay
+unchanged, and the original exact reconstructed-word equality remains active.
+A separate receipt retains both values, the source hashes and normalization
+scope. The combined receipt binds it. No exact arithmetic check is relaxed.

@@ -28,3 +28,15 @@ The package includes the external shell path adapter used and verified for
 PR456. It adjusts shell argument splitting for the old PR436 wrapper on paths
 containing spaces without editing any pinned upstream source. Read PROOF.md
 for scope and SOURCE.json / NOTICE.md for the exact provenance.
+
+## Parent reconstruction metadata portability
+
+The first full Python3.11 run passed the entire PR454 chain but PR458 stopped
+at its absolute1e-12 comparison of two inherited floating-point discovery
+estimates. The gain estimate differed by2.09e-12. These are explicitly
+non-proof metadata in the pinned rebuild source. The external parent runner
+normalizes only those two fields in a generated copy supplied to that rebuild;
+all other JSON fields are checked unchanged, all pinned source files stay
+unchanged, and the original exact reconstructed-word equality remains active.
+A separate receipt retains both values, the source hashes and normalization
+scope. The combined receipt binds it. No exact arithmetic check is relaxed.
