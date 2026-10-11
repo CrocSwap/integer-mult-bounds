@@ -1,4 +1,4 @@
-"""Changed enlarged entrances, scalar invoice, and replica-parametric replay."""
+"""Grouped and rank-two entrance closure, with fresh inherited verification."""
 from pathlib import Path
 from fractions import Fraction as Q
 import hashlib,json,subprocess,sys,time

@@ -1,4 +1,4 @@
-"""Full immutable PR415 replay, changed target phases and global banks, and fresh bit composition."""
+"""Grouped and rank-two entrance closure, with fresh inherited verification."""
 from pathlib import Path
 from fractions import Fraction as Q
 import hashlib,json,os,subprocess,sys,time
