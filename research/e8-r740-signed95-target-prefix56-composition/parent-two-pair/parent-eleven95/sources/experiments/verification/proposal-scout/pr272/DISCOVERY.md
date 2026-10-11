@@ -1,0 +1,11 @@
+# Discovery and provenance
+
+Pinned public inputs: PR249 96495746c786d6d0339dbb38c7f553d4af3f88ed; PR266 a2b02af47dbaf3d1c55e7586746c30e851b68102; PR268 dbb653bb249e0087f9aa32e77149cc9043ac72c1; PR263 87129308f762f86a9d8e9a60f5d6c8ef23ce1f6e; PR261 d2c63486d895860a65f25b80a51f4b2ec4f3c6ef.
+
+The registered source catalogs and typed DAG were queried, and actual declarations were read in Mathlib, OpenAI FourierCircuit, P18, TNLean and the 3SUM formalization. This is broad retrieval followed by focused review, not an assertion that every declaration in every library was read or freshly kernel-checked.
+
+The productive connection was Mathlib Module.Basis.extendLe, Indep.fundCircuit_isCircuit, basis exchange and closure_exchange: filter by a physically available common frame, then construct a systematic kernel. The final witness has 925 pivots, 74 more than PR266, and total entrance rank 1762, 85 more. Of its rows, 442 originated in the filtered systematic search; this origin count is not a count of independently novel theorems. Up to rational basis equivalence, 516 cut/support/frame combinations also occur in PR266 and 409 do not. One collective component exposes eight independent pivot directions over 18 helpers at rank 11. The final packing retains this component and smaller ones rather than insisting on disjoint pair supports.
+
+OpenAI Word.matrix_substitute requires full operator equality. Following that requirement, a separate 21-gate cube producer was tested through an explicit 160-operation arbitrary-dirty realization; its local matrix identity passed but all 220 frozen cube transfers failed inherited endpoint caps. It is not used here. TNLean's positive-inner-product kernel-of-sum theorem also cannot be directly applied to the indefinite rational form I-J/9. No exponent gain is claimed from either route. P18 commutant/adjoint results were inspected with their finite irreducibility hypotheses intact; they are not assumed to give free projector transport.
+
+The search heuristic uses floating moment estimates, but every reported exponent is derived only from the emitted integer histogram and exact rational pricing. Frozen candidates suffice to reproduce this result; rerunning stochastic discovery is not necessary.
