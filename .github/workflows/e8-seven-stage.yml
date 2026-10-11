@@ -1,0 +1,37 @@
+name: e8-seven-stage
+
+on:
+  pull_request:
+    paths:
+      - 'research/e8-seven-stage/**'
+      - '.github/workflows/e8-seven-stage.yml'
+  push:
+    paths:
+      - 'research/e8-seven-stage/**'
+      - '.github/workflows/e8-seven-stage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the pinned dependency
+        run: python -m pip install --disable-pip-version-check -r research/e8-seven-stage/requirements.txt
+      - name: Layout B_2/B_3, complex checks (B_2 regression, B_3), circuit binding to wht_main_block_B2Ge8x, exact coarse saving
+        run: bash research/e8-seven-stage/verify.sh "$RUNNER_TEMP/e8-seven-stage-verify"
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
