@@ -1,8 +1,49 @@
 """Residual census (endpoint - sigma per helper; freed roles r = 0 are deleted, not banked) and an exact zero-padding
-width-100 bank tiling with 60 replicas (tile(): the filler search of our PR #329 bank_template.py, verbatim).
+width-100 bank tiling with 60 replicas (tile() and its economy_tile() fallback: our PR #329 bank_template.py, verbatim).
 usage: tile.py WORD"""
 import sys,json,collections
 from collections import Counter
+from fractions import Fraction
+def economy_tile(blocks, m):
+    """Exact zero-padding tiling used when the filler search of tile() runs out of filler blocks (the kernel pivots
+    and early restorations of the stage stack add many residual widths that do not divide m; the PR #299 analogue at
+    p = 12 was the (r^4, 24, 4^(24-r)) re-tiling). The fillers are the two most numerous widths dividing m (here the
+    full helper width h and the rank-4 entrance residual). Each other width w, in decreasing order, gets the bank
+    w^a F^c f^b (w*a + F*c + f*b = m) that spends the fewest narrow fillers f per w block (then the largest a), plus
+    at most one bank w^r F^c' f^b' for the remainder r = n mod a. The leftover fillers fill pure banks F^(m/F),
+    f^(m/f) and y residue banks F^j f^k. Every bank sums to m and every block is used exactly once (no padding)."""
+    from fractions import Fraction
+    blocks = {w: n for w, n in blocks.items() if n}
+    div = sorted((w for w in blocks if m % w == 0), key=lambda w: (-blocks[w], w))
+    assert len(div) >= 2, ('economy tiling needs two filler widths', blocks)
+    F, f = sorted(div[:2], reverse=True)
+
+    def fill(rest):
+        """(c, b) with F*c + f*b = rest, c maximal (fewest narrow fillers); None if impossible."""
+        return next(((c, (rest - F*c)//f) for c in range(rest//F, -1, -1) if (rest - F*c) % f == 0), None)
+
+    left = {F: blocks[F], f: blocks[f]}; out = []
+    for w in sorted((x for x in blocks if x not in (F, f)), reverse=True):
+        n = blocks[w]
+        opts = [(Fraction(cb[1], a), -a, a, cb) for a in range(m//w, 0, -1) for cb in [fill(m - w*a)] if cb]
+        assert opts, ('no bank for width', w)
+        _, _, a, (c, b) = min(opts); q, r = divmod(n, a)
+        if q: out.append(((w,)*a + (F,)*c + (f,)*b, q)); left[F] -= q*c; left[f] -= q*b
+        if r:
+            cb = fill(m - w*r); assert cb, ('no remainder bank', w, r)
+            out.append(((w,)*r + (F,)*cb[0] + (f,)*cb[1], 1)); left[F] -= cb[0]; left[f] -= cb[1]
+    assert left[F] >= 0 and left[f] >= 0, ('fillers exhausted', left)
+    pF, pf = m//F, m//f
+    for y in range((pF*pf) + 1):
+        for j in range(1 if y else 0, pF if y else 1):
+            if (m - F*j) % f: continue
+            k = (m - F*j)//f; aF, af = left[F] - y*j, left[f] - y*k
+            if aF >= 0 and af >= 0 and aF % pF == 0 and af % pf == 0:
+                out += ([((F,)*j + (f,)*k, y)] if y else []) + ([((F,)*pF, aF//pF)] if aF else []) + ([((f,)*pf, af//pf)] if af else [])
+                return out
+    raise AssertionError(('no exact zero-padding tiling', blocks, m))
+
+
 def tile(blocks, m):
     """Exact tiling of {width: number of blocks} into banks of total width m, as ((widths, banks), ...).
 
@@ -31,7 +72,7 @@ def tile(blocks, m):
             if found is not None: return found
         return None
     out = search(0, {w: n for w, n in blocks.items() if not m % w}, [])
-    assert out is not None, ('no exact zero-padding tiling', blocks, m)
+    if out is None: out = economy_tile(blocks, m)
     assert all(sum(widths) == m and count > 0 for widths, count in out)
     used = Counter()
     for widths, count in out:

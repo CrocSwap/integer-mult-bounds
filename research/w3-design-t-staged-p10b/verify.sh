@@ -27,7 +27,14 @@ echo "== 2. Design T + twin condensation on the staged word (own reimplementatio
 $PY -B $C/dt.py $WD/staged $WD/T
 $PY -B $C/comp.py $WD/T
 $PY -B $C/twin.py $WD/T $WD/TT
-gunzip -c $DA/final/249-records.bin.gz | cmp - $WD/TT/249-records.bin && echo "   rebuilt final word equals the shipped word"
+gunzip -c $DA/designt/249-records.bin.gz | cmp - $WD/TT/249-records.bin && echo "   rebuilt Design T word equals the shipped one (PR #354's final word)"
+(cd $WD && sha256sum -c "$DA/SHA256SUMS-designt" --quiet 2>/dev/null || shasum -a 256 -c "$DA/SHA256SUMS-designt" --quiet) && echo "   Design T word records hash OK"
+echo "== 2b. transcript stages on the Design T word: shared-donor kernel, retiming, reorder, reorder2 (frozen selections)"
+$PY -B $C/stages.py kernel $WD/TT $WD/K $HERE/stages/kernel-selection.json $DA/labels.json
+$PY -B $C/stages.py retime $WD/K $WD/KR $HERE/stages/retime-selection.json $DA/labels.json
+$PY -B $C/stages.py reorder $WD/KR $WD/KRO $HERE/stages/reorder-selection.json $DA/labels.json
+$PY -B $C/stages.py reorder $WD/KRO $WD/F $HERE/stages/reorder2-selection.json $DA/labels.json
+gunzip -c $DA/final/249-records.bin.gz | cmp - $WD/F/249-records.bin && echo "   rebuilt final word equals the shipped word"
 (cd $WD && sha256sum -c "$DA/SHA256SUMS-final" --quiet 2>/dev/null || shasum -a 256 -c "$DA/SHA256SUMS-final" --quiet) && echo "   final records hash OK"
 if [ $QUICK = 0 ]; then
   echo "== 2c. control: the same transform on the unstaged parity word gives PR #346's published final word byte for byte"
@@ -35,19 +42,19 @@ if [ $QUICK = 0 ]; then
   test "$( (sha256sum $WD/TT346/249-records.bin 2>/dev/null || shasum -a 256 $WD/TT346/249-records.bin) | cut -c1-64)" = c6a9311acfcf85f4a5775ed0187e31f84531614bb08434ef887ae1e63dda99c4 && echo "   PR #346 final records c6a9311a... reproduced"
 fi
 echo "== 3. legality and F2 (own exact replay), official PR #266 checkers (h = 20 port), nondegeneracy, bank tiling"
-$PY -B $C/f2.py $WD/TT | tee $WD/f2.txt; grep -q "'violations': 0, 'first_bad': \[\], 'final_mismatch': 0, 'copies': 20, 'X_not_restored': 0, 'H_not_restored': 0, 'resid_sigma0': 0, 'resid_other': 0" $WD/f2.txt
-N=$($PY -c "import json;s=json.load(open('$WD/TT/249-states.json'));print(s['n']-2*s['v'])")
+$PY -B $C/f2.py $WD/F | tee $WD/f2.txt; grep -q "'violations': 0, 'first_bad': \[\], 'final_mismatch': 0, 'copies': 20, 'X_not_restored': 0, 'H_not_restored': 0, 'resid_sigma0': 0, 'resid_other': 0" $WD/f2.txt
+N=$($PY -c "import json;s=json.load(open('$WD/F/249-states.json'));print(s['n']-2*s['v'])")
 $CXX -O2 -std=c++17 -DHDIM=20 -I$C/checkers -I$BI -o $WD/legality $C/checkers/legality_h.cpp
 $CXX -O2 -std=c++17 -DHDIM=20 -DVPORTS=960 -DRHELP=$N -I$C/checkers -I$BI -o $WD/columns $C/checkers/columns_h.cpp
-$PY -B $C/stage_official.py $WD/parity $WD/TT $WD/cin $WD/cout
+$PY -B $C/stage_official.py $WD/parity $WD/F $WD/cin $WD/cout
 $WD/legality $WD/cin $WD/cout $WD/legality.json
 $WD/columns $WD/cout/COHORT249-RECORDS.bin $WD/columns.json > /dev/null 2> $WD/columns.err
 $PY -c "import json;j=json.load(open('$WD/columns.json'));assert j['status']=='PASS_NEW_COHORT249_ALL_FIVE_STAGE_FORMAL_COLUMNS_AND_PREFIX_BILL';print('   official five-stage formal columns PASS:',j['formal_columns_checked'],'columns, prefix payload',j['payload_prefix_bits'],'bits')"
-$PY -B $C/nondeg.py $WD/TT $WD/parity
-$PY -B $C/tile.py $WD/TT
+$PY -B $C/nondeg.py $WD/F $WD/parity
+$PY -B $C/tile.py $WD/F
 echo "== 4. complex supplier: Sussman's E8 unit (gcert1-e8-r783, wht-power-saving-lean 9c94857): gx.check1 + gxcore, exact b"
 $PY -B $C/complex_b.py $HERE/complex/gcert1-e8-r783.json.gz $HERE/complex/gx | tee $WD/complex.txt
 grep -q "complex b = 876248285600677/1000000000000000000" $WD/complex.txt
 echo "== 5. bit coarse saving and PR #315 outer assembly (bit-bound)"
-$PY -B $C/price.py $WD/TT 876248285600677/1000000000000000000 | tail -2
-$PY -c "import json;k=json.load(open('$WD/TT/kappa.json'));assert k['kappa']=='80313716516349/100000000000000000' and k['binding']=='bit',k;print('PASS conditional kappa =',k['kappa'],'=',k['kappa_float'])"
+$PY -B $C/price.py $WD/F 876248285600677/1000000000000000000 | tail -2
+$PY -c "import json;k=json.load(open('$WD/F/kappa.json'));assert k['kappa']=='201075864794203/250000000000000000' and k['binding']=='bit',k;print('PASS conditional kappa =',k['kappa'],'=',k['kappa_float'])"

@@ -15,3 +15,10 @@ Apache-2.0 (`LICENSE`). Prepared by Chafik Boukhalfa (chafreaky) with substantia
 - `complex/`: Jacob Sussman's `gcert1-e8-r783.json.gz`, `gx.py` and `gxcore.py` from
   jacobalansussman/wht-power-saving-lean at `9c94857`, under Apache-2.0. Its LICENSE and NOTICE are kept alongside.
   DaysSky (#352) first used this unit as the complex supplier.
+- `code/stages.py`, `code/stagelib.py`, `stages/kernel-selection.json`, `retime-selection.json`,
+  `reorder-selection.json`, `reorder2-selection.json`: our post-Design-T kernel, retiming and reorder stages. They
+  re-implement on PR249 snapshots the mechanisms of our #329 package: the shared-donor kernel (#272/#299/#319/#320
+  lineage), descent2 (#287/#291/#299) and reorder (#299/#306). The selections come from our #329 discovery tools
+  (`discovery/coll`, `descent2_search.py`) and a reorder screen run on the Design T word.
+- `data/designt`: #354's final word (the input of the stages). `data/final`: this package's final word.
+- `code/tile.py`: `tile()` and `economy_tile()` from our #329 `bank_template.py`, verbatim.
