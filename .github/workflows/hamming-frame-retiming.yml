@@ -1,0 +1,23 @@
+name: Verify Hamming common-frame retiming
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONINTMAXSTRDIGITS: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B research/hamming-frame-retiming/verify.py "$RUNNER_TEMP/hamming-retiming"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hamming-retiming-${{ matrix.python }}
+          path: ${{ runner.temp }}/hamming-retiming
