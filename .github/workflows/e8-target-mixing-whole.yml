@@ -1,0 +1,54 @@
+name: e8-target-mixing-whole
+on:
+  pull_request:
+    paths:
+      - 'research/r740-idle-hosted-replicas/**'
+      - 'research/r740-hosted-eleven/**'
+      - 'research/r740-hosted-rank149/**'
+      - 'research/e8-target-mixing-whole/**'
+      - 'research/cross-family-residual-obstruction/**'
+      - 'research/split-centres-global/**'
+      - 'research/e8-early-reset-reuse/**'
+      - 'research/e8-early-reset-kernel/**'
+      - 'research/idle-axis-hosting/**'
+      - 'research/e8-r740-replica32/**'
+      - '.github/workflows/e8-target-mixing-whole.yml'
+  push:
+    paths:
+      - 'research/r740-idle-hosted-replicas/**'
+      - 'research/r740-hosted-eleven/**'
+      - 'research/r740-hosted-rank149/**'
+      - 'research/e8-target-mixing-whole/**'
+      - 'research/cross-family-residual-obstruction/**'
+      - 'research/split-centres-global/**'
+      - 'research/e8-early-reset-reuse/**'
+      - 'research/e8-early-reset-kernel/**'
+      - 'research/idle-axis-hosting/**'
+      - 'research/e8-r740-replica32/**'
+      - '.github/workflows/e8-target-mixing-whole.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -m pip install -r research/e8-r740-replica32/parent436/requirements.txt
+      - name: Exact cross-family route obstruction
+        run: python -B research/cross-family-residual-obstruction/verify.py
+      - name: Full parent, local phases and both eleven-stage suppliers
+        run: E8_REPLAY_PHASES=1 python -B research/e8-target-mixing-whole/verify.py "$RUNNER_TEMP/e8-target-mixing-whole-full"
+      - name: Require an unchanged tracked tree
+        run: git diff --exit-code
