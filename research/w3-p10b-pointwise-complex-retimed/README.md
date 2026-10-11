@@ -6,7 +6,7 @@
 (`retime/retime_gcert.py`, 21 gate moves; same gates, same R = 6,253, same registers). #346's complex guard
 (gx.check1 + gxcore, labels, scalar words, splice, precision guard) passes on the retimed program and b is certified by
 both rational moment engines with the 10⁻¹⁶ fallback; the outer assembly (47 strict constraints) gives the κ above.
-DRAFT: certificate/expected.json and MANIFEST.json are being regenerated with `verify.py --write`; full replay to follow.
+Full replay (`verify.py`, including #348's complete regeneration followed by the deterministic retiming, byte-for-byte equal to the committed program): PASS, κ = 158693865350747/(2·10¹⁷).
 Everything else below is #348's README (credit: chafreaky, LJH-217 #346 and upstream).
 
 ---

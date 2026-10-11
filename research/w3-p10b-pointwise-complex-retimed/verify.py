@@ -74,7 +74,8 @@ import spec_graph              # noqa: E402
 from moment import moment_margin  # noqa: E402  (PR #225's exact upper bound, as PR #304 and #327 price)
 T0 = time.monotonic()
 P = 10
-PROGRAM_SHA256 = 'ff2d7307b09aceb8776654f21099b10a68be547b562b7f4a7fc918f6c5f51112'
+BASE_PROGRAM_SHA256 = 'ff2d7307b09aceb8776654f21099b10a68be547b562b7f4a7fc918f6c5f51112'   # PR #348's program (regenerated)
+PROGRAM_SHA256 = 'ff0fd6786550a9afeae762431fd2c95bd5f2a0e8ffe162e9bc6ef8581172f037'   # committed: PR #348's program after retime/retime_gcert.py
 SEVEN = ('cache/graph.json', 'cache/frames.json', 'cache/selection.json', 'cache/record.json',
          'references/paired-cube/physical/frames.json', 'references/paired-cube/physical/pairs.json',
          'certificates/paired-cube-sinks-input.json')
@@ -757,13 +758,22 @@ def main():
                                  pr346_complex_coarse=str(Q(ref['complex_coarse'])), complex_coarse=str(b)))
     if not a.quick:
         result, cert = regenerate(src, spec, uniform, a.temp_root)
-        assert sha(canonical(cert)) == rec['certificate_sha256'] == PROGRAM_SHA256, 'the regenerated program differs from the committed one'
-        assert canonical(cert) == gzip.decompress(committed_path.read_bytes()), 'committed program differs from the regenerated one'
+        assert sha(canonical(cert)) == BASE_PROGRAM_SHA256, 'the regenerated program differs from PR #348\'s program'
+        import subprocess, tempfile
+        with tempfile.TemporaryDirectory() as td:
+            src_gz, out_gz = Path(td) / 'base.json.gz', Path(td) / 'retimed.json.gz'
+            src_gz.write_bytes(gzip.compress(canonical(cert), mtime=0))
+            subprocess.run([sys.executable, '-B', str(HERE / 'retime/retime_gcert.py'), str(src_gz), str(out_gz), '--rounds', '20'],
+                           check=True, stdout=subprocess.DEVNULL)
+            cert = json.loads(gzip.decompress(out_gz.read_bytes()))
+        assert sha(canonical(cert)) == rec['certificate_sha256'] == PROGRAM_SHA256, 'the retimed regenerated program differs from the committed one'
+        assert canonical(cert) == gzip.decompress(committed_path.read_bytes()), 'committed program differs from the retimed regenerated one'
+        log('regenerated PR #348 program retimed by retime/retime_gcert.py = committed program byte for byte')
         reg = result.pop('regenerated')
-        for key in ('R', 'N', 'cst', 'gates_A', 'gates_B', 'frames', 'registers', 'blocks_total', 'scalar_denominators',
-                    'scalar_max_abs', 'distinct_frame_steps', 'blocks', 'certificate_sha256'):
+        for key in ('R', 'N', 'cst', 'gates_A', 'gates_B', 'registers', 'scalar_denominators',
+                    'scalar_max_abs'):
             assert reg[key] == rec[key], key
-        log('regenerated program = committed program byte for byte (uncompressed canonical JSON, sha256 %s...)' % PROGRAM_SHA256[:12])
+        log('regenerated chain consistent with the committed program (sha256 %s...)' % PROGRAM_SHA256[:12])
         canon['regeneration'] = dict(result, chain={key: reg[key] for key in ('admission', 'flow', 'lift', 'contract_checks', 'scatter', 'paircheck', 'layer')})
     canon['status'] = ('PASS: conditional kappa = %s (complex-bound) with PR #346\'s w3 bit word and the per-point p = 10 complex program '
                        '(%s, b = %s); PR #346\'s kappa %s reproduced' % (k['kappa'], rec['five_stage']['a'], grid18(b), k346['kappa']))
