@@ -8,7 +8,7 @@ The emitted program has72 complete local invocations,40320 whole helper roles,80
 
 ## Verification and reproduction
 
-The baseline local word already passed fresh scalar, Gaussian phase, wrapper, common-label and guarded physical checks in the sibling package. This composition freshly passed emitter, independent controller/chart audit with19 negative controls, exact finite invoice, two exact moment engines, six bootstrap steps,47 strict outer inequalities and four outer controls. Validation JSON files record those results. At initial publication the packaged wrapper has not yet been replayed; no cold standalone or CI pass is claimed.
+The baseline local word already passed fresh scalar, Gaussian phase, wrapper, common-label and guarded physical checks in the sibling package. This composition freshly passed emitter, independent controller/chart audit with19 negative controls, exact finite invoice, two exact moment engines, six bootstrap steps,47 strict outer inequalities and four outer controls. Validation JSON files record those results. After early code publication, the packaged wrapper passed with explicitly byte-pinned completed local reuse and fresh replay of all asynchronous stages. See validation/PACKAGED-RECEIPT.json. No cold standalone or CI pass is claimed.
 
 From the repository root:
 
