@@ -10,6 +10,8 @@ def integrity():
  assert sha(CX/'MANIFEST.json')==read(ROOT/'SOURCE.json')['complex_manifest_sha256']
  for p,h in read(CX/'MANIFEST.json')['files'].items():assert sha(CX/p)==h
 integrity();out=Path(sys.argv[1]).resolve();assert not out.exists() and not out.is_relative_to(ROOT.parent);out.mkdir(parents=True);checks=[];env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONINTMAXSTRDIGITS='0');env.pop('PYTHONOPTIMIZE',None)
+import runpy
+compat=CX/'compat';runpy.run_path(str(compat/'sitecustomize.py'));env['PYTHONPATH']=str(compat)+os.pathsep+env.get('PYTHONPATH','')
 def run(name,args,reject=False):
  print('RUN',name,flush=True);t=time.monotonic();log=out/(name+'.log')
  with log.open('w') as f:q=subprocess.run(list(map(str,args)),env=env,stdout=f,stderr=subprocess.STDOUT)

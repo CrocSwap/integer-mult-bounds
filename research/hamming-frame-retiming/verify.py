@@ -10,6 +10,8 @@ def integrity():
  assert sha(SOURCE/'MANIFEST.json')==read(ROOT/'SOURCE.json')['manifest_sha256']
  for name,digest in read(SOURCE/'MANIFEST.json').items():assert sha(SOURCE/name)==digest
 integrity();checks=[];env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONINTMAXSTRDIGITS='0');env.pop('PYTHONOPTIMIZE',None)
+import runpy
+compat=ROOT/'compat';runpy.run_path(str(compat/'sitecustomize.py'));env['PYTHONPATH']=str(compat)+os.pathsep+env.get('PYTHONPATH','')
 def run(name,file,args=(),cwd=None):
  print('RUN',name,flush=True);t=time.monotonic();log=out/(name+'.log')
  with log.open('w') as f:subprocess.run([sys.executable,'-B',str(file),*map(str,args)],cwd=cwd,env=env,stdout=f,stderr=subprocess.STDOUT,check=True)
