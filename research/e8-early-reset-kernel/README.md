@@ -4,6 +4,6 @@ Conditional kappa = 0.001134386495022041. Twelve early resets reduce R758 to R74
 
 Run `python -B research/e8-early-reset-kernel/verify.py /absolute/new/output` using the Python standard library. This freshly replays every upstream phase and the pinned eleven-reset construction, applies RESET12.json, SELECTION.json and RETIMING.json, and independently audits the complete result.
 
-Before this draft update, all changed scalar/frame/source-span checks, both global programs, independent bank audits, two moments and finite assembly passed. Packaged reconstruction reproduces the exact tested word and rejects eight mutated witnesses. The new uninterrupted full wrapper and GitHub CI are pending. Historical 110-entry and 118-entry full Python 3.11/3.14 receipts remain explicitly bound to earlier source hashes.
+Before this draft update, all changed scalar/frame/source-span checks, both global programs, independent bank audits, two moments and finite assembly passed. Packaged reconstruction reproduces the exact tested word and rejects eight mutated witnesses. The complete uninterrupted full wrapper passed on Python 3.11 and 3.14 at code commit 6a1c6a308429ea11f64b679df6abdf2bf40436b0; terminal receipts and all top-level log hashes are retained in local-evidence/reset12-python311 and reset12-python314. GitHub CI remains pending. Historical 110-entry and 118-entry full Python 3.11/3.14 receipts remain explicitly bound to earlier source hashes.
 
 All-size interfaces remain conditional assumptions; no unconditional multiplication theorem or new Lean proof is claimed.
