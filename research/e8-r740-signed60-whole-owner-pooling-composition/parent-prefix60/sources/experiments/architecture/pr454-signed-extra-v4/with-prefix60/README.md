@@ -1,0 +1,9 @@
+# Signed60 target-prefix composition
+
+Four PR454-inspired receiver donations extend the immutable signed56 design:124←134 atG484,125←166 atG477,126←206 atG488,127←182 atG515. Their exact one-helper prefixes first occur at smaller receiver frames thanG. The chosen donors are unchanged signed56 donors. All60 receivers are disjoint from all donor roles. Negative zero preconditions, signed scatter differences and positive last-donor-cut additions rebuild the same integer decoder and helper dirt response.
+
+The actual980 columns,120adjoints, arbitrary dirt, literal inverse, frame ledgers and four controls pass. The full eleven-stage producer passes9340 scalar columns,24bridge omissions,22geometry/schedule mutations,65120owner assignments and all8140complete78-column sigma maps. New relative-address routes bind the actual new template: R=Cw Cu^-1, receiverx reads donor f_w(Rx), with1320chart instances,10560owners and2520controls. All88owner arrays and geometry are byte-equal to parent56.
+
+Actual signed units are16466 (raw15192); prefix1124/27414 gives159bits and a532-bit cube under192/1024. All120 new target ADDs pay154factors each, giving253693440extra selectors. Both rational moment engines,8continuations and47strict outer gates pass the conditional exponent1259508182350699491200171/10^27,0.00805091994% above signed56. Independent science and portable release are separate gates.
+
+The current-label target-as-source weighted compiler, compressed hosting, rational-chart/common-prime, precision/tape/recovery and analytic interfaces remain explicit conditions. PR454/chafreaky with OpenAI Codex supplied the native extra-pair inspiration; PR450/DreamingOfClouds with Claude supplied the original target-mix design. This signed adaptation changes donors and proves exact integer prefixes; it does not inherit a nativeF2score.
