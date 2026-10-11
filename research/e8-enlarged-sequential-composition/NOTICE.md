@@ -1,0 +1,12 @@
+# Attribution
+
+This additive construction, exact packing witness and portable wrapper were prepared with OpenAI Codex assistance. All upstream code, licenses and notices retain their original attribution.
+
+- eumemic, with substantial OpenAI Codex assistance, [PR410](https://github.com/CrocSwap/integer-mult-bounds/pull/410), commit `95ad14d5359d62a89e7bb06eb59b68029e77fb6f`: eight exact entrance-space enlargements and the complete finite local, Gaussian, bank and invoice framework. This package applies those eight enlargements to the original 194-relation selection. It does not use PR410's 205-selection or its separate 206th promotion. The complete native PR410 tree and original notices are restored unchanged.
+- Rohan Arun (`rohanarun`), with substantial OpenAI Codex assistance, [PR409](https://github.com/CrocSwap/integer-mult-bounds/pull/409), commit `212e03d7665d08fc6a037d3e33612cb7fc60874d`: ten ordered donor-to-pivot promotions through 51 prepended shears, source-before-write admission, and replica expansion. Exact native construction and source notices are preserved. Its retained PR403 replica-parametric bank emitter, independent decoder and bridge are used with our literal packing witness.
+- Dugongue, PR404 and PR401: 194 shared-donor relations, response-subspace normalization, exact dirty operators, phase-correct two-sided bank boundaries and the native nine-stage bit construction. Their original source notices remain in the frozen parent and restored sources.
+- Chafik Boukhalfa (`chafreaky`), assisted by Anthropic Claude, PR402: exact target-feed re-synthesis through donor 221. Our frozen parent's exact target177/220 witness is retained; its full source notice and narrowly recorded callback adaptation remain unchanged.
+- Jacob Sussman: the unchanged `gx.py` and `gxcore.py` checkers retained by the parent. The legacy fixed-sixths rejection is preserved, not relabelled as acceptance.
+- PR376 supplies the R822/R781 compositions, frame and commuting-window witnesses, source-bound parent replay and corrected signed accounting. eumemic's PR388 signed witness and complete-prefix diagnosis remain credited through the frozen signed supplement.
+
+PR365/374, PR377/378, PR390/394/395, PR396/398, PR381, PR403 and all earlier supplier/compiler/arithmetic ancestry remain credited in the original notices and 15 frozen dependency trees. We claim neither invention of transvection algebra, exclusive mechanism priority, global packing optimality, an unchanged gxcore/Lean certificate nor an unconditional multiplication theorem.
