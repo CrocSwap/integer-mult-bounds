@@ -1,0 +1,32 @@
+name: R715 whole-owner GL sharp replay
+on:
+  pull_request:
+    paths:
+      - 'research/r715-whole-owner-gl-sharp/**'
+      - '.github/workflows/r715-whole-owner-gl-sharp.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python }}'
+      - name: Install exact arithmetic and native dependencies
+        run: |
+          python -m pip install 'sympy==1.14.0'
+          sudo apt-get update
+          sudo apt-get install -y libboost-dev
+      - name: Rebuild and verify complete finite construction
+        run: python research/r715-whole-owner-gl-sharp/verify.py "$RUNNER_TEMP/r715-gl-proof" --boost-include /usr/include
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r715-gl-proof-${{ matrix.python }}
+          path: '${{ runner.temp }}/r715-gl-proof/'

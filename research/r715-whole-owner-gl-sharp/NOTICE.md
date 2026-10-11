@@ -1,0 +1,7 @@
+Apache-2.0; all retained upstream notices and licenses remain applicable.
+
+This package replays the Rohan Arun PR473 bit whole-owner word and the Dugongue PR471 complex provider, combined through the PR473/478 assembly. It uses Srikrishnabalaji PR465's sharper general-linear-cover fallback charge. The R715 producer/carrier construction is by DreamingOfClouds with Claude Opus 5.5; DaysSky PR442 supplies whole-family idle hosting. Chafreaky, Zhihao Chen, Dylan Crow, eumemic, icekylinx, and the credited PR315/370/377/386/417/425/433/434/443/449/450/458 lineage supply retained geometry, scalar words, compilers, auditors, and moment/outer engines. The original file headers and source package attribution are preserved in bit/notices, bit/NOTICE.md, and complex/PROVENANCE.md and complex/notices.
+
+The explicit GL cover declaration, exact owner-injection and finite physical operator audits, portable reconstruction wrapper, widened row accounting, sharp-charge integration, and symbolic finite routing-constant cutoff proof were prepared with OpenAI Codex. This package makes no claim of exclusive priority for inherited constructions. It retains conditional all-size compiler and analytic interfaces and does not admit cross-family splitting of one helper array.
+
+UPSTREAM-SOURCES.json records retained source bytes and public source identities. The complete package MANIFEST.json records the final integrated sources.
