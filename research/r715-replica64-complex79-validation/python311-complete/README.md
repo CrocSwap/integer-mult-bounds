@@ -1,0 +1,1 @@
+Complete replica64 wrapper PASS with explicit source/hash-bound reuse of the already completed full PR478 provider. All new bit reconstruction, native checks and controls, emitted physical audit, live byte/content binding, invoice and47 outer inequalities ran freshly. This is not a fresh provider execution; default Python3.14 full replay remains separate.

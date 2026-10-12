@@ -1,0 +1,30 @@
+name: Verify R715 kernel and whole pooling
+on:
+  pull_request:
+    paths: ['research/r715-kernel-pool/**', '.github/workflows/r715-kernel-pool.yml']
+  push:
+    paths: ['research/r715-kernel-pool/**', '.github/workflows/r715-kernel-pool.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: sudo apt-get update && sudo apt-get install -y g++ libboost-dev
+      - run: python -m pip install -r research/e8-r740-replica32/parent436/requirements.txt
+      - run: python -B research/r715-kernel-pool/verify.py "$RUNNER_TEMP/r715"
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONINTMAXSTRDIGITS: '0'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r715-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/r715/*.json
+            ${{ runner.temp }}/r715/*.log

@@ -1,0 +1,9 @@
+# Construction and scope
+
+The source reconstruction preserves all earlier target mixing, frame retiming and dependency-preserving delivery transformations, then applies the checked110-pivot/rank119 kernel and fourteen disjoint target factors. The local word is byte-identical to the64-replica supplier. Every complete arbitrary-dirty endpoint, integer operand support and frame inclusion remains independently replayed.
+
+The new input is an84-replica whole-family assignment. Rational reconstruction validates every pattern multiplicity, available child count and stage/width supply equation before multiplying by a common denominator. The verifier does not trust the fractional optimizer: it expands660660 concrete helper occurrences, checks every owner/window/width/injectivity condition, reconstructs the paid complements and certifies the resulting recurrence moment independently twice. Initial physical emission/audit and exact strong-complex assembly pass; complete wrappers are pending at submission.
+
+For a target factor, setup and recovery replace receiver increment U by U+V around donor increment V: (u+d)+(U+V)+(d+V)=u+U over F2. Rational frame and integer support checks establish the allowed path, and all955 arbitrary-dirty columns plus native signed/formal checks establish the finite word. Residuals retain their original full complementary dimensions. The exact final coefficient growth, finite invoice and47 outer inequalities are recomputed for the enlarged stock; the final bound is not a sum of separate gains.
+
+These finite checks retain all inherited all-size supplier/compiler, mutable target-label, correlated dirty-hosting, complete-call/same-owner spectator, precision and analytic assumptions. No unconditional multiplication theorem, global optimum or claim to beat the larger disputed cross-family headline follows.

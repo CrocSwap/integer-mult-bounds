@@ -1,0 +1,1 @@
+Initial physical and exact strong-complex assembly PASS; full wrapper pending. Physical driver includes the legacy458 comparison; RESULT.json is the separate strong478 assembly. Rational discovery is independently replaced by explicit660660-occurrence reconstruction and physical ownership checks. No full-wrapper/CI success is claimed at submission.

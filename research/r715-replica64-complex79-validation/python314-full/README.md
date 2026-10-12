@@ -1,0 +1,1 @@
+Fresh uninterrupted default Python3.14 replica64 plus complex79 composition PASS. Both suppliers rebuilt, source/native/physical/content checks and all47 strict outer inequalities passed. Conditional interfaces remain unchanged. GitHub CI is separate.

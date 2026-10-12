@@ -1,0 +1,30 @@
+name: Verify composed complex kernel and rank151 bit supplier
+on:
+  pull_request:
+    paths: ['research/complex-kernel-mixed151/**', 'research/r740-hosted-rank151-mixed/**', '.github/workflows/complex-kernel-mixed151.yml']
+  push:
+    paths: ['research/complex-kernel-mixed151/**', 'research/r740-hosted-rank151-mixed/**', '.github/workflows/complex-kernel-mixed151.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: sudo apt-get update && sudo apt-get install -y g++ libboost-dev
+      - run: python -m pip install -r research/e8-r740-replica32/parent436/requirements.txt
+      - run: python -B research/complex-kernel-mixed151/verify.py "$RUNNER_TEMP/composition"
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONINTMAXSTRDIGITS: '0'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: composition-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/composition/*.json
+            ${{ runner.temp }}/composition/*.log

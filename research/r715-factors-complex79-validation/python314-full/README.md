@@ -1,0 +1,1 @@
+Fresh uninterrupted default Python3.14 replay PASS for the8-replica repaired/factored bit plus complex79 composition. Provider rebuilt in full. Native controls, emitted physical audit, exact byte/content provenance check and47 outer inequalities all passed. The numerical claim is conditional and GitHub CI is separate. This does not by itself certify the later64-replica version.

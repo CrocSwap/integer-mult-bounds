@@ -1,0 +1,1 @@
+Initial physical component and exact strong-complex assembly; full wrapper pending. Physical driver used legacy458 invoice; RESULT.json is the separate pinned478 strong-complex assembly. Reconstruction evidence retains its narrower scope. No completed full replica64 provider replay is claimed.

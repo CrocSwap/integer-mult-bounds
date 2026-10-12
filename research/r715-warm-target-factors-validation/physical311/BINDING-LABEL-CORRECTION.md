@@ -1,0 +1,1 @@
+The inherited assembly report used a constant bit label. The numerical minimum and outer assembly were already correct. The new composition binds on complex, so the report now derives the label from the same exact comparison used in assembly. Initial report retained; corrected RESULT and invoice log retained. No physical program or numerical bound changed.

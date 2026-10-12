@@ -1,0 +1,9 @@
+# R715 repaired kernel with PR478 target factors
+
+Compose the110-pivot/rank119/102-donor repaired kernel with the14 disjoint target interval factors from pinned PR478. The B-phase gates of both source words are identical, and each used frame is checked equal before transferring the factors. The original PR478 source and candidate canonical hashes were independently reproduced. The unchanged constructor then checks the actual repaired-kernel input, all arbitrary-dirty columns, integer spans, monotone frames and28 omission controls.
+
+The local profile change is exactly {1:-14,4:-14,5:+14}, substituted into all88 calls. Helper entrances and the complete eight-replica whole-family assignment are unchanged. Two rational moment engines pass the resulting profile. The existing PR458 complex supplier now binds. Initial physical emission, independent ownership, fresh prefix/invoice and47 outer inequalities pass. Conditional kappa0.001295523322678044, exactly323880830669511/250000000000000000;0.0011395220939475793% above PR478. Fresh full wrapper remains pending. Prefix775bits charged832; three-level2379bits charged2432; row19431<20161. Run `python -B research/r715-warm-target-factors/verify.py /absolute/new/output` for fresh full replay, or explicit `--complex-output` for a manifest-bound completed parent reuse.
+
+This inherits all compiler, target-label/mutable-basis, whole-call correlated-helper hosting, compressed-window, precision, restored-work and analytic contracts. No unconditional multiplication theorem or optimum is claimed.
+
+Credits: Dugongue for PR478's target factor witness/constructor and proof; chafreaky for PR472's kernel integration and PR458 complex supplier; DreamingOfClouds for R715 and target mixing; DaysSky for hosting; ahrazzle for local delivery reordering; the PR470/473 contributors for kernel/delivery/whole-pool work. Composition and independent replay by Rohan Arun with OpenAI Codex assistance. Original notices retained.

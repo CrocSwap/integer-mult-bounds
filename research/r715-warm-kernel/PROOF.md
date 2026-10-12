@@ -1,0 +1,5 @@
+# Construction and verification scope
+
+The source reconstruction preserves every checked PR470 target mix and delivery transformation, including noncommuting-gate order constraints. It removes the known kernel correction prefix/suffix and resets exactly the old pivot entrances. The original primitive D program and target preconditioners are retained. Exact replay verifies the resulting precursor; reapplying the old selection restores the prior paid profile. Applying the frozen110-pivot selection yields the exact saved word. Each entrance is a coordinate subspace with an explicit complement isometry. Each residual remains whole on a single family under the recorded eight-replica assignment.
+
+The final supplier claim additionally requires emitted-operator, physical-prefix and finite-invoice checks. Initial component checks of these pass in the retained evidence. A fresh full wrapper is still pending. No unconditional multiplication theorem or optimality claim follows from these finite checks.

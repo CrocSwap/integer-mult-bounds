@@ -1,0 +1,1 @@
+Complete84-replica Python3.11 wrapper PASS with explicitly source/hash-bound completed-provider reuse. All new bit and composition checks ran freshly. This is separate from the default full supplier rebuild and GitHub CI.
