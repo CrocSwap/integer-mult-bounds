@@ -55,3 +55,24 @@ The intended checker retains the two verified PR585 outputs and checks the seven
 The package follows PR588's `complex-571-free4fc8/code/assemble.py` native branch and the inherited PR361 rational moment formulas. The Lean library supplies the real logarithm/exponential remainder APIs. Upstream attribution and exact source identities are retained in SOURCE_BINDING.json, DEPENDENCIES.json and NOTICE.md. LICENSE supplies the repository Apache-2.0 text; external dependencies retain their own licenses.
 
 The Lean sources, decomposition, provenance and prose were substantially prepared with OpenAI assistance and independently reviewed at the recorded scientific/API/current/terminal boundaries. This package does not claim candidate-specific `make verify`, `make gen4-bank-verify`, transported Python-target evidence or hosted-CI success. Those outcomes require their own exact candidate receipts and remain distinct from local Lean reproduction.
+
+## Offline retained-prefix check
+
+Use the exact PR585 package and its successful five-root public build. The checker imports only its two moment modules, verifies their complete probes and exact objects, and preserves every prefix source, object, receipt and log. No PR585 root is recompiled by this command.
+
+With an existing Lean4.21/Mathlib308445 cache, run from this package:
+
+```sh
+python3 check.py --lean /path/to/lean-4.21.0-linux/bin/lean \
+  --mathlib-root /path/to/mathlib4 \
+  --base-runtime-manifest /path/to/pr526/EXTERNAL_OBJECTS.json \
+  --reused-runtime-extension /path/to/pr573/EXTERNAL_OBJECTS_EXTENSION.json \
+  --prefix-package /path/to/lean-selected-rational-certificates \
+  --prefix-build /path/to/successful-pr585-build --build-dir /path/to/fresh-build
+```
+
+The dependency commits and manifest hashes are fixed in DEPENDENCIES.json. The checker does not fetch, install, rebuild or run a scientific supplier. It verifies the complete disjoint3,260-row cache, exact import reachability and first object matches, then checks only the seven included sources with normal Lean kernel checking. A fresh output directory is mandatory. `--guard-only` performs read-only input and output-absence verification. `--require-observed-prefix` additionally requires this packet's exact recorded local PR585 result and receipt hashes; portable runs may have different receipt timestamps but must have the exact source/object/log hashes and full clean probes. No prefix warning normalization is needed for these two modules.
+
+The optional `--slot-service /path/to/lean_check.py` uses an existing FIFO compiler service. The service is an executable trust boundary and should only be supplied from an independently reviewed local installation. Our measured replay uses the pinned shared two-slot service with one serial owner client. Its receipt records actual compiler, FIFO wait and post-slot/post-compiler guard time separately. Each new receipt and completed object is rehashed by later guards. The first compiler failure, resource review stop or preservation failure ends the sequence while retaining earlier successful outputs.
+
+Seven fresh modules contribute20 new probes; the two retained modules contribute11, for31 reachable probes. The isolated replay result and individual receipts are produced in the chosen build directory; public summary status belongs solely to REPLAY_SUMMARY.json. This command proves only the historical PR588 source-bound native moment described above, even when the containing PR is based on a later main commit.
