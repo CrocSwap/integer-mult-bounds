@@ -41,10 +41,11 @@ model is not a substitute for the target above.
 
 ## Next proof integration
 
-The immediate unclosed boundary is the source certificate. A soundness theorem
-for a Lean owner-table checker should expose typed facts about each actual
-owner and coordinate, then feed the already-proved matching/compaction and
-PR516 interfaces. A successful external Python extraction remains insufficient.
+The immediate unclosed boundary is the source certificate. `OwnerTable.lean` now proves
+soundness for a full-row checker, exposing typed facts about each accepted
+owner and coordinate. Its fixture and nine rejection controls pass in Lean.
+The next step is kernel certification of the full selected row witness, followed
+by connection to the already-proved matching/compaction and PR516 interfaces. A successful external Python extraction remains insufficient.
 Keep the generic proofs separate from source decoding so that changes of finite
 witness do not alter their mathematical statements.
 

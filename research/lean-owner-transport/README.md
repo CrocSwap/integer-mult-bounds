@@ -40,6 +40,16 @@ nonaliasing, gap-free occupied-prefix guarantees from the general theorems.
 `PR531Templates.lean` similarly checks all five shapes extracted from 36,288
 roles in 15,302 groups and 72 calls in the selected PR531 package.
 
+`OwnerTable.lean` now proves soundness of a full-row Boolean checker. Its
+untrusted witness includes actual rows and auxiliary group/family index lists;
+the checker verifies both inverse links. Acceptance entails the call/helper
+census, declared-window membership, capacity in that same declared window,
+injective families within each call, and nonaliasing within each owner group.
+Its block checker also proves coverage of the occupied prefix. These are generic
+soundness theorems: the full PR531 row witness has not yet been certified.
+`OwnerTableControls.lean` checks a valid fixture and rejects nine corruptions,
+including lost index links, wrong windows, overlap and changed source widths.
+
 There is no Mathlib dependency, no proof placeholder, no custom axiom and no
 native evaluation proof shortcut. The verifier audits every local theorem.
 
@@ -82,8 +92,8 @@ python3 -B verify.py --lean /absolute/path/to/lean --build-dir /absolute/new/out
 
 Use an SSD output directory locally. The directory must be new. The command
 checks immutable sources, regenerates the exact template table for comparison,
-freshly compiles all four project modules, audits every theorem's axioms, rejects a
-false Lean capacity claim, checks six mathematical matching regressions, and
+freshly compiles all six project modules, audits every theorem's axioms, rejects a
+false Lean capacity claim, checks six mathematical matching regressions and ten owner-table control theorems, and
 rejects six corrupted source fixtures for each of the two input packages. It does
 not reuse project objects or download dependencies. Output includes source
 hashes, logs, source-binding counts and a receipt.

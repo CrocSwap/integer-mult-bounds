@@ -61,7 +61,9 @@ def main():
     names = []
     source_hashes = {}
     modules = [('OwnerTransport', 'OwnerTransport'), ('WidthMatching', 'OwnerTransport.WidthMatching'),
-               ('PR527Templates', 'OwnerTransport.PR527'), ('PR531Templates', 'OwnerTransport.PR531')]
+               ('PR527Templates', 'OwnerTransport.PR527'), ('PR531Templates', 'OwnerTransport.PR531'),
+               ('OwnerTable', 'OwnerTransport.OwnerTable'),
+               ('OwnerTableControls', 'OwnerTransport.OwnerTableControls')]
     for module, namespace in modules:
         p = ROOT/(module+'.lean')
         source = p.read_text()
@@ -74,7 +76,7 @@ def main():
         require(not (r.stdout+r.stderr).strip(), 'Unexpected compiler diagnostics: '+r.stdout+r.stderr)
         (build/(module+'.log')).write_text(r.stdout+r.stderr)
     probe = build/'Axioms.lean'
-    probe.write_text('import WidthMatching\nimport PR527Templates\nimport PR531Templates\n'+'\n'.join('#print axioms '+n for n in names)+'\n')
+    probe.write_text('import WidthMatching\nimport PR527Templates\nimport PR531Templates\nimport OwnerTableControls\n'+'\n'.join('#print axioms '+n for n in names)+'\n')
     audit = run([lean, str(probe)], env).stdout
     (build/'axioms.log').write_text(audit)
     reports = re.findall(r"'([^']+)' (?:depends on axioms: \[([^\]]*)\]|does not depend on any axioms)", audit, re.S)
@@ -108,8 +110,8 @@ example : allocate id [5] [4] = none := by decide
     receipt = {'status':'PASS' ,'lean':version,'seconds':time.monotonic()-started,
        'fresh_project_modules':len(modules),'theorems_audited':len(names),'theorems':names,
        'source_binding':json.loads(binding),'source_sha256':source_hashes,
-       'external_negative_controls':{label:controls(directory) for label,directory in [('PR527','source'),('PR531','source531')]},'matching_regression_examples':6,'lean_false_capacity_rejected':True,
-       'boundary':'Lean checks compaction, complete sorted-dominance matching, stateful admissible-policy correctness, and both source template tables. Python checks JSON parsing and source-to-template association. Neither the source Python allocator nor the physical machine, all-size compiler or kappa theorem is proved.'}
+       'external_negative_controls':{label:controls(directory) for label,directory in [('PR527','source'),('PR531','source531')]},'matching_regression_examples':6,'owner_table_control_theorems':10,'lean_false_capacity_rejected':True,
+       'boundary':'Lean checks compaction, complete sorted-dominance matching, stateful admissible-policy correctness, both source template tables, and a sound full-row owner-table checker with rejection controls. The complete selected row witness is not yet certified. Python checks JSON parsing and source-to-template association. Neither the source Python allocator nor the physical machine, all-size compiler or kappa theorem is proved.'}
     (build/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
     print(json.dumps(receipt,indent=2))
 
