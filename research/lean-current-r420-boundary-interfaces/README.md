@@ -50,3 +50,22 @@ Generic reversal/chunk/two-level cleanup results are separate and are not needed
 ## Attribution
 
 Apache-2.0. The R420 supplier was prepared by eumemic with substantial Anthropic Claude assistance. Complete current and carrier-ancestry notices are preserved in `SUPPLIER_NOTICE.md` and `PR493_NOTICE.md`. These Lean certificates were prepared with OpenAI assistance, reusing the exact public PR590 proofs and official Lean core APIs.
+
+## Offline retained-prefix reproduction
+
+Use the exact PR590 package and a successful eight-root PR590 public build. This checker validates four required source/object/probe records and preserves all eight predecessor roots, including the four that are not imported here. It compiles only the seven included sources in the manifest's order.
+
+With the existing official Lean 4.21.0 Linux distribution, run from this package:
+
+```sh
+python3 check.py --lean /path/to/lean-4.21.0-linux/bin/lean \
+  --prefix-package /path/to/lean-selected-bit-scalar-boundaries \
+  --prefix-build /path/to/successful-pr590-build \
+  --build-dir /path/to/fresh-r420-build
+```
+
+The 317 official core source/object pairs, exact import closure, PR590 manifest, source bytes, retained objects and full axiom-probe records are checked before compilation. No installation, download, Mathlib or scientific supplier execution is required. The new output directory must not exist. `--guard-only` verifies these inputs and output absence without compiling. `--require-observed-prefix` additionally pins the exact local PR590 result, receipts and raw logs recorded here. A portable prefix may have different receipt timestamps; its sources, objects and full probes must still match. Only the three recorded generic XOR warning source paths, at lines 96, 110 and 127, may normalize in the retained log.
+
+The optional `--slot-service /path/to/lean_check.py` uses an independently reviewed existing FIFO compiler service. That service is an executable trust boundary. Our bounded reproduction uses the pinned shared service with one serial client. Each root has a 60-second and 4-GiB hard limit, with review stops above 45 seconds or 3.5 GiB peak virtual memory. A compiler failure, review threshold or preservation failure stops the sequence and retains earlier successful artifacts. Actual compiler, FIFO wait, post-slot guard and post-compiler guard times are separate receipt fields.
+
+The seven fresh modules print 61 probe records covering 34 distinct declarations, because the import-only wrapper repeats 27 imported facts. The four retained modules contribute 14 records, for 75 reachable printed records. The raw result and individual receipts are written in the chosen build directory; REPLAY_SUMMARY.json is this package's sole mutable reproduction summary. Selected source applicability, conditional semantic scope and the explicit author-checked current kappa remain as stated above.
