@@ -57,13 +57,28 @@ def main():
     env = dict(os.environ, LEAN_PATH=str(build), PYTHONDONTWRITEBYTECODE='1')
     binding = run([sys.executable, '-B', str(ROOT/'generate.py'), '--check']).stdout
     (build/'source-binding.json').write_text(binding)
+    literal_binding = run([sys.executable, '-B', str(ROOT/'generate_table.py'), '--check']).stdout
+    (build/'literal-binding.json').write_text(literal_binding)
+    hosting_binding = run([sys.executable, '-B', str(ROOT/'generate_separation.py'), '--check']).stdout
+    (build/'hosting-binding.json').write_text(hosting_binding)
+    controller_binding = run([sys.executable, '-B', str(ROOT/'generate_schedule.py'), '--check']).stdout
+    (build/'controller-binding.json').write_text(controller_binding)
     started = time.monotonic()
     names = []
     source_hashes = {}
     modules = [('OwnerTransport', 'OwnerTransport'), ('WidthMatching', 'OwnerTransport.WidthMatching'),
                ('PR527Templates', 'OwnerTransport.PR527'), ('PR531Templates', 'OwnerTransport.PR531'),
                ('OwnerTable', 'OwnerTransport.OwnerTable'),
-               ('OwnerTableControls', 'OwnerTransport.OwnerTableControls')]
+               ('OwnerTableControls', 'OwnerTransport.OwnerTableControls'),
+               ('PR531TableData', 'OwnerTransport.PR531Table'),
+               ('PR531TableCertificate', 'OwnerTransport.PR531Table'),
+               ('OwnerSeparation', 'OwnerTransport.OwnerSeparation'),
+               ('PR531DataWindows', 'OwnerTransport.PR531DataWindows'),
+               ('PR531InvocationOwners', 'OwnerTransport.PR531InvocationOwners'),
+               ('BorrowSchedule', 'OwnerTransport.BorrowSchedule'),
+               ('BorrowScheduleControls', 'OwnerTransport.BorrowScheduleControls'),
+               ('PR531Controller', 'OwnerTransport.PR531Controller'),
+               ('PR531ScheduledOwners', 'OwnerTransport.PR531ScheduledOwners')]
     for module, namespace in modules:
         p = ROOT/(module+'.lean')
         source = p.read_text()
@@ -72,11 +87,12 @@ def main():
         require(not re.search(r'\b(sorry|admit|axiom|native_decide|unsafe)\b', code), 'Forbidden proof escape')
         names += [namespace+'.'+n for n in re.findall(r'^theorem\s+(\w+)', code, flags=re.M)]
         source_hashes[p.name] = hashlib.sha256(p.read_bytes()).hexdigest()
-        r = run([lean, '-o', str(build/(module+'.olean')), str(p)], env)
+        print('Checking '+module, flush=True)
+        r = run([lean, '-s', '65536', '-o', str(build/(module+'.olean')), str(p)], env)
         require(not (r.stdout+r.stderr).strip(), 'Unexpected compiler diagnostics: '+r.stdout+r.stderr)
         (build/(module+'.log')).write_text(r.stdout+r.stderr)
     probe = build/'Axioms.lean'
-    probe.write_text('import WidthMatching\nimport PR527Templates\nimport PR531Templates\nimport OwnerTableControls\n'+'\n'.join('#print axioms '+n for n in names)+'\n')
+    probe.write_text('import WidthMatching\nimport PR527Templates\nimport PR531Templates\nimport OwnerTableControls\nimport PR531TableCertificate\nimport PR531InvocationOwners\nimport BorrowScheduleControls\nimport PR531ScheduledOwners\n'+'\n'.join('#print axioms '+n for n in names)+'\n')
     audit = run([lean, str(probe)], env).stdout
     (build/'axioms.log').write_text(audit)
     reports = re.findall(r"'([^']+)' (?:depends on axioms: \[([^\]]*)\]|does not depend on any axioms)", audit, re.S)
@@ -109,9 +125,11 @@ example : allocate id [5] [4] = none := by decide
     (build/'matching-controls.log').write_text(result.stdout+result.stderr)
     receipt = {'status':'PASS' ,'lean':version,'seconds':time.monotonic()-started,
        'fresh_project_modules':len(modules),'theorems_audited':len(names),'theorems':names,
-       'source_binding':json.loads(binding),'source_sha256':source_hashes,
-       'external_negative_controls':{label:controls(directory) for label,directory in [('PR527','source'),('PR531','source531')]},'matching_regression_examples':6,'owner_table_control_theorems':10,'lean_false_capacity_rejected':True,
-       'boundary':'Lean checks compaction, complete sorted-dominance matching, stateful admissible-policy correctness, both source template tables, and a sound full-row owner-table checker with rejection controls. The complete selected row witness is not yet certified. Python checks JSON parsing and source-to-template association. Neither the source Python allocator nor the physical machine, all-size compiler or kappa theorem is proved.'}
+       'source_binding':json.loads(binding),'literal_binding':json.loads(literal_binding),'hosting_binding':json.loads(hosting_binding),'controller_binding':json.loads(controller_binding),'source_sha256':source_hashes,
+       'external_negative_controls':{label:controls(directory) for label,directory in [('PR527','source'),('PR531','source531')]},'matching_regression_examples':6,'owner_table_control_theorems':10,'controller_control_theorems':7,'lean_false_capacity_rejected':True,
+       'kernel_object_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in build.glob('*.olean')},
+       'verification_phases':[{'phase':'Fresh full package compilation and axiom audit','modules':len(modules)}],
+       'boundary':'Lean checks compaction, complete sorted-dominance matching, stateful admissible-policy correctness, both source template tables, and a sound full-row owner-table checker with rejection controls. Lean also certifies the complete selected literal row witness, every inverse group and family index link, declared-window separation from active data, injective ownership for all 728 registers in each invocation, and the finite controller trace with exact borrowing windows, untouched interiors and same-lane separation. Python performs source-byte parsing/projection into Lean literals, associates the source data-bank formula and helper routes, and checks the PR527 source-to-template association. Neither the source Python allocator nor the physical implementation of the controller/events, charts, all-size compiler, numerical/analytic dependencies or full multiplication theorem is proved.'}
     (build/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
     print(json.dumps(receipt,indent=2))
 

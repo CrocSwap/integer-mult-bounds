@@ -301,6 +301,32 @@ theorem accepted_census (c : Table) (h : Accepted c) (t helper : Nat)
   rw [hjt, hjh] at heq
   exact heq.symm
 
+/-- The canonical flat index itself has the advertised call/helper coordinates. -/
+theorem accepted_at_coordinate (c : Table) (h : Accepted c) (t helper : Nat)
+    (ht : t < c.calls) (hh : helper < c.helpers) :
+    let i := t * c.helpers + helper
+    i < rowCount c ∧ (c.row i).time = t ∧ (c.row i).helper = helper := by
+  obtain ⟨i, hi, htime, hhelper, _⟩ := accepted_census c h t helper ht hh
+  have heq := (accepted_row c h i hi).2.2.1
+  rw [htime, hhelper] at heq
+  subst i
+  exact ⟨hi, htime, hhelper⟩
+
+/-- Owner map for the helpers of a single invocation, suitable for hosting interfaces. -/
+def helperOwner (c : Table) (t : Nat) (helper : Fin c.helpers) : Nat :=
+  (c.row (t * c.helpers + helper.val)).family
+
+/-- Acceptance supplies the helper part of the one-owner hosting hypothesis. -/
+theorem helper_owner_injective (c : Table) (h : Accepted c) (t : Nat) (ht : t < c.calls) :
+    ∀ a b : Fin c.helpers, helperOwner c t a = helperOwner c t b → a = b := by
+  intro a b heq
+  have ha := accepted_at_coordinate c h t a.val ht a.isLt
+  have hb := accepted_at_coordinate c h t b.val ht b.isLt
+  have hi := accepted_owner_injective c h _ _ ha.1 hb.1
+    (ha.2.1.trans hb.2.1.symm) heq
+  apply Fin.ext
+  omega
+
 /-- Total occupied width of the referenced rows. -/
 def occupiedWidth (c : Table) : List Nat → Nat
   | [] => 0
@@ -334,5 +360,16 @@ theorem range_sound (check : Nat → Bool) (base count i : Nat)
   have hr := List.all_eq_true.mp h (i - base) (List.mem_range.mpr (by omega))
   have heq : base + (i - base) = i := by omega
   rwa [heq] at hr
+
+/-- Independently checked chunks cover the complete finite domain. -/
+theorem chunks_sound (check : Nat → Bool) (size chunks : Nat) (hs : 0 < size)
+    (h : ∀ q, q < chunks → checkRange check (q * size) size = true)
+    (i : Nat) (hi : i < chunks * size) : check i = true := by
+  have hq : i / size < chunks := (Nat.div_lt_iff_lt_mul hs).mpr hi
+  have hlo := Nat.div_mul_le_self i size
+  have hmod := Nat.mod_lt i hs
+  have hsplit := Nat.div_add_mod i size
+  rw [Nat.mul_comm size (i / size)] at hsplit
+  exact range_sound check (i / size * size) size i (h _ hq) hlo (by omega)
 
 end OwnerTransport.OwnerTable

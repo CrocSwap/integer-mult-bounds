@@ -1,9 +1,10 @@
-# Lean owner transport and complete width matching
+# Lean owner matching, full ownership and controller windows
 
 This package starts a proof effort around the recent whole-owner constructions.
 It proves the arithmetic of width shrinking and offset compaction in Lean 4.21.0,
 and proves executable complete matching from sorted width domination. It checks
-every distinct packing template from PR527 and the currently reviewed PR531.
+every distinct packing template from PR527 and the currently reviewed PR531,
+and certifies every selected PR531 owner row and its finite controller window.
 The active full-theorem objective and remaining proof obligations are recorded
 in [FULL-PROOF-STATUS.md](FULL-PROOF-STATUS.md). No full multiplication theorem
 or new value of kappa is proved yet.
@@ -40,15 +41,36 @@ nonaliasing, gap-free occupied-prefix guarantees from the general theorems.
 `PR531Templates.lean` similarly checks all five shapes extracted from 36,288
 roles in 15,302 groups and 72 calls in the selected PR531 package.
 
-`OwnerTable.lean` now proves soundness of a full-row Boolean checker. Its
-untrusted witness includes actual rows and auxiliary group/family index lists;
-the checker verifies both inverse links. Acceptance entails the call/helper
-census, declared-window membership, capacity in that same declared window,
-injective families within each call, and nonaliasing within each owner group.
-Its block checker also proves coverage of the occupied prefix. These are generic
-soundness theorems: the full PR531 row witness has not yet been certified.
-`OwnerTableControls.lean` checks a valid fixture and rejects nine corruptions,
-including lost index links, wrong windows, overlap and changed source widths.
+`OwnerTable.lean` proves soundness of a full-row Boolean checker. Its witness
+contains actual rows and auxiliary group/family indexes; the checker verifies
+both inverse links. `PR531TableData.lean` contains the literal 36,288-row witness,
+including all 16,128 possible groups (15,302 are occupied). The chunk certificates
+in `PR531TableCertificate.lean` establish acceptance of every row, group and call.
+The resulting theorems give a complete call/helper census, exact source widths,
+declared-window membership and capacity, nonaliasing within each owner group,
+and injective helper ownership. No correctness of the witness generator is
+assumed by these Lean theorems.
+
+`OwnerSeparation.lean` proves that helpers in admissible windows cannot share a
+family with either active data bank. `PR531DataWindows.lean` checks all 144
+selected windows against the active data pairs. `PR531InvocationOwners.lean`
+therefore establishes distinct owners for all 224 data wires and 504 helpers
+in each of the 72 selected invocations.
+
+`BorrowSchedule.lean` gives a sound checker for a finite controller trace.
+`PR531Controller.lean` certifies the actual projected 242-event controller:
+its indexed calls, idle deadlines, untouched window interiors, exact admitted
+call sets and separated windows on the same replica/lane. The trace contains
+160 child deadlines; 144 windows are selected for borrowing. Unknown event
+kinds conservatively block their replica, or every replica if unscoped.
+`PR531ScheduledOwners.lean` derives the full one-owner interface from this
+controller certificate and places every actual helper inside its traced window.
+Its injective finite owner map lands in the declared 7,168-family live stock.
+The trace's interpretation as physical machine execution remains unproved.
+
+`OwnerTableControls.lean` checks a valid fixture and rejects nine corruptions.
+`BorrowScheduleControls.lean` checks a valid window and rejects six corruptions,
+including unknown effects, conflicting touches, bad deadlines and missing calls.
 
 There is no Mathlib dependency, no proof placeholder, no custom axiom and no
 native evaluation proof shortcut. The verifier audits every local theorem.
@@ -67,20 +89,30 @@ reported PASS is not used to establish this package's conclusions.
 Its `source531/` files are unmodified owner/plan inputs and verification-scope
 context from `research/direct-delivery504-global/`.
 
-`generate.py --check` independently parses those inputs and checks the full helper
-census at each call, family uniqueness within each call, helper widths, declared
-window membership, the `(stage, replica)` call order, exact prefix offsets and
-per-group capacity. It then compares all generated Lean bytes to the committed
-file. The Python parser, extraction and association of source roles with the
-two template tables remain **outside Lean's trusted proof**. SHA-256 pins identify the
-bytes; they do not prove the templates faithfully describe a physical machine.
+`generate.py --check` parses both source packages, checks their source census
+and template associations, and compares regenerated template bytes.
+`generate_table.py --check` reproduces every PR531 literal row and auxiliary
+index. Lean independently checks their semantic relations and index links.
+The generator is an untrusted supplier of a witness, not a premise of checker
+soundness. Python's JSON parsing and its byte-to-literal projection remain an
+external reproducibility boundary; the JSON decoder itself is not formalized.
 
-The finite instance proves capacity directly for the final packing; it does not
-reconstruct the old PR523 assignment or discharge the width-shrinking premise
-between the original and new assignments. The new general matching theorem
-is not itself a proof about the old-to-new Python-generated source records. Distinct owner-group keys are not a
-proof of disjoint physical streams. Declared windows are not a proof that the
-machine's schedule realizes those windows.
+`SOURCE531-HOSTING.json` pins the complete hosted template in `source531-hosting/`
+to the same imported main commit. `generate_separation.py --check` verifies its
+224-wire data-bank formula, call order, helper-family identities and routes
+against the literal-table source, then reproduces the active-pair definition.
+`generate_schedule.py --check` projects the controller events, call positions
+and window boundaries. Lean proves the resulting trace and ownership properties.
+The association of these definitions with the source JSON is independently
+reproduced in Python, not assumed to be a verified parser.
+
+The finite certificate does not reconstruct the old PR523 assignment or prove
+the old-to-new Python allocator correct. The one-owner theorem concerns one
+complete invocation. It does not alone prove cross-invocation semantics,
+physical charts, exact recipes, scalar endpoints, atomic execution, running
+time or the full multiplication theorem. The controller certificate proves
+window facts in its explicit touch model; connecting that model to actual
+physical operations remains an obligation.
 
 ## Reproduce
 
@@ -91,9 +123,10 @@ python3 -B verify.py --lean /absolute/path/to/lean --build-dir /absolute/new/out
 ```
 
 Use an SSD output directory locally. The directory must be new. The command
-checks immutable sources, regenerates the exact template table for comparison,
-freshly compiles all six project modules, audits every theorem's axioms, rejects a
-false Lean capacity claim, checks six mathematical matching regressions and ten owner-table control theorems, and
+checks immutable sources, regenerates all literal witnesses and certificates,
+freshly compiles all fifteen project modules, audits every theorem's axioms, rejects a
+false Lean capacity claim, checks six mathematical matching regressions, ten owner-table control theorems,
+and seven controller-window control theorems, and
 rejects six corrupted source fixtures for each of the two input packages. It does
 not reuse project objects or download dependencies. Output includes source
 hashes, logs, source-binding counts and a receipt.
@@ -110,10 +143,10 @@ composition recorded in FULL-PROOF-STATUS.md.
 
 | Next milestone | Required proof boundary |
 | --- | --- |
-| Internalize the source certificate | Replace the external JSON-to-template association with a verified certificate decoder/checker; derive family and window facts from the actual emitted schedule. |
+| Source representation | Full literal-table and projected controller certificates are checked in Lean. Python still projects JSON bytes and verifies the source data-bank/helper-route association; the JSON decoder is not formalized. |
 | Connect width assignment | The general matching and exchange proofs are complete. Connect old/new owner records and the actual source selector to the verified stateful-policy contract. |
 | Connect physical owners | Instantiate incorporated PR509/PR516 semantics with the complete selected word: recipes, labels, row/column restoration, charts, injective owners and atomic invocation execution. Reuse PR528's endpoint adapter where applicable. |
-| Compose the whole schedule | Prove all invocation/replica windows, cross-invocation disjointness, pending-piece order, boundary states and actual physical cost accounting. |
+| Compose physical execution | The finite controller windows and full per-call ownership are certified. Establish physical support/commutation, complete pending-piece gathering, boundary states and actual cost accounting for the same event sequence. |
 | Build the uniform machine | Connect arbitrary finite input preparation/counting (PR488/511/519/526/530), layout, routing and scalar operations to a fixed-tape machine for every input size. |
 | Establish numerical correctness | Formalize precision, error accumulation, recovery, prime supply and the recurrence hypotheses needed by the analytic transfer. |
 | Finish the bound | Derive the chosen conditional certificate's exponent from the verified machine and discharged analytic hypotheses. Only then state a full integer-multiplication theorem. |

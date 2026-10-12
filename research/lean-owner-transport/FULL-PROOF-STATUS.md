@@ -30,10 +30,10 @@ model is not a substitute for the target above.
 
 | Obligation | Evidence now | Still required |
 | --- | --- | --- |
-| Width assignment and block arithmetic | `WidthMatching.lean`: executable first-fit matching succeeds from sorted dominance; arbitrary stateful admissible policies preserve feasibility. `OwnerTransport.lean`: capacity, address injectivity and occupied-prefix coverage. | Connect the actual Python selector and its owner/capacity representation to this verified interface; internalize its finite certificate. No selector runtime bound is proved. |
-| Selected finite ownership | `PR531Templates.lean`: every one of five extracted packing shapes fits. External extraction binds 36,288 roles, 15,302 groups, 72 calls. | A verified decoder or equivalent kernel-checked certificate must connect every actual role, family, window and offset to the Lean definitions. Group keys alone do not imply physical independence. |
+| Width assignment and block arithmetic | `WidthMatching.lean`: executable first-fit matching succeeds from sorted dominance; arbitrary stateful admissible policies preserve feasibility. `OwnerTransport.lean`: capacity, address injectivity and occupied-prefix coverage. | Connect the actual Python selector and its owner/capacity representation to this verified interface; establish its old-to-new assignment relation. No selector runtime bound is proved. |
+| Selected finite ownership | `PR531TableCertificate.lean` certifies all 36,288 literal rows, complete helper census, actual offsets/capacity and inverse group/family indexes. `PR531ScheduledOwners.lean` proves distinct owners for all 728 registers of every selected invocation. | Python still projects source JSON and associates primary-wire formulas/helper routes. Connect the formal owner map to actual physical charts and event execution. |
 | Complete selected word and physical streams | Incorporated PR509/PR516 prove general event/label realization under stated hypotheses; main retains finite Python audits. | Instantiate their hypotheses for all selected bit and complex instructions, arbitrary dirty helpers, exact recipes, complete rows/columns, and actual physical owner charts. Generic realization alone is insufficient. |
-| Whole execution schedule | Main's selected template describes atomic invocations and replica-local event order. | Prove all window derivations, full-replica scheduling, commutation, disjointness and endpoint states for the complete selected word, with its actual costs. |
+| Whole execution schedule | `PR531Controller.lean` certifies the projected 242-event trace, all 144 borrowing windows, idle deadlines, untouched interiors, exact admitted call sets and same-lane window separation. Every literal helper is inside its traced window. | Prove the trace model describes physical execution, then instantiate commutation/gathering, full-replica scheduling, endpoint states and actual costs for the complete word. |
 | Uniform compilation and tape movement | Original source sections 02–06 describe complete-range layouts, routing, signed arithmetic, recursion and transforms. | Implement and verify all sizes on the fixed finite-tape model. Derive the recurrence normalization by logical volume and its setup/parking/return costs from actual execution. |
 | Input, radix, convolution and output | Input preparation/counting PRs provide scoped machine components; source sections 06 and 08 specify assembly. | Reuse checked input modules, prove radix/carry conversion, convolution identities, final padded output and finite-input fallback; compose the same tape machine's endpoints and time bounds. |
 | Precision, resampling and prime supply | Source sections 07–08 and the selected invoice give conditional numerical/analytic estimates. | Formalize the required resampling maps, prime existence/construction, finite-precision errors, recovery and all parameter cutoffs. Do not import them as unproved project axioms. |
@@ -41,13 +41,14 @@ model is not a substitute for the target above.
 
 ## Next proof integration
 
-The immediate unclosed boundary is the source certificate. `OwnerTable.lean` now proves
-soundness for a full-row checker, exposing typed facts about each accepted
-owner and coordinate. Its fixture and nine rejection controls pass in Lean.
-The next step is kernel certification of the full selected row witness, followed
-by connection to the already-proved matching/compaction and PR516 interfaces. A successful external Python extraction remains insufficient.
-Keep the generic proofs separate from source decoding so that changes of finite
-witness do not alter their mathematical statements.
+The literal source certificate and controller-window checker now provide the
+finite ownership and window interfaces. The next semantic boundary is actual
+physical execution: tie the 728-register owner map and complete local word to
+PR516's hosting/charts, exact recipes, row/column endpoint hypotheses and
+supported operations, then apply its asynchronous gathering argument to the
+certified controller. Source JSON parsing/projection remains an explicit
+external reproducibility boundary. Neither that boundary nor physical
+correctness is discharged by the finite checks alone.
 
 The selected kappa and full machine requirements remain frozen throughout this
 work. Newer PRs can inform methods, but switching the theorem target requires an
