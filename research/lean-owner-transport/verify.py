@@ -14,10 +14,10 @@ def run(cmd, env=None, ok=True):
         raise RuntimeError(r.stdout + r.stderr)
     return r
 
-def controls():
+def controls(directory):
     import gzip
-    plan = json.loads((ROOT/'source/PLAN.json').read_text())
-    roles = json.loads(gzip.decompress((ROOT/'source/OWNERS.json.gz').read_bytes()))
+    plan = json.loads((ROOT/directory/'PLAN.json').read_text())
+    roles = json.loads(gzip.decompress((ROOT/directory/'OWNERS.json.gz').read_bytes()))
     result = {}
     for name in ['overlap', 'wrong_width', 'duplicate_family', 'wrong_time', 'capacity_overflow', 'missing_helper']:
         p, rs = copy.deepcopy(plan), copy.deepcopy(roles)
@@ -60,7 +60,9 @@ def main():
     started = time.monotonic()
     names = []
     source_hashes = {}
-    for module, namespace in [('OwnerTransport', 'OwnerTransport'), ('PR527Templates', 'OwnerTransport.PR527')]:
+    modules = [('OwnerTransport', 'OwnerTransport'), ('WidthMatching', 'OwnerTransport.WidthMatching'),
+               ('PR527Templates', 'OwnerTransport.PR527'), ('PR531Templates', 'OwnerTransport.PR531')]
+    for module, namespace in modules:
         p = ROOT/(module+'.lean')
         source = p.read_text()
         # This package contains no nested comments. Exclude documentation from the token scan.
@@ -72,7 +74,7 @@ def main():
         require(not (r.stdout+r.stderr).strip(), 'Unexpected compiler diagnostics: '+r.stdout+r.stderr)
         (build/(module+'.log')).write_text(r.stdout+r.stderr)
     probe = build/'Axioms.lean'
-    probe.write_text('import PR527Templates\n'+'\n'.join('#print axioms '+n for n in names)+'\n')
+    probe.write_text('import WidthMatching\nimport PR527Templates\nimport PR531Templates\n'+'\n'.join('#print axioms '+n for n in names)+'\n')
     audit = run([lean, str(probe)], env).stdout
     (build/'axioms.log').write_text(audit)
     reports = re.findall(r"'([^']+)' (?:depends on axioms: \[([^\]]*)\]|does not depend on any axioms)", audit, re.S)
@@ -85,11 +87,29 @@ def main():
     rejected = run([lean, str(negative)], env, ok=False)
     require(rejected.returncode != 0 and 'false' in rejected.stdout, 'False capacity was not rejected as false')
     (build/'rejected-capacity.log').write_text(rejected.stdout+rejected.stderr)
-    receipt = {'status':'PASS','lean':version,'seconds':time.monotonic()-started,
-       'fresh_project_modules':2,'theorems_audited':len(names),'theorems':names,
+    regression = build/'MatchingControls.lean'
+    regression.write_text("""import WidthMatching
+open OwnerTransport.WidthMatching
+-- Processing a small demand first can consume the only owner for a larger one.
+example : allocate id [1, 2] [2, 1] = none := by decide
+example : allocate id (descending [1, 2]) [2, 1] = some ([2, 1], []) := by
+  simp [descending, List.mergeSort, allocate, select]
+-- Owners of identical widths retain their separate physical identities.
+example : allocate (fun a : Nat × Nat => a.2) [3, 3] [(10, 3), (11, 3)] =
+    some ([(10, 3), (11, 3)], []) := by decide
+example : allocate id (descending [0, 2]) [0, 2] = some ([2, 0], []) := by
+  simp [descending, List.mergeSort, allocate, select]
+example : allocate id [] [4] = some ([], [4]) := by decide
+example : allocate id [5] [4] = none := by decide
+""")
+    result = run([lean, str(regression)], env)
+    require(not (result.stdout+result.stderr).strip(), 'Unexpected regression diagnostics')
+    (build/'matching-controls.log').write_text(result.stdout+result.stderr)
+    receipt = {'status':'PASS' ,'lean':version,'seconds':time.monotonic()-started,
+       'fresh_project_modules':len(modules),'theorems_audited':len(names),'theorems':names,
        'source_binding':json.loads(binding),'source_sha256':source_hashes,
-       'external_negative_controls':controls(),'lean_false_capacity_rejected':True,
-       'boundary':'Lean checks generic arithmetic and 29 templates; Python checks JSON parsing and the association of all source roles with templates. No physical machine, all-size compiler or kappa theorem is proved.'}
+       'external_negative_controls':{label:controls(directory) for label,directory in [('PR527','source'),('PR531','source531')]},'matching_regression_examples':6,'lean_false_capacity_rejected':True,
+       'boundary':'Lean checks compaction, complete sorted-dominance matching, stateful admissible-policy correctness, and both source template tables. Python checks JSON parsing and source-to-template association. Neither the source Python allocator nor the physical machine, all-size compiler or kappa theorem is proved.'}
     (build/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
     print(json.dumps(receipt,indent=2))
 

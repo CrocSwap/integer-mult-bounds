@@ -1,4 +1,4 @@
-/- Exact data derived from pinned PR527; regenerate with generate.py. -/
+/- Exact data derived from pinned owner records; regenerate with generate.py. -/
 import OwnerTransport
 namespace OwnerTransport.PR527
 

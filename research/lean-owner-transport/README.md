@@ -1,9 +1,12 @@
-# Lean owner transport: first formalization milestone
+# Lean owner transport and complete width matching
 
 This package starts a proof effort around the recent whole-owner constructions.
 It proves the arithmetic of width shrinking and offset compaction in Lean 4.21.0,
-and checks every distinct packing template extracted from PR527's published
-owner table. It proves no multiplication theorem or new value of kappa.
+and proves executable complete matching from sorted width domination. It checks
+every distinct packing template from PR527 and the currently reviewed PR531.
+The active full-theorem objective and remaining proof obligations are recorded
+in [FULL-PROOF-STATUS.md](FULL-PROOF-STATUS.md). No full multiplication theorem
+or new value of kappa is proved yet.
 
 ## Completed
 
@@ -20,13 +23,23 @@ owner table. It proves no multiplication theorem or new value of kappa.
 
 Empty collections and zero widths are allowed in the general theorem. Coverage
 is of the occupied prefix, not the unused capacity of a partly filled owner.
-The pointwise assignment inequality is a hypothesis: this does not prove the
-Python greedy matching algorithm succeeds from sorted width dominance.
+The compaction theorem assumes pointwise assignment domination. The separate
+`WidthMatching.lean` module now proves that sorted domination supplies a complete
+assignment: its executable merge-sort/first-fit allocator succeeds and preserves
+every owner identity. Its threshold-count exchange lemma permits ANY fitting
+choice for a largest remaining demand. A further theorem handles arbitrary
+stateful choice policies satisfying explicit local soundness and availability
+contracts. This proves the mathematical greedy-matching argument; connecting
+the exact Python implementation and its sorting/ledger representation remains
+separate. No allocation runtime bound is asserted.
 
 `PR527Templates.lean` contains 29 distinct `(capacity, widths)` templates extracted
 from 40,320 roles in 15,898 owner/child/port groups across 72 calls. Lean proves
 all 29 capacity inequalities by ordinary `decide`, then derives their in-bounds,
 nonaliasing, gap-free occupied-prefix guarantees from the general theorems.
+`PR531Templates.lean` similarly checks all five shapes extracted from 36,288
+roles in 15,302 groups and 72 calls in the selected PR531 package.
+
 There is no Mathlib dependency, no proof placeholder, no custom axiom and no
 native evaluation proof shortcut. The verifier audits every local theorem.
 
@@ -39,17 +52,23 @@ byte-identical excerpts of `research/ranksector112-async/` at that commit:
 `validation/audit/OWNERS-AND-PROFILE.json`. The last is retained context; its
 reported PASS is not used to establish this package's conclusions.
 
+`SOURCE531.json` pins the imported PR531 data to main commit
+`db0e57bc7f36b5ac0fc844ad7ce1396165ee6647`, recording the original paths.
+Its `source531/` files are unmodified owner/plan inputs and verification-scope
+context from `research/direct-delivery504-global/`.
+
 `generate.py --check` independently parses those inputs and checks the full helper
 census at each call, family uniqueness within each call, helper widths, declared
 window membership, the `(stage, replica)` call order, exact prefix offsets and
 per-group capacity. It then compares all generated Lean bytes to the committed
 file. The Python parser, extraction and association of source roles with the
-29 templates remain **outside Lean's trusted proof**. SHA-256 pins identify the
+two template tables remain **outside Lean's trusted proof**. SHA-256 pins identify the
 bytes; they do not prove the templates faithfully describe a physical machine.
 
 The finite instance proves capacity directly for the final packing; it does not
 reconstruct the old PR523 assignment or discharge the width-shrinking premise
-between the original and new assignments. Distinct owner-group keys are not a
+between the original and new assignments. The new general matching theorem
+is not itself a proof about the old-to-new Python-generated source records. Distinct owner-group keys are not a
 proof of disjoint physical streams. Declared windows are not a proof that the
 machine's schedule realizes those windows.
 
@@ -63,8 +82,9 @@ python3 -B verify.py --lean /absolute/path/to/lean --build-dir /absolute/new/out
 
 Use an SSD output directory locally. The directory must be new. The command
 checks immutable sources, regenerates the exact template table for comparison,
-freshly compiles both project modules, audits every theorem's axioms, rejects a
-false Lean capacity claim, and rejects six corrupted source fixtures. It does
+freshly compiles all four project modules, audits every theorem's axioms, rejects a
+false Lean capacity claim, checks six mathematical matching regressions, and
+rejects six corrupted source fixtures for each of the two input packages. It does
 not reuse project objects or download dependencies. Output includes source
 hashes, logs, source-binding counts and a receipt.
 
@@ -74,14 +94,14 @@ audit. The isolated GitHub workflow runs the full verifier.
 ## Proof roadmap
 
 Freeze source versions at each milestone; the newest numerical PR is not itself
-a theorem dependency. This first slice uses PR527 because its exact owner
-transport is accessible and relevant to our contribution, not because it is
-claimed to be the latest or strongest candidate.
+a theorem dependency. This first slice uses PR527 for the initial transport proof and now also includes the reviewed PR531
+packing data. The full theorem target is the main-selected PR531/PR493
+composition recorded in FULL-PROOF-STATUS.md.
 
 | Next milestone | Required proof boundary |
 | --- | --- |
 | Internalize the source certificate | Replace the external JSON-to-template association with a verified certificate decoder/checker; derive family and window facts from the actual emitted schedule. |
-| Prove width assignment | Derive a complete assignment from sorted dominance and prove the chosen matching implementation preserves a matching for remaining helpers. Connect old and new owner records. |
+| Connect width assignment | The general matching and exchange proofs are complete. Connect old/new owner records and the actual source selector to the verified stateful-policy contract. |
 | Connect physical owners | Instantiate incorporated PR509/PR516 semantics with the complete selected word: recipes, labels, row/column restoration, charts, injective owners and atomic invocation execution. Reuse PR528's endpoint adapter where applicable. |
 | Compose the whole schedule | Prove all invocation/replica windows, cross-invocation disjointness, pending-piece order, boundary states and actual physical cost accounting. |
 | Build the uniform machine | Connect arbitrary finite input preparation/counting (PR488/511/519/526/530), layout, routing and scalar operations to a fixed-tape machine for every input size. |
@@ -107,6 +127,9 @@ No claim of a comprehensive duplicate search or independent replay of those PRs.
 
 PR527 credits Dugongue's PR522 rank-sector/whole-owner construction and icekylinx's
 PR523 port restriction; retain those credits and all preceding source notices.
-The new arithmetic proofs and verifier were prepared by Rohan Arun with substantial
+The imported PR531 excerpts retain icekylinx's authorship and GPT-6 Astra
+assistance disclosure, including the predecessors listed in its scope record.
+
+The new arithmetic and matching proofs and verifier were prepared by Rohan Arun with substantial
 OpenAI Codex assistance, under Apache-2.0. This is a machine-checked first milestone,
 not an independent human audit or a claim of mathematical priority for prefix sums.

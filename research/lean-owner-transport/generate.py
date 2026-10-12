@@ -46,9 +46,9 @@ def extract(plan, roles):
         assignments.append((g, key))
     return templates, assignments
 
-def render(templates):
+def render(templates, namespace="PR527"):
     literals = ',\n  '.join(f'({cap}, [{", ".join(map(str, ws))}])' for cap, ws in sorted(templates))
-    return '''/- Exact data derived from pinned PR527; regenerate with generate.py. -/
+    source = '''/- Exact data derived from pinned owner records; regenerate with generate.py. -/
 import OwnerTransport
 namespace OwnerTransport.PR527
 
@@ -91,24 +91,29 @@ theorem listed_template_correct (t : Nat × List Nat) (h : t ∈ templates) :
 
 end OwnerTransport.PR527
 '''
+    return source.replace('OwnerTransport.PR527', 'OwnerTransport.' + namespace)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
-    manifest = json.loads((ROOT / 'SOURCE.json').read_text())
-    for name, digest in manifest['sha256'].items():
-        require(hashlib.sha256((ROOT/'source'/name).read_bytes()).hexdigest() == digest, f'source hash: {name}')
-    plan = json.loads((ROOT/'source/PLAN.json').read_text())
-    roles = json.loads(gzip.decompress((ROOT/'source/OWNERS.json.gz').read_bytes()))
-    templates, assignments = extract(plan, roles)
-    rendered = render(templates)
-    target = ROOT/'PR527Templates.lean'
-    if args.check:
-        require(target.read_text() == rendered, 'generated Lean source differs')
-    else:
-        target.write_text(rendered)
-    print(json.dumps({'roles':len(roles), 'owner_groups':len(assignments), 'templates':len(templates), 'calls':len(plan['order']), 'status':'PASS_EXTERNAL_SOURCE_BINDING'}, sort_keys=True))
+    summaries = {}
+    for namespace, directory, manifest_name in [
+            ('PR527', 'source', 'SOURCE.json'), ('PR531', 'source531', 'SOURCE531.json')]:
+        manifest = json.loads((ROOT / manifest_name).read_text())
+        for name, digest in manifest['sha256'].items():
+            require(hashlib.sha256((ROOT/directory/name).read_bytes()).hexdigest() == digest, f'source hash: {name}')
+        plan = json.loads((ROOT/directory/'PLAN.json').read_text())
+        roles = json.loads(gzip.decompress((ROOT/directory/'OWNERS.json.gz').read_bytes()))
+        templates, assignments = extract(plan, roles)
+        rendered = render(templates, namespace)
+        target = ROOT/(namespace+'Templates.lean')
+        if args.check:
+            require(target.read_text() == rendered, 'generated Lean source differs: '+namespace)
+        else:
+            target.write_text(rendered)
+        summaries[namespace] = {'roles':len(roles), 'owner_groups':len(assignments), 'templates':len(templates), 'calls':len(plan['order']), 'status':'PASS_EXTERNAL_SOURCE_BINDING'}
+    print(json.dumps(summaries, sort_keys=True))
 
 if __name__ == '__main__':
     main()
