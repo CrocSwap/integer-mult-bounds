@@ -1,0 +1,39 @@
+name: Global proper-star puncture evidence
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/global-star-puncture/**'
+      - '.github/workflows/global-star-puncture.yml'
+  push:
+    branches: [main, research/seed43-decoder]
+    paths:
+      - 'research/global-star-puncture/**'
+      - '.github/workflows/global-star-puncture.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # repository baseline pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # repository baseline pin
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Exact receipt and failure detection
+        run: |
+          python -I -O -B research/global-star-puncture/verify.py
+          python -I -O -B research/global-star-puncture/test_verify.py
+          python -B scripts/verify_selected_result.py
+      - name: Require checkout unchanged
+        run: test -z "$(git status --porcelain)"
