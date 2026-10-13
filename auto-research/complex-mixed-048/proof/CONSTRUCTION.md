@@ -1,0 +1,11 @@
+# Construction and admission
+
+Start from the complete PR552 weighted scalar word reconstructed by frozen PR558. The zero provider keeps its rank-four group entrances. The four provider promotes group 10, helpers 419, 421, 422, 423, to the exact rank-five frame in `data/FROZEN-FOUR-PROMOTION.json`. All twelve outgoing kernel gates use that frame, and the commuting kernel is sorted by frame rank. Cleanup is reconstructed from the actual changed word. Its scalar B multiset is unchanged. The eight provider is exactly PR558, also promoting complete group 6.
+
+The providers have local profiles `e1*(2300+2p) + e2*(440-2p) + e3*(472-p) + e4*(184+p) + e5*56 + e6*56 + e8*8` for p=0,4,8. These formulas are checked against literal climb/center events in both orientations. Every provider is admitted through all scalar columns, dirty restoration, reflected frames, Clifford phases and normalized wrappers; none is a profile-only substitution.
+
+The 15/2/55 mixture and 18 reassignment moves in `proof/REASSIGNMENT.json` remove the 128 rank-one idle remainders left by the homogeneous eight-pivot selection. The new total profile differs from PR558 by `-384 e1 + 256 e2 + 128 e3 -128 e4`. Literal assignments are in `data/OWNERS.json.gz`; `data/PLAN.json` binds every call to its provider and actual width inventory. The independent controller auditor reconstructs availability windows, whole-owner charts, orthogonal residual axes and all remaining paid children. It rejects same-family overlap, invalid slots, changed dispatch/orientation/program hashes, and other ownership mutants.
+
+The fresh invoice sums the actual selected provider/orientation programs, coefficient primitives and wrappers, then uses conservative shared compiler maxima. It also retains prior allowance as an overcharge. The exact finite group, router, literal, mass, precision, tape, external-row and halving bounds are reconstructed in the independent assembler. The root replay retains both conservative and native recurrence witnesses; removing the complex surcharge is justified only by the separately documented full-cover source argument. No bit surcharge is removed.
+
+The LP/solver used to discover an assignment is not part of admission. This package reconstructs and checks the fixed witness without solver dependencies. It makes no global optimality claim.

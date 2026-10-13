@@ -1,0 +1,40 @@
+name: SW4 owner profile optimum
+on:
+  pull_request:
+    paths:
+      - 'research/sw4-owner-optimality/**'
+      - 'research/sw4-owner-optimality-validation/**'
+      - '.github/workflows/sw4-owner-optimality.yml'
+  push:
+    branches: ['codex/sw4-owner-optimality-20261013']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '${{ matrix.python }}'
+      - name: Exact proof and independent all-mass check
+        run: |
+          python -I -B research/sw4-owner-optimality/verify.py --out "$RUNNER_TEMP/owner-proof"
+          python -I -B research/sw4-owner-optimality/independent_check.py --out "$RUNNER_TEMP/owner-proof/INDEPENDENT.json"
+          python -I -B research/sw4-owner-optimality/controls.py --out "$RUNNER_TEMP/owner-proof/CONTROLS.json"
+          python -I -O -B research/sw4-owner-optimality/verify.py --out "$RUNNER_TEMP/owner-proof-optimized"
+          cmp "$RUNNER_TEMP/owner-proof/RESULT.json" "$RUNNER_TEMP/owner-proof-optimized/RESULT.json"
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owner-optimum-python-${{ matrix.python }}
+          path: '${{ runner.temp }}/owner-proof*'

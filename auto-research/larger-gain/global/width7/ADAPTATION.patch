@@ -1,0 +1,604 @@
+--- research/complex-allcold/code/assemble.py
++++ research/larger-gain/global/width7/code/assemble.py
+@@ -1,4 +1,4 @@
+-"""Hardened all72 one-cold three-provider 0/4/8 assembly with the native exact-complex moment.
++"""Hardened 63 width-seven and 9 plain four-cold provider assembly with the native exact-complex moment.
+ 
+ Prepared with OpenAI Codex assistance. The rational engines and outer
+ constraints are retained from PR547/PR548 and their preserved ancestry.
+@@ -10,10 +10,10 @@
+ from pathlib import Path
+ from fractions import Fraction as Q
+ from decimal import Decimal, localcontext
+-import argparse,json,hashlib,importlib.util
++import argparse,json,hashlib,importlib.util,os,sys
+ from collections import Counter
+ assert __debug__, 'Assertions required'
+-P=Path(__file__).resolve().parent.parent
++P=Path(sys.argv[1] if __name__=='__main__' else os.environ['GAIN_PR564_SOURCE']).resolve()
+ read=lambda p:json.loads(p.read_text())
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ hash_ok=lambda x:isinstance(x,str) and len(x)==64 and all(t in '0123456789abcdef'for t in x)
+@@ -23,8 +23,8 @@
+ M,B,A=[load(n)for n in ('moment','base_two_moment','outer')]
+ def dec(x):
+  with localcontext()as ctx:ctx.prec=70;return str(Decimal(x.numerator)/Decimal(x.denominator))
+-PROVIDERS={'rank5_zero_cold': {'semantic_phase_sha256': 'cc8ef5d8b6814b3c7ce241c5eabb9b79ca342248a9df5e985b15575ea899be93', 'promoted': 0, 'width_digest': '9384652a1b9e5138ae337e329f6ffbf9d7c2a0a93e120d21ea5fec663198959b', 'program_hashes': {'forward': '2e6c329a14d95ad5d22a9672bb3a9136b96c0f0997d9cdb7bb5f0f0d05e17504', 'backward': '3edefeeeeed2f234ae0c72483363c38af87efbd415547425692e851cee69dc0f'}, 'artifacts': {'CANONICAL-WORD.json.gz': 'cfaaf0e6e033641e29ef926a1150b670f339a95993ebd7d8b37b24f58d5e7eb5', 'LOCAL-PROGRAMS.json.gz': '17bf7294e3ba34b52c134f54eca352eb3200843c51c230d048957b6164ffee27', 'LOCAL-CHECKS.json': 'a79876ab82fc3156d0542e002001a958fe0653f05f40d8b302b296da1f05216b', 'INDEPENDENT-LOCAL-REPLAY.json': '718a0b5c406c282f35b882df3451fdb6865c8bac6a038660422ecc316a493eb6', 'CLIFFORD-RECIPES.json': '95d12229b708f96864d7d226ff1f393c107fe9488b6019a298313028b8f5a2ed', 'RESIDUAL-ADAPTERS.json': 'e4fce8ca73ad20a86711837dd6fe1efad5a335689352791a635969e4d1be4391'}}, 'rank5_four_cold': {'semantic_phase_sha256': 'b1ad37b19dba3c211a18201820d6579c51b1c5f815745cdbe259651698111c63', 'promoted': 4, 'width_digest': '51d98570282ed066bd61bc60601681b44bb790ecd6dd2491b6b9e29b1b2eb693', 'program_hashes': {'forward': 'ed1ec8bc7f62806188df0b8f1516a958709c4cf7064c925b328f9a0240a9f321', 'backward': 'cd5fd9340f3064053b39e65fa053447e2a9f3545c038c073e328d2158469aca5'}, 'artifacts': {'CANONICAL-WORD.json.gz': 'd8b15de893feb4f0c93b456341a43e34aea7ffd0b3044a6d5ad44ac9efaa6d72', 'LOCAL-PROGRAMS.json.gz': '0b18cf4e24ba9f46ea24bb430e0cc9892ea3fe0a6a7586ff991e8d2ca22c1b82', 'LOCAL-CHECKS.json': 'd8ea70e258c5abb286784d493198173426be22635e1bc8f7c523a64614e4373f', 'INDEPENDENT-LOCAL-REPLAY.json': '736d39d98cb94aa40d10a0973f6375c28d29272e3c2f43f3b0e5776c0ac856fa', 'CLIFFORD-RECIPES.json': '6a6656fa6a3fdc0f081798a1a5d2303188c8f6d772e197253770926a044cc15e', 'RESIDUAL-ADAPTERS.json': 'ddeab3b37b16eca2c90c2a8d4afa124e86b611319c8f0a9632bfefbaa7667a0e'}}, 'rank5_eight_cold': {'semantic_phase_sha256': '2375b30733b9b2227b8a98a479c9000a77c1e40c98a4f1d97060a1506950ba0f', 'promoted': 8, 'width_digest': '6d7a577752c16fc59a21ae1b51dbf7e817b7c12172c5553da059aac8a48513af', 'program_hashes': {'forward': '81cb6a56eff79171f44cf2ab23e3d7288a5c0f44496c28f1d430e9276142f221', 'backward': 'a08413a5c1118477fc4c4b0e441248bb1bbc66f76a14c5d1d7a50feda94e2bb4'}, 'artifacts': {'CANONICAL-WORD.json.gz': '6bf22cadf4a4669458bfd9e8dd7dab80d8502595e52fc36acb60e9148f9fe93f', 'LOCAL-PROGRAMS.json.gz': '0179812f9f23ed4d89621c2c8355ca76ca226688090b32c02bf31e6d765de9f9', 'LOCAL-CHECKS.json': 'c06fda3e9e4232200f6ac4a7955b556b112f830f38457f65255b9753ac68bbba', 'INDEPENDENT-LOCAL-REPLAY.json': '898af46c5c47d35eb193adeb422fa464e67d7d7be43c8cf0657e59f282868ef0', 'CLIFFORD-RECIPES.json': '0e1f804db8521a62f2a8a4b52a697fb27d86b78f453207c316e5d77502f3c2bc', 'RESIDUAL-ADAPTERS.json': 'baafef737acc16dafbe1150896feb16744f3d669fa123bb2bff19ecc4e71b275'}}}
+-DISPATCH={(0, 0): 'rank5_eight_cold', (0, 1): 'rank5_eight_cold', (1, 0): 'rank5_eight_cold', (0, 2): 'rank5_eight_cold', (1, 1): 'rank5_eight_cold', (2, 0): 'rank5_eight_cold', (0, 3): 'rank5_eight_cold', (1, 2): 'rank5_eight_cold', (2, 1): 'rank5_eight_cold', (3, 0): 'rank5_eight_cold', (0, 4): 'rank5_eight_cold', (1, 3): 'rank5_eight_cold', (2, 2): 'rank5_eight_cold', (3, 1): 'rank5_eight_cold', (4, 0): 'rank5_eight_cold', (0, 5): 'rank5_eight_cold', (1, 4): 'rank5_eight_cold', (2, 3): 'rank5_eight_cold', (3, 2): 'rank5_eight_cold', (4, 1): 'rank5_eight_cold', (5, 0): 'rank5_eight_cold', (0, 6): 'rank5_eight_cold', (1, 5): 'rank5_eight_cold', (2, 4): 'rank5_eight_cold', (3, 3): 'rank5_eight_cold', (4, 2): 'rank5_eight_cold', (5, 1): 'rank5_eight_cold', (0, 7): 'rank5_eight_cold', (6, 0): 'rank5_eight_cold', (1, 6): 'rank5_eight_cold', (2, 5): 'rank5_eight_cold', (3, 4): 'rank5_eight_cold', (4, 3): 'rank5_eight_cold', (5, 2): 'rank5_eight_cold', (6, 1): 'rank5_eight_cold', (1, 7): 'rank5_eight_cold', (7, 0): 'rank5_eight_cold', (2, 6): 'rank5_eight_cold', (3, 5): 'rank5_eight_cold', (4, 4): 'rank5_eight_cold', (5, 3): 'rank5_eight_cold', (6, 2): 'rank5_zero_cold', (7, 1): 'rank5_eight_cold', (2, 7): 'rank5_eight_cold', (8, 0): 'rank5_eight_cold', (3, 6): 'rank5_zero_cold', (4, 5): 'rank5_four_cold', (5, 4): 'rank5_eight_cold', (6, 3): 'rank5_eight_cold', (7, 2): 'rank5_zero_cold', (8, 1): 'rank5_eight_cold', (3, 7): 'rank5_eight_cold', (4, 6): 'rank5_zero_cold', (5, 5): 'rank5_zero_cold', (6, 4): 'rank5_eight_cold', (7, 3): 'rank5_eight_cold', (8, 2): 'rank5_zero_cold', (4, 7): 'rank5_zero_cold', (5, 6): 'rank5_eight_cold', (6, 5): 'rank5_eight_cold', (7, 4): 'rank5_zero_cold', (8, 3): 'rank5_zero_cold', (5, 7): 'rank5_zero_cold', (6, 6): 'rank5_eight_cold', (7, 5): 'rank5_four_cold', (8, 4): 'rank5_zero_cold', (6, 7): 'rank5_zero_cold', (7, 6): 'rank5_zero_cold', (8, 5): 'rank5_zero_cold', (7, 7): 'rank5_eight_cold', (8, 6): 'rank5_eight_cold', (8, 7): 'rank5_zero_cold'}
++PROVIDERS={'fourcold_eight': {'semantic_phase_sha256': 'ba35f263cc0f252b4862ffc79ae137757f129d7a3cddcf291ce8fbe821dcd230', 'promoted': 0, 'width_digest': 'd54edbd243594bf01d03374f574dac9b0c2901c5c8828cb524de11a1ae2e4fb6', 'program_hashes': {'forward': 'fb17f5617b60d10f1d70ac0ccc546b2c28171c53200a54826832e6ced6fa09c8', 'backward': 'e36b03dbcddb84cae022103c2c393f81698ff29bfc2c1c62f8a39a2caad3981a'}, 'artifacts': {'CANONICAL-WORD.json.gz': '9d2467e9200fca9aea31bda6f54aec74ee1d0d41e2c0ec64c081691de8536b31', 'LOCAL-PROGRAMS.json.gz': 'eacd3c25390d7190ae1a54f6899e5e6a66003049665c3dd11648ae91123f4b2a', 'LOCAL-CHECKS.json': 'a66926b91a1d383b056e58c9c72024d228e710dae7c28af8514f1a2761e31f2a', 'INDEPENDENT-LOCAL-REPLAY.json': '037ed24855a93ff5104667ceafcbc541dce26dfbccb125933281818e065a2b2c', 'CLIFFORD-RECIPES.json': '9f7b1d5bfcd937fb25778402cda7e71ccc1ae0e0e7f2b65a380dc231ad6f36fa', 'RESIDUAL-ADAPTERS.json': 'baafef737acc16dafbe1150896feb16744f3d669fa123bb2bff19ecc4e71b275'}}, 'width7_eight': {'semantic_phase_sha256': 'b27b01a8e19df114d78616877c6e8119f45fa8fc5b258e064a93cae56f066c41', 'promoted': 32, 'width_digest': '20a48862647172327268b83acf54b78743014a88c0b222b112d08f9186b22371', 'program_hashes': {'forward': '822a094ea245805d34623a390b6e67d76448a398157c12cf7785183756541e51', 'backward': '02985308af36c9bafe1bdba30de830de5d28b63fd9a33e85c4f25cded2b4e17b'}, 'artifacts': {'CANONICAL-WORD.json.gz': '830647edf4b3fa336f2f2d59622e6582ad111aa556e4d54627471141209a8443', 'LOCAL-PROGRAMS.json.gz': '8403e7ec9dfe3a5c7f916828d166e30d550a6b6c4b7d69ed409142e1f7fdf942', 'LOCAL-CHECKS.json': '3518d19978e1b947e79a4d6b7e4ea07f0e6e4f221c7ecb0b875c500069bf16b5', 'INDEPENDENT-LOCAL-REPLAY.json': 'f12b017ec35c5ede13771be8d6df2c6540789c04173261dd6660dbb57a4ece2b', 'CLIFFORD-RECIPES.json': '47042161cce55ffb579e7dff1cc41a3e1003680f1f44f4724010e530e2ba49a6', 'RESIDUAL-ADAPTERS.json': 'f2f7587e065fc14a5c6de4529a038b2dd0eb9aae820bfe928dca3e8d29561978'}}}
++DISPATCH={(0, 0): 'width7_eight', (0, 1): 'width7_eight', (1, 0): 'width7_eight', (0, 2): 'width7_eight', (1, 1): 'width7_eight', (2, 0): 'width7_eight', (0, 3): 'width7_eight', (1, 2): 'width7_eight', (2, 1): 'fourcold_eight', (3, 0): 'width7_eight', (0, 4): 'width7_eight', (1, 3): 'width7_eight', (2, 2): 'width7_eight', (3, 1): 'width7_eight', (4, 0): 'width7_eight', (0, 5): 'width7_eight', (1, 4): 'width7_eight', (2, 3): 'width7_eight', (3, 2): 'width7_eight', (4, 1): 'width7_eight', (5, 0): 'width7_eight', (0, 6): 'fourcold_eight', (1, 5): 'width7_eight', (2, 4): 'width7_eight', (3, 3): 'width7_eight', (4, 2): 'width7_eight', (5, 1): 'width7_eight', (0, 7): 'width7_eight', (6, 0): 'width7_eight', (1, 6): 'width7_eight', (2, 5): 'width7_eight', (3, 4): 'width7_eight', (4, 3): 'fourcold_eight', (5, 2): 'fourcold_eight', (6, 1): 'width7_eight', (1, 7): 'width7_eight', (7, 0): 'fourcold_eight', (2, 6): 'width7_eight', (3, 5): 'width7_eight', (4, 4): 'fourcold_eight', (5, 3): 'width7_eight', (6, 2): 'width7_eight', (7, 1): 'width7_eight', (2, 7): 'width7_eight', (8, 0): 'width7_eight', (3, 6): 'width7_eight', (4, 5): 'width7_eight', (5, 4): 'width7_eight', (6, 3): 'width7_eight', (7, 2): 'width7_eight', (8, 1): 'fourcold_eight', (3, 7): 'width7_eight', (4, 6): 'width7_eight', (5, 5): 'width7_eight', (6, 4): 'width7_eight', (7, 3): 'width7_eight', (8, 2): 'fourcold_eight', (4, 7): 'width7_eight', (5, 6): 'width7_eight', (6, 5): 'width7_eight', (7, 4): 'width7_eight', (8, 3): 'width7_eight', (5, 7): 'width7_eight', (6, 6): 'width7_eight', (7, 5): 'width7_eight', (8, 4): 'width7_eight', (6, 7): 'width7_eight', (7, 6): 'width7_eight', (8, 5): 'width7_eight', (7, 7): 'width7_eight', (8, 6): 'fourcold_eight', (8, 7): 'width7_eight'}
+ CALL_ORDER=[(0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (2, 0), (0, 3), (1, 2), (2, 1), (3, 0), (0, 4), (1, 3), (2, 2), (3, 1), (4, 0), (0, 5), (1, 4), (2, 3), (3, 2), (4, 1), (5, 0), (0, 6), (1, 5), (2, 4), (3, 3), (4, 2), (5, 1), (0, 7), (6, 0), (1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1), (1, 7), (7, 0), (2, 6), (3, 5), (4, 4), (5, 3), (6, 2), (7, 1), (2, 7), (8, 0), (3, 6), (4, 5), (5, 4), (6, 3), (7, 2), (8, 1), (3, 7), (4, 6), (5, 5), (6, 4), (7, 3), (8, 2), (4, 7), (5, 6), (6, 5), (7, 4), (8, 3), (5, 7), (6, 6), (7, 5), (8, 4), (6, 7), (7, 6), (8, 5), (7, 7), (8, 6), (8, 7)]
+ def assemble(owner,invoice,owner_sha,invoice_sha):
+  # These are admission receipts, not optional collections of successful rows.
+@@ -36,12 +36,12 @@
+  assert set(invoice['strict_checks'])==checks
+  assert all(invoice['strict_checks'][name] is True for name in checks)
+  assert set(invoice['providers'])==set(PROVIDERS)
+- assert invoice['provider_counts']=={'rank5_eight_cold':55,'rank5_zero_cold':15,'rank5_four_cold':2}
++ assert invoice['provider_counts']=={'width7_eight': 63, 'fourcold_eight': 9}
+  assert owner['all_live_owners_per_call_distinct'] is True
+  assert owner['owners_per_call']==728 and owner['actual_helper_owner_charts']==36288
+  assert owner['rank_mass']==520704
+- assert owner['actual_73column_sigmas']==2962 and owner['cross_replica_helper_roles']==29514
+- assert owner['explicit_idle_remainder_children']==4204
++ assert owner['actual_73column_sigmas']==6390 and owner['cross_replica_helper_roles']==27468
++ assert owner['explicit_idle_remainder_children']==3056
+  assert invoice['complete_invocation_sweeps']==invoice['bridge_sweeps']==72
+  assert invoice['live']==owner['live'] and invoice['physical']==owner['physical']
+  assert invoice['helpers']==504 and invoice['centres']==8
+@@ -52,13 +52,13 @@
+   promoted=PROVIDERS[pid]['promoted']
+   assert set(p['local'])=={'forward','backward'}
+   assert p['helpers']==504 and p['centres']==8 and p['n']==728 and p['v']==112 and p['h']==9
+-  assert p['entering_helpers']==213 and p['entrance_rank']==381+promoted
+-  assert p['width_inventory']=={str(r):n for r,n in {4:promoted,5:56-promoted,8:157,9:291}.items()if n}
++  assert p['entering_helpers']==216 and p['entrance_rank']==392+promoted
++  assert p['width_inventory']=={str(r):n for r,n in {4:8,5:48,7:promoted,8:160-promoted,9:288}.items()if n}
+   assert all(type(w) is int and 0<w<=9 for w in p['widths'])
+   assert Counter(p['widths'])==Counter({int(r):n for r,n in p['width_inventory'].items()})
+   assert sum(p['widths'])==9*504-p['entrance_rank'] and len(p['widths'])==504
+-  assert digest(p['widths'])==PROVIDERS[pid]['width_digest'] and p['widths'][270]==8
+-  assert p['paid_profile']=={'1':2301+2*promoted,'2':442-2*promoted,'3':470-promoted,'4':184+promoted,'5':56,'6':56,'8':8}
++  assert digest(p['widths'])==PROVIDERS[pid]['width_digest'] and all(p['widths'][h]==8 for h in (270,282,294,306))
++  assert p['paid_profile']=={'1':2320+promoted,'2':432+5*promoted,'3':456-4*promoted,'4':192,'5':56,'6':56,'8':8}
+   assert p['children']==sum(p['paid_profile'].values())
+   expected_hashes=PROVIDERS[pid]['program_hashes']
+   assert p['program_hashes']==expected_hashes
+@@ -71,9 +71,9 @@
+    z=p['local'][name]
+    assert z['all_dirty_helper_columns_restored'] is True and z['private_centres_and_coefficient_work_cleared'] is True
+    assert z['all_exact_columns']==728 and z['dirty_helper_columns']==504
+-   assert z['events']==21486 and z['macros']==16291
++   assert z['events']==21495+2*promoted and z['macros']==16294
+    assert z['real_component_primitives']==primitives and z['coefficient_work_primitive_count']==coefficient_work
+-   assert z['pre_wrappers']==z['post_wrappers']==213
++   assert z['pre_wrappers']==z['post_wrappers']==216
+    assert 0<z['prefix_bits']<=192 and 0<Q(z['prefix_l1'])<2**192
+    peak=Q(z['prefix_l1']);assert z['prefix_bits']==peak.numerator.bit_length()-peak.denominator.bit_length()+1
+    assert peak==Q(88876257700 if name=='forward' else 1044730572396)
+@@ -95,13 +95,13 @@
+   assert c['entering_helpers']==p['entering_helpers'] and c['entrance_rank']==p['entrance_rank']
+  assert invoice['selected_real_component_primitives']==sum(c['real_component_primitives'] for c in calls)
+  assert invoice['selected_coefficient_work_primitive_count']==sum(c['coefficient_work_primitive_count'] for c in calls)
+- assert invoice['selected_scalar_macros']==sum(c['macros'] for c in calls)==72*16291
++ assert invoice['selected_scalar_macros']==sum(c['macros'] for c in calls)==72*16294
+  assert invoice['factors_per_wrapper']==144
+  assert invoice['wrapper_elementary_factors_charged']==sum(c['pre_wrappers']+c['post_wrappers'] for c in calls)*144
+  paid=Counter()
+  for c in calls:paid.update({int(r):n for r,n in invoice['providers'][c['provider_id']]['paid_profile'].items()})
+  assert dict(paid)=={int(r):n for r,n in invoice['selected_local_paid_profile'].items()}
+- paid.update({3:2364,7:172,48:1668})
++ paid.update({3:1200,7:48,48:1808})
+  assert dict(paid)=={int(r):n for r,n in owner['paid_profile'].items()}
+  assert invoice['compiler']==64*74**3
+  assert invoice['local_adapters']==max(p['local_adapters']for p in invoice['providers'].values())
+@@ -147,8 +147,8 @@
+  bit_path=P/'inputs/PR543-EXPECTED.json';bit_data=bit_path.read_bytes()
+  assert hashlib.sha1(b'blob '+str(len(bit_data)).encode()+b'\0'+bit_data).hexdigest()=='b61d859826246e0c3dabbe096e57ad7015eadfd5'
+  bit=json.loads(bit_data)['nine']
+- c=Q(bit['bit_lower']);conservative_b=Q('0.001595676281828849775453');b=Q('0.001595676284575998624254')
+- expected={1:166568,2:30928,3:35756,4:13696,5:4032,6:4032,7:172,8:576,48:1668}
++ c=Q(bit['bit_lower']);conservative_b=Q('0.001602631810982070093186');b=Q('0.001602631813774414678548')
++ expected={1:169056,2:41184,3:25968,4:13824,5:4032,6:4032,7:48,8:576,48:1808}
+  H={int(r):n for r,n in owner['paid_profile'].items()};assert H==expected
+  assert owner['template_sha256']==invoice['template_sha256'] and owner_sha==invoice['owner_audit_sha256']
+  assert owner['live']==7168 and owner['physical']==7682 and owner['deficit']==2560
+@@ -184,19 +184,19 @@
+    else:raise AssertionError(name)
+   return k,cuts,outer,controls
+  conservative_k,conservative_cuts,conservative_outer,conservative_controls=outer_witness(conservative_b)
+- assert conservative_k==Q('0.001593134155443237')
++ assert conservative_k==Q('0.001600067491919801')
+  # Only after every conservative supplier/admission/outer check succeeds is
+  # the reviewed native exact-complex recurrence selected. Bit charge stays.
+  native_moments=check_moment('complex',H,73,owner['live'],b,2560,False)
+  k,cuts,outer,controls=outer_witness(b)
+- assert k==Q('0.001593134158181640')
++ assert k==Q('0.001600067494703216')
+  assert M.moment(H,73,owner['live'],b,True)[0]>1
+  assert M.moment(bitH,64,bit['bit']['live'],c+Q(1,10**24),False)[1]<1
+  model_controls=['native_complex_endpoint_rejected_with_old_surcharge','omitting_bit_surcharge_would_fail_next_endpoint_rejection']
+  moments=bit_moments+native_moments
+  input_hashes={'owner_audit':owner_sha,'fresh_invoice':invoice_sha,'inputs/PR543-EXPECTED.json':sha(bit_path)}
+  input_hashes.update({'engines/'+name+'.py':sha(P/'engines'/(name+'.py'))for name in ('moment','base_two_moment','outer')})
+- return dict(status='PASS_FRESH_MIXED_048_ALLCOLD_NATIVE_EXACT_ASSEMBLY',kappa=str(k),kappa_decimal=dec(k),complex_lower=str(b),complex_decimal=dec(b),bit_lower=str(c),bit_decimal=dec(c),binding='complex',gain_over_pinned558_percent=dec(100*(k/Q('0.001592517889315014')-1)),complex_profile=H,provider_counts=invoice['provider_counts'],surcharge_model={'complex':False,'bit':True},conservative_complex_lower=str(conservative_b),conservative_complex_decimal=dec(conservative_b),conservative_kappa=str(conservative_k),conservative_kappa_decimal=dec(conservative_k),conservative_moments=conservative_moments,conservative_bootstrap=conservative_cuts,conservative_outer={n:str(v)for n,v in conservative_outer['strict_constraints'].items()},conservative_controls=conservative_controls,model_controls=model_controls,native_correction_gain=dec(k-conservative_k),template_sha256=owner['template_sha256'],input_sha256=input_hashes,bit_supplier=dict(pr=543,repository='eumemic/integer-mult-bounds',commit='2065fe4f72a914d907f1046603f5a36f17018535',path='research/e8-bit-r420/EXPECTED.json',git_blob_sha1='b61d859826246e0c3dabbe096e57ad7015eadfd5',replay_scope='Cited unchanged supplier; this assembly reprices its full profile and does not rebuild its bit circuit.'),moments=moments,bootstrap=cuts,outer={n:str(v)for n,v in outer['strict_constraints'].items()},controls=controls,scope='Conditional native exact-complex witness after complete conservative admission, moment and outer checks; PR559 exact-cover recurrence correction only, bit bad-residue surcharge and H1-H5 retained. Three fixed one-cold per-invocation providers composed with cited unchanged PR543 bit supplier. All-size compiler, common-label/mutable-source realization, whole-call hosting, precision/tape and analytic transfer remain assumptions. No unconditional theorem or full Lean certification.')
++ return dict(status='PASS_FRESH_MIXED_048_ALLCOLD_NATIVE_EXACT_ASSEMBLY',kappa=str(k),kappa_decimal=dec(k),complex_lower=str(b),complex_decimal=dec(b),bit_lower=str(c),bit_decimal=dec(c),binding='complex',gain_over_pinned564_percent=dec(100*(k/Q('0.001593134158181640')-1)),complex_profile=H,provider_counts=invoice['provider_counts'],surcharge_model={'complex':False,'bit':True},conservative_complex_lower=str(conservative_b),conservative_complex_decimal=dec(conservative_b),conservative_kappa=str(conservative_k),conservative_kappa_decimal=dec(conservative_k),conservative_moments=conservative_moments,conservative_bootstrap=conservative_cuts,conservative_outer={n:str(v)for n,v in conservative_outer['strict_constraints'].items()},conservative_controls=conservative_controls,model_controls=model_controls,native_correction_gain=dec(k-conservative_k),template_sha256=owner['template_sha256'],input_sha256=input_hashes,bit_supplier=dict(pr=543,repository='eumemic/integer-mult-bounds',commit='2065fe4f72a914d907f1046603f5a36f17018535',path='research/e8-bit-r420/EXPECTED.json',git_blob_sha1='b61d859826246e0c3dabbe096e57ad7015eadfd5',replay_scope='Cited unchanged supplier; this assembly reprices its full profile and does not rebuild its bit circuit.'),moments=moments,bootstrap=cuts,outer={n:str(v)for n,v in outer['strict_constraints'].items()},controls=controls,scope='Conditional native exact-complex witness after complete conservative admission, moment and outer checks; PR559 exact-cover recurrence correction only, bit bad-residue surcharge and H1-H5 retained. Two fixed plain/width-seven per-invocation providers composed with cited unchanged PR543 bit supplier. All-size compiler, common-label/mutable-source realization, whole-call hosting, precision/tape and analytic transfer remain assumptions. No unconditional theorem or full Lean certification.')
+ if __name__=='__main__':
+  import sys
+  package,C,out=map(Path,sys.argv[1:4]);assert package.resolve()==P and not out.exists()
+--- research/complex-allcold/code/assembly_controls.py
++++ research/larger-gain/global/width7/code/assembly_controls.py
+@@ -1,4 +1,4 @@
+-"""Independent admission controls for the three-provider native-complex assembly.
++"""Independent admission controls for the two-provider width-seven native-complex assembly.
+ 
+ Prepared with OpenAI Codex assistance; Apache-2.0. Mutation receipts are
+ rebound to their new owner digest, so unrelated stale hashes cannot conceal
+@@ -9,8 +9,8 @@
+ import copy
+ import hashlib
+ import json
++import os
+ from pathlib import Path
+-from assemble import assemble
+ 
+ assert __debug__, 'Assertions required'
+ P = Path(__file__).resolve().parent
+@@ -18,7 +18,9 @@
+ digest = lambda x: hashlib.sha256(json.dumps(x, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+ 
+ 
+-def verify(owner_path, invoice_path):
++def verify(owner_path, invoice_path, source_package):
++    os.environ['GAIN_PR564_SOURCE'] = str(source_package.resolve())
++    from assemble import assemble
+     owner = json.loads(owner_path.read_text())
+     invoice = json.loads(invoice_path.read_text())
+     baseline = assemble(owner, invoice, sha(owner_path), sha(invoice_path))
+@@ -28,7 +30,7 @@
+         i['providers'] = {}
+ 
+     def missing_backward(o, i):
+-        del i['providers']['rank5_four_cold']['local']['backward']
++        del i['providers']['fourcold_eight']['local']['backward']
+ 
+     def understated_stock(o, i):
+         o['physical'] -= 1
+@@ -40,23 +42,23 @@
+         o['paid_profile']['2'] -= 1
+ 
+     def changed_widths(o, i):
+-        widths = i['providers']['rank5_eight_cold']['widths']
++        widths = i['providers']['width7_eight']['widths']
+         a, b = widths.index(4), widths.index(9)
+         widths[a] += 1
+         widths[b] -= 1
+ 
+     def permuted_widths(o, i):
+-        widths = i['providers']['rank5_eight_cold']['widths']
++        widths = i['providers']['width7_eight']['widths']
+         a, b = widths.index(4), widths.index(9)
+         widths[a], widths[b] = widths[b], widths[a]
+ 
+     def compensating_profiles(o, i):
+-        # The two dishonest profiles cancel exactly in the 55+2 weighted aggregate.
+-        p, q = i['providers']['rank5_eight_cold'], i['providers']['rank5_four_cold']
+-        p['paid_profile']['1'] += 2
+-        q['paid_profile']['1'] -= 55
+-        p['children'] += 2
+-        q['children'] -= 55
++        # The two dishonest profiles cancel exactly in the 63+9 weighted aggregate.
++        p, q = i['providers']['width7_eight'], i['providers']['fourcold_eight']
++        p['paid_profile']['1'] += 1
++        q['paid_profile']['1'] -= 7
++        p['children'] += 1
++        q['children'] -= 7
+ 
+     def wrong_orientation(o, i):
+         c = next(c for c in i['selected_calls'] if c['stage'] == 0)
+@@ -71,14 +73,14 @@
+         i['selected_coefficient_work_primitive_count'] = sum(c['coefficient_work_primitive_count'] for c in i['selected_calls'])
+ 
+     def forged_program_hash(o, i):
+-        i['providers']['rank5_four_cold']['program_hashes']['forward'] = '0' * 64
++        i['providers']['fourcold_eight']['program_hashes']['forward'] = '0' * 64
+         for c in i['selected_calls']:
+-            if c['provider_id'] == 'rank5_four_cold':
++            if c['provider_id'] == 'fourcold_eight':
+                 c['program_sha256'] = '0' * 64
+ 
+     def wrong_selected_call(o, i):
+-        c = next(c for c in i['selected_calls'] if c['provider_id'] == 'rank5_four_cold')
+-        d = next(c for c in i['selected_calls'] if (c['stage'], c['replica']) == (4, 4))
++        c = next(c for c in i['selected_calls'] if c['provider_id'] == 'fourcold_eight')
++        d = next(d for d in i['selected_calls'] if d['stage'] == c['stage'] and d['provider_id'] != c['provider_id'])
+         c['replica'], d['replica'] = d['replica'], c['replica']
+ 
+     def understated_prefix(o, i):
+@@ -87,33 +89,35 @@
+                 z['prefix_bits'], z['prefix_l1'] = 1, '1'
+         i['global_prefix_bits'] = 1 + 37 + 72 + 72 + 4
+ 
+-    def stale_zero_program(o, i):
+-        p = i['providers']['rank5_zero_cold']
+-        p['program_hashes'] = copy.deepcopy(i['providers']['rank5_eight_cold']['program_hashes'])
++    def stale_plain_program(o, i):
++        p = i['providers']['fourcold_eight']
++        p['program_hashes'] = copy.deepcopy(i['providers']['width7_eight']['program_hashes'])
+         for c in i['selected_calls']:
+-            if c['provider_id'] == 'rank5_zero_cold':
++            if c['provider_id'] == 'fourcold_eight':
+                 c['program_sha256'] = p['program_hashes'][c['orientation']]
+ 
+     def moved_providers(o, i):
+-        a = next(c for c in i['selected_calls'] if (c['stage'], c['replica']) == (4, 5))
+-        b = next(c for c in i['selected_calls'] if (c['stage'], c['replica']) == (4, 4))
++        a = next(c for c in i['selected_calls'] if c['provider_id'] == 'fourcold_eight')
++        b = next(c for c in i['selected_calls'] if c['provider_id'] == 'width7_eight' and c['stage'] == a['stage'])
+         a['provider_id'], b['provider_id'] = b['provider_id'], a['provider_id']
+         for c in (a, b):
+             p = i['providers'][c['provider_id']]
+             c['program_sha256'] = p['program_hashes'][c['orientation']]
+             c['entering_helpers'], c['entrance_rank'] = p['entering_helpers'], p['entrance_rank']
++            for name in ('events','macros','real_component_primitives','coefficient_work_primitive_count','pre_wrappers','post_wrappers'):
++                c[name] = p['local'][c['orientation']][name]
+ 
+     def reordered_calls(o, i):
+         i['selected_calls'][0], i['selected_calls'][1] = i['selected_calls'][1], i['selected_calls'][0]
+ 
+-    def permuted_four_widths(o, i):
+-        widths = i['providers']['rank5_four_cold']['widths']
++    def permuted_plain_widths(o, i):
++        widths = i['providers']['fourcold_eight']['widths']
+         a, b = widths.index(4), widths.index(5)
+         widths[a], widths[b] = widths[b], widths[a]
+ 
+-    def stale_zero_profile(o, i):
+-        p = i['providers']['rank5_zero_cold']
+-        p['paid_profile'] = copy.deepcopy(i['providers']['rank5_eight_cold']['paid_profile'])
++    def stale_plain_profile(o, i):
++        p = i['providers']['fourcold_eight']
++        p['paid_profile'] = copy.deepcopy(i['providers']['width7_eight']['paid_profile'])
+         p['children'] = sum(p['paid_profile'].values())
+ 
+     controls = [
+@@ -125,26 +129,26 @@
+         ('understated_physical_stock', understated_stock),
+         ('changed_profile_same_rank_mass', changed_profile),
+         ('insufficient_finite_C0', lambda o, i: i['finite'].__setitem__('required_C0_bits', 210001)),
+-        ('unpaid_scalar_primitive', lambda o, i: i['providers']['rank5_four_cold']['local']['forward'].__setitem__('real_component_primitives', 161300)),
+-        ('wrong_local_artifact_binding', lambda o, i: i['providers']['rank5_four_cold']['artifacts'].__setitem__('LOCAL-PROGRAMS.json.gz', '0' * 64)),
+-        ('false_dirty_restoration', lambda o, i: i['providers']['rank5_four_cold']['local']['backward'].__setitem__('all_dirty_helper_columns_restored', False)),
++        ('unpaid_scalar_primitive', lambda o, i: i['providers']['fourcold_eight']['local']['forward'].__setitem__('real_component_primitives', 161300)),
++        ('wrong_local_artifact_binding', lambda o, i: i['providers']['fourcold_eight']['artifacts'].__setitem__('LOCAL-PROGRAMS.json.gz', '0' * 64)),
++        ('false_dirty_restoration', lambda o, i: i['providers']['fourcold_eight']['local']['backward'].__setitem__('all_dirty_helper_columns_restored', False)),
+         ('missing_finite_check', lambda o, i: i['strict_checks'].pop('halving')),
+         ('width_inventory_wrong_same_total', changed_widths),
+         ('width_order_wrong_same_inventory', permuted_widths),
+         ('compensating_false_provider_profiles', compensating_profiles),
+         ('wrong_reflected_orientation_selfconsistent_totals', wrong_orientation),
+         ('forged_provider_and_call_program_hash', forged_program_hash),
+-        ('four_provider_at_wrong_call', wrong_selected_call),
+-        ('wrong_declared_provider_count', lambda o, i: i['provider_counts'].__setitem__('rank5_four_cold', 3)),
++        ('plain_provider_at_wrong_call', wrong_selected_call),
++        ('wrong_declared_provider_count', lambda o, i: i['provider_counts'].__setitem__('fourcold_eight', 3)),
+         ('missing_selected_call', lambda o, i: i['selected_calls'].pop()),
+         ('wrong_selected_primitive_sum', lambda o, i: i.__setitem__('selected_real_component_primitives', i['selected_real_component_primitives'] - 1)),
+         ('wrong_selected_coefficient_work_sum', lambda o, i: i.__setitem__('selected_coefficient_work_primitive_count', i['selected_coefficient_work_primitive_count'] - 1)),
+         ('unpaid_wrapper_factors', lambda o, i: i.__setitem__('wrapper_elementary_factors_charged', i['wrapper_elementary_factors_charged'] - 144)),
+-        ('wrong_local_compiler', lambda o, i: i['providers']['rank5_four_cold'].__setitem__('compiler', 1)),
++        ('wrong_local_compiler', lambda o, i: i['providers']['fourcold_eight'].__setitem__('compiler', 1)),
+         ('wrong_global_compiler', lambda o, i: i.__setitem__('compiler', 1)),
+-        ('wrong_local_adapter_charge', lambda o, i: i['providers']['rank5_four_cold'].__setitem__('local_adapters', 1)),
++        ('wrong_local_adapter_charge', lambda o, i: i['providers']['fourcold_eight'].__setitem__('local_adapters', 1)),
+         ('wrong_global_adapter_maximum', lambda o, i: i.__setitem__('local_adapters', 1)),
+-        ('wrong_local_primitive_bound', lambda o, i: i['providers']['rank5_four_cold'].__setitem__('local_primitive_bound', 1)),
++        ('wrong_local_primitive_bound', lambda o, i: i['providers']['fourcold_eight'].__setitem__('local_primitive_bound', 1)),
+         ('understated_exact_prefix_and_global_sum', understated_prefix),
+         ('wrong_global_prefix_sum', lambda o, i: i.__setitem__('global_prefix_bits', 224)),
+         ('wrong_row_prefix_reserve', lambda o, i: i.__setitem__('row_prefix_extra', 0)),
+@@ -158,19 +162,19 @@
+         ('wrong_finite_row_coefficient', lambda o, i: i['finite'].__setitem__('physical_row_coefficient', 1)),
+     ]
+     controls.extend([
+-        ('missing_zero_provider', lambda o, i: i['providers'].pop('rank5_zero_cold')),
+-        ('missing_eight_provider_backward', lambda o, i: i['providers']['rank5_eight_cold']['local'].pop('backward')),
+-        ('stale_zero_program_and_consistent_selected_hashes', stale_zero_program),
+-        ('stale_zero_profile_with_consistent_child_total', stale_zero_profile),
++        ('missing_plain_provider', lambda o, i: i['providers'].pop('fourcold_eight')),
++        ('missing_width7_provider_backward', lambda o, i: i['providers']['width7_eight']['local'].pop('backward')),
++        ('stale_plain_program_and_consistent_selected_hashes', stale_plain_program),
++        ('stale_plain_profile_with_consistent_child_total', stale_plain_profile),
+         ('reordered_complete_calls', reordered_calls),
+-        ('relocated_four_and_eight_providers_same_counts', moved_providers),
+-        ('four_provider_widths_permuted_same_inventory', permuted_four_widths),
+-        ('understated_explicit_idle_remainders', lambda o, i: o.__setitem__('explicit_idle_remainder_children', 4203)),
+-        ('understated_actual_chart_types', lambda o, i: o.__setitem__('actual_73column_sigmas', 2961)),
+-        ('wrong_cross_replica_role_count', lambda o, i: o.__setitem__('cross_replica_helper_roles', 29513)),
++        ('relocated_plain_and_width7_providers_same_counts', moved_providers),
++        ('plain_provider_widths_permuted_same_inventory', permuted_plain_widths),
++        ('understated_explicit_idle_remainders', lambda o, i: o.__setitem__('explicit_idle_remainder_children', o['explicit_idle_remainder_children']-1)),
++        ('understated_actual_chart_types', lambda o, i: o.__setitem__('actual_73column_sigmas', o['actual_73column_sigmas']-1)),
++        ('wrong_cross_replica_role_count', lambda o, i: o.__setitem__('cross_replica_helper_roles', o['cross_replica_helper_roles']-1)),
+     ])
+     def cold_width_permutation(o, i):
+-        w = i['providers']['rank5_four_cold']['widths']
++        w = i['providers']['fourcold_eight']['widths']
+         j = w.index(9)
+         w[270], w[j] = w[j], w[270]
+     def no_cold_wrappers(o, i):
+@@ -181,11 +185,11 @@
+             c['entering_helpers'] = c['pre_wrappers'] = c['post_wrappers'] = 212
+         i['wrapper_elementary_factors_charged'] = 72*424*144
+     def synchronized_forged_recipe(o, i):
+-        pid = 'rank5_zero_cold';name = 'CLIFFORD-RECIPES.json'
++        pid = 'fourcold_eight';name = 'CLIFFORD-RECIPES.json'
+         i['providers'][pid]['artifacts'][name] = '0'*64
+         o['source_artifacts']['providers/'+pid+'/'+name] = '0'*64
+     def synchronized_forged_phase_semantics(o, i):
+-        pid = 'rank5_zero_cold'
++        pid = 'fourcold_eight'
+         i['providers'][pid]['semantic_artifact_sha256']['CLIFFORD-REVIEW.json'] = '0'*64
+         o['provider_phase_semantic_sha256'][pid] = i['provider_phase_semantic_sha256'][pid] = '0'*64
+     controls.extend([
+@@ -194,6 +198,18 @@
+         ('old_no_cold_wrapper_counts_selfconsistent', no_cold_wrappers),
+         ('synchronized_forged_source_recipe_hash', synchronized_forged_recipe),
+     ])
++    for helper in (282, 294, 306):
++        def move_extra_width(o, i, helper=helper):
++            widths = i['providers']['width7_eight']['widths']
++            other = widths.index(9)
++            widths[helper], widths[other] = widths[other], widths[helper]
++        controls.append(('extra_kernel_width_swap_' + str(helper), move_extra_width))
++    for helper in [262, 263, 264, 265, 274, 275, 276, 277, 310, 311, 312, 313, 314, 315, 316, 317, 322, 323, 324, 325, 326, 327, 328, 329, 338, 339, 340, 341, 350, 351, 352, 353]:
++        def swap_width7(o, i, helper=helper):
++            widths = i['providers']['width7_eight']['widths']
++            other = widths.index(8)
++            widths[helper], widths[other] = widths[other], widths[helper]
++        controls.append(('width7_entrance_width_swap_' + str(helper), swap_width7))
+     rejected = []
+     for name, mutate in controls:
+         o, i = copy.deepcopy(owner), copy.deepcopy(invoice)
+@@ -212,7 +228,7 @@
+         rejected.append('wrong_owner_receipt_hash')
+     else:
+         raise AssertionError('Wrong owner digest accepted')
+-    assert len(rejected) == 54
++    assert len(rejected) == 89
+     assert baseline['controls'] == ['next_grid', 'zero_eta', 'zero_beta', 'unit_beta']
+     assert baseline['conservative_controls'] == baseline['controls']
+     assert baseline['surcharge_model'] == {'complex': False, 'bit': True}
+@@ -232,11 +248,12 @@
+ 
+ if __name__ == '__main__':
+     ap = argparse.ArgumentParser(description=__doc__)
++    ap.add_argument('--source-package', type=Path, required=True)
+     ap.add_argument('--owner', type=Path, required=True)
+     ap.add_argument('--invoice', type=Path, required=True)
+     ap.add_argument('--out', type=Path, required=True)
+     a = ap.parse_args()
+     assert not a.out.exists()
+-    result = verify(a.owner, a.invoice)
++    result = verify(a.owner, a.invoice, a.source_package)
+     a.out.write_text(json.dumps(result, indent=2) + '\n')
+     print(result['status'], len(result['rejected_controls']))
+--- research/complex-allcold/code/audit_allcold.py
++++ research/larger-gain/global/width7/code/audit_allcold.py
+@@ -2,8 +2,8 @@
+ Imports no emitter, optimizer, expander, edge-coloring, or source hosting code.
+ CLI: BASE HOSTED REPORT [--mutation-controls]
+ Each provider is independently read from BASE/providers, never from a baseline width histogram.
+-OpenAI Codex three-provider 0/4/8 extension; retains all inherited independent controller checks.
+-All72 one-cold dispatch is frozen from PROVIDER-CALLS SHA256 049ad6640f9f3b0e329a4eaba8c390cf560791a12f22f25f0bace59153a05f4e.
++OpenAI Codex two-provider width-seven extension; retains all inherited independent controller checks.
++The exact 63 width-seven and 9 plain calls are frozen below.
+ """
+ import sys,json,gzip,hashlib,copy
+ assert __debug__, 'Assertions must remain enabled'
+@@ -14,7 +14,7 @@
+ ph=read(BASE/'work/complex-nine-native/DATA-PHASES.json')
+ ct=read(OUT/'GLOBAL-TEMPLATE.json.gz');summary=read(OUT/'HOSTED.json')
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+-provider_ids=('rank5_zero_cold','rank5_four_cold','rank5_eight_cold')
++provider_ids=('fourcold_eight', 'width7_eight')
+ providers={};registry={};phase_semantic_hashes={}
+ required_artifacts={'work/complex-nine-native/DATA-PHASES.json'}
+ provider_files=('CANONICAL-WORD.json.gz','LOCAL-PROGRAMS.json.gz','LOCAL-CHECKS.json',
+@@ -25,8 +25,8 @@
+  programs=read(p/'LOCAL-PROGRAMS.json.gz');replay=read(p/'INDEPENDENT-LOCAL-REPLAY.json')
+  phase=read(p/'CLIFFORD-REVIEW.json');adapters=read(p/'RESIDUAL-ADAPTERS.json')['recipes']
+  widths=[c['h']-len(c['frames'][c['start'][2*c['v']+h]])for h in range(c['R'])]
+- promoted={'rank5_zero_cold':0,'rank5_four_cold':4,'rank5_eight_cold':8}[pid]
+- assert widths[270]==8 and Counter(widths)==Counter({r:n for r,n in{4:promoted,5:56-promoted,8:157,9:291}.items()if n})
++ promoted={'fourcold_eight':0,'width7_eight':32}[pid]
++ assert all(widths[h]==8 for h in (270,282,294,306)) and Counter(widths)==Counter({r:n for r,n in{4:8,5:48,7:promoted,8:160-promoted,9:288}.items()if n})
+  canonical_sha=sha(p/'CANONICAL-WORD.json.gz');programs_sha=sha(p/'LOCAL-PROGRAMS.json.gz')
+  assert replay['status']=='PASS_INDEPENDENT_LOCAL_SCALAR_FRAME_AND_WRAPPER_REPLAY'
+  assert replay['canonical_word_sha256']==canonical_sha and replay['local_programs_sha256']==programs_sha
+@@ -55,14 +55,14 @@
+   residual_adapter_sha256=sha(p/'RESIDUAL-ADAPTERS.json'),
+   **{k:c[k]for k in('v','h','R','ports','centers')},widths=widths)
+  required_artifacts.update('providers/'+pid+'/'+fn for fn in provider_files)
+-canon=providers['rank5_eight_cold']['canonical'];V=canon['v'];R=canon['R'];N=2*V+R;CENTRES=len(canon['centers'])
++canon=providers['width7_eight']['canonical'];V=canon['v'];R=canon['R'];N=2*V+R;CENTRES=len(canon['centers'])
+ assert V==112 and canon['h']==9
+ assert all(providers[p]['canonical'][k]==canon[k]for p in provider_ids for k in('v','h','R','ports','centers'))
+ assert required_artifacts<=set(summary['source_artifacts'])
+ prank={e['child']:e['rank']for e in parent['idle_children']};M=73;T=8;DATA=8*T*V;PHYSICAL=DATA+CENTRES+R+2;CALLS=72;HOSTED=CALLS*R
+ # The selected map is an input to check, not a claim from the emitter.
+-DISPATCH={(0, 0): 'rank5_eight_cold', (0, 1): 'rank5_eight_cold', (1, 0): 'rank5_eight_cold', (0, 2): 'rank5_eight_cold', (1, 1): 'rank5_eight_cold', (2, 0): 'rank5_eight_cold', (0, 3): 'rank5_eight_cold', (1, 2): 'rank5_eight_cold', (2, 1): 'rank5_eight_cold', (3, 0): 'rank5_eight_cold', (0, 4): 'rank5_eight_cold', (1, 3): 'rank5_eight_cold', (2, 2): 'rank5_eight_cold', (3, 1): 'rank5_eight_cold', (4, 0): 'rank5_eight_cold', (0, 5): 'rank5_eight_cold', (1, 4): 'rank5_eight_cold', (2, 3): 'rank5_eight_cold', (3, 2): 'rank5_eight_cold', (4, 1): 'rank5_eight_cold', (5, 0): 'rank5_eight_cold', (0, 6): 'rank5_eight_cold', (1, 5): 'rank5_eight_cold', (2, 4): 'rank5_eight_cold', (3, 3): 'rank5_eight_cold', (4, 2): 'rank5_eight_cold', (5, 1): 'rank5_eight_cold', (0, 7): 'rank5_eight_cold', (6, 0): 'rank5_eight_cold', (1, 6): 'rank5_eight_cold', (2, 5): 'rank5_eight_cold', (3, 4): 'rank5_eight_cold', (4, 3): 'rank5_eight_cold', (5, 2): 'rank5_eight_cold', (6, 1): 'rank5_eight_cold', (1, 7): 'rank5_eight_cold', (7, 0): 'rank5_eight_cold', (2, 6): 'rank5_eight_cold', (3, 5): 'rank5_eight_cold', (4, 4): 'rank5_eight_cold', (5, 3): 'rank5_eight_cold', (6, 2): 'rank5_zero_cold', (7, 1): 'rank5_eight_cold', (2, 7): 'rank5_eight_cold', (8, 0): 'rank5_eight_cold', (3, 6): 'rank5_zero_cold', (4, 5): 'rank5_four_cold', (5, 4): 'rank5_eight_cold', (6, 3): 'rank5_eight_cold', (7, 2): 'rank5_zero_cold', (8, 1): 'rank5_eight_cold', (3, 7): 'rank5_eight_cold', (4, 6): 'rank5_zero_cold', (5, 5): 'rank5_zero_cold', (6, 4): 'rank5_eight_cold', (7, 3): 'rank5_eight_cold', (8, 2): 'rank5_zero_cold', (4, 7): 'rank5_zero_cold', (5, 6): 'rank5_eight_cold', (6, 5): 'rank5_eight_cold', (7, 4): 'rank5_zero_cold', (8, 3): 'rank5_zero_cold', (5, 7): 'rank5_zero_cold', (6, 6): 'rank5_eight_cold', (7, 5): 'rank5_four_cold', (8, 4): 'rank5_zero_cold', (6, 7): 'rank5_zero_cold', (7, 6): 'rank5_zero_cold', (8, 5): 'rank5_zero_cold', (7, 7): 'rank5_eight_cold', (8, 6): 'rank5_eight_cold', (8, 7): 'rank5_zero_cold'}
+-assert len(DISPATCH)==72 and Counter(DISPATCH.values())==dict(rank5_zero_cold=15,rank5_four_cold=2,rank5_eight_cold=55)
++DISPATCH={(0, 0): 'width7_eight', (0, 1): 'width7_eight', (1, 0): 'width7_eight', (0, 2): 'width7_eight', (1, 1): 'width7_eight', (2, 0): 'width7_eight', (0, 3): 'width7_eight', (1, 2): 'width7_eight', (2, 1): 'fourcold_eight', (3, 0): 'width7_eight', (0, 4): 'width7_eight', (1, 3): 'width7_eight', (2, 2): 'width7_eight', (3, 1): 'width7_eight', (4, 0): 'width7_eight', (0, 5): 'width7_eight', (1, 4): 'width7_eight', (2, 3): 'width7_eight', (3, 2): 'width7_eight', (4, 1): 'width7_eight', (5, 0): 'width7_eight', (0, 6): 'fourcold_eight', (1, 5): 'width7_eight', (2, 4): 'width7_eight', (3, 3): 'width7_eight', (4, 2): 'width7_eight', (5, 1): 'width7_eight', (0, 7): 'width7_eight', (6, 0): 'width7_eight', (1, 6): 'width7_eight', (2, 5): 'width7_eight', (3, 4): 'width7_eight', (4, 3): 'fourcold_eight', (5, 2): 'fourcold_eight', (6, 1): 'width7_eight', (1, 7): 'width7_eight', (7, 0): 'fourcold_eight', (2, 6): 'width7_eight', (3, 5): 'width7_eight', (4, 4): 'fourcold_eight', (5, 3): 'width7_eight', (6, 2): 'width7_eight', (7, 1): 'width7_eight', (2, 7): 'width7_eight', (8, 0): 'width7_eight', (3, 6): 'width7_eight', (4, 5): 'width7_eight', (5, 4): 'width7_eight', (6, 3): 'width7_eight', (7, 2): 'width7_eight', (8, 1): 'fourcold_eight', (3, 7): 'width7_eight', (4, 6): 'width7_eight', (5, 5): 'width7_eight', (6, 4): 'width7_eight', (7, 3): 'width7_eight', (8, 2): 'fourcold_eight', (4, 7): 'width7_eight', (5, 6): 'width7_eight', (6, 5): 'width7_eight', (7, 4): 'width7_eight', (8, 3): 'width7_eight', (5, 7): 'width7_eight', (6, 6): 'width7_eight', (7, 5): 'width7_eight', (8, 4): 'width7_eight', (6, 7): 'width7_eight', (7, 6): 'width7_eight', (8, 5): 'width7_eight', (7, 7): 'width7_eight', (8, 6): 'fourcold_eight', (8, 7): 'width7_eight'}
++assert len(DISPATCH)==72 and Counter(DISPATCH.values())=={'width7_eight': 63, 'fourcold_eight': 9}
+ expected_provider=lambda stage,replica:DISPATCH[stage,replica]
+ 
+ def orthobasis(port):
+@@ -181,19 +181,19 @@
+ reject('wrong spectator coordinate',lambda q:enter(q)[1][4].__setitem__(0,72))
+ reject('omit idle remainder',lambda q:q['idle_children'].pop())
+ reject('understate physical reserve',lambda q:q.__setitem__('physical',PHYSICAL-1))
+-special=lambda q:next(c for c in q['calls']if(c['stage'],c['replica'])==(4,5))
+-changed=next(h for h in range(R)if providers['rank5_four_cold']['widths'][h]!=providers['rank5_eight_cold']['widths'][h])
+-assert providers['rank5_four_cold']['widths'][changed]==5 and providers['rank5_eight_cold']['widths'][changed]==4
+-reject('wrong provider at a four-pivot invocation',lambda q:special(q).__setitem__('provider_id','rank5_eight_cold'))
+-reject('stale per-call local program hash',lambda q:special(q).__setitem__('local_program_sha256',registry['rank5_eight_cold']['local_program_checks'][special(q)['orientation']]['sha256']))
+-reject('stale serialized four-pivot provider program',lambda q:q['local_providers']['rank5_four_cold'].__setitem__('local_programs',registry['rank5_eight_cold']['local_programs']))
+-reject('unbound residual adapter hash',lambda q:q['local_providers']['rank5_four_cold'].__setitem__('residual_adapter_sha256','0'*64))
+-reject('wrong provider width registry',lambda q:q['local_providers']['rank5_four_cold']['widths'].__setitem__(changed,4))
+-reject('wrong per-call width at a four-pivot invocation',lambda q:special(q)['owners'][2*V+changed][1].__setitem__(3,4))
+-reject('wrong sweep provider',lambda q:next(e for e in q['execution_schedule']if e['kind']=='local_cover_sweep'and(e['stage'],e['replica'])==(4,5)).__setitem__('provider_id','rank5_eight_cold'))
+-reject('cold helper width silently restored to nine',lambda q:q['local_providers']['rank5_four_cold']['widths'].__setitem__(270,9))
+-reject('missing cold helper wrapper binding',lambda q:q['local_providers']['rank5_zero_cold'].__setitem__('residual_adapter_sha256','0'*64))
+-report=dict(status='PASS_INDEPENDENT_ASYNC_WHOLE_OWNER_CONTROLLER_PHASES_AND_SPECTATORS',template_sha256=summary['template_sha256'],complex_template_sha256=summary['template_sha256'],complex_live=DATA,complex_profile=r['profile'],complex_hosted_residuals=HOSTED,physical=PHYSICAL,rank_mass=r['mass'],deficit=2560,entering_helper_roles=r['entering'],cross_replica_helper_roles=r['cross_replica'],one_owner_per_complete_invocation=True,helper_busy_family_window_checks=r['busy_family_checks'],complete_invocations=r['invocations'],actual_orthogonal_73column_maps=len(r['sigmas']),actual_sigma_stream_sha256=r['sigma_digest'],all_actual_residual_and_spectator_charts=True,idle_remainders=r['idle_remainders'],mutations_rejected=controls,mutation_controls_run='--mutation-controls' in sys.argv[4:],provider_phase_semantic_sha256=phase_semantic_hashes,widths_by_provider={pid:dict(sorted(Counter(providers[pid]['widths']).items()))for pid in provider_ids},provider_counts=dict(Counter(c['provider_id']for c in ct['calls'])),all_provider_program_phase_and_wrapper_bindings=True,scope='Independent exact asynchronous chronology, per-replica phase projection, owner/chart/paid-profile audit. Uses three per-invocation local providers bound by exact scalar, phase and residual-wrapper receipts; all-size compilation and complete coefficient invoice are separate inherited obligations.')
++special=lambda q:next(c for c in q['calls']if c['provider_id']=='fourcold_eight')
++changed=next(h for h in range(R)if providers['fourcold_eight']['widths'][h]!=providers['width7_eight']['widths'][h])
++assert providers['fourcold_eight']['widths'][changed]==8 and providers['width7_eight']['widths'][changed]==7
++reject('wrong provider at a plain invocation',lambda q:special(q).__setitem__('provider_id','width7_eight'))
++reject('stale per-call local program hash',lambda q:special(q).__setitem__('local_program_sha256',registry['width7_eight']['local_program_checks'][special(q)['orientation']]['sha256']))
++reject('stale serialized plain provider program',lambda q:q['local_providers']['fourcold_eight'].__setitem__('local_programs',registry['width7_eight']['local_programs']))
++reject('unbound residual adapter hash',lambda q:q['local_providers']['fourcold_eight'].__setitem__('residual_adapter_sha256','0'*64))
++reject('wrong provider width registry',lambda q:q['local_providers']['fourcold_eight']['widths'].__setitem__(changed,7))
++reject('wrong per-call width at a plain invocation',lambda q:special(q)['owners'][2*V+changed][1].__setitem__(3,7))
++reject('wrong sweep provider',lambda q:next(e for e in q['execution_schedule']if e['kind']=='local_cover_sweep'and DISPATCH[e['stage'],e['replica']]=='fourcold_eight').__setitem__('provider_id','width7_eight'))
++reject('cold helper width silently restored to nine',lambda q:q['local_providers']['fourcold_eight']['widths'].__setitem__(270,9))
++reject('missing cold helper wrapper binding',lambda q:q['local_providers']['fourcold_eight'].__setitem__('residual_adapter_sha256','0'*64))
++report=dict(status='PASS_INDEPENDENT_ASYNC_WHOLE_OWNER_CONTROLLER_PHASES_AND_SPECTATORS',template_sha256=summary['template_sha256'],complex_template_sha256=summary['template_sha256'],complex_live=DATA,complex_profile=r['profile'],complex_hosted_residuals=HOSTED,physical=PHYSICAL,rank_mass=r['mass'],deficit=2560,entering_helper_roles=r['entering'],cross_replica_helper_roles=r['cross_replica'],one_owner_per_complete_invocation=True,helper_busy_family_window_checks=r['busy_family_checks'],complete_invocations=r['invocations'],actual_orthogonal_73column_maps=len(r['sigmas']),actual_sigma_stream_sha256=r['sigma_digest'],all_actual_residual_and_spectator_charts=True,idle_remainders=r['idle_remainders'],mutations_rejected=controls,mutation_controls_run='--mutation-controls' in sys.argv[4:],provider_phase_semantic_sha256=phase_semantic_hashes,widths_by_provider={pid:dict(sorted(Counter(providers[pid]['widths']).items()))for pid in provider_ids},provider_counts=dict(Counter(c['provider_id']for c in ct['calls'])),all_provider_program_phase_and_wrapper_bindings=True,scope='Independent exact asynchronous chronology, per-replica phase projection, owner/chart/paid-profile audit. Uses two per-invocation local providers bound by exact scalar, phase and residual-wrapper receipts; all-size compilation and complete coefficient invoice are separate inherited obligations.')
+ REPORT.parent.mkdir(parents=True,exist_ok=True)
+ REPORT.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+ 
+--- research/complex-allcold/code/bind_providers_portable.py
++++ research/larger-gain/global/width7/code/bind_providers_portable.py
+@@ -1,4 +1,4 @@
+-"""Bind freshly verified 0/4/8 one-cold providers to the frozen literal owner plan.
++"""Bind freshly verified plain and width-seven four-cold providers to the frozen literal owner plan.
+ Prepared with OpenAI Codex assistance; Apache-2.0. All byte-stable native
+ files are pinned to the plan. Only validated phase-receipt timing/serialization
+ and directory fields are rebound; no dispatch, width or owner choice changes.
+@@ -8,17 +8,17 @@
+ from pathlib import Path
+ assert __debug__, 'Assertions required'
+ ap=argparse.ArgumentParser(description=__doc__)
+-for name in ('baseline','zero','four','eight','plan','out'):ap.add_argument('--'+name,type=Path,required=True)
++for name in ('baseline','plain','width7','plan','out'):ap.add_argument('--'+name,type=Path,required=True)
+ a=ap.parse_args();assert not a.out.exists();a.out.mkdir(parents=True)
+ def read(p):return json.loads(gzip.decompress(p.read_bytes())if p.suffix=='.gz'else p.read_bytes())
+ def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+ base=a.out/'base';shutil.copytree(a.baseline/'complex-global/base',base)
+-dirs={'rank5_zero_cold':a.zero,'rank5_four_cold':a.four,'rank5_eight_cold':a.eight}
+-promotions={'rank5_zero_cold':0,'rank5_four_cold':4,'rank5_eight_cold':8}
++dirs={'fourcold_eight':a.plain,'width7_eight':a.width7}
++promotions={'fourcold_eight':0,'width7_eight':32}
+ for pid,src in dirs.items():shutil.copytree(src,base/'providers'/pid)
+ plan=read(a.plan);original=copy.deepcopy(plan);sources={}
+ assert set(plan['provider_registry'])==set(dirs)
+-assert Counter(c['provider']for c in plan['provider_calls'])=={'rank5_zero_cold':15,'rank5_four_cold':2,'rank5_eight_cold':55}
++assert Counter(c['provider']for c in plan['provider_calls'])=={'width7_eight': 63, 'fourcold_eight': 9}
+ stable=('CANONICAL-WORD.json.gz','LOCAL-PROGRAMS.json.gz','LOCAL-CHECKS.json','INDEPENDENT-LOCAL-REPLAY.json','CLIFFORD-RECIPES.json','RESIDUAL-ADAPTERS.json')
+ for pid,desc in plan['provider_registry'].items():
+  d=base/'providers'/pid;p=promotions[pid]
+@@ -26,16 +26,16 @@
+  assert (word['v'],word['h'],word['R'],len(word['centers']))==(112,9,504,8)
+  assert word['ports']==desc['ports'] and word['centers']==desc['centers']
+  widths=[9-len(word['frames'][f])for f in word['start'][224:]]
+- assert widths[270]==8
+- assert widths==desc['widths'] and Counter(widths)==Counter({4:p,5:56-p,8:157,9:291})
++ assert all(widths[h]==8 for h in (270,282,294,306))
++ assert widths==desc['widths'] and Counter(widths)==Counter({4:8,5:48,7:p,8:160-p,9:288})
+  assert native['status']=='PASS_INDEPENDENT_LOCAL_SCALAR_FRAME_AND_WRAPPER_REPLAY'
+  assert len(native['negative_controls_rejected'])==11
+  assert native['canonical_word_sha256']==sha(d/'CANONICAL-WORD.json.gz') and native['local_programs_sha256']==sha(d/'LOCAL-PROGRAMS.json.gz')
+  assert phase['status']=='PASS_NEW_WORD_EXACT_LOCAL_PHASE_RECIPES'
+  assert phase['canonical_word_sha256']==sha(d/'CANONICAL-WORD.json.gz') and phase['recipe_sha256']==sha(d/'CLIFFORD-RECIPES.json')
+- assert phase['all_child_equalities_include_global_phase'] is True and phase['endpoint_adapters']==224 and phase['directed_edges']==2929
++ assert phase['all_child_equalities_include_global_phase'] is True and phase['endpoint_adapters']==224 and phase['directed_edges']==(3005 if p else 2929)
+  assert set(program)==set(checks)=={'forward','backward'}
+- expected={1:2301+2*p,2:442-2*p,3:470-p,4:184+p,5:56,6:56,8:8}
++ expected={1:2320+p,2:432+5*p,3:456-4*p,4:192,5:56,6:56,8:8}
+  for orientation,events in program.items():
+   profile=Counter()
+   for e in events:
+@@ -52,7 +52,7 @@
+    assert c['local_program_sha256']==checks[c['orientation']]['sha256']
+  desc['directory']='providers/'+pid
+  desc['artifact_sha256']={name:sha(d/name)for name in desc['artifact_sha256']}
+- sources[pid]=dict(artifact_sha256=desc['artifact_sha256'],canonical_content_sha256=hashlib.sha256(json.dumps(word,sort_keys=True,separators=(',',':')).encode()).hexdigest(),all_phase_edges=2929)
++ sources[pid]=dict(artifact_sha256=desc['artifact_sha256'],canonical_content_sha256=hashlib.sha256(json.dumps(word,sort_keys=True,separators=(',',':')).encode()).hexdigest(),all_phase_edges=(3005 if p else 2929))
+ plan['runtime_source_plan_sha256']=sha(a.plan)
+ (a.out/'PLAN.json').write_text(json.dumps(plan,indent=2)+'\n')
+ receipt=dict(status='PASS_FROZEN_048_ALLCOLD_DISPATCH_FRESH_PROVIDER_BINDING',source_plan_sha256=sha(a.plan),runtime_plan_sha256=sha(a.out/'PLAN.json'),providers=sources,only_rebound_fields=['provider_registry.directory','provider_registry.artifact_sha256.CLIFFORD-REVIEW.json','runtime_source_plan_sha256'])
+--- research/complex-allcold/code/emit_allcold.py
++++ research/larger-gain/global/width7/code/emit_allcold.py
+@@ -1,4 +1,4 @@
+-"""Three-provider whole-owner derivative, adapted with OpenAI Codex assistance.
++"""Two-provider width-seven whole-owner derivative, adapted with OpenAI Codex assistance.
+ Based on PR514 and its credited PR484/507 lineage.
+ CLI: --base VERIFIED_VARIANT --owners ASYNC-OWNERS.json.gz --plan ASYNC-PLAN.json --out OUT
+ No optimizer or unpublished word builder runs. The frozen map explicitly names
+@@ -27,7 +27,7 @@
+ provider_files=('CANONICAL-WORD.json.gz','LOCAL-PROGRAMS.json.gz','LOCAL-CHECKS.json','INDEPENDENT-LOCAL-REPLAY.json','RESIDUAL-ADAPTERS.json','CLIFFORD-RECIPES.json','CLIFFORD-REVIEW.json')
+ registry={};source_artifacts={'work/complex-nine-native/DATA-PHASES.json':sha(BASE/'work/complex-nine-native/DATA-PHASES.json')}
+ for provider_id in sorted(plan['provider_registry']):
+- assert provider_id in('rank5_zero_cold','rank5_four_cold','rank5_eight_cold')
++ assert provider_id in('fourcold_eight', 'width7_eight')
+  directory=BASE/'providers'/provider_id
+  assert all((directory/f).is_file()for f in provider_files)
+  pc=read(directory/'CANONICAL-WORD.json.gz');checks=read(directory/'LOCAL-CHECKS.json');programs=read(directory/'LOCAL-PROGRAMS.json.gz');replay=read(directory/'INDEPENDENT-LOCAL-REPLAY.json')
+@@ -42,7 +42,7 @@
+  registry[provider_id]=dict(local_programs=programs,canonical_word_sha256=sha(directory/'CANONICAL-WORD.json.gz'),local_programs_sha256=sha(directory/'LOCAL-PROGRAMS.json.gz'),local_program_checks=checks,exact_local_clifford_recipe_sha256=sha(directory/'CLIFFORD-RECIPES.json'),residual_adapter_sha256=sha(directory/'RESIDUAL-ADAPTERS.json'),v=V,h=9,R=R,ports=pc['ports'],centers=pc['centers'],widths=widths)
+ selected={(c['stage'],c['replica']):c for c in plan['provider_calls']}
+ assert len(selected)==72 and set(selected)==set(call_order)
+-assert Counter(c['provider']for c in selected.values())=={'rank5_zero_cold':15,'rank5_four_cold':2,'rank5_eight_cold':55}
++assert Counter(c['provider']for c in selected.values())=={'width7_eight': 63, 'fourcold_eight': 9}
+ per_call_widths={(c['stage'],c['replica']):c['widths']for c in plan['per_call_widths']}
+ for key,c in selected.items():
+  assert c['time']==at[key] and c['provider']in registry
+@@ -136,5 +136,5 @@
+  cross_replica_helper_roles=sum(z['replica']!=z['owner_replica']for z in roles),
+  asynchronous_order_sha256=hashlib.sha256(json.dumps(call_order,separators=(',',':')).encode()).hexdigest(),
+  source_artifacts=source_artifacts,provider_counts=dict(Counter(c['provider_id']for c in t['calls'])),
+- scope='Three actual verified local providers dispatched per complete invocation; independent controller/spectator/normalization and complete finite invoice admission required.')
++ scope='Two actual verified plain/width-seven providers dispatched per complete invocation; independent controller/spectator/normalization and complete finite invoice admission required.')
+ (OUT/'HOSTED.json').write_text(json.dumps(res,indent=2)+'\n');(OUT/'ACTUAL-SIGMAS.json.gz').write_bytes(gzip.compress(json.dumps(sigmas,separators=(',',':')).encode(),mtime=0));print(json.dumps(res,indent=2))
+--- research/complex-allcold/code/invoice_allcold.py
++++ research/larger-gain/global/width7/code/invoice_allcold.py
+@@ -167,7 +167,7 @@
+     assert owners['status']=='PASS_INDEPENDENT_ASYNC_OWNERS_AND_PROFILE'
+     assert template['recipe']==parent['recipe']
+     assert 'local_programs' not in template
+-    assert set(template['local_providers'])=={'rank5_zero_cold','rank5_four_cold','rank5_eight_cold'}
++    assert set(template['local_providers'])=={'fourcold_eight', 'width7_eight'}
+     providers={pid:recount_provider(base/'providers'/pid,registry)
+                for pid,registry in template['local_providers'].items()}
+     for pid,p in providers.items():
+@@ -207,7 +207,7 @@
+                              coefficient_work_primitive_count=r['coefficient_work_primitive_count'],
+                              entering_helpers=p['entering_helpers'],entrance_rank=p['entrance_rank'],
+                              pre_wrappers=r['pre_wrappers'],post_wrappers=r['post_wrappers']))
+-    assert provider_counts==Counter(rank5_zero_cold=15,rank5_four_cold=2,rank5_eight_cold=55)
++    assert provider_counts=={'width7_eight': 63, 'fourcold_eight': 9}
+     # The sweep registry is executable: no hidden use of the historical supplier.
+     by_call={(c['stage'],c['replica']):c for c in template['calls']}
+     for e in sweeps:
+--- research/complex-allcold/code/phase_timing_controls.py
++++ research/larger-gain/global/width7/code/phase_timing_controls.py
+@@ -2,9 +2,10 @@
+ OpenAI Codex assistance; Apache-2.0. Only seconds is excluded from semantic pins.
+ """
+ from pathlib import Path
+-import sys,json,copy,hashlib
++import sys,json,copy,hashlib,os
++source,base,audit,out=map(Path,sys.argv[1:5]);assert not out.exists()
++os.environ['GAIN_PR564_SOURCE']=str(source.resolve())
+ from assemble import assemble
+-base,audit,out=map(Path,sys.argv[1:4]);assert not out.exists()
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ digest=lambda v:hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+ op=audit/'OWNERS-AND-PROFILE.json';ip=audit/'PREFIX-AND-INVOICE.json';owner=json.loads(op.read_text());invoice=json.loads(ip.read_text());baseline=assemble(owner,invoice,sha(op),sha(ip));accepted=[];rejected=[]
+@@ -27,5 +28,5 @@
+    try:assemble(o,i,oh,digest(i))
+    except AssertionError:rejected.append(pid)
+    else:raise AssertionError('semantic phase failure accepted')
+-assert len(accepted)==len(rejected)==3
++assert len(accepted)==len(rejected)==2
+ out.write_text(json.dumps(dict(status='PASS_PHASE_REVIEW_TIMING_PORTABILITY_AND_SEMANTIC_REJECTION',timing_only_accepted=accepted,substantive_phase_failure_rejected=rejected,kappa=baseline['kappa'],source_owner_sha256=sha(op),source_invoice_sha256=sha(ip),scope='Actual phase receipt JSON is changed, raw artifact bindings and owner digest are consistently recomputed, and all substantive semantics are freshly hashed. Only seconds may vary; no phase correctness field is omitted from the frozen digest.'),indent=2)+'\n');print('PASS',len(accepted),len(rejected))

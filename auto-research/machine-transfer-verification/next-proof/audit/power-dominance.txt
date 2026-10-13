@@ -1,0 +1,113 @@
+Pinned power-moment comparison of PR67 with PR64, PR65, and PR68
+================================================================
+
+This note proves a finite profile statement, not an all-size integer
+multiplication theorem. The identities below are ordinary mathematical
+proofs; this new second-summation argument has not been checked in Lean.
+Exact input arrays, every capped sum and every prefix, and source SHA-256
+hashes are in power-dominance.json. The complete child lists, rather than
+only the two local differences, were independently compared by
+power_inputs.py. All unchanged exterior and data terms cancel exactly.
+
+Let d_t be the NEW minus OLD multiplicity of width t. In the comparisons
+here d_t=0 for t>25 and sum(t*d_t)=0. Set T=25 and
+
+    C_k = sum_{t=1}^T d_t min(t,k),
+    S_j = sum_{k=1}^j C_k.
+
+For PR67 minus PR64, C_16=3542>0. PR67 therefore does not dominate PR64
+for all concave functions: f(t)=min(t,16) is an explicit counterexample.
+Likewise the capped sums can be positive against PR65 and PR68. The valid
+stronger-than-a-single-exponent statement is POWER MOMENT dominance.
+
+Finite summation identity
+-------------------------
+Take f(0)=0 and write b_k=2f(k)-f(k-1)-f(k+1). For 0<=t<=T,
+
+    f(t) = (f(T)-f(T-1))*t + sum_{k=1}^{T-1} b_k min(t,k).
+
+Proof: both sides vanish at 0. Their consecutive differences at t>=1
+are equal because the right-hand difference is
+f(T)-f(T-1)+sum_{k=t}^{T-1} b_k=f(t)-f(t-1), by telescoping.
+Multiplying by d_t and summing cancels the linear term by equal rank mass.
+Writing C_k=S_k-S_{k-1}, S_0=0, a second telescoping gives
+
+    sum_t d_t f(t)
+      = sum_{k=1}^{T-1} b_k C_k
+      = b_{T-1} S_{T-1}
+        + sum_{k=1}^{T-2} (b_k-b_{k+1}) S_k.
+
+Consequently, S_k<=0 for 1<=k<T and S_{T-1}<0 imply a strict negative
+sum whenever b_{T-1}>0 and b_k>=b_{k+1}. This is a decreasing-curvature
+test; ordinary concavity alone would give only b_k>=0 and is insufficient.
+
+Why power curvature is positive and decreasing, including k=1
+-------------------------------------------------------------
+Let f(t)=t^p for any real 0<p<1, with f(0)=0. For integer k>=1,
+
+ b_k = p(1-p) integral_0^1 [
+           u*(k-1+u)^(p-2) + (1-u)*(k+u)^(p-2)
+       ] du.
+
+For k>=2 this follows by two integrations by parts, or integrating the
+second derivative against the triangular kernel on [k-1,k+1]. For k=1
+the potentially singular first summand is exactly u^(p-1), integrable
+because p>0. Perform the integrations from epsilon>0 and let epsilon
+decrease to zero: the boundary term u*f'(u)=p*u^p tends to zero, and
+f(u)=u^p also tends to zero. This proves the same identity at k=1 without
+assuming bounded f'' at zero.
+
+The prefactor p(1-p) is positive. Both summands are positive on 0<u<1,
+so b_k>0. Since p-2<0, increasing k by one strictly decreases each
+positive summand for every 0<u<1. The integrals are finite; integrating
+their pointwise strict inequality gives b_k>b_{k+1} for every k>=1.
+Thus the hypotheses of the second telescoping identity hold for all
+power functions t^p with 0<p<1.
+
+Exact finite evidence
+----------------------
+All 24 required prefixes are negative in each comparison. The values
+below summarize them; the JSON includes every integer, including C_25=0.
+
+    NEW - OLD       largest prefix S_k      S_24
+    PR67 - PR64          -1765204           -7306318
+    PR67 - PR65          -1470091           -3641245
+    PR67 - PR68          -1446424           -3640348
+
+Therefore sum_t d_t*t^p<0 for every real 0<p<1 in each of these three
+comparisons. With p=1-a, the characteristic function is
+
+    Phi(a) = (1/W) sum_t n_t (t/m)^(1-a).
+
+All compared profiles have m=575, W=137151806 and total rank 78860441550.
+The factor m^(a-1)/W is positive. Hence the full characteristic of PR67
+is strictly smaller than the full characteristic of PR64, PR65, and
+PR68 for EVERY 0<a<1. This concerns the pinned finite constructions.
+It does not turn the assembly's conditional transfer theorem into a
+proved physical multiplication algorithm or prove an optimal exponent.
+
+Credit and replay
+------------------
+PR64 supplied the earlier capped-mass proof package. The new PR67 finite
+profiles are Rohan Arun's cost-aware retired-slot construction; PR65 is
+also Rohan Arun's reordered-region construction. PR68 is Dominik Scholz's
+compatible-live-anchor construction. All inherit the prior pair graph
+and rank-first compiler lineage; this audit does not claim authorship of
+those constructions. The second integrated-cap comparison was obtained
+independently in this audit.
+
+https://github.com/CrocSwap/integer-mult-bounds/pull/64
+https://github.com/CrocSwap/integer-mult-bounds/pull/65
+https://github.com/CrocSwap/integer-mult-bounds/pull/67
+https://github.com/CrocSwap/integer-mult-bounds/pull/68
+
+Run from the workspace root, with the exact commits already fetched:
+
+    python3 outputs/next-proof/audit/incremental_audit.py \
+      --repo work/agents/repository-audit/repo --basis67
+    python3 outputs/next-proof/audit/power_inputs.py \
+      --repo work/agents/repository-audit/repo
+
+The first command also reruns independent literal-scatter and PR67 basis
+checks. For the inexpensive complete-profile binding alone, rerun only
+the second command against the supplied first-stage JSON.

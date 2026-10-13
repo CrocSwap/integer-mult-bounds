@@ -1,0 +1,110 @@
+Scoped Turyn moment comparisons
+==============================
+
+Reference and limits
+--------------------
+The comparison target is PR592's declared conditional kappa
+0.001612719427075359 at head 9092320f7932dbe61a78f15b6c5fd6a0cbd41307.
+It was read, not freshly replayed by this package. PR595, at head
+39112c2577452fa278489fb9fd77a9aecb2cdc24, supplies structural accounting
+context, especially its B_K slot relaxation and explicit scope assumptions.
+Its claimed E8 format bound is not transferred to the Turyn geometry.
+
+Every number below is a nominal zero-helper moment calculation in a
+specified model. There is no full-cost Turyn word, helper factory, owner
+map, or outer-inequality certificate behind these values. In particular,
+the 0.00142213 full-port result is not a universal dimension-27 ceiling.
+
+Equations
+---------
+For N ports, label dimension h, center width c, and odd stage count L,
+the inherited paired controller uses
+
+    d = h-1,  K = (L-1)/2,  m = dL+1,
+    W = (L-1)N,  C = 512c,  D = W-LC.
+
+The required active data mass is 2NLd at child rank d. The center mass
+is LC at rank c in the literal model. Every idle slot of rank r carries
+mass 2Nr. The slot ranks are the initial pair's tail 2(K-1)d, and for
+p = 1,...,K-1 the pre-stretch 2pd, bridge d, and positive tail
+2(K-p-1)d. The exact identity total rank mass = mW-D is checked.
+
+For mass M at child rank r, define pressure
+
+    g(M,r,a) = M*((m/r)^a-1).
+
+The nominal root satisfies sum g = D, and kappa = a/(1+a). All reported
+roots have rational lower and upper bounds using positive series with
+explicit remainders. Floating arithmetic only nominates the root and
+stage. Every other odd L from 3 through 101 is certified inferior to the
+selected root's lower bracket. No stage maximum outside this range is
+claimed. Exact brackets and target slacks are in evidence/COSTS.json.
+
+Four models
+-----------
+literal_twolevel splits every idle slot into as many children of rank
+floor(m/sqrt(2)) as fit, then one remainder. It uses center child rank c.
+This fixes a particular zero-helper residual profile.
+
+hosting_aware_slots instead allows fractional packing of each idle mass
+at rank max(r,h), and center mass at rank h. It follows PR595's necessary
+slot accounting under its compressed-window, star-copy and whole-residual
+hosting assumptions, applied conditionally to these Turyn parameters.
+The relaxed ranks account optimistically for possible helper hosting;
+they do not construct helpers or prove a sufficient recurrence.
+
+no_bridge_split additionally merges the idle pre-stretch and bridge into
+rank (2p+1)d. This drops a controller convention. idle_free removes all
+idle pressure. Both are optimistic tests of changed controllers, not
+implementations and not deductions about the inherited controller.
+
+Results
+-------
+Each entry gives nominal kappa and the best L in the finite search.
+
+ ports   h   c    literal          hosting-aware    no bridge split  idle free
+23040   27  27   .001422133 (5)   .001426118 (5)   .001656071 (5)   .002493428 (7)
+21504   27  24   .001624690 (3)   .001629806 (5)   .001892608 (5)   .002770430 (7)
+23040   25  25   .002051396 (3)   .002051396 (3)   .002189562 (5)   .003163090 (7)
+23040   27  25   .001896019 (3)   .001897404 (3)   .002024013 (5)   .002924316 (7)
+
+The last two rows are hypothetical accounting parameters. This package
+does not provide their label maps or center supports. The fixed-label
+support theorem excludes the last row for rank-minimal 512-feature real
+basis changes with the existing 27-bit labels. Different labels or
+redundant factorizations are outside that theorem.
+
+Relative to PR592, the full h=27 literal value is 11.82% lower; the
+punctured h=27 profile has only +0.74% literal or +1.06% hosting-aware headroom.
+The hypothetical h=25 profile has +27.20% before helper and outer costs.
+Even at h=27, a changed controller has room in these relaxations: removing
+the bridge split raises the full-port nominal value to +2.69%. This is
+why binary dimension alone does not settle the gain question.
+
+A concrete budget for a future full-port 25-bit fit
+-------------------------------------------------
+For N=23040, h=c=25, L=3, m=73, the stock is W=46080 and deficit D=7680.
+At three target kappas, the unused pressure D-sum g is approximately
+
+    PR592 value          1646.444530
+    PR592 plus 10%       1041.419313
+    PR592 plus 20%        436.089641
+
+This L=3 schedule has no idle hosting slots. Helpers that require new
+banks must be paid; the table cannot be read as a count of free helpers.
+If a proposed circuit loses e units of deficit (D_new = D-e) and changes
+pressure by DeltaP after subtracting removed idle children, the necessary
+budget is
+
+    e + DeltaP < the recorded unused pressure.
+
+For a new paid bank of rank mass mb, even ideal cap packing costs at
+least mb*((m/floor(m/sqrt(2)))^a-1) in pressure; fragmentation costs more.
+The full cost must include both this pressure and any lost deficit.
+At L=5 the inherited literal profile already fails the +20% target
+without helpers (slack about -820.94), despite its extra hosting slots.
+
+The unclosed levers are thus structural: a nonlinear full-port map with
+controlled encoder supports, redundant real factorizations that split
+support economically, or a changed controller/helper factory that earns
+back its own cost. An algebraic rank reduction by itself is insufficient.

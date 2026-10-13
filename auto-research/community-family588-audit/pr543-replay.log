@@ -1,0 +1,107 @@
+== 0. manifest, provenance (vendored files by blob id, main's files by sha256), cited receipts  [0s]
+   all files match MANIFEST.sha256
+   19 files byte-identical to PR #510 at 64edee1 (DreamingOfClouds/integer-mult-bounds)
+    2 files byte-identical to PR #535 at 8b758a1 (icekylinx/integer-mult-bounds)
+   main (commit db0e57b): 2 pinned files unchanged; PR #493's package matches its MANIFEST.sha256 (93 files)
+   7 of PR #510's vendored files are also byte-identical to PR #493's copies on main
+   PR #535 (icekylinx) b = 1589991533606044174031/1000000000000000000000000 = 1.589991533606044e-03  [primary]
+   PR #531 (icekylinx) b = 304013615566499291631/200000000000000000000000 = 1.520068077832496e-03  [merged]
+   PR #484 (DreamingOfClouds) b = 663394767670133/500000000000000000 = 1.326789535340266e-03  [control]
+   PR #471 (Dugongue) b = 1305231506267591/1000000000000000000 = 1.305231506267591e-03  [control]
+   PR #458 (chafreaky) b = 1297203880559577927527/1000000000000000000000000 = 1.297203880559578e-03  [control]
+   PR #535 receipt: kappa 1584931111785787/1000000000000000000, bit-bound at PR #510's c = 396861776523137034277/250000000000000000000000; with PR #493's c: kappa 97687203033227/62500000000000000, bit-bound
+   PR #531 receipt: kappa 1517760977820331/1000000000000000000, complex-bound (main's headline)
+== 1. the word, rebuilt from the frozen plan  [0s]
+   R 420 gates D/A/B/C 120 2064 837 2661
+   rebuilt word is byte-identical to the shipped word (content sha256 e597e3885c0a8daa...)
+== 2. independent exact replay, the interleaved interface lemma, mutation controls  [2s]
+   labels: 120 E8 root lines (even unimodular lattice of rank 8, Gram det 1); 672 frames, every one closed
+   legality and exact F2 replay on all 660 columns (sources, targets, 420 dirty helpers as symbolic inputs): PASS; gates D/A/B/C = 120/2064/837/2661
+      H1_no_target_feeds_z                     holds
+      H2_D_frame0_targets_from_helpers         holds
+      H3_A_z_only_scatter_targets_B_split      holds
+      H4_C_literal_reverse_at_full             holds
+      H5_V_identity                            holds
+      U_block_form                             holds
+      J_identity                               holds
+      K_equals_D                               holds
+      C_is_U_inverse                           holds
+      {"z_gates_A": 2064, "source_writes_A": 0, "z_gates_B": 597, "source_writes_B": 597, "helper_writes_B": 0, "sources_rewritten_B": 120, "B_z_write_frame_dims": {"4": 477, "6": 120}, "B_z_operand_kinds": {"source<-helper": 120, "source<-source": 477}, "B_z_operand_kinds_by_dim": {"dim4:source<-source": 477, "dim6:source<-helper": 120}, "B_z_writes_after_a_target_read_of_the_same_register": 597, "B_target_reads_of_registers_rewritten_earlier_in_B": 120, "target_reads_of_targets": 0, "cleanup_gates": 2661}
+   PASS interleaved interface lemma: hypotheses H1-H5 hold and the conclusion decomposes as U, J = I, D = K, C = U^-1
+      REJECTED   target feeds a source (cancelled pair, F2-neutral) :: interface: fails H1_no_target_feeds_z,H3_A_z_only_scatter_targets_B_split,H4_C_literal_reverse_at_full
+      REJECTED   target feeds a helper (cancelled pair, F2-neutral) :: interface: fails H1_no_target_feeds_z,H3_A_z_only_scatter_targets_B_split,H4_C_literal_reverse_at_full
+      REJECTED   drop a cleanup gate (inverse of the last phase-B source write) :: replay: sources not restored: [11, 41, 44, 83, 86]
+      REJECTED   corrupt a phase-B source write (operand 10 -> 6, cleanup changed alike) :: replay: targets not y + x: [0, 66, 67, 68, 69]
+      REJECTED   phase-B source write moved down to the destination's own line frame :: replay: climb not nested: register 5 from frame 123 (dim 2) to frame 7 (dim 1)
+      REJECTED   a target reads another target (single read, V != I) :: replay: targets not y + x: [0]
+      REJECTED   frame-0 preconditioner corrupted (one helper read dropped) :: replay: targets not y + x: [0]
+      REJECTED   phase-B source write moved before the target read of that register :: replay: climb not nested: register 5 from frame 542 (dim 4) to frame 123 (dim 2)
+      REJECTED   cleanup gate moved off the full frame (to the frame of the gate it inverts) :: replay: climb not nested: register 240 from frame 1 (dim 8) to frame 2 (dim 1)
+      accepted   cancelled pair of target-to-target reads at frame 0 (V = I) :: accepted
+   PASS mutation controls: 9/9 negative controls rejected, 1/1 positive control accepted
+   [bitE8mut-r480.json.gz: B writes only targets, the lemma's special case] PASS interleaved interface lemma: hypotheses H1-H5 hold and the conclusion decomposes as U, J = I, D = K, C = U^-1
+   [bitE8mut-r489.json.gz: B writes only targets, the lemma's special case] PASS interleaved interface lemma: hypotheses H1-H5 hold and the conclusion decomposes as U, J = I, D = K, C = U^-1
+== 3. hub checkers: PR #370's stock checker refuses and its relaxed copy passes; PR #493's interface.py refuses (B writes sources)  [13s]
+   stock checker refuses, as expected: AssertionError: ('x register written', 'B', 120)
+   labels: 120 distinct lines of norm 2 (pairwise |ip| <= 1), spanning rank 8
+   legality + exact F2 on all 660 columns: PASS (gates D/A/B/C = 120/2064/837/2661)
+   relaxed check: 1194 gates have a source register as destination; all 120 sources restored exactly
+   nondegeneracy: 671 used frames, all Gram dets > 0 (positive-definite form); primes in dets: [2]
+   histogram {1: 6600, 2: 7200, 4: 540, 5: 600, 7: 240, 8: 45, 14: 240, 18: 240} m 40 W 900 mass 35880 deficit 120 (4v-5L = 120 ) maxchild 18
+   no envelope  saving in [0.00134297722850147798, 0.00134297722850147798]
+   bad envelope saving in [0.00134297722759884759, 0.00134297722759884759]
+   PR #493 interface.py refuses, as expected: its check (4) requires phase B to write only targets
+== 4. official cohort checkers: legality (NCOPY = 9), formal columns at five, nine and eleven stages, Gram witnesses  [16s]
+   exported 29874 records, 672 frames, n 660 ZERO 0
+   legality PASS: 29874 records, 26916 common-frame ADDs, rank mass 5112 , 9 COPY/ERASE at the full frame
+   five-stage formal columns PASS: 900 physical columns over F2; prefix payload 100 bits < 104
+   nine-stage formal columns PASS (columns_k, KPAIRS = 4): 1380 columns, 2160 bridge additions, 18/18 omitted-bridge controls rejected, payload 100 bits
+   eleven-stage formal columns PASS (columns_k, KPAIRS = 5): 1620 columns, 2880 bridge additions, 24/24 omitted-bridge controls rejected, payload 100 bits
+   regression: columns_k at KPAIRS = 2 reproduces the five-stage receipt field for field
+   PASS all 6 record-level negative controls rejected
+   PASS all 3 record-level phase-B source mutants rejected by every column checker (legality unchanged)
+   PASS e8ham Gram: 672 frames checked, all nondegenerate and positive definite; prime witnesses valid; max determinant bits 17; primes [2]; by dim {0: 1, 1: 120, 2: 180, 4: 70, 6: 180, 7: 120, 8: 1}
+== 5. geometry (PR #386 nine-stage, PR #445 eleven-stage); controls start in the background  [22s]
+      adapted audit_parent_k.py with 2 listed edits (each anchor found exactly once)
+== 6. nine-stage whole-residual hosting and price (PR #510's chain: PR #463 template and audits, 32 replicas)  [30s]
+   the hosting programme rediscovers the frozen nine-stage selection (selection9-r420.json) exactly
+   nine-stage bit c = 413456747036699736067/250000000000000000000000 = 0.001653826988146798944268; profile {'1': 380160, '2': 426624, '4': 32640, '5': 34560, '6': 15360, '7': 23040, '8': 2592, '42': 3456}; prefix 189 bits, two-level 416 bits (charged 512), row 18355, depth 2
+   pr535: b 1589991533606044174031/1000000000000000000000000 kappa 0.001587467473762886 (complex-bound) 47/47, controls next_grid,zero_eta,zero_beta,unit_beta
+   pr531: b 304013615566499291631/200000000000000000000000 kappa 0.001517760977820331 (complex-bound) 47/47, controls next_grid,zero_eta,zero_beta,unit_beta
+   template PASS_SOURCE_BOUND_NINE_STAGE_BIT_TEMPLATE: 4740 unbanked scalar columns, 18 omitted bridge shears rejected; parent audit: 17 template mutations rejected
+   hosted audit PASS: 120960 of 120960 helper residuals hosted whole, 0 banks, 8603712 renamed instructions, 16 mutations rejected
+== 7. eleven-stage whole-residual hosting and price (PR #493's chain; audit adapted to R = 420)  [123s]
+   PR #442 hosting programme (PR #493 discovery/host_select.py) rediscovers the frozen eleven-stage selection exactly
+   adapted code/eleven/audit.py and local_audit.py to R = 420 with 6 listed edits (each anchor found once)
+   bit c = 82015816228313440961/50000000000000000000000 = 0.00164031632456626881922 (10^-24 grid; next point rejected); profile {'1': 116160, '2': 130560, '4': 9120, '5': 10560, '6': 3839, '7': 7680, '8': 792, '14': 1, '56': 3497}; prefix 4710 bits (charged 4736), three-level 14185 bits (charged 14208), row 19431
+   with PR #535's complex b = 1589991533606044174031/1000000000000000000000000: kappa = 793733736881443/500000000000000000 = 0.001587467473762886 (complex-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+   with PR #531's complex b = 304013615566499291631/200000000000000000000000: kappa = 1517760977820331/1000000000000000000 = 0.001517760977820331 (complex-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+   template: 88 calls, 36960 whole helper residuals hosted on idle data families (no banks), 5820 unbanked scalar columns restored, 24 omitted bridge shears rejected
+   independent audit PASS: 2628912 renamed instructions, 22 template mutations rejected, physical prefix 4710 bits
+== 8. controls (background jobs)  [146s]
+== control: PR #510's R480 word through PR #510's nine-stage chain
+   the hosting programme rediscovers the frozen nine-stage selection (selection9-r480.json) exactly
+   nine-stage bit c = 396861776523137034277/250000000000000000000000 = 0.001587447106092548137108; profile {'1': 345600, '2': 430080, '4': 67200, '6': 49920, '7': 23040, '8': 2592}; prefix 193 bits, two-level 425 bits (charged 512), row 18355, depth 2
+   pr535: b 1589991533606044174031/1000000000000000000000000 kappa 0.001584931111785787 (bit-bound) 47/47, controls next_grid,zero_eta,zero_beta,unit_beta
+   pr531: b 304013615566499291631/200000000000000000000000 kappa 0.001517760977820331 (complex-bound) 47/47, controls next_grid,zero_eta,zero_beta,unit_beta
+   pr484: b 663394767670133/500000000000000000 kappa 0.001325031497415498 (complex-bound) 47/47, controls next_grid,zero_eta,zero_beta,unit_beta
+   pr471: b 1305231506267591/1000000000000000000 kappa 0.001303530097714685 (complex-bound) 47/47, controls next_grid,zero_eta,zero_beta,unit_beta
+   pr458: b 1297203880559577927527/1000000000000000000000000 kappa 0.001295523322678044 (complex-bound) 47/47, controls next_grid,zero_eta,zero_beta,unit_beta
+   template PASS_SOURCE_BOUND_NINE_STAGE_BIT_TEMPLATE: 5280 unbanked scalar columns, 18 omitted bridge shears rejected; parent audit: 17 template mutations rejected
+   hosted audit PASS: 138240 of 138240 helper residuals hosted whole, 0 banks, 10631808 renamed instructions, 16 mutations rejected
+== control: PR #493's R489 word through PR #493's eleven-stage files, unmodified
+   bit c = 391360506745414227149/250000000000000000000000 = 0.001565442026981656908596 (10^-24 grid; next point rejected); profile {'1': 105600, '2': 130560, '4': 19680, '6': 14400, '7': 7680, '8': 1584, '48': 2, '56': 2628}; prefix 2119 bits (charged 2176), three-level 6411 bits (charged 6464), row 19431
+   with PR #535's complex b = 1589991533606044174031/1000000000000000000000000: kappa = 97687203033227/62500000000000000 = 0.001562995248531632 (bit-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+   with PR #531's complex b = 304013615566499291631/200000000000000000000000: kappa = 1517760977820331/1000000000000000000 = 0.001517760977820331 (complex-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+   with PR #484's complex b = 663394767670133/500000000000000000: kappa = 662515748707749/500000000000000000 = 0.001325031497415498 (complex-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+   with PR #471's complex b = 1305231506267591/1000000000000000000: kappa = 260706019542937/200000000000000000 = 0.001303530097714685 (complex-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+   with PR #458's complex b = 1297203880559577927527/1000000000000000000000000: kappa = 323880830669511/250000000000000000 = 0.001295523322678044 (complex-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+== 9. summary against EXPECTED.json and the cited receipts  [146s]
+PASS bit c, nine stages (PR #510's pipeline, 32 replicas, all 120960 residuals hosted whole, 0 banks) = 413456747036699736067/250000000000000000000000 = 0.001653826988146798944268
+     +4.1815% over PR #510's R480 (0.001587447106092548137108), +5.6460% over PR #493's R489 at eleven stages
+PASS bit c, eleven stages (PR #493's pipeline) = 82015816228313440961/50000000000000000000000 = 0.00164031632456626881922 (+4.7829% over PR #493's R489, same pipeline)
+PASS kappa with PR #535's complex b = 1589991533606044174031/1000000000000000000000000: 793733736881443/500000000000000000 = 0.001587467473762886 (complex-bound; the same with the nine- and the eleven-stage c); the PR's own kappa is 1584931111785787/1000000000000000000 (bit-bound), change +0.1600%
+PASS kappa with PR #531's complex b = 304013615566499291631/200000000000000000000000: 1517760977820331/1000000000000000000 = 0.001517760977820331 (complex-bound; the same with the nine- and the eleven-stage c); the PR's own kappa is 1517760977820331/1000000000000000000 (complex-bound), change +0.0000%
+     controls reproduced exactly: PR #510's R480 c 0.001587447106092548137108 and, with PR #535's b, PR #535's kappa 0.001584931111785787 (bit-bound);
+     PR #493's R489 c 0.001565442026981656908596, with PR #531's b PR #531's kappa 0.001517760977820331 (complex-bound), with PR #535's b PR #535's control kappa 0.001562995248531632 (bit-bound)
+== done  [146s]

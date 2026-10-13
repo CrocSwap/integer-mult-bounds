@@ -1,0 +1,162 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjI1MjkxMDAz",
+    "is_bot": false,
+    "login": "cbethin",
+    "name": "Charles Bethin"
+  },
+  "baseRefOid": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "body": "The selected R420 Gram checker recomputes determinants for a full matrix and its leading principal blocks. This adds an optional, source-pinned adapter that supplies those exact values from one Bareiss pass, with the original pivoted determinant as the zero-pivot fallback.\n\n**Status: tooling improvement with a scoped performance result; no new \u03ba.** Determinant batches improve by **1.84\u20132.01\u00d7** across four retained 31-pair local runs. **Complete-process wall timings vary in direction; this PR claims no reliable full-check wall speedup.** The README records every run, including slower results and a follow-up with child CPU measurements. Default verification commands, frozen inputs, `upstream/`, and the selected frontier remain unchanged.\n\nReproduce with Python 3.11+ and the standard library:\n```sh\npython3 -B research/gram-prefix-performance/verify.py\npython3 -B research/gram-prefix-performance/test_kernel.py --mutations\npython3 -B research/gram-prefix-performance/benchmark.py --pairs 31 --out /tmp/gram-prefix-result.json\n```\nUse a fresh output path. Expected: 23 tests pass, four kernel mutations are detected, and `PASS_GRAM_PREFIX_BENCHMARK`. The benchmark uses POSIX `resource` on macOS or Linux.\n\nValidation completed locally:\n- All **3,360 actual determinant requests** across **672 selected frames** agree exactly; all complete checker outputs match. The original rank, annihilator, prime-witness, residual, and positivity checks execute unchanged.\n- **23 tests pass on Python 3.13 and 3.14**, including complete frame regeneration from the pinned R420 word. A minimal offline checkout in a path with spaces also passes.\n- Independent permutation-oracle tests cover small matrices, including all 530 binary matrices of dimensions 1\u20133. Seed-88 larger cases and determinant identities reach dimension 16.\n- Four broken kernels are detected. Frame/source corruption, singular and indefinite Gram cases, invalid witnesses, disabled assertions, and output reuse are rejected. Tested mathematical rejection arguments agree across engines.\n- The selected source-inventory check and whitespace check pass. The exact prefix identity, fallback contract, and bounded cache argument are documented.\n\nBase: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. OS-random assignment seed: **88**, verification engineering. There is no pinned sprint coordination issue, so the claim is local. Initial overlap review covered 513 open PRs; the final refresh through #704 found distinct scopes. PR239 uses dual Gram matrices; PR367 optimizes rank/canonical bases; PR452 shares producer prefixes; PR662/667/672 optimize other exact kernels. None is a code dependency.\n\nCredit: Dylan Crow's Gram checker/exporter, DreamingOfClouds' prime-witness determinant, eumemic's selected R420 supplier, and the retained construction lineage. Prepared for Charles Bethin with substantial OpenAI Codex assistance; Apache-2.0. `NOTICE.md` gives detailed attribution.\n\nThe full repository suite, supplier cold replay, assembly, and Lean were not rerun for this isolated adapter. Dedicated Linux CI is supplied, with remote status separate from local evidence. All inherited compiler, hosting, precision, tape, and analytic assumptions remain. This is not a formal proof of the full multiplication theorem.\n",
+  "changedFiles": 24,
+  "files": [
+    {
+      "path": ".github/workflows/gram-prefix-performance.yml",
+      "additions": 40,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/CLAIM.md",
+      "additions": 43,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/NOTICE.md",
+      "additions": 25,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/PROOF.md",
+      "additions": 108,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/README.md",
+      "additions": 139,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/SOURCE.json",
+      "additions": 12,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/adapter.py",
+      "additions": 115,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/benchmark.py",
+      "additions": 105,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/VALIDATION.json",
+      "additions": 36,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/kernel-optimized-python314.txt",
+      "additions": 21,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/macos-python313-cpu.json",
+      "additions": 754,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/macos-python313.json",
+      "additions": 686,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/macos-python314-cpu.json",
+      "additions": 754,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/macos-python314.json",
+      "additions": 686,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/minimal-offline-replay.txt",
+      "additions": 29,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/mutations-python313.jsonl",
+      "additions": 5,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/verify-python313.txt",
+      "additions": 29,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/verify-python314.txt",
+      "additions": 29,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/evidence/wall-only-benchmark.py.txt",
+      "additions": 96,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/frames.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/kernel.py",
+      "additions": 87,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/test_kernel.py",
+      "additions": 339,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/test_package.py",
+      "additions": 119,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gram-prefix-performance/verify.py",
+      "additions": 14,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "098bdbe5e554bb94a4ffe14b4f80758c80884bc5",
+  "isDraft": false,
+  "number": 707,
+  "state": "OPEN",
+  "title": "Tooling: exact Gram prefix reuse with pinned equivalence and timing evidence"
+}

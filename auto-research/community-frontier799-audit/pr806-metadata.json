@@ -1,0 +1,30 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjk4Mzc5MDc=",
+    "is_bot": false,
+    "login": "Rohansguliani",
+    "name": "Rohan Guliani"
+  },
+  "baseRefOid": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "body": "## What this adds\n\nAn independent audit of PR #695's three selected #626 provenance digest differences (`template_sha256`, `input_sha256.owner_audit` and `input_sha256.fresh_invoice`). #695 reports them as unexplained because CI run 38317651752 did not upload the payloads. **No new \u03ba, no certificate change.**\n\n**Verdict:** the facts that #695 and its triage report are correct. The digests differ, and the CI payloads are missing. The differences do not indicate a different template, owner audit or invoice. A fresh cold Linux replay gives a third set of values. After substituting only (1) the file digests of four generated files whose only volatile field is wall-clock `seconds` (`CLIFFORD-REVIEW.json` and `SCALAR-FRAME-AUDIT.json` for providers `ck` and `jp8`), and (2) the `iterdir()` key order in the invoice's provider `artifacts` maps, the replay reproduces the committed `template_sha256` (`22b41c45\u2026`), then `OWNERS-AND-PROFILE.json` (`ec7bc415\u2026`), `PREFIX-AND-INVOICE.json` (`367a73f7\u2026`), and finally the committed complex `ASSEMBLY.json`, all byte for byte. The template carries the timing through `sha256(PLAN.json)`, and the runtime PLAN pins the `CLIFFORD-REVIEW.json` digests. The package's own timing-stripped semantic hashes already agree. This is not gzip metadata; the template digest is taken over decompressed JSON.\n\nLimit: the CI run's specific values are attributed by mechanism, not reproduced, because its payloads were not uploaded. Every replay produces new values through the same path. `research/pr695-digest-audit/README.md` has the table, file and line citations, and scope.\n\nAlso checked at #695 head `e322f2f1d9cc0f830cb3a50c6e928e0a1a32383c`: its checker passes normally and under `-O`, and its report equals its `RESULT.json`. Its archived ZIP matches the live GitHub artifact (`1f1ad114\u2026`). Its archived log matches the live job log, apart from `gh` rendering ESC as `^[` on 7 lines.\n\n## Reproduce\n\nExact base: `66849e1475c930fd7732b1a0067ffee7e1e95f60`.\n\n```sh\npython3 -I -B research/pr695-digest-audit/verify.py --work /tmp/pr695-digest-audit\n```\n\nExpected: `PASS_PR695_DIGEST_DIFFERENCES_EXPLAINED 3 digests reproduced, 2 rejection controls`. When the work directory is absent, this first runs the cold `scripts/verify_frontier626.py` replay, which needs the workflow's environment (NumPy, SymPy, SciPy, `CXX`, `BOOST_INCLUDE`). It took 31 minutes here with `--jobs 6` on Linux, CPython 3.13.7 and NumPy 2.5.4. The comparison passes normally and under `-O`.\n\n## Credit and disclosure\n\nThis builds on #695 by Joshua Snider (`jsnider3`), which preserved the CI artifact and recorded the differences explicitly. The supplier and review lineage is as credited there and in the selected review: Douglas Colkitt, Chafik Boukhalfa (#626), Jeremy Kothe (#622/#623), eumemic (#543) and GamingPuzzled (#620). The container-reproducibility convention cited in the README is by Maxime Fleury and Antoine Olivier.\n\nAudit by Rohan Guliani (@Rohansguliani), with substantial Anthropic Claude assistance. Apache-2.0. This is not independent human peer review, and it is not a formal verification of the multiplication theorem.\n",
+  "changedFiles": 2,
+  "files": [
+    {
+      "path": "research/pr695-digest-audit/README.md",
+      "additions": 102,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/pr695-digest-audit/verify.py",
+      "additions": 165,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "4189f39ec022b7d1f8adb6c394f80b2c31a3f9c5",
+  "isDraft": false,
+  "number": 806,
+  "state": "OPEN",
+  "title": "Audit #695: selected #626 provenance digest differences are timing and directory order, reproduced byte for byte"
+}

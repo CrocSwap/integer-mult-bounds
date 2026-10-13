@@ -1,0 +1,9 @@
+# Portable complex physical admission
+
+This kit contains every producer/checker dependency used after construction of a scalar word, including exact phase compilation, both reflected scalar/frame ledgers, normalized wrappers, complete whole-owner admission, seven owner mutations and a fresh finite invoice. Python 3.11+ standard library is sufficient. It does not reconstruct the input scalar word or certify an outer exponent by itself.
+
+Run `python -B replay.py --word /absolute/FULL-WORD.json.gz --word-sha256 SHA256 --out /absolute/fresh/output --expected-price /absolute/PRICE.json --plan /absolute/PLAN.json`. The optional expected-price file contains the complete nominated `global_profile`; the pipeline independently emits and audits that profile before comparing it. A changed word needs a new plan with its complete profile claim. The optional plan must match every other field of the pinned PR548 plan, preserving the order, windows and geometry. The output directory must be new and outside this source directory.
+
+All upstream source and input blobs are listed in `UPSTREAM-SOURCES.json` with exact repository, commit, path, Git blob SHA1, SHA256 and size. The executable sources are unchanged. The PR548 portable launcher changes serialization only; the PR544 full-phase verifier lowers every edge afresh instead of reusing old phase receipts. The PR548 parent template, owner map, schedule and retained invoice are fixed. Original notices, licenses and lineage documents are retained under `upstream/`.
+
+The orchestration harness and this packaging were prepared with OpenAI Codex assistance. Upstream credits and AI disclosures remain in their source files and notices. All inherited all-size compiler, mutable-source/common-label, whole-call hosting, precision/tape and analytic assumptions remain conditional.

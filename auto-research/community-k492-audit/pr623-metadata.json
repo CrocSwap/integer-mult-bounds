@@ -1,0 +1,382 @@
+{
+  "author": {
+    "id": "U_kgDOEKXqaA",
+    "is_bot": false,
+    "login": "jeremykothe2",
+    "name": ""
+  },
+  "baseRefOid": "cda21fcefe541adfaad106a2766a900ab653f447",
+  "body": "## Summary\n\nConditional \u03ba = **0.001635490664920455**. This is +6.83e-8 over our PR622 (0.00163542231500688) and +3.07e-7 over main's selected PR617. The conservative model gives 0.001635490662051536.\n\nThis PR has the same construction, code and verifier as PR622: the K-triangle skeleton atom with 492 helpers per call, on the PR617 cold-ended witness. **Only the dispatch and the literal owner map change.** Dispatch moves from ck \u00d77 / jp8 \u00d765 to **ck \u00d78 / jp8 \u00d764**, with the extra ck call at stage 23. That keeps PR604's `wrong_selected_call` parity rule satisfied. The owner map comes from an exact-window, per-time-Hall RINS (240 s, gap 1.48e-7), whose exact-window LP is 523258.954 against PR622's 523259.087. All 23 code files are byte-identical to PR622's independently reviewed set. An owner map changes only which helper occupies which owner slot, and the strict physical owner audit, invoice and assembly re-check that from scratch.\n\nPR622's README is kept below the new sections. Its result numbers, call counts and verify paths are updated from `data/EXPECTED.json`. One inherited SPEC value is corrected: `entering_helper_roles` goes from 16356 to the audited 16368 for this dispatch. `verify.py` does not read this key.\n\n**Declarative inputs ship in this first commit:**\n- `data/WITNESS.json`;\n- `data/EXPECTED.json`;\n- `data/cand.json`, which carries the search provenance;\n- `data/search/`, with the LP patterns, the dispatch and the template plan;\n- a definition-first README.\n\nRunning `mkplan.py` on the solver output reproduces `data/PLAN.json` byte for byte.\n\n## Verification\n\n```sh\nresearch/complex-571-cold14-k492b/verify.sh /tmp/complex-571-cold14-k492b ..   # SOURCE_ROOT holds worktrees pr568 pr569 pr571 pr575 pr583 at the pinned commits\n```\n\nLocal result (Windows, CPython 3.11.11): the commit was preflighted from a fresh clone first (committed blobs equal the MANIFEST, every file LF, pin check passes, `spec.py check` OK, code hashes equal PR622's reviewed set 23/23). The official run from that clean clone of `e39a615c` then gave `PASS_COLD14_NATIVE_COMPLEX_AND_CITED_BIT`, \u03ba 0.001635490664920455, 64/64 stages exit 0, 464 s, with no reused baseline or locals. The receipt records MANIFEST sha256 07712935\u2026, equal to the committed MANIFEST. Separately, a strict generic verify from `data/WITNESS.json` + `data/EXPECTED.json` passed (63/63 stages, same \u03ba).\n\nGitHub CI has not run, and I make no claim about it.\n\n## Credits\n\n- **GamingPuzzled**: PR620, which pointed out the owner-map headroom below the aggregate LP on PR617.\n- **DreamingOfClouds**: PR604 (the cold-ended construction, `cold_end`, verifier changes and package), PR599, PR509 and PR516 (Lean).\n- **jeremykothe2**: PR622, PR617, PR615, PR614, PR609, PR607, PR601, PR600, PR596, PR593, PR592 and PR591 (the hyperplane-end base), and this owner map.\n- The pinned PR568, PR569, PR571, PR575 and PR583 packages and all earlier contributors are listed in NOTICE.md.\n\n**AI disclosure and authorship:** Claude Opus 5.5 (Anthropic), running in the omp coding harness, found this dispatch and owner map (on PR622's construction), found the dispatch and owner map, built the declarative inputs and prepared the PR. Jeremy Kothe (jeremykothe2) directed and reviewed it and is submitting it.\n\n## Scope\n\nThe result is conditional on the inherited all-size compiler, common-label/mutable-source realization, whole-call hosting, precision/tape/exact recovery, analytic transfer and the bit H1\u2013H5 assumptions. It builds on PR604, which is not merged. It is finite exact evidence, not an unconditional theorem, a complete Lean proof, or a practical speedup.\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-12T21:18:51Z",
+      "authors": [
+        {
+          "email": "jeremy.robert.kothe@gmail.com",
+          "id": "U_kgDOB6u0gA",
+          "login": "jeremykothe",
+          "name": "Jeremy Kothe"
+        }
+      ],
+      "committedDate": "2026-10-12T21:18:51Z",
+      "messageBody": "\u20268 64) for the PR622 K-triangle witness",
+      "messageHeadline": "Conditional kappa 0.001635490664920455: improved owner map (ck 8 / jp\u2026",
+      "oid": "e39a615ca601ce5d62abeb24f3fcdb8644ca1005"
+    }
+  ],
+  "files": [
+    {
+      "path": "research/complex-571-cold14-k492b/LICENSE",
+      "additions": 201,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/MANIFEST.json",
+      "additions": 59,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/NOTICE.md",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/PROOF-COMMUTING-PREFIX.md",
+      "additions": 91,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/PROOF-NOTE-R.md",
+      "additions": 86,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/PROOF-NOTE.md",
+      "additions": 169,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/README.md",
+      "additions": 423,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/assemble.py",
+      "additions": 216,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/assembly_controls.py",
+      "additions": 251,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/audit_allcold.py",
+      "additions": 232,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/bind_providers_portable.py",
+      "additions": 67,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/build_cold_end.py",
+      "additions": 148,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/build_frame_regroup.py",
+      "additions": 53,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/build_gate_moves.py",
+      "additions": 61,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/build_hpe.py",
+      "additions": 123,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/build_port_stage.py",
+      "additions": 125,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/cold_end_controls.py",
+      "additions": 152,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/construct_k_triangle.py",
+      "additions": 374,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/emit_allcold.py",
+      "additions": 146,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/generated_identity.py",
+      "additions": 62,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/generated_identity_controls.py",
+      "additions": 228,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/hpe_adapters_local.py",
+      "additions": 116,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/hpe_audit_and_transport.py",
+      "additions": 304,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/hpe_audit_local.py",
+      "additions": 171,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/hpe_controls_atc.py",
+      "additions": 119,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/hpe_emit_local.py",
+      "additions": 163,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/invoice_allcold.py",
+      "additions": 329,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/phase_timing_controls.py",
+      "additions": 36,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/code/witness.py",
+      "additions": 41,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/EXPECTED.json",
+      "additions": 1454,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/OWNERS.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/PLAN.json",
+      "additions": 41779,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/SPEC.json",
+      "additions": 2270,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/TRI-SCHEDULE.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/WITNESS.json",
+      "additions": 897,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/cand.json",
+      "additions": 352,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/atm3-step0-promote.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/atm3-step1-greedy_kernels.json",
+      "additions": 561,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/atm3-step2-frame_coalesce.json",
+      "additions": 173,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/atm3-step3-gate_move_coalesce.json",
+      "additions": 85,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/ck-step0-greedy_kernels.json",
+      "additions": 550,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/ck-step1-frame_coalesce.json",
+      "additions": 173,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/ck-step2-gate_move_coalesce.json",
+      "additions": 85,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-atm3-cold_end.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-atm3-frame_regroup.json",
+      "additions": 983,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-atm3-hyperplane_end.json",
+      "additions": 481,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-ck-cold_end.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-ck-frame_regroup.json",
+      "additions": 983,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-ck-hyperplane_end.json",
+      "additions": 481,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-jp8-cold_end.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-jp8-frame_regroup.json",
+      "additions": 983,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/recipes/k492-jp8-hyperplane_end.json",
+      "additions": 481,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/search/DISPATCH.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/search/LP-PATTERNS-AGG.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/search/LP-PATTERNS-EX.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/data/search/TEMPLATE-PLAN.json",
+      "additions": 43330,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/verify.py",
+      "additions": 378,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-k492b/verify.sh",
+      "additions": 14,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "e39a615ca601ce5d62abeb24f3fcdb8644ca1005",
+  "isDraft": false,
+  "number": 623,
+  "title": "Conditional \u03ba = 0.001635490664920455: improved owner map (ck 8 / jp8 64) for the PR622 K-triangle witness",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/623"
+}

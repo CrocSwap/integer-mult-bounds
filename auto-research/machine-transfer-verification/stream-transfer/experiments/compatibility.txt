@@ -1,0 +1,83 @@
+PR69 balanced coarse sums composed with PR71 anchored split recursion
+
+Exact inherited checkout: PR73 253ecc88faeed55a950c76026d1fe67a7f690123,
+which preserves PR71 1bef94fd40a746452548c84a4a8f8834670a3113 scalar words.
+Transformation source: PR69 91aa1f17e6e3fc063241686a41a34ddd0dc24c50,
+scripts/experiments/balanced_coarse_compiler.py. The AST-extracted BEFORE and
+AFTER constants match the experiment literally; coarse-source-binding.json
+records both fragment hashes and the original PR69 script hash.
+
+The only mutation is to a private in-memory copy of the archived PR65
+research/pair-assembly/pair_graph.py at lines 190-191. Original files stay
+unchanged. The producer retains the PR71 [1,1,2] split choices, anchored point
+order, h23 cover/core region schedule, and all-rank profile-cost retired/live
+reclamation engine. Its source closures are checked before use.
+
+Compatibility proof (mathematical argument, not a new Lean theorem)
+
+At a recursive block the groups are a partition of its points into sets of
+size one or two. PR71 split_pair_graph.py lines 81-94 preserve that property;
+lines 103-111 merely permute the noncommon points. Recursion still contracts:
+for n>3, splitting one size-two group leaves at most ceil(n/2)+1 <= n-1
+groups; at n=3 the default gives two groups; n<=2 is the inherited base case.
+
+For any two distinct groups G_i,G_j, the old coarse edge is
+    C_ij = sum_{a in G_i, b in G_j} e_{a,b}.
+The new coarse edge is
+    C_ij' = sum_{b in G_j} (sum_{a in G_i} e_{a,b}).
+These expressions have identical coefficients by associativity and
+commutativity; no characteristic-two cancellation is used in this local
+identity. Singleton groups and zero-support terms cause no exception. For a
+2x2 pair this is precisely two pair-star sums followed by their sum, instead
+of the old sequential fold. The globally interned DAG may share either
+pair-star sum with strip computations, so total node count can decrease.
+
+Every e_{a,b} at this level represents a disjoint original input support.
+Thus each newly introduced partial column sum and the final coarse sum is a
+disjoint union. The recursive weight and coarse-edge partition is unchanged.
+Induction through the unchanged recursion, strip formulas, and four-output
+assembly gives exactly the same partial exclusion outputs and retained center
+outputs. Consequently the unchanged source injection and scatter maps still
+have J L V = I over F2 for the new L. The serialized word's independent full
+basis replay checks this claim and arbitrary-dirty auxiliary restoration,
+without relying solely on the induction.
+
+Frames are canonical original envelopes: the core is the intersection and the
+cover the union of source triples. All sources of one pointwise partial
+circuit contain its distinguished common point. Any new intermediate support
+therefore has a nonempty core. A disjoint union enlarges cover and shrinks
+core, so the natural addition incidences remain nested. SharedPointCircuit's
+verify() checks every active node's exact support union, core intersection,
+cover union, and common point, plus all exact outputs. The actual compiled
+word is then checked separately for every reframe incidence, source/terminal
+contract, and literal output-to-scatter binding. Reassociation does not by
+itself certify whichever carrier reuse the optimizer selects.
+
+Cost boundary
+
+Neither fewer additions nor fewer roles implies a better characteristic.
+The new compiler can create different matching and reclamation opportunities;
+the resulting actual ordered transition matrices must be profiled. The
+experiment compares the full paid hybrid (new h23, unchanged h25), including
+both exterior classes, data growth, fixed data corners, and final paid copy,
+at the exact PR73 saving. All CRT minor bounds and actual finite transition
+profiles are checked. The complete hybrid has m=575 and fixed deficit
+m W - sum_t(t n_t)=1,846,900, but its width and distribution can change.
+
+The two-axis ambient interpretation, inherited exterior/data pivot facts,
+and all-size machine-cost contracts retain their prior conditional scope.
+This experiment does not itself prove an integer multiplication theorem,
+perform a general network search, or claim that failure of this one schedule
+rules out every compatible reassociation/scheduler combination.
+
+Credit
+
+PR62 interval strips and core-aware pair assembly: Avi Eisenberg / ikeboy with
+Anthropic Claude assistance. PR57 joint frame compiler: eumemic with OpenAI
+Codex assistance. PR60 ranked reclamation: Chafik Boukhalfa with OpenAI Codex.
+PR63 composition: Dominik Scholz. PR65 region order: Rohan Arun. PR59 split
+operation: Rohan Garg. PR71 anchored [1,1,2] choice: Chafik Boukhalfa with OpenAI Codex.
+PR67 profile costs: Rohan Arun. PR68 pending live controls: Dominik Scholz. PR69 balanced coarse sums:
+Codex-prepared experiment credited by its source. This composition and its
+independent finite comparison were prepared with OpenAI Codex assistance.
+Original source license notices remain intact; inherited Apache-2.0 applies.

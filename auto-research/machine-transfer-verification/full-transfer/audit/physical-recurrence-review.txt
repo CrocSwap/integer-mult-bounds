@@ -1,0 +1,131 @@
+Adversarial review of the floor recurrence and physical volume contract
+=====================================================================
+
+Scope: source inspection of PR73 253ecc88faeed55a950c76026d1fe67a7f690123,
+which contains the PR71 physical construction unchanged. This review does not
+instantiate a complete finite-state tape machine. No counterexample to the
+written floor/remainder/spectator construction was found.
+
+1. Exact child width and volume
+
+notes/batched-bit-rows.tex and notes/batched-algorithms.tex use the actual child
+width t*floor(e/m), not floor(t*e/m). These differ in general; the FloorDepth /
+FloorRecurrence / PhysicalCostTransfer sources use the former, correct quantity.
+For e>=m and 1<=t<m, it is positive and strictly smaller than e. At e<m the
+entire call is handled by individual digit operations, so zero-width children
+are never executed. The strict characteristic gives a uniform induction bound
+with this floor operation because t*floor(e/m) <= (t/m)*e.
+
+Write V=P*R*B where the row field precedes the complete suffix B. The split
+r=W*g+w partitions complete rows, producing W streams each of volume V/W.
+Each recursive edge call acts on an entire one of these streams. Reducing its
+active width from e to t*floor(e/m) does not discard the other address digits.
+They become spectators. Thus there is no extra factor q^(2(tf-e)) in its volume.
+In a descendant at depth j, the volume is V0/W^j, and all original address
+digit ranges are still represented. Neither copies on work tapes nor the
+number of scratch roles is folded into this logical volume. They contribute
+to the constant local work charge and to the fixed role count W respectively.
+
+The child field is a contiguous identity run of the ordered pivot profile.
+notes/projector-batching.tex explicitly uses coordinatewise additions modulo
+q^f on the adjacent f-digit components. A single width-tf interchange swaps
+their concatenations, preserving internal order. It is not addition modulo
+q^(tf), which would introduce unwanted carries. Singleton pivots use width f.
+The triangular factors have fixed dimension and update later fields from
+earlier controls. Their rational coefficients are fixed before q is chosen;
+q must avoid their finitely many denominators and unit numerators. CRT witness
+primes used by the profiler are not a claim that any one of them is that q.
+
+2. Remainder movement is explicit and consistent
+
+For e=mf+r, the initial field order is H+ H- G D+ D-. Exchanging corresponding
+r high digits gives D+ H- G H+ D-. Moving H+ before H- gives
+D+ H+ H- G D-. The main interchange of H-,D- gives D+ H+ D- G H-.
+Moving H+ before the final H- gives the required D+ D- G H+ H-.
+All unchanged high and gap fields are spectators of the main call. With
+0<=r<m and fixed m, the number of individual digit exchanges/moves is bounded
+independently of e, hence O(V) if the elementary stream theorem is instantiated.
+There is no recursive padding of chunk ranges, no repeated rounding-up of
+child widths, and no hidden sort of arbitrary growing coordinate tuples here.
+
+3. Arbitrary spectators and uniform base cost
+
+The mathematical source upstream/build/sections/02-streams.tex is more explicit
+than a bare unit-cost permutation claim. A one-digit move demultiplexes into q
+streams and remerges in the required order; a two-digit permutation uses q^2.
+Removing the selected digits preserves the order of every remaining coordinate,
+even for an arbitrarily long intervening gap. Fixed q permits a fixed finite
+number of tapes. Nested counters have amortized ripple cost; the shape is a
+fixed number of collapsed ranges. Binary shape preparation is polynomial in
+log(2V), which is O(V) uniformly for V>=1 with a fixed degree.
+
+For an affine target after its controls, a target fiber has Q=q^f blocks of B
+bits. Preparing an offset costs f^C, absorbed into QB>=q^f. Spectator counters
+are not reread wholesale for each bit. Negation reverses block order and then
+reverses each popped block, so it does not silently reverse its record bits.
+These details support the claimed mathematics; they are not yet a Lean
+execution/refinement theorem for the described scans and counters.
+
+In particular, finitely many base widths e<m do not alone imply a uniform base
+bound over arbitrary spectator lengths. One needs the elementary stream result
+uniformly in those lengths. PhysicalCostTransfer correctly exposes precisely
+that assumption: cost(s)<=B*volume(s) for all base states s, with one B. It also
+quantifies over actual state-indexed children and requires each child volume
+V/W, so it does not assume existence of a normalized worst-case supremum.
+
+4. Outer row stock and the new arithmetic proof
+
+The new OuterRows source replaces the least suitable rho by the explicit
+rho=14*D(e). For m575,tmax529, the additive decrease is at least46 at every
+internal step: (m-tmax)*D(e)<=e. Hence 2rho=28D(e)<e for e>0 (and rho=0 when
+D=0). W<=137151806<2^28 implies W^D <= q^(2rho) for every q>=2. This covers
+the new PR71/73 W=135075665 as well as the earlier selected W.
+
+For N=q^(2rho) and P=W^D, roundedRows=((N-1)/P+1)*P is the least multiple of P
+at least N, and N<=roundedRows<N+P<=2N. Thus padding is strictly less than a
+factor two even when N already is a multiple of P. The product
+q^(2rho)*q^(2(e-rho))=q^(2e) shows that row stock comes from existing digits;
+it is not polynomial duplication of the array. Depth monotonicity supplies
+the needed stock for e-rho. The source also proves the exact logarithmic rho
+bound and absorption into any positive real power of e. Its outer_cost_bound
+explicitly assumes the physical gathering/padding cost. No unsupported
+execution claim is hidden in the arithmetic conclusion.
+
+The source inspected was work/full-transfer/outerrows/OuterRows.lean. Its
+current inventory has 17 printed theorem audits. The reviewed-source hash is
+saved in physical-review-source-pins.json; the parent owns compilation and
+final packaging. Arithmetic interpretation and hypothesis signs are sound.
+
+5. Exact remaining proof obligations and a decisive next step
+
+(a) Formalize the elementary digit demultiplex/merge as an actual fixed-head
+tape routine with arbitrary prefix/gap/suffix lengths, correct output order,
+clean work tapes, parked-ancestor preservation, head return and a uniform
+C*V bound including counters. The existing TapeStack/TapeStackPush proofs
+cover the stack primitive but do not supply this permutation or its counters.
+
+(b) Formalize whole-row cyclic split/merge with W fixed, including the inverse
+role permutation, the bijection (p,r,b)<->(p,g,w,b), exact V/W size and head
+interfaces. This is the direct bridge between a finite role schedule and the
+state-cost child-volume hypothesis. Its correctness must retain every suffix
+bit and row coordinate, including scratch rows with arbitrary input bits.
+
+(c) Establish a finite-call-plan composition theorem: each literal finite edge
+contributes exactly the recorded identity-run children, each of volume V/W,
+and only a bounded number of linear scans. Remainder handling and the outer
+layer then attach using the proved arithmetic contracts. The typed call plan
+must include both phase directions, copied centers, exterior gauges and the
+final data correction; these are the finite-agent's current ambient work.
+
+(d) Close descriptor construction and stack scheduling uniformly. At depth j,
+all root digit ranges remain present, so their exponential volume can pay for
+polynomial arithmetic on O(log V0) descriptors. Prove the comparison with Vj
+and ensure no growing-depth list is scanned once per data bit. A proof about
+arbitrary width-indexed cost functions cannot create these implementation
+invariants; they must be supplied by a physical state representation.
+
+These are precise implementation refinements of the existing written proof,
+not evidence of a new numerical obstruction. The scalar payload remains F2;
+the older F3 specialization in notes/batched-algorithms.tex describes a
+different historical network and must not be imported as the current scalar
+gate table. Address arithmetic remains over Z/q^f for suitable odd q.

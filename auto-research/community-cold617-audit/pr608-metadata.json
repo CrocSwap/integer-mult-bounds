@@ -1,0 +1,269 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjcyMjcwMjk=",
+    "is_bot": false,
+    "login": "higherbeing",
+    "name": "sreekanth nair"
+  },
+  "baseRefOid": "5996f9043c27bafa90b23e1c937de92a738f1a76",
+  "body": "**Independent construction of the 46-helper hyperplane end; no record claimed.** Conditional \u03ba = **0.001613569610580215** (conservative model 0.001613569607722207). This is the same mechanism as #601 (jeremykothe2), which was posted first: both replace #591's first-gate rule by the exact commutation condition and end 46 helpers per call. #601 re-optimises the dispatch (ck \u00d7 45, atm3 \u00d7 21, jp8 \u00d7 6) and its RINS owner map reaches 0.001614202; this package keeps #592's dispatch (ck \u00d7 53, atm3 \u00d7 19) with its own owner map, so its value is 0.04 % lower. It is offered as a second, independently built and strictly verified witness, together with the owner-allocation tools it used (HiGHS pattern MILP, lazy cross-time Hall cuts, per-window matching; the PR520 allocator extended to per-call widths).\n\n**Mechanism.** #591 (jeremykothe2) ends 38 entering width-8 helpers per call on a hyperplane U instead of the full frame. Its candidate rule requires the helper's single cleanup gate to be the *first* cleanup gate on both of its registers, so that it trivially commutes with the skipped cleanup prefix. Eight more helpers per call fail that rule only because their partner register is **read** by an earlier cleanup gate; two additions that merely share a source commute, so nothing obstructs the move. Replacing the rule by the exact condition (the helper's cleanup gates plus the non-commuting closure of what they pass run right after part B at the minimal common frames; here the closure is the gate itself) ends **46 helpers per call** on every provider word (ck, atm3, and jp8, which this dispatch does not use). The local paid \u03a6 is unchanged to within 1 \u03a6; each call has eight more width-7 residuals.\n\n| | #592/#596 | this PR | #601 |\n| --- | --- | --- |\n| hyperplane-ended helpers per call | 38 | 46 | 46 |\n| ck width inventory | {4:8, 5:48, 7:70, 8:102, 9:276} | {4:8, 5:48, 7:78, 8:94, 9:276} | same |\n| idle remainders | {1:2, 2:1, 3:280, 12:1, 48:1969} | {3:197, 25:1, 48:1986} | dispatch 45/21/6 |\n| paid profile | {1:182818, 2:34193, 3:22560, 4:14584, 5:4032, 6:4032, 8:576, 12:1, 48:1969} | {1:183968, 2:33616, 3:23053, 4:14008, 5:4032, 6:4032, 8:576, 25:1, 48:1986} | see #601 |\n| LP bound on remainders for the menu (dispatch 53/19) | 42,321.7 \u03a6 (attained within 37 \u03a6) | 41,862.3 \u03a6 (attained within 28 \u03a6) | \u2014 |\n| \u03ba | 0.0016127213726553 (#596) | 0.001613569610580215 | 0.001614202339036103 |\n\nDispatch (ck \u00d7 53, atm3 \u00d7 19), call order, pinned sources (PR568 `71c99ac`, PR569 `897213a`, PR571 `b7bdc5a`, PR575 `eac6f7e`, PR583 `89be768`), the other build steps and #592's verifier code are unchanged. The owner map is renominated for the new width inventory: an exact-window MILP over port patterns (HiGHS) with lazy cross-time Hall cuts and a per-window literal matching (CP-SAT); the nominator and the allocation tools are included.\n\n**Package** `research/complex-571-hpe46/`, a copy of #592's with: one new allowlisted step type `hyperplane_end_closure` (`code/build_hpe_closure.py`; the chosen helpers and the tail are recomputed from the input word and must equal the recipe, then #592's unchanged raw-word control audit runs and the same independent comparison as `hyperplane_end`), new `data/PLAN.json`, `data/OWNERS.json.gz`, `data/SPEC.json` and recipes, and `code/witness.py` recording pins in discovery mode (strict mode unchanged). Everything else is byte-identical to #592.\n\n**Verification.** `verify.py` rebuilds both provider words from the pinned sources through all typed steps, localises them with #592's HPE native chain (all columns, both reflected ledgers, local controls, normalised wrappers, all phase edges), binds, emits and audits the owner map with mutation controls, prices a fresh invoice and runs both exact moment engines with the 47 outer constraints and the assembly, timing and recompression controls. The strict run passed locally with the frozen558 baseline reused from a fresh #588 replay; `RECEIPT.json`, `RESULT.json` and `STAGES.json` are in `research/complex-571-hpe46-validation/` (31 stages; 23 controller and 114 assembly mutations rejected). The README was reworded after that run, so the receipt's package manifest hash predates the final README.\n\n**Scope.** Conditional on the same inherited assumptions as #592 (all-size compiler, common-label/mutable-source realization, whole-call hosting, precision/tape, analytic transfer, and Lemma A for hyperplane-ended helpers as stated in #592's PROOF-HYPERPLANE-END.md and #593's Lean). The eight extra helpers satisfy exactly the hypotheses of #591's construction (one cleanup gate run at U right after B, the helper untouched afterwards, the partner continuing to FULL); only the commutation argument for passing the skipped cleanup prefix is generalised, and the exact scalar replay of the reordered program in `hpe_audit_and_transport.py` / `hpe_controls_atc.py` checks it. Not an unconditional theorem.\n\nCredits: jeremykothe2 (#591/#592/#596 hyperplane-ended helpers, verifier and owner-map method; #583/#588 coalescences), DominikScholz (#569/#571), jon314159 (#575), eumemic (#558\u2013#564 cold kernels, #543 bit supplier), chafreaky (#583), DreamingOfClouds (#593/#599 Lean groundwork), icekylinx, Dugongue and the inherited lineage listed in NOTICE.md. Prepared by higherbeing with Claude Code assistance.\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-12T18:09:13Z",
+      "authors": [
+        {
+          "email": "higherbeing@users.noreply.github.com",
+          "id": "MDQ6VXNlcjcyMjcwMjk=",
+          "login": "higherbeing",
+          "name": "higherbeing"
+        },
+        {
+          "email": "noreply@anthropic.com",
+          "id": "MDQ6VXNlcjgxODQ3",
+          "login": "claude",
+          "name": "Claude Fable 5.1"
+        }
+      ],
+      "committedDate": "2026-10-12T18:09:13Z",
+      "messageBody": "\u2026e exact commutation condition (conditional \u03ba = 0.001613569610580215, below #601)\n\nPackage research/complex-571-hpe46 (copy of PR592's complex-571-hpeq4) with a new\nallowlisted step type hyperplane_end_closure: the chosen helpers' cleanup gates plus the\nnon-commuting closure of what they pass run right after part B at minimal frames, so the\neight entering helpers per word whose partner is merely re-read by an earlier cleanup gate\nalso end at a hyperplane (46 per call instead of 38). Owner map renominated with a HiGHS\npattern MILP, lazy top-k Hall cuts and per-window matching on PR592's dispatch. Strict\nverify.py passed (receipt in research/complex-571-hpe46-validation).\n\nSame mechanism as PR601 (jeremykothe2), which was posted first with a better owner map;\nthis is an independent construction and claims no record.\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>",
+      "messageHeadline": "Independent construction: 46 hyperplane-ended helpers per call via th\u2026",
+      "oid": "702e397432df9233cdd02e43f1f6f32e195eba84"
+    }
+  ],
+  "files": [
+    {
+      "path": "research/complex-571-hpe46-validation/RECEIPT.json",
+      "additions": 233,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46-validation/RESULT.json",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46-validation/STAGES.json",
+      "additions": 188,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/LICENSE",
+      "additions": 201,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/MANIFEST.json",
+      "additions": 36,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/NOTICE.md",
+      "additions": 26,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/README.md",
+      "additions": 44,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/assemble.py",
+      "additions": 213,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/assembly_controls.py",
+      "additions": 251,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/audit_allcold.py",
+      "additions": 232,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/bind_providers_portable.py",
+      "additions": 66,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/build_gate_moves.py",
+      "additions": 61,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/build_hpe.py",
+      "additions": 113,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/build_hpe_closure.py",
+      "additions": 115,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/emit_allcold.py",
+      "additions": 144,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/generated_identity.py",
+      "additions": 62,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/generated_identity_controls.py",
+      "additions": 227,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/hpe_adapters_local.py",
+      "additions": 95,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/hpe_audit_and_transport.py",
+      "additions": 249,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/hpe_audit_local.py",
+      "additions": 159,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/hpe_controls_atc.py",
+      "additions": 60,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/hpe_emit_local.py",
+      "additions": 161,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/invoice_allcold.py",
+      "additions": 320,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/phase_timing_controls.py",
+      "additions": 36,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/code/witness.py",
+      "additions": 40,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/OWNERS.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/PLAN.json",
+      "additions": 42666,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/SPEC.json",
+      "additions": 2142,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/atm3-step0-promote.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/atm3-step1-greedy_kernels.json",
+      "additions": 561,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/atm3-step2-frame_coalesce.json",
+      "additions": 173,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/atm3-step3-gate_move_coalesce.json",
+      "additions": 85,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/atm3-step4-hyperplane_end_closure.json",
+      "additions": 1113,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/ck-step0-greedy_kernels.json",
+      "additions": 550,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/ck-step1-frame_coalesce.json",
+      "additions": 173,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/ck-step2-gate_move_coalesce.json",
+      "additions": 85,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/data/recipes/ck-step3-hyperplane_end_closure.json",
+      "additions": 1113,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-hpe46/verify.py",
+      "additions": 277,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "702e397432df9233cdd02e43f1f6f32e195eba84",
+  "isDraft": false,
+  "number": 608,
+  "title": "Independent construction: 46 hyperplane-ended helpers per call via the exact commutation condition, conditional \u03ba = 0.001613569610580215 (below #601)",
+  "updatedAt": "2026-10-12T18:09:46Z",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/608"
+}

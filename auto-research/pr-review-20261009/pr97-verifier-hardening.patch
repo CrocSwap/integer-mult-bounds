@@ -1,0 +1,275 @@
+diff --git a/research/deferred-signed/verify.py b/research/deferred-signed/verify.py
+--- a/research/deferred-signed/verify.py
++++ b/research/deferred-signed/verify.py
+@@ -2,6 +2,10 @@
+ """Verify immutable inputs, exact moments and bridge; optionally replay ledgers.
+ Zhihao Chen / Codex. Moment enclosure adapted from the retained PR36/39 checker.
+ """
++
++import sys as _verification_sys
++if _verification_sys.flags.optimize:
++    raise ValueError('Assertions must remain enabled')
+ import argparse,hashlib,json,subprocess,sys,tempfile,shutil,time
+ from pathlib import Path
+ from fractions import Fraction as Q
+@@ -30,6 +34,8 @@
+     if isinstance(x,dict):return {k:stable(v) for k,v in x.items() if k not in ('elapsed',)}
+     if isinstance(x,list):return [stable(v) for v in x]
+     return x
++OPTIMIZATION_GUARD = "\nimport sys as _verification_sys\nif _verification_sys.flags.optimize:\n    raise ValueError('Assertions must remain enabled')\n"
++
+ def verify_pins():
+     pins=read(HERE/'SOURCE.json')
+     for rel,sha in pins['files'].items():
+@@ -37,21 +43,25 @@
+     foreign=read(HERE/'swapnil-round7/IMPORT.json')
+     for rel,sha in foreign['files'].items():
+         assert hashlib.sha256((HERE/'swapnil-round7'/rel).read_bytes()).hexdigest()==sha,('foreign drift',rel)
+-    # Portability edits are limited to resolving a preserved equal histogram
+-    # and the inherited assembly module from this repository root.
++    # Preserve the mathematical sources: only the documented path substitutions
++    # and exact module-level optimized-Python guard may differ from the originals.
+     for name in ('round7_literal_frame_ledger.py','round7_tensor_endpoint_controls.py','round6_complex_interface_controls.py','round6_complex_literal_ledger.py','round7_balanced_assembly_candidate.py'):
+         old=(HERE/'validation-prior'/name).read_text()
+         if name=='round6_complex_literal_ledger.py':
+             old=old.replace("old=json.loads((HERE/'swapnil-round6/independent/complex-twostage/hist_24.json').read_text())", "old=json.loads((HERE/'swapnil-round7/lean/round6-histograms.json').read_text())['cx']; old['hist']=dict(old['hist'])")
+         if name=='round7_balanced_assembly_candidate.py':
+             old=old.replace("HERE/'integration/scripts'", "HERE.parents[1]/'scripts'").replace("HERE/'integration/scripts/structured_bulk_assembly.py'", "HERE.parents[1]/'scripts/structured_bulk_assembly.py'")
+-        assert old==(HERE/name).read_text(),('unreviewed port edit',name)
++        current=(HERE/name).read_text()
++        assert current.count(OPTIMIZATION_GUARD)==1,('missing or duplicate runtime guard',name)
++        assert old==current.replace(OPTIMIZATION_GUARD,'',1),('unreviewed port edit',name)
+     return len(pins['files'])
+ 
+ def main():
+-    assert __debug__,'verification requires assertions'
+     ap=argparse.ArgumentParser();ap.add_argument('--replay',action='store_true');ap.add_argument('--replay-own',action='store_true');args=ap.parse_args()
+-    count=verify_pins();bit=read(HERE/'round7-literal-ledger/result.json');cx=read(HERE/'round6-complex-literal-ledger/result.json')
++    count=verify_pins()
++    subprocess.run([sys.executable,'-m','unittest','discover','-s',str(ROOT/'tests'),
++                    '-p','test_deferred_signed_optimization.py','-v'],check=True)
++    bit=read(HERE/'round7-literal-ledger/result.json');cx=read(HERE/'round6-complex-literal-ledger/result.json')
+     assert all(bit[k] for k in ('complete_forward_F2','complete_reflected_F2','reflected_frame_continuity','histogram_matches_external'))
+     assert all(cx[k] for k in ('actual_forward_equal_frames','reflected_continuity','actual_geometry_passed','histogram_matches_pinned'))
+     H={int(t):n for t,n in bit['histogram'].items()};C={int(t):n for t,n in cx['full_histogram'].items()}
+diff --git a/research/deferred-signed/check_complex_identity.py b/research/deferred-signed/check_complex_identity.py
+--- a/research/deferred-signed/check_complex_identity.py
++++ b/research/deferred-signed/check_complex_identity.py
+@@ -2,6 +2,10 @@
+ """Exact h24 AMV=I and retained-total support identity, on every coefficient.
+ Zhihao Chen / Codex; repeats the preserved earlier check without path coupling.
+ """
++
++import sys as _verification_sys
++if _verification_sys.flags.optimize:
++    raise ValueError('Assertions must remain enabled')
+ import sys
+ from pathlib import Path
+ from collections import defaultdict
+diff --git a/research/deferred-signed/round7_literal_frame_ledger.py b/research/deferred-signed/round7_literal_frame_ledger.py
+--- a/research/deferred-signed/round7_literal_frame_ledger.py
++++ b/research/deferred-signed/round7_literal_frame_ledger.py
+@@ -4,6 +4,10 @@
+ from the separately run frame/lifted checkers, not inferred from ranks here.
+ Copied-center moves are temporary macros, not erased arbitrary scratch.
+ """
++
++import sys as _verification_sys
++if _verification_sys.flags.optimize:
++    raise ValueError('Assertions must remain enabled')
+ import sys,json,signal,time,hashlib,gzip
+ from pathlib import Path
+ from collections import defaultdict,Counter
+diff --git a/research/deferred-signed/round7_tensor_endpoint_controls.py b/research/deferred-signed/round7_tensor_endpoint_controls.py
+--- a/research/deferred-signed/round7_tensor_endpoint_controls.py
++++ b/research/deferred-signed/round7_tensor_endpoint_controls.py
+@@ -2,6 +2,10 @@
+ """Exact rational controls of gauged exits, tensor connectors and copied correction.
+ Zhihao Chen / Codex audit; symbolic identities in companion report cover all h.
+ """
++
++import sys as _verification_sys
++if _verification_sys.flags.optimize:
++    raise ValueError('Assertions must remain enabled')
+ import json,time,signal
+ from pathlib import Path
+ import sympy as s
+diff --git a/research/deferred-signed/round6_complex_interface_controls.py b/research/deferred-signed/round6_complex_interface_controls.py
+--- a/research/deferred-signed/round6_complex_interface_controls.py
++++ b/research/deferred-signed/round6_complex_interface_controls.py
+@@ -2,6 +2,10 @@
+ """Exact Gaussian-dyadic schedule and endpoint controls; not a final theorem.
+ Zhihao Chen / Codex. Pinned producer: Swapnil Jain, Apache-2.0.
+ """
++
++import sys as _verification_sys
++if _verification_sys.flags.optimize:
++    raise ValueError('Assertions must remain enabled')
+ import sys,json,time,signal
+ from pathlib import Path
+ HERE=Path(__file__).resolve().parent
+diff --git a/research/deferred-signed/round6_complex_literal_ledger.py b/research/deferred-signed/round6_complex_literal_ledger.py
+--- a/research/deferred-signed/round6_complex_literal_ledger.py
++++ b/research/deferred-signed/round6_complex_literal_ledger.py
+@@ -4,6 +4,10 @@
+ Frame labels are binary subspaces; complex phases use the separately proved
+ q_U and inverse-rank-one endpoint identities, not XOR cancellation.
+ """
++
++import sys as _verification_sys
++if _verification_sys.flags.optimize:
++    raise ValueError('Assertions must remain enabled')
+ import sys,json,time,signal,gzip,hashlib
+ from pathlib import Path
+ from collections import Counter
+diff --git a/research/deferred-signed/round7_balanced_assembly_candidate.py b/research/deferred-signed/round7_balanced_assembly_candidate.py
+--- a/research/deferred-signed/round7_balanced_assembly_candidate.py
++++ b/research/deferred-signed/round7_balanced_assembly_candidate.py
+@@ -2,6 +2,10 @@
+ """Arithmetic bridge candidate only: physical/analytic applicability is separate.
+ Uses pinned icekylinx PR36 assembly, derived from Zhihao Chen PR23; Apache-2.0.
+ """
++
++import sys as _verification_sys
++if _verification_sys.flags.optimize:
++    raise ValueError('Assertions must remain enabled')
+ import sys,json,hashlib
+ from pathlib import Path
+ from fractions import Fraction as Q
+diff --git a/research/deferred-signed/README.md b/research/deferred-signed/README.md
+--- a/research/deferred-signed/README.md
++++ b/research/deferred-signed/README.md
+@@ -40,7 +40,7 @@
+ 
+ `validation-prior/` preserves the original executed audit sources and measured
+ native receipts. The portability checker permits only two documented path
+-substitutions; it does not silently treat different mathematical code as an
++substitutions and the exact module-level optimized-Python guard; it does not silently treat different mathematical code as an
+ already-passed check. Machine elapsed times are excluded from regenerated
+ mathematical-output comparisons. The `new_multiplication_bound: false` fields
+ in these historical receipts accurately record their scope when run; the
+@@ -52,3 +52,10 @@
+ support identity and invertible commutator argument, with full small controls
+ and a full h24 physical event/frame ledger. There is no dense h24 coefficient
+ matrix replay and no claim that finite tests formalize the entire theorem.
++
++All seven local verification drivers reject `-O`, `-OO`, and
++`PYTHONOPTIMIZE` modes that disable assertions before loading inputs.
++The main verifier runs subprocess regression controls after checking its
++source pins. Imported originals and historical validation receipts remain
++unchanged. This maintainer hardening was prepared with OpenAI Codex
++assistance; it changes no finite construction or numerical witness.
+diff --git a/research/deferred-signed/SOURCE.json b/research/deferred-signed/SOURCE.json
+--- a/research/deferred-signed/SOURCE.json
++++ b/research/deferred-signed/SOURCE.json
+@@ -6,18 +6,18 @@
+     "Makefile": "d3da97587cfa850d826bbb450f13121ff46e4e87bc91681e669279557562494a",
+     "README.md": "5fe2101e1bd639a1739e4986c807f3a659b463a8a5873126e11727e8e63298a1",
+     "research/deferred-signed/PROOF.md": "cf5cced8cecace5f4308647523bc86a0869daeb1aa49c382bec03411674a1741",
+-    "research/deferred-signed/README.md": "b1d761d02a5bb3413f705c9fac321a96e9b42f4bfd949c175131af97316b7463",
+-    "research/deferred-signed/check_complex_identity.py": "8a31abe1d46ab3aa76b954cb87004e28d4974cce5eea2dea17d6283992902e7d",
++    "research/deferred-signed/README.md": "75e0c2f6687cfeb618b41a970a92d953765f19e3a8525a246da72512c9144f5f",
++    "research/deferred-signed/check_complex_identity.py": "7e23fc3c60e91a663c8b30abe8a0c1e7719e5ce07d4d6e47924d3cd59980287f",
+     "research/deferred-signed/round6-complex-interface-controls.json": "7f4375ff2baefd6455d5353968d4c1a38666cda7f417ebd21286f09e16131d22",
+     "research/deferred-signed/round6-complex-literal-ledger/result.json": "db1d41515236c2710b4caeb22d91eea63cf1deeb0d659346d0661da71ed07baa",
+-    "research/deferred-signed/round6_complex_interface_controls.py": "7ca3e245c7bdd814d6315f2b32ef5e0d4610834dd9e3190cc551a182c87bf5ed",
+-    "research/deferred-signed/round6_complex_literal_ledger.py": "a1384fb5283d9d11775942b91e31887fa05ddcd50c6a50fa3f11902b32f73c36",
++    "research/deferred-signed/round6_complex_interface_controls.py": "afa0823d944e714c943b94083d5f4e7180797ab48f2cb51fdbaf7d960a9c1863",
++    "research/deferred-signed/round6_complex_literal_ledger.py": "fd9647f4a241f5ea1fd985cb26b072bf83a50526002eb69954b01a7febf33542",
+     "research/deferred-signed/round7-balanced-assembly-candidate.json": "bcf0623dc4eab9fdb858f4375a5a183b72b150853e8da030005d8fcd0b83f2ae",
+     "research/deferred-signed/round7-literal-ledger/result.json": "65343d92f68d0d7756bb4c5adbdcb43171b00ce7fa7398e951245cf2ab119c0f",
+     "research/deferred-signed/round7-tensor-endpoint-controls.json": "8383f9afa241ad495941b3d724286f0d94e4c4adee71d8ea744d88d813acec4c",
+-    "research/deferred-signed/round7_balanced_assembly_candidate.py": "0e3b13922295c0ece6e6354d7ba93529b3c51e70ece15a20d089f65f134e33b7",
+-    "research/deferred-signed/round7_literal_frame_ledger.py": "02617ba608f971e3bdd2b45d4cbfc3d0d629873a0b9f7c22b12f347d099fdb59",
+-    "research/deferred-signed/round7_tensor_endpoint_controls.py": "f1487b01167ef37cd180a0d969c815bcf26e627f3c264b89ccd974b63478ae91",
++    "research/deferred-signed/round7_balanced_assembly_candidate.py": "f6506171c3ad0f7713a8ef556afb0210acac51d9fefd8d3203d92e6025f27659",
++    "research/deferred-signed/round7_literal_frame_ledger.py": "20f7f9e817f6763293be0ae9dc6d6dfb1a255e39709bd0a908d7ecb1cde2d130",
++    "research/deferred-signed/round7_tensor_endpoint_controls.py": "88eb49bd15a9fa88fae108a2201ddd429d32badb8b8810540dd2e5db97730af6",
+     "research/deferred-signed/swapnil-round7/.gitignore": "e4142bca62926744f1a60693914db92bb41be0b9ea4fbd4dd73e3af2178b0c8b",
+     "research/deferred-signed/swapnil-round7/IMPORT.json": "4b5f15981e846084b6def674ce0903c2d4ef0c930ea0c40093a2a8584164102d",
+     "research/deferred-signed/swapnil-round7/LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+@@ -134,11 +134,12 @@
+     "research/deferred-signed/validation-prior/swapnil-round7-full-basis.json": "1bcd74316f11ebc2c36f0c9b5638f314a3982c97e96c572816602087169f0e42",
+     "research/deferred-signed/validation-prior/swapnil-round7-moment-audit.json": "92567c2050caeaf987358acee5dde5d8610e0f12bff6385899e3c043d6cefb89",
+     "research/deferred-signed/validation-prior/swapnil-round7-validation-job.json": "bb9488bd2c19423e4ccff4cd8e5052f0848a5b107a133a31179c020d26a7465e",
+-    "research/deferred-signed/verify.py": "cebcddbdfc553c37da7ab6b66b7e94c1dcd0610b82e79453ed937831c400c418",
++    "research/deferred-signed/verify.py": "072aa757ce71e0d38b3fe01929da05c72707d71e8c92e9c77eaa2a491fdb6369",
+     "scripts/structured_bulk_assembly.py": "e99467e14211fba699878ed036e1e2362eb8e395dc22f9ecdcecc7fbf2cc736d",
+     "research/deferred-signed/VALIDATION.json": "c267be2b45769619b1fcb078b5aaa40f24ce1f0345161d180f138d297cd19264",
+     "research/joint-dual/SOURCE.json": "0f2bc2e6d72534ab3884d050abdc328b112cbc4296e6cc04516f65ab87ee96b2",
+     "certificates/joint-dual-kappa.json": "6dff7f3bd3bf149714e9f161892c944d8788d0894ff0c4056610a3283368253e",
+-    "certificates/joint-dual-validation.json": "9af3bb95c2dacb7ffb410936f284ca5b0c288fc8ce492a97b349161dfc978113"
++    "certificates/joint-dual-validation.json": "9af3bb95c2dacb7ffb410936f284ca5b0c288fc8ce492a97b349161dfc978113",
++    "tests/test_deferred_signed_optimization.py": "590390d1b73c6c7c2c15a0320a568d747b5cca2e77337dccea5c4881713b6e19"
+   }
+ }
+diff --git a/tests/test_deferred_signed_optimization.py b/tests/test_deferred_signed_optimization.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_deferred_signed_optimization.py
+@@ -0,0 +1,65 @@
++"""Subprocess controls for the deferred-signed verification boundary.
++
++Maintainer hardening with OpenAI Codex assistance; Apache-2.0.
++These controls do not certify the multiplication theorem.
++"""
++import importlib.util
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import unittest
++
++ROOT = Path(__file__).resolve().parents[1]
++PACKAGE = ROOT/'research/deferred-signed'
++DRIVERS = ('verify.py', 'check_complex_identity.py',
++           'round7_literal_frame_ledger.py', 'round7_tensor_endpoint_controls.py',
++           'round6_complex_interface_controls.py', 'round6_complex_literal_ledger.py',
++           'round7_balanced_assembly_candidate.py')
++
++
++class OptimizationControls(unittest.TestCase):
++    def test_all_drivers_reject_optimized_execution_before_work(self):
++        modes = ((['-O'], ''), (['-OO'], ''), ([], '1'), ([], '2'))
++        for driver in DRIVERS:
++            for flags, optimization in modes:
++                with self.subTest(driver=driver, flags=flags, env=optimization):
++                    with tempfile.TemporaryDirectory() as directory:
++                        result = subprocess.run(
++                            [sys.executable, *flags, str(PACKAGE/driver)],
++                            cwd=directory,
++                            env=dict(os.environ, PYTHONOPTIMIZE=optimization),
++                            capture_output=True, text=True, timeout=10)
++                        self.assertNotEqual(result.returncode, 0)
++                        self.assertIn('Assertions must remain enabled', result.stderr)
++                        self.assertEqual(result.stdout, '')
++                        self.assertEqual(list(Path(directory).iterdir()), [])
++
++    def test_unoptimized_verifier_still_accepts_help(self):
++        result = subprocess.run(
++            [sys.executable, str(PACKAGE/'verify.py'), '--help'],
++            env=dict(os.environ, PYTHONOPTIMIZE=''),
++            capture_output=True, text=True, timeout=10)
++        self.assertEqual(result.returncode, 0, result.stderr)
++        self.assertIn('--replay', result.stdout)
++
++    def test_normal_source_pin_check_rejects_bad_hash(self):
++        spec = importlib.util.spec_from_file_location('guarded_deferred_verify', PACKAGE/'verify.py')
++        module = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(module)
++        original_read = module.read
++
++        def changed_read(path):
++            result = original_read(path)
++            if Path(path) == PACKAGE/'SOURCE.json':
++                result['files']['.github/workflows/verify.yml'] = '0'*64
++            return result
++
++        module.read = changed_read
++        with self.assertRaisesRegex(AssertionError, 'source drift'):
++            module.verify_pins()
++
++
++if __name__ == '__main__':
++    unittest.main()

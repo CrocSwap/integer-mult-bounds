@@ -1,0 +1,840 @@
+{
+  "author": {
+    "id": "U_kgDOBaipYw",
+    "is_bot": false,
+    "login": "eumemic",
+    "name": ""
+  },
+  "body": "## Conditional improvement\n\n$$T(n)=O\\big(n(\\log n)^{1-\\kappa}\\big),\\qquad \\kappa=\\frac{6558894}{10^{10}}=6.558894\\times10^{-4}.$$\n\nThis is **+42.30% over #144** (4.609169e-4, merged), +7.00% over #173 (6.1297e-4, the best other open PR) and +10.42% over #163. It supersedes this PR's earlier versions (6.096379e-4, 6.457084e-4 and 6.489120e-4). The complex side binds: its saving is 6563200/10\u00b9\u2070, and the bit coarse saving is 6600253/10\u00b9\u2070 (6.5961531e-4 effective). All of #144's interfaces remain assumptions.\n\n## Change\n\nThis branch contains #161's construction (#161 is closed in favor of this PR) and adds the following.\n\n| side | word | R | W per vertex | saving |\n|---|---|---:|---:|---:|\n| complex | #161 | 16,011 | 15,681 | 5885669/10\u00b9\u2070 |\n| complex | **this** | **13,372** | **13,655** | **6563200/10\u00b9\u2070** (+11.51%) |\n| bit | #161 | 23,368 | 26,888 | 5936323/10\u00b9\u2070 (coarse) |\n| bit | **this** | **19,788 (18,028 physical)** | **21,548** | **6600253/10\u00b9\u2070** (coarse, +11.18%) |\n\n### Complex word (p = 11)\n\n- **Modules.** The triple-disjoint, pair-disjoint and all-but-one modules are pinned annealed modules in `references/paired-cube/sources`. Each is loaded with its contract checked (`triple_module_from`, `pair_module_from`, `all_but_one_from`), in place of PR117's restrictions and #144's balanced tree. The all-but-one module was annealed from a nested prefix:\n  - prefix sums p_{k+1} = p_k + x_k and suffix sums s_k = x_k + s_{k+1};\n  - outputs y_0 = s_1, y_{n\u22121} = p_{n\u22121} and y_{i+1} = p_i + (x_i + s_{i+2});\n  - each prefix is used twice with nested supports, which admits more carrier links than the balanced tree.\n- **Local channel circuit (`local_L1.json`).** Every cube's 13 local outputs keep their values.\n  - G01 (both modes) and G12 (mode 1) become sums of two shared long-diagonal differences, and F is built on axis 2: 27 additions per cube instead of 25. The (0,1) edges lose their G duty, so the carrier matching gains links.\n  - `Graph(p, local=None)` runs #144's circuit unchanged.\n- **Fused outputs.** Each port's single-target face-2, edge-02 and edge-12 outputs are fused into one signed node read at 1/2, in a fixed fold order per port class (`merge_outputs`, variant `f8:00111100`). This follows #163's same-singleton fusion.\n- **Carrier arcs.** #162's `compile_closure` compiles the frozen 10,704 arcs in the main producer. #144's `verify.py` independently checks acyclicity and span containment. There are 2,310 rank-18 gauges.\n- **Physical layer.** 15,149 operation frames move in connected bundles that share a frame. The 2,310 gauged roles use late-read reuse (#124, #143), paired by maximum weight.\n- **Terminal sinks (`research/terminal-sinks`).** 47 all-eight side roots are terminal sinks under #166's lemma, and `sinks_gate.py` checks them.\n  - A sink's register starts at frame 0, is only ever a destination outside phase one, and has a pivot target p with no deferred read of y_p during its writes.\n  - The register is deleted. At the phase cut y_t \u2212= y_p for the other targets, every write goes to y_p at its own frame, and after the last write y_t += y_p at the root frame.\n  - The gate rechecks every sink condition, scans the literal stage words forward and reflected, runs a dirty-scratch replay mod 2\u2076\u00b9 \u2212 1, and rejects four controls.\n  - Per vertex: W = 13,655, deficit 1,320, largest child 20.\n\n### Bit word (`research/paired-cube-bit`, p = 12)\n\n- **Modules and merge.** The word uses an all-but-one module (n = 10, 33 additions, pinned in `data/qmod_p12.json`) annealed from the nested prefix, and an annealed pair module with 442 additions. Its local channels use the L1 association: the G sums with keys (0,1,0), (0,1,1) and (1,2,1) add the two long face diagonals. Variant u merges each cube's face-1/edge-01 outputs into u(b0,b1) and its face-2/edge-02 outputs into w(b0,b2); each merged node is read by two single roots. There are 3,960 gauges.\n- **Physical layer (new).** `scripts/paired_cube_bit_physical.py` applies the frozen word in `references/paired-cube/bit-physical`: late copies, 2,884 moved operation frames and 1,760 compensated late reads. It checks:\n  - register contents against the package graph;\n  - exact, G-nondegenerate frames;\n  - spliced role chains and pair chronology;\n  - target chains in read order and the partner chronology;\n  - the ledger, by recount;\n  - a 64-lane aliased F2 replay with three controls rejected.\n\n### Assembly\n\n- **Balanced prefix (`scripts/paired_cube_assembly.py`).** It uses the RaD project's reviewed balanced positional transform, with prefix margin 1 \u2212 \u03b5. The original prefix rejects this \u03ba.\n- **Atom exponent at the toll edge.** \u03b8 is the first 10\u207b\u00b9\u00b2 grid point above a_0/(1 + a_0 \u2212 a_old), as in #158: \u03b8 = 323062859/(5\u00b710\u00b9\u00b9).\n\n## Verification\n\n```sh\nmake paired-cube-verify\npython3 research/paired-cube-bit/paired_cube_bit_word.py --p 12 --check\npython3 research/paired-cube-bit/check_paired_cube_bit.py --dir research/paired-cube-bit/out --p 12\n```\n\n`make paired-cube-verify` runs the producer, the complex physical layer, the terminal-sink gate, the bit package checker, the bit physical layer and the network certificate.\n\n- **Complex.** Every coefficient of H + K + B = I, frames, intersections, target chains, and the complex physical layer's spliced chains, read-order target chains, telescoping deficit and aliased mod 2\u2076\u00b9 \u2212 1 replay with three controls.\n- **Bit.** The package checker (five mutation controls), byte-identical regeneration from frozen arcs, and the bit physical layer above.\n- **Assembly.** Both moments are strict, with the next grid points rejected. All 47 constraints and 7 margins hold.\n- Every command above passes on Linux with a clean working tree, as do the maintainer's paired-cube entry-point tests. The full suite runs in CI.\n\n## Credits\n\n- **Paired-cube decoder, modules, shared cores, bit ledger and assembly:** @icekylinx (#144, building on #130).\n- **Closure-compiled carrier arcs and pairing rounds:** @DaysSky (#162).\n- **Terminal-sink lemma:** @jamesyc (#166, closed by its author), audited here by its own gate.\n- **Same-singleton output fusion:** @chafreaky (#163); the fold orders here come from our own search.\n- **Atom exponent and phase stop at their edges:** @geckods (#158, #153).\n- **Balanced positional transform:** the RaD project (@hipotures, #20); balanced assembly composition @jamesyc (#34), with the reviewed parameters of Chafik Boukhalfa's `research/copied-fixed/balanced_assembly.py`.\n- **Physical frames and reuse on covers, late compensation reads:** eumemic, with OpenAI Codex assistance (#131, #143). **Birth-read reuse:** @jamesyc (#124). **Completed-core sharing:** @an664 (#128).\n- **Bit compile conventions:** Zhihao Chen (#97). **Bit lineage of the pair modules (#62):** Swapnil Jain.\n- **Annealed triple, pair and all-but-one modules, the nested prefix, the local-circuit search, output merging (w02, u, the f8 fold orders), bundle descent, both physical layers, the terminal-sink gate, the paired-cube bit word and the assembly integration:** eumemic, with Anthropic Claude assistance.\n- Connected frame moves also appear, as parallel work, in #164's bit-frame descents.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "files": [
+    {
+      "path": "SOURCES.json",
+      "additions": 78,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "certificates/paired-cube-bit-physical-input.json",
+      "additions": 99,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "certificates/paired-cube-complex-input.json",
+      "additions": 66,
+      "deletions": 70,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "certificates/paired-cube-input.json",
+      "additions": 50,
+      "deletions": 59,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "certificates/paired-cube-network.json",
+      "additions": 288,
+      "deletions": 251,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "certificates/paired-cube-physical-input.json",
+      "additions": 86,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "certificates/paired-cube-sinks-input.json",
+      "additions": 312,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "docs/paired-cube.md",
+      "additions": 19,
+      "deletions": 8,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "notes/paired-cube-assembly.tex",
+      "additions": 43,
+      "deletions": 32,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "notes/paired-cube-bit.tex",
+      "additions": 40,
+      "deletions": 51,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "notes/paired-cube-construction.tex",
+      "additions": 33,
+      "deletions": 7,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "notes/paired-cube-note.tex",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "notes/paired-cube-sharing.tex",
+      "additions": 21,
+      "deletions": 5,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "references/paired-cube/bit-physical/frames_p12.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/bit-physical/kchron_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/bit-physical/word_p12.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/physical/README.md",
+      "additions": 20,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/physical/frames.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/physical/pairs.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/selected-module/SOURCE.json",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "references/paired-cube/selected-module/matching-arcs.json",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "references/paired-cube/sources/SOURCE.json",
+      "additions": 9,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/sources/local_L1.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/sources/pmod_J0_full_6.0666810e-4.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/sources/qmod_climb3u_best.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "references/paired-cube/sources/tmod_TE_TD_TB3_1_1_4_full_6.0617964e-4.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/FORMAT.md",
+      "additions": 133,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/LEMMA.md",
+      "additions": 159,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/README.md",
+      "additions": 106,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/check_paired_cube_bit.py",
+      "additions": 465,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/arcs_p11.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/arcs_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/arcs_p13.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/pair_module_p11.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/pair_module_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/pair_module_p12_cut.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/pair_module_p13.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/pair_module_provenance.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/qmod_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/data/source_witness_21.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/derive_pair_modules.py",
+      "additions": 122,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/moment_certificate.py",
+      "additions": 130,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/out/certificate_p12.json",
+      "additions": 55,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/out/frames_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/out/graph_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/out/kchron_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/out/profile_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/out/word_p12.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/out/word_p12.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/paired-cube-bit/paired_cube_bit_word.py",
+      "additions": 952,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/terminal-sinks/README.md",
+      "additions": 66,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/terminal-sinks/sinks.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/terminal-sinks/sinks_gate.py",
+      "additions": 541,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/paired_cube/closure.py",
+      "additions": 147,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/paired_cube/graph.py",
+      "additions": 60,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "scripts/paired_cube/modules.py",
+      "additions": 227,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "scripts/paired_cube/verify.py",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "scripts/paired_cube_assembly.py",
+      "additions": 58,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/paired_cube_bit_physical.py",
+      "additions": 420,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/paired_cube_network.py",
+      "additions": 116,
+      "deletions": 17,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "scripts/paired_cube_physical.py",
+      "additions": 328,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/paired_cube_producer.py",
+      "additions": 7,
+      "deletions": 4,
+      "changeType": "MODIFIED"
+    }
+  ],
+  "headRefOid": "4a3c769e5c5430e7114c4d3e099ff34664677f17",
+  "mergedAt": null,
+  "number": 168,
+  "state": "OPEN",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:16Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018271",
+      "name": "verify (3.11, community)",
+      "startedAt": "2026-10-09T10:10:59Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:16Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018303",
+      "name": "verify (3.11, producers)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018313",
+      "name": "verify (3.11, certificates)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:13:44Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018142",
+      "name": "verify (3.11, ternary)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:18:01Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018077",
+      "name": "verify (3.11, research)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:18Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018087",
+      "name": "verify (3.11, tests)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:34Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018256",
+      "name": "verify (3.11, strips)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:21Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018257",
+      "name": "verify (3.11, clones)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018396",
+      "name": "verify (3.11, positive)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018355",
+      "name": "verify (3.11, joint)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018415",
+      "name": "verify (3.11, pair)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:08Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018336",
+      "name": "verify (3.11, partial-gauge)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:10Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018226",
+      "name": "verify (3.11, three-stage-cover)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018372",
+      "name": "verify (3.11, paired-cube)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:46Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018323",
+      "name": "verify (3.13, community)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:47Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018140",
+      "name": "verify (3.13, producers)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:48Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018351",
+      "name": "verify (3.13, certificates)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:13:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018276",
+      "name": "verify (3.13, ternary)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:17:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018282",
+      "name": "verify (3.13, research)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018450",
+      "name": "verify (3.13, tests)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:39Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018293",
+      "name": "verify (3.13, strips)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018368",
+      "name": "verify (3.13, clones)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018307",
+      "name": "verify (3.13, positive)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:13:25Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018108",
+      "name": "verify (3.13, joint)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018254",
+      "name": "verify (3.13, pair)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018197",
+      "name": "verify (3.13, partial-gauge)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:08Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018157",
+      "name": "verify (3.13, three-stage-cover)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018207",
+      "name": "verify (3.13, paired-cube)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:52Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018133",
+      "name": "verify (3.14, community)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:13:15Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018153",
+      "name": "verify (3.14, producers)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018114",
+      "name": "verify (3.14, certificates)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:13:25Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018180",
+      "name": "verify (3.14, ternary)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:19:37Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018044",
+      "name": "verify (3.14, research)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:16:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018176",
+      "name": "verify (3.14, tests)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:13:34Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018169",
+      "name": "verify (3.14, strips)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:40Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018302",
+      "name": "verify (3.14, clones)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:53Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018294",
+      "name": "verify (3.14, positive)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:15:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018203",
+      "name": "verify (3.14, joint)",
+      "startedAt": "2026-10-09T10:10:25Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:14:07Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018270",
+      "name": "verify (3.14, pair)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:29Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018484",
+      "name": "verify (3.14, partial-gauge)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018199",
+      "name": "verify (3.14, three-stage-cover)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772018171",
+      "name": "verify (3.14, paired-cube)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:17:32Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772017177",
+      "name": "formal (historical)",
+      "startedAt": "2026-10-09T10:10:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772017588",
+      "name": "formal (gaussian)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T10:11:07Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37915944171/job/113772017627",
+      "name": "formal (matrix)",
+      "startedAt": "2026-10-09T10:10:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    }
+  ],
+  "title": "Annealed modules, terminal sinks and physical bit words on paired cubes: conditional \u03ba = 6.558894e-4"
+}

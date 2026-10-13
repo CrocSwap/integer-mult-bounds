@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Alternate fresh-process complete Gram checks on identical R420 inputs."""
+import argparse
+import hashlib
+import json
+import importlib.util
+from pathlib import Path
+import platform
+import statistics
+import subprocess
+import sys
+import tempfile
+import time
+
+import adapter
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--pairs', type=int, default=15)
+    ap.add_argument('--out', type=Path, required=True)
+    args = ap.parse_args()
+    adapter.require(not sys.flags.optimize, 'enabled assertions required')
+    adapter.require(args.pairs >= 3, 'at least three pairs required')
+    adapter.require(not args.out.exists(), 'output already exists')
+    pins, payload = adapter.source_check()
+    samples = []
+    kernel_samples = []
+    with tempfile.TemporaryDirectory(prefix='gram-prefix-benchmark-') as tmp:
+        frames = Path(tmp)
+        (frames / 'frames.json').write_bytes(payload)
+        # Untimed exact comparison covers every actual determinant call first.
+        requests = []
+        reference = adapter.execute('reference', frames, trace=True, requests=requests)
+        compared = adapter.execute('compare', frames, trace=True)
+        for key in ('stdout', 'determinant_calls', 'determinant_trace_sha256'):
+            adapter.require(reference[key] == compared[key], 'reference mismatch: ' + key)
+        # Seed 88 chooses reference first; order reverses in each following pair.
+        for pair in range(args.pairs):
+            engines = ('reference', 'prefix') if (88 + pair) % 2 == 0 else ('prefix', 'reference')
+            row = {'pair': pair, 'order': list(engines)}
+            for engine in engines:
+                command = [sys.executable, '-B', str(adapter.HERE / 'adapter.py'),
+                           '--frames', str(frames), '--engine', engine]
+                start = time.perf_counter()
+                process = subprocess.run(command, capture_output=True, text=True)
+                seconds = time.perf_counter() - start
+                adapter.require(process.returncode == 0, process.stderr)
+                adapter.require(process.stdout == reference['stdout'], 'complete checker output changed')
+                row[engine + '_seconds'] = seconds
+                row[engine + '_stdout_sha256'] = hashlib.sha256(process.stdout.encode()).hexdigest()
+            samples.append(row)
+        # A separate in-process workload uses the exact recorded request order.
+        # Input loading, imports, equality checks and hashing are outside timing.
+        from kernel import PrefixDeterminant
+        path = adapter.ROOT / 'research/e8-bit-carrier-skeleton/code/pricing/prime_witnesses.py'
+        spec = importlib.util.spec_from_file_location('gram_benchmark_reference', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        expected = [module.det(matrix) for matrix in requests]
+        for pair in range(args.pairs):
+            engines = ('reference', 'prefix') if (88 + pair) % 2 == 0 else ('prefix', 'reference')
+            row = {'pair': pair, 'order': list(engines)}
+            for engine in engines:
+                determinant = module.det if engine == 'reference' else PrefixDeterminant(module.det)
+                start = time.perf_counter()
+                actual = [determinant(matrix) for matrix in requests]
+                row[engine + '_seconds'] = time.perf_counter() - start
+                adapter.require(actual == expected, 'timed determinant stream changed')
+            kernel_samples.append(row)
+    medians = {engine: statistics.median(row[engine + '_seconds'] for row in samples)
+               for engine in ('reference', 'prefix')}
+    kernel_medians = {engine: statistics.median(row[engine + '_seconds'] for row in kernel_samples)
+                      for engine in ('reference', 'prefix')}
+    own_sources = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                   for p in sorted(adapter.HERE.glob('*.py'))}
+    result = dict(status='PASS_GRAM_PREFIX_BENCHMARK',
+                  scope='Complete 672-frame Gram checker including adapter startup and source/fixture validation, fresh processes, existing exported inputs; no exporter or full frontier replay timing.',
+                  environment=dict(python=sys.version, executable=sys.executable, platform=platform.platform(),
+                                   machine=platform.machine(), filesystem_caches_flushed=False),
+                  source=pins, package_python_sha256=own_sources,
+                  reference_receipt=reference, compared_receipt=compared,
+                  samples=samples, median_seconds=medians,
+                  determinant_stream=dict(requests=len(requests), samples=kernel_samples,
+                      median_seconds=kernel_medians, speedup=kernel_medians['reference']/kernel_medians['prefix'],
+                      result_sha256=hashlib.sha256(json.dumps(expected, separators=(',', ':')).encode()).hexdigest()),
+                  speedup=medians['reference']/medians['prefix'],
+                  wall_time_reduction=1-medians['prefix']/medians['reference'])
+    with args.out.open('x') as stream:
+        json.dump(result, stream, indent=2)
+        stream.write('\n')
+    print('PASS_GRAM_PREFIX_BENCHMARK', json.dumps(medians), 'speedup', result['speedup'])
+
+
+if __name__ == '__main__':
+    main()

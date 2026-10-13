@@ -1,0 +1,45 @@
+--- original_generate_flat16_circuit.py
++++ portable_generate_flat16_circuit.py
+@@ -1,4 +1,4 @@
+-"""Generate mathematical circuit data; no donor import, compiler or guard invocation."""
++"""Portable path/provenance adapter of c3b501f5ed92e3f90fa5210e941283a91b745d17671a3a552552c41fc7a48efe. Mathematical generation is unchanged."""
+ from pathlib import Path
+ import argparse,json,re,hashlib,datetime
+ 
+@@ -24,8 +24,8 @@
+ def sparse(x):return [[i,x[i]] for i in sorted(x)]
+ def main():
+  a=argparse.ArgumentParser();a.add_argument('--output',required=True);args=a.parse_args()
+- data_path=B/'verification/outer48/outer48_exact_rational_and_integer_data.json'
+- lean_path=B/'formal/Outer48Data.lean'
++ data_path=B/'input/outer48_exact_rational_and_integer_data.json'
++ lean_path=B/'lean/Outer48Data.lean'
+  assert sha(data_path)==DATA_SHA and sha(lean_path)==LEAN_SHA
+  data=json.loads(data_path.read_text(encoding='utf-8'));minimal=data['minimal_integer_certificate']
+  alpha=minimal['alpha_integer'];beta=minimal['beta_integer'];gamma=minimal['gamma_numerator']
+@@ -35,9 +35,14 @@
+  assert read_lean_table(source,'gammaNumerator')==gamma
+  assert data['per_leg_denominator_scales']=={'alpha':1,'beta':1,'gamma':8}
+  donor=data['source_sha256'];assert donor=='a0dd1675fa9f8389230db4dc376639ee20b0f9786765b9e75abc60c14844f0ef'
+- outer_receipt=B/'formal/attempts/003-Outer48Data/actual_invocation.json'
++ outer_receipt=B/'evidence/actual_nine_sources_35_standard_public_projection.json'
++ assert sha(outer_receipt)=='8dba5fc5be9405ccc7d6605324442f8781c260afe3633fa9b1aff290a462c779'
+  old=json.loads(outer_receipt.read_text(encoding='utf-8'))
+- assert old['piece_qualified_PASS'] and old['source_sha256']==LEAN_SHA
++ assert old['status']=='PASS_EXACT_9_SOURCE_35_STANDARD_SCOPE'
++ assert old['source_count']==9 and old['unique_standard_endpoint_count']==35
++ outer_row=next(x for x in old['module_rows'] if x['module']=='Outer48Data')
++ assert outer_row['actual_exit_code']==0 and outer_row['source_sha256']==LEAN_SHA
++ assert all(x['classification']=='STANDARD_KERNEL_AXIOMS' for x in outer_row['selected_axiom_outputs'])
+  gates=[];outputs=[{} for _ in range(256)]
+  for t in range(48):
+   # A full coordinate: row=4*outer_row+inner_row, col=4*outer_col+inner_col.
+@@ -82,7 +87,7 @@
+  outputs=[{i:c for i,c in row.items() if c} for row in outputs]
+  assert len(gates)==2208 and len(outputs)==256
+  participates={i for row in outputs for i in row};assert participates==set(range(2208))
+- result={'schema':'personal-matrix-flat16-mixed-linear-products-integer-output-v1','status':'GENERATED_EXPLICIT_CIRCUIT_REQUIRES_INDEPENDENT_POLYNOMIAL_VERIFICATION','generated_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'producer':{'filename':Path(__file__).name,'sha256':sha(__file__)},'source_lineage':{'outer_data_filename':data_path.name,'outer_data_sha256':DATA_SHA,'actual_Outer48_Lean_source_filename':lean_path.name,'actual_Outer48_Lean_source_sha256':LEAN_SHA,'actual_Outer48_PASS_receipt_filename':outer_receipt.name,'actual_Outer48_PASS_receipt_sha256':sha(outer_receipt),'donor_code_url':data['source_url'],'donor_code_commit':data['source_revision'],'donor_code_sha256':donor,'leaf_source':'Rosowski division-free even-inner-dimension P/R/Q/M identities;4×4 instance','leaf_primary_url':'https://arxiv.org/html/1904.07683v2','formal_leaf_interface':'PersonalMatrix.RosowskiEven.Gates(((I×H)⊕(I×H))⊕((H×J)⊕((I×H)×J))); I=Fin4,H=Fin2,J=Fin3','gate_derivation':'global_id=46*outer_term+leaf_gate; P8,R8,Q6,M24 in lexicographic product/sum order. All coefficient scalings are fixed; there are no additional input-dependent products in recombination.'},'variable_order':{'variables':512,'A':[0,255],'B':[256,511],'coordinate_rule':'A(r,c)=16*r+c; B(r,c)=256+16*r+c. Full row=4*outer_row+inner_row and full col=4*outer_col+inner_col.','paired_leaf_inner':'2*h+Bool (false0,true1)','leaf_column':'OptionFin3: none0,somej0→j0+1'},'common_output_denominator':8,'semantics':'For each scalar outputo, sum(output_numerator[o,g]·left_g·right_g)=8·(A*B)[o]. Over a commutative ring with8invertible, divide only by fixed8. The circuit is mixed-input quadratic, not a tensor-rank2208 decomposition.','gate_count':2208,'gates':gates,'output_numerators':[{'id':o,'row':o//16,'col':o%16,'terms':sparse(row)} for o,row in enumerate(outputs)],'claims_not_made':['No optimal product/addition count, numerical stability, measured speed, new exponent or universal priority.','Executable certificate correctness remains separate from the formal compound proof; exact source/base qualification is bound but no new Lean invocation occurs here.']}
++ result={'schema':'personal-matrix-flat16-mixed-linear-products-integer-output-v1','status':'GENERATED_EXPLICIT_CIRCUIT_REQUIRES_INDEPENDENT_POLYNOMIAL_VERIFICATION','generated_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'producer':{'filename':Path(__file__).name,'sha256':sha(__file__)},'source_lineage':{'outer_data_filename':data_path.name,'outer_data_sha256':DATA_SHA,'actual_Outer48_Lean_source_filename':lean_path.name,'actual_Outer48_Lean_source_sha256':LEAN_SHA,'actual_public_qualification_projection_filename':outer_receipt.name,'actual_public_qualification_projection_sha256':sha(outer_receipt),'original_Outer48_actual_receipt_sha256':outer_row['original_actual_receipt_sha256'],'donor_code_url':data['source_url'],'donor_code_commit':data['source_revision'],'donor_code_sha256':donor,'leaf_source':'Rosowski division-free even-inner-dimension P/R/Q/M identities;4×4 instance','leaf_primary_url':'https://arxiv.org/html/1904.07683v2','formal_leaf_interface':'PersonalMatrix.RosowskiEven.Gates(((I×H)⊕(I×H))⊕((H×J)⊕((I×H)×J))); I=Fin4,H=Fin2,J=Fin3','gate_derivation':'global_id=46*outer_term+leaf_gate; P8,R8,Q6,M24 in lexicographic product/sum order. All coefficient scalings are fixed; there are no additional input-dependent products in recombination.'},'variable_order':{'variables':512,'A':[0,255],'B':[256,511],'coordinate_rule':'A(r,c)=16*r+c; B(r,c)=256+16*r+c. Full row=4*outer_row+inner_row and full col=4*outer_col+inner_col.','paired_leaf_inner':'2*h+Bool (false0,true1)','leaf_column':'OptionFin3: none0,somej0→j0+1'},'common_output_denominator':8,'semantics':'For each scalar outputo, sum(output_numerator[o,g]·left_g·right_g)=8·(A*B)[o]. Over a commutative ring with8invertible, divide only by fixed8. The circuit is mixed-input quadratic, not a tensor-rank2208 decomposition.','gate_count':2208,'gates':gates,'output_numerators':[{'id':o,'row':o//16,'col':o%16,'terms':sparse(row)} for o,row in enumerate(outputs)],'claims_not_made':['No optimal product/addition count, numerical stability, measured speed, new exponent or universal priority.','Executable certificate correctness remains separate from the formal compound proof; exact source/base qualification is bound but no new Lean invocation occurs here.']}
+  assert sha(data_path)==DATA_SHA and sha(lean_path)==LEAN_SHA
+  dest=Path(args.output).resolve();assert not dest.exists();dest.parent.mkdir(parents=True,exist_ok=True)
+  with dest.open('x',encoding='utf-8') as f:json.dump(result,f,ensure_ascii=False,indent=2);f.write('\n')

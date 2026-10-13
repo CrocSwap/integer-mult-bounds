@@ -1,0 +1,46 @@
+Scalar payload versus address field: no F3 lift of the XOR word
+================================================================
+
+Reviewed at PR68 commit 85781f662b57521743cce07cdd5ea194e6f3879d, with
+independent corroboration from the finite-frames audit group.
+
+The current copied-fixed and pair/frame constructions deliberately use
+binary payloads. research/copied-fixed/PROOF.md lines 99-109 distinguishes
+the payload field F2 from rational address projectors, subsequently reduced
+modulo an eligible odd prime. The scalar intersection identity and dirty
+wrapper rely on characteristic two. The emitted compiler and replay use
+literal XOR throughout. This is consistent with the original bit-network
+transfer in upstream/build/sections/04-swap.tex: lines 107, 165-184 and 245
+describe pointwise bit gates, common-address-permutation naturality, and
+one-bit payloads. Rational or modular projector entries do not make those
+payloads rational or odd-characteristic field elements.
+
+notes/batched-algorithms.tex lines 9-18 instead starts from the prime-field
+F3 five-subset circuit with h=28 and H0=784. Its F3 table at line 186 is a
+specialization of that older construction. It must not silently be applied
+to the later h23/h25 XOR program. A generic finite-alphabet transfer may
+instantiate an F2 table; a proof or implementation consuming the older
+text literally must change that instantiation and bind the binary circuit
+and widths explicitly. This source mismatch is an interface obligation,
+not evidence that the current checked binary word should work over F3.
+
+An all-plus lift is false even for the minimal dirty wrapper with L=J=V=1.
+Over F3 its successive two scatters and two injections send
+  (x,y,z) -> (x, y+2z+x, z+2x),
+instead of restoring z and adding only x to y. For example x=1,y=z=0
+leaves scratch z=2. Reversing a literal XOR word is an inverse because each
+XOR is an involution over F2; the same positive shear is not self-inverse
+over F3. A signed arbitrary-field redesign is a different construction
+and would require fresh scalar correctness and frame/charge binding.
+
+The common-address-permutation argument itself is field-independent:
+every fixed pointwise gate commutes with applying the same address
+permutation to all of its operands. It therefore applies to the actual
+binary payload alphabet without identifying payload and address fields.
+This observation does not supply the omitted fixed-tape streaming,
+padding, charging, recurrence or recovery proofs by itself.
+
+Sources at the immutable commit:
+https://github.com/CrocSwap/integer-mult-bounds/blob/85781f662b57521743cce07cdd5ea194e6f3879d/research/copied-fixed/PROOF.md
+https://github.com/CrocSwap/integer-mult-bounds/blob/85781f662b57521743cce07cdd5ea194e6f3879d/upstream/build/sections/04-swap.tex
+https://github.com/CrocSwap/integer-mult-bounds/blob/85781f662b57521743cce07cdd5ea194e6f3879d/notes/batched-algorithms.tex

@@ -1,0 +1,61 @@
+# Per-PR review index
+
+Pinned round-9 snapshot: 51 new PRs and four changed heads. See [review-ledger.json](review-ledger.json) for exact heads, evidence and limitations, and [REPORT.md](REPORT.md) for recommendations. Finite passes remain conditional on inherited interfaces. All scheduled checks have finished; findings requiring changes and conditional scope remain explicit.
+
+| PR | Contributor | Disposition |
+|---|---|---|
+| [#240](https://github.com/CrocSwap/integer-mult-bounds/pull/240) | rohanarun | complete-changed-work-replay-passed |
+| [#239](https://github.com/CrocSwap/integer-mult-bounds/pull/239) | RichardHoekstra | focused-review-passed |
+| [#237](https://github.com/CrocSwap/integer-mult-bounds/pull/237) | rohanarun | changed-banks-replay-passed |
+| [#236](https://github.com/CrocSwap/integer-mult-bounds/pull/236) | jamesyc | complete-kernel-replay-passed-with-portability-note |
+| [#235](https://github.com/CrocSwap/integer-mult-bounds/pull/235) | gabriele-nespoli | changed-work-replay-passed |
+| [#234](https://github.com/CrocSwap/integer-mult-bounds/pull/234) | hcg890 | complete-finite-replay-passed |
+| [#233](https://github.com/CrocSwap/integer-mult-bounds/pull/233) | chafreaky | complete-finite-replay-passed |
+| [#232](https://github.com/CrocSwap/integer-mult-bounds/pull/232) | maxime-fleury | priced-target-replay-passed-with-path-fix-needed |
+| [#231](https://github.com/CrocSwap/integer-mult-bounds/pull/231) | GamingPuzzled | scoped-proof-and-check-passed |
+| [#230](https://github.com/CrocSwap/integer-mult-bounds/pull/230) | sennemmi | complete-offline-finite-replay-passed |
+| [#229](https://github.com/CrocSwap/integer-mult-bounds/pull/229) | maxime-fleury | priced-target-arithmetic-replay-passed |
+| [#228](https://github.com/CrocSwap/integer-mult-bounds/pull/228) | tehruhn | scoped-replay-passed |
+| [#227](https://github.com/CrocSwap/integer-mult-bounds/pull/227) | Dugongue | complete-native-finite-replay-passed |
+| [#226](https://github.com/CrocSwap/integer-mult-bounds/pull/226) | pCwOrM | changes-needed-arithmetic-passes |
+| [#225](https://github.com/CrocSwap/integer-mult-bounds/pull/225) | chafreaky | scoped-replay-passed |
+| [#224](https://github.com/CrocSwap/integer-mult-bounds/pull/224) | maxime-fleury | priced-target-arithmetic-replay-passed |
+| [#223](https://github.com/CrocSwap/integer-mult-bounds/pull/223) | ikeboy | complete-changed-work-replay-passed |
+| [#222](https://github.com/CrocSwap/integer-mult-bounds/pull/222) | romainhedouin | finite-regeneration-passed |
+| [#221](https://github.com/CrocSwap/integer-mult-bounds/pull/221) | maxime-fleury | scoped-ceiling-replay-passed |
+| [#220](https://github.com/CrocSwap/integer-mult-bounds/pull/220) | maxime-fleury | documentation-review-passed |
+| [#218](https://github.com/CrocSwap/integer-mult-bounds/pull/218) | GamingPuzzled | scoped-replay-passed |
+| [#217](https://github.com/CrocSwap/integer-mult-bounds/pull/217) | hcg890 | complete-finite-stages-passed-with-environment-note |
+| [#216](https://github.com/CrocSwap/integer-mult-bounds/pull/216) | Dugongue | native-replay-passed-packaging-fix-needed |
+| [#215](https://github.com/CrocSwap/integer-mult-bounds/pull/215) | GamingPuzzled | scoped-documentation-reviewed |
+| [#214](https://github.com/CrocSwap/integer-mult-bounds/pull/214) | antoine-olivier | independent-audit-documentation-reviewed |
+| [#213](https://github.com/CrocSwap/integer-mult-bounds/pull/213) | sennemmi | parameter-followup-replay-passed |
+| [#212](https://github.com/CrocSwap/integer-mult-bounds/pull/212) | chafreaky | scoped-ceiling-review-passed |
+| [#211](https://github.com/CrocSwap/integer-mult-bounds/pull/211) | rohanarun | complete-changed-work-replay-passed |
+| [#210](https://github.com/CrocSwap/integer-mult-bounds/pull/210) | eumemic | complete-finite-replay-passed |
+| [#209](https://github.com/CrocSwap/integer-mult-bounds/pull/209) | jacobalansussman | documentation-review-passed |
+| [#208](https://github.com/CrocSwap/integer-mult-bounds/pull/208) | maxime-fleury | priced-target-arithmetic-replay-passed |
+| [#207](https://github.com/CrocSwap/integer-mult-bounds/pull/207) | Dugongue | complete-finite-replay-passed |
+| [#205](https://github.com/CrocSwap/integer-mult-bounds/pull/205) | rohanarun | changed-work-and-parent-replays-passed-with-portability-note |
+| [#204](https://github.com/CrocSwap/integer-mult-bounds/pull/204) | maxime-fleury | arithmetic-followup-replay-passed |
+| [#203](https://github.com/CrocSwap/integer-mult-bounds/pull/203) | huxint | scoped-replay-passed |
+| [#202](https://github.com/CrocSwap/integer-mult-bounds/pull/202) | chafreaky | canonical-hash-reproduction-fix-needed |
+| [#201](https://github.com/CrocSwap/integer-mult-bounds/pull/201) | DaysSky | scoped-ceiling-review-passed |
+| [#200](https://github.com/CrocSwap/integer-mult-bounds/pull/200) | chafreaky | complete-finite-replay-passed |
+| [#199](https://github.com/CrocSwap/integer-mult-bounds/pull/199) | maxime-fleury | arithmetic-and-donor-diagnostic-replay-passed |
+| [#198](https://github.com/CrocSwap/integer-mult-bounds/pull/198) | sennemmi | stale-provenance-and-canonical-reproduction-fixes-needed |
+| [#197](https://github.com/CrocSwap/integer-mult-bounds/pull/197) | evmckinney9 | changed-work-and-parent-replays-passed-with-portability-note |
+| [#196](https://github.com/CrocSwap/integer-mult-bounds/pull/196) | chafreaky | complete-finite-replay-passed |
+| [#195](https://github.com/CrocSwap/integer-mult-bounds/pull/195) | huxint | complete-finite-replay-passed |
+| [#194](https://github.com/CrocSwap/integer-mult-bounds/pull/194) | ikeboy | canonical-hash-reproduction-fix-needed |
+| [#193](https://github.com/CrocSwap/integer-mult-bounds/pull/193) | ikeboy | finite-replay-passed-with-strict-portability-adapter |
+| [#192](https://github.com/CrocSwap/integer-mult-bounds/pull/192) | DaysSky | scoped-ceiling-review-passed |
+| [#191](https://github.com/CrocSwap/integer-mult-bounds/pull/191) | ikeboy | canonical-hash-reproduction-fix-needed |
+| [#190](https://github.com/CrocSwap/integer-mult-bounds/pull/190) | romainhedouin | full-affected-suite-passed |
+| [#189](https://github.com/CrocSwap/integer-mult-bounds/pull/189) | chafreaky | complete-finite-replay-passed |
+| [#188](https://github.com/CrocSwap/integer-mult-bounds/pull/188) | huxint | complete-finite-replay-passed-with-portability-fixes-needed |
+| [#187](https://github.com/CrocSwap/integer-mult-bounds/pull/187) | rohanarun | complete-finite-replay-passed |
+| [#186](https://github.com/CrocSwap/integer-mult-bounds/pull/186) | Dugongue | complete-native-finite-replay-passed |
+| [#180](https://github.com/CrocSwap/integer-mult-bounds/pull/180) | M6LI | independent-finite-replay-passed |
+| [#178](https://github.com/CrocSwap/integer-mult-bounds/pull/178) | rohanarun | receipt-only-update |
+| [#162](https://github.com/CrocSwap/integer-mult-bounds/pull/162) | DaysSky | scoped-replay-passed |

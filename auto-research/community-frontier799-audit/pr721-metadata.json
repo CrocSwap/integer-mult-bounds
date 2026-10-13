@@ -1,0 +1,54 @@
+{
+  "author": {
+    "id": "U_kgDOBoaXzg",
+    "is_bot": false,
+    "login": "cxnmai",
+    "name": "Chinmay Khaladkar"
+  },
+  "baseRefOid": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "body": "## Tooling improvement \u2014 no new \u03ba\n\nStream the pinned PR181 split ZIP and its decompressed Git blobs in `verify_pr_reconciliation.py`, rather than retaining every part, the concatenated archive and whole members. All original part/archive SHA256, ZIP CRC, Git identity and file-count checks remain; an explicit actual-member-size check adds rejection of inconsistent ZIP metadata.\n\n**Measured full-verifier peak process RSS: 107,958,272 \u2192 47,034,368 bytes (56.4% lower).** Runtime is effectively unchanged (2.255 \u2192 2.244 s median; not a speedup claim). Under a 96 MiB address-space limit the base verifier raises `MemoryError`, while the new verifier completes with identical stdout. The temporary spool uses 33,595,108 bytes of storage; tmpfs still consumes system RAM, so this is not a total-system-memory claim.\n\n### Reproduce\n```sh\npython3 -B research/streamed-reconciliation/benchmark.py --rounds 5 --memory-limit-mib 96\npython3 -B -m unittest discover -s tests -p 'test_*reconciliation*.py' -v\n```\nExpected: JSON with identical stdout hashes for successful before/after runs; 11 tests pass. Absolute timings and capped outcomes depend on environment. `RESULT.json` records every sample and exact source/archive pins. All **1,700** real blob identities also match an independent whole-buffer oracle. Controls include corrupt parts, repinned bad CRC/truncation, inflated uncompressed size, duplicate names, compression formats and chunk boundaries.\n\n### Scope and validation\n- Exact base: `66849e1475c930fd7732b1a0067ffee7e1e95f60`; OS-random assignment seed **86**, verification engineering.\n- Normal and optimized focused tests pass; full offline verifier passes in ten benchmark processes and the capped after-run; `make selected-record-check` and `git diff --check` pass.\n- No selected construction/certificate or `upstream/` change. Full `make verify` and the expensive cold-construction suite were not rerun for this archive-I/O change.\n- No pinned coordination issue existed; local claim, completed result, candidates and final overlap check are in `CLAIM.json`.\n- Refreshed 539 open PRs through #720. PR704 by roife separately hardens decision metadata in this same verifier; this is an independent archive-reader optimization, not a competing metadata fix.\n\nCredit Douglas R. Colkitt's reconciliation infrastructure and Chafik Boukhalfa's preserved PR181 archive and predecessors. Prepared by **cxnmai with substantial OpenAI AI-assistant assistance**, including a separate AI review whose requested member-size/cleanup control was added. Apache-2.0; no independent human review or formal multiplication theorem is claimed.\n",
+  "changedFiles": 6,
+  "files": [
+    {
+      "path": "research/streamed-reconciliation/CLAIM.json",
+      "additions": 23,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/streamed-reconciliation/README.md",
+      "additions": 89,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/streamed-reconciliation/RESULT.json",
+      "additions": 104,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/streamed-reconciliation/benchmark.py",
+      "additions": 96,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/verify_pr_reconciliation.py",
+      "additions": 43,
+      "deletions": 15,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "tests/test_reconciliation_archive.py",
+      "additions": 128,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "0038fa9051bcbf52ccea8e29272840b13126e539",
+  "isDraft": false,
+  "number": 721,
+  "state": "OPEN",
+  "title": "Tooling: reduce reconciliation replay peak RSS by 56% with exact streaming"
+}

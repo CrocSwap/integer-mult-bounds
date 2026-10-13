@@ -1,0 +1,35 @@
+--- research/cost-live-both/compiler.py
++++ research/audit-order23/compiler.py
+@@ -73,6 +73,21 @@
+      if place[g]<place[target]and contained(b['frame'],blocks[target]['frame']):
+       b['candidates'].append((u,i))
+  return c,blocks,uses,value_uses,owner,signal,order,contained
++
++# Bounded composition with PR65 cover/core order; preserve its topology checks.
++_original_build = build
++def build(h):
++ parts=list(_original_build(h))
++ c,blocks,uses,value_uses,owner,signal,order,contains=parts
++ assert h==23
++ parts[6]=sorted(range(len(blocks)),key=lambda g:(blocks[g]['rank'],blocks[g]['frame'][1],blocks[g]['frame'][0]))
++ position={g:i for i,g in enumerate(parts[6])}
++ for g,b in enumerate(blocks):
++  for x in b['inputs']:
++   assert position[owner[x]]<position[g], 'Non-topological region order'
++  for u,i in b['candidates']:
++   assert position[g]<position[uses[u][1]], 'Backward carrier candidate'
++ return tuple(parts)
+ 
+ def match(blocks,uses,enabled):
+  edges=[];byblock=[]
+@@ -151,7 +166,9 @@
+   return cache[a,b]
+  def profile_cost(a,g):
+   old=frames[a]+2;target=g+2
+-  return profile_entropy(old,1)-profile_entropy(old,target)-profile_entropy(target,1)
++  # Local audit variant: compare a live control to its known next use.
++  future=pending[a]+2 if a in pending else 1
++  return profile_entropy(old,future)-profile_entropy(old,target)-profile_entropy(target,future)
+  def acquire(g,anchors):
+   if reclaim:
+    bb={}

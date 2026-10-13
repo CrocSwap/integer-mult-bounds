@@ -1,0 +1,36 @@
+name: Exact Clifford state accelerator
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/clifford-state-performance/**'
+      - '.github/workflows/clifford-state-performance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/clifford-state-performance/**'
+      - '.github/workflows/clifford-state-performance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-comparison:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, repository baseline pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, repository baseline pin
+        with:
+          python-version: '${{ matrix.python }}'
+      - name: Compare exact states and rejection controls
+        run: python -B research/clifford-state-performance/test_state.py
+      - name: Benchmark the complete helper-interface check
+        if: matrix.python == '3.13'
+        run: python -B research/clifford-state-performance/benchmark.py --pairs 3 --out /tmp/clifford-state-benchmark.json

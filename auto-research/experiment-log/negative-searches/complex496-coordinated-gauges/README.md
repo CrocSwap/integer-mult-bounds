@@ -1,0 +1,11 @@
+# Coordinated gauges on PR496: no improvement in the tested models
+
+Baseline: PR496 head `00cf70efd6a8637531deafef698157ca83e249ee`, conditional kappa 0.001332077359286333. These searches precede the higher frame-retimed PR501/502 baseline. Source word and selection are preserved in the adjacent [prior followups](../complex496-followups/README.md).
+
+The [476-case ledger](complex496-gauge-intersections/LEDGER.json) tests helper entrance intersections with every served centre, then coordinated centre-wide resets to a common line. It yields 22 distinct locally accepted paid-profile/width classes including the baseline. Constructor rejection is distinguished from an accepted but inferior candidate; duplicates retain their original trial record.
+
+[All-hosted packing](complex496-gauge-pricing/COMPLETE.json) reproduces the baseline; all 21 changed profiles are infeasible within that fixed no-bank model. This is not mathematical impossibility. A second [bank-permitting packing model](complex496-gauge-bank-pricing/COMPLETE.json) prices every class successfully; all 21 alternatives lose after the extra live banks and their padding are charged. The best changed profile has floating complex root about 0.0013216529919840294 with 137 banks, below the baseline complex endpoint 0.00133385415620840915601.
+
+All integer allocation equalities and total rank deficit are checked directly. Floating MILP objectives, gaps and roots are discovery evidence, not exact rational optimality certificates. No changed candidate received physical edge coloring, Gaussian replay or complete outer assembly. The saved assignments, words, selections, geometry and scripts expose the tested model. These are workspace discovery scripts with upstream dependencies, not a standalone verifier.
+
+Retry guidance: do not repeat these centre-wide line resets against the old word. A useful retry must preserve more compatible existing gauges, change donor classes, or reprice actual retimed words from PR501/502. A smaller local rank bill is insufficient if entrances become wider and force new banks. Credits for the source gauge/kernel geometry remain with DreamingOfClouds and the retained PR484 predecessors; this search and archive were prepared with OpenAI Codex assistance.

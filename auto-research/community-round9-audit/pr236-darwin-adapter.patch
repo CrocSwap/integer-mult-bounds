@@ -1,0 +1,30 @@
+--- submitted/offline_check.py
++++ audit-only/darwin_uncapped_subset.py
+@@ -20,7 +20,7 @@
+ import sys
+ import time
+ 
+-POLICY = "offline-lean-check-v1"
++POLICY = "maintainer-darwin-uncapped-subset-v1"
+ ALLOWED_AXIOMS = {"propext", "Quot.sound", "Classical.choice"}
+ NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\Z")
+ AUDIT = re.compile(r"^'([^']+)' (?:depends on axioms: \[([^\]]*)\]|does not depend on any axioms)\s*$", re.M)
+@@ -217,7 +217,7 @@
+     for p in [object_path, source_path, log_path, receipt_path]: p.parent.mkdir(parents=True, exist_ok=True)
+     key = dict(policy=POLICY, compiler=compiler, source_sha256=m["source_sha256"],
+                expected_axiom_commands=m["expected_axiom_commands"], imports=m["imports"],
+-               dependencies=dependencies, timeout_seconds=timeout, address_space_bytes=4 * 1024**3,
++               dependencies=dependencies, timeout_seconds=timeout, address_space_bytes=None,
+                lean_jobs=1, lean_stack_kib=65536, allowed_axioms=sorted(ALLOWED_AXIOMS))
+     if resume and receipt_path.exists():
+         old = json.loads(receipt_path.read_text())
+@@ -238,8 +238,7 @@
+         compile_started = time.monotonic()
+         try:
+             result = subprocess.run(command, cwd=output / "sources", env=env, capture_output=True, text=True,
+-                                    timeout=timeout, preexec_fn=lambda: resource.setrlimit(
+-                                        resource.RLIMIT_AS, (4 * 1024**3, 4 * 1024**3)))
++                                    timeout=timeout)
+             text = result.stdout + result.stderr
+             base["compiler_exit"] = result.returncode
+         except subprocess.TimeoutExpired as exc:

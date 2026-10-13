@@ -1,0 +1,88 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{A common flag basis for the two-stage interchange}
+\date{Draft, October 8, 2026}
+\begin{document}
+\maketitle
+
+The partial-swap batching lemma (\texttt{partial-swap-batching.tex}) compiles an edge of rank $a>m/2$ into
+$m-a$ corner transpositions and one aligned block, after one unimodular change of basis $S_0$. A generic $S_0$
+puts every corner in the open Bruhat cell, so the corner transpositions are reversed and each costs one
+singleton call. This note gives one rational basis in which the corners of every auxiliary and centre edge of
+the two-stage motif are lower triangular, so their transpositions form one contiguous run.
+
+\paragraph{Runs.} For an idempotent $p$ of any rank, the lower--lower Bruhat involution of $S_p$ is exactly
+$\{H_i\leftrightarrow D_j:(i,j)\text{ a rightmost pivot of }p\}$: the rank function of the blocks of rows $1..i$ and
+columns $j..2m$ of $S_p$ is that of $p$ on the $H\times D$ part and that of the identity elsewhere, for the $H$ rows
+and the $D$ rows alike. In particular $S_p$ has exactly $\operatorname{rank}p$ transpositions, with no condition on
+$\operatorname{rank}p$. A maximal run of pivots
+$(i,j),(i+1,j+1),\dots,(i+w-1,j+w-1)$ is one interchange of the contiguous chunks $H_{[i,i+w)}$ and $D_{[j,j+w)}$:
+the aligned case is PR~\#10's middle block, and shifted runs are already PR~\#10's corner block.
+An edge of rank $r\le m/2$ is one child exactly when its $r\times r$ block (first $r$ rows, last $r$ columns) is
+lower triangular with nonzero diagonal; an edge of rank $r>m/2$ compiles to two children (the corner run and the
+aligned middle block of width $2r-m$) exactly when its $(m-r)\times(m-r)$ corner is lower triangular with nonzero
+diagonal. These are closed conditions, so they must hold through the structure of the basis.
+
+\paragraph{Construction.} Write $F=\mathbb Q^h$ with the dot product, and let $U,V\in GL_h(\mathbb Q)$ be generic.
+For $0\le\beta<h$ choose $R_\beta$ supported on $[0..\beta]^2$ with $R_{h-1}[h-1,h-1]=0$, and $C_\beta$ supported on
+$[\beta..h-1]^2$ with $C_\beta[\beta,\beta]=0$ for $\beta<h-1$. The first $h$ rows of $S$ are the functionals
+$\lambda_\beta\leftrightarrow UR_\beta V^{\mathsf T}$ and the last $h$ columns of $S^{-1}$ are the vectors
+$\mu_\beta\leftrightarrow U^{-\mathsf T}C_\beta V^{-1}$ on $F\otimes F$.
+The pairing conditions $\operatorname{tr}(R_i^{\mathsf T}C_j)=0$ hold automatically for $i<j$ (disjoint supports);
+for $i\ge j$ they are solved in triangular order through the slack entry $C_j[j,i]$, whose coefficient
+$R_i[j,i]$ is nonzero. Complete $S^{-1}=[Z\,|\,W\,|\,\mu]$ with $\lambda Z=I$ and $W$ a basis of a complement of
+$\operatorname{span}\mu$ inside $\ker\lambda$. Then $S$ is rational; its denominators and minors add finitely many
+primes to the list the odd radix of the two-stage transfer avoids.
+
+\begin{lemma}[Lower-triangular corners]\label{lem:flag}
+For every line $t$, the $h\times h$ corners of $I\otimes P_t$ and of $P_t\otimes I$ in the basis $S$ are lower
+triangular, with diagonal entries $(t^{\mathsf T}Vr_i)(c_i^{\mathsf T}V^{-1}Gt)$ and $(t^{\mathsf T}U\rho_i)(\gamma_i^{\mathsf T}U^{-1}Gt)$,
+where $r_i,c_i$ are the $i$-th rows and $\rho_i,\gamma_i$ the $i$-th columns of $R_i,C_i$.
+\end{lemma}
+\begin{proof}
+For $\beta<\beta'$ the supports give $R_\beta^{\mathsf T}C_{\beta'}=0$ and $R_\beta C_{\beta'}^{\mathsf T}=0$ identically, so the
+$(\beta,\beta')$ entries of both corners vanish. The diagonal entries are the stated products of linear forms, which
+are nonzero polynomials in $(U,V)$.
+\end{proof}
+
+A lower-triangular corner has identity Bruhat permutation, so the corner pivots are $\sigma(l)=m-h+l$: one run.
+
+\begin{proposition}[Profiles]\label{prop:profiles}
+On a common Zariski-open set of $(U,V)$ and of the free entries of $R_\beta,C_\beta$:
+\begin{itemize}
+\item every selected auxiliary edge, in both stages, compiles to two children, of widths $m-2h$ and $h$;
+\item every rank-$h$ centre edge is one child of width $h$;
+\item for any idempotent $\pi$ of rank $r>h/2$, the edges $\pi\otimes P_b$ and $P_b\otimes\pi$ compile to $h-r$
+singletons and one block of width $2r-h$;
+\item every data-entrance corner (size $2h-1$) is nonsingular.
+\end{itemize}
+\end{proposition}
+\begin{proof}
+The first two items are Lemma~\ref{lem:flag}. For the third, the block of $\pi\otimes P_b$ is
+$A_b\pi A_b^{-1}C_b$ with $A_b=\tilde A_bU^{\mathsf T}$, so its Bruhat permutation is that of the $h\times h$ idempotent
+$A_b\pi A_b^{-1}$, and the partial-swap lemma applies one level down, with a nonzero-polynomial corner condition in $U$
+(in $V$ for the other stage). For the fourth, nonsingularity reduces to four intersection conditions
+($\lambda$ restricted to the null space has rank $h$; the null space meets $\operatorname{span}\mu$ trivially; the dual null
+space restricted to $\operatorname{span}\mu$ has rank $h$; the dual span meets $\operatorname{span}\lambda$ trivially), each with an
+explicit witness ($U^{\mathsf T}t_1=V^{\mathsf T}t_2=e_0$; $e_0,e_{h-2}$; $e_{h-1},e_{h-1}$; $e_{h-1},e_1$), followed by the choice of $W$.
+The motif has finitely many edge classes, so the product of all these nonzero polynomials is nonzero on the
+irreducible parameter space, and a rational point avoids its zero set.
+\end{proof}
+
+\paragraph{Saving.} With the global-matching side circuit (\texttt{independent/two-stage-bit/gmside.py}, $R=403248$
+at $h=47$) and the profiles above, with every side-role edge charged by its factor rank through the third item\n(the side chains come from \texttt{side\_chains.py}), the batched moment certifies $a_b=15479/10^9$ at $h=47$.
+
+\paragraph{Checks.} \texttt{flagbasis.py} builds $S$ exactly (with generic coefficients; the statements are
+Zariski-open, so small coefficient ranges can hit the closed exceptional set) and computes the full Bruhat profile of every edge class
+modulo $2^{61}-1$ (and exactly over $\mathbb Q$ for a sample at $h=6$): all auxiliary lines in both stages, all centre
+edges and sampled data pairs at $h=6,7,8$ match the proposition. At the working dimensions, \texttt{flag\_existence.py 47} (and \texttt{46}) evaluates every
+nonvanishing condition at one integer point modulo $2^{61}-1$: the corner diagonal factors and inner corners on every
+line, and both data-entrance factors on sampled pairs (the family is invariant under $GL_h\times GL_h$, which acts
+transitively on the pairs, so one nonzero value per condition suffices). A nonzero value modulo $p$ at an integer
+point shows the polynomial is not identically zero. Negative controls: a dense generic basis gives
+singleton corners; PR~\#16's nested basis merges the stage-two class only.
+
+\end{document}

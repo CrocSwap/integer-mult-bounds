@@ -1,0 +1,114 @@
+Concrete contracts in the elementary streaming argument
+======================================================
+
+Source: upstream/build/sections/02-streams.tex at PR76
+4b716171d4b3122d6b9db93f802751a41a209955. The source is inherited unchanged.
+No counterexample to its intended mathematical streaming algorithm was found.
+The statements below separate the actual local requirements from unproved
+claims of a completed fixed-tape implementation.
+
+Demultiplexing and address order
+-------------------------------
+
+The input is a lexicographic stream on a fixed number of collapsed positive
+ranges. A designated radix-q digit has exactly q possible values, with q fixed
+in the machine. Deleting that digit leaves every class subsequence in the
+same lexicographic residual-coordinate order. Two distinct designated digits
+similarly give q^2 streams. This assertion requires complete rectangular
+address ranges and distinct selected positions; it is not true for arbitrary
+filtered address sets without an additional shape theorem.
+
+If a fixed permutation pi acts on the pair of selected values, output class t
+must consume the stream labeled pi^{-1}(t). This is the address-permutation
+convention (fA)(f(x))=A(x). A 3-cycle distinguishes the correct direction from
+an accidentally reversed convention; tests using only swaps do not. Moving
+one digit keeps its value and changes its position; after deleting that digit,
+the order of all remaining coordinates is unchanged, which justifies the same
+stable demultiplex/merge construction even across an arbitrary spectator gap.
+
+Pointwise maps are applied at aligned positions of these residual streams.
+Every actual stream bit is read/written only a fixed number of times. The
+machine needs a fixed q or q^2 number of streams; it must rewind populated
+stream heads to their individual starts before merging, and return/clear the
+visited work regions. The source explicitly charges these passes. It does not
+give one extra tape head per growing address coordinate.
+
+Whole-row splitting
+-------------------
+
+For [P]x[R]x[B], write r=W*g+w, keeping the complete B-bit suffix together.
+For W|R, each class stream has exactly [P]x[R/W]x[B] and volume V/W. Row order
+inside each class is lexicographic in (p,g,b). The class counter advances once
+per complete B-bit row and restarts at each prefix. Divisibility makes the
+equal-shape claim valid at every recursive call; arbitrary R only gives a
+possibly unequal split, which must not be fed into that recursion contract.
+
+If the finite circuit routes original class w to physical role rho(w), final
+row class w reads role rho(w), undoing the role permutation. This is distinct
+from the digit-class preimage convention above because rho describes the
+physical output role rather than the desired final address permutation.
+
+Counter and reset accounting
+----------------------------
+
+The required counters are LOCAL counters for a fixed number of nested ranges.
+Selected q-valued digits can live in finite control; their values need not be
+recovered by reading faraway bits of a growing global address counter on each
+data bit. Such global-index inspection would introduce an unsupported log(V)
+factor. The prose's local collapsed fields and dedicated length tracks support
+the intended linear procedure.
+
+For a width-w ripple counter over L consecutive counts, including head return,
+the intended estimate is O(L+w), with carry visits to position j bounded by
+O(1+L/2^j). Initialization and copying its fixed canonical length are charged.
+A reset of a local range of length L costs O(log(2L))<=O(L), paid by that
+range's entire scan. Induction over a fixed number of positive nested ranges
+therefore yields O(V), including resets at outer boundaries. This argument
+does not license arbitrary leading-zero counter encodings whose size is
+unrelated to L, nor a scan of a growing ancestor descriptor per data bit.
+
+An underflow flag from a decrement detects whether the INPUT value was zero.
+The block-length interface must account for this. For exactly L emissions,
+resetting to L-1 and emitting before decrement is valid, stopping on borrow.
+Alternatively reset to L, decrement first and suppress output on the final
+borrow step. Resetting to L and emitting before every decrement produces L+1
+items. Empty-width counters require a stated convention if L-1=0 is encoded
+with zero bits. The current RippleCounter model supports modular width zero,
+but its use in a positive-length block loop is a separate glue theorem.
+
+Fixed binary descriptor preparation costs (log(2V))^C and is uniformly O(V)
+for fixed C. The new DescriptorVolume lemma additionally handles root-sized
+descriptors at descendant volume, provided all root address ranges are retained.
+Neither fact makes multiplication/division of those descriptors a primitive
+unit-cost operation; an implementation or polynomial-time arithmetic theorem
+must still be supplied once.
+
+Affine fibers
+-------------
+
+An offset target follows its controls. Fixing preceding fields gives Q=q^b
+consecutive target blocks, each B bits. Offset preparation b^C is charged once
+per such fiber and absorbed by QB>=q^b. Unrelated spectator counter contents
+are not reread in full for each bit. Splitting at Q-a and merging the second
+piece before the first realizes y->y+a modulo Q; the a=0 case has an empty
+piece that must be charged to the nonempty fiber rather than traversed as an
+unbounded empty-loop family.
+
+For fixed integer-unit scaling, the number of increasing pieces is constant.
+The residue selector is finite control. Negative scaling reverses target-block
+order and separately reverses each popped block, preserving its internal bit
+order. Arbitrary long suffix records therefore do not invalidate the claimed
+linear cost. This proof does require the described head-return/stack routines;
+it is not an unrestricted array-transpose primitive.
+
+New physical sources
+--------------------
+
+An early source read of work/stream-transfer/routing/ClockReset.lean finds a
+genuine three-state/two-tape reset: copy a same-width template, then return both
+heads, in2w+2 transitions with arbitrary exterior contents preserved. Its width
+equality and delimiter interface are explicit. RippleCounter uses a six-state
+head-local table with carry/borrow and head return. Final hash-bound reviews
+will refer to the settled packaged sources and receipts, not these mutable
+working copies. Neither isolated primitive yet constitutes the nested scan,
+demultiplex/merge, or complete recursive scheduler.

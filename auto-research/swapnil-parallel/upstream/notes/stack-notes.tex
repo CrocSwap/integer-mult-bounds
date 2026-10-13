@@ -1,0 +1,204 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}\newtheorem*{remark}{Remark}
+\title{Layout and precision changes beyond the $a_b/2$ ceiling}
+\date{Draft, October 8, 2026}
+\begin{document}
+\maketitle
+
+\paragraph{Conditional status.} Every statement here assumes the pinned upstream interfaces and these unmerged results on \texttt{CrocSwap/integer-mult-bounds}: PR~\#5's chirped-correlation Gaussian lemma and its choice of $\alpha$; PR~\#3's compressed complex network; and PR~\#7's networks, with $a_b=3/(4\cdot10^8)$, $a_c=39/10^9$, $m=21952$ and $s=45772350635112192$. These are the round-two values; the round-three savings, and the further results they assume, are in \texttt{round3-combination.tex}; the round-four savings are in \texttt{data-edge-batching.tex}, \texttt{complex-source-frames.tex} and \texttt{scripts/certificate\_round4.py}.
+
+\paragraph{Deliberate departures from upstream hypotheses.} The prime-interval condition $1-2\epsilon>0$ is replaced by the prime number theorem (Section~1). The resampling hypothesis $\theta>p/\alpha^4$ is replaced by $\alpha^2\theta\ge1$, and the oversampling is reduced to $\theta\approx1/(4dL^y)$ (\texttt{segmented-inverse.tex}). The band $r\ge2^{a_rp/d}$ is replaced by $r\ge2^{p^\mu}$ (Section~1). $K=o(\ell)$ is dropped (Section~2). The guard exponent uses the certified bound $\log_ms<3.8376$ in place of~5; the witness also passes with~5.
+
+Throughout, $L=\log_2T$ is the address length, $p$ is the coefficient precision,
+$d=\Theta(L^\epsilon)$ is the number of axes and $\ell=\Theta(L^{1-\epsilon})$ is the axis
+width. Costs are divided by the logical volume $V=\Theta(Tp)$ and expressed as powers
+of $L$. Section and lemma names refer to the pinned upstream source
+(\texttt{upstream/build/sections}), to Colkitt's compact-control notes
+(\texttt{notes/compact-control-*.tex}), and to PR~\#5 (\texttt{notes/fast-gaussian-resampling.tex}).
+
+\section{Idea D: coefficients longer than $\log n$}
+
+\paragraph{Scope.} Idea~D removes only the precision part of the $\epsilon<1/2$ wall. On its own it does not move $\kappa$. PR~\#5's Gaussian row, $d^2p^\delta$, comes from about $1/\theta\approx4d$ Neumann terms per axis, and it still caps $\epsilon<1/2$ whatever the precision. Going past $\epsilon=1/2$ needs Idea~D together with Idea~B$'$ (\texttt{segmented-inverse.tex}). PR~\#5's chirped correlation is required: upstream's direct Gaussian windows cost $\sqrt d\,p^{1+\delta}$ per bit once $p\gg L$.
+
+\paragraph{Change.} Upstream splits each input into $b=\lceil\log_2n\rceil$-bit digits and
+sets $p=6b$. Instead use $b'=\lceil b^{1+x}\rceil$-bit digits for a fixed rational $x>0$,
+still with $p=6b'$. Then $T\in[4n/b',8n/b')$, so $Tp=\Theta(n)$, and
+$L=b-(1+x)\log_2b+O(1)$. Set $d=\lfloor b^\epsilon\rfloor$ and choose $r,\ell$ from $T$ as
+upstream does.
+
+\paragraph{Consequences to check.}
+\begin{enumerate}
+\item \emph{Capacity and rounding} (\texttt{08-assembly.tex}, eq.~capacity and
+eq.~final-error). The coefficients satisfy $c_j\le q(2^{b'}-1)^2<2^{3b'}$, since $q\le2^{b'}$.
+The final error is $2^{2b'+4}S\cdot28\cdot2^\gamma T^2L\cdot2^{-6b'}<448\,b'\,2^{-b'+\gamma}$,
+using $S\le T<2^{b'}$ and $L<b'$. This is below $1/2$ whenever $\gamma\le b'/4$.
+\item \emph{Gaussian width.} Take $\alpha^2=\lfloor Q/(48d)\rfloor$ with $Q=p=6b'$, that is $\alpha^2=\lfloor b'/(8d)\rfloor$, and oversampling $\theta_i\approx\eta=1/(4dL^y)$ (\texttt{segmented-inverse.tex}, last section). Then
+$\gamma=2d\alpha^2\le b'/4$ and $\alpha^2\theta_i\ge b'/(32d^2L^y)\ge1$. The second holds eventually when $2\epsilon+y<1+x$.
+\item \emph{Record regime.} Every use of $r\ge2^{a_rp/d}$ (\texttt{05-layers.tex} lines 20--32
+and 948--962, \texttt{06-transforms.tex} 297 and 384, \texttt{08-assembly.tex} 96, 168 and 293)
+only needs $r$ to outgrow every fixed power of $p$. Here $r=2^{\Theta(L/d)}=2^{\Theta(b^{1-\epsilon})}$
+and $p=\Theta(b^{1+x})$, so that still holds. Replace the hypothesis by
+$r\ge2^{p^\mu}$ for a fixed $\mu>0$.
+\item \emph{Address bound.} $\log_2(2M)\le C_Mp$ only becomes easier.
+\item \emph{Chunk-exchange row.} Upstream writes it as $pK^{\tau-1}$ by counting $O(p/K)$ exchanges from $d\ell=O(p)$. The true count is $d\ell/K=L/K$, so the row is $LK^{\tau-1}$. Idea~C makes it zero.
+\item \emph{Guard.} The coefficient-depth bound $\Delta=C_0d^{C_1}$ must be $O(p)$. That needs
+$\epsilon C_1<1+x$, measured in powers of $b$.
+\item \emph{Prime selection} (\texttt{08-assembly.tex} 120--160). The cited explicit interval
+lemma needs $\log x>8d$, which fails for $\epsilon\ge1/2$. Replace it with the prime number theorem. Each interval has length $\eta x=x/(4dL^y)=x/(\log x)^{O(1)}$, so the classical prime number theorem with error term $O(x\exp(-c\sqrt{\log x}))$ already gives more than $d$ primes in each interval for every fixed $\epsilon<1$, with effective constants. The machine only needs existence; it scans and tests by trial division in $n^{o(1)}$ time, since the log of the scan length is $O(\log p+L/d)=o(L)$.
+\item \emph{Per-bit costs.} Every row whose cost grows with precision carries only a factor
+$p^\delta=b^{(1+x)\delta}$. The pointwise products cost $\log(rp)=\Theta(\ell+\log p)$ per bit.
+\end{enumerate}
+
+\section{Idea C: one chunk per axis}
+
+\paragraph{Change.} Upstream takes $K=\lfloor d^c\rfloor$ because the layer cost had a factor
+$K^\tau$. Colkitt's compact controls removed that factor. Set $K=\ell-1$ instead. In the
+transform-layout lemma (\texttt{06-transforms.tex}, lem:synthetic-transform-cost), this gives
+$b=(\ell-1)\bmod K=0$ and $q=1$. The target chunk order then equals the source order, so the
+procedure performs no chunk exchanges. The prefix holds only the top slot of each long axis.
+
+\paragraph{Cost.} The layout costs $O(V d)$ and the rounds cost
+$O(V\ell d^{\lambda'})$. The rows $dK$ and $pK^{\tau-1}$ become $d$ and $0$.
+
+\paragraph{Layer hypotheses to recheck} (\texttt{notes/compact-control-layout.tex}).
+\begin{itemize}
+\item $K/\log p\to\infty$ and $K\ge G+4\ell_p+10$ hold.
+\item The reservation count is $q_F+q_B\le3dG/K+2=O(d^2\log p/L)+2$. In powers of $d$ this has
+exponent $(2\epsilon-1)/\epsilon$, which must stay below $\lambda'$, that is $\epsilon<1/(2-\lambda')$. Upstream's guard implied this, but Idea~D's relaxed guard does not, so the certificate checks it separately.
+\item The simultaneous-layer proposition fixes $K=\lfloor d^c\rfloor$ (\texttt{05-layers.tex} lines 21, 852 and 954--958). Restate it with $K$ supplied as input, in the band $\tfrac12d^{(1-\epsilon)/\epsilon}\le K\le p$. Nothing else uses $K=o(\ell)$: its only uses are $K\le\ell-1$ and the row $dK$.
+\item The bound $K\ge d^c/2$ used in that note is replaced by $K\ge\tfrac12d^{(1-\epsilon)/\epsilon}$.
+\item The row index uses $q_0=O(\log d)$ whole axes, unchanged.
+\end{itemize}
+
+\section{Idea A: expose only the fine bits of an axis}
+
+The full statement and proof, with a 12-tape schedule, the corrected input window and the movement bounds, are in \texttt{notes/fine-field-lemma.tex}. \texttt{scripts/check\_fine\_field.py} simulates every data movement on explicit tapes and checks outputs and movement bounds. The summary below is superseded where it differs. In particular, a block reads input slabs $J',J'+1,J'+2$ with $J'=\lfloor(c(J2^f)-W)/2^f\rfloor$, the lowest input read, not $J'-1,J',J'+1$.
+
+\paragraph{Change.} The tensor interface (\texttt{07-resampling.tex}, lem:tensor-resampling)
+makes each axis the innermost address field before running its line algorithm, at cost
+$O(Tp\,d^2(1+\ell^\tau))$ upstream and $O(Tp\,d(1+\ell^\tau))$ with nonadjacent routing.
+Instead, write the axis-$i$ coordinate as $j=J2^f+u$ with
+$f=\lceil\log_2(c\,W_{\rm line})\rceil$. Here $W_{\rm line}$ is the largest window the line
+algorithm reads: $3m+3$ for $\mathsf S'$, a block length $\lambda$ plus $2w$ for the inverse of
+Idea~B$'$, and the periodic halo. Move only the $f$-bit field $u$ to the innermost address
+position, leaving $J$ in place.
+
+\paragraph{Execution.} The physical order becomes $(X,J,Y,u)$, where $X$ and $Y$ are the
+fields of other axes before and after $J$. For fixed $X$, the records with a given $J$ form a
+contiguous slab of $|Y|2^f$ records.
+\begin{itemize}
+\item Every block of the line algorithm reads inputs from at most three consecutive slabs,
+$J'-1,J',J'+1$. The input slab index $J'$ is a non-decreasing function of the output slab
+index $J$, roughly $J'=\lfloor J/\sigma\rfloor$ for expansion, and the identity for $N$.
+\item Keep three read heads on copies of the input array, offset by one slab, and advance them
+in step with the output over $Y$ and $J$. When $J'$ repeats, the heads rewind at most three slabs per output slab, so the total movement is still $O(V)$. These are three tapes, each holding a copy; copying costs $O(V)$ per pass.
+\item The period $s_i$ is not a multiple of $2^f$. The wrap partner of slab~0 is the slab containing $s_i-1$, and the window must be spliced at $u=s_i\bmod2^f$. For each $X$-group, copy the boundary slabs (about $3|Y|2^f$ records) to a scratch tape and splice from it, at $O(V)$ per pass. The same applies to every application of $E$, whose period is also $s_i$.
+\item \emph{Per-chunk setup.} There are $T/2^f$ chunks and $2^f=\Theta(W_{\rm line})$, so upstream's argument that per-line setup is negligible does not apply directly. Compute the block offsets and $q$-counters once per $J$ and copy $O(p)$ bits per chunk. Run the validity test from an odometer over $Y$ with per-axis flags, at $O(\ell)$ per chunk. Allow one extra partial block per chunk, at $O(mp^{1+\delta})$. Each chunk has volume at least $cW_{\rm line}p\gg\ell^2,p$, so all of this is $O(\text{chunk volume}\cdot p^\delta)$.
+\item The backward sweep of Idea~B$'$'s cyclic block-tridiagonal solve carries state along the line. It uses one more tape for the previous output slab at the same $Y$, and reads fixed-width records right to left.
+\end{itemize}
+
+\paragraph{Cost.} Exposing and restoring the fine field are two interchanges of $f$-bit
+fields, $O(Vf^\tau)$, or $O(Vf)$ by single-bit moves. Over all axes this gives
+$O(Vd\log L)$, with exponent $\epsilon+o(1)$.
+
+\section{Idea E$'$: reversing the CRT axis order by permuted selected-bit additions}
+
+\paragraph{Problem.} The Chinese remainder layout (\texttt{08-assembly.tex}, explicit
+cyclic-convolution layout) reverses the order of the $d$ axes so that every target follows
+its controls. With chunk interchanges this costs $O(Vd\ell^\tau)$, which is the row
+$(1-\tau)(1-\epsilon)$ and caps $\kappa$ at $a_b/2$.
+
+\paragraph{Primitive.} Colkitt's Proposition~1 (\texttt{artifacts/compact-control-note.pdf} in his repository,
+compact-control selected-bit addition) toggles, for slots $x,y$ of $fK$ bits with selected
+positions $j_i=\rho+iK$, each $y_{j_i}$ by $x_{j_i}$ at cost $O(V((f\log p)^\tau+1))$.
+\begin{itemize}
+\item Every rotation offset in that construction is computed from fields that precede the
+rotated field, by Lemma~1 of the note.
+\item Replacing the control $z_i=x_{j_i}$ of target segment $i$ by $x_{j_{\pi^{-1}(i)}}$, for a
+fixed permutation $\pi$, changes only those offset formulas:
+\[
+ \sum_i2x_{j_{\pi^{-1}(i)}}t_i2^{j_i},\qquad
+ \sum_ix_{j_{\pi^{-1}(i)}}(1-2t_i)2^{j_i},\qquad
+ \sum_i\bigl(y_{j_i}\oplus x_{j_{\pi^{-1}(i)}}\bigr)B^i .
+\]
+All three are still computable from preceding fields in polynomial time.
+\item The guards, the dirty temporaries $u,t,b$, and the repair argument do not depend on the
+pairing. The bad-address predicate is a function of the same digits.
+\end{itemize}
+So the permuted selected-bit addition $y_{j_{\pi(i)}}\mathrel{\oplus}=x_{j_i}$ has the same cost. The four-update identity holds for any control bit that stays fixed during it, and $x$ is never written. The bad-address predicate reads only the $t,u$ digits and the guard bits $g_i$, which contain no selected bit, so the ideal map still preserves the bad set.
+
+\paragraph{Reversal.} Let $x$ be axes $1,\dots,d/2$ and $y$ axes $d/2+1,\dots,d$, each a slot of
+$f=d/2$ chunks with $K=\ell-1$, after the top bits of the long axes are extracted (see the placement constraints below). Let $\pi$ reverse the chunk order. For each level
+$\rho\in[0,\ell)$, three permuted additions $x\oplus=\pi^{-1}y$, $y\oplus=\pi x$,
+$x\oplus=\pi^{-1}y$ exchange bit $\rho$ of axis $i$ with bit $\rho$ of axis $d+1-i$ for every
+$i\le d/2$. The temporaries are reserved from existing axes as in Colkitt's layout note. The
+$O(d^2\log p/L)$ reserved axes are reversed by single-bit moves at $O(V\ell)$ each, so
+$O(Vd\log p)$ in total. Unequal widths $\ell,\ell-1$ cost $O(d)$ single-bit moves.
+
+\paragraph{Placement constraints.} These fixes are needed.
+\begin{itemize}
+\item \emph{Record regime.} Lemma~1 and the repair need record width beyond every power of $p$. At the CRT stage the records are single coefficients. Treat the innermost axis as the record suffix, keep it out of both slots, and move it by $\ell$ single-bit moves at $O(V\ell)$. The back field $b$ sits between $y$ and that suffix.
+\item \emph{Equal-width chunks.} First extract the top bits of the long axes by $O(d)$ single-bit moves, then use $K=\ell-1$. Alternatively, choose a long/short pattern that is symmetric under reversal.
+\item \emph{Temporaries.} The fields $u,t$ (about $dG$ bits) before $x$ and $b$ after $y$ come from front and back axes excluded from the swap. Reverse the middle axes in place, then re-place the reserved axes and the record axis by single-bit moves, at $O(Vd\log p+V\ell)$.
+\end{itemize}
+The certificate uses the better of this row and the pairwise-swap row $(1-\tau)(1-\epsilon)$.
+
+\paragraph{Cost.} The reversal costs $O(V\ell(d\log p)^\tau)$, an exponent of
+$1-\epsilon(1-\tau)+o(1)$, so the margin is $\epsilon(1-\tau)$. This exceeds
+$\kappa<\epsilon(1-\lambda')$ because $\lambda'>\tau$.
+
+\section{Resulting margins}
+See \texttt{certificate.py}. The rows are:
+\begin{itemize}
+\item prefix moves, $1-\epsilon$;
+\item butterflies, $\epsilon(1-\lambda')$, which binds;
+\item fine exposures, $1-\epsilon-o(1)$;
+\item the Gaussian maps with recentred sub-blocks (\texttt{segmented-inverse.tex}, last section), $1-\epsilon-o(1)$;
+\item chirps, $1-\epsilon-o(1)$;
+\item pointwise products, $\epsilon$;
+\item reserved axes, $1-\epsilon-o(1)$;
+\item CRT reversal, $\epsilon(1-\tau)$.
+\end{itemize}
+The side conditions are the guard $\epsilon C_1<1+x$; precision $2\epsilon+y<1+x$, where the oversampling is $\theta\approx1/(4dL^y)$; sub-block coupling $y\ge\epsilon$; and
+$\lambda'$ above $\tau$, $\sigma$, $\chi$ and the leaf exponent.
+
+
+\appendix
+\section{Finite payload alphabets}
+
+The bit network of PR~\#7 carries ternary payloads. The pinned interchange lemmas are stated for
+bit arrays and pointwise bit gates (\texttt{04-swap.tex}: the circuit transfer before
+prop:power-interchange, its descriptor paragraph, and lem:chunk-swap). The witness needs their
+versions for a fixed finite alphabet.
+
+\begin{lemma}[Finite alphabet]\label{lem:finite-alphabet}
+Let $\Sigma$ be a fixed finite alphabet. Replace ``bit array'' by ``$\Sigma$-array'' and ``pointwise
+bit gates'' by ``pointwise gates on $\Sigma$'' in lem:elementary-streams, prop:power-interchange
+and lem:chunk-swap. The statements still hold, with the same exponent $\tau$ and constants that
+depend on $|\Sigma|$.
+\end{lemma}
+
+\begin{proof}
+Encode each symbol of $\Sigma$ as a fixed-width record of $B_0=\lceil\log_2|\Sigma|\rceil$ bits.
+This adds one innermost suffix field $[2^{B_0}]$, which lem:chunk-swap allows ($[B]$ in its
+statement). Volumes change by the fixed factor $B_0$.
+\begin{itemize}
+\item Every operation other than a gate is an address permutation. It moves whole records and
+never reads their contents, so it is unaffected.
+\item A pointwise gate on $\Sigma$ is a fixed finite map applied to records at matching
+addresses of a fixed number of aligned role streams. That is item~3 of lem:elementary-streams
+with records of $B_0$ bits, so it costs $O(V)$.
+\item The frame identity in prop:power-interchange uses only that a common address permutation
+commutes with every pointwise gate. That holds for any alphabet.
+\item The descriptor paragraph assumes a one-bit payload only to bound $V_j\ge q^{2e_0}$. With
+$B_0$-bit records the volume is larger by a factor $B_0$, so the bound still holds.
+\end{itemize}
+The recursion, its rank count $s$, the role split and the depth-first schedule do not refer to
+payload values, so the recurrence $F_k\le(s/W)F_{k-1}+O(1)$ and the bound $O(Ve^\tau)$ hold
+unchanged.
+\end{proof}
+
+\end{document}
