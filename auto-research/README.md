@@ -39,4 +39,8 @@ Required files:
 
 ## Relationship to `research/`
 
-`research/` keeps every existing package unchanged, because more than 1,600 files pin its paths. New packages should go here. A later, separately reviewed change can add a cross-index or migrate packages once their pins are updated.
+This folder starts with a byte-identical copy of every package in `research/` (209 entries, 20,119 files). Git stores the copies as the same blobs, so the repository barely grows.
+
+`research/` itself is unchanged. More than 1,600 files, including verifiers, manifests, hash pins and 52 Makefile lines, still reference `research/...` paths, so **run existing verifiers from `research/`**. The copies here are a mirror for discovery and for the cross-repo layout; a package moved here will verify in place once its internal pins are updated.
+
+New packages should be created directly here.
