@@ -604,3 +604,12 @@ frontier890-verify: selected-record-check
 frontier942-verify: selected-record-check
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier942.XXXXXX"); \
 	python3 -B scripts/verify_frontier942.py --work "$$work/replay"
+
+.PHONY: bit-profile-pair-audit-verify bit-profile-pair-audit-full-verify
+bit-profile-pair-audit-verify:
+	python3 research/bit-profile-pair-audit/verify.py
+	python3 -m unittest tests.test_bit_profile_pair_audit -v
+
+bit-profile-pair-audit-full-verify:
+	python3 research/bit-profile-pair-audit/verify.py --full
+	python3 -m unittest tests.test_bit_profile_pair_audit -v
