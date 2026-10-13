@@ -1,0 +1,203 @@
+\section{Working lengths and the transform at every length}
+\label{sec:all-lengths}
+
+To apply the synchronized transform at a requested length $n$, we first
+choose a working length $L$ with $2n\le L<4n$. The lower bound permits
+the chirp convolution below, while the upper bound keeps its array size
+linear in $n$. We also need small coprime factors: their widths must be
+polynomial in $\log n$ so that local compilation has only polylogarithmic
+cost. A product of initial odd primes supplies these axes, and one
+power of two fills the remaining gap to $2n$.
+
+\subsection{Enough small, pairwise coprime factors}
+
+Let $r_1<r_2<\cdots$ be the odd primes and let $R_\ell=\prod_{j=1}^{\ell}r_j$, with $R_0=1$. The modest estimate below suffices; no prime number theorem is used.
+
+\begin{lemma}\label{lem:prime-lengths}
+One has $r_j=O((j+1)^2)$ and
+\[
+ \log R_\ell=\Theta(\ell\log(\ell+2)).
+\]
+For the largest $\ell$ with $R_\ell\le2n$, as $n\to\infty$,
+\begin{equation}\label{eq:axis-count}
+ \ell=\Theta\!\left(\frac{\log n}{\log\log n}\right),
+ \qquad \log\ell=\Theta(\log\log n).
+\end{equation}
+The primes and this value of $\ell$ can be found with a number of
+operations polynomial in $\log(n+2)$, using $O(\log(n+2))$-bit integers.
+\end{lemma}
+\begin{proof}
+Writing $\pi(t)$ for the number of primes at most $t$, for integer $u\ge1$ we have
+\begin{equation}\label{eq:binomial-primes}
+ \frac{4^u}{2u+1}\le\binom{2u}{u}\le(2u)^{\pi(2u)}.
+\end{equation}
+The first inequality follows because the central binomial coefficient is largest. In the factorial formula, the exponent of a prime $p$ in $\binom{2u}{u}$ is
+\[
+ \sum_{a\ge1}\bigl(\lfloor2u/p^a\rfloor-2\lfloor u/p^a\rfloor\bigr)
+ \le\lfloor\log_p(2u)\rfloor.
+\]
+Its prime-power contribution is therefore at most $2u$, proving the second inequality. Taking $u=(j+1)^2$ shows that $\pi(2u)>j+1$ for all sufficiently large $j$, so the $j$th odd prime is $O((j+1)^2)$.
+
+The upper bound on $\log R_\ell$ now follows by summation. For the lower bound, $r_j\ge j+2$, so $R_\ell\ge(\ell+2)!/2$. For instance, the last half of these factors alone give a constant times $\ell\log\ell$ in the logarithm. Maximality says
+\[
+ R_\ell\le2n<R_\ell r_{\ell+1}.
+\]
+The extra logarithm is $O(\log(\ell+2))$, giving $\log n=\Theta(\ell\log\ell)$ and hence~\eqref{eq:axis-count}.
+
+Primes up to the first unused prime are bounded by a fixed polynomial in $\ell+1=O(\log(n+2))$. Testing potential divisors of each candidate is already polynomial work in $\log(n+2)$. Maintain the product and stop at the first exceeding $2n$; the product at stopping is at most $2n$ times a polynomial in $\log(n+2)$. All these integers have $O(\log(n+2))$ bits.
+\end{proof}
+
+Choose this $\ell$, and let $e\ge0$ be the least integer for which
+\begin{equation}\label{eq:working-length}
+ L=R_\ell2^e\ge2n.
+\end{equation}
+Then
+\begin{equation}\label{eq:working-bounds}
+ 2n\le L<4n,\qquad 2^e<2r_{\ell+1},\qquad
+ e=O(\log(\ell+2)).
+\end{equation}
+Bounded lengths can be treated directly, so subsequent asymptotic estimates may assume $\ell\ge1$.
+
+\subsection{CRT permutations and the working transform}
+
+We use Good's coprime tensor factorization~\cite[Section~12]{good1958},
+with its index permutations included in the cost.
+
+For pairwise coprime factors $q$ of $L$, here the odd primes and the factor $2^e$ when nontrivial, choose $d_q$ with
+\[
+ (L/q)d_q\equiv1\pmod q,
+ \qquad E_q=(L/q)d_q.
+\]
+The integers $E_q$ are orthogonal idempotents modulo $L$. The Chinese remainder indexing
+\[
+ (j_q)_q\longmapsto \sum_q E_qj_q\pmod L
+\]
+is a bijection, and for similarly indexed $k$,
+\begin{equation}\label{eq:crt-fourier}
+ \zeta_L^{jk}=\prod_q\zeta_q^{d_qj_qk_q}.
+\end{equation}
+Thus, after permutations of the input and output indices, $F_L$ is the tensor product of the $F_q$. The local output permutation multiplies a digit by the unit $d_q$ modulo $q$.
+
+These permutations take $O(L)$ array operations. Prepare the local tables $E_qa\bmod L$ and $d_qa\bmod q$, then enumerate digit tuples with an accumulated sum and mixed-radix address. The prefix bound~\eqref{eq:prefix-nodes} applies; no division by every factor is performed separately for each array entry. Computing the inverses $d_q$ and local tables is polynomial in the logarithm of $n$.
+
+Apply Proposition~\ref{prop:tensor-fourier} on the odd-prime axes, with each digit of the power-of-two axis fixed in turn. Then apply the usual radix-two FFT on the fibers of that remaining axis. The former costs
+\[
+ O\!\left(L(\ell+1)^\theta(1+\log(\ell+2))^4\right)
+   +\poly(\log(n+2)),
+\]
+because $r_\ell=O((\ell+1)^2)$; the latter costs $O(L(1+e))$. Local tables are shared among the fibers. The standard binary recursion uses $O(q\log(q+1))$ operations at length $q=2^e$, with $O(q)$ twiddle preparation and ordinary linear-time stage indexing. Here $q$ is only polynomial in $\ell+1$.
+
+Consequently both $F_L$ and its inverse have total cost
+\begin{equation}\label{eq:working-transform}
+ O\!\left(L\bigl[(\ell+1)^\theta(1+\log(\ell+2))^4+1+e\bigr]\right)
+   +\poly(\log(n+2))+O(1).
+\end{equation}
+For the inverse, the geometric root sum gives $F_L^2=LJ$, where $J$ negates indices modulo $L$. Thus $F_L^{-1}=L^{-1}JF_L$, with only linear additional work. The absolute term includes the fixed network construction.
+
+\subsection{Chirp convolution and preparation}
+
+The reduction is Bluestein's chirp convolution~\cite{bluestein}, in the
+weighted-convolution form of~\cite[Section~II]{rabinerSchaferRader1969}.
+We charge preparation of the fixed convolution operand explicitly.
+
+Put $\eta=\zeta_{2n}$. For $0\le j,k<n$,
+\begin{equation}\label{eq:chirp}
+ \zeta_n^{jk}=\eta^{k^2}\eta^{-(k-j)^2}\eta^{j^2}.
+\end{equation}
+Prepare two length-$L$ vectors. The input-dependent vector has value $\eta^{j^2}x_j$ at $0\le j<n$ and zero elsewhere. The fixed vector has value $\eta^{-u^2}$ at the residues represented by $-(n-1)\le u\le n-1$, and zero elsewhere. These residues are distinct by $L\ge2n$. Cyclic convolution of the vectors therefore gives, at each $0\le k<n$, the sum in~\eqref{eq:chirp} before multiplication by $\eta^{k^2}$.
+
+The convolution is obtained by applying $F_L$ to both vectors, multiplying pointwise, and applying $F_L^{-1}$. The transform of the fixed vector is part of scalar preparation and is explicitly charged as one full transform. Its pointwise use multiplies the variable data only by prepared scalars. Chirp tables and the zero-padded vectors take $O(L)=O(n)$ work: successive ratios of the chirps form a geometric progression, so no separate long exponentiation is needed at every entry. There are only three full transforms.
+
+We now specify the single root promised in Theorem~\ref{thm:main}. With $L$ as in~\eqref{eq:working-length}, set
+\begin{equation}\label{eq:master-root}
+ D_*=(2n)L\,2^{\lceil\log_2(16L)\rceil}.
+\end{equation}
+The chirp root has order $2n$, and the working factor roots have orders dividing $L$. Proposition~\ref{loc:compiler} needs power-of-two roots of orders at most $8r$ for a local width $r\le L$; each such order divides the last factor in~\eqref{eq:master-root}. The fixed kernel uses only $i$ and rational constants. Thus every required initial root is an integer power of the supplied, specified $\zeta_{D_*}$. Moreover,
+\begin{equation}\label{eq:root-size}
+ D_*<64nL^2<1024n^3.
+\end{equation}
+Binary powering extracts each local initial root in $O(\log(n+2))$ field operations. There are polynomially many local constants and instructions in $\log(n+2)$, so all local extraction and compilation remain polynomial in that logarithm.
+
+The local scalar programs are arithmetic DAGs with shared subexpressions.
+As in Proposition~\ref{loc:compiler}, a coefficient's conjugate is prepared
+by evaluating the same DAG with unchanged rational literals and inverse
+Fourier roots, including $i^{-1}=-i$. Thus no conjugation of variable
+input data or zero decision about complex coefficients is required.
+Full-array scalar products and the transformed convolution kernel have
+already been charged in~\eqref{eq:working-transform}; only the
+\emph{local} preparation is polynomial in $\log(n+2)$.
+
+\subsection{The final estimates}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main} and Corollary~\ref{cor:decimal}]
+All maps in the construction are exact and deterministic. The local word compiler and the fixed finite network have specified finite construction procedures. On the input data the algorithm is linear, including the chirp reduction, since the second convolution operand is fixed.
+
+By~\eqref{eq:working-bounds}, $e=O(\log(\ell+2))$ and $L=\Theta(n)$. Because $\theta>0$, equation~\eqref{eq:working-transform} and the constant number of transforms give
+\[
+ T(n)=O(n\ell^\theta(\log\ell)^4)
+       +\poly(\log(n+2))+O(1).
+\]
+Every fixed power of $\log(n+2)$ is eventually negligible compared with $n\ell^\theta$. Substituting~\eqref{eq:axis-count} proves~\eqref{eq:main-bound}.
+
+For an exact bound on the exponent, direct integer arithmetic in~\eqref{eq:main-constants} gives
+\[
+ \varepsilon:=\frac{\Delta}{mW_*}
+   =\frac{1717850673}{590295810358705651712}
+   >\frac{28}{10^{13}}.
+\]
+Since $\log m<14$, for $\eta_0=2/10^{13}$ one has $\eta_0\log m<\varepsilon$. Using $\exp(-t)\ge1-t$,
+\[
+ \lambda=m(1-\varepsilon)<m\exp(-\eta_0\log m)
+       =m^{1-2\cdot10^{-13}}.
+\]
+Hence $\theta<1-2\cdot10^{-13}$. The fixed power of $\log\log n$ in~\eqref{eq:main-bound} is smaller than $(\log n)^{10^{-13}}$ for all sufficiently large $n$. This proves Corollary~\ref{cor:decimal}.
+
+Finally, all lengths, root orders, products of indices, and addresses are polynomially bounded in $n$ with absolute constants;~\eqref{eq:root-size} treats the largest root order explicitly. Fixed network tables contribute absolute constants, and local tables have size polynomial in $\log(n+2)$. Array movement and traversal were counted in Theorem~\ref{net:tensor-bound} and Lemma~\ref{lem:sector-address}. Therefore a fixed number of $O(\log(n+2))$-bit words per integer suffices throughout, as required by the model.
+\end{proof}
+
+\subsection{Two-input convolution and polynomial multiplication}
+\label{sec:convolution-consequence}
+
+The chirp reduction above convolves input data with a fixed vector and
+therefore remains linear. For two variable operands, the same Fourier
+identity gives Corollary~\ref{cor:polynomial-multiplication}, with one
+product of two input-dependent values at each transform coordinate.
+
+\begin{proof}[Proof of Corollary~\ref{cor:polynomial-multiplication}]
+Set $M=2n-1$ and zero-pad $a$ and $b$ to vectors $\widetilde a,\widetilde b$
+of length $M$. Every sum of two indices in their supports lies between zero
+and $2n-2=M-1$, so the length-$M$ cyclic convolution has no wraparound and
+is exactly $(c_0,\ldots,c_{M-1})$. With the positive-exponent convention
+for $F_M$, its convolution identity is
+\[
+ (F_Mc)_j
+ =\sum_{r,s=0}^{n-1}a_rb_s\zeta_M^{j(r+s)}
+ =(F_M\widetilde a)_j(F_M\widetilde b)_j
+ \qquad(0\le j<M).
+\]
+Compute the two forward transforms and their $M$ pointwise products, obtaining
+a vector $p=F_Mc$. If $J$ negates indices modulo $M$, the geometric root sum
+gives $F_M^2=MJ$ and therefore
+\[
+ c=F_M^{-1}p=M^{-1}JF_Mp.
+\]
+Thus one more forward transform, index reversal, and scaling give the answer.
+
+Apply Theorem~\ref{thm:main} at length $M$ for each of the three transforms,
+charging its scalar preparation, schedule construction, and index work each
+time. The single specified root supplied for that length can be reused in
+all three calls. Its explicitly computable order satisfies
+$D_*<1024M^3<8192n^3$; equivalently, the model's root-of-unity operation
+returns this one root. Padding, pointwise products, reversal, and output
+scaling take $O(M)$ field and address operations. To prepare $M^{-1}$,
+form the complex integer $M$ from $1$ by binary doubling and addition in
+$O(\log(M+2))$ field operations, then divide $1$ by it; the denominator is
+nonzero because $M\ge1$. All added indices and addresses fit a fixed number
+of $O(\log(n+2))$-bit words.
+
+If $T(M)$ denotes the charged running time in Theorem~\ref{thm:main}, the
+total is $3T(M)+O(M+\log(M+2))$. Since $M=\Theta(n)$, this gives the first
+bound, and Corollary~\ref{cor:decimal} gives the eventual decimal power bound.
+The same formulas apply when $n=1$; a finite initial range may also be handled
+directly.
+\end{proof}
