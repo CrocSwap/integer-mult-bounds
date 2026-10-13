@@ -142,6 +142,9 @@ def greatest(word, endB_cap=None, pinned=()):
     nxt = final_frames(word)
     X = [FULLMASK] * len(gates)
     pinned = set(pinned)
+    if nAB == len(gates) and endB_cap:
+        for r, m in endB_cap.items():
+            nxt[r] &= m
     for gi in range(len(gates) - 1, -1, -1):
         part, _, e = gates[gi]
         f = FULLMASK
@@ -169,7 +172,7 @@ def greatest(word, endB_cap=None, pinned=()):
 # moment at a* changes by sum over climbs of d*(m/d)^a*/(m*W): a profile change raises the complex root iff it
 # lowers sum_climbs d*(73/d)^a*. FRAME_WEIGHT=exact uses that criterion (rescaled by 1/a*, minus the constant
 # idle term); the default is its a->0 linearisation d*ln(48/d).
-A_STAR = 65528268492323474503 / 40000000000000000000000
+A_STAR = float(__import__('fractions').Fraction(__import__('os').environ.get('FRAME_ASTAR', '65528268492323474503/40000000000000000000000')))
 EXACT = __import__('os').environ.get('FRAME_WEIGHT') == 'exact'
 
 
@@ -179,6 +182,51 @@ def W(d, m=73, idle=48):
     if EXACT:
         return d * ((m / d) ** A_STAR - (m / idle) ** A_STAR) / A_STAR
     return d * (math.log(m / d) - math.log(m / idle))
+
+
+def cone_caps(word):
+    """end-of-B upper bounds implied by the audit's hpe cone pre-check: for every hyperplane-ended helper h with
+    terminal U, each g in supp(row h of P^-1) and each g != h with P[g][h] != 0 must end B inside U."""
+    from fractions import Fraction as Q
+    import copy
+    v = word['report']['v']; R = word['report']['R']; n = 2 * v + R
+    hf = {int(r): span_mask(f) for r, f in word.get('helper_final', {}).items()}
+    if not hf:
+        return {}
+
+    def apply(e, rows):
+        if e[0] == 'scale':
+            q = Q(e[2], e[3]); rows[e[1]] = {j: q * x for j, x in rows[e[1]].items()}
+        else:
+            t, s, q = e[1], e[2], Q(e[3], e[4])
+            for j, x in list(rows[s].items()):
+                z = rows[t].get(j, Q(0)) + q * x
+                if z: rows[t][j] = z
+                else: rows[t].pop(j, None)
+
+    def inverse(e):
+        e = copy.deepcopy(e)
+        if e[0] == 'add': e[3] *= -1
+        else: e[2], e[3] = e[3], e[2]
+        return e
+    main = word['A'] + word['cut'] + word['B']
+    M = [{r: Q(1)} for r in range(n)]
+    for e in main: apply(e, M)
+    dirty = [{} for _ in range(n)]
+    for r in range(v, 2 * v): dirty[r] = {j: x for j, x in M[r].items() if j >= 2 * v}
+    for e in word['precondition']: apply(e, dirty)
+    comp = [['add', r, j, -q.numerator, q.denominator, []] for r in range(v, 2 * v) for j, q in sorted(dirty[r].items())]
+    prefix = word['precondition'] + comp + main
+    P = [{r: Q(1)} for r in range(n)]
+    for e in prefix: apply(e, P)
+    Pinv = [{r: Q(1)} for r in range(n)]
+    for e in reversed(prefix): apply(inverse(e), Pinv)
+    caps = {}
+    for h, U in hf.items():
+        gs = {g for g, x in Pinv[h].items() if x} | {g for g in range(n) if g != h and P[g].get(h)}
+        for g in gs:
+            caps[g] = caps.get(g, FULLMASK) & U
+    return caps
 
 
 def chains(word, endB_cap=None):
@@ -205,6 +253,9 @@ def chains(word, endB_cap=None):
                 ch[r].append(('cap', m))
         for r in regs(e):
             ch[r].append(('g', gi))
+    if nAB == len(gates) and endB_cap:
+        for r, m in endB_cap.items():
+            ch[r].append(('cap', m))
     for r, f in enumerate(final_frames(word)):
         ch[r].append(('f', f))
     return ch

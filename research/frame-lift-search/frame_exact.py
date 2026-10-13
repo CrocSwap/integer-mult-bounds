@@ -39,12 +39,18 @@ def W(d):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('src'); ap.add_argument('out', nargs='?')
-    ap.add_argument('--time', type=float, default=600); ap.add_argument('--workers', type=int, default=8)
+    ap.add_argument('--time', type=float, default=600); ap.add_argument('--workers', type=int, default=8); ap.add_argument('--caps', action='store_true'); ap.add_argument('--recipe')
     a = ap.parse_args()
     from ortools.sat.python import cp_model
     word = json.load(gzip.open(a.src))
-    ch = L.chains(word); G, orig = L.greatest(word); lo, pos = least(word, ch, len(orig))
+    caps = L.cone_caps(word) if a.caps else None
+    print('cone caps', len(caps or {}))
+    ch = L.chains(word, caps); G, orig = L.greatest(word, caps); lo, pos = least(word, ch, len(orig))
+    assert all(x & ~y == 0 for x, y in zip(lo, orig)) and all(x & ~y == 0 for x, y in zip(orig, G))
     dom = [interval(l, g) for l, g in zip(lo, G)]
+    if a.caps:   # admissible mode: early-cleanup (tail) frames are fixed by the word's early_cleanup list
+        for g, (part, _, _) in enumerate(L.events(word)):
+            if part == 'T': dom[g] = [orig[g]]
     print('domain sizes', sorted(Counter(map(len, dom)).items()))
     m = cp_model.CpModel()
     x = [{s: m.NewBoolVar('') for s in d} for d in dom]
@@ -97,6 +103,13 @@ def main():
     print('orig profile', dict(sorted(L.profile(word).items())), 'w %.6f' % base)
     print('best profile', dict(sorted(p.items())), 'w %.6f' % sum(L.W(d) * n for d, n in p.items()))
     print('changed gates', sum(o != y for o, y in zip(orig, X)))
+    if a.recipe:
+        gates = L.events(word); rows = []
+        for (part, i, e), o, y in zip(gates, orig, X):
+            if o != y:
+                assert part in ('A', 'B'), 'tail frame change'
+                rows.append([part, i, e[-1], L.basis_of(y)])
+        Path(a.recipe).write_text(json.dumps(rows) + '\n'); print('recipe gates', len(rows))
     if a.out:
         w = L.apply_frames(word, X)
         assert L.profile(w) == p

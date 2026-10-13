@@ -3,6 +3,25 @@
 Rohan Guliani (@Rohansguliani). Prepared with substantial AI assistance (an AI coding agent wrote the search code
 and ran the experiments under the author's direction). Apache-2.0.
 
+## Current selected word (#741, eight B-frame coalescences after SW4)
+
+The exact frame solver was given PR699's SW4 word (`d232183f…`, the input of #741's `FRAME-RECIPE.json`). Using the
+admissible model (hpe cone caps from the audit's pre-check, tail frames fixed), it returned in 27 s with CP-SAT
+`OPTIMAL` and the profile `{1:2556,2:334,3:430,4:194,5:56,8:8}`. That is **exactly #741's profile**: the search
+rediscovers the merged improvement automatically and certifies that it is complete. `check_sw4.py` applies #741's
+recipe, reproduces its pinned output hash `e7804702…` and solves the frame LP on both words:
+
+| word | linear weight | LP optimum | exact-root weight (a* = #741 complex root) | LP optimum |
+|---|---:|---:|---:|---:|
+| PR699 SW4 input | 18162.854792 | 18155.950422 | 18226.598582 | 18219.665540 |
+| #741 (selected) | 18155.950422050 | 18155.950422051 | 18219.665539989 | 18219.665539988 |
+
+So **no frame-only change of the selected SW4 word can raise κ**. Six commuting-reorder restarts on the #741 word,
+each re-solved by the LP, gave 18155.950422 (twice) or higher (up to +5.36); see [ORDER-SEARCH.json](ORDER-SEARCH.json). The frame slack left by PR699 (6.90 linear and
+6.93 exact-root units) is exactly what #741's eight frames recovered. The receipt is [RESULT-SW4.json](RESULT-SW4.json).
+
+## Earlier selected words (#626)
+
 **Result (negative, scoped).** For the two complex provider words of the selected #626 construction
 (`jp8` and `ck`, content hashes pinned in
 [`complex-k492-owner-repair/data/SPEC.json`](../complex-k492-owner-repair/data/SPEC.json)), the paid local profile
@@ -93,6 +112,9 @@ python3 -B research/complex-k492-owner-repair/verify.py --work /tmp/k492/complex
 python3 -B research/frame-lift-search/check.py --work /tmp/k492/complex --out /tmp/FRAME-LIFT.json
 # Optional: CP-SAT cross-check (needs `pip install ortools`) and the order search.
 python3 research/frame-lift-search/frame_exact.py /tmp/k492/complex/jp8-step6-cold_end/FULL-WORD.json.gz
+# Current selected word: PR699 SW4 input (e.g. <work>/sw4/sw4/FULL-WORD.json.gz from complex-sw4-frame8/verify.sh)
+python3 -B research/frame-lift-search/check_sw4.py --input SW4-FULL-WORD.json.gz --out /tmp/FRAME-LIFT-SW4.json
+python3 research/frame-lift-search/frame_exact.py SW4-FULL-WORD.json.gz --caps --recipe /tmp/recipe.json
 python3 research/frame-lift-search/order_search.py WORD.json.gz ORDER.json --steps 8000 --seed 1
 python3 research/frame-lift-search/order_to_word.py WORD.json.gz ORDER.json REORDERED.json.gz
 python3 research/frame-lift-search/eval_lp.py REORDERED.json.gz
