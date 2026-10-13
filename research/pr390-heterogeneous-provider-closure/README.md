@@ -1,6 +1,6 @@
 # PR390 heterogeneous physical-provider closure in exact RAM
 
-This addendum completes the mathematical physical-provider and ordinary
+This addendum gives a written argument for the mathematical physical-provider and ordinary
 scalar/index RAM argument for the **existing pinned PR390 construction**. It
 adds no circuit rewrite, bank-packing gain, selected multiplication bound or
 new cyclic exponent. The source-specific closure is the contribution.
@@ -12,14 +12,14 @@ adapters and inverse bank owners. It constructs an explicitly heterogeneous
 interface; it does not cast those sinks into the unchanged homogeneous
 `BR.Inv` contract.
 
-The [proof](PROOF.md) establishes:
+The [proof](PROOF.md) gives the native claims and distinguishes the inherited transfer:
 
 | Statement | Exact scope |
 | --- | --- |
 | Physical B_K | Every fixed K>=1 and positive tensor multiplicity f; arbitrary correlated live data/helper arrays; private work cleared before use and zero on exit |
 | Optimized B4 | m=73, W=58,899 live families per orthogonal owner, rank mass 4,289,643 and deficit 9,984; all recursive and nonchild costs charged |
 | Gaussian/Walsh | One fixed exact scalar/index RAM program on every power-of-two length, work O(N(log(N+2))^(1023/1024)); specified scalar i for the Gaussian kernel |
-| Cyclic corollary | The inherited Sussman exponent 1-7474546/10^10, all positive lengths, with a supplied canonical positive root at selected order 0<D(N)<8N^3 and one charged root primitive |
+| Inherited cyclic theorem | Already proved in the pinned Sussman source via the P193 `hillsZ_program`; the new native provider is an alternative non-Lean witness at a stronger exponent. The cyclic exponent 1-7474546/10^10 is unchanged; all positive lengths use the supplied canonical positive root at selected order 0<D(N)<8N^3 and one charged root primitive |
 
 The RAM model charges indexed access, scalar/index preparation, fresh array
 allocation, stack work and bounded recursion, with one fixed polynomial
@@ -31,14 +31,16 @@ multiplication theorem is claimed.
 
 ## Retained finite evidence
 
-The independently reconstructed scalar leaf was already checked on every
-1,031 column in both orientations: 1,023 live columns, including all 783
-dirty helpers, plus eight initially dirty active center columns. The existing
-exact audits also checked all 3,135 phased transition recipes, 240 data
-adapters, two sink adapters, the global owner/phase/packing invoice and the
-integer-only strict moment. Those completed results were reused during this
-publication preparation; they were not rerun and no contributor program was
-executed.
+The exact supplied scalar script was run end to end in both orientations on
+1,023 live columns (including all 783 dirty helpers) plus eight initially
+dirty active scratch columns. Added guards verify target q-perpendicular
+frames, the ordinary full helper frame and both sink frames. The replay
+records 3,953 frame occurrences and 3,135 unique actual frame edges; this
+is an edge count, not a supplied phased-recipe audit. Unpublished AI replays
+are not included or offered as evidence. The 12 integer root inequalities
+and the exact moment/profile constants are checked separately by
+`own_finite_profile.py`, with the compact fresh results in
+[FINITE-VALIDATION.json](FINITE-VALIDATION.json).
 
 The supplied standard-library checker reconstructs the scalar word directly
 from the three pinned public literal files and tests its complete operator:
@@ -50,8 +52,8 @@ python3 -B own_scalar_columns.py
 It writes resumable results under `own-scalar-results/`. This is a finite
 scalar replay, not a full phased physical compiler, an all-size execution,
 a Lean build or a stand-in for the universal proofs. Its mathematical
-functions are unchanged from the completed referee replay; only the literal
-input directory was relocated for this package. The complete Clifford
+functions are unchanged from the completed referee replay; the literal input
+directory is relocated and new top-level frame guards are added for this revision. The complete Clifford
 lowering follows the constructive algebra in PROOF.md, not a hidden external
 fast-provider premise.
 
@@ -59,7 +61,7 @@ fast-provider premise.
 scope. [SOURCE.json](SOURCE.json) pins the public inputs and interfaces;
 [NOTICE.md](NOTICE.md) credits the construction and transfer lineage. New
 exposition and the independent scalar checker were prepared with substantial
-OpenAI Codex and ChatGPT Pro assistance. The reported independent checks are AI referee work,
+OpenAI Codex and ChatGPT Pro assistance. Unpublished AI checks are disclosed as AI referee work,
 not independent human peer review or kernel certification.
 
 The manifest binds this prepared package's bytes, subject to an external

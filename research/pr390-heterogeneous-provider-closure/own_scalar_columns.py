@@ -32,6 +32,18 @@ require(len(frames)==948 and all(span_rank(f)==len(f) for f in frames),'dependen
 require(set(ports)=={q for q in range(512) if bin(q).count('1') in (3,7)},'incorrect E8 port stock')
 require(all(frames[cert['start'][j]]==[q] for j,q in enumerate(ports)),'wrong source entry frame')
 require(all(cert['start'][j]==0 for j in range(v,width)),'preconditioning not in common base')
+require(frames[1]==[256,128,64,32,16,8,4,2,1],'full frame is not a coordinate permutation')
+for j,q in enumerate(ports):
+ target=frames[cert['final'][v+j]]
+ require(len(target)==8 and span_rank(target)==8 and all(bin(u&q).count('1')%2==0 for u in target),'target exit not q-perp')
+for helper in range(2*v,width):
+ require(cert['final'][helper]==1,'ordinary helper exit not frame 1 before sink override')
+for row in sinks['accepted']:
+ q=ports[{355:84,403:99}[row['sink_helper']]]
+ require((row['sink_helper'],row['frame'],q) in [(355,206,508),(403,221,499)],'sink identity changed')
+ target=frames[row['frame']]
+ require(len(target)==8 and span_rank(target)==8 and all(bin(u&q).count('1')%2==0 for u in target),'sink exit not q-perp')
+
 sink_by_cut={r['cut_group']:r for r in sinks['accepted']}
 require({r['sink_helper'] for r in sink_by_cut.values()}=={355,403},'sink stock differs')
 
