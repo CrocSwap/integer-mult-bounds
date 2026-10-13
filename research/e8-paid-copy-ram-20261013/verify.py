@@ -1,4 +1,5 @@
-"""Independent referee checks. Only Python standard library; never imports candidate code.
+"""Independent referee checks with the owned integrity helper. Standard library only;
+never imports provider or contributor mathematics code.
 
 All mathematical decisions use integers/Fraction. Decimal is display only.
 The tests corroborate the universal arguments in REFEREE-REPORT.md; they
@@ -105,22 +106,13 @@ def eye(n,one=Q(1)):return [[one if i==j else 0*one for j in range(n)] for i in 
 def diag(a):return [[a[i] if i==j else 0*a[i] for j in range(len(a))] for i in range(len(a))]
 
 def authentication():
-    source=json.loads((ROOT/'SOURCE.json').read_text())
-    rows=source['included_proof_sources']
-    blobs=[]
-    for row in rows:
-        data=(ROOT/row['file']).read_bytes()
-        digest=hashlib.sha256(data).hexdigest()
-        assert digest==row['sha256'],row['file']
-        if 'git_blob' in row:
-            got=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
-            assert got==row['git_blob'],row['file']
-            blobs.append({'file':row['file'],'git_blob':got})
-    manifest=ROOT/'SHA256SUMS.json'
-    if manifest.exists():
-        for name,wanted in json.loads(manifest.read_text()).items():
-            assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest()==wanted,name
-    record('source_byte_authentication',{'included_source_blobs':blobs,'verbatim_Pro_provider_proof':True})
+    # Only the locally authored integrity helper is imported; no provider code.
+    import importlib.util
+    sys.dont_write_bytecode = True
+    spec = importlib.util.spec_from_file_location('owned_pr647_integrity', ROOT/'integrity.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    record('source_byte_authentication', module.authenticate(ROOT))
 
 def shears():
     f=Field(4);i=f.z;a=(1+i)/2;C=[[a,(1-i)/2],[(1-i)/2,a]];S=diag([f.one,i]);H=[[f.one,f.one],[f.one,-f.one]]

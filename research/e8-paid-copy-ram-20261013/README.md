@@ -181,3 +181,39 @@ encoding/approximation, coefficient growth, precision and global errors,
 sequential movement, actual source setup and caller/head/work/return ABI remain
 separate obligations. PR631's scoped star-reader puncture theorem is not
 contradicted by this different real-response decoder.
+
+
+## Evidence-integrity repair (local candidate)
+
+The original mathematical proofs, RESULTS.json, SOURCE.json, review, notices
+and imported sources remain byte-identical to PR647 head
+`956bb581e7f97328e1b53baa5aca3d2490f2f607`. The new integrity.py specifies the
+complete sixteen-file package, five required proof files and four included
+proof sources independently of candidate lists. SHA256SUMS.json is mandatory
+and covers exactly the other fifteen files. Retained evidence/attribution
+bytes have fixed original pins; omissions, consistently reduced lists and
+rehashed replacement proofs are rejected. Package symlinks and extra files,
+including generated caches, are outside this fixed inventory; use -B and
+write receipts outside the package.
+
+These checks assume a stable filesystem and a trusted checker/contract.
+Authenticate the reviewed revision with an independently obtained Git head or
+archive digest before running it. A hash manifest shipped inside the same
+package does not authenticate itself or the whole release. The mutable repair
+files require that external anchor; a coherently rehashed README edit can
+still pass local consistency checks. Passing does not re-prove mathematics.
+The retained historical review does not claim acceptance of this new repair.
+
+Run only the new, locally authored integrity tests:
+
+```
+python3 -I -B research/e8-paid-copy-ram-20261013/test_integrity.py
+```
+
+The tests never import or execute verify.py or provider/contributor programs.
+The mathematical verifier delegates its authentication step to this helper;
+its mathematical function bodies and deterministic receipt are preserved.
+This repair was prepared for Artus's Tintagel campaign with OpenAI Codex
+assistance, crediting PR838's coverage finding and PR841's digest-membership
+repair alongside the unchanged prior attribution. No theorem, supplied-root
+hypothesis or bit-complexity boundary changes.
