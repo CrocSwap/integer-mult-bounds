@@ -63,3 +63,5 @@ Stage-dependent composition: [retimed gauge/kernel trade searches, every homogen
 - [Exact asynchronous inventory limit](negative-searches/async505-inventory-wall/README.md):133 timing screens,146-profile exact dual certificate in two arithmetic engines, and new kernel/entrance screens.
 
 - [Partial-own asynchronous composition](negative-searches/partial-own-async/README.md):new-factory allocation, completed finite composition, and a separately unverified coordinated-gauge followup.
+
+Exact frame-only optimality (Rohan Guliani): [the selected #626 jp8/ck words are LP/CP-SAT optimal over all frame assignments of their gate sequences](../frame-lift-search/README.md); 11 sampled commuting-reorder restarts, re-solved exactly, gave no gain.
