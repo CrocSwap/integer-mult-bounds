@@ -1,7 +1,13 @@
 # Community contribution record
 
-**Current reviewed composition: #799 with #589, κ=0.001661634653669567.**
-See the [review](docs/research/community-frontier799-review.md) and
+**Current reviewed composition: #890 with #589, κ=0.001661957774647029.**
+See the [review](docs/research/community-frontier890-review.md) and the
+eighteen-PR U8/T21 batch below for scope.
+
+## SW4 and X4 rounds through #799
+
+The preceding #799 composition with #589 has κ=0.001661634653669567. See its
+[review](docs/research/community-frontier799-review.md) and
 [circuit integration](docs/research/community-circuits681-review.md) for scope.
 
 | Contributor | Work in this round and its construction lineage |
