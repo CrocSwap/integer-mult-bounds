@@ -582,9 +582,25 @@ frontier626-verify: selected-record-check
 .PHONY: frontier741-verify
 frontier741-verify: selected-record-check
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier741.XXXXXX"); \
-	python3 -B scripts/verify_frontier741.py --work "$$work/replay"
+	python3 -B scripts/verify_frontier_complete.py --frontier 741 --work "$$work/replay"
 
 .PHONY: frontier799-verify
 frontier799-verify: selected-record-check
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier799.XXXXXX"); \
-	python3 -B scripts/verify_frontier799.py --work "$$work/replay"
+	python3 -B scripts/verify_frontier_complete.py --frontier 799 --work "$$work/replay"
+
+# Opt-in PR853 scheduling; the sequential replay remains the reference.
+.PHONY: complex741-parallel
+complex741-parallel:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-parallel741.XXXXXX"); \
+	python3 -B scripts/verify_complex741_parallel.py --work "$$work/replay" --jobs 3
+
+.PHONY: frontier890-verify
+frontier890-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier890.XXXXXX"); \
+	python3 -B scripts/verify_frontier890.py --work "$$work/replay"
+
+.PHONY: frontier942-verify
+frontier942-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier942.XXXXXX"); \
+	python3 -B scripts/verify_frontier942.py --work "$$work/replay"

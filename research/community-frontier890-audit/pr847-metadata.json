@@ -1,0 +1,56 @@
+{
+  "author": {
+    "id": "U_kgDOCJf6TQ",
+    "is_bot": false,
+    "login": "chinmayarvind23",
+    "name": "Chinmay Arvind"
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "The public PR741/PR799 verification commands now require the complete PR741 replay receipt before accepting reused ancestry or publishing success. This follows Lucas (@ljste)'s finding in #838 at `2a50020bb9564229874cbfbdc112e17b235bacfc`: the historical checker accepts a replaced stage or missing artifact when its receipt is changed consistently. **Tooling integration; no new \u03ba and no independent-discovery claim.**\n\nA new entrypoint requires all 22 ordered stages, all 44 artifact paths and agreement with `STAGES.json`, then retains every historical composition check. Both Make targets and both cold-replay workflows use it. The old verifiers are hash-pinned proof supplements, so their bytes, selected records and source packages remain untouched. Historical output is kept under `work/replay/`; only `work/RESULT.json` records successful completion of the new entrypoint.\n\nValidation on isolated Linux CPython 3.12.15:\n\n- All 11 new regression tests pass, including physical deletion of each of the 44 artifacts, coherently rehashed phase-stage replacement, stage-index disagreement, and actual CLI rejection before reuse starts.\n- Existing PR741/PR799 binding suites and selected-record integrity pass with original proof hashes.\n- Publication tests cover fresh/reused #799, #741, rejected postflight evidence and supplier failure. They substitute the expensive subprocess boundary and validate real archived evidence; they are not fresh construction runs.\n\n```sh\npython3 -B -m unittest discover -s tests -p 'test_frontier_replay_coverage.py' -v\nmake frontier799-verify\n```\n\nFresh full cold replay and hosted CI are **not claimed as locally completed**. Both updated CI workflows retain the full cold replay. The coverage gate detects omissions; it does not authenticate fabricated logs, audit every #799 obligation, or prove the multiplication theorem. The inherited mathematical assumptions and selected bound are unchanged.\n\nBase: `f567884aeb8851b6e794af1184119a3bfbe1e631`. [Implementation, output layout and scope](https://github.com/chinmayarvind23/integer-mult-bounds/blob/72b8406b96ea2e0f37bb5143f594e12d4817c92a/docs/research/frontier-replay-coverage.md). Credit Lucas for #838; Douglas Colkitt for the checkers/replays; Chafik Boukhalfa for #741; DreamingOfClouds and eumemic for the #589/#555 lineage. Integration by Chinmay (@chinmayarvind23), with substantial OpenAI Codex assistance, under Apache-2.0.\n",
+  "changedFiles": 6,
+  "files": [
+    {
+      "path": ".github/workflows/frontier741.yml",
+      "additions": 13,
+      "deletions": 7,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": ".github/workflows/frontier799.yml",
+      "additions": 16,
+      "deletions": 8,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "Makefile",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/research/frontier-replay-coverage.md",
+      "additions": 83,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/verify_frontier_replay.py",
+      "additions": 111,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "tests/test_frontier_replay_coverage.py",
+      "additions": 268,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "72b8406b96ea2e0f37bb5143f594e12d4817c92a",
+  "isDraft": false,
+  "number": 847,
+  "state": "OPEN",
+  "statusCheckRollup": [],
+  "title": "Tooling: require complete receipts in public frontier verification",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/847"
+}

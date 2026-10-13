@@ -1,0 +1,68 @@
+{
+  "author": {
+    "id": "U_kgDOBmEn_g",
+    "is_bot": false,
+    "login": "mihir-s-05",
+    "name": ""
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "## Summary\n\n**Status: Tooling improvement / provenance audit. No new \u03ba.**\n\nFound and fixed a provenance-validation gap in `scripts/verify_selected_result.py`.\n\nThe original checker verifies the selected certificate, exact \u03ba, source inventories, and proof supplements, but only checks that the primary `proof` path exists. Changing that pointer to an existing, unverified file containing `NO PROOF` still passes, without modifying any mathematical inputs or verified digests.\n\nThe fix requires the resolved primary-proof path to belong to the set of files whose SHA-256 digests have already been verified.\n\nThis preserves:\n- Both legacy package-relative and newer repository-relative source manifests.\n- Primary proofs covered by the source inventory or by a proof supplement.\n- Existing arithmetic, certificate, inventory, and supplement checks.\n- Mutable review/validation receipts when they are not otherwise digest-pinned.\n- Existing normalized-path and resolved-symlink semantics.\n\n**This is a concrete metadata-validation gap, not evidence of an incorrect mathematical construction or published proof.**\n\n## Reproduction and evidence\n\nFrom the repository root (Python 3.11+, standard library only):\n\n```bash\npython3 -I -B research/selected-proof-binding/reproduce.py\n```\n\nExpected output:\n\n```text\nPASS_SELECTED_PROOF_BINDING 11 reproduced gaps; 11 repaired rejections; 12 tests\n```\n\nThe reproducer imports the original checker from a byte-identical, Git-blob-pinned copy and compares it with the patched implementation.\n\n**Validation results:**\n- 11 detached-proof mutations accepted by the original checker and rejected by the patched checker.\n- 6 valid proof/path cases accepted by both implementations.\n- 12 regression tests pass under normal and optimized Python.\n- Baseline corruption, expected-receipt corruption, and removal of the repair are detected.\n- Relocated source-bundle and clean patch-application checks pass.\n\nThe package includes a deterministic evidence receipt (`EXPECTED.json`), the original checker, regression tests, source references, and a reproduction guide.\n\n## Scope and limitations\n\nThis verifies provenance coverage, not the semantic correctness of the referenced proof. A coherently modified record/inventory or a pointer to another already-verified but irrelevant file remains outside this check's guarantees.\n\nFull `make verify`, selected cold-supplier replays, complete repository inventory checks, Lean, and remote CI were not run. Direct cloning was blocked by DNS resolution in the execution environment; pinned source files were inspected through the GitHub connector and the focused tests ran in an isolated source snapshot.\n\nNo selected certificate, supplier, construction, research ledger, or `upstream/` files are modified.\n\n## Provenance and overlap\n\n- **Exact base commit:** `7ee02b7c96d85f22b38d28bd7ed49bb8c1aeb261`\n- **OS-random assignment seed:** 96 (research consolidation)\n- **Original checker Git blob:** `4f0e4bded003a48b5122cbff597af4282f4d6329`\n\nThe original experimental base selected PR741/PR589 at \u03ba = 0.001661202643272239. During verification, main advanced to PR799 at \u03ba = 0.001661634653669567. The affected checker remained byte-identical, and the new selected primary proof is also digest-covered. No new \u03ba is claimed.\n\nRelated work: PR704 strengthens review-ledger metadata, while PR474 binds fresh gen4 replay certificates. PR746 and PR828 address separate historical source-reconciliation gaps. None is duplicated or imported here.\n\nThe local sprint claim, candidate selection, source pins, results, and limitations are recorded in `research/selected-proof-binding/`.\n\n## Attribution\n\nPrepared for **Mihir Srivastava (@mihir-s-05)** with substantial **OpenAI assistance** in investigation, implementation, verification, and documentation.\n\nCredit to Douglas Colkitt for the original checker and verification infrastructure, and to the selected construction's contributors and maintainers. Original notices and the Apache-2.0 license are preserved.\n\nNo independent human peer review or full multiplication-theorem verification is claimed.",
+  "changedFiles": 8,
+  "files": [
+    {
+      "path": "research/selected-proof-binding/CLAIM.json",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/selected-proof-binding/EXPECTED.json",
+      "additions": 9,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/selected-proof-binding/README.md",
+      "additions": 137,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/selected-proof-binding/REFERENCE-COVERAGE.json",
+      "additions": 89,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/selected-proof-binding/reproduce.py",
+      "additions": 85,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/selected-proof-binding/vendor/verify_selected_result.py",
+      "additions": 84,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/verify_selected_result.py",
+      "additions": 10,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "tests/test_selected_proof_binding.py",
+      "additions": 165,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "2fedd468c0bb69722fbc402be01daa7701f0c7d6",
+  "isDraft": false,
+  "number": 841,
+  "state": "OPEN",
+  "statusCheckRollup": [],
+  "title": "Tooling: bind selected primary-proof pointers to verified digests (no new \u03ba)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/841"
+}

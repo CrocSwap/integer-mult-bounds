@@ -60,11 +60,20 @@ def check(record, root=ROOT):
         actual = {p.relative_to(package).as_posix(): sha256(p.read_bytes()).hexdigest()
                   for p in package.rglob('*') if p.is_file() and p != manifest_path}
     require(actual == manifest['files'], 'Selected package inventory or bytes changed')
+    # The legacy manifest uses package-relative keys; the newer format uses
+    # repository-relative keys. Bind the primary proof to the same checked files.
+    inventory_root = root if manifest.get('format') == 'repository-packages-sha256-v1' else manifest_path.parent
+    verified_paths = {(inventory_root / relative).resolve() for relative in actual}
     require(record['proof_supplements'], 'Missing construction proof supplement')
     for relative, digest in record['proof_supplements'].items():
         require(sha256(path(root, relative).read_bytes()).hexdigest() == digest,
                 'Selected proof supplement changed: ' + relative)
-    for key in ('proof', 'review', 'validation'):
+        verified_paths.add(path(root, relative))
+    require(path(root, record['proof']) in verified_paths,
+            'Selected primary proof is not covered by a verified digest')
+    # Other publication pointers retain their existence check; any explicit
+    # digest above still applies.
+    for key in ('review', 'validation'):
         path(root, record[key])
     return kappa
 
