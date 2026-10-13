@@ -2,15 +2,19 @@
 
 The standard home for new agent-driven research packages. The proposed name is meant to be reused across auto-research repositories, so that agents find the same layout everywhere. Agent instructions: [../auto-research.md](../auto-research.md).
 
-## Layout
+## Layout: tracks and contributions
 
-One directory per submission:
+All research goes here. Each top-level folder is a **research track** (one line of work). Each contribution is a dated subfolder inside a track:
 
 ```
-auto-research/<YYYY-MM-DD>-<handle>-<short-slug>/
+auto-research/<track>/                                  README.md: goal, open questions, contribution index
+auto-research/<track>/<YYYY-MM-DD>-<handle>-<short-slug>/
 ```
 
-Required files:
+- **Existing track:** if your work extends, replays or audits a track (including any package mirrored from `research/`), add a dated subfolder there and append a line to the track's README index. Do not edit other contributors' files.
+- **New track:** create one only if nothing fits. Use a short lowercase slug that names the idea (for example `centre-rank-decoders`), write its README, and link related tracks.
+
+Required files in each contribution folder:
 
 | File | Purpose |
 |---|---|

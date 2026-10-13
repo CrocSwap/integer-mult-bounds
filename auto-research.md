@@ -170,23 +170,58 @@ Success means useful evidence that another person can check—not necessarily
 a bigger headline number.
 ```
 
-## 2. Where your work goes
+## 2. Where your work goes: research tracks in `auto-research/`
 
-New submissions go under [`auto-research/`](auto-research/README.md), one directory per package:
+**All research goes into [`auto-research/`](auto-research/README.md).** That includes new constructions, κ claims, negative and no-gain results, audits, verifications and tooling. Every contribution belongs to a **research track**: a top-level folder under `auto-research/` that collects one line of work, for example a supplier family, a geometry or an audit theme.
+
+### Step 1: find the track your work belongs to
+
+Before creating anything, look through `auto-research/` (`ls auto-research/`, then each track's `README.md`) and the experiment log. Join an existing track if your work:
+
+- builds on, extends, replays or audits a package already in that track;
+- uses the same construction, word, supplier or geometry; or
+- tests a hypothesis the track lists as open.
+
+Every package mirrored from `research/` is an existing track. For example, work on PR799's word belongs in `auto-research/gauge44-frames-x/`.
+
+### Step 2a: contribute to an existing track
+
+Add your contribution as a new dated subfolder inside the track. Do not edit or overwrite files that other contributors committed there.
 
 ```
-auto-research/<YYYY-MM-DD>-<handle>-<short-slug>/
-  README.md        what was tried, the result, the exact reproduce command and its scope
-  RESULT.json      machine-readable outcome (see auto-research/README.md)
-  verify.py        or verify.sh: one command, standard library where possible
-  MANIFEST.json    sha256 of every file in the package
-  NOTICE.md        sources, credits and AI-assistance disclosure
-  code/  data/  evidence/   as needed
+auto-research/<track>/<YYYY-MM-DD>-<handle>-<short-slug>/
 ```
 
-Negative and no-gain results are welcome. Also add a short entry to the experiment log so other agents do not repeat the same search.
+Then append one line for your contribution to the track's `README.md` index: date, handle, one-sentence result, status, PR number.
 
-The existing [`research/`](research/) tree is **not** being moved. More than 1,600 files pin paths under `research/` (verifiers, manifests, hashes and the Makefile), so renaming it would break existing certificates. Treat `research/` as the frozen legacy tree: keep citing and pinning it, but put new packages under `auto-research/`.
+### Step 2b: create a new track
+
+Create a new track only if no existing track fits. Choose a short, descriptive, lowercase slug that names the idea, not the person, for example `leech-port-geometry` or `centre-rank-decoders`.
+
+```
+auto-research/<new-track>/
+  README.md                                     track goal, open questions, index of contributions
+  <YYYY-MM-DD>-<handle>-<short-slug>/           your contribution
+```
+
+Name the predecessor tracks in the new track's `README.md`, so others can find related work.
+
+### Inside every contribution folder
+
+```
+README.md        what was tried, the result, the exact reproduce command and its scope
+RESULT.json      machine-readable outcome (see auto-research/README.md)
+verify.py        or verify.sh: one command, standard library where possible
+MANIFEST.json    sha256 of every file in the contribution
+NOTICE.md        sources pinned by commit, credits and AI-assistance disclosure
+code/  data/  evidence/   as needed
+```
+
+Negative and no-gain results are welcome. Record them in their track so other agents do not repeat the same search.
+
+### About `research/`
+
+The legacy [`research/`](research/) tree stays where it is and should not be edited. More than 1,600 files pin paths under `research/` (verifiers, manifests, hashes and the Makefile). `auto-research/` holds a byte-identical mirror of it, so each legacy package is already a track. Keep running legacy verifiers from `research/`, and put all new work under `auto-research/`.
 
 ## 3. Ground rules
 
