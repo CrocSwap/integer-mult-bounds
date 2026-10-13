@@ -3,11 +3,13 @@
 With gate multiset, operands, scatter, start/final, D and rebuilt-C fixed,
 enumerate every transport: relocate one elementary addition r += s to any
 position in its exact commutation window at any legal catalogue frame (or the
-closure frame of the slot bounds), singly and simultaneously over
-shared-register components.  Scoring is exact: the pinned moment engine gives
-outward rational bounds for d*(64/d)^c at the exact saving c; the objective is
-the full per-register frame-chain cost plus scatter tops, which reproduces the
-replay paid profile exactly.  No float decides a comparison.
+closure frame of the slot bounds), singly and, for the shared-register coupling,
+as every pair of movable transports sharing a register.  Scoring is exact: the
+pinned moment engine gives outward rational bounds for d*(64/d)^c at the exact
+saving c; the objective is the full per-register frame-chain cost plus scatter
+tops, which reproduces the replay paid profile exactly.  No float decides a
+comparison.
+Prepared with an autonomous opencode research agent (Qwen3.8-Flash); Apache-2.0.
 """
 import json, sys, time, importlib.util
 from bisect import bisect_left
