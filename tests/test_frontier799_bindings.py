@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tarfile
+import shutil
 from unittest.mock import patch
 import unittest
 from test_frontier741_bindings import Composition as ParentComposition
@@ -20,8 +21,10 @@ class X4Composition(unittest.TestCase):
         cls.parent=ParentComposition
         cls.root=cls.parent.root
         cls.ancestor=cls.root/'ancestor';cls.ancestor.mkdir()
-        (cls.ancestor/'bit').symlink_to(cls.parent.bit,target_is_directory=True)
-        (cls.ancestor/'complex').symlink_to(cls.parent.complex,target_is_directory=True)
+        # Ordinary copies exercise the same bytes without requiring Windows
+        # symlink privileges or linking test mutations to a shared fixture.
+        shutil.copytree(cls.parent.bit,cls.ancestor/'bit')
+        shutil.copytree(cls.parent.complex,cls.ancestor/'complex')
         with tarfile.open(ROOT/'research/community-frontier799-audit/pr799-replay.tar.gz') as archive:
             for member in archive:
                 dest=(cls.root/member.name).resolve()

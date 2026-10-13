@@ -1,8 +1,73 @@
 # Community contribution record
 
-**Current reviewed composition: #799 with #589, κ=0.001661634653669567.**
-See the [review](docs/research/community-frontier799-review.md) and
+**Current reviewed composition: #942 on #890 / #869 / #870 with #589, κ=0.001661960547713947.**
+See the [current review](docs/research/community-batch952-review.md) and
 [circuit integration](docs/research/community-circuits681-review.md) for scope.
+
+## Recursive interfaces, formal proofs and historical replays
+
+[Individual scopes and evidence](docs/research/community-batch970-interfaces-review.md).
+These contributions improve local mechanisms and verification; the selected exponent is unchanged.
+
+- **Chafik Boukhalfa / chafreaky:** [#862](https://github.com/CrocSwap/integer-mult-bounds/pull/862), [#905](https://github.com/CrocSwap/integer-mult-bounds/pull/905), [#929](https://github.com/CrocSwap/integer-mult-bounds/pull/929), [#951](https://github.com/CrocSwap/integer-mult-bounds/pull/951).
+- **Gareth Davidson / bitplane:** [#877](https://github.com/CrocSwap/integer-mult-bounds/pull/877), [#896](https://github.com/CrocSwap/integer-mult-bounds/pull/896), [#887](https://github.com/CrocSwap/integer-mult-bounds/pull/887).
+- **Ross Richardson / RossRichardson:** [#934](https://github.com/CrocSwap/integer-mult-bounds/pull/934), [#943](https://github.com/CrocSwap/integer-mult-bounds/pull/943), [#944](https://github.com/CrocSwap/integer-mult-bounds/pull/944), [#953](https://github.com/CrocSwap/integer-mult-bounds/pull/953), [#930](https://github.com/CrocSwap/integer-mult-bounds/pull/930).
+- **Chinmay Arvind / chinmayarvind23:** [#856](https://github.com/CrocSwap/integer-mult-bounds/pull/856).
+- **mihir-s-05 / mihir-s-05:** [#828](https://github.com/CrocSwap/integer-mult-bounds/pull/828).
+
+The historical constructions remain credited to Rohan Arun (#279), eumemic (#210),
+and their preserved upstream lineage. Companion reviews do not transfer authorship.
+
+## Circuit and structural-bound checkpoint
+
+[Individual scopes and evidence](docs/research/community-batch970-circuits-review.md).
+All are finite constructions or scoped bounds; the selected exponent is unchanged.
+
+- **Ross Richardson / RossRichardson:** [#965](https://github.com/CrocSwap/integer-mult-bounds/pull/965), [#937](https://github.com/CrocSwap/integer-mult-bounds/pull/937), [#945](https://github.com/CrocSwap/integer-mult-bounds/pull/945), [#917](https://github.com/CrocSwap/integer-mult-bounds/pull/917), [#919](https://github.com/CrocSwap/integer-mult-bounds/pull/919), [#947](https://github.com/CrocSwap/integer-mult-bounds/pull/947), [#949](https://github.com/CrocSwap/integer-mult-bounds/pull/949), [#954](https://github.com/CrocSwap/integer-mult-bounds/pull/954), [#958](https://github.com/CrocSwap/integer-mult-bounds/pull/958).
+- **Sricharan Vagvala / theon199:** [#967](https://github.com/CrocSwap/integer-mult-bounds/pull/967).
+- **faw / faw01:** [#839](https://github.com/CrocSwap/integer-mult-bounds/pull/839).
+- **ToikY / ToikY:** [#969](https://github.com/CrocSwap/integer-mult-bounds/pull/969), [#963](https://github.com/CrocSwap/integer-mult-bounds/pull/963).
+- **woklerx / woklerx:** [#961](https://github.com/CrocSwap/integer-mult-bounds/pull/961).
+- **Gareth Davidson / bitplane:** [#964](https://github.com/CrocSwap/integer-mult-bounds/pull/964).
+- **themilkman216 / themilkman216:** [#968](https://github.com/CrocSwap/integer-mult-bounds/pull/968).
+
+## Verification checkpoint in the forty-PR batch
+
+[Scopes and execution evidence](docs/research/community-batch970-review.md).
+The selected exponent is unchanged.
+
+- **yssite (#959):** closes selected-source inventory symlink acceptance gaps.
+- **Aaron Wang / navinor (#957):** historical T21 endpoint, outer-reduction and surcharge-assumption audit.
+- **David Breslauer / davidNbreslauer (#960):** independently implemented binomial enclosure of the T21 complex moment brackets.
+- **MrPink604 (#819/#818):** complete native-payload gzip portability and exact R420 RREF acceleration, building on Aman's #367 kernel.
+- **ToikY (#900):** exact spectator-orbit reduction of the historical sparse-fusion screen.
+- **Chinmay Arvind / chinmayarvind23 (#834):** expression-level R420 Lean-source correspondence, building on James Chang's formalization.
+- **WeberChen8128 (#893):** independent recorded-source and axiom-evidence audit of James Chang's PR236.
+- **woklerx (#970):** closes historical bit-compression provenance coverage and independently checks its finite arithmetic.
+
+Original construction and verification authors retain attribution in each package.
+These contributions are scoped audits/tooling, not new κ or full theorem proofs.
+
+## T37, circuit and scoped-bound batch
+
+[Individual scope, evidence and adaptations](docs/research/community-batch952-review.md).
+Parallel work is credited independently of the selected frontier.
+
+- **Jonathan Capalbo / jon314159 (#942):** T37 whole-owner composition, enlarged precision allowance, complete finite replay and all-positive-replica fixed-family grid bound.
+- **Gareth Davidson / bitplane (#904/#941/#952):** four-wire prefix synthesis, exact helper-matching floor with a precision-admitted near-optimum, and six-wire Boolean resynthesis.
+- **Ross Richardson (#936/#908/#914/#923/#925/#950):** five-wire prefix synthesis, independently checked block constructions and scoped minima, plus exact historical central-factor verification acceleration.
+- **Charles Bethin / cbethin (#850):** fixed SW4/X4 owner-profile optimum uniformly through exponent 1/3, with independent continuum certification.
+- **Aaron Wang / navinor (#873/#848):** frame508 schedule and copy-path sharing obstruction under the original interface. His separate #946 encoding proposal is credited as pending integration, with frozen-source conflicts recorded.
+- **Mihir Srivastava / mihir-s-05 (#845):** all-real fixed-reader P112 single-lift copy-rank obstruction, with independent finite premises.
+- **zeusinsight (#857):** parallel frame523 integer-factor construction and precision replay.
+- **Deftsalt / Deftsalt-debug (#880):** frame507 schedule, independent fixed-factor minima and native verification.
+- **CubeJerry (#906):** frame522 shortening with complete precision and native checks.
+
+Predecessor credit includes Chafik Boukhalfa, Jeremy Kothe, Hao Yan,
+DreamingOfClouds, eumemic, icekylinx and Rohan Arun; Jeffrey Cox's small-GL
+method; Sagar Thakrar's matching and sharing certificates; Scott Woolsey
+Biggart, Greer Guthrie, Mikhail Gadelha and commdata2338's basis work; Gautam
+Gupta's #844 block; and all native verification authors in the retained notices.
 
 | Contributor | Work in this round and its construction lineage |
 |---|---|
@@ -33,6 +98,29 @@ See the [review](docs/research/community-frontier799-review.md) and
 Earlier contributors and source-specific assistance notices remain credited.
 Importing a predecessor's package or mechanism does not imply review of its
 entire PR. Parallel work retains credit independently of the selected headline.
+
+## Eighteen-PR U8/T21 batch
+
+[Full contribution review and scope](docs/research/community-frontier890-review.md).
+
+- **Chafik Boukhalfa / chafreaky (#890):** T21 composition, partial-bank checks and fixed-family owner bound.
+- **Jeremy Kothe / jeremykothe2 (#869/#870):** U8 triangle-hybrid delivery rewrite and T16 integration.
+- **Hao Yan / FanPUYen (#858, closed dependency):** T16 owner construction, bank lift and independent physical-window/chart audit reused in the new frontier.
+- **Lucas Steinmetz / ljste (#838/#812):** evidence-omission audit and independent literal binary spectra.
+- **Chinmay Arvind / chinmayarvind23 (#847):** public replay-coverage integration and regression tests, credited alongside the independently developed stronger default.
+- **nightangelflowerwin-ops (#865):** versioned evidence contracts, complete selected-replay admission and portability checks.
+- **Adem Vessell / AdemVessell (#851):** exact bridge-control identity coverage.
+- **Mihir Srivastava / mihir-s-05 (#841):** digest-bound primary-proof pointers.
+- **Aaron / navinor (#853/#864/#894/#910):** parallel replay, exact X4 frame bound, endpoint accounting and bounded insertion census.
+- **SethBurkart123 (#881/#886):** independent U8 CRT/frame checking and fixed bit-frame enumeration.
+- **Amnon Tamsut / AmnonTamsut (#874):** profile-additivity and ideal-gain accounting audit.
+- **ToikY (#909/#911):** nonunit target-pair exclusion and exhaustive binary residual/phase verification.
+
+Original AI-assistance disclosures remain attached. Maintainer integration adds
+integer CRT height bounds, rational interval cost comparisons, a rounding-text
+correction and historical-context adapters; these refinements do not replace
+contributor credit. Predecessors, including Rohan Arun, icekylinx,
+DreamingOfClouds and eumemic, retain their cumulative attribution below.
 
 ## Historical K-triangle round through #626
 
@@ -420,3 +508,43 @@ verified posts, profile associations and unresolved account identities.
 - **Michiel Kosters** ([research repository](https://github.com/michielkosters/mathematics_ai/tree/2e0aa64ca09c87fc94f8575f59493f70cf929d71/problems/integer-multiplication-109); Douglas associates @one_line_proof) developed a parallel weighted-hypergraph/coordinate-frame candidate, compressed centers and aligned bit pairing. Our [review](research/parallel-announcements/README.md) reproduces the finite certificate with its transfer/precision limitations explicit.
 - **Abe / @abe_asfaw**, via a suggestion supplied by Douglas, identified the redundant complex center and its historical 26.5% numerical gain. We [checked the scalar identity, counts and assembly arithmetic](research/parallel-announcements/README.md), and credit this parallel observation alongside the already preserved rank-h center research.
 - **Jacob Sussman** ([jacobalansussman](https://github.com/jacobalansussman/wht-power-saving-lean/tree/fdfb7815c15ec43af0fb54818a6a57ae4025126b)) published a separate Lean 4 development on the Fourier side (OpenAI's family 130, not this project's multiplication theorem): a proof of #130's general frame lemma for that RAM model, and a kernel check of #193's complex word, rebuilt from the published data, inside a five-stage layout. It was built with AI agents (Claude) and makes no κ claim. Nothing in it has been replayed or reviewed here.
+
+## Circuit, precision and verification batch through #932
+
+[Individual review and scope](docs/research/community-batch932-review.md).
+The selected κ is unchanged; finite candidates retain their integration obligations.
+
+- **Aaron Wang / navinor (#921/#891/#867):** concurrent isolated tests, exact R439 phase-B class survey and historical source-provenance reconciliation.
+- **just-mn (#903):** exact cached-pivot data-corner replay and differential controls.
+- **Gareth Davidson / bitplane (#849/#837/#866/#915/#926/#813):** exact dyadic audit acceleration, bidirectional Horner, fractional-grid audit, restored target/two-sided compensation and independent outer Bernstein certificates.
+- **Philipp / mightyOil (#883/#882/#879):** optimal scoped X4 pair compilation, grid-bounded JP8 synthesis and independent physical-layout verification.
+- **Stephen Shore / nightangelflowerwin-ops (#916):** full historical X4 invoice/assembly admission for #883's primitive refinement.
+- **dd-hemant (#816):** signed CK target forests and exact class floor, credited as the mechanism predecessor to #932.
+- **ToikY (#901):** restored X4 target pairs with full scalar replay.
+- **Ross Richardson (#932):** signed forests on the X4 compensation panel, complete cost and exact class floor.
+- **martinxxx9 (#884):** shorter frame521 R439 circuit, literal cleanup and improved positive bounds.
+
+These contributions retain their original assistance notices and predecessor
+credit, including Oscar Fennell, Sricharan Vagvala, Scott Woolsey Biggart, Sagar
+Thakrar and Romain Hedouin. Parallel work is credited independently of selection.
+
+## Research and audits in batch #1047
+
+[Individual contributions and scope](docs/research/community-batch1047-review.md). Parallel and corroborating contributions retain separate credit.
+
+- **ToikY / ToikY:** [#1000](https://github.com/CrocSwap/integer-mult-bounds/pull/1000), [#988](https://github.com/CrocSwap/integer-mult-bounds/pull/988), [#971](https://github.com/CrocSwap/integer-mult-bounds/pull/971), [#972](https://github.com/CrocSwap/integer-mult-bounds/pull/972).
+- **woklerx / woklerx:** [#995](https://github.com/CrocSwap/integer-mult-bounds/pull/995), [#1009](https://github.com/CrocSwap/integer-mult-bounds/pull/1009), [#992](https://github.com/CrocSwap/integer-mult-bounds/pull/992), [#966](https://github.com/CrocSwap/integer-mult-bounds/pull/966), [#998](https://github.com/CrocSwap/integer-mult-bounds/pull/998), [#1020](https://github.com/CrocSwap/integer-mult-bounds/pull/1020), [#1035](https://github.com/CrocSwap/integer-mult-bounds/pull/1035), [#994](https://github.com/CrocSwap/integer-mult-bounds/pull/994).
+- **Charles Bethin / cbethin:** [#1010](https://github.com/CrocSwap/integer-mult-bounds/pull/1010).
+- **Ross Richardson / RossRichardson:** [#939](https://github.com/CrocSwap/integer-mult-bounds/pull/939).
+- **mightyOil / mightyOil:** [#875](https://github.com/CrocSwap/integer-mult-bounds/pull/875).
+- **D Lam / DLamdata:** [#979](https://github.com/CrocSwap/integer-mult-bounds/pull/979).
+- **ellipsi2 / ellipsi2:** [#772](https://github.com/CrocSwap/integer-mult-bounds/pull/772).
+- **ArnavSwiggy / ArnavSwiggy:** [#920](https://github.com/CrocSwap/integer-mult-bounds/pull/920).
+
+### Circuit and verifier checkpoint
+
+- **Cinna Davis / 1337isnot1337:** [#973](https://github.com/CrocSwap/integer-mult-bounds/pull/973).
+- **woklerx / woklerx:** [#986](https://github.com/CrocSwap/integer-mult-bounds/pull/986), [#1002](https://github.com/CrocSwap/integer-mult-bounds/pull/1002), [#989](https://github.com/CrocSwap/integer-mult-bounds/pull/989), [#1040](https://github.com/CrocSwap/integer-mult-bounds/pull/1040), [#1047](https://github.com/CrocSwap/integer-mult-bounds/pull/1047).
+- **ToikY / ToikY:** [#1001](https://github.com/CrocSwap/integer-mult-bounds/pull/1001).
+- **Gareth Davidson / bitplane:** [#980](https://github.com/CrocSwap/integer-mult-bounds/pull/980), [#1006](https://github.com/CrocSwap/integer-mult-bounds/pull/1006).
+- **martinxxx9 / martinxxx9:** [#976](https://github.com/CrocSwap/integer-mult-bounds/pull/976).

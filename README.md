@@ -3,56 +3,70 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: read exchanges and enlarged frames
+## Current reviewed result: U8 deliveries and T37 owner packing
 
-**Jeremy Kothe's [#799](https://github.com/CrocSwap/integer-mult-bounds/pull/799),
-extending Chafik Boukhalfa's #741 frames and the earlier source-gauge construction,
-with DreamingOfClouds' #589 bit improvement on eumemic's #555 supplier**, gives
+**Jonathan Capalbo's [#942](https://github.com/CrocSwap/integer-mult-bounds/pull/942),
+building on Chafik Boukhalfa's #890, Jeremy Kothe's #869/#870 U8 rewrite and
+Hao Yan's #858 owner construction, with DreamingOfClouds' #589 bit supplier
+on eumemic's #555**, gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{1661634653669567}{1000000000000000000}=0.001661634653669567.
+\kappa=\frac{1661960547713947}{1000000000000000000}=0.001661960547713947.
 $$
 
-This is approximately **0.026005% above the previous selected exponent saving**,
-not a practical runtime claim. The [#741 checkpoint](certificates/checkpoints/frontier741.json)
-is preserved. Four paired read exchanges improve the recursive rank profile
-while retaining the helper endpoints and physical owners. The result builds on
-icekylinx's source gauge, Rohan Arun's recurrence correction, and the cumulative
-community construction and verification work. [Full contributor record](CONTRIBUTORS.md).
+This is a **0.00016686% increase in the exponent saving** over the
+[#890 checkpoint](certificates/checkpoints/frontier890.json), not a measured
+runtime improvement. The unchanged U8 word is hosted across 37 replicas;
+whole-role edits improve its residual packing. The conservative 779-bit complex
+prefix is charged at 1024 bits, with the enlarged row and bootstrap costs checked.
+An all-replica bound also closes further improvement on the same `10^-18` grid
+within the stated fixed U8/width/capacity/outer-recipe family.
 
-Fresh X4 scalar, frame, phase, owner, precision, moment and 47 strict assembly
-checks pass, bound to rebuilt ancestral SW4 and bit suppliers. The public
-wrapper supports either a full cold replay or explicitly verified ancestry
-reuse. Integration Linux CI is tracked separately in the receipt.
+Fresh U8/T37 scalar, frame, phase, owner, controller and invoice checks pass,
+along with both rational moment engines and all 47 assembly inequalities.
+Complete checked baseline reuse is explicit. Hosted Linux CI has a separate
+status in the integration receipt. All-size compilation, common-label/mutable-source
+realization, whole-call hosting, precision/tape and analytic transfer remain
+conditional. These finite checks are **not a complete Lean multiplication theorem**.
 
-All-size compilation, common-label/mutable-source realization, whole-call hosting,
-precision/tape and analytic transfer remain conditional. These finite checks are
-**not a complete Lean multiplication theorem**.
-
-[Review and scope](docs/research/community-frontier799-review.md) ·
+[New research/audit batch](docs/research/community-batch1047-review.md) ·
+[Final interface/formal/history checkpoint: fourteen reviews](docs/research/community-batch970-interfaces-review.md) ·
+[Circuit/bound checkpoint: sixteen reviews](docs/research/community-batch970-circuits-review.md) ·
+[Verification checkpoint: nine reviews](docs/research/community-batch970-review.md) ·
+[Review and individual contributions](docs/research/community-batch952-review.md) ·
 [Selected record](certificates/selected-result.json) ·
-[Exact assembly](research/community-frontier799-audit/ASSEMBLY.json) ·
-[Integration receipt](docs/research/community-frontier799-integration.json) ·
-[PR review ledger](docs/research/pr-ledger.md)
+[Exact assembly](research/community-frontier942-audit/ASSEMBLY.json) ·
+[Integration receipt](docs/research/community-batch952-integration.json) ·
+[PR review ledger](docs/research/pr-ledger.md) · [Contributors](CONTRIBUTORS.md)
 
 ```sh
 # Also requires a C++17 compiler and Boost headers.
 python3 -m pip install numpy sympy scipy
-make frontier799-verify
+make frontier942-verify
 ```
 
-**Other reviewed work:** Chafik's #795 proves a fixed-profile owner optimum;
-Tekalign's #777 independently reconstructs and verifies the parallel frame result.
-Rohan Guliani's #806 traces historical provenance hashes, with its missing-payload
-limits made explicit. Charles Bethin (#662/#707), mtpsl (#709), cxnmai (#721), and
-Agastya Sondhi (#727) contribute exact verification accelerators and memory savings.
+The eighteen-PR batch completes **17 scoped reviews** and carries #946's broad
+encoding patch pending frozen-source migration. Gareth Davidson and Ross
+Richardson extend finite bit-circuit synthesis and matching; Charles Bethin
+proves a uniform owner bound; Aaron Wang and Mihir Srivastava provide scoped
+obstructions; zeusinsight, Deftsalt-debug and CubeJerry contribute parallel
+circuit candidates. These candidates retain separate credit and are not
+silently combined into the selected bit supplier. Ross also adds an exact
+historical-verifier accelerator. Earlier cumulative credit includes Rohan
+Arun's recurrence correction, icekylinx's source gauge, the U8/T21 lineage and
+all construction and verification contributors in CONTRIBUTORS.md.
 
-Alluri's [#681 circuit consolidation](docs/research/community-circuits681-review.md)
-combines Ali Romman, mtpsl, Greer Guthrie, Sagar Thakrar and Scott Woolsey Biggart's
-work. The individual #688/#691/#694/#696/#708/#713 reviews are now complete.
-Its circuit-count savings concern the historical R420 construction and do not
-improve κ or establish measured runtime gains.
+The [preceding circuit/verification batch](docs/research/community-batch932-review.md)
+and [U8/T21 review](docs/research/community-frontier890-review.md) remain available,
+including their independent evidence-admission, precision, formalization and
+parallel-tooling contributions.
+
+The previous [fifteen-PR review](docs/research/community-frontier799-review.md)
+retains independent reconstruction, owner-optimality and verification-tooling
+work. [Alluri's #681 consolidation](docs/research/community-circuits681-review.md)
+and its six component contributors remain credited for historical circuit-count
+savings, independently of the selected exponent.
 
 ## Historical checkpoint: K-triangle helpers and owner repair
 

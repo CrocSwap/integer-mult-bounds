@@ -1,0 +1,7 @@
+PR620's archived P112 asymmetric-sink screen reported zero free alternatives using floating-point ranks. This package confirms that specific 28,560-case claim with explicit integer minors and independent Fraction replay, while preserving the original finding and credit to Joel Pulikkan / GamingPuzzled and DreamingOfClouds.
+
+Exactly 448 cases have rank seven and 28,112 have rank eight, always unchanged when the target is appended. The written proof supplies the matching upper bounds and shows that basis-free row-code enumeration covers the original sink-label domain. All 112 excluded same-label sinks are feasible positive controls. This closes only the floating-rank evidence gap for `free_relax()`; the paid-extra-total search and PR620's wider partial-review status remain open. No new supplier or kappa.
+
+Validation: standard-library producer and independent checker passed under optimized Python; all 4,030 distinct integer minors checked, with six mathematical and five source-package rejection controls. The selected-result checker and whitespace check passed. Native/full supplier, hosted CI and Lean were not run.
+
+Scope: only `research/p112-free-sink-audit97/`. Source inventory and selected context are immutable and pinned at `2921874911956718fcaaaf9396fe8267b3cfa9f0`; upstream and existing packages are unchanged. Contributor @woklerx with substantial OpenAI Codex assistance; Apache-2.0.

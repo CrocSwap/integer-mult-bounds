@@ -1,0 +1,39 @@
+name: Cubic cyclic inverse precision
+on:
+  pull_request:
+    paths:
+      - 'research/cubic-cyclic-inverse/**'
+      - 'research/cubic-cyclic-inverse-validation/**'
+      - '.github/workflows/cubic-cyclic-inverse.yml'
+  push:
+    branches: ['codex/cubic-cyclic-inverse-20261013']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '${{ matrix.python }}'
+      - name: Exact budgets, inverse prefixes and restored shear words
+        run: |
+          python -I -B research/cubic-cyclic-inverse/run.py --out "$RUNNER_TEMP/cubic-normal"
+          python -I -O -B research/cubic-cyclic-inverse/run.py --out "$RUNNER_TEMP/cubic-optimized"
+          cmp "$RUNNER_TEMP/cubic-normal/kernel/RESULT.json" "$RUNNER_TEMP/cubic-optimized/kernel/RESULT.json"
+          cmp "$RUNNER_TEMP/cubic-normal/composition/RESULT.json" "$RUNNER_TEMP/cubic-optimized/composition/RESULT.json"
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cubic-inverse-python-${{ matrix.python }}
+          path: '${{ runner.temp }}/cubic-*'

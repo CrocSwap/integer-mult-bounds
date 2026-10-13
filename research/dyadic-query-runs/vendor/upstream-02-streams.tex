@@ -1,0 +1,208 @@
+\section{The machine model and elementary streams}
+\label{sec:streams}
+
+A machine has one fixed finite alphabet and one fixed finite number of
+one-dimensional tapes. A step reads and writes at most one cell on each
+tape and moves each head by at most one cell. Fixed tracks and finitely
+many work tapes change time by a fixed factor. We distinguish moving one
+digit in a fixed radix, which needs a bounded number of scans, from
+interchanging fields whose numbers of digits grow. The latter permutation
+will be realized in Section~\ref{sec:tape-interchange} by computing XOR
+combinations of intermediate data streams. The present section supplies
+the elementary scans it uses. Every scan includes its counters and the
+return of its tape heads.
+
+\subsection{Array order and elementary scans}
+
+For a positive integer $a$ write $[a]=\{0,\ldots,a-1\}$.
+An array with address set $[a_1]\times\cdots\times[a_t]$ is stored in
+lexicographic order, with the first coordinate most significant.  Its
+entries are bits unless a record width is specified.  A trailing record
+of $B$ bits can equivalently be regarded as a final address field $[B]$.
+An address is implicit in an entry's position in this ordered stream; it
+is not stored beside every data bit.
+The \emph{logical volume} $V$ is the number of stored data bits.  Work
+tapes and duplicate streams are charged in time but do not increase $V$
+in recurrences.  All the fields discussed below are nonempty.  A call
+with an empty array is handled directly.
+
+An address permutation $f$ moves the entry at $x$ to $f(x)$.  Thus its
+action on an array $A$ is $(fA)(f(x))=A(x)$.  Adjacent fields which are
+irrelevant to an operation may be replaced by a single field whose length
+is their product.  In particular, the elementary procedures below have a
+fixed number of formal address fields even when a surrounding algorithm
+has a growing list of coordinates.  Lengths and positions are supplied in
+canonical binary on descriptor tapes; no additional tape head is attached to an
+address coordinate. Each elementary call receives a fixed number of
+collapsed canonical lengths. Constructing them from a longer surrounding
+list is work of the caller; recursive calls below construct their own
+collapsed descriptors within their stated bounds.
+
+When one address field is designated as a row field, collapse the fields
+before it to a prefix $[P]$ and those after it to a suffix $[B]$.  If the
+row field has range $[R]$, a \emph{row} at prefix $p$ and row index $r$
+is the complete consecutive block $\{p\}\times\{r\}\times[B]$.
+Every row therefore contains $B$ bits in the same suffix order.
+
+For headers that concatenate a list of positive integer parameters, we use
+the self-delimiting code
+\begin{equation}
+ b_v=\lfloor\log_2v\rfloor+1,\qquad
+ \Gamma(v)=0^{b_v-1}\operatorname{bin}_{b_v}(v),\qquad
+ |\Gamma(v)|=2b_v-1\quad(v\ge1).
+ \label{eq:integer-descriptor-code}
+\end{equation}
+The initial zeroes specify how many further bits follow the first one,
+so concatenated codes can be read in order. We use this code when an
+interface specifies a header; elementary calls still receive the fixed
+number of canonical binary lengths described above.
+
+\begin{lemma}[Elementary stream operations]
+\label{lem:elementary-streams}
+Fix a radix $q\ge2$.  Each of the following operations on an array of
+volume $V$ takes $O(V)$ steps on a fixed number of one-dimensional tapes:
+\begin{enumerate}
+\item any fixed permutation of the pair of digit values at two specified
+radix-$q$ positions, whether or not the positions are adjacent;
+\item moving one specified radix-$q$ digit to another position, preserving
+the order of the intervening positions;
+\item splitting on a specified radix-$q$ digit, applying a fixed
+pointwise map to aligned streams, and merging them back;
+\item for positive integers $P,R,B$, within each prefix of an array on
+$[P]\times[R]\times[B]$, splitting
+whole rows cyclically into a fixed number $W$ of streams, and, when $W$
+divides $R$, merging those streams in any fixed order of the row classes.
+\end{enumerate}
+The bounds include shape preparation, counter initialization and resets,
+and returning or clearing the visited portions of work tapes.  Their
+constants may depend on the fixed radix, the fixed pointwise map, and the
+fixed number of row classes.
+\end{lemma}
+
+\begin{proof}
+For the first operation split into $q^2$ streams according to the two
+specified digits.  With these digits fixed, the order of all remaining
+digits is unchanged by the permutation.  Enumerate output addresses in
+their required order and read the stream prescribed by the two preimage
+digits.  For a digit move use $q$ streams instead.  The same observation
+shows that splitting on one digit gives streams with the same remaining
+address set in the same order.  Scan their aligned entries, apply the
+fixed pointwise map, and merge according to the output digit; this proves
+the third operation.  For the fourth, write $r=Wg+w$, where
+$0\le w<W$, and send the whole row to stream $w$.  If $W$ divides $R$,
+each stream has address set $[P]\times[R/W]\times[B]$, indexed by the
+prefix, $g$, and the unchanged suffix.  Thus the streams have the same
+shape and each has volume $V/W$.  The inverse merge, with any fixed
+permutation of the classes, reads them in the specified cyclic order.
+
+Here are the counter details used in these scans and later ones.  A
+binary counter is stored with its head at the least significant end.
+For a counter of width $w$, incrementing or decrementing and returning
+this head over $L$ consecutive counts costs $O(L+w)$: the number of
+visits to position $j$ is $O(1+L/2^j)$. The width term is paid when
+initializing the counter and is absorbed by its complete range scan.  A countdown of
+length $L$ can be initialized, reset, and tested for underflow in
+$O(\log(2L))=O(L)$ time.  Keep a local copy of its length on a dedicated
+track, so a reset does not search a larger descriptor.  For a nested scan
+of a fixed number of nonempty ranges, the reset of a range is charged to
+the scan of that range.  Induction on the number of ranges therefore gives
+linear total counting cost.  A fixed number of empty pieces in a split
+can be charged to the adjacent nonempty combined range.
+
+Only a fixed number of collapsed lengths are needed.  Computing these
+lengths and the initial counter values by ordinary binary arithmetic
+takes $O((\log(2V))^C)$ steps for a fixed $C$.  This is $O(V)$ uniformly
+in $V\ge1$, after increasing a fixed constant.  Each stream is scanned a
+fixed number of times, and every rewind, copy, or erasure is over a
+region whose length was charged to that scan.  Delimiters and the fixed
+number of tracks require only a fixed alphabet enlargement.
+\end{proof}
+
+The next operations are linear because their target field follows their
+control fields.  This order will be preserved whenever they are invoked.
+
+\begin{lemma}[Controlled shifts and fixed rational scalings]
+\label{lem:ordered-affine-streams}
+Fix a prime $q$, a fixed number of control fields, and finitely many
+rational coefficients whose denominators are prime to $q$.  Whenever a
+coefficient is used as a unit, also require its numerator to be prime to
+$q$.  Put $Q=q^b$, $b\ge1$.
+Suppose a target field $y\in[Q]$ follows its control fields, each control
+used in an offset having $O(b)$ digits.  An update
+\[
+ y\longmapsto y+a(\text{controls})\pmod Q
+\]
+costs $O(V)$ if the offset can be prepared in $b^{O(1)}$ time from the
+fixed number of control values.  In particular, this holds for a fixed
+rational linear combination of them, specialized modulo $Q$.
+Multiplication of $y$ by any of the specified rational units, and its
+inverse, also costs $O(V)$.  Arbitrarily long intervening spectator
+fields and suffix records are permitted.
+\end{lemma}
+
+\begin{proof}
+Fix all fields before the target, and let the suffix length be $B$ bits.
+The resulting fiber consists of $Q$ consecutive blocks of length $B$.
+For an offset $a\in[Q]$, split these blocks at $Q-a$.  Append the two
+pieces to two tapes, doing so successively for all prefix fibers.  In the
+merge read the second piece and then the first piece for each prefix.
+The pieces have become the two consecutive ranges $[0,a)$ and $[a,Q)$
+of the new target coordinate.  Recompute $a$ when starting that prefix in
+the merge.  Initializing these two piece lengths and returning the heads
+of the relevant control counters is included in the $b^{O(1)}$ offset
+work.  Since
+\[
+ b^C=O(q^b)=O(Q)
+\]
+for each fixed $C$, this work is absorbed by the $QB\ge Q$ bits of the
+fiber.  Unrelated spectator counters are incremented by ripple counting;
+their entire contents are not consulted when computing the offset.
+
+For positive fixed integer $c$ prime to $q$, the permutation
+$y\mapsto cy\pmod Q$ has $c$ increasing pieces, classified by
+\[
+ j=\left\lfloor\frac{cy}{Q}\right\rfloor,
+ \qquad 0\le j<c.
+\]
+Prepare their endpoints once for this $Q$, split each fiber into these
+$c$ streams, and enumerate the output coordinate $y'=0,\ldots,Q-1$.
+The required stream is the unique $j\in[c]$ for which
+$y'+jQ\equiv0\pmod c$.  Uniqueness follows from $\gcd(Q,c)=1$;
+the corresponding $y=(y'+jQ)/c$ lies in $[Q]$.  The stream choice is
+maintained by a finite residue counter.  Reversing the roles of this
+split and merge implements multiplication by $c^{-1}$ modulo $Q$.
+
+Negation leaves the block at zero fixed and reverses the order of the
+other $Q-1$ blocks.  Push these blocks consecutively to a temporary tape.
+Popping gives their order reversed, but also reverses the bits in each
+block.  Reverse each popped block on a second temporary tape before
+writing it, restoring its internal order.  Every bit is moved a bounded
+number of times.  The same procedure is repeated for successive fibers;
+the temporary stack is emptied and its head returned locally.  A signed
+rational unit is a composition of these integer multiplications, inverse
+multiplications, and possibly negation.  Its description is fixed.
+
+The nested scan and reset analysis of
+Lemma~\ref{lem:elementary-streams} applies to all these operations.  In
+particular, copying a suffix-length counter at every target position
+costs $O(\log(2B))\le O(B)$ at that position.  It does not introduce a
+factor $\log V$ per bit.
+\end{proof}
+
+When coefficients have a denominator $d$ prime to $q$, their reductions
+modulo $q^b$ can be computed by the extended Euclidean algorithm using
+ordinary tape arithmetic.  The dimension and all original coefficients
+are fixed, so these preparations have polynomial cost in $b$.  Nothing
+in Lemma~\ref{lem:ordered-affine-streams} assumes unit-cost arithmetic.
+
+For later use, fixed-width signed fixed-point binary addition,
+subtraction, sign change, and multiplication or division by a fixed
+power of two are streaming operations of linear bit cost, provided
+enough integer and fractional guard bits have been allocated for exact
+results. If an input record is most-significant-bit first, reverse it onto
+the arithmetic work tape. With least significant bits first on that tape,
+propagate carries using finite control. Reverse the completed record if
+its required external order is opposite.
+This convention separates the order of bits inside a record from the
+lexicographic order of records. Each required reversal is a linear pass
+and is charged.

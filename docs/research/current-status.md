@@ -1,5 +1,47 @@
 # Current reviewed status
 
+Selected conditional κ: **0.001661960547713947**, Jonathan Capalbo's #942 T37
+composition of the #890/#869/#870/#858 lineage, with unchanged #589 on #555.
+[Review and credit](community-batch952-review.md) ·
+[Publication/CI receipt](community-batch952-integration.json) ·
+[Selected record](../../certificates/selected-result.json) · [PR ledger](pr-ledger.md).
+Cold replay: `make frontier942-verify`.
+
+Seventeen of eighteen frozen PRs complete scoped review; #946 stays open
+pending source-pin migration for its broad encoding patch. Circuit candidates,
+scoped negative results, continuum owner bounds and exact-verifier tooling are
+integrated as research with separate attribution. The new circuit counts are
+not combined or installed as the selected bit supplier. The T37 all-replica
+bound applies only to its fixed family and outer grid recipe.
+
+Local full T37 execution passes with explicit checked ancestry reuse. Linux CI
+is tracked separately. All-size/compiler, realization, hosting, precision/tape,
+analytic and bit-interface assumptions remain; no full Lean multiplication proof.
+
+# Superseded status through #890
+
+Selected conditional κ: **0.001661957774647029**, PR890 on PR869/870 and
+Hao Yan's PR858 T16 mechanism, with PR589 on PR555.
+[Review](community-frontier890-review.md) ·
+[Integration/publication/CI receipt](community-frontier890-integration.json) ·
+[Selected record](../../certificates/selected-result.json) · [PR ledger](pr-ledger.md).
+Cold replay: `make frontier890-verify`.
+
+The frozen eighteen-PR round includes frontier constructions, complete-receipt
+and proof-pointer fixes, parallel replay, exact local bounds and independent
+finite audits. Source coverage, individual credit and review corrections are
+recorded separately. All-size/compiler, realization, hosting, precision/tape
+and analytic assumptions remain; no full Lean multiplication proof is claimed.
+The Linux integration job status is separate from the completed local replay.
+
+The [batch through #932](community-batch932-review.md) reviews eighteen circuit,
+precision and verification contributions without changing κ. It includes faster
+isolated tests, X4 scalar savings, R439 compensation candidates and independent
+outer/layout/provenance evidence. Full supplier adoption of the new bit circuits
+remains open; their finite boundary checks are not a new selected witness.
+
+# Superseded status through #799
+
 Selected conditional κ: **0.001661634653669567**, #799 with #589 on #555.
 See the [review](community-frontier799-review.md),
 [integration receipt](community-frontier799-integration.json),

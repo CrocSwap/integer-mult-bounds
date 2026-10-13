@@ -158,6 +158,11 @@ def build():
         'research/community-k492-audit/DISPOSITIONS.json',
         'research/community-frontier741-audit/DISPOSITIONS.json',
         'research/community-frontier799-audit/DISPOSITIONS.json',
+        'research/community-frontier890-audit/DISPOSITIONS.json',
+        'research/community-batch932-audit/DISPOSITIONS.json',
+        'research/community-batch952-audit/DISPOSITIONS.json',
+        'research/community-batch970-audit/DISPOSITIONS.json',
+        'research/community-batch1047-audit/DISPOSITIONS.json',
     ) if (ROOT / p).exists()]
     family_path = family_paths[-1] if family_paths else None
     for family_path in family_paths:
@@ -184,6 +189,18 @@ def build():
             item['evidence'].append(dict(head=decision['reviewed_head'], evidence=family_path,
                                          scope=decision['scope'], kind='integration_or_partial_review'))
         result.sort(key=lambda p: p['number'])
+    # Companion replays supplement old heads without granting whole-PR closure.
+    companion_path = 'research/community-batch970-audit/COMPANION-REVIEWS.json'
+    if (ROOT / companion_path).exists():
+        indexed = {p['number']: p for p in result}
+        for companion in load(companion_path)['pull_requests']:
+            item = indexed[companion['number']]
+            if item['current_head'] != companion['head']:
+                raise ValueError('Companion replay belongs to a different parent head')
+            item.setdefault('companion_reviews', []).append(companion)
+            item['evidence'].append(dict(head=companion['head'], evidence=companion_path,
+                                        scope=companion['scope'], kind='scoped_companion_review'))
+            item['unresolved_question'] = companion['remaining']
     counts = dict(sorted(collections.Counter(p['disposition'] for p in result).items()))
     output = dict(schema_version=1, snapshot='research/pr-reconciliation-20261012/starting-snapshot.json',
                   starting_main=snapshot['published_main'], starting_open_count=len(snapshot['pull_requests']),

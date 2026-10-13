@@ -1,0 +1,71 @@
+name: Community T37-era finite circuits and bounds
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/r439-*/**'
+      - 'research/owner-profile-uniform/**'
+      - 'research/p112-single-lift/**'
+      - 'research/central-factor-packed/**'
+      - '.github/workflows/community-batch952.yml'
+  pull_request:
+    paths:
+      - 'research/r439-*/**'
+      - 'research/owner-profile-uniform/**'
+      - 'research/p112-single-lift/**'
+      - 'research/central-factor-packed/**'
+      - '.github/workflows/community-batch952.yml'
+permissions:
+  contents: read
+jobs:
+  finite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Native exact arithmetic dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Scoped bounds and historical verifier
+        run: |
+          python -B research/owner-profile-uniform/reproduce.py
+          python -B research/p112-single-lift/verify.py
+          python -B research/p112-single-lift/independent_check.py
+          python -B research/r439-copy-path-sharing-barrier/verify.py
+          python -B research/central-factor-packed/verify.py
+          python -B research/central-factor-packed/test_packed.py
+          python -O -B research/central-factor-packed/test_packed.py
+      - name: Complete prefix and helper-matching constructions
+        env:
+          BOOST_INCLUDE: /usr/include
+        run: |
+          for pkg in r439-four-wire-prefix r439-five-wire-prefix r439-six-wire-boolean r439-helper-matching; do
+            python -B "research/$pkg/verify.py"
+            if test -f "research/$pkg/test_package.py"; then python -B "research/$pkg/test_package.py"; fi
+          done
+      - name: Independent block constructions and native replays
+        env:
+          BOOST_INCLUDE: /usr/include
+        run: |
+          python -B research/r439-block508-schedule/verify.py
+          for pkg in r439-block8-integer-factor r439-block1-schedule r439-block522-factor r439-frame519-seed02 r439-frame524-seed13 r439-frame267-seed01; do
+            python -B "research/$pkg/verify.py"
+            python -B "research/$pkg/native.py"
+            if test -f "research/$pkg/test_package.py"; then python -B "research/$pkg/test_package.py"; fi
+          done
+          python -B research/r439-block1-schedule/check_package.py
+          python -B research/r439-frame520/verify.py --out "$RUNNER_TEMP/frame520"
+          python -B research/r439-frame520/native.py --word "$RUNNER_TEMP/frame520/replacement.json.gz" --out "$RUNNER_TEMP/frame520" --expected-saving 24
+          python -B research/r439-frame520/test_package.py
+      - name: Selected record and review ledger integrity
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+          git diff --exit-code

@@ -1,0 +1,72 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "# R439 phase-B block 508: 37 to 30 additions (no new kappa)\n\nFinite bit-supplier construction. The tuned R439 phase-B block at frame 508\n(`B[205:242]` of `research/e8-bit-p111-tuned/tune/bitE8mut-p111-tuned.json.gz`,\nregisters `[19, 27, 35, 43, 57, 65, 66, 74, 89, 97, 466]`) is replaced with a\n30-addition program computing the identical forward integer map. Rebuilding its\nliteral reverse cleanup reduces the complete native word from **24,305 to\n24,291 ADDs** (7 forward + 7 reverse).\n\n| Quantity | Before | After |\n|---|---:|---:|\n| Block additions (frame 508) | 37 | **30** |\n| Complete exported ADDs | 24,305 | **24,291** |\n| Forward positive bound | 49,347 | 49,347 (equal) |\n| Reverse positive bound | 1,113,070 | **1,086,054** |\n| Payload | 93 bits | 93 bits (cap 104) |\n| Local paid profile / rank mass | `{1:1323, 2:1342, 3:79, 4:44, 5:102, 6:11, 7:19}` / 5,129 | unchanged |\n| Bit saving / kappa | conditional, complex-bound | unchanged, no new kappa |\n\n## Method\n\nThe block is treated as an integer-linear straight-line program over its 11\nregisters. Discovery (`search.py`, deterministic, no randomness) runs a\nforward dynamic program over realized-register subsets: each register is\nrealized once, in some order, from already-realized rows or entry singletons,\neach donor used at most once (doubling-free positive-addition class). The\nminimum is 30 and the recovered witness achieves it.\n\nVerification (`verify.py`, imports no search code) rechecks the minimum with an\nindependently written backward Bellman recursion: 2,048 states, 11,264\nstate/destination pairs, 4,376 feasible edges, minimum 30. It further checks\nforward integer-map equality, reverse-map entrywise domination (strict in 20\nentries), all 2,048 Boolean input tables, the splice with literally rebuilt\ncleanup, identical register frame paths, the unchanged paid profile and rank\nmass, the exact F2 endpoint on all 661 columns, the inherited H1-H5 interface\nand conclusions via the pinned `xcheck_p.py`, and the exported scalar bills\nand positive/payload bounds via the pinned `export_records.py` (forward bound\nequal, reverse bound reduced, payload 93 bits). Eight negative controls are\nrejected.\n\nThis differs from the neighboring block results: PR #844 (block 4) optimizes\nwithin a fixed two-factor split, PR #857 (block 8) searches whole-block\ninteger factorizations with randomized trials, and PR #843 (frame 509) reuses\none existing sum. The mechanism here is exact whole-block single-write\nrescheduling with a certified class minimum. PRs #728/#792 change phase-A\nmini-nodes (a different section); they report no improvement at frames 507/508\nin their mini-node class, which does not cover this B-section block.\n\n## Scope and obligations\n\nBase `f567884aeb8851b6e794af1184119a3bfbe1e631` (selected PR799/PR589,\nconditional kappa 0.001661634653669567). Only this directory is added;\n`upstream/` and the selected certificate are unchanged. The minimum is\ncertified inside the doubling-free single-write class; multi-write\ninterleavings outside that class are not excluded. The C++ legality and\n5/9/11-stage replays, hosted invoice, global assembly, Lean formalization and\nremote CI are not run here; forward-map equality plus reverse domination imply\nthe payload bounds carry over, and an independent native replay remains to\nconfirm. All inherited all-size/compiler, common-label/mutable-source,\nhosting, precision/tape and analytic assumptions remain.\n\n## Reproduce\n\nStandard-library Python 3.11+ from the repository root:\n\n```sh\npython3 -I -B research/r439-block508-schedule/verify.py\n```\n\nExpected: `PASS_R439_BLOCK508_SCHEDULE gates=37->30 ADDs=24305->24291\nsaved=14 columns=661 controls=8 minimum=30 rank_mass=5129 no_new_kappa`.\n\n## Credit\n\nBase word and checkers: eumemic (PR543/PR555), DreamingOfClouds (PR545/PR589),\nDylan Crow (record exporter), Zhihao Chen and the retained supplier lineage.\nMethod patterns adapt the open PR #844 (Gautam Gupta) and PR #792 (Ryan\nHaines) verification structures with attribution; their objects and savings\nare not imported. Prepared with help from opencode. Apache-2.0. No\nindependent human review is claimed.\n",
+  "files": [
+    {
+      "path": "research/r439-block508-schedule/CANDIDATE.json",
+      "additions": 234,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/CERTIFICATE.json",
+      "additions": 255,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/CLAIM.md",
+      "additions": 43,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/EXPECTED.json",
+      "additions": 86,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/README.md",
+      "additions": 80,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/SOURCES.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/VALIDATION.md",
+      "additions": 51,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/search.py",
+      "additions": 145,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/r439-block508-schedule/verify.py",
+      "additions": 416,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "117c48527dd4f066dad103121761154cf1bb39cd",
+  "isDraft": false,
+  "number": 873,
+  "state": "OPEN",
+  "title": "Research construction: shorten R439 phase-B block 508 from 37 to 30 ADDs (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/873"
+}

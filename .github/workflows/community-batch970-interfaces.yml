@@ -1,0 +1,128 @@
+name: Community recursive interfaces and formal replays
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/cubic-cyclic-inverse/**'
+      - 'research/dirty-prefix-precision/**'
+      - 'research/dirty-cubic-precision/**'
+      - 'research/grouped-dirty-cyclic/**'
+      - 'research/additive-cyclic-no-connector/**'
+      - 'research/binary-connector-walk/**'
+      - 'research/universal-connector-boundary/**'
+      - 'research/signed-connector-obstruction/**'
+      - 'research/dyadic-query-runs/**'
+      - 'research/lean-nonlinear-commutator/**'
+      - 'research/lean-dirty-echo-budget/**'
+      - 'research/r420-scatter-lifecycle/**'
+      - 'research/pr279-target-prefix-reconciliation/**'
+      - 'research/pr210-head-reconciliation/**'
+      - '.github/workflows/community-batch970-interfaces.yml'
+permissions:
+  contents: read
+jobs:
+  interfaces:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - package: cubic-cyclic-inverse
+            commands: |
+              python -I -B research/cubic-cyclic-inverse/run.py --out /tmp/cubic
+          - package: dirty-prefix-precision
+            commands: |
+              python -I -B research/dirty-prefix-precision/verify.py
+              python -I -B research/dirty-prefix-precision/test_precision.py
+          - package: dirty-cubic-precision
+            commands: |
+              python -I -B research/dirty-cubic-precision/verify.py --out /tmp/dirty.json
+              python -I -B research/dirty-cubic-precision/test_package.py --out /tmp/dirty-package.json
+          - package: grouped-dirty-cyclic
+            commands: |
+              python -I -B research/grouped-dirty-cyclic/verify.py --out /tmp/grouped.json
+              python -I -B research/grouped-dirty-cyclic/test_package.py --out /tmp/grouped-package.json
+          - package: additive-cyclic-no-connector
+            commands: |
+              python -I -B research/additive-cyclic-no-connector/verify.py --out /tmp/additive.json
+              python -I -B research/additive-cyclic-no-connector/test_package.py --out /tmp/additive-package.json
+          - package: binary-connector-walk
+            commands: |
+              python -I -B research/binary-connector-walk/verify.py
+              python -I -B research/binary-connector-walk/test_package.py
+          - package: universal-connector-boundary
+            commands: |
+              python -I -B research/universal-connector-boundary/verify.py
+              python -I -B research/universal-connector-boundary/test_package.py
+          - package: signed-connector-obstruction
+            commands: |
+              python -I -B research/signed-connector-obstruction/verify.py
+              python -I -B research/signed-connector-obstruction/test_package.py
+          - package: dyadic-query-runs
+            commands: |
+              python -I -B research/dyadic-query-runs/verify.py
+              python -I -B research/dyadic-query-runs/test_package.py
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Exact interface checks
+        run: ${{ matrix.commands }}
+      - run: git diff --exit-code
+  formal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Pinned official Linux Lean
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://github.com/leanprover/lean4/releases/download/v4.21.0/lean-4.21.0-linux.tar.zst -o /tmp/lean.tar.zst
+          echo '455c6df09d5bd54d2a51b137939c47e2dda816d512ac789c4b3642c9bf98bde8  /tmp/lean.tar.zst' | sha256sum --check
+          tar --zstd -xf /tmp/lean.tar.zst -C /tmp
+      - name: Fresh proofs and rejection controls
+        run: |
+          python -I -B research/lean-nonlinear-commutator/verify.py --lean /tmp/lean-4.21.0-linux/bin/lean
+          python -I -B research/lean-dirty-echo-budget/verify.py --lean /tmp/lean-4.21.0-linux/bin/lean
+          python -B research/r420-scatter-lifecycle/check.py --lean /tmp/lean-4.21.0-linux/bin/lean --build-dir /tmp/lifecycle
+          python -B -m unittest discover -s research/r420-scatter-lifecycle -p test_binding.py -v
+          python -B research/r420-scatter-lifecycle/test_kernel_rejection.py --lean /tmp/lean-4.21.0-linux/bin/lean --output-dir /tmp/lifecycle-negative
+      - run: git diff --exit-code
+  historical:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - package: pr279
+            command: python -B research/pr279-target-prefix-reconciliation/verify.py --replay --work /tmp/pr279
+          - package: pr210
+            command: python -B research/pr210-head-reconciliation/verify.py --output /tmp/pr210
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Replay dependencies
+        run: |
+          python -m pip install sympy==1.14.0
+          sudo apt-get update
+          sudo apt-get install -y libboost-dev
+      - name: Complete finite historical replay
+        run: ${{ matrix.command }}
+      - run: git diff --exit-code

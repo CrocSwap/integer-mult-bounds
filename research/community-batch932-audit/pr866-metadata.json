@@ -1,0 +1,90 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjI3MzA1OQ==",
+    "is_bot": false,
+    "login": "bitplane",
+    "name": "Gareth Davidson"
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "The bidirectional Horner circuits in #837 preserve their exact endpoint maps and gate savings, but can need a finer intermediate fixed-point grid. This **mathematical audit** establishes the exact fractional guard requirements of all six pinned scalar programs and supplies a complete-word rounding counterexample. **No new \u03ba.**\n\nFor inputs on `2^-p Z^N`, with an unbounded integer part and working grid `2^-(p+g) Z`, exact representability of every intermediate for every input is equivalent to `g` being at least the largest reduced binary denominator exponent of any prefix-map coefficient. The package gives the proof, complete prefix replays, and sharpness witnesses.\n\n| Scalar projection | Forward binary/NAF baseline | #837 bidirectional |\n|---|---:|---:|\n| CK forward | 3 | **5** |\n| CK backward | 8 | 8 |\n| JP8 forward | 4 | 4 |\n| JP8 backward | 27 | 27 |\n| SW4 forward | 3 | 3 |\n| SW4 backward | 19 | 19 |\n\nThe shared forward/backward guard stays **8 for CK, 27 for JP8, 19 for SW4**. Eighteen of the 962 individual coefficients require one or two additional bits in the chosen reversed circuits, occurring in 21 CK, 4 JP8 and 5 SW4 additions per orientation.\n\nFor `t += (31/8)*s`, reverse NAF saves one real primitive but raises local depth from three to five. With `s=1`, halving rounded toward minus infinity at three fractional bits gives **4 instead of 31/8**. In the complete CK forward scalar program, native basis input 16 at three bits leaves errors `L43=-1/8`, `L422=+1/8`, `L425=+1/8`; four bits still fail, and five restore the exact endpoint. The original forward-only program is exact at three bits.\n\n## Reproduce and validation\n\n```sh\npython3 -B -I research/dyadic-fractional-grid/verify.py\npython3 -B -I research/dyadic-fractional-grid/crosscheck.py\npython3 -B -I research/dyadic-fractional-grid/test_grid.py\n```\n\nExpected main marker:\n\n```text\nPASS_DYADIC_FRACTIONAL_GRID programs=6 coefficients=962 extra_grid_coefficients=18 kappa=unchanged\n```\n\n- Integer rows and a separate sparse-`Fraction` interpreter agree across **12 complete traces and 1,016,110 scalar primitives**, including full depth-stream digests and endpoints.\n- All **3,842 candidate circuits**, 12 independently evaluated sharpness witnesses, 24 insufficient local guard executions and the complete CK rounding witness are checked.\n- Arbitrary 716+9 or 728+9 native/private columns, macro boundaries, private erasure, event inventory and paid profiles are retained.\n- Python 3.12.3 and 3.14.4 passed; nine tests passed on each. A minimal checkout with spaces in its path also passed in isolated, optimized Python without site packages.\n- Six package controls reject changed source/payload bytes, an understated guard, an altered witness and overwriting an existing receipt; changed gzip/tar containers with identical consumed payloads pass.\n- `make selected-record-check` passed. Full selected cold replay was not rerun: this adds only `research/dyadic-fractional-grid/` and changes no selected artifact.\n\n## Scope, pins and attribution\n\nThis resolves a finite precision obligation that #837 explicitly left open. It does not retract its endpoint or count claims. Frame/phase changes and recursive children are not evaluated as physical numerical operators here, so this is not a full compiler precision certificate, an overflow or floating-point stability budget, or evidence that the selected #799 construction fails. Fractional guards are not total register width. All-size realization, hosting, precision/tape and analytic assumptions remain.\n\nBase: `f567884aeb8851b6e794af1184119a3bfbe1e631`. Frozen #837 head: `0a2977195efc8fb2a918fbfb694ec8d294387f08`. Historical #626 and #741 sources, SPECs, manifests and checkpoint records are bound in `SOURCES.json`; compressed proof inputs are compared by their consumed payloads. Seed **60**, alternatives, scope and overlap check are in `CLAIM.json`; no sprint coordination issue was available.\n\nCredit Sagar Thakrar's #696 binary copy/unit and #723 forward NAF work, Chris Pagolu's #734 bounded Horner prefixes, and the retained #622/#626/#741 construction and verification lineage named in the README. Our #837 lowering and its #696 module are vendored verbatim with attribution. Related #821 magnitude-growth, #830 transposed work and #764/#862 cyclic-inverse precision results address different obligations.\n\nPrepared for Gareth Davidson (@bitplane) with substantial **OpenAI Codex assistance**. Apache-2.0. Both new arithmetic implementations were written by one AI agent; this is not independent human review or formal verification of the full multiplication theorem.\n",
+  "files": [
+    {
+      "path": "research/dyadic-fractional-grid/CLAIM.json",
+      "additions": 105,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/EXPECTED.json",
+      "additions": 20696,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/README.md",
+      "additions": 184,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/SOURCES.json",
+      "additions": 113,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/VALIDATION.md",
+      "additions": 94,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/crosscheck.py",
+      "additions": 90,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/fixed_grid.py",
+      "additions": 108,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/rows.py",
+      "additions": 87,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/test_grid.py",
+      "additions": 88,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/vendor/pr837/lower.py",
+      "additions": 92,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/vendor/pr837/vendor/pr696_lower.py",
+      "additions": 56,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/dyadic-fractional-grid/verify.py",
+      "additions": 252,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "5ae580bf68516f1cbe3b2dd3cb646be55170288f",
+  "isDraft": false,
+  "number": 866,
+  "state": "OPEN",
+  "title": "Research audit: CK Horner reversal raises scalar-grid guard from 3 to 5 bits (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/866"
+}

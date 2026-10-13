@@ -20,7 +20,7 @@ class FamilyDecision(unittest.TestCase):
         cls.ledger = json.loads((ROOT / 'docs/research/pr-ledger.json').read_text())
         cls.items = {row['number']: row for row in cls.ledger['pull_requests']}
         cls.families = {}
-        for family in ('family533', 'family588', 'hyperplane599', 'cold617', 'k492', 'frontier741', 'frontier799'):
+        for family in ('family533', 'family588', 'hyperplane599', 'cold617', 'k492', 'frontier741', 'frontier799', 'frontier890'):
             path = ROOT / f'research/community-{family}-audit/DISPOSITIONS.json'
             cls.families[family] = json.loads(path.read_text())['pull_requests']
 

@@ -1,0 +1,381 @@
+# Round20 early-coordinate-center / own-Y variant, prepared for icekylinx
+# with OpenAI Codex assistance. Apache-2.0. Scalar elementary-operation
+# helpers below are retained from the attributed PR514 construct_partial.py.
+# Adapted by OpenAI Codex for isolated structural research.
+# Modified from PR425 by icekylinx with Codex assistance.
+"""Full discovery word for Hamming packets with borrowed X and Y registers.
+
+This changes the scalar architecture. It is not accepted by the old restricted
+gx interface: source bases may change until full-frame cleanup, and targets use
+an explicitly inverted output basis. No supplier admission is asserted.
+"""
+import copy,gzip,json,math,time
+import itertools as it
+from collections import Counter,defaultdict
+from fractions import Fraction as Q
+from pathlib import Path
+
+import sys
+INPUT=Path(sys.argv[1]);OUT=Path(sys.argv[2]);OUT.mkdir(parents=True,exist_ok=False);D=json.loads((INPUT/'PROTOTYPE.json').read_text())
+P=D['binary_ports'];R=D['root_lines'];v=120;h=9
+modules=json.load(gzip.open(INPUT/'PACKET-PROGRAMS.json.gz'))
+# AtomScout: leaver-read K-triangles (schedule from atom1.py / rog.py CP-SAT)
+TRI=json.loads(Path(sys.argv[3]).read_text())
+FULLT={(tuple(tr['p']),tr['e']) for tr in TRI['triangles']}
+TRI_COORDS={t+8 for tr in TRI['triangles'] for t,_,_ in tr['reads']}
+COPYL=[]
+NH=504-3*len(FULLT)+len(COPYL)
+
+def basis(vectors):
+    b={}
+    for x in vectors:
+        for p in sorted(b,reverse=True):
+            if x>>p&1:x^=b[p]
+        if x:
+            p=x.bit_length()-1
+            for q in b:
+                if b[q]>>p&1:b[q]^=x
+            b[p]=x
+    return tuple(b[p] for p in sorted(b,reverse=True))
+def inside(a,b):return basis(a+b)==b
+def hyper(p):return basis([x for x in range(1,512) if (x&p).bit_count()%2==0])
+FULL=basis([1<<i for i in range(9)])
+G=[[sum(x*y for x,y in zip(a,b))//2 for b in R] for a in R]
+blocks={tuple(z['receipt']['block']):z for z in modules}
+frame={next(i for i,x in enumerate(r) if x):s for s,r in enumerate(R) if sum(x!=0 for x in r)==1}
+cur=[(p,) for p in P]+[()]*v;rows=[{r:Q(1)} if r<v else {} for r in range(2*v)]
+A=[];B=[];H=Counter();by={k:Counter() for k in 'xysc'};phase=A
+
+# Helper ids of the unpatched 504 construction: every allocation advances the 504 numbering; a packet copy that the
+# K-triangle schedule never forms advances it without allocating (HELPER-MAP.json).
+shadow=[];skipped=[];nxt=[2*v]
+def alloc():
+    n=len(cur);cur.append(());rows.append({});shadow.append(nxt[0]);nxt[0]+=1;return n
+def skip():
+    skipped.append(nxt[0]);nxt[0]+=1
+def climb(r,F):
+    assert inside(cur[r],F),('frame violation',r,cur[r],F)
+    dr=len(F)-len(cur[r])
+    if dr:H[dr]+=1;by['x' if r<v else 'y' if r<2*v else 's'][dr]+=1
+    cur[r]=F
+def add(t,s,q,F):
+    assert t!=s;q=Q(q)
+    if not q:return
+    climb(t,F);climb(s,F);phase.append(['add',t,s,q.numerator,q.denominator,list(F)])
+    for j,x in list(rows[s].items()):
+        z=rows[t].get(j,Q(0))+q*x
+        if z:rows[t][j]=z
+        else:rows[t].pop(j,None)
+def scale(t,q,F):
+    q=Q(q);assert q
+    if q==1:return
+    climb(t,F);phase.append(['scale',t,q.numerator,q.denominator,list(F)])
+    rows[t]={j:q*x for j,x in rows[t].items()}
+def swap(a,b,F):
+    if a==b:return
+    add(a,b,1,F);add(b,a,-1,F);add(a,b,1,F);scale(b,-1,F)
+def linear(regs,M,F):
+    """Apply an invertible rational square matrix by elementary operations."""
+    n=len(regs);a=[list(map(Q,row)) for row in M];undo=[]
+    for col in range(n):
+        k=next(i for i in range(col,n) if a[i][col])
+        if k!=col:a[k],a[col]=a[col],a[k];undo.append(('swap',k,col))
+        q=a[col][col]
+        if q!=1:a[col]=[x/q for x in a[col]];undo.append(('scale',col,1/q))
+        for i in range(n):
+            if i==col or not a[i][col]:continue
+            q=-a[i][col];a[i]=[x+q*y for x,y in zip(a[i],a[col])];undo.append(('add',i,col,q))
+    assert a==[[Q(i==j) for j in range(n)] for i in range(n)]
+    old=[dict(rows[r]) for r in regs]
+    for op in reversed(undo):
+        if op[0]=='swap':swap(regs[op[1]],regs[op[2]],F)
+        elif op[0]=='scale':scale(regs[op[1]],1/op[2],F)
+        else:add(regs[op[1]],regs[op[2]],-op[3],F)
+    for i,r in enumerate(regs):
+        expected=defaultdict(Q)
+        for j,q in enumerate(M[i]):
+            for k,x in old[j].items():expected[k]+=q*x
+        assert rows[r]=={k:x for k,x in expected.items() if x}
+
+# Each source quartet supplies pair partials first. The other two coordinate
+# partitions supply eight early face packets without touching the eight
+# partials later copied into the preconditioned Y coordinates.
+SELECT=(0,0)
+PRIORITY=json.loads((INPUT/"COMPLETION-PRIORITY.json").read_text())
+maps={};early={};own_rows={};pairs=[];tetrads={};block_totals={}
+for c,z in sorted(blocks.items()):
+    ids=z['receipt']['source_lines'];mp={i:s for i,s in enumerate(ids)}
+    mp.update({i:alloc() for i in range(8,24)});maps[c]=mp
+    for ei,(e,F) in enumerate(list(zip(z['events'],z['event_frames']))[:40]):
+        t,s,a,b=e;add(mp[t],mp[s],Q(a,b),tuple(F))
+        if ei==15:
+            for jj in range(4,8):swap(mp[jj],mp[2*jj+9],(P[ids[jj]],))
+    i,j,k,l=c;partitions=[((i,j),(k,l)),((i,k),(j,l)),((i,l),(j,k))]
+    tet=[sorted(s for s in ids if sum(R[s][i]<0 for i in c)%2==parity) for parity in (0,1)]
+    tetrads[c]=tet
+    for parity,targets in enumerate(tet):
+        for pi,(p,q) in enumerate(partitions):
+            groups=defaultdict(list)
+            for t in targets:groups[R[t][p[0]]*R[t][p[1]]].append(t)
+            for eps,ts in sorted(groups.items()):
+                t,u=sorted(ts);e2=R[t][q[0]]*R[t][q[1]]
+                pair={'targets':(t,u),'keys':[(c,p,eps),(c,q,e2)],'selected':pi==SELECT[parity],
+                      'matrix':[[R[a][p[0]],R[a][q[0]]] for a in (t,u)]}
+                pairs.append(pair)
+                if not pair['selected']:continue
+                zz=-Q(2*R[u][p[0]],R[t][p[0]])
+                sources=tet[1-parity]
+                for target,sign in ((t,-1),(u,1)):
+                    wanted={s:-Q(G[t][s],4)-sign*Q(G[u][s],2)/zz for s in sources
+                            if -Q(G[t][s],4)-sign*Q(G[u][s],2)/zz}
+                    assert len(wanted)==2
+                    candidates=[]
+                    for r in mp.values():
+                        if set(rows[r])!=set(wanted):continue
+                        s=next(iter(wanted));coef=wanted[s]/rows[r][s]
+                        if all(wanted[s]==coef*rows[r][s] for s in wanted):candidates.append((r,coef))
+                    assert len(candidates)==1
+                    r,coef=candidates[0];assert len(cur[r])==2
+                    own_rows[target]=(r,coef,cur[r])
+    keys=[(p,eps) for p in it.combinations(c,2) for eps in (-1,1)]
+    needed={own_rows[t][0] for t in ids}
+    early[c]={j for j,e in enumerate(z['events'][40:]) if not ({mp[e[0]],mp[e[1]]}&needed)}
+    assert len(early[c])==8
+    retired=[]
+    for j in sorted(early[c]):
+        (t,s,a,b),F=z['events'][40+j],z['event_frames'][40+j]
+        add(mp[t],mp[s],Q(a,b),tuple(F));retired.append(mp[s])
+    assert not set(retired)&needed
+    # These eight retired rows already span every source coordinate. Keep
+    # them invertible and place the four coordinate totals in a changed basis.
+    F=basis([P[s] for s in ids]);assert len(F)==4
+    regs=sorted(retired,key=lambda r:(r>=v,r))
+    for col,s in enumerate(ids):
+        k=next(i for i in range(col,len(regs)) if rows[regs[i]].get(s,Q(0)))
+        swap(regs[k],regs[col],F)
+        scale(regs[col],1/rows[regs[col]][s],F)
+        for i in range(len(regs)):
+            if i!=col and rows[regs[i]].get(s,Q(0)):add(regs[i],regs[col],-rows[regs[i]][s],F)
+    assert all(rows[regs[i]]=={s:Q(1)} for i,s in enumerate(ids))
+    M=[[Q(R[s][i]) for s in ids] for i in c]
+    def qr_rank(rs):
+        bs={}
+        for r in rs:
+            r=r.copy()
+            for i,b in sorted(bs.items()):
+                if r[i]:q=r[i];r=[x-q*y for x,y in zip(r,b)]
+            i=next((i for i,x in enumerate(r) if x),None)
+            if i is not None:q=r[i];bs[i]=[x/q for x in r]
+        return len(bs)
+    assert qr_rank(M)==4
+    for rr0 in PRIORITY[",".join(map(str,c))]["rows"]:
+        rr=list(map(Q,rr0))
+        if qr_rank(M+[rr])>len(M):M.append(rr)
+        if len(M)==8:break
+    for i in range(8):
+        if len(M)==8:break
+        rr=[Q(i==j) for j in range(8)]
+        if qr_rank(M+[rr])>len(M):M.append(rr)
+        if len(M)==8:break
+    assert len(M)==8
+    linear(regs,M,F)
+    for i,r in zip(c,regs):
+        assert rows[r]=={s:Q(R[s][i]) for s in ids}
+        block_totals[c,i]=r
+
+# All centers are complete while Y is still at zero. This is the crucial
+# difference from an illegal early-own-Y prefix using the old center order.
+centers=[]
+for i in range(8):
+    regs=[block_totals[c,i] for c in sorted(blocks) if i in c]
+    F=hyper(P[frame[i]]);a=regs[0]
+    for b in regs[1:]:add(a,b,1,F)
+    centers.append(a)
+centers += [frame[i] for i in range(8)]
+center_frames=[cur[r] for r in centers]
+assert list(map(len,center_frames))==[8]*8+[1]*8
+assert all(cur[v+t]==() for t in range(v))
+
+phase=B
+for t,(r,coef,F) in sorted(own_rows.items()):
+    if t in TRI_COORDS:continue
+    assert cur[r]==F
+    add(v+t,r,coef,F)
+# requests are needed for TRI coefficients
+requests=defaultdict(list)
+for pid,pair in enumerate(pairs):
+    if not pair['selected']:continue
+    (t,u),(key1,key2),mat=pair['targets'],pair['keys'],pair['matrix']
+    requests[key1].append((t,-Q(mat[0][0],2)))
+    requests[key2].append((u,-Q(mat[0][1],2)))
+reqcoef={t:(key,coef) for key,reqs in requests.items() for t,coef in reqs}
+def face_info(c,p,eps):
+    z=blocks[c];keys=[(pp,ee) for pp in it.combinations(c,2) for ee in (-1,1)]
+    r_local,alpha=z['outputs'][keys.index((p,eps))]
+    j=[j for j in range(40,len(z['events'])) if z['events'][j][0]==r_local];assert len(j)==1
+    return j[0],Q(alpha)
+tri_join_counts=Counter()
+lcopy={}
+for s8 in COPYL:
+    r=s8+8;c=alloc();add(c,r,1,cur[r]);lcopy[r]=c
+for tr in TRI['triangles']:
+    p,eps=tuple(tr['p']),tr['e']
+    for t8,blk,loc in tr['reads']:
+        t=t8+8;blk=tuple(blk);r=maps[blk][loc];r0=r;r=lcopy.get(r,r)
+        key,coef=reqcoef[t];assert key[1]==p and key[2]==eps,(key,p,eps)
+        if blk==key[0]:
+            rr,c0,F0=own_rows[t];assert rr==r0;q=c0
+        else:
+            j,alpha=face_info(blk,p,eps);ev=blocks[blk]['events'][j];assert loc in ev[:2]
+            q=coef*alpha
+        F=basis(cur[v+t]+cur[r]);assert inside(F,hyper(P[t])),('TRI frame',t)
+        tri_join_counts[len(F)]+=1;add(v+t,r,q,F)
+
+packets={}
+for c,z in sorted(blocks.items()):
+    mp=maps[c]
+    keys=[(p,eps) for p in it.combinations(c,2) for eps in (-1,1)]
+    skipev={face_info(c,p,eps)[0] for p,eps in keys if (p,eps) in FULLT}
+    for j,(e,F) in enumerate(list(zip(z['events'],z['event_frames']))[40:]):
+        if j not in early[c] and 40+j not in skipev:
+            t,s,a,b=e;add(mp[t],mp[s],Q(a,b),tuple(F))
+    for key,(r,alpha) in zip(keys,z['outputs']):
+        if tuple(key) in FULLT:skip();continue
+        a=mp[r];b=alloc();add(b,a,1,cur[a])
+        consumers=sorted(d for d in blocks if d!=c and set(key[0])<=set(d))
+        assert len(consumers)==2
+        for target,r in zip(consumers,(a,b)):packets[c,key[0],key[1],target]=(r,Q(alpha))
+
+# Both tetrahedra use the same partition. A selected key has exactly two
+# selected Y loads and no ordinary M consumer. Supply its two raw halves in
+# opposite orders and never form that M. Other keys retain the old M path.
+second=[];first_join_counts=Counter()
+for key,reqs in sorted(requests.items()):
+    assert len(reqs)==2
+    c,p,eps=key
+    if (p,eps) in FULLT:continue
+    ds=sorted(d for d in blocks if d!=c and set(p)<=set(d));a,b=ds
+    for j,(target,coef) in enumerate(sorted(reqs)):
+        first_source,second_source=(a,b) if j==0 else (b,a)
+        r,alpha=packets[first_source,p,eps,second_source]
+        F=basis(cur[v+target]+cur[r]);assert inside(F,hyper(P[target]))
+        first_join_counts[len(F)]+=1;add(v+target,r,coef*alpha,F)
+        r,alpha=packets[second_source,p,eps,c]
+        second.append((target,r,coef*alpha))
+
+Ms={}
+for c in sorted(blocks):
+    for p in it.combinations(c,2):
+        ds=sorted(d for d in blocks if d!=c and set(p)<=set(d))
+        for eps in (-1,1):
+            if (c,p,eps) in requests:continue
+            (a,alpha),(b,beta)=[packets[d,p,eps,c] for d in ds]
+            F=basis(cur[a]+cur[b]);add(a,b,beta/alpha,F)
+            Ms[c,p,eps]=(a,alpha)
+
+consumers=defaultdict(list)
+for pid,pair in enumerate(pairs):
+    for key in pair['keys']:consumers[key].append(pid)
+slots={}
+for key,uses in sorted(consumers.items()):
+    assert len(uses)==2
+    if key in requests:
+        assert all(pairs[i]['selected'] for i in uses)
+        continue
+    assert all(not pairs[i]['selected'] for i in uses)
+    a,alpha=Ms[key]
+    for j,pid in enumerate(uses):
+        if j==0:r=a
+        else:r=alloc();add(r,a,1,cur[a])
+        slots[pid,key]=(r,alpha)
+assert len(cur)-240==NH,len(cur)-240
+
+selected_join_counts=Counter()
+for target,r,coef in second:
+    F=basis(cur[v+target]+cur[r]);assert inside(F,hyper(P[target]))
+    selected_join_counts[len(F)]+=1;add(v+target,r,coef,F)
+output_basis=[]
+for pair in pairs:
+    if not pair['selected']:continue
+    (t,u),mat=pair['targets'],pair['matrix']
+    F=basis(cur[v+t]+cur[v+u]);assert inside(F,hyper(P[t])) and inside(F,hyper(P[u]))
+    add(v+t,v+u,1,F);add(v+u,v+t,-Q(1,2),F)
+    z=-Q(2*mat[1][0],mat[0][0]);scale(v+u,z,F);output_basis.append((t,u,z))
+
+for pid,pair in enumerate(pairs):
+    if pair['selected']:continue
+    (t,u),(key1,key2),mat=pair['targets'],pair['keys'],pair['matrix']
+    (a,alpha),(b,beta)=slots[pid,key1],slots[pid,key2]
+    F=basis(cur[a]+cur[b]);aa,ab=Q(mat[0][0])*alpha,Q(mat[0][1])*beta
+    ba,bb=Q(mat[1][0])*alpha,Q(mat[1][1])*beta
+    add(a,b,ab/aa,F);q=ba/(bb-ba*ab/aa);add(b,a,q,F)
+    add(v+t,a,-aa/2,hyper(P[t]));add(v+u,b,-(bb-ba*ab/aa)/2,hyper(P[u]))
+
+for t in range(v):
+    expected={s:-Q(G[t][s],2) for s in range(v) if s!=t and G[t][s] and s not in frame.values()} if t not in frame.values() else {}
+    assert rows[v+t]==expected,('side identity',t)
+
+scatter=[[Q(r[i],4) if t not in frame.values() else Q(0) for i in range(8)]+[Q(t==frame[i]) for i in range(8)] for t,r in enumerate(R)]
+precondition=[]
+for t,u,z in output_basis:
+    a,b=scatter[t].copy(),scatter[u].copy()
+    scatter[t]=[x/2-y/z for x,y in zip(a,b)]
+    scatter[u]=[x/2+y/z for x,y in zip(a,b)]
+    precondition.extend([['scale',v+u,(1/z).numerator,(1/z).denominator,[]],
+                         ['add',v+u,v+t,1,2,[]],['add',v+t,v+u,-1,1,[]]])
+for r in range(len(cur)):climb(r,hyper(P[r-v]) if v<=r<2*v else FULL)
+H[8]+=8;H[1]+=8
+assert sum(r*z for r,z in H.items())==9*NH+240*8+72,sum(r*z for r,z in H.items())
+
+def apply(e,matrix):
+    if e[0]=='add':
+        _,t,s,a,b,*_=e;q=Q(a,b)
+        for j,x in list(matrix[s].items()):
+            z=matrix[t].get(j,Q(0))+q*x
+            if z:matrix[t][j]=z
+            else:matrix[t].pop(j,None)
+    else:
+        _,t,a,b,*_=e;q=Q(a,b);matrix[t]={j:q*x for j,x in matrix[t].items()}
+def inverse(e):
+    e=copy.deepcopy(e)
+    if e[0]=='add':e[3]*=-1
+    else:e[2],e[3]=e[3],e[2]
+    e[-1]=list(FULL);return e
+cut=[['add',v+t,centers[i],q.numerator,q.denominator,None] for t,row in enumerate(scatter) for i,q in enumerate(row) if q]
+cleanup=[inverse(e) for e in reversed(A+B) if not v<=e[1]<2*v]
+matrix=[{r:Q(1)} if r<v else {} for r in range(len(cur))]
+for e in A+cut+B+cleanup:apply(e,matrix)
+assert all(matrix[r]==({r:Q(1)} if r<v else {r-v:Q(1)} if r<2*v else {}) for r in range(len(cur)))
+
+# Restrict the eight isolated axis ports exactly, keeping the stable 112-port
+# label set. This variant changes the local word, not the outer geometry.
+mp={s:s-8 for s in range(8,120)}
+mp.update({120+s:112+s-8 for s in range(8,120)})
+mp.update({240+r:224+r for r in range(NH)})
+def restrict(events,is_cut=False):
+    out=[]
+    for e in events:
+        regs=e[1:3] if e[0]=='add' else e[1:2]
+        if any(r not in mp for r in regs):
+            assert is_cut and e[0]=='add' and e[1]-120==e[2] and e[2]<8 and e[3:5]==[1,1]
+            continue
+        q=copy.deepcopy(e);q[1]=mp[q[1]]
+        if q[0]=='add':q[2]=mp[q[2]]
+        out.append(q)
+    return out
+H.subtract({1:8,8:16});H=+H
+report={'status':'EXACT_CLEAN_OWN_Y_EARLY_CENTER_WORD_NOT_ADMITTED',
+        'h':9,'v':112,'R':NH,'cst':64,'m':73,'local_profile':dict(sorted(H.items())),
+        'centre_ranks':[8]*8,**({'tri_join_counts':dict(tri_join_counts)} if TRI['triangles'] else {}),'selected_load_join_counts':dict(selected_join_counts),'selected_partitions':list(SELECT),'first_load_join_counts':dict(first_join_counts),
+        'source_columns_exact':112,'borrowed_output_pairs':56,'source_and_helper_cleanup_exact_on_clean_columns':True,
+        'local_rank_mass':sum(r*n for r,n in H.items()),'scope':'Clean scalar identity and all literal monotone local frames only; arbitrary-dirt compensation, entrance kernels, exact phase recipes, and global hosting/pricing are not yet certified.'}
+word={'report':report,'ports':P[8:],'root_lines':R[8:],
+      'A':restrict(A),'B':restrict(B),'cut':restrict(cut,True),'cleanup':restrict(cleanup),'precondition':restrict(precondition),
+      'centers':[mp[r] for r in centers[:8]],'center_frames':center_frames[:8],
+      'scatter':[[str(x) for x in row[:8]] for row in scatter[8:]]}
+(OUT/'FULL-WORD.json.gz').write_bytes(gzip.compress(json.dumps(word,sort_keys=True,separators=(',',':')).encode(),mtime=0))
+assert len(shadow)==NH and len(shadow)+len(skipped)==504
+hmap={**{r:r for r in range(224)},**{224+s_-240:224+i for i,s_ in enumerate(shadow)}}
+(OUT/'HELPER-MAP.json').write_text(json.dumps({'map':{str(k):hmap[k] for k in sorted(hmap)},'removed_504_helpers':[224+s_-240 for s_ in skipped]})+'\n')
+(OUT/'DISCOVERY.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps(report,indent=2),flush=True)
