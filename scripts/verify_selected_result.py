@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Bind the published selection to its frozen finite certificate and proof files.
 
-This fast check does not replay the construction. Run make gen4-bank-verify
+This fast check does not replay the construction. Run the selected record's
+reproduce command
 for the complete selected finite replay. Douglas Colkitt, with OpenAI Codex
 assistance. Apache-2.0.
 """
@@ -29,6 +30,7 @@ def path(root, relative):
 
 
 def check(record, root=ROOT):
+    root = root.resolve()
     certificate_path = path(root, record['certificate'])
     certificate = json.loads(certificate_path.read_text())
     kappa = Fraction(record['kappa'])
@@ -39,11 +41,26 @@ def check(record, root=ROOT):
     manifest_path = path(root, record['source_manifest'])
     manifest = json.loads(manifest_path.read_text())
     require(manifest.get('files'), 'Empty selected source inventory')
-    package = manifest_path.parent
-    actual = {p.relative_to(package).as_posix(): sha256(p.read_bytes()).hexdigest()
-              for p in package.rglob('*') if p.is_file() and p != manifest_path}
+    if manifest.get('format') == 'repository-packages-sha256-v1':
+        roots = manifest.get('package_roots', [])
+        require(roots and len(roots) == len(set(roots)), 'Invalid package roots')
+        actual = {}
+        for relative in roots:
+            package = (root / relative).resolve()
+            require(package.is_relative_to(root.resolve()) and package != root.resolve()
+                    and package.is_dir(), 'Invalid package root: ' + relative)
+            for p in package.rglob('*'):
+                if p.is_file():
+                    require(p.resolve().is_relative_to(package), 'Package symlink escapes root')
+                    name = p.relative_to(root).as_posix()
+                    require(name not in actual, 'Overlapping package roots')
+                    actual[name] = sha256(p.read_bytes()).hexdigest()
+    else:
+        package = manifest_path.parent
+        actual = {p.relative_to(package).as_posix(): sha256(p.read_bytes()).hexdigest()
+                  for p in package.rglob('*') if p.is_file() and p != manifest_path}
     require(actual == manifest['files'], 'Selected package inventory or bytes changed')
-    require(record['proof_supplements'], 'Missing bank scheduling supplement')
+    require(record['proof_supplements'], 'Missing construction proof supplement')
     for relative, digest in record['proof_supplements'].items():
         require(sha256(path(root, relative).read_bytes()).hexdigest() == digest,
                 'Selected proof supplement changed: ' + relative)

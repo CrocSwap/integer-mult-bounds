@@ -1,3 +1,75 @@
+# Current reviewed status
+
+Selected conditional κ: **0.001635527380375392**, #626 on #622/#623 with #543.
+See the [review](community-k492-review.md), [integration receipt](community-k492-integration.json),
+[selected record](../../certificates/selected-result.json) and [PR ledger](pr-ledger.md).
+Public cold replay: `make frontier626-verify`.
+
+The frozen round covers #618–#626. Eight scoped reviews complete; #620 remains
+partial pending portable research replays and validation of its solver/barrier
+claims. Earlier open reviews retain their ledger status. Inherited uniform,
+physical and analytic assumptions remain; no full Lean multiplication proof.
+Local replay and remote Linux CI statuses are recorded separately.
+
+# Superseded status through #617
+
+The selected conditional saving is **κ=0.001635183729255778**, #617 with #543,
+building on #601/#604/#615. See the [review](community-cold617-review.md),
+[integration receipt](community-cold617-integration.json),
+[selected record](../../certificates/selected-result.json) and [PR ledger](pr-ledger.md).
+The public replay is `make frontier617-verify`.
+
+The frozen round covers #600–#617. Parallel allocations, replay reports,
+formalization and research retain attribution. #611's older branch diff and
+#605/#612 Linux harness and precursor reviews remain open. Scoped finite and
+Lean checks do not discharge the inherited uniform and analytic assumptions.
+Remote Linux CI is reported separately from local execution.
+
+# Superseded status through #599
+
+The selected conditional saving is **κ=0.0016127213726553**, Jeremy Kothe's
+#596 on #591/#592 with eumemic's #543 bit supplier. See the
+[review](community-hyperplane599-review.md),
+[integration receipt](community-hyperplane599-integration.json),
+[selected record](../../certificates/selected-result.json) and
+[PR ledger](pr-ledger.md). The public replay is `make frontier596-verify`.
+
+#593/#599 add scoped Lean proofs; #589 adds bit headroom; #595/#598 add research.
+#594's independent replay contribution is incorporated, while its older branch
+differences await reconciliation. All inherited all-size/realization/hosting/
+precision/tape/analytic conditions remain; this is not a full formal proof of
+multiplication. Remote Linux CI status is recorded separately from local checks.
+
+## Superseded status snapshot through #588
+
+### Historical reviewed record
+
+The selected reviewed conditional witness is
+**κ=400569730495803/250000000000000000=0.001602278921983212**, from
+Jeremy Kothe's #588 with eumemic's #543 bit supplier. The preceding
+[#535/#510 checkpoint](../../certificates/checkpoints/post-center535.json) is preserved.
+
+See the [selected record](../../certificates/selected-result.json),
+[review and assumptions](community-family588-review.md),
+[execution receipts](community-family588-integration.json), and
+[per-PR dispositions](../../research/community-family588-audit/DISPOSITIONS.json).
+The public `make frontier588-verify` command cold-rebuilt both finite suppliers
+and their exact composition. All-size/compiler/common-label/mutable-basis,
+pooled-cell hosting, normalized residual, precision/tape and analytic
+interfaces remain conditional. Linux CI is tracked separately; no full Lean
+multiplication theorem is claimed.
+
+The frozen round covers 43 construction, research and tooling PRs through
+#588. Separate Lean proposals and later arrivals stay in the next queue.
+Parallel and superseded mechanisms, exact diagnostics and negative results
+retain attribution in the [contributor record](../../CONTRIBUTORS.md).
+The [research integration index](research-notes-20261011.md) preserves earlier
+non-frontier contributions. Larger pending claims remain proposals until reviewed.
+
+Earlier “selected” statements below are historical snapshots.
+
+---
+
 # Selected construction: coordinated frames and completed entrance banks
 
 The selected conditional witness is **κ=330942774629799/500000000000000000

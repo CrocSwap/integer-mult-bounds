@@ -6,6 +6,8 @@ import json
 import subprocess
 import sys
 import unittest
+import tempfile
+from hashlib import sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('selected_result_check', ROOT / 'scripts/verify_selected_result.py')
@@ -44,6 +46,42 @@ class SelectedResult(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Assertions must remain enabled', result.stderr)
+
+    def test_repository_package_inventory_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            package = root / 'supplier'
+            package.mkdir()
+            source = package / 'proof.md'
+            source.write_text('frozen proof\n')
+            digest = sha256(source.read_bytes()).hexdigest()
+            cert = root / 'certificate.json'
+            cert.write_text('{"kappa":"1/1000"}')
+            manifest = root / 'manifest.json'
+            inventory = {'format': 'repository-packages-sha256-v1',
+                         'package_roots': ['supplier'],
+                         'files': {'supplier/proof.md': digest}}
+            manifest.write_text(json.dumps(inventory))
+            record = dict(kappa='1/1000', decimal='0.001', certificate='certificate.json',
+                          certificate_sha256=sha256(cert.read_bytes()).hexdigest(),
+                          source_manifest='manifest.json', proof='supplier/proof.md',
+                          review='supplier/proof.md', validation='certificate.json',
+                          proof_supplements={'supplier/proof.md': digest})
+            checker.check(record, root)
+            source.write_text('changed\n')
+            with self.assertRaisesRegex(ValueError, 'inventory or bytes changed'):
+                checker.check(record, root)
+            source.write_text('frozen proof\n')
+            extra = package / 'unreviewed.py'
+            extra.write_text('extra\n')
+            with self.assertRaisesRegex(ValueError, 'inventory or bytes changed'):
+                checker.check(record, root)
+            extra.unlink()
+            for roots in (['..'], ['.'], ['supplier', 'supplier']):
+                inventory['package_roots'] = roots
+                manifest.write_text(json.dumps(inventory))
+                with self.subTest(roots=roots), self.assertRaises(ValueError):
+                    checker.check(record, root)
 
 
 if __name__ == '__main__':

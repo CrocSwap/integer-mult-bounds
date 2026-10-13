@@ -1,0 +1,11 @@
+# Nested donor entrances: finite extension and reselection searches
+
+The earlier kernel requires each donor to serve one entrance frame. This experimental constructor instead permits a chain of nested frames per donor, ordered by donor and increasing rank. Pivots never serve as donors; every original response relation and complete arbitrary-dirty endpoint is checked. The known110-pivot word is reproduced exactly before search. This is a new finite search neighborhood, not an established new compiler theorem.
+
+Four incremental searches kept every incumbent pivot and found no addition. Twenty reselection trials retained0%,25%,50%,75% or100% of the incumbent, at penalties0,0.2,0.5,1 and recorded seeds84000..84019. Several produced actual donors serving multiple entrances. Every trial passed exact955-column/rational-frame/integer-support replay. Each was then repriced at84 replicas with whole-family integer pattern counts, all supply equalities checked exactly, and both moment implementations. Sixteen distinct width inventories were solved. **No candidate beat the current84-replica baseline; no pricing execution failed.** These are20 finite screens, not20 full native/global certifications or a proof that nested donors cannot help.
+
+[Pricing ledger](PRICING-LEDGER.json), [completion](PRICING-COMPLETE.json), [four fixed-incumbent attempts](FIXED-INCUMBENT-RESULTS.json). Each trial folder contains its exact input word, entrance witness, local result, pooled assignment and exact pricing result. Scripts retain original workspace dependencies.
+
+The initial constructor sorted corrections by frame rather than donor, changing the otherwise equivalent commuting gate ordering and failing the exact source-byte identity guard. The constructor now orders by donor then nested rank, reproducing the parent exactly before search. [Initial failure](INITIAL-SOURCE-IDENTITY-FAILURE.log) remains preserved. No legality check was removed.
+
+Do not repeat these exact seeds/penalties/retention fractions. A retry needs a changed word, donor-basis selection, simultaneous pivot/donor exchange, or a broader frame/circuit model. Native formal checks and physical/global admission remain necessary for any future improving nested construction.

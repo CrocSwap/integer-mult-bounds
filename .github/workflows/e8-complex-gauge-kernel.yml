@@ -1,0 +1,60 @@
+name: Verify complex gauge-kernel supplier
+
+on:
+  push:
+    paths:
+      - 'research/e8-complex-gauge-kernel/**'
+      - 'research/idle-axis-hosting/**'
+      - 'research/split-centres-global/**'
+      - 'research/e8-lemma-a-lean/**'
+      - 'research/e8-lemma-g-lean/**'
+      - '.github/workflows/e8-complex-gauge-kernel.yml'
+  pull_request:
+    paths:
+      - 'research/e8-complex-gauge-kernel/**'
+      - 'research/idle-axis-hosting/**'
+      - 'research/split-centres-global/**'
+      - 'research/e8-lemma-a-lean/**'
+      - 'research/e8-lemma-g-lean/**'
+      - '.github/workflows/e8-complex-gauge-kernel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install numpy and scipy (Lemma G stage, --discover-check)
+        run: python3 -m pip install numpy scipy
+      - name: Replay PR442 parent, build the gauge-kernel words, check Lemma G, rediscover hosting, assemble
+        run: python3 -B research/e8-complex-gauge-kernel/verify.py "$RUNNER_TEMP/e8-complex-gauge-kernel" --all --discover-check
+      - name: Install pinned elan bootstrap
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Load the shared pinned Mathlib cache
+        working-directory: research/e8-lemma-a-lean
+        run: |
+          lake exe cache get
+          mkdir -p ../e8-lemma-g-lean/.lake
+          ln -s ../../e8-lemma-a-lean/.lake/packages ../e8-lemma-g-lean/.lake/packages
+      - name: Build and audit both Lean lemmas against the fresh finite instances
+        run: |
+          python3 -B research/e8-lemma-g-lean/verify.py --no-cache --instances "$RUNNER_TEMP/e8-complex-gauge-kernel"
+          python3 -B research/e8-lemma-a-lean/verify.py --no-cache --instances "$RUNNER_TEMP/e8-complex-gauge-kernel"
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code

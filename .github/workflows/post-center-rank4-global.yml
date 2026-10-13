@@ -1,0 +1,48 @@
+name: Verify post-center rank-four global witness
+
+on:
+  push:
+    paths:
+      - 'research/post-center-rank4-global/**'
+      - 'research/direct-delivery504-global/**'
+      - '.github/workflows/post-center-rank4-global.yml'
+  pull_request:
+    paths:
+      - 'research/post-center-rank4-global/**'
+      - 'research/direct-delivery504-global/**'
+      - '.github/workflows/post-center-rank4-global.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install exact phase interpreter dependency
+        run: python -m pip install numpy==2.3.5
+      - name: Reconstruct rank-four supplier and verify the changed global witness
+        run: python -B research/post-center-rank4-global/replay_delta.py --baseline research/direct-delivery504-global --work "$RUNNER_TEMP/rank4" --rebuild-local --delta-phases
+      - name: Check intermediate phase delta and independent local realization
+        run: |
+          mkdir "$RUNNER_TEMP/rank4-checkpoint"
+          cp research/post-center-rank4-global/inputs/phase-checkpoint/CANONICAL-WORD.json.gz "$RUNNER_TEMP/rank4-checkpoint/"
+          python -B research/direct-delivery504-global/code/phases_delta.py --local "$RUNNER_TEMP/rank4-checkpoint" --baseline research/direct-delivery504-global/evidence/local --compiler research/direct-delivery504-global/vendor/clifford
+          cmp "$RUNNER_TEMP/rank4-checkpoint/CLIFFORD-RECIPES.json" research/post-center-rank4-global/inputs/phase-checkpoint/CLIFFORD-RECIPES.json
+          python -B research/direct-delivery504-global/code/emit_local.py "$RUNNER_TEMP/rank4/scalar"
+          python -B research/direct-delivery504-global/code/audit_local.py "$RUNNER_TEMP/rank4/scalar"
+          python -B research/direct-delivery504-global/code/adapters_local.py "$RUNNER_TEMP/rank4/scalar/CANONICAL-WORD.json.gz" "$RUNNER_TEMP/rank4/scalar/RESIDUAL-ADAPTERS.json" "$RUNNER_TEMP/rank4/scalar/LEMMA-A.json"
+      - name: Require unchanged tracked artifacts
+        run: git diff --exit-code

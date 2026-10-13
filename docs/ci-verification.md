@@ -1,4 +1,34 @@
-# Parallel CI without reducing verification coverage
+# CI verification
+
+## Current selected-family replay
+
+`.github/workflows/frontier588.yml` provides one complete cold check of #543
+with #588 on Ubuntu 24.04 and Python 3.12. It installs NumPy, SymPy, SciPy,
+C++17 and Boost, checks the selected record and review evidence, rebuilds both
+finite suppliers and their exact composition, and uploads the execution
+receipts and logs. It triggers on changes to the selected dependency packages,
+entry points and selection metadata, or by manual dispatch.
+
+The shared complex foundation is rebuilt once inside that command. Every
+changed provider, phase program and owner assignment is still checked. No
+cached proof result replaces execution. The workflow uses the repository's
+pinned checkout and Python-setup actions, read-only permissions and a fresh
+output directory.
+
+The 23 workflows imported with the frozen family through #588 retain their
+original replay jobs under manual dispatch. This keeps historical checks
+available without automatically launching every numerical predecessor on
+each new family change. The existing generic verification matrix remains
+separate. Its passing status does not substitute for the selected-family run.
+
+Local replay has passed. The [integration receipt](research/community-family588-integration.json)
+records Linux CI status separately; a workflow file alone does not establish
+cross-platform success or prove the retained all-size theorem assumptions.
+
+## Historical matrix split
+
+The remainder documents the earlier generic suite and its original timings.
+Its counts and checkpoint-specific Lean statements are historical.
 
 The previous release's [successful Linux run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/37799621548)
 took 15–16 minutes per Python version before the new PR #49 producer replays.

@@ -1,0 +1,41 @@
+name: Verify idle-axis hosting composition
+
+on:
+  push:
+    paths:
+      - 'research/idle-axis-hosting/**'
+      - 'research/e8-early-reset-kernel/**'
+      - 'research/e8-early-reset-reuse/**'
+      - 'research/split-centres-global/**'
+      - '.github/workflows/idle-axis-hosting.yml'
+  pull_request:
+    paths:
+      - 'research/idle-axis-hosting/**'
+      - 'research/e8-early-reset-kernel/**'
+      - 'research/e8-early-reset-reuse/**'
+      - 'research/split-centres-global/**'
+      - '.github/workflows/idle-axis-hosting.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Replay PR434 from scratch, host helper residuals on idle coordinates, audit and assemble
+        run: python3 -B research/idle-axis-hosting/verify.py "$RUNNER_TEMP/idle-axis-hosting"
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code

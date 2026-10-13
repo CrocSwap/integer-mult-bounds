@@ -1,6 +1,114 @@
 # Community contribution record
 
-**Current reviewed construction: #279 on #276, κ=0.000723571590007464.**
+**Current reviewed composition: #626 with #543, κ=0.001635527380375392.**
+See the [review](docs/research/community-k492-review.md) for scope and provenance.
+
+| Contributor | Work in this round |
+|---|---|
+| [Jeremy Kothe](https://github.com/jeremykothe2) | #622 K-triangle construction with 492 helpers; #623 dispatch and #625 parallel LNS allocation. |
+| [Chafik Boukhalfa](https://github.com/chafreaky) | #626 selected coordinated owner repair, portable sources and independent checks; #619 exact ceiling for the older #615 supplier family. |
+| [Jeremy Diviney](https://github.com/jeremydiviney) | #618 owner consolidation and #624 parallel owner repacking; deterministic nomination tools and retained replay evidence. |
+| [Ali Romman](https://github.com/aliromman) | #621 uniform prime-power cyclic inverse theorem and two exact arithmetic engines; no paid multiplication bound claimed. |
+| [Joel Pulikkan / GamingPuzzled](https://github.com/GamingPuzzled) | #620 owner-headroom lead credited by subsequent allocations; E8 decoder/extension-ring research archived, broader solver claims partially reviewed. |
+
+DreamingOfClouds' cold-helper construction, eumemic's selected #543 bit supplier,
+Rohan Arun's #559 native recurrence correction and all preceding contributors
+remain part of the cumulative result. Parallel work retains credit even when
+it is not a dependency of the selected allocation.
+
+## Historical cold-helper round through #617
+
+**Historical reviewed composition: #617 with #543, κ=0.001635183729255778.**
+See the [review](docs/research/community-cold617-review.md) for scope and replay provenance.
+
+| Contributor | Work in this round |
+|---|---|
+| [Jeremy Kothe](https://github.com/jeremykothe2) | #601 commuting cleanup, #615 entering pair and #617 second cold endpoint; #600/#603/#607/#609/#614 dispatch and allocation. |
+| [DreamingOfClouds](https://github.com/DreamingOfClouds) | #604 cold helper endpoints and #610 dispatch; inherited #599 Lean interfaces. |
+| [Chafik Boukhalfa](https://github.com/chafreaky) | #616 owner repairs, portable dependencies and independent allocation checks. |
+| [higherbeing](https://github.com/higherbeing) | #608 independent 46-helper construction and allocation tools. |
+| [eumemic](https://github.com/eumemic) | #611/#613 independent replay reports; retained #543 selected bit supplier. Historical branch reconciliation in #611 remains open. |
+| [Dominik Scholz](https://github.com/DominikScholz) | #606 Niemeier construction and compensation research; cumulative supplier lineage. |
+| [artuskg](https://github.com/artuskg) | #602 ceiling rounding and interval-comparison corrections. |
+| [James Chang](https://github.com/jamesyc) | #605 historical real-moment and #612 current bit-boundary Lean formalization; source builds checked, Linux harness and precursor review remain open. |
+
+Rohan Arun’s #559 native-complex recurrence correction and all preceding
+construction contributions remain part of the cumulative selected result.
+
+## Historical helper family through #599
+
+**Historical reviewed composition: #596 with #543, κ=0.0016127213726553.**
+The [review](docs/research/community-hyperplane599-review.md) and
+[dispositions](research/community-hyperplane599-audit/DISPOSITIONS.json)
+distinguish selected improvements, verification, parallel research and open scope.
+
+| Contributor | Work in this round |
+|---|---|
+| [Jeremy Kothe](https://github.com/jeremykothe2) | #591 hyperplane-ended helpers; #592 dispatch and #596 owner-map improvement; #593 Lean helper interface and exact Clifford identities. |
+| [DreamingOfClouds](https://github.com/DreamingOfClouds) | #589 bit transports/headroom; #595 scoped format ceilings and helper budgets; #599 multi-gate/cold Lean extensions. |
+| [eumemic](https://github.com/eumemic) | Retained #543 selected bit supplier; #594 independent replay report and hash auditor. The older branch diff in #594 remains open. |
+| [Dominik Scholz](https://github.com/DominikScholz) | #598 exact Leech/Turyn constructions, fitting obstructions and scoped cost research; cumulative #569/#571 supplier lineage. |
+
+Original licenses and assistance disclosures are retained. Maintainer review,
+instance-binding checks and integration: Douglas Colkitt with OpenAI Codex assistance.
+
+## Historical family through #588
+
+**Historical reviewed composition: #588 with #543, κ=0.001602278921983212.**
+The [selected record](certificates/selected-result.json) identifies the current
+checkpoint. The previous [#535/#510 checkpoint](certificates/checkpoints/post-center535.json)
+remains available.
+The [family review](docs/research/community-family588-review.md) and
+[per-PR dispositions](research/community-family588-audit/DISPOSITIONS.json)
+record verification scope and remaining work.
+
+| Contributor | Work in the frozen family through #588 |
+|---|---|
+| [Jeremy Kothe](https://github.com/jeremykothe2) | #568 multi-cut cold kernels; #574/#576/#578/#582/#584 provider compositions; #587 declarative verification tools; #588 commuting gate moves and frame coalescences. |
+| [eumemic](https://github.com/eumemic) | #543 R420 bit word with interleaved source updates; #555 combination with punctured ports; #550/#558 rank-five complex variants and #561/#562/#564 cold-kernel and mixed-provider constructions. |
+| [Dominik Scholz](https://github.com/DominikScholz) | #569 width-seven promotions, provider reconstruction and exact capacity diagnostics; #571 shared prefixes and bounded joint-basis research. |
+| [Chafik Boukhalfa](https://github.com/chafreaky) | #538/#544/#551 constructions; #549/#557 scoped ceilings; #572/#577/#579 provider packing; #583/#586 frame coalescences and portable proof-content controls. |
+| [Dugongue](https://github.com/Dugongue) | #541 trace/curvature work; #548 response pruning; #552 collective frame and response changes; #556 projection-cut optimization; #560/#563 pooling and provider-interface research. |
+| [DreamingOfClouds](https://github.com/DreamingOfClouds) | #545 punctured bit ports and rank-seven totals, building on the R480 and nine-stage pipeline; retained moment and assembly machinery. |
+| [Rohan Arun](https://github.com/rohanarun) | #539 literal bit charge; #542/#546/#547/#554 frame and composition work; #559 source-scoped removal of the generic complex exceptional-residue surcharge. |
+| [Jonathan Capalbo](https://github.com/jon314159) | #567 paired cold kernels and portable generated-content identities; #575 shared joint-prefix construction. |
+| [artuskg](https://github.com/artuskg) | #580 source-complement lookup proof and exact rational normal-form diagnostic; research contribution without a new physical supplier or exponent claim. |
+
+Parallel constructions and superseded witnesses keep their attribution. Their
+gains are not added to one another. Earlier notices and credits, including
+icekylinx's direct-delivery/post-center lineage, the mutable-source and E8
+geometry contributors, and formalization contributors, remain in the source
+packages and the historical record below. Original licenses and AI-assistance
+disclosures are retained. Douglas Colkitt performs maintainer review and
+integration with OpenAI Codex assistance.
+
+## Historical post-center checkpoint
+
+**Historical reviewed construction: #535 with #510, κ=0.001584931111785787.**
+The [family review](docs/research/community-family533-review.md) separates the
+selected gain, parallel mechanisms, formalization and inherited assumptions.
+
+| Contributor | Contribution to this checkpoint and review round |
+|---|---|
+| [icekylinx](https://github.com/icekylinx) | #535 post-center gauge/kernel ordering, rank-four entrances and exact mixed-width allocation; #531 direct delivery and #523 port restriction. |
+| [DreamingOfClouds](https://github.com/DreamingOfClouds) | #503 R480 totals on dead registers and #510 nine-stage bit supplier; #484 kernels/gauges, #509/#516 Lean interfaces, exact moment and assembly machinery. |
+| [eumemic](https://github.com/eumemic) | #493 mutable source-carrier bit supplier; #507 factory and #496 integration ancestry. |
+| [Chafik Boukhalfa](https://github.com/chafreaky) | #533 92-pivot supplier and complete replay; #443/#444/#445/#472 geometry, physical emitters/checkers and invoices; #458 wrappers. |
+| [Rohan Arun](https://github.com/rohanarun) | #534 monotone delivery-frame search and #536 certified composition with #533; both alternative witnesses retained. |
+| [Dugongue](https://github.com/Dugongue) | #537 support-saturated response calculus, width-five packing, exact observational rewrite and finite supplier registry; #514/#505/#522 construction ancestry. |
+| [James Chang](https://github.com/jamesyc) | #513 sequential completed-bank Lean interface/source bindings and #528 full-state endpoint adapter to #516. |
+| [DaysSky](https://github.com/DaysSky) | #442 idle-axis hosting and #381 bridged formal-column checks. |
+| [Zhihao Chen](https://github.com/jacklightChen) | #425 mutable-basis interface, #386 geometry and Hamming/scalar ancestry. |
+| Dylan Crow and [Jacob Sussman](https://github.com/jacobalansussman) | #370 bit-format/checker and E8 geometry lineage retained in supplier notices. |
+| [higherbeing](https://github.com/higherbeing) | #520 whole-owner allocation and exact delivery-layer diagnostics. |
+
+Original commits, notices, licenses and AI-assistance disclosures are retained.
+Earlier, parallel and superseded contributions remain credited below and in the
+full source lineage; these are not independently additive numerical gains.
+
+## Historical gen4 checkpoint
+
+**Historical reviewed construction: #279 on #276, κ=0.000723571590007464.**
 The [review](docs/research/community-pr279-review.md) records the exact heads,
 finite checks, corrected prime coverage and retained all-size assumptions.
 
@@ -22,6 +130,29 @@ notices. Superseded and parallel work keeps its credit; this composition does
 not import every numerical refinement from the source527 branch. Original
 commits, licenses and AI-assistance disclosures are preserved. Douglas Colkitt
 performed the maintainer review and integration with OpenAI Codex assistance.
+
+### Research and verification integration, 2026-10-11
+
+The [research integration review](docs/research/research-notes-20261011.md)
+records these contributions separately from improvements to κ:
+
+- **Ali Romman (aliromman), #468:** a computer-assisted nine-call lower bound
+  for the stated three-register abelian bit model, with two exact engines.
+- **Chafik Boukhalfa (chafreaky), #524:** mixed-radix carry-graded convolution,
+  its scoped proof and exact finite controls; no multiplication-time claim.
+- **Rohan Arun, #477:** an attributed experiment archive preserving proposals,
+  unsuccessful searches, execution failures and reported verification.
+- **Richard Hoekstra, #239:** exact dual-Gram frame-check acceleration.
+- **Romain Hédouin, #190 and #222:** removal of unrelated source pins and
+  faster byte-equivalent generation of the historical bit word.
+- **Joel Pulikkan (GamingPuzzled), #218 and #231:** parallel frame checks and
+  the scoped Lucas-parity obstruction for the star/overlap decoder family.
+- **Maxime Fleury, #220:** gzip-container reproducibility audit and guidance.
+- **Jacob Sussman, #209:** the parallel Fourier-side Lean development reference.
+
+Original authorship, predecessor credits and AI-assistance disclosures remain
+in the imported packages and commits. Research inclusion is not a new record
+or formal verification of the complete multiplication theorem.
 
 ### Historical source527 checkpoint
 
@@ -252,3 +383,4 @@ verified posts, profile associations and unresolved account identities.
 
 - **Michiel Kosters** ([research repository](https://github.com/michielkosters/mathematics_ai/tree/2e0aa64ca09c87fc94f8575f59493f70cf929d71/problems/integer-multiplication-109); Douglas associates @one_line_proof) developed a parallel weighted-hypergraph/coordinate-frame candidate, compressed centers and aligned bit pairing. Our [review](research/parallel-announcements/README.md) reproduces the finite certificate with its transfer/precision limitations explicit.
 - **Abe / @abe_asfaw**, via a suggestion supplied by Douglas, identified the redundant complex center and its historical 26.5% numerical gain. We [checked the scalar identity, counts and assembly arithmetic](research/parallel-announcements/README.md), and credit this parallel observation alongside the already preserved rank-h center research.
+- **Jacob Sussman** ([jacobalansussman](https://github.com/jacobalansussman/wht-power-saving-lean/tree/fdfb7815c15ec43af0fb54818a6a57ae4025126b)) published a separate Lean 4 development on the Fourier side (OpenAI's family 130, not this project's multiplication theorem): a proof of #130's general frame lemma for that RAM model, and a kernel check of #193's complex word, rebuilt from the published data, inside a five-stage layout. It was built with AI agents (Claude) and makes no κ claim. Nothing in it has been replayed or reviewed here.

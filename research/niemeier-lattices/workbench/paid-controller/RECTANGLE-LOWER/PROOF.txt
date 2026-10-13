@@ -1,0 +1,100 @@
+Scoped lower bound for independent orthogonality rectangles
+==========================================================
+This certificate concerns the spinor orthogonality side of D16+ and a
+specified independent rectangle-to-carrier compiler. It does not lower
+bound all scalar circuits or all ways to use the lattice.
+
+Canonical spinor ports are antipodal sign-vector lines in R16 with the
+even-parity condition. There are 2^14=16384 such lines. Orthogonality means
+that exactly eight signs disagree. Each vertex therefore has
+binomial(16,8)/2=6435 orthogonal canonical neighbors. The directed bipartite
+side matrix has 16384*6435=105431040 nonzero entries.
+
+Sign-vector subspace bound
+--------------------------
+A k-dimensional rational subspace U of R16 has a set of k coordinate
+positions whose projection is injective on U. A sign vector has only two
+choices at each projected coordinate, so U contains at most 2^k sign
+vectors. U is closed under negation, and canonical ports select one from
+each antipodal pair. Hence U contains at most 2^(k-1) canonical ports.
+The even-parity restriction can only reduce this bound.
+
+For a nonempty orthogonality rectangle S x T, put a=|S|, b=|T| and
+k=dim span(S). Its target span lies in span(S)^perp, so
+
+  a <= 2^(k-1),    b <= 2^(15-k),    1 <= k <= 15.
+
+The function ab/(a+b-1) increases in both variables when a,b>=1. At the
+displayed limits its numerator is always 16384, and its denominator is
+minimized at k=8. Thus every rectangle satisfies
+
+  ab/(a+b-1) <= 16384/255.
+
+The numerical maximum does not assert that a 128-by-128 rectangle meeting
+the parity restrictions exists. It is an upper bound, which is enough.
+
+Compiler assumption and role count
+----------------------------------
+The tested independent rectangle factory allocates a binary addition tree
+with a-1 internal additions and b distinct terminal output-use carriers.
+Under its retained role accounting c+q, it costs a+b-1 helper roles. No
+carrier is reused between rectangles, and no output-use carrier is shared
+between distinct target uses. This is a compiler cost assumption, not an
+information-theoretic lower bound for arbitrary rectangle implementations.
+
+Even when rectangles overlap and their contributions cancel over F2,
+every nonzero matrix entry must occur in at least one rectangle. Therefore
+sum ab >= 105431040, and the independent factory needs
+
+  R = sum(a+b-1) >= 105431040 * 255/16384
+                    = 6435*255 = 1640925 helpers.
+
+Ordinary-role moment obstruction
+--------------------------------
+Now retain the ordinary h=16 helper interface: each helper runs from frame
+zero to the full local frame, with separately paid local children inside
+that role. Its nested increments r_j sum to 16 and each child has rank at
+most 16. For 0<alpha<1, subadditivity of x^(1-alpha) gives
+
+  sum_j r_j*((m/r_j)^alpha-1)
+       >= 16*((m/16)^alpha-1).
+
+Cross-role child fusion into a rank 32 or larger transform is not admitted
+by this scoped estimate. Neither are partial or virtual helper endpoints.
+
+For the paired controller m=15L+1 with odd L>=3, the complete banked mass
+identity gives D=L(N-C)-N. All other pressure is nonnegative, so
+
+  P_total/L >= 16 R *((46/16)^alpha-1),
+  D/L < N-C.
+
+At the pinned frontier kappa=0.001612719427075359, with
+alpha=kappa/(1-kappa), exact rational interval arithmetic gives
+
+  16 R *((46/16)^alpha-1) > 44825.4388635721.
+
+This exceeds the full-shell allowance N-C=30960-13040=17920 and the
+spinor-only allowance 16384-9216=7168. It even exceeds the full-shell
+port count 30,960 with every center cost omitted. Thus this ordinary
+independent rectangle factory fails for every odd stage count before
+charging any active data, center or idle pressure.
+
+Convenient global necessary kappa upper bounds are:
+
+  full-shell bit with C=13,040:  0.000645676583105551;
+  spinor-only bit with C=9,216:  0.000258423602940770;
+  full shell with C=0:         0.001114721384339448.
+
+These are weaker than optimizing the actual invoice but are sufficient
+for the all-stage exclusion. Idle hosting does not remove the separately
+paid local helper children. Shared DAG roles, reused output carriers,
+fused transforms, changed endpoint widths and different controllers can
+escape these assumptions and are not excluded.
+
+Reproduction
+------------
+verify.py checks every possible source-span dimension, the exact edge
+and helper counts, and the rational moment signs. A one-helper negative
+control must fail the same sufficient rejection test. Both normal Python
+and python -I -O pass. The inherited rational enclosure source and its
+SHA256 are recorded in RESULT.json. No repository files are modified.

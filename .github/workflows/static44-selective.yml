@@ -1,0 +1,31 @@
+name: Static44 selective both suppliers
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install native and Python prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ libboost-dev
+          python -m pip install numpy sympy
+      - name: Rebuild both suppliers, phases, owners and exact assembly
+        run: python -B research/static44-selective/verify.py --work "$RUNNER_TEMP/static44-selective" --boost-include /usr/include
+      - name: Require unchanged tracked sources
+        run: git diff --exit-code

@@ -1,0 +1,35 @@
+name: Verify sliced R480 trace composition
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install verification dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libboost-dev
+          python -m pip install numpy sympy
+      - name: Reconstruct and verify the complete finite supplier
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONINTMAXSTRDIGITS: '0'
+        run: python -B research/r480-sliced-minimal-frames/verify.py "${RUNNER_TEMP}/r480-trace-replay" --physical --boost-include /usr/include
+      - name: Retain verification receipts and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r480-trace-${{ matrix.python }}
+          path: ${{ runner.temp }}/r480-trace-replay

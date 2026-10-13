@@ -1,0 +1,29 @@
+name: All-call cold-kernel complex providers
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B research/complex-allcold/verify.py --work /tmp/allcold-replay
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allcold-receipt-${{ matrix.python }}
+          path: |
+            /tmp/allcold-replay/RESULT.json
+            /tmp/allcold-replay/RECEIPT.json
+            /tmp/allcold-replay/STAGES.json
+            /tmp/allcold-replay/ASSEMBLY.json
+            /tmp/allcold-replay/ASSEMBLY-CONTROLS.json

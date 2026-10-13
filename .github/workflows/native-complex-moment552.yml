@@ -1,0 +1,21 @@
+name: Verify native complex moment on PR552
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B research/native-complex-moment552/verify.py --work "$RUNNER_TEMP/native-complex-moment552"
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'

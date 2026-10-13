@@ -1,0 +1,44 @@
+name: Verify direct-delivery 504-helper global witness
+
+on:
+  push:
+    paths:
+      - 'research/direct-delivery504-global/**'
+      - '.github/workflows/direct-delivery504-global.yml'
+  pull_request:
+    paths:
+      - 'research/direct-delivery504-global/**'
+      - '.github/workflows/direct-delivery504-global.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install exact phase interpreter dependency
+        run: python -m pip install numpy==2.3.5
+      - name: Rebuild the supplier and verify changed phases and global assembly
+        run: python -B research/direct-delivery504-global/verify_fast.py --work "$RUNNER_TEMP/direct504" --rebuild-local --delta-phases
+      - name: Independently check emitted local programs and residual wrappers
+        working-directory: research/direct-delivery504-global
+        run: |
+          python -B code/emit_local.py "$RUNNER_TEMP/direct504/scalar"
+          python -B code/audit_local.py "$RUNNER_TEMP/direct504/scalar"
+          python -B code/adapters_local.py "$RUNNER_TEMP/direct504/scalar/CANONICAL-WORD.json.gz" "$RUNNER_TEMP/direct504/scalar/RESIDUAL-ADAPTERS.json" "$RUNNER_TEMP/direct504/scalar/LEMMA-A.json"
+          python -B code/audit_same_partition_frontier.py --packets inputs/hamming --out "$RUNNER_TEMP/direct504/FRONTIER.json"
+      - name: Require unchanged tracked artifacts
+        run: git diff --exit-code

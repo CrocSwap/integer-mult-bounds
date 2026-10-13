@@ -1,0 +1,183 @@
+Niemeier supplier budgets: scope and exact comparisons
+====================================================
+
+These are necessary one-supplier moment screens in the inherited complex
+binary-frame model. They are not complete words or overall exponent gains.
+The scalar factorizations, binary fits, and center supports are checked
+separately by the geometry modules. A native circuit, restored dirty
+helpers, physical hosting, a bit-side construction, and outer transfer
+checks are still missing.
+
+The retained bit supplier is already a separate bottleneck. PR592 at
+9092320f7932dbe61a78f15b6c5fd6a0cbd41307 cites PR543's bit exponent
+
+    c = 413456747036699736067 / 250000000000000000000000
+      = 0.001653826988146798944268.
+
+Its assembly takes the minimum of the bit and complex exponents, and
+reports rejection of the next bit endpoint c+10^-24. The corresponding
+nominal outer cap c/(1+c) is about 0.001651096360425896: only 2.37964%
+above PR592's declared kappa 0.001612719427075359. A larger overall gain
+therefore also needs a better bit supplier. The retained bit input and
+assembly source are pinned here as provenance, not freshly replayed.
+
+Exact scalar inputs and the useful comparison
+--------------------------------------------
+The Pauli construction transforms the traceless quadratic factors before
+combining them with the linear factor in the other E8 block. This changes
+the real center basis and reduces binary support widths on both encoder
+and decoder sides. It is not merely a reduction in real matrix rank.
+
+The main comparisons below all use the same hosting-aware idle model and
+the actual heterogeneous center widths. Each optimum is certified over
+every odd stage count L >= 3, including the infinite tail.
+
+ candidate                         N       h   center bill   nominal kappa     L
+ E8 root reference                120      9          72     .004515128332     5
+ E8^2 unary-correction factor   30960     17       14144     .005728684107     3
+ E8^2 Fano/Hadamard factor      30960     17       13648     .006163602190     3
+ E8^2 full Pauli factor         30960     17       12752     .006945535353     3
+ E8^3 unary-correction factor   89640     25       38976     .004266157982     3
+ E8^3 full Pauli factor         89640     25       35400     .004996800857     3
+ D24 norm-four factor           85032     23       55224     .001265452501     5
+ D24 with isolated axes omitted 85008     23       55200     .001266293539     5
+
+The E8^2 Pauli factor has 816 centers: 256 of width 17 and 560 of width
+15. The E8^3 Pauli factor has 2,088 centers: 408 of width 25 and 1,680
+of width 15. Their bills are respectively 12,752 and 35,400.
+
+The cost verifier binds these parameters directly to E8-SECTIONS.json,
+E8-CUBED.json, and D24.json. The older unary two-block comparisons restrict
+the certified unary identity and charge every center at the full ambient
+width. They are conservative comparisons rather than additional minimal
+support claims.
+
+The old E8 reference already has large zero-helper headroom over the
+published frontier. This is why comparing only against the frontier can
+mislead. E8^2's new Pauli value is about 53.83% above that same-model E8
+reference, which is useful structural headroom but still not a gain from
+a complete construction. All percentages based on these roots retain
+the unbuilt helper and bit-side obligations.
+
+The E8^3 all-full-width fallback, with 2,112 centers each charged at 25,
+has nominal kappa only 0.001628114676. Thus center support matters greatly.
+The smaller 2,088-center literal cubic factor without its necessary
+linear correction is not used as a certified input. The improved Pauli
+factor supplies a different exact dyadic rank-minimal factorization.
+
+Moment model
+------------
+Let n_w count centers of support width w, C=sum_w w*n_w, and d=h-1.
+For odd L, the inherited paired schedule has
+
+    m=dL+1,  W=(L-1)N,  D=W-LC.
+
+Required active data mass is 2NLd at child rank d. Center mass is L*w*n_w
+at rank w. For K=(L-1)/2, the idle slots are the first pair's tail
+2(K-1)d, and, for p=1,...,K-1, the pre-stretch 2pd, bridge d, and any
+positive tail 2(K-p-1)d. An idle slot of rank r carries mass 2Nr and is
+optimistically allowed child rank max(r,h), as in PR595's slot relaxation.
+The code checks total rank mass = mW-D exactly. No actual owner packing
+or helper inventory is inferred from those fractional idle capacities.
+
+With alpha=kappa/(1-kappa), a child of rank r and mass M has pressure
+
+    g(M,r,alpha)=M*((m/r)^alpha-1).
+
+The nominal root solves sum g=D. A second, weaker necessary screen
+relaxes every center's child rank to h while retaining its actual bill C.
+This is separately named relaxed_center_cap in the receipt; it does not
+silently replace every center's support width by h in the primary model.
+
+All bounds use exact rational log and exponential series with explicit
+tails. Outward rounding to denominator 10^40 controls intermediate sizes
+without sacrificing rigor. Floating arithmetic only nominates a root.
+The selected stage's lower root bracket exceeds every other candidate's
+upper endpoint in the finite search. To cover all later L, use only the
+active climbs and the (L-3)/2 bridge slots:
+
+    pressure/(NL) >= d*alpha*[2 log L
+                     +(1-3/L) log((dL+1)/h)].
+
+The right side increases for L>=3. Once it exceeds 1-C/N, it exceeds
+D/(NL) at every subsequent stage. This proves the infinite-tail exclusion.
+When C>=N, D=L(N-C)-N is negative for every stage immediately.
+
+Helper and extra-operation budget
+--------------------------------
+All 70 distinct width-15 Pauli support frames in E8^2 have restricted
+standard-dot rank 13 and radical dimension 2. This does not force padding
+to width 17 in the complex framework. The pinned inherited note
+notes/general-clifford-frames.tex constructs exact Gaussian-dyadic
+representatives for every binary subspace U, including degenerate U.
+It proves Fourier rank(T_U)=dim U and nested transition rank
+rank(T_V T_U^-1)=dim V-dim U when U is contained in V. Thus a private
+center descending from U to zero costs dim U=15. The invertible binary
+map used in the construction need not preserve the standard dot product;
+its Clifford lift includes the required quadratic phases. No irrational
+extension or additional recursive padding is necessary.
+
+Consequently 12,752 is a justified sum of individual complex center-child
+ranks, not merely an unsupported label-dimension estimate. It is not a
+realizable total invoice yet: a complete native scalar word, source and
+target incidence, adapters, dirty-helper routing and restoration still
+need to be supplied and charged. The frame note credits the construction
+to icekylinx with OpenAI GPT-6 Astra assistance and its exposition and
+integration to Codex.
+
+For the strongest E8^2 case at L=3, m=49, W=61920 and D=23664. At the
+frontier, +20%, and +100% one-supplier targets, unused pressure is about
+18,215.1281, 17,122.0550, and 12,738.7135 respectively. This schedule
+has no idle slots; there is no free hosting capacity to assign to helpers.
+
+If an invoice adds one paid rank-r child in every local call, adds no
+stock, and removes no previous child, it consumes
+
+    L*r*(m/r)^alpha
+
+of that unused pressure, including the loss of deficit. At the +20%
+target, E8^2 allows at most 5,664 additional rank-one children per call,
+or 177 pairs of rank-16 children per call. The latter is far fewer than
+816 centers. Thus a factory needing a full enter/exit pair for every
+center fails this particular budget. These are exact invoice scenarios,
+not universal lower bounds on all possible helper factories.
+
+More generally, if D changes to D-e and the net pressure changes by
+DeltaP after crediting removed children, the necessary condition is
+e+DeltaP < the recorded slack. A banked helper, changed controller, or
+shared helper must be priced with its actual stock and residual changes.
+The receipt also gives L=5,7,9 budgets, where idle slots are available.
+
+There are exactly 70 distinct width-15 frames, each shared by eight
+centers, and all 256 width-17 centers share the full frame. This makes
+batching by 71 frame classes a concrete next experiment. For scale only,
+71 paid rank-16 enter/exit pairs would fit the 177-pair budget above;
+there is no construction showing that one pair per frame class suffices.
+Equal center frames allow common-frame scalar additions and can share
+encoder work. They do not supply a complete local word automatically.
+The scalar shadow must still implement the identity shear and restore
+all dirt; this includes the K-I compensation network and its legal target
+chains. A target ending at p_t^perp cannot visit the full h-dimensional
+center frame. Private center copies descend and scatter, while helpers
+must obey their own frame and restoration rules. Sequential reuse is
+useful only if those transitions and the intermediate dirt response are
+actually restored or charged. Native batching and low-width compensation
+are therefore the next concrete circuit tasks.
+
+Catalog baseline and root-only units
+-----------------------------------
+As a uniform comparison only, assign h=25 and 2,600 full-width centers
+to each norm-four shell. No such rank or factorization is asserted for
+the other lattices. Every one of these 23 hypothetical models fails the
+frontier, because its C/N exceeds 0.591018161737. This is the globally
+optimized necessary center-bill threshold at h=25; the best stage is 5.
+For a +20% target that threshold is 0.561851627124, attained at stage 3.
+At h=23 the corresponding frontier threshold is 0.608211423703.
+
+Root shells split orthogonally by irreducible component, so repeated
+isomorphic components merely repeat an existing local unit. For the
+direct D_n root-coordinate construction, N=n(n-1), each of n coordinate
+encoders has width n-1, and C=N. Its deficit is always -N. This excludes
+that construction, not all alternate encoders or controllers. The useful
+new behavior here comes from norm-four mixed-component ports and their
+quadratic operator basis, not from the Niemeier shell count alone.

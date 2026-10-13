@@ -1,0 +1,20 @@
+name: Verify R420 static44 exact composition
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B research/r420-static44-composition/verify.py "${RUNNER_TEMP}/r420-static44.json"

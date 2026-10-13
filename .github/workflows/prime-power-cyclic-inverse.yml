@@ -1,0 +1,30 @@
+name: Prime-power cyclic inverse bounds
+on:
+  pull_request:
+    paths:
+      - 'research/prime-power-cyclic-inverse/**'
+      - '.github/workflows/prime-power-cyclic-inverse.yml'
+  push:
+    paths:
+      - 'research/prime-power-cyclic-inverse/**'
+      - '.github/workflows/prime-power-cyclic-inverse.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B -I -O research/prime-power-cyclic-inverse/verify.py --output /tmp/primary.json
+      - run: cmp research/prime-power-cyclic-inverse/EXPECTED.json /tmp/primary.json
+      - run: python -m pip install sympy==1.14.0
+      - run: python -B -I -O research/prime-power-cyclic-inverse/independent_verify.py --output /tmp/independent.json

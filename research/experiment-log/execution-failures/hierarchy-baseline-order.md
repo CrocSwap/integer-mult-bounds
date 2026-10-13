@@ -1,0 +1,3 @@
+# Strict hierarchy baseline comparison failed
+
+The original reconstruction stopped at an object-equality assertion. [Raw log](../negative-searches/hierarchy-rewrites/r715-hierarchy-baseline-rebuild.log) and [separate diagnosis](../negative-searches/hierarchy-rewrites/r715-hierarchy-baseline-rebuild/ORDER-EQUIVALENCE.json) are retained. Exactly two source-list orderings differ; their same-frame additions commute. All other fields match. Do not report this run as byte-identical or as a failed mathematical operator. A changed hierarchy still needs fresh independent checks. [Batch and retry guidance](../negative-searches/hierarchy-rewrites/README.md).

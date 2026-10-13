@@ -55,15 +55,8 @@ def dot(a,b):
     return 9*sum(x*y for x,y in zip(a,b))-sum(a)*sum(b)
 
 
-@lru_cache(maxsize=65536)
-def nondegenerate(U):
-    return len(basis(tuple(tuple(dot(a,b) for b in U) for a in U))) == len(U)
-
-
-@lru_cache(maxsize=65536)
-def orthogonal(U,h):
-    require(h != 9, 'Degenerate ambient form')
-    rows = basis(tuple(tuple(9*x-sum(row) for x in row) for row in U))
+def _kernel_basis(rows, h):
+    """Euclidean kernel of an independent reduced row basis (integer rows)."""
     pivots = [next(i for i,x in enumerate(row) if x) for row in rows]
     answer = []
     for free in range(h):
@@ -77,7 +70,34 @@ def orthogonal(U,h):
         for row,p in zip(rows,pivots):
             vector[p] = -row[free]*(scale//row[p])
         answer.append(primitive(vector))
-    result = basis(tuple(answer))
+    return tuple(answer)
+
+
+@lru_cache(maxsize=65536)
+def nondegenerate(U):
+    if not U:
+        return True
+    d, h = len(U), len(U[0])
+    if 2*d <= h or h == 9:
+        return len(basis(tuple(tuple(dot(a,b) for b in U) for a in U))) == d
+    rows = basis(U)
+    if len(rows) != d:
+        return False
+    A = _kernel_basis(rows,h)
+    # For G=9I-J and h!=9, G^-1=(I+J/(9-h))/9. If A spans
+    # the Euclidean annihilator of U, G|U is nondegenerate iff
+    # A G^-1 A^T is. Scale by 9(9-h) to keep all entries integral.
+    sums = tuple(sum(a) for a in A)
+    gram = tuple(tuple((9-h)*sum(x*y for x,y in zip(a,b))+sa*sb
+                       for b,sb in zip(A,sums)) for a,sa in zip(A,sums))
+    return len(basis(gram)) == len(A)
+
+
+@lru_cache(maxsize=65536)
+def orthogonal(U,h):
+    require(h != 9, 'Degenerate ambient form')
+    rows = basis(tuple(tuple(9*x-sum(row) for x in row) for row in U))
+    result = basis(_kernel_basis(rows,h))
     require(len(result) == h-len(U), 'Complement dimension mismatch')
     require(all(dot(a,b) == 0 for a in U for b in result), 'Not an orthogonal complement')
     return result
