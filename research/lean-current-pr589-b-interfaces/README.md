@@ -36,3 +36,22 @@ The full A/C word and exact whole-list reversal, actual two-level middle-map hyp
 ## Attribution
 
 The selected punctured/tuned package is from eumemic with substantial Anthropic Claude assistance. Its complete Apache-2.0 notice is included as `SUPPLIER_NOTICE.md`, with carrier ancestry in `PR493_NOTICE.md`. The Lean source-specific work uses OpenAI assistance and reuses the unchanged PR590 generic XOR API. Official Lean core retains its distribution licenses.
+
+## Offline retained-prefix reproduction
+
+Use the exact PR590 package and its successful eight-root public build. This checker imports only the generic BitXorTargetTranslation source/object/probe record, while preserving all eight predecessor roots. It compiles only the three included sources in manifest order.
+
+With the installed official Lean 4.21.0 Linux distribution, run from this package:
+
+```sh
+python3 check.py --lean /path/to/lean-4.21.0-linux/bin/lean \
+  --prefix-package /path/to/lean-selected-bit-scalar-boundaries \
+  --prefix-build /path/to/successful-pr590-build \
+  --build-dir /path/to/fresh-pr589-b-build
+```
+
+The 317 official core source/object pairs, exact import closure, PR590 manifest, source bytes, retained objects and complete axiom-probe records are checked before compilation. No installation, download, Mathlib or supplier execution is required. The output directory must be absent. `--guard-only` verifies inputs and output absence without compiling. `--require-observed-prefix` additionally pins the exact recorded local result, receipts and raw logs. Portable receipt timestamps may differ while source/object/probe identities remain exact. Only the three previously reviewed generic XOR warning source paths, at lines96,110 and127, may normalize in the retained log.
+
+The optional `--slot-service /path/to/lean_check.py` uses an independently reviewed existing FIFO compiler service, an executable trust boundary. The recorded reproduction uses one serial client of the pinned shared service. Each root has 60-second/4-GiB hard limits and 45-second/3.5-GiB review limits. Compiler, review-threshold or preservation failure stops the sequence, retaining earlier successful outputs. Compiler time, FIFO wait, post-slot guards and post-compiler guards are separate receipt fields.
+
+The three fresh sources print19 complete records; the one retained generic source contributes4, for23 reachable records. Raw results, receipts and logs remain in the chosen build directory. REPLAY_SUMMARY.json is the sole mutable reproduction summary. The helper-write exceptions465,466,468, the selected-source binding and explicit author-checked current kappa remain as stated above; this reproduction adds no A/C/D, scatter, physical or full-construction theorem.
