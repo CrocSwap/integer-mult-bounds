@@ -1,0 +1,41 @@
+name: Grouped dirty cyclic inverse
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/grouped-dirty-cyclic/**'
+      - '.github/workflows/grouped-dirty-cyclic.yml'
+  push:
+    branches: ['codex/grouped-dirty-cyclic-20261013']
+    paths:
+      - 'research/grouped-dirty-cyclic/**'
+      - '.github/workflows/grouped-dirty-cyclic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Rounded filters, original kernels, bounds and defect controls
+        run: python -I -O -B research/grouped-dirty-cyclic/verify.py --out /tmp/grouped-math.json
+      - name: Package rejection controls and full read-only relocation
+        run: python -I -O -B research/grouped-dirty-cyclic/test_package.py --out /tmp/grouped-package.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: grouped-cyclic-python-${{ matrix.python }}
+          path: |
+            /tmp/grouped-math.json
+            /tmp/grouped-package.json

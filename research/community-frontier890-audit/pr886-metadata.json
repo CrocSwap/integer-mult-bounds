@@ -1,0 +1,38 @@
+{
+  "author": {
+    "id": "U_kgDOBnC2ow",
+    "is_bot": false,
+    "login": "SethBurkart123",
+    "name": "Seth Burkart"
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "**Scoped negative result; no new \u03ba.** PR589's bit word is **exactly frame-optimal**. Keep its gate sequence, scalar program, start/final frames and COPY frames (decoder constant 63) fixed. Then no reassignment of gate frames, however many gates change at once, raises c = 0.001733427039589844234749. PR555's base word is frame-optimal too. PR589's tuner was greedy and made no optimality claim; this settles the frame-only part of that question exactly.\n\n**Method** (standard library only, about 16 s):\n1. **Bounds.** Forward least-frame and backward greatest-frame passes bound every legal frame. Only **159 of 5,472 gates** have any slack.\n2. **Components.** Free gates couple only when consecutive on a register, giving **133 independent components** (largest has 5 gates). Each is enumerated exhaustively: 398 assignments, of which 55 fail nesting.\n3. **Exact objective.** At z = c the moment is *linear* in the paid profile, so the sign of \u03a3 n_d\u00b7d\u00b7(64/d)^c decides exactly whether c rises. Every strictly different alternative loses by at least 9.1e\u22124. Ten alternatives tie on the same profile.\n\n**Positive control:** drop every free gate to its least frame. The optimiser finds 37 improving components and recovers **exactly** PR589's profile `{1:1323,2:1342,3:79,4:44,5:102,6:11,7:19}`.\n\n```sh\nbash research/bit589-frame-optimum/verify.sh   # \u2192 PASS_BIT589_FRAME_OPTIMUM\n```\n\n**Scope**\n- Frame-only search class. Transports, Steinberg rewrites and different retained-total frames are outside it.\n- C-gate frames are relaxed beyond H4, which only enlarges the search.\n- The bit side does not bind \u03ba. The practical conclusion: further bit headroom on this word must come from gate-order or structural moves.\n- \"No improvement\" is proven only within this finite search class.\n\n**Pins:** base `f567884a`. Inputs are the committed PR589 and PR555 words.\n\n**Credit:** the PR589 word and tuner are by DreamingOfClouds, on eumemic's PR555 lineage. #815 and #864 give complex-side frame-optimality certificates by different methods. Assignment seed 16 (bit track).\n\nPrepared with substantial AI assistance.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "changedFiles": 3,
+  "files": [
+    {
+      "path": "research/bit589-frame-optimum/README.md",
+      "additions": 61,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-frame-optimum/frameopt.py",
+      "additions": 183,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-frame-optimum/verify.sh",
+      "additions": 17,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "881f72ec596a5c6d7aba801153792292ecc39737",
+  "isDraft": false,
+  "number": 886,
+  "state": "OPEN",
+  "statusCheckRollup": [],
+  "title": "Scoped negative result: PR589's bit word is exactly frame-optimal (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/886"
+}

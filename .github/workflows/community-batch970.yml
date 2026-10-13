@@ -1,0 +1,51 @@
+name: Community source integrity and independent audits
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/audit-frontier890-endpoint-seed73/**'
+      - 'research/t21-binomial-audit/**'
+      - 'research/pr626-native-payload-binding/**'
+      - 'research/r420-rref-performance/**'
+      - 'research/sparse-fusion-orbits/**'
+      - 'research/r420-lean-source-binding/**'
+      - 'research/pr236-independent-command-audit/**'
+      - 'research/bit-compression-provenance/**'
+      - 'scripts/verify_selected_result.py'
+      - 'tests/test_selected_inventory_links.py'
+      - '.github/workflows/community-batch970.yml'
+permissions:
+  contents: read
+jobs:
+  exact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Source inventory, endpoints and historical checks
+        run: |
+          python -I -B tests/test_selected_inventory_links.py -v
+          python -I -O -B tests/test_selected_inventory_links.py -v
+          python -I -B research/audit-frontier890-endpoint-seed73/audit_endpoint_reduction.py
+          python -I -B research/t21-binomial-audit/verify.py
+          python -I -O -B research/t21-binomial-audit/test_package.py
+          python -I -B research/pr626-native-payload-binding/verify.py
+          python -I -B research/r420-rref-performance/verify.py
+          python -I -B research/sparse-fusion-orbits/verify.py
+          python -I -B research/r420-lean-source-binding/verify.py
+          python -I -O -B research/r420-lean-source-binding/test_binding.py
+          python -B research/pr236-independent-command-audit/verify.py --fetch --check research/pr236-independent-command-audit/REPORT.json
+          python -O -B -m unittest discover -s tests -p test_pr236_independent_command_audit.py -v
+          python -I -S -B research/bit-compression-provenance/verify.py
+          python -I -S -B research/bit-compression-provenance/test_verify.py
+      - name: Selection and ledger
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+          git diff --exit-code

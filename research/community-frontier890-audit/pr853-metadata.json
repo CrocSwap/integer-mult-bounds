@@ -1,0 +1,68 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "**Status: tooling improvement.** No \u03ba, construction, predicate, pinned file or selected record changes. `make frontier741-verify` is unchanged and remains the reference replay.\n\nBase: `7ee02b7c96d85f22b38d28bd7ed49bb8c1aeb261` (main). Track: verification engineering (sprint seed 85).\n\n## What changed\n\nThe complex half of `make frontier741-verify` (874 s of 1158 s in the c290b7b receipt) runs the 22 stages of `research/complex-sw4-frame8/verify.py` one after another. Many are independent. For example, the fresh PR558 ancestor replay shares nothing with the gauge44 \u2192 p6n \u2192 SW4 \u2192 frames chain, and three control stages read only the final word.\n\n`scripts/verify_complex741_parallel.py` (opt-in `make complex741-parallel-verify`) executes the pinned `verify.py` itself, statement by statement, after checking its SHA-256 (`7706065e\u2026`, the value in the package `MANIFEST.json`):\n\n- The prelude runs unchanged: manifest check, vendored source pins, environment.\n- Each `run(...)` call goes to `verify.py`'s own `run` function on a worker thread once its prerequisites in `STAGE_DEPS` have passed. Command line, environment, `run_portable.py`, logs and failure handling are the original code.\n- Statements that read stage output (ancestral linkage loop, all count assertions, `RESULT.json`, `RECEIPT.json`) run unchanged, in their original order, after all stages pass.\n- It refuses a changed `verify.py` or a stage list that differs from the table.\n\n## Evidence\n\n**Schedule against a recorded trace.** `research/complex741-parallel-replay/record_access.py --record DIR` runs the unchanged sequential `verify.py` under a Python audit hook loaded through a `.pth` file, so it also covers the `-I` children. The hook logs every open, listing, rename, delete and mkdir per stage. `ACCESS.json` covers 83 processes. No stage writes outside the work directory except into fresh `tempfile` directories. No pair of stages left unordered by `STAGE_DEPS` has a write/read, write/write, write/list or mkdir/list conflict, and deferring the ancestral linkage loop conflicts with no later stage. Two independent recordings gave identical access sets. The table keeps argument-derived edges, which are stricter than the trace requires, because audit hooks do not see `stat`.\n\n**Equivalence.** Three full replays on one machine, each in the same absolute work directory:\n\n| Replay | Result | Total |\n|---|---|---:|\n| sequential `verify.py` | PASS \u03ba = 1661202643272239/10^18 | 594.7 s |\n| driver `--jobs 8` (default) | PASS, same \u03ba | 386.4 s (1.54\u00d7) |\n| driver `--jobs 3` | PASS, same \u03ba | 347.7 s (1.71\u00d7) |\n\n`compare_replays.py` checked all 304 files of each tree pair. Sequential vs `--jobs 8`: 233 byte-identical, 50 JSON files differ only under `seconds`/`elapsed_seconds` or in SHA-256 digests of the same file where that file is itself accepted (checked to a fixed point), and 21 logs differ only in decimal elapsed times or such digests. Nothing else differs, and the other two pairs give the same result. Every generated word is byte-identical. Masking floats in logs is a relaxation; the JSON outputs are compared without masking. Negative control: changing the last digit of \u03ba in `global-replay/ASSEMBLY.json` and one integer in a log produces exactly those two rejections.\n\nThe parallel time equals the dependency chain gauge44 \u2192 \u2026 \u2192 `all-native-phase-edges` \u2192 global admission, so more workers cannot shorten it. Applying that chain to the Linux stage times in c290b7b gives 457 of 874 s. That is an estimate, not a measurement.\n\n## Reproduce\n\n```sh\npython3 -m unittest discover -s tests -p test_complex741_parallel.py   # 15 tests\nmake complex741-parallel-verify                                         # PASS 0.001661202643272239\npython3 research/complex741-parallel-replay/compare_replays.py SEQ_DIR PAR_DIR   # exit 0, \"0 other differences\"\n```\n\n(`SEQ_DIR` and `PAR_DIR` must be replays made at the same path, one after the other.)\n\n## Scope and limits\n\n- Measured on Windows 11 (16 logical CPUs, CPython 3.12.14), one run each, host not isolated. **Linux was not run for this change.** The sequential package replay also passed on this Windows machine.\n- Covers the complex supplier only. The bit replay (`tune/verify.sh`, needs C++17 and Boost) could not be run here and is unchanged. Running it beside this driver would hide most of its 284 s; I leave that for someone who can test it.\n- The trace and comparison are evidence for this pinned `verify.py`; the SHA-256 pin forces re-derivation after any package change.\n- Finite replay does not prove the multiplication theorem; inherited assumptions are unchanged.\n\n## Credit and overlap\n\nReplays chafreaky's #741 package and the contributors credited in its `PROVENANCE.md`. eumemic's #154 proposed concurrent execution of the `make verify` groups; this applies the idea inside the selected complex replay, with a recorded trace. It does not overlap #824 (stage-pair audit), #818 (R420 RREF) or #838 (binding audit).\n\nPrepared by navinor (Aaron Wang) with substantial AI assistance (Claude) in design, code, measurement and prose.\n",
+  "changedFiles": 8,
+  "files": [
+    {
+      "path": "Makefile",
+      "additions": 7,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "research/complex741-parallel-replay/ACCESS.json",
+      "additions": 738,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex741-parallel-replay/EVIDENCE.json",
+      "additions": 143,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex741-parallel-replay/README.md",
+      "additions": 139,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex741-parallel-replay/compare_replays.py",
+      "additions": 142,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex741-parallel-replay/record_access.py",
+      "additions": 178,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/verify_complex741_parallel.py",
+      "additions": 195,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "tests/test_complex741_parallel.py",
+      "additions": 157,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "9910c23b154e05cca2834f45797455200cadf6e4",
+  "isDraft": false,
+  "number": 853,
+  "state": "OPEN",
+  "statusCheckRollup": [],
+  "title": "Tooling: 1.54-1.71x faster #741 complex replay by running independent pinned stages concurrently",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/853"
+}

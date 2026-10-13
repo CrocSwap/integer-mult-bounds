@@ -1,0 +1,41 @@
+name: Cubic dirty cyclic precision
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/dirty-cubic-precision/**'
+      - '.github/workflows/dirty-cubic-precision.yml'
+  push:
+    branches: ['codex/dirty-cubic-precision-20261013']
+    paths:
+      - 'research/dirty-cubic-precision/**'
+      - '.github/workflows/dirty-cubic-precision.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Exact free-algebra, budget and rounded-kernel replay
+        run: python -I -O -B research/dirty-cubic-precision/verify.py --out /tmp/dirty-cubic-math.json
+      - name: Package controls and read-only binding relocation
+        run: python -I -O -B research/dirty-cubic-precision/test_package.py --out /tmp/dirty-cubic-bindings.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dirty-cubic-python-${{ matrix.python }}
+          path: |
+            /tmp/dirty-cubic-math.json
+            /tmp/dirty-cubic-bindings.json
