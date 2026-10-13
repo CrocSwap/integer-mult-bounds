@@ -60,3 +60,27 @@ Any public replay must retain the existing per-root hard limits of 60 seconds an
 The Lean proofs, finite checkpoint transcription, metadata and prose were substantially prepared with OpenAI assistance and independently reviewed. Attribution to the PR596 source, PR543 bit supplier, PR361 moment/outer engines, upstream balanced assembly and Lean/Mathlib/Batteries is retained in SOURCE_BINDING.json, DEPENDENCIES.json and NOTICE.md.
 
 Candidate-specific `make verify`, `make gen4-bank-verify`, other Python-version checks and hosted-CI outcomes require separate exact receipts. This package's local Lean evidence does not claim those outcomes. The intended candidate base is the pinned5996 commit, subject to the publisher's final current-main check.
+
+## Offline retained-prefix command
+
+Use successful public builds of the exact PR585 and PR605 packages, together with the already installed Lean 4.21.0 / Mathlib308445 distribution. The command imports two PR585 and three PR605 objects; it preserves every source, object, receipt and log in both predecessor build directories, including roots outside the imported subset. Only the four included current596 sources are compiled.
+
+```sh
+python3 check.py --lean /path/to/lean-4.21.0-linux/bin/lean \
+  --mathlib-root /path/to/mathlib4 \
+  --base-runtime-manifest /path/to/pr526/EXTERNAL_OBJECTS.json \
+  --reused-runtime-extension /path/to/pr573/EXTERNAL_OBJECTS_EXTENSION.json \
+  --prefix-package /path/to/lean-selected-rational-certificates \
+  --prefix-build /path/to/successful-pr585-build \
+  --prefix605-package /path/to/lean-current588-native-moment \
+  --prefix605-build /path/to/successful-pr605-build \
+  --build-dir /path/to/fresh-current596-build
+```
+
+EXTERNAL_OBJECTS_REFERENCE.json resolves the immutable PR605 runtime reference and its two companion files, then the PR526 base and PR573 extension. The complete 3,260-pair inventory, raw import graph, exact reachable subset and first object matches are rechecked. No runtime rows are copied into this package, and no dependency installation, rebuild, download or scientific supplier execution is performed.
+
+The output directory must be absent. `--guard-only` checks inputs and output absence without compiling. `--require-observed-prefix` additionally requires the exact recorded predecessor result and receipt hashes. Portable predecessor receipts may differ in timestamps while retaining exact source/object/log hashes and complete probes. The retained public logs here are checked byte-for-byte; no warning normalization is performed by the prefix validator.
+
+The optional `--slot-service /path/to/lean_check.py` uses an independently reviewed local FIFO compiler service, an executable trust boundary. Our measured reproduction uses one serial client of the pinned shared service. Each fresh root retains 60-second/4-GiB hard and 40-second/3.5-GiB review limits. A failed compiler, review threshold or preservation guard stops the sequence, preserving earlier successful outputs. Receipts separate compiler time, FIFO wait, post-slot guard and post-compiler guard durations.
+
+Four fresh roots print 30 new probes; the five retained roots supply 20, giving 50 reachable records. Fresh raw logs and objects are retained with their hashes for comparison against the accepted research evidence. Public reproduction status is recorded only in REPLAY_SUMMARY.json. The supplied saving, realization and physical/all-size assumptions described above remain outside this arithmetic and Real-enclosure package.
