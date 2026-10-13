@@ -57,5 +57,5 @@ def certificate():
 if __name__ == '__main__':
     out = certificate()
     (ROOT/'certificates/small-block-witness.json').write_text(
-        json.dumps(out, indent=2, sort_keys=True)+'\n')
+        json.dumps(out, indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS: exact h=8, r=14, k=2 labels; network deficit remains negative')

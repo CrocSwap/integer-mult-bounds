@@ -65,5 +65,5 @@ def patch_text():
         fromfile=f'a/{name}',tofile=f'b/{name}')) for name,old,new in patched_files())
 
 if __name__=='__main__':
-    (ROOT/'patches/prime-field28.patch').write_text(patch_text())
+    (ROOT/'patches/prime-field28.patch').write_text(patch_text(), encoding='utf-8', newline='\n')
     print('Wrote pinned-source patch; conditional 373/10^11 > 2^-28.')

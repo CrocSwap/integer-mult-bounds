@@ -39,7 +39,7 @@ def main():
     if len(rows) != 7:
         raise ValueError('Expected all seven reviewed wrappers')
     result = dict(status='PASS_TRUE_SIMULTANEOUS_SIDE_SWAP_CONTROL', frames=rows)
-    a.out.write_text(json.dumps(result, indent=2) + '\n')
+    a.out.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(result['status'])
 
 

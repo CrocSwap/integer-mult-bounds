@@ -103,5 +103,5 @@ if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--quick',action='store_true');a=p.parse_args()
     result=witness() if a.quick else certificate()
     if not a.quick:
-        (ROOT/'certificates/prime-field28.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        (ROOT/'certificates/prime-field28.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional 373/10^11 > 2^-28; margin',witness()['minimum_margin'],'gap',witness()['absorption_gap'])

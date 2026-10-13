@@ -40,7 +40,7 @@ def main():
         steps.append({'name': name, 'exit_code': p.returncode,
                       'seconds': time.monotonic() - start,
                       'log_sha256': hashlib.sha256(log_path.read_bytes()).hexdigest()})
-        (work / 'STEPS.json').write_text(json.dumps(steps, indent=2) + '\n')
+        (work / 'STEPS.json').write_text(json.dumps(steps, indent=2) + '\n', encoding='utf-8', newline='\n')
         if p.returncode:
             raise SystemExit(f'{name} failed; inspect {log_path}')
         print('PASS', name, flush=True)

@@ -114,7 +114,7 @@ def certificate():
 
 if __name__ == '__main__':
     result = serializable(certificate())
-    (ROOT/'certificates/complex-network.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+    (ROOT/'certificates/complex-network.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional', KAPPA, '> 2^-31; minimum margin', result['witness']['minimum_margin'])
     print('Side roles per invocation', result['complex_counts']['side_roles_per_invocation'],
           'vs original', result['complex_counts']['original_side_wires_per_invocation'])

@@ -66,5 +66,5 @@ def certificate():
 if __name__=='__main__':
     result=certificate()
     (ROOT/'certificates/positive-side-core.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS positive-definite compressed side compiler and bounded controls; no new kappa.')

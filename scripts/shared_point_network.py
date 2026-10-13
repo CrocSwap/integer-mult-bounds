@@ -60,7 +60,7 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/shared-point-network.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/shared-point-network.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional shared-point witness 13*2^-66; minimum',result['witness']['minimum_margin'])
     print(result['bit_counts'])
     print('Target 59:',result['target_59'])

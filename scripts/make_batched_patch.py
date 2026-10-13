@@ -324,7 +324,7 @@ def main():
     args = parser.parse_args()
     files = list(patched_files())
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(patch_text(files))
+    args.output.write_text(patch_text(files), encoding='utf-8', newline='\n')
     if args.materialize:
         if args.materialize.resolve() in (ROOT.resolve(), (ROOT/'upstream').resolve()):
             raise ValueError('Materialization must use a separate directory')
@@ -332,7 +332,7 @@ def main():
         for name, old, new in files:
             path = args.materialize/name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(new)
+            path.write_text(new, encoding='utf-8', newline='\n')
     print('Wrote '+str(args.output)+'; retained uniform proofs plus active bulk interfaces.')
 
 

@@ -184,5 +184,5 @@ if __name__ == "__main__":
         patch = "".join("".join(difflib.unified_diff(
             old.splitlines(keepends=True), new.splitlines(keepends=True),
             fromfile=f"a/{name}", tofile=f"b/{name}")) for name, old, new in files)
-        (ROOT/"patches"/filename).write_text(patch)
+        (ROOT/"patches"/filename).write_text(patch, encoding='utf-8', newline='\n')
         print(f"Wrote patches/{filename}; conditional direct-axis audit patch")

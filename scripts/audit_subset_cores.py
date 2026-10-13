@@ -96,7 +96,7 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/subset-core-family.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/subset-core-family.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     best=result['best_rectangle_baseline']
     print('PASS subset-core ledger and hypothetical interface target; no stronger kappa.')
     print('Best screened seven-subset rectangle count:',best['h'],float(best['rectangle_baseline']['saving_lower']))

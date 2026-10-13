@@ -69,7 +69,7 @@ def main():
         p.add_argument('--' + name, type=Path, required=True)
     a = p.parse_args()
     result = check(a.bit, a.predecessor, a.direct)
-    a.out.write_text(json.dumps(result, indent=2) + '\n')
+    a.out.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(result['status'], result['kappa'])
 
 

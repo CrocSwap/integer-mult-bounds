@@ -100,6 +100,6 @@ if __name__ == "__main__":
     result["parameter_ceiling"] = parameter_ceiling()
     path = ROOT / "certificates/network-search.json"
     path.parent.mkdir(exist_ok=True)
-    path.write_text(json.dumps(result, indent=2, sort_keys=True)+"\n")
+    path.write_text(json.dumps(result, indent=2, sort_keys=True)+"\n", encoding='utf-8', newline='\n')
     print(f"Certified h={result['winner_h']} best within the stated counting family,")
     print(f"including all h>=200 by a tail bound; dyadic saving {result['largest_certified_dyadic_saving']}")

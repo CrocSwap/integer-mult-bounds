@@ -86,6 +86,6 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/paired-network.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/paired-network.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional 2^-59; minimum',result['witness']['minimum_margin'])
     print('Ratio of minimum margin to kappa:',float(Q(result['witness']['minimum_margin'])/KAPPA))

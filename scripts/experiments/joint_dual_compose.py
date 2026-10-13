@@ -177,7 +177,7 @@ def compose():
             producer='Unchanged PR55 dual-skip graph; PR58 joint compilation with descending current frame rank for retired-slot selection; complete serialized physical words',
             geometry='Unchanged fixed-I+J original-envelope projector and CRT formulas',
             proof_scope='Ordered affine residual compiler, fixed-tape recursion, finite scalar overhead, balanced transfer, analytic/routing/recovery interfaces remain inherited.'))
-    (OUT / 'joint-dual-kappa.json').write_text(json.dumps(arithmetic.js(result), indent=2, sort_keys=True)+'\n')
+    (OUT / 'joint-dual-kappa.json').write_text(json.dumps(arithmetic.js(result), indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional kappa='+str(KAPPA)+'; bit saving='+str(AB), flush=True)
     return result
 

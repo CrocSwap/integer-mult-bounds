@@ -40,5 +40,5 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/inplace-side.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/inplace-side.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS: exact path excess rejects the specified in-place family for kappa >= 2^-25.')

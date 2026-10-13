@@ -103,5 +103,5 @@ def patched_files():
 if __name__=='__main__':
     patch=''.join(''.join(difflib.unified_diff(old.splitlines(keepends=True),new.splitlines(keepends=True),
         fromfile='a/'+name,tofile='b/'+name)) for name,old,new in patched_files())
-    (ROOT/'patches/ternary-30.patch').write_text(patch)
+    (ROOT/'patches/ternary-30.patch').write_text(patch, encoding='utf-8', newline='\n')
     print('Wrote independent conditional ternary 2^-30 patch.')

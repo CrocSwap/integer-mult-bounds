@@ -218,7 +218,7 @@ def main():
     parser.add_argument('--output',type=Path,default=ROOT/'certificates/endpoint-gauge-network.json')
     args=parser.parse_args()
     result=certificate()
-    args.output.write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS endpoint-gauge kappa=119723/20000000000 = 5.98615e-6')
     print('29 strict constraints; 7 assembly margins; both moments and precision guard')
 

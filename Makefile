@@ -1,6 +1,13 @@
 .PHONY: verify note audit-note tuned-note reuse-note incidence-note dag-note shared-point-note paired-note compact-note complex-note ternary-note fetch
 .DEFAULT_GOAL := verify
 
+# Decode and encode text as UTF-8 regardless of the host locale.  Without
+# this, checks that read UTF-8 proof sources through the locale codec fail on
+# non-UTF-8 hosts (Windows/cp1252, POSIX under LC_ALL=C).  Frozen packages
+# whose checker sources are hash-pinned by a publication manifest rely on this
+# switch instead of source edits.
+export PYTHONUTF8=1
+
 .PHONY: community-audit-check
 community-audit-check:
 	python3 scripts/audit_community_candidate.py --check docs/research/community-audit-arithmetic.json

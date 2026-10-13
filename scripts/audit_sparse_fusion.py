@@ -263,6 +263,6 @@ def certificate():
 if __name__=='__main__':
     result=certificate()
     (ROOT/'certificates/sparse-fusion-audit.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS bounded sparse/fusion audit; phase group size',result['finite']['phase_group_size'])
     print('Six-to-one scalar fusion verified; intervening mixing gates remain an obstruction.')

@@ -75,5 +75,5 @@ def certificate():
 
 if __name__=='__main__':
  out=certificate()
- (Path(__file__).resolve().parents[1]/'certificates/incidence-partition-screen.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+ (Path(__file__).resolve().parents[1]/'certificates/incidence-partition-screen.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
  print('Partition screen:',out['old_roles_per_common_point'],'->',out['selected_roles_per_common_point'])

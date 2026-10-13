@@ -152,5 +152,5 @@ def certificate():
 
 if __name__=='__main__':
     (ROOT/'certificates/compact-control-layer.json').write_text(
-        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional compact-control accounting:',KAPPA,'> 2^-34; proof review required.')

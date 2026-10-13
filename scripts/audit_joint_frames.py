@@ -225,5 +225,5 @@ def certificate():
 
 if __name__=='__main__':
     (ROOT/'certificates/joint-frame-audit.json').write_text(
-        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS fixed-boundary rational-frame audit; no new kappa.')

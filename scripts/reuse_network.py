@@ -157,5 +157,5 @@ def scalar_model(h=6, seed=1):
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/stage-reuse.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/stage-reuse.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional stage-sharing witness 2^-75; minimum',result['witness']['minimum_margin'])

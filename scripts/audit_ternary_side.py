@@ -57,5 +57,5 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/ternary-side.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/ternary-side.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS ternary side construction and conditional 2^-30 assembly.')

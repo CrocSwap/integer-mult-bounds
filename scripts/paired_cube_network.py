@@ -186,7 +186,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,default=ROOT/'certificates/paired-cube-network.json')
     args = p.parse_args()
-    args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS kappa=4609169/10000000000 = 4.609169e-4; both moments, shared cores, finite router and 47 strict constraints')
 
 

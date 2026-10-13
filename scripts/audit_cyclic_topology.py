@@ -119,5 +119,5 @@ def certificate():
 
 if __name__ == '__main__':
     result = certificate()
-    (ROOT/'certificates/cyclic-topology-audit.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/cyclic-topology-audit.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS exact contract controls and cyclic routing; two/three-role closure; four-role depth-seven screen; no new kappa.')

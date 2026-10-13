@@ -93,6 +93,6 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/block-label-audit.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/block-label-audit.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS scoped block-label audit: intersection-only, PSD, coordinate-local and characteristic-two routes excluded')
     print('Unrestricted indefinite rational rank-two target remains OPEN')

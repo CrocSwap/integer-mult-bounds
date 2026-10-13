@@ -77,5 +77,5 @@ if __name__ == '__main__':
     if args.check:
         require(receipt == json.loads(args.check.read_text()), 'receipt mismatch')
     if args.output:
-        args.output.write_text(json.dumps(receipt, indent=2)+'\n')
+        args.output.write_text(json.dumps(receipt, indent=2)+'\n', encoding='utf-8', newline='\n')
     print('PASS independent PR49 moments, rank mass, seven margins and strict arithmetic')

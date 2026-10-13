@@ -107,7 +107,7 @@ def odd_subset_screen():
 
 if __name__=='__main__':
     result={'unequal_factors':unequal_search(),'higher_odd_subsets':odd_subset_screen()}
-    (ROOT/'certificates/network-variants.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/network-variants.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS exact unequal-factor search:',result['unequal_factors']['winner'])
     for row in result['higher_odd_subsets']['cases']:
         print('Exploratory subset size',row['subset_size'],

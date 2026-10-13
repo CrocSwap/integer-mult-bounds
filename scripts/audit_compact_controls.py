@@ -165,5 +165,5 @@ def certificate():
 
 if __name__=='__main__':
     (ROOT/'certificates/compact-control-audit.json').write_text(
-        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS compact-control address audit; see the separate tape/layer proof.')

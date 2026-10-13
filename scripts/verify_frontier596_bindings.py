@@ -15,7 +15,7 @@ def main():
     result = check(a.bit, a.complex)
     require(Fraction(result['kappa']) == Fraction(16127213726553, 10**16), 'PR596 exact result')
     result['status'] = 'PASS_REBUILT_PR543_PR596_COMPOSITION'
-    a.out.write_text(json.dumps(result, indent=2) + '\n')
+    a.out.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(result['status'], result['decimal'])
 
 

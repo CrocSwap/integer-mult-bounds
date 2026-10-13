@@ -120,5 +120,5 @@ if __name__ == '__main__':
         old.splitlines(keepends=True), new.splitlines(keepends=True),
         fromfile=f'a/{name}', tofile=f'b/{name}'))
         for name, old, new in patched_files())
-    (ROOT/'patches/complex-compression-31.patch').write_text(patch)
+    (ROOT/'patches/complex-compression-31.patch').write_text(patch, encoding='utf-8', newline='\n')
     print('Wrote independent complex-compression patch; conditional kappa=2^-31.')

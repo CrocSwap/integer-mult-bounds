@@ -26,7 +26,7 @@ def regenerate(work, expected, compiler):
     if sys.flags.optimize:raise ValueError('Run without -O; finite assertions must remain enabled')
     def stage(message):print(message,file=sys.stderr,flush=True)
     def save(name,data):
-        path=work/name;path.write_text(json.dumps(data,separators=(',',':'))+'\n');return path
+        path=work/name;path.write_text(json.dumps(data,separators=(',',':'))+'\n', encoding='utf-8', newline='\n');return path
     stage('Replaying the pinned PR117 scalar DAG')
     reference=ROOT/'references/three-stage-cover/pr117'
     source=json.loads((reference/'SOURCE.json').read_text())
@@ -70,7 +70,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix='three-stage-cover-') as directory:
             result=regenerate(Path(directory),expected,a.cxx)
     encoded=json.dumps(result,indent=2)+'\n'
-    if a.output:a.output.write_text(encoded)
+    if a.output:a.output.write_text(encoded, encoding='utf-8', newline='\n')
     else:print(encoded,end='')
 
 

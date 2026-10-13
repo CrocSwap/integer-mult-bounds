@@ -233,7 +233,7 @@ def main():
     parser.add_argument('--output',type=Path,default=ROOT/'certificates/partial-swap-network.json')
     args=parser.parse_args()
     result=certificate()
-    args.output.write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS partial-swap kappa='+str(KAPPA)+' = 1.884586e-6')
     print('29 strict constraints; 7 strict assembly margins; bit/complex moments and precision guard')
 

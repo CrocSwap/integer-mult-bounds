@@ -47,7 +47,7 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/cube-core-family.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/cube-core-family.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     row=result['family_ledger'][3]
     print('PASS cube factors and exact quadratic-code rank screens; no new kappa.')
     print('q=16 target side roles per label:',float(row['working_target_budget']['sufficient_side_ratio']))

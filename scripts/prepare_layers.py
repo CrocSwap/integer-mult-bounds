@@ -158,6 +158,6 @@ def serializable(value):
 if __name__ == '__main__':
     result = certificate()
     (ROOT/'certificates/layer-preparation.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS preparation estimates; complex-family optimum h='+str(result['complex_family']['winner_h']))
     print('Published result remains 2^-59. Sparse targets 2^-39 and 2^-34 remain hypothetical.')

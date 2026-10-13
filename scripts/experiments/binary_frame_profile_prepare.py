@@ -80,7 +80,7 @@ def prepare(path,destination):
     receipt=dict(h=h,v=v,R=R,frames=len(frames),distinct_transitions=len(transitions),singles=singles,rank_mass=mass,
                  rank_histogram_with_side_growth_split_into_singletons=dict(sorted(histogram.items())),word_sha256=sha256(raw).hexdigest(),copied_centers=centers,
                  transition_events_equal_independent_xor_word_reconstruction=True)
-    Path(str(destination)+'.json').write_text(json.dumps(receipt,indent=2)+'\n')
+    Path(str(destination)+'.json').write_text(json.dumps(receipt,indent=2)+'\n', encoding='utf-8', newline='\n')
     return receipt
 
 

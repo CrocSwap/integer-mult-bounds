@@ -198,7 +198,7 @@ def build():
         output['new_arrivals_outside_round'] = [p['number'] for p in ending['new_arrivals']]
         output['github_dispositions'] = dict(sorted(collections.Counter(p['github_state'] for p in result).items()))
     dest = ROOT / 'docs/research/pr-ledger.json'
-    dest.write_text(json.dumps(output, indent=2, ensure_ascii=False) + '\n')
+    dest.write_text(json.dumps(output, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
     lines = ['# PR review and integration ledger', '',
              'The immutable starting snapshot contains **%d PRs**. Explicit later family rounds extend the current inventory to **%d**; unrelated arrivals remain outside the round.' % (len(snapshot['pull_requests']), len(result)), '',
              '[Machine-readable ledger](pr-ledger.json) · [Starting snapshot](../../research/pr-reconciliation-20261012/starting-snapshot.json)', '',
@@ -240,7 +240,7 @@ def build():
         else:
             detail = 'No exact-head review established; inspect contribution and dependencies.'
         lines.append(f'| [#{p["number"]}]({p["url"]}) | {p["contributor"]["login"]} | {p["disposition"].replace("_", " ")} | {detail} |')
-    (ROOT / 'docs/research/pr-ledger.md').write_text('\n'.join(lines) + '\n')
+    (ROOT / 'docs/research/pr-ledger.md').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     print(json.dumps(dict(total=len(result), counts=counts), indent=2))
 
 

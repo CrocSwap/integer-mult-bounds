@@ -206,6 +206,6 @@ def build(h, prefix, central_disjoint, base=2):
         write_array(f,array.array('B',active))
     with open(str(prefix)+'.labels','wb') as f:
         write_array(f,array.array('I',ranks));write_array(f,array.array('B',types))
-    Path(str(prefix)+'.json').write_text(json.dumps(result,indent=2)+'\n')
+    Path(str(prefix)+'.json').write_text(json.dumps(result,indent=2)+'\n', encoding='utf-8', newline='\n')
 
     return result

@@ -44,5 +44,5 @@ if __name__=='__main__':
     patch=''.join(''.join(difflib.unified_diff(old.splitlines(keepends=True),
         new.splitlines(keepends=True),fromfile=f'a/{name}',tofile=f'b/{name}'))
         for name,old,new in patched_files())
-    (ROOT/'patches/h46-dag-63.patch').write_text(patch)
+    (ROOT/'patches/h46-dag-63.patch').write_text(patch, encoding='utf-8', newline='\n')
     print('Wrote independent conditional h46-dag-63.patch')

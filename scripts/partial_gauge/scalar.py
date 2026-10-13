@@ -115,6 +115,6 @@ def build(h, base=2, central_disjoint=0, output_prefix='complex_general', output
         array.array('B',active).tofile(f)
     with open(str(prefix)+'.labels','wb') as f:
         array.array('I',ranks).tofile(f);array.array('B',types).tofile(f)
-    Path(str(prefix)+'.json').write_text(json.dumps(result,indent=2)+'\n')
+    Path(str(prefix)+'.json').write_text(json.dumps(result,indent=2)+'\n', encoding='utf-8', newline='\n')
 
     return result

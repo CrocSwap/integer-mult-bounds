@@ -202,7 +202,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,default=ROOT/'certificates/three-stage-cover-network.json')
     args = p.parse_args()
-    args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS kappa=3146011/10000000000 = 3.146011e-4; both moments, rare-class fallback, finite router, 47 strict constraints')
 
 

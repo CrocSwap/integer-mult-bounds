@@ -126,7 +126,7 @@ def compose():
             producer='PR53 skip graph with exact original-envelope block compilation; complete serialized physical words',
             geometry='Unchanged fixed-I+J original-envelope projector and CRT formulas',
             proof_scope='Ordered affine residual compiler, fixed-tape recursion, finite scalar overhead, balanced transfer, analytic/routing/recovery interfaces remain inherited.'))
-    (OUT / 'skip-frame-kappa.json').write_text(json.dumps(arithmetic.js(result), indent=2, sort_keys=True)+'\n')
+    (OUT / 'skip-frame-kappa.json').write_text(json.dumps(arithmetic.js(result), indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional kappa='+str(KAPPA)+'; bit saving='+str(AB), flush=True)
     return result
 

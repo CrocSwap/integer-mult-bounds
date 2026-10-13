@@ -20,6 +20,6 @@ def certificate():
 
 if __name__=='__main__':
     out=certificate()
-    (ROOT/'certificates/prime-subset-limits.json').write_text(json.dumps(serializable(out),indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/prime-subset-limits.json').write_text(json.dumps(serializable(out),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     b=out['envelope']['best_finite_upper']
     print('PASS common-subset prime-power family cannot reach 2^-26; best finite optimistic ceiling',b['q'],b['h'],float(b['kappa_upper']))

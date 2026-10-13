@@ -26,5 +26,5 @@ def certificate():
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/core-limits.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/core-limits.json').write_text(json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS: target dimension <=52; nonlinear radial subset frames excluded; incidence-span rigidity.')

@@ -54,4 +54,4 @@ if __name__=='__main__':
     Path('build/block-completion.json').write_text(json.dumps({
         'scope':'Bounded floating-point search; failure is not a rank lower bound',
         'numpy_version':np.__version__,'known_feasible_controls':controls,
-        'cases':results},indent=2)+'\n')
+        'cases':results},indent=2)+'\n', encoding='utf-8', newline='\n')

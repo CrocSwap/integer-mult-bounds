@@ -95,9 +95,9 @@ Put $\rho=G-\kappa>0$; this fixed gap absorbs the logarithmic factors.
 if __name__ == "__main__":
     result = certificate()
     (ROOT/"certificates/routing-tuned.json").write_text(
-        json.dumps(result, indent=2, sort_keys=True)+"\n")
+        json.dumps(result, indent=2, sort_keys=True)+"\n", encoding='utf-8', newline='\n')
     patch = "".join("".join(difflib.unified_diff(
         old.splitlines(keepends=True), new.splitlines(keepends=True),
         fromfile=f"a/{name}", tofile=f"b/{name}")) for name, old, new in patched_files())
-    (ROOT/"patches/h46-nonadjacent-76.patch").write_text(patch)
+    (ROOT/"patches/h46-nonadjacent-76.patch").write_text(patch, encoding='utf-8', newline='\n')
     print("PASS conditional 2^-76: minimum margin", result["witness"]["minimum_margin"])

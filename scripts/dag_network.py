@@ -143,5 +143,5 @@ def shared_scalar_model(h=6,seed=1,code=None):
 
 if __name__=='__main__':
     result=certificate()
-    (ROOT/'certificates/dag-network.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/dag-network.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional shared-computation witness 2^-63; minimum',result['witness']['minimum_margin'])

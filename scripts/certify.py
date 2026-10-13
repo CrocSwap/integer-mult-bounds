@@ -277,7 +277,7 @@ if __name__ == "__main__":
     result = certificates()
     out = ROOT / "certificates/parameters.json"
     out.parent.mkdir(exist_ok=True)
-    out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding='utf-8', newline='\n')
     for name, case in result["cases"].items():
         print(f"PASS {name}: minimum {case['minimum_margin']} ({', '.join(case['limiting_margins'])})")
     print(f"Wrote {out.relative_to(ROOT)}")

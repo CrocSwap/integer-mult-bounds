@@ -218,5 +218,5 @@ if __name__=='__main__':
     patch=''.join(''.join(difflib.unified_diff(old.splitlines(keepends=True),
         new.splitlines(keepends=True),fromfile=f'a/{name}',tofile=f'b/{name}'))
         for name,old,new in patched_files())
-    (ROOT/'patches/compact-control-34.patch').write_text(patch)
+    (ROOT/'patches/compact-control-34.patch').write_text(patch, encoding='utf-8', newline='\n')
     print('Wrote independent compact-control patch; conditional kappa=83/10^12 > 2^-34.')

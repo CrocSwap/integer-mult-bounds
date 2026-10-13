@@ -150,7 +150,7 @@ def main():
         require(json.loads(args.check.read_text()) == report, 'Diagnostic receipt differs')
         print('PASS pinned assembly-domain diagnostic; no production constraint relaxed')
     elif args.write:
-        args.write.write_text(json.dumps(report, indent=2) + '\n')
+        args.write.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8', newline='\n')
     else:
         print(json.dumps(report, indent=2))
 

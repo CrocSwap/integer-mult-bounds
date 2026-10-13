@@ -155,7 +155,7 @@ def main():
     result = reconstruct(args.input)
     text = json.dumps(result, indent=2, sort_keys=True)+'\n'
     if args.output:
-        args.output.write_text(text)
+        args.output.write_text(text, encoding='utf-8', newline='\n')
     else:
         print(text, end='')
 

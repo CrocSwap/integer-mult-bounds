@@ -168,6 +168,6 @@ def certificate():
 if __name__ == '__main__':
     result = certificate()
     (ROOT/'certificates/mixed-point-audit.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS mixed-point screen: 509194 -> 447488 scalar roles; target not reached.')
     print('Small source/target-span cut certificates pass; no full-size frame or kappa claim.')

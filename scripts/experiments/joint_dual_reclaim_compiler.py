@@ -230,7 +230,7 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
    else:assert values[v:2*v]==[initial[i]^initial[v+i]for i in range(v)]and values[:v]==initial[:v]
  return dict(h=h,mode=dict(matching=matching,reclaim=reclaim),roles=R,baseline_pr48_roles={23:36432,25:48329}[h],histogram=dict(hist),rank_mass=mass,elementary_xors=len(ops),stats=dict(stats),dirty_basis_vectors=2*v+R,complete_dirty_basis_both_orientations=dirty,all_physical_frame_inclusions=True,seconds=time.time()-t0),dict(h=h,v=v,R=R,ops=ops,sources=sources,scatter=J,outputs=output_records,frames=[b['frame']for b in blocks],events=events)
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('--h',type=int,default=23);p.add_argument('--no-match',action='store_true');p.add_argument('--reclaim',action='store_true');p.add_argument('--output',type=Path,required=True);p.add_argument('--word',type=Path);a=p.parse_args();result,word=compile_(a.h,not a.no_match,a.reclaim);a.output.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+ p=argparse.ArgumentParser();p.add_argument('--h',type=int,default=23);p.add_argument('--no-match',action='store_true');p.add_argument('--reclaim',action='store_true');p.add_argument('--output',type=Path,required=True);p.add_argument('--word',type=Path);a=p.parse_args();result,word=compile_(a.h,not a.no_match,a.reclaim);a.output.write_text(json.dumps(result,indent=2)+'\n', encoding='utf-8', newline='\n');print(json.dumps(result),flush=True)
  if a.word:
   import gzip
   raw=(json.dumps(word,separators=(',',':'))+'\n').encode()

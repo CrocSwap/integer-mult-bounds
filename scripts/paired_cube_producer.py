@@ -51,7 +51,7 @@ def regenerate(expected,work=None):
     if work:
         work.mkdir(parents=True,exist_ok=True)
         for name,data in [('graph.json',g),('frames.json',witness),('selection.json',word)]:
-            (work/name).write_text(json.dumps(data,separators=(',',':'))+'\n')
+            (work/name).write_text(json.dumps(data,separators=(',',':'))+'\n', encoding='utf-8', newline='\n')
     return result
 
 def main():
@@ -61,7 +61,7 @@ def main():
     p.add_argument('--output',type=Path)
     a=p.parse_args();result=regenerate(json.loads(a.certificate.read_text()),a.work_dir)
     text=json.dumps(result,indent=2)+'\n'
-    if a.output:a.output.write_text(text)
+    if a.output:a.output.write_text(text, encoding='utf-8', newline='\n')
     else:print(text,end='')
 
 if __name__=='__main__':main()

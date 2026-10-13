@@ -92,5 +92,5 @@ if __name__ == '__main__':
     parser.add_argument('--check',type=Path)
     args = parser.parse_args(); result = run()
     if args.check: require(result == json.loads(args.check.read_text()), 'receipt mismatch')
-    if args.output: args.output.write_text(json.dumps(result,indent=2)+'\n')
+    if args.output: args.output.write_text(json.dumps(result,indent=2)+'\n', encoding='utf-8', newline='\n')
     print('PASS independent PR62/61 moments, complete child ledger, assembly and Lean source binding')

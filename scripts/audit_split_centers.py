@@ -188,5 +188,5 @@ def certificate():
 if __name__ == '__main__':
     result = certificate()
     (ROOT/'certificates/split-centers-audit.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS split-center local improvement: rank -4, loss 2500 -> 2498; no new kappa.')

@@ -187,7 +187,7 @@ def main():
     parser.add_argument('--output', type=Path, default=ROOT/'certificates/copied-centers-network.json')
     args = parser.parse_args()
     result = certificate()
-    args.output.write_text(json.dumps(js(result), indent=2, sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(js(result), indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS kappa=384569/10000000000 = 3.84569e-5')
     print('Both exact moments; copied-center rank budgets; C1=1; p^2000 row stock; 47 strict constraints')
 

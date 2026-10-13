@@ -120,5 +120,5 @@ def certificate():
 
 if __name__ == '__main__':
     result = certificate()
-    (ROOT/'certificates/fano-completion-audit.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/fano-completion-audit.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS nonroutable Fano/edge-prefix controls; 15 exact dirty completions have checked routings; no new kappa.')

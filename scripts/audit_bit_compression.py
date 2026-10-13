@@ -169,6 +169,6 @@ def certificate():
 if __name__ == '__main__':
     result = certificate()
     (ROOT/'certificates/bit-compression-audit.json').write_text(
-        json.dumps(serializable(result), indent=2, sort_keys=True)+'\n')
+        json.dumps(serializable(result), indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS bounded bit compression: 509194 -> 509146 roles; no new kappa.')
     print('Paired-template relabel/merge-only route excludes 2^-30 for every admissible even h.')

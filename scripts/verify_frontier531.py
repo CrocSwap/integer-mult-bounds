@@ -36,7 +36,7 @@ def main():
         with (work / (name + '.log')).open('w') as log:
             result = subprocess.run(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
         steps.append(dict(name=name, exit=result.returncode, seconds=time.monotonic()-start))
-        (work / 'STEPS.json').write_text(json.dumps(steps, indent=2) + '\n')
+        (work / 'STEPS.json').write_text(json.dumps(steps, indent=2) + '\n', encoding='utf-8', newline='\n')
         if result.returncode:
             raise SystemExit(f'{name} failed; see {work / (name + ".log")}')
         print('PASS', name, flush=True)

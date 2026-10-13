@@ -158,7 +158,7 @@ def main():
     args = parser.parse_args()
     result = certificate()
     if args.output:
-        args.output.write_text(json.dumps(serializable(result), indent=2, sort_keys=True)+'\n')
+        args.output.write_text(json.dumps(serializable(result), indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     if args.summary:
         w = result['assembly']
         print('PASS kappa='+str(KAPPA)+' > 2^-23')

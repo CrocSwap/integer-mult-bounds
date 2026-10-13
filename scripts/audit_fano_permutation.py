@@ -127,5 +127,5 @@ def certificate():
 
 if __name__ == '__main__':
     result = certificate()
-    (ROOT/'certificates/fano-permutation-audit.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+    (ROOT/'certificates/fano-permutation-audit.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS three rigid compute maps; 144 scalar permutations and full routings; 72 direct bypasses; no new kappa.')

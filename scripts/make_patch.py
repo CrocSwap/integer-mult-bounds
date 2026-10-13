@@ -227,5 +227,5 @@ if __name__ == "__main__":
             for name, old, new in files)
         path = ROOT / "patches" / filename
         path.parent.mkdir(exist_ok=True)
-        path.write_text(patch)
+        path.write_text(patch, encoding='utf-8', newline='\n')
         print(f"Wrote {path.relative_to(ROOT)}; conditional research patch, not a validated theorem")

@@ -34,7 +34,7 @@ def main():
             proc = subprocess.run([sys.executable, '-B', str(ROOT / script), *map(str, args)],
                                   cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
         steps.append({'name': name, 'exit': proc.returncode, 'seconds': time.monotonic() - start})
-        (work / 'STEPS.json').write_text(json.dumps(steps, indent=2) + '\n')
+        (work / 'STEPS.json').write_text(json.dumps(steps, indent=2) + '\n', encoding='utf-8', newline='\n')
         if proc.returncode:
             raise SystemExit(f'{name} failed; inspect its log')
         print('PASS', name, flush=True)

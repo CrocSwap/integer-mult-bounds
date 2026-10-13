@@ -104,5 +104,5 @@ def report():
 if __name__=='__main__':
     result=report()
     out=ROOT/'certificates/network-research.json'
-    out.write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    out.write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('Certified: shared-hierarchy screen excludes 2^-70; thinning cannot beat full h=46.')

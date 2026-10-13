@@ -49,6 +49,6 @@ def certificate():
 if __name__=='__main__':
     result=certificate()
     (ROOT/'certificates/signed-sparse-core.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS signed-sparse central factors and raw shared compiler ledger; no new kappa.')
     print('Best scanned sufficient side ratio:',float(result['best_budget_candidate']['target_budget']['sufficient_ratio']))

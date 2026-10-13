@@ -25,7 +25,7 @@ def regenerate(work, expected, compiler):
     if sys.flags.optimize:raise ValueError('Run without -O; finite assertions must remain enabled')
     def stage(message):print(message,file=sys.stderr,flush=True)
     def save(name,data):
-        path=work/name;path.write_text(json.dumps(data,separators=(',',':'))+'\n');return path
+        path=work/name;path.write_text(json.dumps(data,separators=(',',':'))+'\n', encoding='utf-8', newline='\n');return path
     stage('Building the actual interval/cube scalar DAG')
     scalar=build(24,base=2,central_disjoint=24,output_prefix='complex_cube',output_dir=work)
     dag=work/'complex_cube_24.bin';matcher=work/'matcher'
@@ -60,7 +60,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix='partial-gauge-') as directory:
             result=regenerate(Path(directory),expected,a.cxx)
     encoded=json.dumps(result,indent=2)+'\n'
-    if a.output:a.output.write_text(encoded)
+    if a.output:a.output.write_text(encoded, encoding='utf-8', newline='\n')
     else:print(encoded,end='')
 
 

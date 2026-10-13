@@ -44,5 +44,5 @@ if __name__ == "__main__":
     manifest = {"repository": "https://github.com/openai/math", "commit": COMMIT,
                 "paper": PAPER, "files": files}
     (ROOT / "upstream" / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding='utf-8', newline='\n')
     print(f"Pinned {len(files)} files at {COMMIT}")

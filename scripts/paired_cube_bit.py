@@ -165,7 +165,7 @@ def main():
     args = parser.parse_args()
     result = json.dumps(reconstruct(args.input), indent=2, sort_keys=True)+'\n'
     if args.output:
-        args.output.write_text(result)
+        args.output.write_text(result, encoding='utf-8', newline='\n')
     else:
         print(result, end='')
 

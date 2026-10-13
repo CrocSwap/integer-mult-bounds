@@ -179,5 +179,5 @@ def certificate():
 if __name__=='__main__':
     result=certificate()
     (ROOT/'certificates/short-guard-audit.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS short-guard arithmetic and reduction targets; fast gathering remains unproved.')

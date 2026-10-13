@@ -84,5 +84,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     encoded = json.dumps(serializable(certificate()), indent=2, sort_keys=True) + '\n'
     if args.output:
-        args.output.write_text(encoded)
+        args.output.write_text(encoded, encoding='utf-8', newline='\n')
     print(encoded, end='')

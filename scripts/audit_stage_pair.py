@@ -280,6 +280,6 @@ if __name__=='__main__':
     result=certificate()
     root=Path(__file__).resolve().parents[1]
     (root/'certificates/stage-pair-audit.json').write_text(
-        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS two-invocation audit:',len(result['candidates']),'candidates;',
           len(result['improved_candidates']),'local improvements. No new kappa.')

@@ -146,7 +146,7 @@ def main():
             result = run(Path(directory))
     encoded = json.dumps(result, indent=2)+'\n'
     if args.output:
-        args.output.write_text(encoded)
+        args.output.write_text(encoded, encoding='utf-8', newline='\n')
     else:
         print(encoded, end='')
 

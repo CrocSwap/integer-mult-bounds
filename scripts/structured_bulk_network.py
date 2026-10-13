@@ -175,7 +175,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,default=ROOT/'certificates/structured-bulk-network.json')
     args=parser.parse_args();result=certificate()
-    args.output.write_text(json.dumps(js(result),indent=2,sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(js(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS kappa=2504683/200000000000 = 1.2523415e-5')
     print('Both moments; semantic C1=1; product row stock; 47 strict constraints and seven margins')
 

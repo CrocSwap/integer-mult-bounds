@@ -30,7 +30,7 @@ def run():
         author='Chafik Boukhalfa with OpenAI Codex assistance',
         scope='Explicit reviewed source and finite-input freeze; arithmetic certificates and validation receipts are derived.',
         files={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(names)})
-    (ROOT/'research/joint-dual/SOURCE.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'research/joint-dual/SOURCE.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     return len(names)
 
 if __name__ == '__main__':

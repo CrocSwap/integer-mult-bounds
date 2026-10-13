@@ -63,5 +63,5 @@ def certificate():
 if __name__ == '__main__':
     out = certificate()
     (ROOT/'certificates/additive-label-audit.json').write_text(
-        json.dumps(out, indent=2, sort_keys=True)+'\n')
+        json.dumps(out, indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS: arbitrary point-additive rank-two frames need dimension 48 at h=24')

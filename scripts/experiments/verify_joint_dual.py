@@ -69,7 +69,7 @@ def verify():
         source_binding='Source manifests, inherited manifest digest, compiler receipt source, both word digests, and all local compiler/verifier sources are bound by the exact composition certificate.',
         producer_words_regenerated_and_matched=True,
         scope='Finite conditional witness; unchanged data geometry and general transfer proofs are inherited dependencies.')
-    (certificates / 'joint-dual-validation.json').write_text(json.dumps(validation, indent=2, sort_keys=True)+'\n')
+    (certificates / 'joint-dual-validation.json').write_text(json.dumps(validation, indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS exact recurrence, 47 strict inequalities, seven margins, eventual cutoffs', flush=True)
     return result
 

@@ -153,5 +153,5 @@ def shared_scalar_model(h=6,seed=1):
 if __name__=='__main__':
     result=certificate()
     (ROOT/'certificates/incidence-network.json').write_text(
-        json.dumps(result,indent=2,sort_keys=True)+'\n')
+        json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS conditional incidence-network witness 2^-67; minimum',result['witness']['minimum_margin'])

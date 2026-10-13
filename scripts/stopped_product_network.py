@@ -154,7 +154,7 @@ def main():
     parser.add_argument('--output',type=Path,default=ROOT/'certificates/stopped-product-network.json')
     args = parser.parse_args()
     result = certificate()
-    args.output.write_text(json.dumps(js(result),indent=2,sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(js(result),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS kappa=194869/2500000000 = 7.79476e-5')
     print('Coarse and complex moments; stopped bit saving; exact rational-center guard; p^4000 stock; 47 strict constraints')
 

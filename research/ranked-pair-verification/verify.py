@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent
 
 
 def read(name):
-    return json.loads((ROOT / name).read_text())
+    return json.loads((ROOT / name).read_text(encoding='utf-8'))
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
     parts = {'data': Counter({1: 18*N, 21: 2*N, 17: 2*N, 481: 2*N}),
              'paid_endpoint_copy': Counter({1: N})}
     banks, L = [], 0
-    lean_caps = (ROOT / 'lean/CappedMass.lean').read_text()
+    lean_caps = (ROOT / 'lean/CappedMass.lean').read_text(encoding='utf-8')
     for h in (23, 25):
         receipts = [read(f'finite-frames/pair-{kind}-{h}-receipt.json')
                     for kind in ('original', 'ranked')]
@@ -96,7 +96,7 @@ def main():
     require(encode(arithmetic['margins']) == selected['assembly']['margins'], 'seven margins')
     require(encode(run(ROOT / 'selected-certificate.json', True)) ==
             read('selected-moment-verification.json'), 'exact characteristic/root receipt')
-    lean_assembly = (ROOT / 'lean/ConcreteAssembly.lean').read_text()
+    lean_assembly = (ROOT / 'lean/ConcreteAssembly.lean').read_text(encoding='utf-8')
     for name, value in [('a', selected['bit_saving']), ('kappa', selected['kappa']),
                         ('h', selected['assembly']['parameters']['h'])]:
         found = re.search(rf'def {name} : ℝ := (\d+) / (\d+)\n', lean_assembly)

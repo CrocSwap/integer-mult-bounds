@@ -111,7 +111,7 @@ def regenerate(work, certificate, dimensions, compiler, include_complex=True):
         results[str(h)] = dict(**matched, labels=labels, scalar=scalar,
                                envelope_matching=original, certificate_equal=True)
         (work / f'triple_base2_{h}.counts.json').write_text(
-            json.dumps(results[str(h)], indent=2)+'\n')
+            json.dumps(results[str(h)], indent=2)+'\n', encoding='utf-8', newline='\n')
     answer = dict(producers=results, regenerated_from_source=True)
     if include_complex:
         print('Regenerating complex h=28 histogram', file=sys.stderr, flush=True)
@@ -147,7 +147,7 @@ def main():
             result = run(Path(directory))
     encoded = json.dumps(result, indent=2)+'\n'
     if args.output:
-        args.output.write_text(encoded)
+        args.output.write_text(encoded, encoding='utf-8', newline='\n')
     else:
         print(encoded, end='')
 

@@ -60,11 +60,11 @@ def run(work):
         path=work/f'word-{h}.json.gz'
         path.write_bytes(gzip.compress((json.dumps(word,separators=(',',':'))+'\n').encode(),mtime=0))
         receipt=replay(path)
-        (work/f'receipt-{h}.json').write_text(json.dumps(dict(compiler=result,replay=receipt),indent=2)+'\n')
+        (work/f'receipt-{h}.json').write_text(json.dumps(dict(compiler=result,replay=receipt),indent=2)+'\n', encoding='utf-8', newline='\n')
         transitions=work/f'word-{h}.bin';prepare(path,transitions)
         subprocess.run([str(exe),str(transitions)],check=True)
     result=summarize(work)
-    (work/'screen.json').write_text(json.dumps(result,indent=2)+'\n')
+    (work/'screen.json').write_text(json.dumps(result,indent=2)+'\n', encoding='utf-8', newline='\n')
     print('Strict 2^-14 rejection:',result['strict_rejection'])
 
 if __name__=='__main__':

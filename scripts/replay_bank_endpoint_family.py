@@ -70,7 +70,7 @@ def main():
         external_receipt.append({'module': row['module'], 'source_sha256': sha(source),
                                  'object_sha256': digest, 'matches_author_object': digest == row['object_sha256']})
     work.mkdir(parents=True, exist_ok=False)
-    (work / 'EXTERNAL.json').write_text(json.dumps(external_receipt, indent=2) + '\n')
+    (work / 'EXTERNAL.json').write_text(json.dumps(external_receipt, indent=2) + '\n', encoding='utf-8', newline='\n')
     result = {'platform': platform.platform(), 'lean_version': version, 'lean_sha256': sha(lean),
               'mathlib_commit': commit, 'external_receipt_sha256': sha(work / 'EXTERNAL.json'),
               'scope': 'Exact source/kernel replay; no Linux runtime-hash or memory reproduction claim.', 'packages': {}}
@@ -107,7 +107,7 @@ def main():
             proc = subprocess.run([str(lean), '-s', '65536', '-j', '1', '-o', str(obj), staged.name],
                                   cwd=out, env=env, capture_output=True, text=True, timeout=90)
             log = proc.stdout + proc.stderr
-            staged.with_suffix('.log').write_text(log)
+            staged.with_suffix('.log').write_text(log, encoding='utf-8', newline='\n')
             require(proc.returncode == 0 and obj.is_file(), log)
             require('sorryAx' not in log and "declaration uses 'sorry'" not in log, 'Unproved declaration')
             probes = [{'declaration': m[1], 'axioms': [] if m[2] is None else [x.strip() for x in m[2].split(',') if x.strip()]}
@@ -127,7 +127,7 @@ def main():
         require(count == (77 if number == 513 else 70), 'Axiom probe count')
         result['packages'][str(number)] = {'modules': records, 'axiom_reports': count}
     result['status'] = 'PASS_EXACT_SOURCES_AND_AXIOMS'
-    (work / 'RESULT.json').write_text(json.dumps(result, indent=2) + '\n')
+    (work / 'RESULT.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(result['status'])
 
 

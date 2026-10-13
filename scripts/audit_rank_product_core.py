@@ -215,5 +215,5 @@ def certificate():
 
 if __name__ == '__main__':
     result = certificate()
-    (ROOT/'certificates/rank-product-core.json').write_text(json.dumps(serializable(result), indent=2, sort_keys=True)+'\n')
+    (ROOT/'certificates/rank-product-core.json').write_text(json.dumps(serializable(result), indent=2, sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS six expanded circuit/frame controls, including a nonselfadjoint representation; positive n=9127, r=d=39 core; no new kappa.')

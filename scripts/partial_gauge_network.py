@@ -171,7 +171,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,default=ROOT/'certificates/partial-gauge-network.json')
     args = parser.parse_args()
-    args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n')
+    args.output.write_text(json.dumps(js(certificate()),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS kappa=7237/78125000 = 9.26336e-5; both moments, stopped saving, p^40000 stock, 47 strict constraints')
 
 

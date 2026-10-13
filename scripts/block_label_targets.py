@@ -52,5 +52,5 @@ def target():
 
 if __name__=='__main__':
     result=target()
-    (ROOT/'certificates/block-label-target.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+    (ROOT/'certificates/block-label-target.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('ARITHMETIC TARGET ONLY: hypothetical rank-two labels would support 2^-59; construction missing')

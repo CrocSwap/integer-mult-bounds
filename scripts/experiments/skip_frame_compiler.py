@@ -54,5 +54,5 @@ if __name__ == '__main__':
                 archive.write(raw)
     else:
         args.word.write_bytes(raw)
-    args.output.write_text(json.dumps(result, indent=2) + '\n')
+    args.output.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(json.dumps(result), flush=True)

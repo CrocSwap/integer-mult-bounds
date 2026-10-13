@@ -169,5 +169,5 @@ def certificate():
 
 if __name__=='__main__':
     (ROOT/'certificates/coded-carry-audit.json').write_text(
-        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n')
+        json.dumps(serializable(certificate()),indent=2,sort_keys=True)+'\n', encoding='utf-8', newline='\n')
     print('PASS exact carry codes and scoped affine controls; no sublinear recurrence or new kappa.')

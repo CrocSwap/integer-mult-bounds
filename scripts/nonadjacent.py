@@ -114,6 +114,6 @@ def permute_records(records, widths, schedule):
 if __name__ == "__main__":
     result = certificate()
     target = ROOT / "certificates/nonadjacent-axis.json"
-    target.write_text(json.dumps(result, indent=2, sort_keys=True)+"\n")
+    target.write_text(json.dumps(result, indent=2, sort_keys=True)+"\n", encoding='utf-8', newline='\n')
     for name, case in result["cases"].items():
         print(f"PASS nonadjacent {name}: kappa={case['parameters']['kappa']}, minimum={case['minimum_margin']}")
