@@ -1,0 +1,36 @@
+name: SW4 and eight B frames
+on:
+  pull_request:
+    paths:
+      - 'research/complex-sw4-frame8/**'
+      - 'research/complex-sw4-frame8-validation/**'
+      - '.github/workflows/complex-sw4-frame8.yml'
+  push:
+    branches: ['codex/sw4-frame8-20261013']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '${{ matrix.python }}'
+      - run: bash research/complex-sw4-frame8/verify.sh "${{ runner.temp }}/sw4-frame8"
+        env:
+          SW4_FRAME8_PYTHON: python
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sw4-frame8-python-${{ matrix.python }}
+          path: '${{ runner.temp }}/sw4-frame8'

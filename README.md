@@ -3,54 +3,63 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: K-triangle helpers and owner repair
+## Current reviewed result: read exchanges and enlarged frames
 
-**Chafik Boukhalfa's [#626](https://github.com/CrocSwap/integer-mult-bounds/pull/626),
-building on Jeremy Kothe's [#622/#623](https://github.com/CrocSwap/integer-mult-bounds/pull/623),
-with eumemic's [#543](https://github.com/CrocSwap/integer-mult-bounds/pull/543)** gives
+**Jeremy Kothe's [#799](https://github.com/CrocSwap/integer-mult-bounds/pull/799),
+extending Chafik Boukhalfa's #741 frames and the earlier source-gauge construction,
+with DreamingOfClouds' #589 bit improvement on eumemic's #555 supplier**, gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{51110230636731}{31250000000000000}=0.001635527380375392.
+\kappa=\frac{1661634653669567}{1000000000000000000}=0.001661634653669567.
 $$
 
-This is **0.021016% above the previous selected saving**, approximately
-`2^-9.25603`. It compares asymptotic exponent savings, not practical runtime.
-The [#617 checkpoint](certificates/checkpoints/cold617.json) is preserved.
+This is approximately **0.026005% above the previous selected exponent saving**,
+not a practical runtime claim. The [#741 checkpoint](certificates/checkpoints/frontier741.json)
+is preserved. Four paired read exchanges improve the recursive rank profile
+while retaining the helper endpoints and physical owners. The result builds on
+icekylinx's source gauge, Rohan Arun's recurrence correction, and the cumulative
+community construction and verification work. [Full contributor record](CONTRIBUTORS.md).
 
-The K-triangle construction replaces copied packets with direct reads and
-reduces each complex provider from 504 to 492 helpers. A coordinated allocation
-then reduces unused space in the owners hosting those helpers. The unchanged
-#543 bit supplier still has sufficient headroom. DreamingOfClouds' cold-helper
-construction, Rohan Arun's #559 recurrence correction and the cumulative
-community framework remain part of the result.
+Fresh X4 scalar, frame, phase, owner, precision, moment and 47 strict assembly
+checks pass, bound to rebuilt ancestral SW4 and bit suppliers. The public
+wrapper supports either a full cold replay or explicitly verified ancestry
+reuse. Integration Linux CI is tracked separately in the receipt.
 
-A fresh #622 replay checks scalar restoration, native frames, all global phases
-and global accounting. #626 uses the identical providers and receives a separate
-owner, invoice, exact-moment and 47-inequality assembly replay plus an independent
-owner/moment checker. The public command below rebuilds both suppliers.
+All-size compilation, common-label/mutable-source realization, whole-call hosting,
+precision/tape and analytic transfer remain conditional. These finite checks are
+**not a complete Lean multiplication theorem**.
 
-Parallel allocation work by Jeremy Diviney and Jeremy Kothe, Chafik's scoped
-#615-family ceiling, Ali Romman's analytic inverse theorem and GamingPuzzled's
-research lead retain credit. #620's broader solver/barrier claims remain partially
-reviewed. [Full contributor record](CONTRIBUTORS.md).
-
-All-size compilation, common-label/mutable-basis realization, pooled hosting,
-normalized residuals, precision/tape and analytic transfer remain conditional.
-Inherited Lean literals and exact finite Clifford checks are **not a complete
-Lean multiplication theorem**. Remote Linux CI status is recorded separately.
-
-[Review and scope](docs/research/community-k492-review.md) ·
+[Review and scope](docs/research/community-frontier799-review.md) ·
 [Selected record](certificates/selected-result.json) ·
-[Exact assembly](research/community-k492-audit/pr626/replay/ASSEMBLY.json) ·
-[Integration receipts](docs/research/community-k492-integration.json) ·
+[Exact assembly](research/community-frontier799-audit/ASSEMBLY.json) ·
+[Integration receipt](docs/research/community-frontier799-integration.json) ·
 [PR review ledger](docs/research/pr-ledger.md)
 
 ```sh
 # Also requires a C++17 compiler and Boost headers.
 python3 -m pip install numpy sympy scipy
-make frontier626-verify
+make frontier799-verify
 ```
+
+**Other reviewed work:** Chafik's #795 proves a fixed-profile owner optimum;
+Tekalign's #777 independently reconstructs and verifies the parallel frame result.
+Rohan Guliani's #806 traces historical provenance hashes, with its missing-payload
+limits made explicit. Charles Bethin (#662/#707), mtpsl (#709), cxnmai (#721), and
+Agastya Sondhi (#727) contribute exact verification accelerators and memory savings.
+
+Alluri's [#681 circuit consolidation](docs/research/community-circuits681-review.md)
+combines Ali Romman, mtpsl, Greer Guthrie, Sagar Thakrar and Scott Woolsey Biggart's
+work. The individual #688/#691/#694/#696/#708/#713 reviews are now complete.
+Its circuit-count savings concern the historical R420 construction and do not
+improve κ or establish measured runtime gains.
+
+## Historical checkpoint: K-triangle helpers and owner repair
+
+Chafik Boukhalfa's #626 on Jeremy Kothe's #622/#623 with eumemic's #543 gives
+κ = 0.001635527380375392. The [review](docs/research/community-k492-review.md),
+[checkpoint](certificates/checkpoints/k492626.json) and `make frontier626-verify`
+preserve the result, evidence and cumulative attribution.
 
 ## Historical checkpoint: cold helper endpoints
 

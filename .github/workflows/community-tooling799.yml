@@ -1,0 +1,58 @@
+name: Community exact tooling and scoped audits
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/clifford-state-performance/**'
+      - 'research/gram-prefix-performance/**'
+      - 'research/r420-geometry-cache/**'
+      - 'research/owner-footprint-bitsets/**'
+      - 'research/sw4-owner-optimality/**'
+      - 'research/pr695-digest-audit/**'
+      - 'scripts/verify_pr_reconciliation.py'
+      - 'tests/test_reconciliation_archive.py'
+      - '.github/workflows/community-tooling799.yml'
+  pull_request:
+    paths:
+      - 'research/clifford-state-performance/**'
+      - 'research/gram-prefix-performance/**'
+      - 'research/r420-geometry-cache/**'
+      - 'research/owner-footprint-bitsets/**'
+      - 'research/sw4-owner-optimality/**'
+      - 'research/pr695-digest-audit/**'
+      - 'scripts/verify_pr_reconciliation.py'
+      - 'tests/test_reconciliation_archive.py'
+      - '.github/workflows/community-tooling799.yml'
+permissions:
+  contents: read
+jobs:
+  exact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Exact accelerators and rejection controls
+        run: |
+          python -B research/clifford-state-performance/test_state.py
+          python -B research/gram-prefix-performance/verify.py
+          python -B research/gram-prefix-performance/test_kernel.py --mutations
+          python -I -B research/r420-geometry-cache/verify.py
+          python -I -B research/owner-footprint-bitsets/verify.py
+          python -I -B research/owner-footprint-bitsets/test_masks.py
+          python -I -B -O research/owner-footprint-bitsets/test_masks.py
+      - name: Scoped owner optimum and provenance diagnostic
+        run: |
+          python -B research/sw4-owner-optimality-validation/replay.py research/sw4-owner-optimality "$RUNNER_TEMP/owner-proof"
+          python -B research/community-frontier799-audit/check_pr806_trace.py
+      - name: Current ledger and archive integrity controls
+        run: |
+          python -B scripts/verify_pr_reconciliation.py
+          python -B -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
+          python -B -O -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
+      - run: git diff --exit-code

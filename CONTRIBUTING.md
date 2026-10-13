@@ -15,7 +15,7 @@ and distinguish numerical validation from an algorithmic proof obligation.
 For the current result, start with the
 [current status](docs/research/current-status.md),
 [selected record](certificates/selected-result.json), and
-[current maintainer review](docs/research/community-k492-review.md).
+[current maintainer review](docs/research/community-frontier741-review.md).
 The selected record and review identify the actual supplier sources,
 reproduction command, evidence and remaining assumptions. Earlier construction
 notes are historical checkpoints, even when their text calls a result current.
@@ -33,7 +33,7 @@ make verify
 
 Include regenerated certificates and patches in the same change. Run the
 checks affected by your changes. Changes to the selected construction should
-also run its cold replay, currently `make frontier626-verify`; consult
+also run its cold replay, currently `make frontier741-verify`; consult
 [current status](docs/research/current-status.md) for later selected targets.
 The historical `make gen4-bank-verify` target checks the earlier generation,
 not the selected frontier. The proof and bank scheduling supplements are supplied as Markdown;

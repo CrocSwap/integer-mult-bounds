@@ -1,6 +1,42 @@
 # Community contribution record
 
-**Current reviewed composition: #626 with #543, κ=0.001635527380375392.**
+**Current reviewed composition: #799 with #589, κ=0.001661634653669567.**
+See the [review](docs/research/community-frontier799-review.md) and
+[circuit integration](docs/research/community-circuits681-review.md) for scope.
+
+| Contributor | Work in this round and its construction lineage |
+|---|---|
+| [Chafik Boukhalfa](https://github.com/chafreaky) | #795 fixed-profile owner optimum; #741 eight B-frame enlargements; #660/#685 flow, matching and owner certificates; portable complete reconstruction. |
+| [Jeremy Kothe](https://github.com/jeremykothe2) | #799 paired read exchanges with enlarged frames; #659 no-triangle, #676 p6n endpoints and #699 read exchanges; cumulative layered constructions. |
+| [icekylinx](https://github.com/icekylinx) | #645 source-branch gauge and retained direct-delivery geometry. |
+| [DreamingOfClouds](https://github.com/DreamingOfClouds) | #589 two bit transports on #555; punctured-port, nine-stage and cold-helper mechanisms. |
+| [eumemic](https://github.com/eumemic) | #555 punctured R439 bit word, retained #543 skeleton and complex ancestor. |
+| [Rohan Arun](https://github.com/rohanarun) | #559 native-complex recurrence correction and cumulative construction/accounting work. |
+| [Jeremy Diviney](https://github.com/jeremydiviney), [jaymosley07](https://github.com/jaymosley07) | #658 and #653 owner-allocation work credited in the retained construction. |
+| [Tekalign](https://github.com/tekuuu) | #675 owner-boundary audit; #777 complete parallel frame reconstruction, independent explicit-subspace/owner audits and exact pricing. |
+| [Joshua Snider](https://github.com/jsnider3) | #695 historical Linux source/result reconciliation. |
+| [roife](https://github.com/roife) | #704 ledger metadata validation and forgery rejection. |
+| [Alexander Templeton](https://github.com/azide0x37) | #740 archived finite-menu evidence and optimization-safe controls. |
+| [Alluri](https://github.com/alluri-ritual) | #681 circuit consolidation, transformed-matrix composition, precision-aware decoder selection and raw complex factory circuits. |
+| [Ali Romman](https://github.com/aliromman) | #688 two-block circuit and hosted verification infrastructure. |
+| [mtpsl](https://github.com/mtpsl) | #691 phase-A quad circuit. |
+| [Greer Guthrie](https://github.com/g-guthrie) | #694 helper-basis factorization. |
+| [Sagar Thakrar](https://github.com/thakrarsagar) | #696 dyadic lowering and #708 decoder sharing. |
+| [Scott Woolsey Biggart](https://github.com/swbiggart) | #713 target-basis factorization. |
+| [yongjae321](https://github.com/yongjae321), [x0hu](https://github.com/x0hu) | #670/#674 circuit blocks retained through #688 and #681. |
+| [Charles Bethin](https://github.com/cbethin) | #662 exact Clifford state accelerator and #707 exact Gram prefix determinant cache. |
+| [mtpsl](https://github.com/mtpsl) | #709 bounded geometry reuse with independent scalar/interface checks. |
+| [cxnmai](https://github.com/cxnmai) | #721 streaming archive verification with reduced retained buffers and integrity controls. |
+| [Agastya Sondhi](https://github.com/TMM2009) | #727 exact owner-footprint bitsets and equivalence/mutation checks. |
+| [Rohan Guliani](https://github.com/Rohansguliani) | #806 provenance-hash propagation diagnostic; integrated with explicit limits on unavailable payloads and timing-only attribution. |
+
+Earlier contributors and source-specific assistance notices remain credited.
+Importing a predecessor's package or mechanism does not imply review of its
+entire PR. Parallel work retains credit independently of the selected headline.
+
+## Historical K-triangle round through #626
+
+**Historical reviewed composition: #626 with #543, κ=0.001635527380375392.**
 See the [review](docs/research/community-k492-review.md) for scope and provenance.
 
 | Contributor | Work in this round |

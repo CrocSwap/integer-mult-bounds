@@ -1,9 +1,39 @@
 # Current reviewed status
 
+Selected conditional κ: **0.001661634653669567**, #799 with #589 on #555.
+See the [review](community-frontier799-review.md),
+[integration receipt](community-frontier799-integration.json),
+[selected record](../../certificates/selected-result.json) and [PR ledger](pr-ledger.md).
+Public cold replay: `make frontier799-verify`.
+
+The explicit X4 construction passes native scalar/frame/phase checks, physical
+owner admission, the full invoice, two independent moment engines and all 47
+outer constraints. Composition is bound to rebuilt SW4 ancestry and PR589.
+Local reuse and Linux CI are reported separately; inherited realization and
+analytic hypotheses remain. No full Lean multiplication theorem is claimed.
+
+This round completes #795/#777 reviews and the six individual #681 component
+reviews, integrates five verification-tooling packages, and narrows #806's
+hash-tracing claim to what its diagnostic actually establishes. Historical CI
+payloads remain unavailable. The ledger records exact-head publication status.
+
+The [#741 checkpoint](../../certificates/checkpoints/frontier741.json) remains
+reproducible with `make frontier741-verify`. Original component sources remain
+unchanged; `scripts/verify_supplier_consolidation.py --component-tests` provides
+the historical selected-record closure without changing the current selection.
+
+# Superseded status through #626
+
 Selected conditional κ: **0.001635527380375392**, #626 on #622/#623 with #543.
 See the [review](community-k492-review.md), [integration receipt](community-k492-integration.json),
 [selected record](../../certificates/selected-result.json) and [PR ledger](pr-ledger.md).
 Public cold replay: `make frontier626-verify`.
+
+The previously queued #626 Linux run completed successfully on 2026-10-13.
+The [preserved evidence and offline checker](../../research/selected626-linux-reconciliation/README.md)
+bind that run to its tested sources, six replay stages and exact assembly.
+Three generated provenance digests differ from the committed assembly; the
+linked reconciliation records their scope and the unavailable payloads.
 
 The frozen round covers #618–#626. Eight scoped reviews complete; #620 remains
 partial pending portable research replays and validation of its solver/barrier

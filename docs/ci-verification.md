@@ -2,6 +2,16 @@
 
 ## Current selected-family replay
 
+The selected #543 + #626 composition uses `.github/workflows/frontier626.yml`.
+Its [completed Linux run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38317651752)
+passed on 2026-10-13 at commit `ed49217ad6244f1d3bfe4588f122fa861849739c`.
+The [preserved artifact reconciliation](../research/selected626-linux-reconciliation/README.md)
+checks source equality to the sprint base, all six replay stages and exact
+mathematical assembly agreement, with explicit limits for omitted payloads.
+The older queued integration receipt is retained as historical evidence.
+
+## Historical selected-family replay through #588
+
 `.github/workflows/frontier588.yml` provides one complete cold check of #543
 with #588 on Ubuntu 24.04 and Python 3.12. It installs NumPy, SymPy, SciPy,
 C++17 and Boost, checks the selected record and review evidence, rebuilds both

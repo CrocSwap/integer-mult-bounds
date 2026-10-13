@@ -1,0 +1,78 @@
+name: Consolidated supplier circuit integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/supplier-circuit-consolidation/**'
+      - 'scripts/verify_supplier_consolidation.py'
+      - 'certificates/checkpoints/k492626.json'
+      - '.github/workflows/supplier-circuit-consolidation.yml'
+  pull_request:
+    paths:
+      - 'scripts/verify_supplier_consolidation.py'
+      - 'certificates/checkpoints/k492626.json'
+      - 'research/supplier-circuit-consolidation/**'
+      - 'research/complex-factory5-resynthesis/**'
+      - 'research/complex-dyadic-lowering/**'
+      - 'research/r420-two-block-composition/**'
+      - 'research/r420-compensation-basis/**'
+      - 'research/r420-target-basis/**'
+      - 'research/r420-decoder-sharing/**'
+      - 'research/r420-quad13/**'
+      - 'research/e8-bit-r420/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - '.github/workflows/supplier-circuit-consolidation.yml'
+permissions:
+  contents: read
+jobs:
+  exact-local:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '${{ matrix.python }}'
+      - name: Exact composition and package controls
+        run: |
+          python -B scripts/verify_supplier_consolidation.py --package-tests
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+          git diff --exit-code
+  hosted:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install verification dependencies
+        run: |
+          python -m pip install numpy scipy sympy
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Native, parent, whole-owner and invoice replay
+        env:
+          CXX: g++
+          BOOST_INCLUDE: /usr/include
+        run: python -B scripts/verify_supplier_consolidation.py --hosted --out "$RUNNER_TEMP/consolidation"
+      - name: Require source artifacts unchanged
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: consolidated-supplier-replay
+          path: |
+            ${{ runner.temp }}/consolidation/RESULT.json
+            ${{ runner.temp }}/consolidation/LOCAL.json
+            ${{ runner.temp }}/consolidation/*.log
+            ${{ runner.temp }}/consolidation/*/PRICE.json
