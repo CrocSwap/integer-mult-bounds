@@ -3,8 +3,20 @@
 **No new κ.** This is a scoped negative result plus a screening tool for the highest open claim,
 κ = 0.001675809683500501 (#1193, #1218, #1239). It asks whether that construction can still be improved by
 (a) more width-neutral local moves on its two final words, or (b) a better packing of the same helpers.
-Within the families and relaxations below, the answer is no. It also gives exact prices for helper-width changes,
+Within the families and the model below, the answer is no. It also gives exact prices for helper-width changes,
 so later inventory proposals can be screened before anyone builds them.
+
+> **Superseded in part during this session.** Gains appeared after the base snapshot (21:03Z), and both escape
+> the scope stated here:
+> - #1274 found a local gain on the same words outside the #1186 move families. It replaces the pivot-531 cold
+>   kernel with a helper-donor kernel, giving H1 −3, H3 +1.
+> - #1252 (Gonzalo-Mier), applied in #1268 and #1280, repartitions completely idle rank-48 children
+>   (48+48 → 45+51).
+>
+> So statement 2 below is about the **bin-remainder model**, where an idle child is a bin's unfilled remainder.
+> Idle-axis exchanges after packing are not covered by it. The sweep tallies, the Φ invariant on occupied bins
+> and the width/Φ prices remain valid for what they state. The highest open claim is now
+> 0.001676377648122875 (#1280).
 
 ## Inputs
 
@@ -36,7 +48,7 @@ I used the #1186 toolkit at head `9254a3cc`, unchanged, with exact frame pricing
 The baseline frames are also exactly optimal: the frame-solver optimum equals the published profile. The
 per-candidate results are in `evidence/sweeps/`.
 
-### 2. The incumbent idle profile is optimal for its mix (exact)
+### 2. The incumbent idle profile is optimal for its mix in the bin-remainder model (exact)
 
 `packing.py` uses standard-library integer arithmetic. It recounts every helper width from the two words and
 checks that the flow hosts all 159,840 helpers exactly once. The bins hold `{8:24864, 16:16576, 32:16576, 48:16576}`
@@ -56,8 +68,8 @@ other bin full. Then Φ ≥ −20,810 > −20,814, a contradiction.
 
 The incumbent is tight. Every occupied capacity-48 bin attains −4, and the two `4+9+9+9` bins give −3 each.
 **So the two leftover rank-one idle units cannot be merged into one rank-two child.** That would have been the
-only remaining packing gain, about +3.3·10⁻¹⁰ in κ, for this mix. This holds even with time windows, ports and
-family rules ignored.
+only remaining helper-packing gain, about +3.3·10⁻¹⁰ in κ, for this mix. This holds even with time windows,
+ports and family rules ignored. It does not hold once the idle children themselves are reshaped (#1252).
 
 ### 3. The mix is optimal among demotion counts (numerical screening)
 
@@ -108,11 +120,13 @@ It does not rerun the sweeps or the ILP.
 
 ## Scope and limitations
 
-- The sweeps cover the #1186 move families as implemented, with their default limits: `repair.py` tries at most
+- The sweeps cover the #1186 move families as implemented. #1274's helper-donor kernel shows that gains do exist
+  outside them, with their default limits: `repair.py` tries at most
   40 repairs per fusion. They do not cover other delivery rewrites, entrance or end changes, or different
   helper interfaces. A failed finite search is not an impossibility theorem.
 - The packing statements relax time windows, ports and per-call family rules, so they are upper bounds on what
-  any packing could achieve. They assume the retained T37 bin geometry (capacities ≤ 48) and the {4,5,7,8,9}
+  any helper packing could achieve when an idle child is a bin's remainder. Repartitioning idle axes, as in
+  #1252, is outside that model. They assume the retained T37 bin geometry (capacities ≤ 48) and the {4,5,7,8,9}
   width alphabet.
 - All inherited conditions of the incumbent remain conditions here: all-size compiler, common-label and
   mutable-source realization, whole-call hosting, precision and tape, exact recovery, analytic transfer, and
@@ -125,10 +139,12 @@ It does not rerun the sweeps or the ILP.
    or local word can move κ. *First step:* price candidate single-helper entrance and end changes with the
    #1186 `harness.Pricer`, then score them with the rule above. *Blocked by:* there is no generator for
    single-helper interface changes; #1176 found that entrance demotions need whole four-helper groups.
-2. **Can the bin geometry change?** *Why:* 11,374 idle rank-48 children sit three ranks below the halving-guard
-   cap of 51 (#1240), and Φ only constrains occupied bins. *First step:* compute λ, μ and the idle cost for a
-   hypothetical capacity-51 window family with `aggregate.py`'s model. *Blocked by:* the capacities come from
-   the PR942 five-bank T37 lift; any change needs a new parent geometry and invoice.
+2. **How do the width/Φ prices move once idle children are reshaped?** #1252/#1280 turn idle 48s into 45/51.
+   *Why:* those exchanges change the marginal value of idle mass, and so λ, and with it the break-even price of
+   an entrance group. The mix may then want more or fewer than 208 groups. *First step:* rerun `aggregate.py`
+   with an idle-cost function in which empty capacity-48 bins can pair into 45+51 at #1280's achieved rate.
+   *Blocked by:* that rate depends on #1252's per-(replica, port) commuting-axis condition, which is not
+   modelled here.
 
 ## Credit
 
