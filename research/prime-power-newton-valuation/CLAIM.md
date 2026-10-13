@@ -53,3 +53,28 @@ Tech stack: Python 3.11+ standard library. Scope and design are the claim above.
 6. Submit at most one independent-verification/research-note PR, with exact
    attribution, AI disclosure and unresolved obligations. Do not alter upstream
    or the selected record.
+
+## Final result and handoff (one claim update)
+
+Completed 2026-10-13 at approximately 06:00 UTC, with the final verification
+and handoff phase beginning at 05:51 UTC. Submitted one focused contribution:
+[PR804](https://github.com/CrocSwap/integer-mult-bounds/pull/804).
+
+The fixed domain completed: 214 primitive embeddings, 10,268 exact coefficient
+valuations, two valuation extractors and eight rejecting controls. Nine focused
+tests pass on installed Python 3.12.14 and 3.14.7. The unchanged #621 replay
+matches its full published receipt; selected-record/source integrity passes.
+
+The submission refresh discovered Hao Yan's concurrent #796, posted at
+05:47:56 UTC, with the same formula and weighted-minimum extraction. The
+handoff was therefore narrowed to distinct repeated integral-divisibility
+evidence and radix-81 coverage, not priority for the shared theorem. Its pinned
+receipt agrees on 160 shared embeddings and 5,894 coefficients, with all shared
+hulls and root multiplicities identical. Radix 81 adds 54 embeddings and 4,374
+coefficients. The final metadata refresh retained #796 head
+`22902155c7875139e43e4fdf15723142d6709bdd`; #800's Clifford path-valuation work
+is a different object. Exact comparison pins are in `CORROBORATION.json`.
+
+No kappa change, full repository-suite pass, Linux/CI result, paid inverse,
+proof-assistant formalization or independent human review is claimed.
+`VALIDATION.md` supplies the commands, scope and remaining obligations.
