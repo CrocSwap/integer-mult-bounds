@@ -1,0 +1,39 @@
+name: Check the BW16 unit screen
+
+on:
+  push:
+    paths:
+      - 'research/bw16-unit-screen/**'
+      - 'research/format-limits/scripts/skel.py'
+      - 'research/format-limits/scripts/cert.py'
+      - '.github/workflows/bw16-unit-screen.yml'
+  pull_request:
+    paths:
+      - 'research/bw16-unit-screen/**'
+      - 'research/format-limits/scripts/skel.py'
+      - 'research/format-limits/scripts/cert.py'
+      - '.github/workflows/bw16-unit-screen.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Rebuild BW16, check the clique, the window bracket and the ceiling screen
+        run: python3 -B research/bw16-unit-screen/bw16_check.py
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
