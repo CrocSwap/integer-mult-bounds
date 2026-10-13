@@ -9,6 +9,14 @@ source reads on the same runs using the accepted PR696 copy-initialized reset.
 There are 202 strictly improved transitions, all in full-frame cleanup.
 **There is no additional backward saving under that stronger comparator.**
 
+**Not admissible as-is.** The fused runs keep private work `W` live across
+several target updates, whereas the inherited macro contract clears `W` after
+every addition. The native frame/wrapper checker was not rerun, so the
+physical layout has not been shown to tolerate the longer live range. The
+forward program also needs one more fractional bit (4 versus 3); see
+"Precision". This is a mechanism note for a superseded provider, not a
+frontier or kappa contribution.
+
 The object is the historical PR626/PR622 CK provider, not the current selected
 PR799 X4 construction. Exact base:
 `f567884aeb8851b6e794af1184119a3bfbe1e631`. At that base the accepted conditional
@@ -98,7 +106,7 @@ circuit identity over the rationals (separately over real and imaginary
 components), not a sampled-input observation.
 
 The constructor checks every `u` and sign and solves exactly for `v`; the
-independent checker enumerates both exponents using integer shifts to clear
+second, integer-only checker enumerates both exponents using integer shifts to clear
 denominators. The 496 distinct ordered pairs produce **1,080,288** one-read
 cases. Reset and all applicable power-only transitions are also checked. The
 route table is complete, with lexicographic tie breaking. Minimum costs compose
@@ -106,6 +114,23 @@ within each fixed run because every route has the same prescribed coefficient
 boundary. This is not unrestricted optimality: multiple reads, alternative
 single-macro lowerings (including PR837), reordering, extra scratch and other
 suppliers are excluded.
+
+## Precision
+
+The prefix envelope bounds only the high end. Signed routes can also halve odd
+intermediates, e.g. 23/2 -> 15 passes through a work value with denominator 8.
+The verifier now replays exact rows for both the original and the signed
+lowering and records the deepest power-of-two denominator reached:
+
+| | Original | Signed |
+|---|---:|---:|
+| Forward max fraction bits | 3 | **4** |
+| Backward max fraction bits | 8 | 8 |
+
+Eight forward work steps exceed the original depth. The second checker
+recomputes the work-coefficient depth from the route table and agrees (4 / 2
+for work only). No inherited fixed-point or rounding bound is checked here;
+whether one extra low bit is free under the precision interface is open.
 
 ## Coverage, prefix and accounting
 
@@ -125,7 +150,7 @@ Prefix growth is recomputed. Literal triangle envelopes treat subtraction as
 addition and do not exploit work/source cancellation. Exact maxima and bit
 counts are recorded in EXPECTED.json. The forward bound rises **40 -> 43 bits**
 and the backward bound **62 -> 63 bits**; both remain strictly below the
-inherited `2^192` allowance. The separate integer checker reconstructs all
+inherited `2^192` allowance. The second, integer-only checker reconstructs all
 primitives and positive envelopes, agreeing on complete digests and counts.
 
 The inherited adapter/compiler reserve is **11,058,400,870,400**. Keeping that
@@ -135,7 +160,7 @@ arithmetic substitution budget of **11,058,401,015,806**, versus
 sum. It includes predecessor savings and is **not** a refreshed global invoice
 or admission of the new private-work interface. Recursive profiles are unchanged.
 
-Fifteen controls cover wrong subtraction, omitted initialization, halving,
+Fifteen controls, each required to fail with its stated reason, cover wrong subtraction, omitted initialization, halving,
 target updates and clearing, illegal boundaries, aliases, underpricing and
 endpoint-neutral excessive prefix growth. Omitting final clearing is also
 rejected separately in all 1,117 actual runs. Package tests cover source,
@@ -174,5 +199,8 @@ See [VALIDATION.md](VALIDATION.md).
 
 Prepared for **Joseph / AmazedBot (@amazedbot)** with substantial **OpenAI Codex
 assistance** in research, implementation, proof analysis, verification and
-writing. Both implementations were written by one AI agent; no independent
-human or delegated-agent review is claimed. New files are **Apache-2.0**.
+writing; the precision check and stricter controls were added with
+**Anthropic Claude** assistance. Both implementations were written by AI
+agents and share one cost model and the same input data, so they guard against
+coding slips rather than shared misreadings. No human or delegated-agent review
+is claimed. New files are **Apache-2.0**.

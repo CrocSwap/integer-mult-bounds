@@ -1,4 +1,6 @@
-"""Integer-only exhaustive route/cost/prefix crosscheck; imports no circuit code.
+"""Second, integer-only route/cost/prefix/precision implementation.
+
+It imports no circuit code but re-verifies the constructor's route table.
 
 This implementation enumerates both exponents. The constructor instead solves
 for the second exponent using rational arithmetic. Apache-2.0; see README.md.
@@ -167,7 +169,8 @@ def group_signature(e):
     return tuple(e[1][2]), e[2]
 
 
-def expand_group(chunk, table, mode):
+def expand_group(chunk, table, mode, depth=None):
+    """Expand one run; optionally record W's deepest dyadic denominator exponent."""
     source = tuple(chunk[0][1][2])
     last = None
     word = []
@@ -197,6 +200,8 @@ def expand_group(chunk, table, mode):
                     coefficient = scaled(coefficient, 1 if op[0] == "double" else -1)
                 else:
                     coefficient = plus(coefficient, (1 if op[0] == "add" else -1, 0))
+                if depth is not None:
+                    depth[0] = max(depth[0], coefficient[1])
             demand(coefficient == b, "route identity")
             word.extend(route)
         word.append(("add" if n > 0 else "subtract", tuple(e[1][1]), WORK))
@@ -250,6 +255,7 @@ def audit():
         modes = Counter()
         h = hashlib.sha256()
         at = groups = additions = 0
+        work_depth = [0]
         while at < len(events):
             event = events[at]
             end = at + 1
@@ -269,7 +275,8 @@ def audit():
                 magnitudes = [dyadic(abs(e[1][3]), abs(e[1][4])) for e in chunk]
                 encountered.update((show(a), show(b)) for a, b in zip(magnitudes, magnitudes[1:]))
                 for mode in ("power", "positive", "signed"):
-                    word = expand_group(chunk, table, mode)
+                    word = expand_group(chunk, table, mode,
+                                        work_depth if mode == "signed" else None)
                     modes[mode] += 2 * len(word)
             else:
                 word = lower_copy(event[1])
@@ -288,7 +295,10 @@ def audit():
         demand(h.hexdigest() == receipt["primitive_word_sha256"], "primitive word digest")
         demand(show(peak) == receipt["literal_positive_prefix"], "literal prefix")
         demand(groups == receipt["blocks"] and additions == receipt["run_additions"], "run coverage")
-        summaries[orientation] = {"groups": groups, "prefix": show(peak), "real_primitives": dict(modes)}
+        demand(work_depth[0] <= receipt["max_fraction_bits"], "work precision bound")
+        summaries[orientation] = {"groups": groups, "prefix": show(peak),
+                                  "route_work_fraction_bits": work_depth[0],
+                                  "real_primitives": dict(modes)}
     demand(encountered == set(table), "missing or extra pair coverage")
     demand(len(table) == expected["distinct_coefficient_pairs"], "pair count")
     # Arithmetic controls independent of the Fraction implementation.

@@ -1,61 +1,42 @@
-# Executed validation and handoff scope
+# Executed validation scope
 
-Environment: Linux, CPython 3.12.14. No external Python packages are required.
-Base: `f567884aeb8851b6e794af1184119a3bfbe1e631`.
+Environment: Linux, CPython 3.12.14 and 3.13.16. No external Python packages
+are required. Base: `f567884aeb8851b6e794af1184119a3bfbe1e631`.
 
 Completed locally:
 
 - `python3 -I -B research/ck-signed-coefficient-routes/verify.py` passes.
   It checks both complete scalar programs on 725 arbitrary-input columns,
   496 coefficient pairs, all 1,080,288 signed one-read cases, exact costs,
-  literal positive prefixes, original SPEC/program pins and conditional local
-  arithmetic. Fraction and integer engines agree on the full primitive words.
-- All 15 mathematical/interface controls reject their intended mutations.
-  Every one of the 1,117 actual runs also rejects omission of its final clear.
+  literal positive prefixes, exact fractional depth, original SPEC/program
+  pins and conditional local arithmetic. The Fraction engine and the second,
+  integer-only engine agree on the full primitive words and on work precision.
+- All 15 mathematical/interface controls reject their intended mutations, and
+  each must fail with its stated reason. Every one of the 1,117 actual runs
+  also rejects omission of its final clear.
 - `python3 -I -B research/ck-signed-coefficient-routes/test_package.py`:
-  **6 tests pass**. It includes `-I -O -S -B` execution from an unrelated working
-  directory in a minimal source tree with spaces in its path; alternative gzip
-  compression passes and no input files are written. Source, route-cost,
-  coverage, invoice and actual signed-instruction corruptions are rejected.
+  **6 tests pass**, including relocated `-I -O -S -B` execution, alternative
+  gzip compression, and rejection of source, route-cost, coverage, invoice and
+  signed-instruction corruption.
 - `make selected-record-check` passes with the unchanged selected conditional
-  value `1661634653669567/1000000000000000000` and source/proof inventories.
+  value `1661634653669567/1000000000000000000`.
 
-The literal positive prefix costs increase to 43 and 63 bits. Neither
-endpoint equality nor the inherited 40/62-bit bounds is used to conceal that
-increase. The retained 192-bit allowance still passes.
+Measured costs of the construction, not hidden by endpoint equality:
 
-The native frame/wrapper checker, supplier cold reconstruction, global
-hosting/invoice/assembly, complete `make verify`, Lean and hosted CI were
-**not** run. No existing generator or selected construction is modified; only
-this standalone package is added. The inherited native evidence is pinned,
-not relabelled as fresh native verification. This is not a formal proof of the
-full multiplication theorem.
+- Literal positive prefix: 40 -> 43 bits forward, 62 -> 63 backward; the
+  retained 192-bit allowance passes.
+- Fractional depth: 3 -> 4 bits forward (8 work steps exceed the original
+  depth), 8 -> 8 backward. No inherited precision bound is checked.
+- Private work is live across target updates within a run.
 
-The initial original-Horner screen found 1,308/456 additional primitives saved.
-Verification against the stronger accepted PR696 copy reset removed the
-backward gain and reduced the forward gain to **926**. The final result uses
-that stronger comparator, and no preliminary certificate is shipped.
+**Not run:** the native frame/wrapper checker, supplier cold reconstruction,
+global hosting/invoice/assembly, complete `make verify`, Lean and hosted CI.
+Admission of the longer work live range and the extra low bit therefore
+remains open. No existing generator or selected construction is modified; only
+this standalone package is added. This is not a formal proof of the full
+multiplication theorem.
 
-Overlap checks inspected recent open PRs through #847 initially, targeted
-signed/coefficient queries, then recent arrivals through #856. PR769 and PR811
-heads were refreshed and still matched their pins. No duplicate signed-read
-CK package was found in those checks; this is not a claim to have read every
-file in every open PR. PR837/839 and other coefficient/basis work are credited
-in README.md. The only open issue found was #650, requesting Discussions;
-there was no sprint coordination issue, so the claim is local.
-
-At the initial patch handoff, the connected account had read access but no push permission to the target,
-and no accessible `amazedbot/integer-mult-bounds` fork was found. No fork-creation
-operation is exposed by the connected tools. The initial contribution was therefore
-handed off as one clean patch and a portable replay bundle. The user subsequently
-created `amazedbot/integer-mult-bounds`; its write permission was verified on
-2026-10-13 before preparing one focused PR. The original verified circuit and
-receipts are unchanged. The pre-submission metadata refresh covered arrivals
-through #858 and found no matching signed-read CK contribution. Upstream main
-remained at the exact experimental base. No selected frontier or upstream file
-is modified.
-
-Both verification implementations were written by the same OpenAI Codex agent
-for Joseph / AmazedBot. Algorithmic independence does not mean independent
-human review. New code and notes are Apache-2.0; predecessor credit and source
-notices are retained.
+Both verification implementations were written by AI agents for Joseph /
+AmazedBot and share the cost model and input data; they guard against coding
+slips, not shared misreadings. No human review is claimed. New code and notes
+are Apache-2.0; predecessor credit and source notices are retained.

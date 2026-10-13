@@ -151,8 +151,15 @@ def check_endpoint(rows, orientation):
             "private work or center dirt survived")
 
 
+def fraction_bits(row):
+    """Largest power-of-two denominator exponent in one exact coefficient row."""
+    return max((x.denominator.bit_length() - 1 for x in row.values()), default=0)
+
+
 def replay(events, orientation, checks):
-    rows, direct = initial(), initial()
+    rows, direct, base = initial(), initial(), initial()
+    depth = {"signed": 0, "original": 0}
+    work_bits = Counter()
     env = {r: Q(1) for r in rows}
     baseline_env = env.copy()
     peak = baseline_peak = Q(1)
@@ -212,8 +219,14 @@ def replay(events, orientation, checks):
             macro_step(direct, event[1])
             for primitive in reference(event[1]):
                 baseline_peak = max(baseline_peak, envelope_step(baseline_env, primitive))
+                step(base, primitive)
+                depth["original"] = max(depth["original"], fraction_bits(base[primitive[1]]))
         for primitive in word:
             step(rows, primitive)
+            bits_now = fraction_bits(rows[primitive[1]])
+            if primitive[1] == WORK:
+                work_bits[bits_now] += 1
+            depth["signed"] = max(depth["signed"], bits_now)
             peak = max(peak, envelope_step(env, primitive))
             operations[primitive[0]] += 2
             primitive_hash.update(encoded([e[2], primitive]) + b"\n")
@@ -247,6 +260,11 @@ def replay(events, orientation, checks):
         "literal_positive_prefix": str(peak), "literal_positive_prefix_bits": bits,
         "original_positive_prefix": str(baseline_peak),
         "charged_payload_bits": 192,
+        # Low-end precision: exact rows on unit inputs, not an envelope.
+        "max_fraction_bits": depth["signed"],
+        "original_max_fraction_bits": depth["original"],
+        "work_steps_finer_than_original_max": sum(
+            n for b, n in work_bits.items() if b > depth["original"]),
         "paid_profile": {str(k): v for k, v in sorted(paid.items())},
         "non_scalar_sha256": digest(encoded(non_scalar)),
         "primitive_word_sha256": primitive_hash.hexdigest(),
@@ -278,8 +296,8 @@ def controls(programs):
         try:
             action()
         except (ValueError, KeyError, ZeroDivisionError) as error:
-            if fragment:
-                require(fragment in str(error), "control failed for wrong reason: " + name)
+            require(fragment is not None, "control without expected reason: " + name)
+            require(fragment in str(error), "control failed for wrong reason: " + name)
             rejected.append(name)
         else:
             raise ValueError("accepted control: " + name)
@@ -288,25 +306,30 @@ def controls(programs):
               ["scalar", ["add", ["L", 2], ["L", 0], 1, 2], 0]]
     word = block_word(sample)
     require(("subtract", WORK, ("L", 0)) in word, "subtraction control absent")
-    reject("missing_final_clear", lambda: local_check(sample, word[:-1]))
-    reject("missing_initial_copy", lambda: local_check(sample, word[1:]))
+    reject("missing_final_clear", lambda: local_check(sample, word[:-1]), "local arbitrary-input identity")
+    reject("missing_initial_copy", lambda: local_check(sample, word[1:]), "local arbitrary-input identity")
     bad = [("add", *op[1:]) if op[0] == "subtract" else op for op in word]
-    reject("wrong_signed_read", lambda: local_check(sample, bad))
+    reject("wrong_signed_read", lambda: local_check(sample, bad), "local arbitrary-input identity")
     bad = [op for op in word if not (op[0] == "add" and op[1] == ("L", 2))]
-    reject("missing_target_accumulation", lambda: local_check(sample, bad))
+    reject("missing_target_accumulation", lambda: local_check(sample, bad), "local arbitrary-input identity")
     bad = [op for op in word if op[0] != "halve"]
-    reject("omitted_halving", lambda: local_check(sample, bad))
-    for name, event in {
-        "source_change": ["scalar", ["add", ["L", 2], ["L", 3], 1, 2], 0],
-        "frame_change": ["scalar", sample[1][1], 1],
-        "source_write": ["scalar", ["add", ["L", 0], ["L", 0], 1, 2], 0],
-        "unit_barrier": ["scalar", ["add", ["L", 2], ["L", 0], 1, 1], 0],
-        "phase_barrier": ["phase", "other"],
-    }.items():
-        reject(name, lambda event=event: block_word([sample[0], event]))
-    reject("non_dyadic", lambda: reference(["add", ["L", 1], ["L", 0], 1, 3]))
-    reject("zero_coefficient", lambda: reference(["add", ["L", 1], ["L", 0], 0, 1]))
-    reject("work_alias", lambda: reference(["add", ["L", 1], list(WORK), 1, 2]))
+    reject("omitted_halving", lambda: local_check(sample, bad), "local arbitrary-input identity")
+    barrier = "run crosses a source, frame, unit or non-scalar barrier"
+    for name, event, why in (
+        ("source_change", ["scalar", ["add", ["L", 2], ["L", 3], 1, 2], 0], barrier),
+        ("frame_change", ["scalar", sample[1][1], 1], barrier),
+        ("source_write", ["scalar", ["add", ["L", 0], ["L", 0], 1, 2], 0],
+         "source aliases target"),
+        ("unit_barrier", ["scalar", ["add", ["L", 2], ["L", 0], 1, 1], 0], barrier),
+        ("phase_barrier", ["phase", "other"], barrier),
+    ):
+        reject(name, lambda event=event: block_word([sample[0], event]), why)
+    reject("non_dyadic", lambda: reference(["add", ["L", 1], ["L", 0], 1, 3]),
+           "nonzero dyadic required")
+    reject("zero_coefficient", lambda: reference(["add", ["L", 1], ["L", 0], 0, 1]),
+           "nonzero dyadic required")
+    reject("work_alias", lambda: reference(["add", ["L", 1], list(WORK), 1, 2]),
+           "source aliases target or work")
     choice = route(Q(3, 2), Q(1, 2))
     reject("undercharged_read", lambda: route_word(("L", 0), Q(1, 2),
                                                    (choice[0] - 1, *choice[1:])),
@@ -368,7 +391,8 @@ def main():
     result, routes = verify()
     require(routes == read(HERE / "ROUTES.json"), "route certificate mismatch")
     require(result == read(HERE / "EXPECTED.json"), "receipt mismatch")
-    # This engine imports neither this verifier nor the construction module.
+    # Second implementation (same AI author): imports neither this verifier nor
+    # the construction module, but re-verifies the constructor's route table.
     from independent_check import audit
     independent = audit()
     require(independent["pairs"] == len(routes), "independent coverage")
