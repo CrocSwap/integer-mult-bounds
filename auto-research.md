@@ -1,12 +1,3 @@
-# Auto-research: instructions for agents
-
-This repository is worked on by many human-guided AI agents at once (Codex, Claude Code and others). This file is the entry point for any agent starting a session. Read it first, then follow the shared prompt.
-
-## 1. The shared prompt
-
-This is the community prompt by @Mister-Meeseeks, reproduced verbatim from https://gist.github.com/Mister-Meeseeks/9f768c8b1a3e7d2e70b8e5c0bc18ab7e (gist revision of 2026-10-13T13:17:00Z). If the gist has changed since, the gist is authoritative.
-
-```text
 Contribute one useful, independently reviewable result to:
 https://github.com/CrocSwap/integer-mult-bounds
 
@@ -168,66 +159,29 @@ Do not merge, close others' PRs, or edit the selected frontier on your own.
 
 Success means useful evidence that another person can check—not necessarily
 a bigger headline number.
-```
 
-## 2. Where your work goes: research tracks in `auto-research/`
 
-**All research goes into [`auto-research/`](auto-research/README.md).** That includes new constructions, κ claims, negative and no-gain results, audits, verifications and tooling. Every contribution belongs to a **research track**: a top-level folder under `auto-research/` that collects one line of work, for example a supplier family, a geometry or an audit theme.
+SUBMITTING RESEARCH TO /auto-research
 
-### Step 1: find the track your work belongs to
+Put all research in the auto-research/ folder. That covers constructions, kappa
+claims, negative and no-gain results, audits, verifications and tooling. Do not
+edit research/; it is the frozen legacy tree that existing verifiers pin.
 
-Before creating anything, look through `auto-research/` (`ls auto-research/`, then each track's `README.md`) and the experiment log. Join an existing track if your work:
+Each top-level folder in auto-research/ is a research track. Before you start,
+list the tracks and read their README.md files.
 
-- builds on, extends, replays or audits a package already in that track;
-- uses the same construction, word, supplier or geometry; or
-- tests a hypothesis the track lists as open.
+- If your work continues, replays or audits an existing track, add your
+  contribution to that track as a new folder:
+    auto-research/<track>/<YYYY-MM-DD>-<handle>-<short-slug>/
+  Then append one line to the track's README.md index: date, handle, result,
+  status and PR number. Do not edit files other contributors committed.
 
-Every package mirrored from `research/` is an existing track. For example, work on PR799's word belongs in `auto-research/gauge44-frames-x/`.
+- If no existing track fits, create a new one:
+    auto-research/<new-track>/README.md   (goal, open questions, index)
+    auto-research/<new-track>/<YYYY-MM-DD>-<handle>-<short-slug>/
+  Use a short lowercase slug that names the idea, and link related tracks.
 
-### Step 2a: contribute to an existing track
-
-Add your contribution as a new dated subfolder inside the track. Do not edit or overwrite files that other contributors committed there.
-
-```
-auto-research/<track>/<YYYY-MM-DD>-<handle>-<short-slug>/
-```
-
-Then append one line for your contribution to the track's `README.md` index: date, handle, one-sentence result, status, PR number.
-
-### Step 2b: create a new track
-
-Create a new track only if no existing track fits. Choose a short, descriptive, lowercase slug that names the idea, not the person, for example `leech-port-geometry` or `centre-rank-decoders`.
-
-```
-auto-research/<new-track>/
-  README.md                                     track goal, open questions, index of contributions
-  <YYYY-MM-DD>-<handle>-<short-slug>/           your contribution
-```
-
-Name the predecessor tracks in the new track's `README.md`, so others can find related work.
-
-### Inside every contribution folder
-
-```
-README.md        what was tried, the result, the exact reproduce command and its scope
-RESULT.json      machine-readable outcome (see auto-research/README.md)
-verify.py        or verify.sh: one command, standard library where possible
-MANIFEST.json    sha256 of every file in the contribution
-NOTICE.md        sources pinned by commit, credits and AI-assistance disclosure
-code/  data/  evidence/   as needed
-```
-
-Negative and no-gain results are welcome. Record them in their track so other agents do not repeat the same search.
-
-### About `research/`
-
-The legacy [`research/`](research/) tree stays where it is and should not be edited. More than 1,600 files pin paths under `research/` (verifiers, manifests, hashes and the Makefile). `auto-research/` holds a byte-identical mirror of it, so each legacy package is already a track. Keep running legacy verifiers from `research/`, and put all new work under `auto-research/`.
-
-## 3. Ground rules
-
-- κ claims must come from an exact, reproducible replay (both moment engines and all strict outer inequalities), never from estimates.
-- State scope honestly: finite certificate checks are not a full theorem, and "no candidate found" is not an impossibility proof.
-- Keep `upstream/` unchanged, follow CONTRIBUTING.md, and run the checks your change affects.
-- Credit every predecessor PR you build on, and disclose the models and harnesses you used.
-- Do not use shared or production infrastructure that isn't yours for compute. Use your own sandboxes.
-- Before starting, check the experiment log and recent `no new kappa` PRs for your idea.
+Each contribution folder contains README.md (what was tried, the result, the
+exact reproduce command and its scope), RESULT.json, a verify.py or verify.sh
+command, MANIFEST.json (sha256 of every file) and NOTICE.md (pinned sources,
+credits and AI-assistance disclosure).
