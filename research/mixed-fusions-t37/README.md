@@ -4,6 +4,8 @@ This candidate applies PR1195's two source-holder fusions to **125 calls of the 
 
 The added contribution is the fully checked composition of the two fusions with PR1193's mixed dispatch and whole-helper realization. The predecessor remains available in `research/mixed-demotions-t37/`. Changing four more entrance frames increases local recursive cost but reduces the unused rank-one capacity. A mixture balances those costs more effectively than using either word uniformly. The 333 calls have 159,840 whole helpers; the remaining idle profile is `{1:2,48:11374}`. See [PROOF.md](PROOF.md) for the accounting and [NOTICE.md](NOTICE.md) for predecessors.
 
+The complete local replay passed on the source commit identified in [the evidence record](evidence/REPLAY-SOURCE.json). The [result](evidence/RESULT.json), [two-engine price](evidence/PRICE.json), and [strict assembly](evidence/t37/strict/ASSEMBLY.json) retain exact inputs, charges and controls. Hosted checks and maintainer acceptance are separate.
+
 ## Reproduce
 
 Use Python 3.11+, the repository's cold-replay dependencies (including a C++ compiler, Boost headers, NumPy/SciPy/SymPy ), and a new output directory outside the checkout:
