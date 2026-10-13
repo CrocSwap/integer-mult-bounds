@@ -30,10 +30,12 @@ beyond the same-domain positive-read comparator. An earlier clear-plus-add
 comparator overstated the gain (1,308 / 456) and was retired.
 
 Costs of the change: the literal positive prefix rises to 43/63 bits (within
-192), forward precision rises from 3 to 4 fractional bits, and private work
-stays live across target updates inside a run. The last two are not checked
-against any native or precision interface. No kappa is claimed.
+192), forward precision rises from 3 to 4 fractional bits (provider maximum
+unchanged at 8), and private work stays live across target updates inside a
+run, in its dedicated registers. Admitted into a fresh PR626 replay with
+kappa reproduced exactly; no new kappa is claimed.
 
 Prepared for Joseph / AmazedBot (@amazedbot) with substantial OpenAI Codex
-assistance; the precision check and control tightening were added with
-Anthropic Claude assistance. New files are Apache-2.0. No human review is claimed.
+assistance; the precision check, control tightening and PR626 admission were
+added with Anthropic Claude assistance. New files are Apache-2.0. No human
+review is claimed.

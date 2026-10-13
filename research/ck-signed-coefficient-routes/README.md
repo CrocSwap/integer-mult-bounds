@@ -9,13 +9,13 @@ source reads on the same runs using the accepted PR696 copy-initialized reset.
 There are 202 strictly improved transitions, all in full-frame cleanup.
 **There is no additional backward saving under that stronger comparator.**
 
-**Not admissible as-is.** The fused runs keep private work `W` live across
-several target updates, whereas the inherited macro contract clears `W` after
-every addition. The native frame/wrapper checker was not rerun, so the
-physical layout has not been shown to tolerate the longer live range. The
-forward program also needs one more fractional bit (4 versus 3); see
-"Precision". This is a mechanism note for a superseded provider, not a
-frontier or kappa contribution.
+**Admitted into the historical PR626 composition; kappa unchanged.** A fresh
+`frontier626-verify` replay plus `admission.py` re-issues the PR626 invoice
+with these CK counts and reruns the retained assembly and admission controls.
+Every finite inequality passes, the CK provider's fractional depth (8 bits)
+and the global prefix (286 of 512 bits) are unchanged, and the selected
+kappa is reproduced exactly. See "Admission". This is not a contribution to
+the current #799 X4 frontier.
 
 The object is the historical PR626/PR622 CK provider, not the current selected
 PR799 X4 construction. Exact base:
@@ -41,6 +41,14 @@ separate integer-only exhaustive checker. Portable-package tests:
 
 ```sh
 python3 -I -B research/ck-signed-coefficient-routes/test_package.py
+```
+
+Admission into a fresh PR626 replay (needs numpy, sympy, scipy, a C++17
+compiler and Boost headers; about 20 minutes on two cores):
+
+```sh
+python3 -B scripts/verify_frontier626.py --work /tmp/f626
+python3 -B research/ck-signed-coefficient-routes/admission.py --work /tmp/f626 --out /tmp/f626-signed
 ```
 
 ## Complete local scalar counts
@@ -127,10 +135,39 @@ lowering and records the deepest power-of-two denominator reached:
 | Forward max fraction bits | 3 | **4** |
 | Backward max fraction bits | 8 | 8 |
 
-Eight forward work steps exceed the original depth. The second checker
-recomputes the work-coefficient depth from the route table and agrees (4 / 2
-for work only). No inherited fixed-point or rounding bound is checked here;
-whether one extra low bit is free under the precision interface is open.
+Eight forward work steps exceed the original forward depth. The second
+checker recomputes the work-coefficient depth from the route table and agrees
+(4 / 2 for work only). Precision is charged per provider, as the maximum over
+orientations, and the CK backward program already needs 8 bits. The
+provider's maximum is therefore unchanged at 8; `admission.py` asserts this.
+
+## Admission
+
+The PR626 native audit applies each scalar macro atomically and only requires
+private work to be erased; work is not a native register. The invoice hosts
+coefficient work as two dedicated physical registers that no child or wrapper
+borrows, and every fused run contains no child, wrapper or frame event. So the
+longer work live range needs no new hosting. `admission.py` checks, on a
+passed `frontier626-verify` work directory:
+
+1. the fresh CK programs, checks and native replay are byte-identical to the
+   ones this package replays, so the native admission covers them;
+2. coefficient work is two dedicated physical registers;
+3. the retained `invoice_allcold.py`, after its own original-byte checks,
+   recomputes every finite inequality with the signed CK counts;
+4. CK fractional depth (8) and the global prefix (286 bits) are unchanged;
+5. the retained assembly and its admission controls pass and reproduce kappa
+   `51110230636731/31250000000000000` exactly.
+
+The retained SPEC pins the CK contract and local recount. Only those entries
+are replaced (listed in [ADMISSION.json](ADMISSION.json)); kappa, profiles,
+hashes and control counts keep their original pins. The selected scalar
+recount falls from 18,263,888 to 17,530,324 real-component primitives and the
+CK local bound from 11,058,401,095,386 to 11,058,401,015,806. These include
+predecessor copy, power and positive-read savings; only 926 forward
+primitives are due to signed reads. Kappa depends on the paid profile and
+owner geometry, not these counts, so it cannot move. A control that raises
+the recorded fractional depth is rejected.
 
 ## Coverage, prefix and accounting
 
@@ -189,17 +226,16 @@ icekylinx, DreamingOfClouds, Rohan Arun, eumemic**, and the predecessors retaine
 in the pinned original notice/review. Their construction, geometry, hosting,
 interface and conditional-theorem credit is preserved.
 
-Production integration of the extended work boundary, refreshed global
-admission/invoice, all-size compiler, common-label/mutable-basis realization,
-hosting, rounding/precision, tape and analytic transfer remain separate or
-inherited obligations. The native frame checker and supplier cold rebuild
-were not rerun. This checks the scalar projection and unchanged event stream,
-not the complete multiplication theorem, and does not transport counts to X4.
+Integration into the current #799 X4 frontier, the all-size compiler,
+common-label/mutable-basis realization, hosting, rounding/precision, tape and
+analytic transfer remain separate or inherited obligations. This admits the
+lowering into the finite PR626 composition only; it is not a proof of the
+complete multiplication theorem and does not transport counts to X4.
 See [VALIDATION.md](VALIDATION.md).
 
 Prepared for **Joseph / AmazedBot (@amazedbot)** with substantial **OpenAI Codex
 assistance** in research, implementation, proof analysis, verification and
-writing; the precision check and stricter controls were added with
+writing; the precision check, stricter controls and PR626 admission were added with
 **Anthropic Claude** assistance. Both implementations were written by AI
 agents and share one cost model and the same input data, so they guard against
 coding slips rather than shared misreadings. No human or delegated-agent review
