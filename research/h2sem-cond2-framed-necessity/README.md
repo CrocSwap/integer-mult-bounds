@@ -89,7 +89,17 @@ Credit **Aaron Wang / navinor (PR1782)** for the F4 probe shape and the open
 necessity question; **woklerx (PR1194)** for H2-sem and the chronological
 bridge; **PR848** for the pair census and C1 contrast; **DreamingOfClouds
 (PR589)** and **eumemic (PR555)** for the R439 word; **PR1805** for the priced
-admitted-wrap companion (not consumed as code). Prepared by **Wentao Li**
+admitted-wrap companion (not consumed as code). 
+
+## Disposition (2026-10-14)
+
+**Defer / closed as freestanding upstream claim.** Open
+[CrocSwap/integer-mult-bounds#1782](https://github.com/CrocSwap/integer-mult-bounds/pull/1782)
+already records the F4 `cond2=false` probe with boundary/frames/semantic fields.
+This package’s fuller framed bill is hygiene, not a new independence fact.
+
+
+Prepared by **Wentao Li**
 ([VictorLiwentao](https://github.com/VictorLiwentao),
 [@Is__Victor](https://x.com/Is__Victor)) with substantial AI assistance.
 Apache-2.0. No independent human review claimed.
