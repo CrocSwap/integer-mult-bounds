@@ -4,6 +4,9 @@
 Every candidate proposition is first checked by `#check`, separately from its
 attempted proof. Import, syntax, typing, missing-instance and resource-limit
 failures never count as successful rejection. No package source is mutated.
+Large tables are rewritten through kernel-certified joins before residual
+`decide`; the literal root-coordinate certificate uses `decide +kernel`.
+Both paths retain default settings and never invoke native evaluation.
 """
 import hashlib
 import json
@@ -65,6 +68,102 @@ def candidate : Fin 64 → ℚ :=
      'candidate 63 = 0'),
 ]
 
+# Rewrite the large certified frame table through its checked joins before
+# computing a small residual proposition. The same proof body is used for
+# each admitted original input and its mutant, under default Lean options.
+PROOFS = {
+    'entrance_frame_id': '''  have hframe : sourceEntrance (0 : Port) = (2 : Fin 944) := by
+    apply Fin.ext
+    simpa only [Fin.val_zero, Nat.zero_add] using (endpoint_label_values (0 : Port)).1
+  have hroot : rootVector 0 0 = (2 : Int) := by decide +kernel
+  have hscaled : FrameGeometry.scaled (2 : Fin 944) 0 0 = 4 := by
+    rw [← hframe, entrance_scaled, hroot]
+    decide
+  simp only [candidate, hscaled, FrameGeometry.scaled_zero_entries, hroot]
+  all_goals decide
+''',
+    'root_coordinate': '''  have hroot : rootVector 0 0 = (2 : Int) := by decide +kernel
+  rw [entrance_scaled, hroot]
+  simp only [candidate]
+  all_goals decide
+''',
+    'stage2_axis': '''  unfold candidate
+  have haxes : routeAxes 0 2 = blockAxes (⟨1, by decide⟩ : Fin 3) :=
+    route_axes_positive 0 ⟨1, by decide⟩
+  rw [haxes]
+  decide
+''',
+    'reflection_side_swap': '''  have hs : sourceEntrance (0 : Port) = (2 : Fin 944) := by
+    apply Fin.ext
+    simpa only [Fin.val_zero, Nat.zero_add] using (endpoint_label_values (0 : Port)).1
+  have ht : targetEntrance (0 : Port) = (0 : Fin 944) :=
+    (endpoint_label_values (0 : Port)).2.1
+  change (if candidateSide then targetEntrance 0 else sourceEntrance 0) = targetEntrance 0
+  rw [hs, ht]
+  unfold candidateSide
+  decide
+''',
+    'cumulative_exterior': '''  have houtside (e : Endpoint) (v : Fin 64 → ℚ) (i : Fin 64)
+      (hi : ¬i.val < 8) (hlen : e.axes.length ≠ 8)
+      (hidx : ¬e.axes.idxOf i.val < 15) :
+      endpointOperator ℚ 0 e v i = if e.exterior.contains i.val then v i else 0 := by
+    simp only [endpointOperator, axisRoute, if_neg hlen, dif_neg hidx,
+      liftedOperator, dif_neg hi]
+  have haxes : routeAxes 0 3 = blockAxes (⟨2, by decide⟩ : Fin 3) :=
+    route_axes_positive 0 ⟨2, by decide⟩
+  have ha : candidate.axes = blockAxes (⟨2, by decide⟩ : Fin 3) := by
+    simpa only [candidate, literal, localEndpoint_axes] using haxes
+  have hlen : candidate.axes.length ≠ 8 := by rw [ha, blockAxes_length]; decide
+  have hidx : ¬candidate.axes.idxOf (8 : Fin 64).val < 15 := by rw [ha]; decide
+  rw [houtside candidate retainedExterior 8 (by decide) hlen hidx]
+  have update_exterior (e : Endpoint) (ext : List Nat) :
+      ({ e with exterior := ext } : Endpoint).exterior = ext := by rfl
+  have hv : retainedExterior 8 = 1 := by decide
+  delta candidate
+  rw [update_exterior, hv]
+  have hext : (exteriorAxes 0 3).contains 8 = true := by
+    simpa using exterior_axes_contains 0 (⟨3, by decide⟩ : Fin 4) (⟨8, by decide⟩ : Fin 64)
+  simp only [show (8 : Fin 64).val = 8 from rfl, candidateExterior, hext, haxes]
+  all_goals decide
+''',
+    'local8_complement_before_extension': '''  have houtside (e : Endpoint) (v : Fin 64 → ℚ) (i : Fin 64)
+      (hi : ¬i.val < 8) (hlen : e.axes.length ≠ 8)
+      (hidx : ¬e.axes.idxOf i.val < 15) :
+      endpointOperator ℚ 0 e v i = if e.exterior.contains i.val then v i else 0 := by
+    simp only [endpointOperator, axisRoute, if_neg hlen, dif_neg hidx,
+      liftedOperator, dif_neg hi]
+  have haxes : routeAxes 0 1 = blockAxes (⟨0, by decide⟩ : Fin 3) :=
+    route_axes_positive 0 ⟨0, by decide⟩
+  have ha : reflected.axes = blockAxes (⟨0, by decide⟩ : Fin 3) := by
+    simpa only [reflected, localEndpoint_axes] using haxes
+  have hlen : reflected.axes.length ≠ 8 := by rw [ha, blockAxes_length]; decide
+  have hidx : ¬reflected.axes.idxOf (63 : Fin 64).val < 15 := by rw [ha]; decide
+  have hext : reflected.exterior.contains 63 = false := by
+    have h : (exteriorAxes 0 1).contains 63 = false := by
+      simpa using exterior_axes_contains 0 (⟨1, by decide⟩ : Fin 4) (⟨63, by decide⟩ : Fin 64)
+    simpa only [reflected, localEndpoint_exterior] using h
+  have hlocal : endpointOperator ℚ 0 reflected outside 63 = 0 := by
+    rw [houtside reflected outside 63 (by decide) hlen hidx]
+    simp only [show (63 : Fin 64).val = 63 from rfl, hext, Bool.false_eq_true, if_false]
+  have update_axes (e : Endpoint) (b : Bool) :
+      ({ e with complemented := b } : Endpoint).axes = e.axes := rfl
+  have update_exterior (e : Endpoint) (b : Bool) :
+      ({ e with complemented := b } : Endpoint).exterior = e.exterior := rfl
+  have hambientBase : endpointOperator ℚ 0 { reflected with complemented := false } outside 63 = 0 := by
+    have hlen' : ({ reflected with complemented := false } : Endpoint).axes.length ≠ 8 := by
+      rw [update_axes]
+      exact hlen
+    have hidx' : ¬({ reflected with complemented := false } : Endpoint).axes.idxOf (63 : Fin 64).val < 15 := by
+      rw [update_axes]
+      exact hidx
+    rw [houtside { reflected with complemented := false } outside 63 (by decide) hlen' hidx', update_exterior]
+    simp only [show (63 : Fin 64).val = 63 from rfl, hext, Bool.false_eq_true, if_false]
+  simp only [candidate, chooseLocal8, Bool.true_eq, Bool.false_eq_true, if_true,
+    if_false, Pi.sub_apply, hlocal, hambientBase, outside, sub_zero]
+  all_goals decide
+''',
+}
+
 
 def run(lake):
     results = []
@@ -72,7 +171,7 @@ def run(lake):
         record = {'name': name, 'originalInput': original, 'mutatedInput': changed}
         for kind, value in [('positive', original), ('mutated', changed)]:
             admitted = PRELUDE + declarations.replace('VALUE', value) + '\n#check (' + proposition + ')\n'
-            attempted = admitted + '\nexample : ' + proposition + ' := by decide\n'
+            attempted = admitted + '\nexample : ' + proposition + ' := by\n' + PROOFS.get(name, '  decide\n')
             with tempfile.TemporaryDirectory(prefix='phase2-control-', dir=HERE / '.lake') as tmp:
                 directory = Path(tmp)
                 typed = directory / 'Typed.lean'

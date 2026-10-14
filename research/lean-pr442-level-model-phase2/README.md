@@ -127,7 +127,9 @@ actual axiom sets and artifact freshness.
 Each Lean mutation control first checks that its candidate proposition is
 well typed, then compiles the positive witness and requires semantic rejection
 of the corresponding changed input. Import errors, malformed Lean, missing
-instances and resource-limit failures do not count as rejection. Controls
+instances and resource-limit failures do not count as rejection. Large literal
+tables are reduced through certified joins or Lean kernel evaluation, with no
+nondefault options. Controls
 exercise frame IDs, a root coordinate, stage axes, reflected orientation,
 reflection's side swap, bridge partners and cumulative exterior axes. The
 critical ambient-complement witness uses an untouched exterior coordinate.
