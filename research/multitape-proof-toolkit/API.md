@@ -75,3 +75,24 @@ Names are taken from actual defining modules; inspect exact binders before use.
 The controller assumes marked word banks; the output converter assumes the
 compiler's stack representation and a real MSB-first input list. Neither hides
 a buffer placement or reversal cost.
+
+
+## Larger banks and physical output ABI
+
+| Need | Interface | Actual conclusion |
+|---|---|---|
+| Add finite tapes | `Absolute.TapeEmbedding.lift_step`, `lift_runs`, `lift_halts`, `preserves_extra` | Identical transition count and whole dirty extra preservation |
+| Child work bank | `Absolute.GenericParkingController.wrapper_correct` | Actual child may return changed extra heads/cells; full caller invoice and halt |
+| Unmarked lifecycle | `Absolute.CleanBoundary.machine_correct`, `Absolute.GenericParkingController.clean_machine_correct` | Exact `6|x|+5|y|+24`; fully blank IO/temp; arbitrary bank spectators |
+| Compiler anchors | `TM2Compiler.Anchored.anchored_compile_run`, `anchored_halts` | Actual final head `anchor-length(stack)`, exact realized cells and bounded physical run |
+| Stack-origin output | `Absolute.StackOriginSerializer.serialize_correct` | Exact `3m+4`; padded reversed word at origin zero, source erased and both heads restored |
+| Arithmetic example | `BinaryMultiplicationOriginABI.quadratic_origin_product`, `quadratic_origin_product_uniform` | Fixed six-tape actual quadratic product at origin, with charged serializer and handoff |
+| Empty arithmetic | `BinaryMultiplicationOriginABI.zero_correct`, `output_zero_bank` | Genuine width-zero run/halt and all-zero heads/full blank cells |
+
+The serializer requires distinct source/destination roles, a real LSB compiler
+stack, a fully blank destination headed at zero, and arbitrary spectators.
+The arithmetic input is two separate LSB compiler stacks, not a single serialized
+input word. Its output is fixed-width padded MSB, not trimmed canonical bits.
+Its remaining arithmetic workspace is described explicitly. The arbitrary-bank
+caller uses marked Symbol IO and needs its actual child entry/return contract;
+the arithmetic example is not silently identified with that convention.

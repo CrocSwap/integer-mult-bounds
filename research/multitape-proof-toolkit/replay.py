@@ -25,7 +25,7 @@ def command(argv, *, cwd, env=None, timeout=180):
 def check_module_inventory(config):
     modules = config["modules"]
     checks.need(modules and len(modules) == len(set(modules)), "empty or duplicated module list")
-    checks.need(all(re.fullmatch(r"MultitapeToolkit\.[A-Za-z][A-Za-z0-9]*", n) for n in modules), "invalid owned module name")
+    checks.need(all(re.fullmatch(r"MultitapeToolkit(?:\.[A-Za-z][A-Za-z0-9]*)+", n) for n in modules), "invalid owned module name")
     files = {p.relative_to(P / "lean").as_posix() for p in (P / "lean").rglob("*.lean")
              if ".lake" not in p.relative_to(P / "lean").parts}
     expected = {n.replace(".", "/") + ".lean" for n in modules} | {"MultitapeToolkit.lean", "Check.lean"}

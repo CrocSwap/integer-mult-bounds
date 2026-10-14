@@ -131,3 +131,46 @@ held bit; width and n are proof parameters, not machine registers. Source length
 steps compile with overhead10. The pure fixedBits/trim proof establishes Nat.bits.
 The theorem reads the actual output stack and preserves any old suffix; it makes
 no assertion about an origin-anchored upstream output tape.
+
+
+## Fully charged clean lifecycle and larger tape banks
+
+The clean table is a fixed three-component scheduler: marker installation 2,
+closed caller 6|x|+5|y|+18, marker removal 2, and two stationary handoffs. Every
+boundary equates entire head/cell functions, giving exact 6|x|+5|y|+24 and a true
+final halt. The finite control has 279 states, the alphabet 4 symbols and 5 role tapes.
+IO/temp tapes are genuinely blank at entry and return; parking retains its
+existing separator and arbitrary lower ancestor function.
+
+An injection of finite tape sets selects source roles. Its inverse is a fixed
+finite-table choice; no input word, coordinate or length affects it. Image tapes
+execute the source table; extras rewrite their own scanned symbols and stay.
+Literal one-step simulation extends by induction to same-cost exact run transfer and halt equivalence
+and all-prefix whole-extra preservation. The generalized caller embeds its
+primitives but invokes the actual child on the entire larger bank, so the child
+can use and return extra work tapes. Its contract includes that return bank.
+
+## Anchored arithmetic and origin output
+
+An encoded source stack has a blank head and its word immediately to the right.
+Set its fixed bottom anchor equal to head plus stack length. Push moves left
+and adds one symbol; nonempty pop moves right and removes one; empty pop and
+peek have charged scan phases and zero net head change. Syntax/source-run
+induction therefore yields an actual compiler execution whose final head is
+anchor minus final stack length, with the original program-dependent overhead.
+
+The serializer performs one enter step, m+1 scan steps, m+1 reverse-copy/erase
+steps and m+1 destination rewind steps: 3m+4 in total. It observes only actual
+Option-Bool scanned symbols and one of five phases, retaining padded zeros and
+restoring both specified heads. No length counter, clock or reversal oracle is
+part of its finite control.
+
+The arithmetic instance reuses the actual six-stack schoolbook loader/multiplier.
+Source time is at most 20n²+22n+8; compiler overhead is at most 14. The accumulator
+contains the complete 2n-bit LSB product at actual head −2n. The empty sumReverse
+tape is globally blank with head 0. Literal boundary equality permits one real
+handoff to the serializer, which costs 6n+4. The full physical run is bounded above by
+280n²+314n+117, bounded uniformly by 400(n+1)². Actual product cells, source erase,
+finite control, fixed initial entry and true halt are all proved. The theorem
+retains a length 2n residual multiplicand and its real terminal head/cell bank;
+it does not assume complete cleanup. Width 0 has a separate actual blank endpoint.
