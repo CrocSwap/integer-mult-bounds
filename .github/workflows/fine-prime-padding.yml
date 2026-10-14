@@ -1,0 +1,59 @@
+name: Fine prime padding composition
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/fine-prime-padding/**'
+      - 'research/t74-signed554-phase-fusion/**'
+      - '.github/workflows/fine-prime-padding.yml'
+  push:
+    branches: [main, codex/fine-prime-padding-20261014]
+    paths:
+      - 'research/fine-prime-padding/**'
+      - 'research/t74-signed554-phase-fusion/**'
+      - '.github/workflows/fine-prime-padding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, retained repository pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, retained repository pin
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install retained cold-replay dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+          python -m pip install -r research/fine-prime-padding/requirements.txt
+      - name: Fresh supplier admission and fine-prime padding composition
+        env:
+          CXX: g++
+          BOOST_INCLUDE: /usr/include
+        run: >-
+          python -B research/fine-prime-padding/verify.py
+          --work "$RUNNER_TEMP/fine-prime-padding-cold"
+      - name: Require committed sources unchanged
+        if: always()
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fine-prime-padding-python-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/fine-prime-padding-cold/*.json
+            ${{ runner.temp }}/fine-prime-padding-cold/*.log
+            ${{ runner.temp }}/fine-prime-padding-cold/supplier/*.json
+            ${{ runner.temp }}/fine-prime-padding-cold/supplier/*.log
+            ${{ runner.temp }}/fine-prime-padding-cold/supplier/strict/*.json
