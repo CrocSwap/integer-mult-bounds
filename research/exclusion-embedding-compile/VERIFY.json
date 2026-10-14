@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/exclusion_circuit.py",
+    "certificates/positive-side-core.json",
+    "certificates/dyadic-central-factor.json",
+    "certificates/ternary-side.json",
+    "certificates/disjoint-tensor-compression.json",
+    "tests/test_exclusion_embedding_compile.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Exact baseline copy of the base-commit exclusion_circuit.py; identical ExclusionCircuit.compile maps and verify_embedding receipts on n in {4,6,8,12,16,24,32,45}; compile-map mutant rejected; reverse-frame bit rejection preserved; circuit_sha256 unchanged; closed-form reverse/leave-two masks retained; the four binding certificates differ from base only in the exclusion_circuit.py source pin."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Same equivalence and certificate pin discipline under -O (historical assert gates strip; receipt identity remains)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_exclusion_embedding_compile*.py",
+        "-v"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Focused exclusion-embedding-compile package controls."
+    }
+  ]
+}

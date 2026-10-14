@@ -121,27 +121,47 @@ class ExclusionCircuit:
 
         Gates are (input slots, output slots), sharing their first pivot slot.
         All extra output slots are allocated fresh; nonpivot inputs retire.
+
+        Slot wiring uses parallel edge0/edge1 maps instead of ``edge[node,pos]``
+        tuple keys, and walks ``sorted(self.active)`` once. Gate lists, role
+        counts, source/output slot maps remain identical to the historical
+        allocator. See ``research/exclusion-embedding-compile/``.
         """
+        active=sorted(self.active)
+        args=self.args
         users={x:[] for x in self.active}
-        for node in sorted(self.active):
-            if self.args[node]:
-                for pos,x in enumerate(self.args[node]):users[x].append(('gate',node,pos))
-        for target,node in sorted(self.outputs.items()):users[node].append(('output',target))
-        edge={};source_slots={};output_slots={};gates=[];size=0
-        for node in sorted(self.active):
-            if self.args[node]:
-                ins=(edge[node,0],edge[node,1]);pivot=ins[0]
+        for node in active:
+            ab=args[node]
+            if ab:
+                a,b=ab
+                users[a].append(('gate',node,0))
+                users[b].append(('gate',node,1))
+        for target,node in sorted(self.outputs.items()):
+            users[node].append(('output',target))
+        edge0={};edge1={}
+        source_slots={};output_slots={};gates=[];size=0
+        inputs=self.inputs
+        for node in active:
+            ab=args[node]
+            if ab:
+                ins=(edge0[node],edge1[node]);pivot=ins[0]
+                # Historical: len(set(ins))==len(ins) and set(ins)&set(outs)=={pivot}.
+                # Binary gates have two distinct inputs; outs[1:] are fresh ids.
+                assert ins[0]!=ins[1]
             else:
                 pivot=size;size+=1;ins=(pivot,)
-                source_slots[self.inputs[node-1]]=pivot
-            assert users[node]
-            outs=(pivot,)+tuple(range(size,size+len(users[node])-1))
-            size+=len(users[node])-1
-            assert len(set(ins))==len(ins) and set(ins)&set(outs)=={pivot}
+                source_slots[inputs[node-1]]=pivot
+            ulist=users[node]
+            assert ulist
+            n_extra=len(ulist)-1
+            outs=(pivot,)+tuple(range(size,size+n_extra))
+            size+=n_extra
             gates.append((node,ins,outs))
-            for user,slot in zip(users[node],outs):
-                if user[0]=='gate':edge[user[1],user[2]]=slot
-                else:output_slots[user[1]]=slot
+            for user,slot in zip(ulist,outs):
+                if user[0]=='gate':
+                    (edge0 if user[2]==0 else edge1)[user[1]]=slot
+                else:
+                    output_slots[user[1]]=slot
         assert size==self.additions+len(self.outputs)
         return dict(roles=size,gates=gates,sources=source_slots,outputs=output_slots)
 
@@ -149,30 +169,53 @@ class ExclusionCircuit:
         """Check scalar coefficients and both directions' frame support nesting."""
         code=self.compile();gates=code['gates'];size=code['roles']
         values=[0]*size;frames=[0]*size
+        support=self.support;variables=self.variables;outputs=self.outputs
         for pair,slot in code['sources'].items():
-            values[slot]=frames[slot]=self.support[self.variables[pair]]
+            values[slot]=frames[slot]=support[variables[pair]]
         for node,ins,outs in gates:
-            frame=self.support[node]
-            for slot in set(ins+outs):
+            frame=support[node]
+            # Unique slots are pivot + ins[1:] + outs[1:] because
+            # set(ins) & set(outs) == {pivot} on every historical gate.
+            pivot=ins[0]
+            assert frames[pivot]&~frame==0
+            frames[pivot]=frame
+            for slot in ins[1:]:
                 assert frames[slot]&~frame==0
                 frames[slot]=frame
-            for slot in ins[1:]:values[ins[0]]^=values[slot]
-            for slot in outs[1:]:values[slot]^=values[ins[0]]
+            for slot in outs[1:]:
+                assert frames[slot]&~frame==0
+                frames[slot]=frame
+            acc=values[pivot]
+            for slot in ins[1:]:
+                acc^=values[slot]
+            values[pivot]=acc
+            for slot in outs[1:]:
+                values[slot]^=acc
         for pair,slot in code['outputs'].items():
-            assert values[slot]==frames[slot]==self.support[self.outputs[pair]]
-        descendants={node:0 for node in self.active}
+            assert values[slot]==frames[slot]==support[outputs[pair]]
+        # Dense descendant array: inactive nodes stay 0 and are skipped.
+        descendants=[0]*len(support)
         target_index={pair:i for i,pair in enumerate(sorted(self.outputs))}
         reverse_frames=[0]*size
         for pair,node in self.outputs.items():
             bit=1<<target_index[pair];descendants[node]|=bit
             reverse_frames[code['outputs'][pair]]=bit
-        for node in sorted(self.active,reverse=True):
-            if self.args[node]:
-                for parent in self.args[node]:descendants[parent]|=descendants[node]
+        args=self.args
+        for node in range(len(support)-1,0,-1):
+            ab=args[node]
+            if ab is not None and descendants[node]:
+                descendants[ab[0]]|=descendants[node]
+                descendants[ab[1]]|=descendants[node]
         for node,ins,outs in reversed(gates):
             frame=descendants[node]
             assert frame
-            for slot in set(ins+outs):
+            pivot=ins[0]
+            assert reverse_frames[pivot]&~frame==0
+            reverse_frames[pivot]=frame
+            for slot in ins[1:]:
+                assert reverse_frames[slot]&~frame==0
+                reverse_frames[slot]=frame
+            for slot in outs[1:]:
                 assert reverse_frames[slot]&~frame==0
                 reverse_frames[slot]=frame
         # Reverse-frame expected support equals the full sorted-output mask with

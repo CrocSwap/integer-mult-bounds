@@ -26,7 +26,7 @@ import exclusion_circuit as production  # noqa: E402
 BASE_COMMIT = "0b1cccf86e2f5132ed286a26ef0a681a495740ea"
 ORIGINAL_BLOB = "aaa99986c4b81c5d4fbe016fd216a4818940bb95"
 ORIGINAL_SHA256 = "b253f9d7318becda1c1f3b24e2287ed44a9c27fcea00cf9d531afb950d0457a0"
-OPTIMIZED_SHA256 = "f9fbcd6e85e442cbd0926ac0887414e20735b2dc923d2d5822c803ceb46726d3"
+OPTIMIZED_SHA256 = "f066ce9f88f0d8c0b82d7cb3a8d267249e12386e9d1ab65820a3bed54ff0ff78"
 
 PINNED_CERTIFICATES = (
     "certificates/positive-side-core.json",
