@@ -16,3 +16,10 @@ Comparison refreshed: PR1875 head `d31827d128197345be2d8d5649f5103abb2759ba` ret
 
 
 Local verification result: `PASS_CONDITIONAL_SLACK_REFINEMENT_FINITE_ADMISSION`. The fresh replay passed both exact endpoint engines, the 57 strict inequalities and 17 rejecting controls, the independent balance calculation, inherited outer checks, the native supplier and strict T74 admission, and the final assembly-to-ledger bindings. The release changes only status metadata and documentation and adds receipts; all mathematical inputs, parameters and verifier code remain byte-identical to the replayed source. Hosted CI remains separate.
+
+
+Subsequent comparison: [PR #1897](https://github.com/CrocSwap/integer-mult-bounds/pull/1897) at `6dc189fd49c297d28bc4be3778e2ea331a7cff31` reports a higher 500-digit candidate, approximately `8.1185746917580802515643905477766E-401` above this 400-digit result. This PR does not claim the current lead. That package reports a fresh parent replay followed by authenticated reuse for the refined point; it has not been independently replayed here.
+
+Additional exact guard: PR1897 identified an inherited disabled `or True` assertion in `outer/check_gaugefree.py`. Our separate checker expands the two original Gaussian exponents and proves the corrected shift bracket `(1-L)x^2-L(1-L)y^2+d^2-d^2/L+2d(1-L)y`, for nonzero L. The inherited disabled expression has both constant and linear sign errors. Three exact identities and four nonzero polynomial mutation controls pass. Original dependency files are preserved. This strengthens finite identity coverage without changing the supplier profile, numerical parameters or kappa; it does not prove the inherited all-size analytic hypotheses.
+
+For this supplementary coverage, also run `python3 -B research/fine-prime-root400/check_broad_shift.py /absolute/output.json`. Its code and receipt are included. The earlier full replay and this supplemental check are separate executions; no second full replay is claimed for the added files.
