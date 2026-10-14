@@ -14,6 +14,6 @@ Predecessor credit:
   local modular-rank adapter in `research/joint-frame-modular-screen/`.
 
 Prepared by Wentao Li with substantial AI assistance under Apache-2.0.
-No Cursor/Composer/Codex/model names are claimed as co-authors. This is not
+No product or model names are claimed as co-authors. This is not
 independent human peer review and is not a formal proof of the multiplication
 theorem.
