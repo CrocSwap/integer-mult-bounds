@@ -87,6 +87,8 @@ def main():
         raise SystemExit('ledger kappa does not exceed the previous package (square boundary tau=2.372864)')
     if Fraction(kappa_decimal) <= Fraction('0.0016776417313433545642517275958639984231708545722735432722117400060454625429077941422798526440584702'):
         raise SystemExit('ledger kappa does not exceed the previous package (old union row)')
+    if Fraction(kappa_decimal) <= Fraction('0.001677992607205282520732088774830808372222877897034109604209719298829805473412451530867883424937597'):
+        raise SystemExit('ledger kappa does not exceed PR1725')
     if digest(PACKAGE / 'MANIFEST.json') != msha:
         raise SystemExit('Package manifest changed during verification')
     proof = ("Supplier: the package's own unchanged `verify.py` (retained PR1297 provider and parent admission, owner reconstruction, "

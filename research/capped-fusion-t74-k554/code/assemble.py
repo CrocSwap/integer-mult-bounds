@@ -14,7 +14,7 @@ before the PR559 native-complex correction. The bit surcharge is retained.
 from pathlib import Path
 from fractions import Fraction as Q
 from decimal import Decimal, localcontext
-import argparse,json,hashlib,importlib.util,os,sys
+import argparse,json,hashlib,importlib.util,os,sys; sys.set_int_max_str_digits(0)
 from collections import Counter
 assert __debug__, 'Assertions required'
 P=Path(sys.argv[1] if __name__=='__main__' else os.environ['GAIN_PR564_SOURCE']).resolve()
@@ -26,7 +26,7 @@ def load(n):
  s=importlib.util.spec_from_file_location(n,P/'engines'/(n+'.py'));m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
 M,B,A=[load(n)for n in ('moment','base_two_moment','outer')]
 def dec(x):
- with localcontext()as ctx:ctx.prec=176;return str(Decimal(x.numerator)/Decimal(x.denominator))
+ with localcontext()as ctx:ctx.prec=750;return str(Decimal(x.numerator)/Decimal(x.denominator))
 import sys as _sys;_sys.path.insert(0,str(Path(__file__).resolve().parent));import fine_moment as BF,fine_mercator as MF,fine_cache as FC
 from witness import SPEC,DISPATCH,CALL_ORDER,COUNTS,PIDS,X,DISCOVER,pin,SPOT,spot_widths,GEO,REPLICAS,CALLS,DATA,DEFICIT,PAYLOAD,PARENT_LIVE,PARENT_PHYSICAL,PARENT_IDLE,PARENT_HELPERS
 # Cited bit supplier: PR589's tune/EXPECTED.json (merged on main as research/e8-bit-p111-tuned/tune/EXPECTED.json).
@@ -213,7 +213,7 @@ def assemble(owner,invoice,owner_sha,invoice_sha):
  bit_moments=check_moment('bit',bitH,BIT_M,bit['bit']['live'],c,bit_D,True)
  conservative_moments=check_moment('conservative_complex',H,73,owner['live'],conservative_b,DEFICIT,True,SPEC['outer_refinement']['endpoint_digits'])
  assert bit['bit']['two_level_coefficient_bits']<bit['bit']['charged_two_level_coefficient_bits']==512 and bit['bit']['row_coefficient']<20161
- def _outer_witness_raw(bb):
+ def outer_witness(bb):
   options=SPEC["outer_refinement"]
   assert set(options)=={"grid_digits","margin_digits","bootstrap_steps","endpoint_digits"}
   assert all(type(v)is int and v>0 for v in options.values())
@@ -233,8 +233,6 @@ def assemble(owner,invoice,owner_sha,invoice_sha):
    except AssertionError:controls.append(name)
    else:raise AssertionError(name)
   return k,cuts,outer,controls
- def outer_witness(bb):   # memoised across stages (fine_cache.memo): the exact outer witness is a pure function of these inputs and the two source files
-  return FC.memo('outer_witness',(str(bb),str(c),json.dumps(SPEC['outer_refinement'],sort_keys=True),PAYLOAD,sha(Path(__file__)),sha(Path(A.__file__))),lambda:_outer_witness_raw(bb))
  conservative_k,conservative_cuts,conservative_outer,conservative_controls=outer_witness(conservative_b)
  pin('expected.conservative_kappa_decimal',dec(conservative_k))
  # Only after every conservative supplier/admission/outer check succeeds is

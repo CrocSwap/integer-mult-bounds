@@ -7,11 +7,11 @@ D=Path(__file__).resolve().parent;W=D.parent
 src=W/'new/SPEC.json'
 BJ=json.loads((D/'B.json').read_text())
 spec=json.loads(src.read_text());pinned=F(spec['expected']['complex_lower'])
-b=F(BJ['b']);q=b-F(1,10**64);eff=(q+b)/2;actual_bit=F('0.001733427039589844234749')
-r=F(1,10**64);z=F(1,10**66);s=F(1,10**64)
+b=F(BJ['b']);q=b-F(1,10**105);eff=(q+b)/2;actual_bit=F('0.001733427039589844234749')
+r=F(1,10**105);z=F(1,10**107);s=F(1,10**105)
 assert 0<q<eff<b<pinned<actual_bit
 # Exact inequalities needed by the stopped support-local supplier.
-stop=F(1,10**70);assert (1-stop)*b>eff
+stop=F(1,10**110);assert (1-stop)*b>eff
 assert F(12,5)>F('2.3728639')  # established Le Gall bound (PR1699); tau=12/5
 rows={}
 # boundary c=(3-tau)/2 with tau=2.372864 > Le Gall's published omega<2.3728639; union row xi+1/2-eps (radix-distributed schedule, outer/UNION-SCHEDULE.md)
@@ -29,7 +29,7 @@ for name,c,expected in [('rect_batch_k2_radix_union',(3-TAUE)/2,None)]:
  assert 1-B>0 and 1-B-2*(1-E)>0
  margins={'transform':E*q,'global_router':eff,'gaussian':1-E+q*B,'group_router':1-E+eff*B,'group_scans':1-E+B,'boundary':c+X-E,'sparse_union':X+F(1,2)-E,'polynomials':E,'microfaces':4-E-B}
  old_union=1-E-B-F(1,2)+X
- K=F((E*q*10**100).__floor__(),10**100)-F(1,10**76)
+ K=F((E*q*10**105).__floor__(),10**105)-F(1,10**105)
  assert min(margins.values())==E*q and all(v>K for v in margins.values())
  assert old_union<K          # the old g-factor union row is violated at this point: the radix schedule is essential
  assert 1-2*B>0 and X-B-F(1,2)<0   # tag work fits the record; expected flag count g*mu>1 so the union is deliberately not assumed sparse

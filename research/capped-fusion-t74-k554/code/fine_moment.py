@@ -1,8 +1,8 @@
-"""Higher-precision independent base-two moment enclosure (same algorithm as base_two_moment.py, finer constants)."""
+"""Higher-precision independent base-two moment enclosure (retained logarithm series; outward-rounded integer Taylor recurrence)."""
 from fractions import Fraction as Q
-GRID = 10**100
-LOG_TERMS = 110
-EXP_TERMS = 40
+GRID = 10**700
+LOG_TERMS = 750
+EXP_TERMS = 180
 def require(c, msg):
     if not c: raise ValueError(msg)
 def log_unit(x):
@@ -19,12 +19,20 @@ def log_bounds(x):
     lo, hi = lo+k*l2, hi+k*u2
     return Q((lo*GRID).__floor__(), GRID), Q((hi*GRID).__ceil__(), GRID)
 def exp_bounds(x):
+    """Enclose exp(x) using decimal-grid integer Taylor terms and a geometric tail."""
     require(0 <= x < 1, "exponential range")
-    term = total = Q(1)
-    for j in range(1, EXP_TERMS):
-        term *= x/j; total += term
-    tail = term*x/EXP_TERMS/(1-x/(EXP_TERMS+1))
-    return total, total+tail
+    low_x=(x*GRID).__floor__();high_x=(x*GRID).__ceil__()
+    lower_term=upper_term=lower_sum=upper_sum=GRID
+    for j in range(1,EXP_TERMS):
+        lower_term=lower_term*low_x//(j*GRID)
+        numerator=upper_term*high_x;denominator=j*GRID
+        upper_term=(numerator+denominator-1)//denominator
+        lower_sum+=lower_term;upper_sum+=upper_term
+    numerator=upper_term*high_x*(EXP_TERMS+1)
+    denominator=EXP_TERMS*((EXP_TERMS+1)*GRID-high_x)
+    require(denominator>0,"tail ratio")
+    tail=(numerator+denominator-1)//denominator
+    return Q(lower_sum,GRID),Q(upper_sum+tail,GRID)
 def moment(m, W, entries, saving):
     lo = hi = Q(0)
     for t, count in entries:

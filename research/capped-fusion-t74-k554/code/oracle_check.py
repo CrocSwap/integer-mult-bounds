@@ -1,9 +1,9 @@
 """Independent exact oracle for the finer-constant engines (package stage).
 
 Compares logarithm enclosures of code/fine_mercator.py and code/fine_moment.py with a separately written exact
-2*atanh enclosure (N = 900 terms, width < 3^-1800) on every logarithm argument the pinned T74 complex and surcharge checks use
+2*atanh enclosure (N = 1200 terms, width < 3^-1800) on every logarithm argument the pinned T74 complex and surcharge checks use
 (73/t for t = 1..72 and 73) plus 43, 189 and 352 (the first integers on which a wrong-parity Mercator sum fails).
-A valid enclosure [L, U] must satisfy L <= oracle_lower and U >= oracle_upper (so L <= ln <= U) and be tight (width below 2^-(bits-40) resp. 1e-(grid digits-40)).
+A valid enclosure [L, U] must satisfy L <= oracle_lower and U >= oracle_upper (so L <= ln <= U) and be tight (< 1e-200).
 Also asserts the Mercator term count is even (an odd alternating partial sum lies above the log).
 """
 import sys
@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fine_mercator as FM, fine_moment as BF
 assert (FM.LOGN - 1) % 2 == 0, 'fine_mercator must sum an even number of terms'
-N = 900
+N = 1200
 
 
 def atanh2(z):
@@ -38,7 +38,6 @@ for y in (F(3, 2), F(4, 3), F(5, 4), F(1), F(7, 6)):
     lo_o, hi_o = oracle(y) if y >= 1 else (None, None)
     L, U = FM.mercator(y)
     assert L <= lo_o and U >= hi_o, ('false inner Mercator enclosure', y)
-tight = {'fine_mercator': F(1, 2**(FM.DYAD.bit_length() - 1 - 40)), 'fine_moment': F(1, 10**(len(str(BF.GRID)) - 1 - 40))}
 inputs = [F(73, t) for t in range(1, 73)] + [F(73), F(43), F(189), F(352)]
 checked = 0
 for x in inputs:
@@ -46,6 +45,6 @@ for x in inputs:
     for name, (L, U) in (('fine_mercator', FM.logarithm(x)), ('fine_moment', BF.log_bounds(x))):
         assert L <= lo_o, ('false lower log bound', name, x)
         assert U >= hi_o, ('false upper log bound', name, x)
-        assert U - L < tight[name], ('enclosure not tight', name, x)
+        assert U - L < F(1, 10**550), ('enclosure not tight', name, x)
         checked += 1
 print('PASS_FINE_ENGINE_LOG_ORACLE inputs=%d enclosures=%d' % (len(inputs), checked))

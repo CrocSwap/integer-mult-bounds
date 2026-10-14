@@ -19,8 +19,8 @@ CLAIM=WORK/'CLAIM.json'
 BJ=json.loads((HERE/'B.json').read_text())
 spec=json.loads(SPEC.read_text())
 # Free strict slacks of the PR1673 proof (retuned in this package, see RETUNED-SLACKS.md); every one only needs to be > 0.
-R0=Q(1,10**64); ZETA=Q(1,10**66); SLACK=Q(1,10**64); GAP=Q(1,10**64); STOP=Q(1,10**70)
-FLOOR=10**100; BACKOFF=Q(1,10**76); B_GAP=Q(1,10**64)
+R0=Q(1,10**105); ZETA=Q(1,10**107); SLACK=Q(1,10**105); GAP=Q(1,10**105); STOP=Q(1,10**110)
+FLOOR=10**105; BACKOFF=Q(1,10**105); B_GAP=Q(1,10**105)
 # Rectangular boundary batching (new in this package, outer/RECT-BOUNDARY.md): W^k right-hand-side columns per factor page, k=2. The boundary cost per RHS column is
 # W^(omega(1,1,k)-k), so the effective square-equivalent exponent is tau_eff = omega(1,1,k) - k + 1. The published bound omega(1,1,2) = omega(1,2,1) < 3.250035
 # is ADVWXXZ 2024 ('More Asymmetry Yields Faster Matrix Multiplication', Table 1, k = 2.00); the fixed format exponent sigma is chosen strictly above it.
@@ -28,6 +28,7 @@ K_BATCH=2
 SIGMA_PUB=Q('3.250035')
 SIGMA=Q('3.2500351')
 TAU_EFF=SIGMA-(K_BATCH-1)
+KAPPA_1725=Q('0.001677992607205282520732088774830808372222877897034109604209719298829805473412451530867883424937597')  # PR1725 baseline
 KAPPA_PKG4=Q('0.0016778199023144364336310551358776001013829401215770658599799349282716974076737897457922714197448847')  # previous package (radix union schedule, square boundary tau=2.372864)
 KAPPA_1712=Q('0.0016776417313433545642517275958639984231708545722735432722117400060454625429077941422798526440584702')  # pkg of PR1712 (Le Gall tau=12/5, old union row)
 KAPPA_1699=Q('0.001677641731343354564251058287063644749065568493')  # exact kappa of PR1699's ledger (Chafik Boukhalfa), same supplier profile
@@ -151,6 +152,7 @@ def ledger(kind, *, q_=q, zeta=ZETA, slack=SLACK,
     checks['improvement_over_pr1699']=kappa-KAPPA_1699
     checks['improvement_over_pr1712']=kappa-KAPPA_1712
     checks['improvement_over_previous_package']=kappa-KAPPA_PKG4
+    checks['improvement_over_pr1725']=kappa-KAPPA_1725
     if full_gauge:checks['unrecentered_group_gauge']=1-eps-r-beta
     checks.update({n+'_above_kappa':v-kappa for n,v in margins.items()})
     assert margins['main_transform']==margins['fused_gaussian']
