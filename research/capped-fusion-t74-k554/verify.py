@@ -105,6 +105,7 @@ SRCL=work/'parent/layout/joint1148-round45/source'
 run('rebuild-words-566',P/'new/rebuild_chain.py')
 for key_,w_ in new_words.items():run('audit-local-566-'+key_,SRCL/'research/gauge44-slots/independent/audit_local.py','--word',w_,'--main',SRCL,'--output',work/('AUDIT-LOCAL-566-'+key_+'.json'))
 run('rebind-566',P/'new/rebind.py',P,nat['base']/'local',nat['extra']/'local',work/'data-rebound')
+run('lemmag-labels',P/'code/lemmag_stage.py',work/'LEMMAG-LABELS.json',nat['base'],nat['extra'],*[p_ for p_ in (a.base_native_from,a.extra_native_from) if p_])
 STABLE=('LOCAL-CHECKS.json','CLIFFORD-RECIPES.json','RESIDUAL-ADAPTERS.json')
 def bind_view(plan):
  plan=json.loads(json.dumps(plan))
