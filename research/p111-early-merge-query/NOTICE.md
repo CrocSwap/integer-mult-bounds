@@ -15,3 +15,5 @@ copy-cost results; Rohan Arun / PR1297,1319,1485 for current word and endpoint;
 Jeremy Kothe, Jeremy Diviney, Thomas DiFiore, Hao Yan, Zhihao Chen / icekylinx,
 eumemic, Douglas Colkitt, and the retained geometry/supplier/controller lineage.
 See PREDECESSOR-NOTICE.md for the current-word package's retained notices.
+
+Native interface extension: unchanged exact Clifford compiler, literal Gaussian array executor and transpose helper from PR1060 (head d27499553138bde007f5b1163e65e71da1b18899); original Apache-2.0 code and authorship retained. Source hashes in SOURCES.json and pr1060/SOURCE-RECEIPT.json. This extension verifies only our local query interface.
