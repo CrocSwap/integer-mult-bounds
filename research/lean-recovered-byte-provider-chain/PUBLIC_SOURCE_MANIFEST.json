@@ -1,0 +1,412 @@
+{
+  "schema": "public-recovered-byte-provider-chain-manifest-v1",
+  "status": "ACCEPTED_SOURCE_SET_READY_FOR_ROOT_PUBLICATION",
+  "package": "lean-recovered-byte-provider-chain",
+  "author_checked_context": {
+    "kappa": "836330098538459/500000000000000000",
+    "decimal": "0.001672660197076918",
+    "author_checked": true,
+    "meaning": "Source-matched research context only. These generic statements do not use or change kappa or prove the full multiplier theorem."
+  },
+  "new_modules": [
+    {
+      "module": "RecoveredProviderChart",
+      "proposed_path": "sources/RecoveredProviderChart.lean",
+      "bytes": 11394,
+      "sha256": "a8610e9d88785a488b1b7a71f9c926bbc76d8491ee44a12b7b225f7602a64fa1",
+      "git_blob": "877b263bc64d112e29ed1770e5dc23d5e8a16ef4",
+      "imports": [
+        "JsonBinaryChartInterpreter"
+      ],
+      "acceptance": {
+        "status": "Kernel-checked and independently reviewed",
+        "axiom_probes": [
+          {
+            "declaration": "CurrentMain.RecoveredProviderChart.recover_complete",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.RecoveredProviderChart.recover_of_factorization",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.RecoveredProviderChart.recover_sound",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          }
+        ],
+        "printed_types": "@CurrentMain.RecoveredProviderChart.recover_of_factorization : \u2200 {n : \u2115}\n  (d : CurrentMain.RecoveredProviderChart.Input n) (p : Equiv.Perm (Fin n)),\n  (\u2200 (j : Fin n), d.columns j < 2 ^ n) \u2192\n    (CurrentMain.CheckedBinaryChart.form (CurrentMain.RecoveredProviderChart.candidate d p)) d.updateVector = 0 \u2192\n      (\u2200 (j i : Fin n),\n          CurrentMain.CheckedBinaryChart.bits (d.columns j) i =\n            Pi.single (p j) 1 i + d.coefficients (p j) * d.updateVector i) \u2192\n        \u2203 r,\n          CurrentMain.RecoveredProviderChart.recover d = some r \u2227 \u2191r = CurrentMain.RecoveredProviderChart.candidate d p\n@CurrentMain.RecoveredProviderChart.recover_sound : \u2200 {n : \u2115} (d : CurrentMain.RecoveredProviderChart.Input n)\n  (r : CurrentMain.ParsedBinaryChartCertificate.Certified n),\n  CurrentMain.RecoveredProviderChart.recover d = some r \u2192\n    (\u2191r).columns = d.columns \u2227\n      (\u2191r).updateVector = d.updateVector \u2227\n        (\u2191r).coefficients = d.coefficients \u2227\n          CurrentMain.JsonBinaryChartInterpreter.certify 3 n\n                (CurrentMain.JsonBinaryChartInterpreter.canonicalJson \u2191r \u22ef) =\n              some r \u2227\n            CurrentMain.CheckedBinaryChart.sourceLinear \u2191r = \u2191(CurrentMain.CheckedBinaryChart.checkedEquiv \u2191r \u22ef) \u2227\n              (\u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n                  CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r)\n                      ((CurrentMain.CheckedBinaryChart.sourceLinear \u2191r) x) =\n                    x) \u2227\n                \u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n                  (CurrentMain.CheckedBinaryChart.sourceLinear \u2191r)\n                      (CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r) x) =\n                    x\n",
+        "diagnostics": []
+      }
+    },
+    {
+      "module": "RecoveredJsonProviderEntry",
+      "proposed_path": "sources/RecoveredJsonProviderEntry.lean",
+      "bytes": 6963,
+      "sha256": "ffd5420c1d47e297609e7a8abde45e81b584fa3930dff749a5eecc53d0e9cf02",
+      "git_blob": "ea1e748bb44836d198c92b6d09f4a2e25b8d2ac2",
+      "imports": [
+        "RecoveredProviderChart",
+        "JsonPackedColumnDictionary"
+      ],
+      "acceptance": {
+        "status": "Kernel-checked and independently reviewed",
+        "axiom_probes": [
+          {
+            "declaration": "CurrentMain.RecoveredJsonProviderEntry.certifyEntry_generated",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.RecoveredJsonProviderEntry.recoverEntry_complete",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.RecoveredJsonProviderEntry.recoverEntry_generated",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.RecoveredJsonProviderEntry.recoverEntry_sound",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          }
+        ],
+        "printed_types": "@CurrentMain.RecoveredJsonProviderEntry.recoverEntry_complete : \u2200 {n : \u2115} (dictionary : Lean.Json) (key : String)\n  (cols : CurrentMain.JsonPackedColumnDictionary.Columns n) (c : CurrentMain.CheckedBinaryChart.Candidate n)\n  (h : CurrentMain.CheckedBinaryChart.check c = true)\n  (hc : c.columns = CurrentMain.ParsedBinaryChartCertificate.columnFunction cols),\n  CurrentMain.JsonPackedColumnDictionary.dictionaryColumns n dictionary key = some cols \u2192\n    CurrentMain.RecoveredJsonProviderEntry.recoverEntry n dictionary key c.updateVector c.coefficients =\n      some { columns := cols, certificate := \u27e8c, h\u27e9, column_match := \u22ef }\n@CurrentMain.RecoveredJsonProviderEntry.recoverEntry_sound : \u2200 {n : \u2115} (dictionary : Lean.Json) (key : String)\n  (update coefficients : CurrentMain.CheckedBinaryChart.Address n)\n  (r : CurrentMain.JsonPackedColumnDictionary.CheckedEntry n),\n  CurrentMain.RecoveredJsonProviderEntry.recoverEntry n dictionary key update coefficients = some r \u2192\n    (\u2203 raw,\n        dictionary.getObjVal? key = Except.ok raw \u2227\n          CurrentMain.StrictJsonValueBridge.reencode 2\n              (CurrentMain.ParsedBinaryChartCertificate.vectorValue r.columns) =\n            raw) \u2227\n      CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns =\n          \u2191(CurrentMain.CheckedBinaryChart.checkedEquiv \u2191r.certificate \u22ef) \u2227\n        (\u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n            CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r.certificate)\n                ((CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns) x) =\n              x) \u2227\n          \u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n            (CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns)\n                (CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r.certificate) x) =\n              x\n",
+        "diagnostics": []
+      }
+    },
+    {
+      "module": "ByteJsonGlobalCall",
+      "proposed_path": "sources/ByteJsonGlobalCall.lean",
+      "bytes": 6696,
+      "sha256": "53df8a0be9292d5e7369bfbdac670534c22c4afe61ace91e16a4faef8f8c84f3",
+      "git_blob": "1363b07243371020ef4712e9f03dc2d97bfb3361",
+      "imports": [
+        "JsonGlobalCallAdapter",
+        "Lean.Data.Json.Parser",
+        "Init.Data.String.Extra"
+      ],
+      "acceptance": {
+        "status": "Kernel-checked and independently reviewed",
+        "axiom_probes": [
+          {
+            "declaration": "CurrentMain.ByteJsonGlobalCall.parseBytes_invalidUtf8",
+            "axioms": [
+              "propext",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.ByteJsonGlobalCall.parseBytes_invalidJson",
+            "axioms": [
+              "propext",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.ByteJsonGlobalCall.parseBytes_sound",
+            "axioms": [
+              "propext",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.ByteJsonGlobalCall.assignedBytes_parse_error",
+            "axioms": [
+              "propext",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.ByteJsonGlobalCall.assignedBytes_sound",
+            "axioms": [
+              "propext",
+              "Quot.sound"
+            ]
+          }
+        ],
+        "printed_types": "@CurrentMain.ByteJsonGlobalCall.assignedBytes_sound : \u2200 {n m k : \u2115} {\u03c1 : Type u_1} {\u03b1 : Type u_2} (fuel : \u2115)\n  (routeDecoder : CurrentMain.SelectedSourceSyntax.Value \u2192 Option \u03c1) (assignment : Fin k \u2192 Fin m \u2192 Fin n)\n  (store : Fin n \u2192 \u03b1) (bytes : ByteArray) (position : Fin k)\n  (r : CurrentMain.JsonOwnerFieldAdapter.Matched n m routeDecoder (assignment position)),\n  CurrentMain.ByteJsonGlobalCall.assignedBytes fuel n m k routeDecoder assignment bytes position = some r \u2192\n    (\u2203 text global calls call raw,\n        String.fromUTF8? bytes = some text \u2227\n          Lean.Json.parse text = Except.ok global \u2227\n            global.getObjVal? \"calls\" = Except.ok (Lean.Json.arr calls) \u2227\n              calls.size = k \u2227\n                (\u2203 (hi : \u2191position < calls.size), calls[\u2191position] = call) \u2227\n                  CurrentMain.JsonOwnerFieldAdapter.callOwners fuel n routeDecoder call = some \u2191r \u2227\n                    call.getObjVal? \"owners\" = Except.ok raw \u2227\n                      CurrentMain.StrictJsonValueBridge.reencode fuel\n                          (CurrentMain.SelectedSourceSyntax.Value.array\n                            (List.map CurrentMain.JsonOwnerFieldAdapter.rowValue \u2191r)) =\n                        raw) \u2227\n      CurrentMain.ByteJsonGlobalCall.gatherBytes fuel routeDecoder store bytes position =\n        some (List.ofFn fun i => store (assignment position i))\n",
+        "diagnostics": []
+      }
+    },
+    {
+      "module": "ByteRecoveredProviderEntry",
+      "proposed_path": "sources/ByteRecoveredProviderEntry.lean",
+      "bytes": 5807,
+      "sha256": "c1b3add76568cdf9e4ad03e2aad16a33ac5a428b778543b29be06ddc3fc81e31",
+      "git_blob": "c90c9f3ba05a4b418397331f3753b6aee24cd95a",
+      "imports": [
+        "ByteJsonGlobalCall",
+        "RecoveredJsonProviderEntry"
+      ],
+      "acceptance": {
+        "status": "Kernel-checked and independently reviewed",
+        "axiom_probes": [
+          {
+            "declaration": "CurrentMain.ByteRecoveredProviderEntry.recoverBytes_parse_error",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.ByteRecoveredProviderEntry.recoverBytes_complete",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          },
+          {
+            "declaration": "CurrentMain.ByteRecoveredProviderEntry.recoverBytes_sound",
+            "axioms": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          }
+        ],
+        "printed_types": "@CurrentMain.ByteRecoveredProviderEntry.recoverBytes_complete : \u2200 {n : \u2115} (bytes : ByteArray) (text : String)\n  (dictionary : Lean.Json) (key : String) (cols : CurrentMain.JsonPackedColumnDictionary.Columns n)\n  (c : CurrentMain.CheckedBinaryChart.Candidate n) (h : CurrentMain.CheckedBinaryChart.check c = true)\n  (hc : c.columns = CurrentMain.ParsedBinaryChartCertificate.columnFunction cols),\n  String.fromUTF8? bytes = some text \u2192\n    Lean.Json.parse text = Except.ok dictionary \u2192\n      CurrentMain.JsonPackedColumnDictionary.dictionaryColumns n dictionary key = some cols \u2192\n        CurrentMain.ByteRecoveredProviderEntry.recoverBytes n bytes key c.updateVector c.coefficients =\n          some { columns := cols, certificate := \u27e8c, h\u27e9, column_match := \u22ef }\n@CurrentMain.ByteRecoveredProviderEntry.recoverBytes_sound : \u2200 {n : \u2115} (bytes : ByteArray) (key : String)\n  (update coefficients : CurrentMain.CheckedBinaryChart.Address n)\n  (r : CurrentMain.JsonPackedColumnDictionary.CheckedEntry n),\n  CurrentMain.ByteRecoveredProviderEntry.recoverBytes n bytes key update coefficients = some r \u2192\n    (\u2203 text dictionary raw,\n        String.fromUTF8? bytes = some text \u2227\n          Lean.Json.parse text = Except.ok dictionary \u2227\n            CurrentMain.RecoveredJsonProviderEntry.recoverEntry n dictionary key update coefficients = some r \u2227\n              dictionary.getObjVal? key = Except.ok raw \u2227\n                CurrentMain.StrictJsonValueBridge.reencode 2\n                    (CurrentMain.ParsedBinaryChartCertificate.vectorValue r.columns) =\n                  raw) \u2227\n      CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns =\n          \u2191(CurrentMain.CheckedBinaryChart.checkedEquiv \u2191r.certificate \u22ef) \u2227\n        (\u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n            CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r.certificate)\n                ((CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns) x) =\n              x) \u2227\n          \u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n            (CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns)\n                (CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r.certificate) x) =\n              x\n",
+        "diagnostics": []
+      }
+    }
+  ],
+  "public_prerequisites": [
+    {
+      "module": "SelectedSourceSyntax",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "542f914ca0e5df4026341d08c84385cb1a71cfdf",
+      "path": "research/lean-current1094-route-table-certificate/sources/SelectedSourceSyntax.lean",
+      "bytes": 1373,
+      "sha256": "08d3398cca39262cdc62506bfcdf09cea8d85f98587f1d7d2b59c211454c7684",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1831",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/542f914ca0e5df4026341d08c84385cb1a71cfdf/research/lean-current1094-route-table-certificate/sources/SelectedSourceSyntax.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "StrictParsedIndexCodec",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/StrictParsedIndexCodec.lean",
+      "bytes": 7966,
+      "sha256": "0d50bd4c37d00e3212fbef0512c33a7c0f47f66ff4bf33cfd9bc65e03f42c61c",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/StrictParsedIndexCodec.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "CheckedBinaryChart",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/CheckedBinaryChart.lean",
+      "bytes": 8390,
+      "sha256": "460028e8183d53a3287c013c0e10c492814a4446a4ae1a7a4996e628e1f621db",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/CheckedBinaryChart.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "CheckedPermutationTables",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/CheckedPermutationTables.lean",
+      "bytes": 9254,
+      "sha256": "ef0bd93d05bbb6671fe227c49188c14788b35afb7326e05f1b04b164b38e7c73",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/CheckedPermutationTables.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "ParsedBinaryChartCertificate",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/ParsedBinaryChartCertificate.lean",
+      "bytes": 11562,
+      "sha256": "deeb292a0887b1be38133359a6b4458c9da1f2d6d10a3b301df321fd3e9781ec",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/ParsedBinaryChartCertificate.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "BinaryChartCanonicalEncoding",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/BinaryChartCanonicalEncoding.lean",
+      "bytes": 9411,
+      "sha256": "ba4e0dd153b509fec6d3401f8eb6a7ba1dc8fb3e5aeee58e383419c9626b483c",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/BinaryChartCanonicalEncoding.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "CheckedTableGather",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/CheckedTableGather.lean",
+      "bytes": 4515,
+      "sha256": "8e6c2bde41c72f73e73f41415b857aaa044c2544ffc4cb2fd3fb813a4c98481c",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/CheckedTableGather.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "StrictJsonValueBridge",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/StrictJsonValueBridge.lean",
+      "bytes": 6966,
+      "sha256": "b7336f0b164d433d1d3c69d6fedb80f025867267d81fb30d47f178a5a2d6187d",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/StrictJsonValueBridge.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "JsonBinaryChartInterpreter",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "981afe759f7dd206188b1c1a62250c6425bcd76a",
+      "path": "research/lean-parsed-binary-chart-chain/sources/JsonBinaryChartInterpreter.lean",
+      "bytes": 7510,
+      "sha256": "ed544d3a5b8d1089a3b06b66633b613c6a39b757f0c42a67596a406cd01fe1af",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1879",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/981afe759f7dd206188b1c1a62250c6425bcd76a/research/lean-parsed-binary-chart-chain/sources/JsonBinaryChartInterpreter.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "JsonTableGather",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "a5838afac3a2d69d802c2440cbfa7d160ca0b218",
+      "path": "research/lean-actual-json-format-adapters/sources/JsonTableGather.lean",
+      "bytes": 3662,
+      "sha256": "ba72da404e3c38b89ee61b844d324579ec2045c353bacaf374413b80c5cf5990",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1927",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/a5838afac3a2d69d802c2440cbfa7d160ca0b218/research/lean-actual-json-format-adapters/sources/JsonTableGather.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "JsonOwnerFieldAdapter",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "a5838afac3a2d69d802c2440cbfa7d160ca0b218",
+      "path": "research/lean-actual-json-format-adapters/sources/JsonOwnerFieldAdapter.lean",
+      "bytes": 9535,
+      "sha256": "c6077efa8d37f410b8f382d17a400496f573b6b34663c3e3a1de004c5d3a9dca",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1927",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/a5838afac3a2d69d802c2440cbfa7d160ca0b218/research/lean-actual-json-format-adapters/sources/JsonOwnerFieldAdapter.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "JsonGlobalCallAdapter",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "a5838afac3a2d69d802c2440cbfa7d160ca0b218",
+      "path": "research/lean-actual-json-format-adapters/sources/JsonGlobalCallAdapter.lean",
+      "bytes": 7459,
+      "sha256": "3edc4c4c54dee443dc8559d576e02c7b26c91d1a28ed55649549162269d3fb50",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1927",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/a5838afac3a2d69d802c2440cbfa7d160ca0b218/research/lean-actual-json-format-adapters/sources/JsonGlobalCallAdapter.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    },
+    {
+      "module": "JsonPackedColumnDictionary",
+      "repository": "jamesyc/integer-mult-bounds",
+      "revision": "a5838afac3a2d69d802c2440cbfa7d160ca0b218",
+      "path": "research/lean-actual-json-format-adapters/sources/JsonPackedColumnDictionary.lean",
+      "bytes": 10370,
+      "sha256": "e1df06ef6bf80d6e88c157f31b1502f265619a6ea64e73fd50c70a74fd9d1afa",
+      "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1927",
+      "url": "https://github.com/jamesyc/integer-mult-bounds/blob/a5838afac3a2d69d802c2440cbfa7d160ca0b218/research/lean-actual-json-format-adapters/sources/JsonPackedColumnDictionary.lean",
+      "reuse": "Import the unchanged public prerequisite; no duplicate source in this new package."
+    }
+  ],
+  "counts": {
+    "new_sources": 4,
+    "new_source_bytes": 30860,
+    "public_prerequisites": 13,
+    "total_research_modules": 17,
+    "new_axiom_probes": 15,
+    "full_printed_types": 7,
+    "new_closed_decisions": 0,
+    "new_selected_literals": 0
+  },
+  "research_topological_order": [
+    "SelectedSourceSyntax",
+    "StrictParsedIndexCodec",
+    "CheckedBinaryChart",
+    "CheckedPermutationTables",
+    "ParsedBinaryChartCertificate",
+    "BinaryChartCanonicalEncoding",
+    "CheckedTableGather",
+    "StrictJsonValueBridge",
+    "JsonBinaryChartInterpreter",
+    "JsonTableGather",
+    "JsonOwnerFieldAdapter",
+    "JsonGlobalCallAdapter",
+    "JsonPackedColumnDictionary",
+    "RecoveredProviderChart",
+    "RecoveredJsonProviderEntry",
+    "ByteJsonGlobalCall",
+    "ByteRecoveredProviderEntry"
+  ],
+  "toolchain": {
+    "lean": "4.21.0",
+    "mathlib_commit": "308445d7985027f538e281e18df29ca16ede2ba3"
+  },
+  "scope": {
+    "result": "Finite recovery constructs the checked permutation/inverse and canonical certificate from packed columns plus update/form; named dictionary and byte entrypoints preserve actual input equations and derive the independent binary column operator and both inverses.",
+    "dimension": "All recovery/chart results quantify over arbitrary natural dimension n, including the empty finite dimension. They do not assert efficient execution uniformly in n. Calls/owners entry is additionally parameterized by family, row and call counts and arbitrary payload type.",
+    "restricted_class": "Completeness requires one involutive rank-one update after a coordinate permutation: packed-column bounds, form(update)=0, and exact scalar entries. Arbitrary invertibility alone is insufficient. A proof-side Candidate specifies this class; it is not passed to recovery execution.",
+    "source_inputs": "Runtime inputs are the original bytes or immutable dictionary AST, an exact key, and update/form vectors. The checker constructs auxiliary certificate data; no inverse table, supplied permutation or desired operator equality is an executable premise.",
+    "parser": "Byte success exposes String.fromUTF8? and Lean.Json.parse equations for the original bytes. This is compositional soundness relative to the installed functions, not Unicode/JSON standards verification.",
+    "failure": "Malformed input or failed recovery returns none in consumers; the underlying parseBytes API preserves distinct invalid-UTF8 and invalid-JSON errors.",
+    "not_claimed": [
+      "success on any selected artifact or a full selected table census",
+      "cryptographic digest/key authenticity or byte-to-repository provenance",
+      "lexical integer-only policy, duplicate-key rejection or canonical serializer round trip",
+      "complex phases, affine shifts or physical chart/payload direction",
+      "physical allocation, primitive executor, precision or runtime/bit-cost bound",
+      "full multiplication theorem or a change to kappa"
+    ]
+  },
+  "excluded_modules": [
+    "Current1094L450ParsedCertificate",
+    "Current1094L450RecoveredEntry",
+    "CanonicalJsonOwners",
+    "Current1094CanonicalOwnerExport"
+  ],
+  "attribution": [
+    "Lean UTF-8/JSON parser and Mathlib authors",
+    "Jeremy Kothe T16/PR514 and inherited PR484/507 lineage",
+    "Rohan Arun PR1094 source-format lineage",
+    "Accepted bank/frame strict parser, permutation, gather, binary chart and recovery components",
+    "James Chang with OpenAI assistance; Apache-2.0"
+  ],
+  "publication_notes": [
+    "Publish the four exact new sources and this sanitized evidence only; reference the thirteen unchanged public prerequisites at their exact listed heads.",
+    "Historical source preparation headers are preserved. The additive acceptance fields record completed kernel and independent source/terminal checks.",
+    "No raw receipt, private filesystem path, execution telemetry, internal revision identifier or selected source table is included in this public manifest."
+  ]
+}
