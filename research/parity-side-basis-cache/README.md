@@ -41,13 +41,14 @@ historical-checker change.
 
 ## Result
 
-On Linux / CPython 3.12, five alternating fresh-process pairs of the full
-`h=8,10,26` parity-side experiment stream gave the median wall times recorded in
-[RESULT.json](RESULT.json). Timing is host-descriptive and is not a correctness
-gate. Every experiment receipt matches the baseline checker fieldwise
-(`roles`, `repaired_roles`, `dag_sha256`, nested-edge counts and obstruction
-fields). Restoring the old `binary_phase_frames.py` pin recovers each base
-certificate byte-for-byte after that single substitution.
+On Linux / CPython 3.12.3, five alternating fresh-process pairs of the full
+`h=8,10,26` parity-side experiment stream gave median wall time
+**27.349 → 13.463 seconds (2.03×)**. Timing is host-descriptive and is not a
+correctness gate; all samples and environment pins are in
+[RESULT.json](RESULT.json). Every experiment receipt matches the baseline
+checker fieldwise (`roles`, `repaired_roles`, `dag_sha256`, nested-edge counts
+and obstruction fields). Restoring the old `binary_phase_frames.py` pin
+recovers each base certificate byte-for-byte after that single substitution.
 
 ## Equivalence
 
