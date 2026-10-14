@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/binary_phase_frames.py",
+    "scripts/experiments/parity_side.py",
+    "scripts/experiments/parity_phase_repair.py",
+    "scripts/audit_parity_side.py",
+    "certificates/parity-side.json",
+    "certificates/disjoint-tensor-compression.json",
+    "certificates/dyadic-central-factor.json",
+    "docs/research/parity-side.md",
+    "tests/test_parity_side.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Exact baseline copy of the base-commit binary_phase_frames.py; identical basis/contains/classify on 4000 random cases; identical parity-side experiment receipts for h=8,10,26 including dag_sha256; the three binding certificates differ from base only in the binary_phase_frames.py source pin; cache invalidation and negative-vector rejection controls."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Same equivalence and certificate discipline under -O (require() gates, not assert)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_parity_side*.py",
+        "-v"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Existing parity-side unit tests plus focused basis-cache package controls."
+    }
+  ]
+}

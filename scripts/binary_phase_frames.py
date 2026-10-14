@@ -2,28 +2,65 @@
 
 Vectors are integer bit masks. A nondegenerate residual must also be
 nonalternating to use the upstream one-kernel-per-dimension interface.
+
+Tooling note (parity-side replay): ``basis`` memoizes on the row tuple and
+``contains`` reduces against one computed basis. Both retain the original
+Gaussian elimination order, pivot rule and Boolean results. See
+``research/parity-side-basis-cache/``.
 """
+from functools import lru_cache
 
 
 def dot(a, b):
     return (a & b).bit_count() & 1
 
 
-def basis(rows):
+@lru_cache(maxsize=None)
+def _basis_cached(rows):
     pivots = {}
     for row in rows:
         assert isinstance(row,int) and row>=0, 'Binary vectors must be nonnegative masks'
         while row:
             p = row.bit_length()-1
-            if p not in pivots:
+            hit = pivots.get(p)
+            if hit is None:
                 pivots[p] = row
                 break
-            row ^= pivots[p]
+            row ^= hit
     return tuple(pivots[p] for p in sorted(pivots, reverse=True))
 
 
+def basis(rows):
+    """Return a highest-bit-first reduced basis of the given generating set.
+
+    Accepts any iterable of nonnegative integer masks. Results for tuple inputs
+    (and for the tuple conversion of other iterables) are memoized; the Boolean
+    span geometry is unchanged.
+    """
+    if isinstance(rows, tuple):
+        return _basis_cached(rows)
+    return _basis_cached(tuple(rows))
+
+
 def contains(space, vector):
-    return len(basis((*space, vector))) == len(basis(space))
+    """True iff ``vector`` lies in the span of ``space``.
+
+    Equivalent to ``len(basis((*space, vector))) == len(basis(space))``, but
+    reduces ``vector`` against one basis of ``space`` instead of rebuilding the
+    enlarged basis. Memoized ``basis`` calls make repeated membership tests on
+    the same space reuse the same pivot table.
+    """
+    assert isinstance(vector, int) and vector >= 0, 'Binary vectors must be nonnegative masks'
+    base = basis(space)
+    pivots = {row.bit_length() - 1: row for row in base}
+    row = vector
+    while row:
+        p = row.bit_length() - 1
+        hit = pivots.get(p)
+        if hit is None:
+            return False
+        row ^= hit
+    return True
 
 
 def nullspace(rows, dimension):
