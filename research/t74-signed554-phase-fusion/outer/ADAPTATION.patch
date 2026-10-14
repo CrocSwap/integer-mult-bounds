@@ -1,0 +1,77 @@
+--- our-Strassen-checkpoint/check_outer.py
++++ check_classical.py
+@@ -18,8 +18,8 @@
+ certified_complex=Q(spec['expected']['complex_lower'])
+ bit=Q('0.001733427039589844234749')
+ # Keep short independently checkable decimals strictly inside both endpoints.
+-b=Q('0.00167975495612')
+-q=b-Q(1,10**10)
++b=certified_complex-Q(1,10**30)
++q=b-Q(1,10**30)
+ a=(q+b)/2
+ online=Q(spec['expected']['kappa'])
+ old=Q('0.001673360105405778')
+@@ -60,21 +60,21 @@
+ assert native[1]<1
+ assert moment(Q('0.00167975495613'))[0]>1
+ 
+-def ledger(kind, *, q_=q, zeta=Q(1,10**8), slack=Q(1,10**5),
++def ledger(kind, *, q_=q, zeta=Q(1,10**32), slack=Q(1,10**30),
+            old_scan=False, full_gauge=False, full_key=False):
+-    r=Q(1,10**6); stop=Q(1,10**9)
++    r=Q(1,10**30); stop=Q(1,10**36)
+     if kind=='strassen':
+         c=Q(3,32)
+         eps=(1+q_+q_*(c-slack-r-zeta))/(1+q_)**2
+         xi=eps*(1+q_)-c+slack
+     else:
+-        c=Q(5,16)
++        c=Q(3,10)  # tau=12/5, from established omega<2.3728639
+         xi=(Q(3,2)+q_-(1+q_)*(r+zeta)+slack)/(2+q_)
+         eps=(1+q_*(1-xi-r-zeta))/(1+q_)
+     beta=1-xi-r-zeta
+     saving=eps*q_
+-    # Deliberate strict 1e-11 gap after decimal truncation.
+-    kappa=Q((saving*10**18).__floor__(),10**18)-Q(1,10**11)
++    # Deliberate strict 1e-42 gap after decimal truncation.
++    kappa=Q((saving*10**48).__floor__(),10**48)-Q(1,10**42)
+     # kappa is derived, not silently asserted to equal an expected decimal.
+     tau=1-a; sigma=1-b
+     internal=tau+(1-stop)*max(sigma-tau,Q(0))
+@@ -127,8 +127,8 @@
+     }
+     if kind!='strassen':
+         checks['sparse_union_fraction_decays']=xi-beta-Q(1,2)
+-        checks['matrix_exponent_above_supplied_bound']=Q(19,8)-Q(9,4)
+-        checks['matrix_exponent_below_five_halves']=Q(5,2)-Q(19,8)
++        checks['matrix_exponent_above_published_bound']=Q(12,5)-Q('2.3728639')
++        checks['matrix_exponent_below_five_halves']=Q(5,2)-Q(12,5)
+     if full_gauge:checks['unrecentered_group_gauge']=1-eps-r-beta
+     checks.update({n+'_above_kappa':v-kappa for n,v in margins.items()})
+     assert margins['main_transform']==margins['fused_gaussian']
+@@ -148,7 +148,7 @@
+     return x
+ 
+ rows={};controls={}
+-for kind in ['strassen','matrix_9_4']:
++for kind in ['classical_matrix_12_5']:
+     row=ledger(kind)
+     assert all(v>0 for v in row['strict_checks'].values())
+     assert min(row['margins'].values())==row['margins']['main_transform']
+@@ -163,13 +163,13 @@
+         failed={n:v for n,v in bad['strict_checks'].items() if v<=0}
+         assert failed,(kind,name)
+         controls[kind][name]=failed
+-out={'status':'PASS_EXACT_T74_PHASE_FUSION_ARITHMETIC',
+-     'scope':'Conditional recomposition of pinned supplier and already-reviewed outer proofs. Full fresh native replay is a separately tracked requirement; inherited all-size assumptions remain.',
++out={'status':'PASS_EXACT_CLASSICAL_MATRIX_BOUNDARY_ARITHMETIC',
++     'scope':'Conditional recomposition of pinned supplier and already-reviewed outer proofs. Established Le Gall exponent and PR1673 effective matrix/layout lemmas are theorem inputs; inherited all-size assumptions remain.',
+      'complex_lower_short':b,'complex_lower_pinned':certified_complex,
+      'native_moment':native,'profile':profile,'m':m,'W':W,
+      'online_final_kappa':online,'rows':rows,'rejecting_controls':controls,
+      'source_sha256':{str(p.relative_to(WORK)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [SPEC,CLAIM]}}
+-(HERE/'FRONTIER-FUSION-ARITHMETIC.json').write_text(json.dumps(encode(out),indent=2)+'\n')
++(HERE/'CLASSICAL-BOUNDARY-ARITHMETIC.json').write_text(json.dumps(encode(out),indent=2)+'\n')
+ print(out['status'])
+ for name,row in rows.items():
+     print(name,'FINAL KAPPA',encode(row['kappa'])['decimal'],
