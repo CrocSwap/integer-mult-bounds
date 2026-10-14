@@ -119,3 +119,7 @@ PR bodies plus recent Discussion metadata; it is not a novelty guarantee.
 
 Prepared by Rohan Arun with substantial OpenAI Codex assistance.
 Apache-2.0. No independent human or formal-kernel review is claimed.
+
+## Low-rank channel extension
+
+The package now also constructs and verifies the complete `G/2` channel, including gathering and restoration of all 72 dirty helpers, with COPY56. See [LOWRANK-PROOF.md](LOWRANK-PROOF.md). The `I-G/2` side correction and full supplier are still missing; there is no new kappa. The same verify.py entrypoint checks both constructions.
