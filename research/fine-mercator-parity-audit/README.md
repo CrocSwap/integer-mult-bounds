@@ -13,9 +13,11 @@ PR [#1479](https://github.com/CrocSwap/integer-mult-bounds/pull/1479)
 (Git blob `29699092d4e66677d50d400a89e4763e476ef7e1`). Both use it to certify
 their 10⁻¹²⁰ complex endpoint brackets.
 
-The retained engine (`research/complex-allcold/engines/moment.py`, and every
-other Mercator engine on main) sums `n = 1..224`: an **even** alternating partial
-sum, which lies below `log(1+z)`, so `(s, s + z^225/225)` is a valid enclosure.
+The retained engine (`research/complex-allcold/engines/moment.py`) sums
+`n = 1..224`: an **even** alternating partial sum, which lies below `log(1+z)`,
+so `(s, s + z^225/225)` is a valid enclosure. A pattern search of main at the
+base commit finds four distinct alternating-log implementations (about 130
+copies); all use this 224-term even sum.
 The fine copy changes the loop to `range(1, LOGN)` with `LOGN = 800`, so it sums
 `n = 1..799`: an **odd** partial sum, which lies *above* `log(1+z)`. It still
 returns `(s, s + z^800/800)`, i.e. an upper bound as the lower end. The true
@@ -47,9 +49,16 @@ still certified by at least one sound engine. Item 3 additionally shows that the
 fine Mercator lower ends on the actual inputs are valid. **No claimed κ or
 bracket is refuted.** What fails is the stated property of the vendored engine:
 it is not an outward enclosure in general, so the “two engines both certify the
-reject” redundancy rests on luck at these inputs, and further reuse of the file
-(it has already been copied once) could certify a false rejection. Recommended
-repair: `LOGN = 801`, or return `(s − t/LOGN, s)` for even `LOGN`.
+reject” redundancy holds at these inputs only because the rounding happens to
+absorb the error.
+
+The size of the error matters for interpretation. Each false lower end exceeds
+the true logarithm by less than `2^-800` (about `10^-241`). A wrong *decision*
+would need a true moment within roughly that distance of one, which is far below
+any bracket in use. The practical risk is therefore negligible. The defect is a
+false soundness statement in a file that has already been copied once (into
+#1485). Recommended repair: `LOGN = 801`, or return `(s − t/LOGN, s)` for even
+`LOGN`.
 
 ## Reproduce
 
@@ -93,8 +102,8 @@ raised lower end. Any mismatch exits nonzero.
 ## Credit
 
 Audited code: finer-constant engines by Jeremy Kothe (jeremykothe2, PR1479)
-with oh-my-pi assistance, reused in PR1485 by Rohan Arun (rohanarun); the
-retained Mercator engine and its range-reduction design come from the
-complex-allcold lineage on main. The vendored files are unchanged copies under
+with oh-my-pi assistance, reused in PR1485 by Rohan Arun (rohanarun). The
+retained Mercator engine and its range-reduction design are the
+`engines/moment.py` lineage vendored on main (via PR361's `work/pr361` tree). The vendored files are unchanged copies under
 the repository's Apache-2.0 license. Audit by Philippe Van Velzen with
 substantial Claude (Anthropic) assistance. New work is Apache-2.0.
