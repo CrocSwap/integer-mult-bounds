@@ -8,6 +8,10 @@ Also asserts the Mercator term count is even (an odd alternating partial sum lie
 """
 import sys
 from fractions import Fraction as F
+try:
+    from gmpy2 import mpz   # optional accelerator, identical results
+except ImportError:
+    mpz = int
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fine_mercator as FM, fine_moment as BF
@@ -20,18 +24,18 @@ ONE = 1 << OB
 
 
 def atanh2(z):
-    p, q = z.numerator, z.denominator
+    p, q = mpz(z.numerator), mpz(z.denominator)
     p2, q2 = p*p, q*q
     pl = ONE*p//q
     ph = -((-ONE*p)//q)
-    sl = sh = 0
+    sl = sh = mpz(0)
     for j in range(N):
         sl += pl//(2*j+1)
         sh += -((-ph)//(2*j+1))
         pl = pl*p2//q2
         ph = -((-ph*p2)//q2)
     tail = -((-2*ph*q2)//((2*N+1)*(q2-p2)))
-    return F(2*sl, ONE), F(2*sh + tail, ONE)
+    return F(int(2*sl), ONE), F(int(2*sh + tail), ONE)
 
 
 LN2 = atanh2(F(1, 3))

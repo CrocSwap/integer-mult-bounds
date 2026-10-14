@@ -26,6 +26,10 @@ def load(n):
  s=importlib.util.spec_from_file_location(n,P/'engines'/(n+'.py'));m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
 M,B,A=[load(n)for n in ('moment','base_two_moment','outer')]
 import hashlib
+try:
+ from gmpy2 import mpz   # optional accelerator, identical integer results
+except ImportError:
+ mpz=int
 def dec(x):
  with localcontext()as ctx:ctx.prec=3120;return str(Decimal(x.numerator)/Decimal(x.denominator))
 import sys as _sys;_sys.path.insert(0,str(Path(__file__).resolve().parent));import fine_moment as BF,fine_mercator as MF,fine_cache as FC
@@ -220,21 +224,34 @@ def assemble(owner,invoice,owner_sha,invoice_sha):
   assert all(type(v)is int and v>0 for v in options.values())
   grid=10**options["grid_digits"]; margin_grid=10**options["margin_digits"]
   eta=beta=Q(1,margin_grid);s=min(c,(1-beta)*bb)-Q(1,1000*margin_grid);assert 0<s<c and s<(1-beta)*bb
-  # Bootstrap chain on the 2^-KB grid in exact integers (no rational normalisation): every exponent is the exact recursion value
-  # (1-s)s+s*old rounded DOWN (a smaller exponent only weakens the bootstrap; the strict conditions below are checked exactly on the rounded values).
-  KB=4*options["margin_digits"]+64;ONE=1<<KB;sn,sd=s.numerator,s.denominator;DN=sd<<KB
-  s_lo=(sn<<KB)//sd;assert 0<s_lo<ONE   # s_lo <= s; a(s) is increasing for s<1/2, so a(s_lo) <= a(s)
-  old_i=384599*ONE//10**10   # chain[0] = 384599/10^10 rounded down onto the grid
-  cuts=[];chain0=Q(old_i,ONE)
+  # Bootstrap chain on the 2^-KB grid in exact integers (no rational normalisation). The internal parameter s is replaced by its floor s' = S/2^KB on the grid
+  # (s' <= s, so every exponent computed below is also valid for s: a smaller s only weakens the bootstrap; s - s' < 2^-KB is far below the kappa grid), and every
+  # exponent is the recursion value (1-s')s'+s'*old rounded DOWN. All strict conditions are checked exactly on the rounded values.
+  # Cutoff lemma instantiation (PR387 PROOF; FINITE_BIT_ACCOUNTING.md; repair (a) of PR1956, Josie Elliston): stage j needs L_j with L_j*gap_j^2 >= 36 and
+  # L_j*gap_j >= 2*(4+ell_j), where ell_j >= log2 C_j and C_j dominates the stage's fresh constants (< 2^PAYLOAD) PLUS THE CARRIED previous constant: the next constant
+  # is C_large + C_old*2^(L_j*(a_{j+1}-a_j)), so ell_{j+1} = max(PAYLOAD, ell_j + ceil(L_j*(a_{j+1}-a_j))) + 1. L_j is the least power of two (up to one extra doubling)
+  # meeting both inequalities; a larger cutoff satisfies the same hypotheses, and kappa is computed from the chain end only.
+  KB=int(3.6*options["margin_digits"])+64;ONE=mpz(1)<<KB;S=(mpz(s.numerator)<<KB)//s.denominator;assert 0<S<ONE and Q(int(S),int(ONE))<=s
+  O=384599*ONE//10**10   # chain[0] = 384599/10^10 rounded down onto the grid
+  chain0=Q(int(O),int(ONE));cuts=[];N1=36*ONE**4;ONE2=ONE*ONE;ell=PAYLOAD;unc_prev=None;unc_failed=[]
   for step in range(options["bootstrap_steps"]):
-   a_i=(s_lo*(ONE-s_lo)+s_lo*old_i)>>KB
-   X=a_i*sd;SX=sn<<KB;OLDX=old_i*sd
-   g=min(SX-X,DN-X-SX,DN-X-sn*(ONE-old_i),DN-SX)   # gap = g/DN, the same four terms as min(s-a,1-a-s,1-a-s*(1-old),1-s)
-   assert old_i<a_i and X<SX and SX<DN-X and g>0
-   cut=max(-(-36*DN*DN//(g*g)),-(-2*(4+PAYLOAD)*DN//g));assert cut*g*g>=36*DN*DN and cut*g>=2*(4+PAYLOAD)*DN
-   h=lambda v:hashlib.sha256(('%x'%v).encode()).hexdigest()
-   cuts.append(dict(step=step,exponent_numerator_sha256=h(a_i),grid_bits=KB,gap_numerator_sha256=h(g),gap_denominator_sha256=h(DN),cutoff_log2_sha256=h(cut),cutoff_log2_bits=cut.bit_length()));old_i=a_i
-  chain=[chain0,Q(old_i,ONE)]
+   A_=(S*(ONE-S)+S*O)>>KB
+   g=min((S-A_)*ONE,(ONE-A_-S)*ONE,ONE*ONE-A_*ONE-S*(ONE-O),(ONE-S)*ONE)   # gap = g/ONE^2: the same four terms as min(s-a,1-a-s,1-a-s*(1-old),1-s)
+   assert O<A_ and A_<S and S<ONE-A_ and g>0
+   N2=2*(4+ell)*ONE2
+   e=max(N1.bit_length()-(2*g.bit_length()-1)+2,N2.bit_length()-g.bit_length()+2,0);cut=1<<e
+   assert cut*g*g>=N1 and cut*g>=N2   # both lemma inequalities with the carried log2 C bound ell
+   carry=-((-(cut*(A_-O)))>>KB)      # ceil(L*(a_{j+1}-a_j)): log2 of the factor 2^(L*Delta a) carried into the next stage's constant
+   if step<7:   # control: the UNCARRIED least cutoff of the old formula cannot pay the carry from stage 2 on (shortfall ratio about 2(1-s))
+    Lu=max(-(-N1//(g*g)),-(-2*(4+PAYLOAD)*ONE2//g))
+    if unc_prev is not None:
+     cu=-((-(unc_prev[0]*unc_prev[1]))>>KB);unc_failed.append(Lu*g<2*(4+cu)*ONE2);assert unc_failed[-1],step
+    unc_prev=(Lu,A_-O)
+   h=lambda v:hashlib.sha256(('%x'%int(v)).encode()).hexdigest()
+   cuts.append(dict(step=step,grid_bits=KB,exponent_numerator_sha256=h(A_),gap_numerator_sha256=h(g),log2C_bound_sha256=h(ell),cutoff_log2_power_of_two_exponent=e,carry_bits_bit_length=int(carry).bit_length()))
+   ell=max(PAYLOAD,ell+carry)+1;O=A_
+  cuts.append(dict(control='uncarried_cutoffs_fail_carry_rule',stages_checked=list(range(2,2+len(unc_failed))),all_rejected=all(unc_failed)))
+  chain=[chain0,Q(int(O),int(ONE))]
   q=chain[-1]*(1-2*eta);margin=(1-eta)*q/(1+q);ticks=margin*grid;k=Q((ticks.numerator-1)//ticks.denominator,grid)
   bridge={'semantic':{'C0':{'base':2,'exponent':210000},'strict_literal_gap':1},'rows':{'degree_gap':Q(10**6)-Q(51*20161,25)}}
   outer=A.assembly(chain[-1],bb,bridge,k,eta=eta,beta=beta);assert len(outer['strict_constraints'])==47 and all(v>0 for v in outer['strict_constraints'].values())

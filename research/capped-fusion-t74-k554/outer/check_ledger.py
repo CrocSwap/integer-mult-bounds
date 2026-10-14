@@ -63,6 +63,10 @@ assert profile==EXPECTED_PROFILE
 
 GB=int((DIG+60)*3.3220)+16   # enclosure grid 2^-GB, about 50 digits below the slacks
 ONE=1<<GB
+try:
+    from gmpy2 import mpz   # optional accelerator, identical integer results
+except ImportError:
+    mpz=int
 def _cd(a,b):return -((-a)//b)
 def down(x):return Q((x*ONE).__floor__(),ONE)
 def up(x):return Q(_cd(x.numerator*ONE,x.denominator),ONE)
@@ -70,12 +74,12 @@ LN=GB//3+12   # atanh terms: z<=1/3, so the tail is below 9^-LN < 2^-GB
 EN=GB//6+12   # exponential terms: x<0.01, so x^EN/EN! < 2^-GB
 def unit_log(y):
     # 2*atanh((y-1)/(y+1)) in directed-rounding integer fixed point: floor every term for the lower sum, ceil every term for the upper sum, geometric tail
-    z=(y-1)/(y+1);p,q=z.numerator,z.denominator;p2,q2=p*p,q*q
-    pl=ONE*p//q;ph=_cd(ONE*p,q);sl=sh=0
+    z=(y-1)/(y+1);p,q=mpz(z.numerator),mpz(z.denominator);p2,q2=p*p,q*q
+    pl=ONE*p//q;ph=_cd(ONE*p,q);sl=sh=mpz(0)
     for j in range(LN):
         sl+=pl//(2*j+1);sh+=_cd(ph,2*j+1);pl=pl*p2//q2;ph=_cd(ph*p2,q2)
     tail=_cd(2*ph*q2,(2*LN+1)*(q2-p2))
-    return Q(2*sl,ONE),Q(2*sh+tail,ONE)
+    return Q(int(2*sl),ONE),Q(int(2*sh+tail),ONE)
 ln2=unit_log(Q(2))
 def log(x):
     k=0
@@ -84,12 +88,12 @@ def log(x):
     return down(lo+k*ln2[0]),up(hi+k*ln2[1])
 def exp(x):
     assert 0<=x<Q(1,100)
-    xl=x.numerator*ONE//x.denominator;xu=_cd(x.numerator*ONE,x.denominator)
-    tl=th=sl=sh=ONE
+    xl=mpz(x.numerator)*ONE//x.denominator;xu=_cd(mpz(x.numerator)*ONE,x.denominator)
+    tl=th=sl=sh=mpz(ONE)
     for j in range(1,EN):
         tl=((tl*xl)>>GB)//j;th=_cd(-((-th*xu)>>GB),j);sl+=tl;sh+=th
     tn=_cd(-((-th*xu)>>GB),EN)    # x^EN/EN! (rounded up); the tail is at most twice this
-    return Q(sl,ONE),Q(sh+2*tn+2,ONE)
+    return Q(int(sl),ONE),Q(int(sh+2*tn+2),ONE)
 def moment(endpoint):
     lo=hi=Q(0)
     for r,n in profile.items():

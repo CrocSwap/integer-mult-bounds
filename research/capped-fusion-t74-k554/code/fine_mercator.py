@@ -6,6 +6,10 @@ Soundness of the integer evaluation: every quantity is non-negative and every op
 bound and ceiling every intermediate gives an upper bound; the alternating Mercator sum tracks separate lower/upper term bounds and subtracts
 upper terms from the lower sum (and lower terms from the upper sum). The enclosure is then outward-rounded to the 2^-10182 grid."""
 from fractions import Fraction as F
+try:
+    from gmpy2 import mpz   # optional accelerator: identical integer results, much faster
+except ImportError:
+    mpz = int
 from functools import lru_cache
 from math import factorial
 DYAD = 1 << 10182
@@ -19,8 +23,8 @@ def mercator(y):
     z=y-1
     assert 0 <= z <= F(1,2)
     assert (LOGN - 1) % 2 == 0, 'an even number of terms is required: an odd partial sum lies above the log'
-    p,q=z.numerator,z.denominator
-    tl=tu=DYAD; sl=su=0
+    p,q=mpz(z.numerator),mpz(z.denominator)
+    tl=tu=mpz(DYAD); sl=su=0
     for n in range(1, LOGN):
         tl=tl*p//q; tu=-((-tu*p)//q)          # z^n bounds
         lo=tl//n; hi=-((-tu)//n)
@@ -28,7 +32,7 @@ def mercator(y):
         else: sl-=hi; su-=lo
     tu=-((-tu*p)//q)                           # z^LOGN upper bound
     su+=-((-tu)//LOGN)
-    return F(sl,DYAD), F(su,DYAD)
+    return F(int(sl),DYAD), F(int(su),DYAD)
 
 @lru_cache(None)
 def logarithm(x):
@@ -44,16 +48,16 @@ def exponential(l,u):
     """Outward enclosure of exp on [l,u] (0 <= l <= u < 1/10) on the 2^-10182 grid: lower = partial sum through x^(EXPN-1)/(EXPN-1)!
     (all terms positive), upper = partial sum at u plus 2*u^EXPN/EXPN! (the tail is at most u^EXPN/EXPN! / (1 - u/(EXPN+1)) <= 2 u^EXPN/EXPN!)."""
     assert 0 <= l <= u < F(1,10)
-    xl=l.numerator*DYAD//l.denominator; xu=-((-u.numerator*DYAD)//u.denominator)
+    xl=mpz(l.numerator)*DYAD//l.denominator; xu=-((-mpz(u.numerator)*DYAD)//u.denominator)
     # lower: Taylor sum through x^(EXPN-1)/(EXPN-1)! with every term floored; upper: same with ceilings plus the tail 2*x^EXPN/EXPN!
     # (nested floors/ceilings: floor(floor(v/2^k)/j) = floor(v/(j 2^k)), so the shift form is the same rounding)
-    tl=sl=DYAD; th=sh=DYAD
+    tl=sl=mpz(DYAD); th=sh=mpz(DYAD)
     for j in range(1, EXPN):
         tl=((xl*tl)>>10182)//j; sl+=tl
         c=-((-xu*th)>>10182); th=-((-c)//j); sh+=th
     c=-((-xu*th)>>10182); tn=-((-c)//EXPN)
     sh+=2*tn+2
-    return F(sl,DYAD), F(sh,DYAD)
+    return F(int(sl),DYAD), F(int(sh),DYAD)
 
 def moment(H,m,W,a,bad=False):
     lo=hi=F(0)
