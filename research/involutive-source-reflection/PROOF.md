@@ -59,3 +59,22 @@ permutations. An interposed routing operator T need not commute with F;
 FTF is not generally T. A global decoder and its paid implementation must
 therefore be established before replacing centre costs in any moment invoice.
 All claims in this package stop at the stated local interface.
+
+
+## Alternative: source-restored reflection shears
+
+Negate the target corrections and omit the source preparation. The backward
+map is (x-Jy-12PRy,y)=(x-Fy,y), and the forward map is
+(x,y+Jx+12PRx)=(x,y+Fx). Helpers and private fields retain their endpoints.
+No source reflection now remains to restore. The price is a changed transfer
+operator: these are F-shears, not identity-shears. Their exact local rank
+profiles equal the first interface's profiles, and the scalar allowance falls
+to 208,310 real primitives per coordinate per call.
+
+For one common F with F squared equal to I, the usual three-shear sequence
+has matrix [[0,-F],[F,0]]. The complete inherited nine-call/bridge word can
+therefore be corrected by applying F on every bank on the constant-cover
+restriction. Actual stages use distinct routed charts; this same-chart
+calculation does not prove closure there. A route-induced content probe fails
+for the unmodified constant-cover correction (retained as an exploratory
+local diagnostic, not supplied as a full native counterexample here).

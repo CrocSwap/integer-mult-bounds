@@ -17,6 +17,7 @@ if not __debug__:
     raise RuntimeError("Run without -O: assertions are required for this verifier")
 import argparse
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--interface', choices=['unit-transfer','reflection-shear'], default='unit-transfer')
 parser.add_argument('--out', type=Path, help='Optional fresh report directory; default is read-only')
 args = parser.parse_args()
 if args.out is not None and args.out.exists():
@@ -33,6 +34,8 @@ sys.path.insert(0, str(HERE/'vendor/pr1862'))
 sys.path.insert(0, str(HERE))
 import source_data as base
 import reflection_unit as producer
+if args.interface == 'reflection-shear':
+    import restored_reflection as producer
 import input_logger as algebra
 import native_verify as native
 import verify_unit_transfer as transfer_check
@@ -132,11 +135,17 @@ for provider in ('base', 'extra'):
         for i,row in enumerate(rows):
             expected = {i:Q(1)} if i<n else {}
             if direction=='backward':
-                if i<v: base.add(expected,{v+i:Q(1)},Q(-1))
-                elif i<2*v: expected={v+j:x for j,x in vals['G'][i-v].items()}
+                if args.interface == 'reflection-shear':
+                    if i<v: base.add(expected,{v+j:x for j,x in vals['G'][i].items()},Q(-1))
+                else:
+                    if i<v: base.add(expected,{v+i:Q(1)},Q(-1))
+                    elif i<2*v: expected={v+j:x for j,x in vals['G'][i-v].items()}
             else:
-                if i<v: expected=vals['G_inverse'][i]
-                elif i<2*v: base.add(expected,vals['G_inverse'][i-v],Q(1))
+                if args.interface == 'reflection-shear':
+                    if v<=i<2*v: base.add(expected,vals['G'][i-v],Q(1))
+                else:
+                    if i<v: expected=vals['G_inverse'][i]
+                    elif i<2*v: base.add(expected,vals['G_inverse'][i-v],Q(1))
             assert row==expected,(provider,direction,i,'unit-transfer')
         profile=Counter(e[5] for e in program if e[0]=='climb')
         added=[e for e in program if e[0] in ('unit_transfer_input_line','unit_transfer_exit_line')]
@@ -154,7 +163,7 @@ for provider in ('base', 'extra'):
         # Source mutation is nontrivial, so it cannot be treated as restored.
         source=range(v,2*v) if direction=='backward' else range(v)
         changed=sum(rows[i]!={i:Q(1)} for i in source)
-        assert changed>0
+        assert changed==0 if args.interface=='reflection-shear' else changed>0
         orientation[direction]=dict(
             independent_input_columns=n+8, arbitrary_helpers_restored=word['R'],
             private_outputs_zero=len(R), source_rows_changed=changed,
@@ -173,9 +182,9 @@ for provider in ('base', 'extra'):
 for module in (base,producer,algebra,native,transfer_check,scalar_check):
     path=Path(module.__file__)
     pins[str(path.relative_to(ROOT))]=hashlib.sha256(path.read_bytes()).hexdigest()
-result=dict(status='PASS_CURRENT_LOCAL_REFLECTION_WITH_BOUNDARY_CHECKS',providers=reports,
+result=dict(interface=args.interface,status='PASS_CURRENT_LOCAL_REFLECTION_WITH_BOUNDARY_CHECKS',providers=reports,
             source_pins=pins,
-            scope='Exact scalar identities on all input columns, inherited core frame access, and added native recipes and physical boundary access. Source remains encoded. Full operator composition, changed-chart routing, source decoding, hosting and full precision invoice are open. No new kappa certified.')
+            scope='Exact scalar identities on all input columns, inherited core frame access, and added native recipes and physical boundary access. Depending on interface, source remains encoded or the transferred operator is F rather than identity. Full operator composition, changed-chart routing, source decoding, hosting and full precision invoice are open. No new kappa certified.')
 if args.out is not None:
     args.out.mkdir(parents=True,exist_ok=False)
     (args.out/'RESULT.json').write_text(json.dumps(result,indent=2)+'\n')

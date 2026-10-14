@@ -41,6 +41,23 @@ per call under the retained dyadic tariff. This is not the recursive cost,
 a precision bound, or a total hosted supplier cost. Retained climb/adapter
 sequences are unchanged. Added operations use the existing C0 field.
 
+## Alternative with restored sources
+
+`--interface reflection-shear` emits a second interface:
+
+```
+backward: (x,y,h,c) -> (x-Fy, y, h, 0)
+forward:  (x,y,h,c) -> (x, y+Fx, h, 0)
+```
+
+It retains the same 56-unit local rank-mass saving and eight rank-one repairs,
+restores all source rows, and lowers the scalar allowance to **208,310**.
+The literal implementation negates the target repair and omits source
+preparation; `PROOF.md` derives the maps. This is a changed transferred
+operator, not a restored identity-shear supplier. Full routed composition
+and a valid final correction remain unresolved. Uniform-cover cancellation
+alone is insufficient.
+
 ## Reproduce the local checks
 
 Standard library, Python 3.11 or newer; run without optimization:
@@ -53,6 +70,8 @@ Default execution is read-only. Optionally append `--out /path/to/fresh-output`
 to retain RESULT.json; an existing output directory is refused. `-O` and `-OO`
 are explicitly refused because this verifier uses assertions. There is no
 network dependency or Git-history dependency during replay.
+
+Append `--interface reflection-shear` to check the second interface.
 
 The verifier checks raw input and vendor hashes before imports, then:
 
@@ -67,8 +86,8 @@ The verifier checks raw input and vendor hashes before imports, then:
 
 These checks do **not** replay the full native operator composition, source
 routing across different charts, global controller, owner hosting, precision,
-or outer reduction. Source mutation is explicitly nontrivial in all 112 source
-rows. Local success is not a proof of the all-size multiplication theorem.
+or outer reduction. The default interface changes all 112 source rows; the alternative
+restores them and transfers F instead of identity. Local success is not a proof of the all-size multiplication theorem.
 
 [SOURCES.json](SOURCES.json) distinguishes generated replay inputs from Git
 source provenance and records compressed and decompressed hashes. The frozen
@@ -89,6 +108,10 @@ searched before submission. PR1862 is the direct predecessor. PR1719's
 involutive Walsh frame lift changes a different frame model. PR1918 studies
 composed scalar centre-query rank, not this source involution. This bounded
 search does not establish novelty or exhaust all Discussions.
+
+The local default and source-restored replay receipts are `LOCAL-REPLAY.json`
+and `RESTORED-LOCAL-REPLAY.json`; their hashes identify the exact checker
+versions used. Earlier receipts may refer to an earlier checker revision.
 
 ## Open next questions
 
