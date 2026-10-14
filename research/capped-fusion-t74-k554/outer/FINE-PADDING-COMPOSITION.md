@@ -25,7 +25,7 @@ Write delta = 1 - epsilon, beta = 1 - 3 delta, xi = epsilon(1+q) - c + s (bounda
 
 The window for beta is non-empty for every delta > 0, and beta = 1 - 3 delta lies in it (the Gaussian row exceeds main by delta(1 - 2q)). The only lower bound on delta is **delta > r0 = 1e-100**, a free strict slack of the proof. So PR1786's 1e-7 is an explicit interior point, not a limit; its kappa is q - 1.68e-10 only because delta = 1e-7. In this package delta = 2e-100 (the smallest round value above r0):
 
-    epsilon = 1 - 2e-100, beta = 1 - 6e-64, xi = 0.90792965478815...,
+    epsilon = 1 - 2e-100, beta = 1 - 6e-100, xi = 0.90792965478815...,
     kappa = 0.0016797549561255445213356709939207025769983114385025802954603275201628645...
 
 which is q - 3.4e-103 (q = b - 1e-100 = 0.00167975495612554452133567099392070257699831143850258029546032752016286...). Exact sweep (`outer/independent_check.py`): delta in {1e-7, 1e-12, 1e-30, 1e-60, 2e-100, 1.1e-100 ... } all satisfy every row; delta = r0 is rejected by `global_gamma_power_slack`; beta below the Gaussian window or at the membership edge is rejected (ledger controls `beta_below_gaussian_window`, `beta_above_membership_window`, `epsilon_equals_one`, `epsilon_not_above_r0_slack`).

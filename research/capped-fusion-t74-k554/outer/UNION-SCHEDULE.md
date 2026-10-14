@@ -118,10 +118,10 @@ that the number of record moves is within `3 * sum|F| * (ceil(log2 g) + 2 ceil(l
 
 ## 5b. Rows that depend on beta, re-verified at the balance of this package
 
-At the fine-prime-padding point (outer/FINE-PADDING-COMPOSITION.md; Strassen boundary c = 3/32, theta ~ p^-2): epsilon = 1 - 2e-100, beta = 1 - 6e-64, xi = 0.90792965...; every row is regenerated exactly by `check_ledger.py` and re-derived by `independent_check.py` (all strictly above kappa or strictly positive):
+At the fine-prime-padding point (outer/FINE-PADDING-COMPOSITION.md; Strassen boundary c = 3/32, theta ~ p^-2): epsilon = 1 - 2e-100, beta = 1 - 6e-100, xi = 0.90792965...; every row is regenerated exactly by `check_ledger.py` and re-derived by `independent_check.py` (all strictly above kappa or strictly positive):
 group scans 1-eps+beta = 1 - 4e-100 (saving far above kappa); union xi+1/2-eps = 0.4079 (boundary = main + 1e-100 binds; the union is no longer binding; the old row 1-eps-beta-1/2+xi = -0.5921 fails: rejecting control, so the radix schedule is still essential);
-cap xi-1/2 = 0.4079 > 0 and eps-xi > 0.092; group positive and below dimension (eps-beta = 4e-100 > 0); support router span 1-beta = 6e-64 > 0 (the supplier's total moved support O(g polylog p) = o(p) holds eventually, with exponent margin 6e-64);
-gauge/guard 1-(2xi-2)-r-beta = 0.184 (fine theta; the linear guard 1-xi-r-beta is negative: rejecting control); group key fits the record (eps-beta = 4e-100); membership arithmetic 1-beta-2(1-eps) = 2e-100; union tag work per visit 1-beta = 6e-64 (the old test 1-2beta is negative and not used); union header 1-beta; core-face corrections eps+beta+48-128+2 < 0.
+cap xi-1/2 = 0.4079 > 0 and eps-xi > 0.092; group positive and below dimension (eps-beta = 4e-100 > 0); support router span 1-beta = 6e-100 > 0 (the supplier's total moved support O(g polylog p) = o(p) holds eventually, with exponent margin 6e-100);
+gauge/guard 1-(2xi-2)-r-beta = 0.184 (fine theta; the linear guard 1-xi-r-beta is negative: rejecting control); group key fits the record (eps-beta = 4e-100); membership arithmetic 1-beta-2(1-eps) = 2e-100; union tag work per visit 1-beta = 6e-100 (the old test 1-2beta is negative and not used); union header 1-beta; core-face corrections eps+beta+48-128+2 < 0.
 The ledger row `sparse_union_fraction_decays` (xi-beta-1/2 > 0) stays deleted: it is false (g mu = p^(beta+1/2-xi) > 1) and the schedule does not use it.
 
 ## 6. What this does and does not establish

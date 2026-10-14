@@ -5,7 +5,7 @@ Runs (1) the supplier's own unchanged verify.py (native replays reused from --na
 independent balance derivation, regenerated in a temporary copy and compared byte-for-byte with the committed LEDGER.json /
 INDEPENDENT.json) and outer/replay_evidence.py (PR1673's 19 supplier-independent exact evidence replays);
 then binds the supplier's strict ASSEMBLY (complex endpoint, bit endpoint, profile) to the ledger inputs.
-The receipt kappa is the ledger's kappa with the radix-distributed sparse-union schedule (new in pkg4, outer/UNION-SCHEDULE.md) and structured boundary solves (new in this package, outer/STRUCTURED-BOUNDARY.md: displacement-rank generator representations of the boundary blocks, O(r W log W) per right-hand-side column, tau_eff = 2 + 1e-64); the unproven omega_C <= 9/4 premise is not used.
+The receipt kappa is the ledger's kappa with the radix-distributed sparse-union schedule (new in pkg4, outer/UNION-SCHEDULE.md) and structured boundary solves (new in this package, outer/STRUCTURED-BOUNDARY.md: displacement-rank generator representations of the boundary blocks, O(r W log W) per right-hand-side column, tau_eff = 2 + 1e-64 in that earlier package; not used here); the unproven omega_C <= 9/4 premise is not used.
 """
 import argparse, hashlib, json, os, shutil, subprocess, sys, tempfile, time
 from fractions import Fraction
@@ -101,7 +101,7 @@ def main():
              f"{asm['complex_lower'][:30]}... brackets the ledger's b = {bj['b']}. Outer (PR1673 capped phase-cell fusion): "
              "regenerated exact ledger (58 strict inequalities, 17 rejecting controls incl. the old g-factor union row, the old linear and old-theta chirp guards, the old 2*beta tag test, epsilon at 1 or at the r0 slack and beta outside its window, larger endpoint rejected by the native moment), "
              "independent balance derivation, the exact union-schedule simulation, the (retained, not used for kappa) structured-boundary displacement-rank check, the gauge-free identity/symbol/circuit checks, PR1786's finite prime/underflow controls and 19 exact evidence replays all pass. "
-             f"Conditional kappa {kappa_decimal} (union schedule outer/UNION-SCHEDULE.md; explicit Strassen boundary tau=45/16 (the structured boundary of outer/STRUCTURED-BOUNDARY.md is not used); gauge-free interiors outer/GAUGEFREE-INTERIORS.md; fine source-prime padding PR1786 at the free point epsilon=1-2e-64, outer/FINE-PADDING-COMPOSITION.md).")
+             f"Conditional kappa {kappa_decimal} (union schedule outer/UNION-SCHEDULE.md; explicit Strassen boundary tau=45/16 (the structured boundary of outer/STRUCTURED-BOUNDARY.md is not used); gauge-free interiors outer/GAUGEFREE-INTERIORS.md; fine source-prime padding PR1786 at the free point epsilon=1-2e-100, outer/FINE-PADDING-COMPOSITION.md).")
     (work / 'RELEASE-RECEIPT.json').write_text(json.dumps(dict(
         status='PASS_RELEASE', kappa_decimal=kappa_decimal, manifest_sha256=msha, proof=proof,
         seconds=round(time.monotonic() - t, 2)), indent=2) + '\n', encoding='utf-8')
