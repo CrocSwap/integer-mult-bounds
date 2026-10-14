@@ -101,3 +101,37 @@ and the exact broad-shift check are always rerun. Changed or incomplete baseline
 evidence rejects. The resulting receipt explicitly records reuse. This is
 source-specific finite evidence transfer, not a new native replay or all-size
 proof. Fresh independent CI uses no reuse flags.
+
+
+## Portable generated-artifact line endings
+
+The frozen parent remains byte-for-byte unchanged. Its two committed generated
+files `outer/LEDGER.json` and `outer/INDEPENDENT.json` use CRLF. The original
+outer regeneration compares full bytes; Linux emits LF, so otherwise identical
+arithmetic artifacts fail that comparison. This is a format portability repair,
+with no change to kappa, slacks, formulas, native code or independent checkers.
+
+For a fresh cold run, `portable_parent.py` authenticates every frozen parent
+file against the pinned manifest. If the two artifacts already match the host
+newline convention, it returns the original parent. Otherwise it makes an
+execution copy strictly inside the new work directory, converts only CRLF/LF
+bytes in those two files, and replaces only their two digest values in the
+derived manifest. It rejects lone carriage returns. All other source bytes,
+including the unchanged original release verifier, CLAIM and SPEC, stay exact.
+The unchanged full parent release runs on that authenticated execution copy;
+its original strict full-byte regeneration comparisons still run. Adaptation
+alone is not scientific verification or a successful release.
+
+The result records the original and execution manifests, permitted file
+transformations, complete source inventories, and observed source-tree hashes
+before and after execution. Both trees are reauthenticated after the new
+arithmetic. The original frozen parent is never edited. Explicit baseline-reuse
+mode continues to authenticate the unchanged original complete proof seal and
+does not use this adapter or claim a new native replay.
+
+For the two new refinement artifacts, equality compares every byte after only
+CRLF-to-LF conversion, rejecting lone CR. It does not compare parsed JSON or
+equate numerical types: changed digits, rational strings, integer/float/string
+types, property order, whitespace and hashes all reject. Controlled smoke tests
+in `test_portable_parent.py` exercise both LF and CRLF execution-copy cases and
+source/manifest tampering without running the native scientific pipeline.

@@ -8,6 +8,7 @@ Substantial OpenAI Codex assistance; inherited all-size assumptions remain open.
 import argparse,hashlib,json,os,pathlib,shutil,signal,subprocess,sys,time
 from fractions import Fraction as Q
 from reuse.bound_parent_reuse import verified_original_run
+from portable_parent import prepare_parent,verify_parent,same_artifact_bytes
 P=pathlib.Path(__file__).resolve().parent
 def fail(message):raise RuntimeError(message)
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -50,12 +51,16 @@ def main():
  # Run original full release, including original outer evidence, with NO reuse flags.
  reuse_mode=a.reuse_baseline_run is not None
  if reuse_mode != (a.reuse_baseline_source is not None):fail('both reuse source and run flags are required together')
- original=work/'original';reuse_receipt=None
+ original=work/'original';reuse_receipt=None;portability_receipt=None;portability_before=None;portability_after=None;execution_parent=parent
  if reuse_mode:
   original,reuse_receipt=verified_original_run(a.reuse_baseline_run,a.reuse_baseline_source,parent,P/'reuse/FULL-REUSE-SEAL.json')
   (work/'BASELINE-REUSE.json').write_text(json.dumps(reuse_receipt,indent=2)+'\n')
  else:
-  run('original-full-release',parent/'verify_release.py','--main',a.main.resolve(),'--work',original,'--jobs',a.jobs)
+  execution_parent,portability_receipt=prepare_parent(parent,work/'portable-parent')
+  portability_before=verify_parent(parent,execution_parent,portability_receipt)
+  (work/'PARENT-PORTABILITY.json').write_text(json.dumps(portability_receipt,indent=2)+'\n')
+  run('original-full-release',execution_parent/'verify_release.py','--main',a.main.resolve(),'--work',original,'--jobs',a.jobs)
+  portability_after=verify_parent(parent,execution_parent,portability_receipt)
  base=rd(original/'verify/strict/ASSEMBLY.json')
  if base['status']!='PASS_GAUGE44_NATIVE_EXACT_GLOBAL_ASSEMBLY' or len(base['outer'])!=47:fail('parent native assembly incomplete')
  profile={int(k):v for k,v in base['complex_profile'].items()}
@@ -74,7 +79,7 @@ def main():
  for art in ('LEDGER.json','INDEPENDENT.json'):(target/'outer'/art).unlink()
  for script in ('check_ledger.py','independent_check.py'):run('new-'+script.removesuffix('.py'),target/'outer'/script)
  for art in ('LEDGER.json','INDEPENDENT.json'):
-  if (target/'outer'/art).read_bytes()!=(P/'refinement/outer'/art).read_bytes():fail('refined arithmetic artifact differs '+art)
+  if not same_artifact_bytes((target/'outer'/art).read_bytes(),(P/'refinement/outer'/art).read_bytes()):fail('refined arithmetic artifact differs beyond CRLF/LF '+art)
  ledger=rd(target/'outer/LEDGER.json');row=ledger['rows']['struct_boundary_radix_union'];claim=rd(P/'refinement/outer/OUTER-CLAIM.json')
  k=Q(row['kappa']['rational'])
  if k!=Q(row['kappa']['decimal']) or k!=Q(claim['rational']) or k!=Q(claim['kappa']):fail('candidate exact rational/decimal mismatch')
@@ -93,7 +98,10 @@ def main():
  if reuse_mode:
   again,_=verified_original_run(a.reuse_baseline_run,a.reuse_baseline_source,parent,P/'reuse/FULL-REUSE-SEAL.json')
   if again!=original:fail('parent reuse location changed')
+ if portability_receipt is not None:
+  portability_after=verify_parent(parent,execution_parent,portability_receipt)
+  (work/'PARENT-PORTABILITY-AFTER.json').write_text(json.dumps(portability_after,indent=2)+'\n')
  if check_manifest(parent)!=psha or check_manifest(P)!=msha:fail('source changed during replay')
- result={'status':'PASS_ADDITIVE_FINITE_REFINEMENT_FULL_NATIVE','manifest_sha256':msha,'parent_manifest_sha256':psha,'parent_full_replay':True,'native_reuse':reuse_mode,'parent_verification_mode':'complete reviewed bound reuse' if reuse_mode else 'fresh native replay','parent_reuse_receipt':reuse_receipt,'kappa':str(k),'kappa_decimal':claim['kappa'],'exact_gain':str(k-old),'actual_profile':profile,'independent_profile_receipt_sha256':sha(work/'INDEPENDENT-PROFILE.json'),'stages':stages,'all_size_proved':False,'current_record_claim':False,'scope':'Actual parent finite native supplier (fresh by default, or complete reviewed source/execution-bound reuse) plus two separate exact enclosures and57conditional outer inequalities. Inherited fine-prime padding, gauge-free accretive circuit, union schedule, compiler/tape/precision/recovery and analytic assumptions remain mathematical inputs.'}
+ result={'status':'PASS_ADDITIVE_FINITE_REFINEMENT_FULL_NATIVE','manifest_sha256':msha,'parent_manifest_sha256':psha,'parent_full_replay':True,'native_reuse':reuse_mode,'parent_verification_mode':'complete reviewed bound reuse' if reuse_mode else 'fresh native replay','parent_reuse_receipt':reuse_receipt,'parent_portability_receipt':portability_receipt,'parent_portability_before':portability_before,'parent_portability_after':portability_after,'parent_execution_manifest_sha256':portability_receipt['execution_manifest_sha256'] if portability_receipt else psha,'kappa':str(k),'kappa_decimal':claim['kappa'],'exact_gain':str(k-old),'actual_profile':profile,'independent_profile_receipt_sha256':sha(work/'INDEPENDENT-PROFILE.json'),'stages':stages,'all_size_proved':False,'current_record_claim':False,'scope':'Actual parent finite native supplier (fresh by default, or complete reviewed source/execution-bound reuse) plus two separate exact enclosures and57conditional outer inequalities. Inherited fine-prime padding, gauge-free accretive circuit, union schedule, compiler/tape/precision/recovery and analytic assumptions remain mathematical inputs.'}
  (work/'RESULT.json').write_text(json.dumps(result,indent=2)+'\n');print(result['status'],result['kappa_decimal'])
 if __name__=='__main__':main()
