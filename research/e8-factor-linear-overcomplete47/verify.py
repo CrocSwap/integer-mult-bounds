@@ -11,7 +11,9 @@ HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
 BASE='c0e3631dc24e3c24a861f7d3d79e0608481cccec'
 OLD='research/complex-decoder-field-extension-seed44/'
 PAIR='research/complex-frame-pair-decoders/'
-PATHS={OLD+x for x in ('PROOF.md','verify.py','exact.py','replay_source.py','SOURCES.json')}|{PAIR+x for x in ('PROOF.md','README.md','verify.py')}
+PATHS={OLD+x for x in ('PROOF.md','verify.py','exact.py','replay_source.py','SOURCES.json')}|{
+    PAIR+'PROOF.md', PAIR+'README.md',
+    'research/frame-pair-enumeration-production/baseline.py'}
 
 def need(ok,msg):
     if not ok:raise ValueError(msg)

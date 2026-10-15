@@ -12,7 +12,8 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-PINNED = ROOT / 'research/complex-frame-pair-decoders/verify.py'
+# Pairwise-era PR968 model; production verify.py ships the neighborhood enumerator.
+PINNED = ROOT / 'research/frame-pair-enumeration-production/baseline.py'
 HIT = ROOT / 'research/complex-frame-pair-decoders/inputs/pr717/P104_HIT_flip_3a.txt'
 CEILING = ROOT / 'research/complex-local-word-ceiling/ceiling.py'
 CLIQUES = [9, 15, 24, 46, 52, 66, 94, 104]
