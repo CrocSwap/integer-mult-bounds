@@ -187,7 +187,10 @@ def run():
                            "86a1432870b3b21d8454106ec9162fddc0471472d9214c590a1420f2426cedfc"),
         "ceiling result": (ROOT / "research/complex-local-word-ceiling/RESULT.json",
                            "d91d6c46509875abf1f61de67c2609656d3dc685451299f83caa6f922493692d"),
-        "frame-pair predecessor": (ROOT / "research/complex-frame-pair-decoders/verify.py",
+        # Pairwise-era bytes live in the production package baseline after
+        # research/frame-pair-enumeration-production/; live verify.py ships the
+        # eight-bit neighborhood enumerator and no longer matches this digest.
+        "frame-pair predecessor": (ROOT / "research/frame-pair-enumeration-production/baseline.py",
                                     "bdf7ee497dc04dfc634ee5b7848f6a2b39b0169668fb1a60a9715111dbd15395"),
     }
     for name, (path, expected) in pins.items():

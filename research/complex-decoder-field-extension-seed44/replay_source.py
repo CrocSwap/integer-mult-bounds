@@ -13,7 +13,8 @@ import sys
 if not __debug__:raise SystemExit('predecessor assertions must be enabled')
 sys.dont_write_bytecode=True
 here=Path(__file__).resolve().parent
-source=here.parents[1]/'research/complex-frame-pair-decoders/verify.py'
+# Pairwise-era PR968 model; production verify.py ships the neighborhood enumerator.
+source=here.parents[1]/'research/frame-pair-enumeration-production/baseline.py'
 spec=importlib.util.spec_from_file_location('credited_pr968',source)
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 with contextlib.redirect_stdout(io.StringIO()) as captured:

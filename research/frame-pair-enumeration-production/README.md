@@ -11,8 +11,12 @@ streams. This package wires that equivalent rewrite into the **production**
 PR968 verifier.
 
 Dependent VERIFY packages that previously live-pinned the production path
-demote that pin to provenance. `selected-p104-port-adapter` retargets its E8
-model pin to this package’s pairwise [`baseline.py`](baseline.py).
+demote that pin to provenance. `selected-p104-port-adapter` and
+`p104-nullpair-compensated-shear-seed318bd5` retarget their live pairwise
+model pins to this package’s [`baseline.py`](baseline.py). Legacy WT-hash
+loaders `p104-asynchronous-carrier-bound`, `root-pair-first-drop-seed48`, and
+`complex-decoder-field-extension-seed44` likewise load the vendored baseline
+instead of the rewritten production `verify.py`.
 
 ## Reproduce
 

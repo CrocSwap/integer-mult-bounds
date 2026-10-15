@@ -146,7 +146,8 @@ def check_poset_certificate(supports, certificate):
 
 
 def census(repo):
-    source = module(repo / 'research/complex-frame-pair-decoders/verify.py', 'pr968')
+    # Pairwise-era PR968 model bytes; production verify.py ships the neighborhood enumerator.
+    source = module(repo / 'research/frame-pair-enumeration-production/baseline.py', 'pr968')
     require(source.f2_rank(source.NROW) == 9, 'label pairing rank')
     frames = source.frames_in(range(120))
     f0 = tuple(source.FRAME0)
