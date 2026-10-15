@@ -276,8 +276,9 @@ installed on the authoring host; the commands above are the underlying ones.
 
 F-star, the `cert(M)` definition, L8 labellings and the proven chain
 `cost >= sum_j r_j >= cert(M)` are from the merged package
-`research/root-unit-decoder-lemmas` (Douglas Colkitt with OpenAI Codex
-assistance lineage). The rank-3 configuration model, the named instances
+`research/root-unit-decoder-lemmas` ([PR 1590](https://github.com/CrocSwap/integer-mult-bounds/pull/1590) by
+DreamingOfClouds, with Claude Opus 5.5 (Anthropic) via Claude Code
+assistance). The rank-3 configuration model, the named instances
 `tied_min` and `cex_min_1`, their recorded one-copy certificate limits (11 and
 18, CP-SAT, CHECKED (recorded)), the stored cost-22 pairing for `cex_min_1`
 (`data/cex_min_1.B22.json`), Lemma SCC's block-incidence digraph and L5 are
