@@ -5,7 +5,7 @@ This checker neither imports the certificate producer nor runs the upstream
 checker. It normalizes all nonzero vectors in F9^3 to reconstruct PG(2,9),
 then checks explicit paths and one negative cycle. No solver is used.
 
-The mathematical interpretation is in math_review.md. In particular the
+The mathematical interpretation is in PROOF.md. In particular the
 frame matrices are over Q, despite the graph coordinates being over F9.
 """
 
