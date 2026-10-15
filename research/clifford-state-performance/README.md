@@ -4,9 +4,15 @@ This optional adapter accelerates the complete selected helper-interface check b
 Seven alternating pairs give median times of **1.289 seconds** and **0.460 seconds**.
 Every output receipt matches the original byte for byte.
 
+After `research/clifford-state-production/`, the multicold production
+`clifford_exact.py` ships the same gate-table `zero_state`. This package vendors
+the pairwise-era bytes as `baseline.py` and pins production separately so
+opt-in differential replay does not fail working-source drift.
+
 The change affects verification speed only.
 The selected conditional bound remains `51110230636731/31250000000000000`.
-No frozen source, selected certificate, circuit, or default verification command changes.
+No selected certificate, circuit, or default verification command changes beyond
+the production evaluator wiring above.
 
 ## Reproduce
 
