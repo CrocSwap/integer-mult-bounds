@@ -130,9 +130,9 @@ make gen4-bank-verify
 by **[Dan Brown](https://github.com/jdb19937) and
 [Kenny Daniel](https://github.com/platypii)** establishes a fixed Mathlib `FinTM2` machine
 that multiplies all pairs of binary-encoded natural numbers in worst-case time
-`O(n (log n)^(1−κ))`, with `κ = 2^-93`. The
-[explicit theorem](https://github.com/platypii/integer-mult-bounds-lean/blob/38ef57bb8155b1c3f3a607b7b8e4ae5d1addd117/IntegerMultBounds/MathlibTM2/Theorem.lean)
-also proves the exact saving `296 / (10^11 · 2^64)`.
+`O(n (log n)^(1−κ))`, with `κ = 2^-66`. The
+[explicit theorem](https://github.com/platypii/integer-mult-bounds-lean/blob/49f596da59fe85da2b0b4ba0f1c079bf6e0fbba0/IntegerMultBounds/MathlibTM2/Theorem.lean)
+also proves the exact saving `296 / (10^11 · 2^37)`.
 Correctness and runtime are proved end to end, with no remaining algorithmic or
 analytic assumptions; the theorem's transitive axiom dependencies are exactly
 Lean's standard `propext`, `Classical.choice`, and `Quot.sound`, with no admitted
