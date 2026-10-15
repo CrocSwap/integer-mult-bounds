@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "research/joint-dual-replay-fast/fast_replay.py",
+    "certificates/joint-dual-compiler.json",
+    "certificates/joint-dual-word-23.json.gz",
+    "certificates/joint-dual-word-25.json.gz",
+    "certificates/joint-dual-kappa.json",
+    "certificates/skip-frame-kappa.json",
+    "research/joint-dual/SOURCE.json",
+    "scripts/experiments/binary_frame_replay.py",
+    "tests/test_joint_reclaim.py"
+  ],
+  "commands": [
+    {
+      "argv": ["{python}", "-I", "-B", "{package}/verify.py"],
+      "timeout_seconds": 300,
+      "checks": "Exact baseline copy of the base-commit binary_frame_replay.py; identical replay receipts on both pinned words versus baseline and certificates/joint-dual-compiler.json; full literal-scan mask identity on all outputs; rejection and temp-copy pair-mask-omission controls; SOURCE/kappa/skip-frame pin consistency; duplicate JSON-key check; -O module refusal control; read-only default."
+    },
+    {
+      "argv": ["{python}", "-I", "-O", "-B", "{package}/verify.py"],
+      "timeout_seconds": 60,
+      "checks": "Deliberate -O control: production and baseline modules refuse to load with Assertions must remain enabled (historical assert policy retained)."
+    }
+  ]
+}
