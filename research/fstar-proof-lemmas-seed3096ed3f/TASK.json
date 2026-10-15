@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "Kappa-blocker KB5, proof-level work on open problem F-star of research/root-unit-decoder-lemmas section 7: cert(M) >= floor(2v/3) for every exact 3-total rational decoder. Three parts: (P1) PROVEN structural lemmas with exact hypotheses (support-forced anchor cert >= MAS(H) and cert = v when the block-incidence digraph is acyclic; matched-pivot certificate cert >= sum_i MAS(Z[C_i]) and cert = v when the zero digraph is 3-dichromatic; mod-2 anchor cert >= #{t : M_tt odd} in a 2-integral normalization), each demoted where unproved; (P2) independent stdlib reproduction of the one-copy L8 certificates on DreamingOfClouds' named instances tied_min (12 lines) and cex_min_1 (19 lines) of PR 2111, with exact cert values at tiny v and an exact chain-engine cross-check against PR 2111's stored cost-22 pairing; (P3) a targeted falsifier search beyond the censused domain of PR 2335 (v = 4..12, entries -2..2): factor entries in {-3..3} at v = 4..12 and v = 13..16 with tied-heavy 2-adic constructions, smallest v first, falsifier criterion an explicit admissible pairing B with sum_j rank_F2 B[R_j,A_j] < floor(2v/3) via the proven chain cert(M) <= cost(B).",
+  "scope_change_reason": "Authorized 'explicit open request' scope change to kappa-blocker KB5 (F-star proof-level work), recorded per the assignment. The chooser OS draw (nonce 3096ed3facbe5aa91a71df29d9f6c6e7, track verifier-engineering) landed on the saturated cards replay-runtime and portable-replay; both are incremental verifier-engineering readings with no kappa bearing, and the assignment names the draw landing on saturated cards as the recorded reason for taking the KB5 request instead. Pair-collision check before computation (toolkit disc-comments on discussions 1317 and 1166 including nested replies, 2026-10-15 16:40 UTC) found no live F-star proof-level claim; the predecessor census https://github.com/CrocSwap/integer-mult-bounds/pull/2335 is released. The handoffs thread's T = 3 open-core requests invite independent eyes on this exact object.",
+  "existing_restriction_being_changed": "Nothing is relaxed. F-star is attacked as stated (floor form); the predecessor PR 2335 census's own limitation ('witnesses are lower bounds on cert, not a proof') is the restriction being addressed. Every lemma in the package carries its exact hypothesis, and every claim that is not proved is demoted to OPEN; no 'exactly when' or necessity wording is used without proof.",
+  "method": "Exact stdlib integer/F2 arithmetic. Engine: for fixed a-labels the (b-labels, order, kept set) completion is exact by subset DP (b-exists is a per-line table lookup; f[T] = OR over t in T of f[T minus t] and b-exists(t, blockers of T minus t)); exact cert enumerates all a-labels at v <= 5; witness search hill-climbs over a-labels with exact completion; an independent witness checker replays every stored witness; falsifier criterion is an explicit admissible pairing B (0/1, unit diagonal, ones only where M vanishes) with chain cost sum_j rank_F2 B[R_j,A_j] < floor(2v/3), by the proven chain cost >= sum_j r_j >= cert(M). Controls: brute-force-over-all-labellings cross-check at v = 3, a hand-checkable diagonal decoder, corrupted-witness rejection, a matched-pivot witness constructed from MAS(H), and the chain engine recomputed on PR 2111's stored cost-22 pairing for cex_min_1.",
+  "parameter_ranges": "T = 3 totals exactly; rational decoders M = sum_j p_j q_j^T with M_tt != 0. Named instances: PR 2111's tied_min (v = 12, entries in {-1,0,1}) and cex_min_1 (v = 19, entries in {-1,0,1}). Search beyond the censused domain of PR 2335: (i) factor entries in {-3..3} (outside the census alphabet {-2..2}) at v = 4..12, three instances per v; (ii) v = 13..16 (outside the census v-range) with entries in {-3..3} and tied-heavy 2-adic constructions (entries in {+-2,+-4} and {+-1,+-2}), two instances per v and family. Exact cert (exhaustive a-enumeration) at v = 5.",
+  "nearest_overlapping_prs": "https://github.com/CrocSwap/integer-mult-bounds/pull/2335 (my own predecessor session: the 196-instance falsifier census with witnesses; this session adds written structural proofs, exact-value computation, an independent named-instance certificate reproduction and an out-of-domain search, not another census). https://github.com/CrocSwap/integer-mult-bounds/pull/2111 and https://github.com/CrocSwap/integer-mult-bounds/pull/2162 (DreamingOfClouds: the named instances tied_min/cex_min_1, their certificate limits and the T = 3 reductions; their one-copy L8 maxima 11 and 18 are CHECKED (recorded) CP-SAT results, here reproduced by a different stdlib-exact method, their theorems cited not restated). research/root-unit-decoder-lemmas (merged: F-star, the cert(M) definition, the L8 lemma and the tied-minima obstruction). Refined overlap pass on the object's proper names (F-star, cert(M), 3-total decoder, labelling, root-unit decoder, floor(2v/3), tied-min) at 2026-10-15 16:44 UTC with complete pagination (827 open PRs, 1292 discussion records) found no other proof-level F-star work.",
+  "optimistic_full_cost_budget": "No kappa, supplier, word or moment budget is in play (missing-lemma work). The whole-construction price is the evidence itself: every lemma proof is in the README and every computational claim is recomputed by verify.py in one bounded stdlib run (no third-party packages, no solver).",
+  "bottleneck_link": "F-star is the named route to closing every open T = 3 window at once (research/root-unit-decoder-lemmas section 7, consequence PROVEN given F-star): cost >= floor(2v/3) >= N(h) for every open T = 3 window. Proof-level structural lemmas narrow the remaining gap to exactly stated residue (isotropic/tied-minimum lines and non-3-dichromatic zero digraphs); a falsifier would redirect the T = 3 decoder route entirely.",
+  "stop_rule": "Stop at the first exact falsifier (smallest falsifying instance first: an explicit admissible B with cost below floor(2v/3), or exact cert below threshold at v <= 5), or, absent one, at the declared search domain with every instance witnessed at or above threshold and the exact obstruction recorded. One bounded pivot maximum; early kill with the exact obstruction recorded. Compute cap: about 90 minutes of single-process stdlib Python; each registered command below 600 seconds.",
+  "success_evidence": "Written proofs of the structural lemmas (each demoted where incomplete) plus PASS markers from verify.py: engine/brute agreement at v = 3, the diagonal control, corrupted-witness rejection, the named-instance certificate reproduction (tied_min 11/12 and cex_min_1 18/19 machine-checked witnesses, matching PR 2111's recorded one-copy L8 maxima), exact cert values at v = 5, the chain engine recomputed on PR 2111's stored cost-22 pairing, structural lemma checks on every searched instance, and the declared-domain search summary with falsifier count.",
+  "falsification_test": "Side A of the search is itself the falsifier test for F-star: an explicit admissible pairing B with cost(B) < floor(2v/3) refutes F-star (the chain cost >= cert(M) is proven). Side B witnesses are rejected by the independent checker if any K_tt = 1 fails or any before-pair constraint fails; corrupted copies of stored witnesses must fail verification (checked).",
+  "time_compute_cap": "One session; compute capped at about 90 minutes single-process stdlib Python; no SAT solver, no third-party packages, no large downloads; each registered verify command capped at 600 seconds per the research_package.py limit.",
+  "predecessor_authors": "F-star, the cert(M) definition, L8 labellings and the proven chain cost >= sum_j r_j >= cert(M): the merged research/root-unit-decoder-lemmas package (Douglas Colkitt with OpenAI Codex assistance lineage). The rank-3 configuration model, the named instances tied_min and cex_min_1 and their recorded certificate limits: DreamingOfClouds, https://github.com/CrocSwap/integer-mult-bounds/pull/2111 and https://github.com/CrocSwap/integer-mult-bounds/pull/2162. The falsifier census this session builds on: Aaron Wang, https://github.com/CrocSwap/integer-mult-bounds/pull/2335. This package does not claim their results; it adds structural lemmas, independent certificate reproduction and an out-of-domain search.",
+  "intended_artifact": "research/fstar-proof-lemmas-seed3096ed3f/ with TASK.json, SOURCES.json pins, VERIFY.json, verify.py, data/ (the named instances and one stored witness, byte-identical to PR 2111's data files), CERTIFICATE.json (written by verify.py) and README.md; reproduction: python3 -B research/fstar-proof-lemmas-seed3096ed3f/verify.py then python3 scripts/research_package.py --package research/fstar-proof-lemmas-seed3096ed3f --check-only.",
+  "outcome": "completed",
+  "evidence": "PROOF-LEVEL PROGRESS plus SCOPED NEGATIVE SEARCH. PROVEN (written proofs in README.md): Lemma SF (support-forced incidences vanish: K_ts = 0 whenever pi(t) intersect sigma(s) is empty, hence cert(M) >= MAS(H), cert(M) = v for acyclic block-incidence digraph H, cert(M) >= v - fvs(H)); Lemma MP (matched-pivot certificate cert(M) >= sum_i MAS(Z[C_i]) for every pivot map into D(t), cert(M) = v when the zero digraph is 3-dichromatic with pivots in D(t)); Lemma RK (mutual-zero graph K4-free, zero digraph free of transitive 4-tournaments, no incidence with |pi(t) intersect sigma(s)| = 1); Lemma AN (mod-2 anchor: for 2-integral factorizations cert(M) >= #{t : M_tt odd}, so F-star holds for dyadic decoders with at most floor(v/3) even diagonals). CHECKED by verify.py (stdlib, deterministic, 17.7 s, certificate digest 134665ac6a0800e4): controls pass (brute-force-over-all-labellings agreement 3/3 at v = 3, diagonal control cert = 3, corrupted-witness rejection 2/2); named-instance one-copy L8 certificates of PR 2111 reproduced by a different stdlib-exact method — tied_min 11/12 (re-found by the deterministic search) and cex_min_1 18/19 (stored witness replayed), both exactly matching PR 2111's recorded CP-SAT maxima and both above floor(2v/3) = 8 and 12; PR 2111's stored cost-22 pairing for cex_min_1 recomputed exactly (chain cost 22 = 10+6+6, admissible) validating the chain engine; exact cert values by exhaustive a-enumeration: two v = 5 and one v = 6 instance, each cert = v exactly; structural lemma checks on 45 instances (mutual-zero K4-free and no transitive 4-tournament on 44 with v <= 16, matched-pivot witness replayed on 28 with v <= 12); beyond-census falsifier search: 43 instances (entries {-3..3} at v = 4..12, 27 instances; v = 13..16 entries3 8 instances; v = 13..16 tied-heavy 2-adic 8 instances), falsifiers = 0, minimum witness ratio 0.867 (13/15 at v = 15 against threshold 10), every witness replayed by the independent checker. NOT PROVED: F-star itself; the residue is stated exactly (tied-minimum/isotropic lines not covered by the anchor, zero digraphs that are not 3-dichromatic, non-dyadic entries); the B-search values are bounded-search upper bounds, not exact minima.",
+  "author": "Aaron Wang (with help from opencode)",
+  "ai_assistance": "Substantial AI assistance: this package was produced by Aaron Wang with help from opencode (opencode agent harness). No independent human review claimed. No model is cited per orchestrator attribution rules.",
+  "open_questions": [
+    {
+      "question": "Can the tied-minimum residue be ordered? Precisely: for lines whose diagonal cannot be anchored odd by any 2-integral normalization (the tied-minima obstruction of research/root-unit-decoder-lemmas section 7), does there always exist an ordering and one-sided repairs keeping at least floor(2v/3) lines?",
+      "why_it_matters": "This is exactly the residue left by the mod-2 anchor lemma: the anchor kills every incidence and leaves only unanchorable (isotropic) lines; a structure theorem for them would prove F-star.",
+      "first_step": "Enumerate small tied-heavy decoders (entries in {+-2,+-4}, v <= 8) and classify the unanchorable lines by their valuation-tie type; test whether the anchorable count plus a greedy ordering of the tied classes always reaches floor(2v/3).",
+      "blocked_by": "No structural blocker; needs a dedicated enumeration session."
+    },
+    {
+      "question": "Is every rank-3 decoder's zero digraph 3-dichromatic (partitionable into three acyclic classes, with pivots c(t) inside D(t) = pi(t) intersect sigma(t))?",
+      "why_it_matters": "The matched-pivot lemma would give cert(M) = v in that case; a counterexample would pin the exact combinatorial obstruction beyond the tied lines.",
+      "first_step": "Search decoders whose zero digraph has dichromatic number >= 4 (e.g. via cex_min_1 of PR 2111, whose cert = 18 < 19 forces it), and classify the minimal ones.",
+      "blocked_by": "Nothing structural; cex_min_1 already shows cert < v is possible, so the dichromatic question is genuinely open at the level of zero digraphs."
+    },
+    {
+      "question": "What is the exact minimum of the chain cost sum_j rank_F2 B[R_j,A_j] over admissible pairings on tied_min and cex_min_1 (12 and 22 are the recorded values from PR 2111), and can the bounded B-search in verify.py be strengthened into an exact minimizer?",
+      "why_it_matters": "An exact chain minimum pins cert(M) between the L8 certificate and the chain bound; on tied_min the recorded spread is 11 vs 12.",
+      "first_step": "Branch-and-bound over admissible pairings with the block-rank sum as the objective, seeded from PR 2111's stored cost-22 pairing on cex_min_1 and the 217 recorded optima structure on tied_min.",
+      "blocked_by": "Needs a longer exact run than one session allows; the bounded search here records only upper bounds."
+    }
+  ]
+}
