@@ -1,10 +1,25 @@
 # Four low aliases through lifted-target compensation
 
-This four-alias complex-supplier construction establishes the conditional value
+The subsequent [composition with PR2435's entrance frames](composition2435/README.md)
+verifies the conditional value
+**κ = 0.0016991608921398251600279999999999999999999998999999999999999999999999**.
+It combines the four aliases below with Jeremy Kothe's 24 entrance raises
+and an explicit six-slot owner replacement per call. This is approximately
+**0.03824% above PR2435**; the gain is modest. Both changed native words,
+the complete owner geometry, global program, physical invoice and modern
+outer transfer pass. See that package for its exact source pins, controls,
+reproduction command and inherited assumptions.
+
+The original four-alias snapshot establishes the conditional value
 **κ = 0.0016972105695892372197269999999999999999999998999999999999999999999999**.
 Both native words, the complete literal global program, physical invoice and
 current outer transfer have passed. This improves the pinned PR2374 value by
 approximately **1.5618687466793e-8 (0.0009203%)**. It is a small numerical gain.
+Concurrent [PR2435](https://github.com/CrocSwap/integer-mult-bounds/pull/2435)
+at `324d7d3590dc21003940a44cb0cbdc32b3620f25` reports the larger constructed
+value `0.0016985113436976293290517338141877446308…`. The standalone snapshot
+below is below that value. It remains independently reviewable; its original
+certificate does not include the later composition linked above.
 The selected frontier remains unchanged; this is a contribution for review,
 not a maintainer-selected result or an unconditional multiplication theorem.
 
@@ -108,6 +123,13 @@ exact recovery, the PR559 native correction, PR589 bit H1–H5, the retained
 prime theorem and written gauge-free/locality/outer-transfer arguments.
 Finite certificates do not formally prove the full multiplication theorem.
 No selected certificate or `upstream/` source is changed.
+
+The required `make verify` was run once in an isolated export. It stopped in
+the historical `frontier741-verify` / `bit589` stage at a bytewise gzip
+comparison; the generated and pinned files have identical decompressed bytes
+and parsed JSON. This broad suite is **failed**, not passed. The focused
+construction checks above passed separately. The retained diagnosis and log
+are `global-admission/MAKE-VERIFY-RESULT.json` and `make-verify-bit589.log`.
 
 ## Attribution
 
