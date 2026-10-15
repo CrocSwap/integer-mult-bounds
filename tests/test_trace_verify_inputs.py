@@ -332,7 +332,8 @@ class Commands(unittest.TestCase):
     def test_group_commands_match_the_workflow(self):
         self.assertEqual(tracer.group_commands('community'), ['make verify-community'])
         self.assertEqual(tracer.group_commands('clones'),
-                         ['make skip-clones-verify split-skip-producer',
+                         ['python3 -B scripts/replay_historical_check.py skip-clones',
+                          'make split-skip-producer',
                           'python3 -B scripts/replay_historical_check.py split-skip'])
         self.assertEqual(tracer.group_commands('ranked-pair-finite'),
                          ['make ranked-pair-verify UPSTREAM=build/ranked-pair-upstream'])

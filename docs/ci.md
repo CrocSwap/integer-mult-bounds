@@ -231,17 +231,68 @@ new research package selects exactly the whole-tree groups, on every
 Python version. Hosted execution and the first scheduled tracer run are not
 claimed by local checks.
 
-## Known failures on main at the time of this change
+## Historical source compatibility repair
 
-Two tooling commits of 2026-10-14 changed sources that historical packages
-pin by hash without updating the pins: d7d8bfcb (`scripts/exclusion_circuit.py`,
-pinned by `research/skip-clones`) and 6178dede (`scripts/shared_point_circuit.py`,
-pinned by `research/skip-strips`). The `clones` group and the
-`test_skip_clones` module fail on that tree, while
-`test_exclusion_embedding_masks` and `test_exclusion_support_masks` expect
-the new bytes, so the `tests` group cannot pass in either state. This change
-does not touch pins or frozen evidence. The input recordings for `clones`
-and `tests` were made with the pinned versions of those two files
-temporarily restored in a scratch checkout (the set of paths a group reads
-does not depend on those bytes); both groups depend on the whole tree and
-are declared `**`, so the recordings are not evidence that main passes.
+At the investigation base `0fdd7d82`, the exclusion-circuit optimizations in
+`d8029ee05` and `d7d8bfcb` change a script pinned by `research/skip-clones` and
+`research/split-skip`. The shared-point optimization in `6178dede` also changes
+a script pinned by `research/split-skip`. The clone certificate tests and the
+clones CI group therefore fail. Reverting the optimizations would instead
+break their new source-bound equivalence tests. An earlier version of this
+note incorrectly named `skip-strips` as the shared-point pin's consumer;
+its unchanged verifier passes.
+
+The repair extends the existing `scripts/replay_historical_check.py` adapter.
+It authenticates exact predecessor blobs from commit
+`0b1cccf86e2f5132ed286a26ef0a681a495740ea` against the unchanged historical
+source manifests before copying the current tracked tree. Only the declared
+historical inputs are replaced inside the temporary tree. The live optimized
+scripts, frozen certificates, manifests and selected result remain unchanged.
+All tracked bytes in the replay copy are checked again on exit.
+
+The clones group now runs:
+
+```sh
+python3 -B scripts/replay_historical_check.py skip-clones
+make split-skip-producer
+python3 -B scripts/replay_historical_check.py split-skip
+```
+
+The first command retains the complete clone native producer, certificate
+regeneration and unit tests. The final command retains the split-skip witness,
+independent arithmetic and unit tests, now with all three historical inputs
+authenticated. Its native producer still runs separately as before.
+The original source-bound Makefile targets remain frozen; use these adapters
+to replay those checkpoints against a modern checkout.
+
+`test_skip_clones.py` also uses this isolated context during ordinary unittest
+discovery, so `make verify-tests` keeps the original runner and discovers every
+test module. Only this historical module sees the predecessor script; the
+optimization tests still exercise the current production code. When already
+running inside the historical replay, it uses that tree without nesting a
+second copy. Scratch trees live under ignored `build/` and are removed on
+exit, avoiding multi-GB allocations in memory-backed `/tmp`.
+
+Regression controls reject corrupt replacement bytes, missing or changed pins,
+duplicate replacement paths, untracked replacements, and modifications to a
+replay copy. Both groups retain their conservative whole-tree input declaration.
+The earlier workload estimates predate the additional isolated clone replay;
+its copying overhead and hosted execution still require measurement.
+
+Local repair validation on Linux x86_64 / Python 3.14.4 passed:
+
+```sh
+python3 -B scripts/trace_verify_inputs.py --group clones --check --output build/verify-trace/pin-repair-clones.json
+python3 -B scripts/trace_verify_inputs.py --group tests --check --output build/verify-trace/pin-repair-tests.json
+python3 -B scripts/verify_selected_result.py
+python3 -B scripts/check_selected_ci_inputs.py
+```
+
+Run the groups sequentially in an isolated worktree. The clones run includes
+both native reconstructions, all 4,073,300 fixed-basis data pairs, the historical
+witnesses and 21 package tests. The tests group passes all 129 discovered test
+modules (including the live optimization controls) and all 20 patch-application
+checks. Both traced input-coverage audits pass, tracked artifacts remain
+unchanged, and temporary historical trees are removed. The recordings and logs
+under `build/` are local-only evidence; hosted execution and Python 3.11/3.13
+execution of this repair are not claimed.

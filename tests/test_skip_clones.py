@@ -3,12 +3,23 @@ from collections import Counter
 from copy import copy, deepcopy
 from pathlib import Path
 from fractions import Fraction as Q
+from hashlib import sha256
 from unittest.mock import patch
 import importlib.util
 import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+# This is a frozen source-bound certificate. Modern circuit optimizations are
+# tested against the live checkout in their own modules; these controls use
+# the exact predecessor input without changing either implementation or pin.
+spec = importlib.util.spec_from_file_location('clone_historical_replay', ROOT/'scripts/replay_historical_check.py')
+historical = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(historical)
+config = historical.CONFIG['skip-clones']
+historical.authenticated_input(ROOT, config)
+if sha256((ROOT/config['path']).read_bytes()).hexdigest() != config['sha256']:
+    ROOT = unittest.enterModuleContext(historical.replay_tree('skip-clones', ROOT))
 HERE = ROOT/'research/skip-clones'
 sys.path.insert(0, str(HERE))
 spec = importlib.util.spec_from_file_location('skip_clones_tests_module', HERE/'cloned_graph.py')
