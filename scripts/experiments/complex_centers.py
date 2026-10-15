@@ -25,7 +25,21 @@ def factor(h):
     return dict(h=h, triples=triples, gather=gather, scatter=scatter)
 
 
+def _factor_radix_bits(scatter):
+    # Gather entries are -1, 0 or 1 and appear at most once per column, so
+    # |actual - expected| <= ||scatter_row||_1 + 2 < 2**bits for every row.
+    bound = max((sum(abs(x) for x in u) for u in scatter), default=0) + 2
+    return bound.bit_length()
+
+
 def verify_factor(f):
+    """Check every gather/scatter product by exact packed row equality.
+
+    Equivalent to the historical nested entrywise loop: for each scatter row
+    u(S) and gather column v(T), require sum_i u(S)[i] v(T)[i] = |S∩T|-1.
+    Packing uses an injective input-dependent radix (see
+    research/central-factor-packed/); every coefficient is still checked.
+    """
     h=f['h'];triples=list(combinations(range(h),3));n=len(triples)
     require(f['triples']==triples and len(f['gather'])==len(f['scatter'])==n,
             'Wrong triple or factor dimensions')
@@ -35,11 +49,21 @@ def verify_factor(f):
         require(len({i for i,x in v})==len(v) and
                 all(type(i) is int and type(x) is int and 0<=i<h and x in (-1,1)
                     for i,x in v), 'Invalid sparse gather')
-    masks=[sum(1<<i for i in T) for T in triples]
-    for S,u in zip(masks,f['scatter']):
-        for T,v in zip(masks,f['gather']):
-            require(sum(u[i]*x for i,x in v)==(S&T).bit_count()-1,
-                    'Central factor coefficient mismatch')
+    bits=_factor_radix_bits(f['scatter'])
+    gather_columns=[0]*h
+    incidence_columns=[0]*h
+    ones=0
+    for j,(T,v) in enumerate(zip(triples,f['gather'])):
+        place=1<<(bits*j)
+        ones+=place
+        for i,x in v:
+            gather_columns[i]+=x*place
+        for i in T:
+            incidence_columns[i]+=place
+    for S,u in zip(triples,f['scatter']):
+        actual=sum(x*column for x,column in zip(u,gather_columns))
+        expected=sum(incidence_columns[i] for i in S)-ones
+        require(actual==expected,'Central factor coefficient mismatch')
     require(all(x in (-1,0,1,2) for u in f['scatter'] for x in u),
             'Scalar charge requires these dyadic weights')
     G=sum(len(v) for v in f['gather'])

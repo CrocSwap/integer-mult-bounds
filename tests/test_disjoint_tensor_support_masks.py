@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from experiments import disjoint_tensor as production  # noqa: E402
 
 ORIGINAL_SHA256 = "102dd59bf96033f96ba0dab4c2aba77b3a7a73b67b0f96929ff8b20a98b91cd8"
-OPTIMIZED_SHA256 = "085600fc922ae167b5981505e1a5caba4d1c1df15482f61d83d2c086fa89eac1"
+OPTIMIZED_SHA256 = "23763a4b6086fb3d19f9282fff5c118f53fa52e7a7f17da1bde990bd4cf8b6ac"  # Includes reviewed PR2117 frame unions.
 BASE_COMMIT = "0b1cccf86e2f5132ed286a26ef0a681a495740ea"
 H26_DAG_SHA = "5da8011dadf51d6121d343416fa38b6b4bf524fd689e5b1b2def91324660f19b"
 
@@ -135,6 +135,20 @@ class DisjointTensorSupportMasksTests(unittest.TestCase):
                 restored["source_sha256"]["scripts/exclusion_circuit.py"] = (
                     "b253f9d7318becda1c1f3b24e2287ed44a9c27fcea00cf9d531afb950d0457a0"
                 )
+            # The separately reviewed mixed-point verifier preserves this payload.
+            companion = "scripts/experiments/mixed_point_circuit.py"
+            if companion in restored["source_sha256"]:
+                self.assertEqual(restored["source_sha256"][companion], "cc98eeada267814fa2c0bc5f3ebb844f614d667c74d16d80d7ef29b1f90e0aa5")
+                restored["source_sha256"][companion] = base["source_sha256"][companion]
+            # PR2100's reviewed ternary verifier is independent of these receipts.
+            companion = "scripts/experiments/ternary_side.py"
+            if companion in restored["source_sha256"]:
+                self.assertEqual(restored["source_sha256"][companion], "eba4acc6f44c5d56aa8d225266a4a951fc1f1cb84819cdc104e1847578403878")
+                restored["source_sha256"][companion] = base["source_sha256"][companion]
+            companion = "scripts/experiments/complex_centers.py"
+            if companion in restored["source_sha256"]:
+                self.assertEqual(restored["source_sha256"][companion], "39cfcf869dc4a00dd30a1e91efb986074371621dad14b390cf1053f6aeea79bf")
+                restored["source_sha256"][companion] = base["source_sha256"][companion]
             self.assertEqual(restored, base)
 
 

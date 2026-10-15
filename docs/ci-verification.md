@@ -2,7 +2,40 @@
 
 ## Current selected-family replay
 
-The selected #543 + #626 composition uses `.github/workflows/frontier626.yml`.
+Start with the [selected record](../certificates/selected-result.json). Its
+`reproduce`, `review`, `source_manifest` and `validation` fields identify the
+replay command, scoped assessment, source bindings and integration evidence.
+At this checkpoint, the selected composition is #589 with #1094, documented in
+[the review](research/community-batch1099-review.md),
+[the source manifest](../research/community-frontier1094-audit/SELECTED-SOURCE.json)
+and [the integration receipt](research/community-batch1099-integration.json).
+
+The public cold replay is `make frontier1094-verify`. The configured
+[frontier1094 workflow](../.github/workflows/frontier1094.yml) runs on Ubuntu
+24.04 with Python 3.12, C++17, Boost and the pinned bit package's Python
+requirements. It checks the selected and historical #1042 records, then runs
+`python -B scripts/verify_frontier1094.py --work "$RUNNER_TEMP/frontier1094"`
+in a fresh output directory. It requires tracked files to remain unchanged
+and uploads replay receipts and logs. Selected-input path filters control
+push and pull-request runs; manual dispatch is also available.
+
+`make selected-record-check` checks metadata and source/proof hashes, not the
+operators. The cold replay checks the finite construction and composition;
+it does not discharge the inherited all-size/compiler, realization, hosting,
+precision/tape, analytic or bit-interface assumptions.
+
+The integration receipt records successful local macOS execution and leaves
+hosted Linux CI pending **at that review checkpoint**. This is dated evidence,
+not the latest hosted status. Consult the
+[workflow runs](https://github.com/CrocSwap/integer-mult-bounds/actions/workflows/frontier1094.yml)
+and check the exact tested head, inputs and logs before claiming hosted
+coverage. A workflow file, a generic matrix pass or a successful historical
+#626 run does not establish execution of the selected #1094 construction.
+
+## Historical selected-family replay through #626
+
+At this historical checkpoint, the #543 + #626 composition used
+`.github/workflows/frontier626.yml`.
 Its [completed Linux run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38317651752)
 passed on 2026-10-13 at commit `ed49217ad6244f1d3bfe4588f122fa861849739c`.
 The [preserved artifact reconciliation](../research/selected626-linux-reconciliation/README.md)

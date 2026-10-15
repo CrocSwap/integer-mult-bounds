@@ -9,6 +9,7 @@ from functools import cache
 import heapq
 from itertools import combinations
 from math import comb
+from certify import require
 from exclusion_circuit import ExclusionCircuit
 from paired_exclusion_circuit import PairedExclusionCircuit
 
@@ -53,9 +54,34 @@ class Circuit:
         return [nodes[node] for node in t.outputs]
 
     def verify(self):
+        """Exact |source ∩ target| = r supports via closed-form incidence masks.
+
+        Equivalent to the historical genexpr
+        ``sum(1<<i for i,source in enumerate(inputs)
+              if len(set(source)&set(target))==r)``.
+        Precompute ``vertex[p] = OR {1<<i : input i contains point p}`` and, for
+        each r-subset ``U`` of the target, keep inputs that contain every point
+        of ``U`` and avoid every other target point. See
+        ``research/mixed-point-verify-masks/``.
+        """
+        full = (1 << len(self.inputs)) - 1
+        vertex = [0] * self.n
+        for i, source in enumerate(self.inputs):
+            for point in source:
+                vertex[point] |= 1 << i
+        r = self.r
         for target, node in zip(self.targets, self.outputs):
-            mask = sum((1 << i for i, source in enumerate(self.inputs) if len(set(source) & set(target)) == self.r))
-            assert self.support[node] == mask
+            expected = 0
+            for U in combinations(target, r):
+                keep = set(U)
+                mask = full
+                for point in target:
+                    if point in keep:
+                        mask &= vertex[point]
+                    else:
+                        mask &= full ^ vertex[point]
+                expected |= mask
+            require(self.support[node] == expected, 'Wrong intersection support')
         return True
 
 @cache

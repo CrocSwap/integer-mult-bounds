@@ -1,4 +1,4 @@
-"""The status page's only "current" section must agree with the selected record."""
+"""Current status and CI navigation must agree with the selected record."""
 
 import ast
 import json
@@ -45,6 +45,22 @@ class CurrentStatusTests(unittest.TestCase):
         end = self.heads[1][0]
         self.assertIn("historical snapshot", "\n".join(self.lines[:end]))
         self.assertIn("selected-result.json", "\n".join(self.lines[:end]))
+
+
+class CurrentCiNavigationTests(unittest.TestCase):
+    def test_current_ci_section_matches_selected_record(self):
+        text = (ROOT / "docs/ci-verification.md").read_text(encoding="utf-8")
+        current, _ = text.split("\n## Historical", 1)
+        links = {(ROOT / "docs" / target).resolve()
+                 for target in re.findall(r"\]\(([^)]+)\)", current)
+                 if not target.startswith("https://")}
+        self.assertIn(ROOT / "certificates/selected-result.json", links)
+        self.assertIn(f"`{SELECTED['reproduce']}`", current)
+        for field in ("review", "validation", "source_manifest"):
+            with self.subTest(field=field):
+                target = ROOT / SELECTED[field]
+                self.assertIn(target, links)
+                self.assertTrue(target.is_file())
 
 
 class LocaleIndependenceTests(unittest.TestCase):

@@ -121,6 +121,14 @@ class ExclusionSupportMasksTests(unittest.TestCase):
                 restored["source_sha256"]["scripts/experiments/disjoint_tensor.py"] = (
                     "102dd59bf96033f96ba0dab4c2aba77b3a7a73b67b0f96929ff8b20a98b91cd8"
                 )
+            if "scripts/experiments/complex_centers.py" in live["source_sha256"]:
+                restored["source_sha256"]["scripts/experiments/complex_centers.py"] = (
+                    "3744396587d729253d80980f6310b56e7bf0ea21b165bd178d0d6d4c49faf2e2"
+                )
+            companion = "scripts/experiments/ternary_side.py"
+            if companion in restored["source_sha256"]:
+                self.assertEqual(restored["source_sha256"][companion], "eba4acc6f44c5d56aa8d225266a4a951fc1f1cb84819cdc104e1847578403878")
+                restored["source_sha256"][companion] = base["source_sha256"][companion]
             self.assertEqual(restored, base)
 
 
