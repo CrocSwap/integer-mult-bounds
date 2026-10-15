@@ -49,6 +49,11 @@ def unique_object(pairs):
 
 
 def run_workload(engine: str, out: Path) -> dict:
+    """Swap the live production evaluator for the timed image, then restore it.
+
+    The helper-interface checker hardcodes MULTICOLD_SOURCE to the repository
+    multicold tree, so temporary overlay trees are ignored.
+    """
     image = BASELINE if engine == "baseline" else PRODUCTION
     original = PRODUCTION.read_bytes()
     PRODUCTION.write_bytes(image.read_bytes())

@@ -12,8 +12,9 @@ used by `scripts/verify_cold617_interface.py`.
 Historical inventories under `research/complex-multicold/**/MANIFEST.json` and
 `SOURCE-PINS.json` without a registered VERIFY matrix are left as provenance.
 `research/clifford-state-performance/` vendors pairwise-era bytes as
-`baseline.py`. `research/clifford-reciprocal-basis-obstruction/` honestly
-refreshes its live `clifford_exact.py` pin. Selected frontier untouched.
+`baseline.py`. `research/clifford-reciprocal-basis-obstruction/` demotes its
+`clifford_exact.py` pin to provenance (and drops it from VERIFY inputs).
+Selected frontier untouched.
 
 ## Reproduce
 
@@ -43,9 +44,11 @@ obligations were not rerun for this isolated historical-evaluator change.
 
 ## Result
 
-On Linux / CPython 3.12.3, five alternating fresh-process pairs gave median wall
-time recorded in [`RESULT.json`](RESULT.json). Timing is host-descriptive and is
-not a correctness gate. Every helper-interface receipt matches digest
+On Linux / CPython 3.12.3 with `taskset -c 0`, five alternating fresh-process
+pairs gave median wall time **1.202 → 0.382 s
+(3.15×)**. Timing is host-descriptive and is not a correctness gate; all
+samples and environment pins are in [`RESULT.json`](RESULT.json). Every
+helper-interface receipt matches digest
 `8e775e5927b2f05c1671902680e25995adba6a2d2236f5dc116683b18ac4a42c`.
 
 ## Why the gate tables are equivalent

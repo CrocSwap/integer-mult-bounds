@@ -17,8 +17,15 @@ import dense as D
 class VerificationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.scratch = V.ROOT.parent / 'contribution1319-test-temp'
-        cls.scratch.mkdir(exist_ok=True)
+        # Prefer a sibling of the repo (historical layout); fall back to /tmp when
+        # that parent is not writable (common in containerized checkouts).
+        preferred = V.ROOT.parent / 'contribution1319-test-temp'
+        try:
+            preferred.mkdir(exist_ok=True)
+            cls.scratch = preferred
+        except OSError:
+            cls.scratch = Path(tempfile.gettempdir()) / 'contribution1319-test-temp'
+            cls.scratch.mkdir(exist_ok=True)
 
     def export(self, directory):
         root = Path(directory) / 'export'
@@ -26,7 +33,8 @@ class VerificationTests(unittest.TestCase):
         package.mkdir(parents=True)
         for name in ('verify.py','dense.py','SOURCES.json','CERTIFICATE.json','DENSE.json'):
             shutil.copy2(V.PKG / name, package / name)
-        for name in V.INPUTS:
+        # Live inventory pins plus the demoted runtime oracle used by dense.py.
+        for name in sorted(V.INPUTS | {V.KERNEL}):
             dest = root / name
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(V.ROOT / name, dest)
@@ -73,9 +81,10 @@ class VerificationTests(unittest.TestCase):
             json.loads('{"a":1,"a":2}',object_pairs_hook=V.unique_object)
 
     def test_source_and_inventory_corruption_reject_both_engines(self):
+        live = sorted(V.INPUTS)[0]
         with tempfile.TemporaryDirectory(dir=self.scratch) as directory:
             root, package = self.export(directory)
-            source = root / V.KERNEL
+            source = root / live
             original = source.read_bytes()
             source.write_bytes(original+b'\n# source drift\n')
             for script in ('verify.py','dense.py'):
@@ -84,7 +93,7 @@ class VerificationTests(unittest.TestCase):
                 self.assertIn('source SHA256 mismatch',result.stdout+result.stderr)
             source.write_bytes(original)
             manifest = V.read_json(package / 'SOURCES.json')
-            manifest['files'] = [r for r in manifest['files'] if r['path'] != V.KERNEL]
+            manifest['files'] = [r for r in manifest['files'] if r['path'] != live]
             (package / 'SOURCES.json').write_text(json.dumps(manifest),encoding='utf-8')
             for script in ('verify.py','dense.py'):
                 result = self.run_cli(root,script)

@@ -6,6 +6,11 @@ higher-rank tensor Clifford child into independent equal-width children with
 the same direction. This holds for every invertible linear basis, including
 nonmonomial bases, and for arbitrary dirty padding that must be restored.
 
+**Status note:** production multicold `clifford_exact.py` now ships gate-table
+`zero_state` (`research/clifford-state-production/`). This package keeps the
+pairwise-era digest as provenance only and drops that path from VERIFY inputs;
+`dense.py` still loads the working oracle for native column cross-checks.
+
 The direction premise is essential: two opposite-direction width-f lanes are
 similar to a phase times a width-(f+1) tensor child exactly when f is odd. We
 give actual rational encoding/decoding matrices. Even with those conversions
@@ -20,8 +25,10 @@ Work over any characteristic-zero field K containing i, with i²=-1. Let
 `C = ((1+i)I + (1-i)X)/2`, `X = [[0,1],[1,0]]`, and `C_f = C^⊗f`.
 
 Thus C has eigenvalues 1 and i, C²=X and C⁴=I. An inverse child is C_f⁻¹.
-The source kernel in [SOURCES.json](SOURCES.json) implements this convention;
-the dense checker compares its complete matrices in both directions.
+The multicold `clifford_exact.py` oracle implements this convention; after
+`research/clifford-state-production/` it is provenance in [SOURCES.json](SOURCES.json)
+(not a live VERIFY pin). The dense checker still loads the working oracle and
+compares its complete matrices in both directions.
 
 For integers f,h,q,t≥1 and d≥0, the desired full-space map is
 

@@ -132,10 +132,9 @@ def clean_env():
 def run_helper_interface(clifford_bytes: bytes, out: Path) -> bytes:
     """Run the helper-interface checker against an on-disk clifford_exact image.
 
-    Launches an asserting child (`python -B`, never `-O` / PYTHONOPTIMIZE) so
-    package gates under `-O` still exercise the historical checker asserts.
-    Note: this host's CPython `-I` omits the script directory from ``sys.path``,
-    so sibling imports inside ``scripts/`` require a non-isolated child.
+    ``scripts/verify_cold617_interface.py`` overwrites ``MULTICOLD_SOURCE`` to the
+    repository multicold tree, so the only way to substitute an evaluator image is
+    to briefly replace the live production file. Always restore it in ``finally``.
     """
     original = PRODUCTION.read_bytes()
     PRODUCTION.write_bytes(clifford_bytes)
@@ -190,14 +189,18 @@ def check_helper_receipts() -> dict:
 
 
 def check_temp_corruption_rejection() -> dict:
-    """On-disk foil that skips permutation remapping must diverge."""
-    honest = None
+    """On-disk foil that breaks ``perm`` must fail closed or change the receipt.
+
+    ``wrapped_ok`` decodes recipes through ``perm``/``diag``/``xgate``. Foiling
+    ``perm`` to the identity makes those products disagree with the
+    ``canonical_frame`` targets.
+    """
     with tempfile.TemporaryDirectory(prefix="clifford-state-prod-honest-") as tmp:
         honest = run_helper_interface(PRODUCTION.read_bytes(), Path(tmp) / "honest.json")
     text = PRODUCTION.read_text(encoding="utf-8")
-    needle = "    for x,a in enumerate(vec):v[mapping[x]]=a\n"
-    require(needle in text, "permutation remap site missing for corruption control")
-    foil = "    for x,a in enumerate(vec):v[x]=a\n"
+    needle = "def perm(n,G):\n cols=transpose(G,n);gi=inv(G,n)\n return Op(n,tuple([(a,0,0) for a in cols]+[(0,a,0) for a in gi]),[('P',tuple(G))])\n"
+    require(needle in text, "perm() site missing for corruption control")
+    foil = "def perm(n,G):\n return ident(n)\n"
     with tempfile.TemporaryDirectory(prefix="clifford-state-prod-foil-") as tmp:
         mutant_path = Path(tmp) / "clifford_exact.py"
         mutant_path.write_text(text.replace(needle, foil, 1), encoding="utf-8")
@@ -206,14 +209,15 @@ def check_temp_corruption_rejection() -> dict:
             bad = run_helper_interface(mutant_path.read_bytes(), Path(tmp) / "bad.json")
         except Exception as exc:  # includes AssertionError from require() inside checker
             return {"rejected": True, "mode": "subprocess_failure", "detail": str(exc)[:240]}
-        require(bad != honest, "identity-permutation foil must change the helper receipt")
+        require(bad != honest, "identity-perm foil must change the helper receipt")
         return {"rejected": True, "mode": "receipt_divergence"}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.parse_args(argv)
-    # -O policy: require() raises remain active; helper-interface children always use -I -B.
+    # -O policy: require() raises remain active; helper-interface children use -B
+    # with PYTHONOPTIMIZE cleared (host CPython -I omits the script directory).
     check_baseline_bytes()
     states = check_state_equivalence()
     receipts = check_helper_receipts()
