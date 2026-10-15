@@ -43,10 +43,10 @@ Lean, and multiplication-theorem obligations were not rerun.
 ## Result
 
 On Linux / CPython 3.12.3 with `taskset -c 0`, five alternating fresh-process
-pairs gave median D/E/H wall time recorded in [`RESULT.json`](RESULT.json).
-Timing is host-descriptive and is not a correctness gate. Every ordered
-solution stream and term-rank receipt matches between baseline and production
-(7,168 decoders; 57,344 term ranks).
+pairs gave median complete D/E/H wall time **13.642 → 4.421 s (3.09×)**.
+Details are in [`RESULT.json`](RESULT.json). Timing is host-descriptive and is
+not a correctness gate. Every ordered solution stream and term-rank receipt
+matches between baseline and production (7,168 decoders; 57,344 term ranks).
 
 ## Why the neighborhood masks are equivalent
 
