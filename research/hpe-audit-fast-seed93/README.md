@@ -1,5 +1,9 @@
 # Fast exact HPE transport audit for the layer-end controls
 
+
+**Production wiring:** `research/hpe-audit-integer-production/` promotes this adapter into the PR635 production path. Pairwise bytes are retained here as `baseline.py` for differential checks.
+
+
 **Status: tooling improvement (verification engineering). No new κ. No check is changed, removed or weakened; the selected result is unchanged.**
 
 - **Track and seed:** track 85–94 (verification engineering), assignment seed **93** from the OS CSPRNG (Python `secrets`).
