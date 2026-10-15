@@ -8,7 +8,7 @@ Conditional final kappa = **0.00169719495090177042659408187730954119978292544743
 
 **Two kappa layers.** `CLAIM.json` (`kappa`, `kappa_decimal`) and `new/SPEC.json` hold the SUPPLIER-ONLY kappa, the strict supplier assembly under the older outer witness; it is not the headline and is below the baseline. The HEADLINE conditional kappa is the outer ledger kappa in `outer/OUTER-CLAIM.json` (= `outer/LEDGER.json`). `CLAIM.json` states this in `kappa_layers`.
 
-Comparison: PR2363 claims kappa 0.001697147064845350 (PR2322 stated 0.001697060296258836). This package exceeds PR2363's value by 4.78861E-8 (exact difference 4.7886056420426594082E-8; exact gate in `verify_release.py`) and PR2312 by 1.28957E-7.
+Comparison: PR2363 claims kappa 0.001697147064845350 (PR2322 stated 0.001697060296258836). This package exceeds PR2363's value by 4.78861E-8 (exact difference 4.7886056420426594082E-8; exact gate in `verify_release.py`) and PR2312 by 3.03884E-7.
 
 **Credit first: PR2226 (Cinna Davis / 1337isnot1337, with OpenAI Codex assistance), anticipatory dirty borrowing.** This package applies it to the previous record's two T74 local words (pivot-566+554): borrow-word rebuild and independent audit (`new/rebuild_borrow.py`, `new/borrow/`), native lowering with warp recipes (`new/run_native_borrow.py`, `new/code/borrow/`), a window-exact owner fill for the 438-helper words (`new/borrow-fill/`, `reconstruct.py`), certified fine endpoints and exact outer witness. 42 helpers per call alias retired fields through exact monomial reference changes K_G (rank-zero Gaussian handoffs): helpers 480 to 438, local mass 5590 to 5387.
 
