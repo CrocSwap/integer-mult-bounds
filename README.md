@@ -127,7 +127,8 @@ make gen4-bank-verify
 ## Research notes and verification contributions
 
 **[End-to-end Lean proof](https://github.com/platypii/integer-mult-bounds-lean)**
-by **Dan Brown and Kenny Daniel** establishes a fixed Mathlib `FinTM2` machine
+by **[Dan Brown](https://github.com/jdb19937) and
+[Kenny Daniel](https://github.com/platypii)** establishes a fixed Mathlib `FinTM2` machine
 that multiplies all pairs of binary-encoded natural numbers in worst-case time
 `O(n (log n)^(1−κ))`, with `κ = 296 / (10^11 · 2^131)`.
 Correctness and runtime are proved end to end, with no remaining algorithmic or
