@@ -1,0 +1,141 @@
+{
+ "credits": "PR2226 Cinna Davis / 1337isnot1337 (anticipatory dirty borrowing, 80-alias T8 word); PR2269 Jeremy Kothe / jeremykothe2 (T74 borrow43 words, fill, b); PR2260 Dugongue (T8 44-high supplier, fill); PR2312 (reference claim only); T74 lineage PR1319/PR1297 (Rohan Arun), PR1625 (mdumitrean), pivot-554 kernel; PR547/548/559 moment engines. Evaluator adapted from our own iteration-3 price_check.py (fork commit 4a2f20ea). Prepared with substantial AI assistance (Claude Code, Anthropic); Apache-2.0.",
+ "elapsed_s": 1.5,
+ "model": "1. Composition (as in PR2269 code/assemble.py and PR2260 arithmetic/verify.py):\n       H = sum_p calls_p * P_p + idle,   T74: 249 P_gauge44 + 417 P_extra + idle,  T8: 72 P + idle.\n 2. Mass identity: mass(H) = m W - D is invariant (T74: 73*66304 - 23680 = 4816512; T8: 73*7168 - 2560\n    = 520704).  Hence idle mass' = (m W - D) - sum_p calls_p mass(P_p'), and the extra freed mass relative\n    to the realized base is E = idle mass' - idle mass(base).  If helper_width_sum is given, the local\n    identity mass(P) = 1856 + sum of helper widths is checked (it holds for PR2269, PR2260, PR2226 and\n    the R492 parent).\n 3. Idle-refill models (base = the realized idle of the record being extended; for T74 that is\n    PR2269's {1:23976, 3:8673, 5:813, 7:150, 48:24479}).  For E >= 0:\n      F  favorable:   base + floor(E/48) children of rank 48 + one child of rank E mod 48 (if nonzero).\n      C  calibrated:  shares s_r derived exactly from a realized (pre, post) idle pair:\n                      delta_r = r (post_r - pre_r), E_ref = sum_r delta_r,  s_48 = delta_48 / E_ref,\n                      small ranks r < 48 with delta_r > 0 share 1 - s_48 in proportion to delta_r.\n                      (For T74, pre = {48:22748} = PR2269's pre-borrow idle, every delta_r >= 0 and\n                      s_r = delta_r / E_ref exactly: s_48 = 83088/138198, s_1 = 23976/138198,\n                      s_3 = 26019/138198, s_5 = 4065/138198, s_7 = 1050/138198.)\n                      Allocation: n_r += floor(E s_r / r); the leftover mass (< 64) becomes rank-1\n                      children (conservative rounding).  With E = E_ref on the pre base this reproduces\n                      the post profile exactly (control).\n      C8 sensitivity: same rule calibrated on the T8 transition R492 hosted parent -> PR2260\n                      (net top-rank share 9792/19080; the parent's small residues were repacked).\n      P  pessimistic: base + E children of rank 1.\n    For E < 0 (supplier heavier than the base): F removes mass from the smallest idle children first,\n    P from the rank-48 children first (shrinking the last touched child), C/C8 remove ceil(|E| s_r / r)\n    children per rank where present, take any shortfall from the largest children and return any\n    over-removed mass as rank-1 children.\n    Not modelled: changes of the window/owner geometry, the 76 private cleanup zero buffers per call\n    (outside the moment under PR2269's dedicated-family charge), any re-optimised fill.\n 4. Moment (native complex side, no surcharge; the side of PR2269 outer/B.json b and PR2260 b):\n       mu(a) = sum_r n_r (r/m)^(1-a) / W;   root rho: the unique a > 0 with mu(a) = 1.\n    Optional conservative side (--conservative): mu(a) + 32 m N m^a / (10^16 W), N = number of children.\n    b_D(H) := floor of rho on the decimal grid 10^-D, certified by mu(b_D) < 1 < mu(b_D + 10^-D).\n    PR2269 packages b = b_90 - 10^-100; PR2260 packages b = 8417/5000000 (accepted on both sides).\n 5. Certified evaluation (exact integers on the grid 2^-PREC, directed rounding; iteration-3 evaluator):\n    log via atanh series with the remainder bound z^(2N+1)/((2N+1)(1-z^2)); exp by its Taylor series with\n    the remainder bound x^N/N! (N+1)/(N+1-x); comparisons with 1 are exact rational comparisons.\n 6. Gains are b_D(model) - reference, an exact rational known to lie within 10^-D below the model's root\n    gain.  References: PR2269 claimed b (= complex_lower - 1e-100; its outer-ledger kappa differs from b\n    by about 2e-100) and the PR2312 claimed kappa 0.001696891067241618 (reference value only, not\n    re-derived).  The bit endpoint 0.001733427039589844234749 (PR2269 ledger) caps any kappa: a model\n    b above it would be bit-bound (flagged, never the case in the demo).",
+ "prec_bits": 800,
+ "price": {
+  "base": "PR2269 realized (43 high aliases, 437 helpers, window-exact owner fill)",
+  "digits": 40,
+  "extra_freed_mass": 80586,
+  "family": "T74",
+  "helpers": {
+   "extra": 400,
+   "gauge44": 400
+  },
+  "idle_mass": 1310688,
+  "label": "CONSTRUCTED BORROW-WORD-80{base,extra} (48 high + 32 low aliases); local profiles recounted by check_ext.py; idle refill MODELLED (owner fill not rebuilt)",
+  "local_mass": {
+   "extra": 5264,
+   "gauge44": 5264
+  },
+  "local_profiles": {
+   "extra": {
+    "1": 2287,
+    "2": 535,
+    "3": 386,
+    "4": 125,
+    "5": 37,
+    "8": 8
+   },
+   "gauge44": {
+    "1": 2303,
+    "2": 527,
+    "3": 386,
+    "4": 125,
+    "5": 37,
+    "8": 8
+   }
+  },
+  "models": [
+   {
+    "b": "0.0017255088890837212072813976419618582057",
+    "b_conservative": "0.0017255088861992047617724230796997597019",
+    "bisection_steps": 126,
+    "bit_bound": false,
+    "gain_vs_pr2269": "2.9261750025246986511E-5",
+    "gain_vs_pr2269_pct": "+1.7251%",
+    "gain_vs_pr2312": "2.8617821842103207281E-5",
+    "gain_vs_pr2312_pct": "+1.6865%",
+    "global_children": 2311510,
+    "idle": {
+     "1": 23976,
+     "3": 8673,
+     "42": 1,
+     "48": 26157,
+     "5": 813,
+     "7": 150
+    },
+    "idle_children": 59770,
+    "max_child": 48,
+    "model": "F",
+    "text": "favorable: base idle + all extra mass in rank-48 children (+ one remainder child)"
+   },
+   {
+    "b": "0.0017126737497248571464349222053077804286",
+    "b_conservative": "0.0017126737468384233802906688749666422316",
+    "bisection_steps": 126,
+    "bit_bound": false,
+    "gain_vs_pr2269": "1.6426610666382925665E-5",
+    "gain_vs_pr2269_pct": "+0.9684%",
+    "gain_vs_pr2312": "1.5782682483239146434E-5",
+    "gain_vs_pr2312_pct": "+0.9301%",
+    "global_children": 2330462,
+    "idle": {
+     "1": 37980,
+     "3": 13730,
+     "48": 25488,
+     "5": 1287,
+     "7": 237
+    },
+    "idle_children": 78722,
+    "max_child": 48,
+    "model": "C",
+    "text": "calibrated on T74 (PR2269 pre-borrow {48:22748} -> PR2269 realized idle split by rank)"
+   },
+   {
+    "b": "0.0017140567316684824711264204715713101470",
+    "b_conservative": "0.0017140567287903532610785433539703089262",
+    "bisection_steps": 126,
+    "bit_bound": false,
+    "gain_vs_pr2269": "1.7809592610008250356E-5",
+    "gain_vs_pr2269_pct": "+1.0499%",
+    "gain_vs_pr2312": "1.7165664426864471126E-5",
+    "gain_vs_pr2312_pct": "+1.0116%",
+    "global_children": 2321863,
+    "idle": {
+     "1": 29065,
+     "3": 8673,
+     "39": 21,
+     "48": 25340,
+     "5": 5324,
+     "6": 55,
+     "7": 1645
+    },
+    "idle_children": 70123,
+    "max_child": 48,
+    "model": "C8",
+    "text": "sensitivity: calibrated on T8 (R492 hosted parent -> PR2260 realized idle, net top-rank share)"
+   },
+   {
+    "b": "0.0016871233700042746562989725665814138063",
+    "b_conservative": "0.0016871233670879834795804369952323227555",
+    "bisection_steps": 127,
+    "bit_bound": false,
+    "gain_vs_pr2269": "-9.1237690541995644706E-6",
+    "gain_vs_pr2269_pct": "-0.5379%",
+    "gain_vs_pr2312": "-9.7676972373433437010E-6",
+    "gain_vs_pr2312_pct": "-0.5756%",
+    "global_children": 2390417,
+    "idle": {
+     "1": 104562,
+     "3": 8673,
+     "48": 24479,
+     "5": 813,
+     "7": 150
+    },
+    "idle_children": 138677,
+    "max_child": 48,
+    "model": "P",
+    "text": "pessimistic: base idle + all extra mass in rank-1 children"
+   }
+  ]
+ },
+ "python": "3.14.4",
+ "references": {
+  "bit_lower": "1733427039589844234749/1000000000000000000000000",
+  "pr2269_b": "0.0016962471390584742207696225394800943861284603706821716607210815258272261945561178592716719999999999",
+  "pr2312_kappa": "848445533620809/500000000000000000"
+ },
+ "result": "PASS_T74_EXT_PRICE_HARNESS",
+ "tool": "price_ext.py"
+}

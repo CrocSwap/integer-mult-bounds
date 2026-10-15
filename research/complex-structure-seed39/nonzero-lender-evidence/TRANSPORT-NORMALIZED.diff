@@ -1,0 +1,29 @@
+--- pinned bw_transport.py
++++ transport_lifted.py
+@@ -1,3 +1,5 @@
++# SPDX-License-Identifier: Apache-2.0
++# Seed39 adaptation; substantial OpenAI Codex assistance. Predecessor credit below.
+ """Transport an explicit BORROW-WORD to the native canonical frame-id form, with warps, and replay it exactly.
+ 
+ Anticipatory dirty borrowing is the construction of PR2226 (Cinna Davis, @1337isnot1337, with OpenAI Codex
+@@ -169,6 +171,11 @@
+ 
+     def gate(e):
+         e = copy.deepcopy(e)
++        # Seed39: literal A-phase warp after entry adapters. All inherited
++        # free-algebra, frame-image, profile and phase checks remain active.
++        if e[0] == 'warp':
++            assert len(e) == 5
++            return ['warp', R_(e[1]), e[2], fid(e[3]), fid(e[4])]
+         if e[0] == 'add':
+             e[1], e[2] = R_(e[1]), R_(e[2])
+         else:
+@@ -392,7 +399,7 @@
+                    input_content_sha256=hashlib.sha256(gzip.decompress(raw) if word_path.suffix == '.gz' else raw).hexdigest(),
+                    canonical_content_sha256=hashlib.sha256(payload).hexdigest(),
+                    live_columns_each_orientation=n, helpers=R, original_helpers=R0, removed_helpers=k,
+-                   zero_buffers=nz, warps=len(warps), warp_events=len([1 for e in B + cleanup if e[0] == 'warp']),
++                   zero_buffers=nz, warps=len(warps), warp_events=sum(e[0] == 'warp' for part, e in prog),
+                    initial_corrections=len(word['initial_corrections']),
+                    scalar_operations=len([1 for p, e in prog if e[0] != 'warp']),
+                    local_profile=dict(sorted(paid.items())), local_rank_mass=sum(r * z for r, z in paid.items()),

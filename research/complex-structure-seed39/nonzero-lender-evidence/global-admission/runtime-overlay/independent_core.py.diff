@@ -1,0 +1,95 @@
+--- parent/independent_core.py
++++ overlay/independent_core.py
+@@ -61,7 +61,39 @@
+     return tuple(pivots[bit] for bit in sorted(pivots, reverse=True))
+ 
+ 
+-def local_inventory(word, replay):
++def center_segments(word, current, frames):
++    """Literal nested target COPY paths, including every intermediate child.
++
++    Seed39 adaptation by Tekalign (@tekuuu), with substantial Codex assistance.
++    External ports/frames are independently checked by audit_mixed.py.
++    """
++    levels = {int(t): f for t, f in word['target_levels'].items()}
++    require(set(levels) == {23, 34, 50, 108}, 'four lifted target offsets')
++    require(all(frames[f] == (30,) for f in levels.values()), 'target line30')
++    require(all(current[V+t] == frames[levels.get(t, 0)] for t in range(V)), 'target centre level')
++    forward, backward = [], []
++    for index, (register, frame_id) in enumerate(zip(word['centers'], word['center_frames'])):
++        require(current[register] == frames[frame_id], 'centre carrier frame')
++        served = set()
++        for event in word['cut']:
++            require(event[0] == 'add' and V <= event[1] < 2*V and event[2] in word['centers'], 'centre cut interface')
++            if event[2] == register:
++                served.add(levels.get(event[1]-V, 0))
++        require(0 in served, 'centre COPY reaches zero')
++        origin, segments = frame_id, []
++        for destination in sorted(served, key=lambda f: -len(frames[f])):
++            require(basis(frames[destination] + frames[origin]) == frames[origin], 'nested centre COPY')
++            rank = len(frames[origin])-len(frames[destination])
++            if rank:
++                segments.append(['center', index, origin, destination, rank])
++            origin = destination
++        forward.extend(segments)
++        backward.extend(e[:2]+[e[3], e[2], e[4]] for e in reversed(segments))
++    require(Counter(e[4] for e in forward) == {1:4, 7:4, 8:4}, 'twelve centre children')
++    return {'forward': forward, 'backward': backward}
++
++
++def local_inventory(word, replay, programs=None):
+     require((word['v'], word['h'], word['R']) == (V, H, R), 'local supplier dimensions')
+     frames = [basis(frame) for frame in word['frames']]
+     n = 2 * V + R
+@@ -76,13 +108,14 @@
+             paid[jump] += 1
+         current[register] = frame
+ 
+-    require(not word['target_levels'], 'this audit requires the current zero-level centre interface')
+     for section in ('A', 'B', 'tail'):
+         if section == 'B':
+-            require(all(current[t] == () for t in range(V, 2 * V)), 'target centre level')
+-            for q, frame_id in zip(word['centers'], word['center_frames']):
+-                require(current[q] == frames[frame_id], 'centre carrier frame')
+-                paid[len(frames[frame_id])] += 1
++            segments = center_segments(word, current, frames)
++            paid.update(event[4] for event in segments['forward'])
++            if programs is not None:
++                for orientation in ('forward', 'backward'):
++                    require([e for e in programs[orientation] if e[0] == 'center'] == segments[orientation],
++                            'literal centre COPY segments')
+         for gate in word[section]:
+             if gate[0] == 'warp':   # borrowed-dirty-qubit warp [warp, register, op, f0, f1]: exact rank-zero frame change of one register
+                 register, f0, f1 = gate[1], gate[3], gate[4]
+@@ -165,7 +198,8 @@
+         bases.append(frame)
+     return dict(widths=widths, paid=paid, order=order, at={key:t for t,key in enumerate(order)}, rank=rank,
+                 windows=windows, callpos=callpos, child_pair=child_pair, side=side, stage_pair=stage_pair,
+-                bases=bases, phases=phases, bridges=bridges, event_count=len(events), replay=replay)
++                bases=bases, phases=phases, bridges=bridges, event_count=len(events), replay=replay,
++                zero_buffers=len(word['zero_buffers']))
+ 
+ 
+ def check_pending_axes(context):
+@@ -185,7 +219,10 @@
+ 
+ def check_roles(context, roles):
+     c = context
+-    live, physical = T * 8 * V, T * 8 * V + 8 + R + 2
++    require(c['zero_buffers'] == 76, 'private zero-buffer stock')
++    live = T * 8 * V
++    old_physical = live + 8 + R + 2
++    physical = old_physical + c['zero_buffers']
+     require(len(roles) == 9 * T * R, 'complete helper role count')
+     helpers, families, used = defaultdict(set), defaultdict(set), defaultdict(set)
+     charts, chart_cache = set(), {}
+@@ -253,7 +290,8 @@
+                 orthogonal_port_bases=len(c['bases']), actual_73_axis_charts=len(charts), checked_slice_prefixes=len(c['windows']) * V,
+                 local_profiles=c['local_profiles'], width_inventories=c['width_inventories'],
+                 idle=dict(sorted(idle.items())), profile=dict(sorted(profile.items())), live=live, physical=physical,
+-                rank_mass=mass, deficit=320*T, namespace={'data':[0,live], 'centres':[live,live+8], 'tableau':[live+8,live+8+R], 'coefficient':[live+8+R,physical]},
++                rank_mass=mass, deficit=320*T, namespace={'data':[0,live], 'centres':[live,live+8], 'tableau':[live+8,live+8+R], 'coefficient':[live+8+R,old_physical], 'zero_buffers':[old_physical,physical]},
++                private_zero_buffers=c['zero_buffers'],
+                 local_prefix_bits=localbits, local_prefix_from_native_receipt=True, local_profile_recounted=True,
+                 prefix_formula=dict(local_scalar=localbits, input_l2=(M + 1) // 2, invocations=len(c['order']), bridges=c['bridges'], margin=4),
+                 prefix_bits=prefix, charged_prefix_bits=payload, physical_stock_bits=stock.bit_length(),
