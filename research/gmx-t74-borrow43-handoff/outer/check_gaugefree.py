@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Executable checks for IdeaOuter-gaugefree.md (gauge <-> fractional-shift identities, accretive symbol bound, circuit replay).
 Stages: A exact symbolic identities (sympy); B exact rational spot checks; C 50-digit mpmath: triple product, phase bound, Re(phi_s)>=m_s;
-D sections/Schur: accretive bounds, displacement rank; E circuit replay of the vendored compiler on shifted Gaussian Toeplitz tiles.
+D sections/Schur: accretive bounds, displacement rank; E circuit replay of the vendored compiler on shifted Gaussian Toeplitz tiles;
+F unit diagonal preserved by truncation/rounding, Lambda>=1>=mu, absolute-scale guard <= 2 Lambda/mu.
 Run: python -B outer/check_gaugefree.py (single process; nothing is written to the package)."""
 import sys, json, itertools, random
 sys.dont_write_bytecode=True
@@ -131,5 +132,44 @@ for (g,s) in [(0.5,0.45),(0.5,0.499),(2.0,0.49),(20.0,0.49)]:
                           max_generator_entry=M.STATS['max_generator_entry'],max_triangle_coeff=M.STATS['max_triangle_coefficient'],
                           cond=float(np.linalg.cond(A))))
 OUT['E_circuit_replay']=rowsE
+# ---------------- F. unit diagonal survives truncation and rounding; absolute-scale guard vs ratio ----------------
+# Corollary 4.1b: for a unit-diagonal accretive H, Lambda>=1>=mu and Lambda+1/mu <= 2*Lambda/mu. The circuit kernels are
+# G'_s truncated to band W (u=0 always kept) and rounded to Cp bits (fixed point round(x 2^Cp)/2^Cp and Cp-bit floating point);
+# 1 is exactly representable, so the diagonal must stay exactly 1. A drifted diagonal 1+-2^-Cp must still satisfy the 1/2-hypothesis.
+mp.mp.dps=400
+def Gp(u,g,s): return mp.e**(-g*u*u+2*g*s*u)           # G'_s(u), G'_s(0)=1
+def rnd_fixed(x,Cp): return mp.floor(x*mp.mpf(2)**Cp+mp.mpf(1)/2)/mp.mpf(2)**Cp
+def rnd_float(x,Cp):
+    if x==0: return x
+    e=int(mp.floor(mp.log(abs(x),2))); sc=mp.mpf(2)**(Cp-1-e); return mp.floor(x*sc+mp.mpf(1)/2)/sc
+rowsF=[]; worstF=dict(diag_dev=0.0,min_Lambda=np.inf,max_mu=0.0,max_guard_over_2Lam_mu=0.0,max_drift_guard_over_7_2=0.0)
+for g in [0.02,0.1,0.3,1.0,5.0,67.0,189.0]:         # broad ~ pi/(alpha^2 rho)=Theta(1/log p); narrow a*rho >= 4 log(16p), p=2^20..2^64
+    for s in [0.0,0.3,-0.45,0.4999]:
+        for W in [1,2,4,8,int(np.sqrt(130/g))+6]:
+            for Cp,rnd in [(64,rnd_fixed),(128,rnd_fixed),(256,rnd_float),(1024,rnd_fixed)]:
+                k=[rnd(Gp(u,g,mp.mpf(s)),Cp) if abs(u)<=W else mp.mpf(0) for u in range(-W,W+1)]
+                dev=abs(k[W]-1); worstF['diag_dev']=max(worstF['diag_dev'],float(dev)); assert k[W]==1,(g,s,W,Cp)
+                n=48; kk=np.array([float(v) for v in k]); T=np.zeros((n,n))
+                for i_ in range(n):
+                    for j_ in range(n):
+                        d=j_-i_
+                        if abs(d)<=W: T[i_,j_]=kk[W+d]
+                assert np.all(np.diag(T)==1.0)
+                Lam=np.linalg.norm(T,2); mu_=np.linalg.eigvalsh((T+T.T)/2)[0]
+                if mu_<=1e-12: continue          # outside double-precision resolution (mu = p^-O(1) rows are in stage D)
+                assert Lam>=1-1e-12 and mu_<=1+1e-12 and Lam+1/mu_<=2*Lam/mu_*(1+1e-9),(g,s,W,Cp,Lam,mu_)
+                worstF['min_Lambda']=min(worstF['min_Lambda'],Lam); worstF['max_mu']=max(worstF['max_mu'],mu_)
+                worstF['max_guard_over_2Lam_mu']=max(worstF['max_guard_over_2Lam_mu'],(Lam+1/mu_)/(2*Lam/mu_))
+                # drift: diagonal 1+-2^-Cp (Cp>=64): hypothesis |d-1|<=1/2 gives Lambda+1/mu <= 7/2 Lambda/mu
+                for sg in (1,-1):
+                    T2=T+sg*np.eye(n)*2.0**-Cp
+                    L2=np.linalg.norm(T2,2); m2=np.linalg.eigvalsh((T2+T2.T)/2)[0]
+                    if m2>1e-12: worstF['max_drift_guard_over_7_2']=max(worstF['max_drift_guard_over_7_2'],(L2+1/m2)/(3.5*L2/m2)); assert L2+1/m2<=3.5*L2/m2
+        rowsF.append(dict(gamma=g,s=s))
+OUT['F_unit_diagonal']=dict(worstF,cases=len(rowsF),statement='truncated (band W>=1) and rounded (fixed/floating, Cp=64..1024) kernels have diagonal exactly 1; Lambda>=1>=mu; (Lambda+1/mu)/(2 Lambda/mu)<=1; drift 2^-Cp covered by 7/2')
+# counterexample of Remark 4.1a: H=tI (N=2): Lambda=mu=t, ratio 1, completed circuit norm t, inverse 1/t
+for tt in [1e-6,1e-2,1.0,1e2,1e6]:
+    H_=tt*np.eye(2); assert abs(np.linalg.norm(H_,2)*np.linalg.norm(np.linalg.inv(H_),2)-1)<1e-9 and max(np.linalg.norm(H_,2),np.linalg.norm(np.linalg.inv(H_),2))>=1 and abs(np.log(max(np.linalg.norm(H_,2),np.linalg.norm(np.linalg.inv(H_),2)))-abs(np.log(tt)))<1e-9
+OUT['F_counterexample']='H=tI: log max(||H||,||H^-1||)=log max(t,1/t) = |log t|; guard log(2+Lambda+1/mu)=log(2+t+1/t) covers it, ratio Lambda/mu=1 does not'
 print(json.dumps({k:v for k,v in OUT.items() if k not in ('D_rows','E_circuit_replay')},indent=1,default=str))
 print('ALL STAGES PASS')
