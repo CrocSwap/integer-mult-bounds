@@ -1,4 +1,90 @@
-# Swapped helper labels for lenders 80 and 88 on #2530's source-partner words, with an evacuated owner fill: kappa 0.0017142520392602451425...
+# Pre-life hosting and a frame-refit alias on the #2588 T74 words: kappa 0.0017148565406944333620...
+
+**Headline conditional kappa = 0.0017148565406944333620724957866041817002177341069142247922...** The exact value is in `outer/OUTER-CLAIM.json` = `outer/LEDGER.json` (`rows.struct_boundary_radix_union.kappa`). It equals C - 1e-3046 - 1e-3022, where C = `new/SPEC.json` `expected.complex_lower` is the certified 1e-3000 complex endpoint.
+
+It exceeds PR2588 (jeremykothe2, kappa 0.00171425203926024514...) by 6.0450143419e-07 (about 0.0353 %). It is also gated above PR2575 and PR2571 in `verify_release.py`.
+
+The supplier-only strict-assembly kappa (`CLAIM.json`, `new/SPEC.json` `expected.kappa`) is 0.0017119208420413077036...; as in the predecessors, it is not the headline (see `kappa_layers`). Prepared with substantial Claude Code assistance.
+
+**What is new.** The words are PR2588's: PR2530's (zxv) eight source-partner aliases with PR2588's helper-label swap. Two mechanisms are added on top, and they touch registers disjoint from PR2530/PR2588's aliases. A new owner fill follows. `new/rebuild_borrow.py` applies and checks every stage.
+
+1. **Pre-life hosting** (stage `prelife`, `new/borrow/inputs/prelife_43*.json`; our mechanism). Six cold width-4 helpers h each host the whole life of a width-9 helper L that starts at dimension 0: 482<-273, 483<-275, 494<-289, 495<-291, 507<-305, 519<-321.
+   - Each host first restores itself and retires.
+   - One B warp then carries h's cold-end frame onto a dim-4 frame E at L's first gate.
+   - L's dirt-compensation reads become anticipatory corrections t += c K_op(h), pulled back through the target-only precondition.
+   - The host stops being cold, so the derived cleanup's private-buffer set shrinks from 78 to 72 (`word_patch.apply_prelife`).
+   - It builds on PR2226's anticipatory dirty-borrowing semantics (Cinna Davis) and PR2436's retired-lender aliases (tekuuu).
+   - The stage checks:
+     - the removed and cold sets;
+     - that warps only append, with lender = host;
+     - that the compensation equals PR2588's minus exactly the hosted helpers' reads;
+     - that every new correction reads its host through the host's own warp;
+     - the declared B gate edit;
+     - that A, precondition, cut, entrances, levels, centres and ports are unchanged.
+2. **One-gate frame refit and alias 653<-563** (stages `refit563`, `alias1`).
+   - The refit lowers the frame of gate B 894 (add 515 += 563) from dim 6 to dim 5, its exact propagated floor. Lender 563 then retires at the dimension of helper 653's entrance frame.
+   - 653 then borrows 563 through one K_G warp (explicit invertible G, G(U)=E).
+   - Control: restoring the un-refitted frame must be rejected with `warp frame mismatch`.
+3. **Owner fill** (`new/borrow-fill/FILL.json.gz`).
+   - Construction: plfill (each host takes its borrower's slot in every call; 653's roles are deleted), then greedy bin evacuation, then the aggregated window-class CP-SAT LNS of the parallel fill lane of this work, relabelled by width.
+   - The tools are in `new/borrow-fill/search/` and are construction-only. `reconstruct.py` checks the shipped fill literally (every window, bin, helper and family rule).
+   - Idle remainders: {'1': 17428, '3': 6614, '5': 5163, '7': 170, '39': 1, '48': 26535}.
+
+**Per call:** 415 helpers (PR2588: 422); local profile {1:2374, 2:646, 3:297, 4:120, 5:26, 7:8}; width inventory {4:26, 5:9, 7:62, 8:78, 9:240}; physical stock 66801.
+
+**Ceiling for this inventory (search-side evidence, not part of the verification).**
+- `new/borrow-fill/search/ceil74.py`, with `lattice.py` and `inv.py`, certifies in interval arithmetic a class-level ceiling C <= 0.00171514043461 for every fill of this inventory.
+- It uses an LP dual plus an integrality correction over a pattern lattice; windows and families are ignored, which only loosens the bound.
+- The shipped fill is within about 2.8e-7 of it.
+
+**Search evidence.**
+- **Pre-life** (`new/borrow/prelife/search/` gapbound.py, prelo.py, prelife2.py, repair2.py, tryE.py, mk1.py; results in `new/borrow/prelife/results/` on the PR2530 words, whose registers these hostings share with PR2588's).
+  - `mk1.py` with `tryE-*.json` rebuilds the pre-life state of PR2588's words. That state is what `prelife_43*.json` records.
+- **Refit pairs** (`new/borrow/refit/search/`, `new/borrow/refit/results/pairs-*.json`). Census on these words:
+  - no fixed-frame retired-lender pair;
+  - 48 refit-OK pairs, all with lenders 550-553/562-565.
+- **Alias enumeration** (`new/borrow/alias_enumerate.py`, receipts asserted by the rebuild).
+  - On the pre-life + refit state, the only pair is 653<-563.
+  - None is left on the shipped word.
+
+**Controls.**
+- **Pre-life:** `new/borrow/prelife_controls.py` runs 78 per word (13 types x 6 pairs), with the cleanup re-derived for each. All are rejected for the expected reason.
+  - Scope: a G' with G'(U)=E that differs from G off U is not a mutant. Only G(from)=to is a bound property of a warp record.
+- **Alias:** `new/borrow/alias1_controls.py` re-derives the cleanup for each mutant and treats a stale-cleanup or operator-id rejection as a failure. All are rejected for real reasons.
+- **Retained guards:** the PR2478 cut-centre guard (mdumitrean) and the PR2508 helper-index guard (ywz65) pass, as do their negative controls.
+
+**Changes to inherited checks forced by the construction (stated openly).**
+- **`code/lemmag_stage.py`:** the borrow reference-change mutants are now built from the first forward warp whose from-frame lies strictly between ZERO and FULL.
+  - The anticipatory corrections' zero-frame K_G events (0 -> 0) are not reference changes.
+  - Dropping one is invisible to a frame-only label check, but the algebraic replays reject it.
+- **`new/SPEC.json` `width_spot_helpers`:** now [278, 281, 284, 289] (registers 506, 510, 513, 518, all width 8). The old spot helpers 482 and 494 are pre-life borrowers.
+
+**Endpoints.**
+- The strict discovery assembly certified both endpoints with the fine engines at 1e-3000. Each is the 1e-3000 floor of its exact moment root.
+- During discovery only, a scratch copy of `code/assemble.py` read these endpoints in place of its 1e-24 discovery values. The shipped strict run uses the unmodified code.
+- Afterwards the SPEC was unpinned and refrozen, and `outer/B.json`, `LEDGER.json`, `INDEPENDENT.json` and `OUTER-CLAIM.json` were regenerated.
+- The LF-pin, line-ending-insensitive and receipts-to-scratch portability fixes are already in PR2588 and are kept.
+
+**Dependencies:** Python 3.12 with numpy, gmpy2, sympy 1.14, mpmath and psutil. The search tools also need scipy and ortools.
+
+**Reproduce:** `python3 -B verify_release.py --main <repo root> --work <fresh absolute dir> [--native-cache <dir>]` ends with `PASS_RELEASE <kappa>`.
+
+**Credits.**
+- **zxv:** PR2530 — the source-partner words.
+- **jeremykothe2:** PR2588 (helper-label swap and evacuated fill), PR2575, PR2526, PR2474, PR2462, PR2447, PR2435 — the package lineage, exact pricing and the gmx layout.
+- **rohanarun:** PR2571 — repacked fill.
+- **tekuuu:** PR2436.
+- **Vlado Vojdanovski:** PR2322 and PR1673.
+- **mdumitrean:** PR2478 and PR1625.
+- **ywz65:** PR2508.
+- **Cinna Davis:** PR2226.
+- All inherited credits below.
+
+New here, prepared with substantial Claude Code assistance: the pre-life hosting, the refit alias, the refill, the controls and the fixes above. Earlier versions of this line are PR2559 and philippeVV's evacuation work.
+
+## Previous package text (PR2588), retained; its kappa figures are superseded by the section above
+
+### Swapped helper labels for lenders 80 and 88 on #2530's source-partner words, with an evacuated owner fill: kappa 0.0017142520392602451425...
 
 **Credit first: this construction is PR2530's (zxv).** Our change is the swap of two helper labels (see below). PR2530 adds eight dirty aliases to the PR2462 supplier by restoring the second member of a retired source pair before the first member's handoff: 656 borrows 49, 657 borrows 83, 658 borrows 98, 660 borrows 101, 632 borrows 68, 596 borrows 80, 600 borrows 88, 633 borrows 31 (422 helpers per call, local profile {1:2367, 2:632, 3:318, 4:120, 5:26, 7:8}, width inventory {4:33, 5:9, 7:62, 8:78, 9:240}, all eight centres with 7+1 paths, twenty lifted targets (twelve on line 30, eight on line 45), a diagonal call order). Its words, order and dispatch are reproduced here exactly (`new/borrow/inputs/alias8_43base.json`, `alias8_43extra.json`, applied by `apply_lowfour` in `new/borrow/word_patch.py`; `new/borrow-fill/ORDER.json`, `DISPATCH.json`; its `independent_core.py` with the twenty-target pins). The aliases extend PR2436's (tekuuu) lifted-target mechanism on our PR2462 supplier, which rests on PR2322's handoff construction (Vlado Vojdanovski) and the PR2312 words.
 

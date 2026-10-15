@@ -90,6 +90,36 @@ for canon,wt,h in CASES:
     if af3.exists():   # eight source-partner aliases (PR2530) (PR2530 zxv: eight source-partner aliases)
         apatch3=json.loads(af3.read_text());prev_a3=chain[-1];chain.append(word_patch.apply_lowfour(prev_a3,apatch3));steps.append('alias8');na3=chain[-1]
         kok&=word_patch.kernel_gate_edit(prev_a3['B'],na3['B'])==apatch3['declared_gate_edit'] and sorted(set(na3['removed'])-set(prev_a3['removed']))==apatch3['removed_added'] and len(na3['warps'])==len(prev_a3['warps'])+8 and True and True
+    pf=D/'inputs'/f'prelife_43{wt}.json';ppatch=None
+    if pf.exists():   # pre-life hosting (this package): six cold width-4 hosts h each host the whole life of a width-9 dim-0-start helper L after retiring
+        ppatch=json.loads(pf.read_text());prev_p=chain[-1];chain.append(word_patch.apply_prelife(prev_p,ppatch));steps.append('prelife');npl=chain[-1]
+        PLs=sorted(x_['L'] for x_ in ppatch['pairs']);PHs=[x_['h'] for x_ in ppatch['pairs']]
+        kok&=PLs==[482,483,494,495,507,519] and sorted(set(npl['removed'])-set(prev_p['removed']))==PLs and set(prev_p['removed'])<=set(npl['removed'])
+        kok&=sorted(set(prev_p['helper_final'])-set(npl['helper_final']))==sorted(map(str,PHs)) and all(npl['helper_final'][k_]==prev_p['helper_final'][k_] for k_ in npl['helper_final'])
+        kok&=npl['warps'][:len(prev_p['warps'])]==prev_p['warps'] and [x_[1] for x_ in npl['warps'][len(prev_p['warps']):]]==PHs
+        kok&=npl['compensation']==[e_ for e_ in prev_p['compensation'] if not(e_[0]=='add' and e_[2] in set(PLs))]   # the hosted helpers' dirt-compensation reads are removed ...
+        kok&=all(c_ in prev_p['initial_corrections'] or (c_['source'] in set(PHs) and len(c_['operator_word'])==1 and npl['warps'][c_['operator_word'][0]-1][1]==c_['source']) for c_ in npl['initial_corrections'])   # ... and replaced by anticipatory corrections through the host's warp
+        kok&=word_patch.kernel_gate_edit(prev_p['B'],npl['B'])==ppatch['declared_gate_edit']
+        kok&=all(npl[k_]==prev_p[k_] for k_ in ('A','precondition','cut','start_extra','target_levels','centers','center_frames','ports','prelude_events'))
+    rf2=D/'inputs'/f'refit563_43{wt}.json';rpatch2=None
+    if rf2.exists():   # one-gate exact frame lowering (B 894, add 515 += 563: dim 6 -> 5) so that 563 retires at the dimension of 653's entrance frame (this package)
+        rpatch2=json.loads(rf2.read_text());prev_r=chain[-1];chain.append(refit_apply(prev_r,rpatch2));steps.append('refit563');nr=chain[-1]
+        kok&=len(rpatch2['frames'])==1 and rpatch2['frames'][0][:2]==['B',894] and prev_r['B'][894][:5]==['add',515,563,1,1]
+        kok&=len(nr['B'][894][-1])==len(prev_r['B'][894][-1])-1 and all(x_==y_ for i_,(x_,y_) in enumerate(zip(nr['B'],prev_r['B'])) if i_!=894)
+        kok&=not({515,563}&({x_['L'] for x_ in ppatch['pairs']}|{x_['h'] for x_ in ppatch['pairs']}) if ppatch else set())
+    xf=D/'inputs'/f'alias1_43{wt}.json';xpatch=None
+    if xf.exists():   # retired-lender alias 653<-563 on the refit state (this package)
+        xpatch=json.loads(xf.read_text());prev_x=chain[-1];chain.append(word_patch.apply_lowfour(prev_x,xpatch));steps.append('alias1');nx=chain[-1]
+        kok&=word_patch.kernel_gate_edit(prev_x['B'],nx['B'])==xpatch['declared_gate_edit'] and sorted(set(nx['removed'])-set(prev_x['removed']))==[653] and len(nx['warps'])==len(prev_x['warps'])+1 and nx['A']==prev_x['A'] and nx['restore']==prev_x['restore']
+        kok&=all(g_[0]=='add' and 563 in g_[1:3] for kd_,_,g_ in xpatch['declared_gate_edit'] if kd_=='insert') and nx['warps'][-1][1]==563
+        # exhaustive enumeration of retired-lender aliases (borrow/alias_enumerate.py): on the pre-life + refit563 state exactly one pair (653<-563) exists; none on the shipped word
+        import alias_enumerate as AE,tempfile as tf_
+        def enum_(w_):
+            p_=Path(tf_.mkdtemp())/'w.json.gz';p_.write_bytes(gzip.compress(json.dumps(w_,separators=(',',':')).encode(),mtime=0));o_,s_=AE.main(str(p_));return o_,dict(s_)
+        e0,s0=enum_(prev_x);e1,s1=enum_(nx)
+        kok&=[(x_['h'],x_['L']) for x_ in e0]==[(653,563)] and len(e1)==0
+        (RCP/f'ALIAS-ENUMERATION-43{wt}.json').write_text(json.dumps(dict(prelife_refit_state=dict(counts=s0,pairs=[{k_:x_[k_] for k_ in('h','L','p1','d','s','f1','width','dprof')} for x_ in e0]),shipped=dict(counts=s1,pairs=len(e1)),
+            note='counts: h_used_in_A_or_early = helpers first used before B (needs the prelude/lifted-target mechanism); the other counts are (h,L) pairs failing that condition'),indent=1)+'\n')
     final=json.loads(gzip.decompress(shipped.read_bytes()))
     same=final==chain[-1]
     # audits: the pinned pre-refit/pre-kernel word against the canonical base; every later state independently (forward + dual free-algebra replay; refit and kernel change frames inside the pinned sections)
@@ -107,6 +137,17 @@ for canon,wt,h in CASES:
         if lpatch:
             lc=subprocess.run([sys.executable,'-B',str(D/'lowfour_controls.py'),str(shipped),str(RCP/f'CONTROLS-LOWFOUR-43{wt}.json')],capture_output=True,text=True)
             ok&=lc.returncode==0;res['lowfour_controls_rc']=lc.returncode
+        if ppatch:
+            pw_=Path(tempfile.mkdtemp())/'orig.json.gz';pw_.write_bytes(gzip.compress(json.dumps(prev_p,separators=(',',':')).encode(),mtime=0))
+            pc=subprocess.run([sys.executable,'-B',str(D/'prelife_controls.py'),str(shipped),str(pw_),str(RCP/f'CONTROLS-PRELIFE-43{wt}.json')],capture_output=True,text=True)
+            pc_ok=pc.returncode==0 and json.loads((RCP/f'CONTROLS-PRELIFE-43{wt}.json').read_text())['all_rejected_for_expected_reason'];ok&=pc_ok;res['prelife_controls_ok']=pc_ok
+        if rpatch2:   # control: the shipped word with the B 894 frame restored to its un-refitted (dim 6) frame must be rejected (the 653<-563 warp then starts from the wrong frame)
+            import copy as cp6
+            m=cp6.deepcopy(final);m['B'][894][-1]=prev_r['B'][894][-1];bp=Path(tempfile.mkdtemp())/'refit563_undone.json.gz';bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0))
+            br=run_audit(bp,None,bp.parent/'refit563_undone.out.json');ru=br.returncode!=0 and 'warp frame mismatch' in (br.stdout+br.stderr);res['refit563_undone_rejected_by_warp_frame_mismatch']=ru;ok&=ru
+        if xpatch:
+            xc=subprocess.run([sys.executable,'-B',str(D/'alias1_controls.py'),str(shipped),str(xf),str(RCP/f'CONTROLS-ALIAS1-43{wt}.json')],capture_output=True,text=True)
+            ok&=xc.returncode==0;res['alias1_controls_rc']=xc.returncode
         kc_ok,kc=kernel_controls(kstate,kpatch,tempfile.mkdtemp());ok&=kc_ok;res['kernel_controls_rejected']=kc
         if apatch:
             import copy as cp4

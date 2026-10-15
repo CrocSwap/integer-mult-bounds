@@ -33,7 +33,7 @@ def main(out, dirs):
             st = len(V.label_check(c, m, 'strict')[0]); pe = len(V.label_check(c, m, 'permissive')[0]); ar = len(V.adapter_rule(c, m))
             row['mutants'][name] = {'label_strict': st, 'label_permissive': pe, 'adapter_rule': ar, 'rejected': bool(st or pe or ar)}
             assert st or pe or ar, ('adapter mutant ACCEPTED by the Lemma G checks', str(d), name)
-        ws = [i for i, e in enumerate(fw) if e[0] == 'warp' and e[3] != 1]       # forward warps (from frame below FULL)
+        ws = [i for i, e in enumerate(fw) if e[0] == 'warp' and e[3] not in (0, 1)]       # forward reference-change warps (from frame strictly between ZERO and FULL); the zero-frame K_G events of the anticipatory corrections (tadd expansion, frame 0 -> 0) are not reference changes and are checked by the algebraic replays
         if ws:   # BORROW controls: reference-change mutants must be rejected
             def rej(m): return bool(V.label_check(c, m, 'strict')[0] or V.label_check(c, m, 'permissive')[0] or V.adapter_rule(c, m))
             w0 = ws[0]; e0 = fw[w0]; other = next(f for f in range(2, len(c['frames'])) if f not in (e0[3], e0[4]))

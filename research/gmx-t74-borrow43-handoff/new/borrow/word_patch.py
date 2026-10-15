@@ -52,3 +52,14 @@ def apply_lowfour(w,patch):
     t=copy.deepcopy(r);t['A']=r['A'][r['prelude_events']:]
     r['cleanup']=derive_cleanup(t,rs)
     return r
+
+def apply_prelife(w,patch):
+    """pre-life hosting (this package): a cold host h, after it has restored itself and retired, hosts the whole life of a dim-0-start
+    helper L through one B warp; h stops being cold, so the restored (private-buffer) set of the derived cleanup is the NEW helper_final
+    key set (not the input word's).  Replace the listed fields and the report; re-derive the inverse-reverse cleanup without the prelude."""
+    r=copy.deepcopy(w)
+    for k,v in patch['fields'].items():r[k]=copy.deepcopy(v)
+    r['report']=copy.deepcopy(patch['report'])
+    t=copy.deepcopy(r);t['A']=r['A'][r.get('prelude_events',0):]
+    r['cleanup']=derive_cleanup(t,{int(q) for q in r['helper_final']})
+    return r
