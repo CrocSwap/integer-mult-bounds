@@ -1,4 +1,73 @@
-# A sixth #2436-type alias (helper 656 borrows lender 88) on the entrance-raised T74 words: kappa 0.0017037130392579055540...
+# Owner-fill evacuation and two more retired-lender aliases on the #2526 T74 words: kappa 0.0017044322370702051061...
+
+**Headline conditional kappa = 0.0017044322370702051061784135304432609614019183833365226996...** The exact value is in `outer/OUTER-CLAIM.json` = `outer/LEDGER.json`, `rows.struct_boundary_radix_union.kappa`. It equals C - 1e-3046 - 1e-3022, where C = `new/SPEC.json` `expected.complex_lower` is the certified 1e-3000 complex endpoint. It exceeds PR2526 (jeremykothe2, kappa 0.00170371303925790555...) by 7.1919781230e-07 (about 0.0422 %); the exact gate is in `verify_release.py`. The supplier-only strict-assembly kappa (`CLAIM.json`, `new/SPEC.json` `expected.kappa`) is 0.0017015320909220281301...; as in PR2474 and PR2526, it is not the headline (see `kappa_layers`). Prepared with substantial Claude Code assistance.
+
+**Where the gain comes from.** Most of the gain is a better owner fill of PR2526's words. PR2526's fill left many small idle fragments: 554 empty 8-bins, 40 empty 16-bins and 7 empty 32-bins. A greedy bin evacuation empties lightly used bins into best-fit holes elsewhere, respecting the strict windows, the distinct-family rule and the capacities, and keeps a move only if the idle moment drops. Run on PR2526's own words with no new alias, it alone reaches C = 0.0017043773245550 (+6.64e-7). The two new aliases add about +5.49e-8 on top, giving the shipped C = 0.00170443223707020510... (+7.1920e-07 over PR2526).
+
+The search is construction-only. Its scripts are in `new/borrow-fill/search/`:
+- `reindex.py` takes the PR2526 fill and drops the two removed helpers' roles.
+- `odd.py` moves the width-4 roles out of the three 48-bins the removals left lightly used, into 5-holes.
+- `evac.py` is run with EVMAX = 24, then 44, then 48.
+
+These scripts are not part of the verification. `reconstruct.py` checks the shipped `new/borrow-fill/FILL.json.gz` literally (every window, bin, helper and family rule), and the strict admission, invoice and independent owner audit run on it as before.
+- **Idle remainders:** {'1': 21437, '3': 7260, '5': 1475, '6': 2, '7': 20, '8': 1, '23': 2, '32': 59, '48': 25806}. PR2526 had {1:21858, 3:7308, 5:34, 6:1, 8:554, 16:40, 30:1, 32:7, 48:25752}.
+- **Global profile:** `PROFILE.json` / `new/PROFILE.json`.
+- **Physical stock:** 66818.
+
+**The two aliases.** Helpers 606 and 653 borrow retired source registers 68 and 49. This is PR2226 anticipatory dirty borrowing (Cinna Davis) in the plain retired-lender form that PR2436's alias 637<-31 (tekuuu) also uses. One K_G warp, with an explicit invertible G such that G(U)=E, carries the lender's retirement frame U onto the helper's frame E:
+
+| helper | lender | lender retires (B index) | helper first use | frames | effect per call |
+|---|---|---|---|---|---|
+| 606 | 68 | 733 | 963 | dim 4 -> 606's dim-4 entrance frame | width-5 helper removed; lender's terminal 5-climb merged |
+| 653 | 49 | 1057 | 1084 | dim 4 -> a 4-dim subspace of 653's dim-5 entrance frame, then one 1-climb | width-4 helper removed; a 5-climb becomes a 1-climb |
+
+The patches are `new/borrow/inputs/alias2_43base.json` and `alias2_43extra.json`, built by `new/borrow/alias_build.py`. They are applied by `apply_lowfour` and checked by the new stage `alias2` of `new/rebuild_borrow.py`.
+- **Per call:** 426 helpers (PR2526: 428).
+- **Local profile:** {1:2366, 2:632, 3:325, 4:120, 5:30, 7:6, 8:2}.
+- **Width inventory:** {4:32, 5:7, 7:62, 8:85, 9:240}.
+
+**No further alias of this class.** `new/borrow/alias_enumerate.py` checks every (helper, retired lender) pair. The receipts are `new/borrow/receipts/ALIAS-ENUMERATION-43*.json`, and `rebuild_borrow.py` asserts them.
+- **On PR2526's words** (both words):
+  - 334 helpers are first used before B, so they would need the prelude/lifted-target mechanism.
+  - 43224 pairs fail because the lender is not retired.
+  - 4928 fail because the lender's frame dimension is too large.
+  - 160 fail the end-frame condition.
+  - Exactly 9 pairs remain. 606, 635, 638 and 639 can use only lender 68: lender 80 is no longer retired, and 88 serves 656. Their lifetimes overlap, so only one of the four can be aliased. 653 can use 49, 68, 83, 98 or 101.
+- **On the shipped words:** none is left.
+
+**Checks.**
+- `new/borrow/audit_local.py` passes forward and dual on both new words.
+- The native chain (transport, emit, local replay, wrappers, exact phases with rank-0 warp recipes, and the independent recipe recheck) and the Lemma G label stage pass on both words.
+- PR2526's PR2478 cut-centre guard (mdumitrean) and PR2508 helper-index guard (ywz65) pass, and their negative controls are rejected.
+- **New tamper controls:** `new/borrow/alias2_controls.py` rejects 14 mutations per word. Every mutant first gets its inverse-reverse cleanup re-derived, and a rejection for a stale-cleanup or operator-id reason counts as a failure. All 14 are rejected for real reasons: target map failed, frame not monotone, G(from)!=to, warp frame mismatch, or a removed helper given a frame.
+- **Retained controls are weaker:** the alias637/alias656 controls kept from PR2474/PR2526 still mutate the final word without re-deriving the cleanup.
+- **lowfour_controls:** `new/borrow/lowfour_controls.py` now finds all four lifted-target warps by lender. PR2526 fixed only the first one; the restoration-gate control still assumed they were the last four warps.
+- **Endpoints:** the strict discovery assembly certified the complex and conservative endpoints with the fine engines at 1e-3000. Each is the 1e-3000 floor of its exact moment root, accepted at the endpoint and rejected at endpoint+1e-3000. Only during discovery, a scratch copy of `code/assemble.py` read these endpoints in place of its 1e-24 discovery values; the shipped strict run uses the unmodified code.
+- **Refreeze:** the SPEC was then unpinned (`new/unpin_spec.py`) and refrozen (`freeze_spec.py`), and `outer/B.json`, `LEDGER.json`, `INDEPENDENT.json` and `OUTER-CLAIM.json` were regenerated.
+
+**Portability and idempotence fixes.** These were found by an independent audit of PR2474, on the coordinating side of this work.
+1. **LF hash pins.** PR2474 and PR2526's `new/PLAN.json` pinned the `artifact_sha256` of the native `LOCAL-CHECKS.json` and `RESIDUAL-ADAPTERS.json` as written with CRLF line endings. A Linux native replay therefore failed `verify.py`'s PLAN rebind check and `code/bind_providers_portable.py`. The pins here are those of natives regenerated on Linux (LF).
+2. **EOL-insensitive ledger compare.** `outer/run_outer.py` now compares the regenerated LEDGER/INDEPENDENT ignoring line endings, and all regenerated JSON is LF.
+3. **No receipt rewriting.** `new/rebuild_borrow.py` used to rewrite the committed `new/borrow/receipts/*.json`, which carry nondeterministic timings, so verification changed the package. It now writes its receipts to a scratch directory and requires them to equal the committed ones apart from `elapsed_seconds`/`seconds`. Temporary words are gzipped with mtime=0.
+
+**Dependencies.** Python 3.12 with numpy, gmpy2, sympy 1.14, mpmath and psutil.
+
+**Reproduce:** `python3 -B verify_release.py --main <repo root> --work <fresh absolute dir> [--native-cache <dir>]` ends with `PASS_RELEASE <kappa>`.
+
+**Credits.**
+- **jeremykothe2:** PR2526, PR2474, PR2462, PR2447 and PR2435 — the words, entrance raise, alias-637 and alias-656 stacking and exact pricing, and the package this one extends.
+- **tekuuu:** PR2436 — the lifted-target aliases, alias 637<-31, and the verifier/transport edits.
+- **Vlado Vojdanovski:** PR2322 (handoff construction) and PR1673 (outer).
+- **mdumitrean:** PR2478 (cut-centre guard) and PR1625 (kernel shape).
+- **ywz65:** PR2508 (helper-index guard).
+- **Cinna Davis:** PR2226 (anticipatory dirty borrowing).
+- The whole lineage below.
+
+New in this package, prepared with substantial Claude Code assistance: the bin-evacuation refill, the two aliases, their enumeration and controls, the refrozen SPEC and ledger, and the fixes above.
+
+## Previous package text (PR2526), retained; its kappa figures are superseded by the section above
+
+### A sixth #2436-type alias (helper 656 borrows lender 88) on the entrance-raised T74 words: kappa 0.0017037130392579055540...
 
 **Credit first: PR2436 (tekuuu).** The aliases are PR2436's: the four lifted-target aliases (helpers 640, 641, 642, 644 borrowing from lenders 33, 55, 74, 85, plus the 4 centre COPY 8 to 7+1 splits; 28-event A-phase prelude; `new/borrow/inputs/lowfour_43*.json`, applied by `apply_lowfour` in `new/borrow/word_patch.py`) the fifth alias, helper 637 borrowing retired source register 31 (`new/borrow/inputs/alias637_43base.json`, `alias637_43extra.json`, applied the same way; G columns from PR2436's composed word; in PR2474) and, new here, a sixth PR2436-type alias, helper 656 borrowing lender 88. The whole stack rests on PR2322's handoff construction (Vlado Vojdanovski; its words, call order and windows are unchanged, `new/borrow/inputs/handoff_43*.json`), PR2435/PR2447's entrance raise and our PR2312 words. PR2436's other removal, 653 borrowing from 73, does not stack (it forces register 533 to lose its cold end, width 7 back to 8, and the ideal drops below the four-alias value). This is not PR2436's whole construction: our word has 428 helpers per call. The verifier `new/borrow/audit_local.py` accepts A-phase warp items and checks their frame pairs; `new/code/borrow/bw_transport.py` carries PR2436's two edits; `new/borrow/lowfour_controls.py` and `new/rebuild_borrow.py` run the tamper controls (including sign-flipped, doubled and warp-dropped alias-637 edits), all rejected.
 

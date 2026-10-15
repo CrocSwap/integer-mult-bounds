@@ -36,7 +36,8 @@ def main(wordp,outp):
     m=mut();r=m['warps'][W33];r[3]=[x^2 for x in r[3]];expect('new warp from-frame wrong',m)
     m=mut();m['warps'][W33][2][0]^=m['warps'][W33][2][1];expect('new warp G wrong',m)
     # restoration gate before a new warp removed (derived cleanup re-derived)
-    pos=[r[0] for r in w0['warps'][-4:]];i=pos[0]-1
+    L4=[i_ for i_,r_ in enumerate(w0['warps']) if r_[1] in (33,55,74,85)];assert len(L4)==4   # the four lifted-target warps, located by lender (later aliases append further warps)
+    pos=[w0['warps'][i_][0] for i_ in L4];i=pos[0]-1
     m=mut();assert m['B'][i][0]=='add' and m['B'][i][1] in (33,55,74,85),m['B'][i];del m['B'][i]
     for r in m['warps']:
         if r[0]>i:r[0]-=1

@@ -11,7 +11,8 @@ for art in ('LEDGER.json', 'INDEPENDENT.json'):
 for script in ('check_ledger.py', 'independent_check.py'):
     subprocess.run([sys.executable, '-B', str(tmp / 'outer' / script)], check=True, stdout=subprocess.DEVNULL)
 for art in ('LEDGER.json', 'INDEPENDENT.json'):
-    if (tmp / 'outer' / art).read_bytes() != (P / 'outer' / art).read_bytes():
+    # line-ending-insensitive (portability fix: a CRLF checkout of the committed artifact is the same artifact)
+    if (tmp / 'outer' / art).read_bytes().replace(b'\r\n', b'\n') != (P / 'outer' / art).read_bytes().replace(b'\r\n', b'\n'):
         raise SystemExit('regenerated artifact differs from committed: ' + art)
 subprocess.run([sys.executable, '-B', str(P / 'outer/sched_test.py')], check=True)
 subprocess.run([sys.executable, '-B', str(P / 'outer/sched_review.py')], check=True, stdout=subprocess.DEVNULL)

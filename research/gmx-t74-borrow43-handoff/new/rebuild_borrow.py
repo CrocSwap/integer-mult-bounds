@@ -35,7 +35,7 @@ def kernel_controls(w,patch,tmp):
     res={};qs=set(patch['pivots'])
     pos=[j for kind,j,g in patch['declared_gate_edit'] if kind=='insert']
     def audit_bad(name,m):
-        bp=Path(tmp)/(name+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode()))
+        bp=Path(tmp)/(name+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0))
         r=run_audit(bp,None,Path(tmp)/(name+'.out.json'));res[name]=r.returncode!=0;return r.returncode!=0
     ok=True
     m=copy.deepcopy(w);m['B'][pos[0]][3]=-m['B'][pos[0]][3];m['cleanup']=word_patch.derive_cleanup(m,word_patch.restored_of(w));ok&=audit_bad('kernel_sign_flipped',m)
@@ -44,6 +44,14 @@ def kernel_controls(w,patch,tmp):
     m=copy.deepcopy(w);m['B'][pos[3]][1]=m['B'][pos[3]][1]+1;ok&=audit_bad('kernel_read_moved_to_neighbour_register',m)
     return ok,res
 ok=True;out={}
+# receipts are written to a scratch directory (never into the package, so verification does not mutate it) and then compared with the
+# committed new/borrow/receipts modulo run timings; REBUILD_RECEIPTS_UPDATE=1 (author use only) copies them into the package instead.
+import os,shutil
+RO=Path(os.environ.get('REBUILD_RECEIPTS') or tempfile.mkdtemp());RO.mkdir(parents=True,exist_ok=True)
+def _untimed(x):
+    if isinstance(x,dict):return {k:_untimed(v) for k,v in x.items() if k not in('elapsed_seconds','seconds')}
+    if isinstance(x,list):return [_untimed(v) for v in x]
+    return x
 for canon,wt,h in CASES:
     tmp=Path(tempfile.mkdtemp())/'w.json.gz'
     build_word.main(str(D/'inputs'/f'{canon}.canonical.json.gz'),str(D/'inputs/blocks.json'),str(D/'inputs'/f'witness_43_{wt}.json'),str(tmp),h)
@@ -78,48 +86,64 @@ for canon,wt,h in CASES:
     if af2.exists():   # alias 656 borrowing lender 88 (PR2436 type) stacked on the fifth alias
         apatch2=json.loads(af2.read_text());prev_a2=chain[-1];chain.append(word_patch.apply_lowfour(prev_a2,apatch2));steps.append('alias656');na2=chain[-1]
         kok&=word_patch.kernel_gate_edit(prev_a2['B'],na2['B'])==apatch2['declared_gate_edit'] and sorted(set(na2['removed'])-set(prev_a2['removed']))==[656] and len(na2['warps'])==len(prev_a2['warps'])+1 and na2['restore']==prev_a2['restore'] and True
+    xf=D/'inputs'/f'alias2_43{wt}.json';xpatch=None
+    if xf.exists():   # two further retired-lender aliases (606<-68, 653<-49) on the alias-656 state (this package)
+        xpatch=json.loads(xf.read_text());prev_x=chain[-1];chain.append(word_patch.apply_lowfour(prev_x,xpatch));steps.append('alias2');nx=chain[-1]
+        kok&=word_patch.kernel_gate_edit(prev_x['B'],nx['B'])==xpatch['declared_gate_edit'] and sorted(set(nx['removed'])-set(prev_x['removed']))==[606,653] and len(nx['warps'])==len(prev_x['warps'])+2 and nx['A']==prev_x['A'] and nx['restore']==prev_x['restore']
+        kok&=all(g_[0]=='add' and (g_[1] in(68,49) or g_[2] in(68,49)) for kd_,_,g_ in xpatch['declared_gate_edit'] if kd_=='insert') and [x_[1] for x_ in nx['warps'][-2:]]==[68,49]
+        # exhaustive enumeration of retired-lender aliases (borrow/alias_enumerate.py): on the alias-656 state exactly 9 pairs over helpers 606,635,638,639,653 exist (606/635/638/639 only with lender 68); on the shipped word none is left
+        import alias_enumerate as AE,tempfile as tf_
+        def enum_(w_):
+            p_=Path(tf_.mkdtemp())/'w.json.gz';p_.write_bytes(gzip.compress(json.dumps(w_,separators=(',',':')).encode(),mtime=0));o_,s_=AE.main(str(p_));return o_,dict(s_)
+        e0,s0=enum_(prev_x);e1,s1=enum_(nx)
+        kok&=sorted({x_['h'] for x_ in e0})==[606,635,638,639,653] and len(e0)==9 and {x_['L'] for x_ in e0 if x_['h']!=653}=={68} and len(e1)==0
+        (RO/f'ALIAS-ENUMERATION-43{wt}.json').write_text(json.dumps(dict(alias656_state=dict(counts=s0,pairs=[{k_:x_[k_] for k_ in('h','L','p1','d','s','f1','width','dprof')} for x_ in e0]),shipped=dict(counts=s1,pairs=len(e1)),
+            note='counts: h_used_in_A_or_early = helpers first used before B (needs the prelude/lifted-target mechanism); the other counts are (h,L) pairs failing that condition'),indent=1)+'\n')
     final=json.loads(gzip.decompress(shipped.read_bytes()))
     same=final==chain[-1]
     # audits: the pinned pre-refit/pre-kernel word against the canonical base; every later state independently (forward + dual free-algebra replay; refit and kernel change frames inside the pinned sections)
-    tag=lambda n:D/'receipts'/f'AUDIT-43{wt}{n}.json'
+    tag=lambda n:RO/f'AUDIT-43{wt}{n}.json'
     pw=Path(tempfile.mkdtemp());ps=[]
     for j,w_ in enumerate(chain[:-1]):
-        f_=pw/f'w{j}.json.gz';f_.write_bytes(gzip.compress(json.dumps(w_,separators=(',',':')).encode()))
+        f_=pw/f'w{j}.json.gz';f_.write_bytes(gzip.compress(json.dumps(w_,separators=(',',':')).encode(),mtime=0))
         r=run_audit(f_,base if j==0 else None,tag('-pinned' if j==0 else '-prekernel'));ps.append(r.returncode)
     r=run_audit(shipped,None,tag(''))
     ok&=same and kok and all(x==0 for x in ps) and r.returncode==0
     res=dict(rebuild_plus_patches_equals_shipped=same,patches=steps,kernel_edit_exact=kok,prior_state_audit_rc=ps,audit_rc=r.returncode)
     if '--no-controls' not in sys.argv:
-        c=subprocess.run([sys.executable,'-B',str(D/'borrow_controls.py'),str(tmp),base,str(D/'receipts'/f'CONTROLS-43{wt}.json')],capture_output=True,text=True)
+        c=subprocess.run([sys.executable,'-B',str(D/'borrow_controls.py'),str(tmp),base,str(RO/f'CONTROLS-43{wt}.json')],capture_output=True,text=True)
         ok&=c.returncode==0;res['controls_rc']=c.returncode
         if lpatch:
-            lc=subprocess.run([sys.executable,'-B',str(D/'lowfour_controls.py'),str(shipped),str(D/'receipts'/f'CONTROLS-LOWFOUR-43{wt}.json')],capture_output=True,text=True)
+            lc=subprocess.run([sys.executable,'-B',str(D/'lowfour_controls.py'),str(shipped),str(RO/f'CONTROLS-LOWFOUR-43{wt}.json')],capture_output=True,text=True)
             ok&=lc.returncode==0;res['lowfour_controls_rc']=lc.returncode
+        if xpatch:
+            xc=subprocess.run([sys.executable,'-B',str(D/'alias2_controls.py'),str(shipped),str(xf),str(RO/f'CONTROLS-ALIAS2-43{wt}.json')],capture_output=True,text=True)
+            ok&=xc.returncode==0;res['alias2_controls_rc']=xc.returncode
         kc_ok,kc=kernel_controls(kstate,kpatch,tempfile.mkdtemp());ok&=kc_ok;res['kernel_controls_rejected']=kc
         if apatch:
             import copy as cp4
             ii=next(q for q,(x,y) in enumerate(zip(final['B'],prev_a['B'])) if x[:-1]!=y[:-1] and x[0]=='add')
             for nm_,mut in (('alias637_sign_flipped',lambda m:m['B'][ii].__setitem__(3,-m['B'][ii][3])),('alias637_coefficient_doubled',lambda m:m['B'][ii].__setitem__(3,2*m['B'][ii][3])),('alias637_warp_dropped',lambda m:m.__setitem__('warps',m['warps'][:-1]))):
-                m=cp4.deepcopy(final);mut(m);bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode()));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
+                m=cp4.deepcopy(final);mut(m);bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
         if apatch2:
             import copy as cp5
             ii=next(q for q,(x,y) in enumerate(zip(final['B'],prev_a2['B'])) if x[:-1]!=y[:-1] and x[0]=='add')
             for nm_,mut in (('alias656_sign_flipped',lambda m:m['B'][ii].__setitem__(3,-m['B'][ii][3])),('alias656_coefficient_doubled',lambda m:m['B'][ii].__setitem__(3,2*m['B'][ii][3])),('alias656_warp_dropped',lambda m:m.__setitem__('warps',m['warps'][:-1]))):
-                m=cp5.deepcopy(final);mut(m);bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode()));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
+                m=cp5.deepcopy(final);mut(m);bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
         if ef.exists():
             import copy as cp3
             q=next(iter(epatch['fields']['start_extra']));
             for nm_,mut in (('entrance_start_frame_dropped',lambda m:m['start_extra'].__setitem__(q,[])),('entrance_start_frame_widened',lambda m:m['start_extra'].__setitem__(q,[1<<i for i in range(9)]))):
-                m=cp3.deepcopy(final);mut(m);bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode()));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
+                m=cp3.deepcopy(final);mut(m);bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
         if hpatch:
             import copy as cp2
             for nm_,mut in (('handoff_sign_flipped',lambda m,i_:m['B'][i_].__setitem__(3,-m['B'][i_][3])),('handoff_coefficient_doubled',lambda m,i_:m['B'][i_].__setitem__(3,2*m['B'][i_][3]))):
                 m=cp2.deepcopy(final);i_=next(q for q,(x,y) in enumerate(zip(final['B'],kstate['B'])) if x[:-1]!=y[:-1] and x[0]=='add');mut(m,i_);m['cleanup']=word_patch.derive_cleanup(m,word_patch.restored_of(final))
-                bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode()));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
-        (D/'receipts'/f'CONTROLS-KERNEL-43{wt}.json').write_text(json.dumps(kc,indent=2)+'\n')
+                bp=pw/(nm_+'.json.gz');bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0));br=run_audit(bp,None,pw/(nm_+'.out.json'));kc[nm_]=br.returncode!=0;ok&=br.returncode!=0
+        (RO/f'CONTROLS-KERNEL-43{wt}.json').write_text(json.dumps(kc,indent=2)+'\n')
         if rf.exists():
             rp=json.loads(rf.read_text());bad=copy_=json.loads(json.dumps(chain[1]));sec,i_,fr=rp['frames'][-1];bad[sec][i_][-1]=[1]
-            bp=pw/'bad.json.gz';bp.write_bytes(gzip.compress(json.dumps(bad,separators=(',',':')).encode()));br=run_audit(bp,None,pw/'bad.out.json');res['refit_tamper_rejected']=br.returncode!=0;ok&=br.returncode!=0
+            bp=pw/'bad.json.gz';bp.write_bytes(gzip.compress(json.dumps(bad,separators=(',',':')).encode(),mtime=0));br=run_audit(bp,None,pw/'bad.out.json');res['refit_tamper_rejected']=br.returncode!=0;ok&=br.returncode!=0
     # CUT-CENTRE GUARD (PR2478, mdumitrean): audit_local frame-checks only cut gates whose source is a centre; every cut gate of the shipped word must be an add from one of the 8 centres to a target row.
     import guard_cut_centres as gcc
     gv=gcc.violations(final);gbad=json.loads(json.dumps(final));gbad['cut'][0]=['add',gbad['cut'][0][1],next(r_ for r_ in range(224,704) if r_ not in set(gbad['centers'])),1,1]+list(gbad['cut'][0][5:])
@@ -146,4 +170,10 @@ for canon,wt,h in CASES:
     ok&=bind_ok and (tamper_rejected or not raised)
     print('ENTRANCE-WIDTH-BINDING',wt,'raised',len(raised),'bound',bind_ok,'dim1 tamper rejected',tamper_rejected,flush=True)
     out[canon]=res;print(canon,res,flush=True)
+made=sorted(p_.name for p_ in RO.glob('*.json'));committed=sorted(p_.name for p_ in (D/'receipts').glob('*.json'))
+if os.environ.get('REBUILD_RECEIPTS_UPDATE')=='1':
+    for n_ in made:shutil.copy2(RO/n_,D/'receipts'/n_)
+    committed=made
+same_receipts=made==committed and all(_untimed(json.loads((RO/n_).read_text()))==_untimed(json.loads((D/'receipts'/n_).read_text())) for n_ in made)
+print('RECEIPTS-MATCH-COMMITTED',same_receipts,len(made),flush=True);ok&=same_receipts
 print('PASS_REBUILD_BORROW' if ok else 'FAIL_REBUILD_BORROW');sys.exit(0 if ok else 1)
