@@ -11,7 +11,6 @@ import contextlib
 import copy
 import gzip
 import hashlib
-import importlib.util
 import io
 import json
 import os
@@ -22,6 +21,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import types
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = Path(__file__).resolve().parent
@@ -64,10 +64,10 @@ def unique_object(pairs):
 
 
 def load_module(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
+    """Load a checker with assertions kept even when this wrapper runs under -O."""
+    module = types.ModuleType(name)
+    module.__file__ = str(path)
+    exec(compile(path.read_bytes(), str(path), "exec", optimize=0), module.__dict__)
     return module
 
 
@@ -202,6 +202,22 @@ def check_assertions_preserved() -> int:
     ):
         require(msg in prod_src, f"missing assert message: {msg}")
         require(msg in base_src, f"baseline missing assert message: {msg}")
+
+    # Admission must stay enforced when this wrapper is launched under -O:
+    # loaders use compile(..., optimize=0), so a known apply assert still fires.
+    prod = load_module("hpe_production_assert_gate", PRODUCTION)
+    rows = prod.rows_identity(2) if hasattr(prod, "rows_identity") else None
+    if rows is None:
+        # Integer-row production uses (den, map) pairs; seed a 2x2 identity.
+        rows = [(1, {0: 1}), (1, {1: 1})]
+    fired = False
+    try:
+        prod.apply(["scale", 0, 0, 1], rows)
+    except AssertionError:
+        fired = True
+    except Exception as exc:  # noqa: BLE001
+        require(False, f"scale-zero admission must raise AssertionError, got {type(exc).__name__}: {exc}")
+    require(fired, "NO_ASSERT_FIRED: scale-zero admission stripped under -O loader")
     return len(prod_asserts)
 
 

@@ -14,13 +14,18 @@
 
 In the selected #1042 replay, the `chain` stage takes 711 s. Of that, 530 s is spent in its five layer-end control steps (`lec-p6n`, `lec-promo`, `lec-jx`, `lec-hyb`, `lec-frames`).
 
-Each step runs the pinned `layer_end_controls_leaver.py`. That script calls PR635's `hpe_audit_and_transport.run` (sha256 `c9a05ff2…0aa3`) about 96 times: once on the honest word, then on each of 95 mutants, every one of which must be rejected at its pinned reason.
+Each step runs the pinned `layer_end_controls_leaver.py`. That script calls PR635's
+`hpe_audit_and_transport.run` about 96 times: once on the honest word, then on each of
+95 mutants, every one of which must be rejected at its pinned reason. After
+`research/hpe-audit-integer-production/`, the live PR635 path ships integer rows; the
+pairwise Fraction-dict bytes used for differential checks live in this package's
+`baseline.py` (sha256 `c9a05ff2…0aa3`).
 
 The cost is in exact arithmetic. On one audit, profiling shows:
 
 | Share | Where |
 |---|---|
-| ~63% | `Fraction` operations in the row updates (endpoint replay in both orientations, plus the P and P⁻¹ state maps) |
+| ~63% | `Fraction` operations in the pairwise row updates (endpoint replay in both orientations, plus the P and P⁻¹ state maps) |
 | ~22% | `copy.deepcopy` of gates |
 
 ## What changes
