@@ -1,0 +1,108 @@
+{
+  "status": "PASS_INDEPENDENT_REFIT_CONSTRUCTOR_AND_FOUR_GUARDED_ADAPTATIONS",
+  "candidate_manifest_sha256": "234cd08b5ae55b81f49c68549ec550c62a30a1e43f1c451d4836c12ed0464bd4",
+  "construction_all15_decoded_inputs_equal": true,
+  "source_authentication": true,
+  "exact_replay_derivation_patch": true,
+  "adaptations": {
+    "independent_core.py": {
+      "source_sha256": "c4bcd06a6f761e8b298f23ff3da81053cf47a7126fa1322f732a685cdb58b517",
+      "adapted_sha256": "9105766c051637995b472a06ee88139848d0a98ed8f110e9d7be0d98eb908ba8",
+      "replacements": [
+        {
+          "before": "    require(set(levels) == {11,23,29,32,34,35,45,48,50,59,63,71,73,76,81,84,87,90,92,108}, 'twenty source-partner target offsets')\n    require(all(frames[f] in ((30,), (45,)) for f in levels.values()), 'target line30')",
+          "after": "    require({str(t): list(frames[f]) for t, f in levels.items()} == {'23': [30], '34': [30], '50': [30], '108': [30], '14': [45], '41': [45], '43': [45], '52': [45], '78': [45], '99': [45], '104': [45], '106': [45]}, 'candidate exact source-partner target frames')"
+        },
+        {
+          "before": "    require(Counter(e[4] for e in forward) == {1:8, 7:8}, 'sixteen centre children')",
+          "after": "    require(Counter(e[4] for e in forward) == {1:4, 7:4, 8:4}, 'candidate twelve centre children')"
+        }
+      ]
+    },
+    "audit_mixed.py": {
+      "source_sha256": "defdb5f1d33dd6b0eee9b84c00b5cc01e5283ec41308b520df714e1caffb9916",
+      "adapted_sha256": "a31c8ba32e7f4810aa2f1a286a117abd9aad4d8d961e41510c73d7cea8413bdf",
+      "replacements": [
+        {
+          "before": "str(_e)=='target line30'",
+          "after": "str(_e)=='candidate exact source-partner target frames'"
+        }
+      ]
+    },
+    "new/borrow/lowfour_controls.py": {
+      "source_sha256": "cc2d102a3cf1cc1063ea39ab7b22c4231445dfd485705661b1da38bcc6da8066",
+      "adapted_sha256": "cd2c67250e8afd7dcf86d7b530105ef673026ba85c60a9bf85ee5223dff5c1e3",
+      "replacements": [
+        {
+          "before": "    m=mut();m['A'][ia][1],m['A'][ia+1][1]=m['A'][ia+1][1],m['A'][ia][1];expect('prelude correction targets swapped',m)",
+          "after": "    # PR2696: choose distinct additions so the swap is not an identity.\n    jb=next(j for j,e in enumerate(pre) if e[0]=='add' and e[1]!=pre[ia][1] and e[2:]!=pre[ia][2:] and e[-1]==pre[ia][-1])\n    m=mut();m['A'][ia][1],m['A'][jb][1]=m['A'][jb][1],m['A'][ia][1];expect('prelude correction targets swapped',m)"
+        }
+      ]
+    },
+    "new/rebuild_borrow.py": {
+      "source_sha256": "9cef11a627dc197d68845efec25ec22c9af69a132978d8db13f6cfc0d1841b30",
+      "adapted_sha256": "4cdd84e3cfcedb6ecb700ea2c42c94c47b5518af10926886b6fd9dd662cff9cc",
+      "replacements": [
+        {
+          "before": "        kok&=len(rpatch2['frames'])==1 and rpatch2['frames'][0][:2]==['B',894] and prev_r['B'][894][:5]==['add',515,563,1,1]\n        kok&=len(nr['B'][894][-1])==len(prev_r['B'][894][-1])-1 and all(x_==y_ for i_,(x_,y_) in enumerate(zip(nr['B'],prev_r['B'])) if i_!=894)",
+          "after": "        kok&=rpatch2['frames']==[['B',894,[259,148,66,36,9]],['B',1149,[259,148,66,36,9]]] and prev_r['B'][894][:5]==['add',515,563,1,1]\n        kok&=len(nr['B'][894][-1])==len(prev_r['B'][894][-1])-1\n        kok&=prev_r['B'][1149]==['add',393,515,1,1,[259,132,66,36,16,9]] and nr['B'][1149]==['add',393,515,1,1,[259,148,66,36,9]]\n        kok&=all(x_==y_ for i_,(x_,y_) in enumerate(zip(nr['B'],prev_r['B'])) if i_ not in (894,1149))"
+        }
+      ]
+    }
+  },
+  "repeat_adaptation_control": {
+    "rejected": true,
+    "diagnostic": "Unique adaptation boundary: independent_core.py"
+  },
+  "eight_exact_guard_mutations": [
+    {
+      "provider": "base",
+      "mutation": "undeclared_B0",
+      "rejected": true
+    },
+    {
+      "provider": "base",
+      "mutation": "wrong_B1149_frame",
+      "rejected": true
+    },
+    {
+      "provider": "base",
+      "mutation": "wrong_B894_gate",
+      "rejected": true
+    },
+    {
+      "provider": "base",
+      "mutation": "third_frame_edit",
+      "rejected": true
+    },
+    {
+      "provider": "extra",
+      "mutation": "undeclared_B0",
+      "rejected": true
+    },
+    {
+      "provider": "extra",
+      "mutation": "wrong_B1149_frame",
+      "rejected": true
+    },
+    {
+      "provider": "extra",
+      "mutation": "wrong_B894_gate",
+      "rejected": true
+    },
+    {
+      "provider": "extra",
+      "mutation": "third_frame_edit",
+      "rejected": true
+    }
+  ],
+  "source_hashes": {
+    "generate.py": "4db3e5a26f0227bb26b35eb474e1dc414740f95f134e7028b460bfc757b09ce0",
+    "full_replay.py": "5ace54d06cb77afb10c8fb377800c611a59254601a3c329a22f51e167237b5de",
+    "replay_engine.py": "baae7121a140fe6c5ea6575379a64cbb56663c198dfc8597b742cf4a98bcda51",
+    "combined_adapt.py": "b1567650dbd8b2dc341ba89eb2de21f4f81ccda78cc151b638ed0ce1af847558",
+    "REPLAY-DERIVATION.patch": "14d4721d3b77c3935a15b9c6bca51ea524dec62f93ac978e14c4816d9135ff59"
+  },
+  "final_wrapper_pending_gate": "Bind eventual exact new CLAIM kappa/profile/C after cold completes; current wrapper only requires improvement over2733. This does not weaken the running cold engine scalar/native/admission checks.",
+  "scope": "Bounded constructor/adapter/guard review, no duplicate full cold replay. Original existing12target/center/swap adaptations retained; fourth exact frame guard only allows declaredB894/B1149 changes. All other source Python hash checks/no-cache gates unchanged."
+}
