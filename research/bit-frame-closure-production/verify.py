@@ -136,23 +136,38 @@ def check_case_equivalence() -> list[dict]:
 
 
 def check_temp_corruption_rejection() -> dict:
-    """On-disk mutant in a temp copy must diverge from the honest production receipt."""
+    """On-disk mutant in a temp copy must fail or diverge from the honest receipt.
+
+    The foil forces `_in_span` to accept every live line. Catalogue frames then
+    fail the inherited `close(m)[0] == m` assertion immediately, so the control
+    stays bounded (a membership-omission foil can otherwise wander through a
+    huge illegal search).
+    """
     honest, _ = run_frameopt(PRODUCTION, "pr589")
     with tempfile.TemporaryDirectory(prefix="bit-frame-closure-prod-") as tmp:
         stage = Path(tmp)
         mutant = stage / "frameopt.py"
         text = PRODUCTION.read_text(encoding="utf-8")
-        # Drop membership admission: closed stays equal to the input mask.
-        needle = "if not (m >> i & 1) and _in_span(L[i], basis):\n                    closed |= 1 << i\n"
-        require(needle in text, "membership block missing for corruption control")
-        mutant.write_text(text.replace(needle, "if False and _in_span(L[i], basis):\n                    closed |= 1 << i\n", 1), encoding="utf-8")
+        needle = "def _in_span(source, basis):\n    row = [x % P for x in source]\n"
+        require(needle in text, "_in_span header missing for corruption control")
+        foil = (
+            "def _in_span(source, basis):\n"
+            "    return True\n"
+            "    row = [x % P for x in source]\n"
+        )
+        mutant.write_text(text.replace(needle, foil, 1), encoding="utf-8")
         require(mutant.read_bytes() != PRODUCTION.read_bytes(), "mutant must differ on disk")
         try:
             bad, _ = run_frameopt(mutant, "pr589")
         except AssertionError as exc:
-            return {"rejected": True, "mode": "subprocess_failure", "detail": str(exc)[:200]}
-        require(bad != honest, "membership-omission mutant must change the pr589 receipt")
-        return {"rejected": True, "mode": "receipt_divergence", "honest_improving": honest["improving_components"], "mutant_improving": bad["improving_components"]}
+            return {"rejected": True, "mode": "subprocess_failure", "detail": str(exc)[:240]}
+        require(bad != honest, "always-admit mutant must change the pr589 receipt")
+        return {
+            "rejected": True,
+            "mode": "receipt_divergence",
+            "honest_improving": honest["improving_components"],
+            "mutant_improving": bad["improving_components"],
+        }
 
 
 def check_verify_sh() -> None:

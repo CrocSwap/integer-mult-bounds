@@ -34,7 +34,10 @@ PASS_IDENTICAL_BIT_FRAME_CLOSURE_PRODUCTION_RECEIPTS
 ```
 
 Default verify is read-only. Timing is host-descriptive and is not a
-correctness gate. Samples are retained in [`RESULT.json`](RESULT.json).
+correctness gate. On Linux / CPython 3.12.3, five alternating fresh-process
+pairs gave median **pr589 17.298 → 3.213 s (5.383×)** and **complete three-case
+suite 47.744 → 8.904 s (5.362×)**. Samples are retained in
+[`RESULT.json`](RESULT.json).
 
 ## Why the one-basis close is equivalent
 
