@@ -78,6 +78,10 @@ def new_native(key):
     if cj.get('word_sha256')==ws and cj.get('files')==tree(e):d=e
   if d is None:
    d=work/('native-new-'+key);run('native-new-'+key,P/'new/run_native_borrow.py',w,d)
+   for x_ in d.rglob('*'):   # text artifacts are LF on every OS (the pinned PLAN binds their hashes); the vendored scripts write CRLF on Windows
+    if x_.is_file() and x_.suffix in ('.json','.log','.txt'):
+     b_=x_.read_bytes()
+     if b'\r\n' in b_:x_.write_bytes(b_.replace(b'\r\n',b'\n'))
    if a.native_cache:
     root=a.native_cache.resolve();root.mkdir(parents=True,exist_ok=True);dst=root/ws
     if not dst.exists():
