@@ -131,3 +131,5 @@ Profile one pinned PR933 or PR1345 transport checker to see whether closure is
 also a material cost there. Its mutable-state and rank contracts must be
 checked before reuse. This package supplies no speed or correctness claim for
 those checkers; `TASK.json` records that first step and its blockers.
+
+After production promotion of `frameopt.close` (`research/bit-frame-closure-production/`), the historical pairwise `frameopt.py` digest remains pinned as **provenance** only. Live CI inputs no longer include that path; the adapter still loads the working-tree checker and replaces `close` for the basis engine.
