@@ -112,6 +112,8 @@ def main(argv=None):
     ap.add_argument('--cancel', action='store_true', help='actually cancel (default: report only)')
     ap.add_argument('--limit', type=int, default=0, help='cancel at most this many runs (0 = no limit)')
     args = ap.parse_args(argv)
+    if args.limit < 0:
+        ap.error('--limit must be nonnegative')
 
     runs = []
     for status in ('queued', 'in_progress', 'waiting', 'pending'):
@@ -141,13 +143,20 @@ def main(argv=None):
     for number, head in sorted(heads.items()):
         if head is None:
             print('pull request #%d: current head unknown; its runs are kept' % number)
+    failed = []
     for run in targets:
         print('%s run %d %s PR #%d head %s created %s (%s)' % (
             'CANCEL' if args.cancel else 'would cancel', run['id'], run['path'].rsplit('/', 1)[-1],
             identities[run['id']][1], run['head_sha'][:8], run['created_at'], run['status']))
         if args.cancel:
-            subprocess.run(['gh', 'api', '-X', 'POST', 'repos/%s/actions/runs/%d/cancel' % (args.repo, run['id'])],
-                           check=False, stdout=subprocess.DEVNULL)
+            result = subprocess.run(
+                ['gh', 'api', '-X', 'POST', 'repos/%s/actions/runs/%d/cancel' % (args.repo, run['id'])],
+                check=False, stdout=subprocess.DEVNULL)
+            if result.returncode:
+                failed.append(run['id'])
+    if failed:
+        print('Cancellation failed for run(s): ' + ', '.join(map(str, failed)), file=sys.stderr)
+        return 1
     return 0
 
 

@@ -247,11 +247,11 @@ def plan(manifest, event, changed=None, action=None, label=None, labels=(), diff
         mode, reason = 'full', 'full run requested'
     elif event in FULL_EVENTS:
         mode, reason = 'full', event + ' runs always verify everything'
-    elif event == 'pull_request' and action == 'labeled':
-        if label == full_label:
-            mode, reason = 'full', 'label ' + full_label + ' requests the full matrix'
-        else:
-            mode, reason = 'none', 'label event without ' + full_label + '; the regular run stands'
+    elif event == 'pull_request' and action == 'labeled' and label == full_label:
+        mode, reason = 'full', 'label ' + full_label + ' requests the full matrix'
+    # Other label events must follow the ordinary plan, including any existing
+    # full label. An empty successful run would publish the same summary check
+    # as a real verification run without establishing its result.
     elif full_label in labels:
         mode, reason = 'full', 'pull request carries ' + full_label
     elif diff_error:

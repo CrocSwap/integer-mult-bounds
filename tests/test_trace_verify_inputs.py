@@ -1,8 +1,10 @@
 """Recorded verification inputs must be parsed, classified and covered correctly."""
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -337,6 +339,53 @@ class Commands(unittest.TestCase):
                           'python3 -B scripts/replay_historical_check.py split-skip'])
         self.assertEqual(tracer.group_commands('ranked-pair-finite'),
                          ['make ranked-pair-verify UPSTREAM=build/ranked-pair-upstream'])
+
+
+class SavedRecordings(unittest.TestCase):
+    def recording(self):
+        return dict(group='clones', commands=tracer.group_commands('clones'),
+                    files=[], dirs=[], exists=[], probes=[], subtrees=[], tree=False,
+                    exit_code=0, recording_version=tracer.RECORDING_VERSION)
+
+    def recheck(self, recording):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'recording.json'
+            path.write_text(json.dumps(recording), encoding='utf-8')
+            return subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/trace_verify_inputs.py'),
+                                   '--group', 'clones', '--from-recording', str(path), '--check'],
+                                  cwd=ROOT, capture_output=True, text=True)
+
+    def test_successful_recording_can_be_rechecked(self):
+        result = self.recheck(self.recording())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('PASS_DECLARED_INPUTS_COVER_RECORDING group=clones', result.stdout)
+
+    def test_partial_recording_keeps_verification_failure(self):
+        recording = self.recording()
+        recording['exit_code'] = 7
+        result = self.recheck(recording)
+        self.assertEqual(result.returncode, 7, result.stderr)
+        self.assertIn('VERIFICATION_FAILED exit=7', result.stdout)
+        self.assertNotIn('PASS_DECLARED_INPUTS', result.stdout)
+
+    def test_wrong_group_old_schema_and_incomplete_evidence_reject(self):
+        mutations = [('group', 'community'), ('recording_version', tracer.RECORDING_VERSION - 1),
+                     ('recording_version', True), ('exit_code', False), ('tree', 'false'),
+                     ('files', 'Makefile'), ('probes', [None]), ('commands', [])]
+        for field, value in mutations:
+            with self.subTest(field=field, value=value):
+                recording = self.recording()
+                recording[field] = value
+                result = self.recheck(recording)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertNotIn('PASS_DECLARED_INPUTS', result.stdout)
+        for field in ('exit_code', 'dirs', 'subtrees'):
+            with self.subTest(missing=field):
+                recording = self.recording()
+                del recording[field]
+                result = self.recheck(recording)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertNotIn('PASS_DECLARED_INPUTS', result.stdout)
 
 
 if __name__ == '__main__':

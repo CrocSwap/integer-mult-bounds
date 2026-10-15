@@ -689,6 +689,28 @@ def load_manifest(path):
     return json.loads(Path(path).read_text(encoding='utf-8'))
 
 
+def load_recording(path, group):
+    """Reject incompatible or incomplete evidence before rechecking coverage."""
+    recording = json.loads(Path(path).read_text(encoding='utf-8'))
+    if not isinstance(recording, dict):
+        raise ValueError('Recording must be an object')
+    if recording.get('group') != group:
+        raise ValueError('Recording group does not match --group')
+    if type(recording.get('recording_version')) is not int or recording['recording_version'] != RECORDING_VERSION:
+        raise ValueError('Unsupported recording version; record the group again')
+    if type(recording.get('exit_code')) is not int:
+        raise ValueError('Recording needs an integer exit_code')
+    if type(recording.get('tree')) is not bool:
+        raise ValueError('Recording needs a boolean tree flag')
+    for field in ('commands', 'files', 'dirs', 'exists', 'probes', 'subtrees'):
+        values = recording.get(field)
+        if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+            raise ValueError('Recording needs a string list for ' + field)
+    if not recording['commands']:
+        raise ValueError('Recording needs at least one command')
+    return recording
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--group', required=True, help='verification group, e.g. community or ranked-pair-finite')
@@ -702,7 +724,11 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     if args.from_recording:
-        code, recording = 0, json.loads(args.from_recording.read_text(encoding='utf-8'))
+        try:
+            recording = load_recording(args.from_recording, args.group)
+        except (OSError, ValueError) as error:
+            ap.error(str(error))
+        code = recording['exit_code']
     else:
         code, recording = record(args.group, args.command or group_commands(args.group))
     if args.output:

@@ -9,8 +9,8 @@ list was removed or thinned. What changed is *when* each job runs: a cheap
 
 ## Why
 
-Measured with the GitHub API on 2026-10-13/14 (details in the
-[contribution PR](https://github.com/CrocSwap/integer-mult-bounds/pulls)):
+Observed with the GitHub API on 2026-10-13/14; the downloaded timings are
+local investigation evidence, not a retained performance certificate:
 
 - The repository had about 4,700 queued runs and 20 to 22 hours of queue
   wait, growing since 2026-10-13 06:00 UTC.
@@ -22,12 +22,13 @@ Measured with the GitHub API on 2026-10-13/14 (details in the
   52 jobs and about 207 runner-minutes per run, 925 runs a day.
 - A verify job spends 3.6 of its 3.9 minutes inside `make verify-<group>`;
   checkout and interpreter setup are 0.3 minutes. Merging jobs or caching
-  setup cannot help; the verification work itself is the cost.
+  setup addresses only a small part of that cost.
 - 23 of 30 recently updated pull requests only added a new
   `research/<package>/` directory. Only two groups depend on the whole
   tree (`clones` copies and hashes every tracked file; `tests` walks every
-  research package), so the other 50 jobs of those runs re-verified a tree
-  the pull request did not change.
+  research package). Most remaining jobs re-verified inputs the pull request
+  did not change. The historical formal job's complete dependency recording
+  also allows selection without losing its external source checks.
 - 25% of the queued runs had already been superseded by a newer push.
 
 ## What runs
@@ -38,8 +39,10 @@ Measured with the GitHub API on 2026-10-13/14 (details in the
    it diffs `before..after`. Each changed path is classified with
    [.github/verify-groups.json](../.github/verify-groups.json):
    - a path in the manifest's `all` list (Makefile, `scripts/**`, the
-     workflow, the manifest, and any `.gitattributes`, `.gitignore` or
-     `.gitmodules` at any depth) runs everything;
+     workflow, the manifest, and the root `.gitattributes` or `.gitignore`)
+     runs everything; `.gitmodules` at any depth also runs everything;
+   - a nested `.gitattributes` or `.gitignore` selects every group whose
+     declared inputs overlap its affected subtree;
    - a path matching a group's declared inputs selects that group, on every
      Python version;
    - a path in `skip_safe` (research packages, documentation prose, other
@@ -52,12 +55,12 @@ Measured with the GitHub API on 2026-10-13/14 (details in the
    push, missing parent), any change to a symbolic link, any tracked path
    that `.gitignore` would ignore, and any entry added to or removed from
    the repository root run everything. A group declared `**` depends on
-   the whole tree and runs on every change (the `clones` group copies and
-   hashes every tracked file; the `tests` group walks every research
-   package), but a whole-tree match never counts as understanding a path:
+   the whole tree and runs on every change (`clones` and `tests`), but a whole-tree
+   match never counts as understanding a path:
    an otherwise undeclared path still runs everything.
-2. **Verification.** Selected groups run exactly the commands they ran
-   before, under `strace`, and the step also fails if a group read an input
+2. **Verification.** Selected groups retain their checks, using the
+   authenticated historical adapters described below where source pins
+   require them. They run under `strace`, and the step also fails if a group read an input
    its declaration does not cover. Full runs are the same 48 Python
    combinations, the finite replay, the three formal packages and the four
    package verifiers as before.
@@ -66,11 +69,13 @@ Measured with the GitHub API on 2026-10-13/14 (details in the
    failed or was cancelled; only jobs the planner skipped on purpose may be
    skipped.
 
-## Expected effect
+## Estimated effect
 
-Measured by replaying the planner over the changed-file lists of the 60
-most recently updated open pull requests (2026-10-15) with the recorded
-manifest, using the Oct 14 per-job durations:
+Estimated by replaying the planner over the changed-file lists of the 60
+most recently updated open pull requests (2026-10-15) with the audited
+manifest, using the Oct 14 per-job durations. These are workload estimates,
+not measured hosted durations of the new workflow; they exclude added tracing,
+historical-copy and summary-job overhead:
 
 | | Runner-minutes per pull-request sync |
 |---|---|
@@ -80,13 +85,10 @@ manifest, using the Oct 14 per-job durations:
 
 51 of the 60 pull requests select only the groups they reach; 9 run
 everything, 6 of them because they edit the root `.gitattributes` and 3
-because they change files under `scripts/`. At the Oct 14 arrival rate
-(792 syncs and 133 main pushes a day) that is about 55,000 runner-minutes
-a day including the scheduled full runs, against 86,400 available at 60
-concurrent jobs. If the concurrency available to the repository stays at
-the 30 to 38 jobs observed on the evening of Oct 14, the queue still
-clears but with little headroom; that capacity question is outside this
-change.
+because they change files under `scripts/`. The mean estimated workload is
+27% of the old workload. Actual queue recovery depends on runner capacity,
+new arrivals, trace overhead and the historical replay copies. No queue-drain
+time or hosted speedup is established by this model.
 
 ## How the declared inputs are known to be complete
 
@@ -126,16 +128,30 @@ four times a day. The Lean builds of the formal packages run under the
 tracer too; their project trees are declared whole because Lake reads them
 densely.
 
+Rechecking a saved recording with `--from-recording` requires its matching
+group, current recording schema and explicit verification status. A failed
+or incomplete recording cannot establish successful input coverage. Reuse
+checks the saved observations; it does not rerun the verifier.
+
 Regenerate a group's patterns locally with:
 
 ```sh
 python3 -B scripts/trace_verify_inputs.py --group community --output build/community.json --check --suggest
 ```
 
-The initial declarations were recorded locally on Python 3.14 (the
-`gaussian` and `matrix` formal packages with their real Make targets; the
-`historical` package's Python audits, with `formal/**` declared whole since
-its Mathlib-backed build was not run locally). The first hosted runs on
+The initial declarations were recorded locally on Python 3.14, including the
+`gaussian` and `matrix` formal packages with their real Make targets. The
+initial `historical` recording stopped before its source audits because
+compiled Mathlib dependencies were unavailable. Those audits read notes,
+certificates and upstream paper sources outside `formal/`; a declaration of
+`formal/**` alone was insufficient. The pre-push audit fetched the pinned
+Mathlib cache and successfully traced the complete `make formal-historical-verify`
+target, including ranked-pair and machine-transfer compilation. Its 145 files,
+43 directory listings, 3 directory-existence checks and 86 probes are covered
+by 21 declared patterns. All three Lean project source trees stay declared
+whole; external notes, certificates and upstream sections are explicit inputs.
+The alternative `research/formal/` project discovery path is covered too.
+No whole-tree Git access was observed in that complete recording. The first hosted runs on
 3.11 and 3.13 are the check that nothing version-specific was missed; an
 undeclared input fails that job with the exact pattern to add.
 
@@ -146,6 +162,18 @@ repository. Add the `ci:full-verify` label instead: the label event starts a
 full run on the pull request's merge commit, with its own concurrency group
 so it is not cancelled by later pushes, and every later push to a labelled
 pull request also runs everything. Remove and re-add the label to re-run.
+Other label events follow the ordinary change-based plan and honor any existing
+full-verification label; they cannot publish an empty successful replacement
+for a real verification run.
+
+## Required checks
+
+The stable gate is `verify-summary`. On 2026-10-15 the GitHub branch API reported
+`main` unprotected with no required status checks, and the repository ruleset
+list was empty. If maintainers enable required checks, use this gate rather
+than individual matrix or retired package-workflow check names. Selected-out
+matrix combinations do not publish those former check names. This change does
+not alter repository protection settings.
 
 ## Pushes and the schedule
 
@@ -170,6 +198,8 @@ superseded. It never touches pushes, scheduled or manual runs, runs that
 share the newest head commit (re-runs, label-requested runs) or runs whose
 pull request it cannot identify unambiguously, and it inspects one
 created-at window per dispatch because the API lists at most 1000 runs.
+Cancellation API failures make the maintenance workflow fail and identify the
+affected run IDs; a dry run never sends cancellation requests.
 
 ## Trust boundary
 
@@ -219,6 +249,7 @@ Local validation uses Linux, Python 3.14.4, strace 6.x and actionlint 1.7.12:
 actionlint .github/workflows/*.yml
 python3 -B -m unittest discover -s tests -p 'test_plan_verify_groups.py' -v
 python3 -B -m unittest discover -s tests -p 'test_trace_verify_inputs.py' -v
+python3 -B -m unittest discover -s tests -p 'test_cancel_superseded_runs.py' -v
 python3 -B scripts/check_selected_ci_inputs.py
 python3 -B -m unittest discover -s tests -p test_selected_ci_inputs.py -v
 git diff --check
@@ -296,3 +327,47 @@ checks. Both traced input-coverage audits pass, tracked artifacts remain
 unchanged, and temporary historical trees are removed. The recordings and logs
 under `build/` are local-only evidence; hosted execution and Python 3.11/3.13
 execution of this repair are not claimed.
+
+The pre-push audit also ran the complete historical formal target on Linux
+x86_64 / Python 3.14.4, Lean 4.21.0 and the pinned Mathlib revision
+`308445d7985027f538e281e18df29ca16ede2ba3`:
+
+```sh
+(cd formal/lean && lake exe cache get)
+python3 -B scripts/trace_verify_inputs.py --group formal-historical --command 'make formal-historical-verify' --check --output build/verify-trace/push-audit-formal-historical.json
+python3 -B scripts/trace_verify_inputs.py --group formal-historical --from-recording build/verify-trace/push-audit-formal-historical.json --check
+```
+
+The run passed 45 ranked-pair theorem audits, 298 machine-transfer declaration
+audits, the main Lean build, 386 project axiom audits, source/literal consistency
+checks and the paired-circuit reconstruction. The narrowed manifest covers the
+successful complete recording. These are the existing scoped formal checks,
+not a formal verification of the full multiplication theorem. Tracked artifacts
+remain unchanged; the log and recording under `build/` are local-only evidence.
+
+The final staged audit fixes passed the complete test group again, including
+all **130 test modules**, all 20 patch-application checks and the traced
+input-coverage audit:
+
+```sh
+python3 -B scripts/trace_verify_inputs.py --group tests --check --output build/verify-trace/push-audit-tests.json
+git diff --exit-code
+```
+
+The added module tests cancellation boundaries without making live API writes.
+Regression controls also cover unrelated label events, failed/incompatible
+saved recordings, all 17 formal source references and both nearer Lean project
+discovery paths. Independent review found no remaining input gap in the final
+formal declaration. Scratch replay trees were removed and tracked artifacts
+remained unchanged. Hosted execution and other Python versions remain unrun.
+
+## Attribution
+
+This CI maintenance work is by Sagar Thakrar with substantial Claude Fable 5.1
+and OpenAI Codex assistance, including independent pre-push code reviews.
+It builds on Dennis's authenticated historical replay adapter and retains the
+source credits listed in
+[historical-ci-inputs/README.md](../scripts/historical-ci-inputs/README.md).
+The optimized circuit implementations and their source-bound controls remain
+Wentao Li's contributions. The earlier optional speedups listed above remain
+opt-in. All new maintenance code is under the repository's Apache-2.0 license.

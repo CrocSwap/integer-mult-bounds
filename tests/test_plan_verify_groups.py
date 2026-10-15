@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import runpy
 import subprocess
 import tempfile
 import unittest
@@ -257,8 +258,23 @@ class FullRunTriggers(unittest.TestCase):
 
     def test_full_label(self):
         self.assertEqual(run_plan([], action='labeled', label='ci:full-verify')['mode'], 'full')
-        self.assertEqual(run_plan([], action='labeled', label='needs-review')['mode'], 'none')
         self.assertEqual(run_plan(['A:research/x/y'], labels=['ci:full-verify'])['mode'], 'full')
+
+    def test_unrelated_label_preserves_existing_full_request(self):
+        result = run_plan(['M:research/beta-package/words.json'], action='labeled',
+                          label='needs-review', labels=['ci:full-verify', 'needs-review'])
+        self.assertEqual(result['mode'], 'full')
+        self.assertEqual(result['groups'], ALL_GROUPS)
+
+    def test_unrelated_label_verifies_the_same_changes_as_a_regular_run(self):
+        for changed, options in ((['M:research/beta-package/words.json'], {}),
+                                 (['M:scripts/exclusion_circuit.py'], {}),
+                                 (None, {'diff_error': 'merge parent unavailable'})):
+            with self.subTest(changed=changed, options=options):
+                expected = run_plan(changed, **options)
+                result = run_plan(changed, action='labeled', label='needs-review',
+                                  labels=['needs-review'], **options)
+                self.assertEqual(result, expected)
 
     def test_unknown_event_runs_everything(self):
         self.assertEqual(run_plan(['A:research/x/y'], event='merge_group')['mode'], 'full')
@@ -328,6 +344,38 @@ class Outputs(unittest.TestCase):
 
 class RepositoryManifest(unittest.TestCase):
     """The committed manifest must match the Makefile's CI groups and validate."""
+    def test_new_nearer_lean_project_selects_historical_formal(self):
+        manifest = planner.load_manifest(ROOT / '.github/verify-groups.json')
+        base_dirs = {'formal', 'formal/lean', 'research', 'research/ranked-pair-verification',
+                     'research/ranked-pair-verification/lean'}
+        # ranked-pair's default_project probes these nearer ancestors before
+        # formal/lean. Creating a toolchain file can change the project it uses.
+        for directory in ('research/formal/lean', 'research/ranked-pair-verification/formal/lean'):
+            head_dirs = base_dirs | {directory, directory.rsplit('/', 1)[0]}
+            for event in ('pull_request', 'push'):
+                with self.subTest(directory=directory, event=event):
+                    result = planner.plan(manifest, event, ['A:' + directory + '/lean-toolchain'],
+                                          base_dirs=base_dirs, head_dirs=head_dirs)
+                    self.assertEqual(result['mode'], 'selected', result['reason'])
+                    self.assertIn('formal-historical', result['groups'])
+                    self.assertIn({'package': 'historical'}, result['formal'])
+
+    def test_historical_formal_follows_its_external_source_references(self):
+        manifest = planner.load_manifest(ROOT / '.github/verify-groups.json')
+        sources = runpy.run_path(str(ROOT / 'formal/lean/sources.py'))
+        # The source audit runs after compilation and reads notes, certificate
+        # values and upstream paper lines outside the formal project tree.
+        paths = {ref.path for row in sources['ROWS'] for ref in row[3]}
+        self.assertIn('notes/compact-control-note.tex', paths)
+        self.assertIn('certificates/compact-control-layer.json', paths)
+        self.assertIn('upstream/build/sections/03-motifs.tex', paths)
+        for event in ('pull_request', 'push'):
+            for path in sorted(paths):
+                with self.subTest(event=event, path=path):
+                    result = planner.plan(manifest, event, ['M:' + path])
+                    self.assertIn('formal-historical', result['groups'], result['reason'])
+                    self.assertIn({'package': 'historical'}, result['formal'])
+
     def test_manifest_loads_and_groups_match_makefile(self):
         manifest = planner.load_manifest(ROOT / '.github/verify-groups.json')
         self.assertEqual(manifest['python'], ['3.11', '3.13', '3.14'])
