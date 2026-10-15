@@ -47,14 +47,57 @@ def rank(rows):
 
 bits = lambda m: [i for i in range(V) if m >> i & 1]
 _close = {}
+# One-basis closure (Ross Richardson #1666 / research/bit-frame-closure-basis):
+# build one echelon basis of span(S) and test remaining live lines for membership.
+# Equivalent to the historical per-candidate rank(S ∪ {L_i}) == rank(S) predicate.
+
+
+def _echelon(rows):
+    """Increasing-pivot, unit-pivot basis over the fixed prime field."""
+    basis, width = [], len(L[0])
+    for source in rows:
+        row = [x % P for x in source]
+        for pivot, vector in basis:
+            factor = row[pivot]
+            if factor:
+                for j in range(pivot, width):
+                    row[j] = (row[j] - factor * vector[j]) % P
+        pivot = next((j for j, x in enumerate(row) if x), None)
+        if pivot is not None:
+            inv = pow(row[pivot], P - 2, P)
+            row = tuple(x * inv % P for x in row)
+            basis.append((pivot, row))
+            basis.sort(key=lambda item: item[0])
+    return basis
+
+
+def _in_span(source, basis):
+    row = [x % P for x in source]
+    for pivot, vector in basis:
+        factor = row[pivot]
+        if factor:
+            for j in range(pivot, len(row)):
+                row[j] = (row[j] - factor * vector[j]) % P
+    return not any(row)
 
 
 def close(m):
     """(closed line set spanned by mask m, its rank)"""
     if m not in _close:
-        sel = [L[i] for i in bits(m)]
-        rk = rank(sel) if sel else 0
-        _close[m] = (sum(1 << i for i in range(V) if m >> i & 1 or (sel and rank(sel + [L[i]]) == rk)), rk)
+        if not m:
+            # Preserve the historical empty-selection convention.
+            _close[m] = (0, 0)
+        else:
+            basis = _echelon(L[i] for i in bits(m))
+            rk = len(basis)
+            if rk == len(L[0]):
+                closed = (1 << V) - 1
+            else:
+                closed = m
+                for i in range(V):
+                    if not (m >> i & 1) and _in_span(L[i], basis):
+                        closed |= 1 << i
+            _close[m] = (closed, rk)
     return _close[m]
 
 
