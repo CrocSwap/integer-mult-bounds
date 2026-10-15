@@ -1,0 +1,51 @@
+{
+  "scope": "Local native Windows inventory-guard audit; not a full supplier replay",
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "environment": "Process-local TEMP and TMP point to a writable workspace temporary directory using the Windows extended-length prefix. No system settings changed.",
+  "commands": [
+    {
+      "command": "python -B scripts/research_baseline.py",
+      "result": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "note": "Invoked with an extended-length Windows script path; 1579 selected package files matched. The ordinary long path initially missed overlong files."
+    },
+    {
+      "command": "python -B research/selected-final-stage-portability/verify.py --work FRESH_DIRECTORY",
+      "result": "EXPECTED_PLATFORM_FAILURE",
+      "diagnostic": "AssertionError: Submission file inventory or hash changed",
+      "note": "Unchanged retained caller and stage; before output creation in the stage."
+    },
+    {
+      "command": "python -B research/selected1094-windows-manifest-audit/verify.py --write --report REPORT.json",
+      "result": "PASS_SELECTED1094_WINDOWS_MANIFEST_AUDIT",
+      "controls": 391
+    },
+    {
+      "command": "python -B scripts/research_package.py --package research/selected1094-windows-manifest-audit --check-only",
+      "result": "PASS_PACKAGE_METADATA_AND_PINS"
+    },
+    {
+      "command": "python -B scripts/research_package.py --package research/selected1094-windows-manifest-audit",
+      "result": "PASS_REGISTERED_RESEARCH_PACKAGE",
+      "child_flags": [
+        "-I",
+        "-O",
+        "-B"
+      ],
+      "controls": 391
+    }
+  ],
+  "metadata_plus_registered_replay_elapsed_seconds": 42.8903374,
+  "native_entry_point": "unmodified entry point rejects at submission guard before output creation",
+  "initial_audit_harness_failure": "Sandbox default temporary directory denied child-directory access; process-local writable TEMP/TMP resolved the harness setup. Not a repository or mathematical finding.",
+  "not_run": [
+    "complete final-stage supplier",
+    "cold ancestry",
+    "Linux execution",
+    "macOS execution",
+    "hosted CI",
+    "formal mathematical proof"
+  ],
+  "assistance": "Substantial OpenAI Codex assistance; self-reviewed only"
+}
