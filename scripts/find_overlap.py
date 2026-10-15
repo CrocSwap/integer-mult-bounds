@@ -11,7 +11,7 @@ import fnmatch
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 import sys
 import tempfile
@@ -297,7 +297,12 @@ def main():
         if not cards:
             ap.error("unknown task")
         terms.extend([args.task, *cards[0].get("overlap_terms", [])])
-        terms.extend(Path(p).parent.name for p in cards[0]["starting_points"] if p.startswith("research/"))
+        # Catalogue paths are repository-relative POSIX paths. Nested sources
+        # identify their package, not generic directories such as evidence/code.
+        for point in cards[0]["starting_points"]:
+            parts = PurePosixPath(point).parts
+            if len(parts) >= 3 and parts[0] == "research":
+                terms.append(parts[1])
     if not any(t.strip() for t in terms) and not args.path:
         ap.error("provide terms, --task or --path")
     patterns = [p.strip() for p in args.path if p.strip()]

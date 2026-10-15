@@ -710,6 +710,24 @@ The following contributions are retained at their original heads with source not
 
 The six pending contributions are credited in the pilot ledger; pending review is not rejection. Predecessor attribution, including R420, K492, PR628 and PR673 lineage, remains in each package.
 
+## Efficient twelfth 100-PR round: #654–#2257
+
+Original contributor commits and predecessor notices are preserved. These are scoped research and verification contributions, with no selected κ change. See the [review and exact-head evidence](docs/research/community-efficient1200-review.md).
+
+- **jackmgaller** — [#1939](https://github.com/CrocSwap/integer-mult-bounds/pull/1939).
+- **Tairitsu-Aya** — [#2136](https://github.com/CrocSwap/integer-mult-bounds/pull/2136), [#2156](https://github.com/CrocSwap/integer-mult-bounds/pull/2156).
+- **1337isnot1337** — [#2137](https://github.com/CrocSwap/integer-mult-bounds/pull/2137), [#2146](https://github.com/CrocSwap/integer-mult-bounds/pull/2146), [#2147](https://github.com/CrocSwap/integer-mult-bounds/pull/2147), [#2151](https://github.com/CrocSwap/integer-mult-bounds/pull/2151), [#2186](https://github.com/CrocSwap/integer-mult-bounds/pull/2186), [#2187](https://github.com/CrocSwap/integer-mult-bounds/pull/2187), [#2191](https://github.com/CrocSwap/integer-mult-bounds/pull/2191).
+- **jmbarrancoml** — [#2139](https://github.com/CrocSwap/integer-mult-bounds/pull/2139), [#2157](https://github.com/CrocSwap/integer-mult-bounds/pull/2157), [#2171](https://github.com/CrocSwap/integer-mult-bounds/pull/2171).
+- **petalas** — [#2140](https://github.com/CrocSwap/integer-mult-bounds/pull/2140), [#2148](https://github.com/CrocSwap/integer-mult-bounds/pull/2148), [#2175](https://github.com/CrocSwap/integer-mult-bounds/pull/2175), [#2181](https://github.com/CrocSwap/integer-mult-bounds/pull/2181).
+- **navinor** — [#2145](https://github.com/CrocSwap/integer-mult-bounds/pull/2145).
+- **VictorLiwentao** — [#2150](https://github.com/CrocSwap/integer-mult-bounds/pull/2150).
+- **commdata2338** — [#2153](https://github.com/CrocSwap/integer-mult-bounds/pull/2153), [#2154](https://github.com/CrocSwap/integer-mult-bounds/pull/2154), [#2172](https://github.com/CrocSwap/integer-mult-bounds/pull/2172), [#2174](https://github.com/CrocSwap/integer-mult-bounds/pull/2174), [#2178](https://github.com/CrocSwap/integer-mult-bounds/pull/2178), [#2188](https://github.com/CrocSwap/integer-mult-bounds/pull/2188), [#2189](https://github.com/CrocSwap/integer-mult-bounds/pull/2189), [#2190](https://github.com/CrocSwap/integer-mult-bounds/pull/2190).
+- **RossRichardson** — [#2159](https://github.com/CrocSwap/integer-mult-bounds/pull/2159), [#2176](https://github.com/CrocSwap/integer-mult-bounds/pull/2176).
+- **philippeVV** — [#2169](https://github.com/CrocSwap/integer-mult-bounds/pull/2169), [#2177](https://github.com/CrocSwap/integer-mult-bounds/pull/2177).
+- **conorholds** — [#2182](https://github.com/CrocSwap/integer-mult-bounds/pull/2182).
+
+Pending contributors and their obligations are listed in the review. A hold is not a rejection.
+
 ## Efficient eleventh 100-PR round: #620–#2135
 
 Original contributor commits and predecessor notices are preserved. These are scoped research and verification contributions, with no selected κ change. See the [review and exact-head evidence](docs/research/community-efficient1100-review.md).

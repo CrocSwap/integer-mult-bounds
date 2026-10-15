@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "number": 2163,
+  "title": "Independent max-flow audit of the P104 rank-eight cut family (no new \u03ba)",
+  "author": {
+    "id": "U_kgDODNTu_Q",
+    "is_bot": false,
+    "login": "AgoraPluribusMichael",
+    "name": "Michael Yee"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2163",
+  "head": "9f6e1f2783aef0c52bb3f26f587a918a8be32fa9",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b5ea56e0a5ac4552166253b1fa4be0753bb38c30",
+  "files": [
+    {
+      "path": "research/p104-cut-maxflow-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b2a14214d96e136423e7b324e79b1b9fc0c75426"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-cut-maxflow-audit/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b328532d6e06bccc16245a06e50cb17950808591"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-cut-maxflow-audit/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a9ff7abd3481a881900e13e324cbb41afee19b3e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-cut-maxflow-audit/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d64945a7c95b137b9899fe2ab24800860b475840"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-cut-maxflow-audit/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "702422d949fc65d5fd96ae2444895c253ebaa645"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-cut-maxflow-audit/test_verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f9a0725027d40516e4b5e75038e94ec08190a519"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-cut-maxflow-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0e9024421b776ef9de7faef9eee64e99f2e9b82c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/p104-cut-maxflow-audit": 7
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "## Change and mathematical scope\n\nThis PR adds `research/p104-cut-maxflow-audit/`, an **independent audit** (not a construction) of the finite premises behind the P104 side-correction obstructions #2082, #2090, #2113 and #2127, plus the budget line summarized in #2133. **Every checked premise reproduces exactly. No discrepancy found.** There is no new \u03ba, supplier, scalar saving or selected-frontier change.\n\nWhy this matters: #2133 concludes that the interleaved and terminal `I-G/2` routes are closed within their premises. It relies on five cut PRs that it did not replay (\"I did not replay any cited package\"). Each of those PRs was checked only by its own author's tooling.\n\n**Method.**\n\n- **Input.** The only input is the hash-pinned PR1972 witness `research/p104-native-channel/inputs/LOWRANK-WITNESS.json` (`0f541bef\u2026580e`), authenticated before use. No predecessor checker was read, imported or executed. Author numbers were compared only after the computation, and only from PR descriptions.\n- **Frames.** Frames are canonicalized by GF(2) reduced echelon form. All 4058 events are legality-checked: common chart for `add`/`copy`, nested transports with the stated rank, and private lifetimes.\n- **Frozen chronology (#2082/#2090 model).** A time-expanded vertex-capacitated network: one array per register per layer, and one hub per equal-frame class, which encodes complete common-chart mixing exactly. Mixing after the final event is included. The max-flow is **certified by weak duality**: an explicit feasible integral flow plus an explicit separating vertex cut of the same size. So the flow code itself need not be trusted.\n- **#2113 model.** The union of all interleavings of the fixed frame paths, via BFS.\n- **#2127 model.** The collapsed frame graph.\n- **Scalars.** An exact `Fraction` replay of all 280 input columns.\n\n| Claim | Author value | This audit |\n| --- | --- | --- |\n| Events / cuts / frames / intervals | 4058 / 4059 / 444 / 1698 | identical |\n| Equal-frame pairs over all cuts | 106,254,468 (#2090) | 106,254,468 |\n| Cross-register equal-frame interval pairs | 71,224 (#2113) | 71,224 |\n| Frozen-chronology X\u2192Y capacity | 8 arrays (#2082, #2090) | **max-flow = min vertex cut = 8** |\n| Q0..Q7 at cut 2429 | separator; cones 104X+32G+8Q / 104Y+32D+8Q (#2090) | identical; each query alone reopens; next event is the first D transport |\n| Union graph without the 8 descents | 0 targets; each descent reopens 52 (#2113) | 0; 52 each; intact 104 |\n| Frame graph without descents | 222 / 222 (#2127) | 222 / 222, disjoint, covers all 444 |\n| X\u2192Y block | `G/2`, rank 8; minor det 1/256 (#2090) | rank 8, symmetric, unit diagonal, `M\u00b2=13M`, minor 1/256 |\n| Residual | `(I-G/2)^-1 = I-G/24`; 48 off-diagonal nonzeros per row (#2082, #2083) | `(I-M)(I-M/12)=I`; 48 in every row |\n| Upward / downward transports | 1402 / 8 (#2136) | 1402 / 8, all private rank-7 descents |\n\n**New details:**\n\n- **Extremal minimum cuts.**\n  - Source side: Q7\u2026Q0 at cuts 1570\u20131597.\n  - Target side: C#0\u2026C#7 just after their descents (cuts 2464\u20132524).\n\n  So #2090's query cut and #2113's descent cut are both minimum, and they bracket every minimum cut of the frozen schedule.\n- **Premise sensitivity.** Suppose nested charts (`A \u2282 B`), not only equal charts, may mix at a single cut. At cut 2429 the max-flow then rises from 8 to the full **104** (registered command). A local run gives the same at cuts 1570, 2000 and 2470. The schedule has no combinatorial bottleneck beyond the equal-chart rule, so the obstruction is entirely the price or crediting of cross-chart transfer.\n- **Source-bound budget line.** #2133's moment fractions used constants copied from PR bodies. Here they come from the witness: boundary coverage `2312` from frame dimensions, descent mass `56`, idle coverage `39096`. That reproduces `7551/7592`, `7659/7592` (+96), `1917/1898` (+104), `7785/7592` (+208) and slack `328/9`.\n- **Private discards.** All eight private discards drop nonzero values. This is the inherited private-copy semantics, stated explicitly for reviewers.\n\n**Remaining obligations (not established here):**\n\n- The reduction from \"rank \u2264 (8+k)d with k added cross-frame transports\" to \"\u2265 96 transports\" (#2082, #2127). Its finite premise is checked; the reduction is the authors' written argument.\n- #2136's nested-refinement model, and #2148, which builds on it. Only #2136's interval counts are reproduced.\n- #2083's terminal argument. Only its distinct-hyperplane and row-support premises are checked.\n- The conditional coverage contract `s=N=9, m=73, W=832`, native Clifford/phase recipes, hosting, precision, all-size lifting, and the selected cold replay. This is a finite audit of one pinned witness, not a universal P104 barrier.\n\n## Task and overlap\n\n- **Selection.** `choose_research_task.py` seed `13c7ea26593c41082f85327d2b361d6b` gave track `independent-verification`, card `independent-moment` (scope_key `c6f2494b197df3bc3591`). Scope is **refined** to the P104 cut implication. The card asks for an independent check of a claim lacking one, and this is the central unreplayed implication on the revision-4 top card. The reason is in `TASK.json`.\n- **Canonical thread.** [Discussion #2164](https://github.com/CrocSwap/integer-mult-bounds/discussions/2164), status DONE. There is also a short pointer in [#1166](https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18934464). No advance claim was posted, because Discussion access was unavailable until after the work was done.\n- **Base.** Canonical main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4, re-fetched 2026-10-14 21:23Z with no change.\n- **Compared heads** (all unchanged at 21:13Z): #2082 `60f4e337`, #2083 `7231ab97`, #2090 `dff116ef`, #2113 `fa1a45f9`, #2127 `befebf0f`, #2133 `a79f0f91`, #2136 `9b8689e0`.\n- **Overlap.** `scripts/find_overlap.py --refresh` at 21:23\u201321:26Z covered 410 open PRs and 834 Discussion records, with complete pagination and no warnings.\n  - Max-flow/min-cut/Menger terms found no P104 cut audit.\n  - The `p104-side-correction` card terms found no third-party replay of #2082/#2090/#2113/#2127.\n  - #2148 (escape pricing on #2136's separator) and #2152 (a complete forward word) appeared during the session. They are complementary, and the README notes them.\n\n  This is not a novelty certificate.\n\n## Validation\n\n```sh\npython3 -I -B research/p104-cut-maxflow-audit/verify.py                              # ~30 s\npython3 -I -B research/p104-cut-maxflow-audit/verify.py --premise-sensitivity 2429  # ~50 s\npython3 -I -B research/p104-cut-maxflow-audit/test_verify.py                        # 9 tests\npython3.12 scripts/research_package.py --package research/p104-cut-maxflow-audit\n```\n\n**Run locally on Windows 11:**\n\n- Registered replay on CPython 3.12.7: `PASS_REGISTERED_RESEARCH_PACKAGE research/p104-cut-maxflow-audit outcome=completed`, 3 min 35 s for all three commands.\n- `verify.py` also passes on CPython 3.14.6. Metadata/pins: PASS. Workflow tests `test_research_*.py`: 65 OK (3 skipped).\n\n**Failure controls:**\n\n- In-verifier: one added cross-frame contact gives 9; nested mixing at one cut gives at least 9; deleting one private lifetime gives 7; max-flow engine fixtures pass.\n- `test_verify.py` rejects modified source bytes, a wrong transport rank, an add outside a common chart, a non-nested transport, scalar corruption with frames still legal, a corrupted receipt and an overwrite attempt. An equivalent frame-basis presentation reproduces the identical receipt.\n\n**Proof versus finite checks.** The rank bound follows from the written cut-factorization argument. The code checks its finite premise on this witness and certifies optimality by duality.\n\n**Not run:** hosted CI, `make frontier1094-verify`, native Clifford/phase checks.\n\n## Credit\n\nThe audited results belong to David Arias (#2082), Adam Gall (#2090, #2083, #1940), Jeremy Diviney (#2113), Ross Richardson (#2127), Tairitsu-Aya (#2136) and Aaron Wang/navinor (#2133). The channel is due to Rohan Arun (#1972), and its native realization to Chafik Boukhalfa (#1991). Their geometry and coverage lineage is credited in those packages. Prepared for Michael Yee with substantial Claude (Anthropic) assistance in method design, implementation, verification and prose. There has been no independent human review. Apache-2.0.\n\n## Open next questions\n\nThese are in the README and `TASK.json`:\n\n1. **Cheapest legal single-cut exchange.** Find the cheapest legal single-cut exchange that the nested relaxation exposes. That is the bill a changed coverage interface (#2133 route 2) must credit. First step: a min-cost flow on the layer-701 nested-frame graph.\n2. **The \"+1 array per added transport\" step.** Machine-check the reduction behind the 96-transport floors.\n3. **#2136's exact capacity.** Find the exact capacity of the nested-refinement model; only the bound \u2264 56 is claimed.\n\n## Workflow feedback (optional)\n\n- **Checkout on Windows.** Checkout under a long base path fails without `core.longpaths=true`. The full tree is about 2.1 GB, of which `research/` is 2.06 GB. A non-cone sparse checkout worked well: everything outside `research/`, plus `research/*/README.md` and `TASK.json`, plus the needed packages. A note in CONTRIBUTING would save time.\n- **Undocumented tool requirements.** `scripts/research_package.py` needs Git \u2265 2.43 (`cat-file -z`), and `find_overlap.py` needs an authenticated `gh`. Neither is mentioned in the package guide.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_01A2DF8QgsTwrE4t3793qQUx\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "47a0a61c9a6bab476e92aa5970586d644a0367e7431e24043ca0a617592c96be"
+}
