@@ -6,6 +6,11 @@ previously validated E8 label/frame calculation for exactly matching inputs.
 Every word still receives the predecessor's full scalar, frame-path, dirty
 restoration and H1–H5/interface checks.
 
+**Status note:** production `research/e8-bit-r420/code/mutants.py` now ships the
+same geometry reuse (`research/r420-geometry-cache-production/`). This package
+remains the historical opt-in `cached_xcheck.py` adapter; its pairwise-era
+`mutants.py` digest is provenance only.
+
 On macOS arm64 / Python 3.12.3, one sequential, same-input A/B took
 **8.239 seconds → 1.273 seconds (6.47× faster, 84.5% less wall time)**.
 Both runs started separate processes with empty application caches. The original

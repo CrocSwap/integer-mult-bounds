@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "research/e8-bit-r420/code/mutants.py",
+    "research/e8-bit-r420/code/xcheck.py",
+    "research/e8-bit-r420/data/bitE8mut-r420.json.gz",
+    "research/e8-bit-r420/MANIFEST.sha256",
+    "research/e8-bit-r420/verify.sh",
+    "research/r420-geometry-cache/cached_xcheck.py",
+    "research/r420-geometry-cache-production/baseline.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 600,
+      "checks": "Exact baseline copy of the base-commit mutants.py; identical mutation stdout and JSON receipts; MANIFEST binds production digest; temp-copy stale-full foil rejection; duplicate JSON-key check; read-only default."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 600,
+      "checks": "Same package require() gates under -O; mutants/xcheck children still launch assertion-enabled via -I -B without PYTHONOPTIMIZE."
+    }
+  ]
+}
