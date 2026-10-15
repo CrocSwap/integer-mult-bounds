@@ -1,0 +1,50 @@
+name: Cancel superseded pull-request runs
+
+# Maintenance, run by hand. Runs queued before a workflow gained its
+# concurrency group keep their old definition and are never cancelled
+# automatically. This cancels queued or running pull-request runs that a
+# newer commit of the same pull request has superseded (same workflow, same
+# pull request, different head commit). Pushes, scheduled and manual runs,
+# runs sharing the newest head commit, and runs whose pull request cannot
+# be identified unambiguously are never touched. No pull-request code is
+# checked out: the script comes from the branch this workflow runs on.
+on:
+  workflow_dispatch:
+    inputs:
+      cancel:
+        description: Set to "yes" to cancel; anything else only reports.
+        default: 'no'
+        required: true
+      limit:
+        description: Cancel at most this many runs (0 = no limit).
+        default: '0'
+        required: true
+      created:
+        description: Created-at window to inspect (the API lists at most the newest 1000 runs per query), e.g. 2026-10-14T00:00:00Z..2026-10-14T06:00:00Z
+        required: true
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: ci-cancel-superseded
+  cancel-in-progress: false
+
+jobs:
+  cancel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Report or cancel superseded runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANCEL: ${{ inputs.cancel }}
+          LIMIT: ${{ inputs.limit }}
+          CREATED: ${{ inputs.created }}
+        run: |
+          if [ "$CANCEL" = yes ]; then set -- --cancel; else set --; fi
+          python3 -B scripts/cancel_superseded_runs.py --repo "$GITHUB_REPOSITORY" --limit "$LIMIT" --created "$CREATED" "$@"
