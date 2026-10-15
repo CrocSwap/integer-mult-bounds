@@ -92,17 +92,32 @@ def audit(t,parent,widths,depth):
     assert M**depth>2*max(paid)**depth
     return paid,host_count,bank_count
 
+def _enc(value):
+    return json.dumps(value,separators=(',',':')).encode()
+
 def digest(t):
-    # Independent streamed hashing uses the same specified JSON instruction format.
-    h=hashlib.sha256();n=0;R=len(t['calls'][0]['owners'])-2*V
+    # Exact fragment reuse within one invocation (research/bit-hosted-digest-fastpath/);
+    # identical emitted JSON lines and SHA-256. No persistent cache across calls.
+    h=hashlib.sha256();n=0;limit=len(t['calls'][0]['owners']);private=_enc([t['live'],['private',0]])
+    programs={};pending=bytearray();chunk=1024*1024
     for call in t['calls']:
-        for z in t['local_programs'][call['orientation']]:
-            x=[z[0],call['owners'][z[1]]]
-            if z[0]==0:x.extend(z[2:])
-            else:
-                x.append(call['owners'][z[2]] if z[2]<2*V+R else [t['live'],['private',0]])
-                x.extend(z[3:])
-            h.update(json.dumps(x,separators=(',',':')).encode());h.update(b'\n');n+=1
+        orientation=call['orientation']
+        if orientation not in programs:
+            instructions=[]
+            for z in t['local_programs'][orientation]:
+                tail=_enc(z[2:] if z[0]==0 else z[3:])[1:-1]
+                suffix=(b','+tail if tail else b'')+b']\n'
+                instructions.append((b'['+_enc(z[0])+b',',z[1],z[0]!=0,None if z[0]==0 else z[2],suffix))
+            programs[orientation]=instructions
+        owners=[_enc(owner) for owner in call['owners']]
+        for prefix,destination,has_source,source,suffix in programs[orientation]:
+            pending.extend(prefix);pending.extend(owners[destination])
+            if has_source:
+                pending.extend(b',');pending.extend(owners[source] if source<limit else private)
+            pending.extend(suffix);n+=1
+            if len(pending)>=chunk:
+                h.update(pending);pending.clear()
+    if pending:h.update(pending)
     return h.hexdigest(),n
 
 def main():

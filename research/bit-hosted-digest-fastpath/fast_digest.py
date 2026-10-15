@@ -12,8 +12,8 @@ import types
 
 PACKAGE = Path(__file__).resolve().parent
 ROOT = PACKAGE.parents[1]
-AUDITOR = ('research/e8-bit-p111-tuned/vendor/pr510/e8-r480-nine-stage/'
-           'vendor/e8-r715-eleven-stage-whole/code/audit_hosted_k.py')
+# Pairwise-era auditor bytes (production now ships fragment reuse).
+AUDITOR = 'research/bit-hosted-digest-production/baseline.py'
 PARAMETERIZER = 'research/e8-bit-p111-tuned/code/adapt9p.py'
 FIXTURE = 'research/community-hyperplane599-audit/pr589/bit589'
 
