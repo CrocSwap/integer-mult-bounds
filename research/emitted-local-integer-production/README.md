@@ -43,7 +43,7 @@ rerun for this isolated historical-checker change.
 ## Result
 
 On Linux / CPython 3.12.3 with `taskset -c 0`, five alternating fresh-process
-pairs give median complete selected-R480 local-audit wall time recorded in
+pairs gave median complete selected-R480 local-audit wall time **7.080 → 3.131 s (2.26×)**. Details are in
 [`RESULT.json`](RESULT.json). Timing is host-descriptive and is not a
 correctness gate. Every receipt matches digest
 `13dd18297162569532983db1a2ab67926b064330cd7edd3587e7b546b2dedf17`
