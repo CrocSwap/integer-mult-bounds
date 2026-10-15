@@ -12,7 +12,7 @@ consumed by `adapt9p.py`.
 Other byte-identical `audit_hosted_k.py` inventories under `research/*/vendor/`
 are left as provenance. `research/bit-hosted-digest-production/baseline.py`
 vendors the pairwise-era bytes. Dependent VERIFY packages refresh or demote
-their live pins in this tip. Selected frontier untouched.
+those pins to provenance in this tip. Selected frontier untouched.
 
 ## Reproduce
 

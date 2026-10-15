@@ -117,7 +117,7 @@ does not optimize instruction hashing. [Claim and final handoff](https://github.
 `research/bit-hosted-digest-production/` wires the equivalent fragment-reuse
 digest into the p111-tuned production `audit_hosted_k.py`. This opt-in package
 now loads the pairwise-era bytes from
-`research/bit-hosted-digest-production/baseline.py` for differential comparison.
+`research/bit-hosted-digest-fastpath/baseline.py` for differential comparison.
 
 ## Open next questions
 
