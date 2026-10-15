@@ -35,12 +35,16 @@ PASS_REGISTERED_RESEARCH_PACKAGE research/clifford-state-production outcome=comp
 PASS_IDENTICAL_CLIFFORD_STATE_PRODUCTION_RECEIPTS
 ```
 
-Default verify is read-only. Temp-copy permutation-foil rejects via receipt
-mismatch or subprocess failure. Package gates under `-O` still launch asserting
-helper-interface children (`python -B` with `PYTHONOPTIMIZE` cleared; this
-host's CPython `-I` omits the script directory from `sys.path`). Full
-`make verify`, selected cold replay, Lean, and multiplication-theorem
-obligations were not rerun for this isolated historical-evaluator change.
+Helper-interface receipt and benchmark runs briefly **swap the live**
+production `clifford_exact.py` under `try`/`finally` restore: `scripts/verify_cold617_interface.py`
+overwrites `MULTICOLD_SOURCE` to the repository multicold tree, so temporary
+overlay paths are ignored. The working tree is restored after every run.
+Permutation-foil rejects via receipt mismatch or subprocess failure. Package
+gates under `-O` still launch asserting helper-interface children (`python -B`
+with `PYTHONOPTIMIZE` cleared; this host's CPython `-I` omits the script
+directory from `sys.path`). Full `make verify`, selected cold replay, Lean, and
+multiplication-theorem obligations were not rerun for this isolated
+historical-evaluator change.
 
 ## Result
 

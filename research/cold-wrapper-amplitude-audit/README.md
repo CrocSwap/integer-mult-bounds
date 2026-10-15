@@ -174,3 +174,5 @@ wrappers or supplier moments. The inherited common-label/mutable-basis,
 pooled hosting, all-size, precision, tape and analytic assumptions remain.
 There is no new multiplication kappa, practical speedup or novelty claim
 about Clifford algebra. See `NOTICE.md`, `CLAIM.json` and `VALIDATION.md`.
+
+After `research/clifford-state-production/`, the multicold `clifford_exact.py` digest is recorded under `provenance_sha256` only (this audit does not import that module).
