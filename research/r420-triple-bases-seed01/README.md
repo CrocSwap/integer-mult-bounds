@@ -185,3 +185,5 @@ Prepared for **Sagar Thakrar (@thakrarsagar)** with substantial **OpenAI Codex
 assistance** in research, proof, implementation, verification and writing.
 One agent; separate implementations are not independent human review.
 New work is Apache-2.0, preserving predecessor licenses and attribution.
+
+After production promotion of `xcheck.rref` (`research/r420-rref-production/`), the historical Fraction-era `research/e8-bit-r420/code/xcheck.py` digest is pinned as **provenance** only and is no longer a live VERIFY input.
