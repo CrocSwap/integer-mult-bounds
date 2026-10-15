@@ -3,20 +3,88 @@ name: Verify research artifacts
 on:
   push:
   pull_request:
+    # `labeled` lets a maintainer request the full matrix on a fork pull
+    # request with the ci:full-verify label; see docs/ci.md.
+    types: [opened, synchronize, reopened, labeled]
+  schedule:
+    # Full matrix with input recording on main, so the declared inputs in
+    # .github/verify-groups.json are re-checked against the tree four times
+    # a day regardless of what individual pushes selected.
+    - cron: '23 */6 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# A newer revision of a pull request supersedes its queued or running
+# automatic run. Pushes (main, branches, tags), label-requested runs,
+# scheduled and manual runs each keep their own run and are never cancelled
+# by this policy.
+concurrency:
+  group: verify-${{ github.event_name }}-${{ (github.event_name == 'pull_request' && github.event.action != 'labeled') && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action != 'labeled' }}
+
 jobs:
+  plan:
+    # Decide which groups this run must execute. Every check still runs for
+    # any change that can reach it: see scripts/plan_verify_groups.py and
+    # the declared, strace-recorded inputs in .github/verify-groups.json.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+      formal: ${{ steps.plan.outputs.formal }}
+      formal_count: ${{ steps.plan.outputs.formal_count }}
+      packages: ${{ steps.plan.outputs.packages }}
+      package_count: ${{ steps.plan.outputs.package_count }}
+      jobs: ${{ steps.plan.outputs.jobs }}
+      groups: ${{ steps.plan.outputs.groups }}
+      mode: ${{ steps.plan.outputs.mode }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Depth 2 keeps both parents of the pull request merge commit.
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Fetch the commit this push started from
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BEFORE: ${{ github.event.before }}
+        # A missing commit (force push) leaves the planner without a diff; it
+        # then verifies everything.
+        run: git fetch --no-tags --depth=1 origin "$BEFORE" || true
+      - name: Select verification groups from the changed paths
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          LABEL: ${{ github.event.label.name }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request)
+              # The checkout is the merge of the pull request into its base;
+              # the first parent is the base tip it was merged onto.
+              if git rev-parse --verify -q 'HEAD^2' >/dev/null; then BASE='HEAD^1'; else BASE=''; fi ;;
+            push) BASE="$BEFORE" ;;
+            *) BASE='' ;;
+          esac
+          if [ -n "$BASE" ]; then set -- --diff "$BASE" HEAD; else set --; fi
+          python3 -B scripts/plan_verify_groups.py --event "$EVENT" --action "$ACTION" --label "$LABEL" \
+            --labels "$LABELS" "$@" --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+
   verify:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     strategy:
       fail-fast: false
-      matrix:
-        python-version: ['3.11', '3.13', '3.14']
-        group: [community, producers, certificates, ternary, research, tests, strips, clones, positive, joint, pair, partial-gauge, three-stage-cover, paired-cube, recycled-bit, entrance-banks]
+      # Selected groups on every supported Python; full runs are the same
+      # 48 combinations as before.
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -34,19 +102,25 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y libboost-dev
           fi
-      - name: Check arithmetic, source hashes, finite identities, and patches
+      - name: Install strace to record the inputs this group reads
         run: |
-          if [ "${{ matrix.group }}" = clones ]; then
-            python -B scripts/replay_historical_check.py skip-clones
-            make split-skip-producer
-            python -B scripts/replay_historical_check.py split-skip
-          else
-            make verify-${{ matrix.group }}
+          if ! command -v strace >/dev/null; then
+            sudo apt-get install -y strace || { sudo apt-get update && sudo apt-get install -y strace; }
           fi
+      - name: Check arithmetic, source hashes, finite identities, and patches
+        env:
+          GROUP: ${{ matrix.group }}
+        # The group's unchanged commands (see GROUP_COMMANDS in the tracer),
+        # run under strace: the verification verdict is the same, and the
+        # step additionally fails if the group read an input that
+        # .github/verify-groups.json does not declare.
+        run: python3 -B scripts/trace_verify_inputs.py --group "$GROUP" --check
       - name: Require reproducible certificates and patches
         run: git diff --exit-code
 
   ranked-pair-finite:
+    needs: plan
+    if: contains(needs.plan.outputs.jobs, 'ranked-pair-finite')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -63,18 +137,26 @@ jobs:
           ref: ad0f25ff7b23cff7f08ad237c2254e6ecf74257e
           path: build/ranked-pair-upstream
           persist-credentials: false
+      - name: Install strace to record the inputs this replay reads
+        run: |
+          if ! command -v strace >/dev/null; then
+            sudo apt-get install -y strace || { sudo apt-get update && sudo apt-get install -y strace; }
+          fi
       - name: Independently replay words and rebuild exact CRT profiles
-        run: make ranked-pair-verify UPSTREAM=build/ranked-pair-upstream
+        # `make ranked-pair-verify UPSTREAM=build/ranked-pair-upstream` under
+        # strace, failing on undeclared inputs.
+        run: python3 -B scripts/trace_verify_inputs.py --group ranked-pair-finite --check
       - name: Require unchanged tracked artifacts
         run: git diff --exit-code
 
   formal:
+    needs: plan
+    if: needs.plan.outputs.formal_count != '0'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      matrix:
-        package: [historical, gaussian, matrix]
+      matrix: ${{ fromJSON(needs.plan.outputs.formal) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -87,9 +169,115 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o /tmp/elan-init.sh
           sh /tmp/elan-init.sh -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-      - name: Fetch pinned Mathlib build cache
+      - name: Restore pinned Mathlib dependencies
         if: matrix.package == 'historical'
+        id: mathlib-cache
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          # Cache dependencies only; project compilation and axiom audits
+          # still run. Exact keys prevent reuse across toolchain/lock changes
+          # and across runner images.
+          path: formal/lean/.lake/packages
+          key: mathlib-v1-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('formal/lean/lean-toolchain', 'formal/lean/lake-manifest.json', 'formal/lean/lakefile.toml') }}
+      - name: Fetch pinned Mathlib build cache
+        if: matrix.package == 'historical' && steps.mathlib-cache.outputs.cache-hit != 'true'
         working-directory: formal/lean
         run: lake exe cache get
+      - name: Install strace to record the inputs this package reads
+        run: |
+          if ! command -v strace >/dev/null; then
+            sudo apt-get install -y strace || { sudo apt-get update && sudo apt-get install -y strace; }
+          fi
       - name: Check formal package and theorem axiom dependencies
-        run: make formal-${{ matrix.package }}-verify
+        env:
+          PACKAGE: ${{ matrix.package }}
+        # `make formal-<package>-verify` under strace, failing on undeclared inputs.
+        run: python3 -B scripts/trace_verify_inputs.py --group "formal-$PACKAGE" --command "make formal-$PACKAGE-verify" --check
+      - name: Save pinned Mathlib dependencies from successful main runs
+        # PRs can restore main's cache, but do not fill storage with one copy
+        # per merge ref. Do not cache verification verdicts or certificates.
+        if: matrix.package == 'historical' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.mathlib-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: formal/lean/.lake/packages
+          key: ${{ steps.mathlib-cache.outputs.cache-primary-key }}
+
+  packages:
+    # Historical package verifiers that previously had their own unfiltered
+    # workflows (bit-elim-144, bit-reuse-147, early-reset-reuse,
+    # graded-box-convolution). Same commands and Python versions; selected by
+    # the planner from their recorded inputs instead of native paths filters,
+    # which only inspect the first few hundred changed files.
+    needs: plan
+    if: needs.plan.outputs.package_count != '0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install strace to record the inputs this verifier reads
+        run: |
+          if ! command -v strace >/dev/null; then
+            sudo apt-get install -y strace || { sudo apt-get update && sudo apt-get install -y strace; }
+          fi
+      - name: Reproduce, replay and reprice the package
+        env:
+          PACKAGE: ${{ matrix.package }}
+          COMMAND: ${{ matrix.command }}
+        # The package's own command under strace, failing on undeclared inputs.
+        run: python3 -B scripts/trace_verify_inputs.py --group "pkg-$PACKAGE" --command "$COMMAND" --check
+      - name: Require committed files to remain unchanged
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && matrix.artifact != ''
+        with:
+          name: ${{ matrix.artifact }}-${{ matrix.python-version }}
+          path: ${{ runner.temp }}/${{ matrix.artifact }}
+
+  verify-summary:
+    # One stable status for the whole run. It fails when planning failed,
+    # when a job the plan selected did not succeed, or when any job failed
+    # or was cancelled; only jobs the planner skipped on purpose may be
+    # skipped.
+    needs: [plan, verify, ranked-pair-finite, formal, packages]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Report the plan and the results
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | python3 -c '
+          import json, sys
+          needs = json.load(sys.stdin)
+          plan = needs["plan"]
+          if plan["result"] != "success":
+              sys.exit("planning did not succeed: " + plan["result"])
+          out = plan["outputs"]
+          expected = {
+              "verify": out.get("count", "0") != "0",
+              "formal": out.get("formal_count", "0") != "0",
+              "packages": out.get("package_count", "0") != "0",
+              "ranked-pair-finite": "ranked-pair-finite" in out.get("jobs", "").split(","),
+          }
+          problems = {}
+          for job, selected in expected.items():
+              result = needs[job]["result"]
+              if selected and result != "success":
+                  problems[job] = "selected but " + result
+              elif not selected and result not in ("skipped", "success"):
+                  problems[job] = "not selected but " + result
+          print("plan mode=%s groups=%s" % (out.get("mode"), out.get("groups")))
+          if problems:
+              sys.exit("verification incomplete: " + json.dumps(problems))
+          print("every selected job succeeded: " +
+                ", ".join("%s=%s" % (k, needs[k]["result"]) for k in sorted(expected)))
+          '

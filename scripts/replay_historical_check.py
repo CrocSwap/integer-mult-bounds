@@ -5,6 +5,7 @@ Dennis, with substantial OpenAI Codex assistance; Apache-2.0.
 The checkers, their pins, and the live selected record remain unchanged.
 """
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -41,7 +42,9 @@ CONFIG = {
         'path': 'scripts/audit_fused_block.py',
         'input': 'audit_fused_block.py',
         'sha256': '2afb83ca8e5f193ca8a4c242becf267ad1d9dc2578ba238b820e98d5185f6288',
-        'commands': [['research/split-skip/witness.py'],
+        'commands': [['research/split-skip/producer.py', '--work-dir', 'build/split-skip',
+                      '--output', 'build/split-skip-receipt.json'],
+                     ['research/split-skip/witness.py'],
                      ['research/split-skip/independent_arithmetic.py'],
                      ['-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_split_skip.py', '-v']],
     },
@@ -62,6 +65,17 @@ CONFIG['skip-clones'] = {
     'accepted_live_sha256': [
         'f9fbcd6e85e442cbd0926ac0887414e20735b2dc923d2d5822c803ceb46726d3',
     ],
+    'additional_inputs': [{
+        'manifest': 'research/skip-clones/SOURCE.json', 'field': 'files',
+        'path': 'scripts/partial_swap/shared.py', 'input_from_root': True,
+        'input': 'research/partial-swap-digest/baseline.py',
+        'sha256': '81e9af92cdf38243a540cdcff2062778e449467848d444da37a9553c12ca4c34',
+        # Wentao Li's retained digest and initialization successors.
+        'accepted_live_sha256': [
+            'b27c8bfe1de3f7d2d5fb19ac742adf11597c2aaa7add68430443119997e646e8',
+            '7290bd639600aecff11941d3faf95c9ce95589125cc6a7f7440fb86af7a0f17c',
+        ],
+    }],
     'commands': [
         ['research/skip-clones/producer.py'],
         ['research/skip-clones/witness.py', '--output',
@@ -76,13 +90,24 @@ CONFIG['skip-clones-tests'] = {
 }
 
 
-# The split-skip manifest binds three historical helpers. Restore each exact
-# dependency, retaining Wentao Li's two optimized live successors unchanged.
+# The split-skip manifest binds five historical helpers. Restore each exact
+# dependency, retaining Wentao Li's optimized live successors unchanged.
 CONFIG['split-skip']['accepted_live_sha256'] = [
     '6fe64f886309d9154e33a3d67a16e8714cebc424a7a248b3080f8cab7d94179b',
 ]
 CONFIG['split-skip']['additional_inputs'] = [
     {**CONFIG['skip-clones'], 'manifest': 'research/split-skip/SOURCE.json'},
+    {**CONFIG['skip-clones']['additional_inputs'][0],
+     'manifest': 'research/split-skip/SOURCE.json'},
+    {
+        'manifest': 'research/split-skip/SOURCE.json', 'field': 'files',
+        'path': 'scripts/audit_sparse_fusion.py', 'input_from_root': True,
+        'input': 'research/sparse-fusion-orbits-production/baseline.py',
+        'sha256': 'bbaa32f9786f083409e363b081bfb7a1e597c8d32e4183c13a4105c2170934ce',
+        'accepted_live_sha256': [
+            '6d1997fba802a8fc41099996b29e3add5d2b4f904da02548a98bed32c50aa773',
+        ],
+    },
     {
         'manifest': 'research/split-skip/SOURCE.json', 'field': 'files',
         'path': 'scripts/shared_point_circuit.py', 'input_from_root': True,
@@ -135,18 +160,25 @@ def tracked_paths(root):
     return [p.decode('utf-8') for p in raw.split(b'\0') if p]
 
 
+def input_configs(config):
+    """Each replacement has an explicit pin in the same predecessor manifest."""
+    result = [config]
+    result.extend(dict(item, manifest=config['manifest'], field=config['field'])
+                  for item in config.get('additional_inputs', []))
+    require(len({item['path'] for item in result}) == len(result),
+            'Duplicate historical replacement')
+    return result
+
+
 def materialize(root, destination, config, paths, inputs=INPUTS):
     """Copy tracked working bytes only; never share writable links with the checkout."""
-    configurations = [config, *config.get('additional_inputs', [])]
-    replacements = {}
-    for entry in configurations:
-        require(entry['path'] not in replacements, 'Duplicate historical replacement')
-        data = authenticated_input(root, entry, inputs)
-        require(entry['path'] in paths and entry['manifest'] in paths,
+    replacements = [(item, authenticated_input(root, item, inputs))
+                    for item in input_configs(config)]
+    for item, _ in replacements:
+        require(item['path'] in paths and item['manifest'] in paths,
                 'Historical input or manifest is not tracked')
-        if entry.get('input_from_root'):
-            require(entry['input'] in paths, 'Historical baseline is not tracked')
-        replacements[entry['path']] = data
+        if item.get('input_from_root'):
+            require(item['input'] in paths, 'Historical baseline is not tracked')
     require(not destination.exists(), 'Replay destination already exists')
     destination.mkdir(parents=True)
     expected = {}
@@ -157,12 +189,12 @@ def materialize(root, destination, config, paths, inputs=INPUTS):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         expected[name] = hashlib.sha256(target.read_bytes()).hexdigest()
-    for entry in configurations:
-        safe_path(destination, entry['path']).write_bytes(replacements[entry['path']])
-        expected[entry['path']] = entry['sha256']
+    for item, data in replacements:
+        safe_path(destination, item['path']).write_bytes(data)
+        expected[item['path']] = item['sha256']
     # Authenticate every replacement again before executing any checker.
-    for entry in configurations:
-        authenticated_input(destination, entry, inputs)
+    for item, _ in replacements:
+        authenticated_input(destination, item, inputs)
     return expected
 
 
@@ -174,6 +206,26 @@ def verify_unchanged(snapshot, expected):
                 'Replay changed tracked artifact: ' + name)
 
 
+@contextmanager
+def replay_tree(package, root=ROOT):
+    """Yield an isolated historical checkout, checking tracked bytes on exit.
+
+    The tracked tree is several GB. Keep the copy on the checkout's build
+    filesystem, rather than consuming a memory-backed /tmp in concurrent tests.
+    """
+    config = CONFIG[package]
+    paths = tracked_paths(root)
+    scratch = root / 'build'
+    scratch.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='historical-ci-', dir=scratch) as temporary:
+        snapshot = Path(temporary) / 'repo'
+        expected = materialize(root, snapshot, config, paths)
+        try:
+            yield snapshot
+        finally:
+            verify_unchanged(snapshot, expected)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('package', choices=CONFIG)
@@ -181,17 +233,13 @@ def main():
     args = parser.parse_args()
     require(not args.native or args.package == 'r420', '--native applies only to r420')
     config = CONFIG[args.package]
-    paths = tracked_paths(ROOT)
-    with tempfile.TemporaryDirectory(prefix='historical-ci-') as temporary:
-        snapshot = Path(temporary) / 'repo'
-        print('REPLAY_HISTORICAL_CHECK', args.package, 'copying tracked inputs', flush=True)
-        expected = materialize(ROOT, snapshot, config, paths)
+    print('REPLAY_HISTORICAL_CHECK', args.package, 'copying tracked inputs', flush=True)
+    with replay_tree(args.package) as snapshot:
         commands = list(config['commands'])
         if args.native:
             commands.append(['research/r420-two-sided-basis/native.py'])
         for command in commands:
             subprocess.run([sys.executable, '-B'] + command, cwd=snapshot, check=True)
-        verify_unchanged(snapshot, expected)
     print('PASS_HISTORICAL_CHECK', args.package, 'input_sha256=' + config['sha256'], flush=True)
 
 
