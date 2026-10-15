@@ -19,7 +19,7 @@ and contracts govern a proof; historical packages may use different conventions.
 | Owner / bank | A physical allocation used to host logical helper families. Compatibility, capacity and timing must be established; reuse is not free by declaration. |
 | Hosting | Realizing logical calls and frames on actual data/streams with the promised layout and access costs. |
 | H1–H5 | Named hypotheses of the selected bit scalar-interface lemma, covering gate directions, frames, ordering and cleanup. They are not five universal laws for all networks. See the [checker’s interface description](../../research/e8-bit-p111-tuned/code/xcheck_p.py). |
-| H2/K gap | A candidate can pass some finite identities yet fail an inherited restriction on D-stage gates or the required D/K correspondence. It needs a new implication, not a disabled check. |
+| H2/K gap | A failure of the original D-stage gate restriction or literal D/K comparison. Fixed R439 words already have a [semantic replacement and finite hosted follow-up](../../research/r439-semantic-d-navigation/README.md); a different word still needs the full boundary and continuation contract. The original syntactic flags can remain false. |
 | All-size / uniform | Correctness for the algorithm's whole permitted parameter range, rather than only the finite address sizes tested. |
 | Cold replay | Reconstruct and check the relevant construction from its pinned inputs, under its declared environment and coverage. |
 | Scoped obstruction | An exclusion with explicit hypotheses. Changing a hypothesis may escape it; increasing search size inside an excluded class does not. |

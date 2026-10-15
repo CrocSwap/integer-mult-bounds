@@ -67,7 +67,6 @@ MAKE_PROBES = {'RCS', 'SCCS', 'GNUmakefile', 'makefile'}
 # The commands CI runs per matrix group (see .github/workflows/verify.yml).
 GROUP_COMMANDS = {
     'clones': ['python3 -B scripts/replay_historical_check.py skip-clones',
-               'make split-skip-producer',
                'python3 -B scripts/replay_historical_check.py split-skip'],
     'ranked-pair-finite': ['make ranked-pair-verify UPSTREAM=build/ranked-pair-upstream'],
 }

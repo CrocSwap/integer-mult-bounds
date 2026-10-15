@@ -148,27 +148,46 @@ starting points are historical evidence, not promises of unexplored territory.
 
 ## 2. Where effort is most useful
 
-**Priority revision 4 — October 14, 2026.** The selected conditional result remains
+**Priority revision 5 — October 15, 2026.** The selected conditional result remains
 κ = 0.001672660197076918 (#1094). The complex side binds; both suppliers must
 advance for a large jump. The [review through #2027](docs/research/community-efficient1000-review.md)
 adds checked components and scoped obstructions, not a new selected exponent.
 Recheck the selected record and live overlap before starting.
 
-**The next priority is to complete or falsify a specific missing interface.**
-Use these bounded entries, and split parallel work by correction/cut, observation,
-or proof obligation rather than by optimizer seed:
+**Keep the mechanism portfolio; refresh the exact missing task.** Start from
+[the research-family status and expansion gate](docs/research/research-family-status.md).
+It distinguishes reviewed predecessors, newer pending claims and the maintainer's
+local-only product checkpoint. This revision does not admit any of those newer
+claims or change the frontier.
 
-| Card | Known starting point | Next decision |
+| Card | Starting evidence | Next decision |
 |---|---|---|
-| `p104-side-correction` | #1991 supplies a native low-rank channel | Can `I-G/2` be executed while its source/target frames are available, with a favorable complete bill? |
-| `joint-query-controller` | #1969 supplies native local joint-query words | Can one changed first pair or priced extra observation escape the existing lost-query witness? |
-| `selected-stock-envelope` | #1956/#1965/#1990 isolate a stock-fit obligation | Derive one selected producer's actual reserve bound; do not substitute historical constants. |
+| `p104-side-correction` | Reviewed #1991 channel; pending #2586 physical dual | Which endpoint, routing/hosting or completed-cost obligation remains, and can it be closed or decisively rejected? |
+| `joint-query-controller` | Reviewed #1969 words; pending #2540 complete added local decoder | Can a complete caller use the stated output frames and afford retention, movement, hosting and restoration? |
+| `selected-stock-envelope` | Reviewed #1956/#1965/#1990 stock obligations | After checking newer handoffs, derive one still-missing selected producer's actual reserve bound. |
 
-These are research candidates, not admitted suppliers or predicted winners.
-For QQ16, the fixed-first-pair, homogeneous selected-only controller is already
-blocked: read its witness first. P104 still needs side correction, chronological
-hosting, precision and all-size admission. Do not start a large implementation
-until a favorable *completed* budget survives the first test.
+Read and pin the current dependency before assigning its missing work. A pending
+local completion changes the useful question even though it has not been admitted
+as a supplier. Audit its claim or close a specific remaining obligation; do not
+silently treat it as verified, and do not reconstruct it just because the old card
+started earlier. Live claims are advisory, not exclusive reservations.
+
+**A local contribution and a family expansion have different acceptance gates.**
+A checked partial construction, interface lemma or scoped obstruction remains
+valuable. Contributors need not solve the whole supplier. Before expanding it
+into another large search or dependent implementation round, the director must
+update the complete boundary and cost ledger: proved costs, constructive upper
+bounds, unknowns, and the consumer that avoids repaying the saving. Unknown costs
+are not zero, and passing an optimistic relaxation does not establish feasibility.
+Use the linked family record's five-point gate. This is an evidence checkpoint,
+not an approval queue: a solo agent can record the decision in its existing
+task/thread. A useful handoff needs no extra session report.
+
+The recent local product work motivates this discipline but does not justify
+routing the community into that branch or declaring a global obstruction. Pause
+the maintainer's fixed preparation recipe; different source/consumer contracts,
+coupled passes and coding mechanisms remain open. Its local evidence and narrow
+scope are explicitly labelled in the family record.
 
 **Stop rediscovering covered cases.** #1995/#2013 bound terminal-frame and
 monotone-frame changes within the fixed selected scalar word and cleanup
@@ -233,9 +252,9 @@ valuable even when the other supplier prevents an immediate headline change.
 
 The helper allocates effort as follows. These are portfolio weights, not success
 probabilities; the catalogue is the machine-readable source for assignments.
-Revision 4 keeps the track weights: the evidence supports sharper tasks, not a
-measured reason to reallocate the whole portfolio. Prefer a live, unclaimed
-central handoff over a generic card when it matches your track or expertise;
+Revision 5 keeps the track weights: current evidence supports fresher tasks and
+stronger expansion decisions, not a measured reason to reallocate the portfolio.
+Prefer a live, unclaimed central handoff over a generic card when it matches your track or expertise;
 record the scoped override and check overlap.
 
 | Track | Share | Useful outcome |
@@ -265,7 +284,11 @@ obstruction and the independent finite support lemma before refining a candidate
 ## 3. Make parallel effort meaningfully different
 
 Diversify **object × changed hypothesis × method × bounded domain**. Randomizing
-only the optimizer seed, prose or filename produces duplicate work.
+only the optimizer seed, prose or filename produces duplicate work. In a large
+swarm, prefer different mechanisms, boundary contracts or explicit obligations
+before splitting another narrow census. A separate independent audit should name
+its distinct failure mode. Keep one current family/question thread and link its
+status rather than making every contributor maintain a second report.
 
 Write a local task card before substantial computation:
 
@@ -277,7 +300,9 @@ Scope status: unchanged / refined / changed; reason for refinement or change:
 Existing restriction being changed (or exact claim being audited):
 Method; explicit parameter ranges/candidate alphabet:
 Nearest overlapping PRs and why this adds something:
+Declared milestone: local module / complete supplier / integrated kappa / audit:
 Optimistic full cost budget; required observable improvement:
+Unresolved consumer/restoration costs; family expansion decision if continuing:
 Success evidence; falsification test; time/compute cap:
 Predecessor authors; intended artifact and reproduction command:
 ```
@@ -455,6 +480,10 @@ reason. Link the reports behind a decision in the priority log. Distinguish
 workflow repairs from portfolio reweighting, and do not extrapolate from one
 session to a population-wide trend. Review structured next questions from new
 packages as candidates; they do not enter the active catalogue automatically.
+
+Use the [family expansion gate](docs/research/research-family-status.md#contribution-acceptance-and-family-expansion-are-different-gates)
+before assigning more dependent optimizations. Local success alone is not an
+expansion decision; scoped partial contributions can still be retained.
 
 For each affected track, choose **continue, narrow, expand, pause or replace**:
 

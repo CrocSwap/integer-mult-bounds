@@ -8,6 +8,8 @@ import hashlib
 import tempfile
 import json
 import zipfile
+import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 AUDIT = ROOT / 'research/pr-reconciliation-20261012'
@@ -31,6 +33,65 @@ def check_batch1047_file(item):
     original = (ROOT / 'research/community-batch1099-audit/checkpoints/Makefile1047').read_bytes()
     require(hashlib.sha256(original).hexdigest() == item['integrated_sha256'], 'Changed historical Makefile')
     require(original.endswith(b'\n') and current.startswith(original), 'Historical Makefile content changed')
+
+
+def check_frontier890_file(item):
+    """Authenticate the exact spectrum pin refresh accepted in 02c46c7e.
+
+    Preserve the frozen frontier890 receipt. Sagar Thakrar's refresh changed
+    only the single_intersection.py source digest in SOURCE.json and RESULT.json;
+    every other byte, including all 41 mathematical cases, must still match.
+    Dennis with substantial OpenAI Codex assistance; Apache-2.0.
+    """
+    name = item['integrated_path']
+    current = (ROOT / name).read_bytes()
+    if hashlib.sha256(current).hexdigest() == item['integrated_sha256']:
+        return
+    predecessors = {
+        'research/single-intersection-spectrum-audit/RESULT.json':
+            '9cb2210e148b2cce3fe59cf529fbf99f3b663dc7673db2e3969246595692f580',
+        'research/single-intersection-spectrum-audit/SOURCE.json':
+            '610fb9887add31b4f597a39dc58b3beff0e14c91a5fd7ee340c3b2e7d4b0fb4c',
+    }
+    require(name in predecessors and item['integrated_sha256'] == predecessors[name],
+            'Changed integrated file: ' + name)
+    old = b'08ddae46e5621a5b4c525b504e67ae655abe9b49461d894feaa7abc89a51847d'
+    new = b'6874d41b75590369182ed61e0c6da5b547e035e0e43b50ea2b39e1f3861dca6d'
+    source = 'scripts/experiments/single_intersection.py'
+    require(hashlib.sha256((ROOT / source).read_bytes()).hexdigest().encode() == new,
+            'Changed spectrum successor source')
+    require(json.loads(current)['source_sha256'][source].encode() == new
+            and current.count(new) == 1, 'Changed spectrum source pin')
+    require(hashlib.sha256(current.replace(new, old)).hexdigest() == predecessors[name],
+            'Changed spectrum evidence beyond the accepted source pin')
+
+
+def check_batch932_file(item):
+    """Bind exact assertion-safety and historical replay runner successors.
+
+    Credit woklerx for keeping assertions enabled in child research processes.
+    These two exact successor blobs are an explicit maintenance adaptation,
+    not permission to change any other bytes or the frozen batch932 receipt.
+    Also authenticate the exact PR53 replay adapter and its test from c58c1778;
+    this extension retains the earlier assertion guard and every module.
+    """
+    name = item['integrated_path']
+    digest = hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+    if digest == item['integrated_sha256']:
+        return
+    successors = {
+        'scripts/run_isolated_tests.py': (
+            '96ea543e6c707424afe247e77bd86c82152f90fc76a0773c4232145da5cdf8d1',
+            ('b1c645e815a6abfbfdc2d77c4121c543ed0ca958095e97e1181d64e84cac0ed8',
+             '05839996482058359b2ab8087d7d96e76934bd03d79981df9b99447e8ed09331')),
+        'tests/test_isolated_test_runner.py': (
+            '628391b6abfbc8674ceec1751867a4392f2cc0b5b66886243e139af86cf355ac',
+            ('8262f36202e426b849a925123ff789843115d5e564962710c31ab14f84c88067',
+             '6f5ad20a5f174be0aab874cf524cba01c5401dafa46dd176999bad43ab566522')),
+    }
+    require(name in successors and successors[name][0] == item['integrated_sha256']
+            and digest in successors[name][1],
+            'Changed integrated file: ' + name)
 
 
 def check_family_decision(item, decision):
@@ -180,7 +241,9 @@ def main():
                         ROOT / 'research/community-efficient700-audit/DISPOSITIONS.json',
                         ROOT / 'research/community-efficient800-audit/DISPOSITIONS.json',
                         ROOT / 'research/community-efficient900-audit/DISPOSITIONS.json',
-                        ROOT / 'research/community-efficient1000-audit/DISPOSITIONS.json'):
+                        ROOT / 'research/community-efficient1000-audit/DISPOSITIONS.json',
+                        ROOT / 'research/community-efficient1100-audit/DISPOSITIONS.json',
+                        ROOT / 'research/community-efficient1200-audit/DISPOSITIONS.json'):
         if not family_path.exists():
             continue
         family = json.loads(family_path.read_text())
@@ -416,8 +479,7 @@ def main():
                 if item['action'] == 'pending':
                     require(not decision['review_completion']['changed_file_coverage'], 'Incomplete review')
                 if item.get('integrated_sha256'):
-                    require(hashlib.sha256((ROOT / item['integrated_path']).read_bytes()).hexdigest()
-                            == item['integrated_sha256'], 'Changed integrated file: ' + item['integrated_path'])
+                    check_frontier890_file(item)
                 if item['action'] != 'retained':
                     require(bool(item.get('reason')), 'Missing scope or adaptation reason')
         print('PASS frontier890 batch: reviewed sources, finite replays, scoped claims and closure bindings')
@@ -444,8 +506,7 @@ def main():
                 if item['action'] == 'pending':
                     require(not decision['review_completion']['changed_file_coverage'], 'Incomplete review')
                 if item.get('integrated_sha256'):
-                    require(hashlib.sha256((ROOT / item['integrated_path']).read_bytes()).hexdigest()
-                            == item['integrated_sha256'], 'Changed integrated file: ' + item['integrated_path'])
+                    check_batch932_file(item)
                 if item['action'] != 'retained':
                     require(bool(item.get('reason')), 'Missing scope or adaptation reason')
         print('PASS batch932 batch: reviewed sources, finite replays, scoped claims and closure bindings')
@@ -573,7 +634,10 @@ def main():
         runpy.run_path(str(historical_five), run_name='__main__')
     reconciliation92 = ROOT / 'research/community-reconciliation92-audit/verify.py'
     if reconciliation92.exists():
-        runpy.run_path(str(reconciliation92), run_name='__main__')
+        # The original checker binds the pre-PR154 Makefile. Reuse the
+        # authenticated isolated replay rather than weakening that pin.
+        subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/replay_historical_check.py'),
+                        'reconciliation92'], cwd=ROOT, check=True)
     third100 = ROOT / 'research/community-reconciliation-third100-audit/verify.py'
     if third100.exists():
         runpy.run_path(str(third100), run_name='__main__')

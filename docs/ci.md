@@ -281,24 +281,44 @@ historical inputs are replaced inside the temporary tree. The live optimized
 scripts, frozen certificates, manifests and selected result remain unchanged.
 All tracked bytes in the replay copy are checked again on exit.
 
+After merging current main, the exclusion and shared-point inputs come from
+Wentao Li's retained research baselines, with the same authenticated bytes as
+the reference snapshots above. The adapter also retains main's checks that
+each baseline is tracked and that live helpers match an explicitly accepted
+successor, including the newer shared-point initialization and frame cache.
+Unknown live source changes reject before a replay tree is created.
+
+Main's partial-swap digest/initialization changes also affect both historical
+clone manifests. Their additional `scripts/partial_swap/shared.py` input is
+restored from `research/partial-swap-digest/baseline.py`, which matches the
+original `0b1cccf86e2f5132ed286a26ef0a681a495740ea` bytes. The accepted live
+digests come from Wentao Li's retained digest and initialization packages;
+their live optimization tests continue to use the current implementation.
+
+The subsequent sparse-fusion optimization is handled the same way: split-skip
+uses `research/sparse-fusion-orbits-production/baseline.py` for its original
+`scripts/audit_sparse_fusion.py` pin and accepts only the retained production
+successor. The optimized live checker stays unchanged.
+
 The clones group now runs:
 
 ```sh
 python3 -B scripts/replay_historical_check.py skip-clones
-make split-skip-producer
 python3 -B scripts/replay_historical_check.py split-skip
 ```
 
 The first command retains the complete clone native producer, certificate
-regeneration and unit tests. The final command retains the split-skip witness,
-independent arithmetic and unit tests, now with all three historical inputs
-authenticated. Its native producer still runs separately as before.
+regeneration and unit tests. The final command retains the split-skip native
+producer (with the original Makefile arguments), witness,
+independent arithmetic and unit tests, now with all five historical inputs
+authenticated. The producer runs inside the replay copy because its inherited
+skip-strips source check also pins the original partial-swap helper.
 The original source-bound Makefile targets remain frozen; use these adapters
 to replay those checkpoints against a modern checkout.
 
-`test_skip_clones.py` also uses this isolated context during ordinary unittest
-discovery, so `make verify-tests` keeps the original runner and discovers every
-test module. Only this historical module sees the predecessor script; the
+`make verify-tests` retains main's isolated runner dispatch to `skip-clones-tests`.
+`test_skip_clones.py` also uses this isolated context during direct unittest
+discovery. Only this historical module sees the predecessor script; the
 optimization tests still exercise the current production code. When already
 running inside the historical replay, it uses that tree without nesting a
 second copy. Scratch trees live under ignored `build/` and are removed on
@@ -360,6 +380,52 @@ saved recordings, all 17 formal source references and both nearer Lean project
 discovery paths. Independent review found no remaining input gap in the final
 formal declaration. Scratch replay trees were removed and tracked artifacts
 remained unchanged. Hosted execution and other Python versions remain unrun.
+
+## Conflict-resolution validation
+
+The conflict refresh merges PR head
+`91669e2a3316751ceba6330d19b09fdf5e6b95aa` with canonical main
+`ab4fcd39c74effa88d464ed1d80ec832f6020e51`. It keeps main's authenticated
+research baselines, accepted-live-source checks and isolated test-runner
+dispatch, alongside the PR's traced CI selection and temporary-tree cleanup.
+The partial-swap and sparse-fusion additions above cover the newer source
+optimizations without editing their implementations or frozen manifests.
+
+On Linux x86_64 / Python 3.14.4, the complete traced clones group passed both
+native reconstructions, all 4,073,300 data pairs, 21 package tests, the copied
+artifact integrity gates and declared-input coverage. The six focused CI
+modules passed 120 tests; the three updated upstream compatibility modules
+passed another 21. Workflow lint (actionlint 1.7.12), selected-record checks,
+selected CI input checks and the PR diff whitespace check also passed.
+
+```sh
+python3 -B scripts/trace_verify_inputs.py --group clones --check --output build/verify-trace/pr2361-updated-base-clones.json
+for module in historical_check plan_verify_groups trace_verify_inputs cancel_superseded_runs selected_ci_inputs isolated_test_runner disjoint_tensor_support_masks exclusion_embedding_masks exclusion_support_masks; do
+  python3 -B -m unittest discover -s tests -p "test_${module}.py" -v || exit
+done
+```
+
+The full `tests` group was also run on the initial merge with main
+`c3c94c2ea2ebcd5d69d1e51b5fe8a36bf79819f5`: all 139 modules executed, but ten
+failed, so the subsequent patch-application checks were not reached. Updated
+main fixed the disjoint-tensor and two exclusion compatibility modules; their
+reruns are included above. The other seven failures were independently
+reproduced in an untouched worktree at `ab4fcd39c`:
+
+- `test_copied_fixed.py`, `test_copied_fixed_reversed.py`,
+  `test_pair_assembly.py`, `test_skip_strips.py` and `test_skip_suffix.py`
+  reject the updated live `scripts/partial_swap/shared.py` source pin.
+- `test_shared_point_digest.py` still expects the earlier production digest.
+- `test_split_skip.py` encounters a tuple-shape mismatch with the live helper.
+
+These existing upstream failures are not suppressed. The full tests group was
+not rerun after the base refresh, and this resolution does not claim a green
+full suite. Logs and recordings under `build/pr2361-*.log` and
+`build/verify-trace/pr2361-*.json` are local-only evidence, including the
+untouched-upstream reproduction in `build/pr2361-upstream-failures.log`.
+Tracked artifacts did not drift. The selected cold replay and Python 3.11/3.13
+were not rerun; the selected record, supplier sources and frozen evidence are
+unchanged by this PR.
 
 ## Attribution
 

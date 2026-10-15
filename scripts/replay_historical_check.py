@@ -42,33 +42,84 @@ CONFIG = {
         'path': 'scripts/audit_fused_block.py',
         'input': 'audit_fused_block.py',
         'sha256': '2afb83ca8e5f193ca8a4c242becf267ad1d9dc2578ba238b820e98d5185f6288',
-        'additional_inputs': [
-            {
-                'path': 'scripts/exclusion_circuit.py',
-                'input': 'exclusion_circuit.py',
-                'sha256': 'b253f9d7318becda1c1f3b24e2287ed44a9c27fcea00cf9d531afb950d0457a0',
-            },
-            {
-                'path': 'scripts/shared_point_circuit.py',
-                'input': 'shared_point_circuit.py',
-                'sha256': 'c9bb7a5df92d260a4e3ad532b53e26936730d7c93f7facfb0784957c1e81c8ba',
-            },
-        ],
-        'commands': [['research/split-skip/witness.py'],
+        'commands': [['research/split-skip/producer.py', '--work-dir', 'build/split-skip',
+                      '--output', 'build/split-skip-receipt.json'],
+                     ['research/split-skip/witness.py'],
                      ['research/split-skip/independent_arithmetic.py'],
                      ['-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_split_skip.py', '-v']],
     },
-    'skip-clones': {
-        'manifest': 'research/skip-clones/SOURCE.json',
-        'field': 'files',
-        'path': 'scripts/exclusion_circuit.py',
-        'input': 'exclusion_circuit.py',
-        'sha256': 'b253f9d7318becda1c1f3b24e2287ed44a9c27fcea00cf9d531afb950d0457a0',
-        'commands': [['research/skip-clones/producer.py'],
-                     ['research/skip-clones/witness.py', '--output', 'research/skip-clones/certificate.json'],
-                     ['-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_skip_clones.py', '-v']],
-    },
 }
+
+
+# Keep PR53's frozen source pin intact while replaying against the reviewed
+# successor of the faster exclusion support-mask checker. Original exact bytes
+# are retained by the linked baseline package (Wentao Li / VictorLiwentao).
+# Dennis with substantial OpenAI Codex assistance; Apache-2.0.
+CONFIG['skip-clones'] = {
+    'manifest': 'research/skip-clones/SOURCE.json',
+    'field': 'files',
+    'path': 'scripts/exclusion_circuit.py',
+    'input_from_root': True,
+    'input': 'research/exclusion-embedding-masks/baseline.py',
+    'sha256': 'b253f9d7318becda1c1f3b24e2287ed44a9c27fcea00cf9d531afb950d0457a0',
+    'accepted_live_sha256': [
+        'f9fbcd6e85e442cbd0926ac0887414e20735b2dc923d2d5822c803ceb46726d3',
+    ],
+    'additional_inputs': [{
+        'manifest': 'research/skip-clones/SOURCE.json', 'field': 'files',
+        'path': 'scripts/partial_swap/shared.py', 'input_from_root': True,
+        'input': 'research/partial-swap-digest/baseline.py',
+        'sha256': '81e9af92cdf38243a540cdcff2062778e449467848d444da37a9553c12ca4c34',
+        # Wentao Li's retained digest and initialization successors.
+        'accepted_live_sha256': [
+            'b27c8bfe1de3f7d2d5fb19ac742adf11597c2aaa7add68430443119997e646e8',
+            '7290bd639600aecff11941d3faf95c9ce95589125cc6a7f7440fb86af7a0f17c',
+        ],
+    }],
+    'commands': [
+        ['research/skip-clones/producer.py'],
+        ['research/skip-clones/witness.py', '--output',
+         'research/skip-clones/certificate.json'],
+        ['-m', 'unittest', 'discover', '-s', 'tests',
+         '-p', 'test_skip_clones.py', '-v'],
+    ],
+}
+CONFIG['skip-clones-tests'] = {
+    **CONFIG['skip-clones'],
+    'commands': [CONFIG['skip-clones']['commands'][-1]],
+}
+
+
+# The split-skip manifest binds five historical helpers. Restore each exact
+# dependency, retaining Wentao Li's optimized live successors unchanged.
+CONFIG['split-skip']['accepted_live_sha256'] = [
+    '6fe64f886309d9154e33a3d67a16e8714cebc424a7a248b3080f8cab7d94179b',
+]
+CONFIG['split-skip']['additional_inputs'] = [
+    {**CONFIG['skip-clones'], 'manifest': 'research/split-skip/SOURCE.json'},
+    {**CONFIG['skip-clones']['additional_inputs'][0],
+     'manifest': 'research/split-skip/SOURCE.json'},
+    {
+        'manifest': 'research/split-skip/SOURCE.json', 'field': 'files',
+        'path': 'scripts/audit_sparse_fusion.py', 'input_from_root': True,
+        'input': 'research/sparse-fusion-orbits-production/baseline.py',
+        'sha256': 'bbaa32f9786f083409e363b081bfb7a1e597c8d32e4183c13a4105c2170934ce',
+        'accepted_live_sha256': [
+            '6d1997fba802a8fc41099996b29e3add5d2b4f904da02548a98bed32c50aa773',
+        ],
+    },
+    {
+        'manifest': 'research/split-skip/SOURCE.json', 'field': 'files',
+        'path': 'scripts/shared_point_circuit.py', 'input_from_root': True,
+        'input': 'research/shared-point-digest/baseline.py',
+        'sha256': 'c9bb7a5df92d260a4e3ad532b53e26936730d7c93f7facfb0784957c1e81c8ba',
+        'accepted_live_sha256': [
+            'f5abbf6d61f3c10349416a3e1a1ed038bbd1279ed223367f2df549de46dd7ea5',
+            # PR2054: checked frame-containment cache and initialization successor.
+            '360d9bffc0f55315fe294789b72c71c79e0991524555b3a5f42a2ca504d7da95',
+        ],
+    },
+]
 
 
 def require(condition, message):
@@ -90,7 +141,13 @@ def authenticated_input(root, config, inputs=INPUTS):
         require(entry.get('representation') == 'bytes', 'Expected exact byte representation')
         entry = entry.get('sha256')
     require(entry == config['sha256'], 'Missing or changed predecessor source pin')
-    data = safe_path(inputs, config['input']).read_bytes()
+    # A replay must not hide an unrelated live source mutation.
+    if 'accepted_live_sha256' in config:
+        live = hashlib.sha256(safe_path(root, config['path']).read_bytes()).hexdigest()
+        require(live in (config['sha256'], *config['accepted_live_sha256']),
+                'Unrecognized live source update: ' + config['path'])
+    input_root = root if config.get('input_from_root') else inputs
+    data = safe_path(input_root, config['input']).read_bytes()
     require(hashlib.sha256(data).hexdigest() == entry, 'Changed historical input')
     if config.get('preserve_prefix'):
         require(data.endswith(b'\n') and safe_path(root, config['path']).read_bytes().startswith(data),
@@ -120,6 +177,8 @@ def materialize(root, destination, config, paths, inputs=INPUTS):
     for item, _ in replacements:
         require(item['path'] in paths and item['manifest'] in paths,
                 'Historical input or manifest is not tracked')
+        if item.get('input_from_root'):
+            require(item['input'] in paths, 'Historical baseline is not tracked')
     require(not destination.exists(), 'Replay destination already exists')
     destination.mkdir(parents=True)
     expected = {}
@@ -133,7 +192,7 @@ def materialize(root, destination, config, paths, inputs=INPUTS):
     for item, data in replacements:
         safe_path(destination, item['path']).write_bytes(data)
         expected[item['path']] = item['sha256']
-    # Authenticate again in the copied tree before executing any checker.
+    # Authenticate every replacement again before executing any checker.
     for item, _ in replacements:
         authenticated_input(destination, item, inputs)
     return expected

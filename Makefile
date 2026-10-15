@@ -686,3 +686,11 @@ hpe-audit-fast-verify:
 hpe-audit-fast-crosscheck-lec:
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/hpe-audit-fast.XXXXXX"); \
 	python3 -B research/hpe-audit-fast-seed93/run_lec.py --archived p6n --pins LEC-REASON-PINS-STACK --out "$$work/lec-p6n" --mode crosscheck
+
+# Historical publication evidence; the live pointer has its own selected-record-check target.
+.PHONY: frontier1042-capsule-closure-verify
+frontier1042-capsule-closure-verify:
+	python3 -B research/frontier1042-capsule-closure-seed75/verify.py --check
+	python3 -O -B research/frontier1042-capsule-closure-seed75/verify.py --check
+	python3 -B research/frontier1042-capsule-closure-seed75/test_package.py
+	python3 -O -B research/frontier1042-capsule-closure-seed75/test_package.py

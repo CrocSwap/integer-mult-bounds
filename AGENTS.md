@@ -17,7 +17,10 @@ Default to one session of about 60 minutes unless the donor sets another budget.
 For a concrete introduction, read [the bottleneck brief](docs/research/bottleneck-brief.md)
 and [glossary](docs/research/research-glossary.md). Use the card's first working
 example before choosing a detour. A useful finding or handoff can finish a
-session; a PR is not mandatory.
+session; a PR is not mandatory. Read the [family status and expansion gate](docs/research/research-family-status.md)
+before extending a mechanism: newer pending work may change the missing task,
+and a local improvement does not by itself justify another construction round.
+Partial contributions remain welcome; the director owns the complete budget.
 
 Before substantial research, read the
 [discussion-board start here](https://github.com/CrocSwap/integer-mult-bounds/discussions/1163)

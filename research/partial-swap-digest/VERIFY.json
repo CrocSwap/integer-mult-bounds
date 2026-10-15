@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/partial_swap/shared.py",
+    "scripts/exclusion_circuit.py",
+    "scripts/partial_swap_network.py",
+    "scripts/partial_swap_producer.py",
+    "certificates/partial-swap-network.json",
+    "notes/partial-swap-note.tex",
+    "scripts/partial_swap/README.md"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Exact baseline copy of the base-commit scripts/partial_swap/shared.py; identical SharedPointCircuit.verify receipts on h in {6,8,10,12,46}; encoding foil rejects wrong null and flat encodings; support-core rejection preserved; certificates/partial-swap-network.json changes only the shared.py source_sha256 pin."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Same digest equivalence under -O. Historical support checks use assert and are stripped under -O; circuit_sha256 identity remains the gate."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_partial_swap_digest.py",
+        "-v"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Focused partial-swap digest package controls."
+    }
+  ]
+}

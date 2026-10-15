@@ -223,7 +223,7 @@ def check_certificate_pin_discipline() -> dict:
     """Certificates may update exclusion_circuit.py and companion disjoint_tensor.py pins."""
     companion_key = "scripts/experiments/disjoint_tensor.py"
     companion_orig = "102dd59bf96033f96ba0dab4c2aba77b3a7a73b67b0f96929ff8b20a98b91cd8"
-    companion_opt = "085600fc922ae167b5981505e1a5caba4d1c1df15482f61d83d2c086fa89eac1"
+    companion_opt = "23763a4b6086fb3d19f9282fff5c118f53fa52e7a7f17da1bde990bd4cf8b6ac"
     reports = {}
     for rel in PINNED_CERTIFICATES:
         base = json.loads(git_show(rel).decode())

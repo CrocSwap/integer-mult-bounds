@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "chooser_seed": "a4f19c82e6b0357d9148e2c0b5d67a31",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Can scripts/experiments/disjoint_tensor.py:DisjointTensor.frame_data replace its per-node reachable-target bit enumeration with equivalent exact target-union propagation (as proved opt-in in research/disjoint-frame-unions / #1044) so verify_frames receipts, descendant bitsets, source unions and rectangle require() checks stay fieldwise identical on the historical h=26 circuit?",
+  "scope_change_reason": "The catalogue card asks for one measured replay bottleneck with before/after wall time and retained checks. Expertise override selected verifier-engineering after merged #2001 left DisjointTensor.verify_frames / frame_data as an explicit open question; profiling named the historical bit-enumeration loop in frame_data (~1.8s of ~2.2s verify_frames on h=26) as the next unclaimed hot path. The #1044 opt-in adapter is not the default production path.",
+  "bottleneck_link": "Side result on review throughput: disjoint-tensor-compression, ternary-side, dyadic-central-factor and parity-side certificates call DisjointTensor.verify_frames. A faster identical frame_data does not change kappa or the binding complex supplier.",
+  "budget_minutes": 60,
+  "stop_rule": "Ship an equivalence-preserving production frame_data change with frozen baseline, identical verify_frames receipts on the historical h=26 circuit, updated source pins only on the four binding certificates, registered replay and a measured before/after median. Do not invent kappa, do not touch ternary_side.py / audit_joint_frames.py, and do not run the selected cold frontier replay.",
+  "outcome": "completed",
+  "evidence": "PASS_DISJOINT_TENSOR_FRAME_UNIONS via research/disjoint-tensor-frame-unions/verify.py (also under -O); PASS_IDENTICAL_DISJOINT_TENSOR_FRAME_UNION_RECEIPTS via benchmark.py; four certificates differ from base only in the scripts/experiments/disjoint_tensor.py source pin.",
+  "author": "Wentao Li",
+  "github": "VictorLiwentao",
+  "email": "wentaol4@illinois.edu",
+  "ai_assistance": "Substantial AI assistance for orientation, overlap search, profiling, implementation, packaging, benchmarking and writing. Not independent human peer review.",
+  "open_questions": [
+    {
+      "question": "Should DisjointTensor.verify's dag_sha256 json.dumps path get a hand-rolled formatter like the mixed-point / SharedPoint digests?",
+      "why_it_matters": "After support masks and frame_data, json.dumps remains a secondary share of DisjointTensor.verify (~0.4s on h=26); a byte-identical encoder would be a different object.",
+      "first_step": "Profile the post-mask verify residual and compare a hand-rolled [[i,args,str(support)]] encoder against the committed dag_sha256.",
+      "blocked_by": "Out of this session's stop rule; frame_data / verify_frames was the measured bottleneck."
+    },
+    {
+      "question": "Can research/disjoint-frame-unions drop its opt-in monkeypatch now that production frame_data matches the accelerator?",
+      "why_it_matters": "The historical complete-audit package still swaps DisjointTensor.frame_data at runtime; that adapter is redundant once main carries the same algebra, but its certificate byte-for-byte claim is a separate provenance object.",
+      "first_step": "Diff accelerator.frame_data against production and decide whether the opt-in package becomes a pure historical replay fixture.",
+      "blocked_by": "Out of this session's stop rule; do not reopen #1044's certificate fixture."
+    }
+  ]
+}

@@ -23,6 +23,34 @@ def available_cpus():
 
 def memory_gib():
     """Physical memory in GiB, or None where the platform does not report it."""
+    if sys.platform == 'win32':
+        import ctypes
+
+        class MemoryStatusEx(ctypes.Structure):
+            _fields_ = [
+                ('dwLength', ctypes.c_uint32),
+                ('dwMemoryLoad', ctypes.c_uint32),
+                ('ullTotalPhys', ctypes.c_uint64),
+                ('ullAvailPhys', ctypes.c_uint64),
+                ('ullTotalPageFile', ctypes.c_uint64),
+                ('ullAvailPageFile', ctypes.c_uint64),
+                ('ullTotalVirtual', ctypes.c_uint64),
+                ('ullAvailVirtual', ctypes.c_uint64),
+                ('ullAvailExtendedVirtual', ctypes.c_uint64),
+            ]
+
+        status = MemoryStatusEx()
+        status.dwLength = ctypes.sizeof(status)
+        try:
+            query = ctypes.WinDLL('kernel32', use_last_error=True).GlobalMemoryStatusEx
+            query.argtypes = [ctypes.POINTER(MemoryStatusEx)]
+            query.restype = ctypes.c_int
+            # Match sysconf's total physical memory, not currently free memory.
+            if query(ctypes.byref(status)) and status.ullTotalPhys:
+                return status.ullTotalPhys / 2**30
+        except (AttributeError, OSError):
+            pass
+        return None
     try:
         return os.sysconf('SC_PAGE_SIZE')*os.sysconf('SC_PHYS_PAGES')/2**30
     except (AttributeError, ValueError, OSError):

@@ -1,0 +1,51 @@
+diff --git a/research/connector-quad-six-seedde3f84/README.md b/research/connector-quad-six-seedde3f84/README.md
+index bd14346bb..07910d4a1 100644
+--- a/research/connector-quad-six-seedde3f84/README.md
++++ b/research/connector-quad-six-seedde3f84/README.md
+@@ -73,3 +73,5 @@ The verifier checks every live source SHA-256 and Git blob, exhausts all distinc
+ ## Open next questions
+ 
+ This one-Q4 six-source family has a scoped cost obstruction. Any different operation arity, output-readout contract, or physical Q4 implementation is a separate hypothesis requiring a fresh budget and overlap check; no additional question is left open within this package's stated scope.
++
++Maintainer integration note: the historical task catalogue is retained as `task-catalog-snapshot.json` and checked against its original SHA-256 and Git blob. The live research priorities have advanced; all mathematical inputs remain checked at their original paths.
+diff --git a/research/connector-quad-six-seedde3f84/RESULT.json b/research/connector-quad-six-seedde3f84/RESULT.json
+index f61cf6bb3..cc84bf74a 100644
+--- a/research/connector-quad-six-seedde3f84/RESULT.json
++++ b/research/connector-quad-six-seedde3f84/RESULT.json
+@@ -111,7 +111,7 @@
+     "sources": 5
+   },
+   "operation": "Q_S: z += sum(B_j*x_j for j in S), exactly one root transition and four charged B-map additions",
+-  "runner_sha256": "76f7d8c4079f246ec45206d47295e47119bda841460e9deedf0ceca4a7ff2d08",
++  "runner_sha256": "f958532504cb407341821fe17dae34ef34de5a57f82a283e711f9557b82b0844",
+   "schema_version": 1,
+   "scope": "one four-source bundle plus the minimal parity-allowed singleton profile, with two readouts per nonzero output mask",
+   "six_source_minimal_profile": {
+diff --git a/research/connector-quad-six-seedde3f84/SOURCES.json b/research/connector-quad-six-seedde3f84/SOURCES.json
+index eb69948b3..1771d49fd 100644
+--- a/research/connector-quad-six-seedde3f84/SOURCES.json
++++ b/research/connector-quad-six-seedde3f84/SOURCES.json
+@@ -12,7 +12,8 @@
+       "path": "docs/research/agent-task-catalog.json",
+       "usage": "input",
+       "git_blob": "e8870e5917057d59b730eb14721a778639eca050",
+-      "sha256": "d46eb6d5b3e279428753d770653663fbdf1063e55c255ea073d768f344927ef7"
++      "sha256": "d46eb6d5b3e279428753d770653663fbdf1063e55c255ea073d768f344927ef7",
++      "snapshot_path": "research/connector-quad-six-seedde3f84/task-catalog-snapshot.json"
+     },
+     {
+       "path": "research/universal-connector-boundary/CERTIFICATE.json",
+diff --git a/research/connector-quad-six-seedde3f84/verify.py b/research/connector-quad-six-seedde3f84/verify.py
+index f8caf04d2..3eeb961a8 100644
+--- a/research/connector-quad-six-seedde3f84/verify.py
++++ b/research/connector-quad-six-seedde3f84/verify.py
+@@ -31,7 +31,8 @@ def check_pins() -> dict[str, str]:
+     manifest = read_json(HERE / "SOURCES.json")
+     digests = {}
+     for row in manifest["files"]:
+-        data = (ROOT / row["path"]).read_bytes()
++        source = HERE / "task-catalog-snapshot.json" if row["path"] == "docs/research/agent-task-catalog.json" else ROOT / row["path"]
++        data = source.read_bytes()
+         sha256 = hashlib.sha256(data).hexdigest()
+         need(sha256 == row["sha256"], "source SHA256 mismatch: " + row["path"])
+         need(git_blob_sha1(data) == row["git_blob"], "source Git blob mismatch: " + row["path"])

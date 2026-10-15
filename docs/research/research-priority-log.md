@@ -362,3 +362,82 @@ Next review trigger:
 ```
 
 Prepared by Douglas Colkitt with OpenAI Codex assistance. Apache-2.0.
+# Revision 5 — 2026-10-15: refresh family entry points and gate expansion
+
+**Base and selected sources.** Canonical main freshly fetched at
+`0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`; selected PR1094 conditional kappa
+`0.001672660197076918`, resolved through
+[selected-result.json](../../certificates/selected-result.json),
+[its review](community-batch1099-review.md) and
+[source manifest](../../research/community-frontier1094-audit/SELECTED-SOURCE.json).
+No selected scientific artifact is changed or newly certified.
+
+**Evidence and limitations.** Read the existing revision-4 assignments, the
+[review through #2027](community-efficient1000-review.md), recent open PR and
+Discussion summaries, and [workflow feedback](https://github.com/CrocSwap/integer-mult-bounds/discussions/1200#discussioncomment-18930476).
+That contributor reports that live handoffs yielded useful work across roughly
+35 sessions. This supports making handoffs easier to follow; it is not a measured
+population-wide success rate. The live sample is not a complete queue review.
+
+Inspected the descriptions and exact heads of pending
+[#2540](https://github.com/CrocSwap/integer-mult-bounds/pull/2540)
+(`630d557af5088f66b45c447969cee9576600e50b`) and
+[#2586](https://github.com/CrocSwap/integer-mult-bounds/pull/2586)
+(`7953c9a8f788a8de5cf2ced63d9a61b67c22c6f1`). They report local QQ16 decoder
+completion and P104 physical-dual construction, respectively, with explicit
+remaining obligations. Their mathematical claims were not replayed or admitted
+by this guidance change. Credit ywz65 and the predecessor authors retained in
+their PRs; the [family status record](research-family-status.md) preserves the
+key lineage and scope. Active follow-ups include
+[QQ16 bank retention](https://github.com/CrocSwap/integer-mult-bounds/discussions/2617)
+and [P104 endpoint fusion](https://github.com/CrocSwap/integer-mult-bounds/discussions/2619).
+
+The maintainer's local product audit `4b44c26ba` and checkpoint `aff5269d0` report
+useful coded/shared receiver improvements but a remaining unfavorable budget and
+scoped retiming optimum. They are local-only, not publicly reproducible evidence
+in this main checkout; their exact limitations and outstanding consumer/native
+obligations are recorded in the family page. The global change is a process gate,
+not an asserted universal theorem or a mandate to work on the product branch.
+
+**Allocation and decisions.** Old -> new weights are unchanged:
+bit mechanisms 20 -> 20; complex mechanisms 20 -> 20; recursive interfaces
+20 -> 20; adversarial audit 15 -> 15; independent verification 10 -> 10;
+verifier engineering 8 -> 8; consolidation 5 -> 5; incumbent optimization 2 -> 2.
+There is no measured reason here to reweight the entire portfolio.
+
+- Narrow P104's card to a still-unresolved correction/physical endpoint/hosting
+  obligation of a pinned follow-up. Keep independent audits available.
+- Advance QQ16's entry point to the pending complete local decoder and its
+  consumer/retention/whole-cover costs, while retaining the earlier scoped witness.
+- Continue targeted selected-stock and other missing-interface audits, with
+  live overlap checks before assigning already-covered arithmetic.
+- Retain alternative coding/geometry/interface exploration. Pause the maintainer's
+  fixed preparation retiming recipe; do not generalize its closure to other models.
+- Preserve task IDs and weights. Update mechanism-card first steps, overlap terms
+  and expansion criteria rather than adding many near-duplicate cards.
+
+**Next bounded experiments and stop rules.** A contributor can solve one scoped
+lemma, local construction or audit. Before expanding a family, require its exact
+boundary, complete obligation ledger, explicit cost allowance and the reason
+saved work does not return in the consumer. Unknown costs are not zero; an
+optimistic passing relaxation is not feasibility. Stop an implementation expansion
+when its favorable complete bound fails or its required access/consumer has no
+specified contract. Exploratory design can instead end with a bounded handoff.
+A changed graph, boundary or operation model with a concrete new budget can
+reopen a scoped closure. Further negative proofs should change an actual research
+decision, not merely extend a closed census.
+
+**Workflow versus scientific allocation.** The new family page is a central
+navigation record and an expansion template, not a required extra report from
+each donor. Use existing canonical threads for live status. Distinguish local
+module, complete supplier, integrated kappa and audit milestones. Keep parallel
+work distinct by mechanism/contract/obligation, not nonce. Broad weights remain
+allocation hypotheses; this patch makes no new scientific claim.
+
+**Review trigger.** Reassess after independent review of the named completion
+claims, a decisive complete-cost rejection, a new admitted supplier, or the next
+substantial PR review. Newer heads and handoffs can change the next useful task
+without changing the selected frontier. Refresh both primitive budgets before
+claiming a target-scale route.
+
+**Validation.** `python3.12 -B -m unittest discover -s tests -p 'test_research_*.py'` passed: 65 tests, 3 skipped. Both refreshed cards were exercised through the task-picker CLI; catalogue sources, weights and documented allocation agree. Relative documentation links and `git diff --check` passed. No new mathematical replay or frontier claim.

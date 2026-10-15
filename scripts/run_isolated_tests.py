@@ -10,6 +10,8 @@ Modules are scheduled concurrently (one isolated interpreter per module,
 --workers controls the width). Every module keeps the exact sequential
 command and its captured stdout/stderr bytes are replayed in sorted module
 order, so the combined receipts match a sequential run module for module.
+For PR53 skip-clones, the unchanged module command runs in a temporary
+copy with its authenticated frozen source instead of the optimized successor.
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -22,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def module_command(python, tests_dir, name):
-    """The one command every module runs, unchanged from the sequential runner."""
+    """Default unchanged command for a test module."""
     return [python, '-m', 'unittest', 'discover', '-s', str(tests_dir), '-p', name, '-v']
 
 
@@ -45,7 +47,17 @@ def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None):
     env.pop('PYTHONOPTIMIZE', None)
 
     def run_one(path):
-        result = subprocess.run(module_command(python, tests_dir, path.name),
+        command = module_command(python, tests_dir, path.name)
+        # Run this frozen package's original tests in its authenticated overlay.
+        # Other test modules continue to exercise the live checkout unchanged.
+        if (path.name == 'test_skip_clones.py'
+                and Path(tests_dir).resolve() == (ROOT / 'tests').resolve()
+                and Path(cwd).resolve() == ROOT.resolve()
+                and (ROOT / 'research/skip-clones/SOURCE.json').is_file()
+                and (ROOT / 'scripts/replay_historical_check.py').is_file()):
+            command = [python, '-B', str(ROOT / 'scripts/replay_historical_check.py'),
+                       'skip-clones-tests']
+        result = subprocess.run(command,
                                 cwd=cwd, env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return path, result.returncode, result.stdout, result.stderr

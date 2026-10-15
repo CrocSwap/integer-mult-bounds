@@ -1,0 +1,47 @@
+name: Lean transport cut
+on:
+  pull_request:
+    paths:
+      - 'research/lean-transport-cut/**'
+      - 'research/p104-native-channel/inputs/LOWRANK-WITNESS.json'
+      - '.github/workflows/lean-transport-cut.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/lean-transport-cut/**'
+      - 'research/p104-native-channel/inputs/LOWRANK-WITNESS.json'
+      - '.github/workflows/lean-transport-cut.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      LEAN_NUM_THREADS: '4'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Checksum-pinned official Lean
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://github.com/leanprover/lean4/releases/download/v4.21.0/lean-4.21.0-linux.tar.zst -o "$RUNNER_TEMP/transport-lean.tar.zst"
+          echo "455c6df09d5bd54d2a51b137939c47e2dda816d512ac789c4b3642c9bf98bde8  $RUNNER_TEMP/transport-lean.tar.zst" | sha256sum --check
+          tar --zstd -xf "$RUNNER_TEMP/transport-lean.tar.zst" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-4.21.0-linux/bin" >> "$GITHUB_PATH"
+      - name: Provision pinned Mathlib modules
+        working-directory: research/lean-transport-cut
+        run: lake exe cache get Mathlib.LinearAlgebra.Dimension.Constructions Mathlib.LinearAlgebra.FiniteDimensional.Basic
+      - name: Source and artifact checks
+        run: |
+          python -I -B research/lean-transport-cut/verify.py
+          python -I -B research/lean-transport-cut/test_verify.py
+      - name: Fresh kernel proofs and rejecting formal controls
+        run: python -I -B research/lean-transport-cut/check_lean.py --lake lake
+      - run: git diff --exit-code

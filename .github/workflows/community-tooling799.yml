@@ -1,8 +1,8 @@
 name: Community exact tooling and scoped audits
 on:
   workflow_dispatch:
+  # Keep these path-scoped checks available on contributor fork branches.
   push:
-    branches: [main]
     paths:
       - 'research/clifford-state-performance/**'
       - 'research/gram-prefix-performance/**'
@@ -11,6 +11,10 @@ on:
       - 'research/sw4-owner-optimality/**'
       - 'research/pr695-digest-audit/**'
       - 'scripts/verify_pr_reconciliation.py'
+      - 'scripts/replay_historical_check.py'
+      - 'scripts/historical-ci-inputs/**'
+      - 'tests/test_pr_reconciliation.py'
+      - 'tests/test_historical_check.py'
       - 'tests/test_reconciliation_archive.py'
       - '.github/workflows/community-tooling799.yml'
   pull_request:
@@ -22,6 +26,10 @@ on:
       - 'research/sw4-owner-optimality/**'
       - 'research/pr695-digest-audit/**'
       - 'scripts/verify_pr_reconciliation.py'
+      - 'scripts/replay_historical_check.py'
+      - 'scripts/historical-ci-inputs/**'
+      - 'tests/test_pr_reconciliation.py'
+      - 'tests/test_historical_check.py'
       - 'tests/test_reconciliation_archive.py'
       - '.github/workflows/community-tooling799.yml'
 permissions:
@@ -53,6 +61,7 @@ jobs:
       - name: Current ledger and archive integrity controls
         run: |
           python -B scripts/verify_pr_reconciliation.py
+          python -B -m unittest discover -s tests -p 'test_historical_check.py' -v
           python -B -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
           python -B -O -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
       - run: git diff --exit-code

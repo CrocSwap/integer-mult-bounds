@@ -1,0 +1,269 @@
+diff --git a/research/four-swap-balanced-j3-layer/README.md b/research/four-swap-balanced-j3-layer/README.md
+index 2dddd1922..4178ba91e 100644
+--- a/research/four-swap-balanced-j3-layer/README.md
++++ b/research/four-swap-balanced-j3-layer/README.md
+@@ -54,7 +54,10 @@ prod (1 + eps_i) = 1 + sum eps_i + sum_{i<j} eps_i eps_j    (mod J^3 M_r)
+ is exact and is checked on seeded random words (same-label pairs already
+ vanish identically because `([a]+1)^2 = ([b]+1)^2 = 0`). But after reduction
+ the whole layer equation collapses entrywise to `sum_i N_i = I_r`, nothing
+-more. The verifier machine-checks the equivalence
++more (for a target that restores a role with the identity boundary, the
++right-hand side is the target's own z-coefficient matrix instead: `diag(I_4,0)`
++at `r = 5` with one restored fifth role, whose target augmentation is zero).
++The verifier machine-checks the equivalence
+ (`layer check holds  <=>  sum N_i = I_r`) on 200/200 random instances, and
+ the search below confirms it exhaustively on its own domain: every one of the
+ 5,771,556 balanced labelings passed the layer check, because the sampler
+@@ -93,7 +96,10 @@ and `r = 2` (`q = 6` balanced, 3,254 witnesses); a strict-relaxation honesty
+ control exhibits a layer-feasible word that fails full equality; conjugation
+ of `N` by `GL_r(F2)` preserves the idempotent family; and two hand-derived
+ pins (`([a]+1)^2 = 0`; `([a]+1)([b]+1)([a]+1) = [aba]+[ab]+[ba]+[b]`) bind
+-the group algebra implementation.
++the group algebra implementation. A restored-role regression control pins the
++corrected `r = 5` sign quotient: the fifth role's target augmentation is zero,
++`sum N_i = diag(I_4, 0)`, and an `I_5` total fails the endpoint layer equation
++(see open question 2).
+ 
+ ## Reproduce
+ 
+@@ -153,8 +159,16 @@ profile or kappa follows; the selected frontier is unchanged.
+ 2. **The same balanced question at `r = 5` with one restored dirty extra.**
+    Smallest falsifying instance of "workspace cheapens the tariff". First
+    step: rerun the conditioned sampler at `r = 5`, target
+-   `diag([S],[S],[S],[S],1)`, `sum N_i = I_5` (the sign-quotient lemma is
+-   register-count independent). Blocked by: nothing; it is open compute.
++   `diag([S],[S],[S],[S],1)`, conditioning on `sum N_i = diag(I_4, 0)`:
++   the restored fifth role carries the identity boundary, so its target
++   augmentation is zero and the sign quotient (register-count independent)
++   forces the fifth diagonal entry of `sum N_i` to be 0. The earlier
++   `sum N_i = I_5` wording was wrong and would exclude every solution to that
++   endpoint: the four disjoint `aba`/`bab` control word with the fifth role
++   restored realizes `diag([S],[S],[S],[S],1)` exactly and has
++   `sum N_i = diag(I_4, 0) != I_5`, so an `I_5`-conditioned sampler rejects
++   it. `verify.py` and `test_verify.py` pin the corrected condition by exact
++   check. Blocked by: nothing; it is open compute.
+ 
+ ## Credit and license
+ 
+diff --git a/research/four-swap-balanced-j3-layer/TASK.json b/research/four-swap-balanced-j3-layer/TASK.json
+index 6901b71fc..c9471dfc3 100644
+--- a/research/four-swap-balanced-j3-layer/TASK.json
++++ b/research/four-swap-balanced-j3-layer/TASK.json
+@@ -58,7 +58,7 @@
+   {
+    "question": "Does the balanced-profile obstruction at r = 4 persist at r = 5 with one restored dirty extra register?",
+    "why_it_matters": "It is the smallest falsifying instance of 'workspace cheapens the tariff' for four SWAP targets and tests whether register growth changes the picture.",
+-   "first_step": "Rerun the same conditioned search at r = 5 with target diag([S] x 4, 1) and the identical sum N_i = I_5 reduction, which the sign-quotient lemma still justifies.",
++   "first_step": "Rerun the same conditioned search at r = 5 with target diag([S] x 4, 1), conditioning on sum N_i = diag(I_4, 0): the restored fifth role carries the identity boundary, so its target augmentation is zero and the sign quotient forces diag(I_4, 0), not I_5 (corrected after review follow-up; the earlier I_5 wording would exclude every solution to that endpoint).",
+    "blocked_by": "The r = 5 balanced question itself is open; only the r = 4 balanced domain was searched here."
+   }
+  ]
+diff --git a/research/four-swap-balanced-j3-layer/VERIFY.json b/research/four-swap-balanced-j3-layer/VERIFY.json
+index 55f849077..66290e0c1 100644
+--- a/research/four-swap-balanced-j3-layer/VERIFY.json
++++ b/research/four-swap-balanced-j3-layer/VERIFY.json
+@@ -14,7 +14,7 @@
+     "--full"
+    ],
+    "timeout_seconds": 600,
+-   "checks": "Hand algebra pins ([a]+1)^2 = 0 and the ([a]+1)([b]+1)([a]+1) coefficient pin; J^2 = J^3 obstruction; layer-check equivalence with sum N_i = I_r (200/200); J^3 expansion identity on seeded random words; four direct control words and four mutation controls; r=1/r=2 balanced search finders; the recorded 6,000,000 sample balanced (5a,5b) search with exact M_4(F2[G]) equality."
++   "checks": "Hand algebra pins ([a]+1)^2 = 0 and the ([a]+1)([b]+1)([a]+1) coefficient pin; J^2 = J^3 obstruction; layer-check equivalence with sum N_i = I_r (200/200); J^3 expansion identity on seeded random words; four direct control words and four mutation controls; r=1/r=2 balanced search finders; restored-role sign-quotient control at r = 5 (endpoint diag([S],[S],[S],[S],1) forces sum N_i = diag(I_4,0), fifth-role target augmentation zero, 12-call disjoint witness, I_5 shown to overconstrain, r=5 layer equivalence 200/200); the recorded 6,000,000 sample balanced (5a,5b) search with exact M_4(F2[G]) equality."
+   },
+   {
+    "argv": [
+@@ -24,7 +24,7 @@
+     "{package}/test_verify.py"
+    ],
+    "timeout_seconds": 120,
+-   "checks": "Independent hand-derived algebra pins, layer expansion identity, direct-word and mutation controls, conjugation closure of rank-one idempotents, known-solvable search instances, and the strict-relaxation honesty control."
++   "checks": "Independent hand-derived algebra pins, layer expansion identity, direct-word and mutation controls, conjugation closure of rank-one idempotents, known-solvable search instances, the strict-relaxation honesty control, and the restored-role regression pins (permutation-sign quotient matching the J^2 = J^3 reduction, zero fifth-role target augmentation, endpoint witness with sum N_i = diag(I_4,0) != I_5, and r = 5 layer equivalence with diag(I_4,0))."
+   }
+  ]
+ }
+\ No newline at end of file
+diff --git a/research/four-swap-balanced-j3-layer/test_verify.py b/research/four-swap-balanced-j3-layer/test_verify.py
+index 85c701020..135fd0ac5 100644
+--- a/research/four-swap-balanced-j3-layer/test_verify.py
++++ b/research/four-swap-balanced-j3-layer/test_verify.py
+@@ -104,5 +104,74 @@ class SearchControls(unittest.TestCase):
+         self.assertNotEqual(V.word_value(2, labels, mats), V.target(2, 2))
+ 
+ 
++class RestoredRoleSignQuotient(unittest.TestCase):
++    """Regression control for the review follow-up on
++    https://github.com/CrocSwap/integer-mult-bounds/pull/1755.
++
++    At r = 5 with endpoint diag([S],[S],[S],[S],1) the fifth role is restored
++    with the identity boundary: its target augmentation is zero, so the sign
++    quotient forces sum N_i = diag(I_4, 0), not I_5.  Conditioning on I_5
++    would exclude every solution to that endpoint.  Hand derivation: rho([g])
++    = 1 + sign(g) z is the sign quotient F2[G] -> F2[z]/(z^2) with z^2 = 0,
++    every paid factor 1 + ([g]+1) N reduces to 1 + z N (a and b are odd), so
++    the word reduces to 1 + z sum N_i while the endpoint reduces to
++    1 + z diag(I_4, 0); comparing z-coefficients gives sum N_i = diag(I_4,0).
++    """
++
++    def setUp(self):
++        V.build()
++
++    def test_sign_quotient_is_permutation_sign(self):
++        # The quotient is determined by the permutation sign of GL_2(F2) on
++        # the three nonzero vectors: even elements (identity, the two
++        # 3-cycles) reduce to 0, odd ones (the three transpositions, incl.
++        # a, b, S) to z.  This must agree with the J^2 = J^3 reduction.
++        for g in V.ELEMS:
++            self.assertEqual(V.RED[V.gplus(g)] == 0, V.perm_sign(g) == 0)
++        self.assertEqual([V.perm_sign(g) for g in (V.A, V.B, V.S)], [1, 1, 1])
++        self.assertEqual(V.perm_sign(V.IDE), 0)
++
++    def test_fifth_role_target_augmentation_is_zero(self):
++        zt = V.zcoef_mR(5, V.target(5, 4))
++        self.assertEqual(zt, V.diag_m(5, 4), "endpoint z-coefficient is diag(I_4,0)")
++        self.assertEqual((zt >> 24) & 1, 0, "fifth role's augmentation must be zero")
++        self.assertNotEqual(zt, V.ident_m(5), "I_5 must not be the forced condition")
++        self.assertEqual(zt ^ V.ident_m(5), 1 << 24, "they differ only in the (5,5) entry")
++        # The retained r = 4 statement is unchanged: all four roles swapped.
++        self.assertEqual(V.zcoef_mR(4, V.target(4, 4)), V.ident_m(4))
++
++    def test_endpoint_witness_and_i5_overconstraint(self):
++        labels = (V.A, V.B, V.A) * 2 + (V.B, V.A, V.B) * 2
++        mats = (V.idem(5, 1, 1),) * 3 + (V.idem(5, 2, 2),) * 3 + \
++               (V.idem(5, 4, 4),) * 3 + (V.idem(5, 8, 8),) * 3
++        self.assertEqual(V.word_value(5, labels, mats), V.target(5, 4),
++                         "12-call disjoint word must realize the endpoint")
++        total = 0
++        for n in mats:
++            total ^= n
++        self.assertEqual(total, V.diag_m(5, 4))
++        self.assertNotEqual(total, V.ident_m(5),
++                            "I_5 conditioning would reject this solution")
++        self.assertTrue(V.layer_value_ok(5, labels, mats, 4))
++        # Forcing the total to I_5 must break the endpoint layer equation.
++        self.assertEqual(total ^ V.idem(5, 16, 16), V.ident_m(5))
++        self.assertFalse(V.layer_value_ok(5, labels + (V.A,),
++                                          mats + (V.idem(5, 16, 16),), 4))
++
++    def test_layer_iff_sum_is_diag_i4_zero(self):
++        rng = random.Random(20261016)
++        idems = V.rank_one_idempotents(5)
++        zt = V.diag_m(5, 4)
++        for _ in range(200):
++            q = rng.randrange(2, 8)
++            labels = tuple((V.A, V.B)[rng.randrange(2)] for _ in range(q))
++            mats = tuple(rng.choice(idems) for _ in range(q))
++            total = 0
++            for n in mats:
++                total ^= n
++            self.assertEqual(V.layer_value_ok(5, labels, mats, 4), total == zt,
++                             "r=5 layer check must be equivalent to sum N_i = diag(I_4,0)")
++
++
+ if __name__ == "__main__":
+     unittest.main(verbosity=2)
+diff --git a/research/four-swap-balanced-j3-layer/verify.py b/research/four-swap-balanced-j3-layer/verify.py
+index a49777189..341d81ae7 100644
+--- a/research/four-swap-balanced-j3-layer/verify.py
++++ b/research/four-swap-balanced-j3-layer/verify.py
+@@ -303,6 +303,47 @@ def layer_value_ok(r, labels, mats, k):
+     return all(RED[a ^ b] == 0 for a, b in zip(lhs, tgt))
+ 
+ 
++# ------------------------------------------------------- sign quotient (exact)
++def _m2_vec(g, v):
++    """Action of g in GL_2(F2) on column vector v (bit0 = x, bit1 = y)."""
++    x = bin((g & 3) & v).count("1") & 1
++    y = bin(((g >> 2) & 3) & v).count("1") & 1
++    return x | (y << 1)
++
++
++def perm_sign(g):
++    """Sign of g: parity of its permutation of the 3 nonzero vectors of F2^2."""
++    vecs = (1, 2, 3)
++    perm = [vecs.index(_m2_vec(g, v)) for v in vecs]
++    return sum(1 for i, j in itertools.combinations(range(3), 2)
++               if perm[i] > perm[j]) & 1
++
++
++def zcoef(x):
++    """z-coefficient of the sign-quotient image rho(x) in F2[z]/(z^2)."""
++    c = 0
++    for i in range(6):
++        if (x >> i) & 1:
++            c ^= perm_sign(ELEMS[i])
++    return c
++
++
++def zcoef_mR(r, x):
++    """Entrywise z-coefficient matrix of rho applied to x in M_r(R)."""
++    out = 0
++    for e in range(r * r):
++        if zcoef(x[e]):
++            out |= 1 << e
++    return out
++
++
++def diag_m(r, k):
++    n = 0
++    for p in range(k):
++        n |= 1 << (p * r + p)
++    return n
++
++
+ # ------------------------------------------------------------------- controls
+ def direct_control_words():
+     """(r, labels, mats, k): known direct words realizing diag([S]^k, 1..)."""
+@@ -437,6 +478,54 @@ def run_controls():
+             equiv += 1
+     assert equiv == 200, "layer check must be equivalent to sum N_i = I_r"
+     lines.append("j2_eq_j3=1 layer_iff_sum=200/200")
++    # Restored-role sign quotient (review follow-up on
++    # https://github.com/CrocSwap/integer-mult-bounds/pull/1755): at r = 5 with
++    # endpoint diag([S],[S],[S],[S],1) the fifth role is restored with the
++    # identity boundary, so its target augmentation is zero and the quotient
++    # forces sum N_i = diag(I_4, 0), NOT I_5.  Conditioning on I_5 would
++    # exclude every solution to that endpoint.  Exact checks below: the
++    # permutation sign agrees with the J^2 = J^3 reduction, the endpoint's
++    # z-coefficient matrix is diag(I_4,0) with a zero fifth diagonal entry, a
++    # 12-call disjoint witness realizes the endpoint with sum N_i =
++    # diag(I_4,0) != I_5, forcing the total to I_5 breaks the endpoint layer
++    # equation, and the r = 5 layer equation stays equivalent to
++    # sum N_i = diag(I_4,0) on 200/200 random instances.
++    assert all(perm_sign(g) == (0 if RED[gplus(g)] == 0 else 1) for g in ELEMS), \
++        "sign quotient must match the J^2 = J^3 reduction"
++    zt = zcoef_mR(5, target(5, 4))
++    assert zt == diag_m(5, 4) and not (zt >> 24) & 1, \
++        "fifth role's target augmentation must be zero"
++    labels5 = (A, B, A) * 2 + (B, A, B) * 2
++    mats5 = (idem(5, 1, 1),) * 3 + (idem(5, 2, 2),) * 3 + \
++            (idem(5, 4, 4),) * 3 + (idem(5, 8, 8),) * 3
++    assert word_value(5, labels5, mats5) == target(5, 4), \
++        "restored-role control word must realize diag([S],[S],[S],[S],1)"
++    total5 = 0
++    for n in mats5:
++        total5 ^= n
++    assert total5 == zt and total5 != ident_m(5), \
++        "I_5 conditioning must overconstrain the restored-role endpoint"
++    assert layer_value_ok(5, labels5, mats5, 4), "witness must pass the layer check"
++    forced5 = total5 ^ idem(5, 16, 16)
++    assert forced5 == ident_m(5)
++    assert not layer_value_ok(5, labels5 + (A,), mats5 + (idem(5, 16, 16),), 4), \
++        "an I_5 total must fail the endpoint layer equation"
++    rng = random.Random(20261016)
++    idems5 = rank_one_idempotents(5)
++    equiv5 = 0
++    for _ in range(200):
++        q = rng.randrange(2, 8)
++        labels = tuple((A, B)[rng.randrange(2)] for _ in range(q))
++        mats = tuple(rng.choice(idems5) for _ in range(q))
++        total = 0
++        for n in mats:
++            total ^= n
++        if layer_value_ok(5, labels, mats, 4) == (total == zt):
++            equiv5 += 1
++    assert equiv5 == 200, \
++        "r=5 layer check must be equivalent to sum N_i = diag(I_4,0)"
++    lines.append("r5_restored_role=1 fifth_role_zcoef=0 i5_overconstrains=1 "
++                 "layer_iff_sum_diagI4zero=200/200")
+     return lines, r1, r2
+ 
+ 

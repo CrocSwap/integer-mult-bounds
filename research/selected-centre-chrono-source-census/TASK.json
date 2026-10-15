@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "task_id": "centre-path-sharing",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "original_card": {
+    "id": "centre-path-sharing",
+    "question": "Can the 64-per-call centre path (eight rank-8 COPY/ERASE totals through the private temporary) be shared across calls or shrunk?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/split-centres-global/proofs/PR386-BIT-GEOMETRY.txt",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Derive a fully charged favorable relaxation for sharing one centre path across k calls, including restoration, hosting and precision.",
+      "Prove a lower bound on copied information per call for the selected decoder contract."
+    ],
+    "acceptance_gate": "Show the changed centre charge and copy profile per call with every added restoration or hosting cost charged, and its ceiling via ceiling.ceiling(centre=...).",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Write the per-call centre charge and copy children for sharing across k = 2 calls, charge the sharing overhead, and screen it; stop this route if even the ideal sharing gains under 10%. Ideal budgets: free 2.80x, shared by two 1.90x (levers.py).",
+    "bottleneck_link": "The centre path consumes 64 of about 99.6 unpaid coordinates per call, i.e. about 64% of the raw deficit.",
+    "allowed_variations": [
+      "One sharing pattern across a fixed number of calls.",
+      "One reduced copied-total contract for the existing decoder.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Removing copies without a replacement contract for the decoder's copied totals."
+    ],
+    "overlap_terms": [
+      "centre path",
+      "copied totals",
+      "private temporary",
+      "shared centre",
+      "batching"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "PR2048 open question 2 in PR1918's common-frame scalar projection: execute all 144 selected local_cover_sweep calls (80 forward, 64 backward) in execution_schedule order from a formal initial owner vector (calls only; bridge, idle_cover_sweep, terminal, padding and translate events not executed). Record the 8 centre-input functionals per call (1,152 rows). Compute the exact rank of every shared-source or write-to-read dependent pair, the global rank, PR1918's roles 0..111 column restriction on every dependent pair (a source-data statistic only for forward calls), and an exact D-block identity on the 16 same-block forward0->backward1 pairs. No centre-charge change.",
+  "scope_change_reason": "The card's sharing relaxation is capped by existing budgets (PR1708/1748/1791, PR2076). Method 2 (copied information per call) was narrowed to the explicit open handoff PR2048 Q2. PR1918 and PR2048 treat one disjoint-data forward pair. Dependent and shared-source pairs, which are mostly mixed-orientation, and the global rank had not been computed.",
+  "bottleneck_link": "Linear-transcript centre sharing across calls needs a source-rank deficiency. PR1918's lemma says d >= rank. This package tests that premise on every chronologically dependent pair and on all 1,152 centre rows of the selected schedule, within the declared projection. It is a side result and changes no centre charge.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop if PR1918's rank 16 or its source maps are not reproduced. Restrict to forward calls if backward centre inputs are ambiguous. Restrict to stages 0-1 if the replay exceeds 10 min or 1.5 GB. Freeze at the experiment deadline. None of these triggered: the full replay takes about 30 s and under 200 MB.",
+  "outcome": "negative-result",
+  "evidence": "verify.py recomputes RESULT.json from pinned inputs. It reproduces PR1918's 16 source maps, rank 16 and data-only rank 16. Global formal centre-source rank is 1152/1152 over Q and mod 2^61-1 (640 forward, 512 backward). All 1,539 dependent pairs have rank 16, both formally and restricted to the pair's roles 0..223 owners. This is a formal-row statement in the calls-only projection; it does not give PR1918's lemma bound for groupings, which needs a fixed-dirt source-only output-increment rank and separate output panels (not computed; some scatter panels overlap). Restricted to roles 0..111 variables, 671 of 1,539 dependent pairs have rank below 16, including all 96 shared-data pairs (rank 8, six classes) and 51 pairs at rank 0; for backward calls roles 0..111 are the written target block, not source data. For the 16 same-block forward0->backward1 pairs the verifier certifies backward1 centre k |_D = (1/4) forward0 centre k |_D, with exact kernel witnesses, and also certifies that zeroing only the target block keeps rank 16 (forward0 also reads helper roles). Internal and external negative controls fail as required.",
+  "author": "thakrarsagar",
+  "ai_assistance": "Substantial AI assistance from Claude (Anthropic, Claude Opus 5.5): scoping, source inspection, implementation, exact experiments and packaging. No independent human proof review is claimed.",
+  "open_questions": [
+    {
+      "question": "Do the full-rank and pair-rank conclusions survive when the 144 bridge and 160 idle_cover_sweep events are executed at owner level, not omitted?",
+      "why_it_matters": "These events move data between families between calls. The calls-only projection treats them as identity. Zeroing owners first touched as helpers drops the global rank to 570, so the conclusion depends on owner contents that these events change.",
+      "first_step": "Derive owner-level scalar semantics for one bridge ({src pair -> dst pair, coefficient, replica}) from GLOBAL-TEMPLATE route_semantics and DATA-PHASES.json. Replay replica 0, stages 0-2.",
+      "blocked_by": "Bridges and idle sweeps are pair- and family-level events. Owner-level coefficients need frame and route data that this projection does not use."
+    },
+    {
+      "question": "What is the fixed-dirt, source-only output-increment rank of a grouping of calls, and are its output panels separate?",
+      "why_it_matters": "Only that quantity feeds PR1918's lemma (d >= rank). Formal full rank of the centre rows does not imply a bound for groupings, and centre-scatter panels overlap (e.g. f0->f2 pairs share all 88 destination owners).",
+      "first_step": "For the 16 f0->f2 pairs, compute the output-increment map from the orientation-correct source block only (D for forward, T for backward), with target and helper dirt held fixed, and its rank.",
+      "blocked_by": "A per-orientation source/dirt split and output-panel definition must be fixed first."
+    },
+    {
+      "question": "Does the identity (backward1 centre k restricted to D = 1/4 of forward0 centre k restricted to D) lift to PR2048's native 512-address charted frames, and could any reuse be fully priced?",
+      "why_it_matters": "The identity holds only on the D block: the full f0->b1 rows stay rank 16 even with the target block zeroed, because forward0 also reads helper roles. Even an exact native lift is not a reuse lead without the helper part, plus storage, transport, restoration, hosting and precision, fully priced.",
+      "first_step": "Apply PR2048's native lift to calls 0 and 4 (replica 0). Test whether the D-restricted native source maps of backward centre k and forward centre k are proportional.",
+      "blocked_by": "Native frame transport and centre semantics. A favourable answer is still not a kappa improvement without a complete cost invoice."
+    }
+  ],
+  "coordination": "https://github.com/CrocSwap/integer-mult-bounds/discussions/1163#discussioncomment-18935621"
+}

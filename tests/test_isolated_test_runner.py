@@ -131,6 +131,14 @@ class IsolatedRunnerTest(unittest.TestCase):
         self.assertFalse(any(line.startswith('PASS all') for line in lines))
         self.assertIn('Failed modules: test_b_fail.py', result.stderr.decode())
 
+    def test_same_named_synthetic_clone_test_still_fails(self):
+        # A name alone must not trigger the production historical overlay.
+        box = self.sandbox({'test_skip_clones.py': FAIL_MODULE})
+        result = box.run('--workers', '1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('deliberate negative control', result.stderr.decode())
+        self.assertIn('Failed modules: test_skip_clones.py', result.stderr.decode())
+
     def test_inherited_optimization_cannot_hide_verifier_assertions(self):
         # Research tests call verifiers that still use Python assert. The
         # outer runner itself may be optimized, but its checks must not be.
