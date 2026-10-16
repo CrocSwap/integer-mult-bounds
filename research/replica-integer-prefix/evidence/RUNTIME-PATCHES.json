@@ -1,0 +1,154 @@
+[
+  {
+    "after_sha256": "52f8b4cec2dab69cbe590e1fd0f7a68e1b35de5a540bd22fd2adfce07a92b46b",
+    "before_sha256": "faf283eb4edd2e6a1ccb40b3cb3ba30ae54338eaf5ea0a10d84d11d7939502af",
+    "path": "new/rebind.py",
+    "replacements": [
+      [
+        "physical=spec['expected']['live'] + 8 + R + 2)",
+        "physical=spec['expected']['live'] + 8 + R + 2 + max(len(rd(d / 'CANONICAL-WORD.json.gz').get('zero_buffers', [])) for d in locs.values()))"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "6cfefe80c02a6c0f243f50ca9e146e1ab1440b84a033d8a71d42be5a5fa27f6b",
+    "before_sha256": "c43680a2da390f79925547a5ee1919d8a76637cccf98e2c8164b6f667fbc3183",
+    "path": "verify_release.py",
+    "replacements": [
+      [
+        "Fraction(1, 10 ** 3046) - Fraction(1, 10 ** 3022)",
+        "Fraction(1, 10 ** (spec['outer_refinement']['endpoint_digits'] + 46)) - Fraction(1, 10 ** (spec['outer_refinement']['endpoint_digits'] + 22))"
+      ],
+      [
+        "epsilon=1-(1025/1024)e-3080",
+        "epsilon=1-(1025/1024)e-{spec['outer_refinement']['endpoint_digits']+80}"
+      ],
+      [
+        "at the one 3000-digit rejection call",
+        "at the one {spec['outer_refinement']['endpoint_digits']}-digit rejection call"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "1dd56009986eb14dd6603c9193c7ad71dd45c7d005bf71c9cd3f916e66f54d98",
+    "before_sha256": "9e12909c73d3b3a31a45d801ae76c034510d6306400412e474df79bc4f1dc67e",
+    "path": "outer/check_ledger.py",
+    "replacements": [
+      [
+        "assert (m,W)==(73,66304)",
+        "T=spec['geometry']['replicas']\nassert type(T) is int and T>0\nassert m==73 and W==896*T and W==BJ['live']"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "ebaf637f1f818dac9c0fce0ee3f18df300873105818cea29a8ae9e8b737b5c7d",
+    "before_sha256": "08ca58abff11bdfba721dc56ab8acf06ec1b7c48a8699a0955cf35324680aca7",
+    "path": "code/witness.py",
+    "replacements": [
+      [
+        "   with open(os.environ['WITNESS_RECORD'],'a')as f:f.write(json.dumps([key,got],default=str)+chr(10))",
+        "   import time as _wr_time\n   _wr_path=Path(os.environ['WITNESS_RECORD'])\n   _wr_lock=_wr_path.with_name(_wr_path.name+'.append.lock')\n   _wr_deadline=_wr_time.monotonic()+60\n   _wr_fd=None\n   while _wr_fd is None:\n    try:_wr_fd=os.open(_wr_lock,os.O_CREAT|os.O_EXCL|os.O_WRONLY)\n    except FileExistsError:\n     if _wr_time.monotonic()>=_wr_deadline:raise TimeoutError('discovery record lock timeout; existing lock preserved')\n     _wr_time.sleep(.005)\n   try:\n    with _wr_path.open('a',encoding='utf-8',newline='\\n')as _wr_out:\n     _wr_out.write(json.dumps([key,got],default=str)+chr(10))\n     _wr_out.flush()\n   finally:\n    os.close(_wr_fd)\n    _wr_lock.unlink()"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "9a4f74df6a92e537152f91a4f0f758d8889b8bd4c7366f0a6356f518ff28f4c8",
+    "before_sha256": "c52149ed10c0cae4950c92cef0edc38f382c5cc74cf66c5eeeebb7191b4bc0a0",
+    "path": "verify.py",
+    "replacements": [
+      [
+        "run('lift-parent',P/'lift_parent.py','--owners',work/'rebuilt-owners','--out',work/'rebuilt-parent')",
+        "run('lift-parent',P/'lift_parent.py','--package',P,'--owners',work/'rebuilt-owners','--out',work/'rebuilt-parent')"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "e1c6659f86163b2b54f7af0a540ba489f0a1d16088ab7a41745280acd74d6b84",
+    "before_sha256": "26950da76589b13cd9c452fdee1b0c354806977f881299bd94073f00e4646fcd",
+    "path": "audit_fast.py",
+    "replacements": [
+      [
+        "_part.with_suffix('.tmp').write_text(_j.dumps([_idx[0],_own]));_part.with_suffix('.tmp').replace(_part.with_name(_part.name+'.%d'%_AF_SHARD));_s.exit(0)",
+        "_tmp=_part.with_name(_part.name+'.%d.%d.tmp'%(_AF_SHARD,os.getpid()));_tmp.write_text(_j.dumps([_idx[0],_own]));_tmp.replace(_part.with_name(_part.name+'.%d'%_AF_SHARD));_s.exit(0)"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "98b693592c89c3f2dde93243fb5fd61c002e216f700b9b582e984e522142d781",
+    "before_sha256": "ebaf637f1f818dac9c0fce0ee3f18df300873105818cea29a8ae9e8b737b5c7d",
+    "path": "code/witness.py",
+    "replacements": [
+      [
+        "assert PAYLOAD==1<<(192+(GEO['dimension']+1)//2+2*CALLS+4).bit_length()",
+        "assert type(GEO['local_prefix_bits_bound']) is int and 0<GEO['local_prefix_bits_bound']<=192\nassert type(PAYLOAD) is int and PAYLOAD>0\nassert PAYLOAD==GEO['local_prefix_bits_bound']+(GEO['dimension']+1)//2+2*CALLS+5, 'minimal integer prefix reserve'"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "3a9a30f98b7be3f20afbf6140e8d7e8bd6b27b6adafc63d11dd259f1f2539f14",
+    "before_sha256": "02502a217fe8c9e10229075b50745518beac512c48db20e64c3e06514a4da5b5",
+    "path": "independent_core.py",
+    "replacements": [
+      [
+        "payload = 1 << (192 + (M+1)//2 + 2*len(c['order']) + 4).bit_length()",
+        "require(type(localbits) is int and 0 < localbits <= 192, 'actual native prefix bound')\n    payload = localbits + (M+1)//2 + 2*len(c['order']) + 5"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "21174889e7e9c2b8d9a179b9233a35d2f5d5dc8b23af280ac16f1225134a99d5",
+    "before_sha256": "bb213d0af12218ff7c9c572717e522d8bbeeb2856b87a253f4a7f44e0fd71f15",
+    "path": "code/invoice_allcold.py",
+    "replacements": [
+      [
+        "    localbits=max(r['prefix_bits'] for p in providers.values() for r in p['local'].values())",
+        "    localbits=max(r['prefix_bits'] for p in providers.values() for r in p['local'].values())\n    assert localbits==GEO['local_prefix_bits_bound'], 'source-bound local prefix equality'"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "6217cbb1885f5a1bfcc49252708df703ee6a843b33a0c9d2c01830709967a7d0",
+    "before_sha256": "f25e1e870df5d5a16a1e367b3df8843cb01644ab4b75895d7939af81e4fcb833",
+    "path": "code/assemble.py",
+    "replacements": [
+      [
+        " assert 0<finite['physical_row_coefficient']<finite['retained_row_coefficient']==20161",
+        " assert 0<finite['physical_row_coefficient']<finite['retained_row_coefficient']==20161, 'strict retained row ceiling'"
+      ],
+      [
+        " assert 0<invoice['global_prefix_bits']<=invoice['charged_prefix_bits']==PAYLOAD",
+        " assert 0<invoice['global_prefix_bits']<invoice['charged_prefix_bits']==PAYLOAD, 'strict global prefix reserve'"
+      ],
+      [
+        " assert invoice['row_prefix_extra']==2*PAYLOAD",
+        " assert max(z['prefix_bits']for p in invoice['providers'].values()for z in p['local'].values())==GEO['local_prefix_bits_bound'], 'source-bound local prefix equality'\n assert invoice['row_prefix_extra']==2*PAYLOAD"
+      ]
+    ]
+  },
+  {
+    "after_sha256": "1c63d69636b32e5b8605c8f73a2957f1c2d5c1294db0a8d8fa30bae3398724e1",
+    "before_sha256": "7edb4732b34e5814b27650a55c938626cb50d68f06397744dd4fe451437e90e0",
+    "path": "geometry_controls.py",
+    "replacements": [
+      [
+        "a.out.write_text(json.dumps(dict(status=",
+        "# Source-bound prefix mutations must fail even with an otherwise valid invoice.\nfrom witness import GEO\n_actual_bound=GEO['local_prefix_bits_bound']\nfor _delta in (-1,1):\n GEO['local_prefix_bits_bound']=_actual_bound+_delta\n try:\n  try:assemble(owner,invoice,sha(op),sha(ip))\n  except AssertionError as e:\n   assert str(e)=='source-bound local prefix equality'\n   rejected.append(dict(name='changed_actual_prefix_'+str(_delta),reason=str(e)))\n  else:raise AssertionError('accepted altered actual local prefix')\n finally:GEO['local_prefix_bits_bound']=_actual_bound\n# Coherently lower all charged-reserve views to the exact required prefix.\n# Even with matching row accounting, strict prefix slack must reject equality.\nimport assemble as _assembly_module\nimport witness as _witness_module\n_saved_payload=(_assembly_module.PAYLOAD,_witness_module.PAYLOAD,GEO['charged_prefix_bits'])\n_bad=copy.deepcopy(invoice)\n_insufficient=_bad['global_prefix_bits']\n_bad['charged_prefix_bits']=_insufficient\n_bad['row_prefix_extra']=2*_insufficient\n_bad['finite']['physical_row_coefficient']=2*_bad['finite']['physical_stock_bits']+9909+252+2*_insufficient\n_assembly_module.PAYLOAD=_witness_module.PAYLOAD=GEO['charged_prefix_bits']=_insufficient\ntry:\n try:assemble(owner,_bad,sha(op),digest(_bad))\n except AssertionError as e:\n  assert str(e)=='strict global prefix reserve'\n  rejected.append(dict(name='insufficient_global_payload',reason=str(e)))\n else:raise AssertionError('accepted insufficient global payload')\nfinally:\n _assembly_module.PAYLOAD,_witness_module.PAYLOAD,GEO['charged_prefix_bits']=_saved_payload\n_bad=copy.deepcopy(invoice)\n_bad['finite']['physical_row_coefficient']=_bad['finite']['retained_row_coefficient']\ntry:assemble(owner,_bad,sha(op),digest(_bad))\nexcept AssertionError as e:\n assert str(e)=='strict retained row ceiling'\n rejected.append(dict(name='row_at_retained_ceiling',reason=str(e)))\nelse:raise AssertionError('accepted row at retained ceiling')\na.out.write_text(json.dumps(dict(status="
+      ]
+    ]
+  },
+  {
+    "after_sha256": "136cb37e1396806678a987f7560bd94cc2e18c28fbea9f7988438b2967afc955",
+    "before_sha256": "9a4f74df6a92e537152f91a4f0f758d8889b8bd4c7366f0a6356f518ff28f4c8",
+    "path": "verify.py",
+    "replacements": [
+      [
+        "len(rd(work/'GEOMETRY-CONTROLS.json')['rejected'])==6",
+        "len(rd(work/'GEOMETRY-CONTROLS.json')['rejected'])==10"
+      ],
+      [
+        "controller=15,independent_owner=8,geometry=6",
+        "controller=15,independent_owner=8,geometry=10"
+      ]
+    ]
+  }
+]
