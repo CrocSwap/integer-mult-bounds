@@ -1,0 +1,137 @@
+--- base/research/complex-t21-owners/independent_check.py
++++ r480-owner-optimum/independent_owner.py
+@@ -1,30 +1,31 @@
+ #!/usr/bin/env python3
+ # SPDX-License-Identifier: Apache-2.0
+ # Prepared for haoyan with substantial OpenAI Codex assistance.
+-"""Independent variable-replica event, whole-helper, chart and finite-reserve audit.
++"""Independent source-event, owner, chart, and finite-reserve audit.
++
++This derivative fixes the R480 seven-slot k8 word and 37 replicas. It charges
++1024 complex prefix bits and checks disjoint pending children on each family.
++The source is Hao Yan's variable-replica checker at the pinned repository base.
++SOURCES.json and INDEPENDENT-DERIVATION.patch identify that source and all edits.
+ 
+ Inputs are read-only. No owner constructor or controller auditor is imported.
+---word is the canonical local supplier JSON.gz, with frame IDs and a native
+-INDEPENDENT-LOCAL-REPLAY.json alongside it (override with --local-replay).
++--word is the canonical local supplier JSON.gz, with a hash-bound native
++INDEPENDENT-LOCAL-REPLAY.json beside it (override with --local-replay).
+ --baseline-parent is the original eight-replica GLOBAL-TEMPLATE.json.gz.
+-Parameterized from Hao Yan's PR858 checker; the original source is vendored.
+-Only replica cardinalities, the nominated idle profile, and the two-copy
+-interleaving restriction change. Exact per-replica source projections remain.
+-Its sibling CANONICAL-WORD.json.gz supplies ports; DATA-PHASES.json defaults
+-to ../work/complex-nine-native/DATA-PHASES.json (override with --phases).
+-The PR741 and PR799/X4 suppliers share this width/owner interface. Their
+-local paid profiles and prefix exponents are read and recounted from the
+-provided canonical word and hash-bound native replay, never fixed to PR741.
++Its sibling CANONICAL-WORD.json.gz supplies the ports and centre frames.
++DATA-PHASES.json defaults to ../work/complex-nine-native/DATA-PHASES.json
++(override with --phases). The checker recounts local widths and paid ranks.
+ --out names a JSON receipt. Checks remain enabled under python -O.
+ """
+ import argparse
++import copy
+ from collections import Counter, defaultdict
+ import gzip
+ import hashlib
+ import json
+ from pathlib import Path
+ 
+-V, H, M, T, R = 112, 9, 73, 21, 504
++V, H, M, T, R = 112, 9, 73, 37, 480
+ EXPECTED_IDLE = None
+ 
+ 
+@@ -93,7 +94,7 @@
+     for orientation in ('forward', 'backward'):
+         require(dict(paid) == {int(r): count for r, count in replay['paid_profiles'][orientation].items()}, 'local replay profile binding')
+     widths = [len(frames[word['final'][q]]) - len(frames[word['start'][q]]) for q in range(2 * V, n)]
+-    require(Counter(widths) == {4: 80, 5: 32, 7: 54, 8: 122, 9: 216}, 'current supplier width inventory')
++    require(Counter(widths) == {4: 44, 5: 44, 7: 38, 8: 114, 9: 240}, 'current supplier width inventory')
+     return widths, paid
+ 
+ 
+@@ -161,6 +162,21 @@
+                 bases=bases, phases=phases, bridges=bridges, event_count=len(events), replay=replay)
+ 
+ 
++def check_pending_axes(context):
++    checked = 0
++    for port, frame in enumerate(context['bases']):
++        used = defaultdict(set)
++        for child, rank in context['rank'].items():
++            axes = list(map(int, context['phases']['recipes'][port]['idle_children'][child]['orthogonal_axes']))
++            require(len(axes) == rank and len(set(axes)) == rank and set(axes) <= set(frame),
++                    'pending child orthogonal basis')
++            family = context['child_pair'][child], context['side'][child]
++            require(not used[family] & set(axes), 'overlapping pending children on one family')
++            used[family].update(axes)
++            checked += 1
++    return checked
++
++
+ def check_roles(context, roles):
+     c = context
+     live, physical = T * 8 * V, T * 8 * V + 8 + R + 2
+@@ -221,8 +237,8 @@
+     for i in range(1, 37):
+         group *= 2 ** (2 * i) - 1
+     stock = group * physical
+-    row = 2 * stock.bit_length() + 9909 + 252 + 2 * 512
+-    require(prefix < 512, 'prefix reserve')
++    row = 2 * stock.bit_length() + 9909 + 252 + 2 * 1024
++    require(prefix < 1024, 'prefix reserve')
+     require(row < 20161 and M * M > 2 * max(profile) ** 2, 'row or halving reserve')
+     return dict(status='PASS_INDEPENDENT_VARIABLE_T_LITERAL_WINDOWS_CHARTS_PREFIX_ROW', roles=len(roles), calls=len(c['order']),
+                 source_events_per_replica=30, expanded_replica_events=c['event_count'], bridge_events=c['bridges'],
+@@ -233,7 +249,7 @@
+                 rank_mass=mass, deficit=320*T, namespace={'data':[0,live], 'centres':[live,live+8], 'tableau':[live+8,live+8+R], 'coefficient':[live+8+R,physical]},
+                 local_prefix_bits=localbits, local_prefix_from_native_receipt=True, local_profile_recounted=True,
+                 prefix_formula=dict(local_scalar=localbits, input_l2=(M + 1) // 2, invocations=len(c['order']), bridges=c['bridges'], margin=4),
+-                prefix_bits=prefix, charged_prefix_bits=512, physical_stock_bits=stock.bit_length(),
++                prefix_bits=prefix, charged_prefix_bits=1024, physical_stock_bits=stock.bit_length(),
+                 physical_row_coefficient=row, row_limit=20161,
+                 scope='Finite role/window/chart and inherited prefix/row obligations. Requires separately admitted local supplier and emitted controller, complete finite invoice, exact moments and outer assembly; no all-size theorem is asserted.')
+ 
+@@ -271,6 +287,20 @@
+             rejected.append(dict(name=name, reason=str(exc)))
+         else:
+             raise ValueError('accepted negative control: ' + name)
++    bad = dict(context, phases=copy.deepcopy(context['phases']))
++    pair = next((a, b) for a in context['rank'] for b in context['rank']
++                if a < b and (context['child_pair'][a], context['side'][a]) ==
++                (context['child_pair'][b], context['side'][b]))
++    children = bad['phases']['recipes'][0]['idle_children']
++    children[pair[1]]['orthogonal_axes'][0] = children[pair[0]]['orthogonal_axes'][0]
++    try:
++        check_pending_axes(bad)
++    except ValueError as exc:
++        require(str(exc) == 'overlapping pending children on one family',
++                'pending-axis control rejected at unexpected predicate')
++        rejected.append(dict(name='cross_child_pending_axis_alias', reason=str(exc)))
++    else:
++        raise ValueError('accepted negative control: cross_child_pending_axis_alias')
+     return rejected
+ 
+ 
+@@ -287,7 +317,7 @@
+     parser.add_argument("--expected-idle", required=True)
+     args = parser.parse_args()
+     T = args.replicas
+-    require(1 <= T <= 22, "replica range")
++    require(T == 37, "replica range")
+     EXPECTED_IDLE = {int(k): v for k,v in json.loads(args.expected_idle).items()}
+     phases_path = args.phases or args.baseline_parent.parent.parent / 'work/complex-nine-native/DATA-PHASES.json'
+     canonical_path = args.baseline_parent.parent / 'CANONICAL-WORD.json.gz'
+@@ -300,7 +330,9 @@
+     require(len(word['center_frames']) == len(canonical['center_frames']) == 8, 'eight centre interfaces')
+     require([basis(word['frames'][f]) for f in word['center_frames']] == [basis(canonical['frames'][f]) for f in canonical['center_frames']], 'ordered centre-frame interface')
+     context = make_context(parent, phases, canonical['ports'], word, replay, roles)
++    pending = check_pending_axes(context)
+     receipt = check_roles(context, roles)
++    receipt['disjoint_pending_child_axis_checks'] = pending
+     receipt['controls_rejected'] = controls(context, roles)
+     receipt['input_sha256'] = {str(path): filehash(path) for path in (args.baseline_parent, phases_path, canonical_path, args.word, replay_path, args.owners)}
+     args.out.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
