@@ -231,4 +231,4 @@ philippeVV closes all lift cases of `C(P120) ≥ 72` and names: **R1** every ran
 | Theorem M premises / minimisations; K′, E, C arithmetic | `p104prem.py`, `c_batch_arith.py`, `c_clique_lemmaE.py` |
 
 ## 8. Proof map (appended)
-`PROOF_MAP.md` lists, for every claim and premise above, the step of `verify.sh` that re-runs it. Two items labelled RECORDED above are now re-run and asserted: the GL(9, F2) charts of the 72 clique arcs (`checks/glclique.py`) and the K6 break-even prices 51 / 46 / 42 (`checks/price/price_breakeven.py`, model files `skel.py`, `cert.py`, `c1240_ceiling.py` shipped unchanged). No claim above is changed.
+`PROOF_MAP.md` lists, for every claim and premise above, the step of `verify.sh` that re-runs it. Items labelled RECORDED or "not re-checked" above are now re-run and asserted: the P104 coordinate decoder of cost 56 (`checks/p104dec56.py`), the GL(9, F2) charts of the 72 clique arcs (`checks/glclique.py`) and the K6 break-even prices 51 / 46 / 42 (`checks/price/price_breakeven.py`, model files `skel.py`, `cert.py`, `c1240_ceiling.py` shipped unchanged). No claim above is changed.

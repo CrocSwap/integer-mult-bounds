@@ -20,24 +20,30 @@ Legend: **RERUN** = executed by `verify.sh`, asserted as a PASS line in `checks/
 | 4.6 | digon clique: rank E = 64, col E and row E meet no class span | RERUN | `c_clique_lemmaE.py` |
 | 4.6 | **the 72 arcs of the clique realised by explicit GL(9,F2) charts** (README: "RECORDED ... not shipped") | **FIXED: now RERUN** (66 charts, every slot normal and h.g = 1 verified) | `glclique.py` |
 | 4.6 | Theorem M premises: P112 8 avoidable hyperplane classes, pair ranks {8: 64}; P104 (4 variants) 16 classes, {8: 192, 7: 64} | RERUN | `p104prem.py` (reads `data/p104reps.json`) |
-| 4.6 | sharpness of Theorem M assumes each P104 call's coordinate decoder costs 56 | CONDITIONAL, see C1 (README already says "not re-checked") | none |
+| 4.6 | sharpness of Theorem M assumes each P104 call's coordinate decoder costs 56 | **FIXED: now RERUN** (exact 8-term decoder on 104 live lines, ranks 7^8, cost 56) | `p104dec56.py` |
 | 4.7 | 28 twin pairs per coordinate; 56 cases with a twin block at Phi = I | RERUN | `twinblk.py` |
 | 4.7 | closed in 277/512 cases; open: saving 8 x 11, saving 7 x 224 | RERUN | `s1close.py` (uses `dangle.py`) |
 | 5 K6 | **break-even prices 51 / 46 / 42 at h = 12 / 13 / 14** (README: "RECORDED ... not re-run here"), plus the h = 11 value 55 | **FIXED: now RERUN** (~75 s, standard library; model code shipped unchanged in `checks/price/`) | `checks/price/price_breakeven.py` |
 | 5, 6 | named conjectures K-P120, K1..K6, residues R1..R4 | OPEN by definition (statements of gaps, no claim of truth) | none |
 | manifest | every package file is hash-listed | RERUN | `manifest_check.py` |
 
-## B. Cited from other PRs (not re-derived; not private cards)
+## B. Merged dependencies: rechecked by their own verify (FULL=1 runs `verify_deps.sh`)
+All of these PRs are merged. `verify_deps.sh` runs each package's own `verify.sh` unchanged from the repository checkout (siblings `research/<pkg>/`), and prints one line per package. Status of the last run (logs not shipped, they are the packages' own):
 
-Merged: #1212 (rank-8 rigidity), #2338 (Theorems P, R, B, Bk; Lemma D), #1714, #968, #1633 (as cited in README section 1).
-Open or draft, so every dependent claim is CONDITIONAL on the PR landing: #2816 (Lemma 3.1, R1-R4, cover facts C1/C3 (`cover.py`, `d7.py` live in that PR, not here), completeness of the 1200-direction list, g(5) = 12), #2724, #2826, #2819, #2784, #2639, #2806, #2719, #2694.
-Each is named in the README row it supports ("CONDITIONAL on #n"). `cat1.py` regenerates the 1200-direction list; only its completeness is imported.
+| PR | package | status |
+|---|---|---|
+| #2816 | one-sided-decoders-all-m (Lemma 3.1, R1-R4, cover.py/d7.py, direction-list completeness, g(5) = 12) | merged and rechecked: 34 PASS, 0 FAIL |
+| #2724 | nine-term-outside-colspace | merged and rechecked: ALL PASS |
+| #2826 | one-sided-six-multisets | wired; the run was terminated externally (rc 143) before finishing, so NOT yet rechecked here |
+| #2819 | e8-rank9-realisations | wired; its default run SKIPs the DRAT step because `drat-trim` is not installed on this machine, so NOT yet rechecked here (needs `DRAT_TRIM=`) |
+| #2784, #2639, #2806 | a2-family-decoder-floors, decoder-floors-closures, punctured-e8-48-56 | wired; not yet completed in this session |
+| #2719, #2694 | dn-unrestricted-root-code-floor, overcomplete-rank-interface (registered replay `scripts/research_package.py`; #2694's Lean part needs the pinned Lean/Mathlib toolchain of its README) | wired; not yet completed in this session |
 
-## C. CONDITIONAL items, exact dependency
+Until a package shows PASS above, the claims that import it stay conditional on that merged PR's own verify.
 
-1. Sharpness of Theorem M (not a lower-bound claim): the cost of a P104 call's coordinate decoder being exactly 56. Needs a re-run of the decoder-cost evaluation on P104; not shipped here.
-2. All rows in section B marked open/draft: the named PR.
-3. K6/K-P120 as stated: the break-even prices are outputs of the shipped pricing model (`checks/price/`), not theorems about all decoders; the README already presents them as pricing, not as a floor.
+## C. Still conditional
+1. The dependencies in the table above that do not yet show PASS (exact dependency: that package's `verify.sh` passing, plus `drat-trim` for #2819 and the pinned Lean toolchain for #2694).
+2. K6/K-P120: break-even prices are outputs of the shipped pricing model (`checks/price/`), not floor theorems.
 
 ## D. Reproduce
-`bash verify.sh [outdir]` (FULL=1 accepted; the default run already executes everything, about 5-6 minutes, at most 3 processes). Logs of a run are in `logs/` (`*.log.txt`).
+`bash verify.sh [outdir]` (about 6 minutes, at most 3 processes); `FULL=1 bash verify.sh` adds `verify_deps.sh` (hours). Logs of a run are in `logs/` (`*.log.txt`).

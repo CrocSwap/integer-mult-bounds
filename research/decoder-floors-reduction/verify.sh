@@ -3,7 +3,7 @@
 # Needs Python >= 3.10 with numpy (PYTHON=/path/to/python to choose).  No SAT solver.  About 5 minutes, at most 3 processes, each under timeout 1200.
 #   0  MANIFEST.sha256
 #   1  three parallel streams: s1close (~2 min) | twinblk (~0.5 min) | the fast group (cat1 cat2 gtab pair2 fold transport p104prem c_batch_arith c_clique_lemmaE d4 omega)
-#      (FULL=1 is accepted and changes nothing: the default run already executes every check, price_breakeven.py (~75 s, standard library) included)
+#      FULL=1 additionally runs verify_deps.sh: the own verify.sh of every merged package this note cites (#2816 #2724 #2826 #2819 #2784 #2639 #2806, registered replays of #2719 #2694); hours
 #   2  check_logs.py: every number of the README as a PASS/FAIL line
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -21,10 +21,14 @@ run() { local n=$1; shift; local s=$SECONDS; $TMO nice -n 10 "$@" > "$LOG/$n.log
 echo "== 1. computations (three parallel streams)"
 ( run s1close "$PY" -B s1close.py ) & P1=$!
 ( run twinblk "$PY" -B twinblk.py; run price "$PY" -B "$HERE/checks/price/price_breakeven.py" ) & P2=$!
-( for n in cat1 cat2 gtab fold transport c_batch_arith c_clique_lemmaE glclique d4 omega p104prem pair2; do run $n "$PY" -B $n.py; done ) & P3=$!
+( for n in cat1 cat2 gtab fold transport c_batch_arith c_clique_lemmaE glclique p104dec56 d4 omega p104prem pair2; do run $n "$PY" -B $n.py; done ) & P3=$!
 wait $P1; wait $P2; wait $P3
 sed 's/^/   /' "$OUT/times.out"
 grep -v 'rc=0 ' "$OUT/times.out" | sed 's/^/FAIL nonzero exit: /' | tee -a "$OUT/all.out"
+if [ "${FULL:-0}" = 1 ]; then
+  echo "== 1b. FULL=1: merged dependencies, each package's own verify (hours)"
+  bash "$HERE/verify_deps.sh" "$OUT/deps" | tee -a "$OUT/all.out" | sed 's/^/   /'
+fi
 echo "== 2. assertions (check_logs.py)"
 "$PY" -B "$HERE/checks/check_logs.py" "$LOG" | tee -a "$OUT/all.out" | sed 's/^/   /'
 npass=$(grep -c '^PASS' "$OUT/all.out"); nfail=$(grep -c '^FAIL' "$OUT/all.out")

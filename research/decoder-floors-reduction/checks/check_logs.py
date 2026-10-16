@@ -42,6 +42,8 @@ chk('omega: Omega(z_i, z_j) = 1 for all frame classes', "Om(x_i,x_j) all ==1? Tr
 chk('omega: 119616 non-orthogonal-clique cases, z_j never in span', "tested 119616 bad 0" in om)
 gl = log('glclique')
 chk('glclique: 72 arcs of the 9-term digon clique realised by explicit GL(9,F2) charts, slot normals and h.g = 1 verified', "glclique: 72 arcs of the 9-term digon clique realised by" in gl and "arcs covered 72" in gl)
+p56 = log('p104dec56')
+chk('p104dec56: exact P104 decoder, 104 live lines, ranks 7^8, cost 56', 'P104 coordinate decoder cost 56: True' in p56)
 pr = log('price')
 chk('price: K6 break-even prices 55 / 51 / 46 / 42 at h = 11 / 12 / 13 / 14', all(f"h {h} break-even (both >= 1): {c}" in pr for h, c in ((11, 55), (12, 51), (13, 46), (14, 42))))
 raise SystemExit(0 if ok else 1)
