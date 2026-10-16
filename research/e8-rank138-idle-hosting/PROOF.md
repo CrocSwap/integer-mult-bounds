@@ -1,0 +1,11 @@
+# Rank-138 kernel with idle-data hosting
+
+Use PR443's exactly pinned local word, reconstructed by its unchanged rebuild.py: 57 A-frame changes, 114 pivots of total entrance rank 138 and 103 donor slots, followed by the two PR441 B-frame witnesses. All local scalar columns and integer source spans are checked. The complete local frame family is identical to the already checked R740 parent.
+
+Repeat the nine-stage identity with 32 independent bit replicas, as in PR443. The unhosted residual coordinates partition 2,891 banks per stage, with no padding. The emitter checks all 7,620 columns of the one-replica global identity and emits every one of 288 local invocations and 213,120 helper assignments. The independent audit reconstructs all local records, exact projector inclusions, reflected streams, data owners and bank intervals. Explicit rational residual isometries and the conservative inherited extra route-factor bound of 144 are retained.
+
+Apply the frozen hosting assignment using PR442's additional idle-data hosting extension. The independent hosting audit re-derives windows, disjoint intervals, owners, remainders and all complete remaining banks. The bit construction has 37,464 live families, 37,473 physical families, 159,168 hosted residuals and rank deficit 9,984. The complex construction stays at eight replicas, 8,400 live families and deficit 2,496. Different suppliers may have different replication counts; each supplies its own certified exponent and finite invoice.
+
+Two rational moment engines certify both suppliers. The bit invoice is recomputed with 32 replicas everywhere, including local invocations, bridge additions, helper routes, copy/erase episodes and physical stock. Prefix/coefficient charges and the two extra hosting route factors are explicit. Six bootstrap levels and all 47 strict outer inequalities produce the stated kappa, rejecting the next grid point.
+
+The hosting operator extension is inherited as an additional mathematical assumption, not proved by the finite interval audit. See INHERITED-HOSTING-PROOF.md for the original PR442 argument, with its historical parameters. All-size compiler, dirty-bank/compressed-window, restored-work, tape/common-grid, precision and analytic interfaces remain conditional. No unconditional theorem or new Lean proof is claimed.
