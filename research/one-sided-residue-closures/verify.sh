@@ -7,7 +7,8 @@
 #      outputs (RECORDED) unless FULL=1, which recomputes all 17 (about 56 CPU-minutes more, three processes at a time) and also nj.py 4
 #   4  covering facts F3 (a)-(f), F4, D7 plane fact [anroot.py annon.py facts_check.py d7plane.py]
 #   5  RRC engine, Lemma P / P', ledger recomputed from data/rows_input.csv and compared with the shipped ledger [run_rrc.py lemp_audit.py build_ledger.py check_ledger.py]
-# Default runtime about 10 minutes; at most 3 busy processes; every process under timeout. A missing numpy or C compiler gives FAIL.
+#   6  (FULL=1 only) provenance of data/rows_input.csv: the eight span facts rerun from source [provenance/replay_spanfacts.sh], the dominance filter and, with FULL=1, land7.py [provenance/reproduce.sh]
+# Default runtime about 10 minutes; FULL=1 reruns every RECORDED covering run and the span-fact replay (see PROOF_MAP.md); at most 3 busy processes in steps 0-5 (4 in step 6); every process under timeout. A missing numpy or C compiler gives FAIL.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd); C="$HERE/checks"; DATA="$HERE/data"; PY="${PYTHON:-python3}"; FULL="${FULL:-0}"
 export PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1
@@ -73,6 +74,14 @@ timeout 900 "$PY" -B "$C/run_rrc.py" > rrc.log 2>&1; expect rrc '^Counter' "RRC 
 timeout 900 "$PY" -B "$C/lemp_audit.py" > lemp.log 2>&1; expect lemp 'Lemma P kills \(all 603 rows\): 375' "Lemma P at T-level kills 375 of the 603 rows"; expect lemp 'reproduced: 74 / 74' "all 74 original class-A kills reproduced"
 timeout 900 "$PY" -B "$C/build_ledger.py" > ledger.log 2>&1
 run ledger 600 "$PY" -B "$C/check_ledger.py"
+if [ "$FULL" = 1 ]; then
+  echo "== 6. provenance of rows_input.csv: span facts rerun from source, dominance filter, land7.py"
+  PROV="$HERE/provenance"; mkdir -p "$OUT/replay_logs"
+  LOGDIR="${REPLAY_LOGDIR:-$OUT/replay_logs}" PYTHON="$PY" JOBS=4 timeout 7200 bash "$PROV/replay_spanfacts.sh" > replay.log 2>&1; grep -E '^(PASS|FAIL|CPU|REPLAY)' replay.log | sed 's/^/   /'
+  if grep -q '^REPLAY PASS' replay.log && ! grep -q '^FAIL' replay.log; then note "PASS ran replay_spanfacts.sh (all eight span facts rerun from source, equal to the shipped logs)"; else note "FAIL replay_spanfacts.sh"; tail -3 replay.log; fi
+  FULL=1 PYTHON="$PY" timeout 3600 bash "$PROV/reproduce.sh" > reproduce.log 2>&1; grep -E '^(PASS|FAIL)' reproduce.log | sed 's/^/   /'
+  if ! grep -q '^FAIL' reproduce.log && [ "$(grep -c '^PASS' reproduce.log)" -ge 2 ]; then note "PASS ran reproduce.sh (land7.py rerun identical, dominance filter gives rows_input.csv)"; else note "FAIL reproduce.sh"; tail -3 reproduce.log; fi
+fi
 npass=$(grep -c '^PASS' all.out); nfail=$(grep -c '^FAIL' all.out)
 echo "== done in $((SECONDS - T0))s: $npass PASS, $nfail FAIL; logs in $OUT"
 [ "$nfail" = 0 ] && { echo "PASS: all assertions hold"; exit 0; }
