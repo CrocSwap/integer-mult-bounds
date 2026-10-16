@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""One-shot metadata generator for research/fstar-box-withoutloss-seed7f3a1c.
+
+Writes predecessor/PINS.json (sha256 of every vendored file), TASK.json
+(original_card taken VERBATIM from the pinned catalogue card object), and
+SOURCES.json (git-blob provenance rows; the catalogue pinned at base_commit).
+Stdlib + git only. Run from anywhere: python3 -B make_meta.py
+"""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+PKG = "research/fstar-box-withoutloss-seed7f3a1c"
+BASE = "0614abaef427f123d9b844f85a759e64ee3ab29c"
+CARD_ID = "bit-new-register-model"
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def git_blob(spec):
+    sha = subprocess.run(["git", "rev-parse", spec], cwd=ROOT,
+                         capture_output=True, text=True, check=True
+                         ).stdout.strip()
+    data = subprocess.run(["git", "cat-file", "blob", sha], cwd=ROOT,
+                          capture_output=True, check=True).stdout
+    return sha, hashlib.sha256(data).hexdigest()
+
+
+def write_json(path, obj):
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(obj, fh, indent=1, sort_keys=True)
+        fh.write("\n")
+
+
+def main():
+    # 1. own pins over the whole vendored tree
+    files = {}
+    base_dir = os.path.join(HERE, "predecessor")
+    for dirpath, _dirs, names in os.walk(base_dir):
+        for name in sorted(names):
+            p = os.path.join(dirpath, name)
+            rel = os.path.relpath(p, base_dir).replace(os.sep, "/")
+            if rel == "PINS.json":
+                continue
+            files[rel] = sha256_file(p)
+    write_json(os.path.join(base_dir, "PINS.json"),
+               dict(schema_version=1,
+                    provenance=dict(
+                        pr2963="https://github.com/CrocSwap/"
+                               "integer-mult-bounds/pull/2963 head "
+                               "ee755e682b3b30d493e764d3be50003b13b69b4a "
+                               "(vendored tree incl. nested predecessor "
+                               "copies; pr-tree-extract)"),
+                    files=files))
+    print("PINS.json: %d vendored files" % len(files))
+
+    # 2. TASK.json with the catalogue card verbatim
+    with open(os.path.join(ROOT, "docs", "research",
+                           "agent-task-catalog.json"), encoding="utf-8") as fh:
+        catalog = json.load(fh)
+    cards = [t for tr in catalog["tracks"] for t in tr["tasks"]
+             if t["id"] == CARD_ID]
+    assert len(cards) == 1, "card %s not unique: %d" % (CARD_ID, len(cards))
+    card = cards[0]
+    task = {
+        "schema_version": 1,
+        "task_id": CARD_ID,
+        "original_card": card,
+        "scope_status": "changed",
+        "scope_change_reason": (
+            "Authorized 'explicit open request' scope change to kappa-blocker "
+            "KB5j, recorded per the assignment (discussion 1166; PR 2963's "
+            "exact statement - 'Lemma BPP's without-loss question remains the "
+            "exact blocker' for box-completeness - is the named open request). "
+            "The chooser OS draw (seed 0194e0b2ffbe43b4e67165afcf5ee6cd, "
+            "track bit-mechanisms) proposed bit-new-register-model and "
+            "bit-helper-contract; neither is this object, and the assignment "
+            "takes the KB5j request instead."),
+        "actual_scope": (
+            "Kappa-blocker KB5j (authorized explicit open request): SETTLE "
+            "LEMMA BPP's WITHOUT-LOSS QUESTION of open problem F-star "
+            "(cert(M) >= floor(2v/3) for exact 3-total rational decoders): "
+            "may one assume, without loss at tau >= 1, that an attaining L8 "
+            "witness satisfies Lemma BPP conditions (i)+(ii), i.e. is "
+            "box(M) = cert(M) for every exact 3-total decoder with "
+            "tau(t) >= 1? Either prove box-completeness (projection/repair "
+            "lemma), construct the minimal tau >= 1 counterexample with both "
+            "sides exact, or isolate the precise parity obstruction to repair "
+            "with a minimal demo."),
+        "author": "Aaron Wang (with help from opencode)",
+        "ai_assistance": (
+            "Substantial AI assistance: this package was produced by Aaron "
+            "Wang with help from opencode (opencode agent harness). No model "
+            "named per orchestrator attribution rules. No independent human "
+            "review claimed."),
+        "base_commit": BASE,
+        "method": (
+            "Smallest instance first. (1) Classify the escape mechanism of "
+            "PR 2963's 21 escaping witnesses exactly (BPP projection, "
+            "conditions (i)/(ii), per-escape-line bits). (2) Exhaustive "
+            "combinatorial reduction: cert and box of a decoder depend only "
+            "on (pi, sg, zero-digraph Z, a0, b0); cert is over-approximated "
+            "by the full-label value cert_max(Z) (monotone in label freedom), "
+            "so cert_max(Z) <= box proves completeness on that datum and "
+            "cert_max(Z) > box is a candidate. v = 2 all scope-consistent "
+            "patterns; v = 3 all patterns up to line/total relabeling. (3) "
+            "Realize candidates by exact 3-total integer decoders via the "
+            "odd/even valuation recipe (m_j = 0 normalization; odd on anchor "
+            "bits), per-q-row exhaustive search with seeded P restarts, "
+            "alphabets {+-1,+-3}/{+-2,0} then {+-1..+-7}/{+-2..+-6,0}. "
+            "(4) Certify every value by replayed witnesses, exact "
+            "enumeration, an independent section-7 enumeration, and written "
+            "rank bounds (Lemma RT); int-only arithmetic."),
+        "parameter_ranges": (
+            "v = 2..4; three totals; label space F2^3 bit masks; integer P, Q "
+            "entries in {-7..7}; 2-adic valuations 0..3; zero digraphs all "
+            "patterns at v = 2 and all Lemma-SG-consistent patterns at v = 3 "
+            "(up to line and total relabeling); 360 realizable instances "
+            "(320 random valuation-tuned v = 3..4 + 40 GL_3(Z) fixture "
+            "transforms at v = 3); realization caps 4000-6000 P-restarts per "
+            "candidate with exhaustive q-rows."),
+        "existing_restriction_being_changed": (
+            "Audits/settles PR 2914 open question 1 + PR 2936 open question 1 "
+            "as narrowed by PR 2963 (box-completeness for tau >= 1). The "
+            "PR 2914 route (b) required cert = box-max at tau >= 1 plus a box "
+            "floor; this package refutes the equality."),
+        "nearest_overlapping_prs": (
+            "PR 2914 (sub-anchor box, Lemmas SB/LB), PR 2936 (Lemma BPP, tau "
+            ">= 1 necessary, v = 7..11 census), PR 2963 (tied_min v = 11 "
+            "exact, box weak cell closed, BPP strictness at tau = 0). None "
+            "settles the without-loss question; this package does, "
+            "negatively, with the minimal counterexample."),
+        "bottleneck_link": (
+            "F-star (cert(M) >= floor(2v/3)) is the named route to closing "
+            "every open T = 3 window at once (research/root-unit-decoder-"
+            "lemmas section 7). PR 2963 named Lemma BPP's without-loss "
+            "question as the exact blocker of the box-completeness route. "
+            "This package settles it: box-completeness FAILS at tau >= 1 "
+            "(minimal counterexample v = 3, cert = 3 > box = 2), so the "
+            "completeness link of the PR 2914 chain is dead; the box-floor "
+            "link and cost >= cert survive, and the surviving narrowed "
+            "question (shareable class c_j = gamma) is stated exactly."),
+        "optimistic_full_cost_budget": (
+            "No kappa claim; milestone is the settled question itself. Heavy "
+            "compute capped: combinatorial enumeration v = 2..3 (seconds), "
+            "360-instance sweep (seconds), realization caps 4000-6000 "
+            "P-restarts per candidate (about 26 s total), all blocking with "
+            "receipts."),
+        "evidence": (
+            "VERDICT: Lemma BPP's without-loss question is answered NO at "
+            "tau >= 1. PROVEN: box = cert = 2 at v = 2 for tau >= 1 (written "
+            "proof + exhaustive machine check of all 2842 scope-consistent "
+            "patterns), so v = 3 is minimal. PROVEN: minimal tau >= 1 "
+            "counterexample at v = 3: P = [[-1,-3,0],[1,-1,-2],[3,3,3]], "
+            "Q = [[1,-3,2],[3,-1,-2],[3,-1,2]], M = diag(8,8,12), "
+            "tau = (2,2,2): cert = 3 (replayed attaining witness a = b = "
+            "[1,2,4], order [2,1,0]; independent enumeration) > 2 = box "
+            "(PROVEN upper bound: Lemma RT triangular rank + shareable "
+            "totals r_box = 2; explicit box witness). PROVEN: the "
+            "obstruction's exact form - in the box only totals with "
+            "c_j = gamma (shareable) can enter K, and when every forward "
+            "pair is a zero arc K[S,S] is unit triangular, so |S| <= r_box; "
+            "the third total (c_2 = 1 > gamma = 0) is only usable via "
+            "non-tied shared bits, i.e. BPP condition (i) fails on every "
+            "attaining witness. CHECKED: PR 2963's 19 distinct escapes are "
+            "all cosmetic (E1); 360 realizable tau >= 1 instances show 1788 "
+            "strict projection drops (E2 1768) with 0 box violations, so "
+            "projection is not without loss either. CHECKED: 3023 v = 3 "
+            "combinatorial configs, 27 gap candidates, 3 realized as "
+            "counterexamples, 3 unrealizable (column-attainment), 21 not "
+            "realized in cap (alphabets up to {+-1..+-7}/{+-2..+-6,0})."),
+        "falsification_test": (
+            "Any counterexample claim is falsified by replaying the stored "
+            "witnesses and recomputing both rungs from the definition: "
+            "verify.py re-enumerates cert and box INDEPENDENTLY of the "
+            "vendored engine (section-7 enumeration) and asserts 3 and 2; "
+            "the box upper bound is a written rank proof, not a scan; "
+            "corrupted-witness rejection and the tie/scope identities are "
+            "asserted on every instance; the v = 2 completeness claim is "
+            "falsifiable by any of the 2842 enumerated patterns failing."),
+        "time_compute_cap": (
+            "One bounded pivot maximum; registered replay under 600 s "
+            "(observed under 2 min); realization search capped per "
+            "candidate and recorded as not-found-in-cap, never as "
+            "unrealizable."),
+        "stop_rule": (
+            "Stop when the without-loss question is settled (proved, "
+            "counterexample, or exact obstruction with minimal demo). "
+            "Achieved: counterexample, PROVEN minimal at v = 3. No further "
+            "search without a new hypothesis."),
+        "predecessor_authors": (
+            "PR 1590 DreamingOfClouds (Claude Opus 5.5 (Anthropic) via "
+            "Claude Code assistance); PR 2111 DreamingOfClouds; PRs "
+            "2717/2747/2774/2869/2890/2901/2914/2936/2963 Aaron Wang "
+            "(navinor); all verified at current ground truth with "
+            "gh pr view --json author,title on 2026-10-16."),
+        "intended_artifact": (
+            "research/fstar-box-withoutloss-seed7f3a1c/ with verify.py "
+            "(python3 -B research/fstar-box-withoutloss-seed7f3a1c/"
+            "verify.py)."),
+        "outcome": "completed",
+        "open_questions": [
+            {
+                "question": (
+                    "Are the 21 remaining v = 3 combinatorial gap patterns "
+                    "(a0, b0, Z) realizable by exact 3-total decoders?"),
+                "why_it_matters": (
+                    "All 21 lie in the shareable class (r_box = 3), so a "
+                    "realization refutes box-completeness there too, while a "
+                    "proof of unrealizability would prove box-completeness "
+                    "at v = 3 in the shareable class - the class holding all "
+                    "prior evidence."),
+                "first_step": (
+                    "Characterize the (a0,b0,Z) patterns forced by rank-3 "
+                    "factorizations M = P Q^T with prescribed odd/even "
+                    "valuations (odd-term parity of every M_ts); extend the "
+                    "seeded realization search with a valuation-level "
+                    "enumeration (m_j in {0,1}) instead of random restarts."),
+                "blocked_by": (
+                    "No realizability characterization beyond Lemma SG + the "
+                    "column-attainment condition; the search so far is "
+                    "bounded (not a non-existence result)."),
+            },
+            {
+                "question": (
+                    "Box-completeness in the shareable class (every total "
+                    "has c_j = gamma) at v >= 4: is cert = box there?"),
+                "why_it_matters": (
+                    "It is the exact surviving form of the without-loss "
+                    "question once Lemma RT's obstruction is excluded; every "
+                    "previous box = cert datapoint sits in this class."),
+                "first_step": (
+                    "Extend the job-B combinatorial enumeration to v = 4 "
+                    "with a cert-side subset DP over the same (a0,b0,Z) "
+                    "lattice; then realize any gap datum as in job D."),
+                "blocked_by": (
+                    "8^4 label enumeration per configuration times the "
+                    "zero-pattern lattice needs a DP or symmetry reduction "
+                    "before it is tractable."),
+            },
+        ],
+    }
+    write_json(os.path.join(HERE, "TASK.json"), task)
+    print("TASK.json written with card %s (%d card keys)"
+          % (CARD_ID, len(card)))
+
+    # 3. SOURCES.json (git-blob provenance; catalogue at base_commit)
+    rows = []
+    for path, usage in (("certificates/selected-result.json", "provenance"),
+                        ("docs/research/agent-task-catalog.json",
+                         "provenance"),
+                        ("research/root-unit-decoder-lemmas/README.md",
+                         "input")):
+        blob, sha = git_blob(BASE + ":" + path)
+        rows.append(dict(path=path, usage=usage, git_blob=blob, sha256=sha))
+    write_json(os.path.join(HERE, "SOURCES.json"),
+               dict(schema_version=1, base_commit=BASE, files=rows))
+    print("SOURCES.json written: %d rows" % len(rows))
+
+    # 4. VERIFY.json (registered replay manifest)
+    inputs = [
+        "research/root-unit-decoder-lemmas/README.md",
+        PKG + "/verify.py",
+        PKG + "/box_search_kj.py",
+        PKG + "/escape_classify.py",
+        PKG + "/realize_kj.py",
+        PKG + "/README.md",
+        PKG + "/TASK.json",
+        PKG + "/data/box-search-kj-receipt.json",
+        PKG + "/data/escape-receipt.json",
+        PKG + "/data/realize-kj-receipt.json",
+        PKG + "/predecessor/PINS.json",
+    ]
+    cmd = dict(
+        argv=["{python}", "-B", "{package}/verify.py"],
+        timeout_seconds=600,
+        checks=(
+                            "KB5j package replay: vendored predecessor pins "
+                            "(PR 2963's 14-file pin set + this package's own "
+                            "pin file + fixture hashes); predecessor anchors "
+                            "(PASS_FG_CONTROLS, PASS_FG_CALIBRATION "
+                            "tied_min=11/12 cex_min_1=18/19 mp=9/16 chain=22 "
+                            "reach=0/12,8/19; exact named RECOMPUTED = 9 on "
+                            "all 12 tied_min v = 11 sub-decoders; every "
+                            "stored cert/box witness replayed with in-box "
+                            "flags; PR 2936's tau = 0 demo cert = 2 > box = "
+                            "1); the delivered counterexample re-certified "
+                            "three ways (vendored engine exact cert/box, an "
+                            "independent section-7 enumeration written from "
+                            "the definition, and Lemma RT's PROVEN rank "
+                            "bound box <= r_box = 2) with identities and "
+                            "replayed witnesses; jobs A-D recomputed from "
+                            "scratch (v = 2 exhaustive 2842 configs box = "
+                            "cert = 2; v = 3 combinatorial 3023 configs / 27 "
+                            "candidates / 3 realized counterexamples with "
+                            "the README's exact P, Q / 3 unrealizable-column "
+                            "/ 21 not-found-in-cap; 360 realizable instances "
+                            "0 violations, 1788 strict projection drops, "
+                            "escape classes E2 1768 / E1 466 / E4 18 / E3 6; "
+                            "PR 2963 pool: 19 distinct escapes all E1); "
+                            "writes CERTIFICATE.json and prints PASS_KJ_PINS, "
+                            "PASS_FG_CONTROLS, PASS_FG_CALIBRATION, "
+                            "PASS_KJ_ANCHORS, PASS_KJ_TAU0_DEMO, "
+                            "PASS_KJ_COUNTEREXAMPLE, PASS_KJ_JOBS, "
+                            "PASS_KJ_ESCAPE, PASS_KJ_REALIZE, "
+                            "PASS_KJ_WITHOUTLOSS"))
+    write_json(os.path.join(HERE, "VERIFY.json"),
+               dict(schema_version=1, status="ready", python="3.12",
+                    requirements=[], inputs=inputs, commands=[cmd]))
+    print("VERIFY.json written")
+
+
+if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    main()
