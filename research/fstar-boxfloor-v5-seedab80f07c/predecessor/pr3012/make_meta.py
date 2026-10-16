@@ -1,0 +1,358 @@
+#!/usr/bin/env python3
+"""Generate TASK.json (with the drawn catalogue card verbatim), SOURCES.json
+and VERIFY.json for KB5k. Run: python3 -B make_meta.py
+"""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
+BASE = "066f57ff795dbe6d0a0ecc11fe742eadcec00c39"
+PACKAGE = "research/fstar-boxfloor-minimal-seed758ae8fe"
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def git_blob(rel):
+    out = subprocess.run(["git", "rev-parse", "%s:%s" % (BASE, rel)],
+                         capture_output=True, text=True, cwd=REPO, check=True)
+    return out.stdout.strip()
+
+
+def draw_card(card_id):
+    with open(os.path.join(REPO, "docs", "research", "agent-task-catalog.json"),
+              "r", encoding="utf-8") as fh:
+        cat = json.load(fh)
+
+    def walk(node):
+        if isinstance(node, dict):
+            yield node
+            for val in node.values():
+                yield from walk(val)
+        elif isinstance(node, list):
+            for item in node:
+                yield from walk(item)
+
+    hit = [c for c in walk(cat)
+           if (c.get("id") == card_id or c.get("task_id") == card_id)
+           and "allowed_variations" in c]
+    assert len(hit) == 1, "expected one card %r, got %d" % (card_id, len(hit))
+    return hit[0]
+
+
+TASK = {
+    "actual_scope": (
+        "Kappa-blocker KB5k (authorized explicit open request): THE SURVIVING "
+        "BOX-FLOOR ROUTE to F-star, plus shareable-class completeness - the "
+        "recorded remainder of PR 2978 (agent-78). (a) Does the sub-anchor box "
+        "satisfy box(M) >= floor(2v/3) for every exact 3-total rational "
+        "decoder (a proof would close F-star directly via cert >= box), or "
+        "what is the MINIMAL decoder with box < floor(2v/3) (cert reported "
+        "alongside, exact both)? (b) the shareable-class question of PR 2978 "
+        "(its 21 unrealized v = 3 combinatorial gap patterns). (c) if the box "
+        "floor fails but cert survives, the replacement lower bound linking "
+        "named/box to cert in the shareable-class vocabulary. One bounded "
+        "pivot maximum; smallest falsifying instance first."),
+    "ai_assistance": (
+        "Substantial AI assistance: this package was produced by Aaron Wang "
+        "with help from opencode (opencode agent harness). No model named per "
+        "orchestrator attribution rules. No independent human review claimed."),
+    "author": "Aaron Wang (with help from opencode)",
+    "base_commit": BASE,
+    "bottleneck_link": (
+        "F-star (cert(M) >= floor(2v/3), research/root-unit-decoder-lemmas "
+        "section 7) is the named route to closing every open T = 3 window at "
+        "once. PR 2978 killed the completeness link of the PR 2914 chain and "
+        "left the box-floor link (box >= floor(2v/3)) as the surviving route. "
+        "This package settles that route: the floor FAILS on the full class "
+        "(minimal falsifier v = 3, cert = 3 >= 2 = floor > box = 0), so the "
+        "route needs the tau >= 1 restriction; there the floor is PROVEN for "
+        "v <= 4 (Lemma LB2) and stays open at v >= 5 (bounded exact search: "
+        "240 instances, 0 violations)."),
+    "evidence": (
+        "VERDICT: the box-floor route as stated (all exact 3-total rational "
+        "decoders) is REFUTED, minimally at v = 3 in the rank-3 class. "
+        "PROVEN: box = 0 iff every line has tau = 0 (a kept line needs a tied "
+        "bit); the minimal falsifier F3-tau0 P = [[1,1,0],[1,0,1],[0,1,1]], "
+        "Q = [[2,2,1],[2,1,2],[1,2,2]], M = I + 3J (rank 3, tau = (0,0,0), "
+        "r_box = 3, no zero arcs) has cert = 3 (replayed witness; trivial "
+        "upper bound v) > 2 = floor(2v/3) > 0 = box, both sides exact by the "
+        "vendored engine AND an independent definition-level enumeration. "
+        "PROVEN minimal: rank 3 forces v >= 3; a rank-2 wide-class falsifier "
+        "exists at v = 2 (box = 0 < 1 = floor(2v/3)); v = 3 gradient "
+        "tau = (1,0,0) gives cert = 3 > 2 > 1 = box; v = 4 tau = (0,0,0,0) "
+        "gives cert = 4 > 2 > 0 = box. F-star is NOT refuted (cert >= floor "
+        "on every falsifier). PROVEN (Lemma LB2, two-line repair): any two "
+        "lines with tau >= 1 are jointly box-keepable, so box >= min(2, "
+        "#keepable lines); machine-checked on 16761 canonical v = 3 configs "
+        "and 160 random realizable decoders v = 4..6. Consequences: the "
+        "tau >= 1 box floor is PROVEN for v <= 4 (threshold <= 2) and first "
+        "open at v = 5 (threshold 3). CHECKED: v = 3 tau >= 1 domain min box "
+        "= 2 = floor (3023 canonical configs recomputed, 27 gap candidates "
+        "all exactly 2); mixed-tau formula on 240 realizable decoders; "
+        "bounded v = 5 tau >= 1 search (240 exact instances, 97 with "
+        "r_box = 2, 0 below threshold). Exact obstruction to a v = 5 "
+        "falsifier recorded: Lemma RT caps a kept set at r_box only when all "
+        "its forward pairs are zero arcs, so box <= 2 needs every 3-subset "
+        "blocked in every order - Z-complete triples (all 6 ordered pairs "
+        "zero arcs) are the only rank route and rank(M) = 3 permits them only "
+        "for |S| <= 3; every other order must fail bilinearly. Shareable-class "
+        "completeness (PR 2978's 21 patterns) remains open."),
+    "existing_restriction_being_changed": (
+        "Audits PR 2978's stated surviving chain link 'a box floor box >= "
+        "floor(2v/3) ... would close F-star' as a claim about ALL exact "
+        "3-total rational decoders. PR 2978's own counterexample has box = 2 "
+        "= floor(2v/3) at v = 3 (not a floor falsifier), and PR 2936's "
+        "tau = 0 demonstration is v = 2 with box = 1 = floor(2v/3) (also not "
+        "one), so the floor itself was never tested against decoders with "
+        "tau = 0 lines. This package tests it, refutes it minimally, and "
+        "states the exact surviving form (tau >= 1 domain) with its proved "
+        "range and bounded open range."),
+    "falsification_test": (
+        "Every falsifier claim is falsified by replaying the stored witnesses "
+        "and recomputing both rungs from the definitions: verify.py reruns "
+        "the vendored PR 2914 engine (exhaustive) AND an independent "
+        "definition-level enumeration (brute over all label assignments for "
+        "v <= 3, trivial upper bound v for cert = v), asserts identities "
+        "(tie parity, scope identity), rank = 3, and box == min(2, #keepable) "
+        "on each falsifier. Lemma LB2 is falsified by any of the 16761 "
+        "enumerated configs where its explicit construction fails the "
+        "from-definition check. The v = 5 bounded claim is falsified by any "
+        "tau >= 1 instance with box <= 2 (the search is bounded, NOT a "
+        "non-existence result)."),
+    "intended_artifact": PACKAGE + "/ with verify.py (python3 -B " +
+        PACKAGE + "/verify.py) and anchor_replay.py.",
+    "method": (
+        "Smallest falsifying instance first. (1) Exact integer constructions "
+        "with prescribed tau patterns at v = 2, 3, 4; exact cert/box by the "
+        "vendored PR 2914 engine plus an independent section-7/box definition "
+        "enumeration; int-only arithmetic; rank checked exactly over Q. "
+        "(2) Written lower bounds: the keepable-line characterization (box = "
+        "0 iff all tau = 0), Lemma LB2 (two-line repair, constructive), and "
+        "the Lemma RT/shareable-totals upper bound of PR 2978 for the "
+        "obstruction picture; machine replay of the LB2 construction on every "
+        "canonical v = 3 config with >= 2 keepable lines (including tau = 0 "
+        "lines, which PR 2978 job B excluded) and on random realizable "
+        "decoders v = 4..6. (3) Recomputation of PR 2978 job B (3023 "
+        "canonical configs; the vendored receipt ships empty, so everything "
+        "is recomputed from scratch). (4) One bounded pivot: exact kept-set "
+        "feasibility ladder at v = 5 (threshold 3) over 240 realizable "
+        "decoders from three generators (random valuation-tuned, extensions "
+        "of PR 2978's counterexample core with r_box = 2, unit-role "
+        "templates), exact box/cert on every would-be hit."),
+    "nearest_overlapping_prs": (
+        "PR 2978 (Lemma V2, Lemma RT + shareable totals, minimal box = cert "
+        "counterexample v = 3 - the predecessor and handoff source), PR 2963 "
+        "(tied_min v = 11 exact, box weak cell), PR 2936 (Lemma BPP, tau >= 1 "
+        "necessary for box = cert, tau = 0 demo at v = 2), PR 2914 "
+        "(sub-anchor box, Lemmas SB/LB). None tests the box FLOOR against "
+        "tau = 0 lines and none gives a box LOWER bound in terms of the tau "
+        "pattern; this package does both and settles the floor's minimal "
+        "failure."),
+    "open_questions": [
+        {
+            "blocked_by": (
+                "No realizability characterization beyond Lemma SG + the "
+                "column-attainment condition; PR 2978's search is bounded "
+                "(not-found-in-cap is not unrealizable)."),
+            "first_step": (
+                "Characterize the (a0,b0,Z) patterns forced by rank-3 "
+                "factorizations with prescribed odd/even valuations; extend "
+                "PR 2978's realize_kj.py with a valuation-level enumeration."),
+            "question": (
+                "Are PR 2978's 21 remaining v = 3 combinatorial gap patterns "
+                "realizable (shareable-class completeness at v = 3)?"),
+            "why_it_matters": (
+                "All 21 lie in the shareable class (r_box = 3); a realization "
+                "refutes box-completeness there too, unrealizability proves it.")
+        },
+        {
+            "blocked_by": (
+                "The exact obstruction recorded here: Lemma RT blocks a kept "
+                "set only via all-forward-zero-arc orders capped at r_box, and "
+                "rank(M) = 3 allows Z-complete triples only at |S| <= 3; all "
+                "other orders must fail bilinearly, which no search domain has "
+                "exhausted."),
+            "first_step": (
+                "Either prove box >= 3 for every tau >= 1 decoder at v = 5 "
+                "(e.g. a three-line repair generalizing Lemma LB2 with the "
+                "rank-3 constraint), or construct one with box = 2 exactly "
+                "(r_box <= 2 is necessary by Lemma RT)."),
+            "question": (
+                "The tau >= 1 box floor at v >= 5: is box >= floor(2v/3) on "
+                "that domain? First open case v = 5 (threshold 3)."),
+            "why_it_matters": (
+                "It is the exact surviving form of the box-floor route once "
+                "the tau = 0 falsifiers of this package are excluded; a proof "
+                "would close F-star on the tau >= 1 domain (the domain all "
+                "prior evidence lives in).")
+        },
+        {
+            "blocked_by": (
+                "The shareable-class vocabulary is new; the right lower bound "
+                "is not yet stated."),
+            "first_step": (
+                "State and test a candidate bound in terms of the tau pattern, "
+                "r_box and the tied-bit coloring MAS sums (Lemma TB "
+                "sketch: box >= max over tied-bit colorings of "
+                "sum_j MAS(Z[C_j]))."),
+            "question": (
+                "The replacement lower bound linking named/box to cert after "
+                "the box floor died: what structural features control box?"),
+            "why_it_matters": (
+                "PR 2978's chain now needs a different lower rung; this "
+                "package supplies the tau-pattern control (box = 0 iff all "
+                "tau = 0; box >= min(2, #keepable)) and the shareable-count "
+                "upper cap as the first pieces.")
+        },
+    ],
+    "optimistic_full_cost_budget": (
+        "No kappa claim; the milestone is the settled floor question. Compute "
+        "cap: falsifier jobs seconds; LB2 replay ~150 s of canonical configs "
+        "(v = 3, one pass); v = 5 pivot 240 exact instances ~290 s; anchor "
+        "replay ~120 s; every command under the 600 s cap, all blocking."),
+    "outcome": "completed",
+    "parameter_ranges": (
+        "v = 2..5; three totals; label space F2^3 bit masks; integer P, Q "
+        "entries in {-4..4}; 2-adic valuations 0..3; falsifiers at v = 2, 3, "
+        "4 with tau patterns (0,0), (0,0,0), (1,0,0), (0,0,0,0); LB2 replay "
+        "on 16761 canonical v = 3 configs (all Lemma-SG-consistent (a0,b0,Z) "
+        "with >= 2 keepable lines, up to line/total relabeling) and 160 "
+        "random realizable decoders v = 4..6; mixed-tau sweep 240 realizable "
+        "decoders v = 3..4; v = 5 pivot 240 realizable tau >= 1 decoders "
+        "(80 random + 80 PR 2978-core extensions + 80 unit-role templates)."),
+    "predecessor_authors": (
+        "PR 1590 DreamingOfClouds (Claude Opus 5.5 (Anthropic) via Claude "
+        "Code assistance); PR 2111 DreamingOfClouds; PRs "
+        "2717/2747/2774/2869/2890/2901/2914/2936/2963/2978 Aaron Wang "
+        "(navinor); all verified at current ground truth with gh pr view "
+        "--json author,title on 2026-10-16."),
+    "schema_version": 1,
+    "scope_change_reason": (
+        "Authorized 'explicit open request' scope change to kappa-blocker "
+        "KB5k, recorded per the assignment (discussion 1166; the recorded "
+        "remainder of PR 2978 - the surviving box-floor route plus "
+        "shareable-class completeness - is the named open request). The "
+        "chooser OS draw (seed 758ae8fe94f704eed3a4bb471ba333b5, track "
+        "verifier-engineering) proposed portable-replay and replay-runtime; "
+        "neither is this object, and the assignment takes the KB5k request "
+        "instead."),
+    "scope_status": "changed",
+    "stop_rule": (
+        "Stop when the box floor is settled (proved, minimal falsifier, or "
+        "exact obstruction with minimal demo) and the one bounded pivot is "
+        "recorded. Achieved: minimal falsifier PROVEN at v = 3 (rank-3 "
+        "class), tau >= 1 floor PROVEN for v <= 4, bounded at v = 5 (240 "
+        "instances, 0 hits). No further search without a new hypothesis."),
+    "task_id": "portable-replay",
+    "time_compute_cap": (
+        "One bounded pivot maximum (the tau >= 1 v = 5 question); registered "
+        "replay under 600 s per command (observed: verify.py ~300 s, "
+        "anchor_replay.py ~120 s); all searches deterministic (fixed seeds, "
+        "instance counts, not wall-clock caps)."),
+}
+
+SOURCES = {
+    "schema_version": 1,
+    "base_commit": BASE,
+    "files": [
+        {"path": "certificates/selected-result.json",
+         "usage": "provenance",
+         "git_blob": git_blob("certificates/selected-result.json"),
+         "sha256": sha256_file(os.path.join(REPO, "certificates",
+                                            "selected-result.json"))},
+        {"path": "docs/research/agent-task-catalog.json",
+         "usage": "provenance",
+         "git_blob": git_blob("docs/research/agent-task-catalog.json"),
+         "sha256": sha256_file(os.path.join(REPO, "docs", "research",
+                                            "agent-task-catalog.json"))},
+        {"path": "research/root-unit-decoder-lemmas/README.md",
+         "usage": "input",
+         "git_blob": git_blob("research/root-unit-decoder-lemmas/README.md"),
+         "sha256": sha256_file(os.path.join(REPO, "research",
+                                            "root-unit-decoder-lemmas",
+                                            "README.md"))},
+    ],
+}
+
+VERIFY = {
+    "commands": [
+        {
+            "argv": ["{python}", "-B", "{package}/verify.py"],
+            "checks": (
+                "KB5k package replay: vendored PR 2978 pin sets (14 + 29 "
+                "files); the four box-floor falsifiers re-certified three ways "
+                "(vendored engine exact, independent definition-level "
+                "enumeration, written bounds) with identities, exact rank and "
+                "replayed witnesses; Lemma LB2 construction replayed on 16761 "
+                "canonical v = 3 configs and 160 random realizable decoders; "
+                "mixed-tau formula sweep 240 instances; PR 2978 job B "
+                "recomputed from scratch (3023 configs, 27 candidates all at "
+                "exact box = 2); bounded tau >= 1 v = 5 pivot (240 exact "
+                "instances, 0 below threshold); writes CERTIFICATE.json; "
+                "prints PASS_KM_PINS, PASS_KM_FALSIFIER_V2/V3/V3B/V4, "
+                "PASS_KM_LB2, PASS_KM_MIXEDTAU, PASS_KM_V3TAU1, "
+                "PASS_KM_PIVOT_V5, PASS_KM_ALL, PASS_KM_VERIFY"),
+            "timeout_seconds": 600,
+        },
+        {
+            "argv": ["{python}", "-B", "{package}/anchor_replay.py"],
+            "checks": (
+                "Predecessor anchor reproduction: the vendored PR 2978 "
+                "verify.py runs UNCHANGED on a byte-copy (receipts cannot "
+                "touch pinned bytes) and must print every recorded anchor "
+                "marker, including PASS_FG_CALIBRATION tied_min=11/12 "
+                "cex_min_1=18/19 mp=9/16 chain=22 reach=0/12,8/19, "
+                "PASS_KJ_COUNTEREXAMPLE v=3 tau=2/2/2 cert=3 box=2 r_box=2 "
+                "independent=3/2, PASS_KJ_V2 configs=2842, PASS_KJ_V3 "
+                "configs=3023 box-equals-cert=2996 candidates=27 and the "
+                "certificate digest 0b5b55f84375b37c; prints "
+                "PASS_KM_ANCHORS"),
+            "timeout_seconds": 600,
+        },
+    ],
+    "inputs": [
+        "research/root-unit-decoder-lemmas/README.md",
+        PACKAGE + "/verify.py",
+        PACKAGE + "/box_floor_min.py",
+        PACKAGE + "/pivot_v5.py",
+        PACKAGE + "/anchor_replay.py",
+        PACKAGE + "/README.md",
+        PACKAGE + "/TASK.json",
+        PACKAGE + "/data/km-receipt.json",
+        PACKAGE + "/data/pivot-v5-receipt.json",
+        PACKAGE + "/predecessor/pr2978/predecessor/PINS.json",
+        PACKAGE + "/predecessor/pr2978/predecessor/pr2963/predecessor/PINS.json",
+    ],
+    "python": "3.12",
+    "requirements": [],
+    "schema_version": 1,
+    "status": "ready",
+}
+
+
+def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    card = draw_card("portable-replay")
+    task = dict(TASK)
+    task["original_card"] = card
+    for name, obj in (("TASK.json", task), ("SOURCES.json", SOURCES),
+                      ("VERIFY.json", VERIFY)):
+        with open(os.path.join(HERE, name), "w", encoding="utf-8",
+                  newline="\n") as fh:
+            json.dump(obj, fh, indent=1, sort_keys=True, ensure_ascii=False)
+            fh.write("\n")
+        print("wrote %s" % name)
+
+
+if __name__ == "__main__":
+    main()
