@@ -4,7 +4,7 @@ from collections import Counter
 from fractions import Fraction as Q
 from functools import lru_cache
 from itertools import combinations
-from math import comb
+from math import comb, lcm
 from pathlib import Path
 import json
 import random
@@ -57,7 +57,49 @@ def inverse(A):
 
 
 def product(A,B):
-    return matrix([[sum(x*y for x,y in zip(a,b)) for b in zip(*B)] for a in A])
+    """Exact matrix product over Q.
+
+    Clear denominators once per factor, multiply with Python integers, then
+    rebuild canonical ``Fraction`` entries. Equivalent to entrywise
+    ``sum(x*y for ...)``; see ``research/joint-frames-cleared-product/``.
+    """
+    if not A:
+        return tuple()
+    n=len(A);k=len(A[0]);m=len(B[0])
+    DA=1
+    for row in A:
+        for x in row:
+            if x.denominator!=1:
+                DA=lcm(DA,x.denominator)
+    DB=1
+    for row in B:
+        for x in row:
+            if x.denominator!=1:
+                DB=lcm(DB,x.denominator)
+    if DA==1 and DB==1:
+        out=[]
+        for i in range(n):
+            ai=A[i];row=[]
+            for j in range(m):
+                s=0
+                for t in range(k):
+                    s+=ai[t].numerator*B[t][j].numerator
+                row.append(Q(s))
+            out.append(tuple(row))
+        return tuple(out)
+    Ai=[[x.numerator*(DA//x.denominator) for x in row] for row in A]
+    Bi=[[x.numerator*(DB//x.denominator) for x in row] for row in B]
+    scale=DA*DB
+    out=[]
+    for i in range(n):
+        ai=Ai[i];row=[]
+        for j in range(m):
+            s=0
+            for t in range(k):
+                s+=ai[t]*Bi[t][j]
+            row.append(Q(s,scale))
+        out.append(tuple(row))
+    return tuple(out)
 
 
 def span_projection(rows,h):

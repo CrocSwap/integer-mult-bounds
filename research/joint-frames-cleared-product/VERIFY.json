@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/audit_joint_frames.py",
+    "scripts/audit_positive_side.py",
+    "scripts/audit_rank_product_core.py",
+    "scripts/experiments/positive_side_core.py",
+    "scripts/experiments/rank_product_core.py",
+    "scripts/experiments/signed_sparse_core.py",
+    "certificates/rank-product-core.json",
+    "certificates/positive-side-core.json",
+    "docs/research/positive-side-core.md",
+    "docs/research/rank-product-core.md",
+    "tests/test_joint_frames.py",
+    "tests/test_positive_side_core.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Exact baseline copy of the base-commit audit_joint_frames.py; identical product on 2500 random rational matrices plus edge cases; identical positive-side experiment receipts for all twelve (h,q,strategy) rows including dag_sha256; the rank-product certificate differs from base only in the audit_joint_frames.py source pin; scale-mutant foil rejected."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Same equivalence and certificate discipline under -O (require() gates, not assert)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_joint_frames*.py",
+        "-v"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Existing joint-frame unit tests plus focused cleared-product package controls."
+    }
+  ]
+}
