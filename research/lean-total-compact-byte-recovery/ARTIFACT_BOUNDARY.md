@@ -1,0 +1,13 @@
+# Exact fragment and artifact boundary
+
+The prerequisite package [PR2371](https://github.com/CrocSwap/integer-mult-bounds/pull/2371), at immutable head `5bbe542064308dbc10f50582c05116ebd0925223`, publishes the exact literal, typed data and kernel byte binding. Its [artifact provenance record](https://github.com/CrocSwap/integer-mult-bounds/blob/5bbe542064308dbc10f50582c05116ebd0925223/research/lean-l450-fragment-binding/ARTIFACT_PROVENANCE.json) remains the source of the external extraction evidence. No archive or fragment was reacquired for this package.
+
+The selected archive SHA256 is `f1da80610bf33c58527f18ad63b4350d0b864e1d4486141ee17ac9bed4d529d6`. The member `candidate/strict/global/hosted/ACTUAL-SIGMAS.json.gz` has SHA256 `f12383eb2691fe33cc9f0525ccb5f6429db6d7bbf0eec76e97f50e752f943dd9`. Its decompressed bytes have SHA256 `2cad2187e792fe7c879084a23f15577730ce27e82ff0c341885935c8adffc58f`. The 907-byte interval `[142709,143616)` and the selected dictionary key share the recorded SHA256 `ccf973ede5baca87618c361e2fe62bb8a80f11b79f1551237ab7a16c887b4e90`.
+
+The public literal is `CurrentMain.Current1094L450FragmentDiagnostic.originalFragment`. PR2371's `literal_eq_payload` kernel theorem binds it to the accepted ordered columns. Their order is `[386,4,8,16,32,64,259,385,131]` followed by `[2^9,...,2^72]`. The new decoder and recovery applications reuse these exact declarations and introduce no replacement literal.
+
+The selected emitter is [emit_allcold.py at revision 299eb8effe080183313757ac36e76c1b98ed9fae](https://github.com/CrocSwap/integer-mult-bounds/blob/299eb8effe080183313757ac36e76c1b98ed9fae/research/gauge44-slots-t16/code/emit_allcold.py), SHA256 `354367e1fd6185a67b04f4268bcae4d502e47b18cb2131e247f5bcab5b3a769e`. Its compact decimal-array output motivates the restricted canonical decoder. The external producer's serialization equivalence and archive authentication are not inferred from that motivation.
+
+The prior `#eval` diagnostic is runtime-only evidence. Importing its existing object does not rerun it. The new selected theorems instead establish total logical decoder/recovery success from the accepted byte equality. They do not turn that old runtime observation into a theorem about opaque `Lean.Json.parse`.
+
+These are distinct boundaries: the kernel binds a literal to a typed payload; the new total logical path decodes and recovers it; external source review binds the literal to a recorded artifact slice. Whole-file structural membership, installed-parser spans, producer authentication, runtime implementation refinement, complex phases and physical costs remain separate. A hash string records an identity claim, not an authenticated origin.
