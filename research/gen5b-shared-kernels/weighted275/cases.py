@@ -1,0 +1,4 @@
+"""Fixed candidates, independently measured expectations, and immutable witnesses."""
+CASES={
+ '70':dict(file='candidate70-rebound.json',sha256='423da9c6edc40200a1defec3fd6ee507cb93e48a438df432df7f427b50bdbc01',pivots=70,donors=87,members=157,pairs=601,delta={1:87,2:137,3:-137,4:18,5:-16,6:-2},stock=1229560,calls=482535,rank=2454720,kappa='0.000751090249287618',F=207445,B=5904603,chart_programs=153,finite_coefficient=90368500502315101,assignment_sha256='1d46332186a65eaca7451a24129dcff77a4541d7b6ce0fc66bba1d54a0cc35f0'),
+ '166':dict(file='candidate-combined166-reclosed.json',sha256='f2932216a90298b62e2895bad0c5402faf6ce79e40aabc62e8e0c601067f4006',pivots=166,donors=210,members=376,pairs=2587,delta={1:210,2:306,3:-306,4:70,5:-70},stock=1229320,calls=483150,rank=2454240,kappa='0.000751097723288767',F=433193,B=14098095,chart_programs=304,finite_coefficient=90433795441918801,assignment_sha256='494a0134fe2d9c768fb8617000c080f90556b99634bdc9bbb06ba45b58ca1546')}
