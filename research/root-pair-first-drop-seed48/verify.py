@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 BASE = '2921874911956718fcaaaf9396fe8267b3cfa9f0'
 SOURCES = {'research/complex-frame-pair-decoders/PROOF.md',
-           'research/complex-frame-pair-decoders/verify.py',
+           'research/frame-pair-enumeration-production/baseline.py',
            'research/complex-frame-pair-decoders/README.md'}
 spec = importlib.util.spec_from_file_location('local_root_model', HERE/'explore.py')
 model = importlib.util.module_from_spec(spec)
