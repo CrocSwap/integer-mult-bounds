@@ -1,0 +1,7 @@
+**Credit first:** #2863 Dugongue (the packing package this extends), #2857 / #2848 Lyy-iiis (staged shared-kernel words, replay and admission), #2843 mdumitrean, #2853 philippeVV (dirt entry), and the #2833 / #2839 / #2827 lineage. **Ours** (Jeremy Kothe, jeremykothe2, with AI assistance): two more staged quartets via preload re-synthesis, and a residue-free T74 fill.
+
+Conditional κ = **0.001720184528377469533074 − 10⁻⁴⁶ − 10⁻⁷⁰**: +8.3723×10⁻⁸ over #2875, +8.3723×10⁻⁸ over #2863 and +8.790×10⁻⁸ over #2857 (exact values in `CLAIM.json`).
+
+What changed: the quartets (456,457,466,467) and (458,459,464,465) join the four #2857 kernels as a *declared stage* (`vendor/pm/patch-*.json` lists every changed gate; the source chain rebuilds both words from it; `vendor/pm/preload_move_review.py` re-derives the gates independently, audits both words and must reject twelve faults, including a dropped quartet helper entry, a flipped sign, a missing carrier raise and a preload gate moved back). Paid profile per call {1:+10, 3:−4}; inventory {8:86, 9:232}. The T74 fill (666 calls) packs it with no residue.
+
+Validation: two fresh changed native chains (5 stages, both orientations, 632 columns), complete admission, independent owner/moment/profile checks and the modern outer release. No optimality certificate is claimed for the new inventory; the fill is a shipped solver output checked literally, not reconstructed. Inherited all-size hypotheses remain; informal mathematics plus exact finite certification, no Lean audit.

@@ -1,0 +1,168 @@
+{
+  "builder_sha256": "bb64f416d450c5ac2ab0943f349a2dafb683460d3bce188a9a66d8e7f728033d",
+  "changes": {
+    "new/BORROW-PROVIDERS.json": {
+      "after_sha256": "eb9ab409c6eab003bb9209e1c3d32d32e48382e7fb759823e0fa9400c998c501",
+      "before_sha256": "5527d70aa83ad3b05a7176903016c12fc410bc9968082377eeed66c8d298dafa"
+    },
+    "new/borrow/inputs/SHARED-WORD-base.json.gz": {
+      "after_sha256": "001b14314d8db873d4d80826d4af9c40a3e5a1fecde743e5a26391bdf673f458",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/SHARED-WORD-extra.json.gz": {
+      "after_sha256": "bc5bfe51178f0c3312d28318412ec490463c896ceed0660b9c443fcb76496546",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/preload_move_43base.json": {
+      "after_sha256": "eeac93e62db93f14b56578eb409853cd02291159304eb63b5094eff91e0562a5",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/preload_move_43extra.json": {
+      "after_sha256": "c712401624dfc16ce71cbab5a97e557fab95fbd848202ec82cd5b1df1b78a06b",
+      "before_sha256": null
+    },
+    "new/borrow/preload_move.py": {
+      "after_sha256": "c8fda4674644fcd5cbf39b6645ce148a21daa90a998b678cbe51f970b78b0044",
+      "before_sha256": null
+    },
+    "new/borrow/preload_move_review.py": {
+      "after_sha256": "cf9f2f8d2b4f04a9e9bd6b7cd1aa777fa3f352b6a7fa97e3fd210b2c2ce2fb72",
+      "before_sha256": null
+    },
+    "new/borrow/words/BORROW-WORD-43base.json.gz": {
+      "after_sha256": "c20a470aec0f3e61833cb41fe190639eb358f58017143d2336c55c80fba265eb",
+      "before_sha256": "001b14314d8db873d4d80826d4af9c40a3e5a1fecde743e5a26391bdf673f458"
+    },
+    "new/borrow/words/BORROW-WORD-43extra.json.gz": {
+      "after_sha256": "db34e39876241087b581ed9374c53e9cd393e3e86ef6103bfb54f3077c3d2761",
+      "before_sha256": "bc5bfe51178f0c3312d28318412ec490463c896ceed0660b9c443fcb76496546"
+    },
+    "new/rebuild_borrow.py": {
+      "after_sha256": "aa9d535cdff7d918601046b8e5cb1d7b7fd3f08ee719f104963380afbaa4b6d5",
+      "before_sha256": "97bd36b840501dd125d4d660750b8b7bc6550bba0150b7d2851c8a41668a8a6d"
+    },
+    "verify.py": {
+      "after_sha256": "26f0f22b796afc82e48498203978f51c19df4e8d2cf8569bf3e1726805f7f922",
+      "before_sha256": "1591a3eed02d3532e46183543bd2ddc7129c079a5fd70f1e6b4d9bc897153e92"
+    }
+  },
+  "derived_manifest_sha256": "4da246899e2c509dd8c6e5af34905c6124ca17671b188e11ac37e36adf449504",
+  "parent_manifest_sha256": "54dc42f25c1d8b85adcf593c4bf6c0f83f7351388af857812790b8a0b4c3d869",
+  "patches": [
+    {
+      "after_sha256": "aa9d535cdff7d918601046b8e5cb1d7b7fd3f08ee719f104963380afbaa4b6d5",
+      "before_sha256": "97bd36b840501dd125d4d660750b8b7bc6550bba0150b7d2851c8a41668a8a6d",
+      "new": "        chain.append(shared_word);steps.append('shared-four-kernel')\n    # Declared preload-move stage: two more staged quartets, after the four-kernel stage.\n    pm_f=D/'inputs'/f'preload_move_43{wt}.json'\n    if pm_f.exists():\n        import preload_move\n        pm_patch=json.loads(pm_f.read_text());previous_pm=chain[-1]\n        canonical_pm=lambda z:hashlib.sha256(json.dumps(z,sort_keys=True,separators=(',',':')).encode()).hexdigest()\n        assert canonical_pm(previous_pm)==pm_patch['source_canonical_sha256']\n        pm_word,pm_ledger=preload_move.apply(previous_pm,pm_patch)\n        assert canonical_pm(pm_word)==pm_patch['candidate_canonical_sha256']\n        assert set(k_ for k_ in previous_pm if previous_pm[k_]!=pm_word[k_])<={'A','B','compensation','start_extra','report','cleanup'}\n        chain.append(pm_word);steps.append('preload-move')\n",
+      "old": "        chain.append(shared_word);steps.append('shared-four-kernel')\n",
+      "path": "new/rebuild_borrow.py"
+    },
+    {
+      "after_sha256": "26f0f22b796afc82e48498203978f51c19df4e8d2cf8569bf3e1726805f7f922",
+      "before_sha256": "1591a3eed02d3532e46183543bd2ddc7129c079a5fd70f1e6b4d9bc897153e92",
+      "new": "run('shared-kernel-independent-review',P/'new/borrow/shared_kernel_review.py','--source-dir',P/'new/borrow','--source-base',P/'new/borrow/inputs/PR2833-WORD-base.json.gz','--source-extra',P/'new/borrow/inputs/PR2833-WORD-extra.json.gz','--candidate-base',P/'new/borrow/inputs/SHARED-WORD-base.json.gz','--candidate-extra',P/'new/borrow/inputs/SHARED-WORD-extra.json.gz','--out-dir',work/'shared-kernel-independent-review')\nrun('preload-move-independent-review',P/'new/borrow/preload_move_review.py','--source-dir',P/'new/borrow','--shared-base',P/'new/borrow/inputs/SHARED-WORD-base.json.gz','--shared-extra',P/'new/borrow/inputs/SHARED-WORD-extra.json.gz','--candidate-base',P/'new/borrow/words/BORROW-WORD-43base.json.gz','--candidate-extra',P/'new/borrow/words/BORROW-WORD-43extra.json.gz','--patch-base',P/'new/borrow/inputs/preload_move_43base.json','--patch-extra',P/'new/borrow/inputs/preload_move_43extra.json','--out-dir',work/'preload-move-independent-review')",
+      "old": "run('shared-kernel-independent-review',P/'new/borrow/shared_kernel_review.py','--source-dir',P/'new/borrow','--source-base',P/'new/borrow/inputs/PR2833-WORD-base.json.gz','--source-extra',P/'new/borrow/inputs/PR2833-WORD-extra.json.gz','--candidate-base',P/'new/borrow/words/BORROW-WORD-43base.json.gz','--candidate-extra',P/'new/borrow/words/BORROW-WORD-43extra.json.gz','--out-dir',work/'shared-kernel-independent-review')",
+      "path": "verify.py"
+    }
+  ],
+  "pins": {
+    "patch-base.json": "a7424d157e6df5c11a182d16253b3d9da84df1c17bb6db303f8d4e15095ef644",
+    "patch-extra.json": "1979934ed1c75f6789f37fabe9addf674fa367ff18b7cab4dd0442efe8d547df",
+    "preload_move.py": "c8fda4674644fcd5cbf39b6645ce148a21daa90a998b678cbe51f970b78b0044",
+    "preload_move_review.py": "cf9f2f8d2b4f04a9e9bd6b7cd1aa777fa3f352b6a7fa97e3fd210b2c2ce2fb72",
+    "words/WORD-PM-base.json.gz": "c20a470aec0f3e61833cb41fe190639eb358f58017143d2336c55c80fba265eb",
+    "words/WORD-PM-extra.json.gz": "db34e39876241087b581ed9374c53e9cd393e3e86ef6103bfb54f3077c3d2761"
+  },
+  "scope": "Exact source overlay construction only. The declared stage is rebuilt by the source chain; native, owner, controller and outer admission and every inherited validator remain separate.",
+  "source_file_count": 553,
+  "status": "PASS_SOURCE_BOUND_PRELOAD_MOVE_OVERLAY_DERIVATION",
+  "words": {
+    "base": {
+      "candidate_word_sha256": "c20a470aec0f3e61833cb41fe190639eb358f58017143d2336c55c80fba265eb",
+      "ledger": {
+        "A_inserted": 14,
+        "A_replaced": [
+          85,
+          100
+        ],
+        "B_edits": 2,
+        "candidate_canonical_sha256": "d5ea76a0115472da346af298de701d7855a2529940de92edf3d75482316ab392",
+        "changed_sections": [
+          "A",
+          "B",
+          "cleanup",
+          "compensation",
+          "report",
+          "start_extra"
+        ],
+        "compensation_edits": 344,
+        "local_profile": {
+          "1": 2404,
+          "2": 642,
+          "3": 262,
+          "4": 128,
+          "5": 26,
+          "8": 8
+        },
+        "source_canonical_sha256": "c0af0ef7ee6282e91f046d027983b35eaed7ebcb46489134d47e07724cf664bc",
+        "start_extra_added": [
+          "457",
+          "458"
+        ],
+        "variant": "base",
+        "width_inventory": {
+          "4": 26,
+          "5": 2,
+          "7": 62,
+          "8": 86,
+          "9": 232
+        }
+      },
+      "patch_sha256": "eeac93e62db93f14b56578eb409853cd02291159304eb63b5094eff91e0562a5",
+      "shared_word_sha256": "001b14314d8db873d4d80826d4af9c40a3e5a1fecde743e5a26391bdf673f458"
+    },
+    "extra": {
+      "candidate_word_sha256": "db34e39876241087b581ed9374c53e9cd393e3e86ef6103bfb54f3077c3d2761",
+      "ledger": {
+        "A_inserted": 14,
+        "A_replaced": [
+          85,
+          100
+        ],
+        "B_edits": 2,
+        "candidate_canonical_sha256": "17833ac1b71002c7264522499b081bf894b8b33e783b111726491d77d97884cf",
+        "changed_sections": [
+          "A",
+          "B",
+          "cleanup",
+          "compensation",
+          "report",
+          "start_extra"
+        ],
+        "compensation_edits": 344,
+        "local_profile": {
+          "1": 2404,
+          "2": 642,
+          "3": 262,
+          "4": 128,
+          "5": 26,
+          "8": 8
+        },
+        "source_canonical_sha256": "61b20fbe78fdcbca0cde0597befcc254017ee206dad0724c576672aca690c66f",
+        "start_extra_added": [
+          "457",
+          "458"
+        ],
+        "variant": "extra",
+        "width_inventory": {
+          "4": 26,
+          "5": 2,
+          "7": 62,
+          "8": 86,
+          "9": 232
+        }
+      },
+      "patch_sha256": "c712401624dfc16ce71cbab5a97e557fab95fbd848202ec82cd5b1df1b78a06b",
+      "shared_word_sha256": "bc5bfe51178f0c3312d28318412ec490463c896ceed0660b9c443fcb76496546"
+    }
+  }
+}
