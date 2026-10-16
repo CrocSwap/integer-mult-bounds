@@ -1,4 +1,4 @@
-# Decoder floors: universality, projection transfer and batching reductions; C(P120) ≥ 72 reduced to named conjectures (no κ claim)
+# Decoder floors: universality, projection transfer and batching reductions; C(P112) ≥ 64 reduced to named conjectures, C(P120) ≥ 72 restated on N₀ (no κ claim)
 
 **Status: research note. No κ claim, no supplier word, no new floor for the full problem.** Every claim below is a written proof in this file plus exact finite computations that `verify.sh` re-runs
 (about 5 minutes, at most 3 parallel processes, no SAT solver). Only `research/decoder-floors-reduction/` is added; nothing existing is changed.
@@ -9,7 +9,7 @@ Labels: **PROVEN** (written proof here; finite inputs listed), **CHECKED** (exac
 ## 0. The map
 
 **Target.** philippeVV's gain law (Discussion #1587, follow-up 6): the gain `|L| − C(L)` of masked line decoders is monotone under restriction and superadditive under block-diagonal padding. Hence
-"decoder optimisation is dead" for every E8 line set is the single statement **C(P120) ≥ 72** (gain ≤ 48). It implies P112 ≥ 64, P111 ≥ 63, P104 ≥ 56 by monotonicity; **the converse direction does not hold**: closing P112 does not close P120.
+"decoder optimisation is dead" for every E8 line set is the single statement **C(P120) ≥ 72** (gain ≤ 48). It implies P112 ≥ 64, P111 ≥ 63, P104 ≥ 56 by monotonicity; **the converse does not follow** (P112 ≥ 64 does not imply P120 ≥ 72): closing P112 does not close P120.
 philippeVV's follow-up 8 closes all *lift* cases of C(P120) ≥ 72 (credit to them) and names residues R1–R4 (§6).
 
 **Structure (new here, §2).** For any E8 line set `L` with the dense h = 9 table, every decoder of every masked realisation is, after adding cost-0 single-entry terms, a decoder of the one matrix `N₀ = G/2` at the same cost.
@@ -20,9 +20,9 @@ Because this is a full-class statement it survives the gain-law padding (rank-cl
 |---|---|---|
 | Both factor families in the root code `𝒞 = col N₀` (inside), any `m` | ≥ 64 | #2338 (merged; Theorems P, R) |
 | Rank-8 realisations are `D₁ G D₂` (rigidity) | proven | #1212 (merged) |
-| One side outside `𝒞`, `m = 9` | ≥ 64; P104 ≥ 56 | #2724 |
-| One side outside, every `m`, no corrections | ≥ 64, unique optimum | #2816 |
-| One side outside, every `m`, ≤ 2 non-full corrections | ≥ 64; lift level ≥ 64 + min(\|I\|,2) | #2816 |
+| One side outside `𝒞`, `m = 9` | ≥ 64; P104 ≥ 56 | #2724 (open PR) |
+| One side outside, every `m`, no corrections | ≥ 64, unique optimum | #2816 (open PR) |
+| One side outside, every `m`, ≤ 2 non-full corrections | ≥ 64; lift level ≥ 64 + min(\|I\|,2) | #2816 (open PR) |
 | … ≤ 3 non-full corrections | ≥ 64 except six weight multisets | #2826 (draft) |
 | Rank-9 realisations of E8: classification (B-form / A2 family) | proven | #2819 |
 | A2 family, square and `m ≥ 10` | ≥ 64 / 56 / 72 | #2784 (+ B-locus follow-up) |
@@ -31,16 +31,17 @@ Because this is a full-class statement it survives the gain-law padding (rank-cl
 | D_n units | floors | #2719 |
 | **Every realisation, every rank, any line set ⇒ decoders of N₀** | **PROVEN (§2.1)** | **here** |
 | **Two-sided decoders of N₀: outside factors free; Sylvester ⇒ m ≥ 10, m = 10 ⇒ (s,t) = (1,1)** | **PROVEN (§2.2), any line set** | **here** |
-| **Two-sided ⇒ one-sided + outside corrections (projection transfer)** | **PROVEN (§3.1)** | **here** |
+| **Two-sided ⇒ one-sided + outside corrections (projection transfer)** | **PROVEN, CONDITIONAL on open PR #2816 (§3.1)** | **here** |
 | **Pivot bound** `cost ≥ 64 − (|I|−2)₊ + Σ_Π cost_k − Σ_{J_Q∖Π} ε_k` | **PROVEN, CONDITIONAL on #2816 R4 (§3.2)** | **here** |
-| **Two-sided, `m = 10`, a 2-element circuit on either side** | **≥ 64 (§3.3; from #2724, #2338)** | **here** |
-| **Catalogue of outside-column corrections (511 classes × 1200 directions)** | **CHECKED (§3.4)** | **here** |
-| **t = 1: pair lemma, low-column collinearity, ≤ 2 weight-7 columns, saving count** | **PROVEN (§3.5; 8.2 CONDITIONAL on #2816 cover facts)** | **here** |
+| **Two-sided, `m = 10`, a 2-element circuit on either side** | **≥ 64, CONDITIONAL on open PR #2724 (§3.3)** | **here** |
+| **Catalogue of outside-column corrections (511 classes × 1200 directions)** | **CHECKED; completeness CONDITIONAL on open PR #2816 (§3.4)** | **here** |
+| **t = 1: pair lemma, low-column collinearity, ≤ 2 weight-7 columns, saving count** | **PROVEN, CONDITIONAL on open PR #2816 (§3.5)** | **here** |
+| **Disjoint two-sided `(1,1)`, `m = 10` (`J_P ∩ J_Q = ∅`): `E_Q, E_P ≤ 8`, cost ≥ 64** | **PROVEN + CHECKED, CONDITIONAL on open PR #2816 (§3.6)** | **here** |
 | **Batching ⇒ single-call floor**, except rank-(2,2) multi-diagonal terms; twin-chart fold; fold barrier | **PROVEN / CHECKED (§4)** | **here** |
 | **One shared term, square coordinate restrictions, 8 charts: closed unconditionally in 277/512 cases** | **CHECKED (§4.7)** | **here** |
 
-**Conditional kill shot.** Decoder optimisation is dead on every slice above. The full master `C(P120) ≥ 72` follows from Conjecture **K-P120** (§5), and on P112 the statement `C(P112) ≥ 64` is equivalent to K1 ∧ K2 below.
-Nothing in this package proves K-P120; it reduces the master to it and shrinks the P112 residue to one finite-looking family (Conjecture K3).
+**Conditional kill shot.** Decoder optimisation is dead on every slice above, modulo the open PRs cited. On P112, K1 ∧ K2 (§5) ⇒ `C(P112) ≥ 64` (with #2338, CONDITIONAL on #2816), and the first open two-sided configuration is the non-disjoint case K3.
+For the full master, K-P120 is `C(P120) ≥ 72` **restated** on the single matrix `N₀(P120)` (§2.1), not reduced: the P120 route needs the inside floor of #2338 on P120, K4 (one-sided P120 versions) and a two-sided P120 analogue of K1.
 
 ## 1. Setting and imported results
 
@@ -63,12 +64,13 @@ The new decoder matches `N₀` on every mask position. ∎
 **Consequences.** (a) `C(L) = min cost over decoders of N₀(L)`. A decoder of a rank-ρ realisation is a decoder of `N₀` with extra cost-0 terms `e_t e_sᵀ`, which lie outside `𝒞` on both sides; so rank-9 realisations (#2819), "rank ≥ 10" and every other realisation class embed in the two-sided class of `N₀`.
 (b) The split (a) inside / (b) one-sided / (c) two-sided **of N₀** is exhaustive; closing two-sided `N₀` for all `m` IS the master on that line set. (c) No argument blind to cost-0 terms can reduce "two-sided" to the closed cases; every reduction below keeps them in the bookkeeping.
 (d) The theorem is a full-class statement, so it is compatible with the gain-law padding.
+(e) Term counts: the `m`-counts below are for exact decoders of `N₀`; a masked `m`-term decoder of `N` becomes an exact decoder of `N₀` with `m + (#cost-0 terms added)` terms, so statements "for every `m`" transfer, statements for a fixed `m` refer to the exact decoder.
 
 ### 2.2 Outside factors are free
 `N₀ = CCᵀ` (absorb the 1/2). Write `P = [C E]X̂`, `Q = [C F]Ŷ`, `X̂ = [X; X₂]`, `Ŷ = [Y; Y₂]` with `E ∈ K^{L×s}`, `F ∈ K^{L×t}` of full column rank and independent of `𝒞`. Then `PQᵀ = CCᵀ ⇔ X̂Ŷᵀ = diag(I₈, 0)`, and conversely for **any** `E′, F′`:
 `[C E′] X̂Ŷᵀ [C F′]ᵀ = CCᵀ`. So a decoder is term-space data `(X̂, Ŷ)` plus free `E, F`; `p_k = C x_k + E x2_k`, `q_k = C y_k + F y2_k`. `J_P := {k : x2_k ≠ 0}`, `J_Q := {k : y2_k ≠ 0}`.
 Sylvester on `X̂Ŷᵀ = diag(I₈,0)`: `s + t ≤ m − 8`, so two-sided needs `m ≥ 10` and `m = 10` forces `(s,t) = (1,1)`. From `P Y₂ᵀ = 0`: **Σ_{k∈J_Q} p_k(t) y2_k = 0 for every line t** (per-row cancellation). ∎
-(Here exactness is used on all positions; the masked version reduces to it by §2.1 applied to `N = PQᵀ`, which is itself a realisation.)
+(Here exactness is used on all positions; the masked version reduces to it by §2.1 applied to `N = PQᵀ`, which is itself a realisation, at the price of extra cost-0 terms in the count `m` (§2.1(e)).)
 
 ### 2.3 Lemma-D normal form
 Two terms with proportional `p` (or proportional `q`) merge into one: supports go to the union, cost does not rise, `N` is unchanged (Lemma D of #2338).
@@ -78,7 +80,7 @@ Merging the whole block gives the column `Q_{J_Q}c` with `Y₂[:,J_Q]c = 0`, an 
 
 ## 3. Two-sided decoders of N₀ on P112
 
-### 3.1 Projection transfer identity (PROVEN, uses #2816 Lemma 3.1)
+### 3.1 Projection transfer identity (PROVEN, CONDITIONAL on open PR #2816: Lemma 3.1)
 For `H ∈ K^{8×t}` put `Q_H := C(Y + H Y₂)` (i.e. `F′ = CH` in §2.2). Then `(P, Q_H)` is a decoder of `N₀` with `Q_H ⊆ 𝒞`: a one-sided decoder with the same row supports `R_k`. For `k ∉ J_Q` the column is unchanged; for `k ∈ J_Q`,
 `y_k + H y2_k` is, for generic `H`, nonzero and not proportional to any `f_i` (`H ↦ H y2_k` is onto `K⁸`), so `ℓ(Off(y_k + H y2_k))` spans F2⁹ and its correction is 0. Hence
 **cost(P,Q) = cost(P,Q_H) − Σ_{k∈J_Q} ε^col_k** (`ε^col_k := dim(U_{R_k} ∩ Z_{A_k})`, the column correction), and dually **cost(P,Q) = cost(P_{H′},Q) − Σ_{k∈J_P} ε^row_k.** ∎
@@ -91,11 +93,11 @@ So a two-sided decoder below 64 needs outside-term corrections, and by #2816 (`�
 **cost ≥ 64 − (|I| − 2)₊ + Σ_{k∈Π} cost_k − Σ_{k∈J_Q∖Π} ε^col_k.** Dually for `J_P`. ∎
 Pivot terms' own corrections are free of charge; only non-pivot outside corrections can push below 64. (Also `col P ⊋ 𝒞` in the two-sided case, so `cost_w(col P) ≥ 65` by #2816 Theorem U′.)
 
-### 3.3 Small circuits close (PROVEN from #2724, #2338)
+### 3.3 Small circuits close (PROVEN, CONDITIONAL on open PR #2724; #2338 merged)
 **Corollary 3.4.** A two-sided decoder of `N₀` with `m = 10` and `|J_Q| = 2` or `|J_P| = 2` costs ≥ 64: by Lemma 2.3 (`t = 1`) the two terms are proportional on one side; merging gives a decoder of `N₀` with ≤ 9 terms, one-sided (`m = 9`, #2724) or inside (#2338). ∎
 More generally any `m = 10` decoder with two proportional columns on either side merges to `m ≤ 9` and is closed by the same citations.
 
-### 3.4 Catalogue of outside-column corrections (CHECKED `cat1.py`, `cat2.py`; completeness of the direction list FROM #2816)
+### 3.4 Catalogue of outside-column corrections (CHECKED `cat1.py`, `cat2.py`; completeness of the direction list CONDITIONAL on open PR #2816)
 A correction of term `k` at class `z ∈ U_{R_k} ∩ Z_{A_k}` means `q_k` vanishes on `O_z := {s : Ω(u_s, z) = 1}` (`|O_z| ≥ 48`, CHECKED). Write `q_k = Ch + μ′` (`μ′` the outside part). On `O_z ∖ supp μ′` the codeword `Ch` vanishes, so
 **|Off(h) ∩ O_z| ≤ |supp μ′ ∩ O_z|.** `cat1.py` computes `min_z |O_z ∩ Off(h)|` over all 511 classes and all 1200 directions with `|Off(h)| ≤ 76` (roots and norm-4 vectors; it regenerates 1200 directions with `|Off|`-distribution 56:8, 53:112, 76:56, 73:896, 70:128, matching #2816's list, whose completeness is proved there). Directions with `|Off| ≥ 77` meet every `O_z` in ≥ 77 − 64 = 13 lines.
 
@@ -112,7 +114,7 @@ So after merging each non-frame class is killed by at most one outside column, a
 
 ### 3.5 Outside columns in one coset (t = 1)
 Setting `t = 1`: `q_k = y2_k v_k`, `v_k := μ + Cη_k` (`k ∈ J_Q`), all in the coset `μ + 𝒞`, the `η_k` distinct (merging). `w_k := w(A_k)`, `d_k := 9 − w_k = dim Z_{A_k}`. Label-flat sizes `g(8,7,6) = 64, 36, 20` (CHECKED `gtab.py`).
-**Lemma 3.7 (pair lemma, PROVEN).** For `a ≠ b` in `J_Q`, `v_a − v_b = C(η_a − η_b)`, so `Off(η_a − η_b) ⊆ A_a ∪ A_b`. Hence `|A_a| + |A_b| ≥ 53` and `Z_{A_a} ∩ Z_{A_b} ⊆ ⟨z_i⟩` (#2816 Lemma 3.1). ∎
+**Lemma 3.7 (pair lemma, PROVEN, CONDITIONAL on open PR #2816 Lemma 3.1).** For `a ≠ b` in `J_Q`, `v_a − v_b = C(η_a − η_b)`, so `Off(η_a − η_b) ⊆ A_a ∪ A_b`. Hence `|A_a| + |A_b| ≥ 53` and `Z_{A_a} ∩ Z_{A_b} ⊆ ⟨z_i⟩` (#2816 Lemma 3.1). ∎
 **Lemma 3.8 (low-column collinearity; PROVEN, CONDITIONAL on #2816 (C1), (C3)).** Call a column *low* if `w_k ≤ 7`.
 (a) For two low columns `a, b`, `Off(η_a − η_b)` is covered by two label flats of dimension ≤ 7; by #2816 (C1) the only pair-coverable targets are the frame targets `Off(f_c)`, with cheapest cover 7 + 7. So `η_a − η_b ∝ f_c` and `w_a = w_b = 7`.
 `pair2.py` (CHECKED) confirms independently, over all 1200 directions with `|Off| ≤ 76` and all 2-dimensional classes `Z_a, Z_b`, that `O(Z_a) ∩ O(Z_b) ∩ Off(h) = ∅` (both columns vanish there, so `C h` does) happens only for frame roots (`|Off| = 56`); for `|Off(h)| ≥ 77` it is impossible since `|O(Z_a) ∩ O(Z_b)| ≥ 2(112 − g(7)) − 112 = 40 > 112 − 77`.
@@ -121,10 +123,24 @@ Consequences: at most one outside column has weight ≤ 6, and then it is the on
 **Lemma 3.9 (at most two weight-7 columns, PROVEN).** If low columns `v_k = v₀ + α_k C f_c` (distinct `α_k`) have weight 7, their agreement sets `G_k := L ∖ A_k` have `|G_k| ≥ 112 − g(7) = 76`. A line `t ∈ Off(f_c)` lies in `G_k` only for `α_k = −v₀(t)/⟨c_t, f_c⟩`, so the sets `G_k ∩ Off(f_c)` are pairwise disjoint, each of size ≥ 76 − 56 = 20. Hence `20r ≤ 56`: **r ≤ 2.** ∎
 **Saving count (PROVEN), disjoint `(1,1)`, `m = 10`, merged, `J_P ∩ J_Q = ∅`.** Write `cost_k = 9 − s_k`. Inside-both terms: `s_k ≤ 1` (`s_k = 1` iff `x_k` or `y_k` is ∝ a frame vector, as `β(z_i,z_j) = 1`). `k ∈ J_Q` (rows inside, `R_k = Off(x_k)`): `s_k = d_k` if `x_k` is generic, `s_k = 1 + dim(W_j ∩ Z_{A_k}) ≤ d_k + 1` if `x_k ∝ f_j`;
 frame-type corrected columns have `s_k = 1`; `d_k = 0 ⇒ s_k ≤ 1`. Same for `J_P` with rows and columns exchanged. Then **cost ≤ 63 ⇔ Σ s_k ≥ 27 ⇔ E_Q + E_P ≥ 17**, `E_Q := Σ_{k∈J_Q}(s_k − 1)`.
-Pattern bounds: one column with `d_a ≥ 4` gives `E_Q ≤ 9` (+1 at `d_a = 4`); otherwise `E_Q ≤ 4 + #(ii)` by Lemmas 3.8–3.9, where (ii) are `d = 1` columns of a non-frame class `z` with frame rows `x ∝ f_j`, `Ω(z, z_j) = 0` (distinct `j`, so ≤ min(8, |J_Q| − 1)). The best current total is 18 ≥ 17: a finite gap (Conjecture K3).
+Pattern bounds: one column with `d_a ≥ 4` gives `E_Q ≤ 9` (+1 at `d_a = 4`); otherwise `E_Q ≤ 4 + #(ii)` by Lemmas 3.8–3.9, where (ii) are `d = 1` columns of a non-frame class `z` with frame rows `x ∝ f_j`, `Ω(z, z_j) = 0` (distinct `j`, so ≤ min(8, |J_Q| − 1)). These pattern bounds alone give 18 ≥ 17; §3.6 closes the gap with an algebraic argument.
 
-### 3.6 The smallest unresolved configuration (OPEN, exact)
-`m = 10`, `(s,t) = (1,1)`, merged, `|J_P| ≥ 3`, `|J_Q| ≥ 3`; rows `p(t) = c_t X + λ_t x2`, columns `q(s) = c_s Y + μ_s y2` (`λ, μ ∈ K^L` arbitrary), `x2·y2 = 0`. A decoder of cost ≤ 63 must satisfy (`|I| ≤ 2`):
+### 3.6 Disjoint (1,1), m = 10 is closed (PROVEN + CHECKED `d4.py`, `omega.py`; CONDITIONAL on open PR #2816)
+Setting of the saving count, `J_P ∩ J_Q = ∅`, `n_Q := |J_Q|`, `n_P := |J_P|`. Lemma 2.3 gives `n_P, n_Q ≥ 3`, so `n_Q ≤ 7` and `n_P ≤ 7`. Uses Lemmas 3.7–3.9, Theorem 3.5, `g(5) = 12` and the direction-list completeness (#2816).
+**Lemma 3.10 (excess ≤ Σd − 1).** `e_k := s_k − 1 ≤ d_k` for frame-row columns and `e_k ≤ d_k − 1` for non-frame rows (saving count). The circuit `Σ_{J_Q} y2_k x_k = 0` cannot consist of distinct frame vectors (independent), so some row is non-frame: **E_Q ≤ Σ_{J_Q} d_k − 1.** ∎
+* `d_max ≤ 1`: `E_Q ≤ n_Q − 1 ≤ 6`. `d_max = 2` (weight 7; ≤ 2 such columns by Lemma 3.9, the rest `d ≤ 1`): `E_Q ≤ n_Q + 1 ≤ 8`. `d_max = 3` (the only low column, Lemma 3.8): `E_Q ≤ 3 + (n_Q − 1) − 1 ≤ 8`.
+* `d_a ≥ 4` (`w(A_a) ≤ 5`, so `|A_a| ≤ g(5) = 12`): all other columns have `d ≤ 1`; by Theorem 3.5 with `μ′ = v_a` the corrected ones are frame-type (`e = 0`, since `Ω(z_i, z_j) = 1` for all frame classes, CHECKED `omega.py`), root swaps at lines `v ∈ A_a` (`e ≤ 1`), or of the 12-overlap type. **CHECKED (`d4.py`):** the 56 twelve-overlap sets `O_z ∩ Off(h)` have label span of dimension 7, so they do not fit in `A_a` with `w(A_a) ≤ 5`: no 12-overlap columns.
+  The swap lines are pairwise non-orthogonal, so their labels are Ω-orthonormal in `U_{A_a}`: at most `9 − d_a` swaps. Hence `E_Q ≤ e_a + #swaps ≤ 9`, and `E_Q = 9` needs `e_a = d_a` and `9 − d_a` swaps whose labels form an Ω-orthonormal basis of `U_{A_a}`.
+**Lemma 3.11 (tightness ⇒ idempotent).** From `x2·y2 = 0`, `X Y₂ᵀ = 0`, `X₂ Yᵀ = 0`, `XYᵀ = I₈`: put `M_Q := Σ_{J_Q} x_k y_kᵀ = Σ_{k ≠ ref} y2_k x_k (η_k − η_ref)ᵀ` (rank ≤ `n_Q − 1`; uses `Σ_{J_Q} y2_k x_k = 0`) and `S := Σ_{k∉J_Q} x_k y_kᵀ` (rank ≤ `(n_P − 1) + r = 9 − n_Q`, `r` = number of inside-both terms, using the circuit on `J_P`).
+`I₈ = M_Q + S` forces `rank M_Q = n_Q − 1` and `rank S = 9 − n_Q` with complementary images, so `M_Q² = M_Q`, i.e. **`y2_k (η_k − η_ref)·x_l = δ_kl` for `k, l ∈ J_Q ∖ {ref}`** (any `ref`). ∎
+**Lemma 3.12.** Take `ref = a` and a swap column `i` (`η_i − η_a = α_i r_{v_i}`). Then `r_{v_i}·x_l = 0` for `l ∈ J_Q ∖ {a, i}`, `r_{v_i}·x_i ≠ 0`, and the circuit gives `r_{v_i}·x_a ≠ 0`. So if `x_a ∝ f_j`, every swap line `v_i` is non-orthogonal to `f_j`, i.e. `Ω(u_{v_i}, z_j) = 0`. ∎
+**Theorem 3.13.** `E_Q ≤ 8` and `E_P ≤ 8`; hence `E_Q + E_P ≤ 16 < 17` and **every disjoint two-sided `(1,1)`, `m = 10` decoder of `N₀(P112)` costs ≥ 64.**
+*Proof.* Only `d_a ≥ 4` remains. `e_a = d_a` requires a frame row `x_a ∝ f_j` with `Z_{A_a} ⊆ W_j`, i.e. `z_j ∈ U_{A_a}`. With `9 − d_a` swaps Ω-orthonormally spanning `U_{A_a}` (Ω is nondegenerate, CHECKED `omega.py`) and `z_j` Ω-orthogonal to all of them (Lemma 3.12), `z_j = Σ_i Ω(z_j, u_{v_i}) u_{v_i} = 0`: contradiction.
+So either `e_a = d_a` with ≤ `8 − d_a` swaps, or `e_a ≤ d_a − 1` with ≤ `9 − d_a`: `E_Q ≤ 8` (`d_a = 8`: `e_a ≤ 7`, one swap). Dually `E_P ≤ 8`. ∎
+`omega.py` also checks, as a sanity check of Lemma 3.12's use, all 119,616 (pairwise non-orthogonal line set of size ≤ 4, frame) cases: `z_j` never lies in the label span of lines all non-orthogonal to `f_j`.
+
+### 3.7 The smallest unresolved configuration (OPEN, exact)
+`m = 10`, `(s,t) = (1,1)`, merged, `|J_P| ≥ 3`, `|J_Q| ≥ 3`; rows `p(t) = c_t X + λ_t x2`, columns `q(s) = c_s Y + μ_s y2` (`λ, μ ∈ K^L` arbitrary), `x2·y2 = 0`. With §3.6 the open part is the **non-disjoint** case `|J_P ∩ J_Q| ≥ 2`. A decoder of cost ≤ 63 must satisfy (`|I| ≤ 2`):
 (N1) for every `k₀ ∈ J_Q`: `Σ_{k∈J_Q∖k₀} ε^col_k ≥ cost_{k₀} + 1`, and dually (Theorem 3.3); (N2) terms outside `J_P ∪ J_Q` cost ≥ 8 each; (N3) every corrected outside column is of the §3.4 types, at most one per non-frame class.
 
 ## 4. Batching reduces to the single-call floor except rank-(2,2) multi-diagonal terms
@@ -136,7 +152,7 @@ Model of #2338's batch section: `k` calls on P112, one h = 9 joint table, charts
 **Lemma 4.1.** `D_c := {j : p_j^c ≠ 0 ≠ q_j^c}` is a single-call decoder of `M_c` with term costs `x_j^c ≤ cost_j` (a submatrix of `Bd[R_j, A_j]` up to the call's isometric chart).
 **Theorem A.** `Σ_j μ_j cost_j ≥ Σ_c Σ_{j∈D_c} x_j^c ≥ Σ_c floor₁(M_c)`. Under H: `cost ≥ 64k − Σ_j (μ_j − 1)₊ cost_j`; **a batch with no MD term costs ≥ 64k.** With `m = 8k + e` terms, H is needed only for single calls with ≤ `8 + e` terms. ∎
 **Converse.** The batch floor `64k` implies H: put a single-call decoder of cost κ in call 1 and coordinate decoders (cost 64) in calls 2..k. Batching is never easier than the single call. ∎
-**Theorem C (rank budget).** `P^c Q^{c′ᵀ} = 0` for `c ≠ c′` gives `r(P^c) ≤ m − 8(k−1)` (CHECKED arithmetic `c_batch_arith.py`). At `m = 17`, `k = 2`, if all four factor ranks are 8 every factor lies in `col/row M_c` and #2338 Theorem B closes the batch; the rank-9 cases are OPEN.
+**Theorem C (rank budget).** With exact cross blocks (or with `m` counting the cost-0 cancellers), `P^c Q^{c′ᵀ} = 0` for `c ≠ c′` gives `r(P^c) ≤ m − 8(k−1)` (CHECKED arithmetic `c_batch_arith.py`). At `m = 17`, `k = 2`, if all four factor ranks are 8 every factor lies in `col/row M_c` and #2338 Theorem B closes the batch; the rank-9 cases are OPEN.
 
 ### 4.2 Twin fold (Theorem TF, PROVEN; CHECKED on the anchor batches `fold.py`)
 A chart `Φ` is *twin* if `Φ(L) = L`; then `σ` (call-1 line `s` ↦ the call-0 line with label `Φu_s`) is a bijection with `B₀₁(r,s) = B₀₀(r,σs)`; twin charts are exactly the `Aut(P112)` images in `O(9)` (labels are linear in B-rows), and relabelling makes the chart common.
@@ -181,29 +197,28 @@ The 235 open cases have no twin block (saving 7: 224; saving 8: 11, of which the
 
 ## 5. Named conjectures (the remaining gaps)
 
-* **K-P120 (master).** Every decoder of `N₀(P120)` (dense table) costs ≥ 72. By §2.1 this **is** `C(P120) ≥ 72`, hence (gain law) `gain ≤ 48` on every E8 line set, and P112 ≥ 64, P111 ≥ 63, P104 ≥ 56.
-* **K1 (two-sided floor, P112).** Every two-sided decoder of `N₀(P112)` costs ≥ 64. By §3.1 equivalent to: *outside corrections never exceed the excess of the one-sided projection*. Together with K2 and #2338, K1 ⇔ `C(P112) ≥ 64` (§2.1).
+* **K-P120 (master).** Every decoder of `N₀(P120)` (dense table) costs ≥ 72. By §2.1 this **is** `C(P120) ≥ 72` restated (not reduced), hence (gain law) `gain ≤ 48` on every E8 line set, and P112 ≥ 64, P111 ≥ 63, P104 ≥ 56.
+* **K1 (two-sided floor, P112).** Every two-sided decoder of `N₀(P112)` costs ≥ 64. By §3.1 equivalent to: *outside corrections never exceed the excess of the one-sided projection*. Together with K2 and #2338, K1 ∧ K2 ⇒ `C(P112) ≥ 64` (§2.1; CONDITIONAL on open PR #2816).
 * **K2 (excess pays for corrections, one-sided).** `Δ ≥ n_nf` for `n_nf ≥ 3` (#2816 proves `n_nf ≤ 2`; the root-swap family is tight; #2826 leaves six weight multisets at `n_nf = 3`).
-* **K3 (smallest two-sided case).** For disjoint `(1,1)`, `m = 10`, merged decoders, `E_Q + E_P ≤ 16` (§3.5: current bound 18); and the non-disjoint case `|J_P ∩ J_Q| ≥ 2`.
+* **K3 (smallest two-sided case).** `(1,1)`, `m = 10`, merged, non-disjoint `|J_P ∩ J_Q| ≥ 2`: cost ≥ 64 (the disjoint case is §3.6).
 * **K4 (P120 versions).** The one-sided results of #2816 and §3 on P120 (E8 lifts are ≥ 67 so far, against 72); P112 certification of #2819. §2 already holds on P120.
 * **K5 (batching, H×).** A single-call decoder containing a term `a(c + λd)ᵀ` with `d` outside the span of the other input halves on the mask costs ≥ 64 + 7. With TF this closes rank-(2,2) MD terms for twin charts; non-twin charts and both-orientation dangling remain.
-* **K6 (label windows h ≥ 12).** A per-term floor at h ≥ 12; RECORDED break-even prices 51 / 46 / 42 at h = 12 / 13 / 14 (author's pricing model, not re-run here). The master as stated is at the dense h = 9 table.
+* **K6 (label windows h ≥ 12).** A per-term floor at h ≥ 12; RECORDED break-even prices 51 / 46 / 42 at h = 12 / 13 / 14 (author's pricing model, not re-run here). The master as stated is at the dense h = 9 table; over all tables it also needs h = 10, 11 (#2639) and K6, and #2639's per-term floors are not by themselves shown to give 72 on P120.
 
 Earlier map items "B-form rank-9 floors" and "extra zeros at rank 9" are **no longer needed for the master**: by §2.1 they are sub-slices of K1 / K-P120.
-Working cards on K2 and K3 (PAYS, RESIDUE) have no proven results yet; nothing is claimed from them.
 
 ## 6. Relation to philippeVV's R1–R4 (#1587 follow-up 8)
 
 philippeVV closes all lift cases of `C(P120) ≥ 72` and names: **R1** every rank-9 completion is a lift; **R2** rank-8 rigidity; **R3** dependent non-clique `S`; **R4** rank-8 `N` with 9 terms on P120, `m ≥ 10`, `h ≥ 10`.
 * **R1, R2.** Universality (§2.1) makes these realisation-level questions unnecessary for the master: `C(P120)` is the minimum over decoders of the single matrix `N₀(P120)`, whatever the realisation's rank or zero pattern. It does **not** prove R1 or R2.
   (R2 on P112 / P120 is #1212; #2819 classifies rank-9 realisations of the iff pattern, which allow no extra zeros, so R1 does not follow from it.)
-* **R4.** The `m ≥ 10` part is K-P120 (two-sided and one-sided parts); its P112 shadow is K1 ∧ K2, with the first open configuration in K3. The P112 nine-term case is #2724. `h ≥ 10`: #2639 (h = 10, 11), K6.
+* **R4.** The `m ≥ 10` part is K-P120 (two-sided and one-sided parts); its P112 shadow is K1 ∧ K2, with the first open configuration in K3 (non-disjoint). The P112 nine-term case is #2724. `h ≥ 10`: #2639 (h = 10, 11), K6.
 * **R3** is not addressed here.
 
 ## 7. Reproduce
 
 `bash verify.sh [/fresh/output/dir]` (Python ≥ 3.10 with numpy; `PYTHON=` to choose). Steps: manifest; three parallel streams (all `timeout 1200`): `s1close.py` (~2 min), `twinblk.py` (~0.5 min), and the fast group
-(`cat1`, `cat2`, `gtab`, `pair2`, `fold`, `transport`, `p104prem`, `c_batch_arith`, `c_clique_lemmaE`; ~5 min, `pair2` the slowest); then `check_logs.py` asserts every number quoted above.
+(`cat1`, `cat2`, `gtab`, `pair2`, `fold`, `transport`, `p104prem`, `c_batch_arith`, `c_clique_lemmaE`, `d4`, `omega`; ~5 min, `pair2` the slowest); then `check_logs.py` asserts every number quoted above.
 
 | Claim | Script |
 |---|---|
@@ -211,5 +226,6 @@ philippeVV closes all lift cases of `C(P120) ≥ 72` and names: **R1** every ran
 | `g(8,7,6) = 64, 36, 20` | `gtab.py` |
 | Lemma 3.8 independent check | `pair2.py` |
 | TF on anchors; transport | `fold.py`, `transport.py` (common data `hb.py`, `e8.py`) |
+| §3.6 twelve-overlap spans; Ω facts | `d4.py`, `omega.py` (common data `res_setup.py`) |
 | twin pairs (28 per coordinate); 277/512 | `twinblk.py`, `s1close.py` (uses `dangle.py` for the random charts) |
 | Theorem M premises / minimisations; K′, E, C arithmetic | `p104prem.py`, `c_batch_arith.py`, `c_clique_lemmaE.py` |
