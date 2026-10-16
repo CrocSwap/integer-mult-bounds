@@ -66,6 +66,9 @@ Setting (`T`-level, no scenario): `λ: T → T/D ≅ K^e`, `M` the matroid of `�
 
 `data/rows_input.csv` is the **input** list of the 603 `(d, multiset)` cells with `d ≥ 4`, slack `s = Σ w − 8d ∈ {4,5,6,7}`, produced by the earlier enumeration (necessary conditions of #2816 and the Basis-Lemma kills of #2826/#2862); `verify.sh` checks that rows are distinct and well formed but does not re-derive the list. `data/ledger_consolidated.csv` has one line per row: `audit_status` (`KILLED` / `KILLED(prior-only)` / `OPEN`), the source(s) (`killed_by`) and the certificates (RRC: scenario, `K0`, `j`, family size or `IMM K`; Lemma P: lemma, `S`, `e′`, `m`). A row is `KILLED` iff some `[audited]` source kills it.
 
+Provenance of `rows_input.csv`: see `provenance/` (generator `land7.py`, dominance filter, `SPANFACTS.md`, logs; `bash provenance/reproduce.sh`).
+This is an attachment only; it changes no claim.
+
 | slack | rows | KILLED | KILLED(prior-only) | OPEN |
 |---|---|---|---|---|
 | 4 | 4 | 4 | 0 | 0 |
