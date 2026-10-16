@@ -1,0 +1,104 @@
+--- PR2733/combined_adapt.py
++++ refit/combined_adapt.py
+@@ -10,12 +10,12 @@
+ from pathlib import Path
+ import shutil
+ 
+-CANDIDATE_MANIFEST = 'f9b8b8cbed9e55b32d821c50ab76fef0afb1466f29d11204254fb50d2533e680'
++CANDIDATE_MANIFEST = '234cd08b5ae55b81f49c68549ec550c62a30a1e43f1c451d4836c12ed0464bd4'
+ REFERENCE_HEAD = '5a42add713e09a8798a84d0be7a8276626d9e785'
+ TARGETS = {'23':[30], '34':[30], '50':[30], '108':[30],
+            '14':[45], '41':[45], '43':[45], '52':[45],
+            '78':[45], '99':[45], '104':[45], '106':[45]}
+-PROFILE = {'1':2370, '2':646, '3':297, '4':120, '5':26, '7':4, '8':4}
++PROFILE = {'1':2368, '2':647, '3':297, '4':120, '5':26, '7':4, '8':4}
+ 
+ 
+ def need(ok, message):
+@@ -49,7 +49,7 @@
+ 
+ 
+ def install(package, candidate):
+-    """Install exact words/patches; adapt only three explicit candidate pins."""
++    """Install exact words/patches; adapt only four explicit candidate pins."""
+     for tag in ('base', 'extra'):
+         word = read(candidate/f'words/{tag}.json.gz')
+         need(word['target_levels'] == TARGETS, 'Exact twelve-target map '+tag)
+@@ -91,6 +91,9 @@
+         "    # PR2696: choose distinct additions so the swap is not an identity.\n"
+         "    jb=next(j for j,e in enumerate(pre) if e[0]=='add' and e[1]!=pre[ia][1] and e[2:]!=pre[ia][2:] and e[-1]==pre[ia][-1])\n"
+         "    m=mut();m['A'][ia][1],m['A'][jb][1]=m['A'][jb][1],m['A'][ia][1];expect('prelude correction targets swapped',m)")])
++    # Preserve the original exact refit guard and add precisely the new B1149 edit.
++    replace('new/rebuild_borrow.py', [("        kok&=len(rpatch2['frames'])==1 and rpatch2['frames'][0][:2]==['B',894] and prev_r['B'][894][:5]==['add',515,563,1,1]\n        kok&=len(nr['B'][894][-1])==len(prev_r['B'][894][-1])-1 and all(x_==y_ for i_,(x_,y_) in enumerate(zip(nr['B'],prev_r['B'])) if i_!=894)", "        kok&=rpatch2['frames']==[['B',894,[259,148,66,36,9]],['B',1149,[259,148,66,36,9]]] and prev_r['B'][894][:5]==['add',515,563,1,1]\n        kok&=len(nr['B'][894][-1])==len(prev_r['B'][894][-1])-1\n        kok&=prev_r['B'][1149]==['add',393,515,1,1,[259,132,66,36,16,9]] and nr['B'][1149]==['add',393,515,1,1,[259,148,66,36,9]]\n        kok&=all(x_==y_ for i_,(x_,y_) in enumerate(zip(nr['B'],prev_r['B'])) if i_ not in (894,1149))")])
+     need(set(changes) == {'independent_core.py', 'audit_mixed.py',
+-                          'new/borrow/lowfour_controls.py'}, 'Declared checker adaptations only')
++                          'new/borrow/lowfour_controls.py', 'new/rebuild_borrow.py'},
++         'Declared checker adaptations only')
+     return changes
+--- PR2733/replay_engine.py
++++ refit/replay_engine.py
+@@ -1,10 +1,10 @@
+ #!/usr/bin/env python3
+ """Fresh finite admission of concentrated source partners plus pre-life hosting.
+ 
+-No cached native or parent stages are accepted. All original acceptance checks remain; three exact candidate-specific
++No cached native or parent stages are accepted. All original acceptance checks remain; four exact candidate-specific
+ pins/control adaptations follow PR2696 and are explicitly hash-bound.
+ The 24-digit complex bracket suffices only if its complete modern outer claim
+-strictly exceeds the entire 3046-digit predecessor claim.
++strictly exceeds the entire published PR2733 claim.
+ 
+ Apache-2.0. Marius-Paul Dumitrean with substantial OpenAI Codex assistance.
+ """
+@@ -22,6 +22,7 @@
+ import threading
+ import time
+ import combined_adapt
++import generate as refit_generate
+ 
+ sys.set_int_max_str_digits(0)
+ SOURCE_HEAD = '2e2cf56521df8a2b816b2689144765ee00b69a24'
+@@ -72,7 +73,8 @@
+     for name, digest in pins.items():
+         need(sha(source/name) == digest, 'Predecessor source pin: '+name)
+     fill_hash, order_hash = sha(fill), sha(order)
+-    original = read(reference/'CLAIM.json')
++    refit_generate.authenticate()
++    original = read(refit_generate.PARENT/'CLAIM.json')
+     need(sha(fill) == sha(candidate/'FILL.json.gz') and sha(order) == sha(candidate/'ORDER.json'),
+          'Frozen combined fill and order')
+     work.mkdir(parents=True)
+@@ -230,7 +232,7 @@
+     run('outer-evidence', package/'outer/run_outer.py', work/'outer-replay')
+     ledger = read(package/'outer/LEDGER.json')
+     k = Q(ledger['rows']['struct_boundary_radix_union']['kappa']['rational'])
+-    need(k > Q(original['kappa']), 'Full exact claim must beat the entire PR2696 claim')
++    need(k > Q(original['kappa']), 'Full exact claim must beat the entire PR2733 claim')
+     assembly = read(work/'strict/ASSEMBLY.json')
+     boundary = read(package/'outer/B.json')
+     need(assembly['status'] == 'PASS_GAUGE44_NATIVE_EXACT_GLOBAL_ASSEMBLY' and
+@@ -249,18 +251,22 @@
+             expected_hash = adaptations[name]['adapted_sha256'] if name in adaptations else digest
+             need(sha(package/name) == expected_hash, 'Declared proof/checker source: '+name)
+     combined_adapt.authenticate(candidate, reference)
++    refit_generate.authenticate()
+     need(sha(Path(combined_adapt.__file__)) == adapter_hash, 'Adapter unchanged during replay')
+-    result = dict(status='PASS_CONCENTRATED_PRELIFE_COMPLETE_FRESH_FINITE_ADMISSION_AND_OUTER',
++    result = dict(status='PASS_CONCENTRATED_PRELIFE_REFIT_COMPLETE_FRESH_FINITE_ADMISSION_AND_OUTER',
+                   driver_sha256=sha(Path(__file__)), adapter_sha256=adapter_hash,
+                   candidate_manifest_sha256=combined_adapt.CANDIDATE_MANIFEST,
+                   concentrated_source_head=combined_adapt.REFERENCE_HEAD,
+                   exact_reference_kappa=original['kappa'],
++                  comparison_pr2733_head='2761b52b17590b8cf94f2e410004a8252d5592dc',
++                  comparison_pr2733_manifest_sha256=sha(refit_generate.PARENT/'ARTIFACTS.json'),
++                  construction_script_sha256=sha(Path(refit_generate.__file__)),
+                   checker_adaptations=adaptations,
+                   source_head=SOURCE_HEAD, source_manifest_sha256=MANIFEST_SHA,
+                   candidate_fill_sha256=fill_hash, candidate_order_sha256=order_hash,
+                   kappa=str(k), kappa_decimal=ledger['rows']['struct_boundary_radix_union']['kappa']['decimal'],
+                   complex_lower=str(C), global_profile=profile,
+-                  gain_over_pr2696=str(k-Q(original['kappa'])), stages=stages,
++                  gain_over_pr2733=str(k-Q(original['kappa'])), stages=stages,
+                   native_and_parent_reuse=False, seconds=time.monotonic()-started,
+                   inherited_parent_geometry_reuse=parent.get('parent_geometry_reuse'),
+                   scope='Finite conditional construction and exact outer inequalities; inherited all-size, machine, analytic and bit assumptions remain.')
