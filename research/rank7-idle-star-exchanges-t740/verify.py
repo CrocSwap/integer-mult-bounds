@@ -213,6 +213,7 @@ def controls(rec, bins, moves, result):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--fill', type=Path, help="optional PR3148 COMPOSED-FILL.json.gz to rebind IDLE-48-BINS")
+    ap.add_argument('--write', action='store_true', help='rewrite the committed AUDIT.json receipt')
     a = ap.parse_args()
     if not __debug__:
         raise SystemExit('assertions required')
@@ -234,7 +235,10 @@ def main():
     out = dict(status='PASS_IDLE48_STAR_EXCHANGE_AUDIT', moves=len(moves['moves']), profile={str(k): v for k, v in prof.items()},
                kappa=str(kappa), gain_over_pr3148=str(kappa - GATES['PR3148']), fill_rebound=rebound,
                rejected_controls=rej)
-    (PKG / 'AUDIT.json').write_text(json.dumps(out, indent=1, sort_keys=True) + '\n')
+    if a.write: (PKG / 'AUDIT.json').write_text(json.dumps(out, indent=1, sort_keys=True) + '\n')
+    else:
+        strip = lambda d: {k: v for k, v in d.items() if k != 'fill_rebound'}
+        req(strip(load(PKG / 'AUDIT.json')) == strip(json.loads(json.dumps(out))), 'committed AUDIT.json receipt')
     print('PASS_IDLE48_STAR_EXCHANGE_AUDIT moves=%d controls=%d kappa=%s' % (len(moves['moves']), len(rej), float(kappa)))
 
 

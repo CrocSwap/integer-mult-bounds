@@ -113,6 +113,14 @@ inherited all-size compiler, realization, hosting, precision/tape, recovery and
 analytic-transfer obligations of the lineage remain. PR3148 itself is an unreviewed
 author claim; if it is not admitted, the same overlay applies to PR3133's T74 fill.
 
+## Open next questions
+
+- **Does the star overlay pass the T74 controller/owner audit and outer release?** Only then
+  is this κ an admitted finite candidate. First step: generalize the T74 `audit_mixed.py` to
+  read the idle-axis overlay and rerun PR3148's release. Blocked by: the release chain has no
+  overlay reader.
+- **Partially hosted remainders as donors** (PR3190) push the complex root past the bit side.
+
 ## Credit
 
 - Gonzalo-Mier (PR1252): the idle exchange move, its commuting rule and its pricing
