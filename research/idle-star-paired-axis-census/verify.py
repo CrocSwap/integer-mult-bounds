@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-bound census of paired rank-changing idle-axis transfers."""
+"""Source-bound idle-axis transfer census and exact star-overlay screen."""
 
 from __future__ import annotations
 
@@ -15,6 +15,9 @@ PACKAGE = Path(__file__).resolve().parent
 ROOT = PACKAGE.parents[1]
 BASE_MAIN = "997e6a9ca7b4f95d50e366f61412fd640d72a88a"
 FILL_SHA256 = "8f4d6965ba573ff2b71fd7bf6b552643e086739d90bd73c55889502077638e00"
+PR3184_HEAD = "6faefe19f592220c16722a6682c22c8fbccd4bb4"
+PR3184_STAR_SHA256 = "ea833cc374c16c4bed4da6328a77353171944d947bed1d28085212ffad786e90"
+PR3184_STAR_BLOB = "ef209aa4a9c2c81d983ea58146a7cbd6770eda4c"
 BASE_ROWS = 9 * 74 * 408
 TOTAL_ROWS = 10 * BASE_ROWS
 MAX_RAW = 32_000_000
@@ -33,6 +36,10 @@ VENDOR_PINS = {
     "PROVIDERS.json": (
         "52eb0d85caa7b2d4a93acdf5011f52b793f61ddca86235fb03cd9a09397ad4cd",
         "0b2343675099d0a9fe90da6e1f1e53f50235567e",
+    ),
+    "PR3184-STAR-MOVES.json.gz": (
+        PR3184_STAR_SHA256,
+        PR3184_STAR_BLOB,
     ),
 }
 NOTICE_PINS = {
@@ -71,6 +78,9 @@ def blob_sha(raw: bytes) -> str:
 def authenticate() -> None:
     sources = json.loads(read_bytes(PACKAGE / "SOURCES.json"))
     require(sources["base_commit"] == BASE_MAIN, "unexpected base main")
+    context = sources.get("context", {})
+    require(context.get("pr3184_artifact_head") == PR3184_HEAD, "PR3184 artifact head")
+    require(context.get("pr3184_star_moves_sha256") == PR3184_STAR_SHA256, "PR3184 star-moves source pin")
     retained = {row["local_path"]: row for row in sources.get("retained_sources", [])}
     for name, (sha, blob) in VENDOR_PINS.items():
         row = retained.get("vendor/" + name)
@@ -82,8 +92,8 @@ def authenticate() -> None:
         require(blob_sha(path) == row["git_blob"], "main source Git blob")
     for name, (sha, blob) in VENDOR_PINS.items():
         raw = read_bytes(PACKAGE / "vendor" / name)
-        require(hashlib.sha256(raw).hexdigest() == sha, "retained PR3148 SHA256: " + name)
-        require(blob_sha(raw) == blob, "retained PR3148 Git blob: " + name)
+        require(hashlib.sha256(raw).hexdigest() == sha, "retained source SHA256: " + name)
+        require(blob_sha(raw) == blob, "retained source Git blob: " + name)
     for name, sha in NOTICE_PINS.items():
         raw = read_bytes(PACKAGE / "vendor" / name)
         require(hashlib.sha256(raw).hexdigest() == sha, "retained notice SHA256: " + name)
@@ -308,6 +318,45 @@ def check_baseline(context, residual, blocks):
     return len(modes)
 
 
+def check_single_transfers(context, blocks, children):
+    baseline = context["residual"]
+    eligible = failures = 0
+    witness = None
+    for donor in children:
+        for receiver in children:
+            if donor == receiver:
+                continue
+            for axis in sorted(set(baseline[donor])):
+                if any(parity(axis, v) for v in context["full_axes"][receiver]):
+                    continue
+                if len(baseline[receiver]) + 1 > 51:
+                    continue
+                trial = {child: list(values) for child, values in baseline.items()}
+                trial[donor].remove(axis)
+                trial[receiver].append(axis)
+                if any(
+                    not orthonormal(context["hosted_axes"].get(child, []) + trial[child])
+                    for child in (donor, receiver)
+                ):
+                    continue
+                eligible += 1
+                original = replay(context, baseline, axis, blocks)
+                altered = replay(context, trial, axis, blocks)
+                differences = matrix_differences(original, altered)
+                if differences:
+                    failures += 1
+                    if witness is None:
+                        witness = {
+                            "donor": donor,
+                            "receiver": receiver,
+                            "axis": axis,
+                            "baseline": original,
+                            "overlay": altered,
+                            "differences": differences,
+                        }
+    return eligible, failures, witness
+
+
 def check_candidate_pair(context, blocks, source_children, target_children):
     # Each selected axis is an orthogonal source-basis vector and is orthogonal
     # to every original destination axis, including the destination's hosted slice.
@@ -368,6 +417,90 @@ def check_candidate_pair(context, blocks, source_children, target_children):
     return len(eligible), failures, witness
 
 
+def check_pr3184_star(context, blocks, star_document):
+    # The pinned PR3184 move file contains two disjoint three-axis leaves for
+    # replica 0 / port 0, both from the same untouched rank-48 centre.
+    require(
+        star_document.get("columns") == ["replica", "port", "centre_child", "leaf_child", "moved_axes"],
+        "PR3184 star-move columns",
+    )
+    require(len(star_document.get("moves", [])) == 125706, "PR3184 star-move count")
+    moves = [row for row in star_document["moves"] if row[0] == 0 and row[1] == 0]
+    require(
+        moves == [
+            [0, 0, 10, 12, [16, 32, 64]],
+            [0, 0, 10, 13, [128, 256, 4096]],
+        ],
+        "PR3184 replica-0/port-0 star source binding",
+    )
+
+    baseline = context["residual"]
+    require(all(not context["hosted_axes"].get(child, []) for child in (10, 12, 13)), "PR3184 witness children are untouched")
+    require(all(baseline[child] == context["full_axes"][child] for child in (10, 12, 13)), "PR3184 idle bases retained")
+    for child in (10, 12, 13):
+        require(orthonormal(context["full_axes"][child]), "PR3184 source/leaf axes are orthonormal")
+
+    trial = {child: list(values) for child, values in baseline.items()}
+    moved = []
+    recipe = context["recipe"]
+    ys = [int(stage[key]) for stage in recipe["stage_alignment"] for key in ("entry_Y", "exit_Y")]
+    ys.append(int(recipe["terminal_Y_translation"]))
+    xs = [int(stage[key]) for stage in recipe["stage_alignment"] for key in ("entry_X", "exit_X")]
+    for _, _, donor, receiver, axes in moves:
+        require(donor == 10 and receiver in (12, 13) and len(axes) == 3, "PR3184 star geometry")
+        translations = [
+            int(recipe["idle_children"][donor]["translation_after"]),
+            int(recipe["idle_children"][receiver]["translation_after"]),
+        ]
+        for axis in axes:
+            require(axis in baseline[donor], "PR3184 moved axis belongs to donor")
+            require(
+                all(not parity(axis, vector) for vector in context["full_axes"][receiver] + ys + xs + translations),
+                "PR3184 moved axis satisfies the declared commuting rule",
+            )
+            trial[donor].remove(axis)
+            trial[receiver].append(axis)
+            moved.append((donor, receiver, axis))
+
+    moved_axes = [axis for _, _, axis in moved]
+    require(len(moved_axes) == len(set(moved_axes)) == 6, "PR3184 star axes are distinct")
+    require(all(not parity(a, b) for i, a in enumerate(moved_axes) for b in moved_axes[i + 1 :]), "PR3184 star phases are pairwise orthogonal")
+    require({child: len(trial[child]) for child in (8, 10, 12, 13)} == {8: 48, 10: 42, 12: 51, 13: 51}, "PR3184 star rank profile")
+
+    isolated = []
+    first_witness = None
+    for donor, receiver, axis in moved:
+        single = {child: list(values) for child, values in baseline.items()}
+        single[donor].remove(axis)
+        single[receiver].append(axis)
+        baseline_matrix = replay(context, baseline, axis, blocks)
+        single_matrix = replay(context, single, axis, blocks)
+        star_matrix = replay(context, trial, axis, blocks)
+        differences = matrix_differences(baseline_matrix, star_matrix)
+        require(single_matrix != baseline_matrix, "every selected PR3184 star axis has a failing single-transfer control")
+        require(star_matrix == single_matrix, "orthogonal star overlay reduces exactly to its active single move")
+        require(differences, "PR3184 star changes the exact operator at an active axis")
+        isolated.append({"axis": axis, "receiver": receiver, "differences": len(differences)})
+        if first_witness is None:
+            first_witness = {
+                "character": axis,
+                "baseline": baseline_matrix,
+                "single_overlay": single_matrix,
+                "star_overlay": star_matrix,
+                "differences": differences,
+            }
+    return {
+        "source_head": PR3184_HEAD,
+        "moves_sha256": PR3184_STAR_SHA256,
+        "moves": moves,
+        "rank_vector": {str(child): len(trial[child]) for child in (8, 10, 12, 13)},
+        "axes_pairwise_orthogonal": True,
+        "isolated_axis_checks": isolated,
+        "first_witness": first_witness,
+        "scope": "one exact owner-replica-0/port-0 star from PR3184; the complete single-transfer census extends the same isolation argument to every same-centre star over these four children on the audited 112 owner-0 port recipes",
+    }
+
+
 def check_mutations(base, journal):
     altered = json.loads(json.dumps(journal))
     altered["edits"][0][1][0] ^= 1
@@ -383,6 +516,7 @@ def run():
     vendor = PACKAGE / "vendor"
     base = decode(read_bytes(vendor / "BASE-FILL.json.gz"))["rows"]
     journal = decode(read_bytes(vendor / "EXCHANGE.json"))
+    pr3184_star = decode(read_bytes(vendor / "PR3184-STAR-MOVES.json.gz"))
     rows_by_port = project_all_ports(base, journal_edits(base, journal))
     order_base = decode(read_bytes(ROOT / "research/rank7-joint-endframes/allocation/ORDER.json"))
     require(len(order_base) == 666, "base chronology count")
@@ -397,19 +531,34 @@ def run():
     require(len(recipes) == 112, "port recipe count")
     blocks = stage_blocks(template)
 
+    single_count = single_failures = 0
     forward_count = reverse_count = forward_failures = reverse_failures = 0
     per_port = []
+    first_single_witness = None
     first_forward_witness = None
+    star_witness = None
     baseline_modes = None
     for port in range(112):
         context = prepare_port(port, rows_by_port[port], order, dispatch, providers, plan, template, recipes)
         context["residual"] = context.pop("residual")
+        require(
+            all(orthonormal(context["full_axes"][child]) for child in (8, 10, 12, 13)),
+            "four idle-child source bases are orthonormal",
+        )
         if port == 0:
             baseline_modes = check_baseline(context, context["residual"], blocks)
+            star_witness = check_pr3184_star(context, blocks, pr3184_star)
         require(
             replay(context, context["residual"], 0, blocks) == identity(),
             "zero-character baseline identity control",
         )
+        single, single_bad, single_witness = check_single_transfers(
+            context, blocks, (8, 10, 12, 13)
+        )
+        single_count += single
+        single_failures += single_bad
+        if port == 0:
+            first_single_witness = single_witness
         f, ff, fw = check_candidate_pair(
             context, blocks, (8, 10), (12, 13)
         )
@@ -420,25 +569,39 @@ def run():
         reverse_count += r
         forward_failures += ff
         reverse_failures += rf
-        per_port.append([port, f, ff, r, rf])
+        per_port.append([port, single, single_bad, f, ff, r, rf])
         if port == 0:
             first_forward_witness = fw
     require(check_mutations(base, journal), "mutated journal preimage accepted")
     require(baseline_modes == 147, "baseline positive-control mode count")
-    require(forward_count == forward_failures and reverse_count == reverse_failures, "unrejected eligible transfer")
+    require(single_count == single_failures, "unrejected eligible single transfer")
+    require(single_count == 21504 and all(row[1] == row[2] == 192 for row in per_port), "single transfer census")
+    require(forward_count == forward_failures and reverse_count == reverse_failures, "unrejected eligible paired transfer")
     require(forward_count == reverse_count == 2688, "paired transfer count")
-    require(all(row[1] == row[2] == row[3] == row[4] == 24 for row in per_port), "per-port paired census")
+    require(all(row[3] == row[4] == row[5] == row[6] == 24 for row in per_port), "per-port paired census")
+    require(first_single_witness is not None, "exact single-transfer witness")
     require(first_forward_witness is not None and first_forward_witness["axis"] == 7, "exact forward witness")
+    require(star_witness is not None and len(star_witness["isolated_axis_checks"]) == 6, "exact PR3184 star witness")
     return {
-        "status": "PASS_NO_OPERATOR_PRESERVING_RANK_CHANGING_PAIRED_TRANSFER",
+        "status": "PASS_NO_OPERATOR_PRESERVING_SINGLE_PAIRED_OR_STAR_TRANSFER",
         "base_main": BASE_MAIN,
         "fill_payload_sha256": FILL_SHA256,
         "authenticated_fill_rows": TOTAL_ROWS,
         "ports": 112,
         "baseline_modes_port0": baseline_modes,
+        "single_transfer": {"eligible": single_count, "fail_at_own_axis_character": single_failures},
+        "port0_single_witness": first_single_witness,
         "forward": {"eligible": forward_count, "fail_at_own_axis_character": forward_failures},
         "reverse": {"eligible": reverse_count, "fail_at_own_axis_character": reverse_failures},
         "port0_forward_witness": first_forward_witness,
+        "port0_pr3184_star_witness": star_witness,
+        "star_isolation": {
+            "audited_ports": 112,
+            "orthonormal_source_bases_per_port": True,
+            "eligible_single_moves": single_count,
+            "single_moves_failing_at_own_axis": single_failures,
+            "conclusion": "any nonempty same-centre star from the orthonormal donor basis to these four children has an own-axis counterexample on the audited owner-replica-0 port recipes",
+        },
         "per_port_counts": per_port,
         "selected_frontier_changed": False,
         "new_kappa": None,
@@ -458,8 +621,9 @@ def main():
         require(result == expected, "stored result differs")
     print(
         result["status"]
-        + f" ports={result['ports']} forward={result['forward']['eligible']}"
-        + f" reverse={result['reverse']['eligible']} baseline_modes={result['baseline_modes_port0']}"
+        + f" ports={result['ports']} single={result['single_transfer']['eligible']}"
+        + f" paired={result['forward']['eligible']}/{result['reverse']['eligible']}"
+        + f" baseline_modes={result['baseline_modes_port0']}"
         + " no_new_kappa"
     )
 
