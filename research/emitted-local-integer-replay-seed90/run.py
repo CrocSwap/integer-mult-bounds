@@ -5,7 +5,7 @@ Prepared for @woklerx with substantial OpenAI Codex assistance. Apache-2.0.
 import argparse,contextlib,hashlib,importlib.util,io,json,sys,time
 from pathlib import Path
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
-CHECKER='research/complex-k492-owner-repair/code/hpe_audit_local.py'
+CHECKER='research/emitted-local-integer-replay-seed90/baseline.py'
 spec=importlib.util.spec_from_file_location('local_integer_rows',HERE/'fast.py');fast=importlib.util.module_from_spec(spec);spec.loader.exec_module(fast)
 
 def require(ok,message):

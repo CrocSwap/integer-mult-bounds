@@ -23,7 +23,7 @@ BASE = "66849e1475c930fd7732b1a0067ffee7e1e95f60"
 SELECTED = "certificates/selected-result.json"
 SPEC = "research/complex-k492-owner-repair/data/SPEC.json"
 INVENTORY = "research/community-k492-audit/SELECTED-SOURCE.json"
-AUDITOR = "research/complex-k492-owner-repair/code/hpe_audit_local.py"
+AUDITOR = "research/complex-sw4-frame8/local/hpe_audit_local.py"
 EMITTER = "research/complex-k492-owner-repair/code/hpe_emit_local.py"
 INVOICE = "research/complex-k492-owner-repair/code/invoice_allcold.py"
 REPLAY = "research/community-k492-audit/pr626/replay/mixed-global/base/providers"
@@ -67,8 +67,15 @@ def check_sources():
     require(selection["audited_source_head"] == pins["reviewed_heads"]["626"], "selected head")
     for pr, head in pins["reviewed_heads"].items():
         require(selection["reviewed_dependency_heads"][pr] == head, "reviewed head: " + pr)
+    inventory_keys = {
+        SPEC: SPEC,
+        AUDITOR: "research/complex-k492-owner-repair/code/hpe_audit_local.py",
+        EMITTER: EMITTER,
+        INVOICE: INVOICE,
+    }
     for rel in (SPEC, AUDITOR, EMITTER, INVOICE):
-        require(inventory["files"][rel] == pins["files"][rel]["sha256"], "inventory pin: " + rel)
+        require(inventory["files"][inventory_keys[rel]] == pins["files"][rel]["sha256"],
+                "inventory pin: " + rel)
     for name in PROVIDERS:
         desc = spec["providers"][name]
         for filename in ("CANONICAL-WORD.json.gz", "LOCAL-PROGRAMS.json.gz"):
