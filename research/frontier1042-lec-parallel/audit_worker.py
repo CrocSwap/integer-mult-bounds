@@ -12,7 +12,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-AUDIT_SHA256 = 'c9a05ff291016b870b4fc925b317abd9c3a604c73ffc8920dfdbbeb475e20aa3'
+AUDIT_SHA256 = '0dacf4cedb020d561e0188052319f1a6e6abaf6c79f9e94d8c9c91492e5c1747'
 AUDIT = None
 
 
