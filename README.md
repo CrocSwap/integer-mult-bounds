@@ -131,6 +131,17 @@ make gen4-bank-verify
 
 ## Research notes and verification contributions
 
+**[End-to-end Lean proof](https://github.com/platypii/integer-mult-bounds-lean)**
+by **[Dan Brown](https://github.com/jdb19937) and
+[Kenny Daniel](https://github.com/platypii)** establishes a fixed Mathlib `FinTM2` machine
+that multiplies all pairs of binary-encoded natural numbers in worst-case time
+`O(n (log n)^(1−κ))`, with `κ = 2^-34`, as proved by the
+[explicit theorem](https://github.com/platypii/integer-mult-bounds-lean/blob/4f40b5bc74235274835fe6952b9b90ac414786b0/IntegerMultBounds/MathlibTM2/Theorem.lean).
+Correctness and runtime are proved end to end, with no remaining algorithmic or
+analytic assumptions; the theorem's transitive axiom dependencies are exactly
+Lean's standard `propext`, `Classical.choice`, and `Quot.sound`, with no admitted
+proofs or custom axioms.
+
 [The research integration index](docs/research/research-notes-20261011.md)
 records accepted experiments, scoped obstructions, verification improvements,
 and attribution. These contributions can be valuable without changing the
