@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: Apache-2.0
+# Seed39 FOUR428 adaptation by Tekalign (@tekuuu), with substantial Codex assistance.
+# Preserves the parent independent role/window/axis controls and adds explicit
+# native endpoint, nested COPY and private zero-stock binding.
+import argparse, collections, json, copy
+from pathlib import Path
+import independent_core as A
+
+ap = argparse.ArgumentParser()
+ap.add_argument('--parent', type=Path, required=True)
+ap.add_argument('--data', type=Path, required=True)
+ap.add_argument('--provider', action='append', required=True)
+ap.add_argument('--out', type=Path, required=True)
+a = ap.parse_args()
+dirs = {p:Path(d) for p,d in (x.split('=',1) for x in a.provider)}
+plan = A.read(a.data/'PLAN.json')
+dispatch = {(s,r):p for s,r,p in A.read(a.data/'DISPATCH.json')}
+roles = A.read(a.data/'OWNERS.json.gz')
+parent = A.read(a.parent)
+phase_path = a.parent.parent.parent/'work/complex-nine-native/DATA-PHASES.json'
+canonical_path = a.parent.parent/'CANONICAL-WORD.json.gz'
+phases, canonical = A.read(phase_path), A.read(canonical_path)
+A.require(A.filehash(phase_path) == 'c5916ff312678f12aba403847643fbbc29f643acec60bdf836fa56cd3e8251fa', 'retained data phase source pin')
+inventories, words, replays, profiles, prefix, interface_controls = {}, {}, {}, {}, [], []
+A.R = len(next(iter(plan['provider_registry'].values()))['widths'])
+A.require(A.R == 428 and all(len(d['widths']) == A.R for d in plan['provider_registry'].values()), 'common helper count R')
+A.require(len(dispatch) == len(plan['order']) and set(dispatch.values()) == set(dirs), 'complete provider dispatch')
+A.require({(c['stage'],c['replica']):c['provider'] for c in plan['provider_calls']} == dispatch, 'plan dispatch binding')
+for pid,d in dirs.items():
+    w = A.read(d/'CANONICAL-WORD.json.gz')
+    r = A.read(d/'INDEPENDENT-LOCAL-REPLAY.json')
+    programs = A.read(d/'LOCAL-PROGRAMS.json.gz')
+    phase = A.read(d/'CLIFFORD-REVIEW.json')
+    desc = plan['provider_registry'][pid]
+    for name, pin in desc['artifact_sha256'].items():
+        A.require(A.filehash(d/name) == pin, 'provider artifact pin')
+    A.require(r['status'] == 'PASS_INDEPENDENT_LOCAL_SCALAR_FRAME_AND_WRAPPER_REPLAY', 'native status')
+    A.require(r['canonical_word_sha256'] == A.filehash(d/'CANONICAL-WORD.json.gz'), 'word binding')
+    A.require(r['local_programs_sha256'] == A.filehash(d/'LOCAL-PROGRAMS.json.gz'), 'program binding')
+    A.require(set(r['local']) == set(programs) == {'forward','backward'}, 'both orientations')
+    A.require(w['ports'] == canonical['ports'], 'common ports')
+    A.require([A.basis(w['frames'][f]) for f in w['center_frames']] == [A.basis(canonical['frames'][f]) for f in canonical['center_frames']], 'common ordered center frames')
+    for boundary in ('start','final'):
+        A.require([A.basis(w['frames'][f]) for f in w[boundary][:224]] == [A.basis(canonical['frames'][f]) for f in canonical[boundary][:224]], 'native data boundary frames')
+    A.require(phase['status'] == 'PASS_NEW_WORD_EXACT_LOCAL_PHASE_RECIPES' and phase['all_child_equalities_include_global_phase'] is True, 'native phase obligation')
+    A.require(phase['canonical_word_sha256'] == A.filehash(d/'CANONICAL-WORD.json.gz') and phase['recipe_sha256'] == A.filehash(d/'CLIFFORD-RECIPES.json'), 'native phase binding')
+    A.require(len(w['zero_buffers']) == len(set(w['zero_buffers'])) == 76, 'private zero-buffer inventory')
+    for orientation in ('forward','backward'):
+        A.require(r['local'][orientation]['all_exact_columns'] == 652 and r['local'][orientation]['private_work_erased'] is True and r['local'][orientation]['zero_buffers_returned_to_zero'] == 76, 'native endpoint and buffer restoration')
+    A.EXPECTED_WIDTHS = collections.Counter(desc['widths'])
+    ws, paid = A.local_inventory(w,r,programs)
+    A.require(ws == desc['widths'], 'ordered provider widths')
+    for row in roles:
+        if dispatch[row['stage'],row['replica']] == pid:
+            A.require(w['helper_origin'][row['helper']] == row['origin_helper'], 'native original helper identity')
+    inventories[pid], profiles[pid], words[pid], replays[pid] = ws, paid, w, r
+    prefix.extend(x['prefix_bits_upper'] for x in r['local'].values())
+    bad = copy.deepcopy(w)
+    bad['target_levels']['23'] = 0
+    try:
+        A.local_inventory(bad,r,programs)
+    except ValueError as exc:
+        A.require(str(exc) == 'target line30', 'target mutation rejection')
+        interface_controls.append(dict(name=pid+': changed lifted target frame', reason=str(exc)))
+    else:
+        raise ValueError('accepted changed lifted target')
+    bad = copy.deepcopy(programs)
+    bad['forward'].remove(next(e for e in bad['forward'] if e[0] == 'center'))
+    try:
+        A.local_inventory(w,r,bad)
+    except ValueError as exc:
+        A.require(str(exc) == 'literal centre COPY segments', 'COPY mutation rejection')
+        interface_controls.append(dict(name=pid+': missing split COPY child', reason=str(exc)))
+    else:
+        raise ValueError('accepted missing split COPY child')
+
+pid = next(iter(dirs))
+A.EXPECTED_WIDTHS = collections.Counter(inventories[pid])
+A.T = plan['T']
+A.EXPECTED_IDLE = {int(k):v for k,v in A.read(a.data/'CONSTRUCTION.json')['idle'].items()}
+ctx = A.make_context(parent,phases,canonical['ports'],words[pid],replays[pid],roles)
+A.require(set(ctx['order']) == set(dispatch), 'complete dispatch calls')
+ctx['call_widths'] = {c:inventories[p] for c,p in dispatch.items()}
+ctx['aggregate_paid'] = collections.Counter()
+for p in dispatch.values():
+    ctx['aggregate_paid'].update(profiles[p])
+ctx.update(max_local_prefix=max(prefix),local_profiles=profiles,width_inventories={p:dict(collections.Counter(ws)) for p,ws in inventories.items()})
+pending = A.check_pending_axes(ctx)
+receipt = A.check_roles(ctx,roles)
+A.require(receipt['profile'] == {int(k):v for k,v in plan['profile'].items()}, 'aggregate profile binding')
+receipt['controls_rejected'] = A.controls(ctx,roles)
+# Preserve the inherited changed-call width control, including equal inventories.
+call = next(c for c,p in dispatch.items() if p == 'extra')
+bad = dict(ctx,call_widths=dict(ctx['call_widths']))
+wrong = list(inventories['gauge44'])
+if inventories['gauge44'] == inventories['extra']:
+    j = next(k for k in range(len(wrong)) if wrong[k] != wrong[0])
+    wrong[0], wrong[j] = wrong[j], wrong[0]
+bad['call_widths'][call] = wrong
+try:
+    A.check_roles(bad,roles)
+except ValueError as exc:
+    A.require(str(exc) == 'whole-helper residual width', 'wrong provider control predicate')
+    receipt['controls_rejected'].append(dict(name='wrong_provider_at_changed_call',reason=str(exc)))
+else:
+    raise ValueError('accepted incorrect provider')
+bad = dict(ctx,zero_buffers=75)
+try:
+    A.check_roles(bad,roles)
+except ValueError as exc:
+    A.require(str(exc) == 'private zero-buffer stock', 'private stock mutation rejection')
+    interface_controls.append(dict(name='understated private buffer stock', reason=str(exc)))
+else:
+    raise ValueError('accepted understated private buffer stock')
+receipt.update(disjoint_pending_child_axis_checks=pending,provider_counts=dict(collections.Counter(dispatch.values())),
+               interface_controls_rejected=interface_controls,
+               input_sha256={str(p):A.filehash(p) for p in [a.data/'PLAN.json',a.data/'DISPATCH.json',a.data/'OWNERS.json.gz',a.parent,phase_path,canonical_path]+[d/n for d in dirs.values() for n in ('CANONICAL-WORD.json.gz','LOCAL-PROGRAMS.json.gz','INDEPENDENT-LOCAL-REPLAY.json','CLIFFORD-REVIEW.json')]})
+a.out.parent.mkdir(parents=True,exist_ok=True)
+a.out.write_text(json.dumps(receipt,indent=2)+'\n')
+print('PASS_INDEPENDENT_MIXED_OWNER',len(receipt['controls_rejected']),'INTERFACE',len(interface_controls),flush=True)
