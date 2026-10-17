@@ -1,0 +1,7 @@
+# SERVE2 (Oct 16) second implementation of SERVE
+STATE: SERVE2: item1 PARTIAL (flat family + orbits reproduced, exhaustive maxima NOT finished: served-by-definition costs ~0.16 s/E, 29M E for 596); item2 K9 test independent impl done (see k9.out); item3 579 BLOCKED.
+Files: setup2.py (own E8 from doubled coords, own labels via Bourbaki coefficients mod 2 + const bit, own reflections, own D7 list), s2.c (served BY DEFINITION, no leftover tables; own RREF flat enumeration, domination filter, union-find orbits), k9b.py (own graphic test in star-basis coordinates), run9.py.
+Item1 reproduced: s=4 flat family 1935706 sets / 15 W-orbits (= impl A); after dropping flats dominated by a larger flat 1896435 / 10 orbits (sound by monotonicity). served(8 lines Q)=8 sanity.
+Blocker item1: exhaustive pair sweep needs a fast cover test (table of minimal two-7-flat leftovers, recomputable by enumerating 43435^2/2 pairs of 7-flats for one root and one D7 target + W transport) -- not done within token cap.
+Item3: 579 K8 test needs served sets of F4+F4+F3 from an exhaustive enumeration; neither impl has them (A did not compute); blocker = same enumeration. K8 tool: k9b.py 8 <served-set file>; control A7 True.
+Item2 RESULT: k9b.py on A's all600.txt (3571 distinct served sets): 0 graphic K9; controls A8 True, E6 (36 lines, roots orth. to an A2) False. AGREE with A (note: served sets themselves taken from A's all600.txt, not regenerated).
