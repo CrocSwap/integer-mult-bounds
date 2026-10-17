@@ -101,6 +101,16 @@ It also rebinds BINS to the fill. Eight mutation controls are rejected:
   bit supplier improves. All inherited all-size/compiler, realization, precision/tape, recovery
   and analytic obligations remain. PR3148 itself is unreviewed.
 
+## Open next questions
+
+- **Is a hosted remainder a legal donor under the T74 controller contract?** PR1252's admitted
+  audit covered only unhosted children. First step: generalize the T74 `audit_mixed.py`
+  owner/controller audit to read this axis overlay and rerun PR3148's release. Blocked by:
+  the release chain has no overlay reader.
+- **Can the bit supplier rise toward the new complex root 0.0017347706?** κ is now bit-bound,
+  so any bit gain up to about +1.34e-6 is realizable. First step: price the actual #589 bit
+  word with the moment-fee metric and search skip and carrier rewrites on it.
+
 ## Credit
 
 - Gonzalo-Mier (PR1252): the move, the rule and the pricing.

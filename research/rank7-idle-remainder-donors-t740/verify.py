@@ -117,6 +117,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--t740', type=Path)
     ap.add_argument('--providers', type=Path, default=PKG / 'PR3148-PROVIDERS.json')
+    ap.add_argument('--write', action='store_true', help='rewrite the committed AUDIT.json receipt')
     a = ap.parse_args()
     if not __debug__: raise SystemExit('assertions required')
     raw = PHASES.read_bytes()
@@ -166,7 +167,10 @@ def main():
     else: raise SystemExit('mutation accepted: kappa_above_bit')
     out = dict(status='PASS_IDLE_REMAINDER_DONOR_AUDIT', moves=len(mv), fill_rebound=rebound, kappa=str(kappa),
                complex_root_lower=str(lo), binding='bit' if BIT < lo else 'complex', rejected_controls=rej)
-    (PKG / 'AUDIT.json').write_text(json.dumps(out, indent=1, sort_keys=True) + '\n')
+    if a.write: (PKG / 'AUDIT.json').write_text(json.dumps(out, indent=1, sort_keys=True) + '\n')
+    else:
+        strip = lambda d: {k: v for k, v in d.items() if k != 'fill_rebound'}
+        req(strip(load(PKG / 'AUDIT.json')) == strip(json.loads(json.dumps(out))), 'committed AUDIT.json receipt')
     print('PASS_IDLE_REMAINDER_DONOR_AUDIT moves=%d controls=%d kappa=%s binding=%s' % (len(mv), len(rej), float(kappa), out['binding']))
 
 
