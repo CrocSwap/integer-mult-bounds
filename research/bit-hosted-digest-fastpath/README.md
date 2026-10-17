@@ -112,13 +112,19 @@ is inferred from this bounded search. The active joint-dual containment-mask wor
 uses a different verifier and fixture; PR1736 checks PR589 hosting windows but
 does not optimize instruction hashing. [Claim and final handoff](https://github.com/CrocSwap/integer-mult-bounds/discussions/1871).
 
+## Production follow-up
+
+`research/bit-hosted-digest-production/` wires the equivalent fragment-reuse
+digest into the p111-tuned production `audit_hosted_k.py`. This opt-in package
+now loads the pairwise-era bytes from
+`research/bit-hosted-digest-fastpath/baseline.py` for differential comparison.
+
 ## Open next questions
 
-A maintainer could integrate the adapter into one actively maintained replay
-driver, preserving its pins and comparing its complete receipt once. That would
-make the runtime benefit available without opting into this package. Driver
-integration and its applicable cold-replay obligations are outside this change;
-see the structured question in [TASK.json](TASK.json).
+Driver-level documentation may still mention this opt-in entrypoint; the shipped
+p111-tuned auditor already includes the fragment digest after the production
+package tip. See that package's open questions for remaining vendor copies.
+
 
 ## Credit
 

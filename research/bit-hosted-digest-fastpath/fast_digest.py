@@ -12,8 +12,12 @@ import types
 
 PACKAGE = Path(__file__).resolve().parent
 ROOT = PACKAGE.parents[1]
-AUDITOR = ('research/e8-bit-p111-tuned/vendor/pr510/e8-r480-nine-stage/'
-           'vendor/e8-r715-eleven-stage-whole/code/audit_hosted_k.py')
+# Pairwise-era auditor bytes (production now ships fragment reuse).
+AUDITOR = 'research/bit-hosted-digest-fastpath/baseline.py'
+PAIRWISE_AUDITOR = (
+    'research/e8-bit-p111-tuned/vendor/pr510/e8-r480-nine-stage/'
+    'vendor/e8-r715-eleven-stage-whole/code/audit_hosted_k.py'
+)
 PARAMETERIZER = 'research/e8-bit-p111-tuned/code/adapt9p.py'
 FIXTURE = 'research/community-hyperplane599-audit/pr589/bit589'
 
@@ -31,12 +35,19 @@ def pins():
             if x['usage'] == 'input'}
 
 
+def provenance_pins():
+    return {x['path']: x['sha256'] for x in
+            json.loads((PACKAGE / 'SOURCES.json').read_text(encoding='utf-8'))['files']
+            if x['usage'] == 'provenance'}
+
+
 def load_auditor():
     """Apply only the five hosted-auditor edits listed in frozen adapt9p.py."""
     if not __debug__:
         raise RuntimeError('the inherited auditor requires assertions; remove -O/PYTHONOPTIMIZE')
     sources = pins()
-    original = checked_bytes(ROOT / AUDITOR, sources[AUDITOR]).decode('utf-8')
+    # baseline.py vendors the pairwise-era bytes pinned as provenance on PAIRWISE_AUDITOR.
+    original = checked_bytes(ROOT / AUDITOR, provenance_pins()[PAIRWISE_AUDITOR]).decode('utf-8')
     adapter = checked_bytes(ROOT / PARAMETERIZER, sources[PARAMETERIZER]).decode('utf-8')
     assignments = [n for n in ast.parse(adapter).body if isinstance(n, ast.Assign)
                    and any(isinstance(t, ast.Name) and t.id == 'EDITS' for t in n.targets)]
