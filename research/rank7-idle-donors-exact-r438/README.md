@@ -55,6 +55,19 @@ The run outputs `PASS_IDLE_DONOR_EXACT_R438_AUDIT moves=435604 controls=8 kappa=
 
 `build.py` is byte-deterministic: two runs give identical BINS, MOVES and RESULT files.
 
+## Open next questions
+
+- **Do hosted donors and multi-donor receivers satisfy the T74 controller contract?** First step:
+  generalize the T74 `audit_mixed.py` to read the idle-axis overlay and rerun PR3148's release.
+  Blocked by: the T74 chain has no overlay reader.
+- **Can the remaining 3.05e-8 to the R438 bit endpoint be closed?** The exact search is optimal
+  over legal single-axis donor moves; the residual is blocked by PR1252's commuting rule. First
+  step: prototype chained/relay donor swaps or port axes re-anchored outside the translation span,
+  with the commuting rule strictly enforced. Blocked by: no such move class is specified yet.
+- **Can the bit endpoint rise past R438?** First step: test helper removals outside PR1043's
+  pure-relay class. Blocked by: PR1043's lifetime test only certifies 2-occurrence relays, and
+  R438 depends on the open PR1043.
+
 ## Scope
 
 This is conditional on PR3200's stack and on R438, whose source PR1043 is open. It inherits PR3200's scope:
