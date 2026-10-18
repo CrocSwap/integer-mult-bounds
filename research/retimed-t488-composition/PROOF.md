@@ -16,6 +16,6 @@ The full moment is `sum_r profile[r] * r^(1-a) - (896*488)*73^(1-a)`. Two separa
 
 ## Full conditional admission
 
-The scientific release reconstructs source, authenticates fresh native programs and retained ancestor evidence, reconstructs owners and parent template, rebinds the actual programs, discovers the resulting complete invoice, and applies the unchanged strict admission/controller/physical/precision/outer gates. The independent source review confirmed byte-identical admission drivers and source manifest. A terminal successful receipt is still required before this draft becomes an admitted conditional result.
+The scientific release reconstructs source, authenticates fresh native programs and retained ancestor evidence, reconstructs owners and parent template, rebinds the actual programs, discovers the resulting complete invoice, and applies the unchanged strict admission/controller/physical/precision/outer gates. The independent source review confirmed byte-identical admission drivers and source manifest. The original scientific run reached `PASS_RELEASE` after all seven stages. Its raw receipts and exact source/native/fill bindings are retained under `evidence/recorded-admission`. Independent integration review found no mathematical or owner-predicate defect. The separately packaged complete public wrapper is still being replayed end-to-end.
 
 The general theorem conditions in README remain assumptions even after every finite gate passes.

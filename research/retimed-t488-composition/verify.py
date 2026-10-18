@@ -37,13 +37,11 @@ def main():
     need((owner['roles'],owner['calls'],owner['physical'])==(1791936,4392,437757),'complete roles and physical count')
     need(arithmetic['strict_outer_inequalities']==63 and arithmetic['outer_rejection_controls']==17,'outer gates')
     need(Q(arithmetic['kappa'])==Q(moment['conditional_modern_kappa']),'moment/modern outer endpoint')
-    claim_path=HERE/'evidence/COMPLETE-ADMISSION.json'
+    claim_path=HERE/'evidence/recorded-admission/COMPLETE-ADMISSION.json'
     summary=None
     if claim_path.exists():
-        summary=read(claim_path)
-        need(summary['status']=='PASS_T488_RETIMER_COMPLETE_CONDITIONAL_RELEASE','recorded completed admission')
-        need(summary['profile']==owner['profile'] and Q(summary['kappa'])==Q(arithmetic['kappa']),'recorded/fresh finite binding')
-        need(len(summary['admission_stages'])==7 and all(s['exit_code']==0 for s in summary['admission_stages']),'seven recorded successful stages')
+        from admission_evidence import check
+        summary=check(HERE,claim_path,owner['profile'],arithmetic['kappa'],out/'owners/literal')
     need(snapshot()==before,'Package changed during checks')
     result={'status':'PASS_FRESH_BOUNDED_RETIMED_T488','stages':stages,'profile':owner['profile'],'candidate_kappa':arithmetic['kappa'],'recorded_full_admission_present':summary is not None,'scope':'Fresh local, literal-owner and arithmetic checks. Stored full admission, when present, is cross-bound evidence, not a new native/controller replay. All inherited theorem assumptions remain.'}
     (out/'RESULT.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
