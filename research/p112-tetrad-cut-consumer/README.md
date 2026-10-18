@@ -142,19 +142,42 @@ charges both post-`B` readers against the original 176-add cut, using the same
 hypothetical one-rank-1-unit-per-net-incidence tariff and relaxed rank-72
 complex profile as above.
 
-| Fused tetrads `k` | Post-`B` hybrid support | Post-`B` dirty-correction support | Net incidences over original cut | Extra over retimed original | Ideal complex κ ceiling |
+| Fused tetrads `k` | Post-`B` hybrid support | Post-`B` dirty-correction support | Net incidences over original cut | Extra over retimed original | Incidence-only complex κ ceiling |
 |---:|---:|---:|---:|---:|---:|
 | 3 | 450 | 52 | 326 | 54 | 0.003212495586 |
 | 5 | 454 | 76 | 354 | 82 | 0.007657155804 |
 | 9 | 441 | 140 | 405 | 133 | 0.015679681607 |
 | 14 | 437 | 215 | 476 | 204 | 0.024130777318 |
 
-This clears `0.003` only as a sensitivity screen. It does not price an actual
-scalar operation or supplier. Applying the correction still needs a separate
-dirty-baseline stream through `B` (or a retained equivalent); any extra `B`
-execution is outside this incidence count. Native adapter expansion,
-post-`B` endpoint ownership, cleanup/restoration, and the complete bit-side
-invoice remain open. The selected κ remains `0.001672660197076918`.
+### Native frame compatibility at the post-`B` boundary
+
+The incidence-only table treats each added scalar coefficient as one
+hypothetical rank-1 unit. The selected native execution has a further boundary
+cost: its 112 output roles occupy 112 distinct rank-8 frames after `B`, while
+the eight centre roles occupy frames 415–422. Their union has rank 9; the only
+common selected frame is frame 1. Therefore none of the 448 original retimed
+coefficients is a direct same-frame ADD at this boundary. The three-block
+hybrid and correction likewise have 450 and 52 cross-frame coefficients.
+
+The native recipe audit exactly checks one rank-1 child recipe from each of the
+120 distinct role frames to frame 1. Charging those 120 units as one shared
+common-frame pass gives this further optimistic sensitivity:
+
+| Fused tetrads `k` | Extra frame-join rank-1 units | Complex κ ceiling after one pass |
+|---:|---:|---:|
+| 3 | 120 | 0.002797088144 |
+| 5 | 120 | 0.006698357356 |
+| 9 | 120 | 0.013825363860 |
+| 14 | 120 | 0.021482998123 |
+
+Thus the three-block route falls below `0.003` even under this one-pass ideal
+profile, before restoration, a separately executed dirty-baseline stream, or
+any other endpoint costs. The larger prefixes still clear `0.003` only as
+sensitivities. The common-frame pass is not a proved schedule or universal
+obstruction: another producer interface or a different placement may avoid
+these joins. Native adapter expansion, endpoint ownership, cleanup/restoration,
+the actual scalar tariff, and the complete bit-side invoice remain open. The
+selected κ remains `0.001672660197076918`.
 
 The highest checked conditional ideal sensitivity is `0.038865401047` when a
 producer supplies the full transformed vector at no separately priced basis

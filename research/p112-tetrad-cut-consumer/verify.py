@@ -352,6 +352,121 @@ def retime_readout_through_b(readout, word):
     }
 
 
+def audit_post_b_native_frame_join(word, forward_program, lift, native, kernel):
+    """Check the selected native frame labels and exact rank-one joins at B exit."""
+    require(native["word"] == word
+            and native["programs"]["forward"] == forward_program,
+            "native frame audit is not bound to the selected word/program")
+    audited = lift.audit_stream(word, forward_program)
+    v, n = word["v"], 2 * word["v"] + word["R"]
+    wrapped = {
+        i for i in range(2 * v, n)
+        if (word["start"][i], word["final"][i]) != (0, 1)
+    }
+    labels = {
+        ("L", i): (("preS", i) if i < v else
+                    ("preW", i) if i in wrapped else
+                    ("T", word["start"][i]))
+        for i in range(n)
+    }
+    phase = None
+    for event in forward_program:
+        tag = event[0]
+        if tag == "phase":
+            phase = event[1]
+            if phase == "cleanup_tail":
+                break
+        elif tag == "climb":
+            _, part, role, old, new, rank = event
+            require(part == phase and labels[("L", role)] == ("T", old)
+                    and rank == len(word["frames"][new])
+                    - len(word["frames"][old]) > 0,
+                    "post-B frame climb changed")
+            labels[("L", role)] = ("T", new)
+        elif tag == "center":
+            _, centre, old, new, rank = event
+            require(phase == "centers"
+                    and labels.get(("C", centre)) == ("T", old)
+                    and rank == len(word["frames"][old])
+                    - len(word["frames"][new]) == 8,
+                    "centre frame descent changed")
+            labels[("C", centre)] = ("T", new)
+        elif tag == "adapter":
+            _, direction, role, frame = event
+            if direction == "old_to_new":
+                if role < v:
+                    require(labels[("L", role)] == ("preS", role),
+                            "source entry frame label changed")
+                else:
+                    require(frame == 0 and labels[("L", role)] == ("T", 0),
+                            "target entry frame label changed")
+                labels[("L", role)] = ("T", frame)
+        elif tag == "residual_adapter":
+            direction, role = event[1:3]
+            if direction == "pre":
+                left, _ = lift.residual_pair(event)
+                require(labels[("L", role)] == ("preW", role),
+                        "helper entry frame label changed")
+                labels[("L", role)] = ("T", left)
+        elif tag == "scalar":
+            _, operation, frame = event
+            kind, destination = operation[0], tuple(operation[1])
+            if kind in ("clear", "copy"):
+                labels[destination] = ("T", frame)
+
+    target_frames = []
+    for role in range(v, 2 * v):
+        label = labels[("L", role)]
+        require(label[0] == "T", "output is not in a canonical frame at B exit")
+        target_frames.append(label[1])
+    centre_frames = []
+    for role in word["centers"]:
+        label = labels[("L", role)]
+        require(label[0] == "T", "centre is not in a canonical frame at B exit")
+        centre_frames.append(label[1])
+
+    frame_vectors = word["frames"]
+    role_frames = set(target_frames) | set(centre_frames)
+    union_rank = kernel.f2_rank([
+        axis for frame in sorted(role_frames) for axis in frame_vectors[frame]
+    ])
+    joins = [
+        frame_id for frame_id, candidate in enumerate(frame_vectors)
+        if len(candidate) == union_rank
+        and all(kernel.f2_rank(frame_vectors[frame] + candidate) == union_rank
+                for frame in role_frames)
+    ]
+    require((len(set(target_frames)), len(set(centre_frames)),
+             len(role_frames), union_rank, joins,
+             {len(frame_vectors[frame]) for frame in target_frames},
+             {len(frame_vectors[frame]) for frame in centre_frames})
+            == (112, 8, 120, 9, [1], {8}, {8}),
+            "post-B frame join census changed")
+    join = joins[0]
+    extra_edges = {
+        (frame, join, 1) for frame in role_frames
+    }
+    require(len(extra_edges) == 120, "post-B rank-one join edge count changed")
+    audited["edges"] = set(audited["edges"]) | extra_edges
+    checked, _, _ = lift.check_operators(
+        word, native["recipes"], native["residuals"], audited, kernel)
+    require(checked["used_child_recipes"] == len(audited["edges"]),
+            "post-B join child recipes were not all checked")
+    return {
+        "boundary": "after canonical B, before cleanup_tail",
+        "output_roles": v,
+        "distinct_output_frames": len(set(target_frames)),
+        "output_frame_rank_histogram": {"8": v},
+        "centre_role_frames": centre_frames,
+        "distinct_output_and_centre_frames": len(role_frames),
+        "joint_frame_rank": union_rank,
+        "common_join_frame_ids": joins,
+        "rank1_join_edges_exactly_checked": len(extra_edges),
+        "exact_child_recipes_checked_total": checked["used_child_recipes"],
+        "target_frame_by_port": target_frames,
+    }
+
+
 def run():
     geometry = load_module(
         "p112_consumer_geometry",
@@ -365,6 +480,9 @@ def run():
     gauge = load_module(
         "p112_consumer_gauge",
         ROOT / "research/gauge44-port-syndrome-encoding/verify.py")
+    lift = load_module(
+        "p112_consumer_native_lift",
+        ROOT / "research/selected-centre-native-lift/verify.py")
     ceiling = load_module(
         "p112_consumer_ceiling",
         ROOT / "research/complex-local-word-ceiling/ceiling.py")
@@ -378,6 +496,9 @@ def run():
     word, scatter, archive_hash = read_selected_scatter(gauge)
     forward_program = read_selected_forward_program(gauge)
     chronology = audit_selected_cut_chronology(word, forward_program)
+    native_data, native_kernel = lift.load(ROOT)
+    post_b_frames = audit_post_b_native_frame_join(
+        word, forward_program, lift, native_data, native_kernel)
 
     roots, frame = geometry.roots_and_frame()
     live = sorted(set(roots) - set(frame))
@@ -578,6 +699,20 @@ def run():
         "helper_coefficients": 0,
         "per_centre_support": [56] * 8,
     }, "post-B original readout support changed")
+
+    def frame_mismatch_count(post_readout):
+        return sum(
+            post_readout[word["v"] + port][centre] != 0
+            and post_b_frames["target_frame_by_port"][port]
+            != post_b_frames["centre_role_frames"][centre]
+            for port in range(word["v"])
+            for centre in range(len(word["centers"]))
+        )
+
+    original_frame_mismatches = frame_mismatch_count(retimed_original)
+    require(original_frame_mismatches
+            == retimed_original_summary["nonzero_coefficients"] == 448,
+            "post-B original readout frame compatibility changed")
     retimed_hybrid_prefixes = []
     for k_blocks in (3, 5, 9, 14):
         prefix_cut, prefix_correction = hybrid_prefixes[k_blocks]
@@ -596,6 +731,13 @@ def run():
                 and post_correction_summary["input_source_coefficients"] == 0
                 and post_correction_summary["helper_coefficients"] == 0,
                 "post-B readout acquired a non-output role")
+        hybrid_frame_mismatches = frame_mismatch_count(post_cut)
+        correction_frame_mismatches = frame_mismatch_count(post_correction)
+        require(hybrid_frame_mismatches
+                == post_cut_summary["nonzero_coefficients"]
+                and correction_frame_mismatches
+                == post_correction_summary["nonzero_coefficients"],
+                "post-B scalar readout unexpectedly shares native frames")
         net_added = (post_cut_summary["nonzero_coefficients"]
                      + post_correction_summary["nonzero_coefficients"]
                      - old_support)
@@ -627,6 +769,10 @@ def run():
                 post_cut_summary["nonzero_coefficients"],
             "post_B_dirty_correction_coefficients":
                 post_correction_summary["nonzero_coefficients"],
+            "hybrid_coefficients_without_direct_native_ADD_frame_match":
+                hybrid_frame_mismatches,
+            "correction_coefficients_without_direct_native_ADD_frame_match":
+                correction_frame_mismatches,
             "net_added_incidences_vs_original_pre_B_cut": net_added,
             "added_incidences_over_retimed_original_cut":
                 added_over_retimed_old,
@@ -639,16 +785,60 @@ def run():
     require([
         (row["transformed_tetrads"], row["post_B_hybrid_coefficients"],
          row["post_B_dirty_correction_coefficients"],
+         row["hybrid_coefficients_without_direct_native_ADD_frame_match"],
+         row["correction_coefficients_without_direct_native_ADD_frame_match"],
          row["net_added_incidences_vs_original_pre_B_cut"],
          row["added_incidences_over_retimed_original_cut"],
          row["complex_kappa_ceiling_decimal"])
         for row in retimed_hybrid_prefixes
     ] == [
-        (3, 450, 52, 326, 54, "0.003212495586"),
-        (5, 454, 76, 354, 82, "0.007657155804"),
-        (9, 441, 140, 405, 133, "0.015679681607"),
-        (14, 437, 215, 476, 204, "0.024130777318"),
+        (3, 450, 52, 450, 52, 326, 54, "0.003212495586"),
+        (5, 454, 76, 454, 76, 354, 82, "0.007657155804"),
+        (9, 441, 140, 441, 140, 405, 133, "0.015679681607"),
+        (14, 437, 215, 437, 215, 476, 204, "0.024130777318"),
     ], "post-B retimed support/sensitivity table changed")
+
+    frame_join_units = post_b_frames["rank1_join_edges_exactly_checked"]
+    frame_join_sensitivities = []
+    for row in retimed_hybrid_prefixes:
+        k_blocks = row["transformed_tetrads"]
+        frame_join_profile = {
+            int(rank_value): count
+            for rank_value, count in
+            row["rank1_incidence_sensitivity_profile"].items()
+        }
+        frame_join_profile[1] += frame_join_units
+        centre_charge = 112 - 4 * k_blocks
+        unpaid = Q(1) + Q(k_blocks, 28)
+        frame_join_moment = ceiling.relax(
+            frame_join_profile, 73, 896, 9, centre_charge, target_a,
+            R=51, unpaid=unpaid)
+        frame_join_bracket = ceiling.ceiling(
+            frame_join_profile, 73, 896, 9, centre_charge,
+            grid=Q(1, 10**12), R=51, unpaid=unpaid)
+        frame_join_kappa = (
+            frame_join_bracket[1] / (1 + frame_join_bracket[1]))
+        frame_join_sensitivities.append({
+            "transformed_tetrads": k_blocks,
+            "extra_rank1_units_for_one_common_frame_pass": frame_join_units,
+            "profile": {
+                str(r): count for r, count in sorted(frame_join_profile.items())
+            },
+            "target_moment_bracket": [
+                str(value) for value in frame_join_moment],
+            "target_saving_moment_above_one": frame_join_moment[0] > 1,
+            "complex_kappa_ceiling": str(frame_join_kappa),
+            "complex_kappa_ceiling_decimal": f"{float(frame_join_kappa):.12f}",
+        })
+    require(frame_join_units == 120
+            and [row["complex_kappa_ceiling_decimal"]
+                 for row in frame_join_sensitivities]
+            == ["0.002797088144", "0.006698357356",
+                "0.013825363860", "0.021482998123"]
+            and frame_join_sensitivities[0]["target_saving_moment_above_one"],
+            "one-pass common-frame join sensitivity changed")
+    frame_join_kappa = Q(
+        frame_join_sensitivities[0]["complex_kappa_ceiling"])
 
     # Rebuild the conditional full-basis cut from its exact matrix. The separate
     # dirty-baseline correction is a second input channel, not part of this cut.
@@ -768,8 +958,15 @@ def run():
         "post_B_readout_retiming": {
             "identity": "A^T x = (M_B^-T A)^T (M_B x) for the exact canonical B state map",
             "original_cut": retimed_original_summary,
+            "original_cut_coefficients_without_direct_native_ADD_frame_match":
+                original_frame_mismatches,
             "hybrid_dirty_prefixes": retimed_hybrid_prefixes,
             "all_retimed_coefficients_use_only_post_B_output_ports": True,
+            "native_frame_join": post_b_frames,
+            "one_pass_rank1_frame_join_sensitivities": {
+                "by_prefix": frame_join_sensitivities,
+                "restoration_and_separate_dirty_stream_costs_included": False,
+            },
             "separate_dirty_baseline_channel_and_duplicate_B_cost": "unproved",
             "adapter_expansion_and_native_schedule_binding": "unproved",
         },
@@ -797,8 +994,9 @@ def run():
     print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
     print("PASS_P112_SELECTED_CENTER_CUT_COMPOSITION blocks=14 cut_adds=176->286 "
           "hybrid_net_incidence=201 cut_before_B=true "
-          "retimed_post_B_kappa3_sensitivity=%.12f no_new_kappa" %
-          float(Q(retimed_hybrid_prefixes[0]["complex_kappa_ceiling"])))
+          "retimed_post_B_kappa3=%.12f one_pass_frame_join=%.12f no_new_kappa" %
+          (float(Q(retimed_hybrid_prefixes[0]["complex_kappa_ceiling"])),
+           float(frame_join_kappa)))
 
 
 if __name__ == "__main__":
