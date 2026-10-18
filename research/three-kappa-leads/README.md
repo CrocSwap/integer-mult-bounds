@@ -1,10 +1,10 @@
 # Three assigned κ leads: a smaller T360 frontier match and scoped obstructions
 
-Local-only research package on `codex/three-kappa-leads`; no selected-frontier change or public submission. The T360 construction passed complete source/native/physical/precision/outer release at `κ=0.001730096363528623534230−10^-46−10^-70`. The latest refresh found concurrent #3633 reporting the identical endpoint at T488. Ours uses114,688 fewer physical families and470,016 fewer roles. Final independent Astra review is pending in STATUS.json; no strict increase over that concurrent candidate is claimed.
+Local-only research package on `codex/three-kappa-leads`; no selected-frontier change or public submission. The T360 construction passed complete source/native/physical/precision/outer release at `κ=0.001730096363528623534230−10^-46−10^-70`. The latest refresh found concurrent #3633 reporting the identical endpoint at T488. Ours uses 114,688 fewer physical families and 470,016 fewer roles. All three fresh Astra medium reviews conclude YES for the stated scopes; no strict increase over that concurrent candidate is claimed.
 
 | Assigned lead | Bounded result | Broader scope |
 |---|---|---|
-| New staged-width inventory × chronology × whole helpers | One adjacent T37/T8 join swap; exact S8/T360 allocation, 1,321,920 literal roles, physical323,069. See [CHRONOLOGY.md](CHRONOLOGY.md). | An independent2,551-pattern dual check attains the fixed-model relaxation and closes further packing gains on the same24-place release grid. Changed suppliers/geometry/interface/grid remain outside scope. |
+| New staged-width inventory × chronology × whole helpers | One adjacent T37/T8 join swap; exact S8/T360 allocation, 1,321,920 literal roles, physical stock 323,069. See [CHRONOLOGY.md](CHRONOLOGY.md). | An independent 2,551-pattern dual check attains the fixed-model relaxation and closes further packing gains on the same 24-place release grid. Changed suppliers/geometry/interface/grid remain outside scope. |
 | Residual dictionary and one changed bridge | Astra YES/SCOPED_NEGATIVE for one address-independent bridge. Zero character forces the original bridge; concrete O4 rotation requires a character-dependent bridge and saves no rank. See [BRIDGE.md](BRIDGE.md). | Address-dependent changed-bridge construction remains INCONCLUSIVE. |
 | Five-plane shared-address cancellation | Astra YES/SCOPED_NEGATIVE for unchanged ZERO-frame native consumers/wrappers. Native scratch→target ADD exposes translation debt even if final scratch restores. See [CONSUMER.md](CONSUMER.md). | A redesigned literal producer/consumer/owner schedule remains INCONCLUSIVE. |
 
@@ -26,11 +26,13 @@ Complete fresh replay, using Python3.12 with [requirements-full.txt](requirement
 
 The full command is intentionally separate from the bounded manifest. Do not run multiple artifact-regenerating replays concurrently. Explicit prepared-source/native/allocation reuse options preserve source pins and replay scope. VALIDATION.json distinguishes the executed commands from unrun portable forms, stored evidence from fresh execution, and retained parent proofs from the two freshly rerun changed suppliers.
 
+Bounded verification also passed from a committed Git-free export with tools excluded from PATH. Committed-byte checks pass; strict source-history ancestry validation remains unrun in a full-history clone because this shared repository is shallow.
+
 The exact predecessor package is retained in PR3624-SOURCE.tar.gz, with source hashes/blob IDs and original notices; no unmerged remote Git object is needed for replay. SOURCES.json declares main-tree scientific inputs. The original source archives and selected record are unchanged.
 
 ## Review and limitations
 
-Every lead requires its own fresh GPT-6 Astra medium review of a frozen exact commit. Review decisions, raw independent checks and critical repairs are under reviews/. Lead3's initial missing candidate pin was repaired before renewed approval. These are scoped same-session AI reviews, not human acceptance or formal verification.
+Each lead received its own fresh GPT-6 Astra medium review of a frozen exact commit; all three conclude YES for their stated scopes. Review decisions, raw independent checks and critical repairs are under reviews/. Lead3's initial missing candidate pin was repaired before renewed approval. These are scoped same-session AI reviews, not human acceptance or formal verification.
 
 All inherited all-size/compiler, uniform cost, common-label/mutable-source, whole-call hosting, bootstrap-time, precision/tape/recovery, analytic and bit-interface premises remain. Finite certificates do not establish an unconditional multiplication theorem. The two negative results close only the hypotheses stated above, not their broad mechanisms.
 
