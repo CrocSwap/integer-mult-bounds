@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "task_id": "supplier-boundary-audit",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "original_card": {
+    "id": "supplier-boundary-audit",
+    "question": "Does one selected supplier obligation follow from its actual source-bound checks?",
+    "starting_points": [
+      "certificates/selected-result.json",
+      "research/owner-boundary-audit/README.md"
+    ],
+    "methods": [
+      "Trace one hypothesis through the source, checker and complete caller.",
+      "Construct one semantically invalid but superficially well-formed fixture and test rejection."
+    ],
+    "acceptance_gate": "Pin the current sources and one obligation; the historical owner audit is an example, not evidence of a current bug.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/owner-boundary-audit/verify.py"
+      ],
+      "expected": "PASS_PR626_NEXT_TOUCH_BOUNDARY_AUDIT",
+      "inspect": "Identify why the timing-only omission passes but the full production controller still rejects it.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Choose one current supplier obligation and trace whether its acceptance depends on an independent check.",
+    "bottleneck_link": "Closing a current acceptance gap or proof obligation strengthens reliability even without changing kappa.",
+    "allowed_variations": [
+      "Audit one named current condition using a new semantic counterexample."
+    ],
+    "scope_change_triggers": [
+      "Reporting the historical timing-only diagnostic as a new current acceptance bug."
+    ],
+    "overlap_terms": [
+      "owner boundary",
+      "bridge omission",
+      "hosting"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "For the selected #1094 certificate: does `make frontier1094-verify` bind the committed ASSEMBLY.json (endpoints, bootstrap, 47+47 outer slacks, profile) to its cold replay, and do those committed fields follow from their pinned receipts? Tested with the unchanged seed81 invoice/outer recheck, an exact receipt delta against #1042, five-way profile binding and one well-formed, arithmetic-consistent mutant certificate with an uncertified complex endpoint and unchanged kappa.",
+  "scope_change_reason": "The card's generic supplier obligation is narrowed to one concrete obligation: that the published certificate fields beyond kappa are the replay's output. The owner-boundary example's timing question is not revisited.",
+  "bottleneck_link": "Side result for review trust: downstream audits and future candidates read the selected certificate's endpoints and outer slacks, so a reproduce path that binds only kappa could let a non-replay certificate stand. No kappa or construction change.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after the invoice/outer recheck, receipt delta, profile binding, one endpoint mutant tested on every reproduce-path layer and the proposed binding evaluated on published output; do not run the long cold replay or edit the selected scripts.",
+  "outcome": "completed",
+  "evidence": "RESULT.json: seed81 recheck PASS on #1094 with 15 controls and exact #1042 reproduction; 14-field receipt delta; five equal profile copies; mutant (complex_lower + 1e-24, kappa unchanged) accepted by the arithmetic layer and by verify_selected_result.check after repinning, never read by verify_frontier1094.py, rejected by the exact moment (residual lower bound 1.62e-24 > 0); proposed binding passes on the published replay output and rejects the mutant. Seed81's own entry point is stale on main.",
+  "author": "rtyu193-rgb",
+  "ai_assistance": "Claude Code (Anthropic Claude Opus 5.5) chose the scope, wrote verify.py and the prose; reused seed81 and DE diagnostic code unchanged; one session, no subagents, no independent human review.",
+  "open_questions": [
+    {
+      "question": "Should the selected reproduce path require the replay's ASSEMBLY.json to equal the selected certificate (bytes or parsed JSON)?",
+      "why_it_matters": "Today a promotion committing a non-replay certificate with the same kappa passes make frontier1094-verify; downstream audits read that certificate's endpoints and outer slacks.",
+      "first_step": "Add the one-line requirement to scripts/verify_frontier1094.py and run one cold make frontier1094-verify on Linux, comparing raw and parsed equality; consider the same for the frontier1042/942/890/799 replays, which also contain no certificate reference.",
+      "blocked_by": "Maintainer authorization to edit the selected reproduce script and a long cold baseline replay."
+    }
+  ]
+}

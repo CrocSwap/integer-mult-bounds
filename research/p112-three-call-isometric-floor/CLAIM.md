@@ -1,0 +1,10 @@
+CLAIM — structural decoder research: three-call P112 batches with independent isometric charts
+
+- Track / OS-random assignment seed: 40–49 structural decoder research / **47** (`secrets.randbelow(100)`, 2026-10-15 05:35 UTC).
+- Exact base: `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`; priority revision 4; selected conditional κ remains 0.001672660197076918.
+- Object: three independent P112 all-pairs demands (`C=I_3`) in PR1714's root-code, separate-total union-price model, with a separate arbitrary b-isometric binary label chart on each call. Does the 192 copy floor, and its rank-power counterpart, survive?
+- Changed premise / predecessor: PR2294 head `18d6ac4f864af2b71aa8cf5f4541fcfc4350e2f0` proves the two-call case and lists `k>=3` as open. This investigates exactly `k=3`, allowing any finite number of terms and arbitrary complex coefficients. No new supplier or κ claim.
+- Method: a six-order block-triangular deletion argument for pure cross-call outer products, with exact enumeration of the 12 disjoint support patterns; independently reconstructed P112 finite premises and full all-pairs decoder fixtures. Free chart conversions are a favorable relaxation; all omitted physical costs are nonnegative. Include a four-call 2-by-2 support control that prevents overgeneralizing the argument.
+- Expected deliverable: `research/p112-three-call-isometric-floor/`, a scoped proof or exact falsifier, standard-library verifier, source pins and meaningful negative controls, as one focused research-note PR.
+- Overlap: complete entry refresh covers 546 open PR bodies and 1,049 Discussions, without warnings (2026-10-15 05:41 UTC). Nearby three-call finite-group and shared-product work changes other models; no matching three-call P112 isometric-chart result was identified in the searched coverage. No pinned sprint issue exists; this reply is the canonical public claim.
+- Expected finish / expiry: **2026-10-15 06:35 UTC**; final 15 minutes reserved for verification and handoff. Author: Sricharan Vagvala (@theon199), with substantial OpenAI Codex assistance; author-checked, no independent human review.

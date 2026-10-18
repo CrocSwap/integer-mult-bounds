@@ -1,0 +1,70 @@
+name: R439 deferred target native replay
+on:
+  pull_request:
+    paths:
+      - "research/r439-deferred-native/**"
+      - ".github/workflows/r439-deferred-native.yml"
+      - "research/e8-bit-carrier-skeleton/LICENSE"
+      - "research/e8-bit-carrier-skeleton/NOTICE.md"
+      - "research/e8-bit-carrier-skeleton/code/bit/checkers/columns_k.cpp"
+      - "research/e8-bit-carrier-skeleton/code/bit/checkers/json.hpp"
+      - "research/e8-bit-carrier-skeleton/code/bit/checkers/legality_h.cpp"
+      - "research/e8-bit-carrier-skeleton/code/bit/export_records.py"
+      - "research/e8-bit-carrier-skeleton/code/bit/regression/stage_cohort.py"
+      - 'research/e8-bit-carrier-skeleton/portable-include/bits/stdc\+\+.h'
+      - "research/e8-bit-p111-tuned/code/xcheck_p.py"
+      - "research/r439-gl5-shortest/NOTICE.md"
+      - "research/r439-gl5-shortest/candidate.json.gz"
+      - "research/r439-gl5-shortest/native.py"
+      - "research/r439-gl5-shortest/literal.py"
+  push:
+    branches: [main]
+    paths:
+      - "research/r439-deferred-native/**"
+      - ".github/workflows/r439-deferred-native.yml"
+      - "research/e8-bit-carrier-skeleton/LICENSE"
+      - "research/e8-bit-carrier-skeleton/NOTICE.md"
+      - "research/e8-bit-carrier-skeleton/code/bit/checkers/columns_k.cpp"
+      - "research/e8-bit-carrier-skeleton/code/bit/checkers/json.hpp"
+      - "research/e8-bit-carrier-skeleton/code/bit/checkers/legality_h.cpp"
+      - "research/e8-bit-carrier-skeleton/code/bit/export_records.py"
+      - "research/e8-bit-carrier-skeleton/code/bit/regression/stage_cohort.py"
+      - 'research/e8-bit-carrier-skeleton/portable-include/bits/stdc\+\+.h'
+      - "research/e8-bit-p111-tuned/code/xcheck_p.py"
+      - "research/r439-gl5-shortest/NOTICE.md"
+      - "research/r439-gl5-shortest/candidate.json.gz"
+      - "research/r439-gl5-shortest/native.py"
+      - "research/r439-gl5-shortest/literal.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Native dependencies
+        run: sudo apt-get update && sudo apt-get install -y g++ libboost-dev
+      - name: Finite replay and package controls
+        run: python -B scripts/research_package.py --package research/r439-deferred-native
+      - name: Fresh native 5/9/11-stage replay
+        env:
+          PYTHONOPTIMIZE: '2'
+          REPLAY_DIR: ${{ runner.temp }}/r439-deferred-native
+        run: python -I -O -B research/r439-deferred-native/verify.py --native --output "$REPLAY_DIR"
+      - name: Source tree unchanged
+        run: git diff --exit-code
+      - name: Upload native records, logs and receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r439-deferred-native
+          path: ${{ runner.temp }}/r439-deferred-native
+          if-no-files-found: warn

@@ -1,0 +1,5 @@
+Individual output-delivery cuts change what a carried dirty connector can save. This package proves the complete-alphabet weighted optimum2Σc_A+Σc_B(n_j+n_j mod2), supplies an attaining online word, and shows the all31 five-source masks cost142 queries versus222 separately restored row stars. The retained offline74-query word realizes the same final map but violates the request/delivery contract.
+
+A separately implemented Dijkstra checker explores exact query-state quotients for954 mask-sequence/price cases, allowing arbitrary readout counts. Every optimum matches the proof and constructed invoice; the full five-source formal-column replay and four chronological/restoration failure controls pass. Actual Python3.12.7 optimized registered replay,3.14 direct replay, metadata, selected baseline bindings and whitespace checks pass.
+
+All sources are pinned. No selected caller, contracting supplier recurrence, native tape trace or new kappa is claimed. Ross Richardson's universal connector and PR934 model/comparator are credited. Prepared by woklerx with substantial OpenAI Codex assistance; Apache-2.0.

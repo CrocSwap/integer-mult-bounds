@@ -1,0 +1,24 @@
+from pathlib import Path
+import json,sys,importlib.util,time,hashlib,gzip
+from collections import Counter
+P=Path(sys.argv[1]).resolve();D=Path(sys.argv[2]).resolve();D.mkdir(parents=True,exist_ok=True);sys.dont_write_bytecode=True;sys.path.insert(0,str(P));start=time.monotonic()
+def load(n):
+ s=importlib.util.spec_from_file_location('temporal249_'+n,P/(n+'.py'));m=importlib.util.module_from_spec(s);sys.modules[s.name]=m;s.loader.exec_module(m);return m
+def save(n,j):(D/n).write_text(json.dumps(j,separators=(',',':'))+'\n',encoding='utf8')
+def export(n,p):
+ records=p['records'];(D/(n+'-records.bin')).write_bytes(records.tobytes());(D/(n+'-records.bin.gz')).write_bytes(gzip.compress(records.tobytes(),mtime=0));final=dict(p['initial_state']);F=set(final.values())
+ for k in range(0,len(records),6):
+  op,a,b,c,f,z=records[k:k+6]
+  if op==0:final[a]=c;F.update((b,c))
+  elif op==1:F.add(f)
+  elif op in(2,3):F.update((c,f))
+ save(n+'-states.json',dict(initial=p['initial_state'],final=final,ZERO=p['ZERO'],FULL=p['FULL'],n=20107,v=1760,record_count=len(records)//6,record_sha256=hashlib.sha256(records.tobytes()).hexdigest(),physical=p['physical'],regs=p['context']['regs'],borrowed=list(p['context']['borrow']),removed=list(p['context']['removed']),source_owned_roles=sorted(p['context']['borrow']),source_covectors=p['C'].cov))
+ return F
+c=load('prepare').prepare();print('PREPARED',time.monotonic()-start,flush=True)
+p=load('code/physical527').run(c,c['SOURCE_TEXT']);p=load('parity_transform').run(p);p=load('retiming_transform').run(p);used=export('pre249',p);print('PRE249 exported',time.monotonic()-start,flush=True)
+m=load('regauge_transform');selection=json.loads((P/'regauge-selection.json').read_text());out,initial,final,entries,execution_context,proof=m.transform(p,selection)
+q=dict(p,records=out,initial_state=initial,context=execution_context,W=execution_context['W']);used.update(export('249',q));save('249-transport-proof.json',proof)
+C=p['C'];save('frames.json',dict(h=24,frames={str(f):dict(B=C.B[f],A=C.A[f],dim=C.dimf[f])for f in sorted(used)}))
+save('EXPORT-RECEIPT.json',dict(status='PASS_EXACT_EMITTER_AND_TRANSPORT_EXPORT_NOT_FULL8_REPLAY',head='96495746c786d6d0339dbb38c7f553d4af3f88ed',frames=len(used),pre_record_sha256=hashlib.sha256(p['records'].tobytes()).hexdigest(),new_record_sha256=hashlib.sha256(out.tobytes()).hexdigest(),seconds=time.monotonic()-start,scope='Fresh source observer, exact frame emitter, parity filter, retiming, and literal249 compensation transform. Does not rerun global geometry, bank, primes, final pricing or complete public8stages.'))
+print('COMPLETE shared current249 export',len(used),'frames',time.monotonic()-start,flush=True)
+save('REGENERATED-DONORS.json',dict(donor_keys=sorted(q['context']['W'].donor)))

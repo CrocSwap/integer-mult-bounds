@@ -1,0 +1,34 @@
+--- pr2751/new/rebuild_borrow.py
++++ derived/new/rebuild_borrow.py
+@@ -120,6 +120,17 @@
+         kok&=[(x_['h'],x_['L']) for x_ in e0]==[(653,563)] and len(e1)==0
+         (RCP/f'ALIAS-ENUMERATION-43{wt}.json').write_text(json.dumps(dict(prelife_refit_state=dict(counts=s0,pairs=[{k_:x_[k_] for k_ in('h','L','p1','d','s','f1','width','dprof')} for x_ in e0]),shipped=dict(counts=s1,pairs=len(e1)),
+             note='counts: h_used_in_A_or_early = helpers first used before B (needs the prelude/lifted-target mechanism); the other counts are (h,L) pairs failing that condition'),indent=1)+'\n')
++    # Compose PR2733's exact five-frame refit with PR2751's twelve-source word.
++    # Gate identity and both profiles are checked; no original control is removed.
++    import copy as refit_copy
++    previous_joint=chain[-1]
++    assert previous_joint['B'][1151]==['add',393,515,1,1,[259,132,66,36,16,9]]
++    assert previous_joint['report']['local_profile']=={'1':2366,'2':646,'3':297,'4':120,'5':26,'8':8}
++    refined=refit_copy.deepcopy(previous_joint)
++    refined['B'][1151][-1]=[259,148,66,36,9]
++    refined['report']['local_profile']={'1':2364,'2':647,'3':297,'4':120,'5':26,'8':8}
++    assert refined['cleanup']==previous_joint['cleanup']
++    chain.append(refined);steps.append('joint-twelve-refit393')
+     final=json.loads(gzip.decompress(shipped.read_bytes()))
+     same=final==chain[-1]
+     # audits: the pinned pre-refit/pre-kernel word against the canonical base; every later state independently (forward + dual free-algebra replay; refit and kernel change frames inside the pinned sections)
+@@ -132,6 +143,13 @@
+     ok&=same and kok and all(x==0 for x in ps) and r.returncode==0
+     res=dict(rebuild_plus_patches_equals_shipped=same,patches=steps,kernel_edit_exact=kok,prior_state_audit_rc=ps,audit_rc=r.returncode)
+     if '--no-controls' not in sys.argv:
++        # Undo just this refit while retaining its cheaper invoice: reject it.
++        omitted=refit_copy.deepcopy(final);omitted['B'][1151][-1]=previous_joint['B'][1151][-1]
++        omitted_path=Path(tempfile.mkdtemp())/'refit393_omitted.json.gz'
++        omitted_path.write_bytes(gzip.compress(json.dumps(omitted,separators=(',',':')).encode(),mtime=0))
++        omitted_run=run_audit(omitted_path,None,omitted_path.parent/'audit.json')
++        omitted_ok=omitted_run.returncode!=0 and 'paid profile mismatch' in (omitted_run.stdout+omitted_run.stderr)
++        ok&=omitted_ok;res['refit393_omission_rejected_by_profile']=omitted_ok
+         c=subprocess.run([sys.executable,'-B',str(D/'borrow_controls.py'),str(tmp),base,str(RCP/f'CONTROLS-43{wt}.json')],capture_output=True,text=True)
+         ok&=c.returncode==0;res['controls_rc']=c.returncode
+         if lpatch:

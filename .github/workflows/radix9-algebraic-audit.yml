@@ -1,0 +1,36 @@
+name: Radix-9 algebraic coefficient audit
+
+on:
+  push:
+    paths:
+      - 'research/radix9-algebraic-audit/**'
+      - '.github/workflows/radix9-algebraic-audit.yml'
+  pull_request:
+    paths:
+      - 'research/radix9-algebraic-audit/**'
+      - '.github/workflows/radix9-algebraic-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check independent coefficient and factor evidence
+        run: python -B -I -O research/radix9-algebraic-audit/verify.py
+      - name: Check failure detection and offline relocation
+        run: python -B -I -O research/radix9-algebraic-audit/test_verify.py
+      - name: Require unchanged tracked inputs and receipts
+        run: git diff --exit-code

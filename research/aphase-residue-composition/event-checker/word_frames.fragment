@@ -1,0 +1,87 @@
+def gf_basis(vectors):
+    pivots = {}
+    for value in vectors:
+        need(type(value) is int and 0 <= value < 512, 'FRAME_INTEGER_RANGE')
+        while value:
+            bit = value.bit_length() - 1
+            if bit in pivots:
+                value ^= pivots[bit]
+            else:
+                pivots[bit] = value
+                break
+    for bit in sorted(pivots):
+        for other in pivots:
+            if other > bit and (pivots[other] >> bit) & 1:
+                pivots[other] ^= pivots[bit]
+    return tuple(pivots[x] for x in sorted(pivots, reverse=True))
+
+
+def literal_provider(word, registered):
+    """Recount literal native frame chains; do not treat the report as a price oracle."""
+    v, h, R = (word['report'][x] for x in ('v', 'h', 'R'))
+    need((v, h, R) == (112, 9, 480), 'SOURCE_NATIVE_GEOMETRY')
+    n = 2 * v + R
+    removed = set(word['removed'])
+    live = set(range(n)) - removed
+    helpers = sorted(live - set(range(2 * v)))
+    full = gf_basis([1 << i for i in range(h)])
+    start = [(p,) for p in word['ports']] + [()] * (v + R)
+    end = [full] * v + [gf_basis([x for x in range(1, 512) if not (x & p).bit_count() % 2]) for p in word['ports']] + [full] * R
+    for r, frame in word['start_extra'].items():
+        start[int(r)] = gf_basis(frame)
+    for r, frame in word['helper_final'].items():
+        end[int(r)] = gf_basis(frame)
+    cur = start[:]
+    paid = Counter()
+    def climb(register, frame):
+        frame = gf_basis(frame)
+        need(register in live and gf_basis(cur[register] + frame) == frame, 'SOURCE_FRAME_MONOTONE')
+        jump = len(frame) - len(cur[register])
+        if jump:
+            paid[jump] += 1
+        cur[register] = frame
+    def scalar(event):
+        need(event[0] in ('add', 'scale'), 'SOURCE_SCALAR_GATE')
+        for register in event[1:3] if event[0] == 'add' else event[1:2]:
+            climb(register, event[-1])
+    for i, event in enumerate(word['A']):
+        if event[0] == 'warp':
+            need(i < word['prelude_events'], 'SOURCE_PRELUDE_WARP')
+            need(cur[event[1]] == gf_basis(event[3]), 'SOURCE_PRELUDE_FRAME')
+            cur[event[1]] = gf_basis(event[4])
+        else:
+            scalar(event)
+    levels = {int(t): gf_basis(frame) for t, frame in word['target_levels'].items()}
+    need(all(cur[v + t] == levels.get(t, ()) for t in range(v)), 'SOURCE_TARGET_CENTRE_LEVEL')
+    for register, frame in zip(word['centers'], word['center_frames']):
+        frame = gf_basis(frame)
+        need(cur[register] == frame, 'SOURCE_CENTRE_FRAME')
+        served = {levels.get(e[1] - v, ()) for e in word['cut'] if e[2] == register}
+        for target in sorted(served, key=lambda x: -len(x)):
+            need(gf_basis(target + frame) == frame, 'SOURCE_CENTRE_NESTED_PATH')
+            if target != frame:
+                paid[len(frame) - len(target)] += 1
+            frame = target
+    warps = defaultdict(list)
+    for record in word['warps']:
+        warps[record[0]].append(record)
+    for pos in range(len(word['B']) + 1):
+        for _, register, columns, before, after in warps[pos]:
+            need(cur[register] == gf_basis(before), 'SOURCE_B_WARP_FRAME')
+            cur[register] = gf_basis(after)
+        if pos < len(word['B']):
+            scalar(word['B'][pos])
+    for event in word['restore']:
+        scalar(event)
+    for register in sorted(live):
+        climb(register, end[register])
+    widths = [len(end[r]) - len(start[r]) for r in helpers]
+    profile = dict(sorted(paid.items()))
+    need(len(helpers) == 408 and len(removed) == 72 and len(word['helper_final']) == 72 and len(word['centers']) == 8, 'SOURCE_FULL_STOCK')
+    need(profile == {int(k): v for k, v in word['report']['local_profile'].items()}, 'SOURCE_LITERAL_PROFILE')
+    need(dict(Counter(widths)) == {int(k): v for k, v in word['report']['width_inventory'].items()}, 'SOURCE_LITERAL_INVENTORY')
+    need(widths == registered['widths'], 'SOURCE_REGISTERED_ORDERED_WIDTHS')
+    need(profile == {int(k): v for k, v in registered['actual_paid_profile'].items()}, 'SOURCE_REGISTERED_PAID_PROFILE')
+    return {'helpers': helpers, 'widths': widths, 'inventory': dict(sorted(Counter(widths).items())),
+            'profile': profile, 'local_rank_mass': sum(k * v for k, v in profile.items()),
+            'private_zero_buffers': 72, 'centres': 8, 'removed_helper_registers': 72}

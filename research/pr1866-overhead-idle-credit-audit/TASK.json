@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "task_id": "complex-rank-shape-decoder",
+  "priority_revision": 3,
+  "base_commit": "01a65937ece11b56d515c81f039464ae3043c1c1",
+  "original_card": {
+    "id": "complex-rank-shape-decoder",
+    "question": "Can a decoder deliver the local paid mass in fewer, larger-rank children (block frame climbs instead of rank-1 to rank-3 steps)?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/complex-decoder-field-extension-seed44/README.md",
+      "research/complex-frame-pair-decoders/README.md"
+    ],
+    "methods": [
+      "Find one exact small decoding identity whose frame path climbs in blocks, and price its complete per-call profile.",
+      "Bound the best effective child rank achievable for one fixed support alphabet, including copies, frames and restoration."
+    ],
+    "acceptance_gate": "A per-call local profile, with all copied information, frames and restoration counted, whose ceiling exceeds the selected word's by at least 5%; masked or overcomplete supports must change an assumption of the eight-term all-pairs bound.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Before any synthesis, write the candidate per-call local profile (and centre charge / unpaid coordinates if changed) and screen it with ceiling.ceiling(); reject it if even the ideal ceiling does not beat the selected word's by your stated margin. Ideal budget: rank-16 delivery is 2.31x (levers.py).",
+    "bottleneck_link": "Rank-1 children are about half of recursive cost; the selected word's effective child rank is about 3.9. Larger-rank delivery lowers recursive cost per unit of paid mass.",
+    "allowed_variations": [
+      "One masked, overcomplete or block decoder family with exact labels and supports.",
+      "A scoped lower bound on effective rank for one alphabet.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Repacking idle remainders of an unchanged word (covered by the packing ceiling).",
+      "Repeating the eight-term all-pairs search inside its proved scope."
+    ],
+    "overlap_terms": [
+      "rank shape",
+      "block climb",
+      "masked decoder",
+      "overcomplete",
+      "effective rank"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "Independent exact audit of PR #1866 (head 7d22d1d51eb6c0bc040f8181b6c5f83e051fb234): how its (3,1,1,1)->6 block moment screen prices e in {0,1,2} rank-one-equivalent overhead units per block over k = 0..432, comparing its idle-credited invoice with the merged PR1605 convention that charges additional work on top of the unchanged idle bill.",
+  "scope_change_reason": "The rank-shape card is heavily occupied (the overlap helper reported 231 possible matches, and recent block screens and constructions exist). Instead of another candidate block, this session audits the newest pending rank-shape screen with a deliberately independent arithmetic engine. It found that one stated threshold depends on a pricing convention that a merged predecessor rejects. No new decoder, block or profile is proposed, so the card's construction acceptance gate is not met.",
+  "bottleneck_link": "Block decoders are screened by how much overhead per block the 5% ceiling gate tolerates. Crediting overhead against ideal rank-51 idle mass makes each unit look about half as expensive as the block saving, so it overstates the overhead budget of a rank-shape construction by roughly two orders of magnitude (149 passing counts versus none at one unit per block).",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after reproducing PR1866's three stated thresholds, recomputing them under the additional-overhead convention with two code-disjoint exact engines, certifying the per-block saving and total overhead budget, and running controls. Do not construct a new block or revisit PR1866's tensor proof or placement scan.",
+  "outcome": "completed",
+  "evidence": "RESULT.json: PR1866 credited thresholds reproduced (e=0: k>=135; e=1: k>=284; e=2: none). Without idle credit: e=0: k>=135; e=1 and e=2: no k in 0..432. Per-block saving 3+3^q-6^q is in (0.013204, 0.013205) rank-one calls at a*. Credited unit cost is about 0.006953. Uncredited total extra rank-one budget is 3 at k=432 and 0 at k=135. Two engines agree on all 2598 scan decisions; five controls pass.",
+  "author": "ianlibanio",
+  "ai_assistance": "Substantial Claude (Anthropic) assistance via Claude Code in task selection, overlap review, both arithmetic engines, verification and documentation. No subagents and no independent human review.",
+  "open_questions": [
+    {
+      "question": "Does any small heterogeneous mass-preserving merge clear the 5% gate once its overhead is charged as additional work?",
+      "why_it_matters": "A merge of children r_1..r_j into one rank-sum child saves sum r_i^q - (sum r_i)^q rank-one calls, which is far below one call for small blocks. Constructors need to know in advance whether any small type has a usable overhead budget.",
+      "first_step": "Tabulate that saving, the availability limit implied by the selected profile, and the total uncredited overhead budget for every merge type with block mass at most 16, using the same two engines.",
+      "blocked_by": "Each type still needs an exact identity and a measured copy, frame and restoration bill. A table only screens."
+    },
+    {
+      "question": "Should a successor ceiling helper separate payload children from overhead children?",
+      "why_it_matters": "ceiling.relax cannot tell them apart, so passing overhead inside the local profile silently credits it against idle mass. PR1866 is one instance.",
+      "first_step": "Add a successor helper (not an edit of the pinned ceiling.py) with an explicit extra-profile argument priced outside the coverage identity, plus PR1605's false-pass control.",
+      "blocked_by": "ceiling.py is a pinned live input of several packages, so the fix must be a new module and an onboarding note."
+    }
+  ],
+  "assignment_nonce": "c3eec147a2cf20ef07d6ce3652384ebc",
+  "scope_key": "cad3ba853d7f324f16fa"
+}

@@ -1,0 +1,47 @@
+name: Selected family 617 finite composition
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, repository baseline pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, repository baseline pin
+        with:
+          python-version: '3.12'
+      - name: Install verification dependencies
+        run: |
+          python -m pip install numpy sympy scipy
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Check selected record and review evidence
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+      - name: Cold finite replay and exact composition binding
+        env:
+          CXX: g++
+          BOOST_INCLUDE: /usr/include
+        run: python -B scripts/verify_frontier617.py --work "$RUNNER_TEMP/frontier617" --jobs 2
+      - name: Require committed files unchanged
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontier617-linux-python312
+          path: |
+            ${{ runner.temp }}/frontier617/RESULT.json
+            ${{ runner.temp }}/frontier617/STEPS.json
+            ${{ runner.temp }}/frontier617/*.log
+            ${{ runner.temp }}/frontier617/complex/RESULT.json
+            ${{ runner.temp }}/frontier617/complex/RECEIPT.json
+            ${{ runner.temp }}/frontier617/complex/STAGES.json
+            ${{ runner.temp }}/frontier617/complex/ASSEMBLY.json

@@ -1,0 +1,32 @@
+name: Two cold kernels in every complex call
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B research/complex-doublecold/verify.py --work /tmp/doublecold-replay
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: doublecold-receipt-${{ matrix.python }}
+          path: |
+            /tmp/doublecold-replay/RESULT.json
+            /tmp/doublecold-replay/RECEIPT.json
+            /tmp/doublecold-replay/STAGES.json
+            /tmp/doublecold-replay/ASSEMBLY.json
+            /tmp/doublecold-replay/ASSEMBLY-CONTROLS.json
+            /tmp/doublecold-replay/*.log

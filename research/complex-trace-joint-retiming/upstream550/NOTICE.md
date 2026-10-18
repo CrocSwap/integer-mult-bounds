@@ -1,0 +1,9 @@
+# Attribution, modifications and scope
+
+New work: the exact two-to-three Steinberg expansion on PR548, its rank-five frame assignment, the deterministic construction and omission control, independent review, fresh complex admission and exact composition. Prepared for eumemic with OpenAI Codex assistance. Apache-2.0; see LICENSE.
+
+This is built on Dugongue PR548, pinned at `66dbc2bffc1bfa8d50b3f9a2ac7ccba8fd9f6f36`, including the PR541 static44 response presentation, transported PR534 frames and cold-dirt source substitution. Credit remains with rohanarun / Claude for PR534 frame assignments; icekylinx for PR535 post-centre rank-four work and PR531 direct delivery and hosting; chafreaky PR544 for complete phase admission; DreamingOfClouds PR484 and the attributed PR433/PR361 ancestry for gauge/kernel, normalized wrappers, phase compiler and rational engines. Original notices, authorship and AI disclosures remain intact under `local/` and `physical/upstream/` and within retained source files.
+
+The unchanged R420 bit supplier is eumemic PR543, pinned at `2065fe4f72a914d907f1046603f5a36f17018535`, with its original Claude assistance disclosure preserved in `inputs/PR543-NOTICE.md` and `inputs/PR543-README.md`. Rohan Arun PR547, pinned at `eecca20a24258cb6d9f698b1984a95029bac0a1c`, supplies the comparison and retained exact two-supplier assembly engines; its narrative and OpenAI Codex disclosure are retained in `inputs/PR547-README.md`.
+
+Retained mathematical sources are unmodified and hash-pinned. New orchestration uses relative paths; the physical replay regenerates the nominated profile without changing the upstream mathematical checkers. This package physically replays the changed complex supplier and cites the unchanged bit supplier. All-size, mutable-source/common-label, whole-call hosting, precision/tape and analytic-transfer assumptions remain conditional. No unconditional theorem or complete Lean certification is claimed.

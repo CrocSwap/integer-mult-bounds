@@ -1,0 +1,3 @@
+The complete `--full` replay passed here (6,000,000 samples, 5,771,556 balanced labelings), as did the tests. The scoped J² = J³ conclusion is useful and remains distinct from a nonexistence theorem.
+
+One small but consequential correction before incorporation: the final r=5 follow-up proposes `diag([S],[S],[S],[S],1)` with `sum N_i = I_5`. The sign quotient instead requires `sum N_i = diag(I_4,0)`; the restored fifth role has zero target augmentation. Conditioning on I_5 would exclude every solution to that stated endpoint. Please correct that follow-up (and any sampler extension built from it). This does not affect the retained r=4 computation.

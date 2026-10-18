@@ -1,0 +1,3 @@
+The frozenPR967 D word has no endpoint-neutral pair or triple ADD omissions. A proved transported-transvection classification reduces15,470,703 pairs and28,677,526,461 triples to distinct factor checks and193,704 grouped XOR lookups. This extends the credited PR1017 single-omission atlas; it does not extend PR1102's two fixed probe guarantee.
+
+Every5563 single mutant is independently replayed on661 columns;420 small dense pair controls, planted cancellations and literal multi-fault controls pass. Python3.12 registered replay and selected integrity pass. No unrestricted circuit minimum, four-fault, native or kappa claim. Substantial OpenAI Codex assistance; Apache-2.0.

@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "number": 1598,
+  "title": "Formalize concrete target-write row certificates in Lean",
+  "author": {
+    "id": "MDQ6VXNlcjY3OTYwNzI1",
+    "is_bot": false,
+    "login": "an664",
+    "name": "Andrey Mas"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1598",
+  "head": "96ef13e9c0aada8730ace8624fde2de1e3ddb1b9",
+  "merge_base": "adc34159e0d6dc3dd2af2bdba3f5ca7376ef957e",
+  "baseline": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "files": [
+    {
+      "path": "research/target-write-row-certificate/LICENSE",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fb50682463fee6ef60e0efcc1ed55d11d948103f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/REPLAY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f9466d915315f56e739b61fe97b4086ef7393b54"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "169cf74748ee4d9a7a4b48c55c1e41822f41e4b6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a99f868244de5b43571e6b17ffe741947a05d3aa"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/THEOREMS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "597895cc02ce1bbd7175e33b3aad76d7a3aef2fe"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/TargetWriteCertificate.lean",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bcdf6247ff093b1a0e9f88cb3f1ce88d99478e8a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4a1e37b3ef9663b2b88889d6d96e0889aa875ebf"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/replay.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ded0293dfcda91f507cb9225b797c427e9a20e3e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/test_replay.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c97dd76566bdc5cfbd0832695f98ca847dc467d5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/target-write-row-certificate/verify_fixtures.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7f722ea76259a4aea0f220548fe79e52d7ec7447"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/target-write-row-certificate": 11
+  },
+  "github_reported_file_count": 11,
+  "complete_git_file_count": 11,
+  "body": "This formalizes the concrete execution-to-row-generation step of the target-write lemma in #1546. For an arbitrary finite register set and chronological legal XOR word whose raw execution is the identity, the theorem constructs exact Boolean masks expressing every row of `I XOR projected` using the last `m - 1` actual target-write donor occurrences. It permits dirty inputs, repeated donors and target feedback; zero target writes are handled separately.\n\nThe full source passes Lean 4.30.0 (`d024af099ca4bf2c86f649261ebf59565dc8c622`, core/Std only). A separate reporting-only compile checks all 78 theorem declarations, including 13 private helpers, with axiom union `propext`, `Classical.choice`, `Quot.sound` and no placeholder/custom axiom. Lean fixtures cover donor chronology, feedback, repeated donors and wrong sampling; 1,170 small external mask-elimination checks also pass. The portable replay wrapper rejects missing or malformed axiom reports and wrong source/toolchain pins.\n\nThe generic Python package hook passes, but it does **not** compile Lean. The dedicated `replay.py` provides that check with an already installed exact compiler. No numeric rank API, three-cycle application, helper reduction, BFS, 13-gate optimum, supplier or multiplication theorem is formalized here.\n\nScoped under [Discussion1548](https://github.com/CrocSwap/integer-mult-bounds/discussions/1548), on a fresh branch from main `adc34159e0d6dc3dd2af2bdba3f5ca7376ef957e`. Revision 3 keeps independent verification as a current priority; the original revision-2 assignment remains recorded as historical provenance. The selected frontier is unchanged.\n\nPrepared by Andrey Mas with substantial GPT-6 Pro formalization and fixture-checker assistance through ChatGPT, and Codex source coordination, execution audit, replay and mechanical packaging. The written lemma remains credited to #1546; precursor raw/projected and write-count work is due to Gareth Davidson / @bitplane (#1420), following @woklerx (#1105). No predecessor Lean implementation is copied. Apache-2.0.\n\nValidation: registered `research_package.py` hook for `research/target-write-row-certificate`, plus exact Lean `replay.py`; commands, hashes, complete axiom receipt and limitations are in the package.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "57ee2a5e1d0aedaa167d4be7ae98e9ce32abf588dd547e4155626b12074eb63d"
+}

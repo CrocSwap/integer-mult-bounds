@@ -1,0 +1,92 @@
+name: U8 T37 whole-owner composition
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/complex-t37-owners/**'
+      - 'research/complex-t21-owners/**'
+      - 'research/complex-t21-owner-bound/**'
+      - '.github/workflows/t37-owners.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/complex-t37-owners/**'
+      - 'research/complex-t21-owners/**'
+      - 'research/complex-t21-owner-bound/**'
+      - '.github/workflows/t37-owners.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, repository baseline pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, repository baseline pin
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install inherited replay dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+          python -m pip install -r research/e8-bit-p111-tuned/requirements.txt
+      - name: Check package boundaries and source closure
+        run: python -B research/complex-t37-owners/package_controls.py --out "$RUNNER_TEMP/T37-PACKAGE-CONTROLS.json"
+      - name: Cold bit, ancestry, U8 and T37 replay
+        env:
+          CXX: g++
+          BOOST_INCLUDE: /usr/include
+        run: python -B research/complex-t37-owners/verify.py --work "$RUNNER_TEMP/t37-cold"
+      - name: Check completed replay bindings
+        run: >-
+          python -B research/complex-t37-owners/binding_controls.py
+          --work "$RUNNER_TEMP/t37-cold"
+          --baseline "$RUNNER_TEMP/t37-cold/baseline799"
+          --out "$RUNNER_TEMP/T37-BINDING-CONTROLS.json"
+      - name: Require committed files unchanged
+        if: always()
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: t37-evidence-python-${{ matrix.python }}
+          # Receipts and logs only; omit emitted programs and controller trees.
+          path: |
+            ${{ runner.temp }}/T37-PACKAGE-CONTROLS.json
+            ${{ runner.temp }}/T37-BINDING-CONTROLS.json
+            ${{ runner.temp }}/t37-cold/*.json
+            ${{ runner.temp }}/t37-cold/*.log
+            ${{ runner.temp }}/t37-cold/lift/PLAN.json
+            ${{ runner.temp }}/t37-cold/lift/PARENT-LIFT.json
+            ${{ runner.temp }}/t37-cold/runtime/data/SPEC.json
+            ${{ runner.temp }}/t37-cold/discovery/*.json
+            ${{ runner.temp }}/t37-cold/discovery/*.log
+            ${{ runner.temp }}/t37-cold/strict/*.json
+            ${{ runner.temp }}/t37-cold/strict/*.log
+            ${{ runner.temp }}/t37-cold/strict/global/audit/*.json
+            ${{ runner.temp }}/t37-cold/native/STEPS.json
+            ${{ runner.temp }}/t37-cold/native/*.log
+            ${{ runner.temp }}/t37-cold/native/barch-controls/controls.json
+            ${{ runner.temp }}/t37-cold/native/controls/COLD-END-CONTROLS.json
+            ${{ runner.temp }}/t37-cold/native/local/LOCAL-CHECKS.json
+            ${{ runner.temp }}/t37-cold/native/local/INDEPENDENT-LOCAL-REPLAY.json
+            ${{ runner.temp }}/t37-cold/native/local/CLIFFORD-REVIEW.json
+            ${{ runner.temp }}/t37-cold/native/local/WRAPPER-CHECKS.json
+            ${{ runner.temp }}/t37-cold/baseline799/*.json
+            ${{ runner.temp }}/t37-cold/baseline799/*.log
+            ${{ runner.temp }}/t37-cold/baseline799/ancestor/RESULT.json
+            ${{ runner.temp }}/t37-cold/baseline799/ancestor/STEPS.json
+            ${{ runner.temp }}/t37-cold/baseline799/ancestor/*.log
+            ${{ runner.temp }}/t37-cold/baseline799/native/STEPS.json
+            ${{ runner.temp }}/t37-cold/baseline799/global/ASSEMBLY.json
+          if-no-files-found: warn
+          retention-days: 14

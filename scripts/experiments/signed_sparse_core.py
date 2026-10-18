@@ -64,17 +64,23 @@ def coefficient_terms(h,q):
     choices has coefficient binom(q-1-r-s,s) mod 2 if r+2s<=q-1.
     """
     require(h<=8,'Explicit coefficient expansion budget exceeded')
-    for choices in product(range(4),repeat=h):
-        r=choices.count(1);s=choices.count(2)+choices.count(3)
-        if r+2*s>q-1 or not (comb(q-1-r-s,s)&1):continue
-        xp=xn=yp=yn=0
-        for i,c in enumerate(choices):
-            if c==1:xp|=1<<i;yp|=1<<i
-            elif c==2:xn|=1<<i;yp|=1<<i
-            elif c==3:xp|=1<<i;yn|=1<<i
-        require(xp.bit_count()+3*xn.bit_count()+yp.bit_count()+3*yn.bit_count()
-                <=2*(q-1),'Feature weight bound failed')
-        yield (xp,xn),(yp,yn)
+    def visit(i,r,s,xp,xn,yp,yn):
+        # Later choices only increase r+2s. Pruning a prefix therefore drops
+        # exactly terms rejected by the old complete-word degree test.
+        if r+2*s>q-1:return
+        if i==h:
+            if not (comb(q-1-r-s,s)&1):return
+            require(xp.bit_count()+3*xn.bit_count()+yp.bit_count()+3*yn.bit_count()
+                    <=2*(q-1),'Feature weight bound failed')
+            yield (xp,xn),(yp,yn)
+            return
+        bit=1<<i
+        # Preserve itertools.product's lexicographic 0, pp, np, pn order.
+        yield from visit(i+1,r,s,xp,xn,yp,yn)
+        yield from visit(i+1,r+1,s,xp|bit,xn,yp|bit,yn)
+        yield from visit(i+1,r,s+1,xp,xn|bit,yp|bit,yn)
+        yield from visit(i+1,r,s+1,xp|bit,xn,yp,yn|bit)
+    yield from visit(0,0,0,0,0,0,0)
 
 
 def expand_factor(h,q,maximum_n=160):

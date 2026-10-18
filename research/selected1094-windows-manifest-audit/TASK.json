@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Reproduce native Windows rejection of the two PR1094 inventory guards, and test an in-memory POSIX-key-only repair against every pinned file without changing frozen sources.",
+  "scope_change_reason": "Take the explicit Windows open question from PR1824. Choose the card's allowed environment-mismatch method after checking the newer comparator work; this concerns inventory admission before any payload comparison.",
+  "bottleneck_link": "The selected final-stage replay cannot begin on Windows when a platform-specific relative-path spelling is compared with a POSIX manifest. A source-bound diagnosis and coverage-preserving repair candidate make that barrier reviewable.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after the two wrapper inventory guards and meaningful corruption controls. Do not claim Windows supplier admission, alter pinned files, or start a full cold ancestry replay.",
+  "outcome": "completed",
+  "evidence": "Native Windows CPython 3.12.14 entry-point rejection; exact original AST guard execution with POSIX and Windows path serialization; canonical equality for 13 submission and 179 archived files; 391 corruption rejections; deterministic RESULT.json.",
+  "author": "josecarlosgonzalezroque-design, with substantial OpenAI Codex assistance",
+  "ai_assistance": "Substantial OpenAI Codex assistance in investigation, implementation, verification and writing. Self-reviewed; no independent human or subagent review claimed.",
+  "open_questions": [
+    {
+      "question": "After an explicitly versioned successor applies POSIX inventory keys at both guards, what is the next native Windows failure in the unchanged selected stage?",
+      "why_it_matters": "Passing inventory admission alone does not establish successful construction execution or equivalent proof-relevant outputs.",
+      "first_step": "Create a successor wrapper with two documented as_posix substitutions and its own manifest, authenticate the original package, then run the final stage with all assertions and strict output comparison enabled.",
+      "blocked_by": "This bounded audit deliberately stops before the supplier; the selected wrapper and archive are frozen and remain unchanged."
+    }
+  ],
+  "selection": {
+    "seed": "effac00be71b189171c4803530783d88",
+    "track": "verifier-engineering",
+    "scope_key": "91a9a2afec282c926282",
+    "method_override": "Use the same card's environment-mismatch method for the explicit Windows handoff; no reroll."
+  },
+  "coordination": {
+    "status": "Completed local verification; preparing a focused PR. No advance public claim was posted.",
+    "limitation": "The GitHub connector has no Discussion write operation. The local overlap helper had no authenticated gh executable and no remote snapshot. Supplemental live connector searches and public Discussion pages were read; full live pagination was not established.",
+    "publication": "An authenticated browser session was found after verification and used to create a personal fork for submission."
+  },
+  "overlap": [
+    {
+      "pr": 1824,
+      "relation": "Josie Elliston's retained cross-Python replay leaves Windows as an explicit open question."
+    },
+    {
+      "pr": 2040,
+      "relation": "Strict payload comparator audit; not an inventory-path admission check."
+    },
+    {
+      "pr": 2059,
+      "relation": "Invoice-reference authentication; downstream of these guards."
+    },
+    {
+      "pr": 2101,
+      "head": "a247ef876e50bf3a7d890c7c1f9b409576674d7d",
+      "relation": "Full final-stage comparison caller, explicitly no Windows execution; does not repair the frozen entry-point guards."
+    }
+  ],
+  "upstream_checkpoint": {
+    "commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+    "priority_revision": 4,
+    "checked_at_utc": "2026-10-15T04:51:02.595092+00:00",
+    "guidance_and_selected_inputs_changed": false
+  },
+  "overlap_refresh": {
+    "queries": [
+      "manifest backslash",
+      "Windows manifest in:title"
+    ],
+    "remote_results": 0,
+    "limit": "Targeted PR search only; no complete Discussion pagination. The local helper still lacks authenticated gh."
+  }
+}

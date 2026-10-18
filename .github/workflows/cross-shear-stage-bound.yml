@@ -1,0 +1,36 @@
+name: Cross-shear stage bound
+
+on:
+  pull_request:
+    paths:
+      - 'research/cross-shear-stage-bound/**'
+      - 'research/experiment-log/campaign-100/**'
+      - 'research/e8-bit-r420/NOTICE.md'
+      - 'research/e8-bit-r420/vendor/pr510/e8-r480-nine-stage/vendor/e8-r715-eleven-stage-whole/code/global_k.py'
+      - '.github/workflows/cross-shear-stage-bound.yml'
+  push:
+    paths:
+      - 'research/cross-shear-stage-bound/**'
+      - 'research/experiment-log/campaign-100/**'
+      - 'research/e8-bit-r420/NOTICE.md'
+      - 'research/e8-bit-r420/vendor/pr510/e8-r480-nine-stage/vendor/e8-r715-eleven-stage-whole/code/global_k.py'
+      - '.github/workflows/cross-shear-stage-bound.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -I -B research/cross-shear-stage-bound/verify.py
+      - run: python -I -O -B research/cross-shear-stage-bound/verify.py

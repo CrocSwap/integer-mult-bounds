@@ -1,0 +1,87 @@
+== 0. manifests: this package (MANIFEST.json) and the parent package (its MANIFEST.sha256, as its step 0)  [0s]
+   22 package files and 93 parent files match their manifests
+== 1. the word, rebuilt from the parent plan (code/word/gen_punct.py); the one configuration  [0s]
+   rebuilt word is byte-identical to data/bitE8mut-v111-r489.json.gz (content sha256 599dbe2184a0b99f...)
+   config: v = 111 live ports (120 - 9 punctured: [39, 52, 57, 71, 76, 78, 103, 109, 114]), R = 489 helpers, totals map: registers [702, 703, 704, 705, 706, 707, 708, 709, 710] copy ranks [7, 7, 7, 7, 7, 7, 7, 7, 7] => cst = 63
+      adapted 9 parent files with 55 listed edits (each anchor found exactly the listed number of times)
+== 2. PR #370's checker for v <= 120 ports: the stock-form file refuses source destinations; the relaxed copy passes; interface  [1s]
+   stock-form checker refuses, as for the parent: x register written
+   the parent's own checker refuses the 111-line word at its v == 120 assertion (the one edit made in chk/checkword.py)
+   labels: 111 distinct lines of norm 2 (pairwise |ip| <= 1), spanning rank 8
+   legality + exact F2 on all 711 columns: PASS (gates D/A/B/C = 111/2561/222/2561)
+   relaxed check: 1002 gates have a source register as destination; all 111 sources restored exactly
+   nondegeneracy: 635 used frames, all Gram dets > 0 (positive-definite form); primes in dets: [2]
+   histogram {1: 5910, 2: 6660, 3: 315, 4: 987, 5: 45, 6: 645, 7: 267, 14: 222, 18: 222} m 40 W 933 mass 37191 deficit 129 (4v-5L = 129 ) maxchild 18
+   no envelope  saving in [0.00141845359045986115, 0.00141845359045986115]
+   bad envelope saving in [0.00141845358959721825, 0.00141845358959721825]
+   PASS PR #425 interface hypotheses: no target feeds a source or helper; D at frame 0 (targets <- helpers); C = literal U^-1 at the full frame (2561 gates); B writes only targets
+      sources written in phase A: 501 gates into 111 of 111 source registers, at frame dimensions {4: 501}; operands: {'source': 501}
+      phase-B gates reading a (rewritten) source register: 111; the matching 501 cleanup gates restore every source
+      REJECTED  drop a phase-B gate :: AssertionError: ('target', 0)
+      REJECTED  phase-B gate at the full frame (y beyond its cap) :: AssertionError: ('frame not nested', 221, 1, 635)
+      REJECTED  drop a dirt compensation read :: AssertionError: ('target', 0)
+      REJECTED  drop a cleanup gate :: AssertionError: ('helper not restored', 705)
+      REJECTED  wrong scatter row :: AssertionError: ('target', 5)
+      REJECTED  phase-A gate frame not nested :: AssertionError: ('frame not nested', 468, 118, 13)
+      REJECTED  drop a source cleanup gate (C gate with a source destination) :: AssertionError
+      REJECTED  corrupt a source packet read by targets (cleanup adjusted, so every source is still restored) :: AssertionError: ('target', 1)
+      REJECTED  leave a source unrestored (delete every cleanup gate into source register 0) :: AssertionError
+      REJECTED  source-destination A gate moved down to the source's line frame :: AssertionError: ('frame not nested', 5, 113, 2)
+      REJECTED  drop a phase-A gate whose destination is a source :: AssertionError
+   PASS relaxed checker: PR #370's 6 word-level mutants and 5 mutable-source mutants rejected
+      accepted by the relaxed checker (F2 map unchanged); REJECTED by interface.py :: AssertionError: ('(1) a target feeds a z register', [('B', 5), ('B', 6)])
+      accepted by the relaxed checker (F2 map unchanged); REJECTED by interface.py :: AssertionError: ('(1) a target feeds a z register', [('B', 0), ('B', 1)])
+   PASS interface.py: 2 hypothesis controls rejected
+== 3. official cohort checkers at (v, R): legality (NCOPY = 9), five-stage columns, eleven-stage columns (KPAIRS = 5)  [36s]
+   legality PASS: 29945 records, 27059 common-frame ADDs, rank mass 5529, 9 COPY/ERASE (ranks [7, 7, 7, 7, 7, 7, 7, 7, 7])
+   five-stage formal columns PASS: 933 columns over F2; prefix payload 91 bits < 104 (eleven-stage: 91 bits)
+   eleven-stage formal columns PASS: 1599 columns, 2664 bridge additions, 24/24 omitted-bridge controls rejected; columns_k at KPAIRS = 2 reproduces the five-stage receipt
+      REJECTED  drop a phase-B delivery ADD (columns: defining decoder)  [local defining-decoder full formal column]
+      REJECTED  ADD at a frame its registers do not stand at  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+      REJECTED  MOVE with a wrong rank  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+      REJECTED  COPY with a cheaper rank  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+      REJECTED  drop a dirt-compensation ADD (columns)  [local defining-decoder full formal column]
+      REJECTED  unchanged word with the copy count pinned to h = 8 (NCOPY unset)  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+   PASS all 6 record-level negative controls rejected
+      legality passes (frames unchanged); five-stage columns REJECTED [local defining-decoder full formal column]; eleven-stage columns REJECTED [local defining-decoder full formal column]  <- drop one cleanup ADD into a source register
+      legality passes (frames unchanged); five-stage columns REJECTED [local defining-decoder full formal column]; eleven-stage columns REJECTED [local defining-decoder full formal column]  <- corrupt a source packet read in phase B (cleanup adjusted: every source still restored)
+      legality passes (frames unchanged); five-stage columns REJECTED [local defining-decoder full formal column]; eleven-stage columns REJECTED [local defining-decoder full formal column]  <- leave source register 0 unrestored (all its cleanup ADDs deleted)
+   PASS all 3 record-level mutable-source mutants rejected by both column checkers (legality unchanged)
+== 4. exact nondegeneracy (E8 Gram) and prime witnesses on every frame  [43s]
+   PASS e8ham Gram: 636 frames checked, all nondegenerate and positive definite; prime witnesses valid; max determinant bits 17; primes [2]; by dim {0: 1, 1: 111, 2: 153, 4: 70, 6: 180, 7: 120, 8: 1}
+== 5. eleven-stage whole-residual hosting (PR #445 geometry, PR #472 emitter and audit), exact price, assembly  [43s]
+   PR #442 hosting programme (host_select.py, v from the word) rediscovers data/hosting-v111-r489.json exactly
+   template: 88 calls, 43032 whole helper residuals hosted on idle data families, 6489 unbanked scalar columns restored; independent audit PASS: 2635160 renamed instructions, 22 template mutations rejected, local audit PASS_EXACT_R489_LOCAL_PROJECTORS
+   bit c (eleven stages, 10^-24 grid) = 165947204563779652541/100000000000000000000000 = 0.00165947204563779652541; live 8880, rank-mass deficit 3336
+== 6. pricing harness (code/price/pricex.py: local histogram replay + the same hosting programme + moment.certify) must agree to all digits  [87s]
+   pricex c = 0.00165947204563779652541 == hosted-audit c = 0.00165947204563779652541 (24 digits; same profile)
+   hosting rule: #442/#472/#493 pooled whole-residual programme; 82 of 88 calls host several helpers of that call on one family (at most 7 on one family) -- inherited, as in PR #503 (see README, Scope)
+   stricter hosting (one helper per family copy per stage): c >= 0.001651282591289915996071 (-0.4935% vs the shipped c); kappa unchanged (complex-bound)
+   other stages (information): s = 9 feasible: False (hosting infeasible: The problem is infeasible. (HiGHS Status 8: model_status is ); s = 13 c = 0.001626783872801483813603
+== 7. REGRESSION: PR #503's R480 word (v = 120, nine rank-8 totals) through the stock chain and the adapted chain  [92s]
+   (a) relaxed checker and the 6 record mutants: output identical to the parent files on the R480 word
+      adapted 3 parent files with 8 listed edits (each anchor found exactly once)
+   PASS exact hosting feasibility and residual histogram; solver tie breaking may differ
+   PASS exact hosting feasibility and residual histogram; solver tie breaking may differ
+   (b) geometries equal modulo run time; both hosting nominations exactly feasible with the frozen bill
+   (c) emit/audit/assemble: GLOBAL.json, GLOBAL-TEMPLATE.json.gz, AUDIT.json and RESULT.json of the adapted chain are BYTE-IDENTICAL to the stock chain on the R480 word (GLOBAL.json (all fields but run time), GLOBAL-TEMPLATE.json.gz, AUDIT.json, RESULT.json)
+       R480 c = 393688338238452162729/250000000000000000000000 = 0.001574753352953808650916, emitted-program sha256 7da5e3cb8daa2311... == PR #503 EXPECTED; kappa with #484/#471/#458 unchanged; pricex agrees
+       hosting disclosure for the control: 80 of 88 calls stack several helpers on one family (max 7) -- the same inherited rule
+== 8. mutation controls on the star word (code/mutants.py): every one must be rejected  [229s]
+      REJECTED  M1 dropped gate            first at: relaxed independent checker (exact F2 replay, frames)  [AssertionError: ('target', 1)]
+      REJECTED  M2 wrong frame             first at: relaxed independent checker (exact F2 replay, frames)  [AssertionError: ('frame not nested', 111, 474, 0)]
+      REJECTED  M3 payload overflow        first at: official five-stage columns_h (all columns, payload < 2^104)  [payloadfiniteprefix2^104]
+      REJECTED  M4a cell collision         first at: independent hosted audit (audit.py)  [AssertionError :: len({(f,tuple(route)) for f,route in own})==2*V+R]
+      REJECTED  M4b hosted on invoked pair first at: independent hosted audit (audit.py)  [AssertionError :: pair[i]!=p]
+      REJECTED  M5 profile claim           first at: independent hosted audit (audit.py)  [AssertionError :: P==Counter(]
+      REJECTED  M6 v tied to complex v     first at: assemble.py (rank-mass deficit must fit nine copy ranks at the bit v)  [AssertionError]
+      REJECTED  M7 stock #493 emitter      first at: stock emitter (hard-coded v == 120)  [AssertionError]
+   PASS 8 mutation controls, every one rejected
+== 9. composition with the cited complex supplier (#535): kappa; control = #535 reproduced from #510 bit c and the same b  [278s]
+      control: #510 bit c 0.001587447106092548137108 + #535 b -> kappa 1584931111785787/1000000000000000000 == #535 published 1584931111785787/1000000000000000000 (bit-bound), 47/47 strict, controls next_grid,zero_eta,zero_beta,unit_beta
+      star   : bit c 0.00165947204563779652541 + #535 b -> kappa 793733736881443/500000000000000000 (complex-bound), 47/47 strict; +0.1600% over #535; bit c exceeds (1-1e-18)b by +4.3699%
+== 10. summary against EXPECTED.json  [278s]
+PASS bit c (v = 111, R = 489, cst = 63; PR #472 eleven-stage whole-residual pipeline, 10^-24 grid) = 165947204563779652541/100000000000000000000000 = 0.00165947204563779652541
+     +5.3798% over PR #503 (R = 480, v = 120, c = 0.001574753352953808650916) and +4.5372% over the live bit c of PR #510 (0.001587447106092548137108)
+     with PR #535's complex b = 1589991533606044174031/1000000000000000000000000: kappa = 793733736881443/500000000000000000 = 0.001587467473762886 (complex-bound; #535 published 1584931111785787/1000000000000000000 from the live bit c)
+PASS LIGHT  [278s]

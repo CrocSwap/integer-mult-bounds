@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "One measured bottleneck of the selected record's only post-#1042 stage (research/complex-t16-rare-pattern-exchanges/verify.py -> frozen PR1087 verify_t16.py): the `audit` sub-stage, i.e. the pinned audit_allcold.py (SHA-256 1467a2ac...) with its 15 mutation controls, whose time is dominated by copy.deepcopy. Can an opt-in launcher replace only deepcopy by a checked marshal round trip, leaving every pinned byte, check and control unchanged, with byte-identical outputs on the same fixture?",
+  "scope_change_reason": "Refined within the card's allowed variation 'Profile one stage': the profiled stage is the selected final stage and the optimized object is one sub-stage's copy primitive. No coverage is removed and no result is cached.",
+  "bottleneck_link": "Every reviewer of the selected record runs this stage (also with --baseline1042 reuse), and the same audit script runs in the cold baseline1042 `t16` stage and in owner-map candidates built on verify_t16.py. Halving its slowest sub-stage shortens review of complex-side packing/owner candidates without weakening a check.",
+  "budget_minutes": 90,
+  "stop_rule": "Stop if any audit output or the merged stage log differs from the in-stage receipt, if the fixture's ASYNC-AUDIT.json differs from the archived selected receipt, or if the speedup required editing pinned code.",
+  "outcome": "completed",
+  "evidence": "verify.py replays the selected final stage on the archived provider files (audit equals the archived selected ASYNC-AUDIT.json), then reruns the audit sub-stage legacy vs fast in fresh copies: all three written audit files, the written IDLE-REMAINDER-FRAMES.json.gz and the merged stdout/stderr log are byte-identical to the in-stage outputs; 4,838 deepcopy calls all take the marshal path. macOS, 3 alternating rounds: CPython 3.12 legacy 22.37/22.27/22.50 s vs fast 9.05/9.06/9.21 s (2.47x median); CPython 3.14.7 legacy 17.85/18.31/17.79 s vs fast 9.43/9.46/9.47 s (1.89x). Registered replay passes under CPython 3.12. Controls: tampered hosted template rejected by both; unpinned script refused; identity copier detected by byte comparison (the pinned audit itself exits 0 with a corrupted report); fallback semantics for subclass, NaN, custom object, cyclic and memo calls.",
+  "author": "jackmgaller (with Claude Code, Claude Opus 5.5)",
+  "ai_assistance": "Substantial: Claude Code (Claude Opus 5.5) chose the task with the repository helper, profiled the stage, wrote fast_copy.py, verify.py and this package; jackmgaller's account published it.",
+  "open_questions": [
+    {
+      "question": "Should the selected replay driver offer an opt-in, source-bound hook that runs the audit sub-stage (and the cold baseline1042 t16 stage) through fast_copy.py?",
+      "why_it_matters": "The launcher is verified here but is not wired into make frontier1094-verify, so reviewers do not yet get the time saving.",
+      "first_step": "Add an opt-in flag to a new driver (not the frozen verify_t16.py) that substitutes the launcher for run_portable.py only for allow-listed script hashes and compares all audit outputs against a legacy run once.",
+      "blocked_by": "A maintainer decision on modifying or wrapping the frozen PR1087 stage runner."
+    },
+    {
+      "question": "Which other pinned verifiers spend most of their time in copy.deepcopy of JSON trees for mutation controls (ten distinct audit_allcold.py hashes exist in research/, plus other reject() helpers)?",
+      "why_it_matters": "The same checked substitution may speed up historical cold replays and candidate checks with no source edits.",
+      "first_step": "Profile each allow-list candidate on its own committed fixture and extend SCRIPTS only with byte-identical receipts.",
+      "blocked_by": "Each candidate needs its own runnable fixture; many require a long cold upstream replay first."
+    },
+    {
+      "question": "What dominates the remaining ~9 s of the audit sub-stage, and can it be reduced without editing the pinned audit?",
+      "why_it_matters": "audit() itself (16 passes over 69,120 helper roles) is now the largest share of the selected final stage.",
+      "first_step": "cProfile the fast path; the per-role list/index scans over 73-column bases are the likely candidates.",
+      "blocked_by": "Further gains likely require an adapter that changes audit() code, which needs a separate equivalence argument."
+    }
+  ]
+}

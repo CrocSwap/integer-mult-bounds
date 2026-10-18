@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "number": 736,
+  "title": "Tooling: skip exact zero row updates in cyclic-inverse replay",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/736",
+  "head": "eccc3b74767848eb6746f39412d57df6c9544b5d",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/cyclic-zero-elimination/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3e68361d70ea5f30f652db821549ef00441ba4ac"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-zero-elimination/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8930b3f06398557300466be87cc6523585174e14"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-zero-elimination/RESULT-python313.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7ff10655fdbb543032ec227ece0cd91b2c87d7a8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-zero-elimination/RESULT-python314.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "837549f35c745f8cb7588c6605441ce9be2b8e97"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-zero-elimination/SOURCE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e89f96309b6e8d041154d79d8ed84e872b7707a1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-zero-elimination/replay.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9c1e67fd439ed434793de5bd72b89b0714014d76"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-zero-elimination/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b56bafc487f56a41b353e2a419dd94f942b05d49"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/cyclic-zero-elimination": 7
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "The incorporated PR621 verifier performs exact cyclotomic arithmetic even when an elimination coefficient is zero. This source-pinned adapter inserts a two-line guard in memory and runs every original check. The eight-case receipt remains byte-identical. Historical source bytes and default verification stay unchanged.\n\n**Status: tooling improvement; no new kappa.** Seven alternating full-process pairs on each of two local interpreters measured 24.6\u201326.2% lower child CPU medians. Wall medians also improved, but one pair was slower; all samples and the preliminary probe are disclosed. This is a scoped result for the existing eight cases, not a full-frontier speedup.\n\n| macOS arm64 | Reference wall median | Guarded wall median | Reference CPU median | Guarded CPU median |\n| --- | ---: | ---: | ---: | ---: |\n| Python 3.13.16 | 3.709 s | 3.156 s | 3.149 s | 2.374 s |\n| Python 3.14.8 | 4.205 s | 2.649 s | 3.212 s | 2.371 s |\n\nReproduce with Python 3.11+ and the standard library on macOS or Linux:\n\n```sh\npython3 -I -B research/cyclic-zero-elimination/verify.py --output /tmp/cyclic-zero-result.json\n```\n\nUse a fresh output path. Expected: `PASS_CYCLIC_ZERO_ELIMINATION`. The JSON retains every timing, source pin, platform, and control result. `replay.py` runs only the faster complete replay and accepts the predecessor's `--output` option.\n\nValidation:\n\n- All 28 measured full replays match the pinned `EXPECTED.json` byte for byte, including the original unit-root and missing-conjugation controls for every case.\n- 36 focused matrix/mode checks cover sparse/dense, row swaps, singular systems, non-rational coefficients, both boundary modes, direct determinant formulas, solution substitution, and input preservation. Changed source bytes and two incorrect guards are rejected. A 2x2 identity solve drops from 12 to 7 field multiplications.\n- Isolated optimized replays from `/tmp` also match on Python 3.11 and 3.14. A separate Codex agent reviewed the guard and ran focused controls under optimized Python.\n- `make selected-record-check` and `git diff --check` pass. The full repository suite, cold frontier replay, and optional SymPy engine were not rerun for this optional adapter.\n\nBase: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. Predecessor: Ali Romman's incorporated #621 at `520774462b19b29af41554b74def31f9d01e997e`; exact source and receipt hashes are in `SOURCE.json`. Scott Woolsey Biggart's pending #668 independently extends resultant coverage through radix 27 using CRT. This work keeps the predecessor's domain and rational-field method and has no dependency on that PR. The PR queue was refreshed through #732; #727's owner-footprint optimization is a separate checker.\n\nAll additions are confined to `research/cyclic-zero-elimination/`. Seed 94, local claim, explanation of the guard, raw evidence, and inherited limits are included. No pinned sprint issue was available. Contributor: thakrarsagar, with substantial OpenAI Codex assistance and a separate AI code review. Apache-2.0; predecessor attribution is retained. This does not prove the full analytic or multiplication theorem, or resolve paid preparation, rounding/restoration, or fixed-tape realization.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "c5594e8a6c95324f74d8779c6142f6bb4462e95fc853b7ac83962cb9a3cb7edc"
+}

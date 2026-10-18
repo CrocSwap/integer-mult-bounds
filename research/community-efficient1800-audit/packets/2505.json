@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "number": 2505,
+  "title": "Batch registered research CI without dropping package coverage",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2505",
+  "head": "a357942c5ee5ce88948c120a0a174bb7dd0c2d2a",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": ".github/workflows/research-package-batch.yml",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c8d9ea264e70cc3178a8a65050b49350f15eaa86"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": ".github/workflows/research-packages.yml",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "823df9911b909536e74fad3e5630348522c847ad"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3c2bd0ee9bb0aae448216d4134e614705a0d4f34"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "docs/research/research-package-guide.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9aa03047230534f5a2886fbd1bbe34e3482ee3b2"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0f48877bcaf269034a157d3ff043ffc967e847eb"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/research_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7fc1e1bcdedd30a4089114e1f84749cf11e88e8f"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b9c3a8cb111469e1987ba4234e3cfb33267b092a"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_matrix_batches.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3a9a9b01242b0f60a20e91402a27fd2286e0e49e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    ".github/workflows": 2,
+    "docs/research": 1,
+    "scripts/research_package.py": 1,
+    "tests/test_research_matrix_batches.py": 1
+  },
+  "github_reported_file_count": 5,
+  "complete_git_file_count": 5,
+  "body": "A shared replay-runner or workflow change selects all 450 registered packages on the current main branch. The existing single job matrix exceeds GitHub's 256-job matrix limit before any package can run. This addresses the concrete limitation recorded by EdDiboi in the [handoff](https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18942018).\n\nAdd an opt-in bounded matrix output and a reusable batch workflow. The current 450-package selection becomes two complete batches [256,194]. Outer batches run one at a time; inner package jobs retain `max-parallel: 4`, a fresh runner/checkout/environment per package, the 30-minute job limit, exact dependency checks and committed-file drift checks. Both workflow paths invalidate all packages. The legacy flat planner CLI is unchanged. More than 256 batches fails explicitly instead of truncating coverage.\n\nValidation: the required research tooling suite passed 69 tests with 3 pre-existing Linux-only skips on CPython 3.12.14. A subsequently added real grouped-CLI regression and all five focused batch tests passed. Boundary checks cover 0, 1, 255, 256, 257, 450 and 65,536 packages, with 65,537 rejected, invalid batch sizes, exact order/coverage and unchanged legacy output. Actual all-package CLI output contains every one of 450 packages exactly once. No hosted full-matrix success or mathematical cold replay is claimed.\n\nGitHub documents the [256-job matrix limit](https://docs.github.com/en/actions/reference/limits) and [matrix jobs calling reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows). The workflow design retains isolation rather than combining packages into one Python environment.\n\nTask: portable-replay expertise/handoff override of complex-mechanisms seed c4a2795b534ea90dede453dea434600f. Current source main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4; original documentation lead stopped as exact overlap with #2214. Complete PR/Discussion overlap checked, with freshness in the local receipt. Credit EdDiboi's recorded limitation and the existing registered-package runner/workflow authors. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0. No selected frontier or frozen scientific input changes.\n\nThe 65,536-case test is a grouping boundary, not a hosted scalability claim. GitHub output-size and other execution limits still apply; the current 450-package matrix is below the job-output limit.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "0d7ad4fa63e86e5cfb659d3b9d2e4871b4f90236a7e3fd7c9ecbc79fdb9d5bfb"
+}

@@ -1,0 +1,43 @@
+name: Averaged cyclotomic height
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/averaged-cyclotomic-height/**'
+      - '.github/workflows/averaged-cyclotomic-height.yml'
+  push:
+    branches: ['codex/averaged-cyclotomic-height-20261013']
+    paths:
+      - 'research/averaged-cyclotomic-height/**'
+      - '.github/workflows/averaged-cyclotomic-height.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install exact-algebra dependency
+        run: python -m pip install -r research/averaged-cyclotomic-height/requirements.txt
+      - name: Rational intervals, exact resultants and integer budgets
+        run: python -I -O -B research/averaged-cyclotomic-height/verify.py --out /tmp/averaged-height-math.json
+      - name: Package rejection controls and full read-only relocation
+        run: python -I -O -B research/averaged-cyclotomic-height/test_package.py --out /tmp/averaged-height-package.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: averaged-height-python-${{ matrix.python }}
+          path: |
+            /tmp/averaged-height-math.json
+            /tmp/averaged-height-package.json

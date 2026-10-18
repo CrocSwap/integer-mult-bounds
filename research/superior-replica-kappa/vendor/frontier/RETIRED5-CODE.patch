@@ -1,0 +1,260 @@
+--- research/t74-joint-twelve/verify.py
++++ research/t74-joint-twelve-retired5/verify.py
+@@ -15,6 +15,30 @@
+ import exact_moment as M
+ HERE=Path(__file__).resolve().parent
+-PROFILE={1:1593072,2:430236,3:204396,4:79920,5:22532,8:5328,32:1,48:26558}
+-LOW=F('0.001717141586348426338109')
++PROFILE={1: 1606392, 2: 427572, 3: 189078, 4: 85248, 5: 25862, 8: 5328, 32: 1, 48: 26558}
++LOW=F('0.001717409316335491643448')
++PROFILE2751={1:1593072,2:430236,3:204396,4:79920,5:22532,8:5328,32:1,48:26558}
++LOW2751=F('0.001717141586348426338109')
++ALIASES=[(606,550),(635,551),(637,552),(638,553),(639,562)]   # retired5
++import importlib.util as _iu
++_s=_iu.spec_from_file_location('word_patch_pr2679',Path(__file__).resolve().parent/'vendor/word_patch_pr2679.py');WP=_iu.module_from_spec(_s);_s.loader.exec_module(WP)
++def refit_apply(w0,p):
++ w=copy.deepcopy(w0)
++ for sec,i,fr in p['frames']:
++  need(w[sec][i][:-1]==w0[sec][i][:-1],'refit changes a gate');w[sec][i][-1]=fr
++ w['report']['local_profile']=p['local_profile'];return w
++def compact(fill,old_words,new_words,old_prov,new_prov,order,dispatch):
++ live=lambda w:[r for r in range(224,704) if r not in set(w['removed'])]
++ L0=live(old_words['gauge44']);L1=live(new_words['gauge44']);need(L0==live(old_words['extra']) and L1==live(new_words['extra']),'live helper sets')
++ gone=set(L0)-set(L1);need(set(L1)<=set(L0) and sorted(gone)==sorted(h for h,_ in ALIASES),'removed helpers')
++ i1={r:i for i,r in enumerate(L1)};bins={}
++ for pid in ('gauge44','extra'):need([old_prov[pid]['widths'][L0.index(r)] for r in L1]==new_prov[pid]['widths'],'renumbered widths')
++ for t,h,o,c,p,off in fill['rows']:
++  if L0[h] in gone:continue
++  bins.setdefault((o,c,p),[]).append([t,i1[L0[h]],o,c,p,off])
++ rows=[]
++ for key,rs in bins.items():
++  rs.sort(key=lambda x:x[5]);pos=0
++  for x in rs:x[5]=pos;pos+=new_prov[dispatch[tuple(order[x[0]])]]['widths'][x[1]];rows.append(x)
++ rows.sort(key=lambda x:(x[0],x[1]));return dict(fill,rows=rows)
+ def need(ok,msg):
+  if not ok:raise ValueError(msg)
+@@ -29,6 +53,6 @@
+  need(F(claim['complex_lower'])==LOW and F(claim['complex_upper'])==LOW+F(1,10**24),'claim bracket')
+  need(F(claim['kappa'])==LOW-F(1,10**46)-F(1,10**70),'claim outer endpoint')
+- for name in ('PR2733','PR2745'):
+-  previous=json.loads((HERE/'evidence'/f'{name}-CLAIM.json').read_text())
++ for name in ('PR2733','PR2745','PR2751','PR2766','PR2767'):
++  previous=json.loads((HERE/'evidence'/(f'{name}-OUTER-CLAIM.json' if name=='PR2767' else f'{name}-CLAIM.json')).read_text())
+   need(F(claim['kappa'])>F(previous['kappa']),'strict improvement over '+name)
+  words={}
+@@ -49,6 +73,16 @@
+  dispatch={(s,r):p for s,r,p in rd('DISPATCH.json.gz')}
+  need(order==rd('SOURCE-ORDER.json'),'source order')
+- constructed,_,_=C.transform(rd('SOURCE-PROVIDERS.json'),providers,rd('SOURCE-FILL.json.gz'),order,dispatch,words)
+- need(constructed==fill,'complete deterministic fill')
++ # retired5: PR2751's own construction (its words, providers and fill) is reproduced first ...
++ words51={'gauge44':rd('WORD2751-base.json.gz'),'extra':rd('WORD2751-extra.json.gz')};prov51=rd('PROVIDERS2751.json');fill51=rd('FILL2751.json.gz')
++ constructed,_,_=C.transform(rd('SOURCE-PROVIDERS.json'),prov51,rd('SOURCE-FILL.json.gz'),order,dispatch,words51)
++ need(constructed==fill51,'complete deterministic PR2751 fill')
++ # ... then the declared stages turn its words into the candidate words exactly ...
++ for tag,pid in [('base','gauge44'),('extra','extra')]:
++  w=refit_apply(words51[pid],rd('refit5_43'+tag+'.json'));w=WP.apply_lowfour(w,rd('alias5_43'+tag+'.json'));w=refit_apply(w,rd('refit5c_43'+tag+'.json'))
++  need(w==words[pid],'declared stages reproduce the candidate word '+tag)
++ d2=dict(dispatch)
++ for s,r,p in fill['dispatch_overrides']:d2[s,r]=p
++ # ... and the candidate fill is PR2751's fill with the five removed helpers' roles dropped, renumbered and re-tiled as bin prefixes
++ need(compact(fill51,words51,words,prov51,providers,order,d2)==fill,'complete deterministic candidate fill')
+  owner=I.check(rd('PLAN.json.gz'),rd('GLOBAL-TEMPLATE.json.gz'),order,fill,providers,dispatch,PROFILE)
+  bad=copy.deepcopy(fill);bad['rows'][0][5]=999
+@@ -57,6 +91,5 @@
+  else:raise ValueError('accepted out-of-bin placement')
+  _,a=M.moment_bounds(PROFILE,LOW);b,_=M.moment_bounds(PROFILE,LOW+F(1,10**24));need(a<66304<b,'exact adjacent root bracket')
+- baseline=dict(PROFILE);baseline[1]+=2664;baseline[7]=2664;baseline[8]-=2664
+- x,_=M.moment_bounds(baseline,LOW);need(x>66304,'PR2733 rejects candidate endpoint')
+- return {'status':'PASS_JOINT_TWELVE_FINITE_REPLAY','roles':owner['roles'],'local_mutations_rejected':6,'owner_mutations_rejected':1,'complex_lower':str(LOW),'complex_upper':str(LOW+F(1,10**24)),'scope':'Independent local symbolic identity, actual frame bill, cleanup, exact hosting and moment only. Native/strict supplier/outer release is separate.'}
++ x,_=M.moment_bounds(PROFILE2751,LOW);need(x>66304,'PR2751 rejects candidate endpoint')
++ return {'status':'PASS_JOINT_TWELVE_PLUS_FIVE_ALIASES_FINITE_REPLAY','roles':owner['roles'],'local_mutations_rejected':6,'owner_mutations_rejected':1,'complex_lower':str(LOW),'complex_upper':str(LOW+F(1,10**24)),'scope':'Independent local symbolic identity, actual frame bill, cleanup, exact hosting and moment only. Native/strict supplier/outer release is separate.'}
+ if __name__=='__main__':print(json.dumps(run(),indent=2))
+--- research/t74-joint-twelve/independent_owners.py
++++ research/t74-joint-twelve-retired5/independent_owners.py
+@@ -67,11 +67,12 @@
+     need(set(dispatch)==set(map(tuple,order)),'dispatch coverage')
+     need(fill['columns']==['time','helper','owner_replica','child','port','offset'],'role columns')
+-    need(len(fill['rows'])==666*415,'role count')
+-    need(all(len(p['widths'])==415 for p in providers.values()),'helper widths')
++    R=len(next(iter(providers.values()))['widths'])   # retired5: helper count from the providers (was 415)
++    need(len(fill['rows'])==666*R,'role count')
++    need(all(len(p['widths'])==R for p in providers.values()),'helper widths')
+     helper_bits=[0]*666;family_bits=[0]*666;occupied={}
+     for row in fill['rows']:
+         need(len(row)==6 and all(type(v) is int for v in row),'role shape')
+         t,h,o,c,port,offset=row
+-        need(0<=t<666 and 0<=h<415 and 0<=port<112,'role bounds')
++        need(0<=t<666 and 0<=h<R and 0<=port<112,'role bounds')
+         cap,start,stop=win[o,c]
+         need(start<t<=stop,'literal call window')
+@@ -88,5 +89,5 @@
+         need(not occupied.get(key,0)&mask,'overlapping bin cells')
+         occupied[key]=occupied.get(key,0)|mask
+-    need(helper_bits==[(1<<415)-1]*666,'complete helper inventory')
++    need(helper_bits==[(1<<R)-1]*666,'complete helper inventory')
+     idle=Counter()
+     for (owner,child),(cap,_,_) in win.items():
+@@ -104,5 +105,5 @@
+     serial={f'{o},{c}':[cap,list(range(lo+1,hi+1))] for (o,c),(cap,lo,hi) in win.items()}
+     digest=hashlib.sha256(json.dumps(serial,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+-    return dict(status='PASS_INDEPENDENT_INTEGER_CHRONOLOGY_AND_MASK_FILL',roles=276390,
+-                calls=666,helpers_per_call=415,windows=len(win),window_sha256=digest,
++    return dict(status='PASS_INDEPENDENT_INTEGER_CHRONOLOGY_AND_MASK_FILL',roles=666*R,
++                calls=666,helpers_per_call=R,windows=len(win),window_sha256=digest,
+                 idle=dict(sorted(idle.items())),profile=dict(sorted(profile.items())),rank_mass=mass)
+--- research/t74-joint-twelve/workflow/admit.py
++++ research/t74-joint-twelve-retired5/workflow/admit.py
+@@ -23,5 +23,5 @@
+ 
+ SOURCE_COMMIT = 'local-joint12-pr2733'
+-SOURCE_MANIFEST = '7980dbde79b63de4093cde89d1564a18c6bf16a2e35d810e38cf9797fe09e0cf'
++SOURCE_MANIFEST = '0288172f1fdef2dabf82a8367fdb2f15bfbba62caea2a953d91b03b0dd9c97b3'   # retired5 derived source: PR2751 overlay + five retired-lender aliases
+ PARENT_MANIFEST = 'e0eefc96567fbb45e19e6de0ca295381dbe0e686c08ddc783639b065c7c791d4'
+ PRECISION = dict(endpoint_digits=24, grid_digits=18, margin_digits=28, bootstrap_steps=12)
+@@ -70,5 +70,5 @@
+     need(sha(source / 'MANIFEST.json') == SOURCE_MANIFEST, 'COMPOSED manifest pin')
+     source_files = read(source / 'MANIFEST.json')
+-    need(len(source_files) == 491 and tree(source, ('MANIFEST.json',)) == source_files,
++    need(len(source_files) == 497 and tree(source, ('MANIFEST.json',)) == source_files,
+          'complete COMPOSED source inventory and hashes')
+     native_receipt = read(a.native_receipt)
+@@ -170,5 +170,5 @@
+         natives['extra'] / 'local', work / 'rebound')
+     spec = read(work / 'rebound/SPEC.json')
+-    need(spec['expected']['physical'] == 66801, 'complete physical cost including 72 buffers')
++    need(spec['expected']['physical'] == 66796, 'complete physical cost including 72 buffers (R 410)')
+     layout = work / 'layout'
+     layout.mkdir()
+@@ -218,5 +218,5 @@
+     kappa = Q(row['rational'])
+     previous = Q('0.0017161404259974415161889999999999999999999998999999999999999999999999')
+-    need(kappa == C-Q(1,10**70)-Q(1,10**46) and kappa > previous,
++    need(kappa == C-Q(1,10**70)-Q(1,10**46) and kappa > previous and kappa > Q('17171415863484263381089999999999999999999998999999999999999999999999/10000000000000000000000000000000000000000000000000000000000000000000000'),   # retired5: also strictly above PR2751
+          'candidate must strictly improve pinned COMPOSED before full release')
+     outer_claim = read(source / 'outer/OUTER-CLAIM.json')
+--- research/t74-joint-twelve/generate.py
++++ research/t74-joint-twelve-retired5/generate.py
+@@ -45,5 +45,15 @@
+   w,_=AB.alias(w,653,563);lp,wi=AB.profile(w);w['report'].update(local_profile=lp,width_inventory=wi)
+   f=out/f'WORD-{tag}.json.gz';wr(f,w);AU.run(f,out/f'audit-{tag}.json')
+-  need(rd(f)==rd(HERE/f'inputs/WORD-{tag}.json.gz'),'complete regenerated word equality')
+- print('PASS_REGENERATED_JOINT_TWELVE_BOTH_WORDS')
++  need(rd(f)==rd(HERE/f'inputs/WORD2751-{tag}.json.gz'),'complete regenerated PR2751 word equality')
++  # retired5: the declared stages refit5 -> alias5 -> refit5c turn the regenerated PR2751 word into the candidate word
++  for st in ('refit5','alias5','refit5c'):
++   p_=rd(HERE/f'inputs/{st}_43{tag}.json')
++   if st=='alias5':w=W.apply_lowfour(w,p_)
++   else:
++    w=copy.deepcopy(w)
++    for sec,i,frame in p_['frames']:need(w[sec][i][:-1]==rd(f)[sec][i][:-1] or st=='refit5c','refit gate');w[sec][i][-1]=frame
++    w['report']['local_profile']=p_['local_profile']
++  f=out/f'WORD-retired5-{tag}.json.gz';wr(f,w);AU.run(f,out/f'audit-retired5-{tag}.json')
++  need(rd(f)==rd(HERE/f'inputs/WORD-{tag}.json.gz'),'complete regenerated candidate word equality')
++ print('PASS_REGENERATED_JOINT_TWELVE_RETIRED5_BOTH_WORDS')
+ if __name__=='__main__':main()
+--- research/t74-joint-twelve/packing_cap.py
++++ research/t74-joint-twelve-retired5/packing_cap.py
+@@ -11,7 +11,7 @@
+ sys.dont_write_bytecode = True
+ ENGINE_SHA = "86a1432870b3b21d8454106ec9162fddc0471472d9214c590a1420f2426cedfc"
+-IDLE = {1:17316,3:6594,5:5216,32:1,48:26558}
+-CANDIDATE = {1:1593072,2:430236,3:204396,4:79920,5:22532,8:5328,32:1,48:26558}
+-ENDPOINT = Q('0.001717141586348426338109')
++IDLE = {1:17316,3:6594,5:8546,32:1,48:26558}
++CANDIDATE = {1: 1606392, 2: 427572, 3: 189078, 4: 85248, 5: 25862, 8: 5328, 32: 1, 48: 26558}
++ENDPOINT = Q('0.001717409316335491643448')
+ 
+ def need(ok, message):
+@@ -28,7 +28,7 @@
+          'complete candidate histogram and rank mass')
+     local = {r: Q(h[r]-IDLE.get(r,0),666) for r in h if h[r] != IDLE.get(r,0)}
+-    need(local == {1:2366,2:646,3:297,4:120,5:26,8:8}, 'complete local profile')
++    need(local == {1:2386,2:642,3:274,4:128,5:26,8:8}, 'complete local profile')
+     model = engine.model(local,73,896,9,64)
+-    need(model['total_mass']*666 == 4816512 and model['local_mass'] == 5223, 'coverage identity')
++    need(model['total_mass']*666 == 4816512 and model['local_mass'] == 5198, 'coverage identity')
+     lo,hi = engine.ceiling(local,73,896,9,64)
+     need(engine.relax(local,73,896,9,64,hi)[0] > 1, 'upper cap rejection')
+--- research/t74-joint-twelve/test_integrity.py
++++ research/t74-joint-twelve-retired5/test_integrity.py
+@@ -10,9 +10,9 @@
+ def hashes(root):return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in root.rglob('*') if p.is_file()}
+ def main():
+- with tempfile.TemporaryDirectory(prefix='joint-twelve-controls-') as t:
++ with tempfile.TemporaryDirectory(prefix='joint-twelve-retired5-controls-') as t:
+   p=Path(t)/'package';shutil.copytree(HERE,p);before=hashes(p)
+   def run(script='verify.py',flags=()):
+    return subprocess.run([sys.executable,'-I','-B',*flags,str(p/script)],cwd=t,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'),text=True,capture_output=True,timeout=300)
+-  r=run();need(r.returncode==0 and 'PASS_JOINT_TWELVE_FINITE_REPLAY' in r.stdout,'relocated positive: '+r.stderr);need(hashes(p)==before,'read-only replay')
++  r=run();need(r.returncode==0 and 'PASS_JOINT_TWELVE_PLUS_FIVE_ALIASES_FINITE_REPLAY' in r.stdout,'relocated positive: '+r.stderr);need(hashes(p)==before,'read-only replay')
+   r=run(flags=('-O',));need(r.returncode!=0 and 'run without -O' in r.stderr,'optimized verification refusal')
+   r=run('generate.py',('-O',));need(r.returncode!=0 and 'assertions must be enabled' in r.stderr,'optimized generator refusal')
+--- PR2751 overlay: new/rebuild_borrow.py
++++ retired5 overlay: new/rebuild_borrow.py
+@@ -1,3 +1,3 @@
+-"""rebuild_borrow.py: rebuild the k=43 BORROW-WORDs from borrow/inputs (canonical words, block certificate, #2226-style witnesses),
++"""rebuild_borrow.py [retired5: + refit5/alias5/refit5c stages and controls]: rebuild the k=43 BORROW-WORDs from borrow/inputs (canonical words, block certificate, #2226-style witnesses),
+ check they equal the shipped borrow/words byte-for-content, run the extended auditor (borrow/audit_local.py) and its negative controls.
+ usage: python -B rebuild_borrow.py [--no-controls]   (exit 0 only if everything passes)"""
+@@ -121,4 +121,35 @@
+         (RCP/f'ALIAS-ENUMERATION-43{wt}.json').write_text(json.dumps(dict(prelife_refit_state=dict(counts=s0,pairs=[{k_:x_[k_] for k_ in('h','L','p1','d','s','f1','width','dprof')} for x_ in e0]),shipped=dict(counts=s1,pairs=len(e1)),
+             note='counts: h_used_in_A_or_early = helpers first used before B (needs the prelude/lifted-target mechanism); the other counts are (h,L) pairs failing that condition'),indent=1)+'\n')
++    A5=[(606,550),(635,551),(637,552),(638,553),(639,562)];H5=[h_ for h_,_ in A5];L5=[L_ for _,L_ in A5]
++    def regs_(e_):return e_[1:3] if e_[0]=='add' else e_[1:2]
++    def frames_only(x,y):   # same gate lists in A/B/restore, every other field equal (report aside); returns the changed (section,index) set
++        assert all(len(x[k_])==len(y[k_]) and all(a_[:-1]==b_[:-1] for a_,b_ in zip(x[k_],y[k_])) for k_ in ('A','B','restore'))
++        assert all(x[k_]==y[k_] for k_ in x if k_ not in ('A','B','restore','report')) and set(x)==set(y)
++        return {(k_,i_) for k_ in ('A','B','restore') for i_,(a_,b_) in enumerate(zip(x[k_],y[k_])) if a_!=b_}
++    r5f=D/'inputs'/f'refit5_43{wt}.json';r5patch=None
++    if r5f.exists():   # retired5: exact minimal-change refit for five retired-lender aliases (refit/search: lenders' last gates to their exact floors, followers' first gates to their exact ceilings)
++        r5patch=json.loads(r5f.read_text());prev_r5=chain[-1];chain.append(refit_apply(prev_r5,r5patch));steps.append('refit5');nr5=chain[-1]
++        try:ch5=frames_only(prev_r5,nr5);kok&=ch5=={(s_,i_) for s_,i_,_ in r5patch['frames']}
++        except AssertionError:kok=False
++        lastL={L_:max(p_ for p_,e_ in enumerate(prev_r5['B']) if L_ in regs_(e_)) for L_ in L5};firstH={h_:min(p_ for p_,e_ in enumerate(prev_r5['B']) if h_ in regs_(e_)) for h_ in H5}
++        kok&=all(lastL[L_]<firstH[h_] for h_,L_ in A5) and not any(L_ in regs_(e_) for L_ in L5 for e_ in prev_r5['restore'])
++        kok&=all(len(nr5['B'][p_][-1])==len(prev_r5['B'][p_][-1])-1==5 for p_ in lastL.values()) and all(len(nr5['B'][p_][-1])==len(prev_r5['B'][p_][-1])+1==5 for p_ in firstH.values())
++    a5f=D/'inputs'/f'alias5_43{wt}.json';a5patch=None
++    if a5f.exists():   # retired5: five retired-lender aliases 606<-550, 635<-551, 637<-552, 638<-553, 639<-562 on the refit5 state
++        a5patch=json.loads(a5f.read_text());prev_a5=chain[-1];chain.append(word_patch.apply_lowfour(prev_a5,a5patch));steps.append('alias5');na5=chain[-1]
++        de5=a5patch['declared_gate_edit']
++        kok&=word_patch.kernel_gate_edit(prev_a5['B'],na5['B'])==de5 and sorted(set(na5['removed'])-set(prev_a5['removed']))==H5 and set(prev_a5['removed'])<=set(na5['removed'])
++        kok&=na5['warps'][:len(prev_a5['warps'])]==prev_a5['warps'] and [x_[1] for x_ in na5['warps'][len(prev_a5['warps']):]]==L5 and all(len(x_[3])==len(x_[4])==5 for x_ in na5['warps'][-5:])
++        kok&=[[a_['pos'],a_['L'],a_['G'],a_['U'],a_['E']] for a_ in a5patch['aliases']]==na5['warps'][-5:] and [a_['h'] for a_ in a5patch['aliases']]==H5
++        kok&=na5['A']==prev_a5['A'] and na5['restore']==prev_a5['restore'] and len(na5['B'])==len(prev_a5['B'])
++        kok&=all(any(L_ in g_[1:3] for L_ in L5) for kd_,_,g_ in de5 if kd_=='insert') and all(any(h_ in g_[1:3] for h_ in H5) for kd_,_,g_ in de5 if kd_=='delete') and sum(kd_=='insert' for kd_,_,_ in de5)==sum(kd_=='delete' for kd_,_,_ in de5)
++        kok&=na5['start_extra']=={k_:v_ for k_,v_ in prev_a5['start_extra'].items() if int(k_) not in H5} and all(str(h_) in prev_a5['start_extra'] for h_ in H5)
++        kok&=all(na5[k_]==prev_a5[k_] for k_ in ('helper_final','compensation','initial_corrections','precondition','cut','target_levels','centers','center_frames','ports','prelude_events'))
++        kok&=not any(h_ in regs_(e_) for h_ in H5 for e_ in na5['B']+na5['restore'])
++    r5c=D/'inputs'/f'refit5c_43{wt}.json';r5cpatch=None
++    if r5c.exists():   # retired5: certified optimal frames of the aliased program (frames only)
++        r5cpatch=json.loads(r5c.read_text());prev_c5=chain[-1];chain.append(refit_apply(prev_c5,r5cpatch));steps.append('refit5c');nc5=chain[-1]
++        try:chc=frames_only(prev_c5,nc5);kok&=chc=={(s_,i_) for s_,i_,_ in r5cpatch['frames']}
++        except AssertionError:kok=False
+     final=json.loads(gzip.decompress(shipped.read_bytes()))
+     same=final==chain[-1]
+@@ -149,4 +180,24 @@
+             xc=subprocess.run([sys.executable,'-B',str(D/'alias1_controls.py'),str(shipped),str(xf),str(RCP/f'CONTROLS-ALIAS1-43{wt}.json')],capture_output=True,text=True)
+             ok&=xc.returncode==0;res['alias1_controls_rc']=xc.returncode
++        if r5patch:   # retired5 controls: each lender's refit undone in the shipped word (its last gate back at dim 6) must be rejected by 'warp frame mismatch'; each follower's raise undone (first gate back at dim 4) must be rejected
++            import copy as cp8
++            c5={}
++            for L_,p_ in lastL.items():
++                m=cp8.deepcopy(final);m['B'][p_][-1]=prev_r5['B'][p_][-1];bp=pw/f'refit5_lender{L_}_undone.json.gz';bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0))
++                br=run_audit(bp,None,pw/f'refit5_lender{L_}_undone.out.json');c5[f'lender{L_}_refit_undone']=br.returncode!=0 and 'warp frame mismatch' in (br.stdout+br.stderr)
++            for h_,p_ in firstH.items():
++                m=cp8.deepcopy(final);m['B'][p_][-1]=prev_r5['B'][p_][-1];bp=pw/f'refit5_follower{h_}_undone.json.gz';bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0))
++                br=run_audit(bp,None,pw/f'refit5_follower{h_}_undone.out.json');c5[f'follower{h_}_raise_undone']=br.returncode!=0
++            res['refit5_undone_controls']=c5;ok&=len(c5)==10 and all(c5.values())
++            print('REFIT5-CONTROLS',wt,'rejected',sum(c5.values()),'of',len(c5),flush=True)
++        if a5patch:   # retired5: the package's alias tamper suite (alias1_controls.py: borrowed read sign/doubling, write sign, warp dropped, wrong G, early warp, helper kept) on the five aliases
++            xc5=subprocess.run([sys.executable,'-B',str(D/'alias1_controls.py'),str(shipped),str(a5f),str(RCP/f'CONTROLS-ALIAS5-43{wt}.json')],capture_output=True,text=True)
++            ok&=xc5.returncode==0;res['alias5_controls_rc']=xc5.returncode
++            print('ALIAS5-CONTROLS',wt,'rc',xc5.returncode,xc5.stdout.strip().splitlines()[-1:] ,flush=True)
++        if r5cpatch:   # retired5: a certified frame tampered (one declared frame set to [1]) must be rejected
++            import copy as cp9b
++            sec_,i_,fr_=r5cpatch['frames'][len(r5cpatch['frames'])//2];m=cp9b.deepcopy(final);m[sec_][i_][-1]=[1]
++            bp=pw/'refit5c_tamper.json.gz';bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0));br=run_audit(bp,None,pw/'refit5c_tamper.out.json')
++            res['refit5c_tamper_rejected']=br.returncode!=0;ok&=br.returncode!=0
+         kc_ok,kc=kernel_controls(kstate,kpatch,tempfile.mkdtemp());ok&=kc_ok;res['kernel_controls_rejected']=kc
+         if apatch:

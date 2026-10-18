@@ -1,0 +1,29 @@
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/t74-2322-move-prices/move_prices.py', '--fetch']
+pr2322_handoff           inv {"4": -1}              local {"1": -2, "5": -1, "4": -1, "2": 2, "3": 1} net/call -1.230e-05   db(one move, both providers) +4.272e-08
+pr2339_low_alias         inv {"4": -1, "8": -1, "9": 1} local {"3": -1}                            net/call +5.488e-05   db(one move, both providers) -1.906e-07
+pr2339_high_alias        inv {"5": -1}              local {"5": -1}                            net/call +1.388e-17   db(one move, both providers) +1.735e-18
+target_merge_1_1_to_2    inv {}                     local {"1": -2, "2": 1}                    net/call -3.245e-05   db(one move, both providers) +1.127e-07
+calibration: LP ceiling gain PR2312 -> PR2322 = 1.9626e-07, realized claim gain = 1.6923e-07
+certified: every legal whole-helper owner fill of the PR2322 words has b < 0.001697195759 (margin 1.85e-07); PR2374 is not rejected; headroom <= 8.081e-10
+untried: 33 width-4 (1,1,1,1) helpers, 12 unused (5,1,1,1) X registers; block(s) [53] carry the exact PR2322 partner shape (4,1,1,1,1)
+    1 more PR2322-type handoffs (same reshapes): LP ceiling db = +4.272e-08
+    2 more PR2322-type handoffs (same reshapes): LP ceiling db = +8.544e-08
+    4 more PR2322-type handoffs (same reshapes): LP ceiling db = +1.709e-07
+    8 more PR2322-type handoffs (same reshapes): LP ceiling db = +3.418e-07
+   12 more PR2322-type handoffs (same reshapes): LP ceiling db = +5.127e-07
+the 26 target merges (one (1,1)->(2) each) that accompany the PR2339 low aliases, alone on the PR2322 words: LP ceiling db = +2.936e-06
+runtime 16.9s
+PASS_T74_MOVE_PRICES cap=0.001697195759 handoff_db=+4.272e-08 low_alias_db=-1.906e-07 high_alias_net=0 sites=33/12
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/t74-2322-move-prices/independent_recount.py']
+base: profiles match reports; PR2312 -> PR2322 change set, 33 (1,1,1,1) helpers and 12 free (5,1,1,1) X registers confirmed
+extra: profiles match reports; PR2312 -> PR2322 change set, 33 (1,1,1,1) helpers and 12 free (5,1,1,1) X registers confirmed
+PASS_T74_INDEPENDENT_RECOUNT
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/t74-2322-move-prices/merge_mechanism.py', '--fetch']
+mechanism: all 26 merged targets (both providers) skip exactly one intermediate frame; every gate at that frame in PR2269 comes from a helper PR2339 removes; each receives frame-0 initial corrections (26 of 32 corrected targets merge)
+lender census (PR2322 words, frame-0 helpers by end dimension): {4: 32, 7: 8, 8: 8, 9: 240}; the 32 at dimension 4 are the PR2226 lenders 273..394
+PR2339 pattern: width-4 lender ending dim 4 -> 9 [rank-zero] db = -1.906e-07 (no merge), -7.792e-08 (one merge credited)
+width-5 lender -> 9 (2+1+1 absorbed)             [no such frame-0 lender] db = -1.906e-07 (no merge), -7.792e-08 (one merge credited)
+width-7 lender ending dim 7 -> 9                 [fails rank-zero] db = +8.501e-07 (no merge), +9.630e-07 (one merge credited)
+width-8 lender ending dim 8 -> 9                 [fails rank-zero] db = +1.427e-06 (no merge), +1.540e-06 (one merge credited)
+runtime 15.2s
+PASS_T74_MERGE_MECHANISM merged=26 lenders_end4=32 pr2339_alias_db=-7.792e-08 takeover8_db=+1.427e-06

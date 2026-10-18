@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 5,
+  "base_commit": "b5ea56e0a5ac4552166253b1fa4be0753bb38c30",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Do the three digest paths omitted by the #626 Linux assembly comparison measure gzip containers, decompressed payloads, or raw indented JSON files?",
+  "scope_change_reason": "The card allows one payload-field comparison. The object is the three recorded differences in research/selected626-linux-reconciliation, classified from the hash helpers at sprint base 66849e1475c930fd7732b1a0067ffee7e1e95f60. It does not repair a supplier or drop an immutable pin.",
+  "bottleneck_link": "A portable check has to tell a compression difference from a changed proof object. Misreading these three digests would either block a valid replay or hide a real template change.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after classifying the three recorded paths and the container-versus-payload fixture. Do not rerun frontier626 or reconstruct the missing owner and invoice files.",
+  "outcome": "completed",
+  "evidence": "verify.py pins three producer blobs, shows one payload has two container hashes and one content hash, shows an indented owner file hash can change while paid_profile does not, and classifies the recorded Linux/committed pairs: template_sha256 is a decompressed payload, the other two are indented JSON files.",
+  "author": "Riquelme Soares (@hevlyo)",
+  "ai_assistance": "Substantial Cursor agent assistance in reading the pinned producers, the fixture, and the write-up. No proof assistant was used.",
+  "open_questions": [
+    {
+      "question": "Can the omitted owner and invoice files be recovered from the retained stage logs of run 38317651752, or are their bytes absent?",
+      "why_it_matters": "Those two file hashes mix nested container receipts with mathematical fields, so only the files separate those causes.",
+      "first_step": "Search the preserved logs for OWNERS-AND-PROFILE.json and PREFIX-AND-INVOICE.json bytes or payload hashes.",
+      "blocked_by": "The frontier626 workflow did not upload those files. This audit does not invent them."
+    }
+  ]
+}

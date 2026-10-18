@@ -1,0 +1,3 @@
+The historical 71-record owner catalogue does not contain the currently selected k8 inventory/profile. This adds a small source-bound receipt connecting the selected manifest to that applicability boundary and a link from the bottleneck brief. It records the exact seven-slot delta from the already-excluded R480 source, with a symbolic strict-concavity comparison.
+
+Validation: Python 3.12 registered optimized replay, SHA-256/Git blob pins, exact membership of all 25 interfaces and three alias controls. No selected source, certificate or kappa changes; no full selected circuit replay claimed. Substantial OpenAI Codex assistance is disclosed.

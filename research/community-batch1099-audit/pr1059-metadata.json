@@ -1,0 +1,90 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "baseRefOid": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+  "body": "**Status: tooling improvement (verification engineering). No new \u03ba, and no check is changed or weakened.**\n\nTrack 85\u201394 (verification engineering), assignment seed 85 (OS CSPRNG via Python `secrets`). Base commit `2921874911956718fcaaaf9396fe8267b3cfa9f0`.\n\n## What it speeds up\n\nIn the selected T37 replay, the `u8-native` stage spends **77.0 s** in `layer-end-controls`. That step is PR870's `layers_p6n/layer_end_controls.py`: 96 independent `hpe_audit_and_transport.run` audits (the unmutated U8 word plus 95 mutants), each rejected for a pinned reason.\n\n`research/layer-end-controls-parallel/controls_parallel.py` takes the same arguments. It parallelizes the audits **without editing or re-implementing the pinned script**:\n\n1. **Record.** The pinned script runs with a stand-in audit module that records the exact gzip bytes of every trial word. As each word is recorded, its real audit starts in a worker.\n2. **Evaluate.** The real, digest-pinned audit evaluates every distinct word in worker processes.\n3. **Replay.** The unchanged pinned script runs again. Its stand-in returns or raises the precomputed real outcome for the identical bytes. The script's own assertions check every pinned reason and write the receipt, and the trial-word sequence must equal the recorded one.\n\nThe record pass's placeholder answers never reach any decision.\n\n## Benchmark (same pinned inputs, one machine: macOS arm64, 10 cores, Python 3.14.8)\n\n| Runner | Wall time | Speedup |\n|---|---:|---:|\n| pinned `layer_end_controls.py` | 49.2 s standalone (52.5 s in the harness) | 1\u00d7 |\n| `--jobs 10` | 16.4 s standalone (19.9 s in the harness) | **3.0\u00d7** |\n| `--jobs 4` | 23.3 s | 2.1\u00d7 |\n\nThe remaining serial cost is the pinned script's own mutant construction, which runs once per pass by design.\n\n## Equivalence evidence\n\n- `COLD-END-CONTROLS.json` is **byte-identical** to the pinned script's receipt for the same arguments (`99a17435\u2026`), and the printed control lines are identical.\n- The 95 rejected controls equal the selected replay's archived receipt, in order.\n- Control C1: a corrupted unmutated word fails at the pinned script's own assertion, \"unmutated cold-end word must pass\", in the replay pass, and no receipt is written.\n\n## Reproduce\n\n```sh\nmake layer-end-controls-parallel-verify      # ~35 s: parallel run, archived-receipt match, C1, 3 tests\nmake layer-end-controls-parallel-benchmark   # ~80 s: adds the pinned serial reference and byte comparison\n```\n\nExpected: `PASS_LAYER_END_CONTROLS_PARALLEL`. Standard-library Python 3.10+, no network. The input word comes from the pinned T37 archive and is checked against PR870's `RECIPE-U8.json`.\n\n## Scope\n\n- This is opt-in. Nothing is wired into `reproduce_barch.py` or `scripts/verify_frontier942.py`, and no pinned file is modified.\n- It complements PR1041, the opt-in phase-recipe runner for the 154 s step of the same stage. Together the two would bring `u8-native` from about 254 s to about a minute on the recorded machine.\n- It discharges no mathematical obligation, and the timings are local measurements.\n\n## Credit\n\n- DreamingOfClouds: `layer_end_controls.py`, adapted from PR635's cold-end controls.\n- PR635's authors: the transport audit.\n- Jeremy Kothe and NewBArch: PR869/PR870.\n- Jonathan Capalbo: the PR942 replay.\n- navinor: PR853/PR921, prior concurrency tooling.\n\nPrepared by Sagar Thakrar with substantial AI assistance from Claude (Anthropic) via Claude Code. New material is Apache-2.0.\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-13T17:23:47Z",
+      "authors": [
+        {
+          "email": "sagar@cybai.in",
+          "id": "",
+          "login": "",
+          "name": "Sagar Thakrar"
+        }
+      ],
+      "committedDate": "2026-10-13T17:23:47Z",
+      "messageBody": "\u2026ceipt, 3.0x on 10 cores (no new kappa)",
+      "messageHeadline": "Tooling: opt-in parallel U8 layer-end controls with byte-identical re\u2026",
+      "oid": "0e301503b29d802327238c32f5ae3377797a564c"
+    }
+  ],
+  "files": [
+    {
+      "path": "Makefile",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/BENCHMARK-macos-arm64.json",
+      "additions": 12,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/CLAIM.json",
+      "additions": 22,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/PINS.json",
+      "additions": 27,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/README.md",
+      "additions": 88,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/audit_worker.py",
+      "additions": 50,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/controls_parallel.py",
+      "additions": 153,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/test_package.py",
+      "additions": 51,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/layer-end-controls-parallel/verify.py",
+      "additions": 124,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "0e301503b29d802327238c32f5ae3377797a564c",
+  "isDraft": false,
+  "number": 1059,
+  "state": "OPEN",
+  "title": "Tooling: opt-in parallel U8 layer-end controls, byte-identical receipt, 3.0x on 10 cores (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1059",
+  "merge_base": "2921874911956718fcaaaf9396fe8267b3cfa9f0"
+}

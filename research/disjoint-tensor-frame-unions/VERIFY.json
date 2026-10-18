@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/experiments/disjoint_tensor.py",
+    "scripts/audit_disjoint_tensor.py",
+    "scripts/exclusion_circuit.py",
+    "scripts/binary_phase_frames.py",
+    "scripts/certify.py",
+    "certificates/disjoint-tensor-compression.json",
+    "certificates/ternary-side.json",
+    "certificates/dyadic-central-factor.json",
+    "certificates/parity-side.json",
+    "tests/test_disjoint_tensor.py",
+    "scripts/experiments/ternary_side.py",
+    "tests/test_combined_frame_source_pins.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Exact baseline copy of the base-commit disjoint_tensor.py; identical frame_data maps and verify_frames receipts on historical sizes through h=26; XOR target-union mutant rejected; rectangle require preserved; four certificates permit only the reviewed disjoint_tensor.py pin and the exact PR2100 ternary companion pin, with unchanged full payload; no duplicate JSON keys."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Same frame_data equivalence under -O. Rectangle and support gates use require and remain enforced; receipt identity remains the gate."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_disjoint_tensor_frame_unions.py",
+        "-v"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Focused disjoint-tensor frame-union package controls."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_combined_frame_source_pins.py",
+        "-v"
+      ],
+      "timeout_seconds": 60,
+      "checks": "Composed certificate accepts exact reviewed companion hashes, rejects changed payloads, unknown pins and live-source drift."
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "number": 827,
+  "title": "Research: full-frame cleanup bounds for R420 and R439",
+  "author": {
+    "id": "MDQ6VXNlcjI1MjkxMDAz",
+    "is_bot": false,
+    "login": "cbethin",
+    "name": "Charles Bethin"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/827",
+  "head": "67aaf484d017a2ef458ae33144b0ed0753d90d30",
+  "merge_base": "7ee02b7c96d85f22b38d28bd7ed49bb8c1aeb261",
+  "baseline": "858771bcca3b8dd5d4ef4aa682a13cc9b7e23920",
+  "files": [
+    {
+      "path": "research/bit-cleanup-frame-obstruction/CERTIFICATE-r420.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "62f53b939234b1f70427fca129dcf6e7d467df97"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-cleanup-frame-obstruction/CERTIFICATE-r439.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d84204bf36020a6e345b4f6f3c6ea48e361ff326"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-cleanup-frame-obstruction/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1d4cdb1d7afcb3e15acd2cc7fd44c4fd83e125b9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-cleanup-frame-obstruction/RESEARCH.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a4c947fd4e99c647a42e520a67f839f38f34017b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-cleanup-frame-obstruction/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "25c0f47b6c1bfdb6332fcbd57dd9d95e27721521"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-cleanup-frame-obstruction/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0c256cdcc3b8decb1202f7d06eaf7eec22663a29"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-cleanup-frame-obstruction/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1949b1e249c777af24e63bb47e6307ad8e465b28"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/bit-cleanup-frame-obstruction": 7
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "The fixed R420 and currently selected PR589 R439 prefixes leave no room to reduce the native cleanup frame cost by restoring helpers at smaller endpoints after phase B. This **scoped negative result** proves that conclusion for every finite common-frame cleanup circuit in the stated monotone-frame model, including nonlinear operations. It is not a census of small circuit changes. No new kappa is claimed.\n\nKeep the prefix, physical register identities and native full-frame source endpoints. Leave helper endpoints unconstrained, require arbitrary-input restoration, and permit independent scratch. Additional retained-total COPYs, label resets, frame descent and nonlocal control are outside the model.\n\nFor each restored register, the required inverse-map support determines a necessary span of boundary frames. Exact witnesses force all **420 R420 helpers** and all **439 R439 helpers** to the full eight-dimensional frame. Concavity then gives the attained minimum cleanup moments, for every `0<p<1`:\n\n- R420: `360 + 91*2^p`, with 451 climbs and rank mass 542.\n- R439: `361 + 180*2^p + 8*4^p + 7^p`, with 550 climbs and rank mass 760.\n\n**Scope exception:** R439 sources 6, 19 and 22 have semantic lower bounds of dimension four. Their existing source endpoint contract supplies the full-frame requirement; the proof does not silently promote their information-flow bound. Earlier cleanup, changed prefixes or source interfaces, additional COPYs, and scalar XOR savings remain possible directions.\n\nThis adds a complete information-flow proof and exact certificates for 1,090 outputs. Reverse-gate inversion is checked against a separately constructed forward Boolean matrix and set-based Gauss-Jordan inverse. Rational witness selection is checked with integer elimination and Bareiss determinants. Both boundaries also match the unchanged native owning checkers.\n\n```sh\npython3 -I -B research/bit-cleanup-frame-obstruction/verify.py\n```\n\nExpected: `PASS_BIT_CLEANUP_FRAME_OBSTRUCTION helpers=420+439 independent_inverse=540+550 proper_source_exceptions=3 controls=14`.\n\nValidation on macOS includes Python 3.14 and optimized Python 3.13 with identical output; 11 negative controls; three scope controls; 652 exhaustive toy-circuit endpoint checks; native 660/661-column and frame checks; a minimal relocated replay; source/certificate corruption rejection; and current selected-record integrity. A native-checker comparison caught an initial R439 COPY-frame modeling error. It was corrected and given a regression control before submission. The corrected rank mass is 760. Full verification details and limitations are recorded in VALIDATION.json.\n\nNo external human review, Lean proof, Linux/remote CI, full repository suite or cold supplier/assembly replay is claimed. These checks concern the obstruction and unchanged local words, not the complete multiplication theorem. Inherited compiler, physical realization, hosting, precision/tape and analytic assumptions remain.\n\nCredit eumemic's PR543/555, DreamingOfClouds' PR589 and their full supplier lineage. PR760 studies omitted-cleanup debt; PR661 studies fixed-order B frames; PR673 prices owner completion; PR437 supplies earlier helper resets. This result instead closes post-B cleanup frame resynthesis on both pinned words. Scalar cleanup PRs remain compatible. The elementary information-flow principle is not claimed as a new general theorem.\n\nInitial base `66849e1`; submission rebased to current main `7ee02b7c96d85f22b38d28bd7ed49bb8c1aeb261`, which selects PR741/589. Both bit source trees are unchanged across those bases. Source heads and hashes are pinned. Overlap was refreshed through PR824. OS seed 6, bit-supplier track; no pinned coordination issue existed, so the claim is local. Only this research package is added; upstream and the selected frontier are unchanged.\n\nPrepared for Charles Bethin with substantial OpenAI Codex assistance under Apache-2.0. No independent human peer review is claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "dee9c100cf29e7618229ae07503c295b0dd56e6ecea203a1a57d5a663d2964c2"
+}

@@ -1,0 +1,213 @@
+diff --git a/research/p104-interleaved-search/fanout.py b/research/p104-interleaved-search/fanout.py
+index 66472a83..57e09798 100644
+--- a/research/p104-interleaved-search/fanout.py
++++ b/research/p104-interleaved-search/fanout.py
+@@ -54,7 +54,7 @@ class NeedHelper(Exception):
+     """The deterministic cumulative-frame allocator needs another dirty role."""
+ 
+ 
+-def construct(fault=None, fixed=None):
++def construct(fault=None, fixed=None, reuse_helper=None):
+     """Derive the forward word. Mutations consume the baseline's fixed repairs."""
+     inputs = QC.load_inputs()
+     word, prototype = inputs['word'], inputs['coordinates']
+@@ -100,7 +100,8 @@ def construct(fault=None, fixed=None):
+         caps.append(cap.copy())
+     caps.reverse()
+ 
+-    def run(compensation=(), repairs=None, mutation=None):
++    def run(compensation=(), repairs=None, mutation=None, reuse_frames=None):
++        active_reuse = reuse_helper if reuse_frames is not None else None
+         n = oldn + len(helpers)
+         rows = QC.identity(n)
+         current = [frames[i] for i in word['start']] + [ZERO] * len(helpers)
+@@ -184,16 +185,43 @@ def construct(fault=None, fixed=None):
+                 coefficient = meta['lam'] + (1 if mutation == 'query_coefficient' and term == 0 else 0)
+                 private_rows[owned] = {j: coefficient*x for j,x in private_rows[owned].items()}
+                 events.append(dict(kind='scale', registers=[owned], coefficient=str(coefficient), frame=basis(hb), phase='owned query scaling'))
+-                transport(owned, line, 'owned Hb to La', True)
+-                private_paths.append([edges[-1]])
++                path = []
++                direct = [c for c in contacts[cut] if c['helper'] == active_reuse] if active_reuse is not None else []
++                if active_reuse in js:
++                    require(direct and all(helpers[c['helper']]['source'] == source for c in direct),
++                            'reused helper contacts do not share the owned query')
++                    for c in sorted(direct, key=lambda item: D.dimension(reuse_frames[item['register']]), reverse=True):
++                        frame = reuse_frames[c['register']]
++                        transport(c['register'], frame, 'reused fanout target chart')
++                        before = len(edges)
++                        transport(owned, frame, 'owned query to reused fanout contact', True)
++                        if len(edges) > before:
++                            path.append(edges[-1])
++                        require(current[c['register']] == frame, 'reused contact target is not in the private chart')
++                        if mutation != 'missing_reused_contact' or c is not direct[0]:
++                            scalar_add(c['register'], owned, Q(c['coefficient']),
++                                       'private query copy replaces fanout helper', True)
++                    before = len(edges)
++                    transport(owned, line, 'owned query to La after reused contacts', True)
++                    if len(edges) > before:
++                        path.append(edges[-1])
++                else:
++                    before = len(edges)
++                    transport(owned, line, 'owned Hb to La', True)
++                    if len(edges) > before:
++                        path.append(edges[-1])
++                private_paths.append(path)
+             for j in js:
++                if j == active_reuse:
++                    continue
+                 transport(oldn+j, line, 'fanout helper entrance')
+                 scalar_add(oldn+j, owned, Q(1), 'fanout helper seed', True)
+             events.append(dict(kind='private_discard', register=owned, frame=basis(line), phase='owned copy end'))
+             del private_rows[owned], private_frames[owned]
+         require(not private_rows and not private_frames, 'private copy left live')
+         for k in range(cut, len(bword)):
+-            for c in sorted(contacts[k], key=lambda z: (int(z['lower']).bit_count(), z['helper'], z['register'])):
++            for c in sorted((c for c in contacts[k] if c['helper'] != active_reuse),
++                            key=lambda z: (int(z['lower']).bit_count(), z['helper'], z['register'])):
+                 r, term = c['register'], helpers[c['helper']]['a']
+                 cap_here = caps[k][r]
+                 require(current[r] <= cap_here, 'public reader already exceeds future endpoint cap')
+@@ -215,6 +243,8 @@ def construct(fault=None, fixed=None):
+         for r, q in qrows.items():
+             require(rows[r] == q, 'actual query bank changed before helper restoration')
+         for j in range(len(helpers)):
++            if j == active_reuse:
++                continue
+             transport(oldn+j, FULL, 'fanout helper endpoint')
+         if repairs is None:
+             for r, rr in enumerate(response):
+@@ -227,6 +257,8 @@ def construct(fault=None, fixed=None):
+             transport(r, FULL, 'response cleanup')
+             scalar_add(r,h,Q(c),'response cleanup')
+         for j,h in enumerate(helpers):
++            if j == active_reuse:
++                continue
+             transport(h['source'], FULL, 'query bank endpoint')
+             scalar_add(oldn+j,h['source'],-h['lam'],'helper restoration')
+             require(rows[oldn+j] == {oldn+j:Q(1)}, 'dirty helper not restored')
+@@ -259,16 +291,42 @@ def construct(fault=None, fixed=None):
+                     cleanup=cleanup, ghost_restoration=ghost_restores, contacts=routed_contacts)
+ 
+     clones = []
++    reference = None
+     if fixed is None:
+         while True:
+             try:
+-                preliminary = run()
++                reference = run()
+                 break
+             except NeedHelper as missing:
+                 helpers.append(helpers[missing.args[0]].copy())
+                 clones.append([helpers[-1]['a'],helpers[-1]['b']])
+                 require(len(helpers) <= 31, 'bounded allocator exceeded recorded helper stock')
+         require(clones == [[3,113],[2,47],[4,57]], 'deterministic helper cloning changed')
++    else:
++        helpers = deepcopy(fixed['helpers'])
++        compensation, repairs, clones = deepcopy(fixed['compensation']), deepcopy(fixed['repairs']), fixed['clones']
++        reference = run()
++    reuse_frames = None
++    if reuse_helper is not None:
++        reuse_frames = {item['target']: QC.span(item['frame']) for item in reference['contacts']
++                        if item['helper'] == reuse_helper}
++        requested = {c['register'] for cs in contacts.values() for c in cs if c['helper'] == reuse_helper}
++        require(set(reuse_frames) == requested and len(requested) == 3,
++                'baseline helper does not have exactly three realized contacts')
++        require(set(reuse_frames) == {148, 203, 159}, 'reused helper contact targets changed')
++        f1, f2, f3 = (reuse_frames[target] for target in (148, 203, 159))
++        la = helpers[reuse_helper]['line']
++        query = next(q for q in reference['query_records']
++                     if q['pair'] == [helpers[reuse_helper]['a'], helpers[reuse_helper]['b']])
++        hb = QC.span(query['frame'])
++        require((D.dimension(f1), D.dimension(f2), D.dimension(f3)) == (3, 6, 7) and
++                la <= f1 <= f2 <= f3 <= hb,
++                'reused contact frames are not the claimed nested descent')
++        target_contacts = [c for c in contacts[cut] if c['register'] in reuse_frames]
++        require(len(target_contacts) == 3 and all(c['helper'] == reuse_helper for c in target_contacts),
++                'reused target has another same-cut contact writer')
++    preliminary = run(reuse_frames=reuse_frames) if reuse_helper is not None else reference
++    if fixed is None:
+         compensation = []
+         for t in live:
+             row = preliminary['rows'][v+t]
+@@ -280,21 +338,29 @@ def construct(fault=None, fixed=None):
+                         'dirty coefficient cannot be compensated at frame zero')
+                 compensation.append(['add',v+t,i,-c.numerator,c.denominator,0])
+         repairs = dict(cleanup=preliminary['cleanup'], ghost_restoration=preliminary['ghost_restoration'])
+-    else:
+-        helpers = deepcopy(fixed['helpers'])
+-        compensation, repairs, clones = deepcopy(fixed['compensation']), deepcopy(fixed['repairs']), fixed['clones']
+     applied_compensation = compensation[1:] if fault == 'missing_entry_compensation' else compensation
+-    built = run(applied_compensation, repairs, fault)
++    built = run(applied_compensation, repairs, fault, reuse_frames)
+     require(len(helpers) == 31 and len(built['rows']) == 735, 'exact public stock')
+     require(not S.endpoint_failures(built['rows'],v,live),'full 735-column endpoint identity failed')
+-    require(built['copy_paid'] == Counter({7:8}), 'eight complete rank-seven owned copies')
+     public_recount = Counter(e['rank'] for e in built['transport_edges'] if not e['private'])
+     require(public_recount == built['paid'], 'public transport occurrence invoice mismatch')
+     expected = {'1':2611,'2':514,'3':378,'4':132,'5':81,'6':15,'7':6}
++    if reuse_helper is not None:
++        expected = dict(expected)
++        for rank, count in ((1, -2), (2, -2), (3, -1)):
++            expected[str(rank)] += count
++        expected = {rank: count for rank, count in expected.items() if count}
++        require(built['copy_paid'] == Counter({1: 2, 2: 1, 3: 1, 7: 7}),
++                'one nested-frame reuse replaces exactly one rank-seven private descent')
++    else:
++        require(built['copy_paid'] == Counter({7:8}), 'eight complete rank-seven owned copies')
+     require(D.profile(built['paid']) == expected,'recorded public invoice changed')
+     require(len(built['private_paths']) == 8, 'missing private path')
+     final_widths = [D.dimension(built['final'][r])-D.dimension(ZERO if r >= oldn or r in QC.REMOVED else frames[word['start'][r]])
+                     for r in range(735)]
++    scalar_adds = Counter(e['phase'] for e in built['scalar_operations'] if e['kind'] == 'add')
++    require(scalar_adds['private query copy replaces fanout helper'] == (3 if reuse_helper is not None else 0),
++            'direct private contact ADD count')
+     # Added public helpers start at ZERO, outside the original start array.
+     report = dict(schema='p104-fanout-forward-report-v1',
+                   scope='Finite forward 735-column identity and literal frame word; not a global supplier or exponent improvement.',
+@@ -304,6 +370,9 @@ def construct(fault=None, fixed=None):
+                   query_sources=built['query_records'], deterministic_clones=clones,
+                   contact_count=len(built['contacts']), entry_compensation_additions=len(compensation),
+                   response_cleanup_additions=len(repairs['cleanup']), ghost_restoration_additions=len(repairs['ghost_restoration']),
++                  scalar_add_count=sum(scalar_adds.values()),
++                  scalar_adds_by_phase=dict(sorted(scalar_adds.items())),
++                  private_reused_contact_additions=scalar_adds['private query copy replaces fanout helper'],
+                   candidate_public_profile=D.profile(built['paid']), private_COPY_profile=D.profile(built['copy_paid']),
+                   public_rank_mass=sum(k*n for k,n in built['paid'].items()),
+                   full_735_column_identity_verified=True, all_new_helpers_restored=True,
+@@ -312,7 +381,8 @@ def construct(fault=None, fixed=None):
+                   contact_schedule_sha256=digest(built['contacts']), scalar_operation_word_sha256=digest(built['scalar_operations']),
+                   transport_occurrences_sha256=digest(built['transport_edges']),
+                   native_phase_compilation_verified=False, global_hosting_verified=False,
+-                  completed_full_multiplication_supplier=False, kappa_improvement_claimed=False)
++                  completed_full_multiplication_supplier=False, kappa_improvement_claimed=False,
++                  reused_fanout_helper=reuse_helper)
+     built.update(report=report, fixed=dict(helpers=helpers, compensation=compensation, repairs=repairs, clones=clones),
+                  ports=[word['ports'][t] for t in live])
+     return built
+@@ -331,12 +401,15 @@ def native_witness(built=None):
+                 public_profile=built['report']['candidate_public_profile'], private_profile=built['report']['private_COPY_profile'])
+ 
+ 
+-def verify():
+-    built = construct()
++def verify(reuse_helper=None):
++    built = construct(reuse_helper=reuse_helper)
+     controls = {}
+-    for fault in ('query_coefficient','missing_private_initialization','missing_response_cleanup','missing_entry_compensation'):
++    faults = ['query_coefficient','missing_private_initialization','missing_response_cleanup','missing_entry_compensation']
++    if reuse_helper is not None:
++        faults.append('missing_reused_contact')
++    for fault in faults:
+         try:
+-            construct(fault=fault,fixed=built['fixed'])
++            construct(fault=fault,fixed=built['fixed'],reuse_helper=reuse_helper)
+         except (ValueError,NeedHelper) as error:
+             controls[fault] = str(error)
+         else:
+@@ -346,4 +419,4 @@ def verify():
+ 
+ 
+ if __name__ == '__main__':
+-    print(json.dumps(verify(),indent=2,sort_keys=True))
++    print(json.dumps(verify(reuse_helper=7),indent=2,sort_keys=True))

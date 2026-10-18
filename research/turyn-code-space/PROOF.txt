@@ -1,0 +1,138 @@
+Exact statements and scope
+==========================
+
+All geometry is regenerated from the pinned leech-lattice source. Each
+port has one block of squared norm 2 and two blocks of squared norm 1.
+The scalar kernel multiplies the three real inner products. Grouping
+ports by their profile and both low root lines leaves 8 orthogonal high
+lines. These eight ports have no internal active edges. Two glue classes
+are adjacent precisely when some concrete pair has nonzero scalar kernel.
+A binary label constant on each class is therefore valid exactly when
+it has odd diagonal and is orthogonal across every quotient edge.
+The generator checks every concrete pair when building this existential
+quotient; it does not sample or average the scalar kernel.
+
+There are 960 classes in each of 3 profiles. The exact quotient degree
+is 1136, giving 1,635,840 unordered edges. Its included 24-clique already
+requires 24 independent odd orthogonal labels. The following stronger
+certificate proves the sharp bound.
+
+The sharp parity lower bound
+---------------------------
+PARITY-CERTIFICATE.json lists nine cliques of size 24. The verifier checks
+all 4968 ordered adjacency incidences and 60 distinct vertices: 36 occur
+twice and 24 occur six times. It independently checks all 1176 distinct
+edges from the integer coordinates of concrete port pairs.
+
+This gives a rank bound even for asymmetric block fitting matrices over
+any field of characteristic 2. Factor such a matrix through dimension r,
+using factors A_v of size d by r and B_v of size r by d. The fitting
+conditions are A_v B_v=I_d and A_v B_w=0 across every ordered edge.
+Set P_v=B_v A_v. These are rank-d idempotents, mutually annihilating on
+each clique. For a clique C, Q_C=sum(P_v: v in C) is consequently an
+idempotent of rank 24d, and R_C=I+Q_C has rank r-24d. Every vertex occurs
+evenly across the nine cliques, so their R_C sum to I in characteristic 2.
+Rank subadditivity gives
+
+    r = rank(I) <= sum_C rank(R_C) = 9(r-24d),
+    hence r >= 27d.
+
+The existing scalar standard-dot fit has dimension 27, so the minimum
+fitting rank in characteristic 2 is exactly 27; normalized block rank
+cannot improve it. This includes arbitrary nonlinear class-constant
+labels. It excludes dimension 25 throughout the quadratic family without
+relying on SAT or on that parametrization. It does not exclude changed
+scalar kernels, punctured port sets, or labels varying within a class.
+
+LIFT-SCOPE.json demonstrates why this quotient proof does not automatically
+apply to unrestricted port labels: in its second clique, class 0 needs
+high-line choices {3,5}, {3,6}, and {5,6} to meet classes 2295, 2326, and
+2812 respectively. Their intersection is empty. Even that individual
+clique cannot be lifted by choosing one concrete port per class; allowing
+different representatives in other cliques does not fix it. Other
+full-port certificates are not excluded.
+
+Affine glue features
+--------------------
+Write both low roots in the same 9-dimensional E8 fitting coordinates.
+Their combined 18 evaluation columns have rank 13 in each profile.
+Choose independent columns to obtain Z_i, a 960 by 13 matrix. Every affine
+labeling covered here is Z_i T_i for arbitrary binary matrices T_i. Its
+Gram blocks are Z_i G_ij Z_j^T, where G_ij=T_i T_j^T.
+
+For each pair of distinct profiles, 169 independent active-edge outer
+products are regenerated. They span every entry of a 13 by 13 matrix,
+so G_ij=0. Within a profile a symmetric matrix has 91 entries. The complete
+edge and diagonal equations have rank 90 and exactly two solutions. Both
+have rank 9; the verifier checks both against the full adjacency block.
+The complete Gram therefore has rank 27. Since diag(Z_0,Z_1,Z_2) has full
+column rank 39, evaluating the Gram preserves its rank. This excludes
+dimension 25 throughout the affine family, even with changed internal
+Grams. The later parity certificate proves a stronger statement.
+
+Constraint compression is exact: for a fixed left vertex, its edge
+equation is linear in the right feature row. An actual basis of all its
+neighboring right rows generates every edge equation for that vertex.
+Every neighbor is included in the span calculation; none is sampled.
+
+Quadratic family
+----------------
+All 91 products of pairs of the 13 affine columns, including squares,
+span a 77-dimensional space Q_i. Constants and affine functions are
+retained, with 64 independent nonlinear functions added per profile.
+Allow arbitrary symmetric within-profile Gram blocks and unrestricted
+cross blocks. The diagonal and active-edge conditions remain linear in
+their entries. Exact solution dimensions are 168 for each within block
+(3003 variables, rank 2835), and 46 for each cross block (5929 variables,
+rank 5883). The complete symmetric family has 642 binary parameters.
+
+The within-profile particular is shifted to the old rank-9 map: solve
+Q_i R_i=P_i exactly and choose R_i R_i^T. Cross particulars are zero.
+Every homogeneous direction satisfies all compressed equations, and the
+directions are verified independent. Their counts match elimination's
+nullities, so these are complete solution spaces. Recentering changes
+no solution family. The separate parity theorem proves every assembled
+231 by 231 fitting Gram in this family has rank at least 27. The free
+parameters do not establish an exponent gain.
+
+Fixed-profile radical obstruction
+----------------------------------
+The earlier ansatz uses a common I9 space plus a hyperbolic H_r space.
+It keeps the old profile maps P_i and appends (f_0,0), (0,f_1), and
+(f_2,f_2) in specified isotropic sectors. Its first pair of profiles needs
+f_0(v).f_1(w)=P_0(v).P_1(w) on active cross edges. The included 9 by 9
+biclique has invertible old-label matrices on both sides; its prescribed
+cross matrix has rank 9. A product through r coordinates has rank at
+most r, so r >= 9. This excludes r=8 in this ansatz even for arbitrary
+nonlinear functions on glue classes. It is not a classification of all
+embeddings preserving the old internal Grams. The separate parity theorem
+supersedes this restricted obstruction for class-constant dimension 25.
+
+Binary solver format and validation
+-----------------------------------
+Input: little-endian uint32 variable count n and row count. Each row then
+uses ceil((n+1)/64) little-endian uint64 words. Coefficient bits occupy
+0 through n-1; bit n is the right-hand side; higher padding bits are zero.
+Within blocks serialize the upper triangle in NumPy triu_indices order.
+Cross blocks serialize all entries in row-major order. Output: uint32 n
+and solution count, then a particular solution and one vector per free
+variable, with the same padding and a zero right-hand-side position.
+
+The C++ implementation rejects inconsistent equations, truncated input,
+nonzero padding, and trailing bytes. Python replays every returned basis
+vector by integer parity against regenerated equations and checks basis
+independence. Fitting controls reject even diagonals, all-one labels,
+equal labels on an active pair, and the zero-radical candidate. Parity
+controls reject missing cliques and duplicate vertices. Source and
+artifact hashes pin the inputs and expected receipts.
+
+Relation to coding
+------------------
+Golay self-duality and its 12-bit code dimension do not establish a fitting
+representation of dimension 12. Self-dual codewords have zero mutual dot
+products; appending 1 makes every pairing 1, including forbidden edges.
+The useful transformation is into an exact code-feature space on which
+the actual fitting equations can be solved. Parallel concatenated
+encoders may suggest reusable scalar circuits, but probabilistic decoding
+quality or fewer fixed encoder additions do not prove a recursive
+exponent gain. No such circuit or complete supplier is supplied here.

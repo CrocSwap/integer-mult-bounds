@@ -1,0 +1,40 @@
+name: Exact Gram prefix performance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/gram-prefix-performance/**'
+      - '.github/workflows/gram-prefix-performance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Exact checks and full frame regeneration
+        run: python -B research/gram-prefix-performance/verify.py
+      - name: Mutated kernels and enabled arithmetic under optimized Python
+        run: |
+          python -B research/gram-prefix-performance/test_kernel.py --mutations
+          python -O -B research/gram-prefix-performance/test_kernel.py
+      - name: Complete checker comparison without a timing threshold
+        run: python -B research/gram-prefix-performance/benchmark.py --pairs 7 --out "$RUNNER_TEMP/gram-prefix.json"
+      - name: Preserve frozen inputs
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gram-prefix-python-${{ matrix.python }}
+          path: ${{ runner.temp }}/gram-prefix.json

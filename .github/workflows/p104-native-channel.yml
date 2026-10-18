@@ -1,0 +1,42 @@
+name: P104 exact native low-rank channel
+
+on:
+  pull_request:
+    paths:
+      - research/p104-native-channel/**
+      - .github/workflows/p104-native-channel.yml
+  push:
+    branches:
+      - codex/p104-native-channel-20261014
+    paths:
+      - research/p104-native-channel/**
+      - .github/workflows/p104-native-channel.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate registered package metadata
+        run: python scripts/research_package.py --package research/p104-native-channel --check-only
+      - name: Independent native replay and complete regeneration
+        run: python -I -O -B research/p104-native-channel/verify.py --regenerate --out "$RUNNER_TEMP/native-channel.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p104-native-channel-${{ matrix.python }}
+          path: ${{ runner.temp }}/native-channel.json
+          if-no-files-found: error

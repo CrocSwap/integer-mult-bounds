@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "task_id": "bit-new-register-model",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "original_card": {
+    "id": "bit-new-register-model",
+    "question": "Can an explicitly larger or nonabelian register model escape the scoped three-register obstruction?",
+    "starting_points": [
+      "research/bit-three-register-lower-bound/README.md",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Construct the smallest exact identity in a newly specified legal operation alphabet.",
+      "Derive a target-specific relaxation bound for that same explicit alphabet."
+    ],
+    "acceptance_gate": "Name the changed hypothesis, all counted roles and a uniform identity; finite column tests alone do not certify it.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read Model section 1 of the three-register bound and identify the exact excluded free operations.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Write a complete operation alphabet outside one named premise and price a baseline before searching identities.",
+    "bottleneck_link": "A small-width completed saving changes the bit primitive; a finite-address identity alone is insufficient.",
+    "allowed_variations": [
+      "Choose a fixed larger register count or a specified nonabelian operation family."
+    ],
+    "scope_change_triggers": [
+      "Remaining inside the already-excluded three-register abelian model."
+    ],
+    "overlap_terms": [
+      "three-register",
+      "nonabelian",
+      "group algebra"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "In CrocSwap/integer-mult-bounds#1662's explicit nonabelian alphabet (paid factors I+([g]+1)xy^T over F2[UT4(F2)], g in {a,b,c}, target I+([z]+1)I_2), can two central targets be reached with 15 paid calls on exactly two roles (r=w=2)? Exhaustive over the three label-count splits (5,6,4), (4,6,5), (4,7,4) that #1662's written bound allows for 15 calls.",
+  "scope_change_reason": "Takes open next question 1 of https://github.com/CrocSwap/integer-mult-bounds/pull/1690 (head dfd15686309d26eb98740942c4e84cddeafae7d8). The card's nonabelian-register premise is kept; the domain is narrowed to r=w=2 so the search is exhaustive. With #1680's written compression lemma (L<=7w+1=15) the r=2 answer decides the unit two-target cost for every r.",
+  "bottleneck_link": "A target-specific tariff for an explicitly larger register alphabet: whether two central targets can share calls in one nonabelian model that the three-register obstruction does not cover. They cannot at unit tariff (exact cost 16 = 8w for every r, conditional on #1662/#1680's written lemmas). Screening result only; no supplier, rank profile or kappa change.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after the exhaustive r=2 search of all three 15-call splits returns either a formally verified witness or none; do not attempt w=3 in this session.",
+  "outcome": "negative-result",
+  "evidence": "verify.py: vendored #1690 search module hash; quotient map multiplicative on all 4096 UT4(F2) pairs; GL2(F2) orbit coverage of all 33489 (length 6) and 298116 (length 7) zero-sum middle sequences by 5582 and 49686 representatives; direct 16-call word passes; exact regression of #1690's (4,6,4) stage counts; (5,6,4) and (4,6,5): 1252 profile pairs, 114960 words each; (4,7,4): 5952 profile pairs, 64680 words; no word passes the degree-three quotient or the formal endpoint. test_package.py: trie screen equals brute-force screen per split, 7-bit key_cross equals direct cross coefficients, indexed key pairing equals brute force, planted-word completeness for each split, a/c-swap automorphism on all 4096 pairs, r=1 driver control. Written premises (#1662 count bound, #1680 compression) re-derived by reading; not formalized.",
+  "author": "Josie Elliston (donated session, Claude Code)",
+  "ai_assistance": "Substantial AI assistance from Claude Code in implementation, verification, proof reading and writing; no independent human review.",
+  "open_questions": [
+    {
+      "question": "Is 8w optimal for three or more central targets, or does cross-target sharing start at w=3?",
+      "why_it_matters": "Two targets show no sharing at unit tariff; the uniform lower bound 7w+[w=1] still leaves a gap of w calls.",
+      "first_step": "At w=3, #1680's compression covers L<=22 of the 21..24 interval, so decide 21 and 22 on three roles.",
+      "blocked_by": "At r=3 there are 49 couplings per label and at least 9 middle calls; the profile pipeline needs a GL3(F2) (order 168) symmetry reduction or a quotient-level meet-in-the-middle."
+    },
+    {
+      "question": "For which weighted tariffs can a two-target word longer than 16 calls beat (abcb)^2 per target?",
+      "why_it_matters": "#1662 prices labels separately; its middle bound n_b>=3w is below the direct word's 4w, so a cheaper b-tariff word could be longer.",
+      "first_step": "Decide whether any two-target word has n_b=6 or 7 at any length on two roles.",
+      "blocked_by": "#1680's compression needs L<=15, so long words on extra roles are not covered; the r=2 search space grows with length."
+    }
+  ]
+}

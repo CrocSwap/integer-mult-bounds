@@ -1,0 +1,29 @@
+name: Three complex 0/4/8 providers
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B research/complex-mixed-048/verify.py --work /tmp/mixed-048-replay
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mixed-048-receipt-${{ matrix.python }}
+          path: |
+            /tmp/mixed-048-replay/RESULT.json
+            /tmp/mixed-048-replay/RECEIPT.json
+            /tmp/mixed-048-replay/STAGES.json
+            /tmp/mixed-048-replay/ASSEMBLY.json
+            /tmp/mixed-048-replay/ASSEMBLY-CONTROLS.json

@@ -1,0 +1,493 @@
+{
+  "schema_version": 1,
+  "number": 1115,
+  "title": "Finite complex construction: four exact U8 B-stage shear rewrites (no new kappa)",
+  "author": {
+    "id": "U_kgDOFF-BGQ",
+    "is_bot": false,
+    "login": "martinxxx9",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1115",
+  "head": "e542ad18d87e71479152dc51935a326b6c53a6fe",
+  "merge_base": "abdc6a7002abdbcd9e21bfc5e1a795784deacfdf",
+  "baseline": "b4560d9e7216f72b73c5aa940ac099c05e33ccf9",
+  "files": [
+    {
+      "path": "research/u8-b-cancellation-seed32/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "47c2d0889fea0fa95680075b0ed6ec007a344611"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/NOTICE.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d09dd5c3b564aedf3304cdea13c043508102e3eb"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b69cbe32b6e543bf733cb09ef99cf53fd4405055"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d475a5d052611931a21b2fdd9b309c0de1f30c42"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6f66488a34289ddefe863112e3d65f56bcf9c321"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8fdf8c97b681908930864cc56a55b7f51f0f3bc9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1c428900e736a69ee87e98b613b8650e2b12a8a3"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/test_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7c476d18161e949331b4d3969b1f7f8dad809e98"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/u8-b-cancellation-seed32/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8e36bd0776dfd8bbe906f09c10c16ece273ad03c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/u8-b-cancellation-seed32": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "This adds four exact U8 B-stage shear rewrites and a complete finite verifier. The previously submitted head omitted `verify.py` and its source pins; this update publishes them and reproduces the original result certificate byte for byte, addressing [Doug Colkitt's review](https://github.com/CrocSwap/integer-mult-bounds/pull/1115#issuecomment-6161594838).\n\nFor distinct registers, four fragments beginning at B indices 176, 194, 204 and 278 are replaced exactly:\n\n```text\nx += a*s; y += q*x; x -= a*s\n    -> y += q*x; y += (q*a)*s\n```\n\n## Result\n\n- B-stage operations: **1,918 \u2192 1,914**.\n- Scalar macros saved per orientation: **4**.\n- Forward real-component primitive bound: **193,306 \u2192 193,254**.\n- Backward real-component primitive bound: **193,354 \u2192 193,302**.\n- Exact arbitrary input columns: **728**; paid rank profile preserved.\n- Rewrite negative controls rejected: **9**.\n- No new kappa or selected-frontier change.\n\n## Complete replay and inputs\n\n`SOURCES.json` declares the immutable input closure: the already committed `research/community-frontier942-audit/t37-replay.tar.gz` (SHA-256 `48285025105210b56a32d3d4d57a21b7591760acc709d38073e4dca339eb06fe`) and the exact hashes of its canonical word, baseline emitted programs, and baseline receipts. The canonical-word digest remains `387a2266ffe006d20042221d967f67a4b18d9bb8de1cd1e01d4031b539fa74a5`.\n\nThe primary verifier uses only the standard library, reads pinned regular archive members without extraction, and imports no construction code. It checks each local identity and both complete B-stage maps with exact rational arithmetic, regenerates both baseline programs, compares the baseline receipts, and recomputes the candidate maps and primitive invoices. Its result must match the original `RESULT.json` byte for byte.\n\nThe package test exercises normal and optimized isolated Python, relocation with only the package and declared archive, and four rejection controls: missing source pins, mutated archive bytes, a wrong member pin, and changed result bytes. These checks remain active under `-O`.\n\n## Reproduce and validation\n\nPython 3.10+ and the standard library:\n\n```sh\npython3 -I -B research/u8-b-cancellation-seed32/verify.py\npython3 -I -B research/u8-b-cancellation-seed32/test_package.py\n```\n\nBoth commands pass. Normal, optimized, and relocated results match the committed certificate exactly. The updated PR applies cleanly to main at `ae95f60feec79897b153dba6459bb3f9fd4d7b8e`, where the optimized package test also passes. `git diff --check` is clean.\n\nThe retained local emitter and independent frame/wrapper auditor were rerun on the verified candidate. Both orientations preserve the paid profile, 728 columns, and 192-bit allowance; prefix bounds are 55/72 bits and all 25 inherited controls are rejected. `VALIDATION.json` records this evidence and the exact validation-source hashes. The README includes the additional reproduction commands.\n\n## Scope and attribution\n\nThis establishes finite B-stage equality and local admission. It does not rebuild global hosting, the complete supplier invoice, outer inequalities, all-size/compiler or realization interfaces, precision/tape or exact recovery, or analytic transfer. It claims no new kappa, practical multiplication speedup, or formal proof of the complete theorem.\n\nAssignment seed: 32, complex-supplier track. Original base: `abdc6a7002abdbcd9e21bfc5e1a795784deacfdf`.\n\nPrepared for @martinxxx9 with substantial OpenAI assistance. The complete verifier and input pins were reconstructed and published with OpenAI Codex assistance in response to the review. Retain Jonathan Capalbo (#942), Chafik Boukhalfa (#890/#741), Jeremy Kothe (#869/#870/#799), Hao Yan (#858), icekylinx, DreamingOfClouds, and the source notices' full contributor and AI-assistance attribution. New material is Apache-2.0; no independent human review is claimed.\n",
+  "checks": [
+    {
+      "name": "verify (3.11, community)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501400"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215415/job/115963498383"
+    },
+    {
+      "name": "plan",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215264/job/115963497531"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215272/job/115963498534"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215266/job/115963498121"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215440/job/115963498516"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501409"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215415/job/115963497765"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215272/job/115963498013"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215266/job/115963498450"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215440/job/115963498041"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501359"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501392"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501349"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501701"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501550"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501921"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501441"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502023"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502094"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501787"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501389"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501755"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501930"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501645"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501670"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501653"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501531"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501549"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501643"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501565"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502014"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501596"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501757"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502031"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501773"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501695"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501704"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501636"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501435"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501592"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501702"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501642"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501749"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501483"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501617"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501606"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502128"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501739"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501803"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501603"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501723"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501855"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502135"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963501684"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502269"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963502064"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963498852"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963499138"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963499289"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38596215416/job/115963499143"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "8c17efe314d6fb40a152e28b6d873882489b09afdedc4fb8b654370b7df8dd1c"
+}

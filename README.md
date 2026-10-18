@@ -3,53 +3,95 @@
 **Community research maintained by Douglas Colkitt — conditional on the original
 OpenAI #109 framework.**
 
-## Current reviewed result: direct delivery and source carriers
+**Donating inference or asking an agent to contribute? Start with
+[autoresearch.md](autoresearch.md)** for task selection, current priorities and
+how to avoid duplicating other agents' work. Agents should also read
+[AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+Coordinate claims, findings and handoffs on the
+[discussion board](https://github.com/CrocSwap/integer-mult-bounds/discussions),
+starting with [the coordination guide](https://github.com/CrocSwap/integer-mult-bounds/discussions/1163).
+New to the construction? Read [the bottleneck brief](docs/research/bottleneck-brief.md).
+Workflow feedback is welcome in [discussion #1200](https://github.com/CrocSwap/integer-mult-bounds/discussions/1200).
 
-**icekylinx's [#531](https://github.com/CrocSwap/integer-mult-bounds/pull/531),
-on [#523](https://github.com/CrocSwap/integer-mult-bounds/pull/523), composed
-with eumemic's [#493](https://github.com/CrocSwap/integer-mult-bounds/pull/493)** gives
+## Current reviewed result: rare-pattern T16 owner exchanges
+
+**Rohan Arun's [#1094](https://github.com/CrocSwap/integer-mult-bounds/pull/1094)** gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{1517760977820331}{10^{18}}=0.001517760977820331.
+\kappa=\frac{836330098538459}{500000000000000000}=0.001672660197076918.
 $$
 
-The complex construction delivers selected contributions directly through
-existing copies, reducing helpers from 560 to 504, and reallocates every
-helper to a complete idle physical family. The bit supplier uses source
-registers as intermediate carriers. These build on the community's Hamming/E8
-geometry, kernels, gauges, whole-owner hosting and exact verification machinery.
+This is about **0.02823% more exponent saving** than the [#1042 checkpoint](certificates/checkpoints/frontier1042.json), not measured runtime. It follows alternating packing improvements by **Jeremy Kothe and Rohan Arun**, on Jeremy's mutable-leaver construction, Rohan's #987 slot search, **Hao Yan's #858 controller**, and the credited frame/ownership work of **Chafik Boukhalfa, icekylinx, Jonathan Capalbo** and the retained lineage. The bit supplier remains **DreamingOfClouds' #589 on eumemic's #555**.
 
-This is about **2.10 times the previously selected exponent saving**, or
-approximately **2^-9.36384**. It is a conditional finite witness: the all-size
-compiler, common-label/mutable-basis realization, normalized residual and
-hosting interfaces, restored rows, precision/tape and analytic transfer remain
-assumptions. It is not a practical runtime ratio or a complete Lean proof.
+All twelve packing candidates pass complete strict local admission, controller/invoice checks, both exact moment engines and all 47 assembly inequalities. Independent owner and pricing auditors by **Josie Elliston and Sagar Thakrar** also check the final candidate. Complete prior construction/bit evidence is explicitly reused and source-bound in the local review. All-size/compiler, common-label/mutable-source realization, whole-call hosting, precision/tape, exact recovery and analytic obligations remain conditional. This is **not a complete Lean multiplication theorem**. Hosted Linux CI is separate.
 
-The maintainer replay rebuilt all three supplier packages, including the
-complex predecessor, checked the literal bit program and physical ownership,
-and verified the exact dependency bindings, both moment engines and all 47
-outer inequalities. Research notes and scoped negative findings are also
-preserved; their inclusion does not promote every ancillary claim to a theorem.
-
-[Review and scope](docs/research/community-pr531-review.md) ·
+[Forty-PR review and attribution](docs/research/community-batch1099-review.md) ·
 [Selected record](certificates/selected-result.json) ·
-[Exact assembly](research/community-pr531-audit/direct-ASSEMBLY.json) ·
-[Integration receipts](docs/research/community-pr531-integration.json) ·
-[PR review ledger](docs/research/pr-ledger.md) ·
-[Contributor record](CONTRIBUTORS.md)
+[Exact assembly](research/community-frontier1094-audit/ASSEMBLY.json) ·
+[Integration receipt](docs/research/community-batch1099-integration.json) ·
+[PR ledger](docs/research/pr-ledger.md) · [Contributors](CONTRIBUTORS.md)
 
-The [formalization and tooling batch](docs/research/community-formal-20261012-review.md)
-adds DreamingOfClouds' Lean proofs of Lemmas G and A, checked against four freshly
-reconstructed historical words, and higherbeing's allocation/geometry tools.
-These scoped proofs strengthen specific interfaces; the complete multiplication
-theorem remains conditional.
+Post-selection research and verification rounds are indexed in
+[current status](docs/research/current-status.md). Use the
+[PR ledger](docs/research/pr-ledger.md) for each contribution's reviewed head,
+integration status and remaining obligations.
 
 ```sh
 # Also requires a C++17 compiler and Boost headers.
-python3 -m pip install -r research/e8-bit-carrier-skeleton/requirements.txt
-make frontier531-verify
+python3 -m pip install numpy sympy scipy
+make frontier1094-verify
 ```
+
+The batch includes separate U10, rank-seven-end and E4 gap-filling constructions, finite bit circuits, exact decoder bounds, independent numerical and SAT-proof audits, and verification tools. These contributions retain individual credit even when they do not advance the selected κ. #1048 remains open with an exact counterexample and certification corrections documented in the review.
+
+The [preceding circuit/verification batch](docs/research/community-batch932-review.md)
+and [U8/T21 review](docs/research/community-frontier890-review.md) remain available,
+including their independent evidence-admission, precision, formalization and
+parallel-tooling contributions.
+
+The previous [fifteen-PR review](docs/research/community-frontier799-review.md)
+retains independent reconstruction, owner-optimality and verification-tooling
+work. [Alluri's #681 consolidation](docs/research/community-circuits681-review.md)
+and its six component contributors remain credited for historical circuit-count
+savings, independently of the selected exponent.
+
+## Historical checkpoint: K-triangle helpers and owner repair
+
+Chafik Boukhalfa's #626 on Jeremy Kothe's #622/#623 with eumemic's #543 gives
+κ = 0.001635527380375392. The [review](docs/research/community-k492-review.md),
+[checkpoint](certificates/checkpoints/k492626.json) and `make frontier626-verify`
+preserve the result, evidence and cumulative attribution.
+
+## Historical checkpoint: cold helper endpoints
+
+Jeremy Kothe's #617 with eumemic's #543 gives κ = 0.001635183729255778.
+The [review](docs/research/community-cold617-review.md),
+[checkpoint](certificates/checkpoints/cold617.json) and `make frontier617-verify`
+preserve the preceding result and its contribution record.
+
+## Historical checkpoint: mixed complex providers
+
+**Jeremy Kothe's #588 with eumemic's #543** gives κ = 0.001602278921983212.
+The [43-contribution review](docs/research/community-family588-review.md),
+[frozen record](certificates/checkpoints/family588.json) and
+`make frontier588-verify` preserve its construction, research and attribution.
+
+## Historical checkpoint: post-center kernels and nine-stage bit hosting
+
+**icekylinx's #535 with DreamingOfClouds' #503/#510** gives
+κ = 0.001584931111785787. The complete construction and review remain available:
+[review](docs/research/community-family533-review.md),
+[checkpoint](certificates/checkpoints/post-center535.json), and
+`make frontier535-verify`.
+
+## Historical checkpoint: direct delivery and source carriers
+
+**icekylinx's #531 on #523, with eumemic's #493**, gives
+κ = 0.001517760977820331. Its complete construction and verification record
+remain available: [review](docs/research/community-pr531-review.md),
+[checkpoint](certificates/checkpoints/direct531.json), and
+`make frontier531-verify`.
 
 ## Historical checkpoint: gen4 circuits and common-delivery frames
 
@@ -95,6 +137,19 @@ and attribution. These contributions can be valuable without changing the
 selected exponent. The [experiment archive](research/experiment-log/README.md)
 distinguishes failed searches, execution errors, proposals, and reported
 verification; inclusion does not independently certify every historical claim.
+
+### Overlap checks
+
+The overlap helper searches open PRs, Discussions, and local research notes.
+Discussion listings batch initial comments and replies, then exhaust every
+continuation page. The [batching evidence and integration note](research/overlap-discussion-batching/README.md)
+retain Arham Garg's independent coverage controls and historical benchmark,
+alongside the current implementation from Nick Petalas's #2514.
+Reports state coverage and freshness; no matches does not establish novelty.
+
+```sh
+python3 scripts/find_overlap.py --task joint-query-controller --refresh
+```
 
 ## Historical audited checkpoint: 527 reused sources
 
@@ -333,7 +388,7 @@ speedup. The model and general reduction are inherited from OpenAI's
 additions to allow more physical wire reuse. Combined with **eumemic's joint
 frame compiler (#57)**, this yields the strongest finite network in this batch.
 **Alejandro Zarzuelo Urdiales's exact parameter refinement and scoped Lean
-certificate (#61)** supply the selected numerical value.
+certificate (#61)** supply that historical numerical value.
 
 The bit network has m=575 and 137,151,806 physical roles; its certified recursive
 saving is 102039046058023/2000000000000000000. The complex network retains saving
@@ -352,13 +407,13 @@ split-pair recursion (#59)**. The review records the exact validation scope of e
 
 ## Attribution
 
-The current #186 construction is contributed by Dugongue, building on
+The historical #186 construction is contributed by Dugongue, building on
 Chafik Boukhalfa/chafreaky (#181/#175), eumemic (#168), and the cumulative
 framework and physical-word lineage. The [contributor ledger](CONTRIBUTORS.md)
 also credits reviewed parallel work, including Rohan Arun’s #185 bootstrap
 and Chafik’s #182 refinement, without adding their gains to this witness.
 
-Newly incorporated contributions include **DaysSky** (#150), **William Porter /
+Earlier incorporated contributions include **DaysSky** (#150), **William Porter /
 hpst3r** (#147), **Thomas Marchand / Th0rgal** (#146), and **Rohan Gupta /
 gupt1156** (#148), building on **James Chang / jamesyc** (#124) and
 **SovereignSteak** (#122). **Andrew Barnes / Bortlesboat** (#101) strengthens

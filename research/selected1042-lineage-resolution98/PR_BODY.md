@@ -1,0 +1,5 @@
+The retained `gauge44-slots-t16/evidence/local/FULL-WORD.json.gz` is an R492 ancestor; the selected PR1042 replay uses the R480 seven-slot word from `slots/local/FULL-WORD.json.gz` inside its archive. Add a source-bound reconciliation of all35 word members, all457 recorded artifacts, the five selected aliases, three digest domains and the exact local-to-T16 profile bridge. This resolves a concrete wrong-input trap without changing the selected frontier or original evidence.
+
+The standard-library verifier rejects both the historical R492 word and the pre-slot R480 word, retains exact source/artifact pins and accepts equivalent recompressed/reformatted word payloads. Eight controls and the complete saved inventory are included. Run `python -I -O -B research/selected1042-lineage-resolution98/verify.py`.
+
+This is offline provenance consistency and exact profile arithmetic, not a rerun or authentication of native execution, a new bound, or a full multiplication proof. Base ba82555c64e1879e4b7decce28186f208fcb8262. Construction and maintainer provenance retain individual credit. Prepared for @woklerx with substantial OpenAI Codex assistance; Apache-2.0.

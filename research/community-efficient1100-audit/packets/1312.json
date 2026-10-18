@@ -1,0 +1,1234 @@
+{
+  "schema_version": 1,
+  "number": 1312,
+  "title": "Research audit: X2 acceptance boundary for the selected owner map (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1312",
+  "head": "1948edd970b2c300c304577adb814dda6da7b3b2",
+  "merge_base": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "baseline": "b4560d9e7216f72b73c5aa940ac099c05e33ccf9",
+  "files": [
+    {
+      "path": "research/owner-x2-acceptance-boundary/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fe6261929a04d3e2db9ce073f74fd8986fee4af7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/owner-x2-acceptance-boundary/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8faf6fe63a25c8fc7f7faa1434c3f99561daaa55"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/owner-x2-acceptance-boundary/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cb31ac87b5bb8b3fb23fb0acba6f48e93a9c13a6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/owner-x2-acceptance-boundary/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6c05b3bf67a63f0845eb828ae965b9cd8cd6a23d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/owner-x2-acceptance-boundary/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c2da318ee2113e3ba0f7236a173e16c5fa53bcf0"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/owner-x2-acceptance-boundary/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "acc319bb2779fb5df40b095854713f1970138bd4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/owner-x2-acceptance-boundary": 6
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "**Adversarial audit of one selected supplier obligation; no new \u03ba.** Navinor, with help from opencode. Apache-2.0.\n\nTask selection: `adversarial-audit` track via `scripts/choose_research_task.py` (OS-random nonce `ca8debca8488dd850dd6c0afb7398632`), card `supplier-boundary-audit` (scope key `dcdb0fa8e49b08a958d0`), refined to one named condition. Base commit `bce54fb3f895cbe5cd4c0eb477c3afeed100190f`; audited source head `0fc329d0bec93ca7cd288eaea1295172e8789810` (the selected owner map, https://github.com/CrocSwap/integer-mult-bounds/pull/1094).\n\n## Question and answer\n\nThe card asks: does one selected supplier obligation follow from its actual source-bound checks?\n\n**Obligation X2:** pending axes of distinct idle children of one physical family are disjoint, so a family's hosts on different children never share a cell (stated and checked in Josie Elliston's owner audit, https://github.com/CrocSwap/integer-mult-bounds/pull/1091).\n\n**Answer: no.** X2's acceptance does not follow from the selected record's `reproduce` command. It is enforced exactly once, at batch1099 review time, by `research/community-batch1099-audit/check_frontier1094.py` (pinned in the record's `proof_supplements`). Neither `make frontier1094-verify` (stages `historical-source`, `baseline1042-cold`/reuse, `rare-pattern-exchanges`) nor `scripts/verify_selected_result.py` (record and hash validation only, no subprocess execution) nor the `community-batch1099.yml` CI job (which runs `research/t16-owner-audit-seed67/verify.py --fetch` for its pinned claim list, https://github.com/CrocSwap/integer-mult-bounds/pull/1022 through https://github.com/CrocSwap/integer-mult-bounds/pull/1087, excluding the selected supplier) executes that composition. The frozen verifier chain the replay does run (`upstream1087.tar.gz`, Hao Yan's https://github.com/CrocSwap/integer-mult-bounds/pull/858 lineage) keys hosted cells per `(owner, child, port)` in `t16/indep16.py` and asserts only `len(pending) == rank` per child in `code/audit_allcold.py`; cross-child cell sharing is outside its rule set.\n\n## Minimal adversarial instance\n\nOne integer in the pinned `DATA-PHASES.json` pending axes: child 1's axis 131072 at port 0 replaced by 13, already pending for child 0 (children 0 and 1 are distinct idle children of the same physical family place). Exactly one differing integer; every rank, window, role count, width and profile aggregate is preserved.\n\n- `geometry()` rejects it: `X2: children [0, 1, 14] share axes at port 0`.\n- With only the X2 check suppressed, `geometry()` returns an identical geometry object and the complete R1\u2013R7/X1 rule set accepts the fixture. The X2 rule is the only rule that reads pending axes.\n- Concrete damage: roles at time 3 and time 6 (both helper 476, owner replica 0, family 224, port 0, offset 0, width 8) resolve the same pending axis 13 of family 224 \u2014 one physical cell written twice \u2014 while every role-level rule accepts both.\n- A second mutation (one axis duplicated inside a single child's list) is rejected at X2 as well. Both are failure controls with single-locus, rank-preservation and null-mutation guards.\n\nThe existing rejection batteries contain no X2-directed mutant: the owner audit's 11 controls and the frozen chain's 6 independent-t16 controls. This PR supplies the first two, answering the card's method (\"construct one semantically invalid but superficially well-formed fixture and test rejection\").\n\n## Reproduce\n\n```sh\npython3 -B research/owner-x2-acceptance-boundary/verify.py\n```\n\nExpected: `PASS_PR1094_X2_ACCEPTANCE_BOUNDARY_AUDIT`. Fresh run on Python 3.13 (Windows) in this session returned that status with both mutants rejected at X2. Deterministic record and exact input pins in `research/owner-x2-acceptance-boundary/RESULT.json`. The repo suite `python3 -B -m unittest discover -s tests -p 'test_research_*.py'` (with `PYTHONUTF8=1`) runs 20 tests with 5 errors and 1 skip \u2014 identical with this change stashed. The 5 errors are pre-existing environmental failures in `test_research_onboarding.PackageTests` on this Windows checkout (`core.autocrlf=true` breaks the temp-fixture scaffold commit comparison); they do not involve this package.\n\n## Files changed (new package only; `upstream/`, frozen pins and selected record unchanged)\n\n- `research/owner-x2-acceptance-boundary/README.md` \u2014 task card, trace table, evidence, open next questions.\n- `research/owner-x2-acceptance-boundary/verify.py` \u2014 stdlib-only harness (positive control, M1/M2 mutants, cell-collision witness, blindness measurement, control inventory, enforcement trace).\n- `research/owner-x2-acceptance-boundary/RESULT.json` \u2014 deterministic record with source pins.\n- `research/owner-x2-acceptance-boundary/TASK.json`, `VERIFY.json`, `SOURCES.json` \u2014 scope metadata and replay manifest.\n\n## Remaining obligations (not claimed)\n\n- The full `make frontier1094-verify` cold replay with the mutated phases was not run (needs the published frontier1042 baseline artifacts and cold replay time); frozen-chain acceptance of the mutant is code-trace evidence, not execution.\n- No claim other than the selected inputs was re-audited; the historical owner-boundary-audit package was used as a method example only.\n- This is a checker-coverage audit of one named obligation: not a construction, not a supplier change, not a \u03ba claim, and not a proof of hosting soundness (X2 itself is enumerated on the pinned phases, not proved universally).\n\n## Credit and predecessor attribution\n\nX2's rule wording and the independent owner audit are Josie Elliston's (https://github.com/CrocSwap/integer-mult-bounds/pull/1091), reused unchanged as a library. The selected owner map is Rohan Arun's https://github.com/CrocSwap/integer-mult-bounds/pull/1094 on Jeremy Kothe's T16 owner-map lineage (https://github.com/CrocSwap/integer-mult-bounds/pull/1050 and successors); the frozen verifier chain is Hao Yan's https://github.com/CrocSwap/integer-mult-bounds/pull/858 lineage; the batch1099 composition and review are Douglas Colkitt's; independent endpoint pricing is Sagar Thakrar's https://github.com/CrocSwap/integer-mult-bounds/pull/1069. Nearest concurrent findings: https://github.com/CrocSwap/integer-mult-bounds/pull/1277 (the reuse replay discards its ancestry recheck) \u2014 same replay-coverage class, different obligation, credited for the direction; https://github.com/CrocSwap/integer-mult-bounds/pull/1209 audits pending-axis independence of the selected data semantically, while this PR tests which checkers reject a corrupted fixture at all.\n\nAudit by Navinor with help from opencode.\n",
+  "checks": [
+    {
+      "name": "verify (3.11, community)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004262"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114457/job/115756002637"
+    },
+    {
+      "name": "plan",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/115756010276"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114509/job/115756004490"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114414/job/115756002743"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114495/job/115756002463"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114457/job/115756003172"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114509/job/115756003978"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114414/job/115756003034"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003860"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114495/job/115756002704"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003905"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003834"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003854"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004228"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003943"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004197"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003908"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004042"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004023"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004049"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003842"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003979"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003877"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004230"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004111"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004084"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003863"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004263"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004154"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004016"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004007"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004194"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004117"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003958"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004135"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004146"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004274"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004297"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004009"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004032"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004253"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003923"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004343"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004101"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004037"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003893"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004112"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004048"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004100"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004208"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004067"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004069"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004035"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004056"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004173"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "CANCELLED",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756004329"
+    },
+    {
+      "name": "replay (research/a8-p112-decoder-screen)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331604"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003044"
+    },
+    {
+      "name": "replay (research/a8-simplex-decoder-floor)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331736"
+    },
+    {
+      "name": "replay (research/binary-affine-register-bound)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331820"
+    },
+    {
+      "name": "replay (research/bit-copy-live-stabilizer)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331576"
+    },
+    {
+      "name": "replay (research/bit-dihedral-commutator)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331722"
+    },
+    {
+      "name": "replay (research/bit-early-retirement-cut)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331940"
+    },
+    {
+      "name": "replay (research/bit-faithful-finite-address)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331705"
+    },
+    {
+      "name": "replay (research/bit-family-projector-algebra-seed10)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331740"
+    },
+    {
+      "name": "replay (research/bit-helper470-native)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331635"
+    },
+    {
+      "name": "replay (research/bit-one-relation-any-registers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331583"
+    },
+    {
+      "name": "replay (research/bit-one-relation-seed04)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331641"
+    },
+    {
+      "name": "replay (research/bit-partial-width7-optimum)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331599"
+    },
+    {
+      "name": "replay (research/bit-retained-total-mixing)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331735"
+    },
+    {
+      "name": "replay (research/bit-revision3-levers-seed03)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322331763"
+    },
+    {
+      "name": "replay (research/bit-source-span-seed02)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322333770"
+    },
+    {
+      "name": "replay (research/bit-zero-frame-feedback)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322333819"
+    },
+    {
+      "name": "replay (research/bit589-boundary-adaptive-r659-seed05)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322333753"
+    },
+    {
+      "name": "replay (research/bit589-projector-ledger)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322333836"
+    },
+    {
+      "name": "replay (research/chirp-packed-correlation-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322334186"
+    },
+    {
+      "name": "replay (research/ck-dyadic-replay-fast)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322334064"
+    },
+    {
+      "name": "replay (research/commuting-dirty-precision)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322333940"
+    },
+    {
+      "name": "replay (research/compact-late-guard-audit-seed73)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322334251"
+    },
+    {
+      "name": "replay (research/complex-block-rank-optimum)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322334513"
+    },
+    {
+      "name": "replay (research/complex-diagonal-mask-rigidity)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322334623"
+    },
+    {
+      "name": "replay (research/complex-local-word-ceiling)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322335489"
+    },
+    {
+      "name": "replay (research/complex-p104-masked-local-rigidity)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322335718"
+    },
+    {
+      "name": "replay (research/complex-p440-window-shocks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322335694"
+    },
+    {
+      "name": "replay (research/complex-queue-ceiling-census)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322336081"
+    },
+    {
+      "name": "replay (research/complex-rank8-rigidity-extension)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322336175"
+    },
+    {
+      "name": "replay (research/complex-rank8-rigidity-p104-admissible)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322335942"
+    },
+    {
+      "name": "replay (research/complex-rank8-rigidity-p110-odd)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322336237"
+    },
+    {
+      "name": "replay (research/complex-rank8-rigidity-p111-p104-44)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322336558"
+    },
+    {
+      "name": "replay (research/complex-signed-prefix-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322336899"
+    },
+    {
+      "name": "replay (research/complex-temporal-gauge-pair-seed26)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322336848"
+    },
+    {
+      "name": "replay (research/composite-height-audit-seed67)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322337254"
+    },
+    {
+      "name": "replay (research/connector-delivery-cut-optimum)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322337448"
+    },
+    {
+      "name": "replay (research/coordinate-cnot-register-bound)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322337936"
+    },
+    {
+      "name": "replay (research/cyclic-output-restoration)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322337842"
+    },
+    {
+      "name": "replay (research/dirty-interval-coefficient-boundary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322338196"
+    },
+    {
+      "name": "replay (research/dirty-interval-propagator-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322338248"
+    },
+    {
+      "name": "replay (research/exact-frame-containment)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322338281"
+    },
+    {
+      "name": "replay (research/frontier1094-ancestry-binding-seed69)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322338385"
+    },
+    {
+      "name": "replay (research/frontier1094-emitted-ledger-seed78)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322338751"
+    },
+    {
+      "name": "replay (research/frontier1094-idle-star-ceiling)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322339307"
+    },
+    {
+      "name": "replay (research/frontier1094-single-relocation)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322339426"
+    },
+    {
+      "name": "replay (research/git-provenance-stream)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322339612"
+    },
+    {
+      "name": "replay (research/hpe-lean-semantic-binding)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322339970"
+    },
+    {
+      "name": "replay (research/k8-coherent-triples)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322340245"
+    },
+    {
+      "name": "replay (research/k8-coupled-gauge-stationarity)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322340002"
+    },
+    {
+      "name": "replay (research/k8-l248-l253-l259-temporal-composition-seed27)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322340118"
+    },
+    {
+      "name": "replay (research/k8-l259-temporal-seed32)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322340409"
+    },
+    {
+      "name": "replay (research/k8-l284-temporal-seed37)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322340719"
+    },
+    {
+      "name": "replay (research/k8-many-dyadic-seed29)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322340683"
+    },
+    {
+      "name": "replay (research/k8-three-coordinate-temporal-seed21)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322341620"
+    },
+    {
+      "name": "replay (research/k8-varying-many-gauge-seed27)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322341592"
+    },
+    {
+      "name": "replay (research/k8-zero-static-temporal-seed25)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322341624"
+    },
+    {
+      "name": "replay (research/masked-root-star-assembly)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322341655"
+    },
+    {
+      "name": "replay (research/masked-star-frame-compatibility)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322341642"
+    },
+    {
+      "name": "replay (research/masked-star-frame-conflicts)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322342211"
+    },
+    {
+      "name": "replay (research/mixed-precision-inverse-boundary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322342257"
+    },
+    {
+      "name": "replay (research/mutable-source-connector)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322342296"
+    },
+    {
+      "name": "replay (research/mutable-source-persistent-connector)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322342777"
+    },
+    {
+      "name": "replay (research/mutable-source-shear-cost)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322343010"
+    },
+    {
+      "name": "replay (research/neumann-rounding-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322343429"
+    },
+    {
+      "name": "replay (research/omission-lanes-seed92)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322343526"
+    },
+    {
+      "name": "replay (research/orthogonal-phase-defect-spectrum)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322343541"
+    },
+    {
+      "name": "replay (research/owner-x2-acceptance-boundary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322343820"
+    },
+    {
+      "name": "replay (research/p104-two-copy-drops)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322343647"
+    },
+    {
+      "name": "replay (research/p112-asymmetric-unit-audit-seed43)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322344132"
+    },
+    {
+      "name": "replay (research/p112-boundary24-seed39)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322344025"
+    },
+    {
+      "name": "replay (research/p112-costar-crown-obstruction)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322344497"
+    },
+    {
+      "name": "replay (research/p112-fixed-frame-diagonal-seed52)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322344676"
+    },
+    {
+      "name": "replay (research/p112-free-rectangle-mixing)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322344892"
+    },
+    {
+      "name": "replay (research/p112-gl3-survivors-seed46)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322345276"
+    },
+    {
+      "name": "replay (research/p112-joint-rank5-parent)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322345359"
+    },
+    {
+      "name": "replay (research/p112-linear-endpoint-lifts)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322345610"
+    },
+    {
+      "name": "replay (research/p112-off-pattern-unit-audit-seed52)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322345545"
+    },
+    {
+      "name": "replay (research/p112-rank6-cover-representatives)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322346042"
+    },
+    {
+      "name": "replay (research/p112-rank6-frame-coverage)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322346510"
+    },
+    {
+      "name": "replay (research/p112-sparse-completion-rank)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322346478"
+    },
+    {
+      "name": "replay (research/p112-star-first-cost-drop)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322346950"
+    },
+    {
+      "name": "replay (research/p112-two-coordinate-small-rectangle)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322346889"
+    },
+    {
+      "name": "replay (research/p112-two-product-compensation)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322347113"
+    },
+    {
+      "name": "replay (research/p112-unextendable-cliques)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322347233"
+    },
+    {
+      "name": "replay (research/p120-calibrated-two-target-seed51)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322347198"
+    },
+    {
+      "name": "replay (research/packed-carry-symbolic)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322347778"
+    },
+    {
+      "name": "replay (research/packed-source-fibers-seed62)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322347801"
+    },
+    {
+      "name": "replay (research/pr1293-log-enclosure-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322348238"
+    },
+    {
+      "name": "replay (research/pr1407-complex-moment-audit-seed39)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322348788"
+    },
+    {
+      "name": "replay (research/pr540-literal-source-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322348967"
+    },
+    {
+      "name": "replay (research/pr540-pending-range-derivation)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322348963"
+    },
+    {
+      "name": "replay (research/pr99-retention-seed99)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322349100"
+    },
+    {
+      "name": "replay (research/projected-cleanup-fibers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322349396"
+    },
+    {
+      "name": "replay (research/r420-all-length-cleanup-floor)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322349642"
+    },
+    {
+      "name": "replay (research/r420-block4-truth-audit-seed00)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322349512"
+    },
+    {
+      "name": "replay (research/r439-abc-semantic-bridge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322349721"
+    },
+    {
+      "name": "replay (research/r439-b509-local-minimality-seed06)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322350306"
+    },
+    {
+      "name": "replay (research/r439-bblock-frame-barrier)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322350284"
+    },
+    {
+      "name": "replay (research/r439-helper468-late-cut)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322350817"
+    },
+    {
+      "name": "replay (research/r439-kernel-entrance-closure)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322351145"
+    },
+    {
+      "name": "replay (research/r439-later-retirement-cuts)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322351125"
+    },
+    {
+      "name": "replay (research/r439-neutral-mixed-shears-seed13)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322351274"
+    },
+    {
+      "name": "replay (research/r439-quad17-seed17)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322351368"
+    },
+    {
+      "name": "replay (research/r439-three-omission-distance)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322351399"
+    },
+    {
+      "name": "replay (research/r480-source-independent-cleanup)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322351781"
+    },
+    {
+      "name": "replay (research/rational-containment-performance)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322351853"
+    },
+    {
+      "name": "replay (research/rational-residue-scope)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322352346"
+    },
+    {
+      "name": "replay (research/recursive-parking-boundary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322352611"
+    },
+    {
+      "name": "replay (research/restored-cycle-gap)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353123"
+    },
+    {
+      "name": "replay (research/retained-bit-supplier-binding)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353304"
+    },
+    {
+      "name": "replay (research/seed03-bit-physical-family)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353261"
+    },
+    {
+      "name": "replay (research/seed38-p104-orbit-regularity-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353391"
+    },
+    {
+      "name": "replay (research/seed48-p120-orthogonal-shared-total)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353406"
+    },
+    {
+      "name": "replay (research/selected-bit-hosting-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353512"
+    },
+    {
+      "name": "replay (research/selected-k8-catalogue-scope)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353544"
+    },
+    {
+      "name": "replay (research/selected-suppliers-de-diagnostic)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322353705"
+    },
+    {
+      "name": "replay (research/selected1094-chart-phase)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322354139"
+    },
+    {
+      "name": "replay (research/selected1094-idle-reassignment)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322354489"
+    },
+    {
+      "name": "replay (research/sparse-redundant-decoder)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322355082"
+    },
+    {
+      "name": "replay (research/t16-moment-order-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322355322"
+    },
+    {
+      "name": "replay (research/t37-integer-slack-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322355536"
+    },
+    {
+      "name": "replay (research/t37-receipt-role-binding)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322355813"
+    },
+    {
+      "name": "replay (research/triangle-equality-audit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322355758"
+    },
+    {
+      "name": "replay (research/truncation-frame-transport)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322355778"
+    },
+    {
+      "name": "replay (research/two-accumulator-saved-arms)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322356252"
+    },
+    {
+      "name": "replay (research/two-connector-transfer-boundary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322356253"
+    },
+    {
+      "name": "replay (research/universal-dirty-phase-identities)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322356727"
+    },
+    {
+      "name": "replay (research/z4-paired-frame-restoration-seed56)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322356889"
+    },
+    {
+      "name": "replay (research/z4-persistent-pair-seed57)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114439/job/116322356900"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003366"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003419"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38535114415/job/115756003586"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "d04bc58680914615276977353e7d2fbd38bfcd7594f6653eda1316ce303caa63"
+}

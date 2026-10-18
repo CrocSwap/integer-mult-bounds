@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "number": 810,
+  "title": "Research construction: shorten R420 phase-B block 8 from 47 to 30 XORs (no new kappa)",
+  "author": {
+    "id": "U_kgDOBnF4QA",
+    "is_bot": false,
+    "login": "jerrylin-23",
+    "name": "Jerry Lin"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/810",
+  "head": "6e1fd9c00c1b0463debaac343db2948e02bcede7",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/r420-block8-schedule/CANDIDATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d150b84906d477f639f58ece906b4d4a3b2e517a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block8-schedule/CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b550a4855c08b12f31172d8be88dad315ea633dc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block8-schedule/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f77654b2493854fbe242424e4b7c8da3a9a57f17"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block8-schedule/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d7a5c0c8da78977352557f91ae70d2845558958d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block8-schedule/native.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8dcd5e34b1aa43d3e3f37f0c25e16044b22cd87c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block8-schedule/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c4e5428e7b14b7e049326bfebc289e560ce5e28e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block8-schedule/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5e073dbcb377d1e7832fceef89bdfb6b8818174f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r420-block8-schedule": 7
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "## Change and mathematical scope\n\nThis finite bit-circuit construction replaces **phase-B block 8 of the selected PR543 R420 word** (frame 550, `B[512:559)`, ordered registers `[2,4,16,18,20,22,96,98,101,103,112,118]`) with a schedule of **30 gates instead of 47**. The literal reverse cleanup `C` is regenerated from the changed `A`/`B`, so it saves 17 more gates. The complete local record stream falls **26,916 \u2192 26,882 scalar additions** (34 fewer). **No new \u03ba is claimed.**\n\n- The ordered positive integer forward matrix of the block is identical in all 144 entries, so every arbitrary block input gives the same exit values.\n- The positive reverse matrix is entrywise no larger: 32 entries are strictly smaller, the entry sum falls 321 \u2192 103 and the largest row sum falls 134 \u2192 26.\n- All 660 register frame paths, the paid histogram `{1:1320, 2:1440, 4:60, 5:120, 8:9}`, rank mass 5,112, and the nine copies and nine erasures are unchanged.\n- The original R420 checker `xcheck.py` reports all hypotheses H1-H5 and all four interface conclusions true on the changed word.\n- Python positive-prefix replay: forward 144,651 (unchanged), reverse 2,270,064 \u2192 2,212,684. The five-stage local payload stays at 100 bits, below the existing `2^104` cap.\n\nOnly `research/r420-block8-schedule/` is added: the circuit (`CANDIDATE.json`), its search (`search.py`), an exact verifier (`verify.py`) with `CERTIFICATE.json`, source pins (`SOURCES.json`), a native replay harness (`native.py`) and the local claim (`CLAIM.json`). `upstream/`, the selected sources, the selected record and the frontier are unchanged.\n\n**Search record.** Seeded two-sided nonnegative elementary-factor reduction on the fixed 12\u00d712 forward matrix. The OS-random assignment seed 18 (bit-supplier track) selects block 18 mod 10 = 8. The search seed 801018 was fixed before the first trial. 10,000 trials, each stopped at the current best length: 144 reached the identity, 10 of these also had a dominated reverse matrix, and improvements came at trial 21 (33 gates) and trial 318 (30 gates). A separate seed-18 run was interrupted, found no improvement and was not used. No minimality or exhaustive-coverage claim is made.\n\n## Validation\n\n```sh\npython3 -B research/r420-block8-schedule/verify.py\n```\n\nExpected output (Python standard library only, about 2 s; checked with Python 3.14.6 on macOS arm64):\n\n```text\nPASS_R420_BLOCK8_SCHEDULE gates=47->30 ADDs=26916->26882 columns=660 controls=10 rank_mass=5112 kappa=not_recomputed\n```\n\nThe verifier does not import the search. It requires and checks the SHA-256 pins of the source word and `xcheck.py` (and the other files in `SOURCES.json`); binds the recipe to its block index, frame, slice and ordered registers; checks forward matrix equality and reverse domination; rebuilds the record stream independently of the predecessor exporter; replays all 660 columns forward and in reverse over F2 with copy-lifecycle checks; replays both positive prefixes; requires equal frame paths, an equal paid profile, the exact 2 \u00d7 17 saving, frame ranks equal to the original checker's, and true interface flags on both words; and compares the full report with `CERTIFICATE.json`.\n\nTen negative controls are checked: equal forward maps without reverse domination (three-wire calibration), a dropped gate, a self-addition, a boolean wire index, a wrong frame, a swapped register binding, an unpriced cancelled pair, a missing cleanup gate, a stale cleanup that passes the F2 endpoint but fails H4, and an illegal frame descent. A separate temporary test confirmed that an empty pin map, a map without `xcheck.py` and a wrong source hash are rejected.\n\n**Not run:** native C++ replay of the candidate word. `native.py` is included for that replay, but only a calibration run (the original word as both inputs, on a pre-final revision of the harness) has been done. No repository-wide suite, selected cold replay, hosted or outer assembly, or CI result is claimed. Inherited obligations remain open: signed decoder evidence beyond F2 column replay, mutable-basis common-label realization and exact-bank completion, and hosted replay, routing, pricing and outer assembly. Finite replay is not a proof of the full multiplication theorem.\n\n## Pins, overlap and attribution\n\n- Base commit **66849e1475c930fd7732b1a0067ffee7e1e95f60**. PR543 source `2065fe4f72a914d907f1046603f5a36f17018535` (git confirms the source word blob matches it); selected consumer PR626 `660de893d27bb7abd1d5b01b1640207528a5c851`.\n- Source word SHA-256 `9721a3819efd68307f66f00d84a952eb28eb7c3ad2ce79653ce295c98a764784`; rebuilt word canonical-JSON SHA-256 `b187b77553eb2f806ab467c33fcd1e85236faa7d393decbf8491332a3c91be9b`.\n- No pinned coordination issue existed, so the claim is local in `CLAIM.json`.\n- Overlap, refreshed through #804: no other PR changes block 8. #789 (yzhouwang, block 7) and #790 (commdata2338, block 9) apply similar fixed-block factor schedules to other blocks; this work is concurrent and independent and imports no code from them. #681 consolidates other circuit PRs, including the phase-B circuits for blocks 3 and 5, but no block 8 schedule. #754 rewrites short cleanup windows and may touch the block 8 cleanup range. Composition with these or any other pending PR is not checked.\n- Credit: eumemic for the PR543 R420 word and the `e8-bit-carrier-skeleton` exporter and native checkers; Dylan Crow for the bitE8 format and checker lineage; chafreaky for the selected PR626 consumer.\n- Prepared by Jerry Lin (@jerrylin-23) with substantial AI assistance in search, implementation, verification and writing. Apache-2.0. No independent human review yet.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "0ed97a2a6e99c09c4599a5903806ed196aae6ed1995f76152822fd4851eacef4"
+}

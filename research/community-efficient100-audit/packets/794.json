@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "number": 794,
+  "title": "Research construction: R420 target-basis compensation saves 7,879 XORs within the existing 192-bit nine-stage prefix charge (no new \u03ba)",
+  "author": {
+    "id": "U_kgDOC-l38Q",
+    "is_bot": false,
+    "login": "commdata2338",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/794",
+  "head": "6be7364e0245c5a1c931cb1c43b3da991b755850",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/r420-target-compensation/CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "afb301eff84d71a371ea77baf4764410e9c05ecd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/HOSTED-CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2ec12013a79415979a234289c25053f05c3f2932"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d81df58d1dc42dab099acf6aa4151c42778c804b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/RESEARCH.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b618fda8aa5523166b2d516869ab417051ea9082"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "43c64b39ed1ce52f8b83bd682e248d7c0081e5e1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ba57bab074408b5f4931c8fe8d91c7b4a2f61408"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/candidate.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "83fabcf57d99231a392dc9ed0a6849988a80dbae"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/common.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8cbf7052f2736efe8e1ec9d54676f577be3ebc40"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/replay_hosted.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "146b550c78aa1877a3b6f319a58d278559184618"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/requirements.txt",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fd3aa7c5b237b52e8d140362cb2532f9235fea5d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fe6a9f8a3b708e4932ccc9a1bb5f90b5977bad37"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-target-compensation/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "12aa1f082851cb98464d1866698a66f0f9024a97"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r420-target-compensation": 12
+  },
+  "github_reported_file_count": 12,
+  "complete_git_file_count": 12,
+  "body": "## Change and mathematical scope\n\n**Status: research construction with exact verification. No new \u03ba.** The selected certificate, its \u03ba (`51110230636731/31250000000000000`) and `upstream/` are unchanged. All files are new, under `research/r420-target-compensation/`.\n\neumemic's #543 R420 bit word implements its frame-zero dirty-helper compensation D, `y <- y + K s` for a fixed binary 120-by-420 matrix `K`, with 19,922 XORs. This PR factors `K` through a reversible target basis. D first applies 205 target transvections `y[a] ^= y[b]`, whose product is `E`. It then adds helpers along the 11,633 nonzero entries of `R = E K`, and finally repeats the 205 transvections in reverse order. Over F2 the result is `E^-1 (E y + R s) = y + K s` for arbitrary incoming targets and helpers. D never writes a helper or a source and needs no workspace.\n\n| Quantity | #543 | This PR |\n|---|---:|---:|\n| D XORs (entrance + helper injections + exit) | 19,922 | 12,043 (205 + 11,633 + 205) |\n| Complete native word, XORs | 26,916 | 19,037 |\n| Hosted instructions, 288 local calls | 8,603,712 | 6,334,560 |\n| Forward / reverse positive bounds F / B | 144,651 / 2,270,064 | 144,651 / 4,409,580 |\n| Local payload `64 F^3 B^2`, bits (cap 104) | 100 | 102 |\n| Nine-stage prefix `2^18 F^5 B^4` / charge, bits | 189 / 192 | 192 / 192 |\n| Two-level coefficient / charge, bits | 416 / 512 | 424 / 512 |\n\n- **Unchanged.** Only D changes. The 420 helpers, the nine COPY/ERASE pairs, every register's frame path, the paid profile `{1:1320, 2:1440, 4:60, 5:120, 8:9}` with rank mass 5,112, and the recursive children stay as they are. The bit lower bound and the selected \u03ba reproduce exactly.\n- **Prefix.** The reverse bound grows. The search admitted a row step only if F stayed at most 144,651 and B at most 4,409,638, the largest B with `2^18 F^5 B^4 < 2^192`, so the existing 192-bit nine-stage and 512-bit two-level charges still hold. The unrounded invoice coefficient increases. The claim is fewer instructions under unchanged charges, not a measured speedup.\n- **Changed hypothesis.** The new D breaks #543's gate-local H2, under which D gates read only helpers, and #543's direct `K_equals_D` extraction no longer applies. The verifier records both predicates as false and keeps every other H1\u2013H5 check. In their place, README.md proves a semantic D-boundary lemma: D runs at frame zero and implements exactly `(x, y, s) -> (x, y + K s, s)`, so the unchanged remainder of the word sees identical values and frames. The verifier checks that boundary on all 660 symbolic columns.\n- **Search.** OS seed 18 chose this object (`18 mod 3 = 0` among three candidates). At each step a greedy pass scored every ordered pair of target rows, kept only steps that passed an exact incremental prefix check, and broke ties with the seed. It stopped after 205 steps and 2,941,680 pair evaluations, when no admissible positive-gain pair remained; the cap was 1,000 steps. An unrestricted control with the same seed reached 10,384 D XORs but needed 201 nine-stage bits and broke the 104-bit payload cap, so it is kept only as a rejected control. 12,043 is not claimed optimal.\n\n**Predecessor work.** Details and pins for 39 source files are in README.md and SOURCES.json.\n- eumemic's #543, reviewed at `2065fe4f72a914d907f1046603f5a36f17018535` and building on #493, supplies the word, the compensation matrix, the interleaved interface and the checker this package reuses.\n- Credit carried from #543's lineage: Dylan Crow (E8 word, record and checker lineage), DreamingOfClouds (#503/#510, generalized nine-stage accounting), DaysSky (bridged columns, whole-call hosting), Zhihao Chen (mutable-source/common-label and compressed geometry) and Chafik Boukhalfa (physical routes, templates and audits). Chafik Boukhalfa's selected #626 supplies the complex lower bound that the hosted replay cites.\n- Dugongue's #476 and #478 used the reversible donor-receiver target identity on R715 phase B. Each transvection pair here is that identity, applied to the compensation.\n- Mikhail R. Gadelha's concurrent #686 published the semantic D-boundary substitution first. This PR claims no priority for it or for basis factoring.\n\n**Open obligations.**\n- A maintainer must accept the semantic D-boundary lemma in place of the gate-local H2 and update the supplier's source bindings.\n- B sits 58 below the nine-stage cutoff, so combining this D with any change that raises F or B needs a fresh prefix recount.\n- The all-size compiler, common-label/mutable-basis realization, pooled hosting, normalized residual, precision/tape recovery and analytic-transfer assumptions remain inherited.\n\n[Research note and proof](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/README.md), [frozen recipe](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/candidate.json), [certificate](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/CERTIFICATE.json), [hosted certificate](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/HOSTED-CERTIFICATE.json), [source pins](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/SOURCES.json), [validation record](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/VALIDATION.json), [seed, search and overlap record](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/RESEARCH.json), [verifier](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/verify.py) and [search](https://github.com/CrocSwap/integer-mult-bounds/blob/6be7364e0245c5a1c931cb1c43b3da991b755850/research/r420-target-compensation/search.py).\n\n**Overlap.** No coordination issue exists; the only open issue, #650, asks about Discussions. The circuit was nominated and frozen locally before any concurrent D PR was read (RESEARCH.json records the freeze at 04:19 UTC on 13 October), and nothing from those PRs is imported. The package README records the overlap as of 04:25 UTC, when only #686 and #694 had appeared. A refresh between 05:28 and 05:37 UTC searched PR titles and bodies through #788 and read every PR among them that changes D. `main` is still `66849e1`, so nothing on D has merged. Many open PRs now change this D, and two reach lower counts:\n\n| PR | Basis and recipe class | D XORs | Native XORs | Nine-stage bits |\n|---|---|---:|---:|---:|\n| This PR | target; 205 successive steps | 12,043 | 19,037 | 192 |\n| #686 | helper; one pair | 19,814 | 26,808 | 189 |\n| #694 | helper; 201 disjoint pairs | 12,988 | 19,982 | 192 |\n| #713 | target; 57 disjoint pairs | 16,772 | 23,766 | 191 |\n| #716 | target; 60 disjoint pairs, optimal among disjoint pairs | 16,672 | 23,666 | 191 |\n| #742 | target; shared donors | 16,634 | 23,628 | 192 |\n| #759 | target; rooted forest | 15,138 | 22,132 | 197 |\n| #774 | target; forest with optimized cuts | 15,025 | 22,019 | 197 |\n| #733 | #694's helper basis, then 57 target pairs | 11,554 | 18,548 | 195 |\n| #681 | #694's helper basis, then 56 target pairs, in a six-PR consolidation | 11,562 | 18,378 | 196 |\n\nThe last column applies this package's nine-stage formula to each PR's reported F and B. The other D PRs check the local payload against 2^104 and leave the hosted prefix to integration; #681 reports 196 bits itself, and the formula reproduces it. #681's native count includes its phase-A, phase-B and decoder changes.\n\n- **Lower counts.** Scott Woolsey Biggart's #733 and the D stage of Alluri's #681 use 489 and 481 fewer D XORs than this PR. Both exceed the 192-bit nine-stage charge: #681 raises its allocation to 256 bits and replays the hosted invoice at that charge, and #733 leaves global invoices open. This PR does not settle whether their extra savings are worth the larger allocation.\n- **What this adds.** Of the D constructions that keep the existing 192-bit charge, this one saves the most, 945 XORs more than Greer Guthrie's #694. Apart from #681's consolidation, it is the only D package that replays the complete nine-stage hosted invoice. Its D of 12,043 lies below the 14,921-XOR floor that Oscar Fennell's #759 certifies for rooted target forests, a floor Anthony's #774 corroborates, so this circuit lies outside that class, as it lies outside the disjoint pairs of Sagar Thakrar's #716. Scott Woolsey Biggart's #713 published the first target-side circuit, at 04:40 UTC, followed by #716 and ellipsi2's #742.\n- **Composition and conflict.** These PRs replace the same D subword, so they are alternatives; no file paths collide. #733 shows that a helper basis and a target basis compose. At #694's F = 202,699, however, the 192-bit charge allows B only up to 2,892,279, against #694's own 2,446,788, so this PR attempts no such composition. cxnmai's #748 changes K itself through a decoder-total representation, which would require recomputing this recipe on the new matrix. #731 (Joshua Snider) and #762 (Sagar Thakrar) verify the baseline K and complement this work. #749 (Sricharan Vagvala) takes target pairs to the JP8 complex supplier. The phase-A, phase-B and cleanup PRs (#670, #674, #688, #691, #708, #710, #753, #754) change other subwords; combining any of them with this D needs the prefix recount above.\n\n## Validation\n\nFrom the repository root (Python 3.11+, standard library only):\n\n```sh\npython3 -I -B research/r420-target-compensation/verify.py\n```\n\nOutput, re-run on base `66849e1` with this package before submission (Linux, Python 3.12.3, about 3 seconds):\n\n```text\nPASS_R420_TARGET_COMPENSATION D=19922->12043 total=26916->19037 columns=660 rank_mass=5112 nine_bits=192 controls=13\n```\n\n`python3 -I -B research/r420-target-compensation/search.py` reruns both seed-18 trials and compares the full result with the frozen recipe. It printed `PASS_REPRODUCIBLE_SEARCH guarded_steps=205 D_adds=12043 trials=2 seed=18` in the same pre-submission run.\n\nThe optional complete hosted replay needs a C++17 compiler, Boost headers, and `requirements.txt` (SymPy 1.14.0, mpmath 1.3.0) in a virtual environment. It writes a fresh directory under `build/`:\n\n```sh\npython3 -I -B research/r420-target-compensation/replay_hosted.py\n```\n\nExpected final status:\n\n```text\nPASS_R420_TARGET_COMPENSATION_HOSTED local_adds=19037 hosted_events=6334560 prefix_charge=192 coefficient_charge=512 kappa=unchanged\n```\n\n- **Finite checks.**\n  - `verify.py` runs #543's exact lattice, frame and symbolic-row engine, plus a separate Boolean walk of all 660 columns in each direction. It checks the frozen recipe without trusting or rerunning the search, and rejects all 13 negative controls. One control omits the whole entrance basis: it passes when targets start at zero but fails the arbitrary-target boundary.\n  - The hosted replay freshly compiles the predecessor C++ engines. It checks 900 five-stage and 1,380 nine-stage formal columns with 6 and 18 omitted-bridge controls, and 4,740 unbanked parent columns; the parent and hosted audits reject 17 and 16 mutations. Four record controls omit a basis ADD, a helper ADD or a COPY, or understate a MOVE rank. All 47 outer assembly inequalities reproduce the selected \u03ba from #626's pinned complex lower bound. The recorded run, on Linux with Python 3.12.3, SymPy 1.14.0, mpmath 1.3.0 and GCC 13.3.0, produced a full report equal to HOSTED-CERTIFICATE.json. It was not re-run for this submission.\n- **Proof arguments.** README.md proves the D-boundary lemma, its substitution into the unchanged word, and the exact incremental formula the search uses to admit steps. None of these is inferred from the finite replay. The identity holds over F2; the positive integer bounds are recomputed from the literal instructions in both orientations.\n- **Repository checks.** `make selected-record-check` passes: `PASS selected record, exact kappa, original source inventory and proof supplement: 51110230636731/31250000000000000`. `git diff --check` is clean, and no existing file or `upstream/` byte changes. The verifier above was re-run on the submitted commit.\n- **Not claimed.** This is not a formal verification of the multiplication theorem or a cold replay of the complex supplier; #626's complex bound is pinned and cited. It claims no circuit optimality, no measured speedup and no composition with any other D, phase-A, phase-B or cleanup change. No repository-wide suite, eleven-stage physical replay, remote CI or Lean pass was run.\n\nSprint: bit-supplier track, OS seed 18. The claim and its result update are recorded locally. Submitted by @commdata2338 with substantial AI assistance, under Apache-2.0: OpenAI Codex (GPT-6-Astra) wrote the analysis, proof and checker, and Claude Code packaged the submission. No independent human peer review is claimed.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_01X86sCSXdoDd61SDFfC1PKG\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "acc4a2c83a4722437f5903ac4ab63fe33f5da6ba597540bbf1a0196bccdee40d"
+}

@@ -1,0 +1,14 @@
+from pathlib import Path
+import json,subprocess,hashlib,importlib.util
+P=Path('/tmp/pr-efficient1900');R=Path('/tmp/integer-mult-efficient1100-20261015');spec=importlib.util.spec_from_file_location('package',R/'scripts/research_package.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+objects=Path(subprocess.check_output(['git','rev-parse','--path-format=absolute','--git-common-dir'],cwd=R,text=True).strip())/'objects'
+for n in [2911]:
+ d=P/'sources'/str(n);pkg=next(f.parent for f in d.glob('research/*/VERIFY.json'));source=json.loads((pkg/'SOURCES.json').read_text());records=[]
+ try:
+  for row in source['files']:
+   if row['usage']!='input':continue
+   own=next((f['source'] for f in json.loads((P/'packets'/f'{n}.json').read_text())['files'] if f['path']==row['path']),None);raw=subprocess.check_output(['git','cat-file','blob',own['oid']],cwd=R) if own else subprocess.check_output(['git','show','HEAD:'+row['path']],cwd=R,stderr=subprocess.PIPE);assert hashlib.sha256(raw).hexdigest()==row['sha256'],row['path'];f=d/row['path'];f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(raw);records.append(dict(path=row['path'],sha256=row['sha256'],bytes=len(raw)))
+  subprocess.run(['git','init','-q'],cwd=d,check=True);(d/'.git/objects/info/alternates').write_text(str(objects)+'\n');m.validate(d,pkg.relative_to(d).as_posix())
+  result=dict(status='PASS',number=n,scope='Full registered metadata, Git source SHA/blob/task card pins; every external runtime input exactly matches current main. Vendored exports receive their own source authentication in declared checks.',files=records,validator_sha256=hashlib.sha256((R/'scripts/research_package.py').read_bytes()).hexdigest())
+ except Exception as e:result=dict(status='HOLD',number=n,reason=str(e),files=records)
+ (P/f'provenance-{n}-metadata.json').write_text(json.dumps(result,indent=2)+'\n');print(n,result['status'],len(records),result.get('reason',''),flush=True)

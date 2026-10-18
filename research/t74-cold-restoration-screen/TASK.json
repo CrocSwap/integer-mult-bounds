@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "task_id": "coverage-law-change",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "original_card": {
+    "id": "coverage-law-change",
+    "question": "Can a template or call contract leave two or more unpaid coordinates per live family?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/idle-axis-hosting/PROOF.md",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "State a replacement for the coverage identity (mass = 72W + 64N) and the contract change that realizes it, with its implementation cost.",
+      "Find an obstruction: show which data-endpoint obligation forces exactly one unpaid coordinate in the current template."
+    ],
+    "acceptance_gate": "An explicit replacement identity, verified on a small complete instance with dirty inputs, priced with ceiling.ceiling(unpaid=...).",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Explain where the single unpaid coordinate per family comes from in the hosted template; propose one change and price it. Ideal budget: two unpaid coordinates per family is 3.77x (levers.py).",
+    "bottleneck_link": "The deficit is one coordinate per family minus the centre charge; doubling unpaid coordinates per family scales it directly.",
+    "allowed_variations": [
+      "One template change or one endpoint-contract change.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Counting a coordinate as unpaid while leaving it unadvanced in the data endpoint."
+    ],
+    "overlap_terms": [
+      "coverage identity",
+      "unpaid coordinate",
+      "deficit law",
+      "W - 64N"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "On the PR2322 T74 words, can the end-of-call restoration climbs of FULL-cleanup helpers (PR2429) be removed by cold restoration under the existing restore-plus-zero-buffer contract, and what is a rigorous frame-only upper bound on that lever?",
+  "scope_change_reason": "Drawn on the recursive-interfaces track (seed 58: eliminate boundary or restoration work). The concrete restoration item on the live T74 line is PR2429's end-climb lever; the card closest to a changed per-call contract is coverage-law-change, but the object here is restoration work, not unpaid coordinates.",
+  "bottleneck_link": "Determines whether the largest remaining paid item of pure restoration work on the top T74 words can be removed with existing machinery; it cannot by single-gate moves, and frames cap it at +8.86%.",
+  "budget_minutes": 75,
+  "stop_rule": "Stop after the exact single-gate screen, construction plus exact replay of every candidate, and the time-resolved frame bound with its LP price; no multi-gate restoration search.",
+  "outcome": "negative-result",
+  "evidence": "restoration_screen.py: 8/355 helpers have a single commuting restoring gate; their converted words (restore + reader clearing at the joined frame + buffer-free cleanup) pass the exact replay forward and dual but the joined frame is FULL for all 8 (saving 0). Loose time-resolved frame estimate caps the lever at 438/525 dims, +8.86% LP ceiling; a reviewer's unreviewed exact span check suggests about 54/525.",
+  "author": "Sagar Thakrar",
+  "ai_assistance": "Prepared with substantial AI assistance: Claude Code (Anthropic, Claude Opus 5.5) wrote the screen and text around this author's earlier vendored checkers; a separate Claude subagent adversarially reviewed it. No independent human review is claimed.",
+  "open_questions": [
+    {
+      "question": "Are there helpers whose input readers all sit at low frames, so that a multi-gate restoration with reader clearing joins below FULL?",
+      "why_it_matters": "Reader-frame joins are what defeat the single-gate moves; only helpers with low-frame readers can still save anything.",
+      "first_step": "Make the span-based bound rigorous (warps after last use included) and rank helpers by reader-frame join.",
+      "blocked_by": "Time-resolved span algebra with operator words."
+    },
+    {
+      "question": "Can restoration be placed earlier in B, before the readers' frames grow?",
+      "why_it_matters": "Readers' frames at end of forward are the binding join; earlier placement could lower it.",
+      "first_step": "Compute the reader-frame join at each candidate's last use instead of at the end of forward.",
+      "blocked_by": "Later reads of the readers must then see the restored value; ordering legality unchecked."
+    }
+  ]
+}

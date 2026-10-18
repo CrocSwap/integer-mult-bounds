@@ -1,0 +1,208 @@
+{
+  "boost_archive_sha256": "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b",
+  "boost_archive_url": "https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2",
+  "boost_version": "1_86",
+  "boost_version_header_sha256": "65cc1b27e846afe00c2a8aeccd4fdc849d298a7d2fe0609a4afca489f91129f5",
+  "candidate_content_sha256": "16f8f177f622a507b0f817df3e7b1e49212d3a3e0cb92348ef24e790e890712f",
+  "commands": [
+    {
+      "command": "{python} -I -B {repo}/research/r480-quad-seed1/verify.py --out {work}/constructed",
+      "exit_code": 0,
+      "name": "primary-verifier"
+    },
+    {
+      "command": "c++ -O2 -std=c++17 -DHDIM=8 -DNCOPY=9 -I{repo}/research/e8-bit-carrier-skeleton/portable-include -I{repo}/research/e8-bit-carrier-skeleton/code/bit/checkers -I{boost_include} -o {work}/bin/legality {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/legality_h.cpp",
+      "exit_code": 0,
+      "name": "compile-legality"
+    },
+    {
+      "command": "c++ -O2 -std=c++17 -DHDIM=8 -I{repo}/research/e8-bit-carrier-skeleton/portable-include -I{repo}/research/e8-bit-carrier-skeleton/code/bit/checkers -I{boost_include} -o {work}/bin/legality_ncopy_h {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/legality_h.cpp",
+      "exit_code": 0,
+      "name": "compile-legality_ncopy_h"
+    },
+    {
+      "command": "c++ -O2 -std=c++17 -DHDIM=8 -DNCOPY=9 -DVPORTS=120 -DRHELP=480 -I{repo}/research/e8-bit-carrier-skeleton/portable-include -I{repo}/research/e8-bit-carrier-skeleton/code/bit/checkers -I{boost_include} -o {work}/bin/columns_h {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/columns_h.cpp",
+      "exit_code": 0,
+      "name": "compile-columns_h"
+    },
+    {
+      "command": "c++ -O2 -std=c++17 -DHDIM=8 -DNCOPY=9 -DVPORTS=120 -DRHELP=480 -DKPAIRS=2 -I{repo}/research/e8-bit-carrier-skeleton/portable-include -I{repo}/research/e8-bit-carrier-skeleton/code/bit/checkers -I{boost_include} -o {work}/bin/columns_k2 {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/columns_k.cpp",
+      "exit_code": 0,
+      "name": "compile-columns_k2"
+    },
+    {
+      "command": "c++ -O2 -std=c++17 -DHDIM=8 -DNCOPY=9 -DVPORTS=120 -DRHELP=480 -DKPAIRS=4 -I{repo}/research/e8-bit-carrier-skeleton/portable-include -I{repo}/research/e8-bit-carrier-skeleton/code/bit/checkers -I{boost_include} -o {work}/bin/columns_k4 {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/columns_k.cpp",
+      "exit_code": 0,
+      "name": "compile-columns_k4"
+    },
+    {
+      "command": "c++ -O2 -std=c++17 -DHDIM=8 -DNCOPY=9 -DVPORTS=120 -DRHELP=480 -DKPAIRS=5 -I{repo}/research/e8-bit-carrier-skeleton/portable-include -I{repo}/research/e8-bit-carrier-skeleton/code/bit/checkers -I{boost_include} -o {work}/bin/columns_k5 {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/columns_k.cpp",
+      "exit_code": 0,
+      "name": "compile-columns_k5"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/relax.py {work}/baseline/rchk",
+      "exit_code": 0,
+      "name": "baseline-relax"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/checkword.py {repo}/research/e8-r480-dead-totals/data/bitE8mut-r480.json.gz {repo}/research/e8-bit-carrier-skeleton/code/pricing",
+      "exit_code": 1,
+      "name": "baseline-stock-refusal"
+    },
+    {
+      "command": "{python} -I -B {work}/baseline/rchk/checkword_mut.py {repo}/research/e8-r480-dead-totals/data/bitE8mut-r480.json.gz {repo}/research/e8-bit-carrier-skeleton/code/pricing",
+      "exit_code": 0,
+      "name": "baseline-all720"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/interface.py {repo}/research/e8-r480-dead-totals/data/bitE8mut-r480.json.gz --json {work}/baseline/interface.json",
+      "exit_code": 0,
+      "name": "baseline-interface"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/mutate_mut.py {repo}/research/e8-r480-dead-totals/data/bitE8mut-r480.json.gz {work}/baseline/rchk/checkword_mut.py {repo}/research/e8-bit-carrier-skeleton/code/pricing {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/interface.py",
+      "exit_code": 0,
+      "name": "baseline-word-controls"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/export_records.py {repo}/research/e8-r480-dead-totals/data/bitE8mut-r480.json.gz {work}/baseline/records",
+      "exit_code": 0,
+      "name": "baseline-export"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/regression/stage_cohort.py {work}/baseline/records {work}/baseline/records {work}/baseline/cin {work}/baseline/cout",
+      "exit_code": 0,
+      "name": "baseline-cohort"
+    },
+    {
+      "command": "{work}/bin/legality {work}/baseline/cin {work}/baseline/cout {work}/baseline/cout/legality.json",
+      "exit_code": 0,
+      "name": "baseline-legality"
+    },
+    {
+      "command": "{work}/bin/columns_h {work}/baseline/cout/COHORT249-RECORDS.bin {work}/baseline/cout/columns_h.json",
+      "exit_code": 0,
+      "name": "baseline-columns_h"
+    },
+    {
+      "command": "{work}/bin/columns_k2 {work}/baseline/cout/COHORT249-RECORDS.bin {work}/baseline/cout/columns_k2.json",
+      "exit_code": 0,
+      "name": "baseline-columns_k2"
+    },
+    {
+      "command": "{work}/bin/columns_k4 {work}/baseline/cout/COHORT249-RECORDS.bin {work}/baseline/cout/columns_k4.json",
+      "exit_code": 0,
+      "name": "baseline-columns_k4"
+    },
+    {
+      "command": "{work}/bin/columns_k5 {work}/baseline/cout/COHORT249-RECORDS.bin {work}/baseline/cout/columns_k5.json",
+      "exit_code": 0,
+      "name": "baseline-columns_k5"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/mutate_records.py {work}/baseline/records {work}/baseline/cin {work}/baseline/cout {work}/bin/legality {work}/bin/columns_k5 {work}/bin/legality_ncopy_h",
+      "exit_code": 0,
+      "name": "baseline-record-controls"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/mutate_records_mut.py {repo}/research/e8-r480-dead-totals/data/bitE8mut-r480.json.gz {work}/baseline/records {work}/baseline/cin {work}/baseline/cout {work}/bin/legality {work}/bin/columns_h {work}/bin/columns_k5",
+      "exit_code": 0,
+      "name": "baseline-source-record-controls"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/gram_frames.py {work}/baseline/records --gram e8ham --h 8 --positive",
+      "exit_code": 0,
+      "name": "baseline-gram"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/relax.py {work}/candidate/rchk",
+      "exit_code": 0,
+      "name": "candidate-relax"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/checkword.py {work}/constructed/word.json.gz {repo}/research/e8-bit-carrier-skeleton/code/pricing",
+      "exit_code": 1,
+      "name": "candidate-stock-refusal"
+    },
+    {
+      "command": "{python} -I -B {work}/candidate/rchk/checkword_mut.py {work}/constructed/word.json.gz {repo}/research/e8-bit-carrier-skeleton/code/pricing",
+      "exit_code": 0,
+      "name": "candidate-all720"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/interface.py {work}/constructed/word.json.gz --json {work}/candidate/interface.json",
+      "exit_code": 0,
+      "name": "candidate-interface"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/mutate_mut.py {work}/constructed/word.json.gz {work}/candidate/rchk/checkword_mut.py {repo}/research/e8-bit-carrier-skeleton/code/pricing {repo}/research/e8-bit-carrier-skeleton/code/bit/independent/interface.py",
+      "exit_code": 0,
+      "name": "candidate-word-controls"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/export_records.py {work}/constructed/word.json.gz {work}/candidate/records",
+      "exit_code": 0,
+      "name": "candidate-export"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/regression/stage_cohort.py {work}/candidate/records {work}/candidate/records {work}/candidate/cin {work}/candidate/cout",
+      "exit_code": 0,
+      "name": "candidate-cohort"
+    },
+    {
+      "command": "{work}/bin/legality {work}/candidate/cin {work}/candidate/cout {work}/candidate/cout/legality.json",
+      "exit_code": 0,
+      "name": "candidate-legality"
+    },
+    {
+      "command": "{work}/bin/columns_h {work}/candidate/cout/COHORT249-RECORDS.bin {work}/candidate/cout/columns_h.json",
+      "exit_code": 0,
+      "name": "candidate-columns_h"
+    },
+    {
+      "command": "{work}/bin/columns_k2 {work}/candidate/cout/COHORT249-RECORDS.bin {work}/candidate/cout/columns_k2.json",
+      "exit_code": 0,
+      "name": "candidate-columns_k2"
+    },
+    {
+      "command": "{work}/bin/columns_k4 {work}/candidate/cout/COHORT249-RECORDS.bin {work}/candidate/cout/columns_k4.json",
+      "exit_code": 0,
+      "name": "candidate-columns_k4"
+    },
+    {
+      "command": "{work}/bin/columns_k5 {work}/candidate/cout/COHORT249-RECORDS.bin {work}/candidate/cout/columns_k5.json",
+      "exit_code": 0,
+      "name": "candidate-columns_k5"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/mutate_records.py {work}/candidate/records {work}/candidate/cin {work}/candidate/cout {work}/bin/legality {work}/bin/columns_k5 {work}/bin/legality_ncopy_h",
+      "exit_code": 0,
+      "name": "candidate-record-controls"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/mutate_records_mut.py {work}/constructed/word.json.gz {work}/candidate/records {work}/candidate/cin {work}/candidate/cout {work}/bin/legality {work}/bin/columns_h {work}/bin/columns_k5",
+      "exit_code": 0,
+      "name": "candidate-source-record-controls"
+    },
+    {
+      "command": "{python} -I -B {repo}/research/e8-bit-carrier-skeleton/code/bit/checkers/gram_frames.py {work}/candidate/records --gram e8ham --h 8 --positive",
+      "exit_code": 0,
+      "name": "candidate-gram"
+    },
+    {
+      "command": "c++ --version",
+      "exit_code": 0,
+      "name": "compiler-version"
+    }
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+  "inherited_manifest_sha256": "7f25c41d0400ef5adf763eae6e166003a9b59e5a655b860c04b052f6731c7297",
+  "native_driver_sha256": "5aeccaf96c5d622a607aa5aef63c183c20921845729acb6b317b489dd1f3354c",
+  "native_expected_sha256": "2b91efc5b2ffad0ebc3a828c8aa4b5949835ffcf35f57ed83823f029e1138c44",
+  "post_run_semantic_extractor_check": "PASS: final semantic_case results equal NATIVE-EXPECTED.json for both completed native runs. Command path normalization subsequently corrected to use {python}.",
+  "python": "3.12.14",
+  "scope": "Local finite/native replay only; no global hosting replay or exponent improvement.",
+  "source_word_sha256": "92e399e9a486b55229b5624632ac54f800dd9e022f2aee97f1e5f264bbc0ef5c",
+  "status": "PASS_R480_QUAD_SEED1_NATIVE_LOCAL_REPLAY"
+}

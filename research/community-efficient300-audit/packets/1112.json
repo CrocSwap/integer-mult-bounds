@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "number": 1112,
+  "title": "Independent verification: selected PR1042 finite invoice, 9 guards, 14 bootstrap steps and 94 outer slacks (seed 81, no new kappa)",
+  "author": {
+    "id": "U_kgDOCIO2xg",
+    "is_bot": false,
+    "login": "Wronskode",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1112",
+  "head": "3a6a13cf4fbda16e1d191553f8b08cb6a3d5ed27",
+  "merge_base": "ba82555c64e1879e4b7decce28186f208fcb8262",
+  "baseline": "1f7a934975e5eacaf83511c9ac870263bf095e05",
+  "files": [
+    {
+      "path": "Makefile",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "73fc1fd1cdb664b140efd659fd3a33c35ac8c326"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a92fbd19dbb4bd0e321b8c67558645a47b5efcb4"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "research/frontier1042-invoice-audit-seed81/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "86a8cf23bbffc21eb16f881f11f0e757b751b289"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/frontier1042-invoice-audit-seed81/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "99ff71113366c6b94ef4e8d923133df32870c7d5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/frontier1042-invoice-audit-seed81/test_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d810aba34bf69bf45da39781fe994b63c52b3913"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/frontier1042-invoice-audit-seed81/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8ee1d7a01473e1b5674710165566e4e9761f7c65"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "Makefile": 1,
+    "research/frontier1042-invoice-audit-seed81": 4
+  },
+  "github_reported_file_count": 5,
+  "complete_git_file_count": 5,
+  "body": "**Status: independent verification. No new \u03ba, and the selected result is unchanged. No discrepancy was found.**\n\n- **Track and seed:** track 75\u201384 (independent verification), assignment seed **81** from the OS CSPRNG (Python `secrets`).\n- **Base commit:** `ba82555c64e1879e4b7decce28186f208fcb8262`.\n- **Audited record:** `research/community-frontier1042-audit/ASSEMBLY.json`, sha256 `093f3544\u20261e54e`. This is the `certificate_sha256` in `certificates/selected-result.json`, with \u03ba = 1672188119205421/10\u00b9\u2078.\n- **Adds:** this directory and one Makefile target.\n\n## Why\n\nExisting independent checks of the current chain each stop at a stated boundary:\n\n- **#1049** checks the leaver local words.\n- **#1091** checks the T16 owner maps.\n- **#1069** checks the pricing chain, from profile through deficit and endpoint to \u03ba. It explicitly excludes invoices.\n- **#1052** recomputes the 94 outer slacks and 14 bootstrap steps, but only for the historical #942 T37 record.\n- **#771** (theon199, open) independently reproduces the nine finite invoice guards and the 2,628-bit group order, but for the earlier #626 invoice (row coefficient 16,467), not the selected #1042 invoice (16,469).\n\nThat left the finite invoice of the selected record without a check outside the retained `assemble.py`. The same was true of its seven-plus-seven bootstrap levels and its 47 + 47 outer slacks. The finite invoice covers the per-vertex envelope and the nine strict size guards (router, literal, precision, tape, row and the others listed below).\n\n## What `verify.py` checks\n\nIt uses only the standard library. It imports and executes nothing from the repository. All inputs are pinned and read as data:\n\n- the committed assembly;\n- the members `t16/global/audit/OWNERS-AND-PROFILE.json` and `PREFIX-AND-INVOICE.json` from the committed `selected-replay.tar.gz`. Each is checked against the assembly's own `input_sha256`, and the archive's `t16/ASSEMBLY.json` must be byte-equal to the committed file;\n- PR589's `EXPECTED.json`, checked against git blob `e293ddc5\u2026`.\n\nThe verifier recomputes every quantity and compares it exactly with the record.\n\n1. **Profile composition.**\n   - There are exactly 144 calls, one per (stage, replica) in 9 \u00d7 16, with forward and backward orientations alternating.\n   - The per-call paid profiles sum to the selected local profile.\n   - The idle remainders `{1:2249, 2:1, 3:400, 7:3, 16:47, 48:4850}` are nonnegative and number 7550.\n   - Rank mass is 1,041,408 and the deficit is 73 \u00b7 14336 \u2212 mass = 5120.\n   - The halving guard holds: 73\u00b2 = 5329 > 2 \u00b7 48\u00b2 = 4608.\n2. **Per-vertex envelope.**\n   - Actual selected primitives: 28,625,376. Wrapper factors: 9,953,280.\n   - Adapter formula, compiler 64 \u00b7 74\u00b3, nonlocal item count, unhosted per-vertex 3,588,959,010,714,576 and hosted rebased per-vertex value.\n   - The retained prior overcharge gives a used allowance of 6,466,906,000,439,144.\n   - The physical stock identity sums to 14,826.\n3. **The nine strict finite guards.** The table below gives the headroom in bits; all nine recorded bit lengths match.\n   - **Group order.** The charged group order is computed in two independent ways: 2^(n\u00b2)\u220f(2^(2j)\u22121), and the orbit\u2013stabilizer count of hyperbolic pairs. Both give n = 36, i.e. |Sp(72,F\u2082)|.\n   - **Interpretation.** In characteristic two, the orthogonal group of a nondegenerate quadratic form in odd dimension 2n+1 is isomorphic to Sp(2n,q). So this number is |O(73,F\u2082)| for the parabolic quadratic form, for m = 73. That is one reading of the \"full finite orthogonal group\" named in `research/native-complex-moment552/PROOF.md`.\n   - **Relation to #771.** #771 reads the same group as the isometry group of the standard dot product on F\u2082\u2077\u00b3. It checks that reading by enumerating orthonormal bases in dimensions 1\u20137. That group has the same order, so the invoice is identical under either reading.\n   - **Brute-force check.** The verifier enumerates every invertible matrix preserving the parabolic form x\u2080\u00b2 + \u03a3 x\u2082\u1d62\u208b\u2081x\u2082\u1d62. It finds |O(3,2)| = 6 and |O(5,2)| = 720, matching the formula. This is a different object from #771's, so the two checks complement each other.\n\n   | Guard | Bound | Headroom |\n   |---|---|---|\n   | local primitive bound | 2\u2074\u2078 | **4 bits** (10,038,040,553,630 \u2248 2^43.19, about 28\u00d7) |\n   | logical (group \u00b7 used + 64) | 2\u2076\u2070\u2075\u2070 | 3,370 bits |\n   | router | 2\u00b3\u2070\u2070\u2070\u2070 | 22,012 bits |\n   | literal | 2\u00b9\u2070\u2070\u2070\u2070\u2070 | 64,716 bits |\n   | mass (streamed mass vs 2\u00b9\u2070\u2070\u2070\u2070\u2070) | 2\u00b9\u2070\u2070\u2070\u2070\u00b9 total | 97,352 bits |\n   | precision 32\u00b773\u00b7B\u00b2 | 2\u00b2\u00b9\u2070\u2070\u2070\u2070 | 9,988 bits |\n   | tape | 2\u00b2\u00b9\u2070\u2070\u2070\u2070 | 109,998 bits |\n   | row coefficient 2\u00b72642+9909+252+1024 | 20,161 | 16,469 < 20,161 |\n   | halving | \u2014 | 5329 > 4608 |\n\n   Prefix: the local maximum is 68 bits. The global prefix is 68+37+144+144+4 = 397, charged at 512; the row reserve is 2 \u00b7 512 = 1024.\n4. **Bootstrap and outer assembly, for both the native and the conservative endpoint.**\n   - **Bootstrap.** It has seven affine levels from 384599/10\u00b9\u2070, with target s = min(c, (1\u2212\u03b2)b) \u2212 10\u207b\u00b2\u2077 and \u03b7 = \u03b2 = 10\u207b\u00b2\u2074. All 14 (exponent, gap, cutoff) records match exactly.\n   - **Outer slacks.** All 47 + 47 slacks equal the recorded rationals exactly and are positive.\n   - **\u03ba.** Each \u03ba is the largest 10\u207b\u00b9\u2078 grid point strictly below the absorption margin \u03b5q.\n   - **Controls.** The four recorded outer controls (`next_grid`, `zero_eta`, `zero_beta`, `unit_beta`) are re-derived as failures.\n5. **PR589 bit side.**\n   - The bit endpoint equals PR589's recorded `bit_lower`.\n   - The bit deficit is 32(2\u00b74\u00b7111 \u2212 9\u00b763) = 10,272, and it equals 64\u00b7live \u2212 mass for PR589's profile.\n   - The endpoints are ordered conservative < native complex < bit.\n\n### Additional observations\n\n- **The bootstrap cutoffs do not depend on the prefix reserve.** At every one of the 14 steps the quadratic term \u230836/gap\u00b2\u2309 decides the cutoff. It keeps deciding it for any reserve P \u2264 6,566,539 in \u23082(4+P)/gap\u2309. So this lineage's 512-bit linear term, where T37 used 1024, does not affect the recorded cutoffs.\n- **The tightest finite guard is the local primitive bound, not precision.** Its value is dominated by local adapters \u00d7 compiler (387,056 \u00d7 25,934,336). Future provider words with more macros or children consume this 28\u00d7 margin first.\n- **The smallest outer slacks are \u03b7-scale.** For example, \u03bb \u2212 \u03c4 = a\u03b7 \u2248 1.7 \u00d7 10\u207b\u00b2\u2077, followed by \u03b2 = 10\u207b\u00b2\u2074. They are positive by construction, not by numerical margin.\n\n### Negative controls\n\nThere are 15 controls, and each must be rejected. Every one is rejected at its intended check:\n\n- one extra idle child;\n- one call's primitive count changed;\n- one call dropped;\n- one orientation swapped;\n- one extra physical register;\n- the retained prior overcharge dropped;\n- recorded router bits off by one;\n- row coefficient set to the bound;\n- \u03ba + 10\u207b\u00b9\u2078;\n- one outer slack edited by 10\u207b\u2074\u2070;\n- one bootstrap cutoff off by one;\n- bit endpoint \u2212 10\u207b\u00b2\u2074;\n- complex endpoint + 10\u207b\u00b2\u2074;\n- a count- and mass-preserving idle edit introducing a rank-52 child, which fails only the halving guard;\n- group |Sp(70,2)| in place of |Sp(72,2)|.\n\n## Reproduce\n\n```sh\nmake frontier1042-invoice-audit-verify\n```\n\nExpected output:\n\n```\nPASS_FRONTIER1042_INVOICE_OUTER_INDEPENDENT | guards 9 | slacks 94 | bootstrap 14 | controls 15\n```\n\nSix unit tests should then pass. The run takes about 1.5 s on Python 3.10+, needs no network, and reads the committed archive without extracting it. `RESULT.json` is regenerated and compared byte for byte; `--write` rewrites it.\n\n## Scope and independence\n\n- **How the formulas were obtained.** The definitions of the envelope, the guards, the bootstrap and the 47 constraints exist only as code. They live in the retained `code/assemble.py` and the `engines/outer.py` engine (sha `c1ebb521\u2026`). Their conceptual source is `notes/three-stage-cover-assembly.tex`, \u00a7 \"Full finite router and completed-child guard\". I read those definitions and re-implemented them separately; nothing from them is imported or executed.\n- **What this does and does not catch.** It is an independent re-computation. It catches transcription, data-binding and arithmetic errors in the selected record. It does **not** independently justify why these particular formulas are the right charges.\n- **What is taken as data.** Taken as given are:\n  - the semantic content of the receipts: local words, Clifford phases, owner windows and hosting. Those are covered by #1049, #1091 and the maintainer replay;\n  - the two moment endpoints `complex_lower` and `conservative_complex_lower`. Those are certified by the two retained engines and independently by #1069.\n- **Inherited assumptions.** All the record's conditions remain: all-size/compiler, common-label/mutable-source realization, whole-call hosting, precision/tape, exact recovery, analytic transfer and bit H1\u2013H5.\n- **What this is not.** It is a finite check of one certificate. It is not a formal proof, and it is not a verification of the multiplication theorem.\n\n## Credit\n\n- **Construction:** Jeremy Kothe (#1042 and its chain), with Rohan Arun's #987 slot search, Hao Yan's #858 T16 controller and the full lineage credited in `research/gauge44-slots-t16`. The bit supplier is DreamingOfClouds' PR589 on eumemic's PR555.\n- **Assembly and guard engines:** the retained engines and their authors as named in their headers: icekylinx (PR144), Zhihao Chen (PR23), eumemic and hipotures' balanced transform.\n- **Predecessor guard audit:** theon199's #771 established the group order and the nine-guard recomputation for the #626 invoice, including the row-guard sensitivity to replacing the group with GL(73,2). This package extends that check to the selected #1042 invoice, the per-vertex envelope, the bootstrap chain and the outer slacks. It does not claim priority for the group-order identity.\n- **Neighbouring audits whose boundaries this complements:** #1069 and #1051 (Sagar Thakrar), #1052 (steph4n-gh), #1091 (JosieElliston), #1049 and #1009.\n\nPrepared by Wronskode (@Wronskode) with substantial AI assistance from Claude (Anthropic) via Claude Code. New material is Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "05fad92956c47447f76551f943eb0b393c7643c8f95dafdaadc47d97488f4f05"
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "number": 693,
+  "title": "Research audit: signed block extraction and coefficient-alias controls",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/693",
+  "head": "7d857bb58fb55ada6d05364a4b6f01bba8e2283f",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "81e81af67714bdc8d1693b0bf5c29468b92f62ff",
+  "files": [
+    {
+      "path": "research/signed-extraction-audit/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "227ec1185d0f0b2299b79eda44166fe9480ab4b5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/signed-extraction-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bc7a973643c2eea47d598d89d370d98df635f787"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/signed-extraction-audit/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "96cd5b114b70ae1ec7ebe5c3cc3afcf81c865ba1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/signed-extraction-audit/SOURCE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "556b0be0418d07b8c93eece4327109087d181fc4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/signed-extraction-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0b714cecf26e2a15c5fba98f75894a1345d944bd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/signed-extraction-audit": 5
+  },
+  "github_reported_file_count": 5,
+  "complete_git_file_count": 5,
+  "body": "The retained signed-ring-product lemma extracts coefficients from fixed-width two's-complement blocks with a one-bit carry. The existing signed-packing test repeatedly divides a signed Python integer, so it does not exercise that interface. This research audit adds an independent block decoder, direct-convolution oracle, source pins and exact receipt. The stated strict-bound cases pass; no source defect or new kappa is claimed.\n\nThe useful negative control is a coefficient alias at the forbidden positive half-radix boundary. With B=32 and a=c=[4,0], decoding returns [-16,1,0,0] instead of [16,0,0,0]. Integer recomposition and terminal-carry checks both pass. This shows why coefficient comparison or strict separation is necessary. It violates the retained lemma's radix choice and is not a counterexample to that lemma.\n\nBase: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. Assignment seed: **60**, adversarial mathematical audit. Source: `openai/math@adc7f1241b42e322a6451854ab7e4b4c146bf78a`, `lem:signed-ring-product`; exact local hashes are in `SOURCE.json`. Only `research/signed-extraction-audit/` is added.\n\nCompleted coverage:\n\n- 57,160 exhaustive strict-centered coefficient words and every residual identity.\n- 139,776 local transitions, including q+carry=B.\n- 6,561 exhaustive p=2, r=2 products against direct convolution.\n- 180 larger seed-60 products and six negative controls.\n\nReproduce with Python's standard library:\n\n```sh\npython3 -B research/signed-extraction-audit/verify.py --check research/signed-extraction-audit/RESULT.json\n```\n\nExpected: `PASS_SIGNED_EXTRACTION: 57160 words; 139776 transitions; 6561 exhaustive products; 180 sampled products; 6 negative controls`.\n\nVerification passed on CPython 3.14.8, both normally and with `-O`. All four existing `test_finite_identities.py` tests and `make selected-record-check` pass. Two in-memory code mutations are rejected. The written induction and checker received an additional scoped AI review. This is finite verification, not a machine-formalized theorem or a fixed-tape runtime implementation. Full `make verify`, supplier cold replay and remote CI success are not claimed. The selected construction, inherited all-size/physical/analytic assumptions and upstream source are unchanged.\n\nThe final overlap refresh found Ryan Pinto / @Ambassators's concurrent #690 at `8dd49f5e322f682502d9ab3c03d393a50f046e24`. It audits `packed_lower` from Chafik Boukhalfa's #489. This contribution independently audits the retained upstream block/carry interface and adds the exact transition census and positive-half-radix alias control. No #690 code or result is consumed. The local claim records the candidate choices and overlap checks; no pinned sprint issue was available.\n\nCredit OpenAI for the original CC0 lemma, Douglas Colkitt for the prior dependency audit and finite test, and the selected checkpoint's contributors. Prepared by Sagar Thakrar / @thakrarsagar with substantial OpenAI Codex assistance in research, code, writing and scoped AI review. New files use Apache-2.0.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "5d6c1c841d93499c0f5adaeb4bfdbbde58b36c03d83d976b03c51ff0f7614155"
+}

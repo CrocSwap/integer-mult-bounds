@@ -6,6 +6,8 @@ Finite conditional verification; retained analytic and uniform interfaces are as
 Default: reconstruct, check exact new frame pairs and complete symbolic scalar maps.
 --all: additionally check every distinct inherited frame transition over Q.
 Both frame-pair loops run on forked workers (VERIFY_JOBS, default the CPU count); each check is unchanged.
+The exact null spaces use an integer fraction-free kernel with output identical to PR97 linalg.null_exact
+(VERIFY_NULL=reference uses the original Fraction kernel; VERIFY_NULL=audit runs both and asserts equality).
 --write: write the deterministic certificate after all checks pass.
 """
 import sys
@@ -21,6 +23,7 @@ import json
 import multiprocessing
 import os
 from pathlib import Path
+from math import gcd
 import random
 import time
 
@@ -29,6 +32,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / 'research/bit-reuse-147'))
 import word147
 import price147
+import frames147
 from frames147 import Exact
 import paired_cube_network as pcn
 
@@ -55,6 +59,89 @@ def sources():
               ROOT / 'certificates/paired-cube-bit-input.json',
               ROOT / 'certificates/paired-cube-complex-input.json']
     return {str(p.relative_to(ROOT)): sha256(p.read_bytes()).hexdigest() for p in sorted(set(paths))}
+
+def null_exact_ff(A, k):
+    """For an integer matrix: the same list of rows as PR97 linalg.null_exact (Fraction RREF), fraction-free.
+
+    The steps mirror null_exact one for one: reduce each row by the earlier pivot rows, take its first nonzero
+    entry as pivot, clear that column in the earlier rows. Each stored row is a nonzero rational multiple of the
+    corresponding Fraction row (pivots kept positive), so the pivots and the reduced row space agree; for each free
+    column f, x has x_f = lcm of the pivots and x_pc = -b[f] * lcm / b[pc], a positive multiple of the Fraction
+    vector, and dividing by the gcd gives the same primitive vector as linalg.primitive.
+    """
+    R = []; piv = []; pv = []
+    for r0 in A:
+        r = list(r0)
+        for pc, p, b in zip(piv, pv, R):
+            c = r[pc]
+            if c: r = [p * x - c * y for x, y in zip(r, b)]
+        i = next((i for i, x in enumerate(r) if x), None)
+        if i is None: continue
+        g = gcd(*r)
+        if r[i] < 0: g = -g
+        if g != 1: r = [x // g for x in r]
+        a = r[i]
+        for t, b in enumerate(R):
+            c = b[i]
+            if c:
+                b = [a * x - c * y for x, y in zip(b, r)]; g = gcd(*b)
+                if g != 1: b = [x // g for x in b]
+                R[t] = b; pv[t] = b[piv[t]]
+        R.append(r); piv.append(i); pv.append(a)
+    pivots = set(piv); out = []
+    for f in range(k):
+        if f in pivots: continue
+        lcm = 1
+        for p, b in zip(pv, R):
+            if b[f]: lcm = lcm * p // gcd(lcm, p)
+        x = [0] * k; x[f] = lcm
+        for pc, p, b in zip(piv, pv, R):
+            if b[f]: x[pc] = -b[f] * (lcm // p)
+        g = gcd(*x)
+        out.append([v // g for v in x] if g != 1 else x)
+    return out
+
+_ORIGINAL = {}
+
+def install_null_kernel(folder, mode=None):
+    """Replace null_exact in the pinned PR97 modules (and prim in frames147) before Exact is built.
+
+    The frozen files are not edited. Non-integer or ragged input falls back to the original functions."""
+    mode = mode or os.environ.get('VERIFY_NULL', 'fast')
+    assert mode in ('fast', 'reference', 'audit'), mode
+    if str(folder) not in sys.path:
+        sys.path.insert(0, str(folder))
+    import linalg
+    import check_lifted
+    ref_null = _ORIGINAL.setdefault('null_exact', linalg.null_exact)
+    ref_prim = _ORIGINAL.setdefault('prim', frames147.prim)
+    if mode == 'reference':
+        linalg.null_exact = check_lifted.null_exact = ref_null
+        frames147.prim = ref_prim
+        return mode
+    def integral(A, k):
+        return all(len(r) == k and all(type(x) is int for x in r) for r in A)
+    def null_fast(A, k):
+        A = [list(r) for r in A]  # materialise once, so one-shot iterables are not consumed by the type check
+        return null_exact_ff(A, k) if integral(A, k) else ref_null(A, k)
+    def null_audit(A, k):
+        out = ref_null(A, k)
+        assert null_fast(A, k) == out, ('null_exact kernel mismatch', A, k)
+        return out
+    def prim_fast(r):
+        r = list(r)
+        for x in r:
+            if type(x) is not int: return ref_prim(r)
+        g = gcd(*r)
+        return [x // g for x in r] if g else list(r)
+    def prim_audit(r):
+        out = ref_prim(r)
+        assert prim_fast(r) == out, ('prim mismatch', r)
+        return out
+    null, prim = (null_fast, prim_fast) if mode == 'fast' else (null_audit, prim_audit)
+    linalg.null_exact = check_lifted.null_exact = null
+    frames147.prim = prim
+    return mode
 
 _EXACT = None
 _NONDEG = False
@@ -123,6 +210,7 @@ def main():
     fresh = word.new_moves(led)
     assert set(fresh) == set(old.new_moves(old_led)), 'Composition changed the new-frame obligations'
     log('PASS exact composed plan, chronological ledger and unchanged set of new frame pairs')
+    log('null_exact kernel: %s' % install_null_kernel(folder))
     exact = Exact(S, W, folder)
     failed = check_moves(exact, fresh, nondegenerate=True)
     assert not failed, failed[:5]

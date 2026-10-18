@@ -1,0 +1,233 @@
+{
+  "scope": "Read-only snapshot, not atomic; targeted PR1048 query plus latest30 PR title/body results through1190. No claim to exhaustive all-repository overlap search.",
+  "prs": [
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1182",
+      "number": 1182,
+      "state": "open",
+      "merged": false,
+      "mergeable": true,
+      "draft": false,
+      "body": "The frozen PR1048 pricer returns two false root brackets at its unchanged\ndefault34-term/24-digit settings. For explicit rank-one profiles with m=9 and\nW=10^64, both the surcharged and unsurcharged functions return\n`[1/20-10^-24,1/20]`, although an exact tenth-power integer inequality proves\nthe root is strictly greater than1/20. Neighboring profiles with one additional\ncall have roots on the opposite side and receive the same original bracket.\n\nThis turns the maintainer's already recorded undecided-sign finding into\nreproducible false certificates. The package retains the unchanged original\ncode/notice at07730cd, proves that float nomination already encloses these roots,\nand supplies a bounded tri-state bisection that certifies both endpoint signs\nor explicitly returns unresolved. An independent integer-only checker proves\nthe root intervals without importing the pricer or repair.\n\nValidation: both original defaults, four paired fixtures, one ordinary-profile\ncontrol, capped/equality/initial-unknown cases, ten rejection controls, source\ninventory checks, optimized and assertion-enabled replay. Reproduction and\nactual outputs are recorded in README.md and VALIDATION.json.\n\nThese are abstract arithmetic profiles; no realizable supplier or selected\nPR589/PR1094 failure is claimed. PR1048's search, ordering and neighborhood\nclaims remain deferred. Credit to flemhhh's pricer and Douglas Colkitt's prior\nfinding; retained source lineage and notices included. @woklerx with substantial\nOpenAI Codex assistance, Apache-2.0.\n",
+      "title": "Audit: default-precision false PR1048 root brackets and a certified repair",
+      "base": "main",
+      "base_sha": "1b59b624d21924f8e3537cdc1ac52d3be6eda2fe",
+      "head": "research/sprint30-r34-s64",
+      "head_sha": "0213b8911bfeefd5c81ddf320bac6a0fb7e86215",
+      "head_repo_id": 1417268671,
+      "head_repo_full_name": "woklerx/integer-mult-bounds",
+      "merge_commit_sha": "963c51b6c66c752f03f1be8e3ecc121e11dbf0e3",
+      "user": {
+        "login": "woklerx",
+        "name": "woklerx",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/338878655?v=4",
+        "id": 338878655
+      },
+      "requested_reviewers": null,
+      "requested_team_reviewers": null,
+      "created_at": "2026-10-13T19:47:44Z",
+      "updated_at": "2026-10-13T19:47:44Z",
+      "closed_at": null,
+      "merged_at": null,
+      "commits": 1,
+      "changed_files": 15,
+      "additions": 1170,
+      "deletions": 0,
+      "display_url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1182",
+      "display_title": "Audit: default-precision false PR1048 root brackets and a certified repair"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1048",
+      "number": 1048,
+      "state": "open",
+      "merged": false,
+      "mergeable": false,
+      "draft": false,
+      "body": "## What this is\n\n**Research note + independent verification. No \u03ba claim; the bit side does not bind.**\n\nIt prices a bit word from its **paid profile alone**, and then uses that to run an exhaustive audit of\nthe merged bit supplier (PR #589's tuned R439 word). Everything is exact integer/rational arithmetic\nagainst files pinned by sha256 at `66849e1475c930fd7732b1a0067ffee7e1e95f60`.\n\nNew material:\n\n1. **The paid-profile duality.** The certified saving `c` of a bit word is the unique `a > 0` with\n   `Psi(a) := sum_r n_r r((m/r)^a - 1) = D := m*W - rank_mass`. Equivalently, for any fixed `a0`,\n   `c` is a strictly decreasing function of the single weighted count `G(a0) = sum_r n_r r^(1-a0)`.\n   Rank-profile search is therefore a *linear-objective* problem and a candidate word costs `O(#gates)`\n   to price with no root finding.\n   Verified by re-deriving `c` from the profile with an independent rational `ln`/`exp` interval\n   implementation (`code/bitprof.py`): the lower endpoint of the resulting `10^-24` bracket is\n   **exactly** the shipped value for both #555 and #589\n   (`1733427039589844234749/10^24`). The shipped values include the pipeline's inherited bad-envelope\n   surcharge (`32 m^2 (sum n) m^a / 10^16`), which moves the root by `2.01e-12` \u2014 two units on the\n   24-digit grid, so it cannot be dropped; the verifier checks both roots.\n\n2. **The objective decomposes over registers**, so a `k`-move improvement requires the `k` moves to\n   share registers. That is what makes a complete two-move search affordable.\n\n3. **The audit.** On the merged #589 word, priced on the exact objective:\n\n   | check | result |\n   |---|---|\n   | nominated single moves | 9,347 |\n   | strictly improving single moves | **0** |\n   | cost-neutral plateau | 9,263 |\n   | improving Steinberg 3\u21922 moves (671 triples) | **0** |\n   | legal `(slot, frame)` pairs over 3,064 operations | 9,933 |\n   | operations whose nominated frame is not exact-objective optimal | **0** |\n   | complete register-adjacent two-move neighbourhood (`--full`) | 645,900 pairs |\n   | best two-move delta | **0**, exactly |\n\n   **Positive control:** steepest descent on the exact objective from PR #555's base word applies\n   exactly two moves \u2014 PR #589's hoist (`A[2034] \u2192 slot 2028, frame 79`) and sink\n   (`A[2041] \u2192 slot 2076, frame 517`) \u2014 and lands on the tuned word's profile and objective. The\n   machinery rederives #589 rather than being told about it.\n\n## What it is worth\n\nIt closes the reframing avenue for the merged bit supplier at one and two moves: any further bit\nsaving from this word has to come from a mechanism outside the class (geometry, decoder constant,\nhelper count, hosting), not from moving gates. It also gives the exact marginal exchange rate\n(`dc/c = -(dG/G)/(a(ln m - E[ln r]))`) so a future move can be priced before it is built, and it\nindependently corroborates the fixed point that PR #589's tuner claims, on a different objective\nimplementation.\n\n## Concurrent work (refreshed 2026-10-13)\n\nRebased onto `main` @ `29218749`; every pinned input is byte-identical on both commits, and both\n`make bit-profile-pair-audit-verify` and the unittest module were re-run on the rebased tree.\n\nThese landed while this note was being prepared, and they are **consistent with** rather than\ncounterexamples to the fixed point above:\n\n* **#1043** improves the *same* #589 word by a mechanism outside the reframing class \u2014 deleting\n  `helper470` via a caller-boundary read of `source77`, giving R438 and\n  `c = 0.001734176288479865766692`. That is a helper/register rewrite, exactly the \"outside the class\"\n  route the audit points at.\n* **#1040 / #1047** cut complete ADD counts on a different R439 lineage (post-PR915/PR967), and\n  **#1045** crosses PR941's disjoint-pair floor with a four-helper fusion. Different words, different\n  accounting, different move classes.\n* Those results are cited from their own packages and were **not** re-run here.\n\n## Scope and limits\n\n* Finite, exact audit of two specific words and one move class. Not an optimality theorem over bit\n  words, and **not** an exclusion of three-or-more-move escapes of the plateau.\n* The two-move search is complete for the nominated move set; the nomination's completeness at the\n  frame level is separately certified (0 of 3,064 operations disagree).\n* The tuner's proxy objective is *not* identical to the exact objective (largest absolute discrepancy\n  `1.645e-5` on this word); only its argmin agrees, which is why everything here is priced exactly.\n* No \u03ba change; bit headroom only. Nine-stage price only.\n* Every interface that #543, #555 and #589 retain remains assumed. This is not a Lean proof of\n  integer multiplication.\n\n## Reproduce\n\n```sh\nmake bit-profile-pair-audit-verify        # ~6 min, all checks except the pair search\nmake bit-profile-pair-audit-full-verify   # ~35 min, adds the complete two-move neighbourhood\n```\n\nNo C++ toolchain, Boost, Lean or network access; only Python 3.11+, `numpy` (for the pinned tuner) and\nthe pinned files on main.\n\n## Files\n\n`research/bit-profile-pair-audit/` (README, `verify.py`, `EXPECTED.json`, `code/`), plus\n`tests/test_bit_profile_pair_audit.py` and two Makefile targets. `upstream/` untouched; no unrelated\nregeneration.\n\n## Credit\n\nThe word, its generator, checkers, pipelines and tuner are PR #555 (eumemic) on PR #543 / #545\n(DreamingOfClouds) and #510; the two transports audited are PR #589 (DreamingOfClouds); the deficit\nidentity is PR #545's. The decoder-side bounds of #620 (GamingPuzzled) and #631 (vectorsss) are\northogonal to the class audited here.\n\nSubstantial AI assistance (DeepSeek Harness, deepseek-flash) is disclosed in `NOTICE.md`.\n",
+      "title": "Research: the bit paid profile is the whole bit supplier \u2014 exact pricer, and the reframing class is exhausted at #589 (no \u03ba claim)",
+      "base": "main",
+      "base_sha": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+      "head": "bit-profile-pair-audit",
+      "head_sha": "07730cd8302c378607259a9ad0efb73e0b57a2f2",
+      "head_repo_id": 1417528339,
+      "head_repo_full_name": "flemhhh/integer-mult-bounds",
+      "merge_commit_sha": null,
+      "user": {
+        "login": "flemhhh",
+        "name": "flemhhh",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/332786938?v=4",
+        "id": 332786938
+      },
+      "requested_reviewers": null,
+      "requested_team_reviewers": null,
+      "created_at": "2026-10-13T17:12:53Z",
+      "updated_at": "2026-10-13T17:18:47Z",
+      "closed_at": null,
+      "merged_at": null,
+      "commits": 1,
+      "changed_files": 11,
+      "additions": 1368,
+      "deletions": 0,
+      "display_url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1048",
+      "display_title": "Research: the bit paid profile is the whole bit supplier \u2014 exact pricer, and the reframing class is exhausted at #589 (no \u03ba claim)"
+    }
+  ],
+  "screened": [
+    {
+      "number": 1190,
+      "title": "Research consolidation: authenticate PR279's complete parent inventory (no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1190"
+    },
+    {
+      "number": 1189,
+      "title": "Tooling: 1.50x faster P111 RUP checking with identical full replay",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1189"
+    },
+    {
+      "number": 1188,
+      "title": "Bit construction: exact five-wire windows reduce composed R439 to 10,492 ADDs",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1188"
+    },
+    {
+      "number": 1187,
+      "title": "Research: sharp preserved-frame P104 COPY-drop threshold at 38 punctures (no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1187"
+    },
+    {
+      "number": 1186,
+      "title": "Tooling: exact frame solver and delivery-rewrite search for gauge44/k8 local words (no new \u03ba)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1186"
+    },
+    {
+      "number": 1185,
+      "title": "Research: six-source universal dirty-connector boundary, f(6)=16 (no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1185"
+    },
+    {
+      "number": 1184,
+      "title": "Tooling: 2.33x faster complete emitted local audit with preserved coverage",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1184"
+    },
+    {
+      "number": 1183,
+      "title": "Conditional kappa 0.001675603180601302: mixed entrance providers on T37 owners",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1183"
+    },
+    {
+      "number": 1182,
+      "title": "Audit: default-precision false PR1048 root brackets and a certified repair",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1182"
+    },
+    {
+      "number": 1181,
+      "title": "Research consolidation: retention receipt and credit for #1015's blocks retained via #1062 (no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1181"
+    },
+    {
+      "number": 1180,
+      "title": "Structural proof: overcomplete factor-linear E8 decoders retain the puncture copy-cost floor",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1180"
+    },
+    {
+      "number": 1179,
+      "title": "Finite bit construction: sparse R439 kernel entrance gauge (no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1179"
+    },
+    {
+      "number": 1178,
+      "title": "Conditional \u03ba = 0.001675161536733127: X54 slot on #1148's three-demotion k8 word with its T16 owners",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1178"
+    },
+    {
+      "number": 1177,
+      "title": "Research: exact arbitrary-mask three-total five-cube boundary (no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1177"
+    },
+    {
+      "number": 1176,
+      "title": "Add files via uplConditional kappa = 0.001675224519162937: cross-call gap augmentation for three extra kernel islandsoad",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1176"
+    },
+    {
+      "number": 1175,
+      "title": "Conditional kappa 0.001674083482880778: whole-owner map at the packin\u2026",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1175"
+    },
+    {
+      "number": 1174,
+      "title": "Audit paid overwrite-COPY transposition on selected R480 cleanup",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1174"
+    },
+    {
+      "number": 1173,
+      "title": "Research: sharp nine-coordinate threshold for five-subset shared nodes (seed 48)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1173"
+    },
+    {
+      "number": 1172,
+      "title": "Conditional \u03ba = 0.001672733678608451: 9-pair whole-helper exchange on child 15",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1172"
+    },
+    {
+      "number": 1171,
+      "title": "Research: all-puncture E8 star decoder exclusion and p=56 classification (seed 49, no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1171"
+    },
+    {
+      "number": 1170,
+      "title": "Consolidate selected complex stage scales with full primitive pricing",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1170"
+    },
+    {
+      "number": 1169,
+      "title": "Conditional \u03ba = 0.001675568675201533: joint entrances with T37 owner packing",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1169"
+    },
+    {
+      "number": 1168,
+      "title": "Construction: cap unfinished outputs in dirty fanout",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1168"
+    },
+    {
+      "number": 1165,
+      "title": "Certify all-length read barriers in selected complex cleanup",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1165"
+    },
+    {
+      "number": 1164,
+      "title": "Recursive interface: four-way port borrowing reduces 56-factor echo from 1568 to 1088 calls",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1164"
+    },
+    {
+      "number": 1162,
+      "title": "Independent verification: all eight K492 emitter controls (no new bound)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1162"
+    },
+    {
+      "number": 1161,
+      "title": "Exact single-helper dyadic rescaling saves332 complex primitives in selected k8 word",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1161"
+    },
+    {
+      "number": 1160,
+      "title": "research: realize PR992 sharp T29 profile with exact bin inventories",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1160"
+    },
+    {
+      "number": 1159,
+      "title": "Research: exact modular borrowed-port echoes with endpoint-sized data",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1159"
+    },
+    {
+      "number": 1158,
+      "title": "Research construction: exact Hadamard price envelope and 222-call word (no new kappa)",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1158"
+    }
+  ],
+  "direct_overlap": "PR1182 reused; bracket repair and default false-bracket fixtures are woklerx's work.",
+  "adjacent_overlap": "PR1186 exact-frame-toolkit covers complex gauge44/k8 providers; no inspected repair of remaining PR1048 bit-word post-first-move coverage.",
+  "receipt_created_at": "2026-10-13 20:01:43 UTC",
+  "query_time": "Fetched earlier in this same task before extensive implementation; exact clock timestamp not separately recorded."
+}

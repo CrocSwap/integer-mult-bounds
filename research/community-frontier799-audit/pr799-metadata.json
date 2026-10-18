@@ -1,0 +1,618 @@
+{
+  "author": {
+    "id": "U_kgDOEKXqaA",
+    "is_bot": false,
+    "login": "jeremykothe2",
+    "name": ""
+  },
+  "baseRefOid": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "body": "## Summary\n\nConditional \u03ba = **0.001661634653669567**. This is +4.32\u00d710\u207b\u2077 over PR741 (0.001661202643272239). The complex side binds; PR589's bit supplier gives 0.0017334.\n\n**Construction**, on PR699's word (sha d232183f):\n1. **chafreaky's PR741 frames:** the 8 B-gate frame raises (dim 4\u21926), imported byte-identically from PR741's recipe, with its 10 frame mutation controls. This step rebuilds PR741's word e7804702.\n2. **X4, new here: four paired read exchanges.** For each of the copy-pair pairs (448,472), (458,592), (470,604) and (482,614), both pairs' phase-B target reads are exchanged under the PR699 sw4 rule (pre-reads deleted or inserted so every register's end-of-B value is unchanged; exact Fraction check). The moved reads keep their original stored dim-6 frames instead of being refit to the minimal join, and that is where the gain comes from. Each pair on its own is exactly neutral; the two pairs of an instance together give +1.08\u00d710\u207b\u2077, and the four instances are exactly additive. Profile \u0394 {1:\u22128, 2:+4}, widths unchanged (3778).\n\n**Owner map:** PR741's map (the same file as PR699's), unchanged. An exact packing relaxation already proved it optimal for this window geometry, and X4 changes no widths or windows.\n\n**Construction drivers:** `construction/frames/` (PR741's recipe, build and 10 frame controls) and `construction/jx/` (standard-library builder, explicit edit recipe, 7 pinned controls: identity, PR741-only, a single pair is neutral, dropped pre-read and wrong sign rejected by exactness, minimal-join refit is lower, and a dim-7 frame is rejected by the cap). All verifier code is byte-identical to PR699's reviewed set.\n\n**Search coverage:** all 602 single-pair read subsets and all 5,880 combinations over the 40 target-sharing pair-pairs (24 legal, exactly these 4 positive); triples and larger sets were also searched. Three independent searches found the same four instances. An exact global frame optimiser confirms the word is frame-optimal at fixed gate order.\n\n**Independent review:** SOUND (details in the review comment). The reviewer reproduced both steps byte-identically, found the 64 edits equal the sw4 rule, confirmed that no surviving gate changes frame, ran an exact replay (0 bad rows, dyadic, all orientations) and audit_local, checked that all 7 controls hit their pins, and rejected 8 extra mutants.\n\n## Verification\n\nFrom a fresh clone of commit 80e64631, with no reused artifacts (Windows, CPython 3.11.11):\n- `verify_manifest.py`: PASS, 132 files\n- `reproduce.py`, `reproduce_notri.py`, `reproduce_np.py`, `reproduce_p6n.py`, `reproduce_promo.py --k p6n-k4`, `reproduce_sw4.py`: PR699's word rebuilt, with every layer's controls\n- `reproduce_jx.py`: X4 word 1e1d99ba rebuilt, all 7 controls at their pinned outcomes\n- `audit_local.py`: PASS_INDEPENDENT_EXACT_FORWARD_AND_DUAL_ENDPOINT_FRAMES_ENTRANCES_CONES\n- `verify_global.py`: **PASS_GAUGE44_NATIVE_EXACT_GLOBAL_ASSEMBLY 0.001661634653669567**\n\n`construction/frames/reproduce_frames.py` independently rebuilds PR741's word e7804702 (exercised by the reviewer).\n\n## Scope\n\nConditional on PR645's premises and PR589's bit-supplier assumptions. No unconditional theorem or Lean certification is claimed.\n\n## Credits\n\n- **chafreaky** (PR741, PR685, PR660): the 8 frame raises, the owner map and the exact-flow packing.\n- **icekylinx** (PR645): gauge44 construction, package and verifier.\n- PR589 lineage (bit supplier); the PR601/604/617/622/627/635 lineage and every upstream contributor credited in PR645.\n\nPrepared with Claude Code (Anthropic).\n",
+  "changedFiles": 133,
+  "files": [
+    {
+      "path": "research/gauge44-frames-x/CONSTRUCTION.md",
+      "additions": 210,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/LICENSE",
+      "additions": 201,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/LOCAL-VALIDATION.json",
+      "additions": 356,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/MANIFEST.json",
+      "additions": 134,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/NOTICE.md",
+      "additions": 24,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/PROOF-NOTE-BIT.md",
+      "additions": 112,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/PROOF-NOTE-FRAMES-X4.md",
+      "additions": 58,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/PROOF-NOTE-LAYERS.md",
+      "additions": 129,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/PROOF-NOTE-NOTRI.md",
+      "additions": 53,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/PROOF-NOTE-P6N.md",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/PROOF-NOTE-PROMO.md",
+      "additions": 46,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/PROOF-NOTE-SW4.md",
+      "additions": 44,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/README.md",
+      "additions": 204,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/RESULT.json",
+      "additions": 86,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/SOURCES.json",
+      "additions": 35,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/UPSTREAM-NOTICE.md",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/assemble.py",
+      "additions": 241,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/assembly_controls.py",
+      "additions": 260,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/audit_allcold.py",
+      "additions": 254,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/bind_providers_portable.py",
+      "additions": 67,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/bit_supplier_controls.py",
+      "additions": 111,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/emit_allcold.py",
+      "additions": 150,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/freeze_spec.py",
+      "additions": 29,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/generated_identity.py",
+      "additions": 62,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/invoice_allcold.py",
+      "additions": 329,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/prepare_global.py",
+      "additions": 124,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/restore_parent.py",
+      "additions": 67,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/code/witness.py",
+      "additions": 55,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/COLD44-RECIPE.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/COMPLETION-PRIORITY.json",
+      "additions": 746,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/INPUTS.json",
+      "additions": 65,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/LICENSE",
+      "additions": 201,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/NOTICE.md",
+      "additions": 9,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/REBUILD-CHECKS.json",
+      "additions": 51,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/UPSTREAM-NOTICE.md",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/build_gauge_cold44.py",
+      "additions": 210,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/construct_gauge_xcentre.py",
+      "additions": 381,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/frames/FRAME-RECIPE-sw4.json",
+      "additions": 167,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/frames/LOCAL-PINS-frames-sw4.json",
+      "additions": 12,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/frames/build_frames.py",
+      "additions": 63,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/frames/frame_controls.py",
+      "additions": 45,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/frames/reproduce_frames.py",
+      "additions": 89,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/jx/LOCAL-PINS-jx-X4.json",
+      "additions": 11,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/jx/RECIPE-X4.json",
+      "additions": 1412,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/jx/build_jx.py",
+      "additions": 167,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/jx/reproduce_jx.py",
+      "additions": 99,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers/build_pivot_swap.py",
+      "additions": 160,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers/layer_end_controls.py",
+      "additions": 201,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers/reproduce_layers.py",
+      "additions": 105,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_np/COLD-LAYERS-RECIPE-NP.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_np/HPE-RECIPE-NP.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_np/PIVOT-SWAP-NP.json",
+      "additions": 588,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_np/reproduce_np.py",
+      "additions": 149,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_p6n/COLD-LAYERS-RECIPE-P6N.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_p6n/P6N-SPEC.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_p6n/layer_end_controls.py",
+      "additions": 199,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/layers_p6n/reproduce_p6n.py",
+      "additions": 78,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/notri/PRIO6.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/notri/cgx.py",
+      "additions": 469,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/notri/cold44x.py",
+      "additions": 217,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/notri/port_stage_x.py",
+      "additions": 125,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/notri/reproduce_notri.py",
+      "additions": 166,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/promo/LOCAL-PINS-p6n-k4.json",
+      "additions": 11,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/promo/PROMO-RECIPE-p6n-k4.json",
+      "additions": 971,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/promo/build_promotion.py",
+      "additions": 109,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/promo/make_recipe.py",
+      "additions": 12,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/promo/promo_controls.py",
+      "additions": 115,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/promo/reproduce_promo.py",
+      "additions": 99,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/reproduce.py",
+      "additions": 194,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/sw4/LOCAL-PINS-sw4-P6k4.json",
+      "additions": 11,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/sw4/NOTES.md",
+      "additions": 21,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/sw4/SW4-RECIPE-P6k4.json",
+      "additions": 314,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/sw4/build_sw4.py",
+      "additions": 203,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/construction/sw4/reproduce_sw4.py",
+      "additions": 87,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/data/FRONTIER.json",
+      "additions": 36,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/data/OWNERS.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/data/PLAN.json",
+      "additions": 42000,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/data/PREPARATION.json",
+      "additions": 45,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/data/SPEC.json",
+      "additions": 1348,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/data/UPSTREAM-PINS.json",
+      "additions": 23,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/ADMISSION-CONTROLS.json",
+      "additions": 102,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/ASSEMBLY.json",
+      "additions": 336,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/BINDING.json",
+      "additions": 25,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/CENTER-COMPATIBILITY.json",
+      "additions": 112,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/LOCAL-STAGES.json",
+      "additions": 27,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/REPLAY.json",
+      "additions": 54,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/STAGES.json",
+      "additions": 44,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/audit/ASYNC-AUDIT.json",
+      "additions": 84,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/audit/GLOBAL-PREFIX.json",
+      "additions": 13,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/audit/IDLE-REMAINDER-FRAMES.json",
+      "additions": 25,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/audit/OWNERS-AND-PROFILE.json",
+      "additions": 61,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/audit/PREFIX-AND-INVOICE.json",
+      "additions": 1746,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/global/ACTUAL-SIGMAS.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/global/GLOBAL-TEMPLATE.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/global/HOSTED.json",
+      "additions": 60,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/global/IDLE-REMAINDER-FRAMES.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/layers/LOCAL-AUDIT-LAYERED.json",
+      "additions": 137,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/local/CANONICAL-WORD.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/local/CLIFFORD-RECIPES.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/gauge44-frames-x/evidence/local/CLIFFORD-REVIEW.json",
+      "additions": 19,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "80e6463157cfc80b85af09e7e2f14748fe2dac60",
+  "isDraft": false,
+  "number": 799,
+  "state": "OPEN",
+  "title": "Conditional \u03ba = 0.001661634653669567: four paired read exchanges on PR741's frame-coalesced word"
+}

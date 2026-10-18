@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 1085,
+  "title": "Research audit: sharp logarithmic dirty-prefix coefficient bound (no new kappa)",
+  "author": {
+    "id": "U_kgDOCt6exg",
+    "is_bot": false,
+    "login": "bbMisk",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1085",
+  "head": "82b99c7d12dac009d35636562df4c6c91e885409",
+  "merge_base": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+  "baseline": "858771bcca3b8dd5d4ef4aa682a13cc9b7e23920",
+  "files": [
+    {
+      "path": "research/dirty-prefix-monomial-audit/DOMAIN.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9fee913b732e30f527bbb3b7bba9af2687f786c5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/dirty-prefix-monomial-audit/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f147e857e74811b266ec909762eb322fb5afb734"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/dirty-prefix-monomial-audit/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b794f4253b30f9af1d29c875097d04349715582b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/dirty-prefix-monomial-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d71db72637bb22c204d521787d5c1c002930d7ec"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/dirty-prefix-monomial-audit/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2d0407ce97fef55cdb39999222e45d77557f1b2e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/dirty-prefix-monomial-audit/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "047fa3b15e480e9279beaff387ead73a14bc6a1a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/dirty-prefix-monomial-audit/test_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8572f3c819cc14eda8b754eeb3e5a6eef3018e9a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/dirty-prefix-monomial-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "05af9d200f0706cfe4405d849766d84159b2bffa"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/dirty-prefix-monomial-audit": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "PR905 bounds the coefficient row sum of a balanced dirty commutator prefix by `2*3^ceil(log2 n)`. This **research audit** proves the sharp bound `ceil(log2 n)+2` for every ideal prefix and inverse prefix, in both call directions, using the unchanged PR628 dispatcher. Each matrix entry is zero or a single signed ordered monomial. An identity-factor family attains the bound.\n\nIn PR905's existing sufficient precision formula, this reduces the radix-64 example from **1,162,553 to 1,162,523 fractional bits** (`p=128`, magnitude at most `2^20`, no finer incoming grid). The 4,000 paid leaf calls, six dirty arrays and cubic asymptotic guard remain unchanged. **No new kappa or runtime improvement is claimed.**\n\nOnly `research/dirty-prefix-monomial-audit/` is added: written proof, independent exact checker, deterministic receipt, controls, source pins and validation record.\n\nReproduce with Python 3.10+ and the standard library:\n\n```sh\npython3 -I -O -B research/dirty-prefix-monomial-audit/verify.py\npython3 -I -O -B research/dirty-prefix-monomial-audit/test_package.py\n```\n\nExpected: `PASS_DIRTY_PREFIX_MONOMIAL traces=168 boundaries=1184622 budgets=1242 controls=10 kappa=unchanged`, followed by eight passing package tests.\n\nEvidence includes every primitive boundary at 84 frozen factor counts through 257; comparisons with the pinned dispatcher; 32 abstract induction cases; 430 dense noncommuting matrix boundaries and 44 independent Gauss-Jordan prefix inversions; 1,242 precision comparisons; and ten mathematical controls. Normal execution, isolated optimized read-only relocation, source-drift and receipt-tamper rejection, the selected-record checker and its five tests all pass. Finite replay supports the written all-n induction; it is not formal verification or independent human peer review. Full repository/supplier replays, new rounded-kernel execution and hosted CI are not claimed.\n\nBase: `2921874911956718fcaaaf9396fe8267b3cfa9f0`. Assignment seed: **72**, adversarial mathematical audit. All eight consumed inputs remain byte-identical at refreshed main `abdc6a7002abdbcd9e21bfc5e1a795784deacfdf`. SHA256, Git blobs and original predecessor heads are recorded. No pinned coordination issue existed, so the sprint claim is local. The selected frontier and `upstream/` are untouched.\n\nCredit **Chafik Boukhalfa** for PR628/905 and the PR862 subset/preparation argument, **Gareth Davidson** for PR877's prefix perturbation method, and **0xkilgore** for PR663's exact call count. PR896 addresses nonlinear restoration. Concurrent PR1057 changes the dirty allocator and uses a different growth majorant; this contribution keeps the reserved-depth allocation. Common-isometry, preparation, phase access, leaf error, internal growth and physical/compiler/transform obligations retain their stated scope.\n\nPrepared for **Hanson Sun (@bbMisk)** with substantial **OpenAI Codex assistance** in derivation, implementation, verification and writing. Apache-2.0. No literature-priority claim.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "dfc917e574a2edb1332fb28916ad1c651f7ed92e46c1a069b5a34dc5ab7aa07c"
+}

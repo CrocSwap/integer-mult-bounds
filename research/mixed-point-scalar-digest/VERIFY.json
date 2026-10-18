@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/audit_mixed_point.py",
+    "scripts/audit_early_sharing.py",
+    "scripts/experiments/mixed_point_circuit.py",
+    "scripts/experiments/early_sharing.py",
+    "scripts/rational_span_frames.py",
+    "certificates/mixed-point-audit.json",
+    "certificates/early-sharing-audit.json",
+    "docs/research/mixed-point-audit.md",
+    "docs/research/early-sharing-and-centers.md",
+    "tests/test_mixed_point.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Exact baseline copy of the base-commit audit_mixed_point.py; identical scalar_check receipts on mixed-point full-size and factored circuits plus early-sharing full-size; encoding foil rejects a wrong null spelling while preserving Boolean support checks; mixed-point and early-sharing mathematical payloads match committed certificates."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Same equivalence and certificate payload discipline under -O (require() gates, not assert)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_mixed_point*.py",
+        "-v"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Existing mixed-point unit tests plus focused scalar-digest package controls."
+    }
+  ]
+}

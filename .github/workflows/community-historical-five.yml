@@ -1,0 +1,39 @@
+name: Historical five focused replays
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/community-historical-five-audit/**'
+      - '.github/workflows/community-historical-five.yml'
+  pull_request:
+    paths:
+      - 'research/community-historical-five-audit/**'
+      - '.github/workflows/community-historical-five.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: [2, 4, 8, 9, 12]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Check sources and replay the complete scoped recipe
+        env:
+          HISTORICAL_PR: ${{ matrix.pr }}
+        run: |
+          python -B research/community-historical-five-audit/replay.py \
+            --pr "$HISTORICAL_PR" --extract "$RUNNER_TEMP/historical-pr$HISTORICAL_PR" --run
+      - run: git diff --exit-code

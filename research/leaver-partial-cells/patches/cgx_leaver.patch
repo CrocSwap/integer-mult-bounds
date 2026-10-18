@@ -1,0 +1,59 @@
+--- leaver/cgx_leaver.py	2026-10-13 18:36:24
++++ leaver/cgx_leaver.py	2026-10-13 22:02:33
+@@ -422,6 +422,56 @@
+     expected={s:-Q(G[t][s],2) for s in range(v) if s!=t and G[t][s] and s not in frame.values()} if t not in frame.values() else {}
+     assert rows[v+t]==expected,('side identity',t)
+ 
++# --- partial leaver cells (higherbeing, experimental): helper-free-but-one circuits on 16 two-leaver keys ---
++if os.environ.get('PCELLS'):
++    sys.path.insert(0,os.environ['PCELL_TOOLS'])
++    import pcell as _pc, template as _tp
++    _keys=[tuple((tuple(k[0]),k[1])) for k in json.load(open(os.environ['PCELLS']))['keys']]
++    _face={}
++    for _c,_z in sorted(blocks.items()):
++        for _p in it.combinations(_c,2):
++            for _e in (-1,1):
++                _j,_al=face_info(_c,_p,_e);_ev=_z['events'][_j]
++                _face[(_c,_p,_e)]=dict(j=_j,t=maps[_c][_ev[0]],s=maps[_c][_ev[1]],a=_ev[2],b=_ev[3],F=_z['event_frames'][_j])
++    _d=dict(face=_face,packets=packets,Ms=Ms,requests=dict(requests),own_rows=own_rows,FULLT=FULLT)
++    _W=[list(e) for e in A+B];_nA=len(A);_rm=set();_pc.YYLOG.clear()
++    for _key in _keys:
++        if os.environ.get('PCELL_V3'):
++            _nr=len(cur);cur.append(());rows.append({});shadow.append(None)
++            _NW,_st,_K,_info=_tp.apply_key3(_W,_d,len(cur),_key,_nr);assert _NW is not None,(_key,_st);_W=_NW;_rm|=set(_info['removed'])
++            continue
++        if os.environ.get('PCELL_V2'):
++            _NW,_st,_K,_info=_tp.apply_key2(_W,_d,len(cur),_key);assert _NW is not None,(_key,_st);_W=_NW;_rm|=set(_info['removed'])
++            continue
++        _K=_pc.key_parts(_d,_W,_key)
++        _rm|=set(_K['copies'])-{_tp.zcopy(_W,_K)}
++        _NW,_st,_K=_tp.apply_key(_W,_d,None,len(cur),_key,_tp.TPL);assert _NW is not None,(_key,_st);_W=_NW
++    assert _W[:_nA]==[list(e) for e in A],'pcells touch phase A'
++    coded_target_edges[:0]=[(t_,s_,Q(q_)) for t_,s_,q_ in _pc.YYLOG]
++    _used={x for e in _W for x in ((e[1],e[2]) if e[0]=='add' else (e[1],))}
++    assert not (_rm&_used),'removed helper still used'
++    _old=list(range(len(cur)));_keep=[r for r in _old if r not in _rm];_nm={r:i for i,r in enumerate(_keep)}
++    for e in _W:
++        e[1]=_nm[e[1]]
++        if e[0]=='add':e[2]=_nm[e[2]]
++    centers=[_nm[r] for r in centers]
++    coded_target_edges=[(_nm[t_],_nm[s_],q_) for t_,s_,q_ in coded_target_edges]
++    for r in sorted(_rm,reverse=True):
++        i=r-240;skipped.append(shadow[i]);del shadow[i];del cur[r];del rows[r]
++    NH=len(cur)-240
++    # recompute monotone frames and the paid climbs over A+B
++    cur[:]=[(p,) for p in P]+[()]*(len(cur)-len(P));H=Counter()
++    for e in _W:
++        regs_=(e[1],e[2]) if e[0]=='add' else (e[1],)
++        G_=basis(list(e[-1])+[x for r in regs_ for x in cur[r]])
++        for r in regs_:
++            if v<=r<2*v:assert inside(G_,hyper(P[r-v])),('pcell frame',r)
++            dr=len(G_)-len(cur[r])
++            if dr:H[dr]+=1
++            cur[r]=G_
++        e[-1]=list(G_)
++    A[:]=_W[:_nA];B[:]=_W[_nA:]
++    print('PCELLS applied',len(_keys),'keys, removed helpers',len(_rm),flush=True)
+ scatter=[[Q(r[i],4) if t not in frame.values() else Q(0) for i in range(8)]+[Q(t==frame[i]) for i in range(8)] for t,r in enumerate(R)]
+ precondition=[]
+ for t,u,z in output_basis:

@@ -1,0 +1,48 @@
+name: Lean selected monomial refinement
+on:
+  pull_request:
+    paths:
+      - 'research/selected-monomial-coordinate-refinement/**'
+      - '.github/workflows/lean-selected-monomial-refinement.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/selected-monomial-coordinate-refinement/**'
+      - '.github/workflows/lean-selected-monomial-refinement.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Download checksum-pinned official Lean
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://github.com/leanprover/lean4/releases/download/v4.33.0-rc1/lean-4.33.0-rc1-linux.tar.zst -o "$RUNNER_TEMP/lean.tar.zst"
+          echo "25e7b3e18ec75a4e2529fc23194be8e3cc3183df99b553f870d8a111c7488210  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check
+          tar --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+      - name: Prepare exact dependency checkouts and official cache
+        shell: bash
+        run: |
+          export PATH="$RUNNER_TEMP/lean-4.33.0-rc1-linux/bin:$PATH"
+          cd research/selected-monomial-coordinate-refinement/lean
+          lake exe cache get Mathlib.LinearAlgebra.PiTensorProduct.Basis Mathlib.LinearAlgebra.StdBasis Mathlib.Tactic
+      - name: Bind actual source execution and fresh kernel proofs
+        shell: bash
+        run: |
+          python -B research/selected-monomial-coordinate-refinement/verify.py
+          python -O -B research/selected-monomial-coordinate-refinement/verify.py
+          python -O -B research/selected-monomial-coordinate-refinement/kernel.py \
+            --lake "$RUNNER_TEMP/lean-4.33.0-rc1-linux/bin/lake" \
+            --work-dir "$RUNNER_TEMP/selected-monomial-fresh" \
+            --packages "$GITHUB_WORKSPACE/research/selected-monomial-coordinate-refinement/lean/.lake/packages" \
+            --out "$RUNNER_TEMP/selected-monomial-kernel.json"
+      - run: git diff --exit-code

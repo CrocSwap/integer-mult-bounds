@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "result": "KB3f set-level verdict (outcome=partial): the vanishing-character restriction of PR 2911, pressed against the four surviving 18-point splits of the F2^7 cover question, classifies the vanishing configurations exactly and excludes six of their classes, but excludes no split outright and constructs no cover. (12,6): a forced vanishing character must split A 6/6 across its kernel; every such class with D-split (6,0),(5,1),(4,2),(3,3) survives the exact floors, while a D-vanishing forces D 3/3 and kills A-splits (12,0),(11,1),(10,2) outright. (10,8): A-vanishing (5/5) kills D-split (8,0) and pins (7,1) to a tight Sidon class; D-vanishing (4/4) kills A-splits (10,0),(9,1) and pins (8,2) tight. (11,7)/(9,9): both sides odd, so NO character can vanish and the restriction is vacuous exactly there. Ground truth at the smallest instances (complete F2^4 and F2^5 cover censuses, 358,781 covers classified) shows real covers are rich in vanishing characters and never hit a dead class. Bounded class-restricted search finds no 18-point cover (best 115..119 of 128 across 16 classes) while the identical machinery finds F2^5 covers instantly. No kappa, supplier or selected-frontier change; the gap 20 <= f(7) <= 24 is unchanged.",
+  "labels": [
+    {
+      "statement": "L2 (halving): char_sum(A, psi) = 0 iff A splits |A|/2 + |A|/2 across ker(psi). Hence A-vanishing needs s even and forces (s/2, s/2), D-vanishing needs t even and forces (t/2, t/2); at (11,7) and (9,9) both sides are odd so NO character of either side can vanish and PR 2911's restriction is vacuous exactly on those two splits.",
+      "label": "PROVEN",
+      "evidence": "Immediate from char_sum(A, psi) = |A0| - |A1| with |A0| + |A1| = |A|; machine-checked exhaustively for every subset of F2^3 and every character in test_engine.py (test_lemma_exhaustive_f2_3, test_11_7_and_9_9_no_vanishing)."
+    },
+    {
+      "statement": "L3 (half-decomposition): with H = ker(psi), H' = E \\ H and the induced splits A = A0 u A1, D = D0 u D1, the pair (A, D) covers iff (A0+D0) u (A1+D1) = H, (A0+D1) u (A1+D0) = H', (A0+A0) u (A1+A1) u (D0+D0) u (D1+D1) = H and (A0+A1) u (D0+D1) = H'.",
+      "label": "PROVEN",
+      "evidence": "Coset arithmetic (sums of two elements of a common side land in H, cross-side sums in H'); checked exhaustively over all 256 x 256 pairs (A, D) of F2^3 and 4,000 random pairs of F2^5 (test_lemma_exhaustive_f2_3, test_lemma_samples_f2_5; check_half_decomposition)."
+    },
+    {
+      "statement": "L4 (class floors): the H' even line forces a0*a1 + d0*d1 >= 2^(m-1) = 32 (and the sibling floors F2 (H even line), F3/F4 (odd lines)). In character language F1 is f_hat^2 + g_hat^2 <= s + t + 2P - 2^n and F3+F4 is |f_hat*g_hat| <= E_o: the floors re-derive PR 2911's two profile bounds in split language, and the class verdicts are their forced-split consequences. Six vanishing classes are PROVEN impossible: (12,6) D-vanish with A-split (12,0),(11,1),(10,2); (10,8) A-vanish with D-split (8,0); (10,8) D-vanish with A-split (10,0),(9,1).",
+      "label": "PROVEN",
+      "evidence": "Union-size bounds on L3's H' line (|A0+A1| <= a0*a1, |D0+D1| <= d0*d1, union = 32 points); the complete class tables with each floor value are computed by vanish.class_table and asserted in test_engine (test_floor_values_12_6, test_floor_values_10_8, test_dead_classes_have_witness)."
+    },
+    {
+      "statement": "L5 (multi-vanishing structure): if A vanishes at two distinct characters psi1, psi2, its counts across the four parts of the (ker(psi1), ker(psi2)) grid are (x, y, y, x) with x + y = |A|/2.",
+      "label": "PROVEN",
+      "evidence": "From the two equations |A0| = |A1| on each kernel: adding and subtracting gives n00 = n11 and n01 = n10; checked exhaustively over every subset of F2^3 and every vanishing pair (check_multi_vanishing, test_multi_vanishing_structure_exhaustive_f2_3)."
+    },
+    {
+      "statement": "L7 (equality analysis): whenever a0*a1 + d0*d1 = 32 and the pair covers, |A0+A1| = a0*a1 and |D0+D1| = d0*d1 (both Sidon: all cross sums distinct) and the two cross sumsets are disjoint with union the whole odd half. This pins the tight classes (10,8) A-vanish (7,1) and D-vanish (8,2) to exact forced Sidon structure; the (12,6) class A-vanish (6,0) forces |A0+A1| = 32 (the whole odd half, 36 pairs, excess 4) together with A0 + D = H and A1 + D = H' full.",
+      "label": "PROVEN",
+      "evidence": "Equality chain |A0+A1| + |D0+D1| - |intersection| = 32 <= a0*a1 + d0*d1; checked exhaustively over all covering (A, D) pairs of F2^3 and all characters at floor equality (check_tight_equality, test_tight_equality_exhaustive_f2_3). The (6,0) forced structure follows from D1 = empty in L3."
+    },
+    {
+      "statement": "Every recorded predecessor anchor was reproduced before any new number: PR 2542/2634 REPRO tiers 945/31, 10395/49, 945945/59 (records SHA-256 match) and the L18 census 15,775,992 nodes / 312,064 cycles / 0 universal; PR 2870 OBSTRUCTION parseval=696 allowed=504 deficit=192 both parity orders; PR 2911 SQUEEZE table, PROFILE18 spectra 16/22/50/31, NOVANISH lines and ROWS18 808/501/251/196; the n=5 set controls; and both heavy PR 2773 census anchors re-walked IN FULL from EMPTY receipts (PASS_ANCHORS_K10B3 count=149990400 total_hist={'3': 149990400} shards=62, PASS_ANCHORS_K11B4 count=0 total_hist={} shards=62).",
+      "label": "CHECKED",
+      "evidence": "ANCHOR-REPRO.json records every command and observed marker. The heavy walks live in this package's ANCHOR-PROGRESS.json (one section per mode, per-sub-shard receipts), started from a missing receipt file (run_anchors_all.py printed 'fresh receipts confirmed'). Receipt-validation trap recorded there: the extracted PR 2911 package's own quick mode prints ANCHORS receipt lines from its committed receipts; those lines validate receipts, they do not re-walk. The NOVANISH premise is additionally recomputed from this package's byte-vendored cover18.py (pin 24c6a2f4...) in verify.py novanish."
+    },
+    {
+      "statement": "Ground-truth census of the smallest cover-bearing instances, classified by vanishing class: F2^4 has 41,341 covers among all 65,536 subsets; F2^5 has 317,440 ten-point covers among all C(32,10) = 64,512,240 ten-sets, of which exactly 99,200 pass through {0} (reproducing PR 2773's recorded n5 control value; 99,200 * 32 / 10 = 317,440). Exact split support of the F2^5 ten-covers: (2,8) 15,360, (4,6) 143,360, (6,4) 143,360, (8,2) 15,360 -- no (5,5),(3,7),(7,3),(1,9) cover exists -- and every cover has vanishing characters on at least one side (types (k_A,k_D) = (8,7),(12,0),(6,6),(0,12),(7,8) at character level).",
+      "label": "CHECKED",
+      "evidence": "vanish.census_f4 / census_f5 (independent enumeration route: every subset resp. every ten-set, not the predecessor's fixed-0 engine); verify.py classify walks all 32 shards from empty CENSUS-PROGRESS.json receipts (PASS_F7_18POINT_CLASSIFY) and asserts both the {0}-slice value 99,200 and the translation identity."
+    },
+    {
+      "statement": "Soundness of the class floors on every real cover: across all 358,781 covers of the F2^4 and F2^5 censuses, no cover realizes a vanishing class whose forced splits violate a floor (dead_classes_hit is empty in every shard).",
+      "label": "CHECKED",
+      "evidence": "Per-shard assertions in verify.py classify (each shard asserts dead_classes_hit == [] before its receipt is written) and the census aggregates in CENSUS-PROGRESS.json; test_engine's census tests."
+    },
+    {
+      "statement": "No 18-point cover exists in the searched classes (scoped search failure, never an exclusion): seeded first-improvement local search restricted to each of the 16 surviving vanishing classes (bit-0 psi, WLOG under GL(6,2); 30 restarts each) finds no covering pair (A, D); best scores 115..119 of 128 per class.",
+      "label": "CHECKED",
+      "evidence": "vanish.search_class, fixed seeds 7000+idx; verify.py search mode. Non-vacuity: the identical machinery finds real F2^5 (4,6) covers instantly both free (A=[9,12,13,14], D=[3,5,8,9,10,11], score 32/32) and inside the census-nonempty class A-vanish (2,4). The search never asserts nonexistence; the results are consistent with PR 2911's unrestricted best 118/128."
+    },
+    {
+      "statement": "The vanishing-character restriction as an exclusion mechanism for (11,7) and (9,9) is DEMOTED to vacuous: by L2 no character can vanish there, so the restriction cannot press on those two splits at all (their PR 2911 row remainders 501 and 196 are untouched by this package).",
+      "label": "DEMOTED",
+      "evidence": "L2 (PROVEN above); test_11_7_and_9_9_no_vanishing asserts the empty class tables."
+    },
+    {
+      "statement": "The expectation that the vanishing restriction alone excludes (12,6) and/or (10,8) is DEMOTED: eight (12,6) classes and eight (10,8) classes survive the exact floors (four of them pinned to tight forced Sidon or full-sumset structure), and bounded class-restricted search finds no contradiction-adjacent configuration to exploit further within budget.",
+      "label": "DEMOTED",
+      "evidence": "The class tables (PROVEN floors) and the class searches (CHECKED); a full exclusion needs either the tight classes' exact decision or the multi-vanishing joint layer (open questions 1-2 of the README)."
+    }
+  ],
+  "obstruction_numbers": {
+    "n": 7,
+    "m": 6,
+    "split_order_notes": "(s, t) = (points in the even coset E = F2^6, points in the odd coset); a class is (vanishing side, forced split of that side, split of the other side) across ker(psi); mirrors are identical by odd translation",
+    "splits": {
+      "12_6": {
+        "forced_vanishing": "yes (PR 2911 NOVANISH, reproduced)",
+        "A_vanish": {"forced_split": [6, 6], "classes_surviving": [[6, 0], [5, 1], [4, 2], [3, 3]], "classes_dead": [], "forced_structure": "(6,0): |A0+A1| = 32 (whole odd half, excess 4), A0 + D = H and A1 + D = H' full"},
+        "D_vanish": {"forced_split": [3, 3], "classes_surviving": [[9, 3], [8, 4], [7, 5], [6, 6]], "classes_dead": [[12, 0], [11, 1], [10, 2]]},
+        "search_best_of_128": 119,
+        "verdict": "narrowed (3 classes PROVEN impossible), not excluded"
+      },
+      "11_7": {
+        "forced_vanishing": "impossible (L2: both sides odd)",
+        "classes": "none exist",
+        "verdict": "the restriction does not press; PR 2911 row remainder 501 untouched"
+      },
+      "10_8": {
+        "forced_vanishing": "yes (PR 2911 NOVANISH, reproduced)",
+        "A_vanish": {"forced_split": [5, 5], "classes_surviving": [[7, 1], [6, 2], [5, 3], [4, 4]], "classes_dead": [[8, 0]], "forced_structure": "(7,1): tight -- |A0+A1| = 25 Sidon, |D0+D1| = 7 (translate of D0), disjoint, union 32"},
+        "D_vanish": {"forced_split": [4, 4], "classes_surviving": [[8, 2], [7, 3], [6, 4], [5, 5]], "classes_dead": [[10, 0], [9, 1]], "forced_structure": "(8,2): tight -- |A0+A1| = 16 (A0 misses its delta-translate), |D0+D1| = 16 (4x4 Sidon pair), disjoint, union 32"},
+        "search_best_of_128": 119,
+        "verdict": "narrowed (3 classes PROVEN impossible, 2 pinned tight), not excluded"
+      },
+      "9_9": {
+        "forced_vanishing": "impossible (L2: both sides odd)",
+        "classes": "none exist",
+        "verdict": "the restriction does not press; PR 2911 row remainder 196 untouched"
+      }
+    },
+    "census_ground_truth": {
+      "f2_4_covers": 41341,
+      "f2_5_covers_total": 317440,
+      "f2_5_covers_through_0": 99200,
+      "f2_5_split_support": {"2_8": 15360, "4_6": 143360, "6_4": 143360, "8_2": 15360},
+      "dead_classes_hit": 0
+    },
+    "controls": {
+      "n3_exhaustive": "L2/L3 checked on all 65,536 (A, D) pairs of F2^3; L5 and L7 exhaustive at F2^3",
+      "n5_real_cover": "the recorded 10-point cover [0,1,2,3,4,5,6,8,16,31] of F2^5 classifies as split (4,6), k_A = 12, k_D = 0, no dead classes (test_f2_5_subspace_example_classified)",
+      "n4_n5_census_soundness": "no cover of either census hits a dead class"
+    }
+  },
+  "reproduce": [
+    "python3 -I -B research/f7-18point-vanishing-seedfc618722/test_engine.py",
+    "python3 -I -B research/f7-18point-vanishing-seedfc618722/verify.py quick",
+    "python3 -I -B research/f7-18point-vanishing-seedfc618722/verify.py novanish",
+    "python3 -I -B research/f7-18point-vanishing-seedfc618722/verify.py classify",
+    "python3 -I -B research/f7-18point-vanishing-seedfc618722/verify.py search",
+    "python3 -I -B research/f7-18point-vanishing-seedfc618722/anchors.py k10b3",
+    "python3 -I -B research/f7-18point-vanishing-seedfc618722/anchors.py k11b4"
+  ]
+}

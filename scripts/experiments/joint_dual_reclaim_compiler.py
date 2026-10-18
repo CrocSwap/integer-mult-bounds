@@ -134,8 +134,8 @@ def compile_(h,matching=True,reclaim=False,dirty=True):
      old,e=bb[p];row^=old;expr^=e
     return expr
    for s in anchors:ins(s)
-   for s in sorted(retired,key=lambda s:(-blocks[frames[s]]['rank'],s)):
-    if not contains(blocks[frames[s]]['frame'],blocks[g]['frame']):continue
+   eligible=(s for s in retired if contains(blocks[frames[s]]['frame'],blocks[g]['frame']))
+   for s in sorted(eligible,key=lambda s:(-blocks[frames[s]]['rank'],s)):
     e=ins(s)
     if e is None:continue
     assert e>>s&1;e^=1<<s;aa=[]

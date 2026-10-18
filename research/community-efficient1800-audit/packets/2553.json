@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "number": 2553,
+  "title": "Isolate registered research replay bytecode caches",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2553",
+  "head": "a82fea84445e54042fa56b39ff1509fa329fad93",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "docs/research/bytecode-replay-isolation.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5a8027285563ca7c2c284b541280eab5e31214b5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "docs/research/research-package-guide.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3103b77eeeff5460a637ed436314833c895296e3"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0f48877bcaf269034a157d3ff043ffc967e847eb"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/research_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "93dd844a7957dafc86dfcb4f10c9d6518b0bedb4"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b9c3a8cb111469e1987ba4234e3cfb33267b092a"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_bytecode_isolation.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d8f0dfe49ba5b48f0bbdbcde7924c9838eb831f6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 2,
+    "scripts/research_package.py": 1,
+    "tests/test_research_bytecode_isolation.py": 1
+  },
+  "github_reported_file_count": 4,
+  "complete_git_file_count": 4,
+  "body": "A source-authenticating Python verifier can still execute a preexisting `.pyc`: `-B` stops cache writes, not reads. In a temporary copy of the retained P104 native channel, a matching timestamp cache executes a harmless sentinel even though the authenticated interpreter source hash is unchanged. The clean replay passes; isolating its cache namespace restores the exact complete original receipt.\n\nThe registered package runner now gives each verification command a fresh temporary `pycache_prefix`, removes earlier interpreter-level prefix options, and cleans the directory after success, failure or timeout. Normal and optimized modes, combined flags, warnings, hash-validation options, `-m`/`-c` forms and script arguments are preserved. Earlier prefix options must be removed: on the tested CPython 3.12.14, duplicate `-X` values can leave the effective prefix at the first value even while `sys._xoptions` shows the last.\n\nValidation: eight focused tests pass on CPython 3.12.14 normally and under optimization, including actual timestamp/unchecked-hash cache contamination and checked-hash/source-drift controls. All 73 research tests pass (three Linux-only skips). The full P104 clean/contaminated/isolated probe passes with all copied source hashes unchanged and complete receipt SHA256 `c9681a03d9a752b5b387250f841e43f7333b9984a325c4f37166e03f11676eb5`. A separate AI reviewer inspected the boundary and ran all eight focused tests on native CPython 3.14.5 under `-I -O -B`, with no material issue. Baseline bindings and whitespace checks pass. This does not change the registered Python 3.12 requirement.\n\nThe protection covers the default import cache namespace of the registered interpreter. Direct verifier calls, standalone bytecode, custom loaders, separately launched child interpreters and file-mutation races remain outside it. The generic subprocess helper, dependency installation and frozen mathematical sources are unchanged. No P104 mathematical failure or new theorem is claimed. The included note gives exact provenance, reproduction, controls and the next child-process propagation obligation.\n\nBase: canonical main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4, refreshed at round start, the evidence-driven pivot and 2026-10-15 14:03:52 UTC before submission. [Advance claim](https://github.com/CrocSwap/integer-mult-bounds/pull/2522#issuecomment-6193623013). Overlap used complete cached 679-PR/1,197 Discussion-record snapshots through 12:25/12:29 UTC plus fresh 100-PR and source-comment REST checks; complete current Discussion coverage was quota-limited. Prepared for ywz65 with substantial OpenAI Codex assistance. Existing runner and retained P104/native contributors retain credit; Apache-2.0. No independent human review, hosted CI or selected-frontier cold replay is claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "4b845f0193341232530edb25e64a71677e396ecdfcc6f5765abf0cc27e3704d8"
+}

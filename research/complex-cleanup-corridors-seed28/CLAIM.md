@@ -1,0 +1,5 @@
+# Frozen round 33 claim
+
+Seed28, complex supplier; base ce7ad1b6ab09452c3478723a2e96ed5ff212dc08. Claim the complete all-length exclusion of target-unread repeated-operand ADD corridors in the selected PR1094 seven-slot R480 FULL cleanup. Deliver all 111 literal intervening-read witnesses, independent backward epochs, planted profitable scalar controls and a fully paid unchanged PR696 cleanup tally. No new word, kappa, native admission or unrestricted optimality claim.
+
+Three candidates were considered before the main experiment: factory cache extension (rejected as PR1032/1064 overlap); general Markowitz cleanup refactor (rejected as PR1119 overlap); bounded inverse-ADD corridors (selected). The initial 64-interior-operation pilot required an untouched target and at most one source ADD; it found no saving. The one relaxation allowed target ADD writes and general endpoint coefficients, still with no saving. The evidence-driven pivot closes the necessary target-unread condition for all lengths: 6,574 ADDs, 6,463 directed operand pairs, 111 repeated pairs, all blocked. No further optimization class was explored.

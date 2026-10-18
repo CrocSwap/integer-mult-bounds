@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "number": 2531,
+  "title": "Decode HPE Lean recipe literals as UTF-8 on Windows",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2531",
+  "head": "2dfb25cd3c762a2b24ba732a28bb21e4d331687a",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "scripts/verify_hpe_lean_binding.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7de011a74b7f592fa75768caf5143a9efe2dadca"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d295b028edc531dfbfaa023370a9528bada35572"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_hpe_binding_encoding.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "818ee4f2ac2358141c9b5b8c6931a89763ad170f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/verify_hpe_lean_binding.py": 1,
+    "tests/test_hpe_binding_encoding.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "The HPE emitted-recipe checker reads the frozen Lean literals using the platform default encoding. On Windows CPython 3.12 with its native cp1252 locale, the actual CLI raises UnicodeDecodeError at a UTF-8 Lean symbol before it can check any emitted recipe.\n\nRead that source explicitly as UTF-8. A real-CLI regression builds a declared 38-helper/three-pair fixture, forces the cp1252 default on any host, and also runs the unpatched native Windows locale path with PYTHONUTF8=0. Both produce the expected binding receipt after the fix; both built-in left/right phase controls remain rejected, and a changed emitted phase still fails.\n\nValidation: the new regression failed before the fix with the demonstrated UnicodeDecodeError and passes on Windows CPython 3.12.14 afterward. git diff --check passes. This synthetic fixture tests source decoding and recipe binding only: it is not a physical-word certificate, does not regenerate the historical run, and does not strengthen the Lean mathematical claim.\n\nTask selection: complex-mechanisms seed 6b8dbb07bba55444154d03226fa293d3, changed to a concrete replay portability defect after inspecting the retained HPE helper interfaces. Base is canonical main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4. Complete open-PR/Discussion/local-note overlap checked; the nearest semantic-binding and current tail-fault audits address different claims. Credit the retained HPE/Lean contributors; new work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0. Frozen evidence and selected frontier remain unchanged.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "7810547d77cfdf4c66078bc53c4503c51cd634b9195f4fcb2f6179995a7de359"
+}

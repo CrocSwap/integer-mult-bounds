@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 2,
+  "base_commit": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Audit PR1006 T37 receipt normalization over all eight-input digest permutations and provide an explicit path-to-role comparator that preserves relocation and every non-input receipt field.",
+  "scope_change_reason": "The assigned method is a canonical-payload comparison audit. The concrete object is the eight-input provenance map in the accepted T37 bitmap adapter, distinct from gzip and Windows codec work.",
+  "bottleneck_link": "Portable receipt comparison must preserve input identity associations so exact replay evidence remains reviewable across machines; engineering only, with no changed recursive cost or kappa.",
+  "budget_minutes": 60,
+  "stop_rule": "One bounded receipt-comparison audit, no full-supplier rebuild or selected-frontier changes; finish about 00:17 UTC on 2026-10-14, hard stop 00:47 UTC, reserving verification and handoff time.",
+  "outcome": "completed",
+  "evidence": "RESULT.json: 40320 legacy-equal permutations, 40319 strict rejections, one identity; both fresh complete T37 engines agree on 167832 roles, 333 calls and 14 inherited controls. Six focused test groups cover parsing, source and result corruption.",
+  "author": "commdata2338",
+  "ai_assistance": "Prepared for commdata2338 (@commdata2338), with substantial OpenAI Codex assistance in audit design, implementation, checking and writing. One agent; no independent human or subagent review.",
+  "open_questions": [
+    {
+      "question": "Should a future maintained T37 entry point adopt explicit input-role bindings for portable receipt comparison?",
+      "why_it_matters": "The old multiset normalizer erases path-to-digest association in saved evidence even though the current runner independently pins its actual inputs.",
+      "first_step": "Integrate receipt.py at a nonfrozen successor entry point and replay the unchanged reference and bitmap engines plus relocation and swapped-role controls.",
+      "blocked_by": "Maintainer adoption and a declared historical-layout policy; frozen predecessor code must remain unchanged."
+    }
+  ],
+  "chooser": {
+    "seed": "3293b0b65763e4677f4efbb57cde1c08",
+    "track": "verifier-engineering",
+    "scope_key": "91a9a2afec282c926282",
+    "passed_over": {
+      "task_id": "replay-runtime",
+      "scope_key": "b1dd41940c60d240b47a",
+      "reason": "Concrete receipt-role collision is bounded and independently testable without adding a performance claim."
+    }
+  },
+  "predecessors": [
+    {
+      "pr": 1006,
+      "head": "2b047edb2b3fedccc4f538608b1bd56dc711673d",
+      "author": "Gareth Davidson (@bitplane)"
+    },
+    {
+      "pr": 942,
+      "head": "1960cfa919a0945d0ca4cb14ea96237000037903",
+      "author": "Jonathan Capalbo (@jon314159)"
+    }
+  ]
+}

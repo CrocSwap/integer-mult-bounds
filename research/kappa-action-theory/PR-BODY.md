@@ -1,0 +1,7 @@
+The current fixed-word/inventory packing optimum is already attained in #2863. This collection develops changed native/helper contracts, complete physical consumers, actual common-label tensor recovery and the charged precision/uniform-transfer interfaces needed for a future improvement.
+
+Adds four pure-mathematics volumes with exactly 400 unique theorems, each with a full informal proof and concrete action. Includes a 400-entry searchable index, application recipes, immutable source pins, honest overlap/attribution and full author plus separate-agent proof-review records. Main was refreshed through `734ef056148cea45daf9af0bd089a7b5c46fea8f`, including the existing logical-caller/storage, all-size unit-shear and internal-grid successors.
+
+These are constructive/sufficiency results in explicitly stated models, including classical adaptations. No exact new κ, realized global improvement, 400 novelty claims, Lean formalization or independent human review is asserted. A tensor certificate is not automatically a native linear child, and a finite endpoint identity does not establish all-size physical/H2/outer admission.
+
+Validation: `python3 -I -B research/kappa-action-theory/check_collection.py` checks counts, fields, anchors, dependencies and SHA-256 package integrity. Informal proof review and resolved corrections are documented separately; the checker does not verify mathematics. No frozen source, selected result, canonical DAG or shared configuration changes.

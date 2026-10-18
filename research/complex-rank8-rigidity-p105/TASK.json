@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task_id": "complex-rank-shape-decoder",
+  "priority_revision": 3,
+  "base_commit": "d040f15f637784c71e394292fc3cfb45f9355e03",
+  "original_card": {
+    "id": "complex-rank-shape-decoder",
+    "question": "Can a decoder deliver the local paid mass in fewer, larger-rank children (block frame climbs instead of rank-1 to rank-3 steps)?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/complex-decoder-field-extension-seed44/README.md",
+      "research/complex-frame-pair-decoders/README.md"
+    ],
+    "methods": [
+      "Find one exact small decoding identity whose frame path climbs in blocks, and price its complete per-call profile.",
+      "Bound the best effective child rank achievable for one fixed support alphabet, including copies, frames and restoration."
+    ],
+    "acceptance_gate": "A per-call local profile, with all copied information, frames and restoration counted, whose ceiling exceeds the selected word's by at least 5%; masked or overcomplete supports must change an assumption of the eight-term all-pairs bound.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Before any synthesis, write the candidate per-call local profile (and centre charge / unpaid coordinates if changed) and screen it with ceiling.ceiling(); reject it if even the ideal ceiling does not beat the selected word's by your stated margin. Ideal budget: rank-16 delivery is 2.31x (levers.py).",
+    "bottleneck_link": "Rank-1 children are about half of recursive cost; the selected word's effective child rank is about 3.9. Larger-rank delivery lowers recursive cost per unit of paid mass.",
+    "allowed_variations": [
+      "One masked, overcomplete or block decoder family with exact labels and supports.",
+      "A scoped lower bound on effective rank for one alphabet.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Repacking idle remainders of an unchanged word (covered by the packing ceiling).",
+      "Repeating the eight-term all-pairs search inside its proved scope."
+    ],
+    "overlap_terms": [
+      "rank shape",
+      "block climb",
+      "masked decoder",
+      "overcomplete",
+      "effective rank"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "Finite verification inside the masked (E-graph) model of PR1212: for every 7-subset X of P112 (242802 orbits under the 8-generator FRAME0-stabiliser subgroup H, covered by a four-level candidate chain with explicit transporters in H), is there a pivot frame F inside P112 \\ X satisfying PR1560's frame-incidence criterion (D), (G), (W) and the nonempty-block premise of its Corollary 2? If so, PR1560's written theorem makes every P105 unit rigid. Extends PR1616 (P107, P106) by one level.",
+  "scope_change_reason": "Revision 3 retired the complex-masked-decoder card into this one, keeping masked supports as an allowed method, and this card's gate requires a masked support to change an assumption of the eight-term all-pairs bound. This package is a side result on that requirement: with PR1560, an exact eight-costly-term masked decoder on any P105 live set is rigid (an all-pairs decoder up to gauge), so masking does not escape PR968's floor at p = 15. It builds no decoder, prices no profile and does not address child rank.",
+  "bottleneck_link": "Side result, not a lever: it closes the masked eight-costly-term route for p <= 15 (floor 57 = 72 - 15 at P105 through PR1212 section 8; 56 = max(72 - p, 56) takes over at p >= 16). No kappa change.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop at P105 with every unit verified exactly; a structural (D)/(G) lemma and nine or more costly terms are left open.",
+  "outcome": "completed",
+  "evidence": "verify.py --cover: 13 exact checks (model and the frame identity (6) on all 2025 frames; generators; H rebuilt in breadth-first order, 172032 elements; triple orbits; four-level candidate coverage: 2517 quadruple candidates onto 180 representatives, 18782 5-subset candidates onto 1614 units, 156627 6-subset candidates onto 19295 units, 1651528 7-subset candidates onto 242802 P105 units, each candidate the image of its unit under an indexed element of H; PR1560's fixture and control; (G) and (D) each fail on deficient frame families of the fixture; an 80-frame sub-family at a P105 pivot passes (W), blocks and (G) but fails (D), with an exact integer kernel certificate, so (G) does not imply (D) for arbitrary frame families; a first-frame control). verify.py --part i/3: per P105 unit the pivot is a live frame satisfying (D), (G), (W) and nonempty blocks, ranks modulo 1000003 as lower bounds; all 242802 pass (200 s wall, 1861 CPU-s on 10 Apple-silicon cores; the registered replay passes in 249 s wall). The criterion is PR1616's with bitmask rows and a different elimination order; it agreed with PR1616's implementation on 1200 random (unit, frame) pairs and 800 sub-family controls with (W), (G) and (D) failures (scratch check, not registered). make_units.py (which now finds pivots by exact search) reproduced both data files byte for byte from scratch, and checked that the orbit sizes sum to C(112,k) for k = 4..7 (census, not needed by the argument); its units and pivots match PR1616's unregistered search_p105.py run exactly. tally_earlier.py (unregistered, stdlib) reruns the exact criterion on all 17429 live frames preceding a pivot: 17210 fail (W), 219 fail nonempty blocks, none fail (G) or (D). Mutation controls on scratch copies (non-live pivot, (W)-failing pivot, one changed level-7 element index) each fail. A read-only OpenAI Codex review found no soundness defect. PR1560's Theorem 1 and Corollary 2 are cited, not re-proved.",
+  "author": "JosieElliston (with Claude Opus 5.5 via Claude Code)",
+  "ai_assistance": "Claude Opus 5.5 via Claude Code: census, verifier, speedup and write-up, building on the same assistant's PR1616 package. OpenAI Codex: read-only review (see README). Submitted by the account holder.",
+  "open_questions": [
+    {
+      "question": "Do (D) and (G) hold at every pivot of a live set once (W) and nonempty blocks hold?",
+      "why_it_matters": "In the P107, P106 and P105 searches no frame passing (W) and nonempty blocks ever failed (G) or (D); a lemma would remove every rank computation and leave a counting check.",
+      "first_step": "control.g-without-d shows (G) alone does not force (D) for an arbitrary frame family, so a lemma must use that the family is all live frames. Search deeper deletions (P104 and below) for a pivot passing (W), nonempty blocks and (G) whose full live family fails (D).",
+      "blocked_by": "No candidate lemma yet."
+    },
+    {
+      "question": "Does the masked rigidity route say anything for nine or more costly terms?",
+      "why_it_matters": "PR1560's criterion and PR1212's model are for exactly eight costly terms; the rank-shape card needs masked supports that change an assumption of the eight-term bound.",
+      "first_step": "State the nine-term E-graph equations and check whether PR1560's identity (6) argument has an analogue.",
+      "blocked_by": "No nine-term rigidity statement exists to verify."
+    }
+  ]
+}

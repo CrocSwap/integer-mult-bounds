@@ -1,0 +1,154 @@
+Niemeier bit routes: exact local results, no new kappa
+====================================================
+All work here is scratch. No PR or published package is changed.
+
+A genuine small-dimensional bit pair
+-----------------------------------
+For norm-four lattice lines use rational address Gram K(v,w)=v.w/4.
+Define the binary scalar central matrix C(v,w)=[v.w=0 mod4]. Since distinct
+lines have inner product in {-3,...,3}, C=I+A, where A is the ordinary
+orthogonality adjacency. This is a legal bit pair with rational frame
+size equal to the lattice dimension. It does not use the complex F2 frame
+as a rational address frame.
+
+The integer-valued polynomial binom(t-1,3) modulo two equals [t=0 mod4].
+Its degree-three multivariate binomial basis gives rank at most
+binom(d+3,3), independent of a floating-point computation.
+
+Exact exhaustive integer dot products and packed GF2 elimination give:
+
+  geometry                    ports   rational h  binary rank  full center bill
+  E8^2 norm-four shell         30960       16          815           13040
+  E8^2 mixed block ports       28800       16          782           12512
+  D16+ norm-four shell         30960       16          815           13040
+  D16+ spinor lines            16384       16          576            9216
+  D16 norm-four sparse lines   14576       16          575            9200
+
+The full-center bill is h times the displayed rank, not a complete local
+rank histogram. The graph compensation still needs an efficient legal
+transparent word with arbitrary dirt restored.
+
+On the E8^2 mixed ports, there are three invariant orthogonality types:
+block pairings (0,0), opposite unit pairings, and opposite norm-two
+pairings (the relative-sign partner). Including each type or omitting it
+independently gives binary central ranks, in three-bit mask order:
+
+  [28800,28800,28800,28800,14400,1998,14400,782].
+
+Thus retaining all three types is best within this eight-member family.
+This is not a global minrank claim.
+
+Files: mod4_rank.py/MOD4-RANK.json; mixed_rank.py/MIXED-ORBIT-RANKS.json;
+d16_rank.py/D16-RANK.json; section_ranks.py/D16-SECTIONS.json.
+
+D16+ spinor operator transformation
+----------------------------------
+Index the canonical spinors by x in F2^14:
+
+  v(x)=(1,(-1)^x_1,...,(-1)^x_14,(-1)^(sum x))/2.
+
+Distinct ports are orthogonal precisely when wt(x+y) is 7 or 8. Their
+central decoder is group convolution by delta_0 + [weight7] + [weight8].
+Write g_i=1+z_i in the F2 group algebra, so z_i^2=0. The exact upper
+Boolean zeta transform turns this kernel into e8(z_1,...,z_14).
+
+For zero-based i=0,...,6, use the invertible Darboux coordinates
+
+  x_i=z_(2i)+z_(2i+1),
+  y_i=z_(2i+1)+sum_(j>i)(z_(2j)+z_(2j+1)).
+
+Then e2(z)=sum x_i*y_i and e8(z)=e4(x_0*y_0,...,x_6*y_6).
+The latter has 35 monomials. Each creates eight variables and has rank64
+on the full 16384-dimensional exterior algebra. Every two such monomials
+have product zero, since their four-element pair subsets intersect.
+Therefore I+e8 factors into 35 commuting shears, totaling 2240 scalar
+CNOT operations IN THE TRANSFORMED BASIS. Exact graded ranks are
+1,14,91,364,91,14,1, whose sum is576.
+
+The two basis changes are not free common-frame operations. An unfused
+14-layer in-place Mobius transform forces both operands of every addition
+to the same union frame, ultimately FULL16 for every role. Lowering each
+output to a target cap requires at least16384 additional rank-one copies,
+which the spinor-only margin16384-9216=7168 cannot pay. This blocks that
+direct schedule, not every possible fused transform.
+
+Files: spinor_operator.py/SPINOR-OPERATOR.json. The exact square-zero
+polynomial identities and graded matrix ranks pass with Python -I -O.
+Independent physical-frame receipt is in
+workbench/helper-routes/MOBIUS-FRAMES.json (owned by the routes agent).
+
+A compatible Hadamard-clique subtraction
+---------------------------------------
+For a in F2^4 define the14-bit mask H(a) by
+
+  H(a)_(j-1)=parity(a & j), j=1,...,14.
+
+The four subgroup generators are5461,9830,14456,16256. Each nonzero shift
+has canonical weight7 or8. Thus the1024 cosets of H are sixteen-port
+orthogonal cliques in rational dimension16.
+
+If J_H is convolution by the whole subgroup, its rank is1024. The legal
+clique adjacency is P=I+J_H. The residual from the full spinor adjacency
+is A+P=C+J_H and has EXACT binary rank1268 (not merely the upper bound1600).
+This may be useful for a fused schedule, but low algebraic residual rank
+does not itself give compatible encoder and decoder frames.
+
+Files: clique_residual.py/CLIQUE-RESIDUAL.json; checked with -I -O.
+
+A scoped E8^2 packet-cover obstruction
+------------------------------------
+For one mixed port (u,v), its11831 orthogonal neighbors lie in the
+15-dimensional cap a.u+b.v=0. Their homogeneous cubic evaluation rank is
+679, out of680 possible cubic monomials. An exact integer vanishing
+relation supplies the matching upper bound, so this rank is over Q too:
+
+  ell*(||a||^2-||b||^2)=0, where ell=a.u=-b.v.
+
+Indeed, mixed neighbors have equal block norms and pure neighbors have
+ell=0. This spans the entire vanishing-cubic space. The quadratic factor
+on the cap has rank14 and signature(7,7), with radical spanned by(u,-v).
+It cannot be a product of two linear forms. Therefore these neighbors
+cannot be covered by three proper rational linear hyperplanes. Block
+Weyl symmetry gives the same conclusion for every mixed port.
+
+This is an obstruction to such a three-hyperplane packet-cover plan,
+not to every mutable-source algorithm or every supplier.
+
+File: cubic_relations.py/CUBIC-RELATIONS.json. A modular rank679 sample
+includes the unique orthogonal sign-partner; omitting that rare point
+can give the misleading sample rank678. The integer relation is checked
+on ALL11831 neighbors. The earlier NEIGHBOR-CUBICS.json records that
+initial bounded sample and is not the final certificate.
+
+Pricing interpretation
+----------------------
+The budget agent's separate ordinary banked screen gives meaningful
+headroom for the h16/rank815 pair, conditional on a small enough actual
+word. Its conservative five-stage helper profile allows approximately
+43879 helpers for a +20% target, or60062 to cross the retained frontier.
+No such word was constructed here. Independent rectangle factories and
+unfused transforms do not meet this requirement. No new bit saving or
+integer-multiplication exponent is established by these rank receipts.
+
+Literal natural-column implementation of the rank1268 residual
+---------------------------------------------------------------
+A column of D=C+J_H is supported on6420 spinor targets: the6435
+orthogonal neighbors with the15 nonzero H clique shifts removed.
+For the all-positive column, every support vector lies in the sum-zero
+rational cap. Fifteen listed support vectors have a nonzero exact integer
+15-by-15 minor after deleting the first coordinate. Consequently the
+support spans the entire15-dimensional cap. XOR translations are diagonal
+real sign isometries, so every column has the same exact span property.
+
+Therefore the intersection of all target caps for one such decoder
+column is precisely the one-dimensional line of that column's port.
+If a rank1268 column-basis factorization uses full-frame aggregates and
+one private decoder copy per retained natural column, each copy must
+lower from dimension16 to at most1. Its rank mass is at least
+1268*15=19020 per invocation, already larger than all16384 spinor ports,
+even before charging the original576 full-frame centers or the clique
+subroutine. This rejects that literal implementation of the1268 residual.
+It does not reject different encoder/decoder bases or fused shared DAGs.
+
+Files: clique_residual_support.py/CLIQUE-RESIDUAL-SUPPORT.json.
+The finite witness and scope check pass with Python -I -O.

@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "number": 1298,
+  "title": "Tooling: Windows portability for research onboarding scripts and tests (no new kappa)",
+  "author": {
+    "id": "U_kgDODxvS3A",
+    "is_bot": false,
+    "login": "rtyu193-rgb",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1298",
+  "head": "e76026571dbfa7299bf474b941c9abeb5bd556b3",
+  "merge_base": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "baseline": "a18b4b0136d647529971e9fcb99fa83f5b9a0b81",
+  "files": [
+    {
+      "path": "scripts/choose_research_task.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "695639622a283190948c4187bdbb41997e6e43d7"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9f851406bf48240e9254277534e2a632a27ff8f0"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/find_overlap.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d361b5d8b0f6947cf48c7d2442ea6e9ef28ddd4e"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8c43a39f8a341bd9439a8bfbfd1887a82e17bc16"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/new_research_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "636a9dcbc509f42e1cf783302dd0744852742cfc"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5ddf5e44c23e3ee60f54d64e4f2f8150a8909515"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/research_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2a2c2e67a0bd42d4e142e6edf8b80ea8bcefa320"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "14e75666acc52d270fd7e7fda82176ded18527c4"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_assignment.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a9444f17ece4d15340db7ba81c0ce5f3fab8635b"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "46b7fba0404efbb6f1cbcb5ea355a9f70b85c300"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_onboarding.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "391c2d849a35b9d65439ad3226b8ff79e82ce46d"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bf17caded1c0793dd20d8e305e3f5baa097b39db"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/choose_research_task.py": 1,
+    "scripts/find_overlap.py": 1,
+    "scripts/new_research_package.py": 1,
+    "scripts/research_package.py": 1,
+    "tests/test_research_assignment.py": 1,
+    "tests/test_research_onboarding.py": 1
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "## Tooling: Windows portability for the research onboarding scripts and tests (no new \u03ba)\n\n**Track / card:** `verifier-engineering` / `portable-replay` (helper seed `326311449640c5859b8c989bfb6ffb4d`). Scope **unchanged**: reproducible environment failures repaired with minimal cross-environment fixes.\n**Base:** `bce54fb3f895cbe5cd4c0eb477c3afeed100190f`. Work started at `dadfea6e`; none of the touched files changed in between. The selected record is unchanged.\n**No mathematical claim.** No certificate, frozen source, pin, catalogue or selected-record change.\n\n### Findings at base (Windows 11, CPython 3.14.8, cp1252 locale, Git for Windows `core.autocrlf=true`)\n\n`python -B -m unittest discover -s tests -p 'test_research_*.py'` \u2192 **6 errors / 20 tests**, plus two bugs in the overlap helper:\n\n1. **`research_package.py --check-only` depends on the host locale.** It read `README.md`, `TASK.json` and `VERIFY.json` with the locale codec. A package whose README contains `\u201cquotes\u201d` (U+201D contains byte 0x9d, which cp1252 leaves undefined) **crashed on Windows and passed on Linux or in UTF-8 mode**. Most other non-ASCII text (\u03ba, \u2014) silently turned into mojibake instead. `test_documented_allocation_matches_catalog` failed the same way on `autoresearch.md`.\n2. **`find_overlap.py --refresh` never worked on Windows.** `gh api` ran with `text=True` and the locale codec. Open-PR bodies contain byte 0x81, the subprocess reader thread died, `stdout` came back `None`, and both sources reported `the JSON object must be str, bytes or bytearray, not NoneType`. Coverage stayed `null`.\n3. **`find_overlap.py`'s human report crashed** (`UnicodeEncodeError \u2026 '\u03ba'`) when printing an excerpt to a cp1252 pipe.\n4. **Test fixture, CRLF:** the temporary fixture repo has no `.gitattributes`, so with Git for Windows' default `autocrlf=true` it stores LF blobs while `write_text` leaves CRLF on disk. `new_research_package.create` then refuses with `source has uncommitted changes\u2026` (5 `setUp` errors). The main repo's `* text=auto eol=lf` hides this for real checkouts, so this part is test-only.\n5. **`run_command` timeout:** it calls `os.killpg`, which does not exist on Windows. The child leaked and blocked temp-dir cleanup.\n\n### Changes (6 files, +69/\u221215)\n\n- `research_package.py`, `find_overlap.py`, `new_research_package.py`, `choose_research_task.py`:\n  - `encoding=\"utf-8\"` on every text-mode file read/write and text-mode subprocess call.\n  - The scaffold also writes `newline=\"\\n\"`.\n- `find_overlap.py`: the human report uses `errors=\"backslashreplace\"`, so it never crashes and the output encoding consumers see is unchanged. `--json` is already ASCII via `json.dumps`.\n- `run_command`: where `os.killpg` is unavailable, end the timed-out child **tree** with `taskkill /F /T /PID`. The POSIX branch is byte-identical.\n- Tests:\n  - The fixture repo pins `core.autocrlf=false` next to its pinned user identity.\n  - The assignment tests read UTF-8.\n  - Three new tests:\n    - `test_utf8_metadata_validates_under_any_locale`: \u03ba, an em dash and curly quotes in TASK.json and README must validate and round-trip.\n    - `test_report_survives_a_cp1252_stdout`: runs `find_overlap.py \u03ba --offline` with `PYTHONIOENCODING=cp1252`, which reproduces a Windows pipe **on any host**.\n    - `test_onboarding_text_io_does_not_depend_on_host_locale`: an AST check that every text-mode `read_text`/`write_text`/`open`/`NamedTemporaryFile`/`subprocess.run|Popen|check_output` call in the five onboarding scripts names an encoding. It is needed because a UTF-8 Linux CI host cannot observe locale-codec bugs behaviourally.\n\n### Evidence\n\n| Run | Result |\n|---|---|\n| Base, Windows cp1252 | 6 errors / 20 |\n| Patched (rebased on `bce54fb3`), Windows cp1252 | **OK, 23 tests (1 skipped: 3.12-only replay)** |\n| Patched, `python -X utf8` | OK, 23 (1 skipped) |\n| Control: `scripts/` reverted, new tests kept, cp1252 | static check fails, UTF-8 metadata errors, killpg errors |\n| Control: `find_overlap.py` reverted, `-X utf8` (Linux-like) | static check **and** cp1252-stdout test fail, so the regression is caught on UTF-8 CI |\n| `find_overlap.py \u2026 --refresh` before / after, Windows | coverage `null` + NoneType warnings \u2192 `complete_pagination: true`, 790 open-PR records, 40 discussion records |\n| Manual tree-kill probe (child spawns a grandchild that writes a file after 2 s) | no timeout: file written (positive control); 0.5 s timeout: `verification timed out`, file **not** written |\n| `scripts/research_baseline.py` | `PASS_RESEARCH_BASELINE_BINDINGS_ONLY` |\n\n### Not checked / limitations\n\n- Not run on Linux or macOS. The POSIX `killpg` branch is unchanged, and the encoding changes are no-ops on UTF-8 hosts.\n- The `test_ready_package_replays_and_mutation_fails` replay (Python 3.12 only) was skipped here.\n- The static check covers only the five onboarding scripts, not the wider `scripts/` tree. #946 covers the `make verify` generator surface, with no file overlap.\n- `taskkill` is assumed to be on `PATH`, as it is on stock Windows.\n\n### Overlap and credit\n\n- Ran a fresh `find_overlap.py --refresh` (with this fix, full pagination) and searched open PRs for encoding/windows/utf-8/crlf/cp1252/killpg/research_package.\n- **#1292 and #1293 (@navinor)** independently *reported* findings 2\u20135 as pre-existing Windows issues in their limitations sections, including the `core.autocrlf=false` workaround and `PYTHONUTF8=1` for `find_overlap.py`. Neither PR changes these files. This PR fixes what they observed and adds regression tests; thanks for the corroboration.\n- **#946** fixes the same bug class (locale codecs) across the `make verify` certificate generators. It predates the onboarding scripts (added in `49b3157d`) and touches none of these files, so the two PRs are complementary.\n- The patched scripts were written by Douglas Colkitt with OpenAI Codex assistance (Apache-2.0); this PR keeps their headers.\n\n### Open next questions\n\n- **Should the research test job also run on `windows-latest`?** Why it matters: three agents hit these regressions within hours of the tooling landing. First step: add a matrix entry for `test_research_*.py` only (about 5 s). Blocker: CI cost and a maintainer decision.\n\nSubstantial AI assistance: prepared with Claude Code (Claude Opus 5.5).\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "e5bead1729fd0d082c94f8595685bca0f4cf6c4cb26105fc8b956173396cf524"
+}

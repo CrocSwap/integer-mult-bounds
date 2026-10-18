@@ -1,0 +1,72 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjY4MjA3MTg3",
+    "is_bot": false,
+    "login": "JosieElliston",
+    "name": "Josie Elliston"
+  },
+  "baseRefOid": "abdc6a7002abdbcd9e21bfc5e1a795784deacfdf",
+  "body": "**Status: research audit / independent verification. No new \u03ba.** The selected result is unchanged. No counterexample was found.\n\n- **Track:** 60\u201374 (adversarial audit), OS-random seed **67**\n- **Base:** `abdc6a70`. PR heads are pinned in `SOURCES.json`, snapshot 2026-10-13 18:40 UTC.\n- **Adds:** only `research/t16-owner-audit-seed67/`\n\n## Why\n\nFifteen open PRs claim \u03ba \u2248 0.001672. Each one puts a new frozen sixteen-replica owner map on #1018's seven-slot k8 word. Two parts of these claims already have independent audits:\n\n- #1049 audits the local word.\n- #1069 and #1051 audit the arithmetic from the committed profile to \u03ba.\n\nThe step in between had no independent check: is each frozen `OWNERS.json.gz` a legal whole-helper hosting that yields the claimed idle profile? Until now it was checked only by `lift16.py` and `indep16.py`. Both are #858's code with generic-R edits, and both ship inside the audited packages.\n\n## What was checked\n\nA new standard-library verifier re-implements the hosting rules of `research/complex-double-replica-owners/PROOF.md` from that text. It imports and runs nothing from the audited packages. Owner maps, plans and specs are read as git blobs at pinned ids. The verifier has three other inputs:\n\n- **Source-event stream:** main's vendored ROUND20 parent template.\n- **Idle-child pending axes:** main's PR558 `DATA-PHASES.json`.\n- **Helper widths:** derived as span(final) \u2212 span(start) from the seven-slot word `c2b29430\u2026`. The file is copied from #1049, and its content hash equals #1018's pin.\n\nEach role is checked against these rules:\n\n- **R1:** 144 invocations in the two-group interleave, with each replica's 30 source events in order.\n- **R2:** each invocation hosts helpers 0..479 exactly once, each at the width derived from the word.\n- **R3:** the physical family identity holds, the family is in the live namespace, and it is not the caller's active pair.\n- **R4:** each family hosts at most one helper per invocation.\n- **R5:** the invocation lies strictly inside the owner's actual window. The window is rebuilt from events and runs from the last local or bridge touch of the pair to the idle sweep.\n- **R6:** slices are within capacity, disjoint, and form a prefix.\n- **R7:** the idle remainders and the full profile are recounted and compared with SPEC, PLAN and RESULT. The deficit must be 5120 and the halving guard must hold.\n\nTwo checks go beyond the audited checkers:\n\n- **X1:** the rebuilt windows must equal each package's committed PLAN windows, including all time lists. The same builder must also reproduce the T8 PLAN.\n- **X2:** distinct idle children of one physical family must have disjoint pending axes. This is load-bearing: in each map, about 8,400 of the roughly 11,800 host families hold slices of two or more children.\n\n## Result\n\nAll 15 maps pass: #1022, #1028, #1031, #1042, #1050, #1053, #1055, #1056, #1061, #1063, #1065, #1068, #1074, #1082 and #1087. The shared #1018 T8 map also passes. That is 1,036,800 T16 roles plus 34,560 T8 roles. Every recounted idle profile and full profile equals the committed claim, and every rank mass is 1,041,408 = 73\u00b714,336 \u2212 5,120. The per-PR table is in the README.\n\nCombined with #1049 (local word) and #1069 (pricing), the chain from frozen owner data to \u03ba has now been checked with independently written code. The inherited interfaces in that chain remain unaudited.\n\n## Negative controls\n\nThere are 11 controls, run on #1074. Each must be rejected by the rule it targets:\n\n- dropped role (R1)\n- narrowed width (R2)\n- duplicated helper (R2)\n- private-namespace family (R3)\n- consistent role on the caller's active pair (R3)\n- two helpers on one family in one invocation (R4)\n- role moved past its owner's idle sweep (R5)\n- overlapping slices (R6)\n- prefix gap (R6)\n- tampered claimed idle profile (R7)\n- truncated committed PLAN window (X1)\n\n## Reproduce\n\n```sh\npython3 -I -B research/t16-owner-audit-seed67/verify.py --fetch\n```\n\nThis takes about 4 s plus the fetch of 15 PR refs. The receipt is compared byte for byte with `RESULT.json`. Expected last line:\n\n```text\nPASS_INDEPENDENT_T16_OWNER_AUDIT claims=15 roles=1036800 t8_roles=34560 controls=11\n```\n\nThe command passed on macOS with CPython 3.14.7, both in the worktree and in a fresh clone with `--fetch`. `scripts/verify_selected_result.py` passes. No repository-wide `make verify` was run, because no existing file changes.\n\n## Reviewer note (not a defect)\n\nIn the jeremykothe2 `gauge44-slots-t16` packages, `evidence/local`, `evidence/global` and `evidence/audit` are byte-identical to #645's R = 492 files. Their `OWNERS-AND-PROFILE.json` reports 35,424 roles and deficit 2,560. The inherited README's line 116 says these are historical. However, its later \"Proof and evidence\" list still describes `evidence/audit/` as the actual controller and invoice. The only committed T16-specific receipt is `RESULT.json`.\n\n## Scope\n\nThis PR covers owner admission and the idle-remainder recount only. It does not cover:\n\n- the 73-axis chart and route step;\n- the emitted controller;\n- invoices and prefix/row reserves;\n- moments and the outer assembly;\n- the local word's admission;\n- any inherited assumption: all-size/compiler, common-label/mutable-source realization, whole-invocation hosting, precision/tape, analytic, or PR589 bit H1\u2013H5.\n\nThe window semantics are #858's and are not re-proved here. This is a finite check of stated rules on stated files.\n\n## Credit and disclosure\n\n- **Owner maps:** Jeremy Kothe (#1022\u2013#1074, #1087) and Rohan Arun (#1056, #1063, #1082).\n- **Controller, window semantics and rules:** Hao Yan's #858, with #870's adaptation.\n- **Word:** #1018, built on rohanarun's #987, #1005, NewBArch's #869 and the #645/#685/#741 lineage.\n- **Pinned word file:** copied unchanged from Sagar Thakrar's #1049 under Apache-2.0.\n\nPrepared by Josie Elliston with substantial assistance from Anthropic Claude (Claude Code).\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-13T17:55:43Z",
+      "authors": [
+        {
+          "email": "josie.elliston@gmail.com",
+          "id": "MDQ6VXNlcjY4MjA3MTg3",
+          "login": "JosieElliston",
+          "name": "josie"
+        },
+        {
+          "email": "noreply@anthropic.com",
+          "id": "MDQ6VXNlcjgxODQ3",
+          "login": "claude",
+          "name": "Claude Opus 5.5"
+        }
+      ],
+      "committedDate": "2026-10-13T17:57:24Z",
+      "messageBody": "\u2026 new kappa)\n\nStandard-library re-implementation of #858's whole-helper hosting rules,\nreading the frozen OWNERS/PLAN/SPEC of every open seven-slot k8 T16 claim\n(#1022-#1087) as pinned git blobs. Windows are rebuilt from main's vendored\nsource-event stream; widths from the #1049-pinned word. All 15 maps and\nthe shared #1018 T8 map pass; 11 targeted negative controls.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+      "messageHeadline": "Research audit: independent owner-map check of 15 open T16 claims (no\u2026",
+      "oid": "b4c13a228acb80f74c682b7097f0ce9bbf51bc4e"
+    }
+  ],
+  "files": [
+    {
+      "path": "research/t16-owner-audit-seed67/README.md",
+      "additions": 162,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t16-owner-audit-seed67/RESULT.json",
+      "additions": 558,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t16-owner-audit-seed67/SOURCES.json",
+      "additions": 230,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t16-owner-audit-seed67/inputs/k8-seven-slot-word.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t16-owner-audit-seed67/verify.py",
+      "additions": 430,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "b4c13a228acb80f74c682b7097f0ce9bbf51bc4e",
+  "isDraft": false,
+  "number": 1091,
+  "state": "OPEN",
+  "title": "Research audit: independent owner-map check of all 15 open T16 claims on the seven-slot k8 word (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1091",
+  "merge_base": "abdc6a7002abdbcd9e21bfc5e1a795784deacfdf"
+}

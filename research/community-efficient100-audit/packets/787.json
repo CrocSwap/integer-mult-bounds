@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "number": 787,
+  "title": "Research: compose complex coefficient lowering and cleanup sharing",
+  "author": {
+    "id": "MDQ6VXNlcjI3MzA1OQ==",
+    "is_bot": false,
+    "login": "bitplane",
+    "name": "Gareth Davidson"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/787",
+  "head": "93ceb65cfbf339d7ca743614d4756a3af1440cd4",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/complex-coefficient-composition/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6ac6a20e72a6a505f61e34ae0db15832ecce9ecb"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "82699d00741d453f6900755ef36b612141b6d171"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2171ef6f816e2bc4098283ae197cc9e186984228"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/SOURCE-PINS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "09f741af66a22044e103b2524f8b2e3f0dedbe73"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8b4f3ac682e8e5d9101d217d36d6150bdaf75ef8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/lower.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ed523c1d67f5cf72d30201f9837ad9d883daf015"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/test_verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "92fe2ef3b1c61f7df98f679df0fa116f7853879d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/vendor/pr696_lower.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a2c2889e5be41a0fc30d4dfa5dfcebb03d6d47f8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-composition/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3c0739e8cd48fbfa450c49c8a812b4a37faec8b2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/complex-coefficient-composition": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "## Change and mathematical scope\n\nFinite circuit composition / research note; no new kappa. Compose PR696 copy/unit lowering, PR723's independently corroborated signed-digit preparation, and PR722 cleanup work sharing. Extend the sharing census to 946 CK blocks as well as 999 JP8 blocks.\n\nThe complete real-component scalar bills become CK forward/backward 156426/169432 and JP8 forward/backward 181610/197120. Savings against the selected source are 68512/55554 and 75622/60160 respectively. Naively adding standalone savings overstates the forward gain by 3946 for CK and 4194 for JP8; the package gives exact block-by-block composition accounting.\n\nOnly research/complex-coefficient-composition/ is added. All 716 logical plus nine arbitrary private input columns pass in all four programs. Helpers are restored, private work clears at block boundaries, and conservative prefix bounds retain 40/62 and 64/101 bits within the inherited 192-bit allowance. The private-work boundary follows PR722; production integration and global admission remain separate.\n\n## Validation\n\nReproduce: python3 -B -I research/complex-coefficient-composition/verify.py\n\nExpected: PASS_COMPLEX_COEFFICIENT_COMPOSITION programs=4 logical_columns=716 coefficients=686 savings=68512,55554,75622,60160 controls=21\n\nTen focused tests check all 686 coefficients and all 1945 shared blocks with a separate flat-column implementation, independent grouping/cost arithmetic, and failure controls. Python 3.12.3 and 3.14.4 pass, including isolated optimized mode, minimal relocation, gzip recompression, and source/receipt/algorithm corruption. The patch applies to the exact base tree and its optimized replay passes. make selected-record-check and staged whitespace pass. Full repository verification, native supplier regeneration, phase/wrapper/global replay, remote CI and Lean were not run.\n\nBase: 66849e1475c930fd7732b1a0067ffee7e1e95f60. Exact source and dependency pins, proof, certificate, validation, local claim and predecessor attribution are included. OS seed 24, complex track. No pinned sprint coordination issue existed. Final overlap refresh reached PR779 and credits distinct PR734/739/751/755/769 extensions; their savings are not added here. PR769 independently covers CK varying-magnitude reuse in both orientations. This package checks the copy/signed/equal-magnitude composition in cleanup and makes no priority claim for CK reuse.\n\nPrepared for Gareth Davidson (@bitplane) with substantial OpenAI Codex assistance. Apache-2.0. All inherited all-size compiler, realization, hosting, precision/tape, analytic and bit-supplier assumptions remain. No new multiplication bound, formal theorem certification, runtime speedup or optimality is claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "4b23bddc86a6fcadbf517dba64cbac11f06be08a736d4129b86933728207aa9d"
+}

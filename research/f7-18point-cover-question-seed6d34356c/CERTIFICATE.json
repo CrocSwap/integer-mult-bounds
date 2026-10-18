@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "result": "KB3e set-level verdict (outcome=partial): the 18-point cover question for F2^7 is NOT decided -- no 18-point cover was constructed and no split was excluded -- but it is narrowed to an exact finite remainder. All four counting-feasible splits (12,6),(11,7),(10,8),(9,9) survive the extended odd-coverage Fourier/Parseval layer (deficits non-positive; the PR 2870 squeeze hypothesis fails because 18 is even, so both sides have equal character parity), survive the extended pair-representation rows after the reproduced census floors (808 / 501 / 251 / 196 surviving rows respectively), and survive a bounded seeded construction search (best coverage 118/128 at k=18 against 10/10 instant k=20 covers as non-vacuity control). Exact new obstructions: (12,6) and (10,8) covers must have at least one vanishing character off the all-ones hyperplane. No kappa, supplier or selected-frontier change; the gap 20 <= f(7) <= 24 is unchanged.",
+  "labels": [
+    {
+      "statement": "Reduction lemma: for S = A u B with A in the even coset E and B in the odd coset O of F2^n, and D = p + B (p any odd mask, D subset E), S covers F2^n iff (i) A + D = E and (ii) (A + A) u (D + D) = E. Every parity split (s, t) is therefore a two-set covering problem in the even group E =~ F2^6.",
+      "label": "PROVEN",
+      "evidence": "Direct from coset arithmetic (A + B = O iff A + D = p + O = E, and B + B = D + D); machine-checked exhaustively over all 256 subsets of F2^3 in test_engine.py (test_reduction_equivalence_exhaustive_n3) and on the real F2^5 cover."
+    },
+    {
+      "statement": "Every 18-point cover of split (12,6) -- and of split (10,8) -- must have at least one character u not in {0, all-ones} with f_hat(u) = 0 or g_hat(u) = 0 (a vanishing character). Equivalently the no-vanishing sub-case of the profile system is infeasible for both splits.",
+      "label": "PROVEN",
+      "evidence": "Exact integer enumeration (cover18.fourier_profile_feasibility with nonzero_both=True) over every attainable rho square sum: for (12,6) the no-vanishing spectral shape is forced to n22=24, n24=8, n42=31 on the 126 characters off {0,1}, giving sum rho^2 = 46, which is not an attainable sum of squares of integer rho >= 0 with sum rho = 8 (the attainable set is {8,10,12,14,16,18,20,22,24,26,28,30,32,34,38,40,50,64}); for (10,8) the two Parseval equations force a non-integer shape count. The constraint set (character parity, |rho_hat| <= E_o with rho_hat == E_o (mod 2), the even-half bound f_hat^2 + g_hat^2 <= s + t + 2P - 2^n, and Parseval) is validated against every real cover of F2^3 and F2^4 (exhaustive) and of F2^5 (sample) in test_engine.py."
+    },
+    {
+      "statement": "The PR 2870 odd-coverage Fourier/Parseval squeeze does not reach any 18-point split: 18 is even, so s and t always have equal character parity, and the tracked deficits are non-positive on every split.",
+      "label": "PROVEN",
+      "evidence": "Exact bookkeeping (cover18.squeeze_numbers): (12,6) E_o=8, remainders A=1248, B=696, no uniform character bound (vanishing possible); (11,7) E_o=13, remainders 1166 and 798 vs allowed 126*169 = 21294 each (deficits -20128, -20496); (10,8) E_o=16, remainders 540, 448, no uniform bound; (9,9) E_o=17, remainders 990, 990 vs allowed 126*289 = 36414 (deficit -35424). PR 2870's own obstruction() reports the same status ('equal character parities: no side is squeezed')."
+    },
+    {
+      "statement": "Every recorded predecessor anchor is reproduced before any new number: PR 2542/2634 REPRO tiers 945/31, 10395/49, 945945/59 and the L18 census 15,775,992 nodes / 312,064 cycles / 0 universal; PR 2870 OBSTRUCTION lines parseval=696 allowed=504 deficit=192 both parity orders; PR 2773 k10 budget-3 = 149,990,400 and k11 levels 3-4 = 0 both recomputed IN FULL by fresh empty-receipt walks (PASS_ANCHORS_K10B3 count=149990400 shards=62, PASS_ANCHORS_K11B4 count=0 shards=62); row table (5,1),(6,0) remainder and the n=5 set controls.",
+      "label": "CHECKED",
+      "evidence": "ANCHOR-REPRO.json records commands and observed outputs; the fresh walks live in this package's ANCHOR-PROGRESS.json (one section per mode, per-sub-shard receipts). Correction recorded there: an earlier PASS print from the extracted PR 2870 package was receipt validation (its committed receipt pre-filled all shards), not a re-walk; the anchors.py runs recorded here started from an empty receipt."
+    },
+    {
+      "statement": "The pair-representation rows of the four 18-point splits after the reproduced census floors (floor(6..9)=0, floor(10)=3, floor(11)=5, floor(12)=3 counting): (12,6) 808 surviving rows over 120 distinct (e_ex, b_ex) pairs, (11,7) 501 rows / 36 pairs, (10,8) 251 rows / 28 pairs, (9,9) 196 rows / 45 pairs. Each row is exact (attainable c computed by contingency-table pairing sums, validated equal to the vendored PR 2773 _pairing_sums wherever the vendored O(m!) loop terminates).",
+      "label": "CHECKED",
+      "evidence": "cover18.sharp_rows_fast; verify.py rows mode asserts the four row counts and reproduces the 17-point control remainder (5,1),(6,0) and the empty (10,7) table after the floor; full row lists in the verify output."
+    },
+    {
+      "statement": "The per-character profile system does not exclude any 18-point split: (12,6), (11,7), (10,8), (9,9) all admit consistent profiles (feasible S value lists recorded; (9,9) partially undecided where the solver step cap was reached, which is never treated as a proof).",
+      "label": "CHECKED",
+      "evidence": "cover18.fourier_profile_feasibility; the same system reproduces the known exclusions ((11,6) infeasible -- PR 2870's result; (10,7) infeasible -- consistent with PR 2773's census exclusion) and accepts every split realized by a real cover (exhaustive F2^3/F2^4 cover batteries)."
+    },
+    {
+      "statement": "No 18-point cover exists in the searched domain (scoped search failure, not an exclusion): direct local search at k=18 with 200 seeded restarts tops out at 118 of 128 covered masks; the structured (A, D) searches per split (60 restarts each) top out at 118 / 118 / 118 / 117 of 128; a k=19 probe is similar. Non-vacuity: the identical machinery finds 20-point covers in 10/10 short runs, matching PR 2634's recorded abundance of 20-point covers and its own failure to find 19-point covers in 200 restarts (max 124/128).",
+      "label": "CHECKED",
+      "evidence": "cover18.search_direct / cover18.search_split, fixed seeds 20261016+; verify.py search mode; the search never asserts nonexistence."
+    },
+    {
+      "statement": "The direct extension of PR 2870's squeeze to 18-point splits as an exclusion mechanism is DEMOTED: its hypothesis (opposite character parity) fails on every 18-point split and the tracked deficits are non-positive.",
+      "label": "DEMOTED",
+      "evidence": "See the PROVEN bookkeeping statement; PR 2870 itself predicted this route does not reach the 18/19-point splits (E_o >= 8 there)."
+    },
+    {
+      "statement": "The expectation that the pair-representation rows collapse to a small remainder (as at 17 points, where two rows survived) is DEMOTED at 18 points: the remainders are large (808 / 501 / 251 / 196 rows) and the census floors at 18 points are weaker (floor(12) = 3 is only the counting floor).",
+      "label": "DEMOTED",
+      "evidence": "cover18.sharp_rows_fast output; the floors used are exactly the reproduced ones (floor(10) = 3 fresh-proven by the k10-budget-2 = 0 walk plus excess-3 examples; floor(11) = 5 from the reproduced k11b4 = 0 walk)."
+    }
+  ],
+  "obstruction_numbers": {
+    "n": 7,
+    "split_order_notes": "(s, t) = (points in the even coset, points in the odd coset); mirrors are identical by odd translation",
+    "splits": {
+      "12_6": {"odd_excess": 8, "squeeze": "none (equal parity)", "remainders": [1248, 696], "uniform_bound": null, "profile_system": "feasible (16 S values)", "no_vanishing": "infeasible -> PROVEN vanishing character required", "rows_after_floors": 808, "search_best_of_128": 118},
+      "11_7": {"odd_excess": 13, "squeeze": "none (equal parity)", "remainders": [1166, 798], "allowed_per_side": 21294, "deficits": [-20128, -20496], "profile_system": "feasible (22 S values)", "no_vanishing": "automatic (odd characters never vanish)", "rows_after_floors": 501, "search_best_of_128": 118},
+      "10_8": {"odd_excess": 16, "squeeze": "none (equal parity)", "remainders": [1080, 896], "uniform_bound": null, "profile_system": "feasible (50 S values)", "no_vanishing": "infeasible -> PROVEN vanishing character required", "rows_after_floors": 251, "search_best_of_128": 118},
+      "9_9": {"odd_excess": 17, "squeeze": "none (equal parity)", "remainders": [990, 990], "allowed_per_side": 36414, "deficits": [-35424, -35424], "profile_system": "feasible (31 S values; some S undecided at the solver step cap)", "no_vanishing": "automatic (odd characters never vanish)", "rows_after_floors": 196, "search_best_of_128": 117}
+    },
+    "controls": {
+      "11_6": "profile system infeasible -- reproduces PR 2870's exclusion (squeeze parseval=696 allowed=504 deficit=192)",
+      "10_7": "profile system infeasible -- consistent with PR 2773's census exclusion",
+      "n5_real_cover": "split (4,6) of the real 10-point cover of F2^5 passes every check (positive control)"
+    }
+  },
+  "reproduce": [
+    "python3 -I -B research/f7-18point-cover-question-seed6d34356c/test_engine.py",
+    "python3 -I -B research/f7-18point-cover-question-seed6d34356c/verify.py quick",
+    "python3 -I -B research/f7-18point-cover-question-seed6d34356c/verify.py fourier",
+    "python3 -I -B research/f7-18point-cover-question-seed6d34356c/verify.py rows",
+    "python3 -I -B research/f7-18point-cover-question-seed6d34356c/verify.py search",
+    "python3 -I -B research/f7-18point-cover-question-seed6d34356c/anchors.py k10b3 (resumable, ~35 min cold)",
+    "python3 -I -B research/f7-18point-cover-question-seed6d34356c/anchors.py k11b4 (resumable, ~35 min cold)"
+  ],
+  "kappa_change": null,
+  "selected_record_sha256": "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129"
+}

@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/experiments/mixed_point_circuit.py",
+    "scripts/audit_mixed_point.py",
+    "certificates/mixed-point-audit.json",
+    "certificates/parity-side.json",
+    "docs/research/mixed-point-audit.md",
+    "tests/test_mixed_point.py",
+    "tests/test_mixed_point_verify_masks.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Exact baseline copy of the base-commit mixed_point_circuit.py; closed-form exact-r masks match the historical genexpr with a mutant rejected; Circuit.verify returns True with identical output supports through h=30; two certificates differ from base only in the mixed_point_circuit.py source pin; duplicate JSON keys rejected."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Same equivalence and certificate pin discipline under -O (require() gates, not assert)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_mixed_point_verify_masks.py",
+        "-v"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Focused mixed-point verify-mask package controls."
+    }
+  ]
+}

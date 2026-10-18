@@ -1,0 +1,41 @@
+# Manual research replay; archival intake is not scientific validation.
+# See docs/research/research-archive-intake.md before dispatching.
+name: Cyclic stride effective depth
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Effective depth, original and cubic kernels, and defect controls
+        run: python -I -O -B research/cyclic-stride-effective-depth/verify.py --out /tmp/stride-depth-math.json
+      - name: Package rejection controls and full read-only relocation
+        run: python -I -O -B research/cyclic-stride-effective-depth/test_package.py --out /tmp/stride-depth-package.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: stride-depth-python-${{ matrix.python }}
+          path: |
+            /tmp/stride-depth-math.json
+            /tmp/stride-depth-package.json

@@ -1,0 +1,84 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "baseRefOid": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+  "body": "**Status: independent verification. No new \u03ba; the selected result is unchanged.**\n\nTrack 75\u201384 (independent verification), assignment seed 76 (OS CSPRNG via Python `secrets`). Base commit `2921874911956718fcaaaf9396fe8267b3cfa9f0`.\n\n## What this adds\n\nPR991 replayed the selected T37 package and states that its replay is not code-disjoint, because it uses both retained moment engines. This package rechecks the arithmetic chain of the selected record, from the hosted payload to \u03ba, **without importing or reading** `moment.py`, `base_two_moment.py` or `outer.py`:\n\n1. **Profile from the payload.** 333 calls times the local paid profile, plus idle children, recomputed from the hosted template. It equals the record's `complex_profile`, with deficit 11,840.\n2. **Endpoints.** All three endpoints certify: native complex, conservative complex, and the PR589 bit endpoint with the inherited surcharge. The moment is below one at the endpoint and above one at the next 10\u207b\u00b2\u2074 grid point.\n\n   | Model | G \u2212 1 at the endpoint | G \u2212 1 at endpoint + 10\u207b\u00b2\u2074 |\n   |---|---|---|\n   | native complex, 0.001664727258740678855772 | \u2264 \u22123.362e\u221225 | \u2265 +2.612e\u221224 |\n   | conservative complex, 0.001664727255848707292019 | \u2264 \u22121.533e\u221224 | \u2265 +1.414e\u221224 |\n   | bit, 0.001733427039589844234749 | \u2264 \u22121.599e\u221224 | \u2265 +1.669e\u221224 |\n3. **Independent arithmetic.**\n   - Logarithms come from prime decompositions, using atanh(1/3), atanh(1/5), atanh(1/9), atanh(1/15) and atanh(1/145) with explicit tails.\n   - Exponentials come from Taylor polynomials with a Lagrange remainder.\n   - Intervals are exact rationals rounded outward to 2\u207b\u00b3\u00b2\u2070.\n4. **Consistency with the record.** All 12 recorded retained-engine intervals intersect these enclosures. They are read as data only.\n5. **\u03ba.** The reduction gives exactly \u03ba = 1661960547713947/10\u00b9\u2078 and the conservative \u03ba = 83098027241579/(5\u00b710\u00b9\u2076). Each is the largest grid point strictly below its margin, and the complex side binds.\n\n## Negative controls\n\n1. The next endpoint claimed as accepted.\n2. One extra rank-one child.\n3. m = 72.\n4. The bit model without the surcharge: the next grid point is no longer rejected.\n5. \u03ba + 10\u207b\u00b9\u2078.\n6. A truncated exponential, which fails closed.\n7. A corrupted pin.\n\nEach is rejected for its stated reason.\n\n## Reproduce\n\n```sh\nmake t37-endpoints-independent-verify\n```\n\nExpected: `PASS_T37_ENDPOINTS_INDEPENDENT_REPLAY`, then 5 tests OK. It takes about 2 s on standard-library Python 3.10+ with no network.\n\n## Scope\n\nThis verifies one chain: profile, endpoint certification, \u03ba.\n\nIt does not check:\n- the 47 outer inequalities beyond the binding margin (PR813 covered those for an earlier assembly);\n- the bootstrap cutoffs, the owner map, the local word or the hosting;\n- the inherited all-size, realization, precision/tape, analytic or bit H1\u2013H5 assumptions.\n\nThe surcharge model and the reduction formula are re-implemented, not re-derived. This is not a formal proof.\n\n## Related\n\n- #1019 (open) refines the \u03ba grid with the pinned engines. That is a different object, and this package does not use or check it.\n- Earlier independent endpoint checks covered older checkpoints: PR960 (binomial enclosures), PR706 (integer root bounds), PR678.\n\n## Credit\n\n- Jonathan Capalbo: the selected record (PR942).\n- Chafik Boukhalfa, Jeremy Kothe, NewBArch and Hao Yan: its lineage.\n- DreamingOfClouds and eumemic: the bit supplier (PR589, PR555).\n- The retained engines' authors: the recorded intervals.\n- tekuuu: PR991's scoping.\n\nPrepared by Sagar Thakrar with substantial AI assistance from Claude (Anthropic) via Claude Code. New material is Apache-2.0.\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-13T17:13:08Z",
+      "authors": [
+        {
+          "email": "sagar@cybai.in",
+          "id": "",
+          "login": "",
+          "name": "Sagar Thakrar"
+        }
+      ],
+      "committedDate": "2026-10-13T17:13:08Z",
+      "messageBody": "\u2026a reduction (no new kappa)",
+      "messageHeadline": "Independent verification: code-disjoint T37 moment endpoints and kapp\u2026",
+      "oid": "3b8fab9b48d54160d0765c316eed45078f32aa5e"
+    }
+  ],
+  "files": [
+    {
+      "path": "Makefile",
+      "additions": 7,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "research/t37-endpoints-independent/CLAIM.json",
+      "additions": 23,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t37-endpoints-independent/PINS.json",
+      "additions": 23,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t37-endpoints-independent/README.md",
+      "additions": 108,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t37-endpoints-independent/RESULT.json",
+      "additions": 53,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t37-endpoints-independent/endpoints.py",
+      "additions": 233,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t37-endpoints-independent/test_package.py",
+      "additions": 49,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/t37-endpoints-independent/verify.py",
+      "additions": 80,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "3b8fab9b48d54160d0765c316eed45078f32aa5e",
+  "isDraft": false,
+  "number": 1051,
+  "state": "OPEN",
+  "title": "Independent verification: code-disjoint T37 moment endpoints and kappa reduction (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1051",
+  "merge_base": "2921874911956718fcaaaf9396fe8267b3cfa9f0"
+}

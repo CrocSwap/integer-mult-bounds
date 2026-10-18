@@ -1,0 +1,83 @@
+name: Selected family 741 finite composition
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/e8-bit-p111-tuned/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - 'research/direct-delivery504-global/**'
+      - 'research/complex-sw4-frame8/**'
+      - 'scripts/verify_frontier741*.py'
+      - 'scripts/verify_frontier_complete.py'
+      - 'scripts/verify_replay_coverage.py'
+      - 'certificates/replay-coverage/**'
+      - 'tests/test_replay_coverage.py'
+      - 'tests/test_frontier741_bindings.py'
+      - 'scripts/verify_selected_result.py'
+      - 'certificates/selected-result.json'
+      - 'research/community-frontier741-audit/SELECTED-SOURCE.json'
+      - 'Makefile'
+      - '.github/workflows/frontier741.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/e8-bit-p111-tuned/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - 'research/direct-delivery504-global/**'
+      - 'research/complex-sw4-frame8/**'
+      - 'scripts/verify_frontier741*.py'
+      - 'scripts/verify_frontier_complete.py'
+      - 'scripts/verify_replay_coverage.py'
+      - 'certificates/replay-coverage/**'
+      - 'tests/test_replay_coverage.py'
+      - 'tests/test_frontier741_bindings.py'
+      - 'scripts/verify_selected_result.py'
+      - 'certificates/selected-result.json'
+      - 'research/community-frontier741-audit/SELECTED-SOURCE.json'
+      - 'Makefile'
+      - '.github/workflows/frontier741.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, repository baseline pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, repository baseline pin
+        with:
+          python-version: '3.12'
+      - name: Install verification dependencies
+        run: |
+          python -m pip install numpy sympy scipy
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Check selected record and review evidence
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+      - name: Cold finite replay and exact composition binding
+        env:
+          CXX: g++
+          BOOST_INCLUDE: /usr/include
+        run: python -B scripts/verify_frontier_complete.py --frontier 741 --work "$RUNNER_TEMP/frontier741"
+      - name: Require committed files unchanged
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontier741-linux-python312
+          path: |
+            ${{ runner.temp }}/frontier741/RESULT.json
+            ${{ runner.temp }}/frontier741/COVERAGE.json
+            ${{ runner.temp }}/frontier741/replay/STEPS.json
+            ${{ runner.temp }}/frontier741/replay/*.log
+            ${{ runner.temp }}/frontier741/replay/complex/RESULT.json
+            ${{ runner.temp }}/frontier741/replay/complex/RECEIPT.json
+            ${{ runner.temp }}/frontier741/replay/complex/STAGES.json
+            ${{ runner.temp }}/frontier741/replay/complex/global-replay/ASSEMBLY.json

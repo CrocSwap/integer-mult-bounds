@@ -1,0 +1,532 @@
+{
+  "schema_version": 1,
+  "number": 1012,
+  "title": "Research note: restoration deferral is mass-neutral in the hosted T37 recurrence (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1012",
+  "head": "4ceaf380ed41b28dadcc41d2f974f025ac4d8c03",
+  "merge_base": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+  "baseline": "858771bcca3b8dd5d4ef4aa682a13cc9b7e23920",
+  "files": [
+    {
+      "path": "Makefile",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7571b3fcd8c28dda897589cbb43251c6051bf714"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "aff68409021c9d401a6f8013b9dfd7dbcc30f2a8"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/CENSUS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5bfebfb18bbeed531c81820e0312fdcd7359a76d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4426a5c947d006be0316053a233b764236e27d41"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/PRICES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "01662906fc3f245c41ac9220be898a98fec7dd5f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5602739512bf78799d74f5211aea35507e0a7ac7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "87cd0fd0fb85efd51769ae143bff6865396b0e37"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/census.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b838dc7efc6be0538e979fc726a8f6fa51fb6691"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/common.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "144323b9411a0dcf4a9befb8160fd37ed9242f36"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/price.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6805a3fbda94495ee59a606a35bb97d793fd1d6b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/test_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a4fadabd10fcbbd1be9574a5afcf9aee1d62ffea"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-restoration-deferral/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "56aeed228130b59c4926ad3ea4ada37f904770e9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "Makefile": 1,
+    "research/t37-restoration-deferral": 10
+  },
+  "github_reported_file_count": 11,
+  "complete_git_file_count": 11,
+  "body": "**Status: research note / scoped negative result. No new \u03ba; the selected result is unchanged.**\n\nTrack 50\u201359 (recursive interfaces), assignment seed 57 (OS CSPRNG via Python `secrets`). Analysis base `bbc600db2fc15007b7c914f4f2b2ed55fa909c87`; rebased onto `2921874911956718fcaaaf9396fe8267b3cfa9f0` and re-verified there (selected PR942 T37, \u03ba = 0.001661960547713947, unchanged; all pinned inputs byte-identical). Overlap re-checked against open PRs at submission (#974, #987, #991, #992, #1000, #1009, #1010): none prices restoration deferral or the coverage identity.\n\n## What was learned\n\nThis note prices one explicit recursive-interface mechanism, **restoration deferral**, and counts every child the change creates. A U8 helper ends at the frame it holds before its final restoration climb. The host coordinates that climb advanced go back to the same hosting window, and that window's idle child advances them (hosting lemma, `research/idle-axis-hosting/PROOF.md` \u00a72).\n\n1. **Coverage identity (exact, every live family).** On the selected T37 payload, all 33,152 live families satisfy `8\u00b7k_f + 1 + hosted_f + idle_f = 73`, and all 18,816 T21 families do too. So rank mass = 72W + 64N and the deficit is exactly **D = W \u2212 64N** (11,840 and 6,720). This is the per-family form of the per-replica `8v \u2212 9C` in `research/larger-gain/geometry`. Outside the eight centre paths, which run on private work families, paid mass equals advanced live coordinates, family by family.\n2. **The full-frame inverse cleanup consumes every U8 restoration climb.** 378 helpers (636 mass) and 112 sources (230 mass) have positive final climbs, and every one is touched by a full-frame cleanup gate. The other 126 helpers are already zero-restoration low ends. Index by index, the helper restoration equals the canonical provider word bound by the hosted template. In both emitted programs, the 490 `final` climbs have exactly the replay's rank multiset and run before `full_frame_cleanup`. The data contract fixes the sources' full endpoints.\n3. **Deferral is mass-neutral; its whole value is consolidation inside shared windows.** Exact ceilings use the pinned engines and the selected outer witness:\n\n| Scenario | \u03ba | Gain |\n|---|---|---:|\n| selected baseline (reproduced) | 0.001661960547713947 | \u2014 |\n| defer all helper restoration, selected owner map | **0.001708640379500299** | +2.809% |\n| same, ideal re-hosting into capacity-48 windows | 0.001730427469823602 (PR589 bit side binds) | +4.120% |\n| best single helper index (9), all calls | 0.001662126446464193 | +0.00998% |\n| relaxation: one rank-one climb per call merged into a 48-child (exceeds every window capacity, so not realizable) | 0.001662339932746932 | +0.0228% |\n| PR974-style zero-cost deletion of one rank-one child per call (leaves 333 live coordinates unadvanced) | 0.001708820303553035 | +2.820% |\n\nThe value is strongly superadditive. Single-helper moment drops sum to 53.9\u00b7(mW)\u207b\u00b9, while joint deferral drops the moment by 325.0\u00b7(mW)\u207b\u00b9. Source restoration has no idle-window target in the fixed nine-stage template, so it is not priced.\n\n## Relation to concurrent and prior work\n\n- **#974** (avirazza, open, same track) prices the same boundary classes with zero parent cost. This note reproduces its T37 one-unit value independently (last row). It shows that the restoration rows are coverage-productive: their coverage-preserving value is the consolidation above, not deleted mass. Of #974's classes, only the centre path (64 per call) does not advance live coordinates.\n- **#601** retimed cleanup with commuting prefixes to make 46 helpers per call hyperplane-ended. **#935**'s retiming census found no local gain, but it held the final caps fixed, which excludes this mechanism.\n- **#442** supplies the hosting lemma, **#881** the U8 frame semantics, and Dominik Scholz's `research/larger-gain` the `8v \u2212 9C` relation and the centre obstructions.\n\n## Reproduce\n\n```sh\nmake t37-restoration-deferral-verify\n```\n\nThe expected last line of `verify.py` is `PASS_T37_RESTORATION_DEFERRAL_REPLAY`, followed by 13 unit tests, OK. It runs in about 8 s on standard-library Python 3.10+ with no network.\n\n- `verify.py` reads pinned members of the committed T37/T21 archives in memory, without extraction. The template payload equals the selected `ASSEMBLY.json` `template_sha256`.\n- It recomputes `CENSUS.json` and `PRICES.json` and requires byte-equal JSON.\n- Both pinned engines must accept b and reject b + 10\u207b\u00b2\u2074. The outer witness must accept \u03ba and reject \u03ba + 10\u207b\u00b9\u2078.\n- A double-precision bisection with no shared code must agree with every row.\n- `price.py`'s transcription of `outer_witness` is bound to the source digest and its literal lines, and the bit endpoint is cross-checked against `ASSEMBLY.json`.\n- It runs nine negative controls: coverage mutations, cleanup removal, zero-cost deletion posing as a deferral, a pin corruption, the halving guard, the next endpoint and a perturbed baseline.\n\n## Scope and remaining obligations\n\nThese are exact identities on the frozen payload and exact model prices. **They are not a construction and not a new \u03ba**, and neither ceiling is a lower bound for any mechanism.\n\nRealizing any part of the ceiling needs all of the following, none attempted here:\n- full-frame cleanup retiming;\n- low-end cone and compensation validity;\n- exact phases and adapters;\n- hosting and owner admission;\n- the finite invoice and assembly.\n\nAll inherited all-size/compiler, common-label/mutable-source, whole-call hosting, precision/tape, analytic-transfer and bit H1\u2013H5 assumptions remain. Scalar maps, compensation and cones are not rechecked. The checked files are standard-library Python, and `upstream/` is unchanged.\n\n## Credit\n\nSelected lineage: Jonathan Capalbo (#942), Chafik Boukhalfa (#890), Jeremy Kothe and NewBArch (#869/#870), Hao Yan (#858), DreamingOfClouds (#589) on eumemic (#555).\n\nBuilding blocks: avirazza (#974), Jeremy Kothe (#601), goatliamia (#935), DaysSky (#442), SethBurkart123 (#881), Dominik Scholz (`research/larger-gain`).\n\nPrepared by Sagar Thakrar with substantial AI assistance from Claude (Anthropic) via Claude Code. New material is Apache-2.0.\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210639/job/115417012057"
+    },
+    {
+      "name": "replay",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210559/job/115417010850"
+    },
+    {
+      "name": "replay",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210139/job/115417016941"
+    },
+    {
+      "name": "replay",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210478/job/115417010677"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210181/job/115417009996"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210525/job/115417010436"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011066"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210526/job/115417011634"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210639/job/115417011604"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210181/job/115417009675"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210525/job/115417010923"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010857"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210526/job/115417011955"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011126"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010886"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011033"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010934"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011187"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011315"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011085"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010937"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011176"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011224"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011119"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011254"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011072"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011115"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010938"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010996"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011034"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011337"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011188"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011336"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010985"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011065"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011248"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011271"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011010"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011038"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011138"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011148"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011083"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011325"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011154"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011355"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011338"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011063"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011458"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011357"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011530"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011249"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011129"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011160"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011130"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011333"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011134"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011258"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011268"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011240"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010930"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417011060"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010366"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432210177/job/115417010751"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "22ce7391ac6ba536b67068ce846bc61062be270aa00cad776ce7dcaface9a543"
+}

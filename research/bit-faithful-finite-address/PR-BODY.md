@@ -1,0 +1,3 @@
+A finite-address replay becomes a uniform formal group-algebra certificate when the chosen cyclic quotient is injective on the complete candidate/target exponent support. This package proves an explicit mixed-radix sufficient bound and checks the retained9-call and noncommuting8-call controls with both formal coefficients and all192/1296 regular-action columns.
+
+Ten unsafe torsion quotients pass deliberately wrong words; the recomputed faithful quotients reject them. This is a declared verification-side refinement of the new-register card, not a new mechanism, stronger lower bound or physical tape theorem. Python3.12 replay and selected integrity pass; predecessor fixtures/torsion warning credited. Substantial OpenAI Codex assistance; Apache-2.0.

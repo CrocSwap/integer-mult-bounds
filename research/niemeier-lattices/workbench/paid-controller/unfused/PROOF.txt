@@ -1,0 +1,53 @@
+All-stage obstruction for the tested unfused Mobius schedule
+===========================================================
+The finite frame replay in workbench/helper-routes/MOBIUS-FRAMES.json
+finds that all 16,384 spinor helper roles reach the full 16-space during
+T^{-1}ST, whereas every output cap has dimension 15. The direct unfused
+schedule therefore requires at least 16,384 additional rank-one copy
+or descent operations per local invocation. This statement concerns the
+replayed schedule; it does not exclude fused or differently labelled
+transforms.
+
+With the existing full-shell center factors this yields:
+
+  bit:     N30960,h16,C=815*16+16384=29424;
+  complex: N30960,h17,C=816*17+16384=30256.
+
+Let d=h-1,m=dL+1 for odd L>=3. For any number of restored banked helpers,
+the inherited paired model has deficit D=L(N-C)-N. Write delta=(N-C)/N.
+Positive D first occurs at odd Lmin=21 in the bit case and 45 in the complex
+case; every smaller odd stage count has nonpositive deficit.
+
+For alpha=kappa/(1-kappa)>0 the unavoidable active data climbs alone have
+pressure
+
+  P_active=2NLd*((m/d)^alpha-1).
+
+Splitting those climbs can only increase this pressure. At every L>=Lmin,
+
+  P_total/(NL) >= 2d*((Lmin+1/d)^alpha-1),
+  D/(NL) < delta.
+
+Consequently a necessary condition at every positive-deficit stage is
+
+  alpha < log(1+delta/(2d))/log(Lmin+1/d).
+
+Exact rational log bounds give the following upper limits on kappa:
+
+  bit full shell:     0.000541880687595200;
+  complex full shell: 0.000186502121809012.
+
+Both are below the pinned frontier 0.001612719427075359. These bounds
+already discard every center's pressure, every helper's pressure and all
+idle costs. They therefore prove failure at every odd stage count without
+an optimizer or a finite stage cutoff. They are convenient upper bounds,
+not claims to be the optimal roots of the complete necessary model.
+
+For the spinor-only bit shell, C=576*16+16384=25600>N16384, so D<0 at every
+stage immediately.
+
+verify.py replays the rational inequalities with explicit checks under
+both ordinary and optimized Python. Its negative controls remove the
+16384 extra descents; the same rejection test must then fail, preventing
+this schedule-specific obstruction from being asserted for the original
+unaugmented factors. No PR, commit or released-package edit was made.

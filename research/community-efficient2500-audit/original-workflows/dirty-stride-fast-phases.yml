@@ -1,0 +1,27 @@
+name: Dirty stride fast phase stream
+on:
+  pull_request:
+    paths:
+      - 'research/dirty-stride-fast-phases/**'
+      - '.github/workflows/dirty-stride-fast-phases.yml'
+  push:
+    paths:
+      - 'research/dirty-stride-fast-phases/**'
+      - '.github/workflows/dirty-stride-fast-phases.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -I -O -B research/dirty-stride-fast-phases/verify.py
+      - run: python -I -O -B research/dirty-stride-fast-phases/test_package.py

@@ -1,0 +1,78 @@
+--- a/research/t74-entrance-raise-prices/README.md
++++ b/research/t74-entrance-raise-prices/README.md
+@@ -1,7 +1,7 @@
+ # What PR2435's entrance raise really changes, and what further raises are worth
+ 
+ **Research note (structural pricing screen); no κ claim.**
+-[PR2435](https://github.com/CrocSwap/integer-mult-bounds/pull/2435) (Jeremy Kothe) gains +1.3164e-6 in κ. It raises
++[PR2435](https://github.com/CrocSwap/integer-mult-bounds/pull/2435) (Jeremy Kothe) reports a conditional +1.3164e-6 in κ. It raises
+ the entrance frames of 24 copy-buffer helpers per word from dimension 1 to 2 on
+ [PR2322](https://github.com/CrocSwap/integer-mult-bounds/pull/2322)'s words. This is a frame-only change; see
+ [PR2446](https://github.com/CrocSwap/integer-mult-bounds/pull/2446). The note decomposes the change and prices the
+@@ -13,26 +13,28 @@
+    change in both providers:
+    - the 24 raised helpers each turn a rank-3 child into rank 2 and drop from width 8 to 7, a delta of
+      {3:−24, 2:+24};
+-   - **72 gate partners (6 X registers, 66 helpers) each split a rank-3 child into rank 2 + rank 1**, a delta
+-     of {3:−72, 2:+96, 1:+24}. That makes them locally worse.
++   - **72 gate partners (6 X registers, 66 helpers) change their child profiles**: 48 replace one
++     rank-3 child by rank 2 + rank 1; the other 24 replace rank 3 + rank 1 by two rank-2 children.
++     The aggregate delta is {3:−72, 2:+96, 1:+24}. Both changes increase the moment for 0 < a < 1.
+ 
+    The net gain comes mainly from packing: width-7 helpers fill the rank-16 bins exactly as [7, 9].
+ 2. **The width-aware LP reproduces the realized gain.** The PR2387 bin-pattern LP ceiling moves by +1.3166e-6
+-   from PR2322 to PR2435. The realized κ gain is +1.3164e-6.
+-3. **Further raises of the same kind saturate quickly.** The price of k more raises at PR2435's point, each
++   from PR2322 to PR2435. The proposed conditional κ gain is +1.3164e-6; this comparison does not validate its supplier admission.
++3. **The sampled further-raise price ladder saturates quickly.** The price of k more raises at PR2435's point, each
+    changing one helper from width 8 to 7:
+ 
+    | k | average PR2435 pattern, partners included ({1:+1, 2:+5, 3:−4} per raise) | own climb only, no partner splits ({2:+1, 3:−1}) |
+    |---|---|---|
+    | 1 | +3.05e-8 | +3.84e-7 |
+    | 4 | +1.22e-7 | +1.54e-6 |
+-   | 10 | **+3.05e-7 (peak)** | +3.85e-6 |
+-   | 12 | +9.6e-8 | **+4.35e-6 (peak)** |
++   | 10 | **+3.05e-7 (best sampled)** | +3.85e-6 |
++   | 12 | +9.6e-8 | **+4.35e-6 (best sampled)** |
+    | 16 | −1.40e-6 | +4.26e-6 |
+    | 26 | −6.02e-6 | +3.15e-6 |
+ 
+-   With PR2435's average partner cost, at most about 10 more raises help, together worth about +3e-7. Beyond
+-   that, packing saturates and further raises lose. Partner splits consume about 92% of each raise's raw value.
++   Among the sampled counts, the largest gain under PR2435's average partner cost is at k=10,
++   about +3e-7; k=12 remains positive, while sampled k>=16 are negative. The script checks
++   k in {1,2,4,6,8,10,12,16,20,26}, not every integer or every possible site combination. Partner splits consume about 92% of each raise's raw value.
+    A raise whose partners do not split would be worth about 12 times more.
+ 4. **The remaining sites.** On the PR2435 words, 112 entering helpers still enter at dimension 1.
+    - Their (width, first climb) shapes are {(7,2): 30, (8,2): 26, (8,3): 52, (8,4): 4}. The 26 width-8,
+@@ -66,8 +68,9 @@
+ 
+ ## Scope and limits
+ 
+-- **Prices.** They are LP-ceiling differences on the fixed T74 bin stock. The "average" ladder assumes each
+-  further raise has PR2435's average partner cost; actual sites differ.
++- **Prices.** These are floating-point LP-root estimates on the fixed T74 bin stock, not directed
++  rational certificates or a global optimization over possible raises. The discrete register recount is exact.
++  The "average" ladder assumes each further raise has PR2435's average partner cost; actual sites differ.
+ - **Legality.** No raise is constructed or proven legal. Entrance delivery and native wrappers (Lemma A of
+   PR458) are the open obligation, as in PR2446.
+ - **Interactions.** The ladder holds owner fills at their LP optimum and ignores interactions with other moves.
+--- a/research/t74-entrance-raise-prices/entrance_raise.py
++++ b/research/t74-entrance-raise-prices/entrance_raise.py
+@@ -3,13 +3,13 @@
+ """What PR2435's entrance raise actually changes, and what further raises are worth (standard library only).
+ 
+ PR2435 (jeremykothe2, head 324d7d35) raises the entrance frames of 24 copy-buffer helpers per word from dimension 1
+-to 2 on PR2322's words. It is a frame-only change (PR2446) and gains 1.3164e-6 in kappa. This script
++to 2 on PR2322's words. It is a frame-only change (PR2446) and reports a conditional gain of 1.3164e-6 in kappa. This script
+   1. decomposes the change per register with the vendored PR2387 frame-climb recount (both providers):
+      - the climbs of the raised helpers themselves;
+      - the climbs of their gate partners, which the refit drags along;
+   2. checks that the PR2387 width-aware bin-pattern LP reproduces the realized gain (ceiling difference
+      PR2322 -> PR2435);
+-  3. prices k further raises at PR2435's point, for k = 1..26, two ways:
++  3. prices k further raises at PR2435's point, at selected k values between 1 and 26, two ways:
+      - with PR2435's average per-raise local delta, partners included;
+      - with only the raised helper's own climb change, i.e. a raise with no partner cost;
+   4. censuses the remaining dimension-1 entering helpers: their shapes, and whether their entrance-frame gates

@@ -1,0 +1,347 @@
+{
+  "author": {
+    "id": "U_kgDOEKXqaA",
+    "is_bot": false,
+    "login": "jeremykothe2",
+    "name": ""
+  },
+  "baseRefOid": "5996f9043c27bafa90b23e1c937de92a738f1a76",
+  "body": "## Summary\n\nConditional \u03ba = **0.001635183729255778**. This is **+0.564% over our PR615** (0.001626010676080313) and +0.604% over PR610. The conservative model gives 0.001635183726407116.\n\nThis PR doubles the cold low-frame ends of DreamingOfClouds' PR604. PR604 ends one cold factory-scratch helper per block (S b.10) at a 4-dimensional frame U_b. Here a **second cold unit per block (S b.9)** also ends at U_b, so each provider word has **28 dim-4 cold ends instead of 14**, and 14 more helpers go from width 9 to 4. The local profile changes by {1:+14, 6:\u221214} per word. PR615's E1 entering pair is kept. Dispatch is **jp8 \u00d760, atm3 \u00d712**. The owner MIP stopped at its 240 s limit with a gap of 1.69e-7.\n\n**Why S b.9 can now end low.** Under monotone frames and a rank-0 premix, only one of S b.9, S b.10 and S b.13 can end at U_b, because their dirt columns would need one more low-frame register than exists. Two new zero-cost gate types supply that register:\n- **Dead-port absorptions** `q += \u2212\u00bd\u00b7g`, one per block, at U_b. Port q is never read again in A, the cut or B. Both registers are already at U_b, and the FULL cleanup restores q.\n- **Frame-[] target writes** `t += \u00b1k`, 28 per word, from cold non-entering helpers. They are compensated exactly by the recomputed zero-frame compensation.\n\nThe new tails have 3 gates, one of them a `scale` on h. That case is covered by PR599's `Multi.lean` (`TGate.scale`).\n\n**Soundness.**\n- The 28 ends share PR604's 14 (0, U_b) pairs, so (N) is checked exactly by `WRAPPER-CHECKS`, global phase included.\n- The full scalar map is exact on arbitrary dirt, in both orientations.\n- The verifier allowlist changes only by these two gate types (`build_cold_end.py`, `verify.py:207-230`). Nothing is trusted on the strength of the allowlist: exactness, frames, wrappers and pricing are re-proved downstream by unchanged code. The transport guard at `hpe_audit_and_transport.py:157` (the zero-frame precondition and compensation must not touch an ended helper) is what rejects any bad target write. `PROOF-NOTE.md`, shipped at the package root, says so.\n- Each word runs **38 `cold_end` controls**, each pinned to its rejection reason. They include a live (not dead) port absorbed, an absorption before the port's last write, at FULL or at a lower frame, into a centre, a target write before the wrappers, with a changed coefficient, or reading an entering helper, plus all of PR615's entering-end controls.\n- An **independent review** rebuilt PR604's words and replayed the new words exactly with its own Fraction code. It checked PR599's hypotheses on all 28 ends, confirmed every climb is paid ({1:+14, 6:\u221214}; target levels, centres and ports unchanged), and asked for a span-based, start-frame-seeded comparator in `verify.py`, which is in. Its final verdict on this exact code is **SOUND**.\n\n**Declarative inputs ship in this first commit:**\n- `data/WITNESS.json`;\n- `data/EXPECTED.json`;\n- `data/cand.json`;\n- `data/search/`: warm-start map and plan, template plan, LP patterns, dispatch;\n- a definition-first README.\n\n`data/PLAN.json` is reproduced byte for byte from the solver output. One inherited SPEC value is corrected: `entering_helper_roles` goes from 16344 to the audited 17712. PR604's `verify.py` does not read this key.\n\n## Verification\n\n```sh\nresearch/complex-571-cold14-b3/verify.sh /tmp/complex-571-cold14-b3 ..   # SOURCE_ROOT holds worktrees pr568 pr569 pr571 pr575 pr583 at the pinned commits\n```\n\nLocal result (Windows, CPython 3.11.11): the commit was preflighted from a fresh clone first (committed blobs equal the MANIFEST, every file LF, pin check passes, `spec.py check` OK). The official run from that clean clone of `904d628` then gave `PASS_COLD14_NATIVE_COMPLEX_AND_CITED_BIT`, \u03ba 0.001635183729255778, 42/42 stages exit 0, 474 s, with no reused baseline or locals. The receipt records MANIFEST sha256 41de74d4\u2026, equal to the committed MANIFEST. Separately, a strict generic verify from `data/WITNESS.json` + `data/EXPECTED.json` passed (41/41 stages, same \u03ba).\n\nGitHub CI has not run, and I make no claim about it.\n\n## Credits\n\n- **DreamingOfClouds**: PR604 (the cold-ended construction, `cold_end`, verifier changes and package), PR599, PR509 and PR516 (Lean).\n- **jeremykothe2**: PR615, PR614, PR609, PR607, PR601, PR600, PR596, PR593, PR592 and PR591 (the hyperplane-end base), and this owner map.\n- The pinned PR568, PR569, PR571, PR575 and PR583 packages and all earlier contributors are listed in NOTICE.md.\n\n**AI disclosure and authorship:** Claude Opus 5.5 (Anthropic), running in the omp coding harness, built the second-cold-unit construction, the allowlist change and its controls, the E1 entering pair, ran the independent reviews, found the dispatch and owner map, built the declarative inputs and prepared the PR. Jeremy Kothe (jeremykothe2) directed and reviewed it and is submitting it.\n\n## Scope\n\nThe result is conditional on the inherited all-size compiler, common-label/mutable-source realization, whole-call hosting, precision/tape/exact recovery, analytic transfer and the bit H1\u2013H5 assumptions. It builds on PR604, which is not merged. It is finite exact evidence, not an unconditional theorem, a complete Lean proof, or a practical speedup.\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-12T19:52:31Z",
+      "authors": [
+        {
+          "email": "jeremy.robert.kothe@gmail.com",
+          "id": "U_kgDOB6u0gA",
+          "login": "jeremykothe",
+          "name": "Jeremy Kothe"
+        }
+      ],
+      "committedDate": "2026-10-12T19:53:03Z",
+      "messageBody": "\u2026tory block via dead-port absorption, on the PR604 cold-ended witness",
+      "messageHeadline": "Conditional kappa 0.001635183729255778: second dim-4 cold end per fac\u2026",
+      "oid": "904d62855723c00f8acef9a287a10768598fdeb2"
+    }
+  ],
+  "files": [
+    {
+      "path": "research/complex-571-cold14-b3/LICENSE",
+      "additions": 201,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/MANIFEST.json",
+      "additions": 53,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/NOTICE.md",
+      "additions": 26,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/PROOF-COMMUTING-PREFIX.md",
+      "additions": 91,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/PROOF-NOTE.md",
+      "additions": 83,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/README.md",
+      "additions": 231,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/assemble.py",
+      "additions": 213,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/assembly_controls.py",
+      "additions": 251,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/audit_allcold.py",
+      "additions": 232,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/bind_providers_portable.py",
+      "additions": 66,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/build_cold_end.py",
+      "additions": 148,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/build_gate_moves.py",
+      "additions": 61,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/build_hpe.py",
+      "additions": 123,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/cold_end_controls.py",
+      "additions": 152,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/emit_allcold.py",
+      "additions": 144,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/generated_identity.py",
+      "additions": 62,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/generated_identity_controls.py",
+      "additions": 227,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/hpe_adapters_local.py",
+      "additions": 116,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/hpe_audit_and_transport.py",
+      "additions": 304,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/hpe_audit_local.py",
+      "additions": 171,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/hpe_controls_atc.py",
+      "additions": 119,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/hpe_emit_local.py",
+      "additions": 163,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/invoice_allcold.py",
+      "additions": 323,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/phase_timing_controls.py",
+      "additions": 36,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/code/witness.py",
+      "additions": 38,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/EXPECTED.json",
+      "additions": 1403,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/OWNERS.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/PLAN.json",
+      "additions": 42666,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/SPEC.json",
+      "additions": 2167,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/WITNESS.json",
+      "additions": 815,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/cand.json",
+      "additions": 239,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/atm3-step0-promote.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/atm3-step1-greedy_kernels.json",
+      "additions": 561,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/atm3-step2-frame_coalesce.json",
+      "additions": 173,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/atm3-step3-gate_move_coalesce.json",
+      "additions": 85,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/atm3-step4-hyperplane_end.json",
+      "additions": 649,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/atm3-step5-cold_end.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/ck-step0-greedy_kernels.json",
+      "additions": 550,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/ck-step1-frame_coalesce.json",
+      "additions": 173,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/ck-step2-gate_move_coalesce.json",
+      "additions": 85,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/ck-step3-hyperplane_end.json",
+      "additions": 649,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/ck-step4-cold_end.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/jp8-step4-hyperplane_end.json",
+      "additions": 649,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/recipes/jp8-step5-cold_end.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/search/DISPATCH.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/search/LP-PATTERNS-AGG.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/search/LP-PATTERNS-EX.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/search/TEMPLATE-PLAN.json",
+      "additions": 43330,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/search/WARM-OWNERS.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/data/search/WARM-PLAN.json",
+      "additions": 42665,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/verify.py",
+      "additions": 306,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/complex-571-cold14-b3/verify.sh",
+      "additions": 14,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "904d62855723c00f8acef9a287a10768598fdeb2",
+  "isDraft": false,
+  "number": 617,
+  "title": "Conditional \u03ba = 0.001635183729255778: second dim-4 cold end per factory block (28 per word) on the PR604 cold-ended witness",
+  "updatedAt": "2026-10-12T20:02:05Z",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/617"
+}

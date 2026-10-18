@@ -1,0 +1,49 @@
+['/tmp/pr-efficient200-venv/bin/python', '-B', 'research/complex-rank8-decoder-rigidity/verify.py', '--live', 'P120']
+== A. model and pivot
+PASS A.lines | 120 root lines
+PASS A.gram-offdiag | off-diagonal Gram values [-1, 0, 1]
+PASS A.label-rank | N = (G+1) mod 2 has F2 rank 9 and distinct rows
+PASS A.frame0 | live=120
+PASS A.pivot-frame | F=[0, 1, 26, 27, 44, 45, 54, 55]
+PASS A.pivot-odd-four | every one of the 112 non-pivot lines is odd to exactly 4 pivot lines
+PASS A.pivot-signs | with inner products +-1
+== B. D4-block structure relative to the pivot
+PASS B.blocks-14 | 14 blocks of 8 lines (112 lines)
+PASS B.steiner | S(3,4,8): every 3 points in one block, every 2 in three, blocks meet in 0 or 2, complement-closed
+PASS B.classes-28 | 28 classes of 4 lines
+PASS B.class-4frames | each class is 4 mutually orthogonal lines
+PASS B.hadamard | class sign matrices are 4x4 Hadamard (orthogonal rows and columns)
+PASS B.orthogonality-rule | <r_i,r_j> = (1/2) sum over shared pivot lines of sign products; overlaps 0/2/4; overlap-4 pairs are orthogonal iff same class
+PASS B.punctured-classes | P120: all 28 classes complete
+PASS B.groups | in each of the 28 complete classes every column pair splits the rows into two groups of two
+PASS B.three-matchings | complementary column pairs give the same pairing; the three pairings are distinct matchings of K4
+PASS B.frame-transitivity | 2025 frames in E8, all reachable from FRAME0 by reflections
+== C. zero exclusion by RUP replay
+PASS C.cnf-size | 4032 vars, 33768 clauses, families {'two': 5376, 'four': 336, 'diag': 112, 'trans': 56}
+PASS C.cnf-digest | sha256 f50dd6fa63077a0d...
+PASS C.trivial-pattern-satisfies | the all-nonzero pattern satisfies every clause
+PASS C.rup-refutation | proof-P120.drup: 2045 lemmas replayed; empty clause derived
+PASS C.cnf-size-reduced | reduced CNF: 1344 vars, 22960 clauses, families {'two': 5376, 'four': 0, 'diag': 112, 'trans': 0}, sha256 86e27f4bb6ac6d36...
+PASS C.rup-refutation-reduced | proof-P120-two-diag.drup: two-term + diagonal families only; 2439 lemmas; empty clause derived
+== D. witnesses for the within-class and gluing lemmas
+PASS D.class-witnesses | each of the 336 (complete class, column pair, group of two rows) triples has a live orthogonal witness in another block
+PASS D.gluing-witnesses | 672 ordered pairs of complete classes in blocks meeting in two points: each line of one is orthogonal to exactly the two sign-rule rows of the other
+PASS D.block-live-class | each of the 14 blocks has a complete live class
+PASS D.complete-classes | every live non-pivot line lies in a complete live class
+== E. corollary mechanics (exact rational arithmetic)
+PASS E.gauge-solves | D (2G) D^{-1} has rank 8 and solves the E-graph system
+PASS E.factorisation | X = D R A, Y = D^{-1} R (2A^{-T}) reproduces K exactly (sampled dual basis)
+PASS E.normal-form-supports | sampled term supports are C(a_k), C(b_k) (PR968 normal form)
+PASS E.sample-normals | orthogonal-root span dimensions of the sampled normals: a [6, 5, 6, 4, 6, 7, 6, 6], b [0, 0, 0, 0, 0, 0, 0, 0] (hyperplane-flat normals have 7)
+PASS E.sample-cost | sampled 8-term costs [9, 9, 9, 9, 9, 9, 9, 9], cst 72 >= 72
+PASS E.coordinate-decoder | coordinate decoder cst = 72 (attains the floor)
+== F. negative controls
+PASS F.relaxed-cnf-accepts-all-zero | two-term + four-term clauses alone are satisfied by the all-zero pattern
+PASS F.corrupted-proof-rejected | inserted non-RUP unit lemma: lemma 1 is not RUP; truncated proof: proof ended without the empty clause
+PASS F.proof-needs-some-zero | without the "some zero" clause: lemma 1 is not RUP
+PASS F.single-block-not-rigid | a zero-free non-Hadamard class matrix (Pascal) with B = 16 A^{-T} satisfies all equations of its own block (exactly (E4) and (E0); B.orthogonality-rule shows a block has no others)
+PASS F.minor-obstruction | the group minor that a live witness forces to vanish (Lemma 5, eq. (4)) is nonzero for it
+PASS F.assembly-needs-gluing | class-dependent column scalings: (E0),(E4) hold but 5376/5376 two-term equations fail
+PASS F.assembly-control | glued scalings: all 5376 two-term equations hold and (1/4) K[:,F] K[F,:] = D (2G) D^(-1) with the Section 7 d_i, d_f
+PASS F.rank9-not-gauge | 2G + e_i e_j^T (odd pair) solves the E-graph system with rank 9 and is not D(2G)D^(-1)
+PASS_COMPLEX_RANK8_DECODER_RIGIDITY: live P120; pivot [0, 1, 26, 27, 44, 45, 54, 55]; blocks 14; classes 28 complete; frames 2025; zero-pattern CNF 4032 vars / 33768 clauses; proof lemmas 2045 (+2439 reduced); coordinate cst 72

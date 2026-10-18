@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/shared_point_circuit.py",
+    "scripts/exclusion_circuit.py",
+    "scripts/shared_point_network.py",
+    "scripts/audit_bit_compression.py",
+    "certificates/bit-compression-audit.json",
+    "docs/research/bit-compression-audit.md",
+    "tests/test_shared_point_network.py",
+    "tests/test_bit_compression.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Exact baseline copy of the base-commit shared_point_circuit.py; identical SharedPointCircuit.verify receipts on h in {6,8,10,12,46}; encoding foil rejects wrong null and flat encodings; support-core rejection preserved; bit-compression certificate does not pin shared_point_circuit.py."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Same digest equivalence under -O. Historical support checks use assert and are stripped under -O; circuit_sha256 identity remains the gate."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_shared_point_digest.py",
+        "-v"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Focused shared-point digest package controls."
+    }
+  ]
+}

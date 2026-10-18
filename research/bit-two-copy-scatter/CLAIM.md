@@ -1,0 +1,9 @@
+CLAIM — PR1062 two-copy scatter contract
+
+Question: can two simultaneously live retained-total copies share a zero-frame XOR, restore each original copied value before ERASE, and reduce the complete scalar scatter bill? Base `5e554ff58d01921747d27177045c0061f31e1ad1`; input is the unchanged PR1062 candidate in `research/r439-bsection-stars-seed01/candidate.json.gz`.
+
+Method/domain: prove the arbitrary-dirty boundary of one signed two-copy block, then exhaust all disjoint pair/singleton partitions of the nine retained totals. Include both prepare/restore ADDs, all COPY/ERASE ranks, the second live temporary, complete word replay and precision bounds. This changes the native single-copy/immutable-temporary contract; it does not disable the old checker or claim native admission. No recursive-moment or kappa gain is expected because the nine rank-seven COPY charges and persistent frame paths remain fixed.
+
+Assigned bit-helper-contract, nonce `ffd7509ee115bd599b3ebe2151ecdd39`; scope explicitly changed from H2/K (covered by PR1194/1306) to mutable copied temporaries. First-step PR1062 replay passed. Fresh overlap covered 382 open PRs and 332 discussion records with complete pagination and no warnings; prior live-copy stabilizer and late retained-total mixing notes are credited. COPY outputs are at ZERO in the pinned exporter, so original-helper frame-mixing bounds do not directly settle this question.
+
+Expected artifact: one source-bound finite package with a replacement boundary lemma, complete priced local word, exact restricted optimum and meaningful failure controls. Credit Sagar Thakrar PR1062, PR967 helper stars, DreamingOfClouds PR589, eumemic PR555, Dylan Crow's exporter, woklerx's live-copy and late-mixing audits, and the restored-sharing lineage. Prepared by Ross Richardson with substantial OpenAI Codex assistance. Claim expires 2026-10-14T08:58:00Z.

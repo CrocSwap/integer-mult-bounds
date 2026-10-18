@@ -1,0 +1,30 @@
+--- PR1129/independent_owner.py
++++ candidate/independent_owner.py
+@@ -94,7 +94,7 @@
+     for orientation in ('forward', 'backward'):
+         require(dict(paid) == {int(r): count for r, count in replay['paid_profiles'][orientation].items()}, 'local replay profile binding')
+     widths = [len(frames[word['final'][q]]) - len(frames[word['start'][q]]) for q in range(2 * V, n)]
+-    require(Counter(widths) == {4: 56, 5: 32, 7: 30, 8: 122, 9: 240}, 'current supplier width inventory')
++    require(Counter(widths) == EXPECTED_WIDTHS, 'current supplier width inventory')
+     return widths, paid
+ 
+ 
+@@ -305,7 +305,7 @@
+ 
+ 
+ def main():
+-    global T, EXPECTED_IDLE
++    global T, EXPECTED_IDLE, EXPECTED_WIDTHS
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument('--baseline-parent', type=Path, required=True)
+     parser.add_argument('--owners', type=Path, required=True)
+@@ -315,7 +315,9 @@
+     parser.add_argument('--out', type=Path, required=True)
+     parser.add_argument("--replicas", type=int, required=True)
+     parser.add_argument("--expected-idle", required=True)
++    parser.add_argument("--expected-widths", required=True)
+     args = parser.parse_args()
++    EXPECTED_WIDTHS = {int(k):v for k,v in json.loads(args.expected_widths).items()}
+     T = args.replicas
+     require(T == 37, "replica range")
+     EXPECTED_IDLE = {int(k): v for k,v in json.loads(args.expected_idle).items()}

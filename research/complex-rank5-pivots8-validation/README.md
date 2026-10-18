@@ -1,0 +1,3 @@
+Two observed cold runs passed: Python 3.14.7 from the final source and Python 3.12.13 from its clean archive. Every mathematical result and assembly field agrees; the three run-bound template/receipt digests include phase timing metadata and are verified inside each run. Neither GitHub CI nor an unconditional theorem is claimed.
+
+The original owner stream ordering and an intermediate stage-order serialization were correctly rejected by the unchanged chart digest check. The final constructor sorts by asynchronous call time then helper; allocation, widths, chart maps and packing counts are unchanged. Both final cold runs replay that serialization successfully.

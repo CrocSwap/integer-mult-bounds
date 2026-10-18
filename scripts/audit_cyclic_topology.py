@@ -52,17 +52,28 @@ def routing_state_search(W, max_depth):
             bits -= bit
         return result
 
-    initial = (tuple(1 << i for i in range(W)),1)
+    # High-to-low row lanes preserve tuple order; the low bits retain all of R.
+    shifts = [W*(W-1-i) for i in range(W)]
+    row_mask = (1 << W)-1
+    routing_bits = len(perms)
+    permutation_index = {
+        sum((1 << p[i]) << shifts[i] for i in range(W)):j
+        for j,p in enumerate(perms)
+    }
+    identity = sum((1 << i) << shifts[i] for i in range(W))
+    initial = (identity << routing_bits) | 1
     seen = {initial}; frontier = {initial}; layers = []; saturated = 0
     all_length = False; survivors = []
     for depth in range(max_depth+1):
         terminals = 0; digest = sha256()
-        for M,R in sorted(frontier):
+        for packed in sorted(frontier):
+            scalar, R = packed >> routing_bits, packed & full
+            M = tuple((scalar >> shift) & row_mask for shift in shifts)
             digest.update((repr((M,R))+'\n').encode())
-            if all(x and x & (x-1) == 0 for x in M):
+            permutation = permutation_index.get(scalar)
+            if permutation is not None:
                 terminals += 1
-                p = tuple(x.bit_length()-1 for x in M)
-                if not (R >> index[p]) & 1:
+                if not (R >> permutation) & 1:
                     survivors.append(dict(depth=depth,scalar_rows=list(M),routing_set=R))
         layers.append(dict(depth=depth,new_states=len(frontier),
                            permutation_states=terminals,frontier_sha256=digest.hexdigest()))
@@ -70,15 +81,16 @@ def routing_state_search(W, max_depth):
             all_length = not frontier
             break
         nxt = set()
-        for M,R in frontier:
+        for packed in frontier:
+            scalar, R = packed >> routing_bits, packed & full
             for pair,(a,b) in enumerate(pairs):
                 S = extend(R,pair)
                 if S == full:
                     saturated += 2
                     continue
                 for t,s in ((a,b),(b,a)):
-                    A = list(M); A[t] ^= A[s]
-                    state = (tuple(A),S)
+                    A = scalar ^ (((scalar >> shifts[s]) & row_mask) << shifts[t])
+                    state = (A << routing_bits) | S
                     if state not in seen: nxt.add(state)
         seen.update(nxt); frontier = nxt
     return dict(W=W,depth_cap=max_depth,layers=layers,distinct_joint_states=len(seen),

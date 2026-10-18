@@ -1,6 +1,73 @@
 # Reproducing the result
 
-For the selected coordinated-frame/entrance-bank construction, run
+For the current reviewed checkpoint, use the [selected record](../certificates/selected-result.json).
+Its `reproduce`, `review` and `source_manifest` fields identify the command,
+scoped maintainer assessment and exact inputs. Read them before running a
+historical command from this page:
+
+```sh
+python3 - <<'PYTHON'
+import json
+from pathlib import Path
+record = json.loads(Path("certificates/selected-result.json").read_text())
+for field in ("reproduce", "review", "source_manifest"):
+    print(field + ":", record[field])
+PYTHON
+```
+
+The [published PR39 release](releases/community-kappa-15.md) is a historical
+release, distinct from the current reviewed main checkpoint. Older guides and
+commands below retain their original scope. This clarification follows
+[Anas Khan's PR #90](https://github.com/CrocSwap/integer-mult-bounds/pull/90).
+
+## Historical reviewed checkpoint: #596 with #543
+
+```sh
+python3 -m pip install numpy sympy scipy
+make frontier596-verify
+# Or choose a fresh output directory:
+python3 -B scripts/verify_frontier596.py --work /absolute/new/output --jobs 2
+```
+
+Use Python 3.11+, Make, C++17 and Boost headers; set `CXX` and `BOOST_INCLUDE`
+as needed. Keep assertions enabled. The output must be new and outside the
+checkout. This command rebuilds both suppliers, including the complex baseline,
+then verifies their exact composition. It does not use retained local proofs.
+The runner selects the pinned older #569 source subset already bundled in
+`research/promoted-kernel-coalescing/vendor/larger_gain`.
+
+The [review](research/community-hyperplane599-review.md) and
+[integration receipt](research/community-hyperplane599-integration.json)
+record the fresh selected replays and explicit reuse for intermediate PRs.
+Local macOS results and remote Linux CI are separate statuses. The configured
+selected workflow is `frontier596.yml`; historical frontier588 is manual.
+
+`make selected-record-check` checks metadata and exact source/proof hashes;
+it does not replay the operators. `make frontier588-verify` and
+[the frozen checkpoint](../certificates/checkpoints/family588.json) retain the
+previous composition. Older reproduction targets remain available.
+
+For Lean, run `python3 research/hyperplane-end-lean/verify.py`. It builds the
+combined #593/#599 package and checks theorem axioms. Use `--instances` with
+the generated `ck-local`, `atm3-local`, and optionally #591's `jp8-local`
+directories for finite label checks. Then run:
+
+```sh
+python3 scripts/verify_hpe_lean_binding.py /output/ck-local /output/atm3-local --out /output/LEAN-BINDING.json
+```
+
+This checks that emitted wrapper recipes equal the literals proved in Lean.
+It does not discharge all compiler, hosting or analytic hypotheses.
+
+#589's complete tuned package is preserved at `research/e8-bit-p111-tuned`;
+run `bash research/e8-bit-p111-tuned/tune/verify.sh /fresh/output` with the same
+Python/C++/Boost dependencies. #555 remains byte-identical at its old location.
+The format-limits and three Leech/Turyn research packages retain their own
+reproduction commands, scopes and dependency lists.
+
+## Historical coordinated-frame checkpoint and earlier targets
+
+For the historical coordinated-frame/entrance-bank construction, run
 `make entrance-bank-verify`. This runs the publication-to-certificate binding,
 the full frozen offline finite replay and the bank-scheduling diagnostic.
 The [construction](../research/coordinated-frames-and-entrance-banks/PROOF.md)
@@ -40,7 +107,7 @@ Its [incremental reproduction guide](stopped-product.md) covers the h24
 rational-center producer, new moments, stopping parameters and assembly.
 The community checkpoint and historical targets below retain their own scope.
 
-The selected witness is documented in the [round-eight maintainer review](research/community-round8-review.md)
+That historical witness is documented in the [round-eight maintainer review](research/community-round8-review.md)
 and [current status](research/current-status.md), with the
 [selected certificate](../research/coordinated-frames-and-entrance-banks/certificate.json).
 The [joint-frame review](research/community-round2-review.md) remains a historical checkpoint.
@@ -49,9 +116,9 @@ patches, and the [preserved research](research/preserved-research.md) are histor
 reproduction targets. Run `make verify-research` to regenerate its certificates;
 the expanded tests also run in `make verify-tests`.
 
-## Requirements
+## Historical target requirements
 
-The verification path needs Python 3.11 or newer, Git, Make, and a C++17 compiler supporting
+The original verification path below needs Python 3.11 or newer, Git, Make, and a C++17 compiler supporting
 unsigned 128-bit integers and OpenMP (GCC, or Clang with libomp), with no
 third-party Python packages. The enlarged-frame profiler additionally needs Boost
 multiprecision headers (`libboost-dev` on Ubuntu); the ordinary joint-frame

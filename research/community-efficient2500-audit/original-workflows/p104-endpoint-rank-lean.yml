@@ -1,0 +1,51 @@
+name: P104 endpoint rank lemma
+
+on:
+  pull_request:
+    paths:
+      - 'research/p104-endpoint-rank-lean/**'
+      - 'research/p104-native-channel/vendor/native_verify.py'
+      - 'formal/lean/lean-toolchain'
+      - 'formal/lean/lakefile.toml'
+      - 'formal/lean/lake-manifest.json'
+      - '.github/workflows/p104-endpoint-rank-lean.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/p104-endpoint-rank-lean/**'
+      - 'research/p104-native-channel/vendor/native_verify.py'
+      - 'formal/lean/lean-toolchain'
+      - 'formal/lean/lakefile.toml'
+      - 'formal/lean/lake-manifest.json'
+      - '.github/workflows/p104-endpoint-rank-lean.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Replay independent finite census and controls
+        run: python -Werror -B scripts/research_package.py --package research/p104-endpoint-rank-lean
+      - name: Install pinned elan bootstrap
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf --connect-timeout 15 --max-time 120 https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o "$RUNNER_TEMP/elan-init.sh"
+          sh "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Fetch pinned Mathlib build cache
+        working-directory: formal/lean
+        run: lake exe cache get
+      - name: Check theorem roots, axioms and invalid proof attempts
+        run: python -Werror -B research/p104-endpoint-rank-lean/check_lean.py
+      - name: Require unchanged tracked inputs
+        run: git diff --exit-code

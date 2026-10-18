@@ -1,0 +1,62 @@
+--- a/research/t74-2322-move-prices/README.md
++++ b/research/t74-2322-move-prices/README.md
+@@ -1,6 +1,6 @@
+-# Exact move prices and owner-fill headroom on the T74 PR2322 words
++# Recounted move prices and certified owner-fill headroom on the T74 PR2322 words
+ 
+-**Research note; no κ claim.** This note gives exact local-move prices and a certified packing cap for the
++**Research note; no κ claim.** This note gives exact local-move decompositions, numerical price estimates and a certified packing cap for the
+ words of [PR2322](https://github.com/CrocSwap/integer-mult-bounds/pull/2322) (Vlado Vojdanovski). Those
+ words underlie the current open T74 line: #2349, #2363 and #2374, whose claim is
+ κ = 0.0016971949509. It answers one planning question: after owner fills, where can the next gain on
+@@ -12,11 +12,11 @@
+ | headroom above PR2374's claim | ≤ 8.1e-10 |
+ | one more PR2322-type handoff (same reshapes) | +4.27e-8 each, linear up to 12 (+5.13e-7) |
+ | one PR2339-type low alias | −1.91e-7 |
+-| one PR2339-type high alias | exactly 0 |
++| one PR2339-type high alias | approximately 0 (numerical LP check) |
+ | one (1,1)→(2) merge of two rank-1 climbs (no width change) | +1.13e-7 |
+ | the 26 such target merges that come with PR2339's low aliases, on their own | +2.94e-6 |
+ 
+-All prices are LP-ceiling differences on the PR2322 words, both providers, at a = PR2374's κ.
++The discrete profile changes are exact. The displayed move prices are numerical estimates from floating-point LP solves and root bisections, not certified intervals. Moment-price comparisons use a = PR2374's κ; root differences use separately re-solved LPs. The owner-fill cap below has a separate exact rational dual certificate. The high-alias check `abs(net) < 1e-12` establishes numerical neutrality at this point, not an exact symbolic equality.
+ 
+ **Owner fills on these words are finished.** The width-aware bin-pattern LP of
+ [PR2387](https://github.com/CrocSwap/integer-mult-bounds/pull/2387) /
+@@ -51,7 +51,7 @@
+     goes (1,1,1,1)→(2,1,1,1,1,1,1,1). The net local change is −h(3), but the width change costs
+     +0.04137 per call through the bins, a loss of 5.5e-5 per call. Successive low aliases cost more,
+     because the LP is convex; this is why all 32 cost −9.8e-6 (PR2387).
+-  - A high alias is exactly price-neutral: its local −h(5) equals its bin cost.
++  - A high alias is numerically price-neutral in this calculation: its local −h(5) cancels the estimated bin cost to the checked tolerance.
+   - The 26 targets whose climbs changed each gain exactly one (1,1)→(2) merge. That merge has no width
+     effect and is worth +1.13e-7 by itself.
+ 
+@@ -106,7 +106,7 @@
+ | width-8 (end dim 8) → 9 | outside rank-zero | **+1.43e-6** | +1.54e-6 |
+ 
+ **Answer to the second open question.** Under rank-zero anticipatory borrowing, the target merges come
+-only with the width-4 → 9 lender change, and every such alias loses even with a full merge credited. The
++only with the width-4 → 9 lender change, and the numerical screen prices such aliases negatively even with a full merge credited. The
+ merges cannot be separated from that change by choosing a different lender. The positive rows are a price
+ tag on a *changed handoff premise*: lenders ending at dimension 7–8, with 16 frame-0 candidates
+ (572–575, 580–583, 311, 327, 498, 500, 501, 510, 512, 513). Those prices are optimistic. They omit any
+--- a/research/t74-2322-move-prices/move_prices.py
++++ b/research/t74-2322-move-prices/move_prices.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # SPDX-License-Identifier: Apache-2.0
+-"""Exact prices of local word moves on the T74 PR2322 words, and a certified owner-fill cap (standard library only).
++"""Exact local word decompositions, numerical move prices and a certified owner-fill cap (standard library only).
+ 
+ Every frame climb of d dimensions on a register pays one recursive child of rank d (frame-climb rule of the vendored
+ PR2387 fill_check80.py, patched only to also record WHICH register paid each child).  So a change of the local words
+@@ -13,7 +13,7 @@
+      PR2339 (bf1742ae) and checks each recount against the word's own reported profile and width inventory;
+   2. decomposes the realized changes PR2312 -> PR2322 (four handoffs) and PR2269 -> PR2339 (32 low + 5 high aliases)
+      into per-register reshapes and checks that they add up exactly to the profile change;
+-  3. prices each move type at a = PR2374's claimed kappa by exact re-solve of the bin-pattern LP (float simplex) and
++  3. prices each move type at a = PR2374's claimed kappa by numerical re-solve of the bin-pattern LP (float simplex) and
+      by LP-root differences, and calibrates against the realized PR2312 -> PR2322 gain;
+   4. certifies (exact rational LP dual, 800-bit enclosures) that every legal whole-helper owner fill of the PR2322
+      words has b < 0.001697195759, and that the certificate does not reject PR2374's claimed point;

@@ -1,0 +1,32 @@
+Correction to the first posted draft: I initially referenced the 492-helper ancestor under `gauge44-slots-t16/evidence/local/`; that is not the selected program, and it is excluded from this experiment. The selected 480-helper replay is `research/community-frontier1094-audit/selected-replay.tar.gz`, SHA256 `f1da80610bf33c58527f18ad63b4350d0b864e1d4486141ee17ac9bed4d529d6`. Its `candidate/strict/global/base/providers/gauge44/LOCAL-PROGRAMS.json.gz` has eight rank-8 centre events on roles `415..422`, sourced respectively from `L[92], L[57], L[81], L[224], L[11], L[240], L[9], L[256]`; each is followed by exactly 22 target updates. I corrected the task pins and scope before running any experiment.
+
+CLAIM — recursive interfaces; OS seed `96230294e168f4b58c665c3efdec8d3b`; task `centre-path-sharing`; priority revision 3; base `0b1cccf86e2f5132ed286a26ef0a681a495740ea`.
+
+**Question.** In the pinned selected #1094 forward local program, can the eight rank-8 centre trajectories be evaluated once for two invocations that share the same eight source-row values, then scattered into two disjoint target panels with arbitrary dirty target and private-centre state?
+
+**Refined boundary.** The two calls share the exact source rows and centre maps; their target panels and private helper state are disjoint. This changes the independent-input per-call premise and does not claim that arbitrary independent calls can share. The nearby #1516 discussion completed a single-call dirty-hosting and waiting-level obstruction and records that cross-call sharing was not attempted. PRs #1643, #1664 and #1684 concern tree geometry/cut-rank application, not a two-panel fanout construction. PR #1652 treats a single-column COPY floor.
+
+**Method and bounded domain.** Use only the eight selected centre events and their 22 target updates each. Compare two separate centre phases with a fused phase that copies/transports each common centre once and applies every target update in both panels. Reconstruct the selected event order and coefficient lists from the pinned replay, test all source/target/centre basis dirt with exact arithmetic, and include controls for a changed second source, a missing target update, and a non-restored centre. Price every copy, clear, rank-8 move, target update, workspace coordinate and source/interface assumption. Screen the resulting profile at `m=73`, 896 families, nine stages against the unchanged bit threshold `a=0.001733427039589844234749`.
+
+**Optimistic budget.** The ideal half-centre model changes the per-call profile from `{1:2412,2:418,3:432,4:142,5:82,8:8}` and centre charge 64 to `{1:2412,2:418,3:432,4:142,5:82,8:4}` and centre charge 32. Its complex cap is `a≈0.003213`; the bit side then limits whole-bound `κ` to `0.0017304274698236029`, at most 3.4536% above the selected record. Added operations and assembly access costs must be charged before crediting this improvement.
+
+**Live overlap checked 2026-10-14 07:13–07:15 UTC.** Discussion pagination completed for 337 records. The overlap helper could not refresh PRs because this host's `gh api` rejects its `--slurp` flag, so I separately enumerated all 385 open PRs and read the closest bodies/heads: #1684 (`1e1af1a8f97f6eee21946cd1ff832e3d61269d33`) applies a single-call cut-rank bound; #1643 (`362086ed05870c793b4698f8843fba6720fa30cb`) checks the selected single-call tree bound; #1652 (`9f9295b1eb82056f31f4f1ac2b30ede0d7f8ca07`) proves a one-column COPY floor and lists shared billing as outside scope. The #1516 thread itself says it made no cross-call sharing attempt. None studies a shared source signal fanning out to two disjoint target panels.
+
+**Expected evidence.** A source-pinned exact two-panel phase replay with positive and semantic negative controls, full phase invoice, and a clear statement that this is a local interface mechanism with no new `κ` unless it composes through the selected supplier. No word search, owner optimization or full cold replay is in this cycle.
+
+**Expiry:** 2026-10-14T09:12:00Z.
+
+## Finding and handoff
+
+**Completed bounded construction:** under the stated shared-source and disjoint-target contract, evaluate each of the eight selected rank-8 centre maps once and scatter its signal to both panels. The exact source event stream has all eight prescribed source rows and 22 target updates per centre. The exact rational verifier checks the equality against two separate invocations on every coordinate basis vector for the eight source rows, 352 target coordinates and 1,241 private-centre coordinates, plus a dense fixture; three negative controls reject a changed source, an omitted target update and a missing clear.
+
+The complete two-call centre-phase invoice falls from 416 to 384 scalar actions: rank-8 moves 16→8, profile entries for rank 8 per call 8→4, source copies 16→8, and centre clears 32→16; all 352 panel target updates remain. The 9-stage profile gives `a_cap≈0.003212972894`; with the bit side unchanged at `a=0.001733427039589844234749`, the whole-bound ceiling is `κ≤0.0017304274698236029`, at most 3.4536% over the selected κ. These are a local mechanism and favorable screening cap, not a new accepted κ.
+
+Replay on exact base `0b1cccf86e2f5132ed286a26ef0a681a495740ea`:
+
+```text
+PASS_CENTRE_TWO_PANEL_FANOUT R=480 centres=8 targets_per_centre=22 updates_per_panel=176 basis_cases=1601 controls=3 actions=416->384 rank8=16->8 profile8=8->4 a_cap=0.003212972894 bit_a=0.001733427040 whole_kappa_cap=0.001730427469824 max_gain_pct=3.4536
+PASS_REGISTERED_RESEARCH_PACKAGE research/centre-fanout-two-panel-seed962302 outcome=completed
+```
+
+Final overlap refresh: 351 discussion records paginated at 2026-10-14T07:28:35Z; open PR census returned 394 entries. PR #1704 is a separate bit-scatter pair-sum construction; PR #1703 is a one-touch rank-2 retiming obstruction on the same selected source archive. Neither considers this common-centre, disjoint-target fanout. The overlap helper's PR fetch remains unavailable because this installed `gh api` rejects `--slurp`; the full open-PR list was therefore independently enumerated and the closest PR heads and bodies inspected. The package is submitted as [PR #1708](https://github.com/CrocSwap/integer-mult-bounds/pull/1708) from branch `research/centre-fanout-two-panel-seed962302`; remaining assembly obligations are whether the selected supplier has eligible invocation pairs and how to charge any source preparation, owner, precision or hosting cost.

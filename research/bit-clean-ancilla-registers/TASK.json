@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "task_id": "bit-new-register-model",
+  "priority_revision": 3,
+  "base_commit": "e112d71c8d7bb32435debcc54df932593dd8223a",
+  "original_card": {
+    "id": "bit-new-register-model",
+    "question": "Can an explicitly larger or nonabelian register model escape the scoped three-register obstruction?",
+    "starting_points": [
+      "research/bit-three-register-lower-bound/README.md",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Construct the smallest exact identity in a newly specified legal operation alphabet.",
+      "Derive a target-specific relaxation bound for that same explicit alphabet."
+    ],
+    "acceptance_gate": "Name the changed hypothesis, all counted roles and a uniform identity; finite column tests alone do not certify it.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read Model section 1 of the three-register bound and identify the exact excluded free operations.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Write a complete operation alphabet outside one named premise and price a baseline before searching identities.",
+    "bottleneck_link": "A small-width completed saving changes the bit primitive; a finite-address identity alone is insufficient.",
+    "allowed_variations": [
+      "Choose a fixed larger register count or a specified nonabelian operation family."
+    ],
+    "scope_change_triggers": [
+      "Remaining inside the already-excluded three-register abelian model."
+    ],
+    "overlap_terms": [
+      "three-register",
+      "nonabelian",
+      "group algebra"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Inside the larger abelian register model opened by PR1882, replace dirty auxiliary registers by clean (zero-initialized, zero-restored) ones: can two invertible rational 3x3 data targets succeed in five rank-one calls with one or two clean ancillas?",
+  "scope_change_reason": "PR1882 settled dirty auxiliaries for any register count and explicitly excluded clean ancillas, whose correctness predicate is strictly weaker (data columns only). This is the remaining input convention for extra registers in the same alphabet.",
+  "bottleneck_link": "Side result for the bit primitive: it closes a register-model route to a small-width saving. PR288 section 1.3(b) would charge clean ancillas anyway; no saving exists to price.",
+  "budget_minutes": 90,
+  "stop_rule": "Stop after the exhaustive n=3 and n=4 five-call runs and their controls; do not attempt eight-call W=3 searches.",
+  "outcome": "negative-result",
+  "evidence": "Written clean low-span lemma; exhaustive engine runs for one and two clean ancillas at five calls with zero candidates; dirty-mode byte regression against PR1882; positive and rank-two failure controls; exact rational realization of sampled clean and clean-only terminals; independent symbolic comparison; tamper controls. See README and RESULT.json.",
+  "author": "waynenilsen",
+  "ai_assistance": "Substantial assistance from Claude (Anthropic) via Claude Code: derivation, engine changes, controls and writing.",
+  "open_questions": [
+    {
+      "question": "Do any number of clean ancillas still fail to save for m=3, W=2 at five calls?",
+      "why_it_matters": "It would close the clean variant completely, matching the PR1882 dirty theorem.",
+      "first_step": "Prove a clean version of PR1882 Lemma 1 using only the data columns of the derivative at t=1.",
+      "blocked_by": "PR1882 Lemma 1 uses the full endpoint, including auxiliary columns, to restrict projectors outside the relation support."
+    },
+    {
+      "question": "Can three data registers with one clean ancilla succeed in eight calls?",
+      "why_it_matters": "It is the W=3 analogue of the PR1882 handoff under a weaker correctness predicate.",
+      "first_step": "Use the clean low-span lemma to exclude spans up to three, then classify two-relation words.",
+      "blocked_by": "An n-register two-relation classification; 120^8 ordered words cannot be enumerated directly."
+    }
+  ]
+}

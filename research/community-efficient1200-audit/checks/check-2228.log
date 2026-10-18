@@ -1,0 +1,75 @@
+['bash', 'research/ideal-decoder-floors/verify.sh', '/tmp/pr-efficient1200/output-2228']
+== 0. manifest and provenance
+   PASS 0.manifest  18 files match MANIFEST.sha256
+   PASS 0.sources  11 pins hold (checks and libraries)
+== c1 labels and the dense polar law (E8 block ranks 9/8/8/7)
+   PASS P1.labels-D4  D4: v=12 T=4 odd-or-zero True, k=2, rank B=3 (=k+1), T(k+1)=12, min(v,T(k+1))=12
+   PASS P1.labels-D5  D5: v=20 T=5 odd-or-zero True, k=4, rank B=5 (=k+1), T(k+1)=25, min(v,T(k+1))=20
+   PASS P1.labels-D6  D6: v=30 T=6 odd-or-zero True, k=4, rank B=5 (=k+1), T(k+1)=30, min(v,T(k+1))=30
+   PASS P1.labels-E6  E6: v=36 T=6 odd-or-zero True, k=6, rank B=7 (=k+1), T(k+1)=42, min(v,T(k+1))=36
+   PASS P1.labels-E7  E7: v=63 T=7 odd-or-zero True, k=6, rank B=7 (=k+1), T(k+1)=49, min(v,T(k+1))=49
+   PASS P1.labels-E8  E8: v=120 T=8 odd-or-zero True, k=8, rank B=9 (=k+1), T(k+1)=72, min(v,T(k+1))=72
+   PASS P1.law-E8-CC  E8: r(C(a),C(b)) = 9 = k+1 for all 14400 ordered pairs
+   PASS P1.law-E8-NC  E8: r(N(a),C(b)) = 8 = k (one dead-type normal) for all 14400 ordered pairs
+   PASS P1.law-E8-NN  E8: r(N(a),N(b)) = 8 for a = b or a.b even (7680 pairs), 7 for a.b odd (6720 pairs): the 8/7 rule of #968
+== c2 explicit exact decoders and their dense-B cost
+   PASS D1.E8-coord  E8 coordinate decoder: v=120, T=8, M = Gram exact: True, term ranks [9], cost 72 (expected 72 = 8x9)
+   PASS D1.E8-frame  E8 decoder in the first orthogonal frame of roots: v=120, T=8, M = Gram exact: True, term ranks [9], cost 72 (expected 72 = 8x9)
+   PASS D1.P112  P112 = E8 - F0, basis F0: v=112, T=8, M = Gram exact: True, term ranks [8], cost 64 (expected 64 = 8x8)
+   PASS D1.E7  E7 decoder in a 7-frame of roots: v=63, T=7, M = Gram exact: True, term ranks [7], cost 49 (expected 49 = 7x7)
+   PASS D1.E7-frame  E7 minus the 7-frame (new unit), basis = removed frame: v=56, T=7, M = Gram exact: True, term ranks [6], cost 42 (expected 42 = 7x6)
+   PASS D1.D4  D4 coordinate decoder: v=12, T=4, M = Gram exact: True, term ranks [3], cost 12 (expected 12 = 4x3)
+   PASS D1.D5  D5 coordinate decoder: v=20, T=5, M = Gram exact: True, term ranks [4], cost 20 (expected 20 = 5x4)
+   PASS D1.D6  D6 coordinate decoder: v=30, T=6, M = Gram exact: True, term ranks [5], cost 30 (expected 30 = 6x5)
+   PASS D1.P104  P104 = E8 - F0 - F1: P Q^T = 2 Gram on 104 live lines: True; 8 terms of rank [7], cost 56 (= 8x7); 1260 frames in the 112-pool, first admissible F1 has 8 decoders
+   PASS D1.P104-structure  alpha_k . beta_l = 0 (k != l), alpha_k . beta_k odd, the 16 normals are exactly the dead lines F0 u F1, 4 of the alpha_k in F0 and 4 in F1
+== c3 Theorem 4: types, r_min, omega, sharpness
+   PASS F1.D4  D4: v=12 T=4 k+1=3, proper W_z 0 (rows) / 0 (cols), types 1 / 1, r_min=3, floor T*r_min=12, omega(live orthogonal)=4
+   PASS F1.D5  D5: v=20 T=5 k+1=5, proper W_z 5 (rows) / 5 (cols), types 6 / 6, r_min=3, floor T*r_min=15, omega(live orthogonal)=4
+   PASS F1.D6  D6: v=30 T=6 k+1=5, proper W_z 0 (rows) / 0 (cols), types 1 / 1, r_min=5, floor T*r_min=30, omega(live orthogonal)=6
+   PASS F1.E6  E6: v=36 T=6 k+1=7, proper W_z 27 (rows) / 27 (cols), types 28 / 28, r_min=5, floor T*r_min=30, omega(live orthogonal)=4
+   PASS F1.E7  E7: v=63 T=7 k+1=7, proper W_z 0 (rows) / 0 (cols), types 1 / 1, r_min=7, floor T*r_min=49, omega(live orthogonal)=7
+   PASS F1.E8  E8: v=120 T=8 k+1=9, proper W_z 0 (rows) / 0 (cols), types 1 / 1, r_min=9, floor T*r_min=72, omega(live orthogonal)=8
+   PASS F1.P112  P112: v=112 T=8 k+1=9, proper W_z 8 (rows) / 8 (cols), types 9 / 9, r_min=8, floor T*r_min=64, omega(live orthogonal)=8
+   PASS F1.E7-F0  E7-F0: v=56 T=7 k+1=7, proper W_z 7 (rows) / 7 (cols), types 8 / 8, r_min=6, floor T*r_min=42, omega(live orthogonal)=7
+   PASS F1.P104  P104: v=104 T=8 k+1=9, proper W_z 16 (rows) / 16 (cols), types 17 / 17, r_min=7, floor T*r_min=56, omega(live orthogonal)=8
+   PASS F1.sharp-E8  E8: exact decoder cost 72 = floor 72 (sharp, any number of terms in the root-code class with dense B)
+   PASS F1.sharp-P112  P112: exact decoder cost 64 = floor 64 (sharp, any number of terms in the root-code class with dense B)
+   PASS F1.sharp-E7  E7: exact decoder cost 49 = floor 49 (sharp, any number of terms in the root-code class with dense B)
+   PASS F1.sharp-E7-F0  E7-F0: exact decoder cost 42 = floor 42 (sharp, any number of terms in the root-code class with dense B)
+   PASS F1.sharp-D4  D4: exact decoder cost 12 = floor 12 (sharp, any number of terms in the root-code class with dense B)
+   PASS F1.sharp-D6  D6: exact decoder cost 30 = floor 30 (sharp, any number of terms in the root-code class with dense B)
+   PASS F1.sharp-P104  P104: frame-pair decoder cost 56 = floor 56
+   PASS F1.D5-gap  D5: coordinate decoder costs 20 = v = 20; the pairwise floor is only 15 (square decoders: 20, see c4_coupling.py)
+== c4 D5 and E6: deficient directions, incidences, N-space
+   PASS C1.E6-dirs  E6: 27 deficient directions per side (distinct)
+   PASS C1.E6-matching  E6: number of non-orthogonal deficient columns per deficient row direction: [27]
+   PASS C1.E6-pairs  E6: pair ranks from supports = type table: True; (incidence, rank) counts {('non', 5): 432, ('non', 6): 297}
+   PASS C1.E6-generic  E6: generic/generic rank 7, deficient/generic [6], generic/deficient [6]
+   PASS C1.E6-Nspace  E6: dim{N : r_t N r_s = 0 on 540 ordered orthogonal pairs} = 1
+   PASS C1.D5-dirs  D5: 5 deficient directions per side (distinct)
+   PASS C1.D5-matching  D5: number of non-orthogonal deficient columns per deficient row direction: [1]
+   PASS C1.D5-pairs  D5: pair ranks from supports = type table: True; (incidence, rank) counts {('non', 4): 5, ('orth', 3): 20}
+   PASS C1.D5-generic  D5: generic/generic rank 5, deficient/generic [4], generic/deficient [4]
+   PASS C1.D5-Nspace  D5: dim{N : r_t N r_s = 0 on 140 ordered orthogonal pairs} = 1
+== c5 place bound: survivors and the tropical ceiling
+   PASS S1.E8-simple  E8, basis simple: s(a=0)=0, best found s=8, ceiling omega=8 (T=8)
+   PASS S1.E8-frame  E8, basis frame: s(a=0)=8, best found s=8, ceiling omega=8 (T=8)
+   PASS S1.E8-coord  E8, basis coord: s(a=0)=0, best found s=0, ceiling omega=8 (T=8)
+   PASS S1.E7-simple  E7, basis simple: s(a=0)=0, best found s=7, ceiling omega=7 (T=7)
+   PASS S1.E7-frame  E7, basis frame: s(a=0)=7, best found s=7, ceiling omega=7 (T=7)
+   PASS S1.E6-simple  E6, basis simple: s(a=0)=0, best found s=4, ceiling omega=4 (T=6)
+   PASS S1.D4-simple  D4, basis simple: s(a=0)=0, best found s=4, ceiling omega=4 (T=4)
+   PASS S1.D4-frame  D4, basis frame: s(a=0)=4, best found s=4, ceiling omega=4 (T=4)
+   PASS S1.D4-coord  D4, basis coord: s(a=0)=0, best found s=0, ceiling omega=4 (T=4)
+   PASS S1.D5-simple  D5, basis simple: s(a=0)=0, best found s=4, ceiling omega=4 (T=5)
+   PASS S1.D5-coord  D5, basis coord: s(a=0)=0, best found s=0, ceiling omega=4 (T=5)
+   PASS S1.D6-simple  D6, basis simple: s(a=0)=0, best found s=6, ceiling omega=6 (T=6)
+   PASS S1.D6-frame  D6, basis frame: s(a=0)=6, best found s=6, ceiling omega=6 (T=6)
+   PASS S1.D6-coord  D6, basis coord: s(a=0)=0, best found s=0, ceiling omega=6 (T=6)
+   PASS S1.P112-F0  P112, basis F0 (cost 64): s(a=0)=0, ceiling omega=8
+== c6 rank-44 witnesses, 2-adic carry, forced minors
+   PASS X1.rank44  E8: witness conditions hold (C >= 0, G o C = 2 Z+, odd diagonals, zero on orthogonal pairs): True; rank G o G = 36, rank Z+ = 44, rank Z- = 44
+   PASS X1.carry  E8 dense blocks (8 coordinate terms, each 78 lines): identical 2-adic profile {0: 9, 1: 26, 2: 22, 3: 14, 6: 6, 8: 1} per term; F2 rank total 72 (= 8x9), carry (invariant factors exactly 2) total 208 (= 8x26)
+   PASS X1.forced  E8: omega_non(all lines) = 8, |N(a)| = 56, omega_non(N(a)) = 7, omega_non(N(a) n N(b)) by (parity a.b, size): {(0, 24, 6): 63, (1, 28, 6): 56}
+== done in 35s: 66 PASS (2 in step 0), 0 FAIL; logs in /tmp/pr-efficient1200/output-2228

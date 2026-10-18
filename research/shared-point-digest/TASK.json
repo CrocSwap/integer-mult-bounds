@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "chooser_seed": "7c2a91e04f8b3d65a1e0c9d2478f5b36",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Can scripts/shared_point_circuit.py:SharedPointCircuit.verify emit the same circuit_sha256 digest lines (and the same support/topology assertion checks) without per-node json.dumps, so full-size shared-point and bit-compression verify receipts stay fieldwise identical?",
+  "scope_change_reason": "The catalogue card asks for one measured replay bottleneck with before/after wall time and retained checks. Expertise override selected verifier-engineering after open tooling PR #1984 left SharedPointCircuit.verify / ExclusionCircuit.verify digests as an explicit next question. Profiling named SharedPointCircuit.verify's per-node json.dumps stream (about half of h=46 verify time) as the bottleneck; ExclusionCircuit.verify's single json.dumps is not hot.",
+  "bottleneck_link": "Side result on review throughput: shared-point verify and bit-compression certificates call SharedPointCircuit.verify. A faster identical digest does not change kappa or the binding complex supplier.",
+  "budget_minutes": 60,
+  "stop_rule": "Ship an equivalence-preserving SharedPointCircuit.verify digest change with frozen baseline, identical receipts on the historical h=46 circuit, registered replay and a measured before/after median. Do not reopen the mathematical screens, rewrite ExclusionCircuit support enumeration, or run the selected cold frontier replay.",
+  "outcome": "completed",
+  "evidence": "PASS_SHARED_POINT_DIGEST via research/shared-point-digest/verify.py (also under -O); PASS_IDENTICAL_SHARED_POINT_DIGEST_RECEIPTS via benchmark.py; bit-compression certificate does not pin scripts/shared_point_circuit.py in source_sha256.",
+  "author": "Wentao Li",
+  "github": "VictorLiwentao",
+  "email": "wentaol4@illinois.edu",
+  "ai_assistance": "Substantial AI assistance for orientation, overlap search, profiling, implementation, packaging, benchmarking and writing. Not independent human peer review.",
+  "open_questions": [
+    {
+      "question": "Should research/bit-compression-provenance refresh its live scripts/shared_point_circuit.py SHA-256 pin after this equivalence-preserving digest rewrite?",
+      "why_it_matters": "That provenance package binds working-tree bytes of shared_point_circuit.py; leaving the old pin keeps this tooling PR focused, but a later full provenance replay on main would see a hash mismatch until refreshed.",
+      "first_step": "Open a dedicated provenance follow-up that only rewrites the shared_point_circuit.py entry in SOURCES.json after confirming circuit_sha256 identity.",
+      "blocked_by": "Pin repair is outside this tooling change."
+    },
+    {
+      "question": "Is ExclusionCircuit.verify's leave-two-out expected-support genexpr worth a separate identical-receipt rewrite?",
+      "why_it_matters": "Profiling shows that single json.dumps is negligible there; the hot path is the per-output support sum genexpr, a different object from digest formatting.",
+      "first_step": "Profile ExclusionCircuit(45).verify alone and prototype a closed-form support mask if one matches the historical expected bits.",
+      "blocked_by": "Out of this session's stop rule; SharedPointCircuit.verify digests were the measured bottleneck."
+    }
+  ]
+}

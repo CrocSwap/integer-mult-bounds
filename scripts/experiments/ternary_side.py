@@ -162,14 +162,106 @@ def verify_invocation(result):
 
 
 def verify_invocation_frames(result):
-    """Every physical rational edge of both signed invocation directions."""
-    from audit_joint_frames import eye,zero,matrix,row_basis,product,inverse,sub,rank
+    """Every physical rational edge of both signed invocation directions.
+
+    Cleared-denominator Gram products/inverses and an invocation-local exact
+    frame-transition cache preserve the historical orientation evidence while
+    avoiding repeated ``Fraction`` work on repeated physical edges. See
+    ``research/ternary-frame-cleared-cache/``.
+    """
+    from functools import lru_cache
+    from math import lcm
+    from audit_joint_frames import eye,zero,matrix,row_basis,sub,rank
+
+    def product(A,B):
+        """Exact matrix product over Q via cleared integer factors."""
+        if not A:
+            return tuple()
+        n=len(A);k=len(A[0]);m=len(B[0])
+        DA=1
+        for row in A:
+            for x in row:
+                if x.denominator!=1:
+                    DA=lcm(DA,x.denominator)
+        DB=1
+        for row in B:
+            for x in row:
+                if x.denominator!=1:
+                    DB=lcm(DB,x.denominator)
+        if DA==1 and DB==1:
+            out=[]
+            for i in range(n):
+                ai=A[i];row=[]
+                for j in range(m):
+                    s=0
+                    for t in range(k):
+                        s+=ai[t].numerator*B[t][j].numerator
+                    row.append(Q(s))
+                out.append(tuple(row))
+            return tuple(out)
+        Ai=[[x.numerator*(DA//x.denominator) for x in row] for row in A]
+        Bi=[[x.numerator*(DB//x.denominator) for x in row] for row in B]
+        scale=DA*DB
+        out=[]
+        for i in range(n):
+            ai=Ai[i];row=[]
+            for j in range(m):
+                s=0
+                for t in range(k):
+                    s+=ai[t]*Bi[t][j]
+                row.append(Q(s,scale))
+            out.append(tuple(row))
+        return tuple(out)
+
+    def inverse(A):
+        """Gauss-Jordan inverse over Q; clear the pivot row before scaling."""
+        n=len(A);rows=[list(a)+list(b) for a,b in zip(A,eye(n))]
+        for j in range(n):
+            p=next((i for i in range(j,n) if rows[i][j]),None)
+            require(p is not None,'Singular Gram matrix')
+            rows[j],rows[p]=rows[p],rows[j]
+            D=1
+            for x in rows[j]:
+                if x.denominator!=1:
+                    D=lcm(D,x.denominator)
+            if D!=1:
+                rows[j]=[Q(x.numerator*(D//x.denominator)) for x in rows[j]]
+            c=rows[j][j];rows[j]=[x/c for x in rows[j]]
+            for i in range(n):
+                if i!=j:
+                    c=rows[i][j]
+                    if c:
+                        rows[i]=[x-c*y for x,y in zip(rows[i],rows[j])]
+        return matrix([r[n:] for r in rows])
+
+    # Exact ordered-pair transition memo for one verify_invocation_frames call.
+    # Identity then value interning; equal rational frames share one index.
+    frame_list=[]; frame_by_value={}; frame_by_identity={}; transitions={}
+    def intern(frame):
+        prior=frame_by_identity.get(id(frame))
+        if prior is not None:
+            return prior[1]
+        index=frame_by_value.get(frame)
+        if index is None:
+            index=len(frame_list)
+            frame_list.append(frame);frame_by_value[frame]=index
+        frame_by_identity[id(frame)]=(frame,index)
+        return index
+    def transition(old,new):
+        key=(intern(old),intern(new))
+        answer=transitions.get(key)
+        if answer is None:
+            answer=(rank(sub(new,old)),rank(new)-rank(old))
+            transitions[key]=answer
+        return answer
+
     code=small_program(result);g=result['_graph'];n=result['n'];h=result['h']
     S=code['roles'];r=comb(h,2);W=2*n+S+r
     H=matrix([[Q(int(i==j))-Q(2,25) for j in range(h)] for i in range(h)])
     I,Z=eye(h),zero(h)
     require(rank(H)==h,'Degenerate ambient form')
     lines=[(tuple(Q(int(t>>i&1)) for i in range(h)),) for t in g['labels']]
+    @lru_cache(maxsize=None)
     def projection(U):
         Ut=matrix(zip(*U));UH=product(U,H)
         P=product(product(Ut,inverse(product(UH,Ut))),UH)
@@ -194,7 +286,7 @@ def verify_invocation_frames(result):
         def touch(ports,F):
             nonlocal cost,lost,edges
             for slot in set(ports):
-                old=physical[slot];a=rank(sub(F,old));change=rank(F)-rank(old)
+                old=physical[slot];a,change=transition(old,F)
                 require(a==abs(change),'A physical edge has a non-nested rank charge')
                 cost+=a;lost+=max(0,-change);edges+=1;physical[slot]=F
         program=('L','J','l','R','V','G','R','L','J','l','G','V')

@@ -1,0 +1,7 @@
+# Sufficient final assembly
+
+Construct five actual source copies of PR #2857, relocate their rank 9 vacancies through the checked width 9 path, and fill all five vacancies from one actual capacity 48 donor. Independently check every role and exact moment. Prove primal/dual equality for all fixed-inventory patterns, then validate the changed native providers and complete inherited hosting, compiler, precision, BIT and modern outer release. Only the conjunction supports the conditional headline.
+
+The initial PR #2853 checkpoint succeeded, but a new source refresh exposed a stronger cheaper-kernel construction. This justified a changed representation, not resampling the same failed contract. A direct transplantation of the earlier allocation into new words failed its economic gate; the selected route uses the actual new T37 fill. The literal five-copy witness closes the previously unproved chronological realization of the fractional optimum. No unknown gadget is assumed.
+
+Root owns immutable source and final release; product owns the exact relay construction; compiler owns separate literal/moment and exact LP proof; physical owns the local source-compatibility review. Each mathematical claim has an explicit finite witness/check or a complete English proof. Native and global checks retain their original predicates. All inherited asymptotic hypotheses remain. This informal construction does not create a fake Lean root or a competing proof DAG.

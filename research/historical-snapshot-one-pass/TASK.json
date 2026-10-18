@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 5,
+  "base_commit": "bcdf338bf10ed70f1b3a0325fdd429677920d089",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Speed the complete tracked-file snapshot setup in historical replay by copying and hashing each file once.",
+  "scope_change_reason": "The drawn replay-runtime card is narrowed to materialize() for the skip-clones-tests overlay. No file coverage or historical authentication is removed.",
+  "bottleneck_link": "Historical overlays are used by the full test and clone CI groups. Reducing complete snapshot setup saves review time without changing the finite mathematical checks.",
+  "budget_minutes": 60,
+  "stop_rule": "At most five alternating measurement pairs; retain the change only with identical complete hash maps, successful destination rehashes and passing overlay/caller controls. Do not reduce tracked-file coverage.",
+  "outcome": "completed",
+  "evidence": "BENCHMARK.json records three alternating Python 3.12 full-fixture pairs; README.md lists checks and limits.",
+  "author": "Nick Petalas",
+  "ai_assistance": "Substantial automated assistance in implementation, measurement, tests and prose; no independent human review claimed.",
+  "open_questions": [
+    {
+      "question": "Does the setup gain persist on the Ubuntu CI filesystem and other supported Python versions?",
+      "why_it_matters": "The measured gain covers macOS APFS only; copyfile has different platform fast paths.",
+      "first_step": "Run benchmark.py --pairs 3 under the CI Python versions and retain the complete identical-snapshot and destination-rehash checks.",
+      "blocked_by": "An independent Linux runner was not available for this session."
+    },
+    {
+      "question": "Which authenticated historical inputs should restore the existing skip-clones and reconciliation92 full replay commands?",
+      "why_it_matters": "Both commands reject source changes already present at the pinned main, independently of snapshot setup performance.",
+      "first_step": "Resolve the two expected/actual digest pairs in VALIDATION.json against retained historical sources; preserve frozen pins and review successor compatibility.",
+      "blocked_by": "A separate scope and overlap check are required; this performance contribution retains both rejection gates."
+    }
+  ],
+  "chooser_seed": "4c5a453f76b4a1beff5eac2a71af5160",
+  "discussion": "https://github.com/CrocSwap/integer-mult-bounds/discussions/2732",
+  "upstream_checkpoint": {
+    "commit": "5c2ad4fcded5fe44b12d192150bd0ab6af3cc3f3",
+    "priority_revision": 5,
+    "checked_utc": "2026-10-15T18:59:02.168661+00:00",
+    "compatibility": "No changes since the baseline in guidance, catalogue, selected record or touched runner/test paths."
+  },
+  "nearest_overlap": [
+    {
+      "pr": 2579,
+      "head": "808942baa87f048b5d8a7cca47a04d8ca4fbe038",
+      "scope": "Unittest completion in the isolated runner, not historical snapshot setup."
+    },
+    {
+      "pr": 2625,
+      "head": "2158a3675e11d59d7a8706e8cb0f16acd875df64",
+      "scope": "Cancellation and test process lifetime, not copying or hash coverage."
+    }
+  ],
+  "overlap_checkpoint": {
+    "searched_at": "2026-10-15T18:58:24.420027+00:00",
+    "coverage": {
+      "open_prs": {
+        "fetched_at": "2026-10-15T18:56:19.685763+00:00",
+        "complete_pagination": true,
+        "records": 757
+      },
+      "discussions": {
+        "fetched_at": "2026-10-15T18:58:24.328062+00:00",
+        "complete_pagination": true,
+        "records": 1358
+      }
+    },
+    "warnings": [],
+    "matches_total": 6,
+    "conclusion": "No matching external historical snapshot setup claim found. Six text matches include this package/claim and unrelated historical snapshot references; no-match is not proof of novelty."
+  }
+}

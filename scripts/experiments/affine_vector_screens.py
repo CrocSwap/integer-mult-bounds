@@ -59,7 +59,48 @@ def leech_lines():
     return tuple(out)
 
 
+def _leech_lane_rows(sample, indices, shift):
+    """Exact C[i,j]=(i==j or dot(sample[i],sample[j])==shift) via base-256 lanes.
+
+    Coordinates lie in [-4,4]. Each selected row has l1 norm <= 31, so every
+    accumulated digit is at most 8*31 < 256 (no inter-column carries). This is
+    the production form of research/leech-minor-byte-lanes/; every matrix entry
+    is still materialised and checked.
+    """
+    require(sample and sample[0], 'Empty sample')
+    dimension = len(sample[0])
+    require(all(len(v) == dimension and
+                all(type(x) is int and -4 <= x <= 4 for x in v)
+                for v in sample), 'Invalid byte-lane coordinates')
+    require(indices and len(set(indices)) == len(indices) and
+            all(type(i) is int and 0 <= i < len(sample) for i in indices),
+            'Invalid selected rows')
+    require(type(shift) is int, 'Integer shift required')
+    require(all(sum(abs(x) for x in sample[i]) <= 31 for i in indices),
+            'Byte-lane carry bound exceeded')
+    plus = [int.from_bytes(bytes(v[k] + 4 for v in sample), 'little')
+            for k in range(dimension)]
+    minus = [int.from_bytes(bytes(4 - v[k] for v in sample), 'little')
+             for k in range(dimension)]
+    rows = []
+    for i in indices:
+        u = sample[i]
+        offset = 4 * sum(abs(x) for x in u)
+        packed = sum(x * plus[k] if x > 0 else -x * minus[k]
+                     for k, x in enumerate(u) if x)
+        values = packed.to_bytes(len(sample), 'little')
+        rows.append(sum(1 << j for j, value in enumerate(values)
+                        if i == j or value == shift + offset))
+    return rows
+
+
 def leech_minor(global_indices, independent_rows, shift=0, signed=False):
+    """Reject one stated Leech central minor by exact binary rank.
+
+    Row construction uses exact base-256 byte lanes (equivalent to the
+    historical pairwise sparse-dot genexpr). Golay inventory, norms, rational
+    span witnesses, elimination and admission checks are unchanged.
+    """
     require(shift in (-16,-8,0,8,16),'Unsupported affine offset')
     require(signed or shift==0,'Shifted cases here use the full signed family')
     lines=leech_lines();size=len(lines);n=size*(2 if signed else 1);d=24+int(shift!=0)
@@ -74,12 +115,9 @@ def leech_minor(global_indices, independent_rows, shift=0, signed=False):
         base=[tuple(v)+(1,) for v in [lines[i] for i in [0]+list(range(1,46,2))]]
         base.append(tuple(-x for x in lines[0])+(1,))
         require(rank(matrix(base))==25,'Affine rational rank failed')
-    packed=[];digest=sha256()
-    for i in independent_rows:
-        sparse=[(a,x) for a,x in enumerate(sample[i]) if x]
-        row=sum(1<<j for j,v in enumerate(sample)
-                if i==j or sum(x*v[a] for a,x in sparse)==shift)
-        packed.append(row);digest.update(row.to_bytes((len(sample)+7)//8,'little'))
+    packed=_leech_lane_rows(sample, independent_rows, shift);digest=sha256()
+    for row in packed:
+        digest.update(row.to_bytes((len(sample)+7)//8,'little'))
     r=rank_of_rows(packed)
     require(r==len(independent_rows),'Claimed independent rows are dependent')
     return dict(n=n,d=d,shift=shift,signed=signed,minor_columns=len(sample),

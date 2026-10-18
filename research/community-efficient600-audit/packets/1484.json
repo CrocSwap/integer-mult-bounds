@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "number": 1484,
+  "title": "test: cover Linux descendant cleanup in research replay",
+  "author": {
+    "id": "MDQ6VXNlcjEzMjA2NDY2",
+    "is_bot": false,
+    "login": "p-romeo",
+    "name": "Paul Romeo"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1484",
+  "head": "225cc15f88732ef86f48b75e34a9422bcb664993",
+  "merge_base": "e6f9716621f4e01fc190617934cdfaf072bd976f",
+  "baseline": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "files": [
+    {
+      "path": "tests/test_research_process_tree.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7073039625ccd0c6582ad066f475c70d05358980"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "tests/test_research_process_tree.py": 1
+  },
+  "github_reported_file_count": 1,
+  "complete_git_file_count": 1,
+  "body": "The research replay timeout test currently checks one sleeping process and the exception. It can miss a regression that kills the immediate verifier while leaving its child solvers running. This adds a Linux-only regression test with a real parent/child/grandchild tree.\n\nThe fixture waits for both descendants before starting the timeout, verifies their PID/group/session relationship, and checks that no recorded process remains live. A normal-completion control passes; replacing group termination with parent-only termination is detected by the same assertion. Teardown retains the real group kill and the fixture has a bounded lifetime. Only `tests/test_research_process_tree.py` is added; the existing research workflow discovers it automatically. Production code, frozen inputs and the selected frontier are unchanged.\n\n### Evidence\n\n- Linux/WSL2, CPython **3.12.14**: `python -B -m unittest discover -s tests -p 'test_research_*.py' -v` \u2014 **23 passed, no skips**, including all three new tests.\n- Linux/WSL2, CPython **3.14.4**: focused module \u2014 **3 passed**.\n- Windows, CPython **3.12.14**: focused module \u2014 **3 explicit Linux-only skips**.\n- Independent compatibility check of PR **#1298** at `e76026571dbfa7299bf474b941c9abeb5bd556b3`: its six changed files were overlaid on 34 source files exported from main `4040a0f46d67b41c36a472a7cd4af791fd4c36cc`, with each Git blob and SHA-256 checked. All **23 existing tests passed**, then **26 passed with this module and `-X utf8=0`**. The original Windows audit did not cover Linux. This is corroboration of that implementation, not another portability fix.\n- Separate agent source review found no actionable issue; `git diff --check` passed.\n\nReproduce the added coverage on Linux with Python 3.12+:\n\n```sh\npython3 -B -m unittest discover -s tests -p test_research_process_tree.py -v\n```\n\n### Scope, coordination and credit\n\n[Claim and audit: Discussion #1472](https://github.com/CrocSwap/integer-mult-bounds/discussions/1472). Initial main: `4040a0f46d67b41c36a472a7cd4af791fd4c36cc`; submission base: `e6f9716621f4e01fc190617934cdfaf072bd976f`. The guidance, selected record, launcher and existing test sources did not change between these bases.\n\nTask scope **changed** from the selector's `bit-helper-contract` suggestion (nonce `06351c3b61dce7f1b61b1a4517a5f6c9`) to a `portable-replay` verification audit after the prescribed overlap check encountered the known Windows Unicode failure. The original card's positive control passed. Live PR-body/Discussion/README/ledger searches found #1298's fix and @woklerx's independent Windows Python 3.12 audit; this adds the missing Linux execution evidence and descendant cleanup regression. Budget/stop rule: one bounded exact-head audit; no mathematical construction or search.\n\nCredit Douglas Colkitt for the launcher and onboarding tests, @rtyu193-rgb for #1298, and @woklerx for the prior Windows audit at `a6f02272aed71a70c8107cc61bce763267fa2656`. Prepared by Paul Romeo (@p-romeo) with substantial OpenAI Codex assistance in investigation, implementation, testing and writing. Apache-2.0; no independent human review is claimed.\n\n### Limits and open next questions\n\nThis checks ordinary descendants that stay in their inherited process group/session. It does not test escaped daemons, Windows `taskkill`, macOS, or the full selected mathematical cold replay. No kappa improvement is claimed. Hosted CI is separate from the local Linux results.\n\nA useful next check is the same readiness-based descendant assertion for #1298's Windows branch. It would cover a behavior the current platform-specific test skips; the first step is a Windows process-state observer and parent-only failure control. That platform-specific observer is outside this PR.\r\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "32d673f2a848bc665fda0e0f0ea98c7b9b00d467a28c05189a479039e6656d7b"
+}

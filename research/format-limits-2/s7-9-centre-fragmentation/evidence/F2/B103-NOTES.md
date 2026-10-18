@@ -1,0 +1,13 @@
+# B103: equal-value re-threading census on B76 CANONICAL-WORD. VERDICT: KILL (no slack, no dyadic block legalised). ship=false
+Tools in work/ (census.py, an.py, an2.py, sw.py, subs.py, subs2.py, chk.py; run with venv python, all <1 s). Uses B105 miner.W stream (A,cut,B,tail) + cascade. Unmodified word: 0 centre / 0 final violations, climb mass 4636.
+Lemma 1 sanity: the cascade cur-frame equals the journey join by induction (each ADD sets a common frame = join), so G = cascade; U enters only via the final/centre caps (cascade violations). Full backward U not built (not needed: no G reduction found).
+## Census (exact mod-p rows, hash of normalised row at every op, stream of 6075 ops)
+- Equal-value pairs (a,b): 1148 distinct, 1178 equality intervals; 997 with scalar lam=1, 181 with lam!=1.
+- Different pasts (cascade frame of a != b at creation or end of interval): 792 intervals / 776 pairs (598 pairs lam=1). Mostly S3/S4/centre copies and their faces.
+- BUT a future swap is value-legal only if the end rows agree (a,b equal at tau => swap leaves all registers identical except a<->b, so need end_row[a]==end_row[b]; outputs cannot be relabelled). 953 intervals fail this, 181 are lam!=1 (not tested), 44 pass: 42 pairs (16 with different pasts at creation).
+- Swap futures at t0/mid/t1 of those 42 pairs (129 tests, value-exact by construction): 123 legal, 6 violate finals (pair 45/308 in A, tail pairs). Climb mass: all legal swaps = 4636 exactly (zero change); illegal ones 4638-4652. No swap lowers any frame mass. Note 41 of 42 pairs live in B/tail; only (45,308) is in A and it is illegal.
+## Elementary move: source substitution (ADD t+=q s, replace s by equal-row s')
+- 967 candidates (lam=1; 580 A, 384 B, 3 tail). 799 violate finals and raise mass; 168 legal with mass exactly equal; 0 lower mass.
+- End-of-A frames of the 112 lines under the 168 legal A substitutions: all identical to shipped (this is the quantity B98c's dyadic blocks need lowered, 4 -> 2/3). So no dyadic block becomes legal.
+## Reading
+Equal values with different pasts exist (776 pairs) but where pasts differ the futures end in different outputs (cannot swap), and where futures agree the pasts coincide downstream: Lemma 2 rigidity holds for fixed order and DAG against future swaps and single-source substitution at lam=1. Not tested: lam!=1 rescaled swaps (181 intervals), window swaps with swap-back across two equality intervals (21 multi-interval pairs; B105 territory), joint multi-swap (single swaps all neutral, so greedy/SA has nothing to optimise). Value replay: swaps and substitutions are exact by the equal-row argument; no price step needed (Delta mass 0, no kappa claim).

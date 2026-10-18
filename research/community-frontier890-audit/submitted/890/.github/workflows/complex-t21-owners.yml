@@ -1,0 +1,62 @@
+name: U8 T21 whole-owner composition
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/complex-t21-owners/**'
+      - 'research/complex-t21-owner-bound/**'
+      - '.github/workflows/complex-t21-owners.yml'
+  push:
+    branches: ['codex/t21-owner-packing-20261013']
+    paths:
+      - 'research/complex-t21-owners/**'
+      - 'research/complex-t21-owner-bound/**'
+      - '.github/workflows/complex-t21-owners.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    # A full cold replay takes about 30 minutes on hosted runners.
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -m pip install -r research/e8-bit-p111-tuned/requirements.txt
+      - name: Cold bit, ancestry, U8 and T21 replay
+        run: python -B research/complex-t21-owners/verify.py --work /tmp/t21-cold
+      - name: Package-boundary controls
+        run: >-
+          python -B research/complex-t21-owners/package_controls.py
+          --replay /tmp/t21-cold --baseline799 /tmp/t21-cold/baseline799
+          --ancestor741 /tmp/t21-cold/baseline799/ancestor
+          --out /tmp/t21-package-controls.json
+      - name: Fixed-family owner packing bound
+        run: python -B research/complex-t21-owner-bound/run.py --out /tmp/t21-owner-bound
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: t21-evidence-python-${{ matrix.python }}
+          path: |
+            /tmp/t21-cold/*.json
+            /tmp/t21-cold/*.log
+            /tmp/t21-cold/global/audit/*.json
+            /tmp/t21-cold/owners/*.json
+            /tmp/t21-cold/lift/*.json
+            /tmp/t21-cold/native/STEPS.json
+            /tmp/t21-cold/native/*.log
+            /tmp/t21-cold/baseline799/*.json
+            /tmp/t21-cold/baseline799/*.log
+            /tmp/t21-package-controls.json
+            /tmp/t21-owner-bound/*.json
+            /tmp/t21-owner-bound/*.log

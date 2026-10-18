@@ -1,0 +1,28 @@
+# Fresh mixed controller invoice and exact boundary invariant
+
+This round retains the upstream routing/compiler and analytic interfaces explicitly. The following establishes a sufficient finite controller and recounts its changed material; no old receipt is relabeled as admission of the new table.
+
+The independent source-event reconstruction reads the current pinned ROUND20 parent template and actual pending-axis phase recipes. Its 480 replica-local events recover all 288 actual positive-rank child windows, exactly equal to the frozen PLAN. Every one of the 144 invocations retains its position; every replica projects to the original 30-event order. The three-role cycle and all wider-helper placements preserve those windows. The independently checked 69,120 roles occupy distinct inactive physical families per call, with a chronological nonoverlapping axis prefix in every child. All 73-column charts are derived from the actual physical port basis and pending axes; spectator axes complete each normalized local embedding. The remaining 6,034 full remainder transforms are retained explicitly.
+
+For a pending child C, maintain the invariant that the executed complete local calls have advanced the factors reserved to them, every other coordinate factor remains a spectator, and the remaining paid transform is precisely C's complement. No data operation touches the physical family inside its last-touch-to-idle window. Actual source events supply the interval endpoints. Within a complete admitted invocation, arbitrary helper dirt is restored modulo the declared residual transform, so the data result does not depend on the borrowed stream. The factors for different reserved coordinate blocks commute; their product and the explicit remainder is exactly C. Induction on the literal source-event timeline establishes the full endpoint and dirty restoration. Variant choice is a finite literal dispatch between six concrete admitted local contracts. No unknown allocation gadget, value oracle or free scratch is used.
+
+The five jointly admitted demotion variants keep 480 helpers, eight private centres, two coefficient-work streams, and 704 local scalar columns. Recounting the actual canonical frames gives 3,494 paid local children in every variant. Their literal native streams each contain 24,767 events and 19,693 scalar macros per orientation. The fresh forward/backward primitive bounds are 198,766/198,814, and fresh prefix coefficient bounds require 52/68 bits. The actual canonical frames select 192 entering helpers and 48 cold proper-ended helpers for the paid pre/post wrappers. The independent native receipt checks those ordered wrappers and all arbitrary-input columns.
+
+At 80 forward and 64 backward invocations, the complete new invoice charges:
+
+- real component primitives: 28,625,376;
+- scalar macros: 2,835,792;
+- wrapper factors: 144 calls * 2 * 240 wrappers * 144 factors = 9,953,280;
+- local routing adapters: 16*(19693+3494+224+480+8)+64*73 = 387,056;
+- universal per-adapter compiler bound: 64*74^3 = 25,934,336;
+- local primitive bound: 198814+387056*25934336 = 10,038,040,553,630.
+
+The new table has 9,898 distinct charts, versus 10,057 on its frozen public baseline. The bill charges the universal bounded chart decomposition at every actual routed occurrence; it never infers routing cost solely from the number of distinct chart values. Every changed chart and every spectator is in the fresh reconstruction. No extra value-bearing physical stream is introduced.
+
+The old dedicated-bank stock is retained purely as an overcharge envelope: 23,408 live families, 23,922 physical families and 32,256 idle-child slots. It charges all 6,034 actual remainders. Independently applying the retained full formula to the new actual provider counts gives per-vertex 3,588,959,010,714,576 and the hosted rebasing 3,588,959,010,114,264. The one historical retained file is used only for its previous charged allowance 2,877,946,989,724,568 (SHA-256 ce1bfa49be88ae67a404f606a11db2232b7e1f2610d4418058e39749d86d8478). Adding the ENTIRE fresh invoice preserves the source's deliberately conservative policy and gives used allowance 6,466,906,000,439,144.
+
+The physical stock identity is 14,336 live + 480 helpers + 8 centres + 2 coefficient-work streams = 14,826. The charged group is 2^(36^2) * product_(j=1..36)(2^(2j)-1). Fresh arithmetic gives physical stock 2,642 bits, logical allowance 2,680 bits, router 7,988 bits, literal 35,284 bits, precision 200,012 bits and tape 100,002 bits. All nine source inequalities are strictly satisfied, including local bound <2^48, logical <2^6050, router <2^30000, literal <2^100000, total mass <2^100001, precision/tape <2^210000, row 16,469 <20,161 and 73^2 >2*48^2.
+
+The whole-controller prefix reserve is freshly computed as 68+37+144+144+4=397 <512. The row-prefix term remains 2*512. The complete paid mass is 1,041,408 and the deficit is 73*14,336 -1,041,408=5,120. These are recomputed from the actual mixed profiles and actual remainder table, rather than inherited from the baseline invoice.
+
+Eleven owner/geometry controls reject duplicated roles, changed widths/times, negative offsets, family aliasing, out-of-window moves, wrong 73-column charts, corrupt source windows, wrong physical identities, omitted widened dispatch and inconsistent phase-axis rank. Four invoice controls reject cap equality, oversized logical allowance, oversized row geometry and a rank-52 halving violation. Exact two-engine moment pricing and strict outer assembly are separate root checks of the complete resulting profile. None of these finite checks is a Lean certification or an unconditional proof of integer multiplication.

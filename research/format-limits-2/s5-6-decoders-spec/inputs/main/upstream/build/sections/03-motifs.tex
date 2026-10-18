@@ -1,0 +1,700 @@
+\section{Two finite networks with a rank saving}
+\label{sec:finite-networks}
+
+We construct two fixed linear networks that exchange two banks of values
+while restoring every auxiliary value.  When the values are replaced by
+arrays, a common representation on all wires at a gate lets that gate act
+pointwise without disturbing the representation.  We explain this invariant
+before constructing the subspace labels that make changes of representation
+cheap.  The first network uses bit values and rational subspaces; the second
+uses Gaussian dyadic values and binary subspaces.  The scalar domain specifies
+the values combined at a gate, while the subspace labels are used to construct operators
+on each wire's address-indexed array.
+
+Put
+\[
+ h=100,\qquad v=\binom h3=161700,\qquad
+ N=v^3=4227952113000000,\qquad m=h^3=1000000.
+\]
+Let $\mathcal T$ be the set of three-element subsets of $[h]$.
+There are two data banks $X_a,Y_a$, indexed by
+$a=(a_1,a_2,a_3)\in\mathcal T^3$.
+A wire carries one scalar.  A gate is a fixed linear map on a specified
+set of wires; untouched wires retain their values.  The vertices on a
+wire are its source, the gates that touch it in time order, and its sink;
+its edges join consecutive vertices.  We call the name of a wire its
+\emph{role}, so that we can distinguish a fixed place in the network
+from the value currently carried there.
+
+\subsection{Scalar operations and restored auxiliary values}
+
+There are three stages.  At stage $j$, fix the other two coordinates and
+operate on the $v$ values in each bank obtained by varying coordinate $j$.  Thus
+there are $v^2$ separate invocations at each stage.
+Each such invocation has its own auxiliary wires, distinct from all
+other invocations, including those in other stages.  There are
+\[
+ I=3v^2=78440670000
+\]
+invocations.  In a forward invocation, write $x_T$ for the data used as
+controls and $y_S$ for the data to be updated; $S,T\in\mathcal T$ are
+their varying $j$th coordinates.  These are the logical source and
+target banks of the invocation.  For each ordered pair $(S,T)$ that is
+neighboring under the rule below, there is an auxiliary wire $A_{ST}$.
+There are also central wires $C_i$, $i\in[h]$, and in the second
+construction a wire $C_\ast$.  We call all these auxiliary wires
+\emph{scratch wires}; their initial values may be arbitrary.
+
+The following maps specify the construction.
+\begin{itemize}
+\item In the bit construction, scalars lie in $\mathbb F_2$, and
+$S,T$ are neighbors when $|S\cap T|=1$.
+The copy map adds $x_T$ to $A_{ST}$ for each neighbor pair.
+The side injection adds $\sum_{T:\,|S\cap T|=1}A_{ST}$ to $y_S$.
+The gather adds $\sum_{T\ni i}x_T$ to $C_i$, and the scatter adds
+$\sum_{i\in S}C_i$ to $y_S$.
+\item In the complex construction, scalars lie in
+$\mathbb Z[i,1/2]$, and neighbors are distinct triples with even
+intersection.  Copy is unchanged.  Side injection adds
+\[
+ -\sum_{T\text{ neighboring }S}\frac{|S\cap T|-1}{2}A_{ST}
+\]
+to $y_S$.  Gather adds $\sum_{T\ni i}x_T$ to $C_i$ and
+$\sum_Tx_T$ to $C_\ast$.  Scatter adds
+$(\sum_{i\in S}C_i-C_\ast)/2$ to $y_S$.
+\end{itemize}
+Each update leaves its control wires unchanged.  The first two rows of
+the following schedule remove the effect of the old scratch values;
+the next four introduce the source values and add their effect to the
+target; the last two restore the scratch values.
+This cancellation of arbitrary initial scratch values is a linear
+instance of the restoration construction for transparent computation in
+Buhrman, Cleve, Kouck\'y, Loff and Speelman~\cite[Section~3]{BuhrmanCleveKouckyLoffSpeelman2014}.
+The forward schedule is
+\begin{equation}
+\begin{array}{c|l|l}
+\text{row}&\text{operation}&\text{gate grouping}\\ \hline
+0&\text{subtract side injection}&\text{one gate per target}\\
+1&\text{subtract scatter}&\text{one gate on targets and center}\\
+2&\text{copy}&\text{one gate per source}\\
+3&\text{gather}&\text{one gate on sources and center}\\
+4&\text{scatter}&\text{one gate on targets and center}\\
+5&\text{side injection}&\text{one gate per target}\\
+6&\text{undo gather}&\text{one gate on sources and center}\\
+7&\text{undo copy}&\text{one gate per source}.
+\end{array}
+\label{eq:motif-schedule}
+\end{equation}
+
+\begin{lemma}\label{lem:scalar-motifs}
+For arbitrary initial values of its auxiliary wires, a forward
+invocation changes $y_S$ to $y_S+x_S$ and leaves every other value
+unchanged.  Performing a forward invocation from $X$ to $Y$ at stage 1,
+the inverse forward schedule from $Y$ to $X$ at stage 2, and a forward
+invocation from $X$ to $Y$ at stage 3 sends
+\[
+ (X_a,Y_a)\longmapsto(-Y_a,X_a)
+\]
+and restores every auxiliary value.  In the bit construction this is the
+permutation exchanging $X_a$ and $Y_a$.
+\end{lemma}
+
+\begin{proof}
+Write $\mathcal V$ for copy, $\mathcal G$ for gather,
+$\mathcal J$ for side injection and $\mathcal R$ for scatter.
+If the initial side and central vectors are $a,c$, the first two rows
+subtract $\mathcal J a+\mathcal R c$ from $y$.  Rows 2 and 3 change
+them to $a+\mathcal Vx,c+\mathcal Gx$.  Rows 4 and 5 therefore add
+$\mathcal R(c+\mathcal Gx)+\mathcal J(a+\mathcal Vx)$.
+Rows 6 and 7 restore $c,a$.  The net target change is
+$(\mathcal J\mathcal V+\mathcal R\mathcal G)x$, independently of
+$a,c$.
+
+In the bit case, the central coefficient from $x_T$ to $y_S$ is
+$|S\cap T|\bmod2$.  The side contribution cancels exactly the
+intersection-one cases; distinct triples with intersection zero or two
+already have coefficient zero, and the self coefficient is one.
+In the complex case, the central coefficient is $(|S\cap T|-1)/2$.
+The side cancels it for distinct triples with intersection zero or two;
+intersection one contributes zero, and the self coefficient is one.
+Thus both net maps are $y\gets y+x$.
+
+The inverse schedule with logical source $Y$ and target $X$ effects
+$X\gets X-Y$.  Starting from $(x,y)$, the three stages give
+$(x,y+x)$, then $(-y,y+x)$, then $(-y,x)$.
+Each invocation restores its own auxiliary wires.
+\end{proof}
+
+A fixed triple has
+\[
+ z_{\rm b}=3\binom{97}{2}=13968,\qquad
+ z_{\rm c}=\binom{97}{3}+3\cdot97=147731
+\]
+neighbors in the two constructions, respectively.  The second count
+separates intersection zero and intersection two.  Ordered pairs must
+be counted: there are $vz$ side wires in each invocation, not $vz/2$.
+With $c_{\rm b}=100$ and $c_{\rm c}=101$ central wires per invocation,
+the total wire counts are
+\begin{align}
+ W_{\rm b}&=2N+I(vz_{\rm b}+c_{\rm b})
+          =177176569091445000000,\label{eq:bit-wire-count}\\
+ W_{\rm c}&=2N+I(vz_{\rm c}+c_{\rm c})
+          =1873807244643542670000.\label{eq:complex-wire-count}
+\end{align}
+All these numbers are fixed, independently of any eventual input length.
+
+\subsection{From scalar values to arrays}
+
+We record the representation principle before choosing the labels.  Let
+$R$ be the scalar ring of either network and let $\Omega$ be a finite address
+set common to all wires.  Replace each scalar by an array in $R^\Omega$, and
+apply each scalar gate pointwise at every address.  Write $\mathsf S_\Omega$
+for the resulting network on the vector of wire arrays.
+
+At each source, gate and sink $v$, assign an invertible $R$-linear operator
+$D_v$ on $R^\Omega$, called its \emph{frame}.  A frame acts on the values
+indexed by addresses within one wire's array and may mix them; a gate instead
+combines wire values at each fixed address.  All incoming and outgoing
+incidences of one gate use the same $D_v$.  On an edge from $u$ to $v$, apply
+$D_vD_u^{-1}$ to that wire's array.  Define the operators on all input and
+output roles by
+\[
+ D_{\rm in}=\bigoplus_w D_{\mathrm{source}(w)},\qquad
+ D_{\rm out}=\bigoplus_w D_{\mathrm{sink}(w)}.
+\]
+For a supplied physical input $f$, define its logical interpretation to be
+$g=D_{\rm in}^{-1}f$; this definition requires no physical preprocessing.
+At a vertex $v$, the invariant is that the stored array equals $D_v$ applied
+to the logical array there.  It holds at the sources by definition.  On an
+edge whose logical array is $\varphi$, the edge operator changes $D_u\varphi$
+to $D_v\varphi$.  At a gate with logical input arrays $\varphi_j$,
+$R$-linearity gives
+$\sum_j c_jD_v\varphi_j=D_v(\sum_j c_j\varphi_j)$ for each output combination, with
+$c_j\in R$.  Thus the common frame commutes with the pointwise gate, and
+the invariant continues to the sinks.  The implemented operator is therefore
+\begin{equation}
+ D_{\rm out}\,\mathsf S_\Omega\,D_{\rm in}^{-1}.
+ \label{eq:common-frame-identity}
+\end{equation}
+In particular, if the scalar network is a signed role permutation that
+sends input role $w$ to output role $\rho(w)$ with scalar sign
+$\varepsilon_w$, that route applies
+$\varepsilon_wD_{\mathrm{sink}(\rho(w))}
+D_{\mathrm{source}(w)}^{-1}$ to its input array.  All roles, including
+the auxiliary roles, enter this identity.  Once the scalar routing is fixed,
+the endpoint frames determine the array operator on each route; the
+intermediate frames can then be chosen to make each edge change inexpensive.
+
+Figure~\ref{fig:frame-compatibility} summarizes this invariant.
+\begin{figure}[ht]
+\centering
+\input{figures/proof-map.tex}
+\caption{An edge changes the representation of one role's logical array
+$g_w$. At the next gate $G$, all $t$ input arrays have the common frame
+$D_v$, so the pointwise linear gate commutes with that frame. The same
+$D_v$ acts on each output component.}
+\label{fig:frame-compatibility}
+\end{figure}
+
+\subsection{Subspaces attached to the gates}
+
+The scalar network already has the required signed exchange. We now
+choose its intermediate labels to make the changes of frame inexpensive.
+A label is a nondegenerate subspace of a fixed bilinear space. On every
+edge one label will contain the other. For such an edge, the
+\emph{orthogonal residual} is the orthogonal complement of the smaller label inside
+the larger one; its dimension is the absolute change in label dimension.
+The saving will come from keeping the total dimension lost on decreasing
+edges small relative to $N$.
+
+For the bit network, let $F=\mathbb Q^h$ with bilinear form
+\[
+ \langle x,y\rangle=x^{\mathsf T}(I-J/9)y,
+\]
+where $J$ is the all-one matrix.  This form has eigenvalues $1$ and
+$1-h/9=-91/9$, so it is nondegenerate.  For a triple $T$ let $t_T$ be
+its indicator vector.  Then
+\[
+ \langle t_S,t_T\rangle=|S\cap T|-1,
+ \qquad \langle t_T,t_T\rangle=2.
+\]
+For the complex network, take instead $F=\mathbb F_2^h$ with the
+ordinary dot product; here $t_T\cdot t_T=1$.
+Thus every triple line is nondegenerate, and neighboring triple lines
+are orthogonal, in the label field belonging to either construction.
+The scalar domain need not equal the label field.
+These degree-one intersection formulas specialize the construction
+described by Alon~\cite[Section~3, remark after Theorem~1.1]{Alon1998}
+to the prime $2$, with the ground-set size changed to $h=100$.
+
+The ambient label space is $\mathcal F=F^{\otimes3}$ with its tensor
+bilinear form.  It has dimension $m$ and is nondegenerate.  Write
+\[
+ u_a=t_{a_1}\otimes t_{a_2}\otimes t_{a_3},\qquad U_a=\langle u_a\rangle.
+\]
+The prescribed terminal labels are
+\[
+\begin{array}{c|cc}
+\text{role}&\text{source label}&\text{sink label}\\ \hline
+X_a&U_a&\mathcal F\\
+Y_a&0&U_a^\perp\\
+\text{each scratch role}&0&\mathcal F.
+\end{array}
+\]
+Write $W$ for the wire count in the construction under consideration.
+The source dimensions sum to $N$ and the sink dimensions to $Wm-N$.
+Thus the signed dimension changes will sum to $Wm-2N$, because the
+contributions at gates cancel. If decreasing edges lose a total
+dimension $L$, the sum of absolute changes is $Wm-2N+2L$.
+We will obtain $L<N/2$. The rational interface below will require
+an additional $N$ source ranks, so this inequality will leave a strict
+saving in both constructions.
+
+At stage $j$, fix an invocation.  Put
+\[
+ A=F^{\otimes(j-1)},\qquad
+ P=\langle t_{a_1}\otimes\cdots\otimes t_{a_{j-1}}\rangle,
+ \qquad B=P^\perp\subset A.
+\]
+An empty tensor product is the one-dimensional ground field; thus
+$B=0$ at stage 1.  Let
+$Q=\langle t_{a_{j+1}}\otimes\cdots\otimes t_{a_3}\rangle
+\subset F^{\otimes(3-j)}$, again using the empty tensor product at
+stage 3.  Since $P$ is nondegenerate,
+$A=B\mathbin{\perp}P$.  
+We prescribe the following transition for each data wire in the stage,
+where $t$ is the indicator of that wire's $j$th triple:
+\[
+\begin{array}{c|c|c}
+ &\text{incoming label}&\text{outgoing label}\\ \hline
+ X&A\otimes\langle t\rangle\otimes Q&(A\otimes F)\otimes Q\\
+ Y&B\otimes\langle t\rangle\otimes Q&
+ \bigl((B\otimes F)\mathbin{\perp}(P\otimes t^\perp)\bigr)\otimes Q.
+\end{array}
+\]
+The outgoing $Y$ label can also be written
+$(P\otimes\langle t\rangle)^\perp_{A\otimes F}\otimes Q$.
+These transitions expose one tensor factor at each stage. To see that
+they fit together, for $j<3$ write
+$Q=\langle t_{a_{j+1}}\rangle\otimes Q'$. The next stage has
+\[
+ A'=A\otimes F,\qquad
+ P'=P\otimes\langle t\rangle,\qquad
+ B'=(P')^\perp_{A'}
+    =(B\otimes F)\mathbin{\perp}(P\otimes t^\perp).
+\]
+Thus the prescribed outgoing labels are
+$A'\otimes\langle t_{a_{j+1}}\rangle\otimes Q'$ on $X$ and
+$B'\otimes\langle t_{a_{j+1}}\rangle\otimes Q'$ on $Y$, exactly
+the next incoming labels. At stage 1 they start at $U_a$ on $X_a$
+and zero on $Y_a$; at stage 3 they end at $\mathcal F$ on $X_a$
+and $U_a^\perp$ on $Y_a$, as prescribed at the terminals.
+
+The gate labels are organized by the decomposition
+\[
+ A\otimes F=(B\otimes F)\mathbin{\perp}(P\otimes F),
+\]
+with the common summand $B\otimes F$ and the remaining summand
+$P\otimes F$ of dimension $h$. Suppress the one-dimensional factor
+$Q$ for the moment. On a side wire joining neighboring physical triples
+with indicators $t_X,t_Y$, the common component grows to $B\otimes F$,
+while the remaining component passes through
+\[
+ P\otimes\langle t_X\rangle
+ \ \subset\ P\otimes t_Y^\perp
+ \ \subset\ P\otimes F.
+\]
+The first inclusion is possible because $t_X\perp t_Y$.
+For the central gates we assign $A\otimes F$ on the physical $X$
+bank and $B\otimes F$ on the physical $Y$ bank. A central wire
+returns once from the former label to the latter, losing exactly
+$P\otimes F$. The gate order below confines all decreases to this
+return, while the other edges realize the prescribed stage transitions.
+
+Number the successive times in an invocation by
+$r=0,\ldots,7$. At stages 1 and 3, time $r$ uses row $r$ of the scalar
+schedule~\eqref{eq:motif-schedule}. At stage 2 it uses the inverse of
+row $7-r$, with the logical banks exchanged. In either case the gates
+touch the physical wires in the order
+\[
+ Y\text{-side},\quad Y\text{-center},\quad X\text{-side},\quad
+ X\text{-center},\quad Y\text{-center},\quad Y\text{-side},\quad
+ X\text{-center},\quad X\text{-side}.
+\]
+A side wire still joins neighboring physical triples in stage 2 because
+the neighbor relation is symmetric. The following table assigns the
+common gate labels. It suppresses the tensor factor $Q$; for a gate
+indexed by a physical bank triple, $t$ denotes that triple's indicator.
+
+\begin{equation}
+\begin{array}{c|l|l}
+\text{time}&\text{physical wires}&\text{common gate label}\\ \hline
+0&Y,\ \text{its side wires}&B\otimes\langle t\rangle\\
+1&Y,\ \text{all center wires}&B\otimes F\\
+2&X,\ \text{its side wires}&(B\otimes F)\mathbin{\perp}(P\otimes\langle t\rangle)\\
+3&X,\ \text{all center wires}&A\otimes F\\
+4&Y,\ \text{all center wires}&B\otimes F\\
+5&Y,\ \text{its side wires}&(B\otimes F)\mathbin{\perp}(P\otimes t^\perp)\\
+6&X,\ \text{all center wires}&A\otimes F\\
+7&X,\ \text{its side wires}&A\otimes F.
+\end{array}
+\label{eq:motif-labels}
+\end{equation}
+All labels are tensored by $Q$ and viewed as subspaces of $\mathcal F$.
+Every displayed summand is nondegenerate.
+
+All scratch sources have label zero and all scratch sinks have label
+$\mathcal F$, as prescribed above. The next lemma verifies the stage
+boundaries and all intervening edge changes, including these scratch
+edges.
+
+\begin{lemma}\label{lem:motif-residuals}
+Every edge joins comparable nondegenerate labels.  The only decreasing
+edges are the central-wire edges from time 3 to time 4; their dimension
+loss is $h$.  Consequently, if $c$ is the number of central wires per
+invocation and $W$ the total number of wires, then
+\begin{equation}
+ L=Ich,\qquad
+ \sum_{e}\bigl|\dim U_{\mathrm{head}(e)}-
+                       \dim U_{\mathrm{tail}(e)}\bigr|
+ =Wm-2N+2L.                                      \label{eq:rank-budget-labels}
+\end{equation}
+For the binary label space, every nonzero orthogonal residual of an
+edge has an orthonormal basis.
+\end{lemma}
+
+\begin{proof}
+Write $a=\dim A=h^{j-1}$ and $f=h^{3-j}$.  In the table below,
+$\mathrm{in}$ denotes the preceding vertex on that data wire: its source
+at stage 1, and its last gate in the preceding stage otherwise.  The
+interstage calculation above gives its label.  The table lists the
+orthogonal residual and its dimension for every edge except the final
+data edges to their sinks, whose labels agree and whose residuals are zero.
+Tensor each residual by $Q$, except in the last row.  The symbols $t_X,t_Y$ are
+the indicators of the neighboring physical triples joined by a side wire.
+\[
+\begin{array}{l|l|r}
+\text{wire and edge}&\text{orthogonal residual}&\text{dimension}\\ \hline
+X:\ \mathrm{in}\to2&B\otimes t_X^\perp&(a-1)(h-1)\\
+X:\ 2\to3&P\otimes t_X^\perp&h-1\\
+X:\ 3\to6,\ 6\to7&0&0\\
+Y:\ \mathrm{in}\to0&0&0\\
+Y:\ 0\to1&B\otimes t_Y^\perp&(a-1)(h-1)\\
+Y:\ 1\to4&0&0\\
+Y:\ 4\to5&P\otimes t_Y^\perp&h-1\\
+\mathrm{center}:\ \mathrm{source}\to1&B\otimes F&(a-1)h\\
+\mathrm{center}:\ 1\to3&P\otimes F&h\\
+\mathrm{center}:\ 3\to4&P\otimes F&h\\
+\mathrm{center}:\ 4\to6&P\otimes F&h\\
+\mathrm{side}:\ \mathrm{source}\to0&B\otimes\langle t_Y\rangle&a-1\\
+\mathrm{side}:\ 0\to2&(B\otimes t_Y^\perp)\mathbin{\perp}(P\otimes\langle t_X\rangle)
+ &(a-1)(h-1)+1\\
+\mathrm{side}:\ 2\to5&P\otimes\langle t_X,t_Y\rangle^\perp&h-2\\
+\mathrm{side}:\ 5\to7&P\otimes\langle t_Y\rangle&1\\
+\mathrm{scratch}:\ \mathrm{last}\to\mathrm{sink}
+ &(A\otimes F)\otimes Q^\perp&ah(f-1).
+\end{array}
+\]
+The last gate on a central wire is at time 6, and the last gate on a side
+wire is at time 7.  Both have label $(A\otimes F)\otimes Q$.  Enlarging it
+to $\mathcal F$ at the sink gives the last residual in the table, with
+$Q^\perp$ taken in the entire future tensor space.
+The side edge $2\to5$ uses the neighbor relation
+essentially.  Since $t_X\perp t_Y$, we have
+$\langle t_X\rangle\subset t_Y^\perp$.  Hence its two labels satisfy
+\[
+ (B\otimes F)\mathbin{\perp}(P\otimes\langle t_X\rangle)
+ \ \subset\
+ (B\otimes F)\mathbin{\perp}(P\otimes t_Y^\perp).
+\]
+The complement of $\langle t_X\rangle$ inside $t_Y^\perp$ is
+$\langle t_X,t_Y\rangle^\perp$, of dimension $h-2$; tensoring by
+$P$ and then by $Q$ gives the residual in the table.  The other entries
+follow directly by splitting $A=B\mathbin{\perp}P$ and
+$F=\langle t\rangle\mathbin{\perp}t^\perp$.
+Label dimension is nondecreasing along every edge except center $3\to4$, which removes
+$P\otimes F\otimes Q$.  The table includes the interstage edges through
+$\mathrm{in}$, and the initial and final data labels match their terminals,
+so no other dimension changes occur.
+
+The signed sum of dimension changes telescopes at every gate: each
+touched wire has one incoming and one outgoing incidence with the same
+gate label.  The sum of source dimensions is $N$, while the sum of
+sink dimensions is $Wm-N$.  The signed increase is therefore $Wm-2N$.
+There are $Ic$ decreasing edges, each of loss $h$; replacing signed
+changes by absolute changes adds $2L$.
+
+Now work over $\mathbb F_2$.  A nondegenerate symmetric bilinear space
+is nonalternating precisely when it contains a vector of norm one.
+The lines $P,Q$ have such vectors.  If $B\ne0$, a coordinate unit
+outside the support of the earlier tensor vector belongs to $B$:
+that support has size $3^{j-1}<h^{j-1}$ when $j>1$.
+The same argument gives a unit vector in $Q^\perp$ when it is nonzero.
+A triple complement, and the complement of two neighboring triple
+lines, contain coordinate units outside supports of sizes at most
+three and six, respectively.  Full tensor spaces contain coordinate
+units as well.  In each nonzero tensor summand, tensoring these chosen
+norm-one vectors gives a norm-one vector; placing it in that orthogonal
+summand gives one in the whole residual.  Each residual is nondegenerate
+by the decompositions above.  Thus every nonzero residual is nonalternating.
+
+For completeness, every nondegenerate nonalternating binary symmetric
+space has an orthonormal basis.  Split off unit lines until the
+remaining space is alternating.  A nonzero nondegenerate alternating
+space splits into planes with bases $a,b$ satisfying
+$a\cdot a=b\cdot b=0$, $a\cdot b=1$; this follows by choosing a
+nonzero $a$, choosing $b$ with $a\cdot b=1$, and taking the orthogonal
+complement of their nondegenerate plane.  Retain one unit vector $w$
+from the lines already split off.  A plane orthogonal to $w$ can be
+absorbed into that line: the three vectors
+\[
+ w+a,\qquad w+b,\qquad w+a+b
+\]
+are independent, pairwise orthogonal, and have norm one.
+Use one of these new unit vectors in place of $w$ for the next plane;
+the remaining planes are still orthogonal to it.  Repeating this
+operation absorbs every alternating plane.
+\end{proof}
+
+The loss ratios have the exact values
+\[
+ \frac{L_{\rm b}}{N}=\frac{100}{539},\qquad
+ \frac{L_{\rm c}}{N}=\frac{101}{539}.
+\]
+In particular, both are smaller than $1/2$.  We now turn the dimension
+count into the two interfaces needed later.
+
+\subsection{The rational matrix interface}
+
+For a nondegenerate rational subspace $U\subset\mathcal F$, write
+$P_U$ for the projection onto $U$ along $U^\perp$.  Assign $P_U$ to
+each gate or sink with label $U$.  Assign the source matrix $-P_{U_a}$
+to $X_a$ and zero to every other source.
+These are fixed rational $m\times m$ matrices; write $M_v$ for the matrix
+at vertex $v$.  Define
+$\rho(X_a)=Y_a$, $\rho(Y_a)=X_a$, and let $\rho$ fix every auxiliary
+wire.
+
+In the tape application, two address chunks are written as vectors $H,D$
+of $m$ fields.  For a matrix $M$, the frame $\Phi_M$ moves the array entry
+at $(H,D)$ to $(H+MD,D)$, leaving the other address fields unchanged.
+The fields use a radix coprime to the fixed denominators, and addition is
+modulo their common range.  Hence $\Phi_M$ is an invertible
+$\mathbb F_2$-linear permutation of array entries, and
+$\Phi_{M'}\Phi_M=\Phi_{M'+M}$.  Using $D_v=\Phi_{M_v}$
+in \eqref{eq:common-frame-identity}, the endpoint matrix difference on each
+routed role is exactly the shear applied to that role.  The following identity
+makes it the same shear $H\gets H+D$ on every role;
+Section~\ref{sec:tape-interchange} turns that shear into a field interchange
+and implements an edge change with one smaller interchange per unit of its
+rational rank.
+
+\begin{proposition}\label{prop:bit-motif-interface}
+The bit network has $W_{\rm b}$ wires, uses only pointwise XOR gates,
+and sends its input vector to the permutation $\rho$ of that vector.
+Its rational matrices are common to all incidences of a gate and obey
+\[
+ M_{\mathrm{sink}(\rho(w))}-M_{\mathrm{source}(w)}=I_m
+ \quad\text{for every input role }w.
+\]
+The sum of the rational ranks of all edge differences is
+\begin{align}
+ s_{\rm b}
+ &=\sum_{e}\operatorname{rank}_{\mathbb Q}
+      (M_{\mathrm{head}(e)}-M_{\mathrm{tail}(e)})\\
+ &=W_{\rm b}m-N+2L_{\rm b}
+  =177176569088785861287000000<W_{\rm b}m.
+\end{align}
+\end{proposition}
+
+\begin{proof}
+Lemma~\ref{lem:scalar-motifs} gives the scalar permutation, including
+all auxiliary roles.  For $U\subset V$ nondegenerate,
+$P_V-P_U$ is the identity on $V\cap U^\perp$ and zero on its
+orthogonal complement.  Its rank is $\dim V-\dim U$; reversing the
+edge negates the matrix without changing its rank.
+The only exceptions are the $N$ negative source projections.
+At stage 1, $B=0$, and the first gate on $X_a$ has label exactly $U_a$.
+Its first edge matrix is therefore $2P_{U_a}$, of rational rank one,
+where the corresponding dimension change was zero.
+Lemma~\ref{lem:motif-residuals} consequently gives the stated rank sum.
+Its deficit from $W_{\rm b}m$ is $N-2L_{\rm b}>0$.
+
+For an input $X_a$ the endpoint difference is
+$P_{U_a^\perp}-(-P_{U_a})=I_m$.  Every other role has zero source
+matrix and identity sink matrix.  This proves the interface.
+\end{proof}
+
+\subsection{The binary phase interface}
+
+Use the complex scalar network and binary labels.  For a binary vector
+$x$, let $\operatorname{wt}(x)$ denote its integer Hamming weight, and
+write $[b]\in\{0,1\}$ for the integer representative of $b\in\mathbb F_2$.
+For a label $U$, let
+\[
+ q_U(x)=\operatorname{wt}(P_Ux)\pmod4.
+\]
+The projection here is over $\mathbb F_2$.
+Let
+\[
+ H=\frac1{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix},\quad
+ C=H\begin{pmatrix}1&0\\0&i\end{pmatrix}H
+   =aI+bX,\qquad a=\frac{1+i}{2},\quad b=\frac{1-i}{2},
+\]
+where $X$ interchanges the two coordinates.  On functions of
+$x\in\mathbb F_2^m$ define
+\[
+ \mathcal C_U=H^{\otimes m}\operatorname{diag}_x(i^{q_U(x)})H^{\otimes m}.
+\]
+The use of $H$ in this definition is an identity of matrices.  Each entry
+of $\mathcal C_U$ and its inverse is a Gaussian integer divided by $2^m$,
+so both preserve arrays over $\mathbb Z[i,1/2]$.  The kernels implemented
+below have Gaussian dyadic coefficients.
+
+To apply the scalar network to these functions, replace the scalar on
+each wire $w$ by an array
+$f_w:\mathbb F_2^m\to\mathbb Z[i,1/2]$.  At each address, a gate
+applies its scalar linear map to the values on the wires it touches.
+The frame in \eqref{eq:common-frame-identity} is $D_v=\mathcal C_U$ at a
+vertex with label $U$.  On an edge from label $U$ to label $V$, apply
+$\mathcal C_V\mathcal C_U^{-1}$ to that wire's array.
+All frames are diagonalized by the same matrix $H^{\otimes m}$.
+For an integer $k\ge1$, an address for $k$ columns is
+$(x^{(1)},\ldots,x^{(k)})\in(\mathbb F_2^m)^k$; every frame and edge
+operator is then the tensor product of its one-column version over
+these $k$ coordinates.  Each scalar gate is still applied once at each
+joint address, to the vector of values on the roles it touches.
+
+\begin{proposition}\label{prop:complex-motif-interface}
+For each edge of the complex network, write $U,V$ for its tail and
+head labels.  Its phase-frame difference
+$\mathcal C_V\mathcal C_U^{-1}$ is a product of one translation
+kernel $aI+bX_v$, or its inverse, per vector in an orthonormal basis
+of the edge residual.  Here $(X_vf)(x)=f(x+v)$.
+The sum of these basis lengths is
+\[
+ s_{\rm c}=W_{\rm c}m-2N+2L_{\rm c}
+ =1873807244636671267308000000<W_{\rm c}m.
+\]
+After source and sink diagonal corrections, and undoing the signed
+bank exchange, telescoping these phase frames gives $C^{\otimes m}$
+on every role, including auxiliary roles.  The same assertion holds
+on any positive number of columns by taking tensor products over columns.
+\end{proposition}
+
+\begin{proof}
+For binary vectors $z,w$,
+\[
+ \operatorname{wt}(z+w)
+ =\operatorname{wt}(z)+\operatorname{wt}(w)
+       -2|\operatorname{supp}(z)\cap\operatorname{supp}(w)|.
+\]
+If $z\cdot w=0$, the intersection cardinality is even, so weight is
+additive modulo four.  If $V=U\mathbin{\perp}E$ and $\mathcal B$
+is an orthonormal basis of $E$, it follows that
+\[
+ q_V(x)-q_U(x)=\sum_{v\in\mathcal B}
+                 \operatorname{wt}(v)[v\cdot x]\pmod4.
+\]
+For a decreasing edge the right side is negated.
+Each $v$ has norm one, so $\operatorname{wt}(v)$ is odd.  Its
+coefficient in the phase, including the sign for the edge direction,
+is therefore some $\varepsilon\in\{1,-1\}$ modulo four.  The function
+$i^{\varepsilon[v\cdot x]}$ equals
+\[
+ \frac{1+i^\varepsilon}{2}
+ +\frac{1-i^\varepsilon}{2}(-1)^{v\cdot x}.
+\]
+The identity $H\operatorname{diag}(1,-1)H=X$, tensored over the
+coordinates in $\operatorname{supp}(v)$, sends the diagonal character
+$(-1)^{v\cdot x}$ to translation $X_v$.  The displayed phase therefore
+becomes $aI+bX_v$ or its inverse.  The nonzero residuals have such
+bases by Lemma~\ref{lem:motif-residuals}; for a zero residual use the
+empty basis.  The same lemma gives the count $s_{\rm c}$.
+The deficit is $2N-2L_{\rm c}>0$.
+
+For an edge $e$, write $\mathcal B_e$ for its residual basis and
+$K_{e,v}$ for the forward or inverse translation kernel associated
+with $v\in\mathcal B_e$.  Taking tensor products preserves their
+product, so on $k$ columns
+\[
+ \bigl(\mathcal C_V\mathcal C_U^{-1}\bigr)^{\otimes k}
+ =\prod_{v\in\mathcal B_e}K_{e,v}^{\otimes k}.
+\]
+Thus each residual vector contributes one factor acting on all $k$
+columns, and there are $s_{\rm c}$ such factors over the network.
+
+Let $\rho$ denote the underlying permutation of the complex roles: it
+exchanges $X_a,Y_a$ and fixes each scratch role.
+By Lemma~\ref{lem:scalar-motifs}, the pointwise scalar network sends an input array at
+$X_a$ to $Y_a$ with sign $+1$, an input at $Y_a$ to $X_a$ with sign
+$-1$, and each scratch input to its own output with sign $+1$.
+Applying \eqref{eq:common-frame-identity} with $D_v=\mathcal C_{U_v}$,
+where $U_v$ is the label at vertex $v$, shows that an input role $w$ reaches
+output role $\rho(w)$ with that sign and with operator
+$\mathcal C_{U_{\mathrm{sink}(\rho(w))}}
+ \mathcal C_{U_{\mathrm{source}(w)}}^{-1}$.
+For $k$ columns, use $D_v=\mathcal C_{U_v}^{\otimes k}$ on the joint
+address set in the same identity.  The route operator is then the $k$th
+tensor power of the displayed address operator, multiplied by its scalar
+route sign once.
+The zero label has frame $I$, while the full label has frame
+$C^{\otimes m}$ because $q_{\mathcal F}(x)=\operatorname{wt}(x)$.
+Every pair except $X_a\to Y_a$ has these zero and full labels.
+For the remaining pair, write $u=u_a$.  Its binary norm is one and
+its weight is $3^3=27$.  Orthogonal weight additivity yields
+\begin{align*}
+ q_{U_a^\perp}(x)-q_{U_a}(x)
+ &=\operatorname{wt}(x)-2\operatorname{wt}(u)[u\cdot x]\\
+ &=\operatorname{wt}(x)+2[u\cdot x]\pmod4.
+\end{align*}
+Since $2[u\cdot x]\equiv2\sum_{j\in\operatorname{supp}(u)}x_j
+\pmod4$, the operator on $X_a\to Y_a$ is the tensor of $C^{-1}$ on the
+27 coordinates of $\operatorname{supp}(u)$ and $C$ elsewhere.
+Put $Z=\operatorname{diag}(1,-1)$.  Direct multiplication gives
+\[
+ C=iZC^{-1}Z,\qquad C^{-1}=-iZCZ.
+\]
+For $k$ columns, let $Z_{a,k}$ be the tensor product of $Z$ on
+those 27 coordinates in every column and the identity elsewhere.
+Apply $Z_{a,k}$ before the network at $X_a$, and apply
+$i^{27k}Z_{a,k}$ after the network at $Y_a$; the latter scalar is
+applied once to the whole role.  There are $27k$ inverse factors, so
+the identity $C=iZC^{-1}Z$ turns each of them into $C$.  The operator
+on this pair is therefore $C^{\otimes mk}$ as well.
+Only the physical $X$ outputs still carry the minus sign of the
+scalar exchange.  Negate those outputs and send output role $\rho(w)$
+back to role $w$.  Every role, including every scratch role, now has
+the required forward tensor product.
+\end{proof}
+
+\subsection{Explicit rational bounds for the two recurrences}
+
+The relative rank deficits are
+\[
+ \eta_{\rm b}=\frac{W_{\rm b}m-s_{\rm b}}{W_{\rm b}m}
+       =\frac{339}{22587335000000},\qquad
+ \eta_{\rm c}=\frac{W_{\rm c}m-s_{\rm c}}{W_{\rm c}m}
+       =\frac{73}{19906842167500}.
+\]
+For both recurrences we may use the fixed rational exponent
+\begin{equation}
+ \tau=\sigma=1-2^{-50}.
+ \label{eq:explicit-motif-exponents}
+\end{equation}
+Both exact deficits displayed above are greater than $20\cdot2^{-50}$.
+Since $m<2^{20}$ and $\log 2<1$, we have $\log m<20$, whence
+\[
+ m^{1-2^{-50}}
+ =m\exp(-2^{-50}\log m)
+ >m(1-20\cdot2^{-50})>m(1-\eta)
+\]
+for either $\eta=\eta_{\rm b}$ or $\eta=\eta_{\rm c}$.
+Consequently
+\[
+ \frac{s_{\rm b}}{W_{\rm b}}<m^\tau,
+ \qquad \frac{s_{\rm c}}{W_{\rm c}}<m^\sigma,
+ \qquad 0<\tau=\sigma<1.
+\]
+Here $\sigma$ is a rational upper bound for the logarithmic exponent
+of the complex recurrence.

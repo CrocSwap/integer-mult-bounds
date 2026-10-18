@@ -63,6 +63,59 @@ class RationalSpanFrames(unittest.TestCase):
                                                   for j in range(10))))
         self.assertFalse(frames.nondegenerate(((1,)*9+(0,),)))
 
+    def test_primitive_against_scalar_gcd_reference(self):
+        from math import gcd
+        rng = random.Random(239619)
+        rows = [(), (0,0), (True,False), (False,True),
+                (-(2**127),2**129,0), (2**521-1,2**127-1,0)]
+        rows += [tuple(rng.randrange(-100,101) for _ in range(h))
+                 for h in range(15) for _ in range(32)]
+        for row in rows:
+            g = 0
+            for value in row:
+                g = gcd(g,value)
+            if g and next(value for value in row if value) < 0:
+                g = -g
+            expected = tuple(value//g for value in row) if g else None
+            self.assertEqual(frames.primitive(row), expected)
+        for row in ((1,2.0), (1,"2"), (1,Fraction(2,1))):
+            with self.assertRaises(TypeError):
+                frames.primitive(row)
+
+    def test_complements_against_explicit_ambient_form(self):
+        from unittest.mock import patch
+        rng = random.Random(6194534)
+        for h in (1,2,4,6,8,10,12,14):
+            for d in range(h+1):
+                for _ in range(3):
+                    U = tuple(tuple(rng.randrange(-3,4) for _ in range(h))
+                              for _ in range(d))
+                    if fraction_rank(U) != d:
+                        continue
+                    V = frames.orthogonal(U,h)
+                    self.assertEqual(len(V),h-d)
+                    self.assertEqual(fraction_rank(V),h-d)
+                    for a in U:
+                        for b in V:
+                            self.assertEqual(9*sum(x*y for x,y in zip(a,b))
+                                             -sum(a)*sum(b),0)
+        U = ((1,)*9+(0,),)
+        V = frames.orthogonal(U,10)
+        self.assertEqual(len(V),9)
+        self.assertTrue(all(9*sum(x*y for x,y in zip(U[0],b))
+                            -sum(U[0])*sum(b) == 0 for b in V))
+        with self.assertRaises(ValueError):
+            frames.orthogonal(((1,0),(2,0)),2)
+        with self.assertRaises(ValueError):
+            frames.orthogonal(((1,0),),3)
+        U = ((1,0,0,0),(0,1,0,0),(0,0,1,0))
+        for forged in ((), ((1,0,0,0),)):
+            frames.orthogonal.cache_clear()
+            with patch.object(frames, '_kernel_basis', return_value=forged):
+                with self.assertRaises(ValueError):
+                    frames.orthogonal(U,4)
+        frames.orthogonal.cache_clear()
+
     def test_orthogonal_complement_contract(self):
         rng = random.Random(243)
         for h in (4, 8, 10, 12):

@@ -1,0 +1,31 @@
+name: Tensor E8 paid-rate audit
+on:
+  pull_request:
+    paths:
+      - 'research/tensor-e8-rate-audit/**'
+      - '.github/workflows/tensor-e8-rate-audit.yml'
+  push:
+    paths:
+      - 'research/tensor-e8-rate-audit/**'
+      - '.github/workflows/tensor-e8-rate-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B -I -O research/tensor-e8-rate-audit/verify.py --check research/tensor-e8-rate-audit/RESULTS.json
+      - run: python -B -I -O research/tensor-e8-rate-audit/test_verify.py
+      - run: git diff --exit-code

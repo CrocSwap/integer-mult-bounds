@@ -1,0 +1,16 @@
+# Prior construction overlap and credit
+
+## PR #2805: exact sources and overlap
+
+Reviewed the full public PR body, then fetched all 17 relevant package files at pinned contribution head `65da5e0c269346b00c2f389debfcb3a34d7590c6`. Every fetched byte stream matches the corresponding Git blob from the actual PR-files API. `PR2805-SOURCE-PINS.json` preserves raw URLs, Git blobs and SHA-256 hashes. The proof is in `research/covariant-transported-shear/README.md`; a top-level `PROOF.md` is absent, while the vendored predecessor has its own proof.
+
+Tekalign (@tekuuu), with credited Codex assistance, constructs source-read-only transported shears `(X,W) ↦ (X,W ± P^t X)` for the actual order-four action from Jose Manuel/jmbarrancoml's PR #2742. Both 704-field banks may contain arbitrary correlated dirt. The construction never writes the source, even transiently, uses no new field or clear, and restores work by the opposite sign. The literal compiler in `core.py`, especially `helper_action`, `data_shear` and `compile_shear`, uses the destination pivot bank as an accumulator around two source-load passes. It preserves all nonpivot source contributions, rather than replacing dirty work with source values.
+
+The actual helper chart uses eight pivots `(224,225,226,227,240,241,256,257)` and the predecessor's invertible dyadic matrix B. This is not our two rank-one sections on helpers 435, 432 and 447. Its quarter-turn full word costs 1,732 scalar operations and 240 monomials; the stronger comparator costs 2,664 scalars. The complete copy, source preservation, native payload monomials and all dirty fields are included. Our 234 count is for an in-place helper-only involution on a newer 408-helper reader, with a different order-two Q; it excludes an entire two-bank transported copy. It cannot be advertised as a saving over 1,732, nor as a superior version of the published read-only contract.
+
+The shared ideas are real: reconstructing the full dirty reader, choosing a reversible helper section, retaining dirty nonpivot contributions, source-bound scalar accounting, zero-frame helper arithmetic and the distinction between local interface savings and deleting recursive children. These should be credited explicitly to PR #2805, PR #2742, Ross Richardson's section lineage and the retained native machinery. No global novelty claim is supported. Our checked current-source specialization, sparse dyadic section, exact emitted word and every-prefix bound remain useful artifacts without such a claim.
+
+PR #2805 itself keeps every centre child and explicitly prices both child orientations in its typed echo. It does not provide a complete supplier moment or new kappa. Its physical placement, source/work type alignment, movement, buffers and complete rounded precision are not silently solved by its algebraic endpoint. The same distinction applies to our adapter.
+
+Primary source links: [PR #2805](https://github.com/CrocSwap/integer-mult-bounds/pull/2805), [pinned README/proof](https://github.com/tekuuu/integer-mult-bounds/blob/65da5e0c269346b00c2f389debfcb3a34d7590c6/research/covariant-transported-shear/README.md), [pinned literal compiler](https://github.com/tekuuu/integer-mult-bounds/blob/65da5e0c269346b00c2f389debfcb3a34d7590c6/research/covariant-transported-shear/core.py).
+

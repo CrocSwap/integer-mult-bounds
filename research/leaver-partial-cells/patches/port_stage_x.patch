@@ -1,0 +1,73 @@
+--- notri/port_stage_x.py	2026-10-13 18:36:24
++++ notri/port_stage_x_rep.py	2026-10-13 21:07:01
+@@ -47,6 +47,8 @@
+ 
+ 
+ def transfer_section(I4, O4, I8, stats):
++    import os
++    if os.environ.get('PORT_SUCC'): return transfer_section_succ(I4, O4, I8, stats)
+     a, b = align(I4, O4), align(I4, I8)
+     o2i = {j: i for i, j in a.items()}; i8from4 = {j: i for i, j in b.items()}
+     anchor = {j8: a[i4] for j8, i4 in i8from4.items() if i4 in a}
+@@ -69,6 +71,33 @@
+     return out
+ 
+ 
++def transfer_section_succ(I4, O4, I8, stats):
++    """as transfer_section, but each I8-only gate is placed just before the O4 image of its next matched I8 gate"""
++    a, b = align(I4, O4), align(I4, I8)
++    o2i = {j: i for i, j in a.items()}; i8from4 = {j: i for i, j in b.items()}
++    anchor = {j8: a[i4] for j8, i4 in i8from4.items() if i4 in a}
++    before, tail, buf = {}, [], []
++    for j8, g in enumerate(I8):
++        if j8 in anchor:
++            if buf: before.setdefault(anchor[j8], []).extend(buf); buf = []
++        elif j8 not in i8from4: buf.append(copy.deepcopy(g)); stats['kept_own'] += 1
++        else: stats['dropped_by_stage'] += 1
++    tail = buf
++    out = []
++    for k, g in enumerate(O4):
++        out.extend(before.get(k, []))
++        if k in o2i:
++            i4 = o2i[k]
++            if i4 in b:
++                g8 = copy.deepcopy(I8[b[i4]])
++                if I4[i4][-1] != g[-1]: g8[-1] = copy.deepcopy(g[-1]); stats['frames_changed'] += 1
++                out.append(g8)
++        else:
++            out.append(copy.deepcopy(g)); stats['introduced'] += 1
++    out.extend(tail)
++    return out
++
++
+ def main():
+     ap = argparse.ArgumentParser()
+     for k in ('--shadow-input', '--shadow-output', '--input', '--map', '--gk-dir', '--out'): ap.add_argument(k, type=Path, required=True)
+@@ -109,6 +138,27 @@
+     for k in O4:
+         if k not in ('A', 'B', 'cleanup', 'report', 'start_extra', 'target_levels', 'cut', 'precondition'):
+             assert O4r[k] == I4r[k], 'stage changed an unported field: ' + k
++    import os
++    if os.environ.get('PORT_REPAIR'):
++        Rr = O8['report']['R']; nreg = 2 * 112 + Rr; Pp = O8['ports']
++        cur = {r: ((Pp[r],) if r < 112 else ((tuple(G.basis(O8['start_extra'][str(r)])) if str(r) in O8.get('start_extra', {}) else ()) if r >= 224 else ())) for r in range(nreg)}
++        lev = {int(t): tuple(G.basis(E)) for t, E in O8.get('target_levels', {}).items()}
++        nrep = 0; hv = []
++        for sec in ('A', 'B'):
++            if sec == 'B':
++                for t in range(112):
++                    if cur[112 + t] != lev.get(t, ()): hv.append(('level', t, cur[112 + t], lev.get(t, ())))
++                    cur[112 + t] = lev.get(t, ())
++            for e in O8[sec]:
++                rr = [e[1]] + ([e[2]] if e[0] == 'add' else [])
++                F = tuple(G.basis(list(e[-1]) + [x for r in rr for x in cur[r]]))
++                if list(F) != list(e[-1]):
++                    if os.environ.get('PORT_REPAIR_DBG') and nrep < 40: print('REP', sec, O8[sec].index(e), e[:5], 'stage', e[-1], '->', F, [(r, cur[r]) for r in rr], flush=True)
++                    e[-1] = list(F); nrep += 1
++                for r in rr:
++                    cur[r] = F
++                    if 112 <= r < 224 and G.basis(list(F) + list(G.perp(Pp[r - 112]))) != G.perp(Pp[r - 112]): hv.append(('hyper', sec, r, F))
++        print('PORT_REPAIR frames repaired', nrep, 'violations', len(hv), hv[:5], flush=True)
+     O8['cleanup'] = [inverse(e) for e in reversed(O8['A'] + O8['B']) if not 112 <= e[1] < 224]
+     H = G.profile(O8)
+     ws = [9 - len(G.basis(O8['start_extra'].get(str(224 + h), []))) for h in range(R)]

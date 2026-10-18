@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "task_id": "complex-rank-shape-decoder",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "original_card": {
+    "id": "complex-rank-shape-decoder",
+    "question": "Can a decoder deliver the local paid mass in fewer, larger-rank children (block frame climbs instead of rank-1 to rank-3 steps)?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/complex-decoder-field-extension-seed44/README.md",
+      "research/complex-frame-pair-decoders/README.md",
+      "research/selected-k8-unrestricted-ends/README.md",
+      "research/eisenstein-reduction-copy-floor/README.md"
+    ],
+    "methods": [
+      "Find one exact small decoding identity whose frame path climbs in blocks, and price its complete per-call profile.",
+      "Bound the best effective child rank achievable for one fixed support alphabet, including copies, frames and restoration."
+    ],
+    "acceptance_gate": "A per-call local profile, with all copied information, frames and restoration counted, whose ceiling exceeds the selected word's by at least 5%; masked or overcomplete supports must change an assumption of the eight-term all-pairs bound.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Before any synthesis, write the candidate per-call local profile (and centre charge / unpaid coordinates if changed) and screen it with ceiling.ceiling(); reject it if even the ideal ceiling does not beat the selected word's by your stated margin. Ideal budget: rank-16 delivery is 2.31x (levers.py).",
+    "bottleneck_link": "Rank-1 children are about half of recursive cost; the selected word's effective child rank is about 3.9. Larger-rank delivery lowers recursive cost per unit of paid mass.",
+    "allowed_variations": [
+      "One masked, overcomplete or block decoder family with exact labels and supports.",
+      "A scoped lower bound on effective rank for one alphabet.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Repacking idle remainders of an unchanged word (covered by the packing ceiling).",
+      "Repeating the eight-term all-pairs search inside its proved scope.",
+      "Only changing helper terminal subspaces and monotone frames within the fixed scalar word, entrances and cleanup contract already covered by #1995/#2013.",
+      "Searching below C=40 in the #2017 Eisenstein binary scalar-rectangle or fixed-support block-linear additive pairing model; specify a changed premise instead. This bound does not cover every complex decoder."
+    ],
+    "overlap_terms": [
+      "rank shape",
+      "block climb",
+      "masked decoder",
+      "overcomplete",
+      "effective rank"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "Desargues 10_3 and Pappus 9_3 over Q in structured coordinates (three configuration points or lines as the coordinate triangle) as T=3 three-total decoder configurations: classify them by characteristic-2 realisability (Lemma CR2 of open PR #2162) and compute the exact minimum cost over all admissible B on the remainder with no CR2 realisation over GF(2/4/8) (OPEN ENDS item 4 of the #2111 handoff, narrowed to Desargues and Pappus).",
+  "scope_change_reason": "The generic rank-shape card is crowded (#2151, #2124, #2130, #2145). The live, unclaimed handoff https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18932893 (item 4) names classical rich configurations as an untested class for the T=3 decoder floor (A) cost >= v, which limits what rank-3 root-unit decoders can save. A pre-experiment overlap check showed that the generic coordinate regime is already decided by #2162 Lemma CR2, so the task was narrowed to structured (support-restricted) coordinates.",
+  "bottleneck_link": "Side result on the complex-supplier decoder sub-line: (A) at T=3 bounds the savings of rank-3 root-unit decoders (#2111, #2125). Removing Desargues/Pappus structured realisations as counterexample candidates, and locating the one coordinate system where the CR2 certificate search fails (up to GF(16)), narrows the open part of (A). No kappa change.",
+  "budget_minutes": 90,
+  "stop_rule": "Searching stopped by 2026-10-15T00:34:36Z. Instances with f > 26 are skipped and counted. CR2 certificates are per-frame/per-instance proofs resting on #2162 Lemma CR2. \"No cost < v among non-CR2 instances\" is a bounded failed search, not a proof of (A). At most one evidence-driven pivot (none used; the frame-universal certificate refines the planned per-instance CR2 test).",
+  "outcome": "completed",
+  "evidence": "python3 -I -B research/three-total-classical-configs/verify.py prints PASS_THREE_TOTAL_CLASSICAL_CONFIGS. Frame-universal char-2 certificates exist for all 221 Desargues frames (GF(16); GF(2/4/8) excluded) and all 151 Pappus frames (GF(4)), and for all frames of 12 special Pappus signatures. Hence every structured decoder configuration built from them satisfies (A), conditional on CR2. Of 2,166 coordinate systems examined (all structured frames plus 13 identity frames of one mixed type), exactly one, a mixed frame of a special Pappus realisation, has no certificate over GF(2..16). There, 88 of 2000 sampled instances have no CR2 realisation over GF(2/4/8); the 18 with f <= 26 have exact min(cost - v) = 1 (lower bounds re-derived in pure Python for the 3 with f <= 18, the rest recorded enumall output replayed with --enumall) and 70 are skipped. Separately coded constructive count: no exact Desargues 10_3 in PG(2,4) or PG(2,8).",
+  "author": "thakrarsagar",
+  "ai_assistance": "Substantial AI assistance from Claude (Anthropic, Claude Opus 5.5) via Claude Code: design, code, computation and write-up, directed and submitted by thakrarsagar.",
+  "open_questions": [
+    {
+      "question": "Do the 70 skipped (f > 26) instances without a CR2 realisation over GF(2/4/8) of the special Pappus frame also satisfy cost >= v + 1?",
+      "why_it_matters": "They are the only open (A) instances from classical configurations found here.",
+      "first_step": "Run the #2162 Corollary J jet test, or SAT via the #2111 satlib, on the skipped records of data/special_instances.json.",
+      "blocked_by": "2^f enumeration is infeasible (f = 27..45), and jets can fail (jf0..2 of #2162)."
+    },
+    {
+      "question": "Do mixed coordinate frames (triangles from intersection points of configuration lines, or joins of points) produce more instances without a CR2 realisation, and any with cost < v or tight non-CR2 atoms?",
+      "why_it_matters": "The single certificate-search failure found (no certificate over GF(2..16)) uses a coordinate triangle with a non-configuration line and point; zero-rich supports there are where (A) is genuinely open.",
+      "first_step": "Enumerate these frames up to the configuration symmetry group and rerun scripts/universal_sweep.py with the frame list extended.",
+      "blocked_by": "Frame count grows quickly; symmetry reduction (S5 for Desargues, order-108 group for Pappus) is not implemented."
+    },
+    {
+      "question": "Do Reye 12_4 and the D4 line arrangement (the rest of OPEN ENDS item 4) admit frame-universal char-2 certificates in structured frames?",
+      "why_it_matters": "This would close the remaining classical-configuration part of the handoff item.",
+      "first_step": "Build exact integer realisations, check them with classical.check_config-style tests, then run the universal search.",
+      "blocked_by": "Implementation time only."
+    },
+    {
+      "question": "Why does Desargues 10_3 need GF(16): is non-embeddability in PG(2,8) known, and is it explained by the forced degeneracy of one opposite point-line pair?",
+      "why_it_matters": "It affects only certificate size, not (A), but would give a human proof of the exclusion.",
+      "first_step": "Literature check, then a proof from the mu-parametrisation used in verify.py.",
+      "blocked_by": "Nothing known."
+    }
+  ]
+}

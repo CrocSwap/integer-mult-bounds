@@ -1,0 +1,438 @@
+{
+  "schema": "pure-math-atlas/source-ledger/1",
+  "volume": "II",
+  "status": "INFORMAL_93_PROVED_7_CONJECTURAL_PENDING_PEER_REVIEW",
+  "draft_sha256": "27220ab0574912297f80379869d39e8b2a7dc83edbfa6d07c36e87985eaa35c3",
+  "local_sources": [
+    {
+      "path": "D:\\proof\\lean\\mathproof\\Mathproof\\MUBPartialCompletion.lean",
+      "sha256": "8112e58e58660760622fb3fe76fc475033cc99f43c94b03aca6914d6c1f47fe6",
+      "inspection_scope": "statement_and_proof_inspected",
+      "exact_declarations": [
+        "MUBMissingBasis.complete_partial_family",
+        "MUBMissingBasis.five_hadamards_to_six_MUBs",
+        "MUBMissingBasis.five_partial_give_six_MUBs"
+      ],
+      "excerpt_start_line": 31,
+      "excerpt_end_line": 53,
+      "excerpt": "theorem complete_partial_family (k : ℕ)\n    (A : Fin k → Matrix (Fin 6) (Fin 5) ℂ)\n    (hg : ∀ r, (A r)ᴴ * A r = (6 : ℂ) • (1 : Matrix (Fin 5) (Fin 5) ℂ))\n    (hf : ∀ r, ∀ i j : Fin 5, Complex.normSq (A r i.castSucc j) = 1)\n    (ho : ∀ r s, r < s → ∀ i j : Fin 5, Complex.normSq (((A r)ᴴ * A s) i j) = 6) :\n    ∃ H : Fin k → Matrix (Fin 6) (Fin 6) ℂ,\n      (∀ r, (H r)ᴴ * H r = (6 : ℂ) • (1 : Matrix (Fin 6) (Fin 6) ℂ)) ∧\n      (∀ r i j, Complex.normSq (H r i j) = 1) ∧\n      (∀ r s, r < s → ∀ i j, Complex.normSq (((H r)ᴴ * H s) i j) = 6) ∧\n      (∀ r i j, H r i j.castSucc = A r i j) := by\n  have hcompletion (r : Fin k) := Matrix.exists_scaled_orthogonal_completion 5 6 (by norm_num) (A r) (hg r)\n  choose H hH hcolumns using hcompletion\n  refine ⟨H, hH, ?_, ?_, hcolumns⟩\n  · intro r\n    apply Matrix.normSq_eq_of_scaled_unitary_core 5 1 (by norm_num) (H r)\n    · simpa using hH r\n    · intro i j\n      simpa only [hcolumns] using hf r i j\n  · intro r s hrs\n    apply Matrix.normSq_eq_of_scaled_unitary_core 5 6 (by norm_num) ((H r)ᴴ * H s)\n    · convert cross_gram (H r) (H s) (hH r) (hH s) using 1\n      norm_num\n    · intro i j",
+      "excerpt_sha256": "1d84d56370b02285a1aa2061ca3bec8b68bead7fd8e5238610f051813e2ac5e3",
+      "direct_sorry_tokens": 0,
+      "direct_axiom_tokens": 0,
+      "transitive_axioms_not_audited": true,
+      "interpretation": "B081-B084 generalize the flat-border argument. The original hypotheses already supply orthogonality, core flatness and cross-overlap equations; no partial data existence is inferred."
+    },
+    {
+      "path": "D:\\proof\\lean\\mathproof\\Mathproof\\MUBMissingBasisCertificate.lean",
+      "sha256": "9c0899b275e33ae350d4e1ec014604e49c97a2ff3fbbfbc64c40f621c5364a21",
+      "inspection_scope": "statement_and_proof_inspected",
+      "exact_declarations": [
+        "MUBMissingBasis.channel_fixed_commutes",
+        "MUBMissingBasis.joint_eigenbasis",
+        "MUBMissingBasis.reconstruct_unbiased_basis",
+        "MUBMissingBasis.channel_reconstruct_unbiased_basis",
+        "MUBMissingBasis.six_MUBs_channel_certificate_suffices"
+      ],
+      "excerpt_start_line": 177,
+      "excerpt_end_line": 192,
+      "excerpt": "theorem reconstruct_unbiased_basis {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]\n    [FiniteDimensional ℂ E] (d : ℕ) (hd : Module.finrank ℂ E = d)\n    (T : Fin d → E →ₗ[ℂ] E) (hT : ∀ i, (T i).IsSymmetric)\n    (hc : ∀ i j, T i * T j = T j * T i) (hli : LinearIndependent ℂ T) :\n    ∃ b : OrthonormalBasis (Fin d) ℂ E, ∀ v : E,\n      (∀ i, inner ℂ v (T i v) = LinearMap.trace ℂ E (T i) / (d : ℂ)) →\n      ∀ j, Complex.normSq (inner ℂ v (b j)) = 1 / (d : ℝ) := by\n  exact (by\n    classical\n    obtain ⟨b,hb⟩ := spectral_projectors_span d hd T hT hc hli\n    refine ⟨b, ?_⟩\n    intro v hv j\n    let f : (E →ₗ[ℂ] E) →ₗ[ℂ] ℂ :=\n      { toFun := fun A => inner ℂ v (A v) - LinearMap.trace ℂ E A / (d : ℂ)\n        map_add' := by intro A B; simp [inner_add_right, add_div]; ring\n        map_smul' := by intro c A; simp [inner_smul_right, mul_div_assoc]; ring }",
+      "excerpt_sha256": "b354070b850c5a8d78a0261d6fcefa7123a9c5b26c5858229a22a7d5a34d9fd4",
+      "direct_sorry_tokens": 0,
+      "direct_axiom_tokens": 0,
+      "transitive_axioms_not_audited": true,
+      "interpretation": "B058-B060/B087 reconstruct sufficient linear-algebra arguments informally. Actual channel unitality, fixed-generator, independence and trace equations remain hypotheses."
+    },
+    {
+      "path": "D:\\proof\\lean\\mathproof\\Mathproof\\MUBResidualProjection.lean",
+      "sha256": "eeb588d1bc753af4db3baa1c6cd0bdddd0051605bf4a693f9b61bce8f3f3fd54",
+      "inspection_scope": "selected_statement_and_proof_inspected",
+      "exact_declarations": [
+        "MUBResidual.six_MUBs_residual_commuting_suffices",
+        "MUBResidual.six_MUBs_projected_seeds_suffice"
+      ],
+      "excerpt_start_line": 195,
+      "excerpt_end_line": 209,
+      "excerpt": "theorem six_MUBs_residual_commuting_suffices\n    (B : Fin 6 → M)\n    (hB : ∀ r, IsOrthonormalBasis6 (B r))\n    (hBB : ∀ r s, r ≠ s → MutuallyUnbiased6 (B r) (B s))\n    (K : Fin 6 → M) (hK : ∀ i, (K i)ᴴ = K i)\n    (hr : ∀ i, K i ∈ LinearMap.range (residual B))\n    (hc : ∀ i j, K i * K j = K j * K i)\n    (hli : LinearIndependent ℂ K) :\n    ∃ C : Fin 7 → M, IsCompleteMUB6 C := by\n  let T := fun i => Matrix.toEuclideanLin (K i)\n  have hT : ∀ i, (T i).IsSymmetric := fun i => Matrix.isSymmetric_toEuclideanLin_iff.mpr (hK i)\n  have hC : ∀ i j, T i * T j = T j * T i := by\n    intro i j\n    ext x a\n    change (K i *ᵥ (K j *ᵥ (fun a => x a))) a = (K j *ᵥ (K i *ᵥ (fun a => x a))) a",
+      "excerpt_sha256": "fad21710d669b662d260feda5e936e12a52fcb067accdb1b925a75761d05a6e7",
+      "direct_sorry_tokens": 0,
+      "direct_axiom_tokens": 0,
+      "transitive_axioms_not_audited": true,
+      "interpretation": "Input already assumes six MUBs in C6 and independent commuting residual matrices. It is not an unconditional existence proof. B056-B059 use explicit residual/operator-space mathematics."
+    },
+    {
+      "path": "D:\\proof\\lean\\mathproof\\Mathproof\\Meta\\MUBDefs20260902.lean",
+      "sha256": "fb3255e6240797fa04529d056a9e79b7228d1ad77989ef82eab8732ef37b314a",
+      "inspection_scope": "definitions_scope_comment_and_declaration_inventory",
+      "exact_declarations": [
+        "Mathproof.Meta.MUBDefs20260902.IsMUBFamily",
+        "Mathproof.Meta.MUBDefs20260902.MUBEquiv.isMUBFamily"
+      ],
+      "excerpt_start_line": 53,
+      "excerpt_end_line": 64,
+      "excerpt": "tables of transition data — are sound.\n\n## What is **not** proved here\n\nNo concrete MUB family in `ℂ^d` is exhibited: that requires an exact cyclotomic model and a\nGauss-sum evaluation, an obligation discharged nowhere in this repository.  The `d = 25` claims\nremain, in Lean, statements about the combinatorial data (see `MUBDifferenceMatrix20260902` and\n`MUBBentDescent20260902`), not about the complex matrices themselves.\n-/\n\nopen scoped Matrix\nnamespace Mathproof.Meta.MUBDefs20260902",
+      "excerpt_sha256": "9ee4bf6d6bf5cb96824ef58db34e204b6d84d640695b254e87109ed6c6f4faad",
+      "direct_sorry_tokens": 0,
+      "direct_axiom_tokens": 0,
+      "transitive_axioms_not_audited": true,
+      "interpretation": "The source explicitly says no concrete complex MUB family is exhibited and the Gauss-sum bridge is not discharged there. B061-B070 provide an informal mathematical construction, not a Lean validation of that module."
+    },
+    {
+      "path": "D:\\proof\\lean\\mathproof\\Mathproof\\External\\Prove2MeMUB20260921\\Goal_RybinAI2026_P16_complete_MUB_dimension_six.lean",
+      "sha256": "4426f0096f7905e2b99f1e077434795cadfe9a2ad475fbca28e2a58e2a763555",
+      "inspection_scope": "entire_source_inspected",
+      "exact_declarations": [
+        "RybinAI2026.P16.complete_MUB_dimension_six_goal"
+      ],
+      "excerpt_start_line": 1,
+      "excerpt_end_line": 14,
+      "excerpt": "-- External Prove2Me source; local compatibility copy.\n-- Source: https://prove2.me/theorems/3763c1e1-010b-43f3-abd5-c2a921f8fbe0\n-- Upstream status: Open; open goals are proposition definitions, not proofs.\nimport Mathproof.External.Prove2MeMUB20260921.Def_rybin2026_p16_mutually_unbiased_bases\nnamespace RybinAI2026.P16\n\n/-- There exists a complete set of seven mutually unbiased bases in complex dimension six. -/\ndef complete_MUB_dimension_six_goal : Prop :=\n∃ B : Fin 7 → Matrix (Fin 6) (Fin 6) ℂ, IsCompleteMUB6 B\n\n\nend RybinAI2026.P16",
+      "excerpt_sha256": "d7fce548cb43164cff10248c85dbf2ac3673fd1b861b3a06688be5b2b7305bf6",
+      "direct_sorry_tokens": 0,
+      "direct_axiom_tokens": 0,
+      "transitive_axioms_not_audited": true,
+      "interpretation": "This is a proposition definition. The source labels the upstream goal Open; it is never used as a proved theorem."
+    },
+    {
+      "path": "D:\\proof\\lean\\mathproof\\Mathproof\\MUBAutomaticCompletion.lean",
+      "sha256": "c2c69679d9220391539d450eeae76a1cd6a23737410cceeaa2d667c3ad66a669",
+      "inspection_scope": "declaration_inventory_only",
+      "exact_declarations": [
+        "MUBAutomatic.six_MUBs_complete",
+        "MUBAutomatic.exists_missing_basis",
+        "MUBAutomatic.remaining_two_leaves_suffice"
+      ],
+      "excerpt_start_line": 232,
+      "excerpt_end_line": 240,
+      "excerpt": "theorem six_MUBs_complete (B : Fin 6 → M)\n    (hB : ∀ r, IsOrthonormalBasis6 (B r))\n    (hBB : ∀ r s, r ≠ s → MutuallyUnbiased6 (B r) (B s)) :\n    ∃ C : Fin 7 → M, IsCompleteMUB6 C := by\n  obtain ⟨K,hK,hr,hli⟩ := residual_generators B hB hBB\n  exact six_MUBs_residual_commuting_suffices B hB hBB K hK hr\n    (fun i j => automatic_residual_commutes B hB hBB _ _ (hr i) (hr j)) hli\n\n/-- Exact closure of the downloaded five-to-six partial-Hadamard frontier proposition. -/",
+      "excerpt_sha256": "ffaa2dc6b03f994d61f7b3775152e0130de756a8d9d3fbf853580a7f49938f40",
+      "direct_sorry_tokens": 0,
+      "direct_axiom_tokens": 0,
+      "transitive_axioms_not_audited": true,
+      "interpretation": "Retrieved as a candidate, not imported as proof evidence. No fresh transitive axiom audit was run; this volume does not use a purported MUB6 existence conclusion."
+    },
+    {
+      "path": "D:\\proof\\lean\\mathproof\\Mathproof\\IncidenceDesignAutomorphisms.lean",
+      "sha256": "a6f53b1730797a99c7ee06da57d5972a9a058ef4934a733d3687524fa292d6f6",
+      "inspection_scope": "declaration_inventory_only",
+      "exact_declarations": [
+        "IncidenceDesignAutomorphisms.incidenceMulEquivPointAut_apply"
+      ],
+      "excerpt_start_line": 1,
+      "excerpt_end_line": 16,
+      "excerpt": "import Mathproof.BinaryDualSupportDesign\n\n/-! # Incidence-pair and point-permutation design automorphisms coincide\n\nBlocks are actual subsets, so their permutation is uniquely determined by the\npoint permutation. No finiteness or separation assumption on points is needed.\n-/\n\nnamespace IncidenceDesignAutomorphisms\n\nvariable {I : Type*}\n\ndef incidenceAut (B : Set (Set I)) :\n    Subgroup (Equiv.Perm I × Equiv.Perm B) where\n  carrier := {e | ∀ p b, p ∈ b.val ↔ e.1 p ∈ (e.2 b).val}\n  one_mem' := by intro p b; rfl",
+      "excerpt_sha256": "e12c97de82f4f1f47b1f0c7d02ec39eb8e7b801b8eedf5b44afa61609ef4e641",
+      "direct_sorry_tokens": 0,
+      "direct_axiom_tokens": 0,
+      "transitive_axioms_not_audited": true,
+      "interpretation": "Search evidence for the incidence neighborhood only; none of the counted proofs depends on a claim that this file was freshly checked."
+    }
+  ],
+  "primary_web_sources": [
+    {
+      "id": "WF",
+      "url": "https://doi.org/10.1016/0003-4916(89)90322-9",
+      "authors": "Wootters and Fields (1989)",
+      "accessed": "2026-10-15",
+      "evidence": "Prime-power MUB construction and tomography precedent; own proofs given in B051-B070.",
+      "evidence_sha256": "c0d60f6522d61c384a5968593bd36470e695b32c04fae72da22c2d99a70fcb2e",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "KR03",
+      "url": "https://arxiv.org/abs/quant-ph/0309120",
+      "authors": "Klappenecker and Rotteler",
+      "accessed": "2026-10-15",
+      "evidence": "Exponential-sum MUB construction precedent.",
+      "evidence_sha256": "81e7a9635912b6b74db4f7baade69a9432868cdf357be8eeaaaab39461a36bfc",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "KR05",
+      "url": "https://arxiv.org/abs/quant-ph/0502031",
+      "authors": "Klappenecker and Rotteler",
+      "accessed": "2026-10-15",
+      "evidence": "MUB/projective2design and SIC/projective2design precedent.",
+      "evidence_sha256": "1f2d6e1d7eac5af80c1de1da70aad8df05ff6972fbcffa18b405b9a9cab7ff28",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "BB01",
+      "url": "https://arxiv.org/abs/quant-ph/0103162",
+      "authors": "Bandyopadhyay, Boykin, Roychowdhury, Vatan",
+      "accessed": "2026-10-15",
+      "evidence": "Orthogonal commuting unitary construction precedent.",
+      "evidence_sha256": "58acfa891cf09d4499a548f39910c840a878493a6501915733e6e3a0e942dfad",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "Spread",
+      "url": "https://arxiv.org/abs/1306.3478",
+      "authors": "Abdukhalikov",
+      "accessed": "2026-10-15",
+      "evidence": "Symplectic-spread construction precedent. B098 is now an independently written proof of deficiency-one completion, without global novelty attribution.",
+      "evidence_sha256": "47ecf559b9957d8bf5d87b6e18141b58085cb759cf6eb4104a5e8c49dfc02037",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "ST",
+      "url": "https://arxiv.org/abs/1108.4061",
+      "authors": "Casazza, Fickus, Heinecke, Wang, Zhou",
+      "accessed": "2026-10-15",
+      "evidence": "Spectral tetris precedent; own >=2 proof in B037.",
+      "evidence_sha256": "fda4f6ba5865c5bd9525e7555664c5e68f339a987dd35dbf668d6d57ef044d22",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "RealMUB",
+      "url": "https://arxiv.org/abs/quant-ph/0502024",
+      "authors": "Boykin, Sitharam, Tarifi, Wocjan",
+      "accessed": "2026-10-15",
+      "evidence": "Real-MUB operator-space bound precedent.",
+      "evidence_sha256": "16df28a2f3c5dff25a29c031925bf927bb620a81eae7b537593e0662ce645cc1",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "Steiner",
+      "url": "https://arxiv.org/abs/1009.5730",
+      "authors": "Fickus, Mixon, Tremain",
+      "accessed": "2026-10-15",
+      "evidence": "Sparse SteinerETF construction precedent; reconstructed in B079.",
+      "evidence_sha256": "76cef082ef87ca3edc37518e79e34cda92ff42e8d891df580621c4b57525efc2",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "SmallMUB",
+      "url": "https://arxiv.org/abs/0907.4097",
+      "authors": "Brierley, Weigert, Bengtsson",
+      "accessed": "2026-10-15",
+      "evidence": "Complete MUB uniqueness below dimension six, not dimension seven.",
+      "evidence_sha256": "32749667b1af9b01113ee4e7569ae1b8c0ff0eab98f92fb31af688e4494c4e00",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "MW26",
+      "url": "https://arxiv.org/abs/2410.23997v2",
+      "authors": "McNulty and Weigert",
+      "accessed": "2026-10-15",
+      "evidence": "March2026 author-review abstract retains nonprimepower complete-MUB existence as unknown. Bounded source-status check, not an exhaustive claim about every subsequent paper.",
+      "evidence_sha256": "1558931f3a25c130cf5fbb2f6eb4b8ff1759605a565316ba3d633d3350064f6f",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "SIC25",
+      "url": "https://arxiv.org/abs/2501.03970v2",
+      "authors": "Appleby, Flammia, Kopp",
+      "accessed": "2026-10-15",
+      "evidence": "Universal construction is conditional on Stark and special-value conjectures; not converted into unconditional existence.",
+      "evidence_sha256": "0f95448bb788752392a98b4bf0f3daf5ef7bc0a95c01c0f2be5c90ea4bb9aeea",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "Had25",
+      "url": "https://arxiv.org/abs/2411.18897v2",
+      "authors": "Cati and Pasechnik",
+      "accessed": "2026-10-15",
+      "evidence": "Primary construction database supplies classical Paley-construction context. B094 proves the q=3mod4 construction; the duplicate all-order conjecture was removed.",
+      "evidence_sha256": "4153a401333982ee2cbb5270a3cbcb52505190894db2949021db3800272bdb2a",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "HS10",
+      "url": "https://arxiv.org/abs/1002.3082",
+      "authors": "Glebsky",
+      "accessed": "2026-10-15",
+      "evidence": "Qualitative normalizedHS approximation precedent, not proof of B099 rate.",
+      "evidence_sha256": "a0eeb7f0e02f592f16a0ab9abee13b1c9ab5bfc746d948360b81ba1d56e0239e",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "HS26",
+      "url": "https://arxiv.org/abs/2608.31000",
+      "authors": "Bansil and Kachkovskiy",
+      "accessed": "2026-10-15",
+      "evidence": "Aug2026 two-matrix1/3 rate includes [X,Xprime]=0; sharpness restricted to that pinned problem.",
+      "evidence_sha256": "b5cb27a5ce566e57f5c20d6f3d4df3860347e32b820e04f9060a6fb919ef2b3e",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "Design25",
+      "url": "https://arxiv.org/abs/2501.14938",
+      "authors": "Jasper and Mixon",
+      "accessed": "2026-10-15",
+      "evidence": "Weighted Sidon-set designs distinguished from unweighted distinct-ray conjecture B100.",
+      "evidence_sha256": "8e4a49f8715fbb00b61118f26c9434e7d9a4f3fcaac925a1f110e2eacd873eb0",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    },
+    {
+      "id": "Sphere26",
+      "url": "https://arxiv.org/abs/2606.01376",
+      "authors": "Arman, Bondarenko, Prymak, Radchenko",
+      "accessed": "2026-10-15",
+      "evidence": "May2026 primary abstract gives explicit equalweight spherical5designs with <=72d^2 points. Generic quadratic design-size existence is not labeled newly open.",
+      "evidence_sha256": "3400f9998a1369aa31da8ea59afc9e771e5e76d31915f075358372f05f8e89c4",
+      "full_source_bytes_sha256": null,
+      "retrieval_scope": "primary author abstract/metadata or linked author publication record; full-paper proof audit not claimed"
+    }
+  ],
+  "canonical_DAG": {
+    "path": "D:/proof/lean/mathproof/tools/searchable_hypergraph.sqlite3",
+    "mode": "read-only URI",
+    "queries": [
+      {
+        "fts_match": "MUBMissingBasis",
+        "limit": 12,
+        "rows": [
+          {
+            "id": "de06b8ad2e34de07e1bb48dd4aae22699b8a7e93968bc17a5d984d554edd4ba0",
+            "name": "MUBMissingBasis.complete_partial_family"
+          },
+          {
+            "id": "9c657f0add576f8e2329e63d85ff2fa1746e35e04da9ab04c6f3f84d9761733d",
+            "name": "MUBMissingBasis.five_hadamards_to_six_MUBs"
+          },
+          {
+            "id": "7ed9f3ad5baef87c2bf37116d704b6641060554a8ece36b1e6063028fdbf118c",
+            "name": "MUBMissingBasis.five_partial_give_six_MUBs"
+          },
+          {
+            "id": "33810365146265fa24097e019d1d9cd9519b048273369518e61e02978107341a",
+            "name": "MUBMissingBasis.channel_fixed_commutes"
+          },
+          {
+            "id": "8bd0f8bb9228c50265583fa0953c74cea980bed3244e499e07997ccb538873c6",
+            "name": "MUBMissingBasis.channel_fixed_commutes_span"
+          },
+          {
+            "id": "c8b962fa52df7fbb3bd550c026e73fd3777dce33f20bb4ea63f0d33739d9d7d3",
+            "name": "MUBMissingBasis.channel_generators_commute"
+          },
+          {
+            "id": "d31c0f62ebc1dc8eb27878961ac54afb466371fb4ec5e40494799bea9446a89b",
+            "name": "MUBMissingBasis.channel_joint_eigenbasis"
+          },
+          {
+            "id": "17fb54146deddf5e68460f2a19b538302edf0ac2beae8a36fce738515f0b8a4a",
+            "name": "MUBMissingBasis.channel_reconstruct_unbiased_basis"
+          },
+          {
+            "id": "7cd17cac69a61d00046f29d876767d4d8a447d2454ffe705aec560f3eac08fe1",
+            "name": "MUBMissingBasis.commutator_energy"
+          },
+          {
+            "id": "f6690765165424884ab61fdbdc9ad698f4645bc6fc5106c7787b78d583a6eb6c",
+            "name": "MUBMissingBasis.energy_eq_zero"
+          },
+          {
+            "id": "6c0ab8ca7a6703074171d6748523b7f2405ce5c390165f83c7ba3985c1a3edd4",
+            "name": "MUBMissingBasis.energy_nonneg"
+          },
+          {
+            "id": "4d88220736b49f3a3a98ceea6f5cc356a546885f7bcaa14469c23cde3f2e6928",
+            "name": "MUBMissingBasis.joint_eigenbasis"
+          }
+        ]
+      },
+      {
+        "fts_match": "MUBPartialCompletion",
+        "limit": 12,
+        "rows": []
+      },
+      {
+        "fts_match": "MUBResidualProjection",
+        "limit": 12,
+        "rows": []
+      },
+      {
+        "fts_match": "Frame",
+        "limit": 12,
+        "rows": [
+          {
+            "id": "28bade63ef6f1df519ded0d410d09d52f5b16d4f90cabbf043e986de91f08f6a",
+            "name": "Mathproof.Meta.NewComplexityConjectures30_20260905.C21_closed_graph_frame"
+          },
+          {
+            "id": "source:406207",
+            "name": "RigidBodyMotion"
+          },
+          {
+            "id": "source:413418",
+            "name": "ReferenceFrame"
+          },
+          {
+            "id": "source:413420",
+            "name": "IsMetricConserved"
+          },
+          {
+            "id": "source:413421",
+            "name": "Orthonormal"
+          },
+          {
+            "id": "source:413422",
+            "name": "Orthonormal.isMetricConserved"
+          },
+          {
+            "id": "source:413423",
+            "name": "IsInertial"
+          },
+          {
+            "id": "source:413424",
+            "name": "IsInertial.velocity"
+          },
+          {
+            "id": "source:413425",
+            "name": "IsInertial.isMetricConserved"
+          },
+          {
+            "id": "source:413426",
+            "name": "Vector"
+          },
+          {
+            "id": "source:413427",
+            "name": "componentEquiv"
+          },
+          {
+            "id": "source:413428",
+            "name": "componentLinearEquiv"
+          }
+        ]
+      },
+      {
+        "fts_match": "IncidenceDesign",
+        "limit": 12,
+        "rows": []
+      }
+    ],
+    "scope": "bounded indexed retrieval, not full-tree theorem validation",
+    "fresh_kernel_or_axiom_checks": false
+  },
+  "provenance_limits": [
+    "No Lean edits, compilation, Jev, model or global configuration changes.",
+    "Local source hashes bind exactly read bytes; direct token counts are not transitive axiom audits.",
+    "Web full-source bytes were not downloaded; evidence hashes bind our ledger summaries only.",
+    "Classical reconstructions and local consequences are not novelty claims.",
+    "B095,B096,B099,B100 global literature status not established; atlas proposals are not claimed newly globally open problems."
+  ],
+  "numbered_entries": 100,
+  "proved_entries": 93,
+  "conjectural_entries": 7,
+  "review_developed_proofs": {
+    "B094": "Classical Paley construction, duplicate conjecture removed.",
+    "B097": "Prime-phase completion proved by cyclic root-count autocorrelation; no global originality claim.",
+    "B098": "Deficiency-one symplectic spread completion proved by hole/hyperplane count; no global originality claim."
+  }
+}

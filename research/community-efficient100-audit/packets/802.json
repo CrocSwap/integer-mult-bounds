@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "number": 802,
+  "title": "Audit: independent replay confirms #681's 1,484-operation raw factory saving (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjk4Mzc5MDc=",
+    "is_bot": false,
+    "login": "Rohansguliani",
+    "name": "Rohan Guliani"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/802",
+  "head": "0957b70fc2ed1ac7592467e7a24d6d0788ff6758",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/community-pr681-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8e9f58938c2e86560ea446637a9543a4bb8b2d9c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/community-pr681-audit/replay.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ac4bc5a78b90d21921be90565a1c5a40bec73767"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/community-pr681-audit": 2
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "Independent audit of #681 by Alluri (@alluri-ritual), pinned at head `e536f6fc8aad65adef8ac4682d13625598a5c3f9`. It covers #681's own contribution, the 87\u219234-gate replacement in all 14 raw PR622 coordinate-total windows. The bundled #696 lowering was audited in #783. Credit for the construction belongs to #681.\n\n**Verdict: the 1,484-operation saving is confirmed exactly, for the raw constructor word. It does not reach the selected providers and does not change \u03ba.**\n\nExact base: `66849e1475c930fd7732b1a0067ffee7e1e95f60` (current `main`, also #681's merge base). Only `research/community-pr681-audit/` is added.\n\n### Reproduce\n\n```sh\npython3 -B research/community-pr681-audit/replay.py\n```\n\nExpected:\n\n```text\nPASS_PR681_INDEPENDENT_REPLAY windows=14 scalar_saved=1484 fwd_primitives_old=170488->160296 fwd_primitives_pr696=128696->123768 kappa=51110230636731/31250000000000000\n```\n\nIt uses the standard library, runs offline, takes about 30 s and imports no #681 code. The two templates are transcribed from #681's `CIRCUIT.json` (sha256 `f64a9e88\u20269f71`).\n\n### Findings\n\nThe replay runs the unchanged `main` constructor directly and finds the 87-gate template by injective relabeling. It finds exactly 14 windows on disjoint registers, without using `BLOCKS.json`. It splices the witness and rebuilds the cleanup by the literal inverse rule, after checking that rule against the old cleanup. Exact linear forms of all 716 registers match after `A`, `A+B` and `A+B+cleanup`. The inherited native audit, emitter and local auditor from `main` pass on both words.\n\n| Quantity | Before | After | Saved |\n| --- | ---: | ---: | ---: |\n| Raw scalar events | 6,340 | 4,856 | **1,484** = 2\u00b714\u00b7(87\u221234) |\n| Native scalar operations | 16,972 | 15,488 | 1,484 |\n| Fwd / bwd primitives, inherited lowering | 170,488 / 170,536 | 160,296 / 160,344 | 10,192 each (5.98%) |\n| Fwd / bwd primitives, #696 lowering | 128,696 / 128,712 | 123,768 / 123,784 | **4,928 each (3.83%)** |\n\n- **Beyond #696:** once #696 applies, #681 adds 4,928 primitives per orientation on the raw word, not 10,192. The consolidation's 170,488 \u2192 123,768 is composed correctly: 41,792 from #696 plus 4,928 from #681.\n- Paid profiles and phase/adapter/center events are unchanged. 98 frame climbs inside the windows are reordered; each register's climb path is unchanged. A randomized dirty-input replay of the emitted scalar programs gives identical final states. Mutating one witness coefficient makes the replay fail.\n- **\u03ba:** #681 leaves `certificates/selected-result.json` and the selected CK/JP8 provider words unchanged, and it does not transport the edit into selected recipes. The 1,484 are raw-constructor operations, not selected-factory operations. Scalar primitives enter only the finite invoice (#783). \u03ba stays `51110230636731/31250000000000000`.\n\n### Limits\n\n`make verify`, `make frontier626-verify`, Lean and #681's hosted replay were not run. #681's local `verify.py` and the consolidation's local `verify.py` both pass here. The five bundled R420 bit-supplier packages were not audited. The prefix bounds come from the inherited auditor and were not re-derived.\n\nRohan Guliani (@Rohansguliani), with substantial AI assistance. New files are under the repository's Apache-2.0 license.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "4891420c2f8cc9863b7fa8f65478792bb7f4ef056a708631faed642ccaef9cd2"
+}

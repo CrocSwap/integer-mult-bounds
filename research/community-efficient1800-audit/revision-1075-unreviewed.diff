@@ -1,0 +1,233 @@
+diff --git a/research/cube-xor-replay/COMPATIBILITY.json b/research/cube-xor-replay/COMPATIBILITY.json
+new file mode 100644
+index 000000000..7184c174b
+--- /dev/null
++++ b/research/cube-xor-replay/COMPATIBILITY.json
+@@ -0,0 +1,37 @@
++{
++  "files": {
++    "scripts/audit_fused_block.py": {
++      "current": {
++        "git_blob": "41221dadc99d80952a000ab166ed3471df610405",
++        "sha256": "6fe64f886309d9154e33a3d67a16e8714cebc424a7a248b3080f8cab7d94179b"
++      },
++      "original": {
++        "git_blob": "c63869d22c6454cf6989bb6e70d41f0571eef985",
++        "sha256": "2afb83ca8e5f193ca8a4c242becf267ad1d9dc2578ba238b820e98d5185f6288"
++      }
++    },
++    "scripts/exclusion_circuit.py": {
++      "current": {
++        "git_blob": "b0e2f3e03d7de791ca936dfd92cee2134c7dd4f5",
++        "sha256": "f9fbcd6e85e442cbd0926ac0887414e20735b2dc923d2d5822c803ceb46726d3"
++      },
++      "original": {
++        "git_blob": "aaa99986c4b81c5d4fbe016fd216a4818940bb95",
++        "sha256": "b253f9d7318becda1c1f3b24e2287ed44a9c27fcea00cf9d531afb950d0457a0"
++      }
++    },
++    "scripts/shared_point_circuit.py": {
++      "current": {
++        "git_blob": "d0864271884398d44ee1fc70f0d99bb982418156",
++        "sha256": "360d9bffc0f55315fe294789b72c71c79e0991524555b3a5f42a2ca504d7da95"
++      },
++      "original": {
++        "git_blob": "8347a0bda63fbfb51b86c6c6d10a7bf541816308",
++        "sha256": "c9bb7a5df92d260a4e3ad532b53e26936730d7c93f7facfb0784957c1e81c8ba"
++      }
++    }
++  },
++  "original_manifest_sha256": "e2be1e7c88e7a6814ec726bd5cd397af261514edac960d1d8ae6590c39c9e608",
++  "scope": "Three transitive import dependencies changed on canonical main. Their changed methods are not called by the cube replay. Core, row schedule, elimination, certificates, fixture and original source manifest remain frozen.",
++  "upstream_commit": "ffbd90dd90dbe0055464f3a1411b25a3a4fdc6b8"
++}
+diff --git a/research/cube-xor-replay/FOLLOWUP.md b/research/cube-xor-replay/FOLLOWUP.md
+new file mode 100644
+index 000000000..69a4491ca
+--- /dev/null
++++ b/research/cube-xor-replay/FOLLOWUP.md
+@@ -0,0 +1,97 @@
++# PR1075 review continuation and current-main compatibility
++
++The review at `d84d3b950127ff9252e5c059a629bb654500192a` stopped the
++complete command at 180 seconds after its historical case passed. The unchanged
++reviewed head has now completed both differential cases and all 17 tests on
++macOS arm64 / CPython 3.12.12, in 118.575 seconds:
++
++```text
++PASS_CUBE_XOR_DIFFERENTIAL case=historical
++PASS_CUBE_XOR_DIFFERENTIAL case=t6
++Ran 17 tests in 1.226s
++OK
++PASS_CUBE_XOR_VERIFICATION rows=4324 coefficients=8596927616 t6_rank=3088 t6_excluded=false
++```
++
++Command: `python3.12 -I -O -B research/cube-xor-replay/verify.py`.
++The fresh process had no preexisting bytecode caches. The complete local log
++SHA256 is `2673a033caa449e61e7013040d09aa3a84db0ddfb74c83ac6a3239c87954de3d`.
++This is execution time for differential verification, not a new benchmark of
++the accelerated workload.
++
++The existing [focused Linux CI job](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043779/job/115447388058)
++also contains both differential cases, 17 passing tests and the identical final
++marker. It used Ubuntu 24.04.5 / CPython 3.12.15 and PR merge ref
++`74be1199fb224e0ed24f3a9713e771f976066721`, combining reviewed head
++`d84d3b950127ff9252e5c059a629bb654500192a` with then-base
++`abdc6a7002abdbcd9e21bfc5e1a795784deacfdf`. This receipt concerns that historical
++merge ref; it is separate from CI on the current follow-up head.
++
++## Compatibility delta
++
++Canonical main `ffbd90dd90dbe0055464f3a1411b25a3a4fdc6b8` (priority revision 5)
++changes three transitively imported files, causing the original source guard
++to reject an integration with current main:
++
++| File | Changed code, outside the cube replay's called path |
++| --- | --- |
++| `scripts/audit_fused_block.py` | Fraction reuse in `rational_rank` |
++| `scripts/exclusion_circuit.py` | Equivalent expected-support masks in circuit verification |
++| `scripts/shared_point_circuit.py` | Shared-point circuit construction, support, digest and frame routines |
++
++`COMPATIBILITY.json` binds each original Git blob/SHA256 to the corresponding
++current-main Git blob/SHA256. The replay authenticates both manifests and
++requires exactly this three-path allowlist before applying the overrides to
++an in-memory copy. The original `SOURCES.json` remains byte-for-byte intact.
++No core, certificate, fixture, row generation, elimination, cap or rank decision
++is overridden. Changes to any effective source, either manifest or the fixture
++still fail closed; the existing relocated package controls exercise those cases.
++
++A separate AI-assisted source/profile check observed only import/module and
++class definitions from these changed files during the complete historical
++differential case and a one-row t=6 probe. Their changed functions/methods were
++not called. The full differential command below remains the acceptance check
++for the integrated snapshot; the cheap profile does not substitute for it.
++
++```sh
++python3.12 -I -O -B research/cube-xor-replay/verify.py
++```
++
++The expected domain remains 228 historical rows / 6,993,024 coefficients plus
++4,096 t=6 rows / 8,589,934,592 coefficients. Every complete packed row is
++compared, including dependent rows. Both complete canonical receipts remain
++the fixed oracles; rank equality alone is insufficient.
++
++## Evidence and remaining scope
++
++Current-head receipts and review handoff are linked from
++[PR1075](https://github.com/CrocSwap/integer-mult-bounds/pull/1075) and
++[the canonical continuation](https://github.com/CrocSwap/integer-mult-bounds/discussions/2884).
++Historical `BENCHMARK.json`, `VALIDATION.json`, `CLAIM.json`, `SOURCES.json`
++and `EXPECTED-T6.json` are preserved. Their original-head timing and selected
++frontier context are historical, not measurements of this refreshed closure.
++
++This follow-up establishes finite tooling equivalence. At t=6 the certified
++rank lower bound is still 3,088 and positive deficit is not excluded. There is
++no new kappa, exact full-rank result, supplier admission, selected-frontier
++change, full multiplication theorem, or formal-kernel proof. No new performance
++comparison or full selected cold replay is supplied.
++
++## Open next questions
++
++The loader uses ordinary Python imports after authenticating source. Reproduce
++in a fresh process/checkout without `.pyc` files; `-B` prevents writes but does
++not disable cache reads or existing `sys.modules`. A separate source-loader
++hardening contribution could compile the authenticated bytes and test poisoned
++timestamp/unchecked-hash caches. That broader loader contract is outside this
++three-file compatibility refresh.
++
++Maintainer incorporation and review-ledger reconciliation remain separate from
++these author checks. A useful next action is to inspect the linked complete
++current-head receipt and decide the stated tooling scope; this note does not
++edit the maintainer's historical disposition.
++
++Original cube family, permutation, rank screen and certificate: Douglas R.
++Colkitt. Adapter and follow-up: Ross Richardson with substantial OpenAI Codex
++assistance, including a separate AI-assisted mathematical/source audit. No
++independent human review is claimed. Apache-2.0; all predecessor notices remain.
+diff --git a/research/cube-xor-replay/README.md b/research/cube-xor-replay/README.md
+index c2596454a..1fb34b299 100644
+--- a/research/cube-xor-replay/README.md
++++ b/research/cube-xor-replay/README.md
+@@ -1,5 +1,11 @@
+ # Exact cached XOR permutations for quadratic-code replay
+ 
++The [2026-10-16 review follow-up](FOLLOWUP.md) completes the reviewed-head
++verification and records a three-file transitive-import compatibility refresh
++against canonical main. Historical source manifests, fixtures and benchmark
++receipts below are retained unchanged; the current command additionally
++authenticates `COMPATIBILITY.json`.
++
+ **Tooling improvement; no new kappa or impossibility result.** This opt-in
+ adapter makes the existing bounded quadratic-code rank screen cheaper by
+ constructing each permutation mask once per replay. It preserves the complete
+@@ -173,6 +179,10 @@ by the audit. Its digest is checked before importing original code. The new
+ `t=6` fixture is separately pinned there. The selected conditional frontier at
+ the research base is PR942's `1661960547713947/10^18`; it is context only.
+ 
++The current effective closure overlays exactly three transitive imports with
++their separately pinned canonical-main versions; see `FOLLOWUP.md`. The
++original `SOURCES.json` and all core/certificate/fixture pins remain unchanged.
++
+ The OS assignment seed is **94**, verification-engineering track. `CLAIM.json`
+ records three candidates, rejected overlap, bounded scope and timing. No pinned
+ sprint coordination issue existed. The seed chooses a different kernel and
+diff --git a/research/cube-xor-replay/replay.py b/research/cube-xor-replay/replay.py
+index 15f2b1d39..e124ef0f1 100644
+--- a/research/cube-xor-replay/replay.py
++++ b/research/cube-xor-replay/replay.py
+@@ -11,6 +11,11 @@ import sys
+ HERE = Path(__file__).resolve().parent
+ ROOT = HERE.parents[1]
+ MANIFEST_SHA256 = "e2be1e7c88e7a6814ec726bd5cd397af261514edac960d1d8ae6590c39c9e608"
++COMPATIBILITY_SHA256 = "a5f102c0b90783698d2912fed9ddeb3a6987fd414fb7c7adffbe638cd98bde7a"
++COMPATIBILITY_UPSTREAM = "ffbd90dd90dbe0055464f3a1411b25a3a4fdc6b8"
++COMPATIBILITY_PATHS = frozenset(("scripts/audit_fused_block.py",
++                                 "scripts/exclusion_circuit.py",
++                                 "scripts/shared_point_circuit.py"))
+ sys.path.insert(0, str(HERE))
+ from cached_xor import CachedXorPermuter
+ 
+@@ -30,6 +35,21 @@ def check_sources():
+     manifest = json.loads(data)
+     require(manifest["base_commit"] == "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+             "Unexpected research base")
++    # Preserve the original scientific manifest. Only these three transitive
++    # imports use explicitly reviewed current-main bytes; no core/fixture override.
++    data = (HERE / "COMPATIBILITY.json").read_bytes()
++    require(sha256(data).hexdigest() == COMPATIBILITY_SHA256,
++            "Compatibility manifest mismatch")
++    compatibility = json.loads(data)
++    require(compatibility["upstream_commit"] == COMPATIBILITY_UPSTREAM
++            and compatibility["original_manifest_sha256"] == MANIFEST_SHA256,
++            "Unexpected compatibility baseline")
++    require(set(compatibility["files"]) == COMPATIBILITY_PATHS,
++            "Unexpected compatibility paths")
++    for relative, record in compatibility["files"].items():
++        require(record["original"] == manifest["files"][relative],
++                "Compatibility predecessor mismatch: " + relative)
++        manifest["files"][relative] = record["current"]
+     for relative, record in manifest["files"].items():
+         path = (ROOT / relative).resolve()
+         require(path.is_relative_to(ROOT), "Source escapes repository")
+diff --git a/research/cube-xor-replay/test_replay.py b/research/cube-xor-replay/test_replay.py
+index 74f94acd0..f97e7ca1c 100644
+--- a/research/cube-xor-replay/test_replay.py
++++ b/research/cube-xor-replay/test_replay.py
+@@ -174,6 +174,9 @@ class PackageTests(unittest.TestCase):
+ 
+     def test_changed_source_and_expected_certificate_rejected(self):
+         for relative in ("scripts/experiments/cube_core_family.py",
++                         "scripts/audit_fused_block.py",
++                         "scripts/exclusion_circuit.py",
++                         "scripts/shared_point_circuit.py",
+                          "certificates/cube-core-family.json", "upstream/README.md"):
+             path = self.root / relative
+             original = path.read_bytes()
+@@ -200,6 +203,7 @@ class PackageTests(unittest.TestCase):
+ 
+     def test_manifest_and_t6_fixture_changes_rejected(self):
+         for name, message in (("SOURCES.json", "Source manifest mismatch"),
++                              ("COMPATIBILITY.json", "Compatibility manifest mismatch"),
+                               ("EXPECTED-T6.json", "Fixture pin mismatch")):
+             path = self.package / name
+             original = path.read_bytes()

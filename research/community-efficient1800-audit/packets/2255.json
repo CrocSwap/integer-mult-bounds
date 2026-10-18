@@ -1,0 +1,477 @@
+{
+  "schema_version": 1,
+  "number": 2255,
+  "title": "Audit: live-byte source-pin drift after merged replay-speed tooling (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2255",
+  "head": "15836362a3cf17d245db8a01d930a12868c043bd",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "research/live-pin-drift-audit-seed5985/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a179a36a90b1b3920c2bc80c57757fe3169352cf"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/live-pin-drift-audit-seed5985/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f398f5ae67251dec0f8fd080b4d5c2f6d8d91f0c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/live-pin-drift-audit-seed5985/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "26d38aa595d5a2d28d5303a82256a70b6c85dd13"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/live-pin-drift-audit-seed5985/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fb23484df813348c505d42506fc189c3b24b6348"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/live-pin-drift-audit-seed5985/TASK.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "21dfcf35cf9c2bafe18ba5edcc1580452e32eaec"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/live-pin-drift-audit-seed5985/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3503c1173dd7dd47830eaa972a592ab3c3259071"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/live-pin-drift-audit-seed5985/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fe91cf797811825c641e4b0d7f2008b64526d361"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/live-pin-drift-audit-seed5985": 7
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "# Audit: live-byte source-pin drift after merged replay-speed tooling\r\n\r\nAaron Wang, with help from opencode (substantial AI assistance). Apache-2.0. No new kappa; no certificate, pin, frozen package or selected-frontier change.\r\n\r\n## Scope\r\n\r\nDrawn card `replay-runtime` (track verifier-engineering, chooser OS nonce `5985f17ee9293abc98cbb69a85efb569`), scope refined: the card asks whether one measured replay bottleneck can be sped up without dropping coverage. The `ExclusionCircuit.verify` speedups are already merged, so this audits their coverage-retention side effect and supplies the missing explicit dependency invalidation as a deterministic drift ledger with negative controls. Package: `research/live-pin-drift-audit-seed5985/`. Base `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`. Task card, scope status and reasons are in `TASK.md` and `TASK.json`.\r\n\r\n## What a pin means here\r\n\r\nThe audit enumerates every JSON `{repo path: sha256}` entry (exact rule recorded in `RESULT.json`) and separates two populations that are usually conflated:\r\n\r\n- **Live pins**, consumed by a checker that hashes the current file: shape **L**, `check_sources`-style `\"files\": {path: sha256}` maps (for example `research/skip-clones/SOURCE.json`), and shape **R-input**, `scripts/research_package.py` `SOURCES.json` records with `usage: \"input\"`, which that validator checks against working bytes (\"working source drift\").\r\n- **Receipts**, which record a historical digest and are never compared to live bytes: `usage: \"provenance\"` records (shape **R-provenance**, bound to the immutable blob at the package's base commit) and all other `{path: sha256}` entries (shape **P**, for example the catalogue SHA-256 recorded in claims and ledgers). Drift in this population is expected and harmless.\r\n\r\n## Established (all recomputed by `verify.py`; full ledger in `RESULT.json`)\r\n\r\n| Shape | Pins | Match | Drift | Unresolved | Ignored |\r\n|---|---:|---:|---:|---:|---:|\r\n| L (check_sources live) | 20,737 | 19,735 | 127 | 46 | 829 |\r\n| R-input (research_package live) | 1,841 | 1,814 | 22 | 0 | 5 |\r\n| R-provenance (historical blob) | 1,363 | 806 | 517 | 0 | 40 |\r\n| P (provenance receipts) | 2,457,086 | 2,379,080 | 16,673 | 2,215 | 59,118 |\r\n\r\nTotal 2,481,027 entries across 17,525 JSON manifests (2 manifests unreadable). The 149 live-drift pins touch 48 distinct files.\r\n\r\n1. Smallest falsifying instance, reproduced exactly: `research/skip-clones/clone_io.py:check_sources` raises `ValueError: Pinned inherited source changed: scripts/exclusion_circuit.py`. Its manifest recorded `b253f9d7318b...`, equal to the file's blob at the manifest's own last commit `c02590dd`; the current bytes hash `f9fbcd6e85e4...`. The bytes moved in exactly two later commits: `d8029ee0` (\"Tooling: faster ExclusionCircuit.verify leave-two-out supports\", blob `40bdb64670...`) and `d7d8bfcb` (\"Tooling: fold ExclusionCircuit.verify_embedding reverse masks into [PR 2001](https://github.com/CrocSwap/integer-mult-bounds/pull/2001)\", blob `f9fbcd6e85...`, https://github.com/CrocSwap/integer-mult-bounds/pull/2001 ). The package's `make skip-clones-verify` replay and `tests/test_skip_clones.py` cannot run at base. The speedups updated the shared certificate pins they touched (`certificates/dyadic-central-factor.json` and three siblings now record `f9fbcd6e85...` and verify clean) but left older frozen packages' live pins stale.\r\n2. Registered rejections, reproduced exactly: `scripts/research_package.py --check-only` fails `research/clean-selector-embedding` and `research/complex-frame-plane-rail-seedca04cc` with `working source drift: docs/research/agent-task-catalog.json` (recorded `6686ad58f1...`, current `d46eb6d5b3...`, changed by priority revision 4) and `research/complex-cartesian-grid-screen-seed506af` with `working source drift: docs/research/bottleneck-brief.md` (recorded `a5e3165696...`, current `bbc9396c5c...`). Of the 22 drifted R-input pins, 10 pin evolving documents (task catalogue, bottleneck brief or PR ledger) as `usage: \"input\"`, so any later document update disables those replays; the other 12 pin tool scripts changed by the speedups above or later tooling.\r\n3. Provenance is recorded for every live-drift pin in `RESULT.json`: for each (manifest, pinned path) pair, the manifest's last commit, the pinned file's blob digest at that commit, and every later commit touching the pinned file with its blob digest. Of the 149 pairs, 68 record a digest equal to the file's blob at the manifest's last commit; 70 record an older state (typical of vendored review snapshots); 11 pairs have no blob at that commit.\r\n\r\n## Reproduce\r\n\r\n```sh\r\npython3 -I -B research/live-pin-drift-audit-seed5985/verify.py\r\n```\r\n\r\nExpected and observed under the registered Python 3.12 replay:\r\n\r\n```text\r\nPASS_LIVE_PIN_DRIFT_AUDIT pins=2481027 manifests=17525 L(match=19735,drift=127,unresolved=46,ignored=829) R-input(match=1814,drift=22,unresolved=0,ignored=5) R-prov(match=806,drift=517,unresolved=0,ignored=40) P(match=2379080,drift=16673,unresolved=2215,ignored=59118) live_drift_paths=48 controls=7 skip_clones=ValueError\r\nPASS_REGISTERED_RESEARCH_PACKAGE research/live-pin-drift-audit-seed5985 outcome=completed\r\n```\r\n\r\nThe run recomputes the whole ledger and requires exact equality with `RESULT.json`. Seven controls pass: fixed headline digest; a matching pin reports clean (the refreshed `certificates/dyadic-central-factor.json` pin of `scripts/exclusion_circuit.py`); a corrupted digest registers as drift; a missing target is unresolved; a non-repository key is ignored; a malformed `\"files\"` map is not treated as a live manifest; and the `--write` mode's independent second enumeration is byte-identical. `python3 -B -m unittest discover -s tests -p 'test_research_*.py'` passes (65 tests, OK, 5 skipped).\r\n\r\n## What this does not establish\r\n\r\nNo pin is repaired here: refreshing a frozen package's recorded digest would rewrite the evidence the pin protects, and vendoring freeze-time bytes would change frozen files. Both are maintainer decisions, so this PR stops at the exact ledger and the two reproductions. `research/shared-point-digest` and `research/mixed-point-scalar-digest` already record the decision as an open question (\"Pin repair is outside this tooling change\"), and this ledger is the data that follow-up needs. Drift disables replay checks; it does not falsify any mathematical certificate. The audit covers JSON `{path: sha256}` pins only, not Makefile targets, environment pins or non-JSON manifests. Two of 17,525 manifests were unreadable JSON and are counted, not audited. Drift counts for the receipt populations (P, R-provenance) are context, not defects.\r\n\r\n## Open next questions (full versions in the package README)\r\n\r\n1. Pin-repair policy for the 149 live-drift pins: refreshed digest with old digest retained, vendored freeze-time bytes, or a replay declared historical and bound to its recorded commit. First step: one option on `research/skip-clones` alone, rerun `tests/test_skip_clones.py`. Blocked by: maintainer authorization to touch frozen pins or bytes.\r\n2. Should `usage: \"input\"` be reserved for genuinely required live tools instead of evolving documents? Ten packages pin the catalogue or brief as live input, so every priority revision disables them. First step: one distinguishing sentence in `docs/research/research-package-guide.md`.\r\n3. Run this deterministic audit in CI against a recorded baseline so only new live drift fails (the audit recomputes in about 100 seconds).\r\n\r\n## Overlap, credit and limits\r\n\r\nEntry overlap and a pre-submission refresh (2026-10-15 02:17-02:19 UTC, 482 open PRs, 961 discussion records, complete pagination, terms \"source pin drift\", \"working source drift\", \"pin repair\", \"Pinned inherited source changed\", \"exclusion_circuit\") found no open PR or claim on this object; matches were this package, the predecessor tooling packages and the two recorded pin-repair open questions. Coverage is not a novelty certificate.\r\n\r\nPredecessors: Chafik Boukhalfa (`research/skip-clones`, whose pinned replay is the smallest falsifying instance); Douglas Colkitt (`scripts/research_package.py` and its input/provenance distinction); the authors of `research/exclusion-support-masks`, `research/exclusion-embedding-masks` (https://github.com/CrocSwap/integer-mult-bounds/pull/2001 ) and `research/disjoint-tensor-support-masks` (the merged speedups under audit, which already updated the shared certificate pins they touched); the authors of `research/shared-point-digest` and `research/mixed-point-scalar-digest` (the recorded \"Pin repair is outside this tooling change\" open questions); woklerx (`research/git-provenance-stream`, pin-validation tooling precedent). No predecessor code was imported; the verifier only executes `research/skip-clones/clone_io.py` and `scripts/research_package.py` as black-box reproductions of their own checks. Not run: the full historical replay suite, any cold supplier replay, remote CI, and any repair of the drifted pins.\r\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477414/job/116212179217"
+    },
+    {
+      "name": "plan",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477364/job/116212179508"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477455/job/116212179530"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477529/job/116212179657"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179839"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477424/job/116212179322"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477414/job/116212179493"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477455/job/116212179361"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477529/job/116212179890"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179865"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477424/job/116212179569"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179772"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179786"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179951"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179874"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179941"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179755"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179932"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179946"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179779"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179855"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179948"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179907"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179909"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179762"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179966"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179848"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179827"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179822"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179759"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212180042"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212180080"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179997"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179942"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179893"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179863"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212180073"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179990"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179789"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179998"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179842"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179956"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179944"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179915"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179901"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179806"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212180056"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179994"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "COMPLETED",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212180157"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179896"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212180032"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179877"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179985"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179986"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179911"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179838"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179989"
+    },
+    {
+      "name": "replay (research/live-pin-drift-audit-seed5985)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477364/job/116769979509"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179362"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179507"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179546"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38670477361/job/116212179626"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "36b9ec5575d0608fb90fd5f879c3a9acfc8ca8631ab9f87e6ab004becfbcac0b"
+}

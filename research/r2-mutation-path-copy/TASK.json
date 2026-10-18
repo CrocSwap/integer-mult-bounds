@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 6,
+  "base_commit": "463113d675af7410ac91d53a4fed51ec6494eb9a",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Eliminate the measured whole-fixture deepcopy bottleneck in all 32 retained R2 semantic mutation tests with source-specific path copies; compare with unchanged deepcopy and the credited checked-marshal baseline.",
+  "scope_change_reason": "Explicit user optimization assignment follows PR3218 remaining-cost handoff. Profiling identified whole-fixture mutation copying as the dominant cost; the task does not change mathematical predicates or the comparator.",
+  "bottleneck_link": "Faster complete audits make the existing source/event/native failure checks cheaper to run and review without dropping mutants.",
+  "budget_minutes": 60,
+  "stop_rule": "Session 2026-10-17T18:23:43Z to 19:23:43Z; final 15 minutes for verification and handoff. Stop on any full-mutant, named-rejection, original-fixture-isolation or source-binding discrepancy. One exact two-provider caller only.",
+  "outcome": "completed",
+  "evidence": "BENCHMARK.json records nine fresh serial runs: 5.365x complete-audit speedup over deepcopy and 1.691x over the credited checked-marshal baseline. RESULT.json records all 32 complete mutant/deepcopy equalities, all original named rejections and 253 identical operator decisions. PROOF.md gives the source-specific write-footprint argument.",
+  "author": "Tekalign (@tekuuu)",
+  "ai_assistance": "Substantial OpenAI Codex assistance in profiling, implementation, proof, tests, benchmarking and writing; no independent human/proof-kernel review.",
+  "open_questions": [
+    {
+      "question": "Can another current audit prove a similarly narrow mutation write footprint?",
+      "why_it_matters": "Large mutable fixtures can make fault injection more expensive than the actual predicates.",
+      "first_step": "Profile a named source-pinned caller, list actual mutation writes, compare every complete optimized mutant with original deepcopy, and benchmark against checked marshal.",
+      "blocked_by": "No generic alias-safe deepcopy replacement or other-caller speedup is established."
+    },
+    {
+      "question": "Can the remaining R2 frame/event replay be accelerated without caching acceptance?",
+      "why_it_matters": "After eliminating fixture copies, repeated source/event reconstruction becomes the main cost.",
+      "first_step": "Profile the unchanged predicates, then prove any frame-value reuse preserves type/rank checks and complete invalidation.",
+      "blocked_by": "This package intentionally changes only mutation isolation; no event acceptance or frame cache is introduced."
+    }
+  ],
+  "assignment": {
+    "seed": 21,
+    "randomness": "operating-system CSPRNG via secrets.randbelow(100)",
+    "track": "verification engineering",
+    "override": "Explicit user request for substantial runtime optimization takes precedence over random track allocation."
+  },
+  "candidates_considered": [
+    {
+      "object": "R2 mutation fixture copying",
+      "decision": "chosen: 99.6 of 109.4 profiled seconds in deepcopy after PR3218"
+    },
+    {
+      "object": "repeated binary spans",
+      "decision": "deferred: much smaller measured cost"
+    },
+    {
+      "object": "larger PR3038 native-cone caller",
+      "decision": "deferred: preserve one completed current-fixture contribution"
+    }
+  ],
+  "coordination": {
+    "claim": "https://github.com/CrocSwap/integer-mult-bounds/discussions/2612#discussioncomment-19002641",
+    "base_commit": "463113d675af7410ac91d53a4fed51ec6494eb9a",
+    "priority_revision": 6,
+    "overlap": "Current PR3218 and PR3202 heads unchanged; #3209 reader cache and its macOS replication, #3219 Fano table work, and #3208 cleanup audit are distinct. #1939 checked marshal copy is incorporated as the stronger baseline. Initial all-PR/Discussion metadata used the prior dated complete snapshots plus fresh top-30 open PRs, open issues and last 12 central claims/handoffs; metadata scope is not a novelty certificate.",
+    "submission_refresh": {
+      "main": "463113d675af7410ac91d53a4fed51ec6494eb9a (unchanged after successful submission fetch; confirmed by 19:01 UTC)",
+      "coverage": {
+        "open_prs": {
+          "fetched_at": "2026-10-17T18:59:00.566426+00:00",
+          "complete_pagination": true,
+          "records": 284
+        },
+        "discussions": {
+          "fetched_at": "2026-10-17T19:00:51.622339+00:00",
+          "complete_pagination": true,
+          "records": 2059
+        },
+        "closed_prs": {
+          "fetched_at": "2026-10-17T19:01:49.491313+00:00",
+          "complete_pagination": true,
+          "records": 2630
+        }
+      },
+      "warnings": [],
+      "dependency_heads": "PR3218 a93c4f0bfcac21bf9c62c79728c8936e35ebbc3b and PR3202 259043321323717b7e816d6be38ad5e1f0b69b4c remain open, unchanged and without review/comments at refresh.",
+      "limits": "Complete pagination of PR titles/bodies and Discussion metadata; focused semantic inspection, not all code diffs or unpublished work."
+    }
+  },
+  "validation": {
+    "registered_python312": "Both registered commands passed on CPython 3.12.14, including complete 32-case differential replay, original predicates, isolation controls and source-corruption/Git-free optimized replay.",
+    "python314": "CPython 3.14.7 Git-free optimized replay and controls passed; complete differential verification also passed with -I -O -B.",
+    "retained_sources": "All 27 retained files match exact git-show source bytes. BENCHMARK matches RESULT on all 40 input hashes, complete-result/circuit-decision digests, mutation names and footprints; measured adapter hash matches final code.",
+    "scope": "No native producer regeneration, new supplier/outer or selected cold replay; no new kappa. Benchmark is one shared Linux host."
+  }
+}

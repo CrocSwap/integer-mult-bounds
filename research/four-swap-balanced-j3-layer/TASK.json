@@ -1,0 +1,65 @@
+{
+ "schema_version": 1,
+ "task_id": "bit-new-register-model",
+ "priority_revision": 3,
+ "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+ "original_card": {
+  "id": "bit-new-register-model",
+  "question": "Can an explicitly larger or nonabelian register model escape the scoped three-register obstruction?",
+  "starting_points": [
+   "research/bit-three-register-lower-bound/README.md",
+   "certificates/selected-result.json"
+  ],
+  "methods": [
+   "Construct the smallest exact identity in a newly specified legal operation alphabet.",
+   "Derive a target-specific relaxation bound for that same explicit alphabet."
+  ],
+  "acceptance_gate": "Name the changed hypothesis, all counted roles and a uniform identity; finite column tests alone do not certify it.",
+  "first_step": {
+   "command": [
+    "python3",
+    "-B",
+    "scripts/research_baseline.py"
+   ],
+   "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+   "inspect": "Read Model section 1 of the three-register bound and identify the exact excluded free operations.",
+   "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+  },
+  "first_experiment": "Write a complete operation alphabet outside one named premise and price a baseline before searching identities.",
+  "bottleneck_link": "A small-width completed saving changes the bit primitive; a finite-address identity alone is insufficient.",
+  "allowed_variations": [
+   "Choose a fixed larger register count or a specified nonabelian operation family."
+  ],
+  "scope_change_triggers": [
+   "Remaining inside the already-excluded three-register abelian model."
+  ],
+  "overlap_terms": [
+   "three-register",
+   "nonabelian",
+   "group algebra"
+  ]
+ },
+ "scope_status": "refined",
+ "actual_scope": "Balanced (5 a-labels, 5 b-labels) ten-call words for T = diag([S],[S],[S],[S]) at exactly r = 4 in the formal F2[GL_2(F2)] rank-one-idempotent register model, via the proposed J^2-coefficient-layer expansion in F2[G]/J^3 plus a bounded exact full-formal search over the balanced profile.",
+ "scope_change_reason": "The card permits a fixed larger register count. This is the named residual of the four-SWAP r=4 line: https://github.com/CrocSwap/integer-mult-bounds/pull/1705 narrows the minimum to q in {8,10,12}; the concurrent saturation claim https://github.com/CrocSwap/integer-mult-bounds/discussions/1715 explicitly leaves 'the ten-call balanced case' outside its session; and the handoff https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18918391 names the J^2-layer bound in F2[G]/J^3 as a smallest useful next task.",
+ "bottleneck_link": "A balanced ten-call word would price four coordinate-SWAP targets below the 12-call direct bill inside the bit register model; scalar or partial words alone change nothing, and no kappa or selected-supplier change follows either way.",
+ "stop_rule": "One bounded seeded search pass at the stated budget (6,000,000 conditioned samples), one route decision: if the J^3 layer cannot separate the balanced profile, record the exact obstruction and stop the layer route rather than raising the budget.",
+ "evidence": "research/four-swap-balanced-j3-layer/verify.py exact bit arithmetic: augmentation dims (5,4,4) with J^2 = J^3 so R/J^3 is the sign quotient F2[z]/(z^2); the layer equation is machine-checked equivalent to sum N_i = I_r (200/200 random instances); expansion identity prod(1+eps) = 1 + sum eps + sum_{i<j} eps_i eps_j mod J^3 checked on seeded random words; four direct control words (3/6/9/12 calls) hit their targets; four mutation controls fail; r=1 and r=2 balanced search controls find known witnesses; 6,000,000 conditioned samples (22,903 valid tuples x 252 labelings = 5,771,556 exact M_4(F2[G]) checks) find no balanced ten-call word realizing the target.",
+ "outcome": "partial",
+ "author": "Aaron Wang",
+ "ai_assistance": "with help from opencode",
+ "open_questions": [
+  {
+   "question": "Can the balanced (5,5) ten-call profile realize T = diag([S],[S],[S],[S]) at r = 4 at all, now that the J^3 layer is known to be vacuous for it?",
+   "why_it_matters": "It is the only sub-12 four-SWAP candidate left once label saturation is proved, so it decides whether the four-SWAP minimum is 10 or 12.",
+   "first_step": "Use the surviving full-word structure instead of the augmentation layer: the natural 2-dimensional image in M_8(F2), or an order-sensitive invariant from the commutator [([a]+1),([b]+1)] = [ab]+[ba] in J^2, on the same balanced domain.",
+   "blocked_by": "J^2 = J^3 in F2[G], so no second augmentation layer exists; any further exclusion must use word order or a different quotient of F2[G]."
+  },
+  {
+   "question": "Does the balanced-profile obstruction at r = 4 persist at r = 5 with one restored dirty extra register?",
+   "why_it_matters": "It is the smallest falsifying instance of 'workspace cheapens the tariff' for four SWAP targets and tests whether register growth changes the picture.",
+   "first_step": "Rerun the same conditioned search at r = 5 with target diag([S] x 4, 1), conditioning on sum N_i = diag(I_4, 0): the restored fifth role carries the identity boundary, so its target augmentation is zero and the sign quotient forces diag(I_4, 0), not I_5 (corrected after review follow-up; the earlier I_5 wording would exclude every solution to that endpoint).",
+   "blocked_by": "The r = 5 balanced question itself is open; only the r = 4 balanced domain was searched here."
+  }
+ ]
+}

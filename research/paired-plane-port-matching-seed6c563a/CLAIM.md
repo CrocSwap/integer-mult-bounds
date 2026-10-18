@@ -1,0 +1,12 @@
+# Paired plane-port decoder — claim and finding
+
+- Track: `recursive-interfaces`; seed `6c563a22f0431d23354e2a3279f9b61c`; task `coverage-law-change`; priority revision 3.
+- Base: `0b1cccf86e2f5132ed286a26ef0a681a495740ea`; selected-record SHA-256 `10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32`.
+- Question: for the selected 112 labels, can a perfect matching on `q_i dot q_j = 0`, assigning each matched pair the shared plane `span(q_i,q_j)`, factor the full selected pairing matrix through exact plane queries?
+- Changed contract: paired plane ports use source `E_t -> FULL` and target `0 -> E_t^perp`, with two intended unpaid coordinates per family.
+- Method/domain: complete 112-vertex label graph; deterministic minimum-remaining-degree perfect matching; exact 81 by 224 F2 solve; full 112 by 112 matrix check; exact Gaussian-dyadic check on all 512 dirty basis inputs for each matched plane; B14 support-pairing ranks; exact-rational changed-law screen.
+- Predecessors: #1587 comment 18914510 established the exact plane-port endpoint on small instances and posed the 112-port decoder question; comment 18915563 released an earlier broad decoder claim. Later #1587 comment 18921569 and open PR #1808 provide budget thresholds but no decoder. This result extends the small-instance endpoint to one symmetric matching and global factorization, not the complete all-cost charged route.
+- Finding: 56 matched planes; 40 zero, nine rank-one and seven rank-two matrices; 16 active queries; exact copy charge `C=126` (nine rank-7 plus seven rank-9 terms); 56 plane translation labels; 28,672 exact endpoint basis checks; four negative controls. The favorable complex relaxation has `a_hi=0.003447203501` at unpaid=2 and centre=126.
+- Limits: route ownership, frame schedule, hosting, full restoration, precision/interface costs, bit-side construction and joint assembly remain open. No new `kappa` or integrated bound is claimed.
+- Claim expiry: 2026-10-14 12:55:22 UTC. It was retained locally while GitHub mutations were rate-limited, then posted with the finding to [Discussion #1587](https://github.com/CrocSwap/integer-mult-bounds/discussions/1587#discussioncomment-18922247). An [attribution correction](https://github.com/CrocSwap/integer-mult-bounds/discussions/1587#discussioncomment-18922278) clarifies that comment 18914510 established the small-instance plane-port endpoint.
+- Package: `research/paired-plane-port-matching-seed6c563a/`; reproducible command: `python3 -B research/paired-plane-port-matching-seed6c563a/verify.py`.

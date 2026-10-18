@@ -1,18 +1,22 @@
 name: Verify recycled bit registers on the paired-cube bit word
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
+
+# Historical sweeps are opt-in; dispatch one at a time.
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
 
 jobs:
   certificate:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.14']

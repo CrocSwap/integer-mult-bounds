@@ -1,0 +1,17 @@
+# B254 NOTES: the 161 never-read-by-Y-in-B helpers on k8 word #1018. VERDICT: NONE REMOVABLE. 96/161 rotation-locked (exact algebra), 65/161 algebraically removable but 0/65 frame-feasible (single, joint-65, joint-53). No splice, no kappa built; ship=false, nothing pushed.
+Tools (this dir, single process <10 s): set161.py (the 161 = non-centre helpers with no Y-target event in B/gauge; matches B251 73+48+40), roles2.py, rm161.py (B249 scan.track algebra), sim161.py (B249 lazy-frame climb sim, singles + closures), joint.py, ops.py (exact op listing). Baseline sim mass 5586 reproduced.
+## Role table (161 = 4 families, exact)
+| family | n | class | what it is | removable? |
+| F1 C-glue + A-rotation | 49 | cold0/endFULL | A-phase gauge rotations (scale + h<->x rotation ops in A), read by precondition-compensation C ops (Y += h/4 style dirt cancel, ~32 Y rows each, e.g. h225), cleaned in L | NO: rotation-locked (read-by-source) |
+| F2 C-glue, no rotation | 24 | cold0/endFULL | same C compensation role without A scale: 12 alg-OK (h408: A copy chain r92->h, B574/B986 feeds helper 572/376, E98 undo, L cleanup), 12 rotation-locked | 12 alg-OK but frame-infeasible (B574: F dim 3 not inside parity end of target helper chain; 4 of them B574/657/595/615), 12 locked |
+| F3 A-scaffold rotations | 35 | cold0/endU | A-only gauge rotations/block totals (h273: ~40 A ops, dims 0-4, scales), E early-cleanup write-back; no real B value | NO: rotation-locked (35/35) |
+| F4 B-relay copies | 53 | 13 cold0/endU + 40 enter1/endFULL | NOT A-phase: a copy h+=s at B frame 3, read by ONE helper x at frame 6 (x is a real Y carrier, so h is a 2nd-tier decoupler invisible to B251's Y-delivery view), undone in E/L; A reads only frame-0/1 gauge (e.g. h500: B768 h+=r310, B976 r262+=h, E102 undo; h474: A1239 gauge, B727 h+=r279, B982 r456+=h, L undo chain) | alg-OK (53/53, no rotation) but frame-infeasible 53/53 |
+(sum 49+24+35+53=161; 1 cold0/endU Brelay+Awr rotation-locked is counted in F3.)
+## Q2 result (exact, B249 sim)
+- Algebra: 65 pass (12 F2, 13+40 F4); 96 locked (49 F1, 12 F2, 35 F3).
+- Remat of each of the 65 (reader reads source directly): 0 feasible. F4: first violation at B1432-1728, a Y target (regs 112-219) raised to F dim 9 > end 8 (the reader x now carries s's later dim-7/8 frame into a Y partner; identical mechanism to B249: copy = frame decoupler). F2 four cases: F dim 3 not inside parity end of a Y-chain reg (B574/595/615/657).
+- Closures (recursive remat, cap 16) over all 161: 158 bail, 3 closed sets all infeasible. Joint removal of all 65 / all 53 F4: infeasible at first op (B574 / B1432). So no family can be carried by an existing source/target/centre register at a frame it already passes through: those registers have climbed to a different frame by read time (needs reorder of the register's own climb = SYN-23 reshuffle, or Y frame 9 = SYN-23A).
+- Consistent with B251: frames force ~111 helpers; these 161 are NOT dead weight: 53 are Y-adjacent relays, 108 are rotation/compensation scaffolding with algebraic locks.
+## Q3: nothing to splice (no feasible candidate), so no value replay, audit_local or kappa; ship bar 1.672654541898561e-3 untouched.
+## Blocker / next
+The only non-excluded route left for F4 (53, nominal ~-8 mass each) is escape (1)/(3) of B249: reorder s's climb after x's read, or a join-frame relay; both change op order. Not tried (time box). F1/F3 need a different gauge construction (rotation lock), not removal.

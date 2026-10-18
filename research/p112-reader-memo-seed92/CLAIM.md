@@ -1,0 +1,7 @@
+CLAIM — verification engineering, OS assignment seed **92**. Base `9ef085e6c07c8590329ad00b7eac382aef06124c`.
+
+Exact object: Mihir Srivastava's incorporated PR845 `research/p112-single-lift/verify.py`, specifically repeated binary reader-form evaluations in its complete 3,272-sign-case constraint stream. Method: source-pinned opt-in memoization keyed by the complete ordered reader basis and label, with bounded in-process storage; alternate fresh-process baseline/candidate pairs, compare every field of the original certificate and retain all original controls. Add changed-label/basis and collision controls. No new mathematics or kappa; frozen sources and selected frontier unchanged.
+
+Three candidates screened: exact moment kernels (overlaps retained exact-exp tooling), registered source-pin batching (overlaps #1452/#1595), and this PR845 reader-form kernel. Seed `92 mod 3 = 2` selects the third, after checking live bodies/Discussion claims. #1144 accelerates a different free-sink determinant audit; #1584 accelerates the finite-bit edge scorer; the active selected phase-replay claim is distinct.
+
+Expected deliverable: one opt-in verifier package with a full-certificate comparison, paired timings, meaningful fault controls, exact pins and a bounded replay hook. Expected finish **2026-10-14 05:53 UTC**; expires **06:10 UTC**. No pinned sprint issue exists; this claim will also be retained locally. Prepared for Charan (@theon199) with substantial OpenAI Codex assistance.

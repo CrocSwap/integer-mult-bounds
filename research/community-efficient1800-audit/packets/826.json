@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "number": 826,
+  "title": "Independent audit: confirm \u03ba of #699 (0.001660666354374641) and #685 (0.001660339298410333)",
+  "author": {
+    "id": "MDQ6VXNlcjk4Mzc5MDc=",
+    "is_bot": false,
+    "login": "Rohansguliani",
+    "name": "Rohan Guliani"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/826",
+  "head": "ea3ceae40d5fa19dc0361d3f15546df0182459c4",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "CONTRIBUTORS.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "393701bd88d9e77cef9e3fbfc44411f2c493ea9d"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a5d2d518bccc8005ed59e6f87fa877fbcb4d0ed2"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "docs/research/pr-ledger.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "484aa3037f56f8e44ab412c54f0224feda5b0f30"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "05b9a250824f252dbd1bf528ab0fe0e545d53a8e"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "research/pr-record699-685-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c8c64df14c615d6740c6b6478daba6a78218658c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr-record699-685-audit/independent_check.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6685f88de409ef3a05a34455faff3cf7b4aaf288"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr-record699-685-audit/replay.sh",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7e50d73265735e9565140bcdcc1b615dc1ebceb9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "CONTRIBUTORS.md": 1,
+    "docs/research": 1,
+    "research/pr-record699-685-audit": 3
+  },
+  "github_reported_file_count": 5,
+  "complete_git_file_count": 5,
+  "body": "Independent finite audit of the two newest \u03ba-record PRs by **Rohan Guliani (@Rohansguliani)**. Both submitted \u03ba values are **confirmed exactly**. No mathematical, owner-map or arithmetic error was found. This PR does not change the selected bound.\n\n| PR | Reviewed head | Base / first parent | \u03ba | binding b |\n|---|---|---|---:|---:|\n| #699 (jeremykothe2) | `03e8d7ca494a083e5053cd6b1228f66b98414479` | `66849e1475c930fd7732b1a0067ffee7e1e95f60` | `0.001660666354374641` | complex `0.001663428754540205730067` |\n| #685 (chafreaky) | `5fc2a0c4e10558f09f03a8e42559dcf8e381e57e` | `17ce0c79b7b51c2634b439ea5a2b754f09909693` | `0.001660339298410333` | complex `0.001663100609709845015347` |\n\nBoth records use the #589 bit supplier, c = `0.001733427039589844234749`.\n\n**Base commit:** `66849e1475c930fd7732b1a0067ffee7e1e95f60`\n\n**Reproduce (one command, about 71 min on Linux, Python 3.13.7):**\n\n```sh\nPYTHON=/path/to/python-with-numpy bash research/pr-record699-685-audit/replay.sh /tmp/new-output-dir\n```\n\nThe command ended with exit code 0. It does the following:\n* Freshly constructs and replays both packages. This includes #699's strict global admission and two-engine outer-47 price, and all 20 stages of #685's `verify.sh`.\n* Runs `independent_check.py`, which imports no repository code. It recounts frames and ranks from the raw gates, replays the exact rational scalar maps and Horner invoices, and checks the literal 72\u00d7504 owner maps. It also brackets b and c strictly within 10\u207b\u00b2\u2074 with its own rational log/exp enclosures and recomputes the \u03ba grid point. It confirms that SW4 leaves #699's end-of-B map unchanged on all 728 columns, and that #699 and #685 occupy the same 36,288 physical slots.\n* Rejects these negative controls: b \u00b1 2\u00b710\u207b\u00b2\u2074, \u03ba + 10\u207b\u00b9\u2078, and one moved owner offset.\n\nThe standalone #589 bit-circuit pipeline (`research/e8-bit-p111-tuned/tune/verify.sh`, with Boost) was also replayed separately. It reproduces the `nine` record in both PRs' byte-identical `PR589-EXPECTED.json`.\n\n#699 has since gained `f042731`. It changes only the package README and MANIFEST, fixing the PLAN/OWNERS wording noted in https://github.com/CrocSwap/integer-mult-bounds/pull/699#issuecomment-6138514968. The audit stays pinned to `03e8d7c`.\n\n**Credit:** This audit builds on Jeremy Kothe's #699 and his #659/#676 line, and on Chafik Boukhalfa's #685. It also builds on icekylinx's #645, #664's promotions, PR635's local compiler/auditors and eumemic's merged #589. Their notices and credits are retained.\n\n**Scope:** This is a finite replay. The inherited all-size, hosting, precision and analytic-transfer assumptions remain open. It is not a formal verification of the multiplication theorem, and it makes no packing-optimality claim.\n\n**License / AI disclosure:** Apache-2.0. This audit was prepared with substantial AI assistance through Mux (OpenAI GPT-6 Astra and Claude Opus 5.5).\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "1f874cd43ccc068abbafa9be528d8e64f6793c4a35b4f6c10375ee068a8eef5f"
+}

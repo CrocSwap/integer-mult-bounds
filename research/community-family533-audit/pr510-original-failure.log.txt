@@ -1,0 +1,31 @@
+== 0. manifest (MANIFEST.json), vendored provenance (SOURCE.json git blob ids), pinned parent manifests  [0s]
+   26 package files match MANIFEST.json; 14 vendored files match PR #463 (head cdf0c1c) by git blob id; 7 of them are also byte-identical to PR #493's vendored copies
+== P. parent: PR #503 verify.py --light (R480 rebuilt and checked by PR #493's full chain at eleven stages)  [0s]
+: ('(1) a target feeds a z register', [('B', 5), ('B', 6)])
+      accepted by the relaxed checker (F2 map unchanged); REJECTED by interface.py :: AssertionError: ('(1) a target feeds a z register', [('B', 0), ('B', 1)])
+   PASS interface.py: 2 hypothesis controls rejected
+== 3. official cohort checkers: legality (NCOPY = 9), five-stage columns, eleven-stage columns (KPAIRS = 5)  [34s]
+   legality PASS: 36916 records, 33958 common-frame ADDs, rank mass 5592, 9 COPY/ERASE at the full frame
+   five-stage formal columns PASS: 960 columns over F2; prefix payload 102 bits < 104 (eleven-stage: 102 bits)
+   eleven-stage formal columns PASS: 1680 columns, 2880 bridge additions, 24/24 omitted-bridge controls rejected; columns_k at KPAIRS = 2 reproduces the five-stage receipt
+      REJECTED  drop a phase-B delivery ADD (columns: defining decoder)  [local defining-decoder full formal column]
+      REJECTED  ADD at a frame its registers do not stand at  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+      REJECTED  MOVE with a wrong rank  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+      REJECTED  COPY with a cheaper rank  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+      REJECTED  drop a dirt-compensation ADD (columns)  [local defining-decoder full formal column]
+      REJECTED  unchanged word with the copy count pinned to h = 8 (NCOPY unset)  [libc++abi: terminating due to uncaught exception of type std::runtime_]
+   PASS all 6 record-level negative controls rejected
+      legality passes (frames unchanged); five-stage columns REJECTED [local defining-decoder full formal column]; eleven-stage columns REJECTED [local defining-decoder full formal column]  <- drop one cleanup ADD into a source register
+      legality passes (frames unchanged); five-stage columns REJECTED [local defining-decoder full formal column]; eleven-stage columns REJECTED [local defining-decoder full formal column]  <- corrupt a source packet read in phase B (cleanup adjusted: every source still restored)
+      legality passes (frames unchanged); five-stage columns REJECTED [local defining-decoder full formal column]; eleven-stage columns REJECTED [local defining-decoder full formal column]  <- leave source register 0 unrestored (all its cleanup ADDs deleted)
+   PASS all 3 record-level mutable-source mutants rejected by both column checkers (legality unchanged)
+   control: the parent generator (first eligible register hosts each total) is REFUSED by columns_h: payload 129 bits >= 104; last-register hosting: 102 bits
+== 4. exact nondegeneracy (E8 Gram) and prime witnesses on every frame  [50s]
+   PASS e8ham Gram: 672 frames checked, all nondegenerate and positive definite; prime witnesses valid; max determinant bits 17; primes [2]; by dim {0: 1, 1: 120, 2: 180, 4: 70, 6: 180, 7: 120, 8: 1}
+== 5. eleven-stage whole-residual hosting (PR #445 geometry, PR #472 emitter and audit), exact price, assembly  [50s]
+Traceback (most recent call last):
+  File "/private/tmp/integer-mult-family-review/research/e8-r480-dead-totals/verify.py", line 171, in <module>
+    assert json.loads((WD / 'hosting-rediscovered.json').read_text()) == json.loads(HOST.read_text()), 'hosting differs'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: hosting differs
+FAILED: /private/tmp/integer-mult-review-venv/bin/python -B /private/tmp/integer-mult-family-review/research/e8-r480-dead-totals/verify.py /private/tmp/im510-review/parent --light

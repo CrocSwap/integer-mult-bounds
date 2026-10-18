@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "research/copied-fixed/data_corners.cpp",
+    "research/copied-fixed/data-corners.json",
+    "research/copied-fixed/certificate.json",
+    "research/data-corner-production/baseline.cpp"
+  ],
+  "commands": [
+    {
+      "argv": ["{python}", "-I", "-B", "{package}/verify.py"],
+      "timeout_seconds": 600,
+      "checks": "Exact baseline copy of the base-commit data_corners.cpp; production equals transform(baseline); identical complete receipts vs pinned data-corners.json; temp-copy column-fill corruption control; certificate differs from base only in the data_corners.cpp local_sha256 pin; duplicate JSON-key check; read-only default."
+    },
+    {
+      "argv": ["{python}", "-I", "-O", "-B", "{package}/verify.py"],
+      "timeout_seconds": 600,
+      "checks": "Same equivalence and pin discipline under -O (require() gates remain; C++ children still assert because NDEBUG is rejected)."
+    }
+  ]
+}

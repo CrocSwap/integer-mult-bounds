@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "number": 751,
+  "title": "Research: save 19,688 JP8 backward primitives with reverse Horner (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/751",
+  "head": "7a1a3a319da359ec8b6e83230a7fcf7733fac8e5",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/complex-jp8-fanin/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f536f227e5dec58728bd7e28290ead5c96c9d14c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f463968e214690be653163848999e148f10d97ce"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "153ced6b597b8ce05e3f48418d53d01a433c5afc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e1c5dff1f5a732f0e2c1f68ec19f122fa87776c8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d988cf60f6f45dfd03842142897a4e1fc5558b63"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "65625cf0903a0e1f2e9c7f6674be70359d6138e8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/check_columns.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8c303a3d1af28a029f3d53e2cb445a416339976d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/lowering.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e5fcbe353bc9b50066e492fca757a5b81b6c9f0f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-jp8-fanin/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d47209dc832b66bc83f35a07e451047cd9b67796"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/complex-jp8-fanin": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "The selected #626 backward JP8 cleanup repeatedly multiplies different sources by the same coefficient before adding them to one target. This finite circuit result collects those sources in one existing private stream and uses reverse Horner once per run. It saves **19,688 real-component primitives**, reducing the complete backward count from **257,280 to 237,592**. **Status: research construction / finite circuit improvement; no new kappa.**\n\nThe exhaustive domain contains **999 maximal runs / 3,022 additions**, all in the full-frame cleanup. Every source read, signed accumulation, halving, doubling and both scratch clears is charged. All live boundary maps and private clearing agree exactly. The complete backward prefix envelope remains unchanged at **101 bits**, within the inherited 192-bit allowance. Forward JP8 stays at 257,232 primitives.\n\nOnly `research/complex-jp8-fanin/` is added. It contains the executable circuit, proof, exact aggregate certificate and batch digest, source pins, independent checker, local sprint claim and validation record. The private-work interface clears at each new batch boundary instead of after each replaced scalar macro. No additional helper or paid frame/child event is introduced.\n\n### Reproduce\n\n```sh\npython3 -I -B research/complex-jp8-fanin/verify.py\npython3 -I -B research/complex-jp8-fanin/check_columns.py\n```\n\nExpected:\n\n```text\nPASS_JP8_REVERSE_HORNER_FANIN batches=999 additions=3022 real_saved=19688 columns=716 controls=12\nPASS_JP8_FANIN_COLUMNS blocks=999 local_columns=5020 real_saved=19688 omitted_clear_rejections=999\n```\n\nPython 3.11+, standard library, offline, no writes. Main replay checks all 716 live inputs plus eight arbitrary centre inputs and one arbitrary coefficient-work input, costs, prefix envelopes, the paid profile and committed receipt. Twelve controls exercise wrong signs, omitted source/target operations, clearing, halves/doubles, aliases, frame mismatch, invalid coefficients, cost inflation and endpoint-neutral prefix growth. The separate grouping and flat-vector column implementation checks 5,020 local inputs and rejects a missing final clear in every block.\n\nValidation passes on macOS arm64 with CPython 3.14.8 and 3.11.15, including isolated optimized execution. Gzip recompression passes; source and certificate corruption are rejected. `make selected-record-check`, Python syntax, local documentation links and staged whitespace checks pass. Two separately delegated Codex workers checked this narrow construction; no independent human review is claimed.\n\n### Provenance, related work and scope\n\n- Exact base: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. OS seed **27**, complex supplier track. Selected #626: `660de893d27bb7abd1d5b01b1640207528a5c851`; #622 construction: `f69477f4f6d3c7eb1f740b166881bffed4ffa9f6`. Eight source payloads have SHA-256 and Git-blob pins, with native/program identities checked against the selected SPEC.\n- Direct conceptual predecessor **@ellipsi2's #722** shares forward common-source preparation and reports no backward run in that class. This adds the backward common-target dual and its accumulated-source prefix argument. Concurrent **#739** extends forward sharing across magnitudes and still reports no backward join. No pending implementation is imported or combined invoice asserted.\n- #696/#723/#734 change individual coefficient lowering; #681 changes factory macros; #719 proves a CK fixed-middle obstruction. #745 adds independent reverse replay of original JP8 private centres. Their inspected heads and relationships are recorded, with no priority claim for private-input verification.\n- No pinned sprint issue exists, so the claim is local. The overlap check and source-head refresh are recorded in `VALIDATION.md`.\n- Credit to Jeremy Kothe and the #622 Claude Code contributors, Chafik Boukhalfa, icekylinx, DreamingOfClouds, Dugongue, eumemic and retained predecessors. Prepared for **Sagar Thakrar (@thakrarsagar)** with substantial **OpenAI Codex assistance**. Apache-2.0.\n\nThe selected certificate, existing supplier sources, global accounting and `upstream/` are unchanged. Full `make verify`, cold supplier regeneration, native phase/wrapper replay, global admission/assembly, Linux CI and Lean were not run. Production-emitter integration and any supplier promotion remain separate work. All inherited compiler, realization, hosting, precision/tape/recovery, bit-supplier and analytic assumptions remain. This finite scalar result does not formalize the multiplication theorem or claim a practical runtime speedup.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "dcf050bdbb644d7e4751625f82b30b626de645504d2eed22ba87f7463c8d5fcb"
+}

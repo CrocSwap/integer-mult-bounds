@@ -1,0 +1,192 @@
+Finite full-port fitting certificates
+=====================================
+
+Coordinates and scope
+---------------------
+The frozen Turyn generator returns integer coordinates x = sqrt(8) v.
+Each port has three eight-dimensional blocks with squared norms 16, 8, 8
+in some order. The profile is the position of the norm-16 block. There are
+7,680 ports per profile. A pair of distinct ports is active when all three
+block inner products are nonzero; only such pairs require binary dot zero.
+Every port requires self dot one. The tensor real kernel is the product
+of the three normalized block inner products and has rank 512.
+
+All witness edges are recomputed from these integer coordinates. The
+new finite checks do not assume that a glue-quotient edge can be lifted
+simultaneously with other edges to actual ports.
+
+Block-sign changes cannot repair the natural Leech labels
+--------------------------------------------------------
+The natural binary pairing in dimension 25 is
+
+    p(v).p(w) = 1 + (x.y)/8 mod 2.
+
+Write D_j = x_j.y_j and alpha_j = D_j/4 mod 2. At the witness edges, every
+D_j is divisible by four and their sum is divisible by eight. Flipping
+block j at one endpoint changes (x.y)/8 by -D_j/4. Flipping both endpoints
+adds the even cross term D_j/2. Thus arbitrary source signs a_j(v) and
+target signs b_j(w) would need to satisfy, on every active edge,
+
+    sum_j alpha_j (a_j(v) + b_j(w)) = 1 + sum_j D_j/8 mod 2.
+
+Each sign may depend on the entire port. Permitting every sign assignment
+only enlarges the family; the contradiction does not depend on proving
+that all sign choices preserve lattice membership.
+
+The four edges in SIGN-ASYMMETRIC.json have the following exact data:
+
+    source  target      (D_0,D_1,D_2)      right hand side
+         0     257          (-4,-4,8)              1
+         8     257          (-4,-4,8)              1
+         8     277          (-4,-4,8)              1
+         0     277          (-4, 4,8)              0
+
+Every alpha equals (1,1,0). Summing the four equations cancels every
+source and target variable twice, giving 0 = 1. The shared-label special
+case also has a three-edge contradiction, recorded in SIGN-SYMMETRIC.json.
+This excludes only these sign variants, not arbitrary 25-dimensional maps.
+
+Linear maps of the full affine Leech coordinates
+------------------------------------------------
+FEATURES.json specifies 24 lattice vectors whose integral-pairing Gram
+matrix is invertible modulo two. The feature vector is
+
+    phi(v) = (1, (v.b_1) mod 2, ..., (v.b_24) mod 2).
+
+The verifier checks all 23,040 feature rows, integrality, the basis Gram
+rank, feature rank 25 on each profile, and containment of the old nine-bit
+profile labels in these features. Label maps may be different in each
+profile. Let M_ab be the 25 by 25 Gram coefficient block between profiles
+a and b. A necessary cross-edge constraint is phi(v)^T M_ab phi(w) = 0.
+
+AFFINE-CROSS.json contains 625 independent actual-edge equations for each
+of the three cross blocks. Therefore M_ab = 0 for a != b. Within each
+profile the symmetric Gram block has 325 unknown entries. The 324
+independent equations in AFFINE-WITHIN.json leave exactly two solutions;
+both have rank 9. The verifier reconstructs both, checks all witness
+equations, and calculates their ranks by binary elimination.
+
+The block-diagonal feature evaluation map has full column rank 75, so
+the evaluated Gram matrix has the same rank as its coefficient matrix.
+Its rank is at least 9 + 9 + 9 = 27. This is a necessary-constraint proof:
+the finite witnesses need not certify each candidate on the full graph.
+The previously verified old 27-bit labels attain the bound. Nonlinear
+maps outside this affine feature family are not covered.
+
+A larger family with high-line indicators and quadratic glue features
+--------------------------------------------------------------------
+Each eight-port glue class is determined by its two low roots. Within
+each class, the eight high lines are ordered by the deterministic port
+enumeration. Let delta_k be the indicator of high-line choice k. The
+frozen code-space package supplies 13 independent affine glue features.
+Multiplying them by each of the eight indicators gives 104 features.
+All quadratic products of the affine glue features span 77 dimensions;
+their intersection with the indicator family has dimension 13. The
+combined feature space therefore has dimension 168 in each profile.
+The verifier rebuilds it from coordinates and checks its exact rank.
+
+Allow arbitrary profile-dependent linear label maps on these features.
+Their Gram matrix is symmetric. Subtract the known old Gram matrix,
+which is explicitly verified to lie in this feature family. The remaining
+constraints are homogeneous. For each of six profile blocks, the witness
+fixture first gives 168 feature-independent source ports and an independent
+basis of actual neighbor features for each. The possible rows of a Gram
+coefficient block must annihilate those neighbor bases. Taking each binary
+nullspace parameterizes every matrix satisfying these necessary constraints.
+
+Within-profile blocks additionally have symmetry and zero-diagonal
+constraints in the source basis. Further actual-edge witnesses reduce
+the remaining dimensions to 399 in each symmetric within-profile block
+and 46 in each cross block. These are dimensions of the recorded finite
+constraint spaces; no equality with the complete graph's fitting space
+is required for the argument. Every full fit belongs to these spaces.
+
+Now restrict to high-line choice zero in the 60 glue classes appearing
+in the frozen nine-clique parity certificate. For every basis direction
+of every remaining homogeneous space, the verifier calculates this
+20-by-20 projection per profile block. Every clique's required off-diagonal
+entry is zero and every within-profile diagonal direction is zero. The
+known offset has the required zero entries and diagonal one. Thus every
+Gram matrix in this feature family restricts to nine orthonormal sets of
+24 labels, with each of the 60 used labels occurring an even number of
+times: 36 occur twice and 24 occur six times.
+
+This conclusion comes from algebraic constraints on this feature family.
+Some selected actual port pairs are inactive. They are forced to have
+binary dot zero anyway; there is no claim that the quotient's cliques
+lift to actual cliques in the unrestricted port graph.
+
+If the ambient binary label dimension is h, write Q_C for the h-by-24
+label matrix of clique C. Then Q_C^T Q_C = I_24, so P_C = Q_C Q_C^T is
+a rank-24 projector and R_C = I_h + P_C has rank h-24. Even vertex
+incidence and the odd number of cliques give sum_C R_C = I_h. Therefore
+
+    h <= sum_C rank(R_C) = 9(h-24),
+
+which forces integer h >= 27. Restriction cannot increase rank. The
+known old map attains 27 and belongs to the feature family. The proof
+covers symmetric binary Gram matrices / standard-dot labels from these
+168 functions, including arbitrary affine glue maps conditioned on the
+high line and a common quadratic glue correction. It does not cover
+arbitrary nonlinear high-line dependence or nonsymmetric fitting maps.
+
+Arbitrary labels within one profile require nine dimensions
+----------------------------------------------------------
+PROFILE-H8.json names seven anchor ports and seventeen further ports,
+all in one profile. The anchors form an actual seven-clique. In any
+standard-dot eight-bit fit their labels span a nondegenerate copy of I7.
+Its orthogonal complement in I8 is one-dimensional and nondegenerate,
+so the anchors extend to an orthonormal basis. An isometry can therefore
+fix the anchors to e_1,...,e_7 without loss. Smaller fits pad to I8.
+
+Each other label must be among all 128 odd-weight eight-bit vectors.
+Adjacency to anchor i forces bit i to zero. The seventeen complete
+initial domains have sizes
+
+    2, 2, 8, 2, 8, 16, 2, 2, 16, 16, 8, 8, 8, 2, 8, 2, 8.
+
+There are 71 active pairs between variable ports. The checker removes
+a candidate only when it has no orthogonal candidate at an adjacent
+port, then branches over every value of a smallest unresolved domain.
+This is exhaustive: propagation preserves all solutions, and branches
+partition the remaining assignments. It finds no fit in 43 nodes, with
+22 empty-domain leaves and maximum depth eight. No external SAT solver
+or stored full graph is used. The old nine-bit labels fit the witness;
+removing all variable-to-variable constraints restores an eight-bit fit.
+
+Cyclic block permutations give coordinate-checked copies of this witness
+in the other two profiles, with exactly the same actual graph. Thus every
+profile has symmetric standard-dot dimension at least nine. This rules
+out separate 8 + 8 + 8 profile labels. A global 25-bit fit can have
+nonorthogonal profile spans, so this argument alone does not exclude it.
+No asymmetric fitting lower bound is asserted by this enumeration.
+
+Encoder support with the existing 27-bit labels
+-----------------------------------------------
+In profile a, select low block (a+1) mod 3. Its 120 root lines divide the
+ports into fibers of 64. The old nine-bit label is constant on each fiber.
+For each root u, let Z_u have rows equal to the tensor products of the
+other two blocks. The verifier checks the exact identity
+
+    Z_u Z_u^T = 128 I_64
+
+on all 360 fibers. Hence the real tensor rows of this fiber span
+u tensor R^64. For each of the 511 nonzero binary functionals on the
+nine labels, the verifier selects the roots whose labels evaluate to
+one. Every selected root set has real rank eight, certified by finding
+an eight-row basis modulo three. The subset sizes have histogram
+{56:255, 64:255, 120:1} in each profile.
+
+These selected fibers span all R^512. A nonzero real linear tensor
+encoder therefore cannot vanish on all ports where any one of those
+binary functionals is one. Equivalently its active labels span all
+nine label coordinates in each of the three disjoint profile spaces.
+Every such encoder has support rank 27. In a rank-minimal 512-feature
+factorization, its nonzero encoder columns lie in the real tensor column
+space, so the total encoder bill is at least 512*27 = 13,824.
+
+This excludes lowering that bill by real basis changes alone while
+retaining these labels. It does not cover redundant factorizations whose
+encoder columns lie outside the tensor column space, changed labels,
+or the smaller punctured port set. Support and scalar construction cost
+remain separate obligations.

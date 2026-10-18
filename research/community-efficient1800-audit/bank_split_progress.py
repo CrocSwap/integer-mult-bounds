@@ -1,0 +1,14 @@
+from pathlib import Path
+import json,hashlib,subprocess,shutil,difflib
+P=Path('/tmp/pr-efficient1800');R=Path('/tmp/integer-mult-efficient1100-20261015');A=R/'research/community-efficient1800-audit';D=P/'split-frame-consumer-v4';sha=lambda b:hashlib.sha256(b).hexdigest()
+x=json.loads((P/'check-split-frame-consumer-v4.json').read_text());assert x['status']=='passed' and not x['changed_files_after'];assert sha((P/'check-split-frame-consumer-v4.log').read_bytes())==x['log_sha256']
+rels=['scripts/replay_historical_check.py','tests/test_historical_check.py','scripts/historical-ci-inputs/partial_swap_shared.py','scripts/historical-ci-inputs/audit_sparse_fusion.py'];patch=[];records=[]
+for rel in rels:
+ old=subprocess.run(['git','show','HEAD:'+rel],cwd=R,capture_output=True).stdout;new=(D/rel).read_bytes();patch.extend(difflib.unified_diff(old.decode().splitlines(True),new.decode().splitlines(True),fromfile='a/'+rel if old else '/dev/null',tofile='b/'+rel));records.append(dict(path=rel,baseline_sha256=sha(old),candidate_sha256=sha(new)))
+name='revision-split-frame-consumer.diff';(P/name).write_text(''.join(patch))
+rel='research/parity-side-basis-cache/README.md';old=(P/'combined-1861-1922-v3'/rel).read_text();new=(P/'shared-frame-consumers'/rel).read_text();(P/'revision-parity-iterator-clarification.diff').write_text(''.join(difflib.unified_diff(old.splitlines(True),new.splitlines(True),fromfile='a/'+rel,tofile='b/'+rel)))
+record=dict(status='passed_candidate_not_admitted',scope='Original split-skip witness, independent rational arithmetic and10 original tests pass through the actual isolated-copy CLI;21 adapter tests pass normally and under optimization. No frozen source manifest changed.',receipt='check-split-frame-consumer-v4.json',candidate_patch=name,candidate_patch_sha256=sha((P/name).read_bytes()),files=records,earlier_attempts=['check-split-frame-consumer.json','check-split-frame-consumer-v2.json','check-split-frame-consumer-v3.json'],remaining='Other historical binary and joint-helper consumers remain; production helper changes are not admitted.')
+(P/'finding-split-consumer-complete.json').write_text(json.dumps(record,indent=2)+'\n')
+h=json.loads((P/'extra-holds.json').read_text());h['1922']+=' Split-skip now also passes its complete actual historical CLI plus21 normal/optimized adapter tests, restoring two pre-existing changed dependencies and the new joint helper to exact original bytes. Remaining legacy consumers are still pending.';(P/'extra-holds.json').write_text(json.dumps(h,indent=2)+'\n')
+for name in ['prepare_split_consumer.py','finish_split_fixture.py','repair_split_existing_pins.py','run_split_consumer.py','run_split_consumer_v2.py','run_split_consumer_v3.py','run_split_consumer_v4.py','bank_split_progress.py']:shutil.copy2(P/name,A/name)
+print('Banked exact complete split-skip replay, production unchanged')

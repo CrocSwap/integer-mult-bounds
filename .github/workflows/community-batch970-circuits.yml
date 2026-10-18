@@ -1,0 +1,113 @@
+name: Community circuit and scoped-bound checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/r439-helper-triples/**'
+      - 'research/r439-helper-stars-seed19/**'
+      - 'research/dyadic-center-two-shear/**'
+      - 'research/x4-joint-horner-seed29/**'
+      - 'research/complex-ck-two-sided/**'
+      - 'research/ck-sign-normalization-seed22/**'
+      - 'research/jp8-clean-work/**'
+      - 'research/complex-swap-runs-seed37/**'
+      - 'research/dyadic-center-anchor-bound/**'
+      - 'research/complex-factory-scale-frontier27/**'
+      - 'research/complex-x4-dyadic-forest-seed31/**'
+      - 'research/ck-power-forest-bound/**'
+      - 'research/e8-first-rank-drop/**'
+      - 'research/five-port-quadratic-decoder/**'
+      - 'research/p111-receiver-census/**'
+      - 'research/complex-frame-pair-decoders/**'
+      - '.github/workflows/community-batch970-circuits.yml'
+permissions:
+  contents: read
+jobs:
+  exact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - pr: 965
+            commands: |
+              python -I -B research/r439-helper-triples/verify.py --output /tmp/batch970-triples
+          - pr: 967
+            commands: |
+              python -I -B research/r439-helper-stars-seed19/verify.py --native --output /tmp/batch970-stars
+              python -I -B research/r439-helper-stars-seed19/test_package.py
+          - pr: 937
+            commands: |
+              python -I -B research/dyadic-center-two-shear/verify.py
+              python -I -B research/dyadic-center-two-shear/test_package.py
+          - pr: 945
+            commands: |
+              python -I -B research/x4-joint-horner-seed29/verify.py
+              python -I -B research/x4-joint-horner-seed29/test_package.py
+          - pr: 917
+            commands: |
+              python -I -B research/complex-ck-two-sided/verify.py
+              python -I -B research/complex-ck-two-sided/test_package.py
+          - pr: 919
+            commands: |
+              python -I -B research/ck-sign-normalization-seed22/verify.py
+              python -I -B research/ck-sign-normalization-seed22/test_package.py
+          - pr: 839
+            commands: |
+              python -I -B research/jp8-clean-work/verify.py
+              python -I -B research/jp8-clean-work/test_package.py
+          - pr: 969
+            commands: |
+              python -I -B research/complex-swap-runs-seed37/verify.py
+              python -I -B research/complex-swap-runs-seed37/test_package.py
+          - pr: 947
+            commands: |
+              python -I -B research/dyadic-center-anchor-bound/verify.py
+              python -I -B research/dyadic-center-anchor-bound/test_package.py
+          - pr: 949
+            commands: |
+              python -I -B research/complex-factory-scale-frontier27/check.py
+              python -I -B research/complex-factory-scale-frontier27/test_package.py
+          - pr: 961
+            commands: |
+              python -I -B research/complex-x4-dyadic-forest-seed31/verify.py
+              python -I -B research/complex-x4-dyadic-forest-seed31/test_package.py
+          - pr: 964
+            commands: |
+              python -I -B research/ck-power-forest-bound/verify.py
+              python -I -B research/ck-power-forest-bound/test_package.py
+          - pr: 954
+            commands: |
+              python -I -B research/e8-first-rank-drop/verify.py
+              python -I -B research/e8-first-rank-drop/independent_check.py
+              python -I -B research/e8-first-rank-drop/test_package.py
+          - pr: 958
+            commands: |
+              python -I -B research/five-port-quadratic-decoder/verify.py
+              python -I -B research/five-port-quadratic-decoder/independent.py
+              python -I -B research/five-port-quadratic-decoder/test_package.py
+          - pr: 963
+            commands: |
+              python -I -B research/p111-receiver-census/verify.py
+              python -I -B research/p111-receiver-census/independent.py
+              python -I -B research/p111-receiver-census/test_package.py
+          - pr: 968
+            commands: |
+              python -I -B research/complex-frame-pair-decoders/verify.py
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Native headers
+        if: matrix.pr == 965 || matrix.pr == 967
+        run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - name: Exact package checks
+        run: ${{ matrix.commands }}
+      - name: No tracked-source changes
+        run: git diff --exit-code

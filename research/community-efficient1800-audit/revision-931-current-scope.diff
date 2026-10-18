@@ -1,0 +1,45 @@
+diff --git a/research/complex-factory-butterfly/README.md b/research/complex-factory-butterfly/README.md
+index 80ab50090..6f336212f 100644
+--- a/research/complex-factory-butterfly/README.md
++++ b/research/complex-factory-butterfly/README.md
+@@ -38,7 +38,24 @@ concerns its declared primitive-count objective, not optimal total local cost.
+ 
+ ## Reproduce
+ 
+-From any directory, with Python 3.11+ and the standard library:
++From a current Git checkout, with Python 3.11+ and the standard library:
++
++```sh
++python3 -I -B research/complex-factory-butterfly/pinned_replay.py
++```
++
++This offline entry point authenticates the original `SOURCES.json` and exports
++its 29 exact files from historical base
++`91a2094f2e022930069e8cfdc810a3ea1b81cd09` into a private temporary tree. The
++checkout must contain that Git history. It then runs the unchanged verifier
++with assertions enabled, checks that the source checkout is unchanged, and
++prints `PASS_PINNED_FACTORY_BUTTERFLY` after the original pass marker.
++`--out /path/to/new-directory` retains generated products outside the checkout;
++`--check-sources` checks only the export and is not a complete search replay.
++See [FOLLOWUP.md](FOLLOWUP.md) for the completed review continuation and limits.
++
++The original interface remains available from the exact historical checkout,
++or from its declared Git-free source closure:
+ 
+ ```sh
+ python3 -I -B research/complex-factory-butterfly/verify.py
+@@ -58,8 +75,14 @@ Additional checks:
+ ```sh
+ python3 -I -O -B research/complex-factory-butterfly/test_independent.py
+ python3 -I -O -B research/complex-factory-butterfly/test_package.py
++python3 -I -O -B research/complex-factory-butterfly/test_pinned_replay.py
+ ```
+ 
++The first two checks use the historical source closure. The last checks the
++new export boundary, corrupt/missing sources, path and symlink rejection,
++checkout mutation detection, and preservation of assertions under an optimized
++caller; it does not rerun the expensive finite search.
++
+ `SEARCH.json` records both complete Cartesian products, the four pivot score
+ rules and deterministic tie order, counts, minima and SHA256 streams over every
+ recipe's cost/full map and emitted word. `factor.py` can replay that enumeration

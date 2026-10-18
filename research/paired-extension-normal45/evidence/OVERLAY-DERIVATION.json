@@ -1,0 +1,95 @@
+{
+  "buffers": 86,
+  "builder_sha256": "58f5af9fe996d377825fe214c113cc71b9ba3e40c737b45c7e0164a0f27ba4ee",
+  "changes": {
+    "new/BORROW-PROVIDERS.json": {
+      "after_sha256": "cad6a02068ca1bf09824242a68ac0ebc1beebf77bb01104644d2ee06eb48b5d0",
+      "before_sha256": "912f5decd0dbaefe662a1160ed4e38df424c4c1e3b96e5a69f783a8728f2363c"
+    },
+    "new/borrow/inputs/PR2917-WORD-base.json.gz": {
+      "after_sha256": "fec3c120db1a35022944628d34b56a36f2456248c274c2eaba1a325cdc690ce8",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/PR2917-WORD-extra.json.gz": {
+      "after_sha256": "e4d0c617df85bf8a824ff68310ca3373dc017c1ebf9ea733056a3ee4a784b36f",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/wordedit_43base.json": {
+      "after_sha256": "f62c23c178085372975b6ec263cd017e3973f1ae1bce3f66997f94e72bf90e0d",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/wordedit_43extra.json": {
+      "after_sha256": "e4f2effa44eaa43149adac747d80ad6ef9f3408db88a194e7d62cc710023e38a",
+      "before_sha256": null
+    },
+    "new/borrow/wordedit.py": {
+      "after_sha256": "07ae47eff522a983a7eea1c6850cf45984c20aa205f8d18386f48e08a333085d",
+      "before_sha256": null
+    },
+    "new/borrow/words/BORROW-WORD-43base.json.gz": {
+      "after_sha256": "54ca34c749e3228d7e2df3d8dbf7aa1568c2872490166997c5962f12fd03da35",
+      "before_sha256": "fec3c120db1a35022944628d34b56a36f2456248c274c2eaba1a325cdc690ce8"
+    },
+    "new/borrow/words/BORROW-WORD-43extra.json.gz": {
+      "after_sha256": "eded756dfe8f411c3d1f80a3ac16516f0ea5dd6f9866728b2179b157630fa7b6",
+      "before_sha256": "e4d0c617df85bf8a824ff68310ca3373dc017c1ebf9ea733056a3ee4a784b36f"
+    },
+    "new/rebuild_borrow.py": {
+      "after_sha256": "d95f5285dc6b711ff79ca46c43bac7a3928cff86da5fe2e1de54206a2b8d35b9",
+      "before_sha256": "c20933a7e507a3cef57310363c59d64e84a16e34cb6a30cb434e4cb6a67c1cd0"
+    }
+  },
+  "derived_manifest_sha256": "79956f19c5c3d4d1ad3578e4b3d6844bc54c1f3680825fc87c80cc04f069dae8",
+  "patches": [
+    {
+      "after_sha256": "d95f5285dc6b711ff79ca46c43bac7a3928cff86da5fe2e1de54206a2b8d35b9",
+      "before_sha256": "c20933a7e507a3cef57310363c59d64e84a16e34cb6a30cb434e4cb6a67c1cd0",
+      "new": "    # Recorded exact word edit (here: four normal-45 paired extractions); pure producer, cleanup re-derived from helper_final. Every previous state stays in the audit chain.\n    we_=D/'inputs'/f'wordedit_43{wt}.json'\n    if we_.exists():\n        import wordedit\n        we_patch=json.loads(we_.read_text());previous_we=chain[-1]\n        canonical=lambda z:hashlib.sha256(json.dumps(z,sort_keys=True,separators=(',',':')).encode()).hexdigest()\n        assert canonical(previous_we)==we_patch['source_canonical_sha256']\n        we_word=wordedit.apply_spec(previous_we,we_patch['spec'])\n        assert canonical(we_word)==we_patch['candidate_canonical_sha256']\n        assert set(k_ for k_ in previous_we if previous_we[k_]!=we_word[k_])<={'A','B','restore','compensation','start_extra','report','cleanup','initial_corrections','helper_final'}\n        assert we_word['cleanup']==wordedit.derive_cleanup(we_word)\n        assert we_word['removed']==previous_we['removed'] and len(we_word['warps'])==len(previous_we['warps'])\n        assert all(we_word['helper_final'].get(h_)==U_ for h_,U_ in previous_we['helper_final'].items())\n        assert len(we_word['helper_final'])==we_patch['buffers']\n        chain.append(we_word);steps.append(we_patch['stage'])\n    final=json.loads(gzip.decompress(shipped.read_bytes()))",
+      "old": "    final=json.loads(gzip.decompress(shipped.read_bytes()))",
+      "path": "new/rebuild_borrow.py"
+    }
+  ],
+  "producer_sha256": "07ae47eff522a983a7eea1c6850cf45984c20aa205f8d18386f48e08a333085d",
+  "source_file_count": 637,
+  "stage": "normal45-paired-extractions",
+  "status": "PASS_SOURCE_BOUND_WORDEDIT_OVERLAY_DERIVATION",
+  "upstream_manifest_sha256": "98d57c82a1c7318be3c330c3b66897844d57232f0aaeaea88fb4bebd0a1bedf1",
+  "words": {
+    "base": {
+      "buffers": 86,
+      "candidate_canonical_sha256": "ac76f19e387829367acd1ed09e68a202759b503273099cc2b9f4d7c7653df08a",
+      "candidate_word_sha256": "54ca34c749e3228d7e2df3d8dbf7aa1568c2872490166997c5962f12fd03da35",
+      "changed_sections": [
+        "A",
+        "cleanup",
+        "compensation",
+        "helper_final",
+        "report",
+        "restore"
+      ],
+      "producer_sha256": "07ae47eff522a983a7eea1c6850cf45984c20aa205f8d18386f48e08a333085d",
+      "source_canonical_sha256": "a12f573f321757976cd754f70ad395a981592dfc47e1c9b22f73ef4988a10492",
+      "source_word_sha256": "fec3c120db1a35022944628d34b56a36f2456248c274c2eaba1a325cdc690ce8",
+      "spec": "(see file)",
+      "stage": "normal45-paired-extractions"
+    },
+    "extra": {
+      "buffers": 86,
+      "candidate_canonical_sha256": "87dd650a58659ce31d38567f171eb4e421e84ca880b24722921495cdd1795f33",
+      "candidate_word_sha256": "eded756dfe8f411c3d1f80a3ac16516f0ea5dd6f9866728b2179b157630fa7b6",
+      "changed_sections": [
+        "A",
+        "cleanup",
+        "compensation",
+        "helper_final",
+        "report",
+        "restore"
+      ],
+      "producer_sha256": "07ae47eff522a983a7eea1c6850cf45984c20aa205f8d18386f48e08a333085d",
+      "source_canonical_sha256": "346914b627b0340adf904c2abc5858368a488cbc2105c1973c44d02089f7e0f4",
+      "source_word_sha256": "e4d0c617df85bf8a824ff68310ca3373dc017c1ebf9ea733056a3ee4a784b36f",
+      "spec": "(see file)",
+      "stage": "normal45-paired-extractions"
+    }
+  }
+}

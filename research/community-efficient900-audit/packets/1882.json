@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "number": 1882,
+  "title": "Research: dirty auxiliary registers do not save in the two-register m=3 bit model (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjM2MTI4NTc=",
+    "is_bot": false,
+    "login": "waynenilsen",
+    "name": "Wayne Nilsen"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1882",
+  "head": "a9c146e2919c82065e157b3e9bc050f38ac816db",
+  "merge_base": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "baseline": "acbaef6f3214912fb0ba4f3555671cf21f11b3bf",
+  "files": [
+    {
+      "path": "research/bit-dirty-auxiliary-registers/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "37f65f17bc57ea6678504e232f816ceab0e6ba23"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-dirty-auxiliary-registers/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "273bb963ee40869145cf8309db4f8dddebcfe43d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-dirty-auxiliary-registers/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "50ac8a75ea75ee0ecd62bc714a4c99413bbc049c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-dirty-auxiliary-registers/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "abd65af310d341d66a8b75f2fe2ceba1e0b71f1e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-dirty-auxiliary-registers/controls.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "61e62353de49404f74e253689ec09613c9cdb5a8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-dirty-auxiliary-registers/engine.cpp",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fdfc3e21b82f15e3845f4f8b8367eb160722ca07"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit-dirty-auxiliary-registers/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2e948de52546a009267ef874732ee219199f3176"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/bit-dirty-auxiliary-registers": 7
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "**Scoped lower bound, no new \u03ba.** In the abelian bit model of #468, two arbitrary invertible rational 3\u00d73 data targets need six rank-one calls even with any number of *dirty auxiliary* scalar registers. These registers have arbitrary input and may end at any diagonal monomial, including exact restoration. Six suffice. #468 and the open #720 state their results for exactly three scalar registers; this changes that hypothesis.\n\nWhy dirty auxiliaries: #288 \u00a71.3(b) records nested dirty auxiliaries as deficit-neutral, unlike clean ancillas, so they are the relevant extra registers in this model.\n\n## What is new\n\n- **Lemma 1, for any register count `n`.** If the frame relation lattice has rank \u2264 1 and the product is a diagonal monomial matrix, every endpoint is a sum over pairwise disjoint frame subsets. For `n=3` this is #468 \u00a74 / #720 \u00a72. The new case is a common off-diagonal pattern from projectors whose supports meet in at least three coordinates. That case replaces the three-register `J` argument for every `n`: the projectors must all be one `N\u2080`, the relation is all-plus, and each non-commuting outside factor lies outside the `N\u2080` run.\n- **Lemma 2.** #468's low-span lemma survives auxiliary registers unchanged.\n- **Theorem.** For every `(m,W)` and any number of dirty auxiliaries, a word with `s < mW` calls has frame span `m+1 \u2264 d \u2264 s\u22122`. At `(3,2)` this is empty for `s \u2264 5`. No target triangularity is used.\n- **Independent exhaustive engine (C++).** It checks every ordered word for one and two auxiliaries: 17,210,368 words for `n=3` and 24,883,200,000 for `n=4`. It covers every rank-\u22641 collision pattern and assumes only Lemma 2. Result: **zero candidates**. This is a second, computational proof for `n \u2264 4` that does not use Lemma 1's pattern analysis.\n\n## Controls\n\n- Six calls with one auxiliary: 4,852 candidates are reported. `W=1` with three calls: the expected candidate is reported.\n- Adding the out-of-model rank-two scalar idempotent `E\u2080\u2080+E\u2081\u2081` produces 13,067 candidates at five calls.\n- A separate symbolic Laurent implementation, with no shared pairing tables, matches the engine on all `n=2` words, all `n=3, s=4` words (full mode) and 35,080 sampled `n=3, s=5` words.\n- 300 engine terminals are realized with exact rational rank-one frames having exactly the stated relation lattice. Each formal group-algebra product equals the reported diagonal endpoint, with a rank-\u22642 data target.\n- Exact formal identities: the six-call construction with a restored auxiliary passes; a one-frame mutation fails; a `J` block `B,\u2212B` is the identity, and separating it breaks diagonality.\n- Tampered engine output is rejected: a dropped terminal line, an altered class representative, or a false candidate flag.\n\n## Reproduction\n\n```sh\npython3 -B research/bit-dirty-auxiliary-registers/verify.py          # ~45 s\npython3 -B research/bit-dirty-auxiliary-registers/verify.py --full   # ~1 h, adds n=4\n```\n\nExpected: `PASS_DIRTY_AUXILIARY_SIX_CALLS`. `RESULT.json` is the recorded full run (macOS, Python 3.11.9, Apple clang). A standalone engine run and the full replay ran separately; they produced identical `n=4` terminal digests.\n\n## Scope / not covered\n\n- Clean (zero-initialized) ancillas: excluded. The derivative step fails there.\n- Three data registers + one dirty auxiliary at eight calls: Lemmas 1\u20132 exclude spans \u22643 and \u22657. Spans 4\u20136 remain. The next step is an `n`-register version of the two-relation argument (#468 \u00a75, #720 \u00a7\u00a73\u20134) with 120 projectors, then span four and the span-five catalogue. This is recorded as a handoff in the README.\n- Other primitives, non-abelian frames, free address maps between calls. Not a Lean proof and not a multiplication theorem. The selected record, `upstream/` and frozen evidence are untouched.\n\nTask: catalogue card `bit-new-register-model` (scope key `7f5f4426ef796683c485`, seed `27c624ea8d72df2a037db8762e0bb8a6`), research base `1b59b624d21924f8e3537cdc1ac52d3be6eda2fe`, rebased onto current main `bce54fb3` (quick replay re-passed). Open PRs and discussions were checked at start and again before submission; no overlap found. No discussion claim was posted.\n\nCredit: Ali Romman (#468: model, projection, Laurent and `J` methods), eumemic (#288: model and auxiliary pricing), huxint (#203: flag method) and David Govea (open #720: disjoint-subset formulation; cited, not a dependency). Prepared with substantial assistance from Claude (Anthropic). No independent human review is claimed.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "d22f3c7f4c69f80c99b4210de25e81c4b4c9a43f39ff20784a74f5d7a9995147"
+}

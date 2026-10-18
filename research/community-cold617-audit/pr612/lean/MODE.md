@@ -1,0 +1,1 @@
+Fresh macOS Lean 4.21 source compilation; every module object matches the submitted reference. This does not reproduce the Linux /proc memory guards or retained-prefix packaging checker. Those checks and full predecessor-package integration remain open.

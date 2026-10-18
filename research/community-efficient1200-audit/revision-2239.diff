@@ -1,0 +1,354 @@
+diff --git a/research/joint-dual-replay-production/verify.py b/research/joint-dual-replay-production/verify.py
+index c7374423a..cee9941c1 100644
+--- a/research/joint-dual-replay-production/verify.py
++++ b/research/joint-dual-replay-production/verify.py
+@@ -135,9 +135,10 @@ def check_rejections(baseline, production) -> None:
+         for eng, name in ((baseline, "baseline"), (production, "optimized")):
+             try:
+                 eng.replay(dest)
+-                raise AssertionError(f"{name} accepted truncated outputs")
+             except (AssertionError, ValueError):
+                 pass
++            else:
++                raise AssertionError(f"{name} accepted truncated outputs")
+ 
+ 
+ def check_temp_corruption(production) -> None:
+diff --git a/scripts/experiments/affine_vector_screens.py b/scripts/experiments/affine_vector_screens.py
+index 0686b47d4..1262596e8 100644
+--- a/scripts/experiments/affine_vector_screens.py
++++ b/scripts/experiments/affine_vector_screens.py
+@@ -59,7 +59,48 @@ def leech_lines():
+     return tuple(out)
+ 
+ 
++def _leech_lane_rows(sample, indices, shift):
++    """Exact C[i,j]=(i==j or dot(sample[i],sample[j])==shift) via base-256 lanes.
++
++    Coordinates lie in [-4,4]. Each selected row has l1 norm <= 31, so every
++    accumulated digit is at most 8*31 < 256 (no inter-column carries). This is
++    the production form of research/leech-minor-byte-lanes/; every matrix entry
++    is still materialised and checked.
++    """
++    require(sample and sample[0], 'Empty sample')
++    dimension = len(sample[0])
++    require(all(len(v) == dimension and
++                all(type(x) is int and -4 <= x <= 4 for x in v)
++                for v in sample), 'Invalid byte-lane coordinates')
++    require(indices and len(set(indices)) == len(indices) and
++            all(type(i) is int and 0 <= i < len(sample) for i in indices),
++            'Invalid selected rows')
++    require(type(shift) is int, 'Integer shift required')
++    require(all(sum(abs(x) for x in sample[i]) <= 31 for i in indices),
++            'Byte-lane carry bound exceeded')
++    plus = [int.from_bytes(bytes(v[k] + 4 for v in sample), 'little')
++            for k in range(dimension)]
++    minus = [int.from_bytes(bytes(4 - v[k] for v in sample), 'little')
++             for k in range(dimension)]
++    rows = []
++    for i in indices:
++        u = sample[i]
++        offset = 4 * sum(abs(x) for x in u)
++        packed = sum(x * plus[k] if x > 0 else -x * minus[k]
++                     for k, x in enumerate(u) if x)
++        values = packed.to_bytes(len(sample), 'little')
++        rows.append(sum(1 << j for j, value in enumerate(values)
++                        if i == j or value == shift + offset))
++    return rows
++
++
+ def leech_minor(global_indices, independent_rows, shift=0, signed=False):
++    """Reject one stated Leech central minor by exact binary rank.
++
++    Row construction uses exact base-256 byte lanes (equivalent to the
++    historical pairwise sparse-dot genexpr). Golay inventory, norms, rational
++    span witnesses, elimination and admission checks are unchanged.
++    """
+     require(shift in (-16,-8,0,8,16),'Unsupported affine offset')
+     require(signed or shift==0,'Shifted cases here use the full signed family')
+     lines=leech_lines();size=len(lines);n=size*(2 if signed else 1);d=24+int(shift!=0)
+@@ -74,12 +115,9 @@ def leech_minor(global_indices, independent_rows, shift=0, signed=False):
+         base=[tuple(v)+(1,) for v in [lines[i] for i in [0]+list(range(1,46,2))]]
+         base.append(tuple(-x for x in lines[0])+(1,))
+         require(rank(matrix(base))==25,'Affine rational rank failed')
+-    packed=[];digest=sha256()
+-    for i in independent_rows:
+-        sparse=[(a,x) for a,x in enumerate(sample[i]) if x]
+-        row=sum(1<<j for j,v in enumerate(sample)
+-                if i==j or sum(x*v[a] for a,x in sparse)==shift)
+-        packed.append(row);digest.update(row.to_bytes((len(sample)+7)//8,'little'))
++    packed=_leech_lane_rows(sample, independent_rows, shift);digest=sha256()
++    for row in packed:
++        digest.update(row.to_bytes((len(sample)+7)//8,'little'))
+     r=rank_of_rows(packed)
+     require(r==len(independent_rows),'Claimed independent rows are dependent')
+     return dict(n=n,d=d,shift=shift,signed=signed,minor_columns=len(sample),
+diff --git a/scripts/experiments/complex_centers.py b/scripts/experiments/complex_centers.py
+index 13be871d5..04187c017 100644
+--- a/scripts/experiments/complex_centers.py
++++ b/scripts/experiments/complex_centers.py
+@@ -25,7 +25,21 @@ def factor(h):
+     return dict(h=h, triples=triples, gather=gather, scatter=scatter)
+ 
+ 
++def _factor_radix_bits(scatter):
++    # Gather entries are -1, 0 or 1 and appear at most once per column, so
++    # |actual - expected| <= ||scatter_row||_1 + 2 < 2**bits for every row.
++    bound = max((sum(abs(x) for x in u) for u in scatter), default=0) + 2
++    return bound.bit_length()
++
++
+ def verify_factor(f):
++    """Check every gather/scatter product by exact packed row equality.
++
++    Equivalent to the historical nested entrywise loop: for each scatter row
++    u(S) and gather column v(T), require sum_i u(S)[i] v(T)[i] = |S∩T|-1.
++    Packing uses an injective input-dependent radix (see
++    research/central-factor-packed/); every coefficient is still checked.
++    """
+     h=f['h'];triples=list(combinations(range(h),3));n=len(triples)
+     require(f['triples']==triples and len(f['gather'])==len(f['scatter'])==n,
+             'Wrong triple or factor dimensions')
+@@ -35,11 +49,21 @@ def verify_factor(f):
+         require(len({i for i,x in v})==len(v) and
+                 all(type(i) is int and type(x) is int and 0<=i<h and x in (-1,1)
+                     for i,x in v), 'Invalid sparse gather')
+-    masks=[sum(1<<i for i in T) for T in triples]
+-    for S,u in zip(masks,f['scatter']):
+-        for T,v in zip(masks,f['gather']):
+-            require(sum(u[i]*x for i,x in v)==(S&T).bit_count()-1,
+-                    'Central factor coefficient mismatch')
++    bits=_factor_radix_bits(f['scatter'])
++    gather_columns=[0]*h
++    incidence_columns=[0]*h
++    ones=0
++    for j,(T,v) in enumerate(zip(triples,f['gather'])):
++        place=1<<(bits*j)
++        ones+=place
++        for i,x in v:
++            gather_columns[i]+=x*place
++        for i in T:
++            incidence_columns[i]+=place
++    for S,u in zip(triples,f['scatter']):
++        actual=sum(x*column for x,column in zip(u,gather_columns))
++        expected=sum(incidence_columns[i] for i in S)-ones
++        require(actual==expected,'Central factor coefficient mismatch')
+     require(all(x in (-1,0,1,2) for u in f['scatter'] for x in u),
+             'Scalar charge requires these dyadic weights')
+     G=sum(len(v) for v in f['gather'])
+diff --git a/scripts/experiments/disjoint_tensor.py b/scripts/experiments/disjoint_tensor.py
+index b842d0a8d..cc85de302 100644
+--- a/scripts/experiments/disjoint_tensor.py
++++ b/scripts/experiments/disjoint_tensor.py
+@@ -142,23 +142,31 @@ class DisjointTensor(ExclusionCircuit):
+                     dag_sha256=sha256(encoded).hexdigest())
+ 
+     def frame_data(self):
+-        """Ancestor/reachable-target families and their ground-point unions."""
++        """Ancestor/reachable-target families and their ground-point unions.
++
++        Target ground-coordinate unions propagate alongside descendant bitsets
++        in the reverse topological pass. Union commutes with union, so the
++        mask at each node equals OR of target keys over exactly the same
++        reachable outputs as the historical bit-enumeration loop. Reachable
++        target bitsets, source unions and rectangle checks are unchanged.
++        """
+         descendants = {node:0 for node in self.active}
+-        targets = sorted(self.outputs)
+-        for i,T in enumerate(targets): descendants[self.outputs[T]] |= 1 << i
++        target_union = {node:0 for node in sorted(self.active)}
++        for i,T in enumerate(sorted(self.outputs)):
++            node = self.outputs[T]
++            descendants[node] |= 1 << i
++            target_union[node] |= T
+         for node in sorted(self.active, reverse=True):
+             if self.args[node]:
+-                for parent in self.args[node]: descendants[parent] |= descendants[node]
++                for parent in self.args[node]:
++                    descendants[parent] |= descendants[node]
++                    target_union[parent] |= target_union[node]
+         source_union = {}
+-        target_union = {}
+         for node in sorted(self.active):
+             if self.args[node]:
+                 a,b = self.args[node]; source_union[node] = source_union[a]|source_union[b]
+             else: source_union[node] = self.inputs[node-1]
+-            bits = descendants[node]; union = 0
+-            while bits:
+-                bit = bits&-bits; bits ^= bit; union |= targets[bit.bit_length()-1]
+-            target_union[node] = union
++            union = target_union[node]
+             require(union and not union&source_union[node], 'Node is not a disjoint rectangle')
+         return descendants, source_union, target_union
+ 
+diff --git a/scripts/experiments/mixed_point_circuit.py b/scripts/experiments/mixed_point_circuit.py
+index b7f561f41..064bc8593 100644
+--- a/scripts/experiments/mixed_point_circuit.py
++++ b/scripts/experiments/mixed_point_circuit.py
+@@ -9,6 +9,7 @@ from functools import cache
+ import heapq
+ from itertools import combinations
+ from math import comb
++from certify import require
+ from exclusion_circuit import ExclusionCircuit
+ from paired_exclusion_circuit import PairedExclusionCircuit
+ 
+@@ -53,9 +54,34 @@ class Circuit:
+         return [nodes[node] for node in t.outputs]
+ 
+     def verify(self):
++        """Exact |source ∩ target| = r supports via closed-form incidence masks.
++
++        Equivalent to the historical genexpr
++        ``sum(1<<i for i,source in enumerate(inputs)
++              if len(set(source)&set(target))==r)``.
++        Precompute ``vertex[p] = OR {1<<i : input i contains point p}`` and, for
++        each r-subset ``U`` of the target, keep inputs that contain every point
++        of ``U`` and avoid every other target point. See
++        ``research/mixed-point-verify-masks/``.
++        """
++        full = (1 << len(self.inputs)) - 1
++        vertex = [0] * self.n
++        for i, source in enumerate(self.inputs):
++            for point in source:
++                vertex[point] |= 1 << i
++        r = self.r
+         for target, node in zip(self.targets, self.outputs):
+-            mask = sum((1 << i for i, source in enumerate(self.inputs) if len(set(source) & set(target)) == self.r))
+-            assert self.support[node] == mask
++            expected = 0
++            for U in combinations(target, r):
++                keep = set(U)
++                mask = full
++                for point in target:
++                    if point in keep:
++                        mask &= vertex[point]
++                    else:
++                        mask &= full ^ vertex[point]
++                expected |= mask
++            require(self.support[node] == expected, 'Wrong intersection support')
+         return True
+ 
+ @cache
+diff --git a/scripts/experiments/ternary_side.py b/scripts/experiments/ternary_side.py
+index a50c627e3..b6d42d0f7 100644
+--- a/scripts/experiments/ternary_side.py
++++ b/scripts/experiments/ternary_side.py
+@@ -162,14 +162,106 @@ def verify_invocation(result):
+ 
+ 
+ def verify_invocation_frames(result):
+-    """Every physical rational edge of both signed invocation directions."""
+-    from audit_joint_frames import eye,zero,matrix,row_basis,product,inverse,sub,rank
++    """Every physical rational edge of both signed invocation directions.
++
++    Cleared-denominator Gram products/inverses and an invocation-local exact
++    frame-transition cache preserve the historical orientation evidence while
++    avoiding repeated ``Fraction`` work on repeated physical edges. See
++    ``research/ternary-frame-cleared-cache/``.
++    """
++    from functools import lru_cache
++    from math import lcm
++    from audit_joint_frames import eye,zero,matrix,row_basis,sub,rank
++
++    def product(A,B):
++        """Exact matrix product over Q via cleared integer factors."""
++        if not A:
++            return tuple()
++        n=len(A);k=len(A[0]);m=len(B[0])
++        DA=1
++        for row in A:
++            for x in row:
++                if x.denominator!=1:
++                    DA=lcm(DA,x.denominator)
++        DB=1
++        for row in B:
++            for x in row:
++                if x.denominator!=1:
++                    DB=lcm(DB,x.denominator)
++        if DA==1 and DB==1:
++            out=[]
++            for i in range(n):
++                ai=A[i];row=[]
++                for j in range(m):
++                    s=0
++                    for t in range(k):
++                        s+=ai[t].numerator*B[t][j].numerator
++                    row.append(Q(s))
++                out.append(tuple(row))
++            return tuple(out)
++        Ai=[[x.numerator*(DA//x.denominator) for x in row] for row in A]
++        Bi=[[x.numerator*(DB//x.denominator) for x in row] for row in B]
++        scale=DA*DB
++        out=[]
++        for i in range(n):
++            ai=Ai[i];row=[]
++            for j in range(m):
++                s=0
++                for t in range(k):
++                    s+=ai[t]*Bi[t][j]
++                row.append(Q(s,scale))
++            out.append(tuple(row))
++        return tuple(out)
++
++    def inverse(A):
++        """Gauss-Jordan inverse over Q; clear the pivot row before scaling."""
++        n=len(A);rows=[list(a)+list(b) for a,b in zip(A,eye(n))]
++        for j in range(n):
++            p=next((i for i in range(j,n) if rows[i][j]),None)
++            require(p is not None,'Singular Gram matrix')
++            rows[j],rows[p]=rows[p],rows[j]
++            D=1
++            for x in rows[j]:
++                if x.denominator!=1:
++                    D=lcm(D,x.denominator)
++            if D!=1:
++                rows[j]=[Q(x.numerator*(D//x.denominator)) for x in rows[j]]
++            c=rows[j][j];rows[j]=[x/c for x in rows[j]]
++            for i in range(n):
++                if i!=j:
++                    c=rows[i][j]
++                    if c:
++                        rows[i]=[x-c*y for x,y in zip(rows[i],rows[j])]
++        return matrix([r[n:] for r in rows])
++
++    # Exact ordered-pair transition memo for one verify_invocation_frames call.
++    # Identity then value interning; equal rational frames share one index.
++    frame_list=[]; frame_by_value={}; frame_by_identity={}; transitions={}
++    def intern(frame):
++        prior=frame_by_identity.get(id(frame))
++        if prior is not None:
++            return prior[1]
++        index=frame_by_value.get(frame)
++        if index is None:
++            index=len(frame_list)
++            frame_list.append(frame);frame_by_value[frame]=index
++        frame_by_identity[id(frame)]=(frame,index)
++        return index
++    def transition(old,new):
++        key=(intern(old),intern(new))
++        answer=transitions.get(key)
++        if answer is None:
++            answer=(rank(sub(new,old)),rank(new)-rank(old))
++            transitions[key]=answer
++        return answer
++
+     code=small_program(result);g=result['_graph'];n=result['n'];h=result['h']
+     S=code['roles'];r=comb(h,2);W=2*n+S+r
+     H=matrix([[Q(int(i==j))-Q(2,25) for j in range(h)] for i in range(h)])
+     I,Z=eye(h),zero(h)
+     require(rank(H)==h,'Degenerate ambient form')
+     lines=[(tuple(Q(int(t>>i&1)) for i in range(h)),) for t in g['labels']]
++    @lru_cache(maxsize=None)
+     def projection(U):
+         Ut=matrix(zip(*U));UH=product(U,H)
+         P=product(product(Ut,inverse(product(UH,Ut))),UH)
+@@ -194,7 +286,7 @@ def verify_invocation_frames(result):
+         def touch(ports,F):
+             nonlocal cost,lost,edges
+             for slot in set(ports):
+-                old=physical[slot];a=rank(sub(F,old));change=rank(F)-rank(old)
++                old=physical[slot];a,change=transition(old,F)
+                 require(a==abs(change),'A physical edge has a non-nested rank charge')
+                 cost+=a;lost+=max(0,-change);edges+=1;physical[slot]=F
+         program=('L','J','l','R','V','G','R','L','J','l','G','V')

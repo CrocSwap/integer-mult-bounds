@@ -1,0 +1,54 @@
+{
+  "status": "LOCAL_COMPLETE_STRICT_REPLAY_PASS",
+  "date": "2026-10-15",
+  "python": "CPython 3.12.14 (uv)",
+  "platform": "Linux x86_64",
+  "registered_replay": {
+    "command": "python3.12 scripts/research_package.py --package research/complex-t16-two-stage-cycles",
+    "status": "PASS_REGISTERED_RESEARCH_PACKAGE",
+    "wall_seconds": 47,
+    "max_child_rss_mib": 417,
+    "memory_cap": "systemd scope MemoryMax=5G"
+  },
+  "metadata_check": "PASS_PACKAGE_METADATA_AND_PINS",
+  "pinned_inputs": 287,
+  "archived_predecessor_files_checked": 179,
+  "stages": 11,
+  "controls": {
+    "admission": 69,
+    "bit_supplier": 12,
+    "independent_t16": 6,
+    "controller_mutations": 15,
+    "seed67_owner": 11
+  },
+  "exact_moment_engines": 2,
+  "independent_checks": [
+    "build.py packing checker (idle profile, changed and relocated row counts)",
+    "seed67 auditor R1-R7/X1/X2",
+    "strict majorization of the selected idle residual vector (check.py, required by verify.py)",
+    "pinned-engine pricing (native + conservative), plus the indicative price of the bound-attaining idle multiset",
+    "PR1069 sweep",
+    "proved packing ceiling (ceiling_bound.py, exact integer arithmetic, required by verify.py)"
+  ],
+  "cross_checks": [
+    "The session's own pipeline (buildcand.py, strict native replay in a separate scratch tree, comparing kappa as Decimal) on data/OWNERS.json.gz: strict replay PASS (11 stages, 69/12/6/15), kappa 0.001673614205725695, idle profile equal to the raw search output; 2,537 changed rows, 2,170 relocated (realize.py); actual_73column_sigmas 10011 read from the native audit (OWNERS-AND-PROFILE.json, cross-replica roles 57,420).",
+    "The raw search output F (66,449 changed rows, 63,109 relocated) was verified separately before packaging (independent strict replay in another tree): strict replay PASS (11 stages, controls 69/12/6/15), actual_73column_sigmas 10564, seed67 audit with 11 controls, pinned-engine pricing and the PR1069 sweep; that check also confirmed that its idle profile majorizes the selected one.",
+    "search/buildcand.py with actual_73column_sigmas=10011 reproduces data/OWNERS.json.gz, data/PLAN.json and data/SPEC.json byte for byte (they were copied from its output; build.py regenerates PLAN/SPEC byte for byte from the selected map plus the DIFF).",
+    "The packing ceiling was checked three ways: ceiling_bound.py (exact integers; also run on the selected map: 4,866 empty cap-48 bins, surrogate 905,526.558), the session's mpmath LP-dual and DP certificate (dualcert.py), and an independently written float knapsack (bound_indep.py) over all 180,832 slack units (908,139.013 = 4887 g(48) + g(17))."
+  ],
+  "preparation_failures": [
+    "Second version: first strict replays of min-diff maps used the raw search's sigma count; assembly rejected them. SPEC now always pins the count read from the native audit (fourth version: 10649 rejected, 10006 read from the audit; this version: 10564 rejected, 10011 read from the audit).",
+    "Second version: check.py compared the conservative kappa as a string; it now compares decimals.",
+    "Third version: classes 4, 9, 88, 133 and 94 of the first class-level stage 1 could not be realised and were fixed to the selected map.",
+    "Fourth version: class 9 of stage 1 was proven unrealisable (four width-4 helpers per bin need four distinct calls); fixing it to the selected map made stage 1 infeasible, so the pattern was banned with the new BAN option of mindiff_cls1.py instead.",
+    "Fourth version: the session's search loop compared kappa strings in lns.py; the pinned assembler can drop trailing zeros. lns.py, check.py and verify.py now compare kappa as Decimal; every checkpoint was re-verified with Decimal comparisons.",
+    "ortools and highspy cannot be imported into one process (clashing HiGHS symbols), so mindiff_cls2.py runs its CP-SAT and HiGHS passes separately.",
+    "This version: the first strict replay of the min-diff map pinned the raw search's sigma count (10564) and was rejected by assembly as expected; 10011 was read from the audit.",
+    "This version: stage 1 of the min-diff proposed unrealisable class patterns in classes 9 and 25 (several helpers of one width in a bin need distinct calls); both were banned and stage 1 re-solved locally with KEEP/FREE.",
+    "This version: the session's lns2.py compared kappa strings like the old lns.py; the shipped lns2.py compares Decimal and every checkpoint was strict-replayed."
+  ],
+  "reused_native_ancestry": true,
+  "cold_ancestry_rebuilt": false,
+  "hosted_ci": "not yet observed",
+  "maintainer_acceptance": "not claimed"
+}

@@ -21,7 +21,7 @@ verify:
 	$(MAKE) verify-recycled-bit
 	$(MAKE) verify-entrance-banks
 	$(MAKE) gen4-bank-verify
-	$(MAKE) frontier531-verify
+	$(MAKE) frontier741-verify
 	$(MAKE) verify-certificates
 	$(MAKE) verify-ternary
 	$(MAKE) verify-research
@@ -51,6 +51,16 @@ gen4-bank-verify: selected-record-check
 frontier531-verify: selected-record-check
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier531.XXXXXX"); \
 	python3 -B scripts/verify_frontier531.py --work "$$work/replay"
+
+.PHONY: frontier535-verify
+frontier535-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier535.XXXXXX"); \
+	python3 -B scripts/verify_frontier535.py --work "$$work/replay"
+
+.PHONY: frontier588-verify
+frontier588-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier588.XXXXXX"); \
+	python3 -B scripts/verify_frontier588.py --work "$$work/replay"
 
 .PHONY: source527-record-check source527-verify
 source527-record-check:
@@ -564,3 +574,133 @@ formal-pr442-verify:
 	python3 research/lean-multi-host-source/verify.py --lake "$(LAKE)" --receipt /tmp/pr442-lean421-fresh.json
 	python3 research/lean-external-review/verify_package.py --build-receipt /tmp/pr442-lean421-fresh.json
 	git diff --exit-code
+.PHONY: frontier596-verify
+frontier596-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier596.XXXXXX"); \
+	python3 -B scripts/verify_frontier596.py --work "$$work/replay"
+
+.PHONY: frontier617-verify
+frontier617-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier617.XXXXXX"); \
+	python3 -B scripts/verify_frontier617.py --work "$$work/replay"
+
+.PHONY: frontier626-verify
+frontier626-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier626.XXXXXX"); \
+	python3 -B scripts/verify_frontier626.py --work "$$work/replay"
+
+.PHONY: frontier741-verify
+frontier741-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier741.XXXXXX"); \
+	python3 -B scripts/verify_frontier_complete.py --frontier 741 --work "$$work/replay"
+
+.PHONY: frontier799-verify
+frontier799-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier799.XXXXXX"); \
+	python3 -B scripts/verify_frontier_complete.py --frontier 799 --work "$$work/replay"
+
+# Opt-in PR853 scheduling; the sequential replay remains the reference.
+.PHONY: complex741-parallel
+complex741-parallel:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-parallel741.XXXXXX"); \
+	python3 -B scripts/verify_complex741_parallel.py --work "$$work/replay" --jobs 3
+
+.PHONY: frontier890-verify
+frontier890-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier890.XXXXXX"); \
+	python3 -B scripts/verify_frontier890.py --work "$$work/replay"
+
+.PHONY: frontier942-verify
+frontier942-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier942.XXXXXX"); \
+	python3 -B scripts/verify_frontier942.py --work "$$work/replay"
+# Tooling: opt-in parallel exact U8 phase recipes, byte-identical to the pinned serial step (no new kappa).
+.PHONY: phase-recipes-parallel-verify phase-recipes-parallel-benchmark
+phase-recipes-parallel-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-phase-parallel.XXXXXX"); \
+	python3 -B research/phase-recipes-parallel/verify.py --work "$$work/replay" && \
+	python3 -B -m unittest discover -s research/phase-recipes-parallel -p test_package.py
+phase-recipes-parallel-benchmark:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-phase-parallel.XXXXXX"); \
+	python3 -B research/phase-recipes-parallel/verify.py --work "$$work/replay" --serial
+
+.PHONY: frontier1042-verify
+frontier1042-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier1042.XXXXXX"); \
+	python3 -B scripts/verify_frontier1042.py --work "$$work/replay"
+
+# Independent verification: code-disjoint T37 moment endpoints and kappa reduction (no new kappa).
+.PHONY: t37-endpoints-independent-verify
+t37-endpoints-independent-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-t37-endpoints.XXXXXX"); \
+	python3 -B research/t37-endpoints-independent/verify.py --work "$$work/replay" && \
+	python3 -B -m unittest discover -s research/t37-endpoints-independent -p test_package.py
+
+# Independent verification: code-disjoint pricing of the pending kappa claims (no new kappa).
+.PHONY: pending-claims-pricing-verify
+pending-claims-pricing-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-pending-claims.XXXXXX"); \
+	python3 -B research/pending-claims-independent-pricing/verify.py --work "$$work/replay" && \
+	python3 -B -m unittest discover -s research/pending-claims-independent-pricing -p test_package.py
+
+# Tooling: opt-in parallel U8 layer-end controls with a byte-identical receipt (no new kappa).
+.PHONY: layer-end-controls-parallel-verify layer-end-controls-parallel-benchmark
+layer-end-controls-parallel-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-layer-end.XXXXXX"); \
+	python3 -B research/layer-end-controls-parallel/verify.py --work "$$work/replay" && \
+	python3 -B -m unittest discover -s research/layer-end-controls-parallel -p test_package.py
+layer-end-controls-parallel-benchmark:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-layer-end.XXXXXX"); \
+	python3 -B research/layer-end-controls-parallel/verify.py --work "$$work/replay" --serial
+
+# Research note: width packing of the selected PR589 bit hosting (no new kappa).
+.PHONY: bit589-width-packing-verify
+bit589-width-packing-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-bit589-packing.XXXXXX"); \
+	python3 -B research/bit589-width-packing/verify.py --work "$$work/replay" && \
+	python3 -B -m unittest discover -s research/bit589-width-packing -p test_package.py
+
+.PHONY: frontier1094-verify
+frontier1094-verify: selected-record-check
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier1094.XXXXXX"); \
+	python3 -B scripts/verify_frontier1094.py --work "$$work/replay"
+
+.PHONY: verify-parallel
+verify-parallel:
+	python3 scripts/verify_parallel.py
+
+.PHONY: t21-interface-budget-verify
+t21-interface-budget-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/t21-interface-budget.XXXXXX"); \
+	python3 -B research/t21-interface-budget/verify.py --work "$$work/replay"
+
+
+# Research note: restoration deferral and coverage identity on the selected T37 payload (no new kappa).
+.PHONY: t37-restoration-deferral-verify
+t37-restoration-deferral-verify:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-t37-restoration.XXXXXX"); \
+	python3 -B research/t37-restoration-deferral/verify.py --work "$$work/replay" && \
+	python3 -B -m unittest discover -s research/t37-restoration-deferral -p test_package.py
+
+.PHONY: frontier1042-invoice-audit-verify
+frontier1042-invoice-audit-verify:
+	python3 -I -B research/frontier1042-invoice-audit-seed81/verify.py
+	cd research/frontier1042-invoice-audit-seed81 && python3 -B -m unittest test_package -v
+
+.PHONY: hpe-audit-fast-verify hpe-audit-fast-crosscheck-lec
+hpe-audit-fast-verify:
+	python3 -I -B research/hpe-audit-fast-seed93/verify.py
+	cd research/hpe-audit-fast-seed93 && python3 -B -m unittest test_package -v
+
+# Opt-in, about 2 minutes: all 96 trials of the selected chain's lec-p6n step, each run by both audits.
+hpe-audit-fast-crosscheck-lec:
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/hpe-audit-fast.XXXXXX"); \
+	python3 -B research/hpe-audit-fast-seed93/run_lec.py --archived p6n --pins LEC-REASON-PINS-STACK --out "$$work/lec-p6n" --mode crosscheck
+
+# Historical publication evidence; the live pointer has its own selected-record-check target.
+.PHONY: frontier1042-capsule-closure-verify
+frontier1042-capsule-closure-verify:
+	python3 -B research/frontier1042-capsule-closure-seed75/verify.py --check
+	python3 -O -B research/frontier1042-capsule-closure-seed75/verify.py --check
+	python3 -B research/frontier1042-capsule-closure-seed75/test_package.py
+	python3 -O -B research/frontier1042-capsule-closure-seed75/test_package.py

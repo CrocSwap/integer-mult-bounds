@@ -1,0 +1,482 @@
+{
+  "schema_version": 1,
+  "number": 2365,
+  "title": "Research: prove uniform parameter bounds for PR2298",
+  "author": {
+    "id": "U_kgDOBnF4QA",
+    "is_bot": false,
+    "login": "jerrylin-23",
+    "name": "Jerry Lin"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2365",
+  "head": "24746e536dfa5e632d4f3036a477ec4f1b7bb0e6",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "7b39515117fe26e75d16c268877391f1bdaa5640",
+  "files": [
+    {
+      "path": "research/outer2298-uniform-domain/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fa7313d11adba594d9496cc9c213593f4a60ae1b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/outer2298-uniform-domain/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cdabd29a61642b82d4be0690bc309eed953f5dc8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/outer2298-uniform-domain/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "930afec85664041a59c735161679977bcc937a60"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/outer2298-uniform-domain/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "87c1ecc26aff1dba80c539c92d891ed129c97118"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/outer2298-uniform-domain/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "31ee097b4a3db2b8fc616daac33fb397af7c7261"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/outer2298-uniform-domain/source/PR2298-PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f26af67ae1ee4d9886d4e4b28d5332994f492bc2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/outer2298-uniform-domain/source/PR2298-checks.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "40a77e662ec4d1fcde07a62ae02a5b0fb0c3a85e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/outer2298-uniform-domain/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a198329be6c4eab520076ae85a4f465375a011ae"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/outer2298-uniform-domain": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "# Uniform parameter domain for PR2298\n\n**Result:** the scalar parameter conditions stated below hold for every integer\n`b >= 2^524288` and every integer `ceil(b/2) <= L <= b`.\nThis is a written arithmetic lemma with exact endpoint and induction certificates.\nIt adds no multiplication exponent and does not validate the full callee proofs.\n\nJose Manuel's [PR2298](https://github.com/CrocSwap/integer-mult-bounds/pull/2298),\nat `8507498d363735ced0b0a3f02d5ecf80ed3e3805`, gives qualitative eventual\narguments for its changed dimension and tests five compressed input sizes.\nThis audit adds one explicit sufficient cutoff, a proof across all floor and\nceiling discontinuities, source-formula checks, and rejection controls. The\ncutoff is deliberately large. No optimal or practical cutoff is claimed.\n\nThe exact audited [proof](source/PR2298-PROOF.md) and\n[parameter checker](source/PR2298-checks.py) are retained as read-only inputs.\n[SOURCES.json](SOURCES.json) records their commit, Git blobs and SHA-256 hashes.\nThe checker reads their bytes and syntax; it imports no predecessor code.\n\n## Statement\n\nLet `bitlen(x) = floor(log2(x)) + 1` for positive integers. Set\n\n```text\np = 6b, d = floor(p^(1/40)), K = floor(d^(1/500)), ell = ceil(L/d),\nG = 4 bitlen(p) + 6, H = dG, q0 = 5284 bitlen(d),\nQ0 = q0 + ceil(2H/K) + ceil(H/K),\nalpha = ceil((12 d^2 b)^(1/4)), gamma = 2d alpha^2.\n```\n\nFor every `b,L` in the stated domain:\n\n1. `0 <= d ell-L < d`, `p <= 12d ell <= 4p`, and `ell < p`.\n2. `1 <= K <= ell-1`, `K > 16G`, and `K > bitlen(p)`.\n3. `q0 < d/16`, `Q0 < d/4+2 < d-1`, and `2^210000 d < p/2`.\n4. `ell-1 > 16d` and `ell-1 > 3+2 bitlen(d)+bitlen(ell)`.\n5. `2 <= alpha`, `alpha^2 < p`, and `gamma < b/4`.\n6. `448b 2^(-b+gamma) < 1/2`.\n\nItems 2 and 3 prove the recorded chunk, reserve and guard conditions. Item 4\nproves the two exact prime-room inequalities used by the predecessor. It does\nnot reprove the published prime-interval theorem. Item 6 bounds the numerical\nexpression in PR2298 section 6; it does not prove that a full implementation\nhas that error.\n\n## Proof\n\nPut `S=524288`, `s=floor(log2 p)`, `t=floor(s/40)` and\n`u=floor(s/20000)`. We have `s>=S`, `t>=13107` and `u>=26`.\nInteger root inequalities give\n\n```text\n2^t <= d < 2^(t+1), bitlen(d)=t+1,\n2^u <= K < 2^(u+1), G=4s+10.\n```\n\nThe second line follows from `floor(t/500)=floor(s/20000)`.\nThese inequalities include values immediately below perfect powers.\n\n### Three exponential comparisons\n\nFor nonnegative slope `A`, the implication\n\n```text\n2^j > Aj+B  implies  2^(j+1) > A(j+1)+B\n```\n\nholds whenever `Aj+B-A >= 0`. This last expression is nondecreasing in `j`.\nThus one base comparison and one nonnegative affine difference prove the\nentire integer tail. The verifier certifies these three instances:\n\n| Variable and range | Right side strictly below its power of two |\n| --- | --- |\n| `u>=26` | `16(80000(u+1)+6)` |\n| `t>=13107` | `16*5284(t+1)` |\n| `t>=13107` | `42t+44` |\n\nFor example, the first base is `2^26 > 34560096`. Its induction difference\nat 26 is `33280096`. The other base right sides are `1108202752` and\n`550538`, each below `2^13107`. All comparisons use integers.\n\nSince `s <= 20000(u+1)-1`, we have `G <= 80000(u+1)+6`.\nThe first comparison gives `K>16G`. The second gives\n`q0=5284(t+1)<2^t/16<=d/16`. In particular `K>bitlen(p)`.\nBoth ceilings remain charged:\n\n```text\nQ0 < q0 + 3dG/K + 2 < d/4+2 < d-1.\n```\n\nThe final strict inequality holds because `d>=2^13107>4`.\n\n### Record lengths and precision guard\n\nThe following linear bounds hold at `s=S` and increase thereafter:\n\n```text\ns-t >= 39s/40 >= 210002,\ns-2t >= 19s/20 >= 10,\ns-t-u >= 19499s/20000 > 6.\n```\n\nThe first also gives `s-t>=4`. Hence\n`d<2^(t+1)<=2^(s-3)<=p/8<b`. The allowed interval for L then gives\n\n```text\np/(12d) <= ell <= b/d+1 <= p/(3d).\n```\n\nThe definition of the ceiling proves `0<=d ell-L<d`.\nIt also gives `ell<p`. Thus `r=2^ell<2^p` without constructing r.\nSince `12dK<2^(t+u+6)<2^s<=p`, we have `ell>K`.\nBoth are integers, so `K<=ell-1`.\nFinally, `t+1+210000<=s-1` gives\n`2^210000 d<2^(s-1)<=p/2`.\n\n### Prime-room inequalities\n\nThe second linear bound gives `p>256d^2`.\nSince `256d^2>192d^2+12d` for `d>=1`,\n\n```text\nell-1 >= p/(12d)-1 > 16d.\n```\n\nAlso `ell<=p/(3d)<2^s`, so `bitlen(ell)<=s`. Using the third exponential\ncomparison and `s<=40t+39` gives\n\n```text\n3+2 bitlen(d)+bitlen(ell) <= s+2t+5 <= 42t+44 < 2^t <= d.\n```\n\nThe previous bound `ell-1>16d` therefore proves the second prime-room\ninequality with a strict margin.\n\n### Gaussian parameters and the recovery expression\n\nWrite `x=(12d^2b)^(1/4)>=1`. Since `alpha=ceil(x)<=2x`,\n\n```text\ngamma <= 8 sqrt(12) d^2 sqrt(b)\n      < 28 d^2 sqrt(b)\n      <= 28*6^(1/20) b^(11/20)\n      < 32 b^(11/20) <= b/4.\n```\n\nHere `8 sqrt(12)<28`, and `6^(1/20)<8/7` follows from\n`8^20>6*7^20`. The last inequality is equivalent to `b^9>=2^140`.\nIt holds because `b>=2^S` and `9S>=140`. Also `x>1`, so `alpha>=2`,\nand `alpha^2=gamma/(2d)<b/(8d)<p`.\n\nFor integers `b>=16`, induction proves `b^4<=2^b`: equality holds at 16,\nand `(1+1/b)^4 <= (17/16)^4 < 2`. Thus `log2 b<=b/4`.\nFor `b>=32`,\n\n```text\nlog2(896b) < 10+b/4 < 3b/4.\n```\n\nTogether with `gamma<b/4`, this proves item 6.\n\n### The actual caller and growth conditions\n\nFor the actual caller, let `b=ceil(log2 n)` and let T be the least power\nof two at least `4n/b`. Then\n\n```text\nb+1-log2 b < L=log2 T < b+3-log2 b.\n```\n\nThe upper bound is at most b when `b>=8`. The lower bound exceeds `b/2`\nwhen `b>=16`, using `log2 b<=b/4`. Thus every actual large input lies\nin the interval quantified above. The result includes all such integers n.\nIt is not restricted to the predecessor's samples `n=2^b`.\n\nThe same inequalities give the required limiting relations. In the stated\ntail, `d>=p^(1/40)/2` and `K>=d^(1/500)/2`, so\n`K>=p^(1/20000)/4`. Therefore `K/log p` tends to infinity.\nMoreover,\n\n```text\nK/ell <= 12p^(-19499/20000) -> 0,\n2^210000 d/p <= 2^210000 p^(-39/40) -> 0,\nell/log2 p >= p^(39/40)/(12 log2 p) -> infinity.\n```\n\nThe last relation makes r exceed each fixed power of p eventually.\nThese are limits, not claims that one finite cutoff handles every possible\npolynomial degree at once.\n\n## Executable evidence and rejection controls\n\nThe universal statement uses the proof and three induction certificates.\nThe finite fixtures test the implementation of the exact boundary arithmetic.\nThey do not replace that proof. No floating-point arithmetic is used.\n\nThree compressed fixtures use `p=2^524320+2`, `p=2^540000-4` and\n`p=2^540000+2`. Each is divisible by six and lies above the cutoff.\nThe last pair crosses both root boundaries: d changes from `2^13500-1`\nto `2^13500`, and K changes from `2^27-1` to `2^27`.\nEach fixture checks five admissible L values, including both ends of the\ninterval and a ceiling discontinuity. The checker uses integers below 600,000\nbits; it never allocates n, T, r or their arrays.\n\nNine controls reject a cutoff that cannot pay the guard, an enlarged guard,\nceiling-based lower bounds for d and K, an unrounded reserve, a false stronger\nchunk factor and its failed certificate, a changed source exponent, and source\nbyte corruption. At `p=2^524320+2`, replacing the two reserve ceilings by\n`floor(3H/K)` omits exactly one axis. The same fixture has\n`K=77947531 < 64G=134226560`, so the stronger factor 64 is actually false.\nThese are false variants, not counterexamples to PR2298's original formulas.\n\nThe arithmetic uses separately implemented bisection for the 500th root and\ntwo integer square roots for the fourth root. Exact power inequalities certify\neach root. Ten syntax checks bind the formulas to the hashed source. Python\nassertions are not used, so optimized execution retains every check.\n\n## Reproduce and limits\n\n```sh\npython3.12 scripts/research_package.py --package research/outer2298-uniform-domain\npython3.12 -O -B research/outer2298-uniform-domain/verify.py\n```\n\nExpected final line:\n\n```text\nPASS_OUTER2298_UNIFORM_DOMAIN cutoff_log2_b=524288 fixtures=3 controls=9 no_new_kappa\n```\n\n[RESULT.json](RESULT.json) records the exact certificate, boundary cases and\ncontrols. [TASK.json](TASK.json) records task selection and overlap coverage.\nThis package uses the standard library and includes its two proof-relevant\nsource snapshots. Its generic replay has no inputs outside the package.\n\nThe result certifies only the stated scalar envelope. It does not prove that\nQ0 counts every physical reserve, that the dimension change covers every\ncallee assumption, or that the claimed tape and Gaussian implementations\nsatisfy their contracts. The complete supplier, analytic, error-propagation\nand tape proofs remain separate. No selected source or frontier is changed.\nThis is an author-checked proof, not a proof-assistant formalization or an\nindependent human review.\n\n## Open next questions\n\nDoes PR2287 use another dimension-dependent condition outside this envelope?\nThat question matters because the caller must meet the full callee contract.\nThe first step is to trace each use of dimension in the pinned PR2287 proof\nand its dependencies. This requires independent review of those constructions.\nThe structured question is in [TASK.json](TASK.json).\n\n## Credit\n\nJose Manuel (`jmbarrancoml`) supplied PR2298's parameter family, reserve\nexpression, qualitative arguments and finite tests. Its proof retains credit\nfor the PR2234/2287 callees, OpenAI's frozen outer proof, Douglas Colkitt's\nrouting, Philipp's layout checker, and the Harvey\u2013van der Hoeven algorithms.\nThose underlying results are not new work in this package. The two snapshots\nare retained without alteration under the repository's Apache-2.0 license.\n\nPrepared by Jerry Lin (`jerrylin-23`) with substantial OpenAI Codex assistance\nin source review, mathematics, implementation, verification and writing.\nNew files are Apache-2.0. Coordination is in\n[Discussion2291](https://github.com/CrocSwap/integer-mult-bounds/discussions/2291#discussioncomment-18941810).",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131534/job/116286630643"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131470/job/116286630607"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131517/job/116286630508"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131455/job/116286630880"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631340"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131481/job/116286630642"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131534/job/116286631083"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131517/job/116286630824"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131455/job/116286630649"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631377"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131481/job/116286630504"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631275"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631304"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631372"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631269"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631291"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631327"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631413"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631368"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631339"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631320"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631484"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631464"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631414"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631457"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631376"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631519"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631319"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631335"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631399"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631259"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631391"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631587"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631209"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631388"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631415"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631254"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631724"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631411"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631502"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631213"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631693"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631373"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631381"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631314"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631321"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631619"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631360"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631481"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631469"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631395"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631323"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631357"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631382"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631302"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631537"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631366"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286630615"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286631038"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286630784"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38694131472/job/116286630810"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "ab00da2aabddca5c5be08bf394ffb06b93a5f1d8d3dedfdeb3a08f8d62916afa"
+}

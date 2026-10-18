@@ -1,0 +1,3 @@
+For formal F2[UT3(F2)] register words with only the two adjacent involutive address generators paid, two central commutator targets require exactly8 calls even with arbitrary free scalar GL2 mixing. Complete radius4 balls have layers1,12,80,472,2459;398 meetings all have total length8. A separate group-matrix-set engine verifies both shortest and direct witnesses.
+
+This changes the abelian hypothesis and specifies the whole paid alphabet; it is distinct from PR1333 where the central rank-one label itself is allowed. Two registers only; no supplier/native/kappa claim. Python3.12 registered replay and selected integrity pass. Prepared by woklerx with substantial OpenAI Codex assistance; Apache-2.0.

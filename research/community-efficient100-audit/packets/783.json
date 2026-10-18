@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "number": 783,
+  "title": "Audit: independent recount confirms #696's 22\u201325% primitive saving (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjk4Mzc5MDc=",
+    "is_bot": false,
+    "login": "Rohansguliani",
+    "name": "Rohan Guliani"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/783",
+  "head": "e3576811d416f91dc80b995ce4b8bc8a6144509e",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/community-pr696-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "afbc77e762d68f23b394478fbf047b76ed2b33c5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/community-pr696-audit/recount.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e3c4a166dbf7d40b8db1161007c96158f8ba062e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/community-pr696-audit": 2
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "Independent audit of #696 by Sagar Thakrar (`thakrarsagar`) at head `5a3f983715027c4fd83f50bc9001d4b18463bed1`. **Verdict: the 22\u201325% primitive claim is confirmed exactly. It does not change \u03ba.**\n\nExact base: `66849e1475c930fd7732b1a0067ffee7e1e95f60` (current `main`, also the base of #696). Only `research/community-pr696-audit/` is added. Credit for the construction belongs to #696.\n\n### Reproduce\n\n```sh\npython3 -B research/community-pr696-audit/recount.py\n```\n\nExpected:\n\n```text\nPASS_PR696_INDEPENDENT_RECOUNT savings=55320,55352,56852,56884 percent=22.10-24.60 kappa_inputs_unchanged=True\n```\n\nThe recount uses the standard library, runs offline, writes nothing and takes about 3 minutes. It imports no #696 code.\n\n### Findings\n\n| Program | Old | New | Saved | % |\n| --- | ---: | ---: | ---: | ---: |\n| CK forward | 224,938 | 169,618 | 55,320 | 24.59 |\n| CK backward | 224,986 | 169,634 | 55,352 | 24.60 |\n| JP8 forward | 257,232 | 200,380 | 56,852 | 22.10 |\n| JP8 backward | 257,280 | 200,396 | 56,884 | 22.11 |\n\n- The re-derived Horner baseline equals each emitter's `real_component_primitive_bound`. The re-implemented copy-init and unit rules match every #696 count. The saving equals `2\u00b7(additions + units)` in every program.\n- A separate randomized replay checks every complete program twice per real component, with dirty private work. After every macro the old and new states are equal, and `W = 0` after each addition. Every value the new word writes to a register also occurs in that register in the old trace.\n- **\u03ba:** the selected assembly (`complex-k492-owner-repair/code/assemble.py`) computes \u03ba from the paid profile, `m = 73`, `live`, the deficit and the PR543 bit profile. Scalar primitives enter only the finite per-vertex invoice and its pass/fail inequalities, which already pass. Over the 72 selected calls, the lowering saves 4,082,112 of 18,263,888 scalar primitives, or 8.7\u00b710\u207b\u00b9\u2070 of the per-vertex allowance. This cannot feed a \u03ba gain in the current model.\n\n### Limits\n\n`make verify`, the cold selected replay and Lean were not run. The inherited geometric, compiler, hosting, precision and tape contracts were not audited. Open #681, which consolidates #696, was not audited.\n\nRohan Guliani (@Rohansguliani), with substantial AI assistance. New files are under the repository's Apache-2.0 license.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "66f5251e44a44cb411fb3c4e218ea01b01ce9fb8ebf3f711dd845a2b29a93b43"
+}

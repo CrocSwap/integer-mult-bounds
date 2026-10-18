@@ -1,0 +1,5 @@
+The exact P112 free-sink independent audit computes4030 signed determinants with Fraction elimination. Add an opt-in modulo521 kernel whose checked row-norm and dimension bounds prove |det|<=256, so it recovers each full signed determinant exactly. Inputs outside that envelope retain the original rational fallback. The original verifier and all outer certificate obligations remain unchanged.
+
+All4030 signed values and the complete28560case audit agree with the original;19767 small signed matrices, nine rejection controls and four fallback fixtures pass. Three paired local full-audit calls have medians0.850662s and0.219613s (3.87x); this excludes startup, loading/hashing and package tests, and is not a whole-repository or multiplication timing claim.
+
+Run `python -I -O -B research/p112-signed-modular86/verify.py`; `--benchmark` repeats the paired comparison. Base ba82555c64e1879e4b7decce28186f208fcb8262. Credit PR620/595 geometry, PR1035 exact audit and related PR976 modular rank work. No new mathematical exclusion, kappa or native execution. Prepared for @woklerx with substantial OpenAI Codex assistance; Apache-2.0.

@@ -1,0 +1,31 @@
+name: Restored cycle gap native replay
+on:
+  pull_request:
+    paths:
+      - 'research/restored-cycle-gap/**'
+      - 'research/complex-swap-runs-seed37/EXPECTED.json'
+      - 'research/community-k492-audit/pr626/replay/mixed-global/base/providers/ck/LOCAL-PROGRAMS.json.gz'
+      - 'research/community-k492-audit/pr626/replay/mixed-global/base/providers/ck/LOCAL-CHECKS.json'
+      - 'research/community-k492-audit/pr626/replay/mixed-global/base/providers/jp8/LOCAL-PROGRAMS.json.gz'
+      - 'research/community-k492-audit/pr626/replay/mixed-global/base/providers/jp8/LOCAL-CHECKS.json'
+      - '.github/workflows/restored-cycle-gap.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-gap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Full independently represented native exclusion and controls
+        run: python -I -O -B research/restored-cycle-gap/verify.py
+      - name: Read-only relocation and deliberate rejection controls
+        run: python -I -O -B research/restored-cycle-gap/test_package.py
+      - name: Inputs unchanged
+        run: git diff --exit-code

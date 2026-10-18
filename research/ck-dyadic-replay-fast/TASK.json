@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 2,
+  "base_commit": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "assignment_seed": 89,
+  "scope_status": "refined",
+  "actual_scope": "Accelerate the exact sparse integer-dyadic row kernels in incorporated PR917's four complete CK scalar streams, preserving the entire historical verifier through an opt-in adapter.",
+  "scope_change_reason": "Seed 89 selects verification engineering. Three candidate objects were screened; 89 mod 3 selects the measured CK sparse-row bottleneck. This is verification throughput for a historical circuit, not a proposed multiplication mechanism.",
+  "bottleneck_link": "Exact replay is reused when reviewing finite circuit candidates. The measured row kernels consume about half the integer-replay time; faster complete checks increase that stage's throughput with identical coverage.",
+  "budget_minutes": 40,
+  "stop_rule": "One kernel implementation; abandon if any exact comparison or retained fault control fails, or five alternating same-input benchmark pairs show no useful stage acceleration. At most 20 percent orientation; reserve final 25 percent for verification and handoff.",
+  "outcome": "completed",
+  "evidence": "RESULT.json records every-kernel/full-stream comparisons, arithmetic and drift controls and the unchanged complete PR917 receipt. BENCHMARK.json and BENCHMARK-PY312.json separately record five paired timings per interpreter and identical input/result hashes. Python 3.12 registered replay and Python 3.14 optimized full verification pass. VERIFY.json registers the complete bounded replay.",
+  "author": "Sricharan Vagvala (@theon199)",
+  "ai_assistance": "Substantial OpenAI Codex assistance for selection, implementation, arithmetic analysis, testing, verification and writing. Parent-only execution; no independent human review.",
+  "open_questions": [
+    {
+      "question": "Does the same kernel adapter improve another source-bound dyadic scalar replay with a larger arithmetic share?",
+      "why_it_matters": "The measured 1.50x improvement applies only to PR917's integer stage; most complete-replay time is outside that stage.",
+      "first_step": "Profile one other dyadic replay, prove its zero-free immutable-row invariant, then compare its complete primitive streams and controls before applying these kernels.",
+      "blocked_by": "A separately pinned target and complete coverage review; this package does not automatically replace any compiler or verifier."
+    }
+  ]
+}

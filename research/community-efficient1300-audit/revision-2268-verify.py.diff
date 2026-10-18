@@ -1,0 +1,31 @@
+--- a/research/qq16-ordinary-source-tap-seed3794b3/verify.py
++++ b/research/qq16-ordinary-source-tap-seed3794b3/verify.py
+@@ -138,8 +138,17 @@
+         (PACKAGE / "references/pr2216/SOURCES.json").read_text())
+     for row in pr2216_manifest["files"]:
+         if row.get("usage") == "input":
+-            need(hashlib.sha256((ROOT / row["path"]).read_bytes()).hexdigest()
+-                 == row["sha256"], "PR2216 base input hash: " + row["path"])
++            # The task catalogue records the predecessor's research context;
++            # it is not consumed by either mathematical replay. Authenticate its
++            # original Git bytes while live computational dependencies stay bound.
++            if row["path"] == "docs/research/agent-task-catalog.json":
++                payload = subprocess.check_output(
++                    ["git", "show", pr2216_manifest["base_commit"] + ":" + row["path"]],
++                    cwd=ROOT)
++            else:
++                payload = (ROOT / row["path"]).read_bytes()
++            need(hashlib.sha256(payload).hexdigest() == row["sha256"],
++                 "PR2216 base input hash: " + row["path"])
+ 
+     b2 = load_b2()
+     inputs = {row["path"]: row["sha256"] for row in manifest["files"]
+@@ -196,7 +205,7 @@
+ 
+     # Re-run the PR2216 eight-direction witness with this tap at the B1 cut.
+     check = subprocess.run([sys.executable, "-I", "-B", str(PACKAGE / "verify_b1_tap.py")],
+-                           cwd=ROOT, text=True, capture_output=True, check=False, timeout=180)
++                           cwd=ROOT, text=True, capture_output=True, check=False, timeout=540)
+     need(check.returncode == 0, "eight-direction B1 control failed: " + check.stderr)
+     need(check.stdout.splitlines() == [
+         "PASS_QQ16_F0_B1_IDENTITY_SHEAR_WITNESS",

@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 6,
+  "base_commit": "463113d675af7410ac91d53a4fed51ec6494eb9a",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Speed up the T16 invoice boundary audit by reusing parsed JSON for byte-identical input files while returning fresh mutable values; retain the full 54-case receipt.",
+  "scope_change_reason": "Takes the remaining repeated-JSON-parsing lead of Kumagi PR3009 after checking that the compression optimization is already on main.",
+  "bottleneck_link": "Faster complete boundary replays improve review throughput without dropping source binding or any admission predicate.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after same-fixture timing and complete receipt comparison, with changed-input and mutable-return controls; abandon acceleration if it is not beneficial.",
+  "outcome": "completed",
+  "evidence": "RESULT.json: four fresh Python 3.12.15 processes in baseline/cached/cached/baseline order; all complete 54-case receipts byte-identical to the original. Mean wall time 188.516 -> 174.954 seconds (7.19% lower locally), mean peak RSS 939848 -> 970356 KiB. Cached runs reuse 488 of 628 reads; ten invalidation/value-isolation controls pass. Shared-host timing ranges overlap; no portable speedup claim. Registered package replay also passed on Python 3.12.15.",
+  "author": "thakrarsagar with OpenAI Codex",
+  "ai_assistance": "Substantial OpenAI Codex assistance in implementation, profiling, tests, source inspection and writing; parallel read-only source review and separate regression-test implementation. No independent human review claimed.",
+  "open_questions": [
+    {
+      "question": "Does this reader reuse improve replay on another supported Python 3.12 host?",
+      "why_it_matters": "The observed speedup depends on interpreter, CPU and competing load; mathematical coverage does not.",
+      "first_step": "Run the baseline and cached commands in alternating order, compare full receipts and report elapsed time and peak memory.",
+      "blocked_by": "No correctness blocker; independent host measurements are not included here."
+    }
+  ],
+  "coordination": {
+    "claim": "https://github.com/CrocSwap/integer-mult-bounds/discussions/2051#discussioncomment-19001801",
+    "entry_upstream": "463113d675af7410ac91d53a4fed51ec6494eb9a",
+    "entry_utc": "2026-10-17T17:22:14Z",
+    "priority_revision": 6,
+    "overlap": {
+      "open_prs": 249,
+      "discussion_records": 1928,
+      "complete_pagination": true,
+      "warnings": []
+    },
+    "predecessor_pr": 3009,
+    "predecessor_head": "95568ae83a73ace578e3972a01aef55c889e58a2",
+    "submission_refresh": {
+      "upstream": "463113d675af7410ac91d53a4fed51ec6494eb9a",
+      "checked_at": "2026-10-17T17:51:05.234805+00:00",
+      "priority_revision": 6,
+      "coverage": {
+        "open_prs": {
+          "fetched_at": "2026-10-17T17:50:37.111280+00:00",
+          "complete_pagination": true,
+          "records": 253
+        },
+        "discussions": {
+          "fetched_at": "2026-10-17T17:51:04.981869+00:00",
+          "complete_pagination": true,
+          "records": 2017
+        }
+      },
+      "warnings": [],
+      "finding": "No competing T16 reader-cache PR or claim found; predecessor compression optimization already incorporated. No matches is not a novelty certificate.",
+      "upstream_checked_at": "2026-10-17T17:56:41Z"
+    }
+  }
+}

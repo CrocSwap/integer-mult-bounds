@@ -1,0 +1,37 @@
+name: Historical reconciliation 92 integrity
+on:
+  push:
+    paths:
+      - 'research/community-reconciliation92-audit/**'
+      - 'scripts/replay_historical_check.py'
+      - 'scripts/historical-ci-inputs/**'
+      - 'tests/test_historical_check.py'
+      - 'scripts/run_parallel.py'
+      - 'scripts/verify_parallel.py'
+      - 'tests/test_parallel_verification.py'
+      - '.github/workflows/community-reconciliation92.yml'
+  pull_request:
+    paths:
+      - 'research/community-reconciliation92-audit/**'
+      - 'scripts/replay_historical_check.py'
+      - 'scripts/historical-ci-inputs/**'
+      - 'tests/test_historical_check.py'
+      - 'scripts/run_parallel.py'
+      - 'scripts/verify_parallel.py'
+      - 'tests/test_parallel_verification.py'
+      - '.github/workflows/community-reconciliation92.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  provenance-and-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Check provenance and scoped dispositions (not a mathematical replay)
+        run: python3 -B scripts/replay_historical_check.py reconciliation92
+      - name: Check worker isolation and rejection controls
+        run: python3 -m unittest discover -s tests -p test_parallel_verification.py -v

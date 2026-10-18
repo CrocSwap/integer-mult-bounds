@@ -1,0 +1,7 @@
+On the PR1042 R480 word selected at the frozen base, legal adjacent commuting-ADD moves cannot cross a boundary between unequal fixed frame slots. The package enumerates all 11,811 commuting pairs that can be exposed at such boundaries after arbitrary within-run commuting reorderings; every crossing fails necessary label-subspace containment. A first-crossing argument therefore proves that every reachable schedule remains within its original frame runs and preserves the complete paid profile.
+
+The standalone verifier reads the pinned selected archive member, checks exact rational commutation, recounts the full profile, and compares an affected-register calculation with whole-stage replay for every crossing. Eleven controls include legal synthetic crossings and a crossing visible only after a nonadjacent exposure reorder. The proof keeps non-ADD barriers and intermediate-legality requirements explicit. PR815's earlier commuting annealing with frame re-solving is credited; changing frame slots is outside this result.
+
+No new word, kappa, precision admission or native/Clifford/physical/hosted certificate is claimed. Base ba82555c64e1879e4b7decce28186f208fcb8262, seed 27, complex-supplier track. Prepared for @woklerx with substantial OpenAI Codex assistance. Baseline construction credit: Jeremy Kothe and the retained contributors; Apache-2.0.
+
+The subsequent PR1094 frontier is outside the pinned scope; PR1042 is not presented as the latest selected result.

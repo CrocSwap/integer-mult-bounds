@@ -1,0 +1,3 @@
+This package is licensed under Apache License 2.0; see `LICENSE`.
+
+It retains and attributes the PR1042/PR1094 original k8 supplier and PR696 exact dyadic lowerer, including the PR425/PR433/PR531 circuit lineage. The two-coordinate temporal-gauge positive control follows Sagar Thakrar's PR1259 and PR1380 work. Philipp / mightyOil's PR1263 and PR1322 are credited for the later static-gauge and common-shift triple context. The package has no executable dependency on PR1380 source files; it pins that certificate as a positive control and independently implements the three-dimensional optimizer, transformation and invoice replay.

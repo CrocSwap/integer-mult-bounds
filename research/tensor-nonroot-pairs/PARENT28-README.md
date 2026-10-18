@@ -1,0 +1,9 @@
+# PR483 response cancellations and nested donors with 28-replica rational packing
+
+This package keeps the complete PR483 local word unchanged and replaces its eight-replica whole-family assignment with an exact 28-replica assignment. Every residual remains on one physical family; no cross-family split is used. The independent emitter and auditor read the replica count from bit470/CONFIG.json. All inherited mathematical interfaces remain conditional.
+
+Conditional kappa **0.001296611982495107**, exactly `1296611982495107/1000000000000000000`, is **0.0004080721% above PR483**. Exact local/native checks, fresh physical emission and independent ownership audit, fresh invoice, both rational moments and all47 outer constraints passed. This initial assembly explicitly used the previously completed unchanged complex supplier; fresh full default replay remains pending. See VALIDATION.json, INITIAL-BIT-RECEIPT.json and RESULT.json. No LP optimality is claimed.
+
+Run `python -B research/r715-response-replica28/verify.py /absolute/new/output`. Python3.11+, SymPy, C++17 and Boost are required. On macOS provide the repository portable-include directory through CPLUS_INCLUDE_PATH and BOOST_INCLUDE as appropriate. Default verification reconstructs the unchanged local word from its original source and all three constructor witnesses, runs native checks, emits and audits the 28-replica controller, rebuilds the complex supplier and checks both moments and all47 outer inequalities. An explicit completed-complex mode retains the original PR483 hash pins; it does not imply a fresh complex run.
+
+UPSTREAM-* files are historical evidence for the eight-replica parent, not validation of this extension. Its missing .gitattributes manifest entry was removed in an explicitly recorded inventory-only adapter before development; existing upstream source bytes were otherwise preserved at acquisition. Current MANIFEST.json binds this derived package.

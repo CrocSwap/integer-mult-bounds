@@ -1,0 +1,22 @@
+name: Exact exponential interval checks
+
+on:
+  pull_request:
+    paths:
+      - 'research/exact-exp-performance/**'
+      - '.github/workflows/exact-exp-performance.yml'
+  workflow_dispatch:
+
+jobs:
+  focused-checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Exact arithmetic and full checker controls
+        run: python -B -m unittest discover -s research/exact-exp-performance -p 'test_*.py' -v

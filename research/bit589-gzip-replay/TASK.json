@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 2,
+  "base_commit": "55a02580ce1b283026e9d3b3510b218f8c93a4de",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Repair only the two regenerated gzip-container comparisons in the selected PR589 bit replay, preserving every decompressed byte and every frozen input pin.",
+  "scope_change_reason": "The portable-replay card is narrowed to tune/verify.sh step 1, its PR555 base word and PR589 tuned word; no mathematical identity or source archive is changed.",
+  "bottleneck_link": "This step is reached by the selected frontier1094 cold replay before its bit supplier checks. Compression-only rejection can prevent that replay on a different Python/zlib build.",
+  "budget_minutes": 60,
+  "stop_rule": "One 60-minute session, bounded to two generated words and one opt-in shell adapter; stop if payloads actually differ or a predecessor already provides the same repair.",
+  "outcome": "completed",
+  "evidence": "Five focused test groups pass on Python 3.12.13 and optimized Python 3.14.6, including eight original-comparison false rejections and 24 payload/corruption CLI rejections. The complete adapted PR589 bit replay passes all stages 0-8 in 131 seconds. See EVIDENCE.json; no new bound or selected complex replay.",
+  "author": "Hanson Sun",
+  "ai_assistance": "Substantial OpenAI Codex assistance in investigation, implementation, verification and writing.",
+  "open_questions": [
+    {
+      "question": "Should the two frozen PR589 rebuild comparisons be migrated to full-payload equality in a maintainer-reviewed successor?",
+      "why_it_matters": "The opt-in adapter allows equivalent gzip encodings, but the default selected replay still invokes the frozen cmp comparisons.",
+      "first_step": "Run the complete bit supplier using replay.py on another Python/zlib build, then review source-pin migration for the default entrypoint.",
+      "blocked_by": "Maintainer adoption and cross-environment full-replay evidence; this package does not change selected sources."
+    }
+  ],
+  "selector_seed": "325e378b7be425b7dd26bee91e4a8ff7",
+  "proposed_scope_key": "831cc1a3c8f9ff01b197:pr589-step1-base-and-tuned-gzip",
+  "overlap": {
+    "snapshot": "2026-10-14T02:40:10.957413+00:00",
+    "open_prs": 714,
+    "discussion_records": 207,
+    "nearest": [
+      "#220 gzip convention",
+      "#819 PR626 payload adapter",
+      "#946 locale tooling",
+      "#1298 onboarding portability",
+      "#1509 bit589 Boost substitute"
+    ],
+    "distinct": "Two generated word cmp commands in tune/verify.sh; no overlap of modified production files, and no change to immutable input hashes."
+  },
+  "submission_overlap": {
+    "searched_at": "2026-10-14T02:50:55.770901+00:00",
+    "coverage": {
+      "open_prs": {
+        "fetched_at": "2026-10-14T02:50:33.217437+00:00",
+        "complete_pagination": true,
+        "records": 714
+      },
+      "discussions": {
+        "fetched_at": "2026-10-14T02:50:55.724571+00:00",
+        "complete_pagination": true,
+        "records": 216
+      }
+    },
+    "warnings": [],
+    "limits": "Remote PR scope is open PRs including drafts. Closed work is searched through local READMEs, TASK metadata and ledger only. No code diffs or arbitrary package files are searched. Recheck relevant heads before submission."
+  },
+  "discussion": "https://github.com/CrocSwap/integer-mult-bounds/discussions/1547"
+}

@@ -6,7 +6,8 @@ They do not grant permission to commute a phase through a scalar mixing gate.
 """
 from collections import deque
 from fractions import Fraction as Q
-from itertools import combinations, product
+from itertools import product
+from math import comb
 import json
 from pathlib import Path
 
@@ -14,6 +15,21 @@ from certify import require, verify_sources
 from prepare_layers import BIT_SAVING, scenarios, serializable
 
 ROOT=Path(__file__).resolve().parents[1]
+
+
+def orbit_representatives(h):
+    """Weight-three indicators for spectator orbits fixing the first three axes.
+
+    Production form of research/sparse-fusion-orbits/: permutations that fix
+    coordinates 0,1,2 conjugate Q=diag(S,I) to itself, so every triple with the
+    same low three bits shares one rank. Multiplicity is C(h-3, 3-wt(low)).
+    """
+    require(h >= 22, 'Use the admissible complex family')
+    return tuple(
+        (low | (((1 << (3 - low.bit_count())) - 1) << 3),
+         comb(h - 3, 3 - low.bit_count()))
+        for low in range(8)
+    )
 
 
 def parity(value):
@@ -120,10 +136,14 @@ def central_gate_screen(h=25):
     The written proof covers every symmetric polar matrix Q. This bounded
     screen checks all symmetric 3x3 changes embedded in the original I_h.
     It is not a search over new gate topologies or coupled frame changes.
+
+    Unary ranks use exact spectator-orbit representatives (equivalent to the
+    historical full weight-three enumeration); joint pairs and every require
+    remain unchanged.
     """
     require(h>=22,'Use the admissible complex family')
-    triples=[sum(1<<i for i in t) for t in combinations(range(h),3)]
-    v=len(triples);centers=h+1
+    triples=orbit_representatives(h)
+    v=comb(h,3);centers=h+1
     baseline=v*(h-1)+2*centers*h
     minimum_changed=None
     frames=[]
@@ -139,8 +159,9 @@ def central_gate_screen(h=25):
                 at+=1
         k=binary_rank(Qcols)
         r=binary_rank([col^(1<<i) for i,col in enumerate(Qcols)])
-        unary=sum(binary_rank([col^(t if t>>i&1 else 0)
-                                for i,col in enumerate(Qcols)])+r for t in triples)
+        unary=sum(weight*(binary_rank([col^(t if t>>i&1 else 0)
+                                       for i,col in enumerate(Qcols)])+r)
+                  for t,weight in triples)
         frames.append((Qcols,k,r,unary))
         if r==0:continue
         actual=unary+2*centers*k

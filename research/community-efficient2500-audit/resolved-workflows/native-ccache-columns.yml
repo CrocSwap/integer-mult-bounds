@@ -1,0 +1,35 @@
+# Manual research replay; archival intake is not scientific validation.
+# See docs/research/research-archive-intake.md before dispatching.
+name: Native compiler cache boundary
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install native benchmark dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev ccache
+      - name: Independent columns and failure controls
+        run: python -B scripts/research_package.py --package research/native-ccache-columns
+      - name: Fresh native benchmark with actual invalidation controls
+        run: |
+          python -I -O -B research/native-ccache-columns/benchmark.py \
+            --work "$RUNNER_TEMP/native-cache-run" --cxx /usr/bin/g++ \
+            --ccache /usr/bin/ccache --boost-include /usr/include --repeats 3
+      - run: git diff --exit-code

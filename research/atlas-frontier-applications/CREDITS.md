@@ -1,0 +1,20 @@
+# Attribution, overlap and source scope
+
+The mathematical atlas is [PR #2849](https://github.com/CrocSwap/integer-mult-bounds/pull/2849). Its entry identifiers are precedents for this application work; classical facts remain classical.
+
+The multiplication construction retains the following direct dependencies and comparisons:
+
+- [PR #2833](https://github.com/CrocSwap/integer-mult-bounds/pull/2833), Jeremy Kothe: dirt-entry native rewrite, actual words, 408-helper inventory and inherited full admission package.
+- [PR #2843](https://github.com/CrocSwap/integer-mult-bounds/pull/2843), Marius-Paul Dumitrean: the literal T124 allocation that is interleaved three times here.
+- [PR #2848](https://github.com/CrocSwap/integer-mult-bounds/pull/2848), Yiyang Lu (@Lyy-iiis), with substantial OpenAI Codex assistance: two-copy residue exchange, portable native preparation, complete admission driver and separately implemented source-event and moment auditors. Our owner auditor is a credited generalization of that source-event auditor; our second rational moment implementation is separate.
+- [PR #2839](https://github.com/CrocSwap/integer-mult-bounds/pull/2839), Dugongue: tensor-block replica contract and retained lift/reconstruction/block-norm tooling. The carried credits identify the human and assisted contributions.
+- [PR #2802](https://github.com/CrocSwap/integer-mult-bounds/pull/2802), Marius-Paul Dumitrean; [PR #2751](https://github.com/CrocSwap/integer-mult-bounds/pull/2751), Tekalign; [PR #2766](https://github.com/CrocSwap/integer-mult-bounds/pull/2766), DavidAriasC; and [PR #2733](https://github.com/CrocSwap/integer-mult-bounds/pull/2733): retained provider, owner and refit lineage. All upstream notices remain in the authenticated source export.
+- [PR #2742](https://github.com/CrocSwap/integer-mult-bounds/pull/2742): native covariant-reader precedent; [PR #2500](https://github.com/CrocSwap/integer-mult-bounds/pull/2500): typed-cost counterexample precedent; [PR #2226](https://github.com/CrocSwap/integer-mult-bounds/pull/2226), Cinna Davis: borrowing precedent. Philippe Van Velzen, Mason Hale and other retained source contributors keep their documented upstream credits.
+
+[PR #2805](https://github.com/CrocSwap/integer-mult-bounds/pull/2805) already develops an actual read-only transported shear on dirty helper state. Its two-bank order 4 transport is substantial methodological overlap with our in-place rank 2 involution. The endpoints, ABI and consumer obligations differ. We do not present 234 versus 1,732 scalar operations as a complete-application comparison. See `applications/adapters/PR2805-OVERLAP.md` for inspected immutable sources and exact distinctions.
+
+The final refresh found [PR #2853](https://github.com/CrocSwap/integer-mult-bounds/pull/2853), Philippe Van Velzen (@philippeVV), head `d01045dfb67428679618027dff552f1d032fa999`. Its four additional A-phase dirt-entry rewrites claim conditional κ ≈ 0.0017193776586975866590, stronger than our fully checked PR #2833-word T372 allocation. Our checked numerical result therefore improves the pinned PR #2848 baseline, not this newer frontier. A source-width reallocation nomination is separately labelled if supplied; it is not silently included in the checked headline. PR #2852's T134 allocation and PR #2850's phase-accumulator investigation were also included in the final neighborhood refresh.
+
+The overlap search includes a complete earlier open-PR pagination, pinned relevant source inspection, and a final refresh of main plus 100 recently updated and 30 recently created PRs. Pagination is a time-bounded, non-atomic snapshot. The Discussions landing page was inspected, but all comments and all historical repositories were not exhaustively searched. No claim that nobody previously used these ideas is made.
+
+The current work was produced by the user-directed OpenAI Codex root and three agents. Automated exact replay and agent review are identified as such; no independent human peer review is claimed. New code is Apache-2.0. Retain all vendored licenses, SPDX notices and source attribution.

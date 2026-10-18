@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "number": 2529,
+  "title": "Keep dependency validation and registered replay consistent",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2529",
+  "head": "aadb2145b41a9d72ddbc6dc0f68c7b0912ebced3",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "scripts/research_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "08f82cce99a6d9633864119494ed239921b78f58"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "62257c50e9f469e70a4624e2afce190bf85064f9"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_dependency_contract.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "447952497301977f394a4f6e33d2b28e22aab1cc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/research_package.py": 1,
+    "tests/test_research_dependency_contract.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "Metadata validation treats an omitted requirements list as empty, but replay indexes the absent key and raises KeyError before executing a valid package. Validation also accepts two exact versions of the same distribution, an environment contract that cannot be satisfied.\n\nNormalize the accepted empty default in the in-memory validated manifest and reject conflicting per-distribution pins. Contributor manifest bytes are not rewritten. Existing exact-version installation/checking and child failure propagation stay in place.\n\nValidation: before the fix, omitted lists raise KeyError with and without installation enabled, and both conflicting-version controls are accepted. Afterward, generated pinned-package fixtures replay successfully with omitted/empty lists in both install modes; failing children still reject. Distinct-distribution pins remain accepted. Required research tooling suite passes 67 tests with 3 pre-existing Linux-only skips on Windows CPython 3.12.14. All 450 current ready manifests were scanned; none has conflicting per-distribution pins. git diff --check passes. No full mathematical replay or dependency installation was performed.\n\nTask selection: recursive-interfaces seed 60fc06b8f8417be93f0978cec9e0f702, changed to a concrete replay-contract defect. Current canonical main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4; complete PR/Discussion/local-note overlap checked. Credit Douglas Colkitt and retained research-package runner contributors. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0. No frozen scientific evidence or selected frontier changes.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "16c398fa2328b838ec11787ece972743aab9c1fef68494164429fb67836c7f92"
+}

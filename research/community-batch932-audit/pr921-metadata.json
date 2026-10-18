@@ -1,0 +1,54 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "baseRefOid": "91a2094f2e022930069e8cfdc810a3ea1b81cd09",
+  "body": "## Tooling: schedule isolated test modules concurrently with identical receipts\n\nStatus: **tooling improvement** (verification engineering, track 85\u201394, assignment seed 88). No new kappa claim. Prepared with help from opencode.\n\n### What and why\n\n`scripts/run_isolated_tests.py` (run by `make verify-tests`, hence `make verify`) runs every test module in a fresh interpreter to isolate colliding research-package module names. A timing survey of the `make verify` checks at base `f567884aeb8851b6e794af1184119a3bfbe1e631` found this runner to be the single most expensive check: 298.5 s end to end (and over a 250 s sweep budget), while every other surveyed check was at most 144 s (`scripts/audit_quadratic_affine.py`), most under 10 s. No open PR (surveyed 703) targets the test runner or generic parallelism.\n\nThe runner now schedules the same per-module commands concurrently \u2014 one isolated interpreter per module; `--workers N` pins the width \u2014 and replays each module's captured bytes in sorted module order. The isolation design is unchanged; it is exactly what makes the modules independent and safely concurrent. A test-module audit found no writes outside `tempfile.TemporaryDirectory()` blocks, so concurrent modules share no mutable state.\n\n### Measured result (same host, same input, 16 logical CPUs, CPython 3.13.15/Windows)\n\n| Run | Modules | Wall time |\n|---|---|---|\n| Pre-change runner, base commit, end to end | 87 | 298.5 s |\n| Benchmark sequential pass (pre-change schedule) | 88 | 250.6 s |\n| Benchmark concurrent pass (16 workers) | 88 | 75.9 s (3.30x) |\n| Post-change runner end to end | 88 | 76.7 s (3.9x vs base) |\n\n### Exactness (machine-checked, `research/agent-07-verifeng-seed88/benchmark.py`)\n\nPer-module command is byte-identical to the pre-change one (`python -m unittest discover -s tests -p <module> -v`, same interpreter/cwd/env); only scheduling changes. Across 88 modules:\n\n- exit codes identical for all 88; the failing-module sets of both schedules are equal (same 15 environmental Windows failures, e.g. `ModuleNotFoundError: No module named 'resource'`, present identically at base);\n- stdout byte-identical for all 88; stderr byte-identical for 87 modulo the wall-clock field `unittest -v` embeds in `Ran N tests in T.TTTs`;\n- `test_frontier799_bindings.py` is inherently nondeterministic across any two runs (its failing traceback embeds a machine-random temp path). The benchmark proves this automatically by re-running any mismatched module twice under the same schedule: `scheduling_driven_mismatches` is empty.\n\nNo certificate, patch, generator, proof supplement or hash-pinned source file is touched (`run_isolated_tests.py` is not pinned by `certificates/selected-result.json`, `SELECTED-SOURCE.json` or any checkpoint).\n\n### Negative controls\n\n`tests/test_isolated_test_runner.py` runs the real runner end to end in a sandbox: (1) a deliberately failing module must appear in the shared `Failed modules:` summary; (2) a barrier test \u2014 three modules each wait (8 s) for three markers, passing only if at least three module processes run concurrently \u2014 fails against the pre-change runner with \"barrier timeout: test modules did not run concurrently\" and passes with `--workers 3` after; (3) default-invocation summary lines and exit codes are unchanged.\n\n### Reproduce\n\n    python3 -B research/agent-07-verifeng-seed88/benchmark.py\n\nExpected final line: `PASS identical exit codes (88 modules); receipts identical for 87 modules modulo the unittest timing field; 1 module(s) inherently nondeterministic across same-mode runs: ['test_frontier799_bindings.py']`\n\nOn a Unix host `python3 -B scripts/run_isolated_tests.py` should end `PASS all 88 test modules in isolated interpreters`; on this Windows host it exits 1 with the same 15-module environmental failing set as at base (documented in the package README).\n\n### Scope and remaining obligations\n\nWindows portability of the 15 pre-existing failing modules is out of scope; the claim is exact reproduction of the sequential runner's receipts, exit codes and failing set. Live interleaved output is replaced by sorted per-module replay. Related concurrent tooling on a different target: PR #853 (#741 pinned-stage concurrency) \u2014 independent of and not depended on by this change. Base commit, claim record and full evidence are in `research/agent-07-verifeng-seed88/` (README.md, SPRINT-CLAIM.md, evidence/benchmark.json).\n",
+  "files": [
+    {
+      "path": "research/agent-07-verifeng-seed88/README.md",
+      "additions": 142,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/agent-07-verifeng-seed88/SPRINT-CLAIM.md",
+      "additions": 19,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/agent-07-verifeng-seed88/benchmark.py",
+      "additions": 140,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/agent-07-verifeng-seed88/evidence/benchmark.json",
+      "additions": 1115,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/run_isolated_tests.py",
+      "additions": 62,
+      "deletions": 12,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "tests/test_isolated_test_runner.py",
+      "additions": 136,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "c1ee2fbfdc5700a1ba0251e7727ee8ae0cb4782f",
+  "isDraft": false,
+  "number": 921,
+  "state": "OPEN",
+  "title": "Tooling: schedule isolated test modules concurrently with identical receipts (3.3-3.9x faster verify-tests, no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/921"
+}

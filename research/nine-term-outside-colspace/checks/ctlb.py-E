@@ -1,0 +1,40 @@
+# MASK9 numeric control for the case-(b) facts used by cnt*.py, on random genuine case-(b) decoders (Lemma 2.1 lift form):
+# Gram realisation P0 = Q0 = E8 coordinates of the P112 lines; random integer X^ (9x9 invertible), Y^ = X^{-T}; P = [P0 | κ] X^, Q = [Q0 | 0] Y^,
+# κ(t) chosen per line to kill a random masked term. Checks: exactness (PQ^T = Gram), rank_F2 B0[R_j, A_j] >= 9 - d_j - [δ_A = 1] (and the
+# exact τ formula), lb(M_J) <= rank p0(M_J) <= 9 - |J| for random J (lb = cnt's minS), δ_A <= 1 only at survivors.
+import sys
+sys.argv = sys.argv[:2]
+from m9lib import *
+from lib2 import E8, dot
+P0 = np.array([[float(x) for x in r] for r in L]); Gr = P0 @ P0.T
+rng = np.random.default_rng(1)
+nrk = lambda A: np.linalg.matrix_rank(A, tol=1e-7) if len(A) else 0
+def avoided_dim(R):  # d = dim of {c : O_c ∩ R = ∅} (subspace)
+    n = sum(1 for c in ks if not cls[c] & R); return (n + 1).bit_length() - 1
+bad = 0; checks = 0
+for trial in range(6):
+    while True:
+        Xh = rng.integers(-3, 4, size=(9, 9)).astype(float)
+        if abs(np.linalg.det(Xh)) > 0.5 and np.all(Xh[8] != 0): break
+    Yh = np.linalg.inv(Xh).T
+    S = list(range(9))                                          # z = last row of X^: all terms masked (z_j != 0)
+    kap = np.zeros(v)
+    for t in range(v):
+        j = rng.integers(0, 9)
+        kap[t] = -(P0[t] @ Xh[:8, j]) / Xh[8, j]
+    Ph = np.hstack([P0, kap[:, None]]); Qh = np.hstack([P0, np.zeros((v, 1))])
+    P = Ph @ Xh; Q = Qh @ Yh
+    assert np.allclose(P @ Q.T, Gr, atol=1e-7)
+    for j in range(9):
+        R = sum(1 << t for t in range(v) if abs(P[t, j]) > 1e-9); A = sum(1 << t for t in range(v) if abs(Q[t, j]) > 1e-9)
+        d = avoided_dim(R); dA = avoided_dim(A); r = rk(R, A); checks += 1
+        if dA > 1 or r < 9 - d - dA: bad += 1; print('rank/δ_A violation', trial, j, d, dA, r)
+        if dA == 1:
+            zA = [c for c in ks if not cls[c] & A][0]
+            if zA not in surv: bad += 1; print('δ_A at non-survivor', trial, j)
+    for _ in range(40):
+        J = sorted(rng.choice(9, size=rng.integers(2, 6), replace=False))
+        MJ = [t for t in range(v) if all(abs(P[t, j]) < 1e-9 for j in J)]
+        X = sum(1 << t for t in MJ); rr = nrk(P0[MJ]) if MJ else 0; l = lb(X) if MJ else 0; checks += 1
+        if rr > 9 - len(J) or l > rr: bad += 1; print('J violation', J, len(MJ), rr, l)
+print('ctlb checks', checks, 'violations', bad)

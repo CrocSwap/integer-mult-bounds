@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "number": 1338,
+  "title": "Tooling: exact helper-donor cold-kernel search \u2014 rediscovers #1297's kernels, census on #1305/#1324 words (no new kappa)",
+  "author": {
+    "id": "U_kgDOCIO2xg",
+    "is_bot": false,
+    "login": "Wronskode",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1338",
+  "head": "a668059ec7df16192e91e02b33616d64b52f6e72",
+  "merge_base": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "baseline": "a18b4b0136d647529971e9fcb99fa83f5b9a0b81",
+  "files": [
+    {
+      "path": "research/helper-donor-kernel-search/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a11e14d976b2c776b307c96c038ad87b74f5d156"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/helper-donor-kernel-search/inputs/K4-BASE-WORD.json.gz",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eacf8c773cb50637f93a762342b3b5f0853fe29a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/helper-donor-kernel-search/inputs/K4-EXTRA-WORD.json.gz",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4d464f55a2955e5c832b5ce789d5d0e0a39fb4e1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/helper-donor-kernel-search/inputs/PR1218-BASE-WORD.json.gz",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ba44a29122c55db71c040c9f1e41670739733c11"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/helper-donor-kernel-search/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1db09fc95c7bf3ec985166f3da729b30ea527a2e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/helper-donor-kernel-search/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6cca05d6332dc2d7cd5fa93ababca58dfdf830c8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/helper-donor-kernel-search": 6
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "Adds `research/helper-donor-kernel-search/`, the first published search tool for the helper-donor cold-kernel mechanism. That mechanism was introduced by #1274 (pivot 531) and extended by #1286/#1297; it is the largest local gain on the X54 line. **No new \u03ba.**\n\n## How the search works\nFor every write `p += k\u00b7Y` that has earlier reads of p, the tool:\n- deletes a subset of those early reads;\n- cancels p through Y at a cut, with an early-cleanup tail restore;\n- computes the exact program-map change D mod 2\u00b3\u00b9\u221219;\n- solves a single-donor relation `q\u00b7v_hook = \u2212D` with dyadic q;\n- prices each candidate exactly with #1186's frame solver.\n\n## Results\n- **Positive control.** On #1218's word (no kernel yet), the tool rediscovers #1297's pivot-555 kernel exactly: delete reads 466/502/734, donor 620 with coefficient 2 at hook 112, cost \u221211,676, profile H1 \u22123, H3 +1. It also finds the five equivalent donor hooks.\n- **Census.** On #1305's final words, which #1324 (the current best claim) uses unchanged, I searched every register and write: 1,048 write instances per word, both words. **No further single-donor kernel exists.** Further local gains need two-donor relations or other cancel forms; see Open next questions.\n- **Negative control.** The already-applied pivot 555 gives no gain.\n\n## Reproduce\n```sh\npython3 -B research/helper-donor-kernel-search/verify.py --toolkit <PR1186>/research/exact-frame-toolkit   # ~1 min\n```\nOutput: `PASS_HELPER_DONOR_KERNEL_SEARCH_CONTROLS`. Inputs are vendored and pinned: #1305 `a96a5d95` and #1218 `0aa14797`.\n\nA candidate the tool finds is nomination data, not an admitted construction. All inherited conditions remain.\n\nCredit: #1274 (Jeremy Kothe), #1286/#1297 (Rohan Arun), #1186 (Marius-Paul Dumitrean), #1305/#1324 (jeremykothe2). Prepared by Wronskode with substantial AI assistance (Claude Code). Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "2ee8b8dcadbc47d6f1eae88389e9f028fae494d45603b7e0427932e882592419"
+}

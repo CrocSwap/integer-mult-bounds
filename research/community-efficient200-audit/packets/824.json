@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 824,
+  "title": "Tooling: 1.13x faster exact stage-pair audit with identical receipts",
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/824",
+  "head": "2b342526350a3c36936feb7f3f50669fad2770b1",
+  "merge_base": "7ee02b7c96d85f22b38d28bd7ed49bb8c1aeb261",
+  "baseline": "858771bcca3b8dd5d4ef4aa682a13cc9b7e23920",
+  "files": [
+    {
+      "path": "research/stage-pair-performance/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "907cc15461c6d7a22017eea6e52b60947f08cfd5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/stage-pair-performance/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "17ff3edafbc33f128db61cb3e64937e039e14a8a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/stage-pair-performance/SELECTION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8ecc0fa7b55575c9d7ea89781eb5169763c111d9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/stage-pair-performance/benchmark.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cdef1510f1ba4f615b788d9e91b9433754a60174"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "scripts/audit_fused_block.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "41221dadc99d80952a000ab166ed3471df610405"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c63869d22c6454cf6989bb6e70d41f0571eef985"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/audit_stage_pair.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cda98744491bbd72529df73f550b58e20e20dc1c"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "99f2fad2d7929f8753b6b9c6cabd276d110c88d9"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_stage_pair_performance.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "59f05d0b5ff620a1530152a9e3d9b9ac2298219d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/stage-pair-performance": 4,
+    "scripts/audit_fused_block.py": 1,
+    "scripts/audit_stage_pair.py": 1,
+    "tests/test_stage_pair_performance.py": 1
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "The historical stage-pair audit spends most of its runtime in exact rational arithmetic. This replaces two wasteful patterns with identical operations, preserving every receipt and rejection check. **Tooling improvement; no new kappa.**\n\n## Changes\n\n1. `scripts/audit_fused_block.py` \u2014 `rational_rank` skips redundant `Q(x)` construction when an entry is already a `Fraction`. `Q(Q)` returns the same value after needless normalization.\n2. `scripts/audit_stage_pair.py` \u2014 `modular_rank` converts denominators through a cached `_mod_inv(d, prime)` helper (same `pow(d, -1, prime)` call) instead of one fresh `pow()` per matrix entry. `lru_cache` does not cache exceptions, so a non-invertible denominator raises the same `ValueError`.\n\nNo matrix, pivot order, stopping rule, candidate list, or rejection predicate was touched.\n\n## Measurements\n\nFresh-process timings of `certificate()` (compute only), CPython 3.12.14 / Windows, stdlib only. OS caches not flushed; host not isolated. Timing is descriptive, not a pass threshold.\n\n| run | original (s) | optimized (s) |\n|-----|---:|---:|\n| 1 | 16.63 | 14.31 |\n| 2 | 15.79 | 13.96 |\n| 3 | 15.57 | 13.64 |\n| median | 15.79 | 13.96 |\n\nMedian 15.79 s to 13.96 s: 1.13x faster, 11.6% less wall time. Microbenchmarks: `rational_rank` 3.05x on 50 sampled frames; modular conversion 1.42x on 20 sampled matrices.\n\n```sh\npython3 -B research/stage-pair-performance/benchmark.py --rounds 3\n```\n\nExpected: `PASS_IDENTICAL_STAGE_PAIR_RECEIPTS`.\n\n## Validation\n\n- Full `certificate()` output identical to `certificates/stage-pair-audit.json` in every field except the single expected `source_sha256` entry for the edited `audit_stage_pair.py` (rank sum 8684, 64 candidates, 6 local improvements).\n- `audit_fused_block` and `audit_joint_frames` certificates regenerate byte-identical.\n- New `tests/test_stage_pair_performance.py`: 6 tests compare optimized helpers against verbatim base-commit references on edge cases (empty, zero, singular, non-square, ints vs Fractions, 30-digit numerators, primes 101/103), including the `ValueError` path. Existing suites pass: `test_stage_pair` (8), `test_fused_block` (7), `test_joint_frames` (8), `test_quadratic_affine` (4).\n- Full `make verify` and the selected-supplier cold replay were not rerun for this isolated historical-checker change. `upstream/` untouched; selected frontier unchanged.\n\n## Provenance\n\n- Contributor: Aaron Wang ([navinor](https://github.com/navinor)).\n- Prepared with substantial AI assistance (Muse Spark via OpenCode). No independent human peer review claimed.\n- Base: `7ee02b7c96d85f22b38d28bd7ed49bb8c1aeb261`. OS-random assignment seed 92, verification-engineering track. Claim, candidates, and overlap review in `research/stage-pair-performance/SELECTION.json`. No open PR covers the stage-pair audit (checked through #823).\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "f58e8ee1058c5fa7589154a49b08d0713ea4cff4cdb8987768b7552c0d1fad21"
+}

@@ -1,0 +1,30 @@
+--- PR2843/independent/owners.py
++++ independent/owners.py
+@@ -1,5 +1,5 @@
+ # SPDX-License-Identifier: Apache-2.0
+-"""Independent integer-time and mask check of the actual parameterized-replica owner allocation with PR2833 dirt-entry providers.
++"""Independent integer-time and mask check of the actual parameterized-replica owner allocation with PR2853 dirt-entry providers.
+ 
+ Chronology/mask method derives from Tekalign's PR2751 independent_owners.py;
+ Marius-Paul Dumitrean's PR2802 retired7 native construction and the retained
+@@ -17,10 +17,10 @@
+ def read(p):
+  b=Path(p).read_bytes();return json.loads(gzip.decompress(b)if str(p).endswith('.gz')else b)
+ def inputs(PROVIDER):
+- provider_pins={'PLAN.json': '5345bbb91255a3229000ef154daab7d6dcb31c98aadeac9d5dac748a58cc5c44', 'GLOBAL-TEMPLATE.json.gz': '1d31424c4e27e26a35a9932ca778e43f1f3577589275422cc642aa68b31112db', 'PROVIDERS.json': '3666edf67d61b01336e58166ec9edebd72902cc37a2da693b05691ab2a387cda', 'WORD-base.json.gz': 'dda9878455b3a3bec64ca16b1ac7789bbf5ffb603d5713b8df8644485e85b1b7', 'WORD-extra.json.gz': 'bbe6bcba59e45e827a8e932ee4b23650d56ed4a0b8e0875c14f23c36b9e47eac', 'independent_local.py': 'ee1faab70095fa312fc61d375ddf015b76104cb1a542ae7876a149e7999faa20'}
++ provider_pins={'PLAN.json': '5132aa4aba25c98f5b78936c4281c89dad6912696f93e390cb296f94811f28b1', 'GLOBAL-TEMPLATE.json.gz': '1d31424c4e27e26a35a9932ca778e43f1f3577589275422cc642aa68b31112db', 'PROVIDERS.json': 'd4b8c2ecd493a35b99c6c97cd2dfc4131859cce21e98527f45d9fd183c650f7b', 'WORD-base.json.gz': '7f0a0715aa962f24c112ca32d1b57fc275eff0f15eac6eccd684ba702af82f8b', 'WORD-extra.json.gz': 'c94a0ac238ca72951e4580895334d39f66ea950fa7af62ca2667251a2f796d6e', 'independent_local.py': 'ee1faab70095fa312fc61d375ddf015b76104cb1a542ae7876a149e7999faa20'}
+  hashes={}
+  for n,pin in provider_pins.items():
+-  p=PROVIDER/n;need(sha(p)==pin,'pinned PR2833 provider source '+n);hashes[str(p)]=pin
++  p=PROVIDER/n;need(sha(p)==pin,'pinned PR2853 provider source '+n);hashes[str(p)]=pin
+  L=types.ModuleType('retained_independent_frames');exec(compile((PROVIDER/'independent_local.py').read_bytes(),'unchanged_PR2827_independent_local.py','exec'),L.__dict__);providers=read(PROVIDER/'PROVIDERS.json')
+  for tag,pid in [('base','gauge44'),('extra','extra')]:
+   word=read(PROVIDER/f'WORD-{tag}.json.gz');report,start,ends=L.check_frames(word);L.check_cleanup(word);L.algebra(word)
+@@ -106,6 +106,6 @@
+  reject('unpaid_hole_in_compact_pending_prefix',lambda:rerun(f=mutate(i,r)),'compact bin prefix')
+  wrong=dict(result['profile']);wrong[1]=wrong.get(1,0)+1;reject('changed_total_paid_profile',lambda:rerun(c=wrong),'complete claimed profile')
+  need({str(p.resolve()):sha(p)for p in files}==before,'candidate input drift');need(all(sha(Path(p))==h for p,h in pins.items()),'baseline input drift')
+- result.update(status='PASS_INDEPENDENT_T_OWNER_CHRONOLOGY_MASKS',controls=rejected,candidate_sha256={label:sha(path)for label,path in [('ORDER',a.order),('FILL',a.fill),('DISPATCH',a.dispatch)]+([('PROFILE',a.profile)]if a.profile else[])},provider_source_sha256={Path(path).relative_to(a.provider_root).as_posix():digest for path,digest in pins.items()},scope='PR2833 heade9307b48d7d1b690939935ecef0f8e524e6d92f4, with unchanged PR2827 independent local algorithm; finite literal whole-owner geometry, scalar endpoints and paid profile only; full native/global/outer admission remains separate.')
++ result.update(status='PASS_INDEPENDENT_T_OWNER_CHRONOLOGY_MASKS',controls=rejected,candidate_sha256={label:sha(path)for label,path in [('ORDER',a.order),('FILL',a.fill),('DISPATCH',a.dispatch)]+([('PROFILE',a.profile)]if a.profile else[])},provider_source_sha256={Path(path).relative_to(a.provider_root).as_posix():digest for path,digest in pins.items()},scope='PR2853 headd01045dfb67428679618027dff552f1d032fa999, with unchanged PR2827 independent local algorithm; finite literal whole-owner geometry, scalar endpoints and paid profile only; full native/global/outer admission remains separate.')
+  write_receipt(a.out,result);print(json.dumps({k:result[k]for k in['status','replicas','roles','live','physical','profile']}),flush=True)
+ if __name__=='__main__':main()

@@ -1,0 +1,32 @@
+name: Complete historical butterfly replay
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/complex-factory-butterfly/**'
+      - '.github/workflows/complex-factory-butterfly.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/complex-factory-butterfly/**'
+      - '.github/workflows/complex-factory-butterfly.yml'
+permissions:
+  contents: read
+jobs:
+  exact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Historical export and assertion controls
+        run: python -I -O -B research/complex-factory-butterfly/test_pinned_replay.py
+      - name: Every recipe and complete losing-witness comparison
+        run: python -I -B research/complex-factory-butterfly/pinned_replay.py
+      - name: Committed inputs remain unchanged
+        run: git diff --exit-code

@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 2,
+  "base_commit": "04aecc3d2d818df020b628a41082c79951202628",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Cache each open PR's changed-file list inside find_overlap.py's existing source-bound snapshot and search it by path (--path), implementing the request in discussion 1200 (comment 18909265), with body term search unchanged and stale/partial indexes reported rather than trusted.",
+  "scope_change_reason": "The card's measured check chosen is the overlap helper's own remote refresh, the coordination check discussion 1200 names as expensive and unable to see code paths; this is the card's allowed variation 'design one source-bound cache boundary'. The card's other starting points (isolated-test replays) were left alone because open work already covers nearby replay optimizations (CrocSwap/integer-mult-bounds#1461, CrocSwap/integer-mult-bounds#1584, CrocSwap/integer-mult-bounds#1101).",
+  "bottleneck_link": "Overlap checks are the coordination bottleneck every agent pays before claiming novelty; today they cannot see changed code paths at all, so agents inspect PRs one by one and miss concurrent duplicates (the exact failure discussion 1166 coordination rules warn about). One cached offline path query replaces that manual inspection.",
+  "budget_minutes": 60,
+  "stop_rule": "Ship the index and its controls if a cached offline path query answers both discussion 1200 example questions; stop if GitHub cannot serve the file lists within its gateway limits at any page size tested (25 PRs/page 502s at ~10 s, 10 PRs/page works).",
+  "outcome": "completed",
+  "evidence": "scripts/find_overlap.py gained fetch_pr_files/path_report and --path; 5 new fixture tests plus 6 pre-existing Overlap tests pass (11 total); the package verifier runs 7 hermetic CLI controls. Measured on Windows 11, CPython 3.13: full index build 745 open PRs / 20117 changed-path entries in 87.7 s, cached offline path query 0.48 s, body searches pay nothing extra (pr_files is fetched only for --path queries). Live answers: docs/research/current-status.md is touched by CrocSwap/integer-mult-bounds#1232 only; research/lean-external-review is touched by CrocSwap/integer-mult-bounds#1365 and CrocSwap/integer-mult-bounds#1494, the stacked CrocSwap/integer-mult-bounds#442 level-model work. 112 PRs (of 745) exceed GitHub's 100-file listing and are flagged truncated; https://github.com/CrocSwap/integer-mult-bounds/pull/376 reports no file list and is recorded empty+flagged.",
+  "author": "Aaron Wang / navinor, with help from opencode",
+  "ai_assistance": "Substantial assistance from opencode (agent tooling): design, implementation, tests, measurements and writing. No other AI tools used.",
+  "open_questions": [
+    {
+      "question": "Can the same path index cover closed/merged PRs, whose changed files are now reachable only through the local ledger's COVERAGE inventories?",
+      "why_it_matters": "Closed work is where most duplicates already live; today find_overlap searches closed PRs only through local READMEs and the ledger.",
+      "first_step": "Prototype a reader for research/pr-reconciliation100-20261013/COVERAGE.json.gz changed-file inventories and merge it into path_report with an explicit closed-PR coverage label.",
+      "blocked_by": "Ledger inventories are batch snapshots; they need a freshness/coverage statement before they can appear in the same report without overstating coverage."
+    },
+    {
+      "question": "Should body-only searches also carry the changed-file index, and can its 87.7 s refresh be made cheap enough for that?",
+      "why_it_matters": "A combined body+path score would rank path-touching records higher in ordinary overlap reports.",
+      "first_step": "Measure the fetch with conditional requests (ETag/If-None-Match on the pulls listing) and per-page caching keyed by PR head sha.",
+      "blocked_by": "GraphQL does not expose ETags for this connection; the time cost is the price of ~74 pages, so cost accounting must show the win first."
+    },
+    {
+      "question": "What stacks on a given PR beyond shared files (base-branch chains)?",
+      "why_it_matters": "The discussion 1200 question about what stacks on https://github.com/CrocSwap/integer-mult-bounds/pull/540 is only approximated by shared-path hits; true stacking is a head/base relationship.",
+      "first_step": "Record each open PR's base ref in the pr_files rows and flag PRs whose base names another open PR's head branch.",
+      "blocked_by": "Most stacked PRs here target main and reference their parent only in prose, so the signal would be incomplete and must be labeled as such."
+    }
+  ]
+}

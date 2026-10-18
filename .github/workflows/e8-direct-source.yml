@@ -1,0 +1,31 @@
+# Manual research replay; archival intake is not scientific validation.
+# See docs/research/research-archive-intake.md before dispatching.
+name: E8 direct-source provider
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B -I research/e8-direct-source/verify.py --check research/e8-direct-source/RESULTS.json
+      - run: python -B -I research/e8-direct-source/test_verify.py
+      - run: git diff --exit-code

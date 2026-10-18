@@ -1,0 +1,82 @@
+name: R420 forest finite and formal coverage
+
+on:
+  pull_request:
+    paths:
+      - 'research/r420-forest-cut-budget/**'
+      - 'research/e8-bit-r420/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - 'certificates/checkpoints/k492626.json'
+      - '.github/workflows/r420-forest-cut-budget.yml'
+  push:
+    paths:
+      - 'research/r420-forest-cut-budget/**'
+      - 'research/e8-bit-r420/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - 'certificates/checkpoints/k492626.json'
+      - '.github/workflows/r420-forest-cut-budget.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  finite-and-formal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, repository baseline pin
+        with:
+          # Historical source pins must be checked at the submitted head.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, repository baseline pin
+        with:
+          python-version: '3.13'
+      - name: Install C++ and Lean dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+          curl --proto '=https' --tlsv1.2 -sSf --connect-timeout 15 --max-time 120 https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o "$RUNNER_TEMP/elan-init.sh"
+          sh "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
+          "$HOME/.elan/bin/elan" toolchain install "$(cat research/r420-forest-cut-budget/lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Record the checked revision, files and environment
+        run: |
+          mkdir -p "$RUNNER_TEMP/r420-forest-cut-budget"
+          git rev-parse HEAD | tee "$RUNNER_TEMP/r420-forest-cut-budget/HEAD.txt"
+          git ls-tree -r HEAD -- research/r420-forest-cut-budget > "$RUNNER_TEMP/r420-forest-cut-budget/FILES.txt"
+          {
+            python3 --version
+            g++ --version
+            elan run "$(cat research/r420-forest-cut-budget/lean-toolchain)" lean --version
+          } | tee "$RUNNER_TEMP/r420-forest-cut-budget/environment.txt"
+      - name: Rebuild finite certificates, run controls and check Lean axioms
+        timeout-minutes: 10
+        run: |
+          lean_bin="$(cd research/r420-forest-cut-budget && elan which lean)"
+          python3 -B research/r420-forest-cut-budget/reproduce.py --lean "$lean_bin" | tee "$RUNNER_TEMP/r420-forest-cut-budget/reproduce.log"
+      - name: Replay selected circuit and missing-restoration control
+        timeout-minutes: 20
+        run: |
+          python3 -B research/r420-forest-cut-budget/native.py --cxx g++ --boost /usr/include --out "$RUNNER_TEMP/r420-forest-cut-budget/selected"
+      - name: Require native rejection of the uncut 106-bit calibration
+        timeout-minutes: 20
+        run: |
+          python3 -B research/r420-forest-cut-budget/native.py --cxx g++ --boost /usr/include --out "$RUNNER_TEMP/r420-forest-cut-budget/uncut" --candidate research/r420-forest-cut-budget/data/optimum.json.gz --recipe research/r420-forest-cut-budget/data/optimum-recipe.json --expect-prefix-rejection
+      - name: Require committed artifacts unchanged
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: r420-forest-finite-and-formal
+          path: |
+            ${{ runner.temp }}/r420-forest-cut-budget/*.txt
+            ${{ runner.temp }}/r420-forest-cut-budget/*.log
+            ${{ runner.temp }}/r420-forest-cut-budget/*/*.log
+            ${{ runner.temp }}/r420-forest-cut-budget/*/VERIFY.json
+            ${{ runner.temp }}/r420-forest-cut-budget/*/NATIVE-RESULTS.json

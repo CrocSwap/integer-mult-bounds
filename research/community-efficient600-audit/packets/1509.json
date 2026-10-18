@@ -1,0 +1,482 @@
+{
+  "schema_version": 1,
+  "number": 1509,
+  "title": "Portability tooling: checked cpp_int stand-in runs the selected replay's only native step (bit589 step 4) without Boost, matching the committed Boost receipts (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1509",
+  "head": "362d2f91f30b96bc2596ff431c9baf7a78503683",
+  "merge_base": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "baseline": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "files": [
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "db363fda464ea61a6c7c5c4331993ca0b3c787d6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "594c58ad915139f2b9523275e57a557d39e2e98c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1e6289f49cdcdcfe5262fc6633cb46922f249237"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c4e42128a938951a73220a244decfb83f7959d5a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f7c50b92eb345015c8a8d0657dca34527e7e9f05"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/include/boost/multiprecision/cpp_int.hpp",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bc9634fd9090bdc2f6071a92472cc09306a0a9df"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/mutants.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "365a366bfb31ca9a850bcf794ceee47d49a8faba"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-checked-cpp-int-seed92/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "791b15737a9d8981f56fabbc980d0354b63455dc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/bit589-checked-cpp-int-seed92": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "## Change and mathematical scope\n\n**Portability tooling. No new \u03ba, and no change to any construction,\ncertificate, selected record, pinned file or `upstream/`.** One new registered\npackage, [`research/bit589-checked-cpp-int-seed92/`](research/bit589-checked-cpp-int-seed92/README.md).\n\n**Problem.** The selected `make frontier1094-verify` reaches bit589's\n`tune/verify.sh`. Its non-pip dependency is Boost, which pip cannot install. It\nis used only by step 4, which compiles the three official cohort checkers\n(`legality_h`, `columns_h`, `columns_k`). Those checkers are the only native\ncode in the selected chain, and their only Boost use is\n`boost::multiprecision::cpp_int`.\n\nWithout Boost headers, step 4 stops at\n`'boost/multiprecision/cpp_int.hpp' file not found`, so the selected reproduce\ncommand cannot complete. `verify.sh` already reads `BOOST_INCLUDE`, and the\n1094 \u2192 1042 \u2192 799 \u2192 741 drivers pass the environment through.\n\n**Stand-in.** `include/boost/multiprecision/cpp_int.hpp` is about 100 lines:\n- **Implementation:** standard C++17 plus GCC/Clang `__int128`.\n- **API:** exactly the subset the checkers use. Anything else fails to compile.\n- **Exact or refuse:** every operation is overflow-checked. Shift counts are\n  checked before any narrowing, and non-decimal stream formatting is refused. A\n  value outside [\u22122\u00b9\u00b2\u2077, 2\u00b9\u00b2\u2077) aborts with a message. Nothing ever wraps, so a\n  completed run computed exactly Boost's integers.\n- **Headroom:** passing checker runs assert payloads below 2\u00b9\u2070\u2074, well inside the\n  range.\n- **Opt in:**\n  `BOOST_INCLUDE=$PWD/research/bit589-checked-cpp-int-seed92/include make frontier1094-verify`.\n  Real Boost stays the default and the reference.\n\n**Scope.** The pip dependencies (numpy, sympy, scipy) remain. MSVC is not\nsupported. Other repository `cpp_int` users that need division or `gcd` fail to\ncompile against the stand-in rather than run with different semantics. This\ncertifies equal finite checker results, not the multiplication theorem.\n\n## Task and overlap\n\n- **Base and track:** base `bce54fb3`; none of the 25 inputs changed on main up\n  to `ef5f3940`. Seed 92 \u2192 verification engineering, card `portable-replay`,\n  scope **refined**: the repair is an environment dependency, not a payload\n  comparison.\n- **How it was chosen:** five explorers and impact/rigor/novelty judges ranked\n  it the strongest portability blocker on the selected chain not covered by\n  open work.\n- **Overlap:** searches for Boost, cpp_int, int128 and BOOST_INCLUDE, plus\n  `find_overlap.py`, found only PRs that use Boost. Nothing replaces it. #1101\n  only schedules bit589 alongside complex741. The precedent is the skeleton's\n  own `portable-include/bits/stdc++.h`.\n\n## Validation\n\n```sh\npython3 scripts/research_package.py --package research/bit589-checked-cpp-int-seed92 --check-only\npython3.12 scripts/research_package.py --package research/bit589-checked-cpp-int-seed92\npython3 research/bit589-checked-cpp-int-seed92/mutants.py          # opt-in, about 2 minutes\npython3 research/bit589-checked-cpp-int-seed92/mutants.py --ubsan  # opt-in\n```\n\n**What `verify.py` checks** (about 7 s, standard library plus bash and a C++17\ncompiler):\n\n1. **Pins and include order.** All 25 declared inputs match their pins,\n   including `adapt.py`'s nine anchored parent files, `relax.py` and\n   `prime_witnesses.py`. A probe compiled with `verify.sh`'s own `-I` order\n   confirms the stand-in is the compiled header.\n2. **Step 4, verbatim.** The pinned `verify.sh` preamble, its step-3\n   `adapt.py` command and its whole step-4 block run under `bash`. The composed\n   text is hash-pinned. So every original assertion runs:\n   - six binaries are built;\n   - legality, the five-, nine- and eleven-stage formal columns, the\n     omitted-bridge controls and the KPAIRS = 2 regression pass;\n   - both mutation suites and the Gram witnesses pass.\n3. **Equality with the committed Boost-built receipts.**\n   - The 10 step-4 output lines equal the step-4 section of\n     `research/community-frontier741-audit/bit589.log`.\n   - `columns_k4.json` equals the committed Boost receipt except `seconds` and\n     a path. That includes the payload bound\n     `9528119495320518471870892800`.\n4. **Negative controls.** All 6/6 and 3/3 are rejected by the checkers, never\n   by the stand-in.\n5. **Over-range control.** With all 24,305 ADD coefficients set to \u00b12\u00b3\u2070, the\n   stand-in refuses instead of wrapping.\n6. **Differential test against Python integers.**\n   - 100,000 seeded operations plus fixed boundary rows. The fixed rows cover\n     \u00b12\u00b9\u00b2\u2077, shifts ending at 2\u00b9\u00b2\u2077, zero shifted far, 2\u2076\u2074 multiples and shared\n     high words.\n   - 62,870 in-range results must be equal.\n   - 558 refusals must hold, including all 244 within a factor of 2 of the\n     bound. The coverage counts are pinned.\n\n**Results.**\n- `PASS_BIT589_STEP4_CHECKED_CPP_INT_STANDIN` on Apple clang 21 / Python\n  3.12.15 and on GCC 16.2 / Python 3.14.8.\n- The registered `research_package.py` replay passes from a fresh worktree.\n- Under UBSan, with every binary sanitized and a positive control, there are no\n  reports.\n- `mutants.py` rejects 16 of 17 header mutants. The accepted one is equivalent:\n  the negative-value shift guard is redundant after the count check.\n\n**Not run.**\n- `--boost-include`, which reruns step 4 against real Boost: this host has no\n  Boost.\n- The complete `make frontier1094-verify` with the stand-in: this host lacks\n  sympy and scipy. That is open question 1.\n\n**Pinned `verify.sh` and path spaces.** The pinned `verify.sh` expands paths\nunquoted, so checkout paths must not contain spaces. `verify.py` checks this\nexplicitly.\n\n**Registration note.** The package compiles C++ in the generic package hook,\nalthough the guide routes native builds to a dedicated workflow. That is\ndeliberate:\n- the native build is the subject of the check;\n- it uses only the runner's preinstalled `g++` and `bash`;\n- it installs nothing, and needs no Boost;\n- it runs in about 7 s.\n\nIf maintainers prefer the rule, the command can move to its own workflow (like\n`e8-bit-p111-tuned.yml`) with `VERIFY.json` kept for metadata.\n\n**Pre-PR review.** Three lenses reviewed the package: exactness, verifier\nsoundness, and claims/CI. Their fixes are included:\n- **Shifts:** a zero value shifted by 128 or more was undefined behaviour; it\n  now returns zero. 64-bit counts were narrowed before checking; they are now\n  checked first.\n- **Stream flags:** non-decimal formatting is now refused.\n- **Differential coverage:** boundary and 2\u2076\u2074-multiple rows were added; three\n  previously surviving mutants are now killed.\n- **Declared inputs:** 11 transitive files were added.\n- **Reproducibility:** `mutants.py` was added.\n\n## Credit\n\n- **The checkers:** Dylan Crow's #370 official checkers, generalised; DaysSky's\n  #381 `columns_k`.\n- **The carrier skeleton and its portable-include precedent:** eumemic, who\n  also wrote the #555 supplier.\n- **The #589 transport and tuned word:** DreamingOfClouds.\n- **The #741 audit's committed Boost receipts:** Douglas Colkitt.\n- **The broader lineage:** credited in the selected review.\n\nAI disclosure: prepared by Sagar Thakrar with substantial Anthropic Claude\nassistance, including explorer, judge and skeptic subagents. New work is\nApache-2.0.\n\n## Open next questions\n\n1. **Does the complete `make frontier1094-verify` pass with the stand-in on a\n   host that has the pip dependencies but no Boost?**\n   - *First step:* a fresh Ubuntu job without `libboost-dev`, comparing its\n     receipts with a Boost run.\n   - *Blocker:* that needs a dedicated long-running job.\n2. **Should `tune/verify.sh` quote its path expansions?**\n   - *Why it matters:* it fails from checkout paths that contain spaces.\n   - *Blocker:* the file is in a selected root, so edits need a maintainer\n     rehash.\n\n## Workflow feedback (optional)\n\nThe package generator and `--check-only` worked well. Friction points:\n- **Transitive inputs:** they had to be traced by hand. `adapt.py`'s anchored\n  parents and an `importlib`-loaded helper were easy to miss.\n- **Native-build rule:** the guide's dedicated-workflow rule for native builds\n  has no lightweight path for a seconds-long compile using only the runner's\n  preinstalled toolchain.\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726976/job/115640357266"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726899/job/115640356985"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726842/job/115640356993"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726892/job/115640356931"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357577"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726938/job/115640357166"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726976/job/115640357470"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726842/job/115640356780"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726892/job/115640357145"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357633"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726938/job/115640356914"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357622"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357766"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357512"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357505"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357621"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357611"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357680"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357592"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357591"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357602"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357658"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357829"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357716"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357707"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357613"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357612"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357619"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357780"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357659"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357640"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357730"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357703"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357668"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357927"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357908"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357673"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357598"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357967"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357698"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357540"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357700"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357892"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357678"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357893"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357650"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357934"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357657"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357539"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357850"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357553"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357529"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357569"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357731"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357669"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357586"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357726"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357038"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357275"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357421"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38498726945/job/115640357292"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "9d8ec10139e68041caef6f75c7389e39e195644cda9508636464c71328efb3fd"
+}

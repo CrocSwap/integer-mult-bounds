@@ -1,0 +1,38 @@
+diff --git a/research/z4-paired-frame-restoration-seed56/SOURCES.json b/research/z4-paired-frame-restoration-seed56/SOURCES.json
+index d9b2759a..811a06e3 100644
+--- a/research/z4-paired-frame-restoration-seed56/SOURCES.json
++++ b/research/z4-paired-frame-restoration-seed56/SOURCES.json
+@@ -22,7 +22,7 @@
+     },
+     {
+       "path": "docs/research/current-status.md",
+-      "usage": "input",
++      "usage": "provenance",
+       "git_blob": "aa3cf49715cd367ad8c4e63ab28856fc0d19794f",
+       "sha256": "1f59d648763c77d574d18dc59ea8bf62d2ee74aaed3c202c9c8cfa4f901badbd"
+     },
+diff --git a/research/z4-paired-frame-restoration-seed56/VERIFY.json b/research/z4-paired-frame-restoration-seed56/VERIFY.json
+index a9528ad0..736a085c 100644
+--- a/research/z4-paired-frame-restoration-seed56/VERIFY.json
++++ b/research/z4-paired-frame-restoration-seed56/VERIFY.json
+@@ -6,7 +6,6 @@
+   "inputs": [
+     "certificates/selected-result.json",
+     "docs/research/community-batch1099-review.md",
+-    "docs/research/current-status.md",
+     "research/community-frontier1094-audit/ASSEMBLY.json",
+     "research/community-frontier1094-audit/SELECTED-SOURCE.json"
+   ],
+diff --git a/research/z4-paired-frame-restoration-seed56/verify.py b/research/z4-paired-frame-restoration-seed56/verify.py
+index 9d866bbf..4d2524cb 100644
+--- a/research/z4-paired-frame-restoration-seed56/verify.py
++++ b/research/z4-paired-frame-restoration-seed56/verify.py
+@@ -398,6 +398,8 @@ def verify_source_pins():
+     pins = json.loads((PKG / "SOURCES.json").read_text())
+     require(pins["base_commit"] == BASE, "SOURCES base mismatch")
+     for entry in pins["files"]:
++        if entry["usage"] == "provenance":
++            continue
+         path = ROOT / entry["path"]
+         require(path.is_file(), "missing pinned input: " + entry["path"])
+         got = hashlib.sha256(path.read_bytes()).hexdigest()

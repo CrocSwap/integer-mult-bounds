@@ -1,0 +1,42 @@
+name: Dirty dispatcher prefix invariants
+on:
+  pull_request:
+    paths:
+      - 'research/dirty-dispatcher-invariants-seed75/**'
+      - 'research/dirty-prefix-precision/vendor/pr628/dirty.py'
+      - 'research/dirty-prefix-precision/vendor/pr628/DIRTY-PROOF.md'
+      - 'research/dirty-prefix-precision/vendor/pr628/NOTICE.md'
+      - '.github/workflows/dirty-dispatcher-invariants-seed75.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/dirty-dispatcher-invariants-seed75/**'
+      - 'research/dirty-prefix-precision/vendor/pr628/dirty.py'
+      - 'research/dirty-prefix-precision/vendor/pr628/DIRTY-PROOF.md'
+      - 'research/dirty-prefix-precision/vendor/pr628/NOTICE.md'
+      - '.github/workflows/dirty-dispatcher-invariants-seed75.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Download checksum-pinned official Lean
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://github.com/leanprover/lean4/releases/download/v4.28.0/lean-4.28.0-linux.tar.zst -o /tmp/lean.tar.zst
+          echo 'ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd  /tmp/lean.tar.zst' | sha256sum --check
+          tar --zstd -xf /tmp/lean.tar.zst -C /tmp
+      - name: Fresh kernel proofs, source traces and rejection controls
+        run: python -I -O -B research/dirty-dispatcher-invariants-seed75/verify.py --lean /tmp/lean-4.28.0-linux/bin/lean
+      - name: Source and receipt corruption checks
+        run: python -I -O -B research/dirty-dispatcher-invariants-seed75/test_package.py
+      - run: git diff --exit-code

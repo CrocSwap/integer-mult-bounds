@@ -1,0 +1,9 @@
+# Positive-slack refinement of the PR1800 parameter point
+
+This is a specialization of the same conditional construction, not a new supplier or analytic theorem. Write h=10^-96, B for the unchanged certified supplier endpoint, b=B-h, q=B-2h and a=B-3h/2. Take delta=2h, epsilon=1-delta, beta=1-3delta, r0=slack=h, stop=10^-102 and zeta=10^-98. Let c=3/32 and xi=epsilon(1+q)-c+slack, as in PR1800.
+
+The strict source-axis absorption gap is delta-r0=h>0. The membership gap is 1-beta-2delta=delta>0. The Gaussian saving exceeds the transform saving by delta(1-2q)>0. Boundary saving is epsilon*q+slack; sparse-union saving exceeds this by 13/32. The effective-router gap a-q=h/2>0; stopping remains legal because stop*b<h/2. All remaining inequalities are checked as exact rationals, including the inherited guards and nine cost powers. The same 17 boundary/error variants are rejected. The separate balance checker does not import or call the ledger.
+
+K is floor(epsilon*q*10^130)/10^130 - 10^-108, strictly below every cost saving. Comparison with the exact PR1800 rational is strict, not a rounded-decimal comparison. The supplier endpoint is not extended or re-certified at a finer root grid: the unchanged certified endpoint is used with a smaller explicit backoff. The new rational moment enclosure still independently accepts b and rejects the unchanged above-root probe.
+
+Every changed slack remains a fixed positive constant. Thus the predecessor's eventual polynomial/polylogarithmic absorption and source-prime existence arguments apply with a larger unspecified cutoff if those arguments are valid. No uniformity as h tends to zero is assumed, and no equality at epsilon=1 or at the supplier endpoint is claimed. The PR1800/1786 all-size hypotheses and unresolved written-proof review obligations are retained verbatim in CLAIM.json and the dependency. Executable checks cannot discharge those hypotheses.

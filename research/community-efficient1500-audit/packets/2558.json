@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "number": 2558,
+  "title": "Fix exact claim binding in assembly-domain diagnostic receipts",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2558",
+  "head": "81b61f34b42fec917bb4df140e632e0638fc61bb",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "docs/research/assembly-domain-receipt-check.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e088378ddc5c6c1201eec69a48196113a7fae6b0"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "scripts/audit_assembly_domain.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6beb986f861929465ce808510e622f70fe58df3e"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "09c6d1a172422f30cac1bc57601124851db6d07c"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_assembly_domain.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3acd89018a5714cd7a9bb2c6c3c7e288080a73a8"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "dc5c9d9939a500234ca092e510297aa96605fdb4"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 1,
+    "scripts/audit_assembly_domain.py": 1,
+    "tests/test_assembly_domain.py": 1
+  },
+  "github_reported_file_count": 3,
+  "complete_git_file_count": 3,
+  "body": "The assembly-domain diagnostic's `--check` compared parsed JSON using Python equality. Its actual CLI accepted a rejection flag changed from `true` to `1`, a constraint count changed from `47` to `47.0000000000000000000001`, and contradictory duplicate claims discarded by the JSON decoder. Require exact recursive types and values and reject duplicate object keys while preserving key-order, whitespace and CRLF flexibility.\n\nThis changes only saved diagnostic receipt verification: the arithmetic, four frozen source pins, existing receipt and `--write` generator are unchanged. It is not a production assembly acceptance or frontier change. The note credits the original diagnostic and PR #2040's prior typed-comparison findings; the new work repairs this separate maintained consumer.\n\nValidation: all 10 focused tests pass on Windows/Python 3.12.14 under `-I -O -B`, including four previously accepted mutations through the real CLI in both normal and optimized mode, valid reformatted receipts, and the existing arithmetic/source controls. Before/after CLI replay confirms the three reported false accepts now reject. Full selected-frontier replay was not run for this diagnostic-only change.\n\nStarted and rechecked against canonical main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4. Task selection refined `portable-replay` to the receipt's omitted type/duplicate-field distinctions. Overlap searched complete cached open-PR and Discussion snapshots and local notes; code diffs and unpublished work are outside that coverage. Prepared by ywz65 with OpenAI Codex assistance.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "666518fab10369822d420423458e89090a0e46c5a896257ff240344103eba7b7"
+}

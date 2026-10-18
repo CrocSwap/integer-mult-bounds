@@ -1,0 +1,764 @@
+{
+  "builder_sha256": "4c83a251a03045144608456e6b3bdbcced9255ce7c2d89f7039e766972100666",
+  "changes": {
+    "new/BORROW-PROVIDERS.json": {
+      "after_sha256": "5527d70aa83ad3b05a7176903016c12fc410bc9968082377eeed66c8d298dafa",
+      "before_sha256": "3666edf67d61b01336e58166ec9edebd72902cc37a2da693b05691ab2a387cda"
+    },
+    "new/borrow/inputs/PR2833-WORD-base.json.gz": {
+      "after_sha256": "dda9878455b3a3bec64ca16b1ac7789bbf5ffb603d5713b8df8644485e85b1b7",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/PR2833-WORD-extra.json.gz": {
+      "after_sha256": "bbe6bcba59e45e827a8e932ee4b23650d56ed4a0b8e0875c14f23c36b9e47eac",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/shared_kernel_43base.json": {
+      "after_sha256": "d06f52975d4d48523177fd3010f9b6d36094636b3d31b90c492404a9c21ef6e3",
+      "before_sha256": null
+    },
+    "new/borrow/inputs/shared_kernel_43extra.json": {
+      "after_sha256": "79a3d0309ee1154f778f05592ac09f51db64286828456f8c1fca22c1c8b05af2",
+      "before_sha256": null
+    },
+    "new/borrow/shared_kernel.py": {
+      "after_sha256": "b3241527e6c136dc4b54975ef401c49d452bd6159fb99030accaf095c8fbd3ed",
+      "before_sha256": null
+    },
+    "new/borrow/shared_kernel_review.py": {
+      "after_sha256": "5b323e50fb5a10ac088472b3e085b54d7d2ae3a29f8552ff44b788a984eb97d1",
+      "before_sha256": null
+    },
+    "new/borrow/words/BORROW-WORD-43base.json.gz": {
+      "after_sha256": "001b14314d8db873d4d80826d4af9c40a3e5a1fecde743e5a26391bdf673f458",
+      "before_sha256": "dda9878455b3a3bec64ca16b1ac7789bbf5ffb603d5713b8df8644485e85b1b7"
+    },
+    "new/borrow/words/BORROW-WORD-43extra.json.gz": {
+      "after_sha256": "bc5bfe51178f0c3312d28318412ec490463c896ceed0660b9c443fcb76496546",
+      "before_sha256": "bbe6bcba59e45e827a8e932ee4b23650d56ed4a0b8e0875c14f23c36b9e47eac"
+    },
+    "new/rebuild_borrow.py": {
+      "after_sha256": "97bd36b840501dd125d4d660750b8b7bc6550bba0150b7d2851c8a41668a8a6d",
+      "before_sha256": "a65079e5ea9553a150879898b5ab9cecb01c1be19247c20461c97211988c1ef3"
+    },
+    "verify.py": {
+      "after_sha256": "1591a3eed02d3532e46183543bd2ddc7129c079a5fd70f1e6b4d9bc897153e92",
+      "before_sha256": "c52149ed10c0cae4950c92cef0edc38f382c5cc74cf66c5eeeebb7191b4bc0a0"
+    }
+  },
+  "derived_manifest_sha256": "54dc42f25c1d8b85adcf593c4bf6c0f83f7351388af857812790b8a0b4c3d869",
+  "patches": [
+    {
+      "after_sha256": "97bd36b840501dd125d4d660750b8b7bc6550bba0150b7d2851c8a41668a8a6d",
+      "before_sha256": "a65079e5ea9553a150879898b5ab9cecb01c1be19247c20461c97211988c1ef3",
+      "new": "    # Four disjoint staged compensation kernels, after the complete pinned\n    # PR2833 derivation. Every previous state stays in the audit chain.\n    sf_=D/'inputs'/f'shared_kernel_43{wt}.json'\n    if sf_.exists():\n        import shared_kernel\n        shared_patch=json.loads(sf_.read_text());previous_shared=chain[-1]\n        canonical=lambda z:hashlib.sha256(json.dumps(z,sort_keys=True,separators=(',',':')).encode()).hexdigest()\n        assert shared_patch['groups']==[478,460,462,480]\n        assert canonical(previous_shared)==shared_patch['source_canonical_sha256']\n        shared_word,shared_ledger=shared_kernel.apply(previous_shared,shared_patch['groups'])\n        assert canonical(shared_word)==shared_patch['candidate_canonical_sha256']\n        assert json.loads(json.dumps(shared_ledger))==shared_patch['ledger']\n        assert set(k_ for k_ in previous_shared if previous_shared[k_]!=shared_word[k_])=={'A','compensation','start_extra','report','cleanup'}\n        stripped_shared=json.loads(json.dumps(shared_word));stripped_shared['A']=stripped_shared['A'][stripped_shared['prelude_events']:]\n        assert shared_word['cleanup']==word_patch.derive_cleanup(stripped_shared,word_patch.restored_of(shared_word))\n        chain.append(shared_word);steps.append('shared-four-kernel')\n    final=json.loads(gzip.decompress(shipped.read_bytes()))",
+      "old": "    final=json.loads(gzip.decompress(shipped.read_bytes()))",
+      "path": "new/rebuild_borrow.py"
+    },
+    {
+      "after_sha256": "1591a3eed02d3532e46183543bd2ddc7129c079a5fd70f1e6b4d9bc897153e92",
+      "before_sha256": "c52149ed10c0cae4950c92cef0edc38f382c5cc74cf66c5eeeebb7191b4bc0a0",
+      "new": "run('rebuild-borrow-words',P/'new/rebuild_borrow.py')\nrun('shared-kernel-independent-review',P/'new/borrow/shared_kernel_review.py','--source-dir',P/'new/borrow','--source-base',P/'new/borrow/inputs/PR2833-WORD-base.json.gz','--source-extra',P/'new/borrow/inputs/PR2833-WORD-extra.json.gz','--candidate-base',P/'new/borrow/words/BORROW-WORD-43base.json.gz','--candidate-extra',P/'new/borrow/words/BORROW-WORD-43extra.json.gz','--out-dir',work/'shared-kernel-independent-review')",
+      "old": "run('rebuild-borrow-words',P/'new/rebuild_borrow.py')",
+      "path": "verify.py"
+    }
+  ],
+  "scope": "Exact source overlay construction only. Full native and owner/controller/outer admission remain separate; all inherited validators are retained and an independent kernel review is added.",
+  "source_file_count": 547,
+  "status": "PASS_SOURCE_BOUND_FOUR_KERNEL_OVERLAY_DERIVATION",
+  "upstream_manifest_sha256": "c8ec4d1b7be08d2ad30730a07392ad9cb6d0222f2c35bef43c9a80a39b16e41f",
+  "words": {
+    "base": {
+      "candidate_canonical_sha256": "c0af0ef7ee6282e91f046d027983b35eaed7ebcb46489134d47e07724cf664bc",
+      "candidate_word_sha256": "001b14314d8db873d4d80826d4af9c40a3e5a1fecde743e5a26391bdf673f458",
+      "generator_sha256": "b3241527e6c136dc4b54975ef401c49d452bd6159fb99030accaf095c8fbd3ed",
+      "groups": [
+        478,
+        460,
+        462,
+        480
+      ],
+      "ledger": {
+        "chosen": [
+          478,
+          460,
+          462,
+          480
+        ],
+        "delta": {
+          "1": 12,
+          "2": -8
+        },
+        "groups": [
+          {
+            "compensation_added": 4,
+            "compensation_removed": 4,
+            "entry": [
+              25
+            ],
+            "group": [
+              478,
+              479,
+              490,
+              491
+            ],
+            "new_width": 8,
+            "raised": 478,
+            "source_width": 9
+          },
+          {
+            "compensation_added": 8,
+            "compensation_removed": 8,
+            "entry": [
+              7
+            ],
+            "group": [
+              460,
+              461,
+              468,
+              469
+            ],
+            "new_width": 8,
+            "raised": 460,
+            "source_width": 9
+          },
+          {
+            "compensation_added": 8,
+            "compensation_removed": 8,
+            "entry": [
+              7
+            ],
+            "group": [
+              462,
+              463,
+              470,
+              471
+            ],
+            "new_width": 8,
+            "raised": 462,
+            "source_width": 9
+          },
+          {
+            "compensation_added": 8,
+            "compensation_removed": 8,
+            "entry": [
+              25
+            ],
+            "group": [
+              480,
+              481,
+              492,
+              493
+            ],
+            "new_width": 8,
+            "raised": 480,
+            "source_width": 9
+          }
+        ],
+        "insertions": {
+          "1301": [
+            [
+              "add",
+              470,
+              462,
+              -1,
+              1,
+              [
+                7
+              ]
+            ]
+          ],
+          "1303": [
+            [
+              "add",
+              490,
+              478,
+              -1,
+              1,
+              [
+                25
+              ]
+            ],
+            [
+              "add",
+              471,
+              470,
+              1,
+              1,
+              [
+                75,
+                7
+              ]
+            ],
+            [
+              "add",
+              471,
+              524,
+              -1,
+              2,
+              [
+                75,
+                7
+              ]
+            ]
+          ],
+          "1305": [
+            [
+              "add",
+              479,
+              478,
+              1,
+              1,
+              [
+                75,
+                25
+              ]
+            ],
+            [
+              "add",
+              479,
+              526,
+              1,
+              1,
+              [
+                75,
+                25
+              ]
+            ]
+          ],
+          "1307": [
+            [
+              "add",
+              468,
+              460,
+              -1,
+              1,
+              [
+                7
+              ]
+            ]
+          ],
+          "1309": [
+            [
+              "add",
+              469,
+              468,
+              1,
+              1,
+              [
+                97,
+                7
+              ]
+            ],
+            [
+              "add",
+              469,
+              536,
+              -1,
+              2,
+              [
+                97,
+                7
+              ]
+            ],
+            [
+              "add",
+              492,
+              480,
+              -1,
+              1,
+              [
+                25
+              ]
+            ]
+          ],
+          "1311": [
+            [
+              "add",
+              481,
+              480,
+              1,
+              1,
+              [
+                97,
+                25
+              ]
+            ],
+            [
+              "add",
+              481,
+              540,
+              1,
+              1,
+              [
+                97,
+                25
+              ]
+            ]
+          ],
+          "1317": [
+            [
+              "add",
+              491,
+              490,
+              1,
+              1,
+              [
+                102,
+                25
+              ]
+            ],
+            [
+              "add",
+              491,
+              538,
+              1,
+              1,
+              [
+                102,
+                25
+              ]
+            ]
+          ],
+          "1321": [
+            [
+              "add",
+              493,
+              492,
+              1,
+              1,
+              [
+                76,
+                25
+              ]
+            ],
+            [
+              "add",
+              493,
+              528,
+              1,
+              1,
+              [
+                76,
+                25
+              ]
+            ]
+          ],
+          "1327": [
+            [
+              "add",
+              463,
+              462,
+              1,
+              1,
+              [
+                120,
+                7
+              ]
+            ],
+            [
+              "add",
+              463,
+              534,
+              -1,
+              2,
+              [
+                120,
+                7
+              ]
+            ]
+          ],
+          "1329": [
+            [
+              "add",
+              461,
+              460,
+              1,
+              1,
+              [
+                82,
+                7
+              ]
+            ],
+            [
+              "add",
+              461,
+              522,
+              -1,
+              2,
+              [
+                82,
+                7
+              ]
+            ]
+          ]
+        },
+        "local_profile": {
+          "1": 2394,
+          "2": 642,
+          "3": 266,
+          "4": 128,
+          "5": 26,
+          "8": 8
+        },
+        "source_canonical_sha256": "aaf1d752501a30fdf7305be9515617698d0b4753411844d28f005aab1b67f3df",
+        "variant": "base",
+        "width_inventory": {
+          "4": 26,
+          "5": 2,
+          "7": 62,
+          "8": 84,
+          "9": 234
+        }
+      },
+      "source_canonical_sha256": "aaf1d752501a30fdf7305be9515617698d0b4753411844d28f005aab1b67f3df",
+      "source_word_sha256": "dda9878455b3a3bec64ca16b1ac7789bbf5ffb603d5713b8df8644485e85b1b7"
+    },
+    "extra": {
+      "candidate_canonical_sha256": "61b20fbe78fdcbca0cde0597befcc254017ee206dad0724c576672aca690c66f",
+      "candidate_word_sha256": "bc5bfe51178f0c3312d28318412ec490463c896ceed0660b9c443fcb76496546",
+      "generator_sha256": "b3241527e6c136dc4b54975ef401c49d452bd6159fb99030accaf095c8fbd3ed",
+      "groups": [
+        478,
+        460,
+        462,
+        480
+      ],
+      "ledger": {
+        "chosen": [
+          478,
+          460,
+          462,
+          480
+        ],
+        "delta": {
+          "1": 12,
+          "2": -8
+        },
+        "groups": [
+          {
+            "compensation_added": 4,
+            "compensation_removed": 4,
+            "entry": [
+              25
+            ],
+            "group": [
+              478,
+              479,
+              490,
+              491
+            ],
+            "new_width": 8,
+            "raised": 478,
+            "source_width": 9
+          },
+          {
+            "compensation_added": 8,
+            "compensation_removed": 8,
+            "entry": [
+              7
+            ],
+            "group": [
+              460,
+              461,
+              468,
+              469
+            ],
+            "new_width": 8,
+            "raised": 460,
+            "source_width": 9
+          },
+          {
+            "compensation_added": 8,
+            "compensation_removed": 8,
+            "entry": [
+              7
+            ],
+            "group": [
+              462,
+              463,
+              470,
+              471
+            ],
+            "new_width": 8,
+            "raised": 462,
+            "source_width": 9
+          },
+          {
+            "compensation_added": 8,
+            "compensation_removed": 8,
+            "entry": [
+              25
+            ],
+            "group": [
+              480,
+              481,
+              492,
+              493
+            ],
+            "new_width": 8,
+            "raised": 480,
+            "source_width": 9
+          }
+        ],
+        "insertions": {
+          "1301": [
+            [
+              "add",
+              470,
+              462,
+              -1,
+              1,
+              [
+                7
+              ]
+            ]
+          ],
+          "1303": [
+            [
+              "add",
+              490,
+              478,
+              -1,
+              1,
+              [
+                25
+              ]
+            ],
+            [
+              "add",
+              471,
+              470,
+              1,
+              1,
+              [
+                75,
+                7
+              ]
+            ],
+            [
+              "add",
+              471,
+              524,
+              -1,
+              2,
+              [
+                75,
+                7
+              ]
+            ]
+          ],
+          "1305": [
+            [
+              "add",
+              479,
+              478,
+              1,
+              1,
+              [
+                75,
+                25
+              ]
+            ],
+            [
+              "add",
+              479,
+              526,
+              1,
+              1,
+              [
+                75,
+                25
+              ]
+            ]
+          ],
+          "1307": [
+            [
+              "add",
+              468,
+              460,
+              -1,
+              1,
+              [
+                7
+              ]
+            ]
+          ],
+          "1309": [
+            [
+              "add",
+              469,
+              468,
+              1,
+              1,
+              [
+                97,
+                7
+              ]
+            ],
+            [
+              "add",
+              469,
+              536,
+              -1,
+              2,
+              [
+                97,
+                7
+              ]
+            ],
+            [
+              "add",
+              492,
+              480,
+              -1,
+              1,
+              [
+                25
+              ]
+            ]
+          ],
+          "1311": [
+            [
+              "add",
+              481,
+              480,
+              1,
+              1,
+              [
+                97,
+                25
+              ]
+            ],
+            [
+              "add",
+              481,
+              540,
+              1,
+              1,
+              [
+                97,
+                25
+              ]
+            ]
+          ],
+          "1317": [
+            [
+              "add",
+              491,
+              490,
+              1,
+              1,
+              [
+                102,
+                25
+              ]
+            ],
+            [
+              "add",
+              491,
+              538,
+              1,
+              1,
+              [
+                102,
+                25
+              ]
+            ]
+          ],
+          "1321": [
+            [
+              "add",
+              493,
+              492,
+              1,
+              1,
+              [
+                76,
+                25
+              ]
+            ],
+            [
+              "add",
+              493,
+              528,
+              1,
+              1,
+              [
+                76,
+                25
+              ]
+            ]
+          ],
+          "1327": [
+            [
+              "add",
+              463,
+              462,
+              1,
+              1,
+              [
+                120,
+                7
+              ]
+            ],
+            [
+              "add",
+              463,
+              534,
+              -1,
+              2,
+              [
+                120,
+                7
+              ]
+            ]
+          ],
+          "1329": [
+            [
+              "add",
+              461,
+              460,
+              1,
+              1,
+              [
+                82,
+                7
+              ]
+            ],
+            [
+              "add",
+              461,
+              522,
+              -1,
+              2,
+              [
+                82,
+                7
+              ]
+            ]
+          ]
+        },
+        "local_profile": {
+          "1": 2394,
+          "2": 642,
+          "3": 266,
+          "4": 128,
+          "5": 26,
+          "8": 8
+        },
+        "source_canonical_sha256": "1b02e1ea0214b45071f9d93ad074cc392fd7e59f6fb83a7c4e8cd99c36150a3c",
+        "variant": "extra",
+        "width_inventory": {
+          "4": 26,
+          "5": 2,
+          "7": 62,
+          "8": 84,
+          "9": 234
+        }
+      },
+      "source_canonical_sha256": "1b02e1ea0214b45071f9d93ad074cc392fd7e59f6fb83a7c4e8cd99c36150a3c",
+      "source_word_sha256": "bbe6bcba59e45e827a8e932ee4b23650d56ed4a0b8e0875c14f23c36b9e47eac"
+    }
+  }
+}

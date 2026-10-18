@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task_id": "complex-rank-shape-decoder",
+  "priority_revision": 3,
+  "base_commit": "1f7a934975e5eacaf83511c9ac870263bf095e05",
+  "original_card": {
+    "id": "complex-rank-shape-decoder",
+    "question": "Can a decoder deliver the local paid mass in fewer, larger-rank children (block frame climbs instead of rank-1 to rank-3 steps)?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/complex-decoder-field-extension-seed44/README.md",
+      "research/complex-frame-pair-decoders/README.md"
+    ],
+    "methods": [
+      "Find one exact small decoding identity whose frame path climbs in blocks, and price its complete per-call profile.",
+      "Bound the best effective child rank achievable for one fixed support alphabet, including copies, frames and restoration."
+    ],
+    "acceptance_gate": "A per-call local profile, with all copied information, frames and restoration counted, whose ceiling exceeds the selected word's by at least 5%; masked or overcomplete supports must change an assumption of the eight-term all-pairs bound.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Before any synthesis, write the candidate per-call local profile (and centre charge / unpaid coordinates if changed) and screen it with ceiling.ceiling(); reject it if even the ideal ceiling does not beat the selected word's by your stated margin. Ideal budget: rank-16 delivery is 2.31x (levers.py).",
+    "bottleneck_link": "Rank-1 children are about half of recursive cost; the selected word's effective child rank is about 3.9. Larger-rank delivery lowers recursive cost per unit of paid mass.",
+    "allowed_variations": [
+      "One masked, overcomplete or block decoder family with exact labels and supports.",
+      "A scoped lower bound on effective rank for one alphabet.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Repacking idle remainders of an unchanged word (covered by the packing ceiling).",
+      "Repeating the eight-term all-pairs search inside its proved scope."
+    ],
+    "overlap_terms": [
+      "rank shape",
+      "block climb",
+      "masked decoder",
+      "overcomplete",
+      "effective rank"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "PR1650 open question 1, in the masked (E-graph) model of PR1212 with PR1560's frame-incidence criterion: when the frame family is ALL live frames of P112 \\ X, does a pivot frame passing (W), nonempty blocks and (G) always pass (D)? Exact counterexamples at |X| = 8 (a P104 live set), plus scoped search evidence that none exists at |X| <= 7 in the searched domain.",
+  "scope_change_reason": "Revision 3 retired complex-masked-decoder into this card. The chooser drew recursive-interfaces (nonce 083eb6ba0dd52fa857761981ccb9156c), whose three cards were crowded on 2026-10-14 (plane-port lever claimed in Discussion 1587); this session instead answers a recorded open question of PR1650 on the masked-decoder rigidity line. It is a side result about a verification criterion: no decoder, profile or child-rank change.",
+  "bottleneck_link": "Side result, not a lever. It tells future rigidity replays (P105 and below) that the rank test (D) cannot be replaced by the counting conditions (W), nonempty blocks and (G) in general, even for full live families. No kappa change.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop at an exact, locally minimal counterexample plus a bounded search at |X| <= 7; a structural lemma for |X| <= 7 is left open.",
+  "outcome": "completed",
+  "evidence": "verify.py (stdlib, ~3 s): two fixtures (X, F) with |X| = 8; all 784 live frames; nonempty blocks, (W), (G) hold; exact Fraction rank of the I_k incidence matrix is |I_k| - 8 = 44 < 45 at one pivot k (other k pass); fixture 1 carries a +-1 integer kernel vector on eight lines outside span(h_kl); restoring any one deleted line makes the pivot pass all four conditions; mutated-certificate and pivot-alone (G) controls. Unregistered search evidence in README (scratch scripts, numpy-free but importing PR1650's verify.py): deletion walks, random 8-10 line deletions, and a full every-frame census of the 1614 P107 units.",
+  "author": "JosieElliston (with Claude Opus 5.5 via Claude Code)",
+  "ai_assistance": "Claude Opus 5.5 via Claude Code: search, verifier and write-up. Submitted by the account holder.",
+  "open_questions": [
+    {
+      "question": "For |X| <= 7 (P105 to P111), does every pivot passing (W), nonempty blocks and (G) on the full live family pass (D)?",
+      "why_it_matters": "PR1650's open question 1 is now false at |X| = 8; if it holds for |X| <= 7, the P105 replay could drop its rank computations, which are almost all of its 1200 s budget.",
+      "first_step": "Every-frame census of the 19295 P106 units (about 40 CPU-hours with PR1650's criterion at the P107 rate of 9 CPU-s per unit), or a lemma explaining why the eight-line rank drop (two quadruples of lines met equally by every live frame) needs eight deletions.",
+      "blocked_by": "Compute for P106/P105 every-frame censuses; no candidate lemma."
+    },
+    {
+      "question": "Which structure of X forces the rank drop?",
+      "why_it_matters": "Fixture 1's kernel vector is -1 on lines {2,5,7,10} and +1 on {30,31,40,41}: every live frame meets the two quadruples in equally many lines. A description of all such balanced pairs would give a cheap, exact test that could replace (D).",
+      "first_step": "Classify the minimized counterexamples found by the deletion walks under the FRAME0 stabiliser and read off the balanced quadruple pairs.",
+      "blocked_by": "None; not started."
+    }
+  ]
+}

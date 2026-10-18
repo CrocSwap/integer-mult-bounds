@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "number": 2676,
+  "title": "Stop direct script trees on scheduler exceptions",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2676",
+  "head": "3b8da2aba852254686c2cc1a7c67f8caa93d2fdb",
+  "merge_base": "1884c509efc004524786e9b7cfcc4aca572316d5",
+  "baseline": "d359705715f45a25d46c593a542e8d071c47160a",
+  "files": [
+    {
+      "path": "docs/research/script-runner-cancellation.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5f3b6c0d68738924939cc39e24642ade9221f5e3"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "scripts/run_parallel.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0cba8bb6d1f8bae19b022a010c37e15819ba9b9b"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e0df2c5175f63d4d8e2e8c774379805f3577ef7b"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_script_cancellation.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1d6624abfee72828a58c4fdaa2c866618c507d2a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 1,
+    "scripts/run_parallel.py": 1,
+    "tests/test_script_cancellation.py": 1
+  },
+  "github_reported_file_count": 3,
+  "complete_git_file_count": 3,
+  "body": "Cancelling the direct script scheduler previously waited for active and queued subprocesses. Register owned processes, stop their ordinary trees on controlling exceptions, cancel queued launches, and preserve the original exception with bounded cleanup diagnostics. Normal output blocks and failure labels are unchanged.\n\nThis adapts the credited PR2625 unittest-scheduler pattern to `run_parallel.run_all`, adding real command-iterator, launch and output-read failure regressions. Review caught and fixed lost ownership after a communication error; the same finding was handed back to PR2625 without another contribution count.\n\nValidation: nine native Windows process/semantic tests pass on Python3.12.14 and3.14.5; two existing direct-runner checks pass. The original cancellation and communication-error regressions fail before their fixes. POSIX execution and CI are not claimed. The attempted unrelated snapshot tests require unavailable make and retain their known cleanup failure; full details and exact source/overlap pins are in `docs/research/script-runner-cancellation.md`.\n\nStarted at current main b4560d9e and fast-forwarded to1884c509 after its review integration; priority5 and all runner inputs are unchanged. Submitted by ywz65 with substantial OpenAI Codex assistance. Apache-2.0; no scientific result or supplier claim.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "5775fbe20acd63fab4bddf334fd500fb2c44980133d36d86f6ae5663fd90adcf"
+}

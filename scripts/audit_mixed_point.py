@@ -25,7 +25,15 @@ TARGET = Q(1,2**30)
 
 
 def scalar_check(c):
-    """Every entry of the complete intersection-one map, including zeros."""
+    """Every entry of the complete intersection-one map, including zeros.
+
+    Tooling note (mixed-point / early-sharing replay): node and output digest
+    lines are written with the same UTF-8 text that
+    ``json.dumps(..., separators=(',',':'))`` produced historically, but without
+    building JSON encoder objects per row. Support checks and
+    ``circuit_sha256`` are unchanged. See
+    ``research/mixed-point-scalar-digest/``.
+    """
     require(c.k == c.l == 3 and c.r == 1, 'Wrong top-level relation')
     incident = [0]*c.n
     for i,triple in enumerate(c.inputs):
@@ -33,18 +41,28 @@ def scalar_check(c):
             incident[point] |= 1 << i
     require(c.inputs == c.targets, 'Mismatched source and target order')
     digest = sha256()
+    update = digest.update
+    encode = str.encode
+    args = c.args
+    support = c.support
     for node in c.active:
-        if c.args[node]:
-            a,b = c.args[node]
+        edge = args[node]
+        if edge:
+            a, b = edge
             require(a < node and b < node, 'Non-topological addition')
-            require(not c.support[a] & c.support[b], 'Cancellation in monotone circuit')
-            require(c.support[node] == c.support[a] | c.support[b], 'Wrong intermediate sum')
-        digest.update(json.dumps((node,c.args[node]),separators=(',',':')).encode()+b'\n')
-    for i,((a,b,d),node) in enumerate(zip(c.targets,c.outputs)):
+            require(not support[a] & support[b], 'Cancellation in monotone circuit')
+            require(support[node] == support[a] | support[b], 'Wrong intermediate sum')
+            # Byte-identical to json.dumps((node,(a,b)), separators=(',',':'))+'\n'
+            update(encode(f'[{node},[{a},{b}]]\n'))
+        else:
+            # Byte-identical to json.dumps((node,None), separators=(',',':'))+'\n'
+            update(encode(f'[{node},null]\n'))
+    for i, ((a, b, d), node) in enumerate(zip(c.targets, c.outputs)):
         # Odd intersections are one or three; remove the unique diagonal.
         expected = incident[a] ^ incident[b] ^ incident[d] ^ (1 << i)
-        require(c.support[node] == expected, 'Incorrect intersection-one output')
-        digest.update(json.dumps((i,node),separators=(',',':')).encode()+b'\n')
+        require(support[node] == expected, 'Incorrect intersection-one output')
+        # Byte-identical to json.dumps((i,node), separators=(',',':'))+'\n'
+        update(encode(f'[{i},{node}]\n'))
     return dict(h=c.n,additions=c.additions,outputs=len(c.outputs),
                 roles=c.additions+len(c.outputs),all_coefficients_exact=True,
                 every_addition_has_disjoint_support=True,circuit_sha256=digest.hexdigest())

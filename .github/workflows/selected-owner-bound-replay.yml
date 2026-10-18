@@ -1,0 +1,42 @@
+name: Selected owner-bound replay successor
+on:
+  pull_request:
+    paths:
+      - 'research/selected-owner-bound-replay/**'
+      - '.github/workflows/selected-owner-bound-replay.yml'
+      - 'research/complex-t16-rare-pattern-exchanges/**'
+      - 'research/community-frontier1042-audit/selected-replay.tar.gz'
+      - 'research/community-frontier1094-audit/selected-replay.tar.gz'
+      - 'research/complex-k492-owner-repair/vendor/multicold/**'
+      - 'research/community-k492-audit/pr622/**'
+      - 'research/t16-audit-mutant-coverage/README.md'
+  push:
+    branches: [main]
+    paths:
+      - 'research/selected-owner-bound-replay/**'
+      - '.github/workflows/selected-owner-bound-replay.yml'
+      - 'research/complex-t16-rare-pattern-exchanges/**'
+      - 'research/community-frontier1042-audit/selected-replay.tar.gz'
+      - 'research/community-frontier1094-audit/selected-replay.tar.gz'
+      - 'research/complex-k492-owner-repair/vendor/multicold/**'
+      - 'research/community-k492-audit/pr622/**'
+      - 'research/t16-audit-mutant-coverage/README.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Run unchanged strict stages and accepted-mutant integration controls
+        run: python -I -B research/selected-owner-bound-replay/full_check.py --work "$RUNNER_TEMP/owner-bound-integration"
+      - name: Verify the bounded owner gate
+        run: python -I -O -B research/selected-owner-bound-replay/verify.py
+      - run: git diff --exit-code

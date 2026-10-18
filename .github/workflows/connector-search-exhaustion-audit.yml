@@ -1,0 +1,29 @@
+name: Connector search exhaustion audit
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+jobs:
+  native-search:
+    if: github.repository == 'CrocSwap/integer-mult-bounds'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Compiler and registered search audit
+        run: |
+          g++ --version
+          python -I -W error -B scripts/research_package.py --package research/connector-search-exhaustion-audit
+      - name: Undefined-behavior and address controls
+        run: python -I -O -W error -B research/connector-search-exhaustion-audit/verify.py --sanitize --no-mutants

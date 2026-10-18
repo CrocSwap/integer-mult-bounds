@@ -139,6 +139,34 @@ def audit():
                           'Extension of interval-enclosure and cutoff ranges'])
 
 
+def unique_object(pairs):
+    """Reject contradictory or repeated fields before the JSON decoder loses them."""
+    result = {}
+    for key, value in pairs:
+        require(key not in result, 'Duplicate diagnostic receipt key: ' + key)
+        result[key] = value
+    return result
+
+
+def same_receipt_value(actual, expected):
+    """Preserve Boolean claims and integer counts, unlike Python's 1 == True."""
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return (actual.keys() == expected.keys()
+                and all(same_receipt_value(actual[key], value)
+                        for key, value in expected.items()))
+    if isinstance(expected, list):
+        return (len(actual) == len(expected)
+                and all(same_receipt_value(a, e) for a, e in zip(actual, expected)))
+    return actual == expected
+
+
+def check_receipt(path, report):
+    saved = json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique_object)
+    require(same_receipt_value(saved, report), 'Diagnostic receipt differs')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group()
@@ -147,7 +175,7 @@ def main():
     args = parser.parse_args()
     report = audit()
     if args.check:
-        require(json.loads(args.check.read_text()) == report, 'Diagnostic receipt differs')
+        check_receipt(args.check, report)
         print('PASS pinned assembly-domain diagnostic; no production constraint relaxed')
     elif args.write:
         args.write.write_text(json.dumps(report, indent=2) + '\n')

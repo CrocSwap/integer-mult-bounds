@@ -1,0 +1,719 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjU2NTI3MTY=",
+    "is_bot": false,
+    "login": "RossRichardson",
+    "name": "Ross Richardson"
+  },
+  "baseRefOid": "abdc6a7002abdbcd9e21bfc5e1a795784deacfdf",
+  "body": "The historical quadratic-code rank checker rebuilds large XOR-permutation masks for every row. This **tooling improvement** adds an opt-in per-replay mask cache: the complete supported `t=6`, 4,096-row replay takes **87.66 s \u2192 18.36 s (4.78\u00d7)** on macOS arm64 / CPython 3.14.6. These are medians of three alternating fresh-process pairs on identical inputs; all six complete receipts are byte-identical.\n\nOnly `research/cube-xor-replay/` and its focused Linux workflow are added. The original source, row order, elimination, stopping rule, certificates, selected frontier and `upstream/` remain unchanged. No new \u03ba or impossibility result: the `t=6` rank lower bound is 3,088 and positive deficit remains **not excluded**.\n\n### Reproduce\n\n```sh\npython3 -I -O -B research/cube-xor-replay/verify.py\n```\n\nExpected: `PASS_CUBE_XOR_VERIFICATION rows=4324 coefficients=8596927616 t6_rank=3088 t6_excluded=false`.\n\nFor the accelerated workload alone: `python3 -I -B research/cube-xor-replay/replay.py --case t6`. Python 3.10+, standard library only. Full differential verification deliberately also executes the original permutation and therefore is slower than the accelerated replay.\n\n### Evidence and scope\n\n- Direct equality of every generated row, including dependent rows: **4,324 rows / 8,596,927,616 binary coefficients**. The complete historical `t=3,4,5` certificate is also unchanged.\n- Algebraic equivalence argument for every valid power-of-two row width. Only geometry masks are cached; input guards still run on warm hits. No row/rank/admission result cache.\n- **17 tests** pass under optimized Python 3.14.6 and 3.12.12, including exhaustive small rows, all small basis/index pairs, seed-94 dense controls, high coordinates, incomplete screens, source/fixture/manifest corruption, and offline relocation.\n- A common column permutation preserves rank and independent-row indices but changes the witness stream; complete receipt comparison rejects it. Dropped rows and corrupt masks are detected.\n- All **nine unchanged cube tests** pass with the cached backend; selected-record integrity and its five tests pass. All **38 source Git/SHA256 pins** match.\n- `BENCHMARK.json` retains six raw samples, and `VALIDATION.json` records commands and code hashes. Full `make verify`, selected native cold replay, Lean and hosted CI success are not claimed. This does not measure selected-frontier or integer-multiplication runtime.\n\nResearch base: `2921874911956718fcaaaf9396fe8267b3cfa9f0`. Submission refresh: `abdc6a7002abdbcd9e21bfc5e1a795784deacfdf`; all pinned inputs and PR942's selected `1661960547713947/10^18` are unchanged. Historical source: `d55bcd62ceb8f322bcf311a5a66e94c3ac7724f0`.\n\nOS seed **94**, verification-engineering track. `CLAIM.json` records three candidates and scope. There was no pinned coordination issue. Open work was refreshed through #1072; exact XOR-permutation searches found no duplicate. PR667 logarithms, PR752 quadratic-affine products, PR898 Leech lanes and PR976 joint-frame rank are distinct and credited; no code from those PRs is imported. The bounded `t=6` workload uses the existing default cap, not a newly extended construction search.\n\nCredit Douglas R. Colkitt for the original family, permutation, audit and certificate. Contribution by **Ross Richardson with substantial OpenAI Codex assistance**, including implementation, analysis, testing and documentation; no independent human review claimed. Apache-2.0. All inherited mathematical/compiler/hosting/precision/tape/analytic assumptions retain their scope.\n",
+  "comments": [
+    {
+      "id": "IC_kwDOU-508s8AAAABbz3Qng",
+      "author": {
+        "login": "Mister-Meeseeks"
+      },
+      "authorAssociation": "MEMBER",
+      "body": "100-PR batch review at `d84d3b950127ff9252e5c059a629bb654500192a`.\n\nThis remains open after scoped triage. Next review step: The historical cube-XOR differential case passed, but the whole command reached 180 seconds before the larger declared coverage completed. Finish the remaining differential/certificate comparison.\n\nThis is a specific continuation point, not a rejection or a request to redo already recorded checks. Completed local evidence is retained separately from outstanding whole-head obligations.\n\n[Batch review, attribution and evidence](https://github.com/CrocSwap/integer-mult-bounds/blob/main/docs/research/community-efficient200-review.md). Thank you for the contribution.",
+      "createdAt": "2026-10-14T05:01:54Z",
+      "includesCreatedEdit": false,
+      "isMinimized": false,
+      "minimizedReason": "",
+      "reactionGroups": [],
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1075#issuecomment-6161289374",
+      "viewerDidAuthor": true
+    }
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/cube-xor-replay.yml",
+      "additions": 27,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/BENCHMARK.json",
+      "additions": 51,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/CLAIM.json",
+      "additions": 38,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/EXPECTED-T6.json",
+      "additions": 3102,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/README.md",
+      "additions": 193,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/SOURCES.json",
+      "additions": 165,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/VALIDATION.json",
+      "additions": 70,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/benchmark.py",
+      "additions": 66,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/cached_xor.py",
+      "additions": 35,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/replay.py",
+      "additions": 111,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/test_replay.py",
+      "additions": 217,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/cube-xor-replay/verify.py",
+      "additions": 31,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "d84d3b950127ff9252e5c059a629bb654500192a",
+  "isDraft": false,
+  "number": 1075,
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:09:48Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043779/job/115447388058",
+      "name": "exact",
+      "startedAt": "2026-10-14T00:07:42Z",
+      "status": "COMPLETED",
+      "workflowName": "Exact cached cube XOR replay"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:07:53Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043714/job/115447388025",
+      "name": "verify (3.11)",
+      "startedAt": "2026-10-14T00:07:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Graded box convolution"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:10:01Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043695/job/115447388112",
+      "name": "verify (3.11)",
+      "startedAt": "2026-10-14T00:07:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify early reset and kernel composition"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:10:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043607/job/115447387452",
+      "name": "certificate (3.11)",
+      "startedAt": "2026-10-14T00:07:20Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify recycled bit registers on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:33:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388657",
+      "name": "verify (3.11, community)",
+      "startedAt": "2026-10-14T00:29:11Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:13:07Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043462/job/115447387149",
+      "name": "certificate (3.11)",
+      "startedAt": "2026-10-14T00:07:55Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify terminal elimination on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:08:10Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043714/job/115447388407",
+      "name": "verify (3.14)",
+      "startedAt": "2026-10-14T00:07:44Z",
+      "status": "COMPLETED",
+      "workflowName": "Graded box convolution"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:11:29Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043695/job/115447387792",
+      "name": "verify (3.14)",
+      "startedAt": "2026-10-14T00:07:00Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify early reset and kernel composition"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:10:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043607/job/115447388001",
+      "name": "certificate (3.14)",
+      "startedAt": "2026-10-14T00:07:52Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify recycled bit registers on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:33:30Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388652",
+      "name": "verify (3.11, producers)",
+      "startedAt": "2026-10-14T00:28:43Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:11:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043462/job/115447387620",
+      "name": "certificate (3.14)",
+      "startedAt": "2026-10-14T00:08:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify terminal elimination on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:25:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388507",
+      "name": "verify (3.11, certificates)",
+      "startedAt": "2026-10-14T00:21:01Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:23:29Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388537",
+      "name": "verify (3.11, ternary)",
+      "startedAt": "2026-10-14T00:20:32Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:42:05Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388733",
+      "name": "verify (3.11, research)",
+      "startedAt": "2026-10-14T00:32:19Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388869",
+      "name": "verify (3.11, tests)",
+      "startedAt": "2026-10-14T00:31:39Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:26:29Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388597",
+      "name": "verify (3.11, strips)",
+      "startedAt": "2026-10-14T00:21:11Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:35:59Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388924",
+      "name": "verify (3.11, clones)",
+      "startedAt": "2026-10-14T00:30:36Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:31:18Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388755",
+      "name": "verify (3.11, positive)",
+      "startedAt": "2026-10-14T00:29:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:33:58Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388769",
+      "name": "verify (3.11, joint)",
+      "startedAt": "2026-10-14T00:28:07Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:33:17Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388679",
+      "name": "verify (3.11, pair)",
+      "startedAt": "2026-10-14T00:29:15Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:32:48Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388832",
+      "name": "verify (3.11, partial-gauge)",
+      "startedAt": "2026-10-14T00:31:44Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:20:30Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388478",
+      "name": "verify (3.11, three-stage-cover)",
+      "startedAt": "2026-10-14T00:19:34Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:33:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388925",
+      "name": "verify (3.11, paired-cube)",
+      "startedAt": "2026-10-14T00:32:28Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:29:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388601",
+      "name": "verify (3.11, recycled-bit)",
+      "startedAt": "2026-10-14T00:21:05Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:30:15Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388624",
+      "name": "verify (3.11, entrance-banks)",
+      "startedAt": "2026-10-14T00:28:07Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:03Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388591",
+      "name": "verify (3.13, community)",
+      "startedAt": "2026-10-14T00:30:11Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:30:25Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388683",
+      "name": "verify (3.13, producers)",
+      "startedAt": "2026-10-14T00:24:53Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:31:08Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388618",
+      "name": "verify (3.13, certificates)",
+      "startedAt": "2026-10-14T00:26:32Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:35:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388840",
+      "name": "verify (3.13, ternary)",
+      "startedAt": "2026-10-14T00:31:48Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:26:34Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388590",
+      "name": "verify (3.13, research)",
+      "startedAt": "2026-10-14T00:20:32Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:32:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388649",
+      "name": "verify (3.13, tests)",
+      "startedAt": "2026-10-14T00:29:30Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:33:54Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388976",
+      "name": "verify (3.13, strips)",
+      "startedAt": "2026-10-14T00:30:38Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:36:20Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447389060",
+      "name": "verify (3.13, clones)",
+      "startedAt": "2026-10-14T00:30:33Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:31:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388671",
+      "name": "verify (3.13, positive)",
+      "startedAt": "2026-10-14T00:29:23Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:09Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388720",
+      "name": "verify (3.13, joint)",
+      "startedAt": "2026-10-14T00:30:35Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:35:38Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447389010",
+      "name": "verify (3.13, pair)",
+      "startedAt": "2026-10-14T00:31:37Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:29:08Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388912",
+      "name": "verify (3.13, partial-gauge)",
+      "startedAt": "2026-10-14T00:27:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:29:12Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388787",
+      "name": "verify (3.13, three-stage-cover)",
+      "startedAt": "2026-10-14T00:28:36Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:22:45Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388641",
+      "name": "verify (3.13, paired-cube)",
+      "startedAt": "2026-10-14T00:21:59Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:31:20Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388719",
+      "name": "verify (3.13, recycled-bit)",
+      "startedAt": "2026-10-14T00:21:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:58Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388982",
+      "name": "verify (3.13, entrance-banks)",
+      "startedAt": "2026-10-14T00:32:59Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:27:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388589",
+      "name": "verify (3.14, community)",
+      "startedAt": "2026-10-14T00:23:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:28:04Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388603",
+      "name": "verify (3.14, producers)",
+      "startedAt": "2026-10-14T00:22:56Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:29:45Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388688",
+      "name": "verify (3.14, certificates)",
+      "startedAt": "2026-10-14T00:25:06Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:36:22Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447389076",
+      "name": "verify (3.14, ternary)",
+      "startedAt": "2026-10-14T00:32:35Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:36:03Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388693",
+      "name": "verify (3.14, research)",
+      "startedAt": "2026-10-14T00:26:14Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:22:33Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388722",
+      "name": "verify (3.14, tests)",
+      "startedAt": "2026-10-14T00:19:37Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388789",
+      "name": "verify (3.14, strips)",
+      "startedAt": "2026-10-14T00:29:02Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388706",
+      "name": "verify (3.14, clones)",
+      "startedAt": "2026-10-14T00:29:15Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447389373",
+      "name": "verify (3.14, positive)",
+      "startedAt": "2026-10-14T00:33:02Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:35:45Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388998",
+      "name": "verify (3.14, joint)",
+      "startedAt": "2026-10-14T00:30:38Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:44Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388993",
+      "name": "verify (3.14, pair)",
+      "startedAt": "2026-10-14T00:32:16Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:21:57Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388659",
+      "name": "verify (3.14, partial-gauge)",
+      "startedAt": "2026-10-14T00:20:55Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:26:17Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388695",
+      "name": "verify (3.14, three-stage-cover)",
+      "startedAt": "2026-10-14T00:25:25Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:33:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447389011",
+      "name": "verify (3.14, paired-cube)",
+      "startedAt": "2026-10-14T00:32:41Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:32:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388738",
+      "name": "verify (3.14, recycled-bit)",
+      "startedAt": "2026-10-14T00:26:58Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:30:04Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388726",
+      "name": "verify (3.14, entrance-banks)",
+      "startedAt": "2026-10-14T00:27:48Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:19:04Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447387536",
+      "name": "ranked-pair-finite",
+      "startedAt": "2026-10-14T00:18:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:34:48Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447388211",
+      "name": "formal (historical)",
+      "startedAt": "2026-10-14T00:23:24Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:19:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447387923",
+      "name": "formal (gaussian)",
+      "startedAt": "2026-10-14T00:18:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-14T00:19:24Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38441043615/job/115447387857",
+      "name": "formal (matrix)",
+      "startedAt": "2026-10-14T00:18:35Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify research artifacts"
+    }
+  ],
+  "title": "Tooling: 4.78x faster exact bounded quadratic-code replay",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1075",
+  "github_changed_files": 12
+}

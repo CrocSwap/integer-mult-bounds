@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "chooser_seed": "c88339d24517c9354275ac905ca0f320",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Can scripts/partial_swap/shared.py:SharedPointCircuit.verify emit the same circuit_sha256 digest lines (and the same support/topology assertion checks) without per-node json.dumps, so partial-swap verify receipts stay fieldwise identical while certificates/partial-swap-network.json updates only the shared.py source_sha256 pin?",
+  "scope_change_reason": "The catalogue card asks for one measured replay bottleneck with before/after wall time and retained checks. Expertise override selected verifier-engineering after open tooling PRs #1984/#1994 left the same hand-rolled digest pattern available on the distinct partial-swap fork of SharedPointCircuit (scripts/partial_swap/shared.py), which still called json.dumps per active node. Profiling named that digest stream as about half of h=46 verify time. Mask/closed-form ExclusionCircuit and DisjointTensor support rewrites (#2001) and the canonical shared_point_circuit.py digest object (#1994) are deliberately out of scope.",
+  "bottleneck_link": "Side result on review throughput: partial-swap producers, skip-strip graphs and related historical packages import partial_swap.shared.SharedPointCircuit.verify. A faster identical digest does not change kappa or the binding complex supplier.",
+  "budget_minutes": 60,
+  "stop_rule": "Ship an equivalence-preserving partial_swap SharedPointCircuit.verify digest change with frozen baseline, identical receipts on the historical h=46 circuit, pin-only certificate refresh, registered replay and a measured before/after median. Do not reopen mathematical screens, rewrite ExclusionCircuit/DisjointTensor support masks, or edit scripts/shared_point_circuit.py.",
+  "outcome": "completed",
+  "evidence": "PASS_PARTIAL_SWAP_DIGEST via research/partial-swap-digest/verify.py (also under -O); PASS_IDENTICAL_PARTIAL_SWAP_DIGEST_RECEIPTS via benchmark.py; certificates/partial-swap-network.json changes only scripts/partial_swap/shared.py in source_sha256.",
+  "author": "Wentao Li",
+  "github": "VictorLiwentao",
+  "email": "wentaol4@illinois.edu",
+  "ai_assistance": "Substantial AI assistance for orientation, overlap search, profiling, implementation, packaging, benchmarking and writing. Not independent human peer review.",
+  "open_questions": [
+    {
+      "question": "Should research packages that pin live scripts/partial_swap/shared.py bytes (for example copied-fixed / skip-strip provenance) refresh that one SHA-256 entry after this equivalence-preserving digest rewrite?",
+      "why_it_matters": "Those provenance packages bind working-tree bytes of shared.py; leaving old pins keeps this tooling PR focused, but a later full provenance replay on main would see a hash mismatch until refreshed.",
+      "first_step": "Open a dedicated provenance follow-up that only rewrites the shared.py entry after confirming circuit_sha256 identity.",
+      "blocked_by": "Pin repair outside certificates/partial-swap-network.json is outside this tooling change."
+    },
+    {
+      "question": "Is partial_swap.shared.SharedPointCircuit.__init__ merge/lookup construction worth a separate identical-receipt rewrite?",
+      "why_it_matters": "Bit-compression and large partial-swap builds still spend substantial wall time constructing the shared-point DAG; that is a different object from the verify digest stream measured here.",
+      "first_step": "Profile SharedPointCircuit(46).__init__ alone and compare against the verify residual after this digest change.",
+      "blocked_by": "Out of this session's stop rule; verify digests were the measured bottleneck."
+    }
+  ]
+}

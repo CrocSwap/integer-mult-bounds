@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "number": 739,
+  "title": "Research construction: rescale JP8 coefficient work across magnitudes (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjc2NTA5Mw==",
+    "is_bot": false,
+    "login": "namredips",
+    "name": "Jeffrey Cox"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/739",
+  "head": "abb9825202dba6f9bc95c7df8d12d86088fdff1a",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/complex-coefficient-rescaling/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5cfad9f85f55e9117cdfb19dd5495646328fa49d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5958c0bd684e7324bc651f5e347917a1e70acd42"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d79979424a26800aa05b2f17b994e89989204614"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/SOURCE-PINS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1dd9a8834ab7af00a8ebd908c01ef56f81d91ca9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "33d3356240af966bd29bd254311040b3f7cfa99f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/crosscheck.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1604c6130bffa67458615d26b5b9196ab9757dcd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/lowering.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "481dd16c4263367fb528436cb8d2949e63a03d42"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/test_verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "55a36cc36a743d1800394e20ee9b8e5560b932f0"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-coefficient-rescaling/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7f508bcbaf19943bb870f7b912eccad5ef7b6e66"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/complex-coefficient-rescaling": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "## Change and mathematical scope\n\nThe selected #626 JP8 cleanup prepares each dyadic coefficient independently. This finite circuit contribution reuses its private work stream across consecutive **different coefficient magnitudes** related by powers of two, preserving source values and target-update order. It saves **10,338 additional real-component primitives beyond the equal-magnitude sharing in #722**.\n\n**Status: research construction / finite complex-supplier circuit improvement; no new \u03ba.**\n\n| Complete scalar program | Original | Equal-magnitude sharing (#722 method) | Rescaling |\n|---|---:|---:|---:|\n| JP8 forward | 257,232 | 237,544 | **227,206** |\n| JP8 inverse-transpose | 257,280 | 257,280 | 257,280 |\n\nThe 30,026 total saving includes #722's 19,688; only the additional 10,338 is new here. All source reads, Horner preparation, doubling/halving, signed accumulation and clearing are charged. The original exact prefix envelopes and paid recursive profiles are unchanged. This is an operation count, not a runtime benchmark.\n\nOnly `research/complex-coefficient-rescaling/` is added. It contains executable primitive circuits, all 1,015 block certificates, a written substitution/cost argument, five source pins, an independent DP and scalar-basis checker, negative controls and a local sprint claim. No pending implementation is imported.\n\nThe local interface requires clearing private work at **block boundaries**, replacing the selected emitter's per-macro clearing contract inside those blocks. Production-emitter integration and refreshed invoices remain future work. No additional helper, frame transition or recursive child is introduced. The selected supplier, `upstream/`, global ownership and frontier pointer are unchanged. Inherited compiler, realization, hosting, precision/tape/recovery, bit-supplier and analytic assumptions remain; this is not a formal multiplication theorem.\n\n## Validation\n\n```sh\npython3 -I -B research/complex-coefficient-rescaling/verify.py\n```\n\nExpected:\n\n```text\nPASS_JP8_COEFFICIENT_RESCALING incremental_real_saved=10338 blocks=1015 columns=716 orientations=2 controls=11\n```\n\n- Both fixed 27,909-event programs are checked. The complete scalar projections cover all 716 live input columns and arbitrary incoming coefficient work. All 591 distinct JP8 add/scale cases are checked; changed blocks execute literal primitives.\n- A separate implementation evaluates 18,925 forward candidate blocks and confirms the restricted optimum. All 6,279 touched-register/work basis cases pass. The 1,211 new magnitude-changing edges are distinguished from 2,023 equal-magnitude edges.\n- The full negative census retains 49 nonprofitable transitions (28 ties, 21 losses) and 1,015 incompatible odd-numerator transitions. Backward has no eligible join in this class. No broader circuit-optimality claim.\n- Eleven primary controls, four independent semantic controls, and nine additional tests pass, including all 343 signed triples over a seven-value domain, source/receipt corruption, early-ended helpers, relocation and gzip recompression.\n- CPython 3.14.7 and 3.11.14 on macOS arm64 pass, including isolated optimized execution. Ruff, local documentation links, staged whitespace and `make selected-record-check` pass.\n- Full `make verify`, selected cold replay, global admission, Linux CI and Lean were not run for this isolated research addition.\n\n## Provenance and coordination\n\nExact base: **`66849e1475c930fd7732b1a0067ffee7e1e95f60`**. Selected #626 source: `660de893d27bb7abd1d5b01b1640207528a5c851`; #622 construction: `f69477f4f6d3c7eb1f740b166881bffed4ffa9f6`; retained #543: `2065fe4f72a914d907f1046603f5a36f17018535`. Full gzip payloads and exact plain-file bytes are pinned; native/event hashes additionally match the preserved #626 SPEC.\n\nOS assignment seed **39**, complex-supplier track, selected JP8 by parity. Three candidates and the claim are recorded locally because no pinned coordination issue exists. The final overlap refresh covered **556 open PRs through #737**. #722 is the direct methodological predecessor and comparison. #696/#723 and concurrent #734 optimize individual coefficient preparations; this uses ordinary Horner preparation and shares work between macros. No combined saving with those lowerings is asserted. #681, #698 and #719 cover distinct factory, frame and CK rank questions.\n\nCredit to @ellipsi2's #722, Jeremy Kothe/AtomScout and the #622 lineage, Chafik Boukhalfa's #626 package, icekylinx's scalar/emitter work, DreamingOfClouds, Dugongue, eumemic (including #411), Sagar Thakrar, Chris Pagolu and all retained predecessor notices. Prepared for **Jeffrey Cox (@namredips)** with substantial **OpenAI Codex assistance**, including one scoped AI reviewer who supplied the independent checker. Apache-2.0; no independent human-review claim.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "15e5ad934a811561ebc51f3c7d538f0afaacad52908d24ca7ffcc43d9f5c9400"
+}

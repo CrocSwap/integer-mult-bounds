@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 5,
+  "base_commit": "d3add2cc28e958bedec197ab32b5526c5a222628",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "PR2693 proof-relevant mismatch path: reuse successfully parsed values while preserving the complete original result.",
+  "scope_change_reason": "Take the explicit negative-path open question in PR2693 rather than repeat the existing positive traversal optimization.",
+  "bottleneck_link": "Avoid repeated decompression and parsing while retaining the full strict comparison contract for review evidence.",
+  "budget_minutes": 60,
+  "stop_rule": "One successor; abandon the optimization if full diagnostics or retained coverage differ, or same-fixture trials show no useful gain.",
+  "outcome": "completed",
+  "evidence": "RESULT.json: all 1012 complete differential comparisons and both exact receipts; 18 control groups pass in registered CPython3.12 replay and optimized3.14; BENCHMARK.json: 7.403103s versus6.072942s sum of per-file medians, 1.219031x on five fixed mismatch fixtures.",
+  "author": "Nick Petalas",
+  "ai_assistance": "Substantial AI assistance in implementation, checking, internal review and prose; independent human review is not claimed.",
+  "open_questions": [
+    {
+      "question": "Can a real replay wrapper benefit from this mismatch optimization?",
+      "why_it_matters": "The measured work is the comparison step, not a full supplier replay.",
+      "first_step": "Profile a wrapper with its exact authorized timing/root policies and complete changed-output corpus.",
+      "blocked_by": "Caller-specific adoption and review; no frozen caller is changed here."
+    }
+  ],
+  "chooser": {
+    "seed": "b8cf88ef9bf3ca96510d68b4f9dd9ab1",
+    "track": "verifier-engineering",
+    "scope_key": "a76657a85478d269d19f"
+  },
+  "claim": "https://github.com/CrocSwap/integer-mult-bounds/discussions/2937",
+  "predecessors": [
+    {
+      "pr": 2693,
+      "author": "ywz65",
+      "head": "5793ceb2006cc5c4939fd2a80886b54ab119bc4f"
+    },
+    {
+      "pr": 2040,
+      "author": "commdata2338",
+      "head": "d31c1418c0c23994d1444dbd9d356b9a8238fd5e"
+    }
+  ],
+  "freshness": {
+    "utc": "2026-10-16T12:40:12.056197+00:00",
+    "canonical_main": "991c50d1ea8ddb7cf88c1b4a45c7b409c02d38fb",
+    "priority_revision": 5,
+    "compatibility": "All 17 scientific inputs and both provenance files have byte-identical hashes on refreshed main; AGENTS.md/autoresearch.md unchanged. Frozen scientific baseline retained."
+  },
+  "overlap": {
+    "coverage": {
+      "open_prs": {
+        "fetched_at": "2026-10-16T12:39:44.475061+00:00",
+        "complete_pagination": true,
+        "records": 472
+      },
+      "discussions": {
+        "fetched_at": "2026-10-16T12:40:12.380481+00:00",
+        "complete_pagination": true,
+        "records": 1622
+      },
+      "closed_prs": {
+        "fetched_at": "2026-10-16T12:40:33.285919+00:00",
+        "complete_pagination": true,
+        "records": 2157
+      }
+    },
+    "terms": [
+      "negative path",
+      "parsed strict payloads",
+      "strict-payload-negative-reuse"
+    ],
+    "nearest_work": [
+      "PR2693 explicit negative-path handoff; source unchanged",
+      "PR2803 large-integer parsing and PR2921 inventory repair remain separate"
+    ],
+    "limitation": "Search of PR bodies, discussions and local package notes; no matching independent negative-path implementation identified. Not a novelty proof."
+  }
+}

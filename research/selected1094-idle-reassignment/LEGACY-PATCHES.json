@@ -1,0 +1,44 @@
+{
+  "source": "pinned upstream1087.tar.gz; extracted output only",
+  "credit": "Overlay integration follows Gonzalo-Mier PR1252; mandatory full geometric/phase validation and dynamic halving guards added here.",
+  "patches": [
+    {
+      "path": "code/audit_allcold.py",
+      "before_sha256": "1467a2acb654e62552c69fb9a7c4c85f70a02120881d222313865058ab71a6cc",
+      "after_sha256": "669b63975d5465293256dd4b0b0511b06fdfe27176eca7bcd1120b6df5f4a440",
+      "replacements": [
+        [
+          "import sys,json,gzip,hashlib,copy\n",
+          "import sys,json,gzip,hashlib,copy,os,subprocess\n"
+        ],
+        [
+          "sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()\n",
+          "sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()\noverlay=read(OUT/'IDLE-PAIR-OVERLAY.json')\nbaseline_hosted=Path(os.environ['T16_BASE_HOSTED']).resolve()\nsubprocess.run([sys.executable,'-I','-B',os.environ['IDLE_VERIFY_SCRIPT'],'--check',\n '--baseline',str(baseline_hosted),'--candidate',str(OUT),\n '--phases',str(BASE/'work/complex-nine-native/DATA-PHASES.json'),\n '--owners',os.environ['IDLE_OWNERS_PATH']],check=True)\noverlay_rows=read(OUT/'IDLE-REMAINDER-FRAMES.json.gz')\noverlay_frames={(x['replica'],x['port'],x['child']):x for x in overlay_rows}\nassert len(overlay_frames)==len(overlay_rows)\n"
+        ],
+        [
+          "   u=used[i,rep,port];assert u==set(range(len(u)));r=old['rank']-len(u)\n",
+          "   u=used[i,rep,port];assert u==set(range(len(u)))\n   frame=overlay_frames.get((rep,port,i))\n   r=frame['rank'] if frame else old['rank']-len(u)\n"
+        ],
+        [
+          " axes=list(map(int,ph['recipes'][z['port']]['idle_children'][z['child']]['orthogonal_axes']))\n tail=axes[z['pending_offset']:]\n",
+          " frame=overlay_frames[(z['replica'],z['port'],z['child'])]\n assert frame['rank']==z['rank'] and frame['hosted']==z['hosted'] and frame['pending_offset']==z['pending_offset']\n tail=list(map(int,frame['orthogonal_axes']))\n"
+        ]
+      ]
+    },
+    {
+      "path": "code/assemble.py",
+      "before_sha256": "15f6986a476bac76bcdc0bfcf51da115389b46f1950d2766b6822f757888b13a",
+      "after_sha256": "8a276299e606313ac2838169786aeac324d39ede42adb7c01780013fb123c9aa",
+      "replacements": [
+        [
+          "assert finite['halving_integer_inequality']==[5329,4608]",
+          "assert finite['halving_integer_inequality']==[5329,2*max(map(int,owner['paid_profile']))**2]"
+        ],
+        [
+          "halving=73*73>2*48*48)",
+          "halving=73*73>2*max(map(int,owner['paid_profile']))**2)"
+        ]
+      ]
+    }
+  ]
+}

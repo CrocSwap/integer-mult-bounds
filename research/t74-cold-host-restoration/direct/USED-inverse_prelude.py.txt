@@ -1,0 +1,95 @@
+"""Bounded inverse-prelude experiment on the frozen J hosting words.
+
+Credit: #2802/J hosting construction and #1186 frame toolkit (mdumitrean),
+#2679/#2745 borrowing/auditor lineage, and the current direct-recovery lane.
+This is a local finite experiment, not a supplier or exponent claim.
+"""
+import copy
+import gzip
+import hashlib
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+FROZEN = Path('/home/marius/kappa/kappa-hosting-leads-20261015-2256')
+CODE = FROZEN / 'research/t74-r10-hosting-leads/J-dim1/code'
+OUT = Path(__file__).resolve().parent
+sys.path.insert(0, str(CODE))
+import borrow_price as bp
+
+
+def inventory(w):
+    out = {}
+    for q in range(2 * w['report']['v'], 2 * w['report']['v'] + w['report']['R']):
+        if q in w['removed']:
+            continue
+        end = len(w['helper_final'].get(str(q), bp.FULL9))
+        start = len(w['start_extra'].get(str(q), []))
+        out[str(end-start)] = out.get(str(end-start), 0) + 1
+    return out
+
+
+def cancel_operator(w, host, op):
+    """K^-1 at the zero entrance; compensate new target corrections by identity.
+
+    The host was neither entering nor an earlier lender. Therefore it has no
+    earlier initial correction, and only the new op's target corrections need
+    the substitution K -> identity. This edit does not perform the scalar undo.
+    """
+    w = copy.deepcopy(w)
+    assert str(host) not in w['start_extra']
+    assert w['warps'][op-1][1] == host
+    assert sum(rec[1] == host for rec in w['warps']) == 1
+    corrections = [c for c in w['initial_corrections'] if c['source'] == host]
+    assert corrections and all(c['operator_word'] == [op] for c in corrections)
+    for c in corrections:
+        c['operator_word'] = [op, -op]
+    w['A'].insert(0, ['warp', host, -op, [], []])
+    w['prelude_events'] = w.get('prelude_events', 0) + 1
+    return w
+
+
+def fixture(tag):
+    src = FROZEN / f'research/t74-r10-hosting-leads/J-dim1/out/eh/w-{tag}-473_277.json.gz'
+    base = bp.load(src)
+    w = cancel_operator(base, 277, 73)
+    # Exact end-of-B old-value recovery from leader lane. FULL shared frame
+    # deliberately proves only cancellation/restoration, not a width saving.
+    recovery = [
+        ['add', 277, 100, -1, 2, list(bp.FULL9)],
+        ['add', 277, 226, -1, 1, list(bp.FULL9)],
+        ['add', 277, 54, 1, 1, list(bp.FULL9)],
+        ['add', 277, 67, 1, 1, list(bp.FULL9)],
+    ]
+    # The retained restore section only reads these four sources. Placing the
+    # recovery after it avoids propagating FULL back into its low cold ends.
+    assert not any(g[1] in {100, 226, 54, 67} for g in w['restore'])
+    w['restore'].extend(recovery)
+    w['helper_final']['277'] = list(bp.FULL9)
+    w['cleanup'] = bp.derive_cleanup(w, set(map(int, w['helper_final'])))
+    w['report']['width_inventory'] = inventory(w)
+    started = time.monotonic()
+    p = bp.frame_profile(w)
+    w = bp.write_frames(w, p)
+    w['report']['width_inventory'] = inventory(w)
+    wp = OUT / f'fixture-{tag}-473-277-full.json.gz'
+    wp.write_bytes(gzip.compress(json.dumps(w, sort_keys=True, separators=(',', ':')).encode(), mtime=0))
+    a = bp.audit(w, timeout=90)
+    result = dict(tag=tag, source_sha256=hashlib.sha256(src.read_bytes()).hexdigest(),
+                  output_sha256=hashlib.sha256(wp.read_bytes()).hexdigest(),
+                  inserted_prelude=w['A'][0], recovery=recovery,
+                  helper_final=w['helper_final']['277'], profile=p['profile'],
+                  certified_integer_surrogate=p['certified'], audit=a,
+                  seconds=time.monotonic()-started,
+                  scope='Constructive operator cancellation and full-end restoration only; no width or kappa improvement.')
+    (OUT / f'fixture-{tag}-RESULT.json').write_text(json.dumps(result, indent=2)+'\n')
+    print(json.dumps({k: v for k, v in result.items() if k != 'audit'}, indent=2))
+    print('AUDIT', a['rc'], a['status'], a.get('error'))
+    return result
+
+
+if __name__ == '__main__':
+    for tag in sys.argv[1:] or ['b', 'e']:
+        fixture(tag)

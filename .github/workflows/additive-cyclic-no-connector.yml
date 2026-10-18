@@ -1,0 +1,41 @@
+name: Additive cyclic inverse without connector
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/additive-cyclic-no-connector/**'
+      - '.github/workflows/additive-cyclic-no-connector.yml'
+  push:
+    branches: ['codex/additive-cyclic-no-connector-20261013']
+    paths:
+      - 'research/additive-cyclic-no-connector/**'
+      - '.github/workflows/additive-cyclic-no-connector.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Rounded filters, original kernels, bounds and defect controls
+        run: python -I -O -B research/additive-cyclic-no-connector/verify.py --out /tmp/additive-math.json
+      - name: Package rejection controls and full read-only relocation
+        run: python -I -O -B research/additive-cyclic-no-connector/test_package.py --out /tmp/additive-package.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: additive-cyclic-python-${{ matrix.python }}
+          path: |
+            /tmp/additive-math.json
+            /tmp/additive-package.json

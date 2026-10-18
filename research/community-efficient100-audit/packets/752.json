@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "number": 752,
+  "title": "Tooling: accelerate exact quadratic-affine witness replay",
+  "author": {
+    "id": "MDQ6VXNlcjI1NzY3NzI2",
+    "is_bot": false,
+    "login": "Curtis-D",
+    "name": "Curtis D"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/752",
+  "head": "3603d8d9184995ae1cc67c0f5e01f02f3a1d634e",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/quadratic-affine-packed/BENCHMARK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f885136e2d6808eb961457f17a9651500418b789"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c2efb0bf9985f9f80bfbf240d4b031b97362a891"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/SELECTION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a35633e98377d1771469af5054dba470a6189578"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "905d67cd6461b7964c49809208dbadb9dafad2f3"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cd42f9149fe1947c32900d49f900cb90bb98faec"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/benchmark.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "35afff553eee698971e7b836a598d9a4c784c474"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/packed.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "75bebca04b64ea9cccb745abb4fbade21394a537"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/replay.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "db9aac56cba97d8dda75ceacef982510a8d13af3"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/test_packed.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "01fbf507b4a877aacbe14725d2ae5ae458834848"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/test_replay.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "dce8c9d1161569c015104a30ea0894d9171f98b4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/quadratic-affine-packed/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "835fa6b7a995e03c8bb10165211db6a0a8b4e8d5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/quadratic-affine-packed": 11
+  },
+  "github_reported_file_count": 11,
+  "complete_git_file_count": 11,
+  "body": "The historical quadratic-affine audit constructs its largest minor through pairwise Hermitian products. This optional adapter computes the same complete rows with carry-safe integer lanes. **Tooling improvement; no new kappa or new negative result.**\n\nThree alternating fresh-process pairs on CPython 3.14.2/macOS arm64 measured median complete-audit wall time **73.411 s \u2192 10.959 s (6.70x)**. All six certificates match the frozen original byte for byte. This includes imports, source admission, all twelve witnesses, rational span controls, certificate comparison and output; it is not a whole-repository or selected-frontier speedup. Raw samples and the overlapping preliminary probe are disclosed separately.\n\nOnly `research/quadratic-affine-packed/` is added. The original checker, default commands, selected frontier and `upstream/` remain unchanged. The README supplies the signed-lane, zero-detection and compaction arguments, source pins, provenance and limits.\n\n## Reproduce and validation\n\n```sh\npython3 -I -B research/quadratic-affine-packed/verify.py\n```\n\nExpected final line: `PASS_QUADRATIC_AFFINE_DIFFERENTIAL all_frozen_rows_equal=true cases=12`.\n\n- **14,662 full rows / 161,333,572 declared matrix entries** directly compared against the original pairwise calculation, with unchanged ordered binary elimination, digests, rational span checks and complete certificate.\n- **19 test groups pass:** 12 packed-arithmetic tests, three source/CLI guard tests and four unchanged original tests. A literal integer-component oracle covers all 125 three-coordinate phase vectors, all 60 small Gaussian labels, seeded cases at every dimension 1\u201332, signed extremes and lane boundaries.\n- Meaningful controls detect missing conjugation, ignored imaginary parts, omitted diagonal entries, adjacent-lane borrowing, dependent rows, source/fixture/certificate corruption, disabled assertions and reused output. The omitted-diagonal example retains the same rank but changes its digest.\n- Isolated minimal replay from an unrelated directory and a path with spaces passes, preserving every copied file. Selected-record/source-inventory verification and staged whitespace validation pass.\n- Full `make verify`, selected cold supplier replay, Lean and remote Linux CI were not run or claimed for this optional adapter.\n\nThe existing negative result concerns only twelve specified full-orthogonality matrices. Other supported matrices, subfamilies and compilers remain outside it. All inherited all-size, realization, hosting, precision/tape and analytic obligations retain their scope.\n\n## Pins, assignment and credit\n\nBase: `66849e1475c930fd7732b1a0067ffee7e1e95f60` (still main at final fetch). Historical source: `d55bcd62ceb8f322bcf311a5a66e94c3ac7724f0`; upstream: `adc7f1241b42e322a6451854ab7e4b4c146bf78a`. `SOURCES.json` pins all 37 predecessor files consumed by the replay. At this base the selected conditional kappa remains #626/#543's **0.001635527380375392**.\n\nOS-random seed **92**, verification-engineering track. Three candidates and scope are recorded in `SELECTION.json`; there was no pinned coordination issue, so the claim is local. Final overlap review covered 565 open PRs through #746, then fresh arrivals through #748. PR154's unchanged quadratic-affine hotspot is credited; the newer geometry, Gram, owner-mask, cyclic-inverse and streaming tools concern distinct kernels. No pending code is imported.\n\nCredit **Douglas R. Colkitt** for the original families, witnesses and audit, and **eumemic/PR154** for the profiling lead. Prepared by **Curtis Dransfield (@Curtis-D) with substantial OpenAI Codex assistance**, including a separate scoped AI arithmetic reviewer and test author. No independent human review is claimed. Apache-2.0; predecessor attribution remains intact.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "020dfb1a17e70b0566494b3326217ea076b109b10a714e42b33960bf6658bc5e"
+}

@@ -1,0 +1,1007 @@
+\section{Exact integer multiplication and its cost}
+\label{sec:assembly}
+
+We now use the preceding algorithms to multiply two $n$-bit integers.
+An equal-width address swap on logical bit volume $V$ costs
+$O(Vu^\tau)$ for width $u$.  A completed parallel normalized butterfly
+layer costs $O(Vd^{\lambda'})$ and has coefficient error less than
+$\sqrt2\,2^{-p}$.  The ordered Gaussian resampling maps are
+contractions; their disk-grid approximations have error less than
+$p^2 2^{-p}$ and cost $O(tp^{3/2+\delta}\alpha)$ on a line of length
+$t$.  Address permutations and intermediate dyadic arithmetic are
+exact.  We choose compatible parameters for these procedures, recover
+the integer coefficients from their approximations, and account for the
+remaining tape operations.
+
+\subsection{A fixed rational choice}
+
+The two motif exponents were fixed in \eqref{eq:explicit-motif-exponents}.
+Take the following fixed rational numbers:
+\begin{equation}\label{eq:fixed-parameters}
+\begin{gathered}
+ \tau=\sigma=1-2^{-50},\qquad \beta=\frac12,\qquad \delta=\frac1{16},\\
+ \lambda=1-2^{-52},\qquad c=2^{-56},\qquad
+ \lambda'=1-2^{-54},\\
+ C_1=20,\qquad \epsilon=2^{-75},\qquad \kappa=2^{-182}.
+\end{gathered}
+\end{equation}
+These constants are deliberately conservative; no optimization is claimed.
+
+The layer conditions hold with room to spare:
+\[
+ \max\{\tau,\sigma\}<\lambda<1,\qquad
+ \tau(1+c/\beta)<1-31\cdot2^{-55}<\lambda,
+\]
+and
+\[
+ \sigma+\beta(1-\sigma)=1-2^{-51}<\lambda<\lambda'<1.
+\]
+The strict final inequality absorbs the logarithmic number of groups in
+a base-$m$ partition.  The dimension exponent also satisfies
+\[
+\begin{gathered}
+ \epsilon<\frac1{12},\quad \epsilon C_1<1,\quad
+ \epsilon(2-\tau)<1-\tau,\quad
+ \frac34+\delta+\frac32\epsilon<1,\\
+ \epsilon(1+c)<1,\qquad \epsilon+\delta<1.
+\end{gathered}
+\]
+
+\subsection{Input and transform sizes}
+
+The input is the promised string $x\#y$, with both operands written
+most significant bit first.  In one left-to-right pass, copy $x$ and
+$y$ to two fixed work tapes and count the bits of $x$ with a binary
+counter.  The promise gives both operands this counted length $n$.
+The counter bound in Section~\ref{sec:streams} and the two sequential
+copies give cost $O(n)$, including all leading zeroes.  The work-copy
+heads finish just after the least significant bits, ready to move
+leftward when the digits are formed.
+
+\subsubsection{The padded box and working precision}
+
+After obtaining $n$, compute the size parameters below with the
+separate setup costs stated in this subsection.  For sufficiently
+large $n$, put
+\[
+ b=\lceil\log_2n\rceil,\quad p=6b,\quad d=\lfloor b^\epsilon\rfloor,
+ \quad K=\lfloor d^c\rfloor.
+\]
+Take the power of two $T$ in $[4n/b,8n/b)$, and let
+$r=2^{\lceil(\log_2T)/d\rceil}$ and $\ell=\log_2r$.  Choose
+$d\ell-\log_2T$ of the $d$ axis lengths to be $r/2$ and the others to
+be $r$.  This gives
+\[
+ t_i\in\{r/2,r\},\qquad \prod_i t_i=T,\qquad t_d=r.
+\]
+Indeed $d\ell-\log_2T$ is an integer in $[0,d)$, so at least one axis
+has length $r$; choose it as the last axis.
+These definitions give
+\begin{equation}\label{eq:sizes}
+ Tp=\Theta(n),\quad d=\Theta(p^\epsilon),\quad
+ K=\Theta(p^{\epsilon c}),\quad
+ \ell=\Theta(p^{1-\epsilon}),\quad r=2^{\Theta(p^{1-\epsilon})}.
+\end{equation}
+The comparison constants can be fixed for every input length at once.
+For sufficiently large $b$, the bounds on $n,T$ give
+$b/2\leq\log_2T\leq b$. Since $p=6b$, $d=\lfloor b^\epsilon\rfloor$
+and $d\leq b$, they imply
+\[
+ \frac1{12}p^\epsilon\leq d\leq p^\epsilon,
+ \qquad \frac{p}{12d}\leq\ell\leq\frac{p}{3d}.
+\]
+Thus we fix $a_d=a_r=1/12$, $b_d=1$, $b_r=1/3$, and $C_\ell=1$
+in the layer and transform interfaces. Their pointwise bounds cover every
+computed pair $(d,r)$, including all choices arising at the same $p$.
+These bounds also give that $r$ exceeds every fixed power of $p$,
+$K/\log p\to\infty$, and
+$\ell/K\to\infty$.  There are eventually enough axes for the
+$O(\log d)$ reserved row axes and enough bits for all work blocks.
+
+Set
+\[
+ \alpha=\left\lceil(12d^2b)^{1/4}\right\rceil,
+ \qquad \gamma=2d\alpha^2,\qquad \eta=\frac1{4d}.
+\]
+The ceiling does not affect the needed bounds: for $A\ge1$,
+$\lceil A\rceil\le2A$, and hence
+\begin{equation}\label{eq:gamma}
+ \alpha\le2(12d^2b)^{1/4},\qquad
+ \gamma<28d^2\sqrt b\le28b^{1/2+2\epsilon}\le28b^{2/3}.
+\end{equation}
+It follows that $2\le\alpha<\sqrt p$ eventually and $\gamma=o(b)$.
+For example $b\ge2^{24}$ implies $\gamma\le b/4$.
+
+\subsubsection{Prime source lengths}
+
+The distinct prime lengths $s_i$ must be close to the powers of two
+$t_i$: their product must occupy a fixed fraction of the padded box,
+while each ratio $t_i/s_i$ must leave enough separation for resampling.
+We verify both requirements for the parameters just chosen.
+
+The prime-interval result
+\cite[Lemma~5.1]{HarveyHoeven2021}, based on explicit estimates of
+Rosser and Schoenfeld~\cite{RosserSchoenfeld1962}, gives the following
+bound: for
+$0<\eta<1/4$ and $x>e^{2/\eta}$, the interval
+\[
+ (1-2\eta)x<q\leq(1-\eta)x
+\]
+contains at least $\eta x/(2\log x)$ primes. Here $\log$ is the natural
+logarithm. The size bounds in \eqref{eq:sizes} give
+$d=\Theta(p^\epsilon)$ and $\log r=\Theta(p/d)$.
+For large $n$ we have $d\geq2$, so
+$0<\eta<1/4$, and
+\[
+ \frac{\log(r/2)}d=\Theta(p^{1-2\epsilon})\longrightarrow\infty.
+\]
+Thus both $x=r/2$ and $x=r$ satisfy $\log x>8d=2/\eta$.
+For either choice, the stated lower bound for the number of primes is
+$x/(8d\log x)$ and exceeds $d$:
+indeed, $\log x=\Theta(p^{1-\epsilon})$, whereas
+$\log(8d^2\log x)=O(\log p)=o(\log x)$, so $x>8d^2\log x$ eventually.
+The two intervals are disjoint because
+$(1-\eta)r/2<(1-2\eta)r$ for $\eta<1/4$, and both intervals lie above
+$2$. We may therefore choose distinct odd primes satisfying
+\[
+ (1-2\eta)t_i<s_i\leq(1-\eta)t_i.
+\]
+Every $\gcd(s_i,t_i)$ equals one because $t_i$ is a power of two.
+Put $S=\prod_i s_i$. Multiplying the lower bounds on $s_i$ and
+applying strict Bernoulli inequality gives
+\[
+ \frac ST>
+ \left(1-\frac1{2d}\right)^d>\frac12
+ \qquad(d\geq2).
+\]
+Together with $s_i<t_i$, this gives $T/2<S<T$.
+Writing $\theta_i=t_i/s_i-1$, the upper bound on $s_i$ gives
+$\theta_i\geq\eta/(1-\eta)>\eta$. Therefore
+\[
+ \alpha^4\theta_i>\frac{12d^2b}{4d}=3db\geq6b=p.
+\]
+The choice of $\alpha$ gives
+$\alpha=\Theta(p^{1/4+\epsilon/2})$, and \eqref{eq:gamma} already
+ensures $2\leq\alpha<\sqrt p$ for large $n$. We also have
+$t_i\leq r\leq T<8n/b<2^{6b}=2^p$.
+Thus every hypothesis of Lemma~\ref{lem:no-sort-resampling} holds for
+all sufficiently large input lengths. The superpolynomial growth of $r$
+established above also supplies the setup condition in
+Lemma~\ref{lem:tensor-resampling}.
+
+The machine finds these primes by scanning the two intervals
+deterministically and testing each candidate by trial division through
+its square root. Testing every candidate would visit $O(r)$ candidates
+and at most $O(\sqrt r)$ trial divisors per candidate. Elementary
+division on $O(\log r)$-bit integers and management of a list of at most
+$d$ selected primes give the conservative bound
+$O(dr^{3/2}\operatorname{poly}(p))$. Its logarithm is
+\[
+ O(\log p+\log r)=O(\log p+p/d)=o(p).
+\]
+Since $p=6\lceil\log_2 n\rceil=\Theta(\log n)$, the search takes
+$n^{o(1)}=o(n)$ time.
+All remaining scalar setup, including comparisons for fixed rational
+powers, modular inverses,
+prime products and shape descriptors, has cost polynomial in $p$.
+For example, $d=\lfloor b^{2^{-75}}\rfloor$ is found by binary search
+using exact comparisons $d^{2^{75}}\le b$; the exponent is fixed.
+The same procedure computes $K$ and all other fixed rational powers.
+All primes and length parameters are therefore generated by the machine;
+they are not advice.
+
+\subsubsection{The radix-digit polynomials}
+
+Write the two inputs as polynomials in $2^b$, each with
+$q=\lceil n/b\rceil$ nonnegative digits.  Their product has degree at most
+\[
+ 2q-2<2n/b\le T/2<S.
+\]
+Thus convolution modulo $x^S-1$ has no nonzero wraparound.  Every product
+coefficient obeys
+\begin{equation}\label{eq:capacity}
+ 0\le c_j\le q(2^b-1)^2<2^{3b},
+\end{equation}
+since $q\le n\le2^b$.
+
+\subsection{An explicit cyclic-convolution layout}
+
+To use the source tensor, we first place the ordinary coefficient stream
+in its tensor order. Agarwal and Cooley used the Chinese remainder
+theorem to convert one cyclic convolution into multidimensional cyclic
+convolution~\cite{AgarwalCooley1977}. The following map uses that
+algebraic split, with coordinate powers that make the change of order a
+sequence of controlled cyclic shifts.
+
+Let $s_1,\ldots,s_d$ be the pairwise coprime
+source lengths, let $S=\prod_i s_i$, and put
+\[
+ P_i=\prod_{j<i}s_j,\qquad \mu_i=P_i^{-1}\pmod{s_i}.
+\]
+Here $P_i$ denotes an integer prefix product, not a Fourier-coordinate
+permutation.  The assignment
+\[
+ \Phi:\mathbb C[x]/(x^S-1)\longrightarrow
+ \mathbb C[x_1,\ldots,x_d]/(x_1^{s_1}-1,\ldots,x_d^{s_d}-1),
+ \qquad x\longmapsto\prod_i x_i^{\mu_i}
+\]
+respects $x^S=1$, so it defines an algebra map.  The target monomial
+group has size $S$, and the image of $x$ has order $S$, because each
+$\mu_i$ is a unit and the $s_i$ are pairwise coprime.  Its powers
+therefore run through all target basis monomials exactly once.  Hence
+$\Phi$ is an isomorphism and preserves cyclic convolution.
+
+Every ordinary coefficient index has a unique mixed-radix expression
+\[
+ k=\sum_{j=1}^d a_jP_j,\qquad 0\le a_j<s_j.
+\]
+The coordinate of $\Phi(x^k)$ in axis $i$ is
+\begin{equation}\label{eq:triangular-crt}
+ b_i=a_i+\mu_i\sum_{j<i}a_jP_j\pmod{s_i}.
+\end{equation}
+Indeed terms with $j>i$ are divisible by $s_i$, and $\mu_iP_i=1$ modulo
+$s_i$.  Numerical order of $k$ is lexicographic order of
+$(a_d,\ldots,a_1)$.  Insert the padding in one nested scan of the full
+box $\prod_i[0,t_i)$ in this lexicographic order, with $a_d$ the
+outermost counter and $a_1$ the innermost.  At an address satisfying
+$a_i<s_i$ for every $i$, copy the next original coefficient record;
+at every other address, write a zero record.  The valid addresses
+occur in the original coefficient order, so each record is copied to
+its intended mixed-radix address.  To delete the padding after the
+inverse axis reorder, use the same enumeration, copying the record at
+each valid address and skipping the record at each invalid address.
+
+Store the nested binary counters consecutively on a fixed work tape.
+Their total width is $\sum_i\log_2t_i=\log_2T=O(p)$, and the stored
+bounds $s_i$ also have total width $O(p)$.  At each of the $T$
+addresses, updating the counters, testing validity, and handling the
+$O(p)$-bit record therefore cost $O(p)$ steps, including counter-head
+returns.  Each insertion or deletion scan costs $O(Tp)$.
+
+Now reorder the complete padded axes to $(a_1,\ldots,a_d)$.  In this
+physical order, the coordinates with
+indices below $i$ precede coordinate $i$.  Update the targets in the
+order $i=d,d-1,\ldots,1$ using \eqref{eq:triangular-crt}.  When target
+$i$ is updated, none of its lower-index controls has yet changed, so
+the offset is computed from the original digits $a_j$ required by the
+formula.
+
+To specify the action on padded addresses, let
+\[
+ \mathcal P=\prod_i[0,t_i),\qquad \mathcal V=\prod_i[0,s_i)
+\]
+be sets of integer addresses.  On a fixed control prefix, rotate the
+valid target interval $[0,s_i)$ by the offset in
+\eqref{eq:triangular-crt} and fix $[s_i,t_i)$.  If any lower-index
+control is invalid, use the identity.  This defines a bijection of
+$\mathcal P$: for fixed controls and spectators it is a cyclic
+permutation of the valid target interval and the identity elsewhere.
+Each step preserves $\mathcal V$ and its complement.  Consequently
+zero padding remains zero after every step.  An inverse is explicit:
+process $i=1,\ldots,d$, subtracting the same expression formed from the
+already recovered lower coordinates; then undo the axis reorder and
+perform the deletion scan just described.
+
+Each triangular update is a prefix-controlled cyclic shift.  The
+controls precede its target in the current physical order.  For each
+prefix, prepare the offset, split the valid target interval into its
+two consecutive pieces, and merge those pieces in the opposite order.
+Every target position carries its full spectator suffix as a block;
+the invalid interval is copied unchanged.  There are at most $T/t_i$
+control prefixes for target $i$.  For any fixed setup degree $C$, all
+offsets therefore cost $O(dTp^C/r)=o(Tp)$ to prepare, since
+$t_i\ge r/2$ and $r$ exceeds every fixed power of $p$.
+
+The axis widths are $\ell$ or $\ell-1$.  To exchange two adjacent axes
+of unequal width, move the longer axis's leading bit outside their
+equal-width pair, swap that pair by the proved chunk-swap procedure,
+and put the leading bit at its new position.  This adds a fixed number
+of linear passes to the equal-width swap cost.  Reversing all axes
+uses $O(d^2)$ such moves.  Therefore the map $\Phi$, its inverse, and
+their padding operations cost
+\[
+ O\bigl(Tp\,d^2(1+\ell^\tau)\bigr).
+\]
+This construction describes payload movement from address $a$ to its
+new address.  It is distinct from the operator convention
+$(R_cz)_j=z_{cj}$ used for Fourier dilations, which moves a payload
+from address $j$ to $c^{-1}j$.
+
+\subsection{Complex convolution by a coefficient twist}
+
+The power-of-two complex convolution used in the chirp identity is
+obtained from the synthetic convolution by a coefficient twist.
+Put $\mathcal R=\mathcal R_r=\mathbb C[y]/(y^r+1)$ and
+$\zeta=e^{\pi i/r}$.  The map
+\[
+ \Theta:\mathbb C[x_d]/(x_d^r-1)\longrightarrow\mathcal R,
+ \qquad x_d\longmapsto\zeta y
+\]
+is well defined, since $(\zeta y)^r=(-1)(-1)=1$.  On the bases
+$(x_d^k)_{0\le k<r}$ and $(y^k)_{0\le k<r}$ it is diagonal,
+multiplying coefficient $k$ by the nonzero number $\zeta^k$.  It is therefore an
+isomorphism, with inverse multiplying that coefficient by
+$\zeta^{-k}$.  Both exact maps preserve the coefficient sup norm.
+For an explicit check on the wrap, write $k+l=j+hr$, where
+$h\in\{0,1\}$.  A product term after twisting and negacyclic reduction
+has factor
+\[
+ \zeta^{k+l}(-1)^h=\zeta^j(\zeta^r)^h(-1)^h=\zeta^j.
+\]
+Untwisting therefore recovers the cyclic coefficient with the correct
+sign.  We next specify how this linewise map meets the ring-convolution
+interface.  Put $M=\prod_{i<d}t_i=T/r$.  For a complex array $f$ on
+$\prod_{i=1}^d\mathbb Z/t_i\mathbb Z$, with $t_d=r$, define
+\[
+ (\iota f)_{\boldsymbol j}
+   =\sum_{k=0}^{r-1}f_{\boldsymbol j,k}y^k,
+ \qquad
+ \boldsymbol j\in\prod_{i<d}\mathbb Z/t_i\mathbb Z.
+\]
+This identifies the scalar tensor with an array of $M$ records in
+$\mathcal R$. As maps of values, $\iota$ and $\iota^{-1}$ preserve norms
+and grids. Write
+$(D_\pm f)_{\boldsymbol j,k}=\zeta^{\pm k}f_{\boldsymbol j,k}$.
+The linewise extension of $\Theta$ is $\iota D_+$, with inverse
+$D_-\iota^{-1}$.  Consequently, with $\mathcal M_r$ from
+Section~\ref{sec:exact-ring-products}, normalized complex cyclic
+convolution is
+\[
+ \mathcal M_{\mathbb C}(f,g)
+   :=D_-\iota^{-1}
+       \mathcal M_r(\iota D_+f,\iota D_+g)
+    =\frac{f*g}{T}.
+\]
+Here $\mathcal M_r$ convolves the first $d-1$ axes over $\mathcal R$,
+whereas $*$ on the right convolves all $d$ scalar axes.  The division
+by $T$ is already part of $\mathcal M_r$.  The maps $D_\pm$ and
+$\iota^{\pm1}$ are isometries, so $\mathcal M_{\mathbb C}$ is also a
+bilinear contraction.
+
+\subsubsection{Computed complex convolution}
+
+For the tape representation, use the scalar format of
+Section~\ref{sec:resampling}, with $w_{\rm c}=p+2$ bits per component.
+For $p\geq2$, this satisfies $p+2\leq w_{\rm c}\leq2p$, so fix $C_w=2$
+and instantiate the synthetic component width as $w=w_{\rm c}$.
+Both representations then concatenate exactly the same real and
+imaginary words in the same coefficient order: the last coordinate is
+already the contiguous polynomial suffix. Hence $\iota$ and
+$\iota^{-1}$ change only the shape descriptor and require no payload
+movement when these component formats agree.
+
+For the synthetic transform calls, the machine writes the header
+\[
+ \mathcal T=\Gamma(p)\Gamma(d)\Gamma(r)\Gamma(K)\Gamma(w_{\rm c})
+       \prod_{i=1}^{d-1}\Gamma(t_i).
+\]
+For each normalized polynomial product it supplies
+$\Gamma(p)\Gamma(r)\Gamma(w_{\rm c})$. These are precisely the headers
+of Lemmas~\ref{lem:synthetic-transform-cost} and
+\ref{lem:signed-ring-product}, formed from the computed parameters.
+Their lengths are $O(p)$; forming the transform header costs
+$\operatorname{poly}(p)=o(Tp)$, and copying a product header for each of
+the $M=T/r$ polynomial records costs $O(Mp)=O(Tp)$.
+
+For $0\le k<r$, obtain disk-grid approximations
+$\widetilde\theta_k^+$ and $\widetilde\theta_k^-$ to $\zeta^k$ and
+$\zeta^{-k}$, each with error less than $2\,2^{-p}$.  The exponential
+routine uses denominator $2r$ and costs $O(p^{1+\delta})$ per factor.
+Write $\widetilde{\mathcal M}_r$ for the procedure in
+Proposition~\ref{prop:synthetic-convolution}.  For disk-grid inputs
+$f,g$, one of norm at most $.7$, the computed complex convolution is the
+following sequence,
+with the twist arrays repeated on every last-coordinate line:
+\[
+ \begin{aligned}
+ f'&=Q_p(\widetilde\theta^+\mathbin{\cdot}f),\\
+ g'&=Q_p(\widetilde\theta^+\mathbin{\cdot}g),\\
+ h'&=\widetilde{\mathcal M}_r(\iota f',\iota g'),\\
+ \widetilde{\mathcal M}_{\mathbb C}(f,g)
+   &=Q_p\!\left(\widetilde\theta^-\mathbin{\cdot}
+                    \iota^{-1}h'\right).
+ \end{aligned}
+\]
+Each phase product is computed exactly as a dyadic product before
+$Q_p$ truncates its two components. The factors and disk operands have
+numerators of magnitude at most $2^p$; four signed integer products and
+their sums therefore use $O(p)$ bits. Truncation shifts the absolute
+component numerators right by $p$ places and restores their signs, then
+writes the resulting disk-grid value in the $w_{\rm c}$-bit component
+format. It costs $O(p^{1+\delta})$ per coefficient. Generating every
+factor anew therefore still gives total
+twist cost $O(Tp^{1+\delta})$. The precision calculation below proves
+that these calls return disk-grid arrays.
+
+At the $h'$ step, Proposition~\ref{prop:synthetic-convolution} returns
+its computed grid numerators after the exact scale $M$, in the known width
+$w_M=w_{\rm c}+\log_2M$. The disk margin proved below gives
+$\|h'\|<.701$ in every use here, so each component numerator has
+magnitude at most $2^p$. Before applying $\iota^{-1}$, scan each
+$w_M$-bit word and remove only leading sign-extension bits, writing the
+same integer in $w_{\rm c}$ bits. The retained sign bit agrees with every
+removed bit by that magnitude bound. This exact normalization costs
+$O(Tw_M)=O(Tp)$ and supplies the matching scalar format for the output
+untwist; it introduces no numerical truncation.
+
+\subsection{Chirp and source-transform procedures}
+
+We next use the complex convolution to evaluate the middle factor
+$QF_{\boldsymbol t}$ in \eqref{eq:no-sort-tensor}, and then compose it
+with the Gaussian maps. For the chirp array $a$ in
+\eqref{eq:permuted-chirp}, the phase numerator
+at tensor address $j$ is computed modulo $2r$ as
+\[
+ -\sum_i s_i j_i^2(r/t_i)\pmod{2r}.
+\]
+All integers have $O(p)$ bits and $r/t_i\in\{1,2\}$.  Scan the stored
+axis descriptors and compute the $d$ squares and products with the
+previously established integer multiplier.  Additions, reductions
+modulo a power of two, and restarting local counters cost $O(p)$ per
+term; multiplication costs $O(p\log p)=O(p^{1+\delta})$.  Exponential
+evaluation then has the same $O(p^{1+\delta})$ bound.  Thus chirp
+construction costs $O(Td p^{1+\delta})$ in total.  In particular, this
+cost includes the scan of the axis descriptors at every coefficient.
+
+Let $\widetilde a$ be the resulting disk-grid array, so
+$\|\widetilde a-a\|_\infty<2\,2^{-p}$.  For a disk-grid target tensor
+$x$ of norm at most $.6$, the computed chirp transform forms the arrays
+\[
+ \begin{aligned}
+ x_0&=Q_p(\overline{\widetilde a}\mathbin{\cdot}x),\\
+ y_0&=\widetilde{\mathcal M}_{\mathbb C}(\widetilde a,x_0),\\
+ \widetilde{\mathscr C}(x)
+     &=Q_p(\overline{\widetilde a}\mathbin{\cdot}y_0).
+ \end{aligned}
+\]
+Thus $\widetilde a$ is the convolution kernel and $x_0$ is the data
+operand after the first endpoint phase.  Replacing the approximations
+by exact phases and exact convolution gives
+$\overline a\mathbin{\cdot}\mathcal M_{\mathbb C}
+(a,\overline a\mathbin{\cdot}x)=QF_{\boldsymbol t}x$ by
+\eqref{eq:permuted-chirp}.  Below we show that $\|x\|_\infty\le.6$
+implies $\|x_0\|_\infty\le.6$, which supplies the smaller operand
+required by the computed convolution.
+
+\subsubsection{The source transform}
+
+For a source disk-grid tensor of norm at most $.5$, write
+$\widetilde{\mathscr F}$ for the following procedure: apply the linewise
+approximation to $\mathcal A$, apply the
+computed chirp transform $\widetilde{\mathscr C}$, apply the linewise
+approximation to $\mathcal B_0$, and multiply the grid numerators
+exactly by $2^\gamma$.  Its exact counterpart is
+\[
+ \mathscr F=2^\gamma\mathcal B_0QF_{\boldsymbol t}\mathcal A
+            =RF_{\boldsymbol s}.
+\]
+Here an exact counterpart replaces every numerical subroutine by the
+exact map it approximates and omits truncations.  The source arrays are
+stored in the padded power-of-two box, with zeros outside the valid
+source coordinates.
+The compressed scalar output uses $w_{\rm c}$-bit components. Appending
+$\gamma$ zero bits to each word gives the exact scaled numerator in the
+known signed width $w_{\rm c}+\gamma$. For the stated input norm, the
+disk estimate below proves that every scaled coordinate still belongs to
+$\mathbb D_p$. Its component numerators therefore have magnitude at most
+$2^p$, so a scan removes only leading sign-extension bits and returns
+the same integers in $w_{\rm c}$ bits. This scan costs
+$O(T(w_{\rm c}+\gamma))=O(Tp)$ and leaves the padded zero records zero.
+Define the opposite-sign procedure by
+\[
+ \widetilde{\mathscr F}^{+}(z)
+   =\overline{\widetilde{\mathscr F}(\overline z)};
+\]
+its exact counterpart is $RF_{\boldsymbol s}^{+}$ by
+Lemma~\ref{lem:chirp-permutation}.
+
+\subsection{The multiplication algorithm}
+
+The source-transform procedures now supply the three transforms needed
+for the radix-digit convolution. Read each stored operand backward from
+its least significant end in groups of $b$ bits. This produces the radix-$2^b$ digits
+$a_0,\ldots,a_{q-1}$ in increasing coefficient order.  Buffer each
+group on a fixed work tape and read it back most significant bit first,
+reversing its least-significant-first input order; pad the final short
+group with leading zeroes.
+For digit $a_j$, write the exact grid numerator
+$a_j2^{p-b-2}$ in a signed $w_{\rm c}$-bit real word, followed by a zero
+$w_{\rm c}$-bit imaginary word. This exponent is nonnegative
+because $p=6b$, and the represented value is exactly $a_j2^{-b-2}$.
+Append $S-q$ zero coefficient records.  Buffering and ordering the
+groups costs $O(n)$, including the one partial group's padding, and
+writing the $S$ records costs $O(Sp)$.
+Together with the initial count and copies, this input conversion
+costs $O(n+Sp)=O(Tp)$; all $n$ input bits, including leading zeroes,
+are retained before the final group is padded.
+
+With these streams prepared, perform the following operations.
+\begin{enumerate}
+\item Apply the coefficient-address map $\Phi$, with its padded layout, to obtain
+source arrays $u,v$.  Their coefficients are exact $p$-bit grid
+values of norm less than $1/4$.
+\item Compute $\widetilde{\mathscr F}(u)$ and
+$\widetilde{\mathscr F}(v)$.
+\item Multiply corresponding complex coefficients exactly and truncate
+each real and imaginary part toward zero to $p$ fractional bits, writing
+the result in the common $w_{\rm c}$-bit component format.
+Denote the resulting source array by $z$.
+\item Compute $\widetilde{\mathscr F}^{+}(z)$ and multiply its grid
+numerators exactly by $S$, retaining the denominator $2^p$ and writing
+each component in signed width $w_{\rm c}+b$. Denote the represented
+dyadic array by $\widetilde w$.
+\item Multiply the grid numerators of $\widetilde w$ exactly by
+$2^{2b+4}S$, again retaining the denominator $2^p$, and write each
+component in signed width $w_{\rm c}+4b+4$. Round the represented real
+values to the nearest integers. At each valid address, write the rounded
+coefficient in one signed $(3b+1)$-bit word, most significant bit first;
+at every padded address,
+write a zero word of that width. Supply this local payload width to
+$\Phi^{-1}$ and apply it, including removal of the address padding, to
+restore the ordinary coefficient order.
+\item Propagate radix-$2^b$ carries in increasing coefficient order.
+Write the resulting bits from least to most significant on a work tape,
+then reverse that stream and output exactly $2n$ bits in
+most-significant-first order.
+\end{enumerate}
+
+The two occurrences of $S$ in this algorithm undo different
+normalizations.  By \eqref{eq:source-permutation-cancel}, the exact
+counterpart after the three transforms is $(u*v)/S^2$, so after the
+first scale it is $w=(u*v)/S$.  The second scale gives
+$2^{2b+4}(u*v)$, whose inverse image under $\Phi$ is the original
+integer coefficient convolution.  The next subsection verifies the
+disk bounds needed by every call and proves that the final error is
+less than $1/2$; it also justifies the rounding, carries, and output
+length.
+
+\subsection{Precision and exact recovery}
+
+Proposition~\ref{prop:simultaneous-layer} uses
+$C_1=20$, so $\epsilon C_1<1$ makes its coefficient width $O(p)$.
+Lemma~\ref{lem:synthetic-transform-cost} therefore applies to every
+synthetic transform here, with error less than
+$\sqrt2\ell\,2^{-p}<L2^{-p}$, where $L=\log_2T$, for all
+sufficiently large $n$.
+
+\subsubsection{Scales and disk margins}
+
+Put $h_p=2^{-p}$, and use the coefficient sup norm throughout this
+subsection.  An error of $a$ will mean absolute error less than $ah_p$.
+A linear contraction propagates an input error without increasing it.
+For a bilinear contraction $\mathcal M$, replacing its operands gives
+\[
+ \|\mathcal M(f',g')-\mathcal M(f,g)\|
+ \le \|f'-f\|\,\|g'\|+\|f\|\,\|g'-g\|.
+\]
+When all four operands are in the disk, their two errors therefore add.
+
+We also need the norm as well as the error of a computed phase product.
+Let $e$ be a unit phase, let $\widetilde e$ be a disk-grid approximation
+with $|\widetilde e-e|<2h_p$, and let $x$ be a disk operand.  The
+truncation bound in \eqref{eq:transform-truncate} gives
+\[
+ \|Q_p(\widetilde e x)-ex\|
+   <(2\|x\|+\sqrt2)h_p<4h_p,
+ \qquad
+ \|Q_p(\widetilde e x)\|\le\|x\|.
+\]
+The second inequality follows from $|\widetilde e|\le1$ and the fact
+that $Q_p$ does not increase the norm.  It preserves every smaller
+operand norm through a twist or an endpoint phase multiplication.
+The same bounds hold coordinatewise for arrays of phases.
+
+For disk-grid ring arrays $f,g$, put $M=T/r$.  Two normalized synthetic
+forwards, pointwise polynomial multiplication divided by $r$, and the
+normalized opposite transform give $(f*g)/(rM^2)$.  The exact
+multiplication by $M$ in Proposition~\ref{prop:synthetic-convolution}
+then gives $\mathcal M_r(f,g)=(f*g)/T$.  Before that multiplication,
+the three transform errors and the polynomial-product truncation total
+less than $3L+2$.  Thus the error of the returned normalized
+convolution is bounded by
+\[
+ E_{\rm ring}:=M(3L+2)<5TL.
+\]
+If one operand has norm at most $.7$, bilinear contraction gives
+$\|\mathcal M_r(f,g)\|\le.7$.  Its computed grid output consequently
+has norm less than $.7+5TLh_p<.701$ for large $n$.  This proves the
+disk margin after the scale $M$, without clipping the output.
+
+Consider now $\widetilde{\mathcal M}_{\mathbb C}(f,g)$ for disk grid
+operands, one of norm at most $.7$.  Its two computed input twists
+$f',g'$ are disk grid arrays, and the smaller one still has norm at
+most $.7$ by the phase inequality.  The identification $\iota$
+preserves these bounds.  The preceding ring margin therefore gives
+$\|h'\|<.701$.  Neither $\iota^{-1}$ nor the computed output untwist
+increases this norm.  In particular,
+$\widetilde{\mathcal M}_{\mathbb C}(f,g)$ is a disk grid array.
+
+To compare it with $\mathcal M_{\mathbb C}(f,g)$, insert the exact
+normalized $\mathcal M_r$ at $\iota f'$ and $\iota g'$.
+Its bilinear contraction bound propagates the two input twist errors,
+each less than $4$.  Its approximation contributes $E_{\rm ring}$,
+and the output untwist contributes less than $4$.  All these
+comparisons are at the normalized $\mathcal M_r$ interface, after its
+factor $M$.  They give
+\[
+ \|\widetilde{\mathcal M}_{\mathbb C}(f,g)
+            -\mathcal M_{\mathbb C}(f,g)\|
+ <(E_{\rm ring}+4+4+4)h_p<6TLh_p.
+\]
+
+For a disk-grid chirp input $x$ with $\|x\|\le.6$, the previously
+defined data operand $x_0=Q_p(\overline{\widetilde a}\cdot x)$ has
+norm at most $.6$.  The kernel $\widetilde a$ is a disk grid array.
+Thus this pair satisfies the smaller-operand condition just proved:
+$\|y_0\|<.701$, and the last endpoint multiplication gives
+$\|\widetilde{\mathscr C}(x)\|<.701$.  In particular, the chirp output
+is a legal disk-grid input to the compression maps.
+
+For its error, the exact operands $a$ and $\overline a\cdot x$ are in
+the disk because every entry of $a$ has modulus one.  The kernel
+approximation contributes less than $2$ and
+the first endpoint multiplication contributes less than $4$ when
+inserted into the exact bilinear contraction
+$\mathcal M_{\mathbb C}$.  The computed convolution contributes less
+than $6TL$, and the last endpoint multiplication less than $4$.
+Equation~\eqref{eq:permuted-chirp} identifies the exact result, so
+\[
+ \|\widetilde{\mathscr C}(x)-QF_{\boldsymbol t}x\|
+ <(6TL+2+4+4)h_p<8TLh_p.
+\]
+
+Finally let the input to a source transform have norm at most $.5$.
+The computed expansion has error less than $dp^2$ and norm less than
+$.5+dp^2h_p<.51$.  It is therefore a permitted chirp input.  The
+chirp output is in the disk by the preceding argument, so each
+compression call is defined and returns another disk-grid array.
+Insert the exact contractions $\mathcal A$, $QF_{\boldsymbol t}$,
+and $\mathcal B_0$ at the computed inputs.  The error before the
+source scale is less than $2dp^2+8TL$.  Multiplication by
+$2^\gamma$ therefore gives error less than
+$2^\gamma(2dp^2+8TL)h_p$, which is bounded by $E_sh_p$ with
+\begin{equation}\label{eq:source-error}
+ E_s=9\,2^\gamma TL,
+\end{equation}
+because $2dp^2<TL$ eventually.  The exact source transform
+$RF_{\boldsymbol s}$ is a contraction, so the scaled approximation
+has norm at most $.5+E_sh_p<.501$.  Its exact numerator scaling
+therefore also leaves a disk-grid output without clipping.
+Conjugation preserves the grid and norm, so the opposite procedure
+has the same error and disk guarantee.
+All these margins may be enforced by one fixed cutoff.  For example,
+$b\ge2^{24}$, together with the other eventual construction conditions,
+makes $dp^2h_p$, $8TLh_p$, $E_sh_p$ and
+$28\,2^\gamma T^2Lh_p$ smaller than $10^{-3}$.
+
+\subsubsection{The final integer coefficients}
+
+The scaled radix digits in $u,v$ are exact $p$-bit grid values of norm
+strictly less than $1/4$.  Put
+\[
+ \begin{aligned}
+ U&=RF_{\boldsymbol s}u,&\qquad V_1&=RF_{\boldsymbol s}v,\\
+ \widetilde U&=\widetilde{\mathscr F}(u),&
+ \widetilde V_1&=\widetilde{\mathscr F}(v).
+ \end{aligned}
+\]
+The exact arrays have norm less than $1/4$, and the computed arrays
+have norm less than $1/4+E_sh_p<.26$.  Hence
+$z=Q_p(\widetilde U\cdot\widetilde V_1)$ has norm at most
+$.26^2<.5$.  To estimate its error, write
+\[
+ \widetilde U\cdot\widetilde V_1-U\cdot V_1
+ =(\widetilde U-U)\cdot\widetilde V_1
+       +U\cdot(\widetilde V_1-V_1).
+\]
+The factors $\widetilde V_1$ and $U$ are in the disk.  The two terms
+have total norm less than $2E_sh_p$, and truncation adds less than $2h_p$.
+Thus $\|z-U\cdot V_1\|<(2E_s+2)h_p$.
+
+Let $G:=RF_{\boldsymbol s}^+$ be the exact opposite contraction.
+Lemma~\ref{lem:chirp-permutation}, applied to
+$U=RF_{\boldsymbol s}u$ and $V_1=RF_{\boldsymbol s}v$, gives
+\[
+ G(U\cdot V_1)=(u*v)/S^2.
+\]
+The computed opposite transform may be applied to $z$ because
+$\|z\|<.5$. Insert $G$ at that computed input:
+\[
+ \begin{aligned}
+ \|\widetilde{\mathscr F}^{+}(z)-G(U\cdot V_1)\|
+ &\le \|\widetilde{\mathscr F}^{+}(z)-Gz\|\\
+ &\qquad+\|G(z-U\cdot V_1)\|\\
+ &<(3E_s+2)h_p.
+ \end{aligned}
+\]
+The first exact numerator multiplication by $S$ gives
+$\widetilde w$, approximating $w=(u*v)/S$ with error less than
+$E_wh_p$, where
+\[
+ E_w:=S(3E_s+2)<28\,2^\gamma T^2L.
+\]
+Each coefficient of $w$ is an average of $S$ products of coefficients
+of $u$ and $v$, so $\|w\|<1/16$.  The earlier cutoff therefore gives
+\[
+ \|\widetilde w\|<1/16+E_wh_p<1/16+10^{-3}<1.
+\]
+This proves the disk bound for the computed first scaled result.
+
+In tensor order, the unscaled integer coefficient array is
+$2^{2b+4}S w$.  This second occurrence of $S$ reverses the
+normalization still present in $w$, and $2^{2b+4}$ reverses the two
+input scales.  Both multiplications act exactly on grid numerators.
+Since $S\le T<2^b$ and $L<b$ eventually, the final absolute error is less than
+\begin{equation}\label{eq:final-error}
+ 2^{2b+4}S\cdot28\,2^\gamma T^2L\cdot2^{-6b}
+ <448b\,2^{-b+\gamma}
+ \le448b\,2^{-3b/4}<\frac12.
+\end{equation}
+The true coefficients are real integers.  If $H_j$ is the real
+numerator after the second scaling, its represented value is
+$H_j/2^p$.  The strict error below $1/2$ makes the nearest integer to
+that value the unique correct coefficient.
+
+These exact operations use known fixed record widths. If $N$ is a
+signed $w_0$-bit integer, then $-2^{w_0-1}\leq N<2^{w_0-1}$. Since
+$0<S<2^b$, its product satisfies
+$-2^{w_0+b-1}<SN<2^{w_0+b-1}$ and therefore fits in signed width $w_0+b$.
+The first product by $S$ starts at width $w_{\rm c}$ and is written in
+width $w_{\rm c}+b$. The next product by $S$ is written in width
+$w_{\rm c}+2b$; appending $2b+4$ least significant zero bits then gives
+the exact second scale in width $w_{\rm c}+4b+4$. Each complex record
+still places its most-significant-bit-first real word before its imaginary
+word. The known widths determine every boundary in the next scan and are
+$O(p)$ because $p=6b$.
+
+The established integer multiplier performs the two products by $S$ in
+$O(p\log p)$ time per entry. To serialize each exact signed product at
+its stated width, zero-pad its magnitude and complement and increment
+for a negative sign. The proved bounds ensure that no significant bit is
+discarded. These conversions and the power-of-two shift use linear scans.
+To round $H_j/2^p$, recover the real magnitude, inspect its low $p$ bits,
+and apply the rounding carry with the sign restored. The strict error
+bound makes the result the correct nonnegative coefficient, and
+\eqref{eq:capacity} puts it in $[0,2^{3b})$. It therefore fits in one
+signed $(3b+1)$-bit two's-complement word, written most significant bit
+first. Scan the padded box in the
+physical axis order recorded by its shape descriptor, using the same
+$O(p)$-bit nested counters and validity tests as above. Consume the
+imaginary word and write this real coefficient word at each valid address,
+with an all-zero
+word at each padded address. This serialization costs $O(Tp)$ in total.
+It keeps the tensor address order and supplies payload width $3b+1$ to
+the local descriptors for $\Phi^{-1}$, so the address routine receives a
+stream of known fixed-length records.
+
+Lemma~\ref{lem:signed-ring-product} proves exact signed packing,
+centered extraction and negacyclic reduction. Its only numerical error
+is the stated truncation after division by $r$, already included above.
+Undo the coefficient-address isomorphism $\Phi$ before propagating
+radix carries.
+
+To propagate carries, let $Q_0=2^b$.  The recovered ordinary
+coefficients are the $c_j$ in \eqref{eq:capacity}; they are zero for
+$2q-2<j<S$.  With $q=\lceil n/b\rceil$ as
+above, use the recurrence for $0\le j<S$:
+\[
+ k_0=0,\qquad d_j=(c_j+k_j)\bmod Q_0,\qquad
+ k_{j+1}=\left\lfloor\frac{c_j+k_j}{Q_0}\right\rfloor.
+\]
+The carries satisfy $0\le k_j\le q(Q_0-1)<Q_0^2$.  If this holds at
+$j$, then
+\[
+ c_j+k_j\le q(Q_0-1)^2+q(Q_0-1)=qQ_0(Q_0-1),
+\]
+which proves the next carry bound.  The defining relation
+$c_j+k_j=d_j+Q_0k_{j+1}$ also gives the exact invariant
+\[
+ \sum_{h<j}c_hQ_0^h
+   =\sum_{h<j}d_hQ_0^h+k_jQ_0^j.
+\]
+It holds for $j=0$, and the defining relation proves its next instance.
+The unprocessed terms are multiples of $Q_0^j$, so the identity fixes
+the first $j$ radix digits of the full product.  The value $k_j$ is
+the carry from the processed coefficients into the remaining positions.
+
+After $\Phi^{-1}$ the coefficients occur in increasing ordinary index,
+so this carry scan proceeds from least to most significant.  Carry
+storage and work per coefficient are $O(b)$ bits and steps.  Write
+each digit's bits from low to high on a work tape, and drain the final
+$O(b)$-bit carry in the same order.  Copy the completed stream backward
+once to obtain most-significant-first order.  The stream has length
+$O(Sb)=O(Tp)$, including chunk padding and the final carry, so this
+reversal is a charged linear tape pass.  The exact product is less
+than $2^{2n}$; all bits above position $2n-1$ are therefore zero.
+Remove only those zero padding bits and retain leading zeros as needed
+to produce exactly $2n$ bits.  Zero inputs obey the same invariant and
+output rule.
+
+\subsection{The complete time bound}
+
+For the cost calculation put $V=Tp=\Theta(n)$. The fixed-width coefficient
+formats use $\Theta(p)$ bits per coefficient, so a full padded array has
+$\Theta(V)$ stored bits. Table~\ref{tab:costs} lists costs after division
+by $V$; a fixed number of repeated transforms and convolutions is
+included in its constants.
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{.40\linewidth}ll@{}}
+\toprule
+Operation & Normalized cost & Power of $p$\\
+\midrule
+Prefix-slot moves and individual butterfly rounds & $dK$ & $\epsilon(1+c)$\\
+Chunk exchanges for transform layout & $pK^{\tau-1}$ & $1-\epsilon c(1-\tau)$\\
+Simultaneous butterfly rounds & $\ell d^{\lambda'}$ & $1-\epsilon(1-\lambda')$\\
+CRT and axis layouts & $d^2(1+\ell^\tau)$ & $\tau+\epsilon(2-\tau)$\\
+Gaussian line maps & $dp^{1/2+\delta}\alpha$ & $3/4+\delta+3\epsilon/2$\\
+Chirps, twists and scalar products & $dp^\delta$ & $\epsilon+\delta$\\
+Packed polynomial products & $\log(rp)$ & $1-\epsilon$\\
+Final scaling and rounding & $p^\delta$ & absorbed above\\
+Input, padding, carries and output & $1$ & absorbed above\\
+\bottomrule
+\end{tabular}
+\caption{Costs divided by $Tp$; each coefficient
+representation has $O(p)$ bits.}\label{tab:costs}
+\end{table}
+
+The seven dominant powers in Table~\ref{tab:costs} have the following
+margins below one:
+\begin{equation}\label{eq:margin-list}
+\begin{split}
+ g_1&=1-\epsilon(1+c),\qquad
+ g_2=\epsilon c(1-\tau),\qquad
+ g_3=\epsilon(1-\lambda'),\\
+ g_4&=1-\tau-\epsilon(2-\tau),\qquad
+ g_5=1/4-\delta-3\epsilon/2,\\
+ g_6&=1-\delta-\epsilon,\qquad g_7=\epsilon.
+\end{split}
+\end{equation}
+Direct substitution gives
+\[
+ g_1>\frac12,\quad g_2=2^{-181},\quad g_3=2^{-129},\quad
+ g_4>2^{-51},\quad g_5>\frac18,\quad g_6>\frac12,\quad g_7=2^{-75}.
+\]
+Thus $\min_i g_i=2^{-181}=2\kappa$.  This explicit slack will cover
+any remaining fixed power of $\log p$.
+
+Here $d^2$ is absorbed by $d^2\ell^\tau$, and
+$\log(rp)=O(p^{1-\epsilon}+\log p)=O(p^{1-\epsilon})$.
+The first three rows are the terms in
+\eqref{eq:synthetic-transform-cost}. The prefix-slot moves and
+individual butterfly rounds in Lemma~\ref{lem:synthetic-transform-cost}
+use $O(dK)$ linear scans. Its positional layout uses $O(p/K)$ exchanges
+of width-$K$ chunks, because $d\ell=O(p)$. Each exchange costs
+$O(VK^\tau)$ by Lemma~\ref{lem:chunk-swap}, so the normalized total is
+\[
+ O(p/K)\,K^\tau=O(pK^{\tau-1}).
+\]
+For the at most $\ell$ simultaneous rounds,
+Proposition~\ref{prop:simultaneous-layer} supplies $O(Vd^{\lambda'})$
+per round. Its bound already includes the binary basis changes,
+deterministic repair, row padding and removal, all base-$m$ groups,
+and fixed-tape cleanup.
+
+Axis exposure and restoration require $O(d^2)$ adjacent axis moves.
+Each costs $O(V(1+\ell^\tau))$: peel a single excess bit when widths
+differ by one, exchange their equal-width parts, and restore the bit.
+The $d$ CRT rotations copy valid and invalid intervals in $O(dV)$ time.
+Their offset setup was bounded above by $O(dTp^C/r)=o(Tp)$,
+using at most $T/t_i$ control prefixes for target $i$.
+
+For Gaussian resampling, axis $i$ has at most $T/t_i$ processed lines.
+The line-machine costs therefore sum to
+\[
+ \sum_{i=1}^d\frac{T}{t_i}
+       O(t_i p^{3/2+\delta}\alpha)
+ =O(dTp^{3/2+\delta}\alpha).
+\]
+Dividing by $V=Tp$ gives the fifth row.  The factor
+$\alpha=\Theta(p^{1/4+\epsilon/2})$ explains its displayed power of $p$.
+
+Chirp numerators have $O(p)$ bits and can be computed modulo $2r$ as
+sums of $d$ terms $s_i j_i^2(r/t_i)$.  Computing their squares and
+products with the previously established $O(N\log(2N))$ multiplier
+on $N$-bit inputs,
+then generating the exponentials, costs $O(dp^{1+\delta})$ per entry.
+The smaller twist and scalar pointwise-product costs fit the same row:
+they use a fixed number of exact products on $O(p)$-bit component
+numerators, followed by linear truncation scans.  The two final products
+by $S$ also cost $O(p\log p)$ per entry, so their normalized cost is
+$O(\log p)=O(p^\delta)$ as listed separately.  There are $T/r$
+polynomial records in each pointwise ring product.  Four integer
+products on $O(rp)$ bits per record therefore cost
+$O(Tp\log(rp))$ in total.  Signed packing, centered extraction,
+negacyclic wrapping, and copying are linear stream passes.  These calls
+use the previously established multiplier on records of length
+$O(rp)=o(n)$; they do not call the improved algorithm being constructed.
+The exact source scaling by $2^\gamma$ is a shift of $O(p)$-bit
+numerators by $\gamma=O(p)$ places, so it is a linear scan per entry
+and fits the final-scaling row. The scalar-format adapters and the exact
+removal of sign-extension bits after the ring and source scales also use
+linear scans of their $O(p)$-bit components, within the listed scan costs.
+
+\paragraph{Setup and exceptional streams across all calls.}
+We next separate setup at recursion nodes from work repeated for every
+polynomial record or every Gaussian line.  Here a visit means a node
+of the layer or address-layout recursions, or one of their round and
+group invocations.  The internal recursion of the established integer
+multiplier and the iterations of the quoted Gaussian algorithms are
+already included in their separately charged running times.
+The layer and address-layout recursions have constant branching and
+depth $O(\log p)$, and the number of their rounds and base-$m$ groups
+is polynomial in $p$.  Choose a fixed exponent $A$ so that their
+total number of visits is at most $p^A$, and a fixed $C$ bounding
+descriptor setup performed once per visit by $p^C$ steps.  This setup then
+costs at most $p^{A+C}=o(Tp)$.
+
+At a layer or synthetic-transform visit that processes polynomial
+records, there are at most $O(T/r)$ such records, including the
+bounded row padding.  Every relevant child keeps the whole
+length-$r$ polynomial suffix.  Consequently $O(p^C)$ descriptor or
+address work per record, over these visits, costs at most
+$O(Tp^{A+C}/r)=o(Tp)$.  Setup before each Gaussian line call has a
+different count:
+there are at most $2dT/r$ lines per tensor map and only a fixed number
+of such maps, so $O(p^C)$ setup per line costs
+$O(dTp^C/r)=o(Tp)$.  These estimates all use that $r$ exceeds every
+fixed power of $p$.
+
+The general address-swap subroutine also covers one-bit payloads,
+where no polynomial suffix is available. For root volume $V_0$ and
+current child volume $V_j$, the descriptor estimate in the proof of
+Proposition~\ref{prop:power-interchange} gives
+$(\log(2V_0))^{O(1)}=O(V_j)$. It uses the invariant that both original
+chunk ranges remain present in every child, and therefore includes
+polynomial descriptor work even for a one-bit payload.
+Elementary counter updates use local length copies, so they do not
+rescan a growing descriptor for each data bit.  The chirp computation
+does scan the axis descriptors at every coefficient; its
+$O(Tdp^{1+\delta})$ cost was included in the chirp row.
+
+For one packed change of basis, let $V_{\rm call}$ be its current
+logical volume.  The bad-address fraction is
+$O(d2^{-K})$, independently of the payload.  Each polynomial record
+has $\Theta(rp)$ payload bits, and an exceptional record adds an
+$O(p)$-bit destination key.  Thus the compact exceptional stream has
+length
+\[
+ O\!\left(\frac{V_{\rm call}}{rp}\,d2^{-K}(rp+p)\right)
+   =O(V_{\rm call}d2^{-K}).
+\]
+Stable bit sorting makes $O(p)$ scans of this stream, for one-call
+cost $O(V_{\rm call}dp2^{-K})$.  Extraction and reinsertion use a
+constant number of scans of the full current volume; those scans are
+already in the node overhead.  Since there are at most $p^A$ visits,
+each of volume $O(V)$, the compact sorting costs sum to at most
+\[
+ O\!\left(dp2^{-K}\sum_{\rm calls}V_{\rm call}\right)
+   =O(Vp^{A'}2^{-K})=o(V)
+\]
+for another fixed exponent $A'$.  Here $d=O(p^\epsilon)$ and
+$K=\Theta(p^{\epsilon c})$ with $\epsilon c>0$.  Predicate and key
+arithmetic is the polynomial work per record counted above.  This is
+a deterministic worst-case bound.
+
+Finally, all role, arithmetic, and stack tapes form fixed finite
+families.  A child parks and restores only its parent's streams, with
+the stack head at the active top; copying and cleanup are charged to
+that logical volume.  No operation repeatedly scans parked ancestors.
+Growing axis lists and call states are stored data, not extra tapes or
+alphabet symbols.  Global setup and prime search cost $o(V)$, as
+proved earlier.
+
+Each of the seven displayed powers is at most $1-2\kappa$ by
+\eqref{eq:margin-list}.  Any fixed power of $\log p$ is at most $p^\kappa$
+eventually.  The complete large-input bound is consequently
+\[
+ O(Tp\,p^{1-\kappa})=O(n(\log n)^{1-\kappa}).
+\]
+Fix one cutoff beyond all the size, precision, margin and layout
+conditions, and use schoolbook multiplication below it.  The finitely
+many smaller lengths are included by enlarging the implicit constant.
+With $\lg n=\max\{\lceil\log_2n\rceil,1\}$, the resulting single
+fixed-alphabet, fixed-tape deterministic machine has worst-case time
+$O(n(\lg n)^{1-\kappa})$ for every input length and produces precisely
+the required $2n$-bit product.

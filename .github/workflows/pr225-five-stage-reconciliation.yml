@@ -1,0 +1,28 @@
+name: PR225 five-stage reconciliation
+
+on:
+  pull_request:
+    paths:
+      - 'research/pr225-five-stage-reconciliation/**'
+      - '.github/workflows/pr225-five-stage-reconciliation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Independent optimized-mode replay and controls
+        run: |
+          python -I -O -B research/pr225-five-stage-reconciliation/verify.py
+          python -I -O -B research/pr225-five-stage-reconciliation/test_package.py

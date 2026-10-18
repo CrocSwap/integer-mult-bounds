@@ -1,0 +1,11 @@
+#include "json.hpp"
+#include <fstream>
+#include <iostream>
+#include <bitset>
+#include <vector>
+#include <map>
+#include <cmath>
+using namespace std;using J=nlohmann::json;
+int rankf(const J& z,const J& f){double a[120][8]={};int n=f.size(),r=0;for(int i=0;i<n;i++)for(int k=0;k<8;k++)a[i][k]=z["lines"][int(f[i])][k];for(int c=0;c<8;c++){int p=r;while(p<n&&abs(a[p][c])<1e-8)p++;if(p==n)continue;for(int k=0;k<8;k++)swap(a[p][k],a[r][k]);double q=a[r][c];for(int k=c;k<8;k++)a[r][k]/=q;for(int i=r+1;i<n;i++){q=a[i][c];for(int k=c;k<8;k++)a[i][k]-=q*a[r][k];}r++;}return r;}
+map<int,int> prof(const J&z,const vector<int>&dim,int skip,int skip2=-1){vector<int>cur=z["start"].get<vector<int>>();map<int,int>H;auto visit=[&](int r,int f){int k=dim[f]-dim[cur[r]];if(k)H[k]++;cur[r]=f;};auto run=[&](string ph){for(int i=0;i<z[ph].size();i++){if(ph=="A"&&(i==skip||i==skip2))continue;auto e=z[ph][i];int f=e[0];visit(e[1],f);for(int s:e[2])visit(s,f);}};run("A");for(int r:z["ret"])H[dim[cur[r]]]++;run("B");for(int i=int(z["A"].size())-1;i>=0;i--){if((i==skip||i==skip2))continue;auto e=z["A"][i];visit(e[1],1);for(int s:e[2])visit(s,1);}for(int r=0;r<cur.size();r++)visit(r,z["final"][r]);return H;}
+int main(int argc,char**argv){ifstream f(argv[1]);J z;f>>z;int v=z["v"],n=2*v+int(z["R"]);vector<bitset<120>>R(n);for(int t=0;t<v;t++)R[v+t][t]=1;auto rev=[&](const J&e){int d=e[1];for(int s:e[2])R[s]^=R[d];};for(int i=int(z["B"].size())-1;i>=0;i--)rev(z["B"][i]);for(int t=0;t<v;t++)for(int k:z["scatter"][t])R[int(z["ret"][k])]^=R[v+t];map<string,vector<int>>groups;int sourcegates=0;for(int i=int(z["A"].size())-1;i>=0;i--){auto e=z["A"][i];if(e[2].size()==1&&int(e[2][0])<v){string key=to_string(int(e[2][0]))+":"+R[int(e[1])].to_string();groups[key].push_back(i);sourcegates++;}rev(e);}vector<int>dims;for(auto f:z["frames"])dims.push_back(rankf(z,f));auto base=prof(z,dims,-1);J out;out["source_gates"]=sourcegates;out["candidates"]=J::array();int pairs=0;for(auto&[key,g]:groups)for(int a=0;a<g.size();a++)for(int b=a+1;b<g.size();b++){pairs++;int i=g[a],j=g[b];auto H=prof(z,dims,i,j);double gain=0;J delta=J::object();for(int r=1;r<=8;r++){int d=H[r]-base[r];if(d)delta[to_string(r)]=d;gain+=d*r*log(r);}if(gain>1e-8)out["candidates"].push_back({{"gates",{i,j}},{"delta",delta},{"entropy_gain",gain}});}out["equal_response_pairs"]=pairs;cout<<out.dump(2)<<endl;}

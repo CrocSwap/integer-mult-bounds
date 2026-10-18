@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "number": 2539,
+  "title": "Reuse batched source-pin reads when creating research drafts",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2539",
+  "head": "262c81368f6959f43e3db66bc1bd4cdbadf9c19e",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "docs/research/research-scaffold-batching.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "12af722b0d69b8d04674ca226715e27c6113ff30"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "scripts/new_research_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eb1bdf8ff46b9ad2de1f85aa058a028735800395"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "636a9dcbc509f42e1cf783302dd0744852742cfc"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/benchmark_research_scaffold.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6b899f548e2f40c32869c5e727058a54f1c2518c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "tests/test_research_scaffold_batch.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ff25ec92da98f4e29b2bb2244edbb2f67ca13943"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 1,
+    "scripts/new_research_package.py": 1,
+    "tests/benchmark_research_scaffold.py": 1,
+    "tests/test_research_scaffold_batch.py": 1
+  },
+  "github_reported_file_count": 4,
+  "complete_git_file_count": 4,
+  "body": "Creating a research draft still starts two Git processes per source even though registered-package validation already has a streamed reader. On the retained U8 inventory (175 explicit paths, 177 pins), the generator starts 356 Git processes. Reuse the existing git_blobs reader so generation uses 3 processes, preserves exact live-byte/blob/SHA checks and consumes the final process status before publishing any draft files.\n\nA reproducible opt-in benchmark compares the original generator at main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2 with this change in temporary shared clones. All five generated files match byte for byte in each of three alternating pairs. Windows CPython 3.12.14 / Git 2.53.0.windows.3 medians were 16.324s before and 0.302s after; these are one-host measurements, with the first pair overlapping the tooling suite, not a whole-replay or universal speedup claim. The process reduction and exact-output equality are enforced independently of timing.\n\nValidation: 68 required research-tooling tests pass, with 3 existing Linux-only skips. New controls independently compute blob/SHA pins for binary/empty/Unicode/spaced filenames and duplicate inputs; reject first/last live-input drift, untracked sources, and a failure after the last reader row; require no draft publication and reaped children on rejection; allow restored inputs. git diff --check passes. POSIX newline-name controls were not executed on Windows. No mathematical replay or frontier change.\n\nReproduce: python3.12 -m unittest discover -s tests -p 'test_research_scaffold_batch.py' -v; python3.12 tests/benchmark_research_scaffold.py --pairs 3. Full methodology and samples are in docs/research/research-scaffold-batching.md.\n\nTask selection: bit-mechanisms seed 93ced3f5e7c1825e5b6ca72a228fc968, scope changed after source-bound orientation to this concrete tooling delay. Canonical main and complete open-PR/Discussion/local overlap refreshed before submission, priority revision 4. Credit Douglas Colkitt, woklerx PR1452 and Arham-Tahir64 PR1595: those optimizations cover validation, and this change reuses their reader for generation without claiming a new batching method. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "0a2c481b73e029486a470d9fd622a92d26600c478ab7f91176690b2748cb366e"
+}

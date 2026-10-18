@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "assignment_seed": "c7669648496a57422bfa478f1d356cad",
+  "scope_status": "refined",
+  "actual_scope": "Repair one reproducible environment failure: on a native Windows cp1252 host the documented check python3 -B -m unittest discover -s tests -p 'test_research_*.py' errors in tests/test_research_current_status.py because its text reads use the locale codec while docs/research/current-status.md carries byte 0x9d (U+201D). Fix the reads to explicit UTF-8, add a static locale-independence guard and a load-bearing byte control in the same module, and register a bounded legacy-locale replay.",
+  "scope_change_reason": "Refined within the card's premise (one reproducible environment failure repaired) and its allowed variation (one interpreter/environment mismatch). The card's obvious first candidates were killed first: the historical Windows failures cited by many PR bodies (autocrlf temp-fixture pin mismatch in test_research_onboarding.PackageTests, POSIX-only os.killpg, cp1252 metadata reads in research_package.py/find_overlap.py) no longer reproduce at base 0b1cccf8 on native Windows (test_research_onboarding runs green: Python 3.13.15 has 18 tests with 2 environment-gated skips, Python 3.12 passes all 18 with core.autocrlf=true; the merged #1299/#1293-rgb line already repaired them). What remains is the suite's own document reads, which that line's five-script static guard (test_research_onboarding.TextEncodingTests.SCRIPTS) does not cover. The gzip/canonical-payload variation of the card is under active concurrent work (https://github.com/CrocSwap/integer-mult-bounds/pull/1559, https://github.com/CrocSwap/integer-mult-bounds/pull/1824) and was deliberately not duplicated.",
+  "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions. The documented suite command is the check every reviewer asks contributors to run; on the most common desktop configuration (Windows, Git-for-Windows defaults) it reports three bogus errors unless the contributor knows to set PYTHONUTF8=1, which is how several PR bodies came to disclaim 'pre-existing Windows failures' instead of getting a clean signal.",
+  "budget_minutes": 60,
+  "stop_rule": "One repair of tests/test_research_current_status.py plus one bounded package and one focused PR. No sweep of the ~100 remaining locale-dependent text calls in tests/ or the scripts/ one-off generators (inventoried as an open question). No frozen-pin, upstream, selected-record or certificate changes. One pivot maximum: the pivot from the killed historical-failure candidate to the suite's document reads is the one pivot used.",
+  "outcome": "completed",
+  "evidence": "Native Windows 11 (cp1252, Git 2.55 autocrlf=true), CPython 3.13.15. BEFORE (base 0b1cccf8): python -B -m unittest discover -s tests -p 'test_research_*.py' without PYTHONUTF8 -> 'Ran 42 tests ... FAILED (errors=3)', all three in test_research_current_status.CurrentStatusTests.setUp, UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 1014. Same command with PYTHONUTF8=1 -> OK (skipped=2); python3.12 -> OK. AFTER (this change): same command without PYTHONUTF8 -> 'Ran 44 tests ... OK (skipped=2)' on Python 3.13.15 and 'Ran 44 tests ... OK' on Python 3.12, with and without PYTHONUTF8. Failure controls (run recorded): the base-commit module carries bare reads at lines 10 and 26 under the new static guard (guard reports exactly those lines); a bare locale read of docs/research/current-status.md in a PYTHONUTF8=0 child fails with the same UnicodeDecodeError on this host, and the module's new test asserts the load-bearing byte sequence e2 80 9d and cp1252 undecodability on every host. Registered replay: python3.12 scripts/research_package.py --package research/test-suite-locale-reads passes; metadata check --check-only passes. scripts/research_baseline.py reports PASS_RESEARCH_BASELINE_BINDINGS_ONLY (card first step, unchanged).",
+  "author": "Aaron Wang",
+  "ai_assistance": "with help from opencode",
+  "open_questions": [
+    {
+      "question": "Should the remaining locale-dependent text reads in tests/ (~100 calls across ~40 modules) be swept the way test_research_onboarding.TextEncodingTests guards the five onboarding scripts?",
+      "why_it_matters": "Only tests/test_research_current_status.py crashes today because only docs/research/current-status.md carries cp1252-undefined bytes among the documents the suite reads; any typographic quote added to formal/lean/SOURCES.md, a workflow yml or a vendored .tex reintroduces the same bogus errors in another module.",
+      "first_step": "Extend the static AST guard to all tests/*.py, triage which reads target documents that already contain non-ASCII bytes (a byte scan of the repo finds 1536 non-ASCII files, mostly under research/), and fix those call sites first.",
+      "blocked_by": "Nothing technical; the mechanical churn across frozen-era test modules wants maintainer buy-in before a sweep PR."
+    },
+    {
+      "question": "Can the whole suite, not just tests/test_research_current_status.py, be guaranteed under a forced legacy codec on POSIX?",
+      "why_it_matters": "The registered replay forces the C locale only for the repaired module; other modules' reads could still fail under a true ASCII locale on Linux even though they pass under cp1252, so 'green on Windows' and 'green on LC_ALL=C' are different claims.",
+      "first_step": "Run the full discover command under PYTHONUTF8=0 PYTHONCOERCECLOCALE=0 LC_ALL=C on a Linux host and triage whatever fails.",
+      "blocked_by": "This session ran on Windows only; the POSIX C-locale behavior of the unmodified modules is unmeasured."
+    }
+  ]
+}

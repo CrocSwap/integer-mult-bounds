@@ -1,0 +1,239 @@
+{
+ "schema": "candidate/1",
+ "name": "cold14-b3",
+ "package_dir": "complex-571-cold14-b3",
+ "title": "PR604's cold-ended construction with a second cold low-frame end per factory block (ColdBeyond v3) and ColdSupply's E1 entering pair, at a free dispatch (jp8 x60, atm3 x12) with an exact per-time-Hall owner map (exact-window MIP, RINS)",
+ "summary": "Provider menu {ck, atm3, jp8}: PR604's chains ending with `cold_end`, whose recipes (ColdBeyond v3) add per factory block a second cold end (S b.9 at U_b) to PR604's S b.10 end plus ColdSupply's E1 entering pair; the step allowlist gains frame-[] target writes and forward absorptions (PROOF-NOTE.md). Owner search: ColdBeyond's copy of ColdOwner's recipe.py (only its paths differ) driving solve_h.py (PR569 nominate_width7.py adapted; objective sum F(r) = r*(73/r)^b, b = 0.001635), with provider locals of the v3 words: (1) aggregate free-dispatch LP over the menu (crossover, tight 3), pattern-seeded from the E1free map -> LP-PATTERNS-AGG.json (bound 523259.328281); (2) dispatch = per-time argmax of the LP selections -> DISPATCH.json (jp8 x60, atm3 x12); (3) exact-window LP (crossover) at that dispatch over base + AGG patterns with weight >= 0.01 -> LP-PATTERNS-EX.json (523259.425227); (4) exact-window MIP, RINS around the EX vertex (slack 2/1), gap 1e-9, 240 s: time limit, obj 523259.513408, bound 523259.425227, gap 1.69e-7; (5) mkplan.py --locals (final admitted locals): PLAN = solve output with the provider registry re-derived from the admitted locals and profile/assignment_sha256 recomputed from the map (reproduces data/PLAN.json byte for byte). The map is admitted by the package's verifier chain, not by the search.",
+ "sources": {
+  "multicold": {
+   "path": "../complex-multicold",
+   "dir": "complex-multicold",
+   "pr": 568,
+   "commit": "71c99ac935a33bb7b59a1b4a7af8725a939b0b90",
+   "manifest_sha256": "328ce8023d33deb308b0f1ae2320424050f836d791cf60a613ae8408e7d6f3ab",
+   "full_tree": true
+  },
+  "structural_gain": {
+   "path": "../structural-gain",
+   "dir": "structural-gain",
+   "pr": 571,
+   "commit": "b7bdc5a8de18fcf418cfb9c7d83a2b1097a5e4a3",
+   "manifest_sha256": "eb0499a927665a48a25355075dcb7dc76d0fc43c67ea6d311d9e0242b6d4a25d"
+  },
+  "larger_gain": {
+   "path": "../larger-gain",
+   "dir": "larger-gain",
+   "pr": 569,
+   "commit": "897213a855b7fb8a1b8b0e552a2f5c42e6c1b326",
+   "manifest_sha256": "54d67f45ad520f4a134e069336bd0ff639aaeada28d13539298e4f2655c9692d"
+  },
+  "joint_prefix": {
+   "path": "../complex-joint-prefix",
+   "dir": "complex-joint-prefix",
+   "pr": 575,
+   "commit": "eac6f7e378ab622dac50a2fd4b7ef6eab014de44",
+   "manifest_sha256": "fd30701bd9bd652985db18fa95bee08a34615ef417a2feb2f55efd60a0b5d665"
+  },
+  "frame_coalescing": {
+   "path": "../kernel-frame-coalescing",
+   "dir": "kernel-frame-coalescing",
+   "pr": 583,
+   "commit": "89be768f0157f5a3d8e4db69cf1748768605eac9",
+   "manifest_sha256": "f336fd702c54422d79c1b9ba7d8699ae6c99518f66a5b5bbc5f3be331fa1fadd"
+  }
+ },
+ "providers": {
+  "atm3": {
+   "base": "structural_gain:frontier-composition/combined-prefix-word/FULL-WORD.json.gz",
+   "steps": [
+    {
+     "type": "promote",
+     "recipe": "pkg:data/recipes/atm3-step0-promote.json"
+    },
+    {
+     "type": "greedy_kernels",
+     "recipe": "pkg:data/recipes/atm3-step1-greedy_kernels.json"
+    },
+    {
+     "type": "frame_coalesce",
+     "recipe": "pkg:data/recipes/atm3-step2-frame_coalesce.json"
+    },
+    {
+     "type": "gate_move_coalesce",
+     "recipe": "pkg:data/recipes/atm3-step3-gate_move_coalesce.json"
+    },
+    {
+     "type": "hyperplane_end",
+     "recipe": "pkg:data/recipes/atm3-step4-hyperplane_end.json"
+    },
+    {
+     "type": "cold_end",
+     "recipe": "pkg:data/recipes/atm3-step5-cold_end.json.gz"
+    }
+   ]
+  },
+  "jp8": {
+   "base": "frozen558_promoted",
+   "steps": [
+    {
+     "type": "cold_kernel",
+     "recipe": "multicold:data/EIGHT-COLD.json"
+    },
+    {
+     "type": "multicut",
+     "recipe": "multicold:data/EIGHT-MULTICOLD.json"
+    },
+    {
+     "type": "frozen558_scalar_audits"
+    },
+    {
+     "type": "joint_prefix",
+     "variant": "eightcold",
+     "recipe": "joint_prefix:data/JOINT-PREFIX.json",
+     "kernel_recipes": "joint_prefix:data/EIGHTCOLD-JOINT-KERNELS.json"
+    },
+    {
+     "type": "hyperplane_end",
+     "recipe": "pkg:data/recipes/jp8-step4-hyperplane_end.json"
+    },
+    {
+     "type": "cold_end",
+     "recipe": "pkg:data/recipes/jp8-step5-cold_end.json.gz"
+    }
+   ]
+  },
+  "ck": {
+   "base": "structural_gain:frontier-composition/combined-prefix-word/FULL-WORD.json.gz",
+   "steps": [
+    {
+     "type": "greedy_kernels",
+     "recipe": "pkg:data/recipes/ck-step0-greedy_kernels.json"
+    },
+    {
+     "type": "frame_coalesce",
+     "recipe": "pkg:data/recipes/ck-step1-frame_coalesce.json"
+    },
+    {
+     "type": "gate_move_coalesce",
+     "recipe": "pkg:data/recipes/ck-step2-gate_move_coalesce.json"
+    },
+    {
+     "type": "hyperplane_end",
+     "recipe": "pkg:data/recipes/ck-step3-hyperplane_end.json"
+    },
+    {
+     "type": "cold_end",
+     "recipe": "pkg:data/recipes/ck-step4-cold_end.json.gz"
+    }
+   ]
+  }
+ },
+ "dispatch": {
+  "mode": "free",
+  "menu": [
+   "ck",
+   "atm3",
+   "jp8"
+  ],
+  "plan": "pkg:data/PLAN.json",
+  "origin": "at the free dispatch jp8 ×60, atm3 ×12 (per-time argmax of the aggregate free-dispatch hosting LP over {ck, atm3, jp8}; ck is never selected)",
+  "plan_rule": "the window MIP's PLAN with the provider registry re-derived from the admitted provider locals and `profile`/`assignment_sha256` recomputed from the map (ColdOwner mkplan.py)"
+ },
+ "owners": {
+  "warm_owners": "pkg:data/search/WARM-OWNERS.json.gz",
+  "exact_windows": true,
+  "origin": "an exact per-time-Hall exact-window MIP solution (RINS around the exact-window LP vertex; 240 s time limit, relative gap 1.69e-7)",
+  "warm_owners_origin": "the E1free map (`data/OWNERS.json.gz` of research/complex-571-cold14-e1, byte for byte), used only to seed the aggregate LP's patterns",
+  "search": {
+   "method": "aggregate_lp_dispatch_then_exact_window_milp_rins",
+   "tool": "ColdBeyond recipe.py (ColdOwner's, paths changed) -> solve_h.py (PR569 global/nominate_width7.py adapted)",
+   "b": 0.001635,
+   "threads": 2,
+   "aggregate_lp": {
+    "seconds": 3000,
+    "crossover": true,
+    "tight": 3,
+    "dispatch": "free",
+    "warm": "WARM-OWNERS.json.gz + WARM-PLAN.json",
+    "bound": 523259.328281
+   },
+   "dispatch_rule": "per time t: argmax over providers of LP-PATTERNS-AGG selections[t]",
+   "exact_lp": {
+    "seconds": 3000,
+    "crossover": true,
+    "exact_windows": true,
+    "pattern_file": "LP-PATTERNS-AGG.json",
+    "pmin": 0.01,
+    "objective": 523259.425227
+   },
+   "mip": {
+    "seconds": 240,
+    "gap": 1e-09,
+    "exact_windows": true,
+    "pattern_file": "LP-PATTERNS-AGG.json",
+    "pmin": 0.01,
+    "rins": "LP-PATTERNS-EX.json",
+    "rins_slack": 2,
+    "rins_fslack": 1
+   },
+   "template_plan": "TEMPLATE-PLAN.json",
+   "lp_inputs": {
+    "LP-PATTERNS-AGG.json": "aggregate free-dispatch LP relaxation over {ck, atm3, jp8} (crossover, tight 3), pattern-seeded from the E1free map",
+    "DISPATCH.json": "the dispatch {time: provider} = per-time argmax of the aggregate LP selections",
+    "LP-PATTERNS-EX.json": "exact-window LP relaxation (crossover) at that dispatch over the base patterns plus aggregate-LP patterns with weight >= 0.01",
+    "WARM-PLAN.json": "the E1free PLAN matching WARM-OWNERS.json.gz (pattern seeding of the aggregate LP)",
+    "TEMPLATE-PLAN.json": "the PLAN of ColdBeyond's working package (PR604's dispatch ck ×44, atm3 ×22, jp8 ×6), whose windows/order/registry template the nominator reuses"
+   },
+   "result": {
+    "status": "Time limit reached",
+    "objective": 523259.513408,
+    "bound": 523259.425227,
+    "gap": 1.69e-07,
+    "provider_counts": {
+     "atm3": 12,
+     "jp8": 60
+    },
+    "profile": {
+     "1": 181848,
+     "2": 24770,
+     "3": 31778,
+     "4": 13728,
+     "5": 5040,
+     "6": 1008,
+     "7": 2,
+     "8": 576,
+     "48": 2150
+    },
+    "idle_remainders": {
+     "1": 24,
+     "2": 2,
+     "3": 2,
+     "7": 2,
+     "48": 2150
+    }
+   }
+  },
+  "search_inputs": {
+   "LP-PATTERNS-AGG.json": "pkg:data/search/LP-PATTERNS-AGG.json",
+   "DISPATCH.json": "pkg:data/search/DISPATCH.json",
+   "LP-PATTERNS-EX.json": "pkg:data/search/LP-PATTERNS-EX.json",
+   "WARM-PLAN.json": "pkg:data/search/WARM-PLAN.json",
+   "TEMPLATE-PLAN.json": "pkg:data/search/TEMPLATE-PLAN.json"
+  }
+ },
+ "bar": "0.001626010676080313",
+ "gain_baseline_kappa": "0.001601260169988325",
+ "credits": [
+  "**This package**: the second cold end per block and the two cold_end primitives (PROOF-NOTE.md).",
+  "**DreamingOfClouds**: PR604 (the cold_end construction, its verifier changes and controls), PR599, PR516, PR509, PR484.",
+  "**jeremykothe2**: PR601, PR600, PR596, PR593, PR592 and PR591 (hyperplane-ended helpers and the HPE verifier).",
+  "**DominikScholz**: PR571 and PR569 (including PR569's window-MILP nominator nominate_width7.py, which the owner search adapts).",
+  "**eumemic**: PR564, PR561, PR562, PR558, PR550, PR543, PR507.",
+  "**chafreaky**: PR583, PR572, PR551.",
+  "**icekylinx**: PR535 and PR531.",
+  "**Dugongue**: PR552 and PR514.",
+  "**Douglas Colkitt / CrocSwap**: maintenance.",
+  "**The original OpenAI #109 framework.**"
+ ],
+ "chains_origin": "PR604's, with ColdBeyond's second-cold-end cold_end recipes"
+}

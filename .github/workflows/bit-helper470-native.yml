@@ -1,0 +1,41 @@
+name: Helper470 finite native endpoint audit
+on:
+  pull_request:
+    paths:
+      - 'research/bit-helper470-native/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - 'research/e8-bit-p111-tuned/**'
+      - '.github/workflows/bit-helper470-native.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/bit-helper470-native/**'
+      - 'research/e8-bit-carrier-skeleton/**'
+      - 'research/e8-bit-p111-tuned/**'
+      - '.github/workflows/bit-helper470-native.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: helper470-native-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install native header dependency
+        run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - name: Registered source and local boundary checks
+        run: python -B scripts/research_package.py --package research/bit-helper470-native
+      - name: Unchanged native geometry and five/nine/eleven scalar engines
+        run: python -I -B research/bit-helper470-native/verify.py
+      - name: Committed sources and evidence remain unchanged
+        run: git diff --exit-code

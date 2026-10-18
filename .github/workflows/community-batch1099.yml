@@ -1,0 +1,191 @@
+name: Batch1099 research circuits and verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/bit589-width-packing/**'
+      - 'research/clifford-state-reuse/**'
+      - 'research/complex-decoder-field-extension-seed44/**'
+      - 'research/complex-t16-neutral-exchanges/**'
+      - 'research/complex-t16-owner-exchanges/**'
+      - 'research/complex-t16-rare-pattern-exchanges/**'
+      - 'research/complex-t16-targeted-repacking/**'
+      - 'research/complex-u10-t37/**'
+      - 'research/five-cube-coded-copy-seed42/**'
+      - 'research/frame-pair-enumeration-fast-seed93/**'
+      - 'research/gauge44-slots-t16/**'
+      - 'research/heterogeneous-owner-assembly/**'
+      - 'research/k8-rank7-composition/**'
+      - 'research/layer-end-controls-parallel/**'
+      - 'research/leaver-cell-audit-seed65/**'
+      - 'research/nine-stage-prefix-audit-seed70/**'
+      - 'research/p111-minrank-proof-reconciliation/**'
+      - 'research/p111-tensor-shear-seed47/**'
+      - 'research/p112-gram-support-seed80/**'
+      - 'research/pending-claims-independent-pricing/**'
+      - 'research/r439-bsection-stars-seed01/**'
+      - 'research/r439-helper-quartets-seed07/**'
+      - 'research/r439-omission-atlas-seed81/**'
+      - 'research/r439-resynth-frame-seed10/**'
+      - 'research/r480-qnode-seed02/**'
+      - 'research/r480-qnode5-seed05/**'
+      - 'research/r480-quad12-exact-seed12/**'
+      - 'research/t16-owner-audit-seed67/**'
+      - 'research/t37-binomial-endpoint-audit-seed78/**'
+      - 'research/t37-endpoints-independent/**'
+      - 'research/u8-e4-gap-fill/**'
+      - 'research/weighted-signed-connector-seed58/**'
+      - 'research/community-batch1099-audit/**'
+      - '.github/workflows/community-batch1099.yml'
+  pull_request:
+    paths:
+      - 'research/bit589-width-packing/**'
+      - 'research/clifford-state-reuse/**'
+      - 'research/complex-decoder-field-extension-seed44/**'
+      - 'research/complex-t16-neutral-exchanges/**'
+      - 'research/complex-t16-owner-exchanges/**'
+      - 'research/complex-t16-rare-pattern-exchanges/**'
+      - 'research/complex-t16-targeted-repacking/**'
+      - 'research/complex-u10-t37/**'
+      - 'research/five-cube-coded-copy-seed42/**'
+      - 'research/frame-pair-enumeration-fast-seed93/**'
+      - 'research/gauge44-slots-t16/**'
+      - 'research/heterogeneous-owner-assembly/**'
+      - 'research/k8-rank7-composition/**'
+      - 'research/layer-end-controls-parallel/**'
+      - 'research/leaver-cell-audit-seed65/**'
+      - 'research/nine-stage-prefix-audit-seed70/**'
+      - 'research/p111-minrank-proof-reconciliation/**'
+      - 'research/p111-tensor-shear-seed47/**'
+      - 'research/p112-gram-support-seed80/**'
+      - 'research/pending-claims-independent-pricing/**'
+      - 'research/r439-bsection-stars-seed01/**'
+      - 'research/r439-helper-quartets-seed07/**'
+      - 'research/r439-omission-atlas-seed81/**'
+      - 'research/r439-resynth-frame-seed10/**'
+      - 'research/r480-qnode-seed02/**'
+      - 'research/r480-qnode5-seed05/**'
+      - 'research/r480-quad12-exact-seed12/**'
+      - 'research/t16-owner-audit-seed67/**'
+      - 'research/t37-binomial-endpoint-audit-seed78/**'
+      - 'research/t37-endpoints-independent/**'
+      - 'research/u8-e4-gap-fill/**'
+      - 'research/weighted-signed-connector-seed58/**'
+      - 'research/community-batch1099-audit/**'
+      - '.github/workflows/community-batch1099.yml'
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CXX: g++
+      BOOST_INCLUDE: /usr/include
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Scoped exact checks
+        run: |
+          python -B research/leaver-cell-audit-seed65/verify.py
+          python -B research/t37-endpoints-independent/verify.py --work "$RUNNER_TEMP/endpoints"
+          python -B research/t37-binomial-endpoint-audit-seed78/verify.py --repository .
+          python -B research/t37-binomial-endpoint-audit-seed78/test_package.py
+          python -B research/pending-claims-independent-pricing/verify.py --work "$RUNNER_TEMP/pricing"
+          python -B research/t16-owner-audit-seed67/verify.py --fetch
+          python -B research/nine-stage-prefix-audit-seed70/verify.py
+          python -B research/five-cube-coded-copy-seed42/verify.py
+          python -B research/five-cube-coded-copy-seed42/independent.py --exhaustive-factorizations
+          python -B research/weighted-signed-connector-seed58/verify.py
+          python -B research/weighted-signed-connector-seed58/test_package.py
+          python -B research/complex-decoder-field-extension-seed44/verify.py
+          python -B research/p112-gram-support-seed80/verify.py
+          python -B research/p111-minrank-proof-reconciliation/verify.py
+          python -B research/p111-minrank-proof-reconciliation/test_package.py
+          python -B research/p111-tensor-shear-seed47/verify.py
+          python -B research/bit589-width-packing/verify.py --work "$RUNNER_TEMP/width"
+          python -B research/r439-resynth-frame-seed10/check.py
+          python -B research/r439-resynth-frame-seed10/nominate.py
+          python -B research/r439-omission-atlas-seed81/verify.py
+          python -B research/heterogeneous-owner-assembly/verify.py --out "$RUNNER_TEMP/mixed.json"
+          python -B research/heterogeneous-owner-assembly/independent_check.py --out "$RUNNER_TEMP/mixed-independent.json"
+          python -B research/heterogeneous-owner-assembly/controls.py --out "$RUNNER_TEMP/mixed-controls.json"
+          python -B research/community-batch1099-audit/check_pr1048_counterexample.py
+      - name: Source integrity
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+          git diff --exit-code
+  circuits:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CXX: g++
+      BOOST_INCLUDE: /usr/include
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Scoped exact checks
+        run: |
+          python -B research/r480-qnode-seed02/verify.py --replay-search
+          python -B research/r480-qnode-seed02/native.py --out "$RUNNER_TEMP/node2"
+          python -B research/r480-quad12-exact-seed12/verify.py --replay-search
+          python -B research/r480-quad12-exact-seed12/native.py --output "$RUNNER_TEMP/quad12"
+          python -B research/r480-qnode5-seed05/verify.py --replay-search
+          python -B research/r480-qnode5-seed05/test_package.py
+          python -B research/r439-helper-quartets-seed07/verify.py
+          python -B research/r439-helper-quartets-seed07/native.py "$RUNNER_TEMP/quartets"
+          python -B research/r439-bsection-stars-seed01/verify.py
+      - name: Source integrity
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+          git diff --exit-code
+  verification-tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CXX: g++
+      BOOST_INCLUDE: /usr/include
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Scoped exact checks
+        run: |
+          python -B research/layer-end-controls-parallel/verify.py --work "$RUNNER_TEMP/layers" --jobs 2 --serial
+          python -B research/clifford-state-reuse/verify.py --work "$RUNNER_TEMP/state" --rounds 1 --hard-seconds 2400
+          python -B research/clifford-state-reuse/controls.py --work "$RUNNER_TEMP/state-controls"
+          python -B research/frame-pair-enumeration-fast-seed93/verify.py
+      - name: Source integrity
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+          git diff --exit-code

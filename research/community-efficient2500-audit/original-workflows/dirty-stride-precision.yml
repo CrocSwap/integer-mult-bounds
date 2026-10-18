@@ -1,0 +1,26 @@
+name: Dirty stride precision
+on:
+  pull_request:
+    paths:
+      - 'research/dirty-stride-precision/**'
+      - '.github/workflows/dirty-stride-precision.yml'
+  push:
+    paths:
+      - 'research/dirty-stride-precision/**'
+      - '.github/workflows/dirty-stride-precision.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -I -O -B research/dirty-stride-precision/test_package.py

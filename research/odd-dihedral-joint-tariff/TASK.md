@@ -1,0 +1,13 @@
+CLAIM — odd finite-dihedral joint tariffs; bit-mechanisms / bit-new-register-model, scope refined. OS nonce 721bc4f2e2d9f3c304d6dab0f34c1803; priority revision 3; exact base 0b1cccf86e2f5132ed286a26ef0a681a495740ea; selected-record SHA256 10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32.
+
+Question: for every odd rotation period n=2m+1>=3, arbitrary heterogeneous diagonal targets r^k_i x^e_i in formal F2[D_{2n}], and any finite restored dirty workspace, do reflection-only rank-one-idempotent calls have sharp tariff alpha*A + beta*B + t*min(alpha,beta)? Here r=xy, A=sum d_n(k_i+e_i), B=sum d_n(k_i), and t counts the longest reflection r^m x. Scalar GL_R(F2) mixing is free only in this stated optimistic model; all x/y preparation/restoration calls count, no other address gates/COPY/clean state.
+
+Changed premise: PR1941 (Adam Gall, exact head 5938ce3e91bbb8b5c2227af7976d444b2fbac7d4) proves even periods and explicitly leaves the missing odd-period joint constraint open. We reuse and credit its two cut bounds, then test a new n-address half of the faithful 2n-address regular action whose crossing rank should equal each target's shortest word length. This would imply #x+#y>=A+B+t, rather than parity alone, and direct coordinate words should attain all minimal count pairs (A+j,B+t-j), 0<=j<=t.
+
+Method/domain: all-parameter written proof plus exact finite corroboration over complete small odd groups, all rank-one projectors through four roles, full formal coefficient and independent regular-action endpoint checks with dirty states and meaningful failure controls. Target budget is the complete direct formal bill; stop if any cut or endpoint formula fails. No physical supplier or kappa gain is proposed.
+
+Overlap: complete entry snapshot covers 601 open PRs and 578 Discussion records at 14:59–15:00 UTC; targeted odd-period search finds PR1941 and Cinna Davis PR1953 (head 4f3bdf7c3bdd7033180c9d8c41245023cc402bc6), the r=3 D10 inverse-rotation special case. PR1870 and the coordinate-CNOT line cover S3 finite cases; these will be credited, not reclaimed. PR1911 is the infinite-dihedral predecessor. No novelty guarantee is inferred from text searches.
+
+Expected artifact: research/odd-dihedral-joint-tariff, written proof, standard-library exact checker, source pins, controls and narrow reproduction. Claim expiry 2026-10-14 17:15 UTC. Prepared for Ross Richardson with substantial OpenAI Codex assistance; Apache-2.0.
+
+Worktree owner: integer-multiplication-research-sprint. Path /Users/ross/git/math/donated-20261014-1457. Branch research/donated-20261014-1457. All specialists share this checkout with disjoint file ownership.

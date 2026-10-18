@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "858771bcca3b8dd5d4ef4aa682a13cc9b7e23920",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "The three `phases` steps (cells, chain, slots) of the cold frontier1042 replay that `make frontier1094-verify` runs as `baseline1042-cold`: does the merged exact sparse phase compiler (research/selected-replay-fastpath, previously measured only on the PR942 U8 word) reproduce their pinned CLIFFORD-RECIPES bytes from the archived canonical words, and how much faster is it than the pinned serial phases_full.py on the same machine?",
+  "scope_change_reason": "The card asks for one measured replay bottleneck. The phases steps are 469 s of the recorded 1162 s frontier1042 run; PR1151 sped up the layer-end controls and explicitly left these steps unmeasured. This is the card's allowed variation (one stage), applied to existing merged tools rather than a new evaluator.",
+  "bottleneck_link": "Side result for review throughput: a cold selected replay is the acceptance test for any new complex supplier built on the k8 chain; shortening it lets candidates be checked sooner. No mathematical claim.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after byte-identity on all three pinned digests, a same-machine timing against the pinned serial step, and two corruption controls; do not edit or wire any manifest-pinned replay script.",
+  "outcome": "completed",
+  "evidence": "verify.py: all three recipe files byte-identical to the k8 pins and the archived maintainer recipes, review fields (including the status, digests and adapter count the T16 binder asserts) equal; two corrupted words do not reproduce the pin. BENCHMARK-macos-arm64.json: same-machine wall times for pinned serial phases_full.py, the dense PR662 evaluator, the sparse evaluator and phases_parallel.py.",
+  "author": "Josie Elliston (Claude Code research session)",
+  "ai_assistance": "Prepared with Claude Code (Claude Opus); a Codex read-only review corrected the wiring notes, controls and credit. No subagents.",
+  "open_questions": [
+    {
+      "question": "Should the cold frontier1042 replay call the sparse compiler for its three phases steps?",
+      "why_it_matters": "The three steps are 469 s of the recorded 1162 s cold frontier1042 run; scaling the measured 12x sparse ratio, the run would lose about 430 s, and with PR1151 fall to roughly 300 s on the recorded machine.",
+      "first_step": "Give the three phases calls (reproduce_leaver.py, reproduce_leaver_chain.py, verify_slots.py) an engine option that runs research/selected-replay-fastpath/run.py into local/ and keeps every clifford_recipes_sha256 pin assertion.",
+      "blocked_by": "Maintainer decision: the scripts are manifest-pinned; reproduce_leaver_chain.py --skip-phases fails its whole-dictionary CHAIN-PINS check; verify_slots.py has no switch. Only the cells step can use --skip-phases plus an external pin check unchanged."
+    },
+    {
+      "question": "Is the phase lowering still a bottleneck in other cold replays that call phases_full.py (23 byte-identical copies on main)?",
+      "why_it_matters": "Every chain rebuild for a pending k8-based claim reruns the same lowering.",
+      "first_step": "Grep STAGES/STEPS receipts in research/*-audit archives for phases steps over 30 s and run this verifier pattern on their archived canonical words.",
+      "blocked_by": "Some archives may not retain the canonical word."
+    }
+  ]
+}
