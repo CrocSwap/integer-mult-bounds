@@ -147,8 +147,10 @@ def run():
     original_cut = [row[:] for row in scatter]
     changed_cut = [row[:] for row in scatter]
     block_results = []
+    first_three_cut = None
+    prefix_support_deltas = []
     changed_ports = set()
-    for tetrad in tetrads[:3]:
+    for block_index, tetrad in enumerate(tetrads, start=1):
         even, odd = classes[tetrad, 0], classes[tetrad, 1]
         require(len(even) == len(odd) == 4,
                 "selected tetrad frame sizes changed")
@@ -187,6 +189,7 @@ def run():
 
         old_support = sum(value != 0 for row in old_block for value in row)
         new_support = sum(value != 0 for row in new_block for value in row)
+        prefix_support_deltas.append(new_support - old_support)
         denominators = sorted({value.denominator for row in new_block
                                for value in row if value})
         require(all(value.denominator in (1, 2, 4)
@@ -203,28 +206,38 @@ def run():
             "added_nonzero_cut_coefficients": new_support - old_support,
             "new_denominators": denominators,
         })
+        if block_index == 3:
+            first_three_cut = [row[:] for row in changed_cut]
 
-    require(len(changed_ports) == 24, "expected three disjoint tetrads")
+    require(len(changed_ports) == 112 and first_three_cut is not None,
+            "expected all fourteen disjoint tetrads")
     old_support = sum(value != 0 for row in original_cut for value in row)
     new_support = sum(value != 0 for row in changed_cut for value in row)
-    require((old_support, new_support) == (176, 202),
-            "three-block consumer incidence count changed")
-    require(sum(value != 0 for row in changed_cut for value in row) ==
-            len(word["cut"]) + 26,
-            "literal additive cut length does not match its coefficient support")
+    first_three_support = sum(value != 0 for row in first_three_cut for value in row)
+    require((old_support, first_three_support, new_support) == (176, 202, 286),
+            "selected consumer incidence counts changed")
+    require(sum(prefix_support_deltas[:3]) == 26 and
+            sum(prefix_support_deltas) == 110,
+            "consumer incidence deltas changed")
 
     # Rebuild the literal modified cut from its exact matrix and check the full
     # output map. The cut only adds to centre accumulators; it preserves their
     # incoming dirty values because the same delta is added for every port vector.
-    changed_instructions = []
-    for port, row in enumerate(changed_cut):
-        for center_index, coefficient in enumerate(row):
-            if coefficient:
-                changed_instructions.append([
-                    "add", 112 + port, word["centers"][center_index],
-                    coefficient.numerator, coefficient.denominator, None,
-                ])
-    require(len(changed_instructions) == 202,
+    def build_cut_instructions(matrix):
+        instructions = []
+        for port, row in enumerate(matrix):
+            for center, coefficient in enumerate(row):
+                if coefficient:
+                    instructions.append([
+                        "add", 112 + port, word["centers"][center],
+                        coefficient.numerator, coefficient.denominator, None,
+                    ])
+        return instructions
+
+    first_three_instructions = build_cut_instructions(first_three_cut)
+    changed_instructions = build_cut_instructions(changed_cut)
+    require(len(first_three_instructions) == 202 and
+            len(changed_instructions) == 286,
             "rebuilt centre cut has the wrong instruction count")
     rebuilt = [[Q(0) for _ in word["centers"]] for _ in range(112)]
     center_index = {register: index for index, register in
@@ -236,71 +249,70 @@ def run():
     require(rebuilt == changed_cut, "rebuilt cut differs from its exact matrix")
 
     target_a = Q(3, 997)
-    k_blocks = 3
-    profile = {
-        1: 192 + 4 * k_blocks,
-        2: 56 - 4 * k_blocks,
-        72: 73,
-        56: 1,
-    }
-    centre = 112 - 4 * k_blocks
-    unpaid = Q(1) + Q(k_blocks, 28)
-    incidence_overhead = new_support - old_support
-    base_profile = dict(profile)
-    sensitivity_profile = dict(profile)
-    sensitivity_profile[1] += incidence_overhead
-    base_moment = ceiling.relax(
-        base_profile, 73, 896, 9, centre, target_a, R=51, unpaid=unpaid)
-    sensitivity_moment = ceiling.relax(
-        sensitivity_profile, 73, 896, 9, centre, target_a, R=51,
-        unpaid=unpaid)
-    base_bracket = ceiling.ceiling(
-        base_profile, 73, 896, 9, centre, grid=Q(1, 10**12), R=51,
-        unpaid=unpaid)
-    sensitivity_bracket = ceiling.ceiling(
-        sensitivity_profile, 73, 896, 9, centre, grid=Q(1, 10**12), R=51,
-        unpaid=unpaid)
-    base_kappa = base_bracket[1] / (1 + base_bracket[1])
-    sensitivity_kappa = (sensitivity_bracket[1] /
-                         (1 + sensitivity_bracket[1]))
-    require(sensitivity_moment[1] < 1 and sensitivity_kappa > Q(3, 1000),
-            "rank-one incidence sensitivity no longer clears kappa=0.003")
+    incidence_sensitivities = []
+    for k_blocks in (3, 5, 9, 14):
+        incidence_overhead = sum(prefix_support_deltas[:k_blocks])
+        profile = {
+            1: 192 + 4 * k_blocks + incidence_overhead,
+            2: 56 - 4 * k_blocks,
+            72: 73,
+            56: 1,
+        }
+        centre = 112 - 4 * k_blocks
+        unpaid = Q(1) + Q(k_blocks, 28)
+        moment = ceiling.relax(
+            profile, 73, 896, 9, centre, target_a, R=51, unpaid=unpaid)
+        bracket = ceiling.ceiling(
+            profile, 73, 896, 9, centre, grid=Q(1, 10**12), R=51,
+            unpaid=unpaid)
+        kappa = bracket[1] / (1 + bracket[1])
+        require(moment[1] < 1 and kappa > Q(3, 1000),
+                "rank-one incidence sensitivity no longer clears kappa=0.003")
+        incidence_sensitivities.append({
+            "transformed_tetrads": k_blocks,
+            "added_incidence_count": incidence_overhead,
+            "profile_if_each_added_incidence_costs_one_rank1_unit": {
+                str(r): n for r, n in sorted(profile.items())
+            },
+            "moment_at_a_3_over_997": [str(x) for x in moment],
+            "complex_kappa_ceiling": str(kappa),
+        })
+    require([row["added_incidence_count"] for row in incidence_sensitivities]
+            == [26, 50, 60, 110],
+            "rank-one incidence sensitivity prefixes changed")
 
     receipt = {
         "status": "PASS_P112_SELECTED_CENTER_CUT_COMPOSITION",
-        "scope": "Three-block exact composition into the immediate selected centre cut; no supplier admission or selected-kappa change.",
+        "scope": "Exact composition of all fourteen source-bound P112 tetrad basis changes into the immediate selected centre cut; no supplier admission or selected-kappa change.",
         "selected_kappa_unchanged": selected_record["decimal"],
         "selected_archive_sha256": archive_hash,
         "tetrads_transformed": len(block_results),
         "blocks": block_results,
         "cut": {
             "old_add_instructions": len(word["cut"]),
-            "new_add_instructions": len(changed_instructions),
+            "new_add_instructions_after_first_three_blocks": len(first_three_instructions),
+            "new_add_instructions_after_all_blocks": len(changed_instructions),
             "old_nonzero_coefficients": old_support,
+            "nonzero_coefficients_after_first_three_blocks": first_three_support,
             "new_nonzero_coefficients": new_support,
-            "added_nonzero_coefficients": incidence_overhead,
+            "added_nonzero_coefficients_after_first_three_blocks": 26,
+            "added_nonzero_coefficients_after_all_blocks": 110,
             "consumer_identity": "S^T = S_new^T U on each transformed block",
             "arithmetic_domain": "exact rational coefficients",
         },
-        "rank72_complex_sensitivity_only": {
-            "profile_before_incidence_charge": {
-                str(r): n for r, n in sorted(base_profile.items())
-            },
-            "profile_if_each_added_incidence_costs_one_rank1_unit": {
-                str(r): n for r, n in sorted(sensitivity_profile.items())
-            },
-            "moment_at_a_3_over_997_before": [str(x) for x in base_moment],
-            "moment_at_a_3_over_997_after": [str(x) for x in sensitivity_moment],
-            "complex_kappa_ceiling_before": str(base_kappa),
-            "complex_kappa_ceiling_after": str(sensitivity_kappa),
+        "rank72_complex_incidence_sensitivity_only": {
+            "target_a": str(target_a),
+            "profile_rule": "{1:192+4k+added_incidence_count, 2:56-4k, 72:73, 56:1}",
+            "unpaid_average_rule": "1+k/28",
+            "rows": incidence_sensitivities,
             "not_a_scalar_ADD_tariff": True,
         },
         "scope_limit": "The rank-72 profile and rank-1 incidence charge are sensitivities, not suppliers or a verified scalar-cost conversion; bit-side and complete implementation invoices remain open.",
     }
     print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
-    print("PASS_P112_SELECTED_CENTER_CUT_COMPOSITION blocks=3 cut_adds=176->202 "
+    print("PASS_P112_SELECTED_CENTER_CUT_COMPOSITION blocks=14 cut_adds=176->286 "
           "rank1_incidence_sensitivity_complex_kappa=%.12f no_new_kappa" %
-          float(sensitivity_kappa))
+          float(Q(incidence_sensitivities[-1]["complex_kappa_ceiling"])))
 
 
 if __name__ == "__main__":
