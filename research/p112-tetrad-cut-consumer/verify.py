@@ -2,7 +2,7 @@
 """Bind three P112 tetrad basis changes to the selected gauge44 centre cut."""
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from fractions import Fraction as Q
 import gzip
 import hashlib
@@ -104,6 +104,170 @@ def read_selected_scatter(gauge):
     return word, scatter, archive_hash
 
 
+def read_selected_forward_program(gauge):
+    provider = "candidate/strict/global/base/providers/gauge44/"
+    with tarfile.open(gauge.ARCHIVE, "r:gz") as archive:
+        program_bytes = archive.extractfile(
+            provider + "LOCAL-PROGRAMS.json.gz").read()
+        replay_bytes = archive.extractfile(
+            provider + "INDEPENDENT-LOCAL-REPLAY.json").read()
+    replay = json.loads(replay_bytes)
+    require(replay["status"]
+            == "PASS_INDEPENDENT_LOCAL_SCALAR_FRAME_AND_WRAPPER_REPLAY"
+            and hashlib.sha256(program_bytes).hexdigest()
+            == replay["local_programs_sha256"],
+            "selected local-program binding changed")
+    programs = json.loads(gzip.decompress(program_bytes))
+    require(set(programs) == {"forward", "backward"},
+            "selected local-program directions changed")
+    return programs["forward"]
+
+
+def matrix_rank_determinant(matrix):
+    rows = [[Q(value) for value in row] for row in matrix]
+    size = len(rows)
+    require(size and all(len(row) == size for row in rows),
+            "dirty response matrix is not square")
+    determinant = Q(1)
+    pivot_row = 0
+    for column in range(size):
+        pivot = next((i for i in range(pivot_row, size)
+                      if rows[i][column]), None)
+        if pivot is None:
+            continue
+        if pivot != pivot_row:
+            rows[pivot_row], rows[pivot] = rows[pivot], rows[pivot_row]
+            determinant = -determinant
+        scale = rows[pivot_row][column]
+        determinant *= scale
+        for i in range(pivot_row + 1, size):
+            if rows[i][column]:
+                factor = rows[i][column] / scale
+                rows[i] = [rows[i][j] - factor * rows[pivot_row][j]
+                           for j in range(size)]
+        pivot_row += 1
+        if pivot_row == size:
+            break
+    return pivot_row, determinant if pivot_row == size else Q(0)
+
+
+def audit_selected_cut_chronology(word, forward_program):
+    """Bind the cut's position and the word-level dirty response before B."""
+    phases = {event[1]: index for index, event in enumerate(forward_program)
+              if event[0] == "phase"}
+    required_phases = (
+        "zero_frame_precondition", "entry_adapters", "A", "centers", "B",
+        "cleanup_tail", "full_frame_cleanup",
+    )
+    require(all(name in phases for name in required_phases),
+            "selected forward phase inventory changed")
+    require([phases[name] for name in required_phases]
+            == sorted(phases[name] for name in required_phases),
+            "selected forward phase order changed")
+
+    cut_positions = []
+    native_cut = []
+    for index, event in enumerate(forward_program):
+        if event[0] != "scalar":
+            continue
+        gate = event[1]
+        if (gate[0] == "add" and gate[1][0] == "L"
+                and word["v"] <= gate[1][1] < 2 * word["v"]
+                and gate[2][0] == "C"):
+            require(event[2] == 0, "selected centre cut frame changed")
+            cut_positions.append(index)
+            native_cut.append((gate[1][1], gate[2][1],
+                               Q(gate[3], gate[4])))
+    require(len(cut_positions) == len(word["cut"]) == 176,
+            "selected native cut instruction count changed")
+    center_index = {role: index for index, role in enumerate(word["centers"])}
+    canonical_cut = Counter(
+        (gate[1], center_index[gate[2]], Q(gate[3], gate[4]))
+        for gate in word["cut"]
+    )
+    require(Counter(native_cut) == canonical_cut,
+            "native cut coefficients differ from canonical cut")
+    require(phases["A"] < cut_positions[0] <= cut_positions[-1]
+            < phases["B"], "selected centre cut no longer lies between A and B")
+
+    v, n = word["v"], 2 * word["v"] + word["R"]
+    rows = [{index: Q(1)} for index in range(n)]
+    for stage in ("precondition", "compensation", "A"):
+        for gate in word[stage]:
+            if gate[0] == "add":
+                _, source, destination, numerator, denominator, *_ = gate
+                require(source != destination, "self-add in dirty prefix")
+                coefficient = Q(numerator, denominator)
+                for column, value in list(rows[source].items()):
+                    result = rows[destination].get(column, Q(0)) + coefficient * value
+                    if result:
+                        rows[destination][column] = result
+                    else:
+                        rows[destination].pop(column, None)
+            else:
+                require(gate[0] == "scale", "non-scalar dirty-prefix operation")
+                _, destination, numerator, denominator, *_ = gate
+                coefficient = Q(numerator, denominator)
+                rows[destination] = {
+                    column: coefficient * value
+                    for column, value in rows[destination].items()
+                }
+
+    dirty_rows = rows[v:2 * v]
+    outside_support = sum(
+        column not in range(v, 2 * v)
+        for row in dirty_rows for column, value in row.items() if value
+    )
+    dirty_map = [[row.get(v + column, Q(0)) for column in range(v)]
+                 for row in dirty_rows]
+    dirty_support = sum(value != 0 for row in dirty_map for value in row)
+    row_degrees = {}
+    for row in dirty_map:
+        degree = sum(value != 0 for value in row)
+        row_degrees[str(degree)] = row_degrees.get(str(degree), 0) + 1
+    dirty_rank, dirty_determinant = matrix_rank_determinant(dirty_map)
+    require(outside_support == 0 and dirty_rank == 112
+            and dirty_support == 272
+            and row_degrees == {"2": 88, "4": 24}
+            and dirty_determinant == Q(1, 2 ** 56),
+            "word-level pre-cut dirty response changed")
+
+    centers = set(word["centers"])
+    b_port_writes = [
+        gate for gate in word["B"]
+        if gate[0] == "add" and v <= gate[2] < 2 * v
+    ]
+    b_center_touches = [
+        gate for gate in word["B"]
+        if (set(gate[1:3]) & centers if gate[0] == "add"
+            else gate[1] in centers)
+    ]
+    require(len(b_port_writes) == 136
+            and {gate[2] for gate in b_port_writes} == set(range(v, 2 * v))
+            and not b_center_touches,
+            "selected B output/centre interaction changed")
+    return {
+        "forward_phase_indices": {name: phases[name]
+                                  for name in required_phases},
+        "native_cut_adds": len(cut_positions),
+        "native_cut_event_positions": [cut_positions[0], cut_positions[-1]],
+        "cut_precedes_B": True,
+        "word_scalar_prefix": "precondition + compensation + A; native adapters are not expanded by this matrix projection",
+        "word_scalar_pre_cut_dirty_response": {
+            "source_columns": "initial L[112:224] only",
+            "other_initial_columns_used": outside_support,
+            "nonzero_coefficients": dirty_support,
+            "row_degree_histogram": row_degrees,
+            "rank": dirty_rank,
+            "determinant": str(dirty_determinant),
+        },
+        "B_port_destination_adds": len(b_port_writes),
+        "B_distinct_port_destinations": len({gate[2] for gate in b_port_writes}),
+        "B_center_touches": len(b_center_touches),
+        "adapter_expansion_and_changed_schedule_semantics": "not established",
+    }
+
+
 def run():
     geometry = load_module(
         "p112_consumer_geometry",
@@ -128,6 +292,8 @@ def run():
     word, _ = selected.load_word()
     selected.build_bound_decoder(word)
     word, scatter, archive_hash = read_selected_scatter(gauge)
+    forward_program = read_selected_forward_program(gauge)
+    chronology = audit_selected_cut_chronology(word, forward_program)
 
     roots, frame = geometry.roots_and_frame()
     live = sorted(set(roots) - set(frame))
@@ -146,10 +312,15 @@ def run():
 
     original_cut = [row[:] for row in scatter]
     changed_cut = [row[:] for row in scatter]
+    hybrid_cut = [row[:] for row in scatter]
+    hybrid_dirty_correction = [[Q(0) for _ in word["centers"]]
+                               for _ in range(112)]
     block_results = []
     first_three_cut = None
     prefix_support_deltas = []
     dirty_correction_deltas = []
+    hybrid_support_deltas = []
+    hybrid_correction_deltas = []
     first_dirty_counterexample = None
     product_map_mismatch_support = 0
     changed_ports = set()
@@ -205,6 +376,24 @@ def run():
                     for i in range(8) for j in range(8)),
                 "separate dirty-baseline correction identity failed")
         old_product_map = matmul(transpose(old_block), k)
+        hybrid_block = old_block[:4] + new_block[4:]
+        hybrid_dirty_correction_block = (
+            [[Q(0)] * 8 for _ in range(4)] + dirty_correction[4:])
+        hybrid_support = sum(value != 0 for row in hybrid_block for value in row)
+        hybrid_correction_support = sum(
+            value != 0 for row in hybrid_dirty_correction_block for value in row)
+        require(all(hybrid_block[i][j] + hybrid_dirty_correction_block[i][j]
+                    == old_block[i][j]
+                    for i in range(8) for j in range(8)),
+                "hybrid cut failed to preserve the dirty contribution")
+        hybrid_product_map = matmul(transpose(hybrid_block), matmul(u, k))
+        require(hybrid_product_map == old_product_map,
+                "hybrid cut failed to preserve the fused product update")
+        hybrid_support_deltas.append(hybrid_support - old_support)
+        hybrid_correction_deltas.append(hybrid_correction_support)
+        for row_index, port in enumerate(ports):
+            hybrid_cut[port] = hybrid_block[row_index]
+            hybrid_dirty_correction[port] = hybrid_dirty_correction_block[row_index]
         fused_product_map = matmul(transpose(old_block), matmul(u, k))
         product_mismatch = sum(
             old_product_map[i][j] != fused_product_map[i][j]
@@ -247,6 +436,8 @@ def run():
             "new_nonzero_cut_coefficients": new_support,
             "added_nonzero_cut_coefficients": new_support - old_support,
             "separate_dirty_correction_coefficients": correction_support,
+            "hybrid_cut_coefficients": hybrid_support,
+            "hybrid_dirty_correction_coefficients": hybrid_correction_support,
             "old_cut_on_coefficient_fused_update_mismatch_entries": product_mismatch,
             "new_denominators": denominators,
         })
@@ -270,6 +461,22 @@ def run():
     require(first_dirty_counterexample is not None and
             product_map_mismatch_support == 288,
             "dirty-output basis mismatch control changed")
+    hybrid_support = sum(value != 0 for row in hybrid_cut for value in row)
+    hybrid_correction_support = sum(
+        value != 0 for row in hybrid_dirty_correction for value in row)
+    hybrid_added_incidences = (
+        hybrid_support - old_support + hybrid_correction_support)
+    require((hybrid_support, hybrid_correction_support,
+             hybrid_added_incidences) == (225, 152, 201)
+            and [sum(hybrid_support_deltas[:k])
+                 + sum(hybrid_correction_deltas[:k])
+                 for k in (3, 5, 9, 14)] == [43, 76, 125, 201],
+            "hybrid cut/correction supports changed")
+    require(all(hybrid_cut[port][center]
+                + hybrid_dirty_correction[port][center]
+                == original_cut[port][center]
+                for port in range(112) for center in range(8)),
+            "global hybrid dirty correction identity failed")
 
     # Rebuild the conditional full-basis cut from its exact matrix. The separate
     # dirty-baseline correction is a second input channel, not part of this cut.
@@ -286,8 +493,10 @@ def run():
 
     first_three_instructions = build_cut_instructions(first_three_cut)
     changed_instructions = build_cut_instructions(changed_cut)
+    hybrid_instructions = build_cut_instructions(hybrid_cut)
     require(len(first_three_instructions) == 202 and
-            len(changed_instructions) == 286,
+            len(changed_instructions) == 286
+            and len(hybrid_instructions) == hybrid_support == 225,
             "rebuilt centre cut has the wrong instruction count")
     rebuilt = [[Q(0) for _ in word["centers"]] for _ in range(112)]
     center_index = {register: index for index, register in
@@ -303,6 +512,9 @@ def run():
     for k_blocks in (3, 5, 9, 14):
         basis_incidence = sum(prefix_support_deltas[:k_blocks])
         correction_incidence = sum(dirty_correction_deltas[:k_blocks])
+        hybrid_incidence = (
+            sum(hybrid_support_deltas[:k_blocks])
+            + sum(hybrid_correction_deltas[:k_blocks]))
         centre = 112 - 4 * k_blocks
         unpaid = Q(1) + Q(k_blocks, 28)
 
@@ -335,21 +547,28 @@ def run():
             "full_basis_consumer_added_incidence_count": basis_incidence,
             "fused_update_dirty_correction_added_incidence_count": (
                 basis_incidence + correction_incidence),
+            "hybrid_fused_update_dirty_correction_added_incidence_count":
+                hybrid_incidence,
             "full_basis_consumer": price_sensitivity(basis_incidence),
             "fused_update_plus_separate_dirty_correction": price_sensitivity(
                 basis_incidence + correction_incidence),
+            "hybrid_cut_plus_bottom_dirty_correction": price_sensitivity(
+                hybrid_incidence),
         })
     require([row["full_basis_consumer_added_incidence_count"]
              for row in incidence_sensitivities] == [26, 50, 60, 110]
             and [row["fused_update_dirty_correction_added_incidence_count"]
-                 for row in incidence_sensitivities] == [85, 146, 245, 391],
+                 for row in incidence_sensitivities] == [85, 146, 245, 391]
+            and [row["hybrid_fused_update_dirty_correction_added_incidence_count"]
+                 for row in incidence_sensitivities] == [43, 76, 125, 201],
             "rank-one incidence sensitivity prefixes changed")
 
     receipt = {
         "status": "PASS_P112_SELECTED_CENTER_CUT_COMPOSITION",
-        "scope": "Exact conditional consumer maps for all fourteen source-bound P112 tetrads, plus a dirty-baseline counterexample and separate correction map; no supplier admission or selected-kappa change.",
+        "scope": "Exact conditional full and hybrid consumer maps for all fourteen source-bound P112 tetrads, a dirty-baseline counterexample, and a pinned cut chronology audit; no supplier admission or selected-kappa change.",
         "selected_kappa_unchanged": selected_record["decimal"],
         "selected_archive_sha256": archive_hash,
+        "chronology": chronology,
         "tetrads_transformed": len(block_results),
         "blocks": block_results,
         "cut": {
@@ -363,6 +582,17 @@ def run():
             "added_nonzero_coefficients_after_all_blocks": 110,
             "consumer_identity": "S^T = S_new^T U, conditional on the consumer receiving the full transformed vector U y",
             "arithmetic_domain": "exact rational coefficients",
+        },
+        "hybrid_cut": {
+            "definition": "H_top = S_top; H_bottom = (U^-T S)_bottom; C_top = 0; C_bottom = S_bottom - H_bottom",
+            "dirty_identity": "H^T d + C^T d = S^T d",
+            "fused_update_identity": "H^T U K = S^T K because the first four rows of U K vanish",
+            "cut_nonzero_coefficients_all_blocks": hybrid_support,
+            "bottom_dirty_correction_nonzero_coefficients_all_blocks":
+                hybrid_correction_support,
+            "net_added_incidence_count_vs_original_cut": hybrid_added_incidences,
+            "net_added_incidence_prefixes_for_3_5_9_14_blocks": [43, 76, 125, 201],
+            "schedule_integration": "conditional; the pinned cut precedes B, and adapter-expanded retiming/update availability is not established",
         },
         "dirty_state": {
             "coefficient_fusion_output_model": "d + U K x; it transforms the update, not the arbitrary dirty baseline d",
@@ -383,13 +613,13 @@ def run():
             "rows": incidence_sensitivities,
             "not_a_scalar_ADD_tariff_or_dirty_source_proof": True,
         },
-        "scope_limit": "The rank-72 profile and rank-1 incidence charge are sensitivities, not suppliers or a verified scalar-cost conversion; bit-side and complete implementation invoices remain open.",
+        "scope_limit": "The rank-72 profile and rank-1 incidence charge are sensitivities, not suppliers or a verified scalar-cost conversion. The hybrid map is not integrated into the selected cut chronology; adapter expansion, cleanup/restoration, bit-side and complete implementation invoices remain open.",
     }
     print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
     print("PASS_P112_SELECTED_CENTER_CUT_COMPOSITION blocks=14 cut_adds=176->286 "
-          "dirty_correction=281 conditional_complex_kappa=%.12f no_new_kappa" %
-          float(Q(incidence_sensitivities[-1][
-              "fused_update_plus_separate_dirty_correction"]["complex_kappa_ceiling"])))
+          "hybrid_net_incidence=201 cut_before_B=true hybrid_kappa3_sensitivity=%.12f no_new_kappa" %
+          float(Q(incidence_sensitivities[0][
+              "hybrid_cut_plus_bottom_dirty_correction"]["complex_kappa_ceiling"])))
 
 
 if __name__ == "__main__":

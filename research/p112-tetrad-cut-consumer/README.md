@@ -65,6 +65,41 @@ does transform the full dirty vector, but the predecessor's role-scaled screen
 shows that implementation misses `κ=0.003`; coefficient fusion avoids that
 word only for the update component.
 
+## Hybrid cut: a lower conditional correction
+
+Each selected transform also has four zero rows in `U K`. Keep the old cut on
+those four unchanged coordinates and use the inverse-transpose rows only on the
+four updated coordinates:
+
+```text
+H_top = S_top,     H_bottom = (U^-T S)_bottom
+C_top = 0,         C_bottom = S_bottom - H_bottom
+```
+
+Then `H^T d + C^T d = S^T d`, while `H^T U K = S^T K`. Across all fourteen
+blocks, `H` has 225 nonzero coefficients and the bottom-only correction has
+152. The net is 201 extra incidences over the old 176-add cut, compared with
+391 for the full separate-dirty correction. The exact first-three-block net is
+43 incidences.
+
+Under the same rank-72, one-rank-1-unit-per-net-incidence sensitivity screen,
+three transformed blocks give a complex-only ceiling of `0.004947467105`.
+The four checked prefixes (3, 5, 9 and 14 blocks) give `0.004947467105`,
+`0.011471186230`, `0.022871681937` and `0.033708626028`. These are planning
+sensitivities, not a scalar tariff, supplier or achieved κ.
+
+The pinned forward program places the 176 cut additions at event positions
+12554–12757, after phase `A` and before phase `B` (which starts at 12759).
+The canonical scalar prefix `precondition + compensation + A` maps the initial
+112 dirty output coordinates to a full-rank response with 272 nonzero entries;
+no other initial scalar columns enter that word-level map. Phase `B` then adds
+to all 112 output ports and does not touch the eight centre carriers. This binds
+the cut chronology and scalar dirty response, but the native adapter calls are
+not expanded by this matrix projection. It does not establish that the fused
+update reaches this cut, or that retiming the cut preserves the selected
+adapter and endpoint semantics. The hybrid identity is not integrated into
+the selected provider.
+
 ## Target sensitivity
 
 The ceiling engine does not price scalar cut additions. To gauge budget margin,
@@ -79,15 +114,23 @@ unit, while retaining the relaxed rank-72 complex children, centre charge
 | 9 | 60 | 0.025620878335 | 245 | 0.019105930385 |
 | 14 | 110 | 0.038865401047 | 391 | 0.026445058957 |
 
+| Fused tetrads `k` | Hybrid cut plus bottom correction, net added incidences | Hybrid complex ceiling |
+|---:|---:|---:|
+| 3 | 43 | 0.004947467105 |
+| 5 | 76 | 0.011471186230 |
+| 9 | 125 | 0.022871681937 |
+| 14 | 201 | 0.033708626028 |
+
 The highest checked conditional ideal sensitivity is `0.038865401047` when a
 producer supplies the full transformed vector at no separately priced basis
 conversion. The coefficient-fused update with an explicit dirty correction
 reaches `0.026445058957` under the same sensitivity tariff, provided `d` is
 available. The inherited bit rank-63 ideal ceiling is `0.052325479379`, so both
-remain complex-limited if that bit relaxation is retained unchanged. These are
-not physical invoices or achieved kappa values: the incidence tariff, rank-72
-children, dirty-input ownership, bit supplier, and full implementation remain
-unproved. The selected kappa remains `0.001672660197076918`.
+remain complex-limited if that bit relaxation is retained unchanged. The hybrid
+14-block sensitivity is `0.033708626028`. These are not physical invoices or
+achieved kappa values: the incidence tariff, rank-72 children, dirty-input
+ownership, bit supplier, and full implementation remain unproved. The selected
+kappa remains `0.001672660197076918`.
 
 ## Obligation ledger and comparison
 
@@ -98,7 +141,9 @@ unproved. The selected kappa remains `0.001672660197076918`.
 | `S_new^T U = S^T` when the entire vector is transformed | **Proved** over the rationals |
 | Coefficient-fused output leaves dirty baseline unchanged | **Proved** in the model `d + U K x`; the cut counterexample is exact |
 | Separate correction `C=S-S_new` restores the old dirty contribution | **Proved** over the rationals; support 281 |
-| Access and ownership of the original dirty input at the cut | **Unknown** |
+| Hybrid cut and bottom-only dirty correction identities | **Proved** over the rationals; supports 225 and 152 |
+| Selected cut position relative to `A`/`B` and word-scalar dirty response | **Proved** against pinned source; native adapters are not expanded |
+| Availability of the fused update at the selected cut after adapter expansion | **Unknown** |
 | Scalar price of the extra incidences and rank-72 implementation | **Unknown** |
 | Chronology, precision/magnitude limits, cleanup, restoration, and full bit-side invoice | **Unknown** |
 | Selected frontier update | **Not claimed**; selected kappa is unchanged |
@@ -128,9 +173,9 @@ It does not replay the full native program.
 
 ## Open next questions
 
-- Does the selected chronology retain the original dirty port vector until the
-  centre cut? Bind one block's initial dirty source through producer, cut,
-  cleanup, and compensation; price its ownership and lifetime.
+- Can the fused update reach the existing pre-`B` cut, or can a post-`B`
+  hybrid reader preserve the centre endpoint after adapter expansion? Bind one
+  tetrad through the actual adapters and cleanup, then price its exact schedule.
 - Can another unimodular completion reduce both the dirty-correction support
   and the fused term's copy cost? Search only after the dirty-source contract
   and an explicit scalar allowance are established.
