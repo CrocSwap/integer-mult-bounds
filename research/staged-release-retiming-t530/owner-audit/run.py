@@ -52,12 +52,19 @@ def main():
  (literal/'PROFILE.json').write_text(profile_text)
  need(total==Counter({int(k):v for k,v in read(HERE/'RESULT.json')['profile'].items()}),'New full invoice matches retained receipt')
  env.update({'OWNER_UPSTREAM_DIR':str(HERE/'upstream'),'OWNER_LITERAL_DIR':str(literal),'OWNER_NATIVE_DIR':str(HERE/'native'),'OWNER_AUDIT_OUTPUT':str(out/'RESULT.json')})
- subprocess.run([sys.executable,'-B',str(HERE/'independent_literal.py')],env=env,check=True)
+ subprocess.run([sys.executable,'-B',str(HERE/'semantic_gate_controls.py')],env=env,check=True)
+ semantic=read(out/'SEMANTIC-GATES.json')
+ need(semantic['status']=='PASS_FIVE_EXACT_PRODUCTION_GATE_MUTATIONS_AND_FIVE_DISABLE_SENSITIVITIES'
+      and semantic['semantic_mutants_rejected']==semantic['gate_disable_sensitivities']==5
+      and semantic['historical_reject_lambdas_counted'] is False,'Fresh semantic gate controls')
+ need(semantic['source_sha256']==derivation['derived_script_sha256']
+      and semantic['checker_sha256']==sha(HERE/'semantic_gate_controls.py')
+      and semantic['positive_receipt_sha256']==sha(out/'RESULT.json'),'Semantic gate receipt binding')
  retained=read(HERE/'RESULT.json');actual=read(out/'RESULT.json')
  for key in ('status','replicas','calls','roles','physical','idle','profile','script_sha256','controls','scope'):
   need(actual[key]==retained[key],'Independent receipt mismatch: '+key)
  need(snapshot()==before,'Package changed during replay')
- receipt={'status':'PASS_LEAN_REGENERATED_OWNER_AUDIT','seconds':time.monotonic()-start,'python':sys.version,'numpy':numpy.__version__,'fresh_literal_reconstruction':True,'fresh_independent_owner_audit':True,'package_files_unchanged':True,'source_files':len(inputs['repo_files']),'upstream_artifacts':len(read(HERE/'upstream/ARTIFACTS.json')),'derived_profile':dict(sorted(total.items())),'scope':'Fresh finite reconstruction and independent ownership/invoice checks; canonical native frame tables are authenticated inputs, not operator proofs rerun by this command.'}
+ receipt={'status':'PASS_LEAN_REGENERATED_OWNER_AUDIT','seconds':time.monotonic()-start,'python':sys.version,'numpy':numpy.__version__,'fresh_literal_reconstruction':True,'fresh_independent_owner_audit':True,'fresh_semantic_gate_mutations':5,'gate_disable_sensitivities':5,'historical_reject_lambdas_counted':False,'semantic_gate_receipt_sha256':sha(out/'SEMANTIC-GATES.json'),'package_files_unchanged':True,'source_files':len(inputs['repo_files']),'upstream_artifacts':len(read(HERE/'upstream/ARTIFACTS.json')),'derived_profile':dict(sorted(total.items())),'scope':'Fresh finite reconstruction and independent ownership/invoice checks; canonical native frame tables are authenticated inputs, not operator proofs rerun by this command.'}
  (out/'RUN.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps(receipt,indent=2))
 
 if __name__=='__main__':main()

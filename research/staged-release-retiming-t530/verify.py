@@ -81,11 +81,25 @@ def main():
     local = read(out / 'local/VERIFY.json')
     owner = read(out / 'owner/RESULT.json')
     owner_run = read(out / 'owner/RUN.json')
+    owner_controls = read(out / 'owner/SEMANTIC-GATES.json')
     moment = read(out / 'numerics/MOMENT.json')
     outer = read(out / 'numerics/outer/RESULT.json')
     cap = read(out / 'packing/RETIMED-PACKING-CAP.json')
     require(local['status'] == 'PASS_PORTABLE_LOCAL_RETIMING_AUDIT', 'local status')
     require(owner_run['status'] == 'PASS_LEAN_REGENERATED_OWNER_AUDIT', 'fresh owner status')
+    require(owner_controls['status']
+            == 'PASS_FIVE_EXACT_PRODUCTION_GATE_MUTATIONS_AND_FIVE_DISABLE_SENSITIVITIES',
+            'fresh owner semantic controls')
+    require(owner_controls['source_sha256'] == owner['script_sha256']
+            and owner_controls['roles'] == owner['roles'], 'owner control source/data binding')
+    require({item['gate'] for item in owner_controls['tests']}
+            == {'helper_identity', 'window', 'family', 'prefix', 'histogram'}
+            and len(owner_controls['tests']) == 5, 'complete owner gate control coverage')
+    for item in owner_controls['tests']:
+        require(all(item[key] is True for key in
+                    ('baseline_passed', 'mutant_rejected_at_expected_gate',
+                     'disabling_gate_makes_control_fail', 'restored_baseline_passed')),
+                'owner mutation and gate-disable sensitivity: ' + item['gate'])
     require(owner['profile'] == moment['new_profile'] == cap['literal_T530_profile']
             == summary['profile'] == PROFILE, 'all components bind the same full profile')
     require(owner['roles'] == 1946160 and owner['calls'] == moment['calls'] == 4770,
@@ -149,6 +163,8 @@ def main():
         'status':'PASS_STAGED_RELEASE_RETIMING_T530_BOUNDED_CHECKS',
         'kappa':str(KAPPA), 'profile':PROFILE, 'stages':stages,
         'package_files_unchanged':True,
+        'owner_semantic_gate_controls':5,
+        'owner_gate_disable_sensitivity_controls':5,
         'rejected_recorded_cache_controls':['empty cache inventory', 'empty provider cache subset'],
         'scope':'Fresh finite local/operator, regenerated ownership/invoice, exact arithmetic and scoped packing checks; full native/controller/outer admission is retained evidence only in this command. Inherited general assumptions remain.'}
     (out / 'RESULT.json').write_text(json.dumps(receipt, indent=2) + '\n')

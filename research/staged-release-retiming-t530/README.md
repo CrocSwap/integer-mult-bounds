@@ -39,12 +39,20 @@ The second command invokes `verify.py`, which creates a fresh temporary output d
 | Component | Freshly checked by the bounded command | Retained evidence / limit |
 | --- | --- | --- |
 | [local-audit](local-audit/README.md) | Minimal commuting/frame proof, both complete free-operator words, 632 arbitrary input columns, both orientations, 91 zero buffers and negative controls | Complete native receipts are authenticated, not rerun here |
-| [owner-audit](owner-audit/README.md) | Reconstruct 1,946,160 literal roles; independently check ownership, windows, families, chronological prefixes, capacities and full invoice; five rejection controls | Native frame tables are authenticated inputs |
+| [owner-audit](owner-audit/README.md) | Reconstruct 1,946,160 literal roles; independently check ownership, windows, families, chronological prefixes, capacities and full invoice; five production-gate mutation tests and five gate-disable sensitivity tests | Native frame tables are authenticated inputs; mutation tests execute isolated production predicates, not whole corrupted journals |
 | [numerics](numerics/README.md) | Two rational root engines; 63 strict transfer inequalities, 17 rejection controls and independent balance derivation | Arithmetic alone does not prove the physical circuit |
 | [packing-cap](packing-cap/README.md) | All 2,551 fixed-inventory patterns, exact dual and ceiling interval | A scoped relaxation bound, not a higher achieved κ |
 | [full-admission](full-admission/README.md) | Public-file integrity and cross-bound recorded-summary checks | Does not rerun or reauthenticate the omitted complete runtime archive |
 
 The registered dependency closure includes the 13 pinned main files actually used by the bounded owner replay. Self-contained components authenticate their vendored inputs. The longer full replay has a separately pinned closure in `full-admission/MAIN-INPUTS.json`; it is not the bounded CI command.
+
+### Owner-control correction following PR3694
+
+[Sagar Thakrar's PR3694](https://github.com/CrocSwap/integer-mult-bounds/pull/3694) identified a test-coverage defect in the inherited owner auditor. Its five old rejection lambdas evaluate constructed false expressions without calling the real validation gates. We independently reproduced the defect: disabling all five corresponding production predicates still leaves those old controls passing. The earlier descriptions of them as five effective rejection controls were incorrect. The normal ownership and invoice checks remain present; this finding does not itself change the profile or κ.
+
+The bounded owner replay now executes an owned companion against the regenerated data. It extracts the five actual unconditional validation statements from the authenticated auditor, rejects changed helper identity, strict-window endpoint, same-call family, pending prefix and histogram inputs, and verifies that disabling each respective gate makes its negative test fail. These are explicitly gate-level semantic tests. The frozen upstream and derived auditors, old receipts and full-admission source manifest retain their original bytes. The separate seven-stage full-admission owner check uses a different retained auditor; its earlier run is not relabelled as a fresh replay by this correction.
+
+All three registered commands passed locally on 2026-10-19 with Python 3.12.14 / NumPy 2.5.4. The five fresh bounded stages took 23.84 seconds, including complete owner reconstruction and audit in 19.61 seconds; package files remained unchanged. [PUBLIC-OWNER-CONTROLS.json](PUBLIC-OWNER-CONTROLS.json) binds the changed code and this run, and [the semantic-control receipt](owner-audit/evidence/SEMANTIC-CONTROLS-FOLLOWUP.json) records each mutation, production predicate and sensitivity result. This is a new bounded validation record, separate from the earlier complete scientific replay.
 
 ## Full scientific replay and recorded results
 

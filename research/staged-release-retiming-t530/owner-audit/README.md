@@ -19,7 +19,15 @@ A rerun performs all of the following:
 1. Authenticate the 13 existing-main dependencies and all 22 frozen PR3626 owner artifacts.
 2. Execute the unchanged `upstream/portable_expand.py`, including its exact primal and deterministic integral-network checks, into a fresh output directory. This generates the full T530 literal journal and binds its decompressed payload to SHA256 `9f82e7d4abfcb52cd6d969e37e07415516856d7af85192010f3fc142dbaad246`.
 3. Bind both actual retimed canonical words and read their local profile. Keep the literal ownership rows unchanged, replacing only the generated full profile by `H_new = H_old + 4770*(-2H1-2H2+2H3)`.
-4. Run the exact preserved derived `independent_literal.py` against the regenerated journal, changed profile and actual canonical words. Check all 1,946,160 rows, 4,770 calls and 530 replicas; run the five retained rejection controls; compare semantic receipt fields; verify that every package file remains unchanged.
+4. Execute `semantic_gate_controls.py`, which runs the exact preserved derived `independent_literal.py` once against the regenerated journal, changed profile and actual canonical words. Check all 1,946,160 rows, 4,770 calls and 530 replicas, then test five actual production gate statements on changed in-memory semantic inputs. Compare the positive receipt fields and verify that every package file remains unchanged. The historical five `reject()` lambdas are retained as provenance and are not counted as negative coverage.
+
+### Correction to the inherited negative-control claim
+
+[PR3694](https://github.com/CrocSwap/integer-mult-bounds/pull/3694) identified that the five inherited `reject()` lambdas do not invoke their corresponding production gates. A separate scratch reproduction confirmed that disabling all five named gates still leaves those historical controls reporting success. This is a test-coverage defect; the positive owner, window, family, prefix and invoice predicates remain genuine checks on the literal journal. Earlier receipts and their `controls` fields are preserved unchanged as historical records, not evidence of five genuine mutation tests.
+
+The owned companion now extracts the exact five unconditional `need(...)` AST statements from the authenticated derived auditor and checks that they match the frozen predecessor. It first executes the complete positive auditor, including source authentication, once. It then tests duplicate helper identity, time equal to an actual nonnegative strict lower endpoint, reuse of a same-call physical family, a chronological offset hole, and one unpaid rank-1 invoice child. The family case also executes the production key-computation statements. Each changed input must raise the exact expected gate error; the original input must pass before and after. Replacing that gate predicate by `True` must make its mutation test fail.
+
+`SEMANTIC-GATES.json` binds these five rejection results and five gate-disable sensitivity results to the preserved auditor, the new checker and the unchanged positive `RESULT.json`. These are isolated semantic gate tests on real journal data. They do not claim five complete corrupted-file replays through the artifact hash checks, or new native/controller/outer admission. The preserved auditor, upstream files, old receipts and full-admission source manifests are unchanged.
 
 The resulting complete profile is:
 
@@ -37,7 +45,7 @@ The generated `PROVIDERS.json` is unchanged predecessor materialization metadata
 
 `upstream/` retains all 22 files authenticated by its unchanged `ARTIFACTS.json`. The PR3626 manifest Git blob `01694a31e732d9f0a357ce3466cb2aa9f81a5855` was checked against the exact pending head. Its original producers, source context, primal, expectations, independent auditor, proof, credits and notices retain their original bytes and hashes.
 
-`independent_literal.py` is the already-derived auditor, copied without predicate changes. `DERIVATION.json` documents the three preceding adaptations: explicit upstream directory, actual fresh native canonical pins, and the local bill `-2H1-2H2+2H3`. The original auditor remains at `upstream/independent_literal.py`. The runner authenticates both scripts before execution. Their checks are not replaced by stored PASS receipts.
+`independent_literal.py` is the already-derived auditor, copied without predicate changes. `DERIVATION.json` documents the three preceding adaptations: explicit upstream directory, actual fresh native canonical pins, and the local bill `-2H1-2H2+2H3`. The original auditor remains at `upstream/independent_literal.py`. The runner authenticates both scripts before execution. Their positive checks are not replaced by stored PASS receipts. The owned companion supplies the additional semantic mutation coverage without editing either preserved script.
 
 Only this session's local home-directory prefix in public execution metadata is represented by `$RESEARCH_WORKSPACE`. `PUBLIC-PROVENANCE.json` records original and public SHA256 values; scientific fields and content hashes are unchanged. Frozen upstream sources are not normalized or rewritten.
 
