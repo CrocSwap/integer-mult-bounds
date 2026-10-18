@@ -352,6 +352,110 @@ def retime_readout_through_b(readout, word):
     }
 
 
+def audit_pre_b_native_cut_frames(word, forward_program, lift, native):
+    """Audit output and private centre frames at the selected pre-B cut."""
+    require(native["word"] == word
+            and native["programs"]["forward"] == forward_program,
+            "pre-B frame audit is not bound to the selected word/program")
+    audited = lift.audit_stream(word, forward_program)
+    v, n = word["v"], 2 * word["v"] + word["R"]
+    wrapped = {
+        i for i in range(2 * v, n)
+        if (word["start"][i], word["final"][i]) != (0, 1)
+    }
+    labels = {
+        ("L", i): (("preS", i) if i < v else
+                    ("preW", i) if i in wrapped else
+                    ("T", word["start"][i]))
+        for i in range(n)
+    }
+    phase = None
+    cut_adds = 0
+    for event in forward_program:
+        tag = event[0]
+        if tag == "phase":
+            phase = event[1]
+            if phase == "B":
+                break
+        elif tag == "climb":
+            _, part, role, old, new, rank = event
+            require(part == phase and labels[("L", role)] == ("T", old)
+                    and rank == len(word["frames"][new])
+                    - len(word["frames"][old]) > 0,
+                    "pre-B frame climb changed")
+            labels[("L", role)] = ("T", new)
+        elif tag == "center":
+            _, centre, old, new, rank = event
+            require(phase == "centers"
+                    and labels.get(("C", centre)) == ("T", old)
+                    and rank == len(word["frames"][old])
+                    - len(word["frames"][new]) == 8,
+                    "pre-B centre frame descent changed")
+            labels[("C", centre)] = ("T", new)
+        elif tag == "adapter":
+            _, direction, role, frame = event
+            if direction == "old_to_new":
+                if role < v:
+                    require(labels[("L", role)] == ("preS", role),
+                            "pre-B source entry label changed")
+                else:
+                    require(frame == 0 and labels[("L", role)] == ("T", 0),
+                            "pre-B target entry label changed")
+                labels[("L", role)] = ("T", frame)
+        elif tag == "residual_adapter":
+            direction, role = event[1:3]
+            if direction == "pre":
+                left, _ = lift.residual_pair(event)
+                require(labels[("L", role)] == ("preW", role),
+                        "pre-B helper entry label changed")
+                labels[("L", role)] = ("T", left)
+        elif tag == "scalar":
+            _, operation, frame = event
+            kind, destination = operation[0], tuple(operation[1])
+            if kind in ("clear", "copy"):
+                labels[destination] = ("T", frame)
+            elif (phase == "centers" and kind == "add"
+                  and destination[0] == "L"
+                  and v <= destination[1] < 2 * v
+                  and tuple(operation[2])[0] == "C"):
+                source = tuple(operation[2])
+                require(frame == 0
+                        and labels[destination] == labels[source] == ("T", 0),
+                        "selected pre-B cut ADD frame changed")
+                require(all(labels[("L", role)] == ("T", 0)
+                            for role in range(v, 2 * v))
+                        and all(labels.get(("C", centre)) in
+                                (None, ("T", 0)) for centre in range(8)),
+                        "another pre-B cut operand left frame 0")
+                cut_adds += 1
+
+    output_frames = [labels[("L", role)][1]
+                     for role in range(v, 2 * v)]
+    centre_accumulator_frames = [labels[("C", centre)][1]
+                                 for centre in range(8)]
+    require(cut_adds == len(word["cut"]) == 176
+            and set(output_frames) == {0}
+            and set(centre_accumulator_frames) == {0}
+            and all(labels[("L", role)] == ("T", 0)
+                    for role in range(v, 2 * v))
+            and all(labels[("C", centre)] == ("T", 0)
+                    for centre in range(8)),
+            "pre-B cut is no longer a common-frame window")
+    return {
+        "boundary": "after the selected centre cut and before canonical B",
+        "native_cut_adds_exactly_checked_by_stream_audit": cut_adds,
+        "output_role_count": v,
+        "output_frame_ids": sorted(set(output_frames)),
+        "centre_accumulator_count": len(centre_accumulator_frames),
+        "centre_accumulator_frame_ids":
+            sorted(set(centre_accumulator_frames)),
+        "common_frame_rank": len(word["frames"][0]),
+        "candidate_frame_join_rank1_units_for_added_pre_B_cut_terms": 0,
+        "new_scalar_schedule_and_dirty_baseline_availability": "unproved",
+        "native_edge_inventory_count": len(audited["edges"]),
+    }
+
+
 def audit_post_b_native_frame_join(word, forward_program, lift, native, kernel):
     """Check the selected native frame labels and exact rank-one joins at B exit."""
     require(native["word"] == word
@@ -497,6 +601,8 @@ def run():
     forward_program = read_selected_forward_program(gauge)
     chronology = audit_selected_cut_chronology(word, forward_program)
     native_data, native_kernel = lift.load(ROOT)
+    pre_b_frames = audit_pre_b_native_cut_frames(
+        word, forward_program, lift, native_data)
     post_b_frames = audit_post_b_native_frame_join(
         word, forward_program, lift, native_data, native_kernel)
 
@@ -970,6 +1076,7 @@ def run():
             "separate_dirty_baseline_channel_and_duplicate_B_cost": "unproved",
             "adapter_expansion_and_native_schedule_binding": "unproved",
         },
+        "pre_B_native_cut_frame_compatibility": pre_b_frames,
         "dirty_state": {
             "coefficient_fusion_output_model": "d + U K x; it transforms the update, not the arbitrary dirty baseline d",
             "first_block_counterexample": first_dirty_counterexample,
@@ -993,7 +1100,7 @@ def run():
     }
     print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
     print("PASS_P112_SELECTED_CENTER_CUT_COMPOSITION blocks=14 cut_adds=176->286 "
-          "hybrid_net_incidence=201 cut_before_B=true "
+          "hybrid_net_incidence=201 pre_B_join_units=0 cut_before_B=true "
           "retimed_post_B_kappa3=%.12f one_pass_frame_join=%.12f no_new_kappa" %
           (float(Q(retimed_hybrid_prefixes[0]["complex_kappa_ceiling"])),
            float(frame_join_kappa)))

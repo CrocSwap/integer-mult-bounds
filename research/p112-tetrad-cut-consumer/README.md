@@ -149,7 +149,20 @@ complex profile as above.
 | 9 | 441 | 140 | 405 | 133 | 0.015679681607 |
 | 14 | 437 | 215 | 476 | 204 | 0.024130777318 |
 
-### Native frame compatibility at the post-`B` boundary
+### Native frame compatibility at the cut and post-`B` boundaries
+
+The native label trace also tests the alternative of keeping the consumer at
+its selected location, after `A` and before `B`. Throughout the existing cut
+window, all 112 output roles and all eight active private centre accumulators
+are in frame 0; the 176 source-bound cut ADDs use that same frame. A hybrid
+reader placed at this boundary therefore needs no candidate frame-join units
+for its added terms. Its three-block incidence-only sensitivity remains
+`0.004947467105`, above `0.003` under the relaxed profile.
+
+This is a frame-compatibility result, not a new native schedule: it does not
+establish that the changed coefficients and separately sourced dirty-baseline
+correction can be installed at this event window. It does show that the
+post-`B` frame join below is avoidable if the consumer stays before `B`.
 
 The incidence-only table treats each added scalar coefficient as one
 hypothetical rank-1 unit. The selected native execution has a further boundary
@@ -170,12 +183,12 @@ common-frame pass gives this further optimistic sensitivity:
 | 9 | 120 | 0.013825363860 |
 | 14 | 120 | 0.021482998123 |
 
-Thus the three-block route falls below `0.003` even under this one-pass ideal
-profile, before restoration, a separately executed dirty-baseline stream, or
-any other endpoint costs. The larger prefixes still clear `0.003` only as
-sensitivities. The common-frame pass is not a proved schedule or universal
-obstruction: another producer interface or a different placement may avoid
-these joins. Native adapter expansion, endpoint ownership, cleanup/restoration,
+Thus retiming the three-block route to post-`B` falls below `0.003` even under
+this one-pass ideal profile, before restoration, a separately executed
+dirty-baseline stream, or other endpoint costs. The larger post-`B` prefixes
+still clear `0.003` only as sensitivities. This is not a universal obstruction:
+the source-bound pre-`B` window avoids the candidate joins, while adapter
+expansion, endpoint ownership, dirty-stream availability, cleanup/restoration,
 the actual scalar tariff, and the complete bit-side invoice remain open. The
 selected κ remains `0.001672660197076918`.
 
