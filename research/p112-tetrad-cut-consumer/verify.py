@@ -149,6 +149,9 @@ def run():
     block_results = []
     first_three_cut = None
     prefix_support_deltas = []
+    dirty_correction_deltas = []
+    first_dirty_counterexample = None
+    product_map_mismatch_support = 0
     changed_ports = set()
     for block_index, tetrad in enumerate(tetrads, start=1):
         even, odd = classes[tetrad, 0], classes[tetrad, 1]
@@ -190,6 +193,45 @@ def run():
         old_support = sum(value != 0 for row in old_block for value in row)
         new_support = sum(value != 0 for row in new_block for value in row)
         prefix_support_deltas.append(new_support - old_support)
+        dirty_correction = [[old_block[i][j] - new_block[i][j]
+                             for j in range(8)] for i in range(8)]
+        correction_support = sum(value != 0 for row in dirty_correction
+                                 for value in row)
+        dirty_correction_deltas.append(correction_support)
+        new_transpose = transpose(new_block)
+        correction_transpose = transpose(dirty_correction)
+        require(all(new_transpose[i][j] + correction_transpose[i][j]
+                    == transpose(old_block)[i][j]
+                    for i in range(8) for j in range(8)),
+                "separate dirty-baseline correction identity failed")
+        old_product_map = matmul(transpose(old_block), k)
+        fused_product_map = matmul(transpose(old_block), matmul(u, k))
+        product_mismatch = sum(
+            old_product_map[i][j] != fused_product_map[i][j]
+            for i in range(8) for j in range(8))
+        product_map_mismatch_support += product_mismatch
+
+        if block_index == 1:
+            old_dirty = old_block[0]
+            fused_cut_dirty = new_block[0]
+            corrected_dirty = [fused_cut_dirty[j] + dirty_correction[0][j]
+                               for j in range(8)]
+            require(old_dirty == [Q(0)] * 8 and
+                    fused_cut_dirty == [Q(0), Q(0), Q(0), Q(0),
+                                        Q(0), Q(0), Q(1, 4), -Q(1, 4)] and
+                    corrected_dirty == old_dirty,
+                    "dirty-only counterexample/correction changed")
+            first_dirty_counterexample = {
+                "tetrad": list(tetrad),
+                "dirty_vector_in_U_order": [1, 0, 0, 0, 0, 0, 0, 0],
+                "old_cut_delta": [str(value) for value in old_dirty],
+                "new_cut_on_untransformed_dirty": [str(value)
+                                                   for value in fused_cut_dirty],
+                "new_cut_plus_separate_dirty_correction": [
+                    str(value) for value in corrected_dirty],
+                "old_cut_on_coefficient_fused_update_mismatch_entries":
+                    product_mismatch,
+            }
         denominators = sorted({value.denominator for row in new_block
                                for value in row if value})
         require(all(value.denominator in (1, 2, 4)
@@ -204,6 +246,8 @@ def run():
             "old_nonzero_cut_coefficients": old_support,
             "new_nonzero_cut_coefficients": new_support,
             "added_nonzero_cut_coefficients": new_support - old_support,
+            "separate_dirty_correction_coefficients": correction_support,
+            "old_cut_on_coefficient_fused_update_mismatch_entries": product_mismatch,
             "new_denominators": denominators,
         })
         if block_index == 3:
@@ -219,10 +263,16 @@ def run():
     require(sum(prefix_support_deltas[:3]) == 26 and
             sum(prefix_support_deltas) == 110,
             "consumer incidence deltas changed")
+    require(dirty_correction_deltas == [16, 20, 23, 16, 21, 26, 15,
+                                        28, 20, 21, 16, 20, 23, 16]
+            and sum(dirty_correction_deltas) == 281,
+            "dirty-baseline correction support changed")
+    require(first_dirty_counterexample is not None and
+            product_map_mismatch_support == 288,
+            "dirty-output basis mismatch control changed")
 
-    # Rebuild the literal modified cut from its exact matrix and check the full
-    # output map. The cut only adds to centre accumulators; it preserves their
-    # incoming dirty values because the same delta is added for every port vector.
+    # Rebuild the conditional full-basis cut from its exact matrix. The separate
+    # dirty-baseline correction is a second input channel, not part of this cut.
     def build_cut_instructions(matrix):
         instructions = []
         for port, row in enumerate(matrix):
@@ -251,39 +301,53 @@ def run():
     target_a = Q(3, 997)
     incidence_sensitivities = []
     for k_blocks in (3, 5, 9, 14):
-        incidence_overhead = sum(prefix_support_deltas[:k_blocks])
-        profile = {
-            1: 192 + 4 * k_blocks + incidence_overhead,
-            2: 56 - 4 * k_blocks,
-            72: 73,
-            56: 1,
-        }
+        basis_incidence = sum(prefix_support_deltas[:k_blocks])
+        correction_incidence = sum(dirty_correction_deltas[:k_blocks])
         centre = 112 - 4 * k_blocks
         unpaid = Q(1) + Q(k_blocks, 28)
-        moment = ceiling.relax(
-            profile, 73, 896, 9, centre, target_a, R=51, unpaid=unpaid)
-        bracket = ceiling.ceiling(
-            profile, 73, 896, 9, centre, grid=Q(1, 10**12), R=51,
-            unpaid=unpaid)
-        kappa = bracket[1] / (1 + bracket[1])
-        require(moment[1] < 1 and kappa > Q(3, 1000),
-                "rank-one incidence sensitivity no longer clears kappa=0.003")
+
+        def price_sensitivity(overhead):
+            profile = {
+                1: 192 + 4 * k_blocks + overhead,
+                2: 56 - 4 * k_blocks,
+                72: 73,
+                56: 1,
+            }
+            moment = ceiling.relax(
+                profile, 73, 896, 9, centre, target_a, R=51,
+                unpaid=unpaid)
+            bracket = ceiling.ceiling(
+                profile, 73, 896, 9, centre, grid=Q(1, 10**12), R=51,
+                unpaid=unpaid)
+            kappa = bracket[1] / (1 + bracket[1])
+            require(moment[1] < 1 and kappa > Q(3, 1000),
+                    "rank-one incidence sensitivity no longer clears kappa=0.003")
+            return {
+                "profile_if_each_added_incidence_costs_one_rank1_unit": {
+                    str(r): n for r, n in sorted(profile.items())
+                },
+                "moment_at_a_3_over_997": [str(x) for x in moment],
+                "complex_kappa_ceiling": str(kappa),
+            }
+
         incidence_sensitivities.append({
             "transformed_tetrads": k_blocks,
-            "added_incidence_count": incidence_overhead,
-            "profile_if_each_added_incidence_costs_one_rank1_unit": {
-                str(r): n for r, n in sorted(profile.items())
-            },
-            "moment_at_a_3_over_997": [str(x) for x in moment],
-            "complex_kappa_ceiling": str(kappa),
+            "full_basis_consumer_added_incidence_count": basis_incidence,
+            "fused_update_dirty_correction_added_incidence_count": (
+                basis_incidence + correction_incidence),
+            "full_basis_consumer": price_sensitivity(basis_incidence),
+            "fused_update_plus_separate_dirty_correction": price_sensitivity(
+                basis_incidence + correction_incidence),
         })
-    require([row["added_incidence_count"] for row in incidence_sensitivities]
-            == [26, 50, 60, 110],
+    require([row["full_basis_consumer_added_incidence_count"]
+             for row in incidence_sensitivities] == [26, 50, 60, 110]
+            and [row["fused_update_dirty_correction_added_incidence_count"]
+                 for row in incidence_sensitivities] == [85, 146, 245, 391],
             "rank-one incidence sensitivity prefixes changed")
 
     receipt = {
         "status": "PASS_P112_SELECTED_CENTER_CUT_COMPOSITION",
-        "scope": "Exact composition of all fourteen source-bound P112 tetrad basis changes into the immediate selected centre cut; no supplier admission or selected-kappa change.",
+        "scope": "Exact conditional consumer maps for all fourteen source-bound P112 tetrads, plus a dirty-baseline counterexample and separate correction map; no supplier admission or selected-kappa change.",
         "selected_kappa_unchanged": selected_record["decimal"],
         "selected_archive_sha256": archive_hash,
         "tetrads_transformed": len(block_results),
@@ -297,22 +361,35 @@ def run():
             "new_nonzero_coefficients": new_support,
             "added_nonzero_coefficients_after_first_three_blocks": 26,
             "added_nonzero_coefficients_after_all_blocks": 110,
-            "consumer_identity": "S^T = S_new^T U on each transformed block",
+            "consumer_identity": "S^T = S_new^T U, conditional on the consumer receiving the full transformed vector U y",
             "arithmetic_domain": "exact rational coefficients",
+        },
+        "dirty_state": {
+            "coefficient_fusion_output_model": "d + U K x; it transforms the update, not the arbitrary dirty baseline d",
+            "first_block_counterexample": first_dirty_counterexample,
+            "old_cut_on_fused_update_mismatch_nonzeros_all_blocks":
+                product_map_mismatch_support,
+            "separate_dirty_correction_identity": "S_new^T(d+U K x) + (S-S_new)^T d = S^T(d+Kx)",
+            "separate_dirty_correction_coefficients_all_blocks":
+                sum(dirty_correction_deltas),
+            "separate_dirty_correction_coefficients_first_three":
+                sum(dirty_correction_deltas[:3]),
+            "dirty_baseline_source_and_retention": "unproved",
         },
         "rank72_complex_incidence_sensitivity_only": {
             "target_a": str(target_a),
             "profile_rule": "{1:192+4k+added_incidence_count, 2:56-4k, 72:73, 56:1}",
             "unpaid_average_rule": "1+k/28",
             "rows": incidence_sensitivities,
-            "not_a_scalar_ADD_tariff": True,
+            "not_a_scalar_ADD_tariff_or_dirty_source_proof": True,
         },
         "scope_limit": "The rank-72 profile and rank-1 incidence charge are sensitivities, not suppliers or a verified scalar-cost conversion; bit-side and complete implementation invoices remain open.",
     }
     print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
     print("PASS_P112_SELECTED_CENTER_CUT_COMPOSITION blocks=14 cut_adds=176->286 "
-          "rank1_incidence_sensitivity_complex_kappa=%.12f no_new_kappa" %
-          float(Q(incidence_sensitivities[-1]["complex_kappa_ceiling"])))
+          "dirty_correction=281 conditional_complex_kappa=%.12f no_new_kappa" %
+          float(Q(incidence_sensitivities[-1][
+              "fused_update_plus_separate_dirty_correction"]["complex_kappa_ceiling"])))
 
 
 if __name__ == "__main__":

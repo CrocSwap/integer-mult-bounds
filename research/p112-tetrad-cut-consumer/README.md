@@ -1,91 +1,113 @@
-# P112 kernel bases composed into the selected centre cut
+# P112 kernel bases and the selected centre cut: dirty-state audit
 
-**Exact fourteen-block consumer binding; no selected-kappa improvement is claimed.**
+**Exact conditional consumer maps and a dirty-baseline correction; no selected-kappa improvement is claimed.**
 
 ## Result
 
 For each of the selected provider's fourteen P112 tetrads, the source-bound
 unimodular output change `U` has four rows in the left kernel of that block's
-rank-four update. Its output basis can be composed into the actual selected
-gauge44 centre-cut matrix `S` with
+rank-four update. The actual selected gauge44 centre-cut matrix `S` admits the
+conditional composition
 
 ```text
 S_new = U^{-T} S
-S_new^T (U y) = S^T y
+S_new^T (U y) = S^T y.
 ```
 
-The identity holds over exact rationals for every port vector `y`, including
-arbitrary dirty values. Rebuilding the aggregate additive cut gives this
-support profile:
+This identity is exact over the rationals for every **fully transformed** port
+vector `U y`. Rebuilding its aggregate additive cut changes 176 coefficients
+to 286 (+110). It does not imply that coefficient fusion supplies `U y` on an
+arbitrary dirty workspace.
 
-| Tetrad | Old coefficients | New coefficients | Delta |
-|---|---:|---:|---:|
-| `(0, 1, 2, 3)` | 8 | 19 | +11 |
-| `(0, 1, 4, 5)` | 16 | 23 | +7 |
-| `(0, 1, 6, 7)` | 16 | 24 | +8 |
-| `(0, 2, 4, 6)` | 8 | 19 | +11 |
-| `(0, 2, 5, 7)` | 8 | 21 | +13 |
-| `(0, 3, 4, 7)` | 16 | 16 | 0 |
-| `(0, 3, 5, 6)` | 16 | 12 | -4 |
-| `(1, 2, 4, 7)` | 16 | 23 | +7 |
-| `(1, 2, 5, 6)` | 16 | 23 | +7 |
-| `(1, 3, 4, 6)` | 8 | 21 | +13 |
-| `(1, 3, 5, 7)` | 8 | 19 | +11 |
-| `(2, 3, 4, 5)` | 16 | 23 | +7 |
-| `(2, 3, 6, 7)` | 16 | 24 | +8 |
-| `(4, 5, 6, 7)` | 8 | 19 | +11 |
-| **Full selected cut** | **176** | **286** | **+110** |
+The P112 coefficient-fusion identity changes the product update from `K x` to
+`U K x`, but leaves an arbitrary dirty baseline `d` unchanged. Its output is
+`d + U K x`, whereas the vector required by the conditional consumer is
+`U(d + K x)`. The distinction has an exact first-block counterexample. In the
+block's `U`-ordered ports, take `d = (1,0,0,0,0,0,0,0)` and `x=0`. The old cut
+adds `(0,0,0,0,0,0,0,0)` to the centers; applying `S_new` to the unchanged dirty
+vector adds `(0,0,0,0,0,0,1/4,-1/4)`. Using the old cut `S` on the coefficient-
+fused product update also fails: `S^T U K` and `S^T K` differ in 16 entries on
+the first block and 288 entries across all fourteen.
 
-The first three blocks—the first count that clears the inherited rank-72
-complex target screen—change 176 coefficients to 202 (+26). Across all fourteen,
-the added count is +110. Coefficient denominators remain in `{1, 2, 4}`. These
-are exact aggregate rational maps. The one-add-per-nonzero reconstruction does
-not certify native precision bounds, stage chronology, supplier implementation,
-or cleanup/restoration.
+There is an exact conditional repair if the original dirty baseline remains
+available as a separate input. Set `C = S - S_new`; then
+
+```text
+S_new^T (d + U K x) + C^T d = S^T (d + K x).
+```
+
+The correction has 281 nonzero coefficients across all fourteen blocks (59 on
+the first three). It would require both the fused output and a separately
+retained dirty input at the consumer. The combined cut and correction have 567
+coefficient incidences, 391 above the original 176. The current source binding
+does not establish that the dirty input is available there.
+
+| Tetrad | Old cut `S` | Conditional cut `S_new` | Dirty correction `C` | `S_new` delta |
+|---|---:|---:|---:|---:|
+| `(0, 1, 2, 3)` | 8 | 19 | 16 | +11 |
+| `(0, 1, 4, 5)` | 16 | 23 | 20 | +7 |
+| `(0, 1, 6, 7)` | 16 | 24 | 23 | +8 |
+| `(0, 2, 4, 6)` | 8 | 19 | 16 | +11 |
+| `(0, 2, 5, 7)` | 8 | 21 | 21 | +13 |
+| `(0, 3, 4, 7)` | 16 | 16 | 26 | 0 |
+| `(0, 3, 5, 6)` | 16 | 12 | 15 | -4 |
+| `(1, 2, 4, 7)` | 16 | 23 | 28 | +7 |
+| `(1, 2, 5, 6)` | 16 | 23 | 20 | +7 |
+| `(1, 3, 4, 6)` | 8 | 21 | 21 | +13 |
+| `(1, 3, 5, 7)` | 8 | 19 | 16 | +11 |
+| `(2, 3, 4, 5)` | 16 | 23 | 20 | +7 |
+| `(2, 3, 6, 7)` | 16 | 24 | 23 | +8 |
+| `(4, 5, 6, 7)` | 8 | 19 | 16 | +11 |
+| **Total** | **176** | **286** | **281** | **+110** |
+
+The coefficients use denominators in `{1, 2, 4}`. The direct row-word route
+does transform the full dirty vector, but the predecessor's role-scaled screen
+shows that implementation misses `κ=0.003`; coefficient fusion avoids that
+word only for the update component.
 
 ## Target sensitivity
 
-The following uses the inherited rank-72 complex relaxation, `a=3/997`,
-`centre=112-4k`, and unpaid average `1+k/28`. As a sensitivity only, it adds
-one rank-1 unit per **net new cut coefficient** to the rank-1 profile:
+The ceiling engine does not price scalar cut additions. To gauge budget margin,
+the table below charges each net added incidence as one hypothetical rank-1
+unit, while retaining the relaxed rank-72 complex children, centre charge
+`112-4k`, and unpaid average `1+k/28` at `a=3/997`:
 
-| Fused tetrads `k` | Added incidences | Moment upper | Complex-only ideal κ ceiling |
-|---:|---:|---:|---:|
-| 3 | 26 | 0.999414381264 | 0.005113645447 |
-| 5 | 50 | 0.997363756140 | 0.012033839741 |
-| 9 | 60 | 0.993200210512 | 0.025620878335 |
-| 14 | 110 | 0.988057254181 | 0.038865401047 |
+| Fused tetrads `k` | Full-basis cut incidences | Complex ceiling if full `U y` is supplied | Cut plus dirty correction incidences | Complex ceiling with separately available `d` |
+|---:|---:|---:|---:|---:|
+| 3 | 26 | 0.005113645447 | 85 | 0.004579932924 |
+| 5 | 50 | 0.012033839741 | 146 | 0.010190388089 |
+| 9 | 60 | 0.025620878335 | 245 | 0.019105930385 |
+| 14 | 110 | 0.038865401047 | 391 | 0.026445058957 |
 
-The fourteen-block figure is the largest ceiling in this finite sensitivity
-census. It is not an achieved κ: the scalar cut has no validated conversion to
-recursive rank-one charges, the rank-72 children are an ideal relaxation, and
-the complete bit/complex suppliers and invoices remain unproved. The previous
-bit rank-63 relaxation is unchanged. The selected kappa remains
-`0.001672660197076918`.
+The highest checked conditional ideal sensitivity is `0.038865401047` when a
+producer supplies the full transformed vector at no separately priced basis
+conversion. The coefficient-fused update with an explicit dirty correction
+reaches `0.026445058957` under the same sensitivity tariff, provided `d` is
+available. The inherited bit rank-63 ideal ceiling is `0.052325479379`, so both
+remain complex-limited if that bit relaxation is retained unchanged. These are
+not physical invoices or achieved kappa values: the incidence tariff, rank-72
+children, dirty-input ownership, bit supplier, and full implementation remain
+unproved. The selected kappa remains `0.001672660197076918`.
 
 ## Obligation ledger and comparison
 
 | Obligation | Status |
 |---|---|
-| Source binding of selected P112 port labels and all fourteen gauge44 centre-cut blocks | **Proved** against pinned archive hashes |
-| Four integer update-kernel rows and unimodular output transform per block | **Proved** over the integers |
-| Immediate cut identity on every transformed block and arbitrary dirty port inputs | **Proved** over the rationals by `S_new^T U = S^T` |
-| Aggregate cut support, blockwise incidence deltas, and exact additive reconstruction | **Proved**; 176 to 286 coefficients |
-| Scalar cost of the 110 net new incidences | **Unknown**; no incidence-to-rank tariff is established |
-| Chronological supplier admission, precision/magnitude limits, cleanup and restoration | **Unknown** |
-| Concrete rank-72 complex supplier and complete bit-side invoice | **Unknown** |
+| Source binding of selected P112 port labels and all fourteen gauge44 cut blocks | **Proved** against pinned archive hashes |
+| Four integer update-kernel rows and unimodular transform per block | **Proved** over the integers |
+| `S_new^T U = S^T` when the entire vector is transformed | **Proved** over the rationals |
+| Coefficient-fused output leaves dirty baseline unchanged | **Proved** in the model `d + U K x`; the cut counterexample is exact |
+| Separate correction `C=S-S_new` restores the old dirty contribution | **Proved** over the rationals; support 281 |
+| Access and ownership of the original dirty input at the cut | **Unknown** |
+| Scalar price of the extra incidences and rank-72 implementation | **Unknown** |
+| Chronology, precision/magnitude limits, cleanup, restoration, and full bit-side invoice | **Unknown** |
 | Selected frontier update | **Not claimed**; selected kappa is unchanged |
 
 This differs from the related [gauge44 port-syndrome encoding](../gauge44-port-syndrome-encoding/README.md),
 which uses 104 row shears to concentrate the centre signal into eight anchors
-while leaving a residual consumer. Here each P112 tetrad's four update-kernel
-rows change the provider's output basis, and the inverse-transpose is composed
-into the actual selected immediate centre cut. Neither result supplies a full
-chronological caller or a complete invoice.
-
-The next decision is whether a concrete transformed supplier and its scalar,
-dirty-state, cleanup, and bit-side costs can fit the target. Stop construction
-expansion if those obligations have no favorable bound.
+while leaving a residual consumer. Here the P112 update-kernel rows change the
+coefficient output basis, and this audit isolates the dirty-baseline cost of
+connecting that update to the actual selected centre cut.
 
 ## Sources and reproduction
 
@@ -101,21 +123,20 @@ python3 scripts/research_package.py --package research/p112-tetrad-cut-consumer 
 python3.12 scripts/research_package.py --package research/p112-tetrad-cut-consumer
 ```
 
-The verifier uses Python's standard library and exact `Fraction` arithmetic. It
-does not replay the full native program.
+The verifier uses Python's standard library and exact `Fraction` arithmetic.
+It does not replay the full native program.
 
 ## Open next questions
 
-- Can the transformed supplier outputs reach this cut in the canonical
-  chronology while preserving dirty ports and centre accumulators through
-  cleanup and compensation? Bind a concrete supplier and check the full
-  affected stage sequence and magnitude bounds.
-- What is the native scalar cost of the 110 net new cut coefficients? Replace
-  the unit-incidence sensitivity with an exact tariff, then combine a concrete
-  complex supplier with an admitted bit-side profile.
-- Do the four invariant combinations per tetrad correspond to unpaid recursive
-  coordinates across all eight roles and 896 complex families? Derive the
-  ownership and endpoint map for one block before scaling.
+- Does the selected chronology retain the original dirty port vector until the
+  centre cut? Bind one block's initial dirty source through producer, cut,
+  cleanup, and compensation; price its ownership and lifetime.
+- Can another unimodular completion reduce both the dirty-correction support
+  and the fused term's copy cost? Search only after the dirty-source contract
+  and an explicit scalar allowance are established.
+- Can a concrete transformed supplier, exact scalar tariff, and admitted bit
+  side keep the joint target above `0.003`? The rank-72 and incidence screens
+  are planning sensitivities only.
 
 ## Credit
 
