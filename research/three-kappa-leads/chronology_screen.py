@@ -7,7 +7,8 @@ from scipy.optimize import linprog
 from scipy.sparse import coo_matrix
 ROOT=Path(__file__).resolve().parents[2]
 os.environ['OWNER_SOURCE_REPO']=str(ROOT)
-P=Path('/tmp/three-kappa-source/research/staged-width-t450/owners')
+from dependency import source
+P=source()/'owners'
 s=importlib.util.spec_from_file_location('source_context',P/'source_context.py');v=importlib.util.module_from_spec(s);s.loader.exec_module(v)
 c=v.common.context();d=json.loads((P/'CANDIDATE.json').read_text());W=v.W;INV=v.INV
 k=0.0017300475520933442
