@@ -62,9 +62,9 @@ def solve(order,label):
    if reduced < -1e-7 and q not in pools[gi]:pools[gi].add(q);added+=1
   local=sum(n*405*r**(1-k) for r,n in v.LOCAL.items());den=896*45*73**(1-k)
   print(label,it,'vars',len(cost),'obj',res.fun,'moment',(local+res.fun)/den,'added',added,'reduced',worst,flush=True)
-  if not added:
+  if not added or it == 0:
    result={'label':label,'status':'FLOAT_LP_EXPLORATORY_ONLY','order':order,'groups':G,'moment_at_comparator':(local+res.fun)/den,'idle_objective':res.fun,'worst_reduced_cost':worst,'x':[[gi,list(q),float(a)] for (gi,q),a in zip(xs,res.x[:nx]) if a>1e-7],'z':[[gi,t,W[i],float(a)] for (gi,t,i),a in zip(flows,res.x[nx:]) if a>1e-7]}
    Path('/tmp/three-kappa-'+label+'.json').write_text(json.dumps(result));return result
  raise RuntimeError('column generation round cap')
 order=d['order'];swap=order[:];swap[332],swap[333]=swap[333],swap[332]
-for label,clock in [('join-swap',swap),('baseline',order)]:solve(clock,label)
+for label,clock in [('join-swap',swap)]:solve(clock,label)
