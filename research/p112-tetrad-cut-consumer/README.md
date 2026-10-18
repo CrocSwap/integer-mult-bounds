@@ -88,6 +88,38 @@ The four checked prefixes (3, 5, 9 and 14 blocks) give `0.004947467105`,
 `0.011471186230`, `0.022871681937` and `0.033708626028`. These are planning
 sensitivities, not a scalar tariff, supplier or achieved κ.
 
+## Source-side correction without a separate dirty stream
+
+For the hybrid reader `H` and its bottom-only dirty correction `C=S-H`, set
+`J=C^T U K`. The exact identity
+
+```text
+S^T(d + U K x) - J x = S^T(d + K x)
+```
+
+uses the original cut `S` and a correction sourced from the input update; it
+does not require retaining `d` as a second consumer input. The checker verifies
+the identity over all fourteen source-bound tetrads. The per-block supports of
+`J` are `16,24,24,16,16,24,24,24,24,16,16,24,24,16`; the 3/5/9/14-block
+prefixes have 64/96/192/288 correction coefficients. Charging each coefficient
+as one hypothetical rank-1 unit gives complex-only sensitivities
+`0.004756582174`, `0.011073245628`, `0.020601886496` and `0.029934752880`.
+This removes the separate-`d` algebraic obligation, but source access to `Jx`,
+its frame and lifetime at the consumer, and its actual scalar price remain
+unproved.
+
+The same exact screen tests whether the unchanged cut `S` can consume the
+coefficient-fused update without any correction by changing only the four
+updated rows of a unimodular completion. Writing `K=E E^T`, each block must
+satisfy `S_bottom^T F = S^T E`. Two blocks have zero `S_bottom` and nonzero
+right-hand side. In the other twelve, the equation has a unique `F`; relative
+to the pinned complementary basis, its quotient transfer has rank two on two
+blocks, determinant 2 on four and determinant 16 on six. None is unimodular.
+Thus this exact route has no unimodular completion that preserves `S` without
+a correction. This is a scoped result for the selected reader and
+four-kernel-row fusion, not an obstruction to other readers or endpoint
+contracts.
+
 The pinned forward program places the 176 cut additions at event positions
 12554–12757, after phase `A` and before phase `B` (which starts at 12759).
 The canonical scalar prefix `precondition + compensation + A` maps the initial
@@ -213,8 +245,11 @@ kappa remains `0.001672660197076918`.
 | Coefficient-fused output leaves dirty baseline unchanged | **Proved** in the model `d + U K x`; the cut counterexample is exact |
 | Separate correction `C=S-S_new` restores the old dirty contribution | **Proved** over the rationals; support 281 |
 | Hybrid cut and bottom-only dirty correction identities | **Proved** over the rationals; supports 225 and 152 |
+| Input-side correction `J=C^T U K` restores the old product readout without a second dirty input | **Proved** over the rationals; supports 64/96/192/288 on the checked prefixes |
+| No correction can preserve `S` under a unimodular four-kernel-row completion for this route | **Proved** by the exact completion census; not a universal obstruction |
 | Selected cut position relative to `A`/`B` and word-scalar dirty response | **Proved** against pinned source; native adapters are not expanded |
 | Availability of the fused update at the selected cut after adapter expansion | **Unknown** |
+| Source, frame and lifetime for the input-side `Jx` correction | **Unknown** |
 | Scalar price of the extra incidences and rank-72 implementation | **Unknown** |
 | Chronology, precision/magnitude limits, cleanup, restoration, and full bit-side invoice | **Unknown** |
 | Selected frontier update | **Not claimed**; selected kappa is unchanged |
@@ -224,6 +259,20 @@ which uses 104 row shears to concentrate the centre signal into eight anchors
 while leaving a residual consumer. Here the P112 update-kernel rows change the
 coefficient output basis, and this audit isolates the dirty-baseline cost of
 connecting that update to the actual selected centre cut.
+
+## Open next questions
+
+1. Can the three-block source correction `Jx` be produced at the pre-`B`
+   frame-0 cut from an admitted source and kept live through the centre readout?
+   Bind one tetrad through the adapter-expanded provider and exact owner
+   chronology, then price its scalar operations and cleanup. The 64-coefficient
+   sensitivity is only a planning profile; source access, lifetimes and the
+   actual tariff are not established.
+2. Does the complete joint scalar and bit-side invoice retain a κ target above
+   `0.003`? Replace the rank-72 children and rank-1 incidence assumption with
+   an admitted complex supplier, and combine its complete cut/restoration cost
+   with an independently admitted bit supplier. Neither supplier nor the full
+   invoice is established here.
 
 ## Sources and reproduction
 
@@ -237,6 +286,7 @@ From the repository root:
 ```sh
 python3 scripts/research_package.py --package research/p112-tetrad-cut-consumer --check-only
 python3.12 scripts/research_package.py --package research/p112-tetrad-cut-consumer
+python3.12 -B research/p112-tetrad-cut-consumer/verify_input_correction.py
 ```
 
 The verifier uses Python's standard library and exact `Fraction` arithmetic.
