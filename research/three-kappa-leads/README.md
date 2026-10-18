@@ -1,14 +1,14 @@
-# Three assigned κ leads: T360 candidate and two scoped obstructions
+# Three assigned κ leads: a smaller T360 frontier match and scoped obstructions
 
-Local-only research package on `codex/three-kappa-leads`; no selected-frontier change or public submission. The constructive lead has an exact T360 profile crossing at `0.001730096363528623534230…`. Full admission and final Astra review are tracked in STATUS.json and VALIDATION.json; the profile alone is not supplier admission.
+Local-only research package on `codex/three-kappa-leads`; no selected-frontier change or public submission. The T360 construction passed complete source/native/physical/precision/outer release at `κ=0.001730096363528623534230−10^-46−10^-70`. The latest refresh found concurrent #3633 reporting the identical endpoint at T488. Ours uses114,688 fewer physical families and470,016 fewer roles. Final independent Astra review is pending in STATUS.json; no strict increase over that concurrent candidate is claimed.
 
 | Assigned lead | Bounded result | Broader scope |
 |---|---|---|
-| New staged-width inventory × chronology × whole helpers | One adjacent T37/T8 join swap; exact S8/T360 allocation, 1,321,920 literal roles, physical323,069. See [CHRONOLOGY.md](CHRONOLOGY.md). | No optimality or exhaustive chronology search claimed. Full release/review status is explicit. |
+| New staged-width inventory × chronology × whole helpers | One adjacent T37/T8 join swap; exact S8/T360 allocation, 1,321,920 literal roles, physical323,069. See [CHRONOLOGY.md](CHRONOLOGY.md). | An independent2,551-pattern dual check attains the fixed-model relaxation and closes further packing gains on the same24-place release grid. Changed suppliers/geometry/interface/grid remain outside scope. |
 | Residual dictionary and one changed bridge | Astra YES/SCOPED_NEGATIVE for one address-independent bridge. Zero character forces the original bridge; concrete O4 rotation requires a character-dependent bridge and saves no rank. See [BRIDGE.md](BRIDGE.md). | Address-dependent changed-bridge construction remains INCONCLUSIVE. |
 | Five-plane shared-address cancellation | Astra YES/SCOPED_NEGATIVE for unchanged ZERO-frame native consumers/wrappers. Native scratch→target ADD exposes translation debt even if final scratch restores. See [CONSUMER.md](CONSUMER.md). | A redesigned literal producer/consumer/owner schedule remains INCONCLUSIVE. |
 
-The new conditional endpoint, if admitted by the full release, is `0.001730096363528623534230−10^-46−10^-70`. It exceeds the stronger live predecessor #3626's reported `0.001730071864705779882540−10^-46−10^-70` by about`2.44988228437e-8`; exact rational normalized comparisons against both #3626 and #3624 are supplied. The selected conditional record remains`0.001672660197076918`. Challenged larger per-axis claims are not used as baselines.
+The fully released conditional endpoint is `0.001730096363528623534230−10^-46−10^-70`. It exceeds the stronger live predecessor #3626's reported `0.001730071864705779882540−10^-46−10^-70` by about`2.44988228437e-8`; exact comparisons against #3626/#3624 and an exact normalized tie with concurrent #3633 are supplied. The primary contribution relative to the latest candidate is the smaller physical construction, not a new κ record. The selected conditional record remains`0.001672660197076918`. Challenged larger per-axis claims are not used as baselines.
 
 ## Reproduce
 

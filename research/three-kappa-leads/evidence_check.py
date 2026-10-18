@@ -6,7 +6,7 @@ from pathlib import Path
 from fractions import Fraction as Q
 import argparse,hashlib,json
 PROFILE={'1':7986600,'2':2352240,'3':749250,'4':330480,'5':69930,'8':25920,'48':137790}
-PINS_SHA=None  # Freeze only after independent terminal receipt audit.
+PINS_SHA='bbf5db27ce41a97f0918f47a3b6156bf67060ad7e77af406a409fe120d46231e'  # Freeze only after independent terminal receipt audit.
 SOURCE='318ede57c79d10323fb1918f7be4d451d1fcdac01c6456fe9851d51d05d59453'
 WORDS={'base':'735c540b1fe29d0ceeb4d2f304ec941e5f2bd3bc92bafc8cce2b4f9a67a3b653','extra':'886338fc32da14f3389a82c8120a1bcf9c5e2f0ec3e9b2d377fdae809e1d977f'}
 EXPECTED=Q('.001730096363528623534230')-Q(1,10**46)-Q(1,10**70)
