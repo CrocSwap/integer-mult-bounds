@@ -8,6 +8,7 @@ from fractions import Fraction
 from pathlib import Path
 import hashlib
 import json
+import copy
 import os
 import subprocess
 import sys
@@ -35,6 +36,21 @@ def read(path):
 def snapshot():
     return {str(p.relative_to(HERE)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in HERE.rglob('*') if p.is_file()}
+
+
+def check_recorded_cache(evidence, native):
+    observed = evidence['local_byte_checks']
+    require(observed['runtime_file_count'] == 658
+            and observed['native_cache_files'] == len(native['cache_files']) == 63,
+            'complete recorded runtime/native inventory')
+    require(set(native['providers']) == {'base', 'extra'}, 'recorded native providers')
+    for provider in native['providers'].values():
+        prefix = provider['word_sha256'] + '/'
+        subset = {name.removeprefix(prefix): digest
+                  for name, digest in native['cache_files'].items()
+                  if name.startswith(prefix) and name != prefix + 'CACHE.json'}
+        require(len(subset) == 12 and provider['complete_native_files'] == subset,
+                'complete recorded provider cache subset')
 
 
 def main():
@@ -86,11 +102,54 @@ def main():
             and (cap['patterns'], cap['strict'], cap['symbolically_zero']) == (2551, 2539, 12),
             'all fixed-inventory patterns')
     require(summary['status'] == 'PASS_PUBLIC_RECORDED_SUMMARY_BINDINGS', 'narrow summary status')
+    full_run = read(HERE / 'PUBLIC-FULL-REPLAY.json')
+    fresh_dir = HERE / 'full-admission/fresh-replay'
+    attempt = read(fresh_dir / 'ATTEMPT.json')
+    wrapper_result = read(fresh_dir / 'WRAPPER-RESULT.json')
+    admission_result = read(fresh_dir / 'ADMISSION-RESULT.json')
+    native_receipt = read(fresh_dir / 'NATIVE-RECEIPT.json')
+    fresh_evidence = read(fresh_dir / 'EVIDENCE.json')
+    require(full_run['status'] == 'PASS_PUBLIC_FULL_WRAPPER_END_TO_END'
+            and Fraction(full_run['kappa']) == KAPPA and full_run['profile'] == PROFILE,
+            'separate full-wrapper headline agrees with fresh finite checks')
+    require(full_run['executed_publication_commit'] == attempt['publication_commit']
+            and full_run['executed_wrapper_sha256'] == attempt['wrapper_sha256']
+            and full_run['wall_seconds'] == attempt['seconds']
+            and full_run['exit_code'] == attempt['exit_code'] == 0
+            and full_run['package_files_unchanged'] is attempt['package_files_unchanged'] is True,
+            'separate full-wrapper execution identity')
+    for field in ('started_at', 'finished_at', 'environment'):
+        require(full_run[field] == attempt[field], 'full-wrapper index ' + field)
+    require(full_run['source_manifest_sha256'] == wrapper_result['source_manifest_sha256']
+            and full_run['runtime_manifest_sha256'] == admission_result['package_manifest_sha256']
+            and full_run['original_release_receipt_sha256'] == admission_result['release_receipt_sha256'],
+            'full-wrapper source/runtime/terminal index')
+    for field, result in [('wrapper_stages', wrapper_result), ('admission_stages', admission_result)]:
+        require(full_run[field] == [{key: row[key] for key in ('name', 'exit_code', 'seconds')}
+                                   for row in result['stages']], 'full-wrapper index ' + field)
+    check_recorded_cache(fresh_evidence, native_receipt)
+    for field in ('cache_files', 'complete_native_files'):
+        mutant = copy.deepcopy(native_receipt)
+        if field == 'cache_files':
+            mutant[field] = {}
+        else:
+            mutant['providers']['base'][field] = {}
+        try:
+            check_recorded_cache(fresh_evidence, mutant)
+        except ValueError:
+            pass
+        else:
+            raise ValueError('incomplete recorded cache accepted: ' + field)
+    for field, path in [('fresh_evidence_sha256', 'full-admission/fresh-replay/EVIDENCE.json'),
+                        ('evidence_checker_sha256', 'full-admission/fresh_replay_evidence.py')]:
+        require(full_run[field] == hashlib.sha256((HERE / path).read_bytes()).hexdigest(),
+                'separate full-wrapper evidence binding: ' + field)
     require(snapshot() == before, 'package files changed during replay')
     receipt = {
         'status':'PASS_STAGED_RELEASE_RETIMING_T530_BOUNDED_CHECKS',
         'kappa':str(KAPPA), 'profile':PROFILE, 'stages':stages,
         'package_files_unchanged':True,
+        'rejected_recorded_cache_controls':['empty cache inventory', 'empty provider cache subset'],
         'scope':'Fresh finite local/operator, regenerated ownership/invoice, exact arithmetic and scoped packing checks; full native/controller/outer admission is retained evidence only in this command. Inherited general assumptions remain.'}
     (out / 'RESULT.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt, indent=2))

@@ -32,9 +32,9 @@ python3 -B scripts/research_package.py --package research/staged-release-retimin
 python3 -B scripts/research_package.py --package research/staged-release-retiming-t530
 ```
 
-The publication run passed all five stages in about 24.2 seconds, with no package writes; see [PUBLIC-VALIDATION.json](PUBLIC-VALIDATION.json). This is bounded local verification, not hosted CI.
+The original publication run passed all five stages in about 24.2 seconds, with no package writes; see [PUBLIC-VALIDATION.json](PUBLIC-VALIDATION.json). The follow-up bounded run also passed the added full-wrapper index, receipt-chain and rejection checks; see [PUBLIC-VALIDATION-FOLLOWUP.json](PUBLIC-VALIDATION-FOLLOWUP.json). These are bounded local checks, separate from hosted CI and the full scientific replay.
 
-The second command invokes `verify.py`, which creates a fresh temporary output directory outside the package and performs the following checks. Each component can also be run separately using its README.
+The second command invokes `verify.py`, which creates a fresh temporary output directory outside the package and performs the following checks. It also checks the separate full-replay index and rejects incomplete recorded cache inventories. The registered verification then checks the new full-wrapper receipt chain and its four semantic rejection controls. Each component can also be run separately using its README.
 
 | Component | Freshly checked by the bounded command | Retained evidence / limit |
 | --- | --- | --- |
@@ -58,9 +58,11 @@ The public reproduction wrapper reconstructs the same **654-file source manifest
 fb47533a401d1d13719be8b9aab91fe5313931ca62d40dba336eab6a96275aa0
 ```
 
-Its materialization path was tested. The seven scientific stages were executed separately on that identical manifest; the newly packaged all-in-one wrapper has not been rerun end-to-end. [full-admission/README.md](full-admission/README.md) gives exact installation, materialization and complete replay commands. Expect a long run outside generic CI, with enough RAM and disk for regenerated runtime files.
+The published all-in-one wrapper at commit `abc12f62e4fe9bfcb2e33c84703253c918668351` subsequently completed end to end in a fresh external work directory, without a supplied allocation or a wrapper code fix. It freshly ran both changed native providers, regenerated all 1,946,160 literal owner roles and completed all seven admission stages. Its seven wrapper stages all exited 0, ending in `PASS_RETIMER_T530_COMPLETE_CONDITIONAL_RELEASE` and terminal `PASS_RELEASE` with the same source manifest and exact κ. All 295 tracked package files remained unchanged during the run.
 
-To keep the public contribution small, it omits regenerated source/runtime/cache archives and the large generated literal fill. Actual non-main dependencies needed for reconstruction are vendored with pins and notices. Public command metadata replaces this session's private execution prefix with `$RESEARCH_WORKSPACE`; original-to-public SHA256 maps make those adapters explicit. The original full release receipt SHA256 was `80e1f422359d7c553493c1e0f2a1b4c4de230f8eb74690e1471a14d65169d110`. A normalized public summary is a publication derivative, not that original byte-level receipt chain. Reproduction regenerates the full chain; the quick summary checker makes only the narrower claims stated above.
+This separate replay took **1,271.668979667 seconds (21 minutes 11.67 seconds)** on local macOS 27.0 arm64 with Python 3.12.14, from 2026-10-18 12:37:09.414302 to 12:58:21.088357 UTC. [PUBLIC-FULL-REPLAY.json](PUBLIC-FULL-REPLAY.json) records its environment and evidence separately from the earlier bounded and scientific runs. The unchanged retained parent and two retained native chains were authenticated and reused; no fresh retained bootstrap or independent external reproduction is claimed. [full-admission/README.md](full-admission/README.md) gives exact complete replay and recorded-evidence check commands. The full replay remains a long command outside generic CI, with enough RAM and disk needed for regenerated runtime files.
+
+To keep the public contribution small, it omits regenerated source/runtime/cache archives and the large generated literal fill. Actual non-main dependencies needed for reconstruction are vendored with pins and notices. Public command metadata replaces this session's private execution prefix with `$RESEARCH_WORKSPACE`; original-to-public SHA256 maps make those adapters explicit. The original full release receipt SHA256 was `80e1f422359d7c553493c1e0f2a1b4c4de230f8eb74690e1471a14d65169d110`. A normalized public summary is a publication derivative, not that original byte-level receipt chain. The subsequent public-wrapper replay has a separate receipt/provenance record and does not overwrite that historical evidence or `PUBLIC-VALIDATION.json`. Reproduction regenerates the full chain; the quick recorded-evidence checkers make only their stated narrower claims.
 
 ## Remaining assumptions
 
