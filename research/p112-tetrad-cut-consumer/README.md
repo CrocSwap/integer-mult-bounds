@@ -93,12 +93,11 @@ The pinned forward program places the 176 cut additions at event positions
 The canonical scalar prefix `precondition + compensation + A` maps the initial
 112 dirty output coordinates to a full-rank response with 272 nonzero entries;
 no other initial scalar columns enter that word-level map. Phase `B` then adds
-to all 112 output ports and does not touch the eight centre carriers. This binds
-the cut chronology and scalar dirty response, but the native adapter calls are
-not expanded by this matrix projection. It does not establish that the fused
-update reaches this cut, or that retiming the cut preserves the selected
-adapter and endpoint semantics. The hybrid identity is not integrated into
-the selected provider.
+to all 112 output ports and does not touch the eight centre carriers. For the
+canonical word, an exact inverse-transpose change of readout now moves the
+centre consumer across `B`. It keeps the retimed coefficients on the 112 output
+ports, but does not expand native adapters or establish availability of both
+the fused update and the separate dirty-baseline stream at that boundary.
 
 ## Target sensitivity
 
@@ -120,6 +119,42 @@ unit, while retaining the relaxed rank-72 complex children, centre charge
 | 5 | 76 | 0.011471186230 |
 | 9 | 125 | 0.022871681937 |
 | 14 | 201 | 0.033708626028 |
+
+## Exact readout retiming across canonical `B`
+
+Let `x_B = M_B x` be the exact state map of the pinned canonical `B` word. For
+any `112 × 8` centre readout `A`, the identity
+
+```text
+A^T x = (M_B^-T A)^T x_B
+```
+
+moves its eight readouts from before `B` to after `B`. The verifier expands all
+1,846 canonical `B` operations (1,790 adds and 56 scales), computes the
+inverse-transpose map over exact rationals, and checks `M_B^T A_post = A` for
+every ordinary role and centre. The original 176-coefficient cut becomes a
+448-coefficient post-`B` reader: 56 coefficients per centre, all on output
+ports, with none on inputs or helpers.
+
+The same transform applies to each hybrid cut and its separately sourced dirty
+correction. Their sum remains exactly the retimed original cut. The table
+charges both post-`B` readers against the original 176-add cut, using the same
+hypothetical one-rank-1-unit-per-net-incidence tariff and relaxed rank-72
+complex profile as above.
+
+| Fused tetrads `k` | Post-`B` hybrid support | Post-`B` dirty-correction support | Net incidences over original cut | Extra over retimed original | Ideal complex κ ceiling |
+|---:|---:|---:|---:|---:|---:|
+| 3 | 450 | 52 | 326 | 54 | 0.003212495586 |
+| 5 | 454 | 76 | 354 | 82 | 0.007657155804 |
+| 9 | 441 | 140 | 405 | 133 | 0.015679681607 |
+| 14 | 437 | 215 | 476 | 204 | 0.024130777318 |
+
+This clears `0.003` only as a sensitivity screen. It does not price an actual
+scalar operation or supplier. Applying the correction still needs a separate
+dirty-baseline stream through `B` (or a retained equivalent); any extra `B`
+execution is outside this incidence count. Native adapter expansion,
+post-`B` endpoint ownership, cleanup/restoration, and the complete bit-side
+invoice remain open. The selected κ remains `0.001672660197076918`.
 
 The highest checked conditional ideal sensitivity is `0.038865401047` when a
 producer supplies the full transformed vector at no separately priced basis
@@ -173,9 +208,10 @@ It does not replay the full native program.
 
 ## Open next questions
 
-- Can the fused update reach the existing pre-`B` cut, or can a post-`B`
-  hybrid reader preserve the centre endpoint after adapter expansion? Bind one
-  tetrad through the actual adapters and cleanup, then price its exact schedule.
+- Can the canonical post-`B` hybrid reader be realized after native adapter
+  expansion for both the fused update and separate dirty-baseline stream? Bind
+  one tetrad through adapters, `B`, cleanup and owner lifetimes; include any
+  duplicated `B` execution in its invoice.
 - Can another unimodular completion reduce both the dirty-correction support
   and the fused term's copy cost? Search only after the dirty-source contract
   and an explicit scalar allowance are established.

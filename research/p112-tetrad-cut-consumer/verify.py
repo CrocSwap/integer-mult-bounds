@@ -268,6 +268,90 @@ def audit_selected_cut_chronology(word, forward_program):
     }
 
 
+def retime_readout_through_b(readout, word):
+    """Move an exact centre readout from before B to the canonical post-B state.
+
+    If B maps x to M_B x, a pre-B functional a^T x is the post-B
+    functional (M_B^-T a)^T x. Check that identity against the complete
+    sparse matrix of the pinned B word, over every ordinary role.
+    """
+    v = word["v"]
+    n = 2 * v + word["R"]
+    centres = word["centers"]
+    require(len(readout) == v and all(len(row) == len(centres)
+                                      for row in readout),
+            "retimed readout shape changed")
+
+    # Build the exact state matrix x_post = M_B x_pre from the canonical word.
+    b_rows = [{role: Q(1)} for role in range(n)]
+    for gate in word["B"]:
+        if gate[0] == "add":
+            _, source, destination, numerator, denominator, *_ = gate
+            coefficient = Q(numerator, denominator)
+            require(source != destination, "B contains a self-add")
+            for column, value in list(b_rows[source].items()):
+                result = b_rows[destination].get(column, Q(0)) \
+                    + coefficient * value
+                if result:
+                    b_rows[destination][column] = result
+                else:
+                    b_rows[destination].pop(column, None)
+        else:
+            require(gate[0] == "scale", "unexpected operation in canonical B")
+            _, destination, numerator, denominator, *_ = gate
+            coefficient = Q(numerator, denominator)
+            require(coefficient != 0, "B contains a singular scale")
+            b_rows[destination] = {
+                column: coefficient * value
+                for column, value in b_rows[destination].items()
+                if coefficient * value
+            }
+
+    post = [[Q(0) for _ in centres] for _ in range(n)]
+    for centre in range(len(centres)):
+        functional = [Q(0)] * n
+        for port in range(v):
+            functional[v + port] = readout[port][centre]
+
+        # Apply each elementary inverse-transpose in the same order as B.
+        for gate in word["B"]:
+            if gate[0] == "add":
+                _, source, destination, numerator, denominator, *_ = gate
+                functional[source] -= Q(numerator, denominator) \
+                    * functional[destination]
+            else:
+                _, destination, numerator, denominator, *_ = gate
+                functional[destination] /= Q(numerator, denominator)
+
+        recovered = [Q(0)] * n
+        for role, row in enumerate(b_rows):
+            if functional[role]:
+                for column, value in row.items():
+                    recovered[column] += functional[role] * value
+        expected = [Q(0)] * n
+        for port in range(v):
+            expected[v + port] = readout[port][centre]
+        require(recovered == expected,
+                "post-B inverse-transpose readout identity failed")
+        for role, value in enumerate(functional):
+            post[role][centre] = value
+
+    support = sum(value != 0 for row in post for value in row)
+    source_support = sum(value != 0 for row in post[:v] for value in row)
+    output_support = sum(value != 0 for row in post[v:2 * v] for value in row)
+    helper_support = sum(value != 0 for row in post[2 * v:] for value in row)
+    return post, {
+        "nonzero_coefficients": support,
+        "input_source_coefficients": source_support,
+        "output_port_coefficients": output_support,
+        "helper_coefficients": helper_support,
+        "per_centre_support": [
+            sum(post[role][centre] != 0 for role in range(n))
+            for centre in range(len(centres))
+        ],
+    }
+
+
 def run():
     geometry = load_module(
         "p112_consumer_geometry",
@@ -317,6 +401,7 @@ def run():
                                for _ in range(112)]
     block_results = []
     first_three_cut = None
+    hybrid_prefixes = {}
     prefix_support_deltas = []
     dirty_correction_deltas = []
     hybrid_support_deltas = []
@@ -394,6 +479,11 @@ def run():
         for row_index, port in enumerate(ports):
             hybrid_cut[port] = hybrid_block[row_index]
             hybrid_dirty_correction[port] = hybrid_dirty_correction_block[row_index]
+        if block_index in (3, 5, 9, 14):
+            hybrid_prefixes[block_index] = (
+                [row[:] for row in hybrid_cut],
+                [row[:] for row in hybrid_dirty_correction],
+            )
         fused_product_map = matmul(transpose(old_block), matmul(u, k))
         product_mismatch = sum(
             old_product_map[i][j] != fused_product_map[i][j]
@@ -478,6 +568,88 @@ def run():
                 for port in range(112) for center in range(8)),
             "global hybrid dirty correction identity failed")
 
+    target_a = Q(3, 997)
+    retimed_original, retimed_original_summary = retime_readout_through_b(
+        original_cut, word)
+    require(retimed_original_summary == {
+        "nonzero_coefficients": 448,
+        "input_source_coefficients": 0,
+        "output_port_coefficients": 448,
+        "helper_coefficients": 0,
+        "per_centre_support": [56] * 8,
+    }, "post-B original readout support changed")
+    retimed_hybrid_prefixes = []
+    for k_blocks in (3, 5, 9, 14):
+        prefix_cut, prefix_correction = hybrid_prefixes[k_blocks]
+        post_cut, post_cut_summary = retime_readout_through_b(
+            prefix_cut, word)
+        post_correction, post_correction_summary = retime_readout_through_b(
+            prefix_correction, word)
+        require(all(post_cut[role][centre]
+                    + post_correction[role][centre]
+                    == retimed_original[role][centre]
+                    for role in range(len(retimed_original))
+                    for centre in range(len(word["centers"]))),
+                "post-B hybrid dirty identity failed")
+        require(post_cut_summary["input_source_coefficients"] == 0
+                and post_cut_summary["helper_coefficients"] == 0
+                and post_correction_summary["input_source_coefficients"] == 0
+                and post_correction_summary["helper_coefficients"] == 0,
+                "post-B readout acquired a non-output role")
+        net_added = (post_cut_summary["nonzero_coefficients"]
+                     + post_correction_summary["nonzero_coefficients"]
+                     - old_support)
+        added_over_retimed_old = (
+            post_cut_summary["nonzero_coefficients"]
+            + post_correction_summary["nonzero_coefficients"]
+            - retimed_original_summary["nonzero_coefficients"]
+        )
+        centre_charge = 112 - 4 * k_blocks
+        unpaid = Q(1) + Q(k_blocks, 28)
+        profile = {
+            1: 192 + 4 * k_blocks + net_added,
+            2: 56 - 4 * k_blocks,
+            72: 73,
+            56: 1,
+        }
+        moment = ceiling.relax(
+            profile, 73, 896, 9, centre_charge, target_a, R=51,
+            unpaid=unpaid)
+        bracket = ceiling.ceiling(
+            profile, 73, 896, 9, centre_charge, grid=Q(1, 10**12),
+            R=51, unpaid=unpaid)
+        kappa = bracket[1] / (1 + bracket[1])
+        require(moment[1] < 1 and kappa > Q(3, 1000),
+                "post-B rank-one incidence sensitivity no longer clears 0.003")
+        retimed_hybrid_prefixes.append({
+            "transformed_tetrads": k_blocks,
+            "post_B_hybrid_coefficients":
+                post_cut_summary["nonzero_coefficients"],
+            "post_B_dirty_correction_coefficients":
+                post_correction_summary["nonzero_coefficients"],
+            "net_added_incidences_vs_original_pre_B_cut": net_added,
+            "added_incidences_over_retimed_original_cut":
+                added_over_retimed_old,
+            "rank1_incidence_sensitivity_profile": {
+                str(r): count for r, count in sorted(profile.items())
+            },
+            "complex_kappa_ceiling": str(kappa),
+            "complex_kappa_ceiling_decimal": f"{float(kappa):.12f}",
+        })
+    require([
+        (row["transformed_tetrads"], row["post_B_hybrid_coefficients"],
+         row["post_B_dirty_correction_coefficients"],
+         row["net_added_incidences_vs_original_pre_B_cut"],
+         row["added_incidences_over_retimed_original_cut"],
+         row["complex_kappa_ceiling_decimal"])
+        for row in retimed_hybrid_prefixes
+    ] == [
+        (3, 450, 52, 326, 54, "0.003212495586"),
+        (5, 454, 76, 354, 82, "0.007657155804"),
+        (9, 441, 140, 405, 133, "0.015679681607"),
+        (14, 437, 215, 476, 204, "0.024130777318"),
+    ], "post-B retimed support/sensitivity table changed")
+
     # Rebuild the conditional full-basis cut from its exact matrix. The separate
     # dirty-baseline correction is a second input channel, not part of this cut.
     def build_cut_instructions(matrix):
@@ -507,7 +679,6 @@ def run():
             numerator, denominator)
     require(rebuilt == changed_cut, "rebuilt cut differs from its exact matrix")
 
-    target_a = Q(3, 997)
     incidence_sensitivities = []
     for k_blocks in (3, 5, 9, 14):
         basis_incidence = sum(prefix_support_deltas[:k_blocks])
@@ -565,7 +736,7 @@ def run():
 
     receipt = {
         "status": "PASS_P112_SELECTED_CENTER_CUT_COMPOSITION",
-        "scope": "Exact conditional full and hybrid consumer maps for all fourteen source-bound P112 tetrads, a dirty-baseline counterexample, and a pinned cut chronology audit; no supplier admission or selected-kappa change.",
+        "scope": "Exact conditional full and hybrid consumer maps for all fourteen source-bound P112 tetrads, a dirty-baseline counterexample, a pinned cut chronology audit, and exact canonical-word post-B readout retiming; no supplier admission or selected-kappa change.",
         "selected_kappa_unchanged": selected_record["decimal"],
         "selected_archive_sha256": archive_hash,
         "chronology": chronology,
@@ -594,6 +765,14 @@ def run():
             "net_added_incidence_prefixes_for_3_5_9_14_blocks": [43, 76, 125, 201],
             "schedule_integration": "conditional; the pinned cut precedes B, and adapter-expanded retiming/update availability is not established",
         },
+        "post_B_readout_retiming": {
+            "identity": "A^T x = (M_B^-T A)^T (M_B x) for the exact canonical B state map",
+            "original_cut": retimed_original_summary,
+            "hybrid_dirty_prefixes": retimed_hybrid_prefixes,
+            "all_retimed_coefficients_use_only_post_B_output_ports": True,
+            "separate_dirty_baseline_channel_and_duplicate_B_cost": "unproved",
+            "adapter_expansion_and_native_schedule_binding": "unproved",
+        },
         "dirty_state": {
             "coefficient_fusion_output_model": "d + U K x; it transforms the update, not the arbitrary dirty baseline d",
             "first_block_counterexample": first_dirty_counterexample,
@@ -613,13 +792,13 @@ def run():
             "rows": incidence_sensitivities,
             "not_a_scalar_ADD_tariff_or_dirty_source_proof": True,
         },
-        "scope_limit": "The rank-72 profile and rank-1 incidence charge are sensitivities, not suppliers or a verified scalar-cost conversion. The hybrid map is not integrated into the selected cut chronology; adapter expansion, cleanup/restoration, bit-side and complete implementation invoices remain open.",
+        "scope_limit": "The rank-72 profile and rank-1 incidence charge are sensitivities, not suppliers or a verified scalar-cost conversion. Post-B retiming is exact only for the canonical word map; adapter expansion, availability of separate fused and dirty-baseline streams, any duplicated B cost, cleanup/restoration, bit-side and complete implementation invoices remain open.",
     }
     print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
     print("PASS_P112_SELECTED_CENTER_CUT_COMPOSITION blocks=14 cut_adds=176->286 "
-          "hybrid_net_incidence=201 cut_before_B=true hybrid_kappa3_sensitivity=%.12f no_new_kappa" %
-          float(Q(incidence_sensitivities[0][
-              "hybrid_cut_plus_bottom_dirty_correction"]["complex_kappa_ceiling"])))
+          "hybrid_net_incidence=201 cut_before_B=true "
+          "retimed_post_B_kappa3_sensitivity=%.12f no_new_kappa" %
+          float(Q(retimed_hybrid_prefixes[0]["complex_kappa_ceiling"])))
 
 
 if __name__ == "__main__":
