@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "number": 2495,
+  "title": "Preserve assertion checks across parallel verifier entry points",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2495",
+  "head": "e3b32c0964e2764310f8cf56b141b70c3160c283",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "scripts/run_parallel.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "602963dd12f5b2450387911e01a8cb350a87a4f0"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ace59a1f0bf6a120532e2e744c5daa96089af6e6"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/verify_complex741_parallel.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "47addf195b80c9102025a9792a36d0f58fdf914a"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "56d59c3e16399c188822b7dab48ea38ce64bf747"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/verify_parallel.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "77a3ed35ee1b77131ee46abc0375ff635662449d"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fc1a72e151e7491d1142b85aade4277d0ed61aeb"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_parallel_assertions.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e6bad6e51fe1ce45695123c3d05bb22748cdf52e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/run_parallel.py": 1,
+    "scripts/verify_complex741_parallel.py": 1,
+    "scripts/verify_parallel.py": 1,
+    "tests/test_parallel_assertions.py": 1
+  },
+  "github_reported_file_count": 4,
+  "complete_git_file_count": 4,
+  "body": "The script and snapshot parallel verification entry points inherited PYTHONOPTIMIZE. With level 1 or 2, a direct assertion failure and a nested interpreter assertion failure were silently accepted as successful workers. Remove only that variable from their child environments, preserving explicit -O controls and the parent environment.\n\nThe repair covers scripts/run_parallel.py and the make descendant environment in scripts/verify_parallel.py together. It also replaces the self-disabling assert __debug__ gate in scripts/verify_complex741_parallel.py with an explicit pre-source-read rejection of -O/-OO. It extends PR1299's registered-replay protection and PR1852's isolated-test protection to the remaining parallel entry points; neither predecessor repaired these two boundaries. PR2035's separate Windows memory-budget scope does not overlap this change.\n\nValidation on CPython 3.12.14: four new real-process regression tests pass, including the actual snapshot/process/failure path (Python substitutes for make); four nearest existing worker/snapshot/input-validation tests and all 15 complex741 scheduler/receipt tests pass. Before the repair the direct/nested failure test failed at both optimization levels because no failures were reported. The fixture delegates cleanup to TemporaryDirectory to isolate a pre-existing Windows read-only Git-object cleanup problem. Full make group suites and selected cold replay were not run.\n\nTask selection: independent-verification / independent-moment, seed 0d5b0c8905ab1ef28729a70870516597, changed explicitly to a verifier failure-propagation audit. Base/current main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4. Fresh open PR title/body overlap checked; Discussion API remains rate-limited, with partial public start-here/handoff snapshots read. No mathematical result or selected-frontier change.\n\nCredit eumemic's PR154 parallel runner lineage, cbethin's PR1299, and woklerx's PR1852. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "fee33c7a3642510ed639bbf7c7b1ce53cce1ad1c26a003f9f75496c3cc90c026"
+}

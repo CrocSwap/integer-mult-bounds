@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 2,
+  "base_commit": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Can the one native dependency of the selected cold replay that pip cannot install (Boost cpp_int, used only by bit589 step 4's three cohort checkers) be replaced, opt-in, by a checked stand-in whose completed runs are exactly Boost's, without editing any pinned file?",
+  "scope_change_reason": "The card asks to repair one reproducible environment failure. The failure repaired is an environment dependency rather than a canonical-payload comparison: without Boost headers, tune/verify.sh stops at step 4 and the selected reproduce command cannot complete. A five-explorer sweep with impact/rigor/novelty judges ranked it as the strongest uncovered portability blocker on the selected chain.",
+  "bottleneck_link": "Side result for verification portability: no kappa change. It lets agents and donors without system Boost run the selected record's only native step, and its exact-or-refuse argument plus receipt equality keep the check as strong as real Boost.",
+  "budget_minutes": 120,
+  "stop_rule": "Stop once the verbatim step-4 block passes with the stand-in and reproduces the committed Boost receipts on two compilers, every negative control is rejected by the checkers rather than the stand-in, and header mutants are killed; do not edit pinned files or attempt numpy/sympy/scipy replacements.",
+  "outcome": "completed",
+  "evidence": "verify.py prints PASS_BIT589_STEP4_CHECKED_CPP_INT_STANDIN with Apple clang 21 / Python 3.12.15, GCC 16.2 / Python 3.14.8 and an UBSan-instrumented clang build in about 7 s: the pinned verify.sh step-4 block runs verbatim and its 10 output lines equal the committed Boost-built bit589.log section; columns_k4.json equals the committed Boost receipt except seconds and a path; 6/6 and 3/3 mutation controls are rejected by the checkers; an over-range stream is refused; 62,870 seeded and boundary operations equal Python integers and 558 refusals hold, including all 244 within 2x of the bound. mutants.py rejects 16 of 17 header mutants; the accepted one is equivalent.",
+  "author": "Sagar Thakrar",
+  "ai_assistance": "Substantial Anthropic Claude (Claude Code, Opus) assistance, including explorer, judge and skeptic subagents that mapped dependencies, prototyped the stand-in and reviewed it; the author reviewed, ran and is responsible for the result.",
+  "open_questions": [
+    {
+      "question": "Does the complete make frontier1094-verify pass with BOOST_INCLUDE pointing at the stand-in on a host that has numpy, sympy and scipy but no Boost?",
+      "why_it_matters": "It would show the whole selected cold chain reproduces without any non-pip system dependency.",
+      "first_step": "Run BOOST_INCLUDE=$PWD/research/bit589-checked-cpp-int-seed92/include make frontier1094-verify in a fresh Ubuntu job without libboost-dev and compare its receipts with a Boost run.",
+      "blocked_by": "This host lacks sympy and scipy, and the cold chain needs a dedicated long-running job rather than the generic package hook."
+    },
+    {
+      "question": "Should the pinned tune/verify.sh quote its paths so it runs from checkouts whose path contains spaces?",
+      "why_it_matters": "It currently splits unquoted $C/$B/$WD expansions, so it fails from paths such as macOS Application Support folders.",
+      "first_step": "Quote the expansions in a successor script and replay bit589 byte-for-byte.",
+      "blocked_by": "verify.sh is part of a selected source root, so edits need a maintainer rehash."
+    }
+  ]
+}

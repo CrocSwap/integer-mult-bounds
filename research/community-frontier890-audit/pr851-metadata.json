@@ -1,0 +1,38 @@
+{
+  "author": {
+    "id": "U_kgDOCAIRQw",
+    "is_bot": false,
+    "login": "AdemVessell",
+    "name": "Adem Vessell"
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "The PR741 binding checker currently accepts any 18 bridge-control records with `rejected: true`, without checking their `omit_bridge` identities. Replacing one bridge ID with a duplicate therefore still produces PASS even though one omission control is no longer represented.\n\nRequire the 18 records to cover integer bridge IDs 0 through 17 exactly once, with literal true rejection flags. Reordering remains valid. The patch adds regression tests using copies of the committed composed-replay evidence and updates the selected record's checker hash. Existing tests and archived mathematical results are unchanged.\n\nTested locally against `7ee02b7c96d85f22b38d28bd7ed49bb8c1aeb261` with Python 3.12.15 in a restricted Linux container:\n\n- The unchanged checker accepts 25 malformed cases in the new tests; genuine and reordered receipts pass.\n- With the repair, all 30 test definitions and 195 subtests across the new bridge controls, existing PR741 binding, selected-record, and reconciliation modules pass.\n- The PR741 binding CLI, selected-record check, and full PR reconciliation pass. The selected value remains `1661202643272239/1000000000000000000`.\n\nThis validates the coverage recorded in a saved receipt; it does not independently prove that each producer-side test was executed. The full supplier reconstruction and cold replay were not rerun, and no new mathematical result is claimed.\n\nPrepared with OpenAI Codex assistance.\n",
+  "changedFiles": 3,
+  "files": [
+    {
+      "path": "certificates/selected-result.json",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "scripts/verify_frontier741_bindings.py",
+      "additions": 19,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "tests/test_frontier741_bridge_controls.py",
+      "additions": 175,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "a6ffa47ba1da642846818081cedad10caccea535",
+  "isDraft": false,
+  "number": 851,
+  "state": "OPEN",
+  "statusCheckRollup": [],
+  "title": "Require complete bridge-control coverage in the PR741 binder",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/851"
+}

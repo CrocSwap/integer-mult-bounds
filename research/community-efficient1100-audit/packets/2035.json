@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "number": 2035,
+  "title": "Apply parallel worker memory budgets on Windows",
+  "author": {
+    "id": "U_kgDOB5tQsQ",
+    "is_bot": false,
+    "login": "Tairitsu-Aya",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2035",
+  "head": "ddd8690874ecab0eea671d4c68de8bbb3ed8b991",
+  "merge_base": "c676548106012571fefa1dce0ec16f1bcfe11dce",
+  "baseline": "b4560d9e7216f72b73c5aa940ac099c05e33ccf9",
+  "files": [
+    {
+      "path": "scripts/run_parallel.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ace59a1f0bf6a120532e2e744c5daa96089af6e6"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "35c1d0304ce0bcc2e89a2eeed020302692b4ffe1"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_parallel_memory.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5491a57b19a39cba36580b67f860579ea483017b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/run_parallel.py": 1,
+    "tests/test_parallel_memory.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "## Change and mathematical scope\n\nNative Windows has no `os.sysconf`, so `run_parallel.memory_gib()` returned `None` and the default worker count ignored the documented three-GiB-per-worker budget. On the tested Windows host, the old code chose 32 workers; querying 31.297 GiB of physical RAM now selects 10. The shared `verify_parallel.default_jobs()` also receives the detected capacity.\n\nUse the standard-library `ctypes` binding to `GlobalMemoryStatusEx`, with the SDK's fixed-width fields and initialized structure length. Preserve the POSIX query, explicit `JOBS` overrides and unknown-memory fallback. This restores the existing **total physical memory heuristic**; it is not a free-memory reservation or a hard resource limit. No scientific input, certificate, selected result or kappa changes.\n\n## Task and overlap\n\n- Base: `c676548106012571fefa1dce0ec16f1bcfe11dce`.\n- Card: `verifier-engineering / portable-replay`, priority revision 3, scope key `831cc1a3c8f9ff01b197`, chooser nonce `cdb3518b3b43e210c16c478540c21dea`. Scope **refined** to one native Windows resource-detection failure in the existing verification tooling.\n- [Coordination claim #2030](https://github.com/CrocSwap/integer-mult-bounds/discussions/2030).\n- The existing worker policy comes from eumemic's #154 and its integrated validation/snapshot hardening. Merged #1298 (`e76026571dbfa7299bf474b941c9abeb5bd556b3`) addresses Windows onboarding encoding/process cleanup in different files.\n- Submission refresh at 2026-10-14 17:46-17:51 UTC covered 361 open PR bodies, 676 Discussion records, 362 open-PR file inventories and 1,448 local metadata records, with complete pagination and no warnings. Text search matched only this session's claim; no open PR reported either changed path. These are bounded text/file-list checks, not a novelty guarantee.\n\n## Validation\n\nThe new tests produced **five failures against the unchanged base implementation**. After the fix:\n\n| Environment | Check | Result |\n| --- | --- | --- |\n| Windows, CPython 3.12.9 | `python -X utf8 -B -m unittest discover -s tests -p test_parallel_memory.py -v` | 11 pass, including the real Windows API |\n| Windows, CPython 3.14.2 | Same command | 11 pass |\n| Ubuntu 24.04 under WSL, CPython 3.12.3 | `python3 -B -m unittest discover -s tests -p 'test_parallel*.py' -v` | 17 tests, one Windows-only smoke test skipped; all others pass |\n\nControls cover a fractional capacity above 4 GiB, total versus available memory, API failure with a populated buffer, zero/unknown capacity, CPU and minimum-worker bounds, explicit overrides, and the shared isolated-group budget. The existing Windows-safe scheduler tests also pass (four tests covering overrides, failure propagation, snapshots and invalid CLI/group inputs).\n\n`python -X utf8 -B scripts/research_baseline.py`, `python -X utf8 -B scripts/verify_selected_result.py` and `git diff --check` pass. The source-bound baseline reports the unchanged selected record. No heavy audit workers were launched for the scheduler comparison. Full historical/mathematical replay was not run for this tooling-only change. Hosted CI is separate from these local results.\n\nHosted CI currently requires maintainer approval: [Verify research artifacts](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38610219719) reports `action_required` with no jobs executed. The local results above do not claim hosted CI success.\n\n## Credit\n\nRetain the existing Apache-2.0 notice and credit eumemic's PR154 worker policy and the integrated maintenance work. API layout and return semantics follow Microsoft's [MEMORYSTATUSEX](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex) and [GlobalMemoryStatusEx](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex) documentation. Prepared for Tairitsu-Aya with substantial OpenAI Codex assistance.\n\n## Open next questions\n\nThis is an existing-tool repair, not a new research package. Accounting for competing processes, free RAM or container/job-object limits would require a separate scheduling-policy change; this patch preserves the current total-memory policy.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "99835fdd0e3c0cfc8b3ca8a9fca47c0b0bfe136d17eac20b3a0cedc7301fc51f"
+}

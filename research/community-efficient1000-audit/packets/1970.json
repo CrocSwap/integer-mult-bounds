@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "number": 1970,
+  "title": "fix(research): support overlap pagination on older gh",
+  "author": {
+    "id": "MDQ6VXNlcjc0MjEzNDY=",
+    "is_bot": false,
+    "login": "petalas",
+    "name": "Nick Petalas"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1970",
+  "head": "9c2fdd89e553751e40ef8011716a249e8385d284",
+  "merge_base": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "baseline": "c676548106012571fefa1dce0ec16f1bcfe11dce",
+  "files": [
+    {
+      "path": "scripts/find_overlap.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1ea9242a61e0c2318368e3edd38e29f7b9247c8b"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "34677253e224a8a2df51113dcd82b48f8826f81c"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_overlap_pagination.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d5d9c50bc4603c25186993141cf71b9a83e93fdd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/find_overlap.py": 1,
+    "tests/test_research_overlap_pagination.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "## Summary\n\n```diff\n gh_json([\"--paginate\", \"--slurp\", ENDPOINT])\n-gh api --paginate --slurp ENDPOINT\n+gh api --paginate ENDPOINT --jq '@json'\n+decode every compact JSON page before publishing the snapshot\n```\n\nKeep complete open-PR pagination on GitHub CLI releases without `--slurp`. Normalize the legacy argument inside `gh_json`, leaving its callers unchanged. This preserves merged [PR #1623](https://github.com/CrocSwap/integer-mult-bounds/pull/1623)'s path-index fetching and avoids a caller conflict.\n\nReject absent or malformed pages. Preserve the previous complete snapshot when any page fails. Split only LF separators so embedded Unicode line separators survive. Single-response GraphQL behavior and the cache schema are unchanged.\n\nRetain Douglas Colkitt's helper and cache design. [Cinna Davis's earlier report](https://github.com/CrocSwap/integer-mult-bounds/discussions/1516#discussioncomment-18918111) identified the unsupported flag. This patch adds the correction and reproducible regression coverage. The sampled `complex-new-helper-inventory` task changed scope to tooling; this supplies no new helper inventory or bound improvement.\n\n## Evidence\n\n- Before: the new legacy-argument regression fails with `unknown flag: --slurp`. After: all seven focused regressions pass in standard and optimized modes.\n- The controls cover later-page drafts, Unicode/newline bodies, empty repositories, missing and malformed output, failed refreshes, cache preservation, offline reuse and GraphQL errors.\n- The two-file patch applies cleanly to main `51122344de9382e784c7f89953456d8cd55513ef`, including #1623. All 60 research-workflow tests pass on that combined tree with no skips. All 49 pass on this branch with no skips.\n- A live refresh completed with 392 open PRs and 639 Discussion records, complete pagination and no warnings, at `2026-10-14T16:53:29Z`.\n- Baseline bindings, warning-enabled bytecode compilation and diff checks pass. The selected record and its source pins are unchanged.\n\n```sh\npython3.12 -X dev -W error -B -m unittest discover -s tests -p 'test_research_*.py'\npython3.12 -I -O -B tests/test_research_overlap_pagination.py\npython3.12 -B scripts/research_baseline.py\n```\n\n## Merge Danger\n\n**Door:** two-way\n\n**Blast Radius:** coordination\n\nOnly paginated REST decoding and its tests change. No scientific evidence, selected frontier or cache format changes. Overlap reports remain search leads, not novelty certificates. No full mathematical cold replay or hosted-CI result is claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "ffeec59b22b4b907fcf60325d9f0d5400fda788adc813efd825091185b7aec50"
+}

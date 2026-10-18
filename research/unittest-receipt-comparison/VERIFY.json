@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "research/agent-07-verifeng-seed88/README.md",
+    "research/agent-07-verifeng-seed88/benchmark.py",
+    "scripts/historical-ci-inputs/ledger-batch932-run_isolated_tests.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-B",
+        "{package}/historical_replay.py"
+      ],
+      "timeout_seconds": 150,
+      "checks": "Authenticate original package and all three historical runtime inputs; run unchanged full 20-test receipt under normal Python in a private immutable context; current runner untouched."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-B",
+        "-O",
+        "{package}/historical_replay.py",
+        "--optimized"
+      ],
+      "timeout_seconds": 150,
+      "checks": "Authenticate original package and all three historical runtime inputs; run unchanged full 20-test receipt under optimized Python in a private immutable context; current runner untouched."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/test_historical_replay.py"
+      ],
+      "timeout_seconds": 60,
+      "checks": "Every original-file/input mutation rejects, missing input rejects, failed or silent-zero-exit child rejects, and post-replay mutation rejects."
+    }
+  ]
+}

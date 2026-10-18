@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "certificates/selected-result.json",
+    "certificates/checkpoints/frontier1042.json",
+    "docs/research/community-batch1099-integration.json",
+    "scripts/verify_selected_result.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Pins listed sources; confirms live verify_selected_result accepts the selected record and four metadata mutants while rejecting a certificate_sha256 mutant; statically confirms top-level scripts/*.py do not mention dependency-head fields; checks published consistency against frontier1042 and batch1099 integration reviewed_heads; confirms proposed guard.py accepts the live record and rejects three head/kappa/source_prs mutants; compares the full receipt to EXPECTED.json."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-B",
+        "{package}/guard.py"
+      ],
+      "timeout_seconds": 60,
+      "checks": "Opt-in proposed guard accepts the live selected record against previous_record and batch1099 integration reviewed_heads."
+    }
+  ]
+}

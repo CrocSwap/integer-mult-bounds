@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "number": 2002,
+  "title": "Audit: PR1866's one-unit block overhead passes only by idle credit (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjM4Mjk3MjY5",
+    "is_bot": false,
+    "login": "ianlibanio",
+    "name": "Ian Lib\u00e2nio"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2002",
+  "head": "267ffa239052eada68d525a02bd3633afbac1b38",
+  "merge_base": "01a65937ece11b56d515c81f039464ae3043c1c1",
+  "baseline": "c676548106012571fefa1dce0ec16f1bcfe11dce",
+  "files": [
+    {
+      "path": "research/pr1866-overhead-idle-credit-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a6c6305a7ca8f8e061edb54dd707a09a6ac2a7b6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr1866-overhead-idle-credit-audit/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "064d9898345ca9a8192cf697e4434a59f5d0d062"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr1866-overhead-idle-credit-audit/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "829171267f13b067b8307e05a786da6fa1bb6e0a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr1866-overhead-idle-credit-audit/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "12f6c3fbffd55651a361a24d10347254d2384de4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr1866-overhead-idle-credit-audit/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d339096c2fd45c4bde2244c22901075747bcef2c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr1866-overhead-idle-credit-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3a415fa9f17749292bb3b374a96f68eff980fcae"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/pr1866-overhead-idle-credit-audit": 6
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "## Result\n\n**Scoped audit of a pending screen. No new \u03ba, construction or supplier; the selected record is unchanged.**\n\n[PR #1866](https://github.com/CrocSwap/integer-mult-bounds/pull/1866) (head `7d22d1d51eb6c0bc040f8181b6c5f83e051fb234`) screens a `(3,1,1,1) \u2192 6` block with `e` assumed rank-one-equivalent overhead units per block. It reports first passes of the 5% ceiling target at k = 135 (`e = 0`) and k = 284 (`e = 1`), and none for `e = 2`.\n\nThose numbers are arithmetically correct for the invoice it computes. However, the `e\u00b7k` overhead is added to the **local profile** passed to `ceiling.relax`. The ceiling model fixes paid mass at the coverage identity (7232 per call), so each overhead unit is subtracted from the idle remainder. It pays only its excess over ideal rank-51 idle mass. The merged [PR1605 rank-one block budget](https://github.com/CrocSwap/integer-mult-bounds/blob/main/research/complex-rank-one-block-budget/README.md) and the [block target screen](https://github.com/CrocSwap/integer-mult-bounds/blob/main/research/complex-block-target-screen/README.md) charge additional work **on top** of the unchanged idle bill. PR1605's replay includes this exact credited invoice as a false-pass control.\n\n| Overhead per block `e` | PR1866 invoice (credited against idle) | Additional overhead (no idle credit) |\n|---:|---|---|\n| 0 | first pass k = 135 (298 passing k) | first pass k = 135 (298 passing k) |\n| 1 | first pass k = 284 (149 passing k) | **no k in 0..432 passes** |\n| 2 | no pass | no pass |\n\n- **Per-block saving.** One block saves `3 + 3^q \u2212 6^q` rank-one calls (`q = 1 \u2212 a`), certified in `(0.013204, 0.013205)` at the target. With no idle credit, one extra call per block makes every block costlier than the children it replaces, for all `0 \u2264 a \u2264 a*`.\n- **Why the credited invoice passes.** A credited overhead unit costs only about 0.006953 rank-one calls, roughly half the block saving.\n- **Total uncredited budget.** At most **3** extra rank-one calls in total (not per block) with all 432 blocks, and **0** at k = 135.\n\n## Task card\n\n- **Task ID / scope key:** `complex-rank-shape-decoder`, scope key `cad3ba853d7f324f16fa`, chooser nonce `c3eec147a2cf20ef07d6ce3652384ebc`, priority revision 3.\n- **Scope:** **changed**, to an independent audit of the newest pending screen on this card. The overlap helper reported 231 possible matches, so this session did not add another candidate block. The card's construction acceptance gate is not met.\n- **Base:** `01a65937ece11b56d515c81f039464ae3043c1c1`; selected-record SHA-256 `10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32`.\n- **Audited head:** #1866 `7d22d1d51eb6c0bc040f8181b6c5f83e051fb234`. It was still open, with no comments or reviews, at submission.\n- **Domain:** k = 0..432 blocks per call; `e \u2208 {0,1,2}`; target `a* = 35491136290869/20000000000000000` (21/20 \u00d7 the selected ceiling's upper bracket), the same target #1866 and PR1605 use.\n\n## Evidence\n\n`research/pr1866-overhead-idle-credit-audit/verify.py` checks every decision with two arithmetic engines:\n\n- **Engine A:** the pinned `ceiling.py` enclosures.\n- **Engine B:** a code-disjoint `decimal` engine (libmpdec correctly rounded `ln`/`exp` at 80 digits, widened by 4 ulps; directed rounding elsewhere).\n\nEvery decision must be strict, and the engines must agree. They agree on the selected ceiling bracket, all 2,598 scan decisions and both budget counts. Each passing set is checked to be an upper interval in k. Five controls pass:\n\n- idle rank 52 is rejected by the halving guard;\n- a coverage overspend is rejected;\n- the two conventions agree at `e = 0`;\n- k = 134 is rejected for `e = 0`;\n- k = 284, `e = 1` passes when credited and is rejected as additional work.\n\n```sh\npython3 -I -B research/pr1866-overhead-idle-credit-audit/verify.py   # PASS_PR1866_OVERHEAD_IDLE_CREDIT_AUDIT, ~1 s\npython3 scripts/research_package.py --package research/pr1866-overhead-idle-credit-audit --check-only\npython3.12 scripts/research_package.py --package research/pr1866-overhead-idle-credit-audit\n```\n\nAll three passed locally (Python 3.14.8 and 3.12). `python3 -B -m unittest discover -s tests -p 'test_research_*.py'` also passes: 53 tests, 2 skipped.\n\n## Limits\n\n- This audits one pricing convention in one pending moment screen. It does not examine #1866's tensor-rank proof, dirty-target contract or phase-A placement scan.\n- The `e` tariff remains a parameter. No copy, frame, restoration or hosting bill is established.\n- If a construction proves a new coverage identity under which its overhead legitimately displaces idle mass, the credited column applies. That proof is its own obligation.\n- All limits of the retained ceiling model apply.\n- Engine B trusts libmpdec's documented correct rounding. Widening and agreement with engine A are the safeguards.\n- No full selected cold replay was run: no supplier or selected artifact changed.\n\n## Credit\n\nThe block, its tensor proof and its screen are by Cinna / commdata2338 (#1866). The ceiling model is Douglas Colkitt's (PR1240), built on PR1012's coverage identity. The uncredited-overhead convention and its false-pass control are Arham Tahir's (PR1605). The block target screen is Jose Manuel's (@jmbarrancoml), building on Ali Romman's PR1429.\n\nPrepared by ianlibanio with substantial Claude (Anthropic) assistance via Claude Code, covering task selection, both engines, verification and writing. No independent human review. Apache-2.0.\n\n**Workflow feedback (optional).** The biggest friction was that `ceiling.relax` cannot distinguish payload children from overhead children. Passing overhead inside the local profile silently credits it against idle mass. The package's second open question proposes a successor helper with an explicit extra-profile argument.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "af079ac59287eacf60c5e990cac39712cdbd41a71d915a84dfc9b29aba9d43d0"
+}

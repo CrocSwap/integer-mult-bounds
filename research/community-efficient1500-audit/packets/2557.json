@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "number": 2557,
+  "title": "Reject duplicate or invalid identities before writing review packets",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2557",
+  "head": "fdc86d146505f81238f85c8895027083268869a3",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "scripts/pr_review_packet.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c3a87b98f4356e7d9a8767aa4e82a1fed3d721aa"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7e56c734d18d9ed1522e83e97534a45231086477"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_pr_review_packet.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c354caef52663d14125cc301c4bbbf19973d79f1"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3bbe04df90a876e474732252f4cac875ac0ca698"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/pr_review_packet.py": 1,
+    "tests/test_pr_review_packet.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "The offline PR review-packet command keys each output file by metadata.number. Passing two snapshots of one PR silently overwrites the first packet while the index and success message report two. Malformed IDs such as ../escaped are also used as output paths.\n\nCapture each metadata file once, validate that PR numbers are positive integers and unique across the batch before creating output, and bind metadata_sha256 to those same parsed bytes. Duplicate snapshots reject even when their heads agree, so a successful batch has one packet per declared PR identity. Complete Git diffs and source-identity-only semantics remain unchanged.\n\nValidation: the actual CLI reproduced both duplicate cases on main and accepted all six malformed-ID controls, including writing escaped.json outside its disposable output directory. After the fix, all five focused tests pass on Windows CPython 3.12.14. Tests cover duplicate same/different heads; bool, zero, negative, string and path-like IDs; two distinct PRs with complete Git diffs despite empty GitHub file lists; exact per-file metadata hashes; a file changed immediately after its captured read; and the original mode/deletion/source-identity checks. git diff --check passes. This does not authenticate supplied GitHub metadata or make scientific approval decisions.\n\nTask selection: reassigned adversarial-audit nonce d5fab81a0f8f93d84f28302226d5f600, preserved without reroll; scope changed to a reproducible review-evidence identity failure. Source-bound orientation passed. Canonical main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4, and complete live PR/Discussion/local-note overlap refreshed before submission. Credit Douglas Colkitt and the retained community-pilot20 review-packet tooling contributors. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0. No selected-frontier or frozen scientific evidence changes.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "f42da240b59d3b512043af677655a1d4fbf74ed0d9af1b678feae6e14487ea5a"
+}

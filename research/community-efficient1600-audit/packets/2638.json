@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "number": 2638,
+  "title": "Reuse authenticated gate tables in the packed selected checker",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2638",
+  "head": "161014fe7e603135f149c680dde424005b294c23",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "d359705715f45a25d46c593a542e8d071c47160a",
+  "files": [
+    {
+      "path": "research/packed-clifford-gate-tables/BENCHMARK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "43778f314d67e6940a590550ef43980f9a542bb1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5fba059dca5170563e88efb4737f720a82b5b703"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9621282f8e59234cc5d94480123e0e61f16948be"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5e09f1ac3cfb56364674fa0b1688aaba079f3ba4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fea476b902a0d5832fe31299bd765529495d445d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "58ca10d48cf78352aee249cbc364e13a4fb7d63f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7d9f15c21f88d126d452f09a61827a8057ac1798"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/adapter.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b99342ac6e4853048a87cc9fa7d31caf998f9af0"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/benchmark.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "aba8a9b79831bebadd264000a44049e260e699b8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/test_export.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4285efadc666548c02de8909931744d2515173ad"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/test_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7bbe0a555535494eaeedc9173e09ac31d2463b0a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-clifford-gate-tables/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "367890c10c30aad5e9df53004c6a6fb6c1f2464a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/packed-clifford-gate-tables": 12
+  },
+  "github_reported_file_count": 12,
+  "complete_git_file_count": 12,
+  "body": "The independent PR1781 packed checker repeatedly rebuilds 512-entry P/D gate tables. This opt-in adapter reuses Charles Bethin's existing PR662 table recurrences in that packed kernel, while leaving frozen source files unchanged and retaining the full 2,896-child / 224-adapter / 512-column checker, global phases, source bindings, calibrations and semantic controls. PR2329 already integrates these tables into the production state evaluator; this is the distinct packed all-column path, not a new table algorithm.\n\nAll 14 runtime inputs are authenticated before predecessor code executes, then replayed from captured bytes in a private snapshot. Exactly three checked source edits substitute table values; caches hold at most 64 immutable tables each and no state or acceptance results. A companion receipt binds the transformed kernel explicitly. The unchanged legacy header names the original kernel source and is retained only for exact comparison.\n\nValidation: the complete audit compares every entry of 5,140 distinct P tables and 3,721 distinct D tables with the original scalar formulas (4,536,832 exact comparisons). Four fresh serial native CPython3.12.7 runs reproduce byte-identical legacy result/receipt bytes: baseline68.905/84.857s and candidate31.266/31.677s, a2.44x median wall-time ratio on this shared Windows host. Individual runs and scope limits are retained in BENCHMARK.json; no portable performance guarantee or speed acceptance threshold is claimed. Registered optimized replay, eight source/cache/fault control groups, Git-free export/non-overwrite checks and independent AI review are recorded with exact source pins.\n\nNo selected result, production interpreter, default command, supplier, executor bridge or multiplication-theorem obligation is changed. Scope, recurrence equivalence, source/receipt boundary, reproduction commands, attribution and open questions are in research/packed-clifford-gate-tables. Prepared by ywz65 with substantial OpenAI Codex assistance, including separate agent review.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "c615df8d59cb82dad8501fb6a2101d4e3cdbc01781cbe19b0cbe39c1bdfe27ec"
+}

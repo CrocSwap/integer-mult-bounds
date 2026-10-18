@@ -1,0 +1,40 @@
+# Manual research replay; archival intake is not scientific validation.
+# See docs/research/research-archive-intake.md before dispatching.
+name: Verify unitary prefix norm lemmas
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+jobs:
+  lean-prefix-norm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Check source bindings and guard tests
+        run: |
+          python3 -I -B research/lean-unitary-prefix-norm/verify.py --source-only
+          python3 -I -B research/lean-unitary-prefix-norm/test_verifier.py
+      - name: Install pinned elan bootstrap
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build fresh proofs and audit all theorem axioms
+        run: |
+          python3 -I -B research/lean-unitary-prefix-norm/verify.py --work "$RUNNER_TEMP/unitary-prefix-norm"
+          cat "$RUNNER_TEMP/unitary-prefix-norm/AXIOMS.log"
+          git diff --exit-code

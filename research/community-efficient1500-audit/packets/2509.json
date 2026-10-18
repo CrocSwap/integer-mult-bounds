@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "number": 2509,
+  "title": "Reject writable aliases escaping parallel verifier snapshots",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2509",
+  "head": "3b356afa01c2d4287f49ab0f6262180fff4e3fb1",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "scripts/verify_parallel.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d0f52f1f2b60b56d5d525f990a3d132e1790d6f9"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fc1a72e151e7491d1142b85aade4277d0ed61aeb"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_parallel_snapshot_links.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5b2b3487a519a9e8ba1dc18187356ac030b4bfb2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/verify_parallel.py": 1,
+    "tests/test_parallel_snapshot_links.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "The parallel verifier copies symlinks verbatim into each snapshot. Absolute links therefore retain writable aliases into the original checkout, and relative links can resolve outside it. A verifier writing through either alias can escape the intended isolated working tree.\n\nValidate the complete file inventory before writing the snapshot. Reject anchored targets, relative chains escaping the source root, and cyclic/unresolvable links. Preserve internal relative links: a real positive control edits the snapshot target through its alias while the source remains unchanged. This is relocation containment, not a general guarantee that every link target exists; dangling internal relative links remain permitted.\n\nValidation on Windows CPython 3.12.14: five invalid-link cases fail before the fix; all three new test methods pass afterward, with real symlink creation (no skips). Four neighboring existing worker/snapshot tests pass. Commands: python -B -m unittest discover -s tests -p test_parallel_snapshot_links.py -v, plus the four non-make controls from test_parallel_verification. git diff --check passes. Full make-based and POSIX suites were not run.\n\nTask selection: independent-verification seed b815ce79a6a80d8bafe9d14eec50d8a0, scope changed to portable replay expertise after finding a concrete isolation failure. Canonical main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4. Refreshed PR bodies, Discussions, package notes and ledger searched; no matching snapshot-link contribution found. This differs from EdDiboi's registered-package path admission handoff, and complements existing snapshot hardening originally adapted from eumemic PR154. No frozen sources or selected frontier change. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "49127e95f44f9d9e3f4f6db9495732027665f9c44e1411ff9084b8db8e99b605"
+}

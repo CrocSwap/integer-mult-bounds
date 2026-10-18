@@ -1,0 +1,55 @@
+# Manual research replay; archival intake is not scientific validation.
+# See docs/research/research-archive-intake.md before dispatching.
+name: Rank-seven-end T37 whole-owner composition
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, retained repository pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, retained repository pin
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install retained cold-replay dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+          python -m pip install -r research/e8-bit-p111-tuned/requirements.txt
+      - name: Fresh ancestry, supplier, owner construction and strict admission
+        env:
+          CXX: g++
+          BOOST_INCLUDE: /usr/include
+        run: >-
+          python -B research/complex-t37-ends7-owners/verify.py
+          --work "$RUNNER_TEMP/ends7-t37-cold"
+      - name: Require committed sources unchanged
+        if: always()
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: ends7-t37-python-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/ends7-t37-cold/*.json
+            ${{ runner.temp }}/ends7-t37-cold/*.log
+            ${{ runner.temp }}/ends7-t37-cold/t37/strict/*.json
+            ${{ runner.temp }}/ends7-t37-cold/t37/strict/*.log
+            ${{ runner.temp }}/ends7-t37-cold/t37/strict/global/audit/*.json

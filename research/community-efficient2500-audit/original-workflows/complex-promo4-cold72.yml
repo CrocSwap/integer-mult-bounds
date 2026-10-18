@@ -1,0 +1,36 @@
+name: Four promotions and cold72
+on:
+  pull_request:
+    paths:
+      - 'research/complex-promo4-cold72/**'
+      - 'research/complex-promo4-cold72-validation/**'
+      - '.github/workflows/complex-promo4-cold72.yml'
+  push:
+    branches: ['codex/promo4-cold72-20261013']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '${{ matrix.python }}'
+      - run: bash research/complex-promo4-cold72/verify.sh "${{ runner.temp }}/promo4-cold72"
+        env:
+          PROMO4_COLD72_PYTHON: python
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: promo4-cold72-python-${{ matrix.python }}
+          path: '${{ runner.temp }}/promo4-cold72'

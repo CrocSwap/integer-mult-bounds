@@ -1,0 +1,31 @@
+# Endpoint and outer-witness refinement on PR1424 (construction unchanged)
+
+**Current claim (matches `CLAIM.json` and `SPEC.json`): conditional kappa = 0.001676855229071321886206456772274592619512448739510475262803365191051156655212009649515784691641384542992927543810394218063101696528820285122293539187175718645091286128304946879363305825544468149**, which is 7.555494e-26 above PR1424's 0.001676855229071321886206381217337893. The construction, scalar words, provider inventory, owners and paid profile are PR1424's (PR1319's 74-replica exact fill of PR1297's four cold kernels), unchanged.
+
+## What changed relative to PR1424
+1. Certified complex endpoints refined from the inherited 1e-24 bracket to 1e-200. `SPEC.json:expected.complex_lower` / `conservative_complex_lower` are pinned at that grid. `code/assemble.py` still certifies the inherited 1e-24 bracket containing each endpoint with the retained engines (`engines/moment.py` Mercator, `engines/base_two_moment.py`, both unchanged), and additionally checks that the moment is accepted at the endpoint and rejected at endpoint + 1e-200 by finer-constant copies of the same two algorithms (`code/fine_mercator.py`: 2^-830 outward rounding, 830 Mercator terms, 80 exponential terms; `code/fine_moment.py`: 1e-240 outward rounding, 260 log terms, 80 exponential terms), both required.
+2. Outer witness settings in `SPEC.json:outer_refinement`: grid_digits 195 (the final kappa grid, hence the printed digits), margin_digits 205 (eta = beta = 10^-205, target backoff 10^-208), bootstrap_steps 80, endpoint_digits 200 (PR1424: 36, 40, 12; 1e-24 endpoints).
+
+3. `dec()` in `code/assemble.py` prints 300 significant digits (it was 70) so the decimal kappa fields are exact; every kappa pin is the same function's output.
+
+All 47 strict outer inequalities, the rejection controls and next-grid rejection hold for the native and conservative endpoints (checked offline with the package's own outer witness and engine). kappa = 0.001676855229071321886206456772274592619512448739510475262803365191051156655212009649515784691641384542992927543810394218063101696528820285122293539187175718645091286128304946879363305825544468149; the conservative endpoint gives 0.00167685522623489186211174109523872014053867690936384879109066585368590366798663208292542906458522823241271037571892980619635035249678300547445169249492765379633761537889463628681512731294193385. The remaining gap to the exact root of the moment equation is the endpoint bracket 1e-200; the displayed digits are set by the 1e-195 final grid.
+
+---
+## PR1424's original description (SUPERSEDED settings; kept for credit and context only)
+_Everything below is PR1424's text: its kappa 0.001676855229071321886206381217337893, 12 bootstrap iterations, eta = beta = 1e-40, 1e-36 grid and unchanged 1e-24 endpoints no longer apply to this package._
+
+Conditional candidate κ = **0.001676855229071321886206381217337893**, an absolute increase of **6.2381217337893E-23** over PR1377 (0.001676855229071321886144). **Certificate refinement only: the construction, scalar words, provider inventory, owners and paid profile are unchanged.** This is a tiny numerical improvement, not a new kernel or practical speedup.
+
+**Draft: complete new-package admission is pending.** An exact discovery run on previously verified PR1319 owner and invoice receipts passes both rational moment engines, all 47 strict outer inequalities, and four outer rejection controls. The full portable finite pipeline and a separate closed-form bootstrap audit will run after draft publication. The unchanged PR1297 native providers will be explicitly source-bound reused; no fresh native replay or hosted CI success is claimed.
+
+The three witness settings are frozen in `SPEC.json:outer_refinement`: 12 bootstrap iterations, eta = beta = 10^-40 with target backoff 10^-43, and a 10^-36 final κ grid. The inherited complex and bit endpoint grids and their native/surcharge models remain unchanged. Every bootstrap cutoff is recomputed from the exact gap. The next final κ grid point rejects for this witness. No optimality over all outer parameters is claimed.
+
+The recurrence is a_(j+1) = (1-s)s + s a_j. Its closed form is a_j = s - (s-a_0)s^j; 0 < a_0 < s < 1 gives a finite increasing chain below s. This only changes witnesses to the inherited conditional bootstrap and outer lemmas, whose assumptions remain in force. Root endpoints, arithmetic engines and finite construction are inherited unchanged.
+
+Reproduce complete admission with `python3 -B verify.py --work /absolute/new/work --base-native-from /bound/base/native --extra-native-from /bound/extra/native`, or omit the two reuse flags for fresh native supplier runs. The output directory must not exist and assertions must be enabled. `evidence/OUTER-DISCOVERY.json` is discovery evidence, not a completed new-package replay. `evidence/pr1377/` contains predecessor receipts; inherited `PRICE.json` and input/parent receipts are not new verification.
+
+Conditional finite construction only. All-size compiler, common-label/mutable-source realization, whole-call hosting, precision/tape, exact recovery, analytic transfer, PR559 recurrence correction and PR589 bit H1-H5 assumptions remain. No unconditional theorem, full Lean certification, or global packing claim.
+
+Credit Rohan Arun PR1319 (74-replica exact fill) and PR1297 (four cold kernels); Jeremy Kothe PR1377 (finer final grid), PR1019 and PR1274; Jeremy Diviney PR1193; Thomas DiFiore PR1148; Hao Yan and retained owner/controller lineage; eumemic and icekylinx/Zhihao Chen for the exact outer assembly; the PR547/548/559 recurrence and PR589 bit suppliers. Prepared by Rohan Arun with substantial OpenAI Codex assistance. Apache-2.0; predecessor notices and bytes are retained. No independent human or proof-assistant verification is claimed.
+
+Next: complete finite replay and independent witness audit, then mark ready if they pass. Continue searching for a new paid construction; this numerical gain does not resolve the decoder frame-realization problem.

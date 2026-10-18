@@ -125,9 +125,14 @@ def baseline(g):
     return result
 
 
+@lru_cache(maxsize=None)
+def _mod_inv(d, prime):
+    return pow(d, -1, prime)
+
+
 @lru_cache(maxsize=65536)
 def modular_rank(A,prime=101):
-    rows=[[int(x.numerator)*pow(int(x.denominator)%prime,-1,prime)%prime for x in row] for row in A]
+    rows=[[int(x.numerator)*_mod_inv(int(x.denominator)%prime,prime)%prime for x in row] for row in A]
     n=len(rows);pivot=0
     for j in range(len(rows[0])):
         k=next((i for i in range(pivot,n) if rows[i][j]),None)

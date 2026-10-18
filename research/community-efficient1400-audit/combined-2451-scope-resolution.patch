@@ -1,0 +1,65 @@
+--- a/research/t74-cold-restoration-screen/README.md
++++ b/research/t74-cold-restoration-screen/README.md
+@@ -12,19 +12,21 @@
+ |---|---|---|
+ | 1. single-gate screen | in the inverse-reverse cleanup, look for helpers whose restoration is one write `h −= c·s` that depends on no earlier cleanup gate, so it can move to the end of the forward word, and where joining h's frame with the source's frame saves a dimension | **8 of 355**: 559, 561, 569, 571, 576, 577, 578, 579, each with end climb 3. They sit next to the existing cold-restored 572–575 and 580–583. |
+ | 2. construction + exact replay | build each converted word on the pattern of the existing restore sections: restore the helper, **clear its input from every reader** (X registers included) with `r −= a·h`, set `helper_final`, and make the cleanup buffer-free. Then run the vendored PR2315 exact replay (ℚ⟨F⟩, forward and dual, arbitrary dirty inputs) and the frame check. | **all 8 converted words are legal, and all 8 save nothing.** Clearing the readers forces the restore frame to contain each reader's frame (dimensions 6 to 8), so the joined frame is FULL for every candidate. The unmodified words replay as a control. |
+-| 3. time-resolved frame estimate | after h's last use, bound the restored frame by the cheapest holder of each variable of h's accumulated content | savings ≤ {0:60, 1:216, 2:15, 3:64}, that is 438 of the 525 end-climb dimensions; priced with the width-aware LP, at most **+8.86%** (PR2429's ideal was +10.80%) |
++| 3. time-resolved frame heuristic (known proof gap) | after h's last use, estimate the restored frame from the cheapest holder of each variable of h's accumulated content | computed histogram {0:60, 1:216, 2:15, 3:64}, totaling 438 of 525 end-climb dimensions; the floating-point LP estimate is **+8.86%**, not a proved upper bound |
+ 
+ **Reading.** The cheapest move, one commuting restoring gate with reader clearing, is legal for 8 helpers but
+ saves **nothing**. The reason is frames, not the contract: every reader of the restored input must be cleared
+ through a gate that reads h, so h's final frame contains every reader's frame, and for all 8 that join is FULL.
+ 
+-The step-3 estimate is a loose screen-level cap. The reviewer found a gap in its holder argument: h's old
+-content could be moved out and its variable supplied by another holder. An exact span check by the reviewer
+-left all 20 affected helpers at 0, so the numbers stand. The same unreviewed exact span check over all 355,
+-which ignores warps after a helper's last use, suggests a far tighter cap of about 54 of 525 dimensions.
++Step 3 is an exploratory heuristic with a known gap: h's old content could be moved out and its variable
++supplied by another holder. The author reports additional reviewer span checks, including a tentative
++54-of-525 estimate, but those checks are not reproduced by this registered package. Neither that report
++nor agreement on some cases repairs the missing general argument. The printed `frame_bound` fields are
++historical heuristic labels; they are not certified bounds.
+ 
+-Bottom line: on these words, PR2429's restoration lever is not realizable by single-gate cold restorations, and
+-any realization must avoid the reader-frame joins that defeat the single-gate moves.
++For the eight screened single-gate conversions, reader clearing joins the frame to FULL and leaves zero
++saving. A useful different realization must avoid or otherwise pay for that obstruction; this experiment
++does not exclude every possible restoration mechanism.
+ 
+ ## Reproduce
+ 
+@@ -48,10 +50,11 @@
+ - **Construction.** It follows the existing restore-section pattern and was corrected after adversarial review;
+   a first attempt omitted reader clearing. "Saving 0" holds for these 8 single-gate moves: their readers' frames
+   join to FULL.
+-- **Step-3 estimate.** It is a screen-level estimate with a known proof gap. Numerically it is checked on the
+-  affected cases by the reviewer's exact span check. It assumes the forward word is unchanged up to each
+-  helper's last use, and it is generous.
+-- **Prices.** They are LP-ceiling differences on the fixed bin stock.
++- **Step-3 estimate.** It has a known proof gap and is not accepted as an upper bound. The reported
++  reviewer span check is not included in the registered replay. The unchanged-forward-word premise
++  and post-last-use warps need explicit treatment in a replacement proof.
++- **Prices.** They are floating-point LP estimates on the fixed bin stock, without certified
++  enclosures; a numerical price attached to an unproved heuristic is not a mathematical ceiling.
+ 
+ ## Open next questions
+ 
+--- a/research/t74-cold-restoration-screen/restoration_screen.py
++++ b/research/t74-cold-restoration-screen/restoration_screen.py
+@@ -21,12 +21,13 @@
+        reads of h are dropped.
+    Then run the vendored PR2315 exact replay (forward and dual, arbitrary dirty inputs) and frame check. The
+    construction follows the adversarial reviewer's correction of a first attempt.
+-3. Time-resolved frame estimate (a screen-level upper estimate, not a proof).
++3. Time-resolved frame heuristic (known proof gap; not an established upper bound).
+    After h's last use, every variable of h's accumulated content must reach h through a gate chain that starts
+    at a register holding it at that time. Frames only grow, so h's restored frame contains cur(h) plus the
+    frame of such a holder for every variable. So the saving is at most
+        s(h) = min(end climb, 9 - max_x min_{holder r} rank(cur(h) + cur(r))).
+-   The bound is priced with the PR2387 width-aware LP (widths 3..9).
++   This argument has the holder-substitution gap described in README.md. Its output is exploratory,
++   priced numerically with the PR2387 width-aware LP (widths 3..9); the labels do not certify a bound.
+ 
+ Prepared with substantial AI assistance (Claude Code, Anthropic); Apache-2.0.  Credits in README.md.
+ Usage: python3 -I -B restoration_screen.py [--repo PATH] [--fetch] [--remote URL] [--out]

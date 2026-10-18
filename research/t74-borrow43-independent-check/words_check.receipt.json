@@ -1,0 +1,990 @@
+{
+ "buffers_note": "Each borrowed word uses 76 private zero buffers (one per restored cold helper) only inside the FULL-frame cleanup; they are not among the 437 helpers of the width inventory. No paid child occurs in cleanup (all items at FULL).",
+ "checker": "words_check.py",
+ "findings": [
+  "Both words: 43 warps pass the GF(2) checks (G invertible, dim U = dim E, G span U = span E, K_G symplectic, fixes L_0 and L_FULL, K_G L_U = L_E, Fourier rank 0); handoff dims {'4': 40, '5': 3}; 0 anticipatory/initial correction terms; the 7208-gate T74 compensation is the canonical one unchanged (0 + 0 gates dropped, i.e. none reads a removed helper).",
+  "Paid profiles recounted exactly: base {'1': 2351, '2': 501, '3': 414, '4': 129, '5': 42, '8': 8}, extra {'1': 2339, '2': 509, '3': 418, '4': 125, '5': 42, '8': 8} (climbs + COPY {'8': 8}); mass 5385 both; 437 helpers (from 480); width inventory {'4': 36, '5': 9, '7': 36, '8': 116, '9': 240}.",
+  "Exact replay over Q<F_43> in both orientations: Y_i <- Y_i + X_i, all other 549 non-target registers (X and live helpers) restored, 76 zero buffers returned to zero.",
+  "Canonical inputs reproduce the old profiles (base {'1': 2348, '2': 500, '3': 416, '4': 130, '5': 82, '8': 8} mass 5590; extra {'1': 2340, '2': 508, '3': 420, '4': 126, '5': 82, '8': 8} mass 5594), replay exactly, and equal the pinned 566 predecessor words up to a role-preserving register permutation and a linear frame map.",
+  "README imprecision: \"8 width-4, 35 width-5\" holds for the base word; the extra word removes helpers of canonical widths {4: 4, 5: 39}.",
+  "Canonical cold helpers [533, 554] end at FULL after borrowing (of these, [554] also lend); with the removed widths this gives the exact mass savings 205 (base) and 209 (extra).",
+  "Lenders that are source registers X: [73]; lenders that are restored cold helpers: [].",
+  "Cleanup uses 76 private zero buffers outside the helper inventory. Forward orientation: at most 44 are non-zero simultaneously (max overlap of lifetimes 44); 110 cleanup adds read a still-zero buffer (no-ops in the forward replay only: in the dual such an add writes the buffer, and dropping those that read a never-written buffer is rejected by the dual replay, see the controls). Dual orientation: at most 48 non-zero simultaneously (58 ever non-zero). No paid child runs in cleanup. Peak helper-like fields during cleanup are 437+44 = 481 (lazy, forward), 437+48 = 485 (lazy, dual) or 437+76 = 513 (eager); the unborrowed word uses 480. Whether the global accounting must host them is a global-model question that is not decided here.",
+  "Charging each warp as a plain frame change (rank d(L_U,L_E), distances {'2': 1, '4': 29, '6': 13}) would raise the local mass from 5385 to 5581; the saving depends on rank-zero K_G handoffs, checked here only at the binary symplectic level."
+ ],
+ "model": "* Registers 0..v-1 are X (sources), v..2v-1 are Y (targets), 2v..2v+R-1\n   helpers; n = 2v+R.  Removed helpers do not exist.  A buffer register b = r+n\n   exists only for r in helper_final (restored cold helpers) and only in cleanup.\n * Frame = GF(2)-subspace of F_2^h (h = 9), given by a list of bit-mask\n   vectors; compared as spans (reduced echelon form).  Start: X_i = span(port_i),\n   Y = 0, helper = start_extra[r] or 0.  End: X = FULL, Y_i = port_i^perp,\n   helper = helper_final[r] or FULL.\n * Every framed gate (add t s c F | scale t c F) climbs each incident register\n   from its current frame S to F; legal only if S <= F; a strict climb pays one\n   child of rank dim F - dim S.  precondition/compensation are at frame 0.\n * After A every target sits at its level (target_levels, here all 0) and\n   every centre at its centre frame.  cut gates (frame null) add c*centre into\n   a target at its level; each centre pays one COPY child of rank\n   dim(centre frame) - dim(level) per distinct served level (nested chain).\n * warp [pos, L, G, U, E] is inserted before B[pos] (list order inside a\n   position): requires cur[L] == span U exactly, sets cur[L] = span E, pays\n   nothing (rank-zero reference change K_G); logically L <- K_G L.\n * After B and restore every live register climbs to its end frame (paid).\n * cleanup items must all be at FULL, may touch only live registers whose\n   current frame is FULL, or buffers; they pay nothing.\n * Logic: exact replay over Q<F_43> (rationals x free group on K_1..K_43):\n   every live register starts as an independent symbol (arbitrary dirty\n   content), buffers start at 0; add t+=c*s, scale t*=c, warp left-multiplies\n   by K_k^{+-1} with free-group cancellation.  Accept iff after cleanup\n   Y_i = Y_i + X_i, every other live register is its own input, and every\n   buffer is 0.  The dual orientation replays g^{-T} for every item\n   (add -> s -= c t, scale -> 1/c, K -> K^{-T} as new free letters) and expects\n   X_i = X_i - Y_i.\n * Warp algebra over GF(2): G (columns = images of unit vectors) invertible,\n   dim U = dim E, G span U = span E, M = [[G,0],[G+G^-T,G^-T]] symplectic for\n   w((x,z),(x',z')) = x.z' + z.x', M L_0 = L_0, M L_FULL = L_FULL,\n   M L_U = L_E where L_W = {(u, u+p): u in W, p in W^perp}, and the Fourier\n   rank h - dim(L_E cap M L_U) of R_in = T_E K_G T_U^-1 is 0; G^-T U^perp = E^perp.\n   Exact Clifford phases / Gaussian monomial lifts are NOT checked here.",
+ "not_checked": [
+  "Exact Clifford (Gaussian-dyadic, unit quadratic phase) lifts of K_G and their native lowering; only the binary symplectic image is checked (it determines the Fourier rank by notes/general-clifford-frames.tex).",
+  "Native word lowering, both hosted orientations at the native level, owner/window hosting of the 437 helpers and the 76 buffers, precision/tape, global profile, kappa and outer assembly.",
+  "Provenance of the 566 predecessor words beyond their pinned blobs (they are taken as the old record inputs)."
+ ],
+ "object": {
+  "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+  "package": "research/gmx-t74-borrow43/",
+  "pr": 2269
+ },
+ "pins": {
+  "blocks": {
+   "bytes": 50270,
+   "git_blob": "c683574b3861678081fd5c5944dbd7a47309f6fd",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/blocks.json",
+   "sha256": "ddfac1dae1fe7cc0a91e7c7205c6d9d0c07c682880aa34eed83bf4ad7384da9f"
+  },
+  "canon_base": {
+   "bytes": 87678,
+   "git_blob": "4abb6e28f02c95b41ed345d4e4401d16d58ae791",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/gauge44.canonical.json.gz",
+   "sha256": "65c6d17ffee2eacf27bff438f37fc549c9ed0c909cbc7a52976cc75cf2d15b91"
+  },
+  "canon_extra": {
+   "bytes": 87680,
+   "git_blob": "e0d670d4351229ce6921ecfbecf180070b17616b",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/extra.canonical.json.gz",
+   "sha256": "d7e48dcbafa236a2e1e41f7958244211506f7c7630fe6a2d43d2bdf17b7ae015"
+  },
+  "providers": {
+   "bytes": 6427,
+   "git_blob": "42563d218a5c7321f686c1cf9b98e75883d85abc",
+   "path": "research/gmx-t74-borrow43/new/BORROW-PROVIDERS.json",
+   "sha256": "8324fcf5fd652af9793c1acbc5f5099ee0d2f1eefa0adfbb8335f3d31d891da2"
+  },
+  "witness_base": {
+   "bytes": 45301,
+   "git_blob": "9f4b93f3bc52d4f4ffaa128cfd7ae574fd36c462",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/witness_43_base.json",
+   "sha256": "67ffb66d94067f6e53aee9118fe90e14a57f497fc8b3f708b6dac3de2e58ff28"
+  },
+  "witness_extra": {
+   "bytes": 45306,
+   "git_blob": "864ba533f50c2f1f639a6a3559b185bd321b923a",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/witness_43_extra.json",
+   "sha256": "d46449c6dbf4477f260cf5baea9bbb570a66ee0b6db81f4a220b9e3086ae9e46"
+  },
+  "word566_base": {
+   "bytes": 57438,
+   "git_blob": "76c01583a0286cddb0f71e0cb13077e4317104f6",
+   "path": "research/gmx-t74-borrow43/new/gauge44-word-566.json.gz",
+   "sha256": "eeb6a236ed0ea8873b8800947d0cd19c36a6fcfdf857fc42913cb45cd984f219"
+  },
+  "word566_extra": {
+   "bytes": 57440,
+   "git_blob": "e86142b352466f54a3da38c96a6e1484145c3b5c",
+   "path": "research/gmx-t74-borrow43/new/extra-word-566.json.gz",
+   "sha256": "cd417b904408c221d9840d08faff8af040cc4207f9804284f2f5375d21298a62"
+  },
+  "word_base": {
+   "bytes": 69989,
+   "git_blob": "448dd795adba29392a90b34aa3f1b1b796c7e0bd",
+   "path": "research/gmx-t74-borrow43/new/borrow/words/BORROW-WORD-43base.json.gz",
+   "sha256": "9492a5537fb87d9ca98dffcd0230f7625b3789744fa94e2f18acf23d91d998b5"
+  },
+  "word_extra": {
+   "bytes": 69991,
+   "git_blob": "2b51ba96256283bbc5578f99b694c50edd8a0e35",
+   "path": "research/gmx-t74-borrow43/new/borrow/words/BORROW-WORD-43extra.json.gz",
+   "sha256": "87d51f5298101d5947f45c43ee02f0ec45d6acbddabb808d0d02db1eaf063734"
+  }
+ },
+ "python": "3.12.11",
+ "result": "PASS_T74_BORROW43_WORDS_INDEPENDENT",
+ "scope": "task A: BORROW-WORD-43{base,extra} and new/borrow/inputs",
+ "skip_controls": false,
+ "words": {
+  "base": {
+   "base_tag": "eeb6a236",
+   "canonical": {
+    "climbs": {
+     "1": 2348,
+     "2": 500,
+     "3": 416,
+     "4": 130,
+     "5": 82
+    },
+    "copy_charges": {
+     "8": 8
+    },
+    "helpers": 480,
+    "link_566": {
+     "aligned_frame_pairs": 1008,
+     "frame_map_tau_columns": [
+      42,
+      41,
+      4,
+      35,
+      16,
+      11,
+      64,
+      128,
+      256
+     ],
+     "register_permutation_nonidentity": 220
+    },
+    "local_mass": 5590,
+    "paid_profile": {
+     "1": 2348,
+     "2": 500,
+     "3": 416,
+     "4": 130,
+     "5": 82,
+     "8": 8
+    },
+    "replay": {
+     "buffer_nonzero_window": [
+      null,
+      null
+     ],
+     "buffers": 0,
+     "buffers_ever_nonzero": 0,
+     "cleanup_adds_reading_a_zero_buffer": 0,
+     "independent_inputs": 704,
+     "max_overlap_of_buffer_lifetimes": 0,
+     "peak_nonzero_buffers": 0,
+     "rows_with_operator_words_before_cleanup": 0
+    },
+    "width_inventory": {
+     "4": 44,
+     "5": 44,
+     "7": 38,
+     "8": 114,
+     "9": 240
+    }
+   },
+   "controls": [
+    {
+     "by": "replay",
+     "control": "drop forward warp 1",
+     "ok": true,
+     "other_checks": {
+      "frame": "rejected[frame]"
+     },
+     "reason": "final map wrong on register 240 (forward)",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "drop inverse warp 1 in cleanup",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "final map wrong on register 240 (forward)",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: B item 972 (lender 243 after its warp)",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 81 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: compensation gate 0",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: first cleanup add between live registers",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "frame",
+     "control": "warp 1 as an ordinary climb U->E",
+     "ok": true,
+     "reason": "non-nested climb of 243 at warp 1 treated as an ordinary climb: (261, 133, 85, 45) -> (320, 192, 45, 30)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "profile",
+     "control": "charge every warp as a climb of rank d(L_U,L_E)",
+     "ok": true,
+     "reason": "recount {'1': 2351, '2': 502, '3': 414, '4': 158, '5': 42, '6': 13, '8': 8} != word report {1: 2351, 2: 501, 3: 414, 4: 129, 5: 42, 8: 8}",
+     "rejected": true,
+     "target_check": "profile"
+    },
+    {
+     "by": "frame",
+     "control": "swap lenders of warps 1,14",
+     "ok": true,
+     "other_checks": {
+      "replay": "rejected[replay]"
+     },
+     "reason": "warp 1: lender 349 frame (416, 70, 19, 13) != U (261, 133, 85, 45)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: singular G",
+     "ok": true,
+     "reason": "warp 1: G is singular over GF(2)",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: invertible G with G span U != span E",
+     "ok": true,
+     "reason": "warp 1: G span U != span E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: dim E != dim U",
+     "ok": true,
+     "reason": "warp 1: dim U != dim E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "frame",
+     "control": "cleanup item 0 uses the restored register, not its buffer",
+     "ok": true,
+     "reason": "cleanup item 0 touches register 591 whose frame is not FULL",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "delete restore gate 0",
+     "ok": true,
+     "reason": "restored cold register 572 is not its own input",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "delete compensation gate 0",
+     "ok": true,
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "drop 18 forward-no-op cleanup adds (dual replay)",
+     "ok": true,
+     "other_checks": {
+      "forward replay": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "accepted": true,
+     "control": "positive: rebased warp U/E lists (same spans) accepted",
+     "ok": true,
+     "target_check": "warp+frame"
+    },
+    {
+     "by": "replay",
+     "control": "canonical: delete compensation gate 0",
+     "ok": true,
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "frame",
+     "control": "canonical: tail gate 0 lifted to FULL (cold end violated)",
+     "ok": true,
+     "reason": "non-nested climb of 589 at post-B[31]: (256, 128, 64, 32, 16, 8, 4, 2, 1) -> (256, 128, 64, 32, 18, 10, 6, 1)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "link566",
+     "control": "566 link: one 566 B-gate frame changed",
+     "ok": true,
+     "reason": "inconsistent frame pair at B[0]",
+     "rejected": true,
+     "target_check": "link566"
+    },
+    {
+     "by": "pin",
+     "control": "pin: one flipped bit in the word blob",
+     "ok": true,
+     "reason": "git blob id mismatch for new/borrow/words/BORROW-WORD-43base.json.gz",
+     "rejected": true,
+     "target_check": "pin"
+    }
+   ],
+   "controls_ok": true,
+   "frames": {
+    "climbs": {
+     "1": 2351,
+     "2": 501,
+     "3": 414,
+     "4": 129,
+     "5": 42
+    },
+    "copy_charges": {
+     "8": 8
+    },
+    "helpers": 437,
+    "if_warps_charged_mass": 5581,
+    "if_warps_charged_profile": {
+     "1": 2351,
+     "2": 502,
+     "3": 414,
+     "4": 158,
+     "5": 42,
+     "6": 13,
+     "8": 8
+    },
+    "local_mass": 5385,
+    "model_ok": true,
+    "paid_profile": {
+     "1": 2351,
+     "2": 501,
+     "3": 414,
+     "4": 129,
+     "5": 42,
+     "8": 8
+    },
+    "width_inventory": {
+     "4": 36,
+     "5": 9,
+     "7": 36,
+     "8": 116,
+     "9": 240
+    }
+   },
+   "links": {
+    "B_multiset_equals_canonical_B_plus_moved_tail_renamed": true,
+    "canonical_A_gates_dropped": 0,
+    "canonical_cold_helpers": 78,
+    "canonical_cold_helpers_ending_FULL_after_borrowing": [
+     533,
+     554
+    ],
+    "canonical_compensation_gates_dropped": 0,
+    "canonical_cut_gates_dropped": 0,
+    "canonical_precondition_gates_dropped": 0,
+    "high_helpers_in_blocks": 48,
+    "mass_identity": {
+     "predicted_saving": 205,
+     "removed_widths": 207,
+     "width_added_to_cold_now_FULL": 2
+    },
+    "moved_tail_gates": 48,
+    "providers_widths_match": true,
+    "removed_old_widths": {
+     "4": 8,
+     "5": 35
+    }
+   },
+   "replay": {
+    "dual": {
+     "buffer_nonzero_window": [
+      0,
+      4498
+     ],
+     "buffers": 76,
+     "buffers_ever_nonzero": 58,
+     "cleanup_adds_reading_a_zero_buffer": 355,
+     "independent_inputs": 661,
+     "max_overlap_of_buffer_lifetimes": 48,
+     "peak_nonzero_buffers": 48
+    },
+    "forward": {
+     "buffer_nonzero_window": [
+      1,
+      4470
+     ],
+     "buffers": 76,
+     "buffers_ever_nonzero": 76,
+     "cleanup_adds_reading_a_zero_buffer": 110,
+     "independent_inputs": 661,
+     "max_overlap_of_buffer_lifetimes": 44,
+     "peak_nonzero_buffers": 44,
+     "rows_with_operator_words_before_cleanup": 88
+    }
+   },
+   "saving": {
+    "helpers_after": 437,
+    "helpers_before": 480,
+    "mass_after": 5385,
+    "mass_before": 5590
+   },
+   "warps": {
+    "U_equal_E": 0,
+    "U_inside_E": 0,
+    "anticipatory_terms": 0,
+    "count": 43,
+    "dims": {
+     "4": 40,
+     "5": 3
+    },
+    "lenders": [
+     243,
+     250,
+     266,
+     259,
+     333,
+     317,
+     554,
+     285,
+     281,
+     301,
+     297,
+     313,
+     329,
+     349,
+     345,
+     365,
+     361,
+     381,
+     377,
+     397,
+     393,
+     225,
+     227,
+     229,
+     234,
+     241,
+     245,
+     257,
+     261,
+     73,
+     401,
+     403,
+     405,
+     410,
+     417,
+     419,
+     421,
+     426,
+     433,
+     435,
+     437,
+     442,
+     542
+    ],
+    "lenders_that_are_X": [
+     73
+    ],
+    "lenders_that_are_restored_cold": [],
+    "plain_fourier_distance": {
+     "2": 1,
+     "4": 29,
+     "6": 13
+    },
+    "positions": [
+     965,
+     1073,
+     1073,
+     1073,
+     1113,
+     1113,
+     1093,
+     1161,
+     1161,
+     1201,
+     1201,
+     1201,
+     1201,
+     965,
+     1181,
+     965,
+     965,
+     1181,
+     1181,
+     1181,
+     1161,
+     1161,
+     1141,
+     1141,
+     1141,
+     1141,
+     1113,
+     1113,
+     1073,
+     1093,
+     985,
+     985,
+     985,
+     1005,
+     1005,
+     1005,
+     1005,
+     1033,
+     1033,
+     1033,
+     1033,
+     1093,
+     1093
+    ]
+   }
+  },
+  "extra": {
+   "base_tag": "cd417b90",
+   "canonical": {
+    "climbs": {
+     "1": 2340,
+     "2": 508,
+     "3": 420,
+     "4": 126,
+     "5": 82
+    },
+    "copy_charges": {
+     "8": 8
+    },
+    "helpers": 480,
+    "link_566": {
+     "aligned_frame_pairs": 1008,
+     "frame_map_tau_columns": [
+      42,
+      41,
+      4,
+      35,
+      16,
+      11,
+      64,
+      128,
+      256
+     ],
+     "register_permutation_nonidentity": 220
+    },
+    "local_mass": 5594,
+    "paid_profile": {
+     "1": 2340,
+     "2": 508,
+     "3": 420,
+     "4": 126,
+     "5": 82,
+     "8": 8
+    },
+    "replay": {
+     "buffer_nonzero_window": [
+      null,
+      null
+     ],
+     "buffers": 0,
+     "buffers_ever_nonzero": 0,
+     "cleanup_adds_reading_a_zero_buffer": 0,
+     "independent_inputs": 704,
+     "max_overlap_of_buffer_lifetimes": 0,
+     "peak_nonzero_buffers": 0,
+     "rows_with_operator_words_before_cleanup": 0
+    },
+    "width_inventory": {
+     "4": 40,
+     "5": 48,
+     "7": 38,
+     "8": 114,
+     "9": 240
+    }
+   },
+   "controls": [
+    {
+     "by": "replay",
+     "control": "drop forward warp 1",
+     "ok": true,
+     "other_checks": {
+      "frame": "rejected[frame]"
+     },
+     "reason": "final map wrong on register 240 (forward)",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "drop inverse warp 1 in cleanup",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "final map wrong on register 240 (forward)",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: B item 972 (lender 243 after its warp)",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 81 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: compensation gate 0",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: first cleanup add between live registers",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "frame",
+     "control": "warp 1 as an ordinary climb U->E",
+     "ok": true,
+     "reason": "non-nested climb of 243 at warp 1 treated as an ordinary climb: (261, 133, 85, 45) -> (320, 192, 45, 30)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "profile",
+     "control": "charge every warp as a climb of rank d(L_U,L_E)",
+     "ok": true,
+     "reason": "recount {'1': 2339, '2': 510, '3': 418, '4': 154, '5': 42, '6': 13, '8': 8} != word report {1: 2339, 2: 509, 3: 418, 4: 125, 5: 42, 8: 8}",
+     "rejected": true,
+     "target_check": "profile"
+    },
+    {
+     "by": "frame",
+     "control": "swap lenders of warps 1,14",
+     "ok": true,
+     "other_checks": {
+      "replay": "rejected[replay]"
+     },
+     "reason": "warp 1: lender 349 frame (416, 70, 19, 13) != U (261, 133, 85, 45)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: singular G",
+     "ok": true,
+     "reason": "warp 1: G is singular over GF(2)",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: invertible G with G span U != span E",
+     "ok": true,
+     "reason": "warp 1: G span U != span E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: dim E != dim U",
+     "ok": true,
+     "reason": "warp 1: dim U != dim E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "frame",
+     "control": "cleanup item 0 uses the restored register, not its buffer",
+     "ok": true,
+     "reason": "cleanup item 0 touches register 591 whose frame is not FULL",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "delete restore gate 0",
+     "ok": true,
+     "reason": "restored cold register 572 is not its own input",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "delete compensation gate 0",
+     "ok": true,
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "drop 18 forward-no-op cleanup adds (dual replay)",
+     "ok": true,
+     "other_checks": {
+      "forward replay": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "accepted": true,
+     "control": "positive: rebased warp U/E lists (same spans) accepted",
+     "ok": true,
+     "target_check": "warp+frame"
+    },
+    {
+     "by": "replay",
+     "control": "canonical: delete compensation gate 0",
+     "ok": true,
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "frame",
+     "control": "canonical: tail gate 0 lifted to FULL (cold end violated)",
+     "ok": true,
+     "reason": "non-nested climb of 589 at post-B[31]: (256, 128, 64, 32, 16, 8, 4, 2, 1) -> (256, 128, 64, 32, 18, 10, 6, 1)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "link566",
+     "control": "566 link: one 566 B-gate frame changed",
+     "ok": true,
+     "reason": "inconsistent frame pair at B[0]",
+     "rejected": true,
+     "target_check": "link566"
+    },
+    {
+     "by": "pin",
+     "control": "pin: one flipped bit in the word blob",
+     "ok": true,
+     "reason": "git blob id mismatch for new/borrow/words/BORROW-WORD-43extra.json.gz",
+     "rejected": true,
+     "target_check": "pin"
+    }
+   ],
+   "controls_ok": true,
+   "frames": {
+    "climbs": {
+     "1": 2339,
+     "2": 509,
+     "3": 418,
+     "4": 125,
+     "5": 42
+    },
+    "copy_charges": {
+     "8": 8
+    },
+    "helpers": 437,
+    "if_warps_charged_mass": 5581,
+    "if_warps_charged_profile": {
+     "1": 2339,
+     "2": 510,
+     "3": 418,
+     "4": 154,
+     "5": 42,
+     "6": 13,
+     "8": 8
+    },
+    "local_mass": 5385,
+    "model_ok": true,
+    "paid_profile": {
+     "1": 2339,
+     "2": 509,
+     "3": 418,
+     "4": 125,
+     "5": 42,
+     "8": 8
+    },
+    "width_inventory": {
+     "4": 36,
+     "5": 9,
+     "7": 36,
+     "8": 116,
+     "9": 240
+    }
+   },
+   "links": {
+    "B_multiset_equals_canonical_B_plus_moved_tail_renamed": true,
+    "canonical_A_gates_dropped": 0,
+    "canonical_cold_helpers": 78,
+    "canonical_cold_helpers_ending_FULL_after_borrowing": [
+     533,
+     554
+    ],
+    "canonical_compensation_gates_dropped": 0,
+    "canonical_cut_gates_dropped": 0,
+    "canonical_precondition_gates_dropped": 0,
+    "high_helpers_in_blocks": 48,
+    "mass_identity": {
+     "predicted_saving": 209,
+     "removed_widths": 211,
+     "width_added_to_cold_now_FULL": 2
+    },
+    "moved_tail_gates": 48,
+    "providers_widths_match": true,
+    "removed_old_widths": {
+     "4": 4,
+     "5": 39
+    }
+   },
+   "replay": {
+    "dual": {
+     "buffer_nonzero_window": [
+      0,
+      4498
+     ],
+     "buffers": 76,
+     "buffers_ever_nonzero": 58,
+     "cleanup_adds_reading_a_zero_buffer": 355,
+     "independent_inputs": 661,
+     "max_overlap_of_buffer_lifetimes": 48,
+     "peak_nonzero_buffers": 48
+    },
+    "forward": {
+     "buffer_nonzero_window": [
+      1,
+      4470
+     ],
+     "buffers": 76,
+     "buffers_ever_nonzero": 76,
+     "cleanup_adds_reading_a_zero_buffer": 110,
+     "independent_inputs": 661,
+     "max_overlap_of_buffer_lifetimes": 44,
+     "peak_nonzero_buffers": 44,
+     "rows_with_operator_words_before_cleanup": 88
+    }
+   },
+   "saving": {
+    "helpers_after": 437,
+    "helpers_before": 480,
+    "mass_after": 5385,
+    "mass_before": 5594
+   },
+   "warps": {
+    "U_equal_E": 0,
+    "U_inside_E": 0,
+    "anticipatory_terms": 0,
+    "count": 43,
+    "dims": {
+     "4": 40,
+     "5": 3
+    },
+    "lenders": [
+     243,
+     250,
+     266,
+     259,
+     333,
+     317,
+     554,
+     285,
+     281,
+     301,
+     297,
+     313,
+     329,
+     349,
+     345,
+     365,
+     361,
+     381,
+     377,
+     397,
+     393,
+     225,
+     227,
+     229,
+     234,
+     241,
+     245,
+     257,
+     261,
+     73,
+     401,
+     403,
+     405,
+     410,
+     417,
+     419,
+     421,
+     426,
+     433,
+     435,
+     437,
+     442,
+     542
+    ],
+    "lenders_that_are_X": [
+     73
+    ],
+    "lenders_that_are_restored_cold": [],
+    "plain_fourier_distance": {
+     "2": 1,
+     "4": 29,
+     "6": 13
+    },
+    "positions": [
+     965,
+     1073,
+     1073,
+     1073,
+     1113,
+     1113,
+     1093,
+     1161,
+     1161,
+     1201,
+     1201,
+     1201,
+     1201,
+     965,
+     1181,
+     965,
+     965,
+     1181,
+     1181,
+     1181,
+     1161,
+     1161,
+     1141,
+     1141,
+     1141,
+     1141,
+     1113,
+     1113,
+     1073,
+     1093,
+     985,
+     985,
+     985,
+     1005,
+     1005,
+     1005,
+     1005,
+     1033,
+     1033,
+     1033,
+     1033,
+     1093,
+     1093
+    ]
+   }
+  }
+ }
+}

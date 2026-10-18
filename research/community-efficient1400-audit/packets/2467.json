@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 2467,
+  "title": "Retain the P104 relay floor under all original helper reads",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2467",
+  "head": "fbb750850aa55a8a75599270a07c6803647a61c9",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "28f54620ff770dd051d5df35882bd84303d13c6f",
+  "files": [
+    {
+      "path": "research/p104-live-helper-reads/PREDECESSORS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f82bd4f541f6b70f33c0a06742a1901b5d143555"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-live-helper-reads/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4e60ce5ff9c5938c343ea885a8c33efed087e3be"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-live-helper-reads/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "efae4e6658be3bfc8e092d55bfa157e4147b3e94"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-live-helper-reads/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3bb245158175af6f49a7a7c55cf8ade4cb5bb986"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-live-helper-reads/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0887d0af12f16505cbf1969f171499999201283a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-live-helper-reads/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "50839b85e780233646c92db583e179ba1f862acb"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-live-helper-reads/test_verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ebad47e1fe693dfc10470710da2fdd63c42a90f8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p104-live-helper-reads/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b477514af28b09c065f14967303a4ccdae4ab53f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/p104-live-helper-reads": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "P104's released unfinished-helper handoff asks whether original G/Q/D source rows outside the root code can evade the monotone relay floor. **Read-only access to every original helper at its actual chronological frame still requires 208 new monotone correction-helper lifetimes.** The new finite premise is that none of the 72 original helper paths visits any of the 104 target endpoint hyperplanes. A coupled source-row induction proves every actual read supplies only `K + U(V)` at its current frame, so the predecessor quotient/arrival argument survives.\n\nThis extends [PR2383](https://github.com/CrocSwap/integer-mult-bounds/pull/2383) at `41f3d517b521500b114f3491f5f5b68a0550f410`, which excludes unfinished original rows outside K. The 208 numerical floor and its original monotone-relay proof belong to Philippe Van Velzen and Hiroki Kumazaki / [PR2353](https://github.com/CrocSwap/integer-mult-bounds/pull/2353), `2704eadf6b5205d4b965e9c6fc6dce28b89783cf`; the root-code quotient extension belongs to commdata2338 / PR2383. Those results are independently reconstructed as premises, not relabelled as new findings.\n\nOnly `research/p104-live-helper-reads/` is added. It contains the written arbitrary-length proof, exact 280-input event replay, second source-decomposition certificate, all 72 helper paths and 104 target/minor witnesses, semantic controls, export tests and complete provenance/replay metadata. No pending predecessor executable is imported. Example: at cut 593, `G25 = initial_G25 - 2 X1` is outside K but supported at its real frame `span(8,64,416)`, properly inside Y2's endpoint.\n\nValidated on CPython 3.12, standard library:\n\n```sh\npython3 -I -B research/p104-live-helper-reads/verify.py\npython3 -I -O -B research/p104-live-helper-reads/verify.py\npython3 scripts/research_package.py --package research/p104-live-helper-reads\npython3 -B scripts/research_baseline.py\ngit diff --cached --check\n```\n\nThe registered run checks all 4,058 original events and 280 inputs, 2,458 source-decomposition states, 434 helper/register-frame pairs, zero original-helper endpoint contacts, eight private lifetimes, all dirty restorations and eight semantic controls. Its four export tests check read-only Git-free replay, changed/missing inputs, receipt drift and duplicate JSON keys. Normal and optimized direct verification passed. A separate AI-assisted reviewer read the mathematical argument and source binding and reran the optimized verifier on native CPython 3.12.7 with no material finding; no independent human or proof-assistant review is claimed.\n\n**Limits:** actual-frame, read-only access to the unchanged original word. Writable original helpers, new descents, changed paths, target feedback and arbitrary-frame outside-code oracles are excluded. Lifetimes are not simultaneous registers or excess paid ranks. No correction construction, native phase audit, global owners, favorable complete moment, precision/reserve, tape, all-size supplier or new kappa is claimed. The selected frontier and frozen sources are untouched.\n\nCanonical main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4, was fetched for this round and again at 11:38:38 UTC; both predecessor heads remained unchanged. The [advance claim](https://github.com/CrocSwap/integer-mult-bounds/pull/2383#issuecomment-6191012861) names the exact handoff. Selection nonce `691d45d0f00693aa125dd9c581fbf5c9`; scope change and stop condition are explicit in TASK.json. Fresh overlap covered 660 open PRs at 11:21 UTC and 1,186 discussion records at 11:25 UTC, complete pagination/no warnings; this excludes arbitrary diffs and unpublished work.\n\nCredit also Rohan Arun / PR1972 for the frozen word, Chafik Boukhalfa / PR1991 for its retained native realization, Adam Gall / PR1940 for the schedule, Josie Elliston / PR1071 for the fixture, Ali Romman / PR1125 and the retained geometry/compiler lineage. Prepared for **ywz65** with substantial OpenAI Codex assistance in derivation, implementation, checking and writing. Apache-2.0. Open next questions explicitly change an original path or write before a private descent; repeating current helper reads is no longer the proposed escape.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "9dedcb81a3d50415802d369fe6bcc1943bf21cf3419596056ad02bd63af30742"
+}

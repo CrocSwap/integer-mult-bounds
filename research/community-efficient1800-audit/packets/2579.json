@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "number": 2579,
+  "title": "Require unittest completion before isolated module success",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2579",
+  "head": "808942baa87f048b5d8a7cca47a04d8ca4fbe038",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "docs/research/isolated-test-completion.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4de9df6ad6010bb080feeb5cfc651f2886bc550d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "scripts/run_isolated_tests.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8456395f14f9136a0dc907f65c7a0dc884b77a09"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4049874fda5f28f7b693b37d7bc1c379e98b532c"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_isolated_test_runner.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "78b3507fd4e07659c1f7c8b4135c93d5c7a86dd1"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d1fae1fdeea57860649cd014bbeef632d0bd005a"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 1,
+    "scripts/run_isolated_tests.py": 1,
+    "tests/test_isolated_test_runner.py": 1
+  },
+  "github_reported_file_count": 3,
+  "complete_git_file_count": 3,
+  "body": "A unittest `load_tests` hook can raise `SystemExit(0)` before discovery finishes. The isolated runner previously treated that zero process exit as a pass and printed `PASS all 2 test modules` in the reproduced two-module fixture, although only the healthy module completed.\n\nRequire a per-child completion token written only after `unittest.main(..., exit=False)` returns a successful result, together with exit status zero. Preserve the original discovery arguments seen through `sys.argv`, ordered captured output, independent interpreters, concurrent scheduling and assertion protection. Completed empty and skipped suites retain their existing behavior. This is a guard against premature termination, not hostile test code forging the token.\n\nValidation: all eight focused end-to-end tests pass under `-I -O -B` on Windows/Python 3.12.14 and 3.14.5 with workspace TEMP/TMP. Controls include discovery-time `SystemExit(0)`, execution-time `os._exit(0)`, exact child argv, valid empty/skipped suites, ordinary failures, concurrency and optimized-parent assertion coverage. The actual before/after witness changes from false PASS/exit0 to identified incomplete module/exit1. No full selected-frontier replay or speed claim.\n\nStarted from canonical main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4; the prescribed baseline binding check passed. The documentation records the changed verifier-engineering scope and credits the inherited isolated scheduler and assertion guard. No frozen inputs or selected frontier change. Prepared by ywz65 with OpenAI Codex assistance.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "2d2cd0cbd2f8a525a1941321c8e3522cb5f16d907744b5f8b540a97b6dc6c89f"
+}

@@ -1,0 +1,30 @@
+name: Cold-wrapper amplitude audit
+on:
+  pull_request:
+    paths:
+      - 'research/cold-wrapper-amplitude-audit/**'
+      - '.github/workflows/cold-wrapper-amplitude-audit.yml'
+  push:
+    paths:
+      - 'research/cold-wrapper-amplitude-audit/**'
+      - '.github/workflows/cold-wrapper-amplitude-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -I -O -B research/cold-wrapper-amplitude-audit/verify.py
+      - run: python -I -O -B research/cold-wrapper-amplitude-audit/test_verify.py
+      - run: git diff --exit-code

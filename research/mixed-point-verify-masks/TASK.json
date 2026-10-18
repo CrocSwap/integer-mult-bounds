@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "chooser_seed": "a41c9e7b2d805f63e0b1c7489a6d5e20",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Can scripts/experiments/mixed_point_circuit.py:Circuit.verify replace its exact-|source∩target|=r expected-support genexpr with an equivalent closed-form point-incidence mask (OR over r-subsets U of the target of inputs that contain every point of U and avoid every other target point) so verify still returns True, every output support matches the historical checker, and support require() rejection is preserved on mixed-point and early-sharing replay sizes?",
+  "scope_change_reason": "The catalogue card asks for one measured replay bottleneck with before/after wall time and retained checks. Expertise override selected verifier-engineering after mixed-point scalar_check digests (#1984), SharedPoint digests (#1994), ExclusionCircuit/DisjointTensor support masks (#2001), and open leave-alone construction PRs (#2039/#2054). Profiling named Circuit.verify's set-intersection genexpr (tens of seconds on h≈40) as the next unclaimed mixed-point hot path; DisjointTensor.dag_sha256 hand-roll was measured at only ~1.22× on full verify and deferred.",
+  "bottleneck_link": "Side result on review throughput: tests/test_mixed_point.py and any caller of Circuit.verify pay the historical genexpr. A faster identical support check does not change kappa, scalar_check digests, or the binding complex supplier.",
+  "budget_minutes": 60,
+  "stop_rule": "Ship an equivalence-preserving Circuit.verify support-mask change with frozen baseline, identical True receipts plus matching output supports on historical sizes through h=30, updated source pins only on the two binding certificates, registered replay and a measured before/after median. Do not touch audit_mixed_point.scalar_check, SharedPoint, DisjointTensor.frame_data, or run the selected cold frontier replay.",
+  "outcome": "completed",
+  "evidence": "PASS_MIXED_POINT_VERIFY_MASKS via research/mixed-point-verify-masks/verify.py (also under -O); PASS_IDENTICAL_MIXED_POINT_VERIFY_MASK_RECEIPTS via benchmark.py; two certificates differ from base only in the scripts/experiments/mixed_point_circuit.py source pin.",
+  "author": "Wentao Li",
+  "github": "VictorLiwentao",
+  "email": "wentaol4@illinois.edu",
+  "ai_assistance": "Substantial AI assistance for orientation, overlap search, profiling, implementation, packaging, benchmarking and writing. Not independent human peer review.",
+  "open_questions": [
+    {
+      "question": "Is mixed-point Circuit.add / build construction worth a separate identical-structure rewrite after this verify-path change?",
+      "why_it_matters": "On build(50,3,3,1), add() is ~37% of wall time via huge-int dict lookups; local binding alone was only ~1.09× in this session.",
+      "first_step": "Profile Circuit.add on the hybrid h=50 build with a structure-identity oracle (args/support/lookup order) and prototype a faster intern path only if ≥~1.5× with identical DAGs.",
+      "blocked_by": "Out of this session's stop rule; Circuit.verify support masks were the measured bottleneck."
+    },
+    {
+      "question": "Should DisjointTensor.verify's dag_sha256 json.dumps path still get a hand-rolled formatter after #2117 frame_data lands?",
+      "why_it_matters": "Post-mask verify residual is ~69% json/sha of huge support strings; a streaming hand-roll was only ~1.22× on full verify here because bigint str() dominates.",
+      "first_step": "Re-profile on a tip that includes #2117 and decide whether a ≥1.5× identical-receipt residual remains.",
+      "blocked_by": "Micro-opt under the session bar; leave-alone pin conflict with open #2117 until that PR merges or a fold tip is chosen."
+    }
+  ]
+}

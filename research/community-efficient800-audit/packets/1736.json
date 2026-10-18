@@ -1,0 +1,493 @@
+{
+  "schema_version": 1,
+  "number": 1736,
+  "title": "Audit: PR442 hosting windows make the partial width-seven bit rows unreachable for replica-local hosting on the frozen recipe (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1736",
+  "head": "b4fd72163234c164d9a05f2f7dac9c57dcd7fb66",
+  "merge_base": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "baseline": "4d3248d6d52f8ddfe612e8508b74a36acb67fbe3",
+  "files": [
+    {
+      "path": "research/bit589-width7-windows-seed72/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a61e23fb4760a461ad87e4bf5afab7728690e06e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7050ee6dd7e25e6bef633b427c994fdda344e422"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2d84eb3a01e15807d9a5985b8f89d846ea47d4cc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c792e7bd9df04f2e0711158a0ab3b1d7781444e6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "58990544627b752a02cf2bb7494ec6efec7730e5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/test_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "67470f70049759e5927151de287a2436c4f49646"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7f79a47146b150c9446e5f45e401d70b5cd12427"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/windows.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4bb4f075ad5c1a49b4af310094bde6b2a4ea0c2e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/bit589-width7-windows-seed72/wopt.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4e0bd3704d1a2be460ed25b363e95918119e8d42"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/bit589-width7-windows-seed72": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "**Adversarial audit: no new \u03ba, and the selected record is unchanged.** The window-free partial width-seven rows of merged #1023 and merged #1281 cannot be reached under PR442's replica-local hosting windows. This holds on the frozen PR589 stage recipe, with whole residuals and no banks. This PR gives the exact window-respecting optimum for every k = 0..74 instead.\n\n- Track: adversarial audit, seed 72.\n- Card: `uniform-transfer-audit` (one hosting implication), with the scope **refined**.\n- Base: `0b1cccf8`.\n- Package: `research/bit589-width7-windows-seed72/`.\n\n## Why\n\n#1023 (ours) lists window timing as an unchecked obligation. #1281's open question 1 asks whether its relaxed optimum can be hosted chronologically for an actual width-7 helper. It names PR1179's contract and both per-replica and cross-replica pooling. Both #1023 and #1281 place all 9k width-7 residuals per replica in capacity-7 idle slots, ignoring when each stage's residual can be hosted.\n\nThis PR settles the **per-replica, frozen-recipe** part of that question. The PR1179 contract audit and cross-replica pooling stay open.\n\n## The windows\n\n`windows.py` writes out the nine-stage idle schedule (K = 4, L = 9). At run time it matches that schedule, event by event and field by field, against a reference built from the pinned `global_k.py`: its own `recipe()` and idle-insertion block are extracted with `ast` and executed inside a transcription of the surrounding loop.\n\nOn that one schedule, three window predicates agree:\n- this code;\n- PR442's `hosting_core.windows`;\n- `audit_hosted_k.windows`, which enforces `s in W[i]` for every hosted slot.\n\nAll 14 frozen `selection9-p111` entries lie inside their windows. The selection hosts nothing in children 1, 3 and 5, so the singleton windows rest on the `global_k.py` match. A test drops one bridge and checks that the mismatch is rejected.\n\n| Idle child | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n|---|---|---|---|---|---|---|---|---|---|\n| Capacity | 14 | **7** | 28 | **7** | 42 | **7** | 42 | 28 | 14 |\n| Admissible stages | 0\u20131 | **2** | 0\u20133 | **4** | 0\u20135 | **6** | 3\u20138 | 5\u20138 | 7\u20138 |\n\n**Each capacity-7 child admits exactly one stage.** So per replica at most 3k of the 9k width-7 residuals can sit in 7-slots.\n\n## Results\n\nFor every k = 0..74 and both of #1023's local brackets, the package gives:\n- the exact window-respecting optimum;\n- an explicit residual-level placement attaining it, built and checked at run time (`verify.build`). Each slot is checked for window, width and offset, cells are disjoint, and every (stage, helper) is hosted exactly once;\n- its endpoint, priced with the pinned engines and the inherited surcharge;\n- a certificate that no window-feasible replica-local placement reaches the next 1e-24 grid point. The certificate is tight: it equals the engine moment of the explicit histogram to 1e-50.\n\nk = 0 reproduces the selected bit endpoint 0.001733427039589844234749.\n\n| k | Bracket | Window-respecting optimum | Window-free optimum (#1281 profile) | Retained |\n|---|---|---|---|---|\n| 1 | optimistic | 0.001734347102 (+0.053%) | 0.001734846264 (+0.082%) | 0.648 |\n| 2 | optimistic | 0.001735271920 (+0.106%) | 0.001736327170 (+0.167%) | 0.636 |\n| 10 | optimistic | 0.001743225534 (+0.565%) | 0.001748291126 (+0.857%) | 0.659 |\n| 37 | optimistic | 0.001770809187 (+2.157%) | 0.001789671631 (+3.245%) | 0.665 |\n| 37 | pessimistic | 0.001761884716 (+1.642%) | 0.001780556367 (+2.719%) | 0.604 |\n| 74 | optimistic | 0.001809907119 (+4.412%) | 0.001849754238 (+6.711%) | 0.657 |\n\nSelected rows are shown; the README has the full set. Endpoints are truncated and percentages/retained fractions are rounded. The window-free column is this package's pricing of #1281's closed-form profile; #1281 itself prices k = 0, 1, 2, 37 and 74. Across k = 1..74 the windows keep 63.6\u201367.1% of the window-free gain under the optimistic bracket and 56.3\u201360.7% under the pessimistic one. So the window-free rows overstate the gain by about 1.5\u00d7 or 1.7\u00d7 respectively, roughly flat in k. This assumes #1023's one-unit local pricing.\n\n- **#1023:** all 8 published partial rows (k = 1, 10, 37, 74; both brackets) lie above their certified bounds, so none is reachable.\n- **#1281, replica-local:**\n  - #1281's closed-form local optimum is transcribed and checked against its merged `EXPECTED.json` (digest-pinned, read as data; no #1281 code is run). Its optimality is #1281's result and is not re-derived here.\n  - All 75 idle profiles agree.\n  - All 9 priced cases are reproduced exactly, in local endpoint and local histogram.\n  - Priced here under both brackets, all 148 local rows (k = 1..74) lie above the per-replica bound. 8 of these are also priced by #1281.\n- **#1281, pooled32:** its priced rows with k > 0 also lie above the per-replica bound. Pooling is not replica-local hosting, so this says nothing about cross-replica owner maps.\n- **#1023's all-width-7 optimum `{42:340, 21:1}` stays window-feasible** (104 sextet splits by max-flow). Its +17\u201323% figure is not affected.\n\n## Why it is exact\n\n1. **Lemma A (exchange).** Copy cost F(r) = 64^a r^(1\u2212a) + \u03bb is subadditive with F(0) = 0. So some optimum puts each stage-2, 4 and 6 width-7 residual alone in a copy of child 1, 3 or 5.\n2. **Width-8 placement is unconstrained.** All interval Hall conditions for width 8 are vacuous; this is checked for every k \u2264 74.\n3. **Two nested chains.** The remaining 6k width-7 residuals are feasible exactly when all of these hold:\n   - B0 \u2264 2k, B0 + B2 \u2264 3k, B0 + B2 + B4 \u2264 4k;\n   - the mirror chain on children 8, 7 and 6;\n   - \u03a3B = 6k.\n\n   This is derived from the 45 interval Hall constraints, asserted for every k. It is confirmed by max-flow on every distribution of the 6k residuals: 462 at k = 1 and 6188 at k = 2.\n4. **Lower bound.** An integer DP over chain sums and slack mod 5 relaxes the copy limits. It uses outward-rounded lower bounds of F from the pinned engine, so it is a rigorous lower bound.\n5. **Attainment.** The DP minimiser expands into the explicit placement, whose cost equals the DP value exactly.\n\n## Scope (what stays open)\n\n- **Hosting format.** The result covers the PR442/PR589 nine-stage template only, with replica-local hosting, whole residuals, no banks and the frozen stage recipe. #743 proves the 2P + 1 stage lower bound that this format attains.\n- **Other recipes.** Open #1487 (ianlibanio) varies the recipe for width-8 hosting. Its recipes may have other capacity-7 windows, which are not checked here.\n- **Cross-replica owner maps.** T16-style interleaving is **not** ruled out.\n- **Windows are necessary, not sufficient.** Projector compatibility (#1307) and owner inactivity remain open. So does a physical width-7 helper: #1128, #1179, #1256, #1271, and #1393 (discussion #1362). So the window optimum is itself only an upper bound for real hosting.\n- **#1256's two-slot move.** Under this recipe, the move is window-feasible only for residuals hosted at stage 2, 4 or 6.\n- **Inherited assumptions.** All of them remain, and this is not a proof of the multiplication theorem.\n\n## Checks\n\n- **Bindings.** The frontier1094 certificate, named by the selected record (or by a checkpoint record once the frontier moves), binds the PR589 record and the three engines that #1023's `packing.py` pins.\n- **Controls (14 tests).**\n  - The schedule equals the `global_k.py` reference. A dropped bridge and six single-field mutations are rejected, and the unanchored three-way path is shown to accept the dropped bridge.\n  - #1023's k = 1 placement puts 6 residuals outside their windows.\n  - The k = 0 certificate is recomputed and checked for tightness.\n  - Window-free rows lie above the bound, and window-respecting rows below it.\n  - #1281's local and pooled32 rows lie above the bound.\n  - The all-width-7 optimum is window-feasible.\n  - Dropping the chain constraint B0 \u2264 2k breaks the brute-force agreement.\n  - Widening child 0's window breaks the chain structure.\n  - Width-8 Hall conditions are vacuous.\n- **Replay.** `research_package.py --check-only` passes, and RESULT.json is reproduced byte for byte. The registered python3.12 replay passes (`PASS_REGISTERED_RESEARCH_PACKAGE`, 80 s of wall time on an unloaded host). An earlier attempt timed out only because the host was heavily loaded.\n- **Environment.** Run on Python 3.12.15 and 3.14.8 (macOS 26.5, arm64). `verify.py` needs about 140 s of CPU.\n- **CI.** The red `verify (\u2026, tests)` job comes from main, not from this PR. It fails identically on unmodified `0b1cccf8`. The repair is #1752.\n\n## Reproduce\n\n```sh\npython3 -I -B research/bit589-width7-windows-seed72/verify.py        # about 140 s of CPU; PASS_BIT589_WIDTH7_WINDOWS\npython3 -I -B -m unittest discover -s research/bit589-width7-windows-seed72 -p test_package.py\npython3.12 scripts/research_package.py --package research/bit589-width7-windows-seed72\n```\n\n## Overlap\n\n- #1023 (ours, merged): its frozen files are left untouched.\n- #1281 (mightyOil, merged): this settles the per-replica, frozen-recipe part of its open question 1.\n- #1487 (ianlibanio, open): complementary; it covers width-8 hosting under other recipes.\n- #743 (0xjohnnydev).\n- #1307 (commdata2338).\n- #1128 (aliromman) and `research/bit-width-seven-boundary`.\n- #1179 (adamgall), #1256 (RossRichardson), #1271 (mightyOil) and #1393 (1337isnot1337).\n\nCredit also goes to:\n- PR442 (DaysSky);\n- PR444, PR443 (the `global_kernel.py` recipe) and PR439 (explicit residual bank routes) (chafreaky);\n- PR386 and PR436 (Zhihao Chen, eumemic);\n- PR463, PR510 and PR589 (DreamingOfClouds).\n\n`find_overlap.py` found no duplicate of the window audit.\n\n## Disclosure\n\nPrepared by Sagar Thakrar (thakrarsagar) with substantial AI assistance from Claude (Anthropic) via Claude Code. Parallel read-only scout and judge subagents proposed and ranked the audit candidates and found the window obstruction. A post-PR adversarial review (three reviewers and a verifier) found overclaims and a missing runtime anchor for the schedule; the second commit fixes them, and a recheck's smaller gaps are closed in the third. No claim was posted to Discussions. New material is Apache-2.0.\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120678/job/115789150233"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120691/job/115789155580"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120282/job/115789148563"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120582/job/115789149963"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149701"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120290/job/115789149415"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120678/job/115789149468"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120282/job/115789148188"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120582/job/115789149863"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149786"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120290/job/115789149000"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149695"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149799"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150166"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149844"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149711"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149719"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149763"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149755"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149717"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149852"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150192"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149782"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150052"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150120"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149757"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149789"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149832"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149709"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149903"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150069"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149870"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149721"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149713"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150008"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149764"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149869"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149876"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149874"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149979"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149897"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150255"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149849"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149885"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150024"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150217"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149925"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149894"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149988"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149895"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150113"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149923"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149868"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150152"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149838"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149937"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789150082"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149831"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149541"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149433"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38545120376/job/115789149194"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "056af04b04c72fcf6cf82c2e701e616374d9f728108e0dfd5627e11186732693"
+}

@@ -1,0 +1,44 @@
+{
+ "subject": "Independent reproduction of PR #2863 (Dugongue), head 34328b1d5e5bebac62d5cabec993dfbfd7b2123f",
+ "fast_replay": {
+  "command": "python3 -B research/shared-kernel-packing/tools/verify_package.py --work <fresh dir>",
+  "python": "3.14.7",
+  "stages": {
+   "construct": "PASS",
+   "owners": "PASS",
+   "moment": "PASS",
+   "separate-review": "PASS",
+   "exact-optimality": "PASS (1163 patterns, 11 symbolically tight)"
+  },
+  "moment_target": "0.0017201008054168859279439999...99 (= 0.001720100805416885927944 - 1e-46 - 1e-70)",
+  "findings": [
+   "MANIFEST.json lists .gitattributes and vendor/pr2857/.gitattributes (content '* -text', sha256 705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da) but the published commit omits both, so --hash-only fails as published; restoring them from PR #2857 (identical hash) makes it pass.",
+   "The final byte-exact check of the regenerated FILL.json.gz fails under Python 3.14 because of the gzip container; the decompressed payload is identical (sha256 7a972fdb2228dc04ca8319e2c3db26ee01a0c68ab86465b642100a35d72834dc) and the other four data files are byte-identical."
+  ]
+ },
+ "cold_replay": {
+  "command": "nice -n 15 python -B reproduce.py --source <fresh PR2833 source> --work <fresh dir> --jobs 2",
+  "source_fetch": "node --use-system-ca tools/fetch_source.cjs <dir>: PASS_IMMUTABLE_PR2833_SOURCE_FETCH (542 files)",
+  "environment": "CPython 3.13.16 (uv venv), NumPy 2.5.4, SciPy 1.18.1, SymPy 1.14.0, mpmath 1.4.1 (forced to match the authors; SymPy declares mpmath<1.4), gmpy2/psutil absent",
+  "exit_code": 0,
+  "wall_seconds": 1507,
+  "stage_seconds": {
+   "bootstrap": 326,
+   "overlay": 0.7,
+   "shared_native": 57,
+   "admission": 1122
+  },
+  "status_lines": [
+   "PASS_T185_PORTABLE_COMPLETE_REPLAY",
+   "PASS_RELEASE",
+   "PASS_REPLICA_ORDER_FILL_DERIVATIVE_COMPLETE_RELEASE"
+  ],
+  "kappa": "0.0017201008054168859279439999999999999999999998999999999999999999999999",
+  "receipt_sha256": {
+   "replay": "2d5069447270d111e97c4d4b733a1f587c4febb8222bf4601ff641e007d4688d",
+   "published": "932b22b422e1f74a2b3c705045087260a20b2eea085157693f2b318d360e4a4c"
+  },
+  "receipt_difference": "Only manifest_sha256 and seconds differ. Native local/CLIFFORD-REVIEW.json files carry a wall-clock 'seconds' field; their hashes flow into new/PLAN.json -> new/SPEC.json -> outer/INDEPENDENT.json and outer/LEDGER.json -> package manifest. Substituting the published native-cache hashes reproduces the published manifest 6167060885... exactly; also substituting the published 'seconds' reproduces receipt 932b22b4... exactly. A cold replay therefore cannot match the published receipt byte-for-byte; the kappa and proof text are identical."
+ },
+ "scope": "Reproduction evidence only; no change to #2863 or its claims."
+}

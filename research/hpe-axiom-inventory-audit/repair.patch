@@ -1,0 +1,117 @@
+--- a/research/hyperplane-end-lean/verify.py
++++ b/research/hyperplane-end-lean/verify.py
+@@ -15,6 +15,52 @@
+ 
+ HERE = Path(__file__).resolve().parent
+ ALLOWED = {'propext', 'Classical.choice', 'Quot.sound'}
++
++# Keep this independent of PrintAxioms.lean: omitted queries must fail closed.
++EXPECTED_RESULTS = (
++    'HyperplaneEnd.pre_recipe',
++    'HyperplaneEnd.post_recipe',
++    'HyperplaneEnd.wrapped_block',
++    'HyperplaneEnd.factor_of_exact',
++    'HyperplaneEnd.factor_iff_pre',
++    'HyperplaneEnd.tail_labels',
++    'HyperplaneEnd.hpe_labels',
++    'HyperplaneEnd.residual_block',
++    'HyperplaneEnd.hpe_block',
++    'HyperplaneEnd.hpe_family',
++    'HyperplaneEnd.hpe_streams',
++    'HyperplaneEnd.hpe_word',
++    'HyperplaneEnd.hyperplane_width',
++    'HyperplaneEnd.Clifford.par9_spec',
++    'HyperplaneEnd.Clifford.cE',
++    'HyperplaneEnd.Clifford.cL_emb',
++    'HyperplaneEnd.Clifford.cL_eq_of_check',
++    'HyperplaneEnd.Exact.rTensor_C7',
++    'HyperplaneEnd.Exact.exact_N_of_check',
++    'HyperplaneEnd.Exact.check1',
++    'HyperplaneEnd.Exact.check2',
++    'HyperplaneEnd.Exact.check3',
++    'HyperplaneEnd.Exact.exact_N_pair1',
++    'HyperplaneEnd.Exact.exact_N_pair2',
++    'HyperplaneEnd.Exact.exact_N_pair3',
++    'HyperplaneEnd.Exact.exact_N',
++    'HyperplaneEnd.Exact.exact_N_nine',
++    'HyperplaneEnd.Exact.hpe_word_exact',
++    'HyperplaneEnd.labRun_climb',
++    'HyperplaneEnd.wellLabelled_climb',
++    'HyperplaneEnd.labRun_block',
++    'HyperplaneEnd.wellLabelled_block',
++    'HyperplaneEnd.mtail_wellLabelled',
++    'HyperplaneEnd.labRun_mtail',
++    'HyperplaneEnd.labRun_mtail_last',
++    'HyperplaneEnd.posts_spec',
++    'HyperplaneEnd.hpe_labels_multi',
++    'HyperplaneEnd.tail_eq_mtail',
++    'HyperplaneEnd.hpe_labels_tail',
++    'HyperplaneEnd.hpe_word_multi',
++    'HyperplaneEnd.exact_cold',
++    'HyperplaneEnd.cold_hyperplane_width',
++)
+ FORBIDDEN = re.compile(r'\b(sorry|admit|axiom|native_decide|implemented_by|extern|unsafe|opaque)\b|set_option\s+(?!maxHeartbeats|maxRecDepth)')
+ 
+ 
+@@ -35,6 +81,34 @@
+     return re.sub(r'--[^\n]*', ' ', src)
+ 
+ 
++def probe_inventory(source):
++    wanted = re.findall(
++        r"(?m)^[ \t]*#print[ \t]+axioms[ \t]+([\w.']+)[ \t]*$",
++        strip_comments(source),
++    )
++    if len(wanted) != len(EXPECTED_RESULTS) or set(wanted) != set(EXPECTED_RESULTS):
++        fail('axiom probe inventory differs from the 42 required results')
++    return wanted
++
++
++def check_axiom_reports(output, wanted):
++    seen = {}
++    pattern = r"'([\w.']+)' (?:depends on axioms: \[([^\]]*)\]|does not depend on any axioms)"
++    for match in re.finditer(pattern, output):
++        name = match.group(1)
++        if name in seen:
++            fail(f'duplicate axiom report for {name}')
++        seen[name] = [] if match.group(2) is None else [
++            a.strip() for a in match.group(2).split(',') if a.strip()
++        ]
++    if set(seen) != set(wanted):
++        fail('axiom reports differ from the required result inventory')
++    for name in wanted:
++        extra = set(seen[name]) - ALLOWED
++        if extra:
++            fail(f'{name} uses {sorted(extra)}')
++
++
+ def main():
+     args = sys.argv[1:]
+     A, G = HERE.parent / 'e8-lemma-a-lean', HERE.parent / 'e8-lemma-g-lean'
+@@ -45,23 +119,16 @@
+         if m: fail(f'forbidden token {m.group(0)!r} in {p.name}')
+     print('sources: no sorry / admit / axiom / native_decide / unsafe / opaque / extern in %d files' % len(lean_files), flush=True)
+ 
++    wanted = probe_inventory((HERE / 'PrintAxioms.lean').read_text(encoding='utf-8'))
++
+     if '--no-cache' not in args:
+         run(['lake', 'exe', 'cache', 'get'], 3600)
+     out = run(['lake', 'build'], 3600)
+     print('\n'.join(l for l in out.splitlines() if 'warning' in l or 'error' in l or 'Build completed' in l), flush=True)
+ 
+     out = run(['lake', 'env', 'lean', 'PrintAxioms.lean'], 1200)
+-    wanted = [l.split()[2] for l in (HERE / 'PrintAxioms.lean').read_text().splitlines() if l.startswith('#print axioms')]
+-    seen = {}
+-    for m in re.finditer(r"'([\w.']+)' depends on axioms: \[([^\]]*)\]", out):
+-        seen[m.group(1)] = [a.strip() for a in m.group(2).split(',') if a.strip()]
+-    for m in re.finditer(r"'([\w.']+)' does not depend on any axioms", out):
+-        seen[m.group(1)] = []
+     print(out.strip(), flush=True)
+-    for name in wanted:
+-        if name not in seen: fail(f'no axiom report for {name}')
+-        extra = set(seen[name]) - ALLOWED
+-        if extra: fail(f'{name} uses {sorted(extra)}')
++    check_axiom_reports(out, wanted)
+     print(f'axioms: {len(wanted)} results, all within {sorted(ALLOWED)}')
+     if '--instances' in args:
+         for run_dir in args[args.index('--instances') + 1:]:

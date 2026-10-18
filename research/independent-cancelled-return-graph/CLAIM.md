@@ -1,0 +1,8 @@
+CLAIM — Independent verification, OS-random assignment seed 82.
+Base: 0a201997097b8a89b638f3a2afcb35db4184c8b2. Object: PR1563's fixed 53-child, five-pair cancelled-return interval graph at head e7d1ebfc3093a704b55c14ea4d10d0d0bdfdd0db.
+Method/domain: independently emit ADD/SCALE words without importing predecessor code, derive four cut states by chronological eager execution, replay all 1,431 intervals including every terminal cancellation, and solve the cap graph from the opposite endpoint. Add exact rational controls for all 53 fused terminal edges and semantic mutations. Seed 82 selects the interval-graph candidate from three tasks and diversification caps near powers 2^8..2^14; it does not change the source fixture seed 53.
+Expected deliverable: source-pinned independent verifier/certificate of the 35-point frontier, or one precise discrepancy. PR1575 audits PR1552's canonical graph and explicitly excludes this changed root word; PR1563's own checks are credited, not reused as an independent implementation. No new kappa, selected-supplier adoption, full multiplication theorem or human review claim.
+Complete repository overlap refresh: 660 open PRs and 270 Discussion records, no pagination warnings, at 04:31–04:32 UTC; only the original construction and prior canonical audit match this object. No pinned issue exists; posting on this existing relevant coordination discussion without creating a reservation issue.
+Expected finish / claim expiry: 2026-10-14 05:26 UTC. Sricharan Vagvala (@theon199), with substantial OpenAI Codex assistance; one parent agent, Apache-2.0.
+
+Claim: https://github.com/CrocSwap/integer-mult-bounds/discussions/1542#discussioncomment-18914923

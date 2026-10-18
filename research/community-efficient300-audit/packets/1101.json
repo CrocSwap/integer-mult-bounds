@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "number": 1101,
+  "title": "Tooling: overlap bit589 and complex741 in the #741 ancestry replay, 17% (50% with --complex-jobs 3) less wall time (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjY3MDc3OTcx",
+    "is_bot": false,
+    "login": "rcfc-jreed",
+    "name": "James Reed"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1101",
+  "head": "4d45bef9bd0b52cc4989f195cd2dd4597f4a6d08",
+  "merge_base": "ba82555c64e1879e4b7decce28186f208fcb8262",
+  "baseline": "1f7a934975e5eacaf83511c9ac870263bf095e05",
+  "files": [
+    {
+      "path": "docs/research/frontier741-concurrent-replay.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a8b1e10a4d436d1d5706a16b59661185c50b7268"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "scripts/verify_frontier741_concurrent.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d162de9325325e54ad8f31a46f141bde63385e83"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "tests/test_frontier741_concurrent.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0396f57fecb2818a201603305cd8f3d183491f38"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 1,
+    "scripts/verify_frontier741_concurrent.py": 1,
+    "tests/test_frontier741_concurrent.py": 1
+  },
+  "github_reported_file_count": 3,
+  "complete_git_file_count": 3,
+  "body": "# Concurrent bit/complex replay of the #589 + #741 ancestry\r\n\r\nStatus: **tooling improvement**. It changes no construction, bound, certificate or\r\nselected record, and claims no new kappa.\r\n\r\n## What changed\r\n\r\n`scripts/verify_frontier741.py` (the cold ancestry replay that `verify_frontier799.py`\r\nruns, and hence the selected `make frontier1042-verify` chain) runs `bit589` to\r\ncompletion and then `complex741`. Neither reads anything the\r\nother writes: `bit589` writes only under `<work>/bit`, `complex741` only under\r\n`<work>/complex`, and the binding step needs both. The new\r\n`scripts/verify_frontier741_concurrent.py` runs the same two commands at the same\r\ntime, then the same binding script.\r\n\r\n`verify_frontier741.py` is untouched because its sha256 is pinned in\r\n`certificates/selected-result.json` and the checkpoint certificates. The new driver\r\nis a sibling that writes the same layout (`bit/`, `complex/`, `bit589.log`,\r\n`complex741.log`, `STEPS.json`, `RESULT.json`) plus a `CONCURRENCY.json` with wall and\r\nsummed job times. If either supplier fails, the other is stopped (process group\r\nSIGTERM, then SIGKILL after 20 s), the failing log is named, and nothing is bound.\r\n`--complex-jobs N` (N>1) swaps in the existing dependency-scheduled complex replay\r\n(`verify_complex741_parallel.py`, #853); the default of 1 runs `verify.py` unchanged so\r\nthat this change is measured on its own.\r\n\r\n## Reproduce\r\n\r\n```sh\r\npython3 -B scripts/verify_frontier741_concurrent.py --work /absolute/fresh/dir\r\npython3 -B scripts/verify_replay_coverage.py --frontier 741 --work /absolute/fresh/dir\r\npython3 -m unittest tests.test_frontier741_concurrent\r\n```\r\n\r\nExpected: the first prints `PASS selected finite composition; inherited hypotheses\r\nremain`, and `RESULT.json` has status `PASS_REBUILT_PR589_PR741_COMPOSITION`, kappa\r\n`1661202643272239/1000000000000000000`. The second prints\r\n`PASS_COMPLETE_PR741_REPLAY_COVERAGE`. The tests (8) take about 3 s.\r\n\r\nDeveloped and measured at base commit `2921874911956718fcaaaf9396fe8267b3cfa9f0`.\r\nThe branch is rebased onto `ba82555c` (main when submitted); `verify_frontier741.py`,\r\nits pinned hash, the bindings script and both supplier packages are unchanged between\r\nthe two, and the tests were re-run on the rebased tree. Benchmark environment (not the\r\nCI image): WSL2 Ubuntu 24.04, 28 logical CPUs, 7 GB RAM; Python 3.12.15, numpy 2.5.4,\r\nscipy 1.18.1, sympy 1.14.0; the C++17 checkers built with `zig c++` (ziglang 0.17.0,\r\nclang 22.1.8) against Boost 1.86.0 headers. No system compiler was available.\r\n\r\n## Measurement\r\n\r\nSame checkout, same fresh output path each time, one run at a time on an otherwise idle\r\nmachine. The first row used different checkout/output paths and is timing only.\r\n\r\n| Driver | Wall seconds | bit589 | complex741 |\r\n| --- | --- | --- | --- |\r\n| original, sequential | 608 | 138 | 469 |\r\n| original, sequential | 599 | \u2013 | \u2013 |\r\n| original, sequential | 562 | \u2013 | \u2013 |\r\n| concurrent | 495 | 141 | 495 |\r\n| concurrent | 479 | \u2013 | \u2013 |\r\n| concurrent, `--complex-jobs 3` | 293 | 150 | 293 |\r\n\r\nSequential mean 590 s, concurrent mean 487 s: about 17% less wall time, 100 to 120 s\r\nsaved. The concurrent run is bounded below by `complex741` (critical path 469 to 495 s),\r\nso the bit supplier is hidden but nothing else is. With `--complex-jobs 3` the complex\r\nchain shortens to the dependency chain of #853 and the bit supplier is again fully\r\nhidden: 293 s, about 50% less than sequential (one sample). That is 3 sequential, 2\r\nconcurrent and 1 combined samples on one machine; treat the ratios as indicative, not\r\nas precise speedups. #853 alone would leave `bit589` (about 140 s) in series with the\r\ncomplex replay; that exact configuration was not run here.\r\n\r\n## Coverage is unchanged\r\n\r\n* `tests/test_frontier741_concurrent.py` parses `verify_frontier741.py` and requires the\r\n  concurrent driver's `bit589`, `complex741` and `bindings` commands, stage order and\r\n  environment scrub (`PYTHONOPTIMIZE`, `WITNESS_DISCOVER`, `WITNESS_RECORD`, `SW4_PIN`)\r\n  to equal the original's. If the original changes, the test fails.\r\n* Output trees of the original and concurrent drivers (same path) were compared file by\r\n  file: 385 common files, 101 differ. A second original run differs from the first in\r\n  exactly the same 101 files, so the concurrent schedule adds no new difference. After\r\n  removing `seconds`/`elapsed` fields and SHA-256 values (digests of files that embed\r\n  timings), every differing JSON file is identical in both comparisons. The remaining\r\n  differing files are logs.\r\n* The concurrent output passes `verify_replay_coverage.py --frontier 741` and the\r\n  original bindings check.\r\n* Negative controls on a copy of the concurrent output: a changed `bit_lower_decimal`\r\n  fails the bindings check (`Rebuilt bit differs`); one extra byte appended to\r\n  `complex/global-replay/ASSEMBLY.json` fails coverage (`Required ancestry artifact hash\r\n  differs`); a deleted `bit/xcheck.json` fails.\r\n* Mutation controls on the tests: replacing the bit verifier, adding `-O` to the complex\r\n  command, removing `SW4_PIN` from the scrub, not stopping the sibling after a failure,\r\n  and waiting for each job right after launching it are each caught. (The `SW4_PIN`\r\n  mutation first survived; the test now sets the variable before checking the scrub.)\r\n\r\n## Scope and open items\r\n\r\n* Finite replay tooling only. It is not a formal proof, and every inherited assumption\r\n  listed in `certificates/selected-result.json` remains.\r\n* The output is accepted as an ancestor by the coverage and bindings checks, so it can\r\n  be passed as `--ancestor` to `verify_frontier799.py`. That was run once (WSL, default\r\n  concurrent mode, base `2921874`; the 799 scripts are unchanged on later main):\r\n  `verify_frontier799.py --work W --ancestor <output>` passed in 203 s with\r\n  `PASS_REBUILT_PR589_PR799_COMPOSITION`, kappa `1661634653669567/10^18`, and\r\n  `verify_replay_coverage.py --frontier 799 --ancestor <output>` printed\r\n  `PASS_COMPLETE_PR799_REPLAY_COVERAGE`. It records the ancestor as reused\r\n  (`reused_ancestry: true`), as for any externally produced ancestor. Nothing here\r\n  changes what `make frontier1042-verify` (or `frontier942-verify`) runs.\r\n* End to end, cold `frontier1042` on the rebased PR tree (WSL, same checkout, one run\r\n  each, one after the other): the original `verify_frontier1042.py` took **1560 s**\r\n  (`baseline799-cold` 788 s, its own stages 772 s). The new path (concurrent driver 467 s,\r\n  then `verify_frontier799.py --ancestor` 189 s, then\r\n  `verify_frontier1042.py --baseline799` 756 s, with the ancestor moved to\r\n  `<baseline799>/ancestor` as that script expects) took **1412 s**, 148 s or 9.5% less.\r\n  Both ended in `PASS_COMPLETE_PR1042_COMPOSITION` with kappa\r\n  `0.001672188119205421`; the new path records `reused_completed_baseline: true`. About\r\n  132 s of the saving is the 741 part (788 s to 656 s); the rest is run-to-run noise in\r\n  1042's own stages (chain 479 s vs 464 s). Single runs, so about +/-2% should be\r\n  assumed. The #942 replay was not run with it.\r\n* Overlap check at submission: #853 (merged) schedules stages inside `complex741` only and\r\n  does not overlap the bit supplier; no open or merged PR found by search touches\r\n  `verify_frontier741.py` or overlaps `bit589` with `complex741`. The two are\r\n  complementary: with `--complex-jobs 3` the complex chain hides `bit589` entirely (table\r\n  above).\r\n* `--complex-jobs 3` was run cold once (293 s). Its output has the same 385 files as the\r\n  sequential tree and passes `verify_replay_coverage.py --frontier 741`. Against the\r\n  sequential tree it differs in the 101 noise files plus `complex741.log`, whose 45\r\n  lines differ only in the order of `RUN`/`PASS` progress messages; every differing JSON\r\n  file is identical after masking `seconds` and SHA-256 values.\r\n* The `u8-native` stage (about 254 s) and the cold #799 `native` stage (about 393 s)\r\n  dominate the remaining serial time and were not examined.\r\n* Peak memory with both suppliers running was not measured; the 7 GB benchmark machine\r\n  completed it.\r\n* Linux CI was not run; the benchmark used the environment above.\r\n\r\n## Credit and disclosure\r\n\r\nBuilds on the pinned `verify_frontier741.py` driver, `verify_frontier741_bindings.py`\r\n(Douglas Colkitt, with OpenAI Codex assistance), the\r\ndependency-scheduled complex replay of #853 (Aaron / navinor), and the `--jobs` pattern\r\nof `verify_frontier596.py`. Track: verification engineering, assignment seed 90, base\r\ncommit above. Substantial AI assistance (Claude, in Cursor) in analysis, code, tests\r\nand this note. Contributor: James Reed (@rcfc-jreed).\r\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "8830f761bfdbca1f63541e382dd978c91c32a871a92de60282291cff5ad8610a"
+}

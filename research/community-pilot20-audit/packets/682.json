@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "number": 682,
+  "title": "Research audit: tensor E8 rate and finite-depth center-copy correction",
+  "author": {
+    "id": "MDQ6VXNlcjI5NzY5NQ==",
+    "is_bot": false,
+    "login": "swbiggart",
+    "name": "Scott Woolsey Biggart"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/682",
+  "head": "cfc7130e0e371395f4cf2f96c122c240cdbeab97",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "81e81af67714bdc8d1693b0bf5c29468b92f62ff",
+  "files": [
+    {
+      "path": ".github/workflows/tensor-e8-rate-audit.yml",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0b8b57a73ea03359d8e6644484c7bb3e643cad7e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e53c5c8405b3377f30da69d714ebee17b0f60453"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/NOTICE.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7cd48fc03d1a6deb4faa1004cc5d0d4ce19ee9b6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "aeee978dd2749d1d967f60678c6964d318efec23"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cfc5ba6230c2fdcbe0a905850cce9fc6a6a6bd14"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/RESULTS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2c26392aa445f9135f7127f3ae26c1e9fbd685d5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/SOURCE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ed941a8c15441a7a80d0e232b625537bea73036e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "28a37f80e0b182c80c8b98078e4d1498174716ee"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/test_verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b06f20cebf1130e0eae71c8a9965e80c6c815652"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/tensor-e8-rate-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cf9cae0eb178c03a33e39be1c52b3bb211328073"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    ".github/workflows": 1,
+    "research/tensor-e8-rate-audit": 9
+  },
+  "github_reported_file_count": 10,
+  "complete_git_file_count": 10,
+  "body": "Research note / mathematical audit; **no new multiplication \u03ba**.\n\nPR647's retained provider proof states a tensor-depth moment limit, while its packaged verifier focuses on depth one. This contribution independently reconstructs the paid profiles at every depth 1\u201366 and derives explicit finite-depth bounds. It corroborates the predecessor's leading coefficient and adds the correction\n\n```\n9^n k_n = 28/(2739 log 3) * (1 - (3/2)(3/5)^n) + O(n/9^n),\n```\n\nwhere `k_n` is the root of the paid profile's moment equation. The remaining center-copy cost determines the leading shortfall. At depth 66 the scaled root is below its limit by less than `4e-15` relatively. This audits the numerical profile and its analytic consequence; it does not newly certify the physical construction, RAM compiler, Fourier transfer or integer multiplication theorem.\n\nThe package contains a proof with explicit error envelopes, independent lifetime and level-sum implementations, exact rational root bounds without root finding, source hashes, a deterministic receipt, attribution and a path-scoped workflow. Nine negative controls include a mutation preserving both child count and rank mass while changing the moment. No existing file, upstream source or selected-frontier pointer changes.\n\n**Reproduce** (Python 3.9+, standard library):\n\n```sh\npython3 -B research/tensor-e8-rate-audit/verify.py --check research/tensor-e8-rate-audit/RESULTS.json\n```\n\nExpected: `PASS_TENSOR_E8_RATE_AUDIT: 66 depths; 9 negative controls; exact rational bounds`.\n\nValidation: exact receipt and five tests pass on Python 3.9.6, 3.11.16 and 3.13.16, including optimized execution. A separate Decimal implementation checks nonlinear moments at 250 digits; these diagnostics supplement the rational proof. PR647's full original checker was freshly replayed from its immutable source and passed. Source hashes, selected-record integrity, workflow syntax and whitespace pass. The unchanged full repository suite was not repeated: the prior attempt stopped at the selected bit supplier's missing local Boost headers. [Scoped Linux CI](https://github.com/swbiggart/integer-mult-bounds/actions/runs/38344298092) passed on Python 3.11 and 3.13 at submitted head `cfc7130e0e371395f4cf2f96c122c240cdbeab97`, including the optimized receipt, all five tests and the clean-tree check. This is separate from broader repository CI.\n\nBase: `66849e1475c930fd7732b1a0067ffee7e1e95f60`.\nAudited PR647: `956bb581e7f97328e1b53baa5aca3d2490f2f607`.\nAssignment seed **66**, mathematical audit. No pinned coordination issue existed; the local claim records the scope, stopping rule and result. Overlap refreshed through #681 (501 open PRs); PR647's head is unchanged.\n\nCredits: Artus / @artuskg's PR647, its OpenAI Pro provider proof, its Codex verification work and all preserved E8/community predecessors. The construction and original limit belong to that contribution. Prepared by Scott Woolsey Biggart (@swbiggart) with substantial OpenAI Codex assistance, under Apache-2.0. No human-only or proof-assistant review is claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "01eff82f67cc6d6f2fe36e371f2b7dee56e877ea1f39b98afd543516601fa6bf"
+}

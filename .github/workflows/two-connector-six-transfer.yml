@@ -1,0 +1,34 @@
+name: Two-connector six-transfer exclusion
+on:
+  pull_request:
+    paths:
+      - 'research/two-connector-six-transfer/**'
+      - '.github/workflows/two-connector-six-transfer.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/two-connector-six-transfer/**'
+      - '.github/workflows/two-connector-six-transfer.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Package metadata and source pins
+        run: python -B scripts/research_package.py --package research/two-connector-six-transfer --check-only
+      - name: Both complete native censuses, witness and failure controls
+        env:
+          CXX: g++
+        run: python -I -O -B research/two-connector-six-transfer/verify.py
+      - name: Committed inputs remain unchanged
+        run: git diff --exit-code

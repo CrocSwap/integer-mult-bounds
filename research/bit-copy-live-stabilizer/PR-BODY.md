@@ -1,0 +1,3 @@
+A source-bound audit identifies the exact stabilizer condition lU=l at a live ERASE cut. Eventual helper restoration is insufficient: all9 PR1062 intervals admit an added inverse-pair mutant with the original endpoint under unconditional clearing, while the correct lifecycle checker rejects it.
+
+Written arbitrary-dimension proof; complete20160-matrix GL4 census (1344 safe);322560 dirty assignments; source-bound661-column replay and18 repairs. No retained verifier bug, new supplier or kappa claim. Python3.12 registered replay and selected integrity pass. Woklerx with substantial OpenAI Codex assistance; Apache-2.0.

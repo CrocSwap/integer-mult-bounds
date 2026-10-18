@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "number": 1939,
+  "title": "Tooling: checked marshal copies make the selected final stage's audit sub-stage 2.47x faster (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjY4NTY0NzU0",
+    "is_bot": false,
+    "login": "jackmgaller",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1939",
+  "head": "b1631b1bf950f8da70510057faf55c6ed705c815",
+  "merge_base": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "baseline": "acbaef6f3214912fb0ba4f3555671cf21f11b3bf",
+  "files": [
+    {
+      "path": "research/audit-allcold-fast-copy/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "542c42e31d0a57f0b3c752e848aaa2df3d9a2ac6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/audit-allcold-fast-copy/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e71b074ef5df15a788a061185ad09aa55985d9bd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/audit-allcold-fast-copy/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "366794e5e53a41b09d5d4cd89937519a1269b344"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/audit-allcold-fast-copy/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cf7ff1efc2e680b5a75cd09cb511ed927ad6036c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/audit-allcold-fast-copy/fast_copy.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7f28c4e3076bf0d448ddbd7bd365560a21758fa1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/audit-allcold-fast-copy/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f3afb854c904577fbecbb947fc6d54c1474b9236"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/audit-allcold-fast-copy": 6
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "**Tooling (verifier engineering). No \u03ba, certificate, supplier, frontier or pinned-source change.**\n\nCard `replay-runtime`, scope refined to one profiled sub-stage. Chooser OS nonce `343b846376b457288e1b5a2336a887c0`, priority revision 3. Base `0b1cccf86e2f5132ed286a26ef0a681a495740ea`; selected-record SHA-256 `10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32`. Claim: https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18925921\n\n## Bottleneck\n\nThe selected record has one stage after #1042: `complex-t16-rare-pattern-exchanges/verify.py`, which runs the frozen PR1087 `verify_t16.py`. Its slowest sub-stage is `audit`: 32.6 s of 57.6 s in the maintainer receipt. The script is `audit_allcold.py`, SHA-256 `1467a2ac\u2026`. The cold baseline1042 `t16` stage runs the same bytes from `research/gauge44-slots-t16/code/`.\n\ncProfile puts about 80% of this sub-stage in `copy.deepcopy`. Each of the 15 mutation controls copies the whole hosted T16 template, and each of the 16 audits copies every source event: 4,838 top-level calls in total.\n\n## Change\n\nNew package `research/audit-allcold-fast-copy/`. Its `fast_copy.py` is an opt-in drop-in for `python3 -B run_portable.py SCRIPT ARGS\u2026`:\n\n- It checks `run_portable.py` and the script against a SHA-256 allow-list, then runs the pinned `run_portable.py` unchanged.\n- It replaces only `copy.deepcopy`. For a top-level dict or list, the copy is `marshal.loads(marshal.dumps(x))`. That copy is kept only if marshal accepts the value (core builtin types only), the copy has the same type, and it compares equal. Otherwise, and for any call with a memo, the original `deepcopy` runs.\n- marshal keeps aliasing through back-references, as deepcopy does.\n- No verifier source is edited, nothing is cached, and no check or control is skipped.\n\n## Evidence (`verify.py`, registered replay)\n\n1. **Fixture.** It extracts the archived gauge44 provider files from `selected-replay.tar.gz` and runs the unchanged selected final stage on them. The stage must print `PASS_T16_RARE_PATTERN_EXCHANGES 0.001672660197076918`, and its `ASYNC-AUDIT.json` must equal the archived selected receipt byte for byte.\n2. **A/B.** It reruns the audit sub-stage on fresh copies of the same inputs with verify_t16's exact environment, alternating legacy and fast. Both must reproduce the in-stage outputs byte for byte: `ASYNC-AUDIT.json`, `OWNERS-AND-PROFILE.json`, `IDLE-REMAINDER-FRAMES.json`, the regenerated `IDLE-REMAINDER-FRAMES.json.gz` (same environment) and the merged stdout/stderr log. All 4,838 calls must take the marshal path.\n3. **Controls.**\n   - A tampered hosted template is rejected by both launchers.\n   - An unpinned script is refused.\n   - An identity copier (no copying) is detected. The pinned audit itself still exits 0 in that case, but writes a corrupted report (provider count 143 rather than 144, and one idle frame missing), so the byte comparison is load-bearing.\n   - Copy semantics are checked: aliasing and independence, plus fallback for a dict subclass, NaN, a custom object, a cyclic list and an explicit memo.\n\nMeasured on macOS (Apple silicon), same host and fixture, 3 alternating rounds, with identical outputs every round:\n\n| Interpreter | Legacy audit (s) | Fast audit (s) | Median |\n|---|---|---|---:|\n| CPython 3.12.13 | 22.37, 22.27, 22.50 | 9.05, 9.06, 9.21 | **2.47x** |\n| CPython 3.14.7 | 17.85, 18.31, 17.79 | 9.43, 9.46, 9.47 | **1.89x** |\n\nCommands run:\n- `python3.12 scripts/research_package.py --package research/audit-allcold-fast-copy`: `PASS_REGISTERED_RESEARCH_PACKAGE`, about 80 s.\n- `--check-only`: pass.\n- `python3 -B -m unittest discover -s tests -p 'test_research_*.py'`: 42 tests OK, 2 skips.\n- `git diff --check`: clean.\n\n## Limitations / not checked\n\n- **Not wired in.** The launcher is not used by `make frontier1094-verify`, because the frozen `verify_t16.py` calls `run_portable.py` directly. Wiring it in needs an opt-in driver or a maintainer decision (open question 1).\n- **One script hash.** The allow-list has the single audited script. The nine other `audit_allcold.py` variants were not checked.\n- **No fresh cold baseline.** The fixture's `--local` input comes from the archived selected replay. It is bound by the archived `ASYNC-AUDIT.json` equality, not by a fresh cold baseline1042 run. A full cold `make frontier1094-verify` was not rerun.\n- **Indirect inputs.** verify_t16's own `UPSTREAM-PINS.json` dependencies are enforced by the stage itself, but they are not declared as this package's CI inputs.\n- **Untested hosts.** Linux and Windows timings were not measured here.\n\n## Credit\n\nThe audited code is from the retained gauge44 / PR1087 lineage:\n- the `audit_allcold.py` controller audit and its mutation controls (OpenAI Codex in the original packages);\n- Hao Yan's (@FanPUYen) PR858 T16 controller;\n- the `run_portable.py` wrapper from `complex-k492-owner-repair`;\n- PR1094 (Rohan Arun) on Jeremy Kothe's k8/T16 construction;\n- the maintainer's frontier1094 audit receipt.\n\nThe opt-in, byte-identical adapter pattern follows #1880, #1874, #1646 and `frontier1042-lec-parallel`.\n\nPrepared by jackmgaller with substantial Claude Code (Claude Opus 5.5) assistance. Apache-2.0.\n\n**Workflow feedback (optional).** The task chooser and overlap helper worked well. The biggest friction was getting the final stage's `--local` input without a 20-minute cold baseline. The archived `selected-replay.tar.gz` provider files solved it. Suggestion: document that fixture route in the bottleneck brief for replay-runtime work.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "681983bda7ed1198daa5ca97b858be4e8db571a927dbcd08c0836dacf7d52994"
+}

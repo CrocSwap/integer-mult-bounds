@@ -1,0 +1,34 @@
+name: Registered research package batch
+on:
+  workflow_call:
+    inputs:
+      packages:
+        description: JSON array of at most 256 registered package paths
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  replay:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        package: ${{ fromJSON(inputs.packages) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      RESEARCH_PACKAGE: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Explicit bounded package replay
+        run: python -B scripts/research_package.py --package "$RESEARCH_PACKAGE" --install-deps
+      - name: Committed inputs remain unchanged
+        run: git diff --exit-code

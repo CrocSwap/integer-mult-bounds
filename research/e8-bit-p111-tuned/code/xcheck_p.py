@@ -1,0 +1,435 @@
+"""Independent exact replay and interface audit of a bitE8/1 word with v <= 120 live ports (a punctured word: some
+E8 root lines are neither sources nor targets) whose source and helper registers may be gate destinations in phase A
+and in phase B (interleaved with target reads).  No producer, generator or hub code is imported; only the word file is
+read.  Adapted from the R420 package's code/xcheck.py (v = 120) by exact edits: the label count, frame closure and
+target frames are taken over the v live labels, and Part T is added.
+usage: xcheck_p.py WORD.json.gz [--json OUT]
+
+Part L (labels): the v labels are integer vectors with <x,y> = dot/2; every label has norm 2, distinct labels have
+|<a,b>| <= 1, and the lattice they generate (Hermite normal form over Z) has Gram determinant 1 and rank 8.  An even
+unimodular positive definite lattice of rank 8 is E8, so the labels are root lines of it.  The root lines of that
+lattice are enumerated (all vectors of norm 2 among the integer vectors with entries in {-2..2} that lie in the
+lattice: 240 roots, 120 lines); the punctured lines are the root lines that are not labels.  Every listed frame is
+closed in the live labels (the listed lines are exactly the labels in its span).
+
+Part T (totals): the frame of every retained total at the scatter, its dimension (the COPY rank), and whether it is
+the hyperplane q-perp (live labels orthogonal to q) of a punctured line q.
+
+Part F (frames and exact F2 semantics): every register starts at its start frame (sources at their own line, targets
+and helpers at frame 0); before each gate every operand climbs to the gate's frame, and a climb must be nested with a
+strict increase of dimension.  Targets stay at frame 0 until the scatter.  Values are replayed symbolically: register
+r starts as the column e_r (x columns, y columns, helper-dirt columns), so the replay covers every input at once, with
+arbitrary helper contents.  Required at the end: every source holds e_s, every helper holds e_h, every target holds
+e_{y_t} + e_{x_t}; final frames: sources and helpers at the full frame, target t at t-perp.
+
+Part I (interface): the hypotheses of the interleaved scalar-interface lemma (README, "Review point"), each evaluated
+separately:
+  H1  no gate anywhere whose destination is a z register (source or helper) reads a target;
+  H2  D: every gate is at frame 0, writes a target and reads only helpers (all of them at frame 0 when D runs);
+  H3  A writes only z registers; the scatter reads only retained helper registers and writes only targets; every B gate
+      either writes a z register from z registers only, or writes a target;
+  H4  C is exactly the literal reverse of the z-destination gates of A and B (in order A then B), each at the full
+      frame; final frames of all z registers are the full frame, so C needs no descent;
+  H5  V = I: the target-to-target part of the raw word A, scatter, B is the identity.
+and the lemma's conclusion decomposed on the raw word W0 = (A, scatter, B):
+  U   every z register's W0 output has no target column (z' = U z);
+  J   the source part of every target's W0 output is its own source (J = I);
+  K   the helper part of every target's W0 output equals the helper set D adds to it (D = -V^-1 K s over F2);
+  Uinv  C applied to the W0 outputs of the z registers restores every z register (C = U^-1).
+Prepared by eumemic with substantial Anthropic Claude assistance; Apache-2.0."""
+import gzip
+import json
+import math
+import sys
+from collections import Counter
+from fractions import Fraction
+
+
+class Reject(Exception):
+    pass
+
+
+def need(cond, msg):
+    if not cond:
+        raise Reject(msg)
+
+
+# ------------------------------------------------------------------ exact linear algebra over Q and Z
+def rref(rows):
+    """reduced row echelon form over Q of integer rows; returns (basis rows, pivot columns)"""
+    m = [[Fraction(x) for x in r] for r in rows]
+    piv = []
+    rk = 0
+    ncol = len(m[0]) if m else 0
+    for col in range(ncol):
+        p = next((i for i in range(rk, len(m)) if m[i][col] != 0), None)
+        if p is None:
+            continue
+        m[rk], m[p] = m[p], m[rk]
+        inv = 1 / m[rk][col]
+        m[rk] = [a * inv for a in m[rk]]
+        for i in range(len(m)):
+            if i != rk and m[i][col] != 0:
+                f = m[i][col]
+                m[i] = [a - f * b for a, b in zip(m[i], m[rk])]
+        piv.append(col)
+        rk += 1
+    return m[:rk], piv
+
+
+def nullspace_int(rows, ncol=8):
+    """integer basis of {n : r.n = 0 for every row r} (dot product)"""
+    if not rows:
+        return [[int(i == j) for j in range(ncol)] for i in range(ncol)]
+    basis, piv = rref(rows)
+    free = [c for c in range(ncol) if c not in piv]
+    out = []
+    for f in free:
+        vec = [Fraction(0)] * ncol
+        vec[f] = Fraction(1)
+        for r, pc in zip(basis, piv):
+            vec[pc] = -r[f]
+        den = 1
+        for x in vec:
+            den = den * x.denominator // math.gcd(den, x.denominator)
+        out.append([int(x * den) for x in vec])
+    return out
+
+
+def hnf_basis(rows):
+    """Z-basis of the lattice generated by integer rows (row-style Hermite reduction)"""
+    m = [list(r) for r in rows if any(r)]
+    basis = []
+    ncol = len(rows[0])
+    for col in range(ncol):
+        m = [r for r in m if any(r)]
+        while True:
+            nz = [r for r in m if r[col] != 0]
+            if len(nz) <= 1:
+                break
+            nz.sort(key=lambda r: abs(r[col]))
+            p = nz[0]
+            for r in m:
+                if r is not p and r[col] != 0:
+                    q = r[col] // p[col]
+                    for j in range(ncol):
+                        r[j] -= q * p[j]
+        nz = [r for r in m if r[col] != 0]
+        if nz:
+            basis.append(nz[0])
+            m = [r for r in m if r is not nz[0]]
+    return basis
+
+
+def det(M):
+    M = [[Fraction(x) for x in r] for r in M]
+    n = len(M)
+    d = Fraction(1)
+    for col in range(n):
+        p = next((i for i in range(col, n) if M[i][col] != 0), None)
+        if p is None:
+            return Fraction(0)
+        if p != col:
+            M[col], M[p] = M[p], M[col]
+            d = -d
+        d *= M[col][col]
+        for i in range(col + 1, n):
+            f = M[i][col] / M[col][col]
+            M[i] = [a - f * b for a, b in zip(M[i], M[col])]
+    return d
+
+
+# ------------------------------------------------------------------ the checker
+class Word:
+    def __init__(self, w):
+        self.w = w
+        self.v = v = w["v"]
+        self.R = w["R"]
+        self.n = 2 * v + self.R
+        need(w["h"] == 8 and 100 <= v <= 120 and w["form"] == "<x,y>/2", "not an E8 bit word header")
+        self.lines = [tuple(int(a) for a in r) for r in w["lines"]]
+        fr = w["frames"]
+        self.fdim = []
+        self.fperp = []
+        for f in fr:
+            need(all(0 <= i < v for i in f), "frame line out of range")
+            rows = [self.lines[i] for i in f]
+            b, _ = rref(rows) if rows else ([], [])
+            self.fdim.append(len(b))
+            self.fperp.append(nullspace_int(rows))
+        self.FULL = [k for k, d in enumerate(self.fdim) if d == 8]
+        self.ZERO = [k for k, d in enumerate(self.fdim) if d == 0]
+        need(len(self.FULL) == 1 and len(self.ZERO) == 1, "need exactly one full frame and one zero frame id")
+        self.FULL, self.ZERO = self.FULL[0], self.ZERO[0]
+        self._nest = {}
+
+    def ip(self, a, b):
+        s = sum(x * y for x, y in zip(a, b))
+        need(s % 2 == 0, "form not integral")
+        return s // 2
+
+    def labels(self):
+        L = self.lines
+        v = self.v
+        need(len(L) == v and len(set(L)) == v, "need v distinct labels")
+        need(all(self.ip(a, a) == 2 for a in L), "a label does not have norm 2")
+        for i in range(v):
+            for j in range(i + 1, v):
+                need(abs(self.ip(L[i], L[j])) <= 1, "two labels on one line")
+        B = hnf_basis(L)
+        need(len(B) == 8, "labels do not span rank 8")
+        G = [[self.ip(a, b) for b in B] for a in B]
+        need(det(G) == 1, "lattice generated by the labels is not unimodular")
+        # root lines of the lattice: norm-2 vectors with entries in {-2..2} (dot 4), in the lattice (integer coordinates)
+        import itertools
+        Bi = [[Fraction(x) for x in r] for r in B]
+        roots = []
+        for vec in itertools.product((-2, -1, 0, 1, 2), repeat=8):
+            if sum(x * x for x in vec) != 4:
+                continue
+            # solve vec = c B over Q, require integer c
+            aug = [[Bi[r][c] for r in range(8)] + [Fraction(vec[c])] for c in range(8)]
+            n = 8
+            for col in range(n):
+                p = next(i for i in range(col, n) if aug[i][col] != 0)
+                aug[col], aug[p] = aug[p], aug[col]
+                pv = aug[col][col]
+                aug[col] = [a / pv for a in aug[col]]
+                for i in range(n):
+                    if i != col and aug[i][col] != 0:
+                        fct = aug[i][col]
+                        aug[i] = [a - fct * b for a, b in zip(aug[i], aug[col])]
+            if all(aug[i][n].denominator == 1 for i in range(n)):
+                roots.append(vec)
+        need(len(roots) == 240, "the lattice does not have 240 roots")
+        lines120 = sorted({max(r, tuple(-x for x in r)) for r in roots})
+        need(len(lines120) == 120, "root lines")
+        live = {max(a, tuple(-x for x in a)) for a in L}
+        need(live <= set(lines120), "a label is not a root line")
+        self.punct = [r for r in lines120 if r not in live]
+        need(len(self.punct) == 120 - v, "punctured count")
+        # closure of every frame: the listed lines are exactly the labels inside its span
+        for k, f in enumerate(self.w["frames"]):
+            inside = [i for i in range(v) if all(sum(x * y for x, y in zip(L[i], nv)) == 0 for nv in self.fperp[k])]
+            need(sorted(inside) == sorted(f), "frame %d is not closed" % k)
+        return dict(labels=v, root_lines=120, punctured=len(self.punct), lattice_rank=8, gram_det=1,
+                    frames=len(self.w["frames"]))
+
+    def nested(self, a, b):
+        """span(frame a) inside span(frame b)"""
+        k = (a, b)
+        if k not in self._nest:
+            ok = all(all(sum(x * y for x, y in zip(self.lines[i], nv)) == 0 for nv in self.fperp[b])
+                     for i in self.w["frames"][a])
+            self._nest[k] = ok
+        return self._nest[k]
+
+    def replay(self, sections=("D", "A", "scatter", "B", "C"), values=None, frames_on=True):
+        w, v, n = self.w, self.v, self.n
+        cur = list(w["start"])
+        val = list(values) if values is not None else [1 << r for r in range(n)]
+        stats = Counter()
+
+        def climb(r, f):
+            if cur[r] == f:
+                return
+            need(self.nested(cur[r], f) and self.fdim[cur[r]] < self.fdim[f],
+                 "climb not nested: register %d from frame %d (dim %d) to frame %d (dim %d)" %
+                 (r, cur[r], self.fdim[cur[r]], f, self.fdim[f]))
+            cur[r] = f
+
+        def run(name):
+            for k, g in enumerate(w[name]):
+                need(len(g) == 3, "malformed gate")
+                f, d, srcs = g
+                regs = [d] + list(srcs)
+                need(0 <= f < len(self.fdim), "frame id out of range")
+                need(all(0 <= r < n for r in regs) and len(set(regs)) == len(regs) and srcs,
+                     "%s gate %d: bad operands" % (name, k))
+                if frames_on:
+                    for r in regs:
+                        climb(r, f)
+                acc = 0
+                for s in srcs:
+                    acc ^= val[s]
+                val[d] ^= acc
+                stats[name] += 1
+
+        if frames_on:
+            for s in range(v):
+                need(self.fdim[cur[s]] == 1 and self.w["frames"][cur[s]] == [s], "source %d does not start at its line" % s)
+            for r in range(v, n):
+                need(self.fdim[cur[r]] == 0, "target/helper %d does not start at frame 0" % r)
+        for name in sections:
+            if name == "scatter":
+                need(len(w["scatter"]) == v, "scatter must have one row per target")
+                need(all(0 <= k < len(w["ret"]) for row in w["scatter"] for k in row), "scatter index out of range")
+                need(all(2 * v <= q < n for q in w["ret"]), "retained totals must be helpers")
+                if frames_on:
+                    need(all(self.fdim[cur[v + t]] == 0 for t in range(v)), "a target left frame 0 before the scatter")
+                copies = [val[q] for q in w["ret"]]
+                for t, row in enumerate(w["scatter"]):
+                    for k in row:
+                        val[v + t] ^= copies[k]
+                stats["scatter_terms"] = sum(len(r) for r in w["scatter"])
+            else:
+                run(name)
+        return val, cur, stats
+
+    def totals(self):
+        """frames of the retained totals at the scatter (replay D and A with frames), COPY ranks, pseudo-target check"""
+        w, v = self.w, self.v
+        _, cur, _ = self.replay(sections=("D", "A"))
+        out = []
+        for q in w["ret"]:
+            f = cur[q]
+            hyp = None
+            for r in self.punct:
+                perp = [i for i in range(v) if sum(x * y for x, y in zip(self.lines[i], r)) == 0]
+                if sorted(w["frames"][f]) == perp:
+                    hyp = list(r)
+            out.append(dict(register=q, frame=f, rank=self.fdim[f], hyperplane_of_punctured_line=hyp))
+        return out
+
+    def full(self):
+        """the complete program: legality and exact F2 identity on all columns"""
+        w, v, n = self.w, self.v, self.n
+        val, cur, stats = self.replay()
+        for r in range(n):
+            f = w["final"][r]
+            if cur[r] != f:
+                need(self.nested(cur[r], f) and self.fdim[cur[r]] < self.fdim[f], "final climb of %d not nested" % r)
+        for s in range(v):
+            need(self.fdim[w["final"][s]] == 8, "source final frame is not full")
+        for r in range(2 * v, n):
+            need(self.fdim[w["final"][r]] == 8, "helper final frame is not full")
+        for t in range(v):
+            f = w["final"][v + t]
+            perp = [i for i in range(v) if self.ip(self.lines[i], self.lines[t]) == 0]
+            need(sorted(w["frames"][f]) == perp, "target %d final frame is not t-perp (live labels)" % t)
+        bad_s = [s for s in range(v) if val[s] != 1 << s]
+        bad_h = [r for r in range(2 * v, n) if val[r] != 1 << r]
+        bad_t = [t for t in range(v) if val[v + t] != (1 << (v + t)) | (1 << t)]
+        need(not bad_s, "sources not restored: %s" % bad_s[:5])
+        need(not bad_h, "helpers not restored: %s" % bad_h[:5])
+        need(not bad_t, "targets not y + x: %s" % bad_t[:5])
+        return dict(columns=n, gates={k: stats[k] for k in ("D", "A", "B", "C")}, scatter_terms=stats["scatter_terms"])
+
+    def interface(self):
+        """each hypothesis of the interleaved lemma separately, and the decomposition of its conclusion"""
+        w, v, n = self.w, self.v, self.n
+        is_y = lambda r: v <= r < 2 * v
+        is_z = lambda r: not is_y(r)
+        H = {}
+        H["H1_no_target_feeds_z"] = not any(is_z(g[1]) and any(is_y(s) for s in g[2])
+                                            for sec in ("D", "A", "B", "C") for g in w[sec])
+        H["H2_D_frame0_targets_from_helpers"] = all(
+            self.fdim[g[0]] == 0 and is_y(g[1]) and all(s >= 2 * v for s in g[2]) for g in w["D"]) and all(
+            self.fdim[w["start"][r]] == 0 for r in range(v, n))
+        H["H3_A_z_only_scatter_targets_B_split"] = (
+            all(is_z(g[1]) for g in w["A"]) and all(2 * v <= q < n for q in w["ret"]) and len(w["scatter"]) == v
+            and all(is_y(g[1]) or all(is_z(s) for s in g[2]) for g in w["B"]))
+        zg = [[self.FULL, g[1], list(g[2])] for sec in ("A", "B") for g in w[sec] if is_z(g[1])]
+        H["H4_C_literal_reverse_at_full"] = ([[g[0], g[1], list(g[2])] for g in w["C"]] == list(reversed(zg))
+                                             and all(self.fdim[w["final"][r]] == 8 for r in range(n) if is_z(r)))
+        # raw word W0 = A, scatter, B (no D, no C), values only
+        raw, _, _ = self.replay(sections=("A", "scatter", "B"), frames_on=False)
+        ymask = ((1 << v) - 1) << v
+        xmask = (1 << v) - 1
+        smask = ((1 << self.R) - 1) << (2 * v)
+        H["H5_V_identity"] = all(raw[v + t] & ymask == 1 << (v + t) for t in range(v))
+        C = {}
+        C["U_block_form"] = all(raw[r] & ymask == 0 for r in range(n) if is_z(r))
+        C["J_identity"] = all(raw[v + t] & xmask == 1 << t for t in range(v))
+        N = [0] * v
+        for g in w["D"]:
+            if is_y(g[1]):
+                for s in g[2]:
+                    N[g[1] - v] ^= 1 << s
+        C["K_equals_D"] = all(raw[v + t] & smask == N[t] for t in range(v))
+        # C applied to the raw z outputs restores every z register (C = U^-1)
+        vals = list(raw)
+        ok = True
+        for f, d, srcs in w["C"]:
+            if is_y(d) or any(is_y(s) for s in srcs):
+                ok = False
+                break
+            acc = 0
+            for s in srcs:
+                acc ^= vals[s]
+            vals[d] ^= acc
+        C["C_is_U_inverse"] = ok and all(vals[r] == 1 << r for r in range(n) if is_z(r))
+        # interleaving statistics
+        readers = set()
+        zB = [g for g in w["B"] if is_z(g[1])]
+        war = 0                  # B z-writes into a register some target has already read in B
+        raw_after = 0            # target reads, in B, of a register already rewritten in B
+        written = set()
+        for k, g in enumerate(w["B"]):
+            if is_z(g[1]):
+                if g[1] in readers:
+                    war += 1
+                written.add(g[1])
+            else:
+                for s in g[2]:
+                    if is_z(s):
+                        if s in written:
+                            raw_after += 1
+                        readers.add(s)
+        info = dict(z_gates_A=sum(1 for g in w["A"] if is_z(g[1])),
+                    source_writes_A=sum(1 for g in w["A"] if g[1] < v),
+                    z_gates_B=len(zB), source_writes_B=sum(1 for g in zB if g[1] < v),
+                    helper_writes_B=sum(1 for g in zB if g[1] >= 2 * v),
+                    sources_rewritten_B=len({g[1] for g in zB if g[1] < v}),
+                    B_z_write_frame_dims=dict(sorted(Counter(self.fdim[g[0]] for g in zB).items())),
+                    B_z_operand_kinds=dict(sorted(Counter("%s<-%s" % ("source" if g[1] < v else "helper", "+".join(
+                        sorted({"source" if s < v else "helper" for s in g[2]}))) for g in zB).items())),
+                    B_z_operand_kinds_by_dim=dict(sorted(Counter("dim%d:%s<-%s" % (self.fdim[g[0]], "source" if g[1] < v
+                        else "helper", "+".join(sorted({"source" if s < v else "helper" for s in g[2]})))
+                        for g in zB).items())),
+                    B_z_writes_after_a_target_read_of_the_same_register=war,
+                    B_target_reads_of_registers_rewritten_earlier_in_B=raw_after,
+                    target_reads_of_targets=sum(1 for g in w["B"] if is_y(g[1]) and any(is_y(s) for s in g[2])),
+                    cleanup_gates=len(w["C"]))
+        return H, C, info
+
+
+def check(w):
+    """returns a dict; raises Reject on the first legality or F2 failure"""
+    W = Word(w)
+    lab = W.labels()
+    fl = W.full()
+    fl["totals"] = W.totals()
+    H, C, info = W.interface()
+    return W, lab, fl, H, C, info
+
+
+if __name__ == "__main__":
+    w = json.load(gzip.open(sys.argv[1], "rt"))
+    try:
+        W, lab, fl, H, C, info = check(w)
+    except Reject as e:
+        print("REJECT", e)
+        sys.exit(1)
+    print("labels: %d E8 root lines of the 120 (even unimodular lattice of rank 8, Gram det 1; %d punctured lines);"
+          " %d frames, every one closed in the live labels" % (lab["labels"], lab["punctured"], lab["frames"]))
+    tt = fl["totals"]
+    print("retained totals at the scatter: COPY ranks %s (decoder constant %d); every total sits at the hyperplane of a"
+          " distinct punctured line: %s" % ([x["rank"] for x in tt], sum(x["rank"] for x in tt),
+                                           all(x["hyperplane_of_punctured_line"] for x in tt) and
+                                           len({tuple(x["hyperplane_of_punctured_line"]) for x in tt}) == len(tt)))
+    print("legality and exact F2 replay on all %d columns (sources, targets, %d dirty helpers as symbolic inputs): "
+          "PASS; gates D/A/B/C = %s" % (fl["columns"], W.R, "/".join(str(fl["gates"][k]) for k in "DABC")))
+    for k, x in list(H.items()) + list(C.items()):
+        print("   %-40s %s" % (k, "holds" if x else "FAILS"))
+    print("   " + json.dumps(info))
+    ok = all(H.values()) and all(C.values())
+    print("PASS interleaved interface lemma: hypotheses H1-H5 hold and the conclusion decomposes as U, J = I, D = K,"
+          " C = U^-1" if ok else "REJECT interface")
+    if "--json" in sys.argv:
+        json.dump(dict(status="PASS_EXACT_REPLAY_AND_INTERLEAVED_INTERFACE" if ok else "REJECT", hypotheses=H,
+                       conclusion=C, interleaving=info, gates=fl["gates"], columns=fl["columns"],
+                       v=W.v, punctured=len(W.punct), copy_ranks=[x["rank"] for x in fl["totals"]],
+                       totals_on_punctured_hyperplanes=all(x["hyperplane_of_punctured_line"] for x in fl["totals"])),
+                  open(sys.argv[sys.argv.index("--json") + 1], "w"), indent=1)
+    sys.exit(0 if ok else 1)

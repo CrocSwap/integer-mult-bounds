@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "number": 762,
+  "title": "Independent verification: ten optimal tests for R420 compensation faults",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/762",
+  "head": "e35bd9b325c84dbe9b9c2903ea4a064ae45df80f",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/r420-adjoint-compensation/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7f078f1ee342111f4c68d2d79dca0bc5081b4b21"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-adjoint-compensation/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f65632dd6b105448391ef9ed40cbdb9fb1b8db15"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-adjoint-compensation/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6bb7e77fa17d4234a15c4f37e21b8f8be150e429"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-adjoint-compensation/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2151f6a555ba32731d1c21496ba1ff6277a0063f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-adjoint-compensation/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f63f8636b302812e74aae9b7e15af754ebb6fa7c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-adjoint-compensation/independent_check.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6275bacfd5d71afbcb8c50c91cd7145e35157095"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-adjoint-compensation/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bc87b839184bd6029abe031f2c3b1a3ec00a53f4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r420-adjoint-compensation": 7
+  },
+  "github_reported_file_count": 7,
+  "complete_git_file_count": 7,
+  "body": "Ten fixed dirty-helper assignments detect every change of at most three coefficients per target row in the selected R420 D compensation. A sum-free-column argument proves that nine nonadaptive binary assignments cannot give the same guarantee. The package supplies the ten patterns, exact execution checks, and a four-coefficient fault that passes all ten but fails on a singleton helper input.\n\n**Status: independent verification / research note; no new kappa.** The fault model keeps A/scatter/B/C fixed and observes each target separately. The tests do not replace full symbolic verification, and the optimum does not cover adaptive tests or other observation channels.\n\nThe baseline K=D identity is independently checked by backward covectors on all 120 targets and 660 original inputs. A separate implementation uses forward support sets and ten literal Boolean executions. The suite covers all 12,348,350 nonempty helper supports of size at most three per target, using odd columns for the triple case and exhaustive checking of 87,990 pairs. A full covector check rejects the deliberately undetected four-coefficient mutant.\n\n```sh\npython3 -I -B research/r420-adjoint-compensation/verify.py\npython3 -I -B research/r420-adjoint-compensation/independent_check.py\n```\n\nExpected primary output: `PASS_R420_COMPENSATION_SUITE tests=10 optimal=10 radius=3 targets=120 blind_weight=4 controls=129`.\n\nNormal/optimized Python 3.9.6 and optimized Python 3.14.8 checks pass. Certificate emission is byte-identical across versions. Both final checkers pass from a minimal copied tree in a path with spaces and an unrelated working directory. Source corruption, zeroed parity probe, altered test count and missing inputs reject. `make selected-record-check` and staged whitespace checks pass. The independent checker additionally rejects zero-column, duplicate-column and zero-sum-triple test suites.\n\nOnly `research/r420-adjoint-compensation/` is added. Base: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. PR543: `2065fe4f72a914d907f1046603f5a36f17018535`. Selected PR626: `660de893d27bb7abd1d5b01b1640207528a5c851`. Compressed/payload/source pins and exact native-word Git blob are recorded. The selected frontier and `upstream/` are unchanged.\n\nOS assignment seed 81 selected independent verification. No pinned sprint issue existed, so the claim is local. The initial scan ended at #725. The final refresh covered 578 open PRs through #759. Joshua Snider's concurrent **#731** had submitted the same compensation-rank investigation during this work; it is credited, and this package pivoted to the distinct optimal test suite. Its four-term witness concerns the test matrix, not #731's compensation-matrix kernel. No pending code is imported. #612's formal D-parity obligation remains open; #737 geometry and #745 complex private-input checks have separate scopes.\n\nCredit remains with eumemic's PR543 and the PR493/370/425/503/510 lineage, Jacob Sussman's E8 unit, icekylinx's carryover work, Jeremy Kothe's PR622, Chafik Boukhalfa's selected PR626 and Joshua Snider's concurrent #731. Prepared for Sagar Thakrar (@thakrarsagar) with substantial OpenAI Codex assistance, including a separately written checker and proof review. Apache-2.0; no independent human peer-review claim.\n\nFull repository/cold supplier replay, remote Linux CI and Lean were not run. Physical frames, COPY/ERASE, general source/helper restoration, hosting, cost, precision/tape/recovery and all-size/analytic multiplication obligations remain inherited. The result is a finite fault-model certificate plus a written elementary optimality proof.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "0c9d485458269979f1ca2962bd51f6f8e80bb0372d7ced6f5f09fb2c74fea140"
+}

@@ -1,0 +1,29 @@
+name: Connector representation domain audit
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.repository == 'CrocSwap/integer-mult-bounds'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Exact representation domains and compiled rejection controls
+        env:
+          CXX: g++
+        run: python -I -O -B research/connector-domain-completeness/verify.py --controls

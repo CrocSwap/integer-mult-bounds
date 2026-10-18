@@ -1,0 +1,134 @@
+"""Release proof: PR1673 capped phase-cell fusion outer on this package's T74 supplier (PR1661 stack + pivot-554 kernel).
+
+Runs (1) the supplier's own unchanged verify.py (native replays reused from --native-cache when present), concurrently with
+(2) outer/check_ledger.py + outer/independent_check.py (the 45-inequality ledger, 5 rejecting controls, endpoint rejection and the
+independent balance derivation, regenerated in a temporary copy and compared byte-for-byte with the committed LEDGER.json /
+INDEPENDENT.json) and outer/replay_evidence.py (PR1673's 19 supplier-independent exact evidence replays);
+then binds the supplier's strict ASSEMBLY (complex endpoint, bit endpoint, profile) to the ledger inputs.
+The receipt kappa is the ledger's kappa with the radix-distributed sparse-union schedule (new in pkg4, outer/UNION-SCHEDULE.md) and structured boundary solves (new in this package, outer/STRUCTURED-BOUNDARY.md: displacement-rank generator representations of the boundary blocks, O(r W log W) per right-hand-side column, tau_eff = 2 + 1e-64 in that earlier package; not used here); the unproven omega_C <= 9/4 premise is not used.
+"""
+import argparse, hashlib, json, os, shutil, subprocess, sys, tempfile, time
+from fractions import Fraction
+from pathlib import Path
+
+PACKAGE = Path(__file__).resolve().parent
+os.environ['PYTHONINTMAXSTRDIGITS'] = '0'   # the pinned endpoints, kappas and ledger values are decimal/rational strings of thousands of digits
+sys.set_int_max_str_digits(0)
+
+
+def digest(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--main', type=Path, required=True)
+    ap.add_argument('--work', type=Path, required=True)
+    ap.add_argument('--native-cache', type=Path)
+    ap.add_argument('--jobs', type=int, default=4)
+    a = ap.parse_args()
+    if sys.flags.optimize:
+        raise SystemExit('Full proof requires assertions enabled')
+    work = a.work.resolve()
+    work.mkdir(parents=True, exist_ok=False)
+    msha = digest(PACKAGE / 'MANIFEST.json')
+    t = time.monotonic()
+    opts = ['--audit-shards', str(max(1, a.jobs))] + (['--native-cache', str(a.native_cache.resolve())] if a.native_cache else [])
+    reused = {}
+    if a.native_cache:
+        for key, name in (('base', 'gauge44-word'), ('extra', 'extra-word')):
+            entry = a.native_cache.resolve() / digest(PACKAGE / 'vendor/pr1297' / (name + '.json.gz'))
+            if (entry / 'CACHE.json').is_file() and (entry / 'local/FULL-WORD.json.gz').is_file() and (entry / 'STEPS.json').is_file():
+                opts += ['--%s-native-from' % key, str(entry)]
+                reused[key] = entry.name
+        if len(reused) == 2:
+            opts += ['--parent-receipt-cache', str(a.native_cache.resolve() / '_receipts')]
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    outer_log = (work / 'outer.log').open('w', encoding='utf-8')
+    outer_proc = subprocess.Popen([sys.executable, '-B', str(PACKAGE / 'outer/run_outer.py'), str(work / 'outer-tmp')],
+                                  stdin=subprocess.DEVNULL, stdout=outer_log, stderr=subprocess.STDOUT, env=env)
+    with (work / 'verify.log').open('w', encoding='utf-8') as out:
+        r = subprocess.run([sys.executable, '-B', str(PACKAGE / 'verify.py'), '--work', str(work / 'verify')] + opts,
+                           stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT)
+    if outer_proc.wait():
+        raise SystemExit('outer checks failed: ' + (work / 'outer.log').read_text(encoding='utf-8', errors='replace')[-1500:])
+    if r.returncode:
+        lines = (work / 'verify.log').read_text(encoding='utf-8', errors='replace').strip().splitlines()
+        raise SystemExit(f'verify failed rc={r.returncode}: {lines[-1] if lines else ""}')
+    res = json.loads((work / 'verify/RESULT.json').read_text(encoding='utf-8'))
+    claim = json.loads((PACKAGE / 'CLAIM.json').read_text(encoding='utf-8'))
+    if not res['status'].startswith('PASS_'):
+        raise SystemExit('package verify status ' + res['status'])
+    if Fraction(res['kappa_decimal']) != Fraction(claim['kappa_decimal']):
+        raise SystemExit(f"verified kappa {res['kappa_decimal']} != CLAIM {claim['kappa_decimal']}")
+    # ---- bind the supplier admission to the outer ledger inputs
+    asm = json.loads((work / 'verify/strict/ASSEMBLY.json').read_text(encoding='utf-8'))
+    spec = json.loads((PACKAGE / 'new/SPEC.json').read_text(encoding='utf-8'))
+    ledger = json.loads((PACKAGE / 'outer/LEDGER.json').read_text(encoding='utf-8'))
+    bj = json.loads((PACKAGE / 'outer/B.json').read_text(encoding='utf-8'))
+    if asm['status'] != 'PASS_GAUGE44_NATIVE_EXACT_GLOBAL_ASSEMBLY' or len(asm['outer']) != 47:
+        raise SystemExit('supplier strict assembly did not pass')
+    if Fraction(asm['complex_lower']) != Fraction(spec['expected']['complex_lower']) or not Fraction(bj['b']) < Fraction(asm['complex_lower']) < Fraction(bj['b_above_endpoint']):
+        raise SystemExit('ledger endpoint b is not bracketed by the admitted supplier complex endpoint')
+    if {int(k): v for k, v in asm['complex_profile'].items()} != {int(k): v for k, v in bj['profile'].items()} or Fraction(asm['bit_lower']) != Fraction('0.001733427039589844234749'):
+        raise SystemExit('ledger profile / bit endpoint differ from the admitted supplier assembly')
+    kappa_decimal = ledger['rows']['struct_boundary_radix_union']['kappa']['decimal']
+    if Fraction(kappa_decimal) != Fraction(ledger['rows']['struct_boundary_radix_union']['kappa']['rational']) or Fraction(kappa_decimal) != Fraction(json.loads((PACKAGE / 'outer/OUTER-CLAIM.json').read_text(encoding='utf-8'))['kappa']):
+        raise SystemExit('ledger kappa != OUTER-CLAIM')
+    if Fraction(kappa_decimal) <= Fraction('0.001677160151714381'):
+        raise SystemExit('ledger kappa does not exceed PR1673')
+    if Fraction(kappa_decimal) <= Fraction('0.001677641731343354564251058287063644749065568493'):
+        raise SystemExit('ledger kappa does not exceed PR1699')
+    if Fraction(kappa_decimal) <= Fraction('0.0016783441717365385237811729563143950958709031230206606381509868512618172844657807114390339553440364'):
+        raise SystemExit('ledger kappa does not exceed the previous package (structured boundary, linear guard)')
+    if Fraction(kappa_decimal) <= Fraction('0.0016797547881500489087805478664999999999999999999999999999999998000000199999'):
+        raise SystemExit('ledger kappa does not exceed PR1786')
+    if Fraction(kappa_decimal) <= Fraction('0.0016797549561255445213356709939207025769983114385025802954603275201627999999999999999999999999979966404900867489109573286580121585'):
+        raise SystemExit('ledger kappa does not exceed PR1828')
+    if Fraction(kappa_decimal) <= Fraction('0.0016797549561255445213356709939207025769983114385025802954603275201628645482603256388263049999999997996640490086748910957328658012158594'):
+        raise SystemExit('ledger kappa does not exceed PR1839')
+    if Fraction(kappa_decimal) <= Fraction('0.0016797549561255445213356709939207025769983114385025802954603275201628645482603256388263056561328446322744513169085862209720704481201654121427713006366929567157349625273906229277148454180995537563371124755588139767841405530386745578819565618798006892541712197674874836946756930569827889227573192555649999999997996640490086748910957328658012158594'):
+        raise SystemExit('ledger kappa does not exceed PR1875')
+    if Fraction(kappa_decimal) <= Fraction('0.001679754956125544521335670993920702576998311438502580295460327520162864548260325638826305656132844632274451316908586220972070448120165412142771300636692956715734962527390622927714845418099553756337112475558813976784140553038674557881956561879800689254171219767487483694675693056982788922757319255565606685566411725238449650999339827075715283714270157705762309226038611771955655377501414652136546310799999999999999999997996640490086748910957328658012158594846'):
+        raise SystemExit('ledger kappa does not exceed PR1876')
+    if Fraction(kappa_decimal) <= Fraction('0.001679754956125544521335670993920702576998311438502580295460327520162864548260325638826305656132844632274451316908586220972070448120165412142771300636692956715734962527390622927714845418099553756337112475558813976784140553038674557881956561879800689254171219767487483694675693056982788922757319255565606685566411725238449650999339827075715283714270157705762309226038611771955655377501414652136546310881185746917580802513640545967852810801680966856133978576162943792322682482152988532923811998938861379689883167389728443314312230815059559906903773756886872476136837071871203030423643505345473735135533'):
+        raise SystemExit('ledger kappa does not exceed PR1897')
+    if Fraction(kappa_decimal) <= Fraction('0.001679745508802299051546533685199973672313473419790800679752457380932784242972585600630181672224983'):
+        raise SystemExit('ledger kappa does not exceed the previous package (gauge-free interiors, PR1758)')
+    if Fraction(kappa_decimal) <= Fraction('0.0016781238306335473083421558390362687182218966358657650331660405387910568682486186577879457360762643'):
+        raise SystemExit('ledger kappa does not exceed the previous package (rectangular k=5)')
+    if Fraction(kappa_decimal) <= Fraction('0.001677992607205282520732088774830808372222877897034109604209719298829805473412451530867883424937597'):
+        raise SystemExit('ledger kappa does not exceed the previous package (rectangular k=2)')
+    if Fraction(kappa_decimal) <= Fraction('0.0016778199023144364336310551358776001013829401215770658599799349282716974076737897457922714197448847'):
+        raise SystemExit('ledger kappa does not exceed the previous package (square boundary tau=2.372864)')
+    if Fraction(kappa_decimal) <= Fraction('0.0016776417313433545642517275958639984231708545722735432722117400060454625429077941422798526440584702'):
+        raise SystemExit('ledger kappa does not exceed the previous package (old union row)')
+    # PR2269 (this package's own 90-digit-endpoint predecessor): exact outer kappa
+    if Fraction(kappa_decimal) <= Fraction('0.0016962471390584742207696225394800943861284603706821716607210815258272261945561178592716719999999997996607505720883051558460754921039811'):
+        raise SystemExit('ledger kappa does not exceed PR2269')
+    # PR2265: its published 43-digit kappa
+    if Fraction(kappa_decimal) <= Fraction('0.0016834125885426074623303197403999369605037'):
+        raise SystemExit('ledger kappa does not exceed PR2265')
+    # the previous 1e-3000 fixed-grid-maximum package without the frame refit
+    if Fraction(kappa_decimal) <= Fraction('0.0016962471390584742207696225394800943861284603706821716607210815258272261945561178592716725376787146850319387830720495673160906619586385985253004200974538949035715460651846040948044242351804037917972203668759131442974306926788095523055348682603080830926543046109524019284266202449358819248039824128659652256009597225750921338791772522346327260842638280758491285261012177101751247814588199922615754428296427117543521452060897258700168878706575252152477061988688277049228862038051831802155042557172623266376692067754074066018861739445031053058532975745010650260626662153102779311231323276136828410015626012654950781671416272174286060026260461657234237896123847927833525865765270919579650629143257756554312491072906153370276441896408260328764564124330642285119147808930086141569295621851854218252564733837316294676373092948766021104018820867623171046683661092297248291577095250274060655173297958878033621645679452722665435213096247941313869533587196421382302143322934628990123191000788388609573672644835019755994246318060035281060223322645388928947169626138581457300875151159820924963147410503862327253442337658663568159699004958107894981576832335403664692406006933059590031689949815905089106171767594599700984735621368930563780702038882727505392721719386114334646038558353670081177427424360521812807826505397161210251724237709062744724805616548559632816270489581394531990712494078787486793971491473790864233960278289765655920963414849196322659136809511659945219008433168014265025447420166561704034530316921458618874915620099025502502618035097461895895223764605753492664274479247941026938492542179778796317704962018292021909919861292918602366755911657954379368017800183443534262330089328250652960096418423703035464940084343778512813829329581029347226356616738501436617600538369671094908540693286250261760877248005905559065855049093770979808303937056962048941085753495270703319891930887209058318724823718437728926974429367073432624131997567987115993164528269149849858078521203142762866174513268973487116932558183863464998283664642818679918224691979365372184748788493010550047368581279373073912036778334443492857927577286206252250817438195734298252518895370754124356495069959100552751704357607410115438146261739773032451457910141843649185347442684032256783823682283095281962476486777479624246578178585460914644633119591516245821764820377869654594359836428035991519960602392276985209925181526794428648224235182876264483709972370910406024724235806573365230168960701547640481777654852632561016384940077669718531691663918817962517445077811778410121692781099290921788135421040816814884933097268321380716162541362023853790195929790454122099814729604396862433157569138302781321102658775072569805525878616035680869031990224830742282562628026822259745461025473632267405693042132745262647696903701549047243949928334048586480294363233950866830966312211937319379776455575978516623582930772197819418024026409253019530180915180162077226543806380451730024060862435857727097812643685954248405246979875007274554000293999879999999999999999999998999999999999999999999999'):
+        raise SystemExit('ledger kappa does not exceed the previous package without the frame refit')
+    _c = Fraction(spec['expected']['complex_lower'])
+    if Fraction(kappa_decimal) != _c - Fraction(1, 10 ** 3046) - Fraction(1, 10 ** 3022):
+        raise SystemExit('ledger kappa is not the fixed-grid maximum C - 1/F - B')
+    if digest(PACKAGE / 'MANIFEST.json') != msha:
+        raise SystemExit('Package manifest changed during verification')
+    proof = ("Supplier: the package's own unchanged `verify.py` (retained PR1297 provider and parent admission, owner reconstruction, "
+             "parent lift, strict T74 admission, geometry controls): "
+             f"`{res['status']}`, native reuse {reused or 'none (fresh replays)'}; its complex endpoint "
+             f"{asm['complex_lower'][:30]}... brackets the ledger's b = {bj['b']}. Outer (PR1673 capped phase-cell fusion): "
+             "regenerated exact ledger (63 strict inequalities: the 62 retained rows plus the explicit main-binding row gaussian_above_main, the fixed-grid maximum kappa = C - 1/F - B asserted, 17 rejecting controls incl. the old g-factor union row, the old linear and old-theta chirp guards, the old 2*beta tag test, epsilon at 1 or at the r0 slack and beta outside its window, larger endpoint rejected by the native moment), "
+             "independent balance derivation, the exact union-schedule simulation, the (retained, not used for kappa) structured-boundary displacement-rank check, the gauge-free identity/symbol/circuit checks, PR1786's finite prime/underflow controls and 19 exact evidence replays all pass. "
+             f"Conditional kappa {kappa_decimal} (union schedule outer/UNION-SCHEDULE.md; explicit Strassen boundary tau=45/16 (the structured boundary of outer/STRUCTURED-BOUNDARY.md is not used); gauge-free interiors outer/GAUGEFREE-INTERIORS.md; fine source-prime padding PR1786 at the free point epsilon=1-(1025/1024)e-3080, outer/FINE-PADDING-COMPOSITION.md; fixed-grid maximum of PR2180/PR2161 (dataisfire), outer/PROOF-GRID-MAX.md; exact-integer coarse exponential PR2168/PR2184 (dataisfire) at the one 3000-digit rejection call).")
+    (work / 'RELEASE-RECEIPT.json').write_text(json.dumps(dict(
+        status='PASS_RELEASE', kappa_decimal=kappa_decimal, manifest_sha256=msha, proof=proof,
+        seconds=round(time.monotonic() - t, 2)), indent=2) + '\n', encoding='utf-8')
+    print('PASS_RELEASE', kappa_decimal, flush=True)
+
+
+if __name__ == '__main__':
+    main()

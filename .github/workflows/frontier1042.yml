@@ -1,0 +1,64 @@
+name: Mutable-leaver slots T16 composition
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/gauge44-leaver8/**'
+      - 'research/gauge44-slots/**'
+      - 'research/gauge44-slots-t16/**'
+      - 'scripts/verify_frontier1042.py'
+      - '.github/workflows/frontier1042.yml'
+  pull_request:
+    paths:
+      - 'research/gauge44-leaver8/**'
+      - 'research/gauge44-slots/**'
+      - 'research/gauge44-slots-t16/**'
+      - 'scripts/verify_frontier1042.py'
+      - '.github/workflows/frontier1042.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      CXX: g++
+      BOOST_INCLUDE: /usr/include
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install inherited dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+          python -m pip install -r research/e8-bit-p111-tuned/requirements.txt
+      - name: Check selected and historical records
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_selected_result.py --record certificates/checkpoints/frontier942.json
+      - name: Cold bit, complex construction and complete assembly
+        run: python -B scripts/verify_frontier1042.py --work "$RUNNER_TEMP/frontier1042"
+      - name: Require committed files unchanged
+        if: always()
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontier1042-evidence
+          path: |
+            ${{ runner.temp }}/frontier1042/*.json
+            ${{ runner.temp }}/frontier1042/*.log
+            ${{ runner.temp }}/frontier1042/t16/*.json
+            ${{ runner.temp }}/frontier1042/t16/*.log
+            ${{ runner.temp }}/frontier1042/chain/STEPS.json
+            ${{ runner.temp }}/frontier1042/chain/*.log
+            ${{ runner.temp }}/frontier1042/slots/*.json
+            ${{ runner.temp }}/frontier1042/slots/*.log
+          retention-days: 14

@@ -1,0 +1,64 @@
+--- a/research/t74-owner-fill-optimality/owner_optimum.py
++++ b/research/t74-owner-fill-optimality/owner_optimum.py
+@@ -173,10 +173,12 @@
+             need(C.COLS[j][0] - sum(C.COLS[j][1]) == 0 and
+                  all(l == 0 or C.COLS[b][0] - sum(C.COLS[b][1]) == 0 for l, b in zip(lam, basis)),
+                  'degenerate column %s changes the idle multiset' % (C.COLS[j],))
+-        # Completeness of the degenerate sweep: if every degenerate column has an integral basis representation,
+-        # integrality of x_B does not depend on its count, and a feasible x with positive degenerate counts maps
+-        # to the count-0 representative, which has the same idle multiset and sum rc, provided that representative
+-        # is nonnegative.  Nonnegativity at count 0 is asserted below for every heavy combination.
++        # Completeness: det_den clears all denominators in degenerate basis representations.
++        # Reduce each degenerate count modulo det_den. Basic counts change by integers,
++        # only on zero-remainder columns; thus the idle multiset and integrality are preserved.
++        # visit checks those canonical zero-remainder counts are nonnegative for every heavy
++        # combination and residue. Other basic counts are unchanged, so every feasible original
++        # has a feasible enumerated representative. The integral case additionally checks count 0.
+         lam_integral = all(l.denominator == 1 for j in degen for l in solve(col(j)))
+         det_den = 1
+         for j in degen:
+@@ -198,6 +200,10 @@
+                 for c, j in zip(kz, degen):
+                     bb = [bi - c * v for bi, v in zip(bb, colv[j])]
+                 xb = solve(bb)
++                # Modulo det_den, integral lifts preserve integrality and the idle multiset.
++                # Only zero-remainder basic columns change; their canonical counts must remain nonnegative.
++                need(all(v >= 0 for v, j in zip(xb, basis) if C.COLS[j][0] == sum(C.COLS[j][1])),
++                     'canonical degenerate residue has a negative zero-remainder basic count')
+                 if all(v.denominator == 1 and v >= 0 for v in xb):
+                     idle = Counter()
+                     for v, j in list(zip(xb, basis)) + [(c, j) for j, c in counts.items()] + list(zip(kz, degen)):
+--- a/research/t74-owner-fill-optimality/README.md
++++ b/research/t74-owner-fill-optimality/README.md
+@@ -46,16 +46,21 @@
+        66304·μₓ(a₀) ≥ L_loc + D + Σ_p rc_p xₚ,   rc_p ≥ 0 exact,
+ 
+    and if Σ rc_p xₚ ≥ T := 66304 − L_loc − D, then bₓ ≤ a₀. Here T ≈ 1.5475e-4.
+-4. **Enumeration.** Every integer x with Σ rc_p xₚ < T is enumerated exactly.
+-   - Only 9 basic and 7 non-basic patterns have rc < T.
+-   - The 2 degenerate patterns, (32: 7,8,8,9) and (32: 7,7,9,9), are checked to swap only zero-remainder
+-     patterns, so they never change the idle multiset. Their basis representation is integral, so their
+-     counts never affect integrality.
+-   - Any solution using them therefore maps to a count-0 representative with the same idle multiset and the
+-     same Σ rc. That representative is checked to be nonnegative for every candidate combination, so the
+-     sweep is complete.
+-   - The other 5 have reduced costs 5.5e-5 … 1.5e-4, which allows counts ≤ 2.
+-   - Basic variables are solved in exact rationals.
++4. **Enumeration.** Every idle multiset of an integer x with Σ rc_p xₚ < T is covered exactly.
++   - Nine basic columns form an invertible rational basis. Non-basic patterns with reduced cost at least T
++     cannot appear. The eligible non-basic set varies by inventory and evaluation point.
++   - The two degenerate columns have zero remainder and involve only zero-remainder basic columns.
++     Their basis representations need not be integral: the PR2435 case includes halves.
++   - Let D clear every denominator in these basis representations. Reduce each degenerate count modulo D.
++     Basic counts change by integers only in zero-remainder columns, so integrality and the idle multiset
++     are preserved. The verifier checks that the canonical zero-remainder basic counts are nonnegative
++     for every enumerated heavy combination and residue. All other basic counts are unchanged. Thus
++     every feasible original solution has a feasible enumerated representative.
++   - The nondegenerate counts are bounded by their exact positive reduced costs and enumerated by a
++     budget-pruned DFS. Basic variables are solved in exact rationals.
++   - Integration review added the canonical-residue nonnegativity check and corrected the earlier
++     integral-representation explanation. All search, exclusion and uniqueness controls still pass;
++     the reported bounds and idle multisets are unchanged.
+ 5. **Search, then exclusion.**
+    - Search: at a = κ_claim, enumerate every integer solution that could beat the claim. A budget-pruned
+      DFS is exact. Rank the distinct idle multisets by certified root.

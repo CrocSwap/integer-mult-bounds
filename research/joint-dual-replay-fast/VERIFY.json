@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "certificates/joint-dual-compiler.json",
+    "certificates/joint-dual-transitions-23.json",
+    "certificates/joint-dual-transitions-25.json",
+    "certificates/joint-dual-word-23.json.gz",
+    "certificates/joint-dual-word-25.json.gz",
+    "research/joint-dual/SOURCE.json",
+    "scripts/experiments/binary_frame_math.py",
+    "scripts/experiments/binary_frame_profile_prepare.py",
+    "scripts/experiments/binary_frame_replay.py",
+    "tests/test_joint_reclaim.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 600,
+      "checks": "Source-freeze binding for the three frozen scripts/tests and both pinned words; identical historical/adapter replay receipts on both words and equality with the recorded compiler receipts; unchanged transitions stage equals the recorded transitions receipts; full literal-scan cross-check of the mask identity on all 12,261 outputs; the frozen tests/test_joint_reclaim.py mutation matrix (11 rejections plus the scatter-reversal acceptance) on both words with the historical module as accept/reject oracle; corrupted-table, unchecked-word and -O failure controls; unmodified frozen-suite adoption run through the shim (all tests must pass and must use the adapter)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/test_fast_replay.py"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Mask-algebra identity against the literal scan on exhaustive small shapes and seeded random shapes (h in 3..12), corrupted-table disagreement control, shim re-export identity, and the -O entry guard."
+    }
+  ]
+}

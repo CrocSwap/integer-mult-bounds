@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "number": 2469,
+  "title": "Fix Windows replay lifetime with gated Job Object ownership",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2469",
+  "head": "65080e406c9edb0e93daa631f90b3fa4e4461910",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "28f54620ff770dd051d5df35882bd84303d13c6f",
+  "files": [
+    {
+      "path": "docs/research/windows-replay-lifetime.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eeb5bd127345795dff1a9a1de81c0b3abc389184"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "scripts/research_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b2d20db14ef594d39d1bb79d1682f7196ff93a71"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "62257c50e9f469e70a4624e2afce190bf85064f9"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_windows_job.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ddd4c5ab0061a2069aae436590d6b5f1d5ceb461"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 1,
+    "scripts/research_package.py": 1,
+    "tests/test_research_windows_job.py": 1
+  },
+  "github_reported_file_count": 3,
+  "complete_git_file_count": 3,
+  "body": "On native Windows, a verification leader that exits0 or7 can leave child solvers running after `run_command` returns. The exact current-main function fails the new retained-process-handle observer in both cases. Following PR2377's explicit Windows handoff, this change assigns a gated launcher to a kill-on-close Job Object before it may start the requested command, then terminates/reaps the job at success, failure, timeout or interrupted wait. Assignment failure leaves the command unstarted.\r\n\r\nEight native tests cover those boundaries, joined completion, parent-only cleanup mutations and assignment denial, and startup-hook isolation (including a flag-removal mutant and preserved verifier environment). CPython3.12.7 normal/optimized and3.14.5 native checks pass. Research unittest discovery passed72tests with3Linux-only skips before the focused startup-hook correction; all8final native tests pass; the selected source-binding baseline passes. See `docs/research/windows-replay-lifetime.md` for commands, OS contracts, evidence and remaining questions. The shared-runner CI invalidation policy is unchanged; local checks do not establish hosted CI or full mathematical replays.\r\n\r\nBase `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision4; card `portable-replay`, scope `831cc1a3c8f9ff01b197`. Scoped override follows the live lifetime defect. PR2377 is pinned at `5d444eee7dedd997c6094776fbb32ed19831e241`; its pending POSIX fix is not imported. PR2452 (`5208ab2780550273b1d8933ff584ce7581fb242d`) covers the distinct live-leader timeout observer.\r\n\r\nOrdinary Windows subprocess ownership only. Commands must join proof-relevant children and propagate errors. This is not a hostile-code sandbox, crash-atomic output proof, supplier improvement or new kappa. The implementation uses CPython's Windows Popen handle. POSIX behavior is unchanged.\r\n\r\nCredit yssite for PR2377's diagnosis and handoff, Paul Romeo for the process-tree fixture lineage, and Douglas Colkitt/retained contributors for the runner. Prepared for **ywz65 with substantial OpenAI Codex assistance** in implementation, tests and writing. Independently reviewed by another agent; no human review claimed. Apache-2.0.\r\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "7c08ea39490c1453595a758acbb9016bc5913c82e5e03164cb4b5f2dbc8159fb"
+}

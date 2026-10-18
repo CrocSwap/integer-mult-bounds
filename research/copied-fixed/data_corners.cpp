@@ -50,9 +50,12 @@ int main(){
     for(int j=c+1;j<d;j++)if(available[j]){assert(!M[i][j]);zeros++;}
     determinant=mul(determinant,value);checked++;available[c]=false;
     int inv=power(value,prime-2);
+    int columns[d],length=0;
+    for(int j=0;j<d;j++)if(available[j]&&M[i][j])columns[length++]=j;
     for(int r=i+1;r<d;r++)if(M[r][c]){
      int ratio=mul(M[r][c],inv);
-     for(int j=0;j<d;j++)if(available[j]&&M[i][j]){
+     for(int k=0;k<length;k++){
+      int j=columns[k];
       int z=M[r][j]-mul(ratio,M[i][j]);M[r][j]=z<0?z+prime:z;
      }
      M[r][c]=0;

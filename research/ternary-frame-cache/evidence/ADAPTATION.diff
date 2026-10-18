@@ -1,0 +1,37 @@
+--- scripts/experiments/ternary_side.py::verify_invocation_frames
++++ research/ternary-frame-cache/fast.py::verify_invocation_frames
+@@ -1,12 +1,14 @@
+-def verify_invocation_frames(result):
++def verify_invocation_frames(result, *, observe=None, statistics=None):
+     """Every physical rational edge of both signed invocation directions."""
+     from audit_joint_frames import eye,zero,matrix,row_basis,product,inverse,sub,rank
++    cache = FrameCache(rank, sub)
+     code=small_program(result);g=result['_graph'];n=result['n'];h=result['h']
+     S=code['roles'];r=comb(h,2);W=2*n+S+r
+     H=matrix([[Q(int(i==j))-Q(2,25) for j in range(h)] for i in range(h)])
+     I,Z=eye(h),zero(h)
+     require(rank(H)==h,'Degenerate ambient form')
+     lines=[(tuple(Q(int(t>>i&1)) for i in range(h)),) for t in g['labels']]
++    @lru_cache(maxsize=None)
+     def projection(U):
+         Ut=matrix(zip(*U));UH=product(U,H)
+         P=product(product(Ut,inverse(product(UH,Ut))),UH)
+@@ -31,7 +33,8 @@
+         def touch(ports,F):
+             nonlocal cost,lost,edges
+             for slot in set(ports):
+-                old=physical[slot];a=rank(sub(F,old));change=rank(F)-rank(old)
++                old=physical[slot];a,change=cache.transition(old,F)
++                if observe is not None: observe(reverse,slot,old,F,a,change)
+                 require(a==abs(change),'A physical edge has a non-nested rank charge')
+                 cost+=a;lost+=max(0,-change);edges+=1;physical[slot]=F
+         program=('L','J','l','R','V','G','R','L','J','l','G','V')
+@@ -57,5 +60,8 @@
+         require(lost==r*h and cost==W*h-2*n+2*r*h,'Invocation rank ledger failed')
+         evidence.append(dict(reverse=reverse,physical_edges=edges,rank_sum=cost,
+                              decreasing_dimensions=lost,expected=W*h-2*n+2*r*h))
++    if statistics is not None:
++        statistics.update(cache.statistics())
++        statistics['projection_cache'] = projection.cache_info()._asdict()
+     return dict(h=h,ordinary_rational_frame_edges_checked=True,
+                 common_pair_source_spans_checked=True,orientations=evidence)

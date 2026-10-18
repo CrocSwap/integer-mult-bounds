@@ -1,0 +1,39 @@
+name: Source-query endpoint support and frames
+
+on:
+  pull_request:
+    paths:
+      - research/sourcecode-commutant/**
+      - research/community-frontier1042-audit/selected-replay.tar.gz
+      - .github/workflows/sourcecode-commutant.yml
+  push:
+    branches:
+      - codex/sourcecode-commutant-20261014
+    paths:
+      - research/sourcecode-commutant/**
+      - .github/workflows/sourcecode-commutant.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Replay exact source-derived certificate
+        run: python -I -O -B research/sourcecode-commutant/verify.py --out "$RUNNER_TEMP/commutant-replay.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: commutant-certificate-${{ matrix.python }}
+          path: ${{ runner.temp }}/commutant-replay.json
+          if-no-files-found: error

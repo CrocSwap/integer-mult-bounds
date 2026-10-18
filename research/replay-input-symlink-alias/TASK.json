@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 5,
+  "base_commit": "f1de0c136a6d897332c63eb00b02bcc15e696b31",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "Reject symbolic-link aliases that let declared replay dependencies evade Git changed-path selection.",
+  "scope_change_reason": "The portable-replay card began with canonical-payload auditing. The concrete discovered failure is at the replay dependency boundary: an accepted directory symlink can hide a required replay. This is a scoped verifier correctness side result, not a mathematical mechanism advance.",
+  "bottleneck_link": "Correct dependency selection prevents changed proof inputs from bypassing registered checks. Source hashes, scientific payloads and the selected frontier are unchanged.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after the pinned predecessor counterexample, metadata/selection/CLI controls, deleted-input controls and relevant regression suite pass. Do not broaden into general filesystem aliasing or snapshot isolation.",
+  "outcome": "completed",
+  "evidence": "verify.py reproduces the exact historical skip and checks the repaired boundary; tests/test_research_symlink_inputs.py supplies actual Git/CLI, full metadata, positive and adverse controls. See README.md for observed commands and limits.",
+  "author": "Nick Petalas",
+  "ai_assistance": "Substantial AI assistance was used in investigation, implementation, tests and writing; no independent human review is claimed.",
+  "open_questions": [
+    {
+      "question": "Should declared inputs also require exact Git-index spelling on case-insensitive filesystems?",
+      "why_it_matters": "A filesystem spelling alias may differ from Git changed-path output even when there is no symbolic link. This patch makes no claim about that separate boundary.",
+      "first_step": "Build a real mixed-case Git fixture on a case-insensitive volume and check metadata acceptance plus the target-only changed-path matrix.",
+      "blocked_by": "A separate spelling and platform policy is needed; this package covers symbolic links in stable checkouts."
+    }
+  ],
+  "assignment": {
+    "seed": "01000000000000000000000000000001",
+    "track": "verifier-engineering",
+    "note": "Deterministic catalogue reproduction. The seed is not novelty evidence."
+  },
+  "discussion": "https://github.com/CrocSwap/integer-mult-bounds/discussions/2983",
+  "freshness": {
+    "checked_at": "2026-10-16T16:15:23.077035+00:00",
+    "canonical_main": "b3f3ee0392b71b118fd086a6eaf6b4cab54ef455",
+    "priority_revision": 5,
+    "relevant_guidance_and_sources": "Unchanged from scientific base f1de0c136a6d897332c63eb00b02bcc15e696b31",
+    "overlap_coverage": {
+      "open_prs": {
+        "fetched_at": "2026-10-16T16:13:34.915040+00:00",
+        "complete_pagination": true,
+        "records": 230
+      },
+      "discussions": {
+        "fetched_at": "2026-10-16T16:14:02.663720+00:00",
+        "complete_pagination": true,
+        "records": 1687
+      },
+      "closed_prs": {
+        "fetched_at": "2026-10-16T16:14:27.737376+00:00",
+        "complete_pagination": true,
+        "records": 2440
+      }
+    },
+    "overlap_limits": "Remote PR scope includes open and closed/merged titles and bodies, with separate coverage and timestamps. State changes are deduplicated by latest PR update; snapshots are not atomic. No code diffs or arbitrary package files are searched. Recheck relevant heads before submission."
+  },
+  "predecessor_finding": {
+    "author": "EdDiboi",
+    "url": "https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18942018",
+    "status": "Local-only finding/repair reported 2026-10-15; the stated claim expired. No source artifact was linked in that handoff.",
+    "relationship": "Independent corroboration and a public source-bound implementation, not a new discovery claim. The prior code was unavailable and was not copied."
+  }
+}

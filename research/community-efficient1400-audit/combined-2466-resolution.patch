@@ -1,0 +1,60 @@
+--- a/research/t74-2435-optimal-owner-map/optimal_map.py
++++ b/research/t74-2435-optimal-owner-map/optimal_map.py
+@@ -201,10 +201,11 @@
+         for k in range(4):                         # each single move alone must not give the optimum
+             try:
+                 r1 = FC.run_pipeline(ctx, sched, apply(rows, [moves['moves'][k]]))
+-                need(r1['idle'] != OPT_IDLE, 'R-c.idle', 'single move %d reached the optimum' % k)
+-                rejected.append('single_move_%d_not_optimal' % k)
+             except FC.CheckFailure as e:
+                 rejected.append('single_move_%d_rejected_%s' % (k, str(e).split(':')[0]))
++            else:
++                need(r1['idle'] != OPT_IDLE, 'control', 'single move %d reached the optimum' % k)
++                rejected.append('single_move_%d_not_optimal' % k)
+         bad = copy.deepcopy(moves['moves'])
+         # window violation: send the width-9 role into a bin whose window excludes its call
+         z9 = bad[1]
+@@ -215,10 +216,11 @@
+         bad[1] = dict(z9, to_bin=out_bin)
+         try:
+             FC.run_pipeline(ctx, sched, apply(rows, bad))
+-            need(False, 'R-d.window', 'control: an out-of-window move was accepted')
+         except FC.CheckFailure as e:
+-            need(str(e).startswith('R-'), 'R-d.window', 'control rejection')
+-            rejected.append('out_of_window_move_rejected_%s' % str(e).split(':')[0])
++            need(e.check == 'R-d.window', 'control', 'window mutant rejected for the wrong reason')
++            rejected.append('out_of_window_move_rejected_%s' % e.check)
++        else:
++            need(False, 'control', 'an out-of-window move was accepted')
+         # family conflict: move the width-4 role of call 435 into a bin already holding another helper of call 435
+         z4 = moves['moves'][2]
+         clash = next((zz['owner_replica'], zz['child'], zz['port']) for zz in rows
+@@ -227,9 +229,11 @@
+         bad2[2] = dict(z4, to_bin=list(clash))
+         try:
+             FC.run_pipeline(ctx, sched, apply(rows, bad2))
+-            need(False, 'R-e.family', 'control: a same-call family clash was accepted')
+         except FC.CheckFailure as e:
+-            rejected.append('same_call_family_clash_rejected_%s' % str(e).split(':')[0])
++            need(e.check == 'R-e.family_unique_per_call', 'control', 'family mutant rejected for the wrong reason')
++            rejected.append('same_call_family_clash_rejected_%s' % e.check)
++        else:
++            need(False, 'control', 'a same-call family clash was accepted')
+         print('negative controls: %s' % ', '.join(rejected), flush=True)
+         # ---- independent check of PR2447's own optimal owner map (concurrent) ----------------------------------
+         if not FC.commit_present(args.repo, HEAD_2447) and args.fetch:
+--- a/research/t74-2435-optimal-owner-map/README.md
++++ b/research/t74-2435-optimal-owner-map/README.md
+@@ -40,6 +40,12 @@
+ - An out-of-window move is rejected (R-d).
+ - A same-call family clash is rejected (R-e).
+ 
++Integration review corrected the negative-control harness: a control's own failure
++must not be caught as a successful rejection. Window and family mutants now require
++their specific rejection reasons; a single move reaching the optimum fails outside
++the pipeline exception handler. The full replay and accept-all/wrong-reason controls
++pass with the same owner map, endpoint and chart counts.
++
+ ## Reproduce
+ 
+ From the repository root, standard library only:

@@ -1,0 +1,61 @@
+{
+  "date_utc": "2026-10-13",
+  "environment": "macOS Darwin 25.5.0 arm64, CPython 3.14.8",
+  "status": "PASS scoped finite check and independent enumeration",
+  "commands": [
+    {
+      "command": "python3 -B research/r420-split-target-reads/check.py",
+      "exit_code": 0,
+      "observed_seconds": 0.198,
+      "result": "PASS_R420_SPLIT_TARGET_READ_BOUND targets=120 schedules=8^120 controls=4 kappa=unchanged"
+    },
+    {
+      "command": "python3 -B research/r420-split-target-reads/independent_check.py",
+      "exit_code": 0,
+      "observed_seconds": 1.172,
+      "result": "PASS_INDEPENDENT_SPLIT_READS targets=120 candidates=5760 legal=960 baseline=720 promoted=240 rejected_first_D6=240"
+    },
+    {
+      "command": "python3 -O -B research/r420-split-target-reads/check.py",
+      "exit_code": 0,
+      "result": "same PASS; checks do not depend on assert"
+    },
+    {
+      "command": "python3 -O -B research/r420-split-target-reads/independent_check.py",
+      "exit_code": 0,
+      "result": "same PASS; checks do not depend on assert"
+    },
+    {
+      "command": "python3 -B scripts/verify_selected_result.py",
+      "exit_code": 0,
+      "result": "PASS selected record, exact kappa, original source inventory and proof supplement: 51110230636731/31250000000000000"
+    }
+  ],
+  "additional_checks": [
+    "Both scripts pass with python3 -I -B using absolute script paths from /tmp, with isolated imports and no dependency on the current directory.",
+    "A separate Codex worker independently checked the proof, both implementations, certificate and all SOURCES.json reference hashes; no concrete defect found.",
+    "The source word's Git blob is identical at PR543 and the recorded base.",
+    "In-memory external controls reject a modified decompressed source and a modified certificate; no repository files were changed by those controls.",
+    "git diff --cached --check passes. Only research/r420-split-target-reads/ is added; upstream/ and the selected frontier are unchanged."
+  ],
+  "coverage": {
+    "primary_scalar_replays": "all 660 symbolic dirty-input columns, original and all-early words",
+    "primary_negative_controls": 4,
+    "independent_candidate_schedules": 5760,
+    "independent_legal_schedules": 960,
+    "independent_illegal_first_rank_six_reads": 240,
+    "simultaneous_coverage": "All 8^120 combinations by disjoint register sets and additive cost; not brute-force replay of the Cartesian product.",
+    "exponent_coverage": "All real 0 < p < 1 by the written strict-concavity proof; no numerical exponent sweep."
+  },
+  "not_run": [
+    "Repository-wide make verify and make frontier626-verify: no selected construction, generator, interface or assembly was changed; the standalone additions were checked directly and selected source binding passed.",
+    "Remote CI, Linux execution and older Python versions.",
+    "Full physical/compiler/precision/tape/analytic admission or Lean multiplication proof."
+  ],
+  "overlap_refresh": {
+    "through_pr": 717,
+    "pr661_head": "9ca7aa3ab0a3260a2f36ac86b9911a31fd88bd89",
+    "main_head": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+    "result": "No competing split-target-read result found. PR661 freezes gate grouping; newer R420 proposals concern scalar circuits, compensation, changed cleanup, adjacent A swaps or checker performance."
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/experiments/disjoint_tensor.py",
+    "scripts/audit_disjoint_tensor.py",
+    "scripts/exclusion_circuit.py",
+    "scripts/binary_phase_frames.py",
+    "certificates/disjoint-tensor-compression.json",
+    "certificates/ternary-side.json",
+    "certificates/dyadic-central-factor.json",
+    "certificates/parity-side.json",
+    "docs/research/disjoint-tensor-compression.md",
+    "notes/disjoint-tensor-compression.tex",
+    "tests/test_disjoint_tensor_support_masks.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Exact baseline copy of the base-commit disjoint_tensor.py; identical DisjointTensor.verify receipts on historical sizes through h=26; closed-form masks match the historical genexpr with an XOR mutant rejected; four certificates differ from base only in the disjoint_tensor.py source pin."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Same equivalence and certificate pin discipline under -O (require() gates, not assert)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_disjoint_tensor_support_masks.py",
+        "-v"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Focused support-mask package controls."
+    }
+  ]
+}

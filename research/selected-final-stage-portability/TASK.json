@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Interpreter matrix (CPython 3.10-3.14, five PYTHONHASHSEED settings, macOS arm64) for the selected #1094 record's only post-#1042 stage, research/complex-t16-rare-pattern-exchanges/verify.py, run from the hash-bound archived #1042 slots/local, with a file-by-file byte and canonical-payload comparison against the reviewed run archived in research/community-frontier1094-audit/selected-replay.tar.gz.",
+  "scope_change_reason": "The card asks for one portability failure or one canonical-payload comparison; this picks the selected record's final stage as the object and checks whether any interpreter or hash seed changes its output payload, and which receipt fields are inherently non-reproducible. No failure was found to repair, so the result is a portability receipt plus a reusable comparison tool rather than a fix.",
+  "bottleneck_link": "Side result for review throughput: shows a reviewer can rerun the selected final stage on any CPython 3.10-3.14 and expect byte-identical artifacts apart from one relocated path map and timings, and identifies the one #1094 receipt hash (outer stage log) that no rerun can reproduce.",
+  "budget_minutes": 60,
+  "stop_rule": "One stage, one platform, five interpreters; no cold #1042/#799 rebuild and no edit to selected or frozen scripts.",
+  "outcome": "completed",
+  "evidence": "All 5 interpreters and 5 hash-seed runs pass with kappa 0.001672660197076918; of 105 outputs, 102 are byte-identical to the reviewed run (all 22 .gz, all 11 inner logs), INDEPENDENT-T16.json is equal after relocating absolute path keys, REPLAY.json/STAGES.json differ only in 11 'seconds' values. verify.py reruns the stage (~20 s) and checks this classification plus seven negative controls.",
+  "author": "JosieElliston (donated Claude Code session 26, Claude Opus 5.5)",
+  "ai_assistance": "Claude Code (Claude Opus 5.5) wrote the scripts and text in JosieElliston's donated session 26; self-reviewed only, no independent AI or human review.",
+  "open_questions": [
+    {
+      "question": "Does the same byte-level agreement hold on Linux (Ubuntu CI, Python 3.12) and Windows?",
+      "why_it_matters": "Then a cross-OS reviewer could compare receipts directly instead of rerunning.",
+      "first_step": "Run verify.py on Ubuntu with Python 3.12.",
+      "blocked_by": "No Linux host in this session."
+    },
+    {
+      "question": "Should the #1094 receipt drop or annotate its non-reproducible outer log_sha256 (the stage log prints wall-clock seconds)?",
+      "why_it_matters": "Makes two runs' receipts directly comparable.",
+      "first_step": "Maintainer decision; this package changes no selected script.",
+      "blocked_by": "Any edit to scripts/verify_frontier1094.py touches the selected reproduction path."
+    },
+    {
+      "question": "Do the #1042 stages' 457 bound artifacts reproduce byte for byte across interpreters?",
+      "why_it_matters": "Would let reuse mode be checked against the published receipt on another machine.",
+      "first_step": "Run compare_payloads.py on a cold verify_frontier1042.py run against community-frontier1042-audit/selected-replay.tar.gz.",
+      "blocked_by": "A cold run takes about 20 minutes plus the #799 baseline."
+    }
+  ]
+}

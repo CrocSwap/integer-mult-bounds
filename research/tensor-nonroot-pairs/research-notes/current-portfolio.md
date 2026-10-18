@@ -1,0 +1,11 @@
+# Whole-program portfolio on the pinned PR473 word
+
+The 14-factor target word preserves every helper entrance and endpoint. Exact structural comparison confirms only B differs from the pinned parent; 88 copies of its local delta {1:-14,4:-14,5:+14} give the full-profile delta. Its moment gain is strict for every exponent0<p<1 because 5^p<4^p+1. FIRST14-REVIEW.json source-binds this independent composition review.
+
+A bounded native C++ screen examined each of the109 existing kernel pivots as a removable entrance optimization. Nine rank-one pivots (931,926,923,953,949,938,943,945,952) each have local delta {1:-1,4:-2,5:+2} upon removal and replace one whole residual of width7 by width8. Exact changed-program955-column/frame/integer-support checks passed for each of the nine cumulative providers. No residual is split. D responses are restored from the XOR of the selected donors; the pivot is removed from the existing zero-cost entrance correction and inverse cleanup. The remaining entry conditions and complete arbitrary-dirty endpoint are checked explicitly.
+
+Native HiGHS chooses four drop1 calls and four drop5 calls at stage5. Each invocation chooses one entire provider. Its helper count remains715, and the global integer allocation matches the changed width supplies exactly. The full paid profile is {1:210384,2:94588,3:22528,4:27864,5:10080,6:7288,7:4280,8:792,56:652}; rank mass745536, deficit3264. Nominal saving is0.00129719282671098. This is only roughly4e-9 above the14-factor-only supplier. The construction, while positive at the price-screen level, still requires native formal-column and complete heterogeneous physical replay before packaging. The entropy optimizer is not an exact root certificate.
+
+This is a reuse of the earlier complete-program portfolio mechanism, not a newly invented mathematical technique. The parent worker decides whether the small gain warrants the additional portable controller complexity. The old470 final18-factor word was also tested as an alternative complete provider; the optimizer selected none. Its negative screening result is limited to this finite model.
+
+Artifacts: D-owned input473-multi.json and473-multiportfolio-K5-T8.json; F-owned drop1.json,drop5.json andMULTI-AUDIT.json. All prototype source and prior files remain preserved. No Lean formalization, publication or cleanup was performed.

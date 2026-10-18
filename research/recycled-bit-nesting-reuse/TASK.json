@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "One replay stage: the exact rational nesting stage of make verify-recycled-bit (recycled-bit-integration/verify.py --all), whose Exact init and per-move basis/annihilator work is dominated by PR97 linalg.null_exact (Fraction RREF). Replace that kernel (and frames147.prim) at runtime by an output-identical fraction-free integer kernel, with an in-tree audit mode and before/after timing on the same pinned input.",
+  "scope_change_reason": "Refined from the card's generic \"profile one replay\" to one measured stage. The first mechanism (seed the basis memo from check_lifted.late_frames' discarded exact_basis cache) was refuted by measurement: the cache covers 2,230 of 86,789 distinct ledger-move keys (2.6%). One evidence-driven pivot to the dominant measured kernel (about 72% of per-move cost) with an identical-output requirement.",
+  "bottleneck_link": "verify-recycled-bit is the longest verify.yml job (657 s on main run 38506758315, 619 s in this stage); a faster identical replay shortens review/CI turnaround for every PR that runs it and for make verify. It is a side result for the kappa bottleneck: no mathematical change.",
+  "budget_minutes": 90,
+  "stop_rule": "Stop and submit a profiling note instead of a code change if the fast kernel gives < 1.5x on the sampled basis+null workload, if any output differs from the reference null_exact, or if the full after-run cannot finish by 2026-10-15T13:40:15Z (then report subset-only results).",
+  "outcome": "completed",
+  "evidence": "Same host, same pinned input: init audit 4,473 null_exact calls identical (kernel 23.43 s -> 2.88 s); 400-move sample basis+null 4.50/3.88 s -> 1.25/1.11 s with identical maps; complete full-key audit 145,513 null_exact + 1,683,853 prim calls identical (381.0 s -> 48.7 s; 70.6 s -> 3.6 s); full --all with VERIFY_JOBS=3: nesting stage 410 s -> 226 s wall, about 1.44-1.81x from one before/after pair on a loaded host, before-run = VERIFY_NULL=reference on the patched file (whole run 427.7 s -> 243.5 s; user CPU 825 s -> 369 s), same five PASS lines and kappa, certificate equal. Bounded package check with negative controls: research/recycled-bit-nesting-reuse/verify.py. CI wall time not measured.",
+  "author": "thakrarsagar",
+  "ai_assistance": "Substantial AI assistance from Claude (Anthropic, Claude Opus 5.5): profiling, kernel, audit, controls and write-up; reviewed and submitted by thakrarsagar.",
+  "open_questions": [
+    {
+      "question": "Can Frames.dims (mod-p Echelon rank in check_lifted) be made faster with identical ranks?",
+      "why_it_matters": "After this change it is the largest serial part of Exact.__init__, paid before the worker pool starts.",
+      "first_step": "Install a packed or batched mod-Q31 elimination behind the same runtime-install/audit pattern and audit all 112,920 _rank calls.",
+      "blocked_by": "Nothing; needs its own equality audit."
+    },
+    {
+      "question": "Should the parent build shared source-key bases once before forking the pool?",
+      "why_it_matters": "Workers rebuild overlapping source-key bases; copy-on-write sharing removes the duplicate work.",
+      "first_step": "Measure source-key overlap across the current chunks and the parent RSS for prebuilt bases.",
+      "blocked_by": "Memory on CI runners if all 86,789 bases are prebuilt."
+    },
+    {
+      "question": "Do bit-reuse-147 and gauge-recycling replays, which also use PR97 null_exact via frames147.Exact, benefit from the same installer?",
+      "why_it_matters": "The kernel is shared, so the same identical-output speedup may apply.",
+      "first_step": "Profile make verify-bit-reuse-147 and measure its null_exact share.",
+      "blocked_by": "Each verifier pins its own sources and needs its own pin update and review."
+    }
+  ]
+}

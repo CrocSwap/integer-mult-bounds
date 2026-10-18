@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task_id": "census-pruning-audit",
+  "priority_revision": 6,
+  "base_commit": "18aacb215fc3717b06be8ceb9fca62aeca0d3e99",
+  "original_card": {
+    "id": "census-pruning-audit",
+    "question": "Does the reported word-census parity-pruning error invalidate a specific exclusion we still rely on, and what bounded repair is justified?",
+    "starting_points": [
+      "research/f7-weight-parity-census-correction/README.md",
+      "docs/research/research-family-status.md"
+    ],
+    "methods": [
+      "Independently reconstruct the tiny counterexample and trace one affected exclusion to its exact pruning code.",
+      "Compare corrected and unpruned enumeration on a small exhaustive domain, then audit the changed pruning implication."
+    ],
+    "acceptance_gate": "Pin the old and proposed corrected engines, distinguish a disproved pruning rule from a disproved final bound, and state exactly which downstream exclusions need revalidation. #2973 is an author-checked source archive; neither its new f(7) claim nor all old conclusions are automatically accepted or rejected.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read #2973 error description and MATH.md; manually reconstruct the prefix states of 01021323 before running any large census.",
+      "scope": "Source-binding orientation only; no full enumeration or mathematical validation."
+    },
+    "first_experiment": "Reconstruct the eight prefix states of 01021323 and compare bit-0 versus Hamming-weight parity budgets independently. Trace the reported false prune to one pinned predecessor (#2542, #2634 or #2691), then test a small exhaustive domain. Stop after a source-impact handoff or corrected-prune proof; a full seven-label replay needs a separate resource budget and a named research decision it can change.",
+    "bottleneck_link": "An unsound exclusion can wrongly close a mechanism; correcting its dependency boundary is more useful than extending the same census.",
+    "allowed_variations": [
+      "One predecessor pruning rule, one independently exhaustive small domain, or one downstream dependency audit."
+    ],
+    "scope_change_triggers": [
+      "Launching a larger census before validating the prune and explaining which active decision it changes.",
+      "Treating a small-domain counterexample to the old rule as a counterexample to every reported seven-label bound."
+    ],
+    "overlap_terms": [
+      "2973",
+      "2542",
+      "2634",
+      "2691",
+      "weight parity",
+      "bit-0",
+      "01021323",
+      "census pruning"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Does the pinned #2542 bit-0 census, using the balanced weight budget, reject the universal word 01021323, and how many simple canonical universal words at n<=4 and L<=8 does that rule reject?",
+  "scope_change_reason": "The card asks for the eight prefix states of 01021323, one pinned predecessor, and a small exhaustive domain, then a stop. This does not replay the seven-label census or decide f(7).",
+  "bottleneck_link": "A word-census exclusion is usable only if its prune matches the partition that justifies the budget. This is that check for the pinned length-18 call, on one universal word and three small domains.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop once the bit-0 walk and the weight walk are compared on 01021323 and the simple false prunes are counted for n<=4 and L<=8. Do not run a seven-label census and do not search for a new kappa.",
+  "outcome": "partial",
+  "evidence": "The word 01021323 is universal, with distinct prefix states 0,1,3,2,6,4,12,8. Its weight-parity collision count is 0 against budget 5. Its bit-0 collision count is 8 and crosses budget 5 at step 6. The same rule rejects 6 of 22 simple canonical universal words at n=4, L=8, and none of the simple universal words at the two three-label domains.",
+  "author": "jwr",
+  "ai_assistance": "Substantial assistance from the Cursor coding agent in the execution, checker and writeup.",
+  "open_questions": [
+    {
+      "question": "Does the pinned length-18 zero-hit receipt survive when the collision budget is computed from Hamming-weight classes instead of bit 0?",
+      "why_it_matters": "The call cyclic_census(7, 18, budget=9, simple=True) uses the unsound substitution. A zero hit under that filter does not by itself exclude the (9, 9) words.",
+      "first_step": "Replay the length-18 simple census with the weight-parity collision counter and the budget 9 that belongs to split (9, 9).",
+      "blocked_by": "That replay is the seven-label census this package is required to stop before."
+    },
+    {
+      "question": "Is the author-checked bound 22 <= f(7) <= 24 valid in the PR943 singleton prefix-walk model?",
+      "why_it_matters": "The small-domain false prune does not decide the seven-label minimum.",
+      "first_step": "Independently replay one corrected length-20 split and the length-24 witness, or show a sound obstruction the corrected census missed.",
+      "blocked_by": "No corrected seven-label traversal is executed here."
+    }
+  ]
+}

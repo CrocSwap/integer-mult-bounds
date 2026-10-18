@@ -1,0 +1,13 @@
+# B97 (LIT): e-graph + ILP extraction on the S1 block interface. VERDICT: KILL at gate, LOCAL-PRICE [scope: S1 interface of the B76 canonical word, B/tail reads, rule set SCALE + 2-term ADD with coefs {+-1,+-2,+-1/2}, static legality]. ship=false. No cpuq job.
+Lit (from memory, NOT fetched; arXiv ids recalled: egg 2004.03082, TENSAT 2101.01332): Willsey et al. POPL 2021 (egg: rebuild + hash-consing); Yang et al. MLSys 2021 (ILP extraction with shared-node cost + acyclicity); Denali PLDI 2002. Only the idea transfers: our equality is exact Q-linear algebra, so e-classes = forms up to scale and no checker is needed.
+## Instance used
+B98b iface.pkl (blocks + per-scratch read forms from the PRICED canonical word), 14 blocks x 16 scratch. Not the card's 12x8 packet/PROTOTYPE instance: B96 owns the packet decomposition, and no B96 NOTES exist yet. Code: eg.py (single process, <1 min).
+## Result (eg.py)
+- Required classes (forms read in B/tail): 11 per block, ALL DISTINCT up to scale (154 of 154), none equal to a +-1/+-2/+-1/2 two-term combination of other required classes (0 rewrites fire among them). Cost model (A-phase ops free, frame 0; B98b finding 1) makes extraction cost = #distinct required classes (+1..3 for cut/compensation/cleanup readers, per B98b = 12-14 kept).
+- So the ILP optimum is the required-class set, = B98b's dyad.py kept set: shipped 16 -> 12 (6 blocks) / 14 (3 blocks). The e-graph reproduces B98b; it finds NOTHING below it, and saturating (iteration 1 of 5) adds only intermediates that are free.
+- Reason: reductions need a REQUIRED class to become derivable from others, which requires changing the READERS' decomposition (their B-phase coefficients/packets), i.e. rule (iii) of SYN-6 = B96's centre/packet gauge. Over the S1 interface alone the rule set is closed. Named missing rule: B96's row - lambda*c_{b,i} shift (a rewrite on reader rows, not on forms).
+- Node-cap / copies / reader-cap legality were not needed: no candidate beat the B98b kept set.
+## Status of the real lead
+The only gain on this surface is B98b's (drop 2-4 unread scratch/block, ~+2% b estimate, 27.3 w9-eq). Unaudited; belongs to B98c. B97 adds a negative: no extra S1 register is removable at fixed readers.
+## TRANSFER
+Extraction-as-pricing: for any new skeleton, cost = #distinct required forms read after the free A phase, and a rewrite can only help if it fires among REQUIRED classes (eg.py gives the 2-term test, 0 hits here). Full TENSAT ILP is unnecessary when A-phase intermediates are free. The e-graph earns its keep only once B96 gives reader-side rules (then run eg.py on the shifted rows).

@@ -1,0 +1,58 @@
+name: Exact sparse U8 phase compiler
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/selected-replay-fastpath/**'
+      - '.github/workflows/selected-replay-fastpath.yml'
+      - 'research/clifford-state-performance/fast_state.py'
+      - 'research/complex-k492-owner-repair/vendor/multicold/vendor/pr558/code/phases_full.py'
+      - 'research/complex-k492-owner-repair/vendor/multicold/vendor/pr558/vendor/pr552/complex-global/vendor531/vendor/clifford/clifford_exact.py'
+      - 'research/community-frontier942-audit/t37-replay.tar.gz'
+  push:
+    branches: [main]
+    paths:
+      - 'research/selected-replay-fastpath/**'
+      - '.github/workflows/selected-replay-fastpath.yml'
+      - 'research/clifford-state-performance/fast_state.py'
+      - 'research/complex-k492-owner-repair/vendor/multicold/vendor/pr558/code/phases_full.py'
+      - 'research/complex-k492-owner-repair/vendor/multicold/vendor/pr558/vendor/pr552/complex-global/vendor531/vendor/clifford/clifford_exact.py'
+      - 'research/community-frontier942-audit/t37-replay.tar.gz'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-comparison:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # Repository baseline pin.
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # Repository baseline pin.
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check exact states and corrupted inputs
+        run: python -B research/selected-replay-fastpath/test_package.py
+      - name: Compare all recipes from the three complete phase commands
+        run: >-
+          python -B research/selected-replay-fastpath/benchmark.py --pairs 1
+          --out "$RUNNER_TEMP/selected-phase-benchmark.json"
+      - name: Require committed files unchanged
+        if: always()
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selected-phase-python-${{ matrix.python }}
+          path: ${{ runner.temp }}/selected-phase-benchmark.json

@@ -1,9 +1,17 @@
 name: Verify early reset and kernel composition
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+# Historical sweeps are opt-in; dispatch one at a time.
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         python: ['3.11', '3.14']

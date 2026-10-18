@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "number": 1584,
+  "title": "Tooling: 1.22x faster exact finite-bit block-core checks",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1584",
+  "head": "dddaa467d2bbbcf45bcc6b2cf92a78e8d1c4ccad",
+  "merge_base": "ddb4371c16a5a5de9e363afa8c0d6d7c27429e3c",
+  "baseline": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "files": [
+    {
+      "path": "research/finite-bit-rank-cache-seed87/BENCHMARK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "27121248cd078e82d23e3a157d77d637c57387bd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e20d057208ab287d91546fd287f6a3bc430108e9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/PORTABILITY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4f5f685c03f8a68a195f605699a2ba0cf9adc3e0"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eef75fd84ea803baa31508339286dc049b124aba"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7fe6989750633a0b42fc1731b2d1f6f27aff2c8d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "915bb714d0f22bf9979e1f077b798f4086ad86d6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8d685ea429108c5ddfea60b80f0d88b7fcf157e2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/adapter.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5ec85a83220a8c01f579c031bb3559a11f432307"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/finite-bit-rank-cache-seed87/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2fa96cab0db7aecbb957d2ff532f56be8418ee18"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/finite-bit-rank-cache-seed87": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "The finite-bit checker already caches exact elimination, but still constructs and hashes a rational difference matrix for every physical edge. This adds an opt-in, source-pinned nine-line replacement that interns normalized frames and reuses identical ordered transitions within one call. Every edge, validation rule and complete receipt is preserved.\n\nVerification tooling, with no new kappa. On nine alternating fresh-process pairs using CPython 3.12.15 on macOS arm64, median speedups are 1.22x for both existing 64-dimensional block-core checks, 1.39x for the five rank-product controls, and 1.35x for the complete Fano audit. The twelve varied rational-frame controls are about 2% slower, recorded in the same report. This is a workload-dependent improvement.\n\nValidation compares complete receipts for 34 fixtures and the full Fano audit, eleven rejection controls, and a mutate/restore check that detects stale cross-call caching. All 53 existing relevant tests pass under each engine on Python 3.12.15 and 3.14.8, with the same full-receipt SHA256. The registered replay also passes under inherited `PYTHONOPTIMIZE=2`; workers enable assertions explicitly, and a worker invoked with `-O` fails. Exact elimination-miss counts remain unchanged in every paired benchmark. No full selected-supplier replay or Linux run is claimed.\n\n```sh\npython3.12 -B scripts/research_package.py --package research/finite-bit-rank-cache-seed87\n```\n\nExpected: `PASS_FINITE_BIT_TRANSITION_CACHE`, followed by registered-package success. Add `--pairs 9` to a direct invocation of the package's `verify.py` to reproduce the benchmark. Timings are reported, never used as a mathematical acceptance threshold.\n\nResearch base: `680967accfd4311f3241dc154e1f434869747b43`. Final upstream refresh: `ddb4371c16a5a5de9e363afa8c0d6d7c27429e3c`; all 57 live inputs are unchanged. `SOURCES.json` contains the exact Git blob and SHA256 pins, with two additional provenance files. The original checker, historical certificates, selected frontier and `upstream/` remain unchanged. Future adoption requires maintainer review and an explicit source-pin migration.\n\nOS assignment seed 87, verification engineering. Fresh overlap checks covered open PR bodies and the discussion board; #808 concerns routing-state encoding, #1234 rational-span normalization, and #1459/#1461 containment. This adds a different optimization to the finite-bit edge scorer. No matching active claim was found, and no pinned coordination issue exists, so the claim is local.\n\nCredit: Douglas R. Colkitt's retained finite-bit checker and Fano/rank-product/block-core research provide the exact checks and fixtures. Contribution by Sagar Thakrar, with substantial OpenAI Codex assistance in implementation, profiling, analysis, verification and writing. Apache-2.0. No independent human review or full multiplication theorem proof is claimed. The README names the inherited obligations and the concrete next review step.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "a2cd6d53b836e1d5347674a30f8f6f08ee9c355c5f4672f66c393f0bbf1dbe6f"
+}

@@ -1,0 +1,37 @@
+--- pr1377/code/assemble.py
++++ t74-outer-bootstrap-refinement/code/assemble.py
+@@ -27,7 +27,7 @@
+ M,B,A=[load(n)for n in ('moment','base_two_moment','outer')]
+ def dec(x):
+  with localcontext()as ctx:ctx.prec=70;return str(Decimal(x.numerator)/Decimal(x.denominator))
+-from witness import DISPATCH,CALL_ORDER,COUNTS,PIDS,X,DISCOVER,pin,SPOT,spot_widths,GEO,REPLICAS,CALLS,DATA,DEFICIT,PAYLOAD,PARENT_LIVE,PARENT_PHYSICAL,PARENT_IDLE,PARENT_HELPERS
++from witness import SPEC,DISPATCH,CALL_ORDER,COUNTS,PIDS,X,DISCOVER,pin,SPOT,spot_widths,GEO,REPLICAS,CALLS,DATA,DEFICIT,PAYLOAD,PARENT_LIVE,PARENT_PHYSICAL,PARENT_IDLE,PARENT_HELPERS
+ # Cited bit supplier: PR589's tune/EXPECTED.json (merged on main as research/e8-bit-p111-tuned/tune/EXPECTED.json).
+ BIT_PATH=Path(__file__).resolve().parents[1]/'inputs/PR589-EXPECTED.json'
+ BIT_BLOB='e293ddc557742637f9f679f083a1a282d87b1b13'
+@@ -203,17 +203,21 @@
+  conservative_moments=check_moment('conservative_complex',H,73,owner['live'],conservative_b,DEFICIT,True)
+  assert bit['bit']['two_level_coefficient_bits']<bit['bit']['charged_two_level_coefficient_bits']==512 and bit['bit']['row_coefficient']<20161
+  def outer_witness(bb):
+-  eta=beta=Q(1,10**24);s=min(c,(1-beta)*bb)-Q(1,10**27);assert 0<s<c and s<(1-beta)*bb
++  options=SPEC["outer_refinement"]
++  assert set(options)=={"grid_digits","margin_digits","bootstrap_steps"}
++  assert all(type(v)is int and v>0 for v in options.values())
++  grid=10**options["grid_digits"]; margin_grid=10**options["margin_digits"]
++  eta=beta=Q(1,margin_grid);s=min(c,(1-beta)*bb)-Q(1,1000*margin_grid);assert 0<s<c and s<(1-beta)*bb
+   chain=[Q(384599,10**10)];cuts=[]
+-  for _ in range(7):
++  for _ in range(options["bootstrap_steps"]):
+    old=chain[-1];a=(1-s)*s+s*old;gap=min(s-a,1-a-s,1-a-s*(1-old),1-s);assert old<a<s<1-a and gap>0
+    ceil=lambda x:-(-x.numerator//x.denominator);cut=max(ceil(36/gap**2),ceil(2*(4+PAYLOAD)/gap));assert cut*gap**2>=36 and cut*gap>=2*(4+PAYLOAD)
+    cuts.append(dict(exponent=str(a),gap=str(gap),cutoff_log2=str(cut)));chain.append(a)
+-  q=chain[-1]*(1-2*eta);margin=(1-eta)*q/(1+q);ticks=margin*10**24;k=Q((ticks.numerator-1)//ticks.denominator,10**24)
++  q=chain[-1]*(1-2*eta);margin=(1-eta)*q/(1+q);ticks=margin*grid;k=Q((ticks.numerator-1)//ticks.denominator,grid)
+   bridge={'semantic':{'C0':{'base':2,'exponent':210000},'strict_literal_gap':1},'rows':{'degree_gap':Q(10**6)-Q(51*20161,25)}}
+   outer=A.assembly(chain[-1],bb,bridge,k,eta=eta,beta=beta);assert len(outer['strict_constraints'])==47 and all(v>0 for v in outer['strict_constraints'].values())
+   controls=[]
+-  for name,kk,ee,be in [('next_grid',k+Q(1,10**24),eta,beta),('zero_eta',k,Q(0),beta),('zero_beta',k,eta,Q(0)),('unit_beta',k,eta,Q(1))]:
++  for name,kk,ee,be in [('next_grid',k+Q(1,grid),eta,beta),('zero_eta',k,Q(0),beta),('zero_beta',k,eta,Q(0)),('unit_beta',k,eta,Q(1))]:
+    try:A.assembly(chain[-1],bb,bridge,kk,eta=ee,beta=be)
+    except AssertionError:controls.append(name)
+    else:raise AssertionError(name)

@@ -1,0 +1,29 @@
+from pathlib import Path
+import subprocess,json,gzip,time,hashlib,os,shutil,tarfile,signal
+R=Path('/tmp/integer-mult-queue-20261013');P=Path('/tmp/reconciliation-third100-20261013');rows={r['number']:r for r in json.load(open(P/'snapshot.json'))['pull_requests']}
+recipes=[(321,'p10-five-new-kernels','verify.py','--output'),(355,'e8-signed-lift','verify.py',''),(360,'e8-basis-exchange','verify.py',''),(377,'nine-stage-complex-e8','verify.py','--work'),(386,'e8-bit-complex-nine','verify.py','--work'),(379,'e8-low-read-seven-complex','verify.py',None),(388,'e8-seven-nine-b-order','verify.py',None),(391,'e8-seven-nine-portable-replay','verify.py','portable'),(309,'ti-local-response-schedules','verify.py','--output')]
+PY='/tmp/integer-mult-review-venv/bin/python';env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1','OPENBLAS_NUM_THREADS':'1','OMP_NUM_THREADS':'1','CPATH':str(R/'research/e8-bit-carrier-skeleton/portable-include')+':/tmp/coordinated-crossover-v2.PSyYno/deps/include','PATH':'/tmp/integer-mult-review-venv/bin:'+os.environ['PATH']};results=[]
+for n,folder,script,flag in recipes:
+ work=P/f'native-{n}';out=P/f'native-{n}-out';work.mkdir();head=rows[n]['headRefOid'];prefix='research/'+folder
+ proc=subprocess.Popen(['git','archive',head,prefix],cwd=R,stdout=subprocess.PIPE)
+ with tarfile.open(fileobj=proc.stdout,mode='r|') as t:t.extractall(work,filter='data')
+ assert proc.wait()==0
+ cmd=[PY,'-B',str(work/prefix/script)]
+ if flag=='portable':cmd += [str(work/prefix),'--work',str(out)]
+ elif flag is not None:cmd += ([flag] if flag else [])+[str(out)]
+ log=P/f'pr{n}-native.txt';start=time.monotonic();print('START',n,flush=True)
+ with log.open('w') as f:
+  child=subprocess.Popen(cmd,cwd=work,env=env,stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
+  try:ret=child.wait(timeout=2400)
+  except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGTERM);child.wait();ret=124
+ retained=[]
+ if out.exists():
+  for f in out.rglob('*'):
+   if not f.is_file():continue
+   path=f.relative_to(out).as_posix()
+   if f.suffix in ('.json','.log','.txt') and f.stat().st_size<2_000_000 and not any(x in path.split('/') for x in ('upstream','source','sources','bin','vendor')):
+    data=f.read_bytes();dest=f'pr{n}-outputs/'+path+'.gz';(P/dest).parent.mkdir(parents=True,exist_ok=True);(P/dest).write_bytes(gzip.compress(data,mtime=0));retained.append(dict(path=path,file=dest,sha256=hashlib.sha256(data).hexdigest()))
+ receipt=dict(number=n,head=head,source_prefix=prefix,command=cmd,environment={'python':PY,'CPATH':env['CPATH']},exit_code=ret,seconds=time.monotonic()-start,log=log.name,log_sha256=hashlib.sha256(log.read_bytes()).hexdigest(),outputs=retained)
+ results.append(receipt);(P/'native-execution.json').write_text(json.dumps(results,indent=2)+'\n');print('END',n,ret,round(receipt['seconds']),flush=True)
+ shutil.rmtree(work)
+ if out.exists():shutil.rmtree(out)

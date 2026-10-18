@@ -1,0 +1,499 @@
+{
+  "schema_version": 1,
+  "number": 2440,
+  "title": "Construction: R439 one-slot multi-column interleaving reduces deferred scatter 88 -> 84 ADDs (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2440",
+  "head": "1b38482a3a749f5815b074326b7ebda177a76f63",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "28f54620ff770dd051d5df35882bd84303d13c6f",
+  "files": [
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3ae655cf328c1d5e2cad2fba4627e99b89aa3eb7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b16e886bca45fda38a3a71a9a0b74a509b26a85e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/SEARCH.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b8c8181586d9bf3ead1054505b88280f34d41ff8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b42976174cf15827cc7b7cdcdca5f184db265c74"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "59aaf1783a73de956e0d96598a50e516f2b20e3f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7daca0ecaecfaee71b1897e1bbf52fb58d96843e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/WITNESS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "555eb481bc83e668b8e5fa7b711731e2958252ca"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/search/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d7be9b9ea9fbac5cfb885391860589ab681584ba"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-one-slot-multicolumn-interleave/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b3468ee11dd1dac7e2f33bd0f69f33e11da59b0c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r439-one-slot-multicolumn-interleave": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "**Status: Construction** (finite exact scalar circuit; **no new kappa**, no optimality claim, no native/physical admission).\n\n## Summary\n\nThis answers PR2407's Open next question 2 positively for one fixed order: the PR1062 R439 word, deferred undo order ideal303, kept gates {31,51,52}. Several retained scatter columns can share **one live private COPY slot** during the single chronological pass over the 303 deferred target-undo gates. The rules are:\n- each column gets one contiguous COPY interval;\n- intervals do not overlap;\n- a handoff at the same cut is allowed (ERASE then COPY).\n\n**Result:** the complete scalar scatter falls from 88 to **84 ADDs**, and the complete stream from 11,061 to **11,057 ADDs**. For comparison, PR2407 has 88 / 11,061 and the PR2115 split has 94 / 11,067.\n\nThe witness has 9 segments:\n- cols 2, 3, 5 at cut 0\n- col 4 on [0,18] (5 taps, -3)\n- cols 7, 8 at cut 18\n- col 1 on [18,42] (15 taps, -1)\n- col 6 at cut 42\n- col 0 re-decomposed into [42,182] (10 taps, the same -6 that PR2407 got on [0,182])\n\nThese are unchanged:\n- all 306 undo gates. Deleting the taps and COPY/ERASE records leaves exactly the exported split stream.\n- the nine rank-7 COPY/ERASE pairs\n- the 2,911 ordered MOVEs\n- the paid histogram `{1:1323,2:1342,3:79,4:44,5:102,6:11,7:19}` and rank mass 5,129\n\nThe inherited guards pass: `64F^3B^2` is 95 bits (< 104) and `2^18F^5B^4` is 181 bits (< 192), with F = 25,717. B rises to 5,030,078 (from 5,026,856 in PR2407).\n\n## Base and pins\n\n- Base commit: `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`. origin/main was unchanged at the final refresh.\n- Live inputs from main, pinned by sha256 and Git blob in `SOURCES.json`:\n  - `research/r439-bsection-stars-seed01/candidate.json.gz`\n  - `research/e8-bit-carrier-skeleton/code/bit/export_records.py`\n  - `research/e8-bit-p111-tuned/code/xcheck_p.py`\n- Adapted code (Apache-2.0): PR2407 head `4944211c`, `research/r439-single-copy-interleaving/verify.py`, blob `07724f60d7e8`.\n- Predecessor heads, **all OPEN and unmerged** (pinned in `SOURCES.json` \u2192 `predecessors`): PR2115 `b56dceff`, PR2279 `81fed971`, PR2356 `8ffeca2c`, PR2407 `4944211c`, PR2421 `71d10b28`, PR2437 `4ac2b382`.\n  - The 84 stream's correctness is re-derived from main's pinned inputs only.\n  - The 94/88 baselines and the deferral/interleaving model come from these open PRs.\n\n## Reproduce\n\n```sh\npython3 -I -B research/r439-one-slot-multicolumn-interleave/verify.py\n```\n\nExpected output (about 2.5 s, standard library):\n```\nPASS_R439_ONE_SLOT_MULTICOLUMN scatter=94->88->84 ADDs=11067->11061->11057 interleaved_columns=3 dirty_columns=661 controls=13 no_new_kappa no_optimality_claim\n```\n\nRun only under CPython 3.14.4. The registered Python 3.12 launcher replay (`scripts/research_package.py --package ...`) was **not run locally** because 3.12 is not installed. Hosted CI is its first run. `--check-only` passes, and `python3 -B -m unittest discover -s tests -p 'test_research_*.py'` passes (65 OK, 2 skipped).\n\n## Certificates and negative controls\n\n`verify.py` adapts PR2407's verifier, generalised to ordered one-slot segments. It checks:\n- the PR2115 split, re-derived;\n- suffix algebra per column;\n- a literal forward and backward replay over all 661 dirty input columns;\n- the slot is free at each COPY and the snapshot is unchanged at each ERASE;\n- the measured peak live COPY count is 1;\n- the frame invoice and paid profile, ordered MOVEs, and the precision guards;\n- strip-equality to the split;\n- the original, split-94 and PR2407-88 calibration streams are **byte-identical** to the record SHA256s in PR2407's `RESULT.json`;\n- the fixed receipt.\n\nThe DP schedule from the packaged search (a different 84 schedule) is also replayed in full and accepted.\n\nThere are 13 rejecting controls:\n- overlapping intervals (algebraic and literal)\n- wrong cut\n- dropped tap (algebraic and literal)\n- swapped columns (algebraic and literal)\n- tap outside its interval\n- missing undo gate\n- premature ERASE\n- wrong tap frame\n- underpriced COPY\n\nReviewers' external tampers were all rejected: claimed 83 ADDs, a shifted erase cut, a moved tap, reordered segments, a byte flip in the input, an extra cancel pair, and a tampered alternative schedule.\n\n## Search record\n\nThis is a failed search below 84 over a finite pool, **not a lower bound**.\n- **Domain:** the fixed ideal303/{31,51,52} order. Per column, the options are the exact single-cut representations at all 304 cuts plus every visited tabu-walk state (moves are gate relations), pooled by canonical COPY core. An exact DP then runs over all one-slot chronological schedules restricted to that pool.\n- **Seeds:** 6 (30,000 walks) and 606 (60,000 walks). Stopping rule: fixed walk count.\n- **Outcome:** both seeds reach DP optimum 84 and output the same alternative 84 schedule. Pooled per-column minima are 10, 14, 8, 4, 5, 11, 12, 5, 12 (sum 81). The cheaper cores for columns 1, 6 and 8 collide under one slot.\n- **Exact meet-in-the-middle over the 412 responses `U_after(c) e_i`:** within this one-slot tap model, column 3 needs exactly 4 taps and every other column at least 5 (total \u2265 44). These bounds do not cover other circuit forms, multi-slot schedules, other orders or other kept sets.\n- **Witness provenance:** `WITNESS.json` came from an earlier unpackaged grid pass. The packaged search regenerates a different 84 schedule, which `verify.py` also accepts.\n\n## Scope, inherited assumptions, unresolved obligations\n\n- This is a scalar-only side result on one word, order and kept set. The source word's H2/K flags remain false, as in PR2407, so there is no supplier admission and no kappa change.\n- **Inherited:** PR2115's replacement H5 deferral contract (`V R = I` with the H2 target clause), PR2279's split-ideal accounting for 94, and PR2407's one-slot frame invoice.\n- **Open:**\n  - PR2421/PR2373 native replay of the 84 stream\n  - whole-call hosting/owner binding. Concurrent PR2437 binds only PR2407's single-window stream. This stream has three non-trivial windows plus same-cut handoffs.\n  - native compiler and physical scratch\n  - all-size/common-label realization\n  - precision/tapes beyond the two source-normalised guards\n  - exact recovery, analytic transfer and outer assembly\n  - optimality of 84\n  - other undo orders and kept sets\n- Verification is single-lineage: an adaptation of PR2407's verifier. The reviewers' independent replays agreed but are not packaged.\n\n## Overlap and credit\n\nNo prior or concurrent work searches multi-column one-slot interleaving. The final refresh covered:\n- open/all PR searches (interleav, R439 scatter, one-slot, COPY slot, 2407)\n- #1163 and #2401\n- `scripts/find_overlap.py`\n\nHow this relates to existing work:\n- PR2407 (Ross Richardson) interleaves only column 0, and its verifier is adapted here.\n- PR2421 (starship-s) natively replays that single-column stream.\n- PR2279 (Charles Bethin) is optimal only over split ideals, which exclude interleaving.\n- PR2356 (Sricharan Vagvala) fixes column 7 and two orders.\n- Concurrent PR2437 (Ross Richardson) is a related whole-call hosting binding of the 88 stream. It does not cover this stream.\n\nFurther credit: Sagar Thakrar (PR1062 R439 word, PR2115 split), Gareth Davidson (PR2373), DreamingOfClouds and eumemic (PR589/555), and the exporter/checker lineage (Dylan Crow, eumemic).\n\n- **Sprint track:** 00-19 Bit supplier (sprint seed 6); scope is PR2407 OQ2.\n- **Claim:** https://github.com/CrocSwap/integer-mult-bounds/discussions/1163#discussioncomment-18945235\n\nContributor: @thakrarsagar, with **substantial AI assistance** from Claude Opus 5.5 via Claude Code, run in an automated research-sprint loop. The AI did the search design, code, verification and drafting. Three AI review passes were run; there was no independent human review. Licence: Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [
+    {
+      "name": "finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528301/job/116363753620"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528332/job/116363754531"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528325/job/116363753325"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528395/job/116363753455"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528242/job/116363753777"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754826"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528295/job/116363753362"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528332/job/116363753832"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528395/job/116363753959"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528242/job/116363753482"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363756071"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528295/job/116363753381"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754890"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754840"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754918"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754950"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754751"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755176"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754813"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754811"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754903"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755089"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754925"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755031"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754852"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755078"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755148"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755333"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754894"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754909"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754916"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754924"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755082"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754955"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754921"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754943"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754848"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754884"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755073"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755121"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754927"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755004"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754998"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755036"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754985"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755021"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755116"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754938"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755202"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755151"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755218"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755114"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754882"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754996"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754984"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754838"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755043"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363755072"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363753618"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363754096"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363753847"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38717528285/job/116363753936"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "ba770914764c4b80bd64ba4b76df57ecf02030b3129e588bb247bf6aeb398a7c"
+}

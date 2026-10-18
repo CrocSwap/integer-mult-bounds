@@ -1,0 +1,29 @@
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/r420-block4-resynthesis/verify.py']
+labels: 120 E8 root lines (even unimodular lattice of rank 8, Gram det 1); 672 frames, every one closed
+legality and exact F2 replay on all 660 columns (sources, targets, 420 dirty helpers as symbolic inputs): PASS; gates D/A/B/C = 120/2064/830/2654
+   H1_no_target_feeds_z                     holds
+   H2_D_frame0_targets_from_helpers         holds
+   H3_A_z_only_scatter_targets_B_split      holds
+   H4_C_literal_reverse_at_full             holds
+   H5_V_identity                            holds
+   U_block_form                             holds
+   J_identity                               holds
+   K_equals_D                               holds
+   C_is_U_inverse                           holds
+   {"z_gates_A": 2064, "source_writes_A": 0, "z_gates_B": 590, "source_writes_B": 590, "helper_writes_B": 0, "sources_rewritten_B": 120, "B_z_write_frame_dims": {"4": 470, "6": 120}, "B_z_operand_kinds": {"source<-helper": 120, "source<-source": 470}, "B_z_operand_kinds_by_dim": {"dim4:source<-source": 470, "dim6:source<-helper": 120}, "B_z_writes_after_a_target_read_of_the_same_register": 590, "B_target_reads_of_registers_rewritten_earlier_in_B": 120, "target_reads_of_targets": 0, "cleanup_gates": 2654}
+PASS interleaved interface lemma: hypotheses H1-H5 hold and the conclusion decomposes as U, J = I, D = K, C = U^-1
+   REJECTED   target feeds a source (cancelled pair, F2-neutral) :: interface: fails H1_no_target_feeds_z,H3_A_z_only_scatter_targets_B_split,H4_C_literal_reverse_at_full
+   REJECTED   target feeds a helper (cancelled pair, F2-neutral) :: interface: fails H1_no_target_feeds_z,H3_A_z_only_scatter_targets_B_split,H4_C_literal_reverse_at_full
+   REJECTED   drop a cleanup gate (inverse of the last phase-B source write) :: replay: sources not restored: [11, 41, 44, 83, 86]
+   REJECTED   corrupt a phase-B source write (operand 10 -> 6, cleanup changed alike) :: replay: targets not y + x: [0, 66, 67, 68, 69]
+   REJECTED   phase-B source write moved down to the destination's own line frame :: replay: climb not nested: register 5 from frame 123 (dim 2) to frame 7 (dim 1)
+   REJECTED   a target reads another target (single read, V != I) :: replay: targets not y + x: [0]
+   REJECTED   frame-0 preconditioner corrupted (one helper read dropped) :: replay: targets not y + x: [0]
+   REJECTED   phase-B source write moved before the target read of that register :: replay: climb not nested: register 5 from frame 542 (dim 4) to frame 123 (dim 2)
+   REJECTED   cleanup gate moved off the full frame (to the frame of the gate it inverts) :: replay: climb not nested: register 240 from frame 1 (dim 8) to frame 2 (dim 1)
+   accepted   cancelled pair of target-to-target reads at frame 0 (V = I) :: accepted
+PASS mutation controls: 9/9 negative controls rejected, 1/1 positive control accepted
+dead registers 180 dead span 90 decoder deficiency 0
+dead registers 180 dead span 90 decoder deficiency 0
+PASS_R420_BLOCK4_RESYNTHESIS baseline=58 candidate=51 local_ADDs=26916->26902 routes_changed=7
+CANDIDATE_SHA256 fed96ef0358166b0b81afdb09e03001ec3979619a78c777089b62fd350382ffa

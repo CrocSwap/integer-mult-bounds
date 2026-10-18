@@ -1,0 +1,15 @@
+--- PR1195/controls.py
++++ controls.py
+@@ -14,9 +14,10 @@
+ def drop_cleanup(w, ci):
+     w['cleanup'] = w['cleanup'][:ci] + w['cleanup'][ci + 1:]; w['early_cleanup'] = [[i - 1 if i > ci else i, U] for i, U in w['early_cleanup']]
+ def main():
++    global AUD
+     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+-    ap.add_argument('--word', type=Path, required=True); ap.add_argument('--out', type=Path, required=True); a = ap.parse_args()
+-    raw = gzip.decompress(a.word.read_bytes()); spec = json.loads((P / 'CONTROL-SITES.json').read_text())
++    ap.add_argument('--word', type=Path, required=True); ap.add_argument('--out', type=Path, required=True); ap.add_argument('--main', type=Path, required=True); ap.add_argument('--sites', type=Path, required=True); a = ap.parse_args(); AUD = a.main/'research/gauge44-slots/independent/audit_local.py'
++    raw = gzip.decompress(a.word.read_bytes()); spec = json.loads(a.sites.read_text())
+     assert hashlib.sha256(raw).hexdigest() == spec['word_content_sha256'], 'word pin'
+     w0 = json.loads(raw); d = tempfile.mkdtemp(prefix='fusion-controls-'); ok, msg = audit(w0, d); assert ok, ('honest word rejected', msg)
+     rejected, accepted = [], []

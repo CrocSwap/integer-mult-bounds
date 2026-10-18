@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "number": 1137,
+  "title": "Tooling: fast exact HPE transport audit for the layer-end controls, 2.53x, 480/480 trials cross-checked (seed 93, no new kappa)",
+  "author": {
+    "id": "U_kgDOCIO2xg",
+    "is_bot": false,
+    "login": "Wronskode",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1137",
+  "head": "e3b8fa39ef7378b7e3f8bbcfa6708be21feb18d8",
+  "merge_base": "ba82555c64e1879e4b7decce28186f208fcb8262",
+  "baseline": "1f7a934975e5eacaf83511c9ac870263bf095e05",
+  "files": [
+    {
+      "path": "Makefile",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fb74dd2247ce10daabf3344f292de95589019b30"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a92fbd19dbb4bd0e321b8c67558645a47b5efcb4"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/BENCHMARK-macos-arm64.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3f365d72ff5f68ab93664b65cdd0dc295db932ea"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/FUZZ-300-SEED93.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "301782bbd3fdb02fb287c2280affda786b4a4cc2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8c60894f105f55904b96812b7bcaf9bc53fc432b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/hpe_audit_fast.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "baca651653ec476bd79a15499521ea5675accd25"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/run_lec.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1ec35b98ae059d4d6dc749907008ace058580ba1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/shim/hpe_audit_and_transport.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "40d167a589bc0d331461ab15d2690f5f69917087"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/test_package.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "16478c0d12a0daa7f7c039b76e9c922a51332231"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/hpe-audit-fast-seed93/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a61254eb6702249d1077c4cfa8d230bb309e8bb0"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "Makefile": 1,
+    "research/hpe-audit-fast-seed93": 8
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "**Status: tooling improvement (verification engineering). No new \u03ba. No check is changed, removed or weakened; the selected result is unchanged.**\n\n- **Track and seed:** track 85\u201394 (verification engineering), assignment seed **93** from the OS CSPRNG (Python `secrets`).\n- **Base commit:** `ba82555c64e1879e4b7decce28186f208fcb8262`.\n- **Adds:** this directory and two Makefile targets. No existing file is modified.\n\n## What is slow\n\nIn the selected #1042 replay, the `chain` stage takes 711 s. Of that, 530 s is spent in its five layer-end control steps (`lec-p6n`, `lec-promo`, `lec-jx`, `lec-hyb`, `lec-frames`).\n\nEach step runs the pinned `layer_end_controls_leaver.py`. That script calls PR635's `hpe_audit_and_transport.run` (sha256 `c9a05ff2\u20260aa3`) about 96 times: once on the honest word, then on each of 95 mutants, every one of which must be rejected at its pinned reason.\n\nThe cost is in exact arithmetic. On one audit, profiling shows:\n\n| Share | Where |\n|---|---|\n| ~63% | `Fraction` operations in the row updates (endpoint replay in both orientations, plus the P and P\u207b\u00b9 state maps) |\n| ~22% | `copy.deepcopy` of gates |\n\n## What changes\n\n`hpe_audit_fast.py` is the pinned file with four local changes. Its control flow, every assertion, every message and every output are kept.\n\n1. **Integer rows.** Each scalar row is stored as integer numerators over one positive row denominator, instead of a dict of `Fraction`s.\n   - Each gate coefficient is still built as `Fraction(a, b)`, in the same order as before. So the `assert target != source`, `assert q` and any `ZeroDivisionError` or `TypeError` are raised exactly as in the pinned file.\n   - Zero entries are never stored. That makes every truth test (`if x`, `P[g].get(h)`) and every zero-pattern unchanged.\n   - Rows are reduced by their content gcd only when a denominator exceeds 128 bits.\n   - The dirty-compensation table is still built from normalized `Fraction`s, sorted as before.\n   - The endpoint equality is evaluated entry by entry against the pinned expected `Fraction` matrix.\n2. **Structural copies.** Gates are copied structurally instead of with `deepcopy`, and nested lists are never shared. Any shape other than a list of JSON scalars and integer lists falls back to `deepcopy`.\n3. **Memoized frame bases.** `basis()` is memoized for tuples of integers, which is a pure function. Any other input takes the original uncached path.\n4. **Shared coefficients.** `Fraction(a, b)` objects are shared for pairs of integers with b \u2260 0. They are immutable, so sharing cannot change any value.\n\n### How it is used\n\n`shim/hpe_audit_and_transport.py` stands in for the module. The **unchanged** controls script picks it up when `PR635_CODE` points at `shim/`, which is what `run_lec.py` sets.\n\n`run_lec.py` repeats the chain's invocation exactly: same portable wrapper, routing word, reason-pin file and environment. It hash-pins the controls script, the wrapper, the routing word, both pin files and the reference audit. It has three modes:\n\n- **`reference`:** the pinned audit, unchanged.\n- **`fast`:** the fast audit only.\n- **`crosscheck`:** every trial word is audited by **both** implementations. Any difference in outcome raises `RuntimeError`: exception type and arguments, output bytes, receipt without `seconds`, or printed output. It never raises `AssertionError`, so no `trial()` can absorb the mismatch. The reference result is what is returned, and each outcome is logged.\n\nThis is opt-in. Nothing in `make frontier1042-verify` changes. It composes with #1059, which parallelises the calls without changing the audit. This package makes each call cheaper.\n\n## Evidence\n\nAll measurements were taken on one machine (macOS arm64, Python 3.12.3), with the same inputs, extracted from the committed `selected-replay.tar.gz`.\n\n| Step | Reference | Fast | Speedup | Cross-check (96 trials) |\n|---|---:|---:|---:|---|\n| `lec-p6n` | 75.2 s | 30.3 s | 2.48\u00d7 | identical (99.9 s) |\n| `lec-promo` | 76.2 s | 30.3 s | 2.51\u00d7 | identical (101.0 s) |\n| `lec-jx` | 76.0 s | 29.9 s | 2.54\u00d7 | identical (99.9 s) |\n| `lec-hyb` | 75.4 s | 29.7 s | 2.54\u00d7 | identical (99.5 s) |\n| `lec-frames` | 76.4 s | 29.8 s | 2.56\u00d7 | identical (101.1 s) |\n| **total** | **379.2 s** | **150.0 s** | **2.53\u00d7** | **480/480 identical** |\n\nEach `crosscheck` row means:\n\n- all trial words gave identical outcomes and identical outputs under both audits;\n- the resulting `COLD-END-CONTROLS.json` is byte-identical to the `reference` run's;\n- it equals the maintainer's archived receipt for that step, apart from the word path.\n\n**Differential fuzz** (`verify.py`):\n\n- The five honest words give byte-identical canonical and full words, receipts and printed output.\n- The recorded run `FUZZ-300-SEED93.json` has 300 mutants with seed 93, and all 300 are identical under both audits. Their outcomes:\n\n  | Outcome | Count |\n  |---|---:|\n  | rejected at the arbitrary-dirt endpoint | 168 |\n  | accepted (the audit passes) | 53 |\n  | rejected because the compensation reads an entering helper | 27 |\n  | rejected because the precondition or compensation touches a cold helper | 23 |\n  | `TypeError` from a non-integer coefficient | 12 |\n  | rejected as `nonmonotone` | 10 |\n  | empty `assert q` | 6 |\n  | other | 1 |\n\n  The total time was 135.0 s for the reference and 44.9 s for the fast audit.\n\nThe mutations are:\n\n- coefficient changes, including non-dyadic values;\n- edge values: 0, 3\u2076\u2070, \u22125\u2075\u2070, 2\u00b3\u2070\u2070, `'x'`, 1.5 and `None`. These exercise `ZeroDivisionError`, `TypeError`, the empty `assert q` and the 128-bit normalization;\n- gate drops, swaps and duplicates;\n- register changes;\n- frame-vector bit flips.\n\n**Unit tests:**\n\n- 300 random gate programs give integer rows equal to the pinned `Fraction` rows;\n- zero entries are dropped;\n- `apply` raises the same errors on bad gates as the reference;\n- copies never share nested lists;\n- a deliberately wrong fast audit makes `crosscheck` raise `RuntimeError` (control).\n\n## Reproduce\n\n```sh\nmake hpe-audit-fast-verify            # about 1-2 min: 5 honest words, 40 seeded mutants, 7 unit tests\nmake hpe-audit-fast-crosscheck-lec    # about 2 min: all 96 lec-p6n trials under both audits\n```\n\nThe first target prints:\n\n```\nPASS_HPE_AUDIT_FAST_EQUIVALENCE | honest 5/5 identical | fuzz 40 seed 93 identical | reference \u2026s fast \u2026s\n```\n\nAny single step can also be run directly:\n\n```sh\npython3 -B research/hpe-audit-fast-seed93/run_lec.py --archived hyb --pins LEC-REASON-PINS-STACK --out /tmp/x/lec-hyb --mode fast\n```\n\nFor `lec-frames`, pass `--pins LEC-REASON-PINS`.\n\n## Scope\n\n- **What the evidence is.** Equivalence is shown by:\n  - a line-by-line argument (the changes are local, and they preserve values, zero patterns and exception order);\n  - finite differential evidence: every trial of the five selected steps, plus a seeded fuzz.\n\n  It is not a formal proof of equivalence for every possible input. That is why `crosscheck` exists: anyone who wants the pinned semantics on new words can run both audits.\n- **What it does not change.** No pinned file, reason pin, receipt or selected record is changed.\n- **About the timings.** They describe one machine. They are not measurements of multiplication performance.\n\n## Credit\n\n- **Audited code:** `hpe_audit_and_transport.py` was prepared for icekylinx with GPT-6 Astra assistance. It was adapted from icekylinx's PR425/433, DreamingOfClouds' PR484 `audit_gk.py` and Round19's transport, and shipped in PR635. Its Apache-2.0 header is kept in the derived file.\n- **Controls:** the layer-end controls are DreamingOfClouds' and LayerReviewer's. The leaver variant and its not-applicable handling come from LeaverSAT and Q6Reviewer, in Jeremy Kothe's #1004/#1005 chain.\n- **Related work:** #1059 (thakrarsagar) parallelises the T37 layer-end controls; this package is complementary to it.\n- **Precedents:** #367 applied the same `Fraction`-to-integer technique to PR364's frame verifier, and #824 to the stage-pair audit. Neither touches this audit.\n\nPrepared by Wronskode (@Wronskode) with substantial AI assistance from Claude (Anthropic) via Claude Code. New material is Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "86ac43c201bbc097534bcd86c91d5991697634184406446965391150104900a4"
+}

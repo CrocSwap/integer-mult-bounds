@@ -1,0 +1,26 @@
+name: Restored dirty boundary borrowing
+on:
+  pull_request:
+    paths:
+      - 'research/complex-restored-borrowed-boundaries/**'
+      - 'research/complex-swap-runs-seed37/**'
+      - 'research/complex-dyadic-lowering/lower.py'
+      - 'research/community-k492-audit/pr626/replay/mixed-global/base/providers/ck/**'
+      - 'research/community-k492-audit/pr626/replay/mixed-global/base/providers/jp8/**'
+      - '.github/workflows/complex-restored-borrowed-boundaries.yml'
+  workflow_dispatch:
+jobs:
+  exact-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python3 -I -O -B research/complex-restored-borrowed-boundaries/verify.py
+      - run: python3 -I -O -B research/complex-restored-borrowed-boundaries/test_package.py
+      - run: git diff --exit-code

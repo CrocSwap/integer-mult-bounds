@@ -1,0 +1,114 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "baseRefOid": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+  "body": "**Status: research audit / independent verification. No new \u03ba; the selected result is unchanged.** No counterexample found. One documentation discrepancy.\n\nTrack 60\u201374 (adversarial audit), OS-random seed **65**. Base `2921874911956718fcaaaf9396fe8267b3cfa9f0`. Audited heads: #1005 `779e80ae\u2026` and #1018 `eac7547c\u2026`. #1022, #1028, #1031 and #1042 pin the same seven-slot local word `c2b29430\u2026`, so the local-word results below apply to them as well. Their owner maps and global replays are not covered.\n\n## Why\n\nThe mutable-leaver all-K cells of #1004/#1005 are the local word for six open \u03ba claims. Each cell is a coded 21-gate circuit that uses face-event operands with no later reads as mutable scratch, and the FULL cleanup restores them. So far these cells have been reviewed only by the authors' own reviewer agents. This PR checks their premise independently.\n\n## What was checked\n\nA new standard-library verifier imports nothing from the audited packages and reads their words as pinned data. It checks the k8 cell word `58e14a02\u2026`, the final k8 word `db2c7cfb\u2026` and the seven-slot word `c2b29430\u2026`. Every input hash equals the hash the PRs publish.\n\n1. **Exact local map.** All 224 data columns give `x\u2192x`, `y_t\u2192y_t+x_t`. For all 480 helper columns, the *inverse* of the post-precondition program returns the unit vector plus a target-only residue. This is the exact condition for the pre-main compensation to exist, and it is a different formulation from the constructive one in `audit_local.py`. The residue is zero for every entering helper.\n2. **Frames.** An independent monotone-climb replay reproduces each recorded paid profile. The FULL cleanup touches only FULL-ended registers.\n3. **Leaver premise.** All 8 coded cells are found literally (contiguous, in published order) by unifying the `CODED-CELLS-k8.json` gate lists against targets from `TRI-LEAVER-k8.json`. The coded index is the TRI read index + 8, checked for all cells. None of the 24 mutated leavers (12 data registers, 12 helpers) is a centre, entering or low-ended register. None is touched in A, cut, B or the tail after its cell. Each is written in the FULL cleanup, and each holds a non-input value at the end of B.\n4. **No new mutation class.** Each of the 12 data-register leavers has exactly one B-section write in both the no-triangle base word `3e99ba77\u2026` and the cell word, and its A-section writes are identical. The cells re-pair or re-scale existing face-event writes (8 of 12) and remove packet-copy helpers. They add no mutation event, so the mutable-source dependence is the one the lineage already inherits.\n5. **Slots.** The seven-slot word minus the final k8 word is exactly `7\u00d7{3:+2,4:\u22124,5:+2}`, matching #987's per-slot claim.\n\n## Finding: per-cell profile claim not reproduced\n\nThe #1004/#1005 descriptions say each cell changes the raw paid profile by \"exactly \u221230H1+6H2+6H3\". Recounted raw profiles of the no-triangle, k5 and k8 words are additive per cell, but with **u = +6H1 \u221212H2 +3H3 \u22123H6** (rank mass \u221227, three helpers removed per cell): `k5\u2212notri = 5u`, `k8\u2212k5 = 3u`. No rebuilt stage (raw, regroup, hpe, cold44) shows the stated vector, and no code asserts it. **\u03ba is unaffected**, because it is priced from the final word's full profile. The comparator should be stated or the sentence corrected.\n\n## Negative controls\n\nFourteen controls (7 per word) must each be rejected by the check they target. Rejections: dropped leaver write \u2192 endpoint, dropped FULL restoration \u2192 endpoint, wrong coefficient \u2192 endpoint, write moved after its read \u2192 endpoint, entering dirt \u2192 entering-response, gate below current frame \u2192 frames. A semantically **neutral** post-cell touch `h += \u00bdx; h \u2212= \u00bdx` at FULL passes both the endpoint and the frame replay and is rejected **only** by the premise check. The premise is therefore a design property that the exact map and frame checks do not enforce on their own.\n\n## Reproduce\n\n```sh\npython3 -I -B research/leaver-cell-audit-seed65/verify.py\n```\n\nExpected (about 5 s; byte-compared with `RESULT.json`):\n\n```text\nPASS_INDEPENDENT_MUTABLE_LEAVER_AUDIT cells=8 leavers=24 columns=704 controls=14 per_cell_raw={1: 6, 2: -12, 3: 3, 6: -3} claimed_match=False\n```\n\nThe inputs were rebuilt with the authors' own drivers on macOS / CPython 3.14.8: all 21 #1005 chain steps exited 0, and #1018's `verify_slots.py` printed `PASS_SLOTS_ON_CHECKED_K8_BASELINE 0.00167166528321877`. `SOURCES.json` gives each file's provenance. The pushed branch was also replayed from a clean clone.\n\n## Scope\n\nThis covers the local scalar/frame words only. It does not cover owner maps, hosting, invoices, moment/outer pricing or any \u03ba value, and it does not prove the inherited mutable-source/common-label realization, Lemma A/G, all-size, precision/tape or analytic interfaces. Item 4 shows that nothing beyond those inherited interfaces is needed; it does not prove them. Only `research/leaver-cell-audit-seed65/` is added.\n\n## Credit and disclosure\n\nThe construction is Jeremy Kothe's (#1004/#1005/#1018, with the agents named there). It builds on rohanarun's #987, NewBArch's #869, icekylinx's #645 and its `audit_local.py`, and chafreaky's #685/#741 lineage. Two cell-definition files are copied unchanged from #1005 under Apache-2.0. Prepared by Sagar Thakrar with substantial assistance from Anthropic Claude (Claude Code).\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-13T17:12:35Z",
+      "authors": [
+        {
+          "email": "thakrar.sagar@gmail.com",
+          "id": "MDQ6VXNlcjE4NjIyMjg4",
+          "login": "thakrarsagar",
+          "name": "Sagar Thakrar"
+        }
+      ],
+      "committedDate": "2026-10-13T17:12:35Z",
+      "messageBody": "\u202605/PR1018 (no new kappa)\n\nStandard-library replay of the pinned k8 cell, final and seven-slot local words:\nexact all-column endpoint with an inverse-form compensation condition, independent\nframe/profile recount, literal location of all eight coded cells and the leaver\npremise (no post-cell touch, FULL-cleanup restoration). Fourteen targeted negative\ncontrols. Records that the per-cell raw delta is +6H1-12H2+3H3-3H6, not the\n-30H1+6H2+6H3 stated in the PR descriptions; kappa is unaffected.",
+      "messageHeadline": "Research audit: independent check of the mutable-leaver cells of PR10\u2026",
+      "oid": "6d0a145e8b4774b1b0d4e3da56890af5adc9b04f"
+    }
+  ],
+  "files": [
+    {
+      "path": "research/leaver-cell-audit-seed65/README.md",
+      "additions": 128,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/RESULT.json",
+      "additions": 1047,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/SOURCES.json",
+      "additions": 60,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/CODED-CELLS-k8.json",
+      "additions": 2826,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/TRI-LEAVER-k8.json",
+      "additions": 590,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/k8-cell-word.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/k8-final-word.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/k8-seven-slot-word.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/notri-cold44-word.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/raw-k5.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/raw-k8.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/inputs/raw-notri.json.gz",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/leaver-cell-audit-seed65/verify.py",
+      "additions": 430,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "6d0a145e8b4774b1b0d4e3da56890af5adc9b04f",
+  "isDraft": false,
+  "number": 1049,
+  "state": "OPEN",
+  "title": "Research audit: independent check of PR1005/1018 mutable-leaver cells (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1049",
+  "merge_base": "2921874911956718fcaaaf9396fe8267b3cfa9f0"
+}

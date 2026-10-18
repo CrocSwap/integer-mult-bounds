@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 2,
+  "base_commit": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Reduce Git process starts in research package source validation while retaining every provenance and live-input check.",
+  "scope_change_reason": "The complete metadata check starts two Git processes per pinned source plus a catalogue reread; batch immutable object reads in one process.",
+  "bottleneck_link": "Makes repeated provenance checking cheaper without reducing scientific verification coverage; verifier engineering only.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after measured old/new parity on 33 pins, failed-pin controls and process cleanup tests.",
+  "outcome": "completed",
+  "evidence": "BENCHMARK.json, verify.py and tests/test_research_git_batch.py.",
+  "author": "woklerx with substantial OpenAI Codex assistance",
+  "ai_assistance": "Substantial OpenAI Codex assistance with implementation, benchmark, behavioral controls and documentation.",
+  "open_questions": [
+    {
+      "question": "Does the reduction improve large Linux CI packages similarly?",
+      "why_it_matters": "Measured wall times here are Windows-specific and metadata-only.",
+      "first_step": "Run the registered benchmark on Linux and a source-heavy package.",
+      "blocked_by": "No correctness blocker; cross-platform measurements remain a follow-up."
+    }
+  ]
+}

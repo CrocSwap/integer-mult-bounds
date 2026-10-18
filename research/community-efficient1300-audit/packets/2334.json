@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "number": 2334,
+  "title": "research: nine-line counterexample to the B2 acyclic-edge strengthening",
+  "author": {
+    "id": "U_kgDOBxhW4Q",
+    "is_bot": false,
+    "login": "ROTl24",
+    "name": "dickbown"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2334",
+  "head": "0fabfe9316c14835e9156214979f7510e3e538bc",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "7b39515117fe26e75d16c268877391f1bdaa5640",
+  "files": [
+    {
+      "path": "research/b2-tripartite-edge-counterexample/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e124dc05980f301c22e67fa735abede64667522b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/b2-tripartite-edge-counterexample/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "42597aa2c677a99d580ae13c7e4ab4ac0a2256ff"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/b2-tripartite-edge-counterexample/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ada79e7edc01ad1eef856da0dffaab2b94282b78"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/b2-tripartite-edge-counterexample/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "044eff52725715b44cce7e6c02cfdb2faa06529c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/b2-tripartite-edge-counterexample/WITNESS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "46553ba6b0c056a7538382016bb1c43f9677de2e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/b2-tripartite-edge-counterexample/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ada1bdaaae76e1e8cc79aeb08ac1cd35b390bdbe"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/b2-tripartite-edge-counterexample": 6
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "## Result\n\nAn explicit **nine-line** admissible three-total configuration has `H=empty`, `|F|=v=9`, and\n\n```\ncost(B) = 7 + 7 + 7 = 21 < masE(W[F]) = 27.\n```\n\nThis answers **open next question 1 of #2293**: the acyclic-edge-count strengthening of B2(iii) is false. The vertex interpretation has `masV=3` and is not contradicted. The full wild pattern equals the chosen pairing's off-diagonal support, so restricting to B-supported wild edges does not repair the edge version.\n\nThe construction repeats each of three full-support rational biorthogonal pairs k times and takes `I_k` diagonal / `J_k` off-diagonal blocks. The included proof gives rank `3k` for even k and `3k-2` for odd k, while `masE=3k^2`; every **k >= 3** is a counterexample. This explains the failure: repetition makes the edge count quadratic while the rank cost stays linear.\n\n## Reviewable package\n\n`research/b2-tripartite-edge-counterexample/` contains the literal witness, elementary all-k proof, independent standard-library verifier, source pins, task/overlap record, and registered normal/optimized replay.\n\nThe verifier checks every dot product and pairing entry, derives ranks by elimination **and full row-space enumeration**, computes masE by exact subset DP over all vertex orders, and computes masV by induced-subgraph cycle tests. It includes four malformed-input controls, rank/cycle controls, two reindexings, k=1,2 tight/nonviolating controls, and rank-formula checks through k=16. The universal result rests on the proof, not the finite checks.\n\n## Evidence\n\nPassed locally on Windows x86-64, **CPython 3.12.13**, no third-party dependencies:\n\n```sh\npython3.12 -B research/b2-tripartite-edge-counterexample/verify.py\npython3.12 -B scripts/research_package.py --package research/b2-tripartite-edge-counterexample --check-only\npython3.12 -B scripts/research_package.py --package research/b2-tripartite-edge-counterexample\n```\n\nThe registered replay passed both normal and `-O` commands. `research_baseline.py` passed the source-binding orientation on CPython 3.13.15; this is not the full selected-frontier cold replay. `git diff --check` passed. Hosted CI and independent maintainer review are separate from this local evidence.\n\n## Scope, coordination, and attribution\n\n- Started from canonical main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4; unchanged at the pre-submission fetch.\n- [Canonical finding and public proof: Discussion #2331](https://github.com/CrocSwap/integer-mult-bounds/discussions/2331). The drawn `uniform-transfer-audit` card was explicitly narrowed to this named decoder-bound handoff; rationale and original card are retained in TASK.json.\n- [Complementary smaller-core claimant received the finding](https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18941680). Final overlap refresh covered 546 open PRs, 1,051 Discussion records, and 1,538 local records, with complete remote pagination; no code-diff coverage is implied.\n- Credit: DreamingOfClouds's #2162 model/B2 at `113a718265c62aec301c5695f4bfb9c421bef7ab`; Aaron Wang/opencode's #2293 distinction and question at `6bc48613ed1c71e5d2e88994235e9e8629129b9c`. Both heads were rechecked unchanged.\n- Prepared by ROTl24 with **substantial OpenAI Codex assistance** in research, proof, code, checking, and writing; Apache-2.0. Independent human/proof-assistant review remains open.\n\nRepeated indexed vectors are permitted by the stated model. No globally smallest-v counterexample, globally minimum-cost pairing, physical supplier, new kappa, or contradiction to target (A) is claimed. The selected frontier and all frozen predecessors are untouched.\r\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "361db4eea06019b425b1eed28e8e79328aea64be0cf1a3937fca3807a29e51c6"
+}

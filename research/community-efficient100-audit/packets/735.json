@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "number": 735,
+  "title": "Research audit: tighten the packed-bit repair envelope (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjYzODQxMTU1",
+    "is_bot": false,
+    "login": "AryanSudhirDev",
+    "name": "Aryan Sudhir"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/735",
+  "head": "8d36139e49add1e55795e283b3bfa45e1cfe1bf0",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/packed-guard-envelope-audit/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8e2859784ead54fa8d84c1a0fa0c752f26d0e405"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-guard-envelope-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "98ea496ac4111c1ff7c553cf86449fa079ad1968"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-guard-envelope-audit/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5c04b91f073111c419529793be1d3090e5087178"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-guard-envelope-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4b46d2931fb37fe0499f7b3f5303c1bdc181f92b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/packed-guard-envelope-audit": 4
+  },
+  "github_reported_file_count": 4,
+  "complete_git_file_count": 4,
+  "body": "The original packed selected-bit proof bounds the correction fraction by `min(1, 80(f-1)2^-K)`. This research audit derives an invariant carry/borrow guard envelope with exact density\n\n`1 - (1 - 2^(1-K) + 2^(1-2K))^(f-1) <= min(1, 2(f-1)2^-K)`.\n\nThe note proves agreement off that envelope, its invariance under both the ideal and actual permutations, and maximality within a precisely defined local no-escape guard class. It retains the eight rotations and existing correction argument. The factor of 40 applies to the conservative union-bound coefficient; this is not a runtime benchmark or a new kappa. The envelope is not the exact failure set, and the note distinguishes complete-rectangle density from fixed-source-fiber density.\n\nThe contribution is confined to `research/packed-guard-envelope-audit/`. It includes a written proof, source pins, exact receipt, and an independent standard-library verifier. Upstream sources and the selected construction are unchanged. This audits the original primitive, not the different compact-control primitive or the current supplier surcharge.\n\nValidation:\n\n- 581,888 exhaustive packed states and 37,760 boundary/seeded states passed.\n- Four removed guard conditions, two broken rotation programs, and reversed correction order have concrete failure witnesses, all at K=6.\n- All 14 relevant existing tests and `make selected-record-check` passed; 2,240 comparisons with the pre-existing simulator agreed.\n- Full `make verify` and the separate selected-supplier cold replay were not run.\n\nReproduce from the repository root:\n\n```sh\npython3 -B research/packed-guard-envelope-audit/verify.py\n```\n\nExpected: `PASS_PACKED_GUARD_ENVELOPE_AUDIT`, with all evidence matching `RESULT.json`.\n\nBase commit: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. Track: adversarial mathematical audit; OS-random assignment seed 62. No pinned sprint issue was present; the claim and overlap review are recorded locally in the package.\n\nAttribution: Aryan Sudhir (`AryanSudhirDev`), with substantial OpenAI Codex assistance. The note credits the retained OpenAI #109 manuscript and the repository's preceding finite, packed-movement, and short-guard audits. New material is Apache-2.0. This is a written address-map proof with finite corroboration, not a Lean formalization or a full multiplication theorem.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "ac62a50fe9ab7b7be6e78ab1baa053711f7597df0d8649334613c107ad4ab7fb"
+}

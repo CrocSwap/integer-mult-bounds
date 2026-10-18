@@ -41,6 +41,31 @@ class SelectedResult(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'proof supplement changed'):
             checker.check(record)
 
+    def test_historical_hpe_context_is_explicit_and_both_versions_are_bound(self):
+        relative = 'scripts/verify_hpe_lean_binding.py'
+        original = (ROOT / 'scripts/historical-ci-inputs/verify_hpe_lean_binding.py').read_bytes()
+        live = (ROOT / relative).read_bytes()
+        digest = sha256(original).hexdigest()
+        self.assertEqual(checker.supplement_bytes(ROOT, relative, digest), live)
+        self.assertEqual(checker.supplement_bytes(ROOT, relative, digest, True), original)
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / 'scripts/historical-ci-inputs').mkdir(parents=True)
+            source = root / relative
+            source.write_bytes(live)
+            archived = root / 'scripts/historical-ci-inputs/verify_hpe_lean_binding.py'
+            archived.write_bytes(original + b'corruption')
+            with self.assertRaisesRegex(ValueError, 'Historical HPE supplement changed'):
+                checker.supplement_bytes(root, relative, digest, True)
+            archived.write_bytes(original)
+            source.write_bytes(live + b'unknown successor')
+            self.assertNotEqual(sha256(checker.supplement_bytes(root, relative, digest, True)).hexdigest(), digest)
+        checkpoint = json.loads((ROOT / 'certificates/checkpoints/frontier1042.json').read_bytes())
+        with self.assertRaisesRegex(ValueError, 'Selected proof supplement changed'):
+            checker.check(checkpoint)
+        checker.check(checkpoint, historical=True)
+        checker.check(self.record)
+
     def test_optimized_interpreter_fails_closed(self):
         result = subprocess.run([sys.executable, '-O', str(ROOT / 'scripts/verify_selected_result.py')],
                                 capture_output=True, text=True)

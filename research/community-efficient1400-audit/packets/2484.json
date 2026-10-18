@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "number": 2484,
+  "title": "Research note: exact scalar fitting rank 49 for PR2471's paired-plane mask (closes [48,50] bracket; no \u03ba)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2484",
+  "head": "4823273c8163e4c72472bdf7d42202e2c12d2e46",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "28f54620ff770dd051d5df35882bd84303d13c6f",
+  "files": [
+    {
+      "path": "research/paired-plane-minrank-bracket-audit/CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "393db5def16d76b3a0ebddc983c9bab6c3cc25fc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/paired-plane-minrank-bracket-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a3bdd766b456c63c8291421e859bede8a9d045c6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/paired-plane-minrank-bracket-audit/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "17f64482c0f44238e5481b9dca9f70fa17dee372"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/paired-plane-minrank-bracket-audit/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f87fccefd76b4e81e55c7883bc8cd4f1b8cf7141"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/paired-plane-minrank-bracket-audit/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "55831bc391ad36eff25ba94dbffb48bd6c303b78"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/paired-plane-minrank-bracket-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9488f621aec28372d9d61ea9813623b46cd36c0f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/paired-plane-minrank-bracket-audit": 6
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "## Summary\n\nThis answers PR2471's open question 1. For the strict PR1889 scalar mask on PR1825's 56 matched P112 planes, the minimum scalar fitting rank is **exactly 49 over every field**. PR2471's bracket was `[48, 50]`.\n\n- **Upper bound 49.** An explicit symmetric 0/1 matrix `K = sum_S 1_S 1_S^T` with 49 disjoint supports fits all 11672 required mask entries. Each support holds ports of distinct, pairwise orthogonal planes. This is one below PR2471's rank-50 fit, and it holds in every characteristic.\n- **Lower bound 49 over every field.**\n  - *Lemma:* for five planes whose orthogonality graph is an induced 5-cycle, every fitting matrix on their 10 ports has rank at least 5. Two short written proofs are in the README: a factorisation proof and a Schur-complement proof (the latter came from an AI review pass in the same loop, not from a human reviewer).\n  - *Theorem:* take the core `(13, 23, 35, 16, 34)` and a 22-plane set `Q` whose planes are pairwise non-orthogonal and non-orthogonal to every core plane. The 54-port principal submatrix is `I_44 (+) M`, so the rank is at least 44 + 5 = 49.\n- **Graph invariants of the plane non-orthogonality graph G (all exact):**\n  - `omega(G)=24`, with 194 maximum cliques;\n  - `chi(G)=25`, so no 24-class plane partition exists and PR2471's `2*chi` method cannot reach 48;\n  - `chi_f(G)=49/2`, with stored fractional-clique and fractional-colouring certificates;\n  - `chi_2(G)=chi(G[K_2])=49`, confirmed separately by an optional capacity-2 DP.\n- **Independent verification.** Both of PR2471's witnesses re-check: the 24-clique and the 25-class rank-50 fit. PR2471 did not claim either witness was optimal, so nothing in it is contradicted.\n\n**Status: Research note with independent verification of PR2471's witnesses.** No \u03ba, no supplier price and no selected-result change. A channel count is not a native copy cost; see PR2203 and PR2471 OQ2.\n\n## Base and pins\n\n- Base commit `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2` (origin/main was unchanged at submission). The selected result (#1094) is unchanged.\n- Labels: `research/community-frontier1094-audit/selected-replay.tar.gz` (sha256 `f1da8061\u2026d529d6`), member `candidate/strict/global/base/work/complex-nine-native/DATA-PHASES.json` (sha256 `c5916ff3\u20268251fa`).\n- Matching: `research/paired-plane-scalar-mask-obstruction/PR1825-CERTIFICATE.json` (sha256 `4fd648f7\u20261473b1`).\n- PR2471's witnesses are copied into `verify.py` and re-checked, not trusted. They come from PR head `5a7c2b6`, blob `1d8a21f3`.\n- Full hashes and Git blobs are in `SOURCES.json`. No code from PR2471 or any other package is imported.\n\n## Reproduce\n\n```sh\npython3 -I -B research/paired-plane-minrank-bracket-audit/verify.py\n```\n\nExpected output is a JSON line `{chi_G: 25, fractional_chi_G: \"49/2\", min_scalar_fitting_rank: 49, omega_G: 24, two_fold_chi_G: 49, ...}`, then `PASS_PAIRED_PLANE_MINRANK_EXACT_49`. It takes about 2 s and uses only the standard library.\n\nThe optional `--two-fold-dp` prints `PASS_TWO_FOLD_DP_CHI2_49`. It takes 72\u201381 s, peaks at about 0.8 GB RSS and visits 3,040,597 DP states, so it is not in the registered replay.\n\n## Certificates and negative controls\n\n`CERTIFICATE.json` stores:\n- the DP vertex order (frontier width 11);\n- the fractional clique `y` (1 on `Q`, 1/2 on the core) and the half-integral fractional colouring `x`;\n- the 49 supports;\n- the C5 core and `Q`;\n- every recomputed check.\n\nThe default mode recomputes every check and compares it with the stored certificate. The DPs are only cross-checks, because the LP certificates already imply `chi >= 25`, `omega <= 24` and `chi_2 >= 49`.\n\nAll eight recorded negative controls are rejected:\n1. A flipped byte in the PR1825 certificate.\n2. PR2471's classes merged to 24.\n3. A support holding both ports of one plane.\n4. A fractional-clique half weight raised to 1.\n5. A fractional colouring with one set dropped.\n6. A `Q` substitution that breaks the clique.\n7. A `Q` swap (drop 20, add 22) that keeps the clique but is orthogonal to core plane 13. This isolates the Q-by-core check.\n8. The core listed out of cycle order.\n\nThe C5 lemma is also checked by exhaustive search over GF(2) and GF(3): neither has a rank-4 completion. As a control, freeing the P1\u2013P3 entries makes a completion appear. Solver controls on C5 and C7 return the known `(omega, chi, chi_2)`.\n\n## Checks run\n\nAll checks used CPython 3.14.4.\n- `verify.py`: PASS from the repository root and from another working directory.\n- `--two-fold-dp`: PASS.\n- `scripts/research_package.py --check-only`: `PASS_PACKAGE_METADATA_AND_PINS`.\n- `python3 -B -m unittest discover -s tests -p 'test_research_*.py'`: 65 tests, OK (2 skipped).\n- Reviewed by three independent AI review passes in the same Claude Code loop (the Schur-complement argument came from one of them). These are AI subagents, not human reviewers. Each used its own reconstruction scripts that import nothing from the package. They covered reproducibility, an adversarial math audit and novelty/provenance. They reproduced 109 orthogonal pairs, 24 orthogonal triples, no orthogonal 4-set, omega=24 with 194 maximum cliques (by a different algorithm), the core and `Q` premises and the 49-support fit. Each also re-derived the lemma proof in writing; no human has checked it yet. Their minor fixes are applied in the second commit.\n\n## Search record\n\n- Domain: the fixed 56-plane graph G and its 112-port blow-up.\n- Exact path-order DPs: 12138 states (clique), 40277 states (capacity 1) and 3,040,597 states (capacity 2).\n- The exact Bland-rule rational simplex ran over all 189 orthogonal sets.\n- All 23 induced 5-cycles of the orthogonality graph were enumerated. For each, an exhaustive maximum clique of its common non-orthogonal neighbourhood was computed; the best gives 22.\n- No caps were hit. No randomness was used.\n\n## Scope, inherited assumptions, unresolved obligations\n\n- **Inherited assumptions:** PR1825's matching and PR1889's strict mask semantics, exactly as stated in PR2471. That means `K_ii=1`, forced zeros between non-orthogonal or equal planes, free entries between orthogonal planes, any field and no symmetry requirement. A different matching or a relaxed mask can change the answer.\n- **Predecessor status at base:** PR1825, PR1889 and PR1977 are merged or incorporated. PR2471, PR2126 and PR2203 are open and unreviewed.\n- **Not machine-formalised:** the every-field lower bound rests on the README's hand proofs of the C5 lemma. The verifier checks every combinatorial premise exactly, but it confirms the lemma only over GF(2) and GF(3). Human review is requested.\n- **3.12 hook not run:** the registered Python 3.12 replay hook was not run locally because no 3.12 interpreter was available. The verifier is stdlib-only.\n- **Native cost open:** a native realisation or cost of 49 channels (PR2471 OQ2) is not addressed.\n\n## Predecessors and overlap\n\n- ywz65 (#2471): the model, the bracket and the witnesses audited here.\n- Cinna Davis (#1825 matched planes, #2126).\n- Adam Gall (#1889 strict mask).\n- JeremyDiviney (#2203 native payload accounting).\n- ctoth (Discussion #1587, [comment 18916040](https://github.com/CrocSwap/integer-mult-bounds/discussions/1587#discussioncomment-18916040), 2026-10-14 05:47Z), who first stated that at most 4 nondegenerate planes can be pairwise orthogonal (free) in F2^9.\n- Philippe Van Velzen (Discussion #1587, [comment 18925407](https://github.com/CrocSwap/integer-mult-bounds/discussions/1587#discussioncomment-18925407), about 8 h later), who restated the same class-size bound (five pairwise-orthogonal planes need 10 > 9 dimensions). The exact maximum here is 3.\n- JosieElliston (#1977, the submatrix-minrank method).\n\nAt about 12:30Z no other open or merged PR or discussion computed chi, chi_2 or the minimum rank for this mask. PR2471 was still at head `5a7c2b6`, with 0 comments and 0 reviews.\n\n## Sprint\n\n- Track: 60-74 adversarial mathematical audit. Seed: 64.\n- Claim: https://github.com/CrocSwap/integer-mult-bounds/discussions/1163#discussioncomment-18948529\n\n## Attribution\n\nPrepared by @thakrarsagar with substantial AI assistance from Claude (Anthropic, Claude Opus 5.5) via Claude Code, run in an automated research-sprint loop. Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224935/job/116422692972"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224794/job/116422691559"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224696/job/116422691164"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224756/job/116422690346"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694149"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224746/job/116422690923"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224935/job/116422693275"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224696/job/116422691212"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224756/job/116422691177"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694326"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224746/job/116422691327"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694376"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694173"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694277"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694175"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694482"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694179"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694160"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694247"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694388"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694248"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694628"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694200"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694481"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694533"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694360"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694364"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694402"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694381"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694309"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694412"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694461"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694585"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694512"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694239"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694161"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694469"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694174"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694383"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422695058"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694506"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694312"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694278"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694431"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694589"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694454"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694162"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694284"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694395"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694577"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422695091"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694333"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694323"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422695153"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694439"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694406"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422694588"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422693726"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422693408"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422693193"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38735224944/job/116422693326"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "308186c92351e7a51092e99dc26aa41359e14cf3e1a7f0089bbad97cd93349a4"
+}

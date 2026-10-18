@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 1372,
+  "title": "Audit and preserve T37 receipt input-role bindings (no new kappa)",
+  "author": {
+    "id": "U_kgDOC-l38Q",
+    "is_bot": false,
+    "login": "commdata2338",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1372",
+  "head": "9b00c9f93a05351fb1a712dc201539de30f8738b",
+  "merge_base": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "baseline": "418e40eb2572d930b58c1cf9b82b41c0fc7ee08d",
+  "files": [
+    {
+      "path": "research/t37-receipt-role-binding/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d8a578306ead8b28f90c650501a295d524bde24f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-receipt-role-binding/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0f6a822273c8626090625285f896d83161fa9599"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-receipt-role-binding/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f57bcd6655d0213b7f02bc22a28c5951de160c99"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-receipt-role-binding/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "00cfab13aaccc7af68c9eefd4f22feb72ec29487"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-receipt-role-binding/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c547e05addb84a8e4b5d2a00282c930629b01e3e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-receipt-role-binding/receipt.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a9b3f4a1aeab7749444bb1290865f4f02d6ab380"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-receipt-role-binding/test_receipt.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fb97232cbcf0301926a5844d063b8b8d4ad23e8a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t37-receipt-role-binding/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3bc65b21f0204dce7617d231b55536d09b589c58"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/t37-receipt-role-binding": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "## Change and mathematical scope\n\nPR #1006's T37 receipt normalizer checks the eight input hashes as an unordered collection and then replaces their path labels. So exchanging, for example, the native-word and native-replay receipt hashes still compares equal. This package adds a source-bound audit and an opt-in comparator. The comparator checks each hash against its explicit input role, while still permitting relocated invocation roots.\n\n**Status:** verifier tooling and a scoped audit finding about receipt comparison on its own. The original runner independently pins its sources and actual inputs and executes the original wrapper. No incorrect owner result was demonstrated, and that protection was not bypassed. No new circuit, supplier, speedup or \u03ba is claimed. Frozen predecessors, including `research/t37-slice-bitmaps/`, and the selected frontier are unchanged.\n\n**Precise delta:** eight new files under `research/t37-receipt-role-binding/`:\n- `receipt.py`: explicit path/role normalization and complete comparison.\n- `verify.py`: checks the pinned inputs, the exhaustive collision domain, the relocation and failure controls, and both fresh T37 engines.\n- `test_receipt.py`: six focused test groups.\n- README, RESULT, TASK, SOURCES and VERIFY carry the contract, the evidence and the registered replay.\n\n**Evidence.**\n- **Legacy comparison:** all 40,320 of 40,320 hash permutations compare equal.\n- **Strict comparison:** it accepts the one identity assignment and rejects the other 40,319. The smallest witness exchanges the word and local native-replay hashes, with every other receipt field fixed.\n- **Both fresh complete engines agree** on 167,832 roles, 333 calls and all 14 inherited controls. The complete canonical receipt has SHA256 `1a0e4a30fc8b18c3db52cde322fc2a7646462497186cc6276e056b58253532fd`.\n- **Controls:** five accepted layouts plus a check that the caller's data is not mutated, and eleven role, path and field rejection cases. Both fresh receipts reject a swapped association.\n\n**Remaining obligations.**\n- **Not run:** no fresh native word or replay construction (the archived inputs are pinned), no selected PR #1094 cold replay and no full repository suite.\n- **Not checked:** the native compiler, whole-hosted emission, the invoice, moments, outer assembly, Lean, remote CI, and any other interpreter or operating system.\n- **Still open:** the inherited compiler, realization, hosting, precision/tape, analytic and bit-interface obligations.\n- **Not claimed:** authentication of third-party execution, or independent human review. A corrupted manifest or binding supplied by the caller is outside this comparison contract.\n\n## Task and overlap\n\n- **Task ID / scope key:** `portable-replay` / `91a9a2afec282c926282`, refined to `PR1006-T37/input-role-map/eight-input-permutations`. Chooser nonce `3293b0b65763e4677f4efbb57cde1c08`, track verifier-engineering, priority revision 2. The other suggestion, `replay-runtime` (`b1dd41940c60d240b47a`), was passed over: this concrete comparison failure is bounded and needs no performance claim.\n- **Base and exact heads:** base `bce54fb3f895cbe5cd4c0eb477c3afeed100190f`; contribution `9b00c9f93a05351fb1a712dc201539de30f8738b`. PR #1006 predecessor head `2b047edb2b3fedccc4f538608b1bd56dc711673d`; PR #942 wrapper/witness head `1960cfa919a0945d0ca4cb14ea96237000037903`. There is no pending PR dependency, and `SOURCES.json` pins every live consumed byte from the base.\n- **Concrete object and question:** `research/t37-slice-bitmaps/common.py:normalize` and its eight-role `input_sha256` map. Does making receipts portable erase the role association?\n- **Exact claim audited:** that only machine-specific path labels are normalized while the complete original receipt stays bound. The separate actual-input admission boundary is kept and explicitly distinguished.\n- **Scope status:** refined. The chooser's method asks for an audit of a canonical-payload comparison for omitted fields; this tests the input identity association, not gzip/header or Windows codec behaviour.\n- **Method and domain:** all 8! permutations of eight distinct pinned digests across the fixed path labels, with explicit relocation and malformed-binding controls. The rest of the receipt JSON is compared in full, and the unchanged reference and bitmap owner stages are run fresh.\n- **Nearest work:**\n  - Gareth Davidson's PR #1006 supplies the original adapter; this audits its normalization boundary.\n  - PR #695 and Rohan Guliani's diagnostic concern different assembly provenance digests and missing CI payloads.\n  - PR #946 and PR #1298 concern codecs and platforms.\n  - PR #1151 parallelizes layer-end controls, and PR #1354 addresses registered-workflow invalidation.\n\n  None is adopted or replaced here.\n- **Claim and final check:** the claim is in [discussion #1355](https://github.com/CrocSwap/integer-mult-bounds/discussions/1355). A live overlap check just before submission (842 open PRs and 92 discussion records at 23:36 UTC, complete pagination) found no competing role-map audit.\n\n## Validation\n\n```sh\npython3 -B scripts/research_baseline.py\npython3 -B scripts/research_package.py --package research/t37-receipt-role-binding --check-only\npython3 -B scripts/research_package.py --package research/t37-receipt-role-binding\n```\n\nThe registered command repeats the full census and both fresh T37 stages against `RESULT.json`, then runs the complete focused test file. That file covers duplicate and nonfinite JSON, source drift before import, and stored census tampering. It runs on Linux with CPython 3.12.3 and the standard library; the Windows path labels are lexical fixtures only. The full replay takes about 20 seconds. The new comparator derives its bindings from the invocation roots and never infers them from receipt hash values. The registered replay and the metadata/pin check were run again on the final commit before submission, and both passed.\n\n```text\nPASS_T37_RECEIPT_ROLE_BINDING: 40320 legacy-equal permutations; 40319 rejected by role binding; both complete T37 engines agree\nPASS_REGISTERED_RESEARCH_PACKAGE research/t37-receipt-role-binding outcome=completed\n```\n\n## Credit\n\n- Gareth Davidson (PR #1006), whose adapter this audits.\n- Jonathan Capalbo (PR #942).\n- Chafik Boukhalfa, Hao Yan and Jeremy Kothe, and the retained U8/controller contributors.\n\nApache-2.0; predecessor attribution and notices are retained.\n\n**AI assistance:** submitted by @commdata2338 with substantial AI assistance. OpenAI Codex (GPT-6 Astra) did the audit design, the implementation, the verification and the writing; it was packaged and submitted with Claude Code. No independent human review is claimed.\n\n## Open next questions\n\nFrom the package README: should a future maintained T37 entry point use the explicit role map when comparing receipts? It would keep the provenance association in saved evidence. First step: integrate the pure comparator at a nonfrozen successor boundary and keep the fresh reference and bitmap controls. Blockers: maintainer adoption and the desired policy for historical layouts; this package does not alter frozen code. The structured question is in `TASK.json`.\n\n## Workflow feedback (optional)\n\n- **Friction:** broad portability overlap terms mostly returned gzip and codec work. Finding the relevant receipt comparison took a local function search. That was orientation overhead, not evidence that the card is saturated.\n- **Suggestion:** optionally index public function and file names for the overlap helper, so that a query such as `t37-slice-bitmaps/common.py` or `normalize` finds comparison-specific predecessor work, with its coverage limits stated.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "98f2a4dc66a363e68a02575ed6420c0db04a5702c7797e7a2725dbfec0735eaf"
+}

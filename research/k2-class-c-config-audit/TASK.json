@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "task_id": "census-pruning-audit",
+  "priority_revision": 6,
+  "base_commit": "463113d675af7410ac91d53a4fed51ec6494eb9a",
+  "original_card": {
+    "id": "census-pruning-audit",
+    "question": "Does the reported word-census parity-pruning error invalidate a specific exclusion we still rely on, and what bounded repair is justified?",
+    "starting_points": [
+      "research/f7-weight-parity-census-correction/README.md",
+      "docs/research/research-family-status.md"
+    ],
+    "methods": [
+      "Independently reconstruct the tiny counterexample and trace one affected exclusion to its exact pruning code.",
+      "Compare corrected and unpruned enumeration on a small exhaustive domain, then audit the changed pruning implication."
+    ],
+    "acceptance_gate": "Pin the old and proposed corrected engines, distinguish a disproved pruning rule from a disproved final bound, and state exactly which downstream exclusions need revalidation. #2973 is an author-checked source archive; neither its new f(7) claim nor all old conclusions are automatically accepted or rejected.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read #2973 error description and MATH.md; manually reconstruct the prefix states of 01021323 before running any large census.",
+      "scope": "Source-binding orientation only; no full enumeration or mathematical validation."
+    },
+    "first_experiment": "Reconstruct the eight prefix states of 01021323 and compare bit-0 versus Hamming-weight parity budgets independently. Trace the reported false prune to one pinned predecessor (#2542, #2634 or #2691), then test a small exhaustive domain. Stop after a source-impact handoff or corrected-prune proof; a full seven-label replay needs a separate resource budget and a named research decision it can change.",
+    "bottleneck_link": "An unsound exclusion can wrongly close a mechanism; correcting its dependency boundary is more useful than extending the same census.",
+    "allowed_variations": [
+      "One predecessor pruning rule, one independently exhaustive small domain, or one downstream dependency audit."
+    ],
+    "scope_change_triggers": [
+      "Launching a larger census before validating the prune and explaining which active decision it changes.",
+      "Treating a small-domain counterexample to the old rule as a counterexample to every reported seven-label bound."
+    ],
+    "overlap_terms": [
+      "2973",
+      "2542",
+      "2634",
+      "2691",
+      "weight parity",
+      "bit-0",
+      "01021323",
+      "census pruning"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "For the class-C one-sided K2 residue census of Discussion #2954: independently audit the published 4-flat covering-config tables against the published g-table and the sum g <= 52 admissibility bound, and compute the exact minimal set of configs needed to cover the rows that relative root counting does not kill. Audits tables only; the E8/P112 geometry, kill criterion (Lemma B) and RRC are not re-derived or verified.",
+  "scope_change_reason": "The card's named artefact is the #2973 weight-parity census and its predecessors #2542/#2634/#2691. Per the standing handoff-first rule (autoresearch.md step 2) this session took the live, unclaimed concrete request in Discussion #2954 instead, and applied the card's accepted discipline - distinguish a prunable enumeration from a final bound, and state exactly which downstream exclusions need revalidation - to that census. The refusal to treat a prunable row as a disproved bound is the card's own scope_change_trigger and is honoured: no residue exclusion is claimed here.",
+  "bottleneck_link": "Side result for the selected frontier, not a supplier improvement. Its value is avoiding compute: the audited campaign's advertised cheapest config is provably useless for the hard rows, and three of the advertised configs are provably redundant, so a ~3e5 CPU-h enumeration can be cut before it starts.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after the table audit, the exact set-cover result and one focused PR. Do not run any s4z/closure compute, do not attempt route A (span lemma), and do not touch the RRC scenario list.",
+  "outcome": "completed",
+  "evidence": "Author-checked. 8/8 structural checks pass and 4/4 rejecting mutants are rejected by research/k2-class-c-config-audit/verify.py (Python 3.12, standard library, <1 s), printing PASS_K2_CLASS_C_CONFIG_AUDIT with exit 0. RESULT.json records every derived quantity. Not independently reviewed by a second party. No E8/P112 geometry, span criterion or RRC claim.",
+  "author": "muatfannajm-dot",
+  "ai_assistance": "Substantial assistance from OpenCode (Space Bunny Free model), an open-source coding agent, in writing the audit, running it and drafting the PR. All mathematical statements and the pinned inputs were chosen and checked by the author; the agent did not supply the mathematics of the audited help package, which is DreamingOfClouds' work.",
+  "open_questions": [
+    {
+      "question": "Is the list of admissible 4-flat configs complete? The audit checks that every listed config satisfies sum g <= 52, but the piece-packing rule that decides whether a row admits a config at all is only sketched in #2954, so a missing config would not be detected.",
+      "why_it_matters": "Completeness is what makes the redundancy result a real saving rather than an artefact of the published list. If, say, (5,5,4,4) is admissible for some hard row, the minimal cover grows and the 4.4e8-pair saving shrinks.",
+      "first_step": "Ask DreamingOfClouds for the exact packing predicate that maps a row's weight multiset to its config list, then re-run the audit with an independently generated config set and compare against inputs/rows70.csv.",
+      "blocked_by": "The packing predicate is not published in the help package; s4z.c encodes it only implicitly."
+    },
+    {
+      "question": "Row 37 (and rows 3, 12, 24, 54, 61) admit no 4-flat config at all. Does the A2 / rank-2 root-counting argument that RRC uses also dispose of them, or do they need a genuinely different cover model?",
+      "why_it_matters": "These 6 rows are unreachable by every advertised config, so any campaign that only runs 4-flat closure leaves them open no matter how much compute is spent. They are the hard residue of the residue.",
+      "first_step": "Take row 37's weight multiset [7,7,7,6,6,6,6,6,6,4,4,4,2] and the two-free-piece alternative explicitly; check whether a 5-flat or a two-free-piece cover exists with sum g <= 52, or prove none does.",
+      "blocked_by": "Needs the E8/P112 flat geometry and the unpublished RRC scenario list."
+    },
+    {
+      "question": "Do the 3 redundant configs (5554, 6444, 6544) matter for any row outside this table, e.g. for the 116 open residues of PR2985/PR3049?",
+      "why_it_matters": "The redundancy is proved only relative to these 70 rows. The wider residue chains reuse the same config vocabulary, so the saving could be larger or could not transfer at all.",
+      "first_step": "Run this audit unchanged against the residue tables in PR2985 and PR3049 after pinning their heads.",
+      "blocked_by": "Those PRs' residue tables are not vendored here and their heads are unpinned in this package."
+    }
+  ]
+}

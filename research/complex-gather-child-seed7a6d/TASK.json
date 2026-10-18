@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "task_id": "complex-rank-shape-decoder",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "original_card": {
+    "id": "complex-rank-shape-decoder",
+    "question": "Can a decoder deliver the local paid mass in fewer, larger-rank children (block frame climbs instead of rank-1 to rank-3 steps)?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/complex-decoder-field-extension-seed44/README.md",
+      "research/complex-frame-pair-decoders/README.md"
+    ],
+    "methods": [
+      "Find one exact small decoding identity whose frame path climbs in blocks, and price its complete per-call profile.",
+      "Bound the best effective child rank achievable for one fixed support alphabet, including copies, frames and restoration."
+    ],
+    "acceptance_gate": "A per-call local profile, with all copied information, frames and restoration counted, whose ceiling exceeds the selected word's by at least 5%; masked or overcomplete supports must change an assumption of the eight-term all-pairs bound.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Before any synthesis, write the candidate per-call local profile (and centre charge / unpaid coordinates if changed) and screen it with ceiling.ceiling(); reject it if even the ideal ceiling does not beat the selected word's by your stated margin. Ideal budget: rank-16 delivery is 2.31x (levers.py).",
+    "bottleneck_link": "Rank-1 children are about half of recursive cost; the selected word's effective child rank is about 3.9. Larger-rank delivery lowers recursive cost per unit of paid mass.",
+    "allowed_variations": [
+      "One masked, overcomplete or block decoder family with exact labels and supports.",
+      "A scoped lower bound on effective rank for one alphabet.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Repacking idle remainders of an unchanged word (covered by the packing ceiling).",
+      "Repeating the eight-term all-pairs search inside its proved scope."
+    ],
+    "overlap_terms": [
+      "rank shape",
+      "block climb",
+      "masked decoder",
+      "overcomplete",
+      "effective rank"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Enumerate every three-consecutive-ADD window in A or B of the pinned selected local word where one destination is updated from three distinct source registers, none equal to the destination. Replace every positive destination/source frame increment in the three gates by one hypothetical gather child whose rank is their sum. Admit at least two positive frame increments and schedule arbitrary non-overlapping windows.",
+  "scope_change_reason": "One evidence-driven pivot within the rank-shape card. The first subcase required unchanged source frames and returned zero windows. Exact replay found 32 same-destination, distinct-source windows in A (none in B), with source-frame climbs but unchanged source values. The refined bill includes all source and destination frame increments in the merged child rank, preserving rank mass; the source/frame gathering interface is granted zero overhead only for the favorable screen.",
+  "bottleneck_link": "Rank-one children make up about half of the selected complex recursive cost. This exact gather family merges 3 or 4 rank-four climbs into one rank-12 or rank-16 child, changing local child shape while preserving total rank mass; its complete fixed-word ceiling tests whether that change can clear the catalogue's 5% margin.",
+  "budget_minutes": 60,
+  "stop_rule": "Replay the pinned word once, enumerate all three-consecutive-ADD windows with the stated same-destination and three-source predicate, verify exact arbitrary-dirty maps and rank mass, and run exact weighted interval scheduling with certified per-window savings at a=1.05 times the baseline ceiling. Stop if the maximum saving upper bound leaves the moment above one. Do not broaden to other arities, nonconsecutive or reordered windows, another word, or a physical synthesis in this cycle.",
+  "outcome": "negative-result",
+  "evidence": "Pinned source replay reconstructs profile {1:2412,2:418,3:432,4:142,5:82,8:8}, rank mass 5,586. The scan covers all 3,451 A and 1,846 B operations and finds 32 windows (A:32, B:0): 24 with frame increments [[0,4],[0,4],[0,4]], rank sum 12, and 8 with [[4,4],[0,4],[0,4]], rank sum 16. Exact max-weight interval scheduling selects 16 windows: eight rank-12 and eight rank-16 children. The transformed profile is {1:2412,2:418,3:432,4:86,5:82,8:8,12:8,16:8}, preserving mass 5,586; its exact ceiling is 0.00171310859037, a 1.3641268145% gain. Stronger certified saving bounds leave the moment above one at 1.05 times the baseline ceiling by exact margin 0.000176054645830535, even granting source gathering, extra helpers, copies, frame changes, restoration, precision and hosting zero cost. This is a scoped negative for the stated consecutive C3 gather family, not a general impossibility result or physical supplier.",
+  "author": "Cinna Davis",
+  "ai_assistance": "Substantial OpenAI Codex assistance: helped select the bounded scope, derive and implement the exact screen, write the verifier and controls, and prepare the package. The evidence is pinned to source hashes and deterministic replay.",
+  "open_questions": [
+    {
+      "question": "Can nonconsecutive same-destination gathers be grouped when every intervening gate commutes with all three source/destination shears?",
+      "why_it_matters": "This cycle's exact consecutive family tops out at a 1.3641% ideal ceiling gain; a compatible interleaved family would need a different interval/dependency packing to reach the 5% screen.",
+      "first_step": "Build the commutation graph for source-version intervals in the pinned word and enumerate only triples whose intervening ADDs are disjoint in touched registers; price the full frame-path and rank mass before synthesis.",
+      "blocked_by": "Intervening gates can read or write one of the four registers, and a commutation proof must preserve both values and frame histories."
+    }
+  ],
+  "candidate_scopes_considered": [
+    "C3 gather with all three source frames already stable; rejected after the exact scan returned zero candidates.",
+    "Cycle-8 contiguous diagonal rank-16 batching across distinct destinations; already claimed in Discussion 1167 and uses a different map.",
+    "Three-source, one-destination gather with every source and destination frame climb charged into one rank-sum child; selected for the bounded scan."
+  ],
+  "predecessors_and_overlap": {
+    "selected_record": "PR1094 construction as resolved by certificates/selected-result.json and docs/research/community-batch1099-review.md",
+    "nearby_work": [
+      "PR1799: cycle-6 one-source/three-destination C3 scatter, distinct from this three-source/one-destination gather.",
+      "Discussion 1167 comment 18920760: cycle-8 diagonal rank-16 batch on distinct destinations; claim expired 2026-10-14 10:05 UTC.",
+      "PR1605 / Discussion 1596: rank-one reblocking thresholds and chronological realization, not same-destination three-source windows.",
+      "Discussion 1622 / PR1633: algebraic all-pairs overcomplete E8 rank normal form, not source-word gate fusion.",
+      "complex-coefficient-reuse: shared coefficient preparation for same-source scalar runs without a local rank-profile change.",
+      "complex-block-rank-optimum: fixed eight-array block lower bound; changed cross-block interfaces remain outside its scope."
+    ],
+    "overlap_snapshot": "Rank-shape refresh 2026-10-14T10:20:27Z: 464 open PRs, 438 Discussions, complete/no warnings; final exact-gather refresh 2026-10-14T10:34:31Z: 473 PRs and 449 Discussions, complete/no warnings, zero remote matches (one local-package self-match). Snapshots are OVERLAP.json and OVERLAP-GATHER.json."
+  },
+  "accepted_seed": "7a6da0d3a89bdb0425f85454db15342b",
+  "track": "complex-mechanisms",
+  "scope_key": "cad3ba853d7f324f16fa/three-source-one-destination-gather",
+  "catalog_sha256": "6686ad58f1fbdbc87134a78901b60fd53a20d3984355e91defbbebc9e9fa8075",
+  "selected_record_sha256": "10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32",
+  "source_word_sha256": "c2b294300760e1fd6eeab8c22c4d13e4633dca40e52cac8da0d68163a76e3ca8",
+  "discussion_claim": "https://github.com/CrocSwap/integer-mult-bounds/discussions/1167#discussioncomment-18921596",
+  "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1814"
+}

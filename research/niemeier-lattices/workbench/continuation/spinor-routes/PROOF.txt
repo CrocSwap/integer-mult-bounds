@@ -1,0 +1,104 @@
+Scoped spinor frame bounds
+=========================
+Derived by Codex, with kernel/schedule interfaces supplied by the parent
+and budget tracks. These are bounds for specified implementations, not
+universal lower bounds for spinor circuits.
+
+Conventions. G=F2^14 indexes lines
+v(x)=(1,(-1)^x1,...,(-1)^x14,(-1)^sum(x))/2 in Q^16.
+C is the convolution kernel 1 at0 and at Hamming weights7,8. H is the
+4-dimensional linear-evaluation subgroup; each H-coset consists of16
+mutually orthogonal lines. Let J_H be its indicator and D=C+J_H. Previously
+certified ranks are rank(C)=576, rank(J_H)=1024, rank(D)=1268.
+
+A. Hadamard baseline plus matching layers
+----------------------------------------
+Identify F2[G] with F2[z1,...,z14]/(zi^2), using zi=1+gi for a group basis
+whose first4 generators span H. Then J_H=z1z2z3z4. A matching layer on a
+coset of a7-dimensional translation subgroup W has kernel g_a J_W and
+augmentation-filtration degree>=7. Any sum of such layers leaves J_H's
+degree4 initial term unchanged.
+
+Multiplication by z1z2z3z4 has rank2^10=1024: the1024 monomials disjoint
+from {1,2,3,4} map to distinct monomials. Order their columns and images
+by degree. The same rows/columns in the perturbed multiplication matrix
+have an identity diagonal block at each degree; all additional entries
+have strictly higher output degree. This is a triangular1024-square
+minor with determinant1. Hence the new kernel's rank is at least1024.
+
+Scope: Hadamard-baseline kernels plus these affine7-subgroup matching
+kernels. Different baselines are not covered.
+
+B. Every nonzero vector in im(D) has address-support span>=9
+----------------------------------------------------------
+As a Boolean truth function,
+
+ C=e0+e1+e2+e3+e4+e5+e6,
+
+where er is the elementary square-free polynomial on14 bits. The identity
+is verified by the15 possible Hamming weights. Thus im(C) consists of
+Boolean functions of degree<=6. For w=Dg and h in H,
+
+ Delta_h w = Delta_h(Cg),
+
+since J_H g is H-invariant. Translation differentiation lowers Boolean
+degree by at least1, so a nonzero Delta_h w has degree<=5 and Hamming
+weight>=2^(14-5)=512. This Boolean-polynomial weight bound follows by
+induction on the number of variables, splitting into two slices in the
+last variable: either the slices agree, or their nonzero difference has
+degree one lower and supplies that many nonzero entries across the slices.
+
+A k-dimensional real subspace contains at most2^k sign-cube vertices:
+choose k coordinate projections injective on the subspace. Pairing
+antipodal vertices therefore leaves at most2^(k-1) canonical spinor lines.
+If supp(w) spanned dimension<=8, its size would be<=128. Each Delta_h w
+would then have weight<=256<512 and would vanish. Hence w would be
+H-invariant. A nonempty H-invariant support contains an entire H-coset,
+which spans16 dimensions. This is a contradiction.
+
+For any rank-minimal factorization D=AB with1268 decoder columns in A,
+im(A)=im(D), so each nonzero decoder column has target-support span>=9.
+Its common target cap has codimension>=9. A private copy from FULL16 into
+that cap must descend by at least9 ranks. Total descent is therefore
+at least1268*9=11412, exceeding spinor full-center surplus
+16384-576*16=7168.
+
+Scope: rank-minimal1268-column factorizations implemented as full-frame
+aggregates and private copies into common target caps. Nonminimal
+factorizations, other bases with additional columns, fused or partial
+schedules, mutable sources, and additional target motion are not ruled
+out by this proof.
+
+C. Fused Hadamard-clique / one-matching kernel
+--------------------------------------------
+For the compatible half-incidence used by the budget track's fused word,
+each complementary8D packet pair U,U-perp contains16 clique halves on
+each side. Each half comprises8 orthogonal lines spanning its side.
+After collapsing the constant values on each half, the scalar block is
+
+ T=[[I16,A],[A,I16]],  A=I16+J16.
+
+A^2=I16 because J16^2=0 overF2. Thus im(T)={(z,Az)}, and a nonzero z gives
+a nonzero Az. Every nonzero block image column contains an entire half
+on each side. Its address support contains U and U-perp and spans16.
+If a global column has multiple packet components, any nonzero component
+already supplies that full span. Every nonzero global image column thus
+has support span16.
+
+The global kernel has rank1024. In any rank-minimal factorization, every
+nonzero decoder column lies in its image, so all1024 center factors need
+width16. The rank-minimal center bill is1024*16=16384, exactly N. This
+kernel and the matching fusion therefore have no positive full-width
+center surplus.
+
+Scope: the specified fused kernel and rank-minimal scalar factorizations.
+The compatible physical half-incidence and arbitrary-dirt replay are
+established by the separate budget-track word. No lower bound for all
+redundant factorizations or all possible circuits is asserted here.
+
+Finite premises and checks
+--------------------------
+frame_bounds.py / FRAME-BOUNDS.json check the degree-six identity, exact
+Hadamard Gram matrix, A^2=I, rank(T)=16, and im(T)={(z,Az)}. Normal Python
+and -I -O both pass. The1268 convolution rank comes from the earlier
+workbench/bit-routes/clique_residual.py receipt.

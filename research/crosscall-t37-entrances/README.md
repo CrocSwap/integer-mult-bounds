@@ -1,0 +1,16 @@
+Cross-call whole-owner augmentation of PR1183 has locally verified conditional **kappa = 0.001675670695307702**, **0.00402927776585932906908976725151487524160082012226483340694179820232800158409%** above PR1183's 0.001675603180601302. A concurrent draft PR1193 now reports 0.001675672695827067, slightly higher; this package is an independently admitted improvement on our previous bound, not the highest current claim.
+
+The same two native providers are retained, but the stronger provider now occupies 68 of 333 calls (45 additional calls). Each extra call changes three four-helper entrance groups. Actual source-window-compatible exchanges preserve whole helpers and per-call physical-family uniqueness. The additional 135 group instances consume 540 more unit gaps, leaving idle H1=18, H48=11374. All 159,840 roles remain whole and the deficit is unchanged. Aggregate profile is H1=785598, H2=167466, H3=138012, H4=42474, H5=27306, H8=2664, H48=11374.
+
+Verification passed locally:
+- The literal exchange journal reconstructs every owner, dispatch entry and profile exactly, without an optimizer.
+- Both source-bound native suppliers from PR1183 are explicitly reused: complete native transport, 704-column scalar/frame replay, wrappers and exact phases. Independent local raw-word audits run again for both words.
+- Strict mixed-provider binding, emitted controller, finite invoice and assembly using the unchanged pinned PR1129 engines: 114 admission, 15 controller and 12 bit controls; both rational moment engines and 47 outer inequalities.
+- Independent reconstruction of actual source windows, per-call width/profile recount, physical-family noncollision, all 73-axis charts, 2,016 disjoint pending-child axis relations, and eight negative controls. Prefix 775 < 1024; physical row 17495 < 20161.
+- The standalone frozen package passes `PASS_CROSSCALL_T37_NATIVE_AND_STRICT_ADMISSION` at the stated kappa, with explicit native-reuse flags and pinned parent geometry. Repository-wide hosted CI is separate and is not claimed as passing.
+
+Run `python3 -B research/crosscall-t37-entrances/verify.py --work /absolute/new/output-directory`. The default rebuilds both native providers sequentially; optional `--base-native-from` and `--extra-native-from` reuse complete runs with raw-word, stage and semantic bindings checked. Requires Python 3.11+, C++ and Boost. No network or optimization solver is used by verification. Parent geometry is archived; its actual source-event windows are reconstructed independently. This is not a full cold ancestry rebuild.
+
+Conditional finite construction only. All-size compiler, common-label/mutable-source realization, whole-call hosting, precision/tape, exact recovery, analytic transfer, PR559 recurrence correction and PR589 bit H1-H5 assumptions remain. No unconditional theorem, full Lean certification, or global packing claim.
+
+Credits: PR1176 cross-call gap augmentation; PR1183 mixed-provider composition; PR1169 owner flow; PR1148 joint entrances; PR1129 admission engines; PR1131 wave order; all retained ancestry and notices. PR1193 is a concurrent globally reallocated approach and its payload is not consumed. Prepared by Rohan Arun with substantial OpenAI Codex assistance, Apache-2.0.

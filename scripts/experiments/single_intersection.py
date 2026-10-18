@@ -40,9 +40,25 @@ def rank_of_rows(rows):
 
 
 def minor_rows(labels,j):
+    """Pack the full symmetric binary matrix without repeated big-int sums."""
     require(len(labels)==len(set(labels)) and all(type(x) is int and x>0 for x in labels),
             'Distinct positive packed labels required')
-    return [sum(1<<b for b,T in enumerate(labels) if S==T or (S&T).bit_count()==j) for S in labels]
+    n=len(labels)
+    rows=[bytearray((n+7)//8) for _ in labels]
+    positions=[(b//8,1<<(b%8)) for b in range(n)]
+    for a,S in enumerate(labels):
+        row=rows[a]
+        byte_a,bit_a=positions[a]
+        row[byte_a]|=bit_a  # Distinct labels give the identity diagonal.
+        for b in range(a):
+            if (S&labels[b]).bit_count()==j:
+                byte_b,bit_b=positions[b]
+                row[byte_b]|=bit_b
+                rows[b][byte_a]|=bit_a
+    # Replace buffers in place to avoid keeping a second full matrix alive.
+    for a,row in enumerate(rows):
+        rows[a]=int.from_bytes(row,'little')
+    return rows
 
 
 def check_minor(h,k,j,labels,independent_indices):

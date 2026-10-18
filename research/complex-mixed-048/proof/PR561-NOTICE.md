@@ -1,0 +1,9 @@
+# Attribution and scope
+
+The new call-specific cold-kernel construction, mixed-provider emitter and independent controller audit, finite invoice, packaging and exact assembly were prepared for eumemic with OpenAI Codex assistance. Apache-2.0 applies; LICENSE is included. No claim of independent human authorship or an unconditional all-size multiplication theorem is made.
+
+The full source package of eumemic/Codex [PR558](https://github.com/CrocSwap/integer-mult-bounds/pull/558), commit `060b137c8a6f9d73fd7864c7f8cf2736d6441774`, is copied unchanged at `vendor/pr558`. Its original notices, source pins, license and AI disclosures are preserved. Its ancestry includes Dugongue PR552 (`33c33af0b7697155be1ea708e08cbd3f0707d94c`), chafreaky PR551 (`e7faafc4fec401d24080e5b2df12f964f1cfe123`), icekylinx PR531/PR535, the PR484/PR507/PR514 owner-controller lineage, and eumemic/Codex PR550 (`c7337040822978f1611ce9d9d44e7bb96d887e23`). The retained attribution to DreamingOfClouds with Claude Opus 5.5 through Claude Code and to icekylinx with OpenAI Codex assistance is not replaced by this notice.
+
+The exact moment and outer engines are unchanged retained copies. The bit supplier is cited unchanged PR543, commit `2065fe4f72a914d907f1046603f5a36f17018535`; this package reprices its pinned complete profile but does not claim a fresh bit-circuit replay. The assembly uses the inherited finite-frontier method from PR275.
+
+The new emitter and independent owner auditor adapt the preserved PR531/PR514 implementation by binding each invocation to its own complete scalar provider and dimensions. The fresh invoice adapts PR531's exact scalar/Horner and finite accounting to sum actual selected calls and charge shared compiler maxima. Copied source paths and their hashes are recorded in SOURCE-PINS.json. All prior public heads and claims remain frozen.

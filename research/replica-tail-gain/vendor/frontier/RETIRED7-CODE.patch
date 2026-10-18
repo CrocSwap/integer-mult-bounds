@@ -1,0 +1,366 @@
+diff --git a/verify.py b/verify.py
+index 597cec9..d8101f1 100644
+--- a/verify.py
++++ b/verify.py
+@@ -15,9 +15,10 @@ import independent_owners as I
+ import exact_moment as M
+ HERE=Path(__file__).resolve().parent
+-PROFILE={1: 1606392, 2: 427572, 3: 189078, 4: 85248, 5: 25862, 8: 5328, 32: 1, 48: 26558}
+-LOW=F('0.001717409316335491643448')
++PROFILE={1: 1603728, 2: 431568, 3: 185082, 4: 85248, 5: 27194, 8: 5328, 32: 1, 48: 26558}
++LOW=F('0.001717794984118634663827')
+ PROFILE2751={1:1593072,2:430236,3:204396,4:79920,5:22532,8:5328,32:1,48:26558}
+ LOW2751=F('0.001717141586348426338109')
+ ALIASES=[(606,550),(635,551),(637,552),(638,553),(639,562)]   # retired5
++NEW7=[(667,401),(669,403)]   # retired7: retired-lender aliases enabled by moving the hostees of warps 30/31 onto 564/565
+ import importlib.util as _iu
+ _s=_iu.spec_from_file_location('word_patch_pr2679',Path(__file__).resolve().parent/'vendor/word_patch_pr2679.py');WP=_iu.module_from_spec(_s);_s.loader.exec_module(WP)
+@@ -30,5 +31,5 @@ def compact(fill,old_words,new_words,old_prov,new_prov,order,dispatch):
+  live=lambda w:[r for r in range(224,704) if r not in set(w['removed'])]
+  L0=live(old_words['gauge44']);L1=live(new_words['gauge44']);need(L0==live(old_words['extra']) and L1==live(new_words['extra']),'live helper sets')
+- gone=set(L0)-set(L1);need(set(L1)<=set(L0) and sorted(gone)==sorted(h for h,_ in ALIASES),'removed helpers')
++ gone=set(L0)-set(L1);need(set(L1)<=set(L0) and sorted(gone)==sorted([h for h,_ in ALIASES]+[h for h,_ in NEW7]),'removed helpers')
+  i1={r:i for i,r in enumerate(L1)};bins={}
+  for pid in ('gauge44','extra'):need([old_prov[pid]['widths'][L0.index(r)] for r in L1]==new_prov[pid]['widths'],'renumbered widths')
+@@ -80,8 +81,9 @@ def run():
+  for tag,pid in [('base','gauge44'),('extra','extra')]:
+   w=refit_apply(words51[pid],rd('refit5_43'+tag+'.json'));w=WP.apply_lowfour(w,rd('alias5_43'+tag+'.json'));w=refit_apply(w,rd('refit5c_43'+tag+'.json'))
++  w=refit_apply(w,rd('refit7_43'+tag+'.json'));w=WP.apply_lowfour(w,rd('hostmove2_43'+tag+'.json'));w=WP.apply_lowfour(w,rd('alias7_43'+tag+'.json'));w=refit_apply(w,rd('refit7c_43'+tag+'.json'))   # retired7
+   need(w==words[pid],'declared stages reproduce the candidate word '+tag)
+  d2=dict(dispatch)
+  for s,r,p in fill['dispatch_overrides']:d2[s,r]=p
+- # ... and the candidate fill is PR2751's fill with the five removed helpers' roles dropped, renumbered and re-tiled as bin prefixes
++ # ... and the candidate fill is PR2751's fill with the seven removed helpers' roles dropped, renumbered and re-tiled as bin prefixes
+  need(compact(fill51,words51,words,prov51,providers,order,d2)==fill,'complete deterministic candidate fill')
+  owner=I.check(rd('PLAN.json.gz'),rd('GLOBAL-TEMPLATE.json.gz'),order,fill,providers,dispatch,PROFILE)
+@@ -92,4 +94,4 @@ def run():
+  _,a=M.moment_bounds(PROFILE,LOW);b,_=M.moment_bounds(PROFILE,LOW+F(1,10**24));need(a<66304<b,'exact adjacent root bracket')
+  x,_=M.moment_bounds(PROFILE2751,LOW);need(x>66304,'PR2751 rejects candidate endpoint')
+- return {'status':'PASS_JOINT_TWELVE_PLUS_FIVE_ALIASES_FINITE_REPLAY','roles':owner['roles'],'local_mutations_rejected':6,'owner_mutations_rejected':1,'complex_lower':str(LOW),'complex_upper':str(LOW+F(1,10**24)),'scope':'Independent local symbolic identity, actual frame bill, cleanup, exact hosting and moment only. Native/strict supplier/outer release is separate.'}
++ return {'status':'PASS_JOINT_TWELVE_RETIRED7_FINITE_REPLAY','roles':owner['roles'],'local_mutations_rejected':6,'owner_mutations_rejected':1,'complex_lower':str(LOW),'complex_upper':str(LOW+F(1,10**24)),'scope':'Independent local symbolic identity, actual frame bill, cleanup, exact hosting and moment only. Native/strict supplier/outer release is separate.'}
+ if __name__=='__main__':print(json.dumps(run(),indent=2))
+diff --git a/packing_cap.py b/packing_cap.py
+index 435b62e..fe937f8 100644
+--- a/packing_cap.py
++++ b/packing_cap.py
+@@ -11,7 +11,7 @@ HERE = Path(__file__).resolve().parent
+ sys.dont_write_bytecode = True
+ ENGINE_SHA = "86a1432870b3b21d8454106ec9162fddc0471472d9214c590a1420f2426cedfc"
+-IDLE = {1:17316,3:6594,5:8546,32:1,48:26558}
+-CANDIDATE = {1: 1606392, 2: 427572, 3: 189078, 4: 85248, 5: 25862, 8: 5328, 32: 1, 48: 26558}
+-ENDPOINT = Q('0.001717409316335491643448')
++IDLE = {1:17316,3:6594,5:9878,32:1,48:26558}
++CANDIDATE = {1: 1603728, 2: 431568, 3: 185082, 4: 85248, 5: 27194, 8: 5328, 32: 1, 48: 26558}
++ENDPOINT = Q('0.001717794984118634663827')
+ 
+ def need(ok, message):
+@@ -28,7 +28,7 @@ def calculate(profile_path=None):
+          'complete candidate histogram and rank mass')
+     local = {r: Q(h[r]-IDLE.get(r,0),666) for r in h if h[r] != IDLE.get(r,0)}
+-    need(local == {1:2386,2:642,3:274,4:128,5:26,8:8}, 'complete local profile')
++    need(local == {1:2382,2:648,3:268,4:128,5:26,8:8}, 'complete local profile')
+     model = engine.model(local,73,896,9,64)
+-    need(model['total_mass']*666 == 4816512 and model['local_mass'] == 5198, 'coverage identity')
++    need(model['total_mass']*666 == 4816512 and model['local_mass'] == 5188, 'coverage identity')
+     lo,hi = engine.ceiling(local,73,896,9,64)
+     need(engine.relax(local,73,896,9,64,hi)[0] > 1, 'upper cap rejection')
+diff --git a/generate.py b/generate.py
+index 7c6f2dc..dafca20 100644
+--- a/generate.py
++++ b/generate.py
+@@ -46,14 +46,14 @@ def main():
+   f=out/f'WORD-{tag}.json.gz';wr(f,w);AU.run(f,out/f'audit-{tag}.json')
+   need(rd(f)==rd(HERE/f'inputs/WORD2751-{tag}.json.gz'),'complete regenerated PR2751 word equality')
+-  # retired5: the declared stages refit5 -> alias5 -> refit5c turn the regenerated PR2751 word into the candidate word
+-  for st in ('refit5','alias5','refit5c'):
++  # retired5 + retired7: the declared stages refit5 -> alias5 -> refit5c -> refit7 -> hostmove2 -> alias7 -> refit7c turn the regenerated PR2751 word into the candidate word
++  for st in ('refit5','alias5','refit5c','refit7','hostmove2','alias7','refit7c'):
+    p_=rd(HERE/f'inputs/{st}_43{tag}.json')
+-   if st=='alias5':w=W.apply_lowfour(w,p_)
++   if st in ('alias5','hostmove2','alias7'):w=W.apply_lowfour(w,p_)
+    else:
+     w=copy.deepcopy(w)
+-    for sec,i,frame in p_['frames']:need(w[sec][i][:-1]==rd(f)[sec][i][:-1] or st=='refit5c','refit gate');w[sec][i][-1]=frame
++    for sec,i,frame in p_['frames']:need(w[sec][i][:-1]==rd(f)[sec][i][:-1] or st in ('refit5c','refit7','refit7c'),'refit gate');w[sec][i][-1]=frame
+     w['report']['local_profile']=p_['local_profile']
+-  f=out/f'WORD-retired5-{tag}.json.gz';wr(f,w);AU.run(f,out/f'audit-retired5-{tag}.json')
++  f=out/f'WORD-retired7-{tag}.json.gz';wr(f,w);AU.run(f,out/f'audit-retired7-{tag}.json')
+   need(rd(f)==rd(HERE/f'inputs/WORD-{tag}.json.gz'),'complete regenerated candidate word equality')
+- print('PASS_REGENERATED_JOINT_TWELVE_RETIRED5_BOTH_WORDS')
++ print('PASS_REGENERATED_JOINT_TWELVE_RETIRED7_BOTH_WORDS')
+ if __name__=='__main__':main()
+diff --git a/test_integrity.py b/test_integrity.py
+index 85d1f86..eedb99e 100644
+--- a/test_integrity.py
++++ b/test_integrity.py
+@@ -10,9 +10,9 @@ def need(ok,msg):
+ def hashes(root):return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in root.rglob('*') if p.is_file()}
+ def main():
+- with tempfile.TemporaryDirectory(prefix='joint-twelve-retired5-controls-') as t:
++ with tempfile.TemporaryDirectory(prefix='joint-twelve-retired7-controls-') as t:
+   p=Path(t)/'package';shutil.copytree(HERE,p);before=hashes(p)
+   def run(script='verify.py',flags=()):
+    return subprocess.run([sys.executable,'-I','-B',*flags,str(p/script)],cwd=t,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'),text=True,capture_output=True,timeout=300)
+-  r=run();need(r.returncode==0 and 'PASS_JOINT_TWELVE_PLUS_FIVE_ALIASES_FINITE_REPLAY' in r.stdout,'relocated positive: '+r.stderr);need(hashes(p)==before,'read-only replay')
++  r=run();need(r.returncode==0 and 'PASS_JOINT_TWELVE_RETIRED7_FINITE_REPLAY' in r.stdout,'relocated positive: '+r.stderr);need(hashes(p)==before,'read-only replay')
+   r=run(flags=('-O',));need(r.returncode!=0 and 'run without -O' in r.stderr,'optimized verification refusal')
+   r=run('generate.py',('-O',));need(r.returncode!=0 and 'assertions must be enabled' in r.stderr,'optimized generator refusal')
+diff --git a/workflow/admit.py b/workflow/admit.py
+index 37dc6e3..282ff24 100644
+--- a/workflow/admit.py
++++ b/workflow/admit.py
+@@ -23,5 +23,5 @@ import time
+ 
+ SOURCE_COMMIT = 'local-joint12-pr2733'
+-SOURCE_MANIFEST = '0288172f1fdef2dabf82a8367fdb2f15bfbba62caea2a953d91b03b0dd9c97b3'   # retired5 derived source: PR2751 overlay + five retired-lender aliases
++SOURCE_MANIFEST = '9c72b4301057a6c204c40bb6584eb74b779e06618bcd98d706d726c3e2c92451'   # retired7 derived source: PR2751 overlay + five retired-lender aliases + two hostee moves and two aliases
+ PARENT_MANIFEST = 'e0eefc96567fbb45e19e6de0ca295381dbe0e686c08ddc783639b065c7c791d4'
+ PRECISION = dict(endpoint_digits=24, grid_digits=18, margin_digits=28, bootstrap_steps=12)
+@@ -70,5 +70,5 @@ def main():
+     need(sha(source / 'MANIFEST.json') == SOURCE_MANIFEST, 'COMPOSED manifest pin')
+     source_files = read(source / 'MANIFEST.json')
+-    need(len(source_files) == 497 and tree(source, ('MANIFEST.json',)) == source_files,
++    need(len(source_files) == 506 and tree(source, ('MANIFEST.json',)) == source_files,
+          'complete COMPOSED source inventory and hashes')
+     native_receipt = read(a.native_receipt)
+@@ -170,5 +170,5 @@ def main():
+         natives['extra'] / 'local', work / 'rebound')
+     spec = read(work / 'rebound/SPEC.json')
+-    need(spec['expected']['physical'] == 66796, 'complete physical cost including 72 buffers (R 410)')
++    need(spec['expected']['physical'] == 66794, 'complete physical cost including 72 buffers (R 408)')
+     layout = work / 'layout'
+     layout.mkdir()
+diff --git a/verify_retired5.py b/verify_retired7.py
+index 720b3e1..0f2c1ee 100644
+--- a/verify_retired5.py
++++ b/verify_retired7.py
+@@ -2,8 +2,10 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # Marius-Paul Dumitrean, with substantial AI assistance (Anthropic Claude, via Claude Code).
+-"""Bounded replay of the five retired-lender aliases on PR2751's words (read-only, standard library only).
++# retired7 extension of verify_retired5.py (same author).
++"""Bounded replay of retired7 on PR2751's words: the five retired-lender aliases (retired5 stages) plus two hostee moves that free
++two more retired lenders (retired7 stages refit7 -> hostmove2 -> alias7 -> refit7c). Read-only, standard library only.
+ 
+-1. Rebuilds both candidate words from PR2751's words through the three declared stages (refit5, alias5, refit5c) and checks
+-   each stage's declared structure exactly.
++1. Rebuilds both candidate words from PR2751's words through the seven declared stages (refit5, alias5, refit5c, refit7, hostmove2,
++   alias7, refit7c) and checks each stage's declared structure exactly.
+ 2. Runs the pinned PR2679 BORROW-WORD auditor (vendor/audit_local_pr2679.py, byte-identical) on every state.
+ 3. Tamper controls, each rejected by that auditor for a real reason: every lender refit undone (warp frame mismatch), every
+@@ -21,4 +23,6 @@ sys.dont_write_bytecode = True
+ sys.path.insert(0, str(HERE))
+ ALIASES = [(606, 550), (635, 551), (637, 552), (638, 553), (639, 562)]
++MOVES = [(30, 401, 564, 911), (31, 403, 565, 912)]   # retired7: (warp op, old lender, new lender, new lender's last B gate)
++NEW7 = [(667, 401), (669, 403)]
+ H5 = [h for h, _ in ALIASES]; L5 = [L for _, L in ALIASES]
+ def need(ok, msg):
+@@ -45,5 +49,5 @@ def main():
+         need(hashlib.sha256((HERE / name).read_bytes()).hexdigest() == digest, 'vendored source pin ' + name)
+     AU = load('audit_local_pr2679', HERE / 'vendor/audit_local_pr2679.py'); WP = load('word_patch_pr2679', HERE / 'vendor/word_patch_pr2679.py')
+-    import independent_owners as I, exact_moment as M
++    import independent_owners as I, exact_moment as M, retired7_controls as R7
+     tmp = Path(tempfile.mkdtemp(prefix='retired5-'))
+     def audit(w, name):
+@@ -72,6 +76,30 @@ def main():
+         need(all(s2[k] == s1[k] for k in ('helper_final', 'compensation', 'initial_corrections', 'precondition', 'cut', 'target_levels', 'centers', 'center_frames', 'ports', 'prelude_events')), 'alias5 changes nothing else')
+         s3 = refit_apply(s2, p3); ch3 = frames_only(s2, s3); need(ch3 == {(s, i) for s, i, _ in p3['frames']}, 'refit5c declared frames')
+-        need(s3 == final, 'declared stages rebuild the candidate word ' + tag)
+-        for j, (name, w) in enumerate((('pr2751', w0), ('refit5', s1), ('alias5', s2), ('candidate', s3))):
++        p4, p5, p6, p7 = (rd(f'inputs/{n}_43{tag}.json') for n in ('refit7', 'hostmove2', 'alias7', 'refit7c'))
++        s4 = refit_apply(s3, p4); ch4 = frames_only(s3, s4); need(ch4 == {('B', g) for _, _, _, g in MOVES} == {(s, i) for s, i, _ in p4['frames']}, 'refit7 declared frames')
++        need(all(len(s3['B'][g][-1]) == 6 and len(s4['B'][g][-1]) == 5 and L1 in regs(s3['B'][g]) and max(p for p, e in enumerate(s3['B']) if L1 in regs(e)) == g for _, _, L1, g in MOVES), 'new lenders: last gates lowered 6 -> 5')
++        need(not any(L1 in regs(e) for _, _, L1, _ in MOVES for e in s3['restore']) and p4['previous_frames'] == [[s, i, s3[s][i][-1]] for s, i, _ in p4['frames']], 'new lenders retired; previous frames recorded')
++        s5 = WP.apply_lowfour(s4, p5)
++        need(WP.kernel_gate_edit(s4['B'], s5['B']) == p5['declared_gate_edit'] and s5['removed'] == s4['removed'] and s5['start_extra'] == s4['start_extra'], 'hostmove2 declared edit')
++        for i, (a, b) in enumerate(zip(s4['B'], s5['B'])):
++            c = list(a)
++            for op, L0, L1, _ in MOVES:
++                if i >= s4['warps'][op - 1][0]: c = [L1 if (j in (1, 2) if c[0] == 'add' else j == 1) and x == L0 else x for j, x in enumerate(c)]
++            need(c[:-1] == b[:-1], 'hostmove2 is exactly the relabel of the hostees from their warp positions')
++        need([i for i, (x, y) in enumerate(zip(s4['warps'], s5['warps'])) if x != y] == [op - 1 for op, _, _, _ in MOVES] and len(s5['warps']) == len(s4['warps']), 'hostmove2 replaces exactly warps 30 and 31 in place')
++        need(all(s4['warps'][op - 1][1] == L0 and s5['warps'][op - 1][1] == L1 and len(s5['warps'][op - 1][3]) == len(s5['warps'][op - 1][4]) == 5 and s5['warps'][op - 1][0] > g for op, L0, L1, g in MOVES), 'moved warps: new lenders, dim 5, after the lenders retire')
++        need([[m['pos'], m['L_new'], m['G'], m['U'], m['E']] for m in p5['moves']] == [s5['warps'][op - 1] for op, _, _, _ in MOVES] and [m['old_record'] for m in p5['moves']] == [s4['warps'][op - 1] for op, _, _, _ in MOVES], 'hostmove2 records')
++        need(all(not any(L0 in regs(e) for e in s5['B'] + s5['restore']) for _, L0, _, _ in MOVES), 'old lenders untouched after their A lives')
++        need(all(s5[k] == s4[k] for k in ('A', 'restore', 'helper_final', 'compensation', 'initial_corrections', 'precondition', 'cut', 'target_levels', 'centers', 'center_frames', 'ports', 'prelude_events')), 'hostmove2 changes nothing else')
++        s6 = WP.apply_lowfour(s5, p6); H7 = [h for h, _ in NEW7]; L7 = [L for _, L in NEW7]
++        need(WP.kernel_gate_edit(s5['B'], s6['B']) == p6['declared_gate_edit'] and s6['removed'] == s5['removed'] + H7, 'alias7 declared edit and removed helpers')
++        need(s6['warps'][:len(s5['warps'])] == s5['warps'] and [x[1] for x in s6['warps'][len(s5['warps']):]] == L7 and all(len(x[3]) == len(x[4]) == 4 for x in s6['warps'][-2:]), 'alias7 warps')
++        need([[a['pos'], a['L'], a['G'], a['U'], a['E']] for a in p6['aliases']] == s6['warps'][-2:] and [a['h'] for a in p6['aliases']] == H7 and s6['A'] == s5['A'] and s6['restore'] == s5['restore'], 'alias7 records')
++        need(all(max([p for p, e in enumerate(s5['B']) if L in regs(e)], default=-1) < min(p for p, e in enumerate(s5['B']) if h in regs(e)) for h, L in NEW7) and not any(L in regs(e) for L in L7 for e in s5['restore']), 'alias7 lenders retired before their followers enter')
++        need(s6['start_extra'] == {k: v for k, v in s5['start_extra'].items() if int(k) not in H7} and not any(h in regs(e) for h in H7 for e in s6['B'] + s6['restore']), 'alias7 helpers fully removed')
++        need(all(s6[k] == s5[k] for k in ('helper_final', 'compensation', 'initial_corrections', 'precondition', 'cut', 'target_levels', 'centers', 'center_frames', 'ports', 'prelude_events')), 'alias7 changes nothing else')
++        s7 = refit_apply(s6, p7); ch7 = frames_only(s6, s7); need(ch7 == {(s, i) for s, i, _ in p7['frames']}, 'refit7c declared frames')
++        need(s7 == final, 'declared stages rebuild the candidate word ' + tag)
++        for j, (name, w) in enumerate((('pr2751', w0), ('refit5', s1), ('alias5', s2), ('retired5', s3), ('refit7', s4), ('hostmove2', s5), ('alias7', s6), ('candidate', s7))):
+             r = audit(w, f'{tag}-{name}'); need(r is None, f'auditor rejects {tag} {name}: {r}')
+         c = {}
+@@ -99,5 +127,7 @@ def main():
+                 need(r is not None and not r.split(': ', 1)[-1].startswith(('explicit cleanup differs', 'warp operator id')), f'{tag} {h}<-{L} {nm}: not rejected for a real reason: {r}')
+         sec, i, fr = p3['frames'][len(p3['frames']) // 2]; m = copy.deepcopy(final); m[sec][i][-1] = [1]; r = audit(m, f'{tag}-refit5c-tamper'); c['certified frame corrupted'] = r; need(r is not None, f'{tag} refit5c tamper accepted')
+-        out['words'][tag] = dict(refit5_frames=len(ch1), alias5_gate_edits=len(p2['declared_gate_edit']), refit5c_frames=len(ch3), local_profile=final['report']['local_profile'])
++        ok7, c7 = R7.controls(final, p4, p5, p6, p7, lambda w: audit(w, f'{tag}-r7'), WP); need(ok7, f'{tag} retired7 controls: ' + json.dumps({k: v['reason'] for k, v in c7.items() if not v['real_reason']})[:300])
++        c.update({k: v['reason'] for k, v in c7.items()})
++        out['words'][tag] = dict(refit5_frames=len(ch1), alias5_gate_edits=len(p2['declared_gate_edit']), refit5c_frames=len(ch3), refit7_frames=len(ch4), hostmove2_gate_edits=len(p5['declared_gate_edit']), alias7_gate_edits=len(p6['declared_gate_edit']), refit7c_frames=len(ch7), retired7_controls=len(c7), local_profile=final['report']['local_profile'])
+         out['controls'][tag] = {k: v[:90] for k, v in c.items()}
+     # literal owner check of the complete candidate fill
+@@ -106,5 +136,5 @@ def main():
+     profile = {int(k): v for k, v in rd('CLAIM.json')['profile'].items()}
+     owner = I.check(rd('inputs/PLAN.json.gz'), rd('inputs/GLOBAL-TEMPLATE.json.gz'), order, fill, providers, dispatch, profile)
+-    need(owner['roles'] == 666 * 410 and owner['helpers_per_call'] == 410, 'owner fill size')
++    need(owner['roles'] == 666 * 408 and owner['helpers_per_call'] == 408, 'owner fill size')
+     # exact endpoint and kappa
+     claim = rd('CLAIM.json'); C = F(claim['complex_lower'])
+@@ -122,5 +152,5 @@ def main():
+         k = F(rd(rel)['kappa']); need(K > k, 'strict improvement over ' + name); d = K - k
+         margins[name] = dict(decimal=str(Decimal(d.numerator) / Decimal(d.denominator))[:40], exact=str(d) if len(str(d)) < 120 else 'K - kappa(' + rel + ')')
+-    out.update(status='PASS_T74_JOINT_TWELVE_RETIRED5_STAGES_AUDITOR_CONTROLS_OWNERS_ENDPOINT', owner=dict(status=owner['status'], roles=owner['roles']),
++    out.update(status='PASS_T74_JOINT_TWELVE_RETIRED7_STAGES_AUDITOR_CONTROLS_OWNERS_ENDPOINT', owner=dict(status=owner['status'], roles=owner['roles']),
+                complex_lower=str(C), root_80_digits=str(+z)[:82], kappa=str(K), margins=margins,
+                scope='Finite construction replay only: word stages, the pinned PR2679 auditor and its controls, the literal owner fill and exact moment arithmetic. Native providers, strict supplier and outer release are the full replay (full_replay.py).')
+diff --git a/new/rebuild_borrow.py b/new/rebuild_borrow.py
+index d7cac67..157c371 100644
+--- a/new/rebuild_borrow.py
++++ b/new/rebuild_borrow.py
+@@ -1,3 +1,3 @@
+-"""rebuild_borrow.py [retired5: + refit5/alias5/refit5c stages and controls]: rebuild the k=43 BORROW-WORDs from borrow/inputs (canonical words, block certificate, #2226-style witnesses),
++"""rebuild_borrow.py [retired5: + refit5/alias5/refit5c stages and controls; retired7: + refit7/hostmove2/alias7/refit7c stages and controls]: rebuild the k=43 BORROW-WORDs from borrow/inputs (canonical words, block certificate, #2226-style witnesses),
+ check they equal the shipped borrow/words byte-for-content, run the extended auditor (borrow/audit_local.py) and its negative controls.
+ usage: python -B rebuild_borrow.py [--no-controls]   (exit 0 only if everything passes)"""
+@@ -152,4 +152,48 @@ for canon,wt,h in CASES:
+         try:chc=frames_only(prev_c5,nc5);kok&=chc=={(s_,i_) for s_,i_,_ in r5cpatch['frames']}
+         except AssertionError:kok=False
++    M7=[(30,401,564,911),(31,403,565,912)];N7=[(667,401),(669,403)];H7=[h_ for h_,_ in N7];L7=[L_ for _,L_ in N7]   # retired7: hostee moves (warp op, old lender, new lender, new lender's last B gate) and two new aliases
++    def relabel_ok(x,y,pairs):   # y's B section is x's with old->new lender relabelled from each pair's start, nothing else
++        for i_,(a_,b_) in enumerate(zip(x,y)):
++            c_=list(a_)
++            for st_,o_,n_ in pairs:
++                if i_>=st_:
++                    if c_[0]=='add':c_[1]=n_ if c_[1]==o_ else c_[1];c_[2]=n_ if c_[2]==o_ else c_[2]
++                    elif c_[1]==o_:c_[1]=n_
++            if c_[:-1]!=b_[:-1]:return False
++        return len(x)==len(y)
++    r7f=D/'inputs'/f'refit7_43{wt}.json';r7patch=None
++    if r7f.exists():   # retired7: the free retired lenders 564/565 get their last gates (B911/B912) at the exact frame floor, dim 6 -> 5
++        r7patch=json.loads(r7f.read_text());prev_r7=chain[-1];chain.append(refit_apply(prev_r7,r7patch));steps.append('refit7');nr7=chain[-1]
++        try:ch7=frames_only(prev_r7,nr7);kok&=ch7=={('B',g_) for _,_,_,g_ in M7}=={(s_,i_) for s_,i_,_ in r7patch['frames']}
++        except AssertionError:kok=False
++        kok&=all(len(prev_r7['B'][g_][-1])==6 and len(nr7['B'][g_][-1])==5 and L1_ in regs_(prev_r7['B'][g_]) and max(p_ for p_,e_ in enumerate(prev_r7['B']) if L1_ in regs_(e_))==g_ for _,_,L1_,g_ in M7)
++        kok&=not any(L1_ in regs_(e_) for _,_,L1_,_ in M7 for e_ in prev_r7['restore']) and r7patch['previous_frames']==[[s_,i_,prev_r7[s_][i_][-1]] for s_,i_,_ in r7patch['frames']]
++    h7f=D/'inputs'/f'hostmove2_43{wt}.json';h7patch=None
++    if h7f.exists():   # retired7: the hostees of warps 30/31 (lenders 401/403, whose own lives end in A) move onto 564/565; warp records replaced in place
++        h7patch=json.loads(h7f.read_text());prev_h7=chain[-1];chain.append(word_patch.apply_lowfour(prev_h7,h7patch));steps.append('hostmove2');nh7=chain[-1]
++        kok&=word_patch.kernel_gate_edit(prev_h7['B'],nh7['B'])==h7patch['declared_gate_edit'] and nh7['removed']==prev_h7['removed'] and nh7['start_extra']==prev_h7['start_extra']
++        kok&=relabel_ok(prev_h7['B'],nh7['B'],[(prev_h7['warps'][op_-1][0],L0_,L1_) for op_,L0_,L1_,_ in M7])
++        kok&=[i_ for i_,(x_,y_) in enumerate(zip(prev_h7['warps'],nh7['warps'])) if x_!=y_]==[op_-1 for op_,_,_,_ in M7] and len(nh7['warps'])==len(prev_h7['warps'])
++        kok&=all(prev_h7['warps'][op_-1][1]==L0_ and nh7['warps'][op_-1][1]==L1_ and len(nh7['warps'][op_-1][3])==len(nh7['warps'][op_-1][4])==5 for op_,L0_,L1_,_ in M7)
++        kok&=[[m_['pos'],m_['L_new'],m_['G'],m_['U'],m_['E']] for m_ in h7patch['moves']]==[nh7['warps'][op_-1] for op_,_,_,_ in M7] and [m_['old_record'] for m_ in h7patch['moves']]==[prev_h7['warps'][op_-1] for op_,_,_,_ in M7]
++        kok&=all(not any(L0_ in regs_(e_) for e_ in nh7['B']+nh7['restore']) for _,L0_,_,_ in M7) and all(nh7['warps'][op_-1][0]>g_ for op_,_,_,g_ in M7)
++        kok&=all(nh7[k_]==prev_h7[k_] for k_ in ('A','restore','helper_final','compensation','initial_corrections','precondition','cut','target_levels','centers','center_frames','ports','prelude_events'))
++    a7f=D/'inputs'/f'alias7_43{wt}.json';a7patch=None
++    if a7f.exists():   # retired7: retired-lender aliases 667<-401 and 669<-403 (the PR2679 kind) after the hostee moves
++        a7patch=json.loads(a7f.read_text());prev_a7=chain[-1];chain.append(word_patch.apply_lowfour(prev_a7,a7patch));steps.append('alias7');na7=chain[-1]
++        kok&=word_patch.kernel_gate_edit(prev_a7['B'],na7['B'])==a7patch['declared_gate_edit'] and na7['removed']==prev_a7['removed']+H7
++        kok&=relabel_ok(prev_a7['B'],na7['B'],[(min(p_ for p_,e_ in enumerate(prev_a7['B']) if h_ in regs_(e_)),h_,L_) for h_,L_ in N7])
++        kok&=na7['warps'][:len(prev_a7['warps'])]==prev_a7['warps'] and [x_[1] for x_ in na7['warps'][len(prev_a7['warps']):]]==L7 and all(len(x_[3])==len(x_[4])==4 for x_ in na7['warps'][-2:])
++        kok&=[[a_['pos'],a_['L'],a_['G'],a_['U'],a_['E']] for a_ in a7patch['aliases']]==na7['warps'][-2:] and [a_['h'] for a_ in a7patch['aliases']]==H7
++        kok&=all(max([p_ for p_,e_ in enumerate(prev_a7['B']) if L_ in regs_(e_)],default=-1)<min(p_ for p_,e_ in enumerate(prev_a7['B']) if h_ in regs_(e_)) for h_,L_ in N7) and not any(L_ in regs_(e_) for L_ in L7 for e_ in prev_a7['restore'])
++        kok&=na7['A']==prev_a7['A'] and na7['restore']==prev_a7['restore'] and len(na7['B'])==len(prev_a7['B'])
++        kok&=na7['start_extra']=={k_:v_ for k_,v_ in prev_a7['start_extra'].items() if int(k_) not in H7} and all(str(h_) in prev_a7['start_extra'] for h_ in H7)
++        kok&=all(na7[k_]==prev_a7[k_] for k_ in ('helper_final','compensation','initial_corrections','precondition','cut','target_levels','centers','center_frames','ports','prelude_events'))
++        kok&=not any(h_ in regs_(e_) for h_ in H7 for e_ in na7['B']+na7['restore'])
++    r7c=D/'inputs'/f'refit7c_43{wt}.json';r7cpatch=None
++    if r7c.exists():   # retired7: certified optimal frames of the final program (frames only)
++        r7cpatch=json.loads(r7c.read_text());prev_c7=chain[-1];chain.append(refit_apply(prev_c7,r7cpatch));steps.append('refit7c');nc7=chain[-1]
++        try:chc7=frames_only(prev_c7,nc7);kok&=chc7=={(s_,i_) for s_,i_,_ in r7cpatch['frames']}
++        except AssertionError:kok=False
+     final=json.loads(gzip.decompress(shipped.read_bytes()))
+     same=final==chain[-1]
+@@ -200,4 +244,8 @@ for canon,wt,h in CASES:
+             bp=pw/'refit5c_tamper.json.gz';bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0));br=run_audit(bp,None,pw/'refit5c_tamper.out.json')
+             res['refit5c_tamper_rejected']=br.returncode!=0;ok&=br.returncode!=0
++        if r7patch and h7patch and a7patch and r7cpatch:   # retired7 controls (retired7_controls.py): lender refits undone, moves undone/reverted/early/G wrong, the PR2679 alias suite per new alias, a certified frame corrupted
++            xc7=subprocess.run([sys.executable,'-B',str(D/'retired7_controls.py'),str(shipped),str(D/'inputs'),wt,str(RCP/f'CONTROLS-RETIRED7-43{wt}.json')],capture_output=True,text=True)
++            ok&=xc7.returncode==0;res['retired7_controls_rc']=xc7.returncode
++            print('RETIRED7-CONTROLS',wt,'rc',xc7.returncode,xc7.stdout.strip().splitlines()[-1:],flush=True)
+         kc_ok,kc=kernel_controls(kstate,kpatch,tempfile.mkdtemp());ok&=kc_ok;res['kernel_controls_rejected']=kc
+         if apatch:
+diff --git a/retired7_controls.py b/retired7_controls.py
+new file mode 100644
+index 0000000..67a9818
+--- /dev/null
++++ b/retired7_controls.py
+@@ -0,0 +1,73 @@
++# SPDX-License-Identifier: Apache-2.0
++# Marius-Paul Dumitrean, with substantial AI assistance (Anthropic Claude, via Claude Code).
++"""retired7 tamper controls on a final BORROW-WORD (each mutant gets its inverse-reverse cleanup re-derived from its own forward
++word; a rejection by a stale-cleanup/operator-id reason counts as a FAILURE):
++  refit7: each new lender's last-gate refit undone must be rejected by 'warp frame mismatch';
++  hostmove2: per moved hostee - warp lender reverted, move undone (hostee back on its old lender, which now hosts the new alias),
++             warp before the new lender retires, G wrong;
++  alias7 (the PR2679 alias suite per new alias): borrowed read sign flipped, read doubled, write sign flipped, warp dropped,
++             G wrong, warp after the follower's first gate (the lender's own life ended in A, so 'before retirement' has no B position),
++             helper kept with an entrance frame;
++  refit7c: one certified frame corrupted.
++usage: retired7_controls.py WORD INPUT_DIR TAG OUT   (INPUT_DIR holds refit7/hostmove2/alias7/refit7c_43TAG.json; audit_local.py and
++word_patch.py are imported from this directory)"""
++import copy, contextlib, gzip, io, json, sys, tempfile
++from pathlib import Path
++VACUOUS = ('explicit cleanup differs', 'warp operator id')
++def regs(e): return e[1:3] if e[0] == 'add' else e[1:2]
++def relabel(m, start, a, b):
++    for i in range(start, len(m['B'])):
++        e = m['B'][i]
++        if e[0] == 'add':
++            if e[1] == a: e[1] = b
++            if e[2] == a: e[2] = b
++        elif e[1] == a: e[1] = b
++def controls(w0, p7, ph, pa, pc, audit, WP):
++    """audit(word) -> None (accepted) or the rejection reason; returns (all_ok, results)"""
++    def rederive(m):
++        m2 = copy.deepcopy(m); A = m2['A']; m2['A'] = A[m2['prelude_events']:]; m2['cleanup'] = WP.derive_cleanup(m2, WP.restored_of(w0)); m2['A'] = A; return m2
++    res = {}
++    def expect(name, m, reason=None, fresh=True):
++        r = audit(rederive(m) if fresh else m)
++        ok = r is not None and not r.split(': ', 1)[-1].startswith(VACUOUS) and (reason is None or reason in r)
++        res[name] = dict(rejected=r is not None, reason=(r or '')[:160], real_reason=ok)
++    need = audit(w0); assert need is None, ('unmutated final word rejected', need)
++    for sec, i, fr in p7['previous_frames']:
++        m = copy.deepcopy(w0); m[sec][i][-1] = fr; expect(f'refit7 {sec}{i} lender refit undone', m, 'warp frame mismatch')
++    for mv in ph['moves']:
++        k = mv['op'] - 1; tag = f"move{mv['op']} {mv['L_old']}->{mv['L_new']}"
++        m = copy.deepcopy(w0); m['warps'][k][1] = mv['L_old']; expect(tag + ' warp lender reverted', m)
++        m = copy.deepcopy(w0); m['warps'][k] = copy.deepcopy(mv['old_record']); relabel(m, mv['old_pos'], mv['L_new'], mv['L_old']); expect(tag + ' move undone', m)
++        m = copy.deepcopy(w0); m['warps'][k][0] = mv['pos'] - 400; expect(tag + ' warp before lender retirement', m)
++        m = copy.deepcopy(w0); m['warps'][k][2][0] ^= m['warps'][k][2][1]; expect(tag + ' G wrong', m)
++    for a in pa['aliases']:
++        h, L = a['h'], a['L']; op = next(i for i, r in enumerate(w0['warps']) if r[1] == L and r[0] == a['pos']); tag = f'{h}<-{L}'
++        reads = [i for i, g in enumerate(w0['B']) if i >= a['pos'] and g[0] == 'add' and g[2] == L]
++        writes = [i for i, g in enumerate(w0['B']) if i >= a['pos'] and g[0] == 'add' and g[1] == L]
++        m = copy.deepcopy(w0); m['B'][reads[0]][3] *= -1; expect(tag + ' borrowed read sign flipped', m)
++        m = copy.deepcopy(w0); m['B'][reads[0]][3] *= 2; expect(tag + ' borrowed read doubled', m)
++        if writes: m = copy.deepcopy(w0); m['B'][writes[0]][3] *= -1; expect(tag + ' borrowed write sign flipped', m)
++        m = copy.deepcopy(w0); del m['warps'][op]
++        for e in m['A'][:m['prelude_events']]:
++            if e[0] == 'warp' and abs(e[2]) > op + 1: e[2] -= 1 if e[2] > 0 else -1
++        expect(tag + ' warp dropped', m)
++        m = copy.deepcopy(w0); m['warps'][op][2][0] ^= m['warps'][op][2][1]; expect(tag + ' G wrong', m)
++        m = copy.deepcopy(w0); m['warps'][op][0] = a['pos'] + 1; expect(tag + " warp after the follower's first gate", m)
++        m = copy.deepcopy(w0); m['start_extra'][str(h)] = a['E']; expect(f'{h} kept with an entrance frame', m)
++    sec, i, fr = pc['frames'][0]; m = copy.deepcopy(w0); m[sec][i][-1] = [1]; expect('refit7c certified frame corrupted', m, fresh=False)
++    return all(r['real_reason'] for r in res.values()), res
++if __name__ == '__main__':
++    here = Path(__file__).resolve().parent; sys.path.insert(0, str(here))
++    import audit_local as al, word_patch as WP
++    w0 = json.loads(gzip.decompress(Path(sys.argv[1]).read_bytes())); D = Path(sys.argv[2]); tag = sys.argv[3]; tmp = Path(tempfile.mkdtemp())
++    p = {n: json.loads((D / f'{n}_43{tag}.json').read_text()) for n in ('refit7', 'hostmove2', 'alias7', 'refit7c')}
++    def audit(w):
++        q = tmp / 'm.json.gz'; q.write_bytes(gzip.compress(json.dumps(w, separators=(',', ':')).encode()))
++        try:
++            with contextlib.redirect_stdout(io.StringIO()): al.run(q, tmp / 'm.out.json', None, None)
++            return None
++        except (AssertionError, RuntimeError, ValueError, KeyError, IndexError) as e:
++            return (type(e).__name__ + ': ' + str(e))[:200]
++    ok, res = controls(w0, p['refit7'], p['hostmove2'], p['alias7'], p['refit7c'], audit, WP)
++    Path(sys.argv[4]).write_text(json.dumps(dict(all_rejected_for_real_reasons=ok, controls=res), indent=1) + '\n')
++    print(('ALL RETIRED7 CONTROLS REJECTED' if ok else 'RETIRED7 CONTROL FAILURE'), sum(r['real_reason'] for r in res.values()), 'of', len(res)); sys.exit(0 if ok else 1)

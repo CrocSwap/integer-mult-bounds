@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "number": 773,
+  "title": "Research audit: exact packed-bit repair density via carry states",
+  "author": {
+    "id": "MDQ6VXNlcjgyNjA3NDU=",
+    "is_bot": false,
+    "login": "Kyu",
+    "name": "Precious "
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/773",
+  "head": "dbd9da3eed9a0045b77de861099e869259f1ad13",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/packed-carry-automaton-audit/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "78480ef671e54ee22158e4f6c0fa537d7b61c3eb"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-carry-automaton-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a557946bfe30812ee548f572c561fccce4167206"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-carry-automaton-audit/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b7df5d3f81b201f72f4b575c488908b17bb705fd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-carry-automaton-audit/SOURCE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2d05116ec53643ab2a0d3bba4848b3b0aea3aebf"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/packed-carry-automaton-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cbfad6641b12e66f95d22abec118fae89eb8a4c7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/packed-carry-automaton-audit": 5
+  },
+  "github_reported_file_count": 5,
+  "complete_git_file_count": 5,
+  "body": "The retained packed selected-bit gadget corrects its eight rotations using a sufficient guard envelope. This **research audit / independent verification** counts the actual forward disagreements, and the support of the necessary correction, exactly:\n\n`1 - (1 - 2^(-(K+1)))^max(f-2,0)`\n\nThe formula holds on each complete rectangle for every source-domain `K >= 6`, `f >= 1`, and allowed offset. A five-state carry automaton tracks matching prefixes, including carries that leave a segment and later cancel. Its transition counts follow from 40 symbolic parity cases and exact guard-class multiplicities, rather than interpolation from finite radices. The note supplies the recurrence and complete inherited repair cost. **No new kappa is claimed.**\n\nThis adds distinct evidence beyond Aryan Sudhir's concurrent #735, pinned at `8d36139e49add1e55795e283b3bfa45e1cfe1bf0`. That contribution proves a sufficient invariant no-escape envelope and explicitly leaves the exact failure set separate. I initially rediscovered that envelope, found #735 during the overlap refresh, and made one scoped pivot to carry-state counting. Its priority and attribution are preserved; no #735 code is imported.\n\nFor `K=6,f=3`, the exact failure fraction is `1/128`, compared with the sufficient envelope's `254079/4194304`. The package also implements extraction, sorting, and reinsertion on the correction support. A source-domain counterexample shows why testing forward correctness at a *current* address can skip a necessary correction. This is not a defect in the retained invariant-envelope proof or #735.\n\nOnly `research/packed-carry-automaton-audit/` is added: proof, verifier, exact receipt, source pins, and local sprint claim/result.\n\nReproduce with the standard library:\n\n```sh\npython3 -B research/packed-carry-automaton-audit/verify.py\n```\n\nExpected: `PASS_PACKED_CARRY_AUTOMATON`, with 873,760 literal digit cases, 40,960 comparisons with the unchanged existing simulator, 114,752 exhaustive payload-repair states, 116,736 source-domain samples, and eight negative controls. The proof's universal coverage comes from the symbolic partition and recurrence; finite replay is supporting evidence, not a formal theorem proof.\n\nValidation passed on CPython 3.9.6/macOS: normal receipt check, relocated minimal replay under `-O`, deliberate source-drift rejection, all 14 relevant existing tests, `make selected-record-check`, and `git diff --check`. Full `make verify` and the supplier cold replay were not run for this isolated addition. Remote CI is separate. Upstream and the selected construction are unchanged; fixed-tape implementation, supplier compilation/hosting, precision, and analytic transfer remain inherited obligations.\n\nBase: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. OpenAI source: `adc7f1241b42e322a6451854ab7e4b4c146bf78a`; exact file hashes are in `SOURCE.json`. Assignment seed **70**, adversarial mathematical audit. No pinned sprint coordination issue existed, so the claim and result are recorded locally. The pre-submission overlap review found no second exact carry-state counting contribution.\n\nPrepared by **Precious Oyetunji (@Kyu)**, with substantial OpenAI Codex assistance in derivation, implementation, verification, and writing. Credit OpenAI's original gadget, Douglas Colkitt's preceding audits, the historical packed-movement/short-guard work, and Aryan Sudhir's #735. New material is Apache-2.0. No human peer review or proof-assistant verification is claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "62aebc8e728906ef750d6e8635807feb3fe708200ebf45bdb0ea228fa7ef98d2"
+}

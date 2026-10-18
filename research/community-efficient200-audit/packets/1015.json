@@ -1,0 +1,493 @@
+{
+  "schema_version": 1,
+  "number": 1015,
+  "title": "Finite bit construction: multi-write shear programs for all ten R439 phase-B blocks (24,305 -> 24,053 ADDs, no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1015",
+  "head": "7588c797f4a4e9f2b9fc663cfa6e35afcac05e06",
+  "merge_base": "007664306fff84fbb1c9a1b4053b69f439764034",
+  "baseline": "858771bcca3b8dd5d4ef4aa682a13cc9b7e23920",
+  "files": [
+    {
+      "path": "research/r439-bsection-multwrite/CANDIDATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "16532f2d8d4fb16fde803cecf32e3ce11369ea56"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ad0c40c333eaea96e1515baa8e33089d1551ac30"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "89bbc92b5c647d1887f40a969ab2fcf757ad15d8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/NOTICE.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "727d5b586299ff1615b749f9f273c823b26e711d"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e200b4cb1ff05f47b1dc2da01c1b1f6024bdaaeb"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "64af8cf107b44c1ba03bb7850d506f7502897cb4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b756dccdb0dce8413d4e5599df34581834708e68"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0ea75623e6f16b3590a16d7d07ee03ae1b119666"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-bsection-multwrite/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "16df26084edfc4a0c2866e3c1b88aa13d3d435bf"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r439-bsection-multwrite": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "**Status: finite bit-circuit construction; no new kappa.** One deterministic search in the full multi-write shear class replaces every phase-B block of the pinned PR589 tuned R439 word with a shorter exact program on the same registers at the same frame. The complete exported local word falls **24,305 -> 24,053 ADDs** (388 -> 262 block gates, 252 complete ADDs with literal reverse cleanup).\n\n| quantity | before | after |\n|---|---:|---:|\n| phase-B block gates (all ten) | 388 | 262 |\n| complete ADD records | 24,305 | 24,053 |\n| forward positive bound | 49,347 | 26,653 |\n| composed reverse positive bound | 1,113,070 | 776,006 |\n| local payload | 93 bits | 90 bits (cap 104) |\n| paid profile / rank mass | {1:1323, 2:1342, 3:79, 4:44, 5:102, 6:11, 7:19} / 5,129 | unchanged |\n| kappa | complex-bound at base | unchanged |\n\nPer-block (word -> this search -> best previously recorded): 506 26->21 (#891 class min 24; #1001 also 21), 507 35->24 (#880 30; #884's README's unpublished 24-gate hint matched), 519 42->27 (#908 32), 508 37->21 (#873/#891 30), 520 41->37 (#923 claims 29 - **not beaten here**), 509 31->21 (#973 also 21), 521 47->30 (#884 31), 522 43->29 (#906 33), 523 45->26 (#891 39, #857 40), 524 41->26 (#914 27).\n\n**Class and coverage.** A block replacement is exactly a legal nonnegative row/column subtraction path from the block's integer transfer matrix to the identity; the class is all multi-write shear programs on the block's own registers (shared intermediates included), strictly containing #891's single-write class and #880's fixed splits. `search.py` runs per block: 6,000 min-excess greedy reductions with random tie-breaks, 4,000 uniform random legal trajectories (cap 90), one width-6,000 beam below the incumbent. Seeds `20261013+frame`; all trials complete; no adaptive stopping. **Best found is not a minimality result** for any block.\n\n**Reproduce** (stdlib Python 3.11+, ~2 min):\n\n```sh\npython3 -I -B research/r439-bsection-multwrite/verify.py\n```\n\nExpected: `PASS_R439_BSECTION_MULTWRITE gates=388->262 ADDs=24305->24053 columns=661 controls=8 rank_mass=5129 kappa=unchanged`. `search.py` regenerates `CANDIDATE.json` byte for byte (SHA-256 `771F980643402EB44B25312923B376A952E9C8ABB55796CBDC348BA51FC62728`, confirmed across two full runs). The verifier imports no search code: source pins, per-block integer maps and 2^10-2^12 Boolean truth tables, ten-way splice with literal cleanup, all 661 dirty-input endpoint columns, H1-H5 via the pinned `xcheck_p.py`, paid profile/rank mass, exporter bills and bounds via the pinned `export_records.py`, and eight rejected mutation controls. Exact report pinned in `CERTIFICATE.json`.\n\n**Overlap (refreshed at submission).** #1001 (506@21) and #973 (509@21) independently reach two of these counts - convergent evidence, credited. #989 composes four blocks (507/508/519/524) at 24,233 ADDs; this search's programs on those frames (24/21/27/26) are strictly shorter than what it composes (30/30/32/27) and this word covers all ten blocks. #923's frame-520 program (29) is stronger than this search's 37 and is not imported. The phase-A prefix line (#904/#936/#952/#980) and the D-prefix substitution candidates (#915/#926/#941) are different mechanisms, not composed. No concurrent implementation is used.\n\n**Scope.** Only `research/r439-bsection-multwrite/` is added; `upstream/`, the selected record and all consumed sources are unchanged (base `007664306fff84fbb1c9a1b4053b69f439764034`, pins in `SOURCES.json`). Conditional finite construction: native 5/9/11-stage replays, hosted invoice, supplier binding, outer assembly, Lean and remote CI are not run here; all inherited all-size/compiler, common-label/mutable-source, whole-call hosting, precision/tape and analytic assumptions remain. The spliced word is a research witness, not a proposed frontier. Sprint claim, method, seed (16, bit-supplier track) and development defects are recorded in `CLAIM.md`/`VALIDATION.md`.\n\nCredit: eumemic (#555/#543), DreamingOfClouds (#589/#545), Dylan Crow, Zhihao Chen and the retained supplier lineage; block-level framing and comparison credit to Aaron Wang (#891/#973), Krishnendu Purohit (#880), martin Rv (#884), and #857/#873/#906/#908/#914/#923/#989/#1001. Prepared with help from opencode. Apache-2.0; no independent human review is claimed.",
+  "checks": [
+    {
+      "name": "finite",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061985/job/115416497495"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061768/job/115416496870"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061795/job/115416496713"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061752/job/115416496670"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497412"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061796/job/115416497048"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061768/job/115416496583"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061795/job/115416497191"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061752/job/115416496336"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497496"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061796/job/115416496501"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497428"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497459"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497669"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497396"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497518"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497419"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497416"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497354"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497567"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497465"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497362"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497597"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416498193"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497573"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497689"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497314"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497365"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497375"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497260"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497539"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497769"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497438"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497410"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497513"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497339"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497656"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497721"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497639"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497710"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497703"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497509"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497667"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497681"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497792"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497581"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497739"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497937"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497962"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416498018"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497847"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497715"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497677"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416498658"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497763"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497730"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416497788"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416496246"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416496449"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416496679"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38432061764/job/115416496411"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "560f35d1d1d21058a34f406b64f9320ba734de3a02277d176d0eb7fc0311f32e"
+}

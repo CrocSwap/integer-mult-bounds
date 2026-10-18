@@ -1,0 +1,1577 @@
+{
+  "schema": "pure-math-atlas-source-ledger/v1",
+  "volume": "III",
+  "date": "2026-10-15",
+  "draft_sha256": "b313fc596333de77cfa6caa05b402db646ca8849967d65861630a2f7cae625cd",
+  "formal_claim": false,
+  "coverage": {
+    "eligible_library": "full registered library and authoritative DAG, including project and federated historical/download sources",
+    "actual_retrieval": "bounded indexed FTS operation_search MATCH queries; exact rows saved separately; direct reads of relevant declarations/proofs",
+    "exhaustive_entire_tree_review": false,
+    "DAG_edited": false,
+    "Lean_processes_or_models_invoked": false,
+    "Jev_used": false,
+    "sourceGoal_or_conditional_leaf_promoted_to_fact": false,
+    "source_catalog_results_are_kernel_checks": false
+  },
+  "dag_discovery": {
+    "path": "03-dag-discovery.json",
+    "sha256": "31bc99450cc8306051b49f1056b70c218f6bf44377f05a8092346f2f4e8bb6cc",
+    "evidence_class": "source-catalog rows; axioms=null is unknown, not axiom-free",
+    "missing_query_results": "zero hits is not an absence proof"
+  },
+  "local_sources": [
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean",
+      "sha256": "49b093c1b6e9b4690fef4bb0b238e482be666a1a06f37838fdd24ef1f6f4c082",
+      "bytes": 55160,
+      "entries": [
+        "C011",
+        "C012",
+        "C013",
+        "C014",
+        "C015",
+        "C016",
+        "C017",
+        "C018",
+        "C019"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 192,
+          "end_line": 203,
+          "declaration_excerpt": "structure Matroid (α : Type*) where\n  /-- `M` has a ground set `E`. -/\n  (E : Set α)\n  /-- `M` has a predicate `Base` defining its bases. -/\n  (IsBase : Set α → Prop)\n  /-- `M` has a predicate `Indep` defining its independent sets. -/\n  (Indep : Set α → Prop)\n  /-- The `Indep`endent sets are those contained in `Base`s. -/\n  (indep_iff' : ∀ ⦃I⦄, Indep I ↔ ∃ B, IsBase B ∧ I ⊆ B)\n  /-- There is at least one `Base`. -/\n  (exists_isBase : ∃ B, IsBase B)\n  /-- For any bases `B`, `B'` and `e ∈ B \\ B'`, there is some `f ∈ B' \\ B` for which `B-e+f`"
+        },
+        {
+          "start_line": 826,
+          "end_line": 837,
+          "declaration_excerpt": "def IsBasis (M : Matroid α) (I X : Set α) : Prop :=\n  Maximal (fun A ↦ M.Indep A ∧ A ⊆ X) I ∧ X ⊆ M.E\n\n/-- `Matroid.IsBasis' I X` is the same as `Matroid.IsBasis I X`,\nwithout the requirement that `X ⊆ M.E`. This is convenient for some\nAPI building, especially when working with rank and closure. -/\ndef IsBasis' (M : Matroid α) (I X : Set α) : Prop :=\n  Maximal (fun A ↦ M.Indep A ∧ A ⊆ X) I\n\nvariable {B I J X Y : Set α} {e : α}\n\ntheorem IsBasis'.indep (hI : M.IsBasis' I X) : M.Indep I :="
+        }
+      ],
+      "scope_note": "Finite independence-axiom proofs here are independent English arguments; Mathlib supports more general infinite matroids.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Hall/Basic.lean",
+      "sha256": "a0fc25755686f59aca33e9e79db59d8a2ad51101b96505c56117da6da9b3715d",
+      "bytes": 9933,
+      "entries": [
+        "C018",
+        "C021",
+        "C026"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 116,
+          "end_line": 127,
+          "declaration_excerpt": "theorem Finset.all_card_le_biUnion_card_iff_exists_injective {ι : Type u} {α : Type v}\n    [DecidableEq α] (t : ι → Finset α) :\n    (∀ s : Finset ι, #s ≤ #(s.biUnion t)) ↔\n      ∃ f : ι → α, Function.Injective f ∧ ∀ x, f x ∈ t x := by\n  constructor\n  · intro h\n    -- Set up the functor\n    have : ∀ ι' : (Finset ι)ᵒᵖ, Nonempty ((hallMatchingsFunctor t).obj ι') := fun ι' =>\n      hallMatchingsOn.nonempty t h ι'.unop\n    classical\n      have : ∀ ι' : (Finset ι)ᵒᵖ, Finite ((hallMatchingsFunctor t).obj ι') := by\n        intro ι'"
+        },
+        {
+          "start_line": 176,
+          "end_line": 187,
+          "declaration_excerpt": "theorem Fintype.all_card_le_rel_image_card_iff_exists_injective {α : Type u} {β : Type v}\n    [DecidableEq β] (R : SetRel α β) [∀ a : α, Fintype (R.image {a})] :\n    (∀ A : Finset α, #A ≤ Fintype.card (R.image A)) ↔\n      ∃ f : α → β, Function.Injective f ∧ ∀ x, x ~[R] f x := by\n  let r' a := (R.image {a}).toFinset\n  have h : ∀ A : Finset α, Fintype.card (R.image A) = #(A.biUnion r') := by\n    intro A\n    rw [← Set.toFinset_card]\n    apply congr_arg\n    ext b\n    simp [r', SetRel.image]\n  have h' : ∀ (f : α → β) (x), x ~[R] f x ↔ f x ∈ r' x := by simp [r', SetRel.image]"
+        }
+      ],
+      "scope_note": "Finite specialization; the inspected file also has compactness-based infinite generalizations.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SimpleGraph/Hall.lean",
+      "sha256": "f92480bf2642e5100294b9eff506bd3d6b7c38a34bf29c3b61ed13a9866bb729",
+      "bytes": 6238,
+      "entries": [
+        "C021",
+        "C024"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 20,
+          "end_line": 31,
+          "declaration_excerpt": "* `exists_isMatching_of_forall_ncard_le`: Hall's marriage theorem for a matching on a single\n  partition of a bipartite graph.\n* `exists_isPerfectMatching_of_forall_ncard_le`: Hall's marriage theorem for a perfect matching on a\n  bipartite graph.\n\n## Tags\n\nHall's Marriage Theorem\n-/\n\npublic section\n"
+        },
+        {
+          "start_line": 22,
+          "end_line": 33,
+          "declaration_excerpt": "* `exists_isPerfectMatching_of_forall_ncard_le`: Hall's marriage theorem for a perfect matching on a\n  bipartite graph.\n\n## Tags\n\nHall's Marriage Theorem\n-/\n\npublic section\n\nopen Function\n"
+        }
+      ],
+      "scope_note": "Actual bipartite/local-finite hypotheses must be retained; no automatic assertion for arbitrary graphs.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SetFamily/LYM.lean",
+      "sha256": "f63a0133591ec79a96f80c3cf2f4e8a4ee02e69da167cb7d330acc93c2edcd93",
+      "bytes": 11183,
+      "entries": [
+        "C061"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 201,
+          "end_line": 212,
+          "declaration_excerpt": "theorem lubell_yamamoto_meshalkin_inequality_sum_card_div_choose\n    (h𝒜 : IsAntichain (· ⊆ ·) (𝒜 : Set (Finset α))) :\n    ∑ r ∈ range (Fintype.card α + 1), (#(𝒜 # r) / (Fintype.card α).choose r : 𝕜) ≤ 1 := by\n  classical\n    rw [← sum_flip]\n    refine (le_card_falling_div_choose le_rfl h𝒜).trans ?_\n    rw [div_le_iff₀] <;> norm_cast\n    · simpa only [Nat.sub_self, one_mul, Nat.choose_zero_right, falling] using\n        Set.Sized.card_le (sized_falling 0 𝒜)\n    · rw [tsub_self, choose_zero_right]\n      exact zero_lt_one\n"
+        }
+      ],
+      "scope_note": "LYM has an antichain hypothesis and specified field/order structure in the source.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SetFamily/Shatter.lean",
+      "sha256": "23ef5f7b9c19fdc7eedf5e152d6edb82112f1440f2f411852c81764e5e46bc5b",
+      "bytes": 9212,
+      "entries": [
+        "C063",
+        "C064"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 114,
+          "end_line": 125,
+          "declaration_excerpt": "lemma card_le_card_shatterer (𝒜 : Finset (Finset α)) : #𝒜 ≤ #𝒜.shatterer := by\n  refine memberFamily_induction_on 𝒜 ?_ ?_ ?_\n  · simp\n  · rfl\n  intro a 𝒜 ih₀ ih₁\n  set ℬ : Finset (Finset α) :=\n    ((memberSubfamily a 𝒜).shatterer ∩ (nonMemberSubfamily a 𝒜).shatterer).image (insert a)\n  have hℬ : #ℬ = #((memberSubfamily a 𝒜).shatterer ∩ (nonMemberSubfamily a 𝒜).shatterer) := by\n    refine card_image_of_injOn <| insert_erase_invOn.2.injOn.mono ?_\n    simp only [coe_inter, Set.subset_def, Set.mem_inter_iff, mem_coe, Set.mem_ofPred_eq, and_imp,\n      mem_shatterer]\n    exact fun s _ ↦ aux (fun t ht ↦ (mem_filter.1 ht).2)"
+        },
+        {
+          "start_line": 157,
+          "end_line": 168,
+          "declaration_excerpt": "lemma Shatters.of_compression (hs : (𝓓 a 𝒜).Shatters s) : 𝒜.Shatters s := by\n  intro t ht\n  obtain ⟨u, hu, rfl⟩ := hs ht\n  rw [Down.mem_compression] at hu\n  obtain hu | hu := hu\n  · exact ⟨u, hu.1, rfl⟩\n  by_cases ha : a ∈ s\n  · obtain ⟨v, hv, hsv⟩ := hs <| insert_subset ha ht\n    rw [Down.mem_compression] at hv\n    obtain hv | hv := hv\n    · refine ⟨erase v a, hv.2, ?_⟩\n      rw [inter_erase, hsv, erase_insert]"
+        }
+      ],
+      "scope_note": "Pajor form and compression imply the discussed finite-dimensional consequences; proofs supplied independently.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SetFamily/Intersecting.lean",
+      "sha256": "d5c68ba75a892f7eb7fe1b92f62fcb686afc9f48c439fef054323ed3ece73aff",
+      "bytes": 9717,
+      "entries": [
+        "C066"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 50,
+          "end_line": 61,
+          "declaration_excerpt": "theorem Intersecting.mono (h : t ⊆ s) (hs : s.Intersecting) : t.Intersecting := fun _a ha _b hb =>\n  hs (h ha) (h hb)\n\ntheorem Intersecting.bot_notMem (hs : s.Intersecting) : ⊥ ∉ s := fun h => hs h h disjoint_bot_left\n\ntheorem Intersecting.ne_bot (hs : s.Intersecting) (ha : a ∈ s) : a ≠ ⊥ :=\n  ne_of_mem_of_not_mem ha hs.bot_notMem\n\ntheorem intersecting_empty : (∅ : Set α).Intersecting := fun _ => False.elim\n\n@[simp]\ntheorem intersecting_singleton : ({a} : Set α).Intersecting ↔ a ≠ ⊥ := by simp [Intersecting]"
+        },
+        {
+          "start_line": 160,
+          "end_line": 171,
+          "declaration_excerpt": "-- Note, this lemma is false when `α` has exactly one element and boring when `α` is empty.\ntheorem Intersecting.is_max_iff_card_eq (hs : (s : Set α).Intersecting) :\n    (∀ t : Finset α, (t : Set α).Intersecting → s ⊆ t → s = t) ↔ 2 * #s = Fintype.card α := by\n  classical\n    refine ⟨fun h ↦ ?_, fun h t ht hst ↦ Finset.eq_of_subset_of_card_le hst <|\n      Nat.le_of_mul_le_mul_left (ht.card_le.trans_eq h.symm) Nat.two_pos⟩\n    suffices s.disjUnion (s.map ⟨compl, compl_injective⟩) hs.disjoint_map_compl = Finset.univ by\n      rw [Fintype.card, ← this, Nat.two_mul, card_disjUnion, card_map]\n    rw [← coe_eq_univ, disjUnion_eq_union, coe_union, coe_map, Function.Embedding.coeFn_mk,\n      image_eq_preimage_of_inverse compl_compl compl_compl]\n    refine eq_univ_of_forall fun a => ?_\n    simp_rw [mem_union, mem_preimage]"
+        }
+      ],
+      "scope_note": "Source hook only: no assertion that the exact circle proof or all EKR hypotheses are encoded here.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Nullstellensatz.lean",
+      "sha256": "c6b532e916d411b47079725af6b87495bda3a9b5e8c1605720a9f163bcd26a5b",
+      "bytes": 11596,
+      "entries": [
+        "C073",
+        "C074",
+        "C078",
+        "C091"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 67,
+          "end_line": 78,
+          "declaration_excerpt": "theorem eq_zero_of_eval_zero_at_prod_finset {σ : Type*} [Finite σ] [IsDomain R]\n    (P : MvPolynomial σ R) (S : σ → Finset R)\n    (Hdeg : ∀ i, P.degreeOf i < #(S i))\n    (Heval : ∀ (x : σ → R), (∀ i, x i ∈ S i) → eval x P = 0) :\n    P = 0 := by\n  induction σ using Finite.induction_empty_option with\n  | @of_equiv σ τ e h =>\n    suffices MvPolynomial.rename e.symm P = 0 by\n      have that := MvPolynomial.rename_injective (R := R) e.symm (e.symm.injective)\n      rw [RingHom.injective_iff_ker_eq_bot] at that\n      rwa [← RingHom.mem_ker, that] at this\n    apply h _ (fun i ↦ S (e i))"
+        },
+        {
+          "start_line": 241,
+          "end_line": 252,
+          "declaration_excerpt": "theorem combinatorial_nullstellensatz_exists_eval_nonzero [IsDomain R]\n    (f : MvPolynomial σ R)\n    (t : σ →₀ ℕ) (ht : f.coeff t ≠ 0) (ht' : f.totalDegree = t.degree)\n    (S : σ → Finset R) (htS : ∀ i, t i < #(S i)) :\n    ∃ s : σ → R, (∀ i, s i ∈ S i) ∧ eval s f ≠ 0 := by\n  let _ : LinearOrder σ := WellOrderingRel.isWellOrder.linearOrder\n  by_contra! Heval\n  apply ht\n  obtain ⟨h, hh, hf⟩ := combinatorial_nullstellensatz_exists_linearCombination S\n    (fun i ↦ by rw [← Finset.card_pos]; exact Nat.zero_lt_of_lt (htS i)) f Heval\n  rw [hf]\n  rw [linearCombination_apply, Finsupp.sum, coeff_sum]"
+        }
+      ],
+      "scope_note": "Source uses IsDomain and exact target total degree; the field coefficient formula is proved here independently.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Additive/CauchyDavenport.lean",
+      "sha256": "4999acc37ca9da1e6bc782f47833ca23be2da6e7716298b00d63884c49c39a9e",
+      "bytes": 12097,
+      "entries": [
+        "C091",
+        "C092"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 198,
+          "end_line": 209,
+          "declaration_excerpt": "lemma ZMod.cauchy_davenport {p : ℕ} (hp : p.Prime) {s t : Finset (ZMod p)} (hs : s.Nonempty)\n    (ht : t.Nonempty) : min p (#s + #t - 1) ≤ #(s + t) := by\n  simpa only [ZMod.minOrder_of_prime hp, min_le_iff, Nat.cast_le]\n    using cauchy_davenport_minOrder_add hs ht\n\n/-! ### Linearly ordered cancellative semigroups -/\n\n/-- The **Cauchy-Davenport Theorem** for linearly ordered cancellative semigroups. The size of\n`s * t` is lower-bounded by `|s| + |t| - 1`. -/\n@[to_additive\n/-- The **Cauchy-Davenport theorem** for linearly ordered additive cancellative semigroups. The\nsize of `s + t` is lower-bounded by `|s| + |t| - 1`. -/]"
+        },
+        {
+          "start_line": 189,
+          "end_line": 200,
+          "declaration_excerpt": "lemma cauchy_davenport_of_isMulTorsionFree [DecidableEq G] [Group G] [IsMulTorsionFree G]\n    {s t : Finset G} (hs : s.Nonempty) (ht : t.Nonempty) : #s + #t - 1 ≤ #(s * t) := by\n  simpa only [Monoid.minOrder_eq_top, min_eq_right, le_top, Nat.cast_le]\n    using cauchy_davenport_minOrder_mul hs ht\n\n/-! ### $ℤ/nℤ$ -/\n\n/-- The **Cauchy-Davenport Theorem**. If `s`, `t` are nonempty sets in `ℤ/pℤ`, then the size of\n`s + t` is lower-bounded by `|s| + |t| - 1`, unless this quantity is greater than `p`. -/\nlemma ZMod.cauchy_davenport {p : ℕ} (hp : p.Prime) {s t : Finset (ZMod p)} (hs : s.Nonempty)\n    (ht : t.Nonempty) : min p (#s + #t - 1) ≤ #(s + t) := by\n  simpa only [ZMod.minOrder_of_prime hp, min_le_iff, Nat.cast_le]"
+        }
+      ],
+      "scope_note": "Prime characteristic and nonempty hypotheses retained; additive declarations may be generated by to_additive.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Additive/RuzsaCovering.lean",
+      "sha256": "8847356d1e975ed112e9a8ed954814d560a655eae5346c0079d6ba36dc4e6bd0",
+      "bytes": 2815,
+      "entries": [
+        "C094"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 32,
+          "end_line": 43,
+          "declaration_excerpt": "theorem ruzsa_covering_mul (hB : B.Nonempty) (hK : #(A * B) ≤ K * #B) :\n    ∃ F ⊆ A, #F ≤ K ∧ A ⊆ F * (B / B) := by\n  have : ∀ F, Decidable ((F : Set G).PairwiseDisjoint (· • B)) := fun F ↦ Classical.dec _\n  set C := {F ∈ A.powerset | (SetLike.coe F).PairwiseDisjoint (· • B)}\n  obtain ⟨F, hFmax⟩ := C.exists_maximal <| filter_nonempty_iff.2\n    ⟨∅, empty_mem_powerset _, by simp [coe_empty]⟩\n  simp only [C, mem_filter, mem_powerset] at hFmax\n  obtain ⟨hFA, hF⟩ := hFmax.1\n  refine ⟨F, hFA, le_of_mul_le_mul_right ?_ (by positivity : (0 : ℝ) < #B), fun a ha ↦ ?_⟩\n  · calc\n      (#F * #B : ℝ) = #(F * B) := by\n        rw [card_mul_iff.2 <| pairwiseDisjoint_smul_iff.1 hF, Nat.cast_mul]"
+        }
+      ],
+      "scope_note": "Multiplicative theorem inspected; additive counterpart generated by to_additive; our proof is additive and direct.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/Mathproof/IncidenceDesignAutomorphisms.lean",
+      "sha256": "a6f53b1730797a99c7ee06da57d5972a9a058ef4934a733d3687524fa292d6f6",
+      "bytes": 3190,
+      "entries": [
+        "C084"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 72,
+          "end_line": 83,
+          "declaration_excerpt": "theorem pointHom_injective (B : Set (Set I)) :\n    Function.Injective (pointHom B) := by\n  intro e f h\n  have hp : e.1.1 = f.1.1 := congrArg (fun a => a.val) h\n  apply Subtype.ext\n  apply Prod.ext hp\n  apply Equiv.ext\n  intro b\n  apply Subtype.ext\n  ext p\n  obtain ⟨q,rfl⟩ := e.1.1.surjective p\n  exact (e.2 q b).symm.trans (by simpa [hp] using f.2 q b)"
+        },
+        {
+          "start_line": 85,
+          "end_line": 96,
+          "declaration_excerpt": "theorem pointHom_surjective (B : Set (Set I)) :\n    Function.Surjective (pointHom B) := by\n  intro π\n  exact ⟨liftPoint B π, rfl⟩\n\n/-- The literal incidence-pair automorphism group is the full point group. -/\nnoncomputable def incidenceMulEquivPointAut (B : Set (Set I)) :\n    incidenceAut B ≃* BinaryDualSupportDesign.setDesignAut B :=\n  MulEquiv.ofBijective (pointHom B)\n    ⟨pointHom_injective B, pointHom_surjective B⟩\n\n@[simp] theorem incidenceMulEquivPointAut_apply (B : Set (Set I))"
+        },
+        {
+          "start_line": 91,
+          "end_line": 99,
+          "declaration_excerpt": "noncomputable def incidenceMulEquivPointAut (B : Set (Set I)) :\n    incidenceAut B ≃* BinaryDualSupportDesign.setDesignAut B :=\n  MulEquiv.ofBijective (pointHom B)\n    ⟨pointHom_injective B, pointHom_surjective B⟩\n\n@[simp] theorem incidenceMulEquivPointAut_apply (B : Set (Set I))\n    (e : incidenceAut B) : (incidenceMulEquivPointAut B e).val = e.1.1 := rfl\n\nend IncidenceDesignAutomorphisms"
+        }
+      ],
+      "scope_note": "Blocks must be actual subsets, not repeated labels. Exact assumptions inspected.",
+      "evidence_class": "source-inspection-only"
+    },
+    {
+      "path": "D:/proof/lean/mathproof/Mathproof/External/IntegerMultBounds20261008/Matrix/MatchingDual.lean",
+      "sha256": "b8a63b37c4e672f49eccc95e847d8b55be3e093f7111e52d977f664f97ada621",
+      "bytes": 5851,
+      "entries": [
+        "C023"
+      ],
+      "inspection": "read declaration and nearby proof text; no Lean check run",
+      "excerpts": [
+        {
+          "start_line": 68,
+          "end_line": 79,
+          "declaration_excerpt": "theorem matching_weak_duality (edges : List Edge) (unused allPrices : List Int)\n    (rowTotal : Int)\n    (hedge : ∀ e ∈ edges, e.rowPrice+e.columnPrice ≤ e.cost)\n    (hunused : ∀ p ∈ unused, p ≤ 0)\n    (hpartition : List.Perm ((edges.map Edge.columnPrice)++unused) allPrices)\n    (hrows : rowSum edges = rowTotal) :\n    rowTotal+allPrices.sum ≤ costSum edges := by\n  have hsum := perm_int_sum hpartition\n  rw [List.sum_append] at hsum\n  have he := selected_and_unused_bound edges unused hedge hunused\n  unfold selectedSum at he\n  rw [hrows] at he"
+        },
+        {
+          "start_line": 85,
+          "end_line": 96,
+          "declaration_excerpt": "theorem exact_dual_certificate_optimal (candidateCost rowTotal : Int)\n    (allPrices : List Int) (hcertificate : candidateCost = rowTotal+allPrices.sum)\n    (alternative : List Edge) (unused : List Int)\n    (hedge : ∀ e ∈ alternative, e.rowPrice+e.columnPrice ≤ e.cost)\n    (hunused : ∀ p ∈ unused, p ≤ 0)\n    (hpartition : List.Perm ((alternative.map Edge.columnPrice)++unused) allPrices)\n    (hrows : rowSum alternative = rowTotal) :\n    candidateCost ≤ costSum alternative := by\n  rw [hcertificate]\n  exact matching_weak_duality alternative unused allPrices rowTotal hedge hunused hpartition hrows\n\n/-- Tight selected edges attain equality before adding unused prices. -/"
+        }
+      ],
+      "scope_note": "Related discrete duality application only; its price/unused-entry assumptions are not discharged by its declaration and are not imported as facts here.",
+      "evidence_class": "source-inspection-only"
+    }
+  ],
+  "primary_web_sources": [
+    {
+      "entry": "C010",
+      "url": "https://arxiv.org/abs/2610.02295",
+      "authors_or_source": "Costa and Sadhu",
+      "publication_date": "2026-10-01",
+      "scope": "Universal proportion below one half; does not settle Frankl.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C020",
+      "url": "https://arxiv.org/abs/2508.05601",
+      "authors_or_source": "Montgomery and Sauermann",
+      "publication_date": "2025-08-07",
+      "scope": "Asymptotically tight approximate rainbow basis packing/covering, distinct from exact Rota.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C030",
+      "url": "https://arxiv.org/abs/2609.11006",
+      "authors_or_source": "Counting Near-Spanning Matchings in Latin Squares and Steiner Triple Systems",
+      "publication_date": "2026-09-10",
+      "scope": "Near-transversals and even-order variant must not be promoted to odd full transversals.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C030",
+      "url": "https://arxiv.org/abs/1801.02893",
+      "authors_or_source": "What did Ryser Conjecture?",
+      "publication_date": "2018-01",
+      "scope": "Primary formulation distinctions.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C040",
+      "url": "https://arxiv.org/abs/2609.28118",
+      "authors_or_source": "Jean Paul Zerafa",
+      "publication_date": "2026-09-23",
+      "scope": "Stronger five-even-subgraph double-cover problem and claw-free cases.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C040",
+      "url": "https://arxiv.org/abs/2607.16356",
+      "authors_or_source": "Sang-il Oum",
+      "publication_date": "2026-07-17",
+      "scope": "Primary exposition of ordinary cycle-double-cover proof announcement; not a proof of five-cover target.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C050",
+      "url": "https://arxiv.org/abs/2511.11331",
+      "authors_or_source": "Letzter, Pokrovskiy and Ella Williams",
+      "publication_date": "2025-11-14",
+      "scope": "Approximate graceful-labeling progress, not exact graceful tree solution.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C060",
+      "url": "https://arxiv.org/abs/2609.13831",
+      "authors_or_source": "Sichen Wang",
+      "publication_date": "2026-09-12",
+      "scope": "Claimed universal factor165/59; factor two remains a separate target.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C060",
+      "url": "https://arxiv.org/abs/2405.11409",
+      "authors_or_source": "Chahua and Gutiérrez",
+      "publication_date": "2024-05",
+      "scope": "Dense-graph sufficient conditions, not universal Tuza.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C065",
+      "url": "https://arxiv.org/abs/2509.14790",
+      "authors_or_source": "Anup Rao",
+      "publication_date": "2025-09-18",
+      "scope": "Primary author survey of sunflower methods; factorial bound independently proved.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C070",
+      "url": "https://arxiv.org/html/2609.28404v1",
+      "authors_or_source": "David Ellis, Yuval Filmus and Ehud Friedgut",
+      "publication_date": "2026-09-23",
+      "scope": "Section4 Conjecture I, supported symmetric matrices with nonnegative-eigenvalue inertia count; ordinary Chvatal proved in this paper.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C074",
+      "url": "https://www.tau.ac.il/~nogaa/PDFS/null2.pdf",
+      "authors_or_source": "Noga Alon",
+      "publication_date": "1999",
+      "scope": "Original combinatorial Nullstellensatz, polynomial sufficient conditions.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C080",
+      "url": "https://arxiv.org/abs/1412.7574",
+      "authors_or_source": "Levent Alpoge",
+      "publication_date": "2014-12",
+      "scope": "Latin parity cancellation analysis; nonvanishing conjecture remains distinct.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C080",
+      "url": "https://math.ucsd.edu/seminar/alon-tarsi-conjecture-sun-matrix-integrals",
+      "authors_or_source": "UC San Diego primary seminar",
+      "publication_date": "2026-06-02",
+      "scope": "Current discussion of Alon-Tarsi and matrix-integral routes.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C090",
+      "url": "https://arxiv.org/abs/2402.13202",
+      "authors_or_source": "Stefan Steinerberger",
+      "publication_date": "2024-02",
+      "scope": "Approximate sign orthogonality is not exact Hadamard existence.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C090",
+      "url": "https://arxiv.org/abs/2510.12315",
+      "authors_or_source": "Priyanshu, Majhi and Paul",
+      "publication_date": "2025-10",
+      "scope": "Specific exact Hadamard constructions, not all orders.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C096",
+      "url": "https://arxiv.org/abs/1101.3507",
+      "authors_or_source": "Giorgis Petridis",
+      "publication_date": "2011-01-18",
+      "scope": "Original short product-set proof; elementary minimizing-subset argument adapted additively.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C100",
+      "url": "https://arxiv.org/abs/math/0302155",
+      "authors_or_source": "Melvyn B. Nathanson",
+      "publication_date": "2003-02",
+      "scope": "Primary classical additive-basis formulation.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C100",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0012365X26002670",
+      "authors_or_source": "Yuchen Ding and Jie Wang",
+      "publication_date": "2026",
+      "scope": "Current introduction distinguishes natural-number additive-basis conjecture from unique representation bases over integers.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "freshness-exclusion",
+      "url": "https://arxiv.org/abs/2605.28781",
+      "authors_or_source": "Bloom, Sawin, Schildkraut and Zhelezov",
+      "publication_date": "2026-05-27",
+      "scope": "Counterexample to unrestricted real sum-product conjecture; excluded from open-target list.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "freshness-exclusion",
+      "url": "https://arxiv.org/abs/2609.19123",
+      "authors_or_source": "Chang, Hong Liu and Miao Liu",
+      "publication_date": "2026-09-16",
+      "scope": "Earlier September proof announcement of Chvatal downset conjecture; not treated as open.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source status/attribution; not independently verified proof"
+    },
+    {
+      "entry": "C081",
+      "url": "https://webhomes.maths.ed.ac.uk/~v1ranick/papers/rota1.pdf",
+      "authors_or_source": "Gian-Carlo Rota",
+      "publication_date": "1964",
+      "scope": "Primary incidence algebra and Mobius inversion; proof reconstructed directly here.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source attribution; not fresh formal verification"
+    },
+    {
+      "entry": "C082,C083",
+      "url": "https://doi.org/10.1007/BF02546665",
+      "authors_or_source": "George Polya",
+      "publication_date": "1937",
+      "scope": "Primary group-action enumeration and cycle-index theorem; weighted proof reconstructed here.",
+      "retrieved": "2026-10-15",
+      "evidence_class": "primary source attribution; not fresh formal verification"
+    }
+  ],
+  "entries": [
+    {
+      "id": "C001",
+      "title": "Diminishing returns characterizes submodularity",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C002",
+      "title": "A greedy vector is a base-polytope certificate",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C001"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C003",
+      "title": "Exact support function of a submodular base polytope",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C002"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C004",
+      "title": "Tight sets uncross",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C005",
+      "title": "Submodular minimizers form a lattice",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C006",
+      "title": "Weighted cut submodularity with exact slack",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C007",
+      "title": "Coverage functions are submodular",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C001"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C008",
+      "title": "Greedy cardinality approximation",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C001"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C009",
+      "title": "Convexity of the Lovász extension",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C002",
+        "C003"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C010",
+      "title": "Research conjecture: union-closed frequency one half",
+      "classification": "conjecture",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2610.02295"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C011",
+      "title": "Rank is submodular",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C012",
+      "title": "Rank axioms reconstruct a matroid",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C013",
+      "title": "Closure and the exchange law",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C014",
+      "title": "Fundamental circuits are unique",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C015",
+      "title": "Symmetric basis exchange",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C013",
+        "C014"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C016",
+      "title": "Weighted matroid greedy optimization",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C003"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C017",
+      "title": "Contraction has an explicit rank certificate",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C012",
+        "C013"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C018",
+      "title": "Matchable subsets form a transversal matroid",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C022"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean",
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Hall/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C019",
+      "title": "Forests form a graphic matroid",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C041"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Matroid/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C020",
+      "title": "Research conjecture: Rota's basis rearrangement",
+      "classification": "conjecture",
+      "named_proof_dependencies": [
+        "C015"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2508.05601"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C021",
+      "title": "Hall's theorem, including the equality split",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Hall/Basic.lean",
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SimpleGraph/Hall.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C022",
+      "title": "Berge's augmenting-path criterion",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C023",
+      "title": "König's matching–cover equality",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C022"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/Mathproof/External/IntegerMultBounds20261008/Matrix/MatchingDual.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C024",
+      "title": "Regular bipartite graphs have perfect matchings",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C021"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SimpleGraph/Hall.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C025",
+      "title": "Bipartite edge coloring uses exactly Δ colors",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C024"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C026",
+      "title": "Hall's theorem with demands and capacities",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Hall/Basic.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C027",
+      "title": "The deficiency formula",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C028",
+      "title": "Doubly stochastic matrices decompose into permutations",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C029",
+      "title": "Unique bipartite perfect matchings admit forced-edge peeling",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C030",
+      "title": "Research conjecture: odd Latin squares have transversals",
+      "classification": "conjecture",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2609.11006",
+        "https://arxiv.org/abs/1801.02893"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C031",
+      "title": "Flow decomposes into paths and cycles",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C032",
+      "title": "Residual reachability certifies maximum flow",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C033",
+      "title": "Integral max-flow/min-cut",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C032"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C034",
+      "title": "Directed vertex Menger theorem",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C031",
+        "C033"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C035",
+      "title": "Lower-bounded circulation criterion",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C033"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C036",
+      "title": "Directed incidence matrices are totally unimodular",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C037",
+      "title": "Negative-cycle optimality for fixed-value flow",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C031"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C038",
+      "title": "Tree metrics are sums of cut metrics",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C039",
+      "title": "Prescribed outdegrees have a cut criterion",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C026"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C040",
+      "title": "Research conjecture: five even subgraphs double-cover edges",
+      "classification": "conjecture",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2609.28118",
+        "https://arxiv.org/abs/2607.16356"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C041",
+      "title": "Three equivalent tree certificates",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C042",
+      "title": "Fundamental cycles form a cycle-space basis",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C041"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C043",
+      "title": "Cut and cycle spaces are orthogonal complements",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C042"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C044",
+      "title": "Euler tours from parity",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C045",
+      "title": "Every tree has a balanced separator vertex",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C046",
+      "title": "Diameter determines the radius of a tree",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C047",
+      "title": "Prüfer coding and Cayley's count",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C048",
+      "title": "The matrix-tree determinant",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C041"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C049",
+      "title": "Degeneracy yields a forest decomposition",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C050",
+      "title": "Research conjecture: every tree is graceful",
+      "classification": "conjecture",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2511.11331"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C051",
+      "title": "Mantel's triangle-free bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C052",
+      "title": "Motzkin–Straus weighted clique bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C053",
+      "title": "Caro–Wei independent-set bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C054",
+      "title": "A quantitative triangle supersaturation bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C055",
+      "title": "A K₂,t incidence bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C056",
+      "title": "Dependent random choice with explicit parameters",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C057",
+      "title": "Erdős–Szekeres monotone subsequences",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C058",
+      "title": "The binomial Ramsey bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C059",
+      "title": "Packing supplies a hitting-set certificate",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C060",
+      "title": "Research conjecture: Tuza's factor two",
+      "classification": "conjecture",
+      "named_proof_dependencies": [
+        "C059"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2609.13831",
+        "https://arxiv.org/abs/2405.11409"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C061",
+      "title": "The LYM inequality for antichains",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SetFamily/LYM.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C062",
+      "title": "Bollobás's set-pairs inequality",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C063",
+      "title": "Sauer–Shelah counting",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SetFamily/Shatter.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C064",
+      "title": "Down-compression preserves size without creating shattered sets",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SetFamily/Shatter.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C065",
+      "title": "The factorial sunflower bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2509.14790"
+      ],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C066",
+      "title": "Erdős–Ko–Rado via cyclic intervals",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/SetFamily/Intersecting.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C067",
+      "title": "Dilworth's chain decomposition",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C023"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C068",
+      "title": "Mirsky's antichain decomposition",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C069",
+      "title": "Harris positive correlation",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C070",
+      "title": "Research conjecture: a sharp inertia certificate for every downset",
+      "classification": "conjecture",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/html/2609.28404v1"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C071",
+      "title": "Root counting over a field",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C072",
+      "title": "Lagrange interpolation with its leading coefficient",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C071"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C073",
+      "title": "Product-grid unisolvence",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C071"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Nullstellensatz.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C074",
+      "title": "Coefficient formula and combinatorial Nullstellensatz",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C072"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Nullstellensatz.lean"
+      ],
+      "primary_web_hooks": [
+        "https://www.tau.ac.il/~nogaa/PDFS/null2.pdf"
+      ],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C075",
+      "title": "Schwartz–Zippel identity testing",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C071"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C076",
+      "title": "Minimum support on a product grid",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C071"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C077",
+      "title": "Chevalley–Warning divisibility",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C071"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C078",
+      "title": "Hyperplanes cannot cheaply cover a punctured grid",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C074"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Nullstellensatz.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C079",
+      "title": "Prime-order Erdős–Ginzburg–Ziv",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C077"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C080",
+      "title": "Research conjecture: Alon–Tarsi Latin parity",
+      "classification": "conjecture",
+      "named_proof_dependencies": [
+        "C074"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/1412.7574",
+        "https://math.ucsd.edu/seminar/alon-tarsi-conjecture-sun-matrix-integrals"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C081",
+      "title": "Möbius inversion on a finite poset",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://webhomes.maths.ed.ac.uk/~v1ranick/papers/rota1.pdf"
+      ],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C082",
+      "title": "Cauchy–Frobenius orbit counting",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://doi.org/10.1007/BF02546665"
+      ],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C083",
+      "title": "Pólya's weighted cycle-index formula",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C082"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://doi.org/10.1007/BF02546665"
+      ],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C084",
+      "title": "Incidence automorphisms are determined by their point action",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/Mathproof/IncidenceDesignAutomorphisms.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C085",
+      "title": "Necessary orders of Hadamard matrices",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C086",
+      "title": "Kronecker multiplication constructs Hadamard matrices",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C087",
+      "title": "Finite Fourier orthogonality, inversion and Parseval",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C088",
+      "title": "Biregular expander mixing with specified norm",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C089",
+      "title": "The binary Plotkin bound",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C090",
+      "title": "Research conjecture: all admissible Hadamard orders",
+      "classification": "conjecture",
+      "named_proof_dependencies": [
+        "C085",
+        "C086"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/2402.13202",
+        "https://arxiv.org/abs/2510.12315"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    },
+    {
+      "id": "C091",
+      "title": "Cauchy–Davenport in prime order",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C074"
+      ],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Nullstellensatz.lean",
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Additive/CauchyDavenport.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C092",
+      "title": "Ordered sumsets have linear growth",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Additive/CauchyDavenport.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C093",
+      "title": "Ruzsa's triangle inequality",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C094",
+      "title": "Ruzsa's covering lemma",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [
+        "D:/proof/lean/mathproof/.lake/packages/mathlib/Mathlib/Combinatorics/Additive/RuzsaCovering.lean"
+      ],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C095",
+      "title": "Additive energy and its maximal case",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C096",
+      "title": "Petridis growth lemma and iterated sumsets",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/1101.3507"
+      ],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C097",
+      "title": "Bogolyubov's subspace certificate",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C087"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C098",
+      "title": "Schur's finite monochromatic equation",
+      "classification": "proved",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C099",
+      "title": "A zero-sum subsequence in an elementary abelian group",
+      "classification": "proved",
+      "named_proof_dependencies": [
+        "C077"
+      ],
+      "local_source_hooks": [],
+      "primary_web_hooks": [],
+      "proof_origin": "English derivation in this volume"
+    },
+    {
+      "id": "C100",
+      "title": "Research conjecture: Erdős–Turán additive bases",
+      "classification": "conjecture",
+      "named_proof_dependencies": [],
+      "local_source_hooks": [],
+      "primary_web_hooks": [
+        "https://arxiv.org/abs/math/0302155",
+        "https://www.sciencedirect.com/science/article/pii/S0012365X26002670"
+      ],
+      "proof_origin": "Not proved; special cases and proposed use only"
+    }
+  ],
+  "limitations": [
+    "No novelty claim: the proved results are classical tools with supplied English proofs.",
+    "No claim that these100 entries are formalized or kernel checked.",
+    "Current-status browsing is targeted, not an exhaustive census of all preprints.",
+    "Claimed preprint progress is attributed as such, not treated as peer-reviewed global resolution."
+  ],
+  "cross_volume_deduplication": "C081-83 replaced duplicated B011/B013/B001-02 by Mobius inversion, orbit counting and weighted cycle-index enumeration; source discovery notes preserved."
+}

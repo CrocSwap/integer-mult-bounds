@@ -1,0 +1,34 @@
+# Copy this recipe to .github/workflows/multitape-proof-toolkit.yml to activate it.
+name: Multitape proof toolkit
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "research/multitape-proof-toolkit/**"
+      - ".github/workflows/multitape-proof-toolkit.yml"
+permissions:
+  contents: read
+jobs:
+  formal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LEAN_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: research/multitape-proof-toolkit/lean
+          auto-config: false
+          build: true
+          test: false
+          lint: false
+          use-mathlib-cache: true
+      - name: Source and finite controls
+        run: python3 -I -B research/multitape-proof-toolkit/verify.py
+      - name: Fresh complete kernel audit and actual negative fixtures
+        working-directory: research/multitape-proof-toolkit/lean
+        run: >-
+          lake env python3 -I -B ../replay.py
+          --cache-project .
+          --out "$RUNNER_TEMP/multitape-kernel"

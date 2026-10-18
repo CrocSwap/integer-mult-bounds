@@ -112,15 +112,104 @@ def block_projector(v,D):
     return P
 
 
+def _character_masks(vectors,D):
+    """Lane-packed column masks: lane j of masks[k][p] holds 2 iff column j
+    holds i^k at position p. Lanes sit at bit 8j to match _lane_flags, and
+    pre-doubling keeps every lane even so the SWAR zero test stays exact."""
+    n=len(vectors)
+    lists=[[[] for _ in range(D)] for _ in range(4)]
+    for j,(s,lo,hi) in enumerate(vectors):
+        x=s
+        while x:
+            p=x.bit_length()-1;x^=1<<p
+            lists[((lo>>p)&1)+2*((hi>>p)&1)][p].append(j)
+    masks=[[0]*D for _ in range(4)]
+    for k in range(4):
+        for p in range(D):
+            js=lists[k][p]
+            if js:
+                buf=bytearray(n)
+                for j in js:buf[j]=2
+                masks[k][p]=int.from_bytes(buf,'little')
+    return masks
+
+
+def _lane_flags(x,lanes):
+    """Exact zero-lane mask for 8-bit lanes holding even values in [0,126].
+
+    Even lanes never underflow on borrow-in, so borrows propagate only
+    through zero lanes and the classic SWAR zero test is exact per lane.
+    Lanes live at bit 8k, so the byte width is the lane count. Returns
+    bit 8k+7 set iff lane k is zero."""
+    ones=int.from_bytes(b'\x01'*lanes,'little')
+    return (x-ones)&~x&int.from_bytes(b'\x80'*lanes,'little')
+
+
+_GATHER_CACHE={}
+
+
+def _gather_lanes(flags,lanes):
+    """Compress stride-8 lane flags at bit 8k+7 into bit k of a dense mask.
+
+    Each bit k travels down 7, then down 7*2**i at stage i whenever bit i
+    of k is set, for total displacement 7*(k+1). Stage i selects bits by
+    bit i+3 of their current position (equal to bit i of their index), and
+    distinct indices never collide: within one 2**i block positions differ
+    by the index difference, across blocks the 8*(k-k') term dominates."""
+    x=flags>>7
+    masks=_GATHER_CACHE.get(lanes)
+    if masks is None:
+        masks=[]
+        i=0
+        while (1<<i)<=lanes:
+            period=1<<(i+1)
+            buf=bytearray(period)
+            for b in range(1<<i,period):buf[b]=0xff
+            masks.append(int.from_bytes((bytes(buf)*((lanes+period-1)//period))[:lanes],'little'))
+            i+=1
+        _GATHER_CACHE[lanes]=masks
+    for i,mask in enumerate(masks):
+        x=(x&~mask)|((x&mask)>>(7<<i))
+    return x&((1<<lanes)-1)
+
+
+def _orthogonality_rows(vectors,D,row_indices):
+    """Row masks of the orthogonality-plus-diagonal matrix, batched over columns.
+
+    inner(v,w)==(0,0) is the pair sum of per-position products i^(e_v-e_w),
+    so each row is accumulated as lane-packed character-mask counts instead
+    of one inner call per pair. Lanes hold doubled counts to keep the SWAR
+    zero test exact. Differential evidence: research/quadratic-affine-performance.
+    """
+    n=len(vectors)
+    masks=_character_masks(vectors,D)
+    rows={}
+    for i in row_indices:
+        s,lo,hi=vectors[i];pos_r=neg_r=pos_i=neg_i=0
+        x=s
+        while x:
+            p=x.bit_length()-1;x^=1<<p
+            ev=((lo>>p)&1)+2*((hi>>p)&1)
+            a,b,c,d=(masks[ev][p],masks[(ev+2)&3][p],masks[(ev+3)&3][p],masks[(ev+1)&3][p])
+            if a:pos_r+=a
+            if b:neg_r+=b
+            if c:pos_i+=c
+            if d:neg_i+=d
+        rows[i]=_gather_lanes(_lane_flags(pos_r^neg_r,n)&_lane_flags(pos_i^neg_i,n),n)|(1<<i)
+    return rows
+
+
 def rank_witness(t,complex_phases,parity,sample,independent_rows):
     f=family(t,complex_phases,parity)
     require(sample and len(set(sample))==len(sample) and all(type(i) is int and 0<=i<f['n'] for i in sample),
             'Sample must contain distinct valid labels')
     require(independent_rows and len(set(independent_rows))==len(independent_rows) and
             all(type(i) is int and 0<=i<len(sample) for i in independent_rows),'Invalid independent row indices')
-    vectors=[vector(f,i) for i in sample];basis={};digest=sha256();bytewidth=(len(sample)+7)//8
+    vectors=[vector(f,i) for i in sample]
+    rows=_orthogonality_rows(vectors,f['D'],independent_rows)
+    basis={};digest=sha256();bytewidth=(len(sample)+7)//8
     for i in independent_rows:
-        row=sum(1<<j for j,v in enumerate(vectors) if i==j or inner(vectors[i],v)==(0,0))
+        row=rows[i]
         digest.update(row.to_bytes(bytewidth,'little'));x=row
         while x:
             p=x.bit_length()-1

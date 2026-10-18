@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "number": 764,
+  "title": "Research: sharp inverse-square rounding bound for cyclic scans",
+  "author": {
+    "id": "MDQ6VXNlcjI1MjkxMDAz",
+    "is_bot": false,
+    "login": "cbethin",
+    "name": "Charles Bethin"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/764",
+  "head": "983d66f0f2e48ee500ec7eee2da9244c001c5064",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/cyclic-scan-sharp-bound/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ea3687ca67ec3aced21141a67280b5581e8d8b8a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6fa0440ed57b0d6192eed6f27bc69616c37d8bb6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "94c006751f7ba33e7b5a0c37bca2b43424848969"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/SOURCE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "57a408f5c5e0a350ddf4bbc37fea274f9a9302ff"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5171f0792c3a419cad484fa649b3700efc9f5cd6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/fixed_scan.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1504080f2482c0899f3359408eaab0eda4e39fda"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/vendor/NOTICE.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "22fbeb8ef0a28dd6b3feea718492091319ceb96e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/vendor/check_budgets.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ff21b6e1904b5b492fb4389ae1c49ca69588c002"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/vendor/scan.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d620e493596f12578c1ce47f216c44c79b65de08"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/vendor/weighted.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "da90ee6e83b15164cabdbe4472a2c5d53706160e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/cyclic-scan-sharp-bound/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "02873a4e49800ee19180f8f40823b7d94243b187"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/cyclic-scan-sharp-bound": 11
+  },
+  "github_reported_file_count": 11,
+  "complete_git_file_count": 11,
+  "body": "PR628 bounds periodic-scan rounding by `6(B+1)u/beta^3` and requires `u <= beta^2/2`. This mathematical refinement proves `4(B+1)u/beta^2` under `u <= beta/2`, uniformly over every cycle length, either direction, and arbitrary exact complex coefficients with modulus at most `1-beta`.\n\nThe proof keeps a shared suffix-product factor in the accumulated rounding error and closure denominator. A one-entry dyadic family in the **unchanged original scan** has error at least `u/(4*beta^2)`. Thus the inverse-square dependence is sharp for this algorithm and rounding rule. No defect in PR628's stated bound is alleged.\n\nThe resulting factor-cascade execution guard saves at least `g` fractional bits when `beta=2^-g`. At radix 9 and 128 target bits, the sufficient guard changes from **4,790 to 4,324 bits**. Coefficient and phase preparation remain charged. The asymptotic `O(p+r^4)` precision/preparation bounds remain unchanged; this is neither a measured runtime speedup nor a new multiplication exponent. Integration into PR628 is not activated.\n\nReproduce with Python 3.11+ and the standard library:\n\n```sh\npython3 -B research/cyclic-scan-sharp-bound/verify.py\n```\n\nExpected: `PASS_SHARP_CYCLIC_SCAN_BOUND`.\n\nEvidence includes 5,024 exact comparisons with a separately implemented finite-geometric inverse, 24 residual certificates through length 2,048, 64 exact sharp-family instances, 384 exact cascade recurrences, 276 inherited-budget comparisons, and seven mathematical/admission controls. The new integer-grid implementation agrees exactly with the original varying scan in 3,362 cases, including 482 constant-scan matches. Another 1,686 cases exercise the expanded precision admission. Agreement between scan implementations is not counted as independent validation of their shared algorithm; the direct inverse, residuals, symbolic family and written proof supply distinct checks.\n\nLocal Python 3.13 and isolated optimized Python 3.14 replays pass. A minimal offline package in a path with spaces passes. Source drift, changed expected evidence and output-overwrite controls fail closed. The selected-record inventory and staged whitespace checks pass. Full `make verify`, supplier cold replay, Linux, remote CI, the factorizer/full kernel, and proof-assistant validation are not claimed. There is no independent human review.\n\nOnly `research/cyclic-scan-sharp-bound/` is added. Base: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. PR628 source: `0768f97d06c623b8211e651543c66135796b62bf`, checked against Git and still current at the pre-submission inspection. OS seed 68 assigns the mathematical-audit track. No pinned coordination issue exists; the local claim records the scope. The full overlap review covers 581 open PRs through #762. The immediate publication check also inspects #763, a separate compact-bit repair audit; main remains at the pinned base.\n\nCredit Chafik Boukhalfa / chafreaky for PR628's scan, original analysis and factor cascade. Joshua Snider / jsnider3's PR692 already applies the standard finite-geometric inverse to weighted stride cycles and the bilinear dual; that oracle method is not claimed new here. Its proof retains the cubic-margin scan bound. PR663/PR673 and PR744/PR758 concern distinct dirty-restoration and echo questions. Original notices are preserved, and no code from PR692 is consumed.\n\nPrepared for Charles Bethin with substantial OpenAI Codex assistance in derivation, implementation, testing and writing. Apache-2.0. No literature-priority claim is made. The selected frontier, upstream sources and inherited full-multiplication obligations are unchanged.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "88108c5d22dbf67b5ad29f347160170a0d9b0d1299c3c1bfc96c36001181234a"
+}

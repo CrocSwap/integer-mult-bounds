@@ -1,0 +1,30 @@
+name: Eight rank-five kernel pivots
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install numpy
+      - run: python -B research/complex-rank5-pivots8/verify.py --work /tmp/eight-rank5-replay
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eight-rank5-receipt-${{ matrix.python }}
+          path: |
+            /tmp/eight-rank5-replay/RESULT.json
+            /tmp/eight-rank5-replay/RECEIPT.json
+            /tmp/eight-rank5-replay/STAGES.json
+            /tmp/eight-rank5-replay/ASSEMBLY.json
+            /tmp/eight-rank5-replay/ASSEMBLY-CONTROLS.json

@@ -1,0 +1,280 @@
+diff --git a/research/r439-multi-donor-star-absorption/CERTIFICATE.json b/research/r439-multi-donor-star-absorption/CERTIFICATE.json
+index fd4a10e53..423409a96 100644
+--- a/research/r439-multi-donor-star-absorption/CERTIFICATE.json
++++ b/research/r439-multi-donor-star-absorption/CERTIFICATE.json
+@@ -9492,9 +9492,17 @@
+       "early_monotone_gain0_alters_frame_path_and_profile",
+       "paid profile changed from H2 to 2*H1"
+     ],
++    [
++      "valid_dual_hyperplane_witness",
++      "pass: target parity 1; orthogonal to 9 pool donors"
++    ],
+     [
+       "corrupted_dual_hyperplane_witness",
+-      "bad dual fails target parity"
++      "dual fails target parity"
++    ],
++    [
++      "corrupted_dual_orthogonality_witness",
++      "dual not orthogonal to donor (1276,262)"
+     ],
+     [
+       "untwisted_d_splice_with_absorbed_a",
+diff --git a/research/r439-multi-donor-star-absorption/README.md b/research/r439-multi-donor-star-absorption/README.md
+index 8cb92c2e1..1b90ecef1 100644
+--- a/research/r439-multi-donor-star-absorption/README.md
++++ b/research/r439-multi-donor-star-absorption/README.md
+@@ -1,4 +1,4 @@
+-# Complete multi-donor, multi-writer helper-star absorption and gain-0 chaining under fixed frames
++# Complete multi-donor, multi-writer helper-star absorption linear system and star-leaf-injection gain-0 chaining census under fixed frames
+ 
+ **Scoped replacement-interface census and linear-algebraic exclusion; no new $\kappa$.** The selected result (`certificates/selected-result.json`), the selected bit supplier (`https://github.com/CrocSwap/integer-mult-bounds/pull/589`), and `upstream/` are unchanged.
+ 
+@@ -47,9 +47,9 @@ We evaluate two fixed-frame donor pools at every pre-first-read write $i \in W(a
+ | `264 ^= 536` | `[38, 346]` | `5 / 5 / 1` | `9 / 7 / 4` | `0` | `(346, 536, False)` |
+ | `326 ^= 530` | `[98, 334]` | `4 / 4 / 1` | `7 / 6 / 2` | `0` | `(334, 530, False)` |
+ 
+-   Exhausting all $2^{\dim \ker}$ affine solutions shows that multi-donor and multi-writer splits never reach $\Delta\text{ADDs} \le -2$ on `506 ^= 374`, `507 ^= 355`, or `514 ^= 367` (the 256 minimum-cost solutions on `506` and `507` under `pr967`/`pr1062` arise from cancelling pairs of identical donor states across the consecutive same-frame writes `1033..1036` and `989..992`), and never reach $\Delta\text{ADDs} \le -1$ on `264 ^= 536` or `326 ^= 530`.
++   Exhausting all $2^{\dim \ker}$ affine solutions shows that single-edge corrections built from multi-donor and multi-writer splits never reach $\Delta\text{ADDs} \le -2$ on `506 ^= 374`, `507 ^= 355`, or `514 ^= 367` (the 256 minimum-cost solutions on `506` and `507` under `pr967`/`pr1062` arise from cancelling pairs of identical donor states across the consecutive same-frame writes `1033..1036` and `989..992`), and never reach $\Delta\text{ADDs} \le -1$ on `264 ^= 536` or `326 ^= 530`. This covers each edge's own defect restored through its own frame-legal donors; multi-centre corrections that consume intermediate defect vectors of in-flight multi-write corrections are outside this census (see [Scope limits](#scope-limits-and-remaining-obligations)).
+ 3. **Why the early `monotone_all` gain-0 solutions are strictly worse on the paid profile.** For `264 ^= 536` and `326 ^= 530`, `same_path` admits a unique solution (`A[346]` at rank-2 frame 153 for `536`, and `A[334]` at rank-2 frame 147 for `530`), where the leaf is already scheduled to climb `0 -> 2 -> 8`. The additional `monotone_all` solutions at `A[38]` (rank-1 frame 21) and `A[98]` (rank-1 frame 51) insert an intermediate rank-1 station (`0 -> 1 -> 2 -> 8`), replacing one $H_2$ child by $2 H_1$ in the paid profile (`{1:1325, 2:1341, ...}`, child count `2,920 -> 2,921` at fixed rank mass `5,129`).
+-4. **Cross-centre chaining and composed 5-edge words.** Even if any unread star centre $a' \in P_{\text{mono}}(a)$ ($i < \text{first\_read}(a')$) is allowed to inject arbitrary combinations of its own star leaves $\{e_{b'} : (a', b') \in E\}$ into $a$, adjoining all such leaf vectors to $P_{\text{mono}}(a)$ yields **zero** new solvable single-leaf or two-leaf targets on all three words. Composing the three gain-1 moves with both `same_path` gain-0 moves (`composed_all_5`, 5 twisted centres) leaves ADDs (`11,780`, `11,497`, `10,649`), forward/reverse integer bounds `F / B` (`72,831 / 10,356,226`, `25,717 / 5,858,638`, `15,223 / 3,897,422`), local/nine-stage guard bits (`102 / 192`, `95 / 182`, `91 / 176`), frame paths, and paid profile mass `5,129` identical to the 3-edge composition (`composed_gain1_3`).
++4. **Cross-centre chaining and composed 5-edge words.** Even if any unread star centre $a' \in P_{\text{mono}}(a)$ ($i < \text{first\_read}(a')$) is allowed to inject arbitrary combinations of its own star leaves $\{e_{b'} : (a', b') \in E\}$ into $a$, adjoining all such leaf vectors to $P_{\text{mono}}(a)$ yields **zero** new solvable single-leaf or two-leaf targets on all three words. The chained pool adjoins only these original star-leaf vectors; intermediate defect vectors of in-flight multi-write corrections at other centres (twist plus partial donor-toggle sums) are generally different vectors and are not modelled (see [Scope limits](#scope-limits-and-remaining-obligations)). Composing the three gain-1 moves with both `same_path` gain-0 moves (`composed_all_5`, 5 twisted centres) leaves ADDs (`11,780`, `11,497`, `10,649`), forward/reverse integer bounds `F / B` (`72,831 / 10,356,226`, `25,717 / 5,858,638`, `15,223 / 3,897,422`), local/nine-stage guard bits (`102 / 192`, `95 / 182`, `91 / 176`), frame paths, and paid profile mass `5,129` identical to the 3-edge composition (`composed_gain1_3`).
+ 
+ ## Reproduce
+ 
+@@ -70,7 +70,7 @@ python3.12 -I -B research/r439-multi-donor-star-absorption/test_package.py -v
+ Expected output line from `verify.py`:
+ 
+ ```text
+-PASS_R439_MULTI_DONOR_STAR_ABSORPTION words=3 edges=221,236,236 pr1062_pools=1412/1894 solvable=5 two_leaf=0 chained_extra=0 duals=305 ADDs=11500->11497 controls=8 no_new_kappa
++PASS_R439_MULTI_DONOR_STAR_ABSORPTION words=3 edges=221,236,236 pr1062_pools=1412/1894 solvable=5 two_leaf=0 chained_extra=0 duals=305 ADDs=11500->11497 controls=10 no_new_kappa
+ ```
+ 
+ ## Scope limits and remaining obligations
+@@ -78,11 +78,12 @@ PASS_R439_MULTI_DONOR_STAR_ABSORPTION words=3 edges=221,236,236 pr1062_pools=141
+ - **No $\kappa$ or frontier claim.** The bit supplier does not bind, and no candidate word is promoted to the selected record.
+ - **Unrun obligations.** Native 5/9/11-stage C++/Boost replay (covered for the 3-edge words by Hanson Sun's open [https://github.com/CrocSwap/integer-mult-bounds/pull/1902](https://github.com/CrocSwap/integer-mult-bounds/pull/1902)), whole-call hosted emission/invoice, all-size compiler/common-label realization, precision/tape rounding, and outer analytic transfer are not run here.
+ - **Boundary of the exclusion.** The linear-system exclusion applies to pre-first-read `A` writes to the star centre under fixed gate frames and unchanged literal `C`. It does not cover edits that cross a read of the twisted centre and simultaneously compensate downstream reader gates, or edits that rebuild `B`/`C` or alter gate frames.
++- **Cross-centre chaining coverage.** The cross-centre chaining check adjoins only the original star-leaf vectors $\{e_{b'}\}$ of unread centres. A centre under an in-flight multi-write correction carries intermediate defect vectors (twist plus partial donor-toggle sums) that are generally not star-leaf vectors, and injections of such vectors into another centre's correction are not covered by the checked pools. The exclusion of cross-centre chained absorptions is therefore proved only for star-leaf-vector injection.
+ 
+ ## Open next questions
+ 
+ - **Question:** Can absorbing a `D` helper-star restoration *after* the centre's first `A` read succeed by simultaneously compensating the downstream reader gates under fixed frames?
+-- **Why it matters:** All pre-first-read multi-donor, multi-writer, two-leaf, and cross-centre chained absorptions under fixed frames are exhausted by the five edges certified here; any further twisted-`D` absorption into `A` must cross at least one read of the twisted centre.
++- **Why it matters:** Within the checked model — star-leaf defects $d_a = e_b$ or $e_{b_1} \oplus e_{b_2}$ corrected by pre-first-read frame-legal donor toggles at one centre at a time, with cross-centre injection limited to original star-leaf vectors — the five edges certified here are the only solvable absorptions. Intermediate defect vectors from in-flight multi-write corrections at other centres are generally different vectors and are not covered (see [Scope limits](#scope-limits-and-remaining-obligations)), so this census does not prove that every further twisted-`D` absorption into `A` must cross at least one read of the twisted centre.
+ - **Feasible first step:** For each star edge $(a, b)$ whose first `A` read is a single-target `z`-write $A[r_0]$ ($c \mathrel{\oplus}= a$), propagate the defect to the two-register state $(a, c)$ and test whether $e_b$ lies in the joint frame-legal donor span before the next read of $a$ or $c$.
+ - **Blocker:** Crossing a read of $a$ branches the defect into every reader register, requiring simultaneous multi-register restoration before any reader feeds a retained total at the scatter.
+ 
+diff --git a/research/r439-multi-donor-star-absorption/TASK.json b/research/r439-multi-donor-star-absorption/TASK.json
+index 892213dd0..30b205011 100644
+--- a/research/r439-multi-donor-star-absorption/TASK.json
++++ b/research/r439-multi-donor-star-absorption/TASK.json
+@@ -42,17 +42,17 @@
+   "scope_status": "refined",
+   "actual_scope": "Under the twisted helper contract (H2-tw / H4-tw / K-tw of https://github.com/CrocSwap/integer-mult-bounds/pull/1868) on the three repo-pinned R439 helper-star words (PR967, PR1062, PR1122), can arbitrary multi-donor, multi-writer corrections across all pre-first-read A writes W(a) to a star centre a (or two-leaf simultaneous omissions, or cross-centre chaining including the gain-0 moves) admit any omitted D helper-star restoration under fixed monotone frames or full-itinerary-preserving frames beyond the three single-writer absorptions (506^=374, 507^=355, 514^=367)?",
+   "scope_change_reason": "The original semantic-D contract (https://github.com/CrocSwap/integer-mult-bounds/pull/1194 and https://github.com/CrocSwap/integer-mult-bounds/pull/1311), single-writer twisted star absorption (https://github.com/CrocSwap/integer-mult-bounds/pull/1868), and two-writer single-donor-per-writer absorption (https://github.com/CrocSwap/integer-mult-bounds/pull/1913) are already covered. This refines the card to the explicit open next questions of https://github.com/CrocSwap/integer-mult-bounds/pull/1868 (multi-gate splits of S and chaining the gain-0 moves) and https://github.com/CrocSwap/integer-mult-bounds/pull/1913 (arbitrary multi-donor correction sets over full-itinerary-legal donors across pre-first-read writes).",
+-  "bottleneck_link": "Side result on the nonbinding bit supplier: resolves the complete pre-first-read F2-linear system for twisted helper-star absorption under fixed frames, showing that arbitrary multi-donor and multi-writer splits cannot reduce scalar ADDs beyond -3 or improve the paid profile {1:1323, 2:1342, 3:79, 4:44, 5:102, 6:11, 7:19} (rank mass 5,129), while the early monotone-climb-legal gain-0 moves split one H_2 climb into 2 H_1 (increasing child count by 1 at fixed rank mass). No new kappa is claimed.",
++  "bottleneck_link": "Side result on the nonbinding bit supplier: resolves the complete pre-first-read F2-linear system for twisted helper-star absorption under fixed frames, showing that single-edge multi-donor and multi-writer splits cannot reduce scalar ADDs beyond -3 or improve the paid profile {1:1323, 2:1342, 3:79, 4:44, 5:102, 6:11, 7:19} (rank mass 5,129) within the checked single-centre donor systems, while the early monotone-climb-legal gain-0 moves split one H_2 climb into 2 H_1 (increasing child count by 1 at fixed rank mass). Multi-centre corrections consuming intermediate defect vectors of in-flight multi-write corrections are not covered. No new kappa is claimed.",
+   "budget_minutes": 60,
+-  "stop_rule": "Stop after solving the complete F2-linear donor systems (same_path and monotone_all), certifying dual hyperplanes for all unsolvable single-leaf and two-leaf targets, exhausting affine solution spaces for the five solvable edges, and checking cross-centre chaining on the three repo-pinned R439 star words.",
++  "stop_rule": "Stop after solving the complete F2-linear donor systems (same_path and monotone_all), certifying dual hyperplanes for all unsolvable single-leaf and two-leaf targets, exhausting affine solution spaces for the five solvable edges, and checking cross-centre star-leaf-injection chaining on the three repo-pinned R439 star words.",
+   "outcome": "completed",
+-  "evidence": "Complete RREF and dual-hyperplane verification across all three repo-pinned R439 star words (pr967: 221 edges, 64 two-leaf centres, 280 dual witnesses; pr1062: 236 edges, 74 two-leaf centres, 305 dual witnesses; pr1122: 236 edges, 74 two-leaf centres, 305 dual witnesses). Exactly five single edges (506^=374, 507^=355, 514^=367 at min delta -1; 264^=536, 326^=530 at min delta 0) are solvable under both same_path and monotone_all; zero two-leaf pairs and zero cross-centre chained edges are solvable. Complete 661-column forward/reverse literal COPY/ERASE replay, xcheck_p.py owner check, F/B precision bounds, 8 negative controls, and an independent frozenset dual-witness oracle pass.",
++  "evidence": "Complete RREF and dual-hyperplane verification across all three repo-pinned R439 star words (pr967: 221 edges, 64 two-leaf centres, 280 dual witnesses; pr1062: 236 edges, 74 two-leaf centres, 305 dual witnesses; pr1122: 236 edges, 74 two-leaf centres, 305 dual witnesses). Exactly five single edges (506^=374, 507^=355, 514^=367 at min delta -1; 264^=536, 326^=530 at min delta 0) are solvable under both same_path and monotone_all; zero two-leaf pairs and zero cross-centre chained edges under the star-leaf-injection chaining pool are solvable. Complete 661-column forward/reverse literal COPY/ERASE replay, xcheck_p.py owner check, F/B precision bounds, 9 negative controls and 1 positive valid-dual check (valid and corrupted duals run through the same real target-parity/donor-orthogonality predicate over the real P_mono(a) pool), and an independent frozenset dual-witness oracle pass.",
+   "author": "Aaron Wang",
+   "ai_assistance": "with help from opencode",
+   "open_questions": [
+     {
+       "question": "Can absorbing a D helper-star restoration AFTER the centre's first A read succeed by simultaneously compensating the downstream reader gates under fixed frames?",
+-      "why_it_matters": "All pre-first-read multi-writer, multi-donor, two-leaf, and cross-centre chained absorptions under fixed frames are exhausted by the five solvable edges here; any further twisted-D absorption into A must cross at least one read of the twisted centre.",
++      "why_it_matters": "Within the checked model (star-leaf defects e_b or e_{b1} xor e_{b2}, pre-first-read frame-legal donor toggles at one centre at a time, cross-centre injection limited to original star-leaf vectors), the five solvable edges here are the only solvable absorptions. Intermediate defect vectors from in-flight multi-write corrections at other centres are generally different vectors and are not covered, so this census does not prove that any further twisted-D absorption into A must cross at least one read of the twisted centre.",
+       "first_step": "For each star edge (a, b) whose first A read is a single-target z-write A[r_0] (c ^= a), propagate the defect to the two-register state (a, c) and test whether e_b lies in the joint frame-legal donor span before the next read of a or c.",
+       "blocked_by": "Crossing a read of a branches the defect into every reader register, requiring simultaneous multi-register restoration before any reader feeds a retained total at the scatter."
+     }
+diff --git a/research/r439-multi-donor-star-absorption/VERIFY.json b/research/r439-multi-donor-star-absorption/VERIFY.json
+index ee6e2013c..b805d78d1 100644
+--- a/research/r439-multi-donor-star-absorption/VERIFY.json
++++ b/research/r439-multi-donor-star-absorption/VERIFY.json
+@@ -19,7 +19,7 @@
+         "{package}/verify.py"
+       ],
+       "timeout_seconds": 120,
+-      "checks": "Pin verification, complete multi-donor/multi-writer RREF and 890 dual-hyperplane witnesses across pr967/pr1062/pr1122, affine solution exhaustion on the 5 solvable edges, two-leaf and cross-centre chaining exclusions, 661-column forward/reverse literal COPY/ERASE and H2-tw/H4-tw/K-tw checks, xcheck_p.py owner check, and 8 negative controls."
++      "checks": "Pin verification, complete multi-donor/multi-writer RREF and 890 dual-hyperplane witnesses across pr967/pr1062/pr1122, affine solution exhaustion on the 5 solvable edges, two-leaf and cross-centre star-leaf-injection chaining exclusions, 661-column forward/reverse literal COPY/ERASE and H2-tw/H4-tw/K-tw checks, xcheck_p.py owner check, and 9 negative controls plus 1 positive valid-dual check."
+     },
+     {
+       "argv": [
+diff --git a/research/r439-multi-donor-star-absorption/test_package.py b/research/r439-multi-donor-star-absorption/test_package.py
+index c5e3959cf..30da77b6f 100644
+--- a/research/r439-multi-donor-star-absorption/test_package.py
++++ b/research/r439-multi-donor-star-absorption/test_package.py
+@@ -41,7 +41,11 @@ class MultiDonorStarAbsorptionTests(unittest.TestCase):
+             self.assertEqual(wrep["composed_all_5"]["net_add_delta"], -3)
+             self.assertEqual(wrep["composed_gain1_3"]["paid_mass"], 5129)
+             self.assertEqual(wrep["composed_all_5"]["paid_mass"], 5129)
++        by_name = dict(rep["controls"])
+         self.assertGreaterEqual(len(rep["controls"]), 8)
++        self.assertTrue(by_name["valid_dual_hyperplane_witness"].startswith("pass: target parity 1; orthogonal to"))
++        self.assertEqual(by_name["corrupted_dual_hyperplane_witness"], "dual fails target parity")
++        self.assertTrue(by_name["corrupted_dual_orthogonality_witness"].startswith("dual not orthogonal to donor ("))
+ 
+     def test_independent_dual_hyperplane_oracle_all_three_words(self):
+         cert = json.loads((HERE / "CERTIFICATE.json").read_text(encoding="utf-8"))
+diff --git a/research/r439-multi-donor-star-absorption/verify.py b/research/r439-multi-donor-star-absorption/verify.py
+index e6f3424ec..8a8e4572a 100644
+--- a/research/r439-multi-donor-star-absorption/verify.py
++++ b/research/r439-multi-donor-star-absorption/verify.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ # SPDX-License-Identifier: Apache-2.0
+ # Prepared by Aaron Wang, with help from opencode.
+-"""Complete multi-donor, multi-writer helper-star absorption linear system and gain-0 chaining under fixed frames.
++"""Complete multi-donor, multi-writer helper-star absorption linear system and star-leaf-injection gain-0 chaining census under fixed frames.
+ 
+ On the three pinned R439 helper-star words:
+   - pr967:  research/r439-helper-stars-seed19/candidate.json.gz (11,783 ADDs, 221 star edges, 157 centres)
+@@ -21,11 +21,14 @@ For every star centre a and every pre-first-read A write cluster W(a) (1 <= |W(a
+        delta (-1 for the three PR1868 single-writer edges; 0 for 264^=536 and 326^=530).
+   4. Tests cross-centre chaining by adjoining all leaf basis vectors {e_{b'} : (a', b') in E} of any unread
+      star centre a' in P_mono(a), proving 0 additional solvable edges or two-leaf subsets on all three words.
++     Only these original star-leaf vectors are adjoined: intermediate defect vectors of in-flight multi-write
++     corrections at other centres (twist plus partial donor-toggle sums, generally different vectors) are
++     not modelled.
+   5. Reconstructs and checks the composed 3-edge (-3 ADDs) and 5-edge (3 gain-1 + 2 gain-0, -3 ADDs) words
+      on all 661 formal columns in both forward and reverse directions through the literal COPY/ERASE stream,
+      verifies H2-tw / H4-tw / K-tw, runs the unchanged xcheck_p.py owner checker, and computes exact F/B
+      precision envelopes and paid profiles.
+-  6. Runs 8 negative/boundary controls. All checks use explicit ValueError guards so -O never weakens them.
++  6. Runs 9 negative/boundary controls and 1 positive valid-dual check. All checks use explicit ValueError guards so -O never weakens them.
+ """
+ import argparse
+ import copy
+@@ -253,6 +256,74 @@ def solve_or_dual(target_vec, pivots, pool):
+     return False, None, dual_bits
+ 
+ 
++def build_mono_pool(w, a):
++    """Rebuild the real monotone_all donor pool P_mono(a), exactly as analyze_single_word does.
++
++    Returns [(i, r, r in S_i, val_i[r]), ...] over pre-first-read writes i to centre a.
++    """
++    v, R = w["v"], w["R"]
++    n = 2 * v + R
++    fs = [frozenset(f) for f in w["frames"]]
++    cur = list(w["start"])
++    for f, d, ss in w["D"]:
++        for r in (d, *ss):
++            cur[r] = f
++    val = [1 << r for r in range(n)]
++    a_vals_before = []
++    pre_frames = []
++    for f, d, ss in w["A"]:
++        pre_frames.append(list(cur))
++        for r in (d, *ss):
++            cur[r] = f
++        a_vals_before.append(list(val))
++        acc = 0
++        for s in ss:
++            acc ^= val[s]
++        val[d] ^= acc
++    nxt = list(w["final"])
++    next_touch = [[0] * n for _ in range(len(w["A"]))]
++    for sec in ("C", "B"):
++        for f, d, ss in reversed(w[sec]):
++            for r in (d, *ss):
++                nxt[r] = f
++    for i in range(len(w["A"]) - 1, -1, -1):
++        f, d, ss = w["A"][i]
++        next_touch[i] = list(nxt)
++        for r in (d, *ss):
++            nxt[r] = f
++    first_read = len(w["A"])
++    for i, (_, _, ss) in enumerate(w["A"]):
++        if a in ss:
++            first_read = i
++            break
++    pool = []
++    for i in range(first_read):
++        f_i, d_i, ss_i = w["A"][i]
++        if d_i != a:
++            continue
++        for r in range(n):
++            if r == a or (v <= r < 2 * v):
++                continue
++            f_pre = pre_frames[i][r]
++            f_nxt = next_touch[i][r]
++            if (fs[f_pre] <= fs[f_i]) and (fs[f_i] <= fs[f_nxt]):
++                pool.append((i, r, r in ss_i, a_vals_before[i][r]))
++    return pool
++
++
++def dual_witness_verdict(dual_bits, target_mask, pool):
++    """Real dual-hyperplane predicate over a donor pool: target parity first, then
++    orthogonality to every pool vector. Returns a pass summary, or raises ValueError
++    at the first failed check (never unconditionally)."""
++    dmask = 0
++    for b in dual_bits:
++        dmask |= 1 << b
++    need((dmask & target_mask).bit_count() & 1 == 1, "dual fails target parity")
++    for i, r, _, vec in pool:
++        need((dmask & vec).bit_count() & 1 == 0, f"dual not orthogonal to donor ({i},{r})")
++    return f"pass: target parity 1; orthogonal to {len(pool)} pool donors"
++
++
+ def verify_twisted_contract(w_parent, w_abs, omitted_edges):
+     """Verify H2-tw, H4-tw (C U' diag(I_x, T) = I), K-tw (N = K' T), and full 661-column dirty boundary."""
+     v, R = w_abs["v"], w_abs["R"]
+@@ -634,24 +705,43 @@ def run_controls(w1062, cert_pr1062, owner_mod):
+         lambda: need(own_early["profile"] == EXPECTED_PROFILE, "paid profile changed from H2 to 2*H1"),
+     )
+ 
+-    # 7. Corrupted multi-bit dual hyperplane witness rejected
++    # 7. Real target-parity/donor-orthogonality dual predicate over the actual P_mono(a)
++    #    donor pool of the chosen witness centre: the certified valid dual passes both
++    #    checks, and corrupted duals fail the same predicate at a specific check
++    #    (target parity or donor orthogonality) -- never an unconditional throw.
+     multi_dual = next(d for d in cert_pr1062["modes"]["monotone_all"]["dual_witnesses"] if len(d["dual_support"]) >= 2)
+-    bad_bits = multi_dual["dual_support"][:-1]
++    valid_bits = list(multi_dual["dual_support"])
+     target_mask = 0
+     for b in multi_dual["leaves"]:
+         target_mask |= (1 << b)
++    pool = build_mono_pool(w1062, multi_dual["center"])
++    controls.append(["valid_dual_hyperplane_witness", dual_witness_verdict(valid_bits, target_mask, pool)])
+ 
+     def check_bad_dual():
+-        # Re-verify against target_mask and donor pool of multi_dual["center"]
+-        dmask = 0
+-        for b in bad_bits:
+-            dmask |= (1 << b)
+-        need((dmask & target_mask).bit_count() & 1 == 1, "bad dual fails target parity")
+-        # If target parity still 1, it must fail orthogonality on at least one donor in P_mono(a)
+-        raise ValueError("corrupted dual witness rejected")
++        # Shipped corruption: drop the last support bit; fails the predicate at its
++        # first failed check (target parity on the pinned witness).
++        dual_witness_verdict(valid_bits[:-1], target_mask, pool)
+ 
+     expect_reject("corrupted_dual_hyperplane_witness", check_bad_dual)
+ 
++    # Parity-preserving corruption: add a pool-carried non-leaf bit, so the dual keeps
++    # target parity 1 and must be rejected by the donor-orthogonality check itself.
++    n_regs = 2 * w1062["v"] + w1062["R"]
++    extra = next(
++        (
++            b
++            for b in range(n_regs)
++            if b not in valid_bits and b not in multi_dual["leaves"] and any((vec >> b) & 1 for _, _, _, vec in pool)
++        ),
++        None,
++    )
++    need(extra is not None, "no pool bit available for a parity-preserving dual corruption")
++
++    def check_bad_dual_orthogonal():
++        dual_witness_verdict(sorted(valid_bits + [extra]), target_mask, pool)
++
++    expect_reject("corrupted_dual_orthogonality_witness", check_bad_dual_orthogonal)
++
+     # 8. Original untwisted D spliced with absorbed A' and C fails helper restoration
+     w_untwisted_d = apply_absorptions(w1062, [(506, 374, 288, [69])])
+     w_untwisted_d["D"] = copy.deepcopy(w1062["D"])

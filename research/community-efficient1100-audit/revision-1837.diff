@@ -1,0 +1,181 @@
+diff --git a/research/dirty-host-gauge-binding-seedea2e/README.md b/research/dirty-host-gauge-binding-seedea2e/README.md
+index 75a37eefc..d82e9d1e7 100644
+--- a/research/dirty-host-gauge-binding-seedea2e/README.md
++++ b/research/dirty-host-gauge-binding-seedea2e/README.md
+@@ -27,14 +27,26 @@ audits one hosted residual: one invocation residual factor of width `w` hosted
+ on a block `S'` of an idle family's pending set `S`, moved from the invocation
+ to the idle child's advance.
+ 
+-**Finding 1 (operator gauges, exact).** The hosting move leaves the complete
+-operator unchanged exactly when the moved factor is the advance's own factor on
+-`S'`, no non-commuting touch of the host occurs strictly between the residual
+-application and the advance, and hosted blocks are disjoint (order preserved).
+-Each dropped gauge has a smallest counterexample as composed linear maps
+-(3x3 shears): an escaping block gives a different endpoint, an out-of-window
+-touch that does not commute with the moved factor breaks the composition, and
+-overlapping blocks are order-dependent.
++**Finding 1 (operator gauges, exact; sufficient hypotheses).** The hosting move
++leaves the complete operator unchanged whenever the moved factor is the
++advance's own factor on `S'`, no touch of the host occurs strictly between the
++residual application and the advance (more generally, every such touch commutes
++with the moved factor), and hosted blocks are disjoint (order preserved). These
++are the inherited hosting interface's sufficient legality hypotheses, not a
++necessary condition for operator equality, and no necessity claim is proved
++here for any class. Exact 3x3 counterexample over Q, kept as the regression
++control `cancellation-equality-not-rejected` in `verify.py`: `R = I + E01`,
++`T = I + E12`, `T^{-1} = I - E12`. Both `T` and `T^{-1}` fail to commute with
++`R`, yet moving `R` across the consecutive touches `T, T^{-1}` preserves the
++complete operator, `T^{-1} T R = R T^{-1} T = R`. Cancellation routes like this
++one are not closed by this receipt. Each dropped hypothesis still has a
++smallest counterexample as composed linear maps (3x3 shears): an escaping block
++gives a different endpoint, a single out-of-window touch that does not commute
++with the moved factor breaks the composition, and the exhibited overlapping
++blocks are order-dependent. Those controls show the hypotheses cannot simply be
++deleted; they do not establish necessity. The tiny cut examples below
++(including the 156 restored-host regions) and the selected no-touch hosting
++rule remain valid as they stand.
+ 
+ **Finding 2 (credit binding on the smallest complete instances).** With hosts
+ restored and the clean scatter `Y' = Y + S X` demanded at height 0 (PR 1664's
+@@ -70,6 +82,10 @@ PR 1664's section 7 warning.
+ 
+ ## What this does not establish
+ 
++- Finding 1's operator-level hypotheses are sufficient only. A necessity claim
++  would have to be restricted to a stated class and proved there; any such
++  class must provably exclude cancellation examples such as the `T, T^{-1}`
++  control above, which this receipt deliberately leaves open.
+ - No bank-tile physics: the replaced bank write/clear mass is not modeled; the
+   claim "one bank tile of width `w` eliminated" is compared only through the
+   credit shape `w*|a-b|` per host row.
+diff --git a/research/dirty-host-gauge-binding-seedea2e/TASK.json b/research/dirty-host-gauge-binding-seedea2e/TASK.json
+index 8a705b4fd..db826ddb1 100644
+--- a/research/dirty-host-gauge-binding-seedea2e/TASK.json
++++ b/research/dirty-host-gauge-binding-seedea2e/TASK.json
+@@ -40,13 +40,13 @@
+     ]
+   },
+   "scope_status": "changed",
+-  "actual_scope": "Credit binding for one idle-axis hosted residual: exact entry/exit gauges for the hosting move (S' inside the pending set S, no non-commuting intervening touch, disjoint hosted blocks, host endpoint prescribed by the advance) and a per-cut credit allocation for the claimed hosting credit against the history-span endpoint term H_end, audited on the smallest complete instances in the scalar common-frame transport model of PR 1664 (pull/1664) PROOF.md sections 4-5.",
++  "actual_scope": "Credit binding for one idle-axis hosted residual: sufficient entry/exit gauges for the hosting move (S' inside the pending set S, no intervening touch of the host between the residual application and the advance, pairwise disjoint hosted blocks, host endpoint prescribed by the advance), stated as sufficient legality hypotheses of the inherited hosting interface rather than a necessary condition for operator equality (cancellation routes such as the consecutive touches T, T^{-1} past a moved factor R = I + E01 remain open), and a per-cut credit allocation for the claimed hosting credit against the history-span endpoint term H_end, audited on the smallest complete instances in the scalar common-frame transport model of PR 1664 (pull/1664) PROOF.md sections 4-5.",
+   "scope_change_reason": "The drawn persistent-boundary object (consecutive dirty-connector calls) is covered by open concurrent PR https://github.com/CrocSwap/integer-mult-bounds/pull/1739 (1337isnot1337) and the adjacent-call centre-fanout claim posted 2026-10-14T11:11Z in https://github.com/CrocSwap/integer-mult-bounds/discussions/1516. This task instead takes the explicit open request https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18916098 (an664) and PR 1664's open next questions 1-2, keeping the card's method-2 shape: a lower bound on the compulsory transitions of one proposed typed interface (the idle-axis hosting window contract).",
+   "bottleneck_link": "Hosting credit is the accounting that lets the coverage law count work as eliminated boundary work; without a gauge binding, a claimed hosting credit can exceed what the host's compulsory displacement pays. The receipt pins credit <= H_end for restored hosts and isolates the one endpoint-contract change (absorption) that could credit more, which is the quantity the coverage-law/unpaid-coordinate line changes.",
+   "budget_minutes": 60,
+   "stop_rule": "One bounded interface receipt: smallest falsifying instance first, one exhaustive toy family (156 regions), four gauge controls, then stop. No supplier replay, no kappa target.",
+   "outcome": "completed",
+-  "evidence": "python3.12 -B research/dirty-host-gauge-binding-seedea2e/verify.py prints PASS_DIRTY_HOST_GAUGE_BINDING: the double-duty borrow and the absorbed-endpoint-with-separate-target are refuted at cut 1 by exactly one direction (count and span feasibility); full absorption alone passes and is flagged as a contract change; three dropped-gauge counterexamples for the operator identity; the PR1664 section 5.2 arithmetic reproduced with an M<=6 mutant refuted; pre-positioned dirt earns no credit; and all 156 enumerated restored-host regions satisfy (C-down) and the exact identity sum_j need_j = q*rank(S) + H_end.",
++  "evidence": "python3.12 -B research/dirty-host-gauge-binding-seedea2e/verify.py prints PASS_DIRTY_HOST_GAUGE_BINDING: the double-duty borrow and the absorbed-endpoint-with-separate-target are refuted at cut 1 by exactly one direction (count and span feasibility); full absorption alone passes and is flagged as a contract change; three dropped-gauge counterexamples for the sufficient operator hypotheses (each cannot simply be deleted, none proved necessary) plus the cancellation regression control R = I + E01, T = I + E12, T^{-1} = I - E12, where both touches fail to commute with R yet T^{-1} T R = R T^{-1} T = R and the sufficient-only condition accepts the equality; the PR1664 section 5.2 arithmetic reproduced with an M<=6 mutant refuted; pre-positioned dirt earns no credit; and all 156 enumerated restored-host regions satisfy (C-down) and the exact identity sum_j need_j = q*rank(S) + H_end.",
+   "author": "Aaron Wang (with help from opencode)",
+   "ai_assistance": "Substantial AI assistance: this session was run by an opencode coding agent (model not cited per donor instruction); the verifier, proof notes and package text were drafted with that assistance and checked by exact replay.",
+   "open_questions": [
+diff --git a/research/dirty-host-gauge-binding-seedea2e/VERIFY.json b/research/dirty-host-gauge-binding-seedea2e/VERIFY.json
+index 62ddad400..7d402c24c 100644
+--- a/research/dirty-host-gauge-binding-seedea2e/VERIFY.json
++++ b/research/dirty-host-gauge-binding-seedea2e/VERIFY.json
+@@ -15,7 +15,7 @@
+         "{package}/verify.py"
+       ],
+       "timeout_seconds": 120,
+-      "checks": "PASS_DIRTY_HOST_GAUGE_BINDING: smallest falsifying instances first (double-duty borrow and absorbed-endpoint-with-separate-target refuted at cut 1 by count and span feasibility; full absorption flagged as an endpoint-contract change), operator gauges with three dropped-gauge counterexamples, the PR1664 section 5.2 canonical arithmetic with an M<=6 mutant refuted, pre-positioned dirt earning no credit, and all 156 restored-host toy regions satisfying (C-down) and the exact identity sum_j need_j = q*rank(S) + H_end."
++      "checks": "PASS_DIRTY_HOST_GAUGE_BINDING: smallest falsifying instances first (double-duty borrow and absorbed-endpoint-with-separate-target refuted at cut 1 by count and span feasibility; full absorption flagged as an endpoint-contract change), operator gauges stated as sufficient hypotheses with three dropped-gauge counterexamples and a cancellation regression control (R = I + E01, T = I + E12, T^{-1} = I - E12: both touches fail to commute with R yet T^{-1} T R = R T^{-1} T = R) that the sufficient-only condition must not reject, the PR1664 section 5.2 canonical arithmetic with an M<=6 mutant refuted, pre-positioned dirt earning no credit, and all 156 restored-host toy regions satisfying (C-down) and the exact identity sum_j need_j = q*rank(S) + H_end."
+     }
+   ]
+ }
+diff --git a/research/dirty-host-gauge-binding-seedea2e/verify.py b/research/dirty-host-gauge-binding-seedea2e/verify.py
+index 230120842..11b8157d0 100644
+--- a/research/dirty-host-gauge-binding-seedea2e/verify.py
++++ b/research/dirty-host-gauge-binding-seedea2e/verify.py
+@@ -15,8 +15,10 @@ for restored hosts and clean scatter Y' = Y + S X at height 0.
+ 
+ This script implements (C-down) and the crossing feasibility condition exactly,
+ and audits the *credit binding* of the idle-axis hosted-residual mechanism
+-(research/idle-axis-hosting/PROOF.md): which entry/exit gauges make a hosting
+-move operator-identical, and how much mass a hosted pending factor may claim
++(research/idle-axis-hosting/PROOF.md): which entry/exit gauges *suffice* to make
++a hosting move operator-identical (sufficient legality hypotheses of the
++inherited interface; not claimed necessary -- see the cancellation control
++below), and how much mass a hosted pending factor may claim
+ credit for.  All checks are exact rational arithmetic; entry rows are
+ identity-basis rows (arbitrary dirty content), so row equality covers every
+ dirty input by linearity.
+@@ -211,6 +213,9 @@ def check_operator_gauges():
+     The hosted version applies I_mu' (the advance off the hosted block) followed
+     by the moved factor; the gauges make that equal the original advance I_mu.
+     Controls: escape, overlap order dependence, out-of-window touch.
++    The gauges are sufficient legality hypotheses only: each control shows one
++    hypothesis cannot simply be deleted, not that any of them is necessary for
++    operator equality (see check_cancellation_control).
+     """
+     d = 3
+     moved = shear(d, 0, 2)        # hosted pending factor on S'={0}
+@@ -230,16 +235,58 @@ def check_operator_gauges():
+     # overlap: two moved factors on overlapping blocks do not commute
+     m1, m2 = shear(d, 0, 1), shear(d, 1, 0)
+     report("gauge-overlap-order-refuted", matmul(m1, m2) != matmul(m2, m1),
+-           "overlapping hosted blocks are order-dependent: disjointness (count "
+-           "each pending factor once) is required for an order-free composition")
++           "the exhibited overlapping hosted blocks are order-dependent; "
++           "disjointness (count each pending factor once) is the inherited "
++           "interface's sufficient premise for an order-free composition")
+     # out-of-window touch: an intervening touch T between the residual write at
+     # I1 and the advance at I_mu; hosting moves the factor past T
+     T = shear(d, 2, 0)
+     total_orig_w = matmul(ip, matmul(T, moved))
+     total_hosted_w = matmul(imu, T)
+     report("gauge-window-refuted", total_orig_w != total_hosted_w,
+-           "an intervening touch that does not commute with the moved factor "
+-           "breaks the composition: the window condition is required")
++           "a single intervening touch that does not commute with the moved "
++           "factor breaks the composition: the no-touch window is a sufficient "
++           "premise, not a necessary one (see the cancellation control)")
++
++
++def commute(a, b):
++    return matmul(a, b) == matmul(b, a)
++
++
++def check_cancellation_control():
++    """Regression control: the sufficient-only hypotheses must NOT reject a
++    genuine equality (reviewer's counterexample, PR 1837 comment 6173237648).
++
++    Over Q take R = I + E01, T = I + E12, T^{-1} = I - E12.  Both T and T^{-1}
++    fail to commute with R, so the sufficient window premise ("no intervening
++    touch of the host", or "every intervening touch commutes with the moved
++    factor") is not met in this instance; yet moving R across the consecutive
++    touches T, T^{-1} preserves the complete operator:
++
++        T^{-1} T R = R T^{-1} T = R.
++
++    This is a genuine equality (the touches cancel as a composite), checked
++    below with this package's composed-linear-map machinery (exact integer
++    arithmetic on these entries).  The corrected condition is sufficient only,
++    so it must accept this instance rather than reject it: premise failure is
++    not an operator change, and cancellation-based routes stay open.
++    """
++    d = 3
++    r = shear(d, 0, 1)                    # R = I + E01
++    t = shear(d, 1, 2)                    # T = I + E12
++    tinv = eye(d)
++    tinv[1][2] = -1                       # T^{-1} = I - E12
++    premise_met = commute(r, t) and commute(r, tinv)
++    lhs = matmul(matmul(tinv, t), r)      # T^{-1} T R
++    rhs = matmul(r, matmul(tinv, t))      # R T^{-1} T
++    report("cancellation-touches-noncommuting", not premise_met,
++           "T = I + E12 and T^{-1} = I - E12 each fail to commute with "
++           "R = I + E01, so the sufficient window premise is not met here")
++    report("cancellation-equality-not-rejected", (not premise_met) and lhs == rhs == r,
++           "T^{-1} T R = R T^{-1} T = R = [[1,1,0],[0,1,0],[0,0,1]] exactly, so the "
++           "sufficient-only condition must NOT reject this instance: absence of "
++           "individually noncommuting touches is sufficient, not necessary, and "
++           "cancellation-based routes remain open")
+ 
+ 
+ def check_engine_canonical():
+@@ -351,6 +398,7 @@ def main():
+     check_smallest_falsifier()
+     print("--- operator gauges ---")
+     check_operator_gauges()
++    check_cancellation_control()
+     print("--- credit accounting ---")
+     check_engine_canonical()
+     check_prepositioned_dirt()

@@ -1,0 +1,416 @@
+\section{Faster interchange of address chunks}
+\label{sec:tape-interchange}
+
+We use the bit network to interchange two equal address chunks on tape.
+An edge matrix of rank $a$ will require $a$ smaller interchanges.
+Because the sum of these ranks is less than the number of wires times
+$m$, the resulting recurrence saves a power of the chunk width.
+
+\subsection{A matrix decomposition adapted to tape order}
+
+Lemma~\ref{lem:ordered-affine-streams} updates a later field using
+earlier fields in linear time.  Lower triangular changes of coordinates
+can be performed entirely in this direction. The required factorization
+is the Bruhat factorization for arbitrary matrices, with coordinate order
+reversed; see Grigor'ev~\cite[Appendix~A.2, Proposition~14(c)]{Grigoriev1982}.
+We give its elementary elimination proof in this order.
+
+\begin{lemma}[Lower triangular factorization]
+\label{lem:lower-lower}
+Every rational $m\times m$ matrix $A$ of rank $a$ has a factorization
+\[
+ A=E_1\Pi E_2,
+\]
+where $E_1,E_2$ are invertible lower triangular rational matrices and
+$\Pi$ has exactly $a$ entries equal to one, with at most one in each row
+and column, and all remaining entries zero.
+\end{lemma}
+
+\begin{proof}
+If $A=0$, take $E_1=E_2=I$ and $\Pi=0$.  Otherwise choose the topmost
+nonzero row and its rightmost nonzero entry.  Use that pivot column to
+clear entries to its left by right multiplication by lower triangular
+elementary matrices.  There are no nonzero entries to its right in the
+pivot row.  Clear entries below the pivot by left multiplication by
+lower triangular elementary matrices, and scale the pivot to one.
+All rows above the chosen row were zero in the still active columns.
+
+Delete the pivot row and column from the active index sets, retaining
+their original orders, and repeat.  Elementary operations on the active
+indices are still lower triangular in the original order.  They do not
+change any earlier pivot row or column, whose other entries have already
+been cleared.  Each step isolates a rank-one block and leaves the
+remaining rank in the active submatrix.  Thus the final partial
+permutation matrix has exactly $a$ ones.  If $LAR=\Pi$ is the resulting
+identity, then $E_1=L^{-1}$ and $E_2=R^{-1}$ have the required form.
+\end{proof}
+
+\begin{lemma}[The cost of a rational matrix shear]
+\label{lem:matrix-shear}
+Let $\mathcal A$ be a fixed finite collection of rational $m\times m$
+matrices.  There is a fixed odd prime $q$ such that the following holds.
+Let $H=(H_1,\ldots,H_m)$ and $D=(D_1,\ldots,D_m)$ be two ordered
+groups of fields, every field ranging over $[q^b]$, with every $H_i$
+before every $D_j$.  For $A\in\mathcal A$ of rational rank $a$, the
+permutation
+\[
+ (H,D)\longmapsto(H+AD,D)
+ \quad\text{over }\mathbb Z/q^b\mathbb Z
+\]
+can be performed with exactly $a$ interchanges of pairs of $b$-digit
+fields and $O(V)$ further work.  Every interchange is between an $H$
+field and a $D$ field.  Spectators between any of the formal fields are
+allowed.
+\end{lemma}
+
+\begin{proof}
+Choose the factorizations of Lemma~\ref{lem:lower-lower} for all matrices
+in $\mathcal A$ once and for all.  Include their factors and inverses in
+a finite rational table.  Choose an odd prime avoiding every denominator
+in the table and every numerator of a diagonal entry of an invertible
+factor.  For example, a prime exceeding the absolute values of all its
+nonzero numerators and denominators suffices.  Rational elimination and
+trial division construct this finite table and a suitable prime in a
+finite computation independent of $b$.  They may therefore be compiled
+into one fixed machine description.  All these
+rational identities then specialize to $\mathbb Z/q^b\mathbb Z$, and
+the triangular factors remain invertible there.
+
+A lower triangular transformation of $H$, or of $D$, costs $O(V)$:
+update coordinates in descending physical order.  At coordinate $i$,
+multiply by its diagonal unit and add a fixed linear combination of
+earlier coordinates.  These earlier coordinates still have their original
+values.  Apply Lemma~\ref{lem:ordered-affine-streams}; the number of
+coordinates is the fixed number $m$.  Inverses are also lower triangular.
+
+For $A=E_1\Pi E_2$, first transform $D$ by $E_2$ and $H$ by $E_1^{-1}$,
+then add $\Pi D$ to $H$, and finally transform $H$ by $E_1$ and $D$ by
+$E_2^{-1}$.  Each one in position $(i,j)$ of $\Pi$ calls for
+$H_i\leftarrow H_i+D_j$.  Implement it by
+\[
+ D_j\leftarrow D_j+H_i,\qquad
+ (H_i,D_j)\leftarrow(D_j,H_i),\qquad
+ D_j\leftarrow H_i-D_j.
+\]
+The first and last updates target a later field controlled by an earlier
+field.  On an initial pair $(h,d)$ this sequence yields $(h+d,d)$.
+It uses just one interchange.  There are $a$ ones, which proves the
+claim.  In particular, the number of recursive calls is the rational
+rank $a$; temporary tapes used for the other operations do not multiply
+that count.
+\end{proof}
+
+\subsection{Transferring a finite circuit to address permutations}
+
+Fix integers $m,W\ge2$.  The circuit has $W$ wires, including its
+scratch wires, with separate input and output terminals.  Its fixed,
+pointwise bit gates induce a permutation $\rho$ of the $W$ scalar inputs
+at completion: the input value at role $w$ appears at output role
+$\rho(w)$.  Assign a
+rational $m\times m$ matrix to each terminal and to each gate, the latter
+assignment being common to every wire at that gate.  A wire segment
+between consecutive assigned vertices is called an edge.  For an edge
+$e$ put
+\[
+ A_e=M_{\mathrm{head}(e)}-M_{\mathrm{tail}(e)},
+ \qquad s=\sum_e\operatorname{rank}_{\mathbb Q}A_e.
+\]
+The required conditions are
+\begin{equation}
+\label{eq:finite-shear-contract}
+ M_{\mathrm{out}(\rho(w))}-M_{\mathrm{in}(w)}=I_m
+ \quad(1\le w\le W),\qquad s<Wm.
+\end{equation}
+All these data are finite and fixed. Proposition~\ref{prop:bit-motif-interface}
+supplies these conditions with $W=W_{\rm b}$ and $s=s_{\rm b}$.
+Its negative source projection is essential to the endpoint identity and
+has already been included in the rank sum.
+
+\begin{proposition}[Power-width interchange with rows]
+\label{prop:power-interchange}
+Assume the fixed circuit data satisfy
+\eqref{eq:finite-shear-contract}, and let $q$ be a prime as in
+Lemma~\ref{lem:matrix-shear} for its edge matrices, also avoiding the
+denominators of every assigned terminal and gate matrix $M$.
+Choose a rational number $\tau\in(0,1)$ with $s/W<m^\tau$.
+For every $e=m^k$, $k\ge0$, consider two disjoint contiguous address
+chunks of $e$ radix-$q$ digits each.  Suppose a row field preceding both
+chunks has length divisible by $W^k$.  There may be additional fields
+before and after the row field, between the chunks, and after them.
+The chunks can be interchanged in $O(Ve^\tau)$ time, preserving every
+other address field, on a fixed number of finite-alphabet tapes.
+The constant is independent of all field lengths and of the data.
+\end{proposition}
+
+\begin{proof}
+For $k=0$ apply the single-digit operation of
+Lemma~\ref{lem:elementary-streams}.  For $k>0$, write each chunk as $m$
+consecutive $b=e/m$ digit fields, giving vectors $H,D$ over
+$\mathbb Z/q^b\mathbb Z$.  We first construct the shear $H\leftarrow H+D$.
+
+Split whole rows cyclically into $W$ role streams within each prefix
+preceding the row field.  Write the original row number as
+$r=Wg+(w-1)$ with $1\le w\le W$; stream $w$ has row number $g$.
+These streams have exactly the same remaining shape, including the
+full ranges of $H$ and $D$.  Each has
+logical volume $V/W$, and its row count is divisible by $W^{k-1}$.
+
+For a rational matrix $M$, let $\Phi_M$ act on an array by moving its
+entry at address $(H,D)$ to $(H+MD,D)$, with every spectator unchanged.
+Thus $\Phi_M$ is the array permutation induced by that address map.
+Its inverse is $\Phi_{-M}$ and
+$\Phi_{M'}\Phi_M=\Phi_{M'+M}$.  On every circuit edge apply
+$\Phi_{A_e}$ to that role stream; implement it by
+Lemma~\ref{lem:matrix-shear}, recursively interchanging each pivot pair
+of $b$-digit fields.  Execute each circuit gate pointwise at matching
+addresses of its role streams.
+
+The row split supplies the common address set used in the
+frame identity~\eqref{eq:common-frame-identity}. Here the frame at a
+vertex with matrix $M$ is the address permutation $\Phi_M$, and every
+edge changes it by $\Phi_{M'-M}$. The same invariant proof applies
+because a common address permutation commutes with every pointwise
+bit gate. For the physical input arrays $f_w$, the logical arrays are
+$g_w=\Phi_{-M_{\mathrm{in}(w)}}f_w$; this only specifies their
+interpretation, with no initial tape operation. The logical circuit
+routes $g_w$ to role $\rho(w)$. Thus its physical output satisfies
+\[
+ f'_{\rho(w)}
+ =\Phi_{M_{\mathrm{out}(\rho(w))}}
+   \Phi_{-M_{\mathrm{in}(w)}}f_w
+ =\Phi_{I_m}f_w,
+\]
+by~\eqref{eq:finite-shear-contract}. Merge by returning row $g$ of
+output role $\rho(w)$ to the original row $Wg+(w-1)$ within the same
+preceding prefix. This undoes $\rho$ and restores row order. The result
+is $H\leftarrow H+D$ on every original row, including rows assigned
+to scratch roles, whose initial values were arbitrary.
+
+To interchange the two full chunks, perform
+\[
+ D\leftarrow D-H,\qquad H\leftarrow H+D,\qquad D\leftarrow H-D,
+\]
+componentwise.  Only the middle shear uses the circuit.  The other two
+updates target the later group and have linear cost.  The transformation
+sends $(H,D)$ to $(D,H)$.
+
+The number of recursive calls is the sum of the edge ranks, exactly $s$.
+Each acts on one role stream of volume $V/W$, retaining all other
+fields as spectators.  Splitting,
+merging, gates, and triangular operations have total cost $O(V)$ because
+their number is fixed.  Below we verify that scheduling the recursive
+calls on fixed tapes also costs $O(V)$ at this node.  Thus if $F_k$ is a
+uniform upper bound for time divided by logical volume, then
+\begin{equation}
+\label{eq:swap-recurrence}
+ F_0=O(1),\qquad F_k\le(s/W)F_{k-1}+O(1).
+\end{equation}
+For $a=s/W<m^\tau$ the geometric sum
+$\sum_{j=0}^k a^j$ is $O(m^{k\tau})$.  If $a\le1$, the sum is at
+most $k+1=O(m^{k\tau})$; if $a>1$, it is $O(a^k)$.
+Hence $F_k=O(e^\tau)$.
+
+\paragraph{A fixed-tape depth-first schedule.}
+Here we complete the implementation assertion used in
+\eqref{eq:swap-recurrence}.  Reserve $W$ role tapes, a fixed set of
+I/O and elementary-operation work tapes, one parking stack tape, and a
+separate descriptor stack.  Although $W$ is large, it is fixed.
+At a call boundary all reusable work tapes, other than the current I/O
+and local descriptor, are empty and their heads are at their origins.
+The parking and descriptor heads are at the tops of their stacks.
+
+Before a recursive call, append the $W-1$ inactive role streams to the
+parking stack in a fixed order, with separators.  Copy the active stream
+to the child I/O area, and erase the parent role tapes while traversing
+their current contents.  Push the parent descriptor and its finite
+program counter to the descriptor stack.  The role and work tapes are
+now available to the child, using the same tapes at every depth.
+On return, copy the child output into the designated active role.
+Pop the inactive streams in reverse order.  To recover a stream in its
+original direction, prepare its destination to the known length and
+write the popped symbols from the destination's right end toward its
+left end.  Erase the popped stack cells as they are left.  This uses
+linear time and ends with the parking head at the previously saved top.
+No scan passes through a parked ancestor.  Cleanup is always limited to
+the region visited by the current call; a reused tape is not swept to
+the largest position ever visited by an ancestor.
+
+Each push, pop, copy, positioning operation, or erasure moves $O(V)$
+symbols at a parent node.  There are only the fixed number $s$ of child
+calls.  This gives precisely the additional $O(V)$ term claimed above,
+even though each child itself has volume $V/W$.  Temporary storage is
+therefore not substituted for logical volume in the factor $s/W$.
+
+For completeness, descriptor processing also fits this term when the
+payload is one bit.  Let $V_0$ be the volume at the root of one
+power-width call with width $e_0=m^{k_0}$, and $V_j=V_0/W^j$ the volume
+of any depth-$j$ child.  Here $j\le k_0=\log_m e_0$.  The root row
+count is at least $W^{k_0}$, so at depth $j$ it is still at least one.
+Both original chunk ranges remain present: digits outside the current
+subchunks become spectators rather than being removed.  Hence
+\[
+ V_j\ge q^{2e_0},\qquad
+ j\log W\le(\log_m e_0)\log W=O(e_0)=O(\log V_j).
+\]
+It follows that
+$\log V_0=\log V_j+j\log W=O(\log(2V_j))$.
+A local descriptor lists the row field, at most the current $m+m$
+fields, and a fixed number of intervals formed from intervening
+spectator fields.  Computing products of their lengths, subdividing
+target fields, copying lengths, and storing the current instruction take
+$(\log(2V_0))^{O(1)}=O(V_j)$ time at that child, since every fixed
+power of $\log(2V_j)$ is $O(V_j)$.  Before descending,
+construct the child's descriptor by retaining its two target fields and
+combining each consecutive group of spectator fields into one interval.
+The ancestor's subdivision need not remain active in the child.  Stack entries contain
+finite instructions and binary integers, not new alphabet symbols.
+These observations establish one finite machine for every recursion
+depth and every choice of spectator lengths.
+
+\end{proof}
+
+
+We use the rational value $\tau=1-2^{-50}$ established in
+\eqref{eq:explicit-motif-exponents}. Its verification uses fixed integer
+comparisons and the displayed exponential inequality; it needs no
+real-arithmetic oracle.
+
+
+\subsection{Removing width and row restrictions}
+
+We have proved the fast operation for power widths with enough rows.
+Rows for a general array can be supplied by a few of its own high digits.
+Their movement will cost less than the final bound.
+
+\begin{lemma}[Arbitrary-width interchange]
+\label{lem:chunk-swap}
+There exist fixed $0<\tau<1$ and one fixed finite-alphabet multitape
+procedure with the following property.  For positive integers $P,G,B$
+and $u\ge1$, it transforms an arbitrary bit array on
+\[
+ [P]\times[2^u]\times[G]\times[2^u]\times[B]
+\]
+by the address permutation
+\[
+ (p,h,g,d,z)\longmapsto(p,d,g,h,z)
+\]
+in $O(Vu^\tau)$ steps, where $V=PG B\,2^{2u}$.
+The integers specifying the shape are part of the input.  The time
+includes their processing, all padding and unpadding, and fixed-tape
+workspace cleanup.  In particular, $B=1$ is allowed.
+\end{lemma}
+
+\begin{proof}
+First suppose the two ranges are $[q^e]$, where $q$ is the fixed prime
+already chosen.  Set
+\[
+ k=\lceil\log_m e\rceil,\qquad
+ \rho=\left\lceil\frac{k\log W}{2\log q}\right\rceil.
+\]
+For all sufficiently large $e$, $1\le\rho<e$ and $\rho=O(\log(2e))$.
+Handle the bounded remaining set of widths by $e$ individual digit
+interchanges; the constant in $O(Ve^\tau)$ absorbs their cost.
+
+Write each chunk as its top $\rho$ digits followed by its remaining
+digits, denoted $h^+,h^-$ and $d^+,d^-$, respectively.  Interchange
+the corresponding high digits one pair at a time.  The high positions
+now contain $d^+$ and $h^+$; move the digits of the latter, preserving
+their order, into consecutive positions immediately after $d^+$.
+Suppressing the prefix and suffix, the field orders during the construction are
+\[
+\begin{aligned}
+ &(h^+,h^-,g,d^+,d^-),\\
+ &(d^+,h^+,h^-,g,d^-)
+       &&\text{after exchanging and joining the high parts},\\
+ &(d^+,h^+,d^-,g,h^-)
+       &&\text{after interchanging the remaining parts},\\
+ &(d^+,d^-,g,h^+,h^-)
+       &&\text{after separating the high parts again}.
+\end{aligned}
+\]
+In the two middle orders, the first two fields form a row field of range
+\[
+ R=q^{2\rho}\ge W^k
+\]
+before both remaining chunks.  The joining moves preserve the order of
+the remaining digits and the gap field.  Exchanging and joining the high
+parts costs $O(V\rho)$ by
+Lemma~\ref{lem:elementary-streams}.  Append zero rows, separately within
+each preceding prefix, until the row count is
+\[
+ R'=W^k\left\lceil R/W^k\right\rceil<2R.
+\]
+This changes the row field's length; it need not remain a power of $q$
+during the computation.  The padded logical volume is less than $2V$.
+
+Write the remaining width in base $m$:
+\[
+ e-\rho=\sum_{j=0}^{k} a_jm^j,\qquad 0\le a_j<m.
+\]
+Partition each remaining chunk into corresponding consecutive pieces,
+with $a_j$ pieces of width $m^j$.  Apply
+Proposition~\ref{prop:power-interchange} to each corresponding pair.
+All these calls use the same row field of length $R'$, which is divisible
+by each required $W^j$.  At completion every call preserves its row
+address, so it neither mixes genuine rows with padded rows nor depends
+on the values used for padding.  The padded zero rows remain zero at
+these completed-call boundaries.  The sum of the costs is bounded by
+\[
+ O(V)\sum_j a_jm^{j\tau}=O(Ve^\tau).
+\]
+The fixed bound $a_j<m$ and the inequality $m^k<me$ make this a
+geometric sum of the stated order.  Scan away the padded rows, then
+reverse only the moves that joined the high parts.  This is the last
+transition in the field-order display: $h^+$ returns to the later
+high position, while $d^+$ stays in the earlier one.  The final order
+is therefore the required interchange of the two full chunks.  The
+remaining movement cost $O(V\log(2e))$ is $O(Ve^\tau)$.
+Computing the piece list and every new shape is polynomial in
+$\log(2V)$ per piece.  There are at most
+$(m-1)(k+1)=O(\log(2e))$ pieces; since $V\ge q^{2e}$, their total
+descriptor cost is a fixed power of $\log(2V)$ and hence $O(V)$.
+Each power-width call uses the fixed schedule proved above and leaves
+its work tapes clean.
+
+Finally, for binary chunks let $e$ be the least integer with
+$q^e\ge2^u$.  Pad each of the two chunk ranges numerically from $[2^u]$
+to $[q^e]$, putting zero in an entry if either chunk coordinate is
+invalid.  The increase in volume is less than $q^2$, a fixed factor.
+The padding is a nested scan through consecutive valid and invalid
+intervals, with their lengths prepared from the shape.  It costs $O(V)$
+with a constant depending on $q$.  Lexicographic radix-$q$ order of
+$[q^e]$ is its numerical order, just as binary order of $[2^u]$ is its
+numerical order.  Padding therefore preserves the order of the existing
+entries without converting the digits of every address.
+The completed interchange preserves the set on which both chunk
+coordinates lie below $2^u$.  Scan away the other entries to recover the
+desired binary array.  Since $e=O(u)$ for fixed $q$, the bound is
+$O(Vu^\tau)$.
+\end{proof}
+
+The lemma permits arbitrary prefix, gap, and suffix lengths.  Thus every
+later interchange of equal bit chunks is an instance of its stated
+layout, after multiplying the irrelevant contiguous lengths.
+For widths differing by one bit, choose the leading bit of the longer
+chunk as the extra bit.  Suppress the outer prefix and suffix, and write
+$g$ for the intervening address field.  If the first chunk is longer,
+write it as $(h_0,H)$, so $H$ and the second chunk $D$ have equal width.
+The physical orders are
+\[
+ (h_0,H,g,D)\longmapsto(h_0,D,g,H)
+              \longmapsto(D,g,h_0,H).
+\]
+The first step interchanges $H,D$ by the lemma; the second moves the
+single bit $h_0$ immediately before $H$.  If the second chunk is longer,
+write it as $(d_0,D)$, with $H$ the first chunk.  Use
+\[
+ (H,g,d_0,D)\longmapsto(d_0,H,g,D)
+              \longmapsto(d_0,D,g,H).
+\]
+Here the first step moves $d_0$ immediately before $H$, and the second
+interchanges $H,D$.  In each case $g$ remains between the two full chunks
+in the final order.  If $H,D$ are empty, the indicated equal-width
+interchange is the identity.  Each case uses one single-bit move, costing
+$O(V)$ by Lemma~\ref{lem:elementary-streams}, in addition to the
+equal-width interchange.  No unrestricted array transpose is being used
+in these operations.

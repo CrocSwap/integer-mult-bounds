@@ -1,0 +1,78 @@
+{
+  "status": "EXACT_INDEXED_FULL_BUCKETED_SCALAR_FRAME_SCHEMA",
+  "source_geometry": "research/niemeier-lattices/code/e8_cubed.py",
+  "source_geometry_sha256": "ce24f397053c0ef5b26881bb7ccfab53fb0a3d762f2de04086fed8f7b41e8234",
+  "source_domain": "P=ports[(profiles&4)==0,:16], indices0..30959, distinct source and target register pools",
+  "target_buckets": "all14670 distinct packed17bit labels, ordered numerically; bucket members are actual target ports with that label",
+  "helper_index": "h(s,b) for every source port s and target label bucket b with parity(p_s&b)=0",
+  "helper_count": 227312640,
+  "actual_nonzero_source_target_entries": 480337920,
+  "coefficient": "C(t,s)=delta(t,s)-(q^3-4q)/48 where q=(P_t dot P_s)/4; on indexed helper incidences q is odd and delta=0",
+  "initial_source_frame": "span(p_s), dimension1",
+  "initial_target_and_helper_frames": "zero, dimension0",
+  "final_source_and_helper_frames": "FULL, dimension17",
+  "final_target_frame": "cap(p_t)=perp(p_t), dimension16",
+  "phases": [
+    {
+      "phase": 1,
+      "for_each": "helper h(s,b), each target t in bucket b",
+      "operation": "ADD target_t += -C(t,s)*h(s,b)",
+      "equal_current_frame": "zero",
+      "ADD_count": 480337920
+    },
+    {
+      "phase": 2,
+      "for_each": "helper h(s,b)",
+      "operations": ["CLIMB h(s,b):zero -> span(p_s)", "ADD h(s,b) += source_s", "CLIMB h(s,b):span(p_s) -> cap(b)"],
+      "legality": "p_s dot b=0, so span(p_s) is contained in cap(b)",
+      "ADD_count": 227312640,
+      "CLIMB_count": 454625280
+    },
+    {
+      "phase": 3,
+      "for_each": "source register source_s",
+      "operation": "CLIMB source_s:span(p_s) -> FULL",
+      "CLIMB_count": 30960
+    },
+    {
+      "phase": 4,
+      "optional_fused_K_hook": "All sources are FULL and all targets remain zero; scalar compensation helper payloads are held at their target-bucket caps. Run an independently specified full-center K encoder and its paid FULL->zero restored copies while every target stays at zero.",
+      "scope": "The K hook is not a free primitive. Its816center roles, width17 center-copy descents, bank stock, pads and encoder costs belong to the caller invoice and proof. Omitting this phase yields the standalone I-K compensation shear."
+    },
+    {
+      "phase": 5,
+      "for_each": "target register target_t",
+      "operation": "CLIMB target_t:zero -> cap(p_t)",
+      "CLIMB_count": 30960
+    },
+    {
+      "phase": 6,
+      "for_each": "helper h(s,b), each target t in bucket b",
+      "operation": "ADD target_t += C(t,s)*h(s,b)",
+      "equal_current_frame": "cap(b)=cap(p_t)",
+      "ADD_count": 480337920
+    },
+    {
+      "phase": 7,
+      "for_each": "helper h(s,b)",
+      "operations": ["CLIMB h(s,b):cap(b) -> FULL", "ADD h(s,b) -= source_s"],
+      "equal_current_frame": "FULL",
+      "ADD_count": 227312640,
+      "CLIMB_count": 227312640
+    }
+  ],
+  "compensation_ADD_count": 1415301120,
+  "helper_CLIMB_count": 681937920,
+  "source_target_CLIMB_count": 61920,
+  "standalone_compensation_total_events": 2097300960,
+  "source_profiles": [{"count":30960,"path":[16]}],
+  "target_profiles": [{"count":30960,"path":[16]}],
+  "helper_profiles": [{"count":227312640,"path":[1,15,1]}],
+  "compensation_private_descent_rank": 0,
+  "helper_transition_rank": 3864314880,
+  "total_compensation_and_data_transition_rank": 3865305600,
+  "arbitrary_dirt_identity": "Each lane has initial independent dirt d. Its target contribution is -C*d atzero plus C*(d+source_s) atcap, exactly C*source_s. AtFULL the lane subtracts source_s and returns exactly d.",
+  "inverse_transpose_identity": "In the same event order the dual precompensation adds C*target_t to h; dual gather subtracts h from source_s; dual scatter subtracts C*target_t from h; dual cleanup adds the restored h to source_s. Helper dirt cancels and source_s receives -sum_t C(t,s)*target_t.",
+  "validation": "Exact port geometry, full compensation identity and all-pair counts were established by h6-independent-audit/walsh. FULL-MASK-SCREEN checks every label incidence and cap span, and independently recounts480337920 weighted entries and227312640 lane indices. fiber.py and mask_route.py fully emit and replay actual finite instances of this dirty-lane pattern in both orientations.",
+  "limitation": "This indexed full-size schema is not a stored2.1billion-event physical circuit. The concrete scalar/frame recipe is complete, but exact physical transition compilation, a complete supplied K word, helper-bank admission and the bit-side invoice remain caller obligations. No kappa improvement is claimed."
+}

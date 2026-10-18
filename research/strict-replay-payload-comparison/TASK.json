@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 3,
+  "base_commit": "c676548106012571fefa1dce0ec16f1bcfe11dce",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Audit PR1824 selected-final-stage compare_payloads.py for typed-JSON and path-relocation false equivalences on the pinned PR1094 output; provide an opt-in strict successor.",
+  "scope_change_reason": "The card explicitly permits a canonical-payload omission audit. This fixes the comparator and actual source-bound corpus; it differs from the T37 input-role permutation audit and the generated_identity.py audit.",
+  "bottleneck_link": "Trustworthy portable payload checks prevent receipt representation differences from concealing changed fields. This is verifier engineering with no circuit, recursive-profile or kappa change.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop with exact counterexamples and a checked opt-in comparator; do not generalize to production acceptance or repair unrelated supplier stages. Reserve the final quarter of a 60-minute session for validation and handoff.",
+  "outcome": "completed",
+  "evidence": "RESULT.json replays 39 false-equivalence witnesses, all 105 unchanged files, 22 recompressions, 72 JSON reformats, a complete relocation/timing fixture and 22 missing-time rejections. test_compare.py covers independent semantic and integrity controls.",
+  "author": "commdata2338",
+  "ai_assistance": "Substantial OpenAI Codex assistance in audit design, implementation, experiments, testing and writing; self-reviewed, no independent human review claimed.",
+  "open_questions": [
+    {
+      "question": "Should the opt-in strict comparator replace the retained diagnostic comparator in a future replay wrapper?",
+      "why_it_matters": "The 39 checked counterexamples delimit the reusable tool, while production callers may add separate source and schema checks.",
+      "first_step": "Review the explicit JSON number/path/time contract and rerun each intended caller with its exact timing-path schema.",
+      "blocked_by": "No automatic adoption is made here; caller-specific compatibility and source-pin updates need separate review."
+    },
+    {
+      "question": "Can generated invoice references be rebound to complete payload identities across Python versions?",
+      "why_it_matters": "A Linux Python 3.12 final-stage run changed invoice JSON formatting and consequently two raw-hash references; globally ignoring those references would drop binding information.",
+      "first_step": "Reproduce the PR1824 wrapper on Linux, authenticate both complete invoice payloads, then design an explicit source-bound reference-rebinding rule.",
+      "blocked_by": "This package deliberately preserves raw digest fields; a generic volatile-key exception is insufficient."
+    }
+  ],
+  "chooser": {
+    "nonce": "993e218fc30808586c2384908063757a",
+    "track": "verifier-engineering",
+    "scope_key": "91a9a2afec282c926282",
+    "refined_scope_key": "PR1824/selected1094-payload-comparator/typed-json-and-injective-relocation"
+  },
+  "predecessors": [
+    {
+      "pr": 1824,
+      "author": "Josie Elliston (@JosieElliston)",
+      "head": "ad5b1248f25a71983b20617e2f3a80be22f03990",
+      "relationship": "Audited comparator and portability baseline; retained on main."
+    },
+    {
+      "pr": 1094,
+      "author": "Rohan Arun (@rohanarun)",
+      "head": "0fc329d0bec93ca7cd288eaea1295172e8789810",
+      "relationship": "Reviewed final-stage output corpus; no new supplier claim."
+    },
+    {
+      "pr": 1372,
+      "author": "commdata2338",
+      "relationship": "Different T37 digest-role permutation audit, credited and not repeated."
+    }
+  ],
+  "discussion": 1472,
+  "task_card": {
+    "object_and_question": "PR1824 classify()/relocate() on the 105 archived PR1094 final-stage files: can type changes or relocation aliases be mistaken for formatting/relocation?",
+    "exact_claim_audited": "Parsed/relocated JSON equality preserves every field and key. Test the comparator boundary, not selected production acceptance.",
+    "method_and_domain": "Exact corpus comparison; exhaustive Boolean/integer 0/1 substitutions in INDEPENDENT-T16.json, REPLAY.json and STAGES.json only (25 leaves); replace/insert each of six input keys with its literal placeholder (12 cases); one duplicate-key and one exact-decimal witness; explicit typed timing policy.",
+    "nearest_overlap": "PR1824 implements the comparator; selected-generated-identity-audit checks a different seven-artifact identity function; PR1372 audits T37 digest-role permutations; PR1559 changes PR589 gzip cmp sites. No pending implementation dependency.",
+    "cost_and_required_improvement": "No mathematical cost change. Require exact false-equivalence witnesses and rejection by a successor that still accepts valid formatting, recompression, relocation and declared numeric timings.",
+    "success_and_falsification": "Source pins, full deterministic receipt equality, semantic controls and registered Python 3.12 replay. A valid fixture rejection or a changed undeclared field accepted by the strict comparator falsifies its declared contract.",
+    "bounded_session": "60 minutes, at most eight busy processes/threads, standard library, no GPU; one bounded pivot maximum.",
+    "predecessor_credit": "Josie Elliston; Maxime Fleury and Antoine Olivier; Adam Gall; Gareth Davidson; Rohan Arun, Jeremy Kothe, Hao Yan and Douglas Colkitt; retained supplier lineage.",
+    "artifact_and_reproduction": "python3 -I -B research/strict-replay-payload-comparison/verify.py"
+  },
+  "discussion_url": "https://github.com/CrocSwap/integer-mult-bounds/discussions/1472#discussioncomment-18930555",
+  "overlap": {
+    "mode": "offline shared snapshot; complete pagination, expected stale-cache warnings",
+    "queries": [
+      "--task portable-replay",
+      "--path research/selected-final-stage-portability/compare_payloads.py",
+      "json-format / relocation collision / duplicate JSON / typed equality",
+      "selected-final-stage-portability / strict-replay-payload-comparison / relocation-key-collapse / typed JSON"
+    ],
+    "open_prs_fetched_at": "2026-10-14T17:42:41.850897+00:00",
+    "discussions_fetched_at": "2026-10-14T17:44:14.364568+00:00",
+    "pr_files_fetched_at": "2026-10-14T17:17:53.948388+00:00",
+    "nearest_threads": [
+      1472,
+      1355,
+      1884
+    ],
+    "finding": "No competing comparator scope identified; the matching current claim is this investigation. No-match is not a novelty certificate."
+  }
+}

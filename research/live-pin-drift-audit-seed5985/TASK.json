@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 4,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Audit whether merged replay-speed tooling changes retained live source-pin coverage: enumerate every JSON {path: sha256} pin at base 0fdd7d82, separate live checker pins (check_sources files-maps and research_package.py usage=input rows) from historical receipts, recompute each digest against the bytes its path holds, record for every live drift the later commits touching its pinned file, and reproduce one failing frozen replay and one failing registered check.",
+  "scope_change_reason": "The card asks to speed up one measured replay bottleneck without dropping coverage. The ExclusionCircuit.verify speedups are already merged (d8029ee0, d7d8bfcb), so this audits their coverage-retention side effect, which the card's own scope-change trigger names, and supplies the missing explicit dependency invalidation as a deterministic drift ledger with negative controls. No fixture is sped up and no wall-time comparison is claimed.",
+  "bottleneck_link": "Faster trustworthy replays raise review throughput only while their shared source pins stay valid; this audit shows merged speedups silently disabled frozen package replays and registered checks, and hands the maintainer the exact repair data.",
+  "stop_rule": "One complete enumeration at base 0fdd7d82 with byte-equal recomputation, one reproduced frozen-replay failure, one reproduced registered rejection and eight controls; no pin repair, no broader test-suite triage.",
+  "outcome": "completed",
+  "evidence": "RESULT.json ledger (2481027 pins across 17525 tracked manifests, any-case .json extension; 127 L drift, 22 R-input drift, 48 drift paths) with per-pin commit provenance; the research/skip-clones ValueError reproduction; three research_package.py --check-only working-source-drift rejections; PASS_LIVE_PIN_DRIFT_AUDIT from verify.py (original run under CPython 3.13 on Windows; review-fix rerun under CPython 3.12 on Windows and in a complete frozen checkout); README tables and limits. Review fix: census bound to the git ls-files tracked inventory with case-insensitive .json matching (the 22 tracked .JSON manifests are retained and named in the README), README count 17528 corrected to 17525, P/R-provenance drift relabelled candidate drift because scripts/verify_pr_reconciliation.py:207 and scripts/verify_replay_coverage.py:98 hash live bytes for some P-shaped entries.",
+  "author": "Aaron Wang",
+  "ai_assistance": "Substantial AI assistance: with help from opencode. No independent human review claimed.",
+  "budget_minutes": 60,
+  "open_questions": [
+    {
+      "question": "Which pin-repair policy should each frozen package get for its 149 live-drift pins: refreshed digest with old digest retained, vendored freeze-time bytes, or a replay declared historical and bound to its recorded commit?",
+      "why_it_matters": "Refreshing a frozen pin rewrites the evidence it protects and vendoring changes frozen files, so no contributor should choose unilaterally; without a policy the affected replays stay red for everyone.",
+      "first_step": "Apply one option to research/skip-clones alone and rerun tests/test_skip_clones.py.",
+      "blocked_by": "Modifying frozen package bytes or pins needs maintainer authorization."
+    },
+    {
+      "question": "Should usage: input be reserved for genuinely required live tools, instead of evolving documents like the task catalogue, bottleneck brief and PR ledger?",
+      "why_it_matters": "Ten packages pin those documents as live inputs, so every priority revision disables their registered replay even though their mathematics is unchanged.",
+      "first_step": "Add one distinguishing sentence to docs/research/research-package-guide.md about live inputs versus provenance pins.",
+      "blocked_by": "Documentation ownership and maintainer review."
+    },
+    {
+      "question": "Can this deterministic drift audit run in CI against a recorded baseline so only new L/R-input drift fails?",
+      "why_it_matters": "The audit recomputes the whole ledger in about 100 seconds, so new stale pins could be caught at PR time instead of months later.",
+      "first_step": "Record a baseline RESULT.json and a comparison mode that fails only on new live drift.",
+      "blocked_by": "Maintainer choice of the baseline policy and CI wiring."
+    }
+  ]
+}

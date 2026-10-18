@@ -1,0 +1,27 @@
+name: Verify static44 global composition
+# Historical witness replay; selected-family automation is in frontier588.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install numpy
+      - name: Replay complete changed complex supplier
+        run: python -B research/static44-r480-composition/verify.py "${RUNNER_TEMP}/static44-replay"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static44-${{ matrix.python }}
+          path: ${{ runner.temp }}/static44-replay

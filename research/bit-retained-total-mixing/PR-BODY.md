@@ -1,0 +1,3 @@
+The nine frozen PR589 retained totals reach distinct rank-seven hyperplanes. A written monotone-frame argument excludes any no-extra-COPY late in-place basis network: baseline COPY mass63, every nonempty network at least65, even granting free scalar gates and legal conjugate scatter.
+
+Exact511 support joins, independent36 pair joins and72 dirty-boundary trials corroborate the proof. Python3.12 registered replay and selected integrity pass. Scoped late-network obstruction only; no new kappa, decoder optimum or native admission. Prepared by woklerx with substantial OpenAI Codex assistance; Apache-2.0.

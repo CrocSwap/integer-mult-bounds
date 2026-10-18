@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 790,
+  "title": "Research note: factor R420 block 9 from 38 to 24 XORs (28 fewer native ADDs, no new \u03ba)",
+  "author": {
+    "id": "U_kgDOC-l38Q",
+    "is_bot": false,
+    "login": "commdata2338",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/790",
+  "head": "08b4a039ba4938dd4f4c89a69759f49ed21923ef",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/r420-block9-factorization/CANDIDATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c98cdf8560588f919689aee3ffed4463cca123bd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block9-factorization/CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b68e434cbef33808cf56edbbe010f00ccfca0f8b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block9-factorization/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c7566f86b73cd4616e404e0e33bf6bd8d1c8dd32"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block9-factorization/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a455667f62e718ee8bff4e69258cc2333af91287"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block9-factorization/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "570d5dc593ba137612bcd22917ef2122adcbd4a4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block9-factorization/record_audit.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ce13cfc46ae939c1a054736238e4bf3e256c052f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block9-factorization/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "62d037fd6ef2df44533a031c732f549b84dd75b8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-block9-factorization/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eccbec033d874f21ca032e19344051e41006402f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r420-block9-factorization": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "## Change and mathematical scope\n\n**Status: research note with a finite circuit construction and exact verification. No new \u03ba.** The selected certificate, its \u03ba (`51110230636731/31250000000000000`) and `upstream/` are unchanged. All files are new, under `research/r420-block9-factorization/`.\n\nIn eumemic's #543 R420 bit word, phase-B block 9 is the 38-XOR slice `B[559:597]` at frame 551 (rational rank four), on the twelve source registers `8, 13, 33, 39, 42, 47, 80, 85, 88, 94, 114, 119`. This PR replaces it with 24 XORs. Regenerating the literal reverse cleanup saves 14 more, at the rank-eight full frame. D, A, the scatter, the retained totals and every other B gate are unchanged.\n\n| Quantity | Original | Replacement |\n|---|---:|---:|\n| Block 9 XORs | 38 | 24 |\n| Literal cleanup gate records | 2,661 | 2,647 |\n| Complete native scalar ADDs | 26,916 | 26,888 |\n| Local reverse positive prefix bound | 2,270,064 | 2,234,964 |\n| Local forward positive prefix bound | 144,651 | 144,651 |\n| Paid rank mass | 5,112 | 5,112 |\n\n- **Exact block identity.** Write `T_ab = I + e_a e_b^T`. The old and new chronological gate lists have the same positive integer transfer matrix, so block 9 computes the same linear map over every commutative ring, F2 included, on arbitrary register contents. The signed inverse is also identical, and the ordered physical output assignment is kept. The complete dirty-restored word is certified over F2; its defining endpoint is not claimed over the integers.\n- **Positive bounds do not grow.** The positive reverse transfer is entrywise no larger, with 22 strict entries. Block followed by positive reverse improves 102 entries, and its unit-input maximum falls from 973 to 137. The unchanged exterior operations are monotone on nonnegative bounds, so the domination carries through the whole word and no prefix bound increases. The five-stage payload stays at 100 bits and the nine-stage charge at 192 bits.\n- **No hidden cost.** The change adds no helper, source access, copy, frame change or recursive child. Every register keeps its frame path, and the paid histogram `{1:1320, 2:1440, 4:60, 5:120, 8:9}` is unchanged. The interface is #543's original H1\u2013H5, including literal cleanup reversal (H4).\n- **Search.** A seeded walk factors the block's 12-by-12 transfer matrix from both ends: subtracting a dominated row removes a final gate, subtracting a column removes a first gate, and entries stay nonnegative. With OS seed 19 it ran a fixed 2,000 trials. 372 reached the identity, 236 of those had a dominated positive reverse, and the best has 24 gates. 24 is not claimed minimal.\n\n**Predecessor work.** Details and pins are in the README and SOURCES.json.\n- eumemic's #543, reviewed at `2065fe4f72a914d907f1046603f5a36f17018535`, supplies the R420 word, source plan, integer norm objective, interleaved interface and exact checker, building on #493.\n- The exporter, checker and pricing lineage is credited in the README: Dylan Crow (#370 word and exporter), DaysSky (bridged cohort checker), DreamingOfClouds (#503/#510 and #463 nine-stage pricing), Zhihao Chen (#425 interface), Chafik Boukhalfa (common-label and hosting/emitter work), and the cumulative authors in the selected maintainer review.\n- #661 (yuj1r0) proves the R420 phase-B frames moment-optimal at fixed gate order and excludes resynthesis. This PR changes the gate list instead of reopening that class.\n\n**Open obligations.**\n- Build the globally hosted owner program, physical invoice and outer assembly for the changed word, and update the supplier bindings. In the nine-stage invoice's scalar term, `9 * 32 * local_additions + bridge_additions`, the local saving would remove 8,064 ADDs; nothing hosted is regenerated here.\n- Settle whether 24 gates is minimal for this block.\n- Discharge the inherited all-size compiler, common-label/mutable-basis realization, pooled hosting, normalized residual, precision/tape/exact-recovery and analytic-transfer assumptions.\n\nNo \u03ba change follows from the local count: the recursive profile and rounded prefix budgets are unchanged, and the selected assembly is complex-bound.\n\n[Research note and proof](https://github.com/CrocSwap/integer-mult-bounds/blob/08b4a039ba4938dd4f4c89a69759f49ed21923ef/research/r420-block9-factorization/README.md), [frozen circuit](https://github.com/CrocSwap/integer-mult-bounds/blob/08b4a039ba4938dd4f4c89a69759f49ed21923ef/research/r420-block9-factorization/CANDIDATE.json), [certificate](https://github.com/CrocSwap/integer-mult-bounds/blob/08b4a039ba4938dd4f4c89a69759f49ed21923ef/research/r420-block9-factorization/CERTIFICATE.json), [source pins](https://github.com/CrocSwap/integer-mult-bounds/blob/08b4a039ba4938dd4f4c89a69759f49ed21923ef/research/r420-block9-factorization/SOURCES.json), [validation record](https://github.com/CrocSwap/integer-mult-bounds/blob/08b4a039ba4938dd4f4c89a69759f49ed21923ef/research/r420-block9-factorization/VALIDATION.json), [verifier](https://github.com/CrocSwap/integer-mult-bounds/blob/08b4a039ba4938dd4f4c89a69759f49ed21923ef/research/r420-block9-factorization/verify.py) and [search](https://github.com/CrocSwap/integer-mult-bounds/blob/08b4a039ba4938dd4f4c89a69759f49ed21923ef/research/r420-block9-factorization/search.py).\n\n**Overlap.** The pre-submission refresh at 05:31 UTC on 13 October searched the titles and bodies of the 320 most recent PRs (#462\u2013#782, all states) and read every R420 circuit PR among them; none changes block 9's gates. `main` is still at base `66849e1`, so no merged change touches the word. #670 (yongjae321) and #674 (x0hu) resynthesize blocks 3 and 5, by local F2 rewrites and explicit sum sharing. #688 (Ali Romman) composes those two, and #681 (alluri-ritual) consolidates #688 with phase-A, D, decoder and complex-supplier work; none of the four touches block 9, and no composition with them is certified here. The one direct interaction is #754 (namredips), which keeps B fixed and rewrites four-wire cleanup windows under a semantic H4\u2032. Two of its 101 windows, `[120,124)` and `[126,130)` of the expanded original cleanup (one XOR each), lie inside block 9's reversed segment `[120,158)`, which this PR replaces wholesale, so the two savings are not additive. #710's conjugation lies outside that segment, and #691 (mtpsl) applies the same forward-equality and reverse-domination test to phase-A quad 13. #686, #694, #713, #716, #733, #742, #759 and #774 change the frame-zero compensation D, and #708, #748 and #753 change the phase-A decoder totals; each saves more than 28 ADDs. This PR is the only change to block 9, and unlike several of those D and decoder changes it raises no positive prefix bound.\n\n## Validation\n\nFrom the repository root, with Python 3.11+, a C++17 compiler and Boost headers (no Python packages):\n\n```sh\npython3 -B research/r420-block9-factorization/verify.py\n```\n\nExpected final line:\n\n```text\nPASS_R420_BLOCK9_FACTORIZATION gates=38->24 native_adds=26916->26888 columns=660/900/1380/1620 rank_mass=5112\n```\n\nThe driver writes the rebuilt word, exported records, checker receipts and logs to a fresh directory under `build/`, and compares every proof-relevant field with CERTIFICATE.json. It compares regenerated gzip output by canonical decompressed JSON. The lane's run passed on Linux x86-64 with Python 3.12.3 and GCC 13.3.0.\n\n- **Finite checks.**\n  - Exact integer transfer, signed inverse and entrywise positive-bound comparisons for the block, in unbounded Python integers.\n  - #543's own E8 label, rational-frame, all-column and H1\u2013H5 checks on both complete words.\n  - A separate standard-library interpreter replays all 660 dirty-input columns one at a time in both orientations, and reconstructs every exported MOVE/ADD/COPY/ERASE record, frame path, paid profile and positive prefix. It imports no predecessor checker or search code.\n  - The unchanged C++ legality checker and five-, nine- and eleven-stage column checkers run on both words: 900, 1,380 and 1,620 physical columns, with 6, 18 and 24 omitted-bridge controls per word. The C++ and Python prefix and profile results must agree.\n  - The checker rejects all 15 new negative controls. They include an integer-correct 25-gate factorization with a worse positive reverse, and a stale literal cleanup that passes the F2 endpoint replay but fails H4.\n- **Proof arguments.** Equality over every commutative ring follows from the equal integer transfer matrices. The README gives the written argument that reverse domination propagates through the monotone exterior to every prefix of the whole word; the finite prefix replays agree with it but do not replace it.\n- **Search reproduction.** `python3 -B research/r420-block9-factorization/search.py --seed 19 --trials 2000 --output NEW-candidate.json` regenerates the frozen candidate in the recorded environment. Verification neither imports the search nor trusts its trace.\n- **Repository checks.** `make selected-record-check` passes: `PASS selected record, exact kappa, original source inventory and proof supplement: 51110230636731/31250000000000000`. `git diff --check` is clean, and no existing file or `upstream/` byte changes. The verifier above was re-run on the submitted commit.\n- **Not claimed.** This is not a formal verification of the multiplication theorem, not a hosted, invoice or outer-assembly replay, and not a full repository suite, Linux CI or Lean pass. No composition with a concurrent PR is certified, and 24 gates is not claimed minimal.\n\nSprint: bit-supplier track, OS seed 19. The claim and its result update are recorded locally. Submitted by @commdata2338 with substantial AI assistance, under Apache-2.0: OpenAI Codex (GPT-6-Astra) wrote the analysis, proof and checker, and Claude Code packaged the submission. No independent human peer review is claimed.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_01X86sCSXdoDd61SDFfC1PKG\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "13001bb48a9f6d51edb0f5c22b24fe0bd860542097a4403d45d6297f7a92580c"
+}

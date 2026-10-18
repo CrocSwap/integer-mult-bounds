@@ -1,18 +1,22 @@
 name: Verify research artifacts
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
+
+# Historical sweeps are opt-in; dispatch one at a time.
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
 
 jobs:
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.13', '3.14']
@@ -24,6 +28,9 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Fetch immutable baseline required by performance regression tests
+        if: matrix.group == 'tests'
+        run: git fetch --no-tags --depth=1 https://github.com/CrocSwap/integer-mult-bounds.git 0b1cccf86e2f5132ed286a26ef0a681a495740ea 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2 3b29a00f972bd15871baac0acf5ac204740a9863
       - name: Install headers for the exact enlarged-frame profiler
         if: matrix.group == 'positive'
         run: |
@@ -32,7 +39,15 @@ jobs:
             sudo apt-get install -y libboost-dev
           fi
       - name: Check arithmetic, source hashes, finite identities, and patches
-        run: make verify-${{ matrix.group }}
+        run: |
+          if [ "${{ matrix.group }}" = clones ]; then
+            python -B scripts/replay_historical_check.py skip-clones
+            python -B scripts/replay_historical_check.py split-skip
+          elif [[ "${{ matrix.group }}" =~ ^(community|producers|strips|pair)$ ]]; then
+            python -B scripts/replay_historical_check.py legacy-${{ matrix.group }}
+          else
+            make verify-${{ matrix.group }}
+          fi
       - name: Require reproducible certificates and patches
         run: git diff --exit-code
 

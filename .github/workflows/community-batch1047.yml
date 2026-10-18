@@ -1,0 +1,134 @@
+name: Batch1047 scoped research and circuits
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'research/complex-parity-frames-seed35/**'
+      - 'research/e8-joint-reader-bound/**'
+      - 'research/e8-rank5-boundary/**'
+      - 'research/frame-completion-seed47/**'
+      - 'research/joint-frame-modular-screen/**'
+      - 'research/p112-complex-single-lift/**'
+      - 'research/p112-free-sink-audit97/**'
+      - 'research/paired-star-rank/**'
+      - 'research/phase-recipes-parallel/**'
+      - 'research/pr946-pin-migration/**'
+      - 'research/prescribed-star-triples/**'
+      - 'research/prescribed-three-port-decoders/**'
+      - 'research/prescribed-triple-decoder/**'
+      - 'research/r439-four-block-composition/**'
+      - 'research/r439-frame272-seed06/**'
+      - 'research/r439-frame281-seed15/**'
+      - 'research/r439-frame506-two-factor/**'
+      - 'research/r439-frame509-seed08/**'
+      - 'research/r439-global-prefix-admission/**'
+      - 'research/r439-post-helper-shear-seed03/**'
+      - 'research/r439-target-retune-seed14/**'
+      - 'research/root-pair-first-drop-seed48/**'
+      - 'research/selected-replay-fastpath/**'
+      - 'research/t37-bootstrap-depth-seed60/**'
+      - 'research/t37-integrality-audit/**'
+      - 'research/t37-rational-refinement/**'
+      - 'research/t37-slice-bitmaps/**'
+      - 'research/t37-support-audit-seed66/**'
+      - 'research/t37-support-interval/**'
+      - 'research/u8-supporting-uniform/**'
+      - 'research/u8-terminal-cone-census/**'
+      - '.github/workflows/community-batch1047.yml'
+  pull_request:
+    paths:
+      - 'research/complex-parity-frames-seed35/**'
+      - 'research/e8-joint-reader-bound/**'
+      - 'research/e8-rank5-boundary/**'
+      - 'research/frame-completion-seed47/**'
+      - 'research/joint-frame-modular-screen/**'
+      - 'research/p112-complex-single-lift/**'
+      - 'research/p112-free-sink-audit97/**'
+      - 'research/paired-star-rank/**'
+      - 'research/phase-recipes-parallel/**'
+      - 'research/pr946-pin-migration/**'
+      - 'research/prescribed-star-triples/**'
+      - 'research/prescribed-three-port-decoders/**'
+      - 'research/prescribed-triple-decoder/**'
+      - 'research/r439-four-block-composition/**'
+      - 'research/r439-frame272-seed06/**'
+      - 'research/r439-frame281-seed15/**'
+      - 'research/r439-frame506-two-factor/**'
+      - 'research/r439-frame509-seed08/**'
+      - 'research/r439-global-prefix-admission/**'
+      - 'research/r439-post-helper-shear-seed03/**'
+      - 'research/r439-target-retune-seed14/**'
+      - 'research/root-pair-first-drop-seed48/**'
+      - 'research/selected-replay-fastpath/**'
+      - 'research/t37-bootstrap-depth-seed60/**'
+      - 'research/t37-integrality-audit/**'
+      - 'research/t37-rational-refinement/**'
+      - 'research/t37-slice-bitmaps/**'
+      - 'research/t37-support-audit-seed66/**'
+      - 'research/t37-support-interval/**'
+      - 'research/u8-supporting-uniform/**'
+      - 'research/u8-terminal-cone-census/**'
+      - '.github/workflows/community-batch1047.yml'
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BOOST_INCLUDE: /usr/include
+      CXX: g++
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Fetch immutable tree required by the PR946 historical inventory
+        run: git fetch --no-tags --depth=1 https://github.com/CrocSwap/integer-mult-bounds.git 407d52ff15b2217b6e22bce44728b4c3907b6515
+      - name: Install exact native replay dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Research and audit certificates
+        run: |
+          python -B research/t37-support-audit-seed66/verify.py
+          python -B research/u8-supporting-uniform/test_verify.py
+          python -B research/u8-terminal-cone-census/verify.py
+          python -B research/t37-bootstrap-depth-seed60/verify.py
+          python -B research/t37-support-interval/reproduce.py --out "$RUNNER_TEMP/t37-interval"
+          python -B research/t37-integrality-audit/verify.py
+          python -B research/prescribed-three-port-decoders/reproduce.py
+          python -B research/prescribed-triple-decoder/audit.py
+          python -B research/e8-joint-reader-bound/verify.py
+          python -B research/e8-rank5-boundary/verify.py
+          python -B research/prescribed-star-triples/run_independent.py
+          python -B research/paired-star-rank/test_verify.py
+          python -B research/complex-parity-frames-seed35/check.py
+          python -B research/frame-completion-seed47/check.py
+          python -B research/p112-complex-single-lift/verify.py
+          python -B research/root-pair-first-drop-seed48/verify.py
+          python -B research/p112-free-sink-audit97/test_package.py
+          python -B research/pr946-pin-migration/check.py
+          python -B research/t37-rational-refinement/verify.py
+      - name: Exact circuits and full native replay
+        run: |
+          python -B research/r439-frame509-seed08/native.py --replay-search
+          python -B research/r439-frame281-seed15/native.py
+          python -B research/r439-frame506-two-factor/verify.py --word "$RUNNER_TEMP/frame506.json.gz"
+          python -B research/r439-frame506-two-factor/native.py --word "$RUNNER_TEMP/frame506.json.gz" --out "$RUNNER_TEMP/frame506-native" --expected-saving 10
+          python -B research/r439-frame272-seed06/native.py
+          python -B research/r439-four-block-composition/native.py
+          python -B research/r439-global-prefix-admission/verify.py
+          python -B research/r439-target-retune-seed14/verify.py
+          python -B research/r439-post-helper-shear-seed03/verify.py
+          python -B research/t37-slice-bitmaps/verify.py
+          python -B research/joint-frame-modular-screen/verify.py --pairs 3 --output "$RUNNER_TEMP/modular.json"
+      - name: Source and ledger integrity
+        run: |
+          python -B scripts/verify_selected_result.py
+          python -B scripts/verify_pr_reconciliation.py
+          git diff --exit-code

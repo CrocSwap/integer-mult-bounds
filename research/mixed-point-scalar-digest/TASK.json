@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "chooser_seed": "1e60c388106de197fb515e8dc9b5a10f",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Can scripts/audit_mixed_point.py:scalar_check emit the same circuit_sha256 digest lines (and the same support/topology rejection checks) without per-node json.dumps, so the historical mixed-point and early-sharing scalar streams keep fieldwise-identical receipts?",
+  "scope_change_reason": "The catalogue card asks for one measured replay bottleneck with before/after wall time and retained checks. Expertise override selected verifier-engineering (seed 1e60c388106de197fb515e8dc9b5a10f) after the complex-mechanisms draw landed on saturated packing/rank-shape work listed as deferred. Profiling named scalar_check's per-node json.dumps stream inside audit_mixed_point / audit_early_sharing as the bottleneck on this fixed historical screen.",
+  "bottleneck_link": "Side result on review throughput: mixed-point and early-sharing certificates are part of verify-certificates. A faster identical scalar digest does not change kappa or the binding complex supplier.",
+  "budget_minutes": 60,
+  "stop_rule": "Ship an equivalence-preserving scalar_check digest change with frozen baseline, identical mixed-point and early-sharing mathematical payloads, registered replay and a measured before/after median. Do not reopen the mathematical screens or run the selected cold frontier replay.",
+  "outcome": "completed",
+  "evidence": "PASS_MIXED_POINT_SCALAR_DIGEST via research/mixed-point-scalar-digest/verify.py (also under -O); PASS_IDENTICAL_MIXED_POINT_SCALAR_RECEIPTS via benchmark.py; mixed-point and early-sharing certificate mathematical payloads match the committed files (audit_mixed_point.py is not a source_sha256 pin in either certificate).",
+  "author": "Wentao Li",
+  "github": "VictorLiwentao",
+  "email": "wentaol4@illinois.edu",
+  "ai_assistance": "Substantial AI assistance for orientation, overlap search, profiling, implementation, packaging, benchmarking and writing. Not independent human peer review.",
+  "open_questions": [
+    {
+      "question": "Can the same byte-identical hand-rolled digest pattern accelerate SharedPointCircuit.verify / ExclusionCircuit.verify without changing circuit_sha256?",
+      "why_it_matters": "Those verifiers still call json.dumps once per active node on large common-point circuits.",
+      "first_step": "Profile SharedPointCircuit.verify for the h=50 bit-compression local circuit and compare a hand-rolled line writer against the committed digest.",
+      "blocked_by": "Out of this session's stop rule; scalar_check was the profiled mixed-point bottleneck."
+    },
+    {
+      "question": "Should certificates/mixed-point-audit.json refresh its stale rational_span_frames.py source_sha256 pin (live digest already differs on main)?",
+      "why_it_matters": "The pin is historical provenance for an unchanged mathematical payload; leaving it avoids mixing a tooling PR with an unrelated pin repair.",
+      "first_step": "Open a dedicated provenance follow-up that only rewrites the three source_sha256 entries after a clean certificate regenerate.",
+      "blocked_by": "Pin repair is outside this tooling change."
+    }
+  ]
+}

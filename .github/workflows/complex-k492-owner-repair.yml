@@ -1,0 +1,38 @@
+name: Coordinated K492 owner repair
+on:
+  pull_request:
+    paths:
+      - 'research/complex-k492-owner-repair/**'
+      - 'research/complex-k492-owner-repair-validation/**'
+      - '.github/workflows/complex-k492-owner-repair.yml'
+  push:
+    branches: ['codex/k492-owner-repair-20261012']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '${{ matrix.python }}'
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: bash research/complex-k492-owner-repair/verify.sh "${{ runner.temp }}/k492-owner-repair"
+        env:
+          K492_PYTHON: python
+      - run: python -B research/complex-k492-owner-repair/verify.py --check-pins --work "${{ runner.temp }}/unused-pins"
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k492-owner-repair-python-${{ matrix.python }}
+          path: '${{ runner.temp }}/k492-owner-repair'

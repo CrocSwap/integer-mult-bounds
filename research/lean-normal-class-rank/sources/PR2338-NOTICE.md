@@ -1,0 +1,16 @@
+# Notice
+
+Prepared by DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code; Apache-2.0 (`LICENSE`, copied from the repository root).
+
+## Credits
+
+- **#446** (cost model, Theorem C), **#595**, **#1590**, **#2111**, **#2125**, **#2162**, **#2228**, **#2244**, **#2277**: the model, the dense pairing, the root-code floors (#2228 Theorem 4), Theorem 4′ and the frame-intersection certificate (#2277 §5) that this package extends. The statements "P112 ≥ 64 for every rank-8 realisation" (Theorem P), the cross-call batching bounds with `GL(9)` charts and `k ≥ 3` (Theorem B, Bk) and the every-`B` coordinate-block minrank are new here, built on those. Rigidity of the minimal-rank label table (Theorem R) is new here for E8, P112, P104 (#968's unit and class representatives), E7 and E6 only: for P111 it is prior work of **#620** (GamingPuzzled, SAT) and **#1097** (bitplane, merged, LRAT-checked in the general model), and **#1815** (jmbarrancoml) is the one-sided P112 predecessor; here P111 is re-derived on #589's lines.
+- **#968**, **#1077**, **#1180**, **#1212**, **#1213**, **#1236**, **#1744**, **#757**, **#761**, **#620**, **#1097**, **#1815**, **#1331** (Arham-Tahir64), **#1249** (bbMisk, independent check of #1236), **#717** (ours; term-cost model, frontier-word censuses): the E8 / P112 / P104 / P111 floors for 8 terms, for factors in the live root code, rigidity, and the 9-term decoder outside the root code (#1180, whose cost 65 and shape are re-derived in `c4`).
+- **#1224** (joaqcoo; the merge lemma, one-sided overcomplete structure), **#1633** (bbMisk; excess-rank budgets), **#1714** (the independent-call batch model), **#2294** (thakrarsagar; the `k = 2` / `O(9)` / Gram batching core, found independently of Theorem B and credited for priority), **#2293** (navinor; independent audit of our Lemma CR2 / Theorem B2), **#2176**, **#2206**, **#2232**, **#2240**, **#2247**, **#2137**, **#2272**, **#2267**, Discussion 1267 (philippeVV; co-star families), Discussion 1166 (1337isnot1337; child-merging screen).
+- **#589** (P111 bit word): `data/p111_lines.json` is the `lines` array of `research/e8-bit-p111-tuned/tune/bitE8mut-p111-tuned.json.gz` on `main` (sha256 pinned in `SOURCES.json`).
+- Tools: kissat 4.0.4 (SAT; never CaDiCaL); `drat-trim` (Marijn Heule and Nathan Wetzler), not vendored here, optional.
+- No file is copied from another contributor. `lib/roots.py`, `lib/satgen.py`, `lib/frames.py`, `lib/report.py`, `scripts/provenance.py`, `checks/c5_attaining_decoders.py`, `data/p104_frames.json` and `LICENSE` are the author's own files from the package of #2277 (`research/overcomplete-and-realisation-floors`).
+
+## New in this package
+
+Everything under `research/decoder-floors-frontier-format/`: `README.md`, `verify.sh`, `SOURCES.json`, `MANIFEST.sha256`, `lib/*.py`, `checks/*.py`, `sat/*.py`, `scripts/provenance.py`, and the evidence files `data/*.json`, `sat/results.jsonl`, `sat/results_misc.jsonl`, `sat/proofs/` (all produced by the generators in this package; the P104 class representatives `data/p104reps.json` and `data/h4_F1.json` were exported from the author's working card `STRAYS`, and are re-verified by the checks: `c1.gauge`, `c2`).

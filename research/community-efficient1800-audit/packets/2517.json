@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "number": 2517,
+  "title": "Search all available changed-file pages in the PR overlap index",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2517",
+  "head": "08be20a87febcf001caacb161305859e81d2d7a6",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "scripts/find_overlap.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b48f160fc2af04595da7b37b3d029c22470b7e86"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "849b756d1bcec9d053ceb1b98962d7f0226bc435"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_onboarding.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ed4f6b0f3fe10e631e69c28a5133e328ad9f8fd1"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "68e67153a13bb6ed0afc7b235032be2af41b26af"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_pr_file_pages.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "57810ed04ec6225a95cc817bc37d08edb06731df"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/find_overlap.py": 1,
+    "tests/test_research_onboarding.py": 1,
+    "tests/test_research_pr_file_pages.py": 1
+  },
+  "github_reported_file_count": 3,
+  "complete_git_file_count": 3,
+  "body": "The changed-file overlap index stops after 100 paths, so path searches can miss relevant files in larger PRs even though the entry is labelled truncated. For open PR 76 at 2333abcea79793fe301b479a7c971cc2be45596c, the first page contains 100 of 131 paths; tests/test_split_pair_pending.py is among 31 omitted paths.\n\nFollow every available 100-file continuation page. Bind continuation pages to the initial head and advertised changed-file count; reject changing heads/counts, stalled cursors and unavailable continuations. Missing initial lists and advertised-count shortfalls remain explicitly truncated. Preserve sorted deduplicated paths, body-only fetch cost, cache schema and per-source atomic replacement. Update the CLI coverage text to describe the complete paging behavior.\n\nValidation: all 131 paths from PR 76 exactly equal the independent two-page REST inventory, and the late path now matches. The required research tooling suite passes 69 tests with 3 pre-existing Linux-only skips on Windows CPython 3.12.14. Four new tests cover 250 paths over three pages, late-path search, changed head/count, missing continuation, stalled cursor, count shortfall and preservation of the previous complete cache after a later-page failure. git diff --check passes. A full live index refresh was not run; the direct real-PR comparison and mocked repository pagination exercise the changed boundary.\n\nTask: consolidation seed a2e9ba79c98b80bee960fb2f16b97cbd, scope changed to a concrete verifier-engineering coverage gap. Current canonical main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4. Live PR bodies/Discussions and local notes/ledger checked. Credit Aaron Wang/navinor's PR 1623 for the changed-file index and explicit first 100-path limitation, plus Douglas Colkitt's overlap/cache helper. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0. Frozen overlap-path-index source pins have pre-existing drift on main and remain unchanged; no registered historical-package success or mathematical replay is claimed.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "dca4becfc8230fb8102043fd3026c73705876c0e9ef9590e312417a32af9a233"
+}

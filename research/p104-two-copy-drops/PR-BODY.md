@@ -1,0 +1,5 @@
+PR1187 establishes the first P104 COPY-drop boundary at22additional punctures and displays a55copy/82port witness. For that exact decoder, this contribution finds **54copies/82ports** and proves54is sharp over every22port puncture:360sets cause a drop,24have cost54and336have55. The remaining subsets cost56.
+
+A complete1,792,252quotient-cut-pair census proves two distinct terms can drop at the same22puncture boundary. The witness retains the fixed16line puncture, checks all6724coefficient equations, and every single-port restoration removes both drops. Completeness follows from full-rank factor restrictions and the exhaustive nonzero column-code dictionaries.
+
+This is a fixed-decoder result, not a physical supplier or new kappa;27/41still exceeds P104's7/13copy ratio. All physical charges remain unpriced. PR1187 source pinned at15bee4c8ea0f54fea575a48441c6acc8bad263cd, with predecessor credit retained. Prepared for woklerx with substantial OpenAI Codex assistance; Apache-2.0. Python3.12registerednormal/optimizedreplay,selectedintegrityanddiffchecks pass.

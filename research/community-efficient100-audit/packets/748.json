@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "number": 748,
+  "title": "Research: decoder source cosets save 244 R420 XORs (no new kappa)",
+  "author": {
+    "id": "U_kgDOBoaXzg",
+    "is_bot": false,
+    "login": "cxnmai",
+    "name": "Chinmay Khaladkar"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/748",
+  "head": "0ccc0b425d2b9667108d3a0918a5cfa0aa7a5861",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/r420-decoder-cosets/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "17f45a8126eb27026d435fb59454919b57c200d4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fe249d2b2648244caf51a20c995aca0b142d95ad"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "504e3e24e246d0f809f7fb3f699fcb7b5fe78a59"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/RECIPE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c3bfed469e4b1159554f5c9a174f6f933e98ddc2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "faca49c8e549fedc9bc1873a83590f4079314e6e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/checks.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a10fc9f46840cf6675478400e0156832ec75bd96"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/model.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "162f50589145c6cec92eb6dc82d61d4104db6fc1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/native.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ca9ad2d71bae33f26ec3551e22f8b8d898d86a0b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "105fa7522ebc84c2a197b92fda22dd87bdba008f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-decoder-cosets/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ca15f48f4906ac1eafbda29642ab555896f892ab"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r420-decoder-cosets": 10
+  },
+  "github_reported_file_count": 10,
+  "complete_git_file_count": 10,
+  "body": "## Finite circuit research construction \u2014 no new \u03ba\n\nChange one decoder-total source representation in the accepted #543 R420 bit word, then recompute its dirty-input compensation and literal cleanup. **244 fewer binary XORs per local invocation: 26,916 \u2192 26,672.**\n\nThe total itself grows from 25 to 43 XORs; A and C together cost 36 more, but D saves 280. This is a distinct mechanism from #708: its full dirty operator stays fixed, whereas this candidate changes 93 helper-dirt columns and compensates them. No new helpers/copies/frame paths; all 660 register paths and local rank mass 5,112 are unchanged.\n\n### Reproduce\n\n```sh\npython3 -B research/r420-decoder-cosets/verify.py\n```\n\nExpected: `PASS_R420_DECODER_COSET total=26916->26672 saved=244 columns=660 controls=6 no_new_kappa`.\n\nStandard-library Python 3.11+. Recipe, complete cost certificate, source pins, proof, attribution and validation receipt are included. `--word /tmp/candidate.json.gz` emits the complete candidate.\n\n### Evidence\n\n- Seed **3**, bit-supplier track; exact base `66849e1475c930fd7732b1a0067ffee7e1e95f60`.\n- #543 source pin `2065fe4f72a914d907f1046603f5a36f17018535`.\n- Original 80-operand pool has source rank 80; expanded 171 dead-register pool has rank 90/nullity 81. Bounded 32-trial descent scores 2,997 candidates and accepts five moves. No optimality claimed.\n- Independent set-valued replay of all 660 dirty columns; original #543 checker verifies all 672 frames and H1\u2013H5. Six meaningful negative controls.\n- Original exporter emits 29,874 \u2192 29,630 records. Forward positive bound unchanged at 144,651; reverse increases 2,270,064 \u2192 2,301,524. Local payload envelope remains 100 bits below the 104-bit cap.\n- Clean minimal archive replay, source-corruption rejection, optimized-mode refusal and whitespace checks passed on Linux/Python 3.14.7. Final static AI review found no issues; no independent human review claimed.\n\n### Scope and overlap\n\nOnly `research/r420-decoder-cosets/` is added. No pinned coordination issue existed; claim is local. Final overlap check through #747 distinguishes #708 sharing, #731's fixed compensation-matrix kernel audit, #733's two-sided basis composition and #742's shared target donors. None is imported, composed, or claimed as our work. Savings from changed K must not be added to those constructions without another audit.\n\nC++ multistage replay, hosted-parent/global invoice, changed outer assembly, repository-wide `make verify`, selected cold replay, Lean and remote CI were **not run**. Inherited all-size/compiler/common-label/mutable-basis/hosting/residual/precision/tape/analytic obligations remain. No stronger \u03ba or practical runtime speedup is asserted; selected frontier and `upstream/` are untouched.\n\nPrepared by **Chinmay Khaladkar (@cxnmai)** with substantial **OpenAI AI assistance**, under Apache-2.0. Credit remains with eumemic's #543/#493, Dylan Crow's exporter/checker lineage, Zhihao Chen's #425 interface, #472's realization and the predecessor notices.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "3c8964219b8b0c5b500d6237e1e842a5f18b642dff859cebfb564a296cbb4ab3"
+}

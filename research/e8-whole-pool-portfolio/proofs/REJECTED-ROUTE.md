@@ -1,0 +1,1 @@
+The abandoned cross-family coordinate-splitting draft confused tensor address factorization with family-space direct sums. PR451 trace obstruction applies. Its placement-only receipts establish no operator or kappa claim and are not part of this artifact. The final implementation forbids any split residual and audits that prohibition.

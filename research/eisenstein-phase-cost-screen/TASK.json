@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task_id": "complex-rank-shape-decoder",
+  "priority_revision": 3,
+  "base_commit": "d78fe4bbb6f6b769e39586f8bb3ba8c31a31fd3a",
+  "original_card": {
+    "id": "complex-rank-shape-decoder",
+    "question": "Can a decoder deliver the local paid mass in fewer, larger-rank children (block frame climbs instead of rank-1 to rank-3 steps)?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/complex-decoder-field-extension-seed44/README.md",
+      "research/complex-frame-pair-decoders/README.md"
+    ],
+    "methods": [
+      "Find one exact small decoding identity whose frame path climbs in blocks, and price its complete per-call profile.",
+      "Bound the best effective child rank achievable for one fixed support alphabet, including copies, frames and restoration."
+    ],
+    "acceptance_gate": "A per-call local profile, with all copied information, frames and restoration counted, whose ceiling exceeds the selected word's by at least 5%; masked or overcomplete supports must change an assumption of the eight-term all-pairs bound.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Before any synthesis, write the candidate per-call local profile (and centre charge / unpaid coordinates if changed) and screen it with ceiling.ceiling(); reject it if even the ideal ceiling does not beat the selected word's by your stated margin. Ideal budget: rank-16 delivery is 2.31x (levers.py).",
+    "bottleneck_link": "Rank-1 children are about half of recursive cost; the selected word's effective child rank is about 3.9. Larger-rank delivery lowers recursive cost per unit of paid mass.",
+    "allowed_variations": [
+      "One masked, overcomplete or block decoder family with exact labels and supports.",
+      "A scoped lower bound on effective rank for one alphabet.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Repacking idle remainders of an unchanged word (covered by the packing ceiling).",
+      "Repeating the eight-term all-pairs search inside its proved scope."
+    ],
+    "overlap_terms": [
+      "rank shape",
+      "block climb",
+      "masked decoder",
+      "overcomplete",
+      "effective rank"
+    ]
+  },
+  "scope_status": "unchanged",
+  "actual_scope": "Can a decoder deliver the local paid mass in fewer, larger-rank children (block frame climbs instead of rank-1 to rank-3 steps)?",
+  "scope_change_reason": null,
+  "bottleneck_link": "Rank-1 children are about half of recursive cost, so decoder copy cost is the lever this card targets. This package prices the Eisenstein (F4/Eisenstein-phase) decoder route under the inherited accounting: the certified necessary-condition screen says any beating supplier needs total copy cost C <= 31 at some stage count (sup bracket 31.0635 at s=7, window h=7; h=10 gives C <= 29 at s <= 35), while every clean support alphabet costs exactly 40 (two independent sharp witnesses). The route therefore survives only if a non-clean decoder with C <= 31 exists; the prize is capped by the selected assembly's bit side at kappa <= 1733427039589844234749/1001733427039589844234749 = 0.001730427469823602 (+3.45% over the selected 0.001672660197076918).",
+  "budget_minutes": 240,
+  "stop_rule": "Stop when (a) the certified threshold screen covers every legal window h in [7,40] and every odd stage count s (scan plus exact rational tail closure), (b) the clean-class floor 40 is proven with sharp witnesses, and (c) negative controls pass; or immediately if a candidate supplier beats the screen, or if the screen's assumptions are contradicted by an existing result.",
+  "outcome": "partial",
+  "evidence": "research/eisenstein-phase-cost-screen/verify.py passes in ~21s (Python 3.12, stdlib only, no randomness): Part A replays the 240-root geometry (40 lines, flat census 1/40/240/90/360/40/1, all line-spanned flats nonsingular, a 7-clique exists so any legal pattern has rank >= 7). Part B proves the clean-class floor: on all 7033 clean ordered flat pairs the per-rectangle charge equals |R cap A| (tight everywhere), and two independent pattern-legal witnesses cost exactly 40 (ten orthogonal 4-line frames; 40 clean stars). Part C certifies, for every window h in [7,40] and every odd s, closed-form rational brackets on the exact copy-cost threshold C*(s,h) (the beat condition is linear in C), with direct certified confirmation and an exact rational tail closure (binomial-series increment bound, exact partial sums to P=200, exact quadratic minimum beyond) covering all s beyond the closure point; sup over the screen is 31.063467310837773 at s=7 h=7, so any beating supplier needs C <= 31 at s <= 61 (h=7 row; h=10: C <= 29 at s <= 35). Part D shows every screen argmax point clears the selected bit side 0.001733427039589844, so the prize is capped at kappa <= 0.001730427469823602 (+3.45%). Part E: four negative controls (closed-form/direct cross-validation, doubled-b flip, tampered-pattern census change, naive-partition illegality and star self-loop sensitivity). Not done: no supplier was built; the non-clean window C in [22,31] is open; no kappa changed.",
+  "author": "Maximus Putnam (@Maximooch), with substantial Penguin (OpenAI) assistant assistance in mathematics, implementation, checking and writing",
+  "ai_assistance": "Penguin (OpenAI) coding/math agent: derived the closed-form threshold brackets and tail closure, wrote verify.py and this package, and ran all checks; every claim is backed by the exact verifier output. No other AI tools used.",
+  "open_questions": [
+    {
+      "question": "Does a pattern-legal 40x40 F2-valued decoder exist with total copy cost C <= 31 whose support is NOT clean (i.e. some clean-class hypothesis fails), and does its full frame/restoration bill stay within the screen?",
+      "why_it_matters": "The screen is a necessary condition: the entire remaining upside of the Eisenstein phase route lives in the non-clean window C in [22,31] at s <= 61. Settling it either yields the first Eisenstein-supplied assembly (kappa up to the bit cap 0.001730427469823602) or closes the route under the current accounting.",
+      "first_step": "Extend the clean-class dichotomy: enumerate minimal non-clean supports (a nonorthogonal pair read by a common rectangle) and certify their minimum copy cost with the same pairing-rank machinery; if the minimum exceeds 31 the route is closed.",
+      "blocked_by": "nothing"
+    },
+    {
+      "question": "Can the quadratic-phase normal form (PR #831) actually realize a candidate decoder's phase labels on nondegenerate alternating blocks at the frame level required by the assembly template?",
+      "why_it_matters": "PR #831 removed the interface obstruction at the trace-form level, but no one has checked that a concrete cheap decoder's labels compile through the alternating-compatible normal form without extra frames or adapters that would break the C <= 31 budget.",
+      "first_step": "Take the cheapest abstract decoder surviving the screen (if any) and run the f4-alternating-interface compilation on its labels, charging every added frame.",
+      "blocked_by": "the non-clean window question"
+    }
+  ]
+}

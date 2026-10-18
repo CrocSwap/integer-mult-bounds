@@ -1,0 +1,145 @@
+def verify(predecessor, candidate):
+    raw = authenticated_sources(predecessor)
+    names = ['ORDER.json', 'DISPATCH.json', 'FILL.json.gz', 'PROFILE.json', 'CANDIDATE.json']
+    payload = {name: (candidate / name).read_bytes() for name in names}
+    data = {name: decode(value, name) for name, value in payload.items()}
+    barrier = data['CANDIDATE.json']
+    need(barrier['source_head'] == SOURCE_HEAD and barrier['comparison_head'] == SOURCE_HEAD, 'CANDIDATE_SOURCE_HEAD')
+    need(barrier['comparison_claim_sha256'] == sha(raw['old-claim.json']), 'CANDIDATE_COMPARATOR_PIN')
+    need(all(barrier['candidate_sha256'][name] == sha(payload[name]) for name in names[:4]), 'CANDIDATE_PAYLOAD_BINDING')
+    old = {name: decode(raw['old-' + name.lower()], name) for name in names[:4]}
+    order = data['ORDER.json']
+    dispatch_rows = data['DISPATCH.json']
+    need(all(isinstance(x, list) and len(x) == 3 and type(x[0]) is int and type(x[1]) is int and isinstance(x[2], str) for x in dispatch_rows), 'DISPATCH_SCHEMA')
+    dispatch = {(s, r): p for s, r, p in dispatch_rows}
+    need(len(dispatch) == len(dispatch_rows) == len(order), 'DISPATCH_UNIQUENESS')
+    need(set(dispatch) == {tuple(x) for x in order}, 'DISPATCH_DOMAIN')
+    providers = decode(raw['providers.json'], 'providers.json')
+    need(set(providers) == {'gauge44', 'extra'} and all(p in providers for p in dispatch.values()), 'DISPATCH_PROVIDER')
+    provider_checks = {name: literal_provider(decode(raw['word-' + suffix + '.json.gz'], 'word.json.gz'), providers[name]) for name, suffix in [('gauge44', 'base'), ('extra', 'extra')]}
+    plan = decode(raw['plan.json'], 'plan.json')
+    template = decode(raw['template.json.gz'], 'template.json.gz')
+    fill = data['FILL.json.gz']
+    need(set(fill) == {'columns', 'rows', 'dispatch_overrides'}, 'FILL_SCHEMA')
+    need(fill['columns'] == ['time', 'helper', 'owner_replica', 'child', 'port', 'offset'], 'FILL_COLUMNS')
+    need(fill['dispatch_overrides'] == [], 'NO_DISPATCH_OVERRIDE')
+    rows = fill['rows']
+    clock = make_clock(order, template)
+    N = clock['N']
+    need(type(barrier['replicas']) is int and N == barrier['replicas'], 'REPLICA_BINDING')
+    profile = {int(r): n for r, n in data['PROFILE.json'].items()}
+    need(all(type(n) is int and n > 0 for n in profile.values()), 'POSITIVE_INTEGER_PROFILE')
+    need(profile == {int(r): n for r, n in barrier['profile'].items()}, 'CANDIDATE_PROFILE_BINDING')
+    positive = geometry(rows, order, dispatch, providers, plan, clock, profile)
+    need(positive['idle'] == {int(r): n for r, n in barrier['idle'].items()}, 'CANDIDATE_IDLE_BINDING')
+    old_order = old['ORDER.json']
+    old_dispatch = {(s, r): p for s, r, p in old['DISPATCH.json']}
+    old_profile = {int(r): n for r, n in old['PROFILE.json'].items()}
+    old_clock = make_clock(old_order, template)
+    need(old_clock['N'] == 74 and plan['T'] == 74, 'P53_BASELINE_T74')
+    baseline = geometry(old['FILL.json.gz']['rows'], old_order, old_dispatch, providers, plan, old_clock, old_profile)
+    W, old_W = 896 * N, 896 * 74
+    need(positive['rank_mass'] == W * 73 - N * 320 and baseline['rank_mass'] == old_W * 73 - 74 * 320, 'RANK_MASS')
+    normalized_delta = {r: Fraction(profile.get(r, 0), N) - Fraction(old_profile.get(r, 0), 74) for r in set(profile) | set(old_profile)}
+    normalized_delta = {r: str(n) for r, n in normalized_delta.items() if n}
+    controls = []
+    def faulty(label, index=None, replacement=None, replacement_rows=None, expected_profile=profile):
+        changed = rows[:]
+        if index is not None:
+            changed[index] = replacement
+        if replacement_rows is not None:
+            changed = replacement_rows
+        try:
+            geometry(changed, order, dispatch, providers, plan, clock, expected_profile)
+        except Rejected as error:
+            need(str(error) == label, 'WRONG_CONTROL_REJECTION:' + label + ':' + str(error))
+            controls.append({'control': label, 'verdict': 'REJECTED_BY_NAMED_PREDICATE'})
+        else:
+            raise Rejected('CONTROL_ACCEPTED:' + label)
+    # Select faults from the literal witness, rather than hardcoding H23 row IDs.
+    first = rows[0]
+    t, h, owner, child, port, offset = first
+    active_child = next(c for c in clock['cap'] if plan['pairs'][str(c)] == clock['pair'][order[t][0]])
+    faulty('ACTIVE_DATA_FAMILY', 0, [t, h, order[t][1], active_child, port, 0])
+    j = next(i for i, row in enumerate(rows) if i > 0 and row[0] == t)
+    duplicate_family = rows[j][:]
+    duplicate_family[2:] = [owner, child, port, 0]
+    faulty('DUPLICATE_PHYSICAL_FAMILY', j, duplicate_family)
+    width = providers[dispatch[tuple(order[t])]]['widths'][h]
+    faulty('BIN_CAPACITY', 0, [t, h, owner, child, port, clock['cap'][child] - width + 1])
+    bybin = defaultdict(list)
+    for i, row in enumerate(rows):
+        tt, hh, oo, cc, pp, ff = row
+        ww = providers[dispatch[tuple(order[tt])]]['widths'][hh]
+        bybin[oo, cc, pp].append((i, ff, ww))
+    overlapping = next(records for records in bybin.values() if len(records) > 1)
+    earlier, later = overlapping[0], overlapping[1]
+    overlap = rows[later[0]][:]
+    overlap[5] = earlier[1]
+    # If the earlier interval ends too near the capacity, offset0 still overlaps
+    # some earlier member in this prefix; choose a pair that is explicitly safe.
+    if overlap[5] + later[2] > clock['cap'][overlap[3]]:
+        pair = next((xs[a], xs[b]) for xs in bybin.values() for a in range(len(xs)) for b in range(a + 1, len(xs)) if xs[a][1] + xs[b][2] <= clock['cap'][rows[xs[b][0]][3]])
+        earlier, later = pair
+        overlap = rows[later[0]][:]
+        overlap[5] = earlier[1]
+    faulty('BIN_OVERLAP', later[0], overlap)
+    gap_key, gap_records = next((key, xs) for key, xs in bybin.items() if max(o + w for _, o, w in xs) < clock['cap'][key[1]])
+    gap_index, _, _ = max(gap_records, key=lambda x: x[1])
+    gap = rows[gap_index][:]
+    gap[5] += 1
+    faulty('COMPACT_PREFIX', gap_index, gap)
+    expired = None
+    for i, row in enumerate(rows):
+        tt, hh, oo, cc, pp, ff = row
+        begin, end = clock['windows'][oo, cc]
+        for tt2, pos in enumerate(clock['calls']):
+            if not begin < pos < end and not (order[tt2][1] == oo and clock['pair'][order[tt2][0]] == plan['pairs'][str(cc)]):
+                expired = i, [tt2, hh, oo, cc, pp, ff]
+                break
+        if expired is not None:
+            break
+    need(expired is not None, 'WINDOW_CONTROL_EXISTS')
+    faulty('STRICT_EVENT_WINDOW', expired[0], expired[1])
+    duplicate_helper = rows[j][:]
+    duplicate_helper[1] = h
+    faulty('DUPLICATE_HELPER', j, duplicate_helper)
+    faulty('ROLE_COUNT', replacement_rows=rows[:-1])
+    corrupt_profile = dict(profile)
+    corrupt_profile[1] = corrupt_profile.get(1, 0) + 1
+    faulty('COMPLETE_PROFILE', expected_profile=corrupt_profile)
+    lower, upper = Fraction(barrier['complex_lower']), Fraction(barrier['complex_upper'])
+    need(0 < lower < upper < Fraction(1, 100), 'ROOT_BRACKET_ORDER')
+    lower_value, upper_value = moment(profile, lower, W), moment(profile, upper, W)
+    need(lower_value[1] < 1 < upper_value[0], 'RATIONAL_ROOT_BRACKET')
+    old_claim = decode(raw['old-claim.json'], 'old-claim.json')
+    prior = Fraction(old_claim['kappa_rational'])
+    need(prior == Fraction(old_claim['kappa']), 'SOURCE_FULL_DECIMAL_RATIONAL_EQUALITY')
+    target = Fraction(barrier['target'])
+    need(target == lower - Fraction(1, 10**46) - Fraction(1, 10**70), 'MODERN_OUTER_TARGET_CONVENTION')
+    need(prior < target < lower, 'EXACT_FULL_PR2853_COMPARISON')
+    old_moment, new_moment = moment(old_profile, prior, old_W), moment(profile, prior, W)
+    need(new_moment[1] < old_moment[0], 'STRICT_NORMALIZED_MOMENT_DOMINANCE')
+    need(moment(profile, upper + Fraction(1, 10**20), W)[0] > 1, 'OVERSTATED_TARGET_CONTROL')
+    controls.append({'control': 'OVERSTATED_TARGET', 'verdict': 'REJECTED_BY_POSITIVE_MOMENT_RESIDUAL'})
+    need(all((candidate / name).read_bytes() == value for name, value in payload.items()), 'CANDIDATE_DRIFT')
+    authenticated_sources(predecessor)
+    return {'status': 'PASS_INDEPENDENT_P53_EVENT_CLOCK_PROFILE_AND_MOMENT',
+            'baseline_head': SOURCE_HEAD, 'baseline_claim_sha256': sha(raw['old-claim.json']),
+            'roles': len(rows), 'calls': len(order), 'replicas': N, 'provider_literal_checks': provider_checks,
+            'source_events_per_replica': 30, 'expanded_source_events': clock['events'],
+            'global_tail_indices': clock['tail'], 'event_coordinate': 'Actual source-event positions; strict open window endpoints.',
+            'baseline_profile': baseline['profile'], 'profile': positive['profile'], 'idle': positive['idle'],
+            'normalized_profile_delta_per_replica': normalized_delta, 'rank_mass': positive['rank_mass'],
+            'live': W, 'physical': W + 490,
+            'physical_extras': {'helpers': 408, 'private_zero_buffers': 72, 'centres': 8, 'coefficient_fields': 2},
+            'rational_root_bracket': [str(lower), str(upper)],
+            'lower_moment_upper_minus_one': str(lower_value[1] - 1),
+            'upper_moment_lower_minus_one': str(upper_value[0] - 1),
+            'prior_full_kappa': str(prior), 'target': str(target), 'gain': str(target - prior),
+            'strict_normalized_moment_improvement_at_prior_lower': str(old_moment[0] - new_moment[1]),
+            'controls': controls, 'candidate_sha256': {name: sha(value) for name, value in payload.items()},
+            'source_pin_inventory_sha256': sha(json.dumps(SOURCE_FILES, sort_keys=True, separators=(',', ':')).encode()),
+            'source_sha256': {name: sha(value) for name, value in raw.items()},
+            'arithmetic_source_sha256': sha(raw['reference-moment.py']),
+            'scope': 'Independent literal P53 word frame/width recount and owner/event-window/family/profile audit, using a locally adapted credited PR2848 rational routine. No candidate generator or predecessor checker imported or executed. Full native phases/operators, block-norm, precision/invoice and modern outer admission remain separate obligations; this receipt alone is not an admitted kappa.'}

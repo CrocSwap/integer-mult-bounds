@@ -1,0 +1,145 @@
+Exact scope and algebra
+=======================
+
+1. Full-shell geometry and the binary representation
+
+The generator uses the Golay matrix displayed in the official SageMath
+documentation and the three minimal-vector shapes in Bannai--Sloane,
+Uniqueness of Certain Spherical Codes, Canadian J. Math.33 (1981),
+pp.437--449, especially p.443:
+https://doc.sagemath.org/html/en/reference/coding/sage/coding/golay_code.html
+https://neilsloane.com/doc/Me71.pdf
+
+Integer coordinates x have squared norm32; v=x/sqrt(8) has squared
+norm4. All196560 vectors are generated, tested for the lattice congruences,
+uniqueness, norm, and antipodal closure. Selecting first nonzero coordinate
+positive gives98280 lines. The all-pairs inner-product spectrum is a
+literature fact: the finite generator independently checks whole-shell
+distributions at66 specified rows, not all98280 squared pairs.
+
+Choose24 shell vectors whose integral Gram matrix G is nonsingular
+modulo2. The explicit binary inverse and isometry are recorded. As G
+has odd determinant, reduction of its rational inverse is well defined
+modulo2. Every shell vector has integral pairings with this real basis,
+so the real basis identity proves the binary pairing for all pairs:
+
+    p(v).p(w) = 1 + <v,w> mod2,   p(v).p(v)=1.
+
+The24-dimensional alternating part is embedded in the even subspace
+of F2^25 and the all-ones vector is added. No floating rank computation
+or sampled identity is used to extend the proof to all pairs.
+
+K(t)=(t^3-4t)/48 has diagonal K(4)=1. At distinct lines the possible
+t are0,+/-1,+/-2, so nonzero K occurs only at t=+/-1, precisely where
+p(v).p(w)=0. It is therefore a legal scalar/binary fitting pair.
+
+The real rank is2600. The Leech shell is an11-design; hence evaluation
+on it is injective on the degree1 plus degree3 harmonic spaces, whose
+dimensions are24 and2576. K has nonzero components in both spaces.
+This rank statement alone does not price a supplier.
+
+2. A dyadic2600-center factorization
+
+For raw coordinates x define
+
+    f_i(x)=(x_i^3-x_i)/3,  a_i(x)=f_i(x)-10x_i,
+    S_i(x)=sum_{j!=i} x_i*x_j^2.
+
+The integer norm identity gives x_i=S_i+3a_i and f_i=10S_i+31a_i.
+Use the following2600 encoder/decoder pairs:
+
+    a_i(x)            ; 32*y_i^3-256*y_i                   (24)
+    x_i*x_j^2        ; y_i*y_j^2+10*y_i^3+f_i(y)-85*y_i   (552)
+    x_i*x_j*x_k      ; 2*y_i*y_j*y_k, i<j<k              (2024).
+
+Their scalar product divided by8192 equals K(<x,y>/8). Expand the
+cube and substitute the two identities to verify this equality.
+Every displayed feature value is an integer. The divisions by3 define
+precomputed integer constants; the scalar decoder uses only a power
+of2 denominator. Thus there is no hidden run-time division by3.
+
+On the coordinate alphabet0,+/-1,+/-2,+/-3,+/-4, a_i(x) vanishes
+exactly when x_i does. Each encoder has the same support as its cubic
+monomial. The common odd-coordinate orbit gives rank24 in every
+support; each recorded additional even-coordinate witness increases
+that rank to25. All2600 source supports therefore have rank25.
+The center bill is the sum of actual source-support dimensions, namely
+65000. It is neither2600 nor2600*24.
+
+This gives a scalar factorization, not a complete paid side circuit.
+The existing center-copy-to-zero interface permits an arbitrary dense
+decoder at frame zero; it does not require source and decoder supports
+to share the encoder frame.
+
+3. Norm-six encoder basis
+
+Let a be a Leech vector of squared norm6 obtained as a sum or difference
+of two minimal vectors with appropriate inner product. For a minimal v,
+integrality and minimum lattice norm imply |<a,v>|<=3. Consequently
+f_a(v)=<a,v>^3-4<a,v> is supported exactly where <a,v> is odd.
+Its binary source labels lie in an explicit proper hyperplane of F2^25.
+
+The generator finds2600 independent such homogeneous cubic functions.
+An exact integer elimination modulo251 proves independence over Q.
+Every one has24 explicit independent source-label witnesses, proving
+support dimension24 rather than merely an upper bound. This nominates
+center bill62400, but rational basis inversion need not yield a decoder
+over Z[1/2]. No dyadic decoder, common-frame helper word, or finite
+certificate is inferred from the modular basis calculation.
+
+4. Turyn and what a basis change actually accomplishes
+
+TURYN.txt supplies the polarization and tensor-product arguments. The
+code independently builds two Hamming codes H,H' meeting only in
+{0,allones}; their Golay code is
+
+    {(a+x,b+x,a+b+x): a,b in H, x in H'}.
+
+All4096 words and their weight distribution are checked before building
+the corresponding Leech shell. Block norms split into360 single-block,
+5760 two-block, and92160 three-block antipodal lines. Quotienting the
+four block-sign variants of each three-block line gives23040 ports.
+
+The product of the three block inner products has diagonal2 and real
+rank512. Exact whole-pair checks verify its off-diagonal raw products
+and the proposed fits. The initial fitting rule1+4K mod2 has rank505
+on the full set. A parity-based completion lowers this to53; neither
+number is a lower bound for arbitrary fitting matrices.
+
+A better construction uses one low-norm E8 block in each fixed norm
+profile, giving9-bit labels per profile. Within each profile, all64
+ports at a fixed selected low root have the same label. With raw
+remaining-block tensors as rows, their64x64 matrix Z_g satisfies
+
+    Z_g Z_g^T = 128 I.
+
+Fix one group0 and set R_g=Z_g Z_0^T/128. Then R_g is dyadic,
+R_g^T Z_g=Z_0, and R_g^T R_g=I. Applying these changes within the
+identically framed groups transforms the normalized product Gram into
+the ordinary120-line E8 Gram tensored with I_64. The inverse changes
+restore the original coordinates. This is an exact identity, checked
+for all120 groups in each of the three profiles.
+
+The full120-port E8 geometry has center bill72: each coordinate support
+spans9 bits. Restricting to the112 non-coordinate ports restores bill64.
+The corresponding Turyn restriction scales both ports and cost by64;
+the normalized moment therefore cannot improve merely by this change
+of basis. Implementation choices for helpers can still differ.
+
+For three fixed9-bit within-profile fits, cross-profile pairings have
+the form p^T X q with81 unknown entries in X. For each pair of profiles,
+81 explicitly recorded active-edge outer products are independent.
+Legality forces X=0. Linear embeddings of these three fixed rank9 label
+maps therefore cannot reduce their total dimension below27. This does
+not cover representations with extra isotropic radical components inside
+a profile that are invisible to its own Gram but pair with other profiles.
+
+5. Remaining construction obligations
+
+Neither a rank nomination nor a moment relaxation establishes a new
+integer-multiplication exponent. A changed candidate still needs a
+dyadic scalar word with arbitrary helper dirt restored, phase checks,
+actual frame paths, helper widths, physical hosting, finite invoice,
+and the outer certificate under the repository's conditional interfaces.
+Different binary completions of the Turyn product graph, other kernels,
+or selective packet transformations remain open in this package.

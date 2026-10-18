@@ -1,0 +1,137 @@
+--- a/audit_mixed.py
++++ b/audit_mixed.py
+@@ -9,7 +9,7 @@
+  for _nm,_mut in (('changed lifted target frame',lambda b_:b_['target_levels'].__setitem__('23',0)),):
+   _bad=copy.deepcopy(w);_mut(_bad)
+   try:A.local_inventory(_bad,r,None)
+-  except ValueError as _e:A.require(str(_e)=='target line30','target mutation rejection')
++  except ValueError as _e:A.require(str(_e)=='candidate exact source-partner target frames','target mutation rejection')
+   else:raise ValueError('accepted changed lifted target')
+  _pg=A.read(d/'LOCAL-PROGRAMS.json.gz');_bp=copy.deepcopy(_pg);_bp['forward'].remove(next(e for e in _bp['forward'] if e[0]=='center'))
+  try:A.local_inventory(w,r,_bp)
+--- a/independent_core.py
++++ b/independent_core.py
+@@ -69,8 +69,7 @@
+     External ports/frames are independently checked by audit_mixed.py.
+     """
+     levels = {int(t): f for t, f in word['target_levels'].items()}
+-    require(set(levels) == {11,23,29,32,34,35,45,48,50,59,63,71,73,76,81,84,87,90,92,108}, 'twenty source-partner target offsets')
+-    require(all(frames[f] in ((30,), (45,)) for f in levels.values()), 'target line30')
++    require({str(t): list(frames[f]) for t, f in levels.items()} == {'104': [45], '106': [45], '110': [45], '14': [45], '21': [45], '37': [45], '41': [45], '43': [45], '47': [45], '52': [45], '78': [45], '99': [45]}, 'candidate exact source-partner target frames')
+     require(all(current[V+t] == frames[levels.get(t, 0)] for t in range(V)), 'target centre level')
+     forward, backward = [], []
+     for index, (register, frame_id) in enumerate(zip(word['centers'], word['center_frames'])):
+@@ -90,7 +89,7 @@
+             origin = destination
+         forward.extend(segments)
+         backward.extend(e[:2]+[e[3], e[2], e[4]] for e in reversed(segments))
+-    require(Counter(e[4] for e in forward) == {1:8, 7:8}, 'sixteen centre children')
++    require(Counter(e[4] for e in forward) == {8:8}, 'candidate eight unsplit centre children')
+     return {'forward': forward, 'backward': backward}
+ 
+ 
+--- a/new/borrow/lowfour_controls.py
++++ b/new/borrow/lowfour_controls.py
+@@ -20,12 +20,13 @@
+     ia=next(i for i,e in enumerate(pre) if e[0]=='add')
+     m=mut();m['A'][ia][3]=-m['A'][ia][3];expect('prelude correction sign flipped',m)
+     m=mut();m['A'][ia][3]*=2;expect('prelude correction coefficient doubled',m)
+-    m=mut();m['A'][ia][1],m['A'][ia+1][1]=m['A'][ia+1][1],m['A'][ia][1];expect('prelude correction targets swapped',m)
++    jb=next(j for j,e in enumerate(pre) if e[0]=='add' and e[1]!=pre[ia][1] and e[2:]!=pre[ia][2:] and e[-1]==pre[ia][-1])
++    m=mut();m['A'][ia][1],m['A'][jb][1]=m['A'][jb][1],m['A'][ia][1];expect('prelude correction targets swapped',m)
+     iw=[i for i,e in enumerate(pre) if e[0]=='warp'];m=mut();del m['A'][iw[1]];m['prelude_events']-=1;expect('prelude return warp dropped',m)
+     m=mut();del m['A'][iw[0]];m['prelude_events']-=1;expect('prelude forward warp dropped',m)
+-    ids=[i for i,e in enumerate(pre) if e[0]=='add' and e[1]==135];m=mut()
++    target=pre[ia][1];ids=[i for i,e in enumerate(pre) if e[0]=='add' and e[1]==target];assert ids;m=mut()
+     for i in reversed(ids):del m['A'][i]
+-    m['prelude_events']-=len(ids);expect('all prelude corrections of target 135 dropped',m)
++    m['prelude_events']-=len(ids);expect('all prelude corrections of actual first target dropped',m)
+     m=mut();m['A'][0][-1]=[31];expect('prelude target scale at a different line',m)
+     m=mut();m['A'][iw[0]][2]=m['A'][iw[0]][2]+1 if abs(m['A'][iw[0]][2])<len(m['warps']) else m['A'][iw[0]][2]-1;expect('prelude warp uses another operator id',m)
+     m=mut();m['A'][iw[0]][4]=[31];expect('prelude warp lands on a different line',m)
+@@ -36,13 +37,13 @@
+     m=mut();r=m['warps'][W33];r[3]=[x^2 for x in r[3]];expect('new warp from-frame wrong',m)
+     m=mut();m['warps'][W33][2][0]^=m['warps'][W33][2][1];expect('new warp G wrong',m)
+     # restoration gate before a new warp removed (derived cleanup re-derived)
+-    pos=[w0['warps'][W33][0]];i=pos[0]-1
++    i=next(i for i,g in enumerate(w0['B']) if g[:5]==['add',33,49,1,2])
+     m=mut();assert m['B'][i][0]=='add' and m['B'][i][1] in {r_[1] for r_ in w0['warps']},m['B'][i];del m['B'][i]
+     for r in m['warps']:
+         if r[0]>i:r[0]-=1
+     expect('source restoration gate dropped (cleanup re-derived)',rederive(m))
+     # rewritten helper gate on the borrowed source removed
+-    j=next(i for i,g in enumerate(w0['B']) if g[0]=='add' and g[1]==33 and g[2]==250)
++    j=next(i for i,g in enumerate(w0['B']) if i>=w0['warps'][W33][0] and g[0]=='add' and g[1]==33)
+     m=mut();del m['B'][j]
+     for r in m['warps']:
+         if r[0]>j:r[0]-=1
+--- a/new/code/borrow/bw_audit_local.py
++++ b/new/code/borrow/bw_audit_local.py
+@@ -179,6 +179,17 @@
+ def phase_at(es,name):return es.index(['phase',name])
+ def first_warp(es,sign=1,start=0):return ev_index(es,lambda e:e[0]=='warp' and (e[2]>0)==(sign>0),start)
+ def cleanup_warp(es):return first_warp(es,-1,phase_at(es,'full_frame_cleanup'))
++def incomplete_centre_descent(es):
++    # Split paths lose an intermediate step. An unsplit path is truncated at
++    # an actual nested rank-one frame, with its child rank repriced correctly.
++    # Thus the control cannot fail merely because a split no longer exists.
++    indices=[i for i,e in enumerate(es) if e[0]=='center' and e[3]!=0]
++    if indices:
++        es.pop(indices[0]);return
++    e=next(e for e in es if e[0]=='center')
++    stop=next(f for f in range(len(frames)) if len(frames[f])==1 and contains(frames[f],frames[e[2]]))
++    e[3]=stop;e[4]=len(frames[e[2]])-1
++
+ mutations=[
+     ('wrong_scale',lambda es:next(e for e in es if e[0]=='scalar' and e[1][0]=='scale')[1].__setitem__(2,3)),
+     ('missing_center',lambda es:es.pop(next(i for i,e in enumerate(es) if e[0]=='center'))),
+@@ -194,7 +205,7 @@
+     ('wrapper_on_a_centre_register',lambda es:next(e for e in es if e[0]=='residual_adapter').__setitem__(2,['C',0])),
+ ] if entering else [])+([
+     ('centre_step_not_nested',lambda es:next(e for e in es if e[0]=='center').__setitem__(3,next(f for f in range(len(frames)) if not contains(frames[f],frames[next(e for e in es if e[0]=='center')[2]]) and not contains(frames[next(e for e in es if e[0]=='center')[2]],frames[f])))),
+-    ('centre_descent_step_skipped',lambda es:es.pop(next(i for i,e in enumerate(es) if e[0]=='center' and e[3]!=0))),
++    ('centre_descent_incomplete',incomplete_centre_descent),
+ ] if levels else [])+([
+     ('hpe_pre_wrapper_resolved_to_full_recipe',lambda es:next(e for e in es if e[0]=='residual_adapter' and e[1]=='pre' and len(e)==5).pop()),
+     ('hpe_post_wrapper_without_terminal_frame',lambda es:next(e for e in es if e[0]=='residual_adapter' and len(e)==5).pop()),
+--- a/new/rebuild_borrow.py
++++ b/new/rebuild_borrow.py
+@@ -74,10 +74,10 @@
+     lf=D/'inputs'/f'lowfour_43{wt}.json';lpatch=None
+     if lf.exists():   # four low aliases through lifted-target compensation (PR2436 mechanism) on top of the entrance state
+         lpatch=json.loads(lf.read_text());prev_l=chain[-1];chain.append(word_patch.apply_lowfour(prev_l,lpatch));steps.append('lowfour')
+-        nw=chain[-1];kok&=word_patch.kernel_gate_edit(prev_l['B'],nw['B'])==lpatch['declared_gate_edit'] and sorted(set(nw['removed'])-set(prev_l['removed']))==[640,641,642,644]==lpatch['derived_removed_diff']
++        nw=chain[-1];kok&=word_patch.kernel_gate_edit(prev_l['B'],nw['B'])==lpatch['declared_gate_edit'] and sorted(set(nw['removed'])-set(prev_l['removed']))==[696,697,698,700]==lpatch['derived_removed_diff']
+         kok&=[x[1:] for x in nw['warps'][:len(prev_l['warps'])]]==[x[1:] for x in prev_l['warps']] and [x[1] for x in nw['warps'][-4:]]==[33,55,74,85] and len(nw['warps'])==len(prev_l['warps'])+4
+         kok&=[g[:-1] for g in nw['A'][nw['prelude_events']:]]==[g[:-1] for g in prev_l['A']] and nw['restore']==prev_l['restore'] and nw['helper_final']==prev_l['helper_final']
+-        kok&={k_:v_ for k_,v_ in prev_l['start_extra'].items() if k_ not in('640','641','642','644')}==nw['start_extra']
++        kok&={k_:v_ for k_,v_ in prev_l['start_extra'].items() if k_ not in('696','697','698','700')}==nw['start_extra']
+     af=D/'inputs'/f'alias637_43{wt}.json';apatch=None
+     if af.exists():   # alias 637 borrowing retired source 31 (PR2436 pair) stacked on the four lifted-target aliases
+         apatch=json.loads(af.read_text());prev_a=chain[-1];chain.append(word_patch.apply_lowfour(prev_a,apatch));steps.append('alias637');na=chain[-1]
+@@ -102,10 +102,10 @@
+         kok&=word_patch.kernel_gate_edit(prev_p['B'],npl['B'])==ppatch['declared_gate_edit']
+         kok&=all(npl[k_]==prev_p[k_] for k_ in ('A','precondition','cut','start_extra','target_levels','centers','center_frames','ports','prelude_events'))
+     rf2=D/'inputs'/f'refit563_43{wt}.json';rpatch2=None
+-    if rf2.exists():   # one-gate exact frame lowering (B 894, add 515 += 563: dim 6 -> 5) so that 563 retires at the dimension of 653's entrance frame (this package)
++    if rf2.exists():   # one-gate exact frame lowering (B 904, add 515 += 563: dim 6 -> 5) so that 563 retires at the dimension of 653's entrance frame (this package)
+         rpatch2=json.loads(rf2.read_text());prev_r=chain[-1];chain.append(refit_apply(prev_r,rpatch2));steps.append('refit563');nr=chain[-1]
+-        kok&=len(rpatch2['frames'])==1 and rpatch2['frames'][0][:2]==['B',894] and prev_r['B'][894][:5]==['add',515,563,1,1]
+-        kok&=len(nr['B'][894][-1])==len(prev_r['B'][894][-1])-1 and all(x_==y_ for i_,(x_,y_) in enumerate(zip(nr['B'],prev_r['B'])) if i_!=894)
++        kok&=len(rpatch2['frames'])==1 and rpatch2['frames'][0][:2]==['B',904] and prev_r['B'][904][:5]==['add',515,563,1,1]
++        kok&=len(nr['B'][904][-1])==len(prev_r['B'][904][-1])-1 and all(x_==y_ for i_,(x_,y_) in enumerate(zip(nr['B'],prev_r['B'])) if i_!=904)
+         kok&=not({515,563}&({x_['L'] for x_ in ppatch['pairs']}|{x_['h'] for x_ in ppatch['pairs']}) if ppatch else set())
+     xf=D/'inputs'/f'alias1_43{wt}.json';xpatch=None
+     if xf.exists():   # retired-lender alias 653<-563 on the refit state (this package)
+@@ -141,9 +141,9 @@
+             pw_=Path(tempfile.mkdtemp())/'orig.json.gz';pw_.write_bytes(gzip.compress(json.dumps(prev_p,separators=(',',':')).encode(),mtime=0))
+             pc=subprocess.run([sys.executable,'-B',str(D/'prelife_controls.py'),str(shipped),str(pw_),str(RCP/f'CONTROLS-PRELIFE-43{wt}.json')],capture_output=True,text=True)
+             pc_ok=pc.returncode==0 and json.loads((RCP/f'CONTROLS-PRELIFE-43{wt}.json').read_text())['all_rejected_for_expected_reason'];ok&=pc_ok;res['prelife_controls_ok']=pc_ok
+-        if rpatch2:   # control: the shipped word with the B 894 frame restored to its un-refitted (dim 6) frame must be rejected (the 653<-563 warp then starts from the wrong frame)
++        if rpatch2:   # control: the shipped word with the B 904 frame restored to its un-refitted (dim 6) frame must be rejected (the 653<-563 warp then starts from the wrong frame)
+             import copy as cp6
+-            m=cp6.deepcopy(final);m['B'][894][-1]=prev_r['B'][894][-1];bp=Path(tempfile.mkdtemp())/'refit563_undone.json.gz';bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0))
++            m=cp6.deepcopy(final);m['B'][904][-1]=prev_r['B'][904][-1];bp=Path(tempfile.mkdtemp())/'refit563_undone.json.gz';bp.write_bytes(gzip.compress(json.dumps(m,separators=(',',':')).encode(),mtime=0))
+             br=run_audit(bp,None,bp.parent/'refit563_undone.out.json');ru=br.returncode!=0 and 'warp frame mismatch' in (br.stdout+br.stderr);res['refit563_undone_rejected_by_warp_frame_mismatch']=ru;ok&=ru
+         if xpatch:
+             xc=subprocess.run([sys.executable,'-B',str(D/'alias1_controls.py'),str(shipped),str(xf),str(RCP/f'CONTROLS-ALIAS1-43{wt}.json')],capture_output=True,text=True)

@@ -1,0 +1,17 @@
+# B245 VERDICT: BLOCKED at the chain (port stage), not a value/price result. No word built, no SHIP CANDIDATE, nothing pushed.
+Gauge-forward is GO with GLAZY (B247 lead reproduced): STAG=1 GLAZY=1 CF=0..15 -> NH 480->464, NVIOL 0, scalar asserts pass, MASS (6184,6168), 32 widened events (3->5). Without GLAZY the card's 5 moves fail (below).
+Blocker class: B232 chain stage `port_stage_x.py` (port0: RAW504 -> split-centres), which transfers the 504-chain stage frames by gate-order/scalar-op alignment. Any moved op (cold P read, deferred own row, widened event) breaks it.
+## What was run
+- G6 reproduced (CF=0, STAG=1, no GLAZY): fails at reg 299 (frame violation, dim 8 vs hyper(P_t)). Trace: 299/315 are own-row/packet regs read by TWO reader y's (own + partner: y140,y165 / y164,y141). A warm read of the deferred own row after the cold P read puts Fp into 299/315; the later merge M=299+315 and slot op needs them inside hyper(P[t']) where Fp is not.
+- Move (a) warm-last: WARM=t for each single reader, and 10 subsets (cgx_cf2.py env WARM): 15/15 fail (299 frame violation or 'second' cap). Argument: each of the 4 readers touches 299 or 315, so avoiding Fp needs P warm at ALL 4 readers = the G4 wall. Moves (b)-(e) were not enumerated (sweep.sh written, not run; superseded by the GLAZY lead, which removes the failure by widening the partner ops).
+- Lead: cgx_x.py (B247) copied to cards/B245/ and installed as cgx_leaver.py in my private copy cards/B245/chain/wt (pins demoted to PINWARN; B232 files untouched). chain.sh = B232 chain steps lv, lvc, slots on that copy (notri-base and pr635 linked read-only).
+- Control (STAG=0, CF empty): lv gauge-forward, port0..3, cold44 all PASS (toolchain sound).
+- CF=0..15 with STAG=1: port0 FAIL ('frame violation', reg 448, (96,) vs (302,174,120)).
+- CF=0 only, STAG=1: port0 FAIL (reg 455). CF=0 only, STAG=0 (no block reorder, 8 candidates legal): port0 FAIL. So not just the stagger.
+- Repair attempt (B245REPAIR=1 in my port_stage_x.py: lazily widen each ported gate frame to contain the current register frames): 2 gates widened, then profile fails the final cap: y reg 170 (target 58) pushed to the full 9-dim frame, outside perp(P_58). The stage frames (cold44/layers) were laid for the baseline op order.
+## Not obtained
+No value replay, no audit_local, no exact kappa for any variant (no word exists). B247's +1.3% (H16) .. +2.0% (H48) / -0.35% (H1) remains an unaudited gauge-forward estimate.
+## What would unblock (new card, tooling)
+Port the cold-hold ops natively in the 504 chain: generate the shadow stages (I4/O4) with the same CF/STAG/GLAZY edits so that alignment is exact and the stage frames are computed for the new order, or write a port variant that re-derives stage frames for moved gates (identity: widened y reg must stay inside perp(P)). Start with one copy (CF=0, STAG=0) as the test; cost estimate for one copy is small (+0.05..0.14% per B247), 16 copies need the full chain.
+Files: cards/B245/{cgx_cf2.py (WARM/WATCH debug), cgx_x.py, chain.sh, chain/wt (patched copy), sweep.sh, out/}. Jobs: 00_B245_chain* (logs in the job logs).
+Ship bar update (reviewer): now #1087 kappa 1.672654541898561e-3. No candidate word exists (port0 blocks), so price1018/verify1018 were not run; the credit assumption question (price1018 uses frozen #1018 IDLE = PLAN.profile - 72*paid, valid only while width_inventory is unchanged) is untested.

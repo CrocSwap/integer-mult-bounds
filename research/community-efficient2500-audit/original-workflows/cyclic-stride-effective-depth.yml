@@ -1,0 +1,41 @@
+name: Cyclic stride effective depth
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/cyclic-stride-effective-depth/**'
+      - '.github/workflows/cyclic-stride-effective-depth.yml'
+  push:
+    branches: ['codex/stride-effective-depth-20261013']
+    paths:
+      - 'research/cyclic-stride-effective-depth/**'
+      - '.github/workflows/cyclic-stride-effective-depth.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Effective depth, original and cubic kernels, and defect controls
+        run: python -I -O -B research/cyclic-stride-effective-depth/verify.py --out /tmp/stride-depth-math.json
+      - name: Package rejection controls and full read-only relocation
+        run: python -I -O -B research/cyclic-stride-effective-depth/test_package.py --out /tmp/stride-depth-package.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stride-depth-python-${{ matrix.python }}
+          path: |
+            /tmp/stride-depth-math.json
+            /tmp/stride-depth-package.json

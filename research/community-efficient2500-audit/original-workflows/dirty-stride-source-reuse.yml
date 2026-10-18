@@ -1,0 +1,26 @@
+name: Dirty stride source reuse
+on:
+  pull_request:
+    paths:
+      - 'research/dirty-stride-source-reuse/**'
+      - '.github/workflows/dirty-stride-source-reuse.yml'
+  push:
+    paths:
+      - 'research/dirty-stride-source-reuse/**'
+      - '.github/workflows/dirty-stride-source-reuse.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -I -O -B research/dirty-stride-source-reuse/test_package.py

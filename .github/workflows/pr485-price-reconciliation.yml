@@ -1,0 +1,33 @@
+name: Archived PR485 aggregate-price reconciliation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/pr485-price-reconciliation/**'
+      - 'research/experiment-log/negative-searches/pr485-composition/**'
+      - 'research/experiment-log/negative-searches/rational-hosting/search_r715_rational_hosting.py'
+      - 'research/e8-bit-carrier-skeleton/discovery/host_select.py'
+      - 'research/idle-axis-hosting/hosting_core.py'
+      - 'research/e8-r480-nine-stage/vendor/e8-r715-eleven-stage-whole/code/global_k.py'
+      - '.github/workflows/pr485-price-reconciliation.yml'
+permissions:
+  contents: read
+jobs:
+  exact-reconciliation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '${{ matrix.python }}'
+      - name: Replay and corruption controls with assertions disabled
+        run: |
+          python -I -O -B research/pr485-price-reconciliation/verify.py
+          python -I -O -B research/pr485-price-reconciliation/test_package.py
+          git diff --exit-code

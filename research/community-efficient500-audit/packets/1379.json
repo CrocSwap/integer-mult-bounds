@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 1379,
+  "title": "Audit: recursive parking boundaries and exact fixed-tape overhead (no new kappa)",
+  "author": {
+    "id": "U_kgDOC-l38Q",
+    "is_bot": false,
+    "login": "commdata2338",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1379",
+  "head": "3a45bd089ad56c38b55da8d80d7b056f2d90e5fa",
+  "merge_base": "bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+  "baseline": "418e40eb2572d930b58c1cf9b82b41c0fc7ee08d",
+  "files": [
+    {
+      "path": "research/recursive-parking-boundary/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "251f335ebaccc11d69393ee7aeb5a2e84526d0bb"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/recursive-parking-boundary/RESULT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9f9fbb9030eedc0b00a4abbef13c649cd2867d5b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/recursive-parking-boundary/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b8fad7b4c70a2630088baa067d1d1a949f11afd1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/recursive-parking-boundary/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "440ecdb90df4c808b19b04e412109c3772e3ace7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/recursive-parking-boundary/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "dd96f6875a7cf784233d89ebfec983c9efc8c734"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/recursive-parking-boundary/machine.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6a95adb21586e65167c2a16b0e7ed274cb867ae1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/recursive-parking-boundary/test_boundary.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "68faf1904bbbf76b749111169f5582e1c05940ab"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/recursive-parking-boundary/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1b06a0e7f78da5c5c8d2758a50bfc31ea57484eb"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/recursive-parking-boundary": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "## Change and mathematical scope\n\nThe retained tape package proves individual push/pop round trips but leaves recursive handoffs open. This package supplies a scoped written proof and an explicit park/call/restore controller. Arbitrary dirty roles are restored around a length-preserving child, and the wrapper costs exactly `5V - n_active + 9W - 2` transitions. Equal positive roles give child volume `V/W` and a wrapper cost of at most `14V`, independent of the length of the parked ancestors.\n\nA separate all-length counterexample shows why restoring every byte and head is not enough for a uniform time bound. The same finite child can scan an arbitrarily long parked ancestor and return unchanged, so the child contract needs the distinction. This is not a defect claim against the manuscript, which explicitly forbids ancestor scans.\n\n**Status:** a scoped written proof with exact finite checks, plus the counterexample, for an interface (transfer) result. No eliminated recursive calls, exponent gain or new \u03ba are claimed.\n\n**Precise delta:** only `research/recursive-parking-boundary/` is added (eight files). It holds:\n- the written quantified proof;\n- a source-table extractor and a literal tape simulator;\n- an explicit active-stream move and a finite phase controller;\n- a deterministic replay receipt, six focused semantic test groups, and standard package metadata.\n\nNo existing source, selected record, frozen artifact or supplier profile changes. The first-done and trace-locality arguments are written proofs, and no new Lean theorem is claimed.\n\n**Cost accounting:** the exact cost includes one stationary dispatch per phase, including the child's return. Child execution, row splitting, descriptors and marker lifecycle costs are separate. Empty streams have charge `9W-2`; they are not covered by the positive-volume `14V` inequality. Unequal role lengths keep the boundary semantics but do not imply `V/W` child volume.\n\n**Remaining obligations.**\n- The nested fixture uses abstract row split/merge shims and does not price or implement them.\n- Still open:\n  - physical complete-row routing, descriptors and recursive call-stack control;\n  - the concrete selected-call binding and a uniform child-time proof;\n  - new Lean composition and trace proofs;\n  - a full native or selected cold replay, and the precision and analytic transfer.\n- Source extraction is a restricted parser, not a Lean elaborator.\n- The selected \u03ba is unchanged, and no full multiplication theorem or runtime speedup is claimed.\n\n## Task and overlap\n\n- **Task / scope:** `uniform-transfer-audit` / `ce7411fb7cf6f3460bfc`, refined to `fixed-tape-parking/dirty-role-boundary/all-length-locality`. Chooser nonce `e101f9f408701b26cf61d9bd1f07e040`, track adversarial-audit, priority revision 2. It passed over `supplier-boundary-audit` because this account's PR #1307 and the active selected-geometry claims cover nearby ground.\n- **Base and exact dependencies:**\n  - base `bce54fb3f895cbe5cd4c0eb477c3afeed100190f`; contribution `3a45bd089ad56c38b55da8d80d7b056f2d90e5fa`;\n  - the retained machine-transfer stack sources introduced at `2d970ab3ca0271cfb2b609dc9aae1b7073b7774d` (rfu08), with exact current Git blobs and SHA256 in `SOURCES.json`;\n  - selected PR #1094, head `0fc329d0bec93ca7cd288eaea1295172e8789810`, context only.\n\n  There is no pending PR dependency.\n- **Concrete object and question:** the fixed-W inactive parks, the active move, the child boundary, the active return and the reverse-order pops. The aim is to separate semantic restoration, intermediate locality and uniform cost.\n- **Exact implication audited:** do literal primitives plus child endpoint restoration suffice for the normalized recurrence's equal-volume and linear-overhead premises? The counterexample disproves the weaker endpoint-only time implication.\n- **Scope status:** refined. It takes the card's tape/restoration branch and the composition boundary the retained README explicitly names as missing. The finite tests support the written all-length proof; they do not replace its quantifiers.\n- **Method and domain:** four-symbol, head-local, unit-move multitape semantics, with a written theorem for every fixed W >= 2, arbitrary lengths and finite ancestor contents. Source extraction covers all 12 push and 384 pop state-symbol entries. The exact finite domains and mutation controls are in `RESULT.json`.\n- **Expected cost:** `(W-1)(5n+7) + 4n+4 + (2W+1)` for equal lengths. Exact restoration, the original stream order and ancestor independence are all required.\n- **Nearest work:**\n  - The retained package already proves primitive round trips; this adds intervening-child composition, active movement, finite dispatch and trace framing.\n  - PR #861 (`7113da8d458f5c73fe70b1bd5371ea1e44bc75d4`) audits counters and excludes recursive scheduling; no part of it is imported.\n  - Scalar-word, dirty-fanout and verifier-concurrency schedulers are different objects.\n- **Claim and final check:** the claim is in [discussion #1356](https://github.com/CrocSwap/integer-mult-bounds/discussions/1356). A live overlap check just before submission (850 open PRs and 98 discussion records at 23:47 UTC, complete pagination) found no competing work.\n\n## Validation\n\nFrom the repository root, Python 3.12.3, standard library only:\n\n```sh\npython3 -B scripts/research_package.py --package research/recursive-parking-boundary --check-only\npython3 -B scripts/research_package.py --package research/recursive-parking-boundary\npython3 -I -B -O research/recursive-parking-boundary/verify.py\npython3 -B scripts/research_baseline.py\n```\n\nThe registered replay runs the verifier and all six focused groups. The finite evidence is:\n- all 396 literal source-table entries and 8,001 primitive round trips;\n- 22,308 equal-role and 300 unequal-role boundaries;\n- 90 nested fixtures, with 4,044 inner boundaries;\n- 13 controls.\n\nThe deterministic receipt matches under normal and optimized Python. An isolated read-only relocation passes, and altering one recorded count or one live source byte is rejected. The registered replay and the metadata/pin check were run again on the final commit before submission, and both passed. Hosted CI and independent human review are not reported as passed.\n\n```text\nPASS_RECURSIVE_PARKING_BOUNDARY: 396 source-table entries; 22308 equal-role boundaries; 4044 nested boundaries; 13 controls rejected\nPASS_REGISTERED_RESEARCH_PACKAGE research/recursive-parking-boundary outcome=completed\n```\n\n## Credit\n\n- rfu08's retained PR #64 transfer lineage, for the literal stack machines and their Lean proofs.\n- The upstream fixed-tape schedule and the ranked-pair transfer review.\n\nNew files are Apache-2.0; predecessor sources and notices are unchanged.\n\n**AI assistance:** submitted by @commdata2338 with substantial AI assistance. OpenAI Codex (GPT-6 Astra) did the proof, the implementation, the verification and the writing; it was packaged and submitted with Claude Code. No independent human review is claimed.\n\n## Open next questions\n\nFrom the package README:\n1. **Formal boundary composition and trace frame rule.** This would connect the existing kernel-checked stack primitives to recursive handoffs. First step: formalize the marked-stream move and the quantified intermediate head bounds, then induct over `boundary_program`. Blocker: the new composition and trace statements have not been implemented or compiled in Lean.\n2. **One physical complete-row split/merge caller.** The boundary earns `V/W` only under equal complete rows. First step: a fixed `W=2` caller with an explicit row payload width, keeping every spectator and counting the counter and reset movement. Blocker: the nested test uses abstract routing shims, and descriptor and dispatch-stack integration need their own uniform cost proof.\n\n## Workflow feedback (optional)\n\n- **What worked:** the package generator, the exact source pins and the offline overlap mode.\n- **Largest detour:** narrowing the broad all-size and precision overlap search before finding the retained tape README's explicitly open scheduler-composition boundary.\n- **Suggestion:** add that README and its named open boundary to the uniform-transfer card's starting points. Alternatively, keep a small source-linked index that separates proved primitives, open composition and physical-caller work.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "9a0735877827ab3f95eeedc66525e8552ad5a0ddbea2ae36e76335460e5de480"
+}

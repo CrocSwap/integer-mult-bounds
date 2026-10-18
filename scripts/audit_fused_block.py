@@ -111,7 +111,7 @@ def sandwich_numerator(state,x_positions,y_positions,nbits):
 
 
 def rational_rank(matrix):
-    rows=[[Q(x) for x in row] for row in matrix]
+    rows=[[x if isinstance(x, Q) else Q(x) for x in row] for row in matrix]
     rank=0
     if not rows:return 0
     for col in range(len(rows[0])):

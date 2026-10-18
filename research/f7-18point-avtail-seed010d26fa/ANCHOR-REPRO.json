@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "recorded_utc": "2026-10-16",
+  "purpose": "Anchor reproduction BEFORE any new number (assignment mandate), with the receipt-validation trap handled: every walk started from EMPTY receipts and two shards were re-walked from deleted receipts to prove recomputation.",
+  "fresh_receipts_evidence": "The package directory was created empty for this run. run_avtail.py printed 'fresh receipts confirmed (class71: no receipt file existed)' at the first walk; class82/class60 shard receipt files AVTAIL-C82-*.json / AVTAIL-C60-*.json did not exist before their launches (no SKIP lines appeared in the first launch of either mode; every shard printed RECEIPT with complete=true).",
+  "anchors": [
+    {
+      "anchor": "PR 2870 OBSTRUCTION",
+      "expected": "parseval=696 allowed=504 deficit=192",
+      "observed": "parseval=696 allowed=504 deficit=192",
+      "command": "python3 -I -B research/f7-18point-avtail-seed010d26fa/verify.py quick",
+      "status": "REPRODUCED",
+      "route": "vendored PR 2911 engine cover18.squeeze_numbers(7, 11, 6)"
+    },
+    {
+      "anchor": "PR 2933 CLASSIFY lines",
+      "expected": "class table incl. 2 lines value=32 need=32 TIGHT; L7 m=3 cases=6720",
+      "observed": "two TIGHT lines printed: (10,8) A_vanish (7,1) 32=32 and (10,8) D_vanish (8,2) 32=32; cases=6720 ok=true",
+      "command": "python3 -I -B research/f7-18point-avtail-seed010d26fa/verify.py quick",
+      "status": "REPRODUCED",
+      "route": "vendored PR 2933 engine vanish.class_table / vanish.check_tight_equality"
+    },
+    {
+      "anchor": "PR 2911 ROWS18",
+      "expected": "808/501/251/196",
+      "observed": "rows=808 (12,6); 501 (11,7); 251 (10,8); 196 (9,9); 17-point controls (5,1),(6,0) remainder and (10,7) empty",
+      "command": "python3 -I -B research/f7-18point-avtail-seed010d26fa/verify.py rows",
+      "status": "REPRODUCED",
+      "route": "vendored PR 2911 engine cover18.sharp_rows_fast / surviving_rows_fast"
+    },
+    {
+      "anchor": "PR 2911 NOVANISH",
+      "expected": "(12,6),(10,8) infeasible: vanishing forced",
+      "observed": "feasible=False for both splits",
+      "command": "python3 -I -B research/f7-18point-avtail-seed010d26fa/verify.py novanish",
+      "status": "REPRODUCED",
+      "route": "vendored PR 2911 engine cover18.fourier_profile_feasibility"
+    },
+    {
+      "anchor": "PR 2961 FOURIER (7,1)",
+      "expected": "need=175 lower=239 contradiction=True",
+      "observed": "need=175 lower=239 contradiction=True",
+      "command": "python3 -I -B research/f7-18point-avtail-seed010d26fa/verify.py quick",
+      "status": "REPRODUCED",
+      "route": "vendored PR 2961 engine tight.fourier_71_identity"
+    },
+    {
+      "anchor": "PR 2961 CLASS71",
+      "expected": "normalized_pairs=0",
+      "observed": "normalized_pairs=0 covering_pairs=0 (fresh empty-receipt walk, wall=12.3s)",
+      "command": "python3 -I -B run_avtail.py class71 --shards 1",
+      "status": "RE-WALKED FROM EMPTY RECEIPTS",
+      "route": "vendored PR 2961 engine tight.class71_run"
+    },
+    {
+      "anchor": "PR 2961 CLASS82",
+      "expected": "checked=28815360 covering=0",
+      "observed": "checked=28815360 covering=0 fail_hist {('I','II','III'): 28815360}; normalized_sidon_pairs_total=4287920 non_1_invariant_pairs=4175360 (fresh empty-receipt walk, 8/8 shards complete)",
+      "command": "python3 -I -B run_avtail.py class82 --shards 8 [--shard k] (8 parallel processes) then run_avtail.py merge class82 --shards 8",
+      "status": "RE-WALKED FROM EMPTY RECEIPTS",
+      "route": "vendored PR 2961 engine tight.class82_run"
+    },
+    {
+      "anchor": "PR 2961 CLASS60",
+      "expected": "d_checked=169911 d_with_transversals=0",
+      "observed": "d_checked=169911 d_with_transversals=0 transversals_total=0 covering_triples=0 (fresh empty-receipt walk, 8/8 shards complete)",
+      "command": "python3 -I -B run_avtail.py class60 --shards 8 [--shard k] (8 parallel processes) then run_avtail.py merge class60 --shards 8",
+      "status": "RE-WALKED FROM EMPTY RECEIPTS",
+      "route": "vendored PR 2961 engine tight.class60_run"
+    }
+  ],
+  "receipt_validation_correction": {
+    "trap": "A resumed walk against a committed receipt silently passes; replaying validate-only receipts proves nothing (recorded by PR 2961 and by the shared agent-tools notes).",
+    "proof_of_recomputation": "Spot re-walks: AVTAIL-C60-0.json and AVTAIL-C82-2.json were moved aside (backup-AVTAIL-*-*.json in scratch), the shards were re-run from absent receipts (RECEIPT lines printed; all other shards SKIPped), and the fresh receipts were compared to the originals SEMANTICALLY with the timing fields seconds/wall_seconds excluded (receipt byte hashes are not run-stable).",
+    "result": "SPOT_REWALK AVTAIL-C60-0.json semantic_equal=True (new_wall=89.54 vs old_wall=163.08); SPOT_REWALK AVTAIL-C82-2.json semantic_equal=True (new_wall=55.8 vs old_wall=102.62); SPOT_REWALK_ALL_EQUAL=True",
+    "command": "python3 -I -B <scratch>/cmp_receipts.py (scratch helper: strip timing fields, compare sorted JSON)"
+  },
+  "environment": {
+    "python": "CPython 3.12 (C:/Users/warha/.local/bin/python3.12.exe), -I -B",
+    "arithmetic": "exact Python integers only; no floats anywhere in the engines",
+    "sharding": "deterministic index sharding; per-shard receipt files written only by their own shard process; merge is idempotent"
+  }
+}

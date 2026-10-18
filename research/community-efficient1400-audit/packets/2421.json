@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "number": 2421,
+  "title": "Verify R439 interleaved COPY through native 5/9/11-stage engines",
+  "author": {
+    "id": "MDQ6VXNlcjQ1NTg3MTIy",
+    "is_bot": false,
+    "login": "starship-s",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2421",
+  "head": "71d10b283795d071c3680797f0e63856e6499fd2",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "28f54620ff770dd051d5df35882bd84303d13c6f",
+  "files": [
+    {
+      "path": "research/r439-interleaved-native/NATIVE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c224044a3e4f6176d9d5bac9e0208ffa995aad1f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/PREDECESSOR.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ef02d2b414bf46ea81256e1e07a099711a7fccdc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eccc79f8ec2a8d0a1b6e376a9d05187228e29bcc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/REPLAY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c0da5474d0952714acd2ba017280e3128147eda2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c5459587d53022012ac46dee78c1141475e7d885"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ca2e0af56d5ed3f62d03b43dab2792392d5573be"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "86429a647535d98aa7b082478725a9a5cc36b6ad"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/pr2407-source.tar.gz",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5d091e34c3313f53a635441c39162e5712550ea7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r439-interleaved-native/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "95705c54d266dd583dcc6f6e13f196e648c9460e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r439-interleaved-native": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "## Summary\n\nPR #2407 leaves native execution of its interleaved COPY window unchecked. This package feeds its exact pinned record stream to the unchanged native legality and 5/9/11-stage column engines. Both the 94-scatter-ADD split and the 88-scatter-ADD candidate pass. The candidate's 303 target-undo ADDs and ten taps execute inside one live copied snapshot without changing the copied source or private slot.\n\nThis is finite native verification of Ross Richardson's construction, not a new circuit or saving. The candidate retains 11,061 local ADDs, paid rank mass 5,129 and the selected exponent unchanged.\n\n## Evidence\n\n- Full local native replay, including 883 / 1,327 / 1,549 formal columns, exact positive-prefix bills, and every inherited omitted-bridge control.\n- Count-preserving wrong-order control: legality passes but all three endpoint checks reject. Missing undo and premature ERASE also fail their actual native checks.\n- Phase-label exchange passes native semantics, as expected. Full RAW6 binding rejects the provenance change; native engines do not validate phase labels.\n- Registered Python 3.12 replay, optimized native replay, metadata/source pins, Markdown validation and unchanged selected-result baseline all pass locally. Separate Astra/max source/receipt review found no blockers; its checks were in-memory, not another full native execution. No independent human review or hosted-CI pass is claimed.\n\n```sh\npython3.12 -B scripts/research_package.py --package research/r439-interleaved-native\npython3.12 -I -O -B research/r439-interleaved-native/verify.py --native\n```\n\nThe second command requires a C++17 compiler and Boost headers. Local native execution used g++ 15.2.0 and Boost 1.90. The generic registered hook is explicitly Python-only; deterministic native receipts are committed separately.\n\n## Scope, pins and credit\n\nStarted from canonical main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4. PR2407 source head: `4944211cee666eb8631b990cb0f33cfa68666485`. The archive contains only four files needed to run its exact source verifier. Existing engines, frozen inputs, selected frontier and other work are unchanged.\n\n[Canonical claim and handoff](https://github.com/CrocSwap/integer-mult-bounds/discussions/2401#discussioncomment-18944522). The task is a scoped follow-up to the drawn bit-helper-contract card. Final overlap and source freshness are recorded in TASK.json.\n\nCredit Ross Richardson (PR2407), Gareth Davidson (PR2373 native-harness precedent), Sagar Thakrar (PR1062/2115), Sricharan Vagvala (PR2356), Charles Bethin (PR2279), and the retained construction/exporter/native-checker lineage listed in the README. Substantial Hermes (`gpt-6-astra-900k`) and Codex (`gpt-6-astra`, max) assistance; Apache-2.0.\n\n## Remaining limitations\n\nNo physical supplier adoption, projector routing, whole-call hosting, recursive scratch, all-size/compiler/precision/tape proof, full selected cold replay or new kappa. The next useful task is to bind this exact COPY window to the complete physical routing and hosting contract. The mathematical source verifier and native engines are reused, not newly independent implementations.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "c51db4c1d56cf2eeffdb9272cc0bb7a510dbad08eef14d0f8f603dcbe72056c2"
+}

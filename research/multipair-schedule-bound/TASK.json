@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "task_id": "coverage-law-change",
+  "priority_revision": 3,
+  "base_commit": "ecc75c79c22d909fd42aa68437eb77c4c1361835",
+  "original_card": {
+    "id": "coverage-law-change",
+    "question": "Can a template or call contract leave two or more unpaid coordinates per live family?",
+    "starting_points": [
+      "research/complex-local-word-ceiling/README.md",
+      "research/idle-axis-hosting/PROOF.md",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "State a replacement for the coverage identity (mass = 72W + 64N) and the contract change that realizes it, with its implementation cost.",
+      "Find an obstruction: show which data-endpoint obligation forces exactly one unpaid coordinate in the current template."
+    ],
+    "acceptance_gate": "An explicit replacement identity, verified on a small complete instance with dirty inputs, priced with ceiling.ceiling(unpaid=...).",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "research/complex-local-word-ceiling/verify.py"
+      ],
+      "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+      "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+      "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Explain where the single unpaid coordinate per family comes from in the hosted template; propose one change and price it. Ideal budget: two unpaid coordinates per family is 3.77x (levers.py).",
+    "bottleneck_link": "The deficit is one coordinate per family minus the centre charge; doubling unpaid coordinates per family scales it directly.",
+    "allowed_variations": [
+      "One template change or one endpoint-contract change.",
+      "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+    ],
+    "scope_change_triggers": [
+      "Counting a coordinate as unpaid while leaving it unadvanced in the data endpoint."
+    ],
+    "overlap_terms": [
+      "coverage identity",
+      "unpaid coordinate",
+      "deficit law",
+      "W - 64N"
+    ]
+  },
+  "scope_status": "changed",
+  "actual_scope": "Does relaxing the B_K schedule conventions (one bank pair per invocation, pairwise exchange rho) change the coverage law or deficit per port enough to beat the T74 supplier? Proved bound N >= 2K + ceil(2K/(s-1)) on local-word invocations for every s-stage schedule, with exact attainment checks and prices on the T74 words.",
+  "scope_change_reason": "The card asks for two unpaid coordinates per family. This package instead tests the other template freedom named in format-limits-corrected (rows 5, 12, 13: non-B_K schedules), which the ceiling theorem does not cover, and shows it cannot raise D/W per port above the B-template at the same stage count. The unpaid-coordinate question itself is not addressed.",
+  "bottleneck_link": "The deficit per call is W - 64N; a schedule that ran fewer local-word invocations per port would raise it directly. Theorem S shows every schedule pays at least the B-template invocation density at its stage count, so the template convention is not what limits the deficit.",
+  "budget_minutes": 120,
+  "stop_rule": "Stop when every schedule family is either dominated by a proved bound or priced below the T74 baseline with the retained moment engine; leave even-s attainment as an open question with its maximum value.",
+  "outcome": "negative-result",
+  "evidence": "verify.py: proof-step inequalities on 10,697 random stages (GF(2), GF(3), GF(5)) with failing strengthening controls; exact replay of seven parallel-chain schedules; exhaustive K=2 frontier equal to the bound; recomputed exact prices for 14 schedule families on the T74 words; three negative controls.",
+  "author": "themilkman216",
+  "ai_assistance": "Substantial Claude (Anthropic, Opus 5.5) assistance: the investigation ran as fresh-context research branches in Claude Code; proof and code were reviewed and repackaged in the main session.",
+  "open_questions": [
+    {
+      "question": "Is the Theorem S bound attained at even stage counts, in particular s = 8?",
+      "why_it_matters": "It is the only schedule left that could beat the nine-stage template: at most +0.26% (window-aligned idle) or +0.70% (packing ceiling) of b, and only with exact attainment.",
+      "first_step": "Decide K = 4, s = 4 (bound 11, chains 12) with orbit reduction under GL(X) x GL(Y) or a compiled search; or prove even s is never better than s - 1.",
+      "blocked_by": "Pure-Python state-space size beyond K = 3."
+    },
+    {
+      "question": "Can an exchange through three bank classes (X -> Y -> Z) leave more than one unpaid coordinate per live family?",
+      "why_it_matters": "This is the levers.py two-unpaid-coordinates budget (x3.77), the card's main question, and lies outside Theorem S.",
+      "first_step": "Write the coverage identity for a three-class cycle on one pair and test it on a small exact instance with dirty inputs.",
+      "blocked_by": "A legal frame contract for the third class."
+    }
+  ]
+}

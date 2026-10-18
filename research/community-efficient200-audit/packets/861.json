@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 861,
+  "title": "Research audit: sharp physical counter costs with direction reversals (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjI4NDQ0Nzcx",
+    "is_bot": false,
+    "login": "Kairos-Ess",
+    "name": "Kairos"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/861",
+  "head": "7113da8d458f5c73fe70b1bd5371ea1e44bc75d4",
+  "merge_base": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "baseline": "858771bcca3b8dd5d4ef4aa682a13cc9b7e23920",
+  "files": [
+    {
+      "path": "research/counter-reversal-audit/CLAIM.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "46768a1832e2d4fd35c135647437c359a2f71788"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/counter-reversal-audit/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fa5256a3d65d65433ccfa80536c43cb9f3d01de8"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/counter-reversal-audit/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eb601d9faacb5fd33f107444707ea180475f7e5b"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/counter-reversal-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b57bcc589036177826c12d50590472b92641b179"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/counter-reversal-audit/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6c2e40a7ba71b7428f0580e7657d3aac09bf5109"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/counter-reversal-audit/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "63a05e5a87f7d6e30e2b68303b554c063196802f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/counter-reversal-audit/test_audit.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "c234ff157901fab6779f75c6b0c84f43fba25cc5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/counter-reversal-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "52006e5ca3fae80ddc66c9d8b48841d08e1a659a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/counter-reversal-audit": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "The existing physical ripple-counter theorem correctly bounds calls in one fixed direction. This **research note / adversarial mathematical audit** supplies an exact signed-potential identity for arbitrary directions and a sharp run-based invoice: for width `w >= 1`, `N` calls in `K` maximal constant-direction runs cost at most `4N + 2(w-1)K` literal transitions. If `H` runs contain wraps, the sharper bound is `4N + 2(w-2)K + 2H`.\n\nAlternating wraparound calls attain the uniform bound; alternating nonwrapping calls across the middle edge attain the no-wrap bound. At width 4 and seven calls, these cost 70 and 56 transitions respectively, whereas an invalid extension of the old fixed-direction bound gives 36. This establishes that excluding wraps alone does not justify arbitrary-direction `O(N+w)` for this primitive. It identifies **no error in the existing fixed-direction theorem or selected multiplication construction**, and claims **no new kappa**.\n\nEight isolated files under `research/counter-reversal-audit/` contain the handwritten uniform proof, an independent single-cell tape interpreter, exact deterministic receipt, source pins, fault-injection tests, scope/attribution, validation and local sprint claim. The primitive invoice excludes controller dispatch, preparation, payload, reset/restoration and recursive scheduling; those remain explicit obligations. Finite replay is not a formal proof of the universal statement or full multiplication theorem.\n\nReproduce with Python 3.10+ (standard library):\n\n```sh\npython3 -I -B -O research/counter-reversal-audit/verify.py\n# PASS_COUNTER_REVERSAL_AUDIT schedules=130305 literal_executions=16376 controls=10\npython3 -I -B -O research/counter-reversal-audit/test_audit.py\n# Six tests pass.\nmake selected-record-check machine-transfer-check\n```\n\nAll commands pass on Linux / Python 3.14.7; the audit and tests also pass without `-O`. Six source SHA256/Git-blob pins are checked. Exhaustive coverage is all words of widths 0..10 in both directions with four exterior patterns, plus all words of widths 0..7 and all direction strings of lengths 0..8. Another 256 seeded length-257 schedules are sampled. The fixed domain and stopping rule are recorded. Fault injection checks omitted head returns, suppressed wraps, incorrect endpoints and source drift under optimized Python. `git diff --cached --check` passed. No full `make verify`, selected supplier cold replay, Lean rebuild or remote CI pass is claimed for this isolated addition.\n\nBase: `f567884aeb8851b6e794af1184119a3bfbe1e631` (still upstream main at submission). Assignment seed **67**, drawn with OS-backed `secrets.randbelow(100)`. The accepted result was followed through the #799 certificate, construction and review; selected \u03ba remains `1661634653669567/10^18`. No existing files or `upstream/` changed. No coordination issue exists, so the claim and its result are local. A final scan of 656 open PRs through #859 found no matching reversal audit; #565 is distinct counter-copying work and is not a dependency.\n\nCredit **rfu08** for the physical counter, fixed-direction formalization and already documented direction limitation, published at `2d970ab3ca0271cfb2b609dc9aae1b7073b7774d`, and the repository manuscript authors for the scan argument. Contribution by **Kairos Ess (@Kairos-Ess)** with substantial **OpenAI Codex assistance** in derivation, implementation, verification and writing. No separate human or delegated-agent review is claimed. Apache-2.0; predecessor notices retained.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "d0c619590b0cb463834eea15ff78a499e699500be425e03277ca3a7aa9ac018d"
+}

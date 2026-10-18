@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "number": 754,
+  "title": "Research construction: save 137 R420 cleanup XORs with exact four-wire synthesis",
+  "author": {
+    "id": "MDQ6VXNlcjc2NTA5Mw==",
+    "is_bot": false,
+    "login": "namredips",
+    "name": "Jeffrey Cox"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/754",
+  "head": "47ebba87e064cc69d9b4834081fc74080762a74f",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/r420-four-wire-cleanup/CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2923c25a9087afa64ab1f768cf243aa934ac4403"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9fbc7223213b1b9b4c8d41f63aa0fc611c6da7b6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a0194cf750a9a098b6e9c907c6cb561c1d607edd"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/NATIVE-EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3ae40de02ded3c4d00a73c65692a2c5d95da1445"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "52ba8d43d403da67ca524d7e2156ea1007c2e8a1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/SOURCE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b8e18b99bce6eae9f74b5617865b56f52cb09d02"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/VALIDATION.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6e18082047f8397970f90f434c010581ac5da258"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/independent.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6acaaca28c61a84934f9e79e1751dc15bf1c67f7"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/native.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2e7c4d33d27369361de490837fcb01b92a9f72ed"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-four-wire-cleanup/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3b6d0954c1b3fe0a578e5d3a20b8b6629e8f13e2"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r420-four-wire-cleanup": 10
+  },
+  "github_reported_file_count": 10,
+  "complete_git_file_count": 10,
+  "body": "## Finite bit-supplier construction \u2014 no new \u03ba\n\nReplace 101 disjoint windows of the selected #543 R420 cleanup with exact shortest XOR circuits on the same at-most-four registers. Cleanup costs **2,973 \u2192 2,836 XORs**; the complete local word costs **26,916 \u2192 26,779 native ADDs**. All 660 register frame paths, 420 dirty helpers, nine copies/erasures and the paid rank histogram remain unchanged. The native forward prefix decreases 144,651 \u2192 109,173; reverse remains 2,270,064; the local payload envelope decreases 100 \u2192 99 bits.\n\n### Reproduce\n\n```sh\npython3 -I -B research/r420-four-wire-cleanup/verify.py\n```\n\nExpected: `PASS_R420_FOUR_WIRE_CLEANUP: 101 windows, 137 XORs saved; 26916 -> 26779 native ADDs; 8 negative controls rejected`.\n\nPython 3.11+, standard library only. `--out /path/to/new-directory` retains both complete words and their original-exporter records. The package includes source pins, all replacement circuits, proof and deterministic receipts. The optional `native.py` command recompiles the unchanged C++ checkers.\n\n### Evidence and precise scope\n\n- Fresh OS seed **17**, bit track; base **66849e1475c930fd7732b1a0067ffee7e1e95f60**. Selected #543 source: **2065fe4f72a914d907f1046603f5a36f17018535**.\n- Exhaust all **7,693** original contiguous windows on \u22644 registers; **284** admit shorter circuits. Independent row/column implementations and start/end-time interval schedules agree that **137 is optimal within the disjoint-original-window model**. No global circuit-optimality claim.\n- Check complete GL(2\u20134,2) state sets and 242,940 directed distance-potential edges; all 1,408 local Boolean inputs and 756 positive-transfer columns pass. Every chosen rewrite has a nonincreasing positive transfer matrix in both orders.\n- All 660 arbitrary-input columns restore, including dirty helpers. Fresh native legality plus 5/9/11-stage checks pass on both words (900/1,380/1,620 columns, **96 rejected bridge-omission controls**). A relocated minimal source tree reproduces both commands.\n- Eight mathematical/accounting mutation controls, source-corruption/incomplete-certificate/output-preservation controls, Python 3.11/3.14, Ruff, whitespace and `make selected-record-check` pass.\n\nLiteral cleanup reversal H4 intentionally fails; the proof and verifier use the explicitly stated semantic H4\u2032 (`C = U^-1` over F2 at the full frame), preserving the original guard. No global hosted program or outer assembly was regenerated. The selected conditional \u03ba and `upstream/` are untouched; inherited all-size/compiler/common-label/mutable-basis/hosting/residual/precision/tape/analytic obligations remain. No full multiplication theorem, practical runtime result, remote CI or Lean pass is claimed.\n\n### Credit and overlap\n\nCredit eumemic's #543/#493, Dylan Crow's exporter/checker lineage and predecessor notices. Sagar Thakrar's #710 is the commuting-search/interface predecessor; its noncontiguous conjugations overlap two original gates, so no additive 139-XOR claim is made. #688, #742, new #748/#753 and updated #681 change different circuits; none is imported or assumed composable. This adds a complete finite synthesis class and independent certificates rather than another replay of their searches. There was no pinned coordination issue; the claim is recorded locally.\n\nPrepared by **Jeffrey Cox (@namredips)** with substantial **OpenAI Codex assistance**, including a separate column implementation and scoped review. Apache-2.0.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "fecd3bdcaed9939f6a52bd60eefd622e450673d4e1129ea533796d4fd7407ff9"
+}

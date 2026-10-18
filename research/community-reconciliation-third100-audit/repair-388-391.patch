@@ -1,0 +1,85 @@
+--- pr388/code/assemble.py
++++ pr391/code/assemble.py
+@@ -39,6 +39,8 @@
+  assert cx['template_sha256']==guard['template_sha256']
+  b=Q(cx['coarse_complex']);assert str(b)==verify['complex_coarse']==priced['complex_coarse']
+  assert b==Q(999240641319551,10**18)
++ complex_contract=dict(source_manifest_sha256=verify['source_manifest_sha256'],status=verify['status'],fresh_stages=[dict(stage=z['stage'],returncode=z['returncode']) for z in verify['fresh_stages']],complex_coarse=verify['complex_coarse'],template_audit=cx,global_review={k:v for k,v in guard.items() if k not in ('seconds','source_hashes')})
++ complex_contract_sha256=sha256(json.dumps(complex_contract,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+  invo=guard['finite_invoice']
+  assert (guard['m'],guard['live'],guard['physical'],guard['invocations'])==(73,14727,15520,72)
+  assert (invo['G_exponent'],invo['E_exponent'],invo['C0_exponent'])==(30000,100000,210000)
+@@ -88,7 +90,7 @@
+  try:outer.assembly(cap,b,bridge,kappa,eta=eta,beta=beta)
+  except AssertionError as err:assert 'leaf_saving_above_bit' in str(err)
+  else:raise AssertionError('complex leaf cap accepted')
+- return encode(dict(status='PASS_EXACT_FINAL_B_ORDER376_PR377_COMPOSITION',bit_coarse=c,complex_coarse=b,selected_saving=selected,binding='bit',eta=eta,beta=beta,grid_denominator=grid,bootstrap_steps=8,selected_moment_interval=interval,independent_moment_upper=upper+Q(1,10**16)*bad,chain=chain,finite_cutoffs=cutoffs,assembly=a,kappa=kappa,kappa_float=float(kappa),adjacent_grid_rejected=True,adjacent_grid_error=adjacent_error,complex_leaf_cap_rejected=True,finite_coefficient=coefficient,source_binding=dict(priced_sha256=digest(priced_path),finite_sha256=digest(finite_path),complex_verification_sha256=digest(complex_proof/'VERIFICATION.json'),complex_guard_sha256=digest(cp/'GLOBAL-REVIEW.json'),complex_moment_sha256=digest(cp/'INDEPENDENT-TEMPLATE-AUDIT.json'),shared_outer_sha256=digest(pricing/'outer.py')),common_interface=dict(bit_dimension=56,complex_dimension=73,dimensions_may_differ='Separate recursive suppliers communicate by certified savings and row/finite envelopes, not shared label banks.',bit_row_power='q^3137',external_complex_row_reserve=20161,complex_actual_row_coefficient=15445,complex_halving_degree=2,complex_halving_integer_gap=5329-4608,bit_half_shrink_gap=56-2*max(H),shared_guard_exponents=[30000,100000,210000],payload_prefix_bits=finite['payload_prefix_bits'],payload_limit_bits=104),retained_assumptions=['Bit source word, signed restoration, reflected ledgers, label charts, global bank/owner lift and full emitted prefix bound must be independently admitted.','Complex source retains local E8 theorem, exact Clifford compiler, common-grid precision/recovery and row/analytic interfaces; PR377 has no new Lean multiplication theorem.','The inherited bootstrap theorem is applied eight times; each finite cutoff is rebound to the fresh finite coefficient.','Balanced outer assembly and additive row interfaces 9909+252 and reserve20161 are inherited; the arithmetic check does not newly prove these analytic interfaces.']))
++ return encode(dict(status='PASS_EXACT_FINAL_B_ORDER376_PR377_COMPOSITION',bit_coarse=c,complex_coarse=b,selected_saving=selected,binding='bit',eta=eta,beta=beta,grid_denominator=grid,bootstrap_steps=8,selected_moment_interval=interval,independent_moment_upper=upper+Q(1,10**16)*bad,chain=chain,finite_cutoffs=cutoffs,assembly=a,kappa=kappa,kappa_float=float(kappa),adjacent_grid_rejected=True,adjacent_grid_error=adjacent_error,complex_leaf_cap_rejected=True,finite_coefficient=coefficient,source_binding=dict(priced_sha256=digest(priced_path),finite_sha256=digest(finite_path),complex_contract_sha256=complex_contract_sha256,complex_source_manifest_sha256=verify['source_manifest_sha256'],complex_moment_sha256=digest(cp/'INDEPENDENT-TEMPLATE-AUDIT.json'),shared_outer_sha256=digest(pricing/'outer.py')),common_interface=dict(bit_dimension=56,complex_dimension=73,dimensions_may_differ='Separate recursive suppliers communicate by certified savings and row/finite envelopes, not shared label banks.',bit_row_power='q^3137',external_complex_row_reserve=20161,complex_actual_row_coefficient=15445,complex_halving_degree=2,complex_halving_integer_gap=5329-4608,bit_half_shrink_gap=56-2*max(H),shared_guard_exponents=[30000,100000,210000],payload_prefix_bits=finite['payload_prefix_bits'],payload_limit_bits=104),retained_assumptions=['Bit source word, signed restoration, reflected ledgers, label charts, global bank/owner lift and full emitted prefix bound must be independently admitted.','Complex source retains local E8 theorem, exact Clifford compiler, common-grid precision/recovery and row/analytic interfaces; PR377 has no new Lean multiplication theorem.','The inherited bootstrap theorem is applied eight times; each finite cutoff is rebound to the fresh finite coefficient.','Balanced outer assembly and additive row interfaces 9909+252 and reserve20161 are inherited; the arithmetic check does not newly prove these analytic interfaces.']))
+ 
+ if __name__=='__main__':
+  ap=argparse.ArgumentParser(description=__doc__)
+--- pr388/code/finite.py
++++ pr391/code/finite.py
+@@ -58,6 +58,35 @@
+   olda=chain[-1];aa=(1-c)*c+c*olda;dd=min(c-aa,1-aa-c,1-aa-c*(1-olda),1-c);assert olda<aa<c<1-aa and dd>0
+   cutoff=max(1,ceilq(36/dd**2),ceilq(2*(4+(coefficient-1).bit_length())/dd));assert cutoff*dd**2>=36 and cutoff*dd>=2*(4+(coefficient-1).bit_length())
+   gaps.append(dict(stage=stage+1,minimum_gap=str(dd),cutoff_log2_at_charged_coefficient=str(cutoff),charged_coefficient=coefficient));chain.append(aa)
++ # Regenerate the entire inherited rational route receipt from this word.
++ # The archived parent finite record is a pinned comparison, never a substitute
++ # for running the exact route compiler here.
++ import sys
++ checkers=parent/'code/bit/checkers';sys.path.insert(0,str(checkers))
++ spec=importlib.util.spec_from_file_location('fresh_route_finite',checkers/'finite_k.py');fk=importlib.util.module_from_spec(spec);spec.loader.exec_module(fk)
++ L=w['lines'];q=L[0];form=lambda i,j:Q(int(i==j),2)
++ route=fk.route_template(h,q,form);ip=lambda a,b:Q(sum(u*v for u,v in zip(a,b)),2)
++ refl=lambda r:[[Q(int(i==j))-Q(r[i]*r[j],2)*2/ip(r,r) for j in range(h)] for i in range(h)]
++ identity=[[Q(int(i==j)) for j in range(h)] for i in range(h)]
++ isom={0:identity};frontier=[0]
++ while frontier:
++  nxt=[]
++  for aa in frontier:
++   for bb in range(len(L)):
++    if bb in isom or abs(ip(L[aa],L[bb]))!=1:continue
++    delta=[u-v for u,v in zip(L[aa],L[bb])] if ip(L[aa],L[bb])==1 else [u+v for u,v in zip(L[aa],L[bb])]
++    isom[bb]=fk.mm(refl(delta),isom[aa]);nxt.append(bb)
++  frontier=nxt
++ assert len(isom)==len(L)==120
++ denominators=set();maxf=0
++ for port,g in isom.items():
++  inv=list(map(list,zip(*g)));assert fk.mm(g,inv)==identity
++  image=[sum(g[i][j]*q[j] for j in range(h)) for i in range(h)]
++  assert image==L[port] or image==[-u for u in L[port]]
++  rr=fk.route_template(h,q,form,g,inv);denominators.update(rr['denominators']);maxf=max(maxf,rr['factors'])
++ assert all(d&(d-1)==0 for d in denominators)
++ route['all_ports']=dict(ports=len(isom),max_factors=maxf,denominators=sorted(denominators))
++ assert route==old['route'],'fresh rational route reconstruction disagrees'
+  assert old['strict_upper']=='q^3137' and old['row_reserve']==dict(internal_coefficient=3137,external_complex_coefficient=20161)
+  assert old['route']['all_ports']['ports']==v and old['route']['exact_inverse_reconstruction'] and old['route']['missing_addition_rejected']
+  return dict(status='PASS_FRESH_SEVEN_STAGE_FINITE_INVOICE_WITH_EXACT_PREFIX_AND_SIGNED_OVERCHARGE',coefficient=coefficient,coefficient_bits=coefficient.bit_length(),low_matrix_power=d,strict_upper='q^'+str(d+1),positive_rank_children=E,rank_mass=mass,weighted_additions=weighted_total,unit_expanded_additions=unit_total,raw_local_weighted=raw_weighted,raw_local_unit=raw_unit,signed_local_weighted_overcharge=weighted,signed_local_unit_overcharge=unit,route_families=J,copy_erase_episodes=stages*ncopy*T,selector_charge=K,payload_prefix_upper=payload,payload_prefix_bits=payload.bit_length(),payload_method='Full actual seven-stage IR including all bridges and exchanges',delta_tau_lower=str(delta_tau),delta_linear=str(delta1),bootstrap_chain=list(map(str,chain)),gaps=gaps,row_reserve=dict(internal_coefficient=d+1,external_complex_coefficient=20161),route=old['route'],route_binding='All route-defining fields are byte-equivalent to the fresh full PR376 base word; exact route programs depend only on these unchanged fields.',route_binding_fields=route_fields,source_hashes=dict(word=sha(word_path),base_word=sha(base_word),raw_records=sha(raw_records),signed_records=sha(signed_records),signed_result=sha(signed_result),lowering=sha(lowering_path),price=sha(price_path),fresh_parent_finite=sha(parent_finite)),scope='Finite overcharges for the exact candidate bit program. The signed source supplement is conservatively paid even though only its parity program is emitted. All-size compiler and analytic assumptions retained.')
+--- pr388/proof/finite.json
++++ pr391/proof/finite.json
+@@ -120,7 +120,7 @@
+     "price": "852ad22ad3d38829345cec7c946327ac5a6d9e322a1ca42556545d5a558832d8",
+     "raw_records": "984756b84290283a26e141f0aceeeb1bae4498540ca0d2621080d0da6a5cb421",
+     "signed_records": "801d0f37641b413cbe35cabe0dd14c5a6a08ccc477fbd6e79a1c886abe4f2a97",
+-    "signed_result": "d053e94002cb4e11e8e290080f40967f197f0a6aff0904ec65b061ae50c86a9b",
++    "signed_result": "6b3fe8764a2f069cd78eae1a5a11f87ea8d641cf3cf8b10470214082bd05bd79",
+     "word": "b7f8420b8bee58fba99dee68455a80839c8bb2ceabcc50fd0ffd0f4f3aa6b320"
+   },
+   "status": "PASS_FRESH_SEVEN_STAGE_FINITE_INVOICE_WITH_EXACT_PREFIX_AND_SIGNED_OVERCHARGE",
+--- pr388/proof/assembly/ASSEMBLY.json
++++ pr391/proof/assembly/ASSEMBLY.json
+@@ -240,10 +240,10 @@
+   ],
+   "selected_saving": "198986994618331/200000000000000000",
+   "source_binding": {
+-    "complex_guard_sha256": "e8419ebe87d7abc02d49cf46a4f8494919be481b3f740e48b69620a642e9c9a7",
++    "complex_contract_sha256": "3833bc10bff6bd338f40055b073be9c7b7e608ee7c6712dfd67c4333a538015b",
+     "complex_moment_sha256": "34b80dc65161caaf5bcf348eb7307e92df6265dcb4a5f61993ac07410d06978c",
+-    "complex_verification_sha256": "1dce03ab4445cc542ef3b8fd2803a3b02021f5b5bd0455b34b4bc41a80664ad2",
+-    "finite_sha256": "dfd7056e28d15b64fcdbf5dc01f5a5abeddb1a0fcdbfba9aeed4703bf565e2c3",
++    "complex_source_manifest_sha256": "3743f954b5a652e51fa9ae5101318345d79f4c897ff9a29d5c54387b92118458",
++    "finite_sha256": "e77dbc5d556280fec8e20ca1a246ec4c777c9159faf7801e6fb7b380e0fb3aeb",
+     "priced_sha256": "852ad22ad3d38829345cec7c946327ac5a6d9e322a1ca42556545d5a558832d8",
+     "shared_outer_sha256": "c1ebb52163a7219504c728a5c2b098bf1e50bf20148a2879c5a74c3cadc7c03c"
+   },

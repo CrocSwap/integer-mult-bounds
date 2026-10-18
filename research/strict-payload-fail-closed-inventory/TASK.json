@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "task_id": "portable-replay",
+  "priority_revision": 5,
+  "base_commit": "5a0dc2c0f4685b02bef7776bc196c7c1231cbac1",
+  "original_card": {
+    "id": "portable-replay",
+    "question": "Can one reproducible environment or artifact-comparison failure be repaired?",
+    "starting_points": [
+      "research/gzip-container-reproducibility/README.md",
+      "docs/ci-verification.md"
+    ],
+    "methods": [
+      "Reproduce one portability failure and add a minimal cross-environment fix.",
+      "Audit one canonical-payload comparison for omitted proof-relevant fields."
+    ],
+    "acceptance_gate": "Preserve immutable source hashes and proof-relevant content; a different compressed byte stream alone is not a mathematical mismatch.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the gzip-container reproducibility examples and distinguish frozen source bytes from regenerated payloads.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Reproduce one specific mismatch or audit one canonical comparison for omitted proof-relevant fields.",
+    "bottleneck_link": "Portable exact checks prevent environment failures from blocking valid contributions.",
+    "allowed_variations": [
+      "One interpreter/version mismatch or one payload field comparison."
+    ],
+    "scope_change_triggers": [
+      "Removing immutable-source pins because generated compressed bytes differ."
+    ],
+    "overlap_terms": [
+      "gzip container",
+      "reproducibility",
+      "canonical payload"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Repair silent omission of unreadable generated-output subtrees in PR2040's strict comparator, preserving its complete payload rules and immutable inputs.",
+  "scope_change_reason": "The canonical-payload audit branch of portable-replay permits one omitted proof-relevant field comparison. Here the omission occurs before parsing, when filesystem enumeration suppresses an access failure. This is verifier coverage, not a mechanism improvement.",
+  "bottleneck_link": "A comparison that silently omits certificates cannot support trustworthy replay review. Failing closed preserves evidence coverage without changing the finite construction or selected exponent.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop after real CLI unreadable-subtree rejection, open/iteration/stat failure controls, entry-budget controls, unchanged full predecessor audit and registered replay pass. Do not expand into concurrent-writer snapshots or another supplier replay.",
+  "outcome": "completed",
+  "evidence": "verify.py requires the full retained audit receipt, both 105-file corpus comparisons, six filesystem test groups and nine retained groups. Actual optimized CLI processes reject inaccessible subtrees without creating reports; twelve injected error cases exercise both input sides. See README.md for commands and limitations.",
+  "author": "Nick Petalas",
+  "ai_assistance": "Substantial assistance in implementation, experiments and writing; self-reviewed only. No independent human review is claimed.",
+  "assignment": {
+    "seed": "cc3f9b5a5c5ea20e01c4b820b7243282",
+    "track": "verifier-engineering",
+    "scope_key": "831cc1a3c8f9ff01b197/PR2040/directory-enumeration-errors",
+    "milestone": "scoped verifier repair",
+    "canonical_discussion": "https://github.com/CrocSwap/integer-mult-bounds/discussions/2919",
+    "predecessor_head": "d31c1418c0c23994d1444dbd9d356b9a8238fd5e"
+  },
+  "overlap": {
+    "checked_at_utc": "2026-10-16T10:53:17+00:00",
+    "open_prs": 495,
+    "discussion_records": 1590,
+    "closed_prs": 2116,
+    "complete_pagination": true,
+    "nearest_work": "PR2040 strict semantics; PR2693 paired traversal; PR2803 large integers; PR2344 Windows roots. This successor changes only fail-closed filesystem inventory and imports none of the parallel adapters.",
+    "limitation": "Search covers bodies/comments/local package metadata, not every diff. No matching repair identified is not proof of novelty."
+  },
+  "verification": {
+    "environment": "Linux x86_64, WSL2 kernel 6.6.87.2, glibc 2.41; unprivileged uid1000; CPython 3.12.15 and 3.13.5; standard library only.",
+    "commands_passed": [
+      "python3.12 -B scripts/research_package.py --package research/strict-payload-fail-closed-inventory --check-only",
+      "python3.12 -B scripts/research_package.py --package research/strict-payload-fail-closed-inventory",
+      "python3.12 -I -O -B research/strict-payload-fail-closed-inventory/verify.py",
+      "python3 -I -O -B research/strict-payload-fail-closed-inventory/verify.py",
+      "ruff check research/strict-payload-fail-closed-inventory/*.py"
+    ],
+    "permission_skips": 0,
+    "portable_export": "Optimized Python 3.12 replay passed from an unrelated directory in a Git-free read-only 19-file export; all exported bytes remained unchanged.",
+    "before_after": "With both nested subdirectories chmod000, retained CLI exits0/equivalent=true, successor exits2/no stdout/no report. With permissions restored, both reject the changed proof with exit1. Original regression failed before replacing inventory and passes afterward.",
+    "not_run": "Selected supplier cold replay, hosted CI, Windows/macOS execution and independent human review. Concurrent mutation and inherited resource limits are not verified."
+  },
+  "upstream_checkpoint": {
+    "commit": "d98c98262f3079e9e773906e4606372c61e25738",
+    "priority_revision": 5,
+    "checked_at_utc": "2026-10-16T11:00:43+00:00",
+    "decision": "Continue the isolated branch from its original current-main base. Guidance, selected record and exact predecessor packages are unchanged at the fetched main. Refreshed overlap has 496 open PRs, 1593 discussion records and 2117 closed PRs with complete pagination; only this claim and an unrelated permission-denied handoff match the focused terms."
+  },
+  "open_questions": [
+    {
+      "question": "Should a concrete generated-replay wrapper adopt this inventory boundary with its chosen payload comparator?",
+      "why_it_matters": "The opt-in repair prevents silently omitted certificates, but frozen callers are intentionally unchanged.",
+      "first_step": "Specify stable-tree ownership and run the actual CLI access-error and complete-corpus controls against one wrapper.",
+      "blocked_by": "Caller-specific contract/source-pin review. Concurrent-writer support additionally needs a snapshot or descriptor-based design, not this path-based traversal."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+**Current handoff: finite/native candidate. Full recursive and outer release remains pending. The default public verifier is finite-only; stored full-release evidence is not included or claimed.**
+
+# Validation scope
+
+The informal mathematical argument is in [PROOF.md](PROOF.md), with a separate exact full-operator compatibility argument in [COMPOSITION-PROOF.md](COMPOSITION-PROOF.md). Compiler and product agents reviewed the algebra and complete cost formulas. These are agent reviews, not a human peer review or Lean kernel verification.
+
+The bounded `verify.py --work FRESH_DIRECTORY` command regenerates all eight actual scenario words, compares complete decompressed word payloads, runs exact forward/dual/free-operator/frame/cleanup audits on every word, checks four literal assignments of 1,358,640 roles each, and computes all four directed rational moment brackets. It also checks those brackets with a separately implemented 192-bit integer interval engine, rejects owner/source corruptions and binds stored source/native/admission/outer receipts. This command does not rerun native Clifford phases or the full outer release.
+
+The full `reproduce.py` command authenticates exact Git exports and executes the predecessor’s unchanged source-preparation recipe through the normal-45 source, reconstructs the composed words and T370 allocation, appends the authenticated new source stage, derives adapters with exact comparator pins, runs two fresh changed-word native chains and executes complete replica admission and modern outer release. `--retained DIRECTORY` explicitly reuses an authenticated old bootstrap; it does not reuse either changed-word native chain. The default creates a fresh bootstrap. Its `--dry-run` mode checks exact exports and the recipe only and must not be reported as a native/release pass.
+
+The changed-word native record contains five successful stages per provider: native lowering, ledgers, independent local replay, wrappers and phases. All 86 zero buffers are present and cleared. The retained source/cache and 16-stage historical parent admission are authenticated by complete tree receipts; the shared retained bootstrap was freshly generated during this campaign, then explicitly reused for changed providers. The earlier P-only candidate is superseded by #2948 and is not the final source.
+
+Full admission must pass owners, parent lift, rebinding, recursive discovery, block norms, strict physical/prefix invoice, independent moment/outer checks and modern release. The final receipt files give their actual statuses and exact source/fill/native/outer bindings. The complete package inventory is hashed after finalization; staging has a separate preflight.
+
+The original all-size/compiler, common-label/mutable-source realization, whole-call hosting, precision/tape, exact recovery, analytic transfer, recurrence and bit-supplier premises remain conditional. No complete formal multiplication theorem, unconditional exponent, practical runtime gain, global optimum, selected-frontier update or independent human review is asserted.
+
+A task-local CPython 3.13.5 runtime was used, with NumPy 2.5.4, SciPy 1.18.1, SymPy 1.14.0, mpmath 1.4.1 and optional official gmpy2 2.3.2. gmpy2 is an arithmetic accelerator, not proof evidence. `psutil` was absent and was not required by the completed stages. Only per-process Git TLS settings using existing system trust were used locally; no credentials, Git identity or global configuration were changed. The exported trust bundle is not part of this package.

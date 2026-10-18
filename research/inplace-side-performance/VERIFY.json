@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/experiments/inplace_side.py",
+    "scripts/experiments/inplace_side_witnesses.json",
+    "scripts/audit_inplace_side.py",
+    "certificates/inplace-side.json",
+    "docs/research/inplace-side.md",
+    "tests/test_inplace_side.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Exact baseline copy of the base-commit source; identical verify_prefix receipts on all three pinned witnesses and small h=6/10 controls; shared rejection of reused switches, wrong prefixes and out-of-range switches; greatest-unused mutant rejected on every witness; certificates/inplace-side.json matches certificate() and differs from the base certificate only in the inplace_side.py source pin."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Same equivalence and certificate discipline under -O (require() gates, not assert)."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_inplace_side*.py",
+        "-v"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Existing inplace-side unit tests plus focused performance-package controls."
+    }
+  ]
+}

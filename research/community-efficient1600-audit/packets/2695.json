@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "number": 2695,
+  "title": "Audit: the three omitted #626 assembly digests are payload and JSON-file hashes",
+  "author": {
+    "id": "U_kgDOBjZOrA",
+    "is_bot": false,
+    "login": "hevlyo",
+    "name": "Riquelme Soares"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2695",
+  "head": "af96f6e3eb00c8e3f60d310ba12fd9e4590fdc74",
+  "merge_base": "b5ea56e0a5ac4552166253b1fa4be0753bb38c30",
+  "baseline": "d359705715f45a25d46c593a542e8d071c47160a",
+  "files": [
+    {
+      "path": "research/pr626-omitted-digest-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "eb9b2e238b45f70bc8bd55bc9078bbe0d77c0dc4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr626-omitted-digest-audit/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5bc4cd701ad6b34fb13c2d06b12ad61179a583d0"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr626-omitted-digest-audit/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e3593e6138df5100fae5ab3c208df63550f76976"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr626-omitted-digest-audit/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3f304eb9f79d0c7900eeac0169040c9550305cdc"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/pr626-omitted-digest-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1589eab09e1898442c9a46d69632a6b03af42aa5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/pr626-omitted-digest-audit": 5
+  },
+  "github_reported_file_count": 5,
+  "complete_git_file_count": 5,
+  "body": "## Summary\n- Classifies the three digest paths that `research/selected626-linux-reconciliation` removes before comparing Linux run `38317651752` with the committed #626 assembly.\n- `template_sha256` is SHA-256 of the decompressed `GLOBAL-TEMPLATE.json.gz` payload. The recorded Linux/committed mismatch is therefore a template-content disagreement, not a gzip header difference.\n- `input_sha256.owner_audit` and `input_sha256.fresh_invoice` are SHA-256 of indented JSON files. A nested container hash can change the file while a projection that keeps only `paid_profile` stays equal. Without the omitted files, those two disagreements stay mixed.\n\nNo new kappa and no selected-frontier change. Seed `c0d742beb437484a0cb0c8971994843d`, scope key `91a9a2afec282c926282`, base `b5ea56e0a5ac4552166253b1fa4be0753bb38c30`. Claim: https://github.com/CrocSwap/integer-mult-bounds/discussions/2690\n\nOverlap refresh on 2026-10-15 covered 785 open PRs and 1322 discussions. Matches are this claim, the gzip-container convention, and the predecessor reconciliation. PR #2101 compares gzip payloads inside a different selected-replay authenticator.\n\n## Test plan\n- [x] `python3 -B research/pr626-omitted-digest-audit/verify.py` prints `PASS_PR626_OMITTED_DIGEST_AUDIT template=decompressed-payload owner_audit=indented-json-file fresh_invoice=indented-json-file differences=3`\n- [x] `python3 -B scripts/research_package.py --package research/pr626-omitted-digest-audit --check-only`\n- [x] Python 3.12 registered replay: `PASS_REGISTERED_RESEARCH_PACKAGE research/pr626-omitted-digest-audit outcome=completed`\n- [ ] Selected baseline was not rerun: this sparse checkout lacks the package roots `verify_selected_result` requires. Selected record sha256 remains `10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32`.\n\n## Limits\nThe audit pins producer blobs at sprint base `66849e1475c930fd7732b1a0067ffee7e1e95f60` and does not rerun `make frontier626-verify` or reconstruct `OWNERS-AND-PROFILE.json` and `PREFIX-AND-INVOICE.json`. It does not explain the numerical template difference. Predecessor credit stays with Josh Snider (`jsnider3`).\n\nPrepared by Riquelme Soares (@hevlyo) with substantial Cursor agent assistance. Apache-2.0.\n\nWorkflow note: a full clone of this repository is too large for a short session; a blob-filtered sparse checkout works, but `git add` then needs `--sparse`, and the selected baseline cannot run until its package roots are present.\n\nMade with [Cursor](https://cursor.com)",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "ac54df81b7b082425b08159cabac97dbe549aee75d1d9d1864d10abab5987ed0"
+}

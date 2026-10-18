@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "chooser_seed": "c8e1a04f7b29d65e3a90c1482f6d7b51",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Can scripts/shared_point_circuit.py:SharedPointCircuit.verify_frames (and its support_in / contained helpers) keep identical nesting receipts on the historical h=46 circuit after replacing the thrashing lru_cache(maxsize=16384) with a per-instance dense table and local hot-path closures, without touching SharedPointCircuit.__init__, verify digests, or ExclusionCircuit.compile?",
+  "scope_change_reason": "The catalogue card asks for one measured replay bottleneck with before/after wall time and retained checks. Expertise override selected verifier-engineering after merged #1994 (verify digests) and open #2054 (__init__ merge construction) left verify_frames / support_in as the residual hot path in bit-compression frame checks. Profiling on SharedPointCircuit(46).verify_frames with a precompiled program showed contained/support_in dominating, with CacheInfo misses far above the 16384 LRU cap.",
+  "bottleneck_link": "Side result on review throughput: audit_bit_compression calls SharedPointCircuit.verify_frames on full-size circuits. Faster identical nesting does not change kappa or the binding complex supplier.",
+  "budget_minutes": 60,
+  "stop_rule": "Ship an equivalence-preserving SharedPointCircuit.verify_frames / support_in change with frozen baseline, identical frame receipts on the historical h=46 circuit, registered replay and a measured before/after median at or above the ~1.5\u00d7 tooling bar. Do not reopen #1994 digests, #2054 __init__, ExclusionCircuit.compile, or run the selected cold frontier replay.",
+  "outcome": "completed",
+  "evidence": "PASS_SHARED_POINT_FRAME_CONTAINS via research/shared-point-frame-contains/verify.py (also under -O); PASS_IDENTICAL_SHARED_POINT_FRAME_CONTAINS_RECEIPTS via benchmark.py; bit-compression certificate does not pin scripts/shared_point_circuit.py in source_sha256. Folded into open CrocSwap #2054 with SharedPointCircuit.__init__ (same production file).",
+  "author": "Wentao Li",
+  "github": "VictorLiwentao",
+  "email": "wentaol4@illinois.edu",
+  "ai_assistance": "Substantial AI assistance for orientation, overlap search, profiling, implementation, packaging, benchmarking and writing. Not independent human peer review.",
+  "open_questions": [
+    {
+      "question": "Should research/bit-compression-provenance refresh its live scripts/shared_point_circuit.py SHA-256 pin after this equivalence-preserving frame-contains rewrite?",
+      "why_it_matters": "That provenance package binds working-tree bytes of shared_point_circuit.py; leaving the old pin keeps this tooling PR focused, but a later full provenance replay on main would see a hash mismatch until refreshed.",
+      "first_step": "Open a dedicated provenance follow-up that only rewrites the shared_point_circuit.py entry in SOURCES.json after confirming verify and verify_frames identity.",
+      "blocked_by": "Pin repair is outside this tooling change."
+    },
+    {
+      "question": "After open #2054 merges, does folding its __init__ rewrite onto this verify_frames cache still keep circuit_sha256 and frame receipts identical on one host?",
+      "why_it_matters": "Both edit scripts/shared_point_circuit.py; a clean fold avoids dueling source pins and preserves the combined review-throughput gain.",
+      "first_step": "Rebase this package onto the merged #2054 tip and rerun verify.py plus benchmark.py.",
+      "blocked_by": "Open PR #2054 has not merged."
+    }
+  ]
+}

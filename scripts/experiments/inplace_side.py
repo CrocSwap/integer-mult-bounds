@@ -51,6 +51,11 @@ def verify_prefix(h,pivots,swaps):
 
     swaps contains pairs of pivot COLUMN indices j<c. The actual gate is
     row[pivots[j]] += row[pivots[c]] at elimination step c.
+
+    The lexicographic pivot is the least unused row with the column bit set.
+    Scanning unused flags from index 0 yields that same row without sorting
+    the unused set on every column; bit tests use a column mask. Receipts,
+    witnesses and rejection conditions are unchanged.
     """
     triples,points,rows=triple_side(h);n=len(rows)
     require(h%4==2 and 0<len(pivots)<=n,'Need an invertible side and nonempty prefix')
@@ -62,19 +67,24 @@ def verify_prefix(h,pivots,swaps):
         require(type(j) is int and type(c) is int and 0<=j<c<len(pivots), 'Invalid switch indices')
         require(j not in partners and c not in partners,'Switch paths reuse a physical role')
         partners[j]=c;partners[c]=j;at_step[c]=j
-    unused=set(range(n));verified=[]
+    unused=[True]*n;verified=[]
     for col,p in enumerate(pivots):
-        expected=next(i for i in sorted(unused) if rows[i]>>col&1)
-        require(p==expected,'Not the specified lexicographic elimination prefix')
-        unused.remove(p)
+        mask=1<<col
+        expected=None
+        for i in range(n):
+            if unused[i] and rows[i]&mask:
+                expected=i
+                break
+        require(expected is not None and p==expected,'Not the specified lexicographic elimination prefix')
+        unused[p]=False
         if col in at_step:
             j=at_step[col]
-            require(rows[pivots[j]]>>col&1,'Claimed switch gate is absent')
+            require(rows[pivots[j]]&mask,'Claimed switch gate is absent')
             verified.append((j,col))
         if col+1<len(pivots):
             row=rows[p]
             for i in range(n):
-                if i!=p and rows[i]>>col&1:rows[i]^=row
+                if i!=p and rows[i]&mask:rows[i]^=row
     bad=[]
     for j,p in enumerate(pivots):
         target=pivots[partners[j]] if j in partners else p

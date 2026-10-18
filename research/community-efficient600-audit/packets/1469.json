@@ -1,0 +1,493 @@
+{
+  "schema_version": 1,
+  "number": 1469,
+  "title": "Research: rank-8 masked decoders are gauge-rigid on every P109 unit \u2014 19 new orbit certificates (no new \u03ba)",
+  "author": {
+    "id": "MDQ6VXNlcjY4MjA3MTg3",
+    "is_bot": false,
+    "login": "JosieElliston",
+    "name": "Josie Elliston"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1469",
+  "head": "d9d101b3123b6f1d17afe80e5e70a71fb3b29e39",
+  "merge_base": "410026dc5513b87db92ae98571d1d5984c69a983",
+  "baseline": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "files": [
+    {
+      "path": "research/complex-rank8-rigidity-p109/PROOF.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0b4746420989b4a5517b579b928d18f316bbb541"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/PROOFS.json.gz",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ad242c9b4c98037a40ff960013bb4d43513b8847"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "96fcd45099653fe8f47a44bee9fd8cb9b10b12c9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "178b3ca979034665fb52a7c633dec589640d7ef1"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d88faa817e703519b407cf558ff08aaa0a33387f"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/UNITS.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "019f2b685aa1804e9a60327ba281d3c0b22c9ba9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "cb49a665da804f1e4f51198d7ca79e0e01371ffe"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/make_proof.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8391e0faf01c3644a85fa02777f5634a5c39a2c5"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/complex-rank8-rigidity-p109/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "277b9aa07f8e0c586c712ae32f6f54fc1510eefa"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/complex-rank8-rigidity-p109": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "## Change and mathematical scope\n\nThis is a scoped structural result: **no new \u03ba, no construction.** It adds only `research/complex-rank8-rigidity-p109/`. The selected record, `upstream/` and all frozen pins are unchanged.\n\n#1419's extension lemma makes P112 minus X rigid whenever X lies inside a frame of P112. For three-line punctures that leaves **198688 of the 227920 triples**, which fall into **19 FRAME0-stabiliser orbits**: 18 contain an odd pair, and one (1792 triples) is pairwise orthogonal but lies in no P112 frame. This PR proves rigidity on all 19 with #1425's per-unit method. Each orbit representative gets:\n\n- a pivot frame passing #1212's (I3) and (I4) with gluing, with 18 to 24 complete classes;\n- #1399's Lemma 9 connectivity for the 5\u201329 lines outside complete classes;\n- a new DRUP refutation of #1212's zero-pattern CNF for (I2) zero exclusion, of 1595 to 2945 lemmas.\n\n**Consequence.** With #1419, **every P109 unit** (P112 minus any three lines) is rigid. Every decoder with exactly eight costly terms in the E-graph model there has cst \u2265 61, which is #968's 72 \u2212 p at p = 11.\n\n## Evidence\n\n- `python3 -I -B research/complex-rank8-rigidity-p109/verify.py` runs 25 exact checks in about 15 s, standard library only. It is self-contained:\n  - **Census.** It recomputes the orbit census of triples and the inside-a-frame split, 24 orbits = 5 covered + 19 open, and checks that the units hit each open orbit once.\n  - **Per unit.** It checks the pivot conditions, builds each CNF itself and replays all 19 proofs from `PROOFS.json.gz` (658 KB) with its own two-watched-literal RUP checker. The SHA256 of each decompressed proof and each CNF is pinned.\n  - **Controls.** The gauge pattern satisfies each CNF. Each proof fails without the \"some entry vanishes\" clause. An empty-clause-only proof is rejected.\n- **Cross-checks, run once:**\n  - #1212's own `rup_check` (head `57099cb5`) accepts all 19 proofs, with identical lemma counts, and rejects every one without the zero clause.\n  - A census written independently by OpenAI Codex, from a specification only, matches the orbit table exactly: every (size, odd pairs, inside-a-frame) triple, plus |H| = 344064.\n  - A read-only adversarial review, also by Codex, found no soundness gap. It covered the CNF families, the lemma hypotheses, subgroup coverage and the RUP checker, including 10000 random fuzz formulas.\n- `make_proof.py` (python-sat 1.9.dev15, Glucose 4.1) regenerates `UNITS.json` and `PROOFS.json.gz` byte-identically in about 4 s.\n- Passes on Python 3.10, 3.12 and 3.14. `scripts/research_package.py`: the metadata check and the Python 3.12 registered replay pass. `test_research_*` passes.\n\n## Not checked or not covered\n\n- **Inherited steps**, cited and not re-derived:\n  - #1212's Lemmas 5\u20136, \u00a77 and transport;\n  - #1399's Lemma 9;\n  - #1419's Lemma 10 and its P104 inputs, for the 29232 covered triples.\n\n  All of these PRs are open. #968's (F6) is inherited. Attainment of 61 is not checked. There has been no independent human review.\n- **P108 and deeper.** 168 open orbits at |X| = 4. The same pipeline passes on all of them; #1474 packages that result. Nine or more costly terms are not covered.\n\n## Task and overlap\n\n- **Task / scope:** `complex-masked-decoder` (scope key `2a6f2c726b78f9ae7d26`), refined to #1425's open next question. Track complex-mechanisms, priority revision 2. The task was assigned by the donor as \"the open thread\", so no reroll.\n- **Heads:** base `410026dc5513b87db92ae98571d1d5984c69a983`. Cites #1212 `57099cb5`, #1399 `4e1ba3a1`, #1419 `81b8997b` and #1425 `4b707c22`. It imports nothing from them.\n- **Claim:** https://github.com/CrocSwap/integer-mult-bounds/discussions/1411#discussioncomment-18912490\n- **Overlap:** none on P109 or P108 beyond my own claim. Refreshed at 01:11Z (826 open PRs and 162 discussions, complete pagination).\n\n## Credit\n\n- **burntout76 / Brett Halligan (#1212):** the theorem, (E), the CNF families of Lemmas 4/8, the pivot reduction, Lemmas 5\u20136, \u00a77 and the transport.\n- **themilkman216 (#968):** the floor.\n- **DreamingOfClouds (#717):** the E-graph model.\n\nSubstantial AI assistance: Claude Opus 5.5 via Claude Code (proof, verifier, CNF/RUP reimplementation, write-up); OpenAI Codex (independent census and read-only review). Submitted by the account holder. Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446385/job/115626903298"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446411/job/115626903418"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446457/job/115626903606"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446479/job/115626903423"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904292"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446360/job/115626903185"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446385/job/115626903184"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446457/job/115626903294"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446479/job/115626903691"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904346"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446360/job/115626902990"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904412"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904319"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904428"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904311"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904314"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904879"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904299"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904443"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904433"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904517"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904462"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904343"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904364"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904516"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904506"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626905226"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904378"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904540"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904313"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904493"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904560"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904559"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904417"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904598"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904606"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904662"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904616"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904787"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904591"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904391"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904617"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904571"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904432"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904680"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904526"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904597"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904643"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904550"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904483"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904438"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904393"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904505"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904644"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904536"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904770"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626904631"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626903540"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626903903"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626903821"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38494446478/job/115626903949"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "675917501becf93e3cb2dac6c9e5a8d3f6ddd1ba6166e07d9069ab2f9354b253"
+}

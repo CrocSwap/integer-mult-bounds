@@ -1,0 +1,350 @@
+diff --git a/research/even-target-cnot-census/README.md b/research/even-target-cnot-census/README.md
+index 6390a5e23..2e7112f65 100644
+--- a/research/even-target-cnot-census/README.md
++++ b/research/even-target-cnot-census/README.md
+@@ -75,34 +75,69 @@ hitting `T_t` has even length. (Odd lengths are therefore never searched.)
+ over `F_2`. (For SWAP targets the corresponding identity is
+ `sum_i N_i = D_t`; that premise is gone here.)
+ 
+-## 3. Written free-layer system (degree 1-3)
+-
+-Expand `prod_i (I + E_i) = [c] I_r` with `E_i = ([g_i]+1) N_i` in the free
+-filtered algebra `F = F_2<x,y>/(x^2, y^2)`; here `x = [a]+1`, `y = [b]+1`
+-and `[c]+1 = x + y + xy`. The kernel of `F -> F_2[G]` up to degree 3 is
+-spanned by
++## 3. Free-layer system (degree 1-3): screening filter, not necessary
++
++**Correction** (review of
++https://github.com/CrocSwap/integer-mult-bounds/pull/1763). An earlier
++version of this section claimed the degree 1-3 system below as "necessary
++conditions for any hitting word". That claim is false. Counterexample: at
++`r = 1` set every projector to `[1]` and take the word `b a b a`. Each call
++is then `I + ([g]+1)[1] = [g]`, so the word value is `[baba] = [(ba)^2] =
++[ab] = [c]`, an exact target word; but the claimed condition `sum_ba = 0`
++fails, because the word has three ordered b-before-a pairs and `sum_ba =
++[1]`. The package's own engine confirms it:
++`formal_is_target(formal_word_value(word,1),1)` is `True` while
++`layer_ok_even_target(word,1)` is `False` (regression
++`test_layer_counterexample_baba` in `test_verify.py`).
++
++Where the old derivation went wrong: it expanded `prod_i (I + E_i) = [c] I_r`
++with `E_i = ([g_i]+1) N_i` in the free filtered algebra
++`F = F_2<x,y>/(x^2, y^2)`, `x = [a]+1`, `y = [b]+1`, `[c]+1 = x + y + xy`, and
++matched degrees 1-3 against the kernel elements
+ 
+ ```
+ R = xyx + yxy + x + y          (from [S]+1 = xyx+xy+yx+y = yxy+yx+xy+x)
+ Z = z + z^2 + z^3,  z = x+y+xy (from [c]^3 = 1),
+ ```
+ 
+-with `R` carrying degrees 3 and 1, and `Z` carrying degrees 1, 2, 4, 5, 6.
+-Matching degrees 1-3 of `sum_S E_S - (x+y+xy) I_r = mu R + nu Z` gives, with
+-`lam = mu + nu`:
++claiming the kernel of `F -> F_2[G]` up to degree 3 is spanned by `R` and `Z`.
++But `Z` carries degrees up to 6, and its truncation to degree at most 3,
++`x + y + yx`, maps to `[ba] + [e] != 0`: it is not in the kernel. Up to degree
++3 the kernel is 1-dimensional, spanned by `R` alone (the seven monomial
++images `1, x, y, xy, yx, xyx, yxy` have rank 6 over `F_2`; both facts are
++machine-checked in `test_verify.py`). Matching degrees 1-3 is therefore
++justified only when the word length is `q <= 3`, where the difference
++`prod_i (I + E_i) - I - (x+y+xy) I_r` itself has degree at most 3. For
++`q >= 4` kernel elements of degree 4 and higher absorb the low-degree
++mismatch, which is exactly what happens for `b a b a`.
++
++**Corrected statement (class: words of length `q <= 3`).** For a hitting
++word of length at most 3, the difference lies in `<R> tensor M_r(F_2)` and
++comparing degrees 1-3 gives, for some `lam in M_r(F_2)`:
+ 
+ ```
+ sum_a N_i        = sum_b N_i        = I_r + lam
+-sum_{ab-pairs} N_i N_j               = I_r + nu
++sum_{ab-pairs} N_i N_j               = I_r
+ sum_{ba-pairs} N_i N_j               = 0
+-sum_{aba-triples} N_i N_j N_k        = lam + nu
+-sum_{bab-triples} N_i N_j N_k        = lam + nu
++sum_{aba-triples} N_i N_j N_k        = lam
++sum_{bab-triples} N_i N_j N_k        = lam
+ ```
+ 
+-These are necessary conditions for any hitting word; `lam, nu in M_r(F_2)`
+-are free a priori. `verify.py` checks the system on every attaining word
+-(`t = 1, 2, 3, 4`) and rejects it on a wrong-target control. The system
+-alone does not exclude `q < 2t`; the meets below do.
++The counterexample `b a b a` has length 4 and lies outside this class. An
++exhaustive check over all 1898 words of length 1-3 at `r = 1, 2` finds
++exactly one hitting word, and it satisfies this system (`test_verify.py`).
++No claim is made for words of length 4 or more.
++
++**What remains of the old system.** `layer_ok_even_target` keeps the looser
++old form (`sum_ab = I_r + nu`, `sum_ba = 0`, triples `lam + nu`) as a
++screening filter only. It accepts every attaining word used here
++(`word_even`, `t = 1, 2, 3, 4`) and rejects the wrong-target control, but it
++rejects genuine target words (the counterexample above) and accepts
++non-target words (at `r = 2`, `a b` on one projector passes the filter and
++is not a target), so it is neither necessary nor sufficient and is never
++used to exclude candidates. All exclusions below come from L1', the `q = 1`
++direct check and the meets; the reported minima are unchanged if the filter
++is made vacuous (`test_minima_do_not_rely_on_layer_condition`).
+ 
+ ## 4. Meets and their completeness
+ 
+@@ -150,14 +185,18 @@ inputs are unchanged.
+   (480 generators) and measure the depth-3 ball before any deeper search.
+   **Blocker.** Ball growth: the `r = 5` depth-3 ball should exceed the
+   `r = 4` count of 3.6e6 states by at least an order of magnitude.
+-- **Question.** Can the free-layer system of section 3 exclude `q < 2t` at
+-  general `t = r` in writing, without a meet?
++- **Question.** Can a written degree-complete kernel analysis exclude
++  `q < 2t` at general `t = r`, without a meet? (The degree 1-3 free-layer
++  system of section 3 cannot: it is necessary only for words of length
++  `q <= 3`.)
+   **Why it matters.** A written exclusion removes the exponential meet from
+-  the even-target line. **First step.** Extract rank constraints on the
+-  `(q_a, q_b)` idempotent multisets summing to `I_r + lam` and test them on
+-  the `t = 4` attaining data first. **Blocker.** The kernel correction pair
+-  `(lam, nu)` is free in `M_r(F_2)`; bounding it uniformly is the missing
+-  step.
++  the even-target line. **First step.** Compute the kernel of
++  `F -> F_2[G]` in degree 4 (the smallest case where the low-degree matching
++  breaks) and re-derive conditions on the degree 1-4 layer sums there.
++  **Blocker.** From `q = 4` on, kernel elements of degree 4 and higher
++  absorb the low-degree mismatch (the `b a b a` counterexample of section 3
++  is the smallest instance); controlling those higher-degree kernel terms is
++  the missing step.
+ 
+ ## Reproduce
+ 
+diff --git a/research/even-target-cnot-census/TASK.json b/research/even-target-cnot-census/TASK.json
+index 7dc4bd5c4..e63487dae 100644
+--- a/research/even-target-cnot-census/TASK.json
++++ b/research/even-target-cnot-census/TASK.json
+@@ -40,13 +40,13 @@
+     ]
+   },
+   "scope_status": "refined",
+-  "actual_scope": "Formal F2[GL2(F2)] rank-one-idempotent register model with free scalar GL_r(F2) mixing, but with the even order-3 target class: T_t = diag([c],...,[c]), c = ab = (ba)^2, at exactly r = t registers (t = 1, 2, 3, 4), all registers arbitrary dirty inputs restored exactly. Exact paid-call minimum; complete exclusion of every shorter even length; written sign-quotient and free-layer invariants; two engines (natural image and formal coefficients).",
++  "actual_scope": "Formal F2[GL2(F2)] rank-one-idempotent register model with free scalar GL_r(F2) mixing, but with the even order-3 target class: T_t = diag([c],...,[c]), c = ab = (ba)^2, at exactly r = t registers (t = 1, 2, 3, 4), all registers arbitrary dirty inputs restored exactly. Exact paid-call minimum; complete exclusion of every shorter even length; written sign-quotient invariants plus a free-layer screening system that is necessary only for words of length at most 3 (see README section 3); two engines (natural image and formal coefficients).",
+   "scope_change_reason": "Refinement inside the card's allowed variation (fixed larger register count, specified nonabelian family F2[GL2(F2)]). The target element class is changed from the predecessor line's transposition (SWAP) targets to even order-3 targets: the sign quotient maps [c] to 1, so the inherited invariant flips from sum_i N_i = D_t to sum_i N_i = 0 and no predecessor conclusion transfers. This is not the excluded three-register abelian model.",
+   "bottleneck_link": "Side result on the nonbinding bit side: no paid profile, supplier or moment changes. It prices the even-target tariff of an explicit nonabelian register alphabet, one input to whether any small-width completed saving could change the bit primitive; a q < 2t word would have been such a mechanism, and its absence through t = 4 narrows where one could live.",
+   "budget_minutes": 60,
+   "stop_rule": "Stop after the complete t = 4 decision (all shorter even lengths excluded or a formal witness found), one calibration against the predecessor's recorded ball counts, and the written-invariant checks; do not extend to t = 5 in this session.",
+   "outcome": "completed",
+-  "evidence": "RECEIPT.json: minima q*(t) = 2t for t = 1, 2, 3, 4 (2, 4, 6, 8); all meets nat_hits = 0 for every shorter even length; t = r = 4 exact-depth ball-value counts 240 / 32,651 / 3,639,920 match PR1705's recorded calibration; engine B agrees with engine A on every small meet; attaining words verified exactly in M_r(F2[G]) with drop-one-call mutations failing; free-layer system holds on all attaining words and is rejected on a wrong-target control. Final line: PASS_EVEN_TARGET_CNOT_CENSUS t1r1_min=2 t2r2_min=4 t3r3_min=6 t4r4_upper=8 t4r4_excluded={2: 0, 4: 0, 6: 0} balls4=240,32651,3639920 pr1705_ball_match=True no_new_kappa.",
++  "evidence": "RECEIPT.json: minima q*(t) = 2t for t = 1, 2, 3, 4 (2, 4, 6, 8); all meets nat_hits = 0 for every shorter even length; t = r = 4 exact-depth ball-value counts 240 / 32,651 / 3,639,920 match PR1705's recorded calibration; engine B agrees with engine A on every small meet; attaining words verified exactly in M_r(F2[G]) with drop-one-call mutations failing; free-layer screening system holds on the checked attaining words and is rejected on a wrong-target control, but is not necessary for hitting words (r = 1 b a b a counterexample; README section 3). Final line: PASS_EVEN_TARGET_CNOT_CENSUS t1r1_min=2 t2r2_min=4 t3r3_min=6 t4r4_upper=8 t4r4_excluded={2: 0, 4: 0, 6: 0} balls4=240,32651,3639920 pr1705_ball_match=True no_new_kappa.",
+   "author": "Aaron Wang",
+   "ai_assistance": "with help from opencode",
+   "open_questions": [
+@@ -57,10 +57,10 @@
+       "blocked_by": "Ball growth: the r = 5 depth-3 ball is expected to exceed the r = 4 depth-3 count of 3.6e6 states by at least an order of magnitude."
+     },
+     {
+-      "question": "Can the written free-layer system (sum_a = sum_b, sum_ba = 0, sum_aba = sum_bab = lam + nu) exclude q < 2t at general t = r in writing, without a meet?",
++      "question": "Can a written degree-complete kernel analysis exclude q < 2t at general t = r, without a meet? (The degree 1-3 free-layer system cannot: it is necessary only for words of length at most 3.)",
+       "why_it_matters": "A written exclusion would remove the exponential meet from the even-target line entirely.",
+-      "first_step": "Extract rank constraints from the layer system on (q_a, q_b) multisets of rank-one idempotents summing to I_r + lam, and test them against the t = 4 attaining data first.",
+-      "blocked_by": "The kernel correction pair (lam, nu) is free in M_r(F2); bounding it uniformly is the missing step."
++      "first_step": "Compute the kernel of F -> F2[G] in degree 4 (the smallest case where the low-degree matching breaks) and re-derive conditions on the degree 1-4 layer sums there.",
++      "blocked_by": "From q = 4 on, kernel elements of degree 4 and higher absorb the low-degree mismatch (the r = 1 b a b a counterexample is the smallest instance); controlling those higher-degree kernel terms is the missing step."
+     }
+   ]
+ }
+diff --git a/research/even-target-cnot-census/VERIFY.json b/research/even-target-cnot-census/VERIFY.json
+index 01e52ea6c..db2ba8a9c 100644
+--- a/research/even-target-cnot-census/VERIFY.json
++++ b/research/even-target-cnot-census/VERIFY.json
+@@ -16,7 +16,7 @@
+         "--check-receipt"
+       ],
+       "timeout_seconds": 600,
+-      "checks": "Group table and packing controls (200 dense fast-update cross-checks, 100 formal-natural projection cross-checks, 50 parity controls); formal verification of every attaining word with drop-one-call mutations; written free-layer system checked on all attaining words and rejected on a wrong-target control; complete natural-image meets excluding q = 2 at t = 1, 2, 3, 4 and q = 4 at t = 3 and t = 4, q = 6 at t = 4; SWAP control reproduces the predecessor minimum 6 at t = r = 2; engine B (formal coefficients) agrees with engine A on every small meet; exact-depth ball-value counts at r = 4 recomputed as 240 / 32,651 / 3,639,920, matching the recorded PR1705 calibration; RECEIPT.json fields compared."
++      "checks": "Group table and packing controls (200 dense fast-update cross-checks, 100 formal-natural projection cross-checks, 50 parity controls); formal verification of every attaining word with drop-one-call mutations; free-layer screening filter asserted on the attaining words and rejected on a wrong-target control (screening only, not necessary and not sufficient; README section 3); complete natural-image meets excluding q = 2 at t = 1, 2, 3, 4 and q = 4 at t = 3 and t = 4, q = 6 at t = 4; SWAP control reproduces the predecessor minimum 6 at t = r = 2; engine B (formal coefficients) agrees with engine A on every small meet; exact-depth ball-value counts at r = 4 recomputed as 240 / 32,651 / 3,639,920, matching the recorded PR1705 calibration; RECEIPT.json fields compared."
+     }
+   ]
+ }
+diff --git a/research/even-target-cnot-census/test_verify.py b/research/even-target-cnot-census/test_verify.py
+index c03a9e6f2..a1390f6bd 100644
+--- a/research/even-target-cnot-census/test_verify.py
++++ b/research/even-target-cnot-census/test_verify.py
+@@ -1,10 +1,13 @@
+ """Rejection controls for research/even-target-cnot-census/verify.py."""
+ 
++import itertools
+ import json
+ import random
++import sys
+ import unittest
+ from pathlib import Path
+ 
++sys.path.insert(0, str(Path(__file__).resolve().parent))  # works under -I
+ import verify as v
+ 
+ 
+@@ -35,6 +38,103 @@ class PackageTests(unittest.TestCase):
+         self.assertFalse(v.layer_ok_swap_target(v.word_even(2), 2))
+         self.assertTrue(v.layer_ok_swap_target(v.word_swap(2), 2))
+ 
++    def test_layer_counterexample_baba(self):
++        # Review regression for
++        # https://github.com/CrocSwap/integer-mult-bounds/pull/1763 : at r=1
++        # with every projector [1], the word b a b a is an exact target word
++        # since (ba)^2 = ab = c, but the free-layer screening filter rejects
++        # it (sum_ba = 1).  The filter is therefore NOT a necessary condition
++        # (README section 3).
++        r = 1
++        w = [(v.B_IDX, 1, 1), (v.A_IDX, 1, 1), (v.B_IDX, 1, 1), (v.A_IDX, 1, 1)]
++        self.assertTrue(v.formal_is_target(v.formal_word_value(w, r), r))
++        self.assertFalse(v.layer_ok_even_target(w, r))
++        self.assertEqual(v.layer_sums(w, r)["sum_ba"], 1)
++
++    def test_layer_filter_not_sufficient(self):
++        # r=2, word a b on one projector passes the filter but is not a target
++        w = [(v.A_IDX, 1, 1), (v.B_IDX, 1, 1)]
++        self.assertTrue(v.layer_ok_even_target(w, 2))
++        self.assertFalse(v.formal_is_target(v.formal_word_value(w, 2), 2))
++
++    def test_minima_do_not_rely_on_layer_condition(self):
++        # Make the invalid layer filter vacuous and confirm the reported
++        # minima and exclusion counts are unchanged: exclusion uses only L1'
++        # parity, the q=1 direct check and the meets.
++        here = Path(__file__).resolve().parent
++        stored = json.loads((here / "RECEIPT.json").read_text(encoding="utf-8"))
++        orig = v.layer_ok_even_target
++        v.layer_ok_even_target = lambda word, r: True
++        try:
++            fresh = json.loads(json.dumps(v.run(fast=True), default=str))
++        finally:
++            v.layer_ok_even_target = orig
++        self.assertEqual(stored["t1r1"], fresh["t1r1"])
++        self.assertEqual(stored["small_minima"], fresh["small_minima"])
++        self.assertEqual(stored["swap_t2r2"], fresh["swap_t2r2"])
++        self.assertEqual(fresh["main_t4r4"]["upper"], 8)
++        self.assertEqual(stored["main_t4r4"]["q"], {"2": 0, "4": 0, "6": 0})
++
++    def test_free_layer_validity_scope(self):
++        # README section 3 corrected claim.  (1) up to degree 3 the kernel of
++        # F -> F_2[G] is 1-dimensional, spanned by R = xyx+yxy+x+y alone:
++        # the seven monomial images have rank 6 and Z's degree<=3 truncation
++        # x+y+yx maps to [ba]+[e] != 0.  (2) every hitting word of length
++        # q <= 3 satisfies the corrected system (class: q <= 3 only).
++        e = 1 << v.E_IDX
++
++        def gmul(u, w):
++            out = 0
++            for i in range(6):
++                for j in range(6):
++                    if ((u >> i) & 1) and ((w >> j) & 1):
++                        out ^= 1 << v.GTAB[i][j]
++            return out
++
++        x = e | (1 << v.A_IDX)
++        y = e | (1 << v.B_IDX)
++        imgs = {"1": e, "x": x, "y": y, "xy": gmul(x, y), "yx": gmul(y, x),
++                "xyx": gmul(gmul(x, y), x), "yxy": gmul(gmul(y, x), y)}
++        basis = []
++        for key in ("1", "x", "y", "xy", "yx", "xyx", "yxy"):
++            cur = imgs[key]
++            for b in basis:
++                cur = min(cur, cur ^ b)
++            if cur:
++                basis.append(cur)
++                basis.sort()
++        self.assertEqual(len(basis), 6)  # rank 6 -> ker dim 1
++        self.assertEqual(imgs["x"] ^ imgs["y"] ^ imgs["xyx"] ^ imgs["yxy"], 0)
++        z_low = imgs["x"] ^ imgs["y"] ^ imgs["yx"]  # Z = z+z^2+z^3, degree <= 3
++        expected = (1 << v.E_IDX) | (1 << v.GIDX[v.mmul(v.MAT_B, v.MAT_A)])
++        self.assertEqual(z_low, expected)  # [ba] + [e], not in the kernel
++
++        def layer_ok_short(word, r):
++            # corrected system, claimed only for words of length q <= 3
++            self.assertLessEqual(len(word), 3)
++            s = v.layer_sums(word, r)
++            ident = v.mat_ident(r)
++            if s["sum_a"] != s["sum_b"]:
++                return False
++            lam = s["sum_a"] ^ ident
++            return (s["sum_ab"] == ident and s["sum_ba"] == 0
++                    and s["sum_aba"] == lam and s["sum_bab"] == lam)
++
++        checked, hits = 0, 0
++        for r in (1, 2):
++            gens = [(g[4], g[5], g[6]) for g in v.make_gens(r)]
++            for q in (1, 2, 3):
++                for w in itertools.product(gens, repeat=q):
++                    checked += 1
++                    if v.formal_is_target(v.formal_word_value(list(w), r), r):
++                        hits += 1
++                        self.assertTrue(layer_ok_short(list(w), r), (r, q, w))
++        self.assertEqual(checked, 1898)  # 14 at r=1, 1884 at r=2
++        self.assertEqual(hits, 1)
++        # the counterexample has length 4: outside the claimed class
++        w4 = [(v.B_IDX, 1, 1), (v.A_IDX, 1, 1), (v.B_IDX, 1, 1), (v.A_IDX, 1, 1)]
++        self.assertTrue(v.formal_is_target(v.formal_word_value(w4, 1), 1))
++
+     def test_parity_and_or_confusion_control(self):
+         # the natural target transform is F_2 addition: 1+1 = 0 (a row of
+         # two equal bits must cancel).  Regression for a | / ^ confusion.
+diff --git a/research/even-target-cnot-census/verify.py b/research/even-target-cnot-census/verify.py
+index 60f620cad..e4835830b 100644
+--- a/research/even-target-cnot-census/verify.py
++++ b/research/even-target-cnot-census/verify.py
+@@ -20,8 +20,11 @@ Engines:
+   B  formal coefficients in M_r(F2[G]) (independent small-ball cross-check
+      and exact acceptance of every attaining word).
+ 
+-The written free-layer system (README section 3) is checked on every
+-attaining word.  Final line starts with PASS_EVEN_TARGET_CNOT_CENSUS.
++The written free-layer system (README section 3) is asserted as a screening
++filter on the attaining words only; it is NOT a necessary condition (the
++r=1 word b a b a is a target word it rejects) and NOT sufficient (r=2 word
++a b on one projector passes and is not a target).  README section 3 states
++the corrected scope.  Final line starts with PASS_EVEN_TARGET_CNOT_CENSUS.
+ """
+ 
+ from __future__ import annotations
+@@ -400,11 +403,16 @@ def formal_meet_count(gens, r: int, k: int, target_gi: int):
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# Written free-layer system (README section 3).  For a word w with letters
+-# g_i in {a,b} and idempotents N_i, expand prod (I + E_i) = T in the free
+-# filtered algebra F_2<x,y>/(x^2, y^2); the kernel of F -> F_2[G] up to the
+-# needed degree is spanned by R = xyx + yxy + x + y and Z = z + z^2 + z^3
+-# with z = x + y + xy.  Matching degrees 1..3 gives the system below.
++# Free-layer sums (README section 3).  For a word w with letters g_i in
++# {a,b} and idempotents N_i, expand prod (I + E_i) = T in the free filtered
++# algebra F_2<x,y>/(x^2, y^2).  Matching degrees 1..3 against the kernel of
++# F -> F_2[G] is valid only for words of length q <= 3: up to degree 3 that
++# kernel is 1-dimensional, spanned by R = xyx + yxy + x + y alone, since
++# Z = z + z^2 + z^3 (z = x + y + xy) carries degrees up to 6 and its
++# degree <= 3 truncation is not in the kernel.  The checks below are
++# screening filters only -- not necessary (r=1 b a b a is a target word they
++# reject) and not sufficient (r=2 a b on one projector passes and is not a
++# target).  See README section 3.
+ # ---------------------------------------------------------------------------
+ 
+ def layer_sums(word, r: int):
+@@ -432,7 +440,10 @@ def layer_sums(word, r: int):
+ 
+ 
+ def layer_ok_even_target(word, r: int) -> bool:
+-    """Necessary conditions for a word to hit T = [c] I_r."""
++    """Screening filter for words hitting T = [c] I_r (README section 3).
++
++    Not necessary and not sufficient; never use it to exclude candidates.
++    """
+     s = layer_sums(word, r)
+     ident = mat_ident(r)
+     if s["sum_a"] != s["sum_b"]:
+@@ -449,7 +460,11 @@ def layer_ok_even_target(word, r: int) -> bool:
+ 
+ 
+ def layer_ok_swap_target(word, r: int) -> bool:
+-    """Necessary conditions for a word to hit T = [S] I_r."""
++    """Layer conditions for the SWAP target T = [S] I_r.
++
++    Used here only as a rejection control; necessity is not established
++    (same degree-matching caveat as README section 3).
++    """
+     s = layer_sums(word, r)
+     ident = mat_ident(r)
+     if (s["sum_a"] ^ s["sum_b"]) != ident:

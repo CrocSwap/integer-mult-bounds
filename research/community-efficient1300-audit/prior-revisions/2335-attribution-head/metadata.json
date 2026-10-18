@@ -1,0 +1,673 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "baseRefOid": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "body": "## Scope\r\n\r\nScoped negative result for the named open problem **F-star** of `research/root-unit-decoder-lemmas` (section 7, OPEN): an exact falsifier census for `cert(M) >= floor(2v/3)` on exact 3-total rational decoders. Package `research/fstar-cert-census-seed298df375/`, branch `research/agent-51-fstar-cert-298df375`, head `856cd760`, base main `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2` (priority revision 4). No kappa, certificate, supplier, window or frontier change.\r\n\r\nFor a rational 3-total decoder `M = sum_j p_j q_j^T` on v lines with `M_tt != 0`, an L8 labelling chooses F2 vectors `a(t)`, `b(s)` inside the factor supports and sets `K_ts = a(t) dot b(s) mod 2`; `cert(M)` is the largest ordered subset S with `K_tt = 1` on S and `K_ts = 0` at every incidence `M_ts = 0` with t before s. The source package proves `cost >= sum_j r_j >= cert(M)` for every admissible pairing B and shows that F-star would close every open T = 3 window at once. It records F-star as OPEN with about 90 sampled configurations at `cert = v`.\r\n\r\n**Assignment and scope change.** Chooser OS nonce `298df3754c1488b77620ddda3eb48b27` drew track `adversarial-audit`, card `uniform-transfer-audit` (scope key `ce7411fb7cf6f3460bfc`). All three drawn cards match recent claimed or completed objects, so per the pair-collision rule this session takes the explicit open-problem route instead (recorded in TASK.json): `uniform-transfer-audit` was completed today on its hosting-implication refinement (https://github.com/CrocSwap/integer-mult-bounds/pull/2273), `supplier-boundary-audit` was completed today on its owner-map binding refinement (https://github.com/CrocSwap/integer-mult-bounds/pull/2301), and `selected-stock-envelope` is covered by a live handoffs-thread claim (https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18932014) and the first-stage coefficient work of https://github.com/CrocSwap/integer-mult-bounds/pull/2084 and https://github.com/CrocSwap/integer-mult-bounds/pull/2120. The adversarial-audit method is kept: an exact counterexample search at a claimed implication.\r\n\r\n## Method (exact, stdlib only, deterministic)\r\n\r\n- **Side B, lower bound on `cert(M)`.** Deterministic local search over L8 labellings; each labelling is scored by the exact maximum acyclic subset of the incidence digraph (subset DP); the maximizing subset and sink-peeling order are stored and replayed by an independent witness checker.\r\n- **Side A, falsifier hunt and upper bound on `cert(M)`.** The proven chain `cert(M) <= sum_j rank_F2 B[R_j, A_j]` for every admissible B (0/1, unit diagonal, `B_ts = 1` only where `M_ts = 0`; the chain's proof uses only those properties, so asymmetric B are included). The cost is minimized exhaustively when the admissible pair count is at most 10 (always at v <= 5) and by deterministic single-bit local search otherwise. An instance with minimum cost below `floor(2v/3)` would falsify F-star.\r\n\r\nDomain: v in 4..12, exactly 3 totals, factor entries in `{-2,-1,0,1,2}` with nonzero diagonal, fixed seeds `20261015 + 1000*family_index + 17*v + i`. Three families: dense random; configuration-style `M = P Q^T` with `P,Q` over `{-1,0,1}` (the rank-3 configuration model of https://github.com/CrocSwap/integer-mult-bounds/pull/2111); and tied-minima 2-adic constructions retained only when tied minimal valuations cover at least half the lines (the obstruction named in the source section 7).\r\n\r\n## Result\r\n\r\nScoped negative: no falsifier in the declared domain, and every instance is resolved by a machine-checked witness. Census digest `3237519deb9ec377f5a8a86b7b4b1e8197074ee8d0dd0e653cfcea1104c9e6e8`.\r\n\r\n| family | instances | resolved with witness | falsifiers | min witness ratio |\r\n|---|---:|---:|---:|---:|\r\n| dense | 70 | 70 | 0 | 8/9 = 0.889 |\r\n| config | 70 | 70 | 0 | 6/7 = 0.857 |\r\n| tied | 56 | 56 | 0 | 7/8 = 0.875 |\r\n\r\nThe worst instance is the config instance at v = 7, seed `20262138`: witness 6 against threshold 4, so `cert(M)` lies in `[6, 12]` there (12 is its exact admissible-B cost minimum). The tied family reached 8 tied-minimum lines at v = 12 and stayed above threshold throughout. Because witnesses are lower bounds on `cert(M)`, every recorded instance satisfies F-star under either reading of the quantifier (universal or unit-attached).\r\n\r\nControls (all required to pass): three tiny-domain instances at v = 3 are certified by exhaustive enumeration of every labelling and the search engine reproduces those exact values; a corrupted witness (one `K_tt` broken) and a wrong order at a binding pair are both rejected; the `floor(2v/3)` table is checked against hand values for v = 4..12; a hand-checkable diagonal decoder gives `cert = 3`; and the proven chain `cert(M) <= cost(B)` is rechecked on every instance, with one exact-chain control pinning `brute_cert = 4 <= min_cost = 7`.\r\n\r\n## What is claimed and what is not\r\n\r\nClaimed: the declared-domain census, its witnesses and dual bounds, and the reusable engine. Not claimed: F-star itself (witnesses are lower bounds and only 196 instances are covered), exact `cert(M)` values above v = 3, any separation of the universal versus unit-attached readings, and any kappa, window or supplier consequence. The T = 3 window closure stays conditional on F-star.\r\n\r\n## Reproduce\r\n\r\nFrom the repository root (Python 3.10+ standard library only; `make` is not installed on this host, so the underlying scripts are given):\r\n\r\n```sh\r\npython3 -B research/fstar-cert-census-seed298df375/verify.py\r\npython3 scripts/research_package.py --package research/fstar-cert-census-seed298df375 --check-only\r\npython3.12 scripts/research_package.py --package research/fstar-cert-census-seed298df375\r\n```\r\n\r\nExpected markers:\r\n\r\n```text\r\nPASS_FSTAR_CERT_CENSUS instances=196 resolved=196 falsifiers=0 unresolved=0 min_ratio=0.8571 digest=3237519deb9ec377\r\nPASS_FSTAR_CERT_CONTROLS bruteforce=3 diagonal_cert=3 chain_cert=4\r\nPASS_REGISTERED_RESEARCH_PACKAGE research/fstar-cert-census-seed298df375 outcome=completed\r\n```\r\n\r\nAll three commands were run on this host (CPython 3.13 for the first two, the registered CPython 3.12 replay for the third) and produced exactly those lines; `PASS_PACKAGE_METADATA_AND_PINS (not a mathematical acceptance check)` is the metadata output. The repository suite `python3 -B -m unittest discover -s tests -p 'test_research_*.py'` also passes (65 tests, OK, 5 skipped).\r\n\r\n## Open next questions\r\n\r\n1. Exact `cert(M)` for the worst instance (config, v = 7, seed `20262138`, `cert` in [6, 7]) by branch-and-bound over labellings; it is the natural place to look for sub-v certificates. No structural blocker, just a longer exact run.\r\n2. Universal versus unit-attached readings of the quantifier: wire A3/A4/D4 Gram tables into the pairing-cost minimizer and compare admissible-B minima on the same decoders. Blocked on unit tables not being in this package.\r\n3. The tied-minima family at v = 13..18, where the named obstruction accumulates.\r\n\r\n## Credit and provenance\r\n\r\nF-star, the `cert(M)` definition, L8 labellings and the proven chain are from the merged package `research/root-unit-decoder-lemmas` (root units, Lemmas A and B, the L8 lemma; [PR 1590](https://github.com/CrocSwap/integer-mult-bounds/pull/1590) by DreamingOfClouds, with Claude Opus 5.5 (Anthropic) via Claude Code assistance). The rank-3 configuration model and the `tied_min` / `cex_min_1` examples with their certificate limits are DreamingOfClouds' work in https://github.com/CrocSwap/integer-mult-bounds/pull/2111 and https://github.com/CrocSwap/integer-mult-bounds/pull/2162; this package neither restates those examples nor supersedes those results. The adjacent independent CR2/B2 audit is https://github.com/CrocSwap/integer-mult-bounds/pull/2293 (Aaron Wang). The source README is pinned as an input in `SOURCES.json`. The coordination claim is https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18941664.\r\n\r\nPrepared by **Aaron Wang** with help from opencode (substantial AI assistance; no independent human review claimed). New work is Apache-2.0.\r\n",
+  "comments": [],
+  "files": [
+    {
+      "path": "research/fstar-cert-census-seed298df375/CENSUS-RECORDS.json",
+      "additions": 2746,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/fstar-cert-census-seed298df375/CERTIFICATE.json",
+      "additions": 99,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/fstar-cert-census-seed298df375/README.md",
+      "additions": 149,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/fstar-cert-census-seed298df375/SOURCES.json",
+      "additions": 24,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/fstar-cert-census-seed298df375/TASK.json",
+      "additions": 75,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/fstar-cert-census-seed298df375/VERIFY.json",
+      "additions": 16,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/fstar-cert-census-seed298df375/verify.py",
+      "additions": 518,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "856cd7603ba679aa56294e53d60840061d176778",
+  "isDraft": false,
+  "number": 2335,
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007377/job/116270345002",
+      "name": "verify (3.11)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Graded box convolution"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007385/job/116270344995",
+      "name": "plan",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Registered research packages"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007469/job/116270345130",
+      "name": "verify (3.11)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify early reset and kernel composition"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007376/job/116270344822",
+      "name": "certificate (3.11)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify recycled bit registers on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344922",
+      "name": "verify (3.11, community)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007420/job/116270344892",
+      "name": "certificate (3.11)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify terminal elimination on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007377/job/116270345197",
+      "name": "verify (3.14)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Graded box convolution"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007469/job/116270344760",
+      "name": "verify (3.14)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify early reset and kernel composition"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007376/job/116270344470",
+      "name": "certificate (3.14)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify recycled bit registers on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344886",
+      "name": "verify (3.11, producers)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007420/job/116270345041",
+      "name": "certificate (3.14)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify terminal elimination on the paired-cube bit word"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344933",
+      "name": "verify (3.11, certificates)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345023",
+      "name": "verify (3.11, ternary)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344925",
+      "name": "verify (3.11, research)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344872",
+      "name": "verify (3.11, tests)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344898",
+      "name": "verify (3.11, strips)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345067",
+      "name": "verify (3.11, clones)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345089",
+      "name": "verify (3.11, positive)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345159",
+      "name": "verify (3.11, joint)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345036",
+      "name": "verify (3.11, pair)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345062",
+      "name": "verify (3.11, partial-gauge)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345077",
+      "name": "verify (3.11, three-stage-cover)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345058",
+      "name": "verify (3.11, paired-cube)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345109",
+      "name": "verify (3.11, recycled-bit)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345020",
+      "name": "verify (3.11, entrance-banks)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345196",
+      "name": "verify (3.13, community)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345256",
+      "name": "verify (3.13, producers)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345025",
+      "name": "verify (3.13, certificates)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345075",
+      "name": "verify (3.13, ternary)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345122",
+      "name": "verify (3.13, research)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345066",
+      "name": "verify (3.13, tests)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345135",
+      "name": "verify (3.13, strips)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345114",
+      "name": "verify (3.13, clones)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345054",
+      "name": "verify (3.13, positive)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345045",
+      "name": "verify (3.13, joint)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345162",
+      "name": "verify (3.13, pair)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345160",
+      "name": "verify (3.13, partial-gauge)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345006",
+      "name": "verify (3.13, three-stage-cover)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345018",
+      "name": "verify (3.13, paired-cube)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345193",
+      "name": "verify (3.13, recycled-bit)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345171",
+      "name": "verify (3.13, entrance-banks)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345102",
+      "name": "verify (3.14, community)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345168",
+      "name": "verify (3.14, producers)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345032",
+      "name": "verify (3.14, certificates)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345112",
+      "name": "verify (3.14, ternary)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344961",
+      "name": "verify (3.14, research)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345084",
+      "name": "verify (3.14, tests)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345154",
+      "name": "verify (3.14, strips)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345103",
+      "name": "verify (3.14, clones)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345086",
+      "name": "verify (3.14, positive)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345029",
+      "name": "verify (3.14, joint)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345050",
+      "name": "verify (3.14, pair)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345085",
+      "name": "verify (3.14, partial-gauge)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345118",
+      "name": "verify (3.14, three-stage-cover)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345052",
+      "name": "verify (3.14, paired-cube)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345000",
+      "name": "verify (3.14, recycled-bit)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345145",
+      "name": "verify (3.14, entrance-banks)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345138",
+      "name": "ranked-pair-finite",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270345080",
+      "name": "formal (historical)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344931",
+      "name": "formal (gaussian)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38689007386/job/116270344615",
+      "name": "formal (matrix)",
+      "startedAt": "2026-10-15T05:50:53Z",
+      "status": "QUEUED",
+      "workflowName": "Verify research artifacts"
+    }
+  ],
+  "title": "Research: F-star cert(M) falsifier census on exact 3-total decoders (scoped negative, no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2335",
+  "github_changed_files": 7
+}

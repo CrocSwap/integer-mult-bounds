@@ -1,0 +1,12 @@
+# B253 VERDICT: NO-GO. The STAG+GLAZY S3-copy deletion violates the y final cap perp(P_t) in the RAW gauge-forward word itself. y170 is a REAL construction violation, not a port-stage artefact. No chain word, no kappa, no SHIP CANDIDATE.
+Method: copied B245 chain/wt to B253/chain/wt; gf.sh = patched gauge-forward only (env B245CF STAG GLAZY); prof.py = native gk_word.profile on any FULL-WORD; caps.py = non-asserting list of y regs ending outside perp(P_t); trace.py = per-register frame history.
+- Baseline raw (STAG=0 GLAZY=0 CF none): profile OK, caps.py -> []. port0 on it passes.
+- CF=0 raw (any STAG, GLAZY=1; NH 479, cgx says NVIOL 0): G.profile FAILS 'frame violation' reg 170 (cur full 9 vs perp(P_58)) BEFORE any port stage. caps.py: 4 y regs end outside perp(P_t): 170,171,174,175.
+- All 16 copies (NH 464): profile fails at y160; ALL 16 y regs 160..175 violate (caps.py).
+- Sweep (job 00_B253_sweep), each single copy CF=0..15, STAG=0/1: every one has exactly 4 violating y regs (STAG=0 only CF 0-7 are legal moves). No copy is clean.
+- cgx_leaver's NVIOL checks hyper(P_t)/explicit-frame ops, NOT the final perp(P) cap that gk_word.profile enforces. So the B247 "0 y-cap violations" is a gap in the check.
+- Mechanism (y170 = target 58, CF=0): deleting the copy makes the shared packet register 283 serve its readers directly. 'add 124 -= 283/2' moves from B12 (283 dim 2) to B245 (dim 4); 283 then grows 5->7->8 (reads by 299, 379). Helper 591 += 283 enters at dim 7 (base: 592 at dim 5), 'add 170 -= 591/2' needs F >= cur170 + cur591 = dim 9 > perp(P_58) (dim 8). Same at 'add 171 -= 283/2' (B929) and via 379 (y174), 598 (y175). Frames only grow, and the deleted copy was exactly what absorbed that growth.
+- Lazy widening is the minimal legal frame, so this is forced by the order, not by over-widening; the B245REPAIR failure (reg 170) is this same violation, merely surfaced at port0's profile call.
+Not run: ports 1-3, cold44, audit_local, exact kappa (no legal word). idle/owner assumption: moot (width_inventory untouched since no word); frozen #1018 IDLE would need re-plan if widths ever change.
+Revival would need a redesign so the packet registers' late readers (y58,59,62,63 etc. per CF) see a frame inside perp(P_t), e.g. keep a copy for those readers only; the price then loses most of the +1.3..2.0% credit (4 of 16 y-groups per copy).
+Files: gf.sh port.sh prof.py caps.py trace.py dif.py sweep.sh; out/g_cf0, out/g_all16, out/g_base (raw words), out/p0_cf0r/PRE.json.gz (repaired, shows y170 history).

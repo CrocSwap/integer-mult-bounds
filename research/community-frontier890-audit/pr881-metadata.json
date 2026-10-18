@@ -1,0 +1,50 @@
+{
+  "author": {
+    "id": "U_kgDOBnC2ow",
+    "is_bot": false,
+    "login": "SethBurkart123",
+    "name": "Seth Burkart"
+  },
+  "baseRefOid": "f567884aeb8851b6e794af1184119a3bfbe1e631",
+  "body": "**Independent verification of PR869's U8 complex word; no new \u03ba claimed.**\n\nI wrote a checker from the word semantics. It shares no code with `audit_local.py`, the PR799 verifiers or PR869's builders. It accepts PR869's U8 word (`090fd574\u2026`) and PR799's selected X4 word (`1e1d99ba\u2026`), and recounts exactly the claimed local profiles:\n\n- X4: `{1:2548, 2:338, 3:430, 4:194, 5:56, 8:8}`\n- U8: `{1:2548, 2:338, 3:446, 4:162, 5:72, 8:8}`\n\nBoth have width 3778. The checker also re-derives PR869's \u03ba = **0.001661948695165034** from its PLAN with interval arithmetic.\n\n**Methods (different from `audit_local`)**\n- **Exact scalar map:** residues mod 16 primes plus a rigorous height bound. The certified height is below 2^91, against a 2^492 limit.\n- **Compensation is solved, not propagated:** `Comp = Rest\u207b\u00b9\u00b7E\u00b7Pre\u207b\u00b9` must be the identity plus a target\u2190helper block that avoids every entering and low-end helper.\n- **Frames:** subspaces are held as 512-bit membership sets.\n- **Low-end cones:** exact nonzero patterns of the prefix and its inverse.\n- **\u03ba:** `mpmath` interval moments at both grid endpoints, plus the bootstrap closed form. Positive control: it reproduces PR799's \u03ba and that PR's recorded residuals.\n\n**Controls**\n- All 36 of PR869's mutant words are rejected, and its C0/recipe words pass.\n- Six further single mutations of U8 are each rejected for the intended reason.\n\n**Reproduction note for #869:** its README runs `reproduce_jx.py --frames-dir`, but the script only accepts `--sw4-dir`. With that flag, the rebuilt X4 and U8 words match the pins byte for byte.\n\n```sh\nPY=python3 bash research/u8-independent-xcheck/verify.sh OUT   # \u2192 PASS_U8_INDEPENDENT_XCHECK (~50 s)\n```\n\n- **Pins:** base `f567884a`, PR869 head `73e86f69`. The full log is in `VERIFY.log`.\n- **Not covered:** owner admission, hosting, the invoice, the 47 outer constraints (see #813), the PR589 bit supplier and PR870. The inherited all-size, realization, hosting, precision and analytic assumptions remain. This is a finite replay, not a formal proof.\n- **Credit and track:** the modular-CRT idea parallels #835. Assignment seed 80 (track 75\u201384).\n\nPrepared with substantial AI assistance.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "changedFiles": 5,
+  "files": [
+    {
+      "path": "research/u8-independent-xcheck/README.md",
+      "additions": 73,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/u8-independent-xcheck/controls.py",
+      "additions": 48,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/u8-independent-xcheck/price.py",
+      "additions": 41,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/u8-independent-xcheck/verify.sh",
+      "additions": 24,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/u8-independent-xcheck/xcheck.py",
+      "additions": 197,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "2730da199c4dad53b52b32b6be8ed6328f014648",
+  "isDraft": false,
+  "number": 881,
+  "state": "OPEN",
+  "statusCheckRollup": [],
+  "title": "Independent verification: PR869's U8 word and \u03ba with a code-disjoint checker (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/881"
+}

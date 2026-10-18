@@ -1,0 +1,1 @@
+The final frozen package passed full source reconstruction, all 71 exact duals, both rational moment engines and four rejection controls on macOS/Python3.14.8 and Linux aarch64/Python3.11.15. RESULT.json is byte-identical across platforms; CROSS-PLATFORM.json records its hash. GitHub CI is a separate check.

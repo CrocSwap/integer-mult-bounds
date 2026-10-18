@@ -1,0 +1,84 @@
+{
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "baseRefOid": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+  "body": "**Status: research note and scoped negative result (bit supplier). No new \u03ba; the selected result is unchanged and complex-bound.**\n\nTrack 00\u201319 (bit supplier), assignment seed 16 (OS CSPRNG via Python `secrets`). Base commit `2921874911956718fcaaaf9396fe8267b3cfa9f0`. Overlap check at submission: there is no open or recent PR on PR589 hosting optimality or bit helper widths. The last bit-hosting PRs are #462, #205 and #197, all on older words.\n\n## What was learned\n\n1. **Slot model (exact, unique).** The frozen nine-stage hosting of PR589 has, per replica, 666 slots of capacity 7, 444 of 14, 444 of 28 and 444 of 42. The total, 41,958, equals the coverage pending capacity. Every PR589 residual has width 8, and 8 divides none of these capacities. That is why the idle profile is fragmented: `{2:435, 4:444, 6:444, 7:666, 42:9}` per replica.\n2. **Width-8 re-hosting cannot help (certified).** Only 45 width-8 units of slack exist per replica. At c0 + 10\u207b\u00b2\u2074, a fully idle 42-slot is certified as the unique cheapest unit of slack, and the selected placement uses exactly those. No no-bank placement therefore raises the bit endpoint on the grid. The +12.3% free-concentration relaxation is unreachable at width 8.\n3. **Width 7 is the lever.** Width-7 residuals (hyperplane ends or rank-one entrances) fill every slot exactly. The table brackets one-unit conversions: removing a rank-one child gives the upper value, trimming the largest children the lower.\n\n| Converted helpers per call | Bit c gain | Bit-bound \u03ba cap |\n|---|---:|---|\n| 0 (selected, reproduced) | \u2014 | 0.001730427469823602 |\n| 1 | +0.068% \u2026 +0.082% | 0.001731599905939462 \u2026 0.001731841784869670 |\n| 10 | +0.72% \u2026 +0.86% | 0.001742786661941923 \u2026 0.001745239939229085 |\n| 74 (all empty 7-slots) | +5.6% \u2026 +6.7% | 0.001827854925395469 \u2026 0.001846290613254756 |\n| all 439 | +17.4% \u2026 +23.4% | 0.002031571973028065 \u2026 0.002134595909222345 |\n\nOne converted helper index is worth more than the whole PR589 tuning step (+0.0216%).\n\n4. **Supporting evidence on window timing.** The 7-slots are the template's one-level windows. In the selected complex T37 hosting on the same nine-stage template, all six one-level windows are completely hosted. The bit-side timing check remains open.\n\n## Reproduce\n\n```sh\nmake bit589-width-packing-verify\n```\n\nThe expected last line of the replay is `PASS_BIT589_WIDTH_PACKING_REPLAY`, followed by 6 unit tests, OK. It runs in about 3 s on standard-library Python 3.10+ with no network.\n\n- The replay regenerates `RESULT.json` byte-for-byte as JSON.\n- Both pinned engines certify every endpoint, with the inherited bit surcharge.\n- The \u03ba caps use the transcribed selected outer witness, with all 47 inequalities and \u03ba + 10\u207b\u00b9\u2078 rejected.\n- Six negative controls run: pattern moved, a capacity divisible by 8, a pin corruption, the next endpoint, lost coordinates, and too many residuals for the 7-slots.\n\n## Scope and remaining obligations\n\nThese are bit headroom numbers. \u03ba stays 0.001661960547713947 because the complex side binds.\n\nNothing here constructs a width-7 bit helper. Realizing any row needs:\n- hyperplane ends with cleanup retiming (the bit word's H4 literal reverse at the full frame is the first obstruction; cf. PR601), or rank-one entrances with kernels;\n- a window-timing and ownership audit of the bit one-level windows;\n- a re-emitted hosted template, invoice and bit assembly.\n\nThe partial rows are achievable values of one constructive placement in the slot model, not optima. All inherited all-size, realization, hosting, precision/tape, analytic and bit H1\u2013H5 assumptions remain.\n\n## Credit\n\n- DreamingOfClouds: PR589, and the PR510/PR463 nine-stage bit template.\n- eumemic: PR555.\n- DaysSky: the PR442 idle-axis hosting.\n- Jeremy Kothe: hyperplane ends (PR601).\n- Dominik Scholz: width-seven complex providers (PR569).\n- avirazza: the bit cap recorded in PR974.\n\nPrepared by Sagar Thakrar with substantial AI assistance from Claude (Anthropic) via Claude Code. New material is Apache-2.0.\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-13T16:49:26Z",
+      "authors": [
+        {
+          "email": "sagar@cybai.in",
+          "id": "",
+          "login": "",
+          "name": "Sagar Thakrar"
+        }
+      ],
+      "committedDate": "2026-10-13T16:49:26Z",
+      "messageBody": "\u2026idth-7 bit residuals (no new kappa)",
+      "messageHeadline": "Research note: PR589 bit hosting is width-8 optimal; exact price of w\u2026",
+      "oid": "babca68167d8db321d194b7dc54230d88a8ad5f0"
+    }
+  ],
+  "files": [
+    {
+      "path": "Makefile",
+      "additions": 7,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "research/bit589-width-packing/CLAIM.json",
+      "additions": 41,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-width-packing/README.md",
+      "additions": 153,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-width-packing/RESULT.json",
+      "additions": 348,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-width-packing/SOURCES.json",
+      "additions": 32,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-width-packing/packing.py",
+      "additions": 329,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-width-packing/test_package.py",
+      "additions": 79,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit589-width-packing/verify.py",
+      "additions": 136,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "babca68167d8db321d194b7dc54230d88a8ad5f0",
+  "isDraft": false,
+  "number": 1023,
+  "state": "OPEN",
+  "title": "Research note: PR589 bit hosting is width-8 optimal; width-7 residuals worth up to +17-23% bit headroom (no new kappa)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1023",
+  "merge_base": "2921874911956718fcaaaf9396fe8267b3cfa9f0"
+}

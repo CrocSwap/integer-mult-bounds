@@ -1,0 +1,482 @@
+{
+  "schema_version": 1,
+  "number": 2847,
+  "title": "Independent verification: #2802's seven-stage increment over #2751 (retired5 + retired7 stages) passes 28/28 rules and 20/20 controls; covers #2818's identical construction (no \u03ba)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NjIyMjg4",
+    "is_bot": false,
+    "login": "thakrarsagar",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2847",
+  "head": "f3786fa5d7e28d643f0efaf7d75089cb2909b337",
+  "merge_base": "544a7e82810e30cab61c297cb2e2ea86127fe944",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "research/t74-retired7-increment-audit/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "94c6111df823d57b0a10998ed5054fca5b32f5cf"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t74-retired7-increment-audit/RECEIPT.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f395e7b47fb1579c98c63bcc74611f72defce60c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t74-retired7-increment-audit/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5b1dfb144bf8c73b37e1f3bb027742cb736d0545"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t74-retired7-increment-audit/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "dd8903037611cdefc4d340a41feb0a7ec8f648ff"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t74-retired7-increment-audit/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4cd8b575acb63434a77a67f575e40a57b7eca4e4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t74-retired7-increment-audit/increment_audit.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e07d646920ff9f7b617371a8713219826862b602"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t74-retired7-increment-audit/increment_controls.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8015045e739cdf8829a43ce02648f7c5c6c12daa"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/t74-retired7-increment-audit/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4f20454da7904635b273aedeada1146419b97970"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/t74-retired7-increment-audit": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "**Label: Independent verification (no \u03ba).** Milestone: audit. No defect found. No selected frontier is changed and no \u03ba is claimed.\n\n## What this decides\n\nFresh standard-library code checks the construction behind PR #2802 (mdumitrean, head `17b2ee6e`): its seven declared stages, which turn PR #2751's two T74 BORROW-WORDs (tekuuu, head `4cfbb0cc`) into the words with git blobs `91bd9c68f209\u2026` (base) and `6c4a9a4395cf\u2026` (extra), plus the FILL2751 \u2192 FILL transform. The new construction is separated from #2751 and PR #2766, as the maintainer's T74 reviews ask (community-efficient1000, #1992 row: \"separate the actual new construction from inherited ancestors\").\n\n1. **The word construction passes: 28/28 named rules on both words, and all 20 negative controls are rejected by their named rules.** Seven pending claims build on these words (PR heads and blob identities read from the GitHub PR file lists at 02:10 UTC; all heads re-checked unchanged at 02:16 UTC; this list is dated and not part of the verifier):\n   - #2802 and #2818 ship these words unchanged. #2818 (jeremykothe2, head `175822ae`) has byte-identical words, fill, ORDER and providers, so the verdict covers its construction.\n   - #2824, #2827 and #2839 (Dugongue) vendor these words and #2802's fill (`6441c0be\u2026`).\n   - #2833 (jeremykothe2) uses #2818's `retired7_43{base,extra}.json` patch blobs unchanged, and #2843 (mdumitrean) builds on #2833.\n2. **Neither of #2802's two changed acceptance checks is an acceptance gap for \u03ba.**\n   - R is bound to the words. R = 408 is derived here from the words, not from the providers, and #2802's own `compact()` check and the inherited ENTRANCE-WIDTH-BINDING stage already tie it to them.\n   - Alias occupancy holds for the shipped words. No check on the model's pricing path reads it, so in the finite model it is a conformance property, not a soundness condition for \u03ba (details below).\n3. **Not covered:** the later stages of #2824, #2827, #2833, #2839 and #2843 (allocations, fills, reserves, `dirtentry`, block-norm accounting, T124); #2818's 10\u207b\u00b3\u2070\u2070\u2070 endpoint; native lowering; the T74/#1319 supplier admission; the PR1673 outer proof. A pass is necessary but not sufficient for any of these claims.\n\n## Reproduce\n\nFrom the repository root, with `git` and Python (standard library only):\n\n```sh\npython3 -I -B research/t74-retired7-increment-audit/verify.py --fetch\n```\n\nExpected last line (about 2 minutes, under 0.6 GB RSS):\n\n```text\nPASS_T74_RETIRED7_INCREMENT_AUDIT rules=28/28 controls=20/20 commit2802=17b2ee6ef3cf commit2818=175822aee7a1\n```\n\n`--fetch` downloads `refs/pull/{2802,2751,2818,2766}/head` only if a pinned commit is absent, and writes only `FETCH_HEAD`. Every input is checked against a sha256 pin. `--out RECEIPT.json` rewrites the deterministic receipt shipped in the package; reruns are byte-identical.\n\n**Python versions.** Only Python 3.14 was run. `VERIFY.json` registers the same argv for `scripts/research_package.py`, whose hook pins Python 3.12; that hook was **not** replayed locally, because only 3.14 is installed. `--check-only` metadata validation passes.\n\n## Base and pins\n\n- Base commit `544a7e82810e30cab61c297cb2e2ea86127fe944` (priority revision 5). `origin/main` has since moved to `d3597057`. None of its changes touch this package, so the branch was not rebased.\n- PR heads: #2802 `17b2ee6ef3cf1468e78a6267f0ecbc9a0e6f60dd`, #2751 `4cfbb0cc8314d7fb4e8e754545a49a42eb590a69`, #2818 `175822aee7a1858ec653f7f92d7a750aec2c2795`, #2766 `e6df920cd0110e4b629e2ad84eddcb539001e174`. The 48 input blobs are pinned by sha256 in `increment_audit.py` (`PINS`).\n- PR code was read only as pinned data. It was never imported or executed.\n\n## What is checked (both words)\n\n- **S1 event diff.** Every difference between W2751 and W2802 is a declared stage edit:\n  - 63 B relabels (35 `alias5`, 14 `hostmove2`, 14 `alias7`) at exactly the declared positions;\n  - 62 frame changes (26 `refit5`, 32 `refit5c`, 2 `refit7`, 2 `refit7c`);\n  - warps 30/31 replaced in place and warps 66\u201372 appended;\n  - everything else unchanged.\n- **S2 occupancy timeline.** 704 register segments (632 live + 72 warps; parent 639 + 65), each exactly one parent role. Lenders 550\u2013553/562 retire in B (B901\u2013B910). Only 401/403 retire in A (A3175/A3174), before warps 71/72 at B259/B262. The moved hostees enter 564/565 at B941/B944, after those lenders' last events at B911/B912.\n- **S2 replay.** An exact free-algebra replay over \u211a\u27e8free group\u27e9 passes forward and dual, with 632 dirty inputs and 72 zero buffers. The re-derived 4,547-item cleanup equals the shipped one. A second method, random invertible 4\u00d74 matrices over GF(2\u2076\u00b9\u22121) for 2 seeds, also passes.\n- **S3 frames.** For 72 B warps and 24 prelude warp items: G is invertible, G(U) = E, G\u207b\u1d40(U^\u22a5) = E^\u22a5, and K_G maps L_U onto L_E, with U the lender's actual propagated frame. Refit frames at the propagated floor: `refit5` 26/26, `refit7` 2/2, `refit7c` 2/2, `refit5c` 25/32. The 7 above-floor `refit5c` frames are cost-neutral: lowering any one of them, or all seven, leaves the profile unchanged.\n- **S4 profile.** The local profile `{1:2382,2:648,3:268,4:128,5:26,8:8}` (mass 5188) and the inventory `{4:26,5:2,7:62,8:78,9:240}` (408 helpers) are confirmed by two subspace representations.\n- **S5 fill with word-derived R.** R = 408. The fill has 271,728 = 666 \u00d7 408 roles in 1,332 windows, idle `{1:17316,3:6594,5:9878,32:1,48:26558}`. It equals FILL2751 minus exactly the 4,662 roles of the seven followers.\n- **S6 price (repeat check).** Complete profile mass 4,816,512. f(C) < 66,304 < f(C + 10\u207b\u00b2\u2074) for C = 0.001717794984118634663827. The evaluation is at 80 digits with a written error budget and a 10\u207b\u2077\u2070 widening; the minimum bracket margin is 1.046\u00d710\u207b\u00b2\u2070. Exact margins over #2751, #2766 and #2767.\n- **Positive control.** The same code reproduces #2751's profile, replays, fill (R = 415, 276,390 roles) and claimed complete profile.\n\n**Separating the new construction from its ancestors.** This independently reproduces the split #2802 itself states and records in `evidence/retired5/`:\n\n| step | endpoint C | gain |\n|---|---|---|\n| PR2766 | 0.001717256973467002308270 | \u2014 |\n| retired5 stages (`refit5`, `alias5`, `refit5c`) | 0.001717409316335491643448 | +1.523\u00d710\u207b\u2077 over PR2766 |\n| retired7 stages (`refit7`, `hostmove2`, `alias7`, `refit7c`) | 0.001717794984118634663827 | +385667783143020379/10\u00b2\u2074 \u2248 3.857\u00d710\u207b\u2077 over retired5 |\n\nThe reconstructed retired5 fill reproduces #2802's recorded `fill_sha256` `3501f6bd\u2026`. If the local zlib differs, a canonical-JSON pin is used instead and a `NOTE:` line says so.\n\n**Provenance correction.** #2802 credits 20 frames to PR2766. PR2766's own pinned word changes **only B1151**. The other 19 (A0\u2013A11, B771/773/776/778/783/788, restore60) are #2802's own `refit5c` choices and are cost-neutral (rule `ATTRIBUTION-PR2766-WORD`).\n\n## Alias occupancy (the replaced control for lenders retiring in A)\n\nFor `alias7`, #2802 replaced the control \"warp before lender retirement\" with \"warp after the follower's first gate\". No shipped control moves 401's or 403's own event past its alias warp, so the package builds such mutants:\n\n- **C4a/C4c** move a dead last write into B after the alias warp, at the lender's own frame. Both scalar replays accept them; the frame chain rejects them (`frame not monotone`).\n- **C4d/C4e** move a dead last write (one after the lender's last read) to the end of restore at frame FULL. Both replays, the frame chain, the recount, the refits, the fill and the price all **accept** them, with the profile unchanged. Only OCC-TIMELINE rejects them (plus S1-DIFF and X-2818, as undeclared edits).\n- **C4f/C4g** move a lender read, or a write the lender still reads, the same way. Both replays reject them.\n\nConsequences:\n\n- No rule on the model's pricing path reads occupancy: not our replays, frame chain, recount, fill or price, and not the pinned PR2679 auditor (read, not run). In the finite model, occupancy is therefore a conformance property, not a soundness condition for \u03ba.\n- C4d passes because the moved write is dead. Follower 667 borrows the register dirty, and the re-derived inverse-reverse cleanup undoes the moved write first. These controls are examples, not a classification of all violations.\n- #2802's `verify_retired7.py` enforces occupancy structurally (read, not run): A and restore are unchanged through all stages, and the declared stages must rebuild the word. #2818's `rebuild_borrow.py` retired7 patch check has no occupancy predicate, but its words are byte-identical, so OCC-TIMELINE establishes occupancy for them.\n- What is missing is at most an optional regression control. It is not needed for \u03ba in the finite model.\n- Unchecked: whether any layer outside the finite model (native lowering, physical hosting) relies on occupancy. The package checks only the binary-symplectic conditions of PR2226 \u00a71's Clifford identity, not the operator-level identity.\n\n## Negative controls (20)\n\nEach control counts only if its named rule rejects it. Seven controls also carry `must_accept`/`exact_failing` expectations, all of which are met. No rule crashes.\n\n- **C1** undo `refit7`.\n- **C2** revert the hostee move.\n- **C3** place warp 66 early.\n- **C4a\u2013C4g** the occupancy controls above.\n- **C5** warp 71 after the follower.\n- **C6** wrong G.\n- **C7** a consistent (U\u2032, G(U\u2032)) pair with U\u2032 not the propagated frame.\n- **C8** keep follower 667 live: words say 409, providers and fill say 408.\n- **C9** swap the lenders (declaration conformance).\n- **C10** drop a restore gate.\n- **C11** fill inflated to R + 1.\n- **C12** hostee gate left on the old lender.\n- **C13** undeclared frame raise.\n- **C14** #2818 word altered by one sign.\n\nThe full table, with the recorded reason for each, is in the README and `RECEIPT.json`.\n\n## Scope, assumptions and unresolved obligations\n\n- **Model.** The finite BORROW-WORD model of PR2226 `PROOF.md` and the PR2679/PR2751 lineage is taken as the specification and is not validated here.\n- **Not re-derived.** #2751's twelve-source recovery, its 4(H8\u2212H7\u2212H1) delta and the PR2720 reconciliation. A sibling session claimed these in #2612. W2751 is a pinned parent, and #2802's copies were checked byte-identical to #2751's own files.\n- **Author-recorded in #2802's release; not independently re-checked:**\n  - native lowering and Clifford recipes for the new warps 30, 31 and 66\u201372;\n  - the `strict-t74` record. It carries the supplier-only \u03ba 0.001714849224721887 under the older outer witness, not the claimed \u03ba;\n  - the modern outer arithmetic that yields C.\n- **Inherited and open.**\n  - The T74/#1319 supplier admission and the PR1673 capped phase-cell fusion outer.\n  - #2802's own listed scope items: the all-size compiler, hosting, precision/tape, exact recovery, analytic transfer, the PR559 correction and the PR589 assumptions.\n  - The \"at most two aliases\" census and philippeVV's 670/671 note.\n  - #2818's 10\u207b\u00b3\u2070\u2070\u2070 endpoint.\n- **Claim strength.** This is a finite exact check of one construction, not a proof of the multiplication theorem. A pass removes no inherited obligation.\n- **Search record.** No search was run. All checks are finite and exact on fixed pinned inputs. The matrix-realisation seeds are fixed at 1 and 2.\n\n## Open next questions\n\n1. Does any layer outside the finite model (native lowering, physical hosting) rely on alias occupancy?\n2. Is the whole refit frame assignment optimal under the moment cost? A better assignment could only raise \u03ba.\n3. Do the new warps 30, 31 and 66\u201372 have exact native Clifford/Gaussian lifts in both orientations?\n\n## Credit and what this adds\n\n- **Checked work.**\n  - Marius-Paul Dumitrean (@mdumitrean), #2802: the retired5 and retired7 stages and the recorded retired5 evidence.\n  - Jeremy Kothe (@jeremykothe2), #2818: concurrent repackaging of #2802 with a finer endpoint. Also #2767 and the #2673/#2745 lineage.\n  - Tekalign (@tekuuu), #2751: the parent words and fill.\n  - Philippe Van Velzen (@philippeVV), #2679/#2559: retired-lender aliases and pre-life hostings.\n  - Cinna Davis, #2226: anticipatory dirty borrowing.\n  - Mason Hale, #2696: the eight-lender assignment.\n  - @DavidAriasC, #2766: the B1151 refit.\n  - Vlado-V, #2322.\n  - zxv, #2530.\n- **Downstream claims.** Dugongue (#2824, #2827, #2839), jeremykothe2 (#2833) and mdumitrean (#2843).\n- **Related prior audits.** commdata2338's #2656. This account's merged #2315 was the semantic reference for the model; no code was copied. Sibling PR #2804 (same account) audits #2530's words and the #2679 order/windows.\n- **What this adds.** Before this, nobody had checked #2802's stages, the occupancy of lenders that retire in A, or the word-derived R. #2818 replays inside its own lineage verifier, which is not independent. This package provides fresh code for all three, together with a provenance correction for the 20 frames credited to PR2766.\n\n## Sprint, claim and review provenance\n\n- **Sprint.** Track 60\u201374 (adversarial mathematical audit), OS-random seed 71.\n- **Claim.** https://github.com/CrocSwap/integer-mult-bounds/discussions/1163#discussioncomment-18961174. Canonical thread: #2612.\n- **Review.** The package was reviewed by seven independent AI review passes in the same loop, and revised after each round. Round 1 had four passes (reproducibility, mathematics, provenance, referee). Round 2 had three (mathematics, reproducibility, referee). The round-1 fixes include:\n  - correcting an overstated occupancy claim;\n  - correcting the PR2766 frame provenance;\n  - applying the root-bracket widening at a precision where it takes effect.\n\n  The README lists every change. No human has checked the findings by hand.\n\n## Attribution and AI assistance\n\nPrepared by @thakrarsagar with substantial AI assistance from Claude (Anthropic, Claude Opus 5.5) via Claude Code, in an automated research-sprint loop. Claude wrote and ran the code and these notes. Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705201/job/116776723775"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705229/job/116776723696"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705189/job/116776723657"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705210/job/116776723944"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723996"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705190/job/116776723373"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705201/job/116776723611"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705189/job/116776723508"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705210/job/116776723855"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724022"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705190/job/116776723578"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723925"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723977"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724103"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723971"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723982"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724131"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724050"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723961"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723987"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724104"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724004"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724052"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723954"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724110"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724030"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724035"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723974"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724102"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724012"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724108"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724063"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724051"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724088"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724084"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724125"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724128"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724019"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724068"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724145"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724099"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724069"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724048"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724130"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724086"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724114"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724172"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724162"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724054"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724107"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724094"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724074"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724167"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724169"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723970"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724015"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776724002"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723502"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723851"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723731"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38839705204/job/116776723730"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "3264105e90091e3d491187838a90c21a04daea6bb121473ffbec9d352aa5191f"
+}

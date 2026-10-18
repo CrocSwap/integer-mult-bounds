@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "number": 731,
+  "title": "Independent verification: R420 compensation rank and minimum-weight kernel",
+  "author": {
+    "id": "MDQ6VXNlcjExNDY1Mzg=",
+    "is_bot": false,
+    "login": "jsnider3",
+    "name": "Joshua Snider"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/731",
+  "head": "cf5ff54a358b400a7e69abe941d1d0ad0944b25e",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/r420-compensation-rank80/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "73a4825f210777a3eba8946303f8cb6a6a4d3951"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-compensation-rank80/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6a6856c6b57143cddc0b7e6742eefee1e1cfa847"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-compensation-rank80/OVERLAP.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7a7d2024fb06d1ed10e9409829d88a0230b0a200"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-compensation-rank80/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "f642af9d50c21928a26443862ddea9b22bf6fa40"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-compensation-rank80/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0fabbd9da742a995e0690180d26142e3daf76cc4"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-compensation-rank80/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "00c503c43082dee787fa53bee81edb27dd14e091"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-compensation-rank80/test_verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "4405a25f1cc1df0b1b57e97878c4111be174fa86"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/r420-compensation-rank80/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "58d9ae81bc20625579b18aeebf1d8b3d8028d68a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/r420-compensation-rank80": 8
+  },
+  "github_reported_file_count": 8,
+  "complete_git_file_count": 8,
+  "body": "This **independent verification** certifies the accepted PR543 R420 dirty-helper correction matrix: **rank 120, nullity 300, minimum nonzero kernel weight 4**, with exactly **18** weight-four kernel vectors. No new circuit or kappa is claimed.\n\nThe verifier pulls target observables backward through A/scatter/B, independently of the predecessor's forward symbolic interpreter. It checks J=I, V=I and K=D, both products of an explicit 120-by-120 inverse minor, a complete 300-vector kernel basis, and 120 dirty inputs that each isolate one target error when compensation is omitted. The complete D/A/scatter/B/C scalar endpoint also passes on all 660 input columns.\n\nAll 87,990 helper-column pairs are checked to exclude kernel weights below four and enumerate every weight-four support. One exact cancellation uses absolute helpers **{284, 296, 521, 623}**. A separate Boolean interpreter reads the literal source independently and checks all 420 helper-basis directions, plus every nonempty subset of all 18 minimum-weight supports.\n\nA scoped consequence is that a linear factorization of this fixed K through r summaries requires r >= 120. This says nothing about XOR optimality, sequential scratch reuse, or a different supplier.\n\n```sh\npython3 -I -B research/r420-compensation-rank80/verify.py\npython3 -I -O -B research/r420-compensation-rank80/test_verify.py\n```\n\nExpected: `PASS_R420_DIRTY_RANK rank=120 nullity=300 distance=4 pairs=87990 isolated_errors=120 controls=10`, then seven tests pass. Python 3.10+ standard library only.\n\nValidation passed on Linux x86_64 / Python 3.12.3: normal and optimized runs, byte-identical regenerated certificate, minimal clean export, ten rejecting controls, seven obligation tests, the unchanged PR543 frame/scalar/interface checker, selected-record integrity, review-ledger checks and staged whitespace. Controls include a rank-preserving wrong compensation, a dependent kernel basis, and cleanup damage that leaves K unchanged. Source corruption is rejected; gzip recompression is accepted by decoded payload. Full hosted/native construction, repository-wide suites, Lean and remote CI were not rerun or claimed.\n\nBase: `66849e1475c930fd7732b1a0067ffee7e1e95f60`. PR543: `2065fe4f72a914d907f1046603f5a36f17018535`. Selected PR626: `660de893d27bb7abd1d5b01b1640207528a5c851`. Exact source/blob/payload pins, certificate, proof, validation and local claim are included. Only `research/r420-compensation-rank80/` is added. The selected frontier and `upstream/` are unchanged; inherited all-size/compiler, common-label/mutable-basis, hosting, precision/tape and analytic obligations remain.\n\nOS assignment seed **80**, independent-verification track. No pinned coordination issue existed. The final queue refresh covered 547 open PRs through #728. Concurrent #686/#694 helper-basis and #713/#716 target-basis circuits are credited; this adds a different verification method and explicit rank/kernel evidence for their accepted baseline, without importing or certifying their changes. #612's Lean boundary/B work and #717/#718's different scoped limits are distinguished. This is separate from my #695 CI reconciliation and #712 complex cold-wrapper certificate.\n\nCredit remains with **eumemic's PR543** and the original PR493/370/425/472/510 lineage, their preserved notices, and the selected construction authors. Prepared by **Joshua Snider**, with substantial **OpenAI Codex assistance** in analysis, implementation, verification and writing. Apache-2.0. Independent implementation does not imply independent human review or a formal proof of integer multiplication.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "0f07975a163eaaffa3ffbc89c6bb7ebd22726337261258477c783beff8e9479b"
+}

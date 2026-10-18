@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/exclusion_circuit.py",
+    "certificates/positive-side-core.json",
+    "certificates/dyadic-central-factor.json",
+    "certificates/ternary-side.json",
+    "certificates/disjoint-tensor-compression.json",
+    "tests/test_disjoint_tensor.py",
+    "tests/test_complex_centers.py",
+    "tests/test_positive_side_core.py",
+    "tests/test_ternary_side.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Exact baseline copy of the base-commit exclusion_circuit.py; identical ExclusionCircuit.verify receipts on n in {4,6,8,12,16,24,32,45}; closed-form masks match the historical genexpr; xor-mutant rejected; support-bit rejection preserved; the four binding certificates differ from base only in the exclusion_circuit.py source pin."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-O",
+        "-B",
+        "{package}/verify.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Same digest/mask equivalence under -O. Historical support checks use assert and are stripped under -O; circuit_sha256 identity and certificate pin discipline remain the gates."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_exclusion_support_masks.py",
+        "-v"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Focused exclusion-support-masks package controls."
+    }
+  ]
+}

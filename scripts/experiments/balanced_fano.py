@@ -74,6 +74,33 @@ def assignments(W, pairs):
     yield from descend(0, tuple(1 << i for i in range(W)), ())
 
 
+def _column_assignments(W, pairs):
+    """The same ordered assignments, with columns packed into one integer.
+
+    Column j occupies bits W*j through W*j+W-1. A row operation can then
+    update its two bits in *every* column using masks and shifts, before
+    unpacking the columns once at each leaf. No assignment is skipped.
+    """
+    pairs = tuple(pairs)
+    column_mask = (1 << W)-1
+    starts = ((1 << (W*W))-1)//column_mask
+    identity = sum(1 << (i*(W+1)) for i in range(W))
+
+    def descend(depth, state, word):
+        if depth == len(pairs):
+            yield tuple((state >> (W*j)) & column_mask for j in range(W)), word
+            return
+        a, b = pairs[depth]
+        x, y = (state >> a) & starts, (state >> b) & starts
+        values = (0, x, y, x^y)
+        other_rows = state & ~((starts << a) | (starts << b))
+        for k, (s, t) in enumerate(GL2):
+            new = other_rows | (values[s] << a) | (values[t] << b)
+            yield from descend(depth+1, new, word+(k,))
+
+    yield from descend(0, identity, ())
+
+
 def inverse_choice(k):
     for j in range(6):
         if execute(2, [(0, 1), (0, 1)], [k, j]) == (1, 2): return j
@@ -95,19 +122,22 @@ def existence(W, pairs, prescribed=None, half_budget=300000):
     width = (W+7)//8
     def packed(key): return b''.join(v.to_bytes(width, 'big') for v in key)
     seen = {}; prefix_hash = sha256(); suffix_hash = sha256(); prefix_count = suffix_count = 0
-    for rows, word in assignments(W, pairs[:split]):
-        k = key(columns(rows), source_fixed)
-        seen.setdefault(k, (rows, word))
+    for cols, word in _column_assignments(W, pairs[:split]):
+        k = key(cols, source_fixed)
+        # The first word reconstructs its columns exactly if a match is found;
+        # retaining every prefix matrix is unnecessary for existence.
+        seen.setdefault(k, word)
         prefix_hash.update(packed(k)); prefix_count += 1
     found = None
-    for rows, word in assignments(W, list(reversed(pairs[split:]))):
+    for cols, word in _column_assignments(W, list(reversed(pairs[split:]))):
         # These are inverse-suffix words. Inversion is a bijection on GL2,
         # so this enumeration covers every possible suffix exactly once.
-        cols = columns(rows); k = key(cols, output_fixed)
+        k = key(cols, output_fixed)
         suffix_hash.update(packed(k)); suffix_count += 1
         if k not in seen: continue
-        A, prefix_word = seen[k]
-        rho = tuple(cols.index(c) for c in columns(A))
+        prefix_word = seen[k]
+        prefix_cols = columns(execute(W, pairs[:split], prefix_word))
+        rho = tuple(cols.index(c) for c in prefix_cols)
         suffix_word = tuple(inverse_choice(j) for j in reversed(word))
         full_word = prefix_word+suffix_word
         transfer = execute(W, pairs, full_word)

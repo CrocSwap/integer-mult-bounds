@@ -1,0 +1,27 @@
+name: Cyclic inverse stride bridge
+on:
+  pull_request:
+    paths:
+      - 'research/cyclic-inverse-stride-bridge/**'
+      - '.github/workflows/cyclic-inverse-stride-bridge.yml'
+  push:
+    paths:
+      - 'research/cyclic-inverse-stride-bridge/**'
+      - '.github/workflows/cyclic-inverse-stride-bridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B -I -O research/cyclic-inverse-stride-bridge/verify.py --check

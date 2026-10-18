@@ -1,0 +1,191 @@
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/complex-rank8-decoder-rigidity/verify.py']
+== A. model and pivot
+PASS A.lines | 120 root lines
+PASS A.gram-offdiag | off-diagonal Gram values [-1, 0, 1]
+PASS A.label-rank | N = (G+1) mod 2 has F2 rank 9 and distinct rows
+PASS A.frame0 | live=112
+PASS A.pivot-frame | F=[2, 3, 16, 17, 46, 47, 52, 53]
+PASS A.pivot-odd-four | every one of the 112 non-pivot lines is odd to exactly 4 pivot lines
+PASS A.pivot-signs | with inner products +-1
+== B. D4-block structure relative to the pivot
+PASS B.blocks-14 | 14 blocks of 8 lines (112 lines)
+PASS B.steiner | S(3,4,8): every 3 points in one block, every 2 in three, blocks meet in 0 or 2, complement-closed
+PASS B.classes-28 | 28 classes of 4 lines
+PASS B.class-4frames | each class is 4 mutually orthogonal lines
+PASS B.hadamard | class sign matrices are 4x4 Hadamard (orthogonal rows and columns)
+PASS B.orthogonality-rule | <r_i,r_j> = (1/2) sum over shared pivot lines of sign products; overlaps 0/2/4; overlap-4 pairs are orthogonal iff same class
+PASS B.punctured-classes | P112: 26 complete classes; the 2 empty classes are FRAME0 and lie in complementary blocks
+PASS B.groups | in each of the 26 complete classes every column pair splits the rows into two groups of two
+PASS B.three-matchings | complementary column pairs give the same pairing; the three pairings are distinct matchings of K4
+PASS B.frame-transitivity | 2025 frames in E8, all reachable from FRAME0 by reflections
+== C. zero exclusion by RUP replay
+PASS C.cnf-size | 3744 vars, 29820 clauses, families {'two': 4608, 'four': 312, 'diag': 104, 'trans': 52}
+PASS C.cnf-digest | sha256 c1082b339fcbbd39...
+PASS C.trivial-pattern-satisfies | the all-nonzero pattern satisfies every clause
+PASS C.rup-refutation | proof-P112.drup: 1722 lemmas replayed; empty clause derived
+PASS C.cnf-size-reduced | reduced CNF: 1248 vars, 19784 clauses, families {'two': 4608, 'four': 0, 'diag': 104, 'trans': 0}, sha256 f4e38d4cee6fcadb...
+PASS C.rup-refutation-reduced | proof-P112-two-diag.drup: two-term + diagonal families only; 3001 lemmas; empty clause derived
+== D. witnesses for the within-class and gluing lemmas
+PASS D.class-witnesses | each of the 312 (complete class, column pair, group of two rows) triples has a live orthogonal witness in another block
+PASS D.gluing-witnesses | 576 ordered pairs of complete classes in blocks meeting in two points: each line of one is orthogonal to exactly the two sign-rule rows of the other
+PASS D.block-live-class | each of the 14 blocks has a complete live class
+PASS D.complete-classes | every live non-pivot line lies in a complete live class
+== E. corollary mechanics (exact rational arithmetic)
+PASS E.gauge-solves | D (2G) D^{-1} has rank 8 and solves the E-graph system
+PASS E.factorisation | X = D R A, Y = D^{-1} R (2A^{-T}) reproduces K exactly (sampled dual basis)
+PASS E.normal-form-supports | sampled term supports are C(a_k), C(b_k) (PR968 normal form)
+PASS E.sample-normals | orthogonal-root span dimensions of the sampled normals: a [6, 6, 5, 6, 6, 6, 5, 6], b [0, 0, 0, 0, 0, 0, 0, 0] (hyperplane-flat normals have 7)
+PASS E.sample-cost | sampled 8-term costs [9, 9, 9, 9, 9, 9, 9, 9], cst 72 >= 64
+PASS E.coordinate-decoder | coordinate decoder cst = 64 (attains the floor)
+== F. negative controls
+PASS F.relaxed-cnf-accepts-all-zero | two-term + four-term clauses alone are satisfied by the all-zero pattern
+PASS F.corrupted-proof-rejected | inserted non-RUP unit lemma: lemma 1 is not RUP; truncated proof: proof ended without the empty clause
+PASS F.proof-needs-some-zero | without the "some zero" clause: lemma 1 is not RUP
+PASS F.single-block-not-rigid | a zero-free non-Hadamard class matrix (Pascal) with B = 16 A^{-T} satisfies all equations of its own block (exactly (E4) and (E0); B.orthogonality-rule shows a block has no others)
+PASS F.minor-obstruction | the group minor that a live witness forces to vanish (Lemma 5, eq. (4)) is nonzero for it
+PASS F.assembly-needs-gluing | class-dependent column scalings: (E0),(E4) hold but 4608/4608 two-term equations fail
+PASS F.assembly-control | glued scalings: all 4608 two-term equations hold and (1/4) K[:,F] K[F,:] = D (2G) D^(-1) with the Section 7 d_i, d_f
+PASS F.rank9-not-gauge | 2G + e_i e_j^T (odd pair) solves the E-graph system with rank 9 and is not D(2G)D^(-1)
+== G. beyond one frame: stabiliser orbits, witnesses and zero exclusion on P111 and the P104 units
+PASS G.stabiliser-generators | 204 line permutations from single/double reflections fixing FRAME0 as a set
+PASS G.line-orbits | the 112 lines of P112 form one orbit: all P111 units are equivalent
+PASS G.frame-orbits | 1260 frames in P112 fall into orbits of sizes [28, 336, 896], one per class-hit type
+PASS G.pr717-p104-orbit | PR717/PR968 P104 clique lies in the 896-orbit (admissible type)
+PASS G.P111.unit | P112 minus line 2; live 111; pivot [4, 5, 14, 15, 46, 47, 52, 53]; classes: 25 complete, 1 incomplete (sizes [3, 4]); blocks with a complete live class 13/14; CNF families ['diag', 'two']: 1236 vars / 19387 clauses, sha256 b77a33efd19b
+PASS G.P111.class-witnesses | every complete live class has its live group witnesses in other blocks
+PASS G.P111.zero-exclusion | proof-P111.drup: 3033 lemmas; empty clause derived
+PASS G.P111.theorem-transfers | not established: 1 incomplete classes, only 13/14 blocks have a complete live class
+PASS G.P104-44.unit | P112 minus the frame (2, 3, 16, 17, 46, 47, 52, 53) (type (4, 4)); live 104; pivot [4, 5, 14, 15, 48, 49, 50, 51]; classes: 24 complete, 0 incomplete (sizes [4]); blocks with a complete live class 12/14; CNF families ['diag', 'four', 'trans', 'two']: 3456 vars / 25872 clauses, sha256 d984852f7428
+PASS G.P104-44.class-witnesses | every complete live class has its live group witnesses in other blocks
+PASS G.P104-44.zero-exclusion | proof-P104-44.drup: 3191 lemmas; empty clause derived
+PASS G.P104-44.theorem-transfers | not established: only 12/14 blocks have a complete live class
+PASS G.P104-2222.unit | P112 minus the frame (2, 3, 18, 19, 40, 41, 52, 53) (type (2, 2, 2, 2)); live 104; pivot [12, 13, 22, 23, 30, 31, 36, 37]; classes: 24 complete, 0 incomplete (sizes [4]); blocks with a complete live class 14/14; CNF families ['diag', 'two']: 1152 vars / 16864 clauses, sha256 8b18530f0ff8
+PASS G.P104-2222.class-witnesses | every complete live class has its live group witnesses in other blocks
+PASS G.P104-2222.zero-exclusion | proof-P104-2222.drup: 2606 lemmas; empty clause derived
+PASS G.P104-2222.theorem-transfers | Theorem 1 holds on this unit: all finite inputs of the proof verified
+PASS G.P104-11111111.unit | P112 minus the frame (2, 18, 40, 52, 77, 86, 107, 112) (type (1, 1, 1, 1, 1, 1, 1, 1)); live 104; pivot [12, 13, 22, 23, 30, 31, 36, 37]; classes: 22 complete, 4 incomplete (sizes [2, 4]); blocks with a complete live class 14/14; CNF families ['diag', 'two']: 1152 vars / 16992 clauses, sha256 900d21c66ca2
+PASS G.P104-11111111.class-witnesses | every complete live class has its live group witnesses in other blocks
+PASS G.P104-11111111.zero-exclusion | proof-P104-11111111.drup: 2959 lemmas; empty clause derived
+PASS G.P104-11111111.theorem-transfers | not established: 4 incomplete classes
+PASS_COMPLEX_RANK8_DECODER_RIGIDITY: live P112; pivot [2, 3, 16, 17, 46, 47, 52, 53]; blocks 14; classes 26 complete; frames 2025; zero-pattern CNF 3744 vars / 29820 clauses; proof lemmas 1722 (+3001 reduced); coordinate cst 64
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/complex-rank8-decoder-rigidity/verify.py', '--live', 'P120']
+== A. model and pivot
+PASS A.lines | 120 root lines
+PASS A.gram-offdiag | off-diagonal Gram values [-1, 0, 1]
+PASS A.label-rank | N = (G+1) mod 2 has F2 rank 9 and distinct rows
+PASS A.frame0 | live=120
+PASS A.pivot-frame | F=[0, 1, 26, 27, 44, 45, 54, 55]
+PASS A.pivot-odd-four | every one of the 112 non-pivot lines is odd to exactly 4 pivot lines
+PASS A.pivot-signs | with inner products +-1
+== B. D4-block structure relative to the pivot
+PASS B.blocks-14 | 14 blocks of 8 lines (112 lines)
+PASS B.steiner | S(3,4,8): every 3 points in one block, every 2 in three, blocks meet in 0 or 2, complement-closed
+PASS B.classes-28 | 28 classes of 4 lines
+PASS B.class-4frames | each class is 4 mutually orthogonal lines
+PASS B.hadamard | class sign matrices are 4x4 Hadamard (orthogonal rows and columns)
+PASS B.orthogonality-rule | <r_i,r_j> = (1/2) sum over shared pivot lines of sign products; overlaps 0/2/4; overlap-4 pairs are orthogonal iff same class
+PASS B.punctured-classes | P120: all 28 classes complete
+PASS B.groups | in each of the 28 complete classes every column pair splits the rows into two groups of two
+PASS B.three-matchings | complementary column pairs give the same pairing; the three pairings are distinct matchings of K4
+PASS B.frame-transitivity | 2025 frames in E8, all reachable from FRAME0 by reflections
+== C. zero exclusion by RUP replay
+PASS C.cnf-size | 4032 vars, 33768 clauses, families {'two': 5376, 'four': 336, 'diag': 112, 'trans': 56}
+PASS C.cnf-digest | sha256 f50dd6fa63077a0d...
+PASS C.trivial-pattern-satisfies | the all-nonzero pattern satisfies every clause
+PASS C.rup-refutation | proof-P120.drup: 2045 lemmas replayed; empty clause derived
+PASS C.cnf-size-reduced | reduced CNF: 1344 vars, 22960 clauses, families {'two': 5376, 'four': 0, 'diag': 112, 'trans': 0}, sha256 86e27f4bb6ac6d36...
+PASS C.rup-refutation-reduced | proof-P120-two-diag.drup: two-term + diagonal families only; 2439 lemmas; empty clause derived
+== D. witnesses for the within-class and gluing lemmas
+PASS D.class-witnesses | each of the 336 (complete class, column pair, group of two rows) triples has a live orthogonal witness in another block
+PASS D.gluing-witnesses | 672 ordered pairs of complete classes in blocks meeting in two points: each line of one is orthogonal to exactly the two sign-rule rows of the other
+PASS D.block-live-class | each of the 14 blocks has a complete live class
+PASS D.complete-classes | every live non-pivot line lies in a complete live class
+== E. corollary mechanics (exact rational arithmetic)
+PASS E.gauge-solves | D (2G) D^{-1} has rank 8 and solves the E-graph system
+PASS E.factorisation | X = D R A, Y = D^{-1} R (2A^{-T}) reproduces K exactly (sampled dual basis)
+PASS E.normal-form-supports | sampled term supports are C(a_k), C(b_k) (PR968 normal form)
+PASS E.sample-normals | orthogonal-root span dimensions of the sampled normals: a [6, 5, 6, 4, 6, 7, 6, 6], b [0, 0, 0, 0, 0, 0, 0, 0] (hyperplane-flat normals have 7)
+PASS E.sample-cost | sampled 8-term costs [9, 9, 9, 9, 9, 9, 9, 9], cst 72 >= 72
+PASS E.coordinate-decoder | coordinate decoder cst = 72 (attains the floor)
+== F. negative controls
+PASS F.relaxed-cnf-accepts-all-zero | two-term + four-term clauses alone are satisfied by the all-zero pattern
+PASS F.corrupted-proof-rejected | inserted non-RUP unit lemma: lemma 1 is not RUP; truncated proof: proof ended without the empty clause
+PASS F.proof-needs-some-zero | without the "some zero" clause: lemma 1 is not RUP
+PASS F.single-block-not-rigid | a zero-free non-Hadamard class matrix (Pascal) with B = 16 A^{-T} satisfies all equations of its own block (exactly (E4) and (E0); B.orthogonality-rule shows a block has no others)
+PASS F.minor-obstruction | the group minor that a live witness forces to vanish (Lemma 5, eq. (4)) is nonzero for it
+PASS F.assembly-needs-gluing | class-dependent column scalings: (E0),(E4) hold but 5376/5376 two-term equations fail
+PASS F.assembly-control | glued scalings: all 5376 two-term equations hold and (1/4) K[:,F] K[F,:] = D (2G) D^(-1) with the Section 7 d_i, d_f
+PASS F.rank9-not-gauge | 2G + e_i e_j^T (odd pair) solves the E-graph system with rank 9 and is not D(2G)D^(-1)
+PASS_COMPLEX_RANK8_DECODER_RIGIDITY: live P120; pivot [0, 1, 26, 27, 44, 45, 54, 55]; blocks 14; classes 28 complete; frames 2025; zero-pattern CNF 4032 vars / 33768 clauses; proof lemmas 2045 (+2439 reduced); coordinate cst 72
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/complex-rank8-rigidity-p111-p104-44/verify.py', '--pr1212-dir', '.']
+== model
+PASS model.lines | 120 lines, Gram off-diagonal in {0,+-1}
+PASS model.frame0 | FRAME0 is a frame
+== P111
+PASS P111.unit | live 111; pivot is a live frame
+PASS P111.d4-structure | 112 non-pivot lines odd to 4 pivot lines; 14 blocks = S(3,4,8); 28 Hadamard 4-frame classes; 2G_ij = sum of sign products
+PASS P111.class-profile | live rows per class -> count: {0: 2, 3: 1, 4: 25}
+PASS P111.lines-in-usable-classes | every live non-pivot line lies in a class with >= 3 live rows (input I1 widened)
+PASS P111.group-witnesses | 306 live groups (usable classes x column pairs) each have a live witness
+PASS P111.three-row-lemma | 1 three-row class(es): one live group per pairing; products of sign rows span the non-trivial characters; case (ii) has rank 1
+PASS P111.gluing-connected | all 28 pivot pairs: usable classes through the pair are connected (288 witnessed relations)
+PASS P111.gluing-cocycle | 14/14 blocks usable; base points with the path condition: 8/8
+PASS P111.cocycle-rank | additive cross-check: triple relations of the usable blocks have rank 28 - 7
+PASS P111.assembly-control | glued Lemma 5 forms satisfy (2) and assemble to D (2G) D^-1 exactly
+== P104-44
+PASS P104-44.unit | live 104; pivot is a live frame
+PASS P104-44.d4-structure | 112 non-pivot lines odd to 4 pivot lines; 14 blocks = S(3,4,8); 28 Hadamard 4-frame classes; 2G_ij = sum of sign products
+PASS P104-44.class-profile | live rows per class -> count: {0: 4, 4: 24}
+PASS P104-44.lines-in-usable-classes | every live non-pivot line lies in a class with >= 3 live rows (input I1 widened)
+PASS P104-44.group-witnesses | 288 live groups (usable classes x column pairs) each have a live witness
+PASS P104-44.three-row-lemma | 0 three-row class(es): one live group per pairing; products of sign rows span the non-trivial characters; case (ii) has rank 1
+PASS P104-44.gluing-connected | all 28 pivot pairs: usable classes through the pair are connected (240 witnessed relations)
+PASS P104-44.gluing-cocycle | 12/14 blocks usable; base points with the path condition: 8/8
+PASS P104-44.cocycle-rank | additive cross-check: triple relations of the usable blocks have rank 28 - 7
+PASS P104-44.assembly-control | glued Lemma 5 forms satisfy (2) and assemble to D (2G) D^-1 exactly
+== controls
+PASS control.two-row-not-forced | two rows give one orthogonality condition: w has 3 free directions, so the character argument needs three rows
+PASS control.p111-needs-three-row | without the three-row lemma only 13/14 blocks are usable on P111 (PR1212 G.P111.theorem-transfers)
+PASS control.path-condition-bites | with 8 usable blocks the relations have rank 17 < 21 and no base point passes
+PASS control.perturbed-fails | tripling one a-entry violates (2)
+== PR1212 replay (zero exclusion, transport)
+PASS pr1212.blobs | files match head 57099cb5
+PASS pr1212.G.P111.zero-exclusion | PASS G.P111.zero-exclusion
+PASS pr1212.G.P104-44.zero-exclusion | PASS G.P104-44.zero-exclusion
+PASS pr1212.G.line-orbits | PASS G.line-orbits
+PASS pr1212.G.frame-orbits | PASS G.frame-orbits
+PASS pr1212.P111.pivot-index | pivot [4, 5, 14, 15, 46, 47, 52, 53]
+PASS pr1212.P104-44.pivot-index | pivot [4, 5, 14, 15, 48, 49, 50, 51]
+PASS pr1212.P111.pivot-vectors | same pivot frame
+PASS pr1212.P104-44.pivot-vectors | same pivot frame
+PASS_COMPLEX_RANK8_RIGIDITY_P111_P104_44: checks 35; P111 three-row 1, blocks 14/14; P104-44 blocks 12/14 path-glued; floors 63/56; zero exclusion replayed from PR1212
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/complex-rank8-rigidity-p104-admissible/verify.py', '--pr1212-dir', '.']
+== model
+PASS model.lines | 120 lines, Gram off-diagonal in {0,+-1}
+PASS model.frame0 | FRAME0 is a frame
+== unit
+PASS unit.live | P112 minus a frame inside P112; live 104; pivot is a live frame
+PASS unit.admissible-type | the punctured frame meets 8 distinct FRAME0 classes once each: type (1,...,1), the 896-orbit (PR968 admissible)
+PASS unit.d4-structure | 112 non-pivot lines odd to 4 pivot lines; 14 blocks = S(3,4,8); 28 Hadamard 4-frame classes; 2G_ij = sum of sign products
+PASS unit.class-profile | live rows per class -> count: {0: 2, 2: 4, 4: 22}
+PASS lemma5.group-witnesses | 264 live groups (22 complete classes x 6 column pairs x 2 groups) each have a live witness
+PASS lemma6.blocks-and-gluing | 14/14 blocks carry a complete class; 408 ordered class pairs through a pivot pair glue
+PASS lemma9.propagation-connected | 8 two-row lines: witnessed column pairs connect T_i (all 6 pairs witnessed for every line)
+PASS lemma9.solution-line | witnessed (E2) equations have rank 3 on a_i|T and on b_i|T, kernel spanned by eps_i o g and eps_i / g
+PASS assembly-control | gauge forms satisfy (2) on all 104 live lines and assemble to D (2G) D^-1 exactly
+== controls
+PASS control.in-class-not-forced | a non-gauge two-row solution satisfies every in-class condition (PR1212: one-parameter family)
+PASS control.cross-block-rejects | 28/40 witnessed (E2) equations reject the non-gauge row
+PASS control.disconnected-not-forced | without witnesses at one column the propagation equations leave 2 free directions
+PASS control.perturbed-fails | tripling one a-entry of a two-row line violates (2)
+== PR1212 replay (zero exclusion, witnesses, transport)
+PASS pr1212.blobs | files match head 57099cb5
+PASS pr1212.G.P104-11111111.zero-exclusion | PASS G.P104-11111111.zero-exclusion
+PASS pr1212.G.P104-11111111.class-witnesses | PASS G.P104-11111111.class-witnesses
+PASS pr1212.G.frame-orbits | PASS G.frame-orbits
+PASS pr1212.G.pr717-p104-orbit | PASS G.pr717-p104-orbit
+PASS pr1212.unit-line | P112 minus the frame (2, 18, 40, 52, 77, 86, 107, 112); pivot [12, 13, 22, 23, 30, 31, 36, 37]
+PASS pr1212.unit-vectors | same punctured frame and pivot as root vectors
+PASS_COMPLEX_RANK8_RIGIDITY_P104_ADMISSIBLE: checks 22; classes 22 complete + 4 two-row; 8 two-row lines propagated; floor 56; zero exclusion replayed from PR1212
+['/tmp/pr-efficient200-venv/bin/python', '-I', '-B', 'research/e8-rank8-transport-audit/verify.py']
+PASS_E8_RANK8_TRANSPORT_AUDIT frames=2025 stabilizer_generators=204 p112_frames=1260 p104_orbits=28,336,896 alt44=24 RUP=2501 gluing=1952

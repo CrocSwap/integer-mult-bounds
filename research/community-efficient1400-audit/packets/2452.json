@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "number": 2452,
+  "title": "Test native Windows replay descendant cleanup",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2452",
+  "head": "5208ab2780550273b1d8933ff584ce7581fb242d",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "28f54620ff770dd051d5df35882bd84303d13c6f",
+  "files": [
+    {
+      "path": "docs/research/windows-replay-timeout-audit.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fd23553644289808520b9e5533468cce119edfe6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "tests/test_research_windows_process_tree.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "578927f1a72767b25f57ccf9a95ac543b5a19365"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 1,
+    "tests/test_research_windows_process_tree.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "The registered replay launcher had native Windows timeout cleanup but no test that observed its descendants. This adds a process-handle observer for a ready parent, child and grandchild, answering the explicit [Windows handoff in discussion #1472](https://github.com/CrocSwap/integer-mult-bounds/discussions/1472).\n\nAll three processes terminate under the real timeout path. A successful-looking parent-only kill is rejected because the two descendants remain live. Joined completion is the positive control. Retained handles, a checked `taskkill` result and a cleanup-duration check prevent PID reuse or eventual fixture self-exit from masquerading as successful cleanup.\n\nScope: ordinary descendants while the leader is alive. The separate already-exited-leader Windows gap in #2377 remains open. This changes no production launcher, scientific input, selected result or kappa.\n\nValidation on native Windows 11 build 26300: all three tests pass on CPython 3.12.7 normal, CPython 3.12.7 `-O`, and CPython 3.14.5 normal, with no skips. A separate AI agent reviewed readiness, handles, teardown and failure controls with no blocking finding. Hosted CI and the full mathematical cold replay are not claimed.\n\n```sh\npython3.12 -B tests/test_research_windows_process_tree.py -v\npython3.12 -O -B tests/test_research_windows_process_tree.py -v\npython3.14 -B tests/test_research_windows_process_tree.py -v\n```\n\nCanonical base `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority revision 4. Task `portable-replay`, explicitly changed to the named native coverage gap. Exact source hashes, overlap limits, scope, reproduction and open next questions are in `docs/research/windows-replay-timeout-audit.md`. The source lineage is Douglas Colkitt's launcher, Paul Romeo's merged #1484 Linux fixture and Windows handoff, and #1298's portability work. #2377's POSIX cleanup change is credited and not duplicated.\n\nPrepared for ywz65 with substantial OpenAI Codex assistance in implementation, verification and writing. Apache-2.0; no independent human review is claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "2c160f4f330b52f100287430b3b7e0f24b428e2da9544660c61837778b84e5a8"
+}

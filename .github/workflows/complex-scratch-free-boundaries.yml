@@ -1,0 +1,35 @@
+name: Complex scratch-free boundary certificate
+
+on:
+  pull_request:
+    paths:
+      - 'research/complex-scratch-free-boundaries/**'
+      - 'research/complex-swap-runs-seed37/**'
+      - 'research/complex-dyadic-lowering/lower.py'
+      - 'research/community-k492-audit/pr626/replay/mixed-global/base/providers/**'
+      - '.github/workflows/complex-scratch-free-boundaries.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finite-boundary-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Exact quotient, source census, witnesses and controls
+        run: |
+          python3 -I -O -B research/complex-scratch-free-boundaries/verify.py
+          python3 -I -O -B research/complex-scratch-free-boundaries/test_package.py
+          git diff --exit-code

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "number": 2523,
+  "title": "Count actual Lean axiom queries outside comments and strings",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2523",
+  "head": "f839ed0aca28280aea47c724937a2da04e5b7bcd",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "scripts/check_lean_axioms.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "46464cc288ac7672fad6bf2a6649b882e84714f5"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "3709039da8c29f11a9668056ee34c3c9f560e9ac"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_lean_axiom_audit_parser.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5409b61db6e864b788314b8ba4fb66c364fcc75a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/check_lean_axioms.py": 1,
+    "tests/test_lean_axiom_audit_parser.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "The shared live Lean axiom checker counts #print lines inside comments and string literals. A concrete Lean 4.34.1 fixture with a commented-out query and an IO.println report for a nonexistent declaration currently receives PASS 1. Conversely, a valid query containing an inline Lean comment is omitted, and explanatory commented queries can reject a valid audit.\n\nMask nested block comments, line comments and ordinary string literals before collecting distinct query names. Parse complete multiline dependency reports and trim each comma-separated axiom; retain strict checks for missing/extra/duplicate declarations, malformed reports, custom axioms, sorryAx and compiler failure. Existing audit command inventories remain identical. The script now exposes small importable scanner/report functions behind its unchanged CLI.\n\nValidation on Windows CPython 3.12.14 with Lean 4.34.1 (5045d0056413266e57c625dcd7c365b10e377c52): the old helper falsely accepts the forged-comment fixture and rejects the valid commented fixture. All 4 new test methods pass, including actual lake env lean executions for the valid comment/string fixture, forged-output rejection, genuine multiline output from 12 custom axioms, and a sorryAx control. The three existing AuditAll command lists are unchanged. Synthetic multiline standard-axiom reports also pass; the actual allowed-axiom output observed here was single-line. No complete existing project rebuild is claimed.\n\nReproduce with LEAN_AUDIT_BIN pointing to a Lean distribution's bin directory, then python -B -m unittest discover -s tests -p test_lean_axiom_audit_parser.py -v. Without that explicit runtime, pure parser/inventory tests run and the live integration test is skipped. git diff --check passes.\n\nScope: a bounded source/report parser repair, not a complete Lean parser or authentication of arbitrary hostile elaborators and loggers. Ordinary strings and nested comments are handled; Lean compilation and source review remain trust boundaries. No theorem, scientific source or selected frontier changes.\n\nTask selection: recursive-interfaces seed 42696d2e47cdaca9c2eee27f3b1deb17, changed to this concrete live-verifier boundary. Canonical main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4; live PR/Discussion and local overlap checks found no shared-helper repair. Related predecessor: WeberChen8128's pr236-independent-command-audit independently handles comments and multiline recorded logs for a different historical corpus; it does not repair this live helper. Existing helper authors and that prior audit retain credit. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "2a0819bcac7bdb4bb242842d0976fcabe9c74b0125b33c152e9e4174db42d81f"
+}

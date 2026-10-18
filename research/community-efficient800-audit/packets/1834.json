@@ -1,0 +1,465 @@
+{
+  "schema_version": 1,
+  "number": 1834,
+  "title": "Repair locale-dependent reads in test_research_current_status (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjUwMzY2Njc2",
+    "is_bot": false,
+    "login": "navinor",
+    "name": "Aaron Wang"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1834",
+  "head": "84ca53150d99215bdbe6ca33107bc0c17708ea3e",
+  "merge_base": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+  "baseline": "4d3248d6d52f8ddfe612e8508b74a36acb67fbe3",
+  "files": [
+    {
+      "path": "research/test-suite-locale-reads/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "a0431c3c3265a2e127de07c2ad2667cd59f1975e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/test-suite-locale-reads/SOURCES.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "be5f08378a150b29a077aeab1b89e1e37a837f3e"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/test-suite-locale-reads/TASK.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2c7ef5d50b6196f0776a2b73aa04dfbfd7d7178a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/test-suite-locale-reads/VERIFY.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bcb20f7cd827f1229fc892928f7a0644f24418c6"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/test-suite-locale-reads/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "8183c4d8c9783efac896dbd9bd849769eb82593a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "tests/test_research_current_status.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "125464489a92f809473c208d2918cf7b62174e87"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "356f49df3c7f8a3d6266322fabc8f47cc4666f93"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/test-suite-locale-reads": 5,
+    "tests/test_research_current_status.py": 1
+  },
+  "github_reported_file_count": 6,
+  "complete_git_file_count": 6,
+  "body": "## Scope\n\n**No kappa, no certificate change.** One reproducible environment failure repaired: on a native Windows cp1252 host (the Git-for-Windows default), the documented check\n\n```text\npython3 -B -m unittest discover -s tests -p 'test_research_*.py'\n```\n\nfails with three errors when `PYTHONUTF8` is not set, all from one root cause: `tests/test_research_current_status.py` reads `docs/research/current-status.md` with the locale codec, and that document contains byte `0x9d` (in U+201D), which is undefined in cp1252.\n\n- **Card:** `verifier-engineering` / `portable-replay` (scope key `831cc1a3c8f9ff01b197`, chooser OS nonce `c7669648496a57422bfa478f1d356cad`, priority revision 3), scope **refined** to this one failure. Base `0b1cccf86e2f5132ed286a26ef0a681a495740ea`.\n- **Claim:** https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-18922733\n- **Files changed:** `tests/test_research_current_status.py` (explicit `encoding=\"utf-8\"` on its two reads, plus two regression tests) and the new package `research/test-suite-locale-reads/` (README with the task card, `TASK.json`, `SOURCES.json`, `VERIFY.json`, `verify.py`). Nothing else; `upstream/`, frozen pins, certificates and the selected record are untouched.\n\n## Evidence\n\nWindows 11, cp1252, Git 2.55.0.windows.5 (`core.autocrlf=true`), CPython 3.13.15 and 3.12.\n\nBefore (base `0b1cccf8`, no `PYTHONUTF8`):\n\n```text\nERROR: test_current_section_matches_selected_record ... setUp\n  File \"tests/test_research_current_status.py\", line 26, in setUp\n    self.text = STATUS.read_text()\nUnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 1014\nRan 42 tests in 13.787s \u2014 FAILED (errors=3, skipped=2)\n```\n\nThe same command with `PYTHONUTF8=1`, and everything under Python 3.12, passed at base.\n\nAfter (this branch):\n\n```text\npython -B -m unittest discover -s tests -p 'test_research_*.py'   # no PYTHONUTF8, 3.13.15\nRan 44 tests in 14.672s \u2014 OK (skipped=2)\npython3.12 -B -m unittest discover -s tests -p 'test_research_*.py'\nRan 44 tests in 16.541s \u2014 OK\npython3.12 scripts/research_package.py --package research/test-suite-locale-reads\nCHECK Locale-independence ...\nPASS_TEST_SUITE_LOCALE_READS legacy-locale reads repaired in tests/test_research_current_status.py\nPASS_REGISTERED_RESEARCH_PACKAGE research/test-suite-locale-reads outcome=completed\npython3 scripts/research_package.py --package research/test-suite-locale-reads --check-only\nPASS_PACKAGE_METADATA_AND_PINS (not a mathematical acceptance check)\n```\n\n**Regression tests** (in the repaired module, following `test_research_onboarding.TextEncodingTests`: \"a UTF-8 CI host cannot observe locale-codec bugs, so check the calls statically\"): an AST guard requiring `encoding=` on every text read/write in the module, and a load-bearing control asserting the document contains `e2 80 9d` and is undecodable as cp1252 (deterministic on every host).\n\n**Failure controls** (both executed in this session): the static guard applied to the base-commit module reports missing `encoding=` at exactly lines 10 and 26; a bare `read_text()` of the document in a `PYTHONUTF8=0` child fails with the same `UnicodeDecodeError`. The registered replay reruns everything with a forced legacy codec (cp1252 on Windows; `PYTHONUTF8=0 PYTHONCOERCECLOCALE=0 LC_ALL=C` elsewhere).\n\n**Killed first candidate (obstruction recorded).** The historical Windows failures cited in many PR bodies (autocrlf temp-fixture pin mismatch in `test_research_onboarding.PackageTests`, POSIX-only `os.killpg`, cp1252 metadata reads in `research_package.py`/`find_overlap.py`) no longer reproduce at base: `test_research_onboarding` runs green natively (Python 3.13.15: 18 tests, 2 environment-gated skips; Python 3.12: all 18 pass, `core.autocrlf=true`), including the Python 3.12-only replay-environment tests. Those repairs are credited below; what remained was the suite's own document readers, which the merged static guard (five named scripts) does not cover.\n\n## Limitations (not checked)\n\n- No mathematics: no kappa, certificate, frozen-pin, `upstream/` or cold-replay change. The card's acceptance gate (preserve immutable source hashes and proof-relevant content) is untouched: no comparison logic changed.\n- The roughly 100 remaining locale-dependent text calls in `tests/` and the one-off `scripts/` generators were inventoried (1,536 repo files carry non-ASCII bytes, mostly under `research/`) but not swept. Structured next questions are in `research/test-suite-locale-reads/TASK.json`.\n- The registered replay forces the legacy codec only for the repaired module; whole-suite behavior under a true POSIX ASCII locale is unmeasured. macOS and Linux hosts were not executed in this session.\n- `SOURCES.json` pins `tests/test_research_current_status.py` at its **base-commit** bytes as provenance (the defective version this PR repairs); it cannot be a live input under the pin contract because this contribution changes it. `docs/research/current-status.md` is the live input and matches its pin exactly.\n\n## Overlap\n\nRefreshed before submission (2026-10-14 11:34Z, complete pagination: 492 open PRs, 478 discussions): no matches for the refined object terms (`test_research_current_status` locale, cp1252 `UnicodeDecodeError` suite). Nearest work, none conflicting: https://github.com/CrocSwap/integer-mult-bounds/pull/1702 (CP1252 overlap-regression self-containment in `test_research_onboarding.py`, different file and object). The card's gzip/canonical-payload variation is under active concurrent work (https://github.com/CrocSwap/integer-mult-bounds/pull/1559, https://github.com/CrocSwap/integer-mult-bounds/pull/1824) and was deliberately not duplicated.\n\n## Credit\n\nAaron Wang, with help from opencode. Predecessor credit: the merged #1299/#1293-rgb Windows encoding line (UTF-8 metadata and pipe handling, child-tree timeout fallback, cp1252 simulations and the `TextEncodingTests` static-guard pattern, summarized in `research/community-efficient400-audit`); the failure report and environment details in https://github.com/CrocSwap/integer-mult-bounds/discussions/1200#discussioncomment-18910079, which identified the same byte in `research_package.py`; and the upstream authors of `tests/test_research_current_status.py` itself. This PR adds the instance that guard missed, a regression in the module that failed, and a replayable legacy-locale check.\n\nRemaining obligations: the two structured open questions in `research/test-suite-locale-reads/TASK.json` (a `tests/` encoding sweep, and a whole-suite POSIX ASCII-locale guarantee). Optional workflow feedback: the useful improvement here would be for the `TextEncodingTests` static guard to cover `tests/` document readers as well as the five onboarding scripts, since that gap is exactly how this failure survived the previous fix.\n",
+  "checks": [
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944184/job/115831635189"
+    },
+    {
+      "name": "plan",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944038/job/115831633651"
+    },
+    {
+      "name": "verify (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944051/job/115831634418"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944081/job/115831634400"
+    },
+    {
+      "name": "verify (3.11, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635580"
+    },
+    {
+      "name": "certificate (3.11)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944120/job/115831634311"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944184/job/115831635573"
+    },
+    {
+      "name": "verify (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944051/job/115831634133"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944081/job/115831633741"
+    },
+    {
+      "name": "verify (3.11, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635606"
+    },
+    {
+      "name": "certificate (3.14)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944120/job/115831634696"
+    },
+    {
+      "name": "verify (3.11, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635662"
+    },
+    {
+      "name": "verify (3.11, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635536"
+    },
+    {
+      "name": "verify (3.11, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635552"
+    },
+    {
+      "name": "verify (3.11, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635503"
+    },
+    {
+      "name": "verify (3.11, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635556"
+    },
+    {
+      "name": "verify (3.11, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635615"
+    },
+    {
+      "name": "verify (3.11, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635589"
+    },
+    {
+      "name": "verify (3.11, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635622"
+    },
+    {
+      "name": "verify (3.11, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635522"
+    },
+    {
+      "name": "verify (3.11, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635605"
+    },
+    {
+      "name": "verify (3.11, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635564"
+    },
+    {
+      "name": "verify (3.11, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635576"
+    },
+    {
+      "name": "verify (3.11, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635549"
+    },
+    {
+      "name": "verify (3.11, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635627"
+    },
+    {
+      "name": "verify (3.13, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635650"
+    },
+    {
+      "name": "verify (3.13, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635713"
+    },
+    {
+      "name": "verify (3.13, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635658"
+    },
+    {
+      "name": "verify (3.13, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635555"
+    },
+    {
+      "name": "verify (3.13, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635676"
+    },
+    {
+      "name": "verify (3.13, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635634"
+    },
+    {
+      "name": "verify (3.13, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635585"
+    },
+    {
+      "name": "verify (3.13, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635860"
+    },
+    {
+      "name": "verify (3.13, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635700"
+    },
+    {
+      "name": "verify (3.13, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635636"
+    },
+    {
+      "name": "verify (3.13, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635461"
+    },
+    {
+      "name": "verify (3.13, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635516"
+    },
+    {
+      "name": "verify (3.13, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831636009"
+    },
+    {
+      "name": "verify (3.13, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635816"
+    },
+    {
+      "name": "verify (3.13, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635505"
+    },
+    {
+      "name": "verify (3.13, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635533"
+    },
+    {
+      "name": "verify (3.14, community)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635836"
+    },
+    {
+      "name": "verify (3.14, producers)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635478"
+    },
+    {
+      "name": "verify (3.14, certificates)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831636763"
+    },
+    {
+      "name": "verify (3.14, ternary)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635508"
+    },
+    {
+      "name": "verify (3.14, research)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635696"
+    },
+    {
+      "name": "verify (3.14, tests)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635618"
+    },
+    {
+      "name": "verify (3.14, strips)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635725"
+    },
+    {
+      "name": "verify (3.14, clones)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635632"
+    },
+    {
+      "name": "verify (3.14, positive)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635448"
+    },
+    {
+      "name": "verify (3.14, joint)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635727"
+    },
+    {
+      "name": "verify (3.14, pair)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635757"
+    },
+    {
+      "name": "verify (3.14, partial-gauge)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635960"
+    },
+    {
+      "name": "verify (3.14, three-stage-cover)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635544"
+    },
+    {
+      "name": "verify (3.14, paired-cube)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635583"
+    },
+    {
+      "name": "verify (3.14, recycled-bit)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635490"
+    },
+    {
+      "name": "verify (3.14, entrance-banks)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635531"
+    },
+    {
+      "name": "ranked-pair-finite",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831634783"
+    },
+    {
+      "name": "formal (historical)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831634787"
+    },
+    {
+      "name": "formal (gaussian)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831635238"
+    },
+    {
+      "name": "formal (matrix)",
+      "status": "QUEUED",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38557944041/job/115831634283"
+    }
+  ],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "7202b2579e69f9de7f82871e45f19fc8d79cfd75235769be23a237e3d9f305e3"
+}

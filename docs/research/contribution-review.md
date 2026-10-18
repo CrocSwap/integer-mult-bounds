@@ -1,11 +1,17 @@
 # Contribution review: release update and historical triage
 
-For the current checkpoint, see the [direct-delivery review](community-pr531-review.md),
-[selected record](../../certificates/selected-result.json) and
-[contributor ledger](../../CONTRIBUTORS.md). The
-[2026-10-11 research integration](research-notes-20261011.md) records the latest
-research-note and tooling batch. The entries below are historical; they do not
-describe the present PR queue or selected bound.
+For the current checkpoint, start with the
+[selected record](../../certificates/selected-result.json) and follow its
+`review`, `source_manifest`, `certificate` and `reproduce` fields. See the
+[PR ledger](pr-ledger.md) for review dispositions and exact reviewed heads, and
+the [contributor ledger](../../CONTRIBUTORS.md) for attribution.
+
+The [direct-delivery review](community-pr531-review.md) records the historical
+#531 checkpoint; the
+[2026-10-11 research integration](research-notes-20261011.md) records that dated
+research-note and tooling batch. Neither supersedes the selected record. The
+entries below are historical; they do not describe the present PR queue or
+selected bound.
 
 The selected PR #39 chain has now passed the [conditional maintainer audit](community-final-audit.md)
 and is incorporated in the community release at kappa=3.886675852e-5 > 2^-15.

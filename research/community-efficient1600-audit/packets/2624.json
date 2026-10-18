@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "number": 2624,
+  "title": "Fix stale PR148 source-retention blocker in generated ledger",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2624",
+  "head": "26ef95ac9394fd343848a2ad37d21b9e91e0ea13",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "d359705715f45a25d46c593a542e8d071c47160a",
+  "files": [
+    {
+      "path": "docs/research/pr-ledger.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "d28a9e82fea221a0d7f23c0927590ae7070b00d4"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "703ed1afa84687f9ee659d27b5be12d1f0006a30"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "docs/research/pr-ledger.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0a5b6c486e09b9427bfeb5b479381facc0310f68"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "b9fc4d9afbf7186c41481e94b487da3e1d6f2c3d"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/reconcile_pr_queue.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "1e20851a44d87f7be4f4dffdfb2f91fdd1fb2b3e"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "7dc6fb93cb236303d5e636a6eb282872a3377594"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "scripts/test_pr148_ledger_retention.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "2aba666d25045815f65eefaf8c2975011f677a58"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "docs/research": 2,
+    "scripts/reconcile_pr_queue.py": 1,
+    "scripts/test_pr148_ledger_retention.py": 1
+  },
+  "github_reported_file_count": 4,
+  "complete_git_file_count": 4,
+  "body": "The generated PR148 ledger still said fourteen changed paths lacked source coverage, although Thiago Goulart's incorporated PR1572 receipt already authenticates all 114 paths. A ledger rebuild reproduced that obsolete blocker. This patch teaches `reconcile_pr_queue.py` to consume the retained RESULT/COVERAGE receipts and records their exact-head source-only coverage in the generated JSON and Markdown.\n\nThe original recovery and authenticated Git-tree proof remain credited to PR1572; Rohan Gupta retains PR148 construction credit. The remaining question now asks for the complete historical mathematical review of the eleven-file direct author delta. PR148 remains partially reviewed, open and draft. No review-completion flags, incorporation location or closure state are upgraded, and historical decisions stay unchanged.\n\nThe supplement applies to the pinned PR148 head `975c3cf5d4ee0c90d5a76500d431bfc59102bb72`. If a later head appears, the evidence stays historical and the current obligation is preserved. A later completed review is not reopened. Receipt coverage/head inconsistencies fail before changing the row, and repeated application is idempotent.\n\nValidation on CPython 3.12.14:\n\n```sh\npython3.12 -I -O -B research/pr148-source-retention/verify.py\npython3.12 -I -O -B scripts/test_pr148_ledger_retention.py\npython3.12 -X utf8 -B scripts/reconcile_pr_queue.py\n```\n\nThe unchanged PR1572 proof passed 114 paths = 96 main + 4 archive + 14 recovered, with eleven direct changes. Four regression groups pass, including seven inconsistent-receipt cases, changed-head preservation, no reopening of later review and idempotence. Two complete generator runs are identical. Comparison with base shows only PR148 changes among 1,685 rows; all 1,684 other rows and every disposition count are unchanged. A separate Codex agent reviewed the change and independently ran the four groups with CPython 3.12.7, finding no blocker.\n\nThe optional full `python3.12 -X utf8 -I -O -B scripts/verify_pr_reconciliation.py` does not pass: after the frontier799 checks it reaches an existing frontier890 pin mismatch for `research/single-intersection-spectrum-audit/RESULT.json`. That file is unchanged and byte-identical to base main (SHA256 `861ab5505282cfe13a7088a12217797f6da947a47e407d93d67843d1fa655f92`); the historical receipt expects `9cb2210e148b2cce3fe59cf529fbf99f3b663dc7673db2e3969246595692f580`. This unrelated historical reconciliation is not modified here. No selected cold replay or mathematical PR148 execution is claimed.\n\nSelection: consolidation / overlap-receipt, seed `243bca9b614d2052089c3d493c354dce`, scope key `757723e3fd38f20fa774`. The required `scripts/research_baseline.py` first command passed. Canonical main was freshly fetched unchanged at `0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2`, priority 4. Complete overlap covered 798 open PRs and 1,252 Discussion records at 15:55/15:59 UTC on 2026-10-15; a recent 100-PR screen at 16:12 UTC found no matching ledger fix. Live PR148 is still the same open draft head. Metadata searches do not cover every diff or establish novelty.\n\nOpen next questions: reconstruct the complete historical PR148 verification from its authenticated tree and audit its eleven-file direct delta; separately reconcile the old frontier890 result pin before claiming a global ledger-integrity pass. Source coverage alone settles neither question.\n\nCredit Douglas Colkitt's ledger generator, Thiago Goulart / Tuafo's PR1572 source-retention proof, Rohan Gupta / gupt1156's PR148 construction and the existing review lineage. New generator reconciliation and regressions by ywz65 with substantial OpenAI Codex assistance, including separate-agent review. Apache-2.0; no independent human or formal-kernel review claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "eaa48fe2aa235f5382cbbd66b8cabb2b2621911cce9e2399baa7e04b8ab74c4a"
+}

@@ -1,0 +1,68 @@
+{
+  "note": "Every recorded anchor was reproduced before any new number in this package. The two heavy PR 2773 anchors were re-walked IN FULL from EMPTY receipts: the walk directory contained no ANCHOR-PROGRESS.json and run_anchors_all.py printed 'fresh receipts confirmed' before the walk. Receipt-validation trap (recorded): a resumed walk against a committed receipt silently 'passes' - the extracted PR 2933 package's own quick mode prints 'ANCHORS receipts ... (re-walked from empty receipts)' from its COMMITTED receipts, which validates receipts, not the walk. The receipts recorded here (ANCHOR-PROGRESS.json) are the output of this session's fresh walk and are themselves validated by verify.py anchors (receipt validation of a fresh walk, documented as such).",
+  "reproductions": [
+    {
+      "anchor": "PR 2870 OBSTRUCTION",
+      "command": "python3.12 -I -B research/f7-18point-tight-classes-seed4c1e7b30/verify.py quick  (vendored cover18.squeeze_numbers(7, 11, 6))",
+      "expected": "parseval=696 allowed=504 deficit=192",
+      "observed": "CONTROL PR2870 obstruction reproduced: parseval=696 allowed=504 deficit=192",
+      "status": "recomputed fresh"
+    },
+    {
+      "anchor": "PR 2911 SQUEEZE table",
+      "command": "same run (vendored cover18.squeeze_numbers for the four splits)",
+      "expected": "(12,6) 1248/696; (11,7) 1166/798 vs 21294; (10,8) 1080/896; (9,9) 990/990",
+      "observed": "SQUEEZE lines with exactly those remainders/allowed/deficits",
+      "status": "recomputed fresh"
+    },
+    {
+      "anchor": "PR 2911 NOVANISH",
+      "command": "python3.12 -I -B research/f7-18point-tight-classes-seed4c1e7b30/verify.py novanish",
+      "expected": "(12,6) and (10,8) infeasible: vanishing forced",
+      "observed": "NOVANISH (12, 6) feasible=False capped=False; NOVANISH (10, 8) feasible=False capped=False; PASS_TIGHT_NOVANISH",
+      "status": "recomputed fresh"
+    },
+    {
+      "anchor": "PR 2911 ROWS18",
+      "command": "python3.12 -I -B research/f7-18point-tight-classes-seed4c1e7b30/verify.py rows",
+      "expected": "808/501/251/196 and the 17-point controls (11,6) remainder (5,1),(6,0); (10,7) empty",
+      "observed": "ROWS18 (12, 6) rows=808; (11, 7) rows=501; (10, 8) rows=251; (9, 9) rows=196; CONTROL 17-point rows reproduce; PASS_TIGHT_ROWS",
+      "status": "recomputed fresh"
+    },
+    {
+      "anchor": "PR 2933 CLASSIFY lines incl. (7,1)/(8,2) 32=32 TIGHT",
+      "command": "python3.12 -I -B research/f7-18point-tight-classes-seed4c1e7b30/verify.py quick (vendored vanish.class_table)",
+      "expected": "CLASS (10,8) A_vanish (7, 1) value=32 need=32 TIGHT; CLASS (10,8) D_vanish (8, 2) value=32 need=32 TIGHT; L7 m=3 cases=6720",
+      "observed": "CLASS (10, 8) A_vanish vanish_split=(5, 5) other=(7, 1) value=32 need=32 -> survives TIGHT; CLASS (10, 8) D_vanish vanish_split=(4, 4) other=(8, 2) value=32 need=32 -> survives TIGHT; LEMMA tight-equality Sidon exhaustive m=3 cases=6720 ok=true",
+      "status": "recomputed fresh"
+    },
+    {
+      "anchor": "PR 2933 F2^4 census",
+      "command": "same run (vendored vanish.census_f4)",
+      "expected": "41,341 covers, no dead-class hits",
+      "observed": "CENSUS f2^4 covers=41341 (dead classes hit: none)",
+      "status": "recomputed fresh"
+    },
+    {
+      "anchor": "PR 2773 k10 budget-3",
+      "command": "python3.12 -I -B run_anchors_all.py  (in a scratch copy of anchors.py + vendor/agent64_search17.py with NO ANCHOR-PROGRESS.json; per-sub-shard receipts)",
+      "expected": "149,990,400 (every leaf at exact excess 3)",
+      "observed": "PASS_ANCHORS_K10B3 count=149990400 total_hist={'3': 149990400} shards=62; ANCHOR_RUNNER k10b3 complete rounds=3",
+      "status": "re-walked in full from empty receipts (62/62 sub-shards)"
+    },
+    {
+      "anchor": "PR 2773 k11 levels 3-4",
+      "command": "same run (second mode)",
+      "expected": "0, 0",
+      "observed": "PASS_ANCHORS_K11B4 count=0 total_hist={} shards=62; ANCHOR_RUNNER k11b4 complete rounds=4; ANCHOR_RUNNER ALL COMPLETE",
+      "status": "re-walked in full from empty receipts (62/62 sub-shards)"
+    }
+  ],
+  "class_walks": {
+    "class71": "run_tight.py class71 (17.1 s): PASS_TIGHT_CLASS71, normalized_pairs=0, covering_pairs=0. Re-run from an empty TIGHT-PROGRESS.json receipt.",
+    "class82": "run_tight.py class82 across 8 deterministic shards (per-shard receipts; one shard exceeded the 600 s harness timeout mid-shard and was resumed from its receipts, the completed shards' receipts were kept): PASS_TIGHT_CLASS82, normalized_sidon_pairs=4287920, non_1_invariant_pairs=4175360, checked=28815360, covering_configs=0, fail_hist={('I','II','III'): 28815360}.",
+    "class60": "run_tight.py class60 across 8 shards (per-shard receipts TIGHT-C60-<k>.json, merged by run_tight.py merge60): PASS_TIGHT_CLASS60, d_checked=169911 (= C(31,5), complete partition), d_with_transversals=0, covering_triples=0. Harness note: the eight shard processes were suspended while foreground commands ran and resumed afterwards (all completed; wall ~582 s each) - long walks must either be blocking foreground chunks or tolerate suspension.",
+    "code_provenance": "The class60 walk executed the pre-prune version of tight.transversals6 (the capacity bound uncov.bit_count() > 6*(6 - len(cur)) was added afterwards; it is a valid bound since each element covers exactly 6 requirements, and a replay of the pinned code gives the identical partition and verdict)."
+  },
+  "schema_version": 1
+}

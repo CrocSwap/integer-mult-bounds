@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "number": 792,
+  "title": "Finite circuit construction: interleaved R439 mini-nodes save 32 XORs (no new kappa)",
+  "author": {
+    "id": "MDQ6VXNlcjE4NTU3NTI=",
+    "is_bot": false,
+    "login": "Ryan-Haines",
+    "name": "Ryan Haines"
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/792",
+  "head": "6a17fb0925c3d3bce770c90bc5c3ff0295b0f3d3",
+  "merge_base": "66849e1475c930fd7732b1a0067ffee7e1e95f60",
+  "baseline": "0a201997097b8a89b638f3a2afcb35db4184c8b2",
+  "files": [
+    {
+      "path": "research/p111-interleaved-mini-nodes/CERTIFICATE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6af7e976e1636fc204a7f3361b98f61338acc899"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/CLAIM.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "0fd95f1f77c171d9198eb30f88230b0e2e366142"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/EXPECTED.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "5626f12c67b69fa7d3e51a1d717782420f5c41aa"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/NATIVE.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bff2faa800e849fe429b5fbacd41aaac0762e665"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/README.md",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "94de5bd771968469597b38dea4a96c9a705b772a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/VALIDATION.json",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "e80429d2a4117ab83979f44e38a55b725908fab9"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/native.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "9cc4277ed3f14b135fb656d26f385d471e5c812c"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/search.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "24ba8efa7ba44d4a0ecbc67e7df8dce6c38313ac"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "research/p111-interleaved-mini-nodes/verify.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "6919624c44ee9dbd5d4197efb91ef7da2eadeb68"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "research/p111-interleaved-mini-nodes": 9
+  },
+  "github_reported_file_count": 9,
+  "complete_git_file_count": 9,
+  "body": "## Change and mathematical scope\n\n**Finite bit-circuit construction; no new kappa.** Interleaving external reads between destination basis changes reduces the four PR589 R439 phase-A mini-nodes from **55 to 39 XORs**. Their literal reverse cleanup doubles the saving: **24,305 -> 24,273 native XORs**, 32 saved. This is **12 fewer than Sagar Thakrar's PR728**, whose single-injection-layer result is independently recomputed and credited.\n\nAn exact finite-state certificate proves minima **13, 9, 9, 8** within the same-wire, same-frame class with arbitrary destination transvections and read-only external injections, including repeated reads. The search exhausts **866 states**; a separate row-coordinate verifier checks closure and all **5,168 distance-potential edges**, and prices injections by exhaustive subset enumeration. No global circuit-optimality claim.\n\nAll **661** register frame paths, **439** dirty helpers, nine retained rank-seven copies, dirt compensation and local rank mass **5,129** are preserved. The original H1-H5 interface passes without modification. The native forward positive bound stays 49,347; reverse decreases 1,113,070 -> 1,111,946; the payload remains **93 bits** under the existing 104-bit cap.\n\nOnly `research/p111-interleaved-mini-nodes/` is added. Base: **`66849e1475c930fd7732b1a0067ffee7e1e95f60`**. Reviewed supplier PR589: `a5afc8c6169ea61ba7c51dfd3cade02cc7b13b46`. Comparison PR728: `d454ae19fdd474b4dfa7bd2c28bbe5b0996365fb`. OS-random assignment seed: **17**, bit track. Source hashes, literal circuits, complete state tables, proof, costs, validation and local claim are included.\n\n## Validation\n\nOne-command standard-library replay:\n\n```sh\npython3 -I -B research/p111-interleaved-mini-nodes/verify.py\n```\n\nExpected: `PASS_P111_INTERLEAVED_MINI_NODES states=866 minima=13,9,9,8 ADDs=24305->24273 saved=32 extra_vs_PR728=12 columns=661 controls=8 no_new_kappa`.\n\nCompleted on Windows/Python 3.14 and Linux/Python 3.12:\n\n- Complete search regeneration, all **4,096** local Boolean inputs, set-valued dirty-input replay, **636** closed frames, original interface checks and exact exporter bills.\n- Fresh unchanged C++ legality and 5/9/11-stage replay on **both** words: **883 / 1,327 / 1,549** formal columns, **96** stock bank-level bridge-omission controls, and native/Python positive-bound agreement. Reproduce with `python3 -I -B research/p111-interleaved-mini-nodes/native.py` (C++17 and Boost).\n- Eight mathematical/class/accounting controls. Stale cleanup is explicitly a positive scalar control but fails literal H4.\n- Minimal-source relocation of both local and native checks; source/receipt corruption rejection; output preservation; Python optimized mode; Ruff; selected-record binding; staged whitespace check.\n\nNo repository-wide `make verify`, selected cold replay, changed hosted-parent invoice, outer assembly, Lean or remote CI pass is claimed. No existing generator, selected certificate, ledger or `upstream/` file is changed. The selected result remains PR626 + PR543, complex-bound at conditional kappa 0.001635527380375392. All inherited all-size/compiler/common-label/mutable-basis/hosting/residual/precision/tape/analytic assumptions remain.\n\nNo pinned sprint issue exists; the claim and final result link are recorded locally. Final overlap metadata is retained in `VALIDATION.json`. Related R420 circuit work is credited but not imported or added to these savings.\n\nPrepared for **Ryan Haines (@Ryan-Haines)** with substantial **OpenAI Codex assistance**. Apache-2.0. Credit remains with eumemic's PR555/543/493, DreamingOfClouds' PR589/545/510, Sagar Thakrar's PR728, Dylan Crow, DaysSky, Zhihao Chen, Chafik Boukhalfa, Jacob Sussman and the predecessor notices. No independent human or delegated-agent review claimed.\n",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "c3763d271bf24e53158f45db21f06dc6b0eefcbb700b3eeea85c2b6184cbdc8a"
+}

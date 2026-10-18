@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 3,
+  "base_commit": "ec8707299e2f40918f5f96cdab99ee49cdbabcf0",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "One measured replay bottleneck: the per-output full-triple scans in the joint-dual serialized-word replay (scripts/experiments/binary_frame_replay.replay on certificates/joint-dual-word-{23,25}.json.gz). Replace the O(outputs x v) scans with per-call containment masks in an opt-in adapter, with the frozen historical verifier, its scripts and tests/test_joint_reclaim.py untouched and used as the oracle.",
+  "scope_change_reason": "Card selection: my first-choice drawn card portable-replay (scope key 831cc1a3c8f9ff01b197) matched the fresh claim of 2026-10-14T11:24Z in discussion 1166 (completed as https://github.com/CrocSwap/integer-mult-bounds/pull/1834), so per the pair-collision rule I took the second-choice card replay-runtime (scope key b1dd41940c60d240b47a, chooser OS nonce 24ae43237c3eaed2410bcdf516d854cd). Refinement inside the card: of the replay stages measurable at base (the isolated test suite, the research-workflow gate, research_package metadata validation, the joint-dual word replay), only the joint-dual word replay had a single dominant, cleanly replaceable measured bottleneck; research_package.py source validation was already batched by research/git-provenance-stream and the research-workflow gate has a flat distribution of subprocess-bound fixtures with no single hotspot.",
+  "bottleneck_link": "The joint-dual replay is the independent word check for the frame-compiler line from PR 25 (https://github.com/CrocSwap/integer-mult-bounds/pull/25) by Rohan Arun (rohanarun, with OpenAI Codex assistance) through PR 58 (https://github.com/CrocSwap/integer-mult-bounds/pull/58) by Chafik Boukhalfa (chafreaky, with OpenAI Codex assistance) (research/joint-dual) and the dominant cost of its longest isolated test module (tests/test_joint_reclaim.py). Faster identical-coverage replays shorten the review loop for that line's candidates; this is verification throughput only, not a multiplication mechanism result.",
+  "budget_minutes": 60,
+  "stop_rule": "One scan replacement in one adapter; abandon if any receipt differs from the historical implementation or the frozen words, if any mutation outcome differs from the historical oracle, or if paired same-fixture timings show less than a 25 percent reduction on the replay stage. No coverage is removed to reach the target; timings are measurements, never a correctness gate.",
+  "outcome": "completed",
+  "evidence": "RESULT.json records equal legacy/adapter receipts on both pinned words and their recorded compiler receipts, a full literal-scan cross-check over 12,261 outputs, the frozen 24-case tests/test_joint_reclaim.py mutation matrix against the historical oracle, corrupted-table/unchecked-word/-O controls, and an unmodified frozen-suite adoption run (16 tests) through the shim. BENCHMARK.json records paired timings on two identical fixtures: replay() unit median 2.233s -> 1.285s (1.74x) and the frozen test module 41.47s -> 37.72s (1.10x). Registered replay and --check-only pass; research-workflow tests pass.",
+  "author": "Aaron Wang",
+  "ai_assistance": "with help from opencode; substantial AI assistance for profiling, implementation, testing and writing. No independent human review claimed.",
+  "open_questions": [
+    {
+      "question": "Can the same containment-mask identity speed up the sibling skip-frame replay line (scripts/experiments/skip_frame_compose.py / verify_skip_frame.py), whose output checks share the triple-scan shape?",
+      "why_it_matters": "The measured 1.74x applies only to the joint-dual replay stage; the skip-frame words (certificates/skip-frame-kappa.json lineage) are a separate frozen chain with their own replay cost.",
+      "first_step": "Profile verify_skip_frame.py on its pinned words, measure the triple-scan share, and if material apply the mask identity behind an adapter cross-checked against that chain's own literal scans and mutation controls.",
+      "blocked_by": "A separate pin freeze and its own oracle controls; this package does not retro-fit or modify any frozen chain."
+    },
+    {
+      "question": "Is the remaining full-basis word simulation (M+J+M^-1+V applied twice to all 2v+R basis rows, about 55 percent of the optimized replay) reducible without weakening the independent two-orientation replay?",
+      "why_it_matters": "That loop, not the scans, is now the replay bottleneck; algebraic shortcuts would change the independent-replay character that makes the check trustworthy.",
+      "first_step": "Measure limb traffic and allocation in the two orientation passes on the pinned words and look for a representation change that still executes every XOR of every basis row.",
+      "blocked_by": "The requirement that every basis row of both orientations be executed literally; any shortcut must be justified as an identical check, not a sampled one."
+    }
+  ],
+  "integration_refresh": {
+    "original_base_commit": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+    "reason": "Current SOURCE.json changes only the joint_dual_reclaim_compiler.py hash; every replay/prepare/test/word input consumed here retains its original bytes. Registered replay is revalidated against this baseline."
+  }
+}

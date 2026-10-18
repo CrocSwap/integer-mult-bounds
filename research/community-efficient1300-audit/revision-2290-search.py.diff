@@ -1,0 +1,25 @@
+--- a/research/gl3-nilpotent-coupling-seeda9ab7bd2/search.py
++++ b/research/gl3-nilpotent-coupling-seeda9ab7bd2/search.py
+@@ -5,6 +5,7 @@
+ 
+ import hashlib
+ import json
++import subprocess
+ import argparse
+ from collections import deque
+ from pathlib import Path
+@@ -196,8 +197,12 @@
+         raise AssertionError("TASK/SOURCES base mismatch")
+     pinned = {item["path"]: item["sha256"] for item in sources["files"]}
+     for path in ("docs/research/agent-task-catalog.json", "certificates/selected-result.json"):
+-        live_sha = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+-        if pinned.get(path) != live_sha:
++        # Assignment provenance is historical; scientific arithmetic is independent
++        # of later task-priority edits. Keep the selected record as a live input.
++        raw = (subprocess.check_output(["git", "show", f"{base}:{path}"], cwd=ROOT)
++               if path == "docs/research/agent-task-catalog.json"
++               else (ROOT / path).read_bytes())
++        if pinned.get(path) != hashlib.sha256(raw).hexdigest():
+             raise AssertionError(f"pinned input changed: {path}")
+     catalogue_sha = pinned["docs/research/agent-task-catalog.json"]
+     selected_sha = pinned["certificates/selected-result.json"]

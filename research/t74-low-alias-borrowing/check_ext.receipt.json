@@ -1,0 +1,1736 @@
+{
+ "adapted_from": "fork commit 4a2f20ea339e30348448096ca789d0efe55df9bb research/t74-borrow43-independent-check/words_check.py (own code)",
+ "checker": "check_ext.py",
+ "elapsed_s": 15.7,
+ "findings": [
+  "Both 80-alias words: 80 warps pass the GF(2) checks (rank-zero K_G handoffs); 64 anticipatory terms c K_k z_L read 32 frame-zero low lenders before the preconditioner, each with the warp of its own pair.",
+  "Paid profiles recounted from the words alone: base {'1': 2303, '2': 527, '3': 386, '4': 125, '5': 37, '8': 8}, extra {'1': 2287, '2': 535, '3': 386, '4': 125, '5': 37, '8': 8}; mass 5264 each = 1856 + helper widths 3408; 400 helpers; inventory {'4': 4, '5': 4, '7': 36, '8': 84, '9': 272}.",
+  "Exact replay over Q<F_80> in both orientations on 624 independent dirty inputs: Y += X, every other live register restored, 44 buffers zero; each of the 32 low lenders is exactly its own input at its handoff.",
+  "B equals canonical B minus 136 pre-handoff low-helper gates (echoes/net-zero temporaries), plus 48 moved tail gates and 5 direct-read rewrites derived here independently, with helpers renamed to lenders."
+ ],
+ "model": "* Registers 0..v-1 are X (sources), v..2v-1 are Y (targets), 2v..2v+R-1 helpers; n = 2v+R.  Removed helpers\n   do not exist.  A buffer register b = r+n exists only for r in helper_final (restored cold helpers) and only\n   in cleanup.\n * Frame = GF(2)-subspace of F_2^h (h = 9), compared as spans.  Start: X_i = span(port_i), Y = 0, helper =\n   start_extra[r] or 0.  End: X = FULL, Y_i = port_i^perp, helper = helper_final[r] or FULL.\n * Initial (anticipatory) corrections {target t, source s, operator_word [k], coefficient c} run FIRST, before\n   the preconditioner (PR2226 PROOF section 3): t += c K_k s.  Structure: t is a Y register, s a live\n   non-target register, c a non-zero dyadic rational, k an existing forward warp whose lender is s (each term is\n   c K_G z for the pair lent by s), operator words have length one.  Frames: t and s must both be at frame 0\n   when the term runs (s's entrance frame is 0); K_k fixes L_0 (checked for every warp), so applying K_k to s,\n   reading it into t and inverting it is rank zero and pays nothing.\n * Every framed gate (add t s c F | scale t c F) climbs each incident register from its current frame S to F;\n   legal only if S <= F; a strict climb pays one child of rank dim F - dim S.  precondition/compensation are at\n   frame 0 and write targets only.\n * After A every target sits at its level and every centre at its centre frame; cut gates add c*centre into a\n   target at its level; each centre pays one COPY child of rank dim(centre frame) - dim(level) per distinct\n   served level (nested chain).\n * warp [pos, L, G, U, E] is inserted before B[pos] (list order inside a position): requires cur[L] == span U,\n   sets cur[L] = span E, pays nothing (rank-zero reference change K_G); logically L <- K_G L.\n * After B and restore every live register climbs to its end frame (paid).  cleanup items must all be at FULL,\n   may touch only live registers at FULL or buffers; they pay nothing.\n * Logic: exact replay over Q<F_80> (rationals x free group on K_1..K_80).  Every live register starts as an\n   independent symbol (arbitrary dirty content); buffers start at 0.  add t += c s, scale t *= c, warp\n   left-multiplies by K_k^{+-1} with free-group cancellation, a correction adds c K_k (row of s) to t.  LOW-lender\n   exactness (PR2226 PROOF section 3): immediately before every warp whose operator occurs in a correction, the\n   lender's row must be exactly its own input symbol.  Accept iff after cleanup Y_i = Y_i + X_i, every other\n   live register is its own input and every buffer is 0.  The dual orientation replays g^{-T} for every item\n   (add -> s -= c t, scale -> 1/c, K -> K^{-T} as new free letters, correction -> s -= c K_k^T t with\n   K_k^T = (K_k^{-T})^{-1}) and expects X_i = X_i - Y_i.\n * Warp algebra over GF(2): G invertible, dim U = dim E, G span U = span E, M = [[G,0],[G+G^-T,G^-T]]\n   symplectic, M L_0 = L_0, M L_FULL = L_FULL, M L_U = L_E (Fourier rank 0), G^-T U^perp = E^perp.  Exact\n   Clifford phases / Gaussian lifts are NOT checked here.\n * Links (witness/canonical/block certificate): the B section is the canonical B plus the 48 moved tail gates,\n   each removed helper renamed to its lender, minus the low helpers' pre-handoff echo/temporary gates, plus\n   the direct-read rewrites that this checker DERIVES from those deleted gates (temporaries must be net zero;\n   an echo t += c h reading a temporary part a*ext becomes t += c*a ext at the echo's frame).  Every other\n   pre-handoff event of an aliased helper must be a helper-only correction inside its block.",
+ "not_checked": [
+  "Exact Clifford (Gaussian, phase) lifts of K_G and their native lowering in either orientation.",
+  "Hosting of the 64 frame-zero correction reads and of the X-register lenders (1,4,6,12,31,73) in a whole-call owner map; private cleanup buffers; owner fill at 400 helpers; global profile; kappa."
+ ],
+ "pins": {
+  "blocks": {
+   "bytes": 50270,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "c683574b3861678081fd5c5944dbd7a47309f6fd",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/blocks.json",
+   "sha256": "ddfac1dae1fe7cc0a91e7c7205c6d9d0c07c682880aa34eed83bf4ad7384da9f"
+  },
+  "canon_base": {
+   "bytes": 87678,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "4abb6e28f02c95b41ed345d4e4401d16d58ae791",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/gauge44.canonical.json.gz",
+   "sha256": "65c6d17ffee2eacf27bff438f37fc549c9ed0c909cbc7a52976cc75cf2d15b91"
+  },
+  "canon_extra": {
+   "bytes": 87680,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "e0d670d4351229ce6921ecfbecf180070b17616b",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/extra.canonical.json.gz",
+   "sha256": "d7e48dcbafa236a2e1e41f7958244211506f7c7630fe6a2d43d2bdf17b7ae015"
+  },
+  "pr2226_witness": {
+   "bytes": 69305,
+   "commit": "dacaf3d81f1936bb55b8454b1244e5d014272754",
+   "git_blob": "62edbcce166f7cf388231078c2cd7f75939b97e2",
+   "path": "research/anticipatory-dirty-borrowing/WITNESS.json",
+   "sha256": "86392adde6992a08ae90f7a69c58cace1b52d942f4d2c96e82ca79e5d1e15235"
+  },
+  "witness43_base": {
+   "bytes": 45301,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "9f4b93f3bc52d4f4ffaa128cfd7ae574fd36c462",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/witness_43_base.json",
+   "sha256": "67ffb66d94067f6e53aee9118fe90e14a57f497fc8b3f708b6dac3de2e58ff28"
+  },
+  "witness43_extra": {
+   "bytes": 45306,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "864ba533f50c2f1f639a6a3559b185bd321b923a",
+   "path": "research/gmx-t74-borrow43/new/borrow/inputs/witness_43_extra.json",
+   "sha256": "d46449c6dbf4477f260cf5baea9bbb570a66ee0b6db81f4a220b9e3086ae9e46"
+  },
+  "witness80_base": {
+   "bytes": 114840,
+   "git_blob": "cdcd39ff1beb577b975e48633d05ee629caa1362",
+   "local": "witness/witness_80_base.json",
+   "sha256": "9380f74c032b0616d5b13e8ef94b6d9f80cac36239e329357e7d5fcab5283ad0"
+  },
+  "witness80_extra": {
+   "bytes": 114837,
+   "git_blob": "6b87d35600c44d053bf5ce03e34fc315d5a2af4a",
+   "local": "witness/witness_80_extra.json",
+   "sha256": "6737072dcca47c6e6526bd62a41585dd09026549550c9e62eb53e64b265a6709"
+  },
+  "word43_base": {
+   "bytes": 69989,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "448dd795adba29392a90b34aa3f1b1b796c7e0bd",
+   "path": "research/gmx-t74-borrow43/new/borrow/words/BORROW-WORD-43base.json.gz",
+   "sha256": "9492a5537fb87d9ca98dffcd0230f7625b3789744fa94e2f18acf23d91d998b5"
+  },
+  "word43_extra": {
+   "bytes": 69991,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "2b51ba96256283bbc5578f99b694c50edd8a0e35",
+   "path": "research/gmx-t74-borrow43/new/borrow/words/BORROW-WORD-43extra.json.gz",
+   "sha256": "87d51f5298101d5947f45c43ee02f0ec45d6acbddabb808d0d02db1eaf063734"
+  },
+  "word566_base": {
+   "bytes": 57438,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "76c01583a0286cddb0f71e0cb13077e4317104f6",
+   "path": "research/gmx-t74-borrow43/new/gauge44-word-566.json.gz",
+   "sha256": "eeb6a236ed0ea8873b8800947d0cd19c36a6fcfdf857fc42913cb45cd984f219"
+  },
+  "word566_extra": {
+   "bytes": 57440,
+   "commit": "b479fc5567bc09ab9185bffe89b62594f36d74e5",
+   "git_blob": "e86142b352466f54a3da38c96a6e1484145c3b5c",
+   "path": "research/gmx-t74-borrow43/new/extra-word-566.json.gz",
+   "sha256": "cd417b904408c221d9840d08faff8af040cc4207f9804284f2f5375d21298a62"
+  },
+  "word80_base": {
+   "bytes": 70131,
+   "git_blob": "c5953dfdb0ee9ac0c2c73eb29e320582b4569d2b",
+   "local": "words/BORROW-WORD-80base.json.gz",
+   "sha256": "61290abffd8c8225e0abb3958c1506674e256de688fc4cdf358bbe7c981df493"
+  },
+  "word80_extra": {
+   "bytes": 70135,
+   "git_blob": "852868543ed36efa799b3ed6dd76a0442b0d6ff1",
+   "local": "words/BORROW-WORD-80extra.json.gz",
+   "sha256": "1dd2d6f2ae5b5a27b5f89fb830203f0cca7a78d0323a7845e85e1e80f8f6d1a5"
+  }
+ },
+ "python": "3.14.4",
+ "recounted": {
+  "extra": {
+   "helper_width_sum": 3408,
+   "helpers": 400,
+   "local_mass": 5264,
+   "profile": {
+    "1": 2287,
+    "2": 535,
+    "3": 386,
+    "4": 125,
+    "5": 37,
+    "8": 8
+   }
+  },
+  "gauge44": {
+   "helper_width_sum": 3408,
+   "helpers": 400,
+   "local_mass": 5264,
+   "profile": {
+    "1": 2303,
+    "2": 527,
+    "3": 386,
+    "4": 125,
+    "5": 37,
+    "8": 8
+   }
+  }
+ },
+ "result": "PASS_T74_LOW_ALIAS_WORDS_INDEPENDENT",
+ "scope": "BORROW-WORD-80{base,extra} + witness_80_*: warps, anticipatory structure, frames, profiles, exact replay; links to PR2269 canonical/blocks/43-word and PR2226 terms",
+ "skip_controls": false,
+ "words": {
+  "base": {
+   "base_tag": "eeb6a236",
+   "canonical": {
+    "helpers": 480,
+    "link_566": {
+     "aligned_frame_pairs": 1008,
+     "register_permutation_nonidentity": 220
+    },
+    "local_mass": 5590,
+    "paid_profile": {
+     "1": 2348,
+     "2": 500,
+     "3": 416,
+     "4": 130,
+     "5": 82,
+     "8": 8
+    },
+    "replay": {
+     "buffer_nonzero_window": [
+      null,
+      null
+     ],
+     "buffers": 0,
+     "buffers_ever_nonzero": 0,
+     "cleanup_adds_reading_a_zero_buffer": 0,
+     "corrections": 0,
+     "independent_inputs": 704,
+     "low_lenders_exact_at_handoff": 0,
+     "max_overlap_of_buffer_lifetimes": 0,
+     "peak_nonzero_buffers": 0,
+     "rows_with_operator_words_before_cleanup": 0
+    }
+   },
+   "controls": [
+    {
+     "by": "replay",
+     "control": "anticipatory: drop term 0 (114 += 1/2 K_62 339)",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 coefficient x2",
+     "ok": true,
+     "other_checks": {
+      "dual replay": "rejected[replay]"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 coefficient sign flip",
+     "ok": true,
+     "other_checks": {
+      "dual replay": "rejected[replay]"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: drop all 64 terms",
+     "ok": true,
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 written into target 115",
+     "ok": true,
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 redirected to pair K_44 / lender 277",
+     "ok": true,
+     "other_checks": {
+      "structure": "accepted"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "anticipatory",
+     "control": "anticipatory: term 0 uses K_44 of another lender",
+     "ok": true,
+     "reason": "correction 0: operator 44 is not the reference change of the pair lent by source 339",
+     "rejected": true,
+     "target_check": "anticipatory"
+    },
+    {
+     "by": "frame",
+     "control": "anticipatory: term 0 reads X register 73 through K_30",
+     "ok": true,
+     "other_checks": {
+      "structure": "accepted"
+     },
+     "reason": "initial correction 0: source 73 is not at frame 0 (frame (224,))",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "low warp 44 (lender 277) dropped from B and cleanup",
+     "ok": true,
+     "other_checks": {
+      "frame": "rejected[frame]"
+     },
+     "reason": "target 43 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "low warp 44 dropped from B only",
+     "ok": true,
+     "reason": "target 43 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "lender",
+     "control": "low lender 277 += X_0 just before its handoff",
+     "ok": true,
+     "reason": "low lender 277 is not exactly its own input at the handoff of warp 44",
+     "rejected": true,
+     "target_check": "lender"
+    },
+    {
+     "by": "frame",
+     "control": "low warp 44 as an ordinary climb U->E",
+     "ok": true,
+     "reason": "non-nested climb of 277 at warp 44 treated as an ordinary climb: (388, 75, 41, 26) -> (258, 130, 85, 45)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "drop inverse warp 44 in cleanup",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "final map wrong on register 277 (forward)",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: B item 1123 (lender 277 after its warp)",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 43 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: compensation gate 0",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: first cleanup add between live registers",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "profile",
+     "control": "charge every warp as a climb of rank d(L_U,L_E)",
+     "ok": true,
+     "reason": "recount {'1': 2303, '2': 528, '3': 386, '4': 181, '5': 37, '6': 23, '8': 8} != word report {1: 2303, 2: 527, 3: 386, 4: 125, 5: 37, 8: 8}",
+     "rejected": true,
+     "target_check": "profile"
+    },
+    {
+     "by": "frame",
+     "control": "swap lenders of warps 1,14",
+     "ok": true,
+     "other_checks": {
+      "replay": "rejected[replay]"
+     },
+     "reason": "warp 1: lender 349 frame (416, 70, 19, 13) != U (261, 133, 85, 45)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: singular G",
+     "ok": true,
+     "reason": "warp 1: G is singular over GF(2)",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: invertible G with G span U != span E",
+     "ok": true,
+     "reason": "warp 1: G span U != span E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: dim E != dim U",
+     "ok": true,
+     "reason": "warp 1: dim U != dim E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "frame",
+     "control": "cleanup item 0 uses the restored register, not its buffer",
+     "ok": true,
+     "reason": "cleanup item 0 touches register 591 whose frame is not FULL",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "delete restore gate 0",
+     "ok": true,
+     "reason": "restored cold register 572 is not its own input",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "delete compensation gate 0",
+     "ok": true,
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "drop 18 forward-no-op cleanup adds (dual replay)",
+     "ok": true,
+     "other_checks": {
+      "forward replay": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "accepted": true,
+     "control": "positive: rebased warp U/E lists (same spans) accepted",
+     "ok": true,
+     "target_check": "warp+frame"
+    },
+    {
+     "by": "pin",
+     "control": "pin: one flipped bit in the word file",
+     "ok": true,
+     "reason": "git blob id mismatch for words/BORROW-WORD-80base.json.gz",
+     "rejected": true,
+     "target_check": "pin"
+    },
+    {
+     "by": "prefix",
+     "control": "witness: one deleted prefix gate of helper 689 kept",
+     "ok": true,
+     "reason": "low helper 689: witness deleted prefix [269, 270, 271] != derived [269, 270, 271, 272]",
+     "rejected": true,
+     "target_check": "prefix"
+    }
+   ],
+   "controls_ok": true,
+   "delta_vs_pr2269": {
+    "1": -48,
+    "2": 26,
+    "3": -28,
+    "4": -4,
+    "5": -5,
+    "8": 0
+   },
+   "frames": {
+    "climbs": {
+     "1": 2303,
+     "2": 527,
+     "3": 386,
+     "4": 125,
+     "5": 37
+    },
+    "copy_charges": {
+     "8": 8
+    },
+    "helper_width_sum": 3408,
+    "helpers": 400,
+    "if_warps_charged_mass": 5628,
+    "if_warps_charged_profile": {
+     "1": 2303,
+     "2": 528,
+     "3": 386,
+     "4": 181,
+     "5": 37,
+     "6": 23,
+     "8": 8
+    },
+    "local_mass": 5264,
+    "paid_profile": {
+     "1": 2303,
+     "2": 527,
+     "3": 386,
+     "4": 125,
+     "5": 37,
+     "8": 8
+    },
+    "width_inventory": {
+     "4": 4,
+     "5": 4,
+     "7": 36,
+     "8": 84,
+     "9": 272
+    }
+   },
+   "links": {
+    "B_multiset_ok": true,
+    "canonical_A_gates_dropped": 0,
+    "canonical_cold_helpers": 78,
+    "canonical_cold_helpers_ending_FULL_after_borrowing": [
+     273,
+     275,
+     277,
+     282,
+     289,
+     291,
+     293,
+     298,
+     305,
+     307,
+     309,
+     314,
+     321,
+     323,
+     325,
+     330,
+     337,
+     339,
+     341,
+     346,
+     353,
+     355,
+     357,
+     362,
+     369,
+     371,
+     373,
+     378,
+     385,
+     387,
+     389,
+     394,
+     533,
+     554
+    ],
+    "canonical_compensation_gates_dropped": 0,
+    "canonical_cut_gates_dropped": 0,
+    "canonical_precondition_gates_dropped": 0,
+    "deleted_prefix_gates": 136,
+    "derived_rewrites": [
+     [
+      117,
+      566,
+      "1",
+      [
+       51
+      ]
+     ],
+     [
+      151,
+      567,
+      "1",
+      [
+       51
+      ]
+     ],
+     [
+      181,
+      566,
+      "-1",
+      [
+       51
+      ]
+     ],
+     [
+      181,
+      566,
+      "1",
+      [
+       51
+      ]
+     ],
+     [
+      214,
+      566,
+      "-1",
+      [
+       51
+      ]
+     ]
+    ],
+    "low_lenders": [
+     273,
+     275,
+     277,
+     282,
+     289,
+     291,
+     293,
+     298,
+     305,
+     307,
+     309,
+     314,
+     321,
+     323,
+     325,
+     330,
+     337,
+     339,
+     341,
+     346,
+     353,
+     355,
+     357,
+     362,
+     369,
+     371,
+     373,
+     378,
+     385,
+     387,
+     389,
+     394
+    ],
+    "low_lenders_canonical_final_dims": {
+     "4": 32
+    },
+    "low_lenders_entrance_frame_dims": [
+     0
+    ],
+    "low_ops": [
+     44,
+     45,
+     46,
+     47,
+     48,
+     49,
+     50,
+     51,
+     52,
+     53,
+     54,
+     55,
+     56,
+     57,
+     58,
+     59,
+     60,
+     61,
+     62,
+     63,
+     64,
+     65,
+     66,
+     67,
+     68,
+     69,
+     70,
+     71,
+     72,
+     73,
+     74,
+     75
+    ],
+    "low_prefix": {
+     "deferred_helper_only_high": 144,
+     "deferred_helper_only_low": 96,
+     "echoes": 128,
+     "temporaries": 8
+    },
+    "mass_identity": {
+     "predicted_saving": 326,
+     "removed_widths": 488,
+     "width_added_to_cold_now_FULL": 162
+    },
+    "moved_tail_gates": 48,
+    "removed_high": 48,
+    "removed_low": 32,
+    "removed_old_widths": {
+     "4": 8,
+     "5": 40,
+     "8": 32
+    }
+   },
+   "mass_delta_vs_pr2269": -121,
+   "pr2226": {
+    "high_pairs_equal_pr2226": 43,
+    "high_pairs_from_pr2269": 43,
+    "low_pairs_equal_pr2226": 32,
+    "new_high_pairs": [
+     [
+      606,
+      12
+     ],
+     [
+      635,
+      6
+     ],
+     [
+      637,
+      31
+     ],
+     [
+      638,
+      4
+     ],
+     [
+      639,
+      1
+     ]
+    ],
+    "new_high_pr2226_lenders": [
+     [
+      606,
+      395
+     ],
+     [
+      635,
+      363
+     ],
+     [
+      637,
+      530
+     ],
+     [
+      638,
+      331
+     ],
+     [
+      639,
+      299
+     ]
+    ],
+    "terms_equal_pr2226": 64
+   },
+   "predecessor_43": {
+    "links": {
+     "deleted_prefix_gates": 0,
+     "moved_tail_gates": 48,
+     "removed_high": 43,
+     "removed_low": 0
+    },
+    "local_mass": 5385,
+    "paid_profile": {
+     "1": 2351,
+     "2": 501,
+     "3": 414,
+     "4": 129,
+     "5": 42,
+     "8": 8
+    },
+    "replay": {
+     "dual": {
+      "buffer_nonzero_window": [
+       0,
+       4498
+      ],
+      "buffers": 76,
+      "buffers_ever_nonzero": 58,
+      "cleanup_adds_reading_a_zero_buffer": 355,
+      "corrections": 0,
+      "independent_inputs": 661,
+      "max_overlap_of_buffer_lifetimes": 48,
+      "peak_nonzero_buffers": 48
+     },
+     "forward": {
+      "buffer_nonzero_window": [
+       1,
+       4470
+      ],
+      "buffers": 76,
+      "buffers_ever_nonzero": 76,
+      "cleanup_adds_reading_a_zero_buffer": 110,
+      "corrections": 0,
+      "independent_inputs": 661,
+      "low_lenders_exact_at_handoff": 0,
+      "max_overlap_of_buffer_lifetimes": 44,
+      "peak_nonzero_buffers": 44,
+      "rows_with_operator_words_before_cleanup": 88
+     }
+    }
+   },
+   "replay": {
+    "dual": {
+     "buffer_nonzero_window": [
+      0,
+      4527
+     ],
+     "buffers": 44,
+     "buffers_ever_nonzero": 26,
+     "cleanup_adds_reading_a_zero_buffer": 84,
+     "corrections": 64,
+     "independent_inputs": 624,
+     "max_overlap_of_buffer_lifetimes": 22,
+     "peak_nonzero_buffers": 22
+    },
+    "forward": {
+     "buffer_nonzero_window": [
+      1,
+      4499
+     ],
+     "buffers": 44,
+     "buffers_ever_nonzero": 44,
+     "cleanup_adds_reading_a_zero_buffer": 87,
+     "corrections": 64,
+     "independent_inputs": 624,
+     "low_lenders_exact_at_handoff": 32,
+     "max_overlap_of_buffer_lifetimes": 44,
+     "peak_nonzero_buffers": 44,
+     "rows_with_operator_words_before_cleanup": 96
+    }
+   },
+   "saving_vs_canonical": 326,
+   "warps": {
+    "U_equal_E": 0,
+    "anticipatory_structure": {
+     "operators": 32,
+     "sources": 32,
+     "terms": 64
+    },
+    "anticipatory_terms": 64,
+    "count": 80,
+    "dims": {
+     "4": 77,
+     "5": 3
+    },
+    "lenders": [
+     243,
+     250,
+     266,
+     259,
+     333,
+     317,
+     554,
+     285,
+     281,
+     301,
+     297,
+     313,
+     329,
+     349,
+     345,
+     365,
+     361,
+     381,
+     377,
+     397,
+     393,
+     225,
+     227,
+     229,
+     234,
+     241,
+     245,
+     257,
+     261,
+     73,
+     401,
+     403,
+     405,
+     410,
+     417,
+     419,
+     421,
+     426,
+     433,
+     435,
+     437,
+     442,
+     542,
+     277,
+     282,
+     275,
+     273,
+     293,
+     298,
+     291,
+     289,
+     309,
+     314,
+     307,
+     305,
+     325,
+     330,
+     323,
+     321,
+     341,
+     346,
+     339,
+     337,
+     357,
+     362,
+     355,
+     353,
+     373,
+     378,
+     371,
+     369,
+     389,
+     394,
+     387,
+     385,
+     1,
+     4,
+     6,
+     12,
+     31
+    ],
+    "lenders_that_are_X": [
+     73,
+     1,
+     4,
+     6,
+     12,
+     31
+    ],
+    "low_ops": [
+     44,
+     45,
+     46,
+     47,
+     48,
+     49,
+     50,
+     51,
+     52,
+     53,
+     54,
+     55,
+     56,
+     57,
+     58,
+     59,
+     60,
+     61,
+     62,
+     63,
+     64,
+     65,
+     66,
+     67,
+     68,
+     69,
+     70,
+     71,
+     72,
+     73,
+     74,
+     75
+    ],
+    "plain_fourier_distance": {
+     "2": 1,
+     "4": 56,
+     "6": 23
+    }
+   }
+  },
+  "extra": {
+   "base_tag": "cd417b90",
+   "canonical": {
+    "helpers": 480,
+    "link_566": {
+     "aligned_frame_pairs": 1008,
+     "register_permutation_nonidentity": 220
+    },
+    "local_mass": 5594,
+    "paid_profile": {
+     "1": 2340,
+     "2": 508,
+     "3": 420,
+     "4": 126,
+     "5": 82,
+     "8": 8
+    },
+    "replay": {
+     "buffer_nonzero_window": [
+      null,
+      null
+     ],
+     "buffers": 0,
+     "buffers_ever_nonzero": 0,
+     "cleanup_adds_reading_a_zero_buffer": 0,
+     "corrections": 0,
+     "independent_inputs": 704,
+     "low_lenders_exact_at_handoff": 0,
+     "max_overlap_of_buffer_lifetimes": 0,
+     "peak_nonzero_buffers": 0,
+     "rows_with_operator_words_before_cleanup": 0
+    }
+   },
+   "controls": [
+    {
+     "by": "replay",
+     "control": "anticipatory: drop term 0 (114 += 1/2 K_62 339)",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 coefficient x2",
+     "ok": true,
+     "other_checks": {
+      "dual replay": "rejected[replay]"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 coefficient sign flip",
+     "ok": true,
+     "other_checks": {
+      "dual replay": "rejected[replay]"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: drop all 64 terms",
+     "ok": true,
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 written into target 115",
+     "ok": true,
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "anticipatory: term 0 redirected to pair K_44 / lender 277",
+     "ok": true,
+     "other_checks": {
+      "structure": "accepted"
+     },
+     "reason": "target 2 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "anticipatory",
+     "control": "anticipatory: term 0 uses K_44 of another lender",
+     "ok": true,
+     "reason": "correction 0: operator 44 is not the reference change of the pair lent by source 339",
+     "rejected": true,
+     "target_check": "anticipatory"
+    },
+    {
+     "by": "frame",
+     "control": "anticipatory: term 0 reads X register 73 through K_30",
+     "ok": true,
+     "other_checks": {
+      "structure": "accepted"
+     },
+     "reason": "initial correction 0: source 73 is not at frame 0 (frame (224,))",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "low warp 44 (lender 277) dropped from B and cleanup",
+     "ok": true,
+     "other_checks": {
+      "frame": "rejected[frame]"
+     },
+     "reason": "target 43 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "low warp 44 dropped from B only",
+     "ok": true,
+     "reason": "target 43 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "lender",
+     "control": "low lender 277 += X_0 just before its handoff",
+     "ok": true,
+     "reason": "low lender 277 is not exactly its own input at the handoff of warp 44",
+     "rejected": true,
+     "target_check": "lender"
+    },
+    {
+     "by": "frame",
+     "control": "low warp 44 as an ordinary climb U->E",
+     "ok": true,
+     "reason": "non-nested climb of 277 at warp 44 treated as an ordinary climb: (388, 75, 41, 26) -> (258, 130, 85, 45)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "drop inverse warp 44 in cleanup",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "final map wrong on register 277 (forward)",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: B item 1123 (lender 277 after its warp)",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 43 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: compensation gate 0",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "perturb coefficient x2: first cleanup add between live registers",
+     "ok": true,
+     "other_checks": {
+      "frame": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "profile",
+     "control": "charge every warp as a climb of rank d(L_U,L_E)",
+     "ok": true,
+     "reason": "recount {'1': 2287, '2': 536, '3': 386, '4': 181, '5': 37, '6': 23, '8': 8} != word report {1: 2287, 2: 535, 3: 386, 4: 125, 5: 37, 8: 8}",
+     "rejected": true,
+     "target_check": "profile"
+    },
+    {
+     "by": "frame",
+     "control": "swap lenders of warps 1,14",
+     "ok": true,
+     "other_checks": {
+      "replay": "rejected[replay]"
+     },
+     "reason": "warp 1: lender 349 frame (416, 70, 19, 13) != U (261, 133, 85, 45)",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: singular G",
+     "ok": true,
+     "reason": "warp 1: G is singular over GF(2)",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: invertible G with G span U != span E",
+     "ok": true,
+     "reason": "warp 1: G span U != span E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "warp",
+     "control": "warp 1: dim E != dim U",
+     "ok": true,
+     "reason": "warp 1: dim U != dim E",
+     "rejected": true,
+     "target_check": "warp"
+    },
+    {
+     "by": "frame",
+     "control": "cleanup item 0 uses the restored register, not its buffer",
+     "ok": true,
+     "reason": "cleanup item 0 touches register 591 whose frame is not FULL",
+     "rejected": true,
+     "target_check": "frame"
+    },
+    {
+     "by": "replay",
+     "control": "delete restore gate 0",
+     "ok": true,
+     "reason": "restored cold register 572 is not its own input",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "delete compensation gate 0",
+     "ok": true,
+     "reason": "target 1 not final before cleanup",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "by": "replay",
+     "control": "drop 18 forward-no-op cleanup adds (dual replay)",
+     "ok": true,
+     "other_checks": {
+      "forward replay": "accepted"
+     },
+     "reason": "a zero buffer is not returned to zero",
+     "rejected": true,
+     "target_check": "replay"
+    },
+    {
+     "accepted": true,
+     "control": "positive: rebased warp U/E lists (same spans) accepted",
+     "ok": true,
+     "target_check": "warp+frame"
+    },
+    {
+     "by": "pin",
+     "control": "pin: one flipped bit in the word file",
+     "ok": true,
+     "reason": "git blob id mismatch for words/BORROW-WORD-80extra.json.gz",
+     "rejected": true,
+     "target_check": "pin"
+    },
+    {
+     "by": "prefix",
+     "control": "witness: one deleted prefix gate of helper 689 kept",
+     "ok": true,
+     "reason": "low helper 689: witness deleted prefix [269, 270, 271] != derived [269, 270, 271, 272]",
+     "rejected": true,
+     "target_check": "prefix"
+    }
+   ],
+   "controls_ok": true,
+   "delta_vs_pr2269": {
+    "1": -52,
+    "2": 26,
+    "3": -32,
+    "4": 0,
+    "5": -5,
+    "8": 0
+   },
+   "frames": {
+    "climbs": {
+     "1": 2287,
+     "2": 535,
+     "3": 386,
+     "4": 125,
+     "5": 37
+    },
+    "copy_charges": {
+     "8": 8
+    },
+    "helper_width_sum": 3408,
+    "helpers": 400,
+    "if_warps_charged_mass": 5628,
+    "if_warps_charged_profile": {
+     "1": 2287,
+     "2": 536,
+     "3": 386,
+     "4": 181,
+     "5": 37,
+     "6": 23,
+     "8": 8
+    },
+    "local_mass": 5264,
+    "paid_profile": {
+     "1": 2287,
+     "2": 535,
+     "3": 386,
+     "4": 125,
+     "5": 37,
+     "8": 8
+    },
+    "width_inventory": {
+     "4": 4,
+     "5": 4,
+     "7": 36,
+     "8": 84,
+     "9": 272
+    }
+   },
+   "links": {
+    "B_multiset_ok": true,
+    "canonical_A_gates_dropped": 0,
+    "canonical_cold_helpers": 78,
+    "canonical_cold_helpers_ending_FULL_after_borrowing": [
+     273,
+     275,
+     277,
+     282,
+     289,
+     291,
+     293,
+     298,
+     305,
+     307,
+     309,
+     314,
+     321,
+     323,
+     325,
+     330,
+     337,
+     339,
+     341,
+     346,
+     353,
+     355,
+     357,
+     362,
+     369,
+     371,
+     373,
+     378,
+     385,
+     387,
+     389,
+     394,
+     533,
+     554
+    ],
+    "canonical_compensation_gates_dropped": 0,
+    "canonical_cut_gates_dropped": 0,
+    "canonical_precondition_gates_dropped": 0,
+    "deleted_prefix_gates": 136,
+    "derived_rewrites": [
+     [
+      117,
+      566,
+      "1",
+      [
+       51
+      ]
+     ],
+     [
+      151,
+      567,
+      "1",
+      [
+       51
+      ]
+     ],
+     [
+      181,
+      566,
+      "-1",
+      [
+       51
+      ]
+     ],
+     [
+      181,
+      566,
+      "1",
+      [
+       51
+      ]
+     ],
+     [
+      214,
+      566,
+      "-1",
+      [
+       51
+      ]
+     ]
+    ],
+    "low_lenders": [
+     273,
+     275,
+     277,
+     282,
+     289,
+     291,
+     293,
+     298,
+     305,
+     307,
+     309,
+     314,
+     321,
+     323,
+     325,
+     330,
+     337,
+     339,
+     341,
+     346,
+     353,
+     355,
+     357,
+     362,
+     369,
+     371,
+     373,
+     378,
+     385,
+     387,
+     389,
+     394
+    ],
+    "low_lenders_canonical_final_dims": {
+     "4": 32
+    },
+    "low_lenders_entrance_frame_dims": [
+     0
+    ],
+    "low_ops": [
+     44,
+     45,
+     46,
+     47,
+     48,
+     49,
+     50,
+     51,
+     52,
+     53,
+     54,
+     55,
+     56,
+     57,
+     58,
+     59,
+     60,
+     61,
+     62,
+     63,
+     64,
+     65,
+     66,
+     67,
+     68,
+     69,
+     70,
+     71,
+     72,
+     73,
+     74,
+     75
+    ],
+    "low_prefix": {
+     "deferred_helper_only_high": 144,
+     "deferred_helper_only_low": 96,
+     "echoes": 128,
+     "temporaries": 8
+    },
+    "mass_identity": {
+     "predicted_saving": 330,
+     "removed_widths": 492,
+     "width_added_to_cold_now_FULL": 162
+    },
+    "moved_tail_gates": 48,
+    "removed_high": 48,
+    "removed_low": 32,
+    "removed_old_widths": {
+     "4": 4,
+     "5": 44,
+     "8": 32
+    }
+   },
+   "mass_delta_vs_pr2269": -121,
+   "pr2226": {
+    "high_pairs_equal_pr2226": 43,
+    "high_pairs_from_pr2269": 43,
+    "low_pairs_equal_pr2226": 32,
+    "new_high_pairs": [
+     [
+      606,
+      12
+     ],
+     [
+      635,
+      6
+     ],
+     [
+      637,
+      31
+     ],
+     [
+      638,
+      4
+     ],
+     [
+      639,
+      1
+     ]
+    ],
+    "new_high_pr2226_lenders": [
+     [
+      606,
+      395
+     ],
+     [
+      635,
+      363
+     ],
+     [
+      637,
+      530
+     ],
+     [
+      638,
+      331
+     ],
+     [
+      639,
+      299
+     ]
+    ],
+    "terms_equal_pr2226": 64
+   },
+   "predecessor_43": {
+    "links": {
+     "deleted_prefix_gates": 0,
+     "moved_tail_gates": 48,
+     "removed_high": 43,
+     "removed_low": 0
+    },
+    "local_mass": 5385,
+    "paid_profile": {
+     "1": 2339,
+     "2": 509,
+     "3": 418,
+     "4": 125,
+     "5": 42,
+     "8": 8
+    },
+    "replay": {
+     "dual": {
+      "buffer_nonzero_window": [
+       0,
+       4498
+      ],
+      "buffers": 76,
+      "buffers_ever_nonzero": 58,
+      "cleanup_adds_reading_a_zero_buffer": 355,
+      "corrections": 0,
+      "independent_inputs": 661,
+      "max_overlap_of_buffer_lifetimes": 48,
+      "peak_nonzero_buffers": 48
+     },
+     "forward": {
+      "buffer_nonzero_window": [
+       1,
+       4470
+      ],
+      "buffers": 76,
+      "buffers_ever_nonzero": 76,
+      "cleanup_adds_reading_a_zero_buffer": 110,
+      "corrections": 0,
+      "independent_inputs": 661,
+      "low_lenders_exact_at_handoff": 0,
+      "max_overlap_of_buffer_lifetimes": 44,
+      "peak_nonzero_buffers": 44,
+      "rows_with_operator_words_before_cleanup": 88
+     }
+    }
+   },
+   "replay": {
+    "dual": {
+     "buffer_nonzero_window": [
+      0,
+      4527
+     ],
+     "buffers": 44,
+     "buffers_ever_nonzero": 26,
+     "cleanup_adds_reading_a_zero_buffer": 84,
+     "corrections": 64,
+     "independent_inputs": 624,
+     "max_overlap_of_buffer_lifetimes": 22,
+     "peak_nonzero_buffers": 22
+    },
+    "forward": {
+     "buffer_nonzero_window": [
+      1,
+      4499
+     ],
+     "buffers": 44,
+     "buffers_ever_nonzero": 44,
+     "cleanup_adds_reading_a_zero_buffer": 87,
+     "corrections": 64,
+     "independent_inputs": 624,
+     "low_lenders_exact_at_handoff": 32,
+     "max_overlap_of_buffer_lifetimes": 44,
+     "peak_nonzero_buffers": 44,
+     "rows_with_operator_words_before_cleanup": 96
+    }
+   },
+   "saving_vs_canonical": 330,
+   "warps": {
+    "U_equal_E": 0,
+    "anticipatory_structure": {
+     "operators": 32,
+     "sources": 32,
+     "terms": 64
+    },
+    "anticipatory_terms": 64,
+    "count": 80,
+    "dims": {
+     "4": 77,
+     "5": 3
+    },
+    "lenders": [
+     243,
+     250,
+     266,
+     259,
+     333,
+     317,
+     554,
+     285,
+     281,
+     301,
+     297,
+     313,
+     329,
+     349,
+     345,
+     365,
+     361,
+     381,
+     377,
+     397,
+     393,
+     225,
+     227,
+     229,
+     234,
+     241,
+     245,
+     257,
+     261,
+     73,
+     401,
+     403,
+     405,
+     410,
+     417,
+     419,
+     421,
+     426,
+     433,
+     435,
+     437,
+     442,
+     542,
+     277,
+     282,
+     275,
+     273,
+     293,
+     298,
+     291,
+     289,
+     309,
+     314,
+     307,
+     305,
+     325,
+     330,
+     323,
+     321,
+     341,
+     346,
+     339,
+     337,
+     357,
+     362,
+     355,
+     353,
+     373,
+     378,
+     371,
+     369,
+     389,
+     394,
+     387,
+     385,
+     1,
+     4,
+     6,
+     12,
+     31
+    ],
+    "lenders_that_are_X": [
+     73,
+     1,
+     4,
+     6,
+     12,
+     31
+    ],
+    "low_ops": [
+     44,
+     45,
+     46,
+     47,
+     48,
+     49,
+     50,
+     51,
+     52,
+     53,
+     54,
+     55,
+     56,
+     57,
+     58,
+     59,
+     60,
+     61,
+     62,
+     63,
+     64,
+     65,
+     66,
+     67,
+     68,
+     69,
+     70,
+     71,
+     72,
+     73,
+     74,
+     75
+    ],
+    "plain_fourier_distance": {
+     "2": 1,
+     "4": 56,
+     "6": 23
+    }
+   }
+  }
+ }
+}

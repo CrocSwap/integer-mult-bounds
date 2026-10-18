@@ -1,0 +1,1275 @@
+diff --git a/.github/workflows/p10b-oriented-constructed42.yml b/.github/workflows/p10b-oriented-constructed42.yml
+index 2dc0b8ad..b3f109a8 100644
+--- a/.github/workflows/p10b-oriented-constructed42.yml
++++ b/.github/workflows/p10b-oriented-constructed42.yml
+@@ -32,4 +32,6 @@ jobs:
+             ${{ runner.temp }}/p10b-oriented-constructed42-proof/VERIFICATION.json
+             ${{ runner.temp }}/p10b-oriented-constructed42-proof/CERTIFICATE.json
+             ${{ runner.temp }}/p10b-oriented-constructed42-proof/FAILURE.json
++            ${{ runner.temp }}/p10b-oriented-constructed42-proof/source-regeneration/REGENERATION.json
++            ${{ runner.temp }}/p10b-oriented-constructed42-proof/PRODUCER-BINDING-CONTROLS.json
+             ${{ runner.temp }}/p10b-oriented-constructed42-proof/logs/
+diff --git a/research/p10b-oriented-constructed42/MANIFEST.json b/research/p10b-oriented-constructed42/MANIFEST.json
+index 0de39b59..cfaf6e1a 100644
+--- a/research/p10b-oriented-constructed42/MANIFEST.json
++++ b/research/p10b-oriented-constructed42/MANIFEST.json
+@@ -3,7 +3,7 @@
+     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+     "NOTICE.md": "bb3af7cfa46a1241dc2db5f80c62722d1d4ef91daf8ed6ca1e150aab83ae36f9",
+     "PROOF.md": "48d4d8abcc2bd6ae39fef11d18dd09f37776ceb84abdf323473f308bab62012e",
+-    "README.md": "241c2c3a9629c30cf46c48e3b81a86bfff996e354cf37c9bce17132c06a26df6",
++    "README.md": "d51cfa0046e47807940e9392f8dc2e86c25b316a3ed023116c1401ebfed2a568",
+     "REFINEMENT-PROOF.md": "5adccdc269dff5d1398e795613b5d6062fcf515053ec3b2588b99a8be21ab9d6",
+     "SOURCE.json": "22212624e8482124f9c3b0e2523c91e76a70e857c225ff37c0cd79700ebcf295",
+     "code/admit_geometry.py": "c16c29e7d09aa9693ab7fb4330c8f1136146378c5391b3d3c14253a7b3afbbd6",
+@@ -11,13 +11,14 @@
+     "code/changed-charts.cpp": "a19f24ef975010b2df78cc993e60acf9e27ab252d7817a4be048933f5281d3d8",
+     "code/columns.cpp": "34c8df52a3e1ed15d2507338c2e0c5dea66083045f62592289e96522d2432cab",
+     "code/export_native.py": "cc7e7833189ff16e97af0c2524705820800be7bb6b4ebbda836246e0d735b0ff",
+-    "code/finish.py": "301a97e64cd24e7ee03ed994b9fe26ee014feb896202b046bc96e027e1af38ae",
++    "code/finish.py": "8e21661f5428d6182526e45a3b014d56806cfa11e5848ccc5d5b6f7210c518a1",
+     "code/frame_prime_minors.py": "15b70e8b069d128033fbac1713a75323fcaf2c7746ceec2e1c896c24e193aa76",
+     "code/future_supplier.py": "89304eaa137b928fb74fc2431fc2e2016c991bf10169c9cc2bba38d4d6cc7c44",
+     "code/invoice.cpp": "08125712b112201b81576d7763fcbb80a982f8a8f2fdb91c07328b46ffcc799f",
+     "code/legality.cpp": "786c5f5ddbc152fad2eb9f637a1d394640789030fe5936ea2fa607242d3fa085",
+     "code/materialize.py": "a71f72e6050f5fcf3a2dc770cfff06b1966a9aab149485993d93ab69ae7a27da",
+     "code/price.py": "c727571f10d421540931127ddda80960654aee97c6b1f567514f9370757ee9c5",
++    "code/producer_binding_controls.py": "072f04125f5ef916e2e9b71efe2e0f840413b92a7bcb57845e753b207050289d",
+     "code/source_tiling.py": "89754753a514fa3fdb2bff51e9ce030356afb6c83176d53a10653228f6040714",
+     "code/threshold_bootstrap.py": "32da9b1d29f4eec9dc47f077274189ee27075f1d8d91154daee744bc0e5d842d",
+     "code/tiling.py": "9e650b5325d55f30e0de10cdc973819c3482faeb7bc2de8b3334e48ddd95bb6b",
+@@ -400,6 +401,6 @@
+     "vendor/predecessor/virtual_check.py": "ec952d99c151e6e336631210e598d58478293491ca01842fd4c9d0a4b57b4e5a",
+     "vendor/predecessor/word-pins.json": "7960f19e4030c89976f7d8b98e38e43d06b93b1f2f13df7adb6b515edb9a4ae5",
+     "vendor/predecessor/word_pins.py": "3cc2662630af62aaabb6966f03b5d01a2f06a5f3490c6979a3e54daf550958b4",
+-    "verify.py": "3f42d5bd4b0cee286a21367f3d0b30e3362529b8587926b6dcd842c342eef809"
++    "verify.py": "aaf2fd85115318dc18c64d8b934c554d0258120395d86e2b6e2b0203f678b12e"
+   }
+ }
+diff --git a/research/p10b-oriented-constructed42/README.md b/research/p10b-oriented-constructed42/README.md
+index f0c4a697..530bf7f7 100644
+--- a/research/p10b-oriented-constructed42/README.md
++++ b/research/p10b-oriented-constructed42/README.md
+@@ -52,3 +52,24 @@ construction, with no unconditional theorem, fixed modulus or new Lean build
+ claimed. See `PROOF.md`, `REFINEMENT-PROOF.md`, `SOURCE.json` and `NOTICE.md`.
+ New source search, selections, validation and integration were prepared with
+ substantial OpenAI Codex assistance; all upstream author and AI credits remain.
++
++## Portable producer-file binding
++
++This successor repairs the final admission check from frozen PR #332 without
++changing its scalar word, complete paid profile, source suppliers or conditional
++κ. The original producer already compares all five complete file payloads; its
++gzip containers may differ across operating systems and zlib builds.
++
++The final check now verifies the exact five filenames, both actual compressed
++file hashes and exact expanded byte equality for the two gzip files. The three
++plaintext files must still match byte for byte. The expanded hash is checked
++against those exact bytes; no JSON normalization or selected-field comparison
++is used. The stored package bytes remain pinned by the unchanged supplier
++manifest and the new outer manifest. A fresh mandatory control stage accepts
++alternative gzip metadata/compression and rejects altered full payloads,
++forged hashes, missing files and extra files.
++
++The #332 Linux run passed all twenty preceding stages, including producer
++regeneration, before its overly strict compressed-container equality failed.
++The new verifier has twenty-two stages. This repair makes no stronger κ claim.
++Prepared with substantial OpenAI Codex assistance; inherited notices apply.
+diff --git a/research/p10b-oriented-constructed42/code/finish.py b/research/p10b-oriented-constructed42/code/finish.py
+index bea1abd0..45e17cc5 100644
+--- a/research/p10b-oriented-constructed42/code/finish.py
++++ b/research/p10b-oriented-constructed42/code/finish.py
+@@ -22,6 +22,22 @@ def census(path):
+   elif op==2:H[z]+=1;copies+=1
+  return H,adds,units,copies,records
+ 
++
++def verify_regenerated_files(src,work,files):
++ # Gzip containers can differ across OS/zlib builds. Bind both containers and
++ # compare the complete expanded bytes, without parsing or normalizing JSON.
++ names={'graph_p10.json','kchron_p10.json','profile_p10.json','word_p10.json.gz','frames_p10.json.gz'}
++ assert set(files)==names,'Exactly five regenerated source files required'
++ for name,r in files.items():
++  pinned=(src/'bitword/selected/bit'/name).read_bytes()
++  rebuilt=(work/'final1'/name).read_bytes()
++  assert hashlib.sha256(pinned).hexdigest()==r['pinned'],name+' pinned container hash'
++  assert hashlib.sha256(rebuilt).hexdigest()==r['rebuilt'],name+' rebuilt container hash'
++  if name.endswith('.gz'):
++   pinned=gzip.decompress(pinned);rebuilt=gzip.decompress(rebuilt)
++  assert pinned==rebuilt,name+' complete expanded bytes'
++  assert hashlib.sha256(rebuilt).hexdigest()==r['expanded'],name+' expanded hash'
++
+ def finish(out):
+  out=Path(out);pin=read(ROOT/'SOURCE.json');E=pin['expected'];src=ROOT/'vendor/predecessor';pred=out/'predecessor';base=out/'base';candidate=out/'candidate';mat=out/'materialized';ver=read(pred/'verification.json');oldcert=read(pred/'certificate.json');oldst=read(base/'249-states.json');st=read(candidate/'249-states.json')
+  assert ver['status']=='PASS_IMMUTABLE_PARITY_FUSED_P10_FIVE_STAGE_BANKED_CONSTRUCTION' and ver['inputs_unchanged']
+@@ -38,9 +54,12 @@ def finish(out):
+  assert ex['all_used_frames']==E['frames'] and ex['new_used_frames']==E['new_charts']
+  for path,d in ex['input_hashes'].items():assert sha(path)==d
+  regen=read(out/'source-regeneration/REGENERATION.json');assert regen['status']=='PASS_STRUCTURAL_PRODUCER_REGENERATION_ALL_FIVE_FILES' and regen['rounds']==2 and regen['source_unchanged'] and regen['source_manifest_sha256']==pin['predecessor']['manifest_sha256'] and regen['checker_sha256']==sha(src/'bitword/producer/regenerate_structural.py')
+- assert len(regen['files'])==5 and all(r['pinned']==r['rebuilt'] for r in regen['files'].values())
+- for name,r in regen['files'].items():assert sha(src/'bitword/selected/bit'/name)==r['pinned'] and sha(out/'source-regeneration/final1'/name)==r['rebuilt']
+- receipts=['source-regeneration/REGENERATION.json','predecessor/verification.json','predecessor/certificate.json','predecessor/complex.json','predecessor/primes.json','predecessor/banks.json','EXPORT.json','ROLE-MAP.json']
++ verify_regenerated_files(src,out/'source-regeneration',regen['files'])
++ controls=read(out/'PRODUCER-BINDING-CONTROLS.json')
++ expected_controls={'forged-pinned','forged-rebuilt','forged-expanded','missing-file','extra-file'}|{'changed-complete-bytes-'+name for name in regen['files']}
++ assert controls['status']=='PASS_EXACT_PRODUCER_CONTENT_BINDING_CONTROLS' and len(controls['negative_controls'])==len(expected_controls) and set(controls['negative_controls'])==expected_controls
++
++ receipts=['PRODUCER-BINDING-CONTROLS.json','source-regeneration/REGENERATION.json','predecessor/verification.json','predecessor/certificate.json','predecessor/complex.json','predecessor/primes.json','predecessor/banks.json','EXPORT.json','ROLE-MAP.json']
+  stages={}
+  previous=pin['source_parity_sha256']
+  for name in ('descent','target','kernel','restore','sink','reorder','descent2'):
+diff --git a/research/p10b-oriented-constructed42/code/producer_binding_controls.py b/research/p10b-oriented-constructed42/code/producer_binding_controls.py
+new file mode 100644
+index 00000000..204d35f1
+--- /dev/null
++++ b/research/p10b-oriented-constructed42/code/producer_binding_controls.py
+@@ -0,0 +1,39 @@
++#!/usr/bin/env python3
++"""Regression controls for the exact producer-content binding; Codex assisted."""
++import copy,gzip,hashlib,json,sys,tempfile
++from pathlib import Path
++from finish import verify_regenerated_files
++assert __debug__
++sha=lambda b:hashlib.sha256(b).hexdigest()
++with tempfile.TemporaryDirectory(prefix='producer-binding-') as tmp:
++ root=Path(tmp);src=root/'source';work=root/'regen'
++ (src/'bitword/selected/bit').mkdir(parents=True);(work/'final1').mkdir(parents=True)
++ names=['graph_p10.json','kchron_p10.json','profile_p10.json','word_p10.json.gz','frames_p10.json.gz']
++ files={};payload=b'{"complete": [1, 2, 3]}\n'*100
++ for name in names:
++  if name.endswith('.gz'):
++   a=bytearray(gzip.compress(payload,compresslevel=9,mtime=0));a[9]=19;a=bytes(a)
++   b=bytearray(gzip.compress(payload,compresslevel=1,mtime=0));b[9]=3;b=bytes(b)
++   assert a!=b and gzip.decompress(a)==gzip.decompress(b)==payload
++  else:a=b=payload
++  (src/'bitword/selected/bit'/name).write_bytes(a);(work/'final1'/name).write_bytes(b)
++  files[name]=dict(pinned=sha(a),rebuilt=sha(b),expanded=sha(payload))
++ verify_regenerated_files(src,work,files)
++ rejected=[]
++ def reject(label,report):
++  try:verify_regenerated_files(src,work,report)
++  except (AssertionError,KeyError,FileNotFoundError,gzip.BadGzipFile,EOFError):rejected.append(label)
++  else:raise AssertionError('Accepted invalid control '+label)
++ for key in ('pinned','rebuilt','expanded'):
++  bad=copy.deepcopy(files);bad[names[-1]][key]='0'*64;reject('forged-'+key,bad)
++ bad=copy.deepcopy(files);del bad[names[0]];reject('missing-file',bad)
++ bad=copy.deepcopy(files);bad['unexpected.json']=bad[names[0]];reject('extra-file',bad)
++ for name in names:
++  p=work/'final1'/name;original=p.read_bytes();wrong=payload+b' '
++  replacement=gzip.compress(wrong,mtime=0) if name.endswith('.gz') else wrong
++  p.write_bytes(replacement);bad=copy.deepcopy(files);bad[name]['rebuilt']=sha(replacement);bad[name]['expanded']=sha(wrong)
++  reject('changed-complete-bytes-'+name,bad);p.write_bytes(original)
++ verify_regenerated_files(src,work,files)
++ result=dict(status='PASS_EXACT_PRODUCER_CONTENT_BINDING_CONTROLS',accepted='Different OS metadata and compression levels with identical complete expanded bytes',negative_controls=rejected)
++ if len(sys.argv)>1:Path(sys.argv[1]).write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
++ print(json.dumps(result,sort_keys=True))
+diff --git a/research/p10b-oriented-constructed42/verify.py b/research/p10b-oriented-constructed42/verify.py
+index efed042b..1fc2ffa4 100644
+--- a/research/p10b-oriented-constructed42/verify.py
++++ b/research/p10b-oriented-constructed42/verify.py
+@@ -51,6 +51,7 @@ def main():
+   run('price',py+[code/'price.py',c,'--bank',out/'BANK.json','--complex',out/'predecessor/complex.json','--complex-reserve',reserve,'--complex-reserve-proof',out/'complex-reserve','--output',out/'PRICE.json'])
+   run('finite-invoice',[bin/'invoice',c/'COHORT249-RECORDS.bin',out/'PRICE.json',out/'BANK.json',out/'COLUMNS.json',out/'INVOICE.json'])
+   run('prime-threshold-bootstrap',py+[code/'threshold_bootstrap.py','--arithmetic-stage','--source',ROOT,'--replay',out,'--expected-word',json.loads((ROOT/'SOURCE.json').read_text())['final_word_sha256'],'--require-frame-primes','--output',out/'REFINEMENT.json'])
++  run('producer-binding-controls',py+[code/'producer_binding_controls.py',out/'PRODUCER-BINDING-CONTROLS.json'])
+   run('complete-admission',py+[code/'finish.py',out])
+   assert integrity()==digest,'Source changed during replay';cert=json.loads((out/'CERTIFICATE.json').read_text())
+   report=dict(status=cert['status'],kappa=cert['kappa'],word_sha256=cert['word_sha256'],manifest_sha256=digest,inputs_unchanged=True,fresh_stages=stages,seconds=time.monotonic()-start,scope=cert['scope'])
+diff --git a/research/p10b-portability-audit/ACTUAL-PAYLOAD-CONTROLS.json b/research/p10b-portability-audit/ACTUAL-PAYLOAD-CONTROLS.json
+new file mode 100644
+index 00000000..c207932d
+--- /dev/null
++++ b/research/p10b-portability-audit/ACTUAL-PAYLOAD-CONTROLS.json
+@@ -0,0 +1,39 @@
++{
++  "finish_sha256": "8e21661f5428d6182526e45a3b014d56806cfa11e5848ccc5d5b6f7210c518a1",
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "original_regeneration_receipt_sha256": "588f71a5b67748c5462f448ada04a326331d1fcf684152adbe45e5f39df4ee1d",
++  "package": "/private/tmp/p10b-oriented-portable-gzip-v1",
++  "python": "3.12.13 (main, May 10 2026, 19:20:41) [Clang 22.1.3 ]",
++  "rows": [
++    {
++      "expanded_bytes": 1287608,
++      "expanded_sha256": "a54de5ed33fed372a79d603caf629d8005cad52a145261874fc8edc678b226a9",
++      "name": "word_p10.json.gz",
++      "original_rebuilt_sha256": "0ff8c0c69b9fea6887d99f421cfdb8cfda03efd30c58b042cee8e6e1c76a3a73",
++      "pinned_sha256": "0ff8c0c69b9fea6887d99f421cfdb8cfda03efd30c58b042cee8e6e1c76a3a73",
++      "recompressed_sha256": "a0b75a41c5f6c9818d795edb8807b4e7008cdb81346698399bcc640302d355a9"
++    },
++    {
++      "expanded_bytes": 3536791,
++      "expanded_sha256": "df3124c471e01381ed5035433917364daca24648f70b652f79a5258c03a6ea3b",
++      "name": "frames_p10.json.gz",
++      "original_rebuilt_sha256": "606fe9d5ac610ab831354cd90627fac2a756e1b1d087854383376094ccad28e7",
++      "pinned_sha256": "606fe9d5ac610ab831354cd90627fac2a756e1b1d087854383376094ccad28e7",
++      "recompressed_sha256": "b14906eba1c369285130a0e9b87a8dc8f0b9b3f5c90f71bf9cbcb762ce86b26d"
++    },
++    {
++      "control": "added_whitespace_with_updated_hashes",
++      "message": "word_p10.json.gz complete expanded bytes",
++      "name": "word_p10.json.gz",
++      "status": "REJECT"
++    },
++    {
++      "control": "added_whitespace_with_updated_hashes",
++      "message": "frames_p10.json.gz complete expanded bytes",
++      "name": "frames_p10.json.gz",
++      "status": "REJECT"
++    }
++  ],
++  "scope": "Actual 5-file regenerated word; both gzip containers recompressed together with changed level/mtime; expanded bytes identical. Both altered payloads rejected with recomputed receipt hashes.",
++  "status": "PASS_REAL_PRODUCER_PAYLOAD_RECOMPRESSION_AND_EXACT_CONTENT_CONTROLS"
++}
+diff --git a/research/p10b-portability-audit/CERTIFICATE.json b/research/p10b-portability-audit/CERTIFICATE.json
+new file mode 100644
+index 00000000..5c51a2ed
+--- /dev/null
++++ b/research/p10b-portability-audit/CERTIFICATE.json
+@@ -0,0 +1,64 @@
++{
++  "changed_projector_charts": 5643,
++  "complex_reserve": {
++    "adapter_sha256": "89304eaa137b928fb74fc2431fc2e2016c991bf10169c9cc2bba38d4d6cc7c44",
++    "all_supplier_stages_fresh": true,
++    "candidate_sha256": "370fae730670b375dd864b8a3fdfacfb166e5d59f215b78e524ba9a8a53923ff",
++    "inputs_unchanged": true,
++    "manifest_sha256": "b80813244bb9fa5cb4a1b5008768a3cc143bdd01a331ea4e23213bd5bf0891d4",
++    "public_head": "40ed0456ab1990beb3440e61bb883ccf95fdcea4"
++  },
++  "entrance_families": 1250,
++  "entrance_rank": 1254,
++  "final_descent_gates": 42,
++  "finite_coefficient": 125825732659691501,
++  "fresh_receipt_hashes": {
++    "BANK.json": "3242ac0952ee03ed93e357c648a1d24aeecbf889ca4af4176634994660ce5467",
++    "COLUMNS.json": "4bcdf93a1b62b4cf5c8e9435e6031d8c689947309307a48528432da4da363b2a",
++    "EXPORT.json": "b7911fdb5820adc3503270ad8d6cfb41b50e6dff3fd7ca421b96474383143222",
++    "FRAME-PRIMES.json": "a3a933e8ce44522eaa504b37fb64a40a07de072166b5abf952bcd4e47d647587",
++    "INVOICE.json": "ee1b4aecf1268aa9a98443a21b1dcf4d6a01e9a2f6218b00f42354d685f49969",
++    "LEGALITY.json": "cd52e92584a850dbd0451cec4199c031a8bbc0b9e015d1717a3d1fcc7307457c",
++    "PRICE.json": "f851f071ba9b27b9df89d5e81a7c5f885707bede9e9dda96cf70e8fa9ed3e649",
++    "PRODUCER-BINDING-CONTROLS.json": "7c229715d22b925842d79a8d24f54fb6522b328d36f04f466a9e061436690646",
++    "REFINEMENT.json": "d52493dec3a92e18f918566087d2c04caea955eaed8b75fc5e4b9390811ef384",
++    "ROLE-MAP.json": "b4074234f3f525e1f4b596e36d755bf6a30786adc885e513087d9c86b3164435",
++    "TILING.json": "80ed021022488889dd40e3bfbdf50e472e946345da6dceb94b192e8f604a9922",
++    "complex-reserve/SUPPLIER-CHECK.json": "1b8e32d630af47ebf08a63f8b7aa69e204f42f29d1dd2aa4ee23219e286a0ce1",
++    "complex-reserve/VERIFICATION.json": "39464f49eed640719625c564de338950b8e94b86ff435f22a5857c556839a666",
++    "complex-reserve/candidate.json": "370fae730670b375dd864b8a3fdfacfb166e5d59f215b78e524ba9a8a53923ff",
++    "materialized/descent/descent.json": "bbf0348f134e839cd7fcac888a6d51374c8c978869130417cd6224168f47a65e",
++    "materialized/descent2/descent.json": "059f2d54c775d3fbb93c7f5b969d0ba0fc5afb627e9b5efed90d11655dfbe7b3",
++    "materialized/kernel/kernel.json": "bc2806e45b2ff5682e96600f29f4f8d84dfb708c1d134c5dcb01cad545cdc5fb",
++    "materialized/reorder/reorder.json": "fd6ed40d62ebc9c9c519d6aa21eef4c31501f2829eac311cd4c75d9f9a1679d7",
++    "materialized/restore/restore.json": "e52ea3d716edc96ee28ba23323db9339f4c4e1f92609299b9027cc8db9f8e08b",
++    "materialized/sink/sink.json": "d0ce6e5ee000aaf82d96ae498fd00ab685432d990754800de7289d2d9bfa9c93",
++    "materialized/target/target.json": "9527de20eca12101c8d17f6adc13dc7c44e72f2ff1831b9cd3627c0af2f9e1b0",
++    "predecessor/banks.json": "8736c37698f1865008053643ce281873ca7f0e0b3b3748dc0880d2327c33f982",
++    "predecessor/certificate.json": "2ae188e083d4d23401bbaa7a4be62eb8f280d7c208555b745b62b36642ea6a00",
++    "predecessor/complex.json": "9563d943e8720208bad32ca063015146ea4d801370d55b75fa4e8efe5a7955c4",
++    "predecessor/primes.json": "58cf09df95ec858ef72290e58de798e31eb866ed452a58cbd27c2b9335cd1ea0",
++    "predecessor/verification.json": "fe0ffd2ab36f4c89ba1028423a5f370d96bab067c0555a13446eaaf94f74be1b",
++    "source-regeneration/REGENERATION.json": "588f71a5b67748c5462f448ada04a326331d1fcf684152adbe45e5f39df4ee1d"
++  },
++  "helper_assignments": 12130500,
++  "kappa": "48579266190148227503007/62500000000000000000000000",
++  "kappa_gain": "428555998906852503007/62500000000000000000000000",
++  "literal_stock": 3267690,
++  "native_kappa": "388634127838991/500000000000000000",
++  "new_chart_factor_max": 352,
++  "new_frame_charts": 1044,
++  "normalized_stock": 653538,
++  "normalizer": 787,
++  "payload_bits": 94,
++  "physical_replicas": 300,
++  "predecessor_kappa": "385205681529931/500000000000000000",
++  "reordered_gates": 127,
++  "restored_helpers": 240,
++  "scope": "Conditional sufficient finite construction under the unchanged all-size compiler, weighted selector, common-ancestor chart, restored-row, routing, prime-supply, precision/recovery, complex-symbolic and analytic interfaces. Prime q still grows as in the admitted source; Q is only an eventual lower threshold. No fixed-modulus machine or unconditional theorem is claimed.",
++  "selector_charge": 1919143767000,
++  "source_regenerated": true,
++  "status": "PASS_SOURCE_BOUND_P10B_ORIENTED_PR327_T300_CONDITIONAL_CONSTRUCTION",
++  "terminal_sinks": 13,
++  "word_sha256": "44659632417fb37d7f66f775db6c9348df668bdee3ae7b484f0bf88bc846e35a"
++}
+diff --git a/research/p10b-portability-audit/CODE-REVIEW.json b/research/p10b-portability-audit/CODE-REVIEW.json
+new file mode 100644
+index 00000000..a6a12ed3
+--- /dev/null
++++ b/research/p10b-portability-audit/CODE-REVIEW.json
+@@ -0,0 +1,40 @@
++{
++  "added_files": [
++    "code/producer_binding_controls.py"
++  ],
++  "all_vendored_source_and_math_unchanged": true,
++  "changed_files": [
++    "MANIFEST.json",
++    "README.md",
++    "code/finish.py",
++    "verify.py"
++  ],
++  "finding": "No blocking issues. Container hashes bind each actual raw file independently; direct expanded byte equality preserves producer contract; fixed file-key set excludes incomplete or substituted receipts. Expanded hash is transitively bound to both sides by direct byte equality. No JSON normalization.",
++  "independent_controls": {
++    "accepted": 4,
++    "path": "/private/tmp/pr332-portability-audit/CONTROLS.json",
++    "rejected": 20,
++    "sha256": "e4b3c5fe3bea59962b2e72a45bc07037040d55140726fb2d78f8f36974673f5e"
++  },
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "original_manifest_sha256": "35224cf20f734226550a30683fb25ec722a235b13a68975320eb5746f90f609a",
++  "original_package": "/private/tmp/p10b-oriented-pr327-t300-v1",
++  "package": "/private/tmp/p10b-oriented-portable-gzip-v1",
++  "preserved_guards": [
++    "fresh source regeneration",
++    "rounds=2",
++    "source_unchanged",
++    "source manifest pin",
++    "producer checker pin",
++    "package exact manifest integrity before and after",
++    "all mathematical, signed, physical, dirty, reflected, finite, invoice and moment stages"
++  ],
++  "production_controls": {
++    "path": "/private/tmp/pr332-portability-audit/PACKAGE-CONTROLS.json",
++    "sha256": "7c229715d22b925842d79a8d24f54fb6522b328d36f04f466a9e061436690646"
++  },
++  "removed_files": [],
++  "replay": "In progress; no full-admission result asserted by this review.",
++  "source_json_unchanged": true,
++  "status": "PASS_NARROW_PORTABILITY_REPAIR_CODE_REVIEW"
++}
+diff --git a/research/p10b-portability-audit/CONTROLS.json b/research/p10b-portability-audit/CONTROLS.json
+new file mode 100644
+index 00000000..51012831
+--- /dev/null
++++ b/research/p10b-portability-audit/CONTROLS.json
+@@ -0,0 +1,149 @@
++{
++  "accepted": 4,
++  "cases": [
++    {
++      "case": "baseline_distinct_payloads_changed_gzip_header_and_compression",
++      "status": "ACCEPT"
++    },
++    {
++      "case": "wrong_key_same_cardinality",
++      "exception": "AssertionError",
++      "message": "Exactly five regenerated source files required",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_graph_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/source/bitword/selected/bit/graph_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_kchron_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/source/bitword/selected/bit/kchron_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_profile_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/source/bitword/selected/bit/profile_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_word_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/source/bitword/selected/bit/word_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_frames_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/source/bitword/selected/bit/frames_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_graph_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/regeneration/final1/graph_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_kchron_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/regeneration/final1/kchron_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_profile_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/regeneration/final1/profile_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_word_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/regeneration/final1/word_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_frames_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/pr332-portability-audit/cases-_hh0gtj2/regeneration/final1/frames_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_graph_p10.json",
++      "exception": "AssertionError",
++      "message": "graph_p10.json complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_kchron_p10.json",
++      "exception": "AssertionError",
++      "message": "kchron_p10.json complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_profile_p10.json",
++      "exception": "AssertionError",
++      "message": "profile_p10.json complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_word_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "word_p10.json.gz complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_frames_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "frames_p10.json.gz complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "stale_container_hash_after_equal_content_recompression_word_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "word_p10.json.gz rebuilt container hash",
++      "status": "REJECT"
++    },
++    {
++      "case": "fresh_container_hash_after_equal_content_recompression_word_p10.json.gz",
++      "status": "ACCEPT"
++    },
++    {
++      "case": "stale_container_hash_after_equal_content_recompression_frames_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "frames_p10.json.gz rebuilt container hash",
++      "status": "REJECT"
++    },
++    {
++      "case": "fresh_container_hash_after_equal_content_recompression_frames_p10.json.gz",
++      "status": "ACCEPT"
++    },
++    {
++      "case": "invalid_gzip_crc_word_p10.json.gz",
++      "exception": "BadGzipFile",
++      "message": "CRC check failed",
++      "status": "REJECT"
++    },
++    {
++      "case": "invalid_gzip_crc_frames_p10.json.gz",
++      "exception": "BadGzipFile",
++      "message": "CRC check failed",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_five_file_producer_receipt",
++      "status": "ACCEPT"
++    }
++  ],
++  "controls_script_sha256": "b7cc0bd894e1a59cc3b3441f82f656e140d75f4f2f463a9ab892bd308985ace8",
++  "finish_sha256": "8e21661f5428d6182526e45a3b014d56806cfa11e5848ccc5d5b6f7210c518a1",
++  "helper_ast_sha256": "65b54af2476bff571d7d416f90d1d4a9c03c0d19897b3e31698932ca4466c077",
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "package": "/private/tmp/p10b-oriented-portable-gzip-v1",
++  "rejected": 20,
++  "scope": "Imported the exact frozen production helper. Writes limited to ephemeral audit fixtures. Valid gzip container representation changes accepted; complete expanded bytes remain exact.",
++  "status": "PASS_INDEPENDENT_PRODUCER_BINDING_ADVERSARIAL_REVIEW"
++}
+diff --git a/research/p10b-portability-audit/PACKAGE-CONTROLS.json b/research/p10b-portability-audit/PACKAGE-CONTROLS.json
+new file mode 100644
+index 00000000..d0fb9c47
+--- /dev/null
++++ b/research/p10b-portability-audit/PACKAGE-CONTROLS.json
+@@ -0,0 +1,16 @@
++{
++  "accepted": "Different OS metadata and compression levels with identical complete expanded bytes",
++  "negative_controls": [
++    "forged-pinned",
++    "forged-rebuilt",
++    "forged-expanded",
++    "missing-file",
++    "extra-file",
++    "changed-complete-bytes-graph_p10.json",
++    "changed-complete-bytes-kchron_p10.json",
++    "changed-complete-bytes-profile_p10.json",
++    "changed-complete-bytes-word_p10.json.gz",
++    "changed-complete-bytes-frames_p10.json.gz"
++  ],
++  "status": "PASS_EXACT_PRODUCER_CONTENT_BINDING_CONTROLS"
++}
+diff --git a/research/p10b-portability-audit/README.md b/research/p10b-portability-audit/README.md
+new file mode 100644
+index 00000000..7e6dbda6
+--- /dev/null
++++ b/research/p10b-portability-audit/README.md
+@@ -0,0 +1,45 @@
++# PR332 producer-binding portability repair
++
++Frozen PR332 passed both local full replays. Its Linux run
++[38083195160](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38083195160)
++passed all twenty preceding stages, including exact expanded-byte source
++regeneration, then rejected the regenerated gzip container hashes at
++`finish.py:41`. Gzip representation depends on the operating system and zlib.
++The original producer explicitly allowed equivalent gzip representations.
++
++This separate branch restores that contract at final admission. Every stored
++package file remains byte-pinned by the manifest. Both actual input and output
++container hashes are checked independently, the exact five filenames are
++required, and all complete expanded bytes must agree. Plaintext files retain
++raw byte equality. No JSON parsing or normalization replaces byte comparison.
++The scalar construction, selectors, all mathematics and vendored sources are
++unchanged. The conditional κ and inherited theorem assumptions remain those
++of PR332; this is a verification portability repair.
++
++The mandatory production control stage tests ten rejections. The independent
++review additionally exercises missing physical files, equal-cardinality key
++substitution, JSON-equivalent but byte-different content, stale hashes after
++recompression, and invalid gzip CRCs. Valid gzip filenames, timestamps,
++compression levels and OS metadata may differ only if the entire expanded
++payload stays exact. Saved audit JSON files are retrospective receipts and
++are not accepted as construction inputs.
++
++After a fresh complete construction replay, reproduce the independent controls:
++
++```sh
++python -B research/p10b-portability-audit/controls.py \
++  --package research/p10b-oriented-constructed42 \
++  --regeneration /tmp/p10b-portable-proof/source-regeneration \
++  --output /tmp/p10b-binding-independent.json
++```
++
++Prepared with substantial OpenAI Codex assistance. All inherited author and
++AI disclosures remain in the unmodified construction notices.
++
++Two fresh complete immutable replays exited 0: Python 3.11 in 1020.1577 seconds
++and Python 3.12 in 831.9726 seconds, each with all 22 stages. Their mathematical
++certificates match each other and the original PR332 certificate after removing
++only top-level receipt hashes. The source gate independently rechecked all five
++complete payloads and both actual container hashes. Saved receipts are external
++to the immutable package and never substitute for fresh verification. Linux CI
++for this separate repair head remains pending at publication.
+diff --git a/research/p10b-portability-audit/controls.py b/research/p10b-portability-audit/controls.py
+new file mode 100644
+index 00000000..6f22f1c7
+--- /dev/null
++++ b/research/p10b-portability-audit/controls.py
+@@ -0,0 +1,57 @@
++"""Independent gzip-content binding adversarial audit; OpenAI Codex assisted. Apache-2.0."""
++from pathlib import Path
++import argparse,ast,copy,gzip,hashlib,importlib.util,io,json,sys,tempfile
++ap=argparse.ArgumentParser();ap.add_argument('--package',type=Path,required=True);ap.add_argument('--regeneration',type=Path,required=True);ap.add_argument('--output',type=Path,required=True);args=ap.parse_args()
++assert not args.output.exists();D=args.output.resolve().parent;D.mkdir(parents=True,exist_ok=True)
++P=args.package.resolve()
++finish=P/'code/finish.py';initial=finish.read_bytes();sha=lambda b:hashlib.sha256(b).hexdigest()
++spec=importlib.util.spec_from_file_location('reviewed_finish',finish);mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
++f=mod.verify_regenerated_files
++names=['graph_p10.json','kchron_p10.json','profile_p10.json','word_p10.json.gz','frames_p10.json.gz']
++helper=next(n for n in ast.parse(initial).body if isinstance(n,ast.FunctionDef) and n.name=='verify_regenerated_files')
++helper_hash=sha(ast.dump(helper,include_attributes=False).encode())
++results=[]
++with tempfile.TemporaryDirectory(prefix='cases-',dir=D) as tmp:
++ root=Path(tmp);src=root/'source';work=root/'regeneration';pd=src/'bitword/selected/bit';rd=work/'final1';pd.mkdir(parents=True);rd.mkdir(parents=True)
++ files={};payloads={}
++ for i,name in enumerate(names):
++  payload=json.dumps({'name':name,'index':i,'value':[1,2,3]},separators=(',',':')).encode()+b'\n';payloads[name]=payload
++  a=gzip.compress(payload,compresslevel=9,mtime=0) if name.endswith('.gz') else payload
++  if name.endswith('.gz'):
++   bbuf=io.BytesIO()
++   with gzip.GzipFile(filename='different-platform-name',mode='wb',fileobj=bbuf,mtime=123456,compresslevel=1) as z:z.write(payload)
++   b=bbuf.getvalue();assert a!=b and gzip.decompress(a)==gzip.decompress(b)==payload
++  else:b=a
++  (pd/name).write_bytes(a);(rd/name).write_bytes(b);files[name]={'pinned':sha(a),'rebuilt':sha(b),'expanded':sha(payload)}
++ f(src,work,files);results.append({'case':'baseline_distinct_payloads_changed_gzip_header_and_compression','status':'ACCEPT'})
++ def reject(label,report,expected_type=AssertionError,expected_message=None):
++  try:f(src,work,report)
++  except expected_type as e:
++   if expected_message is not None:assert expected_message in str(e),(label,type(e),str(e))
++   results.append({'case':label,'status':'REJECT','exception':type(e).__name__,'message':str(e)})
++  else:raise AssertionError('Accepted invalid control '+label)
++ bad=copy.deepcopy(files);bad['wrong_p10.json']=bad.pop(names[0]);assert len(bad)==5
++ reject('wrong_key_same_cardinality',bad,expected_message='Exactly five')
++ for side,directory in [('pinned',pd),('rebuilt',rd)]:
++  for name in names:
++   p=directory/name;raw=p.read_bytes();p.unlink();reject('actual_missing_'+side+'_'+name,files,FileNotFoundError);p.write_bytes(raw)
++ for name in names:
++  p=rd/name;raw=p.read_bytes();semantic=json.loads(payloads[name]);wrong=json.dumps(semantic,indent=2,sort_keys=True).encode()+b'\n'
++  assert wrong!=payloads[name] and json.loads(wrong)==semantic
++  replacement=gzip.compress(wrong,mtime=0) if name.endswith('.gz') else wrong
++  p.write_bytes(replacement);bad=copy.deepcopy(files);bad[name]['rebuilt']=sha(replacement);bad[name]['expanded']=sha(wrong)
++  reject('json_equivalent_format_change_'+name,bad,expected_message='complete expanded bytes');p.write_bytes(raw)
++ for name in names[-2:]:
++  p=rd/name;raw=p.read_bytes();new=gzip.compress(payloads[name],mtime=987654);assert new!=raw;p.write_bytes(new)
++  reject('stale_container_hash_after_equal_content_recompression_'+name,files,expected_message='rebuilt container hash')
++  good=copy.deepcopy(files);good[name]['rebuilt']=sha(new);f(src,work,good);results.append({'case':'fresh_container_hash_after_equal_content_recompression_'+name,'status':'ACCEPT'});p.write_bytes(raw)
++ for name in names[-2:]:
++  p=rd/name;raw=p.read_bytes();badbytes=bytearray(raw);badbytes[-8]^=1;p.write_bytes(badbytes);bad=copy.deepcopy(files);bad[name]['rebuilt']=sha(badbytes)
++  reject('invalid_gzip_crc_'+name,bad,gzip.BadGzipFile);p.write_bytes(raw)
++ f(src,work,files)
++# Exercise the production helper against an existing actual 5-file regenerated word, read-only.
++actual=args.regeneration.resolve();record=json.loads((actual/'REGENERATION.json').read_text());f(P/'vendor/predecessor',actual,record['files']);results.append({'case':'actual_five_file_producer_receipt','status':'ACCEPT'})
++assert finish.read_bytes()==initial,'Reviewed finish.py changed during audit'
++manifest=P/'MANIFEST.json';assert sha(manifest.read_bytes())=='79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1'
++report={'status':'PASS_INDEPENDENT_PRODUCER_BINDING_ADVERSARIAL_REVIEW','package':str(P),'manifest_sha256':sha(manifest.read_bytes()),'finish_sha256':sha(initial),'helper_ast_sha256':helper_hash,'controls_script_sha256':sha(Path(__file__).read_bytes()),'cases':results,'accepted':sum(r['status']=='ACCEPT' for r in results),'rejected':sum(r['status']=='REJECT' for r in results),'scope':'Imported the exact frozen production helper. Writes limited to ephemeral audit fixtures. Valid gzip container representation changes accepted; complete expanded bytes remain exact.'}
++out=args.output.resolve();out.write_text(json.dumps(report,sort_keys=True,indent=2)+'\n');print('PASS',report['accepted'],'accepted',report['rejected'],'rejected',sha(out.read_bytes()))
+diff --git a/research/p10b-portability-audit/independent-VERIFICATION.json b/research/p10b-portability-audit/independent-VERIFICATION.json
+new file mode 100644
+index 00000000..43f5dbd8
+--- /dev/null
++++ b/research/p10b-portability-audit/independent-VERIFICATION.json
+@@ -0,0 +1,99 @@
++{
++  "fresh_stages": [
++    {
++      "seconds": 43.56626479199622,
++      "stage": "regenerate-oriented-source"
++    },
++    {
++      "seconds": 126.90543666703161,
++      "stage": "immutable-oriented-source"
++    },
++    {
++      "seconds": 561.3235239170026,
++      "stage": "immutable-complex-reserve"
++    },
++    {
++      "seconds": 65.9060932090506,
++      "stage": "reconstruct-p10b-word"
++    },
++    {
++      "seconds": 1.098455625004135,
++      "stage": "export-native"
++    },
++    {
++      "seconds": 2.412228791974485,
++      "stage": "compile-legality"
++    },
++    {
++      "seconds": 1.558305290993303,
++      "stage": "compile-columns"
++    },
++    {
++      "seconds": 2.1133774160407484,
++      "stage": "compile-changed-charts"
++    },
++    {
++      "seconds": 2.5915679580066353,
++      "stage": "compile-banks"
++    },
++    {
++      "seconds": 2.557197665970307,
++      "stage": "compile-invoice"
++    },
++    {
++      "seconds": 0.8767455829656683,
++      "stage": "legality"
++    },
++    {
++      "seconds": 0.27380204101791605,
++      "stage": "columns"
++    },
++    {
++      "seconds": 0.2576310409931466,
++      "stage": "tiling"
++    },
++    {
++      "seconds": 4.1662119590328075,
++      "stage": "bank-frames-and-assignment"
++    },
++    {
++      "seconds": 9.47807799995644,
++      "stage": "changed-charts"
++    },
++    {
++      "seconds": 0.7188138339552097,
++      "stage": "geometry-admission"
++    },
++    {
++      "seconds": 3.590588749968447,
++      "stage": "all-frame-prime-minors"
++    },
++    {
++      "seconds": 1.149322832992766,
++      "stage": "price"
++    },
++    {
++      "seconds": 0.20110970799578354,
++      "stage": "finite-invoice"
++    },
++    {
++      "seconds": 0.6592640829621814,
++      "stage": "prime-threshold-bootstrap"
++    },
++    {
++      "seconds": 0.03410849999636412,
++      "stage": "producer-binding-controls"
++    },
++    {
++      "seconds": 0.4800568330101669,
++      "stage": "complete-admission"
++    }
++  ],
++  "inputs_unchanged": true,
++  "kappa": "48579266190148227503007/62500000000000000000000000",
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "scope": "Conditional sufficient finite construction under the unchanged all-size compiler, weighted selector, common-ancestor chart, restored-row, routing, prime-supply, precision/recovery, complex-symbolic and analytic interfaces. Prime q still grows as in the admitted source; Q is only an eventual lower threshold. No fixed-modulus machine or unconditional theorem is claimed.",
++  "seconds": 831.972615125007,
++  "status": "PASS_SOURCE_BOUND_P10B_ORIENTED_PR327_T300_CONDITIONAL_CONSTRUCTION",
++  "word_sha256": "44659632417fb37d7f66f775db6c9348df668bdee3ae7b484f0bf88bc846e35a"
++}
+diff --git a/research/p10b-portability-audit/independent-full-replay.json b/research/p10b-portability-audit/independent-full-replay.json
+new file mode 100644
+index 00000000..bc0f30a0
+--- /dev/null
++++ b/research/p10b-portability-audit/independent-full-replay.json
+@@ -0,0 +1,21 @@
++{
++  "all_final_receipt_hashes_verified": true,
++  "boost_include": "/private/tmp/balanced-coarse-openmp-env/boost_1_88_0",
++  "certificate_sha256": "345b5e6bae9615675ec7e0c4caa9697781796424c1600db7da63a30e3b9107b3",
++  "cxx": "/usr/bin/clang++",
++  "fresh_stage_count": 22,
++  "inputs_unchanged": true,
++  "interpreter": "/private/tmp/moonshot/primitives/char0/venv/bin/python",
++  "kappa": "48579266190148227503007/62500000000000000000000000",
++  "log": "/private/tmp/pr332-portability-audit/full-cp312-replay.log",
++  "log_sha256": "44159d09980daf55cbdc78f03e0aa2e81d1b0679980fda51ed97aa9c0f4759af",
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "package": "/private/tmp/p10b-oriented-portable-gzip-v1",
++  "process_exit_code": 0,
++  "proof": "/private/tmp/p10b-oriented-portable-gzip-agent-proof",
++  "pythonpath": "/private/tmp/pr327-pinned-runtime-cp312",
++  "seconds": 831.972615125007,
++  "status": "PASS_INDEPENDENT_CP312_FULL_22_STAGE_REPLAY_EXIT_ZERO",
++  "verification_sha256": "8014150390025cfb55c705f7ecb0b0c5d326538b0bd9df314f983b18f931633d",
++  "word_sha256": "44659632417fb37d7f66f775db6c9348df668bdee3ae7b484f0bf88bc846e35a"
++}
+diff --git a/research/p10b-portability-audit/original-controls.py b/research/p10b-portability-audit/original-controls.py
+new file mode 100644
+index 00000000..4b115325
+--- /dev/null
++++ b/research/p10b-portability-audit/original-controls.py
+@@ -0,0 +1,55 @@
++from pathlib import Path
++import ast,copy,gzip,hashlib,importlib.util,io,json,sys,tempfile
++D=Path(__file__).resolve().parent
++P=Path('/private/tmp/p10b-oriented-portable-gzip-v1')
++finish=P/'code/finish.py';initial=finish.read_bytes();sha=lambda b:hashlib.sha256(b).hexdigest()
++spec=importlib.util.spec_from_file_location('reviewed_finish',finish);mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
++f=mod.verify_regenerated_files
++names=['graph_p10.json','kchron_p10.json','profile_p10.json','word_p10.json.gz','frames_p10.json.gz']
++helper=next(n for n in ast.parse(initial).body if isinstance(n,ast.FunctionDef) and n.name=='verify_regenerated_files')
++helper_hash=sha(ast.dump(helper,include_attributes=False).encode())
++results=[]
++with tempfile.TemporaryDirectory(prefix='cases-',dir=D) as tmp:
++ root=Path(tmp);src=root/'source';work=root/'regeneration';pd=src/'bitword/selected/bit';rd=work/'final1';pd.mkdir(parents=True);rd.mkdir(parents=True)
++ files={};payloads={}
++ for i,name in enumerate(names):
++  payload=json.dumps({'name':name,'index':i,'value':[1,2,3]},separators=(',',':')).encode()+b'\n';payloads[name]=payload
++  a=gzip.compress(payload,compresslevel=9,mtime=0) if name.endswith('.gz') else payload
++  if name.endswith('.gz'):
++   bbuf=io.BytesIO()
++   with gzip.GzipFile(filename='different-platform-name',mode='wb',fileobj=bbuf,mtime=123456,compresslevel=1) as z:z.write(payload)
++   b=bbuf.getvalue();assert a!=b and gzip.decompress(a)==gzip.decompress(b)==payload
++  else:b=a
++  (pd/name).write_bytes(a);(rd/name).write_bytes(b);files[name]={'pinned':sha(a),'rebuilt':sha(b),'expanded':sha(payload)}
++ f(src,work,files);results.append({'case':'baseline_distinct_payloads_changed_gzip_header_and_compression','status':'ACCEPT'})
++ def reject(label,report,expected_type=AssertionError,expected_message=None):
++  try:f(src,work,report)
++  except expected_type as e:
++   if expected_message is not None:assert expected_message in str(e),(label,type(e),str(e))
++   results.append({'case':label,'status':'REJECT','exception':type(e).__name__,'message':str(e)})
++  else:raise AssertionError('Accepted invalid control '+label)
++ bad=copy.deepcopy(files);bad['wrong_p10.json']=bad.pop(names[0]);assert len(bad)==5
++ reject('wrong_key_same_cardinality',bad,expected_message='Exactly five')
++ for side,directory in [('pinned',pd),('rebuilt',rd)]:
++  for name in names:
++   p=directory/name;raw=p.read_bytes();p.unlink();reject('actual_missing_'+side+'_'+name,files,FileNotFoundError);p.write_bytes(raw)
++ for name in names:
++  p=rd/name;raw=p.read_bytes();semantic=json.loads(payloads[name]);wrong=json.dumps(semantic,indent=2,sort_keys=True).encode()+b'\n'
++  assert wrong!=payloads[name] and json.loads(wrong)==semantic
++  replacement=gzip.compress(wrong,mtime=0) if name.endswith('.gz') else wrong
++  p.write_bytes(replacement);bad=copy.deepcopy(files);bad[name]['rebuilt']=sha(replacement);bad[name]['expanded']=sha(wrong)
++  reject('json_equivalent_format_change_'+name,bad,expected_message='complete expanded bytes');p.write_bytes(raw)
++ for name in names[-2:]:
++  p=rd/name;raw=p.read_bytes();new=gzip.compress(payloads[name],mtime=987654);assert new!=raw;p.write_bytes(new)
++  reject('stale_container_hash_after_equal_content_recompression_'+name,files,expected_message='rebuilt container hash')
++  good=copy.deepcopy(files);good[name]['rebuilt']=sha(new);f(src,work,good);results.append({'case':'fresh_container_hash_after_equal_content_recompression_'+name,'status':'ACCEPT'});p.write_bytes(raw)
++ for name in names[-2:]:
++  p=rd/name;raw=p.read_bytes();badbytes=bytearray(raw);badbytes[-8]^=1;p.write_bytes(badbytes);bad=copy.deepcopy(files);bad[name]['rebuilt']=sha(badbytes)
++  reject('invalid_gzip_crc_'+name,bad,gzip.BadGzipFile);p.write_bytes(raw)
++ f(src,work,files)
++# Exercise the production helper against an existing actual 5-file regenerated word, read-only.
++actual=Path('/private/tmp/p10b-oriented-pr327-t300-v1-root-proof/source-regeneration');record=json.loads((actual/'REGENERATION.json').read_text());f(P/'vendor/predecessor',actual,record['files']);results.append({'case':'actual_five_file_producer_receipt','status':'ACCEPT'})
++assert finish.read_bytes()==initial,'Reviewed finish.py changed during audit'
++manifest=P/'MANIFEST.json';assert sha(manifest.read_bytes())=='79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1'
++report={'status':'PASS_INDEPENDENT_PRODUCER_BINDING_ADVERSARIAL_REVIEW','package':str(P),'manifest_sha256':sha(manifest.read_bytes()),'finish_sha256':sha(initial),'helper_ast_sha256':helper_hash,'controls_script_sha256':sha(Path(__file__).read_bytes()),'cases':results,'accepted':sum(r['status']=='ACCEPT' for r in results),'rejected':sum(r['status']=='REJECT' for r in results),'scope':'Imported the exact frozen production helper. Writes limited to ephemeral audit fixtures. Valid gzip container representation changes accepted; complete expanded bytes remain exact.'}
++out=D/'CONTROLS.json';out.write_text(json.dumps(report,sort_keys=True,indent=2)+'\n');print('PASS',report['accepted'],'accepted',report['rejected'],'rejected',sha(out.read_bytes()))
+diff --git a/research/p10b-portability-audit/portable-controls-recheck.json b/research/p10b-portability-audit/portable-controls-recheck.json
+new file mode 100644
+index 00000000..3df32856
+--- /dev/null
++++ b/research/p10b-portability-audit/portable-controls-recheck.json
+@@ -0,0 +1,149 @@
++{
++  "accepted": 4,
++  "cases": [
++    {
++      "case": "baseline_distinct_payloads_changed_gzip_header_and_compression",
++      "status": "ACCEPT"
++    },
++    {
++      "case": "wrong_key_same_cardinality",
++      "exception": "AssertionError",
++      "message": "Exactly five regenerated source files required",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_graph_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/source/bitword/selected/bit/graph_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_kchron_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/source/bitword/selected/bit/kchron_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_profile_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/source/bitword/selected/bit/profile_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_word_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/source/bitword/selected/bit/word_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_pinned_frames_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/source/bitword/selected/bit/frames_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_graph_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/regeneration/final1/graph_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_kchron_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/regeneration/final1/kchron_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_profile_p10.json",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/regeneration/final1/profile_p10.json'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_word_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/regeneration/final1/word_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_missing_rebuilt_frames_p10.json.gz",
++      "exception": "FileNotFoundError",
++      "message": "[Errno 2] No such file or directory: '/private/tmp/cases-r1p8ntbw/regeneration/final1/frames_p10.json.gz'",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_graph_p10.json",
++      "exception": "AssertionError",
++      "message": "graph_p10.json complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_kchron_p10.json",
++      "exception": "AssertionError",
++      "message": "kchron_p10.json complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_profile_p10.json",
++      "exception": "AssertionError",
++      "message": "profile_p10.json complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_word_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "word_p10.json.gz complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "json_equivalent_format_change_frames_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "frames_p10.json.gz complete expanded bytes",
++      "status": "REJECT"
++    },
++    {
++      "case": "stale_container_hash_after_equal_content_recompression_word_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "word_p10.json.gz rebuilt container hash",
++      "status": "REJECT"
++    },
++    {
++      "case": "fresh_container_hash_after_equal_content_recompression_word_p10.json.gz",
++      "status": "ACCEPT"
++    },
++    {
++      "case": "stale_container_hash_after_equal_content_recompression_frames_p10.json.gz",
++      "exception": "AssertionError",
++      "message": "frames_p10.json.gz rebuilt container hash",
++      "status": "REJECT"
++    },
++    {
++      "case": "fresh_container_hash_after_equal_content_recompression_frames_p10.json.gz",
++      "status": "ACCEPT"
++    },
++    {
++      "case": "invalid_gzip_crc_word_p10.json.gz",
++      "exception": "BadGzipFile",
++      "message": "CRC check failed",
++      "status": "REJECT"
++    },
++    {
++      "case": "invalid_gzip_crc_frames_p10.json.gz",
++      "exception": "BadGzipFile",
++      "message": "CRC check failed",
++      "status": "REJECT"
++    },
++    {
++      "case": "actual_five_file_producer_receipt",
++      "status": "ACCEPT"
++    }
++  ],
++  "controls_script_sha256": "69f6047f7f18cdfc6107e55f19e784d3491520c7b8761faecdf392e926182d0d",
++  "finish_sha256": "8e21661f5428d6182526e45a3b014d56806cfa11e5848ccc5d5b6f7210c518a1",
++  "helper_ast_sha256": "65b54af2476bff571d7d416f90d1d4a9c03c0d19897b3e31698932ca4466c077",
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "package": "/private/tmp/p10b-oriented-portable-gzip-v1",
++  "rejected": 20,
++  "scope": "Imported the exact frozen production helper. Writes limited to ephemeral audit fixtures. Valid gzip container representation changes accepted; complete expanded bytes remain exact.",
++  "status": "PASS_INDEPENDENT_PRODUCER_BINDING_ADVERSARIAL_REVIEW"
++}
+diff --git a/research/p10b-portability-audit/pr332-linux-failure.json b/research/p10b-portability-audit/pr332-linux-failure.json
+new file mode 100644
+index 00000000..a898baca
+--- /dev/null
++++ b/research/p10b-portability-audit/pr332-linux-failure.json
+@@ -0,0 +1,86 @@
++{
++  "status": "FAIL",
++  "error": "Command '['/opt/hostedtoolcache/Python/3.12.15/x64/bin/python', '-B', '/home/runner/work/integer-mult-bounds/integer-mult-bounds/research/p10b-oriented-constructed42/code/finish.py', '/home/runner/work/_temp/p10b-oriented-constructed42-proof']' returned non-zero exit status 1.",
++  "completed": [
++    {
++      "stage": "regenerate-oriented-source",
++      "seconds": 65.941082514
++    },
++    {
++      "stage": "immutable-oriented-source",
++      "seconds": 191.31210139999996
++    },
++    {
++      "stage": "immutable-complex-reserve",
++      "seconds": 835.5208262399999
++    },
++    {
++      "stage": "reconstruct-p10b-word",
++      "seconds": 89.87456783900006
++    },
++    {
++      "stage": "export-native",
++      "seconds": 1.421332436999819
++    },
++    {
++      "stage": "compile-legality",
++      "seconds": 5.205860665000046
++    },
++    {
++      "stage": "compile-columns",
++      "seconds": 3.100021727000012
++    },
++    {
++      "stage": "compile-changed-charts",
++      "seconds": 4.708739412999876
++    },
++    {
++      "stage": "compile-banks",
++      "seconds": 5.483667704000027
++    },
++    {
++      "stage": "compile-invoice",
++      "seconds": 5.1184583270000985
++    },
++    {
++      "stage": "legality",
++      "seconds": 0.6903488559999005
++    },
++    {
++      "stage": "columns",
++      "seconds": 0.11311126000009608
++    },
++    {
++      "stage": "tiling",
++      "seconds": 0.3298237869998957
++    },
++    {
++      "stage": "bank-frames-and-assignment",
++      "seconds": 5.263735130999976
++    },
++    {
++      "stage": "changed-charts",
++      "seconds": 12.752740622000147
++    },
++    {
++      "stage": "geometry-admission",
++      "seconds": 0.945485478999899
++    },
++    {
++      "stage": "all-frame-prime-minors",
++      "seconds": 4.511078061000035
++    },
++    {
++      "stage": "price",
++      "seconds": 1.2954447710001205
++    },
++    {
++      "stage": "finite-invoice",
++      "seconds": 0.006696674999830066
++    },
++    {
++      "stage": "prime-threshold-bootstrap",
++      "seconds": 0.8442611440000292
++    }
++  ]
++}
+diff --git a/research/p10b-portability-audit/root-VERIFICATION.json b/research/p10b-portability-audit/root-VERIFICATION.json
+new file mode 100644
+index 00000000..ff4e80a2
+--- /dev/null
++++ b/research/p10b-portability-audit/root-VERIFICATION.json
+@@ -0,0 +1,99 @@
++{
++  "fresh_stages": [
++    {
++      "seconds": 56.43843379203463,
++      "stage": "regenerate-oriented-source"
++    },
++    {
++      "seconds": 163.6130781249958,
++      "stage": "immutable-oriented-source"
++    },
++    {
++      "seconds": 697.5078404590022,
++      "stage": "immutable-complex-reserve"
++    },
++    {
++      "seconds": 70.41999583301367,
++      "stage": "reconstruct-p10b-word"
++    },
++    {
++      "seconds": 1.3136315409792587,
++      "stage": "export-native"
++    },
++    {
++      "seconds": 1.7069905420066789,
++      "stage": "compile-legality"
++    },
++    {
++      "seconds": 1.3853649999946356,
++      "stage": "compile-columns"
++    },
++    {
++      "seconds": 1.8721625829930417,
++      "stage": "compile-changed-charts"
++    },
++    {
++      "seconds": 2.2085981250274926,
++      "stage": "compile-banks"
++    },
++    {
++      "seconds": 2.17868637497304,
++      "stage": "compile-invoice"
++    },
++    {
++      "seconds": 0.7664082089904696,
++      "stage": "legality"
++    },
++    {
++      "seconds": 0.20395420800196007,
++      "stage": "columns"
++    },
++    {
++      "seconds": 0.3374071249854751,
++      "stage": "tiling"
++    },
++    {
++      "seconds": 3.768061666050926,
++      "stage": "bank-frames-and-assignment"
++    },
++    {
++      "seconds": 8.27130079100607,
++      "stage": "changed-charts"
++    },
++    {
++      "seconds": 0.7802347500110045,
++      "stage": "geometry-admission"
++    },
++    {
++      "seconds": 4.481710874999408,
++      "stage": "all-frame-prime-minors"
++    },
++    {
++      "seconds": 1.390702834003605,
++      "stage": "price"
++    },
++    {
++      "seconds": 0.13720975001342595,
++      "stage": "finite-invoice"
++    },
++    {
++      "seconds": 0.6916314159752801,
++      "stage": "prime-threshold-bootstrap"
++    },
++    {
++      "seconds": 0.036184499971568584,
++      "stage": "producer-binding-controls"
++    },
++    {
++      "seconds": 0.6104942089878023,
++      "stage": "complete-admission"
++    }
++  ],
++  "inputs_unchanged": true,
++  "kappa": "48579266190148227503007/62500000000000000000000000",
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "scope": "Conditional sufficient finite construction under the unchanged all-size compiler, weighted selector, common-ancestor chart, restored-row, routing, prime-supply, precision/recovery, complex-symbolic and analytic interfaces. Prime q still grows as in the admitted source; Q is only an eventual lower threshold. No fixed-modulus machine or unconditional theorem is claimed.",
++  "seconds": 1020.1576804170036,
++  "status": "PASS_SOURCE_BOUND_P10B_ORIENTED_PR327_T300_CONDITIONAL_CONSTRUCTION",
++  "word_sha256": "44659632417fb37d7f66f775db6c9348df668bdee3ae7b484f0bf88bc846e35a"
++}
+diff --git a/research/p10b-portability-audit/source-regeneration-gate.json b/research/p10b-portability-audit/source-regeneration-gate.json
+new file mode 100644
+index 00000000..d52d8419
+--- /dev/null
++++ b/research/p10b-portability-audit/source-regeneration-gate.json
+@@ -0,0 +1,95 @@
++{
++  "manifest_sha256": "79d3b69411b748568205fb4176d43b457d7ef6863ab5e6af1cbc7abe8bded3f1",
++  "replays": [
++    {
++      "certificate_sha256": "c161c058cc4004b6394430faffa37761a2b8aef4895e293b6aff5248d577ecea",
++      "producer_files": {
++        "frames_p10.json.gz": {
++          "expanded_sha256": "df3124c471e01381ed5035433917364daca24648f70b652f79a5258c03a6ea3b",
++          "pinned_sha256": "606fe9d5ac610ab831354cd90627fac2a756e1b1d087854383376094ccad28e7",
++          "rebuilt_sha256": "606fe9d5ac610ab831354cd90627fac2a756e1b1d087854383376094ccad28e7"
++        },
++        "graph_p10.json": {
++          "expanded_sha256": "b8760fdb7a3958d3b6a684a6f30e276d8d76e2a337ea50b1d98e63a17e1ac993",
++          "pinned_sha256": "b8760fdb7a3958d3b6a684a6f30e276d8d76e2a337ea50b1d98e63a17e1ac993",
++          "rebuilt_sha256": "b8760fdb7a3958d3b6a684a6f30e276d8d76e2a337ea50b1d98e63a17e1ac993"
++        },
++        "kchron_p10.json": {
++          "expanded_sha256": "e5861add0623894dfe6c227ca22312dbf2587150d01284589e621479d92fdb09",
++          "pinned_sha256": "e5861add0623894dfe6c227ca22312dbf2587150d01284589e621479d92fdb09",
++          "rebuilt_sha256": "e5861add0623894dfe6c227ca22312dbf2587150d01284589e621479d92fdb09"
++        },
++        "profile_p10.json": {
++          "expanded_sha256": "177ff70a322f152ccc6c12471aced7a207062e445f9f64c7d3bd96e6f18c6f63",
++          "pinned_sha256": "177ff70a322f152ccc6c12471aced7a207062e445f9f64c7d3bd96e6f18c6f63",
++          "rebuilt_sha256": "177ff70a322f152ccc6c12471aced7a207062e445f9f64c7d3bd96e6f18c6f63"
++        },
++        "word_p10.json.gz": {
++          "expanded_sha256": "a54de5ed33fed372a79d603caf629d8005cad52a145261874fc8edc678b226a9",
++          "pinned_sha256": "0ff8c0c69b9fea6887d99f421cfdb8cfda03efd30c58b042cee8e6e1c76a3a73",
++          "rebuilt_sha256": "0ff8c0c69b9fea6887d99f421cfdb8cfda03efd30c58b042cee8e6e1c76a3a73"
++        }
++      },
++      "proof": "/private/tmp/p10b-oriented-portable-gzip-root-proof",
++      "verification_sha256": "6ac49376668476823f1545337b38c35879cc5abbcce2fb7f2abc854d7c11e1be"
++    },
++    {
++      "certificate_sha256": "345b5e6bae9615675ec7e0c4caa9697781796424c1600db7da63a30e3b9107b3",
++      "producer_files": {
++        "frames_p10.json.gz": {
++          "expanded_sha256": "df3124c471e01381ed5035433917364daca24648f70b652f79a5258c03a6ea3b",
++          "pinned_sha256": "606fe9d5ac610ab831354cd90627fac2a756e1b1d087854383376094ccad28e7",
++          "rebuilt_sha256": "606fe9d5ac610ab831354cd90627fac2a756e1b1d087854383376094ccad28e7"
++        },
++        "graph_p10.json": {
++          "expanded_sha256": "b8760fdb7a3958d3b6a684a6f30e276d8d76e2a337ea50b1d98e63a17e1ac993",
++          "pinned_sha256": "b8760fdb7a3958d3b6a684a6f30e276d8d76e2a337ea50b1d98e63a17e1ac993",
++          "rebuilt_sha256": "b8760fdb7a3958d3b6a684a6f30e276d8d76e2a337ea50b1d98e63a17e1ac993"
++        },
++        "kchron_p10.json": {
++          "expanded_sha256": "e5861add0623894dfe6c227ca22312dbf2587150d01284589e621479d92fdb09",
++          "pinned_sha256": "e5861add0623894dfe6c227ca22312dbf2587150d01284589e621479d92fdb09",
++          "rebuilt_sha256": "e5861add0623894dfe6c227ca22312dbf2587150d01284589e621479d92fdb09"
++        },
++        "profile_p10.json": {
++          "expanded_sha256": "177ff70a322f152ccc6c12471aced7a207062e445f9f64c7d3bd96e6f18c6f63",
++          "pinned_sha256": "177ff70a322f152ccc6c12471aced7a207062e445f9f64c7d3bd96e6f18c6f63",
++          "rebuilt_sha256": "177ff70a322f152ccc6c12471aced7a207062e445f9f64c7d3bd96e6f18c6f63"
++        },
++        "word_p10.json.gz": {
++          "expanded_sha256": "a54de5ed33fed372a79d603caf629d8005cad52a145261874fc8edc678b226a9",
++          "pinned_sha256": "0ff8c0c69b9fea6887d99f421cfdb8cfda03efd30c58b042cee8e6e1c76a3a73",
++          "rebuilt_sha256": "0ff8c0c69b9fea6887d99f421cfdb8cfda03efd30c58b042cee8e6e1c76a3a73"
++        }
++      },
++      "proof": "/private/tmp/p10b-oriented-portable-gzip-agent-proof",
++      "verification_sha256": "8014150390025cfb55c705f7ecb0b0c5d326538b0bd9df314f983b18f931633d"
++    }
++  ],
++  "required_stages": [
++    "regenerate-oriented-source",
++    "immutable-oriented-source",
++    "immutable-complex-reserve",
++    "reconstruct-p10b-word",
++    "export-native",
++    "compile-legality",
++    "compile-columns",
++    "compile-changed-charts",
++    "compile-banks",
++    "compile-invoice",
++    "legality",
++    "columns",
++    "tiling",
++    "bank-frames-and-assignment",
++    "changed-charts",
++    "geometry-admission",
++    "all-frame-prime-minors",
++    "price",
++    "finite-invoice",
++    "prime-threshold-bootstrap",
++    "producer-binding-controls",
++    "complete-admission"
++  ],
++  "source_manifest_sha256": "f4b8fa3e182f5b28f7ee84acbd7c57274feccc4cb195ab38e8a18e42de776dca",
++  "status": "PASS_TWO_COMPLETE_22_STAGE_REPLAYS_AND_ALL_FIVE_EXACT_SOURCE_PAYLOADS"
++}

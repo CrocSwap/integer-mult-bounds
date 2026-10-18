@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "number": 2498,
+  "title": "Repair Windows parallel snapshot cleanup and cancellation",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2498",
+  "head": "100b46506a55e7fceb36918a8e127a5dbc45d815",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "b1f581c373c1b2c579100f2ba2109ce9936b0676",
+  "files": [
+    {
+      "path": "scripts/verify_parallel.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "94fd19bac5411a9e77feb13dda8354b5d12de301"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "fc1a72e151e7491d1142b85aade4277d0ed61aeb"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_parallel_snapshot_lifecycle.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "bd027f3ee5b25aef845e7f3e3bb2ee2e2a7a599a"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/verify_parallel.py": 1,
+    "tests/test_parallel_snapshot_lifecycle.py": 1
+  },
+  "github_reported_file_count": 2,
+  "complete_git_file_count": 2,
+  "body": "Native Windows Git snapshots contain read-only object files. The existing snapshot runner raises PermissionError during cleanup before it can report a successful group; its interruption handler also unconditionally calls os.killpg, which Windows does not provide. This change gives owned snapshots a narrow read-only retry and terminates active verifier trees with taskkill on Windows (process groups on POSIX), closing log handles before cleanup.\n\nThree focused real-process tests pass on native Windows / CPython 3.12.14: a genuine temporary Git snapshot completes and is removed; cancellation preserves KeyboardInterrupt, reaps the worker, and removes the snapshot; a read-only object is removed while an outside sibling remains unchanged. The exact pre-change read-only failure was reproduced during the preceding parallel-entrypoint regression. No tests regenerate mathematical artifacts or remove user checkouts. This is separate from PR2495's assertion-environment repair and PR2035's Windows memory-budget work.\n\nTask: portable-replay, refined to one Windows snapshot lifecycle failure. Expertise override of random complex-mechanisms seed fe81ab985c4395f26bc1956df6af9de9 after reproducing the platform defect; retrieved portable-replay card seed e5d8258b17eb21479ab42e430a467fa9. Source main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4. Live overlap fully paginated 694 open PRs and 1,202 Discussions; refreshed public board handoffs were also read. Full make suite, POSIX execution and selected cold replay are not claimed.\n\nCredit eumemic's PR154 parallel runner lineage. New work by ywz65 with substantial OpenAI Codex assistance; Apache-2.0. No numerical certificate, source pin, frontier or mathematical claim changes.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "153666e9fa70a5db301f2d1f67ffca2b74a8fc2f638ab78eda44f8577b71859b"
+}

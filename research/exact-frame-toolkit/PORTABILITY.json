@@ -1,0 +1,29 @@
+{
+ "schema_version": 1,
+ "revision": 3,
+ "purpose": "Windows portability of the toolkit, answering woklerx's independent audit of revision 2 (https://github.com/CrocSwap/integer-mult-bounds/pull/1186#issuecomment-6169503528): harness.py imported the Unix-only resource module and timed pricings with SIGALRM.",
+ "unchanged": "frames.py is byte-identical to revision 2. No search result, price, interval or certificate changes.",
+ "checks": {
+  "GitHub Actions windows-latest (Windows Server 2025 10.0.26100, 4 CPUs), Python 3.12.10 (MSC v.1943, AMD64), NumPy 2.5.4": {
+   "run": "https://github.com/mdumitrean/integer-mult-bounds/actions/runs/38621712253 (fork-only test branch eft-windows-check = toolkit commit 47e75425 plus the workflow file)",
+   "selftest.py": "SELFTEST PASS, all 14 checks (154 s)",
+   "portability.py --quick": "PASS: 6 Windows-path checks (watchdog: 213 of 300 blocks timed out, 0 interrupts leaked, SIGINT handler restored), then the quick selftest (84 s)",
+   "python -O selftest.py --quick": "refused",
+   "spawn sweep (repair.py PRE OUT --workers 4 --interval)": "start method spawn; 2405 fusions in 3611 s, 1000 feasible, 2 gains, 3763 evaluations, largest true-gain bound 3.29e-11 units; all 2405 records identical to the macOS fork-mode sweep (0 differing records)"
+  },
+  "macos-arm64 Python 3.12.13, NumPy 2.5.4": {
+   "selftest.py": "SELFTEST PASS, all 14 checks (about 50 s)",
+   "portability.py": "PASS: 6 Windows-path checks, then all 14 selftest checks in the same process. Watchdog deadline: 149 of 300 blocks ending around their deadline timed out, 0 interrupts leaked, SIGINT handler restored; a raised SIGINT stayed KeyboardInterrupt; a pricing over a 0.05 s deadline returned 'timeout' and completed afterwards with delta 0",
+   "python -O selftest.py": "refused (RuntimeError on import)",
+   "PYTHONOPTIMIZE=1 kappa.py": "refused (RuntimeError on import)"
+  },
+  "macos-arm64 Python 3.14.7, NumPy 2.5.4": {
+   "selftest.py --quick": "SELFTEST PASS"
+  },
+  "spawn start method (EFT_START_METHOD=spawn repair.py PRE OUT --workers 3 --interval)": {
+   "input": "pre-slot k8 word, payload sha256 db2c7cfb3f8eee2b76c2e0154fc530520fb4d90cd9511a002cab527b16033b83 (selftest PRE)",
+   "result": "2405 fusions, 1000 feasible, 2 gains (-3957 each, sites t=190/A=439 and t=214/A=444), 3763 evaluations, largest true-gain bound among non-gain candidates 3.29e-11 units",
+   "comparison": "all 2405 records identical to revision 2's fork-mode sweep of the same word (0 differing records)"
+  }
+ }
+}

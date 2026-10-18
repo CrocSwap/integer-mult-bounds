@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "number": 2514,
+  "title": "Batch complete Discussion overlap refreshes into bounded queries",
+  "author": {
+    "id": "U_kgDOCTONGQ",
+    "is_bot": false,
+    "login": "ywz65",
+    "name": ""
+  },
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/2514",
+  "head": "91156f0d41b133979c8004ad8d0f7e9f58d73cbc",
+  "merge_base": "0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2",
+  "baseline": "4b82082f901945f8d0314f143576c7ad31e021fc",
+  "files": [
+    {
+      "path": "scripts/find_overlap.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ea6713a230fb23e8efe6a9be5bb604a68b667dd6"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "849b756d1bcec9d053ceb1b98962d7f0226bc435"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    },
+    {
+      "path": "tests/test_research_discussion_batches.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "ead650ad6748dbda917cee119cb1f55b23fc9217"
+      },
+      "baseline": null,
+      "change": "add",
+      "baseline_relation": "absent_on_baseline"
+    },
+    {
+      "path": "tests/test_research_onboarding.py",
+      "source": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "adb22ff47db4d8a82f3c4f6ae2ee772014b786c1"
+      },
+      "baseline": {
+        "mode": "100644",
+        "kind": "blob",
+        "oid": "68e67153a13bb6ed0afc7b235032be2af41b26af"
+      },
+      "change": "modify",
+      "baseline_relation": "different_on_baseline"
+    }
+  ],
+  "path_groups": {
+    "scripts/find_overlap.py": 1,
+    "tests/test_research_discussion_batches.py": 1,
+    "tests/test_research_onboarding.py": 1
+  },
+  "github_reported_file_count": 3,
+  "complete_git_file_count": 3,
+  "body": "A complete overlap refresh currently starts a separate gh process and GraphQL request for the first comment page of every Discussion. In a sequential live comparison, retrieving the same 1,207 records took 266 requests / 190.34 seconds before this change and 33 requests / 34.09 seconds afterward. The full record maps were exactly equal, including body, URL and update time; this is one observed run, not a guaranteed timing bound.\n\nBatch ten discussions with the first 25 comments and first 10 replies each (at most 2,760 nested nodes), retaining 100-row continuation requests for every remaining comment/reply page. Record order, all-level coverage, stale-cache reporting and per-source atomic replacement remain unchanged. No new dependency or cache schema is introduced.\n\nValidation: Python 3.12.14 required research tooling suite passes 68 tests with 3 pre-existing Linux-only skips. New independent backing-data fixtures prove 23 small discussions need only 3 requests; busy threads reach later comments and replies without omissions or duplicates; failures on three continuation positions preserve the previous complete cache. Existing pagination fixture updated for the batched initial response. git diff --check passes.\n\nA pre-existing limitation remains: research/overlap-path-index pins find_overlap.py at eb4db436..., while the current-main helper is already e3ab63c8.... That frozen package's registered replay cannot validate the current live helper. Its pins are unchanged; no registered historical replay success is claimed. The current tooling tests and direct live retrieval comparison are separate evidence.\n\nTask selection: bit-mechanisms seed 8e64cea42bbb24185934e9924ff13a6a, changed to a concrete replay-runtime expertise handoff. The initial assembly-inequality lead was retired as overlap with outer-bernstein-certificate. Canonical main 0fdd7d82de03e43c9e5a1000dfbcd380d1b687d2, priority revision 4; final overlap covers 710 open PRs and 1,207 Discussion records with complete pagination and no warnings. Credit Douglas Colkitt for the overlap helper and Aaron Wang/navinor for the path-index work. New work by ywz65 with substantial OpenAI Codex assistance, Apache-2.0. No selected frontier or frozen scientific-source changes.",
+  "checks": [],
+  "limits": "Metadata and source identity only. Checks require source/command/coverage review; no green-badge inference.",
+  "decision": null,
+  "metadata_sha256": "0022a64bac9fe273ae5dcd7b37489b1b7d92b5a23beadc8f803d5f43fbe2a3aa"
+}

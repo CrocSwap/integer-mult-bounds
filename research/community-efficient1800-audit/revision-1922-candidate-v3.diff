@@ -1,0 +1,180 @@
+--- a/certificates/rank-product-core.json
++++ b/certificates/rank-product-core.json
+@@ -6052,9 +6052,9 @@
+   "source_sha256": {
+     "certificates/paired-network.json": "3b28a213059130bf683c3c70c57e083d90d2ffb0a401b8a50332b98b9ebb303f",
+     "docs/research/rank-product-core.md": "1028abd145b367f94960264a874b847cdbeb3b4d84dd6d3a890fe4203922bd41",
+-    "scripts/audit_joint_frames.py": "818e86b4152b4eeb853f173c9aa795510caa593ec0e25b05a246f1df52575466",
++    "scripts/audit_joint_frames.py": "c20c3ab068e7e0ad0090dd4298594766feab220f1e2c6cb333ae1ac32e17207e",
+     "scripts/audit_rank_product_core.py": "1471f17e86d6c02d5c288116cc3a53544c881ded47a3500f70dac97b366e46a7",
+-    "scripts/audit_stage_pair.py": "f4823525abb553f76ea33adf61ed51e88ec38dd6c346dbcac86f69ffa8fb0375",
++    "scripts/audit_stage_pair.py": "67cd9f046e257d7889b7574ca70db983d2414e93dcac34d9a555bc688cff6097",
+     "scripts/experiments/rank_product_core.py": "7a91c1188c5d42e864a5d2e42397b09c435b526ae4f4210c44bf615de488708e",
+     "scripts/finite_bit_contract.py": "3cff26a332cb6056f656b824e3a523fb8937d15206ddcc4118b911ac8df1b2a7"
+   },
+--- a/research/joint-frames-cleared-product/README.md
++++ b/research/joint-frames-cleared-product/README.md
+@@ -24,7 +24,7 @@
+ python3.12 -I -B research/joint-frames-cleared-product/verify.py
+ python3.12 -I -O -B research/joint-frames-cleared-product/verify.py
+ python3.12 -B scripts/research_package.py --package research/joint-frames-cleared-product
+-python3.12 -I -B research/joint-frames-cleared-product/benchmark.py --rounds 5
++python3.12 -I -B research/joint-frames-cleared-product/benchmark.py --rounds 5 --output /tmp/joint-frames-cleared-product-new.json
+ ```
+ 
+ Expected:
+@@ -106,3 +106,22 @@
+ ([VictorLiwentao](https://github.com/VictorLiwentao),
+ [@Is__Victor](https://x.com/Is__Victor)) with substantial AI assistance, under
+ Apache-2.0.
++
++## Maintainer integration
++
++The historical RESULT.json and benchmark samples remain bound to the original
++author source and are not new timings for the integrated code. Integration
++repairs edge-case compatibility and reruns source-bound equivalence checks;
++only live executable/certificate pins are updated. Original bytes remain at
++the PR head and in community-efficient1800-audit/prior-revisions.
++
++Preserve empty-right-factor and zip-truncation behavior. The experiment
++comparison now captures the optimized callable before installing the baseline;
++otherwise both streams could execute the baseline through a module alias.
++An explicit nonvacuity control must detect a deliberately wrong candidate.
++
++The integration preserves the newer main-branch companion source pins. The
++checker authenticates both the original author baseline and the exact reviewed
++integration commit, requires identical mathematical payloads, and permits only
++this PR's helper pin to differ from that current snapshot. Historical timing
++receipts and original baseline files remain unchanged.
+--- a/research/joint-frames-cleared-product/benchmark.py
++++ b/research/joint-frames-cleared-product/benchmark.py
+@@ -162,7 +162,9 @@
+         require(not args.output.exists(), f"output exists: {args.output}")
+         args.output.write_text(text, encoding="utf-8")
+     else:
+-        (PACKAGE / "RESULT.json").write_text(text, encoding="utf-8")
++        target = PACKAGE / "RESULT.json"
++        require(not target.exists(), "preserve historical RESULT.json; use --output with a new path")
++        target.write_text(text, encoding="utf-8")
+     print(
+         "PASS_IDENTICAL_POSITIVE_SIDE_RECEIPTS "
+         f"rounds={args.rounds} median_baseline={base_med:.3f}s "
+--- a/research/joint-frames-cleared-product/verify.py
++++ b/research/joint-frames-cleared-product/verify.py
+@@ -30,8 +30,10 @@
+ BASE_COMMIT = "0b1cccf86e2f5132ed286a26ef0a681a495740ea"
+ ORIGINAL_BLOB = "913be4a1f0a651f3aaf7b4ed1901916918ba2cef"
+ ORIGINAL_SHA256 = "3df8061392ce0ba42bbde8c02f2a30c8141145e70e9a48c18da73d3aafb14423"
+-OPTIMIZED_SHA256 = "818e86b4152b4eeb853f173c9aa795510caa593ec0e25b05a246f1df52575466"
++OPTIMIZED_SHA256 = "c20c3ab068e7e0ad0090dd4298594766feab220f1e2c6cb333ae1ac32e17207e"
+ BASE_RANK_PRODUCT_CERT_SHA256 = "e0d2cb39be3502251f8f8c4a62e0fe6b743be50eef41dda35646762daaec40b9"
++INTEGRATION_BASE_COMMIT = '0706e744cbda1e4d0da5a6c569ad9b47876c6960'
++INTEGRATION_CERT_SHA256 = {'certificates/rank-product-core.json': 'a5fc5da5c31bdfb9fec206c470c4d2f081de96de17aa27b51ed8f35da597685d'}
+ PINNED_CERTS = ("certificates/rank-product-core.json",)
+ 
+ 
+@@ -169,8 +171,15 @@
+ 
+ 
+ def check_positive_side_experiments(baseline, optimized) -> list[dict]:
+-    old = positive_side_receipt(baseline)
+-    new = positive_side_receipt(optimized)
++    # _bind_product mutates production.product. Capture the candidate before
++    # the reference run, including when optimized is production itself.
++    from types import SimpleNamespace
++    candidate = SimpleNamespace(product=optimized.product)
++    try:
++        old = positive_side_receipt(baseline)
++        new = positive_side_receipt(candidate)
++    finally:
++        _bind_product(candidate)
+     require(old == new, "positive-side experiment stream drifted")
+     require(new[-1]["side_roles"] == 1200, "h=8 frequent-pairs side_roles drifted")
+     return new
+@@ -188,7 +197,13 @@
+         require(live_pin == OPTIMIZED_SHA256, f"{rel}: optimized pin missing")
+         restored = json.loads(json.dumps(live))
+         restored["source_sha256"]["scripts/audit_joint_frames.py"] = ORIGINAL_SHA256
+-        require(restored == base, f"{rel}: changed fields beyond the audit_joint_frames pin")
++        integration_raw = subprocess.check_output(["git", "show", f"{INTEGRATION_BASE_COMMIT}:{rel}"], cwd=ROOT)
++        require(sha256(integration_raw).hexdigest() == INTEGRATION_CERT_SHA256[rel], f"{rel}: integration snapshot changed")
++        integration = json.loads(integration_raw)
++        require(restored == integration, f"{rel}: changed fields beyond the reviewed current source pin")
++        require({k:v for k,v in base.items() if k != "source_sha256"} ==
++                {k:v for k,v in integration.items() if k != "source_sha256"},
++                f"{rel}: mathematical payload differs from author baseline")
+         reports[rel] = {
+             "base_pin": base_pin,
+             "live_pin": live_pin,
+--- a/scripts/audit_joint_frames.py
++++ b/scripts/audit_joint_frames.py
+@@ -65,7 +65,12 @@
+     """
+     if not A:
+         return tuple()
++    if not B:
++        return tuple(() for _ in A)
+     n=len(A);k=len(A[0]);m=len(B[0])
++    # Preserve the original zip truncation on nonconformable/ragged inputs.
++    if len(B)!=k or any(len(row)!=k for row in A) or any(len(row)!=m for row in B):
++        return matrix([[sum(x*y for x,y in zip(a,b)) for b in zip(*B)] for a in A])
+     DA=1
+     for row in A:
+         for x in row:
+--- a/tests/test_joint_frames_cleared_product.py
++++ b/tests/test_joint_frames_cleared_product.py
+@@ -56,11 +56,44 @@
+         self.assertEqual(jf.product(tuple(), ((Q(1),),)), tuple())
+         self.assertEqual(self.baseline.product(tuple(), ((Q(1),),)), tuple())
+ 
++    def test_empty_inner_and_ragged_shapes_retain_reference_semantics(self):
++        for A, B in [((), ()), (((),), ()), (((), ()), ()),
++                     (((Q(1),),), ()), (((),), ((Q(2),),)),
++                     (((Q(1), Q(2)),), ((Q(3),),)),
++                     (((Q(1),), (Q(2), Q(3))), ((Q(4), Q(5)),)),
++                     (((Q(1), Q(2)),), ((Q(3), Q(4)), (Q(5),)))]:
++            with self.subTest(A=A, B=B):
++                self.assertEqual(jf.product(A, B), self.baseline.product(A, B))
++
++    def test_experiment_comparison_rejects_wrong_candidate_after_baseline(self):
++        from unittest.mock import patch
++        spec = importlib.util.spec_from_file_location("product_replay_control", PACKAGE / "verify.py")
++        check = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(check)
++        calls = []
++        def small_receipt(module):
++            check._bind_product(module)
++            calls.append(module.product)
++            return [{"side_roles": 1200, "value": module.product(((Q(1),),), ((Q(1),),))}]
++        def wrong(A, B):
++            return ((Q(2),),)
++        original = jf.product
++        try:
++            with patch.object(jf, "product", wrong), patch.object(check, "positive_side_receipt", small_receipt):
++                with self.assertRaisesRegex(ValueError, "experiment stream drifted"):
++                    check.check_positive_side_experiments(self.baseline, jf)
++                self.assertIs(calls[0], self.baseline.product)
++                self.assertIs(calls[1], wrong)
++        finally:
++            # The real binding helper also updates experiment-module aliases.
++            from types import SimpleNamespace
++            check._bind_product(SimpleNamespace(product=original))
++
+     def test_certificate_pin_only_joint_frames(self):
+         rel = "certificates/rank-product-core.json"
+         base = json.loads(
+             subprocess.check_output(
+-                ["git", "show", f"0b1cccf86e2f5132ed286a26ef0a681a495740ea:{rel}"],
++                ["git", "show", f"0706e744cbda1e4d0da5a6c569ad9b47876c6960:{rel}"],
+                 cwd=ROOT,
+             )
+         )
+@@ -71,7 +104,7 @@
+         )
+         self.assertEqual(
+             live["source_sha256"]["scripts/audit_joint_frames.py"],
+-            "818e86b4152b4eeb853f173c9aa795510caa593ec0e25b05a246f1df52575466",
++            "c20c3ab068e7e0ad0090dd4298594766feab220f1e2c6cb333ae1ac32e17207e",
+         )
+         restored = json.loads(json.dumps(live))
+         restored["source_sha256"]["scripts/audit_joint_frames.py"] = base["source_sha256"][

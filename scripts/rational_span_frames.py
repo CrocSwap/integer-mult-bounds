@@ -14,9 +14,7 @@ from exclusion_circuit import ExclusionCircuit
 
 
 def primitive(row):
-    g = 0
-    for x in row:
-        g = gcd(g,x)
+    g = gcd(*row)
     if not g:
         return None
     if next(x for x in row if x) < 0:
@@ -96,10 +94,17 @@ def nondegenerate(U):
 @lru_cache(maxsize=65536)
 def orthogonal(U,h):
     require(h != 9, 'Degenerate ambient form')
-    rows = basis(tuple(tuple(9*x-sum(row) for x in row) for row in U))
+    require(all(len(row) == h for row in U), 'Frame row width mismatch')
+    covectors = []
+    for row in U:
+        total = sum(row)
+        covectors.append(tuple(9*x-total for x in row))
+    rows = basis(tuple(covectors))
     result = basis(_kernel_basis(rows,h))
     require(len(result) == h-len(U), 'Complement dimension mismatch')
-    require(all(dot(a,b) == 0 for a in U for b in result), 'Not an orthogonal complement')
+    # Reuse Ga for construction and the current-input check: (Ga).b = a^T G b.
+    require(all(sum(x*y for x,y in zip(a,b)) == 0
+                for a in covectors for b in result), 'Not an orthogonal complement')
     return result
 
 

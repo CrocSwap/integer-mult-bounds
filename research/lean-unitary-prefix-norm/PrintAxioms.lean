@@ -1,0 +1,35 @@
+import PrefixNorm.Examples
+
+#print axioms PrefixNorm.wellLabelled_take
+#print axioms PrefixNorm.recipesExact_take
+#print axioms PrefixNorm.inverse_norm
+#print axioms PrefixNorm.weighted_row
+#print axioms PrefixNorm.weighted_prefix
+#print axioms PrefixNorm.supported_prefix
+#print axioms PrefixNorm.supported_certificate
+#print axioms PrefixNorm.splice_sq
+#print axioms PrefixNorm.splice_uniform
+#print axioms PrefixNorm.splice_bits
+#print axioms PrefixNorm.components_sq
+#print axioms PrefixNorm.components_uniform
+#print axioms PrefixNorm.components_bits
+#print axioms PrefixNorm.Examples.phases_norm
+#print axioms PrefixNorm.Examples.recipe_exact
+#print axioms PrefixNorm.Examples.good_labelled
+#print axioms PrefixNorm.Examples.good_prefix_bound
+#print axioms PrefixNorm.Examples.good_cancellation_cut
+#print axioms PrefixNorm.Examples.bad_not_labelled
+#print axioms PrefixNorm.Examples.bad_cut
+#print axioms PrefixNorm.Examples.bad_endpoint
+#print axioms PrefixNorm.Examples.asymmetric_preserves_norm
+#print axioms PrefixNorm.Examples.wrong_recipe_labelled
+#print axioms PrefixNorm.Examples.wrong_recipe_not_exact
+#print axioms PrefixNorm.Examples.wrong_recipe_cut
+#print axioms PrefixNorm.Examples.loop_labelled
+#print axioms PrefixNorm.Examples.loop_exact
+#print axioms PrefixNorm.Examples.eight_not_norm_preserving
+#print axioms PrefixNorm.Examples.loop_cut
+#print axioms PrefixNorm.Examples.loop_endpoint
+#print axioms PrefixNorm.Examples.half_store_overshoot
+#print axioms PrefixNorm.Examples.forward_bits_if
+#print axioms PrefixNorm.Examples.backward_bits_if

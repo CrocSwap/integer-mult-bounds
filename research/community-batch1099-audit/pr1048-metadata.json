@@ -1,0 +1,102 @@
+{
+  "author": {
+    "id": "U_kgDOE9Xs-g",
+    "is_bot": false,
+    "login": "flemhhh",
+    "name": ""
+  },
+  "baseRefOid": "2921874911956718fcaaaf9396fe8267b3cfa9f0",
+  "body": "## What this is\n\n**Research note + independent verification. No \u03ba claim; the bit side does not bind.**\n\nIt prices a bit word from its **paid profile alone**, and then uses that to run an exhaustive audit of\nthe merged bit supplier (PR #589's tuned R439 word). Everything is exact integer/rational arithmetic\nagainst files pinned by sha256 at `66849e1475c930fd7732b1a0067ffee7e1e95f60`.\n\nNew material:\n\n1. **The paid-profile duality.** The certified saving `c` of a bit word is the unique `a > 0` with\n   `Psi(a) := sum_r n_r r((m/r)^a - 1) = D := m*W - rank_mass`. Equivalently, for any fixed `a0`,\n   `c` is a strictly decreasing function of the single weighted count `G(a0) = sum_r n_r r^(1-a0)`.\n   Rank-profile search is therefore a *linear-objective* problem and a candidate word costs `O(#gates)`\n   to price with no root finding.\n   Verified by re-deriving `c` from the profile with an independent rational `ln`/`exp` interval\n   implementation (`code/bitprof.py`): the lower endpoint of the resulting `10^-24` bracket is\n   **exactly** the shipped value for both #555 and #589\n   (`1733427039589844234749/10^24`). The shipped values include the pipeline's inherited bad-envelope\n   surcharge (`32 m^2 (sum n) m^a / 10^16`), which moves the root by `2.01e-12` \u2014 two units on the\n   24-digit grid, so it cannot be dropped; the verifier checks both roots.\n\n2. **The objective decomposes over registers**, so a `k`-move improvement requires the `k` moves to\n   share registers. That is what makes a complete two-move search affordable.\n\n3. **The audit.** On the merged #589 word, priced on the exact objective:\n\n   | check | result |\n   |---|---|\n   | nominated single moves | 9,347 |\n   | strictly improving single moves | **0** |\n   | cost-neutral plateau | 9,263 |\n   | improving Steinberg 3\u21922 moves (671 triples) | **0** |\n   | legal `(slot, frame)` pairs over 3,064 operations | 9,933 |\n   | operations whose nominated frame is not exact-objective optimal | **0** |\n   | complete register-adjacent two-move neighbourhood (`--full`) | 645,900 pairs |\n   | best two-move delta | **0**, exactly |\n\n   **Positive control:** steepest descent on the exact objective from PR #555's base word applies\n   exactly two moves \u2014 PR #589's hoist (`A[2034] \u2192 slot 2028, frame 79`) and sink\n   (`A[2041] \u2192 slot 2076, frame 517`) \u2014 and lands on the tuned word's profile and objective. The\n   machinery rederives #589 rather than being told about it.\n\n## What it is worth\n\nIt closes the reframing avenue for the merged bit supplier at one and two moves: any further bit\nsaving from this word has to come from a mechanism outside the class (geometry, decoder constant,\nhelper count, hosting), not from moving gates. It also gives the exact marginal exchange rate\n(`dc/c = -(dG/G)/(a(ln m - E[ln r]))`) so a future move can be priced before it is built, and it\nindependently corroborates the fixed point that PR #589's tuner claims, on a different objective\nimplementation.\n\n## Concurrent work (refreshed 2026-10-13)\n\nRebased onto `main` @ `29218749`; every pinned input is byte-identical on both commits, and both\n`make bit-profile-pair-audit-verify` and the unittest module were re-run on the rebased tree.\n\nThese landed while this note was being prepared, and they are **consistent with** rather than\ncounterexamples to the fixed point above:\n\n* **#1043** improves the *same* #589 word by a mechanism outside the reframing class \u2014 deleting\n  `helper470` via a caller-boundary read of `source77`, giving R438 and\n  `c = 0.001734176288479865766692`. That is a helper/register rewrite, exactly the \"outside the class\"\n  route the audit points at.\n* **#1040 / #1047** cut complete ADD counts on a different R439 lineage (post-PR915/PR967), and\n  **#1045** crosses PR941's disjoint-pair floor with a four-helper fusion. Different words, different\n  accounting, different move classes.\n* Those results are cited from their own packages and were **not** re-run here.\n\n## Scope and limits\n\n* Finite, exact audit of two specific words and one move class. Not an optimality theorem over bit\n  words, and **not** an exclusion of three-or-more-move escapes of the plateau.\n* The two-move search is complete for the nominated move set; the nomination's completeness at the\n  frame level is separately certified (0 of 3,064 operations disagree).\n* The tuner's proxy objective is *not* identical to the exact objective (largest absolute discrepancy\n  `1.645e-5` on this word); only its argmin agrees, which is why everything here is priced exactly.\n* No \u03ba change; bit headroom only. Nine-stage price only.\n* Every interface that #543, #555 and #589 retain remains assumed. This is not a Lean proof of\n  integer multiplication.\n\n## Reproduce\n\n```sh\nmake bit-profile-pair-audit-verify        # ~6 min, all checks except the pair search\nmake bit-profile-pair-audit-full-verify   # ~35 min, adds the complete two-move neighbourhood\n```\n\nNo C++ toolchain, Boost, Lean or network access; only Python 3.11+, `numpy` (for the pinned tuner) and\nthe pinned files on main.\n\n## Files\n\n`research/bit-profile-pair-audit/` (README, `verify.py`, `EXPECTED.json`, `code/`), plus\n`tests/test_bit_profile_pair_audit.py` and two Makefile targets. `upstream/` untouched; no unrelated\nregeneration.\n\n## Credit\n\nThe word, its generator, checkers, pipelines and tuner are PR #555 (eumemic) on PR #543 / #545\n(DreamingOfClouds) and #510; the two transports audited are PR #589 (DreamingOfClouds); the deficit\nidentity is PR #545's. The decoder-side bounds of #620 (GamingPuzzled) and #631 (vectorsss) are\northogonal to the class audited here.\n\nSubstantial AI assistance (DeepSeek Harness, deepseek-flash) is disclosed in `NOTICE.md`.\n",
+  "commits": [
+    {
+      "authoredDate": "2026-10-13T16:51:59Z",
+      "authors": [
+        {
+          "email": "flemhhh@users.noreply.github.com",
+          "id": "U_kgDOE9Xs-g",
+          "login": "flemhhh",
+          "name": "flemhhh"
+        }
+      ],
+      "committedDate": "2026-10-13T17:14:01Z",
+      "messageBody": "\u20269 bit supplier\n\nPrices a bit word from its paid profile alone: the certified saving c is the unique root of\nPsi(a) = sum_r n_r r((m/r)^a - 1) = m*W - rank_mass, so for any fixed a0 the saving is a strictly\ndecreasing function of the single weighted count G(a0) = sum_r n_r r^(1-a0).  Re-derived with\nindependent rational interval arithmetic, the lower endpoint of the resulting 10^-24 bracket is\nexactly the shipped c for both PR #555 and PR #589; the inherited bad-envelope surcharge moves the\nroot by 2.01e-12 and cannot be dropped at 24 digits.\n\nBecause G decomposes over registers, a k-move improvement needs k moves sharing a register, which\nmakes a complete two-move search affordable.  On the merged #589 word: 9,347 nominated single moves,\n0 strictly improving, 9,263 cost-neutral, 0 improving Steinberg 3->2, the nominated frame is\nexact-objective optimal for all 3,064 operations over 9,933 legal (slot, frame) pairs, and no\nregister-adjacent pair improves (best two-move delta exactly 0).  Positive control: exact steepest\ndescent from PR #555's base word rediscovers PR #589's hoist and sink and lands on the tuned word.\n\nNo kappa change; bit headroom only.  Adds research/bit-profile-pair-audit/, a unittest module and two\nMakefile targets.  upstream/ untouched.",
+      "messageHeadline": "Bit paid-profile duality and an exhaustive reframing audit of the #58\u2026",
+      "oid": "07730cd8302c378607259a9ad0efb73e0b57a2f2"
+    }
+  ],
+  "files": [
+    {
+      "path": "Makefile",
+      "additions": 9,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/EXPECTED.json",
+      "additions": 81,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/LICENSE",
+      "additions": 201,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/NOTICE.md",
+      "additions": 28,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/README.md",
+      "additions": 170,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/code/bitprof.py",
+      "additions": 153,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/code/replay.py",
+      "additions": 87,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/code/search.py",
+      "additions": 155,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/code/stateprof.py",
+      "additions": 88,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "research/bit-profile-pair-audit/verify.py",
+      "additions": 231,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "tests/test_bit_profile_pair_audit.py",
+      "additions": 165,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "07730cd8302c378607259a9ad0efb73e0b57a2f2",
+  "isDraft": false,
+  "number": 1048,
+  "state": "OPEN",
+  "title": "Research: the bit paid profile is the whole bit supplier \u2014 exact pricer, and the reframing class is exhausted at #589 (no \u03ba claim)",
+  "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/1048",
+  "merge_base": "2921874911956718fcaaaf9396fe8267b3cfa9f0"
+}
