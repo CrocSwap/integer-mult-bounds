@@ -95,6 +95,27 @@ changed coverage law. This package reports the arithmetic and claims no integer 
   parent's sampling control, retained only as a weaker statement.
 - Largest-first greedy matches the dynamic program here, and greedy never beats it.
 
+## Relation to adjacent integrality work
+
+Two existing packages touch integrality and are **not** this result:
+
+- `research/community-efficient500-audit/README.md` records #1436's U8T37 integrality gap and
+  states explicitly that it gave **no ceiling for the later selected layout**. That is the gap
+  this package fills.
+- `research/selected-t16-pattern-dual/README.md` concerns integrality of *pattern multiplicities*
+  in a pooled LP, and its corollary gives strict nonattainment "not a quantitative integrality
+  gap". Different combinatorial object.
+
+An open peer PR (#3701) sweeps the ceiling of the **paid local mass** (5,586) over every rank
+cap `s = 1..51`, giving a fractional upper bound and a `greedy(5586, s)` integer lower bound.
+That is a different degree of freedom from this package's: the **idle remainder** (1,646) of the
+incumbent word at the guard cap, where the question is what the incumbent's published ceiling
+*is*, not what a re-ranked local word could reach. This package searches the histogram space
+instead of assuming a greedy shape, so its integer figure is an attained optimum with a
+two-sided certificate rather than a lower bound. `integrality.best_idle` is also the tool that
+would decide whether a greedy shape is optimal on any such class; the two results do not
+conflict, and no greedy optimality assumption is used here.
+
 ## Scope and limits
 
 - This is a bound **within the existing ceiling model**: one fixed paid local profile per call,
