@@ -1,4 +1,4 @@
-# T530 construction argument — complete admission pending
+# T530 construction argument and completed conditional admission
 
 The two staged-width suppliers and their source-bound native programs are unchanged from PR3605 and our admitted T450 contribution. Concatenate T37 and T16 orders, renumber replicas, preserve each constituent dispatch, and derive windows from the actual source geometry. Initial lower bounds remain globally −1. T16 chronology provenance is pinned to PLAN-3413.json and its reconstruction source; older numerical gains are not added again.
 
@@ -6,8 +6,8 @@ The aggregate certificate has ten copies, 4,770 calls and 408 roles per call. In
 
 The full paid profile is `11757460 H1 + 3463020 H2 + 1102502 H3 + 486540 H4 + 103690 H5 + 38160 H8 + 202828 H48`, where `Hr=r^(1-kappa)`. Its rank mass is `65088*530`. Normalizing by `896*530*73^(1-kappa)` gives a strictly increasing function, since all occupied ranks are less than 73. Exact rational sign enclosures certify the root interval in EXPECTED.json.
 
-The exact comparison against PR3624 normalizes different replica counts using `450*profile_T530 - 530*profile_T450`. The resulting signed profile is recorded by verify_price.py, has zero rank mass and has strictly negative cost at the predecessor upper root endpoint. The proposed conditional endpoint is the lower root bound minus the inherited margins `10^-46 + 10^-70`; it still requires full admission.
+The exact comparison against PR3624 normalizes different replica counts using `450*profile_T530 - 530*profile_T450`. The resulting signed profile is recorded by verify_price.py, has zero rank mass and has strictly negative cost at the predecessor upper root endpoint. The proposed conditional endpoint is the lower root bound minus the inherited margins `10^-46 + 10^-70`; it is checked against the completed source-bound admission in the stored evidence.
 
-Physical stock is `896*530 + 408 + 8 + 91 + 2 = 475389`, within the original sufficient ceiling. Stock norm exponent 1324 gives reserve `128+37+18+1324+1+4=1512<2048`. Expected actual prefix is 1479. These arithmetic estimates do not replace execution of the physical, arbitrary-dirty endpoint, cleanup, precision and outer ledgers.
+Physical stock is `896*530 + 408 + 8 + 91 + 2 = 475389`, within the original sufficient ceiling. Stock norm exponent 1324 gives reserve `128+37+18+1324+1+4=1512<2048`. Expected actual prefix is 1479. The stored terminal evidence authenticates execution of the physical, arbitrary-dirty endpoint, cleanup, precision and outer ledgers; all passed with these values. The registered evidence check is separate from a fresh full replay.
 
 All inherited all-size, compiler, uniform-cost, hosting, bootstrap-time, rounding, tape/recovery, analytic and BIT endpoint assumptions remain. Independent agents in one session are not independent human review or formal-kernel verification. Future construction and theoretical questions are listed in README.md.

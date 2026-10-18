@@ -30,12 +30,13 @@ def main():
                 'WITNESS_RECORD', 'WITNESS_DISCOVER'):
         env.pop(key, None)
     for name in ('owners/verify_owner.py', 'owners/test_owner_guards.py',
-                 'test_replay_guards.py', 'test_entry_auth.py'):
+                 'test_replay_guards.py', 'test_entry_auth.py',
+                 'verify_evidence.py', 'test_evidence.py'):
         command = [sys.executable, '-B', str(HERE / name)]
         if name == 'test_entry_auth.py':
             command += ['--t8-package', str(REPO / 'research/t8-rank7-two-swaps')]
         subprocess.run(command, env=env, check=True)
-    print('PASS_T530_FINITE_CERTIFICATE_NOT_FULL_ADMISSION')
+    print('PASS_T530_FINITE_AND_STORED_RELEASE_NOT_FRESH_FULL_REPLAY')
 
 
 if __name__ == '__main__':
