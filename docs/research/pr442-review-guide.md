@@ -62,7 +62,9 @@ Historical receipts remain frozen and do not establish a pass for a new head.
 
 At the time of this repair, GitHub reports that Actions is disabled on the fork
 because of its usage volume. No new CI run should be inferred from a branch
-update. Re-enable Actions and run the scoped workflows to obtain new Linux
+update. Local Windows kernel builds, all 200 phase declaration audits and all
+13 positive/negative control pairs have since passed; see the linked validation
+report for exact scope and source pins. Re-enable Actions and run the scoped workflows to obtain new Linux
 receipts; the inherited integration workflow runs automatically only on the
 Phase 1 branch, and can be dispatched on Phase 2 when needed.
 
@@ -77,8 +79,9 @@ cache, and run `make formal-pr442-verify` from the repository root.
 The integration repair's Windows source-only check verified package manifests,
 all predecessor hashes, the declaration inventory, pinned dependencies and exact
 regeneration of `LevelSourceData.lean`. This did not execute Lean: Windows lacks
-the verifier's POSIX `resource` module. Fresh proof-build evidence must come
-from the dedicated Linux CI receipts. No compiler options, proof sources,
+the verifier's POSIX `resource` module. The original Linux verifier remains separate from the new local Windows
+kernel-build, axiom-audit and mutation-control evidence; see the
+[integration validation report](pr442-integration-validation.md). No compiler options, proof sources,
 protected manifests or historical receipts were changed.
 
 ## Open next questions
