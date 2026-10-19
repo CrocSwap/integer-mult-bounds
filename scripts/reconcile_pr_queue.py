@@ -18,6 +18,16 @@ def read(path):
     return json.loads((ROOT / path).read_text())
 
 
+def original_intake_metadata(rows):
+    """Use the checker's authenticated history, including in Git-free exports."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'intake_history_checker', ROOT / 'scripts/verify_pr_reconciliation.py')
+    checker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checker)
+    return checker.authenticated_intake_starting_metadata(ROOT, rows), checker.INTAKE_HISTORY
+
+
 def apply_pr148_retention(item, receipt, coverage):
     """Index PR1572's source-only evidence without granting PR148 review.
 
@@ -261,14 +271,20 @@ def build():
     family_path = family_paths[-1] if family_paths else None
     for family_path in family_paths:
         family = load(family_path)
+        initial_metadata = {}
+        if family_path == 'docs/research/pr-intake-decisions.json':
+            initial_metadata, history = original_intake_metadata(family['pull_requests'])
+            for commit, _blob, digest in history:
+                sources['scripts/historical-ci-inputs/intake-starting-heads/' + commit + '.json'] = digest
         indexed = {p['number']: p for p in result}
         for decision in family['pull_requests']:
             n = decision['number']
             if n not in indexed:
                 pr = decision['metadata']
+                initial = initial_metadata.get(n, pr)
                 item = dict(number=n, url=f'https://github.com/CrocSwap/integer-mult-bounds/pull/{n}',
-                            title=pr['title'], contributor=pr['author'], draft=pr['isDraft'],
-                            starting_head=pr['headRefOid'], current_head=pr['headRefOid'],
+                            title=pr['title'], contributor=initial['author'], draft=pr['isDraft'],
+                            starting_head=initial['headRefOid'], current_head=pr['headRefOid'],
                             previously_reviewed_heads=[], historical_assessment_heads=[], evidence=[],
                             historical_mentions=[], integration_location=[], github_state='OPEN', closure=None)
                 result.append(item)

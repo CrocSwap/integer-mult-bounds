@@ -14,6 +14,197 @@ checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
 
 
+class IntakeStartingHistory(unittest.TestCase):
+    def row(self, number, head):
+        return dict(number=number, metadata=dict(number=number, headRefOid=head * 40,
+                                                author={'login': 'original'}))
+
+    def test_ordered_first_appearance_and_source_immutability(self):
+        history = [[self.row(7, 'a')], [self.row(7, 'b'), self.row(8, 'c')]]
+        current = [self.row(7, 'd'), self.row(8, 'e'), self.row(9, 'f')]
+        before = deepcopy((history, current))
+        got = checker.project_intake_starting_metadata(history, current)
+        self.assertEqual({n: row['headRefOid'] for n, row in got.items()},
+                         {7: 'a' * 40, 8: 'c' * 40})
+        got[7]['author']['login'] = 'mutation'
+        self.assertEqual((history, current), before)
+
+    def test_missing_extra_duplicate_and_malformed_history_reject(self):
+        current = [self.row(7, 'b')]
+        mutations = [[self.row(8, 'a')], [self.row(7, 'a'), self.row(7, 'b')],
+                     [self.row(True, 'a')], [dict(number=7, metadata=self.row(8, 'a')['metadata'])],
+                     [self.row(7, 'z')]]
+        for rows in mutations:
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                checker.project_intake_starting_metadata([rows], current)
+        with self.assertRaises(ValueError):
+            checker.project_intake_starting_metadata([[self.row(7, 'a')]], [])
+        with self.assertRaises(ValueError):
+            checker.project_intake_starting_metadata([], current + current)
+
+    def test_complete_current_starting_metadata_matches_original_sources(self):
+        snapshot = json.loads((checker.AUDIT / 'starting-snapshot.json').read_text())
+        expected = {row['number']: row for row in snapshot['pull_requests']}
+        for path in checker.decision_paths():
+            if not path.exists():
+                continue
+            rows = json.loads(path.read_text())['pull_requests']
+            if path.name == 'pr-intake-decisions.json':
+                initial = checker.authenticated_intake_starting_metadata(ROOT, rows)
+                for number, metadata in initial.items():
+                    expected.setdefault(number, metadata)
+            for row in rows:
+                expected.setdefault(row['number'], row['metadata'])
+        ledger = json.loads((ROOT / 'docs/research/pr-ledger.json').read_text())
+        self.assertEqual(len(expected), len(ledger['pull_requests']))
+        for item in ledger['pull_requests']:
+            with self.subTest(number=item['number']):
+                self.assertEqual(item['starting_head'], expected[item['number']]['headRefOid'])
+                self.assertEqual(item['contributor'], expected[item['number']]['author'])
+
+    def test_changed_swapped_or_forged_pinned_source_rejects(self):
+        rows = json.loads((ROOT / 'docs/research/pr-intake-decisions.json').read_text())['pull_requests']
+        directory = ROOT / 'scripts/historical-ci-inputs/intake-starting-heads'
+        path = directory / (checker.INTAKE_HISTORY[0][0] + '.json')
+        original = path.read_bytes()
+        other = (directory / (checker.INTAKE_HISTORY[1][0] + '.json')).read_bytes()
+        read_bytes = Path.read_bytes
+        for changed in (original + b' ', other):
+            def read(p):
+                return changed if p == path else read_bytes(p)
+            with patch.object(Path, 'read_bytes', read), self.assertRaisesRegex(ValueError, 'Changed historical'):
+                checker.authenticated_intake_starting_metadata(ROOT, rows)
+        commit, blob, digest = checker.INTAKE_HISTORY[0]
+        forged = ((commit, '0' * 40, digest), *checker.INTAKE_HISTORY[1:])
+        with patch.object(checker, 'INTAKE_HISTORY', forged), self.assertRaisesRegex(ValueError, 'Git blob mismatch'):
+            checker.authenticated_intake_starting_metadata(ROOT, rows)
+
+    def test_missing_and_linked_source_rejects(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            with self.assertRaisesRegex(ValueError, 'Missing or linked'):
+                checker.authenticated_intake_starting_metadata(root, [])
+            directory = root / 'scripts/historical-ci-inputs/intake-starting-heads'
+            directory.mkdir(parents=True)
+            original = ROOT / 'scripts/historical-ci-inputs/intake-starting-heads' / (checker.INTAKE_HISTORY[0][0] + '.json')
+            (directory / original.name).symlink_to(original)
+            with self.assertRaisesRegex(ValueError, 'Missing or linked'):
+                checker.authenticated_intake_starting_metadata(root, [])
+
+    def test_entrypoint_rejects_forged_starting_and_current_heads(self):
+        ledger = json.loads((ROOT / 'docs/research/pr-ledger.json').read_text())
+        original_read = Path.read_text
+        for number in (3107, 3184, 3251):
+            for field in ('starting_head', 'reviewed_head', 'current_head'):
+                changed = deepcopy(ledger)
+                item = next(row for row in changed['pull_requests'] if row['number'] == number)
+                item[field] = '0' * 40
+                def read(path, *args, **kwargs):
+                    return json.dumps(changed) if path == ROOT / 'docs/research/pr-ledger.json' else original_read(path, *args, **kwargs)
+                expected = 'starting head' if field == 'starting_head' else field
+                with self.subTest(number=number, field=field), patch.object(Path, 'read_text', read), self.assertRaisesRegex(ValueError, f'#{number}:.*{expected}'):
+                    checker.main()
+
+    def test_generator_keeps_original_heads_without_writing_evidence(self):
+        spec = importlib.util.spec_from_file_location('history_aware_generator',
+                                                     ROOT / 'scripts/reconcile_pr_queue.py')
+        generator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(generator)
+        outputs = {}
+        permitted = {ROOT / 'docs/research/pr-ledger.json', ROOT / 'docs/research/pr-ledger.md'}
+        def capture(path, content, *args, **kwargs):
+            self.assertIn(path, permitted)
+            outputs[path] = content
+            return len(content)
+        original = (ROOT / 'docs/research/pr-ledger.json').read_bytes()
+        with patch.object(Path, 'write_text', capture), patch('builtins.print'):
+            generator.build()
+        self.assertEqual((ROOT / 'docs/research/pr-ledger.json').read_bytes(), original)
+        self.assertEqual(set(outputs), permitted)
+        rebuilt = json.loads(outputs[ROOT / 'docs/research/pr-ledger.json'])
+        actual = {row['number']: row for row in json.loads(original)['pull_requests']}
+        self.assertEqual(len(rebuilt['pull_requests']), len(actual))
+        for row in rebuilt['pull_requests']:
+            for field in ('starting_head', 'contributor', 'current_head', 'reviewed_head'):
+                with self.subTest(number=row['number'], field=field):
+                    self.assertEqual(row.get(field), actual[row['number']].get(field))
+        for commit, _blob, digest in checker.INTAKE_HISTORY:
+            name = 'scripts/historical-ci-inputs/intake-starting-heads/' + commit + '.json'
+            self.assertEqual(rebuilt['source_sha256'][name], digest)
+
+
+class FamilyClosureProjection(unittest.TestCase):
+    def decision(self, number=7):
+        return dict(number=number, reviewed_head='a' * 40, current_head='a' * 40,
+                    disposition='partially_reviewed', github_state='OPEN',
+                    integration_location=[], unresolved_question='Review remains open.')
+
+    def test_closure_inheritance_and_explicit_overrides(self):
+        first = {'receipt': 'first.json', 'verified': True}
+        second = {'receipt': 'second.json', 'verified': True}
+        cases = [
+            ('baseline receipt survives omission', {'7': {'closure': first}},
+             [[{'number': 7}]], first),
+            ('baseline null survives omission', {'7': {'closure': None}},
+             [[{'number': 7}]], None),
+            ('new family record defaults to null', {}, [[{'number': 8}]], None),
+            ('family receipt survives omission', {},
+             [[{'number': 7, 'closure': first}], [{'number': 7}]], first),
+            ('explicit null clears prior receipt', {'7': {'closure': first}},
+             [[{'number': 7, 'closure': None}], [{'number': 7}]], None),
+            ('explicit receipt replaces prior receipt', {'7': {'closure': first}},
+             [[{'number': 7, 'closure': second}]], second),
+        ]
+        for label, baseline, rounds, expected in cases:
+            with self.subTest(case=label):
+                result = checker.project_family_closures([7], baseline, rounds)
+                self.assertEqual(result[rounds[-1][-1]['number']], expected)
+
+    def test_projection_does_not_mutate_sources_or_raw_latest_records(self):
+        baseline = {'7': {'closure': {'receipt': 'baseline.json', 'checks': [True]}}}
+        rounds = [[self.decision()], [self.decision()]]
+        before = deepcopy((baseline, rounds))
+        latest = {row['number']: row for rows in rounds for row in rows}
+        result = checker.project_family_closures([7], baseline, rounds)
+        self.assertEqual((baseline, rounds), before)
+        self.assertIs(latest[7], rounds[-1][0])
+        self.assertNotIn('closure', latest[7])
+        result[7]['checks'].append(False)
+        self.assertEqual((baseline, rounds), before)
+        self.assertEqual(latest[7], before[1][-1][0])
+
+    def test_missing_or_fabricated_ledger_closure_rejects_expected_null(self):
+        raw = self.decision()
+        closure = checker.project_family_closures([7], {}, [[raw]])[7]
+        expected = {**raw, 'closure': closure}
+        checker.check_family_decision(dict(expected), expected)
+        for operation in ('missing', 'fabricated'):
+            item = dict(expected)
+            if operation == 'missing':
+                item.pop('closure')
+            else:
+                item['closure'] = {'receipt': 'unapproved.json'}
+            with self.subTest(operation=operation), self.assertRaisesRegex(ValueError, '#7:.*closure'):
+                checker.check_family_decision(item, expected)
+
+    def test_inherited_receipt_rejects_null_forgery_and_boolean_integer_mutation(self):
+        receipt = {'receipt': 'approved.json', 'checks': {'published': True}}
+        raw = self.decision()
+        closure = checker.project_family_closures([7], {'7': {'closure': receipt}}, [[raw]])[7]
+        expected = {**raw, 'closure': closure}
+        checker.check_family_decision(deepcopy(expected), expected)
+        for mutation in (None, {'receipt': 'other.json', 'checks': {'published': True}},
+                         {'receipt': 'approved.json', 'checks': {'published': 1}}):
+            item = deepcopy(expected)
+            item['closure'] = mutation
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, '#7:.*closure'):
+                checker.check_family_decision(item, expected)
+
+    def test_baseline_decision_outside_starting_snapshot_rejects(self):
+        with self.assertRaisesRegex(ValueError, 'outside the starting snapshot'):
+            checker.project_family_closures([7], {'8': {'closure': None}}, [])
+
+
 class FamilyDecision(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -26,6 +217,10 @@ class FamilyDecision(unittest.TestCase):
             if path.exists():
                 cls.families[path.parent.name.removeprefix('community-').removesuffix('-audit')] = json.loads(path.read_text())['pull_requests']
         cls.latest = {row['number']: row for decisions in cls.families.values() for row in decisions}
+        snapshot = json.loads((checker.AUDIT / 'starting-snapshot.json').read_text())
+        baseline = json.loads((checker.AUDIT / 'decisions.json').read_text())['decisions']
+        cls.closures = checker.project_family_closures(
+            (row['number'] for row in snapshot['pull_requests']), baseline, cls.families.values())
 
     def setUp(self):
         self.decision = deepcopy(self.latest[626])
@@ -38,7 +233,8 @@ class FamilyDecision(unittest.TestCase):
                 final[decision['number']] = (family, decision)
         for number, (family, decision) in final.items():
             with self.subTest(family=family, number=number):
-                checker.check_family_decision(self.items[number], decision)
+                checker.check_family_decision(
+                    self.items[number], {**decision, 'closure': self.closures[number]})
 
     def test_equal_forged_heads_do_not_establish_review_provenance(self):
         self.item['reviewed_head'] = self.item['current_head'] = '0' * 40
@@ -70,12 +266,19 @@ class FamilyDecision(unittest.TestCase):
                     checker.check_family_decision(item, self.decision)
 
     def test_missing_closure_is_distinct_from_recorded_null(self):
-        decision = self.latest[620]
-        item = deepcopy(self.items[620])
+        # This frozen decision recorded null; PR620's latest review has a merge receipt.
+        decision = next(row for row in self.families['k492'] if row['number'] == 620)
         self.assertIsNone(decision['closure'])
-        item.pop('closure')
-        with self.assertRaisesRegex(ValueError, '#620:.*closure'):
-            checker.check_family_decision(item, decision)
+        checker.check_family_decision(deepcopy(decision), decision)
+        for operation in ('missing', 'fabricated'):
+            item = deepcopy(decision)
+            if operation == 'missing':
+                item.pop('closure')
+            else:
+                item['closure'] = {'receipt': 'unapproved.json'}
+            with self.subTest(operation=operation), self.assertRaisesRegex(
+                    ValueError, '#620:.*closure'):
+                checker.check_family_decision(item, decision)
 
     def test_boolean_completion_flags_cannot_be_replaced_by_integers(self):
         for number in (626, 620):
@@ -120,6 +323,96 @@ class FamilyDecision(unittest.TestCase):
 
         with patch.object(Path, 'read_text', read_text), self.assertRaisesRegex(
                 ValueError, '#626:.*reviewed_head'):
+            checker.main()
+
+
+class HistoricalReviewCompletion(unittest.TestCase):
+    def setUp(self):
+        self.ledger = json.loads((ROOT / 'docs/research/pr-ledger.json').read_text())
+        self.actual = {row['number']: row for row in self.ledger['pull_requests']}
+        self.path = ROOT / 'research/community-batch1099-audit/DISPOSITIONS.json'
+        self.historical = json.loads(self.path.read_text())['pull_requests']
+        self.latest = {}
+        for path in checker.decision_paths():
+            if path.exists():
+                for row in json.loads(path.read_text())['pull_requests']:
+                    self.latest[row['number']] = row
+        self.decision = next(row for row in self.historical if row['number'] == 1048)
+
+    def test_all_batch1099_historical_and_current_projections(self):
+        before = deepcopy((self.actual, self.historical, self.latest))
+        changed = []
+        for decision in self.historical:
+            number = decision['number']
+            item, latest = self.actual[number], self.latest[number]
+            with self.subTest(number=number):
+                checker.check_historical_review_completion(item, decision, latest)
+            if any(item[field] != decision[field] for field in
+                   ('review_completion', 'verification_evidence')):
+                changed.append(number)
+        self.assertEqual(changed, [1048])
+        self.assertEqual((self.actual, self.historical, self.latest), before)
+        self.assertTrue(self.decision['review_completion']['changed_file_coverage'])
+        self.assertFalse(self.latest[1048]['review_completion']['changed_file_coverage'])
+        self.assertTrue(set(self.decision['verification_evidence']).issubset(
+            self.actual[1048]['verification_evidence']))
+        with self.assertRaisesRegex(ValueError, 'Ledger lost'):
+            checker.check_review_completion(self.actual[1048], self.decision)
+
+    def test_latest_ledger_mutations_and_missing_fields_reject(self):
+        fields = ('reviewed_head', 'current_head', 'disposition', 'closure',
+                  'review_completion', 'verification_evidence')
+        for field in fields:
+            for remove in (False, True):
+                item = deepcopy(self.actual[1048])
+                if remove:
+                    item.pop(field)
+                else:
+                    item[field] = 'forged'
+                with self.subTest(field=field, remove=remove), self.assertRaises(ValueError):
+                    checker.check_historical_review_completion(item, self.decision, self.latest[1048])
+        item = deepcopy(self.actual[1048])
+        item['review_completion']['published'] = 0
+        with self.assertRaisesRegex(ValueError, 'review_completion'):
+            checker.check_historical_review_completion(item, self.decision, self.latest[1048])
+
+    def test_historical_incorporation_and_schema_invariants_reject(self):
+        mutations = [dict(disposition='incorporated'), dict(verification_evidence=[])]
+        flags = deepcopy(self.decision['review_completion'])
+        flags['published'] = 0
+        mutations.append(dict(review_completion=flags))
+        for mutation in mutations:
+            decision = dict(deepcopy(self.decision), **mutation)
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                checker.check_historical_review_completion(self.actual[1048], decision, self.latest[1048])
+        for field in ('review_completion', 'verification_evidence'):
+            latest = deepcopy(self.latest[1048])
+            latest.pop(field)
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'Latest family decision lacks'):
+                checker.check_historical_review_completion(self.actual[1048], self.decision, latest)
+        latest = dict(self.latest[1048], number=1049)
+        with self.assertRaisesRegex(ValueError, 'different PR'):
+            checker.check_historical_review_completion(self.actual[1048], self.decision, latest)
+        latest = dict(deepcopy(self.latest[1048]), disposition='incorporated')
+        item = dict(deepcopy(self.actual[1048]), disposition='incorporated')
+        with self.assertRaisesRegex(ValueError, 'before review'):
+            checker.check_historical_review_completion(item, self.decision, latest)
+
+    def test_current_review_still_requires_exact_completion_binding(self):
+        checker.check_historical_review_completion(self.actual[1048], self.latest[1048], self.latest[1048])
+        item = deepcopy(self.actual[1048])
+        item['verification_evidence'] = self.decision['verification_evidence']
+        with self.assertRaisesRegex(ValueError, 'verification_evidence'):
+            checker.check_historical_review_completion(item, self.latest[1048], self.latest[1048])
+
+    def test_entrypoint_authenticates_superseded_source_bytes(self):
+        original = self.path.read_bytes()
+        original_read = Path.read_bytes
+        # The historical row is no longer the latest ledger projection. Its
+        # source hash must nevertheless reject even a whitespace-only change.
+        def read(path):
+            return original + b' ' if path == self.path else original_read(path)
+        with patch.object(Path, 'read_bytes', read), self.assertRaisesRegex(ValueError, 'Stale source:.*batch1099'):
             checker.main()
 
 

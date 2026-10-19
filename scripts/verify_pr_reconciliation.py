@@ -4,20 +4,84 @@
 Offline integrity check, not a mathematical verifier or a live GitHub-state check.
 """
 from pathlib import Path
+from copy import deepcopy
 import hashlib
 import tempfile
 import json
 import zipfile
 import subprocess
 import sys
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 AUDIT = ROOT / 'research/pr-reconciliation-20261012'
+
+# Original bytes of docs/research/pr-intake-decisions.json at these commits.
+# Intake metadata is mutable; these ordered checkpoints retain first appearances
+# before later exact-head reviews replaced it. Never infer history from a ledger.
+# Source commit, Git blob, SHA256; the complete source files are preserved below.
+INTAKE_HISTORY = (
+    ('82d67beb311be1b630eb95197492e6462eddccd8',
+     '7be7303ed7f9c83e01a3cceb99698ed672da4e41',
+     '09d29d6cddea9ba382ee663262605c4ba4a4adc5cc9d572cd54bb37a1505cd65'),
+    ('09fbc0f002fc5b04814272c89edbd557b2a8285d',
+     '6c5a777a8221dc6e7866dcde0fff6b0aae58be33',
+     'b149b6057fb72f9617bd48a5bb5b5d5dd548a955b89416d38449e1ecac3464a4'),
+    ('24db9bfffd4a7c812545ea6ae58853cb9ef094b2',
+     '021141eaa94d1768d997f0f246fa73b4a528db84',
+     '3271e96c44d42fcae0f485abda725ff36c2f31b99ac740672787c108107410d4'),
+)
 
 
 def require(condition, message):
     if not condition:
         raise ValueError(message)
+
+
+def project_intake_starting_metadata(history, current_rows):
+    """Keep each first authenticated appearance, with no ledger-value fallback.
+
+    History changes only initial metadata, never current review/closure evidence.
+    Require historical membership to remain visible in the current intake source.
+    Substantial OpenAI assistance; Apache-2.0.
+    """
+    current_numbers = [row['number'] for row in current_rows]
+    require(all(type(number) is int and number > 0 for number in current_numbers)
+            and len(current_numbers) == len(set(current_numbers)), 'Invalid current intake PR set')
+    current_numbers = set(current_numbers)
+    first = {}
+    for rows in history:
+        numbers = [row['number'] for row in rows]
+        require(all(type(number) is int and number > 0 for number in numbers)
+                and len(numbers) == len(set(numbers)), 'Duplicate or invalid historical intake PR')
+        require(set(numbers) <= current_numbers, 'Historical intake PR missing from current source')
+        for row in rows:
+            metadata = row['metadata']
+            require(type(metadata.get('number')) is int and metadata['number'] == row['number'],
+                    'Historical intake metadata number mismatch')
+            require(isinstance(metadata.get('headRefOid'), str)
+                    and re.fullmatch('[0-9a-f]{40}', metadata['headRefOid'])
+                    and isinstance(metadata.get('author'), dict), 'Invalid historical intake metadata')
+            first.setdefault(row['number'], deepcopy(metadata))
+    return first
+
+
+def authenticated_intake_starting_metadata(root, current_rows):
+    """Authenticate full original source blobs without requiring Git or network."""
+    directory = root / 'scripts/historical-ci-inputs/intake-starting-heads'
+    require(all(not path.is_symlink() for path in
+                (root, root / 'scripts', directory.parent, directory)),
+            'Linked historical intake source directory')
+    history = []
+    for commit, blob, digest in INTAKE_HISTORY:
+        path = directory / (commit + '.json')
+        require(path.is_file() and not path.is_symlink(), 'Missing or linked historical intake source')
+        raw = path.read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == digest, 'Changed historical intake source: ' + commit)
+        identity = hashlib.sha1(b'blob ' + str(len(raw)).encode('ascii') + b'\0' + raw).hexdigest()
+        require(identity == blob, 'Historical intake Git blob mismatch: ' + commit)
+        history.append(json.loads(raw)['pull_requests'])
+    return project_intake_starting_metadata(history, current_rows)
 
 
 def check_batch1047_file(item):
@@ -85,7 +149,10 @@ def check_batch932_file(item):
             '96ea543e6c707424afe247e77bd86c82152f90fc76a0773c4232145da5cdf8d1',
             ('b1c645e815a6abfbfdc2d77c4121c543ed0ca958095e97e1181d64e84cac0ed8',
              '05839996482058359b2ab8087d7d96e76934bd03d79981df9b99447e8ed09331',
-             'fdc022f70e42a9b5a2be8c6c3645cfdc211c6dffdffac68904b2945b1cdc3e5a', 'f569b1c287252c698b4d59bc1bd0f013159e772cc3be64e26c4eab8eb99d0478', '6f353dae3f922d78f62bedddcb50cfe2b500b4195a888cec5ffac2367b1a4f88', '2bcc91541d4c328e9ca329aa02516836dc55fe326299ad6ecee6439f5806f6aa', '8f9298eb83184a447ee2dda64a42dfc5a56df08e4affae56f99974cad632713a')),
+             'fdc022f70e42a9b5a2be8c6c3645cfdc211c6dffdffac68904b2945b1cdc3e5a', 'f569b1c287252c698b4d59bc1bd0f013159e772cc3be64e26c4eab8eb99d0478', '6f353dae3f922d78f62bedddcb50cfe2b500b4195a888cec5ffac2367b1a4f88', '2bcc91541d4c328e9ca329aa02516836dc55fe326299ad6ecee6439f5806f6aa', '8f9298eb83184a447ee2dda64a42dfc5a56df08e4affae56f99974cad632713a',
+             # Exact cache-policy successors already registered by the replay loader.
+             '93e49175a84ebcb3fe5e38503416ffae9c9f44754c3e974bf9c8ffaa6920f1bf',
+             'ef5035e6216d39569da670f32b2717c870b23c418016fd134cc0a72649fb912a')),
         'tests/test_isolated_test_runner.py': (
             '628391b6abfbc8674ceec1751867a4392f2cc0b5b66886243e139af86cf355ac',
             ('8262f36202e426b849a925123ff789843115d5e564962710c31ab14f84c88067',
@@ -107,6 +174,28 @@ def check_family_decision(item, decision):
             require(field in item and json.dumps(item[field], sort_keys=True) ==
                     json.dumps(decision[field], sort_keys=True),
                     f'#{decision["number"]}: ledger differs from family decision: {field}')
+
+
+def project_family_closures(starting_numbers, initial_decisions, family_rounds):
+    """Mirror the generator's explicit closure updates without using the ledger.
+
+    Omission carries forward the prior authoritative value; explicit null clears
+    it. Keep raw family records separate for later provenance comparisons.
+    """
+    closures = dict.fromkeys(starting_numbers)
+    for number, decision in initial_decisions.items():
+        number = int(number)
+        require(number in closures, 'Closure decision outside the starting snapshot')
+        if 'closure' in decision:
+            closures[number] = deepcopy(decision['closure'])
+    for decisions in family_rounds:
+        for decision in decisions:
+            number = decision['number']
+            if 'closure' in decision:
+                closures[number] = deepcopy(decision['closure'])
+            elif number not in closures:
+                closures[number] = None
+    return closures
 
 
 def check_batch1099_file(item):
@@ -136,6 +225,23 @@ def check_review_completion(item, decision):
         require(item['reviewed_head'] == item['current_head'],
                 'Incorporated current head differs from reviewed head')
         require(item['integration_location'], 'Incorporated without integration location')
+
+
+def check_historical_review_completion(item, decision, latest_decision):
+    """Validate a pinned past review separately from its current projection.
+
+    Later source-only triage can explicitly replace completion flags while
+    retaining the earlier evidence. It must still match the latest decision
+    exactly; an old review must not silently certify today's ledger state.
+    """
+    require(item['number'] == decision['number'] == latest_decision['number'],
+            'Historical review belongs to a different PR')
+    require(all(field in latest_decision for field in ('review_completion', 'verification_evidence')),
+            'Latest family decision lacks detailed review or evidence state')
+    check_family_decision(item, latest_decision)
+    check_review_completion(item, latest_decision)
+    if latest_decision != decision:
+        check_review_completion(decision, decision)
 
 
 def check_companion_review(item, companion, decision=None):
@@ -266,10 +372,17 @@ def main():
     snapshot = json.loads((AUDIT / 'starting-snapshot.json').read_text())
     expected = {p['number']: p for p in snapshot['pull_requests']}
     family_decisions = {}
+    family_rounds = []
     for family_path in decision_paths():
         if not family_path.exists():
             continue
         family = json.loads(family_path.read_text())
+        if family_path == ROOT / 'docs/research/pr-intake-decisions.json':
+            initial = authenticated_intake_starting_metadata(ROOT, family['pull_requests'])
+            for number, metadata in initial.items():
+                # Immutable starting snapshot and earlier family rounds win.
+                expected.setdefault(number, metadata)
+        family_rounds.append(family['pull_requests'])
         numbers = [p['number'] for p in family['pull_requests']]
         require(len(numbers) == len(set(numbers)), 'Duplicate family PR')
         for row in family['pull_requests']:
@@ -281,8 +394,12 @@ def main():
     actual = {p['number']: p for p in ledger['pull_requests']}
     require(len(actual) == len(ledger['pull_requests']) == len(expected), 'Duplicate or missing PR')
     require(actual.keys() == expected.keys(), 'Starting PR set changed')
+    closures = project_family_closures(
+        (pr['number'] for pr in snapshot['pull_requests']),
+        json.loads((AUDIT / 'decisions.json').read_text())['decisions'],
+        family_rounds)
     for number, decision in family_decisions.items():
-        check_family_decision(actual[number], decision)
+        check_family_decision(actual[number], {**decision, 'closure': closures[number]})
     for number, pr in actual.items():
         require(pr['starting_head'] == expected[number]['headRefOid'], f'#{number}: starting head changed')
         require(pr['contributor'] == expected[number]['author'], f'#{number}: attribution changed')
@@ -638,7 +755,7 @@ def main():
                     'Batch1099 coverage head differs')
             require(len(row['files']) == row['changed_files'] == len({f['source_path'] for f in row['files']}),
                     'Batch1099 changed-file inventory incomplete')
-            check_review_completion(actual[number], decision)
+            check_historical_review_completion(actual[number], decision, family_decisions[number])
             for item in row['files']:
                 require(item['action'] in {'retained', 'adapted', 'excluded', 'pending'}, 'Unknown file action')
                 if item['action'] == 'pending':

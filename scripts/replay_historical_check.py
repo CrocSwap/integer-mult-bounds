@@ -231,7 +231,11 @@ CONFIG['tooling-ledger']['additional_inputs'].extend([{'manifest': 'research/com
   'path': 'docs/ci-verification.md',
   'input': 'ledger-frontier741-ci-verification.md',
   'sha256': 'a854022e0e1d5d4db4d60e586be3ea56005013ef14a1fc06d02bc06e8529c4b0',
-  'accepted_live_sha256': ['ae5bcac684ce2188632f38dee8ed46ebdc9588f490401505aa1cac33c55d84db']},
+  'accepted_live_sha256': [
+      'ae5bcac684ce2188632f38dee8ed46ebdc9588f490401505aa1cac33c55d84db',
+      # 54bbb81c: append optional module-timeout documentation; historical bytes stay pinned.
+      'a3711fe12d560fac7726c530b9c8c622182f3d4f231a876c163616e49bd911bc',
+  ]},
  {'manifest': 'research/community-frontier890-audit/CONTENT-COVERAGE.json',
   'field': ['pull_requests', '853', 'files'],
   'path': 'scripts/verify_complex741_parallel.py',

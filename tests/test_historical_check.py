@@ -123,6 +123,75 @@ class HistoricalReplay(unittest.TestCase):
                 with self.subTest(records=records), self.assertRaises(ValueError):
                     checker.authenticated_input(root, config, inputs)
 
+    def test_ci_document_successor_preserves_historical_context_and_guards(self):
+        # 54bbb81c appended timeout guidance to the already accepted live doc.
+        # The PR695 evidence and every historical checker remain unchanged.
+        config = next(entry for entry in checker.CONFIG['tooling-ledger']['additional_inputs']
+                      if entry['path'] == 'docs/ci-verification.md')
+        live = (ROOT / config['path']).read_bytes()
+        historical = (checker.INPUTS / config['input']).read_bytes()
+        previous = live.split(b'\n### Bound an isolated test module\n', 1)[0]
+        self.assertEqual(hashlib.sha256(previous).hexdigest(),
+                         'ae5bcac684ce2188632f38dee8ed46ebdc9588f490401505aa1cac33c55d84db')
+        self.assertEqual(hashlib.sha256(live).hexdigest(),
+                         'a3711fe12d560fac7726c530b9c8c622182f3d4f231a876c163616e49bd911bc')
+        self.assertEqual(hashlib.sha256(historical).hexdigest(), config['sha256'])
+        with tempfile.TemporaryDirectory() as td:
+            root, inputs = Path(td) / 'source', Path(td) / 'inputs'
+            root.mkdir()
+            inputs.mkdir()
+            document = root / config['path']
+            document.parent.mkdir(parents=True)
+            baseline = inputs / config['input']
+            baseline.write_bytes(historical)
+            manifest = root / config['manifest']
+            manifest.parent.mkdir(parents=True)
+            manifest_bytes = (ROOT / config['manifest']).read_bytes()
+            manifest.write_bytes(manifest_bytes)
+            for label, value in [('current', live), ('previous', previous),
+                                 ('historical', historical)]:
+                with self.subTest(live_context=label):
+                    document.write_bytes(value)
+                    self.assertEqual(checker.authenticated_input(root, config, inputs), historical)
+            document.write_bytes(live + b' ')
+            with self.assertRaisesRegex(ValueError, 'Unrecognized live source update'):
+                checker.authenticated_input(root, config, inputs)
+            document.write_bytes(live)
+            baseline.write_bytes(historical + b' ')
+            with self.assertRaisesRegex(ValueError, 'Changed historical input'):
+                checker.authenticated_input(root, config, inputs)
+            baseline.write_bytes(historical)
+            for mutation in ('changed', 'duplicate'):
+                coverage = json.loads(manifest_bytes)
+                records = coverage['pull_requests']['695']['files']
+                record = next(row for row in records if row['integrated_path'] == config['path'])
+                if mutation == 'changed':
+                    record['integrated_sha256'] = '0' * 64
+                else:
+                    records.append(dict(record))
+                manifest.write_text(json.dumps(coverage), encoding='utf-8')
+                with self.subTest(pin_mutation=mutation), self.assertRaises(ValueError):
+                    checker.authenticated_input(root, config, inputs)
+            manifest.write_bytes(manifest_bytes)
+            (root / 'unrelated.txt').write_bytes(b'unchanged current input\n')
+            paths = [config['path'], config['manifest'], 'unrelated.txt']
+            before = {name: (root / name).read_bytes() for name in paths}
+            target = Path(td) / 'copy'
+            expected = checker.materialize(root, target, config, paths, inputs)
+            self.assertEqual((target / config['path']).read_bytes(), historical)
+            self.assertEqual({name: (root / name).read_bytes() for name in paths}, before)
+            checker.verify_unchanged(target, expected)
+            for name in (config['path'], 'unrelated.txt'):
+                path = target / name
+                original = path.read_bytes()
+                path.write_bytes(original + b' ')
+                with self.subTest(replay_mutation=name), self.assertRaisesRegex(
+                        ValueError, 'Replay changed tracked artifact'):
+                    checker.verify_unchanged(target, expected)
+                path.write_bytes(original)
+            checker.verify_unchanged(target, expected)
+            self.assertEqual({name: (root / name).read_bytes() for name in paths}, before)
+
     def test_untracked_replacement_and_existing_destination_reject(self):
         with tempfile.TemporaryDirectory() as td:
             root, inputs, config, paths = self.fixture(td)

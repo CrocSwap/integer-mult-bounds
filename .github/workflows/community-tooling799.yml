@@ -54,8 +54,40 @@ jobs:
           python -B research/community-frontier799-audit/check_pr806_trace.py
       - name: Current ledger and archive integrity controls
         run: |
-          python -B scripts/replay_historical_check.py tooling-ledger
-          python -B -m unittest discover -s tests -p 'test_historical_check.py' -v
-          python -B -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
-          python -B -O -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
-      - run: git diff --exit-code
+          status=0
+          python -B scripts/replay_historical_check.py tooling-ledger || status=$?
+          if [ "$status" -ne 0 ]; then
+            python -B - <<'PY'
+          import json
+          from pathlib import Path
+          source = 'docs/research/pr-intake-decisions.json'
+          ledger = json.loads(Path('docs/research/pr-ledger.json').read_text())
+          decisions = json.loads(Path(source).read_text())['pull_requests']
+          item = next(row for row in ledger['pull_requests'] if row['number'] == 2985)
+          decision = next(row for row in decisions if row['number'] == 2985)
+          print(json.dumps({
+              'diagnostic': 'PR2985 closure field and source references',
+              'ledger_closure_present': 'closure' in item,
+              'ledger_closure': item.get('closure'),
+              'source': source,
+              'source_closure_present': 'closure' in decision,
+              'source_closure': decision.get('closure'),
+              'source_sha256': ledger['source_sha256'].get(source),
+              'current_head_observed_in': item.get('current_head_observed_in'),
+              'reconciliation_evidence': item.get('reconciliation_evidence', []),
+          }, sort_keys=True))
+          PY
+          fi
+          exit "$status"
+      - name: Historical replay regression tests
+        if: ${{ success() || failure() }}
+        run: python -B -m unittest discover -s tests -p 'test_historical_check.py' -v
+      - name: Reconciliation regression tests
+        if: ${{ success() || failure() }}
+        run: python -B -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
+      - name: Optimized reconciliation regression tests
+        if: ${{ success() || failure() }}
+        run: python -B -O -m unittest discover -s tests -p 'test_*reconciliation*.py' -v
+      - name: Reject tracked-file mutations
+        if: ${{ success() || failure() }}
+        run: git diff --exit-code
