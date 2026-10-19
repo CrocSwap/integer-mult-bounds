@@ -33,12 +33,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends g++ libboost-dev
+      - name: Checkout the historical verifier's pinned source snapshot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CrocSwap/integer-mult-bounds
+          ref: 47481c89fd30a43f8f882eb4b391e89c29273fd0
+          path: central-factor-historical-source
+          persist-credentials: false
+          sparse-checkout: |
+            certificates
+            docs/research
+            notes
+            scripts
+            tests
+            upstream
       - name: Scoped bounds and historical verifier
         run: |
           python -B research/owner-profile-uniform/reproduce.py
           python -B research/p112-single-lift/verify.py
           python -B research/p112-single-lift/independent_check.py
           python -B research/r439-copy-path-sharing-barrier/verify.py
+          mkdir -p central-factor-historical-source/research
+          cp -a research/central-factor-packed central-factor-historical-source/research/
+          cd central-factor-historical-source
           python -B research/central-factor-packed/verify.py
           python -B research/central-factor-packed/test_packed.py
           python -O -B research/central-factor-packed/test_packed.py

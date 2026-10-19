@@ -14,6 +14,33 @@ checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
 
 
+class StartingHeadIntegrity(unittest.TestCase):
+    def setUp(self):
+        self.item = {
+            'number': 3107,
+            'starting_head': 'initial',
+            'current_head': 'revised',
+            'previously_reviewed_heads': ['initial'],
+        }
+
+    def test_frozen_snapshot_requires_the_exact_initial_head(self):
+        with self.assertRaisesRegex(ValueError, '#3107: starting head changed'):
+            checker.check_starting_head(self.item, 'revised', True)
+
+    def test_later_family_metadata_can_bind_a_revised_current_head(self):
+        checker.check_starting_head(self.item, 'revised', False)
+
+    def test_later_head_requires_the_initial_head_in_review_history(self):
+        item = deepcopy(self.item)
+        item['previously_reviewed_heads'] = []
+        with self.assertRaisesRegex(ValueError, '#3107: starting head changed'):
+            checker.check_starting_head(item, 'revised', False)
+
+    def test_later_metadata_must_match_the_ledger_current_head(self):
+        with self.assertRaisesRegex(ValueError, '#3107: starting head changed'):
+            checker.check_starting_head(self.item, 'other-current', False)
+
+
 class FamilyDecision(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -70,9 +97,10 @@ class FamilyDecision(unittest.TestCase):
                     checker.check_family_decision(item, self.decision)
 
     def test_missing_closure_is_distinct_from_recorded_null(self):
-        decision = self.latest[620]
-        item = deepcopy(self.items[620])
+        decision = next(row for row in self.families['k492'] if row['number'] == 620)
         self.assertIsNone(decision['closure'])
+        item = deepcopy(decision)
+        checker.check_family_decision(item, decision)
         item.pop('closure')
         with self.assertRaisesRegex(ValueError, '#620:.*closure'):
             checker.check_family_decision(item, decision)
@@ -173,6 +201,13 @@ class SpectrumRefresh(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Changed integrated file'):
                 checker.check_frontier890_file(item)
 
+    def test_reviewed_parallel_verifier_successor_passes_without_rewriting_pin(self):
+        checker.check_frontier890_file({
+            'integrated_path': 'scripts/verify_complex741_parallel.py',
+            'integrated_sha256':
+                '616cff67233958647dd1e6f33dcc5ffc6132df68e0e1230dc768e820d00155a1',
+        })
+
     def test_successor_helper_drift_is_rejected(self):
         original_read = Path.read_bytes
         def read(path):
@@ -188,15 +223,83 @@ class SpectrumRefresh(unittest.TestCase):
             checker.check_frontier890_file(item)
 
 
+class ReviewedFamilySourceSuccessor(unittest.TestCase):
+    def test_reviewed_utf8_successor_passes_without_rewriting_source_pin(self):
+        checker.check_reviewed_family_source(
+            'scripts/verify_hpe_lean_binding.py',
+            '52aa1d23641e4c716b43c98f6b883ad042087dd03a9d01369e8e6a735b07aa03')
+
+    def test_reviewed_integer_row_successor_passes_without_rewriting_source_pin(self):
+        checker.check_reviewed_family_source(
+            'research/complex-k492-owner-repair/code/hpe_audit_and_transport.py',
+            'c9a05ff291016b870b4fc925b317abd9c3a604c73ffc8920dfdbbeb475e20aa3')
+
+    def test_reviewed_frontier741_successors_pass_without_rewriting_pins(self):
+        for path, digest in (
+                ('research/complex-factory5-resynthesis/SOURCE-PINS.json',
+                 '79e00db34b721dc38830a7816f3126a09615d49c12f1b6a630147f1f50378f63'),
+                ('research/complex-factory5-resynthesis/verify.py',
+                 'edbae43b68c0e4f65978a2f9b9a739867128f4ef19d8bbe81d06ed2e5bc165f1'),
+                ('research/supplier-circuit-consolidation/SOURCES.json',
+                 'ef2568aac251c94d86736936b9d8c7507d224b129da2907d1bc6a1c2b5546742'),
+                ('docs/ci-verification.md',
+                 'a854022e0e1d5d4db4d60e586be3ea56005013ef14a1fc06d02bc06e8529c4b0'),
+                ('scripts/verify_selected_result.py',
+                 'd7fd929726b326aeeaf0a3996475adec88eee9aac09ae0bebeeaa0bc1fc8f199')):
+            with self.subTest(path=path):
+                checker.check_reviewed_family_source(path, digest)
+
+    def test_unreviewed_source_successor_is_rejected(self):
+        with patch.object(Path, 'read_bytes', return_value=b'unreviewed source'), \
+                self.assertRaisesRegex(ValueError, 'Changed reviewed family source'):
+            checker.check_reviewed_family_source(
+                'scripts/verify_hpe_lean_binding.py',
+                '52aa1d23641e4c716b43c98f6b883ad042087dd03a9d01369e8e6a735b07aa03')
+
+
+class ReviewedArchiveSuccessors(unittest.TestCase):
+    def test_batch1047_and_batch1099_successors_keep_historical_pins(self):
+        cases = (
+            (checker.check_batch1047_file,
+             'research/p112-free-sink-audit97/README.md',
+             'c792fc8f5de0c784049904c6febf3eed9b20e2462b30dc643c72730470d72b79'),
+            (checker.check_batch1047_file,
+             'research/p112-free-sink-audit97/independent.py',
+             '46806efe1ee7744c810a69981d471b42dfceaa336fee226991c55ba1edfd129f'),
+            (checker.check_batch1099_file,
+             'research/r439-omission-atlas-seed81/README.md',
+             '6fc756df2aa0afe5b63985c1a5b4878659a3387250092e9ae5167f3316d5de9f'),
+            (checker.check_batch1099_file,
+             'research/r439-omission-atlas-seed81/verify.py',
+             '127d7679fb26e264018548a1301b2f0f437d834eb1f0ffa215556243077ff866'),
+        )
+        for check, path, predecessor in cases:
+            item = {'integrated_path': path, 'integrated_sha256': predecessor}
+            with self.subTest(path=path):
+                check(item)
+                forged = dict(item, integrated_sha256='0' * 64)
+                with self.assertRaises(ValueError):
+                    check(forged)
+                original_read = Path.read_bytes
+                def read(target):
+                    return original_read(target) + b' ' if target == ROOT / path else original_read(target)
+                with patch.object(Path, 'read_bytes', read), self.assertRaises(ValueError):
+                    check(item)
+
+
 class AssertionSafetyRefresh(unittest.TestCase):
     def setUp(self):
         coverage = json.loads((ROOT / 'research/community-batch932-audit/CONTENT-COVERAGE.json').read_bytes())
         self.items = [deepcopy(item) for row in coverage['pull_requests'].values()
                       for item in row['files'] if item.get('integrated_path') in {
-                          'scripts/run_isolated_tests.py', 'tests/test_isolated_test_runner.py'}]
+                          'scripts/run_isolated_tests.py', 'tests/test_isolated_test_runner.py',
+                          'research/data-corner-performance/README.md',
+                          'research/data-corner-performance/SOURCE.json',
+                          'research/data-corner-performance/replay.py',
+                          'research/data-corner-performance/test_replay.py'}]
 
     def test_exact_accepted_successors_pass(self):
-        self.assertEqual(len(self.items), 2)
+        self.assertEqual(len(self.items), 6)
         for item in self.items:
             checker.check_batch932_file(item)
 
