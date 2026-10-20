@@ -34,9 +34,15 @@ python3 -I -B research/central-factor-packed/verify.py
 Expected: `status` is `PASS_CENTRAL_FACTOR_PACKED`, scope is
 `complete_historical_audit`, `coefficients_checked` is `6760000`, and
 `receipt_sha256` is
-`ffae0f0a22863718e3134a924592dcf4b05e919223323ba536c587c592bfe6a1`.
-The printed duration varies. This receipt is byte-identical to the original
-full audit; the benchmark/result wrapper is a new, explicitly separate record.
+`2aabc7e3ed38a27902f88244b80bed579e8ec2158c6ad3253f1c654c79b299e0`.
+The printed duration varies. This receipt is byte-identical to the current
+`certificates/dyadic-central-factor.json`. That file differs from the
+package's original receipt
+`ffae0f0a22863718e3134a924592dcf4b05e919223323ba536c587c592bfe6a1`
+only in three embedded `source_sha256` entries
+(`scripts/exclusion_circuit.py`, `scripts/experiments/complex_centers.py`,
+`scripts/experiments/disjoint_tensor.py`). `BENCHMARK.json` and
+`VALIDATION.json` keep the pre-refresh measurements against `ffae0f0a`.
 
 ```sh
 python3 -I -B research/central-factor-packed/test_packed.py
@@ -123,8 +129,22 @@ fresh-process benchmark pairs for each scope.
 ## Pins, integration and limitations
 
 `SOURCES.json` pins 43 inherited source, test, proof, fixture and upstream files
-to the exact base, plus the adapter implementation. All inherited pins were
-compared with that base's Git blobs. It includes the original upstream commit
+plus the adapter implementation. The package base remains
+`47481c89fd30a43f8f882eb4b391e89c29273fd0`. On 2026-10-20 five live pins were
+refreshed to canonical main `bb4bccbf42844d2801487450727c2f63e10d1d0f`, because
+`admit_sources()` otherwise rejects before the audit and turns
+`.github/workflows/community-batch952.yml` red for every `research/r439-*`
+pull request:
+
+| Path | Why the bytes moved |
+|---|---|
+| `certificates/dyadic-central-factor.json` | Embedded source hashes below; no coefficient field changed |
+| `scripts/experiments/complex_centers.py` | #2194 packed `verify_factor` (`f0c58a2ca`) |
+| `scripts/experiments/disjoint_tensor.py` | #2001 `frame_data` unions (`3e917c5cc`) |
+| `scripts/exclusion_circuit.py` | #2001 embedding masks (`d7d8bfcb0`) |
+| `scripts/shared_point_circuit.py` | #2054 frame-support cache (`ff889ccd7`); not a certificate source |
+
+The other 38 file pins are unchanged. It includes the original upstream commit
 `adc7f1241b42e322a6451854ab7e4b4c146bf78a`. Source admission happens before
 imports; the replay also rejects an unlisted imported repository script.
 
