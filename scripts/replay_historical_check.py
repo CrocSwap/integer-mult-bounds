@@ -155,7 +155,9 @@ LEGACY_SHARED = {
     'path': 'scripts/partial_swap/shared.py', 'input_from_root': True,
     'input': 'research/partial-swap-digest/baseline.py',
     'sha256': '81e9af92cdf38243a540cdcff2062778e449467848d444da37a9553c12ca4c34',
-    'accepted_live_sha256': ['7290bd639600aecff11941d3faf95c9ce95589125cc6a7f7440fb86af7a0f17c'],
+    'accepted_live_sha256': ['7290bd639600aecff11941d3faf95c9ce95589125cc6a7f7440fb86af7a0f17c',
+                             # Reviewed hot-loop and byte-stable digest successor.
+                             '5a0646a50b9f3e8ea55168620a78e8853b0ab810517cefc8cfb8696aedee278a'],
 }
 CONFIG['skip-clones']['additional_inputs'] = [dict(LEGACY_SHARED)]
 CONFIG['skip-clones-tests']['additional_inputs'] = [dict(LEGACY_SHARED)]
@@ -178,7 +180,9 @@ CONFIG['legacy-producers']['additional_inputs'] = [{
     'field': 'files', 'path': 'certificates/partial-swap-network.json',
     'input': 'partial-swap-network.json',
     'sha256': 'f3c4be597b2f2136da4ae2cc80c7454f63c90aa01f84e5b8131cee4dd55de815',
-    'accepted_live_sha256': ['2b19ed45b6207647017f6ee9f87f41df484981822fe555d088e5c1185dc7c62a'],
+    'accepted_live_sha256': ['2b19ed45b6207647017f6ee9f87f41df484981822fe555d088e5c1185dc7c62a',
+                             # Certificate source digest refreshed; proof values unchanged.
+                             '4c0b9d37e1034b2076e30a70f8e514416298c462d9ee98bc87fe6556b14df786'],
 }]
 
 # Retain every original unittest command, isolating only frozen family tests.
@@ -236,7 +240,9 @@ CONFIG['tooling-ledger']['additional_inputs'].extend([{'manifest': 'research/com
   'accepted_live_sha256': [
       'ae5bcac684ce2188632f38dee8ed46ebdc9588f490401505aa1cac33c55d84db',
       # Tekalign's PR3139 appends deadline usage; replay still restores PR695 bytes.
-      'a3711fe12d560fac7726c530b9c8c622182f3d4f231a876c163616e49bd911bc']},
+      'a3711fe12d560fac7726c530b9c8c622182f3d4f231a876c163616e49bd911bc',
+      # Current #4359 CI navigation update, archive remains immutable.
+      '6c3e67d7765addf682bc40c75140bfa8e691579c6ead3ceeae275d63ab0b5628']},
  {'manifest': 'research/community-frontier890-audit/CONTENT-COVERAGE.json',
   'field': ['pull_requests', '853', 'files'],
   'path': 'scripts/verify_complex741_parallel.py',
