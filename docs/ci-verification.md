@@ -2,6 +2,18 @@
 
 ## Current selected-family replay
 
+Resolve the [selected record](../certificates/selected-result.json) before
+running a historical checkpoint. The current cold replay is
+`make frontier4359-verify`, using the
+[proof review](research/pr-intake-evidence/pr4359/PROOF-REVIEW.md),
+[validation](research/pr-intake-evidence/pr4359/VALIDATION.json) and
+[source manifest](../certificates/frontier4359-source.json).
+The [frontier4359 workflow](../.github/workflows/frontier4359.yml) provides
+hosted replay evidence. Metadata and source-pin checks are separate from
+operator replay and do not discharge the inherited theorem assumptions.
+
+## Historical frontier1094 replay
+
 Start with the [selected record](../certificates/selected-result.json). Its
 `reproduce`, `review`, `source_manifest` and `validation` fields identify the
 replay command, scoped assessment, source bindings and integration evidence.
