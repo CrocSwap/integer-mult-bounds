@@ -1,12 +1,14 @@
 # Current reviewed status
 
-Selected conditional κ: **0.0023 = 23/10000**, zxv’s #4359 productive-helper construction, using Jacob Alan Sussman’s mixed-target recursion and the credited cumulative native/outer lineage.
+Selected conditional κ: **0.0023** (= 23/10000), zxv’s #4359 productive-helper construction, using Jacob Alan Sussman’s mixed-target recursion and the credited cumulative native/outer lineage.
 
 [Selected record](../../certificates/selected-result.json) · [Proof review](pr-intake-evidence/pr4359/PROOF-REVIEW.md) · [Integration receipt](pr-intake-evidence/pr4359/INTEGRATION.json) · [Contributors](community-productive4359-contributors.md).
 
 Cold replay: `make frontier4359-verify`. The fresh 23-stage replay and 59 normalized artifacts pass; the changed interfaces have an AI-assisted proof review under retained analytic/native/fixed-tape hypotheses. Winning uniform templates are not materialized. This is not a complete formal or independent human verification. #4404 independently checks a narrower arithmetic/flow scope.
 
-## Historical selected status through #1094
+All sections below are a historical snapshot; the selected-result.json record above is authoritative.
+
+## Historical checkpoint through #1094
 
 Historical selected conditional κ: **0.001672660197076918**, Rohan Arun's #1094 on Jeremy Kothe's #1087 packing and the cumulative k8/slot/T16 construction. The bit supplier remains #589 on #555.
 

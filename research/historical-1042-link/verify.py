@@ -2,7 +2,8 @@
 """Separate the #1042 status link from the live selected record.
 
 The historical section states the #1042 kappa and links to the live record.
-The matching checkpoint is the selected record's previous_record field.
+The matching checkpoint is reached through the selected record's historical
+previous_record chain (currently via frontier1094).
 """
 
 import hashlib
@@ -16,6 +17,7 @@ STATUS = ROOT / "docs/research/current-status.md"
 MARKER = "PASS_HISTORICAL_1042_LINK kappas_differ=true no_new_kappa"
 HREF = "../../certificates/selected-result.json"
 CHECKPOINT = "certificates/checkpoints/frontier1042.json"
+INTERMEDIATE = "certificates/checkpoints/frontier1094.json"
 SHOWN = "0.001672188119205421"
 
 
@@ -43,6 +45,7 @@ def authenticate():
         "docs/research/current-status.md",
         "certificates/selected-result.json",
         "certificates/checkpoints/frontier1042.json",
+        "certificates/checkpoints/frontier1094.json",
     }
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
@@ -64,12 +67,15 @@ def evaluate():
     require(HREF in section, "the historical section lost the live-record link")
     require(SHOWN in section, "the historical kappa sentence moved")
     require(Fraction(SHOWN) == Fraction(old["kappa"]), "the checkpoint kappa left the printed decimal")
-    require(live["previous_record"] == CHECKPOINT, "the previous-record pointer moved")
+    require(live["previous_record"] == INTERMEDIATE, "the live previous-record pointer moved")
+    intermediate = json.loads((ROOT / INTERMEDIATE).read_text(encoding="utf-8"))
+    require(intermediate["previous_record"] == CHECKPOINT, "the checkpoint ancestry link moved")
     require(Fraction(live["kappa"]) != Fraction(old["kappa"]), "the live and historical kappas agree")
     require(text.index(HREF) < text.index("# Historical status through #1042"), "the live section lost its record link")
     return {
         "historical_href": HREF,
         "checkpoint": CHECKPOINT,
+        "intermediate_checkpoint": INTERMEDIATE,
         "historical_kappa": old["kappa"],
         "live_kappa": live["kappa"],
         "same_href": True,
