@@ -2,6 +2,36 @@
 
 ## Current selected-family replay
 
+The [selected record](../certificates/selected-result.json) selects zxv's
+#4359 productive-helper construction at conditional κ = 0.0023. Its public
+cold replay is `make frontier4359-verify`. The record binds the
+[proof review](research/pr-intake-evidence/pr4359/PROOF-REVIEW.md),
+[source manifest](../certificates/frontier4359-source.json),
+[validation receipt](research/pr-intake-evidence/pr4359/VALIDATION.json) and
+[integration receipt](research/pr-intake-evidence/pr4359/INTEGRATION.json).
+These pointers identify the selected evidence; newer pending reviews do not
+change the selected record or its reproduction command.
+
+The configured [frontier4359 workflow](../.github/workflows/frontier4359.yml)
+uses `ubuntu-latest` and Python 3.12. It runs
+`python3 -B scripts/verify_frontier4359.py --work "$RUNNER_TEMP/frontier4359"`
+in a fresh output directory and uploads the validation receipt and logs,
+including on failure. Selected-input path filters control push and
+pull-request runs; manual dispatch is also available.
+
+The integration receipt records a successful hosted 23-stage replay at
+`ae87507c0767c00f5a55ee9062c496191e978632`, with 59 normalized artifacts.
+That is source-specific evidence, not validation of every later head. Consult
+the [recorded run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/39659361390)
+and [workflow runs](https://github.com/CrocSwap/integer-mult-bounds/actions/workflows/frontier4359.yml)
+for the exact tested sources, inputs and logs. `make selected-record-check`
+checks metadata and source/proof hashes; generic workflow or planning tests do
+not substitute for the cold replay. The selected result retains its analytic,
+native, fixed-tape and other stated hypotheses; no complete formal or independent
+human verification of the multiplication theorem is claimed.
+
+## Historical selected-family replay through #1094
+
 Start with the [selected record](../certificates/selected-result.json). Its
 `reproduce`, `review`, `source_manifest` and `validation` fields identify the
 replay command, scoped assessment, source bindings and integration evidence.

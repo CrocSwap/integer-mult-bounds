@@ -1,6 +1,6 @@
 # Current reviewed status
 
-Selected conditional κ: **0.0023 = 23/10000**, zxv’s #4359 productive-helper construction, using Jacob Alan Sussman’s mixed-target recursion and the credited cumulative native/outer lineage.
+Selected conditional κ: **0.0023** = 23/10000, zxv’s #4359 productive-helper construction, using Jacob Alan Sussman’s mixed-target recursion and the credited cumulative native/outer lineage.
 
 [Selected record](../../certificates/selected-result.json) · [Proof review](pr-intake-evidence/pr4359/PROOF-REVIEW.md) · [Integration receipt](pr-intake-evidence/pr4359/INTEGRATION.json) · [Contributors](community-productive4359-contributors.md).
 
@@ -18,7 +18,12 @@ supports 0.00268647. Neither review alone changes the selected record or its
 cold-replay command above. #4483/#4507 compiler-size improvements remain a
 separate review; they are not premises of the #4470 verdict.
 
-## Historical selected status through #1094
+> **Below this point every section is a historical snapshot.** Inside them, “current,”
+> “selected,” “latest” and “next” refer to that snapshot's own checkpoint. The authoritative
+> record is [selected-result.json](../../certificates/selected-result.json), and live research
+> priorities are in [autoresearch.md](../../autoresearch.md).
+
+## Historical status through #1094
 
 Historical selected conditional κ: **0.001672660197076918**, Rohan Arun's #1094 on Jeremy Kothe's #1087 packing and the cumulative k8/slot/T16 construction. The bit supplier remains #589 on #555.
 
@@ -64,11 +69,6 @@ and supplier admission.
 | [efficient1700](community-efficient1700-review.md) | #2478, #2716–#2828 | 66 merged; 34 pending |
 | [efficient1800](community-efficient1800-review.md) | 42 new/revised submissions; 58 earlier follow-ups | 42 merged; 58 pending |
 | [efficient1900](community-efficient1900-review.md) | 44 new; four revised; 52 earlier follow-ups | 63 merged; 1 closed as superseded; 36 pending. |
-
-> **Below this point every section is a historical snapshot.** Inside them, “current,”
-> “selected,” “latest” and “next” refer to that snapshot's own checkpoint. The authoritative
-> record is [selected-result.json](../../certificates/selected-result.json), and live research
-> priorities are in [autoresearch.md](../../autoresearch.md).
 
 # Historical status through #1042
 

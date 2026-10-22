@@ -1,0 +1,26 @@
+name: Workflow validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install checksum-pinned actionlint
+        run: |
+          python3 scripts/install_actionlint.py --directory "$RUNNER_TEMP/actionlint"
+          echo "$RUNNER_TEMP/actionlint" >> "$GITHUB_PATH"
+      - name: Validate every workflow at the checked-out commit
+        run: python3 -B scripts/check_workflows.py --ref HEAD
+      - name: Test parser regression and exact-push-ref guard
+        run: python3 -B -m unittest discover -s tests -p test_workflow_validation.py -v

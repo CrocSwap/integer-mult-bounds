@@ -63,6 +63,11 @@ For a parameter improvement, supply exact rational choices, the full dependency
 argument, and an updated patch against the pinned source. Explain whether the
 change stays within the parameter ceiling or changes one of its hypotheses.
 
+Before publishing a branch, run the [workflow validation gate](docs/workflow-validation.md)
+against its exact committed tree. The guide includes an opt-in pre-push hook and
+a safe tooling-overlay procedure for branches with an intentionally frozen
+scientific base. Workflow lint does not substitute for a scientific replay.
+
 Keep `upstream/`, frozen source archives and pinned evidence unchanged. When
 changing generated artifacts, edit their generators and include the regenerated
 certificates and patches in the same change. Run the checks affected by your
