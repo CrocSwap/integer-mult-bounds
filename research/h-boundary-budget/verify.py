@@ -17,10 +17,13 @@ Checks, from pinned repository sources and with exact interval arithmetic:
    leaves exactly p roles of the form Q K Q with nonempty K. With the H surplus
    224p - 8(2p+1) of mixed_forest_search.verify, the direct bill 224p leaves
    -8(2p+1) for every p.
+6. Ports sharing a line: H112 pair reads live on orthogonal odd labels, so copies
+   are served as independent ports; tail gather 2 per port, net after it -h.
 
 Controls: a budget one above the certified value is rejected; a mutated q list
 with a duplicate is detected; a rank-8 check on a perturbed H fails; the p3
-keep-43 controller reproduces the probe's parity [0,1,0,1,1,0].
+keep-43 controller reproduces the probe's parity [0,1,0,1,1,0]; an even
+label is rejected; one merged port class needs only rank 8.
 Standard library only. Prepared by Matarener with Claude Code assistance.
 Apache-2.0.
 """
@@ -227,6 +230,59 @@ def controller_parity():
     return census
 
 
+def shared_lines():
+    """Section 6: ports that share a query line are served as independent copies.
+
+    The local identity is I = K + BA with the pair reads K supported on pairs of
+    orthogonal F2 labels. Every label is odd, so equal labels are non-orthogonal
+    and BA restricted to a class of copies is the identity. Checked on H112; the
+    gather bound for a doubled unit is then 2 requests per port, as for P112.
+    """
+    n = load(DEP/'direct-decoder/native_common.py', 'hbb_native_common')
+    reb = load(KR/'complex/rebuild_native.py', 'hbb_rebuild_native')
+    packet, _ = n.load_sources()
+    geo = reb.geometry(packet)
+    phases = json.loads((DEP/'direct-decoder/sources/DATA-PHASES.json').read_text())
+    qs = [r['q'] for r in phases['recipes']]
+    odd = lambda x: bin(x).count('1') & 1
+    J = geo['J']
+
+    def rule(labels):
+        return (all(odd(q) for q in labels) and
+                all(J[t].get(t, 0) == 0 for t in range(112)) and
+                not any(v and s != t and odd(labels[t] & labels[s]) for t in range(112) for s, v in J[t].items()))
+    need(rule(qs), 'H112: odd labels, pair reads K = J only on orthogonal label pairs, zero diagonal')
+    nonorth = sum(1 for t in range(112) for s in range(112) if s != t and odd(qs[t] & qs[s]))
+    need(nonorth == 6608, '6608 ordered non-orthogonal label pairs')
+    bad = qs[:]
+    bad[0] ^= 1
+    need(not rule(bad), 'an even label is rejected (control)')
+    m = [[Q(geo['H'][i].get(j, 0))-(i == j) for j in range(112)] for i in range(112)]
+
+    def gather(mat, classes):
+        cols = sum(rank([[mat[i][j] for j in c] for i in range(len(mat))]) for c in classes)
+        rows = sum(rank([mat[i] for i in c]) for c in classes)
+        return cols, rows
+    single = gather(m, [[p] for p in range(112)])
+    doubled = [[Q(0)]*224 for _ in range(224)]
+    for i in range(112):
+        for j in range(112):
+            doubled[i][j] = doubled[112+i][112+j] = m[i][j]
+    double = gather(doubled, [[p, 112+p] for p in range(112)])
+    need(single == (112, 112) and double == (224, 224), 'tail gather: P112 112+112, doubled unit 224+224')
+    merged = gather(m, [list(range(112))])
+    need(merged == (8, 8), 'merging all ports into one class would need only rank 8 (control)')
+    balance = {}
+    for p in range(1, 5):
+        for v, h in ((112, 8), (224, 16)):
+            net = 2*v*p-h*(2*p+1)-2*p*(v-h)
+            need(net == -h < 0, 'H branch net after the tail floor is -h')
+        balance[str(p)] = -8
+    return dict(odd_labels=True, nonorthogonal_label_pairs=nonorth,
+                tail_gather_P112=list(single), tail_gather_doubled=list(double),
+                net_after_tail_floor='2Vp - h(2p+1) - 2p(V-h) = -h')
+
+
 def main():
     result = dict(schema='h-boundary-budget/1', record_kappa=str(RECORD))
     signed, h = complex_profile()
@@ -236,6 +292,7 @@ def main():
     result['native_H112'] = native_h()
     result['query_lines'] = distinct_lines()
     result['controller_parity'] = controller_parity()
+    result['shared_lines'] = shared_lines()
     result['status'] = 'PASS_H_BOUNDARY_BUDGET_AND_SCOPED_DECODER_CLOSURES'
     result['new_kappa'] = False
     if len(sys.argv) > 2 and sys.argv[1] == '--out':

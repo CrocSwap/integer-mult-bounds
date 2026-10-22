@@ -108,10 +108,42 @@ p = 3). A direct repair costs 224 per bad role, so after it
 ```
 
 Each pair brings exactly as much rank credit as its own endpoint repair costs.
-Changing p or the idle mask cannot fund the direct boundary. Combined with
-section 4, a funded H branch needs a changed port geometry (shared query lines)
-or a changed pair structure of the controller. Both are new suppliers rather
-than repairs of this one.
+Changing p or the idle mask cannot fund the direct boundary. Section 6 shows
+that shared query lines do not help either.
+
+## 6. Shared query lines do not escape either bound
+
+Sections 4 and 5 left one escape: ports that share a query line. It closes as well.
+
+The local call realizes the identity `I = K + BA`. The pair reads `K` act only on
+pairs of ports whose F2 labels are orthogonal, and `BA` (rank `h`) is decoded
+through `h` centres (compare the source construction in
+`research/e8-direct-source/PROOF.md`). The verifier checks this on the native H112:
+all 112 labels `q_p` are odd, and `J` has zero diagonal and vanishes on all
+6,608 ordered non-orthogonal label pairs. A mutated even label is rejected.
+
+Since `q.q = 1`, two ports with the same label are non-orthogonal. So `K` is zero
+on any class of `m` copies, and `BA` restricted to that class is `I_m`. A free
+rotation `X_p +- X_p'` inside the class keeps it `I_m`. Two consequences follow.
+
+* `h` is at least the total multiplicity of any clique of non-orthogonal labels,
+  so `m` copies of E8 lines need `h >= 8m`. That is exactly the rank of `m`
+  independent copies of the unit.
+* On a copy class, `H - I` equals `-I_m` up to the `h` completion rows. So a gather
+  decoder needs at least `V - h` requests on input and `V - h` on output. Exactly:
+  P112 needs 112 + 112, and the doubled unit (224 ports, 112 lines) needs 224 + 224,
+  which is 2 per port in both cases. Merging all ports into one class would need
+  only 8 + 8 (control), so the bound really comes from the labels.
+
+For any unit with `V` ports, rank `h` and `p` pairs, the H surplus is
+`2Vp - h(2p+1)` and the tails cost at least `2p(V - h)`:
+
+```
+2Vp - h(2p+1) - 2p(V - h) = -h < 0.
+```
+
+The H branch is unfunded whatever the line layout, shared or not, for every
+local call of the form `I = K + BA`.
 
 ## Reproduce
 
@@ -126,26 +158,26 @@ at the repository root; on main that tree is vendored under
 `research/kappa-0023-productive-jobs/dependencies/kappa-next-regime`, and the
 verifier adds that path. It runs in about 3.5 minutes on Windows / CPython 3.12.
 Controls: a budget one above the certified value is certified negative, a
-perturbed `H - I` is rejected, a duplicated query line is detected, and the
-p3 keep-43 controller reproduces the probe parity.
+perturbed `H - I` is rejected, a duplicated query line is detected, the
+p3 keep-43 controller reproduces the probe parity, an even label is rejected,
+and a single merged class gives only rank 8.
 
 ## Open next questions
 
 The structured versions are in `TASK.json`.
 
-1. **A redesigned H local family.** Ports that share query lines, or an `H` whose
-   `H - I` touches few ports, would break the bound of section 4. This needs a
-   new H112 completion and native replay.
-2. **A new port geometry or pair structure.** Section 5 closes controllers
-   with fewer Q-conjugated roles for p <= 4 (each pair's repair costs exactly
-   its credit). Only a supplier whose ports share query lines, or whose
-   controller is not built from Q-gauged pairs, escapes both bounds. That is a
-   new complex supplier, not an H repair.
+1. **A local call outside `I = K + BA`.** Section 6 closes shared query lines
+   for every unit of this form. An escape needs a local identity whose pair
+   reads are not tied to label orthogonality.
+2. **A controller not built from Q-gauged pairs.** Section 5 closes controllers
+   with fewer Q-conjugated roles for p <= 4, since each pair's repair costs
+   exactly its credit. A different pair structure would be a new complex
+   supplier, not an H repair.
 
 ## Credit
 
 The H construction, the endpoint obstruction, the retained profiles and
 receipts are zxv's (PR4359, PR4431) together with their cited predecessors.
 This package adds the budget, the root table, the native rank/support and
-query-line counts, the gather argument and the controller parity census. Prepared by Matarener (Mark) with
+query-line counts, the gather argument, the controller parity census and the shared-line closure. Prepared by Matarener (Mark) with
 substantial Claude Code assistance. Apache-2.0. No independent human review.
