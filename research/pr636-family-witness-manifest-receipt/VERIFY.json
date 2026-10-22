@@ -5,17 +5,37 @@
   "requirements": [],
   "inputs": [
     "docs/research/pr-ledger.json",
-    "research/larger-gain/MANIFEST.json"
+    "research/larger-gain/MANIFEST.json",
+    "scripts/replay_historical_receipt.py",
+    "tests/test_research_historical_receipts.py"
   ],
   "commands": [
     {
       "argv": [
         "{python}",
         "-B",
-        "{package}/verify.py"
+        "scripts/replay_historical_receipt.py",
+        "--package",
+        "{package}"
+      ],
+      "timeout_seconds": 480,
+      "checks": "Historical-only replay: authenticate the exact frozen package and original source pins, run unchanged original commands and failure controls in an isolated Git snapshot, and require historical/live bytes unchanged; does not validate today's input bytes."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_research_historical_receipts.py",
+        "-v"
       ],
       "timeout_seconds": 120,
-      "checks": "Drift identity of the two committed larger-gain MANIFEST copies against their recorded digests and against the working tree's research/larger-gain/MANIFEST.json; per-PR pin verdicts and retention counts recomputed from the per-PR audit rows; every changed-path retention class re-derived against git ls-tree -r <base>; cross-PR shared-blob counts recomputed; one positive fixture of the classification rule; four failure controls (tampered digest, substituted manifest diff, omitted row, substituted class) that must each be rejected."
+      "checks": "Focused historical-adapter regression controls for wrong history/pins, path aliases, missing inputs, wrapper/code/evidence drift, isolation and unchanged-file gates; the generic live-input validator remains strict."
     }
   ]
 }

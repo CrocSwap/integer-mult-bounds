@@ -366,3 +366,57 @@ Tekalign, with substantial OpenAI Codex assistance. Apache-2.0. The exact
 HEAD/index fallback premise follows Arham-Tahir64's PR3102 sparse-reference work;
 this applies it to replay declarations. The original planner, canonical Git
 spelling, symlink and inventory-error controls retain their predecessor credit.
+
+## Historical source/credit receipt adapters
+
+Two source/credit receipts now register an explicit historical-only wrapper:
+`research/pr1-retention-receipt` and
+`research/pr636-family-witness-manifest-receipt`. Their original package bytes
+are frozen at `20ecf2891d80b5acf18d980b2164fb44ea7faa90`, with original input
+bases `d8e0f83f00191df62174b641e9fff055c357f641` and
+`1f7a934975e5eacaf83511c9ac870263bf095e05`, respectively. Later additions to
+CONTRIBUTORS.md and the ledger must not be rolled back to satisfy those old
+live-input pins.
+
+Their current SOURCES.json retains each original commit/blob/SHA256 pin as
+historical provenance. Current VERIFY.json and README.md explicitly describe
+the historical scope. The adapter permits only the exact reviewed transformation
+of those three files; current verifier, evidence and other package bytes must
+still equal the frozen original. This is a two-package policy, not a fallback
+for arbitrary stale live pins.
+
+```sh
+python3 -B scripts/replay_historical_receipt.py --package research/pr1-retention-receipt
+python3 -B scripts/replay_historical_receipt.py --package research/pr636-family-witness-manifest-receipt
+python3 -W error -B -m unittest discover -s tests -p 'test_research_historical_receipts.py' -v
+```
+
+CI must fetch full Git history (`fetch-depth: 0`). Required historical commit,
+tree and blob objects must be locally available; missing objects fail closed,
+and this adapter never fetches them. The adapter authenticates exact
+commit/path/blob identities and SHA256 pins, then copies only the original
+package, source bytes and required Git objects into a private temporary tree.
+It shares no Git object store, config, refs, hooks, worktree or alternate with
+the live repository. Replacement objects and inherited Git configuration cannot
+substitute history; legacy grafts, symlinks and path aliases are rejected.
+The unchanged generic validator and unchanged original commands run there,
+including the PR1 positive/twelve failure controls and PR636 positive/four
+failure controls. Original per-command timeouts and Python cache isolation
+remain in force. The temporary tree is removed after success or failure.
+
+Success requires final unchanged-file checks for original materialized files
+and live package/input bytes, and emits `PASS_HISTORICAL_RECEIPT_ONLY` with both
+commit IDs and `live_inputs_validated=false`. `--check-only` authenticates only
+metadata and pins, emitting `PASS_HISTORICAL_METADATA_ONLY`; it runs no verifier.
+Missing history, changed pins, unapproved wrapper/code/evidence changes or
+failed controls exit nonzero. This is not a sandbox against arbitrary untrusted
+code, an atomic snapshot of a changing checkout, a current-state validation,
+a new scientific acceptance or a PR closure decision.
+
+The current registered wrappers also run the focused regression suite and
+declare its file and the adapter as inputs. Their edits therefore invalidate
+these two consumers without changing the shared planner or workflows. All
+other packages retain normal live-input validation. The original manifests
+remain immutable in Git; running their original live contract against later
+input bytes still fails closed as before. Existing contributor credit,
+scientific evidence and selected-frontier obligations are unchanged.
