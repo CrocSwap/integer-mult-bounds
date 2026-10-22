@@ -90,6 +90,29 @@ algorithm. A construction that changes the local family, sends several ports'
 lines to a shared line before the request, or changes the controller is outside
 it.
 
+## 5. No controller of this family has fewer Q-conjugated roles
+
+The verifier enumerates the free noncommuting controller of
+`bit/pr589_h_global_probe.py` for p = 1..4 and every idle keep mask. It keeps
+those that diagonalize exactly with parity-preserving (Q-free) boundaries:
+2, 3, 8 and 20 controllers. **Every one has exactly p roles ending as `Q K Q`
+with nonempty K.** Each local call stamps its stage letter on both streams of
+its pair, so the odd (Q-carrying) stream always has a nonempty word. The
+p3 keep-43 controller reproduces the probe's parity `[0,1,0,1,1,0]`.
+
+The H surplus of `mixed_forest_search.verify` is `224p - 8(2p+1)` (616 for
+p = 3). A direct repair costs 224 per bad role, so after it
+
+```
+224p - 8(2p+1) - 224p = -8(2p+1) < 0      for every p.
+```
+
+Each pair brings exactly as much rank credit as its own endpoint repair costs.
+Changing p or the idle mask cannot fund the direct boundary. Combined with
+section 4, a funded H branch needs a changed port geometry (shared query lines)
+or a changed pair structure of the controller. Both are new suppliers rather
+than repairs of this one.
+
 ## Reproduce
 
 ```sh
@@ -103,7 +126,8 @@ at the repository root; on main that tree is vendored under
 `research/kappa-0023-productive-jobs/dependencies/kappa-next-regime`, and the
 verifier adds that path. It runs in about 3.5 minutes on Windows / CPython 3.12.
 Controls: a budget one above the certified value is certified negative, a
-perturbed `H - I` is rejected, and a duplicated query line is detected.
+perturbed `H - I` is rejected, a duplicated query line is detected, and the
+p3 keep-43 controller reproduces the probe parity.
 
 ## Open next questions
 
@@ -112,16 +136,16 @@ The structured versions are in `TASK.json`.
 1. **A redesigned H local family.** Ports that share query lines, or an `H` whose
    `H - I` touches few ports, would break the bound of section 4. This needs a
    new H112 completion and native replay.
-2. **A controller with fewer Q-conjugated roles.** In the gauge
-   `S = diag(I, Q)` each odd stream ends as `Q K Q`, which gives three bad roles
-   for p3. One bad role (224) would fit the budget with a ceiling near 0.0040.
-   The first step is to rerun the existing Laurent controller search while
-   recording each role's Q parity.
+2. **A new port geometry or pair structure.** Section 5 closes controllers
+   with fewer Q-conjugated roles for p <= 4 (each pair's repair costs exactly
+   its credit). Only a supplier whose ports share query lines, or whose
+   controller is not built from Q-gauged pairs, escapes both bounds. That is a
+   new complex supplier, not an H repair.
 
 ## Credit
 
 The H construction, the endpoint obstruction, the retained profiles and
 receipts are zxv's (PR4359, PR4431) together with their cited predecessors.
 This package adds the budget, the root table, the native rank/support and
-query-line counts, and the gather argument. Prepared by Matarener (Mark) with
+query-line counts, the gather argument and the controller parity census. Prepared by Matarener (Mark) with
 substantial Claude Code assistance. Apache-2.0. No independent human review.

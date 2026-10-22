@@ -12,9 +12,15 @@ Checks, from pinned repository sources and with exact interval arithmetic:
    nonzero (no port can be skipped).
 4. All 112 complex port query lines q and all 111 BIT port lines are distinct
    (no two ports' rank-one queries can share one call).
+5. Every free noncommuting p-pair controller of the retained H probe, for p = 1..4
+   and every idle keep mask, that diagonalizes with gauge-compatible boundaries
+   leaves exactly p roles of the form Q K Q with nonempty K. With the H surplus
+   224p - 8(2p+1) of mixed_forest_search.verify, the direct bill 224p leaves
+   -8(2p+1) for every p.
 
 Controls: a budget one above the certified value is rejected; a mutated q list
-with a duplicate is detected; a rank-8 check on a perturbed H fails.
+with a duplicate is detected; a rank-8 check on a perturbed H fails; the p3
+keep-43 controller reproduces the probe's parity [0,1,0,1,1,0].
 Standard library only. Prepared by Matarener with Claude Code assistance.
 Apache-2.0.
 """
@@ -190,6 +196,37 @@ def distinct_lines():
     return dict(complex_ports=112, complex_distinct_q=112, bit_ports=111, bit_distinct_lines=111)
 
 
+def controller_parity():
+    import pr589_h_global_probe as P
+    census = {}
+    for p in range(1, 5):
+        compatible, bad_counts = 0, set()
+        for keep in range(1 << (3*(p-1)) if p > 1 else 2):
+            try:
+                _, factor, _, _ = P.controller(p, keep)
+            except ValueError:  # no exact noncommuting diagonalization
+                continue
+            n, left = 2*p, factor['left_rows']
+            parities = [{j % 2 for j in range(n) if left[i] >> j & 1} for i in range(n)]
+            if any(len(x) != 1 for x in parities):
+                continue
+            parity = [x.pop() for x in parities]
+            words = factor['diagonal_monomials']
+            bad = sum(1 for i in range(n) if parity[i] == 0 and len(words[i]))
+            compatible += 1
+            bad_counts.add(bad)
+            if (p, keep) == (3, 43):
+                need(parity == [0, 1, 0, 1, 1, 0], 'p3 keep43 reproduces the probe parity (control)')
+        need(compatible > 0 and bad_counts == {p}, f'p={p}: every compatible controller has exactly p bad roles')
+        margin = 224*p-8*(2*p+1)
+        need(margin-224*p == -8*(2*p+1) < 0, 'direct bill exceeds the H surplus')
+        census[str(p)] = dict(gauge_compatible_controllers=compatible, bad_roles=p,
+                              h_surplus=margin, after_direct=margin-224*p)
+    need([census[k]['gauge_compatible_controllers'] for k in '1234'] == [2, 3, 8, 20],
+         'controller census 2, 3, 8, 20')
+    return census
+
+
 def main():
     result = dict(schema='h-boundary-budget/1', record_kappa=str(RECORD))
     signed, h = complex_profile()
@@ -198,6 +235,7 @@ def main():
     result['bit'] = side('bit', signed, h)
     result['native_H112'] = native_h()
     result['query_lines'] = distinct_lines()
+    result['controller_parity'] = controller_parity()
     result['status'] = 'PASS_H_BOUNDARY_BUDGET_AND_SCOPED_DECODER_CLOSURES'
     result['new_kappa'] = False
     if len(sys.argv) > 2 and sys.argv[1] == '--out':
