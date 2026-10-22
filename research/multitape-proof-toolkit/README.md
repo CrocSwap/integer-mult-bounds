@@ -1,82 +1,94 @@
-# Finite multitape controller and proof toolkit
+# Verified multitape callers, stack anchors and multiplication output
 
-A self-contained Mathlib-based Lean contribution for actual fixed finite
-multitape executions, exact costs, dirty parking, compiler simulation and
-canonical binary output. This extends the preceding generic toolkit in PR1641.
-All imports are bundled modules, Mathlib or Lean; no personal Lean library is
-needed. The selected supplier profiles and kappa are unchanged.
+Self-contained Lean proofs for contributors building physical multiplication
+algorithms. The fixed finite machines, actual runs, halting, tape contents, head
+positions and physical charges are proved. Imports are Mathlib, Lean and bundled
+public modules; no personal Lean installation is required.
 
-`Absolute.ParkingController.boundary_machine_correct` constructs one fixed
-five-tape, four-symbol, 90-state controller. For EVERY active bit list x, inactive
-bit list y, absolute parking head h and arbitrary ancestor cell function, it
-pushes y, moves x, executes a real bit-flip child, moves the result back, pops y,
-and genuinely halts in exactly **6|x|+5|y|+18** physical transitions. The complete
-inactive stream, parking tape and all heads return literally; IO/temp return to
-marked-empty. Empty and unequal-length streams are included. It starts with the
-explicit marked-stream convention (separator at −1); MarkerLifecycle separately
-proves real charged marker installation/removal in two steps per operation.
+The seven new modules extend PR1641 with four reusable links:
 
-`ParkingController.wrapper_correct` lets contributors substitute any ACTUAL
-verified child execution, including a length-changing one. Input x, output z,
-parked y and child time t give exact cost **2|x|+2|z|+5|y|+16+t**. Its premises
-include the full physical child entry/return bank and true halt; arithmetic or
-recursive correctness is not assumed inside the closed bit-flip theorem.
+- `Absolute.TapeEmbedding` places any fixed machine in a larger finite tape bank
+  without changing its step count, preserving arbitrary extra tapes at every
+  prefix. `Absolute.GenericParkingController.wrapper_correct` permits children
+  to use extra work tapes and return an explicit changed workspace; its exact
+  cost is `2|x| + 2|z| + 5|y| + 16 + t` for actual child time `t`.
+- `Absolute.CleanBoundary.machine_correct` supplies actual marker installation,
+  closed bit-flip call and removal. Its exact cost is `6|x| + 5|y| + 24`, including
+  both additional handoffs. IO and temporary tapes are fully blank at entry and
+  return; the inactive stream and arbitrary parking bank are restored literally.
+  `Absolute.GenericParkingController.clean_machine_correct` embeds this in any larger
+  finite bank with dirty spectators. The parking bank retains its existing
+  boundary separator; operand/IO/temp buffers are unmarked.
+- `TM2Compiler.Anchored.anchored_compile_run` strengthens compilation with fixed
+  stack bottom anchors: every final head equals `anchor - final stack length`.
+  It constructs the actual run at the existing overhead and preserves exact
+  cells, including the real peek/pop scan phases. Stack lengths are proof data,
+  never unbounded control registers or free head resets.
+- `Absolute.StackOriginSerializer.serialize_correct` implements a five-state,
+  three-symbol table. A padded LSB compiler stack at any head `h` becomes an MSB
+  word starting at destination origin zero in exactly `3m + 4` steps. The source
+  is fully erased, its head returns to `h`, destination head returns to zero,
+  padded zeros are retained and dirty spectator tapes are unchanged.
 
-ParkFootprints proves every actual push/pop prefix stays at or above the
-appropriate parking/stream marker and preserves the entire old ancestor prefix.
-Completed routines have actual finite FootprintedRuns with the same exact cost.
-MarkedStreamFootprints supplies analogous real-copy/flip bounds and idle-tape
-facts. Arbitrary dirty ancestors do not add runtime.
+`BinaryMultiplicationOriginABI.quadratic_origin_product` closes a concrete
+arithmetic example. One fixed six-tape machine accepts two length-`n` LSB stack
+operands at head zero (blank cell 0, operand bits in cells 1..n), with four
+globally blank work tapes. For every
+`a,b < 2^n`, it actually halts with the exact padded `2n` MSB product at origin
+zero on `sumReverse`, erases the accumulator and takes at most
+`280n² + 314n + 117 <= 400(n+1)²` physical transitions. Input loading, output
+conversion and the handoff are charged. Width zero is included, with a proved
+fully blank zero-output endpoint. The nonzero arithmetic endpoint retains its
+explicit residual multiplicand and head positions; complete work-tape cleanup
+and serialized operand input are separate interfaces.
 
-`OutputNormalization.compiled_fixedWidth` is an actual two-stack finite TM2
-program compiled to real multitape transitions. From the actual MSB-first list
-`(fixedBits w n).reverse`, with n<2^w, it empties the source and emits canonical
-`Nat.bits` before any existing output suffix in at most **10(w+1)** physical
-transitions. The source takes exactly w+1 macrosteps, including EOF. Pure binary
-lemmas are extracted from our Problem1.8 proof and independently checked using
-only Mathlib. Upstream already has normalization; this supplies lightweight
-interoperability with this toolkit, not new normalization mathematics. An
-origin-anchored upstream buffer adapter or LSB-to-MSB reversal is additional work.
+The release retains the preceding compiler, heterogeneous alphabet, dirty-frame,
+locality, exact trace, scheduler, footprint, canonical-output and asymptotic
+proofs. It bundles the connected Problem1.8 arithmetic dependency closure under
+public module names, preserving the proofs and source attribution.
 
-The retained `VerifiedPipeline.compile_completed_frame` turns actual halted
-fixed heterogeneous TM2 executions into absolute-coordinate multitape runs with
-charged bounded overhead and same-cost finite-frame replay. API.md maps the
-compiler, frame, locality, trace, scheduler and asymptotic interfaces.
+This supplies reusable sufficient execution theorems and a verified quadratic
+output ABI. Numerical supplier profiles and kappa are unchanged. The arithmetic
+example's Option-Bool stack ABI and the caller's marked four-symbol IO ABI require
+an actual input/alphabet/cleanup bridge before the example is a caller child.
+The package does not assume that bridge or a recursive multiplication oracle.
+Upstream already has serialization and output cleanup; this is direct compiler
+ABI interoperability, not a claim of new serialization mathematics.
 
 ## Verification
 
 Lean 4.34.1 and Mathlib d13f23b723b8a846827a245b89c10fc7d3f11612 are pinned in
-lean/lean-toolchain and lean/lake-manifest.json. With that separately installed
-environment, run from this package:
+`lean/lean-toolchain` and `lean/lake-manifest.json`. From this package:
 
 ```sh
 python3 -I -B verify.py
-python3 -I -B replay.py --out /tmp/fresh-toolkit-check --cache-project /path/to/pinned/cache --lean /path/to/lean
+python3 -I -B replay.py --out /absolute/new/check --cache-project /path/to/pinned/cache --lean /path/to/lean
 ```
 
-The first command verifies immutable source hashes, finite controls and report
-rejection controls; it does not run Lean. The second rebuilds EVERY module into
-a new external directory and audits ALL declarations by their defining module,
-including private/global/generated helpers. Only propext, Classical.choice and
-Quot.sound are allowed. Real Lean fixtures test private/global coverage and
-reject unused private axioms, public axioms and unproved private theorems. It
-also checks exact declaration inventory against expected/AXIOMS.json. The cache
-supplies only pinned Mathlib dependency libraries; no existing toolkit artifact
-is imported by the fresh build. Outputs must stay outside the package.
+The first command checks immutable sources, finite operational controls and
+corrupted-report rejection; it does not run Lean. The second rebuilds every
+bundled module into a fresh external directory and audits all declarations by
+their defining module, including private, global and generated helpers. Only
+`propext`, `Classical.choice` and `Quot.sound` are allowed; package axioms are
+rejected even when unused. Real Lean negative fixtures test these boundaries.
+The dependency cache supplies pinned Mathlib/Lean libraries only; no existing
+toolkit or personal proof artifacts can satisfy the fresh build.
 
-VALIDATION.json binds the final proof/auditor sources and independent audit.
-MANIFEST.json hashes every shipped source and document; an external upload
-receipt separately binds that complete manifest. Finite simulations support
-interface review; universal proof evidence is the Lean kernel/axiom audit.
-Hosted CI and independent human review are not claimed. ci/formal.yml is an
-optional dedicated workflow recipe; generic VERIFY.json runs only Python checks.
+`VALIDATION.json` binds the proof sources and checks. `MANIFEST.json` binds every
+shipped file. Supporting finite table simulations include empty and unequal
+words, negative heads, arbitrary parking backgrounds, full cell restoration and
+a corrupt marker-removal rejection. Universal evidence is the fresh Lean check
+and complete axiom audit, rather than these finite controls. Hosted CI and human
+review are separate. `ci/formal.yml` supplies an optional formal workflow;
+generic `VERIFY.json` runs Python only.
+
+`API.md` gives theorem interfaces; `PROOF.md` explains assembly and costs;
+`PORTING.json`, `REUSE.json`, `NOTICE.md` and `FRONTIER.json` record source reuse,
+attribution and bounded current PR review. No platypii proof source is copied.
 
 ## Open next questions
 
-1. Connect an arithmetic child using its actual physical Runs/Halts contract.
-2. Implement and charge the upstream origin-anchored buffer-to-stack adapter.
-3. Assemble on-tape recursive control, physical row routing and the recurrence.
-
-The supplied theorems are sufficient and universal at their stated interfaces;
-the package does not assert the complete fast multiplication theorem.
-See PROOF.md, API.md, FRONTIER.md and NOTICE.md for scope and attribution.
+The exact follow-ups in `TASK.json` are physical serialized-input/alphabet and
+complete arithmetic-cleanup bridges, followed by on-tape dynamic recursion and
+row routing. Start with the supplied anchored compiler, actual serializer and
+literal arbitrary-bank caller contracts; charge each new transition.
