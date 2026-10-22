@@ -1,4 +1,4 @@
-# Conditional kappa = 0.0034 (BIT-limited, +12.58%): complex supplier to 0.012091850 by an ambient quotient
+# Conditional kappa = 0.0034 (BIT-limited, +12.58%): complex supplier to 0.011417749 by an ambient quotient
 
 **Scoped finite construction with exact replay evidence. Not a multiplication theorem.**
 
@@ -33,15 +33,15 @@ supplier stops being the binding side and leaves 3.6x of headroom.
 | frames | 1,224 | **701** (ambient dim 9, block 8) |
 | main widths | `{8: 224}` | **`{7: 112, 8: 112}`** |
 | main rank mass | 1,792 | **1,680** |
-| helper rank mass | 3,471 | **3,090** |
-| paid profile | `{1:2237, 2:388, 3:494, 4:147, 5:36, 8:8}` | `{1:2034, 2:382, 3:412, 4:139, 5:36, 8:8}` |
+| helper rank mass | 3,471 | **3,406** |
+| paid profile | `{1:2237, 2:388, 3:494, 4:147, 5:36, 8:8}` | `{1:2220, 2:382, 3:412, 4:139, 5:62, 8:8}` |
 | local deficit | 1,856 | **1,744** |
 | rank surplus | 752 | **2,768** |
-| **complex supplier kappa** | **0.003020165977** | **0.012091850234** |
+| **complex supplier kappa** | **0.003020165977** | **0.011417749407** |
 | **outer theorem kappa** | **0.00302015** | **0.0034 (BIT cap, +12.58%)** |
 
-`+0.009071684`, **+300.4%** on the complex supplier. Both screen constraints
-hold at the new kappa (`alpha slack 1.1e-16`, `gamma slack 0.0054`).
+`+0.008397583`, **+278.1%** on the complex supplier. Both screen constraints
+hold at the new kappa (`alpha slack 1.1e-16`, `gamma slack 0.0132`).
 
 ## Why the quotient is legitimate
 
@@ -85,7 +85,9 @@ only those artifacts and the shipped evaluators; it does not import the builder.
 | forward and backward paid profiles identical | pass |
 | emitted word reproduces the declared complex kappa | 0.003020165977 |
 | ambient dim 9 = 1 + block 8 | asserted |
-| quotient complex kappa strictly improves the screen | 0.012091850234 |
+| frame 1 is the full ambient | asserted |
+| shipped `embedded_cache_roles` | accepted (213 full-ended) |
+| quotient complex kappa strictly improves the screen | 0.011417749407 |
 
 ## Reproduce
 

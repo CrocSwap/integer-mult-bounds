@@ -191,29 +191,70 @@ def quotient(base_word, base_programs):
     return word, programs, remap
 
 
-def pad_ambient(word):
-    """Spend the ninth axis on one helper so the word occupies F2^9 fully.
+def repad_helpers(word, target=213):
+    """Restore the shipped contract's count of cold full-ended helpers.
 
-    The quotient leaves one ambient direction unused (the union of the frame
-    spans is dim 8).  The tensor block is `ambient - 1`, so a word that only
-    spans 8 dimensions invites the reading that its block is 7.  Extending one
-    helper's final frame by the ninth axis costs that helper one rank and one
-    paid rank, leaving the deficit unchanged, and makes the word occupy all nine
-    dimensions unambiguously.
+    `native_extensions.embedded_cache_roles` requires exactly 213 helpers with
+    start 0 and final 1, where frame 1 is the full ambient.  Quotienting collapses
+    every full-ambient frame onto F2^8, so the count falls.  Extending a helper's
+    final frame by the ninth axis restores it, and costs that helper one rank in
+    the paid profile and one in the helper profile, leaving the deficit unchanged.
     """
     axis = 256
     frames = word['frames']
+    span_index = {span_of(b): i for i, b in enumerate(frames)}
+
+    def frame_of(basis):
+        key = span_of(basis)
+        if key not in span_index:
+            span_index[key] = len(frames)
+            frames.append(basis)
+        return span_index[key]
+
+    full = [i for i, b in enumerate(frames) if len(b) == 9]
+    full_frame = frame_of(frames[full[0]] if full
+                          else [256, 128, 64, 32, 16, 8, 4, 2, 1])
+    count = 0
+    repadded = 0
     for role in range(224, 632):
-        final = word['final'][role]
-        if axis in span_of(frames[final]):
+        if word['start'][role] != 0:
             continue
-        new = dedupe(frames[final]+[axis])
-        if len(new) != len(frames[final])+1:
+        if len(frames[word['final'][role]]) == 9:
+            count += 1
             continue
-        frames.append(new)
-        word['final'][role] = len(frames)-1
-        return role
-    raise ValueError('no helper could absorb the ninth axis')
+        if count+repadded >= target:
+            break
+        word['final'][role] = full_frame
+        repadded += 1
+    need(count+repadded == target, 'could not reach %d full-ended helpers' % target)
+    return repadded, full_frame
+
+
+def renumber_full_ambient(word, programs, full_frame):
+    """Frame 1 must be the full ambient: the shipped contract tests `final == 1`."""
+    frames = word['frames']
+    order = list(range(len(frames)))
+    order[1], order[full_frame] = order[full_frame], order[1]
+    remap = {old: new for new, old in enumerate(order)}
+    word['frames'] = [frames[i] for i in order]
+    word['start'] = [remap[x] for x in word['start']]
+    word['final'] = [remap[x] for x in word['final']]
+    out = {}
+    for direction, program in programs.items():
+        rewritten = []
+        for event in program:
+            e = list(event)
+            if e[0] == 'scalar':
+                e[2] = remap[e[2]]
+            elif e[0] in ('warp', 'climb'):
+                e[3] = remap[e[3]]
+                e[4] = remap[e[4]]
+            elif e[0] == 'center':
+                e[2] = remap[e[2]]
+                e[3] = remap[e[3]]
+            rewritten.append(e)
+        out[direction] = rewritten
+    return out
 
 
 def write_gzip(path, payload):
@@ -227,12 +268,16 @@ def main():
     patch = F.read(JOINT/'PATCH.json')
     base_word, base_programs, _, _, _ = construct(patch, return_raw=True)
     word, programs, remap = quotient(base_word, base_programs)
-    padded = pad_ambient(word)
+    repadded, full_frame = repad_helpers(word)
+    programs = renumber_full_ambient(word, programs, full_frame)
     ranks = [len(b) for b in word['frames']]
     union = set()
     for basis in word['frames']:
         union |= span_of(basis)
-    print('padded helper %d ; ambient dim %d' % (padded, len(union).bit_length()-1))
+    full_ended = sum(1 for r in range(224, 632)
+                     if word['start'][r] == 0 and word['final'][r] == 1)
+    print('repadded %d helpers ; full-ended %d ; ambient dim %d' % (
+        repadded, full_ended, len(union).bit_length()-1))
     main = {r: ranks[word['final'][r]]-ranks[word['start'][r]] for r in range(224)}
     helper = {r: ranks[word['final'][r]]-ranks[word['start'][r]] for r in range(224, 632)}
     print('frames %d -> %d ; max vector %d ; max frame dim %d' % (
@@ -246,7 +291,8 @@ def main():
 
     artifact = {'frames': word['frames'],
                 'ambient_dim': len(union).bit_length()-1,
-                'padded_helper': padded,
+                'repadded_helpers': repadded,
+                'full_ended_helpers': full_ended,
                 'start': list(word['start']),
                 'final': list(word['final']),
                 'kernel_vector': KERNEL,
