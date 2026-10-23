@@ -1,5 +1,7 @@
 # Faster emitted local replay, seed 90
 
+After `research/emitted-local-integer-production/`, the pairwise checker bytes live in [`baseline.py`](baseline.py); production `hpe_audit_local.py` ships the integer-row rewrite.
+
 An opt-in port accelerates the complete emitted local audit used in the selected PR1094 lineage, preserving both full orientations and all 25 inherited negative controls. It combines shared-denominator sparse integer rows with independent JSON mutation-fixture copies. These techniques are credited prior work: this package applies them to the distinct `hpe_audit_local.py` workload, leaving selected sources and commands unchanged.
 
 Three alternating fresh-process pairs on Windows/CPython 3.14.5 measured a **2.33x median total process speedup** (2.41x inside the complete audit, 2.46x audit CPU). The full-audit paired wall ratios were 2.409, 2.393 and 2.440. Each timed run includes both orientations, all 25 mutations, input reads and output serialization; archive preparation is excluded. These are local measurements, not a general speed guarantee.

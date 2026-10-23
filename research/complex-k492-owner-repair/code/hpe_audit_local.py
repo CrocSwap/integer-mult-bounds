@@ -5,6 +5,65 @@
 import copy,gzip,hashlib,json,sys
 from collections import Counter
 from fractions import Fraction as Q
+
+# Production integer-row acceleration from research/emitted-local-integer-replay-seed90.
+# Identical receipts to pairwise Fraction-dict rows; see research/emitted-local-integer-production/.
+class Row:
+    """Sparse integer numerators divided by 2**exponent."""
+
+    def __init__(self, values=None):
+        self.values = {}
+        self.exponent = 0
+        if values:
+            self.values = {k: int(v) for k, v in values.items()}
+            if any((Q(v).denominator != 1 for v in values.values())):
+                raise ValueError('initial Row must be integral')
+
+    def clone(self):
+        result = Row()
+        result.values = self.values.copy()
+        result.exponent = self.exponent
+        return result
+
+    def scale(self, q):
+        a, b = (q.numerator, q.denominator)
+        if b & b - 1:
+            raise ValueError('non-dyadic row scale')
+        result = self.clone()
+        result.exponent += b.bit_length() - 1
+        result.values = {k: a * v for k, v in self.values.items()}
+        return result
+
+    def add_scaled(self, other, q):
+        a, b = (q.numerator, q.denominator)
+        if b & b - 1:
+            raise ValueError('non-dyadic row addition')
+        source_exp = other.exponent + b.bit_length() - 1
+        exponent = max(self.exponent, source_exp)
+        left_shift = exponent - self.exponent
+        right_shift = exponent - source_exp
+        if left_shift:
+            self.values = {k: v << left_shift for k, v in self.values.items()}
+        for k, v in other.values.items():
+            total = self.values.get(k, 0) + (a * v << right_shift)
+            if total:
+                self.values[k] = total
+            else:
+                self.values.pop(k, None)
+        self.exponent = exponent
+
+    def __bool__(self):
+        return bool(self.values)
+
+    def __eq__(self, other):
+        if isinstance(other, Row):
+            exponent = max(self.exponent, other.exponent)
+            return {k: v << exponent - self.exponent for k, v in self.values.items()} == {k: v << exponent - other.exponent for k, v in other.values.items()}
+        if isinstance(other, dict):
+            if set(self.values) != set(other):
+                return False
+            return all((v * Q(other[k]).denominator == Q(other[k]).numerator * (1 << self.exponent) for k, v in self.values.items()))
+        return NotImplemented
 from pathlib import Path
 OUT=Path(sys.argv[1])
 c=json.load(gzip.open(OUT/'CANONICAL-WORD.json.gz'))
@@ -25,7 +84,7 @@ assert all(len(frames[c['final'][r]])<h for r in hpe)
 # COLD-HPE: cold helpers (start frame 0) ending at U carry the (0, U) wrappers too; without cold ends wrapped == entering
 cold=sorted(hpe-set(entering));wrapped=sorted(set(entering)|hpe);plain={r for r in range(n) if r not in set(wrapped)}
 def local(events,back):
-    rows={('L',r):{r:Q(1)} for r in range(n)}
+    rows={('L',r):Row({r:1}) for r in range(n)}
     norm={('L',r):Q(1) for r in range(n)};prefix=Q(1);cur=c['start'].copy();private={}
     hist=Counter();phases=[];entry=[];exit=[];centers=[];matrix_hash=hashlib.sha256();chain={};wrappers=[]
     wset=set(wrapped);pre_seen=set();post_seen=set()   # WRAPPER ORDER (Lemma A): R^-1 precedes, L^-1 follows, every scalar touching a wrapped helper
@@ -76,12 +135,12 @@ def local(events,back):
                     else:
                         if r==target and r not in private:private[r]=f
                         assert private[r]==f
-            if op=='clear':rows[target]={};norm[target]=Q(0)
-            elif op=='copy':rows[target]=dict(rows[source]);norm[target]=norm[source]
+            if op=='clear':rows[target]=Row();norm[target]=Q(0)
+            elif op=='copy':rows[target]=rows[source].clone();norm[target]=norm[source]
             elif op=='scale':
                 q=Q(e[2],e[3]);a,b=abs(q.numerator),q.denominator
                 assert a&(a-1)==0 and b&(b-1)==0
-                rows[target]={j:q*x for j,x in rows[target].items()};norm[target]*=abs(q)
+                rows[target]=rows[target].scale(q);norm[target]*=abs(q)
             else:
                 q=Q(e[3],e[4]);a,b=abs(q.numerator),q.denominator
                 assert source!=target and b&(b-1)==0
@@ -91,11 +150,8 @@ def local(events,back):
                 assert Q(w,b)*(1 if q>0 else -1)==q
                 prefix=max(prefix,Q(a)*norm[source])
                 norm[target]=norm.get(target,Q(0))+abs(q)*norm[source]
-                row=rows.setdefault(target,{})
-                for j,x in list(rows[source].items()):
-                    z=row.get(j,Q(0))+q*x
-                    if z:row[j]=z
-                    else:row.pop(j,None)
+                row=rows.setdefault(target,Row())
+                row.add_scaled(rows[source],q)
             prefix=max(prefix,norm[target])
         else:raise AssertionError(tag)
     assert phases==allowed and set(centers)==set(range(len(c['centers']))) and not private
@@ -122,6 +178,7 @@ for name in ('forward','backward'):
     assert dict(profiles[name])=={int(r):z for r,z in c['local_profile'].items()}
     print('independent emitted replay PASS',name,flush=True)
 controls=[]
+_encoded_program=json.dumps(ir['local_programs']['forward'])
 for name,mut in [
     ('wrong_scale',lambda es:next(e for e in es if e[0]=='scalar' and e[1][0]=='scale')[1].__setitem__(2,3)),
     ('missing_center',lambda es:es.pop(next(i for i,e in enumerate(es) if e[0]=='center'))),
@@ -155,7 +212,7 @@ for name,mut in [
     ('cold_hpe_post_wrapper_wrong_terminal_frame',lambda es:next(e for e in es if e[0]=='residual_adapter' and e[1]=='post' and e[2]==cold[0]).__setitem__(4,1)),
     ('cold_hpe_premix_gate_before_pre_wrapper',lambda es:(lambda ev:es.insert(next(i for i,e in enumerate(es) if e[0]=='residual_adapter' and e[1]=='pre' and e[2]==cold[0]),ev))(es.pop(next(i for i,e in enumerate(es) if e[0]=='scalar' and (('L',cold[0]) in [tuple(e[1][1])]+([tuple(e[1][2])] if e[1][0] in ('add','copy') else []))))) ),
 ] if cold else []):
-    es=copy.deepcopy(ir['local_programs']['forward']);mut(es)
+    es=json.loads(_encoded_program);mut(es)
     try:local(es,False)
     except (AssertionError,KeyError):controls.append(name)
     else:raise AssertionError('mutation accepted: '+name)
