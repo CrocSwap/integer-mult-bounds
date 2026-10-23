@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Differential check: fast exact HPE audit versus PR635's pinned reference.
+"""Differential check: fast exact HPE audit versus the vendored pairwise PR635 baseline.
 
 Inputs are read from the committed selected PR1042 replay archive. For each of
 the five words whose layer-end controls the selected chain runs (p6n, promo,
@@ -32,7 +32,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 ARCHIVE = ROOT / 'research/community-frontier1042-audit/selected-replay.tar.gz'
-REFERENCE = ROOT / 'research/complex-sw4-frame8/vendor/pr635/research/complex-571-cold14-st2/code/hpe_audit_and_transport.py'
+REFERENCE = HERE / 'baseline.py'  # pairwise-era PR635 audit (vendored; production path ships integer rows)
 ROUTING = ROOT / ('research/complex-k492-owner-repair/vendor/multicold/vendor/pr558/vendor/pr552/'
                   'complex-local/inputs/phase-baseline/CANONICAL-WORD.json.gz')
 PINS = {

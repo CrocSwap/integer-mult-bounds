@@ -1,5 +1,9 @@
 # Fast exact HPE transport audit for the layer-end controls
 
+
+**Production wiring:** `research/hpe-audit-integer-production/` promotes this adapter into the PR635 production path. Pairwise bytes are retained here as `baseline.py` for differential checks.
+
+
 **Status: tooling improvement (verification engineering). No new κ. No check is changed, removed or weakened; the selected result is unchanged.**
 
 After `research/hpe-transport-integer-production/`, production k492 `hpe_audit_and_transport.py` ships the integer-row rewrite; this opt-in package still pins and compares against the pairwise PR635 vendor copy.
@@ -12,13 +16,18 @@ After `research/hpe-transport-integer-production/`, production k492 `hpe_audit_a
 
 In the selected #1042 replay, the `chain` stage takes 711 s. Of that, 530 s is spent in its five layer-end control steps (`lec-p6n`, `lec-promo`, `lec-jx`, `lec-hyb`, `lec-frames`).
 
-Each step runs the pinned `layer_end_controls_leaver.py`. That script calls PR635's `hpe_audit_and_transport.run` (sha256 `c9a05ff2…0aa3`) about 96 times: once on the honest word, then on each of 95 mutants, every one of which must be rejected at its pinned reason.
+Each step runs the pinned `layer_end_controls_leaver.py`. That script calls PR635's
+`hpe_audit_and_transport.run` about 96 times: once on the honest word, then on each of
+95 mutants, every one of which must be rejected at its pinned reason. After
+`research/hpe-audit-integer-production/`, the live PR635 path ships integer rows; the
+pairwise Fraction-dict bytes used for differential checks live in this package's
+`baseline.py` (sha256 `c9a05ff2…0aa3`).
 
 The cost is in exact arithmetic. On one audit, profiling shows:
 
 | Share | Where |
 |---|---|
-| ~63% | `Fraction` operations in the row updates (endpoint replay in both orientations, plus the P and P⁻¹ state maps) |
+| ~63% | `Fraction` operations in the pairwise row updates (endpoint replay in both orientations, plus the P and P⁻¹ state maps) |
 | ~22% | `copy.deepcopy` of gates |
 
 ## What changes

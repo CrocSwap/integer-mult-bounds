@@ -30,7 +30,8 @@ PINS = {
     CONTROLS: '4ba676f1ea326b739a64c3477f64eeb295f8151514f78fa7e62b71e4373a6206',
     MULTICOLD / 'code/run_portable.py': '322d29d43dbee8130cde15d4bf05396698b5e3dfe3735813899db91cc0ba7955',
     ROUTING: 'e070ae2c78b4a1b644b418774af62b40d8d16e6ba89602f0474afb557d507c37',
-    PR635_CODE / 'hpe_audit_and_transport.py': 'c9a05ff291016b870b4fc925b317abd9c3a604c73ffc8920dfdbbeb475e20aa3',
+    PR635_CODE / 'hpe_audit_and_transport.py': '0dacf4cedb020d561e0188052319f1a6e6abaf6c79f9e94d8c9c91492e5c1747',
+    HERE / 'baseline.py': 'c9a05ff291016b870b4fc925b317abd9c3a604c73ffc8920dfdbbeb475e20aa3',
     LEAVER / 'LEC-REASON-PINS-k8.json': 'b07279e41ec9d8f89e8509081e1e7f2c8e8b062fd951b22608a03ac461982914',
     LEAVER / 'LEC-REASON-PINS-STACK-k8.json': 'd87ed7b5869bed4a3d266f0ce5fc784cbe88340a625d22ab9f580fa00872df19',
 }
@@ -69,7 +70,7 @@ def main():
                MULTICOLD_SOURCE=str(MULTICOLD), GAIN_PR564_SOURCE=str(MULTICOLD), LEC_REASON_PINS=str(pins),
                PR635_CODE=str(PR635_CODE if a.mode == 'reference' else HERE / 'shim'),
                HPE_AUDIT_MODE='fast' if a.mode == 'reference' else a.mode,
-               HPE_AUDIT_REFERENCE=str(PR635_CODE / 'hpe_audit_and_transport.py'),
+               HPE_AUDIT_REFERENCE=str(HERE / 'baseline.py'),  # pairwise-era bytes for shim crosscheck
                HPE_AUDIT_CROSSCHECK_LOG=str(out.parent / (out.name + '.crosscheck.jsonl')))
     for k in ('PYTHONOPTIMIZE', 'XPARAM', 'EXTRAH', 'PAIRING_RANKS', 'DIAG', 'HYBBUDGET', 'SW4_PIN'):
         env.pop(k, None)

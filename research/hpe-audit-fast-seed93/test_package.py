@@ -18,8 +18,8 @@ def load(name, path):
 
 
 F = load('hpe_fast_test', HERE / 'hpe_audit_fast.py')
-R = load('hpe_reference_test', HERE.parents[1] / 'research/complex-sw4-frame8/vendor/pr635/research/'
-         'complex-571-cold14-st2/code/hpe_audit_and_transport.py')
+# Pairwise-era Fraction-dict reference; production PR635 path ships integer rows.
+R = load('hpe_reference_test', HERE / 'baseline.py')
 
 
 class RowArithmetic(unittest.TestCase):
@@ -84,9 +84,7 @@ class CrosscheckControl(unittest.TestCase):
         tmp = Path(tempfile.mkdtemp())
         word = tmp / 'w.json.gz'
         word.write_bytes(data)
-        os.environ.update(HPE_AUDIT_MODE='crosscheck', HPE_AUDIT_REFERENCE=str(
-            HERE.parents[1] / 'research/complex-sw4-frame8/vendor/pr635/research/complex-571-cold14-st2/code/'
-            'hpe_audit_and_transport.py'))
+        os.environ.update(HPE_AUDIT_MODE='crosscheck', HPE_AUDIT_REFERENCE=str(HERE / 'baseline.py'))
         try:
             shim = load('hpe_shim_test', HERE / 'shim/hpe_audit_and_transport.py')
         finally:
