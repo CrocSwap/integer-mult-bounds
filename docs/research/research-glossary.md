@@ -2,6 +2,9 @@
 
 These are orientation descriptions. The selected supplier's exact definitions
 and contracts govern a proof; historical packages may use different conventions.
+For the latest checkpointed review and remaining obligations, see the [current
+reviewed status](current-status.md); the live candidate and priority queue are
+in [current priorities](current-priorities.md).
 
 | Term | Meaning here |
 |---|---|
