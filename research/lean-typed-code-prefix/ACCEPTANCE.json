@@ -1,0 +1,66 @@
+{
+  "schema": "public-lean-source-acceptance-summary-v1",
+  "status": "ACCEPTED_EXACT_SOURCE",
+  "module": "TypedCodePrefix",
+  "source": {
+    "repository_path": "research/lean-typed-code-prefix/TypedCodePrefix.lean",
+    "bytes": 4201,
+    "sha256": "9bb5d28159cc6c4871b67e8e057ed8a9533d7d7ce5fe50866cd787712f0a9829"
+  },
+  "lean_version": "4.21.0",
+  "reviewer": "Independent integration reviewer, separate from the source authoring reviewer; OpenAI-assisted.",
+  "review_method": "Read the complete source and its imported interface, then independently checked the existing successful Lean compilation output, the exact source identity, all three axiom reports and the complete printed theorem type. No compilation was repeated to prepare this public summary.",
+  "compiler_result": "Exit 0; compiled object produced for the exact source.",
+  "warnings": [],
+  "errors": [],
+  "axiom_probes": [
+    {
+      "declaration": "CurrentMain.TypedCodePrefix.lower_append",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "declaration": "CurrentMain.TypedCodePrefix.every_append",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "declaration": "CurrentMain.TypedCodePrefix.instruction_prefix_lift",
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ]
+    }
+  ],
+  "complete_printed_type": "@CurrentMain.TypedCodePrefix.instruction_prefix_lift : ∀ {Label : Type u_1} {Op : Label → Label → Type u_2}\n  {Instruction : Type u_3} {State : Type u_4} (code : {a b : Label} → Op a b → List Instruction)\n  (eval : List Instruction → State → State),\n  (∀ (s : State), eval [] s = s) →\n    (∀ (xs ys : List Instruction) (s : State), eval (xs ++ ys) s = eval ys (eval xs s)) →\n      ∀ (D : Label → State → Prop) (Allowed : {a b : Label} → Op a b → Prop) (Q : State → Prop),\n        (∀ {a b : Label} (op : Op a b), Allowed op → ∀ (s : State), D a s → D b (eval (code op) s)) →\n          (∀ {a b : Label} (op : Op a b),\n              Allowed op → ∀ (s : State), D a s → ∀ (k : Nat), Q (eval (List.take k (code op)) s)) →\n            ∀ {a b : Label} (tape : CurrentMain.AdmissibleTypedTape.Tape Op a b) (k : Nat) (s : State),\n              D a s →\n                Q s →\n                  CurrentMain.TypedCodePrefix.Every (fun {a b} => Allowed) tape →\n                    Q (eval (List.take k (CurrentMain.TypedCodePrefix.lower (fun {a b} => code) tape)) s)\n",
+  "public_research_dependency": {
+    "module": "AdmissibleTypedTape",
+    "pull_request": "https://github.com/CrocSwap/integer-mult-bounds/pull/1835",
+    "repository": "https://github.com/jamesyc/integer-mult-bounds",
+    "head": "e41a160c77e559b8023a59c14af08fceeaf33c9a",
+    "repository_path": "research/lean-admissible-typed-tape/AdmissibleTypedTape.lean",
+    "bytes": 10014,
+    "sha256": "92cccf6c04267d79a6495c58c4dd63dac2834b53decda477511e1ac4c33be7a4"
+  },
+  "official_import": "Init.Data.List.Nat.TakeDrop from Lean 4.21.0",
+  "acceptance_scope": [
+    "lower_append proves chronological lowering respects typed-tape concatenation.",
+    "every_append splits the per-operation premise over typed concatenation.",
+    "instruction_prefix_lift derives Q for every actual raw prefix of the concatenated code, from the interpreter empty/append laws, local admissible-domain closure, local phase-prefix Q, the initial admissible domain and Q, and Every Allowed over the supplied finite typed tape.",
+    "The theorem is polymorphic in labels, indexed operations, raw instructions, states and the predicate Q. Empty codes and arbitrary natural prefix lengths are included.",
+    "Only propext and Quot.sound occur in the three reported proofs. There are no concrete finite-certificate decisions."
+  ],
+  "limits": [
+    "The interpreter laws, phase code, local closure and local prefix suppliers are explicit hypotheses. The theorem does not construct a physical interpreter or derive those suppliers for arbitrary code.",
+    "No concrete numeric budget, physical allocation/access bound, selected multiplication implementation or all-size multiplication theorem is asserted by this generic module."
+  ],
+  "author_checked_context": {
+    "main": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+    "kappa": "836330098538459/500000000000000000",
+    "decimal": "0.001672660197076918",
+    "scope": "Author-checked selected source context only; the generic theorem does not change or certify this exponent."
+  },
+  "attribution": "James Chang with OpenAI assistance; Apache-2.0. Reuses the public AdmissibleTypedTape interface and Lean list-prefix APIs; no claim that general compositional prefix reasoning is new."
+}
