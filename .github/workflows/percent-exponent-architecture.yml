@@ -1,0 +1,28 @@
+name: Percent exponent architecture screens
+
+on:
+  pull_request:
+    paths:
+      - 'research/percent-exponent-architecture/**'
+      - '.github/workflows/percent-exponent-architecture.yml'
+  push:
+    paths:
+      - 'research/percent-exponent-architecture/**'
+      - '.github/workflows/percent-exponent-architecture.yml'
+  workflow_dispatch:
+
+jobs:
+  exact-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Exact arithmetic and complete finite searches
+        run: python -B -S research/percent-exponent-architecture/verify.py --deep
+      - name: Verification leaves sources unchanged
+        run: git diff --exit-code
