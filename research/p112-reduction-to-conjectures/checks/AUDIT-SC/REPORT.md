@@ -1,0 +1,6 @@
+# AUDIT-SC report (relayed by main; auditor's write blocked)
+1. CARRIER §1.3 + §2 Circuit Lemma: PROVEN (first audit; peeling identity re-derived by hand; s=6 scenario list complete by Gale dominance; char-0 field assumed).
+2. SC-B2 Lemma RRC: PROVEN; all 47 class B dead (own engine, all K0, j=2..d, per-certificate check). g(1..8)=1,2,4,8,12,20,36,64 and N_2/3/4=3/6/12 exhaustive; N_5,N_6 via ADE classification. s=6 swap: PROVEN-WITH-FIXES (allrows6.py robust6 passes j without checking base config; no result changes). Bonus confirmed (auditor: 298/404 s=7, 89/153 s=6).
+3. SC-A Lemma P (L1/L2) PROVEN; SC-A2 Lemma P' PROVEN; D7 plane fact + covering facts CHECKED by 2nd impl. FIX: Fact D "no Off has 89–91 lines" FALSE (3584 dirs with |Off|=89, e.g. h ∝ (3,0,1,0,1,0,1,0)/2) — harmless (four 6-flats cannot cover 80 of 89). All 74 SC-A kills reproduced.
+4. NEW: Lemma P applied at T-level to all 603 rows kills 375 (125 L1 kills need no covering data).
+5. Consolidated: 480 killed by audited sources; 7 only by (6,6,5)s0@T7 span run (not re-audited); 116 OPEN (75 class OK, 20 A, 19 C, 2 D); 123 if span run not accepted. Ledger: ledger_consolidated.csv. Scripts: rrc_audit.py p112.py dirs.py cov.c anroot.py annon.py lemp_audit.py build_ledger.py.
