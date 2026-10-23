@@ -79,16 +79,6 @@ python3.12 -B scripts/research_package.py --package research/coded-reverse-word-
    here (no NumPy, and the package declares no dependencies).
 6. **Kernel review, hosted CI, precision/tape/hosting.** Untouched by this package.
 
-## Audit history
-
-Three adversarial rounds. The first refuted the endpoint (compiler majorant,
-completeness, guard convention); the second conceded the repairs but kept the
-compiler and guard items conditional; the third is the prompt still outstanding. The
-fixes it forced are in the package: the closing swap with its sign placed after the
-gauge unload, the tested saving re-derived on the integer grid, the inherited
-helper block declared, the compiler receipt calling the source function, and the 36
-retained idle calls materialised.
-
 ## Reviewer's checklist
 
 - Does the power majorant's scope statement license reuse for a structurally
