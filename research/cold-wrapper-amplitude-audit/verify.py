@@ -168,6 +168,7 @@ def read_inputs(root):
     for path, wanted in sources["files"].items():
         require(hashlib.sha256((root / path).read_bytes()).hexdigest() == wanted,
                 "Source hash mismatch: " + path)
+    # provenance_sha256 entries are historical only (not live working-tree pins).
     spec = json.loads((root / SPEC).read_text())
     unique, providers = {}, {}
     for provider, artifacts in sources["artifacts"].items():
