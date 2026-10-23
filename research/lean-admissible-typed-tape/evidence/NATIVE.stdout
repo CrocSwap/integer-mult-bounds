@@ -1,0 +1,29 @@
+'CurrentMain.AdmissibleTypedTape.run_append' does not depend on any axioms
+'CurrentMain.AdmissibleTypedTape.rewind_append' does not depend on any axioms
+'CurrentMain.AdmissibleTypedTape.run_admissible' does not depend on any axioms
+'CurrentMain.AdmissibleTypedTape.rewind_admissible' does not depend on any axioms
+'CurrentMain.AdmissibleTypedTape.rewind_run' does not depend on any axioms
+'CurrentMain.AdmissibleTypedTape.run_rewind' does not depend on any axioms
+'CurrentMain.AdmissibleTypedTape.touches_append' depends on axioms: [propext]
+'CurrentMain.AdmissibleTypedTape.run_off_support' does not depend on any axioms
+'CurrentMain.AdmissibleTypedTape.rewind_off_support' does not depend on any axioms
+@CurrentMain.AdmissibleTypedTape.rewind_run : ∀ {Label : Type u_1} {Op : Label → Label → Type u_2} {State : Type u_3}
+  (forward undo : {a b : Label} → Op a b → State → State) (D : Label → State → Prop),
+  (∀ {a b : Label} (op : Op a b) (s : State), D a s → D b (forward op s)) →
+    (∀ {a b : Label} (op : Op a b) (s : State), D a s → undo op (forward op s) = s) →
+      ∀ {a b : Label} (tape : CurrentMain.AdmissibleTypedTape.Tape Op a b) (s : State),
+        D a s →
+          CurrentMain.AdmissibleTypedTape.rewind (fun {a b} => undo) tape
+              (CurrentMain.AdmissibleTypedTape.run (fun {a b} => forward) tape s) =
+            s
+@CurrentMain.AdmissibleTypedTape.run_off_support : ∀ {Label : Type u_1} {Op : Label → Label → Type u_2}
+  {State : Type u_3} {Reg : Type u_4} {Value : Type u_5} (forward : {a b : Label} → Op a b → State → State)
+  (D : Label → State → Prop) (observe : State → Reg → Value) (writes : {a b : Label} → Op a b → Reg → Prop),
+  (∀ {a b : Label} (op : Op a b) (s : State), D a s → D b (forward op s)) →
+    (∀ {a b : Label} (op : Op a b) (s : State),
+        D a s → ∀ (r : Reg), ¬writes op r → observe (forward op s) r = observe s r) →
+      ∀ {a b : Label} (tape : CurrentMain.AdmissibleTypedTape.Tape Op a b) (s : State),
+        D a s →
+          ∀ (r : Reg),
+            ¬CurrentMain.AdmissibleTypedTape.touches (fun {a b} => writes) tape r →
+              observe (CurrentMain.AdmissibleTypedTape.run (fun {a b} => forward) tape s) r = observe s r
