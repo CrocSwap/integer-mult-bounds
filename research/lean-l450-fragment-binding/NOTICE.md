@@ -1,0 +1,1 @@
+Apache-2.0. Preserve notices in each unchanged source. Credits: James Chang with OpenAI assistance; Rohan Arun PR1094; Jeremy Kothe T16/PR514; Lean/Mathlib authors and the explicitly referenced public research predecessors.
