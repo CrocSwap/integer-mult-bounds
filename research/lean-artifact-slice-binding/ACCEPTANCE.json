@@ -1,0 +1,144 @@
+{
+  "schema": "public-artifact-slice-acceptance-v1",
+  "author_checked_context": {
+    "kappa": "836330098538459/500000000000000000",
+    "decimal": "0.001672660197076918",
+    "author_checked": true,
+    "applicability_revision": "feb4dd177862175ea61e27f1cda7c6d124d39b55",
+    "selected_result": {
+      "repository": "CrocSwap/integer-mult-bounds",
+      "revision": "feb4dd177862175ea61e27f1cda7c6d124d39b55",
+      "path": "certificates/selected-result.json",
+      "bytes": 10725,
+      "sha256": "10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32",
+      "git_blob": "ae6a99f28aa468649eb66a361e764d769363bf11",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/feb4dd177862175ea61e27f1cda7c6d124d39b55/certificates/selected-result.json"
+    },
+    "meaning": "Source-matched context only. The parameterized statements do not use or change kappa and do not prove the full multiplication theorem."
+  },
+  "modules": [
+    {
+      "module": "CheckedArraySlice",
+      "source_bytes": 6576,
+      "source_sha256": "9ae06fb050ef7dac441fea7b7525962e04562292cc8e9a1c9a24939dbf1bd9d9",
+      "status": "Kernel checked and independently source/API/terminal reviewed",
+      "probes": [
+        {
+          "theorem": "CurrentMain.CheckedArraySlice.checkSlice_iff",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.CheckedArraySlice.checkSlice_empty",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.CheckedArraySlice.checkSlice_position",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.CheckedArraySlice.checkSlice_decomposition",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.CheckedArraySlice.checkBytes_iff",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.CheckedArraySlice.checkBytes_position",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.CheckedArraySlice.checkBytes_decomposition",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      ],
+      "complete_printed_types": "CurrentMain.CheckedArraySlice.checkBytes_position : \u2200 (artifact fragment : ByteArray) (start : Nat),\n  CurrentMain.CheckedArraySlice.checkBytes artifact fragment start = true \u2192\n    \u2200 (i : Fin fragment.size), \u2203 hi, artifact.data[start + \u2191i] = fragment.data[\u2191i]\nCurrentMain.CheckedArraySlice.checkBytes_decomposition : \u2200 (artifact fragment : ByteArray) (start : Nat),\n  CurrentMain.CheckedArraySlice.checkBytes artifact fragment start = true \u2192\n    artifact.data.extract 0 start ++ fragment.data ++ artifact.data.extract (start + fragment.size) artifact.size =\n      artifact.data\n",
+      "warnings": [],
+      "reviewer_role": "Independent paired reviewer of exact source, proof repairs where applicable, and saved compiler output.",
+      "repair_summary": "Two proof-local index-normalization repairs; definitions and statements unchanged."
+    },
+    {
+      "module": "LocatedCompactEntry",
+      "source_bytes": 7437,
+      "source_sha256": "1bd7e2cccfd12276398f211a3102b07a72f5c8728173eadd6eb6746c44b7f9a3",
+      "status": "Kernel checked and independently source/API/terminal reviewed",
+      "probes": [
+        {
+          "theorem": "CurrentMain.LocatedCompactEntry.recoverAt_reject",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.LocatedCompactEntry.recoverAt_inputs",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.LocatedCompactEntry.recoverAt_sound",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "theorem": "CurrentMain.LocatedCompactEntry.recoverAt_complete",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      ],
+      "complete_printed_types": "@CurrentMain.LocatedCompactEntry.recoverAt_sound : \u2200 {n : \u2115} (artifact fragment : ByteArray) (start : \u2115) (key : String)\n  (update coefficients : CurrentMain.CheckedBinaryChart.Address n)\n  (r : CurrentMain.JsonPackedColumnDictionary.CheckedEntry n),\n  CurrentMain.LocatedCompactEntry.recoverAt n artifact fragment start key update coefficients = some r \u2192\n    start + fragment.size \u2264 artifact.size \u2227\n      (\u2200 (i : Fin fragment.size), \u2203 (hi : start + \u2191i < artifact.size), artifact.data[start + \u2191i] = fragment.data[\u2191i]) \u2227\n        artifact.data.extract 0 start ++ fragment.data ++ artifact.data.extract (start + fragment.size) artifact.size =\n            artifact.data \u2227\n          (\u2203 wholeText dictionary text raw,\n              String.fromUTF8? artifact = some wholeText \u2227\n                Lean.Json.parse wholeText = Except.ok dictionary \u2227\n                  String.fromUTF8? fragment = some text \u2227\n                    Lean.Json.parse text = Except.ok raw \u2227\n                      dictionary.getObjVal? key = Except.ok raw \u2227\n                        CurrentMain.JsonPackedColumnDictionary.decodeColumns n raw = some r.columns \u2227\n                          CurrentMain.StrictJsonValueBridge.reencode 2\n                              (CurrentMain.ParsedBinaryChartCertificate.vectorValue r.columns) =\n                            raw) \u2227\n            fragment = CurrentMain.CompactNatColumnFragment.payload r.columns \u2227\n              (CurrentMain.CompactNatColumnFragment.natValues r.columns).length = n \u2227\n                (\u2200 (j : Fin n), CurrentMain.ParsedBinaryChartCertificate.columnFunction r.columns j < 2 ^ n) \u2227\n                  CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns =\n                      \u2191(CurrentMain.CheckedBinaryChart.checkedEquiv \u2191r.certificate \u22ef) \u2227\n                    (\u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n                        CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r.certificate)\n                            ((CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns) x) =\n                          x) \u2227\n                      \u2200 (x : CurrentMain.CheckedBinaryChart.Address n),\n                        (CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns)\n                            (CurrentMain.CheckedBinaryChart.inverseAddress (\u2191r.certificate) x) =\n                          x\n@CurrentMain.LocatedCompactEntry.recoverAt_complete : \u2200 {n : \u2115} (artifact : ByteArray) (start : \u2115)\n  (dictionary : Lean.Json) (key : String) (cols : CurrentMain.JsonPackedColumnDictionary.Columns n)\n  (c : CurrentMain.CheckedBinaryChart.Candidate n) (h : CurrentMain.CheckedBinaryChart.check c = true)\n  (hc : c.columns = CurrentMain.ParsedBinaryChartCertificate.columnFunction cols),\n  CurrentMain.JsonPackedColumnDictionary.dictionaryColumns n dictionary key = some cols \u2192\n    CurrentMain.CheckedArraySlice.checkBytes artifact (CurrentMain.CompactNatColumnFragment.payload cols) start = true \u2192\n      CurrentMain.ByteJsonGlobalCall.parseBytes artifact = Except.ok dictionary \u2192\n        CurrentMain.ByteJsonGlobalCall.parseBytes (CurrentMain.CompactNatColumnFragment.payload cols) =\n            Except.ok\n              (CurrentMain.StrictJsonValueBridge.reencode 2\n                (CurrentMain.ParsedBinaryChartCertificate.vectorValue cols)) \u2192\n          CurrentMain.LocatedCompactEntry.recoverAt n artifact (CurrentMain.CompactNatColumnFragment.payload cols) start\n              key c.updateVector c.coefficients =\n            some { columns := cols, certificate := \u27e8c, h\u27e9, column_match := \u22ef }\n",
+      "warnings": [],
+      "reviewer_role": "Independent paired reviewer of exact source, proof repairs where applicable, and saved compiler output.",
+      "repair_summary": "Passed unchanged on first diagnostic."
+    }
+  ],
+  "scope": {
+    "generic_coverage": "All arrays with decidable equality, and all byte artifacts/fragments/dimensions/keys in the stated theorem domains.",
+    "finite_coverage": "No new closed finite decisions, selected table census or concrete artifact witness is included.",
+    "conditional_coverage": "Successful executed checks imply exact containment, parser/named-column facts and recovered operator/inverses. Restricted completeness retains slice, actual parser and checked-Candidate premises.",
+    "full_multiplication_coverage": "Not established. No endpoint multiplication, physical realization or total cost theorem is added.",
+    "open_boundaries": [
+      "Literal offset containment does not establish the parser structural field span.",
+      "Whole artifact file/source identity and cryptographic digest authentication.",
+      "Installed parser specification/duplicate-key policy and general parser roundtrip.",
+      "Python serializer/runtime extern refinement, complex phases, physical execution and time/space costs."
+    ]
+  },
+  "acceptance_limits": "Source-bound prior kernel acceptance and independent review; this publication preparation did not rerun compilers or assert external CI success.",
+  "attribution": "Lean/Mathlib and Array/List authors; Jeremy Kothe T16/PR514; Rohan Arun PR1094; accepted bank/frame byte/slice/compact/recovery components. James Chang with OpenAI assistance; Apache-2.0."
+}
