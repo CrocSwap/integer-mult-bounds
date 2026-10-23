@@ -18,7 +18,9 @@ sys.dont_write_bytecode=True
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[1]
 BASE='2921874911956718fcaaaf9396fe8267b3cfa9f0'
-SOURCES={'research/complex-frame-pair-decoders/'+name for name in ('PROOF.md','README.md','verify.py')}
+SOURCES={'research/complex-frame-pair-decoders/PROOF.md',
+         'research/complex-frame-pair-decoders/README.md',
+         'research/frame-pair-enumeration-production/baseline.py'}
 spec=importlib.util.spec_from_file_location('gaussian_exact',HERE/'exact.py')
 ex=importlib.util.module_from_spec(spec);spec.loader.exec_module(ex)
 G=ex.G

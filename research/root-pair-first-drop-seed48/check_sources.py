@@ -23,7 +23,7 @@ def load(name,path):
 def main():
     check=load('first_drop',HERE/'verify.py')
     roots,pairing,_,_,_=check.model.setup()
-    predecessor=load('credited_pr968',check.ROOT/'research/complex-frame-pair-decoders/verify.py')
+    predecessor=load('credited_pr968',check.ROOT/'research/frame-pair-enumeration-production/baseline.py')
     mapping={max(r,tuple(-x for x in r)):i for i,r in enumerate(predecessor.LINES)}
     check.need(set(mapping)==set(roots),'same 120 root lines')
     order=[mapping[r] for r in roots]
