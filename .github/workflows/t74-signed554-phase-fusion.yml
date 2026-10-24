@@ -1,0 +1,57 @@
+name: Classical matrix boundary with signed554 T74
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'research/t74-signed554-phase-fusion/**'
+      - '.github/workflows/t74-signed554-phase-fusion.yml'
+  push:
+    branches: [main, codex/t74-signed554-phase-fusion-20261014]
+    paths:
+      - 'research/t74-signed554-phase-fusion/**'
+      - '.github/workflows/t74-signed554-phase-fusion.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, retained repository pin
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7, retained repository pin
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install retained cold-replay dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libboost-dev
+          python -m pip install -r research/t74-signed554-phase-fusion/requirements.txt
+      - name: Fresh ancestry, supplier, owner construction and strict admission
+        env:
+          CXX: g++
+          BOOST_INCLUDE: /usr/include
+        run: >-
+          python -B research/t74-signed554-phase-fusion/verify.py
+          --work "$RUNNER_TEMP/signed554-fusion-cold"
+      - name: Require committed sources unchanged
+        if: always()
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signed554-fusion-python-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/signed554-fusion-cold/*.json
+            ${{ runner.temp }}/signed554-fusion-cold/*.log
+            ${{ runner.temp }}/signed554-fusion-cold/strict/*.json
+            ${{ runner.temp }}/signed554-fusion-cold/strict/*.log
+            ${{ runner.temp }}/signed554-fusion-cold/strict/global/audit/*.json
