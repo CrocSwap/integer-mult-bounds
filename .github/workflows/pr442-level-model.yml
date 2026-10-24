@@ -1,0 +1,45 @@
+name: PR442 level model Phase 1
+
+on:
+  push:
+    branches: [lean/pr442-level-model]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install elan with the package's pinned toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Fetch the pinned Mathlib cache
+        working-directory: research/lean-pr442-level-model
+        run: >-
+          lake exe cache get Mathlib.Data.Matrix.Mul
+          Mathlib.Algebra.BigOperators.Fin Mathlib.Tactic.FieldSimp
+          Mathlib.Tactic.Ring Mathlib.Tactic.NormNum
+          Mathlib.LinearAlgebra.Span.Defs
+      - name: Build, audit and reject mutated inputs
+        working-directory: research/lean-pr442-level-model
+        run: python3 verify.py --receipt /tmp/pr442-level-model-phase1.json
+      - name: Require unchanged predecessor and package files
+        run: git diff --exit-code
+      - name: Preserve the exact build and audit receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr442-level-model-phase1
+          path: /tmp/pr442-level-model-phase1.json
+          if-no-files-found: warn

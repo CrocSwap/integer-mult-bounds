@@ -1,0 +1,25 @@
+import LemmaA
+#print axioms LemmaA.realize_run
+#print axioms LemmaA.realize_untouched
+#print axioms LemmaA.one_owner_needed
+#print axioms LemmaA.family_endpoint
+#print axioms LemmaA.endpoint_indep
+#print axioms LemmaA.commute_of_disjoint
+#print axioms LemmaA.commute_of_not_mem
+#print axioms LemmaA.shuffle_eval
+#print axioms LemmaA.whole_invocation
+#print axioms LemmaA.split_off
+#print axioms LemmaA.defer
+#print axioms LemmaA.async_window
+#print axioms LemmaA.gather
+#print axioms LemmaA.spectators_fixed
+#print axioms LemmaA.helper_block
+#print axioms LemmaA.lemmaA_family
+#print axioms LemmaA.lemmaA_piece
+#print axioms LemmaA.lemmaA_async
+#print axioms LemmaA.pieces_commute
+#print axioms LemmaA.pieces_product
+#print axioms LemmaA.streamOwner_injective
+#print axioms LemmaA.streamOwner_injective_of_disjoint
+#print axioms LemmaA.sweep_unique
+#print axioms LemmaA.lemmaA_streams
