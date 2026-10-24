@@ -1,0 +1,51 @@
+{
+  "reviewer": "Independent construction worker, OpenAI Codex",
+  "status": "PASS_SCOPED_REVIEW",
+  "files": {
+    "fixed_divisor.py": "f4eb025ded92028362c68fd070fb181e166f446e7f1307ffa0580c5bc6cd7039",
+    "DIVISION-PROOF.md": "7aa756b89c59fa107e9c3b8b9d7f3420364aa35c1905f883102d6197d763655d",
+    "verify_division.py": "f82129d58d35fb8421c53f39f581c0079811477ca53dada6993b13d7714b7ddc",
+    "DIVISION-RESULT.json": "0c09509a46efe0ecec40a98927d9813043aa34702ee7258cdbd58d9f5073031d"
+  },
+  "checks": [
+    {
+      "command": "python -I -O -B verify_division.py",
+      "result": "PASS_FIXED_DIVISOR_BITPLANE_SCAN",
+      "unsigned_cases": 6912,
+      "signed_rounding_cases": 24978,
+      "fixed_rational_cases": 840
+    },
+    {
+      "command": "python -I -O -B division_independent.py",
+      "result": "PASS_INDEPENDENT_DIVISION_BOUNDARIES",
+      "comparisons": 5117,
+      "scope": "divisors at 2^w-1, 2^w, 2^w+1, 2^(w+1)-1, half-word boundary, and small divisors; widths1..12,15,16,31,32,63,64,127; both signs and all three rounding modes"
+    }
+  ],
+  "reasoning": [
+    "Bit-plane lanes encode overlapping low-to-high blocks modulo d; right shift supplies the disjoint upper block, and doubling the represented block length proves all suffix residues.",
+    "The quotient bit identity [2*r_(i+1)+bit_i(x)>=d] emits the complete word after the logarithmic prefix stage count.",
+    "Conditional bit-plane subtraction and scalar gap=d-b reduction avoid native carry overflow, including d=maxword.",
+    "Negative floor, truncation and nearest-even symmetry are correct; thresholds compare r with floor(d/2) without doubling r.",
+    "Fixed numerator shifts fit the explicit widened physical working width. Constant physical-limb emulation must handle limb-boundary shifts explicitly.",
+    "O(log(2+w)) holds for fixed p,d, not uniformly over growing denominators: the explicit constant is O(bit_length(d)^2). Bit-plane scratch is O(bit_length(d)) ordinary words.",
+    "The source framework replacement O(Nw) to O(Nlog(2+w)) is an arithmetic upper-bound improvement under the stated ABI, not a paid Gaussian-profile or kappa improvement."
+  ],
+  "controls": [
+    "Existing scientific wrong_weight and wrong_suffix mutations have explicit failing witnesses and remain active under -O.",
+    "Out-of-range input and zero divisor are rejected."
+  ],
+  "requirements": [
+    "Both logical shifts are primitive in this restricted ABI; the exact Problem1.8 Lean machine derives right shift using division, so no division-free compilation into that machine is claimed.",
+    "Working word width includes fixed numerator/denominator guard bits; callers must reserve them physically or charge a constant number of limbs.",
+    "Array address headroom must satisfy 2^W >= c*N+c_d; scalar scratch address space also needs 2^W>=c_d.",
+    "w is supplied metadata in the executable; automatic width discovery is a separate prescribed option under explicit zero-on-overshift semantics.",
+    "Instruction count is a conservative emulated data-operation bound plus separately bounded loop/setup cost, not a processor cycle benchmark."
+  ],
+  "limitations": [
+    "No new kappa, missing channel-complement recovery, complete multiplication theorem, Lean kernel audit, hosted CI or independent human review is established.",
+    "Primary-literature priority is not certified by this correctness review."
+  ],
+  "review_source_sha256": "de0a9f180f840a4819941811b810c33a3dbba2619068729c50f017b02e5bdd61",
+  "boundary_receipt_sha256": "09608f0f449adbb3549d3366aa13f44147eb631e4c2f5d75207adcd58fadffbd"
+}

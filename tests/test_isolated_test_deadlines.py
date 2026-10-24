@@ -13,6 +13,11 @@ spec = importlib.util.spec_from_file_location('deadline_runner', ROOT/'scripts/r
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
 
+# Windows launches the lifetime supervisor and ownership gate before discovery.
+# Keep a healthy fixture comfortably within its budget; the hung fixture still
+# exhausts the entire same budget before a queued module receives a fresh one.
+SHORT_BUDGET = 3 if os.name == 'nt' else 1
+
 
 class DeadlineTests(unittest.TestCase):
     def setUp(self):
@@ -34,18 +39,18 @@ class DeadlineTests(unittest.TestCase):
         hung = self.module('test_a.py', 'import time\nprint("before hang", flush=True)\ntime.sleep(60)\n')
         passed = self.module('test_b.py', 'import unittest\nclass Test(unittest.TestCase):\n def test_ok(self): print("ran other", flush=True)\n')
         start = time.monotonic()
-        rows = self.run_modules([hung, passed], workers=2, module_timeout=1)
-        self.assertLess(time.monotonic()-start, 8)
+        rows = self.run_modules([hung, passed], workers=2, module_timeout=SHORT_BUDGET)
+        self.assertLess(time.monotonic()-start, SHORT_BUDGET + 7)
         self.assertEqual([r[1] for r in rows], [124, 0])
         self.assertIn(b'before hang', rows[0][2])
-        self.assertIn(b'Module timeout after 1s', rows[0][3])
+        self.assertIn(f'Module timeout after {SHORT_BUDGET}s'.encode(), rows[0][3])
         self.assertIn(b'ran other', rows[1][2])
 
     def test_queue_wait_does_not_consume_next_modules_budget(self):
         # First module exhausts its entire budget before the next is launched.
         hung = self.module('test_a.py', 'import time\ntime.sleep(60)\n')
         passed = self.module('test_b.py', 'import time, unittest\ntime.sleep(.2)\nclass Test(unittest.TestCase):\n def test_ok(self): pass\n')
-        rows = self.run_modules([hung, passed], workers=1, module_timeout=1)
+        rows = self.run_modules([hung, passed], workers=1, module_timeout=SHORT_BUDGET)
         self.assertEqual([r[1] for r in rows], [124, 0])
 
     def test_success_failure_and_early_exit_keep_their_meaning(self):
@@ -62,15 +67,15 @@ class DeadlineTests(unittest.TestCase):
                 self.run_modules([], module_timeout=value)
 
     @unittest.skipUnless(os.name == 'posix', 'POSIX cleanup after leader exit')
-    def test_completed_receipt_with_open_child_pipe_still_times_out(self):
+    def test_completed_receipt_with_open_child_pipe_is_cleaned_before_deadline(self):
         path = self.module('test_pipe.py',
             'import subprocess, sys, unittest\n'
             'subprocess.Popen([sys.executable,"-c","import time; time.sleep(60)"])\n'
             'class T(unittest.TestCase):\n def test_ok(self): pass\n')
-        rows = self.run_modules([path], workers=1, module_timeout=1)
-        self.assertEqual(rows[0][1], 124)
+        rows = self.run_modules([path], workers=1, module_timeout=3)
+        self.assertEqual(rows[0][1], 0)
         self.assertIn(b'OK', rows[0][3])
-        self.assertIn(b'unittest completion is not accepted', rows[0][3])
+        self.assertNotIn(b'Module timeout', rows[0][3])
 
     @unittest.skipUnless(sys.platform == 'linux', 'Linux process state observation')
     def test_ordinary_child_is_stopped_on_timeout(self):
@@ -90,10 +95,11 @@ class DeadlineTests(unittest.TestCase):
     def test_cli_reports_timeout_and_nonzero_exit(self):
         scripts = self.root/'scripts'; scripts.mkdir()
         (scripts/'run_isolated_tests.py').write_bytes((ROOT/'scripts/run_isolated_tests.py').read_bytes())
+        (scripts/'research_package.py').write_bytes((ROOT/'scripts/research_package.py').read_bytes())
         self.module('test_hang.py', 'import time\nprint("diagnostic", flush=True)\ntime.sleep(60)\n')
         result = subprocess.run([sys.executable, str(scripts/'run_isolated_tests.py'),
-                                 '--workers', '1', '--module-timeout', '1'],
-                                capture_output=True, timeout=10)
+                                 '--workers', '1', '--module-timeout', str(SHORT_BUDGET)],
+                                capture_output=True, timeout=SHORT_BUDGET + 9)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(b'diagnostic', result.stdout)
         self.assertIn(b'Module timeout', result.stderr)

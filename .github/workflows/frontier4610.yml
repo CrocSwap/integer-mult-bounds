@@ -1,0 +1,52 @@
+name: Native-helper conditional admission 4610
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: selected-frontier4610-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          sparse-checkout: |
+            certificates
+            scripts
+            docs/research/pr-intake-evidence/pr4610
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Materialize the explicit source closure
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, pathlib, subprocess
+          manifest = json.loads(pathlib.Path('certificates/frontier4610-source.json').read_bytes())
+          for name, digest in manifest['files'].items():
+              path = pathlib.PurePosixPath(name)
+              if path.is_absolute() or '..' in path.parts or str(path) != name:
+                  raise ValueError('Unsafe manifest path: ' + name)
+              data = subprocess.check_output(['git', 'show', 'HEAD:' + name])
+              if hashlib.sha256(data).hexdigest() != digest:
+                  raise ValueError('Source hash mismatch: ' + name)
+              dest = pathlib.Path(name)
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              dest.write_bytes(data)
+          PY
+      - run: python3 -B scripts/verify_frontier4610.py --work "$RUNNER_TEMP/frontier4610"
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: frontier4610-admission
+          path: |
+            ${{ runner.temp }}/frontier4610/VALIDATION.json
+            ${{ runner.temp }}/frontier4610/COLD-REPLAY.json
+            ${{ runner.temp }}/frontier4610/review-evidence/*.log
+            ${{ runner.temp }}/frontier4610/review-evidence/*.json

@@ -30,7 +30,7 @@ def bundle_relative_path(name):
     require(not ntpath.splitdrive(name)[0], 'drive-qualified export path: ' + name)
 
 
-def inventory(root, package, ref):
+def inventory(root, package, ref, input_ref=None):
     require(re.fullmatch(r'research/[a-z0-9][a-z0-9-]*', package),
             'package must be research/<slug>')
     commit = git(root, 'rev-parse', '--verify', '--end-of-options',
@@ -45,8 +45,18 @@ def inventory(root, package, ref):
         bundle_relative_path(name)
         require(name != RECEIPT, 'reserved export path: ' + name)
     require(len(inputs) == len(set(inputs)), 'duplicate declared input')
-    records = git(root, '--literal-pathspecs', 'ls-tree', '-r', '-z', '--full-tree',
-                  commit, '--', package, *inputs).split(b'\0')
+    contexts = [(commit, [package, *inputs])]
+    if input_ref is not None:
+        require(all(name != package and not name.startswith(package + '/') for name in inputs),
+                'separate input commit requires external declared inputs')
+        input_commit = git(root, 'rev-parse', '--verify', '--end-of-options',
+                           input_ref + '^{commit}').decode('ascii').strip()
+        contexts = [(commit, [package]), (input_commit, inputs)]
+    records = []
+    for tree, paths in contexts:
+        if paths:
+            records.extend(git(root, '--literal-pathspecs', 'ls-tree', '-r', '-z', '--full-tree',
+                               tree, '--', *paths).split(b'\0'))
     entries = {}
     for record in filter(None, records):
         header, raw_name = record.split(b'\t', 1)
@@ -82,9 +92,15 @@ def member(name, data, mode=0o644):
     return info, io.BytesIO(data)
 
 
-def export(root, package, ref, output):
-    commit, entries = inventory(root, package, ref)
+def export(root, package, ref, output, input_ref=None):
+    # Resolve a moving input ref once, before collecting either snapshot.
+    input_commit = (git(root, 'rev-parse', '--verify', '--end-of-options',
+                        input_ref + '^{commit}').decode('ascii').strip()
+                    if input_ref is not None else None)
+    commit, entries = inventory(root, package, ref, input_commit)
     receipt = {'format': FORMAT, 'commit': commit, 'package': package, 'files': []}
+    if input_commit is not None:
+        receipt['input_commit'] = input_commit
     output = Path(output)
     require(not output.exists() and not output.is_symlink(), 'output already exists')
     # Publish only after Git's final status and the archive close both succeed.
@@ -131,6 +147,9 @@ def check_bundle(path):
     require(isinstance(receipt, dict) and receipt.get('format') == FORMAT, 'missing or invalid export receipt')
     require(isinstance(receipt.get('commit'), str) and
             re.fullmatch(r'[0-9a-f]{40,64}', receipt['commit']), 'invalid commit label')
+    if 'input_commit' in receipt:
+        require(isinstance(receipt['input_commit'], str) and
+                re.fullmatch(r'(?:[0-9a-f]{40}|[0-9a-f]{64})', receipt['input_commit']), 'invalid input commit label')
     require(isinstance(receipt.get('package'), str) and
             re.fullmatch(r'research/[a-z0-9][a-z0-9-]*', receipt['package']), 'invalid package label')
     files = receipt.get('files')
@@ -154,17 +173,19 @@ def main():
     make = commands.add_parser('export')
     make.add_argument('--package', required=True)
     make.add_argument('--ref', default='HEAD')
+    make.add_argument('--input-ref', help='explicit commit for all external declared inputs; default: --ref')
     make.add_argument('--output', type=Path, required=True)
     check = commands.add_parser('check')
     check.add_argument('archive', type=Path)
     args = parser.parse_args()
     try:
-        result = (export(ROOT, args.package, args.ref, args.output) if args.command == 'export'
+        result = (export(ROOT, args.package, args.ref, args.output, args.input_ref) if args.command == 'export'
                   else check_bundle(args.archive))
     except (OSError, ValueError, TypeError, KeyError, tarfile.TarError, subprocess.SubprocessError) as exc:
         parser.exit(1, str(exc) + '\n')
     print('PASS_RESEARCH_EXPORT ' + json.dumps({k: result[k] for k in ('commit', 'package')} |
-                                             {'files': len(result['files'])}))
+                                             {'files': len(result['files'])} |
+                                             ({'input_commit': result['input_commit']} if 'input_commit' in result else {})))
 
 
 if __name__ == '__main__':

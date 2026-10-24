@@ -1,0 +1,148 @@
+--- PR5095/sandwich.py
++++ DRAFT/packed_sandwich.py
+@@ -1,10 +1,15 @@
+-"""Conditional digit convolution using literal CRT/Tensor physical owners."""
++"""DRAFT: one packed actual forward Tensor and one opposite Tensor.
++
++Derived from JoyboyBrian PR5095 e65f47db55b9a3779fbf7fe23e93a8a4c5eb3ce1.
++No factory/runtime execution yet. Substantial OpenAI Codex assistance.
++Predecessor notices and Apache-2.0 retained.
++"""
+ from cardinal_counts import Count,positive
+-from compact_counts import append_bits,read_fixed
++from compact_counts import append_bits,copy_bits,read_fixed
+ from encoded import compare,subtract
+ from fft_arithmetic import Arithmetic
+ from records import Tape
+-from ring_words import Signed,nearest,power_two,read_signed,right_shift,scaled,truncate,write_signed
++from ring_words import add,difference,Signed,nearest,power_two,read_signed,right_shift,scaled,truncate,write_signed
+ from router_metadata import indices,owned
+ from scratch_pool import ScratchPool
+ from session import OuterScope,borrowed_count,borrowed_tape,erase_marker,initialize_marker,sealed_constructors
+@@ -13,7 +18,7 @@
+ from tensor_word import DigitWordProduct
+ from words import BLANK,LEFT,RIGHT,need
+ 
+-class Sandwich:
++class RealPackedSandwich:
+     def __init__(self,tensor,converter):
+         # Transfer only fresh top-level owners; failure leaves them untouched.
+         need(tensor.closed and not tensor.pool.live and tensor.calls==0 and tensor.last_counts is None,"fresh Tensor owner")
+@@ -65,15 +70,76 @@
+         need(source.read()==BLANK,'complete packed radix digits')
+         source.rewind();out.rewind();return out
+ 
+-    def pointwise(self,first,second,plan):
+-        out=self.pool.acquire()
++    def pack_real(self,first,second,plan):
++        """Two independent converted real banks, same exact p-grid."""
++        out=self.pool.acquire();first.rewind();second.rewind()
+         for _ in indices(plan.source_product):
+-            with owned(*(read_signed(t,plan.component_bits) for t in (first,first,second,second))) as (a,b,c,d):
+-                with owned(*self.arithmetic.complex_product(a,b,c,d,plan.component_bits)) as (real,imag):
+-                    with owned(truncate(real,plan.p),truncate(imag,plan.p)) as (r,i):
+-                        write_signed(r,out,plan.component_bits);write_signed(i,out,plan.component_bits)
+-        need(first.read()==second.read()==BLANK,'complete pointwise inputs')
++            with owned(*(read_signed(t,plan.component_bits) for t in (first,first,second,second))) as (a,ai,b,bi):
++                need(ai.magnitude.zero() and bi.magnitude.zero(),'two real converted operand banks')
++                write_signed(a,out,plan.component_bits);write_signed(b,out,plan.component_bits)
++                self.last_counts['packed_records']+=1
++        need(first.read()==second.read()==BLANK,'complete two-real packing inputs')
+         first.rewind();second.rewind();out.rewind();return out
++
++    @staticmethod
++    def move_bits(tape,length,direction):
++        for _ in indices(length):tape.step(direction)
++
++    def negate_frequencies(self,bank,plan):
++        """Charged axis passes: preserve group0, reverse nonzero groups.
++
++        Bits inside each suffix group retain their order. Original H stays
++        owned/intact. This is frequency negation, not whole-bank reversal.
++        """
++        current=bank
++        for axis in indices(plan.dimensions):
++            prefix,suffix=Count.literal(1),Count.literal(1)
++            try:
++                with owned(plan.axis(axis)) as (row,):
++                    for position in indices(plan.dimensions):
++                        side=compare(position,axis)
++                        if side:
++                            with owned(plan.axis(position)) as (other,):
++                                following=Count.product(prefix if side<0 else suffix,other.s)
++                                if side<0:prefix.close();prefix=following
++                                else:suffix.close();suffix=following
++                    with owned(Count.literal(1)) as (one,):groups=subtract(row.s,one)
++                    with owned(groups,Count.product(suffix,plan.record_bits)) as (groups,group_bits):
++                        with owned(Count.product(groups,group_bits)) as (skip,):
++                            out=self.pool.acquire();current.rewind()
++                            for _ in indices(prefix):
++                                copy_bits(current,out,group_bits)
++                                self.move_bits(current,skip,1)
++                                for _ in indices(groups):
++                                    self.move_bits(current,group_bits,-1)
++                                    copy_bits(current,out,group_bits)
++                                    self.move_bits(current,group_bits,-1)
++                                self.move_bits(current,skip,1)
++                            need(current.read()==BLANK,'complete frequency-negation axis input')
++                            current.rewind();out.rewind()
++                            if current is not bank:current.clear()
++                            current=out;self.last_counts['J_axis_passes']+=1
++            finally:prefix.close();suffix.close()
++        bank.rewind();current.rewind();return current
++
++    def pointwise(self,first,reflected,plan):
++        """Exact split grid p+1; exact product; one truncation to grid p."""
++        out=self.pool.acquire();first.rewind();reflected.rewind()
++        with owned(Count(plan.component_bits),Count(plan.p)) as (split_width,shift):
++            split_width.increment();shift.increment();shift.increment()
++            for _ in indices(plan.source_product):
++                with owned(*(read_signed(t,plan.component_bits) for t in (first,first,reflected,reflected))) as (a,b,c,d):
++                    # H#=c-id. A=(H+H#)/2; B=(H-H#)/(2i).
++                    # Raw sums have denominator2^(p+1); NO split rounding.
++                    with owned(add(a,c),difference(b,d),add(b,d),difference(c,a)) as (ar,ai,br,bi):
++                        with owned(*self.arithmetic.complex_product(ar,ai,br,bi,split_width)) as (real,imag):
++                            with owned(truncate(real,shift),truncate(imag,shift)) as (r,i):
++                                write_signed(r,out,plan.component_bits);write_signed(i,out,plan.component_bits)
++                    self.last_counts['split_records']+=1
++                    self.last_counts['split_exact_adds']+=4
++                    self.last_counts['pointwise_real_products']+=4
++        need(first.read()==reflected.read()==BLANK,'complete packed/reflected inputs')
++        first.rewind();reflected.rewind();out.rewind();return out
+ 
+     def recover(self,source,plan,b,width):
+         out=self.pool.acquire()
+@@ -155,7 +221,7 @@
+         self.tensor.idle();self.converter.idle()
+         for t in (*self.pool.tapes,self.output):initialize_marker(t)
+         self.closed=False;book=None;succeeded=False
+-        self.last_counts={'conversions':0,'transforms':0,'pointwise_products':0}
++        self.last_counts={'conversions':0,'transforms':0,'pointwise_products':0,'packed_records':0,'J_axis_passes':0,'split_records':0,'split_exact_adds':0,'pointwise_real_products':0}
+         try:
+             with sealed_constructors(),self.scope.installed():
+                 try:
+@@ -171,15 +237,18 @@
+                             extra.multiply_small(4)
+                             for _ in range(4):extra.increment()
+                             width.add(extra)
+-                        transforms=[]
++                        naturals=[]
+                         for incoming in (first,second):
+                             digits=self.ingress(incoming,plan,b,q)
+                             natural=self.child(self.converter.run_plan,digits,plan,rows)
+-                            self.last_counts['conversions']+=1;digits.clear()
+-                            transformed=self.child(self.tensor.run,natural,catalogue,rows)
+-                            self.last_counts['transforms']+=1;natural.clear();transforms.append(transformed)
+-                        product=self.pointwise(*transforms,plan);self.last_counts['pointwise_products']=1
+-                        for t in transforms:t.clear()
++                            self.last_counts['conversions']+=1;digits.clear();naturals.append(natural)
++                        packed=self.pack_real(*naturals,plan)
++                        for t in naturals:t.clear()
++                        transformed=self.child(self.tensor.run,packed,catalogue,rows)
++                        self.last_counts['transforms']+=1;packed.clear()
++                        reflected=self.negate_frequencies(transformed,plan)
++                        product=self.pointwise(transformed,reflected,plan);self.last_counts['pointwise_products']=1
++                        transformed.clear();reflected.clear()
+                         opposite=self.child(self.tensor.run,product,catalogue,rows,opposite=True)
+                         self.last_counts['transforms']+=1;product.clear()
+                         recovered=self.recover(opposite,plan,b,width);opposite.clear()

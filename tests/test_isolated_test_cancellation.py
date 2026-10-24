@@ -108,9 +108,14 @@ class CancellationTests(unittest.TestCase):
             interrupted_at = []
 
             class InterruptedPool(real_pool):
-                def map(self, fn, iterable, *args, **kwargs):
-                    # Start real workers, then inject the controlling thread's exception.
-                    result = super().map(fn, iterable, *args, **kwargs)
+                submitted = 0
+
+                def submit(self, fn, *args, **kwargs):
+                    result = super().submit(fn, *args, **kwargs)
+                    self.submitted += 1
+                    if self.submitted == 1:
+                        return result
+                    # Own active work and a queued future before cancellation.
                     if not wait_for((root/"ready").exists):
                         raise RuntimeError("real module/solver did not start")
                     for name in ("module", "solver"):
@@ -159,13 +164,22 @@ class CancellationTests(unittest.TestCase):
     def test_other_controlling_exception_is_preserved(self):
         self.exercise(RuntimeError)
 
-    def test_parent_only_cleanup_is_detected(self):
+    def test_parent_only_cleanup_without_job_ownership_is_detected(self):
         def parent_only(process):
             process.kill()
             process.wait()
-        with patch.object(runner, "stop_module", parent_only):
+        with patch.object(runner, "stop_module", parent_only), \
+                patch.object(runner, "windows_module_command", side_effect=lambda command, *_: command):
             with self.assertRaisesRegex(AssertionError, "forced fixture release|survived cancellation"):
                 self.exercise()
+
+    @unittest.skipUnless(os.name == "nt", "requires Windows kill-on-close ownership")
+    def test_killing_only_the_supervisor_still_stops_its_owned_tree(self):
+        def owner_only(process):
+            process.kill()
+            process.wait()
+        with patch.object(runner, "stop_module", owner_only):
+            self.exercise()
 
     def test_cleanup_failure_does_not_mask_or_block_cancellation(self):
         with patch.object(runner, "stop_module", side_effect=PermissionError("injected denial")):
@@ -183,6 +197,24 @@ class CancellationTests(unittest.TestCase):
         process.kill.assert_called_once_with()
         process.wait.assert_called_once_with(timeout=2)
 
+    def test_taskkill_race_with_completed_owner_is_not_cleanup_failure(self):
+        process = Mock(pid=12345)
+        process.poll.side_effect = [None, 0, 0]
+        with patch.object(runner.os, "name", "nt"), \
+                patch.object(runner.subprocess, "run", return_value=Mock(returncode=128)):
+            runner.stop_module(process)
+        process.kill.assert_not_called()
+        process.wait.assert_called_once_with(timeout=2)
+
+    def test_taskkill_rejection_of_live_owner_still_reports_failure(self):
+        process = Mock(pid=12345)
+        process.poll.return_value = None
+        with patch.object(runner.os, "name", "nt"), \
+                patch.object(runner.subprocess, "run", return_value=Mock(returncode=128)):
+            with self.assertRaisesRegex(RuntimeError, "taskkill exited 128"):
+                runner.stop_module(process)
+        process.kill.assert_called_once_with()
+
     def test_worker_communicate_error_keeps_live_tree_registered(self):
         observers = []
         real_popen = subprocess.Popen
@@ -198,7 +230,7 @@ class CancellationTests(unittest.TestCase):
 
             class FailingCommunicate(real_popen):
                 def communicate(self, *args, **kwargs):
-                    if runner.BOOTSTRAP in self.args:
+                    if runner.BOOTSTRAP in self.args or runner.WINDOWS_OWNER in self.args:
                         children.append(self)
                         if not wait_for((root/"ready").exists):
                             raise RuntimeError("real module/solver did not start")
@@ -214,6 +246,9 @@ class CancellationTests(unittest.TestCase):
                     with self.assertRaises(OSError) as caught:
                         runner.run_modules([module], tests_dir=tests, cwd=root, workers=1)
                 self.assertIs(caught.exception, error)
+                self.assertTrue(all(stream.closed for child in children
+                                    for stream in (child.stdout, child.stderr)),
+                                "runner returned with owned capture streams open")
                 self.assertTrue(wait_for(lambda: not any(item.alive() for item in observers), 1),
                                 "worker failure removed the live tree before cleanup")
                 self.assertFalse((root/"release").exists())

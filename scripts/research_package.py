@@ -4,7 +4,8 @@
 Douglas Colkitt, with OpenAI Codex assistance. Apache-2.0.
 """
 import argparse
-from contextlib import closing
+import errno
+from contextlib import closing, contextmanager
 from itertools import chain
 import hashlib
 import importlib.metadata
@@ -17,8 +18,10 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 
 ROOT = Path(__file__).resolve().parents[1]
+GIT_BLOB_RESPONSE_TIMEOUT = 90
 
 
 def require(ok, message):
@@ -38,7 +41,7 @@ def canonical_relative_path(name):
 
 
 def symlink_free_relative_path(root, name):
-    """Reject symlink components without requiring a deleted input to exist.
+    """Reject symlink/junction components without requiring a deleted input to exist.
 
     Git reports changes under the target's path, not a symlink alias declared
     by its consumer. Inspect existing components below the repository root;
@@ -49,10 +52,14 @@ def symlink_free_relative_path(root, name):
     for part in parts:
         current = current / part
         try:
-            mode = current.lstat().st_mode
+            info = current.lstat()
         except (FileNotFoundError, NotADirectoryError):
             break
-        require(not stat.S_ISLNK(mode), "symlink in repository-relative path: " + name)
+        require(not stat.S_ISLNK(info.st_mode), "symlink in repository-relative path: " + name)
+        # Windows junctions have directory mode, not S_IFLNK. Inspect the same
+        # lstat result so even a dangling junction is rejected before traversal.
+        require(getattr(info, "st_reparse_tag", 0) != getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", None),
+                "junction in repository-relative path: " + name)
     return root / name
 
 
@@ -63,11 +70,30 @@ def relative_file(root, name):
     return result
 
 
+# Adapted from the package-local policy in
+# research/t74-2530-source-partner-audit/audit_common.py (Apache-2.0).
+# Keep repository configuration and linked-worktree .git discovery intact;
+# inherited shell overrides must not choose a different repository or index.
+_GIT_REDIRECT_VARS = frozenset((
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_NAMESPACE", "GIT_CEILING_DIRECTORIES",
+    "GIT_COMMON_DIR", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
+))
+_GIT_CONFIG_PREFIXES = ("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
+
+
 def git_source_env():
-    # Replacement refs can pair an original object ID with different bytes.
-    # Pins and HEAD inventories must describe the stored objects even when the
-    # caller has configured a replacement namespace or an inherited override.
-    return {**os.environ, "GIT_NO_REPLACE_OBJECTS": "1"}
+    """Use cwd's repository and stored objects, without changing the parent.
+
+    Git can ignore cwd when inherited selection variables point elsewhere.
+    Config-injection variables can also redirect worktree/index operations.
+    This policy is only for Git metadata/source subprocesses, not verifiers.
+    """
+    env = {name: value for name, value in os.environ.items()
+           if name not in _GIT_REDIRECT_VARS and not name.startswith(_GIT_CONFIG_PREFIXES)}
+    # Replacement refs can report an original ID while returning other bytes.
+    env["GIT_NO_REPLACE_OBJECTS"] = "1"
+    return env
 
 
 def git(root, *args):
@@ -139,12 +165,68 @@ class _UnsupportedNulBatch(Exception):
     """Git rejected the initial NUL-mode request before yielding any source."""
 
 
+def _closed_stdin_error(error):
+    # Windows can report EINVAL instead of EPIPE when a child closes stdin.
+    # This classifies the pipe error only; the retry still requires exit 129.
+    return (isinstance(error, BrokenPipeError)
+            or (os.name == "nt" and error.errno == errno.EINVAL))
+
+
+def _stop_git_blob_process(process):
+    """Stop this reader's owned POSIX group even after its leader exits."""
+    try:
+        if os.name == "posix":
+            # Reap an exited leader first: signaling a group containing only
+            # its unreaped zombie can report EPERM on macOS. A surviving
+            # descendant keeps the group alive after the leader is reaped.
+            process.poll()
+            os.killpg(process.pid, signal.SIGKILL)
+        else:
+            process.kill()
+    except ProcessLookupError:
+        pass
+
+
+@contextmanager
+def _git_blob_response_deadline(stop):
+    """Bound one response, excluding time spent by its consumer.
+
+    On POSIX the reader owns a session: ordinary descendants retaining a pipe
+    are stopped with the leader. Escaped sessions and separate git() calls are
+    outside this contract; non-POSIX retains the direct-child deadline.
+    """
+    expired = threading.Event()
+
+    def terminate():
+        expired.set()
+        stop()
+
+    timer = threading.Timer(GIT_BLOB_RESPONSE_TIMEOUT, terminate)
+    timer.start()
+    try:
+        yield
+    finally:
+        timer.cancel()
+        timer.join()
+        if expired.is_set():
+            raise subprocess.TimeoutExpired("git cat-file blob response", GIT_BLOB_RESPONSE_TIMEOUT)
+
+
 def _git_blob_batch(root, specs, nul):
     argv = ["git", "cat-file", "--batch"] + (["-z"] if nul else [])
     # Usage diagnostics from the unsupported-option probe are expected. Avoid
     # a second pipe that could block while we consume the framed stdout reply.
     with subprocess.Popen(argv, cwd=root, env=git_source_env(), stdin=subprocess.PIPE,
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as process:
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                          start_new_session=(os.name == "posix")) as process:
+        stopped = False
+
+        def stop():
+            nonlocal stopped
+            if not stopped:
+                _stop_git_blob_process(process)
+                stopped = True
+
         try:
             for index, spec in enumerate(specs):
                 require("\0" not in spec, "invalid Git object request")
@@ -153,32 +235,40 @@ def _git_blob_batch(root, specs, nul):
                     # Resolve one literal argument, never split a path into requests.
                     request = git(root, "rev-parse", "--verify", "--end-of-options", spec).decode("ascii").strip()
                     require(re.fullmatch(r"[0-9a-f]{40,64}", request), "invalid Git object ID")
-                try:
-                    process.stdin.write(request.encode("utf-8") + (b"\0" if nul else b"\n"))
-                    process.stdin.flush()
-                except BrokenPipeError:
-                    header = b""
-                else:
-                    header = process.stdout.readline()
-                if nul and index == 0 and not header and process.wait(timeout=90) == 129:
-                    raise _UnsupportedNulBatch(spec)
-                fields = header.rstrip(b"\n").split(b" ")
-                require(len(fields) == 3 and re.fullmatch(rb"[0-9a-f]{40,64}", fields[0])
-                        and fields[1] == b"blob" and fields[2].isdigit(),
-                        "missing or non-blob Git source: " + spec)
-                size = int(fields[2])
-                pinned = process.stdout.read(size)
-                require(len(pinned) == size and process.stdout.read(1) == b"\n",
-                        "incomplete Git blob response: " + spec)
+                with _git_blob_response_deadline(stop):
+                    try:
+                        process.stdin.write(request.encode("utf-8") + (b"\0" if nul else b"\n"))
+                        process.stdin.flush()
+                    except OSError as exc:
+                        if not _closed_stdin_error(exc):
+                            raise
+                        header = b""
+                    else:
+                        header = process.stdout.readline()
+                    if nul and index == 0 and not header and process.wait(timeout=90) == 129:
+                        raise _UnsupportedNulBatch(spec)
+                    fields = header.rstrip(b"\n").split(b" ")
+                    require(len(fields) == 3 and re.fullmatch(rb"[0-9a-f]{40,64}", fields[0])
+                            and fields[1] == b"blob" and fields[2].isdigit(),
+                            "missing or non-blob Git source: " + spec)
+                    size = int(fields[2])
+                    pinned = process.stdout.read(size)
+                    require(len(pinned) == size and process.stdout.read(1) == b"\n",
+                            "incomplete Git blob response: " + spec)
                 yield fields[0].decode("ascii"), pinned
             process.stdin.close()
             require(process.wait(timeout=90) == 0, "Git source reader failed")
         finally:
+            # Terminate ordinary descendants before closing buffered pipes. This
+            # also covers successful leader exit and an early generator close.
+            if os.name == "posix":
+                stop()
             # Option rejection can close stdin before our first write/flush.
             try:
                 process.stdin.close()
-            except BrokenPipeError:
-                pass
+            except OSError as exc:
+                if not _closed_stdin_error(exc):
+                    raise
             process.stdout.close()
             if process.poll() is None:
                 try:
@@ -546,7 +636,10 @@ def run_windows_command(argv, cwd, timeout, env):
         process = subprocess.Popen(
             # The gate itself must not run sitecustomize/PYTHONPATH startup
             # code before ownership. The requested command retains env/argv.
-            [sys.executable, "-I", "-S", "-c", _WINDOWS_GATE, name, json.dumps(argv)],
+            # Windows accepts Unicode argv directly. ASCII JSON escaping can
+            # expand an otherwise valid command past its UTF-16 launch limit.
+            [sys.executable, "-I", "-S", "-c", _WINDOWS_GATE, name,
+             json.dumps(argv, ensure_ascii=False)],
             cwd=cwd, env=env, start_new_session=True)
         checked(assign(job, int(process._handle)))
         assigned = True
@@ -586,32 +679,69 @@ def run_windows_command(argv, cwd, timeout, env):
 def run_command(argv, cwd, timeout):
     # Assertion checks must not disappear because of the caller's environment.
     # Keep explicit manifest options (including deliberate -O controls) intact.
+    # PYTHONPATH precedes the standard library on a child's sys.path, so a stray
+    # same-named module could end a verifier with exit code 0 before any check.
     env = os.environ.copy()
     env.pop("PYTHONOPTIMIZE", None)
+    # Ambient inspection can turn a verifier exception into a successful REPL
+    # exit at terminal EOF. Keep explicit -i and the caller's stdin unchanged.
+    env.pop("PYTHONINSPECT", None)
+    env.pop("PYTHONPATH", None)
     if os.name == "nt":
         code = run_windows_command(argv, cwd, timeout, env)
         require(code == 0, f"verification command exited {code}")
         return
+    previous_handler = None
+    terminating = False
+    waiting = False
+    process = None
+
+    def terminate(signum, frame):
+        nonlocal terminating
+        if not terminating:
+            terminating = True
+            # Only interrupt the protected wait. Launch/assignment and cleanup
+            # defer delivery; repeated signals cannot interrupt group cleanup.
+            if waiting:
+                raise SystemExit(128 + signum)
+
     # Own a group for POSIX cleanup of this command and its descendants.
-    process = subprocess.Popen(argv, cwd=cwd, env=env, start_new_session=True)
     try:
+        if (threading.current_thread() is threading.main_thread()
+                and signal.getsignal(signal.SIGTERM) == signal.SIG_DFL):
+            previous_handler = signal.SIG_DFL
+            signal.signal(signal.SIGTERM, terminate)
+        if terminating:
+            raise SystemExit(143)
+        process = subprocess.Popen(argv, cwd=cwd, env=env, start_new_session=True)
         try:
-            code = process.wait(timeout=timeout)
+            try:
+                waiting = True
+                if terminating:
+                    raise SystemExit(143)
+                code = process.wait(timeout=timeout)
+            finally:
+                waiting = False
         except subprocess.TimeoutExpired:
             raise ValueError("verification timed out") from None
         require(code == 0, f"verification command exited {code}")
     finally:
-        if hasattr(os, "killpg"):
-            # The leader may have exited while descendants still hold the group.
-            # Signal it on success, failure and interruption, not only timeout.
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass  # A completely finished group needs no cleanup.
-        elif process.poll() is None:
-            # Windows taskkill can address the tree only while its leader exists.
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(process.pid)], capture_output=True)
-        process.wait()
+        try:
+            if process is not None:
+                if hasattr(os, "killpg"):
+                    # The leader may have exited while descendants hold its group.
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                elif process.poll() is None:
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(process.pid)], capture_output=True)
+                process.wait()
+        finally:
+            if previous_handler is not None:
+                signal.signal(signal.SIGTERM, previous_handler)
+    if terminating:
+        raise SystemExit(143)
 
 
 def isolated_python_argv(argv, cache_directory):
@@ -769,6 +899,12 @@ def plan_details(root, changed):
     replay_changed = sorted(changed.intersection({
         "scripts/research_package.py", ".github/workflows/research-packages.yml",
         ".github/workflows/research-package-batch.yml"}))
+    # Group literal Git paths once. Keep removed paths and exact spellings.
+    changed_packages = {}
+    for name in sorted(changed):
+        parts = name.split("/", 2)
+        if len(parts) == 3 and parts[0] == "research":
+            changed_packages.setdefault("/".join(parts[:2]), []).append(name)
     packages = []
     sparse_count = 0
     for path, raw, sparse in planning_manifests(root, head_tracked):
@@ -784,7 +920,7 @@ def plan_details(root, changed):
             require_tracked_input(name, tracked)
         causes = {
             "declared_inputs": sorted(changed.intersection(inputs)),
-            "package_files": sorted(p for p in changed if p.startswith(package + "/")),
+            "package_files": changed_packages.get(package, []),
             "shared_controls": replay_changed,
         }
         if any(causes.values()):

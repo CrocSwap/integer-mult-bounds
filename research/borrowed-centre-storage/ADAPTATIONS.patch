@@ -1,0 +1,357 @@
+--- sources/work/centre-encoding-campaign-20261014/root/review_borrowed_centres.py
++++ checks/borrowed_core.py
+@@ -4,10 +4,15 @@
+ from fractions import Fraction as Q
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import gzip
+ import json
+ 
+-from check_decoder_rank_budget import ROOT, REPO, require, sources
++ROOT = Path(__file__).resolve().parents[1] / "sources" / "work/centre-encoding-campaign-20261014"
++
++def require(value, message):
++    if not value:
++        raise ValueError(message)
+ 
+ 
+ def read(name, pin, compressed=False):
+@@ -67,13 +72,19 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    args.out.parent.mkdir(parents=True, exist_ok=True)
+     old = read("lanes/circuit-interface/CENTRE-FREE-PROGRAMS.json.gz",
+                "fa60b4af013dd8b8db289845e3ed597720ff955751ad270c3d58236b64080877", True)
+     new = read("lanes/circuit-interface/borrowed-centres/BORROWED-CENTRES-PROGRAMS.json.gz",
+                "6b88cf885e22ef745eee74db04adc7feadfcc63a8248e8873b1a4caf76b21096", True)
+     interface = read("lanes/circuit-interface/INTERFACE.json",
+                      "5c6c51fbffc07a683e922f17532fd90262ae9e23cc3560a696002073dd234ef3")
+-    word = sources.load_local(REPO)["CANONICAL-WORD.json.gz"]
++    word_raw = (Path(__file__).resolve().parents[1] / "sources/selected/CANONICAL-WORD.json.gz").read_bytes()
++    require(sha256(word_raw).hexdigest() == "16bc0ebb04b4be6c0ade74badc6a0c0cdba4215eda86e4ff9f13abf8ecebd219", "Canonical word pin")
++    word = json.loads(gzip.decompress(word_raw))
+     r = [[Q(row.get(str(p), 0)) for p in range(112)] for row in interface["R"]]
+     j = [[Q(a == b)-sum(r[k][a]*r[k][b] for k in range(8))/4
+           for b in range(112)] for a in range(112)]
+@@ -110,14 +121,14 @@
+                                  scalar_macros=sum(gates.values()), real_primitives=cost,
+                                  baseline_omission_rejected=True, uncompute_omission_rejected=True)
+     report = dict(status="PASS_INDEPENDENT_BORROWED_CENTRES_NATIVE_INTERFACE",
+-                  producer_imported=False, source_commit=sources.BASE,
++                  producer_imported=False, source_commit="bce54fb3f895cbe5cd4c0eb477c3afeed100190f",
+                   checker_sha256=sha256(Path(__file__).read_bytes()).hexdigest(),
+                   borrowed_payload_sha256="6b88cf885e22ef745eee74db04adc7feadfcc63a8248e8873b1a4caf76b21096",
+                   checks=checks,
+                   scope="The actual unchanged native frames and children with arbitrary borrowed centre state. The old exact complex native contracts are inherited.",
+                   not_claimed=["The stage-seven private cancellation preserves these fields",
+                                "A global query carrier schedule", "A complete supplier or kappa gain"])
+-    (ROOT / "root/BORROWED-CENTRES-REVIEW.json").write_text(json.dumps(report, indent=2, sort_keys=True)+"\n")
++    args.out.write_text(json.dumps(report, indent=2, sort_keys=True)+"\n")
+     print(report["status"])
+     print(json.dumps(checks, sort_keys=True))
+ 
+--- sources/work/centre-encoding-campaign-20261014/lanes/residual-syndrome/physical-algebra/review-gauss/graph-cache/carried-alias/verify_alias_review.py
++++ checks/carried_alias.py
+@@ -5,14 +5,12 @@
+ from hashlib import sha256
+ from itertools import combinations
+ from pathlib import Path
++import argparse
+ import gzip
+-import io
+ import json
+-import subprocess
+-import tarfile
+-
+-
+-HERE = Path(__file__).resolve().parent
++
++
++HERE = Path(__file__).resolve().parents[1] / "sources" / "work/centre-encoding-campaign-20261014" / "lanes/residual-syndrome/physical-algebra/review-gauss/graph-cache/carried-alias"
+ PHYSICAL = HERE.parents[2]
+ LANES = PHYSICAL.parents[1]
+ ROOT = LANES.parents[2]
+@@ -57,10 +55,6 @@
+     return json.loads(raw)
+ 
+ 
+-def git_bytes(path):
+-    return pinned(subprocess.check_output(
+-        ["git", "show", BASE + ":" + path],
+-        cwd=ROOT / "worktrees/k5-centre-sharing"), path)
+ 
+ 
+ def rational(rows):
+@@ -159,6 +153,10 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    args.out.parent.mkdir(parents=True, exist_ok=True)
+     payload = read(PHYSICAL / "CARRIED-QUERY-ALIAS-PROGRAMS.json.gz", "payload", True)
+     pinned((PHYSICAL / "CARRIED-QUERY-ALIAS.md").read_bytes(), "note")
+     pinned((PHYSICAL / "verify_carried_query_alias.py").read_bytes(), "producer")
+@@ -232,10 +230,10 @@
+     baseline = [add({p: Q(1)}, row, -1) for p, row in zip(T, query)]
+     assert baseline[0][2] == Q(-1, 2)
+ 
+-    with tarfile.open(fileobj=io.BytesIO(git_bytes(ARCHIVE)), mode="r:gz") as stream:
+-        phase = json.loads(pinned(stream.extractfile(PHASES).read(), PHASES))
+-        template = json.loads(gzip.decompress(pinned(stream.extractfile(TEMPLATE).read(), TEMPLATE)))
+-    plan = json.loads(git_bytes(PLAN))
++    selected = Path(__file__).resolve().parents[1] / "sources/alias-upstream"
++    phase = json.loads(pinned((selected / "DATA-PHASES.json").read_bytes(), PHASES))
++    template = json.loads(gzip.decompress(pinned((selected / "GLOBAL-TEMPLATE.json.gz").read_bytes(), TEMPLATE)))
++    plan = json.loads(pinned((selected / "PLAN.json").read_bytes(), PLAN))
+     assert (plan["K"], plan["T"], plan["M"], plan["L"], plan["live"]) == (4, 16, 73, 9, 14336)
+     assert {(c["stage"], c["replica"]) for c in plan["provider_calls"]} == {(s, t) for s in range(9) for t in range(16)}
+     for c in plan["provider_calls"]:
+@@ -324,7 +322,7 @@
+     assert omitted_signs_rejected > 0
+     report = {
+         "status": "PASS_INDEPENDENT_CARRIED_QUERY_ALIAS",
+-        "source_base": BASE, "pins": PINS,
++        "source_base": BASE, "pins": PINS, "archive_replayed": False, "packaged_members_verified": True,
+         "complete_712_column_replays": ["captured_backward_word", "following_forward_word"],
+         "captured_backward": backward_bill, "following_forward": forward_bill,
+         "arbitrary_helper_outputs": 480, "arbitrary_cache_inputs": 8,
+@@ -345,7 +343,7 @@
+         "credit_scope": "Rank 584 per replica is paid. Productive rank 584 requires eight admitted independent owners and their full F73 outputs; this review does not admit their allocation.",
+         "excluded": ["Clean query access", "Restoration of source G", "A complete global data controller", "Final owner allocation", "Address and scalar-control invoice", "Full recursive or precision invoice", "Kappa improvement"],
+     }
+-    (HERE / "REVIEW.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
++    args.out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+     print(report["status"])
+     print("all712=2 phase_identities=144 phase_values=389088 hole_eigenvalues=4096")
+     print("capture=4224 unload=64 windows=4 owner_rank=73")
+--- sources/work/centre-encoding-campaign-20261014/lanes/history-encoding/review_clean_idle_storage.py
++++ checks/clean_storage.py
+@@ -3,16 +3,15 @@
+ from collections import Counter, defaultdict
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import gzip
+ import json
+-import tarfile
+-
+-
+-LANE = Path(__file__).resolve().parent
+-CAMPAIGN = LANE.parents[1]
+-REPO = CAMPAIGN.parents[1]
++
++
++CAMPAIGN = Path(__file__).resolve().parents[1] / "sources" / "work/centre-encoding-campaign-20261014"
++LANE = CAMPAIGN / "lanes/history-encoding"
++SELECTED = Path(__file__).resolve().parents[1] / "sources/selected"
+ SOURCE = CAMPAIGN / "lanes/source-domain/carried-owner-reuse"
+-ARCHIVE = REPO / "worktrees/k5-persistent-cleanup/research/community-frontier1094-audit/selected-replay.tar.gz"
+ PINS = {
+     "CLEAN-IDLE-STORAGE.json": "294a8f4ac078cebb2545834f307628ca1578c635ca10d6c9d309900997d86ae1",
+     "CLEAN-IDLE-STORAGE.md": "1015479b667d70be74121c0abd347cbd8fd72938d932b544675b2236dd18864a",
+@@ -59,16 +58,14 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    args.out.parent.mkdir(parents=True, exist_ok=True)
+     frozen = {name: pinned(SOURCE/name, pin) for name, pin in PINS.items()}
+     receipt = json.loads(frozen["CLEAN-IDLE-STORAGE.json"])
+-    digest = sha256()
+-    with ARCHIVE.open("rb") as stream:
+-        for block in iter(lambda: stream.read(1 << 20), b""):
+-            digest.update(block)
+-    require(digest.hexdigest() == "f1da80610bf33c58527f18ad63b4350d0b864e1d4486141ee17ac9bed4d529d6", "Selected archive pin")
+     member = "candidate/strict/global/hosted/GLOBAL-TEMPLATE.json.gz"
+-    with tarfile.open(ARCHIVE) as archive:
+-        raw = archive.extractfile(member).read()
++    raw = (SELECTED / "GLOBAL-TEMPLATE.json.gz").read_bytes()
+     member_hash = sha256(raw).hexdigest()
+     require(member_hash == "2acf02b418078e37090495c601fe550448751d4f35912757b13a1f778efc7760", "Selected template pin")
+     template = json.loads(gzip.decompress(raw))
+@@ -224,7 +221,7 @@
+         reject(lambda: require(len({r["donor_family"] for r in chosen[:-1]} | {b}) == 512, "Repeated donor"), "duplicate_donor"),
+     ]
+     result = dict(status="PASS_INDEPENDENT_ALL512_CLEAN_IDLE_STORAGE", producer_imported=False, producer_executed=False,
+-        source_pins=PINS, archive_sha256=digest.hexdigest(), template_sha256=member_hash,
++        source_pins=PINS, archive_sha256="f1da80610bf33c58527f18ad63b4350d0b864e1d4486141ee17ac9bed4d529d6", archive_replayed=False, packaged_members_verified=True, template_sha256=member_hash,
+         alias_review_sha256=alias_pin, checker_sha256=sha256(Path(__file__).read_bytes()).hexdigest(),
+         original_event_counts=dict(counts), complete_schedule_events=482, complete_intervals=64,
+         selected_query_rows=512, globally_disjoint_source_donor_pairs=512, candidate_range=[3608, 10675],
+@@ -236,7 +233,7 @@
+         placement="Each capture is a complete sweep after B and before the next event; each erase is a complete sweep before F.",
+         negative_controls=controls,
+         excluded=["Common-frame query access", "Storage through F", "Source-code restoration", "A complete global controller", "Finite address, control, and precision invoice", "Kappa improvement"])
+-    (LANE/"CLEAN-IDLE-STORAGE-REVIEW.json").write_text(json.dumps(result, indent=2, sort_keys=True)+"\n")
++    args.out.write_text(json.dumps(result, indent=2, sort_keys=True)+"\n")
+     print(result["status"])
+     print(json.dumps({k: result[k] for k in ("selected_query_rows", "exact_bridge_read_replacements", "scalar_real_primitives_subtotal")}, sort_keys=True))
+ 
+--- sources/work/centre-encoding-campaign-20261014/lanes/portable-source-codes/dirty-record-hosting-20261015/algebra/masked-query-review/check_masked_query.py
++++ checks/masked_query.py
+@@ -13,10 +13,10 @@
+ import shutil
+ 
+ 
+-ROOT = Path('/Users/aliromman/Projects/IntegerMultiplicationBounds')
++ROOT = Path(__file__).resolve().parents[1] / 'sources'
+ LANES = ROOT / 'work/centre-encoding-campaign-20261014/lanes'
+ SOURCE = LANES / 'paired-package-review/upstream-followthrough-20261015'
+-HERE = Path(__file__).resolve().parent
++HERE = ROOT / 'work/centre-encoding-campaign-20261014/lanes/portable-source-codes/dirty-record-hosting-20261015/algebra/masked-query-review'
+ A = (0, 7, 20, 27, 36, 46, 57, 111)
+ TP = (21, 37, 47, 76, 81, 87, 92, 110)
+ V0 = A + TP
+@@ -185,7 +185,7 @@
+ 
+ def main():
+     parser = argparse.ArgumentParser()
+-    parser.add_argument('--out', type=Path, default=HERE / 'CHECK.json')
++    parser.add_argument('--out', type=Path, required=True)
+     args = parser.parse_args()
+     need(shutil.disk_usage(HERE).free >= 3 * 1024**3, 'At least three GiB free')
+     current_dir = SOURCE / 'current-query-encoder'
+--- sources/work/centre-encoding-campaign-20261014/lanes/history-encoding/review_relative_owner_reuse.py
++++ checks/relative_storage.py
+@@ -3,16 +3,15 @@
+ from collections import Counter, defaultdict
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import gzip
+ import json
+-import tarfile
+-
+-
+-LANE = Path(__file__).resolve().parent
+-CAMPAIGN = LANE.parents[1]
+-REPO = CAMPAIGN.parents[1]
++
++
++CAMPAIGN = Path(__file__).resolve().parents[1] / "sources" / "work/centre-encoding-campaign-20261014"
++LANE = CAMPAIGN / "lanes/history-encoding"
++SELECTED = Path(__file__).resolve().parents[1] / "sources/selected"
+ SOURCE = CAMPAIGN / "lanes/source-domain/carried-owner-reuse"
+-ARCHIVE = REPO / "worktrees/k5-persistent-cleanup/research/community-frontier1094-audit/selected-replay.tar.gz"
+ PORTS = [21, 37, 47, 76, 81, 87, 92, 110]
+ PINS = {
+     "RELATIVE-REUSE.json": "1d6d6c598022c7e83920a00575aeb5b3866b1ed1327718d389f659b057659acb",
+@@ -82,6 +81,10 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    args.out.parent.mkdir(parents=True, exist_ok=True)
+     sources = {name: pinned(SOURCE / name, pin) for name, pin in PINS.items()}
+     receipt = json.loads(sources["RELATIVE-REUSE.json"])
+     premises = {name: json.loads(pinned(CAMPAIGN / name, pin)) for name, pin in DEPENDENCIES.items()}
+@@ -92,17 +95,10 @@
+     require(alias_review["pins"]["producer_receipt"] == DEPENDENCIES["lanes/residual-syndrome/physical-algebra/CARRIED-QUERY-ALIAS.json"], "Alias review pin")
+     require(all(v["arbitrary_helpers_restored"] == 480 and v["input_columns"] == 712
+                 for v in helper_review["checks"].values()), "Arbitrary-helper output independence premise")
+-    digest = sha256()
+-    with ARCHIVE.open("rb") as stream:
+-        for block in iter(lambda: stream.read(1 << 20), b""):
+-            digest.update(block)
+-    require(digest.hexdigest() == "f1da80610bf33c58527f18ad63b4350d0b864e1d4486141ee17ac9bed4d529d6", "Selected archive pin")
+     original = {}
+-    with tarfile.open(ARCHIVE) as archive:
+-        for key, (name, pin) in MEMBERS.items():
+-            raw = archive.extractfile(name).read()
+-            require(sha256(raw).hexdigest() == pin, "Selected member pin")
+-            original[key] = json.loads(gzip.decompress(raw) if name.endswith(".gz") else raw)
++    for key, (name, pin) in MEMBERS.items():
++        raw = pinned(SELECTED / name.rsplit("/", 1)[-1], pin)
++        original[key] = json.loads(gzip.decompress(raw) if name.endswith(".gz") else raw)
+     template, word, recipes = original["template"], original["word"], original["phases"]["recipes"]
+     require(template["cover"] == "all matrices d in O(73,2), in lexicographic row order", "Full orthogonal cover")
+     require(template["live"] == 14336 and template["physical"] == 14826, "Original stocks")
+@@ -284,7 +280,7 @@
+     ]
+     result = dict(status="PASS_INDEPENDENT_ALL512_RELATIVE_DIRTY_CACHE", producer_imported=False, producer_executed=False,
+         producer_pins=PINS, dependency_pins=DEPENDENCIES, source_members={k: dict(path=p, sha256=h) for k, (p, h) in MEMBERS.items()},
+-        archive_sha256=digest.hexdigest(), checker_sha256=sha256(Path(__file__).read_bytes()).hexdigest(),
++        archive_sha256="f1da80610bf33c58527f18ad63b4350d0b864e1d4486141ee17ac9bed4d529d6", archive_replayed=False, packaged_members_verified=True, checker_sha256=sha256(Path(__file__).read_bytes()).hexdigest(),
+         actual_schedule_events=len(events), original_helper_slots_checked=len(used_slots), original_idle_suffixes_checked=len(template["idle_children"]),
+         complete_donor_histories=512, selected_paths=512, complete_eight_row_cohorts=64, globally_distinct_old_owners=512,
+         selected_owner_sides=dict(sides), unequal_entry_ranks=unequal, selected_path_lengths=dict(path_lengths),
+@@ -298,7 +294,7 @@
+         not_replayed=["The original complete local scalar programs and native helper normalizers; their reviewed arbitrary-input contracts are retained.",
+                      "Candidate enumeration and matching search; the full 512-row distinct-owner witness is checked directly."],
+         excluded=["Clean query access", "Local C alias", "A dirty-cache read protocol", "Restoration of source G", "A full data controller", "Finite address, control, precision, and recursive invoice", "Kappa improvement"])
+-    output = LANE / "RELATIVE-OWNER-REUSE-REVIEW.json"
++    output = args.out
+     output.write_text(json.dumps(result, indent=2, sort_keys=True)+"\n")
+     print(result["status"])
+     print(json.dumps({k: result[k] for k in ("selected_paths", "selected_existing_native_profile", "exact_phase_coefficients", "scalar_real_primitives_subtotal")}, sort_keys=True))
+--- sources/work/centre-encoding-campaign-20261014/lanes/portable-source-codes/dirty-record-hosting-20261015/algebra/stream-cleanup-review/check_stream_cleanup.py
++++ checks/stream_cleanup.py
+@@ -15,9 +15,9 @@
+ import shutil
+ 
+ 
+-ROOT = Path('/Users/aliromman/Projects/IntegerMultiplicationBounds')
++ROOT = Path(__file__).resolve().parents[1] / 'sources'
+ LANES = ROOT / 'work/centre-encoding-campaign-20261014/lanes'
+-HERE = Path(__file__).resolve().parent
++HERE = ROOT / 'work/centre-encoding-campaign-20261014/lanes/portable-source-codes/dirty-record-hosting-20261015/algebra/stream-cleanup-review'
+ PACK = HERE.parent.parent / 'masked-query'
+ A = (0, 7, 20, 27, 36, 46, 57, 111)
+ T = (21, 37, 47, 76, 81, 87, 92, 110)
+@@ -318,7 +318,7 @@
+ 
+ def main():
+     parser = argparse.ArgumentParser()
+-    parser.add_argument('--out', type=Path, default=HERE / 'CHECK.json')
++    parser.add_argument('--out', type=Path, required=True)
+     args = parser.parse_args()
+     need(shutil.disk_usage(HERE).free >= 3 * 1024**3, 'At least three GiB free')
+     manifest = json.loads(read(PACK / 'STREAM-CLEANUP-MANIFEST.json',
+--- sources/work/centre-encoding-campaign-20261014/lanes/coherent-port/current-query-review-20261015/review_unit.py
++++ checks/unit_query.py
+@@ -4,12 +4,13 @@
+ from fractions import Fraction as F
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import gzip
+ import importlib.util
+ import json
+ 
+ 
+-HERE = Path(__file__).resolve().parent
++HERE = Path(__file__).resolve().parents[1] / "sources" / "work/centre-encoding-campaign-20261014" / "lanes/coherent-port/current-query-review-20261015"
+ spec = importlib.util.spec_from_file_location("independent_query_review", HERE / "review_query.py")
+ review = importlib.util.module_from_spec(spec)
+ spec.loader.exec_module(review)
+@@ -24,6 +25,10 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    args.out.parent.mkdir(parents=True, exist_ok=True)
+     need, plus, mul = review.need, review.plus, review.product
+     for name, pin in PINS.items():
+         review.read(review.SOURCE / name, pin)
+@@ -97,7 +102,7 @@
+                   changed_output_rows=8, correction_coefficients=424, both_dyadic_inverse_orders=True,
+                   rejected_controls=3, costs=costs, added_rank_one_children=8, native_mass=5530,
+                   scope="Separate unit-query local word; native line and exterior phase evidence inherited byte-for-byte from the independent PJ review.")
+-    (HERE / "UNIT-REVIEW.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
++    args.out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+     print("PASS_UNIT_QUERY_REVIEW: all 712 columns, both inverse orders, and 212826 scalar")
+ 
+ 

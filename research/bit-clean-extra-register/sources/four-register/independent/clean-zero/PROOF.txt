@@ -1,0 +1,99 @@
+Clean helper with zero active off-diagonal patterns
+=================================================
+
+The active contract is only the upper-left 3 by 3 scalar block:
+
+  J^T P J = diag([C_1],[C_2],[C_3]).
+
+The fourth input is zero and its output is unused. The target frames
+are invertible lower-triangular rational 3 by 3 matrices. Each of the
+eight paid frames is nonzero and rank one. Scalar factors are binary
+rank-one idempotents on four registers. This result adds the hypothesis
+that every paid scalar projector has zero off-diagonal entries in its
+active 3 by 3 block.
+
+Alphabet and multiplicity reduction
+-----------------------------------
+Write N=xy^T, with active parts x',y' and helper components x_4,y_4.
+If the active block is nonzero and diagonal, x'=y'=e_i for one active
+i. Idempotence requires x_4 y_4=0. There are exactly three choices:
+
+  E_ii,  E_ii+E_i4,  E_ii+E_4i.
+
+If the active block is zero, x'=0 or y'=0. Idempotence requires
+x_4=y_4=1. These are the helper-star projectors e_4(e_4+v)^T and
+(e_4+u)e_4^T. There are 15 distinct choices, including E_44. The full
+zero-active-off-pattern alphabet therefore has 24 projectors.
+
+Let d_i count calls from active-diagonal family i, and D=sum d_i.
+Every such call contributes e_i to both active visible codes. A
+helper-star call contributes a nonzero vector of F_2^3 to just one
+code, or contributes zero to both. Each nonzero active row must see
+at least three calls in each code. This follows by projecting away
+at most two visible paid frames: the active row of the circuit is
+fixed, but an active invertible target in its support is not.
+
+For fixed d, let m be the smallest number of extra nonzero vectors
+that makes one code have distance at least three. Both codes need
+at least m extra calls, so D+2m<=8 is necessary. A binary dimension-
+three distance-three code has length at least six: its eight disjoint
+radius-one balls do not fit in binary space of length at most five.
+
+If m>=3, D+m<=8-m<=5 contradicts this code bound. If m=2, each d_i
+is at least one and D<=4. At least two counts are one. Both extra
+vectors must contain those two coordinates, so their pair has weight
+two, a contradiction. If m=1, each d_i>=2 and D<=6, hence d=(2,2,2)
+and the extra vector is (1,1,1). If m=0, all d_i>=3 needs D>=9.
+
+Thus the word has exactly two calls from each three-choice active
+family, one fixed U=(1,1,1,1)e_4^T, and one fixed V=e_4(1,1,1,1)^T.
+No E_44 call or other helper-star direction fits the call budget.
+There are binomial(4,2)^3=216 multisets. This analytical reduction
+was found independently by the audit agent. The exact finite code
+check in ../clean_zero_off_distance.py gives the same classification.
+
+Complete word and relation check
+--------------------------------
+generate.py lists every order of all 216 multisets, modulo swaps of
+adjacent factors whose scalar projectors commute. It uses actual
+projector products. It makes no reversal reduction. The resulting
+counts are 3,674,160 raw orders and 314,666 commuting normal forms.
+
+CLEAN-SPAN-FOUR.txt proves that paid-frame span at most four needs
+at least nine calls for the compressed active-block contract. Hence
+an eight-call solution has relation dimension at most three. Search
+all required subset collisions up to that dimension. A nonzero
+active off-diagonal term must merge with a partner in its entry.
+If an active diagonal has multiple terms, at least one of its first
+two terms must merge with another current term; branch on every such
+partner. This branch rule includes the case where those first two
+terms merge with each other.
+
+At a terminal, all three active entries are monomials. Reject zero
+paid frames and any active target in the span of at most two paid
+frames. These necessary tests exclude an invertible target. Only the
+active block is constrained; all entries involving the helper remain
+unrestricted. No returned-helper equation is imposed.
+
+Two exact engines check every retained word. One uses primitive
+integer rows. One uses F101 with the bounded-minor rational-equivalence
+argument in F101-ARITHMETIC.txt. Both use at most three original cube
+difference relations. After deterministic branch ordering, every
+cumulative count and every terminal word/count agrees:
+
+  words:              314,666
+  states by relation rank:
+    314,666; 1,005,125; 1,024,411; 2,160,151
+  monomial terminals:  20,430 on 17,799 word IDs
+  accepted spaces:          0
+
+An earlier integer run used another complete branch order. It also
+rejected every word and found the same terminal word IDs. Its terminal
+space count differed because it stopped at different already-rejected
+subspaces. The canonical run resolves that diagnostic difference.
+
+Therefore no eight-call solution exists in this full zero-active-off-
+pattern case. This is not yet an exclusion of all clean-helper words.
+Together with CLEAN-ONE-RELATION.txt, after its analytic proof review,
+it also excludes clean four-register words of frame span seven or
+eight. General clean frame spans five and six remain unresolved here.

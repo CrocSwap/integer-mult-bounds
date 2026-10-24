@@ -1,0 +1,11 @@
+# Attribution and source coverage
+
+Rohan Arun, PR #1931, and Ali Romman, PR #1862: inherited eight-repair involution and source-family framework. Dugongue, PR #4935 at 64c9f99693c92fb370096fb43dbc58a085b30e36: current forward involution, selected ports, R factor and source-bound core. Dugongue #4929: helper-clean center-free code and actual backward base. These are not new discoveries here.
+
+PR #4933 at d969c458c24278e0fd37e5b4c0ff8a53a496b430, prepared for Dillon: exact real normalizers, X-only backward correction, gauge identities, full typed caller and inherited noncommutative core replay. Its gauge.py, CONTROLLER.json and NORMALIZERS.json are retained byte-for-byte. Their construction and proofs retain credit. This package checks and instantiates them with F and F^T; it does not claim a new core theorem.
+
+Cao Yifan: actual canonical round-three source beyond #4610. Cinna Davis: #4694, #4698, #4470 and retained helper/controller construction. Ryanson Jonathan #4516: controller checks. Retain zxv's native/Clifford/compiler work, Jacob Alan Sussman's mixed-target recursion, and all upstream scalar, geometry, precision, compiler and outer proof contributors in NOTICE. The retained Clifford compiler and native replay engine are not new implementations.
+
+New work: actual backward repair constructor; separate backward repair-column replay adapted from the predecessor sparse evaluator; exact dyadic forward/transpose recoding and typed caller instantiation. Prepared by Dugongue with substantial OpenAI Codex assistance from one agent. No subagents or independent human review were used. New work is Apache-2.0; retained notices and licenses apply.
+
+Overlap was checked against the latest public PR metadata, targeted exact heads #4931--#4935 and #4937, cached earlier overlap and relevant local notes. This is bounded coverage, not an exhaustive novelty claim. The large unit-saving headlines in #4934/#4937 were not adopted as complete κ results: the inspected schedule verifiers construct target observations from K and hard-code a call count, without a literal paid producer for those observations. This is a source-reading limitation, not a proof that every possible nine-call construction is impossible. Their authors retain credit for whatever scoped algebra they actually establish.

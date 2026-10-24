@@ -1,0 +1,20 @@
+--- replayed/replay.py
++++ final/replay.py
+@@ -153,7 +153,7 @@
+               "source_manifest_sha256": digest((HERE / "SOURCES.json").read_bytes()),
+               "runner_sha256": digest(Path(__file__).read_bytes()), "python": platform.python_version(),
+               "platform": platform.platform(), "child_processes_run_concurrently": 1,
+-              "comparison": "Exact bytes except the four reader source paths and SOURCE-MANIFEST keys. The raw decompressed reader payload is first bound to its raw receipt; its canonical hash then replaces that receipt field. All other fields are compared.",
++              "comparison": "Exact bytes for files without source paths. Complete canonical JSON comparison for reader CHECKS, decompressed READERS, and SOURCE-MANIFEST: normalize only the four source paths or manifest keys. Bind the raw reader payload to its raw receipt first, then use the canonical payload hash in the canonical receipt. Compare every other field.",
+               "omitted": ["Producer native re-emission", "Original 3036-class phase sweep", "Reader native-event replay", "Accumulator supply, transport, and late erasure", "Global controller, recursive supplier, precision, and complete kappa calculation"]}
+     (out / "REPLAY.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+     print(report["status"])
+--- replayed/SOURCES.json
++++ final/SOURCES.json
+@@ -1,5 +1,5 @@
+ {
+-  "comparison": "Exact frozen input bytes; decompressed payload comparison for regenerated gzip output.",
++  "comparison": "Exact bytes for frozen inputs. replay.py defines complete output comparisons, including the explicit path normalization for reader JSON and source manifests.",
+   "files": [
+     {
+       "bytes": 202201,

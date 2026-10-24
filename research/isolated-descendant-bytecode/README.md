@@ -93,6 +93,20 @@ registered commands, verifier and `RESULT.json` are retained unchanged.
 This metadata correction was prepared for roger-sato with substantial OpenAI
 Codex assistance; Arham Tahir's original work and source credit are retained.
 
+The `tests/test_research_source_history.py` row likewise authenticates the
+original test copied by `pinned_sources()` from the exact base-commit Git blob;
+the verifier does not import the live test file. Its original commit, blob and
+SHA256 remain unchanged. Classifying that row as provenance permits the live
+test's disposable Git fixtures to disable automatic maintenance, preventing
+detached writers from racing temporary-directory cleanup. `VERIFY.json` still
+declares the current test as a planner and publication input. The original
+sixteen-run differential, verifier, commands and result remain unchanged.
+Regression controls require the historical replay to pass even when a live
+test copy cannot import, retain rejection of original pin corruption, and
+confirm live changes still select replay and fail uncommitted-byte checks.
+This fixture repair was prepared by Clear1nsight with substantial OpenAI
+Codex assistance; it changes no source-history validation or research claim.
+
 ```sh
 python3.12 -B scripts/research_package.py --package research/isolated-descendant-bytecode --check-only
 python3.12 -B scripts/research_package.py --package research/isolated-descendant-bytecode

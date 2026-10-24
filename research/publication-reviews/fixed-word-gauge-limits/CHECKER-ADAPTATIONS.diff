@@ -1,0 +1,323 @@
+--- lanes/encoded-controller/review/check_common_product_rank.py
++++ checkers/check_common_product_rank.py
+@@ -9,7 +9,7 @@
+ 
+ 
+ HERE = Path(__file__).resolve().parent
+-LANES = HERE.parent.parent
++PACKAGE = HERE.parent
+ 
+ 
+ def require(condition, label):
+@@ -28,7 +28,7 @@
+     spec = spec_from_file_location("review_source", HERE / "check_line_paths.py")
+     helper = module_from_spec(spec)
+     spec.loader.exec_module(helper)
+-    word, programs = helper.load_source(args.repo)
++    word, programs = helper.load_source()
+     centres = word["center_frames"]
+     require(centres == list(range(415, 423)), "Centre frame IDs")
+     intersection = set.intersection(*(span(word["frames"][frame]) for frame in centres))
+@@ -50,7 +50,7 @@
+         fixed = {u for u in span(frame) if u == (u & (128 | 256))}
+         require(fixed == {0, 128, 256, 384}, "Sharp fixed space")
+         sharp.append({"frame": frame_id, "old_rank": 8, "new_rank": changed_rank})
+-    proof = LANES / "source-domain/COMMON-PRODUCT-RANK.md"
++    proof = PACKAGE / "proofs/COMMON-PRODUCT-RANK.md"
+     result = {
+         "status": "ACCEPTED_COMMON_PRODUCT_CENTRE_RANK_BOUND",
+         "source_base": helper.BASE,
+@@ -69,16 +69,16 @@
+         ],
+         "scope": "A local native-rank bound for products of translation-line gauges from one fixed common subspace A. This does not price the complete scalar graph, all child moments, or a supplier.",
+         "not_claimed": ["A bound for lines outside A", "No complete-cost gain", "All Clifford gauges", "A changed native supplier replay or a kappa bound"],
+-        "source_sha256": {str(path): sha256(path.read_bytes()).hexdigest()
++        "source_sha256": {str(path.relative_to(PACKAGE)): sha256(path.read_bytes()).hexdigest()
+                           for path in (proof, HERE / "check_line_paths.py", HERE / "check_common_product_rank.py")},
+         "maximum_resident_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+     }
+-    (HERE / "COMMON-PRODUCT-RANK-REVIEW.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
++    args.out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+     print(result["status"])
+     print("common_dimension=5 gram_rank=2 centre_ranks=6,6,6,6,6,6,6,6")
+ 
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
++    parser.add_argument("--out", type=Path, required=True)
+     main(parser.parse_args())
+--- lanes/encoded-controller/review/check_line_paths.py
++++ checkers/check_line_paths.py
+@@ -6,17 +6,15 @@
+ from pathlib import Path
+ import argparse
+ import gzip
+-import io
+ import json
+ import resource
+ import subprocess
+ import sys
+-import tarfile
+ import tempfile
+ 
+ 
+ HERE = Path(__file__).resolve().parent
+-LANES = HERE.parent.parent
++PACKAGE = HERE.parent
+ BASE = "bce54fb3f895cbe5cd4c0eb477c3afeed100190f"
+ ARCHIVE = "research/community-frontier1042-audit/selected-replay.tar.gz"
+ PINS = {
+@@ -47,15 +45,12 @@
+             + ((left >> 9) & (right & 511)).bit_count()) % 2
+ 
+ 
+-def load_source(repo):
+-    raw = subprocess.check_output(["git", "show", BASE + ":" + ARCHIVE], cwd=repo)
+-    require(sha256(raw).hexdigest() == PINS[ARCHIVE], "Archive pin")
+-    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+-        output = []
+-        for name in list(PINS)[1:]:
+-            compressed = archive.extractfile(name).read()
+-            require(sha256(compressed).hexdigest() == PINS[name], "Source member pin")
+-            output.append(json.loads(gzip.decompress(compressed)))
++def load_source():
++    output = []
++    for name in list(PINS)[1:]:
++        compressed = (PACKAGE / "data" / Path(name).name).read_bytes()
++        require(sha256(compressed).hexdigest() == PINS[name], "Source member pin")
++        output.append(json.loads(gzip.decompress(compressed)))
+     return output
+ 
+ 
+@@ -139,10 +134,10 @@
+ 
+ 
+ def main(args):
+-    source_dir = LANES / "source-domain"
++    source_dir = PACKAGE / "certificates"
+     cert_paths = [source_dir / name for name in ("WIRE-GAUGE-ODD-PATHS.json.gz", "WIRE-GAUGE-LINE42-PATHS.json.gz")]
+     certs = [json.loads(gzip.decompress(path.read_bytes())) for path in cert_paths]
+-    word, programs = load_source(args.repo)
++    word, programs = load_source()
+     forward, roots, groups = components(word, programs["forward"])
+     backward, backward_roots, backward_groups = components(word, programs["backward"])
+     require(groups == backward_groups, "Both scalar and boundary partitions")
+@@ -235,11 +230,10 @@
+     def reject(name, mutate, expected):
+         changed = deepcopy(certs[0])
+         mutate(changed)
+-        with tempfile.TemporaryDirectory(prefix="line-path-control-", dir=HERE) as temporary:
++        with tempfile.TemporaryDirectory(prefix="line-path-control-") as temporary:
+             path = Path(temporary) / "certificate.json.gz"
+             path.write_bytes(gzip.compress(json.dumps(changed).encode(), mtime=0))
+-            command = [sys.executable, "-I", "-O", "-B", str(source_dir / "verify_odd_paths.py"),
+-                       "--repo", str(args.repo), "--out", str(Path(temporary) / "unexpected.json"), str(path), str(cert_paths[1])]
++            command = [sys.executable, "-I", "-O", "-B", str(HERE / "verify_odd_paths.py"), "--out", str(Path(temporary) / "unexpected.json"), str(path), str(cert_paths[1])]
+             run = subprocess.run(command, capture_output=True, text=True, timeout=60)
+             require(run.returncode != 0 and expected in run.stderr, "Mutation control: " + name)
+             controls.append({"control": name, "exit_code": run.returncode, "rejected_by": expected})
+@@ -263,8 +257,8 @@
+     reject("native_wrapper_omission", lambda doc: doc["graph"]["edges"].pop(next(i for i, edge in enumerate(doc["graph"]["edges"]) if edge[5] == "adapter")), "Native edge count")
+     reject("missing_line", lambda doc: doc["lines"].remove(first(doc)), "all 256 odd lines exactly once")
+ 
+-    paths = cert_paths + [source_dir / name for name in ("verify_odd_paths.py", "route_cut_certificate.py", "ALL-LINE-GAUGES.md")]
+-    paths += [LANES / "temporal-reuse/review_wire_gauge.py", HERE / "check_line_paths.py"]
++    paths = cert_paths + [HERE / "verify_odd_paths.py", PACKAGE / "proofs/ALL-LINE-GAUGES.md",
++                          HERE / "review_wire_gauge.py", HERE / "check_line_paths.py"]
+     receipt = {
+         "status": "ACCEPTED_INDEPENDENT_ALL_FIXED_LINE_RANK_MASS_OBSTRUCTION",
+         "source_base": BASE,
+@@ -287,15 +281,15 @@
+         "boundary_scope": "The graph keeps the original scalar program and requires one gauge at each ADD or COPY. Each old data pair has a common gauge on its four boundary points. Each helper has one gauge at its input and output. A CLEAR starts a new private lifetime. These constraints preserve the exact endpoint on arbitrary inputs.",
+         "backward_scope": "The two source programs give the same component partition and undirected native inventory. In backward frames D_U=T_U F^-1, the line gauges commute with F. The relative ranks therefore agree in both orientations.",
+         "not_claimed": ["Different gauge lines at different components", "All Clifford palettes", "All child costs or moments", "An unchanged rank profile for every zero-rank cut", "A changed scalar program or controller", "A fully emitted changed supplier or a kappa bound"],
+-        "source_sha256": {str(path): sha256(path.read_bytes()).hexdigest() for path in paths},
++        "source_sha256": {str(path.relative_to(PACKAGE)): sha256(path.read_bytes()).hexdigest() for path in paths},
+         "maximum_parent_resident_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+         "maximum_control_child_resident_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,
+     }
+-    (HERE / "ALL-LINE-PATH-REVIEW.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
++    args.out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+     print(receipt["status"], flush=True)
+ 
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
++    parser.add_argument("--out", type=Path, required=True)
+     main(parser.parse_args())
+--- lanes/temporal-reuse/gauge_negative_controls.py
++++ checkers/gauge_negative_controls.py
+@@ -14,7 +14,7 @@
+     spec = spec_from_file_location("review", Path(__file__).with_name("review_wire_gauge.py"))
+     review = module_from_spec(spec)
+     spec.loader.exec_module(review)
+-    word, programs = review.load_source(args.repo)
++    word, programs = review.load_source()
+     certificate = json.loads(gzip.decompress(args.certificate.read_bytes()))
+     native = review.rebuild_graph(word, programs[certificate["orientation"]], certificate)
+     count = len(certificate["graph"]["labels"])
+@@ -80,7 +80,7 @@
+     with tempfile.TemporaryDirectory(prefix="centre-gauge-control-") as directory:
+         path = Path(directory) / "missing-case.json.gz"
+         path.write_bytes(gzip.compress(json.dumps(damaged).encode(), mtime=0))
+-        rejects("Omitted forced-centre branch", lambda: review.run(args.repo, path),
++        rejects("Omitted forced-centre branch", lambda: review.run(path),
+                 "The exhaustive branch list is incomplete")
+ 
+     output = dict(status="PASS_GAUGE_NEGATIVE_CONTROLS", controls=records)
+@@ -90,7 +90,6 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
+     parser.add_argument("--certificate", type=Path, required=True)
+     parser.add_argument("--out", type=Path, required=True)
+     main(parser.parse_args())
+--- lanes/temporal-reuse/review_compound_gauge.py
++++ checkers/review_compound_gauge.py
+@@ -40,7 +40,7 @@
+     raw = args.certificate.read_bytes()
+     certificate = json.loads(gzip.decompress(raw))
+     review.check(certificate["source_base"] == review.BASE, "Compound source base")
+-    word, programs = review.load_source(args.repo)
++    word, programs = review.load_source()
+     review.check_orientation_duality(word, programs)
+     native = review.rebuild_graph(word, programs["forward"], certificate)
+     gauge = certificate["gauge"]
+@@ -146,7 +146,6 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
+     parser.add_argument("--certificate", type=Path, required=True)
+     parser.add_argument("--out", type=Path, required=True)
+     main(parser.parse_args())
+--- lanes/temporal-reuse/review_four_state_gauge.py
++++ checkers/review_four_state_gauge.py
+@@ -61,7 +61,7 @@
+     raw = args.certificate.read_bytes()
+     certificate = json.loads(gzip.decompress(raw))
+     review.check(certificate["source_base"] == review.BASE and certificate["lines"] == [128, 256], "Four-state source and gauge")
+-    word, programs = review.load_source(args.repo)
++    word, programs = review.load_source()
+     review.check_orientation_duality(word, programs)
+     native = review.rebuild_graph(word, programs["forward"], certificate)
+     costs = native_costs(word, native, certificate["lines"], review)
+@@ -121,7 +121,6 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
+     parser.add_argument("--certificate", type=Path, required=True)
+     parser.add_argument("--out", type=Path, required=True)
+     main(parser.parse_args())
+--- lanes/temporal-reuse/review_threshold_certificate.py
++++ checkers/review_threshold_certificate.py
+@@ -19,7 +19,7 @@
+     source_raw = args.source_certificate.read_bytes()
+     review.check(certificate["source_certificate_sha256"] == sha256(source_raw).hexdigest(), "Graph certificate pin")
+     source = json.loads(gzip.decompress(source_raw))
+-    word, programs = review.load_source(args.repo)
++    word, programs = review.load_source()
+     review.check_orientation_duality(word, programs)
+     native = review.rebuild_graph(word, programs[source["orientation"]], source)
+     lagrangians = list(map(review.lagrangian, word["frames"]))
+@@ -79,7 +79,6 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
+     parser.add_argument("--source-certificate", type=Path, required=True)
+     parser.add_argument("--certificate", type=Path, required=True)
+     parser.add_argument("--out", type=Path, required=True)
+--- lanes/temporal-reuse/review_wire_gauge.py
++++ checkers/review_wire_gauge.py
+@@ -7,10 +7,7 @@
+ from pathlib import Path
+ import argparse
+ import gzip
+-import io
+ import json
+-import subprocess
+-import tarfile
+ 
+ 
+ BASE = "bce54fb3f895cbe5cd4c0eb477c3afeed100190f"
+@@ -26,15 +23,12 @@
+         raise ValueError(message)
+ 
+ 
+-def load_source(repo):
+-    raw = subprocess.check_output(["git", "show", BASE + ":" + ARCHIVE], cwd=repo)
+-    check(sha256(raw).hexdigest() == "22c3f4dce4b897a1d423d1388801933e288b6a6b1906cb15e1b16a5eb68db754", "Archive pin")
+-    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+-        output = []
+-        for name, expected in MEMBERS.items():
+-            payload = archive.extractfile(name).read()
+-            check(sha256(payload).hexdigest() == expected, "Member pin: " + name)
+-            output.append(json.loads(gzip.decompress(payload)))
++def load_source():
++    output = []
++    for name, expected in MEMBERS.items():
++        payload = (Path(__file__).resolve().parents[1] / "data" / Path(name).name).read_bytes()
++        check(sha256(payload).hexdigest() == expected, "Member pin: " + name)
++        output.append(json.loads(gzip.decompress(payload)))
+     return output
+ 
+ 
+@@ -342,11 +336,11 @@
+     return energy, rigidity
+ 
+ 
+-def run(repo, certificate_path):
++def run(certificate_path):
+     raw = certificate_path.read_bytes()
+     digest = sha256(raw).hexdigest()
+     certificate = json.loads(gzip.decompress(raw) if certificate_path.suffix == ".gz" else raw)
+-    word, programs = load_source(repo)
++    word, programs = load_source()
+     check(certificate["source_base"] == BASE, "Certificate source base")
+     check(certificate["word_sha256"] == MEMBERS["slots/local/CANONICAL-WORD.json.gz"], "Certificate word pin")
+     check(certificate["programs_sha256"] == MEMBERS["slots/local/LOCAL-PROGRAMS.json.gz"], "Certificate program pin")
+@@ -444,11 +438,10 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
+     parser.add_argument("--certificate", type=Path, required=True)
+     parser.add_argument("--out", type=Path, required=True)
+     args = parser.parse_args()
+-    result = run(args.repo, args.certificate)
++    result = run(args.certificate)
+     args.out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+     print(result["status"])
+     print("lines=" + str(len(result["lines"])) + " flow_cut_cases=" + str(result["total_flow_cut_cases"]))
+--- lanes/source-domain/verify_odd_paths.py
++++ checkers/verify_odd_paths.py
+@@ -20,13 +20,13 @@
+ 
+ 
+ def main(args):
+-    checker_path = Path(__file__).parent.parent / "temporal-reuse/review_wire_gauge.py"
+-    require(sha256(checker_path.read_bytes()).hexdigest() == "204fdb8173f0dcf268ab145416b97e4a41c6a54ec877386d3b7aa73fb524c860", "reviewed graph reader pin")
++    checker_path = Path(__file__).with_name("review_wire_gauge.py")
++    require(sha256(checker_path.read_bytes()).hexdigest() == "1cce6ddeabd60f52e9ebafb02e2db4d289e68cdf5baaa106ca2397bf9cf7241a", "reviewed graph reader pin")
+     spec = spec_from_file_location("independent_graph", checker_path)
+     checker = module_from_spec(spec)
+     spec.loader.exec_module(checker)
+     receipts = [json.loads(gzip.decompress(path.read_bytes())) for path in args.certificates]
+-    word, programs = checker.load_source(args.repo)
++    word, programs = checker.load_source()
+     for side in programs:
+         checker.scalar_endpoint(word, programs[side], side == "backward")
+     checker.check_orientation_duality(word, programs)
+@@ -120,7 +120,6 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
+     parser.add_argument("--out", type=Path, required=True)
+     parser.add_argument("certificates", type=Path, nargs="+")
+     main(parser.parse_args())

@@ -1,0 +1,42 @@
+--- original/review_spectral_bound.py
++++ portable/review_spectral_bound.py
+@@ -3,14 +3,11 @@
+ from collections import Counter
+ from fractions import Fraction as Q
+ from hashlib import sha256
+-from io import BytesIO
+ from itertools import product
+ from math import comb, isqrt
+ from pathlib import Path
+ import gzip
+ import json
+-import subprocess
+-import tarfile
+ 
+ 
+ HERE = Path(__file__).resolve().parent
+@@ -51,19 +48,12 @@
+ 
+ 
+ def source_matrix():
+-    raw = subprocess.check_output(["git", "show", BASE + ":" + ARCHIVE],
+-                                  cwd=ROOT / "worktrees/k5-centre-sharing")
+-    need(sha256(raw).hexdigest() == ARCHIVE_PIN, "Archive pin differs")
+     inputs = {}
+-    with tarfile.open(fileobj=BytesIO(raw), mode="r:gz") as archive:
+-        for name, (compressed_pin, payload_pin) in MEMBERS.items():
+-            matches = [x for x in archive.getmembers() if x.name == name]
+-            need(len(matches) == 1 and matches[0].isfile(), "Invalid archive member")
+-            compressed = archive.extractfile(matches[0]).read()
+-            need(sha256(compressed).hexdigest() == compressed_pin, "Member pin differs")
+-            payload = gzip.decompress(compressed)
+-            need(sha256(payload).hexdigest() == payload_pin, "Payload pin differs")
+-            inputs[name.rsplit("/", 1)[-1]] = json.loads(payload)
++    for name, (compressed_pin, payload_pin) in MEMBERS.items():
++        compressed = pinned(ROOT / "source-members" / name, compressed_pin)
++        payload = gzip.decompress(compressed)
++        need(sha256(payload).hexdigest() == payload_pin, "Payload pin differs")
++        inputs[name.rsplit("/", 1)[-1]] = json.loads(payload)
+     word = inputs["CANONICAL-WORD.json.gz"]
+     events = inputs["LOCAL-PROGRAMS.json.gz"]["forward"]
+     cut = events.index(["phase", "centers"])

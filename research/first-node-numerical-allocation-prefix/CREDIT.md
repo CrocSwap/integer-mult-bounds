@@ -1,0 +1,1 @@
+Retained PR5165 source proof: original path research/first-node-resident-entry-grant/PROOF.md at 0daf29f28f0885cf7359a0e92a37efbbcc388136. Original JoyboyBrian/OpenAI-assisted contribution and all inherited authors remain credited. The byte-identical copy in credited/ is a self-contained cited premise, not a new proof or scientific approval.

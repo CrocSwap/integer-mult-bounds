@@ -1,0 +1,662 @@
+{
+  "schema_version": 1,
+  "baseline": "bf5519aa000c0dac09e0c3fd2706558c4af6a481",
+  "scope": "5 exact heads; source/integrity intake only, with separately reviewed shared-tooling changes explicitly resolved. No scientific replay, Lean or Docker.",
+  "contributions": [
+    {
+      "number": 5111,
+      "head": "b39c547f11244e2a275a8ed7e5be0936fbc723bf",
+      "merge_base": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e",
+      "title": "Prove a robust error floor for two-stage terminal decoding (no new \u03ba)",
+      "author": {
+        "id": "MDQ6VXNlcjc0MjEzNDY=",
+        "is_bot": false,
+        "login": "petalas",
+        "name": "Nick Petalas"
+      },
+      "files": [
+        {
+          "path": "research/terminal-approximation-floor/PROOF.md",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "91165052d5d437c8940f6911f3726f6594f4097c"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/terminal-approximation-floor/README.md",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "47276528f7895576cc89a1e659b99659f7cb037a"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/terminal-approximation-floor/RESULT.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "ebe9c511d99dcb0404fcb50b838b968b5135d717"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/terminal-approximation-floor/SOURCES.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "b3fb77f05241e0f236957d26fd64e89a91a05f39"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/terminal-approximation-floor/TASK.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "4adb97608d15216076ff7824407944779cb458d7"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/terminal-approximation-floor/VERIFY.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "3f4b8ca522b14ee2ff6710fbd6f261b28b6213f0"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/terminal-approximation-floor/verify.py",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "f0dc4b3d1e9a0a6b4c6a2e678153c44366fd8704"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        }
+      ],
+      "errors": [],
+      "syntax": {
+        "python": 1,
+        "json": 4
+      },
+      "pin_checks": [
+        {
+          "manifest": "research/terminal-approximation-floor/SOURCES.json",
+          "path": "certificates/selected-result.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:certificates/selected-result.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/terminal-approximation-floor/SOURCES.json",
+          "path": "docs/research/agent-task-catalog.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:docs/research/agent-task-catalog.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/terminal-approximation-floor/SOURCES.json",
+          "path": "research/two-stage-coded-terminal/PROOF.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/two-stage-coded-terminal/PROOF.md",
+          "result": "match"
+        },
+        {
+          "manifest": "research/terminal-approximation-floor/SOURCES.json",
+          "path": "research/two-stage-coded-terminal/README.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/two-stage-coded-terminal/README.md",
+          "result": "match"
+        }
+      ],
+      "shared": [],
+      "conflicts": [],
+      "independent_scientific_execution": false,
+      "observed_reviews": [],
+      "claim_excerpt": "## Summary\n\n```text\nalpha = 1/(8*13^m), R = 4^(f-1)\noperator_error^2 >= alpha^2 max(0, 1 - 2^g/R)\nactual inverse postdecoders: m=1, error <= 1/208 implies g >= 2(f-1)\n```\n\nScoped proof with exact finite corroboration. This makes Cinna Davis's #5065 exact scalar-ADD obstruction robust to uniform Euclidean operator-norm approximation. For the actual negative-bank 0 and 8 inverse postdecoder targets in Dillon's #4933, even arbitrary width-dependent scalar coefficients cannot give error uniformly below 1/104 with a fixed ADD budget.\n\nThe new step is the sparse-row error inequality and its operator-norm/positive-tolerance consequences. The existing marker identity, physical bank labels and exact support obstruction are cited premises, not independently audited or replayed results. Only `research/terminal-approximation-floor/` changes. The sparse-row inequality is sharp; a matching complete decoder or optimal whole-operator bound is unclaimed.\n\n## Evidence\n\n- Before: #5065 excludes exact decoding by a fixed scalar/monomial word. After: error at most 1/208 still forces its exact `2(f-1)` ADD floor.\n- Exact local replay checks 65,554 support subsets, 6,561 Gaussian coefficient rows, 27 tensor truncations through width six and 119,400 corollary comparisons, plus eight rejected arguments and six discriminating controls. Registered normal and optimized commands pass, timed separately at 0.38 s and 0.37 s locally, below their 60-second limits.\n- Committed-byte/source-history preflight and official export integrity pass at `b39c547f11244e2a275a8ed7e5be0936fbc723bf`. Read-only exported n",
+      "roots": [
+        "research/terminal-approximation-floor"
+      ],
+      "installed": [
+        "research/terminal-approximation-floor/PROOF.md",
+        "research/terminal-approximation-floor/README.md",
+        "research/terminal-approximation-floor/RESULT.json",
+        "research/terminal-approximation-floor/SOURCES.json",
+        "research/terminal-approximation-floor/TASK.json",
+        "research/terminal-approximation-floor/VERIFY.json",
+        "research/terminal-approximation-floor/verify.py"
+      ],
+      "resolutions": {},
+      "lane": "archive",
+      "reason": "Independent scientific review and source-bound replay remain open. Archival publication does not admit a supplier, outer theorem or improved kappa.",
+      "historical_only": false
+    },
+    {
+      "number": 5112,
+      "head": "c0bc320c52a8f12a839574efd9fec4f7b9163c84",
+      "merge_base": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e",
+      "title": "Prove the exact joint T29 bin-count spectrum (no new \u03ba)",
+      "author": {
+        "id": "MDQ6VXNlcjc0MjEzNDY=",
+        "is_bot": false,
+        "login": "petalas",
+        "name": "Nick Petalas"
+      },
+      "files": [
+        {
+          "path": "research/t29-joint-bin-spectrum/README.md",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "7a5d311d08f06b151a41107fbf167d01ca22f47b"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/t29-joint-bin-spectrum/SOURCES.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "453ea3b23f2bde530d9ec9ef1d933a9159ab45f0"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/t29-joint-bin-spectrum/TASK.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "074a8cbc74a41e9c3623fa24dfcbf17c9585d2e4"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/t29-joint-bin-spectrum/VERIFY.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "73002b75d5497779f39e2daf6f862d56c6d843bc"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/t29-joint-bin-spectrum/verify.py",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "2acdcd58b662bbb7e1083a19ebddd604800fff7c"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        }
+      ],
+      "errors": [],
+      "syntax": {
+        "python": 1,
+        "json": 3
+      },
+      "pin_checks": [
+        {
+          "manifest": "research/t29-joint-bin-spectrum/SOURCES.json",
+          "path": "certificates/selected-result.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:certificates/selected-result.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/t29-joint-bin-spectrum/SOURCES.json",
+          "path": "docs/research/agent-task-catalog.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:docs/research/agent-task-catalog.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/t29-joint-bin-spectrum/SOURCES.json",
+          "path": "research/t29-capacity-audit/PROOF.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/t29-capacity-audit/PROOF.md",
+          "result": "match"
+        },
+        {
+          "manifest": "research/t29-joint-bin-spectrum/SOURCES.json",
+          "path": "research/t29-capacity-projection-spectrum/README.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/t29-capacity-projection-spectrum/README.md",
+          "result": "match"
+        }
+      ],
+      "shared": [],
+      "conflicts": [],
+      "independent_scientific_execution": false,
+      "observed_reviews": [],
+      "claim_excerpt": "## Summary\n\nProve the exact joint bin-count projection in the historical fixed U8 T=29 whole-helper model. This answers the explicit Open next question in woklerx's #1844, using its affine family and Hanhong Zhao's #1160 tight-pattern theorem as cited premises.\n\n```diff\n x = number of capacity-16 {9,7} bins\n y = number of capacity-8 {4,4} bins\n- 4824 <= x <= 12992 attained with y=8286\n+ every integer pair 4824 <= x <= 12992, 0 <= y <= 8286 attained\n```\n\nClaim type: scoped constructive proof with exact finite corroboration. The new step is the sharp y bound and a paired four/eight replacement proving that both coordinates vary independently. It preserves every bin quota, every helper demand, the entire remainder profile and the signed price. Only `research/t29-joint-bin-spectrum/` is added. No selected frontier or kappa change.\n\nThis contribution was produced by Nick Petalas. Credit woklerx for #1844's affine construction and open question, Hanhong Zhao for #1160's model and tight-pattern theorem, Chafik Boukhalfa for #795/#890, Jonathan Capalbo for #942, woklerx for #992 and Hao Yan for #858. No predecessor census or executable was replayed as an audit.\n\n[Advance claim](https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-19142736). Scientific base: canonical main `81e9bd69e4a5b00ba9c713a1620e36d576d5522e`, priority revision 7. The selected-packing card is explicitly changed to this arithmetic side question. Main was refetched unchanged before committing. Live claims, open work, merged-main terms and merged/all-state T29 searches found no compe",
+      "roots": [
+        "research/t29-joint-bin-spectrum"
+      ],
+      "installed": [
+        "research/t29-joint-bin-spectrum/README.md",
+        "research/t29-joint-bin-spectrum/SOURCES.json",
+        "research/t29-joint-bin-spectrum/TASK.json",
+        "research/t29-joint-bin-spectrum/VERIFY.json",
+        "research/t29-joint-bin-spectrum/verify.py"
+      ],
+      "resolutions": {},
+      "lane": "archive",
+      "reason": "Independent scientific review and source-bound replay remain open. Archival publication does not admit a supplier, outer theorem or improved kappa.",
+      "historical_only": false
+    },
+    {
+      "number": 5113,
+      "head": "b893ba6bd6c77c6e7efc48acb6f448218df671b7",
+      "merge_base": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e",
+      "title": "Construct a common physical code with moving Gaussian stages (no new \u03ba)",
+      "author": {
+        "id": "U_kgDOCcbgOg",
+        "is_bot": false,
+        "login": "1337isnot1337",
+        "name": "Cinna Davis"
+      },
+      "files": [
+        {
+          "path": "research/common-code-moving-stages/PROOF.md",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "60fecc67b7847e2f40d31710e49de3a4c23eeab2"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/common-code-moving-stages/README.md",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "5c78fb365e3cf9a4fb7fe9182562036f2c4dcec9"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/common-code-moving-stages/RESULT.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "b93315c2f91a558c59822e5ca981ddd49f50a053"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/common-code-moving-stages/SOURCES.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "e732864e85235b50b892ee776745f6946f47de2c"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/common-code-moving-stages/TASK.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "fffb0d7e7359bbcb8061ce852f8dafb5b1ee1fa8"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/common-code-moving-stages/VERIFY.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "acba9e4a0cd090a5e0ef1e5676064271a5605b13"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/common-code-moving-stages/verify.py",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "51188f2310fc395161779397007741e59303f4b3"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        }
+      ],
+      "errors": [],
+      "syntax": {
+        "python": 1,
+        "json": 4
+      },
+      "pin_checks": [
+        {
+          "manifest": "research/common-code-moving-stages/SOURCES.json",
+          "path": "certificates/selected-result.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:certificates/selected-result.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/common-code-moving-stages/SOURCES.json",
+          "path": "docs/research/agent-task-catalog.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:docs/research/agent-task-catalog.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/common-code-moving-stages/SOURCES.json",
+          "path": "research/coded-native-caller/GAUGE.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/coded-native-caller/GAUGE.md",
+          "result": "match"
+        },
+        {
+          "manifest": "research/common-code-moving-stages/SOURCES.json",
+          "path": "research/coded-native-caller/NORMALIZERS.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/coded-native-caller/NORMALIZERS.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/common-code-moving-stages/SOURCES.json",
+          "path": "research/coded-native-caller/PHYSICAL.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/coded-native-caller/PHYSICAL.md",
+          "result": "match"
+        },
+        {
+          "manifest": "research/common-code-moving-stages/SOURCES.json",
+          "path": "research/native-center-free-code/CODE.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/native-center-free-code/CODE.json",
+          "result": "match"
+        }
+      ],
+      "shared": [],
+      "conflicts": [],
+      "independent_scientific_execution": false,
+      "observed_reviews": [],
+      "claim_excerpt": "The center-free native word leaves stage-dependent physical owner codes. This package constructs a common code by inserting explicit coordinate swaps on the main inputs. The resulting stages are `E_s=P_s D_0`; their distinct-stage products retain 8k Gaussian axes after an explicit monomial removal. It also proves that a common code is impossible for any stage-local monomial normalizers with the stated distinct-line images.\n\nThe direct caller substitution still fails: `[C_0,E_s Q]=0` is equivalent to `[C_0,P_s]=0`, and every one of the actual 5,824 nonzero code blocks rejects it. The construction is retained as a changed local interface with a precise next obligation. No new \u03ba, completed supplier, selected-frontier update or theorem result is claimed.\n\nOnly `research/common-code-moving-stages` is added. PROOF.md gives the support-intersection argument, arbitrary-input F/B endpoints, all-width lift, stage-word induction, failure gate and obligation ledger. The transport adds 224 main-field monomial maps per FULL and eight anchor axes. Their finite-tape price, spectators, completion, restoration, caller, precision and recursive compiler/outer obligations remain open; unknown costs are not zero.\n\nValidation: mathematical replay and Git-free optimized replay at `d87301c0faee971d492091ce8b7314233ec51c6b`; final head `b893ba6bd6c77c6e7efc48acb6f448218df671b7` adds only the explicit nonzero lower-left gauge block to PROOF.md. The verifier, receipt and all inputs are unchanged. Committed-byte and official export/integrity checks also pass at the final head.\n\n- CPython 3.12 registere",
+      "roots": [
+        "research/common-code-moving-stages"
+      ],
+      "installed": [
+        "research/common-code-moving-stages/PROOF.md",
+        "research/common-code-moving-stages/README.md",
+        "research/common-code-moving-stages/RESULT.json",
+        "research/common-code-moving-stages/SOURCES.json",
+        "research/common-code-moving-stages/TASK.json",
+        "research/common-code-moving-stages/VERIFY.json",
+        "research/common-code-moving-stages/verify.py"
+      ],
+      "resolutions": {},
+      "lane": "archive",
+      "reason": "Independent scientific review and source-bound replay remain open. Archival publication does not admit a supplier, outer theorem or improved kappa.",
+      "historical_only": false
+    },
+    {
+      "number": 5114,
+      "head": "d165f73e8af63e8621e4e8a279f58b54079e48c5",
+      "merge_base": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e",
+      "title": "Realize the formal A5 alphabet on eight binary address bits (no \u03ba)",
+      "author": {
+        "id": "MDQ6VXNlcjc0MjEzNDY=",
+        "is_bot": false,
+        "login": "petalas",
+        "name": "Nick Petalas"
+      },
+      "files": [
+        {
+          "path": "research/a5-eight-bit-carrier/OVERLAP.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "bdee855b2cbbf8a785ac7d413cae5070960ef5d1"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/a5-eight-bit-carrier/README.md",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "aa13ba0a0bc41a88cf2c72b27e9f56933ded6603"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/a5-eight-bit-carrier/RESULT.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "3c87bf8767fa42a2d3ed64a561e48d77a1928ade"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/a5-eight-bit-carrier/SOURCES.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "3ee0816c1ce364e27324c9287bb792e7e7a02e82"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/a5-eight-bit-carrier/TASK.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "b7e7f5cdbee390bc6370557b17f650f70956dba7"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/a5-eight-bit-carrier/VERIFY.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "cd316318aa7c65d642b53e8735d0902c1412edde"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/a5-eight-bit-carrier/verify.py",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "d495e8fa8041d0ae4d021f975dd7e251ba34dc8d"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        }
+      ],
+      "errors": [],
+      "syntax": {
+        "python": 1,
+        "json": 5
+      },
+      "pin_checks": [
+        {
+          "manifest": "research/a5-eight-bit-carrier/SOURCES.json",
+          "path": "certificates/selected-result.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:certificates/selected-result.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/a5-eight-bit-carrier/SOURCES.json",
+          "path": "docs/research/agent-task-catalog.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:docs/research/agent-task-catalog.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/a5-eight-bit-carrier/SOURCES.json",
+          "path": "research/a5-conjugate-any-registers/README.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/a5-conjugate-any-registers/README.md",
+          "result": "match"
+        }
+      ],
+      "shared": [],
+      "conflicts": [],
+      "independent_scientific_execution": false,
+      "observed_reviews": [],
+      "claim_excerpt": "## Summary\n\nConstruct an explicit eight-bit binary affine carrier for the formal A5 alphabet, with an injective extension to F2[A5]. This is a finite exact construction with a scoped algebraic proof, produced by Nick Petalas. No new kappa is claimed.\n\n```text\none natural F4^2 copy: 16 addresses, faithful group action, nonzero formal kernel\n2 natural copies:     256 addresses, regular orbit of size 60, faithful F2[A5] action\n```\n\nThe generators corresponding to x=(12)(34) and y=(135) have literal address CNOT words of lengths 4 and 12. Complete in-place data permutation programs use 360 and 510 bit XORs per 256-entry bit array, preserving arbitrary dirty data and using no extra data bit. The construction answers the address-carrier part of Wentao Li's #4089 handoff and Cinna Davis's #3914 nonabelian escape route. Their endpoint theorem and caller obstruction are cited premises; predecessor searches and verifiers were not replayed.\n\nScientific base: 81e9bd69e4a5b00ba9c713a1620e36d576d5522e. Contribution head: d165f73e8af63e8621e4e8a279f58b54079e48c5. The package retains the exact original card, scope refinement, source pins, generated hash-bound result and overlap coverage.\n\n## Evidence\n\n- Before: the natural four-bit action kills the nonzero formal norm element on all 16 addresses.\n- After: the identity matrix has 60 distinct orbit images, giving 60 independent coefficient columns and injectivity of the whole formal group algebra.\n- Exact local replay checks the 60-element isomorphism and all 3,600 multiplication pairs, both full orbit inventories, every address-circuit inpu",
+      "roots": [
+        "research/a5-eight-bit-carrier"
+      ],
+      "installed": [
+        "research/a5-eight-bit-carrier/OVERLAP.json",
+        "research/a5-eight-bit-carrier/README.md",
+        "research/a5-eight-bit-carrier/RESULT.json",
+        "research/a5-eight-bit-carrier/SOURCES.json",
+        "research/a5-eight-bit-carrier/TASK.json",
+        "research/a5-eight-bit-carrier/VERIFY.json",
+        "research/a5-eight-bit-carrier/verify.py"
+      ],
+      "resolutions": {},
+      "lane": "archive",
+      "reason": "Independent scientific review and source-bound replay remain open. Archival publication does not admit a supplier, outer theorem or improved kappa.",
+      "historical_only": false
+    },
+    {
+      "number": 5115,
+      "head": "391355b8e537b82cedabd45af509177496e7a7a6",
+      "merge_base": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e",
+      "title": "Prove universal dyadic rank-one borrowed-hub realization (no new \u03ba)",
+      "author": {
+        "id": "MDQ6VXNlcjc0MjEzNDY=",
+        "is_bot": false,
+        "login": "petalas",
+        "name": "Nick Petalas"
+      },
+      "files": [
+        {
+          "path": "research/dyadic-rankone-borrowing/README.md",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "43500af86d278bc5242ecc5237881b96bc0f31cd"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/dyadic-rankone-borrowing/SOURCES.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "37e33d8429ac6103bbe2cb0ac25d0323b22f182b"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/dyadic-rankone-borrowing/TASK.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "9943729309b778e34882af248466b08fd7327a46"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/dyadic-rankone-borrowing/VERIFY.json",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "24378520111cba3730037062a166270390552e01"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/dyadic-rankone-borrowing/compiler.py",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "ccd010ce34fd232310a907d271d2a558a8f10c1e"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        },
+        {
+          "path": "research/dyadic-rankone-borrowing/verify.py",
+          "source": {
+            "mode": "100644",
+            "kind": "blob",
+            "oid": "4cfb3846e6811e7a3f049683ed21c675830a8146"
+          },
+          "old_oid": "0000000000000000000000000000000000000000",
+          "change": "A"
+        }
+      ],
+      "errors": [],
+      "syntax": {
+        "python": 2,
+        "json": 3
+      },
+      "pin_checks": [
+        {
+          "manifest": "research/dyadic-rankone-borrowing/SOURCES.json",
+          "path": "certificates/selected-result.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:certificates/selected-result.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/dyadic-rankone-borrowing/SOURCES.json",
+          "path": "docs/research/agent-task-catalog.json",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:docs/research/agent-task-catalog.json",
+          "result": "match"
+        },
+        {
+          "manifest": "research/dyadic-rankone-borrowing/SOURCES.json",
+          "path": "research/borrowed-rankone/PROOF.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/borrowed-rankone/PROOF.md",
+          "result": "match"
+        },
+        {
+          "manifest": "research/dyadic-rankone-borrowing/SOURCES.json",
+          "path": "research/dyadic-block-compiler/PROOF.md",
+          "source_spec": "81e9bd69e4a5b00ba9c713a1620e36d576d5522e:research/dyadic-block-compiler/PROOF.md",
+          "result": "match"
+        }
+      ],
+      "shared": [],
+      "conflicts": [],
+      "independent_scientific_execution": false,
+      "observed_reviews": [],
+      "claim_excerpt": "## Summary\n\nEvery dyadic rank-one common-chart shear admits one borrowed source as its sole readout hub, with source-only preparation and exact restoration. This is a scoped constructive proof extending David Ganz / Dugongue's #4502 sufficient single-pivot adapters, using #4494's integer factorization setting.\n\n```text\nM = a b, b primitive integral\nprepare X_0 = bX using integer source ADDs\nY_j += a_j X_0 once per nonzero target row\nreverse preparation and restore every source\n```\n\nOnly `research/dyadic-rankone-borrowing/` is added. The theorem permits every finite matrix size; the standalone compiler and verifier have explicit finite input limits. No extra field, clean entry, CLEAR, SCALE or odd-denominator native coefficient is required. Classical Bezout, Euclidean reduction and uncomputation retain their existing credit. Produced by Nick Petalas.\n\n## Evidence\n\n- Before: #4502's sufficient source and target pivot methods both exclude its explicit `[[9,15],[15,25]]` fixture because the needed ratios are not dyadic.\n- After: the new compiler realizes the fixture exactly, including arbitrary dirty inputs and restoration, with one readout hub. Complete bill: 32 ADDs, allowance 270. Direct entrywise evaluation costs four ADDs and allowance 76; lower scalar cost is not claimed.\n- Exact symbolic replay passes 3,939 exhaustive two-by-two parameter cases, 768 wider fixtures, two named fixtures and three coefficient/role/Euclidean boundary cases. Nine invalid inputs reject, and five mathematical omission controls detect missing preparation/restoration/readout, a wrong hub and a wro",
+      "roots": [
+        "research/dyadic-rankone-borrowing"
+      ],
+      "installed": [
+        "research/dyadic-rankone-borrowing/README.md",
+        "research/dyadic-rankone-borrowing/SOURCES.json",
+        "research/dyadic-rankone-borrowing/TASK.json",
+        "research/dyadic-rankone-borrowing/VERIFY.json",
+        "research/dyadic-rankone-borrowing/compiler.py",
+        "research/dyadic-rankone-borrowing/verify.py"
+      ],
+      "resolutions": {},
+      "lane": "archive",
+      "reason": "Independent scientific review and source-bound replay remain open. Archival publication does not admit a supplier, outer theorem or improved kappa.",
+      "historical_only": false
+    }
+  ],
+  "checks": "docs/research/pr-intake-evidence/queue-oct23i-20261023-checks.txt",
+  "selected_frontier_changed": false
+}

@@ -22,8 +22,10 @@ def main():
     args = parser.parse_args()
     record = json.loads((ROOT / 'certificates/selected-result.json').read_text())
     if record['audited_source_head'] != 'da637c87c89482bc4c86be36bd0071b3d400dbed':
-        raise SystemExit("Use the current selected record's reproduction command")
-    check(record)
+        record = json.loads((ROOT / 'certificates/checkpoints/frontier4359.json').read_text())
+    if record['audited_source_head'] != 'da637c87c89482bc4c86be36bd0071b3d400dbed':
+        raise SystemExit("Wrong historical PR4359 checkpoint")
+    check(record, historical=True)
     command = [sys.executable, '-B', str(ROOT / 'research/kappa-0023-productive-jobs/verify.py')]
     command += ['--check-only'] if args.check_only else ['--out', str(args.work.resolve())]
     subprocess.run(command, cwd=ROOT, check=True)

@@ -6,17 +6,22 @@ at each research checkpoint.
 
 **Priority revision 7 — October 20, 2026**, assessed against main
 `9200177938843d92957bbfe6f1fdbe88768d8cc5`.
-**Selection refresh — October 21, 2026:** the
+**Selection refresh — October 23, 2026:** the
 [selected conditional result](../../certificates/selected-result.json) is now
-**κ = 0.0023 (#4359)**. Its productive-helper compiler uses mixed-target
-recursion and changes the recursive interface. Read the
-[changed-interface review](pr-intake-evidence/pr4359/PROOF-REVIEW.md) and
-[contributor map](community-productive4359-contributors.md) before building on
-this checkpoint. The nine-cost outer ledger is bound in the selected record.
-The revision-7 allocation below predates this selection; weights and cards have
-not yet been reassessed against the new mechanism. Do not treat old-inventory
-ceilings or the earlier κ as constraints on #4359. Its retained analytic/native
-assumptions remain explicit; #4100's unconditional claim is not selected.
+**κ = 0.0030217758 (#4610, independently audited in #5241)**. Read the
+[changed-construction review](pr-intake-evidence/pr4610/PROOF-REVIEW.md) and
+[contributor map](community-native4610-contributors.md). Cao Yifan's native/helper
+changes retain the PR4470 controller and productive profile; Chris R / Clear1nsight
+supplies the complete independent admission package. The same five framework
+assumptions remain. This small improvement does not change the mechanism-search
+allocation. Admission of this exact #4610 witness is complete; source-sensitive
+follow-ups must use its final word and compiler parameters.
+Use `python3 -B scripts/research_selected_baseline.py` for source-bound orientation;
+the older `research_baseline.py` uses a historical balanced-transfer schema.
+The revision-7 allocation below is retained pending a separate strategic review.
+Its old-inventory ceilings, stale admission tasks and a/(1+a) conversion are
+not constraints on this mixed-target selection. Check the selected assumptions
+and latest handoffs before adopting an old card.
 
 **Keep broad mechanism exploration; update the exact missing work.** Roughly
 60% of the portfolio remains on bit mechanisms, complex mechanisms and recursive

@@ -1,0 +1,141 @@
+\subsection{The complex layer with unequal recursive axis counts}
+\label{sec:mixed-complex-layer}
+
+Apply the same integer-depth construction to the complex circuit's list
+of child sizes.  For a selected residual of rank $a<m$, the residual
+orthonormal basis places its nontrivial coordinate slots first.  Its
+$a$ consecutive slots of $f$ selected axes form one contiguous block of
+$af$ axes.  The residual factors can have signs $\varepsilon_v\in\{1,-1\}$.
+For their negative slot set $B$, the retained identity
+$C^{-1}=-iZCZ$ gives, after the residual basis map,
+\[
+ \prod_{v=1}^{a}(C^{\varepsilon_v})^{\otimes f}
+   =(-i)^{f|B|}Z_B C^{\otimes af}Z_B.
+\]
+Here $Z_B$ applies $Z$ on the $f$ axes of each negative slot.
+Thus one recursive application of $C^{\otimes af}$, two address-sign
+passes, and one exact phase replace the $a$ separate recursive calls;
+the basis maps before and after the operation are unchanged.
+The sign descriptors have polynomial size in the global parameters and
+fit the existing per-record overhead allowance.  Other residuals retain their original
+rank-one calls.  Let $\Psi_{\rm c}$ and $D_{\rm c}$ denote the resulting
+moment and depth functions.  In particular, the two bulk classes of the
+current motif have
+\[
+ a_1=m-2h=21896,\qquad a_2=m-h^2=21168
+ \quad(m=21952,\ h=28),
+\]
+so every recursive call is a strict contraction.
+
+\paragraph{Complete rows and compact fields.}
+Keep the original global $p,d,K,G,H,q_F,q_B$ for compact control, and
+replace only the row reservation by
+\[
+ k_0=D_{\rm c}(d),\qquad
+ q_0=\lceil\log_2 W\rceil\,k_0,
+ \qquad Q_0=q_0+q_F+q_B.
+\]
+This conservative integer choice satisfies
+$2^{q_0K}\ge W^{k_0}$ and $q_0=O(\log(2d))$.
+If the available number $D$ of selected axes is at most $Q_0$, apply them
+individually.  Otherwise process the first $q_0+q_F$ and last $q_B$ axes
+individually and use the remaining consecutive middle block for the
+recursive circuit.  The row field consists only of the first $q_0$
+chunks; neither compact field is included in it.  Pad its count to the
+next multiple of $W^{k_0}$, by a factor below two, once before recursion.
+Every child therefore has all compact and spectator ranges and exactly
+$1/W$ of its parent's volume, with enough row divisibility for its
+remaining depth.
+
+The reserved-axis bound is unchanged:
+\[
+ Q_0=O\bigl(\log(2d)+d^{\max\{1-c,0\}}\log p+1\bigr).
+\]
+In particular, the larger fixed row-depth constant does not change any
+power of $d$ or $p$ in preprocessing.  The exact bit interchange called
+inside a compact operation supplies its own rows from its own target
+chunk digits; its internal row bound is not an additional reservation
+of selected complex axes.
+
+\paragraph{Integer axis counts.}
+At a complex call of width $e=mf+r$, first apply the $r<m$ leftmost
+selected kernels individually and treat those axes as completed
+spectators.  The remaining $mf$ axes are consecutive and split into the
+required $m$ equal slots.  The extra work is $O(V)$ per node.  The
+individual kernels on removed axes commute with the completed tensor
+map on the other axes, so this produces the desired map on all $e$
+axes.  The root active block can be processed directly; its base-$m$
+expansion is unnecessary.
+
+\paragraph{Stopping and weighted-tree bounds.}
+Fix rational $0<\beta<1$ and stop at $e<d^\beta$, with normalized leaf
+cost $O(e)$.  Suppose $\Psi_{\rm c}(\sigma)<1$ for $0<\sigma<1$.
+Each node's normalized volume weight is $W^{-j}$ at depth $j$.  Its
+children have total $\sigma$-weighted width at most
+$\Psi_{\rm c}(\sigma)$ times the parent's weighted width.  Therefore
+\[
+ \sum_{\text{leaves }u} W^{-\operatorname{depth}(u)} e_u^\sigma
+       \le e_{\rm root}^\sigma.
+\]
+Since $e_u<d^\beta$, total normalized leaf work is at most
+\[
+ O\bigl(d^{\beta(1-\sigma)}e_{\rm root}^\sigma\bigr)
+       =O\bigl(d^{\sigma+\beta(1-\sigma)}\bigr).
+\]
+This is a bound for a tree with unequal child widths; no common leaf
+depth is assumed.
+
+Compact operations cost $O(G^\tau e^\tau+1)$ per current logical volume.
+If $\sigma\le\tau$, monotonicity gives
+$\Psi_{\rm c}(\tau)\le\Psi_{\rm c}(\sigma)<1$, and summing the
+$\tau$-weighted widths by depth bounds all internal work by
+$O(G^\tau d^\tau)$.
+If $\sigma>\tau$, every internal width is at least $d^\beta$, so
+$e^\tau\le d^{\beta(\tau-\sigma)}e^\sigma$; summing the strict
+$\sigma$-moment gives
+$O(G^\tau d^{\sigma+\beta(\tau-\sigma)})$.
+Thus in both cases, with
+\[
+ \chi=\tau+(1-\beta)\max\{\sigma-\tau,0\},
+\]
+the complete normalized layer cost is
+\[
+ O\!\left((\log p)^3\left[
+ d^\chi+d^{\sigma+\beta(1-\sigma)}
+ +d^{\max\{1-c,0\}}+1\right]\right).
+\]
+The displayed logarithmic factor conservatively retains the existing
+layout and descriptor allowances.  Hence the original strict conditions
+\[
+ \max\{\tau,\sigma,\chi\}<\lambda<\lambda'<1,
+ \qquad
+ \max\{\sigma+\beta(1-\sigma),1-c,0\}<\lambda'
+\]
+continue to imply the complete $O(Vd^{\lambda'})$ layer bound.
+
+\paragraph{Compatibility with the new dependency guard.}
+The separate dependency-path estimate uses $q=m+6h=22120$, observes that
+one path crosses at most one selected bulk residual, and bounds its
+$\rho$-moment by
+\[
+ \max\left\{
+ \frac q{m^\rho},\quad
+ \frac{q-a_1}{m^\rho}+\left(\frac{a_1}{m}\right)^\rho,\quad
+ \frac{q-a_2}{m^\rho}+\left(\frac{a_2}{m}\right)^\rho
+ \right\}<\frac{999}{1000}
+ \quad\left(\rho=\frac65\right).
+\]
+Integer floors only shrink these children.  For sufficiently large $d$,
+an internal parent has $e\ge d^\beta\ge2m$, hence every recursive child
+has width at least $\lfloor e/m\rfloor\ge d^\beta/(2m)$ whenever it
+becomes a stopping leaf.  The at most $m-1$ individually processed
+remainder axes at each internal node belong to its fixed local overhead;
+add their bounded coefficient contribution to the guard's fixed constant
+$E$.  They are not extra arbitrarily small stopping leaves.  Thus the
+separately established guard exponent
+\[
+ C_1=\rho-(\rho-1)\beta+\zeta
+     =\frac65-\frac\beta5+\zeta
+\]
+applies to this integer-width implementation.  All stopping tests can be
+performed by the existing rational-power integer comparison.

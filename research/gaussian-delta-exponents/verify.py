@@ -91,9 +91,7 @@ def pins_and_phrases() -> None:
     log_a = (
         ROOT / "research/capped-phase-fusion/LOG-A-PHASE-SCHUR-AUDIT.md"
     ).read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "2-norm at most p^10 and inverse\n2-norm at most p^10" in halo
     assert "Q_i=I-p^-20 H_i^* H_i and J=ceil(p^42)" in halo
     assert "bandwidth <=(2J+1)W<p^45 eventually" in halo
@@ -108,7 +106,6 @@ def pins_and_phrases() -> None:
     assert "absolute error below four eta" in downstream
     assert "a_hat_j*G_hat_(j-l)/a_hat_l" in downstream
     assert "ahat_j Ghat_(j-k)/ahat_k" in log_a
-    assert selected["kappa"] == "23/10000"
 
 
 def power_room() -> None:

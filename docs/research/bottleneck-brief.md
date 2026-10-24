@@ -6,21 +6,27 @@ chosen experiment. The [glossary](research-glossary.md) explains the vocabulary.
 From the repo root, run the cheap positive control:
 
 ```sh
-python3 -B scripts/research_baseline.py
+python3 -B scripts/research_selected_baseline.py
 ```
 
-It checks the selected source bindings and prints both primitive budgets, the
-binding side, the review and the full-replay command. This is source-bound
-orientation and arithmetic, **not** a full circuit replay. Follow
-[selected-result.json](../../certificates/selected-result.json) if the values
-below become historical.
+It checks the selected source closure and separately reports the uniform,
+ordinary BIT, admitted BIT and outer budgets. This is source-bound metadata
+orientation, **not** an operator replay. Follow
+[selected-result.json](../../certificates/selected-result.json) for current values.
 
-At the revision-6 assessment on 2026-10-16, the reviewed conditional saving is
-κ = 0.001672660197076918. The complex primitive supports about 0.00167546 and
-the bit primitive about 0.00173343: the complex side binds. Under the retained
-limiting conversion `κ = a/(1+a)`, κ > .01 needs both effective primitive budgets
-above approximately `1/99`, with strict margins and all transfer obligations.
-This describes the current construction, not a lower bound for multiplication.
+The selected conditional saving is **κ = 0.00302015 (#4470)**. Its complex
+uniform saving is 528527/175000000; the ordinary BIT saving is .0034363538396,
+admitted conservatively as .0034. The limiting outer row is `main_transform`.
+The productive-helper interface uses unequal target and paid jobs followed by
+paid completion and compilation. Its scope is in the
+[review](pr-intake-evidence/pr4470/PROOF-REVIEW.md). Do not apply the historical
+balanced `a/(1+a)` conversion or fixed-invoice ceilings to this changed interface.
+For new experiments use [current priorities](current-priorities.md), exact
+supplier inputs and a fully charged target/paid moment.
+
+**Historical diagnosis follows.** The revision-3/6 budgets and family suggestions
+below describe older inventories. They are preserved as context, not a current
+assignment or a universal barrier.
 
 **Revision 3 update (scoped arithmetic replayed for #1240/#1264).** On the binding complex side, packing within any
 screened paid local profile and the stated model is capped within about 0.9% of the record. The 64-per-call centre path uses about

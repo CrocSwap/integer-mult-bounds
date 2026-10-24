@@ -1,0 +1,2 @@
+Independent numerical verification, written source-applicability review and packaging by Chris R / Clear1nsight, with substantial OpenAI Codex assistance; Apache-2.0.
+Preserve Dillon/PR5402 coupled-provider credit, Ali Romman controller/source credit, Cao Yifan native source, Cinna Davis controller/helpers, zxv compiler/precision/higher-moment, Jacob Alan Sussman flow, Dugongue and all retained Clifford/BIT/analytic/recovery notices. No construction priority or human acceptance claimed.

@@ -211,3 +211,103 @@ The [exact-head delta](pr-intake-evidence/queue-oct21e-20261021.json) records 68
 ## Delta intake through PR4507
 
 The [exact-head delta](pr-intake-evidence/queue-oct21f-20261021.json) records 2 decisions: {'archive': 2}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR4618
+
+The [exact-head delta](pr-intake-evidence/queue-oct22a-20261022.json) records 100 decisions: {'waiting_revision': 4, 'archive': 95, 'reviewed_tooling': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR4731
+
+The [exact-head delta](pr-intake-evidence/queue-oct22b-20261022.json) records 98 decisions: {'archive': 93, 'waiting_revision': 1, 'reviewed_tooling': 4}. Changed heads remain actionable. Source-only retention preserves attribution and open scientific obligations; no frontier change.
+
+## Delta intake through PR4770
+
+The [exact-head delta](pr-intake-evidence/queue-oct22c-20261022.json) records 39 decisions: {'waiting_revision': 1, 'archive': 37, 'reviewed_tooling': 1}. Changed heads remain actionable. Source-only retention preserves attribution and open scientific obligations; no frontier change.
+
+## Delta intake through PR4773
+
+The [exact-head delta](pr-intake-evidence/queue-oct22d-20261022.json) records 5 decisions: {'archive': 5}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR4876
+
+The [exact-head delta](pr-intake-evidence/queue-oct22e-20261022.json) records 100 decisions: {'archive': 94, 'reviewed_tooling': 2, 'waiting_revision': 4}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR4929
+
+The [exact-head delta](pr-intake-evidence/queue-oct22f-20261022.json) records 49 decisions: {'archive': 48, 'reviewed_tooling': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR4952
+
+The [exact-head delta](pr-intake-evidence/queue-oct22h-20261022.json) records 18 decisions: {'archive': 17, 'reviewed_tooling': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR4954
+
+The [exact-head delta](pr-intake-evidence/queue-oct22i-20261022.json) records 2 decisions: {'archive': 2}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR4989
+
+The [exact-head delta](pr-intake-evidence/queue-oct23a-20261023.json) records 34 decisions: {'archive': 29, 'reviewed_tooling': 5}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5000
+
+The [exact-head delta](pr-intake-evidence/queue-oct23b-20261023.json) records 9 decisions: {'archive': 9}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5001
+
+The [exact-head delta](pr-intake-evidence/queue-oct23c-20261023.json) records 1 decisions: {'archive': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5036
+
+The [exact-head delta](pr-intake-evidence/queue-oct23d-20261023.json) records 26 decisions: {'reviewed_tooling': 3, 'archive': 23}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5039
+
+The [exact-head delta](pr-intake-evidence/queue-oct23e-20261023.json) records 3 decisions: {'archive': 3}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5075
+
+The [exact-head delta](pr-intake-evidence/queue-oct23f-20261023.json) records 31 decisions: {'archive': 29, 'reviewed_tooling': 2}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5079
+
+The [exact-head delta](pr-intake-evidence/queue-oct23g-20261023.json) records 4 decisions: {'archive': 4}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5110
+
+The [exact-head delta](pr-intake-evidence/queue-oct23h-20261023.json) records 27 decisions: {'archive': 25, 'reviewed_tooling': 2}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5115
+
+The [exact-head delta](pr-intake-evidence/queue-oct23i-20261023.json) records 5 decisions: {'archive': 5}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5136
+
+The [exact-head delta](pr-intake-evidence/queue-oct23j-20261023.json) records 17 decisions: {'archive': 15, 'reviewed_tooling': 2}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5138
+
+The [exact-head delta](pr-intake-evidence/queue-oct23k-20261023.json) records 2 decisions: {'archive': 2}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5181
+
+The [exact-head delta](pr-intake-evidence/queue-oct23l-20261023.json) records 41 decisions: {'archive': 41}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5227
+
+The [exact-head delta](pr-intake-evidence/queue-oct23m-20261023.json) records 43 decisions: {'archive': 42, 'reviewed_tooling': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5234
+
+The [exact-head delta](pr-intake-evidence/queue-oct23n-20261023.json) records 6 decisions: {'archive': 6}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5352
+
+The [exact-head delta](pr-intake-evidence/queue-oct23o-20261023.json) records 93 decisions: {'archive': 90, 'waiting_revision': 2, 'reviewed_tooling': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5415
+
+The [exact-head delta](pr-intake-evidence/queue-oct23p-20261023.json) records 60 decisions: {'archive': 52, 'reviewed_tooling': 7, 'waiting_revision': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR5416
+
+The [exact-head delta](pr-intake-evidence/queue-oct23q-20261023.json) records 1 decisions: {'archive': 1}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.

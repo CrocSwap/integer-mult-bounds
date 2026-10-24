@@ -1,0 +1,26 @@
+--- original/check_review.py
++++ portable/check_review.py
+@@ -8,7 +8,6 @@
+ import importlib.util
+ import json
+ from pathlib import Path
+-import subprocess
+ 
+ 
+ HERE = Path(__file__).resolve().parent
+@@ -156,13 +155,11 @@
+     need(Q(receipt["historical_selected_b"]) == B == math.B and 0 < B < 1,
+          "Exact positive historical exponent")
+     need(receipt["engine_commit"] == COMMIT, "Historical certificate commit")
+-    selected_raw = subprocess.check_output(
+-        ["git", "-C", str(REPO), "show", COMMIT + ":certificates/selected-result.json"])
++    selected_raw = (CAMPAIGN.parent / "historical" / COMMIT / "certificates/selected-result.json").read_bytes()
+     need(digest(selected_raw) == receipt["selected_result_sha256"] == math.PINS["selected"],
+          "Selected certificate source")
+     selected = json.loads(selected_raw)
+-    assembly_raw = subprocess.check_output(
+-        ["git", "-C", str(REPO), "show", COMMIT + ":" + selected["certificate"]])
++    assembly_raw = (CAMPAIGN.parent / "historical" / COMMIT / selected["certificate"]).read_bytes()
+     need(digest(assembly_raw) == selected["certificate_sha256"]
+          == receipt["assembly_sha256"] == math.PINS["assembly"], "Selected assembly source")
+     need(Q(json.loads(assembly_raw)["complex_lower"]) == B, "Selected exponent from assembly")

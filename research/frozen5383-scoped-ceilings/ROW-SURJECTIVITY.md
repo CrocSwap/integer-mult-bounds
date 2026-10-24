@@ -1,0 +1,15 @@
+# Immediate rowwise surjectivity corollary
+
+This corollary concerns Ali Romman's frozen #5383 head `4bd6efa51a495a7c7b7754915cf0244e7e60969e`, at each of the 3,282 positive paid-input events separately. It follows from the complete single-monomial certificates already replayed here; it is not another construction search.
+
+Fix a positive tensor width and let V be the logical payload space of one field. The complete chronologically derived input row is a linear map F from the 624 retained independent boundary fields and 17 arbitrary owned boundary fields to V. For this row, one retained input x has entire coefficient qU, where q is a nonzero rational and U is a product of invertible native operators (with tensor powers substituted termwise). All other row terms involve other independent entry fields. Thus F(x,z) = qU x + G(z).
+
+The eight pivot fields are owned storage. The literal preparation first clears each pivot and fills it using retained entries; it imposes no relation among the 624 retained entries. Their arbitrary values are the independent coordinates used by the census, before preparation. Choosing one retained entry can therefore induce several nonzero prepared pivot fields, exactly as the chronological row calculation already records. One must not set these internally prepared pivot values independently after preparation.
+
+Given any v in V, choose the selected retained boundary input x = (qU)^(-1)v, set every other retained boundary entry to zero and every arbitrary owned entry value to zero, and run the unchanged preparation. The exact paid input at this event is F(x,0)=v. Therefore this individual row map is surjective onto V. The corresponding source frame/chart is invertible, so the same full-dimensional conclusion holds for its physical representation. If an external contract bounds magnitudes, homogeneous scaling gives a nonzero neighborhood in every direction and the reachable linear span remains V; no claim about surjectivity onto an unbounded set from a bounded input box is needed.
+
+Consequently, restricting the unchanged paid action to a proper linear subspace of this single field cannot justify a cheaper implementation under the frozen boundary. This is stronger than mere nonzero input. It does not prove that the supplied Gaussian-rank algorithm is minimal, does not exclude a cheaper full-space algorithm, and does not exclude joint algorithms exploiting other simultaneous fields or side information. The witness choice is made separately for each event; no simultaneous independent reachability of all event inputs is asserted.
+
+The existing zero-retags remain excluded. Changed preparation, relations, pivots, boundary constraints, native action, word or direction require new coverage. In particular, this corollary does not extend the finite three-target controller screen to a continuous or universal ceiling and adds no κ gain.
+
+Prepared by Chris R / Clear1nsight with substantial OpenAI Codex assistance, preserving Ali Romman's construction and all frozen census, native and termwise-tensor predecessor credit.

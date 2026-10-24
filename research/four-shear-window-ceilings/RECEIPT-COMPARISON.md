@@ -1,0 +1,5 @@
+# Canonical JSON receipt adapter
+
+The fresh scientific result uses integer rank keys in Python dictionaries; JSON object keys are strings. The original direct main function compares those Python objects before normalisation, so it cannot verify an otherwise identical stored result. The registered entry point is now replay.py, which authenticates the unchanged scientific engine at blob 804451f1b6a420d32cb2f4bc660c23550021badb, executes run() with every source and mathematical check, and compares every field in canonical JSON form. It never invokes the --write authoring path or changes RESULT.json.
+
+Only object order and JSON's required string key representation are normalised. No value is rounded or omitted. Arrays remain ordered and encoded boolean/integer and integer/float values remain distinct. Six controls reject changed counts, types, array order and missing/extra fields in normal and optimised modes. Use the registered command or replay.py for the stored receipt; the original --self-test remains valid. This adapter preserves scientific evidence rather than changing acceptance predicates.

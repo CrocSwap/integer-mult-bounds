@@ -1,0 +1,18 @@
+--- a/tests/test_research_worker_failure_order.py
++++ b/tests/test_research_worker_failure_order.py
+@@ -50,13 +50,13 @@
+         with tempfile.TemporaryDirectory() as temporary:
+             root = Path(temporary)
+             first, second = root / 'test_a.py', root / 'test_b.py'
+-            first.write_text('import pathlib,time,unittest\n'
++            first.write_text('import pathlib,time,sys,unittest\n'
+                 'class T(unittest.TestCase):\n'
+                 ' def test_first(self):\n'
+                 '  pathlib.Path("first-ready").touch()\n'
+                 '  while not pathlib.Path("second-failed").exists(): time.sleep(.01)\n'
+                 '  time.sleep(.2)\n'
+-                '  print("earlier module completed")\n')
++                '  sys.stdout.buffer.write(b"earlier module completed\\n");sys.stdout.flush()\n')
+             second.write_text('import pathlib,time,unittest\n'
+                 'class T(unittest.TestCase):\n'
+                 ' def test_second(self):\n'

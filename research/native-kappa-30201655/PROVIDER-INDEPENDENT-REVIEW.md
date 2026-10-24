@@ -1,0 +1,29 @@
+# Independent final provider/assembly review
+
+Reviewed the current assembly/NATIVE-ASSEMBLY.md, provider/NATIVE-PROVIDER-4535.md, the predecessor algebraic compiler proofs and the relevant modern gauge-free/fine-padding and batched inverse documents. No decisive error was found in the **stated source-bound informal claim** at native Word RAM kappa=0.0030201655. This is not independent verification of every inherited analytic theorem, an emitted end-to-end multiplier, a Lean result or a practical performance claim.
+
+## Provider dependency audit
+
+The relevant effective chronological construction is PR4483's research/direct-mixed-flow/README.md sections 2 and 3, not merely the short compact-joint-compiler parameter proof. Its actual rules supply matched whole jobs from the present paid round, complete unmatched exits, introduce distinct sources when parent slots are absent, and return completed children before the parent continues. Nested divisible widths make smaller program batches integral. Strict rank descent proves finite construction. Its all-input correctness uses explicit source Gaussian/monomial matching identities. PR4532's majorant and PR4535's absorption then fund the actual fixed rank N=2^(10^12), with P_leaf/W<N^(1-0.0030201656).
+
+The native closure's exact asymptotic premise is this algebraic all-fiber identity for every positive lift f, including absolute phase normalizers. An f=1 replay or favorable histogram alone would not supply it. Within that retained mathematical premise, the indexed array compiler, fixed rational operation lowering, paid affine/quadratic metadata tables, complete batches, leftovers and depth-prefix roundoff argument do provide native execution and O(log n)-bit words without a TM complexity or precision theorem. The fixed constants may be astronomical; treating them as fixed is valid only after freezing the supplier before n varies.
+
+## Outer cost and precision audit
+
+The main native row is T*p^(1-epsilon*q), and the actual tensor-fused Gaussian row is T*p^(epsilon-q*beta), up to fixed polylogarithms. The latter is essential: substituting separate line transforms with T*d work would not establish the claimed exponent at epsilon near 1. The assembly explicitly retains the constructive shallow shifted/accretive Toeplitz circuit and its simultaneous selected-bit H/diagonal compiler, so it does not make that substitution.
+
+The group coordinate-key width K=O(p^(beta+1-epsilon)+p^beta log p) is o(p) under the stated strict parameter inequalities. Enumerating the explicitly defined coefficient/address functions therefore costs n^o(1), including any fixed polynomial number of group types. Paid word-bit Benes routing gives logarithmic, rather than g-linear, work per query. The coefficient/root preparation uses multi-limb arithmetic on its polynomial-size offline operands. If an axis-sized constructor has dimensions s_i=n^o(1), its exact bit lengths/time should be described as polynomial(s_i,p), not uniformly polynomial(p); this still contributes n^o(1) setup. Online data and rounded coefficient words remain C*p bits under the retained conditioning and explicit new rounding estimates.
+
+The supplied batched triangular residual theorem controls the full solution using the actual global inverse norm rather than multiplying errors along the block chain. Periodic low-rank correction, inverse diagonal-block preparation, both original boundary couplings, incomplete batches and indexed sparse visits are charged. Fast multiplication is Strassen on bounded signed scalar words; no n-bit input product is an elementary operation. The native full-global-precision record FFT uses the same word model as the outer caller, which is necessary when log(record length) is much smaller than p.
+
+For the stated rational parameters, q_C-q=5e-11, epsilon*q-kappa=1.97983445e-11 and the fused Gaussian margin is positive. These strict constants absorb all fixed polylog(p) factors eventually. The claim needs the complete source-bound nine-row and interface ledger, not only these three comparisons. The root's component finite tests retain their separate scope: record-product fixtures do not replay the gigantic provider or full asymptotic caller.
+
+## Scope and retained obligations
+
+The assembly is a new native execution/cost theorem conditional on specifically credited algebraic/analytic predecessor proofs. Its missing formalization and missing materialized full program are disclosed rather than treated as hidden fast-algorithm oracles. The claim must remain qualified this way in README, title/body and handoff; a finite arithmetic certificate does not independently certify universal source mathematics or worldwide best-known priority. The source's analytic Gaussian identities, phase-cell/coarse-label decomposition, prime padding, tensor-circuit correctness, matching normalizers and exact recovery retain their full predecessor attribution.
+
+Reviewed bytes are hash-bound in FINAL-ASSEMBLY-REVIEW-HASHES.json. Later edits require a targeted reread; these hashes do not themselves validate mathematics.
+
+## Targeted final revision review
+
+Reread assembly revision SHA-256 a1f200292ea13d72bd64cb91a4daa28261bc220a80fe9c94983f3b9a1dffaa42. It now explicitly limits the common circuit wire width to the retained dyadic core L=p^128, preserves coarse labels while making the completed H calls globally, and charges global polynomial(r,p) preparation separately from polynomial(p) group-key evaluation. The nine rows now expressly include per-call selected-bit addressing within the main/fused costs and per-group scans within the group row; the standalone routing rows cover only additional global passes. These clarifications address the review notes without changing the claimed exponent. No new decisive gap was found in that targeted reread.

@@ -1,0 +1,30 @@
+name: Historical joint-helper checkpoint #4470
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: selected-frontier4470-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7c472563474e60185e6ca101a17622133d047e56
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -B scripts/verify_frontier4470.py --work "$RUNNER_TEMP/frontier4470"
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontier4470-replay
+          path: |
+            ${{ runner.temp }}/frontier4470/VALIDATION.json
+            ${{ runner.temp }}/frontier4470/source/review-evidence/*.log
+            ${{ runner.temp }}/frontier4470/source/review-evidence/*.json

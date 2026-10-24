@@ -1,0 +1,129 @@
+--- vendor/union_census.c
++++ census.c
+@@ -1,4 +1,8 @@
+-/* Corrected finite canonical restored-word census with a union-support budget.
++/* Source-bound maintained-engine successor with opt-in prefix capacity.
++ * JoyboyBrian, with substantial OpenAI Codex assistance; Apache-2.0.
++ * PR5001 capacity theorem: Ali Romman; all predecessor credit follows.
++ *
++ * Corrected finite canonical restored-word census with a union-support budget.
+  * Derived from Nicholas Stone's corrected_census.c (research/
+  * f7-weight-parity-census-correction, sha256 265ead91...) and the L<=22 gate
+  * extension recorded in PR #3731; preserves the restricted-growth word scope.
+@@ -51,11 +55,12 @@
+ typedef unsigned __int128 mask_t;
+ typedef struct { char key[L+1]; int length; uint64_t cap; } Shard;
+ typedef struct {
+-    uint64_t nodes, candidate_leaves, hits, even_prunes, odd_prunes, union_prunes;
++    uint64_t nodes, candidate_leaves, hits, even_prunes, odd_prunes, union_prunes, capacity_prunes;
+     int aborted;
+     double seconds;
+ } Result;
+ static int S,T, even_on=1,odd_on=1,union_on=1,even_budget,odd_budget,union_budget;
++static int capacity_on,capacity_active;
+ static int word[L], counts[N], E[L+1],O[L+1],es=1,os=0;
+ static int q,used,odd_counts,even_excess,odd_excess;
+ static mask_t seen=1, ee,oo,eo;
+@@ -69,6 +74,46 @@
+ }
+ static inline int parity(int x) { return __builtin_popcount((unsigned)x)&1; }
+ static inline mask_t bit(int x) { return (mask_t)1 << x; }
++/* The caller supplies a simple path; each omitted functional uses actual splits. */
++static uint32_t capacity_splits(int depth,int omitted) {
++    int k=depth+1,r=L-k,mask=((1<<N)-1)^(1<<omitted);
++    int size[2]={0},stays[2]={0},cheap[2]={0},pairs[2]={0},available[2]={0};
++    int point=0,crossing=0;
++    size[0]=1;
++    for(int i=0;i<depth;i++) {
++        int next=point^(1<<word[i]);
++        int side=parity(next&mask);
++        size[side]++;
++        if(word[i]==omitted) stays[side]++; else crossing++;
++        point=next;
++    }
++    if(!r) return __builtin_popcount((unsigned)q)==1 ? (uint32_t)1<<size[0] : 0;
++    for(int vertex=0;vertex<(1<<N);vertex++) if(!(seen&bit(vertex))) {
++        int side=parity(vertex&mask),mate=vertex^(1<<omitted);
++        available[side]++;
++        if(mate==0 || mate==q) cheap[side]++;
++        else if(!(seen&bit(mate)) && vertex<mate) pairs[side]++;
++    }
++    uint32_t splits=0;
++    for(int x=0;x<=r;x++) {
++        int added[2]={x,r-x},low=crossing,high=crossing+r+1;
++        if(x>available[0] || r-x>available[1]) continue;
++        if(size[0]+x && size[1]+r-x && low<2) low=2;
++        for(int side=0;side<2;side++) {
++            int one=cheap[side]<added[side]?cheap[side]:added[side];
++            int two=(added[side]-one)/2;
++            if(two>pairs[side]) two=pairs[side];
++            int total=size[side]+added[side];
++            int floor=2*total-2*(stays[side]+one+two);
++            int ceiling=2*total-2*stays[side];
++            if(low<floor) low=floor;
++            if(high>ceiling) high=ceiling;
++        }
++        low+=low&1;
++        if(low<=high) splits|=(uint32_t)1<<(size[0]+x);
++    }
++    return splits;
++}
+ static void rec(int i) {
+     if (run.aborted || io_error) return;
+     if (current->cap && run.nodes >= current->cap) { run.aborted=1; return; }
+@@ -84,6 +129,11 @@
+         return;
+     }
+     if (odd_counts+2*(N-used)>L-i) return;
++    if(capacity_active && i>0) {
++        for(int omitted=0;omitted<N;omitted++) if(!capacity_splits(i,omitted)) {
++            run.capacity_prunes++; return;
++        }
++    }
+     int limit=used<N ? used+1 : N;
+     for (int j=0;j<limit;j++) {
+         if (run.aborted || io_error) return;
+@@ -166,14 +216,15 @@
+ static void write_result(FILE *f,const char *prefix,Result *r,int comma) {
+     fprintf(f,"    {\"prefix\":\"%s\",\"nodes\":%" PRIu64 ",\"candidate_restored_leaves\":%" PRIu64 ",\"all_restored_leaves\":",prefix,r->nodes,r->candidate_leaves);
+     if (!even_on&&!odd_on&&!r->aborted) fprintf(f,"%" PRIu64,r->candidate_leaves); else fputs("null",f);
+-    fprintf(f,",\"hits\":%" PRIu64 ",\"even_budget_prunes\":%" PRIu64 ",\"odd_budget_prunes\":%" PRIu64 ",\"union_budget_prunes\":%" PRIu64 ",\"aborted\":%s,\"complete\":%s,\"seconds\":%.6f}%s\n",r->hits,r->even_prunes,r->odd_prunes,r->union_prunes,r->aborted?"true":"false",(!r->aborted&&!io_error)?"true":"false",r->seconds,comma?",":"");
++    fprintf(f,",\"hits\":%" PRIu64 ",\"even_budget_prunes\":%" PRIu64 ",\"odd_budget_prunes\":%" PRIu64 ",\"union_budget_prunes\":%" PRIu64 ",\"prefix_capacity_prunes\":%" PRIu64 ",\"aborted\":%s,\"complete\":%s,\"seconds\":%.6f}%s\n",r->hits,r->even_prunes,r->odd_prunes,r->union_prunes,r->capacity_prunes,r->aborted?"true":"false",(!r->aborted&&!io_error)?"true":"false",r->seconds,comma?",":"");
+ }
+ int main(int argc,char **argv) {
+     Shard shards[128]; Result results[128]; int nshards=0;
+     const char *hits_path=NULL,*json_path=NULL; uint64_t cap=0;
+-    if (argc<2||!parse_split(argv[1])) { fprintf(stderr,"usage: %s s,t --hits PATH [--json PATH] [--cap N] [--no-budgets|--no-even-budget|--no-odd-budget] [PREFIX[:CAP]...]\n",argv[0]); return 1; }
++    if (argc<2||!parse_split(argv[1])) { fprintf(stderr,"usage: %s s,t --hits PATH [--json PATH] [--cap N] [--prefix-capacity] [--no-budgets|--no-even-budget|--no-odd-budget] [PREFIX[:CAP]...]\n",argv[0]); return 1; }
+     for (int a=2;a<argc;a++) {
+         const char *arg=argv[a];
++        if (!strcmp(arg,"--prefix-capacity")) { capacity_on=1; continue; }
+         if (!strcmp(arg,"--no-budgets")) { even_on=odd_on=union_on=0; continue; }
+         if (!strcmp(arg,"--no-even-budget")) { even_on=0; continue; }
+         if (!strcmp(arg,"--no-odd-budget")) { odd_on=0; continue; }
+@@ -197,6 +248,7 @@
+             if (!strncmp(shards[a].key,shards[b].key,(size_t)common)) { fprintf(stderr,"overlapping shards\n"); return 1; }
+         }
+     }
++    capacity_active=capacity_on && N>=2 && L>=4 && L<=(1<<N) && S==L/2 && T==L/2;
+     even_budget=S*(S-1)/2+T*(T-1)/2-((1<<(N-1))-1);
+     odd_budget=S*T-(1<<(N-1));
+     union_budget=S*(S-1)/2+T*(T-1)/2-((1<<(N-1))-1);
+@@ -220,14 +272,15 @@
+         run.seconds=(double)(end.tv_sec-start.tv_sec)+1e-9*(double)(end.tv_nsec-start.tv_nsec);
+         results[a]=run; done++;
+         total.nodes+=run.nodes; total.candidate_leaves+=run.candidate_leaves; total.hits+=run.hits;
+-        total.even_prunes+=run.even_prunes; total.odd_prunes+=run.odd_prunes; total.union_prunes+=run.union_prunes;
++        total.even_prunes+=run.even_prunes; total.odd_prunes+=run.odd_prunes; total.union_prunes+=run.union_prunes; total.capacity_prunes+=run.capacity_prunes;
+         total.aborted|=run.aborted; total.seconds+=run.seconds;
+         printf("SHARD %s nodes=%" PRIu64 " candidate_restored_leaves=%" PRIu64 " hits=%" PRIu64 " complete=%s seconds=%.3f\n",current->length?current->key:"-",run.nodes,run.candidate_leaves,run.hits,(!run.aborted&&!io_error)?"true":"false",run.seconds); fflush(stdout);
+         if (run.aborted||io_error) break;
+     }
+     printf("TOTAL N=%d L=%d split=%d,%d nodes=%" PRIu64 " candidate_restored_leaves=%" PRIu64 " hits=%" PRIu64 " complete=%s seconds=%.3f\n",N,L,S,T,total.nodes,total.candidate_leaves,total.hits,(!total.aborted&&!io_error)?"true":"false",total.seconds);
+     if(jsonout) {
+-        fprintf(jsonout,"{\n  \"schema\":1,\"n\":%d,\"length\":%d,\"split\":[%d,%d],\"groups\":\"hamming_weight_parity\",\"even_budget\":%d,\"odd_budget\":%d,\"union_budget\":%d,\"even_budget_enabled\":%s,\"odd_budget_enabled\":%s,\"union_budget_enabled\":%s,\n  \"complete\":%s,\"aborted\":%s,\"requested_shards\":%d,\"completed_or_partial_shards\":%d,\n  \"shards\":[\n",N,L,S,T,even_budget,odd_budget,union_budget,even_on?"true":"false",odd_on?"true":"false",union_on?"true":"false",(!total.aborted&&!io_error)?"true":"false",total.aborted?"true":"false",nshards,done);
++        fprintf(jsonout,"{\n  \"prefix_capacity_requested\":%s,\"prefix_capacity_enabled\":%s,\n",capacity_on?"true":"false",capacity_active?"true":"false");
++        fprintf(jsonout,"  \"schema\":1,\"n\":%d,\"length\":%d,\"split\":[%d,%d],\"groups\":\"hamming_weight_parity\",\"even_budget\":%d,\"odd_budget\":%d,\"union_budget\":%d,\"even_budget_enabled\":%s,\"odd_budget_enabled\":%s,\"union_budget_enabled\":%s,\n  \"complete\":%s,\"aborted\":%s,\"requested_shards\":%d,\"completed_or_partial_shards\":%d,\n  \"shards\":[\n",N,L,S,T,even_budget,odd_budget,union_budget,even_on?"true":"false",odd_on?"true":"false",union_on?"true":"false",(!total.aborted&&!io_error)?"true":"false",total.aborted?"true":"false",nshards,done);
+         for(int a=0;a<done;a++) write_result(jsonout,shards[a].key,&results[a],a+1<done);
+         fputs("  ],\n  \"total\":[\n",jsonout); write_result(jsonout,"",&total,0); fputs("  ]\n}\n",jsonout);
+         if(fclose(jsonout)) io_error=1;

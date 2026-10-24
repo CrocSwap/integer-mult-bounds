@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": ["numpy==2.2.6"],
+  "inputs": [
+    "research/pr4470-exact-transport-audit/vendor/CANONICAL.json.gz",
+    "research/pr4470-exact-transport-audit/vendor/PR4447-PATCH.json",
+    "research/pr4470-exact-transport-audit/vendor/PR4470-PATCH.json",
+    "research/pr4470-exact-transport-audit/vendor/PR4470-NATIVE.json.gz"
+  ],
+  "commands": [
+    {
+      "argv": ["{python}", "-I", "-B", "{package}/replay.py"],
+      "timeout_seconds": 600,
+      "checks": "Fresh exact full-matrix replay of all 423 declared pairs in both orientations with source authentication, phase/rank controls and exact comparison of every hosted receipt field. No list-completeness or full native/theorem admission claim."
+    },
+    {
+      "argv": ["{python}", "-I", "-O", "-B", "{package}/verify.py", "--self-test"],
+      "timeout_seconds": 60,
+      "checks": "196 positive checks, seven rejection controls and the tensor-phase control with assertions disabled."
+    },
+    {
+      "argv": ["{python}", "-I", "-B", "{package}/test_replay.py"],
+      "timeout_seconds": 30,
+      "checks": "Five receipt/engine-binding tests reject changed scientific fields, scope fields, numeric types, missing/extra fields, corrupted receipts and changed engine bytes."
+    },
+    {
+      "argv": ["{python}", "-I", "-O", "-B", "{package}/test_replay.py"],
+      "timeout_seconds": 30,
+      "checks": "The same five receipt controls with assertions disabled."
+    }
+  ]
+}

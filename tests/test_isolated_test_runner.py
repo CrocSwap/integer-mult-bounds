@@ -60,6 +60,7 @@ class Sandbox:
         scripts = tmp / 'scripts'
         scripts.mkdir()
         shutil.copyfile(RUNNER, scripts / 'run_isolated_tests.py')
+        shutil.copyfile(ROOT / 'scripts/research_package.py', scripts / 'research_package.py')
         tests = tmp / 'tests'
         tests.mkdir()
         for name, body in modules.items():

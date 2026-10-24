@@ -1,0 +1,134 @@
+CLEAN-ANCILLA SEARCH: INDEPENDENT SCOPE AND PRUNING AUDIT
+
+No incorrect pruning was found in the reviewed rational engine or in the
+all-order field-engine driver. This audit is conditional on rational frame
+span at least five, so the relation space has dimension at most three.
+
+The target condition is only the upper-left 3 by 3 block: it must be diagonal,
+with one group monomial at each diagonal position. The fourth input is zero
+and the fourth output is discarded. No other entry is constrained.
+
+RATIONAL COLLISION SEARCH
+
+Each paid scalar matrix is a nonzero rank-one binary idempotent. The engine
+expands all eight factors exactly over the binary group algebra. Its exponents
+are the 256 subset indicators. A state is a rational row space R0 of imposed
+relations. Exact Fraction row reduction gives a canonical representative for
+each exponent modulo R0. Group coefficients are added by XOR.
+
+For a nonzero active off-diagonal coefficient, its exponent must collide
+with another exponent that has that bit. Pairing its first exponent with
+every possible partner is exhaustive for all extensions of R0. At an active
+diagonal with more than one exponent, some pair must collide before it can
+become one monomial. The rational engine branches over every pair. A zero
+diagonal or a single off-diagonal term cannot be repaired by more relations.
+Each collision adds one independent relation, so at most three additions
+are required under the span hypothesis. Repeated states can be omitted.
+
+Rejecting a state that contains a coordinate vector e_j is sound: it forces
+the corresponding paid frame to be zero. The primitive integral version of
+each relation belongs to the saturated physical relation lattice L. Its
+parity therefore lies in L modulo 2. Each active off-diagonal first-order
+row also lies there. Their binary span cannot have dimension greater than
+rank(L)<=3. The parity test uses only these necessary rows; it does not
+assume that a chosen rational basis generates the full integral lattice.
+
+At a terminal, a target exponent in R0+span(e_i,e_j) is a linear combination
+of two paid rank-one frames. Its matrix rank is at most two. It cannot be
+an invertible 3 by 3 target. More relations do not remove this obstruction.
+A terminal that passes this test is only a candidate, not a construction.
+
+CLEAN-ENDPOINT DISTANCE FILTER
+
+Let w be any nonzero binary vector on the three active coordinates, extended
+by zero on the fourth coordinate. Suppose w pairs with at most two scalar
+left factors. The span of the corresponding rational frames contains only
+matrices of rank at most two. A rational functional can annihilate this span
+while remaining nonzero on all three invertible target frames. After this
+projection, the touched factors become identity; every other factor fixes
+w on the left. The product must fix w. Its active diagonal block does not,
+which is a contradiction. The unknown fourth output entry does not affect
+this contradiction on the first three columns. Transpose and reverse the
+word for the column version. This proves all fourteen distance constraints.
+
+SPAN HYPOTHESIS AND ACTIVE COMPRESSION
+
+The existing low-span proof uses the factorization P-I=XTY^T, where T is
+upper triangular with nonzero diagonal. Compressing to the three active
+coordinates gives P_active-I=X_active T Y_active^T. If this block is zero,
+Sylvester's rank inequality gives rank(X_active)+rank(Y_active)<=k. If its
+rank is three, both active ranks are at least three. These are precisely
+the rank tools used in the span-at-most-four argument. The lower-triangular
+target or common-flag assumption in that argument must be retained. The
+search itself does not establish that assumption.
+
+CATALOGUE
+
+A separate implementation finds each dual basis vector by testing its four
+binary inner products. It does not use the production matrix inverse.
+There are 840 unordered binary bases and 166 orbits under permutations of
+the three active coordinates. Orbit sizes are 1 (6 orbits), 3 (42), and
+6 (118). The independently generated job set equals all 17106 saved jobs.
+The declared layer shapes contribute 14148, 1479, and 1479 distinct jobs.
+
+These are the shapes (2,2,2,2), (3,3,2), and (2,3,3), with alternating I/B
+layers, either initial basis, and distinct projectors within each layer.
+This is a finite layer ansatz. It does not cover all two-basis words.
+The separate all-order run removes this layer-shape restriction. Its 166
+alphabet rows match the independently generated basis orbit representatives.
+
+ALL-ORDER C++ DRIVER
+
+The driver deduplicates identical scalar projectors. It enumerates words of
+length eight over the remaining alphabet, allowing repeated labels. Its
+fourteen distance counters are exact. A prefix is discarded only when its
+current count plus all remaining positions is less than three.
+
+The commutation test calculates both products of the actual rank-one scalar
+matrices over the binary field. Commuting scalar projectors give commuting
+paid factors for all frame variables. A rejected word has a smaller label
+that can move left through commuting labels. Thus its trace class has a
+lexicographically smaller representative. Every trace class has a least
+representative, and every prefix of that representative passes the test.
+This reduction preserves coverage. It does not use word reversal.
+
+Fixing the first basis to I is part of the ansatz. General simultaneous GL4
+conjugacy need not preserve the required active diagonal target. Consequently
+the complete driver covers I plus one arbitrary binary-basis alphabet, not
+every pair of bases in every scalar coordinate system.
+
+MODULAR ENGINE
+
+Every state has at most three rows that are differences of subset indicators.
+Their entries are -1, 0, or 1. Nonzero minors of size at most three have
+absolute value at most four. State row-reduction entries therefore have
+reduced numerator and denominator of absolute value at most four. The
+implemented reconstruction box [-5,5]/[1,5] contains them and is injective
+modulo 101, since a difference of cross products has absolute value at most
+50. Denominators remain nonzero modulo 101.
+
+Testing an exponent collision adds one further cube-difference row. Every
+relevant 4 by 4 minor has absolute value at most 16 by Hadamard's inequality,
+which is less than 101. Zero-frame checks add a coordinate row. Target rank
+checks add two coordinate rows and one subset row; expansion on the two
+coordinate rows again leaves a minor of size at most four and absolute
+value at most 16. Thus rank tests and exponent collisions agree over the
+rationals and F101. Rational reconstruction makes the parity test exact.
+
+The field engine handles a nonmonomial diagonal by pairing either of its
+first two terms with all possible later partners. In any valid completion,
+at least one of those two terms shares its final exponent with another
+term: at most one singleton can remain. Therefore this smaller partner
+set is exhaustive. It can visit fewer states than the all-pairs engine.
+
+SELECTED INDEPENDENT ARITHMETIC COMPARISON
+
+Forty-eight fixed words were run through both engines: 24 nonsymmetric
+catalogue words with many terminals, and 24 fixed-seed words that permit
+repeated projectors. Both engines found zero survivors and 54 terminals.
+The field engine visited states at all relation depths zero through three.
+This is a selected-case comparison, not a second full all-alphabet replay.
+
+The completed 17106-job log is also checked for unique job indices, exact
+word correspondence, zero survivors, and agreement with the stored totals.
+No production search source was edited during this audit.

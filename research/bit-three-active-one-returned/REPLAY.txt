@@ -1,0 +1,55 @@
+Replay the three-active, one-returned lower bound
+================================================
+
+Requirements: Python 3.10 or later, and a C++17 compiler. Only the Python
+standard library is used. Set CXX to a compiler executable if needed.
+
+From any directory, run the saved generate.py file with a new build
+folder. For example, from this package folder:
+
+  python3 generate.py --build /tmp/three-active-one-returned-replay
+
+The build folder must not exist. The program writes every generated
+file there. It does not write into the package or use repository files,
+network access, installed Python packages, or precomputed binary inputs.
+Allow about 200 MB of temporary disk space. The recorded full run took
+about one minute on the author's computer; this is not a runtime bound.
+
+The run performs these steps:
+
+1. Compile the four small C++ programs.
+2. Generate all pattern spaces and retained rank-two and rank-three
+   multisets, with the counts in PROOF.txt.
+3. Generate all canonical orders and run the required finite quotient
+   check on rank-three words.
+4. Check the exact input record counts and SHA256 hashes.
+5. Run primitive-integer and F101 relation searches on every input.
+6. Compare every terminal word ID and every cumulative terminal count.
+7. Save receipt.json in the build folder.
+
+Expected final lines:
+
+  Exact checks: 2 27156 0 0
+  Exact checks: 3 1901600 538 0
+  Receipt: <build folder>/receipt.json
+
+The last two numbers in each check are diagonal terminals and accepted
+relation spaces. Zero accepted spaces is the required negative result.
+A surviving relation space would not itself be a circuit construction.
+
+The package's receipt.json is the saved full replay result. It includes
+source hashes, input hashes, all catalogue counts, and both engine totals.
+AUDIT.txt states the independent verification scope. No large generated
+JSONL files, input records, or compiled binaries are part of the package.
+
+Source map:
+  generate.py    Complete generation, replay, and result comparison.
+  multisets.cpp Rank-three multiset filters.
+  orders.cpp    Rank-three commuting-order and quotient filters.
+  rational.cpp  Primitive-integer collision engine.
+  field101.cpp  Independent F101 collision engine.
+
+Both collision engines adapt the exact relation methods used in PR468.
+The four C++ files are byte-identical to the separately checked working
+sources. The generator combines the checked catalogue and conversion
+steps. The full package was replayed in a new temporary directory.

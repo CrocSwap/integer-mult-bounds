@@ -1,0 +1,13 @@
+# Attribution and inherited scope
+
+Prepared for Dillon with substantial OpenAI Codex assistance. The source-specific coset theorem, its application to chronological input/output cuts, sharp one-sided and rectangular mode bounds, finite-H extension and direct-sum corollary are the additions from this session. General causal/image/row-space rank-cut methods are standard and retain the earlier repository method credit to eumemic's PR288 and Ali Romman's PR468, summarized in `fixed-support-unary-query-bounds/README.md`. That related fixed-carrier theorem is not a dependency or a proof of this physical-code result. Distinct agents derived the proof, audited its mathematical scope, checked an independent binary formula and prepared the portable package. Their agreement is agent corroboration, not independent human or proof-kernel acceptance.
+
+- Dugongue's PR4929 supplies the native center-free code A, its all-input producer contract and 408 independent helper endpoints.
+- PR4933, prepared for Dillon, supplies the actual real signed orthogonal normalizers K_i, physical code C, exact phase conventions and fixed owner recoding.
+- Chris R/Clear1nsight's PR4932 `coded-port-adapter-ceiling` supplies the finite-phase group-algebra formulation, tensor faithfulness theorem, physical adapter interface and the distinct one-parallel-bank grade-two result. The present theorem changes chronology and method; it does not relabel that predecessor result.
+- The retained `passive-saved-query-ceiling` package supplies the explicit uniform finite-alphabet clarification and its separate passive-controller scope. Its owned-reset clarification is respected: no inverse-uncompute or reset-cost lower bound is used here.
+- Cinna Davis/1337isnot1337's PR4694/4698, Cao Yifan/intqwq's PR4610 and round-three native source, zxv's exact Clifford work, and the retained helper, compiler and outer contributors remain credited through the cited packages and source notices.
+
+No predecessor implementation is vendored. The main verifier executes authenticated existing `coded-native-caller/clifford_exact.py` bytes and reads the retained code/normalizer receipts. Its byte origin and Apache-2.0 obligations remain in `coded-native-caller/NOTICE` and `ORIGINS.json`, pinned as provenance in SOURCES.json. The independent binary checker does not import that implementation. All new files are under the repository's Apache-2.0 license.
+
+The native all-input theorem and its physical recoding are inherited premises. This package does not rerun the full source producer, provide a numerical compiler/outer admission, or promote either historical or current source claims to formal theorem acceptance.

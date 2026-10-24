@@ -1,0 +1,12 @@
+# Source credit and scope
+
+This contribution is distributed under the repository Apache-2.0 license. Retained upstream notices and attribution continue to apply. No ownership of the source supplier is claimed.
+
+- Cao Yifan (intqwq), [PR #4610](https://github.com/CrocSwap/integer-mult-bounds/pull/4610), head `20bb93cd990d2ff683e4d0fc56b87a42cd5d3296`: actual round-3 supplier. Decompressed payload SHA-256 `cfcd36b40326d7a5815e1db5313444379b3fb756b27d5201c561574c085cc0dd`.
+- Cinna Davis, [PR #4690](https://github.com/CrocSwap/integer-mult-bounds/pull/4690), head `ddb7ead76479b1e281b485a78b65ce21cc7de8d7`: exact general Gaussian contact/search model used to derive the frozen graph. [PR #4672](https://github.com/CrocSwap/integer-mult-bounds/pull/4672) is the earlier round-2 optimization, not the strongest round-3 source.
+- [PR #4713](https://github.com/CrocSwap/integer-mult-bounds/pull/4713), head `9bb3f3f72925e8825c8b4851dfdc8e92b72db949`, and its retained #4630/#4635 predecessors: native DIV-free caller and full nine-row admission contract.
+- [PR #4710](https://github.com/CrocSwap/integer-mult-bounds/pull/4710), head `b0d5192390af493d626054b060921895df3c94d2`: literal Gaussian normalization. Exact locator and source hash are retained in compiler/SOURCES.json.
+- [PR #4760](https://github.com/CrocSwap/integer-mult-bounds/pull/4760): separate ordinary BIT-only scope. [PR #4703](https://github.com/CrocSwap/integer-mult-bounds/pull/4703) and [PR #4797](https://github.com/CrocSwap/integer-mult-bounds/pull/4797): partial endpoint/quotient/resonant interfaces, not complete complex suppliers. [PR #4792](https://github.com/CrocSwap/integer-mult-bounds/pull/4792): preceding literature dossier.
+- Sergey Bravyi and Dmitri Maslov, [Hadamard-free circuits expose the structure of the Clifford group](https://arxiv.org/abs/2003.09412v2), Theorem 1: structural predecessor of the affine/phase and Fourier decomposition. Our result specializes the construction to the project's literal dyadic Gaussian and native accounting; it is not a new Clifford normal-form priority claim.
+
+The frozen graph is a derived dataset from the canonical-main general-gaussian-contact-search model and the actual round-3 word. It has 19,199 nodes, 34,638 paid-edge constraints plus 408 productive-target constraints, 4,429 frames and 145 native maps. Its SHA-256 is bound by MANIFEST.json and decoder/TRANSVECTION-EXPECTED.json. The portable tools are new standalone implementations; no private proof file, personal header, credential, or external executable is included.

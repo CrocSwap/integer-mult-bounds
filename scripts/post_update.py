@@ -46,10 +46,14 @@ def post(number, reply_to, body, api=graphql):
         raise ValueError('discussion not found in ' + REPO)
     if reply_to:
         node = api('''query($id:ID!) {node(id:$id) {
-          ... on DiscussionComment {id discussion {id}}
+          ... on DiscussionComment {id discussion {id} replyTo {id url}}
         }}''', {'id': reply_to})['node']
         if not node or node.get('discussion', {}).get('id') != discussion['id']:
             raise ValueError('reply target is not a comment in the requested discussion')
+        parent = node.get('replyTo')
+        if parent:
+            raise ValueError('nested replies are not supported; use parent comment '
+                             + parent['id'] + ' (' + parent['url'] + ') instead')
     payload = {'discussionId': discussion['id'], 'body': body}
     if reply_to:
         payload['replyToId'] = reply_to

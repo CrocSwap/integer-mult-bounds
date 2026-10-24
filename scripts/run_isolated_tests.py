@@ -17,7 +17,8 @@ children that ignore or override their environment need their own cache policy.
 The owned temporary directory is removed after workers finish or are stopped.
 """
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
 import math
 import os
 from pathlib import Path
@@ -64,7 +65,9 @@ def stop_module(process):
             try:
                 result = subprocess.run(['taskkill', '/F', '/T', '/PID', str(process.pid)],
                                         capture_output=True, timeout=5)
-                if result.returncode:
+                # The supervisor may finish job cleanup between poll and
+                # taskkill. An already-exited owner needs no further kill.
+                if result.returncode and process.poll() is None:
                     problems.append('taskkill exited ' + str(result.returncode))
             except (OSError, subprocess.TimeoutExpired) as error:
                 problems.append(str(error))
@@ -88,12 +91,52 @@ def stop_module(process):
         raise RuntimeError(f'module {process.pid}: ' + '; '.join(problems))
 
 
+def close_captures(process):
+    """Bound CPython Windows reader completion before acquiring stream locks."""
+    problems = []
+    deadline = time.monotonic() + 2
+    for name in ('stdout', 'stderr'):
+        try:
+            reader = getattr(process, name + '_thread', None)
+            if reader is not None:
+                reader.join(max(0, deadline - time.monotonic()))
+                if reader.is_alive():
+                    problems.append(name + ' capture reader did not stop')
+                    continue
+            getattr(process, name).close()
+        except Exception as error:
+            problems.append(str(error))
+    return problems
+
+
 def module_budget(value):
     """Reject NaN/infinity as well as nonpositive deadline budgets."""
     seconds = float(value)
     if not math.isfinite(seconds) or seconds <= 0:
         raise ValueError('module timeout must be finite and positive')
     return seconds
+
+
+WINDOWS_OWNER = '''import json, os, sys
+sys.path.insert(0, sys.argv[1])
+from research_package import run_windows_command
+sys.exit(run_windows_command(json.loads(sys.argv[2]), os.getcwd(), None, dict(os.environ)))
+'''
+
+
+def windows_module_command(command, python, cache):
+    """Keep a live owner until its gated module's whole Job Object is empty.
+
+    Reuse the registered replay runner's native ownership implementation. This
+    supervisor inherits the capture pipes and preserves the module's exit code;
+    closing its non-inherited job handle also kills descendants on cancellation.
+    Isolate supervisor startup and bytecode without changing the test environment.
+    """
+    return isolated_python(python, cache) + [
+        # Preserve Unicode at this outer layer as well as inside the job gate;
+        # ASCII escapes would consume the Windows command-line budget again.
+        '-I', '-S', '-c', WINDOWS_OWNER, str(ROOT / 'scripts'),
+        json.dumps(command, ensure_ascii=False)]
 
 
 def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None,
@@ -103,6 +146,32 @@ def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None,
     Results follow the input order regardless of scheduling. Each child must return a successful unittest result; a zero process exit
     alone is insufficient. Completion receipts are private to this invocation.
     """
+    previous_handler = None
+    termination = {'requested': False, 'waiting': False}
+
+    def terminate(signum, frame):
+        if not termination['requested']:
+            termination['requested'] = True
+            if termination['waiting']:
+                raise SystemExit(128 + signum)
+
+    try:
+        if (os.name != 'nt' and threading.current_thread() is threading.main_thread()
+                and signal.getsignal(signal.SIGTERM) == signal.SIG_DFL):
+            previous_handler = signal.SIG_DFL
+            signal.signal(signal.SIGTERM, terminate)
+        # Popen runs only in workers. The existing registration lock makes the
+        # cancellation snapshot wait for every in-progress launch to be owned.
+        result = _run_modules(files, python, tests_dir, cwd, workers, module_timeout, termination)
+    finally:
+        if previous_handler is not None:
+            signal.signal(signal.SIGTERM, previous_handler)
+    if termination['requested']:
+        raise SystemExit(143)
+    return result
+
+
+def _run_modules(files, python, tests_dir, cwd, workers, module_timeout, termination):
     python = sys.executable if python is None else python
     tests_dir = ROOT / 'tests' if tests_dir is None else tests_dir
     cwd = ROOT if cwd is None else cwd
@@ -144,6 +213,8 @@ def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None,
         # Keep their inherited cache policy private to this module as well.
         module_env = dict(env, PYTHONPYCACHEPREFIX=str(receipt) + '-descendant-pycache',
                           PYTHONDONTWRITEBYTECODE='1')
+        if os.name == 'nt':
+            command = windows_module_command(command, python, Path(str(receipt) + '-owner-pycache'))
         # Serialize launch/registration with cancellation: no worker may start
         # an unregistered module after the controlling thread takes its snapshot.
         with lock:
@@ -161,12 +232,6 @@ def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None,
                 try:
                     remaining = 0.2 if deadline is None else max(0, deadline - time.monotonic())
                     out, err = process.communicate(timeout=min(0.2, remaining))
-                    finished = True
-                    code = process.returncode
-                    if code == 0 and (not receipt.is_file() or receipt.read_bytes() != COMPLETED):
-                        code = 1
-                        err += b"Incomplete unittest run: child exited successfully before discovery and execution completed\n"
-                    return path, code, out, err
                 except subprocess.TimeoutExpired:
                     with lock:
                         if stopping:
@@ -174,6 +239,7 @@ def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None,
                             # pipes. Do not make cancellation wait for their EOF.
                             finished = True
                             return path, -1, b'', b''
+                    exited = os.name != 'nt' and process.poll() is not None
                     if deadline is not None and time.monotonic() >= deadline:
                         stop_module(process)
                         cleaned = True
@@ -183,12 +249,28 @@ def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None,
                             # A deliberately detached child may retain a pipe.
                             # Preserve captured bytes without waiting for its EOF.
                             out, err = error.output or b'', error.stderr or b''
-                            process.stdout.close()
-                            process.stderr.close()
+                            capture_problems = close_captures(process)
+                            if capture_problems:
+                                err += ('Capture cleanup failed: ' + '; '.join(capture_problems)
+                                        + '\n').encode('utf-8')
                         finished = True
                         err += (f'Module timeout after {module_timeout:g}s: {path.name}; '
                                 'unittest completion is not accepted\n').encode('utf-8')
                         return path, 124, out, err
+                    if exited:
+                        # Owned descendants may retain pipes after the module exits.
+                        # Check the deadline after observing exit, including poll time.
+                        stop_module(process)
+                        cleaned = True
+                        out, err = process.communicate(timeout=2)
+                    else:
+                        continue
+                finished = True
+                code = process.returncode
+                if code == 0 and (not receipt.is_file() or receipt.read_bytes() != COMPLETED):
+                    code = 1
+                    err += b"Incomplete unittest run: child exited successfully before discovery and execution completed\n"
+                return path, code, out, err
         finally:
             # An unexpected worker exception must leave a live child visible
             # to the controlling thread's cleanup snapshot.
@@ -196,36 +278,60 @@ def run_modules(files, python=None, tests_dir=None, cwd=None, workers=None,
                 # Pipe EOF and leader exit do not imply solver completion: a
                 # descendant may have closed its inherited capture streams.
                 # Keep ownership until POSIX group cleanup succeeds, including
-                # ordinary success/failure. Windows exited leaders need a Job
-                # Object; the existing taskkill cancellation contract is unchanged.
+                # ordinary success/failure. On Windows the supervisor empties
+                # its Job Object before exit; taskkill targets that live owner
+                # on timeout/cancellation, and handle closure kills its job.
                 if os.name != 'nt' and not cleaned:
                     stop_module(process)
                 with lock:
                     active.discard(process)
 
+    captures, problems = [], []
+    failure = None
     pool = ThreadPoolExecutor(max_workers=workers)
     try:
-        return list(pool.map(run_one, enumerate(files)))
+        if termination['requested']:
+            raise SystemExit(143)
+        futures = [pool.submit(run_one, indexed) for indexed in enumerate(files)]
+        # A later worker exception must not hide behind an earlier hung module.
+        pending = iter(as_completed(futures))
+        while True:
+            try:
+                termination['waiting'] = True
+                if termination['requested']:
+                    raise SystemExit(143)
+                completed = next(pending, None)
+                if completed is None:
+                    return [future.result() for future in futures]
+                completed.result()
+            finally:
+                # Disable asynchronous raises before any exceptional cleanup,
+                # including a first SIGTERM during an unrelated worker failure.
+                termination['waiting'] = False
     except BaseException as error:
+        failure = error
         with lock:
             stopping = True
             processes = tuple(active)
-        problems = []
         for process in processes:
             try:
                 stop_module(process)
+                captures.append(process)
             except Exception as cleanup_error:
                 problems.append(str(cleanup_error))
-        if problems:
-            note = 'Isolated test cleanup failed: ' + '; '.join(problems)
-            if hasattr(error, 'add_note'):
-                error.add_note(note)
-            else:
-                print(note, file=sys.stderr)
         raise
     finally:
         try:
             pool.shutdown(wait=True, cancel_futures=stopping)
+            # Workers must release communicate before we close stopped owners' pipes.
+            for process in captures:
+                problems.extend(close_captures(process))
+            if problems:
+                note = 'Isolated test cleanup failed: ' + '; '.join(problems)
+                if hasattr(failure, 'add_note'):
+                    failure.add_note(note)
+                else:
+                    print(note, file=sys.stderr)
         finally:
             completion.cleanup()
 

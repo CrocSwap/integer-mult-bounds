@@ -8,7 +8,7 @@ assistance. Apache-2.0.
 """
 from fractions import Fraction
 from hashlib import sha256
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import argparse
 import json
 import sys
@@ -27,6 +27,20 @@ def path(root, relative):
     p = (root / relative).resolve()
     require(p.is_relative_to(root.resolve()) and p.is_file(), 'Invalid selected file: ' + relative)
     return p
+
+
+def explicit_file(root, relative):
+    """Canonical, non-aliased input for an explicitly exported replay closure."""
+    require(isinstance(relative, str), 'Invalid explicit input name')
+    name = PurePosixPath(relative)
+    require(bool(name.parts) and not name.is_absolute() and '..' not in name.parts
+            and '\\' not in relative and name.as_posix() == relative,
+            'Noncanonical explicit input: ' + relative)
+    current = root
+    for part in name.parts:
+        current /= part
+        require(not current.is_symlink(), 'Explicit input symlink: ' + relative)
+    return path(root, relative)
 
 
 def package_files(package):
@@ -71,7 +85,11 @@ def check(record, root=ROOT, *, historical=False):
     manifest_path = path(root, record['source_manifest'])
     manifest = json.loads(manifest_path.read_text())
     require(manifest.get('files'), 'Empty selected source inventory')
-    if manifest.get('format') == 'repository-packages-sha256-v1':
+    explicit = manifest.get('format') == 'repository-files-sha256-v1'
+    if explicit:
+        actual = {name: sha256(explicit_file(root, name).read_bytes()).hexdigest()
+                  for name in manifest['files']}
+    elif manifest.get('format') == 'repository-packages-sha256-v1':
         roots = manifest.get('package_roots', [])
         require(roots and len(roots) == len(set(roots)), 'Invalid package roots')
         actual = {}
@@ -90,7 +108,7 @@ def check(record, root=ROOT, *, historical=False):
     require(actual == manifest['files'], 'Selected package inventory or bytes changed')
     # The legacy manifest uses package-relative keys; the newer format uses
     # repository-relative keys. Bind the primary proof to the same checked files.
-    inventory_root = root if manifest.get('format') == 'repository-packages-sha256-v1' else manifest_path.parent
+    inventory_root = root if explicit or manifest.get('format') == 'repository-packages-sha256-v1' else manifest_path.parent
     verified_paths = {(inventory_root / relative).resolve() for relative in actual}
     require(record['proof_supplements'], 'Missing construction proof supplement')
     for relative, digest in record['proof_supplements'].items():

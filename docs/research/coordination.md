@@ -18,7 +18,8 @@ python3 scripts/post_update.py --discussion 1166 --reply-to DC_NODE_ID --body-fi
 ```
 
 The helper fixes the destination repository to CrocSwap/integer-mult-bounds,
-checks that a reply belongs to the requested discussion, and sends UTF-8 text
+checks that a reply belongs to the requested discussion, rejects nested replies
+before any mutation with the parent comment ID and URL, and sends UTF-8 text
 through JSON variables, preserving newlines and literal shell characters.
 It returns the created comment ID and URL. `--dry-run` makes no network calls.
 It never retries a mutation: after an uncertain response, inspect the discussion

@@ -28,7 +28,7 @@ import argparse
 import ast
 from functools import lru_cache
 from hashlib import sha256
-import importlib.util
+from runpy import run_path
 import json
 from pathlib import Path, PurePosixPath
 import re
@@ -64,25 +64,37 @@ def live_pins(root=ROOT):
     """Return (record, manifest, pins) for pinned files outside the selected roots."""
     record = read(root/'certificates/selected-result.json')
     manifest = read(root/relative(record['source_manifest']))
-    roots = [relative(r) for r in manifest['package_roots']]
+    explicit = manifest.get('format') == 'repository-files-sha256-v1'
+    if explicit:
+        # The closed export has no package roots. Only named pin maps belong
+        # to it; nearby files must not introduce new live dependencies.
+        roots = []
+        sources = [relative(name) for name in manifest['files']
+                   if any(name.endswith('/' + suffix) for suffix in PIN_FILES)]
+    else:
+        require(manifest.get('format') == 'repository-packages-sha256-v1',
+                'Unsupported selected source manifest format')
+        roots = [relative(r) for r in manifest['package_roots']]
+        sources = [package + '/' + name for package in roots for name in PIN_FILES
+                   if (root/package/name).is_file()]
     pins = {}
-    for package in roots:
-        for name in PIN_FILES:
-            path = root/package/name
-            if not path.is_file():
+    for name in sources:
+        value = read(root/name)
+        if name.endswith('INPUTS.json'):
+            value = value['files']['main']
+        require(type(value) is dict, 'Pin map is not an object: ' + name)
+        for rel, digest in value.items():
+            relative(rel)
+            require(type(digest) is str and re.fullmatch('[0-9a-f]{64}', digest), 'Invalid pin: ' + rel)
+            # Explicit exports may remap frozen provenance to its original
+            # path. Authenticate against the exported source, not live bytes
+            # at that original path.
+            source = manifest.get('replay_inputs', {}).get(rel, rel) if explicit else rel
+            if source in manifest['files'] or inside(rel, roots):
+                require(manifest['files'].get(source) == digest,
+                        'Live pin differs from the selected source inventory: ' + rel)
                 continue
-            value = read(path)
-            if name.endswith('INPUTS.json'):
-                value = value['files']['main']
-            require(type(value) is dict, 'Pin map is not an object: ' + package + '/' + name)
-            for rel, digest in value.items():
-                relative(rel)
-                require(type(digest) is str and re.fullmatch('[0-9a-f]{64}', digest), 'Invalid pin: ' + rel)
-                if inside(rel, roots):
-                    require(manifest['files'].get(rel) == digest,
-                            'Live pin differs from the selected source inventory: ' + rel)
-                    continue
-                require(pins.setdefault(rel, digest) == digest, 'Conflicting live pins: ' + rel)
+            require(pins.setdefault(rel, digest) == digest, 'Conflicting live pins: ' + rel)
     return record, manifest, pins
 
 
@@ -151,14 +163,14 @@ def named_records(named, root=ROOT):
 
 def check_records(names, root=ROOT):
     """Run the repository's own selected-record check on each named record."""
-    spec = importlib.util.spec_from_file_location('ci_inputs_selected_result', root/'scripts/verify_selected_result.py')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Read the guard source even if a matching stale helper cache is present.
+    checker = run_path(str((root/'scripts/verify_selected_result.py').absolute()),
+                       run_name='ci_inputs_selected_result')['check']
     failures, files = {}, set()
     for name in names:
         record = read(root/name)
         try:
-            module.check(record, root, historical=name != 'certificates/selected-result.json')
+            checker(record, root, historical=name != 'certificates/selected-result.json')
         except (ValueError, KeyError, OSError) as error:
             failures[name] = str(error)
         # Proof supplements and reviews are hard-checked above on every PR; the

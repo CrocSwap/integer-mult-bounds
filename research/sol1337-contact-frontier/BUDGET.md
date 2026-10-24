@@ -1,0 +1,18 @@
+# Optimistic bill and changed model before discovery
+
+Canonical discovery base: 624de9dc66858af0945e5f8a0942488d62280d43.
+Predecessors: Cinna Davis #4694/#4698, Cao Yifan #4610, Cinna Davis #4690/#4696/#4700, and Dugongue #4841 at 6debdcdac8fe1c87958f8cd42ccb7db73c0a0eef. Substantial OpenAI Codex assistance.
+
+Question: does retaining the eight formerly owned centers as arbitrary independent inputs permit a strict paid-profile improvement by changing their scalar contact charts to literal general Clifford charts?
+
+The #4841/#4690 graph freezes any scalar contact touching an owned center and keeps all eight rank-eight center calls as a fixed charge. The changed graph uses #4694's invertible 640-input coupled interface: copy becomes addition, clear is removed, each center has its own fixed original entrance chart and fixed empty exit chart. It exposes actual center transitions as paid edges and unfreezes center scalar contacts while including every incident old-field transition. All 640 endpoint charts, original main/adapter boundaries and all 408 helper targets remain fixed. No center output receives independent productive Gaussian credit. This changes the frozen-owned-contact restriction and may change Lagrangian subspaces, unlike #4696 fixed-subspace phase changes and #4700 monotone canonical chart changes.
+
+Baseline paid histogram is {1:2201,2:412,3:510,4:127,5:40,8:8}; independent helper targets are {4:28,7:7,8:47,9:326}. The optimistic gain test is Delta(theta)=sum_r(new_paid_r-old_paid_r)*r^theta<0, retaining every helper and every other paid call. Native compiler free-adapter passes, scalar operations, routing, precision, source-uniform compiler and complete consumer funding remain additional positive costs, not zero. No new outer kappa is inferred from this optimistic component test.
+
+The first bounded experiment checks all 1,022 distinct single-transvection neighbors at newly variable center contacts only, with actual mapped incident edges and frozen boundaries. Reject immediately if no profitable complete paid change occurs. No unchanged 632-role graph search, random seed campaign, scalar-only saving or root refinement is authorized by this gate.
+
+A positive component would require literal phase-correct inverse-image charts, chronological all-640 arbitrary-input primal/raw-dual verification, independent helper recovery, source-bound complete caller admission and the fully charged compiler/outer transfer. An unchanged #4694 coupled ABI alone does not supply #4610's owned-center caller contract.
+
+The immutable single screen covers 188,048 candidates and finds 18 exact delta classes. Every class has S_j=sum_r delta_r min(r,j)>=0 for j=1..9 and S_1>0; summation by parts proves strict loss for all 0<theta<1. It does not exclude coordinated changes: simultaneously applying the same transported transvection to two adjacent charts keeps their shared edge rank fixed, whereas the two separate moves can each pay for that edge. The optimistic interaction refund is the sum of those two single-endpoint shared-edge increases. Every other incident edge remains charged.
+
+The new contact region has 264 internal edges, 256 of rank zero and eight of rank eight. The complete paired-neighbor formula therefore gives 1,022 and 196,607 nontrivial pair representatives respectively (the 2,043 case applies to distance one and is absent here). One immutable adjacent-pair sweep is permitted because it tests barrier removal absent from the single screen, still using fixed real boundaries and no new helper reward. It will stop after this finite deterministic domain, with no random restart expansion.

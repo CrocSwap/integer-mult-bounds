@@ -1,0 +1,169 @@
+--- frozen/lanes/source-domain/verify_geodesic.py
++++ portable/verify_geodesic.py
+@@ -7,8 +7,10 @@
+ import argparse
+ import gzip
+ import json
+-import subprocess
+-
++
++
++ANNEX = Path(__file__).resolve().parents[1]
++PACKAGE = ANNEX.parents[1]
+ 
+ BASE = "bce54fb3f895cbe5cd4c0eb477c3afeed100190f"
+ ARCHIVE_HASH = "22c3f4dce4b897a1d423d1388801933e288b6a6b1906cb15e1b16a5eb68db754"
+@@ -23,7 +25,7 @@
+         "6563798aeebe83d2d62c9d089012d2b7cea3818e673deaa4b2653be183a0ed21",
+ }
+ ASSEMBLY_HASH = "1122cb3a575f8c788345fc1bf4c108ac7c3250fb81a5988671f5eb04b3ab3045"
+-READER_HASH = "204fdb8173f0dcf268ab145416b97e4a41c6a54ec877386d3b7aa73fb524c860"
++READER_HASH = "1cce6ddeabd60f52e9ebafb02e2db4d289e68cdf5baaa106ca2397bf9cf7241a"
+ 
+ 
+ def require(condition, label):
+@@ -130,10 +132,9 @@
+ 
+ 
+ def main(args):
+-    lane = Path(__file__).parent
+-    lanes = lane.parent
+-    reader = load_reader(lanes / "temporal-reuse/review_wire_gauge.py")
+-    word, original = reader.load_source(args.repo)
++    lanes = ANNEX / "frozen/lanes"
++    reader = load_reader(PACKAGE / "checkers/review_wire_gauge.py")
++    word, original = reader.load_source()
+     programs = {}
+     for name in ("FULL-MODE", "ONE-SIDED-MODE"):
+         relative = "history-encoding/" + name + "-PROGRAMS.json.gz"
+@@ -159,12 +160,12 @@
+         else:
+             raise ValueError("negative control accepted: " + label)
+ 
+-    plan_raw = subprocess.check_output(["git", "-C", str(args.repo), "show", BASE + ":" + PLAN])
++    plan_raw = (ANNEX / "sources" / PLAN).read_bytes()
+     require(sha256(plan_raw).hexdigest() == PLAN_HASH, "pinned controller plan")
+     plan = json.loads(plan_raw)
+     require((plan["T"], plan["M"], plan["live"], plan["K"], plan["L"]) ==
+             (16, 73, 14336, 4, 9), "global productive geometry")
+-    assembly_path = lanes.parent / "sources/research__community-frontier1094-audit__ASSEMBLY.json"
++    assembly_path = ANNEX / "sources/research/community-frontier1094-audit/ASSEMBLY.json"
+     assembly = json.loads(pin(assembly_path, ASSEMBLY_HASH))
+     old_profile = Counter({int(r): count for r, count in assembly["complex_profile"].items()})
+     old_mass = sum(r * count for r, count in old_profile.items())
+@@ -230,6 +231,5 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--repo", type=Path, required=True)
+     parser.add_argument("--out", type=Path, required=True)
+     main(parser.parse_args())
+--- frozen/lanes/encoded-controller/review/check_geodesic_review.py
++++ portable/check_geodesic_review.py
+@@ -3,18 +3,17 @@
+ from collections import Counter, deque
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import gzip
+ import json
+ import resource
+-import subprocess
+-import tarfile
+-
+-
+-HERE = Path(__file__).resolve().parent
+-LANES = HERE.parent.parent
+-ROOT = HERE.parents[4]
++
++
++ANNEX = Path(__file__).resolve().parents[1]
++PACKAGE = ANNEX.parents[1]
++LANES = ANNEX / "frozen/lanes"
++HERE = LANES / "encoded-controller/review"
+ BASE = "bce54fb3f895cbe5cd4c0eb477c3afeed100190f"
+-REPO = ROOT / "worktrees/k5-centre-sharing"
+ ARCHIVE = "research/community-frontier1042-audit/selected-replay.tar.gz"
+ ARCHIVE_PIN = "22c3f4dce4b897a1d423d1388801933e288b6a6b1906cb15e1b16a5eb68db754"
+ MEMBERS = {
+@@ -114,26 +113,11 @@
+ 
+ 
+ def read_source():
+-    process = subprocess.Popen(["git", "show", BASE + ":" + ARCHIVE], cwd=REPO, stdout=subprocess.PIPE)
+-    digest = sha256()
+-
+-    class CheckedStream:
+-        def read(self, size=-1):
+-            data = process.stdout.read(size)
+-            digest.update(data)
+-            return data
+-
+-    stream = CheckedStream()
+     result = {}
+-    with tarfile.open(fileobj=stream, mode="r|gz") as archive:
+-        for member in archive:
+-            if member.name in MEMBERS:
+-                raw = archive.extractfile(member).read()
+-                require(sha256(raw).hexdigest() == MEMBERS[member.name], "Local member pin")
+-                result[member.name] = json.loads(gzip.decompress(raw))
+-    while stream.read(65536):
+-        pass
+-    require(process.wait() == 0 and digest.hexdigest() == ARCHIVE_PIN, "Complete archive pin")
++    for member, expected in MEMBERS.items():
++        raw = (PACKAGE / "data" / Path(member).name).read_bytes()
++        require(sha256(raw).hexdigest() == expected, "Local member pin")
++        result[member] = json.loads(gzip.decompress(raw))
+     require(set(result) == set(MEMBERS), "Local source inventory")
+     return result["slots/local/CANONICAL-WORD.json.gz"], result["slots/local/LOCAL-PROGRAMS.json.gz"]
+ 
+@@ -258,9 +242,17 @@
+ 
+ 
+ def main():
+-    report_path = LANES / "source-domain/GEODESIC-CHECKS.json"
+-    require((HERE / "GEODESIC-rerun.json").read_bytes() == report_path.read_bytes(), "Producer reproduction")
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--producer-receipt", type=Path, required=True)
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    report_path = args.producer_receipt
+     report = json.loads(report_path.read_text())
++    expected = json.loads((HERE / "GEODESIC-rerun.json").read_text())
++    reader_hash = sha256((PACKAGE / "checkers/review_wire_gauge.py").read_bytes()).hexdigest()
++    require(report["reader_sha256"] == reader_hash, "Portable source reader pin")
++    expected["reader_sha256"] = reader_hash
++    require(report == expected, "Producer reproduction with declared reader hash change")
+     word, original = read_source()
+     matrices = [canonical_label(frame) for frame in word["frames"]]
+     local = {}
+@@ -280,7 +272,7 @@
+             local[variant][side] = result
+     sources = {}
+     for path, pin in GIT_PINS.items():
+-        raw = subprocess.check_output(["git", "show", BASE + ":" + path], cwd=REPO)
++        raw = (ANNEX / "sources" / path).read_bytes()
+         require(sha256(raw).hexdigest() == pin, "Pinned global or prior source")
+         sources[path] = raw.decode() if path.endswith(".md") else json.loads(raw)
+     prior = sources["research/format-limits-corrected/README.md"]
+@@ -313,8 +305,9 @@
+     require(max(normalized) == 48 and all(count >= 0 for count in normalized.values()), "Admitted profile ranks")
+     require({str(r): c for r, c in normalized.items()} == report["global_ledger"]["literal_normalized_profile"], "Saved complete normalized profile")
+     toy = clifford_control()
+-    files = [LANES / "source-domain" / name for name in ("GEODESIC-BOUNDARY.md", "verify_geodesic.py", "GEODESIC-CHECKS.json")]
+-    files += [LANES / "temporal-reuse/review_wire_gauge.py", HERE / "check_geodesic_review.py"]
++    files = [LANES / "source-domain/GEODESIC-BOUNDARY.md",
++             ANNEX / "portable/verify_geodesic.py", report_path,
++             PACKAGE / "checkers/review_wire_gauge.py", Path(__file__).resolve()]
+     receipt = {
+         "status": "ACCEPTED_INDEPENDENT_COMMON_BOUNDARY_PATH_OBSTRUCTION",
+         "source_base": BASE, "source_archive_sha256": ARCHIVE_PIN,
+@@ -342,7 +335,7 @@
+         "reviewed_files_sha256": {str(path): sha256(path.read_bytes()).hexdigest() for path in files},
+         "maximum_resident_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+     }
+-    (HERE / "GEODESIC-REVIEW.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
++    args.out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+     print(receipt["status"])
+     print("all_four_local_words=true normalized_rank=1130624 minimum_added_rank=14336")
+ 

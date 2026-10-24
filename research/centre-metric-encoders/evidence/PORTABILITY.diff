@@ -1,0 +1,25 @@
+--- frozen signed-native checker
++++ portable signed-native checker
+@@ -9,7 +9,7 @@
+ import importlib.util
+ import json
+ 
+-HERE = Path(__file__).resolve().parent
++HERE = Path(__file__).resolve().parents[1] / "frozen/lanes/new-native-recipes-20261017/signed-clean-native-review-20261020"
+ HELPER = HERE.parent / "row-capture-native-review-20261020/check.py"
+ PIN = "5b8f2839db4fd4b0e4b24d5b8f8938c74a15497ae0e58f324896cf431d3ecb84"
+ if sha256(HELPER.read_bytes()).hexdigest() != PIN:
+@@ -327,7 +327,12 @@
+     payload = json.loads(q.read(SOURCE/"run-normal/SIGNED-CLEAN.json.gz", PAYLOAD, True))
+     need(len(payload["source_pins"]) == 12, "All twelve declared source pins")
+     for record in payload["source_pins"].values():
+-        path = Path(record["path"])
++        original_path = Path(record["path"])
++        anchor = "centre-encoding-campaign-20261014"
++        need(original_path.parts.count(anchor) == 1, "Unique source campaign path")
++        relative = original_path.parts[original_path.parts.index(anchor)+1:]
++        need(relative and relative[0] == "lanes", "Source stays in the lane archive")
++        path = q.LANES.parent.joinpath(*relative)
+         q.read(path, record["sha256"], path.suffix == ".gz")
+     producer_receipt = json.loads(q.read(SOURCE/"run-normal/CHECKS.json",
+                                          "21e5ae1b7757429dac8ecc4c4238f7e7f1296bf3f6cb3b3c67b09166c22a79ca"))

@@ -1,5 +1,6 @@
 """Publication history controls use synthetic Git objects, without remote fetches."""
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -33,7 +34,9 @@ class SourceHistoryTests(unittest.TestCase):
         self.base = self.git('rev-parse', 'HEAD').strip()
 
     def git(self, *args, data=None):
-        result = subprocess.run(['git', *args], cwd=self.root, input=data,
+        # Fixture commits must not leave maintenance writing during cleanup.
+        result = subprocess.run(['git', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0',
+                                 *args], cwd=self.root, input=data,
                                 capture_output=True, text=True, timeout=30, check=True)
         return result.stdout
 
@@ -60,6 +63,35 @@ class SourceHistoryTests(unittest.TestCase):
         self.assertEqual(result['source_history_commits'], [self.base])
         self.assertEqual(self.check(history=False),
                          {'commit': head, 'files': 3, 'package': self.package})
+
+    def test_fixture_git_never_starts_automatic_maintenance(self):
+        # Force automatic work even in this small fixture. The positive
+        # control stays in the foreground so it cannot race temp cleanup.
+        for key, value in {
+            'maintenance.auto': 'true', 'maintenance.autoDetach': 'false',
+            'gc.autoDetach': 'false', 'maintenance.commit-graph.enabled': 'true',
+            'maintenance.commit-graph.auto': '-1', 'gc.auto': '1',
+        }.items():
+            self.git('config', key, value)
+        with tempfile.TemporaryDirectory() as directory:
+            trace = Path(directory) / 'git-trace.jsonl'
+
+            def maintenance_children():
+                return [event for line in trace.read_text(encoding='utf-8').splitlines()
+                        if (event := json.loads(line)).get('event') == 'child_start'
+                        and any(arg in {'maintenance', 'gc'}
+                                for arg in event.get('argv', []))]
+
+            with patch.dict(os.environ, {'GIT_TRACE2_EVENT': str(trace)}):
+                self.git('commit', '-qm', 'guarded fixture', '--allow-empty')
+            self.assertEqual(maintenance_children(), [])
+
+            trace.unlink()
+            with patch.dict(os.environ, {'GIT_TRACE2_EVENT': str(trace)}):
+                subprocess.run(['git', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm',
+                                'unguarded control', '--allow-empty'], cwd=self.root,
+                               check=True, capture_output=True, timeout=30)
+            self.assertTrue(maintenance_children(), 'positive control must start maintenance')
 
     def test_cached_side_commit_passes_bytes_but_not_publication_history(self):
         tree = self.git('rev-parse', self.base + '^{tree}').strip()

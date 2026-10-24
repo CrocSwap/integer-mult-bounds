@@ -1,0 +1,312 @@
+--- frozen/lanes/temporal-reuse/check_completed_prefix_codes.py
++++ portable/check_completed_prefix_codes.py
+@@ -5,11 +5,10 @@
+ from pathlib import Path
+ import argparse
+ import json
+-import subprocess
+-
+-
+-HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parents[3]
++
++
++PACKAGE = Path(__file__).resolve().parents[1]
++HERE = PACKAGE / "frozen/lanes" / "temporal-reuse"
+ REVISION = "3ae9a6f3ac74ded022ab3b4872a7357a621af6fb"
+ PINS = {
+     "upstream/build/sections/02-streams.tex":
+@@ -252,12 +251,12 @@
+ 
+ def main():
+     parser = argparse.ArgumentParser()
+-    parser.add_argument("--repo", type=Path, default=ROOT / "worktrees/k5-centre-sharing")
+-    parser.add_argument("--out", type=Path, default=HERE / "COMPLETED-PREFIX-CODES.json")
++    parser.add_argument("--sources", type=Path, default=PACKAGE / "sources/upstream")
++    parser.add_argument("--out", type=Path, required=True)
+     args = parser.parse_args()
+     source = {}
+     for path, pin in PINS.items():
+-        raw = subprocess.check_output(["git", "-C", str(args.repo), "show", REVISION+":"+path])
++        raw = (args.sources / path).read_bytes()
+         need(sha256(raw).hexdigest() == pin, "Source hash: "+path)
+         source[path] = raw
+     assembly = json.loads(source["research/community-frontier1094-audit/ASSEMBLY.json"])
+--- frozen/lanes/temporal-reuse/check_past_catalyst_layout.py
++++ portable/check_past_catalyst_layout.py
+@@ -5,11 +5,10 @@
+ from pathlib import Path
+ import argparse
+ import json
+-import subprocess
+ 
+ 
+-HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parents[3]
++PACKAGE = Path(__file__).resolve().parents[1]
++HERE = PACKAGE / "frozen/lanes" / "temporal-reuse"
+ REVISION = "3ae9a6f3ac74ded022ab3b4872a7357a621af6fb"
+ PINS = {
+     "upstream/build/sections/02-streams.tex":
+@@ -112,12 +111,12 @@
+ 
+ def main():
+     parser = argparse.ArgumentParser()
+-    parser.add_argument("--repo", type=Path, default=ROOT / "worktrees/k5-centre-sharing")
+-    parser.add_argument("--out", type=Path, default=HERE / "PAST-CATALYST-LAYOUT.json")
++    parser.add_argument("--sources", type=Path, default=PACKAGE / "sources/upstream")
++    parser.add_argument("--out", type=Path, required=True)
+     args = parser.parse_args()
+     sources = {}
+     for path, digest in PINS.items():
+-        raw = subprocess.check_output(["git", "-C", str(args.repo), "show", REVISION+":"+path])
++        raw = (args.sources / path).read_bytes()
+         need(sha256(raw).hexdigest() == digest, "Source hash: "+path)
+         sources[path] = raw
+     assembly = json.loads(sources["research/community-frontier1094-audit/ASSEMBLY.json"])
+--- frozen/lanes/temporal-reuse/check_twiddle_pass_cost.py
++++ portable/check_twiddle_pass_cost.py
+@@ -4,14 +4,13 @@
+ from hashlib import sha256
+ from pathlib import Path
+ import gzip
++import argparse
+ import json
+-import subprocess
+ 
+-HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parents[3]
+-REPO = ROOT / "worktrees/k5-centre-sharing"
++PACKAGE = Path(__file__).resolve().parents[1]
++HERE = PACKAGE / "frozen/lanes" / "temporal-reuse"
+ REVISION = "3ae9a6f3ac74ded022ab3b4872a7357a621af6fb"
+-WORD = ROOT / "work/five-pr-sprint-20261013/lanes/centre-sharing/CANONICAL-WORD.json.gz"
++WORD = PACKAGE / "frozen/CANONICAL-WORD.json.gz"
+ WORD_HASH = "16bc0ebb04b4be6c0ade74badc6a0c0cdba4215eda86e4ff9f13abf8ecebd219"
+ 
+ 
+@@ -56,6 +55,10 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--sources", type=Path, default=PACKAGE / "sources/upstream")
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
+     raw = WORD.read_bytes()
+     need(sha256(raw).hexdigest() == WORD_HASH, "The actual port source changed")
+     ports = json.loads(gzip.decompress(raw))["ports"]
+@@ -89,7 +92,7 @@
+             need(0 <= k < u//2 and (2*r//u)*k == r//2, "The current-round tail is invalid")
+             tail_cases += 1
+     source_path = "upstream/build/sections/06-transforms.tex"
+-    source = subprocess.check_output(["git", "-C", str(REPO), "show", REVISION+":"+source_path])
++    source = (args.sources / source_path).read_bytes()
+     need(b"\\frac{2r}{u_i}\\,b_i k_i" in source and b"0\\leq k_i<u_i/2" in source,
+          "The actual combined twiddle statement changed")
+     receipt = {"status": "PASS_EXACT_CURRENT_TWIDDLE_PASS_CONTROLS",
+@@ -99,7 +102,7 @@
+                "source_sha256": sha256(source).hexdigest(), "canonical_word_sha256": WORD_HASH,
+                "actual_ports": len(ports), "tail_cases": tail_cases, "tensor_support": tensor_checks,
+                "scope": "Exact ring controls for the separate full-stream monomial/binary-ADD pass argument. No lower bound on recursive, unequal-volume, or fused multi-round implementations."}
+-    (HERE/"TWIDDLE-PASS-CHECKS.json").write_text(json.dumps(receipt, sort_keys=True, indent=2)+"\n")
++    args.out.write_text(json.dumps(receipt, sort_keys=True, indent=2)+"\n")
+     print(receipt["status"])
+ 
+ 
+--- frozen/lanes/temporal-reuse/check_accumulated_twiddle_code.py
++++ portable/check_accumulated_twiddle_code.py
+@@ -3,12 +3,12 @@
+ from collections import Counter
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import json
+-import subprocess
+-
+-
+-HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parents[3]
++
++
++PACKAGE = Path(__file__).resolve().parents[1]
++HERE = PACKAGE / "frozen/lanes" / "temporal-reuse"
+ LANES = HERE.parent
+ REVISION = "3ae9a6f3ac74ded022ab3b4872a7357a621af6fb"
+ SOURCE_PINS = {
+@@ -127,9 +127,12 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--sources", type=Path, default=PACKAGE / "sources/upstream")
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
+     for path, pin in SOURCE_PINS.items():
+-        raw = subprocess.check_output(["git", "-C", str(ROOT / "worktrees/k5-centre-sharing"),
+-                                       "show", REVISION + ":" + path])
++        raw = (args.sources / path).read_bytes()
+         need(sha256(raw).hexdigest() == pin, "Physical source pin")
+     raw = (LANES / "circuit-interface/INTERFACE.json").read_bytes()
+     need(sha256(raw).hexdigest() == R_PIN, "Actual port pin")
+@@ -202,7 +205,7 @@
+         "no_twiddle_control": "All 256 decoder rows have four entries of squared magnitude 1/4",
+         "scope": "Stable port q, common exact T endpoint, current-bit H0 conversion, and the actual two-round length-four DIF twiddle. Other six local axes factor as the identity in the residual. This rejects one native C_r between monomial maps for this terminal residual. It does not bound arbitrary native-child words, changed layouts, changed endpoints, or a general multiplication algorithm.",
+     }
+-    (HERE / "ACCUMULATED-TWIDDLE-CODE.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
++    args.out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+     print(receipt["status"])
+     print("256 coefficient decoder rows: 10 nonzero entries each; the no-twiddle control has 4.")
+ 
+--- frozen/lanes/source-domain/review_opposite_prefix.py
++++ portable/review_opposite_prefix.py
+@@ -4,9 +4,9 @@
+ from pathlib import Path
+ import argparse
+ import json
+-import subprocess
+ 
+ 
++PACKAGE = Path(__file__).resolve().parents[1]
+ REVISION = "3ae9a6f3ac74ded022ab3b4872a7357a621af6fb"
+ SOURCE = "upstream/build/sections/06-transforms.tex"
+ SOURCE_PIN = "924316e4bc905066281d8f9e8746a49d8829aeb393688608deb1e61c3c87853c"
+@@ -70,7 +70,7 @@
+ 
+ 
+ def main(args):
+-    raw = subprocess.check_output(["git", "-C", str(args.repo), "show", REVISION + ":" + SOURCE])
++    raw = (args.sources / SOURCE).read_bytes()
+     require(sha256(raw).hexdigest() == SOURCE_PIN, "original all-size transform source")
+     require(sha256(args.proof.read_bytes()).hexdigest() == PROOF_PIN, "reviewed proof snapshot")
+     entry_cases, coefficient_cases, layout_cases, round_cases = [], 0, 0, 0
+@@ -123,6 +123,7 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    for name in ("repo", "proof", "out"):
+-        parser.add_argument("--" + name, type=Path, required=True)
++    parser.add_argument("--sources", type=Path, default=PACKAGE / "sources/upstream")
++    parser.add_argument("--proof", type=Path, default=PACKAGE / "frozen/lanes/temporal-reuse/COMPLETED-PREFIX-CODES.md")
++    parser.add_argument("--out", type=Path, required=True)
+     main(parser.parse_args())
+--- frozen/lanes/interface-proof/completed-prefix-review/review_prefix.py
++++ portable/review_prefix.py
+@@ -5,9 +5,9 @@
+ from hashlib import sha256
+ import json
+ from pathlib import Path
+-import subprocess
+-
+-
++
++
++PACKAGE = Path(__file__).resolve().parents[1]
+ REV = "3ae9a6f3ac74ded022ab3b4872a7357a621af6fb"
+ FILES = {
+     "temporal-reuse/COMPLETED-PREFIX-CODES.md": "c0050de40211bf06ddb386192795d7d2a4ebb0452aa61b1c8139b92f7041cdf5",
+@@ -239,15 +239,16 @@
+ 
+ def main():
+     parser=argparse.ArgumentParser()
+-    parser.add_argument("--workspace",type=Path,default=Path(__file__).resolve().parents[5])
+-    parser.add_argument("--out",type=Path,default=Path(__file__).with_name("REVIEW.json"))
++    parser.add_argument("--sources",type=Path,default=PACKAGE / "sources/upstream")
++    parser.add_argument("--lanes",type=Path,default=PACKAGE / "frozen/lanes")
++    parser.add_argument("--out",type=Path,required=True)
+     args=parser.parse_args()
+-    root=args.workspace.resolve(); lane=root/"work/centre-encoding-campaign-20261014/lanes"
++    lane=args.lanes.resolve()
+     for path,digest in FILES.items():
+         need(sha256((lane/path).read_bytes()).hexdigest()==digest,"Research pin: "+path)
+     sources={}
+     for path,digest in GIT_FILES.items():
+-        raw=subprocess.check_output(["git","-C",str(root/"worktrees/k5-centre-sharing"),"show",REV+":"+path])
++        raw=(args.sources / path).read_bytes()
+         need(sha256(raw).hexdigest()==digest,"Git source pin: "+path)
+         sources[path]=raw
+     assembly=json.loads(sources["research/community-frontier1094-audit/ASSEMBLY.json"])
+--- frozen/lanes/coherent-port/review_twiddle_pass_proofs.py
++++ portable/review_twiddle_pass_proofs.py
+@@ -3,10 +3,12 @@
+ from fractions import Fraction as F
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import json
+ 
+ 
+-HERE = Path(__file__).resolve().parent
++PACKAGE = Path(__file__).resolve().parents[1]
++HERE = PACKAGE / "frozen/lanes" / "coherent-port"
+ SOURCE = HERE.parent / "temporal-reuse"
+ PINS = {
+     "TWIDDLE-PASS-COST.md": "796b04dfb5882c0b49f98b5d6fd73580bf73929ccb663c784e1d24ad60ca4b99",
+@@ -47,6 +49,10 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--sources", type=Path, default=PACKAGE / "sources/upstream")
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
+     for name, pin in PINS.items():
+         need(sha256((SOURCE / name).read_bytes()).hexdigest() == pin, "Proof pin")
+     alpha, beta = scale(F(1, 2), add(ONE, I)), scale(F(1, 2), add(ONE, scale(-1, I)))
+@@ -88,7 +94,7 @@
+                          "The producer checker", "Native or recursive decoder construction"],
+         "scope": "Fixed complete-stream pass grammar and the stated stable-port endpoint. No general native decoder lower bound.",
+     }
+-    (HERE / "TWIDDLE-PASS-PROOF-REVIEW.json").write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n")
++    args.out.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n")
+     print(receipt["status"])
+ 
+ 
+--- frozen/lanes/temporal-reuse/check_fixed_past_outer.py
++++ portable/check_fixed_past_outer.py
+@@ -3,12 +3,12 @@
+ from fractions import Fraction as Q
+ from hashlib import sha256
+ from pathlib import Path
++import argparse
+ import json
+-import subprocess
+ 
+ 
+-HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parents[3]
++PACKAGE = Path(__file__).resolve().parents[1]
++HERE = PACKAGE / "frozen/lanes" / "temporal-reuse"
+ REVISION = "3ae9a6f3ac74ded022ab3b4872a7357a621af6fb"
+ ASSEMBLY = "research/community-frontier1094-audit/ASSEMBLY.json"
+ ASSEMBLY_PIN = "1122cb3a575f8c788345fc1bf4c108ac7c3250fb81a5988671f5eb04b3ab3045"
+@@ -38,6 +38,10 @@
+ 
+ 
+ def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--sources", type=Path, default=PACKAGE / "sources/upstream")
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
+     identity = [[ONE, ZERO], [ZERO, ONE]]
+     alpha, beta = (Q(1, 2), Q(1, 2)), (Q(1, 2), Q(-1, 2))
+     c = [[alpha, beta], [beta, alpha]]
+@@ -58,8 +62,7 @@
+             norms = [x*x+y*y for x, y in row]
+             need(norms == [Q(1, 2), Q(1, 2)] if j % 2 else sorted(norms) == [0, 1],
+                  "The exact odd/even row support differs")
+-    raw = subprocess.check_output(["git", "-C", str(ROOT / "worktrees/k5-centre-sharing"),
+-                                   "show", REVISION+":"+ASSEMBLY])
++    raw = (args.sources / ASSEMBLY).read_bytes()
+     need(sha256(raw).hexdigest() == ASSEMBLY_PIN, "Selected assembly source")
+     assembly = json.loads(raw)
+     epsilon, kappa = Q(assembly["outer"]["epsilon_positive"]), Q(assembly["kappa"])
+@@ -76,7 +79,7 @@
+         "native_supplier_hypothesis_verified": False,
+         "scope": "Exact scalar normalization and selected outer inequalities; the closure proof is conditional.",
+     }
+-    (HERE / "FIXED-PAST-OUTER-CLOSURE.json").write_text(json.dumps(receipt, sort_keys=True, indent=2)+"\n")
++    args.out.write_text(json.dumps(receipt, sort_keys=True, indent=2)+"\n")
+     print(receipt["status"])
+ 
+ 

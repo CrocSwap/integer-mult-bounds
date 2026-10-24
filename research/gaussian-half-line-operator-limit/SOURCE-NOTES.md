@@ -1,0 +1,9 @@
+# Exact source and scope notes
+
+The executable source closure is pinned in SOURCES.json at canonical base a5df48c55ea806d7952b65acc9c76d878ff09b13. It includes Ryanson Jonathan’s original block exponent, formal turning-point README and numerical code, and JoyboyBrian’s coupled-gauge theorem. The old numerical suites are not rerun; the checker extracts the actual original block expression.
+
+Nick Petalas [PR5150](https://github.com/CrocSwap/integer-mult-bounds/pull/5150) was read in full at `c16d2fc11e2891bec18d6a9fa3f8ed4e743de6b2`, path `research/gaussian-phase-cell-lower/PROOF.md`, SHA256 `b270bb16325d1bf9c3493072323478b713f48a4602b8cabae1842f8ae514f15a`. Its one-positive-term lower argument and explicit open sharp-coefficient question motivate this task; it is not an executed dependency and no unmerged source history is asserted. The exact finite inverse identity is reproduced in the present proof from the retained q-LDU lineage.
+
+Ryanson Jonathan [PR4435](https://github.com/CrocSwap/integer-mult-bounds/pull/4435), retained as research/forward-turning-point, labels its semiclassical coefficient and Neumann interpretation as formal/observed. [PR5103](https://github.com/CrocSwap/integer-mult-bounds/pull/5103) supplies the all-cell upper bound; [PR4193](https://github.com/CrocSwap/integer-mult-bounds/pull/4193) and Vlado Vojdanovski/#1673 supply the finite Toeplitz/q-LDU lineage. None is represented as a physical inverse implementation.
+
+Live overlap before claim: /tmp/integer-mult-round12-claim-overlap.json,329PR/4339Discussion,2026-10-23 11:32–11:33UTC; root refreshed canonical main unchanged. Body/retained-source checks are not an exhaustive novelty certificate. Canonical claim: [4202 comment19144822](https://github.com/CrocSwap/integer-mult-bounds/discussions/4202#discussioncomment-19144822).
