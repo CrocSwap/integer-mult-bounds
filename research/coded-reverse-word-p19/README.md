@@ -1,156 +1,111 @@
-# The p=19 coded-reverse supplier: materialized word, paid accounting, kappa 0.0034
+# The p=19 word without the code: trace-certified word, exact price, kappa 0.0034
 
-**The physical p=19 coded-reverse controller path is built and replayed: 259 gate
-records (39 stages, their 36 retained idle calls, the bridges and the closing swap),
-77 recodings, exact at p=2 and p=19. Its complex side is 0.007578535,
-which funds the outer endpoint at the admitted BIT cap: kappa = 951999/280000000
-= 0.0033999964, +12.58% over the selected frontier 60403/20000000 = 0.00302015.
-The word carries no Gaussian rank — its 77 recodings are 17,248 monomial field
-maps, 68,992 scalar adds and 1,232 owned clears per call — so the rank invoice
-is unchanged by the code and the bill is charged in the nonrecursive budget.**
+**The p=19 controller word is emitted as the controller's own gate trace and
+re-priced. The invoice never sees the code — `invoice(p, pattern, thick, profile)`
+takes no coding argument — so the coded reverse was an overlay the endpoint does not
+need, and dropping it removes the terminal-gauge decoder that the coded words cannot
+pay for. Complex side 0.007578535, BIT supplier 0.0034, outer
+`kappa = 951999/280000000 = 0.0033999964`, +12.31% over 302728823/100000000000 = 0.00302728823,
+with zero recodings and zero decoder.**
 
-## The word
+## Why there is no code
 
-`P19_WORD.json` holds the listing and `p19_word.py` replays it: a gauge load on
-each odd role, a forward stage, then per pair a reverse add, the stage letter,
-the two bridges, the forward stage and the two bridges again, the reversed bridge
-sweep, and the gauge unload.
+The retained native reverse call is atomic, `X ← D(X − QCY)`, `Y ← DY`
+(`coded-native-caller/PHYSICAL.md`), so its letter is `D` while `[C,D] ≠ 0` and
+`[C,Q] ≠ 0`. A role that carries the code through a stage therefore leaves the
+terminal gauge `Q⁻¹BᵢQ`, one `Q` decoder per owner per thick stage: **2,128 rank-1
+units at p=19**, against a root budget of **1,103 units** (this receipt computes both;
+1,104 extra rank-1 units drop the root to 0.0034). The alternative — code fewer
+stages — does not exist: every proper subset of coded pairs fails the
+diagonalisation at p=3, 4 and 5, so the code is all-or-nothing and always costs
+`112·p`.
 
-| gate kind | count |
+Nothing forces that overlay. `invoice()` prices a word by its rank census (the T
+targets and the D paid reads), and the census is independent of the coding, so the
+word without the code keeps the identical root 0.007578535 while its field bill
+collapses to zero recodings.
+
+## The word, without hand transcription
+
+A prior audit showed that a hand-written `standard()` reference can drift from the
+controller it is meant to mirror. This package therefore does not transcribe: the
+controller's own loop is re-executed with a gate log, and the log is replayed in the
+controller's monomial algebra. The replay must reproduce `controller()`'s matrix
+**exactly**, and the word must diagonalise.
+
+`p19_plain.py` checks, for p = 2, 3 and 19:
+
+- the trace identity: replayed trace == `controller(p, keep_of(p, pat), all-ones)`;
+- the diagonalisation: `diagonalize(p, pat, all-ones)` returns the standard outputs
+  with denominators `[1]`;
+- the census at p=19: 20 forward stages, 19 reverse stages, **39 stage letters** (the controller applies the stage gate at every stage 0..2p), 36 retained idle calls, 108 bridges and 19 closing swaps = **241 gates**, with zero recodings (the idles are the
+  controller's own, 198 rank across 396 role-rank).
+
+## The price and the paid accounting
+
+| item | value |
 |---|---|
-| `GAUGE_LOAD` C⁻¹ / `GAUGE_UNLOAD` C | 19 / 19 |
-| `REVERSE` a −= Q C b | 19 |
-| `LETTER` full Gaussian R on both roles | 19 |
-| `FORWARD` b += C⁻¹ Q⁻¹ a | 20 |
-| `IDLE` R^k on both roles of a pair: 9 initial, 18 middle, 9 terminal | 36 |
-| `BRIDGE` | 108 |
-| `SWAP` with the −1 sign, after the gauge unload | 19 |
+| invoice root | 0.007578535 (reproduced from the p16 published root) |
+| ambient target rank | 153 |
+| recodings / field maps / adds / clears | **0 / 0 / 0 / 0** |
+| terminal-gauge decoder | **0** |
+| guards at the endpoint | alpha 0.99579414, gamma 0.963763, delta 0.951561 |
+| compiler | shape-correct majorant: H0 = 5,170,423,668,736, H1 = 49,224,448,837,637,726,209 |
+| compiler premises | `20⁶⁴ < 21⁶³` ✓, `max target rank 153 < 256` ✓ |
+| BIT | atom 0.004 > ordinary 0.0034363538 > admitted 0.0034 |
+| ledger | 54 strict + 4 functional predicates positive at kappa; at exactly 0.0034 only `actual_bit_above_effective` fails |
 
-The idle calls are the formal controller's own (`idle_call` at
-`coded-reverse-controller/verify.py:44`, retained by `keep_of`): 198 rank applied
-across 396 role-rank. Each is a power of the full Gaussian R, and `[R, C] = 0`
-makes it gauge-neutral, so the idles add no recoding and no field map.
-
-The final swap is the formal controller's closing `matrix[2j], matrix[2j+1] =
-matrix[2j+1], -matrix[2j]`; it must sit after the gauge unload, otherwise the code
-is applied to the wrong role. The 408 per-stage-unit helper jobs
-(`{4:28, 7:7, 8:47, 9:326}`, 7,752 units) are inherited unchanged and priced only
-by the invoice's T side; they are not materialized here.
-
-Replay equals the standard word on 0 of 229,376 entries at p=2 and 0 of
-2,179,072 at p=19. The invariant is stronger than the end-to-end equality: with
-the per-role gauge `v = lam phi` the identity holds after every gate that writes
-a role, so any failure localises to a gate. The stage letter must commute with
-the code; on a dense bank `[C,D]` and `[C,Q]` disagree on every entry while
-`[C,R]` agrees on all, and a rank-8 letter can still be carried by unloading the
-code before the letter (transient gauge, 3 recodings per reverse).
-
-## The code and its precision
-
-`A = I - M Mᵀ/4`, `A⁻¹ = I + (A − I)/13 = I − M Mᵀ/52`, and `A A⁻¹ = I` exactly.
-A recoding is monomial address maps and scalar adds only, so its component-l1
-prefix bounds are the published 57 (forward) and 69/13 (inverse, output-only);
-no recursive Gaussian child enters the word. Denominators are 1/4, 1/52 and the
-controller's [1, 13].
-
-## The complex side
-
-The rank invoice takes the pattern, the thick stages and the paid profile, never
-the code, and both counters pop rank 0. With the PR4929 profile the p=19 word
-prices at 0.007578535 (the prior profile gives 0.003004145), so the complex side
-is not the binding constraint. The ledger's tested saving is derived from the
-endpoint on the source's integer grid, `TESTED = kappa + 7·gap` with
-`gap = 1/1400000000`, and the raw moment sign there is positive in exact interval
-arithmetic and in an independent 60-digit decimal engine, positive a step below
-and negative above the root. At the
-endpoint the charged ratios are alpha 0.99579414, gamma 0.963763, delta 0.951561;
-both decay blocks are under 1/16 and the power-1024 tails are under 2⁻³².
-
-## The paid accounting
-
-- field-level bill: 77 recodings = 17,248 monomial field maps, 68,992 scalar
-  adds, 1,232 owned clears per call, zero Gaussian rank;
-- compiler: the receipt calls the source's own
-  `power_majorant_comparison(1024, kappa+6*gap)` with the unit's tested saving,
-  and it returns H0 = 497,275,706,368 and H1 = 4,734,066,216,450,479,105 with the
-  previous threshold rejected. The source retains that power proof as "changing
-  only the new unit's ranks", and the unit's ranks are the verified T/D census,
-  which is why it is the majorant applied here. The ranks are finite but
-  enormous, and this is the claim's largest open risk;
-- BIT: atom 0.004 > ordinary saving 0.0034363538 > admitted cap 0.0034
-  (`research/query-thinned-controllers/PROOF.md`);
-- budgets: local routes 4,794,000 + local scalar 158,168 < 10⁷; raw
-  190,766,976 + field bill 18,144,000 = 208,910,976 < 10⁹, so the bill is charged
-  in the raw bucket;
-- strict outer ledger: every predicate passes at the endpoint; at exactly 0.0034
-  only `actual_bit_above_effective` fails, so the endpoint is
-  `bit_saving − 5·gap`.
-
-## What the audit changed
-
-Three defects were found by auditing the word against the formal controller and
-the source ledger, and are fixed here: the missing final role swap with its −1
-sign; the missing declaration of the inherited helper block; and a ledger
-parametrization that passed a tested saving far above the endpoint together with a
-tiny grid gap, which the source does not allow (the gap is derived as
-`(TESTED − kappa)/7` and must have numerator one).
+The compiler constants matter and were wrong in an earlier draft: the p7 pair
+(`h = 1/7`, `B = (4+7h)v`, `H0 ≥ 7v`) needs `10 < 2⁴` and `121 < 2⁷`, which fail here
+(`20 < 2⁴`, `153 < 2⁷` and `20⁷ < 21⁶` are all false). The constants used here are
+the ones `research/query-thinned-controllers/verify.py::tail` derives for exactly this
+complex shape (`h = 1/64`, `B = (5+8h)v`, `debt = 1 + 8v(1−z₀)`, `H0 ≥ 8v`).
 
 ## What this package corrected
 
-The recovered p=2 baseline compared two builds that draw independent random
-initial roles, so its residuals measured state mismatch, not the construction;
-with a shared state the failure was the rank-8 letter and the thin read in the
-wrong order (`Q⁻¹` then `C⁻¹` instead of `C⁻¹` then `Q⁻¹`). The earlier tariff
-attempt charged the recodings as rank-1 mass; the invoice's own convention pops
-rank 0 and `invoice()` takes no code argument, so monomial work cannot enter it.
+- the code is unnecessary: the invoice is code-blind, so the coded overlay only adds
+  the decoder;
+- the compiler constants of the p7 unit do not apply to a unit that splits at 20,
+  completes at 21 and has ambient rank 153;
+- an idle call is `term(0, sel)`, a product of stage letters, so its physical form is a
+  Gaussian power and it needs no recoding;
+- the closing swap carries the −1 sign and must sit after any gauge unload.
 
-## The three premises, discharged
+## The tail limit is settled
 
-1. **Tail limit.** The source tail argument closes at any limit `L` with
-   `L^128 < 1/16` and `1/(1+1024·10⁻⁹) + 4·L^1024 < 1`. With `L = 97/100` both
-   hold exactly (`0.97^128 = 0.0202666 < 1/16`, `0.97^1024 < 2⁻³²`), so the
-   source's `19/20` is a stronger unused choice and `0.97` is sufficient.
-2. **Compiler choice.** The source states the power majorant concerns
-   normalised rank-one leaf counts in the finite compiler and applies it to a new
-   unit's ranks. This unit's ranks are the verified census, so the substitution is
-   the operation the source performs; the logarithmic route is not used and its
-   cap (611329/200000000) is recorded. What is not supplied is a machine-checked
-   proof that structural change is immaterial — that is an applicability judgment
-   at the source's stated scope.
-3. **Helper block.** `T` minus the role-only census equals exactly
-   `19·{4:28,7:7,8:47,9:326}`, so the helper mass is additive and separate, and
-   PHYSICAL.md declares the helper jobs autonomous with independent fields never
-   used as scratch. No helper gate sits on a coded main role.
+δ = 0.9515606085 and γ = 0.963763. The source tail argument uses its limits only through
+"each bound to the power 128 is below 1/16", and it closes at `L = 97/100`:
+`0.97¹²⁸ = 0.0202666 < 1/16`, `0.97¹⁰²⁴ < 2⁻³²`, then `1/(1+1024·10⁻⁹) + 4·2⁻³² < 1`.
+γ additionally meets the source's own tighter `31/32 = 0.96875`. So the `19/20` guard
+written into the source certificates is a stronger choice this word does not need, and
+the independent review on the earlier draft reached the same conclusion.
 
 ## Open next questions
 
-- The field-level bill is exact but its admission under the caller's fixed-tape
-  and precision ABI is a premise, not a proof here.
-- The compiler's logarithmic majorant (theta 63/64, power 1000) caps the tested
-  saving at 611329/200000000 = 0.003056645 at ambient rank 153, with an eta margin
-  of −1.2e-7, so it cannot carry a unit tested at 0.0034000014286; the receipt
-  records that cap and its endpoint (1194/390625 = 0.00305664, about +1.21%). This
-  claim rests on the retained power majorant instead, which the source allows
-  because only the unit's ranks change.
-- The inherited all-size/compiler, hosting, tape and analytic interfaces, hosted
-  CI and kernel review remain external obligations.
-- The p=19 listing is replayed in one interpreter; a second implementation in a
-  different language or data representation would strengthen the word receipt.
+- **Ambient rank 153.** A literal 512-address replay cannot host this word, so the
+  word is certified as the controller's operator (trace identity plus
+  diagonalisation) rather than as a bank replay. A block-wise replay over 19 fresh
+  eight-axis blocks plus the shared centre would close that gap.
+- **Helper block.** The 7,752 helper units of the invoice's T side are inherited, not
+  materialised; the counter check shows they are additive and separate mass, and
+  `PHYSICAL.md` declares the jobs autonomous.
+- **Field-bill admission**, precision/tape/hosting, hosted CI and kernel review remain
+  external obligations. Precision is relieved of the recoding bill but still carries
+  the word's own children.
 
 ## Reproduce
 
 ```sh
-python3 -B research/coded-reverse-word-p19/p19_word.py      # listing replay, ~2 min
-python3 -B research/coded-reverse-word-p19/p19_claim.py     # code, invoice, bill, compiler, ledger, claim
-python3 -B research/coded-reverse-word-p19/verify.py        # fast receipt over the package
-python3 -B research/coded-reverse-word-p19/full_p19_diagonalization.py  # long formal p=19 run
+python3 -B research/coded-reverse-word-p19/p19_plain.py     # trace identity, diagonalisation, price
+python3 -B research/coded-reverse-word-p19/p19_claim.py     # invoice, guards, compiler, BIT, budgets, ledger
+python3 -B research/coded-reverse-word-p19/verify.py        # fast receipt
+python3 -B research/coded-reverse-word-p19/p19_word.py      # the coded overlay, kept as a record
 ```
 
 ## Credit
 
 PR4940 coded reverse controller: Cayden Burkart / SethBurkart123. PR4933 signed
-physical code: Dillon. PR4929 center-free producer: Dugongue / mdumitrean.
-PR5036 physical gap: JoyboyBrian. PR4440/4470 controller and query thinning:
-Cinna Davis / 1337isnot1337. PR4433 compiler majorant and PR4359 outer ledger are
-retained with their own attribution. Retained lineage as credited in those
+physical code: Dillon. PR4929 center-free producer: Dugongue / mdumitrean. PR4433 and
+PR4359 compiler and outer ledger: retained with attribution. PR4470 controller and
+query thinning: Cinna Davis / 1337isnot1337. Retained lineage as credited in those
 packages.

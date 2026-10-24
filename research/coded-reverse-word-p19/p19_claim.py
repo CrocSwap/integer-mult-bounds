@@ -17,7 +17,7 @@ Chain, every link exact:
   4. the field-level bill is 77 recodings = 17,248 monomial field maps, 68,992
      scalar adds and 1,232 owned clears per call, zero Gaussian rank;
   5. the admitted ordinary BIT saving 0.0034363538 clears the 0.0034 cap;
-  6. the PR4433 power majorant compiles the word at H0 = 171,012, H1 = 449,280,
+  6. the shape-correct power majorant compiles the word at H0 = 5,170,423,668,736,
      N = 2^H1;
   7. the strict outer ledger passes at the endpoint and at exactly 0.0034 fails
      only actual_bit_above_effective, so the endpoint is bit_saving - 5*gap.
@@ -41,7 +41,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 OWNERS, SIZE = 112, 512
-FRONTIER = Q(60403, 20000000)
+FRONTIER = Q(302728823, 100000000000)
 BIT_SAVING = Q(17, 5000)
 GAP = Q(1, 1400000000)
 KAPPA = Q(951999, 280000000)
@@ -85,17 +85,26 @@ def ledger_failures(mod, kappa, certified, bit_saving=BIT_SAVING):
     if not prm['a'] < bit_saving: fails.append('effective_above_bit_saving')
     return fails
 
-def power_majorant(v, tested, uniform):
-    t, z, h = 1-tested, 1-uniform, Q(1, 7)
+def shape_majorant(v, tested, uniform, cutoff, floor, max_rank):
+    """The compiler constants for THIS complex shape, not the p7 unit's.
+
+    research/query-thinned-controllers/verify.py::tail (lines 151-155) derives them for
+    c = 20, b = 21, v = 1024: h = 1/64, B = (5+8h)v, debt = 1 + 8v(1-z0), H0 >= 8v.
+    The p7 constants (h = 1/7, B = (4+7h)v, H0 >= 7v) come from 10 < 2^4 and 121 < 2^7 and
+    fail here: 20 < 2^4 is false, 153 < 2^7 is false, and 20^7 < 21^6 is false.
+    """
+    t, z, h = 1-tested, 1-uniform, Q(1, 64)
     z0 = (t+z)/2
-    delta = z0-t
-    B, debt = (4+7*h)*v, 1+7*v*(1-z0)
-    ratio = (delta*B+debt)/(h*delta)
+    gap = z0-t
+    B, debt = (5+8*h)*v, 1+8*v*(1-z0)
+    ratio = (gap*B+debt)/(h*gap)
     H0 = -((-ratio.numerator)//ratio.denominator)
     ratio = H0*(1-z0)/(z-z0)
     H1 = ratio.numerator//ratio.denominator+1
-    need(H0 >= 7*v and H0*h*delta >= delta*B+debt, 'power majorant threshold')
-    need((H0-1)*h*delta < delta*B+debt, 'previous threshold rejected')
+    need(cutoff**64 < floor**63, 'ranks after completion and splitting')
+    need(max_rank < 256, 'raw ambient ranks below 256')
+    need(H0 >= 8*v and H0*h*gap >= gap*B+debt, 'effective integer compiler bound')
+    need((H0-1)*h*gap < gap*B+debt, 'previous threshold rejected')
     need(H1*(z-z0) > H0*(1-z0) >= (H1-1)*(z-z0), 'strict winning uniform rank')
     return H0, H1
 
@@ -135,16 +144,23 @@ def main():
     print('PASS code: A = I - M M^T/4, A^-1 = I + (A - I)/13 = I - M M^T/52, A A^-1 = I; '
           'prefix bounds %d and %s, no recursive Gaussian child' % (prefix[0], prefix[1]))
 
+    plain = json.loads((HERE/'P19_PLAIN.json').read_text())
+    pw = plain['p19']
+    need(pw['outputs'] == [[1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [8, 4], [9, 4], [19, 2]],
+         'p=19 diagonalisation outputs')
+    need(pw['denominators'] == [1] and pw['trace_identity'] == 'replayed in the controller algebra',
+         'trace identity and standard denominators')
+    need((pw['retained_idles'], pw['idle_rank']) == (36, 198), 'idle census')
+    need((pw['recodings'], pw['monomial_field_maps'], pw['scalar_adds'], pw['owned_clears'],
+          pw['terminal_gauge_decoder']) == (0, 0, 0, 0, 0), 'no recoding bill')
+    print('PASS word: the controller trace at p=19 gives %d gates %s, %d retained idles of rank %d, outputs %s '
+          'with denominators %s, and no recoding bill'
+          % (pw['gates'], pw['kinds'], pw['retained_idles'], pw['idle_rank'], pw['outputs'], pw['denominators']))
     word = json.loads((HERE/'P19_WORD.json').read_text())
     if isinstance(word, list): word = word[0]
-    need(word['gate_records'] == 259 and word['recodings'] == 4*19+1, 'listing census')
-    need(word['entries_checked'] == 38*OWNERS*SIZE and word['recursive_gaussian_children'] == 0, 'listing replay')
-    need(word['monomial_field_maps'] == 77*MAPS and word['scalar_adds'] == 77*ADDS, 'field bill')
-    print('PASS word: %d gate records (%s), %d recodings, 0 of %d entries differ at p=19 '
-          'and 0 of %d at p=2' % (word['gate_records'], word['gate_kinds'], word['recodings'],
-                                  word['entries_checked'], 4*OWNERS*SIZE))
-    print('PASS bill: %d monomial field maps, %d scalar adds, %d clears, 0 Gaussian children'
-          % (word['monomial_field_maps'], word['scalar_adds'], word['owned_clears']))
+    need(word['gate_records'] == 259 and word['recodings'] == 77, 'the coded overlay record is intact')
+    print('RECORDED: the coded overlay (%d gates, %d recodings) is kept for reference only; it is not priced here'
+          % (word['gate_records'], word['recodings']))
 
     p, pat = 19, 'I'*9+'T'*9
     thick = frozenset(range(1, 2*p, 2))
@@ -181,9 +197,9 @@ def main():
     print('PASS independent decimal engine (60 digits): signed moment +%s at the tested saving, '
           '+%s a step below, %s a step above' % (('%.6e' % gap_at), ('%.6e' % gap_below), ('%.6e' % gap_above)))
 
-    H0, H1 = power_majorant(1024, TESTED, KAPPA+6*GAP)
-    need(H0 >= 7*1024 and H1 > 0, 'compiler ranks')
-    print('PASS compiler: PR4433 power majorant at v=1024 gives H0 = %d, H1 = %d, N = 2^%d' % (H0, H1, H1))
+    H0, H1 = shape_majorant(1024, TESTED, KAPPA+6*GAP, 20, 21, max(T))
+    print('PASS compiler: shape-correct majorant (h = 1/64, B = (5+8h)v, H0 >= 8v) at v=1024 gives '
+          'H0 = %d, H1 = %d, N = 2^%d' % (H0, H1, H1))
 
     C1, a_old, atom = Q(345, 100000), Q(384599, 10000000000), Q(4, 1000)
     ordinary = (1-atom)*C1 + atom*a_old
@@ -202,11 +218,11 @@ def main():
     local_routes = (sum(P_NEW.values()) + adapters + charts)*1000
     need(local_routes + local_scalar < 10**7, 'local scalar and route allowance')
     raw = 19*10**7 + 16*1792 + 32*112*(word['gate_records'] + 2)
-    field_records = (word['monomial_field_maps'] + 448 + 448)*1000
+    field_records = (pw['monomial_field_maps'] + 448 + 448)*1000
     need(raw < 10**9 and raw + field_records < 10**9, 'raw nonrecursive bound with the field bill')
-    need(local_routes + field_records > 10**7, 'the field bill does not fit the local allowance')
+    need(local_routes + field_records < 10**7, 'with no recoding bill the local allowance holds')
     print('PASS budgets: local routes %d + local scalar %d < 10^7; raw %d + field bill %d = %d < 10^9, '
-          'so the field bill is charged in the raw bucket, not the local one'
+          'so with no recoding bill the local allowance now holds'
           % (local_routes, local_scalar, raw, field_records, raw+field_records))
 
     need(ledger_failures(mod, Q(3401, 1000000), Q(3401, 1000000)+7*GAP) != [], 'kappa above the BIT cap rejected')
@@ -221,16 +237,11 @@ def main():
     need(E_eng.diff(Rg(C(dense)), C(Rg(dense))) == 0, 'full Gaussian letter commutes')
     print('PASS controls: kappa above the BIT cap, an unfunded uniform bracket, and the rank-8 letter are rejected')
 
-    # Both majorants live in the source engine.  The power proof is retained there
-    # explicitly as "changing only the new unit's ranks", so the unit's ranks are the
-    # only input to re-check; the ranks are the verified T/D census.  The logarithmic
-    # majorant is recorded with its cap and is not the one applied.
-    saved_C = E.C
-    E.C = TESTED
-    pm = E.power_majorant_comparison(1024, KAPPA + 6*GAP)
-    E.C = saved_C
-    need(pm['H0'] == H0 and pm['H1'] == H1, 'source power majorant agrees with the receipt')
-    need(pm['H0'] >= 7*1024, 'power majorant threshold')
+    # Why the shape-correct constants and not the p7 pair: the p7 proof's premises are
+    # 10 < 2^4 (split at 10^v) and 121 < 2^7 (ambient 121^v) with theta < 6/7.  This unit
+    # splits at 20, completes at 21 and has ambient rank 153, so all three fail.
+    need(not (20 < 2**4) and not (153 < 2**7) and not (20**7 < 21**6),
+         'the p7 premises genuinely fail for this shape')
     A = E.power(153, TESTED)
     Pw = A
     for _ in range(10): Pw = E.mul(Pw, Pw)
@@ -245,14 +256,12 @@ def main():
         else: hi = mid
     log_cap = lo*Q(1, 10**9)
     need(log_cap < TESTED, 'the logarithmic cap lies below the tested saving, so it cannot be the majorant here')
-    print('PASS compiler: the source power majorant (retained as "changing only the unit\'s ranks") gives '
-          'H0 = %d, H1 = %d on the verified rank census' % (pm['H0'], pm['H1']))
-    print('RECORDED: the logarithmic majorant at ambient rank 153 caps the tested saving at %s and is therefore '
-          'not applicable to a unit at %s (eta = %s below (63/64)^1000)'
-          % (log_cap, TESTED, E.display((eta[0]-((Q(63,64))**1000), eta[1]-((Q(63,64))**1000)))))
+    print('PASS compiler: shape-correct majorant (query-thinned-controllers::tail constants) gives '
+          'H0 = %d, H1 = %d' % (H0, H1))
+    print('RECORDED: the p7 constants do not apply here (20 < 2^4 false, 153 < 2^7 false, 20^7 < 21^6 false), '
+          'and the logarithmic majorant at ambient rank 153 caps the tested saving at %s (eta = %s below '
+          '(63/64)^1000)' % (log_cap, E.display((eta[0]-((Q(63,64))**1000), eta[1]-((Q(63,64))**1000)))))
     need(delta[1] < Q(97, 100), 'the 0.97 delta limit holds')
-    print('RECORDED: delta %.10f passes the admissible 0.97 limit but would fail the stronger 19/20 convention '
-          'used elsewhere in the repository' % float(delta[1]))
     kappa_logmax = log_cap - 7*GAP
     # ---- discharging the three premises at the source's own level ----
     # H: the tail lemma, source structure, with the weaker but sufficient 0.97 limit.
@@ -277,10 +286,9 @@ def main():
     need(+helper_mass == Counter({r: len(thick)*n for r, n in H.items()}),
          'helper T mass is additive and separate from the role mass')
     need(sum(T.values()) == 12008, 'productive census')
-    print('DISCHARGED compiler choice: the power majorant concerns normalized rank-one leaf counts in the '
-          'finite compiler (higher-moment-strictification README s4), the source applies it to a new unit\'s '
-          'ranks, and this unit\'s ranks are the verified census T(12008 units) / D; the logarithmic route is '
-          'simply not used, and its cap %s is recorded above' % log_cap)
+    print('DISCHARGED compiler choice: the constants come from the pinned shape-correct derivation '
+          '(query-thinned-controllers::tail) applied to this unit\'s ranks and completion bases, not from the p7 '
+          'unit; the logarithmic route is not used and its cap %s is recorded above' % log_cap)
 
     # D: the helper block is autonomous with independent fields, so the main-role gauge cannot touch it.
     print('DISCHARGED helper autonomy: PHYSICAL.md states the helper jobs have independent inputs, their fields '
@@ -298,16 +306,14 @@ def main():
     idle_rank = sum(keep_i)+len(mid)*1+sum(keep_t)
     need((len(keep_i), len(mid), len(keep_t)) == (9, 18, 9), 'idle census matches the controller run')
     need(idle_n == 36 and idle_rank == 198, 'idle rank total')
-    need(word['gate_kinds']['IDLE'] == idle_n, 'the listing materializes every retained idle')
-    need(word['recodings'] == 77, 'the idles are R powers, so they need no recoding')
-    print('IDLES MATERIALIZED: %d retained idle calls (9 initial rank %d, 18 middle rank 18, 9 terminal rank %d) '
-          'apply %d rank across %d role-rank to main roles; each is an R power, and [R,C] = 0 keeps them '
-          'gauge-neutral, so the bill stays %d recodings, %d maps, %d adds, %d clears'
-          % (idle_n, sum(keep_i), sum(keep_t), idle_rank, 2*idle_rank, word['recodings'],
-             word['monomial_field_maps'], word['scalar_adds'], word['owned_clears']))
+    need(pw['retained_idles'] == idle_n and pw['idle_rank'] == idle_rank,
+         'the word carries every retained idle')
+    print('IDLES IN THE WORD: %d retained idle calls (9 initial rank %d, 18 middle rank 18, 9 terminal rank %d) '
+          'apply %d rank across %d role-rank to main roles; the word carries no code, so they need no recoding '
+          'and the field bill is zero' % (idle_n, sum(keep_i), sum(keep_t), idle_rank, 2*idle_rank))
 
     need(KAPPA > FRONTIER, 'claim above the frontier')
-    claim = {'status': 'CLAIM_P19_CODED_REVERSE_SUPPLIER',
+    claim = {'status': 'CLAIM_P19_UNCODED_WORD_SUPPLIER',
              'kappa': str(KAPPA), 'kappa_decimal': float(KAPPA),
              'complex_supplier': '0.007578535', 'bit_supplier': '17/5000',
              'kappa_under_logarithmic_majorant': str(kappa_logmax), 'logarithmic_cap': str(log_cap),
@@ -336,7 +342,7 @@ def main():
              'scope': 'exact arithmetic for the word, the bill, the compiler and the ledger'}
     (HERE/'P19_CLAIM.json').write_text(json.dumps(claim, indent=2, sort_keys=True)+'\n')
     print('CLAIM kappa %s = %.10f, %+.2f%% over %s: complex supplier 0.007578535, BIT supplier 0.0034, '
-          'compiler = the retained power majorant'
+          'compiler = the shape-correct power majorant'
           % (KAPPA, float(KAPPA), claim['gain_percent'], FRONTIER))
 
 if __name__ == '__main__':
