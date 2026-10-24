@@ -1,0 +1,57 @@
+{
+  "reviewer": "Independent construction worker, OpenAI Codex assistance",
+  "status": "PASS_SCOPED_INTEGRATION_REVIEW",
+  "files": {
+    "verify.py": "ee6426b1a73357cc70c918819dd655050c6c5a7d3ccc76d1ed47d282e86a859f",
+    "fixed_divisor.py": "f4eb025ded92028362c68fd070fb181e166f446e7f1307ffa0580c5bc6cd7039",
+    "cascade_free.py": "64e906a2827f3e17987bddec85ee48a93ee574f494f1566460748bd2edf66162",
+    "INTEGRATED-CASCADE-THEOREM.md": "986b7f6a24e387c3cd44317b4d50e790d73c72d13f7befbc0464877eca406394"
+  },
+  "executed": {
+    "command": "python -I -O -B research/native-cyclic-recovery/verify.py",
+    "invocation": "absolute script path from a separate working directory",
+    "result": "PASS_ROUNDED_NATIVE_CYCLIC_RECOVERY",
+    "cases": [
+      {
+        "W": 3,
+        "q": 2,
+        "entries": 24,
+        "stored_error": "61/63",
+        "quantized_error": "86/63"
+      },
+      {
+        "W": 3,
+        "q": 4,
+        "entries": 24,
+        "stored_error": "13/9",
+        "quantized_error": "40/21"
+      },
+      {
+        "W": 13,
+        "q": 2,
+        "entries": 208,
+        "stored_error": "97157066/67108863",
+        "quantized_error": "131064083/67108863"
+      }
+    ],
+    "beta_sign_mutation_controls": 3
+  },
+  "mathematical_review": [
+    "The max-absolute-real-component norm is preserved by literal unit quarter phases, signs and routing.",
+    "Nearest-even scale rounding has component error at most u/2. First Horner error is at most u. With a=2^-W<=1/2, the second stage error is at most (u+u/2)/(1-a)<=3u.",
+    "The normalization gamma<=4/3 amplifies that to at most 4u, and its final rounding contributes at most u/2. Thus 5u is safe against the exact inverse of the stored observations.",
+    "Input quantization by at most u/2 contributes at most u because the exact inverse has coefficient absolute sum 2. Therefore 6u is safe for the total component error.",
+    "The Euclidean bound follows by multiplying the component bound by sqrt(2N). The stated sufficient p>=ceil(log2(12N/eta)) is conservative.",
+    "Every rational scaling in the actual integer-grid datapath calls fixed_divisor.fixed_rational with nearest_even rounding. Fraction arithmetic is confined to the exact reference and error comparison.",
+    "Signed ADDs use a guarded common-grid representation and are prescribed exact; separately rounded ADDs would require an added error term.",
+    "The fixed rational numerator products and denominator constants fit the separately reserved physical guard width. Payload bits reported by a fixture are not its whole physical working width.",
+    "The exact runtime keeps W in both pass and return-compilation costs, and treats denominators as fixed only when W is fixed.",
+    "The stated allocation includes retained observations, three work buffers, map tables and scalar plane scratch; it is a sufficient implementation allowance, not the observed Python host peak."
+  ],
+  "limitations": [
+    "These finite checks supplement the informal all-width proof and are not a Lean kernel audit or human peer review.",
+    "The wrong-beta-sign controls use deliberately large fixture amplitudes to distinguish the mutation from the safe 5u tolerance; they do not establish the proof by testing.",
+    "Both logical shifts, physical guard bits, complete address headroom, fixed W and fixed rational coefficients are explicit ABI premises.",
+    "Original multiplication observations and a favorable complete paid profile are not supplied; no new kappa or selected-frontier admission is claimed."
+  ]
+}

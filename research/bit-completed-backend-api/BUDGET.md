@@ -1,0 +1,9 @@
+# Retained bill and conditional cost boundary
+
+No raw rank/profile changes:4760 retains11400 original owners,57339 paid queries,7848 global helper originals and436 independent local helpers. All9rank7 COPY episodes per local FULL remain charged. The72 partial rank4 outputs require144 added matcher routes;7548 other raw routes remain, total7692 RAW routes, not a final compiled count.
+
+The selected8-dimensional matcher has5swaps,5unit scales and14shears. Applying each factor on all8 complete high rows gives40/40/112 elementary operations per direction. At most64 carry translations plus one finite low-type permutation are also paid per direction. Thus the matcher pair has80 ordinary swaps,80scales,224linear shifts,≤128carry shifts and2low-type permutations. No f factor is missing: f is column multiplicity, while the coarse cover dimension is fixed. Larger fixed N requires a newly fixed finite bound. Low-type tables and rational descriptors are physical routing assumptions with paid finite costs, not free oracle access.
+
+Weighted unit leaves use4older ordinary swaps+3controlled shifts+1sign. The ordinary wrapper uses2completed raw bodies+3additions outside the stopped recurrence; its multiplicity is not inserted into every characteristic branch. High stock is O(w log e), internally borrowed and restored. Initialization, owned allocation, erasure, ROW/radix padding/removal, full delayed-cover fallback and tape/precision/outer costs remain charged or retained assumptions as stated in P1–P3.
+
+The existing rho=.01, C1=.00347545805−(2^-36+10^-20), b0=.0034597 stage gaps are checked, not retuned. Only constructively bounded finite constants and stated lower-order terms are absorbed at a new fixed threshold. Unknown asymptotic operations cannot be absorbed. No new κ, raw crossing, unpaid owner or independent full primitive implementation follows.

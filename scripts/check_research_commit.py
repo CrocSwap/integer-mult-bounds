@@ -17,6 +17,7 @@ from research_package import (
     canonical_relative_path,
     git,
     git_blobs,
+    git_source_env,
     relative_file,
     require,
     source_pin,
@@ -29,7 +30,7 @@ MAX_SOURCE_COMMITS = 256
 
 
 def history_git(root, *args):
-    env = os.environ.copy()
+    env = git_source_env()
     env['GIT_GRAFT_FILE'] = os.devnull
     env.pop('GIT_SHALLOW_FILE', None)
     return subprocess.run(['git', '--no-replace-objects', *args], cwd=root, env=env,

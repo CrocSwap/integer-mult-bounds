@@ -53,10 +53,7 @@ def notes_still_use_the_old_exponents() -> None:
     assert "A=C_A p^48" in fine
     assert "halo exponent 48 and core exponent 128" in fine
     assert "core exponent400 and halo48" in proof
-    selected = json.loads(
-        (ROOT / "certificates" / "selected-result.json").read_text(encoding="utf-8")
-    )
-    assert selected["kappa"] == "836330098538459/500000000000000000"
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 def sparse_mul(left: dict[int, int], right: dict[int, int]) -> dict[int, int]:

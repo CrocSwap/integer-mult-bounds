@@ -15,9 +15,12 @@ import json
 from pathlib import Path
 import sys
 
-from verify_selected_result import check
+from runpy import run_path
 
 ROOT = Path(__file__).resolve().parents[1]
+# -B still reads cached bytecode; source-binding guards must use current source.
+check = run_path(str(ROOT / "scripts/verify_selected_result.py"),
+                 run_name="verify_selected_result")["check"]
 SCHEMA = "proposed-conditional-integer-multiplication-claim/1"
 OUTER_ROWS = frozenset({
     "boundary_algebraic_matrix", "fused_gaussian", "global_coordinate_router",

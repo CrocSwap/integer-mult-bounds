@@ -102,15 +102,15 @@ Run this standard-library helper:
 
 ```sh
 # Python 3.10 or later; no third-party dependencies.
-python3 scripts/choose_research_task.py
+python3 scripts/choose_current_research_task.py
 # To reproduce a selection, pass the emitted 32-hex-digit nonce:
-python3 scripts/choose_research_task.py --seed YOUR_NONCE
+python3 scripts/choose_current_research_task.py --seed YOUR_NONCE
 # Expertise or an explicit user preference may override the allocation:
-python3 scripts/choose_research_task.py --track complex-mechanisms
+python3 scripts/choose_current_research_task.py --track complex-mechanisms
 # Retrieve a specific card after assignment:
-python3 scripts/choose_research_task.py --task connector-alphabet-change
+python3 scripts/choose_current_research_task.py --task connector-alphabet-change
 # Optional: surface structured handoffs/claims from an existing overlap cache.
-python3 scripts/choose_research_task.py --coordination-cache /tmp/overlap.json
+python3 scripts/choose_current_research_task.py --coordination-cache /tmp/overlap.json
 ```
 
 It reads [the task catalogue](agent-task-catalog.json), draws a
@@ -118,8 +118,46 @@ It reads [the task catalogue](agent-task-catalog.json), draws a
 cards with independently selected methods. It reports your checkout's commit
 and selected-record hash. It does not contact GitHub, reserve work, or establish
 that a task is open. A deterministic seed is a reproducibility aid, not novelty.
-Each card supplies a first working command, expected evidence, a next experiment,
+Each card supplies a first-step command, expected evidence, a next experiment,
 its connection to the bottleneck, allowed variations and scope-change triggers.
+
+**Resolve the generic orientation command before running a historical card.**
+If its `first_step.command` is `python3 -B scripts/research_baseline.py`, use the
+current orientation command in [current priorities](current-priorities.md).
+For the selected #4470 productive-helper schema, that command is:
+
+```sh
+python3 -B scripts/research_selected_baseline.py
+```
+
+The older helper expects `bit_lower` and `complex_lower`, which this certificate
+does not contain. This substitution applies only to the generic selected-baseline
+step; retain the card's question, inspection instructions and any named scientific
+replay command. A future selection must be checked against its own reviewed schema.
+The [startup compatibility audit](task-startup-compatibility.md) explains why the
+historical catalogue, picker and baseline bytes remain intact. The replacement
+authenticates selected sources and checks metadata consistency; it is not a cold
+replay or supplier admission.
+
+**Keep the complex-ceiling control in its historical context.** Four cards
+(`complex-rank-shape-decoder`, `complex-new-helper-inventory`,
+`centre-path-sharing` and `coverage-law-change`) name
+`research/complex-local-word-ceiling/verify.py`. That frozen checker reads the
+#1094 certificate schema and fails on selected #4470 with
+`KeyError: 'complex_profile'`. Run the current selected orientation above, then
+use the [authenticated historical replay](../../research/historical-complex-ceiling-replay/README.md)
+for the card's original positive control:
+
+```sh
+python3 -B scripts/research_package.py --package research/historical-complex-ceiling-replay
+```
+
+This executes the unchanged scientific checker and its controls against exact
+#1094/#1042 inputs in a temporary tree. Its ceiling and `levers.py` budgets
+belong to that historical word, coverage law and outer guard. Before screening
+a changed current supplier, derive and source-bind the applicable complete cost
+law; a historical pass does not make the old ceiling a cap on #4470. The card,
+its pinned sources and the live selected record retain their bytes.
 
 In a sparse checkout, the helper can validate omitted catalogue references when
 they are regular files in `HEAD` with matching skip-worktree index entries. It
@@ -127,6 +165,11 @@ reports these as `sparse_checkout.omitted_catalogue_paths`. For absent paths,
 ordinary deletions and staged content replacements still fail. Materialize the
 chosen card's inputs before running its commands. This reference check does not
 resolve replay dependencies.
+
+For missing selected-baseline inputs, run
+`python3 -B scripts/research_baseline_sparse.py`, inspect its materialization
+command, and use its schema-aware `next` command after materializing the inputs.
+Its omission report does not authenticate sources; the baseline still must pass.
 
 Use the overlap helper before choosing a card and refresh before submission:
 
@@ -350,6 +393,12 @@ Work on an isolated branch/worktree. Preserve upstream inputs and frozen source
 pins. Use exact arithmetic or certified bounds for acceptance; finite-field and
 floating-point searches can propose candidates but cannot certify a rational
 rank identity or universal theorem on their own.
+
+For scalar linear programs with independent noncommuting unary operators, the
+[universal dirty-circuit guide](universal-dirty-circuit-guide.md) offers compact
+exact certificates for complete dirty endpoints and termwise tensor substitution.
+Its grammar and independent-symbol hypotheses must match the actual caller;
+native, inverse/group, nonlinear and physical cost obligations remain separate.
 
 Run checks relevant to your change, with a positive fixture and meaningful
 failure controls when adding a verifier. State which obligations were **not**

@@ -1,0 +1,9 @@
+# Native global-precision polynomial records
+
+For power-of-two r and signed complex integer coefficients of magnitude below 2^p, record_product.py computes the product modulo y^r + 1. Pad to N = max(2, 2r), perform two forward and one inverse direct radix-2 FFTs, round the ordinary coefficients, and fold coefficient j+r negatively into coefficient j. The schoolbook oracle occurs only in the verifier.
+
+The fixed-point fractional width is F = 16p + 16 bit_length(r) + 64. Each raw intermediate is checked against the chosen fixed word-width bound, including root generation. The retained native convolution error inequality is at most 216 N^6 β² / 2^F with β = 2^(p+1); substitution makes this strictly below 1/4 for all p ≥ 1 and r ≥ 1. To see the margin, N ≤ 2r except the identical r = 1 case N = 2, and bit_length(r) > log2 r. The numerator is below 2^(2p+16) r^6, whereas the denominator exceeds 2^(16p+64) r^16. Nearest integer rounding is therefore exact. Negative coefficients use the same absolute error bound. Folding is exact bounded-word subtraction.
+
+In the actual caller p = Θ(log n), log r = O(p/d), and F = O(p). Thus every checked arithmetic operation uses a fixed number of GLOBAL machine words. The FFT takes O(r log r) operations; its O(p+r) reusable root setup is charged offline (or absorbed when r grows). It would be incorrect to charge the same scalar as constant time on a fresh Θ(log(rp))-bit machine. All-input error and cost statements here are informal proofs using the retained root/FFT error theorem; 36 products and 378 ring coefficients provide independent finite replay only.
+
+The record_product implementation and its fixed-word convolver are distinct from a TM multiplier. Native root generation uses bounded-word rational series. The original #4554 source notices and root code are retained.

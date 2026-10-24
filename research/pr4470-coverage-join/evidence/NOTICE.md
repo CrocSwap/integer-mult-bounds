@@ -1,0 +1,5 @@
+# Retained physical audit evidence
+
+PR14-RESULT.json is copied byte-for-byte from Clear1nsight/integer-mult-bounds at af86fb28f4fe039d4bb8419850af99a6fc474587, path research/pr4470-exact-transport-audit/RESULT.json, Git blob d80b68175e3d8dabe0460e142afb6bbf6056a011, SHA256 53bdd869ebeee0980b139e422043922c87585bef90c2989969532ccb7b289a00. It first resulted from successful hosted full matrix execution in run 39712725621 at f4657a0ad4c11a56646c8c6c422f09335b0c73ba and was freshly reproduced in the registered final-head run. This package authenticates and reuses that scoped evidence; it does not rerun the 221,773,824 matrix-entry comparisons.
+
+The original check was separately implemented for Chris R / Clear1nsight with substantial OpenAI assistance, Apache-2.0. It audits Cinna Davis's PR4470 recipes, following zxv's native/controller work and the retained geometry/Clifford lineage. Its own not_covered list remains intact. This new coverage join may discharge the declared changed-pair census boundary but does not erase the original historical scope statement or certify inherited operations.

@@ -1,0 +1,11 @@
+# Bounded negative result and executed evidence
+
+The source-bound replay passed in [workflow 39723520394](https://github.com/Clear1nsight/integer-mult-bounds/actions/runs/39723520394), job 119643037416, at head 99f5d3d855a7ad6204072ff021e3621d7c6fa72c. GitHub tested merge ref 67aec4683f28fb3fb0343b849297c16ecad0a5bc against isolated base 59d57c8c662e62b9a03f5ebd6ba52ebdd19ed20b. Ubuntu 24.04.5, CPython 3.12.15, standard library only. Scientific execution completed at 2026-10-22T04:43:13Z. Onboarding, metadata/source authentication, registered replay, optimised controls and unchanged committed inputs passed.
+
+Among 128 eligible adjacent source pairs, the explicitly bounded first twelve were tested. All twelve selected three-shear replacements reproduce the old local paid histogram exactly, and the whole-word invoice in both orientations remains {1:2237,2:388,3:494,4:147,5:36,8:8}. All 408 productive helper endpoints remain fixed. The replacement adds one scalar operation and establishes no paid-profile saving. It is not offered as an improvement. No conclusion about the other 116 windows, arbitrary scalar words or a different frame contract follows.
+
+RESULT.json retains every field of the observed scientific output, transcribed from its JSON log. Ordinary verification compares fresh output against it. Some independently bounded equal moments have an interval of one or two units around zero at scale 10^18; exact histogram equality establishes zero for these selected witnesses. The companion four-shear ceiling in fork PR18 separately proves a stronger no-headroom result for the same twelve fixed windows and alphabet. It is not used as a premise of this replay.
+
+The first hosted attempt failed before scientific execution because TASK.json used the unsupported outcome in_progress. Correcting it to partial fixed that metadata error without changing inputs or mathematical checks. The completed bounded negative finding is now recorded as negative. No acceptance assertion was removed.
+
+The receipt also records 21 algebraic/geometric controls; local normal and optimised runs passed. No new physical lowering, full arbitrary-input endpoint, compiler/outer transfer, selected cold replay or optional source-history preflight was run. The scoped search outcome and all physical limitations remain separate.

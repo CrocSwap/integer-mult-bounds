@@ -1,0 +1,80 @@
+--- pinned/census.c
++++ census.c
+@@ -1,3 +1,7 @@
++/* Incremental matching-capacity state.
++ * Ali Romman, with substantial OpenAI Codex assistance; Apache-2.0.
++ * The predecessor algorithm and notices follow without changes.
++ */
+ /* Source-bound maintained-engine successor with opt-in prefix capacity.
+  * JoyboyBrian, with substantial OpenAI Codex assistance; Apache-2.0.
+  * PR5001 capacity theorem: Ali Romman; all predecessor credit follows.
+@@ -74,25 +78,35 @@
+ }
+ static inline int parity(int x) { return __builtin_popcount((unsigned)x)&1; }
+ static inline mask_t bit(int x) { return (mask_t)1 << x; }
++typedef struct { int size[2],stays[2],occupied_pairs[2]; } Capacity;
++static Capacity capacity[L][N];
++/* Each level owns its state. A sibling overwrites only the next level. */
++static void extend_capacity(int depth,int point,int label,mask_t old_seen) {
++    for(int omitted=0;omitted<N;omitted++) {
++        Capacity *next=&capacity[depth+1][omitted];
++        *next=capacity[depth][omitted];
++        int mask=((1<<N)-1)^(1<<omitted),side=parity(point&mask);
++        next->size[side]++;
++        if(label==omitted) next->stays[side]++;
++        if(old_seen&bit(point^(1<<omitted))) next->occupied_pairs[side]++;
++    }
++}
+ /* The caller supplies a simple path; each omitted functional uses actual splits. */
+ static uint32_t capacity_splits(int depth,int omitted) {
+     int k=depth+1,r=L-k,mask=((1<<N)-1)^(1<<omitted);
+-    int size[2]={0},stays[2]={0},cheap[2]={0},pairs[2]={0},available[2]={0};
+-    int point=0,crossing=0;
+-    size[0]=1;
+-    for(int i=0;i<depth;i++) {
+-        int next=point^(1<<word[i]);
+-        int side=parity(next&mask);
+-        size[side]++;
+-        if(word[i]==omitted) stays[side]++; else crossing++;
+-        point=next;
+-    }
++    const Capacity *state=&capacity[depth][omitted];
++    const int *size=state->size,*stays=state->stays;
++    int cheap[2]={0},pairs[2],available[2];
++    int crossing=depth-stays[0]-stays[1];
+     if(!r) return __builtin_popcount((unsigned)q)==1 ? (uint32_t)1<<size[0] : 0;
+-    for(int vertex=0;vertex<(1<<N);vertex++) if(!(seen&bit(vertex))) {
+-        int side=parity(vertex&mask),mate=vertex^(1<<omitted);
+-        available[side]++;
+-        if(mate==0 || mate==q) cheap[side]++;
+-        else if(!(seen&bit(mate)) && vertex<mate) pairs[side]++;
++    for(int side=0;side<2;side++) {
++        available[side]=(1<<(N-1))-size[side];
++        pairs[side]=(1<<N)/4-size[side]+state->occupied_pairs[side];
++    }
++    int endpoints[2]={0,q};
++    for(int i=0;i<2;i++) {
++        int endpoint=endpoints[i];
++        if(!(seen&bit(endpoint^(1<<omitted)))) cheap[parity(endpoint&mask)]++;
+     }
+     uint32_t splits=0;
+     for(int x=0;x<=r;x++) {
+@@ -168,6 +182,7 @@
+         odd_counts+=(counts[j]&1)?1:-1;
+         q=nq;
+         if (j==old_used) used++;
++        if(capacity_active && fresh) extend_capacity(i,nq,j,old_seen);
+         if (fresh) {
+             seen|=bit(nq);
+             if (p) { O[os++]=nq; oo|=add_same; }
+@@ -265,6 +280,10 @@
+         memset(&run,0,sizeof run); memset(counts,0,sizeof counts);
+         q=used=odd_counts=even_excess=odd_excess=0; es=1; os=0; E[0]=0;
+         seen=1; ee=oo=eo=0; current=&shards[a];
++        if(capacity_active) {
++            memset(capacity,0,sizeof capacity);
++            for(int omitted=0;omitted<N;omitted++) capacity[0][omitted].size[0]=1;
++        }
+         struct timespec start,end; clock_gettime(CLOCK_MONOTONIC,&start);
+         /* Negative necessary budget proves no universal leaf: skip whole shard. */
+         if (!(even_on&&even_budget<0) && !(odd_on&&odd_budget<0) && !(union_on&&union_budget<0)) rec(0);

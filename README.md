@@ -13,51 +13,73 @@ starting with [the coordination guide](https://github.com/CrocSwap/integer-mult-
 New to the construction? Read [the bottleneck brief](docs/research/bottleneck-brief.md).
 Workflow feedback is welcome in [discussion #1200](https://github.com/CrocSwap/integer-mult-bounds/discussions/1200).
 
-## Current reviewed result: productive helper jobs
+## Current reviewed result: complete neutral caller
 
-**zxv's [#4359](https://github.com/CrocSwap/integer-mult-bounds/pull/4359)** gives
+**Chris R / Clear1nsight's [#5413](https://github.com/CrocSwap/integer-mult-bounds/pull/5413)**,
+with the provider audit in **#5407** and independent companion **#5414**, gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{23}{10000}=0.0023>2^{-9}.
+\kappa=\frac{605457647}{200000000000}=0.003027288235>2^{-9}.
 $$
 
-The construction makes helper arrays productive and compiles unequal jobs into
-one uniform recursive supplier. **Jacob Alan Sussman's mixed-target recursion**
-is the direct conceptual predecessor. It builds on the complex/native work of
-**Rohan Arun, Cinna Davis, David Ganz, Jeremy Kothe, Marius-Paul Dumitrean and
-Erwan Secousses**, the binary words of **eumemic and DreamingOfClouds**, and the
-outer/precision contributions of **Vlado-V, Chafik Boukhalfa and Zhihao Chen**.
-[Detailed contribution and verification credits](docs/research/community-productive4359-contributors.md).
+It completes **Dillon Amburgey's #5402 coupled provider** on all original
+inputs and uses **Ali Romman's #5398 direct backward controller**. The complete
+caller has 10,928 productive fields and 64,260 paid jobs. Its additional paid
+and productive rank-eight jobs cancel exactly in the signed moment; the final
+5×10⁻¹² beyond #5398/#5400 is compiler/outer headroom.
 
-A fresh sequential replay passed **23 stages** and compared **59 regenerated
-artifacts** under the documented metadata/compression normalization. The
-changed compiler, native lift, delayed BIT cover and outer-transfer interfaces
-received an AI-assisted mathematical review. **Ryanson Jonathan's #4404** adds
-a separately implemented exact flow/rank audit, also replayed locally.
+**Cao Yifan's native construction**, **Cinna Davis's controllers/helpers**,
+**zxv's native/compiler/precision machinery**, **Jacob Alan Sussman's mixed-target
+recursion**, and the cumulative BIT, Clifford, geometry, analytic and
+verification contributors retain full credit.
+[Detailed contributor map](docs/research/community-neutral5413-contributors.md).
 
-The result retains the analytic, exact-recovery, native-movement and fixed-tape
-hypotheses identified in the review. It is **not a complete Lean proof or an
-independent human verification of the multiplication theorem**. The winning
-uniform templates are algorithm-defined and astronomically large; they were
-not materialized. No practical speed improvement is claimed.
+The provider, all eight primary admission stages, and companion screen passed
+under serial memory/time guards. The reviewed PR4610/#5241 and earlier
+foundation is reused explicitly. The new result retains **exactly the same five
+conditional framework assumptions**. Local verification used macOS with a
+documented resource-limit adapter; it is not reported as a Linux run.
+
+This is **not a complete Lean proof or independent human verification of the
+multiplication theorem**. Uniform templates are algorithm-defined and
+astronomically large; they were not materialized. No practical speed improvement
+is claimed. The saving κ is about **0.182424% larger** than the preceding selected
+0.0030217758; that comparison concerns exponents, not measured runtimes.
 
 [Selected record](certificates/selected-result.json) ·
-[Proof review](docs/research/pr-intake-evidence/pr4359/PROOF-REVIEW.md) ·
-[Replay receipt](docs/research/pr-intake-evidence/pr4359/VALIDATION.json) ·
-[Integration receipt](docs/research/pr-intake-evidence/pr4359/INTEGRATION.json) ·
+[Proof review](docs/research/pr-intake-evidence/pr5413/PROOF-REVIEW.md) ·
+[Selected replay](docs/research/pr-intake-evidence/pr5413-promotion/VALIDATION.json) ·
+[Integration receipt](docs/research/pr-intake-evidence/pr5413-promotion/INTEGRATION.json) ·
 [Contributors](CONTRIBUTORS.md) · [PR ledger](docs/research/pr-ledger.md)
 
 ```sh
-# Python standard library; sequential replay in a fresh temporary directory.
-make frontier4359-verify
+# Fast source/metadata check; no operator replay.
+python3 -B scripts/research_selected_baseline.py
+# Full independent admission replay in a closed export with bounded memory.
+make frontier5413-verify
 ```
 
-The saving is about **37.5% larger** than the last selected #1094 checkpoint,
-and **32.9% larger** than Rohan's later #4181 conditional checkpoint. These
-compare exponent savings, not measured runtimes. Historical submissions retain
-their original status wording; the selected record is the current authority.
-Unrelated H-branch research in the imported archive is not a selected result.
+The replay exports the complete frozen provider, primary and companion
+packages; it does not alter submitted research sources to fit the new selection.
+The [PR4610 checkpoint](certificates/checkpoints/frontier4610.json),
+[review](docs/research/pr-intake-evidence/pr4610/PROOF-REVIEW.md) and
+[contributor map](docs/research/community-native4610-contributors.md) remain preserved.
+Frozen source notes retain submission-time status. The selected record and
+integration receipt identify current publication and execution coverage.
+
+## Historical checkpoint: productive helper jobs
+
+**zxv's #4359** reached κ = 0.0023 using Jacob Alan Sussman's mixed-target
+recursion and the cumulative native/outer lineage. Its 23-stage, 59-artifact
+replay, proof review and credits remain preserved in the
+[frozen checkpoint](certificates/checkpoints/frontier4359.json),
+[review](docs/research/pr-intake-evidence/pr4359/PROOF-REVIEW.md) and
+[contributor map](docs/research/community-productive4359-contributors.md).
+`make frontier4359-verify` remains the historical replay. Cinna Davis's #4416
+and zxv's #4433 subsequently supported the reviewed 0.00268647 intermediate
+checkpoint; their [review](docs/research/pr-intake-evidence/pr4416/PROOF-REVIEW.md)
+remains part of the current source-bound foundation.
 
 ## Historical checkpoint: rare-pattern T16 owner exchanges
 

@@ -1,0 +1,13 @@
+**Research discussion / PR / artifact:** Ali Romman PR5392; fresh independent physical review in `REPORT.md`, joined in `PHYSICAL-RECEIPT.json` with independent engine and control receipts.
+
+**Exact commit:** `329b2ff35d2994b11abbb59f770d12da75c494ac`; package `research/native-transpose-owned`; new word SHA256 `f660531aa45daf89aae681b2db1d71dad983e1a26d7f41f45361f89073c11105`. Scientific canonical base is `1ec1119972c9aefe42525172d07b332fcff81cb4`; direct copied-source parent is `5eb314069417db1f4305430b6b14f20e9251e509`, with provenance owned separately by role09.
+
+**What is established:** Exact literal transpose, all 641 arbitrary entry columns, all 17 owned returns, arbitrary-operator bridge cancellation, actual normalized forward caller and 400 helper corrections. Fresh independent phase engine checks all 2,847 paid classes, 180 native classes/92,160 literal columns, 112 actual Q-squared ports and four helper ranks. Nine semantic/interface/phase rejection controls pass. All eight actual reverse boundary rows are explicitly nonzero, so a false reverse-zero premise is excluded. No candidate or predecessor evaluator imported. The consumed PR5369 theorem is scoped and bypassed by our stronger universal endpoint proof.
+
+**What remains uncertain:** The same five physical/framework assumptions remain. Full tape/rounded precision, ordinary BIT and analytic/prime/recovery execution are inherited. Invoice, expanded closure, exact numerical funding, registered author cold pair, raw source-copy/Git ancestry and publication each retain their separate receipts. This slice makes no selected-record or unconditional/Lean claim.
+
+**Smallest useful next task:** Join this immutable physical receipt with role03 closure and role04 invoice/funding by exact word/head/hash, complete the sole registered cold pair and source-history gate, then root reviews the full package for publication.
+
+**Reproduction command and expected runtime:** Run `check_word.py` (about 6 seconds), `run_guarded_phases.py` (about 25 seconds) and `run_guarded_extra.py` (about 5 seconds), each prefixed by `python3 -B`, in this directory. The phase guard enforces 120 seconds/512 MiB; extra guard 10 seconds/512 MiB. No mathematical process remains running and the scientific token is released.
+
+**Predecessor credit:** Ali Romman5392/5383/5377; classical transposition; Cao Yifan4610; Cinna Davis controller/helper lineage; zxv native/compiler/precision; Dugongue transported frames; Jacob Alan Sussman recursion; Chris R/Clear1nsight5241/5384 independent admission; ToikY and all retained notices. Substantial OpenAI Codex assistance used.

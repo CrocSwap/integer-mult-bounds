@@ -1,0 +1,168 @@
+Three active targets with one returned register need nine calls
+===============================================================
+
+Theorem and model
+-----------------
+Work over F_2[G], where G is the additive group of rational 3 by 3
+matrices. Let [A] denote its group element. A paid factor is
+
+  D_N([A]) = I + ([A]-1)N,
+  N = xy^T,  x,y in F_2^4,  y^T x = 1.
+
+Each paid frame A is nonzero and has rational matrix rank one. For
+invertible lower-triangular rational C_1,C_2,C_3, an identity
+
+  product_j D_(N_j)([A_j]) = diag([C_1],[C_2],[C_3],1)
+
+requires at least nine paid factors. Nine suffice. The fourth input
+is arbitrary and must be returned exactly. This is a formal identity
+in all address variables, not a check on selected input values.
+
+The finite part of this proof has two exact implementations. The
+status of the independent proof audit is stated in AUDIT.txt. This
+result does not give a positive bound improvement for integer
+multiplication. It excludes one proposed small circuit.
+
+1. Reduction to eight calls and relation rank at most three
+---------------------------------------------------------
+A factor can be split into two: D_N([A/2])^2 = D_N([A]). Thus every
+nonempty word with fewer than eight calls can be padded to eight,
+with nonzero rank-one frames. Zero calls cannot give an active target.
+
+Use the span-four lemma of the three-register lower-bound proof:
+https://github.com/CrocSwap/integer-mult-bounds/pull/468
+The source used here is research/bit-three-register-lower-bound/README.md
+at commit 07a78bf335b0b5039a1fecd7cd74a0fe1d1605ea in the author's fork.
+Its proof applies to any number of scalar registers and extends to
+zero target frames: replace every target-minus-identity rank W by
+the number of active targets. Choose an active target for the common
+ratio flag argument. Zero targets remain zero under each projection.
+The result is that rational paid-frame span at most four needs at
+least three calls per active invertible lower-triangular target.
+
+For clarity, the span-four proof has two cases. Three independent
+rank-one basis frames can be mapped to diagonal coordinate matrices.
+The fourth is uv^T. If u and v have full support, every rank-one frame
+is on one of four basis lines. Each invertible target needs at least
+three lines, and line projection gives one call per active coefficient.
+Otherwise the frame space has upper-triangular diagonal blocks of size
+at most two. Rank-one calls have at most one nonzero diagonal block.
+The target ratio flag descends to each block. A one-dimensional block
+needs W active calls. For a two-dimensional block, project its upper
+entry to zero. If U calls survive, the compact product formula gives
+r_X+r_Y <= U. The two diagonal projections give W <= r_X+l_i and
+W <= r_Y+l_i for i=0,1. Hence 2W <= U+l_0+l_1 <= E_2. The block bounds
+sum to 3W. This argument uses the lower-triangular target hypothesis.
+
+An eight-call solution therefore has frame span at least five. Its
+rational relation space in Q^8 has dimension at most three.
+
+2. Scalar irreducibility and distance
+------------------------------------
+One active target needs at least three calls, even with returned
+registers: its frame is in the span of the paid rank-one frames.
+Two active targets need at least six. At five calls, frame span at
+most four is covered above. At span five the frames are independent;
+all subset monomials are distinct. Vanishing off-diagonal coefficients
+and differentiation at one make every scalar projector diagonal.
+The calls then divide between the targets, whose ranks sum to six.
+
+Suppose the projectors preserve a proper binary subspace. The diagonal
+target preserves it as well. Its distinct monomial coefficients are
+coordinate projections onto groups with equal target frames, including
+the zero frame. These projections preserve the subspace. Choose bases
+inside each group adapted to that subspace. The target stays diagonal.
+Each rank-one idempotent acts nontrivially on exactly one diagonal
+block. If both blocks have active targets, their counts are one and
+two, so their disjoint call counts sum to at least nine. If all three
+active targets are in one block, it has dimension three; PR468 applies
+and again requires nine. Thus an eight-call solution is irreducible.
+
+For an allowed returned coordinate a, every nonzero binary row r other
+than e_a must see at least three image vectors x_j, and at least three
+row vectors y_j. Otherwise choose a rational functional that kills the
+at most two frames seen by r and does not kill an active target in
+its support. The projected circuit fixes r but the target does not.
+
+3. Finite scalar catalogue
+-------------------------
+Let L be the saturated kernel of Z^8 -> <A_1,...,A_8>. Its reduction
+modulo two has dimension at most three. Augmentation degree one shows
+that all off-diagonal coefficient rows ((N_j)_(u,v))_j lie in this
+space. The returned diagonal row lies there too. Thus the off-diagonal
+patterns of the used projectors span a binary space of dimension at
+most three, with the corresponding augmented condition for coordinate a.
+
+List all 120 binary rank-one idempotents. They have 104 distinct nonzero
+off-diagonal patterns. Generate every pattern space of dimension one,
+two, or three. For each space include all projectors with that pattern,
+including the four coordinate projectors. An irreducible pool must have
+a strongly connected union graph. This is also sufficient for the full
+pool, since its coordinate projectors force invariant subspaces to be
+coordinate subspaces. Quotient only by coordinate permutations.
+
+Dimension       1         2          3
+All spaces    104     4,964    140,281
+Full irreducible pools
+                0       634     63,567
+Permutation classes
+                0        45      2,846
+
+Dimension zero is diagonal and reducible. List every eight-call multiset
+in the remaining pools. Require actual pattern rank, the distance and
+augmented conditions above, and irreducibility of the used support.
+This leaves 103 rank-two families and 4,020 rank-three families.
+
+List every order modulo swaps of commuting factors and word reversal.
+Reversal is valid by inversion and negation of all frames. Rank two
+gives 27,156 canonical words, all checked by both exact engines. Rank
+three gives 3,560,923 words. Here the rank-three derivative space equals
+L modulo two. In F_2[(F_2)^8/(L mod 2)] the product must still be diagonal
+with one monomial per entry and identity in a permitted returned entry.
+Exactly 1,901,600 words pass this necessary check.
+
+4. Complete exact relation search
+---------------------------------
+Expand each word into at most 256 subset monomials. At a partial
+rational relation space R, collect equal monomials in Q^8/R. A nonzero
+off-diagonal term must cancel with some other term in the same entry.
+Branch over all such partners, adding their original subset-difference
+row. Each step raises relation rank. Stop at rank three.
+
+Reject zero paid frames. At a diagonal terminal each entry is a single
+monomial: the determinant is a monomial, so each diagonal factor is a
+unit in a Laurent polynomial ring. For each allowed returned role, add
+its original target subset indicator as a zero relation. Reject if this
+needs rank four or kills a paid frame. Also reject if an active target
+lies in R plus the span of any two coordinate unit vectors. Its matrix
+would then lie in the span of two rank-one frames and have rank at most
+two. This obstruction persists under every further relation.
+
+The primitive-integer engine performs exact fraction-free row operations.
+The second engine uses F_101. Every state has at most three original
+rows with entries in {-1,0,1}. Its RREF entries have numerator and
+denominator of absolute value at most five, by minors and Cramer's rule.
+Rational reconstruction is unique modulo 101 since a cross difference
+is at most 50. Every equality or rank decision uses at most four such
+nonunit rows, plus coordinate rows. Expansion along the coordinate
+rows and Hadamard's inequality bound each relevant minor by 16. Hence
+no required rational rank changes modulo 101. The same bound separates
+unequal cached row spaces. Reconstructed primitive-row parities belong
+to L modulo two and give a further safe first-order check.
+
+Both engines check every retained word. Rank two has no diagonal
+terminal. Rank three has 538, with exactly matching word IDs and one
+terminal each. Every terminal is rejected. No physical eight-call
+solution remains. The recorded counts and input hashes are checked by
+generate.py, and receipt.json records the full independent replay.
+
+5. Upper bound and boundary
+---------------------------
+For each C_w, use its three rank-one column matrices as paid frames
+with scalar projector e_w e_w^T. Their sum is C_w, so three calls give
+[C_w] on register w. Nine calls give the target and fix the fourth
+register. The lower bound is therefore sharp.
+
+The theorem does not cover clean initialized workspace, more than one
+extra scalar register, noncommuting address operations, or a weaker
+output contract. It does not rule out a larger-batch improvement.

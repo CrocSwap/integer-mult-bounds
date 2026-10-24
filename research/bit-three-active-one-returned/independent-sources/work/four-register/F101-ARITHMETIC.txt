@@ -1,0 +1,64 @@
+Exact arithmetic for the eight-call returned-register search
+============================================================
+
+The state is a rational subspace of Q^8 with dimension at most three.
+Each generating relation is one of these original rows:
+
+1. The difference of two subset indicator vectors. Each entry is -1, 0,
+   or 1.
+2. At a diagonal terminal, the original subset indicator for the target
+   of the returned register. Each entry is 0 or 1.
+
+The second row is added only when the resulting rank is at most three.
+The code uses an original monomial representative. It does not use a
+reduced row as a new bounded generator.
+
+For r at most three, every r by r minor of these original rows has
+absolute value at most floor(r^(r/2)), hence at most five. Cramer's rule
+therefore writes each nonzero RREF entry as n/d with |n| at most five
+and 1 <= d <= 5. Two such reduced fractions with the same image in
+F_101 are equal: their cross difference has absolute value at most
+50, which is less than 101. This proves the rational reconstruction
+used for primitive-parity pruning.
+
+After reconstruction, the least common multiple of all denominators
+is at most 60. Each integer numerator after this multiplication has
+absolute value at most 300. Divide their greatest common divisor and
+reduce modulo two. This is a primitive integer row of the rational
+relation space. It lies in the saturated integer kernel of any actual
+frame realization. The off-diagonal derivative rows and the returned
+diagonal derivative row lie in that same kernel modulo two. Its binary
+dimension is at most three. This proves the parity rejection rule.
+
+Every finite-field rank comparison agrees with the rational comparison.
+A state has at most three original bounded generators. Testing a new
+collision, a zero paid frame, or a returned target adds at most one
+nonunit bounded row. The relevant minors have at most four nonunit
+rows. Their absolute values are at most 16 by Hadamard's inequality.
+Testing whether an active target lies in a two-frame span also adds
+two coordinate unit rows. Expand a determinant along these unit rows;
+the remaining minor still has at most four nonunit bounded rows.
+Thus no nonzero minor relevant to a decision vanishes modulo 101.
+
+Two cached states have the same rational row space if and only if they
+have the same row space over F_101. Each has rank at most three. If their
+union has larger rank, at most four rows witness that fact. Those rows
+are again original bounded generators, so the same minor bound applies.
+
+The code's GeneralBasis has capacity for six rows: three state rows,
+two coordinate unit rows, and one target row. Forward elimination with
+pivots in increasing order is sufficient for its rank tests. RREF is
+used for cached states.
+
+The F101 source and these bounds passed an independent source audit by
+the gaussian_escape agent. A separate integer engine checked the same
+binary word files. The two engines found the same 538 rank-three word
+IDs with diagonal terminals and the same terminal count for each ID.
+Both found no accepted terminal. They also checked all 27156 rank-two
+canonical orders and found no diagonal terminal.
+
+Seven additional controls check the formal polynomial search core.
+They include acceptance after a required collision and acceptance after
+a returned-target relation, as well as targeted rejection cases. These
+are polynomial fixtures, not admissible paid-call circuit constructions.
+Their separate scope is stated in dirty_f101_controls.py.

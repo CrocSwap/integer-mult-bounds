@@ -1,0 +1,7 @@
+# Attribution and retained source scope
+
+Prepared by JoyboyBrian with substantial OpenAI Codex assistance. New proof and checker: Apache-2.0.
+
+The exact retained files and original Git blob/SHA256 identities are listed in RETAINED-SOURCES.json. Cinna Davis authored PR4991's dirty-volume theorem and PR4998's compensated-pair construction, with their disclosed OpenAI Codex assistance. lee-phys authored PR4688's original two-image prefix; Yiyang (@Lyy-iiis) authored PR4710's phase repair. Their retained source notices remain unchanged. Credit Dugongue's PR4743 for the distinct triangular full-input port; Jacob Alan Sussman's PR4628 for the model and lower-bound context, with eumemic and Swapnil Jain as credited in the retained PR4688 README. The new work independently audits the quantified completed boundary and explicitly supplies the singular rank-drop step; it does not claim authorship of the predecessor construction or determinant invariant.
+
+The original and repaired source implementations are retained to bind their literal address/phase definitions. They are never imported or executed. PR4991 and PR4998 verifiers are deliberately absent. Their proof documents and PR4998's literal program are retained as independently auditable source evidence, not treated as accepted theorem certificates. All retained files are Apache-2.0 as declared by their source notices and repository license.

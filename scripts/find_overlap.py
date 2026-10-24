@@ -18,6 +18,13 @@ import sys
 import tempfile
 import time
 
+# Retain direct script execution under -I; the shared helper uses stdlib only.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:
+    from research_package import git_source_env
+finally:
+    sys.path.pop(0)
+
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "CrocSwap/integer-mult-bounds"
 
@@ -332,7 +339,7 @@ def local_coverage(root, records):
             return subprocess.run(
                 ["git", "--no-replace-objects", *args], cwd=root, check=True,
                 capture_output=True, encoding="utf-8", errors="surrogateescape", timeout=15,
-                env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
+                env={**git_source_env(), "GIT_NO_LAZY_FETCH": "1"},
             ).stdout
 
         # Pin the tree once; only metadata is read, never omitted note blobs.

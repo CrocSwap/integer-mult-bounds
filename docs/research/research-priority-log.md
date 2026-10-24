@@ -640,3 +640,16 @@ were checked through the task-picker CLI; new coverage pins match exact intake
 receipts. Documentation/source paths were checked against the working tree or
 Git tree for sparse archives. Track weights and selected-record bytes are
 unchanged. No Lean, Docker or scientific replay was run for this guidance patch.
+
+## Selection refresh — 2026-10-22: joint-helper checkpoint
+
+The selected record now resolves to conditional κ = 0.00302015 from #4470.
+The [review](pr-intake-evidence/pr4470/PROOF-REVIEW.md) and
+[integration receipt](pr-intake-evidence/pr4470/INTEGRATION.json) bind the source
+closure, new replay and explicit prior foundation reuse. Orientation now reports
+uniform, covered BIT, admitted BIT and outer budgets separately. This is a
+metadata refresh: revision 7 track weights remain unchanged pending a separate
+strategy review. Historical family diagnoses are labelled rather than rewritten.
+The user has requested a new κ > 0.01 research campaign with firm stopping rules
+for adjacent constructions; that campaign must establish its own changed premise
+and budget before recommending another allocation revision.

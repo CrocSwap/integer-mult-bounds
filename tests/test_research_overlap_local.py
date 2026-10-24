@@ -30,6 +30,7 @@ class LocalOverlapCoverageTests(unittest.TestCase):
         self.omitted = "research/omitted κ\npackage"
         for path, body in {
             "scripts/find_overlap.py": (ROOT / "scripts/find_overlap.py").read_text(encoding="utf-8"),
+            "scripts/research_package.py": (ROOT / "scripts/research_package.py").read_text(encoding="utf-8"),
             "research/kept/README.md": "needle local note",
             "research/kept/TASK.json": '{"scope": "needle local task"}',
             f"{self.omitted}/README.md": "only-omitted needle",

@@ -24,6 +24,8 @@ class OverlapTaskTermsTests(unittest.TestCase):
             script = root / "scripts/find_overlap.py"
             script.parent.mkdir(parents=True)
             script.write_bytes((ROOT / "scripts/find_overlap.py").read_bytes())
+            (script.parent / "research_package.py").write_bytes(
+                (ROOT / "scripts/research_package.py").read_bytes())
             catalog = root / "docs/research/agent-task-catalog.json"
             catalog.parent.mkdir(parents=True)
             catalog.write_text(json.dumps({"tracks": [{"tasks": [card]}]}), encoding="utf-8")

@@ -37,6 +37,8 @@ class OverlapTests(unittest.TestCase):
             script = root / "scripts/find_overlap.py"
             script.parent.mkdir(parents=True)
             script.write_bytes((ROOT / "scripts/find_overlap.py").read_bytes())
+            (script.parent / "research_package.py").write_bytes(
+                (ROOT / "scripts/research_package.py").read_bytes())
             readme = root / "research/fixture/README.md"
             readme.parent.mkdir(parents=True)
             readme.write_text("Fixture contains κ", encoding="utf-8")
@@ -353,6 +355,16 @@ class PackageTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "exited 1"):
                     package.run_command([sys.executable, "-c", 'assert False, "invalid fixture"'], self.root, 5)
                 self.assertEqual(os.environ["PYTHONOPTIMIZE"], value)
+
+    def test_inherited_pythonpath_cannot_shadow_child_imports(self):
+        shadow = self.root / "shadow"
+        shadow.mkdir()
+        (shadow / "fractions.py").write_text("raise SystemExit(0)\n")
+        verifier = "import fractions; raise SystemExit(5)"
+        with patch.dict(os.environ, {"PYTHONPATH": str(shadow)}):
+            with self.assertRaisesRegex(ValueError, "exited 5"):
+                package.run_command([sys.executable, "-c", verifier], self.root, 5)
+            self.assertEqual(os.environ["PYTHONPATH"], str(shadow))
 
     def test_nested_interpreter_and_explicit_options(self):
         output = self.root / "mode.json"

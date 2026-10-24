@@ -1,0 +1,323 @@
+Three active targets and one returned register: independent audit
+
+Model and relation bound
+
+The exact target is diag([C1],[C2],[C3],1), up to a permutation of
+coordinates. The C_i are invertible lower-triangular rational 3-by-3
+frames. The fourth input is arbitrary and must be returned unchanged.
+The paid frames are nonzero rational rank-one matrices. There are eight
+binary rank-one idempotent scalar calls.
+
+The span-four lemma continues to hold with zero targets: replace the
+number of scalar registers in each projected target-rank count by the
+number of active targets. Choose an active invertible target when the
+proof forms target ratios. Zero targets stay zero in each block; active
+targets have invertible diagonal blocks. Thus frame span at most four
+requires at least nine calls. Any eight-call circuit needs frame span
+at least five and rational relation dimension at most three.
+
+A candidate must be scalar irreducible. Let V be a common binary invariant subspace. The product preserves
+V after extension to the group algebra. Distinct group monomials are
+linearly independent. Thus each coordinate projection onto one equal-
+character space preserves V. This includes the zero character of the
+returned register, which differs from every active target character.
+V is the direct sum of its intersections with those character spaces.
+Choose a basis in each equal-character space adapted to V. This keeps
+the endpoint diagonal and puts every paid scalar projector in block
+upper-triangular form. This argument does not assume that V is a
+coordinate subspace or that the three active characters are distinct.
+A rank-one idempotent in this block form has exactly one nonzero
+diagonal block, and that block is a rank-one idempotent. Thus the calls
+partition between the two diagonal blocks. A block with one active
+target needs at least three calls by rank subadditivity. Two active
+targets need at least six, even with returned coordinates: at at most
+five calls, span at most four is covered by the preceding lemma; the
+only other case has five independent frames. No distinct subset sums
+then collide, and differentiation of the diagonal polynomial at one
+forces all scalar projectors to be coordinate projectors. Each active
+target still needs three frames. A proper block with all three active
+targets has size three and is covered by PR468. Every split therefore
+needs at least nine calls. These arguments are also in DIRTY-MODEL.txt
+and were reviewed separately by bit8_algebra and the root agent.
+
+Visible scalar distance is a rational-rank argument
+
+Fix a possible returned coordinate a. For a binary row v, let J be
+the calls with v*x_j=1. If a rational functional kills all frames in
+J, each projected factor fixes v. The projected target can fix v only
+if it kills each active target selected by v. Thus each such target is
+in the rational span of the frames in J. Fewer than three rank-one
+frames cannot span an invertible 3-by-3 target. Every nonzero v other
+than e_a must therefore select at least three calls. The argument for
+y_j and columns is the dual statement. It uses no reduction of address
+frames modulo two.
+
+The code correctly takes the union over all four possible returned
+roles. A row or column of weight greater than one with fewer than three
+visible calls rejects every role. A failing singleton leaves only its
+own role. Two different failing singletons reject every role.
+
+The exact returned-register condition
+
+At a rational diagonal terminal, every diagonal entry is one monomial,
+by the determinant/unit argument in PROOF-AUDIT.txt. A returned entry
+must equal [0]=1 in the group algebra of rational frames. This requires
+its exponent to be exactly zero, not merely even or zero modulo two.
+
+dirty_ancilla.py implements this correctly: for each possible returned
+coordinate, it adds that exponent as an exact rational relation using
+Fraction RREF. It rejects zero paid frames and relation rank above
+three. It then checks every active target against the exact rational
+span of each pair of paid-frame units. This test does not use a short
+representative in a binary quotient. Each rejected active target is
+therefore a rational sum of at most two rank-one matrices.
+
+Adding a relation after reaching a diagonal terminal cannot create an
+off-diagonal term. There is no missing collision branch at this step.
+Trying every coordinate covers every possible returned role.
+
+The finite binary quotient is only a necessary identity check
+
+Let K be the actual saturated integer relation lattice in Z^8. Its
+modulo-two image has dimension at most three. The off-diagonal
+augmentation derivative rows belong to this image. The returned
+diagonal derivative row belongs to it too, since the derivative of 1
+is zero. The active diagonal rows need not belong to it.
+
+If the selected derivative rows have rank greater than three, the
+candidate is impossible. If their rank is exactly three, their span
+is the full modulo-two image of K. Map the formal polynomial to the
+finite group algebra of F2^8 modulo that span. Every off-diagonal
+entry must still vanish. If the returned diagonal is included, it must
+equal one, and the code subtracts that constant before checking it.
+
+The H-alphabet filter uses only off-diagonal rows. The later rank-two
+and generic rank-three filters also use a candidate returned diagonal.
+When the selected rank is below three, the rank-two filter retains the
+word because an additional unknown relation may still occur. It takes
+the union of the results for all admissible returned coordinates.
+
+This check is sound because every valid rational identity maps to the
+finite quotient identity. The converse is false. In particular, a short
+binary representative of an active target does not imply a rational
+rank bound. None of the inspected filters makes that false inference.
+
+Independent H-alphabet census
+
+The alphabet consists of four coordinate projectors and the four
+projectors from H=I+J_4. An independent script enumerates multiplicities
+as weak compositions, not as the producer's combinations with
+replacement. It checks irreducibility by closing the orbit span of each
+nonzero vector, instead of enumerating invariant subspaces.
+
+It groups orders by their subsequences on every pair of noncommuting
+letters. These dependence signatures identify trace classes. An
+independent explicit orbit calculation then applies coordinate
+permutations and reversal. This does not reuse the producer's greedy
+trace-normalization procedure to establish class coverage.
+
+For each class, direct dense matrix multiplication in the finite group
+algebra checks the binary quotient condition. This differs from the
+producer's formal polynomial expansion and remainder grouping.
+
+The complete independent census agrees:
+
+  20 distance-compatible multiplicity classes;
+  14 scalar-irreducible classes;
+  216720 distinct raw orders within those representative classes;
+  2771 classes after the valid order symmetries;
+  1115 words rejected by the binary quotient identity.
+
+The other 1656 representative words use the separately audited rational
+collision solver. Its saved result has zero candidates. The finite
+census does not claim an independent full rational collision replay.
+
+Reversal remains valid for nonsymmetric projectors
+
+For any idempotent N, D_N(z)^(-1)=D_N(z^(-1)). Invert a valid diagonal
+word, then apply the address-group map A -> -A. This reverses factor
+order and preserves the original diagonal target. Thus generic order
+searches may use reversal without transposing the individual N_j.
+Commuting adjacent factors is also valid for every assignment of frames.
+
+Independent coverage of the generic off-pattern catalogue
+
+There are 120 binary rank-one idempotents in four registers. Their
+nonzero off-diagonal parts have 104 distinct patterns. The derivative
+bound implies that the actual off-pattern span has dimension at most
+three: the row rank and column rank of the derivative matrix agree.
+Its basis can be chosen from the actual patterns. Thus direct spans of
+all one-, two-, and three-element pattern subsets cover every case.
+
+Each catalogue pool contains every projector with pattern in its space,
+including all four coordinate projectors. If that full pool is
+reducible, every subset is reducible. A subspace invariant under all
+coordinate projectors must be a coordinate subspace. Hence the full
+pool is irreducible exactly when its union support graph is strongly
+connected. It is valid to discard non-strong spaces. Individual
+multisets in a strong pool still need their own irreducibility check.
+
+The independent generator uses direct pattern combinations, a compact
+twelve-bit encoding, Boolean matrix transitive closure, and explicit
+coordinate-permutation orbits. It reproduces every representative and
+every complete projector pool in the producer's catalogue:
+
+  rank one:   104 spaces,     0 strong spaces,    0 classes;
+  rank two:  4964 spaces,   634 strong spaces,   45 classes;
+  rank three:140281 spaces, 63567 strong spaces,2846 classes.
+
+The exact numbers of eight-call multisets over the full pools are
+sum_pool binomial(pool_size+7,8): 61347 for rank two and 11210628 for
+rank three. The catalogue receipt records independent canonical hashes.
+
+Review of the generic C++ multiset filter
+
+rank3_multisets.cpp enumerates every nonnegative count vector with sum
+eight in each pool. It requires actual off-pattern rank three, applies
+the visible-distance condition, and tries every possible returned role.
+For each role it appends the actual N_aa bit to the off-pattern vector
+and requires augmented binary rank at most three. All of these are
+necessary conditions. Multiplicity does not change the column-span
+rank, but the distance count correctly includes multiplicities.
+
+Its invariant-subspace check closes the orbit span of each nonzero
+vector under the used projectors. A fixed proper orbit span is an
+invariant subspace. If a proper invariant subspace exists, an orbit
+started inside it cannot reach the whole space. The check is exact.
+
+The integer fields called off must be a linear coordinate map for the
+catalogue's off-pattern space. The separate input-binding check verifies
+all projector labels and all pairwise XOR identities for these labels.
+The source review does not alone certify an arbitrary unbound input file.
+
+Independent generic multiset and order replays
+
+A second C++ census enumerates supports first and then positive
+multiplicities. It computes binary rank from the full matrix bits and
+checks all 65 proper nonzero binary subspaces directly. This differs
+from the producer's count-vector recursion, compressed space labels,
+and invariant orbit closures. It examines all 11210628 rank-three
+pool multisets and returns exactly the same 4020 families and returned-
+role masks. A separate binding script checks every pool and label,
+every family count vector, every text order, and every binary record.
+
+A second C++ order check enumerates all 41706000 raw permutations with
+next_permutation. It checks trace normality only after a full order is
+formed. The producer instead removes non-normal prefixes. The second
+check computes commutation by full matrix multiplication. It computes
+the quotient by explicit span and complement sets, then uses one
+32-bit group-ring vector for each scalar matrix entry. The producer
+uses packed matrix coefficients indexed by quotient elements.
+
+The independent replay gives these exact counts:
+
+  4020 multiset families;
+  41706000 raw orders;
+  7121514 commutation normal forms;
+  3560923 representatives after reversal;
+  1901600 finite-quotient survivors.
+
+Every retained matrix word and returned-role mask agrees, in order,
+with the shared binary input to both collision engines. That input has
+34228800 bytes and SHA-256
+97ba623789da03fb0b83bc038d1e235691d96dcbb5c028ff72f0c108b2d71911.
+The rank-three shared front end therefore has a complete independent
+replay.
+
+The same support-first census independently checks all 61347 rank-two
+pool multisets and returns the same 103 retained families. A separate
+Python replay enumerates all 831600 raw orders by choosing positions
+for each repeated letter. It groups them by their subsequences on
+noncommuting letter pairs, then takes reversal orbits. Thus it does
+not use the producer's greedy normal form or prefix pruning. It gets
+54294 trace classes and 27156 reversal representatives. Every matrix
+word and returned-role mask agrees with rank2-words.bin before any
+finite-quotient pruning. That file has 488808 bytes and SHA-256
+f185daf27eb890d75698c14f8ce83e954fd2fc6ed07188908378fac44a2789ee.
+
+Exact collision search
+
+At a state with rational relation space R, reduce the formal polynomial
+modulo R. Choose a term in a nonzero off-diagonal entry. In any valid
+extension of R, that term must collide with another surviving term in
+the same entry. Branch on every such difference. Terms already removed
+in pairs stay removed under every extension. Thus no necessary branch
+is lost. Each new relation increases rank, and rank is at most three.
+A diagonal terminal can add the exact returned exponent as a relation.
+Adding this relation cannot create an off-diagonal entry.
+
+The determinant of each paid factor is its frame monomial. A diagonal
+terminal therefore has monomial product determinant. The frame group
+is finitely generated and torsion-free, so its group algebra is a
+Laurent polynomial ring over F2. Its units are monomials. Each diagonal
+entry is consequently a single monomial. The exact rational pair-span
+test rejects a target in the span of two paid rank-one frames. This is
+a necessary rank-three condition, not a sufficient construction test.
+
+Two engines complete the rank-three input: the primitive-integer
+engine and the finite-field engine with exact rational reconstruction.
+Both process all 1901600 words, return the same 538 terminal word IDs,
+and have zero surviving target candidates. A Fraction implementation
+also replays all 538 terminal words and rejects all of them. The rank-
+two primitive-integer run processes all 27156 canonical words before
+any finite-quotient pruning, and has zero diagonal terminals.
+
+Why reduction modulo 101 is exact here
+
+Every state has at most three independent original relation rows.
+Each original row is a difference of two subset indicators, or the
+returned subset indicator. Its entries are in {-1,0,1}. A rank or
+membership test adds at most one further such row. Pair-span tests
+also append two coordinate unit rows; expansion along those rows
+removes them from the relevant minors. Every remaining minor uses at
+most four bounded nonunit rows. Hadamard's bound gives absolute value
+at most 16, which is less than 101. A nonzero rational rank witness
+therefore cannot vanish modulo 101.
+
+Each completed state RREF entry is a ratio of minors of order at most
+three. Numerator and denominator have absolute value at most five.
+Two such reduced fractions cannot have the same residue modulo 101:
+their cross difference has absolute value at most 50. Thus the code's
+bounded rational reconstruction is unique. The parity prune uses the
+primitive integer lift of this rational row, and hence uses a member
+of the actual saturated integer kernel. It does not assume that a
+chosen set of nonprimitive integral generators is already saturated.
+
+Bounds for the primitive-integer implementation
+
+Completed primitive state rows have entries of absolute value at most
+five, by the same minor bound. Their positive pivots are at most five.
+A raw bounded row reduced against three such rows has intermediate
+entries at most 1000. The separate pair-span helper can append two
+unit rows: a conservative bound is 1000 for the first reduced row,
+2000000 for the second, and 8000000000000 while reducing the target.
+All are below the signed 64-bit limit. The common quotient denominator
+is at most lcm(1,2,3,4,5)=60, and quotient-key entries are at most 960.
+The reviewed arithmetic does not depend on signed overflow.
+
+Scope of completion
+
+The analytic reductions, the generic off-pattern catalogue, the full
+rank-three multiset and order front end, and the exact collision tests
+have passed independent mathematical review. The finite-field test
+has an explicit rational-equivalence proof; it is not a probabilistic
+prime test. The two final engines use different arithmetic but share
+an input file, whose complete generation has a separate independent replay for both
+rank two and rank three. Both the catalogue and the role union are
+covered by these replays.
+
+Subject to the proved span-four and three-register lemmas in PR468,
+the exact eight-call classification excludes three active invertible
+lower-triangular rational 3-by-3 targets with one arbitrary returned
+register. Any positive shorter word can be padded to eight calls by
+splitting a nonzero rank-one frame A into two consecutive calls with
+frame A/2 and the same projector. Hence eight-call impossibility also
+excludes shorter words. Nine coordinate calls realize the three
+identity 3-by-3 targets and return the fourth register. The minimum
+number of calls in this specified model is therefore nine.
+
+This conclusion concerns four scalar registers, rank-one rational
+paid frames, binary rank-one idempotent scalar projectors, and a
+formal identity for all inputs. It is not a lower bound for every bit
+construction in the repository. It gives no direct increase in kappa.
+This audit is mathematical and computational; it is not a Lean proof.

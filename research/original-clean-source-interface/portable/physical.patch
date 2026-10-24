@@ -1,0 +1,39 @@
+--- frozen/work/centre-encoding-campaign-20261014/lanes/paired-package-review/original-clean-native-review/check_physical_binding.py
++++ portable/check_physical_binding.py
+@@ -7,10 +7,9 @@
+ import gzip
+ import json
+ from pathlib import Path
+-import tarfile
+ 
+ 
+-LANES = Path(__file__).resolve().parents[2]
++LANES = Path(__file__).resolve().parents[1] / 'frozen' / 'work/centre-encoding-campaign-20261014/lanes'
+ PHYSICAL = LANES / "residual-syndrome/physical-algebra"
+ MODES = [225, 226, 229, 232, 241, 242, 257, 258]
+ PINS = {
+@@ -57,12 +56,10 @@
+ 
+ def main(args):
+     data = {key: read(path, pin) for key, (path, pin) in PINS.items()}
+-    require(sha256(args.archive.read_bytes()).hexdigest() == ARCHIVE_PIN, "Selected archive pin")
+-    with tarfile.open(args.archive) as archive:
+-        for key, (name, pin) in MEMBERS.items():
+-            raw = archive.extractfile(name).read()
+-            require(sha256(raw).hexdigest() == pin, "Selected member pin")
+-            data[key] = json.loads(gzip.decompress(raw))
++    for key, (name, pin) in MEMBERS.items():
++        raw = (args.members / name).read_bytes()
++        require(sha256(raw).hexdigest() == pin, "Selected member pin")
++        data[key] = json.loads(gzip.decompress(raw))
+     payload, core, word = data["payload"], data["core"], data["word"]
+     require(payload["core_payload_sha256"] == PINS["core"][1]
+             and payload["interface_sha256"] == PINS["interface"][1]
+@@ -164,6 +161,6 @@
+ 
+ if __name__ == "__main__":
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--archive", type=Path, required=True)
++    parser.add_argument("--members", type=Path, required=True)
+     parser.add_argument("--out", type=Path, default=Path(__file__).with_name("CHECKS.json"))
+     main(parser.parse_args())

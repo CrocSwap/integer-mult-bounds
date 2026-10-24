@@ -1,0 +1,50 @@
+--- initial/check.py
++++ corrected/check.py
+@@ -84,8 +84,15 @@
+   # This wrong C8 tensor I_f must fail at f2, unless accidentally symmetric.
+   if f==2:
+    wrong=[[F(i//f+j//f==7 and i%f==j%f)for j in range(n)]for i in range(n)]
+-   need(wrong!=[[F(i+j==n-1)for j in range(n)]for i in range(n)],'wrong tail reversal distinguished')
+-   controls['omit_column_tail_reversal']=True
++   # Mutate the actual canonical child's tail pairing, then use the
++   # correct source routes; compare the returned physical endpoint.
++   u=add(eye(n),Qf,-1)
++   wrong_child=[x+y for x,y in zip(u,mm(Qf,wrong))]+[x+y for x,y in zip(mm(wrong,Qf),add(eye(n),mm(mm(wrong,Qf),wrong),-1))]
++   wrong_endpoint=mm(mm(paired_map(Sf),wrong_child),paired_map(Sfi))
++   actual_endpoint=paired(Pf)
++   mismatch=next((i,j)for i in range(2*n)for j in range(2*n)if wrong_endpoint[i][j]!=actual_endpoint[i][j])
++   need(wrong_endpoint!=actual_endpoint,'wrong tail actual returned physical operator fails')
++   controls['omit_column_tail_reversal']={'basis_column':mismatch[1],'output_coordinate':mismatch[0],'wrong':str(wrong_endpoint[mismatch[0]][mismatch[1]]),'actual':str(actual_endpoint[mismatch[0]][mismatch[1]])}
+   for prime in (5,7):
+    m=prime**2
+    for variant in (0,1):
+@@ -182,16 +189,22 @@
+   genuinely=set((i,j)for i in range(original)for j in range(original));returned={(j,i)for i,j in genuinely}
+   need(returned==genuinely,'completed ordinary swap preserves genuine rectangle')
+   need(all((i<original and j<original)==(j<original and i<original)for i in range(padded)for j in range(padded)),'zero padded complement restored')
+-  # A raw reversed body reverses TWO radix digits, which need not preserve
+-  # the binary genuine set if unpadding prematurely at the radix boundary.
++  # The source raw reversed body can leave the genuine rectangle before
++  # completion; use the two fixed cross-radix witness pairs below.
+   row_stock=3;source=original;row_padded=((source+row_stock-1)//row_stock)*row_stock
+   need(source>=row_stock and row_padded<2*source,'owned ROW pad bound')
+-  bits=padded.bit_length()-1
+-  rev=lambda n:sum(((n>>i)&1)<<(bits-1-i)for i in range(bits))
++  # Source F_n reverses ODD-RADIX atom positions, not binary bits.
++  # Keep caller radix5/7 and use the other declared prime internally.
++  inner=7 if radix==5 else 5;inner_width=2 if radix==5 else 3;inner_range=inner**inner_width
++  def rev(n):
++   out=0
++   for _ in range(inner_width):out=out*inner+n%inner;n//=inner
++   return out
+   bad={(rev(j),rev(i))for i,j in genuinely}
+-  need(bad!=genuinely,'actual raw reversed body violates genuine padding rectangle')
+-  controls['premature_padding_cleanup']=True
+-  padding.append({'radix':radix,'digit_width':2,'range':original,'binary_range':padded,'two_range_volume_factor':str(F(padded**2,original**2)),'row_divisor':row_stock,'padded_row_range':row_padded,'owned_padded_rows':row_padded-source})
++  need(bad!=genuinely,'source odd-radix raw reversed body violates genuine rectangle')
++  witness=next((i,j)for i in range(original)for j in range(original)if rev(j)>=original or rev(i)>=original)
++  controls.setdefault('premature_padding_cleanup',[]).append({'caller_radix':radix,'genuine_range':original,'inner_radix':inner,'inner_width':inner_width,'padded_inner_range':inner_range,'input':list(witness),'raw_output':[rev(witness[1]),rev(witness[0])]})
++  padding.append({'radix':radix,'digit_width':2,'range':original,'binary_range':padded,'two_range_volume_factor':str(F(padded**2,original**2)),'inner_radix':inner,'inner_width':inner_width,'inner_padded_range':inner_range,'full_cross_radix_volume_factor':str(F(inner_range**2,original**2)),'row_divisor':row_stock,'padded_row_range':row_padded,'owned_padded_rows':row_padded-source})
+  # Reject omitted physical whole-job matcher with actual matrices.
+  controls['omit_matcher']=paired(Q)!=paired(P)
+  need(all(controls.values()),'every semantic control distinguishes')

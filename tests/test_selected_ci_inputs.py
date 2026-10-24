@@ -104,6 +104,65 @@ class ExitCodes(unittest.TestCase):
         self.assertEqual(self.outcome(['--require-triggers'], **error), 1)
 
 
+class ExplicitFilePins(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        (self.root / 'certificates').mkdir()
+        (self.root / 'supplier/data').mkdir(parents=True)
+        (self.root / 'supplier/construction').mkdir()
+        (self.root / 'certificates/selected-result.json').write_text(
+            json.dumps({'source_manifest': 'manifest.json'}))
+        self.digest = sha256(b'frozen').hexdigest()
+        self.manifest = {'format': 'repository-files-sha256-v1', 'files': {
+            'supplier/data/UPSTREAM-PINS.json': self.digest,
+            'frozen/proof.md': self.digest},
+            'replay_inputs': {'original/proof.md': 'frozen/proof.md'}}
+        self.pins = self.root / 'supplier/data/UPSTREAM-PINS.json'
+        self.pins.write_text(json.dumps({'original/proof.md': self.digest,
+                                         'external.py': self.digest}))
+        self.save()
+
+    def save(self):
+        (self.root / 'manifest.json').write_text(json.dumps(self.manifest))
+
+    def test_remapped_source_and_external_pin(self):
+        self.assertEqual(guard.live_pins(self.root)[2], {'external.py': self.digest})
+        self.assertEqual(guard.drift(guard.live_pins(self.root)[2], self.root), ['external.py'])
+        (self.root / 'external.py').write_bytes(b'frozen')
+        self.assertEqual(guard.drift(guard.live_pins(self.root)[2], self.root), [])
+
+    def test_unexported_neighbor_does_not_add_pins(self):
+        (self.root / 'supplier/construction/INPUTS.json').write_text('invalid JSON')
+        self.assertEqual(guard.live_pins(self.root)[2], {'external.py': self.digest})
+
+    def test_remapped_digest_conflict_is_rejected(self):
+        self.manifest['files']['frozen/proof.md'] = '0' * 64
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'selected source inventory'):
+            guard.live_pins(self.root)
+
+    def test_explicit_pin_map_cannot_disappear(self):
+        self.pins.unlink()
+        with self.assertRaises(FileNotFoundError):
+            guard.live_pins(self.root)
+
+    def test_external_conflict_is_rejected(self):
+        name = 'supplier/construction/INPUTS.json'
+        self.manifest['files'][name] = self.digest
+        self.save()
+        (self.root / name).write_text(json.dumps({'files': {'main': {'external.py': '0' * 64}}}))
+        with self.assertRaisesRegex(ValueError, 'Conflicting live pins'):
+            guard.live_pins(self.root)
+
+    def test_unknown_format_does_not_silently_skip_pins(self):
+        self.manifest['format'] = 'unknown'
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'Unsupported selected source manifest'):
+            guard.live_pins(self.root)
+
+
 class Skeleton(unittest.TestCase):
     """A minimal copy holding the files the pin and trigger checks read, derived from the record."""
 

@@ -1,0 +1,82 @@
+"""Copy only declared package files and the exact required Git objects."""
+
+from hashlib import sha256
+from pathlib import Path
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+
+
+REPO = Path('/Users/aliromman/Projects/IntegerMultiplicationBounds')
+PACKAGE = REPO / 'work/centre-encoding-campaign-20261014/publication/original-paired-gap-package'
+HERE = Path(__file__).resolve().parent
+BASE = 'bce54fb3f895cbe5cd4c0eb477c3afeed100190f'
+ARCHIVE = 'research/community-frontier1042-audit/selected-replay.tar.gz'
+MANIFEST_PIN = '727b5b524c26ab5b9617fb8cbe259a501e121e6067d6b4ddb533ec6a277dca51'
+
+
+def need(value, message):
+    if not value:
+        raise ValueError(message)
+
+
+def command(args, cwd=REPO, data=None):
+    return subprocess.check_output(args, cwd=cwd, input=data)
+
+
+manifest_raw = (PACKAGE / 'PACKAGE-HASHES.json').read_bytes()
+need(sha256(manifest_raw).hexdigest() == MANIFEST_PIN, 'Frozen package manifest')
+manifest = json.loads(manifest_raw)
+cold = Path(tempfile.mkdtemp(prefix='paired-independent-', dir='/private/tmp'))
+copy = cold / 'package'
+copy.mkdir()
+for item in manifest['files']:
+    path = item['path']
+    raw = (PACKAGE / path).read_bytes()
+    need(len(raw) == item['bytes'] and sha256(raw).hexdigest() == item['sha256'], path)
+    target = copy / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(raw)
+need(len(list(path for path in copy.rglob('*') if path.is_file())) == 29, 'Only 29 declared files')
+
+bare = cold / 'source.git'
+subprocess.run(['git', 'init', '--bare', '--quiet', str(bare)], check=True)
+objects = {}
+specs = [BASE + ':.gitattributes', BASE + ':research/.gitattributes', BASE]
+parts = ARCHIVE.split('/')
+specs += [BASE + ':' + '/'.join(parts[:n]) for n in range(len(parts) + 1)]
+for spec in specs:
+    oid = command(['git', 'rev-parse', spec]).decode().strip()
+    kind = command(['git', 'cat-file', '-t', oid]).decode().strip()
+    raw = command(['git', 'cat-file', kind, oid])
+    actual = command(['git', 'hash-object', '-w', '-t', kind, '--stdin'], bare, raw).decode().strip()
+    need(actual == oid, 'Exact Git object transfer')
+    objects[oid] = {'type': kind, 'bytes': len(raw), 'source': spec}
+need(not (bare / 'objects/info/alternates').exists(), 'No alternate object database')
+need(command(['git', 'show', BASE + ':' + ARCHIVE], bare)
+     == command(['git', 'show', BASE + ':' + ARCHIVE]), 'Exact standalone archive blob')
+
+env = {key: value for key, value in os.environ.items()
+       if not key.startswith(('PYTHON', 'GIT_', 'OMP_', 'OPENBLAS_', 'MKL_'))}
+env.update({'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'})
+args = [sys.executable, '-I', '-O', '-B', str(copy / 'replay.py'),
+        '--repo', str(bare), '--out', str(cold / 'outputs')]
+started = time.monotonic()
+result = subprocess.run(args, cwd=cold, env=env, capture_output=True, text=True)
+elapsed = time.monotonic() - started
+need(result.returncode == 0, 'Cold replay: ' + result.stderr)
+expected = ('PASS_EXACT_ORIGINAL_PAIRED_MAPS\nPASS_ORIGINAL_PAIRED_NATIVE_COMPONENTS\n'
+            'PASS_GENERAL_MONOMIAL_SQUARE_IDENTITIES\nPASS_PORTABLE_ORIGINAL_PAIRED_GAP\n')
+need(result.stdout == expected, 'Exact documented output')
+hashes = {path.name: sha256(path.read_bytes()).hexdigest() for path in (cold / 'outputs').iterdir()}
+receipt = {'status': 'PASS_INDEPENDENT_COLD_PACKAGE', 'package_manifest_sha256': MANIFEST_PIN,
+           'declared_files': len(manifest['files']), 'declared_bytes': manifest['total_bytes'],
+           'cold_root': str(cold), 'git_objects': objects, 'object_database_alternates': False,
+           'command': args, 'elapsed_seconds': elapsed, 'returncode': result.returncode,
+           'stdout': result.stdout, 'stderr': result.stderr, 'output_sha256': hashes,
+           'scope': 'Only declared package files and seven exact Git objects; no private module import'}
+(HERE / 'COLD-REPLAY.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+print(json.dumps(receipt, indent=2, sort_keys=True))

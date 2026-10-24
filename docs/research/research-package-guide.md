@@ -160,14 +160,16 @@ failures publish no matrix. These shared boundaries require a Git checkout with
 a valid `HEAD`; direct standalone verifiers keep their own source-export
 contracts. The generic hook does not infer transitive imports.
 
-Existing components below the repository root must
-also be free of symbolic links. The planner and metadata validator reject these
-aliases because Git reports changes under the target's path. Declare that
+Existing components below the repository root must also be free of symbolic
+links and Windows directory junctions. The planner and metadata validator reject
+these aliases because Git reports changes under the target's path. Declare that
 target path instead. Missing inputs still participate in replay selection, so
 deleting an input or its parent directory cannot suppress its consumer's replay.
 The checkout must remain stable during planning, validation and execution; these
 checks do not provide an atomic filesystem snapshot. The generic hook does not
-infer transitive imports.
+infer transitive imports. The [native Windows junction regression](replay-input-junctions.md)
+records the skipped-replay failure and the boundary of the component check;
+a junction at the repository root itself remains supported.
 
 Each command has a maximum 600-second timeout and the package total is at most
 1200 seconds. On POSIX, the launcher terminates the command's local process

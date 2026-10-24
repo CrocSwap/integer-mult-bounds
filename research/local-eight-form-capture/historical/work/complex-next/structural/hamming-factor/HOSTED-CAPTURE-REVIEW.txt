@@ -1,0 +1,43 @@
+Independent review of check_hosted_capture.py
+
+Result: the stated forward local scalar map is correct. No algebra or operation
+order error was found. An independent exact replay propagated each of the 800
+input columns through all 19,449 scalar operations. It did not import or run
+the parent checker. The receipt is capture-independent-receipt.json.
+
+The omitted-centre word has the exact map
+  X' = X,  Y' = Y + S X + D h,  h' = h.
+All 11,326 nonzero entries of D are dyadic and use helpers whose initial frame
+is zero. The eight centre rows C satisfy C C^t = 56 I. On the 112 code ports,
+S = I - C^t C/4. The other eight ports have zero S row and zero C column.
+Thus the displayed formula for S must retain its code-port scope.
+
+Let P insert the eight C rows into helpers 758 through 751. The preload gives
+h1 = h + P Y. The next correction must use these updated helpers:
+Y1 = Y - D h1. The omitted-centre word then gives
+  Y2 = Y1 + S X + D h1 = Y + S X,  h2 = h1,  X2 = X.
+The postload gives h3 = h + P(Y + 59 X/4). This is the requested capture.
+If the correction used the old h instead of h1, an extra D P Y term would
+remain. The checker uses h1, so it does not have this error.
+
+The boundary operations obey the forward local frame contract. The preload
+uses Y and selected helpers at frame zero. The dirt correction also uses only
+frame-zero registers. The postload uses X and selected helpers at the full
+frame, after the existing full-frame cleanup. This statement does not transfer
+the same boundary operations to the backward program.
+
+I separately checked the current physical owner inventory. At stage zero,
+helpers 758 through 751 map to families 600 through 607. These are pair-two Y
+hosts. Each uses idle window 2, offset zero, width nine, and entry frame zero.
+The same families have one owner per call. Before their level-three endpoint,
+they occur at stages 0, 2, 3 with disjoint offsets 0, 9, 18. The window has
+rank 32, so those three whole residuals use 27 axes and leave five axes.
+
+Limits
+The stored signal remains added to each host's arbitrary input value. The
+selected helpers are not restored by this construction. The other helpers
+are restored in the local label map. A later ordinary dirty-safe call can
+accept the changed value as dirt, but that fact does not prove the proposed
+changed global controller. The paid monomial and phase realization, the
+endpoint decoder equation, restoration of the eight selected physical hosts,
+and the global invoice still require proof. The checker states these limits.

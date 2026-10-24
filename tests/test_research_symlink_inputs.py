@@ -1,11 +1,17 @@
-"""Filesystem aliases must not hide registered replay dependencies. Apache-2.0."""
+"""Filesystem aliases must not hide registered replay dependencies. Apache-2.0.
+
+Windows junction extension prepared for Mihir Srivastava with substantial
+OpenAI Codex assistance; retains Nick Petalas's symlink fixtures and lineage.
+"""
 import errno
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -73,6 +79,122 @@ class SymlinkInputTests(unittest.TestCase):
             if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
                 self.skipTest("Windows symlink privilege is unavailable")
             raise
+
+    def junction(self, link, target):
+        # Native PowerShell creates a junction without symbolic-link privileges.
+        # Paths travel as data in the environment, not interpolated shell code.
+        env = dict(os.environ, REPLAY_TEST_JUNCTION=str(link),
+                   REPLAY_TEST_TARGET=str(target))
+        subprocess.run([
+            "powershell", "-NoProfile", "-NonInteractive", "-Command",
+            "$ErrorActionPreference='Stop'; New-Item -ItemType Junction "
+            "-Path $env:REPLAY_TEST_JUNCTION -Target $env:REPLAY_TEST_TARGET | Out-Null",
+        ], env=env, capture_output=True, check=True, timeout=30)
+        self.addCleanup(link.rmdir)  # Remove the junction itself, never its target.
+        info = link.lstat()
+        self.assertFalse(stat.S_ISLNK(info.st_mode))
+        self.assertEqual(info.st_reparse_tag, stat.IO_REPARSE_TAG_MOUNT_POINT)
+
+    def test_junction_tag_rejects_before_descendant_lookup(self):
+        # Exercise the Windows lstat shape on every host, including Python
+        # versions without Path.is_junction(). The native tests below exercise
+        # the real filesystem and Git; this is only a focused ordering control.
+        original = Path.lstat
+        tag = 0xA0000003  # IO_REPARSE_TAG_MOUNT_POINT, per the Windows ABI.
+        visited = []
+
+        def junction_stat(path, *args, **kwargs):
+            visited.append(path)
+            if path == self.root / "alias":
+                return SimpleNamespace(st_mode=stat.S_IFDIR | 0o755, st_reparse_tag=tag)
+            raise AssertionError("looked below a junction")
+
+        with patch.object(stat, "IO_REPARSE_TAG_MOUNT_POINT", tag, create=True), \
+                patch.object(Path, "lstat", junction_stat):
+            with self.assertRaisesRegex(ValueError, "junction.*alias/missing.json"):
+                runner.relative_file(self.root, "alias/missing.json")
+        self.assertEqual(visited, [self.root / "alias"])
+
+        # POSIX stat results have no reparse tag; unrelated Windows tags must
+        # not become a blanket rejection of every reparse-backed regular file.
+        for tag in (None, 0x9000001A):
+            def regular_stat(path, *args, **kwargs):
+                info = original(path, *args, **kwargs)
+                fields = {"st_mode": info.st_mode}
+                if tag is not None:
+                    fields["st_reparse_tag"] = tag
+                return SimpleNamespace(**fields)
+            with self.subTest(tag=tag), patch.object(Path, "lstat", regular_stat):
+                self.assertEqual(runner.symlink_free_relative_path(self.root, "src/dep.json"),
+                                 self.root / "src/dep.json")
+
+    @unittest.skipUnless(os.name == "nt", "requires native Windows junctions")
+    def test_junction_parent_rejected_in_metadata_resolution_and_planning(self):
+        # Commit the exact input spelling before replacing its ordinary parent.
+        self.write("alias/dep.json", '{"proof":1}')
+        self.input("alias/dep.json")
+        self.commit()
+        (self.root / "alias/dep.json").unlink()
+        (self.root / "alias").rmdir()
+        self.junction(self.root / "alias", self.root / "src")
+        with self.assertRaisesRegex(ValueError, "junction.*alias/dep.json"):
+            runner.validate(self.root, "research/alpha")
+        with self.assertRaisesRegex(ValueError, "junction.*alias/dep.json"):
+            runner.relative_file(self.root, "alias/dep.json")
+        for changed in (["src/dep.json"], ["unrelated.txt"], ["scripts/research_package.py"]):
+            with self.subTest(changed=changed), self.assertRaisesRegex(ValueError, "junction"):
+                runner.plan(self.root, changed)
+
+    @unittest.skipUnless(os.name == "nt", "requires native Windows junctions")
+    def test_dangling_junction_rejected_before_missing_input_handling(self):
+        target = self.root / "empty-target"
+        target.mkdir()
+        self.junction(self.root / "alias", target)
+        target.rmdir()
+        self.assertFalse((self.root / "alias").exists())
+        self.input("alias/missing.json")
+        with self.assertRaisesRegex(ValueError, "junction"):
+            runner.relative_file(self.root, "alias/missing.json")
+        with self.assertRaisesRegex(ValueError, "junction"):
+            runner.plan(self.root, ["alias/missing.json"])
+
+    @unittest.skipUnless(os.name == "nt", "requires native Windows junctions")
+    def test_junction_target_change_fails_cli_without_partial_matrix(self):
+        self.write("alias/dep.json", '{"proof":1}')
+        self.input("alias/dep.json")
+        base = self.commit()
+        (self.root / "alias/dep.json").unlink()
+        (self.root / "alias").rmdir()
+        self.junction(self.root / "alias", self.root / "src")
+        self.write("src/dep.json", '{"proof":2}')
+        # Commit only the canonical source, leaving the junction in the stable
+        # working tree. The declared alias path still exists in HEAD.
+        self.git("add", "src/dep.json")
+        self.git("commit", "-qm", "canonical target change")
+        self.assertEqual(self.git("diff", "--name-only", base, "HEAD"), "src/dep.json")
+        output = self.root / "github-output.txt"
+        output.write_text("existing-output\n")
+        result = self.cli(base, output)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("junction", result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(output.read_text(), "existing-output\n")
+
+        self.input("src/dep.json")
+        good = self.cli(base, output)
+        self.assertEqual(good.returncode, 0, good.stderr)
+        self.assertEqual(json.loads(good.stdout), {"include": [{"package": "research/alpha"}]})
+        self.assertIn("count=1\n", output.read_text())
+
+    @unittest.skipUnless(os.name == "nt", "requires native Windows junctions")
+    def test_repository_root_junction_remains_supported(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        alias = Path(temporary.name) / "checkout"
+        self.junction(alias, self.root)
+        runner.validate(alias, "research/alpha")
+        self.assertEqual(runner.relative_file(alias, "src/dep.json").read_bytes(), b'{"proof":1}')
+        self.assertEqual(runner.plan(alias, ["src/dep.json"]), ["research/alpha"])
 
     def test_regular_dependency_validates_and_selects(self):
         runner.validate(self.root, "research/alpha")

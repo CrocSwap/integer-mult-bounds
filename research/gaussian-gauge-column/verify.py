@@ -61,9 +61,7 @@ def pins_and_phrases() -> None:
     downstream = (
         ROOT / "references/semantic-bulk/rad20/reports/downstream-phase-cell-inverse.md"
     ).read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "ahat_j Ghat_(j-k)/ahat_k" in log_a
     assert "Downward rounding only decreases this off-diagonal sum." in log_a
     assert "(1-epsilon) a_i <= ahat_i <= a_i`, with epsilon<=1/2." in gauge
@@ -74,7 +72,6 @@ def pins_and_phrases() -> None:
     assert "`δ_col` exceeds `1/(8p²)` eventually" in column
     assert "||H-N|| < p*2^(16p+7)*eta + 2^(-46p)." in downstream
     assert "Across different cells use the downward\ndyadic approximation" in downstream
-    assert selected["kappa"] == "23/10000"
 
 
 def kernel_factorization() -> None:

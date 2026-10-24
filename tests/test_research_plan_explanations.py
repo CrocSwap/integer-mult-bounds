@@ -93,6 +93,29 @@ class ExplainTests(unittest.TestCase):
         self.assertIsNone(data['base']);self.assertEqual(data['mode'],'all-tracked')
         self.assertEqual(len(data['selected']),2)
 
+    def test_package_boundaries_and_literal_nested_paths(self):
+        self.write('research/alpha-extra/VERIFY.json', '{"inputs":[]}')
+        self.write('research/alpha/old.py', 'old')
+        self.write('research/alpha-extra/old.py', 'old')
+        base = self.commit()
+        (self.root/'research/alpha/nested').mkdir()
+        self.git('mv', 'research/alpha/old.py', 'research/alpha/nested/雪.py')
+        self.write('research/alpha/line\nfeed.py', 'new')
+        self.write('research/alpha-extra/old.py', 'new')
+        self.write('research/alpha-extra.txt', 'not inside either package')
+        self.commit()
+        result = self.run_cli(base=base)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(self.report.read_text())
+        self.assertEqual([r['package'] for r in data['selected']],
+                         ['research/alpha', 'research/alpha-extra'])
+        self.assertEqual(data['selected'][0]['causes']['package_files'],
+                         ['research/alpha/line\nfeed.py', 'research/alpha/nested/雪.py',
+                          'research/alpha/old.py'])
+        self.assertEqual(data['selected'][1]['causes']['package_files'],
+                         ['research/alpha-extra/old.py'])
+        self.assertEqual(data['unmatched_paths'], ['research/alpha-extra.txt'])
+
     def test_invalid_manifest_never_publishes_partial_report_or_matrix(self):
         self.report.write_text('previous complete report')
         self.write('research/beta/VERIFY.json','{"inputs":["../escape"]}')

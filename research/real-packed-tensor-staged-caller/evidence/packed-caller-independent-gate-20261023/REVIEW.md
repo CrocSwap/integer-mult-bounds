@@ -1,0 +1,65 @@
+# Independent static gate for the packed PR5095 whole caller
+
+Status: **static draft/source and whole-caller harness gate PASS for root's separate execution/budget decision.** No Tensor, CRT converter, native numerical code, owner constructor, factory or candidate method was imported or executed by this reviewer. `check_static.py` uses only AST parsing, JSON and byte hashes. Root retains the decision on numerical execution and its budget. This report does not authorize that execution.
+
+The source is PR5095 head `e65f47db55b9a3779fbf7fe23e93a8a4c5eb3ce1`, frozen `SOURCE-sandwich.py` SHA256 `1d45e8deed1b138fcd9800cc563b8cd894cbd2d072033ba23215566d299a4325`. The reviewed draft is `packed_sandwich_DRAFT.py`, SHA256 `5dfcdfe63d9d03a89a00dd92e681ab0a0efc5bbc86aa7edae58f007baf752483`. `STATIC-RESULT.json` records 82 manifest-file checks, exact staged source/draft/fixture hashes, unchanged-method comparisons and callsites. The cached p48 (5,7) packet hash is `7dd7adbe9e8f6d5ffbecd425a72827b31d7222ee51bcd67a4148ebfd03420381`; authenticating it does not repeat or execute its coefficient producer.
+
+## Actual path and inherited lifecycle
+
+The draft preserves the actual source cohort and the owner graph. It changes the source class name to `RealPackedSandwich`, retains every original import, and adds only `compact_counts.copy_bits`, `ring_words.add` and `ring_words.difference`. Constructor, consume, child, ingress, recover, carries, admit and the global `private_tapes` function are AST-identical. Both inner and outer `run` finally blocks, the literal recovery-policy default and the successful pending-return tail are also identical.
+
+The actual run path is:
+
+```
+ingress(first) -> actual CRT forward -> natural_first
+ingress(second) -> actual CRT forward -> natural_second
+pack_real -> actual packed Tensor forward -> H
+paid coordinate negation -> JH -> widened split/product -> product
+actual Tensor opposite=True -> recover -> actual CRT inverse -> carries
+```
+
+There are three actual CRT conversions and two actual Tensor calls. The constructor must instantiate the retained `Tensor(finite_chirp(),FullRouter(literal_native()))` and `Converter(FullRouter(literal_native()))` inside the authenticated `sandwich_sources.opened()` cohort. A separate leaf owner or model-only transform cannot establish this path. The reduced `p48_setup()` replacement is the source's certified metadata fixture; it must remain explicitly labelled and must not replace numerical child bodies.
+
+Five borrowed ports are required distinct: both operand tapes, catalogue, b tape and q tape. Every one is excluded from the full private graph, including descendant pools and word backing. The constructor transfers only fresh closed, lease-free, disjoint child owners. Its private-graph traversal also rejects nonclosed nested owners and checks empty resident data/origins. These source guards are preserved, not newly established by the earlier method leaf.
+
+Each child return is copied into a parent lease before its original is cleared and its marker retired. The source child methods retain their own consumed-return checks. The parent retains H while creating JH, clears consumed naturals/packed/product/returns only after their last read, and does not use helper fields as scratch or productive credit. `negate_frequencies()` clears an intermediate route bank only after its replacement is complete. For positive source dimension, reflected and H are distinct leases; the fixed fixture has dimension two. The new methods/run allocate no resident `Tape`.
+
+After success, all borrowed tapes/count heads are rewound, the catalogue closes, parent leases are cleared/emptied, resident pool markers are erased, and the output is rewound and marked pending. Reuse is rejected until `consume()` clears it and retires its marker, including when the output head has moved to the end. On a normal raised operation error, the same outer finally clears any remaining parent leases and unsuccessful output, restores heads and closed state; the successful pending assignment is skipped. Failures inside cleanup itself, arbitrary asynchronous interruption and untested nested-child failures are not automatically covered by this static observation. A dynamic receipt must identify the precise failure cut it exercises.
+
+## Arithmetic and recovery binding
+
+For b8/q4/p48, ingress requires `2q-1=7<=35`, `35<256`, and `48>=8+2`. The original two independent radix streams become exact real quarter-disk arrays, and the draft explicitly checks both converted imaginary components are zero. Packing their real components forms h=u+iv with norm below sqrt(2)/4<1/2. Neither operand is reconstructed from the other. The real-input zero check alone is not an admission for arbitrary externally supplied complex banks.
+
+J negates both original source coordinates modulo 5 and 7, preserving bits inside each record. It commutes with the source coordinate dilation R. For actual returned numerators `H=(a,b)`, `JH=(c,d)`, the draft's exact split raw numerators are `(a+c,b-d)` and `(b+d,c-a)` on grid p+1. Input words widen from p+2=50 to p+3=51 bits. Their exact product has grid 2p+2, so one final truncation by p+2=50 restores grid p. An independently expressed product numerator is `(2ab+2cd,-a²+b²+c²-d²)`; this is a suitable check against the physical four-product calculation. Shift p on the raw sums would introduce a factor-four error.
+
+The actual opposite call remains `opposite=True`; the source conjugates input and output and produces the same-R opposite transform, rather than R-inverse. Tensor gamma restoration remains inside its unchanged boundary method. The parent `recover()` still multiplies by S twice, scales by 2^(2b+4), and rounds nearest on the p-grid; for b8 the retained recovery input width is 50+4*8+4=86. Inverse CRT and carries are unchanged. No extra gamma or missing S is justified.
+
+`require_recovery=True` still calls the unchanged production-mode test and strict recovery guard before ingress. The p48 (5,7) catalogue is reduced staged conformance and must be rejected by this default entry. The planned full fixture must explicitly use `require_recovery=False`, and its actual opposite half-disk check must remain enabled. A returned diagnostic integer must be reported separately from the true integer product, including any discrepancy. Raising p at fixed (5,7) does not supply production geometry/halo premises.
+
+The independent mathematical review in `outputs/real-packing-independent-review-20261023/REVIEW.md` supplies a conditional unchanged-(G) error lemma under the source production-page and complete-Tensor hypotheses. This static gate does not re-prove or admit those hypotheses. The method leaf's PASS at 8.913140 seconds uses supplied p-grid banks and zero numerical Tensor/Converter calls; it establishes none of the complete-call, production or all-input claims by itself.
+
+## Frozen whole-caller harness review
+
+The reviewed `run_full_packed_DRAFT.py` has SHA256 `5797e4a8bc6bb69403db119f7740abc41c590484225103120087fe46e9acd671`; `FULL-CALLER-PLAN.md` has SHA256 `e7cbd0cc8e3d129f023a847ec7de097edc72459cc452dafdd92246ed96496e07`. `FULL-PLAN-FREEZE.json` binds these, the unchanged candidate and cached fixture, and records `execution_authorized=false`, `executed=false`. This review read/parsed that exact harness without importing it.
+
+The harness constructs the actual retained Tensor/Converter owners and calls `RealPackedSandwich.run` on the fixed q4 pair `(255,0,3,17)` / `(1,254,0,9)`. Phase and dispatch guards allow numerical bodies only for that one declared invocation, capped at two Tensor and three Converter calls. The actual call uses `p48_setup(),no_decode()` and literal `require_recovery=False`. Default production entry is exercised and rejected before numerical work by candidate preflight controls and again after consume.
+
+Its separate natural-coordinate staged oracle computes `full(packed,raw)`, then the squared-difference product formula above, then `full(product,raw,True)`. It never substitutes separately rounded real forwards. Before numerical work, it requires nonzero forward/product, opposite half-disk entrance, nonnegative diagnostic coefficients and a result fitting the prescribed 64 bits; otherwise it stops without choosing another fixture. Every actual Tensor input and returned complex record is compared. JH and the actual pointwise output are compared before the second Tensor. Thus the model product used by the opposite oracle equals the actual once-truncated input if the preceding assertions pass. No model value is written into a numerical source return.
+
+Every CRT input and return is captured and compared. The two actual forward CRT inputs are checked against the independent exact ingress banks; the actual inverse CRT input is checked against all 35 widened recovered natural coefficients. All 35 ordinary coefficients after inverse CRT are also checked. Review raised the initially narrower return-only trace coverage, and the final frozen harness added these pre-delegation input checks and retained input bits/hashes without changing source or operator code.
+
+The harness snapshots borrowed payload/catalogue and b/q metadata bytes and exact heads; checks them after success and after its declared failure; checks actual child count dictionaries, parent counters, closed/lease-free states and resident empty origins; and tests an occupied end-head output rejection followed by real consume and production-policy re-entry. The original dynamic controls cover three constructor failures, six metadata/payload aliases and five descendant-private aliases, not every possible port coincidence. Preserved static predicates reject the remaining five-port coincidences.
+
+One explicit failure probe throws at the first Converter dispatch **before delegation**, when the parent owns its first ingress bank. It checks that parent's cleanup without another numerical call. It does not dynamically test failures inside a numerical child, after later Tensor completion, or arbitrary asynchronous interruption.
+
+Review found and the constructor corrected an observer ownership defect before this freeze: a successful original child return would previously remain occupied if the observer's post-delegation inspection raised before parent `child()` received it. Both observers now clear the return and retire its marker under `except BaseException`, returning the unchanged bank only on successful inspection. The harness also now records its own hash and forces a nonzero FAIL status on any source/candidate/harness drift; integrity failures cannot retain a PASS label.
+
+The explicit diagnostic result records staged and true integers, signed difference and equality flag. Four full-stage mutation controls (wrong opposite sign, inverse-R, missing S, double gamma) remain explicitly unrun. Correct flags and full staged-return comparisons are checked, but this report does not claim that those four mutated numerical callers were executed or independently shown discriminating on this fixture. Earlier supplied-bank method discriminators remain distinct evidence.
+
+The plan proposes one external 600-second cap, an internal 580-second alarm and 30-second heartbeat, with no producer preparation, original full replay, alternate input, retry or automatic budget increase. Its 300–500-second planning envelope is an estimate, not a verified runtime for this new input. The cited later 452.68-second source replay is coordinator/workflow evidence, not independently rechecked here. Logs, partial counts and timeout/failure receipts must remain visible if the run does not finish. Trace capture/reference work is observational overhead; this run would not establish a complete tape tariff or matched speedup benchmark.
+
+## What a successful finite full run would still leave open
+
+One successful reduced fixture would validate that instance's rounded two-Tensor schedule against its staged reference and tested lifecycle controls. It would not prove production Tensor accuracy, the production recovery premise, uniform all-input correctness, a complete Turing-machine tariff, total cost reduction, recursive real/Hermitian closure, a new supplier moment, compiler reserve, selected-frontier change or κ improvement. The removed Tensor call must still be compared against added packing, J routing, widened word products, metadata, storage, cleanup and setup at the actual paid interfaces. No helper/owned-field output reward is created by packing.
+
+Read-only static command: `python3 -B outputs/packed-caller-independent-gate-20261023/check_static.py`. Prior author and independent artifacts were preserved. Credit JoyboyBrian's PR5095 caller, Jose Manuel/jmbarrancoml's actual Tensor, Tekalign/tekuuu's CRT, retained native/router/word/recovery sources, real-FFT prior art, Astra's source-bound error deduction and the preceding independent reviewers. Prepared with substantial OpenAI Codex assistance; no human or formal-kernel acceptance claimed.

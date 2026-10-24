@@ -1,0 +1,84 @@
+--- frozen-attempt1/run_full_packed_DRAFT.py
++++ proposed-attempt2/run_full_packed_attempt2_DRAFT.py
+@@ -1,25 +1,28 @@
+-"""STATIC DRAFT. Execute only after root approval of the complete-call budget.
++"""STATIC ATTEMPT2 DRAFT. No execution without new root approval.
+ 
+ One frozen candidate, one cached reduced p48 fixture, exactly two numerical
+ Tensor and three numerical Converter calls; no producer or original full replay.
+ """
+ from pathlib import Path
+-import hashlib,importlib.util,json,signal,sys,threading,time,traceback
++import hashlib,importlib.util,json,os,signal,sys,threading,time,traceback
+ P=Path(__file__).resolve().parent;ROOT=P/'staged-source';PKG=ROOT/'research/physical-tensor-crt-sandwich-recovery';DRAFT=P/'packed_sandwich_DRAFT.py'
+-START=time.monotonic();R={'status':'RUNNING','scope':'One actual two-Tensor reduced staged caller; no production accuracy or cost-saving claim','source_head':'e65f47db55b9a3779fbf7fe23e93a8a4c5eb3ce1','source_shape':[5,7],'target_shape':[8,8],'p':48,'P':80,'b':8,'q':4,'require_recovery':False,'Tensor_calls':0,'Converter_calls':0,'injected_child_dispatches':0,'phase':'authentication','cap_seconds':600,'arrays':{}}
++START=time.monotonic();R={'status':'RUNNING','scope':'One actual two-Tensor reduced staged caller; no production accuracy or cost-saving claim','source_head':'e65f47db55b9a3779fbf7fe23e93a8a4c5eb3ce1','source_shape':[5,7],'target_shape':[8,8],'p':48,'P':80,'b':8,'q':4,'require_recovery':False,'Tensor_calls':0,'Converter_calls':0,'injected_child_dispatches':0,'phase':'authentication','cap_seconds':900,'arrays':{}}
+ FIRST=[255,0,3,17];SECOND=[1,254,0,9]
+ R['independent_digit_streams']=[FIRST,SECOND]
+ def need(x,m):
+  if not x:raise ValueError(m)
+ def hashes():return {str(f.relative_to(P)):hashlib.sha256(f.read_bytes()).hexdigest()for f in [DRAFT,*sorted(ROOT.rglob('*'))]if f.is_file()}
++need(not(P/'FULL-PACKED-ATTEMPT2-RESULT.json').exists()and not(P/'FULL-PACKED-ATTEMPT2-CHILD-CHECKPOINT.json').exists(),'refuse to overwrite attempt2 evidence')
+ BEFORE=hashes();R['before_hashes']=BEFORE;R['harness_sha256']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+ need(BEFORE['packed_sandwich_DRAFT.py']=='5dfcdfe63d9d03a89a00dd92e681ab0a0efc5bbc86aa7edae58f007baf752483','frozen candidate')
+ for row in json.loads((PKG/'SOURCES.json').read_text())['files']:
+  if row['usage']=='input':need(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest()==row['sha256'],'source input '+row['path'])
+ for row in json.loads((P/'PUBLIC-TEXT-MANIFEST.json').read_text()):need(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest()==row['sha256'],'public source '+row['path'])
+ raw=(PKG/'inputs/p48-5x7.bin').read_bytes();need(hashlib.sha256(raw).hexdigest()=='7dd7adbe9e8f6d5ffbecd425a72827b31d7222ee51bcd67a4148ebfd03420381','immutable published p48 cache')
+-def alarm(*_):raise TimeoutError('complete staged-caller budget reached')
+-signal.signal(signal.SIGALRM,alarm);signal.alarm(580)
++def alarm(*_):
++ R['deadline_triggered']=True;R['deadline_seconds']=round(time.monotonic()-START,6)
++ raise TimeoutError('complete staged-caller budget reached')
++signal.signal(signal.SIGALRM,alarm);signal.alarm(880)
+ finished=threading.Event()
+ def heartbeat():
+  while not finished.wait(30):print(json.dumps({'progress_seconds':round(time.monotonic()-START,3),'phase':R['phase'],'Tensor_calls':R['Tensor_calls'],'Converter_calls':R['Converter_calls']}),flush=True)
+@@ -74,6 +77,14 @@
+   tensor=Tensor(finite_chirp(),FullRouter(literal_native()));converter=Converter(FullRouter(literal_native()))
+   original_tensor=tensor.run;original_converter=converter.run_plan
+   observations=[];conversions=[]
++  R['actual_Tensor_observations']=observations;R['actual_Converter_observations']=conversions
++  R['prior_attempt_receipt_sha256']='50187fdd957a3efc04ab0fedb165877bf6e84bb5dfd85e2245dcebed3564ef7d'
++  def checkpoint_completed_children():
++   state={'scope':'Completed matched child returns only; not whole-caller success','harness_sha256':R['harness_sha256'],'candidate_sha256':BEFORE['packed_sandwich_DRAFT.py'],'source_head':R['source_head'],'seconds':round(time.monotonic()-START,6),'actual_Tensor_observations':observations,'actual_Converter_observations':conversions,'actual_pointwise_bits':R['arrays'].get('actual_pointwise_bits')}
++   temporary=P/'FULL-PACKED-ATTEMPT2-CHILD-CHECKPOINT.json.tmp'
++   with temporary.open('w')as target:
++    json.dump(state,target,indent=2);target.write('\n');target.flush();os.fsync(target.fileno())
++   temporary.replace(P/'FULL-PACKED-ATTEMPT2-CHILD-CHECKPOINT.json')
+   def capture(value):
+    head=value.head;data=packet_bytes(value);need(value.head==head,'inspection preserves canonical child head');return data
+   def observe_tensor(*args,**options):
+@@ -87,6 +98,7 @@
+     data=capture(returned)
+     need(data==encode(forward if index==0 else opposite,50),'all35 actual Tensor returned complex records')
+     observations.append({'opposite':opposite_flag,'input_sha256':hashlib.sha256(encode(expected_in,50)).hexdigest(),'return_sha256':hashlib.sha256(data).hexdigest(),'raw_bits':list(data),'complete_child_counts':dict(tensor.last_counts),'seconds':round(time.monotonic()-START,3)})
++    checkpoint_completed_children()
+    except BaseException:
+     returned.clear();erase_marker(returned);raise
+    print('NUMERICAL_TENSOR_FINISH',index,flush=True);return returned
+@@ -104,6 +116,7 @@
+     expected=encode(naturals[index],50)if index<2 else b''.join(word_bits(v,86)for v in ordinary_coefficients)
+     need(data==expected,'all actual CRT returned records')
+     conversions.append({'inverse':inverse,'input_sha256':hashlib.sha256(input_data).hexdigest(),'input_raw_bits':list(input_data),'return_sha256':hashlib.sha256(data).hexdigest(),'raw_bits':list(data),'complete_child_counts':dict(converter.last_counts)})
++    checkpoint_completed_children()
+    except BaseException:
+     returned.clear();erase_marker(returned);raise
+    return returned
+@@ -119,7 +132,7 @@
+   def observe_pointwise(*args):
+    need(capture(args[0])==encode(forward,50)and capture(args[1])==encode(reflected,50),'actual H and paid JH banks')
+    returned=original_pointwise(*args);need(capture(returned)==encode(product,50),'all35 actual fused pointwise products')
+-   R['arrays']['actual_pointwise_bits']=list(capture(returned));return returned
++   R['arrays']['actual_pointwise_bits']=list(capture(returned));checkpoint_completed_children();return returned
+   machine.pointwise=observe_pointwise
+   with owned(Count.literal(8),Count.literal(4))as(b,q):
+    metadata_before=[(tuple(t.tape.cells),t.tape.head)for t in (b,q)]
+@@ -172,6 +185,6 @@
+  R['harness_after_sha256']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest();R['harness_unchanged']=R['harness_after_sha256']==R['harness_sha256']
+  if not(R['source_and_candidate_unchanged']and R['harness_unchanged']):
+   R['status_before_integrity_failure']=R['status'];R['status']='FAIL_SOURCE_OR_HARNESS_DRIFT'
+- (P/'FULL-PACKED-RESULT.json').write_text(json.dumps(R,indent=2)+'\n')
++ (P/'FULL-PACKED-ATTEMPT2-RESULT.json').write_text(json.dumps(R,indent=2)+'\n')
+  print(json.dumps({k:v for k,v in R.items()if k not in('arrays','before_hashes','after_hashes','traceback','actual_Tensor_observations','actual_Converter_observations')},sort_keys=True),flush=True)
+  if R['status']!='PASS_ACTUAL_TWO_TENSOR_STAGED_PACKED_CALLER':sys.exit(1)

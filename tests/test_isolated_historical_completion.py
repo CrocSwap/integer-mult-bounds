@@ -24,7 +24,7 @@ class HistoricalCompletionTests(unittest.TestCase):
         config = history.CONFIG[route]
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            names = ['scripts/run_isolated_tests.py', 'scripts/replay_historical_check.py',
+            names = ['scripts/run_isolated_tests.py', 'scripts/research_package.py', 'scripts/replay_historical_check.py',
                      'research/skip-clones/SOURCE.json']
             for entry in [config, *config.get('additional_inputs', [])]:
                 names.extend([entry['path'], entry['manifest'], entry['input'] if entry.get('input_from_root') else 'scripts/historical-ci-inputs/' + entry['input']])

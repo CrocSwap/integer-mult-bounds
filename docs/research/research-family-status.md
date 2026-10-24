@@ -3,7 +3,7 @@
 Revision 7, assessed 2026-10-20 against main
 `9200177938843d92957bbfe6f1fdbe88768d8cc5`.
 This is a navigation and decision record, not supplier admission or a complete
-survey. The selected conditional κ remains **0.001672660197076918**; resolve its
+survey. **Selection refresh (October 22): κ = 0.00302015 (#4470).** The family survey below is historical; resolve current
 sources and assumptions through [selected-result.json](../../certificates/selected-result.json).
 
 The newer package claims and intake receipts were read for this guidance update.

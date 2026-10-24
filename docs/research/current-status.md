@@ -1,24 +1,43 @@
 # Current reviewed status
 
-Selected conditional κ: **0.0023 = 23/10000**, zxv’s #4359 productive-helper construction, using Jacob Alan Sussman’s mixed-target recursion and the credited cumulative native/outer lineage.
+Selected conditional κ: **0.003027288235** = 605457647/200000000000,
+Chris R / Clear1nsight's PR5413 complete neutral caller, with the provider audit
+in PR5407 and independent companion PR5414. It uses Dillon Amburgey's PR5402
+coupled provider and Ali Romman's PR5398 direct controller. Cao Yifan's native
+construction, Cinna Davis's helpers/controllers, zxv's compiler/precision work,
+Jacob Alan Sussman's mixed-target recursion and the earlier lineage remain credited.
 
-[Selected record](../../certificates/selected-result.json) · [Proof review](pr-intake-evidence/pr4359/PROOF-REVIEW.md) · [Integration receipt](pr-intake-evidence/pr4359/INTEGRATION.json) · [Contributors](community-productive4359-contributors.md).
+[Selected record](../../certificates/selected-result.json) ·
+[Proof review](pr-intake-evidence/pr5413/PROOF-REVIEW.md) ·
+[Promotion and scope](pr-intake-evidence/pr5413-promotion/PROMOTION.md) ·
+[Integration receipt](pr-intake-evidence/pr5413-promotion/INTEGRATION.json) ·
+[Contributors](community-neutral5413-contributors.md).
 
-Cold replay: `make frontier4359-verify`. The fresh 23-stage replay and 59 normalized artifacts pass; the changed interfaces have an AI-assisted proof review under retained analytic/native/fixed-tape hypotheses. Winning uniform templates are not materialized. This is not a complete formal or independent human verification. #4404 independently checks a narrower arithmetic/flow scope.
+Replay: `make frontier5413-verify`. The provider's five engines, primary eight
+engines and independent companion screen run serially in a closed source export
+under a sampled 1 GiB descendant-memory limit and per-package timeouts.
+Source-bound PR4610/#5241 and earlier foundation coverage is reused, not rerun.
+The local macOS replay uses an explicit RLIMIT_AS compatibility adapter;
+it is not presented as an unmodified Linux run.
 
-**Newer conditional review, pending selection migration:** Cinna Davis's #4470
-supports **κ = 0.00302015** under the retained hypotheses, following the
-[cumulative proof review and bounded replays](pr-intake-evidence/pr4470/PROOF-REVIEW.md).
-It builds on the query-thinned controller and joint helper retiming, zxv's
-native and compiler lineage, and Jacob Alan Sussman's mixed-target recursion.
-Mihir Srivastava and Ryanson Jonathan's independent audits are included in the
-review, with Mark / Matarener credited for the commutation question.
-The earlier [#4416/#4433 review](pr-intake-evidence/pr4416/PROOF-REVIEW.md)
-supports 0.00268647. Neither review alone changes the selected record or its
-cold-replay command above. #4483/#4507 compiler-size improvements remain a
-separate review; they are not premises of the #4470 verdict.
+Exactly the five preceding assumptions remain: native/all-column realization,
+owned erasure, compiler closure, precision/fixed-tape execution, and analytic
+recovery. No complete Lean or independent human multiplication proof is claimed;
+the enormous uniform word is not materialized. Hosted CI status is separate
+from the successful local replay and recorded in the integration receipt.
 
-## Historical selected status through #1094
+The [preceding selected checkpoint](../../certificates/checkpoints/frontier4610.json)
+is 0.0030217758. Its [review](pr-intake-evidence/pr4610/PROOF-REVIEW.md) remains part
+of the inherited foundation. The gain is about 0.182424%; the final +5×10⁻¹² over
+#5398/#5400 is compiler/outer headroom. Equal additional paid/target H8 jobs
+preserve the raw signed moment. Frozen submission and review files retain their
+pre-promotion wording; this status and the integration receipt supersede that
+publication status without rewriting the evidence.
+
+The remaining sections form a **historical snapshot**; their “current” wording
+is local to their checkpoint, not the selected record above.
+
+## Historical status through #1094
 
 Historical selected conditional κ: **0.001672660197076918**, Rohan Arun's #1094 on Jeremy Kothe's #1087 packing and the cumulative k8/slot/T16 construction. The bit supplier remains #589 on #555.
 

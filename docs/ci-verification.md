@@ -1,11 +1,44 @@
 # CI verification
 
-## Current selected-family replay
+## Current selected-family replay: #4610 with #5241
+
+The [selected record](../certificates/selected-result.json) binds conditional
+κ = 0.0030217758, the [review](research/pr-intake-evidence/pr4610/PROOF-REVIEW.md),
+[explicit source closure](../certificates/frontier4610-source.json),
+[review validation](research/pr-intake-evidence/pr4610/VALIDATION.json), and
+[integration receipt](research/pr-intake-evidence/pr4610/INTEGRATION.json).
+
+`make frontier4610-verify` authenticates 585 source pins and exports exactly
+82 reviewed inputs into a fresh directory. The old selected record is explicitly
+remapped from `certificates/checkpoints/frontier4470.json`; frozen source packages
+are unchanged. The eleven admission stages run serially under a sampled 1 GiB
+descendant-memory limit and a 660-second timeout. The source-bound #4470 foundation
+is reused explicitly. This is not a full historical cold replay. No Lean, Docker
+or optimization search is part of this target.
+
+The [frontier4610 workflow](../.github/workflows/frontier4610.yml) is manual-only,
+uses Python 3.12 on Ubuntu, and uploads receipts and logs. Its sparse checkout
+materializes only the source manifest's declared files. Git history authenticates
+the frozen canonical inputs; mathematical replay reads the exported files.
+The integration receipt distinguishes local success from hosted status: no Linux
+pass is claimed until the dedicated hosted replay has actually completed.
+
+The [historical #4470 workflow](../.github/workflows/frontier4470.yml) is now
+manual-only and checks out its last selected checkpoint. Neither workflow runs
+per donor PR. Routine queue intake must not launch historical supplier suites.
+
+`make selected-record-check` verifies hashes and the exact selected κ.
+`python3 -B scripts/research_selected_baseline.py` compares the raw certificate's
+budget stages. Neither is an operator replay or a proof of the five inherited
+framework assumptions. The finite checks do not establish the full integer
+multiplication theorem, and do not materialize the uniform word.
+
+## Historical selected-family replay through #1094
 
 Start with the [selected record](../certificates/selected-result.json). Its
 `reproduce`, `review`, `source_manifest` and `validation` fields identify the
 replay command, scoped assessment, source bindings and integration evidence.
-At this checkpoint, the selected composition is #589 with #1094, documented in
+At that checkpoint, the selected composition is #589 with #1094, documented in
 [the review](research/community-batch1099-review.md),
 [the source manifest](../research/community-frontier1094-audit/SELECTED-SOURCE.json)
 and [the integration receipt](research/community-batch1099-integration.json).
@@ -155,13 +188,20 @@ returns failure code 124 with captured diagnostics; even a completion receipt
 cannot turn a timeout into success. Other modules continue, and the final CLI
 exit remains nonzero. No test or assertion is skipped to meet the deadline.
 
-The runner stops the owned process group on POSIX. On Windows its existing
-`taskkill` plus leader cleanup applies while the module is running; descendants
-that detach, and Windows descendants after an already-exited leader, retain
-the existing cleanup limitations. After cleanup, capture has a bounded drain
+The runner stops the owned process group on POSIX. On Windows a private
+supervisor reuses `research_package.py`'s gated Job Object and waits for its
+ordinary descendants to stop even when the test module has already exited.
+Timeout/cancellation targets the live supervisor; closing its job handle also
+terminates the owned descendants. Copies of the runner on Windows must include
+`research_package.py` in the same scripts directory. Test modules must still
+join proof-relevant children and propagate their failures: cleanup does not
+validate unfinished work. After cleanup, capture has a bounded drain
 so an inherited pipe cannot impose an unlimited EOF wait. Cleanup failures
 propagate through the existing cancellation path instead of becoming a pass.
 This is a failure bound, not a speedup or a new mathematical result.
+
+The [Windows exit-cleanup evidence](research/isolated-test-windows-exit.md)
+records the caller-specific native-handle controls and remaining limits.
 
 Regression command: `python3 -B -m unittest discover -s tests -p 'test_isolated*.py'`.
 The deadline controls exercise hung imports, partial output, child cleanup,

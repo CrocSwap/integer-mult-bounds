@@ -92,9 +92,7 @@ def pins_and_phrases() -> None:
     fine = (
         ROOT / "research/unconditional-batched-crt/vendor/FINE-PRIME.md"
     ).read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "2-norm at most p^10 and inverse\n2-norm at most p^10" in halo
     assert "Q_i=I-p^-20 H_i^* H_i and J=ceil(p^42)" in halo
     assert "bandwidth <=(2J+1)W<p^45 eventually" in halo
@@ -122,7 +120,6 @@ def pins_and_phrases() -> None:
     assert "slightly above\nthe true entries." in review
     assert "across cells use rounded\nGaussian entries, with diagonal exactly one." in fine
     assert "downward Gaussian entries" not in fine
-    assert selected["kappa"] == "23/10000"
 
 
 def split_identity() -> None:

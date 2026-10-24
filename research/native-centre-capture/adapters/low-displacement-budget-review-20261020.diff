@@ -1,0 +1,32 @@
+--- original/check_review.py
++++ portable/check_review.py
+@@ -7,7 +7,7 @@
+ from pathlib import Path
+ import gzip
+ import json
+-import subprocess
++import sys
+ 
+ 
+ HERE = Path(__file__).resolve().parent
+@@ -212,9 +212,9 @@
+     mixed = read(MIXED / "MIXED-BUDGET.json", PINS["mixed_receipt"])
+     read(HERE.parent / "rank9-completion-review-20261020/FREEZE.json", PINS["rank9_review"])
+     selected_path = "certificates/selected-result.json"
+-    selected = pinned(subprocess.check_output(["git", "-C", str(REPO), "show", BASE + ":" + selected_path]),
++    selected = pinned((CAMPAIGN.parent / "historical" / BASE / selected_path).read_bytes(),
+                       PINS["selected"], selected_path)
+-    assembly = pinned(subprocess.check_output(["git", "-C", str(REPO), "show", BASE + ":" + selected["certificate"]]),
++    assembly = pinned((CAMPAIGN.parent / "historical" / BASE / selected["certificate"]).read_bytes(),
+                       PINS["assembly"], selected["certificate"])
+     need(selected["certificate_sha256"] == PINS["assembly"], "Selected certificate binding")
+     need(Q(assembly["complex_lower"]) == B == Q(low["selected_b_snapshot"])
+@@ -379,7 +379,7 @@
+         "discrete_packing_steps_checked": 136,
+         "scope": "Literal event invoices and conditional D25 histograms. No native phase replay, routed caller, recursive admission, finite map cost, precision, or kappa claim.",
+     }
+-    (HERE / "REVIEW.json").write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
++    Path(sys.argv[1]).write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
+     print("PASS", len(certificates), "exact profile intervals; 24 literal words; 16 unchanged scalar sequences")
+ 
+ 

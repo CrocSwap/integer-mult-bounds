@@ -1,0 +1,28 @@
+--- frozen/work/centre-encoding-campaign-20261014/lanes/bridge-review-20261017/matched-stage-review-20261018/check_access.py
++++ portable/check_access.py
+@@ -6,10 +6,9 @@
+ import gzip
+ import json
+ from pathlib import Path
+-import tarfile
+-
+-
+-HERE = Path(__file__).resolve().parent
++
++
++HERE = Path(__file__).resolve().parents[1] / 'frozen' / 'work/centre-encoding-campaign-20261014/lanes/bridge-review-20261017/matched-stage-review-20261018'
+ CHECKER_SHA = sha256(Path(__file__).read_bytes()).hexdigest()
+ LANES = HERE.parents[1]
+ ROOT = LANES.parents[2]
+@@ -135,10 +134,7 @@
+     packed = pin(LANES/"bridge-access-20261017/BRIDGE-PROGRAMS.json.gz", "views_compressed")
+     original_views = json.loads(gzip.decompress(packed))["views"]
+     views = {(v["stage"],v["port"],v["side"]):v for v in original_views}
+-    archive = ROOT/"worktrees/k5-persistent-cleanup/research/community-frontier1094-audit/selected-replay.tar.gz"
+-    pin(archive, "archive")
+-    with tarfile.open(archive) as source:
+-        raw = source.extractfile("candidate/strict/global/base/work/complex-nine-native/DATA-PHASES.json").read()
++    raw = (ROOT / "archive-members/DATA-PHASES.json").read_bytes()
+     need(sha256(raw).hexdigest() == PINS["data"], "Actual DATA phase source")
+     data = json.loads(raw)["recipes"]
+     dimensions = json.loads((ACCESS/"DIMENSION25-VIEWS.json").read_text())

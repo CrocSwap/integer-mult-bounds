@@ -24,6 +24,7 @@ class IsolatedBytecodeTests(unittest.TestCase):
         for directory in (self.scripts, self.tests, self.owned):
             directory.mkdir()
         shutil.copyfile(RUNNER, self.scripts / RUNNER.name)
+        shutil.copyfile(ROOT / "scripts/research_package.py", self.scripts / "research_package.py")
 
     def environment(self, additions=None):
         env = os.environ.copy()
