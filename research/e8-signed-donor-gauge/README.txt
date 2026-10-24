@@ -1,0 +1,4 @@
+Signed25 prefix plus nine exterior donor gauges: standalone changed-candidate replay.
+Run Python3.11+ -B verify.py /fresh/SSD/output with existing SymPy available for inherited exact Clifford code. No installs are performed. Inputs are immutable; do not edit hardlinked files.
+Credits: Jacob Sussman gx/E8, PR378 far retiming, Dugongue PR390 prefix construction, Rohan Arun PR395 signed extension, PR377 compressed cover, original PR370 and checked PR386 bit, PR315 rational engines. Original notices and licenses included in vendored package. New donor relations/normalization/banks and audits from this research task. All inherited conditional interfaces retained.
+The verifier freshly executes changed complex reconstruction, scalar/gauge, emission, phases, finite binding, independent global schedule/ambient audit and exact assembly. It explicitly reuses baseline proofs/receipts and checked bit386 rather than falsely claiming a new full baseline run.
