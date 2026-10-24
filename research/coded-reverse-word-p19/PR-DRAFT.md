@@ -33,7 +33,7 @@ coding argument, so the same word without the overlay prices identically and car
 | invoice | root 0.007578535 (p16 published root reproduced); ambient target rank 153 |
 | field bill | **0 recodings**, 0 field maps, 0 adds, 0 clears, **0 decoder** |
 | guards | α 0.99579414, γ 0.963763, δ 0.951561 |
-| compiler | shape-correct majorant `h = 1/64`, `B = (5+8h)·1024`, `H0 ≥ 8v` ⇒ **H0 = 5,170,423,668,736**, H1 = 49,224,448,837,637,726,209, previous threshold rejected |
+| compiler | shape-correct majorant `h = 1/64`, `B = (5+8h)·1024`, `H0 ≥ 8v` ⇒ **H0 = 5,170,423,668,736**, H1 = 49,224,448,837,637,726,209; a **numerical instantiation under an applicability premise**, not a proof |
 | compiler premises | `20⁶⁴ < 21⁶³` ✓, `max target rank 153 < 256` ✓ |
 | BIT | atom 0.004 > ordinary 0.0034363538 > admitted 0.0034 |
 | ledger | 54 strict + 4 functional predicates positive at κ; at exactly 0.0034 only `actual_bit_above_effective` fails |

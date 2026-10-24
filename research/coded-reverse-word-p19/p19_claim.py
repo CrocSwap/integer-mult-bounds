@@ -1,37 +1,29 @@
 #!/usr/bin/env python3
-"""The p=19 coded-reverse supplier: materialized word, exact bill, new kappa.
+"""The p=19 uncoded word: trace identity, price, compiler, BIT chain and outer ledger.
 
-Chain, every link exact:
+Chain:
 
-  1. the code A = I - M M^T/4, A^-1 = I + (A - I)/13 = I - M M^T/52, A A^-1 = I;
-     the scalar programs use monomial address maps and scalar adds only, with
-     component-l1 prefix bounds 57 (forward) and 69/13 (inverse, output-only),
-     so no recursive Gaussian child enters the word;
-  2. the materialized 259-gate listing of P19_WORD.json replays the coded word
-     and equals the standard word on all 2,179,072 entries (p=2: 229,376);
-  3. the rank invoice is blind to the code and prices the word at 0.007578535
-     with the PR4929 paid profile; the raw moment sign at 0.0075785 is positive
-     in exact interval arithmetic, and the three charged tail ratios at the
-     endpoint are inside their limits, with both decay blocks under 1/16 and the
-     power-1024 tails under 2^-32;
-  4. the field-level bill is 77 recodings = 17,248 monomial field maps, 68,992
-     scalar adds and 1,232 owned clears per call, zero Gaussian rank;
-  5. the admitted ordinary BIT saving 0.0034363538 clears the 0.0034 cap;
-  6. the shape-correct power majorant compiles the word at H0 = 5,170,423,668,736,
-     N = 2^H1;
-  7. the strict outer ledger passes at the endpoint and at exactly 0.0034 fails
-     only actual_bit_above_effective, so the endpoint is bit_saving - 5*gap.
+  1. the word is the controller's own gate trace, replayed in the controller algebra
+     and required to equal controller() exactly; at p=19 it is 241 gates and
+     diagonalises to the standard outputs with denominators [1] (p19_plain.py);
+  2. the invoice takes no coding argument, so the word carries NO code: the field
+     level bill is zero recodings, zero monomial field maps, zero scalar adds, zero
+     owned clears and zero terminal-gauge decoder;
+  3. the invoice prices the word at 0.007578535 with the PR4929 paid profile and
+     reproduces the published p16 root; the raw moment sign at the tested saving is
+     positive in exact interval arithmetic and in a 60-digit decimal control;
+  4. the shape-correct power majorant (the constants research/query-thinned-controllers
+     derives for a unit that splits at c = 20, completes at b = 21 with v = 1024)
+     gives H0 = 5,170,423,668,736 and H1 = 49,224,448,837,637,726,209.  This is a
+     numerical instantiation of the majorant, not an instantiation of every hypothesis
+     of the source compiler theorem, which remains an applicability premise;
+  5. the admitted ordinary BIT saving 0.0034 funds the endpoint;
+  6. the strict outer ledger passes at the endpoint and at exactly 0.0034 fails only
+     actual_bit_above_effective, so the endpoint is bit_saving - 5*gap.
 
-The endpoint kappa = 951999/280000000 is conditional on two named premises that
-this receipt records but does not prove: (i) the retained PR4433 power majorant
-applies to this structurally changed coded-reverse unit, and (ii) the relaxed
-delta < 0.97 tail limit is sufficient, where the cited source certificates use
-delta < 19/20 and the word's delta is 0.9515606085.  The logarithmic majorant
-(theta 63/64, power 1000, ambient rank 153) caps the tested saving at
-611329/200000000 and is recorded with the endpoint it would force.
-
-Scope: exact arithmetic for the main-path word, the field bill, the invoice, the
-compiler ranks and the ledger, under those two premises.
+The coded overlay is retained under P19_WORD.json as a historical record.  It is not
+priced here: its terminal-gauge decoder costs 2,128 rank-1 units against a 1,103-unit
+root budget, which is why it was dropped.
 """
 import importlib.util, json
 from collections import Counter
@@ -41,7 +33,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 OWNERS, SIZE = 112, 512
-FRONTIER = Q(302728823, 100000000000)
+SELECTED_CERT = ROOT/'certificates/selected-result.json'
+FRONTIER = Q(json.loads(SELECTED_CERT.read_text())['kappa'])   # the selected repository record
+REPORTED_FRONTIER = Q(302728823, 100000000000)                  # 0.00302728823, maintainer-reported, no certificate here
 BIT_SAVING = Q(17, 5000)
 GAP = Q(1, 1400000000)
 KAPPA = Q(951999, 280000000)
@@ -291,7 +285,7 @@ def main():
           'unit; the logarithmic route is not used and its cap %s is recorded above' % log_cap)
 
     # D: the helper block is autonomous with independent fields, so the main-role gauge cannot touch it.
-    print('DISCHARGED helper autonomy: PHYSICAL.md states the helper jobs have independent inputs, their fields '
+    print('INHERITED (not discharged) helper autonomy: PHYSICAL.md states the helper jobs have independent inputs, their fields '
           'are never used as scratch, and their paid profile is unchanged; the invoice prices them as separate '
           'T mass (19*{4:28,7:7,8:47,9:326} = 7752 units), so no helper gate sits on a coded main role')
 
@@ -317,18 +311,38 @@ def main():
              'kappa': str(KAPPA), 'kappa_decimal': float(KAPPA),
              'complex_supplier': '0.007578535', 'bit_supplier': '17/5000',
              'kappa_under_logarithmic_majorant': str(kappa_logmax), 'logarithmic_cap': str(log_cap),
-             'frontier': str(FRONTIER), 'gain_percent': round(100*(float(KAPPA)/float(FRONTIER)-1), 3),
+             'frontier_selected_record': str(FRONTIER),
+             'gain_vs_selected_record_percent': round(100*(float(KAPPA)/float(FRONTIER)-1), 3),
+             'frontier_reported': str(REPORTED_FRONTIER),
+             'frontier_reported_provenance': 'maintainer-reported in review; no certificate in this tree',
+             'gain_vs_reported_percent': round(100*(float(KAPPA)/float(REPORTED_FRONTIER)-1), 3),
              'complex_saving': float(Q(7578535, 1000000))/1000,
-             'word': {'gate_records': word['gate_records'], 'gates': word['gate_kinds'],
-                      'recodings': word['recodings'], 'p19_entries': word['entries_checked'],
-                      'p2_entries': 4*OWNERS*SIZE},
-             'field_level_bill': {'monomial_field_maps': word['monomial_field_maps'],
-                                  'scalar_adds': word['scalar_adds'], 'owned_clears': word['owned_clears'],
+             'uncoded_word': {'gates': pw['gates'], 'gate_kinds': pw['kinds'],
+                              'retained_idles': pw['retained_idles'], 'idle_rank': pw['idle_rank'],
+                              'outputs': pw['outputs'], 'denominators': pw['denominators'],
+                              'trace_identity': pw['trace_identity'], 'ambient_rank': pw['ambient_rank'],
+                              'physical_bank_replay': 'not performed; ambient rank 153 exceeds a 512-address bank',
+                              'p19_entries_checked': 'none (operator-level certification)'},
+             'field_level_bill': {'recodings': pw['recodings'],
+                                  'monomial_field_maps': pw['monomial_field_maps'],
+                                  'scalar_adds': pw['scalar_adds'], 'owned_clears': pw['owned_clears'],
+                                  'terminal_gauge_decoder': pw['terminal_gauge_decoder'],
                                   'recursive_gaussian_children': 0},
+             'record_only_overlay': {'gates': word['gate_records'], 'gates_by_kind': word['gate_kinds'],
+                                     'recodings': word['recodings'],
+                                     'monomial_field_maps': word['monomial_field_maps'],
+                                     'scalar_adds': word['scalar_adds'], 'owned_clears': word['owned_clears'],
+                                     'status': 'historical record, NOT the priced word'},
              'paid_profile': P_NEW, 'helper_profile': H,
-             'denominators': word['denominators'],
              'guards': {'alpha': float(alpha[1]), 'gamma': float(gamma[1]), 'delta': float(delta[1])},
-             'compiler': {'majorant': 'PR4433 power', 'v': 1024, 'H0': H0, 'H1': H1, 'N': '2^%d' % H1},
+             'compiler': {'majorant': 'shape-correct power majorant (query-thinned-controllers constants)',
+                          'v': 1024, 'h': '1/64', 'B': '(5+8h)v', 'H0_check': 'H0 >= 8v',
+                          'H0': H0, 'H1': H1, 'N': '2^%d' % H1,
+                          'classification': 'numerical instantiation under an applicability premise, not a proof',
+                          'uninstantiated_hypotheses': [
+                              'rank completion below b^v', 'job splitting at c^v',
+                              'whole-job normalizers', 'distinct-owner child allocation',
+                              'rank-one surplus retention', 'fresh-block replay of the trace']},
              'admitted_bit_saving': str(BIT_SAVING),
              'budgets': {'local_routes': local_routes, 'local_scalar': local_scalar,
                          'local_allowance': 10**7, 'raw_bound': raw, 'field_bill_records': field_records,
@@ -336,14 +350,18 @@ def main():
              'idles': {'retained': idle_n, 'initial': len(keep_i), 'middle': len(mid),
                        'terminal': len(keep_t), 'rank_applied': idle_rank, 'role_rank': 2*idle_rank,
                        'gauge_neutral': True},
-             'premises': ['field-level bill admitted under the caller fixed-tape/precision ABI',
+             'premises': ['the 7752 inherited helper units are disjoint from the main roles and ABI compatible (not replayed here)',
+                          'compiler applicability to this word (numerical instantiation only)',
+                          'physical realizability of the rank-153 trace (no bank replay)',
+                          'field-level bill admitted under the caller fixed-tape/precision ABI',
                           'inherited all-size/compiler, hosting, tape and analytic interfaces',
                           'kernel review'],
              'scope': 'exact arithmetic for the word, the bill, the compiler and the ledger'}
     (HERE/'P19_CLAIM.json').write_text(json.dumps(claim, indent=2, sort_keys=True)+'\n')
-    print('CLAIM kappa %s = %.10f, %+.2f%% over %s: complex supplier 0.007578535, BIT supplier 0.0034, '
-          'compiler = the shape-correct power majorant'
-          % (KAPPA, float(KAPPA), claim['gain_percent'], FRONTIER))
+    print('CLAIM kappa %s = %.10f: +%.2f%% over the selected record %s, +%.2f%% over the reported frontier %s; '
+          'complex supplier 0.007578535, BIT supplier 0.0034, zero field bill'
+          % (KAPPA, float(KAPPA), claim['gain_vs_selected_record_percent'], FRONTIER,
+             claim['gain_vs_reported_percent'], REPORTED_FRONTIER))
 
 if __name__ == '__main__':
     main()

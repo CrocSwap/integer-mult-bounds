@@ -51,16 +51,28 @@ def main():
     need('CLAIM kappa' in run('research/coded-reverse-word-p19/p19_claim.py'), 'claim checker')
     claim = json.loads((HERE/'P19_CLAIM.json').read_text())
     need(claim['status'] == 'CLAIM_P19_UNCODED_WORD_SUPPLIER', 'claim status')
-    need(claim['kappa'] == '951999/280000000' and claim['gain_percent'] > 12.3, 'claim value')
+    need(claim['kappa'] == '951999/280000000', 'claim value')
+    need(claim['gain_vs_selected_record_percent'] > 12.5 and claim['gain_vs_reported_percent'] > 12.3,
+         'both gains are recorded')
     need(claim['compiler']['H0'] == 5170423668736, 'compiler ranks')
-    print('PASS_P19_UNCODED_WORD_SUPPLIER kappa %s (+%.2f%% over %s): complex %s, BIT %s, '
-          'compiler H0 = %s, zero recodings'
-          % (claim['kappa'], claim['gain_percent'], claim['frontier'], claim['complex_supplier'],
+    bill = claim['field_level_bill']
+    need(all(bill[k] == 0 for k in ('recodings', 'monomial_field_maps', 'scalar_adds',
+                                    'owned_clears', 'terminal_gauge_decoder')),
+         'the emitted claim carries a zero field bill')
+    need(claim['uncoded_word']['gates'] == 241 and claim['uncoded_word']['gate_kinds']['LETTER'] == 39,
+         'the emitted claim describes the uncoded word')
+    need(claim['record_only_overlay']['status'].startswith('historical record'),
+         'the coded overlay is labelled a record')
+    need('not a proof' in claim['compiler']['classification'], 'the compiler stays conditional')
+    print('PASS_P19_UNCODED_WORD_SUPPLIER kappa %s: +%.2f%% over the selected record, +%.2f%% over the reported '
+          'frontier; complex %s, BIT %s, compiler H0 = %s, field bill all zero'
+          % (claim['kappa'], claim['gain_vs_selected_record_percent'],
+             claim['gain_vs_reported_percent'], claim['complex_supplier'],
              claim['bit_supplier'], claim['compiler']['H0']))
     print(json.dumps({'status': 'PASS_P19_UNCODED_WORD_SUPPLIER', 'kappa': claim['kappa'],
-                      'gain_percent': claim['gain_percent'],
-                      'complex_supplier': claim['complex_supplier'],
-                      'bit_supplier': claim['bit_supplier']}, sort_keys=True))
+                      'gain_vs_selected_record_percent': claim['gain_vs_selected_record_percent'],
+                      'gain_vs_reported_percent': claim['gain_vs_reported_percent'],
+                      'field_level_bill': 'all zero'}, sort_keys=True))
 
 if __name__ == '__main__':
     main()

@@ -5,8 +5,15 @@ re-priced. The invoice never sees the code — `invoice(p, pattern, thick, profi
 takes no coding argument — so the coded reverse was an overlay the endpoint does not
 need, and dropping it removes the terminal-gauge decoder that the coded words cannot
 pay for. Complex side 0.007578535, BIT supplier 0.0034, outer
-`kappa = 951999/280000000 = 0.0033999964`, +12.31% over 302728823/100000000000 = 0.00302728823,
-with zero recodings and zero decoder.**
+`kappa = 951999/280000000 = 0.0033999964`: **+12.58 %** over the selected repository
+record `60403/20000000 = 0.00302015` and **+12.31 %** over the maintainer-reported
+`0.00302728823` (reported in review; no certificate for it in this tree), with zero
+recodings and zero decoder.
+
+The endpoint is **conditional**: the 7,752 helper units are inherited rather than
+replayed, the compiler result is a numerical instantiation of the majorant under an
+applicability premise, and the word is certified as the controller's operator rather
+than by a physical bank replay.**
 
 ## Why there is no code
 
