@@ -43,9 +43,12 @@ def check_source_pins() -> dict:
         path = row["path"]
         require(path not in seen, "duplicate source path: " + path)
         seen.add(path)
+        if row["usage"] != "input":
+            continue  # provenance rows (the selected record) are historical pins, not live inputs
         actual = sha256(read_repo(path))
         require(actual == row["sha256"], "source SHA-256 mismatch: " + path)
-    record = read_repo("certificates/selected-result.json")
+    # The selected record moves with the frontier; check the exact pinned copy instead.
+    record = (PACKAGE / "selected-result-pinned.json").read_bytes()
     require(sha256(record) == EXPECTED_RECORD_SHA256, "selected record bytes changed")
     selected = json.loads(record)
     require(selected["kappa"] == "836330098538459/500000000000000000",
