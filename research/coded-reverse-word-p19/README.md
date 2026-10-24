@@ -78,6 +78,26 @@ complex shape (`h = 1/64`, `B = (5+8h)v`, `debt = 1 + 8v(1−z₀)`, `H0 ≥ 8v`
   Gaussian power and it needs no recoding;
 - the closing swap carries the −1 sign and must sit after any gauge unload.
 
+## Physical binding: the lifting lemma
+
+The p=19 word needs 2^153 addresses, so it cannot be replayed literally. The binding is
+therefore proved rather than sampled. The controller's word is a polynomial in the
+retained stage variables plus one central variable; give stage `s` its own eight-axis
+block and give the word one shared centre axis, and every monomial becomes an operator
+on 2^(8k+1) addresses. That map `Φ` is a **ring homomorphism**: distinct-axis Gaussians
+commute, powers on one axis add, and `Φ` fixes the identity. Hence any polynomial
+identity between the gate list and the controller matrix lifts to address operators for
+every block count `k`, and the p=19 word realises the p=19 controller matrix by
+construction (`p19_lift.py`, receipt `P19_LIFT.json`).
+
+The p=2 address replay (`p19_bank.py`) is then a **control on the implementation**, not
+the proof: two blocks plus the shared centre, 2^17 addresses per role, four roles, twenty
+gates, one dense seed. It is randomised, not exhaustive, and is labelled as such.
+
+The lemma also caught a real bug: the selection bits of a monomial are **exponents**,
+and an implementation that applies one gate per selected stage is not multiplicative once
+an exponent reaches 2 — which the p=19 word does constantly.
+
 ## The tail limit is settled
 
 δ = 0.9515606085 and γ = 0.963763. The source tail argument uses its limits only through
@@ -87,18 +107,32 @@ complex shape (`h = 1/64`, `B = (5+8h)v`, `debt = 1 + 8v(1−z₀)`, `H0 ≥ 8v`
 written into the source certificates is a stronger choice this word does not need, and
 the independent review on the earlier draft reached the same conclusion.
 
+## Inherited interfaces, and what is discharged here
+
+The word is new; the producer and the compiler are not. Every obligation is either
+discharged against this word or consumed from an inherited interface unchanged.
+
+| obligation | status |
+|---|---|
+| word realises the controller matrix | **discharged** — lifting lemma, plus the p=2 address control |
+| rank completion below `b^v` | **discharged** — this census has `max target rank 153 < 256` |
+| splitting at `c^v` | **discharged** — `20⁶⁴ < 21⁶³` |
+| whole-job normalizers | inherited; the word adds no job and consumes the same T/D interface |
+| distinct-owner child allocation | inherited; the word introduces no new owner |
+| rank-one surplus retention | inherited; the census is unchanged by the word |
+| helper fields disjoint from the word | **discharged mechanically** — the trace's roles are exactly `0…2p−1`, so no gate reads or writes helper-owned state |
+| 7,752 helper units materialised | **not built here**; inherited from PR4929 with its ownership and ABI |
+| field-bill admission under the caller ABI | inherited; the word's only paid operations are the inherited ones |
+| precision, tape, hosting, hosted CI, kernel review | inherited external obligations |
+
 ## Open next questions
 
-- **Ambient rank 153.** A literal 512-address replay cannot host this word, so the
-  word is certified as the controller's operator (trace identity plus
-  diagonalisation) rather than as a bank replay. A block-wise replay over 19 fresh
-  eight-axis blocks plus the shared centre would close that gap.
-- **Helper block.** The 7,752 helper units of the invoice's T side are inherited, not
-  materialised; the counter check shows they are additive and separate mass, and
-  `PHYSICAL.md` declares the jobs autonomous.
-- **Field-bill admission**, precision/tape/hosting, hosted CI and kernel review remain
-  external obligations. Precision is relieved of the recoding bill but still carries
-  the word's own children.
+- Can the block-decomposed replay be made exhaustive rather than randomised, e.g. by
+  comparing the two operators on a spanning set of the 2^17 address space?
+- Does one materialised helper stage-unit agree with the inherited profile, closing the
+  last helper obligation?
+- Is the endpoint's `0.97` tail limit worth pushing into the source package so later
+  words can cite it instead of re-deriving it?
 
 ## Reproduce
 

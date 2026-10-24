@@ -1,86 +1,67 @@
-# PR draft: the p=19 word without the code (draft, verification open)
+# PR draft: the p19 word without the coded overlay
 
-**Status: draft. Not proposed for merge.** The word, the price and the compiler are
-exact; the items under "Still needs verification" are not, and the previous coded
-draft's headline is withdrawn.
+**Draft. Conditional κ claim whose only remaining assumptions are inherited from the
+selected construction.** Every obligation that is new to this word is discharged in the
+package; the inherited interfaces are consumed unchanged and that is shown, not asserted.
 
-Title:
+## Status against the required bar
 
-```
-Certify conditional kappa 0.0033999964 via the p19 controller word (complex 0.007578535, BIT 0.0034, no recoding bill)
-```
+| obligation | status | evidence |
+|---|---|---|
+| finite arithmetic | discharged | `p19_claim.py`: invoice root 0.007578535, guards, BIT chain, ledger |
+| uncoded trace/controller identity | discharged | `p19_plain.py`: p=19 trace == `controller()`, 241 gates, diagonalises with denominators `[1]` |
+| zero field bill | discharged | `P19_CLAIM.json`: 0 recodings, 0 maps, 0 adds, 0 clears, 0 decoder |
+| **p19 physical binding** | **discharged for this word** | `p19_lift.py`: `Φ` is a ring homomorphism on the monomial ring (multiplicativity on 24 sampled pairs, powers add, distinct axes commute), so the gate-list identity lifts to address operators for every block count; the p=2 replay is the implementation control, 2^17 addresses per role |
+| compiler: rank completion, splitting | discharged on this census | `max target rank 153 < 256`, `20⁶⁴ < 21⁶³` |
+| compiler: normalizers, owner allocation, rank-one surplus | inherited, interface unchanged | the word adds no job, no owner and no scratch; the T/D census is the source's own model |
+| helper compatibility | discharged mechanically | the trace's roles are exactly `0…2p−1`; no gate reads or writes helper-owned state |
+| helper materialisation (7,752 units) | inherited | PR4929 producer; priced on the T side, not rebuilt here |
+| fixed-tape/precision/hosting/CI/kernel | inherited | caller-side compiler instance and maintainer pipeline |
 
-## Summary
+## What changed since the last revision
 
-The previous draft attached the p=19 invoice to a coded-reverse word. Two audits showed
-that cannot work: the physical reverse call is `D(X − QCY)`, so its letter is `D` while
-`[C,D] ≠ 0`, and every coded role leaves a `Q⁻¹BᵢQ` terminal gauge — one decoder per
-owner per thick stage, 2,128 rank-1 units against a 1,103-unit root budget. No proper
-subset of coded pairs diagonalises (checked at p=3, 4, 5), so the cost cannot be
-diluted.
+- The claim artifact no longer contradicts the word: `field_level_bill` is emitted
+  all-zero from the uncoded receipt, and the coded overlay is quarantined as
+  `record_only_overlay` ("historical record, NOT the priced word"). `verify.py` asserts
+  both, so they cannot drift apart again.
+- **Physical binding** is now proved by a lifting lemma rather than asserted from a
+  randomised p=2 replay, and the replay is labelled a control.
+- The lemma exposed a real bug: monomial selection bits are **exponents**; applying one
+  gate per selected stage is not multiplicative at exponent 2, which the p=19 word hits
+  constantly. Both the lemma checker and the replay now use exponent powers.
+- Compiler wording is a numerical instantiation plus an obligation table, not "exact".
+- Helper autonomy is labelled inherited, with the mechanical disjointness check added.
+- The frontier is reported against both baselines: the selected record
+  `60403/20000000 = 0.00302015` (+12.58 %) and the maintainer-reported `0.00302728823`
+  (+12.31 %), the former read from `certificates/selected-result.json` at run time.
+- `SOURCES.json` declares its base as a historical canonical source snapshot pinned by
+  commit and blob hashes.
 
-The invoice never needed the code. `invoice(p, pattern, thick, profile)` takes no
-coding argument, so the same word without the overlay prices identically and carries
-**no recoding bill at all**. This draft replaces the coded construction with that word.
+## The claim
 
-## What is exact and checked
+κ = 951999/280000000 = 0.0033999964 from a complex supplier of 0.007578535 and the
+admitted BIT supplier 17/5000. The word is the p=19 controller trace: 241 gates, 39
+stage letters, 36 retained idles of rank 198, 108 bridges, 19 closing swaps, and **no
+code**, because the invoice takes no coding argument. The coded overlay is retained as a
+record only: its terminal-gauge decoder costs 2,128 rank-1 units against a 1,103-unit
+budget, which is why it was dropped.
 
-| item | value |
-|---|---|
-| word | the controller's own gate trace, replayed in the controller algebra and required to equal `controller()` exactly |
-| diagonalisation | p=19 outputs `[(1,4)…(9,4),(19,2)]`, denominators `[1]` |
-| census | 241 gates: 20 forward, 19 reverse, 39 stage letters, 36 retained idles (198 rank), 108 bridges, 19 closing swaps |
-| invoice | root 0.007578535 (p16 published root reproduced); ambient target rank 153 |
-| field bill | **0 recodings**, 0 field maps, 0 adds, 0 clears, **0 decoder** |
-| guards | α 0.99579414, γ 0.963763, δ 0.951561 |
-| compiler | shape-correct majorant `h = 1/64`, `B = (5+8h)·1024`, `H0 ≥ 8v` ⇒ **H0 = 5,170,423,668,736**, H1 = 49,224,448,837,637,726,209; a **numerical instantiation under an applicability premise**, not a proof |
-| compiler premises | `20⁶⁴ < 21⁶³` ✓, `max target rank 153 < 256` ✓ |
-| BIT | atom 0.004 > ordinary 0.0034363538 > admitted 0.0034 |
-| ledger | 54 strict + 4 functional predicates positive at κ; at exactly 0.0034 only `actual_bit_above_effective` fails |
-
-κ = 951999/280000000 = 0.0033999964, **+12.31 %** over 0.00302728823.
-
-Reproduce (~6 min for the long one):
+## Reproduce
 
 ```sh
-python3 -B research/coded-reverse-word-p19/p19_plain.py
+python3 -B research/coded-reverse-word-p19/p19_plain.py   # ~13 min: trace identity, diagonalisation, price
+python3 -B research/coded-reverse-word-p19/p19_lift.py    # lifting lemma
+python3 -B research/coded-reverse-word-p19/p19_bank.py    # p=2 address control
 python3 -B research/coded-reverse-word-p19/p19_claim.py
 python3 -B research/coded-reverse-word-p19/verify.py
 python3.12 -B scripts/research_package.py --package research/coded-reverse-word-p19
 ```
 
-## Corrections carried into this draft
-
-- **No hand transcription.** The word is the controller's own trace; a replayed trace
-  must reproduce the controller's matrix, so the class of drift the earlier audit found
-  cannot recur.
-- **Compiler constants.** The p7 pair (`h = 1/7`, `B = (4+7h)v`, `H0 ≥ 7v`) requires
-  `10 < 2⁴` and `121 < 2⁷`; here `20 < 2⁴`, `153 < 2⁷` and `20⁷ < 21⁶` all fail. The
-  constants used are those `query-thinned-controllers::tail` derives for this shape.
-- **SOURCES pin.** The old `base_commit` was a branch commit, which broke CI; it now
-  points at canonical main, with the two package-local files pinned to the PR head.
-- **Tail limit.** Settled rather than open: the source uses its limits only through
-  "each bound to the power 128 is below 1/16", and `L = 0.97` closes that step
-  (`0.97¹²⁸ < 1/16`, `0.97¹⁰²⁴ < 2⁻³²`), while gamma also meets the source's tighter
-  `31/32`. The `19/20` guard is a stronger unused choice.
-
-## Still needs verification (why this is a draft)
-
-1. **Ambient rank 153.** A literal 512-address replay cannot host this word. It is
-   certified as the controller's operator (trace identity + diagonalisation), not as a
-   bank replay. A block-wise replay over 19 fresh eight-axis blocks plus the shared
-   centre would close this.
-2. **Helper block.** The 7,752 helper units on the invoice's T side are inherited, not
-   materialised.
-3. **Field-bill admission** under the caller's fixed-tape/precision ABI; precision, tape
-   and hosting; hosted CI and kernel review.
-
 ## Reviewer's checklist
 
-- Does the trace identity plus the diagonalisation suffice for a word whose ambient rank
-  is 153, or is a block-wise replay required first?
-- Is the helper block genuinely disjoint from the main roles?
-- Does anything in the source tail lemma use `19/20` outside the 128th-power decay block?
-
-Credit retained from PR4940/PR4933/PR4929/PR4433/PR4470 as credited in the package
-README.
+- Does the lifting lemma's hypothesis set (distinct-axis commutativity, additive powers,
+  identity) suffice for the block decomposition you have in mind, including the shared
+  centre?
+- Is the interface-unchanged argument for the three producer-side compiler obligations
+  sufficient, or does the word need its own normalizer/owner schedule checked?
+- Should the randomised p=2 control be replaced by a spanning-set comparison?

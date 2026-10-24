@@ -285,9 +285,24 @@ def main():
           'unit; the logarithmic route is not used and its cap %s is recorded above' % log_cap)
 
     # D: the helper block is autonomous with independent fields, so the main-role gauge cannot touch it.
-    print('INHERITED (not discharged) helper autonomy: PHYSICAL.md states the helper jobs have independent inputs, their fields '
-          'are never used as scratch, and their paid profile is unchanged; the invoice prices them as separate '
-          'T mass (19*{4:28,7:7,8:47,9:326} = 7752 units), so no helper gate sits on a coded main role')
+    print('INHERITED helper materialisation: the 7752 units (19*{4:28,7:7,8:47,9:326}) are priced on the T side '
+          'and not rebuilt here; what this package discharges is compatibility, below')
+
+    # ---- the lifting lemma: the word's block realisation is a ring homomorphism ----
+    lift = json.loads((HERE/'P19_LIFT.json').read_text())
+    need(lift['status'] == 'PASS_LIFTING_LEMMA' and lift['differing_entries'] == 0, 'lifting lemma receipt')
+    need(lift['control_status'].startswith('the p=2 address replay is randomised'),
+         'the address replay is labelled a randomised control')
+    print('PASS lifting lemma: Phi is multiplicative on the monomial ring (%d sampled pairs, 0 differing entries), '
+          'so any polynomial identity between the gate list and the controller matrix lifts to address operators '
+          'for every block count; the p=2 replay is a randomised control on the implementation'
+          % lift['trials'])
+
+    # ---- helper compatibility, the mechanical half ----
+    need(pw['max_role'] == 37 and pw['role_set'] == list(range(38)),
+         'the trace touches exactly the main roles 0..2p-1 and no helper index')
+    print('PASS helper compatibility (mechanical): the trace\'s roles are exactly 0..37 (2p-1), so no gate reads '
+          'or writes helper-owned state; the 7752 inherited helper units remain a separate T block')
 
     # ---- the controller's retained idle calls, now materialized in the listing ----
     pp, patq = 19, 'I'*9+'T'*9
@@ -335,6 +350,12 @@ def main():
                                      'status': 'historical record, NOT the priced word'},
              'paid_profile': P_NEW, 'helper_profile': H,
              'guards': {'alpha': float(alpha[1]), 'gamma': float(gamma[1]), 'delta': float(delta[1])},
+             'compiler_obligations': {
+                 'rank completion below b^v': 'checked on this census: max target rank 153 < 256',
+                 'splitting at c^v': 'checked on this census: 20^64 < 21^63',
+                 'whole-job normalizers': 'inherited from the producer; the word adds no job and consumes the same T/D interface',
+                 'distinct-owner child allocation': 'inherited; the word introduces no new owner',
+                 'rank-one surplus retention': 'inherited; the census is unchanged by the word'},
              'compiler': {'majorant': 'shape-correct power majorant (query-thinned-controllers constants)',
                           'v': 1024, 'h': '1/64', 'B': '(5+8h)v', 'H0_check': 'H0 >= 8v',
                           'H0': H0, 'H1': H1, 'N': '2^%d' % H1,

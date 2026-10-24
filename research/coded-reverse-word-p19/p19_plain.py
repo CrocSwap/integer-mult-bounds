@@ -119,7 +119,14 @@ def main():
         need(std is not None, 'the uncoded word diagonalises at p=%d' % p)
         kinds = Counter(g[0] for g in gates)
         ret = [r for r in idle if r['retained']]
+        roles = set()
+        for g in gates:
+            if g[0] in ('REVERSE', 'FORWARD', 'LETTER', 'BRIDGE', 'SWAP'):
+                roles.update(x for x in g[2:4] if isinstance(x, int) and x >= 0)
+            elif g[0] == 'IDLE':
+                roles.update((g[2], g[3]))
         receipt['p%d' % p] = {'gates': len(gates), 'kinds': dict(kinds),
+                      'role_set': sorted(roles), 'max_role': max(roles) if roles else -1,
                       'retained_idles': len(ret),
                       'idle_rank': sum(len(r['sel']) for r in ret),
                       'outputs': std[0], 'denominators': std[1],

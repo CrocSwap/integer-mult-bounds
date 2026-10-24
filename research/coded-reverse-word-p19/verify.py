@@ -48,6 +48,14 @@ def main():
           '%d retained idles, root %.12f, no recoding bill'
           % (pw['gates'], pw['retained_idles'], pw['invoice_root']))
 
+    bank = HERE/'P19_BANK.json'
+    need(bank.exists(), 'the address-level replay receipt is missing (run p19_bank.py)')
+    bk = json.loads(bank.read_text())
+    need(bk['status'] == 'PASS_ADDRESS_LEVEL_TRACE_REPLAY' and sum(bk['differing_entries']) == 0,
+         'the gate list realises the controller matrix at address level')
+    print('PASS binding: p=%d address-level replay, %d addresses per role, %d roles, %d gates, 0 differing entries'
+          % (bk['p'], bk['addresses_per_role'], bk['roles'], bk['gates']))
+
     need('CLAIM kappa' in run('research/coded-reverse-word-p19/p19_claim.py'), 'claim checker')
     claim = json.loads((HERE/'P19_CLAIM.json').read_text())
     need(claim['status'] == 'CLAIM_P19_UNCODED_WORD_SUPPLIER', 'claim status')
