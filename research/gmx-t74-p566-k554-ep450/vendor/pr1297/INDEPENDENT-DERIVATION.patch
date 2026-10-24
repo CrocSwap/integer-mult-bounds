@@ -1,0 +1,35 @@
+--- PR1169/independent_owner.py
++++ independent_core.py
+@@ -190,7 +190,7 @@
+         call = (s, r)
+         require(call in c['at'] and 0 <= helper < R and 0 <= owner < T and 0 <= port < V, 'role coordinates')
+         require(z['time'] == c['at'][call], 'role invocation time')
+-        require(width == c['widths'][helper], 'whole-helper residual width')
++        require(width == c['call_widths'][call][helper], 'whole-helper residual width')
+         require(0 <= family < live, 'private-namespace collision')
+         require(child in c['rank'], 'unknown idle child')
+         require(z['copy'] == V * owner + port and family == owner * 896 + (2 * c['child_pair'][child] + c['side'][child]) * V + port, 'physical family identity')
+@@ -226,12 +226,12 @@
+             if left:
+                 idle[left] += 1
+     require(dict(idle) == EXPECTED_IDLE, 'nominated idle profile')
+-    profile = Counter({rank: 9 * T * count for rank, count in c['paid'].items()})
++    profile = Counter(c['aggregate_paid'])
+     profile.update(idle)
+     mass = sum(rank * count for rank, count in profile.items())
+     require(M * live - mass == 320*T, 'replica-scaled rank deficit')
+     require(c['bridges'] == 9*T, 'actual bridge count')
+-    localbits = max(x['prefix_bits_upper'] for x in c['replay']['local'].values())
++    localbits = c['max_local_prefix']
+     prefix = localbits + (M + 1) // 2 + len(c['order']) + c['bridges'] + 4
+     group = 2 ** (36 * 36)
+     for i in range(1, 37):
+@@ -244,7 +244,7 @@
+                 source_events_per_replica=30, expanded_replica_events=c['event_count'], bridge_events=c['bridges'],
+                 literal_windows=len(c['windows']), checked_whole_helper_widths=len(roles), checked_busy_family_windows=len(roles),
+                 orthogonal_port_bases=len(c['bases']), actual_73_axis_charts=len(charts), checked_slice_prefixes=len(c['windows']) * V,
+-                local_profile=dict(sorted(c['paid'].items())), width_inventory=dict(sorted(Counter(c['widths']).items())),
++                local_profiles=c['local_profiles'], width_inventories=c['width_inventories'],
+                 idle=dict(sorted(idle.items())), profile=dict(sorted(profile.items())), live=live, physical=physical,
+                 rank_mass=mass, deficit=320*T, namespace={'data':[0,live], 'centres':[live,live+8], 'tableau':[live+8,live+8+R], 'coefficient':[live+8+R,physical]},
+                 local_prefix_bits=localbits, local_prefix_from_native_receipt=True, local_profile_recounted=True,
