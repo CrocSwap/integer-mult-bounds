@@ -1,0 +1,20 @@
+name: Verify eleven-stage hosting-selected kernel
+on:
+  pull_request:
+  push:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install sympy
+      - run: python -B research/e8-eleven-hosting-selected/verify.py "$RUNNER_TEMP/eleven-hosting-selected"
+        env:
+          PYTHONINTMAXSTRDIGITS: '0'
+          PYTHONDONTWRITEBYTECODE: '1'
