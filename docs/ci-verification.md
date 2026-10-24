@@ -1,8 +1,40 @@
 # CI verification
 
-## Current selected-family replay: #4610 with #5241
+## Current selected-family replay: #5413 with #5407 and #5414
 
 The [selected record](../certificates/selected-result.json) binds conditional
+κ = 0.003027288235, the [promotion and scope](research/pr-intake-evidence/pr5413-promotion/PROMOTION.md),
+[explicit source closure](../certificates/frontier5413-source.json),
+[review validation](research/pr-intake-evidence/pr5413-promotion/VALIDATION.json), and
+[integration receipt](research/pr-intake-evidence/pr5413-promotion/INTEGRATION.json).
+
+`make frontier5413-verify` authenticates the selected source manifest, derives
+the certificate from frozen numerical evidence, and exports the complete
+three-package execution closure. It replays #5407's five-stage provider audit,
+#5413's eight-stage admission, and #5414's independent companion screen serially.
+The exported inputs are checked again afterward. Source-bound #4610/#5241 and
+earlier BIT/native/compiler/tape/analytic foundation coverage is explicitly
+reused; its historical suites are not rerun.
+
+Each package runs under an external sampled 1 GiB aggregate descendant-memory
+guard, with timeouts of 660 seconds for the provider and primary packages and
+120 seconds for the companion. On macOS the replay uses the reviewed RLIMIT_AS
+adapter; on Linux it invokes the unmodified package wrappers. The recorded
+successful local macOS replay does not establish a hosted Linux pass.
+
+The [frontier5413 workflow](../.github/workflows/frontier5413.yml) is manual-only,
+uses Python 3.12 on Ubuntu, materializes the declared source closure, and uploads
+receipts and logs. Its status is separate from local validation and recorded in
+the integration receipt. Routine donor PRs do not launch this selected replay.
+
+`make selected-record-check` verifies metadata and source/proof hashes. It does
+not execute the operators or prove the five inherited framework assumptions.
+The finite checks do not establish the full integer multiplication theorem,
+and the uniform word remains unmaterialized.
+
+## Historical selected-family replay: #4610 with #5241
+
+The historical [selected record](../certificates/checkpoints/frontier4610.json) binds conditional
 κ = 0.0030217758, the [review](research/pr-intake-evidence/pr4610/PROOF-REVIEW.md),
 [explicit source closure](../certificates/frontier4610-source.json),
 [review validation](research/pr-intake-evidence/pr4610/VALIDATION.json), and
