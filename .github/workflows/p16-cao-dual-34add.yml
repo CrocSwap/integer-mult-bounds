@@ -1,0 +1,57 @@
+name: Cao P16 dual 34-ADD source-bound certification
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: research-archive-replay
+  cancel-in-progress: false
+
+jobs:
+  exact-dual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        python-version: ['3.11','3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          path: contribution
+          sparse-checkout: |
+            research/p16-cao-scalar-dag
+          sparse-checkout-cone-mode: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          repository: CrocSwap/integer-mult-bounds
+          ref: 20bb93cd990d2ff683e4d0fc56b87a42cd5d3296
+          path: frozen-source
+          sparse-checkout: |
+            research/kappa-round3-warp-20261022
+            research/warp-interface-20261022
+            research/joint-helper-lattice
+            research/fresh-helper-boundary
+            research/kappa-causal-continuation/buffer-borrowing
+            research/kappa-rebuild/complex
+            research/kappa-function-composition/complex
+            research/t74-native-fast/vendor/native/new/code/borrow/vendor/clifford
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Screen exact commuting inverse ADD pairs
+        run: python -I -B contribution/research/p16-cao-scalar-dag/inverse_add_dag_search.py frozen-source
+      - name: Reconstruct and check 632 columns with two interpreters in both directions
+        run: python -I -B contribution/research/p16-cao-scalar-dag/combined_inverse_add_certificate.py frozen-source
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: cao-p16-34add-${{ matrix.python-version }}
+          path: |
+            contribution/research/p16-cao-scalar-dag/*RECEIPT.json
+            contribution/research/p16-cao-scalar-dag/SCALAR_CANCEL_PATCH.json

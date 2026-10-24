@@ -37,8 +37,7 @@ def pins() -> None:
             need(digest == row["sha256"], row["path"])
     text = PREDECESSOR.read_text(encoding="utf-8")
     need("the exact\ncost of `t` SWAP targets is **3t paid calls**" in text, "n=2 predecessor statement")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
-    need(selected["kappa"] == "60403/20000000", "selected kappa")
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 # Matrices are tuples of row bitmasks; bit k of row i is the (i, k) entry.

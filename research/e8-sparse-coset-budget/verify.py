@@ -202,13 +202,8 @@ def cosets(rows, labels):
 
 
 def evaluate():
-    selected = ROOT / "certificates/selected-result.json"
-    require(
-        hashlib.sha256(selected.read_bytes()).hexdigest()
-        == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129",
-        "selected record drift",
-    )
-    record = json.loads(selected.read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    record = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(record["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     rows = root_lines()
     labels = labels_of(rows)

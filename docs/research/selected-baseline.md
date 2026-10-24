@@ -1,6 +1,6 @@
 # Productive-helper baseline orientation
 
-For the selected #4359 productive-helper certificate, run from the repository root:
+For the current selected productive-helper certificate, run from the repository root:
 
 ```sh
 python3 -B scripts/research_selected_baseline.py
@@ -56,8 +56,8 @@ python3 -B scripts/research_baseline_sparse.py
 ```
 
 Inspect its suggested sparse-checkout additions and materialize the inputs.
-Then use `research_selected_baseline.py` for the productive-helper summary,
-in place of the historical baseline command in its `next` field. Diagnosis
+Then run the current command in its `next` field. It uses
+`research_selected_baseline.py` for the productive-helper summary. Diagnosis
 does not verify the inputs; the successor's source check remains mandatory.
 
 ## Compatibility and validation
@@ -85,13 +85,41 @@ The test filename is included by the existing research onboarding discovery
 command. The full selected cold replay is a separate obligation and was not
 run for this reporting adapter.
 
-## Open next questions
+## Current task-picker commands
 
-The active catalogue and pinned brief still name the historical entry point.
-A maintainer can migrate those references after choosing how to preserve the
-dependent frozen packages' source receipts. The first step is to inventory
-their `VERIFY.json` and `SOURCES.json` dependencies; changing the helper bytes
-or silently repinning old inputs is not part of this contribution.
+The current task-picker CLI, `scripts/choose_current_research_task.py`, resolves the exact generic command
+`python3 -B scripts/research_baseline.py` to the current selected baseline.
+Each affected suggestion retains its complete original entry in
+`catalog_first_step` and explains the change in `first_step_resolution`.
+Only the command changes. The inspection text, scope, task, method, scope key
+and acceptance gate stay the same. Other scientific first-step commands are
+not changed. The CLI checks that the current helper exists, or is an exact
+HEAD file omitted by a sparse checkout, before it emits the resolved command.
+A sparse result names the missing helper for materialization.
+
+The historical `scripts/choose_research_task.py`, catalogue bytes, `select()`
+result and package `TASK.json` original-card receipts remain exact. The current
+entry point runs the historical CLI with unchanged arguments and resolves its
+JSON output. Help and error output keep the child status and text. This separate
+entry point is necessary because a frozen package also pins the picker script
+as a runtime input. It must not be changed or silently repinned. This distinction is deliberate: the CLI gives current
+orientation, while the stored card records the historical assignment. Do not
+copy the resolved command into an old package or repin its frozen inputs.
+[PR4906](https://github.com/CrocSwap/integer-mult-bounds/pull/4906) found 57
+runtime consumers of the catalogue and requested this receipt-preserving
+migration. [PR5359](https://github.com/CrocSwap/integer-mult-bounds/pull/5359)
+provides the separate authenticated historical complex-ceiling replay.
+That scientific command is outside this generic-baseline resolution rule.
+
+The displayed scientific starting points still need a current overlap and
+scope check. Command resolution is not a strategic reassessment or scientific
+acceptance. Tests cover all 16 generic cards, unchanged other cards, exact
+command matching, missing/deleted/sparse helpers and actual CLI output.
+Run them with `python3 -B -m unittest discover -s tests -p test_research_current_assignment.py`.
+Current CLI resolution and these controls: Ali Romman with substantial OpenAI
+Codex assistance; Apache-2.0.
+
+## Open next questions
 
 Future selected certificate schemas need an explicit budget-stage adapter.
 Start from the new selected record and reviewed source schema, then add a

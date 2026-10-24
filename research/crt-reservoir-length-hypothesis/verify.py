@@ -40,10 +40,7 @@ def pins_and_phrases() -> None:
     tariff = (ROOT / "research/pr4100-crt-repair-tariff/README.md").read_text(encoding="utf-8")
     need(PRODUCTION_PHRASE in placement, "production constants")
     need(HYPOTHESIS_PHRASE in tariff, "L <= p hypothesis")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
-    need(selected["kappa"] == "60403/20000000", "selected kappa")
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 def load_allocator():

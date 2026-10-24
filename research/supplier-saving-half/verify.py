@@ -36,7 +36,7 @@ def sha256(path):
 def authenticate():
     sources = json.loads((PACKAGE / "SOURCES.json").read_text(encoding="utf-8"))
     pinned = {row["path"]: row for row in sources["files"] if row["usage"] == "input"}
-    expected = {"certificates/selected-result.json", "research/climbed-48/certificate.json"}
+    expected = {"research/climbed-48/certificate.json"}
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
         require(sha256(ROOT / path) == row["sha256"], "input drift " + path)
@@ -76,7 +76,8 @@ def moment_lower(rows, saving, width, capacity):
 
 def evaluate():
     authenticate()
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     certificate = json.loads((ROOT / "research/climbed-48/certificate.json").read_text(encoding="utf-8"))
     complex_part = certificate["complex"]

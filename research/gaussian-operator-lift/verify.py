@@ -27,9 +27,7 @@ def pins_and_phrases() -> None:
     core = (ROOT / "research/gaussian-core-row/README.md").read_text(encoding="utf-8")
     bridge = (ROOT / "research/gaussian-tensor-bridge/README.md").read_text(encoding="utf-8")
     audit = (ROOT / "research/halo-locality-witness-audit/README.md").read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "For any row at distance A=ceil(p^48) from a section" in halo
     assert "EXACTLY the corresponding row of the global P_i" in halo
     assert "||P - H_sec^{-1}||_2 < p^6 exp(-p^2)," in core
@@ -37,7 +35,6 @@ def pins_and_phrases() -> None:
     assert "meets `||B - C|| < 2 ε` once both are within `ε` of the" in bridge
     assert "distance exactly (2J-1)W differs" in audit
     assert "||H_sec^-1-P_sec|| + ||P-H^-1|| <= 2p^10 exp(-p^2)." in audit
-    assert selected["kappa"] == "23/10000"
 
 
 def apply_row(matrix: tuple[tuple[int, int], tuple[int, int]], vector: tuple[int, int]) -> tuple[int, int]:

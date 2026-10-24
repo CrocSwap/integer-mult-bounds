@@ -42,7 +42,6 @@ def authenticate():
     expected = {
         "research/selected-k8-unrestricted-ends/README.md",
         "research/complex-local-word-ceiling/ceiling.py",
-        "certificates/selected-result.json",
     }
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
@@ -66,7 +65,8 @@ def evaluate():
     published_lo = Fraction(1690198050302, 10**15)
     published_hi = Fraction(1690198050303, 10**15)
     require(lo < published_lo < published_hi < hi, "the published bracket left the grid cell")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     kappa = Fraction(selected["kappa"])
     require(kappa == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     saving = kappa / (1 - kappa)

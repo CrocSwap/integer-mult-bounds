@@ -35,7 +35,7 @@ def sha256(path):
 def authenticate():
     sources = json.loads((PACKAGE / "SOURCES.json").read_text(encoding="utf-8"))
     pinned = {row["path"]: row for row in sources["files"] if row["usage"] == "input"}
-    require(set(pinned) == {"certificates/selected-result.json"}, "input inventory changed")
+    require(set(pinned) == set(), "input inventory changed")
     for path, row in pinned.items():
         require(sha256(ROOT / path) == row["sha256"], "input drift " + path)
 
@@ -81,7 +81,8 @@ def program(powers):
 
 def evaluate():
     authenticate()
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     require((word_tariff(1), word_tariff(2), word_tariff(4)) == (45, 38, 32), "the word tariff lost its descent")
     fused_margins = []

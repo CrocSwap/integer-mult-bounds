@@ -69,9 +69,7 @@ def pins_and_phrases() -> None:
     gauge = (
         ROOT / "research/capped-phase-fusion/CAPPED-GAUGE-AUDIT.md"
     ).read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "beta_i=rho*i-q_i" in log_a
     assert "n_i,h=exp(-a[(rho*h+beta_i)^2-beta_(i+h)^2])" in log_a
     assert "each in {1,2}" in log_a
@@ -90,7 +88,6 @@ def pins_and_phrases() -> None:
     assert "does not assume that a row norm bounds a column norm." in gaussian
     assert "log(a_i/a_j)=a(i-j)(beta_i+beta_j)" in gauge
     assert "A=diag(ahat) Ghat diag(ahat)^-1" in gauge
-    assert selected["kappa"] == "23/10000"
 
 
 def entry_algebra() -> None:

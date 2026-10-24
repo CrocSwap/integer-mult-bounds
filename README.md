@@ -13,56 +13,60 @@ starting with [the coordination guide](https://github.com/CrocSwap/integer-mult-
 New to the construction? Read [the bottleneck brief](docs/research/bottleneck-brief.md).
 Workflow feedback is welcome in [discussion #1200](https://github.com/CrocSwap/integer-mult-bounds/discussions/1200).
 
-## Current reviewed result: joint helper frames and query-thinned controllers
+## Current reviewed result: complete neutral caller
 
-**Cinna Davis's [#4470](https://github.com/CrocSwap/integer-mult-bounds/pull/4470)** gives
+**Chris R / Clear1nsight's [#5413](https://github.com/CrocSwap/integer-mult-bounds/pull/5413)**,
+with the provider audit in **#5407** and independent companion **#5414**, gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{60403}{20000000}=0.00302015>2^{-9}.
+\kappa=\frac{605457647}{200000000000}=0.003027288235>2^{-9}.
 $$
 
-The construction jointly improves helper entrance, exit and contact frames,
-then uses a query-thinned 16-pair controller. It builds on Cinna's
-#4416/#4440/#4441/#4447 sequence, **zxv's productive-helper native construction
-and compiler machinery**, and **Jacob Alan Sussman's mixed-target recursion**.
-The earlier geometry, binary, native, precision and outer contributors retain
-full cumulative credit. [Detailed contribution map](docs/research/community-joint4470-contributors.md).
+It completes **Dillon Amburgey's #5402 coupled provider** on all original
+inputs and uses **Ali Romman's #5398 direct backward controller**. The complete
+caller has 10,928 productive fields and 64,260 paid jobs. Its additional paid
+and productive rank-eight jobs cancel exactly in the signed moment; the final
+5×10⁻¹² beyond #5398/#5400 is compiler/outer headroom.
 
-All **eight scoped, serial replays** passed in the changed-construction review,
-including native operators and phases, the complete recursive invoice,
-completion/compiler bounds, and the outer ledger. Independent audits by
-**Mihir Srivastava and Ryanson Jonathan** were replayed; **Mark / Matarener**
-identified the commutation question resolved by the stage-zero audits.
-The exact-source PR4359/PR4416 foundation reviews are reused explicitly.
+**Cao Yifan's native construction**, **Cinna Davis's controllers/helpers**,
+**zxv's native/compiler/precision machinery**, **Jacob Alan Sussman's mixed-target
+recursion**, and the cumulative BIT, Clifford, geometry, analytic and
+verification contributors retain full credit.
+[Detailed contributor map](docs/research/community-neutral5413-contributors.md).
 
-The result retains the analytic, exact-recovery, native/all-column, whole-job,
-owned-erasure, precision and fixed-tape hypotheses identified in the review.
-It is **not a complete Lean proof or an independent human verification of the
-multiplication theorem**. The uniform templates are algorithm-defined and
+The provider, all eight primary admission stages, and companion screen passed
+under serial memory/time guards. The reviewed PR4610/#5241 and earlier
+foundation is reused explicitly. The new result retains **exactly the same five
+conditional framework assumptions**. Local verification used macOS with a
+documented resource-limit adapter; it is not reported as a Linux run.
+
+This is **not a complete Lean proof or independent human verification of the
+multiplication theorem**. Uniform templates are algorithm-defined and
 astronomically large; they were not materialized. No practical speed improvement
-is claimed.
+is claimed. The saving κ is about **0.182424% larger** than the preceding selected
+0.0030217758; that comparison concerns exponents, not measured runtimes.
 
 [Selected record](certificates/selected-result.json) ·
-[Proof review](docs/research/pr-intake-evidence/pr4470/PROOF-REVIEW.md) ·
-[Review replays](docs/research/pr-intake-evidence/pr4470/VALIDATION.json) ·
-[Selection/integration receipt](docs/research/pr-intake-evidence/pr4470/INTEGRATION.json) ·
+[Proof review](docs/research/pr-intake-evidence/pr5413/PROOF-REVIEW.md) ·
+[Selected replay](docs/research/pr-intake-evidence/pr5413-promotion/VALIDATION.json) ·
+[Integration receipt](docs/research/pr-intake-evidence/pr5413-promotion/INTEGRATION.json) ·
 [Contributors](CONTRIBUTORS.md) · [PR ledger](docs/research/pr-ledger.md)
 
 ```sh
-# Fast source/metadata check and orientation; no operator replay.
+# Fast source/metadata check; no operator replay.
 python3 -B scripts/research_selected_baseline.py
-# Serial changed-construction replay in a fresh export, with bounded memory.
-# Explicitly reuses the source-identical reviewed foundation.
-make frontier4470-verify
+# Full independent admission replay in a closed export with bounded memory.
+make frontier5413-verify
 ```
 
-The exponent saving is **31.31% larger** than the last selected 0.0023 checkpoint
-and **12.42% larger** than the intermediate reviewed 0.00268647 checkpoint.
-These compare exponent savings, not measured runtimes. Later compiler-size
-proposals #4483/#4507 are not required for this selection.
-Frozen source notes retain their submission-time status; the selected record
-and integration receipt identify the current publication.
+The replay exports the complete frozen provider, primary and companion
+packages; it does not alter submitted research sources to fit the new selection.
+The [PR4610 checkpoint](certificates/checkpoints/frontier4610.json),
+[review](docs/research/pr-intake-evidence/pr4610/PROOF-REVIEW.md) and
+[contributor map](docs/research/community-native4610-contributors.md) remain preserved.
+Frozen source notes retain submission-time status. The selected record and
+integration receipt identify current publication and execution coverage.
 
 ## Historical checkpoint: productive helper jobs
 

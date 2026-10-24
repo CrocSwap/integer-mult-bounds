@@ -33,14 +33,11 @@ def pins_and_phrases() -> None:
     shallow = (
         ROOT / "research/unconditional-batched-crt/vendor/SHALLOW-TOEPLITZ.md"
     ).read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "logarithmic prefix norm O(log B log poly(p))." in gaussian
     assert "sufficient dyadic p^100 bound" in gaussian
     assert "D_tri(N)=O(log^2 N)." in shallow
     assert "eta/(1-eta)" in shallow
-    assert selected["kappa"] == "60403/20000000"
 
 
 def eye(size: int) -> list[list[int]]:

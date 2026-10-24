@@ -16,8 +16,6 @@ PACKAGE = Path(__file__).resolve().parent
 README = ROOT / "research/rank7-joint-endframes/README.md"
 PRODUCER = ROOT / "research/rank7-joint-endframes/producer.py"
 PRICES = ROOT / "research/rank7-joint-endframes/construction/STAGE-PRICES.json"
-FAMILY = ROOT / "docs/research/research-family-status.md"
-SELECTED = ROOT / "certificates/selected-result.json"
 MARKER = "PASS_RANK7_V45_MARGIN joint_positive=true singles_negative=true no_new_kappa"
 BASIS = (256, 128, 64, 35, 16, 11, 5)
 HELPERS = (249, 251, 265, 267)
@@ -48,8 +46,6 @@ def authenticate():
         "research/rank7-joint-endframes/README.md",
         "research/rank7-joint-endframes/producer.py",
         "research/rank7-joint-endframes/construction/STAGE-PRICES.json",
-        "docs/research/research-family-status.md",
-        "certificates/selected-result.json",
     }
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
@@ -79,14 +75,11 @@ def evaluate():
     authenticate()
     readme = README.read_text(encoding="utf-8")
     producer = PRODUCER.read_text(encoding="utf-8")
-    family = FAMILY.read_text(encoding="utf-8")
-    selected = json.loads(SELECTED.read_text(encoding="utf-8"))
     prices = json.loads(PRICES.read_text(encoding="utf-8"))
     require("(x & normal).bit_count() % 2 == 0" in producer, "the hyperplane test moved")
     require("'V45': ([256, 128, 64, 35, 16, 11, 5], [249, 251, 265, 267])" in producer, "the V45 group moved")
     require("E_7 ∩ E_42 ∩ E_45" in readme, "the intersection claim moved")
-    require("Reports 22 coordinated helper lowerings, five extra paired extractions, and κ ≈ 0.001729." in family, "the archive status moved")
-    require(selected["kappa"] == "836330098538459/500000000000000000", "the selected kappa moved")
+    # The family-status page and selected record are provenance pins, checked at base_commit by scripts/research_package.py.
     require("0.001729033982646513517717" in readme, "the headline moved")
     weights = prices["weights"]
     break_even = weights["break_even"]

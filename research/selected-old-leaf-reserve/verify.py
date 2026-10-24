@@ -55,13 +55,14 @@ def pins_and_phrases() -> None:
     sources = json.loads((PACKAGE / "SOURCES.json").read_text(encoding="utf-8"))
     pinned = {row["path"] for row in sources["files"]}
     for row in sources["files"]:
+        if row["usage"] != "input":
+            continue
         digest = hashlib.sha256((ROOT / row["path"]).read_bytes()).hexdigest()
         need(digest == row["sha256"], "pin " + row["path"])
     for path, phrase in PHRASES:
         need(path in pinned, "unpinned phrase source " + path)
         need(phrase in (ROOT / path).read_text(encoding="utf-8"), f"phrase in {path}: {phrase}")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
-    need(selected["kappa"] == "60403/20000000", "selected kappa")
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 def certificate() -> dict:

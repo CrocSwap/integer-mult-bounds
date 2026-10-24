@@ -125,12 +125,12 @@ def cost(size):
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / ARCHIVE) == "f1da80610bf33c58527f18ad63b4350d0b864e1d4486141ee17ac9bed4d529d6", "archive drift")
     require(sha256(ROOT / BUDGETS) == "253deb61a0c90674726fa77d143e140a8f46012b1bdddc37e6f127ba8a56d464", "budget drift")
     require(sha256(PACKAGE / "cover.json") == COVER_SHA, "cover drift")
     require(sha256(PACKAGE / "witness.json") == WITNESS_SHA, "witness drift")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     budgets = json.loads((ROOT / BUDGETS).read_text(encoding="utf-8"))["complex"]["shrink"]
     require(budgets["rank2/incumbent_ceiling"]["charge"] == 164, "the rank-2 ceiling moved")

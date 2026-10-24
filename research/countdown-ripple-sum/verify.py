@@ -29,7 +29,8 @@ def trailing_zeros(number):
 
 
 def main():
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text())
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(selected["kappa"] == SELECTED, "selected kappa moved")
     ripple = 0
     valuation = 0

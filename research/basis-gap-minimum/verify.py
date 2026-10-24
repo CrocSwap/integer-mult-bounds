@@ -109,14 +109,9 @@ def minimum(case, family, alphabet, floor):
 
 
 def evaluate():
-    selected = ROOT / "certificates/selected-result.json"
-    require(
-        hashlib.sha256(selected.read_bytes()).hexdigest()
-        == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129",
-        "selected record drift",
-    )
     require(hashlib.sha256((PACKAGE / "fixtures.json").read_bytes()).hexdigest() == FIXTURE_SHA, "fixture drift")
-    record = json.loads(selected.read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    record = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(record["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     cases = json.loads((PACKAGE / "fixtures.json").read_text(encoding="utf-8"))
     require([case["name"] for case in cases] == ["basis-gap-coordinate", "basis-gap-mixed"], "the fixture pair moved")

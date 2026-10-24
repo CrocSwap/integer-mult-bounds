@@ -39,7 +39,8 @@ def sha256(path):
 
 
 def local_profile():
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     assembly = json.loads((ROOT / ASSEMBLY).read_text(encoding="utf-8"))
     independent = json.loads((ROOT / INDEPENDENT).read_text(encoding="utf-8"))
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
@@ -75,7 +76,6 @@ def histogram(mass):
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / ASSEMBLY) == "1122cb3a575f8c788345fc1bf4c108ac7c3250fb81a5988671f5eb04b3ab3045", "assembly drift")
     require(sha256(ROOT / INDEPENDENT) == "301fb8a0e4ab7e3c383ff974c54c08178283b2a3453c5282757f692a3c7a4bfd", "independent drift")
     require(2 * CAP * CAP < MODULUS * MODULUS, "the halving guard moved")

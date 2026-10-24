@@ -36,15 +36,12 @@ def pins_and_phrases() -> None:
     gate = (ROOT / "research/gaussian-tensor-nine/README.md").read_text(encoding="utf-8")
     nine = (ROOT / "research/gaussian-neumann-nine/README.md").read_text(encoding="utf-8")
     halo = (ROOT / "research/unconditional-batched-crt/HALO.md").read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "16 g L ≤ p" in gate
     assert "9 < 16" in gate
     assert "9 > 8" in gate
     assert "8 p^2 < U < 9 p^2." in nine
     assert "||P_i-H_i^-1||_2 <= p^10 exp(-p^2)." in halo
-    assert selected["kappa"] == "60403/20000000"
 
 
 def fourths() -> None:

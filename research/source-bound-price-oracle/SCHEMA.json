@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "source-bound-price-candidate/v1",
+  "title": "Immutable scientific payload with separately attached independent receipts",
+  "type": "object",
+  "required": ["schema", "candidate_id", "scientific_head", "canonical_comparison_base", "attribution", "assumptions", "source_dependencies", "model", "profile", "planes", "receipts"],
+  "properties": {
+    "schema": {"const": "source-bound-price-candidate/v1"},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "scientific_head": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "canonical_comparison_base": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "attribution": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "assumptions": {"const": ["native_all_columns", "owned_erasure", "compiler", "precision_tape", "analytic_recovery"]},
+    "source_dependencies": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/sha"}},
+    "literal_witness_sha256": {"$ref": "#/$defs/sha"},
+    "model": {"type": "object", "required": ["id", "parameters", "theorem_evidence_sha256"], "properties": {"id": {"type": "string"}, "parameters": {"type": "object"}, "theorem_evidence_sha256": {"$ref": "#/$defs/sha"}}},
+    "profile": {"type": "object", "required": ["paid", "productive", "paid_jobs", "productive_jobs", "excluded_productive_credit"], "properties": {"paid": {"$ref": "#/$defs/histogram"}, "productive": {"$ref": "#/$defs/histogram"}, "paid_jobs": {"type": "integer", "minimum": 1}, "productive_jobs": {"type": "integer", "minimum": 1}, "excluded_productive_credit": {"const": {"aliases": 0, "copies": 0, "surrendered": 0}}}},
+    "planes": {"type": "object", "required": ["paid_productive", "ordinary", "ownership_stock", "precision_tape", "compiler_reserves", "bit_outer"], "additionalProperties": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/cost"}}},
+    "receipts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sha"}},
+    "requested_label": {"enum": ["MODEL_ONLY", "WITNESS_READY", "PHYSICAL_CHECKED", "COMPLETE_BILL_READY", "FUNDED_CONDITIONAL", "PUBLIC_REVIEWABLE", "SELECTED"]}
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "histogram": {"type": "object", "minProperties": 1, "patternProperties": {"^[1-9][0-9]*$": {"type": "integer", "minimum": 0}}, "additionalProperties": false},
+    "cost": {"type": "object", "required": ["id", "value_or_symbol", "unit", "state", "evidence_sha256", "dependency_hashes", "invalidation_conditions"], "properties": {"id": {"type": "string"}, "value_or_symbol": {"type": ["string", "integer", "object", "null"]}, "unit": {"type": "string", "minLength": 1}, "state": {"enum": ["proved", "constructively_upper_bounded", "optimistically_relaxed", "unknown"]}, "evidence_sha256": {"type": "array", "items": {"$ref": "#/$defs/sha"}}, "dependency_hashes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/sha"}}, "invalidation_conditions": {"type": "array", "minItems": 1, "items": {"type": "string"}}}}
+  }
+}

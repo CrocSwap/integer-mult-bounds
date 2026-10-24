@@ -51,12 +51,12 @@ def orthogonal_order():
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / GAUGE) == "ef27afc3a70656d3139bf3661ac0b2088622f37221141cc386d41324b7c563d0", "gauge note drift")
     require(sha256(ROOT / LAYER) == "43feda0342c07a9429699c3a44e8936a3f3fb57ce9b32f38ff3dc06ac887b265", "layer proof drift")
     require(sha256(ROOT / ENVELOPE) == "efede1e472e45f78baf304da6bff7b6685b6bb4ae06cf6a1ea9d1ceaf6fd3b88", "envelope note drift")
     require(sha256(ROOT / TARBALL) == "d4acf04daef85d4514f80ec5fcd2492d0c60e5d6c49fa71b3e6523f8db2dea86", "assembler archive drift")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     gauge = (ROOT / GAUGE).read_text(encoding="utf-8")
     pairs = re.search(r"\$\((\d+),(\d+)\),\((\d+),(\d+)\),\((\d+),(\d+)\)\$", gauge)

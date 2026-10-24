@@ -87,10 +87,7 @@ def callers_write_these_exponents() -> None:
     assert "p^10" not in audit
     assert "INVERSE-CONDITIONING.md bounds narrow principal restrictions" in audit
 
-    selected = json.loads(
-        (ROOT / "certificates" / "selected-result.json").read_text(encoding="utf-8")
-    )
-    assert selected["kappa"] == "836330098538459/500000000000000000"
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 def multiply(left: list[int], right: list[int]) -> list[int]:

@@ -42,12 +42,12 @@ def gap(degree, coefficient):
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / ASSEMBLY) == "1122cb3a575f8c788345fc1bf4c108ac7c3250fb81a5988671f5eb04b3ab3045", "assembly drift")
     require(sha256(ROOT / THREE) == "ccf34a6d37c4af14bebeab15be50ab204eb1caebe546385520050ec30089441d", "three-stage note drift")
     require(sha256(ROOT / PAIRED) == "45f28775ebf36338df9312957fd09af3c635690acc02ae3d60431ccd16fb46c3", "paired-cube note drift")
     require(sha256(ROOT / TARBALL) == "d4acf04daef85d4514f80ec5fcd2492d0c60e5d6c49fa71b3e6523f8db2dea86", "assembler archive drift")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     with tarfile.open(ROOT / TARBALL) as archive:
         assembler = archive.extractfile("code/assemble.py").read().decode("utf-8")

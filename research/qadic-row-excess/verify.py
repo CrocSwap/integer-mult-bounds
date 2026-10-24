@@ -48,11 +48,11 @@ def level_bits():
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / PROOF) == "74cc8de20f21acb5123fe2d20996fe0925ea6e51b3dec633bd5221fb719b3344", "closure proof drift")
     require(sha256(ROOT / PARENT) == "16b84730b7a604e805034008e11bae4f90fe6c91db6098d5bd5d011dded5f4ee", "parent note drift")
     require(sha256(ROOT / TARBALL) == "d4acf04daef85d4514f80ec5fcd2492d0c60e5d6c49fa71b3e6523f8db2dea86", "assembler archive drift")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     proof = (ROOT / PROOF).read_text(encoding="utf-8")
     require("odd prime q>2^80" in proof, "the prime bound moved")

@@ -51,6 +51,44 @@ dependencies or make a Git-dependent checker portable. The generic registered
 runner still needs Git history for its provenance checks. The exported manifest
 is preserved unchanged; successful export is not a successful registered replay.
 
+## Select a separate input commit
+
+Use `--input-ref COMMIT` when a published package needs its external inputs
+from one historical commit. The package files and unchanged `VERIFY.json`
+come from `--ref`; all external declared inputs and their executable modes
+come from `--input-ref`. Both refs are resolved to exact commits. The receipt
+and CLI result add `input_commit`; ordinary exports keep the original format
+and bytes. The offline checker validates this optional commit label.
+
+```sh
+python3 -B scripts/export_research_package.py export \
+  --package research/bit-semidir21-orbit-seed8f89 \
+  --ref 1ec1119972c9aefe42525172d07b332fcff81cb4 \
+  --input-ref 1c47876ef742ba64bf9140b0527d63acf656a3b4 \
+  --output /tmp/semidir21-historical-inputs.tar
+python3 -B scripts/export_research_package.py check /tmp/semidir21-historical-inputs.tar
+```
+
+The example uses the package's recorded common source base. Both Git trees
+must be available. A declared input inside the package is rejected in this
+mode because its two source contexts would conflict. Missing, non-regular,
+unsafe or directory inputs still fail, and no output is published on failure.
+A historical input can be absent from the publication tree and checkout.
+Git replacement refs remain disabled for both snapshots.
+
+This option does not select a source base automatically or check mathematical
+compatibility. Check the package's exact source pins, then run its unchanged
+direct verifier in the checked export. A wrong but well-formed input commit
+can produce a valid transport archive whose scientific verifier rejects it.
+Inputs from several commits need a separately prepared source archive; this
+option selects one common input tree. No frozen file, pin or working-tree
+input is changed. The full Git-history and provenance limits above still apply.
+
+New option and regression fixtures: Ali Romman with substantial OpenAI Codex
+assistance, Apache-2.0. Tekalign's exporter, roger-sato's path and immutable
+object safeguards, Mihir Srivastava's portable fixtures and Dennis's explicit
+historical-replay precedent retain credit.
+
 ## File and directory conflicts
 
 The regular-file inventory must also form a valid tree: a member cannot be an

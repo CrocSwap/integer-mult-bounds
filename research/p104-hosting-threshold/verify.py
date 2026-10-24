@@ -49,7 +49,6 @@ def authenticate():
         "research/p104-endpoint-geometric-budget/README.md",
         "research/p104-native-channel/README.md",
         "research/complex-local-word-ceiling/ceiling.py",
-        "certificates/selected-result.json",
     }
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
@@ -74,7 +73,8 @@ def evaluate():
     authenticate()
     budget = (ROOT / "research/p104-endpoint-geometric-budget/README.md").read_text(encoding="utf-8")
     native = (ROOT / "research/p104-native-channel/README.md").read_text(encoding="utf-8")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     for sentence in (
         "1074 H1 + 58 H2 + 86 H3 + 104 H4 + 48 H5 + 24 H6 + 8 H7 + 8 H8.",
         "Its rank mass is 2368. Every added lifetime consumes nine more rank units,",

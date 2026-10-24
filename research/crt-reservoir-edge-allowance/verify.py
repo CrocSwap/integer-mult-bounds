@@ -34,10 +34,7 @@ def pins_and_phrases() -> None:
             need(digest == row["sha256"], row["path"])
     proof = (ROOT / "research/compact-switch-sharp-density/PROOF.md").read_text(encoding="utf-8")
     need(PRODUCT in proof, "printed product line")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
-    need(selected["kappa"] == "60403/20000000", "selected kappa")
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 def load_allocator():

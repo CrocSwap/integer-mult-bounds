@@ -12,7 +12,7 @@ same bytes every time and parses them once. On this machine the cached pass
 was faster by more than a factor of two. The checker requires that ratio on
 every replay and prints both times.
 
-Changing the decimal digit from `8` to `9` misses. Restoring the original
+Changing the last digit of the `decimal` field misses (on the pinned record, `8` to `9`; the checker now changes whatever digit the live record has). Restoring the original
 bytes parses again, so the changed object is not reused. A hit returns the
 object from the fresh parse.
 

@@ -121,7 +121,7 @@ class CoordinationTests(unittest.TestCase):
         self.assertIn('docs/research/current-priorities.md',root)
         self.assertIn('docs/research/agent-procedure.md',root)
         procedure=(ROOT/'docs/research/agent-procedure.md').read_text()
-        self.assertLess(procedure.index('**Before drawing a card**'),procedure.index('python3 scripts/choose_research_task.py'))
+        self.assertLess(procedure.index('**Before drawing a card**'),procedure.index('python3 scripts/choose_current_research_task.py'))
 
 
 if __name__=='__main__':unittest.main()

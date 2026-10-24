@@ -1,47 +1,69 @@
 # CI verification
 
-## Current selected-family replay: #4470
+## Current selected-family replay: #5413 with #5407 and #5414
 
 The [selected record](../certificates/selected-result.json) binds conditional
-κ = 0.00302015, the [review](research/pr-intake-evidence/pr4470/PROOF-REVIEW.md),
-[explicit source closure](../certificates/frontier4470-source.json), and
-[integration receipt](research/pr-intake-evidence/pr4470/INTEGRATION.json).
+κ = 0.003027288235, the [promotion and scope](research/pr-intake-evidence/pr5413-promotion/PROMOTION.md),
+[explicit source closure](../certificates/frontier5413-source.json),
+[review validation](research/pr-intake-evidence/pr5413-promotion/VALIDATION.json), and
+[integration receipt](research/pr-intake-evidence/pr5413-promotion/INTEGRATION.json).
 
-`make frontier4470-verify` authenticates the selected metadata and exports only
-110 reviewed inputs plus its pinned harness into a fresh directory. It then
-runs eight jobs serially with per-job timeouts and a sampled 1 GiB descendant
-memory limit. The exact-source PR4359 and PR4416 foundation reviews are reused
-explicitly; this is not an undisclosed full historical cold replay. No Lean,
-Docker or optimization search is part of this target.
+`make frontier5413-verify` authenticates the selected source manifest, derives
+the certificate from frozen numerical evidence, and exports the complete
+three-package execution closure. It replays #5407's five-stage provider audit,
+#5413's eight-stage admission, and #5414's independent companion screen serially.
+The exported inputs are checked again afterward. Source-bound #4610/#5241 and
+earlier BIT/native/compiler/tape/analytic foundation coverage is explicitly
+reused; its historical suites are not rerun.
 
-The [frontier4470 workflow](../.github/workflows/frontier4470.yml) uses Ubuntu
-and Python 3.12, read-only permissions and serial execution. It uploads the
-combined validation receipt and individual logs. Historical #4359 and #1094
-workflows are now manual-only. The integration receipt records local and hosted
-status separately; a newly installed workflow is not evidence of a Linux pass.
+Each package runs under an external sampled 1 GiB aggregate descendant-memory
+guard, with timeouts of 660 seconds for the provider and primary packages and
+120 seconds for the companion. On macOS the replay uses the reviewed RLIMIT_AS
+adapter; on Linux it invokes the unmodified package wrappers. The recorded
+successful local macOS replay does not establish a hosted Linux pass.
+
+The [frontier5413 workflow](../.github/workflows/frontier5413.yml) is manual-only,
+uses Python 3.12 on Ubuntu, materializes the declared source closure, and uploads
+receipts and logs. Its status is separate from local validation and recorded in
+the integration receipt. Routine donor PRs do not launch this selected replay.
+
+`make selected-record-check` verifies metadata and source/proof hashes. It does
+not execute the operators or prove the five inherited framework assumptions.
+The finite checks do not establish the full integer multiplication theorem,
+and the uniform word remains unmaterialized.
+
+## Historical selected-family replay: #4610 with #5241
+
+The historical [selected record](../certificates/checkpoints/frontier4610.json) binds conditional
+κ = 0.0030217758, the [review](research/pr-intake-evidence/pr4610/PROOF-REVIEW.md),
+[explicit source closure](../certificates/frontier4610-source.json),
+[review validation](research/pr-intake-evidence/pr4610/VALIDATION.json), and
+[integration receipt](research/pr-intake-evidence/pr4610/INTEGRATION.json).
+
+`make frontier4610-verify` authenticates 585 source pins and exports exactly
+82 reviewed inputs into a fresh directory. The old selected record is explicitly
+remapped from `certificates/checkpoints/frontier4470.json`; frozen source packages
+are unchanged. The eleven admission stages run serially under a sampled 1 GiB
+descendant-memory limit and a 660-second timeout. The source-bound #4470 foundation
+is reused explicitly. This is not a full historical cold replay. No Lean, Docker
+or optimization search is part of this target.
+
+The [frontier4610 workflow](../.github/workflows/frontier4610.yml) is manual-only,
+uses Python 3.12 on Ubuntu, and uploads receipts and logs. Its sparse checkout
+materializes only the source manifest's declared files. Git history authenticates
+the frozen canonical inputs; mathematical replay reads the exported files.
+The integration receipt distinguishes local success from hosted status: no Linux
+pass is claimed until the dedicated hosted replay has actually completed.
+
+The [historical #4470 workflow](../.github/workflows/frontier4470.yml) is now
+manual-only and checks out its last selected checkpoint. Neither workflow runs
+per donor PR. Routine queue intake must not launch historical supplier suites.
 
 `make selected-record-check` verifies hashes and the exact selected κ.
-`python3 -B scripts/research_selected_baseline.py` additionally compares the
-raw certificate's budget stages. Neither is an operator replay or a proof of
-the inherited all-column, movement, compiler, precision, analytic or recovery
-contracts. Frozen source packages retain their original provenance records;
-the replay deliberately supplies those records from historical snapshots.
-
-Selected source pointers: [manifest](../certificates/frontier4470-source.json),
-[proof review](research/pr-intake-evidence/pr4470/PROOF-REVIEW.md), and
-[review validation](research/pr-intake-evidence/pr4470/VALIDATION.json).
-
-The fast `scripts/check_selected_ci_inputs.py` guard accepts both historical
-package-root inventories and the current explicit-file inventory. For explicit
-exports it reads only inventoried pin maps and resolves remapped provenance
-against the frozen exported source. Unlisted neighboring files do not add
-replay dependencies. Unknown manifest formats fail closed.
-
-Its trigger report remains advisory: #4470 deliberately runs on selected-input
-pushes to `main` or manual dispatch, not every PR. Static script inspection also
-reports historical HPE paths mentioned by the shared record checker, even
-though they are not inputs of the current export. A passing metadata guard is
-not a fresh construction replay.
+`python3 -B scripts/research_selected_baseline.py` compares the raw certificate's
+budget stages. Neither is an operator replay or a proof of the five inherited
+framework assumptions. The finite checks do not establish the full integer
+multiplication theorem, and do not materialize the uniform word.
 
 ## Historical selected-family replay through #1094
 

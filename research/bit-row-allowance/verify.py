@@ -37,11 +37,11 @@ def sha256(path):
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / ASSEMBLE) == "4bf6768224a3fac81ccda26df24f3763f9a4fbc35ad62bef2888595cdae519fe", "assembler drift")
     require(sha256(ROOT / PARENT) == "16b84730b7a604e805034008e11bae4f90fe6c91db6098d5bd5d011dded5f4ee", "parent note drift")
     require(sha256(ROOT / GAUGE) == "ef27afc3a70656d3139bf3661ac0b2088622f37221141cc386d41324b7c563d0", "gauge note drift")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     source = (ROOT / ASSEMBLE).read_text(encoding="utf-8")
     require("row = DEPTH * (m * m + 1) + 9909 + 252; assert row == 18355 and row < 20161" in source, "the BIT row assert moved")

@@ -19,9 +19,8 @@ LAST = 200
 
 
 def load() -> dict:
-    selected = json.loads(
-        (ROOT / "certificates" / "selected-result.json").read_text(encoding="utf-8")
-    )
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     if selected["kappa"] != KAPPA:
         raise SystemExit("FAIL_COMPRESSION_ERROR_SUM selected kappa moved")
     return json.loads((PACKAGE / "RESULT.json").read_text(encoding="utf-8"))

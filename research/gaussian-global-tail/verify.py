@@ -27,9 +27,7 @@ def pins_and_phrases() -> None:
     audit = (ROOT / "research/halo-locality-witness-audit/README.md").read_text(encoding="utf-8")
     cell = (ROOT / "research/gaussian-delta-exponents/README.md").read_text(encoding="utf-8")
     conditional = (ROOT / "research/gaussian-halo-exponents/README.md").read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "||P_i-H_i^-1||_2 <= p^10 exp(-p^2)." in halo
     assert "P - H^-1 = -Q^J H^-1." in audit
     assert "(1-p^-40)^J p^10 <= exp(-J p^-40) p^10 <= p^10 exp(-p^2)." in audit
@@ -37,7 +35,6 @@ def pins_and_phrases() -> None:
     assert "does not move the global reference." in cell
     assert "||P - H^-1||_2 < p^6 exp(-p^2)," in conditional
     assert "It does not prove `||H^-1||_2 <= 16 p^2` for the rounded reference." in conditional
-    assert selected["kappa"] == "23/10000"
 
 
 def tail_gap() -> None:

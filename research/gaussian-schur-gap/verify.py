@@ -68,9 +68,7 @@ def pins_and_phrases() -> None:
     fine = (ROOT / "research/unconditional-batched-crt/vendor/FINE-PRIME.md").read_text(
         encoding="utf-8"
     )
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "L=2^ceil(400 log2 p)" in halo
     assert "For A=p^48, L>=p^400" in halo
     assert "S=D-C A^-1 B; do not solve with S^-1" in halo
@@ -78,7 +76,6 @@ def pins_and_phrases() -> None:
     assert "complementary Schur inverse is the corresponding\nprincipal block of T^-1" in conditioning
     assert "The Schur complement itself is bounded by D-C A^-1 B" in conditioning
     assert "its Schur complements retain that gap." in fine
-    assert selected["kappa"] == "23/10000"
 
 
 def elimination_identities() -> None:

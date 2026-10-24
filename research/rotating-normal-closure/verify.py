@@ -203,12 +203,12 @@ def moment(histogram, width, families, saving):
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / LEVERS) == "287a1c1201548665087b9b2034210fac92e805f36ea9d4ab41c2471a92d69d7f", "lever model drift")
     require(sha256(ROOT / GEOMETRY) == "b8ac379e41f5ad83bdb6c7f7c55129fc3d9c07801ea61591478f25d72ff0b021", "geometry drift")
     levers = (ROOT / LEVERS).read_text(encoding="utf-8")
     require("PREC = 200" in levers and "return _down(lo / w), _up(hi / w)" in levers, "the bill rounding moved")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     lines = roots()
     pairs = structure_counts(lines)

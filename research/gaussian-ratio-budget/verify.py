@@ -48,9 +48,7 @@ def pins_and_phrases() -> None:
     log_a = (
         ROOT / "research/capped-phase-fusion/LOG-A-PHASE-SCHUR-AUDIT.md"
     ).read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "Set P=32768p and eta=2^(-P)." in downstream
     assert "2^(-8p)<a_j<=1." in downstream
     assert "absolute error below four eta" in downstream
@@ -62,7 +60,6 @@ def pins_and_phrases() -> None:
     assert "slightly above\nthe true entries." in review
     assert "(1-epsilon) a_i <= ahat_i <= a_i`, with epsilon<=1/2." in gauge
     assert "ahat_j Ghat_(j-k)/ahat_k" in log_a
-    assert selected["kappa"] == "23/10000"
 
 
 def weight_room() -> None:

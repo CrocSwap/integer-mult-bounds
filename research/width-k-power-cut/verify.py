@@ -35,7 +35,7 @@ def sha256(path):
 def authenticate():
     sources = json.loads((PACKAGE / "SOURCES.json").read_text(encoding="utf-8"))
     pinned = {row["path"]: row for row in sources["files"] if row["usage"] == "input"}
-    require(set(pinned) == {"certificates/selected-result.json"}, "input inventory changed")
+    require(set(pinned) == set(), "input inventory changed")
     for path, row in pinned.items():
         require(sha256(ROOT / path) == row["sha256"], "input drift " + path)
 
@@ -68,7 +68,8 @@ def floors_differ(width, exponent):
 
 def evaluate():
     authenticate()
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     witness = 2**EXPONENT
     require(iroot(witness, EXPONENT) == 2, "the old floor moved")

@@ -51,7 +51,6 @@ def authenticate():
         "research/heterogeneous-owner-assembly/README.md",
         "research/complex-local-word-ceiling/ceiling.py",
         "research/complex-local-word-ceiling/README.md",
-        "certificates/selected-result.json",
     }
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
@@ -83,7 +82,8 @@ def evaluate():
     controls = (ROOT / "research/heterogeneous-owner-assembly/controls.py").read_text(encoding="utf-8")
     note = (ROOT / "research/heterogeneous-owner-assembly/README.md").read_text(encoding="utf-8")
     ceiling_readme = (ROOT / "research/complex-local-word-ceiling/README.md").read_text(encoding="utf-8")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(SPEC_SHA in controls, "the control lost the spec digest")
     require('{"1": 2412, "2": 418, "3": 418, "4": 170, "5": 68, "8": 8}' in controls, "the control profile moved")
     require('{"4": 56, "5": 32, "7": 30, "8": 122, "9": 240}' in controls, "the control inventory moved")

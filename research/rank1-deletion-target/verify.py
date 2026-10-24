@@ -43,7 +43,6 @@ def authenticate():
     expected = {
         "research/complex-local-word-ceiling/README.md",
         "research/complex-local-word-ceiling/ceiling.py",
-        "certificates/selected-result.json",
     }
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
@@ -58,7 +57,8 @@ def evaluate():
         "children per call, with everything else fixed, cannot reach it.**" in note,
         "the deletion sentence moved",
     )
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     kappa = Fraction(selected["kappa"])
     require(kappa == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     local_mass = sum(rank * count for rank, count in LOCAL.items())

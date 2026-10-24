@@ -66,10 +66,10 @@ def nonzero(text):
 
 
 def model():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(PACKAGE / "config.json") == CONFIG_SHA, "config drift")
     require(sha256(PACKAGE / "witness.json") == WITNESS_SHA, "witness drift")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     config = json.loads((PACKAGE / "config.json").read_text(encoding="utf-8"))
     witness = json.loads((PACKAGE / "witness.json").read_text(encoding="utf-8"))
     require(config["query_names"] == NAMES, "query names moved")

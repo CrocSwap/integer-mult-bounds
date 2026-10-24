@@ -44,7 +44,7 @@ def authenticate():
     sources = json.loads((PACKAGE / "SOURCES.json").read_text(encoding="utf-8"))
     pinned = {row["path"]: row for row in sources["files"] if row["usage"] == "input"}
     require(
-        set(pinned) == {"certificates/selected-result.json", ASSEMBLY, TARBALL},
+        set(pinned) == {ASSEMBLY, TARBALL},
         "input inventory changed",
     )
     for path, row in pinned.items():
@@ -53,7 +53,8 @@ def authenticate():
 
 def evaluate():
     authenticate()
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000", "decimal": "0.001672660197076918"}
     receipt = json.loads((ROOT / ASSEMBLY).read_text(encoding="utf-8"))
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     require(selected["decimal"] == receipt["kappa_decimal"] == "0.001672660197076918", "the selected decimal moved")

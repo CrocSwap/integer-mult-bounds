@@ -36,9 +36,7 @@ def pins_and_phrases() -> None:
     halo = (ROOT / "research/unconditional-batched-crt/HALO.md").read_text(encoding="utf-8")
     fold = (ROOT / "research/gaussian-tensor-nine-fold/README.md").read_text(encoding="utf-8")
     faces = (ROOT / "research/gaussian-tensor-nine-faces/README.md").read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "g p^(10g) exp(-p^2)," in halo
     assert "Keep outputs at distance A" in halo
     assert "The resulting exponent is at most" in fold
@@ -47,7 +45,6 @@ def pins_and_phrases() -> None:
         "2 g (9 p^2 + p^6 exp(-p^2))^{g-1} p^6 exp(K p - p^2) < 2^{-C p}."
         in faces
     )
-    assert selected["kappa"] == "23/10000"
 
 
 def series_and_bits() -> None:

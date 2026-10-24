@@ -38,10 +38,7 @@ def pins_and_phrases() -> None:
     need(ABSORPTION in proof, "printed 1/6400 absorption")
     need(GUARD_LINE in allocator, "constructor guard formula")
     need('ell >= logarithm' in allocator, "constructor logarithm floor")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
-    need(selected["kappa"] == "60403/20000000", "selected kappa")
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 def load_allocator():

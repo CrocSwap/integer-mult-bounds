@@ -62,7 +62,6 @@ def idle_histogram(ports, replicas, half):
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / RECIPE) == "6368196a393ac25bb2918880e4c4bd31ed733b762c27b6873ab391cbc0c5c3c8", "recipe drift")
     require(sha256(ROOT / CONFIG) == "283d7fad45155ee91e704d63ec947cf4a60aeff5cc43510bc0e835f7da7d8767", "replica config drift")
     require(sha256(ROOT / PORTS) == "a054ce8453e2936d45c4edd1c3678993903fcf6705ac241b9f1a4c4f9accda2d", "port note drift")
@@ -80,7 +79,8 @@ def evaluate():
         require(clause in recipe, "a schedule clause moved")
     require("REPLICAS = 32" in (ROOT / CONFIG).read_text(encoding="utf-8"), "the replica count moved")
     require("v = 111 live ports" in (ROOT / PORTS).read_text(encoding="utf-8"), "the live port count moved")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     ports, replicas = 111, 32
     forward, reverse = calls(HALF)

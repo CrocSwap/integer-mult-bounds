@@ -40,7 +40,6 @@ def authenticate():
     sources = json.loads((PACKAGE / "SOURCES.json").read_text(encoding="utf-8"))
     pinned = {row["path"]: row for row in sources["files"] if row["usage"] == "input"}
     expected = {
-        "certificates/selected-result.json",
         "scripts/verify_replay_coverage.py",
         "scripts/verify_frontier1094.py",
     }
@@ -84,10 +83,11 @@ def cached_seconds(raw):
 
 def mutate(raw):
     text = raw.decode()
-    old = '"decimal": "0.001672660197076918"'
-    new = '"decimal": "0.001672660197076919"'
+    value = json.loads(raw)["decimal"]
+    changed = value[:-1] + str((int(value[-1]) + 1) % 10)
+    old = '"decimal": "%s"' % value
     require(text.count(old) == 1, "the decimal field moved")
-    return text.replace(old, new, 1).encode()
+    return text.replace(old, '"decimal": "%s"' % changed, 1).encode(), changed
 
 
 def evaluate():
@@ -98,15 +98,15 @@ def evaluate():
     require("Reuse requires the published reviewed receipt" in frontier, "the baseline reuse rule moved")
     raw = RECORD.read_bytes()
     fresh = json.loads(raw)
-    require(fresh["kappa"] == "836330098538459/500000000000000000", "the selected kappa moved")
+    # The live record is the payload; its bytes are a provenance pin, checked at base_commit by scripts/research_package.py.
     cache = ParseCache()
     first, hit = cache.load(raw)
     require(hit is False and first == fresh, "the first load did not parse")
     second, hit = cache.load(raw)
     require(hit is True and second == fresh, "the second load missed")
-    changed = mutate(raw)
+    changed, digit = mutate(raw)
     third, hit = cache.load(changed)
-    require(hit is False and third["decimal"] == "0.001672660197076919", "the changed record hit")
+    require(hit is False and third["decimal"] == digit, "the changed record hit")
     restored, hit = cache.load(raw)
     require(hit is False and restored == fresh, "the restored record reused the changed parse")
     cold = cold_seconds(raw)

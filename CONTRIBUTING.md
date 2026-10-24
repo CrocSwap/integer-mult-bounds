@@ -63,6 +63,12 @@ For a parameter improvement, supply exact rational choices, the full dependency
 argument, and an updated patch against the pinned source. Explain whether the
 change stays within the parameter ceiling or changes one of its hypotheses.
 
+Before extending a recursive cost edit, compare its complete paid and target
+histograms with the [signed invoice preflight](docs/research/recursive-invoice-preflight.md).
+It can certify uniform concave-moment gains or losses without a root search.
+Its accounting contract is declared; source correctness and supplier admission
+still require their own evidence.
+
 Keep `upstream/`, frozen source archives and pinned evidence unchanged. When
 changing generated artifacts, edit their generators and include the regenerated
 certificates and patches in the same change. Run the checks affected by your

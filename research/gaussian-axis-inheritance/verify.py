@@ -26,9 +26,7 @@ def pins_and_phrases() -> None:
     halo = (ROOT / "research/unconditional-batched-crt/HALO.md").read_text(encoding="utf-8")
     core = (ROOT / "research/gaussian-core-row/README.md").read_text(encoding="utf-8")
     nine = (ROOT / "research/gaussian-neumann-nine/README.md").read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "A=ceil(p^48)" in halo
     assert "EXACTLY the corresponding row of the global P_i" in halo
     assert "Keep outputs at distance A" in halo
@@ -36,7 +34,6 @@ def pins_and_phrases() -> None:
     assert "||P - H_sec^{-1}||_2 < p^6 exp(-p^2)," in core
     assert "8 p^2 < U < 9 p^2." in nine
     assert "an inverse bound only when the #4452 gauge holds" in nine
-    assert selected["kappa"] == "23/10000"
 
 
 def inheritance() -> None:

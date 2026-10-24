@@ -35,14 +35,11 @@ def pins_and_phrases() -> None:
     halo = (ROOT / "research/unconditional-batched-crt/HALO.md").read_text(encoding="utf-8")
     gate = (ROOT / "research/gaussian-tensor-nine/README.md").read_text(encoding="utf-8")
     nine = (ROOT / "research/gaussian-neumann-nine/README.md").read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "||P_i-H_i^-1||_2 <= p^10 exp(-p^2)." in halo
     assert "g p^(10g) exp(-p^2)," in halo
     assert "16 g L ≤ p" in gate
     assert "8 p^2 < U < 9 p^2." in nine
-    assert selected["kappa"] == "23/10000"
 
 
 def heaviest() -> None:

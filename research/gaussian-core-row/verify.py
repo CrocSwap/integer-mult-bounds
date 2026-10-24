@@ -32,14 +32,11 @@ def pins_and_phrases() -> None:
         if row["usage"] == "input":
             assert digest(ROOT / row["path"]) == row["sha256"], row["path"]
     halo = (ROOT / "research/unconditional-batched-crt/HALO.md").read_text(encoding="utf-8")
-    selected = json.loads(
-        (ROOT / "certificates/selected-result.json").read_text(encoding="utf-8")
-    )
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
     assert "A=ceil(p^48)" in halo
     assert "EXACTLY the corresponding row of the global P_i" in halo
     assert "Keep outputs at distance A" in halo
     assert "g p^(10g) exp(-p^2)," in halo
-    assert selected["kappa"] == "23/10000"
 
 
 def agreement() -> None:

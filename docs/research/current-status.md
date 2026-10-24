@@ -1,32 +1,38 @@
 # Current reviewed status
 
-Selected conditional κ: **0.00302015** = 60403/20000000, Cinna Davis's #4470
-joint-helper construction on the query-thinned controller, zxv's productive-helper
-native/compiler machinery and Jacob Alan Sussman's mixed-target recursion.
+Selected conditional κ: **0.003027288235** = 605457647/200000000000,
+Chris R / Clear1nsight's PR5413 complete neutral caller, with the provider audit
+in PR5407 and independent companion PR5414. It uses Dillon Amburgey's PR5402
+coupled provider and Ali Romman's PR5398 direct controller. Cao Yifan's native
+construction, Cinna Davis's helpers/controllers, zxv's compiler/precision work,
+Jacob Alan Sussman's mixed-target recursion and the earlier lineage remain credited.
 
 [Selected record](../../certificates/selected-result.json) ·
-[Proof review](pr-intake-evidence/pr4470/PROOF-REVIEW.md) ·
-[Selection/integration receipt](pr-intake-evidence/pr4470/INTEGRATION.json) ·
-[Contributors](community-joint4470-contributors.md).
+[Proof review](pr-intake-evidence/pr5413/PROOF-REVIEW.md) ·
+[Promotion and scope](pr-intake-evidence/pr5413-promotion/PROMOTION.md) ·
+[Integration receipt](pr-intake-evidence/pr5413-promotion/INTEGRATION.json) ·
+[Contributors](community-neutral5413-contributors.md).
 
-Replay: `make frontier4470-verify`. Eight scoped jobs run serially in a fresh
-closed export with a sampled 1 GiB descendant-memory limit. The source-identical
-PR4359/PR4416 foundation reviews are explicitly reused, not rerun. The new
-selected metadata and orientation bind the raw, uniform, ordinary BIT and
-outer budgets separately. Read the integration receipt for execution and hosted
-CI status; a workflow definition is not a successful Linux run.
+Replay: `make frontier5413-verify`. The provider's five engines, primary eight
+engines and independent companion screen run serially in a closed source export
+under a sampled 1 GiB descendant-memory limit and per-package timeouts.
+Source-bound PR4610/#5241 and earlier foundation coverage is reused, not rerun.
+The local macOS replay uses an explicit RLIMIT_AS compatibility adapter;
+it is not presented as an unmodified Linux run.
 
-All-column/native, whole-job matching, owned erasure, compiler closure,
-precision/fixed-tape, analytic, prime and recovery hypotheses remain explicit.
-This is not a full Lean or independent human verification of multiplication,
-and the winning uniform templates are not materialized.
+Exactly the five preceding assumptions remain: native/all-column realization,
+owned erasure, compiler closure, precision/fixed-tape execution, and analytic
+recovery. No complete Lean or independent human multiplication proof is claimed;
+the enormous uniform word is not materialized. Hosted CI status is separate
+from the successful local replay and recorded in the integration receipt.
 
-The preceding selected [#4359 checkpoint](../../certificates/checkpoints/frontier4359.json)
-is preserved at 0.0023. The [#4416/#4433 review](pr-intake-evidence/pr4416/PROOF-REVIEW.md)
-supports the intermediate 0.00268647. The frozen #4470 review's statement that
-selection had not yet migrated describes its review-time state; the current
-integration receipt supersedes that publication status. #4483/#4507 compiler-size
-improvements remain a separate review and are not premises of this selection.
+The [preceding selected checkpoint](../../certificates/checkpoints/frontier4610.json)
+is 0.0030217758. Its [review](pr-intake-evidence/pr4610/PROOF-REVIEW.md) remains part
+of the inherited foundation. The gain is about 0.182424%; the final +5×10⁻¹² over
+#5398/#5400 is compiler/outer headroom. Equal additional paid/target H8 jobs
+preserve the raw signed moment. Frozen submission and review files retain their
+pre-promotion wording; this status and the integration receipt supersede that
+publication status without rewriting the evidence.
 
 The remaining sections form a **historical snapshot**; their “current” wording
 is local to their checkpoint, not the selected record above.

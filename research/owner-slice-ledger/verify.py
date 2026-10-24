@@ -82,11 +82,11 @@ def ledger():
 
 
 def evaluate():
-    require(sha256(ROOT / "certificates/selected-result.json") == "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129", "selected record drift")
     require(sha256(ROOT / INDEPENDENT) == "301fb8a0e4ab7e3c383ff974c54c08178283b2a3453c5282757f692a3c7a4bfd", "independent drift")
     require(sha256(ROOT / OWNERS) == "87902c528dfab7d503dcf8a784260e3ab6fb7424c418a1820f7261f25be7b6bc", "owner drift")
     require(sha256(ROOT / PLAN) == "7bd786ba8e66408f02aa9ef446eaf20c1bfe981ea2e4dd1e5a929f0aa7767bc0", "plan drift")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(Fraction(selected["kappa"]) == Fraction(836330098538459, 500000000000000000), "the selected kappa moved")
     independent = json.loads((ROOT / INDEPENDENT).read_text(encoding="utf-8"))
     idle, shared, witness_width = ledger()

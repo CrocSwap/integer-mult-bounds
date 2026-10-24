@@ -40,10 +40,11 @@ def need(condition: bool, message: str) -> None:
 def pins() -> None:
     sources = json.loads((PACKAGE / "SOURCES.json").read_text(encoding="utf-8"))
     for row in sources["files"]:
+        if row["usage"] != "input":
+            continue
         digest = hashlib.sha256((ROOT / row["path"]).read_bytes()).hexdigest()
         need(digest == row["sha256"], "pin " + row["path"])
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
-    need(selected["kappa"] == "60403/20000000", "selected kappa")
+    # certificates/selected-result.json is a provenance pin, checked at base_commit by scripts/research_package.py.
 
 
 def compile_engine(directory: Path) -> Path:

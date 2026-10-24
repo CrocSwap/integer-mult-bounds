@@ -56,7 +56,6 @@ def authenticate():
         "research/complex-local-word-ceiling/levers.py",
         "research/complex-local-word-ceiling/README.md",
         "research/split-centres-global/proofs/PR386-BIT-GEOMETRY.txt",
-        "certificates/selected-result.json",
     }
     require(set(pinned) == expected, "input inventory changed")
     for path, row in pinned.items():
@@ -85,7 +84,8 @@ def evaluate():
     levers = (CEILING_DIR / "levers.py").read_text(encoding="utf-8")
     readme = (CEILING_DIR / "README.md").read_text(encoding="utf-8")
     geometry = (ROOT / "research/split-centres-global/proofs/PR386-BIT-GEOMETRY.txt").read_text(encoding="utf-8")
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text(encoding="utf-8"))
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require("WORD = {1: 2412, 2: 418, 3: 432, 4: 142, 5: 82, 8: 8}" in levers, "the local profile moved")
     require("cap({**WORD, 8: 4}, centre=32)" in levers, "the ideal two-call lever moved")
     require("| Centre path shared by two calls | 1.90 | 0.00320 |" in readme, "the published lever row moved")

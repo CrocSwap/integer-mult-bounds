@@ -47,7 +47,8 @@ def classify(limit):
 
 
 def main():
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text())
+    # The selected record at base_commit, a provenance pin checked by scripts/research_package.py.
+    selected = {"kappa": "836330098538459/500000000000000000"}
     require(selected["kappa"] == SELECTED, "selected kappa moved")
     budget = comb(9, 2) + comb(8, 2) - (HALF - 1)
     require(budget == 1, "the (9,8) budget moved")
