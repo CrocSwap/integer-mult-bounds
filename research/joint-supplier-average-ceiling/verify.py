@@ -8,7 +8,9 @@ Model (#4470 PROOF.md section 5, #4814 price.py): a side's saving C is the root 
     f(C) = sum_T n_r r^(1-C) - sum_P n_r r^(1-C) = 0
 over its productive targets T and paid recursive jobs P.  The rank-mass identity sum_T r - sum_P r = S is fixed by the
 p16 controller (credits per port window - centre - thin shears): 752 on complex, 753 on BIT.
-Standard library only; roots are bisected with 40-digit Decimal arithmetic.
+Standard library only; roots are bisected with 40-digit Decimal arithmetic.  Uniqueness of each root on [0, 1/5] and the
+betweenness of model A's root follow from the weighted-tail lemma of #5341 (exact integer tails, no grid).
+The ceiling assumes the whole-job premise: paid jobs keep their individual ranks (no cross-job merge, models A and D).
 """
 from collections import Counter
 from decimal import Decimal, getcontext
@@ -194,6 +196,22 @@ def decreasing(T, P, upto=D("0.05"), steps=50):
     return True
 
 
+def weighted_tails(T, P):
+    """Single-crossing certificate (#5341, research/fragmentation-single-crossing PROOF.md): with c_r = n_T - n_P and
+    B_k = sum_{r>=k} r c_r, if every B_k (k >= 2) is >= 0, one is > 0 and the largest rank is below e^5, then
+    f'(t) = sum_{k>=2} B_k (h_t(k) - h_t(k-1)) > 0 with h_t(x) = x^(t-1) ln x increasing on [1, e^5] for t in [4/5, 1].
+    So f(C) is strictly decreasing for C = 1 - t in [0, 1/5] and has at most one root there.  Returns min B_k."""
+    from fractions import Fraction
+    from math import factorial
+    c = Counter(T); c.subtract(P)
+    top = max(r for r in c if c[r])
+    exp5 = sum(Fraction(5 ** j, factorial(j)) for j in range(13))      # a rational lower bound for e^5
+    need(exp5 > top, "largest rank below e^5")
+    tails = [sum(r * c[r] for r in c if r >= k) for k in range(2, top + 1)]
+    need(min(tails) >= 0 and max(tails) > 0, "weighted tails B_k nonnegative with one positive")
+    return min(tails)
+
+
 def run(out):
     authenticate()
     cx, bt, Tc, Pc, Tb, Pb = load()
@@ -203,8 +221,11 @@ def run(out):
     need(abs(Cc - D("0.00302016597702")) < D("1e-13"), "complex raw root 0.00302016597702 (#4470)")
     need(abs(Cb - D("0.00347545806408")) < D("1e-13"), "BIT raw root 0.00347545806408 (#4814)")
     Gc, Gb = SG(Tc, Pc)[1], SG(Tb, Pb)[1]
-    need(decreasing(Tc, Pc) and decreasing(Tb, Pb), "both side equations are decreasing on [0, 0.05]")
-    out["baseline"] = {"complex_root": str(Cc), "bit_root": str(Cb), "S_complex": Sc, "S_bit": Sb,
+    need(decreasing(Tc, Pc) and decreasing(Tb, Pb), "both side equations are decreasing on [0, 0.05] (grid sanity)")
+    tails = {"complex": weighted_tails(Tc, Pc), "bit": weighted_tails(Tb, Pb),
+             "A_sum": weighted_tails(Counter(Tc) + Counter(Tb), Counter(Pc) + Counter(Pb))}
+    need(tails == {"complex": 32480, "bit": 26160, "A_sum": 32480}, "minimum weighted tails 32480 / 26160 / 32480")
+    out["baseline"] = {"min_weighted_tail": tails, "complex_root": str(Cc), "bit_root": str(Cb), "S_complex": Sc, "S_bit": Sb,
                        "G_complex": str(Gc.quantize(D(1))), "G_bit": str(Gb.quantize(D(1))),
                        "S_over_G_complex": str((D(Sc) / Gc).quantize(D("1e-6"))), "S_over_G_bit": str((D(Sb) / Gb).quantize(D("1e-6")))}
 
@@ -296,8 +317,8 @@ def controls():
     # 3. a paid profile with a foreign idle rank is not the p16 role split
     Pc3 = Counter(Pc); Pc3[20] += 1; Pc3[16] -= 1
     rejects("idle rank grid", lambda: roles(cx, bt, Tc, Pc3, Tb, Pb))
-    # 4. swapping targets and paid on one side destroys monotonicity, which the averaging argument needs
-    rejects("decreasing equation", lambda: need(decreasing(Pc, Tc), "x"))
+    # 4. swapping targets and paid on one side destroys the single-crossing certificate the averaging argument needs
+    rejects("decreasing equation", lambda: weighted_tails(Pc, Tc))
     # 5. the literal paid-once model is rejected as a ceiling by the mass identity check
     rejects("literal model as ceiling", lambda: need(mass(Tc) + mass(Tb) - (mass(Pc) + mass(Pb) - 74499) <= 752 + 753, "x"))
     # 6. a tampered source byte is caught by the pin

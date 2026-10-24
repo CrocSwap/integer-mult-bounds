@@ -6,10 +6,15 @@ and the butterfly layer in one native call removes the separate bit endpoint, an
 credits of the two sides while the large neutral work (idle stages, local small jobs) is done once, so that
 `C_joint ≈ (S_complex + S_bit) / G_shared` could exceed both sides.
 
-**Result: on the current p16 controller this cannot happen.** Any joint ledger that respects the rank-mass identity of
-the admission has a saving between the two side roots, at most **0.003232** (+7.0% over the selected 0.00302015 of
-#4470), which is **below the BIT gate 0.003475458** (+15.1%) that an ordinary complex-side improvement already reaches.
-The selected κ and the BIT admission are unchanged. The script runs in seconds on the standard library.
+**Result: on the current p16 controller, under the whole-job premise, this cannot happen.** If each side's paid jobs
+keep their individual ranks (no paid job of one side is merged with another job), any joint ledger that respects the
+rank-mass identity of the admission has a saving between the two side roots, at most **0.003232** (+7.0% over the
+selected 0.00302015 of #4470), which is **below the BIT gate 0.003475458** (+15.1%) that an ordinary complex-side
+improvement already reaches. The premise is needed: the mass identity alone does not cap the joint saving, because
+merging paid jobs keeps mass and raises the root (models E and F below, and the same merge inside the complex side
+alone). That premise is #4416's whole-job premise; whether it binds a *joint* native word, where one child could serve
+jobs of both endpoints, is open. The selected κ and the BIT admission are unchanged. The script runs in seconds on the
+standard library.
 
 ## The two invoices side by side
 
@@ -53,9 +58,21 @@ How to read them.
   `S_joint ≤ S_c + S_b = 1505` and the paid mass must be at least `456 672 − 1505`. The heuristic "same S, G once" is
   self-contradictory: S and G are the same function `f(C)` at two points, and paid moment cannot be removed without
   removing paid mass.
+
+  The surplus is the controller identity of `research/admission-constant-derivation` §2,
+  `S = (p + 2)·(H − C + Σ_ports (2·b_port + 1)) − P` for `p + 2` thick stages, per-stage helper target mass `H`,
+  paid child mass `C` and `P` ports of block width `b`. Both sides have local balance `H − C + (2b + 1)P = 48`, so
+  `S_c = 18·48 − 112 = 752` and `S_b = 18·48 − 111 = 753`. A joint word that keeps both sides' ports, helpers and
+  children has every term of the identity equal to the sum of the two sides' terms, so `S_joint = S_c + S_b = 1505`.
+  The identity does not by itself bound a word whose ports or windows serve both endpoints at once (see the open
+  question).
 - **A and D are the honest two-sided models**, and both give the mass-weighted average of the two roots
-  (`C ≈ (S_c + S_b)/(G_c + G_b)`), 6–7% above the complex root and 7–8% below the BIT root. The verifier checks that
-  both side equations are decreasing on `[0, 0.05]`, so the root of their sum lies strictly between the two side roots.
+  (`C ≈ (S_c + S_b)/(G_c + G_b)`), 6–7% above the complex root and 7–8% below the BIT root. Betweenness is rigorous:
+  by the weighted-tail lemma of #5341 (`research/fragmentation-single-crossing`), an invoice with all tails
+  `B_k = Σ_{r≥k} r(n_T − n_P)` nonnegative for `k ≥ 2`, one positive, and largest rank below `e^5` has `f` strictly
+  decreasing in `C` on `[0, 1/5]`. The verifier computes the tails exactly: minimum 32 480 (complex), 26 160 (BIT) and
+  32 480 (their sum), with largest ranks 145 and 127. So each equation has one root, and the sum, positive at the
+  complex root and negative at the BIT root, crosses strictly between them.
   Model A moreover requires the caller to supply an interchange task and a layer task simultaneously and
   independently; in the pipeline they are always sequential on the same data (basis change, then children, then the
   inverse basis change inside a layer node in `05-layers.tex`; layout move, then layer, then twiddle between rounds in
@@ -64,11 +81,12 @@ How to read them.
   of the larger rank): the credits do not add, they coincide (the same central +1 on the same window), and the mismatch
   between the local-job distributions (40 266 rank-1 jobs on complex against 24 156 rank-2 jobs on BIT) costs more than
   the whole surplus, so `S < 0` and there is no saving at all.
-- **E and F are not a two-sided effect.** Their gain is the concavity of `r^(1−C)` when small paid jobs are merged into
+- **E and F are not a two-sided effect, and they are why the result needs the whole-job premise.** Their gain is the concavity of `r^(1−C)` when small paid jobs are merged into
   larger ones, the known small-job merge lever (`research/productive-lever-reprice`, "rank-16 children"). The same
   pairwise merge inside the complex side alone already gives 0.004109 (×1.36), above the BIT root, with no second side.
-  That lever is closed by the whole-job premise of #4416 and the centre and thin-shear floors; a joint word does not
-  reopen it.
+  The lever is closed for each side by the whole-job premise of #4416 and the centre and thin-shear floors. The ceiling
+  above assumes that this premise also holds for the joint word. That is not shown here: a joint native word in which
+  one child serves jobs of both endpoints would be a merge across sides.
 
 ## Why this closes the door of `kappa01-outer-repair` §2 on the current controller
 
@@ -102,6 +120,11 @@ Not run: the 47-inequality outer engine with `a = b = s`; the outer admission is
 
 ## Open next questions
 
+- **Does the whole-job premise bind a joint native word?** Why it matters: the 0.003232 ceiling is conditional on it,
+  and models E/F show that merging paid jobs across the two endpoints would exceed the BIT root. First step: state
+  #4416's whole-job premise for a word with two endpoints and check whether one native child can legitimately carry a
+  complex job and a BIT job at once.
+
 - **Can a changed controller give a joint word more credits per port window than either side has?** Why it matters:
   the ceiling above is tied to `S ≤ S_c + S_b` on the same windows; a controller whose idle stages or thin shears are
   genuinely shared between the two endpoints would change S, not only G. First step: write the surplus identity of
@@ -115,5 +138,7 @@ Not run: the 47-inequality outer engine with `a = b = s`; the outer admission is
 Invoices: #4470 (zxv lineage, `joint-helper-lattice`) and #4814 (ai-nanachi, `bit-finite-ordinary-bootstrap`, on
 PR4760's compact436 word). Outer reduction and the conditional one-supplier remark: `kappa01-outer-repair` (OpenAI
 assistance) and the balanced engine of `coordinated-frames-and-entrance-banks` (Zhihao Chen, RaD/hipotures, icekylinx,
-eumemic). Moment model and lever table: `productive-lever-reprice` (Matarener). Prepared by Mark (Matarener) with
+eumemic). Moment model and lever table: `productive-lever-reprice` (Matarener). Single-crossing lemma: #5341 (Ali Romman).
+James Reed (jwr404) reviewed the package, found that the headline needs the whole-job premise, and computed the
+weighted tails. Prepared by Mark (Matarener) with
 substantial Claude (Anthropic) assistance; Apache-2.0. No human review beyond the author is claimed.
