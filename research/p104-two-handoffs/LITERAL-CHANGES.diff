@@ -1,0 +1,114 @@
+--- closure/research/p104-productive-controller/local.py
++++ p104-two-handoffs/local.py
+@@ -107,19 +107,19 @@
+                 program.append(['INIT' if op == 'private_init' else 'CLEAR', e['register'], frame(e['frame'])])
+             else:
+                 program.append([{'add':'ADD', 'scale':'SCALE', 'private_copy':'COPY'}[op], *e['registers'], e['coefficient'], frame(e['frame'])])
+-        return {'schema':'p104-productive-source/1', 'public':735, 'live':live, 'ports':built['ports'],
++        return {'schema':'p104-productive-source/1', 'public':737, 'live':live, 'ports':built['ports'],
+                 'frames':frames, 'initial':initial, 'final':final, 'program':program}
+ 
+ 
+ def replay(w):
+     need(len(w['program']) < 26000, 'Fixed operation bound')
+     frames = [span(x) for x in w['frames']]
+-    rows = [{r:Q(1)} for r in range(743)]
++    rows = [{r:Q(1)} for r in range(745)]
+     current = list(w['initial']) + [None]*8
+     paid, scalar, live_owned, peak = Counter(), 0, set(), 0
+     for e in w['program']:
+         op, r = e[:2]
+-        need(0 <= r < 743, 'Role index')
++        need(0 <= r < 745, 'Role index')
+         if op == 'MOVE':
+             _, r, a, b, private = e
+             need(current[r] == a and (r in live_owned) == private, 'Transport source and ownership')
+@@ -127,7 +127,7 @@
+             paid[abs(len(w['frames'][b])-len(w['frames'][a]))] += 1
+             current[r] = b
+         elif op == 'INIT':
+-            need(r >= 735 and r not in live_owned, 'Owned initialization')
++            need(r >= 737 and r not in live_owned, 'Owned initialization')
+             live_owned.add(r)
+             peak = max(peak, len(live_owned))
+             rows[r] = {}
+@@ -151,7 +151,7 @@
+                 scalar += 2*(abs(n.bit_length()-d.bit_length()) + int(q < 0))
+             else:
+                 s = e[2]
+-                need(s != r and 0 <= s < 743 and current[s] == f, 'Common scalar chart')
++                need(s != r and 0 <= s < 745 and current[s] == f, 'Common scalar chart')
+                 if op == 'COPY':
+                     need(r in live_owned and not rows[r], 'COPY into cleared owned field')
+                     rows[r] = {k:q*x for k,x in rows[s].items()}
+@@ -159,23 +159,23 @@
+                     need(op == 'ADD', 'Scalar opcode')
+                     add(rows[r], rows[s], q)
+                 scalar += 2*(3+n.bit_length()-1+n.bit_count()+d.bit_length()-1)
+-    need(not live_owned and peak == 1 and current[:735] == w['final'], 'All public and owned exits')
++    need(not live_owned and peak == 1 and current[:737] == w['final'], 'All public and owned exits')
+     live = set(w['live'])
+     for r,row in enumerate(rows):
+-        expected = {r:Q(1)} if r < 735 else {}
++        expected = {r:Q(1)} if r < 737 else {}
+         if r-112 in live:
+             expected[r-112] = Q(1)
+-        need(row == expected, 'All 743 public and owned rows')
++        need(row == expected, 'All 745 public and owned rows')
+     main = live | {r+112 for r in live}
+-    helpers = Counter(len(w['frames'][w['final'][r]])-len(w['frames'][w['initial'][r]]) for r in range(735) if r not in main)
++    helpers = Counter(len(w['frames'][w['final'][r]])-len(w['frames'][w['initial'][r]]) for r in range(737) if r not in main)
+     need(len(live) == len(w['ports']) == 104 and len(main) == 208 and min(helpers) > 0, 'Independent productive inputs')
+-    return {'paid':dict(paid), 'helpers':dict(helpers), 'public_inputs':735, 'owned_lifetimes':8,
+-            'peak_owned_fields':peak, 'real_scalar_allowance':scalar, 'endpoint_coefficients':743*743}
++    return {'paid':dict(paid), 'helpers':dict(helpers), 'public_inputs':737, 'owned_lifetimes':8,
++            'peak_owned_fields':peak, 'real_scalar_allowance':scalar, 'endpoint_coefficients':745*745}
+ 
+ 
+ def reverse_columns(w):
+     """Check the transpose with dense dyadic rows and the reverse chronology."""
+-    n = 743
++    n = 745
+     rows = [[int(i == j) for j in range(n)] for i in range(n)]
+     exponents = [0]*n
+     for e in reversed(w['program']):
+@@ -206,7 +206,7 @@
+             exponents[r] -= 1
+     for r,row in enumerate(rows):
+         expected = [0]*n
+-        if r < 735:
++        if r < 737:
+             expected[r] = 1 << exponents[r]
+         if r in w['live']:
+             expected[r+112] = 1 << exponents[r]
+@@ -234,7 +234,7 @@
+             check(e[2],e[3])
+     main = set(w['live']) | {r+112 for r in w['live']}
+     helper_profile = Counter()
+-    for r in range(735):
++    for r in range(737):
+         if r not in main:
+             helper_profile[check(w['initial'][r],w['final'][r])['rank']] += 1
+     adapters = []
+--- p104-joint-contact/pricing.py (PR5551)
++++ p104-two-handoffs/pricing.py
+@@ -11,8 +11,8 @@
+ from fractions import Fraction as Q
+ import local as L
+ 
+-KAPPA, TESTED = Q('.00304153'), Q('.0030415305')
+-PREVIOUS = Q('.00304117')
++KAPPA, TESTED = Q('.00304282'), Q('.0030428205')
++PREVIOUS = Q('.00304153')
+ 
+ 
+ def encode(x):
+@@ -61,7 +61,7 @@
+             second_p[8*(j+1)] += 208
+     L.need((targets,paid) == (second_t,second_p), 'Independent full invoice')
+     L.need(max(targets) == 145 and max(paid) == 72, 'Maximum recursive ranks')
+-    L.need(sum(targets.values()) == 12814 and sum(paid.values()) == 69912, 'Complete field and call counts')
++    L.need(sum(targets.values()) == 12850 and sum(paid.values()) == 69912, 'Complete field and call counts')
+     L.need(sum(r*n for r,n in targets.items())-sum(r*n for r,n in paid.items()) == 760, 'Complete rank surplus')
+     return targets,paid,counts
+ 
