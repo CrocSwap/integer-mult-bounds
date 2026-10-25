@@ -38,3 +38,8 @@ Builds on PR5551 (thu-nmrc), the successor hand-off pattern of PR5472 (GamingPuz
 word line of PR5544/5545 (aliromman; lineage PR2305/2152/2219). All predecessor credit is retained.
 
 Prepared by DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code.
+
+## Open next questions
+
+- Is a fresh helper starting at a non-canonical mid frame admissible? The gain depends on it; Variant A passes the unmodified PR5545 `local.py`, and the canonical-start rule exists only in the #4610 compact-width verifier.
+- Independent reproduction of PR5551, on which this package builds.
