@@ -132,4 +132,3 @@ def reverse_columns(w):
             expected[r+112] = 1 << exponents[r]
         need(row == expected, 'Independent dense transpose columns')
     return {'columns':n, 'coefficients':n*n, 'arithmetic':'Dense integer rows with binary denominators; reverse chronology'}
-
