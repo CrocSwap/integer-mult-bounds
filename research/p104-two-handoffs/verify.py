@@ -48,6 +48,8 @@ def main():
     for name,w in(('WORD.json.gz',word),('WORD-VARIANT-A.json.gz',wa)):
         need(read(HERE/name)==w,name+' regenerates from the pinned PR5551 word')
     need(word['public']==737 and len(word['program'])==len(pinned['program']),'rename-only edit')
+    part=sys.argv[sys.argv.index('--part')+1] if '--part' in sys.argv else 'all'
+    need(part in('all','handoff','variant-a'),'--part must be handoff or variant-a')
     out={}
     with closure() as root:
         orig_local=(root/'research/p104-productive-controller/local.py').read_text()
@@ -56,26 +58,29 @@ def main():
         pr_pricing=(HERE/'inputs/pr5551-pricing.py').read_text()
         need(patch(pr_pricing,PRICING_LITERALS)==(HERE/'pricing.py').read_text(),'shipped pricing.py = PR5551 pricing.py + literal changes only')
         # --- main claim: two successor hand-offs, patched local.py (737 public inputs)
-        L=load(HERE/'local.py','local');L.ROOT=root
-        loc,res=chain(root,L,(HERE/'pricing.py').read_text(),word,'handoff')
-        need(res['raw_root_interval']==INTERVAL,'exact crossing interval')
-        need(res['productive_fields']==12850 and res['paid_calls']==69912 and res['rank_mass_surplus']==760,'invoice')
-        need(len(res['outer']['strict_checks'])==54 and len(res['outer']['functional_checks'])==4,'outer inventory')
-        need(all(Fraction(x)>0 for k in('strict_checks','functional_checks') for x in res['outer'][k].values()),'all outer checks strict')
-        out['handoff']=res
+        if part in ('all', 'handoff'):
+            L=load(HERE/'local.py','local');L.ROOT=root
+            loc,res=chain(root,L,(HERE/'pricing.py').read_text(),word,'handoff')
+            need(res['raw_root_interval']==INTERVAL,'exact crossing interval')
+            need(res['productive_fields']==12850 and res['paid_calls']==69912 and res['rank_mass_surplus']==760,'invoice')
+            need(len(res['outer']['strict_checks'])==54 and len(res['outer']['functional_checks'])==4,'outer inventory')
+            need(all(Fraction(x)>0 for k in('strict_checks','functional_checks') for x in res['outer'][k].values()),'all outer checks strict')
+            out['handoff']=res;out['loc']=loc
         # --- supporting Variant A: helpers start at frames 608/613, UNMODIFIED local.py (735 public inputs)
-        L0=load(root/'research/p104-productive-controller/local.py','local');L0.ROOT=root
-        need(Path(L0.__file__).read_text()==orig_local,'unmodified closure local.py')
-        ptxt=patch(pr_pricing,PRICING_LITERALS[:2]).replace('sum(paid.values()) == 69912','sum(paid.values()) == 69876')
-        locA,resA=chain(root,L0,ptxt,wa,'variantA')
-        need(resA['raw_root_interval']==INTERVAL,'Variant A: same exact crossing interval')
-        need(len(resA['outer']['strict_checks'])==54 and len(resA['outer']['functional_checks'])==4 and all(Fraction(x)>0 for k in('strict_checks','functional_checks') for x in resA['outer'][k].values()),'Variant A outer checks')
-        out['variant_a']=resA
+        if part in ('all', 'variant-a'):
+            L0=load(root/'research/p104-productive-controller/local.py','local');L0.ROOT=root
+            need(Path(L0.__file__).read_text()==orig_local,'unmodified closure local.py')
+            ptxt=patch(pr_pricing,PRICING_LITERALS[:2]).replace('sum(paid.values()) == 69912','sum(paid.values()) == 69876')
+            locA,resA=chain(root,L0,ptxt,wa,'variantA')
+            need(resA['raw_root_interval']==INTERVAL,'Variant A: same exact crossing interval')
+            need(len(resA['outer']['strict_checks'])==54 and len(resA['outer']['functional_checks'])==4 and all(Fraction(x)>0 for k in('strict_checks','functional_checks') for x in resA['outer'][k].values()),'Variant A outer checks')
+            out['variant_a']=resA
     lo,hi=[Fraction(x) for x in INTERVAL]
     print('Crossing kappa in (%s, %s) = (%.14f, %.14f)'%(INTERVAL[0],INTERVAL[1],lo,hi))
     print('Conditional complete kappa 0.0030428242; PR5551 0.0030415312; gain +1.2931e-6 (float price)')
-    print('54 strict + 4 functional outer checks pass for both the hand-off word and Variant A')
-    if '--write' in sys.argv:
+    print('54 strict + 4 functional outer checks pass for: '+part)
+    if '--write' in sys.argv and part=='all':
+        loc=out['loc']
         (HERE/'RESULT.json').write_text(json.dumps({'status':'PASS_P104_TWO_HANDOFFS_CONDITIONAL_KAPPA_0030428242',
             'kappa_claimed':'.00304282','crossing_kappa_interval':INTERVAL,'crossing_kappa_decimal':'.0030428242',
             'previous_pr5551':'.00304153','paid_local':loc['paid'],'helpers_local':loc['helpers'],
