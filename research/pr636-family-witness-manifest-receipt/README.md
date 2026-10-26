@@ -170,3 +170,33 @@ which audited a different family.
 
 Prepared by Aaron Wang / navinor with help from opencode. Substantial AI
 assistance is disclosed; no independent human review is claimed. Apache-2.0.
+
+## Explicit historical-only registered replay
+
+The registered command now authenticates and replays the original package at
+`20ecf2891d80b5acf18d980b2164fb44ea7faa90` against its original pinned base.
+It does not validate today's ledger, contributor list, or other live input
+bytes. The original SOURCES.json, VERIFY.json, verifier and evidence are read
+unchanged from that commit into an isolated temporary tree. Current source
+rows keep their exact original commit/blob/SHA256 pins as historical provenance.
+
+Only these three wrapper files (README.md, SOURCES.json and VERIFY.json) may
+differ from the frozen package, and the adapter checks their exact approved
+transformation. All current verifier and evidence bytes must still equal the
+original tree. The original positive and negative controls run without edits;
+materialized and live package/input files must remain unchanged afterward.
+`PASS_HISTORICAL_RECEIPT_ONLY` is a historical source/credit result, not a
+current-state validation, new scientific acceptance, or closure decision.
+
+Run the historical adapter with Python 3.12:
+
+```sh
+python3 -B scripts/replay_historical_receipt.py --package research/pr636-family-witness-manifest-receipt
+```
+
+The generic runner's default live-input contract is unchanged. To inspect the
+original live contract, replay the original frozen package metadata against live
+inputs: it correctly rejects later byte drift. The registered wrapper declares
+the adapter and its focused tests as inputs, so changes select these two
+consumers without a global shared-workflow invalidation. See
+[the replay guide](../../docs/research/research-package-guide.md#historical-sourcecredit-receipt-adapters).

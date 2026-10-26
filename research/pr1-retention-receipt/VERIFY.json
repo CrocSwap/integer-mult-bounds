@@ -12,30 +12,37 @@
     "docs/reproducibility.md",
     "docs/research/pr-ledger.json",
     "research/overnight-pr-review-20261009/dispositions.json",
-    "research/overnight-pr-review-20261009/source-inventory.json"
+    "research/overnight-pr-review-20261009/source-inventory.json",
+    "scripts/replay_historical_receipt.py",
+    "tests/test_research_historical_receipts.py"
   ],
   "commands": [
     {
       "argv": [
         "{python}",
-        "-I",
-        "-O",
         "-B",
-        "{package}/verify.py"
+        "scripts/replay_historical_receipt.py",
+        "--package",
+        "{package}"
       ],
-      "timeout_seconds": 60,
-      "checks": "Authenticate the 11 vendored PR1 head files against their recorded live REST blob identities, reparse every changed file's REST patch hunk-exactly against the API additions field, classify each path at the base commit, recompute the multiset survival of PR1's added lines in the five shared files, exclude byte-identical copies of the six new files in the exact base-tree enumeration, and verify credit against CONTRIBUTORS.md, NOTICE, README.md, CITATION.cff, the ledger and the 2026-10-09 review records."
+      "timeout_seconds": 480,
+      "checks": "Historical-only replay: authenticate the exact frozen package and original source pins, run unchanged original commands and failure controls in an isolated Git snapshot, and require historical/live bytes unchanged; does not validate today's input bytes."
     },
     {
       "argv": [
         "{python}",
-        "-I",
-        "-O",
         "-B",
-        "{package}/test_verify.py"
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_research_historical_receipts.py",
+        "-v"
       ],
       "timeout_seconds": 120,
-      "checks": "One real-evidence positive case and twelve failure controls over vendored bytes, REST blob identities, patch parse counts, base-file content, the CITATION.cff convention line, the CONTRIBUTORS credit row, a forged tree copy, the credit enumeration, both 2026-10-09 review records and the expected result itself."
+      "checks": "Focused historical-adapter regression controls for wrong history/pins, path aliases, missing inputs, wrapper/code/evidence drift, isolation and unchanged-file gates; the generic live-input validator remains strict."
     }
   ]
 }
