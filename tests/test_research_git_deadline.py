@@ -38,6 +38,7 @@ class GitBlobDeadlineTests(unittest.TestCase):
             ready = Path(directory) / "response-ready"
             try:
                 with (patch.object(PACKAGE.subprocess, "Popen", side_effect=start),
+                      patch.object(PACKAGE, "_git_blob_popen", side_effect=start),
                       patch.object(PACKAGE, "GIT_BLOB_RESPONSE_TIMEOUT", timeout, create=True)):
                     yield Path(directory), children, calls
             finally:

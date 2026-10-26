@@ -29,7 +29,7 @@ class ReplaySelectionTests(unittest.TestCase):
         for key, value in (("user.name", "Fixture"), ("user.email", "fixture@example.invalid"),
                            ("core.autocrlf", "false"), ("diff.renames", "true")):
             self.git("config", key, value)
-        for name in ("scripts/research_package.py", WORKFLOW):
+        for name in ("scripts/research_package.py", "scripts/research_windows_git.py", WORKFLOW):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / name).read_bytes())
@@ -92,7 +92,7 @@ class ReplaySelectionTests(unittest.TestCase):
         self.assertEqual(self.selected(base), ["research/alpha"])
 
     def test_global_controls_select_all_registered_packages(self):
-        for name in (WORKFLOW, "scripts/research_package.py"):
+        for name in (WORKFLOW, "scripts/research_package.py", "scripts/research_windows_git.py"):
             with self.subTest(name=name):
                 base = self.git("rev-parse", "HEAD")
                 with (self.root / name).open("a", encoding="utf-8") as stream:

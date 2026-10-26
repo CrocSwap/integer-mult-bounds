@@ -173,7 +173,7 @@ def _closed_stdin_error(error):
 
 
 def _stop_git_blob_process(process):
-    """Stop this reader's owned POSIX group even after its leader exits."""
+    """Stop this reader's owned process tree even after its leader exits."""
     try:
         if os.name == "posix":
             # Reap an exited leader first: signaling a group containing only
@@ -193,7 +193,7 @@ def _git_blob_response_deadline(stop):
 
     On POSIX the reader owns a session: ordinary descendants retaining a pipe
     are stopped with the leader. Escaped sessions and separate git() calls are
-    outside this contract; non-POSIX retains the direct-child deadline.
+    outside this contract. Windows uses the gated kill-on-close Job Object.
     """
     expired = threading.Event()
 
@@ -212,13 +212,26 @@ def _git_blob_response_deadline(stop):
             raise subprocess.TimeoutExpired("git cat-file blob response", GIT_BLOB_RESPONSE_TIMEOUT)
 
 
+def _git_blob_popen(argv, **kwargs):
+    """Single launch seam for native ownership and protocol-only fixtures."""
+    if os.name == "nt":
+        # Also support callers importing this file directly under Python -I.
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        try:
+            from research_windows_git import LaunchCheckedPopen
+        finally:
+            sys.path.pop(0)
+        return LaunchCheckedPopen(argv, **kwargs)
+    return subprocess.Popen(argv, **kwargs)
+
+
 def _git_blob_batch(root, specs, nul):
     argv = ["git", "cat-file", "--batch"] + (["-z"] if nul else [])
     # Usage diagnostics from the unsupported-option probe are expected. Avoid
     # a second pipe that could block while we consume the framed stdout reply.
-    with subprocess.Popen(argv, cwd=root, env=git_source_env(), stdin=subprocess.PIPE,
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                          start_new_session=(os.name == "posix")) as process:
+    with _git_blob_popen(argv, cwd=root, env=git_source_env(), stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                         start_new_session=(os.name == "posix")) as process:
         stopped = False
 
         def stop():
@@ -261,7 +274,7 @@ def _git_blob_batch(root, specs, nul):
         finally:
             # Terminate ordinary descendants before closing buffered pipes. This
             # also covers successful leader exit and an early generator close.
-            if os.name == "posix":
+            if os.name in ("posix", "nt"):
                 stop()
             # Option rejection can close stdin before our first write/flush.
             try:
@@ -897,7 +910,8 @@ def plan_details(root, changed):
     head_tracked = tracked_input_paths(root)
     tracked = head_tracked | changed
     replay_changed = sorted(changed.intersection({
-        "scripts/research_package.py", ".github/workflows/research-packages.yml",
+        "scripts/research_package.py", "scripts/research_windows_git.py",
+        ".github/workflows/research-packages.yml",
         ".github/workflows/research-package-batch.yml"}))
     # Group literal Git paths once. Keep removed paths and exact spellings.
     changed_packages = {}

@@ -103,7 +103,8 @@ class GitPipeErrorTests(unittest.TestCase):
                     name=platform, environ=os.environ, killpg=kill_group)),
                   patch.object(PACKAGE.signal, "SIGKILL",
                                getattr(PACKAGE.signal, "SIGKILL", 9), create=True),
-                  patch.object(PACKAGE.subprocess, "Popen", side_effect=start)):
+                  patch.object(PACKAGE.subprocess, "Popen", side_effect=start),
+                  patch.object(PACKAGE, "_git_blob_popen", side_effect=start)):
                 yield calls, pipes
         finally:
             self.assertTrue(all(child.poll() is not None for child in children))

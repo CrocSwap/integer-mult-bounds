@@ -124,7 +124,7 @@ class CommitBytesTests(unittest.TestCase):
         self.assertEqual(self.check()['files'], 3)
 
     def test_cli_pass_fail_and_read_only_behavior(self):
-        for name in ('check_research_commit.py', 'research_package.py'):
+        for name in ('check_research_commit.py', 'research_package.py', 'research_windows_git.py'):
             self.write('scripts/'+name, (ROOT/'scripts'/name).read_bytes())
         self.commit()
         script = self.root/'scripts/check_research_commit.py'

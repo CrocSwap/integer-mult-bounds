@@ -40,6 +40,7 @@ class SymlinkInputTests(unittest.TestCase):
         }.items():
             self.write(name, text)
         self.write("scripts/research_package.py", (ROOT / "scripts/research_package.py").read_text())
+        self.write("scripts/research_windows_git.py", (ROOT / "scripts/research_windows_git.py").read_text())
         self.commit()
         self.target = scaffold.create(self.root, "alpha", "fixture", "Fixture")
         task_path = self.target / "TASK.json"

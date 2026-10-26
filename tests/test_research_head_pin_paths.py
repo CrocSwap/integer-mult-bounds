@@ -27,7 +27,7 @@ class HeadPinPathTests(unittest.TestCase):
         self.package = 'research/fixture'
         self.name = name
         (self.root / 'scripts').mkdir()
-        for script in ('research_package.py', 'check_research_commit.py'):
+        for script in ('research_package.py', 'check_research_commit.py', 'research_windows_git.py'):
             shutil.copyfile(ROOT / 'scripts' / script, self.root / 'scripts' / script)
         self.card = {'id': 'fixture', 'question': 'Check exact source paths'}
         self.catalog = 'docs/research/agent-task-catalog.json'
