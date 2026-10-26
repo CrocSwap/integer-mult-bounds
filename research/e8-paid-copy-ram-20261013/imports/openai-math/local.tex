@@ -1,0 +1,444 @@
+\section{Compiling a Fourier transform on its own coordinates}
+\label{loc:section}
+\label{sec:local}
+
+We next express a Fourier matrix using shallow layers on exactly its
+given coordinates.  Preserving the width is essential: later, the
+coordinate sets will be tensor factors, so padding them separately would
+multiply the total dimension.  We first factor the Fourier matrix into
+diagonal and triangular Toeplitz matrices.  We then implement those Toeplitz factors on their
+own coordinates, using the exact-width mechanism of
+\cite[Section~3]{exactfourier} with an effective choice of workspace.
+Finally, we compile every two-coordinate operation to the particular
+matrix $C$ used above.
+
+A \emph{shear} adds a scalar multiple of one coordinate to a distinct
+coordinate and leaves all other coordinates unchanged.  A \emph{shear
+layer} consists of shears on disjoint pairs.  A \emph{monomial layer} is
+an invertible monomial matrix.  We also use \emph{mixed rounds}: on
+disjoint coordinate regions, such a round performs monomial layers or
+shear layers.  It splits into a monomial layer followed by a shear
+layer.  This convention lets independent recursive calls run in parallel.
+
+\begin{proposition}[Uniform local compiler]\label{loc:compiler}
+Let $r\ge1$ and let $u$ be any primitive $r$th root of unity.  The matrix
+$F_r(u)=(u^{ij})_{0\le i,j<r}$ has a word on exactly $r$ coordinates
+with $O(1+\log^4r)$ slots, each of which is either
+\begin{enumerate}
+\item a monomial layer, or
+\item disjoint copies of $C$ on ordered pairs, with identity on every
+remaining singleton.
+\end{enumerate}
+There is one fixed repeating pattern of slot types into which all these
+words can be padded.  For any finite collection of widths at most $R$, the words
+can therefore be synchronized in $O(1+\log^4R)$ slots.
+
+Their schedules and scalar coefficients can be prepared in time
+$r^{O(1)}$, with an absolute exponent, counting both exact scalar
+arithmetic and integer bookkeeping.  Besides $u$ and the fixed constant
+$i$, this preparation needs only power-of-two roots of orders at most
+$8r$.  Coefficients are specified by shared arithmetic programs over
+these roots and rational numbers.  Every division is by a proved
+nonzero scalar; every structural choice uses integers alone.  Neither
+a test for zero of a complex number nor conjugation of input data is
+required.
+\end{proposition}
+
+\subsection{Reducing Fourier matrices to triangular Toeplitz matrices}
+
+The Fourier matrix evaluates a polynomial at the powers of $u$.
+Writing that polynomial in the Newton basis makes evaluation triangular.
+Symmetry then removes the need to compile the change of basis separately.
+
+\begin{lemma}[Newton reduction]\label{loc:newton-reduction}
+For every primitive $r$th root $u$, with $r\ge1$, there is an invertible
+lower triangular matrix $N$ such that
+\[
+ F_r(u)=N D_N^{-1}N^{\mathsf T},
+ \qquad D_N=\diag(N_{00},\ldots,N_{r-1,r-1}).
+\]
+The matrix $N$ is a product of two invertible diagonal matrices and
+one invertible lower triangular Toeplitz matrix of width $r$.
+All these factors can be prepared in polynomial time as rational
+expressions in $u$, with every denominator nonzero.
+\end{lemma}
+
+\begin{proof}
+For $r=1$ take $N=D_N=T=(1)$.  Otherwise let the $k$th column of $P$
+be the coefficient vector of the monic Newton polynomial
+$\prod_{j=0}^{k-1}(Z-u^j)$, for $0\le k<r$.  Then $P$ is unit upper
+triangular and $N=F_r(u)P$ is lower triangular.  For $i\ge k$,
+\begin{equation}\label{loc:newton}
+ N_{ik}=\prod_{j=0}^{k-1}(u^i-u^j)
+       =(-1)^ku^{k(k-1)/2}\frac{H_i}{H_{i-k}},
+ \qquad H_j=\prod_{s=1}^j(1-u^s),\quad H_0=1.
+\end{equation}
+The required $H_j$, $0\le j<r$, are nonzero because $u$ is primitive.
+Consequently
+\[
+ N=\diag(H_i)\,T\,
+       \diag\bigl((-1)^ku^{k(k-1)/2}\bigr),
+ \qquad
+ T_{ik}=\begin{cases}H_{i-k}^{-1},&i\ge k,\\0,&i<k.\end{cases}
+\]
+Here $T$ is invertible lower triangular Toeplitz, with diagonal one
+and coefficient sequence $h_j=H_j^{-1}$.
+
+Let $D_N=\diag(N_{00},\ldots,N_{r-1,r-1})$ and $L=ND_N^{-1}$.
+The identity $F_r(u)=L D_NP^{-1}$ is a unit-lower/diagonal/unit-upper
+factorization.  Such a factorization is unique: comparing two makes
+a unit lower triangular matrix equal an upper triangular matrix,
+forcing both to be identity, and then identifies their diagonal
+factors.  Since $F_r(u)=F_r(u)^{\mathsf T}$, transposition gives another
+such factorization.  Uniqueness yields $P^{-1}=L^{\mathsf T}$, hence
+\begin{equation}\label{loc:fourier-factorization}
+ F_r(u)=N D_N^{-1}N^{\mathsf T}.
+\end{equation}
+Computing the powers of $u$, the $H_j$, and all diagonal entries has
+polynomial cost.  Every division above is by a product of nonzero
+$H_j$ and powers of $u$.  In particular, the argument applies to
+composite $r$ and to every primitive root of order $r$.
+\end{proof}
+
+Thus it suffices to compile an invertible triangular Toeplitz matrix
+on its own coordinates.  Its transpose will require the same number
+of layers: transposition reverses the factor order and preserves
+monomial and shear layers.  The next two subsections establish this
+Toeplitz compiler, including the workspace needed by its convolutions.
+
+\subsection{Convolution and arbitrary borrowed coordinates}
+
+We use linear arithmetic directed acyclic graphs (DAGs) in which each
+gate forms a linear combination of at most two sources or earlier gate
+values.  Each output is one designated source or gate read, or zero;
+any output sum or scaling is included among the gates.  Fan-out counts
+these designated output uses as well as uses by later gates.
+
+The elementary convolution circuits will supply the local operations.
+A convolution of variable data with a fixed vector, whose operand lengths have sum $v$, has a linear
+arithmetic DAG with
+\begin{equation}\label{loc:convolution-bounds}
+ O\bigl(v\log(2+v)\bigr)\text{ gates},\qquad
+ O\bigl(\log(2+v)\bigr)\text{ depth},
+\end{equation}
+and absolute bounded fan-out, counting designated output uses.  Gates
+have at most two predecessors.  Reversals and truncations preserve
+these bounds.
+
+Indeed, pad to the least power of two $L$ at least the full product
+length.  At $L$th roots of unity, convolution is pointwise
+multiplication.  The transform of the fixed vector supplies scalar
+coefficients.  The binary Fourier recursion separates even and odd
+coefficients and combines transformed entries $a,b$ into
+$a+\omega b,a-\omega b$.  Each entry is used a bounded number of times
+at the next level.  The inverse uses inverse roots and multiplication
+by $L^{-1}$, as follows from the geometric sum of the roots.  This
+proves \eqref{loc:convolution-bounds}, including all multiplications by
+fixed scalars.  Literal zero inputs need no variable registers.
+Selections have no repeated output indices; a fixed number of these
+circuits, their compositions, and their sums still have absolute
+bounded fan-out.  Their topology can be printed before any scalar
+coefficients are evaluated, retaining even gates with a coefficient
+that might happen to vanish.
+
+The DAG may have extra wires. The following identity implements its
+effect using coordinates that already carry other data. Its first replay
+has the compute--copy--reverse pattern of Bennett's reversible
+simulation~\cite{bennett1973}. Restoring storage with arbitrary initial
+contents is also the principle of clean transparent computation in
+catalytic space~\cite[Section~3]{buhrmanEtAl2014}. The source-suppressed second
+replay below proves the exact cancellation and layer bounds needed here.
+
+\begin{lemma}[Replay with arbitrary borrowed coordinates]\label{loc:replay}
+Suppose $M:\C^e\to\C^a$ has a linear DAG with $g$ gates, depth $H$,
+fan-in at most two, and fan-out at most $\delta$, including output
+uses.  Each output is a source or gate read, or zero.  On disjoint
+coordinate sets $x,y,z$ of sizes $e,a,g$, respectively,
+a word of $O((\delta+1)(H+1))$ shear layers implements
+\[
+ (x,y,z)\longmapsto(x,y+Mx,z).
+\]
+It uses at most $8g+2a$ shears.  The initial contents of $z$ are arbitrary,
+including values correlated with $x$, $y$, or other data.
+\end{lemma}
+
+\begin{proof}
+Assign one coordinate $z_v$ to each gate, in topological order.  Instead
+of assigning the gate value, add its prescribed linear combination of
+predecessors into $z_v$.  This takes at most two shears.  The resulting
+forward sweep has the form
+\[
+ z\longmapsto Uz+Tx,
+\]
+where $U$ is unit lower triangular.  Write the output reads as $Fz+Dx$,
+allowing outputs that read a source directly; each nonzero output is
+one designated read.  Starting with zero gate coordinates computes the
+original DAG, so $FT+D=M$.
+
+Run the forward sweep, add its output reads into $y$, and undo the
+sweep.  This restores $z$ and adds $Mx+FUz$ to $y$.  Next run the same
+sweep with all direct-source edges omitted, omit $Dx$ at the readout,
+subtract the resulting output $FUz$, and undo the sweep again.  The net
+effect is the stated map.  The target coordinates are never
+predecessors in either sweep.  The calculation is an identity in
+independent variables $x,y,z$, so it remains valid for correlated
+initial contents.
+
+To arrange a sweep into layers, assign gates their longest-path depth
+levels.  Within one level, destinations are new gate coordinates and
+predecessors are earlier gate coordinates or sources.  The undirected
+multigraph of shear edges has maximum degree
+$\Delta\le\max\{2,\delta\}$.  Greedy edge coloring uses at most
+$2\Delta-1$ colors, since each edge meets at most $2\Delta-2$ others.
+The operations in one color have disjoint pairs.  Reordering by color
+is valid because no destination is a predecessor at the same level.
+The output additions have the same property: their sources have
+bounded output fan-out and each target has one read.  Reverse sweeps
+use the reversed layers and negated coefficients.  Four sweeps and
+two output rounds give the depth bound and the count $8g+2a$.
+\end{proof}
+
+\subsection{Toeplitz layers and a measured workspace rule}
+
+The matrix representation in the next proof is the displacement-rank
+construction of Kailath, Kung, and Morf~\cite[Lemmas~1--2]{kailathKungMorf1979}:
+low-rank shift differences reconstruct a matrix through Toeplitz
+convolution factors. We give the rectangular-chunk formulas and then
+fit their computation into the available coordinates.
+
+\begin{lemma}[Effective exact-width Toeplitz layers]\label{loc:toeplitz}
+An invertible lower triangular Toeplitz matrix of width $r$ has a word
+on exactly $r$ coordinates in $O(1+\log^4r)$ mixed rounds.  A fixed
+algorithm prepares the word and its coefficients in $r^{O(1)}$ time
+from the Toeplitz entries and power-of-two roots of orders at most
+$8r$.  The topology depends only on $r$; all divisions by Toeplitz
+parameters are justified by the nonzero diagonal entry.
+\end{lemma}
+
+\begin{proof}
+We split the transform into two smaller diagonal blocks and a cross
+update.  For each rectangular part of that update, we will construct a
+convolution DAG and fit all its gate coordinates inside the parent
+block.  We then count the resulting layers and the preparation work.
+
+Write $T_v=(h_{i-j})_{0\le j\le i<v}$, with zero entries above the
+diagonal and $h_0\ne0$.  The same initial sequence $h$ specifies all
+smaller blocks used below.  Its reciprocal-series coefficients are
+computed by
+\begin{equation}\label{loc:reciprocal}
+ g_0=h_0^{-1},\qquad
+ g_k=-h_0^{-1}\sum_{j=1}^k h_jg_{k-j}\quad(1\le k<r).
+\end{equation}
+They give the inverse of every lower triangular Toeplitz block.
+
+For $v>1$, put $p=\lfloor v/2\rfloor$ and write
+\[
+ T_v=\begin{pmatrix}T_p&0\\B&T_{v-p}\end{pmatrix}.
+\]
+The factorization
+\[
+ T_v=\begin{pmatrix}I&0\\E&I\end{pmatrix}
+      \diag(T_p,T_{v-p}),\qquad E=BT_p^{-1},
+\]
+first performs the two diagonal transforms in parallel, then adds to
+the second block from the transformed first block.  In the original
+indices of this cross block,
+\begin{equation}\label{loc:cross}
+ E_{ij}=\sum_{\nu=j}^{p-1}h_{i-\nu}g_{\nu-j},
+ \qquad p\le i<v,\quad 0\le j<p.
+\end{equation}
+
+Partition both intervals into consecutive chunks.  For a target chunk
+of size $a$ and source chunk of size $e$, let $M$ be the corresponding
+$a\times e$ submatrix of $E$.  Let $J_a,J_e$ denote the lower shifts.
+Away from the first local row and column, \eqref{loc:cross} telescopes
+to
+\begin{equation}\label{loc:displacement-entry}
+ E_{ij}-E_{i-1,j-1}=-h_{i-p}g_{p-j}.
+\end{equation}
+Thus, writing $\mathcal D=M-J_aMJ_e^{\mathsf T}$, we can form
+\begin{equation}\label{loc:displacement}
+ \mathcal D=\sum_{\nu=1}^3 v^{(\nu)}(w^{(\nu)})^{\mathsf T}
+\end{equation}
+without any rank test.  Specifically, extend the outer product on the
+right of \eqref{loc:displacement-entry} to the entire chunk and subtract
+it from $\mathcal D$, obtaining $R$.  If $e_0$ is the first unit vector,
+the two remaining outer products are
+$e_0R_{0,*}$ and $(R_{*,0}-R_{00}e_0)e_0^{\mathsf T}$.
+They correct its first row and first column.  Keep all three terms,
+even when some coefficients vanish.
+
+Iterating $M=\mathcal D+J_aMJ_e^{\mathsf T}$ gives, by nilpotence,
+the finite reconstruction
+\begin{equation}\label{loc:reconstruction}
+ M=\sum_{l\ge0}J_a^l\mathcal D(J_e^{\mathsf T})^l.
+\end{equation}
+For one outer product $vw^{\mathsf T}$, its contribution has entries
+$\sum_{l\ge0}v_{i-l}w_{j-l}$, with zero extension.  Apply it to $x$ by
+\begin{equation}\label{loc:two-convolutions}
+ b_l=\sum_{j=l}^{e-1}w_{j-l}x_j\quad(0\le l<e),\qquad
+ c_i=\sum_{l=0}^{e-1}v_{i-l}b_l\quad(0\le i<a).
+\end{equation}
+If $x^{\mathrm{rev}}_j=x_{e-1-j}$, the first map selects
+$b_l=(w*x^{\mathrm{rev}})_{e-1-l}$ from an ordinary convolution.
+The second map is a truncated convolution.  Using three
+branches and summing their outputs gives a specific DAG with absolute
+constants $K_0,K_1,\delta_0$ such that
+\begin{equation}\label{loc:chunk-bounds}
+ g\le K_0(a+e)\log_2(2+a+e),\qquad
+ H\le K_1\log_2(2+a+e),\qquad \delta\le\delta_0.
+\end{equation}
+These include output uses: every source is used in only three
+branches, the branches retain bounded fan-out, and their sum uses a
+bounded number of gates per output.
+
+To fit this DAG inside the parent block, reserve the $a+e$ target and
+source coordinates and one borrowed coordinate for each of its $g$
+gates.  All $g$ coordinates stay assigned to their gates throughout
+the replay.  Here is an effective choice of chunk size that does not
+require knowing $K_0$.  For every integer $b\in\{1,\ldots,v\}$, partition
+each interval into chunks of size $b$, except for its possible last chunk.
+Print the DAG skeleton for every resulting pair and count its gates.
+Declare $b$ admissible precisely when, for every pair,
+\begin{equation}\label{loc:fit}
+ g+a+e\le v.
+\end{equation}
+Choose the largest admissible $b$.  This is an integer test on printed
+graphs, independent of the coefficients, made before any data are
+transformed.  If no $b$ is admissible, replace the entire recursive
+decomposition of $T_v$ by a direct word: process rows in decreasing
+order, multiply the current coordinate by $h_0$, and add $h_{i-j}$
+times each lower-indexed coordinate $j<i$.  The lower coordinates
+still have their original values, so this computes exactly $T_v$.
+Width one is a scaling.
+
+To prove the depth bound, fix for analysis a sufficiently large
+absolute $D$, for example $D\ge16K_0+16$.  For all sufficiently large
+$v$,
+\[
+ b_0=\left\lfloor\frac{v}{D\log_2v}\right\rfloor
+ \ge\frac{v}{2D\log_2v}\ge1
+\]
+passes \eqref{loc:fit}.  Indeed $a+e\le2v/(D\log_2v)\le v/8$, while
+\eqref{loc:chunk-bounds} gives $g\le4K_0v/D\le v/4$.
+Consequently the direct fallback occurs only for bounded $v$, and the
+chosen size $b\ge b_0$ leaves $O(\log v)$ chunks in each interval.
+
+For a selected pair, borrow $g$ coordinates outside its source and
+target chunks but inside these same $v$ coordinates; \eqref{loc:fit}
+guarantees their availability.  Lemma~\ref{loc:replay} implements its
+update in $O(1+\log v)$ shear layers.  Process the $O(\log^2v)$ pairs
+serially.  Every borrowed coordinate is restored before the next pair,
+so it may carry a source value, an already updated target value, or any
+other current data.  The complete cross update takes
+$O(1+\log^3v)$ layers.  Child calls use disjoint blocks, hence the
+mixed-round depth satisfies
+\[
+ d(v)\le\max\{d(\lfloor v/2\rfloor),d(\lceil v/2\rceil)\}
+          +O(1+\log^3v).
+\]
+Summing along a balanced recursion path proves
+$d(r)=O(1+\log^4r)$.
+
+We finally account for preparation.  Formula~\eqref{loc:reciprocal},
+the entries \eqref{loc:cross}, and the three explicit outer products
+use polynomially many scalar operations.  Each node of the recursion
+tests at most $v$ sizes and at most $v^2$ chunk pairs per size; every
+printed graph has $O(v\log(2+v))$ gates.  There are fewer than $2r$
+nodes.  Even this deliberately redundant search has polynomial
+integer cost.  Gate-level assignments, bounded-degree edge colorings,
+and the choice of the first available borrowed coordinates can all be
+performed by finite scans of these lists.  Only the chosen graphs
+need their scalar coefficients evaluated.  Fixed-vector transforms
+and all other coefficient computations have polynomial cost as well.
+Store computed scalars and references to them as an arithmetic DAG;
+there is no expansion into expression trees.
+
+The first convolution in \eqref{loc:two-convolutions} has operand
+lengths $e,e$, and the second has lengths $a,e$.  Their padded Fourier
+lengths are powers of two smaller than $4r$.  Thus a single primitive
+root of power-of-two order $L_r=2^{\lceil\log_2(4r)\rceil}<8r$
+supplies every needed root by taking powers.  These powers and their
+inverses are also prepared with polynomially many operations.  Integer
+indices in the entire compiler have $O(\log(2+r))$ bits.  This proves
+the claimed preparation bound, with no need to determine the finite
+threshold in the depth argument.
+\end{proof}
+
+\subsection{Fourier layers and a fixed word in the kernel}
+
+\begin{lemma}[Fourier layers at every primitive root]\label{loc:fourier}
+For every primitive $r$th root $u$, the matrix $F_r(u)$ has a
+polynomially preparable exact-width word in
+$O(1+\log^4r)$ monomial and shear layers.  Its coefficients are rational
+expressions in $u$ and the power-of-two roots from
+Lemma~\ref{loc:toeplitz}, with all denominators nonzero.
+\end{lemma}
+
+\begin{proof}
+Apply Lemma~\ref{loc:toeplitz} to the Toeplitz factor of $N$ in
+Lemma~\ref{loc:newton-reduction}.  The two diagonal factors of $N$
+are monomial layers.  Equation~\eqref{loc:fourier-factorization}
+then gives the Fourier word by composing the words for $N^{\mathsf T}$,
+$D_N^{-1}$, and $N$.  Transposition preserves the layer types and
+reverses the factor order.  Split mixed rounds into monomial and shear
+layers.  There are $O(1+\log^4r)$ layers in total, and all preparation
+bounds and nonzero-denominator guarantees follow from the two lemmas.
+\end{proof}
+
+We complete the proof of Proposition~\ref{loc:compiler}.  Recall
+$C=\left(\begin{smallmatrix}a&b\\b&a\end{smallmatrix}\right)$,
+$a=(1+i)/2$, $b=(1-i)/2$.  Set
+\[
+ H'=\begin{pmatrix}1&1\\1&-1\end{pmatrix},\qquad
+ S=\diag(1,i).
+\]
+Direct multiplication gives $H'=a^{-1}SCS$ and
+\begin{equation}\label{loc:three-kernel}
+ K:=H'\diag(2,1)H'\diag(-3,1)H'
+     =\begin{pmatrix}-8&-10\\0&-6\end{pmatrix}.
+\end{equation}
+Thus every upper shear with nonzero coefficient $t$ has a word with
+exactly three forward copies of $C$ and invertible diagonal factors:
+\begin{equation}\label{loc:nonzero-shear}
+ \begin{pmatrix}1&t\\0&1\end{pmatrix}
+ =D_t\diag(-1/8,-1/6)K D_t^{-1},\qquad
+ D_t=\diag(4t/5,1).
+\end{equation}
+An update $y\gets y+t x$ is this upper shear on the ordered pair
+$(y,x)$.  The order of a pair is part of the discrete schedule.
+
+A general coefficient $\mu$ may vanish, but no test is necessary.
+Prepare
+\begin{equation}\label{loc:nonzero-split}
+ \kappa=1+\mu\overline\mu,\qquad
+ t_1=\kappa,\qquad t_2=\mu-\kappa.
+\end{equation}
+Both $t_1,t_2$ are nonzero, since
+$1+|\mu|^2>|\mu|$.  The two corresponding shears compose to the
+desired shear, including when $\mu=0$.  Equations
+\eqref{loc:three-kernel}--\eqref{loc:nonzero-split} therefore give the
+same six-$C$ slot pattern for every coefficient.  On disjoint pairs
+these words run in parallel; every unused coordinate is an identity
+singleton in every $C$ slot.
+
+The conjugate in \eqref{loc:nonzero-split} is a prepared scalar, not
+an operation on variable data.  Every coefficient $\mu$ from
+Lemma~\ref{loc:fourier} is given by an arithmetic DAG over rational
+numbers and the specified roots.  Evaluate a second copy of that DAG
+with each root replaced by its inverse.  Rational constants are real,
+so the result is precisely $\overline\mu$.  The second evaluation has
+the same size, and its denominators are conjugates of nonzero
+denominators.  This argument also includes the fixed root $i$, whose
+conjugate is $-i$.  Shared subexpressions remain shared, so preparing
+all conjugates increases polynomial preparation cost by at most a
+constant factor before the constant-size replacements.
+
+Finally, place each layer from Lemma~\ref{loc:fourier} into a
+monomial slot followed by a shear slot, using identity for the other
+slot type, and replace the shear slot by this fixed pattern.  Combine adjacent monomial slots if desired.  An idle round
+uses identity monomials and only singleton identities in its $C$
+slots.  All words now repeat a common constant-size pattern.  Padding
+the shorter words with idle rounds synchronizes any finite collection
+without increasing the $O(1+\log^4R)$ bound.  This proves
+Proposition~\ref{loc:compiler}.
