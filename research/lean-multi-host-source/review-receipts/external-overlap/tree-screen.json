@@ -1,0 +1,438 @@
+{
+  "main_lean_count": 154,
+  "main_truncated": false,
+  "screened": [
+    {
+      "number": 516,
+      "head": "1c6b6ff9366a94e1f86a6c5d661a7df75c6ff814",
+      "updated_at": "2026-10-11T23:58:28Z",
+      "title": "Lemma A of #484: the realization of paid wrappers and spectators, proved in Lean 4",
+      "tree_truncated": false,
+      "lean_count": 166,
+      "changed_lean": [
+        {
+          "path": "research/e8-lemma-a-lean/LemmaA.lean",
+          "sha": "2cc601bdb5fdebc9a466ff028d4187365b50266a",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-a-lean/LemmaA/Realize.lean",
+          "sha": "8917c5b7f7d86352fd0b505141a9047a4a676279",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-a-lean/LemmaA/Schedule.lean",
+          "sha": "0bdd775a0ffc2243295fb95c4db3dbd0c5f455d8",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-a-lean/LemmaA/Streams.lean",
+          "sha": "d3ad32fc95dec79006005b412b84d45051ecd92e",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-a-lean/LemmaA/Tensor.lean",
+          "sha": "cd33a52ab5d137ffae5ece2e8762bd46610de776",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-a-lean/PrintAxioms.lean",
+          "sha": "9ab97a5e89d1e3731893a5436fdd85d5434c071e",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-g-lean/LemmaG.lean",
+          "sha": "ce3c72d19be21852f437674c995ba25363b60623",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-g-lean/LemmaG/BitEntrance.lean",
+          "sha": "edff353bc4a2303aeddd28022ab3f6a442d6866b",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-g-lean/LemmaG/Frames.lean",
+          "sha": "33db0a3236654a7ca294ba8b875856cc3e836ce1",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-g-lean/LemmaG/Schedule.lean",
+          "sha": "d765e1ed741aaaaa5c1136c18961a8846f369083",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-g-lean/LemmaG/Stream.lean",
+          "sha": "e89897190307a6f3fcfb858f8de00cc5a7f49b3e",
+          "status": "added"
+        },
+        {
+          "path": "research/e8-lemma-g-lean/PrintAxioms.lean",
+          "sha": "9fc7dc7651e53841103fce4ff8229e209e2a91f1",
+          "status": "added"
+        }
+      ],
+      "removed_lean": [],
+      "body": "\nLemma A of #484 has two parts:\n* **an exact part,** which #484 checks numerically: `S_E = L_E (C_[w] \u2297 I) R_E` on every entrance frame;\n* **a realization part,** which #484 assumed from #458 \u00a73: paid wrappers around a whole invocation, with nothing else acting meanwhile, leave the host with its residual and its spectators untouched.\n\nThis PR proves the realization part as a general theorem. It also proves the asynchronous variant that #505 needs.\n* Every hypothesis is checked on #484's emitted words.\n* The owner and window hypotheses are also checked on the template from a replay of #505.\n\nThe PR is stacked on #509 (\u2192 #484 \u2192 #442). The new commits here are f71a4bb, 871b1c5 and 1c6b6ff. They touch only `research/e8-lemma-a-lean/`. The package reuses the Lemma G package's event semantics through a Lake path dependency.\n\n### Model and coverage\n\n**Units are physical streams `(family F, cover class g \u2208 O(73,2))`, as in #442 \u00a72.** Sources:\n* the template's `cover`, `loop_order` and `route_semantics` (\"physical cover class d*Pi(slot)^(-1)\");\n* #442's idle-axis hosting: \"physical stream (F, g)\", \"owned by stream (F, d\u00b7\u03c3\u207b\u00b9)\", and \"Distinct slots of one invocation have distinct \u03c3, so distinct physical classes for every d \u2026 sequential, exactly as the parent's banks are co-owned sequentially by different cover classes\";\n* #458 \u00a73, only for the convention `g = d\u03c3\u207b\u00b9` and \"for a fixed family, d \u2192 g is a bijection\".\n\n**Lemma A is proved in #442's stream model. That the model describes the machine is inherited from #442, like the compiler.**\n\n#458 \u00a73 states the one-helper rule as required, and rejects same-call packing into disjoint slots. Its case is the single-owner calls. The sharing calls rest on #442's model, which needs atomic invocations.\n\nAt cover class `d`, register `r` lives on the stream `(F_r, d\u00b7\u03c3_r\u207b\u00b9)`. The theorem needs one owner per stream. That holds whenever registers sharing a family have pairwise disjoint footprints, which covers:\n* one helper per family (#458's case, #484);\n* #433's pure-bank slots and #442's hosted slots;\n* #471's and #500's footprint rule.\n\n**On #484's words, every call of all four words satisfies the hypotheses:**\n\n| word | calls with one register per family | other calls (disjoint footprints on a shared family) | hosted blocks |\n| --- | --- | --- | --- |\n| headline | 72/72 | \u2014 | 39,792 |\n| gauge80 | 40/72 | 32 (#433 slots) | 38,112 |\n| kernel79 | 56/72 | 16 (#433 slots) | 37,720 |\n| anchor | \u2014 | 72 (#442 slots) | 34,560 |\n\nEvery hosted block lies inside its window.\n\nThe anchor is not pinned to EXPECTED and has no wrappers. Its (O\u2032) and windows are checked by this package's checkers alone.\n\n### What is proved (Lean 4.21.0 + Mathlib v4.21.0, the pin of `formal/lean` on main)\n\n```lean\ntheorem LemmaA.lemmaA_streams ... (hdis : \u2200 r r', r \u2260 r' \u2192 fam r = fam r' \u2192 Disjoint (fp (\u03c3 r)) (fp (\u03c3 r')))\n    (hrec : RecipesExact T rec es) (hw : WellLabelled es l) (hS : \u2200 s, S es j s = if s = j then 1 else 0)\n    (hfac : \u2200 v, T (labRun es l j) ((T (l j)).symm v) = Cj.rTensor B v) :\n    realizeRun \u27e8streamOwner fam \u03c3 d, chart\u27e9 rec es y (streamOwner fam \u03c3 d j) =\n      (chart j).symm (Cj.rTensor B (chart j (y (streamOwner fam \u03c3 d j))))\n```\n\nThe theorem holds over any commutative semiring, for any modules, charts and number of stages. Suppose:\n* registers sharing a family have pairwise disjoint footprints;\n* the invocation is well labelled, with exact recipes;\n* it gives the helper a unit row (Lemma G);\n* its block factors as `C \u2297 id`.\n\nThe last hypothesis is read in Lemma G's extended labels, where `T_{\u03bb\u00b9}T_{\u03bb\u2070}\u207b\u00b9 = L_E\u207b\u00b9 S_E R_E\u207b\u00b9`. #484's I-helper check verifies it, and Lemma G's `check_extended_labels.py` (run here) verifies the reading.\n\nThen, after the complete invocation, the helper's stream holds `chart\u207b\u00b9 (C \u2297 id) chart` of its own initial value. **The spectators are untouched.**\n\nThe other Lean results:\n* **Streams.** `streamOwner_injective(_of_disjoint)`: distinct routes, or disjoint footprints, give distinct streams. `sweep_unique`: the cover sweep visits each stream once per route.\n* **Realization.** `realize_run`: with one owner per unit, the physical execution read through the charts is the local run. `one_owner_needed`: within the model, sharing a unit already breaks this with a single event.\n* **No other actor.** `whole_invocation`, `endpoint_indep`, `lemmaA_piece`: the invocation acts on the helper's unit as a single-unit piece that no other unit reads.\n* **Pending blocks.** `pieces_commute` and `pieces_product`: pieces on disjoint blocks of one pending child commute and multiply back to the child.\n* **#505's variant.** `lemmaA_async`, `async_window` and `gather`: a borrowed piece moves to its child's deadline past every commuting action, and the gathered pieces give the child. This needs three scheduling conditions:\n  * the window;\n  * disjoint blocks;\n  * whole invocations with distinct owners.\n\nThere is no instance enumeration and no `decide`/`native_decide`. `#print axioms` reports only `propext`, `Classical.choice` and `Quot.sound` for all 24 named results. `verify.py` builds this package and the Lemma G package from source, scans both for `sorry`/`axiom`/`native_decide`, and checks every axiom report.\n\n### What is checked\n\n| hypothesis | check | result |\n| --- | --- | --- |\n| exact factorization, extended labels | #484 `adapters_gk.py` and I-helper; Lemma G `check_extended_labels.py` | 16 headline frames; helpers 122/122, 80/80 and 79/79; 0 tag violations |\n| unit helper rows, exact recipes, well labelled | Lemma G package H1\u2013H3 | 0 violations |\n| one owner per stream; centre copies in distinct private slots; atomic calls (the template's declared `loop_order`) | **new** `code/check_owners.py` (3 mutants rejected) | 0 violations on all four words |\n| windows, disjoint blocks, family-group windows disjoint | **new** `code/check_windows.py`, written independently of #484's and #505's audits (2 mutants rejected) | 0 violations on all four words |\n\n### #505 and #512\n\n**#505.** I replayed #505's own `verify.py` here, offline under Python 3.14.\n* Every stage passes, including its independent asynchronous audit.\n* Its final comparison of the emitted template's sha256 with #505's `EXPECTED.json` fails. The audit's owner, sigma-stream, profile and \u03ba records equal its shipped evidence.\n* #505's tree lacks a `.gitattributes` that its MANIFEST lists, so I dropped that entry from a scratch copy of the manifest.\n\nOn the emitted asynchronous template:\n* `check_owners.py`: one register per family in 72/72 calls;\n* `check_windows.py`: all 40,320 hosted blocks lie strictly inside their owner child's open window, with blocks disjoint.\n\nSo Variant A\u2032's owner and window hypotheses hold on the template emitted by replaying #505 (4ee769c) here. That template does not hash-match #505's `EXPECTED.json` (template_sha256 aa741871\u2026 vs 276b69e3\u2026). The sigma-stream digest, owner, profile and \u03ba records equal #505's shipped evidence.\n\nNot re-checked here:\n* per-replica order, which #505's audit checks;\n* the prefix bound and its invoice;\n* (E) and (F) on #505's word.\n\n**#512** (the current frontier) lists \"#484 Lemma A spectator realization\" as a retained condition. It reports 800 distinct physical owners per invocation and builds on #505's asynchronous machinery and #507's factory. Its invocations meet the hypotheses on that report, and its borrowing is Variant A\u2032 under the same conditions. #512's word is not checked here; this rests on #512's own report.\n\n### Reproduce\n\n```sh\npython3 research/e8-lemma-a-lean/verify.py                                    # Lean (builds the Lemma G package too)\npython3 research/e8-lemma-a-lean/verify.py --instances /abs/out/of/484/verify # plus #484's results, extended labels, owners, windows\npython3 research/e8-lemma-a-lean/verify.py --no-cache --async T.json.gz       # owners and windows on an asynchronous template\n```\n\n### Credits\n\n* #458 (chafreaky): the one-helper rule, paid wrappers, spectator routing and cover-class owners; this PR formalises the family-unit case of its realization argument.\n* #471 (Dugongue): the complete-invocation normalisation, same-owner spectator borrowing, and the footprint rule.\n* #500 (rohanarun): footprint hosting with paid wrappers.\n* #505 (Dugongue): asynchronous whole-owner scheduling.\n* #433 (icekylinx): the complex supplier and its pure banks.\n* #442 (DaysSky): idle-axis hosting and the stream model (\u00a72), in which Lemma A is proved.\n* #425 (Zhihao Chen): the conjugation lemma.\n* #484 (DreamingOfClouds): the gauge/kernel word and Lemma A.\n* `formal/lean` on main and #487/#488 (jamesyc): the Lean conventions.\n\nPrepared by DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n"
+    },
+    {
+      "number": 520,
+      "head": "6077fa76950facbce11ec2f04dfbc93493114a44",
+      "updated_at": "2026-10-11T23:57:03Z",
+      "title": "Open asynchronous whole-owner allocator and a delivery-layer map of the complex word",
+      "tree_truncated": false,
+      "lean_count": 154,
+      "changed_lean": [],
+      "removed_lean": [],
+      "body": "## Scope\n\nA research note with tools. Added folder: `research/complex-delivery-map-open-allocator/`.\n\n## What is in it\n\n**1. An open asynchronous whole-owner allocator** (`tools/`). The optimisation that produces the frozen `ASYNC-OWNERS` maps of #505/#508/#512/#514/#517 as runnable code: an aggregate CP-SAT model (helpers per call per width per idle child, port tiling patterns, windows, one helper per call per port, Hall conditions), a lazy-cut loop against the literal per-child nomination, a nominator that writes roles in #505's format, and a profile recount that writes the plan #508's width-generic emitter and audit check against.\n\nValidation: on #505's own order and widths it returns #505's published remainder profile `{1:136,3:3432,5:3501,7:2137,16:1,48:408}` exactly as the optimum. On #507's widths under #508's offset-six order the aggregate reaches 99,625.66, equal to the timing-free ceiling (all windows open), and the resulting profile gives #512's endpoint `b = 0.001389978441615608` through the pinned moment engine. The first-order objective `\u03a3 r ln(73/r)` over remainders is exact to first order because the rank mass is fixed.\n\nWhy: every asynchronous result so far ships only its witness. Anyone who changes the local word needs a fresh allocation; this gives the community a checked one. Requires `ortools`.\n\n**2. A map of where the 560 complex helpers go** (`code/`, `results/`): exact symbolic replay over Q of the #433, #484 and #507 words. All three share the packet layer (84 single-source copies, 269 four-source packets, 204 eight-source packets, 3 centre sums; coefficients \u00b11, \u00b11/2) and the same duplicate structure (90 identical packet copies, 84 sign variants); they differ in how packets reach targets (389 / 380 / 283 helpers copy a source first; 171 / 171 / 255 are built only from helpers). Targets read along nested chains `0 \u2192 F\u2085 \u2192 F\u2086 \u2192 cap` (#507: `0 \u2192 F\u2086 \u2192 F\u2087 \u2192 cap`): every 5-frame is private to one target and every 6-frame is shared by exactly two targets; no pre-cap frame is shared by more than two. Merging an identical pair at its readers' shared 7-frame fails post hoc for every pair in every word, because each reader has other pre-cap reads outside that meet.\n\n**3. A correction.** A plane-section argument (\"a register of `s` above its line serves the readers in one hyperplane section, the largest has 32 of 56, so \u2265 3 branches per source\") does not hold: all ports have odd weight, so the planes spanned with `v` and `v + 1` always cover all 56 readers. We had written that bound down privately and withdraw it here so nobody else relies on it. The binding structure is the chain design above.\n\n**4. Direction.** The complex cost is 72 % helpers and the helpers are mostly delivery of the same 473 packets, copied and re-signed until every target can read them in its own chain, with frames shared only in pairs. Grouping `k` targets on a shared `(9\u2212k)`-frame delivers a packet once per group at the price of one extra climb per target per level (\u2248 3 \u03a6 against \u2248 25 \u03a6 per helper). Stated as an exact combinatorial problem in the README; not solved here.\n\n## Credits and disclosure\n\n#425/#433 (packet word), #484 (gauge/kernel word), #507 (partial-own factory), #505/#508 (asynchronous schedule, width-generic emitter and audit), #512/#517 (independent endpoint and ceiling the allocator reproduces), #446 (rigidity), #496/#442 (whole-owner hosting). Written by higherbeing with Claude Code (Anthropic) assistance. Apache-2.0.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n"
+    },
+    {
+      "number": 519,
+      "head": "ffd3c48a80ba8b579dc300e785e387fe8acddfef",
+      "updated_at": "2026-10-11T23:51:04Z",
+      "title": "[Lean] Add automatic-width binary counting",
+      "tree_truncated": false,
+      "lean_count": 157,
+      "changed_lean": [
+        {
+          "path": "research/lean-automatic-width-count/BinaryAutomaticWidthCount.lean",
+          "sha": "5d1cc3c168be9504d8bd1cca42de6df605c2525b",
+          "status": "added"
+        },
+        {
+          "path": "research/lean-automatic-width-count/BinaryCountDispatcherMarkedInput.lean",
+          "sha": "85e3c511b676bd2563b1eacd096cd7b957b306b4",
+          "status": "added"
+        },
+        {
+          "path": "research/lean-automatic-width-count/BinaryCounterZeroAllocation.lean",
+          "sha": "c7f4b3ab64b8596d43108ebd3895de9015cf121b",
+          "status": "added"
+        }
+      ],
+      "removed_lean": [],
+      "body": "## Completed chunk and coverage\n\nAdds a concrete ten-state, two-tape, three-symbol machine that allocates counter width from the actual scanned input and then counts it. No input length or counter width parameter appears in its transition table. For every finite input word of length n, including empty input, it reaches the specified halted endpoint with an n-bit little-endian counter representing n. The checked execution bound is (CarryTape.pass n (List.replicate n false)).2.reads + 4*n + 4.\n\nFinite coverage: marked-input representation transport, a four-state zero-counter allocator (2*n+3 transitions), and their exact controller composition. The input starts at its right blank; the second tape must be pristine blank.\nConditional-interface coverage: the CurrentMain.FixedTapeMachine and exact pinned dispatcher interfaces.\nFull-theorem coverage: no complete multiplication or kappa theorem, linear amortized bound, first-completion claim, compact-counter normalization, one-string prelude, four-tape control composition, or Plan/Budget discharge. Actual selected-source obligations remain open.\n\n## Exact pins and author-checked kappa\n\nBase: 12a4934d15006e8c10f9b2264f13f8f341be802b.\nHead: ffd3c48a80ba8b579dc300e785e387fe8acddfef.\nExplicit author-checked selected conditional project kappa = 90446448750933/125000000000000000 = 0.000723571590007464, matched to the selected-result record and certificate at that base. This is project context, not a kappa theorem proved by this helper. The all-size compiler, chart, restored-row, selector/routing, prime-supply, precision/recovery, complex-symbolic and analytic-transfer interfaces remain conditional.\n\n## Reuse and attribution\n\nThree source files are included. Six exact external sources are reused: four from #511 at79f7c03c7f820ab89955b75ef239cbaccc627e6e and two from #488 atedd3102b415df5b9d6f633ac0a4dedcf69c58525. Neither dependency is assumed merged. The later CI-provenance repair on #511 does not change these pinned source blobs. DEPENDENCIES.json gives paths and hashes.\n\nCompared with #511 supplied-width counting and #64 richer generic counter/stack, first-completion and amortized results. Generic binary counting is not claimed new. This chunk supplies actual width allocation and the composed current-model endpoint; a PR64 arithmetic bridge remains separately unverified and is not included. Apache-2.0, source attribution and OpenAI-assistance disclosure are preserved. Fresh automatic/width PR search found no matching open or closed PR.\n\n## Validation and reproduction\n\nOffline Linux, Python3, Lean4.21; no Mathlib or downloads. README.md supplies the command using two separate exact foundation roots and a fresh build directory.\n\nFresh isolated nine-source package replay passed: 11.7677 compiler seconds, 0.00378 queue seconds, peak virtual memory3,074,072,576 bytes. All nine object hashes and49 normalized axiom outputs match accepted evidence. Only standard propext, Quot.sound and Classical.choice axioms occur. This local kernel evidence is distinct from CI.\n\nOne additive commit,16 files,1,834 additions,0 deletions. Fork CI is not yet passed; upstream jobs may require maintainer approval. The inherited joint-dual root-pin failure is being repaired and tested separately on #511; no scientific check is disabled here."
+    },
+    {
+      "number": 518,
+      "head": "e0a071dce251eeca96d446f73147048cfebbd5c7",
+      "updated_at": "2026-10-11T23:50:50Z",
+      "title": "Conditional kappa 0.001393662920776407: blockwise pair exposure, 99 pivots and whole-owner allocation",
+      "tree_truncated": false,
+      "lean_count": 154,
+      "changed_lean": [],
+      "removed_lean": [],
+      "body": "## Result\n\nThis constructs and independently replays a new complex supplier giving conditional **kappa = 0.001393662920776407**, exactly `1393662920776407/1000000000000000000`. It improves our preceding checked construction, 0.001391523459591829, by **0.153750%**. The complex side binds at `b = 697803963898659915203/500000000000000000000000`; the unchanged cited PR493 bit supplier has `c = 391360506745414227149/250000000000000000000000`.\n\nThe inherited all-size compiler, common-label/mutable-basis interface, normalized Lemma A realization, restored-row, precision/tape and analytic-transfer contracts remain dependencies. This is not an unconditional multiplication theorem or new Lean certification. Larger submissions with different or disputed interfaces are not treated as comparable verified baselines.\n\n## New mechanism\n\nInstead of using a uniform pair choice throughout the local fourteen-block factory, choose pairs blockwise and reconstruct the exact downstream decoder. The selected witness uses option [0,0] everywhere except blocks (0,2,4,6) and (0,3,4,7), where it uses [1,1]. This changes the exposed intermediate rows, rather than merely changing coordinates within an identical response class.\n\nThe construction retains the preceding four coordinated rank-two gauge reductions and compatible scalar-body retiming. Exact response reduction now yields **99 cancellations rather than 92**. The local paid profile is `{1:2530,2:182,3:516,4:88,5:298,6:68,7:1,8:17}`; residual widths are `{7:18,8:161,9:381}`.\n\nConstructive width-dominance transport and pattern exchange then produce a new literal whole-owner allocation. Eight replicas retain the complete-invocation order `(7*stage+6*replica, stage, replica)`. All 40,320 helper uses have explicit legal owners, and every remaining pending factor is paid. The complete global profile is `{1:182160,2:13104,3:40196,4:6336,5:25064,6:4896,7:164,8:1224,48:796}`. Ambient dimension 73, live stock 7,680, physical stock 8,258 and rank deficit 2,496 are unchanged.\n\nNo helper is split across owners, no scalar instruction crosses an unfinished invocation, and headline gains are not added.\n\n## Direct credits and context\n\n- #507: partial-own factory, old response reference and pinned retiming map.\n- #484 and #496: gauge/kernel construction, paid wrappers, whole-owner parent and invoice ancestry.\n- #495, #501 and #502: scalar-body retiming and its integrations.\n- #493: unchanged cited bit supplier; its published histogram is repriced, not its whole operator reverified.\n- #473: gauge inspiration and updated scheduling comparison; #505: our earlier asynchronous complete-invocation schedule; #506: related composition and portability feedback.\n- #477: experimental records consulted. #508 and #512: public asynchronous partial-own comparison points.\n- #509: abstract Lemma G proof context. #510: stronger but nonbinding bit headroom. #511 and #513: formal dispatcher/completed-bank work. These are acknowledged without claiming their formal results were recompiled or add numerical gains here.\n- #458: whole-owner spectator wrappers; #433, #425 and #370: geometry and scalar/phase compilation; #361 and #315: exact moments and outer arithmetic; #434, #417, #435, #440, #401, #408 and #416: response-kernel/gauge ancestry.\n\nSOURCES.json pins direct dependencies and separates ingredients from context. The snapshot is frozen through #513.\n\n## Four OpenAI-source research routes\n\nThe appendix preserves mathematical rules, source hashes and bounded experiments from four distinct proof families in OpenAI math at adc7f1241b42e322a6451854ab7e4b4c146bf78a:\n\n1. HoneycombChords sparse interpolation/Newton evaluation inspired blockwise exposure choices and exact decoder reconstruction; this contributes to the selected word.\n2. MatchingCount unit flow/mincut and perfect matching inspired constructive ownership transport and pattern exchange. The new allocation contributes; the separate cut-guided scheduling experiment did not win.\n3. ThinTrees rational Schur history inspired paid internal-register elimination. Four finite screens found no legal cheaper witness.\n4. QuantumCircuit pruning inspired the exact sufficient condition `(U-I)R=0` on all reachable input columns. Both orientations of the new program have 3,700 positive child sites; no zero-operand candidate survived modular screening.\n\nThese are source-inspired adaptations, not four imported Lean theorems or four numerical gains. No global originality claim is inferred from the search. Alternative losing architectures and the sufficient conditions for future use are documented rather than counted as savings.\n\n## Reproduce and validation\n\nFrom `research/nodal-pair-async`, with Python 3.11 or later and assertions enabled:\n\n```text\npython -B verify.py --work /absolute/path/to/a-new-output-directory\n```\n\nStandard library only; no network, optimizer, C++ compiler or Lean required. Fourteen stages rebuild the word, check all 800 arbitrary-dirt columns in both orientations and 99 correction-omission controls, verify exact Gaussian phases and physical wrappers, audit all whole owners and remainders, recount the finite invoice, and execute two rational moment engines and all 47 strict outer constraints. Adjacent-price and invalid assembly controls are rejected.\n\nThe actual scalar envelope requires 21 local prefix bits and 206 global bits, below the retained charge of 512. The inherited meaningful owner-alias control remains in place. A full fresh replay passed with every recognized package text file converted to CRLF. Missing inputs, changed tokens and optimized Python are rejected before output creation. No hidden file is required; LF/CRLF normalization does not ignore any other content. No Linux or Python 3.14 execution is claimed from this Windows test.\n\nThe package includes the exact expected result, complete assembly receipt, portability receipt, source credits and research appendix. Nothing has been published by the tooling.\n"
+    },
+    {
+      "number": 475,
+      "head": "5996e33ecad6a0ccd578aec58831457829d75575",
+      "updated_at": "2026-10-11T23:50:07Z",
+      "title": "Remove compact FFT reservation and top-bit costs with complementary reservoirs",
+      "tree_truncated": false,
+      "lean_count": 154,
+      "changed_lean": [],
+      "removed_lean": [],
+      "body": "The compact FFT currently transforms its reserved axes individually, imposing `c > q`, and processes extra top bits at cost `O(Vd)`. This supplies a conditional construction removing both costs while retaining the original all-input dirty-core, routing, precision and analytic interfaces.\n\nComplete every Fourier round of one half of the axes while the other half supplies restored dirty fields, then exchange roles. Route each exceptional top-bit round into virtual chunks filled with existing unselected coordinates. At most five global coordinate routes serve an entire FFT; no Fourier axis is enlarged. Ordinary complete-zero-row padding is retained.\n\nThe resulting FFT cost is `O(V [p^tau polylog(p) + ell d^lambda_prime])`. The proof accounts for complete front/back fields and row indices, actual pass chronology, arbitrary dirty contents, pointwise frequency alignment, inverse normalization, the constant number of paid routes, and p+2 precision. It also provides explicit compressed eventual-capacity bounds.\n\n**No new kappa is claimed.** Gaussian arithmetic and scalar work still limit the current composition. This removes two FFT implementation costs that would otherwise remain even after those separate algorithms improve; kappa = 1 remains unproved.\n\nVerification passed on macOS Python 3.11 and Linux Python 3.12 with byte-identical outputs: 33 polynomial Fourier shapes, 429 basis columns, 98,080 exact entries, 84 common-field layouts, 168 top-field layouts and seven mutation controls. Four parameter rows set c below q and retain the other 44 strict expressions from #472. Those rows distinguish reservation rules; they are not a new full finite invoice. Python 3.11/3.14 CI and source-bound receipts are included.\n\nRun `python -B research/complementary-fft-reservoirs/verify.py /absolute/new/output`. Only the standard library is needed. Tiny operator tests and large symbolic field inventories have separate scopes; the all-size fixed-tape cost is a written conditional transfer, not an executed large machine or Lean proof.\n\nAll eleven source dependencies match pinned Git bytes. Credits: Douglas Colkitt and integer-mult-bounds contributors for compact layout and phase interfaces; RaD/hipotures and the source authors for balanced layout, arbitrary routing and semantic guard; eumemic, icekylinx and Zhihao Chen for the inherited arithmetic. New construction, proof and controls by chafreaky with OpenAI Codex assistance. Original notices retained; no literature priority claimed.\n"
+    },
+    {
+      "number": 511,
+      "head": "9a20ad04be54b1c0fa26bd4ceb689f9ea220eab5",
+      "updated_at": "2026-10-11T23:47:23Z",
+      "title": "[Lean] Add checked binary count dispatcher",
+      "tree_truncated": false,
+      "lean_count": 158,
+      "changed_lean": [
+        {
+          "path": "research/lean-binary-count-dispatcher/BinaryCarryIncrement.lean",
+          "sha": "411667d983bdb331073d0a31e34975455f403e8b",
+          "status": "added"
+        },
+        {
+          "path": "research/lean-binary-count-dispatcher/BinaryCountDispatcher.lean",
+          "sha": "4c6719d736d1480b9cb8c3fc41d570beeb0ef67e",
+          "status": "added"
+        },
+        {
+          "path": "research/lean-binary-count-dispatcher/CarryTape.lean",
+          "sha": "4993e9e1d3230eb296a2b199437cc5ef2c26552c",
+          "status": "added"
+        },
+        {
+          "path": "research/lean-binary-count-dispatcher/CarryTapePass.lean",
+          "sha": "720415129e81740f3ab4ac5d909f8ada48787b60",
+          "status": "added"
+        }
+      ],
+      "removed_lean": [],
+      "body": "## Completed chunk and coverage\nAdds a concrete seven-state, two-tape, three-symbol binary count dispatcher. For every finite input word and supplied fixed-width counter, it reaches the specified halted endpoint with value (initial value + input length) modulo 2^width. Empty input, zero width and overflow are covered. The checked transition bound is CarryTape.pass's read receipt plus 2 * input length + 1.\n\nFinite coverage: explicit transition tables, marked blank endpoints and supplied-width modular counting. This is not a replay of the complete selected source program.\nConditional-interface coverage: exact CurrentMain.FixedTapeMachine controller and carry-pass interface, including successful-prefix simulation and actual-symbol restart.\nFull-theorem coverage: no full multiplication theorem, kappa theorem, width allocation, compact output, cross-model linear amortized bound, source prelude/caller or Plan/Budget composition.\n\n## Author-checked kappa and exact pins\nBase: 12a4934d15006e8c10f9b2264f13f8f341be802b.\nHead: 79f7c03c7f820ab89955b75ef239cbaccc627e6e.\nExplicit author-checked selected conditional project kappa = 90446448750933/125000000000000000 = 0.000723571590007464. The captured selected-result and linked certificate agree. This is source-matched project context, not a kappa bound proved by this helper; all-size compiler, weighted/common-ancestor chart, restored-row, selector/routing, prime-supply, precision/recovery, complex-symbolic and analytic-transfer assumptions remain.\n\n## Reuse and attribution\nCompared with merged #64: its richer literal counter/stack, directional, exterior-tape, first-completion and amortized results are acknowledged. Binary increment is not claimed as new. This chunk adds the explicit symbol-driven restart controller and its two-tape endpoint in our current machine model. PR64-to-current-model arithmetic transport remains open.\nTwo exact foundation sources are reused from #488 at edd3102b415df5b9d6f633ac0a4dedcf69c58525; that PR need not be merged. Four source files are included here. Apache-2.0, source attribution and OpenAI-assistance disclosure are preserved.\n\n## Validation and reproduction\nOffline Linux/Python3/Lean4.21 checker, no Mathlib or downloads. See research/lean-binary-count-dispatcher/README.md and FOUNDATIONS.json for the separate exact foundation checkout and fresh build-directory command.\nFresh isolated six-module replay: 8.8320 compiler seconds, 0.00303 queue seconds, peak virtual memory 2,735,955,968 bytes. All six object hashes and 36 axiom outputs match accepted evidence. Source/hash manifests, author check, complete scope and replay receipts are included. These local kernel results are separate from fork CI and upstream CI/maintainer gates, which are not claimed passed here.\nOne additive commit, 17 files, no inherited root changes."
+    },
+    {
+      "number": 517,
+      "head": "65518fcff5a7bd490365273ae5469a82aac14853",
+      "updated_at": "2026-10-11T23:44:12Z",
+      "title": "Coordinated kernel84: fresh two-platform witness and exact packing ceiling",
+      "tree_truncated": false,
+      "lean_count": 154,
+      "changed_lean": [],
+      "removed_lean": [],
+      "body": "This adds a self-contained conditional kernel84 certificate at **\u03ba = 0.001389125582984265**, plus an exact packing ceiling showing that every whole-helper schedule retaining this local word has **\u03ba < 0.001389210509385421**. Less than 0.0062% remains through scheduling alone under those stated restrictions.\n\nThe construction applies #508's coordinated gauge collapse to #507's partial-own factory and retains all 84 pivots. It reallocates all 40,320 helpers against #508's offset-six call order, then independently checks the literal owner maps, Gaussian phases, normalized spectators, complete controller and finite invoice. The complex endpoint is **b = 0.001391057937152176875572**; #493's freshly rebuilt bit supplier is nonbinding. No headline gains are added together.\n\n**Frontier comparison:** #514 subsequently reported \u03ba = 0.001391523459591829 using a different 92-pivot word. This PR does not claim to exceed it. That changed word lies outside the packing ceiling's explicit assumptions. The 92-pivot source reconstruction reproduced its published semantic hash locally; no full #514 replay is claimed here.\n\nThe packing bound drops every timing, owner-collision and chart restriction. Its 112 complete integer patterns yield a rational dual checked by both independent moment engines. The checker imports no optimizer and rejects five corrupted certificates. The LP is used only to nominate the dual. This provides a concrete reason to change the local construction instead of extending scheduling searches on this word.\n\n**Both cold Python3.14 runs passed on macOS arm64 and Linux aarch64.** All seven outer stages,21 dependency stages and13 coordinated-local stages passed on each platform. The complete stable result files are byte-identical: `b5700b468a40f9e142165999b4818a6de0af53183f801b8057c0a40fa78c9c59`. Receipts, genuine Boost/compiler checks, guarded physics and exact assembly evidence are attached. GitHub CI is separate and is not claimed passed. The verifier rebuilds both suppliers, the partial-own factory, the coordinated word and all global stages without accepting cached outputs. The source package is immutable; all 328 copied source files were checked against exact Git bytes. The inherited PR507 portability repair pins only two historical floating display annotations, preserving its mathematical and frozen-word hash assertions.\n\nInherited all-size compiler, mutable-basis/common-label transport, Lemma A realization, restored-row, precision/tape and analytic-transfer conditions remain. This is a finite conditional witness and a scoped packing bound, not an unconditional multiplication theorem or \u03ba=1 result.\n\nCredits: eumemic #507/#493; Dugongue #508/#505; Rohan Arun #473's scheduling and flow-capacity work; DreamingOfClouds #484; #496, #495, #501/#502, #458 and the retained earlier authors. New composition, literal allocation, two-platform wrapper and exact packing dual by chafreaky with OpenAI Codex assistance. Licenses, original sources and notices are retained.\n"
+    },
+    {
+      "number": 515,
+      "head": "6590606e733768f6a7004b3f55ae35f988ba515f",
+      "updated_at": "2026-10-11T23:35:02Z",
+      "title": "Bit word R685 (R687 lineage): L-copy inline + Bcw copy deletions, c = 1.323554\u00b710\u207b\u00b3 (+0.62% over #504's R687)",
+      "tree_truncated": false,
+      "lean_count": 203,
+      "changed_lean": [
+        {
+          "path": "research/balanced-nullity-banks-163/BankAndBalanced.lean",
+          "sha": "b681bd7acf7d2ae0e0440c6c82851a3b4946d8ed",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__Bridge__Cert.lean",
+          "sha": "f7bdc3d903341a9546056cde124d642e2677318b",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__Bridge__Net.lean",
+          "sha": "204f6d9cf902c85900f237bd99a23774e9a3f81b",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__Carrier__Live.lean",
+          "sha": "b8306527d64ae06271c6aa55c5e0b3ded85c651c",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__Carrier__Phases.lean",
+          "sha": "305da15b5d129959a0696e2031289eea91ec1813",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__Fourier__Main.lean",
+          "sha": "9aa06b5bf28a2380ef9d54a0785ac2369f6012e4",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Chain__Geom.lean",
+          "sha": "eb4490af8b0f5b97984d9dbdf345d86fe65d02c7",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Chain__InvThm.lean",
+          "sha": "d69fcb4992778bcd2d12596e365ee8483aa538a2",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Chain__NetCert.lean",
+          "sha": "6336ba076607f4229c58e51b01f35b8457effb88",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Chain__NetDef.lean",
+          "sha": "c13042eb43328f9771a5f85e83edb59810f3a006",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Chain__NetStage.lean",
+          "sha": "670f4c6a84b3453dd0b1bc0879fff3ecd9410919",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Chain__Phased.lean",
+          "sha": "e68c42377f4fd0d0352ba697357d05f60333c8dc",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Chain__WinB.lean",
+          "sha": "951edde5cf5fdfb1dd5f7902499f3ccab961bf4a",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__B2Gp193Main.lean",
+          "sha": "d7ecfebcea804af8209a0db3d89caa9ed364ea7a",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__Glue.lean",
+          "sha": "c6cbac38e3a2fbabac74610519e26fcc065f7ff5",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__InstB2Gp193.lean",
+          "sha": "9b9925ce268a9f757fd44913140a57df95315769",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__P193Cert.lean",
+          "sha": "3c3250279e66b56c9fee8a12c265ae2780ce4761",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__P193Price.lean",
+          "sha": "eeed011d64482adbdf0d6ff48a7c395a7252d57a",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__P193ScalOK.lean",
+          "sha": "3539192ac1d3a51641f7ba08fa06a8659b12bc0b",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__RateB2Gp193x.lean",
+          "sha": "df563cde73a8f942e9c90189261dd6e8482d40f1",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__Raw.lean",
+          "sha": "499fa67e88ebfe0ad777081cb61def3f74de81ba",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GCert__Data__SolutionB2Gp193x.lean",
+          "sha": "0392e1f05bb89cca472c976391a649418dde186e",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GFrame__Engine__Adapt.lean",
+          "sha": "24e261ad0862ba778f0e7f00d48756865b7f4eb8",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GFrame__Engine__Letters.lean",
+          "sha": "2eca6e713bfd47449b872a0462857806861be9d5",
+          "status": "added"
+        },
+        {
+          "path": "research/p10-five-new-kernels/vendor/pr320-derived/inputs/complex/sources/Work__GFrame__Engine__Level.lean",
+          "sha": "6bd7cfa0c3f34bbd04fc445eceae0cc4d4c567fc",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__Bridge__Cert.lean",
+          "sha": "f7bdc3d903341a9546056cde124d642e2677318b",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__Bridge__Net.lean",
+          "sha": "204f6d9cf902c85900f237bd99a23774e9a3f81b",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__Carrier__Live.lean",
+          "sha": "b8306527d64ae06271c6aa55c5e0b3ded85c651c",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__Carrier__Phases.lean",
+          "sha": "305da15b5d129959a0696e2031289eea91ec1813",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__Fourier__Main.lean",
+          "sha": "9aa06b5bf28a2380ef9d54a0785ac2369f6012e4",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Chain__Geom.lean",
+          "sha": "eb4490af8b0f5b97984d9dbdf345d86fe65d02c7",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Chain__InvThm.lean",
+          "sha": "d69fcb4992778bcd2d12596e365ee8483aa538a2",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Chain__NetCert.lean",
+          "sha": "6336ba076607f4229c58e51b01f35b8457effb88",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Chain__NetDef.lean",
+          "sha": "c13042eb43328f9771a5f85e83edb59810f3a006",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Chain__NetStage.lean",
+          "sha": "670f4c6a84b3453dd0b1bc0879fff3ecd9410919",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Chain__Phased.lean",
+          "sha": "e68c42377f4fd0d0352ba697357d05f60333c8dc",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Chain__WinB.lean",
+          "sha": "951edde5cf5fdfb1dd5f7902499f3ccab961bf4a",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__B2Gp193Main.lean",
+          "sha": "d7ecfebcea804af8209a0db3d89caa9ed364ea7a",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__Glue.lean",
+          "sha": "c6cbac38e3a2fbabac74610519e26fcc065f7ff5",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__InstB2Gp193.lean",
+          "sha": "9b9925ce268a9f757fd44913140a57df95315769",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__P193Cert.lean",
+          "sha": "3c3250279e66b56c9fee8a12c265ae2780ce4761",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__P193Price.lean",
+          "sha": "eeed011d64482adbdf0d6ff48a7c395a7252d57a",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__P193ScalOK.lean",
+          "sha": "3539192ac1d3a51641f7ba08fa06a8659b12bc0b",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__RateB2Gp193x.lean",
+          "sha": "df563cde73a8f942e9c90189261dd6e8482d40f1",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__Raw.lean",
+          "sha": "499fa67e88ebfe0ad777081cb61def3f74de81ba",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GCert__Data__SolutionB2Gp193x.lean",
+          "sha": "0392e1f05bb89cca472c976391a649418dde186e",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GFrame__Engine__Adapt.lean",
+          "sha": "24e261ad0862ba778f0e7f00d48756865b7f4eb8",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GFrame__Engine__Letters.lean",
+          "sha": "2eca6e713bfd47449b872a0462857806861be9d5",
+          "status": "added"
+        },
+        {
+          "path": "research/source527-five-stage-crossover/references/source527/inputs/complex/sources/Work__GFrame__Engine__Level.lean",
+          "sha": "6bd7cfa0c3f34bbd04fc445eceae0cc4d4c567fc",
+          "status": "added"
+        }
+      ],
+      "removed_lean": [],
+      "body": "\nFrom a fresh `git archive`, `verify.py --light` and the default FULL run (with `--discover-check`, including #443's historical regressions) both pass. Stacked on #504 (head 35057a6).\n\n**Method + knowledge PR (no frontier claim).** A new bit word, R685, from the R687 lineage of #504. It is priced at eleven stages with #442 whole-residual hosting and target mixing, with no\ncross-family split, by the pipeline of #504 unchanged: **c = 661777032472911750807/(5\u00b710\u00b2\u00b3) \u2248 1.323554\u00b710\u207b\u00b3**, +0.62% over #504's R687 (1.315433\u00b710\u207b\u00b3) and +2.99% over the R715 bit supplier (#463). With #442's complex\nsupplier \u03ba is complex-bound as before (1.265849\u00b710\u207b\u00b3); the bit-only \u03ba is 1.321805\u00b710\u207b\u00b3. Compositions with #471/#484 are not rerun here.\n\n| word | R | five-stage saving | s=11, greedy kernel | s=11, exact pivots |\n|---|---|---|---|---|\n| R687 (#504) | 687 | 1.001418\u00b710\u207b\u00b3 | 1.303868\u00b710\u207b\u00b3 | 1.315433\u00b710\u207b\u00b3 |\n| R684: R687 + 3 word-level copy deletions | 684 | 1.003262\u00b710\u207b\u00b3 | 1.303938\u00b710\u207b\u00b3 | 1.317462\u00b710\u207b\u00b3 |\n| inline only (28 L copies) | 687 | 1.006976\u00b710\u207b\u00b3 | 1.309219\u00b710\u207b\u00b3 | 1.322341\u00b710\u207b\u00b3 |\n| **R685** | **685** | **1.008233\u00b710\u207b\u00b3** | 1.309099\u00b710\u207b\u00b3 | **1.323554\u00b710\u207b\u00b3** |\n\n### What is new\n1. **D4(c) sums from their pairs (28 inlines).** In R687 each D4(c) sum is built from two L's, so 28 L's have a third reader and need a third register chain. Building the sum from its four pairs\n   gives every L two readers: 28 L copies fewer (raw R 811 \u2192 782), contents and frames unchanged. 15 rules change kid lists (`data/inline-kids.json`, checked to be inlines of the old kids). This\n   is the Bcw inline of our poset scout; the sections scout's exact per-block search over inline and re-pairing moves returns exactly these moves.\n2. **Optimal register chains.** compile2's greedy chains are replaced by an optimum of an exact path-cover ILP (`code/chain_model.py`; pinned, `--discover-check` recomputes the objective). Equal-cost\n   optima differ in c by several tenths of a percent, so the chains are part of the word.\n3. **Two copy deletions.** `code/copy_sweep.py` replays the raw word exactly and finds the copies all of whose reads can take other registers at a legal frame (frames only climb, one frame per gate). Two\n   D4(c) copies qualify and are deleted (reuse rebuilds the dirt compensation exactly): R = 685.\n4. **Exact kernel pivots on the new word.** 233 candidates, upper bound 101 from the sum-rank lower bounds, attained by the pinned annealing selection (reproduced by `code/select_pivots.py`), so the maximum is exact\n   without an exhaustive refutation; parity leaves 100.\n\n### Findings\n- Raw \u221229 does not become R: the 28 L copies leave the dead pair slots that D5 births recycle, so reuse falls by as much. The gain is in climbs and the kernel (five-stage +0.56% for the inline, +0.125% for the deletions).\n- R681 (all six D4(c) copies gone) is not reachable by these moves: the four hosts have no alternative source at any legal frame, and no single inline of a D4(c) sum raises the five-stage saving (73 moves).\n- The clearing gap of the R687 raw word (floor 510 against 687) is structural: 196 of the 206 failed reuse births are L-copy births seeing one dead pair slot, whose clearing needs the complementary pair on a\n  transverse chain or in sources whose next read frame does not contain the L frame. Exact twins are all chains (893 overlapping pairs, none mergeable).\n  These counts come from exploratory scripts outside the package; `verify.py` reruns the copy sweep that selects the deletions.\n\n### Verification\n`python -B research/e8-r685-inline-deletions/verify.py /abs/out [--light]`; CI workflow `e8-r685-inline-deletions`.\n- `--light` (about 3 minutes, no C++): integrity (five pinned upstream packages, including #504 at 35057a6); the word rebuilt from #504's frozen hierarchy byte for byte; copy anatomy on the inlined DAG; #370's independent checker and\n  mutants; the pivot bound, witness and annealing reproduction; the kernel and mixed words regenerated byte for byte; the relaxed all-column checker on both.\n- FULL adds #443's parent verifier, the complex upstream, C++ cohort legality, five- and eleven-stage formal columns, record mutants, Gram, the mix check (4 mutants), eleven-stage geometry/template/audit,\n  whole-residual hosting with the frozen selection (`--discover-check` recomputes it), the hosted audit and the assembly (47 strict inequalities), compared with `EXPECTED.json`.\n\n### Review points\n- **Chain override.** One statement of #370's compile2 (the chain loop) is replaced at run time; each anchor must occur exactly once in the unchanged source. The pinned chains must cover the read events of every symbol exactly.\n- **Word-level deletion.** A copy is deleted only if every read has an alternative set whose x-parts XOR to its content, legal at that read's own frame; #443's reuse step rebuilds D and C, and #370's checker verifies the F2 semantics on all 925 columns.\n- **Kernel selection.** A witness at the exact maximum chosen among annealing seeds (other seeds move c by about \u00b10.05%); #504's frozen selection for R687 is the same kind of object.\n- **Inherited.** The usual compiler, dirty-helper and analytic interfaces; from #450 only Lemma M. No unconditional theorem or Lean proof is claimed.\n\nCredits: the posets and sections scouts' inline and chain model, and the sweep, are by DreamingOfClouds with **Claude Opus 5.5 (Anthropic), via Claude Code**; the R687 lineage (read-then-climb, exact pivots, mixing generalisation) is #504's;\n#463 (R715, carrier bound); chafreaky (#443/#451/#454/#458/#472), eumemic (#436 reuse/retime, #493), DaysSky (#442), Dylan Crow (#370 bit word, producer and checkers), Dugongue (#471), and all source-pinned authors.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n"
+    }
+  ]
+}
