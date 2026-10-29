@@ -388,6 +388,7 @@ class PackageTests(unittest.TestCase):
         scripts.mkdir()
         runner = scripts / "research_package.py"
         runner.write_bytes((ROOT / "scripts/research_package.py").read_bytes())
+        (scripts / "research_windows_git.py").write_bytes((ROOT / "scripts/research_windows_git.py").read_bytes())
         verifier = self.target / "verify.py"
         argv = [sys.executable, "-B", str(runner), "--package", "research/fixture"]
         for value in ("", "0", "1", "2"):
@@ -414,6 +415,7 @@ class PackageTests(unittest.TestCase):
         scripts.mkdir()
         runner = scripts / "research_package.py"
         runner.write_bytes((ROOT / "scripts/research_package.py").read_bytes())
+        (scripts / "research_windows_git.py").write_bytes((ROOT / "scripts/research_windows_git.py").read_bytes())
         verifier = self.target / "verify.py"
         argv = [sys.executable, "-B", str(runner), "--package", "research/fixture"]
         for encoding in ("cp1252", "ascii", "utf-8"):
@@ -444,6 +446,7 @@ class PackageTests(unittest.TestCase):
         scripts.mkdir()
         runner = scripts / "research_package.py"
         runner.write_bytes((ROOT / "scripts/research_package.py").read_bytes())
+        (scripts / "research_windows_git.py").write_bytes((ROOT / "scripts/research_windows_git.py").read_bytes())
         (self.root / "input.txt").write_text("changed input\n", encoding="utf-8")
         (self.target / "verify.py").write_text('print("UNEXPECTED_CHILD")\n', encoding="utf-8")
         result = subprocess.run([sys.executable, "-B", str(runner), "--package", "research/fixture"],

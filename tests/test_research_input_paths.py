@@ -145,6 +145,9 @@ class ResearchInputPathTests(unittest.TestCase):
         (self.root / "scripts/research_package.py").write_bytes(
             (ROOT / "scripts/research_package.py").read_bytes()
         )
+        (self.root / "scripts/research_windows_git.py").write_bytes(
+            (ROOT / "scripts/research_windows_git.py").read_bytes()
+        )
         self.write_manifest("./fixtures/input.txt")
         git("add", ".")
         git("-c", "gc.auto=0", "commit", "-qm", "before")

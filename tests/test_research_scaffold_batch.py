@@ -45,14 +45,22 @@ class ScaffoldBatchTests(unittest.TestCase):
 
     def test_exact_pins_binary_names_deduplication_and_constant_process_count(self):
         children, commands = [], []
-        real = subprocess.Popen
+        real, real_git = package._git_blob_popen, scaffold.git
         def tracked(argv, *args, **kwargs):
             child = real(argv, *args, **kwargs)
             children.append(child); commands.append(argv)
             return child
-        with patch.object(subprocess, 'Popen', side_effect=tracked):
+        def metadata(root, *args):
+            commands.append(['git', *args])
+            return real_git(root, *args)
+        with (patch.object(package, '_git_blob_popen', side_effect=tracked),
+              patch.object(scaffold, 'git', side_effect=metadata)):
             target = self.create(sources=self.inputs + self.inputs[:3])
+        # One stream serves the entire source inventory; platform ownership may
+        # add a gate but must not launch one Git process per source.
         self.assertEqual(len(commands), 3, commands)
+        self.assertEqual([cmd for cmd in commands if cmd[1] == 'cat-file'],
+                         [["git", "cat-file", "--batch", "-z"]])
         self.assertTrue(all(child.poll() is not None for child in children))
         rows = json.loads((target / 'SOURCES.json').read_bytes())['files']
         expected = []
@@ -66,7 +74,7 @@ class ScaffoldBatchTests(unittest.TestCase):
                          {'TASK.json', 'SOURCES.json', 'VERIFY.json', 'verify.py', 'README.md'})
 
     def test_live_drift_rejects_first_and_last_inputs_without_draft_or_child_leak(self):
-        real = subprocess.Popen
+        real = package._git_blob_popen
         for index, name in enumerate((self.inputs[0], self.inputs[-1])):
             with self.subTest(name=name):
                 path = self.root / name
@@ -74,7 +82,7 @@ class ScaffoldBatchTests(unittest.TestCase):
                 children = []
                 def tracked(*args, **kwargs):
                     child = real(*args, **kwargs); children.append(child); return child
-                with patch.object(subprocess, 'Popen', side_effect=tracked):
+                with patch.object(package, '_git_blob_popen', side_effect=tracked):
                     with self.assertRaisesRegex(ValueError, 'source has uncommitted changes'):
                         self.create('drift-' + str(index))
                 self.assertFalse((self.root / 'research' / ('drift-' + str(index))).exists())

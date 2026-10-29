@@ -47,7 +47,7 @@ class ResearchPackageDiagnosticTests(unittest.TestCase):
         self.base = package.git(self.root, "rev-parse", "HEAD").decode().strip()
         scripts = self.root / "scripts"
         scripts.mkdir()
-        for name in ("research_package.py", "new_research_package.py"):
+        for name in ("research_package.py", "research_windows_git.py", "new_research_package.py"):
             shutil.copy(ROOT / "scripts" / name, scripts / name)
         self.target = scaffold.create(self.root, "fixture", "fixture", "Fixture", ["input.txt"])
         self.ready()

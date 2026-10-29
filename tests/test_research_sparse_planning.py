@@ -19,6 +19,7 @@ class SparsePlanningTests(unittest.TestCase):
         self.git('init','-q');self.git('config','user.name','Fixture')
         self.git('config','user.email','fixture@example.invalid');self.git('config','core.autocrlf','false')
         self.write('scripts/research_package.py',(ROOT/'scripts/research_package.py').read_text())
+        self.write('scripts/research_windows_git.py',(ROOT/'scripts/research_windows_git.py').read_text())
         self.write('inputs/value.txt','1')
         for name in ['alpha','hidden']:
             self.write('research/'+name+'/VERIFY.json',json.dumps({'inputs':['inputs/value.txt']}))
@@ -57,6 +58,7 @@ class SparsePlanningTests(unittest.TestCase):
         self.assertEqual(actual.stdout,expected.stdout)
         self.assertIn('1 unchanged sparse manifests',actual.stderr)
         self.assertEqual(runner.plan(self.root,['scripts/research_package.py']),['research/alpha','research/hidden'])
+        self.assertEqual(runner.plan(self.root,['scripts/research_windows_git.py']),['research/alpha','research/hidden'])
         self.assertFalse((self.root/self.manifest).exists())
 
     def test_explanations_bind_identical_manifest_bytes_in_sparse_checkout(self):
@@ -132,8 +134,11 @@ class SparsePlanningTests(unittest.TestCase):
 
     def test_nonregular_head_manifest_is_never_a_sparse_json_input(self):
         (self.root/self.manifest).unlink()
-        (self.root/self.manifest).symlink_to('README.md')
-        self.commit();self.sparse()
+        # This is a Git-mode check. Build the tree entry directly so Windows
+        # does not need permission to materialize a filesystem symlink.
+        blob=self.git('hash-object','-w','--stdin',input=b'README.md').decode().strip()
+        self.git('update-index','--cacheinfo','120000,'+blob+','+self.manifest)
+        self.git('commit','-qm','symlink manifest');self.sparse()
         result=self.cli();self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,'')
 
 

@@ -78,7 +78,8 @@ class InstalledGitTests(unittest.TestCase):
     @contextmanager
     def observe(self, wait_for_probe_exit=False):
         """Record launches without replacing an executable, reply or pipe."""
-        real_popen = subprocess.Popen
+        real_popen = PACKAGE._git_blob_popen
+        real_git = PACKAGE.git
         calls, children = [], []
 
         def start(argv, **kwargs):
@@ -91,8 +92,13 @@ class InstalledGitTests(unittest.TestCase):
                 self.assertEqual(child.wait(timeout=15), 129)
             return child
 
+        def git_call(root, *args):
+            calls.append(["git", *args])
+            return real_git(root, *args)
+
         try:
-            with patch.object(PACKAGE.subprocess, "Popen", side_effect=start):
+            with (patch.object(PACKAGE, "_git_blob_popen", side_effect=start),
+                  patch.object(PACKAGE, "git", side_effect=git_call)):
                 yield calls
         finally:
             try:

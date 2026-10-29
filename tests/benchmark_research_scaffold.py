@@ -51,11 +51,19 @@ def benchmark(pairs):
             for mode in (('before', 'after') if sample % 2 == 0 else ('after', 'before')):
                 create = namespace['create'] if mode == 'before' else current.create
                 commands, real = [], subprocess.Popen
+                real_blob = package._git_blob_popen
                 def tracked(argv, *args, **kwargs):
                     commands.append(argv)
                     return real(argv, *args, **kwargs)
+                def tracked_blob(argv, *args, **kwargs):
+                    # On Windows the isolated owner launches Git through its
+                    # gate, outside the direct-Popen observer in this process.
+                    if sys.platform == 'win32':
+                        commands.append(argv)
+                    return real_blob(argv, *args, **kwargs)
                 start = time.perf_counter()
-                with patch.object(subprocess, 'Popen', side_effect=tracked):
+                with (patch.object(subprocess, 'Popen', side_effect=tracked),
+                      patch.object(package, '_git_blob_popen', side_effect=tracked_blob)):
                     target = create(roots[mode], 'benchmark-' + str(sample),
                                     'bit-new-register-model', 'Benchmark fixture', sources)
                 measurements.append({'sample': sample, 'mode': mode,

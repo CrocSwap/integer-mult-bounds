@@ -89,7 +89,7 @@ class ExportDrivePathTests(unittest.TestCase):
         repo = Path(tempfile.mkdtemp(prefix='repo-', dir=self.root))
         scripts = repo / 'scripts'
         scripts.mkdir()
-        for name in ('export_research_package.py', 'research_package.py'):
+        for name in ('export_research_package.py', 'research_package.py', 'research_windows_git.py'):
             shutil.copyfile(ROOT / 'scripts' / name, scripts / name)
         def git(*args, data=None):
             return subprocess.check_output(['git', *args], cwd=repo, input=data,

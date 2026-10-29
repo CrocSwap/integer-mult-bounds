@@ -56,7 +56,10 @@ class GitCompatibilityTests(unittest.TestCase):
             children.append(child)
             return child
 
-        with patch.object(PACKAGE.subprocess, "Popen", side_effect=start):
+        # Protocol fixtures intentionally bypass native ownership; the native
+        # suite exercises the platform factory, including its exit-129 path.
+        with (patch.object(PACKAGE.subprocess, "Popen", side_effect=start),
+              patch.object(PACKAGE, "_git_blob_popen", side_effect=start)):
             yield calls, children
         self.assertTrue(all(child.poll() is not None for child in children))
 
@@ -128,6 +131,7 @@ class GitCompatibilityTests(unittest.TestCase):
             return child
 
         with (patch.object(PACKAGE.subprocess, "Popen", side_effect=start),
+              patch.object(PACKAGE, "_git_blob_popen", side_effect=start),
               closing(PACKAGE.git_blobs(self.root, ["HEAD:empty", "HEAD:binary"])) as rows):
             self.assertEqual(next(rows), (blob_id(b""), b""))
             with self.assertRaisesRegex(ValueError, "missing or non-blob"):

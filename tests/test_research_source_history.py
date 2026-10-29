@@ -219,7 +219,7 @@ class SourceHistoryTests(unittest.TestCase):
                 self.check()
 
     def test_real_cli_is_read_only_and_reports_no_pass_on_history_failure(self):
-        for name in ('check_research_commit.py', 'research_package.py'):
+        for name in ('check_research_commit.py', 'research_package.py', 'research_windows_git.py'):
             destination = self.root / 'scripts' / name
             destination.parent.mkdir(exist_ok=True)
             destination.write_bytes((ROOT / 'scripts' / name).read_bytes())

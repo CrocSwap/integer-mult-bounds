@@ -32,7 +32,7 @@ class DescendantSourceRoleTests(unittest.TestCase):
         self.root = Path(temporary.name)
         self.original = json.loads(git(ROOT, 'show', ORIGINAL + ':' + PACKAGE + '/SOURCES.json'))
         self.manifest = json.loads((ROOT / PACKAGE / 'VERIFY.json').read_bytes())
-        names = set(self.manifest['inputs']) | {
+        names = set(self.manifest['inputs']) | {'scripts/research_windows_git.py'} | {
             PACKAGE + '/' + name for name in
             ('SOURCES.json', 'VERIFY.json', 'TASK.json', 'README.md', 'verify.py', 'RESULT.json')}
         for name in names:
@@ -49,7 +49,10 @@ class DescendantSourceRoleTests(unittest.TestCase):
         objects = Path(git(ROOT, 'rev-parse', '--git-path', 'objects').decode().strip())
         if not objects.is_absolute():
             objects = ROOT / objects
-        (self.root / '.git/objects/info/alternates').write_text(str(objects.resolve()) + '\n')
+        # Git treats a CR from Windows text newline conversion as part of the
+        # object-directory name. The alternates file requires literal LF.
+        (self.root / '.git/objects/info/alternates').write_bytes(
+            (objects.resolve().as_posix() + '\n').encode('utf-8'))
         git(self.root, 'config', 'user.name', 'Fixture')
         git(self.root, 'config', 'user.email', 'fixture@example.invalid')
         git(self.root, 'config', 'core.autocrlf', 'false')

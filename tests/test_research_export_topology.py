@@ -24,7 +24,7 @@ class ExportFileTreeTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        for name in ('export_research_package.py', 'research_package.py'):
+        for name in ('export_research_package.py', 'research_package.py', 'research_windows_git.py'):
             path = self.root / 'scripts' / name
             path.parent.mkdir(exist_ok=True)
             shutil.copyfile(ROOT / 'scripts' / name, path)
