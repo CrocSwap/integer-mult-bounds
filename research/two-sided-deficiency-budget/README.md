@@ -1,0 +1,77 @@
+# Two-sided deficiency budget: Theorem BX for b_Q <= 4 (conditional frame stated; 5 cells and 3 residues stay OPEN; no κ claim)
+
+> **Scope, stated first.** A research note in the line of #2816, #2826, #2862 and #2832 (the kill-shot reduction), the LC / O4 lineage, and #2985 (all ours); definitions as in the status map (MAP-DRAFT: P112 = the 112 non-frame E8 root lines, labels in `F2^9`). Pure finite combinatorics on the E8 root lines. **No κ claim, no window, no supplier word.** Only `research/two-sided-deficiency-budget/` is added.
+> Labels: **PROVEN** (written proof below, with the `verify.sh` step for every numerical input), **CHECKED** (an exact script that `verify.sh` re-runs and asserts), **CONDITIONAL** (stated only under a named hypothesis that this package does not prove), **OPEN**. Nothing here is "recorded output": every number is recomputed by `verify.sh` (about 10-15 minutes, two processes; see the header of `verify.sh`).
+
+## 0. Setting (column side; the row side is the transpose)
+
+For a column `k` let `A_k ⊆ P112` be its support (a set of lines), `w(A_k) = rank_{F2}` of the labels of `A_k`, `k` is *low* if `w(A_k) <= 7`, `Lo` = the set of low columns, `σ_k := (w(A_k) − 2)^+`, so that `min(6, d^A_k − 1) = 6 − σ_k` and the low cost is `Λ_Q = 6|Lo| − Σ_Lo σ_k`. `𝒞` is the length-112 code of codewords `p_h = (h·line)` for `h ∈ K^8` (`Off(h) := supp p_h`); `h ↦ p_h` is injective (the 112 lines span `K^8`). `y2` is the label-rank map of the notes; `ρ := rank y2(Lo) <= t`. Let `B ⊆ Lo` be a basis of `span q(Lo)` and
+`b_Q := dim(span q(Lo) ∩ 𝒞)`, `dep_Q := |Lo| − |B|`. The kernel of `y2` on `span q(Lo)` is exactly `span q(Lo) ∩ 𝒞`, hence `|B| = ρ + b_Q`.
+`G2-BUDGET P2` denotes the cost bound of the G2-BUDGET note (not reproduced here, **not proven in this package**).
+
+## 1. Claims box (every row names the proof and the `verify.sh` step)
+
+| # | Statement | Status | Proof / check |
+|---|---|---|---|
+| C1 | `|Lo| = ρ + b_Q + dep_Q`, hence `Λ_Q <= 6t + 6 dep_Q − (Σ_Lo σ − 6 b_Q)`; **Budget BX** is `Σ_Lo σ >= 6 b_Q` | PROVEN (algebra) | §2.1 |
+| C2 | Combined cost `>= 56 + s + t + 7r − 6(dep_P + dep_Q) − def(b_P,s) − def(b_Q,t)` at `m = 8+s+t+r` | **CONDITIONAL on G2-BUDGET P2** (P2 not proven here) | uses C1, C4-C5 and P2 |
+| C3 | Tight `m` (`r=0`): every q-dependency is `a = X2^T α`; `dep_Q >= 1` iff a `J_P`-circuit `supp(X2^T α)` lies in `Lo_Q`; general `m`: `dep_Q <= s + r`. Normal-form hypotheses: `rank Ŷ = 8+t`, `rank X2 = s` | PROVEN (linear algebra, under the two hypotheses) | §2.2 |
+| C4 | α-merge identity (`PQ^T` and the remaining columns unchanged); the rest of the merge bookkeeping (new `x2' ⊥ α`, `(s−1,t)` at `m−1`) is inherited from the cited notes | PROVEN for the identity; bookkeeping CONDITIONAL | §2.2 |
+| C5 | Pivot inequality `cost(D) >= cost(D_α) + cost_k0 − Σ_{k≠k0} ε^row_k`, and the induction `s → 0` landing on #2816 | **CONDITIONAL**: needs the one-sided floor beyond `Δ <= 2` (proven only for `Δ <= 2` / `<= 2` non-full corrections in #2816), the pivot condition of WALL Thm 4.3, and `D_α` re-normalised; none re-proven here | not claimed |
+| C6 | Constants: 112 non-frame lines, 120 E8 lines, labels distinct with a common bit; `g(w)` = max #lines with labels in a `w`-space: `g(1..4) <= 1,2,4,8`, `g(5) = 12`, `g(6) = 20`, `g(7) = 36`, `g(8) = 64` | PROVEN + CHECKED | §2.3; steps `[1]` (chk1), `[2]` (chk2) |
+| C7 | Root-system inputs: `N_r = 0,1,3,6,12,20,36,63`; rank-7 flats with `>= 40` lines are exactly E7, D7 (orbits 120, 1080 = the root and norm-4 directions); rank-6 flats with `>= 35` lines only E6 (1120) | CHECKED, modulo the classical conjugacy theorem (§2.3) | step `[1]` dbounds |
+| C8 | Generalised Hamming weights: `d_1 = 53`, `d_2 = 78`, `d_3 >= 92`, `d_4 >= 100`, `d_5 >= 106`, `d_6 >= 109`, `d_7 >= 111`, `d_8 = 112` | PROVEN | §2.4; steps `[1]`, dbounds, e6t |
+| C9 | Deletion lemma: `Σ_{B minus the j largest} |A_k| >= d_{b−j}` for `j < b_Q` | PROVEN | §2.5 |
+| C10 | **Theorem BX (size version):** deficit table `6b − min Σσ` (`t=1..6`, `b=1..8`) as in §3; so BX holds for `b_Q <= 2` at every `t <= 6`, `b_Q = 3` for `t <= 5`, `b_Q = 4` for `t <= 3` | PROVEN + CHECKED | §3; steps `[3]`, `[3b]` |
+| C11 | Per-target caps: on every direction with `|Off| <= 72` (4 orbits of 53, 53, 56, 70 lines) a 7-flat contains at most 32 lines of `Off(h)` | CHECKED | step `[1]` (chk1 table), indepB |
+| C12 | Exact covers (level 1 on the `|Off| <= 72` targets, level 2 on `P112 ∖ E6`) close `(b_Q,t) = (3,6), (4,4), (4,5)` | CHECKED, two implementations | §4; steps `[5]`, `[6]`, `[7]`, `[9]` |
+| C13 | `(4,6)`: the exact oracle leaves the single multiset `(5,5,5,5,3,0^5)`; it is killed jointly (rank of compatible roots `<= 2 < 4`) | CHECKED, two implementations | §4.2; steps `[8]`, `[9]` kill46b/indepB |
+| C14 | **BX holds for `b_Q <= 4` at every `t <= 6`** | PROVEN + CHECKED (C8-C13) | §3-§4 |
+| C15 | Remark: BX and §2 do not use Theorem DR; any use together with DR needs the shared-swap-line term (#surplus X/X' pivots sharing a swap line) or `|S_a| <= 2` | SCOPE STATEMENT (checkable by reading §2-§4: DR is never invoked) | §6 |
+
+**Open residue, exactly.** (R1) `b_Q >= 5` (cells `(b,t)` with `b >= 5`, `t >= 1`: size deficits are at most 1..10 as in the §3 table; not closed). (R2) R-dep: tight `m`, a fully-low `J_P`-circuit, i.e. `supp(X2^T α) ⊆ Lo_Q` with `cost_k0 < Σ_{k≠k0} ε^row_k` for every `k0` in it (for `s = 1`: `J_P ⊆ Lo_Q`). (R3) tight `m` with `s + t <= 7` is the only range surviving when R1 and R2 are empty. (R4) the two imports: G2-BUDGET P2 (C2) and the one-sided floor beyond `Δ <= 2` (C5): neither is proven here. No decoder below 64 is constructed or claimed.
+
+## 2. Proofs of the structural statements
+
+### 2.1 (C1)
+`B` is a basis of `span q(Lo)` so `|Lo| = |B| + dep_Q`, and `|B| = ρ + b_Q` because `y2` restricted to `span q(Lo)` has rank `ρ` and kernel `span ∩ 𝒞` of dimension `b_Q`. Then `Λ_Q = 6|Lo| − Σσ = 6ρ + 6 b_Q + 6 dep_Q − Σσ <= 6t + 6 dep_Q − (Σσ − 6 b_Q)`. ∎ (If `Σσ >= 6 b_Q` then `Λ_Q <= 6(t + dep_Q)`; with `dep = 0` this is the statement `Λ_Q <= 6t`.)
+
+### 2.2 (C3, C4)
+`Q = [C F] Ŷ` with `[C F]` of full column rank, so `Σ a_k q_k = 0` iff `Ŷ a = 0` (for `a` supported anywhere). Under `rank Ŷ = 8+t` the kernel of `Ŷ` has dimension `m − 8 − t = s + r`, and it contains `row(X2)` because `X2 Ŷ^T = 0`; with `rank X2 = s` and `r = 0` the two have the same dimension, so `ker Ŷ = row(X2)`: every dependency is `a = X2^T α`, and `dep_Q >= 1` iff some circuit `supp(X2^T α)` lies in `Lo_Q`. For general `m`, `dep_Q <= dim(ker Ŷ ∩ K^Lo) <= s + r`. ∎
+α-merge: pick `k0 ∈ supp a`. From `Σ a_k q_k = 0`, `q_k0 = −Σ_{k≠k0} (a_k/a_k0) q_k`; hence `p_k0 q_k0^T = −Σ_{k≠k0} (a_k/a_k0) p_k0 q_k^T` and `Σ_k p_k q_k^T = Σ_{k≠k0} p'_k q_k^T` with `p'_k := p_k − (a_k/a_k0) p_k0`. So deleting `k0` leaves the product `PQ^T` and every remaining column unchanged. (That the remaining rows `x2'` are orthogonal to `α` and give a tight `(s−1,t)` configuration at `m−1` is the normal-form bookkeeping of the cited notes; it is not used below and its non-tight branch is harmless since non-tight `m` is paid by `7r`. What is proven here is the product and column identity.) ∎ (C5, the cost comparison after the merge, is not claimed.)
+
+### 2.3 Constants (C6, C7) and the one classical input
+`verify.sh [1]` (chk1) rebuilds the 120 E8 root lines from `data/data.json`, the 112 non-frame lines and the 8 frame lines, and checks that the 112 labels are distinct and share bit 0. Hence `w(A) = |A|` for `|A| <= 3` (three distinct labels with a common bit never sum to zero) and `g(w) <= 2^{w−1}`: the labels of a `w`-space `V` lie in the affine hyperplane `{x : x_0 = 1}` of `V`. `g(5) = 12`, `g(6) = 20` are maxima over all 3309747 resp. 788035 functional spaces (counts checked against the Gaussian binomials, `[2]`); `g(7) = 36`, `g(8) = 64` are maxima over all 43435 resp. 511 (`[1]`).
+`dbounds.py` (`[1]`) computes, for the 255 standard parabolic subsystems of E8, rank and line count, the maxima `N_r`, and the `W(E8)`-orbit sizes (by simple reflections) of the rank-7 parabolics with `>= 40` lines and of E6. **Classical input (cited, not reproved):** for every subspace `V`, `Φ ∩ V` is `W(E8)`-conjugate to a standard parabolic subsystem (Bourbaki, Lie VI §1; Humphreys, Reflection Groups and Coxeter Groups 1.12). Consequently the lines orthogonal to any `h ≠ 0` form a flat of rank `<= 7`: either `<= 42` lines, or E7 (63 lines, `h` a root direction); the rank-7 flats with `>= 40` lines number 120 + 1080, and these are exactly the directions of the 120 roots and 1080 norm-4 vectors, so **every direction with `|Off(h)| <= 72` is among those 1200** (a direction with `|Off| <= 72` has `>= 40` P112 lines orthogonal).
+
+### 2.4 Generalised Hamming weights (C8)
+An `r`-dimensional subcode of `𝒞` is `{p_h : h ∈ H}` with `dim H = r`; its support is `P112 ∖ (Φ ∩ H^⊥)` with `dim H^⊥ = 8 − r`, so `d_r >= 112 − N_{8−r}` (`dbounds`): `d_3 >= 92`, `d_4 >= 100`, `d_5 >= 106`, `d_6 >= 109`, `d_7 >= 111`, `d_8 = 112`. For `r = 1`: `|Off(h)|` equals 53 for the 112 non-frame roots and 56 for the 8 frame roots, and `>= 70` for every other direction (norm-4: sizes 70/73/76, `[1]` chk1; any other direction has `<= 42` orthogonal lines, so `|Off| >= 70`): `d_1 = 53`. For `r = 2`: `H^⊥` has dimension 6; a flat of rank `<= 5` has `<= 20` lines (support `>= 92`); a rank-6 flat that is not E6 has `<= 34` lines (support `>= 78`, `dbounds`: only E6 has `>= 35`); each of the 1120 E6 flats contains 2 or 4 frame lines (`[1]` chk1: `(2, 896), (4, 224)`, and `e6t.py` recomputes the 1120 targets with sizes 78 / 80), so `<= 34` P112 lines. Hence `d_2 = 78` (the earlier value 76 is used in the size-only table of §3, which is weaker).
+
+### 2.5 Deletion lemma (C9)
+Let `B` be as in §0, `|B| = ρ + b`. For `X ⊆ B` with `|X| = |B| − j`, `rank y2(X) <= ρ`, so `ker y2 ∩ span q(X)` has dimension `>= |X| − ρ = b − j`, i.e. `span q(X)` contains a subcode of `𝒞` of dimension `>= b − j` whose support lies in `∪_{k∈X} A_k`. Therefore `Σ_{k∈X} |A_k| >= d_{b−j}` (`j < b`). The inequality is monotone in the sizes, so the strongest instance deletes the `j` largest; with `|A_k| <= g(σ_k + 2)` (`g(2) = 2` covers `σ = 0`) this is a constraint on the multiset `{σ_k}`. ∎
+
+## 3. Theorem BX, size version (C10)
+Minimising `Σσ` over all multisets `σ ∈ {0..5}^{|B|}`, `|B| <= t + b`, with `Σ_{X} g(σ+2) >= d_{b−j}` for all `j < b` (exhaustive; `chk3.py` with `d_2 = 76`, and `budget/opt3.py` as a second implementation), the deficit `6b − min Σσ` is
+
+| t | b=1..8 |
+|---|---|
+| 1 | 0 0 0 0 1 2 3 4 |
+| 2, 3 | 0 0 0 0 2 4 6 8 |
+| 4 | 0 0 0 1 3 5 7 9 |
+| 5 | 0 0 0 1 3 5 7 10 |
+| 6 | 0 0 1 2 4 6 8 10 |
+
+(`verify.sh` asserts every row.) Deficit 0 means BX (`Σσ >= 6b`): `b_Q <= 2` at all `t <= 6`, `b_Q = 3` for `t <= 5`, `b_Q = 4` for `t <= 3`. The open cells of this size-only table inside `b_Q <= 4` are `(3,6)`, `(4,4)`, `(4,5)`, `(4,6)`; they are closed in §4 with exact supports.
+
+## 4. Closing (3,6), (4,4), (4,5), (4,6) (C11-C14)
+**4.1 Refined deletion lemma.** For `X ⊆ B`, `|X| = ρ + j`, `span q(X) ∩ 𝒞` has dimension `>= j`. Level 1 (`j=1`): `X` carries `p_h ≠ 0` with `Off(h) ⊆ ∪_X A_k`: the weights `w_k = σ_k + 2` of `X` form a *cover* of `Off(h)` by label-flats of those ranks. By §2.3 either `|Off(h)| <= 72` (one of 4 orbit representatives under the frame-preserving signed permutation group, 8 orbits in all; `sym.py` checks that each generator acts F2-linearly on labels, so flats map to flats) and the exact cover oracle `covm.py` decides coverability, or `|Off| >= 73` and the global caps `g` already forbid the cover when `Σ g >= 73`. Level 2 (`j=2`): the support of a 2-dim subcode is `S = P112 ∖ (Φ ∩ V)`; for `|S| <= 81` this is `P112 ∖ E6` (sizes 78, 80: 1120 targets, `e6t.py`), and for `|S| <= 94` the 88516 targets from the 92380 parabolic flats (`flats2.py`, 58 orbit representatives); `|S| >= 95` is handled by global caps. Covers are monotone in the weights, so deleting the largest-σ lows is the strongest choice. `opt5/6/7.py` run the exhaustive search over σ-multisets: `(3,t)` deficit 0 for `t <= 6`; `(4,t)` deficit 0 for `t <= 4`; with level 2 `(4,5)` deficit 0; `(4,6)` leaves only `(5,5,5,5,3,0,0,0,0,0)`.
+**Second implementation (the auditor's, own code, no `covm`):** `audit/chk5.py` (size tests with `d_2 = 78`, `cap_7 = 32`) closes `(3,5),(3,6),(4,1..4)` and leaves exactly `(4,4,4,4,4,3,0,0,0)` at `(4,5)` and four multisets at `(4,6)`; `audit/chk6.py` computes the per-target caps `(cap_7, cap_6, cap_5) = (32, 20, 12)` on all 1120 level-2 targets; `audit/chk8.py` searches exactly for covers of the level-2 targets by three weight-6 pieces plus a tail (modes A, B80, B78, C of its header) and finds none. Non-vacuity: every mode prints and asserts the number of 20-line pieces enumerated (and the pair counts), and first runs a positive control on the full P112 (a disjoint triple of 20-line pieces is found, and the B78 pair-finder finds the covering triples of their union). In modes A, B80, C the enumerated 6-flat pieces (432 per target) contain **no two disjoint ones at all** (0 pairs): those modes hold for a geometric reason, now visible in the printed counts; mode B78 enumerates 1083264 pieces and 3440640 pairs. `evidence/` holds the log of the original (non-vectorised) `chk8.py` on B78 (896 targets, 0 covers; the shipped script's log is `evidence/shipped_chk8_B78.log`) and on the first 40 B80 targets, identical to the shipped script's results on the same inputs.
+**4.2 The (4,6) survivor.** Config `(7,7,7,7,5,2,2,2,2,2)` as weights: four weight-7 lows, one weight-5 low (`<= 12` lines), five lows of `<= 2` lines; `Sm` := union of the six small lows has `|Sm| <= 22 < 53`. Each weight-7 low `k` gives `p_{h_k}` with `Off(h_k) ⊆ A_k ∪ Sm`, so `|Off(h_k)| <= 32 + 22`: only root targets (53) survive; the four `h_k` are independent roots `r_k`, `Off(r_k) ∖ Sm` lies in a 7-flat, and `Sm ⊇ Off(r_1) ∖ U_1` (21 or 22 lines). `audit/chk4.py` takes **all 112** non-frame roots as `r_1` (no orbit reduction) and every `(U_1, Sm)` (336 pairs, 30912 `Sm`) and shows that the compatible roots have rank `<= 2 < 4`. R-B's `kill46b.py` (cover-oracle version) and `indepB.py` (independent elimination, no `covm`) re-derive the same kill from the orbit representatives. (The 92380-subsystem classification is used only for the level-2 targets of §4.1, not here.)
+
+## 5. Files
+`checks/dbounds.py` (N_r, flats); `checks/audit/chk1-chk8.py` (independent scripts: chk1 constants and `d_1, d_2`; chk2 `g(5), g(6)`; chk3 size optimiser; chk4 the (4,6) kill; chk5 size closure; chk6 level-2 caps; chk7 helper (loaded by chk8), chk8 exact level-2 covers); `evidence/` (logs of the original chk8); `checks/budget/opt*.py` (size optimiser, second implementation); `checks/rb/` (second implementation: `targ gT sym covm opt5 opt6 opt7 e6t flats2 kill46 kill46b indepB`); `data/data.json` (labels, the 112 lines, the 120 E8 lines in doubled coordinates).
+
+## 6. Remark (C15)
+Sections 2-4 use neither Theorem DR nor its shared-swap-line surplus. The unified bound of C2 is a combination of C1 with P2 (not with DR). Any argument that uses Theorem DR together with BX must add the term `#(surplus X/X' pivots sharing a swap line)` to the residue, or restrict to `|S_a| <= 2`.
+
+Prepared by DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code; Apache-2.0.
