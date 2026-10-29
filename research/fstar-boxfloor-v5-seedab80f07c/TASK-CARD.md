@@ -1,0 +1,48 @@
+# Drawn task card (verbatim): complex-new-helper-inventory
+
+Scope changed to kappa-blocker KB5L (explicit open request from discussion 1166); see TASK.json `scope_change_reason` and `actual_scope`.
+
+```json
+{
+ "acceptance_gate": "A new physically realizable contract outside the frozen catalogue whose per-call profile, screened with ceiling.ceiling(), beats the selected word's packing ceiling; a lower cap does not establish identical circuitry or order attainable optima, and is insufficient to pass the stronger-budget target under this model. A scoped local result may be retained without a complete supplier. Expanding it into further construction rounds requires the family-level budget and obligation gate in research-family-status.md; an optimistic passing relaxation alone is not acceptance.",
+ "allowed_variations": [
+  "Narrow to one changed boundary or helper type with explicit counts.",
+  "If the coverage law, template or guard changes, derive an applicable fully charged replacement bound instead of applying the incumbent ceiling outside its scope."
+ ],
+ "bottleneck_link": "Packing of the selected word is capped at +0.87% (ceiling model); only a lower local excess spend or a changed coverage law raises the cap.",
+ "first_experiment": "Before any synthesis, write the candidate per-call local profile (and centre charge / unpaid coordinates if changed) and screen it with ceiling.ceiling(); reject it if even the ideal ceiling does not beat the selected word's by your stated margin.",
+ "first_step": {
+  "command": [
+   "python3",
+   "-B",
+   "research/complex-local-word-ceiling/verify.py"
+  ],
+  "expected": "PASS_COMPLEX_LOCAL_WORD_CEILING",
+  "inspect": "Read the selected word's per-call local profile, its packing ceiling and the lever table; run levers.py for the ideal budget of the lever you target.",
+  "scope": "Positive control and planning budget only; this is not a new construction or full cold replay."
+ },
+ "id": "complex-new-helper-inventory",
+ "methods": [
+  "Propose a changed helper inventory and derive an optimistic exact moment.",
+  "Design a small completed instance and independently verify its endpoint and rank bill."
+ ],
+ "overlap_terms": [
+  "helper inventory",
+  "heterogeneous-owner",
+  "mutable leaver"
+ ],
+ "question": "Can a new local cost interface change the deficit-to-recursive-cost ratio beyond current packing?",
+ "scope_change_triggers": [
+  "Mixing only providers already inside the pinned catalogue.",
+  "Only changing helper terminal subspaces and monotone frames within the fixed scalar word, entrances and cleanup contract already covered by #1995/#2013.",
+  "Continuing a partial cost improvement while leaving the same unpriced consumer, restoration or central-readout obligation unresolved; refresh the family expansion decision first. Local product-retiming evidence has a narrow scope and is not a ban on changed graphs or contracts."
+ ],
+ "starting_points": [
+  "docs/research/research-family-status.md",
+  "research/complex-local-word-ceiling/README.md",
+  "research/heterogeneous-owner-assembly/README.md",
+  "certificates/selected-result.json",
+  "research/selected-k8-unrestricted-ends/README.md"
+ ]
+}
+```
