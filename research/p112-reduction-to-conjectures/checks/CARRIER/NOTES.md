@@ -1,0 +1,6 @@
+- 23:21 CARRIER: started; read L120/DUAL/DUAL7X/SIX/land7. Plan: tight accounting + Z/audit lemmas + T-level covering checks for the 18.
+- 23:36 CARRIER: Circuit Lemma (dim span{h: Off(h) in union of flats of pieces outside K} >= d-|K|) + covering tests: P112 (7,6)+<=4 lines uncoverable (roots/frame, 2 impls); E8-level root Off_E=57: (7,7) uncoverable (matches cell2 r7=0), (7,7)+1 coverable. Kills 8 of 18 universally.
+- 23:40 CARRIER: E8 Class I (forced for s=7): Root-swap lemma CHECKED (Off_E(root) in 2 7-flats + <=2 lines forces own line in E); root counting (10 roots in a 3-dim subspace impossible, <=6). Closes 13 of 14 s=7 multisets; [7,7,1] remains (root-swap cell). Now counting [7,7,1] coverings.
+- 23:48 CARRIER: [7,7,1] cell: 127 covering pairs (all partition N(r)=56 lines, overlap empty) -> q=p_r 1_{Lambda_a} rigid; two implementations (cell771.py (g,c)-form; cell771b.py explicit 120-coord S): S_{<=8}=T (dim 3), cost=78. Symmetry check roots 17/77/119 -> 127 pairs, 0 E-lemma violations.
+- 23:58 CARRIER: cell771b.py finished all 127: dim V8 = 3. THEORY.md written (all 18 closed).
+- 23:59 CARRIER: done; report sent. §7 lead (d>=4 cheap kills: 35 cap<57 + 27 root-count among s=7 rows).
