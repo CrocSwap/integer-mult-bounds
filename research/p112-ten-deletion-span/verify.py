@@ -40,6 +40,7 @@ WITNESS_12 = (
 )
 FLAGS = (
     "-std=c++17",
+    "-mpopcnt",
     "-O3",
     "-Wall",
     "-Wextra",
