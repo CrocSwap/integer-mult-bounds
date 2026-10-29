@@ -14,6 +14,21 @@ No new native phase recipe is needed: every chronological frame transition is
 exactly inherited. This is not an integer-multiplication theorem, a higher
 conditional exponent, a measured runtime speedup or a selected-result update.
 
+## Allowance accounting
+
+The allowance is not a flat rate per macro. Each scalar primitive is priced by
+`primitive_allowance` in the retained `rebuild_native.py`: a clear or copy costs
+2, a scale costs from its coefficient's dyadic size, and an ADD with coefficient
+`n/d` costs `2*(3 + bit_length(n) - 1 + bit_count(n) + bit_length(d) - 1)`, which
+runs from 8 to 18 for the coefficients in this word. Per direction, the rewrite
+deletes 205 ADD events with a combined allowance of 1,812 and inserts 54
+replacement ADD events with a combined allowance of 596. The net count is
+205 - 54 = 151 fewer events, and the net saving is 1,812 - 596 = 1,216. Costed
+flat at 8 per net event the saving would be 1,208; the extra 8 is the
+coefficient-size difference between the deleted and inserted events
+(172 above the flat rate on the deleted side, 164 above it on the inserted
+side). Both directions give the same three totals.
+
 ## Construction and predecessor credit
 
 `construct.py` imports the original commuting ADD merger and reproduces the
@@ -44,7 +59,9 @@ python3 -B research/cao-trace-retiming-20261023/verify.py
 ```
 
 This rebuilds the word in memory, checks every source hash, verifies both exact
-interpreters and the scalar corruption controls. The source archive and all frozen
+interpreters and the scalar corruption controls. Both interpreters
+(`trace_cao_rows` and `trace_cao_literal`) are retained predecessor
+implementations, not new implementations written for this package. The source archive and all frozen
 predecessor receipts remain unchanged. The default verifier is read-only; `--write` is an explicit authoring option. `COMPRESSION-STAGES.json` records the
 initial discovery run; `VERIFICATION.json` records the final package replay.
 
