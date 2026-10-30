@@ -11,7 +11,7 @@ g=read(D/'GLOBAL.json');geo=read(D/'GEOMETRY.json');audit=read(D/'AUDIT.json')
 cx=read(C/'INTEGRATION.json');ca=read(C/'INDEPENDENT-REPLAY.json')
 assert audit['template_sha256']==g['template_sha256'] and ca['template_sha256']==cx['global_template_sha256']
 assert len(audit['mutations_rejected'])==8 and len(ca['mutation_controls_rejected'])==7
-P={int(r):z for r,z in audit['profile'].items()};m,W=64,g['live'];E=sum(P.values());T,L,R,V,K=8,9,747,120,4
+P={int(r):z for r,z in audit['profile'].items()};m,W=64,g['live'];E=sum(P.values());T,L,R,V,K=8,9,746,120,4
 mass=sum(r*z for r,z in P.items());assert m*W-mass==2496 and g['live']==W
 physical=g['physical'];d=m*m;N=2*m
 unit=L*T*g['local_additions']+g['bridge_additions']
