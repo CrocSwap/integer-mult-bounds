@@ -14,10 +14,12 @@ inputs), frame nesting by binary elimination, lifetime chronology and the scalar
 bill. Its 10 semantic controls reject in normal and optimized Python.
 
 The generated exact receipt is `RESULT.json`; its input and implementation hashes
-are part of the default equality check. The strengthened 22-event candidate supersedes an earlier 26-event prototype.
+are part of the default equality check. The strengthened 22-event candidate supersedes an earlier unpreconditioned
+26-event / 368-allowance prototype. The later two-half-shear alternative described
+below also has 26 events, but allowance 272 and a different construction.
 Only final-candidate checks recorded below are release evidence; prototype
 normal/optimized and export checks are not transferred to changed source bytes.
-Final release checks completed:
+Original gate-minimum release checks completed:
 
 - Direct warning-strict normal verification and deterministic receipt generation
   passed. The registered normal and optimized commands both passed with
@@ -55,3 +57,44 @@ The shared shallow source checkout prevents the optional complete-history
 preflight; this is not reported as a pass. All live replay inputs are base-pinned.
 Pending #6297 bytes are retained inside the package, with original commit/blob/
 SHA-256 records; replay needs neither that Git head nor network access.
+
+
+## Same-pair allowance alternative amendment
+
+The gate-minimum compiler, proof and independent arithmetic engine are unchanged.
+`GATE-MINIMUM-RESULT.json` retains the original receipt verbatim; the amendment
+checks that all current main-receipt mathematical fields remain identical.
+The lead's two-half-shear schedule and worker D's independent derivation give
+source 7 ADDs / allowance 72 and cut 6 / 64, hence 26 / 272 over four boundaries.
+
+The source-pinned primary and unchanged integer-dyadic engine both replay the
+complete alternative: 25,166 events, allowance 217,700, all 744 formal columns
+and 553,536 endpoint coefficients, the same paid and productive profiles,
+eight complete owned lifetimes and peak one. All 26 inserted-event omissions
+plus chart and coefficient-growth faults reject. The separately authored
+`weighted_review.py` accepts the valid alternative before rejecting ten fresh
+semantic mutants; no mutant is counted merely for differing fixture inventory.
+Its isolated normal and optimized runs passed with identical receipts.
+
+The complete registered package suite passed all four normal/optimized commands
+with both construction markers and `PASS_REGISTERED_RESEARCH_PACKAGE`. The only
+subsequent manifest change expands spaces in two check descriptions; command
+arguments, mathematical source and receipt fields are unchanged. The amended committed-byte and executable-mode check passed for all 24 package/input
+files. The official export and all four declared-input checks passed. All four
+exact normal/optimized commands then passed from the Git-free export with an
+empty PATH, 25 read-only files, and read-only containing directories. Every
+exported file retained its exact bytes and mode.
+
+Eight new actual corrupted-file executions rejected, four in each Python mode:
+changing the alternative receipt's allowance, changing one half shear to a
+quarter, changing the immutable historical receipt bytes, and corrupting the
+independent-engine hash binding. The failures were respectively the exact
+receipt check, dense row-boundary check, historical-byte authentication and
+independent implementation-byte authentication. These controls supplement the
+original 16 corrupted-file executions, not a claim that the changed alternative
+was covered by those earlier runs.
+
+This evidence-only note was finalized after the portable replay. A fresh final
+committed export was compared with the tested archive: apart from this note and
+the generated export inventory, every file byte and mode was identical. No
+mathematical source, proof, receipt, command argument or dependency changed.

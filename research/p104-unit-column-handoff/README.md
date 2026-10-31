@@ -21,7 +21,15 @@ boundary equations, and complete local replay verifies the resulting handoff.
 |---|---:|---:|---:|
 | Original #5580 input |25140|217428|735|
 | #6297 Euclidean handoff |25280|218564|736|
-| Unit-column handoff |25162|217708|736|
+| Gate-minimum unit-column handoff |25162|217708|736|
+| Lower-allowance alternative |25166|217700|736|
+
+A second, two-half-shear completion uses **26 inserted ADDs and allowance 272**,
+trading four extra events for eight fewer allowance units. Its source/cut
+schedules cost 72/64 and retain the same complete endpoint and inventories.
+[ALTERNATIVE-PROOF.md](ALTERNATIVE-PROOF.md) gives the exact construction and
+full replay. These two schedules are a tradeoff, not a claimed complete Pareto
+frontier or allowance optimum.
 
 The source is canonical base `2485805a6d47f36ea83ddde6327d453ac82d44dc`.
 `SOURCES.json` pins four live base inputs and historical catalogue/selection
@@ -39,14 +47,20 @@ From the repository root, CPython 3.12 and the standard library:
 python3 -B scripts/research_package.py --package research/p104-unit-column-handoff
 ```
 
-Expected: `PASS_P104_UNIT_COLUMN_HANDOFF` and `PASS_REGISTERED_RESEARCH_PACKAGE`.
+Expected: `PASS_P104_UNIT_COLUMN_HANDOFF`, `PASS_P104_ALLOWANCE_ALTERNATIVE`
+and `PASS_REGISTERED_RESEARCH_PACKAGE`.
 The registered normal and optimized commands authenticate all source inputs,
 reconstruct both concrete completions, replay the original and both handoff
 words, run 160 generic dyadic fixtures, 120 preconditioned fixtures and 2,500 local
 support-transition cases and meaningful rejection controls, and
-invoke the independent full-word checker. `RESULT.json` is a deterministic exact
-receipt. Default replay is read-only; `verify.py --write` explicitly regenerates
-it. `verify.py --emit-word /absolute/external/path.json` exports the constructed
+invoke the independent full-word checker. The alternative commands additionally
+reconstruct the 26-ADD schedule, reject all 26 inserted-event omissions plus
+chart/growth faults, and run 10 semantic controls through the independently
+implemented replay with its fixture inventory explicitly adapted. `RESULT.json`
+and `ALTERNATIVE.json` are deterministic exact receipts. Default replay is
+read-only; `verify.py --write` explicitly regenerates the main receipt and
+`alternative.py --write` regenerates the alternative receipt. The command
+`verify.py --emit-word /absolute/external/path.json` exports the constructed
 candidate for a separate checker without committing a duplicate large word.
 
 See [PROOF.md](PROOF.md) for the general column-unit lemma, complete tariff,
@@ -67,7 +81,9 @@ the row-pivot constructor, and pivot-reordered Euclidean elimination. The first
 produces the concrete gain; lead review then cancels one equal/opposite support
 pair with a single shear. No wider optimization search is claimed.
 Track seed 32 records assignment only; all finite fixtures are deterministic.
-Stop at the first verified boundary saving and its independent complete audit.
+Stop after the gate-minimum schedule and the approved same-pair allowance
+alternative receive independent complete audits. No further weighted search is
+part of this package.
 
 #5611 supplies the general dyadic Euclidean compiler and #5602 the coupled
 handoff specification and tariff. #6280 supplies a separate spare-role exchange;
@@ -87,7 +103,8 @@ complete boundary allowance? First identify its exact dual pair and chart
 availability, then compare the full emitted word; this instance's old helper
 boundary must not be assumed to survive in a newer word.
 2. Can the scalar allowance fall below 280 while retaining the six-/five-ADD
-minimum? First compare exact coefficient tariffs among alternative completions
+minimum, or below 272 when extra ADDs are permitted? First compare exact
+coefficient tariffs among alternative completions
 of the same dual pairs. The support lower bound counts ADDs, not their weighted
 allowance. Interleaving the boundary modules is a separate, unproved possibility.
 3. Can the original #6297 target split be admitted as a complete supplier with
@@ -101,7 +118,8 @@ Structured questions, bounded overlap coverage and local claim status are in
 ## Credit
 
 Prepared for @CubeJerry with substantial OpenAI Codex assistance: worker A's
-construction and primary replay, the lead's support-cancelling refinement, and
+construction and primary replay, the lead's support-cancelling and two-half-shear
+refinements, and
 worker D's separate symbolic/chronological verification. Apache-2.0. Credit unpaidmoon and its disclosed
 Cursor Grok assistance for #6297; Ali Romman for #5611/#5602 and the retained
 #5599 lineage; David Arias, Cinna Davis and Gareth Davidson for the literal word
