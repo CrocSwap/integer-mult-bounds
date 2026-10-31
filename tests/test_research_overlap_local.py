@@ -27,7 +27,10 @@ class LocalOverlapCoverageTests(unittest.TestCase):
         self.cache.write_text(json.dumps({"schema_version": 1,
                                          "repository": "CrocSwap/integer-mult-bounds",
                                          "sources": sources}), encoding="utf-8")
-        self.omitted = "research/omitted κ\npackage"
+        # Windows cannot create newline filenames. Git-object fixtures in
+        # test_research_overlap_git_paths cover LF/CR/CRLF on every platform;
+        # this fixture also needs to materialize the note after sparse restore.
+        self.omitted = "research/omitted κ" + (" " if os.name == "nt" else "\n") + "package"
         for path, body in {
             "scripts/find_overlap.py": (ROOT / "scripts/find_overlap.py").read_text(encoding="utf-8"),
             "scripts/research_package.py": (ROOT / "scripts/research_package.py").read_text(encoding="utf-8"),
@@ -148,7 +151,9 @@ class LocalOverlapCoverageTests(unittest.TestCase):
         for mode in ("missing-git", "not-a-repository", "unborn-head"):
             with self.subTest(mode=mode):
                 if mode == "not-a-repository":
-                    shutil.rmtree(self.root / ".git")
+                    # Keep read-only Git objects inside the owned temporary
+                    # directory; its cleanup handles Windows file attributes.
+                    (self.root / ".git").rename(self.root.parent / "saved-git")
                 elif mode == "unborn-head":
                     self.git("init", "-q")
                 env = {**os.environ, "PATH": ""} if mode == "missing-git" else None
