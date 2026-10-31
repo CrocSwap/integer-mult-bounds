@@ -174,6 +174,11 @@ def compare_receipt(invoice, components, receipt):
         require(invoice[name] == receipt["complete_cost"][name], "Receipt mismatch: " + name)
 
 
+def invoice_bytes(invoice):
+    """The exact UTF-8/LF payload bound by the evidence and written to stdout."""
+    return (json.dumps(invoice, indent=2) + "\n").encode("utf-8")
+
+
 def export(root=ROOT):
     root = Path(root).resolve()
     record_bytes = (root / SELECTED).read_bytes()
@@ -196,7 +201,7 @@ def export(root=ROOT):
     validator = runpy.run_path(str(ROOT / "scripts/compare_recursive_invoices.py"))
     validator["validate_invoice"](invoice)
     evidence = {"schema": "selected-p104-invoice-evidence/v1", "selected_kappa": record["kappa"],
-                "invoice_sha256": sha256((json.dumps(invoice, indent=2) + "\n").encode("utf-8")).hexdigest(),
+                "invoice_sha256": sha256(invoice_bytes(invoice)).hexdigest(),
                 "selected_record_sha256": sha256(record_bytes).hexdigest(),
                 "source_head": record["audited_source_head"], "components": components,
                 "inputs_sha256": {name: manifest["files"][name] for name in inputs},
@@ -213,7 +218,9 @@ def main():
         invoice, evidence = export(args.root)
         if args.evidence:
             args.evidence.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print(json.dumps(invoice, indent=2))
+        # Text stdout can translate LF to CRLF or use another encoding, breaking
+        # invoice_sha256 even though the parsed invoice is unchanged.
+        sys.stdout.buffer.write(invoice_bytes(invoice))
     except (OSError, ValueError, KeyError, TypeError) as error:
         print("Invoice export failed: " + str(error), file=sys.stderr)
         return 2
