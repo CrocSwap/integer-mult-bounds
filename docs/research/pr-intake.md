@@ -19,6 +19,12 @@ or changes the cache. Use the canonical integration checkout; preserve unrelated
 user work. `--live-json` supports offline diagnostics but is explicitly not fresh
 GitHub evidence. Recheck the live head before publication or closure.
 
+Before reviewing a PR that modifies existing files, run
+`python3 -B scripts/check_pinned_edits.py --base main --head <PR head>`. It lists
+every file whose old bytes another file pins by SHA-256 and exits 1 when a frozen
+`research/` or `upstream/` file is changed in place while still pinned. It is a
+static byte check of one diff: it executes no contribution code and replays nothing.
+
 If the fresh plan has zero actionable entries, stop routine intake and report
 the remaining revision/deferred counts. Do not fill an empty batch with dormant
 reviews or poll indefinitely unless the user explicitly requested monitoring.
