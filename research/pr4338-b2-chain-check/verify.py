@@ -15,6 +15,16 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+
+# The selected record as of this package's base commit (git blob b1fea0c9), vendored after main reselected it.
+SELECTED_AT_BASE_SHA256 = "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129"
+
+
+def selected_at_base_path():
+    path = HERE / "SELECTED-AT-BASE.json"
+    if hashlib.sha256(path.read_bytes()).hexdigest() != SELECTED_AT_BASE_SHA256:
+        raise AssertionError("vendored selected record")
+    return path
 PROOF_SHA256 = "c2ca95cc85439768ebfae81057b845b9e26cc8f153ef787c15f74127456dba8b"
 PHRASES = [
     "a2 = 57697923247/33292900000000",
@@ -95,6 +105,8 @@ def main():
     pins = {row["path"]: row["sha256"] for row in json.loads((HERE / "SOURCES.json").read_text())["files"]}
 
     def pinned(rel):
+        if rel == "certificates/selected-result.json":
+            return json.loads(selected_at_base_path().read_text())
         path = ROOT / rel
         need(hashlib.sha256(path.read_bytes()).hexdigest() == pins[rel], f"pin {rel}")
         return json.loads(path.read_text())

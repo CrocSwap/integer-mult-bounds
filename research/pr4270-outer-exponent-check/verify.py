@@ -15,6 +15,16 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+
+# The selected record as of this package's base commit (git blob b1fea0c9), vendored after main reselected it.
+SELECTED_AT_BASE_SHA256 = "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129"
+
+
+def selected_at_base_path():
+    path = HERE / "SELECTED-AT-BASE.json"
+    if hashlib.sha256(path.read_bytes()).hexdigest() != SELECTED_AT_BASE_SHA256:
+        raise AssertionError("vendored selected record")
+    return path
 VENDORED = {
     "vendor/OUTER-JOIN.md": "bfb4677ee82ffc070be880eca87af05fd096686b464dfd5268cee1b27afa453e",
     "vendor/pr4181-RESULT.json": "d823509ea38e545db6c287a85c00bc4257825fb2710728dfc776c8801d2becd9",
@@ -72,8 +82,7 @@ def main():
     text = (HERE / "vendor/OUTER-JOIN.md").read_text()
     need(all(p in text for p in PHRASES), "OUTER-JOIN.md phrases")
     pins = {row["path"]: row["sha256"] for row in json.loads((HERE / "SOURCES.json").read_text())["files"]}
-    sel_path = ROOT / "certificates/selected-result.json"
-    need(hashlib.sha256(sel_path.read_bytes()).hexdigest() == pins["certificates/selected-result.json"], "selected pin")
+    sel_path = selected_at_base_path()
     selected_kappa = Q(json.loads(sel_path.read_text())["kappa"])
 
     fill = json.loads((HERE / "vendor/pr4181-RESULT.json").read_text())
