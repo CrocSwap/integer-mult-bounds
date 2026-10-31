@@ -57,6 +57,12 @@ The selected κ `0.003125804`, admitted bit value `0.0034`, and all five inherit
 framework assumptions remain unchanged. The historical p7 inventory is not
 asserted to be the currently selected complex supplier.
 
+A [separate adversarial review](INDEPENDENT_REVIEW.md), by a Codex worker who
+did not participate in the derivation or complement extension, reconstructed
+the source accounting and checked the uniform all-size limit and both induction
+directions. Its disposition, exact reviewed hashes and remaining inherited
+theorem are recorded separately from numerical verification.
+
 The analytic proof depends on Stone's nonlattice interval local-limit theorem
 as precisely stated in the pinned #6118 proof. The new uniform summation and
 both-sided induction are written arguments; finite checks do not establish
