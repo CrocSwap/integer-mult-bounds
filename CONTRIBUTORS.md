@@ -5059,3 +5059,17 @@ Source archives retain attribution; mathematical review remains open.
 - **Chris R (@Clear1nsight)** — [#6317](https://github.com/CrocSwap/integer-mult-bounds/pull/6317): Add lossless evidence archive and exact restoration controls (source archive).
 - **Armin Pourshafeie (@apoursh)** — [#6320](https://github.com/CrocSwap/integer-mult-bounds/pull/6320): Mode-fiber rounding radius: 1 ≤ R ≤ 2; R = 1 reduces to zonotope filling (no κ) (source archive).
 - **Chris R (@Clear1nsight)** — [#6321](https://github.com/CrocSwap/integer-mult-bounds/pull/6321): Archive H25 cache source components and hand off N22, P07 and P02 (source archive).
+
+## Queue intake, 31 October 2026 (chunk B)
+
+Source archives retain attribution; mathematical review remains open.
+
+- **CubeJerry (@CubeJerry)** — [#6322](https://github.com/CrocSwap/integer-mult-bounds/pull/6322): Cut the concrete P104 nonunit handoff from 140 to 22 gates (no new κ) (source archive).
+- **CubeJerry (@CubeJerry)** — [#6323](https://github.com/CrocSwap/integer-mult-bounds/pull/6323): Audit the relay premise in the P104 carrier-merge bound (no new κ) (source archive).
+- **CubeJerry (@CubeJerry)** — [#6324](https://github.com/CrocSwap/integer-mult-bounds/pull/6324): Exclude neutral-first G20 two-step savings across all native catalogue routes (no new κ) (source archive).
+- **CubeJerry (@CubeJerry)** — [#6325](https://github.com/CrocSwap/integer-mult-bounds/pull/6325): Rule out every native correction frame for one-contact G20 A2 rewrites (no new κ) (source archive).
+- **CubeJerry (@CubeJerry)** — [#6327](https://github.com/CrocSwap/integer-mult-bounds/pull/6327): Prove optimal 52-bit refined recovery over mode-preserving frames (no new κ) (source archive).
+- **CubeJerry (@CubeJerry)** — [#6329](https://github.com/CrocSwap/integer-mult-bounds/pull/6329): Determine the original fixed-height direct-flow scalar exponent (no new κ) (source archive).
+- **CubeJerry (@CubeJerry)** — [#6330](https://github.com/CrocSwap/integer-mult-bounds/pull/6330): Prove sharp asymmetric tensor-phase recovery (no new κ) (source archive).
+- **CubeJerry (@CubeJerry)** — [#6331](https://github.com/CrocSwap/integer-mult-bounds/pull/6331): Rule out role-specific phase deletion in the selected P104 word (no new κ) (source archive).
+- **Armin Pourshafeie (@apoursh)** — [#6333](https://github.com/CrocSwap/integer-mult-bounds/pull/6333): Mode-fiber rounding radius R ≤ 3/2 via a balancing lemma (no κ) (source archive).
