@@ -21,8 +21,8 @@ from collections import Counter
 from fractions import Fraction as Q
 import local as L
 
-KAPPA, TESTED = Q('0.003125804'), Q('0.0031258090')
-PREVIOUS = Q('0.003125282')
+KAPPA, TESTED = Q(302309943873316514383698715459862241, 96714065569170333976494080000000000000), Q(302309943873316598269778715459862241, 96714065569170333976494080000000000000)
+PREVIOUS = Q('0.003125804')
 
 
 def encode(x):
@@ -163,7 +163,7 @@ def run(local,native,word,physical):
     L.need(old_offset[0] > decay, 'The old tail offset fails at the new cutoff')
     bad=outer_module.ledger(dict(params,bit_saving=Q('.0027')))
     L.need(any(x <= 0 for x in bad['strict_checks'].values()), 'Insufficient BIT contract rejected')
-    return encode({'kappa':KAPPA,'kappa_decimal':'0.003125804','previous_pr5907':PREVIOUS,'gain':KAPPA-PREVIOUS,
+    return encode({'kappa':KAPPA,'kappa_decimal':'0.003125811556925','previous_pr6030':PREVIOUS,'gain':KAPPA-PREVIOUS,
                    'relative_gain_percent':100*(KAPPA/PREVIOUS-1),'raw_root_interval':[lower,upper],
                    'raw_headroom':[lower-KAPPA,upper-KAPPA],
                    'raw_ceiling':{'interval':[Q(0),cap],'derivative_upper':derivative_upper},'margin_at_previous':E.display(margin(PREVIOUS)),
