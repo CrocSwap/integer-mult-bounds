@@ -18,7 +18,9 @@ The option also reads the bundled `VERIFY.json` and checks these declarations:
 A successful console receipt includes `declared_inputs_checked`, with the number
 of declarations checked. Zero is valid for a self-contained package. The command
 uses no Git process and does not extract files or run the verifier. The manifest's
-second read must match its checked payload hash. Manifest bytes are limited to
+second read reuses the open archive and its checked member index, and must match
+its checked payload hash. The command closes the archive on success or failure.
+Manifest bytes are limited to
 16 MiB and input declarations to 100,000 entries.
 
 This is a declaration-coverage check, not full `VERIFY.json` schema validation or

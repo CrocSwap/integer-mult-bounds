@@ -8,6 +8,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -78,6 +79,67 @@ class ExportInputCoverageTests(unittest.TestCase):
         prefix, payload = result.stdout.strip().split(' ', 1)
         self.assertEqual(prefix, 'PASS_RESEARCH_EXPORT')
         self.assertEqual(json.loads(payload)['declared_inputs_checked'], 1)
+
+    def test_complete_check_borrows_one_archive_and_closes_it(self):
+        self.bundle(['input.bin'], {'input.bin': b'data'})
+        opened = []
+        original = tarfile.open
+
+        def tracked(*args, **kwargs):
+            archive = original(*args, **kwargs)
+            opened.append(archive)
+            return archive
+
+        with patch.object(exporter.tarfile, 'open', tracked):
+            result = exporter.check_bundle(self.archive, check_inputs=True)
+        self.assertEqual(result['declared_inputs_checked'], 1)
+        self.assertEqual(len(opened), 1)
+        self.assertTrue(opened[0].closed)
+
+    def test_declaration_failure_closes_the_single_archive(self):
+        self.bundle(['missing.bin'])
+        opened = []
+        original = tarfile.open
+
+        def tracked(*args, **kwargs):
+            archive = original(*args, **kwargs)
+            opened.append(archive)
+            return archive
+
+        with patch.object(exporter.tarfile, 'open', tracked):
+            with self.assertRaisesRegex(ValueError, 'missing bundled declared input'):
+                exporter.check_bundle(self.archive, check_inputs=True)
+        self.assertEqual(len(opened), 1)
+        self.assertTrue(opened[0].closed)
+
+    def test_borrowed_handle_stays_open_on_success_and_failure(self):
+        receipt = self.bundle()
+        seen = {row['path']: row for row in receipt['files']}
+        with tarfile.open(self.archive, 'r:') as archive:
+            self.assertEqual(exporter.check_declared_inputs(
+                self.archive, receipt, seen, archive=archive), 0)
+            self.assertFalse(archive.closed)
+            seen[self.package + '/VERIFY.json']['sha256'] = '0' * 64
+            with self.assertRaisesRegex(ValueError, 'manifest changed during declaration check'):
+                exporter.check_declared_inputs(self.archive, receipt, seen, archive=archive)
+            self.assertFalse(archive.closed)
+
+    def test_same_handle_reread_still_rejects_changed_manifest_bytes(self):
+        self.bundle(['input.bin'], {'input.bin': b'data'})
+        with tarfile.open(self.archive, 'r:') as archive:
+            offset = archive.getmember(self.package + '/VERIFY.json').offset_data
+        original = exporter.check_bundle_inventory
+
+        def change_after_hashing(seen, receipt):
+            original(seen, receipt)
+            raw = b'{"inputs": ["other.bin"]}'
+            with self.archive.open('r+b') as stream:
+                stream.seek(offset)
+                self.assertEqual(stream.write(raw), len(raw))
+
+        with patch.object(exporter, 'check_bundle_inventory', change_after_hashing):
+            with self.assertRaisesRegex(ValueError, 'manifest changed during declaration check'):
+                exporter.check_bundle(self.archive, check_inputs=True)
 
 
 if __name__ == '__main__':

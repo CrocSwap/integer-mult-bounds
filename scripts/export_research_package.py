@@ -4,7 +4,7 @@
 Tekalign, with substantial OpenAI Codex assistance. Apache-2.0.
 """
 import argparse
-from contextlib import closing
+from contextlib import closing, nullcontext
 import hashlib
 import io
 import json
@@ -139,14 +139,17 @@ def export(root, package, ref, output, input_ref=None):
     return receipt
 
 
-def check_declared_inputs(path, receipt, seen):
+def check_declared_inputs(path, receipt, seen, *, archive=None):
     """Check the bundled manifest's file declarations without extraction or Git."""
     name = receipt['package'] + '/VERIFY.json'
-    with tarfile.open(path, mode='r:') as archive:
-        item = archive.getmember(name)
+    # A completed integrity scan has already populated this archive's index.
+    # Borrow its handle without closing it; direct calls still own their handle.
+    context = tarfile.open(path, mode='r:') if archive is None else nullcontext(archive)
+    with context as bundle:
+        item = bundle.getmember(name)
         require(item.isfile() and item.size <= 16 * 1024 * 1024,
                 'invalid or oversized bundled manifest')
-        with archive.extractfile(item) as stream:
+        with bundle.extractfile(item) as stream:
             raw = stream.read(16 * 1024 * 1024 + 1)
     require(len(raw) == seen[name]['size'] and hashlib.sha256(raw).hexdigest() == seen[name]['sha256'],
             'bundled manifest changed during declaration check')
@@ -175,25 +178,29 @@ def check_declared_inputs(path, receipt, seen):
     return len(inputs)
 
 
-def check_bundle(path, check_inputs=False):
-    """Check declared inventory, modes and payload hashes; never extract or execute."""
+def read_bundle(archive):
+    """Read and hash each member, retaining the complete checked inventory."""
     seen, receipt = {}, None
-    with tarfile.open(path, mode='r:') as archive:
-        for item in archive:
-            bundle_relative_path(item.name)
-            require(item.isfile(), 'non-regular archive member: ' + item.name)
-            require(item.name not in seen, 'duplicate archive member: ' + item.name)
-            require(item.mode in (0o644, 0o755), 'unsupported mode: ' + item.name)
-            digest = hashlib.sha256()
-            with archive.extractfile(item) as data:
-                if item.name == RECEIPT:
-                    require(item.size <= 16 * 1024 * 1024, 'oversized export receipt')
-                    receipt = json.load(data, object_pairs_hook=unique_json_keys)
-                else:
-                    for block in iter(lambda: data.read(1024 * 1024), b''):
-                        digest.update(block)
-            seen[item.name] = {'path': item.name, 'mode': item.mode, 'size': item.size,
-                               'sha256': digest.hexdigest()}
+    for item in archive:
+        bundle_relative_path(item.name)
+        require(item.isfile(), 'non-regular archive member: ' + item.name)
+        require(item.name not in seen, 'duplicate archive member: ' + item.name)
+        require(item.mode in (0o644, 0o755), 'unsupported mode: ' + item.name)
+        digest = hashlib.sha256()
+        with archive.extractfile(item) as data:
+            if item.name == RECEIPT:
+                require(item.size <= 16 * 1024 * 1024, 'oversized export receipt')
+                receipt = json.load(data, object_pairs_hook=unique_json_keys)
+            else:
+                for block in iter(lambda: data.read(1024 * 1024), b''):
+                    digest.update(block)
+        seen[item.name] = {'path': item.name, 'mode': item.mode, 'size': item.size,
+                           'sha256': digest.hexdigest()}
+    return seen, receipt
+
+
+def check_bundle_inventory(seen, receipt):
+    """Validate the receipt and remove its own entry from the payload inventory."""
     require_file_tree(seen)
     require(isinstance(receipt, dict) and receipt.get('format') == FORMAT, 'missing or invalid export receipt')
     require(isinstance(receipt.get('commit'), str) and
@@ -218,9 +225,17 @@ def check_bundle(path, check_inputs=False):
     del seen[RECEIPT]
     require(seen == expected, 'bundle inventory, mode, size or SHA256 mismatch')
     require(receipt['package'] + '/VERIFY.json' in seen, 'missing bundled manifest')
-    if check_inputs:
-        receipt = {**receipt, 'declared_inputs_checked': check_declared_inputs(path, receipt, seen)}
-    return receipt
+
+
+def check_bundle(path, check_inputs=False):
+    """Check declared inventory, modes and payload hashes; never extract or execute."""
+    with tarfile.open(path, mode='r:') as archive:
+        seen, receipt = read_bundle(archive)
+        check_bundle_inventory(seen, receipt)
+        if check_inputs:
+            count = check_declared_inputs(path, receipt, seen, archive=archive)
+            receipt = {**receipt, 'declared_inputs_checked': count}
+        return receipt
 
 
 def main():
