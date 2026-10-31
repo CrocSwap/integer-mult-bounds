@@ -1,0 +1,164 @@
+
+\subsection{Historical context and inherited methods}
+
+Karatsuba's recursive construction, published jointly
+with Ofman in 1962, gave a binary multiplication circuit of size
+$O(n^{\log_2 3})$~\cite{KaratsubaOfman1962}. Toom's subsequent use of polynomial
+evaluation and interpolation gave circuit size
+$n\exp(O(\sqrt{\log n}))$, and hence $O(n^{1+\eta})$ for every fixed
+$\eta>0$~\cite{Toom1963}. These early results were formulated in terms of
+automata and logical networks. Cook adapted Toom's method to the
+Turing-machine setting; the contemporary account of Sch\"onhage and
+Strassen credits this adaptation explicitly
+\cite[Section~1, p.~282]{SchonhageStrassen1971}.
+
+In the multitape Turing model,
+Sch\"onhage and Strassen proved the bound
+$O(n\log n\log\log n)$ in 1971~\cite{SchonhageStrassen1971}.
+F\"urer improved it to $n\log n\,2^{O(\log^* n)}$ in 2007, with a full
+journal account in 2009~\cite{Furer2007,Furer2009}; here $\log^* n$ counts
+iterated logarithms until a constant threshold is reached.
+De, Kurur, Saha and Saptharishi developed a modular-arithmetic route to
+the same scale~\cite{DeKururSahaSaptharishi2013}.
+Later improvements made the exponential factor $8^{\log^* n}$ and then
+$4^{\log^* n}$~\cite{HarveyHoevenLecerf2016,HarveyHoeven2019Lattice}.
+Harvey and van der Hoeven proved the unconditional
+$O(n\log n)$ bound~\cite{HarveyHoeven2021}.
+
+The multitape bounds just cited concern that fixed model. Sch\"onhage obtained
+linear-time multiplication on storage-modification machines~\cite{Schonhage1980}.
+Groff later gave a smaller-than-$\log n$ factor in a unit-cost RAM model
+with constant-time arbitrary memory access, after polynomial preprocessing
+whose cost is excluded from that bound~\cite[Sections~2 and~4]{Groff2019}.
+Neither result establishes the bound in the fixed finite-tape model of
+Theorem~\ref{thm:main}.
+
+The transform methods behind these bounds also underlie the present
+construction. Sch\"onhage--Strassen multiplication uses roots of unity in
+Fermat-type residue rings, where certain multiplications become shifts.
+F\"urer combines cheap polynomial roots of unity with more general roots,
+reducing the frequency of expensive multiplications. Harvey and van der
+Hoeven use Gaussian resampling to pass to multidimensional transforms with
+power-of-two dimensions, then evaluate them using polynomial transforms
+developed by Nussbaumer and Quandalle and subsequently by
+Nussbaumer~\cite{NussbaumerQuandalle1978,Nussbaumer1980,HarveyHoeven2021}.
+The Gaussian-gridding work of Dutt and Rokhlin is an earlier conceptual
+precursor~\cite{DuttRokhlin1993}; Harvey and van der Hoeven discuss the
+connection in~\cite[Section~4.4.3]{HarveyHoeven2021}. The quantitative
+resampling and bit-cost estimates used here are those of the latter paper.
+
+More specifically, the proof adapts Harvey and van der Hoeven's
+Gaussian-resampling identity, contraction bounds, and short-convolution
+procedures~\cite[Theorem~4.2, Proposition~4.7 and Lemmas~4.8--4.12]{HarveyHoeven2021}.
+Their framework already permits arbitrary dimension. Here the source and
+target permutations remain in the transform identity, while the faster tape
+procedures perform the required axis movements. Bluestein's conversion to
+convolution~\cite{Bluestein1970} and the synthetic-root convolution algorithm
+are retained; the latter follows the polynomial-transform construction
+in~\cite[Section~2.4 and Section~3]{HarveyHoeven2021}. Signed coefficient
+packing is a form of Kronecker substitution, with the fixed-tape version
+of~\cite[Lemma~2.5]{HarveyHoeven2021} as a direct antecedent.
+Calls to the established $O(n\log n)$ multiplier are ordinary subroutine
+calls; they do not invoke the improved theorem recursively.
+
+\subsection{The finite-network ingredients}
+
+The subset-intersection construction in Section~\ref{sec:finite-networks}
+has an earlier source outside multiplication. Alon's presentation of the
+Frankl--Wilson construction~\cite{FranklWilson1981} gives low-degree
+representations of complementary intersection graphs over different fields
+\cite[Section~3, remark after the proof of Theorem~1.1]{Alon1998}.
+At the prime $p=2$, its subsets have size three and the two polynomial evaluations
+are the intersection count modulo two and the intersection count minus one.
+These are the two pairing formulas used here. We change the ground-set
+size and express the second pairing through a rational bilinear form.
+
+The gather and scatter operations, together with the side wires, have the
+form of linear index-code decoding: a low-rank linear summary gives the
+wanted coordinate plus contributions from known neighboring coordinates,
+and those contributions are subtracted. Bar-Yossef, Birk, Jayram and Kol
+establish the fitting-matrix formulation and this decoder
+\cite[Section~3, proof of Theorem~5]{BarYossefBirkJayramKol2006}.
+Lubetzky and Stav treat decoding over other fields and use related
+intersection representations to separate their possible ranks
+\cite[Proposition~2.1 and Section~2.3]{LubetzkyStav2009}.
+These comparisons explain the algebraic role of the two fields here;
+they do not supply the subspace labels on the subsequent network.
+
+Restoring scratch registers with arbitrary initial contents also has a
+precise precedent. The transparent-computation construction of Buhrman,
+Cleve, Kouck\'y, Loff and Speelman subtracts an initial register value,
+performs a computation, adds the resulting value, and reverses the
+computation~\cite[Section~3]{BuhrmanCleveKouckyLoffSpeelman2014}.
+Our scratch schedule is the linear-readout version of that construction.
+The rank reduction used for address shears is a singular-matrix Bruhat
+factorization: after reversing the coordinate order, Grigor'ev's
+upper-triangular factors become the two lower-triangular factors needed
+here~\cite[Appendix~A.2, Proposition~14(c)]{Grigoriev1982}.
+
+The finite networks and their labels are proved directly in
+Section~\ref{sec:finite-networks}. The additional requirements are the
+three-stage bank exchange, nested subspaces with a strict total rank or
+dimension deficit, and endpoint frames acting on every role. The tape
+implementations then turn that deficit into the volume-normalized
+recurrences of Sections~\ref{sec:tape-interchange}
+and~\ref{sec:fast-butterfly-layers}, including the costs of addressing,
+padding, coefficient growth, and finite precision. The cited decoding,
+restoration, and factorization results provide ingredients; these further
+properties are established in the present proof.
+
+\subsection{Lower-bound scope and matrix transposition}
+
+Sch\"onhage and Strassen conjectured $n\log n$ as the optimal order of
+multiplication cost~\cite[Section~1]{SchonhageStrassen1971}. In the present
+fixed-tape model, an eventual lower bound for every multiplication machine means that, for
+each fixed machine $A$, there are constants $c_A>0$ and $N_A$ such that
+$T_A(n)\ge c_A n\lg n$ whenever $n\ge N_A$.
+Its negation requires one machine satisfying
+$\liminf_{n\to\infty}T_A(n)/(n\lg n)=0$.
+The power saving proved here gives a limit of zero through all input lengths,
+which is a stronger conclusion.
+
+Harvey and van der Hoeven consider a binary transposition machine
+supplied an integer $m\ge1$ and a $k\times k$ binary matrix, where
+$k=\lfloor\sqrt m\rfloor$. They proved that if every fixed such machine
+has worst-case cost $\Omega(m\lg m)$ through all sufficiently large
+supplied values of $m$, then every fixed multiplication machine has the
+corresponding eventual lower bound~\cite[Theorem~1.2]{HarveyHoeven2025}.
+Combining their quantitative reduction~\cite[Corollary~6.2]{HarveyHoeven2025}
+with Theorem~\ref{thm:main} gives a deterministic fixed-tape algorithm
+that transposes a row-major $k\times k$ binary matrix in
+$O(k^2(\lg k)^{1-\kappa})$ time, with $\kappa$ as in
+Theorem~\ref{thm:main}. Section~\ref{sec:transposition} proves the more
+general rectangular-matrix bound.
+
+This comparison concerns unrestricted computation on a fixed number of
+one-dimensional tapes. Our address procedure forms XOR combinations of
+intermediate data, even though its final effect is a permutation.
+It therefore lies outside models restricted to moving data without such
+computations; see~\cite[Section~1.4]{HarveyHoeven2025} for the distinction.
+
+\subsection{Companion application to exact Fourier transforms}
+
+The complex phase network of Proposition~\ref{prop:complex-motif-interface}
+is also used in the companion manuscript~\cite[Section~1.1, Theorem~1.1
+and Corollary~1.2]{OpenAIExactDFT2026}. That manuscript gives a single
+algorithm for the exact discrete Fourier transform at every positive
+transform length $n$. As $n\to\infty$, its cost is
+$O(n(\log n)^{1-10^{-13}})=o(n\log n)$.
+
+The cost is measured in an exact complex-register model that assigns unit
+cost to exact complex field operations. The algorithm accepts every
+$x\in\mathbb C^n$, with no bound on its entries or on intermediate complex
+magnitudes. Its computation on the input uses only addition, subtraction,
+and multiplication by prepared input-independent scalars. The magnitudes
+of those scalar coefficients are unrestricted as well.
+
+Integer operations and random access on $O(\log(n+2))$-bit words have unit
+cost, with a fixed number of words for each address or integer. The model
+supplies one specified Fourier root $\zeta_{D_*}$ of explicitly computable
+order $D_*<1024n^3$. Scalar preparation, schedule construction, and index
+work are charged. This is a separate application of the finite network,
+with its own uniform array implementation. It is neither a bit-complexity
+consequence nor a stable floating-point FFT consequence of the fixed-tape
+multiplication theorem, Theorem~\ref{thm:main}.

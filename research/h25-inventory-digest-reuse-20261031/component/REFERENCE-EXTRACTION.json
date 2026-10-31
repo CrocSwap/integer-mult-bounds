@@ -1,0 +1,19 @@
+{
+  "candidate_change": "Only insert raw_digest = sha(raw) after expected assignment and substitute its two original sha(raw) uses. No helper/cache/table.",
+  "functions": {
+    "inventory": {
+      "sha256": "4b344ce3d56b16d4cf5d0036163b5dcd56355704d4f229028af649ecf8623c5f",
+      "source": "def inventory(root, pins, *, exact=True):\n    need(root.is_dir() and not root.is_symlink(), \"Missing or symlinked input root\")\n    files = {}\n    for path in sorted(root.rglob(\"*\")):\n        need(not path.is_symlink(), \"Symlink in frozen inputs: \" + str(path))\n        if path.is_file():\n            relative = str(path.relative_to(root))\n            if relative not in pins:\n                need(not exact, \"Undeclared frozen input: \" + relative)\n                continue\n            raw = path.read_bytes()\n            expected = pins[relative][0] if type(pins[relative]) is list else pins[relative]\n            need(sha(raw) == expected, \"Frozen input digest changed: \" + relative)\n            files[relative] = {\"sha256\": sha(raw), \"mode\": stat.S_IMODE(path.stat().st_mode), \"bytes\": len(raw)}\n    need(set(files) == set(pins), \"Frozen input inventory incomplete\")\n    return files\n"
+    },
+    "need": {
+      "sha256": "be885cf19533d3914a480a7b4815eaad50d59c65bf4af9c1a0d3f7737d256249",
+      "source": "def need(condition, message):\n    if not condition:\n        raise RuntimeError(message)\n"
+    },
+    "sha": {
+      "sha256": "4e627faf4b903521e935f7c6f3ae93545856f821d0e2565ba7ea6cf97d3d0e6c",
+      "source": "def sha(data):\n    return hashlib.sha256(data).hexdigest()\n"
+    }
+  },
+  "source": "outputs/h25-bookkeeping-swarm-20261028/stages/v4/integration/full_driver.py",
+  "source_sha256": "5b963a5f108b334a627e68001c80b9843fb300c7394693e72f34ce0a6050e6f1"
+}

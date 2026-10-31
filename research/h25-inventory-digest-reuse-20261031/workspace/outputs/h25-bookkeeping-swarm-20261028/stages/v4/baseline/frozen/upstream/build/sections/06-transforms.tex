@@ -1,0 +1,737 @@
+\section{Synthetic transforms and their tape layout}
+\label{sec:synthetic-layouts}
+
+We now implement the normalized Fourier transforms needed for
+convolution.  Their entries will be short polynomials in a quotient
+where the required roots of unity act by exact signed permutations
+of coefficient lists.  We also specify where each frequency entry
+is stored, because the opposite transform consumes that same order
+after a pointwise product.
+
+The polynomial roots and radix-two butterflies belong to the fast
+polynomial-transform method of Nussbaumer and
+Quandalle~\cite{NussbaumerQuandalle1978,Nussbaumer1980}; we use the
+form developed in~\cite[Section~2.4 and Lemma~3.2]{HarveyHoeven2021}.
+The work here is to apply the simultaneous layers on a suitable tape
+layout and retain the resulting frequency order through convolution.
+
+For an integer $r\geq 2$ that is a power of two, put
+\[
+ \mathcal R_r=\mathbb C[y]/(y^r+1),\qquad
+ \left\|\sum_{k=0}^{r-1}z_k y^k\right\|_\infty
+       =\max_{0\leq k<r}|z_k|.
+\]
+We always use representatives of degree less than $r$.  Multiplication
+by $y^a$, for any integer $a$, permutes the coefficients and changes
+some signs; consequently it is an isometry for this norm.  For arrays
+over $\mathcal R_r$, the same notation denotes the maximum over all
+coefficients in all entries.  A disk array has norm at most one.  A
+$p$-bit grid array has real and imaginary coefficient parts in
+$2^{-p}\mathbb Z$.  For any array, let $Q_p$ truncate each real and
+imaginary coefficient part toward zero to this grid.  Then
+\begin{equation}
+ \|Q_p z-z\|_\infty<\sqrt2\,2^{-p},\qquad
+ \|Q_p z\|_\infty\leq\|z\|_\infty.
+ \label{eq:transform-truncate}
+\end{equation}
+
+\subsection{Roots, butterflies, and stored frequency order}
+
+For a power of two $t$ dividing $2r$, define $\omega_t=y^{2r/t}$.
+For $z\in\mathcal R_r^t$ and $0\leq j<t$, set
+\[
+ (F_t^-z)_j=\frac1t\sum_{k=0}^{t-1}\omega_t^{-jk}z_k,
+ \qquad
+ (F_t^+z)_j=\frac1t\sum_{k=0}^{t-1}\omega_t^{jk}z_k.
+\]
+Every power of $\omega_t$ is an isometry, and each transform entry is
+an average of $t$ such images.  Thus both transforms are contractions.
+The ring has zero divisors, so we verify character cancellation
+directly instead of dividing by $\omega_t^j-1$.
+
+\begin{lemma}[Synthetic character cancellation]
+\label{lem:synthetic-characters}
+If $j$ is an integer, then
+\[
+ \sum_{k=0}^{t-1}\omega_t^{jk}
+ =\begin{cases}t,&t\mid j,\\0,&t\nmid j.\end{cases}
+ \qquad F_t^+F_t^-=t^{-1}I.
+\]
+\end{lemma}
+\begin{proof}
+Only the second case needs proof.  Write $j=2^v j_0$ with $j_0$ odd
+and $0\leq v<\log_2t$.  Replacing $k$ by $k+t/2^{v+1}$ modulo $t$ permutes
+the summands and multiplies their sum by
+$y^{rj_0}=-1$.  Hence the sum is zero, since the additive group of
+$\mathcal R_r$ has no two-torsion.  Expanding the composite transforms
+and applying this identity proves the final formula.
+\end{proof}
+
+Write
+\[
+ H_0=\frac12\begin{pmatrix}1&1\\1&-1\end{pmatrix}.
+\]
+The length-one procedure is the identity.  For $t\geq2$, the
+decimation-in-frequency step pairs $z_k$ with $z_{k+t/2}$ for
+$0\leq k<t/2$.  The two outputs of $H_0$ occupy these same slots,
+whose high address bit is $b=0$ or $b=1$, respectively.  Multiply
+the $b=1$ output by $\omega_t^{-k}$, and then apply the length-$t/2$
+procedure separately within the two branches.  This computes
+$F_t^-$ because, for $b\in\{0,1\}$,
+\begin{equation}
+ (F_t^-z)_{2h+b}
+ =\frac1{t/2}\sum_{k=0}^{t/2-1}
+       (\omega_t^2)^{-hk}\omega_t^{-bk}
+       \frac{z_k+(-1)^b z_{k+t/2}}2.
+ \label{eq:synthetic-dif}
+\end{equation}
+To follow the recursion, name the original address-bit slots of an
+axis of length $t=2^a$ by $a-1,\ldots,0$, from most to least
+significant.  For $0\leq s\leq a$, after $s$ levels the values of
+the first $s$ named slots are branch bits $b_0,\ldots,b_{s-1}$.
+Equation~\eqref{eq:synthetic-dif} identifies these as frequency bits
+$0,\ldots,s-1$, numbered from the least significant bit.  The
+remaining slots encode an index in $[0,u)$, where $u=t/2^s$.
+When $s<a$, the next level uses slot $h=a-1-s$ to distinguish the
+paired inputs and then to hold
+$b_s$.  Writing $x_v$ for the bit in a still unprocessed slot $v$,
+the index used by its twiddle is
+\[
+       k=\sum_{v=0}^{h-1}2^v x_v,\qquad 0\leq k<u/2.
+\]
+Previously written branch bits do not enter $k$.  The same description
+holds in each shorter branch by \eqref{eq:synthetic-dif}, which proves
+the assertion inductively.
+
+After all $a$ rounds, the named slots from high to low therefore
+contain the frequency bits from low to high.  If
+$\operatorname{rev}_a(j)$ reverses the $a$ binary digits of $j$, the
+entry $(F_t^-z)_j$ occupies slot $\operatorname{rev}_a(j)$.
+Let $B_t$ denote this record permutation: it moves the entry at $j$
+to $\operatorname{rev}_a(j)$.  The recursion writes its outputs
+directly in this order; it does not move whole frequency indices.
+
+The procedure consuming this stored order traverses the recursion in
+reverse: first process the two smaller branches, then apply the inverse
+monomial to the second branch, and finally apply $H_0$.  Each forward
+level is invertible, since both its butterfly and its monomial are
+invertible.  As $H_0^2=I/2$, the reversed level is half the inverse
+of the corresponding forward level.  There are $a=\log_2t$ levels,
+so the reverse procedure composed with $B_tF_t^-$ is
+$2^{-a}I=I/t$.  Lemma~\ref{lem:synthetic-characters} gives the same
+composite for $F_t^+B_t^{-1}$ with $B_tF_t^-$.  The forward procedure
+is invertible, so these two reverse operators agree.  Thus the two
+exact procedures implement
+\begin{equation}
+       B_tF_t^-,\qquad F_t^+B_t^{-1},
+ \label{eq:stored-opposite}
+\end{equation}
+respectively.
+
+For $D$ axes of lengths $t_1,\ldots,t_D$, put
+\[
+ M=\prod_{i=1}^D t_i,\qquad
+ F_{\boldsymbol t}^\pm=\bigotimes_{i=1}^D F_{t_i}^\pm,
+ \qquad B=\bigotimes_{i=1}^D B_{t_i}.
+\]
+A round applies one current $H_0$ on each participating axis.  The
+twiddle for axis $i$ depends only on that axis's address bits.
+The two entries paired by another axis's butterfly have the same
+axis-$i$ address, so that twiddle commutes with the other butterfly.
+Consequently the individual axis steps may be grouped as a parallel
+butterfly $\mathcal H$, followed by one recordwise monomial operation
+$J_E$.  At each address, $J_E$ multiplies the record by
+\begin{equation}
+       y^{E},\qquad
+ E=-\sum_{i\ \mathrm{participating}}
+       \frac{2r}{u_i}\,b_i k_i\pmod{2r}.
+ \label{eq:combined-twiddle}
+\end{equation}
+Here $u_i$ is that axis's current recursive length, $b_i$ its newly
+written branch bit, and $0\leq k_i<u_i/2$ is encoded by its still
+unprocessed named slots.  The exponent depends on the address, not
+on coefficient values.  In the opposite direction the grouped round
+is $\mathcal HJ_E^{-1}$: apply $y^{-E}$ first and the parallel
+butterfly second.  Each $\mathcal H$ is a contraction and each
+$J_E$ is an isometry, so every completed round is a contraction.
+
+\subsection{A layout on which the parallel layers apply}
+
+To apply Proposition~\ref{prop:simultaneous-layer} in a transform round,
+we must place the selected bits of the participating axes at a common
+offset in consecutive $K$-bit chunks. We now construct that layout,
+keeping each polynomial's coefficients in a contiguous suffix. The
+layout uses the single-bit moves of
+Lemma~\ref{lem:elementary-streams} and the chunk interchanges of
+Lemma~\ref{lem:chunk-swap}; each movement is included in the transform
+cost. The layer then supplies one truncated contraction per round,
+and its temporary rows and work streams are removed before the next
+round begins.
+
+\begin{lemma}[Transform layout and cost]
+\label{lem:synthetic-transform-cost}
+Fix the rational parameters and positive comparison constants
+$a_d\leq b_d$, $a_r\leq b_r$ of
+Proposition~\ref{prop:simultaneous-layer}. Fix constants $C_\ell>0$
+and $C_w>1$, and choose the layer constants once as
+\[
+ C_M=C_\ell+1,\qquad
+ C_{\rm desc}=32(C_\ell+C_w+1).
+\]
+Use these constants and $C_w$ in
+Proposition~\ref{prop:simultaneous-layer}. These fixed choices determine
+a cutoff $p_1$, one fixed-tape procedure, and an implicit time constant
+with the following guarantee. For every choice of positive integers
+$p,d,r$ with $p\geq p_1$ and
+\[
+ a_dp^\epsilon\leq d\leq b_dp^\epsilon,\qquad
+ 2^{a_rp/d}\leq r\leq2^{b_rp/d},
+\]
+suppose $d\geq2$ and $r=2^\ell$ with an integer $2\leq\ell<p$, and require
+\[
+ d\ell\leq C_\ell p,\qquad
+ 1\leq K=\lfloor d^c\rfloor\leq\ell-1.
+\]
+Let
+$t_i\in\{2^{\ell-1},2^\ell\}$ for $1\leq i\leq d-1$, put
+$M=\prod_{i=1}^{d-1}t_i$ and $T=rM$, and let $w$ be an integer with
+$p+2\leq w\leq C_wp$. The cutoff and time constant are independent of
+$p,d,r$, these axis choices, the round headers constructed from them,
+and $w$ within the displayed bounds.
+
+The input supplies the self-delimiting header
+\[
+ \mathcal T=\Gamma(p)\Gamma(d)\Gamma(r)\Gamma(K)\Gamma(w)
+       \prod_{i=1}^{d-1}\Gamma(t_i),
+\]
+where the product is concatenation in axis order and $\Gamma$ is the
+integer code of \eqref{eq:integer-descriptor-code}.
+The supplied $d$ determines the number of axis entries, and
+$\ell=\log_2r$ is obtained from the supplied power of two $r$.
+Assume that the header is valid with the stated values and that the
+input records use the two's-complement component format of
+Proposition~\ref{prop:simultaneous-layer} with width $w$.
+
+The procedure constructs an explicit positional
+layout permutation $L$ of record addresses, preserving their polynomial
+suffixes, and transforms disk grid arrays of $M$ contiguous
+degree-less-than-$r$ polynomial records. Its exact counterpart is
+$LB F_{\boldsymbol t}^-$.  Its opposite procedure consumes
+that order and has exact counterpart
+$F_{\boldsymbol t}^+B^{-1}L^{-1}$.  Each procedure has error less than
+$\sqrt2\ell\,2^{-p}$, returns disk grid coefficients in the same
+component format, and costs
+\begin{equation}
+ O\left(Tp\left[dK+pK^{\tau-1}+\ell d^{\lambda'}\right]\right).
+ \label{eq:synthetic-transform-cost}
+\end{equation}
+Both layout construction and final restoration are charged in this
+bound.  The forward procedure may retain its output layout for a
+pointwise product and the following opposite procedure.
+\end{lemma}
+\begin{proof}
+Put $D=d-1$ and write $a_i=\log_2t_i$. The supplied encoding has
+$2w=\Theta(p)$ bits per coefficient, so the logical bit volume is
+$\Theta(Tp)$.  Call an axis long if $a_i=\ell$ and short if
+$a_i=\ell-1$.  Name the original bit slots of axis $i$ by
+$(i,h)$, $a_i-1\geq h\geq0$.  Initially these slots are in axis order
+and, within each axis, in decreasing $h$.  The coefficients of each
+polynomial form a contiguous suffix.  Put
+\[
+       b=(\ell-1)\bmod K,
+       \qquad q=\lfloor(\ell-1)/K\rfloor.
+\]
+Form a list of the slots to move to a prefix.  First list
+$(i,\ell-1)$ for the length-$2^\ell$ axes in increasing $i$.
+Then list $(i,h)$ for $h=b-1,\ldots,0$, and within each $h$ in
+increasing $i$; this second list is empty if $b=0$.  Move each listed
+slot immediately after the prefix already formed, leaving all other
+slots in their relative order.  There are at most $D(b+1)=O(dK)$
+listed slots, so the moves cost $O(TpdK)$.  A descriptor records the
+physical position of every named slot.  The part of each axis left
+outside the prefix now consists of $q$ consecutive $K$-bit chunks.
+
+Number the axes by $i$ and their chunks, from high to low, by $j$.
+The remaining physical order changes from
+\[
+ (1,1),(1,2),\ldots,(1,q),(2,1),\ldots,(D,q)
+ \quad\hbox{to}\quad
+ (1,1),(2,1),\ldots,(D,1),(1,2),\ldots,(D,q).
+\]
+To obtain this order, scan its target positions from left to right.
+At each position except the last, exchange the chunk currently there
+with the required chunk if they differ.  This uses at most $Dq-1$
+exchanges of width-$K$ address chunks, even when the chunks are
+nonadjacent.  Each costs $O(TpK^\tau)$, so all these exchanges cost
+\[
+ O\bigl(Tp\,DqK^\tau\bigr)
+       =O\bigl(Tp\,pK^{\tau-1}\bigr).
+\]
+These prefix moves and chunk exchanges define $L$.  We use the same
+letter for its induced record permutation: a record at address $x$
+moves to address $Lx$, while its polynomial suffix stays intact.
+Recording the inverse operations in reverse order gives $L^{-1}$
+with the same cost.
+
+For a small illustration of this positional permutation, take
+$\ell=6$, $K=2$, and one long axis followed by one short axis.
+Then $b=1$ and $q=2$. Write $[i:h,h']$ for the chunk containing
+the two named slots $(i,h),(i,h')$, in that order. After $L$ the slots are
+\[
+ \underbrace{(1,5),(1,0),(2,0)}_{\text{prefix}} ;\qquad
+ [1:4,3]\ [2:4,3]\ [1:2,1]\ [2:2,1].
+\]
+For example, the round at named position $h=4$ uses offset one in
+each of the first two chunks. It writes frequency bit one on the long
+axis and frequency bit zero on the short axis. The named position
+specifies the same physical pairing rule on both axes even though the
+frequency significance differs. This example illustrates only the slot
+permutation; the parameter bounds of the lemma govern its asymptotic use.
+
+The header has $O(p)$ bits: its axis entries use
+$O(\sum_i a_i+d)=O(p)$ bits, and its remaining entries have
+$O(p)$ bits in total. The layout lists have binary length polynomial
+in $p$. Parsing the header and generating these lists by elementary
+integer arithmetic take
+$\operatorname{poly}(p)=O(Tp)$ time. Indeed the fixed comparison bands
+give $T\geq r\geq2^{(a_r/b_d)p^{1-\epsilon}}$, uniformly over the
+permitted $d,r$, so $T$ dominates every fixed power of $p$.
+
+First process the round at named position $h=\ell-1$ on the long
+axes, if there are any.  Every axis then has current recursive
+length $2^{\ell-1}$.  Next process $h=\ell-2,\ldots,b$ in the $qK$
+rounds on the remaining chunks, and finally the bottom positions
+$h=b-1,\ldots,0$, if $b>0$.  Thus all participating axes in a
+common round have current length $u_i=2^{h+1}$.
+The branch bit written at position $h$ is frequency bit $a_i-1-h$;
+its frequency significance can differ between long and short axes.
+The descriptor locates that named slot after $L$, so the physical
+move has not changed which pair the current butterfly uses.  The
+opposite procedure executes this schedule in reverse order and,
+when present, ends with the extra leading round on the long axes.
+
+For a position $h$ in the remaining chunks, the selected bit has
+offset $(h-b)\bmod K$, counted from the least significant bit, in
+each of the $D$ consecutive chunks with the same chunk index $j$.
+Let $n_P$ and $n_S$ be the numbers of record-address bits before and
+after that group.  Every combination of those bits occurs, so the
+layer sees the complete address set
+\[
+ [P]\times[2^K]^D\times[S],\qquad
+ P=2^{n_P},\quad S=2^{n_S},\quad
+ n_P+DK+n_S=\sum_i a_i\leq D\ell=O(p).
+\]
+Thus its record count is $PS2^{DK}=M$ and
+$\log_2(2M)\leq(C_\ell+1)p=C_Mp$.
+The current transform parameters supply $p,d,r,K,w$, and the round
+determines $D,P,S$ and the selected offset $\rho$. Encode these values
+as the header $\mathcal E$ of Proposition~\ref{prop:simultaneous-layer}.
+The same fixed descriptor bound covers every axis choice and round.
+Indeed $|\Gamma(v)|\leq2\log_2v+1$, and
+$\ell+n_P+n_S\leq d\ell\leq C_\ell p$. Also
+$d,D\leq\max\{C_\ell,1\}p$, $K,\rho+1\leq p$, and $w\leq C_wp$.
+Adding the nine code lengths therefore gives
+\[
+ |\mathcal E|
+ \leq 2C_\ell p+12\log_2p+
+        4\log_2\max\{C_\ell,1\}+2\log_2C_w+9
+ \leq C_{\rm desc}p.
+\]
+The last inequality uses $p\geq1$, $\log_2p\leq p$, and
+$\log_2x\leq x$ for $x\geq1$.
+This is the descriptor passed to the layer; the longer
+table locating named slots remains separate for the transform's address
+calculations.
+The simultaneous-layer procedure therefore applies at cost
+$O(Tpd^{\lambda'})$ per round and $O(Tp\ell d^{\lambda'})$ in total.
+
+In a round on prefix slots, process the participating bits individually.
+Temporarily move one such bit immediately before the polynomial
+suffix.  In each now adjacent pair, buffer the first record and scan
+it with the second, writing the half-sums and half-differences to two
+work tapes.  Append the half-sum record and then the half-difference
+record, and reverse the bit move after
+all pairs are processed.  Including head returns, the work is
+$O(rp)$ per pair and $O(Tp)$ for the moves and scans at coefficient
+width $O(p)$.
+That width suffices without truncating between axes: after $s\leq D$
+individual $H_0$ factors, the coefficients are exact dyadics on the
+$2^{-(p+s)}$ grid and still lie in the disk.  A temporary sum has
+modulus at most two and needs only a constant number of extra integer
+bits.  Hence
+$p+D+O(1)=O(p)$ bits per component suffice, since $D\leq d$ and
+$d\ell=O(p)$.  Complete the combined monomial exactly and apply
+$Q_p$ once at the end of the round. Write the resulting disk-grid
+numerators in the supplied $w$-bit component format. Their magnitudes
+are at most $2^p$, so this takes one linear scan within the same bound.
+In an opposite round on prefix slots the
+inverse monomial comes first and preserves the grid and disk, so the
+same width bound holds for its individual factors.  There are at
+most $b+1\leq K$ rounds on prefix slots, giving cost $O(TpdK)$.
+
+For each output record of a forward butterfly round, the descriptor
+locates the new branch bit $b_i$ and the lower named slots that encode
+$k_i$.  Read their current values to compute
+\eqref{eq:combined-twiddle}.  Before an opposite round at position
+$h$, all lower positions have already been processed in reverse.
+Those slots again index the lower inputs of that level, while slot
+$h$ still gives $b_i$.  They therefore encode the same $k_i$ needed
+by the inverse monomial before its
+butterfly.  The binary descriptions of the addresses, exponent, and
+layout have polynomial length in $p$.  Ordinary
+fixed-tape arithmetic therefore computes the exponent in
+$\operatorname{poly}(p)$ time per polynomial record.  Each record
+contains $\Theta(rp)$ bits, and $r$ dominates every fixed power of
+$p$, so this work fits within its scan cost.  The same bound covers
+scans of the polynomially many round and layout descriptors.
+Growing lists reside on tapes; a fixed number of counter and work
+tapes suffices for every number of axes.
+
+To implement the monomial, write $E=er+s$ with $0\leq s<r$.
+Split the coefficient list before position $r-s$, put its tail
+before its head, negate the moved tail, and apply the common sign
+$(-1)^e$.  This is multiplication by $y^E$ modulo $y^r+1$.
+There are always two pieces.  Splitting them to two tapes and merging
+in that order costs $O(rp)$ per record, including head returns;
+$s=0$ is an ordinary signed copy.  The inverse twiddle uses the
+same split and merge with exponent $-E$, and no coefficient sort is
+required.
+
+For a forward round on a group of $D$ chunks, the layer call returns
+$Q_p(\mathcal H z)$ and the next operation is $J_E$.  Truncation
+toward zero is odd and acts separately on every real and imaginary
+part.  Since $J_E$ is a signed coefficient permutation, it follows
+that
+\[
+       J_EQ_p(\mathcal H z)=Q_p(J_E\mathcal H z).
+\]
+Thus the actual forward call sequence returns exactly the result of
+truncating once after the exact contraction round.  In the opposite
+direction, $J_E^{-1}$
+first preserves the disk grid, and the layer call returns
+$Q_p(\mathcal HJ_E^{-1}z)$ directly.  The rounds on prefix slots
+have the same forms, with one truncation, by their exact evaluation
+above.  A contraction does not increase the norm of the difference
+between the computed and exact arrays; the single truncation then
+adds less than $\sqrt2\,2^{-p}$ by \eqref{eq:transform-truncate}.
+Both the contraction and truncation preserve the disk.  Starting with
+zero error, at most $\ell$ rounds therefore
+give the claimed error and disk bounds.  The layout permutations
+are isometries and add no numerical error.
+
+It remains to identify the order of the full procedures.  Before
+relocating slots, write
+$\mathcal D_-=BF_{\boldsymbol t}^-$ and
+$\mathcal D_+=F_{\boldsymbol t}^+B^{-1}$ for the exact logical forward and
+opposite procedures.  Executing each operation on named slots after $L$
+conjugates it by $L$.  The forward procedure first moves the records
+by $L$, whereas the opposite procedure restores them by $L^{-1}$
+after its reverse arithmetic.  Their full exact operators are
+\[
+ (L\mathcal D_-L^{-1})L=LB F_{\boldsymbol t}^-,
+ \qquad
+ L^{-1}(L\mathcal D_+L^{-1})
+       =F_{\boldsymbol t}^+B^{-1}L^{-1}.
+\]
+In particular, the forward entry with frequency address $j$ is
+stored at $L(Bj)$.  The reverse arithmetic consumes the frequency
+branch coordinates and outputs the normalized opposite transform
+indexed by the original axis coordinates, which are still in layout $L$.
+The factor $B^{-1}$ is realized by that arithmetic; the final
+charged movement $L^{-1}$ restores axis-major physical order.
+\end{proof}
+
+Pointwise multiplication commutes with applying the same record
+permutation $LB$ to both operands.  We may therefore multiply the
+forward outputs in their retained order and pass that order directly
+to the opposite procedure.  The following polynomial product
+implements this operation with an established integer multiplier.
+
+\section{Exact normalized polynomial products}
+\label{sec:exact-ring-products}
+
+To multiply the polynomial records, we use the fixed-tape integer
+multiplier of Harvey and van der
+Hoeven~\cite[Theorem~1.1]{HarveyHoeven2021}, with cost
+$O(N\log(2N))$ on $N$-bit inputs.  This is an independent subroutine.
+Its inputs below have $O(rp)$ bits, and we include the conversions
+between coefficient streams and signed integers in the cost. The
+reduction is a signed form of Kronecker substitution; compare
+\cite[Lemma~2.5]{HarveyHoeven2021}. We specify the packing and recovery
+of coefficients to include negative values and the required tape format.
+
+\begin{lemma}[Signed packing and normalized ring multiplication]
+\label{lem:signed-ring-product}
+Let $r=2^\ell<2^p$ with integers $\ell\geq1$ and $p\geq2$, and fix $C_w>1$.
+Let $w$ be an integer with $p+2\leq w\leq C_wp$.
+The input supplies $\Gamma(p)\Gamma(r)\Gamma(w)$ and two disk grid
+polynomials $f,g\in\mathcal R_r$ in the component format of
+Proposition~\ref{prop:simultaneous-layer} with width $w$.
+One can compute the exact Gaussian integer
+numerators of $fg$, and then return $Q_p(fg/r)$ in that same format, in time
+$O(rp\log(rp))$ on a fixed number of tapes.  The output is a disk
+grid polynomial with error less than $\sqrt2\,2^{-p}$ from $fg/r$.
+\end{lemma}
+\begin{proof}
+The supplied power of two $r$ determines $\ell=\log_2r$.
+Write
+\[
+ f=2^{-p}(a+ib),\qquad g=2^{-p}(c+ie),
+\]
+where $a,b,c,e\in\mathbb Z[y]$ have degree less than $r$ and
+coefficients of absolute value at most $2^p$.  Set $B_0=2^{4p}$
+and, for $u\in\{a,b,c,e\}$, define the signed evaluation integer
+\[
+       A_u=u(B_0)=\sum_{j=0}^{r-1}u_jB_0^j.
+\]
+The bound
+\[
+ |A_u|\leq2^p\frac{B_0^r-1}{B_0-1}<B_0^r/2
+\]
+shows that each magnitude fits in $4pr$ bits.  Multiply the four
+pairs of absolute values using the established multiplier and restore
+each product's sign.  The resulting integers are
+$A_aA_c,A_bA_e,A_aA_e,A_bA_c$.  For example, if
+$h=ac$ is the ordinary product in $\mathbb Z[y]$, then
+\[
+       A_aA_c=(ac)(B_0)=\sum_{j=0}^{2r-2}h_jB_0^j.
+\]
+The other three evaluation products have the same form.  Every
+coefficient in any of these ordinary polynomial products satisfies
+\begin{equation}
+      |h_j|\leq r2^{2p}<2^{3p}<B_0/2.
+ \label{eq:packing-separation}
+\end{equation}
+After the lower coefficients have been removed from an evaluation,
+this strict bound identifies the next coefficient by its centered
+residue modulo $B_0$.
+
+To form $A_u$, start with carry $\gamma_0=0$ and write
+\[
+ d_j\equiv u_j+\gamma_j\pmod{B_0},\quad 0\leq d_j<B_0,
+ \qquad \gamma_{j+1}=\frac{u_j+\gamma_j-d_j}{B_0}.
+\]
+Since $-B_0<u_j+\gamma_j<B_0$ whenever
+$\gamma_j\in\{-1,0\}$, the carry stays in $\{-1,0\}$.  Telescoping
+the recurrence gives
+\[
+       A_u=\sum_{j=0}^{r-1}d_jB_0^j+\gamma_rB_0^r.
+\]
+The $r$ blocks are therefore a fixed-width two's-complement encoding
+of $A_u$, with $\gamma_r=-1$ exactly when $A_u<0$.  In that case
+complement and increment the blocks to obtain $|A_u|$; otherwise
+retain them.  Every block has $4p$ bits and every carry has constant
+size, so a constant number of scans costs $O(rp)$.  Endianness
+changes required by the multiplier are linear-time reversals on a
+work tape.
+
+Now let $Z$ be one of the four signed product integers, and let $h$
+be its corresponding ordinary polynomial product.  Put $J=2r$ and
+pad that product by $h_{J-1}=0$.  The bound on the evaluation integers
+gives $|Z|<B_0^J/4$, so $Z$ fits in $J$ blocks of width $4p$.
+Convert its sign and magnitude to sign-extended two's complement:
+\[
+ Z=\sum_{j=0}^{J-1}q_jB_0^j+\varepsilon B_0^J,
+ \qquad 0\leq q_j<B_0,\quad \varepsilon\in\{-1,0\}.
+\]
+Zero-fill the unused high blocks; for a negative sign, complement
+and increment within this fixed width.  These conversions take a
+constant number of scans.
+Put $\rho_0=0$.  At block $j$, let $\widehat h_j$ be the unique
+integer in $[-B_0/2,B_0/2)$ congruent to $q_j+\rho_j$ modulo $B_0$,
+and put
+\[
+       \rho_{j+1}=
+          \frac{q_j+\rho_j-\widehat h_j}{B_0}.
+\]
+The carry belongs to $\{0,1\}$: if $\rho_j$ has this property, then
+$0\leq q_j+\rho_j\leq B_0$, and centering either leaves this value
+unchanged or subtracts $B_0$.
+
+The meaning of the carry is the following residual identity, after
+coefficients below $j$ have been correctly extracted:
+\[
+ \sum_{k=j}^{J-1}h_kB_0^{k-j}
+ =\sum_{k=j}^{J-1}q_kB_0^{k-j}
+       +\rho_j+\varepsilon B_0^{J-j}.
+\]
+At $j=0$ this is the equality between the two representations of
+$Z=h(B_0)$, with
+$\rho_0=0$.  For $j<J$, reduction modulo $B_0$ gives
+$h_j\equiv q_j+\rho_j\pmod{B_0}$.  By
+\eqref{eq:packing-separation}, including the padded value
+$h_{J-1}=0$, the unique centered representative is $h_j$ itself.
+Thus $\widehat h_j=h_j$.  Subtracting this coefficient and dividing
+the residual identity by $B_0$ gives the next identity, with exactly
+the displayed update for $\rho_{j+1}$.  At $j=J$ the identity is
+$0=\rho_J+\varepsilon$.  Hence a negative product has final carry
+$1$, canceled by its sign extension $\varepsilon=-1$; a nonnegative
+product has final carry zero.  The machine implements the induction
+by reading one block and updating this constant-size carry at each
+step, so extraction costs $O(rp)$.
+
+The real and imaginary numerator streams are respectively
+$ac-be$ and $ae+bc$.  To reduce them modulo $y^r+1$, subtract the
+coefficient at $j+r$ from the one at $j$ for $0\leq j<r$, treating
+a missing coefficient as zero.  Splitting the two halves to tapes
+aligns these terms in one further scan.  For each first input index
+$j_1\in\{0,\ldots,r-1\}$, exactly one second index $j_2$ in that
+range satisfies $j_1+j_2\equiv j\pmod r$.  Its sign is positive
+when $j_1+j_2=j$ and negative when $j_1+j_2=j+r$.  Thus each
+resulting Gaussian integer coefficient $H_j$ is a sum of exactly
+$r$ signed products of Gaussian integer input coefficients of
+modulus at most $2^p$.  Consequently
+\[
+       |H_j|\leq r2^{2p}.
+\]
+The same triangle inequality before imposing the disk bound gives
+$\|fg/r\|_\infty\leq\|f\|_\infty\|g\|_\infty$; in particular the
+normalized product of disk polynomials lies in the disk.  All
+intermediate coefficient additions fit in $O(p)$ bits.  The
+width-$4p$ packing fields and the exact multiplier output prevent
+overflow or ambiguity between adjacent fields.
+
+Finally the $p$-bit grid numerator of the normalized product is
+\[
+ \operatorname{trunc}_0\left(\frac{\Re H_j}{2^{p+\ell}}\right)
+   +i\operatorname{trunc}_0\left(\frac{\Im H_j}{2^{p+\ell}}\right).
+\]
+To implement it, shift the absolute magnitude right by $p+\ell$
+bits and restore its sign, at cost $O(p)$ per coefficient.  The returned
+coefficient is $2^{-p}$ times this numerator, namely
+$Q_p(2^{-2p}H_j/r)$; \eqref{eq:transform-truncate} proves its error
+and disk bounds. Each returned component numerator has magnitude at
+most $2^p$, so write it as a signed $w$-bit two's-complement word,
+most significant bit first, with the real word before the imaginary
+word and coefficient indices in increasing order. This costs
+$O(rw)=O(rp)$ and supplies the format used by the opposite transform.
+Four exact integer products dominate the linear
+packing, extraction, combination, wrapping, and truncation costs.
+\end{proof}
+
+\subsection{The normalized convolution interface}
+
+For arrays on $\prod_i\mathbb Z/t_i\mathbb Z$ with values in
+$\mathcal R_r$, let $*$ denote cyclic convolution in the displayed
+axes and define
+\[
+       \mathcal M_r(f,g)=\frac{f*g}{rM}=\frac{f*g}{T}.
+\]
+For a fixed output coefficient, each of the $M$ first cyclic
+addresses determines one second address, and each of the $r$ first
+polynomial indices determines one second index modulo $r$.  The
+negacyclic wrap supplies the sign.  Thus that coefficient averages
+$rM$ signed scalar products, and $\mathcal M_r$ is a bilinear
+contraction:
+\[
+ \|\mathcal M_r(f,g)\|_\infty
+       \leq\|f\|_\infty\|g\|_\infty.
+\]
+If the other operand is a disk array, replacing one operand changes
+the output by at most the norm distance between its two values.
+
+\begin{proposition}[Convolution from the retained transform layout]
+\label{prop:synthetic-convolution}
+Under the hypotheses of Lemma~\ref{lem:synthetic-transform-cost},
+$\mathcal M_r$ on disk grid operands has an approximation with error
+less than
+\begin{equation}
+       \sqrt2\,M(3\ell+1)2^{-p}
+ \label{eq:synthetic-convolution-error}
+\end{equation}
+and cost
+\[
+O\left(Tp\left[dK+pK^{\tau-1}+\ell d^{\lambda'}
+                    +\log(rp)\right]\right).
+\]
+Put $m_M=\log_2M$ and $w_M=w+m_M$. The returned grid array is in the
+original array and coefficient order, with the same two's-complement
+component format at width $w_M$. The procedure supplies
+$\Gamma(w_M)$ on the output descriptor tape, so the caller knows every
+component boundary from this width and the retained shape parameters.
+If one operand has norm at most $\rho<1$ and the bound in
+\eqref{eq:synthetic-convolution-error} is at most $1-\rho$, the
+returned grid array is a disk array.
+\end{proposition}
+\begin{proof}
+Perform both forward transforms and retain their common $LB$ order.
+Pass the supplied $p,r,w$ to
+Lemma~\ref{lem:signed-ring-product} for corresponding polynomial records.
+Its output keeps that record order and uses the component format
+required by the opposite procedure. Apply the opposite procedure
+to that order, and multiply its result exactly by $M=T/r$.
+
+To check normalization, expansion of the finite sums gives
+\[
+ F_{\boldsymbol t}^-(f*g)
+       =M(F_{\boldsymbol t}^-f)(F_{\boldsymbol t}^-g).
+\]
+As $F_{\boldsymbol t}^+F_{\boldsymbol t}^-=I/M$, it follows that
+\[
+ M F_{\boldsymbol t}^+
+       \left(\frac{(F_{\boldsymbol t}^-f)
+                          (F_{\boldsymbol t}^-g)}r\right)
+       =\frac{f*g}{rM}.
+\]
+Let $P(u,v)$ denote the exact pointwise product $uv/r$, and put
+$\mathcal T_+=F_{\boldsymbol t}^+B^{-1}L^{-1}$.
+Since $LB$ permutes records and leaves their polynomial suffixes
+intact, $P(LBu,LBv)=LBP(u,v)$.  Thus $\mathcal T_+$ applied to the
+pointwise product of the exact stored forward outputs equals
+$F_{\boldsymbol t}^+P(F_{\boldsymbol t}^-f,F_{\boldsymbol t}^-g)$.
+The displayed normalization identity identifies its exact scaling
+by $M$ with $\mathcal M_r(f,g)$.
+
+For the error estimate, put
+$\delta=\sqrt2\ell\,2^{-p}$ and $\eta=\sqrt2\,2^{-p}$.
+Let $u,v$ be the exact stored forward outputs and
+$\widetilde u,\widetilde v$ the returned ones.  All four are disk
+arrays, and each forward error is less than $\delta$.
+The exact map $P$ is bilinear and satisfies
+$\|P(x,y)\|_\infty\leq\|x\|_\infty\|y\|_\infty$ by the coefficient
+bound in Lemma~\ref{lem:signed-ring-product}.  Hence
+\[
+\begin{split}
+ P(\widetilde u,\widetilde v)-P(u,v)
+   &=P(\widetilde u-u,\widetilde v)+P(u,\widetilde v-v),\\
+ \|P(\widetilde u,\widetilde v)-P(u,v)\|_\infty
+   &<2\delta,
+\end{split}
+\]
+where the first term uses the disk bound on $\widetilde v$ and the
+second uses it on $u$.  Write
+$\widetilde z=Q_p(P(\widetilde u,\widetilde v))$ and $z_*=P(u,v)$.
+The product lemma makes $\widetilde z$ a disk grid array and gives
+$\|\widetilde z-z_*\|_\infty<2\delta+\eta$.
+If $\widetilde h$ is the returned opposite output, its approximation
+bound applies to $\widetilde z$.  Since $\mathcal T_+$ is a contraction,
+\[
+ \|\widetilde h-\mathcal T_+ z_*\|_\infty
+ \leq\|\widetilde h-\mathcal T_+\widetilde z\|_\infty
+       +\|\mathcal T_+(\widetilde z-z_*)\|_\infty
+ <3\delta+\eta.
+\]
+The final exact multiplication by $M$ therefore gives error less than
+$M(3\delta+\eta)=\sqrt2\,M(3\ell+1)2^{-p}$, as claimed.
+If one original operand has norm at most $\rho$, then
+$\|\mathcal M_r(f,g)\|_\infty\leq\rho$.  Under the stated error
+margin, the returned norm is less than $\rho+(1-\rho)=1$.
+
+Every computed output before the final scaling is a disk grid array.
+The layer's internal dyadic values and the integer product numerators
+use the larger exact widths stated in their respective procedures.
+The scale $M=2^{m_M}$ is a power of two, so it preserves the $p$-bit
+grid. Compute $m_M=\sum_i\log_2t_i$ from the supplied axis lengths.
+For each signed $w$-bit numerator returned by the opposite procedure,
+append exactly $m_M$ zero bits at its least significant end. This is
+the exact two's-complement encoding of the scaled numerator in
+$w_M=w+m_M$ bits, including for negative values. The real word still
+precedes the imaginary word and the coefficient order is unchanged.
+Since $w\leq C_wp$ and $m_M\leq C_\ell p$, this known output width is
+$O(p)$. Writing $\Gamma(w_M)$ takes $O(p)$ time.
+
+There are $M=T/r$ pointwise polynomial products.  Their total cost
+is $O(Tp\log(rp))$; the three transform costs are as stated, and
+the last exact scaling is linear in $Tp$.  All data movement uses
+the previously specified scans, swaps, and layout restoration.
+\end{proof}
