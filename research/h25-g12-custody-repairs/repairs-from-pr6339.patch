@@ -1,0 +1,146 @@
+--- a/research/h25-g12-identity-cleanup/corrected/g12_reference_parent_v2.py
++++ b/research/h25-g12-identity-cleanup/corrected/g12_reference_parent_v2.py
+@@ -152,6 +152,7 @@
+     _need(len(path.split('/')) <= 257, 'G12-N11: finite directory-component bound')
+     fds, rows = [], []
+     primary = None
++    secondary = _RawG12Errors()
+     try:
+         fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+         fds.append(fd)
+@@ -168,7 +169,6 @@
+         return fds, rows
+     except BaseException as error:
+         primary = (error, error.__traceback__)
+-    secondary = _RawG12Errors()
+     for descriptor in reversed(fds):
+         try:
+             os.close(descriptor)
+@@ -242,8 +242,8 @@
+ def _read_file(path, cap, mode=None):
+     _path(path)
+     parent, name = path.rsplit('/', 1)
++    descriptor, primary, secondary, result = None, None, _RawG12Errors(), None
+     fds, rows = _directory_chain(parent)
+-    descriptor, primary, secondary, result = None, None, _RawG12Errors(), None
+     try:
+         before = os.stat(name, dir_fd=fds[-1], follow_symlinks=False)
+         _need(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and
+@@ -1179,6 +1179,21 @@
+                     except ProcessLookupError:
+                         pass
+ 
++    def release_known_pidfds(self, secondaries):
++        """Release known descriptors after the final process-disposal attempt.
++
++        A close error leaves custody unknown. Retire numeric ownership before
++        close so that an ambiguous close cannot cause a later blind FD retry.
++        This does not establish process exit or turn unknown cleanup into success.
++        """
++        for key, descriptor in tuple(self.fds.items()):
++            del self.fds[key]
++            try:
++                os.close(descriptor)
++            except BaseException as error:
++                self.unknown = True
++                secondaries.append((error, error.__traceback__))
++
+     def finish(self, process, deadline, failed):
+         _need(type(deadline) is int, 'G12-N08: selected paid cleanup deadline')
+         current, occupied = [], []
+@@ -1194,13 +1209,7 @@
+                 raise RuntimeError('G12-N08: selected-chain cleanup UNKNOWN')
+             time.sleep(0.01)
+         primary, secondaries = None, _RawG12Errors()
+-        for key, descriptor in tuple(self.fds.items()):
+-            try:
+-                os.close(descriptor)
+-                del self.fds[key]
+-            except BaseException as error:
+-                self.unknown = True
+-                secondaries.append((error, error.__traceback__))
++        self.release_known_pidfds(secondaries)
+         self.closed = not self.fds and not self.unknown
+         _raise_preserved(primary, secondaries)
+         return {'operating_premises': _OPERATING_PREMISES,
+@@ -1225,8 +1234,8 @@
+ 
+ def _exclusive_directory(path):
+     parent, name = _path(path).rsplit('/', 1)
++    primary, secondaries, result = None, _RawG12Errors(), None
+     fds, rows = _directory_chain(parent)
+-    primary, secondaries, result = None, _RawG12Errors(), None
+     try:
+         os.mkdir(name, 0o700, dir_fd=fds[-1])
+         descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fds[-1])
+@@ -1266,9 +1275,9 @@
+ 
+ def _copy_file(directory, name, raw):
+     fds, rows = directory
++    primary, secondaries = None, _RawG12Errors()
+     descriptor = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                          0o600, dir_fd=fds[-1])
+-    primary, secondaries = None, _RawG12Errors()
+     try:
+         _write_fd(descriptor, raw)
+         _check_chain(rows)
+@@ -1697,6 +1706,13 @@
+                 chain.finish(process, selection['body_deadline_ns'] + selection['retention_tail_allowance_ns'], True)
+             except BaseException as error:
+                 secondaries.append((error, error.__traceback__))
++            finally:
++                if chain.fds:
++                    # No further process-disposal retry follows this point.
++                    # Retained pidfds must still be attempted when observation
++                    # or signalling failed; closed processes remain unproved.
++                    chain.unknown = True
++                    chain.release_known_pidfds(secondaries)
+         for name, descriptor in tuple(outer.items()):
+             try:
+                 os.close(descriptor)
+--- a/research/h25-g12-identity-cleanup/corrected/g12_reference_cold_consumer_v2.py
++++ b/research/h25-g12-identity-cleanup/corrected/g12_reference_cold_consumer_v2.py
+@@ -136,6 +136,7 @@
+     _need(len(path.split('/')) <= 257, 'G12-N11: finite directory-component bound')
+     fds, rows = [], []
+     primary = None
++    secondary = _RawG12Errors()
+     try:
+         fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+         fds.append(fd)
+@@ -152,7 +153,6 @@
+         return fds, rows
+     except BaseException as error:
+         primary = (error, error.__traceback__)
+-    secondary = _RawG12Errors()
+     for descriptor in reversed(fds):
+         try:
+             os.close(descriptor)
+@@ -185,8 +185,8 @@
+ def _read_file(path, cap, mode=None):
+     _path(path)
+     parent, name = path.rsplit('/', 1)
++    descriptor, primary, secondary, result = None, None, _RawG12Errors(), None
+     fds, rows = _directory_chain(parent)
+-    descriptor, primary, secondary, result = None, None, _RawG12Errors(), None
+     try:
+         before = os.stat(name, dir_fd=fds[-1], follow_symlinks=False)
+         _need(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and
+@@ -1000,6 +1000,7 @@
+     _authenticate_own_functions(root, api, source_raw, source_path)
+     path, sha, size, identity_tuple, parent_path, parent_sha, publication_path, publication_sha, publication_size = config
+     _need(_digest(sha) and _digest(parent_sha) and _digest(publication_sha), 'G12-N16: source selection digest domain')
++    _uint(publication_size)
+     identity = _identity_dict_from_handoff(identity_tuple)
+     manifest_record = {'path': path, 'sha256': sha, 'bytes': size, 'identity': identity, 'nlink': 1}
+     manifest_raw = _root_read(root, api, manifest_record, _META_CAP)
+@@ -1008,8 +1009,8 @@
+     retained = manifest['custody']['retained_directory']
+     _need(path == retained + '/manifest.json' and publication_path == retained + '/publication.json',
+           'G12-N16: exact fixed publication/manifest paths')
++    primary, secondaries, result = None, _RawG12Errors(), None
+     dirs, rows = _directory_chain(retained)
+-    primary, secondaries, result = None, _RawG12Errors(), None
+     try:
+         _need(_exact(_identity(os.fstat(dirs[-1])), manifest['custody']['retained_directory_identity']),
+               'G12-N17: final retained directory identity')
