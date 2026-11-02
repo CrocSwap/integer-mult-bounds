@@ -22,7 +22,23 @@ checks passed. The selected record retains SHA256
 `9b8d0eea95b3bf0dfcb7938a732a6439b87a2685dec2a5ab9e525b3b34debbfa`.
 
 The user instructed that this result stay local until they authorize a PR.
-No branch push, PR or hosted CI is planned under that instruction. Local
-committed-input checks and a sealed export will be recorded after they run.
-Full source-history preflight needs the missing ancestry in this shallow
-checkout. Independent scientific review remains open.
+No branch push, PR or hosted CI is planned under that instruction.
+
+Local science commit: `1d49e6c75e608dd29c4fb2794463c8dc36df037f`.
+The committed-byte check passed for all 33 package and declared-input files,
+including owner-execute bits. The official export and all 17 declared-input
+coverage checks passed. Export SHA256:
+`f7d2893c8d93e8e55484383169ed798c4562b833fb4c5e87e7b59576e5a3101c`.
+
+The optimized verifier passed from that Git-free export with empty PATH and
+all files and directories read-only. All 34 file hashes and modes were
+unchanged after replay. Corrupting the source word was rejected at its SHA256
+guard. Changing the root basis and regenerating the matching literal caller
+was rejected at the exact inverse-basis check. All original export bytes and
+modes were restored and compared with the initial snapshot.
+
+The source-history preflight stopped with `source-history check requires
+full Git history`. No missing ancestry was fetched. All declared source pins
+use the canonical base, which is an ancestor of the local science commit.
+This limitation does not affect the successful sealed export replay.
+Independent scientific review remains open.
