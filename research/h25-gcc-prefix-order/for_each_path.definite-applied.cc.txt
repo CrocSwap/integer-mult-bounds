@@ -1,0 +1,160 @@
+static void *
+for_each_path (const struct path_prefix *paths,
+	       bool do_multi,
+	       size_t extra_space,
+	       void *(*callback) (char *, void *),
+	       void *callback_info)
+{
+  struct prefix_list *pl;
+  const char *multi_dir = NULL;
+  const char *multi_os_dir = NULL;
+  const char *multiarch_suffix = NULL;
+  const char *multi_suffix;
+  const char *just_multi_suffix;
+  char *path = NULL;
+  void *ret = NULL;
+  bool skip_multi_dir = false;
+  bool skip_multi_os_dir = false;
+
+  multi_suffix = machine_suffix;
+  just_multi_suffix = just_machine_suffix;
+  if (do_multi && multilib_dir && strcmp (multilib_dir, ".") != 0)
+    {
+      multi_dir = concat (multilib_dir, dir_separator_str, NULL);
+      multi_suffix = concat (multi_suffix, multi_dir, NULL);
+      just_multi_suffix = concat (just_multi_suffix, multi_dir, NULL);
+    }
+  if (do_multi && multilib_os_dir && strcmp (multilib_os_dir, ".") != 0)
+    multi_os_dir = concat (multilib_os_dir, dir_separator_str, NULL);
+  if (multiarch_dir)
+    multiarch_suffix = concat (multiarch_dir, dir_separator_str, NULL);
+
+  while (1)
+    {
+      size_t multi_dir_len = 0;
+      size_t multi_os_dir_len = 0;
+      size_t multiarch_len = 0;
+      size_t suffix_len;
+      size_t just_suffix_len;
+      size_t len;
+
+      if (multi_dir)
+	multi_dir_len = strlen (multi_dir);
+      if (multi_os_dir)
+	multi_os_dir_len = strlen (multi_os_dir);
+      if (multiarch_suffix)
+	multiarch_len = strlen (multiarch_suffix);
+      suffix_len = strlen (multi_suffix);
+      just_suffix_len = strlen (just_multi_suffix);
+
+      if (path == NULL)
+	{
+	  len = paths->max_len + extra_space + 1;
+	  len += MAX (MAX (suffix_len, multi_os_dir_len), multiarch_len);
+	  len += MAX (strlen(DEFAULT_REAL_TARGET_MACHINE), multiarch_len) + 2; /* triplet prefix for as, ld.  */
+	  path = XNEWVEC (char, len);
+	}
+
+      for (pl = paths->plist; pl != 0; pl = pl->next)
+	{
+	  len = strlen (pl->prefix);
+	  memcpy (path, pl->prefix, len);
+
+	  /* Look first in MACHINE/VERSION subdirectory.  */
+	  if (!skip_multi_dir)
+	    {
+	      memcpy (path + len, multi_suffix, suffix_len + 1);
+	      ret = callback (path, callback_info);
+	      if (ret)
+		break;
+	    }
+
+	  /* Some paths are tried with just the machine (ie. target)
+	     subdir.  This is used for finding as, ld, etc.  */
+	  if (!skip_multi_dir
+	      && pl->require_machine_suffix == 2)
+	    {
+	      memcpy (path + len, just_multi_suffix, just_suffix_len + 1);
+	      ret = callback (path, callback_info);
+	      if (ret)
+		break;
+	    }
+
+	  /* Now try the multiarch path.  */
+	  if (!skip_multi_dir
+	      && !pl->require_machine_suffix && multiarch_dir)
+	    {
+	      memcpy (path + len, multiarch_suffix, multiarch_len + 1);
+	      ret = callback (path, callback_info);
+	      if (ret)
+		break;
+	    }
+
+	  /* Now try the base path.  */
+	  if (!pl->require_machine_suffix
+	      && !(pl->os_multilib ? skip_multi_os_dir : skip_multi_dir))
+	    {
+	      const char *this_multi;
+	      size_t this_multi_len;
+
+	      if (pl->os_multilib)
+		{
+		  this_multi = multi_os_dir;
+		  this_multi_len = multi_os_dir_len;
+		}
+	      else
+		{
+		  this_multi = multi_dir;
+		  this_multi_len = multi_dir_len;
+		}
+
+	      if (this_multi_len)
+		memcpy (path + len, this_multi, this_multi_len + 1);
+	      else
+		path[len] = '\0';
+
+	      ret = callback (path, callback_info);
+	      if (ret)
+		break;
+	    }
+	}
+      if (pl)
+	break;
+
+      if (multi_dir == NULL && multi_os_dir == NULL)
+	break;
+
+      /* Run through the paths again, this time without multilibs.
+	 Don't repeat any we have already seen.  */
+      if (multi_dir)
+	{
+	  free (CONST_CAST (char *, multi_dir));
+	  multi_dir = NULL;
+	  free (CONST_CAST (char *, multi_suffix));
+	  multi_suffix = machine_suffix;
+	  free (CONST_CAST (char *, just_multi_suffix));
+	  just_multi_suffix = just_machine_suffix;
+	}
+      else
+	skip_multi_dir = true;
+      if (multi_os_dir)
+	{
+	  free (CONST_CAST (char *, multi_os_dir));
+	  multi_os_dir = NULL;
+	}
+      else
+	skip_multi_os_dir = true;
+    }
+
+  if (multi_dir)
+    {
+      free (CONST_CAST (char *, multi_dir));
+      free (CONST_CAST (char *, multi_suffix));
+      free (CONST_CAST (char *, just_multi_suffix));
+    }
+  if (multi_os_dir)
+    free (CONST_CAST (char *, multi_os_dir));
+  if (ret != path)
+    free (path);
+  return ret;
+}
