@@ -1,0 +1,108 @@
+ChatGPT said:
+Decision
+
+A private copied filesystem with an automatic compiler-domain transition is a credible construction for ordinary-file input enclosure and C07 lifetime. It is not yet a complete C05 mechanism. The decisive missing element is a version-specific mechanism, or a source-specific proof, covering the remaining metadata, IPC, and non-file inputs. No additional copier or inventory helper resolves that gap.
+
+For this feasibility comparison, I evaluated a fresh private tmpfs filesystem, remounted read-only at the underlying filesystem level, together with an AppArmor directed exec transition. This is a proposed instance and native policy, not a selection or adoption. The source findings below concern upstream Linux v6.8 and documented interfaces, not correspondence to the intended host.
+
+1. The concrete candidate and its boundary
+
+AppArmor can apply a distinct profile automatically when the unchanged helper executes /usr/bin/x86_64-linux-gnu-gcc-13. A directed lowercase px transition, without an unconfined fallback, preserves the direct executable path and avoids the environment-scrubbing behaviour associated with uppercase Px. Explicitly permitted subordinate executables would retain the compiler profile through ix. No gcc wrapper or helper modification is required for that transition. 
+GitLab
+
+The intended partition would be:
+
+Class	Placement and permitted consumers
+F	Individually inventoried immutable compiler inputs, including programs, libraries, headers, scripts, and relevant configuration files.
+P	Parent/bootstrap/Root/provider/configuration material. Readable by the parent and original Python route, but excluded from compiler input access.
+A	Initially empty, bounded compiler scratch and the exact compiler product paths. Writable only by the owned compiler domain and its descendants.
+E	Helper journals, attempts, receipts, raw logs, and parent observations. Compiler stdout/stderr may write their original descriptors; other E must not become compiler input.
+N/L/K	Actual namespace, launch, and relevant kernel/process facts, with explicit dispositions rather than a blanket trusted-kernel exemption.
+
+The original helper places products and evidence in the same role directory. Therefore, allowing that directory wholesale is unsound. Permissions must distinguish the exact product leaves from journal and receipt leaves. Parent authentication of P does not establish compiler exclusion, and E containing P-derived information cannot be relabelled A.
+
+There are consequential transition effects. In the inspected 
+Linux v6.8 AppArmor code, a profile change revalidates inherited descriptors, clears the parent-death signal, and applies resource-limit transitions. Its 
+descriptor implementation can replace rejected inherited descriptors with a null file. A compatible construction must establish that original stdin/stdout/stderr and resource limits survive correctly. Successful exec is insufficient evidence.
+
+The parent must already be confined when opening inherited files. The same implementation has an allowance for descriptors originating under an unconfined label, so the existence of a file_receive hook does not prove that arbitrary transferred descriptors are excluded.
+
+2. Where enforcement alone fails
+Metadata and IPC require more than file-read rules
+
+The inspected AppArmor implementation has an inode_getattr hook, so claiming that AppArmor universally ignores stat would be incorrect. However, its 
+old-format policy compatibility code adds AA_MAY_GETATTR. The exact policy ABI matters.
+
+Its hook list lacks inode_readlink, directory-search inode_permission, and System V IPC mediation hooks. Consequently, an ordinary-content allowlist does not itself establish closure for accessible symlink targets, namespace probes, or shared-memory inputs. Static P metadata could potentially be represented in N, but changing proc and evidence metadata cannot simply be called immutable namespace data.
+
+These are counterexamples to the enforcement argument, not findings that the fixed GCC actually uses those channels. Closing them requires additional enforceable isolation or a bounded source-specific relevance proof. A stronger MAC interface could help, but substituting another LSM would be a separate native-policy proposal.
+
+Non-file inputs survive filesystem confinement
+
+The kernel supplies auxiliary-vector and vDSO inputs directly to a new process. vDSO time reads can execute entirely in userspace and are invisible to ordinary syscall filtering and tracing. Classic seccomp also cannot dereference pathname arguments. 
+Linux manual page
++1
+
+This matters concretely because GCC13.3 defines __DATE__ and __TIME__ from preprocessing time. I have not established that the fixed sources expand them. Their existence demonstrates why a filesystem policy alone cannot establish the complete macro/non-file witness argument. 
+gcc.gnu.org
+
+Closure does not require determinism. A precisely defined, independently approved contract could admit particular nondeterministic K inputs. What is missing is the actual contract and its observation or relevance argument. “All kernel data is trusted” would silently enlarge the assurance premise.
+
+Raw evidence has a separate compatibility edge
+
+The original log descriptors are not opened with O_APPEND. AppArmor’s append permission requires that mode; replacing write permission with append permission would not preserve the original interface. Ordinary write permission does not independently enforce non-truncation or non-reopening. 
+AppArmor
+
+This is not evidence of misbehaviour by GCC. It means the proposed policy cannot be credited with a stronger retention guarantee than it supplies.
+
+3. Concrete ownership and lifetime sequence
+
+The following sequence is implementable through standard interfaces, but remains a proposed installer operation.
+
+An independently admitted installer creates a private mount namespace with recursively private propagation and a new tmpfs superblock. It populates private inodes from authenticated inputs, preserving the required absolute spellings, six separate role occurrences, modes, and reviewed aliases.
+It finalises the acyclic F/P manifests and namespace witnesses. It creates separate bounded writable storage for A, E, output creation, and native drift-control scratch. No live host source inode is used as immutable backing.
+It closes writer descriptors and writable mappings, then performs a successful underlying-filesystem read-only remount. This must not be merely a read-only bind-remount. Linux distinguishes those operations; open writers can prevent a read-only remount. 
+Linux manual page
+It removes old-root paths and descriptors, establishes the selected cwd, and prevents runtime subjects from remounting, replacing mounts, changing policy, or acquiring outside authority. Genuine proc remains in the same PID namespace. The parent retains its required proc census.
+It fresh-execs the copied Python and loader at their original paths with the original flags and six-entry environment. The authentic bootstrap reconstructs native keepers, subreaper state, and process-domain capabilities. No Python token crosses exec as authority.
+The unchanged helper later executes gcc directly. The reviewed exec transition supplies the narrower compiler domain. All subsequent executions and input channels must remain inside the established boundary.
+The enclosing owner retains the immutable projection through every owned-domain termination, raw/partial evidence retention, and final custody pass. Cleanup then disposes of mounts and storage in the reviewed order. Uncertain acquisition or cleanup preserves the first error and stops further acquisition.
+
+Actual remount success, descriptor ownership, policy installation, and domain reconstruction are kernel operations and authenticated observations. Profile text and manifest flags cannot replace them. The original four-domain lifetime limit remains unchanged.
+
+This supplies a concrete C07 candidate, but steps4 and6 cannot currently be declared complete because the channel gaps above remain.
+
+4. Selection and resource feasibility
+
+A permissible selection procedure must produce the actual compiler-readable path set before launch. It should begin with the six project occurrences and pinned tools, then add the independently justified header/configuration/library selection and its complete alias targets. Every unresolved edge must be included conservatively or cause STOP. It must not discard files merely to reach512.
+
+The215 Python header occurrences must remain available to original preflight. They are not counted twice at the same paths. Classifying any of them as P-only requires an effective consumer exclusion and a justified candidate selection.
+
+The current figures establish only these bounds:
+
+Cell	Present disposition
+Broad selection	Reported858 rows and52,864,651 bytes; fails512 rows before witnesses.
+Literal-suffix selection	Reported531 rows and51,452,201 bytes; also fails before witnesses.
+Smaller complete selection	Not established; neither failed superset proves impossibility.
+Linux UAPI, unresolved aliases, and other required inputs	Availability/admission incomplete.
+N/L/K witness shards and codecs	Complete row, byte, and representation bill absent.
+Parent P, installer, writable storage, and physical peak cost	Additional and not fully measured.
+
+The final gate must count F occurrences and witness files together, enforcing512 rows,64MiB per file,256MiB per capture, and every original raw-object limit. Parent custody remains separately bounded. A backing image, tmpfs, or archive does not turn its member inputs into one inventory row.
+
+Copying, authentication, filesystem storage, policy construction, fresh startup, native controls, compilation, repeated custody, and cleanup all enter the physical bill. Neither byte totals nor the historical policy debit demonstrate complete fit.
+
+5. The decisive next operation and user decisions
+
+Do not begin another image installer from the present evidence. The next complete source operation should be a version-bound channel-closure and compatibility proof for one proposed enforcement stack.
+
+Its minimum inputs are the selected kernel build/source/configuration, the AppArmor parser and policy ABI, and the intended immutable/writable path partition. Relevant kernel bodies include the inspected AppArmor hook, descriptor, domain-transition, and compatibility implementations, together with their VFS and exec interfaces. Ubuntu userspace versions do not establish those facts or current enforcement. No target feature inspection occurred here.
+
+The operation must give an enforceable rule or an original-compatible observation/relevance proof for every residual channel, especially descriptor delegation, readlink/search, IPC, evidence access, and relevant K inputs. It succeeds only with a connected argument preserving the original parent, helper, proc, resource, and raw-capture behaviour. An unavailable hook, unresolved K disposition, or incompatible descriptor transition is a named STOP, not permission to build another partial wrapper.
+
+Two decisions remain distinct from researchable facts.
+
+Instance/policy decision. Whether to pursue a copied instance requiring a privileged installer and consumer-specific MAC policy. Any later installation needs a concrete reviewed plan and separate authority.
+Method decision. Whether to accept a hybrid proof consisting of enforced ordinary-input enclosure plus targeted source/observer arguments for residual N/L/K. If enforcement alone is required, this AppArmor construction does not meet that requirement; stronger mediation would require a separate compatibility proposal.
+
+Neither decision may waive C05, introduce universal compiler correctness, or relabel a prefix control as the intact baseline. Full C05 and full V03 remain false, with all scores, bounds, closed units, and admission states unchanged. Costs remain OPEN_NOT_ZERO. All original authorship, licences, Chris R/Clear1nsight, Pro/Codex/Sol Max assistance, PR6321/6029/5864, unpaidmoon/Cursor Grok PR6339, and Douglas R. Colkitt’s lineage remain preserved.

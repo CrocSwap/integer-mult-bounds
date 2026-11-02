@@ -1,0 +1,37 @@
+Description: disable apparmor userns restrictions if not fully supported
+  Whilst older kernels may support the apparmor userns restriction sysctl
+  they may not necesarily support the unconfined profile mode enhancement
+  that is required for this to be utilised in Ubuntu. As such, when the
+  system has been configured for apparmor userns restrictions but this
+  feature is not available, force disable it before loading any AppArmor
+  profiles.
+Author: Alex Murray <alex.murray@canonical.com>
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/2036128
+---
+ parser/rc.apparmor.functions |   14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+--- apparmor-4.0.0-beta3.orig/parser/rc.apparmor.functions
++++ apparmor-4.0.0-beta3/parser/rc.apparmor.functions
+@@ -141,7 +141,21 @@
+ 	return "$status"
+ }
+ 
++check_userns() {
++	userns_restricted=$(sysctl -e -n kernel.apparmor_restrict_unprivileged_userns)
++	unconfined_userns=$([ -f /sys/kernel/security/apparmor/features/policy/unconfined_restrictions/userns ] && cat /sys/kernel/security/apparmor/features/policy/unconfined_restrictions/userns || echo 0)
++	if [ -n "$userns_restricted" ] && [ "$userns_restricted" -eq 1 ]; then
++		if [ "$unconfined_userns" -eq 0 ]; then
++			# userns restrictions rely on unconfined userns to be supported
++			aa_action "disabling unprivileged userns restrictions since unconfined userns is not supported / enabled" \
++				  sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
++		fi
++	fi
++}
++
+ parse_profiles() {
++	check_userns
++
+ 	# get parser arg
+ 	case "$1" in
+ 		load)

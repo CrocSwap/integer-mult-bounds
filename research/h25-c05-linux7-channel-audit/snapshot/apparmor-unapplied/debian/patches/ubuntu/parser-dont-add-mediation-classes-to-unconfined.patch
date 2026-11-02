@@ -1,0 +1,113 @@
+From 4bb134e4bb950a8c9a1f70a27eb2acd2a35df412 Mon Sep 17 00:00:00 2001
+From: John Johansen <john@jjmx.net>
+Date: Thu, 18 Jul 2024 12:57:17 +0000
+Subject: [PATCH] parser: don't add mediation classes to unconfined
+ profiles
+
+Adding mediation classes in unconfined profiles caused nested profiles
+to be mediated, inside a container for example.
+
+Fixes: https://bugs.launchpad.net/apparmor/+bug/2067900
+
+Signed-off-by: Georgia Garcia <georgia.garcia@canonical.com>
+
+MR: https://gitlab.com/apparmor/apparmor/-/merge_requests/1247
+Approved-by: John Johansen <john@jjmx.net>
+Merged-by: John Johansen <john@jjmx.net>
+(cherry picked from commit 0d9d548694fd80f4d4d1f5ded286ede72c71c06d)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+
+[taichimaeda1: This is a backport of an upstream fix. It passes
+RULE_ALLOW instead of 0 to add_rule() because the Ubuntu prompting
+backport refactored its second argument from a Boolean deny flag to
+rule_mode_t enum.]
+
+Origin: backport, https://gitlab.com/apparmor/apparmor/-/commit/4bb134e4bb950a8c9a1f70a27eb2acd2a35df412
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/2162134
+
+---
+ parser/parser_regex.c | 70 +++++++++++++++++++++++--------------------
+ 1 file changed, 37 insertions(+), 33 deletions(-)
+
+--- a/parser/parser_regex.c
++++ b/parser/parser_regex.c
+@@ -1090,42 +1090,46 @@
+ 	/* insert entries to show indicate what compiler/policy expects
+ 	 * to be supported
+ 	 */
+-
+-	/* note: this activates fs based unix domain sockets mediation on connect */
+-	if (kernel_abi_version > 5 &&
+-	    !prof->policy.rules->add_rule(mediates_file, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
+-	if (features_supports_mount &&
+-	    !prof->policy.rules->add_rule(mediates_mount, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-			goto out;
+-	if (features_supports_dbus &&
+-	    !prof->policy.rules->add_rule(mediates_dbus, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
+-	if (features_supports_signal &&
+-	    !prof->policy.rules->add_rule(mediates_signal, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
+-	if (features_supports_ptrace &&
+-	    !prof->policy.rules->add_rule(mediates_ptrace, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
+-	if (features_supports_networkv8 &&
+-	    !prof->policy.rules->add_rule(mediates_netv8, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
+-	if (features_supports_unix &&
+-	    (!prof->policy.rules->add_rule(mediates_extended_net, RULE_ALLOW, AA_MAY_READ, 0, parseopts) ||
+-	     !prof->policy.rules->add_rule(mediates_net_unix, RULE_ALLOW, AA_MAY_READ, 0, parseopts)))
+-		goto out;
+ 	if (features_supports_userns &&
+ 	    !prof->policy.rules->add_rule(mediates_ns, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+ 		goto out;
+-	if (features_supports_posix_mqueue &&
+-	    !prof->policy.rules->add_rule(mediates_posix_mqueue, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
+-	if (features_supports_sysv_mqueue &&
+-	    !prof->policy.rules->add_rule(mediates_sysv_mqueue, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
+-	if (features_supports_io_uring &&
+-	    !prof->policy.rules->add_rule(mediates_io_uring, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
+-		goto out;
++
++	/* don't add mediated classes to unconfined profiles */
++	if (prof->flags.mode != MODE_UNCONFINED &&
++	    prof->flags.mode != MODE_DEFAULT_ALLOW) {
++		/* note: this activates fs based unix domain sockets mediation on connect */
++		if (kernel_abi_version > 5 &&
++		    !prof->policy.rules->add_rule(mediates_file, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_mount &&
++		    !prof->policy.rules->add_rule(mediates_mount, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_dbus &&
++		    !prof->policy.rules->add_rule(mediates_dbus, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_signal &&
++		    !prof->policy.rules->add_rule(mediates_signal, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_ptrace &&
++		    !prof->policy.rules->add_rule(mediates_ptrace, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_networkv8 &&
++		    !prof->policy.rules->add_rule(mediates_netv8, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_unix &&
++		    (!prof->policy.rules->add_rule(mediates_extended_net, RULE_ALLOW, AA_MAY_READ, 0, parseopts) ||
++		     !prof->policy.rules->add_rule(mediates_net_unix, RULE_ALLOW, AA_MAY_READ, 0, parseopts)))
++			goto out;
++		if (features_supports_posix_mqueue &&
++		    !prof->policy.rules->add_rule(mediates_posix_mqueue, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_sysv_mqueue &&
++		    !prof->policy.rules->add_rule(mediates_sysv_mqueue, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++		if (features_supports_io_uring &&
++		    !prof->policy.rules->add_rule(mediates_io_uring, RULE_ALLOW, AA_MAY_READ, 0, parseopts))
++			goto out;
++	}
+ 
+ 	if (prompt_compat_mode == PROMPT_COMPAT_PERMSV1) {
+ 		// MUST have file and policy

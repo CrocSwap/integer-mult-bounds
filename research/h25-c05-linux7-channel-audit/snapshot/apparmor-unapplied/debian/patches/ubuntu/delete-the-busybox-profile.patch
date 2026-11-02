@@ -1,0 +1,39 @@
+From 26f2b3bb491cd6dc080960a0e5c465bd7c244fef Mon Sep 17 00:00:00 2001
+From: Ryan Lee <ryan.lee@canonical.com>
+Date: Wed, 12 Feb 2025 09:42:55 -0800
+Subject: [PATCH] delete the busybox profile
+
+(Note: the original patch deleted both the busybox and nautilus profiles.)
+
+Both those profiles are for programs that are installed by default and
+that provide or open a shell (which can then be used to perform arbitrary
+actions, thus providing a bypass for the unprivileged usernamespace
+restrictions.
+
+Signed-off-by: Ryan Lee <ryan.lee@canonical.com>
+---
+ profiles/apparmor.d/busybox  | 13 -------------
+ 2 files changed, 26 deletions(-)
+ delete mode 100644 profiles/apparmor.d/busybox
+
+diff --git a/profiles/apparmor.d/busybox b/profiles/apparmor.d/busybox
+deleted file mode 100644
+index d726ddf0a..000000000
+--- a/profiles/apparmor.d/busybox
++++ /dev/null
+@@ -1,12 +0,0 @@
+-# This profile allows everything and only exists to give the
+-# application a name instead of having the label "unconfined"
+-
+-abi <abi/4.0>,
+-include <tunables/global>
+-
+-profile busybox /usr/bin/busybox flags=(unconfined) {
+-  userns,
+-
+-  # Site-specific additions and overrides. See local/README for details.
+-  include if exists <local/busybox>
+-}
+-- 
+2.43.0
+

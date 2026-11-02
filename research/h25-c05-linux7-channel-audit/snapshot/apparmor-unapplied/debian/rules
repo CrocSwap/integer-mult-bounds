@@ -1,0 +1,206 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/pkg-info.mk
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+bindnow optimize=+lto
+
+export DEB_HOST_ARCH_OS   ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+
+export PERL_VENDORARCH := $(shell perl -MConfig -e 'print substr($$Config{vendorarch},1)' )
+export PYTHON=/usr/bin/python3
+export PYTHON_VERSION=3
+export PYTHON_VERSIONS=python3
+
+%:
+	dh $@ --with=python3,apache2
+
+
+override_dh_auto_configure:
+	cd libraries/libapparmor && sh ./autogen.sh
+	dh_auto_configure -D libraries/libapparmor --
+
+
+override_dh_auto_build:
+	# Create the empty file that was meant to be created by
+	# ubuntu/add-mqueue-support.patch.
+	# Quilt does not support creating new empty files.
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_01.err
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_02.err
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_03.err
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_04.err
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_05.err
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_06.err
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_07.err
+	touch libraries/libapparmor/testsuite/test_multi/testcase_mqueue_08.err
+	# Replace #VERSION# placeholder in dh_apparmor
+	sed -i --regexp-extended \
+	    -e "s,^#VERSION#,our \$$VERSION = \"$(DEB_VERSION)\";," \
+	    debian/debhelper/dh_apparmor
+	# Build library
+	dh_auto_build -D libraries/libapparmor
+	# Build pythons
+	set -e; for py in $(shell py3versions -s) ; do \
+		cp -a $(CURDIR)/libraries/libapparmor $(CURDIR)/libraries/libapparmor.$$py ; \
+		PYTHON=/usr/bin/$$py dh_auto_configure \
+			-D libraries/libapparmor.$$py -- --with-python ; \
+		PYTHON=/usr/bin/$$py dh_auto_build \
+			-D libraries/libapparmor.$$py; \
+	done
+
+	# Don't run '$(MAKE) check' because of too many perl dependencies
+	# and various apparmor files installed on the system
+	# Build pythons
+	cd utils && $(MAKE)
+	for py in $(shell py3versions -s) ; do \
+		cp -a $(CURDIR)/utils $(CURDIR)/utils.$$py && \
+		(cd utils.$$py && PYTHON=/usr/bin/$$py $(MAKE)) ; \
+	done
+ifneq (,$(filter $(DEB_HOST_ARCH_OS), kfreebsd knetbsd hurd ))
+	cd binutils && $(MAKE) indep
+	cd parser && $(MAKE) indep
+else
+	dh_auto_build --sourcedirectory=binutils -- V=1
+	dh_auto_build --sourcedirectory=parser -- V=1
+endif
+	cd profiles && $(MAKE)
+	dh_auto_build --sourcedirectory=changehat/pam_apparmor
+
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+ifeq (,$(filter $(DEB_HOST_ARCH_OS), kfreebsd knetbsd hurd ))
+	dh_auto_test -Dbinutils -- V=1
+	dh_auto_test -Dparser -- V=1
+endif
+	dh_auto_test -Dlibraries/libapparmor -- V=1
+	set -e; for py in $(shell py3versions -s) ; do \
+		PYTHON=/usr/bin/$$py dh_auto_test \
+			-D libraries/libapparmor.$$py -- PYTHON=/usr/bin/$$py; \
+	done
+endif
+
+
+override_dh_auto_clean:
+	# Clean up from an autogen'd build.
+	cd $(CURDIR)/libraries/libapparmor && \
+		[ ! -f Makefile ] || $(MAKE) distclean
+	# Clean up rest of build.
+	set -e; for i in binutils utils parser profiles changehat/mod_apparmor \
+		  changehat/pam_apparmor ; do \
+		[ ! -f $$i/Makefile ] || $(MAKE) -C $$i clean; \
+		rm -f $$i/common; \
+	done
+	# Remove the python build dirs
+	rm -rf $(CURDIR)/libraries/libapparmor.python*
+	rm -rf $(CURDIR)/utils.python*
+	# Try to clean up from an autogen'd build
+	cd libraries/libapparmor && [ ! -f Makefile ] || $(MAKE) distclean
+	# Remove generated debhelper documentation.
+	rm -f $(CURDIR)/debian/debhelper/dh_apparmor.1
+	# Remove autoconf build cruft.
+	rm -f $(CURDIR)/libraries/libapparmor/test-driver
+
+override_dh_auto_install:
+	# Utils
+	cd utils && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install
+
+	set -e; for py in $(shell py3versions -s) ; do \
+		(cd utils.$$py && PYTHON=/usr/bin/$$py $(MAKE) \
+	    	DESTDIR=$(CURDIR)/debian/tmp \
+	    	install) ; \
+	done
+
+	# Parser
+ifneq (,$(filter $(DEB_HOST_ARCH_OS), kfreebsd knetbsd hurd ))
+	cd binutils && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install-indep
+
+	install -D -m 755 $(CURDIR)/debian/non-linux/fake_apparmor_util \
+		$(CURDIR)/debian/tmp/sbin/apparmor_parser
+	install -D -m 755 $(CURDIR)/debian/non-linux/fake_apparmor_util \
+		$(CURDIR)/debian/tmp/usr/bin/aa-enabled
+	install -D -m 755 $(CURDIR)/debian/non-linux/fake_apparmor_util \
+		$(CURDIR)/debian/tmp/usr/bin/aa-exec
+	cd parser && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install-indep
+else
+	cd binutils && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install
+
+	cd parser && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install
+endif
+
+	# Changehat via libapparmor
+	cd libraries/libapparmor && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install
+
+	# Install python swig modules
+	set -e; for py in $(shell py3versions -s); do \
+		PYTHON=/usr/bin/$$py \
+		$(MAKE) -C libraries/libapparmor.$$py \
+		DESTDIR=$(CURDIR)/debian/tmp install; \
+	done
+
+	# Changehat via mod_apparmor
+	cd changehat/mod_apparmor && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install
+	# Fix rpath in mod_apparmor.so
+	chrpath -d $(CURDIR)/debian/tmp/usr/lib/apache2/modules/mod_apparmor.so
+
+	# Changehat via libpam-apparmor
+	cd changehat/pam_apparmor && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install
+	# Fix rpath in pam_apparmor.so
+	chrpath -d $(CURDIR)/debian/tmp/lib/security/pam_apparmor.so
+
+	# Profiles
+	# We'd like to keep site.local from being a conffile
+	rm ./profiles/apparmor.d/tunables/xdg-user-dirs.d/site.local
+	cd profiles && $(MAKE) \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    install
+	# set all profiles in apparmor-profiles to complain mode
+	# cd $(CURDIR)/debian/tmp && sh $(CURDIR)/debian/put-all-profiles-in-complain-mode.sh
+
+	# Build debhelper documentation.
+	pod2man -c Debhelper -r "$(DEB_VERSION)" $(CURDIR)/debian/debhelper/dh_apparmor $(CURDIR)/debian/debhelper/dh_apparmor.1
+
+override_dh_installinit:
+	dh_installinit --no-start --no-stop-on-upgrade --error-handler=true
+
+override_dh_installsystemd:
+	dh_installsystemd --no-start --no-stop-on-upgrade
+
+override_dh_compress:
+	dh_compress -Xextras
+
+override_dh_apache2:
+	dh_apache2 --noenable
+
+override_dh_install-indep:
+	set -e; for profile in $(shell grep ^etc/apparmor.d/ $(CURDIR)/debian/apparmor-profiles.install | \
+			 cut -d/ -f3- | grep -v /); do \
+	    DH_AUTOSCRIPTDIR=debian/debhelper/ perl debian/debhelper/dh_apparmor --profile-name=$$profile -papparmor-profiles; \
+	done
+	sed -i -e 's,usr/lib/perl5,$(PERL_VENDORARCH),g' \
+	    $(CURDIR)/debian/tmp/etc/apparmor/logprof.conf \
+	    $(CURDIR)/debian/tmp/etc/apparmor/severity.db
+	dh_install
+
+override_dh_install-arch:
+	set -e; for profile in lsb_release nvidia_modprobe; do \
+	    DH_AUTOSCRIPTDIR=debian/debhelper/ perl debian/debhelper/dh_apparmor --profile-name=$$profile -papparmor; \
+	done
+	dh_install
+	# Fix permissions so that aa-teardown can execute this file
+	chmod 0755 $(CURDIR)/debian/apparmor/lib/apparmor/apparmor.systemd

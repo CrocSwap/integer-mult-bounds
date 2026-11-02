@@ -1,0 +1,42 @@
+From 67db164d057c3f0e17cbc0772dbcf8d8d47f323a Mon Sep 17 00:00:00 2001
+From: John Johansen <john@jjmx.net>
+Date: Mon, 4 Aug 2025 01:38:57 -0600
+Subject: [PATCH 4/5] tests: regressions: Improve output of
+ require_any_of_kernel_features()
+
+currently require_any_of_kernel_features() will only output the
+last failed feature tested. Fix this to output the full set of features
+tested as all of them must fail to cause skipping of tests.
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 05faf51dbf31909dd4bdb31e73a7686ba4a4b963)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/prologue.inc | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/tests/regression/apparmor/prologue.inc b/tests/regression/apparmor/prologue.inc
+index 46ff151fb..be655d242 100755
+--- a/tests/regression/apparmor/prologue.inc
++++ b/tests/regression/apparmor/prologue.inc
+@@ -99,14 +99,16 @@ requires_kernel_features()
+ 
+ requires_any_of_kernel_features()
+ {
++	local features
+ 	while [ $# -gt 0 ]; do
+ 		local res=$(kernel_features "$1")
+ 		if [ "$res" = "true" ] ; then
+ 			return 0;
+ 		fi
++		features="$features $1"
+ 		shift
+ 	done
+-	echo "$res. Skipping tests ..."
++	echo "Required feature(s): $features not available. Skipping tests ..."
+ 	exit 0
+ }
+ 
+-- 
+2.43.0
+
