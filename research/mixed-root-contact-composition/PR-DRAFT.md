@@ -83,17 +83,19 @@ The contribution includes exact results beyond the construction:
   there are exactly r+1 square-zero queries on r active fields. This
   does not cover seven queries on four active and two inactive fields.
 - All seven rank-four fifth-stage extensions that retain the two
-  rank-two endpoints and two rank-three stages lose for every positive
+  rank-two endpoints and two rank-three stages lose at the claimed saving
+  for every positive
   binary child size and shape. An exact dynamic program and a concave
   tail bound replace the earlier time-limited integer searches.
 - An exact helper-consuming three-field module is preserved. Its
   complete favorable invoice, including the consumed helper debit,
-  loses for every binary child size and shape.
+  loses at the claimed saving for every binary child size and shape.
 - A five-call reflection border has an exact formula for its two
   nonzero error entries and its inverse transpose. Its formal diagonal
   limit has a favorable price, but **it is not a kappa result**. The
   exact five-call star is impossible, and the two direct recovery
-  queries lose for every binary child size and shape. A different
+  queries lose at the claimed saving for every binary child size and
+  shape. A different
   recovery and recursive precision proof remain open.
 
 These are scoped results. Roots with different support patterns, field
@@ -143,11 +145,13 @@ The separate caller engine checks 4,624 formal polynomials across all
 four central characters and rejects seven controls. It does not import
 the original caller replay. These are separate implementations by the
 same author, not independent human review. `VALIDATION.md` records the
-committed exports, isolated replay and transport controls. Four extra
-isolated processes reject a damaged archive, the excluded endpoint used
+committed exports, isolated replay and transport controls. Four earlier
+isolated processes rejected a damaged archive, the excluded endpoint used
 as a feasible claim, the loose completion tail, and a missing root query
-charge. The price mutations also change their adapter declarations, so
-they reach the mathematical checks.
+charge. Their price mutations also changed the adapter declarations,
+so they reached the mathematical checks. A new isolated optimized
+process rejects a competing bound above the selected lower bound at
+the direct dominance guard. Each control is tied to its exact revision.
 
 Hosted CI has not run for this local branch. Independent scientific
 review and formal-kernel acceptance remain open. The assumptions are

@@ -1,6 +1,10 @@
 # Helper consumption and a five-call border
 
 These are exact module results. They do not increase the complete kappa.
+The all-size price exclusions use the PR6375 native invoice and the
+fixed saving kappa=0.00328621476572836015146308, with H(x)=x^(1-kappa).
+They do not assert a loss for every concave tariff. The separate formal
+border crossing below varies kappa and does not include recovery costs.
 The source-bound prices use the final PR6375 composition at 0.00328621476572836015146308.
 The native caller and recursive precision transfer for these changed
 interfaces have not been constructed.

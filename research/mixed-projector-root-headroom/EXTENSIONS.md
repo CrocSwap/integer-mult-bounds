@@ -83,6 +83,12 @@ tariff arguments above supply the proof for arbitrary r and s.
 
 ## 2. A fifth full stage with rank four
 
+This price exclusion uses H(x)=x^(1-kappa). The two checked instances
+are PR6353 at kappa=0.00328554 and PR6375 at
+kappa=0.00328621476572836015146308. The quantifier over all sizes and
+shapes is at each of these fixed savings; no claim for every concave
+tariff is made.
+
 Retain the four full stages with supports 3,5,11,21 in six coordinates,
 where an integer encodes a zero-one mask. They are the two rank-two
 endpoints and the two rank-three stages from the main proof. Add one

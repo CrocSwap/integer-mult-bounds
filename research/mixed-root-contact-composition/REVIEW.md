@@ -46,6 +46,8 @@ claims in the linked proof files.
   permit arbitrary cross-block query compression. The seven fifth-stage
   masks retain two rank-two and two rank-three stages; other support
   families remain open.
+  All-size extension and boundary price exclusions state their exact
+  tested savings. They are not claims for every concave tariff.
 - The helper-module invoice includes the consumed helper debit. The
   reflection border keeps both error entries. Its inverse uses the
   stated nilpotent remainder identity. The five-call star obstruction
