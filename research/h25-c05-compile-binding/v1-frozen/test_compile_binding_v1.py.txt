@@ -1,0 +1,198 @@
+"""Fresh pure fixture plans/commands; original source is parsed as inert bytes."""
+import copy
+import hashlib
+import json
+from pathlib import Path
+import unittest
+from compile_binding_v1 import BindingError, authenticate_source_rules, construct_original_compile_pair
+
+ROOT = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+REFERENCE = ROOT/'outputs/resolved-questions-publication-20261102T025112Z/v03-publication/research/h25-v03-source-prerequisites/snapshot/areas'
+HERE = Path(__file__).parent
+ENV = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8','LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+OPTIONS = ['-nostartfiles','-shared','-fPIC','-O3','-std=c11','-Wall','-Wextra','-Werror','-I/usr/include/python3.12']
+ROLES = ['pyinit_failure','exec_failure']
+C_PIN = {'sha256':'e0188999d41a9ab26e8d3d5c37b18b2238b3af21b1db90895f01f7be76d50b65','bytes':17806,'mode':292}
+H_PINS = [('7656cd37503986459c4133643372fec13d3e5ad5553881f0bf0343a9a3e11abd',17354),('f5066831bd812e7e88fb971ba0e7ca86dbef91fc40a1a68c17b040ce474cd880',17040)]
+L_PIN = {'sha256':'bf7ab049cea89c0a882b279e35b1383ac8f99b66aa4b9b8e1ca22eb9c24c5a8d','bytes':19495,'mode':292}
+
+
+def corpus():
+    return {'variant_driver':(REFERENCE/'field-variant-producer-v2/variant_driver_v1.py.txt').read_bytes(),
+            'parent_completion':(REFERENCE/'field-parent-completion-v2/parent_completion_v1.py.txt').read_bytes(),
+            'cold_build_evidence':(HERE/'cold_build_evidence.py.txt').read_bytes()}
+
+
+def raw(value):
+    data = (json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True)+'\n').encode('ascii')
+    return data,hashlib.sha256(data).hexdigest()
+
+
+def fixture(mode='normal',stage='/immutable/stage',cwd='/independent/work',session='/owned/evidence'):
+    output = session+'/failure_variants/producer-output'
+    argv = ['/usr/bin/python3.12','-S','-s','-P','-B']+(['-O'] if mode=='optimized' else [])
+    argv += [stage+'/integration/full_driver.py','--root-sha256','f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0',
+             '--provider',stage+'/integration/probe_binding_v3.py','9cbb7368f89e71d1e6cc46db5dc77efed3e03ed2a801c98c88fe316e4d9f3ef2',
+             '--driver',stage+'/integration/variant_driver_v1.py','a'*64,'--integration',stage+'/integration','--',
+             '--output',output,'--generation','fixture-v1','--launch-nonce','b'*64]
+    plan = {'mode':mode,'session_directory':session,'producers':{'failure_variants':{
+        'cwd':cwd,'stage_directory':stage,'output':output,'evidence_directory':session+'/failure_variants','command':argv,
+        'epoch_plan':{'generation':'fixture-v1'},'launch_nonce':'b'*64}}}
+    config = {'include':'/usr/include/python3.12','system_header_admission_sha256':'c'*64,'roles':[],'source_files':[]}
+    launches = []
+    for index,role in enumerate(ROLES):
+        source = stage+'/areas/field-negative-variants-v1/'+role+'/dict_probe_fields_v1.c'
+        directory = output+'/'+role
+        target = directory+'/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so'
+        header = {'sha256':H_PINS[index][0],'bytes':H_PINS[index][1],'mode':292}
+        headers = {'field_service_v1.h':header,'field_loader_snapshot_v1.h':copy.deepcopy(L_PIN)}
+        config['roles'].append({'role':role,'source_path':source,'source':copy.deepcopy(C_PIN),'source_headers':copy.deepcopy(headers)})
+        for name,pin in [('dict_probe_fields_v1.c',C_PIN),*headers.items()]:
+            config['source_files'].append({'path':source.rsplit('/',1)[0]+'/'+name,**pin})
+        context = {'source':copy.deepcopy(C_PIN),'source_name':'dict_probe_fields_v1.c','no_cached_binary':True,
+                   'module_name':'_h25_dict_probe','target':target,'source_headers':copy.deepcopy(headers),
+                   'system_header_admission_sha256':'c'*64,'negative_variant_role':role}
+        launches.append({'role':role,'command':['/usr/bin/x86_64-linux-gnu-gcc-13',*OPTIONS,source,'-o',target],
+                         'cwd':cwd,'environment':dict(ENV),'context':context,'helper_name':'control','timeout_seconds':15})
+    return plan,config,launches
+
+
+class CompileBindingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.corpus = corpus()
+
+    def bind(self,fixture_value=None,source_value=None):
+        plan,config,launches = fixture_value or fixture()
+        plan_raw,plan_pin = raw(plan)
+        cfg_raw,cfg_pin = raw(config)
+        return construct_original_compile_pair(source_value or self.corpus,parent_plan_raw=plan_raw,parent_plan_sha256=plan_pin,
+            variant_configuration_raw=cfg_raw,variant_configuration_sha256=cfg_pin,compiler_launches=launches)
+
+    def reject(self,value):
+        with self.assertRaises(BindingError): self.bind(value)
+
+    def test_original_disjoint_stage_output_cwd(self):
+        out = self.bind()
+        self.assertEqual(out['stage_root'],'/immutable/stage')
+        self.assertEqual(out['producer_output'],'/owned/evidence/failure_variants/producer-output')
+        self.assertEqual(out['parent_cwd'],'/independent/work')
+        self.assertFalse(out['compile_bindings'][0]['source_path'].startswith(out['parent_cwd']+'/'))
+        self.assertFalse(out['compile_bindings'][0]['output_path'].startswith(out['parent_cwd']+'/'))
+        self.assertEqual([r['role'] for r in out['compile_bindings']],ROLES)
+
+    def test_helper_inheritance_is_derived_from_actual_Popen(self):
+        rules=authenticate_source_rules(self.corpus)
+        launch=rules['helper_launch']
+        self.assertEqual(launch['cwd_rule'],'inherit_producer_current_cwd')
+        self.assertEqual(launch['environment_rule'],'inherit_producer_current_environment')
+        self.assertNotIn('cwd=',launch['anchor']['text'])
+        self.assertNotIn('env=',launch['anchor']['text'])
+        self.assertEqual(launch['anchor']['first_line'],220)
+
+    def test_normal_optimized_do_not_change_gcc_argv(self):
+        a,b = self.bind(fixture('normal')),self.bind(fixture('optimized'))
+        self.assertEqual([r['command'] for r in a['compile_bindings']],[r['command'] for r in b['compile_bindings']])
+        self.assertNotIn('-S',a['compile_bindings'][0]['command'])
+        self.assertIn('-O3',a['compile_bindings'][0]['command'])
+        self.assertNotIn('-O',b['compile_bindings'][0]['command'])
+
+    def test_wrong_role_label_and_order(self):
+        for replacement in ('control','no-op','header','exec_failure'):
+            value = fixture();value[1]['roles'][0]['role']=replacement;self.reject(value)
+        value = fixture();value[2].reverse();self.reject(value)
+
+    def test_equal_C_bytes_do_not_permit_swapped_paths(self):
+        value=fixture()
+        self.assertEqual(value[1]['roles'][0]['source'],value[1]['roles'][1]['source'])
+        value[2][0]['command'][10]=value[2][1]['command'][10]
+        self.reject(value)
+
+    def test_wrong_output_role_or_common_ancestor_rewrite(self):
+        for output in ('/owned/evidence/failure_variants/producer-output/exec_failure/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so',
+                       '/immutable/stage/build/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so',
+                       '/independent/work/out.so'):
+            value=fixture();value[2][0]['command'][12]=output;self.reject(value)
+
+    def test_wrong_fixed_options_and_compiler(self):
+        for index,replacement in ((0,'/usr/bin/gcc'),(1,'-nostdlib'),(4,'-O2'),(5,'-std=gnu11'),(9,'-I/other'),(11,'--output')):
+            value=fixture();value[2][0]['command'][index]=replacement;self.reject(value)
+        value=fixture();value[2][0]['command'].append('-S');self.reject(value)
+
+    def test_native_environment_exact_six(self):
+        for key,item in (('CPATH','/other'),('LANG','C'),('LD_PRELOAD','/x')):
+            value=fixture();value[2][0]['environment'][key]=item;self.reject(value)
+        value=fixture();del value[2][0]['environment']['TZ'];self.reject(value)
+        value=fixture();value[2][0]['environment'][b'PATH']=b'/usr/bin:/bin';self.reject(value)
+
+    def test_bytes_native_environment_is_normalized_without_duplicate(self):
+        value=fixture()
+        value[2][0]['environment']={k.encode():v.encode() for k,v in ENV.items()}
+        self.assertEqual(self.bind(value)['compile_bindings'][0]['native_environment'],ENV)
+
+    def test_cwd_must_equal_independently_bound_layer(self):
+        value=fixture();value[2][0]['cwd']='/invented/common-ancestor';self.reject(value)
+        value=fixture();value[0]['producers']['failure_variants']['cwd']='/changed/parent';self.reject(value)
+
+    def test_source_header_pin_and_role_header_swap(self):
+        value=fixture();value[1]['roles'][0]['source_headers'],value[1]['roles'][1]['source_headers']=value[1]['roles'][1]['source_headers'],value[1]['roles'][0]['source_headers'];self.reject(value)
+        value=fixture();value[1]['roles'][0]['source']['sha256']='0'*64;self.reject(value)
+        value=fixture();value[1]['source_files'].pop();self.reject(value)
+
+    def test_context_no_op_header_and_control_labels_are_not_rewritten(self):
+        for key,replacement in (('negative_variant_role','no-op'),('source_name','field_service_v1.h'),('no_cached_binary',False),('no_cached_binary',1),('module_name','other')):
+            value=fixture();value[2][0]['context'][key]=replacement;self.reject(value)
+        value=fixture();value[2][0]['helper_name']='no-op';self.reject(value)
+        out=self.bind()
+        self.assertEqual([r['helper_name'] for r in out['compile_bindings']],['control','control'])
+        self.assertEqual([r['context']['negative_variant_role'] for r in out['compile_bindings']],ROLES)
+
+    def test_parent_output_origin_and_root_argv_are_bound(self):
+        value=fixture();value[0]['producers']['failure_variants']['output']='/elsewhere/out';self.reject(value)
+        value=fixture();value[0]['producers']['failure_variants']['command'][0]='/usr/bin/python3';self.reject(value)
+        value=fixture();value[0]['producers']['failure_variants']['command'][1]='-I';self.reject(value)
+        value=fixture();value[0]['producers']['failure_variants']['command'][5]='/wrong/stage/integration/full_driver.py';self.reject(value)
+
+    def test_plan_and_config_tampering_and_duplicate_keys_reject(self):
+        plan,cfg,launches=fixture();p,ph=raw(plan);c,ch=raw(cfg)
+        with self.assertRaises(BindingError):
+            construct_original_compile_pair(self.corpus,parent_plan_raw=p+b' ',parent_plan_sha256=ph,
+                variant_configuration_raw=c,variant_configuration_sha256=ch,compiler_launches=launches)
+        duplicate=b'{"mode":"normal","mode":"optimized"}'
+        with self.assertRaises(BindingError):
+            construct_original_compile_pair(self.corpus,parent_plan_raw=duplicate,parent_plan_sha256=hashlib.sha256(duplicate).hexdigest(),
+                variant_configuration_raw=c,variant_configuration_sha256=ch,compiler_launches=launches)
+
+    def test_authenticated_source_tampering_rejects_before_AST_use(self):
+        value=dict(self.corpus);value['variant_driver']+=b'\n'
+        with self.assertRaises(BindingError): self.bind(source_value=value)
+        value=dict(self.corpus);value.pop('cold_build_evidence')
+        with self.assertRaises(BindingError): self.bind(source_value=value)
+
+    def test_exact_nine_options_have_source_anchors(self):
+        rules=authenticate_source_rules(self.corpus)
+        self.assertEqual(rules['fixed_options'],OPTIONS)
+        self.assertEqual(len(rules['fixed_options']),9)
+        for anchor in rules['anchors']:
+            text=self.corpus[anchor['source']].decode().split('\n')
+            self.assertEqual('\n'.join(text[anchor['first_line']-1:anchor['last_line']]),anchor['text'])
+
+    def test_result_is_not_admission_or_anycwd_semantics(self):
+        out=self.bind()
+        for key in ('full_C05','full_V03','execution_ready','effective_GCC_configuration','parent_plan_admitted','namespace_currentness_proven','generic_any_cwd_correctness'):
+            self.assertIs(out[key],False)
+
+    def test_path_spellings_with_spaces_are_preserved(self):
+        value=fixture(stage='/immutable/stage one',cwd='/independent/work two',session='/owned/evidence three')
+        out=self.bind(value)
+        self.assertEqual(out['compile_bindings'][0]['command'][10],'/immutable/stage one/areas/field-negative-variants-v1/pyinit_failure/dict_probe_fields_v1.c')
+
+    def test_no_path_normalization(self):
+        value=fixture(stage='/immutable/a/../stage',cwd='/independent/a/../work')
+        out=self.bind(value)
+        self.assertIn('/a/../stage/',out['compile_bindings'][0]['command'][10])
+        self.assertEqual(out['parent_cwd'],'/independent/a/../work')
+
+
+if __name__=='__main__':
+    unittest.main(verbosity=2)
