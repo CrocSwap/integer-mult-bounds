@@ -1,0 +1,57 @@
+{
+  "schema": "unit06-independent-loader-source-review-v1",
+  "frozen_utc": "2026-11-02T13:23:07.192625+00:00",
+  "disposition": "CHANGES_REQUIRED_FIRST_OBSERVED_DRAFT",
+  "implementation_accepted": false,
+  "source": {
+    "path": "outputs/c05-v03-completion-20261102T055710Z/unit06/implementation/predecessor_entry.py",
+    "first_observed_bytes": 9950,
+    "first_observed_sha256": "d7512ffe6c9ee2b7a51b98672032fd14f50f5d47e193131873ea426a47f25cbd",
+    "first_observed_source_preserved_exactly_in_report": false,
+    "retained_source_text": null,
+    "current_bytes": 9247,
+    "current_sha256": "35b99508cbc4b686f18b29ecd1458c21f4139ffd0a8cc62a774a49570e20c10f"
+  },
+  "findings": [
+    {
+      "id": "U6-L01",
+      "severity": "critical",
+      "span": "predecessor_entry.py:159-175",
+      "problem": "observe_regular first read/open/close bypasses Owner descriptor slots, pending/busy/fail and aggregate accounting. A read exception followed by a close exception loses the primary raw exception; owner remains reusable and partial bytes/FD are untracked. First pass precedes the retained_read budget and its captured state.",
+      "smallest_correction": "Perform the actual observation through the same single owned descriptor state machine, with observed hash explicitly non-authoritative; retain raw primary/secondary failures and partial bytes and consume/quarantine uncertainty. Eliminate unowned preliminary pass."
+    },
+    {
+      "id": "U6-L02",
+      "severity": "material",
+      "span": "predecessor_entry.py:45",
+      "problem": "kind in (list,dict) can invoke foreign metaclass __eq__ while validating a foreign instance; this violates exact callback-free domain validation. Counterexample: class Foreign with metaclass defining incrementing/raising __eq__, then plain(Foreign()).",
+      "smallest_correction": "Use identity checks for type-domain branches and serialize a new metaclass callback-count-zero fixture through the author."
+    },
+    {
+      "id": "U6-L03",
+      "severity": "material",
+      "span": "predecessor_entry.py:83-91,159-175",
+      "problem": "validate_blob and observe_regular do not validate exact cap integer/range before comparisons. A foreign cap can invoke a comparison callback; oversize cap allows the unowned first read before retained_read rejects it.",
+      "smallest_correction": "Validate exact int cap in0..FILE_CAP at each externally callable validator/observer boundary before comparison or I/O."
+    },
+    {
+      "id": "U6-L04",
+      "severity": "interface",
+      "span": "predecessor_entry.py:73-76",
+      "problem": "path_text does not implement original schema.path ASCII printable-character or max64-component constraints. It accepts paths that later original receiver policy rejects.",
+      "smallest_correction": "Match original schema.path ASCII/printable/component limits before installation or publication."
+    }
+  ],
+  "status": "Reported to parent and author before requesting any edit. Parent alone coordinates the one repair window; no repair decision inferred. Full loader/main/preparer/tests not yet available at first observation.",
+  "execution": {
+    "originals_imported_compiled_executed": false,
+    "new_tests_or_counterexamples_executed": false,
+    "native_Popen_namespace_compiler_target": false
+  },
+  "scope": {
+    "full_C05": false,
+    "full_V03": false,
+    "runtime_qualified": false,
+    "costs": "OPEN_NOT_ZERO"
+  }
+}
