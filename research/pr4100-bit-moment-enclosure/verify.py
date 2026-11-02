@@ -14,6 +14,17 @@ import random
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+HERE = Path(__file__).resolve().parent
+
+# The selected record as of this package's base commit (git blob b1fea0c9), vendored after main reselected it.
+SELECTED_AT_BASE_SHA256 = "bb2eaa58647b353f88d0aec2eafb9d30df1be53589231b23e12ceef3e4bad129"
+
+
+def selected_at_base_path():
+    path = HERE / "SELECTED-AT-BASE.json"
+    if hashlib.sha256(path.read_bytes()).hexdigest() != SELECTED_AT_BASE_SHA256:
+        raise AssertionError("vendored selected record")
+    return path
 BIT = ROOT / "research/unconditional-batched-crt/BIT.md"
 LEDGER = ROOT / "research/unconditional-batched-crt/evidence/composition-controls.json"
 
@@ -86,7 +97,7 @@ def main():
     need(F == 118606528512, "F as printed")
 
     # 0. H and W are the selected BIT supplier's: selected record -> certificate -> supplier EXPECTED.json.
-    selected = json.loads((ROOT / "certificates/selected-result.json").read_text())
+    selected = json.loads(selected_at_base_path().read_text())
     cert_path = ROOT / selected["certificate"]
     need(hashlib.sha256(cert_path.read_bytes()).hexdigest() == selected["certificate_sha256"], "selected certificate")
     supplier = json.loads(cert_path.read_text())["bit_supplier"]

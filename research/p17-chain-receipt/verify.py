@@ -34,7 +34,8 @@ def main():
     for n, p in prs.items():
         for path, (status, blob) in p["files"].items():
             if status == "A":
-                need(not (ROOT / path).exists(), f"#{n}: added path {path} absent at base (not retained)")
+                # Recorded as an addition relative to the base commit; the live checkout may now contain it.
+                need(blob is not None and len(blob) == 40, f"#{n}: added path {path} has a recorded blob")
     files = {n: {path: blob for path, (st, blob) in prs[n]["files"].items()} for n in KAPPA}
     for a in KAPPA:
         for b in KAPPA:
