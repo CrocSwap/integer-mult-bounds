@@ -158,8 +158,8 @@ strict at every larger n. Also 729/567 = 9/7 > 1, and the verifier finds
 comparison upper bound stays nonnegative. The degree-four majorization
 was checked at X = 128, the smallest integer in its hypothesis, and both
 9910 ≤ X^2 and 32767 ≤ X^4 become looser as X grows. Hence ρ_m < 1 for
-every n ≥ 129. Section 3 already includes that threshold, and sections 2
-through 4 together cover every m ≥ 6.
+every m ≥ 130. Section 3 already includes m = 130, and sections 2 through
+4 together cover every m ≥ 6.
 
 ## Scope
 
