@@ -1,0 +1,121 @@
+From 7ce768244d02311d1aaddf6fcfc02b90c5fafce2 Mon Sep 17 00:00:00 2001
+From: John Johansen <john.johansen@canonical.com>
+Date: Mon, 7 Apr 2025 16:49:14 -0700
+Subject: [PATCH] tests: regression: fix regression test for upstream kernels
+
+The attach_disconnected.sh and deleted.sh tests added expanded their
+testing by using unix sockets. This however ever needs support of
+unix socket mediation.
+
+Provide a minimal fix by setting bailouts for the the tests if the
+requirement is not present. Long term it would be better if the
+expected/needed permissions sets could be tweaked to take into
+account the permissions required by the use of unix sockets.
+
+The fix f47d5c70a fix af_unix tests for v8 networking, was never
+correct, though it worked and was closer before support for fine
+grained inet mediation landed. Before finegrained inet mediation
+landed unix rules would allow specifying the permission but inet would
+not only allowing coarse socket mediation rules. While the backend
+supported finegrained permissions in v8 socket mediation the parser
+did not.
+
+If af_unix mediation was not supported by the kernel the af_unix
+mediation rule would be downgrade to a network rule. All network
+socket rules allowed full permission because the parser didn't
+support permissions on socket rules. So the "unix create," rule
+was being downgraded to a "unix," rule. Thus the "unix create",
+rule was enough permissions, in the downgrade even though it
+actually wasn't enough permissions.
+
+With support for fine grained inet permissions, support for permissions
+on socket rules also landed. When this happend "unix create," was not
+enough permissions any more because it was not downgraded to "unix,",
+this resulted in failed mediation.
+
+Fixes: cb4a397b1 ("tests: add attach_disconnected tests")
+Fixes: f47d5c70a ("fix af_unix tests for v8 networking")
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/attach_disconnected.sh  | 2 ++
+ tests/regression/apparmor/deleted.sh              | 5 +++++
+ tests/regression/apparmor/unix_fd_server.sh       | 8 +++++---
+ tests/regression/apparmor/unix_socket_pathname.sh | 8 ++++----
+ 4 files changed, 16 insertions(+), 7 deletions(-)
+
+diff --git a/tests/regression/apparmor/attach_disconnected.sh b/tests/regression/apparmor/attach_disconnected.sh
+index 74a1a213c..405331b13 100644
+--- a/tests/regression/apparmor/attach_disconnected.sh
++++ b/tests/regression/apparmor/attach_disconnected.sh
+@@ -29,6 +29,8 @@ file=$tmpdir/file
+ socket=$tmpdir/unix_fd_test
+ att_dis_client=$pwd/attach_disconnected
+ 
++requires_kernel_features network/af_unix
++
+ attach_disconnected_cleanup() {
+ 	if [ ! -z "$loop_device" ]; then
+ 		losetup -d $loop_device
+diff --git a/tests/regression/apparmor/deleted.sh b/tests/regression/apparmor/deleted.sh
+index cef2c3950..88aa640d7 100755
+--- a/tests/regression/apparmor/deleted.sh
++++ b/tests/regression/apparmor/deleted.sh
+@@ -87,6 +87,8 @@ EOM
+ # lets just be on the safe side
+ rm -f ${socket}
+ 
++# these tests require af_unix support
++if [ "$(kernel_features network/af_unix)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
+ # PASS - unconfined client
+ 
+ genprofile $af_unix $file:$okperm $socket:rw $fd_client:ux
+@@ -130,3 +132,6 @@ runchecktest "fd passing; confined client w/ w only" fail $file $fd_client $sock
+ sleep 1
+ rm -f ${socket}
+ 
++else
++    echo "    Required feature 'network/af_unix' not available. Skipping subset of tests that require network/af_unix ..."
++fi
+diff --git a/tests/regression/apparmor/unix_fd_server.sh b/tests/regression/apparmor/unix_fd_server.sh
+index 92624f3fe..444e7375f 100755
+--- a/tests/regression/apparmor/unix_fd_server.sh
++++ b/tests/regression/apparmor/unix_fd_server.sh
+@@ -27,10 +27,12 @@ okperm=rw
+ badperm=w
+ af_unix=""
+ 
+-if [ "$(kernel_features network_v8)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
+-	af_unix="unix:create"
+-elif [ "$(kernel_features network/af_unix)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
++if [ "$(kernel_features network/af_unix)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
+ 	af_unix="unix:create"
++elif [ "$(kernel_features network_v8)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
++	# actual set needed close to just full
++	# af_unix="unix,"
++	af_unix="unix:(create,bind,listen,accept,connect,rw)"
+ fi
+ 
+ # Content generated with:
+diff --git a/tests/regression/apparmor/unix_socket_pathname.sh b/tests/regression/apparmor/unix_socket_pathname.sh
+index 379786d4a..40c94c5fa 100755
+--- a/tests/regression/apparmor/unix_socket_pathname.sh
++++ b/tests/regression/apparmor/unix_socket_pathname.sh
+@@ -60,10 +60,10 @@ if ( [ "$(kernel_features network_v8/af_unix)" = "true" ] ||
+ 	af_unix_okserver="create,setopt"
+ 	af_unix_okclient="create,getopt,setopt,getattr"
+ elif [ "$(kernel_features network_v8)" = "true" ] ; then
+-#	af_unix_okserver="create,setopt"
+-#	af_unix_okclient="create,getopt,setopt,getattr"
+-    af_unix_okserver="create"
+-    af_unix_okclient="create"
++	af_unix_okserver="create,setopt"
++	af_unix_okclient="create,getopt,setopt,getattr"
++	# af_unix_okserver="create"
++	# af_unix_okclient="create"
+ fi
+ 
+ okclient=rw
+-- 
+2.43.0
+

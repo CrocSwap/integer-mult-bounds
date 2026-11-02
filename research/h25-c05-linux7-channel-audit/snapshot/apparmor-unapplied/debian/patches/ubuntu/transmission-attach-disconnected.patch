@@ -1,0 +1,17 @@
+Description: Fix transmission-daemon timeout inside systemd confinement.
+ Transmission times out when running inside systemd confinement because it can't connect to the `notify` socket. This is fixed in Resolute using the same flag.
+Bug: https://gitlab.com/apparmor/apparmor/-/merge_requests/1355
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/transmission/+bug/2104214
+Origin: upstream, https://gitlab.com/apparmor/apparmor/-/commit/645320ae848461a150f6ccd1671792830545bebc
+
+--- a/profiles/apparmor.d/transmission
++++ b/profiles/apparmor.d/transmission
+@@ -5,7 +5,7 @@
+ 
+ include <tunables/global>
+ 
+-profile transmission-daemon /usr/bin/transmission-daemon flags=(complain) {
++profile transmission-daemon /usr/bin/transmission-daemon flags=(complain,attach_disconnected) {
+   # Don't use abstractions/transmission-common here, as the
+   # access needed is narrower than the user applications
+   include <abstractions/base>

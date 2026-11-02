@@ -1,0 +1,66 @@
+From a30bab661d1892dc5b1ccdab7ab40ad16927e186 Mon Sep 17 00:00:00 2001
+From: Ryan Lee <ryan.lee@canonical.com>
+Date: Thu, 26 Feb 2026 16:49:59 -0800
+Subject: [PATCH] libapparmor: add test for libapparmor features prefix parsing
+ issue
+
+This is a test for commit
+
+72430293 ("libapparmor: fix feature matching for aa_feature_supports")
+
+of Gitlab MR !1608 fixing LP: #2105986.
+
+Signed-off-by: Ryan Lee <ryan.lee@canonical.com>
+---
+ libraries/libapparmor/src/tst_features.c | 29 ++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/libraries/libapparmor/src/tst_features.c b/libraries/libapparmor/src/tst_features.c
+index 9d60aa68c..07a4e0c1f 100644
+--- a/libraries/libapparmor/src/tst_features.c
++++ b/libraries/libapparmor/src/tst_features.c
+@@ -231,6 +231,31 @@ static int test_walk_one(void)
+ 	return rc;
+ }
+ 
++/*
++ * Test bugfix for https://bugs.launchpad.net/apparmor/+bug/2105986,
++ * commit 7243029359c7e75f65f2c984aed863590e7cb6b2
++ */
++static int test_features_supports_prefixing() {
++	int rc = 0;
++	const char* FEATURES_STR = "network_v9 {af_unix {yes\n"
++		"}\n"
++		"}\n"
++		"network_v8 {af_inet {yes\n"
++		"}\n"
++		"}\n"
++		"network {af_unix {yes\n"
++		"}\n"
++		"}";
++	aa_features *features;
++	aa_features_new_from_string(&features, FEATURES_STR, strlen(FEATURES_STR));
++	MY_TEST(features != NULL, "Could not create aa_features from string");
++	if (features) {
++		MY_TEST(aa_features_supports(features, "network"), "aa_features network not found");
++		aa_features_unref(features);
++	}
++	return rc;
++}
++
+ int main(void)
+ {
+ 	int retval, rc = 0;
+@@ -243,5 +268,9 @@ int main(void)
+ 	if (retval)
+ 		rc = retval;
+ 
++	retval = test_features_supports_prefixing();
++	if (retval)
++		rc = retval;
++
+ 	return rc;
+ }
+-- 
+2.43.0
+

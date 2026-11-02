@@ -1,0 +1,149 @@
+From 3cc7bf844e66c9e0f52623588d2cb3344d8309bb Mon Sep 17 00:00:00 2001
+From: John Johansen <john.johansen@canonical.com>
+Date: Tue, 8 Apr 2025 04:14:53 -0700
+Subject: [PATCH] tests: regressions: fix unix_socket_pathname.sh for upstream
+ kernels
+
+FS based unix sockets have a complicatd interaction with socket
+mediation some of the mediation happens in file hooks while other
+parts happen in network hooks.
+
+When the kernel doesn't have the unix socket mediation patches the
+interactions become largely mediated through the network hooks, as
+unix rules get downgraded to socket rules. However some filesystem
+operations are needed, and some hooks like bind may be called
+differently based on the unix socket type, and not just the address.
+Without the kernel patches these variations are not taken into
+account.
+
+Changes in the parser networking permission mappings have also
+affected the downgrade path, as the parser now supports permissions on
+socket rules, downgrades can use permissions and be more faithful to
+the original rule but this can also break tests that didn't add all
+the permissions needed for the downgrade case.
+
+update unix_socket_pathname.sh to detect whether rule downgrades are
+being used, and adjust permissions and expectations based on this.
+
+Fixes: 7ce768244 ("tests: regression: fix regression test for upstream kernels")
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 08f9466d1c85765248250ec235069fb3cbc34501)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ .../apparmor/unix_socket_pathname.sh          | 53 +++++++++++++++----
+ 1 file changed, 44 insertions(+), 9 deletions(-)
+
+diff --git a/tests/regression/apparmor/unix_socket_pathname.sh b/tests/regression/apparmor/unix_socket_pathname.sh
+index 40c94c5fa..d60743fe0 100755
+--- a/tests/regression/apparmor/unix_socket_pathname.sh
++++ b/tests/regression/apparmor/unix_socket_pathname.sh
+@@ -40,6 +40,7 @@ message=4a0c83d87aaa7afa2baab5df3ee4df630f0046d5bfb7a3080c550b721f401b3b\
+ 8a738e1435a3b77aa6482a70fb51c44f20007221b85541b0184de66344d46a4c
+ 
+ # v6 requires 'w' and v7 requires 'rw'
++downgraded=false
+ okserver=w
+ badserver1=r
+ badserver2=
+@@ -60,8 +61,10 @@ if ( [ "$(kernel_features network_v8/af_unix)" = "true" ] ||
+ 	af_unix_okserver="create,setopt"
+ 	af_unix_okclient="create,getopt,setopt,getattr"
+ elif [ "$(kernel_features network_v8)" = "true" ] ; then
+-	af_unix_okserver="create,setopt"
+-	af_unix_okclient="create,getopt,setopt,getattr"
++	af_unix_okserver="create,setopt,bind,listen,accept,getopt,rw,shutdown"
++	af_unix_okclient="create,getopt,setopt,getattr,connect,rw"
++	downgraded="true"
++	echo "    using unix socket mediation downgrade ..."
+ 	# af_unix_okserver="create"
+ 	# af_unix_okclient="create"
+ fi
+@@ -151,7 +154,12 @@ testsocktype()
+ 		# one-by-one, and verify that the test fails.
+ 		for access in ${af_unix_okserver//,/ }; do
+ 			# FAIL - server w/ a missing af_unix access
+-
++			if [ "$socktype" = "dgram" -a \
++			      \( "$access" = "listen" -o \
++			         "$access" = "accept" \) ] ; then
++				# listen/accept not used on dgram
++				continue
++			fi
+ 			genprofile $sockpath:$okserver "unix:(${af_unix_okserver//$access/})" $client:Ux
+ 			runchecktest "$testdesc; confined server w/ a missing af_unix access ($access)" fail $args
+ 			removesockets $sockpath $client_sockpath
+@@ -163,9 +171,15 @@ testsocktype()
+ 	# We are transitioning from testing the server program to testing the
+ 	# client program. Reset the af_unix variable and, if necessary,
+ 	# reinitialize it with the needed client permissions.
++	# dgram client with a path address will trigger a bind perm check
++	# instead of only mknod that stream and seq_packet trigger
+ 	af_unix=
+ 	if [ -n "$af_unix_okclient" ]; then
+-		af_unix="unix:(${af_unix_okclient})"
++		if [ "$downgraded" = "true" -a "$socktype" = "dgram" ] ; then
++			af_unix="unix:(${af_unix_okclient},bind)"
++		else
++			af_unix="unix:(${af_unix_okclient})"
++		fi
+ 	fi
+ 
+ 	# PASS - client w/ access to the file
+@@ -175,21 +189,35 @@ testsocktype()
+ 	removesockets $sockpath $client_sockpath
+ 
+ 	# FAIL - client w/o access to the file
+-
++	# in the downgrade situation where the path isn't mediated just
++	# coarse socket level permissions, this becomes a pass.
++	# dgram bind requires both network (bind) unix, and mknod of path
++	# this will cause it to fail despite the downgrade
++	xres="fail"
++	if [ "$downgraded" = "true" -a "$socktype" != "dgram" ] ; then
++		xres="pass"
++	fi
+ 	genprofile $server -- image=$client $af_unix
+-	runchecktest "$testdesc; confined client w/o access" fail $args
++	runchecktest "$testdesc; confined client w/o access" $xres $args
+ 	removesockets $sockpath $client_sockpath
+ 
+ 	# FAIL - client w/ bad access to the file
+-
++	# no write perm to create the path location
+ 	genprofile $server -- image=$client $sockpath:$badclient1 $af_unix
+-	runchecktest "$testdesc; confined client w/ bad access ($badclient1)" fail $args
++	runchecktest "$testdesc; confined client w/ bad access1 ($badclient1)" $xres $args
+ 	removesockets $sockpath $client_sockpath
+ 
+ 	# FAIL - client w/ bad access to the file
+ 
++	# no generic af_unix perm rule so this actually will still fail if
++	# downgraded
++
++
++
++
++
+ 	genprofile $server -- image=$client $sockpath:$badclient2
+-	runchecktest "$testdesc; confined client w/ bad access ($badclient2)" fail $args
++	runchecktest "$testdesc; confined client w/ bad access2 ($badclient2)" fail $args
+ 	removesockets $sockpath $client_sockpath
+ 
+ 	if [ -n "$af_unix_okclient" ] ; then
+@@ -205,6 +233,13 @@ testsocktype()
+ 		for access in ${af_unix_okclient//,/ }; do
+ 			# FAIL - client w/ a missing af_unix access
+ 
++			if [ "$socktype" = "dgram" -a \
++				 \( "$access" = "listen" -o \
++				    "$access" = "accept" \) ] ; then
++				# listen/accept not used on dgram
++				continue
++			fi
++
+ 			genprofile $server -- image=$client $sockpath:$okclient "unix:(${af_unix_okclient//$access/})"
+ 			runchecktest "$testdesc; confined client w/ a missing af_unix access ($access)" fail $args
+ 			removesockets $sockpath $client_sockpath
+-- 
+2.43.0
+

@@ -1,0 +1,178 @@
+From d6ed0befdec8c6e6da53f686972ff2654cb66c15 Mon Sep 17 00:00:00 2001
+From: John Johansen <john@jjmx.net>
+Date: Sun, 22 Jun 2025 02:40:23 -0600
+Subject: [PATCH 1/5] tests: regression: Update socketpair test for upstream v9
+ socket behavior
+
+Under upstream (v9) socket mediation, sockets passed to another process
+get their labeling updated (similar to files), instead of keeping
+just the opening cred. This is the technically correct approach for
+ambient capabilities, but is a change in behavior.
+
+This will not surface under normal read and write of the socket as
+the task's creds are used not the cached socket label. It will however
+make a difference when the socket label is used as a proxy which is
+primarily when the socket is used for the peer label check.
+
+Update the socket pair tests so they can pass with upstream socket
+labeling, and compatibility patches applied.
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 43113b8999c14245cf6fff88b43bf6977e8d526e)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/socketpair.c  | 14 ++++----
+ tests/regression/apparmor/socketpair.sh | 47 +++++++++++++++++++------
+ 2 files changed, 43 insertions(+), 18 deletions(-)
+
+diff --git a/tests/regression/apparmor/socketpair.c b/tests/regression/apparmor/socketpair.c
+index 0c12da9f5..acf810d94 100644
+--- a/tests/regression/apparmor/socketpair.c
++++ b/tests/regression/apparmor/socketpair.c
+@@ -115,10 +115,8 @@ static int reexec(int pair[2], int argc, char **argv)
+ 	 * args by one to effectively pop off the first <CHANGE_ONEXEC>
+ 	 */
+ 	new_profile = argv[3];
+-	argv[3] = argv[2];
+-	argv[2] = argv[1];
+-	argv[1] = argv[0];
+-	argv++;
++	argv[3] = argv[0];
++	argv+=3;
+ 
+ 	if (aa_change_onexec(new_profile) < 0) {
+ 		perror("FAIL - aa_change_onexec");
+@@ -150,19 +148,21 @@ int main(int argc, char **argv)
+ 
+ 	if (argc < 3) {
+ 		fprintf(stderr,
+-			"FAIL - usage: %s <LABEL> <MODE> [<CHANGE_ONEXEC> ...]\n\n"
++			"FAIL - usage: %s <LABEL> <MODE> [<CHANGE_ONEXEC> <EXPECTED_LABEL> <EXPECTED_MODE>...]\n\n"
+ 			"  <LABEL>\t\tThe expected confinement label\n"
+ 			"  <MODE>\tThe expected confinement mode\n"
+ 			"  <CHANGE_ONEXEC>\tThe profile to change to on exec\n\n"
++			"  <EXPECTED_LABEL>\t\tThe expected confinement label after transition\n"
++			"  <EXPECTED_MODE>\tThe expected confinement mode\n"
+ 			"This program gets a socket pair and then verifies \n"
+ 			"the confinement label and mode of each file \n"
+ 			"descriptor. If there is no expected mode string, \n"
+ 			"<MODE> should be \"%s\".\n\n"
+-			"Multiple <CHANGE_ONEXEC> profiles can be specified \n"
++			"Multiple <CHANGE_ONEXEC> <EXPECTED_LABEL> <EXPECTED_MODE> profiles can be specified \n"
+ 			"and the test will run normally for the first pair, \n"
+ 			"then call aa_change_onexec() to rexec itself under \n"
+ 			"the next <CHANGE_ONEXEC> and verify the passed in \n"
+-			"socket pairs still have the correct labeling.\n" ,
++			"socket pairs have the correct labeling.\n" ,
+ 			argv[0], NO_MODE);
+ 		exit(1);
+ 	}
+diff --git a/tests/regression/apparmor/socketpair.sh b/tests/regression/apparmor/socketpair.sh
+index 69839906b..bb79ae8da 100755
+--- a/tests/regression/apparmor/socketpair.sh
++++ b/tests/regression/apparmor/socketpair.sh
+@@ -19,7 +19,7 @@ bin=$pwd
+ 
+ . $bin/prologue.inc
+ 
+-requires_kernel_features network/af_unix
++requires_any_of_kernel_features network/af_unix network_v9/af_unix
+ 
+ do_test()
+ {
+@@ -45,6 +45,20 @@ if [ "$(kernel_features network/af_unix)" = "true" -a "$(parser_supports 'unix,'
+ 	af_unix_inherit="unix:(getopt,send,receive)"
+ fi
+ 
++if [ "$(kernel_features network_v9/af_unix)" = "true" ] ; then
++	# can get a stack from socket being passed to new confinement
++	np1_result="$test//&$np1"
++	np1_np2_result="$test//&$np1//&$np2"
++        mixed_enforce="mixed"
++        mixed_complain="mixed"
++else
++	# old abi did not update the label to new task confinements using it
++	np1_result="$np1"
++	np1_np2_result="$np2"
++        mixed_enforce="enforce"
++        mixed_complain="complain"
++fi
++
+ # Ensure everything works as expected when unconfined
+ do_test "unconfined" pass "unconfined" "(null)"
+ 
+@@ -76,7 +90,7 @@ do_test "complain" pass "$test" "enforce"
+ # NOTE: due to label crosscheck, parent needs 'rw' access
+ genprofile $af_unix_create ${af_unix_create_label} $aa_enabled $exec 'change_profile->':$np1 -- \
+            image=$np1 addimage:$test $af_unix_inherit $aa_enabled
+-do_test "confined exec transition" pass "$test" "enforce" "$np1"
++do_test "confined exec transition" pass "$test" "enforce" "$np1" "$np1_result" "enforce"
+ 
+ # af_unix_create is set to non-null at the top of the test script if
+ # the kernel advertises supporting unix sockets
+@@ -92,17 +106,27 @@ fi
+ # NOTE: The test still calls aa_change_onexec(), so change_profile -> $test
+ #       is still needed
+ genprofile $af_unix_create $exec $aa_enabled 'change_profile->':$test
+-do_test "confined exec no transition" pass "$test" "enforce" "$test"
++do_test "confined exec no transition" pass "$test" "enforce" "$test" "$test" "enforce"
+ 
+ # Ensure correct complain mode after passing fd pair across exec
+ genprofile flag:complain $af_unix_create $aa_enabled $exec 'change_profile->':$np1 -- \
+ 	   image=$np1 addimage:$test $af_unix_inherit $aa_enabled
+-do_test "confined exec transition from complain" pass "$test" "complain" "$np1"
++do_test "confined exec transition from complain" pass "$test" "complain" "$np1" "$np1_result" "$mixed_complain"
++
++# Ensure correct complain mode after passing fd pair across exec
++genprofile flag:complain $af_unix_create $aa_enabled $exec 'change_profile->':$np1 -- \
++	   image=$np1 flag:complain addimage:$test $af_unix_inherit $aa_enabled
++do_test "confined exec transition from complain" pass "$test" "complain" "$np1" "$np1_result" "complain"
+ 
+ # Ensure correct enforce mode after passing fd pair across exec
+ genprofile $af_unix_create ${af_unix_create_label} $aa_enabled $exec 'change_profile->':$np1 -- \
+ 	   image=$np1 addimage:$test flag:complain $af_unix_inherit $aa_enabled
+-do_test "confined exec transition to complain" pass "$test" "enforce" "$np1"
++do_test "confined exec transition to complain" pass "$test" "enforce" "$np1" "$np1_result" "$mixed_enforce"
++
++genprofile $af_unix_create ${af_unix_create_label} $aa_enabled $exec 'change_profile->':$np1 -- \
++	   image=$np1 addimage:$test $af_unix_inherit $aa_enabled
++do_test "confined exec transition to complain" pass "$test" "enforce" "$np1" "$np1_result" "enforce"
++
+ 
+ # af_unix_create is set to non-null at the top of the test script if
+ # the kernel advertises supporting unix sockets
+@@ -110,7 +134,7 @@ if [ -n "${af_unix_create}" ] ; then
+ 	# Ensure label crosscheck enforced in complain mode after passing fd pair across exec
+ 	genprofile $af_unix_create $aa_enabled $exec 'change_profile->':$np1 -- \
+ 		   image=$np1 addimage:$test flag:complain $af_unix_inherit $aa_enabled
+-	do_test "confined exec transition to complain, crosscheck rejection" fail "$test" "enforce" "$np1"
++	do_test "confined exec transition to complain, crosscheck rejection" fail "$test" "enforce" "$np1" "$np1_result" "enforce"
+ fi
+ 
+ # Ensure correct labeling after passing fd pair across 2 execs
+@@ -118,16 +142,17 @@ gp_args="$af_unix_create ${af_unix_create_label} $aa_enabled $exec change_profil
+ 	 image=$np1 addimage:$test $af_unix_inherit $aa_enabled $exec change_profile->:$np2 -- \
+ 	 image=$np2 addimage:$test $af_unix_inherit $aa_enabled"
+ genprofile $gp_args
+-do_test "confined 2 exec transitions" pass "$test" "enforce" "$np1" "$np2"
++do_test "confined 2 exec transitions" pass "$test" "enforce" "$np1" "$np1_result" "enforce" "$np2" "$np1_np2_result" "enforce"
+ 
+ # Test the test
+-do_test "confined 2 exec transitions bad con" fail "$test" "enforce" "$np1" "$np1"
+-do_test "confined 2 exec transitions bad mode" fail "$test" "complain" "$np1" "$np2"
++do_test "confined 2 exec transitions bad con" fail "$test" "enforce" "$np1" "$test//&$np1" "enforce" "$np1" "$test//&$np1//&$np2" "enforce"
++do_test "confined 2 exec transitions bad mode" fail "$test" "complain" "$np1" "$np1_result" "enforce" "$np2" "$np1_np2_result" "enforce"
+ 
+ # Ensure correct labeling after passing fd pair across exec to unconfined
+ genprofile $af_unix_create $aa_enabled $exec 'change_profile->':unconfined
+-do_test "confined exec transition to unconfined" pass "$test" "enforce" "unconfined"
++do_test "confined exec transition to unconfined" pass "$test" "enforce" "unconfined" "$test" "enforce"
+ 
+ # Ensure correct labeling after passing fd pair across exec from unconfined
++# doesn't change because of unconfined delegation
+ genprofile image=$np1 addimage:$test $af_unix_inherit $aa_enabled
+-do_test "unconfined exec transition ton confined" pass "unconfined" "(null)" "$np1"
++do_test "unconfined exec transition to confined" pass "unconfined" "(null)" "$np1" "unconfined" "(null)"
+-- 
+2.43.0
+

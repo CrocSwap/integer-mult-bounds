@@ -1,0 +1,35 @@
+From cb67e865cf688d28da8e56b820cd2327caa11878 Mon Sep 17 00:00:00 2001
+From: John Johansen <john.johansen@canonical.com>
+Date: Tue, 8 Apr 2025 04:26:24 -0700
+Subject: [PATCH] tests: regression: increase unix socket test timeout
+
+The tests on slower systems are occassionally timing out leading to
+inconsistent pass/fail runs. The time out failure depending on which
+test it occurs in can result in false passes, or failres.
+
+Double the timeout, which hopefully will be enough to avoid the
+timeout issue without making the tests wait too long.
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 2c784709b25d92b70e94b000260aae1e0f15a905)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/unix_socket_common.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/regression/apparmor/unix_socket_common.c b/tests/regression/apparmor/unix_socket_common.c
+index 5ae2ec62e..dc8f17fbb 100644
+--- a/tests/regression/apparmor/unix_socket_common.c
++++ b/tests/regression/apparmor/unix_socket_common.c
+@@ -41,7 +41,7 @@ int set_sock_io_timeo(int sock)
+ 	socklen_t tv_len = sizeof(tv);
+ 	int rc;
+ 
+-	tv.tv_sec = 1;
++	tv.tv_sec = 2;
+ 	tv.tv_usec = 0;
+ 
+ 	rc = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, tv_len);
+-- 
+2.43.0
+

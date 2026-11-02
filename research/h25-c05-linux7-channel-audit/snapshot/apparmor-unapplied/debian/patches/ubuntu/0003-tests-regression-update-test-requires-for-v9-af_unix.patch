@@ -1,0 +1,112 @@
+From 4fdf2f90d9cf5fd615e913ef2901f7bcf91a685c Mon Sep 17 00:00:00 2001
+From: John Johansen <john@jjmx.net>
+Date: Thu, 7 Aug 2025 16:22:31 -0600
+Subject: [PATCH 3/5] tests: regression: update test requires for v9 af_unix
+
+Make sure regressions tests for unix sockets will run when v9 af_unix
+is present.
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 85f71dfb94f987d80af63a408455e2b490fb6526)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/attach_disconnected.sh  |  2 +-
+ tests/regression/apparmor/unix_socket_abstract.sh |  4 ++--
+ tests/regression/apparmor/unix_socket_autobind.sh |  4 ++--
+ tests/regression/apparmor/unix_socket_pathname.sh | 10 +++++++---
+ tests/regression/apparmor/unix_socket_unnamed.sh  |  4 ++--
+ 5 files changed, 14 insertions(+), 10 deletions(-)
+
+diff --git a/tests/regression/apparmor/attach_disconnected.sh b/tests/regression/apparmor/attach_disconnected.sh
+index 405331b13..832305838 100644
+--- a/tests/regression/apparmor/attach_disconnected.sh
++++ b/tests/regression/apparmor/attach_disconnected.sh
+@@ -29,7 +29,7 @@ file=$tmpdir/file
+ socket=$tmpdir/unix_fd_test
+ att_dis_client=$pwd/attach_disconnected
+ 
+-requires_kernel_features network/af_unix
++requires_any_of_kernel_features network/af_unix network_v9/af_unix
+ 
+ attach_disconnected_cleanup() {
+ 	if [ ! -z "$loop_device" ]; then
+diff --git a/tests/regression/apparmor/unix_socket_abstract.sh b/tests/regression/apparmor/unix_socket_abstract.sh
+index a1e496950..77e8b8c92 100644
+--- a/tests/regression/apparmor/unix_socket_abstract.sh
++++ b/tests/regression/apparmor/unix_socket_abstract.sh
+@@ -28,8 +28,8 @@ bin=$pwd
+ 
+ . $bin/prologue.inc
+ . $bin/unix_socket.inc
+-requires_kernel_features policy/versions/v7
+-requires_kernel_features network/af_unix
++requires_any_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
++requires_any_of_kernel_features network/af_unix network_v9/af_unix
+ requires_parser_support "unix,"
+ 
+ settest unix_socket
+diff --git a/tests/regression/apparmor/unix_socket_autobind.sh b/tests/regression/apparmor/unix_socket_autobind.sh
+index de0a3774f..56493743d 100644
+--- a/tests/regression/apparmor/unix_socket_autobind.sh
++++ b/tests/regression/apparmor/unix_socket_autobind.sh
+@@ -33,8 +33,8 @@ bin=$pwd
+ 
+ . $bin/prologue.inc
+ . $bin/unix_socket.inc
+-requires_kernel_features policy/versions/v7
+-requires_kernel_features network/af_unix
++requires_an_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
++requires_any_of_kernel_features network/af_unix network_v9/af_unix
+ requires_parser_support "unix,"
+ 
+ settest unix_socket
+diff --git a/tests/regression/apparmor/unix_socket_pathname.sh b/tests/regression/apparmor/unix_socket_pathname.sh
+index d60743fe0..652e22a28 100755
+--- a/tests/regression/apparmor/unix_socket_pathname.sh
++++ b/tests/regression/apparmor/unix_socket_pathname.sh
+@@ -44,7 +44,9 @@ downgraded=false
+ okserver=w
+ badserver1=r
+ badserver2=
+-if [ "$(kernel_features policy/versions/v7)" = "true" ] ; then
++if [ "$(kernel_features policy/versions/v7)" = "true" -o \
++     "$(kernel_features policy/versions/v8)" = "true" -o \
++     "$(kernel_features policy/versions/v9)" = "true" ] ; then
+ 	okserver=rw
+ #	badserver2=w
+ fi
+@@ -55,12 +57,14 @@ fi
+ # af_unix support requires 'unix getattr' to call getsockname()
+ af_unix_okserver=
+ af_unix_okclient=
+-if ( [ "$(kernel_features network_v8/af_unix)" = "true" ] ||
++if ( [ "$(kernel_features network_v9/af_unix)" = "true" ] ||
++     [ "$(kernel_features network_v8/af_unix)" = "true" ] ||
+      [ "$(kernel_features network/af_unix)" = "true" ] ) &&
+      [ "$(parser_supports 'unix,')" = "true" ] ; then
+ 	af_unix_okserver="create,setopt"
+ 	af_unix_okclient="create,getopt,setopt,getattr"
+-elif [ "$(kernel_features network_v8)" = "true" ] ; then
++elif [ "$(kernel_features network_v8)" = "true" ] ||
++     [ "$(kernel_features network_v9)" = "true" ] ; then
+ 	af_unix_okserver="create,setopt,bind,listen,accept,getopt,rw,shutdown"
+ 	af_unix_okclient="create,getopt,setopt,getattr,connect,rw"
+ 	downgraded="true"
+diff --git a/tests/regression/apparmor/unix_socket_unnamed.sh b/tests/regression/apparmor/unix_socket_unnamed.sh
+index f1b3102c0..1669aaba8 100644
+--- a/tests/regression/apparmor/unix_socket_unnamed.sh
++++ b/tests/regression/apparmor/unix_socket_unnamed.sh
+@@ -28,8 +28,8 @@ bin=$pwd
+ 
+ . $bin/prologue.inc
+ . $bin/unix_socket.inc
+-requires_kernel_features policy/versions/v7
+-requires_kernel_features network/af_unix
++requires_any_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
++requires_any_of_kernel_features network/af_unix network_v9/af_unix
+ requires_parser_support "unix,"
+ 
+ settest unix_socket
+-- 
+2.43.0
+

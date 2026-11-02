@@ -1,0 +1,33 @@
+From: Jamie Strandboge <jamie@canonical.com>
+Date: Mon, 29 Jan 2018 12:26:43 +0000
+Subject: always install python modules in the proper location when creating
+ deb files
+
+Forwarded: not-needed
+---
+ libraries/libapparmor/swig/python/Makefile.am |    2 +-
+ utils/Makefile                                |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+--- apparmor-4.0.0-beta3.orig/libraries/libapparmor/swig/python/Makefile.am
++++ apparmor-4.0.0-beta3/libraries/libapparmor/swig/python/Makefile.am
+@@ -17,7 +17,7 @@
+ 	CC="$(CC)" CFLAGS="$(PYTHON_CPPFLAGS) $(EXTRA_WARNINGS)" LDSHARED="$(CC) -shared" LDFLAGS="$(PYTHON_LDFLAGS) $(LDFLAGS)" $(PYTHON) setup.py build
+ 
+ install-exec-local:
+-	$(PYTHON) setup.py install --root="/$(DESTDIR)" --prefix="$(prefix)"
++	$(PYTHON) setup.py install --root="/$(DESTDIR)" --prefix="$(prefix)" --install-layout=deb
+ 
+ clean-local:
+ 	if test -x "$(PYTHON)"; then $(PYTHON) setup.py clean; fi
+--- apparmor-4.0.0-beta3.orig/utils/Makefile
++++ apparmor-4.0.0-beta3/utils/Makefile
+@@ -58,7 +58,7 @@
+ 	$(MAKE) -C po install DESTDIR=${DESTDIR} NAME=${NAME}
+ 	$(MAKE) install_manpages DESTDIR=${DESTDIR}
+ 	$(MAKE) -C vim install DESTDIR=${DESTDIR}
+-	${PYTHON} ${PYSETUP} install --prefix=${PYPREFIX} --root=${DESTDIR} --version=${VERSION}
++	${PYTHON} ${PYSETUP} install --prefix=${PYPREFIX} --root=${DESTDIR}  --install-layout=deb --version=${VERSION}
+ 
+ .PHONY: clean
+ ifndef VERBOSE

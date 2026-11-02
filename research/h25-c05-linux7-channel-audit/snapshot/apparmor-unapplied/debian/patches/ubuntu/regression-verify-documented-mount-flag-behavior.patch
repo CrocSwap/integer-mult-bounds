@@ -1,0 +1,89 @@
+Author: Ryan Lee <ryan.lee@canonical.com>
+Date: Mon, 5 May 2025 17:16:06 -0700
+Subject: [PATCH] regression: exercise options in (list) feature of mount rules
+
+This includes testing for options in (list) by itself, along with a rudimentary test for the combination of options=(list) and options in (list).
+In particular, the test for the combination confirms that the apparmor.d man page was wrong about what happens when these options are combined.
+
+Signed-off-by: Ryan Lee <ryan.lee@canonical.com>
+
+diff --git a/tests/regression/apparmor/mount.sh b/tests/regression/apparmor/mount.sh
+index cc859aebf71b991b0180e604da5cb8ec80e8e5a2..a9d2ff72fe4a076e8f5ddc2790c35319835aaba8 100755
+--- a/tests/regression/apparmor/mount.sh
++++ b/tests/regression/apparmor/mount.sh
+@@ -178,11 +178,11 @@ test_nonfs_options() {
+ 	fi
+ 
+ 	genprofile cap:sys_admin "mount:options=($1)"
+-	runchecktest "MOUNT (confined cap mount $1)" pass mount ${loop_device} ${mount_point} -o $1
++	runchecktest "MOUNT (confined cap mount options=$1)" pass mount ${loop_device} ${mount_point} -o $1
+ 	remove_mnt
+ 
+ 	genprofile cap:sys_admin "mount:ALL" "qual=deny:mount:options=($1)"
+-	runchecktest "MOUNT (confined cap mount deny $1)" fail mount ${loop_device} ${mount_point} -o $1
++	runchecktest "MOUNT (confined cap mount deny options=$1)" fail mount ${loop_device} ${mount_point} -o $1
+ 	remove_mnt
+ 
+ 	genprofile cap:sys_admin "mount:options=($1)"
+@@ -190,6 +190,46 @@ test_nonfs_options() {
+ 	remove_mnt
+ }
+ 
++test_nonfs_options_in() {
++	if [ "$(parser_supports "mount options in ($1),")" != "true" ] ; then
++	        echo "    not supported by parser - skipping mount options in ($1),"
++		return
++	fi
++
++	genprofile cap:sys_admin "mount:options in ($1)"
++	runchecktest "MOUNT (confined cap mount option in $1)" pass mount ${loop_device} ${mount_point} -o $1
++	remove_mnt
++
++	genprofile cap:sys_admin "mount:ALL" "qual=deny:mount:options in ($1)"
++	runchecktest "MOUNT (confined cap mount deny option in $1)" fail mount ${loop_device} ${mount_point} -o $1
++	remove_mnt
++
++	# Conflicting mount flags don't get blocked with options in (list)
++	# TODO: is this the behavior we want?
++	genprofile cap:sys_admin "mount:options in ($1)"
++	runchecktest "MOUNT (confined cap mount conflicting option in $2)" pass mount ${loop_device} ${mount_point} -o $2
++	remove_mnt
++}
++
++test_nonfs_options_equals_in() {
++	if [ "$(parser_supports "mount options=($1) options in ($2),")" != "true" ] ; then
++	        echo "    not supported by parser - skipping mount options=($1) options in ($2),"
++		return
++	fi
++
++	genprofile cap:sys_admin "mount:options=($1) options in ($2)"
++	runchecktest "MOUNT (confined cap mount option=$1 option in $2 ($1,$2))" pass mount ${loop_device} ${mount_point} -o $1,$2
++	remove_mnt
++
++	genprofile cap:sys_admin "mount:options=($1) options in ($2)"
++	runchecktest "MOUNT (confined cap mount option=$1 option in $2 ($1))" pass mount ${loop_device} ${mount_point} -o $1
++	remove_mnt
++
++	genprofile cap:sys_admin "mount:options=($1) options in ($2)"
++	runchecktest "MOUNT (confined cap mount option=$1 option in $2 ($2))" fail mount ${loop_device} ${mount_point} -o $2
++	remove_mnt
++}
++
+ test_dir_options() {
+ 	if [ "$(parser_supports "mount options=($1),")" != "true" ] ; then
+ 		echo "    not supported by parser - skipping mount option=($1),"
+@@ -258,8 +298,14 @@ test_options() {
+ 
+ 		test_nonfs_options $default $nondefault
+ 		test_nonfs_options $nondefault $default
++
++		test_nonfs_options_in $default $nondefault
++		test_nonfs_options_in $nondefault $default
+ 	done
+ 
++	# TODO: expand this to cover more mount flag combinations
++	test_nonfs_options_equals_in 'nosuid,nodev' 'noatime,noexec'
++
+ 	for i in "bind" "rbind" "move"; do
+ 		test_dir_options $i
+ 	done

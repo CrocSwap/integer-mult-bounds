@@ -1,0 +1,55 @@
+From 7243029359c7e75f65f2c984aed863590e7cb6b2 Mon Sep 17 00:00:00 2001
+From: Georgia Garcia <georgia.garcia@canonical.com>
+Date: Wed, 2 Apr 2025 15:00:13 -0300
+Subject: [PATCH] libapparmor: fix feature matching for aa_feature_supports
+
+The feature matching done in aa_feature_supports calls walk_one to
+traverse the features string. This function is supposed to match on
+the feature and return, but it matches the feature based on the length
+of the feature to check. If the feature to check shorter, then it
+would return as if the feature was not present - which was the case
+for the following example:
+
+feature_file contains (shortened for example purposes):
+
+network_v9 {af_unix {yes
+}
+}
+network_v8 {af_inet {yes
+}
+}
+network {af_unix {yes
+}
+}
+
+if the feature to be checked was simply "network", then walk_one would
+return that the feature was not present.
+
+Fix this by restarting the matching if there was not a full match at
+the end of the feaure to check.
+
+Fixes: https://bugs.launchpad.net/apparmor/+bug/2105986
+
+Signed-off-by: Georgia Garcia <georgia.garcia@canonical.com>
+---
+ libraries/libapparmor/src/features.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/libraries/libapparmor/src/features.c b/libraries/libapparmor/src/features.c
+index 22b5f6452..9cfeb3785 100644
+--- a/libraries/libapparmor/src/features.c
++++ b/libraries/libapparmor/src/features.c
+@@ -399,6 +399,10 @@ static bool walk_one(const char **str, const struct component *component,
+ 			i = 0;
+ 
+ 		cur++;
++
++		/* Partial match, continue to search */
++		if (i == component->len && !isbrace_space_or_nul(*cur))
++			i = 0;
+ 	}
+ 
+ 	/* Return false if a full match was not found */
+-- 
+GitLab
+

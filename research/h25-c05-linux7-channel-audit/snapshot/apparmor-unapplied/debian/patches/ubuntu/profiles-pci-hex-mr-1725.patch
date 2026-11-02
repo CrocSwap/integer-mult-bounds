@@ -1,0 +1,304 @@
+Description: Make /sys/devices/ PCI paths in profiles hex-aware
+ Use hex pattern matching in profiles with rules for /sys/devices/
+ PCI paths (strictly in the form pciHHHH:HH) rather than decimal patterns.
+ .
+ apparmor (4.0.1really4.0.1-0ubuntu0.24.04.5) noble; urgency=medium
+ .
+   * profiles: make /sys/devices PCI paths hex-aware (LP: #2115234)
+
+Origin: backport, https://gitlab.com/apparmor/apparmor/-/commit/b6ad58bbbe66ddbe89f29ea5cc66c641357c2259
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/2115234
+
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/abstractions/dri-enumerate
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/abstractions/dri-enumerate
+@@ -6,7 +6,7 @@
+ # needs to enumerate graphic devices (as with drmParsePciDeviceInfo() from
+ # libdrm).
+ 
+-  @{sys}/devices/pci[0-9]*/**/{device,subsystem_device,subsystem_vendor,uevent,vendor} r,
++  @{sys}/devices/@{pci_bus}/**/{device,subsystem_device,subsystem_vendor,uevent,vendor} r,
+ 
+ 
+   # Include additions to the abstraction
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/abstractions/mesa
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/abstractions/mesa
+@@ -10,7 +10,7 @@
+   # (src/intel/perf/gen_perf.c, load_oa_metrics())
+   @{PROC}/sys/dev/i915/perf_stream_paranoid r,
+ 
+-  @{sys}/devices/pci[0-9]*/**/{revision,config} r,
++  @{sys}/devices/@{pci_bus}/**/{revision,config} r,
+ 
+   # User files
+   owner @{HOME}/.cache/ w, # if user clears all caches
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/abstractions/opencl-intel
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/abstractions/opencl-intel
+@@ -15,7 +15,7 @@
+   # System files
+ 
+   /dev/dri/card[0-9]* rw, # beignet/libcl.so
+-  @{sys}/devices/pci[0-9]*/**/{class,config,resource,revision} r, # libcl.so -> libdrm_intel.so -> libpciaccess.so (move to dri-enumerate ?)
++  @{sys}/devices/@{pci_bus}/**/{class,config,resource,revision} r, # libcl.so -> libdrm_intel.so -> libpciaccess.so (move to dri-enumerate ?)
+   /usr/lib/@{multiarch}/beignet/** r,
+ 
+ 
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/abstractions/opencl-nvidia
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/abstractions/opencl-nvidia
+@@ -19,7 +19,7 @@
+   # libnvidia-opencl.so rules:
+   /dev/nvidia-uvm rw,
+   /dev/nvidia-uvm-tools rw,
+-  @{sys}/devices/pci[0-9]*/**/config r,
++  @{sys}/devices/@{pci_bus}/**/config r,
+   @{sys}/devices/system/memory/block_size_bytes r,
+   /usr/share/nvidia/** r,
+   @{PROC}/devices r,
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/abstractions/opencl-pocl
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/abstractions/opencl-pocl
+@@ -16,10 +16,10 @@
+   @{sys}/bus/pci/slots/ r, # libpocl.so -> hwloc_topology_load() from libhwloc.so
+   @{sys}/bus/{cpu,node}/devices/ r, # libpocl.so -> libhwlock.so
+   @{sys}/class/net/ r, # libpocl.so -> hwloc_pci_traverse_lookuposdevices_cb() from libhwloc.so
+-  @{sys}/devices/pci[0-9]*/**/ r, # for libpocl ->  hwloc_linux_lookup_block_class() from libhwloc.so
+-  @{sys}/devices/pci[0-9]*/**/block/*/dev r, # libpocl.so -> hwloc_linux_lookup_host_block_class() from libhwloc.so
+-  @{sys}/devices/pci[0-9]*/**/{class,local_cpus} r, # libpocl.so -> libhwlock.so
+-  @{sys}/devices/pci[0-9]*/*/net/*/address r, # libpocl.so ->  hwloc_pci_traverse_lookuposdevices_cb() from libhwloc.so
++  @{sys}/devices/@{pci_bus}/**/ r, # for libpocl ->  hwloc_linux_lookup_block_class() from libhwloc.so
++  @{sys}/devices/@{pci_bus}/**/block/*/dev r, # libpocl.so -> hwloc_linux_lookup_host_block_class() from libhwloc.so
++  @{sys}/devices/@{pci_bus}/**/{class,local_cpus} r, # libpocl.so -> libhwlock.so
++  @{sys}/devices/@{pci_bus}/*/net/*/address r, # libpocl.so ->  hwloc_pci_traverse_lookuposdevices_cb() from libhwloc.so
+   @{sys}/devices/system/cpu/ r, # libpocl.so -> libnuma.so
+   @{sys}/devices/system/cpu/cpu[0-9]*/cache/index[0-9]*/* r, # libpocl.so -> libhwloc.so
+   @{sys}/devices/system/cpu/cpu[0-9]*/online r, # libpocl.so -> libhwlock.so
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/abstractions/video
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/abstractions/video
+@@ -9,8 +9,8 @@
+ 
+   owner /dev/shm/libv4l-* rw,
+         /dev/video[0-9]* rw,
+-  @{sys}/devices/pci[0-9]*/**/usb[0-9]/**/video4linux/video[0-9]*/dev r,
+-  @{sys}/devices/pci[0-9]*/**/usb[0-9]/**/{modalias,speed} r,
++  @{sys}/devices/@{pci_bus}/**/usb[0-9]/**/video4linux/video[0-9]*/dev r,
++  @{sys}/devices/@{pci_bus}/**/usb[0-9]/**/{modalias,speed} r,
+ 
+   @{sys}/devices/virtual/dmi/id/sys_vendor r,
+   @{sys}/devices/virtual/dmi/id/product_{name,version} r,
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/abstractions/vulkan
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/abstractions/vulkan
+@@ -9,10 +9,10 @@
+   /etc/vulkan/icd.d/{,*.json} r,
+   /etc/vulkan/{explicit,implicit}_layer.d/{,*.json} r,
+   # for drmGetMinorNameForFD() from libvulkan_intel.so (Mesa)
+-  @{sys}/devices/pci[0-9]*/*/drm/ r,
+-  @{sys}/devices/pci[0-9]*/*/drm/card[0-9]/gt_{max,min}_freq_mhz r, # anv_enumerate_physical_devices() from libvulkan_intel.so
+-  @{sys}/devices/pci[0-9]*/*/drm/card[0-9]/metrics/ r, # anv_enumerate_physical_devices() from libvulkan_intel.so
+-  @{sys}/devices/pci[0-9]*/*/drm/card[0-9]/metrics/????????-????-????-????-????????????/id r, # anv_enumerate_physical_devices() from libvulkan_intel.so
++  @{sys}/devices/@{pci_bus}/*/drm/ r,
++  @{sys}/devices/@{pci_bus}/*/drm/card[0-9]/gt_{max,min}_freq_mhz r, # anv_enumerate_physical_devices() from libvulkan_intel.so
++  @{sys}/devices/@{pci_bus}/*/drm/card[0-9]/metrics/ r, # anv_enumerate_physical_devices() from libvulkan_intel.so
++  @{sys}/devices/@{pci_bus}/*/drm/card[0-9]/metrics/????????-????-????-????-????????????/id r, # anv_enumerate_physical_devices() from libvulkan_intel.so
+   /usr/share/egl/egl_external_platform.d/{,*} r,
+   /usr/share/glvnd/egl_vendor.d/{,*} r,
+   /usr/share/vulkan/icd.d/{,*.json} r,
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/nvidia_modprobe
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/nvidia_modprobe
+@@ -28,7 +28,7 @@ profile nvidia_modprobe {
+   /dev/nvidia-uvm w,
+   /dev/nvidia-uvm-tools w,
+   @{sys}/bus/pci/devices/ r,
+-  @{sys}/devices/pci[0-9]*/**/config r,
++  @{sys}/devices/@{pci_bus}/**/config r,
+   @{PROC}/devices r,
+   @{PROC}/driver/nvidia/params r,
+   @{PROC}/modules r,
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor.d/tunables/global
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/tunables/global
+@@ -17,6 +17,7 @@ include <tunables/multiarch>
+ include <tunables/proc>
+ include <tunables/alias>
+ include <tunables/kernelvars>
++include <tunables/system>
+ include <tunables/xdg-user-dirs>
+ include <tunables/share>
+ include <tunables/etc>
+--- /dev/null
++++ apparmor-4.0.1really4.0.1/profiles/apparmor.d/tunables/system
+@@ -0,0 +1,102 @@
++# ------------------------------------------------------------------
++#
++#    Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
++#
++#    This program is free software; you can redistribute it and/or
++#    modify it under the terms of version 2 of the GNU General Public
++#    License published by the Free Software Foundation.
++#
++# ------------------------------------------------------------------
++
++# Any digit
++@{d}=[0-9]
++
++# Any letter
++@{l}=[a-zA-Z]
++
++# Single alphanumeric character
++@{c}=[0-9a-zA-Z]
++
++# Word character: matches any letter, digit or underscore.
++@{w}=[a-zA-Z0-9_]
++
++# Single hexadecimal character
++@{h}=[0-9a-fA-F]
++
++# Integer up to 10 digits (0-9999999999)
++@{int}=@{d}{@{d},}{@{d},}{@{d},}{@{d},}{@{d},}{@{d},}{@{d},}{@{d},}{@{d},}
++
++# hexadecimal, alphanumeric and word up to 64 characters
++@{hex}=@{h}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}{@{h},}
++@{rand}=@{c}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}{@{c},}
++@{word}=@{w}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}{@{w},}
++
++# Unsigned integer over 8 bits (0...255)
++@{u8}=[0-9]{[0-9],} 1[0-9][0-9] 2[0-4][0-9] 25[0-5]
++
++# Unsigned integer over 16 bits (0...65,535 5 digits)
++@{u16}={@{d},[1-9]@{d},[1-9][@{d}@{d},[1-9]@{d}@{d}@{d},[1-6]@{d}@{d}@{d}@{d}}
++
++# Unsigned integer over 32 bits (0...4,294,967,295 10 digits)
++@{u32}={@{d},[1-9]@{d},[1-9]@{d}@{d},[1-9]@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-4]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}}
++
++# Unsigned integer over 64 bits (0...18,446,744,073,709,551,615 20 digits).
++@{u64}={@{d},[1-9]@{d},[1-9]@{d}@{d},[1-9]@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},[1-9]@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d},1@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}@{d}}
++
++# Any x digits characters
++@{int2}=@{d}@{d}
++@{int4}=@{int2}@{int2}
++@{int6}=@{int4}@{int2}
++@{int8}=@{int4}@{int4}
++@{int9}=@{int8}@{d}
++@{int10}=@{int8}@{int2}
++@{int12}=@{int8}@{int4}
++@{int15}=@{int8}@{int4}@{int2}@{d}
++@{int16}=@{int8}@{int8}
++@{int32}=@{int16}@{int16}
++@{int64}=@{int32}@{int32}
++
++# Any x hexadecimal characters
++@{hex2}=@{h}@{h}
++@{hex4}=@{hex2}@{hex2}
++@{hex6}=@{hex4}@{hex2}
++@{hex8}=@{hex4}@{hex4}
++@{hex9}=@{hex8}@{h}
++@{hex10}=@{hex8}@{hex2}
++@{hex12}=@{hex8}@{hex4}
++@{hex15}=@{hex8}@{hex4}@{hex2}@{h}
++@{hex16}=@{hex8}@{hex8}
++@{hex32}=@{hex16}@{hex16}
++@{hex38}=@{hex32}@{hex6}
++@{hex64}=@{hex32}@{hex32}
++
++# Any x alphanumeric characters
++@{rand2}=@{c}@{c}
++@{rand4}=@{rand2}@{rand2}
++@{rand6}=@{rand4}@{rand2}
++@{rand8}=@{rand4}@{rand4}
++@{rand9}=@{rand8}@{c}
++@{rand10}=@{rand8}@{rand2}
++@{rand12}=@{rand8}@{rand4}
++@{rand15}=@{rand8}@{rand4}@{rand2}@{c}
++@{rand16}=@{rand8}@{rand8}
++@{rand32}=@{rand16}@{rand16}
++@{rand64}=@{rand32}@{rand32}
++
++# Any x word characters
++@{word2}=@{w}@{w}
++@{word4}=@{word2}@{word2}
++@{word6}=@{word4}@{word2}
++@{word8}=@{word4}@{word4}
++@{word9}=@{word8}@{w}
++@{word10}=@{word8}@{word2}
++@{word12}=@{word8}@{word4}
++@{word15}=@{word8}@{word4}@{word2}@{w}
++@{word16}=@{word8}@{word8}
++@{word32}=@{word16}@{word16}
++@{word64}=@{word32}@{word32}
++
++# Shortcut for PCI bus (e.g., /sys/devices/@{pci_bus}/**)
++@{pci_bus}=pci@{hex4}:@{hex2}
++
++include if exists <tunables/system.d>
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor/profiles/extras/chromium_browser
++++ apparmor-4.0.1really4.0.1/profiles/apparmor/profiles/extras/chromium_browser
+@@ -151,25 +151,25 @@ profile chromium_browser /usr/lib/@{chro
+   /sys/devices/system/cpu/possible r,
+   /sys/devices/system/cpu/present r,
+   /sys/devices/system/node/node*/meminfo r,
+-  /sys/devices/pci[0-9]*/**/bConfigurationValue r,
+-  /sys/devices/pci[0-9]*/**/boot_vga r,
+-  /sys/devices/pci[0-9]*/**/busnum r,
+-  /sys/devices/pci[0-9]*/**/class r,
+-  /sys/devices/pci[0-9]*/**/config r,
+-  /sys/devices/pci[0-9]*/**/descriptors r,
+-  /sys/devices/pci[0-9]*/**/device r,
+-  /sys/devices/pci[0-9]*/**/devnum r,
+-  /sys/devices/pci[0-9]*/**/irq r,
+-  /sys/devices/pci[0-9]*/**/manufacturer r,
+-  /sys/devices/pci[0-9]*/**/product r,
+-  /sys/devices/pci[0-9]*/**/resource r,
+-  /sys/devices/pci[0-9]*/**/revision r,
+-  /sys/devices/pci[0-9]*/**/serial r,
+-  /sys/devices/pci[0-9]*/**/subsystem_device r,
+-  /sys/devices/pci[0-9]*/**/subsystem_vendor r,
+-  /sys/devices/pci[0-9]*/**/vendor r,
+-  /sys/devices/pci[0-9]*/**/removable r,
+-  /sys/devices/pci[0-9]*/**/block/**/size r,
++  /sys/devices/@{pci_bus}/**/bConfigurationValue r,
++  /sys/devices/@{pci_bus}/**/boot_vga r,
++  /sys/devices/@{pci_bus}/**/busnum r,
++  /sys/devices/@{pci_bus}/**/class r,
++  /sys/devices/@{pci_bus}/**/config r,
++  /sys/devices/@{pci_bus}/**/descriptors r,
++  /sys/devices/@{pci_bus}/**/device r,
++  /sys/devices/@{pci_bus}/**/devnum r,
++  /sys/devices/@{pci_bus}/**/irq r,
++  /sys/devices/@{pci_bus}/**/manufacturer r,
++  /sys/devices/@{pci_bus}/**/product r,
++  /sys/devices/@{pci_bus}/**/resource r,
++  /sys/devices/@{pci_bus}/**/revision r,
++  /sys/devices/@{pci_bus}/**/serial r,
++  /sys/devices/@{pci_bus}/**/subsystem_device r,
++  /sys/devices/@{pci_bus}/**/subsystem_vendor r,
++  /sys/devices/@{pci_bus}/**/vendor r,
++  /sys/devices/@{pci_bus}/**/removable r,
++  /sys/devices/@{pci_bus}/**/block/**/size r,
+   /sys/devices/virtual/block/**/removable r,
+   /sys/devices/virtual/block/**/size r,
+   /sys/devices/virtual/tty/tty*/active r,
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor/profiles/extras/firefox
++++ apparmor-4.0.1really4.0.1/profiles/apparmor/profiles/extras/firefox
+@@ -190,11 +190,11 @@ profile firefox @{MOZ_LIBDIR}/@{MOZ_APP_
+   @{PROC}/sys/vm/overcommit_memory r,
+   @{sys}/fs/cgroup/user.slice/user-[0-9]*.slice/session-[0-9]*.scope/cpu.max r,
+   # prevent crash LP: #1931602
+-  /sys/devices/pci[0-9]*/**/{uevent,resource,irq,class} r,
++  /sys/devices/@{pci_bus}/**/{uevent,resource,irq,class} r,
+   /sys/devices/platform/**/uevent r,
+-  /sys/devices/pci*/**/{busnum,config,idVendor,idProduct,revision} r,
+-  /sys/devices/pci*/**/{,subsystem_}device r,
+-  /sys/devices/pci*/**/{,subsystem_}vendor r,
++  /sys/devices/@{pci_bus}/**/{boot_vga,busnum,config,idVendor,idProduct,revision} r,
++  /sys/devices/@{pci_bus}/**/{,subsystem_}device r,
++  /sys/devices/@{pci_bus}/**/{,subsystem_}vendor r,
+   /sys/devices/system/node/node[0-9]*/meminfo r,
+   owner @{HOME}/.cache/thumbnails/** rw,
+ 
+--- apparmor-4.0.1really4.0.1.orig/profiles/apparmor/profiles/extras/usr.bin.wireshark
++++ apparmor-4.0.1really4.0.1/profiles/apparmor/profiles/extras/usr.bin.wireshark
+@@ -66,7 +66,7 @@ include <tunables/global>
+   @{PROC}/@{pid}/net/dev r,
+ 
+   # Backported from the dri-enumerate abstraction, available in AppArmor 2.13
+-  /sys/devices/pci[0-9]*/**/{device,subsystem_device,subsystem_vendor,uevent,vendor} r,
++  /sys/devices/@{pci_bus}/**/{device,subsystem_device,subsystem_vendor,uevent,vendor} r,
+ 
+   /tmp/.X[0-9]*-lock r,
+ 

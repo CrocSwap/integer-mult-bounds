@@ -1,0 +1,36 @@
+From 70125895f37f99bbe779840c937070996e0d895e Mon Sep 17 00:00:00 2001
+From: Georgia Garcia <georgia.garcia@canonical.com>
+Date: Tue, 30 Apr 2024 15:34:47 -0300
+Subject: [PATCH 2/2] profiles: add unconfined balena-etcher profile
+
+Balena Etcher runs in a degraded sandbox mode when unprivileged userns
+is not available. Add an unconfined profile so it's properly
+sandboxed.
+
+Signed-off-by: Georgia Garcia <georgia.garcia@canonical.com>
+---
+ profiles/apparmor.d/balena-etcher | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+ create mode 100644 profiles/apparmor.d/balena-etcher
+
+diff --git a/profiles/apparmor.d/balena-etcher b/profiles/apparmor.d/balena-etcher
+new file mode 100644
+index 000000000..9a55bcd2f
+--- /dev/null
++++ b/profiles/apparmor.d/balena-etcher
+@@ -0,0 +1,12 @@
++# This profile allows everything and only exists to give the
++# application a name instead of having the label "unconfined"
++
++abi <abi/4.0>,
++include <tunables/global>
++
++profile balena-etcher /usr/lib/balena-etcher/balena-etcher flags=(unconfined) {
++  userns,
++
++  # Site-specific additions and overrides. See local/README for details.
++  include if exists <local/balena-etcher>
++}
+-- 
+2.34.1
+
