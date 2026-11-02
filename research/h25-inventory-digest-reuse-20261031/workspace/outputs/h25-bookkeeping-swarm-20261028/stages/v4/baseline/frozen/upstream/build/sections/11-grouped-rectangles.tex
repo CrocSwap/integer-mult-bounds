@@ -1,0 +1,160 @@
+\section{Packed additions on grouped rectangles}
+\label{sec:grouped-rectangles}
+
+The simultaneous-layer construction uses the rectangular layout of
+Lemma~\ref{lem:packed-selected-bit-rectangle}. We record here a more
+general version in which a supplied descriptor lists groups with different
+spectator lengths. Each group is a complete rectangle, so the full
+rectangular algorithm, including its deterministic repair, can be applied
+to one group at a time. The only additional work is reading the group
+descriptors and passing consecutive groups through the same local tapes.
+
+\begin{definition}[Grouped packed stream]
+\label{def:grouped-packed-stream}
+Let $M,R\ge1$, $K\ge6$, $f\ge1$, $L=fK$, and $0\le\rho<K$.
+Fix an ordered template of $t\ge3$ two-bit tags: $\mathtt{00}$ denotes
+a spectator field, and $\mathtt{01},\mathtt{10},\mathtt{11}$ denote
+$x,y,z$, respectively. Each chunk tag occurs exactly once. The template
+is common to all $J\ge1$ groups of this input, but its length may vary
+between inputs. Group $\nu$ has a positive row count $n_\nu$ and a
+positive length $a_{\nu,h}$ at each spectator tag $h$; at a chunk tag
+put $a_{\nu,h}=2^L$. Define
+\[
+ Q_\nu=\prod_{h=1}^t a_{\nu,h},\qquad
+ M_\nu=n_\nu Q_\nu,\qquad
+ C_\nu=\sum_{\mu<\nu}M_\mu,\qquad V_\nu=M_\nu R,
+\]
+and require $M=\sum_{\nu=1}^J M_\nu$.
+
+The stream consists of $M$ records of $R$ bits. In group order, their
+addresses form the consecutive lexicographic rectangles
+\[
+ [n_\nu]\times\prod_{h=1}^t[a_{\nu,h}].
+\]
+The first coordinate is a row ordinal. Every row contains the full
+Cartesian suffix displayed above: no suffix length depends on a
+coordinate within that row. The suffix lengths may differ between
+groups. Every finite sequence of per-row spectator length vectors in
+the fixed template is representable, using groups of count one when
+necessary.
+
+Use the integer code $\Gamma$ from \eqref{eq:integer-descriptor-code}.
+The supplied descriptor
+is exactly
+\[
+\begin{split}
+ \mathcal D={}&
+ \Gamma(M)\Gamma(R)\Gamma(K)\Gamma(f)\Gamma(\rho+1)\Gamma(t)\,
+ T_1\cdots T_t\,\Gamma(J)\\
+ &{}\cdot\prod_{\nu=1}^{J}
+ \left(\Gamma(n_\nu)
+       \prod_{h:T_h=\mathtt{00}}\Gamma(a_{\nu,h})\right),
+\end{split}
+\]
+where $T_h$ is the tag at position $h$, and juxtaposition and products
+mean bitstring concatenation in increasing index order. The header,
+tag count, and group count delimit the entire list. A grouped packed
+stream is valid when this descriptor and its accompanying records have
+exactly the parameters, shapes, and orders just specified.
+\end{definition}
+
+\begin{lemma}[Packed selected-bit addition for grouped rectangles]
+\label{lem:packed-selected-bit-addition}
+Let a valid grouped packed stream of
+Definition~\ref{def:grouped-packed-stream} be supplied, and let $A\ge2$
+bound the actual total bit length of its descriptor $\mathcal D$,
+including the header and the entry for $R$. At the positions
+$j_i=\rho+iK$, numbered from the least significant bit, one fixed
+multitape procedure performs
+\[
+ y_{j_i}\longleftarrow y_{j_i}\mathbin\oplus x_{j_i}
+ \quad(0\le i<f)
+\]
+in every group. It fixes the group, row ordinal, spectator coordinates,
+all other chunk bits, and every record payload; in particular, the chunk
+$z$ is restored.
+For $V=MR$, its time is
+\begin{equation}
+\label{eq:packed-selected-time}
+ O\!\left(V(L^\tau+1)+MA^3+
+       M\min\{1,80(f-1)2^{-K}\}\,A(R+A)\right).
+\end{equation}
+When $A=O(p)$, $R$ exceeds every fixed polynomial in $p$,
+$f\le d\le p$, and $K/\log p\to\infty$, this is
+$O(V(L^\tau+1))$, uniformly over the group counts, shapes, and payloads
+whose supplied descriptors satisfy that bound.
+\end{lemma}
+
+\begin{proof}
+Write $s=t-3$ for the number of spectator tags. Each group explicitly
+stores $s+1$ positive integer codes, so $J(s+1)\le A$ and
+$Jt=J(s+3)\le3A$. Also $J\le M$, because every group is nonempty.
+The header includes $\Gamma(M)$ and $\Gamma(R)$, so
+$\log_2 M+\log_2 R=O(A)$. Every field length, partial suffix product,
+row count and group record count is at most $M$. These integers, as well
+as $V_\nu=M_\nu R$, therefore have $O(A)$ bits. In particular,
+\[
+ A_\nu:=\lceil\log_2(2V_\nu)\rceil=O(A)
+\]
+with a constant independent of the number and shapes of the groups.
+
+Parse the descriptor in forward group order, keeping the common template
+on a separate tape and saving the current group's length vector locally.
+Collapse the row ordinal and the spectator fields before the first chunk
+into one prefix field. Collapse each spectator interval between the chunks
+and after the last chunk in the same way; an empty interval has length
+one. The resulting four positive lengths $N_0,N_1,N_2,N_3$, together
+with the current order of the names $x,y,z$, give exactly the rectangle
+in Lemma~\ref{lem:packed-selected-bit-rectangle}, with $M_\nu$ records
+and volume $V_\nu$. Fixing a collapsed coordinate fixes every one of its
+mixed-radix factors. Hence the rectangular algorithm preserves the row
+ordinal and all original spectator coordinates, as the grouped claim
+requires.
+
+For each group, reading the template and length vector, forming the four
+products, and writing the local descriptor with its fixed number of
+entries take $O(A^3)$ time:
+there are $O(A)$ field visits and schoolbook operations, each on
+$O(A)$-bit integers. The descriptor supplied to the rectangular routine
+contains only its four collapsed lengths and $R,K,f,\rho$, in canonical
+binary, with the finite permutation of the three chunk names. The
+routine does not receive or rescan the outer group table.
+
+Use separate outer input and output tapes with forward cursors. Copy the
+$V_\nu$ bits of group $\nu$ into a local area, apply the complete
+rectangular algorithm there, append its output to the outer output tape,
+and clear the visited local area. Keep the outer cursors at their group
+boundaries during the local call. Reuse the same local and primitive work
+tapes for every group. The copy, append, positioning and cleanup cost
+$O(V_\nu)$; one final outer rewind costs $O(V)$. The inner routine
+restores its local work tapes as part of its stated bound. Thus the tape
+count is fixed, and no local call scans an earlier or later group.
+
+Put $\delta_{\rm bad}=\min\{1,80(f-1)2^{-K}\}$. Within group $\nu$,
+Lemma~\ref{lem:packed-selected-bit-rectangle} performs all the required
+XORs, restores $z$ for every initial value, and preserves each payload.
+Its exceptional records are extracted, sorted and reinserted entirely
+within that group. Their destination ranks therefore require only the
+local $A_\nu$-bit address bound; no ordering across groups is needed.
+The local time is
+\[
+ O\!\left(V_\nu(L^\tau+1)+M_\nu A_\nu^3+
+       \delta_{\rm bad}M_\nu A_\nu(R+A_\nu)\right).
+\]
+Summing these bounds and the descriptor work, using
+$\sum_\nu M_\nu=M$, $\sum_\nu V_\nu=V$, $A_\nu=O(A)$ and $J\le M$,
+gives
+\[
+ O\!\left(V(L^\tau+1)+MA^3+
+       \delta_{\rm bad}MA(R+A)\right),
+\]
+which is \eqref{eq:packed-selected-time}. This sum includes the whole
+record payload on every local exceptional-sort pass. The rectangular
+lemma also covers $f=1$, when its rotations and repair are empty.
+
+After division by $V=MR$, the two additional terms are bounded by
+$A^3/R$ and $80(f-1)2^{-K}A(1+A/R)$. Under the displayed family bounds,
+the first tends to zero, and the second is
+$O(p^2 2^{-K}(1+A/R))=o(1)$. These bounds depend on the supplied groups
+only through $M,R,A$, proving the asserted uniformity.
+\end{proof}
