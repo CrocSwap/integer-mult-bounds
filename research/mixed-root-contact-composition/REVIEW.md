@@ -3,8 +3,10 @@
 The reviewed claim remains **kappa 0.00328621476572836015146308**,
 about **4.284550829 percent** above pinned PR6375. This review changes
 no native word, caller, invoice, completion parameter or compiler
-parameter. The selected frontier and publication hold remain unchanged.
-This is a further author review, not independent scientific acceptance.
+parameter. At this review checkpoint, the selected frontier was unchanged
+and the publication hold was in force. Publication was authorized afterward;
+hosted CI is reported in the contribution PR. This is a further author
+review, not independent scientific acceptance.
 
 ## Gaps found and repaired
 

@@ -1,4 +1,7 @@
-# Final local proof-review validation
+# Historical local proof-review validation
+
+This record describes the checks before publication was authorized on
+2026-11-02. Later hosted evidence is recorded in the contribution PR.
 
 The complete conditional claim remains **0.00328621476572836015146308**,
 strictly between 1e-26 and 2e-26 below the exact raw family limit. The

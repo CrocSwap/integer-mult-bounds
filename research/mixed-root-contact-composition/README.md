@@ -1,7 +1,9 @@
 # Conditional kappa 0.00328621476572836015146308 from the mixed root and PR6375
 
-This result is local under the donor publication hold. No branch push
-or PR has been made.
+Publication of this reviewed contribution was authorized on 2026-11-02.
+The [publication description](PR-DRAFT.md) states the complete result and
+review path. Historical validation records retain their original status;
+the contribution PR records the current hosted CI result.
 
 This is the final source composition in the mixed-root contribution.
 It claims **kappa 0.00328621476572836015146308**, about **4.28455 percent above PR6375's

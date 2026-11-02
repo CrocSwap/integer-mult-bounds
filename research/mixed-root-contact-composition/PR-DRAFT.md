@@ -1,188 +1,76 @@
-# Local PR draft — publication hold
+# Publication description
 
-This is a local draft. Do not push the branch or open the PR until the
-donor gives explicit publication instructions. The selected frontier is
-unchanged. Refresh main and overlap before any later submission.
+Publication was authorized on 2026-11-02. The title and body below are
+prepared for the contribution PR. Hosted CI status is updated in the PR;
+local validation records retain the status at their stated commits.
 
 Proposed title:
 
-**Conditional kappa 0.00328621476572836015146308 (+4.28455% over PR6375) and exact family limit**
+**Mixed-query root: conditional κ = 0.00328621476572836015146308 (+4.28455% over #6375)**
 
 ---
 
-This contribution changes the complete caller and gives conditional
-**kappa 0.00328621476572836015146308**, up from **0.00315120** in the pinned
-[PR6375](https://github.com/CrocSwap/integer-mult-bounds/pull/6375).
-The increase is about **0.00013501476573, or 4.28455 percent**. The selected record
-is unchanged. The conditional time bound is O(n (log n)^(1-kappa))
-under five inherited framework assumptions. No runtime speedup is measured.
+## Change and result
 
-The new six-field root combines four binary query suppliers. It permits
-full stage projectors of ranks 2,3,3,2 and pays both additional whole
-idles. Its seven central query sites contain four full calls and three
-thin calls. The resulting independent output masks are
-ABCD, AB, CD, empty, C and B. The chosen child sizes are 7,2,2,7.
-This produces a different signed invoice from the preceding binary caller.
+A new six-field query caller raises **conditional κ from 0.00315120 to 0.00328621476572836015146308**, a **4.28455% increase over [PR6375](https://github.com/CrocSwap/integer-mult-bounds/pull/6375)** with the same pinned native source. The resulting conditional time bound is `O(n (log n)^(1−κ))`. The selected frontier is unchanged.
 
-An ordinary normalization on the complete field supplies the central
-involution. If q^2=X and X^2=I, use
-lambda=((1+i)I+(1-i)X)/2 and S=lambda*q. The inverse normalization restores
-q at the outputs. The proof and literal word keep these scalar coefficients
-outside tensor powers. They include every normalization and basis change.
+The improvement comes from a different way to combine recursive suppliers. The caller uses four binary children of sizes **7,2,2,7**, with full-stage projector ranks **2,3,3,2**. It pays two additional whole idles and obtains six independent outputs with stage products `ABCD, AB, CD, empty, B, C`; every output also contains the central transform. The complete caller uses **18 native calls**, **67,150 paid jobs** and **13,652 productive fields**, with rank-mass surplus **760**.
 
-## Complete result
+Two steps make this possible:
 
-| Quantity | Final mixed-root composition |
-| --- | ---: |
-| Conditional kappa | 0.00328621476572836015146308 |
-| Strict raw crossing | (0.00328621476572836015146309, 0.00328621476572836015146310) |
-| Distance below exact raw limit | Between 1e-26 and 2e-26 |
-| Native source events | 17,768 |
-| Native calls / caller events | 18 / 570 |
-| Main fields per port / ports | 34 / 104 |
-| Paid jobs / independent productive fields | 67,150 / 13,652 |
-| Paid / productive rank mass | 184,980 / 185,740 |
-| Rank-mass surplus | 760 |
-| Thin queries / paired idles / individual idles | 17 / 14 / 2 |
-| Ordinary normalizations | 20 |
+1. **Normalize the complete field.** An ordinary translation-based map turns the native central query into an involution, then restores the required Gaussian outputs. Its scalar coefficients stay outside tensor powers. All normalization and basis-change work is charged.
+2. **Permit paid higher-rank stage projectors.** The six-field root combines full and thin queries in a pattern unavailable to the preceding binary root. The literal 570-event caller charges every native call, helper debit, query, idle, adapter, owned lifetime and route.
 
-The final source includes the nine output contractions from
-[PR6353](https://github.com/CrocSwap/integer-mult-bounds/pull/6353), the
-two-anchor contraction from
-[PR6372](https://github.com/CrocSwap/integer-mult-bounds/pull/6372), and
-DreamingOfClouds' six shared-carrier lifts from PR6375. All changed native
-inputs, all helper target debits, and all 18 copies of each paid change
-are checked. The exact predecessor files and notices are retained.
+The final composition includes [PR6353](https://github.com/CrocSwap/integer-mult-bounds/pull/6353), [PR6372](https://github.com/CrocSwap/integer-mult-bounds/pull/6372) and PR6375, with each source change and productive debit applied at all 18 calls. Those native mechanisms retain their original credit. The final refinement of completion/compiler parameters adds only **0.000449325%** over the local 0.00328620 checkpoint; the **4.28455%** comparison is the complete caller improvement over pinned PR6375.
 
-The root supplies most of the full gain. The last source composition
-adds only **0.00000036 (0.0109561 percent)** over the immediately preceding
-local result 0.00328584. The final parameter refinement adds about
-**0.000449325 percent** over 0.00328620 with the same invoice. Neither
-small final increment is a separate four-percent construction gain.
-`RESEARCH-MAP.md` records the full local progression and source credit.
+## Proof and how far the method goes
 
-## How far the technique was pushed
+The package proves the **exact raw funding limit** for the fixed source and classified root family:
 
-The contribution includes exact results beyond the construction:
+```text
+0.00328621476572836015146309 < κ* < 0.00328621476572836015146310
+```
 
-- A classification of six-field, seven-query roots with S on every
-  output, four independent forward full stages at distinct sites and
-  at most two extra whole idles. It permits all scalar bases independent
-  of S and the stage variables, and the full nonzero endpoint parameter,
-  including its exceptional value. Every such root has the same price
-  pattern. The exact raw optimum is the unique zero of the displayed
-  signed invoice. All positive binary child sizes and shapes are covered;
-  every competing size profile and all 11 seven-leaf tree histograms
-  are checked. The winning sizes are 7,2,2,7. The complete claim is
-  **less than 2e-26 below this raw limit** with the pinned final source.
-  At the limit, paid and productive moments are equal. This strict
-  funding argument cannot certify equality; more digits are not a new
-  construction step.
-- An active-space reduction proves that extra outputs without the
-  central transform do not evade the shortest-query price limit when
-  there are exactly r+1 square-zero queries on r active fields. This
-  does not cover seven queries on four active and two inactive fields.
-- All seven rank-four fifth-stage extensions that retain the two
-  rank-two endpoints and two rank-three stages lose at the claimed saving
-  for every positive
-  binary child size and shape. An exact dynamic program and a concave
-  tail bound replace the earlier time-limited integer searches.
-- An exact helper-consuming three-field module is preserved. Its
-  complete favorable invoice, including the consumed helper debit,
-  loses at the claimed saving for every binary child size and shape.
-- A five-call reflection border has an exact formula for its two
-  nonzero error entries and its inverse transpose. Its formal diagonal
-  limit has a favorable price, but **it is not a kappa result**. The
-  exact five-call star is impossible, and the two direct recovery
-  queries lose at the claimed saving for every binary child size and
-  shape. A different
-  recovery and recursive precision proof remain open.
+The complete claim is less than `2 × 10^-26` below this limit. The proof covers all positive binary child sizes and tree shapes. An exact recurrence, comparisons of all eleven seven-leaf tree histograms, and a concave infinite-tail bound establish the optimum. A direct rational comparison proves that the selected profile dominates throughout the crossing interval.
 
-These are scoped results. Roots with different support patterns, field
-counts, query counts or child contracts remain open. No global optimum
-is claimed.
+The family has six arbitrary fields, seven square-zero queries, four independent forward full stages and at most two extra whole idles. All outputs contain the central involution; scalar bases are independent of it and of the stage variables. The bound concerns the recursive invoice; the chosen word has its own complete ordinary-work budget. **This is a family-specific limit. Equality at κ* is not certified by the strict completion argument.**
 
-## Review and reproduction
+Supplementary research includes the all-width normalization proof, the minimum-idle classification, a separate reverse caller, an active-space reduction for extra central-free outputs, and all-size price exclusions for seven specified fifth-stage extensions. It also preserves a helper-consuming module and a five-call reflection border. The border has two nonzero errors and no complete recovery/precision construction, so its favorable formal price is **not a κ result**.
 
-Start with `research/mixed-projector-query-root/PROOF.md` for the root
-and global normalization. Then read this package's `PROOF.md` and
-`RESULT.json` for the final native composition and complete price. Read
-`OPTIMALITY.md` for the exact family limit and strict approach to it.
-The research map, `research/mixed-root-contact-composition/RESEARCH-MAP.md`,
-also links the earlier published
-contact, helper and tensor results from this investigation. It records
-the nine exact null-input rejections and the bounded routes that failed.
-They are historical evidence, not extra increments in the new result.
-The intermediate `mixed-root-source-composition` package retains the
-PR6353 result and complete source closure. The `mixed-projector-root-headroom`
-package supplies the structural proof, a separate reverse caller engine,
-the extension bounds and the two boundary modules.
+## Review map
+
+| Read | Purpose |
+| --- | --- |
+| [Root proof](../mixed-projector-query-root/PROOF.md) and [literal caller](../mixed-projector-query-root/CONTROLLER.json) | New construction, whole-field normalization and exact endpoint |
+| [Final composition proof](PROOF.md), [receipt](RESULT.json) and [source manifest](SOURCES.json) | Native binding, all source changes and the complete invoice |
+| [Family proof](../mixed-projector-root-headroom/PROOF.md) and [exact optimum](OPTIMALITY.md) | Quantified scope, all-size exclusion and strict approach to the limit |
+| [Research map](RESEARCH-MAP.md), [boundary modules](../mixed-projector-root-headroom/BOUNDARY-MODULES.md) and [author review](REVIEW.md) | Earlier advances, useful negative results, repaired proof gaps and remaining questions |
+
+Four scoped packages are added. The PR6353 intermediate composition retains the executable source closure. Earlier published results and nine exact null-witness rejections are documented with their scope and attribution; they are not counted as new gains here.
+
+## Verification
+
+Local registered normal/optimized replays pass on CPython 3.12.13. Checks cover **799 native columns, 638,401 reverse coefficients, 7,488 physical caller contacts**, two rational moment engines, completion/compiler bounds, ordinary costs, and **54 strict plus four functional outer predicates**. The separate reverse caller checks 4,624 formal polynomials. Source and semantic rejection controls, committed-byte/source-pin checks, and isolated read-only exports pass. The new dominance guard rejects a deliberately invalid bound under optimized Python. [Exact evidence and limits](VALIDATION.md).
 
 ```sh
 python3.12 -B scripts/research_package.py --package research/mixed-root-contact-composition
 python3.12 -B scripts/research_package.py --package research/mixed-projector-root-headroom
 ```
 
-The registered commands use only Python 3.12 and its standard library.
-Normal and optimized replay pass for both changed packages. The complete
-composition checks all 799 native columns, 638,401 separate reverse
-coefficients, absolute native phases and 7,488 physical caller contacts.
-Two rational moment engines agree at the tested saving and both raw
-bracket endpoints. Completion, the compiler, ordinary
-costs and all 54 strict plus four functional outer predicates pass.
-There are 43 rejecting source, invoice and semantic controls.
+Hosted CI is pending at opening; its exact-head result will be recorded here.
 
-The final author review added a direct rational comparison between the
-selected profile's lower bound and every competing profile's upper
-bound across the raw bracket. The strict gap exceeds 0.00004433 per
-port. It also made the central-output and constant-basis hypotheses
-explicit. These repairs change no source, invoice or kappa.
-The final author review,
-`research/mixed-root-contact-composition/REVIEW.md`, gives the proof audit
-and its limits.
+The five inherited assumptions remain: `native_all_columns`, `owned_erasure`, `compiler`, `precision_tape`, `analytic_recovery`. The constants are theoretical; the uniform word and rounded multiplier are not materialized. Independent scientific review and formal-kernel acceptance remain open. The earlier [PR6376 scalar audit](https://github.com/CrocSwap/integer-mult-bounds/pull/6376) does not discharge physical erasure. No practical speedup or unconditional multiplication theorem is claimed.
 
-The separate caller engine checks 4,624 formal polynomials across all
-four central characters and rejects seven controls. It does not import
-the original caller replay. These are separate implementations by the
-same author, not independent human review. `VALIDATION.md` records the
-committed exports, isolated replay and transport controls. Four earlier
-isolated processes rejected a damaged archive, the excluded endpoint used
-as a feasible claim, the loose completion tail, and a missing root query
-charge. Their price mutations also changed the adapter declarations,
-so they reached the mathematical checks. A new isolated optimized
-process rejects a competing bound above the selected lower bound at
-the direct dominance guard. Each control is tied to its exact revision.
+## Task, overlap and credit
 
-Hosted CI has not run for this local branch. Independent scientific
-review and formal-kernel acceptance remain open. The assumptions are
-`native_all_columns`, `owned_erasure`, `compiler`, `precision_tape` and
-`analytic_recovery`. The uniform word and rounded multiplier are not
-materialized. The separate [PR6376 scalar audit](https://github.com/CrocSwap/integer-mult-bounds/pull/6376)
-checks the earlier PR6372 boundary only. Its forward CLEAR rows are
-nonzero; neither that audit nor this composition discharges the inherited
-owned_erasure premise. The final near-limit refinement uses tensor power
-1920, reserve 1e-29 and logarithm power 2100. Its compiler threshold is
-`2^317427600000000000000000000000000`. These constants are theoretical.
+Task: `joint-query-controller`, refined to a new mixed-projector root. Base: canonical main `7c49fe32c55de02c2c873655c804b16e4c3fef0a`, priority revision 8. Native source: PR6375 at `247b5c319b9f58fe9ee61dbf80697f8a9a429831`; all other exact dependencies are in the manifests. Main, recent open PRs and active Discussions were refreshed before publication.
 
-## Coordination and credit
+Nick Petalas's [PR6380](https://github.com/CrocSwap/integer-mult-bounds/pull/6380) studies the older nineteen-leaf binary topology; this PR changes the root and uses eighteen native calls. His [PR6391](https://github.com/CrocSwap/integer-mult-bounds/pull/6391) prices a different three-stage overlap proposal. The [active PR6375 scalar audit](https://github.com/CrocSwap/integer-mult-bounds/discussions/5645#discussioncomment-19359707) remains separate. [Canonical investigation](https://github.com/CrocSwap/integer-mult-bounds/discussions/5600#discussioncomment-19209322).
 
-The base is canonical main
-`7c49fe32c55de02c2c873655c804b16e4c3fef0a`, priority revision 8.
-Open PRs and active Discussions were checked. The
-[canonical investigation](https://github.com/CrocSwap/integer-mult-bounds/discussions/5600#discussioncomment-19209322)
-records the local publication hold and released reservation. Adjacent
-supplier audits and native-word construction are separate work.
-The research map records the new adjacent PR6391 overlapping-stage
-invoice and PR6384/6390 compiler lemmas, with source credit and scope.
-Their code and unreviewed claims are not used as premises here.
+New root, normalization, composition, proofs and author checks: **Ali Romman with substantial OpenAI Codex assistance; no subagents**. DreamingOfClouds supplied PR6375 with Claude Opus 5.5 via Claude Code. PR6348 supplies the binary module; PR6349 and its predecessors supply the native lineage. Credit Cinna Davis for the query/caller interfaces, Jacob Alan Sussman for productive recursion, and zxv and Cao Yifan for the interval/compiler lineage. All native, helper, geometry, BIT and analytic notices are retained. Apache-2.0.
 
-New root, normalization, source composition, proofs and replays: Ali
-Romman with substantial OpenAI Codex assistance; no subagents. PR6375
-is by DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code.
-PR6348 supplies the binary query module; PR6349 and its predecessors
-supply the native source. Cinna Davis supplies the caller and query
-lineage, Jacob Alan Sussman the productive recursion, and zxv and Cao
-Yifan the interval/compiler lineage. The border retains the earlier
-scalar-filtration context of PR4623 and Discussion4611. All native,
-helper, geometry, BIT and analytic notices remain in the source closure.
-Apache-2.0.
+## Open next questions
+
+Independent review should check the normalization, classification and complete native-to-caller bill. A larger raw gain must change a stated source or root hypothesis; a border extension first needs an affordable recovery and recursive precision proof. [Concrete follow-ups](README.md#open-next-questions).
+
+This PR changes only the four research packages. It requests neither a merge nor a selected-frontier update.

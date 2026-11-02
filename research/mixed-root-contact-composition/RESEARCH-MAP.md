@@ -1,7 +1,8 @@
 # Review map for the mixed-root contribution
 
 This map separates the new caller, later source compositions, exact
-limits and exploratory evidence. All new results remain local. A source
+limits and exploratory evidence. Publication was authorized on 2026-11-02.
+The earlier local checkpoints remain part of the evidence history. A source
 mechanism from another PR is credited to that PR, not claimed as new here.
 
 ## Numerical progression
@@ -171,6 +172,6 @@ None of their code is imported into this result.
   The conservative tail used here remains fully charged and strict;
   a sharper split coefficient does not change this raw signed invoice.
 
-No selected-frontier change, merge, closure, branch push or PR opening
-is part of this local contribution. Prepared by Ali Romman with
+No selected-frontier change, merge or closure is part of this contribution.
+Prepared by Ali Romman with
 substantial OpenAI Codex assistance; no subagents. Apache-2.0.
