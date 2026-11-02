@@ -1,0 +1,97 @@
+"""Source-only planned controls; execute before later driver imports/builds.
+
+The isolated reader drift case writes only its exclusively created temporary
+file. No system native library or live process mapping is mutated.
+"""
+
+
+def _need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _reject(operation, expected_fragment):
+    try:
+        operation()
+    except RuntimeError as error:
+        message = str(error)
+        _need(expected_fragment in message, 'TCB control rejected for an unexpected reason: ' + message)
+        return message
+    raise RuntimeError('TCB negative control did not reject')
+
+
+def run_controls(helper, bootstrap_root, bootstrap_api, expected_files, expected_hashlib_origin, temporary_directory):
+    bootstrap_api[0]()
+    records = []
+    receipt = helper.verify_native_tcb(bootstrap_root, bootstrap_api, expected_files, expected_hashlib_origin)
+    _need(receipt['status'] == 'MATCHED_DECLARED_INITIAL_NATIVE_FILES' and
+          receipt['declared_file_count'] == len(expected_files) and
+          receipt['probe_private_abi_access'] is False, 'TCB positive receipt differs')
+    records.append({'case': 'TCB-positive-initial-native-closure', 'receipt': receipt})
+    path, digest, size = expected_files[0]
+    wrong_digest = ('0' if digest[0] != '0' else '1') + digest[1:]
+    wrong = ((path, wrong_digest, size),) + expected_files[1:]
+    records.append({'case': 'TCB-wrong-file-digest', 'rejection': _reject(
+        lambda: helper.verify_native_tcb(bootstrap_root, bootstrap_api, wrong, expected_hashlib_origin),
+        'file digest differs')})
+    remove_index = next(index for index, row in enumerate(expected_files) if row[0] != expected_hashlib_origin)
+    missing = expected_files[:remove_index] + expected_files[remove_index + 1:]
+    records.append({'case': 'TCB-missing-declared-map', 'rejection': _reject(
+        lambda: helper.verify_native_tcb(bootstrap_root, bootstrap_api, missing, expected_hashlib_origin),
+        'mapped file closure differs')})
+    original_hash = bootstrap_root._SHA256
+    def forbidden(*args, **kwargs):
+        raise RuntimeError('Corrupt hash alias must never execute')
+    bootstrap_root._SHA256 = forbidden
+    try:
+        rejection = _reject(lambda: helper.verify_native_tcb(
+            bootstrap_root, bootstrap_api, expected_files, expected_hashlib_origin),
+            'Bootstrap/provider global changed')
+    finally:
+        bootstrap_root._SHA256 = original_hash
+    records.append({'case': 'TCB-root-hash-alias', 'rejection': rejection,
+                    'corrupt_function_executed': False})
+
+    bootstrap_api[0]()
+    ops = helper._native_ops(bootstrap_root, bootstrap_api)
+    posix = bootstrap_root.posix
+    _need(type(temporary_directory) is str and temporary_directory.startswith('/'),
+          'TCB temporary control directory must be absolute')
+    temporary_path = temporary_directory.rstrip('/') + '/native-tcb-reader-drift.bin'
+    flags = posix.O_CREAT | posix.O_EXCL | posix.O_WRONLY | posix.O_CLOEXEC | posix.O_NOFOLLOW
+    initial = b'initial native TCB reader evidence\n' * 32
+    descriptor = posix.open(temporary_path, flags, 0o600)
+    try:
+        offset = 0
+        while offset < len(initial):
+            written = posix.write(descriptor, initial[offset:])
+            _need(written > 0, 'TCB temporary fixture write made no progress')
+            offset += written
+    finally:
+        posix.close(descriptor)
+    expected_digest = ops['sha256'](initial).hexdigest()
+    state = {'changed': False}
+    original_read = ops['read']
+    def read_and_truncate(descriptor, count):
+        data = original_read(descriptor, count)
+        if data and not state['changed']:
+            state['changed'] = True
+            writer = posix.open(temporary_path, posix.O_WRONLY | posix.O_TRUNC | posix.O_CLOEXEC | posix.O_NOFOLLOW)
+            try:
+                _need(posix.write(writer, b'x') == 1, 'TCB drift fixture write differs')
+            finally:
+                posix.close(writer)
+        return data
+    instrumented = dict(ops)
+    instrumented['read'] = read_and_truncate
+    try:
+        rejection = _reject(lambda: helper._hash_file(
+            instrumented, temporary_path, expected_digest, len(initial)), 'file changed during hashing')
+        _need(state['changed'], 'TCB reader drift instrumentation did not fire')
+    finally:
+        posix.unlink(temporary_path)
+    records.append({'case': 'TCB-isolated-reader-file-drift', 'rejection': rejection,
+                    'instrumentation_scope': 'Internal reader only, exclusively created temporary file; public TCB admission never accepts injected ops.',
+                    'system_native_files_mutated': False})
+    return {'schema': 'h25-native-tcb-controls-v1', 'records': records, 'expected_records': 5,
+            'scientific_calls': 0, 'probe_native_imports': 0}
