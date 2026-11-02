@@ -1,0 +1,80 @@
+def prefix_exit1_terminal_facts(capability):
+    """Return cleanup/exit DATA for an actual owned prefix child exiting 1.
+
+    Separate from production terminal_facts. Never creates an epoch ticket,
+    ParentCompletion, source admission, or control-family acceptance.
+    """
+    state = _state(capability)
+    owner = state['unknown_owner']
+    try:
+        schema.need(_GETPID() == state['parent_pid'],
+                    'prefix terminal observer is not the owning parent')
+        _fresh_acquisition(state)
+        schema.need(owner['primary'][0] is None and
+                    state['primary'][0] is None,
+                    'earlier error forbids prefix terminal observation')
+        schema.need(
+            state['phase'] == 'CLOSED' and
+            state['quarantine'] is False and
+            state['acquisition_in_flight'] is False and
+            state['io_uncertain'] is False and
+            state['root'] is not None and
+            _TYPE(state['returncode']) is int and
+            state['returncode'] == 1 and
+            state['closure_confirmed'] is True and
+            state['final_rows'] == () and
+            not state['after_root'] and
+            not state['reaped'] and
+            all(fd is None or
+                (state['fd_attempted'][index] and state['fd_closed'][index])
+                for index, fd in enumerate(state['fds'])),
+            'owned exit1 prefix domain is incomplete or quarantined',
+        )
+        rows = _census(state)
+        schema.need(
+            not any(row[1] == state['parent_pid'] or
+                    (row[2], row[3]) in state['groups']
+                    for row in rows.values()),
+            'postcleanup owned prefix child/group still present',
+        )
+        return {
+            'schema': 'h25-prefix-exit1-terminal-facts-v1',
+            'root': list(state['root']),
+            'returncode': state['returncode'],
+            'owned_generations': [
+                list(row) for row in state['rows'][:state['count']]
+            ],
+            'groups': [list(pair) for pair in sorted(state['groups'])],
+            'remaining': [],
+            'adopted_reaps': [],
+            'observed_after_root_exit': [],
+            'pidfd_close_attempted': list(
+                state['fd_attempted'][:state['count']]
+            ),
+            'pidfd_close_confirmed': list(
+                state['fd_closed'][:state['count']]
+            ),
+            'source': 'original in-process Popen and owned generation registry',
+            'production_completion': False,
+            'refusal_semantics_authenticated_by_this_function': False,
+            'hostile_fork_or_privileged_host_resistance_claimed': False,
+        }
+    except BaseException as error:
+        if owner['primary'][0] is None:
+            prior = state['primary'][0]
+            owner['primary'][0] = error if prior is None else prior
+        primary = owner['primary'][0]
+        if state['primary'][0] is None:
+            state['primary'][0] = primary
+        if error is not primary:
+            if state['secondary'][8] is None:
+                state['secondary'][8] = error
+            elif state['overflow'][0] is None:
+                state['overflow'][0] = error
+        state['quarantine'] = True
+        owner['quarantine'][0] = True
+        # Do not change phase: an invalid early call must not prevent
+        # finish_domain from reaching its known-FD cleanup.
+        if primary is error:
+            raise
+        raise primary
