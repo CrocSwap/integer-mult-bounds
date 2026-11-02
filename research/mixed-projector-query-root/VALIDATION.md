@@ -21,12 +21,25 @@ negative decreasing bound covers all larger totals. A separate derivative
 bound above 42 proves monotonicity throughout the retained BIT range.
 Changing a root mask is rejected before the ceiling calculation.
 
-The first complete registered normal and optimized runs passed. The final
-ceiling adds the explicit saving-range monotonicity check and a wrong-root
-control. The final registered normal and optimized replays also passed with
-those checks. Sealed-export and committed-byte checks are still pending for
-this revision.
-No previous revision's transport receipt is transferred to these bytes.
+The complete registered normal and optimized replays passed, including the
+saving-range monotonicity check and wrong-root ceiling control. The local
+scientific commit is 52e87e4971a85a8f098fadb967dc75bee9f76c65. All 35 package
+and declared-input files passed the committed-byte and owner-execute checks.
+The official export passed integrity and coverage checks for all 17 inputs.
+
+The export SHA256 is
+95f881c6250350dc19e3571a5f67a452237e100d4e561c73ac79361af933674b.
+Its optimized verifier passed with empty PATH in a Git-free, read-only tree.
+All 36 exported file hashes and all path modes stayed unchanged. An actual
+source-word corruption failed its SHA256 gate. Swapping root input-basis
+rows and regenerating the matching caller failed the inverse-basis check.
+Both controls restored and rechecked every original byte and mode.
+
+The first extraction command requested gzip for the exporter's plain tar
+file. Extraction stopped before a verifier ran. The archive was renamed
+with its actual .tar format and extracted with automatic format detection.
+The subsequent sealed replay and corruption controls passed. This setup
+failure did not change the exported bytes or scientific claim.
 
 Discovery also replayed all 695 retained modular support patterns with a
 separate NumPy implementation. This checks the retained representatives,

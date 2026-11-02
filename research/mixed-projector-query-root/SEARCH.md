@@ -29,8 +29,10 @@ native basis data have dyadic coefficients.
 This is a bounded catalogue. It does not cover all rational bases, larger
 roots, noncommuting stage families or other query words. Floating searches
 over the catalogue do not prove that each pattern's price is optimal.
-An additional integer-program screen has finite time limits and unresolved
-solver bounds. It is not used as an exclusion certificate.
+An additional integer-program screen checked 88 price-equivalence classes
+from this catalogue, with native totals below 100. It found no better
+candidate. The floating solver reported 47 completed optima and 41 time
+limits with unresolved bounds. This is not an exact exclusion certificate.
 
 ## Child sizes
 
@@ -47,6 +49,13 @@ PROOF.md states the full argument and its restrictions.
 ## Other local searches
 
 - Structured roots through 20 fields did not improve the retained price.
+  A later eight-field family kept the four stage ranks 2,3,3,2. Its 582,240
+  bounded bases gave 351 support patterns. The price search recovered the
+  six-field bound and did not improve it. A separate pair-decomposition
+  search then tested all child totals through 200 for each of nine possible
+  added-stage support types, including thin anchor choices. Every best
+  floating margin stayed negative at .00328469. This is a bounded price
+  screen, not an exact exclusion theorem.
 - Braid moves on longer query words did not give a favorable complete bill
   in the tested finite domains.
 - Two- and four-copy coupled bases did not improve the scalar construction
