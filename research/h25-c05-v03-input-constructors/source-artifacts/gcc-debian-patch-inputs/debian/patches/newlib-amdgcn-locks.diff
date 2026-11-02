@@ -1,0 +1,303 @@
+# DP: newlib: amdgcn: Implement proper locks
+
+--- a/newlib-4.4.0.20231231/newlib/Makefile.in
++++ b/newlib-4.4.0.20231231/newlib/Makefile.in
+@@ -520,7 +520,8 @@ check_PROGRAMS =
+ 
+ @HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@am__append_43 = \
+ @HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/close.c libc/sys/amdgcn/fstat.c libc/sys/amdgcn/isatty.c libc/sys/amdgcn/lseek.c libc/sys/amdgcn/read.c libc/sys/amdgcn/write.c \
+-@HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/fcntl.c libc/sys/amdgcn/getpid.c libc/sys/amdgcn/kill.c libc/sys/amdgcn/open.c libc/sys/amdgcn/raise.c libc/sys/amdgcn/stat.c libc/sys/amdgcn/unlink.c
++@HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/fcntl.c libc/sys/amdgcn/getpid.c libc/sys/amdgcn/kill.c libc/sys/amdgcn/open.c libc/sys/amdgcn/raise.c libc/sys/amdgcn/stat.c \
++@HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/unlink.c libc/sys/amdgcn/lock.c
+ 
+ @HAVE_LIBC_SYS_ARM_DIR_TRUE@am__append_44 = libc/sys/arm/access.c libc/sys/arm/aeabi_atexit.c libc/sys/arm/sysconf.c
+ @HAVE_LIBC_SYS_ARM_DIR_TRUE@@MAY_SUPPLY_SYSCALLS_TRUE@am__append_45 = libc/sys/arm/libcfunc.c libc/sys/arm/trap.S libc/sys/arm/syscalls.c
+@@ -1578,7 +1579,8 @@ am__objects_51 = libc/ssp/libc_a-chk_fai
+ @HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/libc_a-open.$(OBJEXT) \
+ @HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/libc_a-raise.$(OBJEXT) \
+ @HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/libc_a-stat.$(OBJEXT) \
+-@HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/libc_a-unlink.$(OBJEXT)
++@HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/libc_a-unlink.$(OBJEXT) \
++@HAVE_LIBC_SYS_AMDGCN_DIR_TRUE@	libc/sys/amdgcn/libc_a-lock.$(OBJEXT)
+ @HAVE_LIBC_SYS_ARM_DIR_TRUE@am__objects_55 = libc/sys/arm/libc_a-access.$(OBJEXT) \
+ @HAVE_LIBC_SYS_ARM_DIR_TRUE@	libc/sys/arm/libc_a-aeabi_atexit.$(OBJEXT) \
+ @HAVE_LIBC_SYS_ARM_DIR_TRUE@	libc/sys/arm/libc_a-sysconf.$(OBJEXT)
+@@ -6975,6 +6977,9 @@ libc/sys/amdgcn/libc_a-stat.$(OBJEXT):
+ libc/sys/amdgcn/libc_a-unlink.$(OBJEXT):  \
+ 	libc/sys/amdgcn/$(am__dirstamp) \
+ 	libc/sys/amdgcn/$(DEPDIR)/$(am__dirstamp)
++libc/sys/amdgcn/libc_a-lock.$(OBJEXT):  \
++	libc/sys/amdgcn/$(am__dirstamp) \
++	libc/sys/amdgcn/$(DEPDIR)/$(am__dirstamp)
+ libc/sys/arm/$(am__dirstamp):
+ 	@$(MKDIR_P) libc/sys/arm
+ 	@: > libc/sys/arm/$(am__dirstamp)
+@@ -13279,6 +13284,7 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@libc/sys/amdgcn/$(DEPDIR)/libc_a-getpid.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@libc/sys/amdgcn/$(DEPDIR)/libc_a-isatty.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@libc/sys/amdgcn/$(DEPDIR)/libc_a-kill.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@libc/sys/amdgcn/$(DEPDIR)/libc_a-lock.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@libc/sys/amdgcn/$(DEPDIR)/libc_a-lseek.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@libc/sys/amdgcn/$(DEPDIR)/libc_a-open.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@libc/sys/amdgcn/$(DEPDIR)/libc_a-raise.Po@am__quote@
+@@ -30074,6 +30080,20 @@ libc/sys/amdgcn/libc_a-unlink.obj: libc/
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/sys/amdgcn/libc_a-unlink.obj `if test -f 'libc/sys/amdgcn/unlink.c'; then $(CYGPATH_W) 'libc/sys/amdgcn/unlink.c'; else $(CYGPATH_W) '$(srcdir)/libc/sys/amdgcn/unlink.c'; fi`
+ 
++libc/sys/amdgcn/libc_a-lock.o: libc/sys/amdgcn/lock.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/sys/amdgcn/libc_a-lock.o -MD -MP -MF libc/sys/amdgcn/$(DEPDIR)/libc_a-lock.Tpo -c -o libc/sys/amdgcn/libc_a-lock.o `test -f 'libc/sys/amdgcn/lock.c' || echo '$(srcdir)/'`libc/sys/amdgcn/lock.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/sys/amdgcn/$(DEPDIR)/libc_a-lock.Tpo libc/sys/amdgcn/$(DEPDIR)/libc_a-lock.Po
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/sys/amdgcn/lock.c' object='libc/sys/amdgcn/libc_a-lock.o' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/sys/amdgcn/libc_a-lock.o `test -f 'libc/sys/amdgcn/lock.c' || echo '$(srcdir)/'`libc/sys/amdgcn/lock.c
++
++libc/sys/amdgcn/libc_a-lock.obj: libc/sys/amdgcn/lock.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/sys/amdgcn/libc_a-lock.obj -MD -MP -MF libc/sys/amdgcn/$(DEPDIR)/libc_a-lock.Tpo -c -o libc/sys/amdgcn/libc_a-lock.obj `if test -f 'libc/sys/amdgcn/lock.c'; then $(CYGPATH_W) 'libc/sys/amdgcn/lock.c'; else $(CYGPATH_W) '$(srcdir)/libc/sys/amdgcn/lock.c'; fi`
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/sys/amdgcn/$(DEPDIR)/libc_a-lock.Tpo libc/sys/amdgcn/$(DEPDIR)/libc_a-lock.Po
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/sys/amdgcn/lock.c' object='libc/sys/amdgcn/libc_a-lock.obj' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/sys/amdgcn/libc_a-lock.obj `if test -f 'libc/sys/amdgcn/lock.c'; then $(CYGPATH_W) 'libc/sys/amdgcn/lock.c'; else $(CYGPATH_W) '$(srcdir)/libc/sys/amdgcn/lock.c'; fi`
++
+ libc/sys/arm/libc_a-access.o: libc/sys/arm/access.c
+ @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/sys/arm/libc_a-access.o -MD -MP -MF libc/sys/arm/$(DEPDIR)/libc_a-access.Tpo -c -o libc/sys/arm/libc_a-access.o `test -f 'libc/sys/arm/access.c' || echo '$(srcdir)/'`libc/sys/arm/access.c
+ @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/sys/arm/$(DEPDIR)/libc_a-access.Tpo libc/sys/arm/$(DEPDIR)/libc_a-access.Po
+--- a/newlib-4.4.0.20231231/newlib/libc/sys/amdgcn/Makefile.inc
++++ b/newlib-4.4.0.20231231/newlib/libc/sys/amdgcn/Makefile.inc
+@@ -1,3 +1,4 @@
+ libc_a_SOURCES += \
+ 	%D%/close.c %D%/fstat.c %D%/isatty.c %D%/lseek.c %D%/read.c %D%/write.c \
+-	%D%/fcntl.c %D%/getpid.c %D%/kill.c %D%/open.c %D%/raise.c %D%/stat.c %D%/unlink.c
++	%D%/fcntl.c %D%/getpid.c %D%/kill.c %D%/open.c %D%/raise.c %D%/stat.c \
++	%D%/unlink.c %D%/lock.c
+--- /dev/null
++++ b/newlib-4.4.0.20231231/newlib/libc/sys/amdgcn/include/sys/lock.h
+@@ -0,0 +1,39 @@
++#ifndef __SYS_LOCK_H__
++#define __SYS_LOCK_H__
++
++#include <newlib.h>
++#include <_ansi.h>
++
++typedef unsigned int _LOCK_T;
++typedef unsigned int _LOCK_RECURSIVE_T;
++
++#define __LOCK_INIT(CLASS,LOCK) CLASS _LOCK_T LOCK = 0;
++#define __LOCK_INIT_RECURSIVE(CLASS,LOCK) __LOCK_INIT(CLASS,LOCK)
++
++#define __lock_init(LOCK) LOCK = 0
++#define __lock_init_recursive(LOCK) LOCK = 0
++#define __lock_close(LOCK) ((void)0)
++#define __lock_close_recursive(LOCK) ((void) 0)
++#define __lock_acquire(LOCK) __gcn_lock_acquire (&LOCK)
++#define __lock_acquire_recursive(LOCK) \
++   __gcn_lock_acquire_recursive (&LOCK)
++#define __lock_try_acquire(LOCK) __gcn_try_lock_acquire (&LOCK)
++#define __lock_try_acquire_recursive(LOCK) \
++  __gcn_lock_try_acquire_recursive (&LOCK)
++#define __lock_release(LOCK) __gcn_lock_release (&LOCK)
++#define __lock_release_recursive(LOCK) \
++  __gcn_lock_release_recursive (&LOCK)
++
++
++int __gcn_try_lock_acquire (_LOCK_T *lock_ptr);
++void __gcn_lock_acquire (_LOCK_T *lock_ptr);
++void __gcn_lock_release (_LOCK_T *lock_ptr);
++int __gcn_lock_try_acquire_recursive (_LOCK_T *lock_ptr);
++void __gcn_lock_acquire_recursive (_LOCK_T *lock_ptr);
++void __gcn_lock_release_recursive (_LOCK_T *lock_ptr);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* __SYS_LOCK_H__ */
+--- /dev/null
++++ b/newlib-4.4.0.20231231/newlib/libc/sys/amdgcn/lock.c
+@@ -0,0 +1,187 @@
++/*
++ * Support file for amdgcn in newlib.
++ * Copyright (c) 2024 BayLibre.
++ *
++ * The authors hereby grant permission to use, copy, modify, distribute,
++ * and license this software and its documentation for any purpose, provided
++ * that existing copyright notices are retained in all copies and that this
++ * notice is included verbatim in any distributions. No written agreement,
++ * license, or royalty fee is required for any of the authorized uses.
++ * Modifications to this software may be copyrighted by their authors
++ * and need not follow the licensing terms described here, provided that
++ * the new terms are clearly indicated on the first page of each file where
++ * they apply.
++ */
++
++/* Lock routines for AMD GPU devices.
++
++   The lock is a 32-bit int:
++     - bits 0-3: wavefront id
++     - bits 4-23: workgroup id (+1, so never zero)
++     - bits 24-31: recursive lock count.
++
++   The purpose of the "relaxed" loads and stores being "atomic" here is
++   mostly just to ensure we punch through the caches consistently.
++
++   Non-recursive locks may be unlocked by any thread.  It's an error to
++   attempt to unlock a recursive lock from the wrong thread.
++
++   The DEBUG statements here use sprintf and write to avoid taking locks
++   themselves.  */
++
++#include <sys/lock.h>
++#include <assert.h>
++
++#define DEBUG 0
++
++#if DEBUG
++extern void write(int, char *, int);
++#endif
++
++static unsigned
++__gcn_thread_id ()
++{
++  /* Dim(0) is the workgroup ID; range 0 to maybe thousands.
++     Dim(1) is the wavefront ID; range 0 to 15.  */
++  return (((__builtin_gcn_dim_pos (0) + 1) << 4)
++	  + __builtin_gcn_dim_pos (1));
++}
++
++static int
++__gcn_lock_acquire_int (_LOCK_T *lock_ptr, int _try)
++{
++  int id = __gcn_thread_id ();
++
++#if DEBUG
++  char buf[1000];
++  __builtin_sprintf (buf,"acquire:%p(%d) lock_value:0x%x  id:0x%x", lock_ptr,
++		     _try, *lock_ptr, id);
++  write (1, buf, __builtin_strlen(buf));
++#endif
++
++  int expected = 0;
++  while (!__atomic_compare_exchange_n (lock_ptr, &expected, id, 0,
++				       __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
++    {
++      /* Lock *not* acquired.  */
++      if (_try)
++	return 0;
++      else
++	{
++	  asm ("s_sleep 64");
++	  expected = 0;
++	}
++    }
++
++#if DEBUG
++  __builtin_sprintf (buf,"acquired:%p(%d) lock_value:0x%x  id:0x%x", lock_ptr,
++		     _try, *lock_ptr, id);
++  write (1, buf, __builtin_strlen(buf));
++#endif
++
++  return 1;
++}
++
++int
++__gcn_try_lock_acquire (_LOCK_T *lock_ptr)
++{
++  return __gcn_lock_acquire_int (lock_ptr, 1);
++}
++
++void
++__gcn_lock_acquire (_LOCK_T *lock_ptr)
++{
++  __gcn_lock_acquire_int (lock_ptr, 0);
++}
++
++static int
++__gcn_lock_acquire_recursive_int (_LOCK_T *lock_ptr, int _try)
++{
++  int id = __gcn_thread_id ();
++
++#if DEBUG
++  char buf[1000];
++  __builtin_sprintf (buf,"acquire recursive:%p(%d) lock_value:0x%x  id:0x%x",
++		     lock_ptr, _try, *lock_ptr, id);
++  write (1, buf, __builtin_strlen(buf));
++#endif
++
++  unsigned int lock_value = __atomic_load_n (lock_ptr, __ATOMIC_RELAXED);
++  if ((lock_value & 0xffffff) == id)
++    {
++      /* This thread already holds the lock.
++	 Increment the recursion counter and update the lock.  */
++      int count = lock_value >> 24;
++      lock_value = ((count + 1) << 24) | id;
++      __atomic_store_n (lock_ptr, lock_value, __ATOMIC_RELAXED);
++
++#if DEBUG
++      __builtin_sprintf (buf,
++			 "increment recursive:%p(%d) lock_value:0x%x  id:0x%x",
++			 lock_ptr, _try, *lock_ptr, id);
++      write (1, buf, __builtin_strlen(buf));
++#endif
++
++      return 1;
++    }
++  else
++    return __gcn_lock_acquire_int (lock_ptr, _try);
++}
++
++int
++__gcn_lock_try_acquire_recursive (_LOCK_T *lock_ptr)
++{
++  return __gcn_lock_acquire_recursive_int (lock_ptr, 1);
++}
++
++void
++__gcn_lock_acquire_recursive (_LOCK_T *lock_ptr)
++{
++  __gcn_lock_acquire_recursive_int (lock_ptr, 0);
++}
++
++void
++__gcn_lock_release (_LOCK_T *lock_ptr)
++{
++#if DEBUG
++  char buf[1000];
++  __builtin_sprintf (buf,"release:%p lock_value:0x%x  id:0x%x", lock_ptr,
++		     *lock_ptr, __gcn_thread_id());
++  write (1, buf, __builtin_strlen(buf));
++#endif
++
++  __atomic_store_n (lock_ptr, 0, __ATOMIC_RELEASE);
++}
++
++void
++__gcn_lock_release_recursive (_LOCK_T *lock_ptr)
++{
++  int id = __gcn_thread_id ();
++  unsigned int lock_value = __atomic_load_n (lock_ptr, __ATOMIC_RELAXED);
++
++#if DEBUG
++  char buf[1000];
++  __builtin_sprintf (buf, "release recursive:%p lock_value:0x%x  id:0x%x",
++		     lock_ptr, lock_value, id);
++  write (1, buf, __builtin_strlen(buf));
++#endif
++
++  /* It is an error to call this function from the wrong thread.  */
++  assert ((lock_value & 0xffffff) == id);
++
++  /* Decrement or release the lock.  */
++  int count = lock_value >> 24;
++  if (count > 0)
++    {
++      lock_value = ((count - 1) << 24) | id;
++      __atomic_store_n (lock_ptr, lock_value, __ATOMIC_RELAXED);
++
++#if DEBUG
++      __builtin_sprintf (buf, "decrement recursive:%p lock_value:0x%x  id:0x%x",
++			 lock_ptr, *lock_ptr, id);
++      write (1, buf, __builtin_strlen(buf));
++#endif
++    }
++  else
++    __gcn_lock_release (lock_ptr);
++}

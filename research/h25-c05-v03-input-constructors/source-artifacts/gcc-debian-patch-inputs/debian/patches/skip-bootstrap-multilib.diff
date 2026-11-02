@@ -1,0 +1,22 @@
+# DP: Skip non-default multilib and libstdc++-v3 debug builds in bootstrap builds
+
+--- a/src/config-ml.in
++++ b/src/config-ml.in
+@@ -492,6 +492,17 @@ esac
+ # Tests like `if [ -n "$multidirs" ]' require it.
+ multidirs=`echo "$multidirs" | sed -e 's/^[ ][ ]*//' -e 's/[ ][ ]*$//' -e 's/[ ][ ]*/ /g'`
+ 
++# stage1 and stage2 builds of the non-default multilib configurations
++# are not needed; skip these to save some build time.
++if [ -f ../../stage_final ] && [ -f ../../stage_current ]; then
++    stage_final=`cat ../../stage_final`
++    stage_current=`cat ../../stage_current`
++    if [ "$stage_current" != "$stage_final" ]; then
++	echo "Skip `basename $ml_realsrcdir` non-default multilibs for bootstrap stage $stage_current"
++	multidirs=
++    fi
++fi
++
+ # Add code to library's top level makefile to handle building the multilib
+ # subdirs.
+ 

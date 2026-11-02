@@ -1,0 +1,49 @@
+# DP: Add FORCE_CROSS_LAYOUT env var to force a cross directory layout.
+
+--- a/src/configure.ac
++++ b/src/configure.ac
+@@ -3302,7 +3302,7 @@ target_configargs="$target_configargs ${
+ # native.  However, it would be better to use other mechanisms to make the
+ # sorts of decisions they want to make on this basis.  Please consider
+ # this option to be deprecated.  FIXME.
+-if test x${is_cross_compiler} = xyes ; then
++if test x${is_cross_compiler} = xyes || test x${FORCE_CROSS_LAYOUT} = xyes; then
+   target_configargs="--with-cross-host=${host_noncanonical} ${target_configargs}"
+ fi
+ 
+--- a/src/gcc/configure.ac
++++ b/src/gcc/configure.ac
+@@ -2474,14 +2474,14 @@ SYSTEM_HEADER_DIR='$(NATIVE_SYSTEM_HEADE
+ BUILD_SYSTEM_HEADER_DIR=$SYSTEM_HEADER_DIR	AC_SUBST(BUILD_SYSTEM_HEADER_DIR)
+ 
+ if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x ||
+-   test x$build != x$host || test "x$with_build_sysroot" != x; then
++   test x$build != x$host || test "x$with_build_sysroot" != x || test x$FORCE_CROSS_LAYOUT = xyes; then
+   if test "x$with_build_sysroot" != x; then
+     BUILD_SYSTEM_HEADER_DIR=$with_build_sysroot'$${sysroot_headers_suffix}$(NATIVE_SYSTEM_HEADER_DIR)'
+   else
+     BUILD_SYSTEM_HEADER_DIR='$(CROSS_SYSTEM_HEADER_DIR)'
+   fi
+ 
+-  if test x$host != x$target
++  if test x$host != x$target || test x$FORCE_CROSS_LAYOUT = xyes
+   then
+     CROSS="-DCROSS_DIRECTORY_STRUCTURE"
+     ALL=all.cross
+@@ -7412,14 +7412,14 @@ AC_SUBST_FILE(language_hooks)
+ 
+ # Echo link setup.
+ if test x${build} = x${host} ; then
+-  if test x${host} = x${target} ; then
++  if test x${host} = x${target} && test x$FORCE_CROSS_LAYOUT != xyes ; then
+     echo "Links are now set up to build a native compiler for ${target}." 1>&2
+   else
+     echo "Links are now set up to build a cross-compiler" 1>&2
+     echo " from ${host} to ${target}." 1>&2
+   fi
+ else
+-  if test x${host} = x${target} ; then
++  if test x${host} = x${target} && test x$FORCE_CROSS_LAYOUT != xyes ; then
+     echo "Links are now set up to build (on ${build}) a native compiler" 1>&2
+     echo " for ${target}." 1>&2
+   else

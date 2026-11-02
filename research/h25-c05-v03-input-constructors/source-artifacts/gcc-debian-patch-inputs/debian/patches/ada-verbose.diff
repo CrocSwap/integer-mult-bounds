@@ -1,0 +1,40 @@
+Description: Display subprocess command lines when building Ada.
+ The log can be a page longer if it helps debugging.
+Forwarded: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=87778
+Author: Nicolas Boulenguez <nicolas@debian.org>
+
+Index: b/src/gcc/ada/Make-generated.in
+===================================================================
+--- a/src/gcc/ada/Make-generated.in
++++ b/src/gcc/ada/Make-generated.in
+@@ -18,7 +18,7 @@ GEN_IL_FLAGS = -gnata -gnat2012 -gnatw.g
+ ada/seinfo_tables.ads ada/seinfo_tables.adb ada/sinfo.h ada/einfo.h ada/nmake.ads ada/nmake.adb ada/seinfo.ads ada/sinfo-nodes.ads ada/sinfo-nodes.adb ada/einfo-entities.ads ada/einfo-entities.adb: ada/stamp-gen_il ; @true
+ ada/stamp-gen_il: $(fsrcdir)/ada/gen_il*
+ 	$(MKDIR) ada/gen_il
+-	cd ada/gen_il; gnatmake -q -g $(GEN_IL_FLAGS) gen_il-main
++	cd ada/gen_il; gnatmake -v -g $(GEN_IL_FLAGS) gen_il-main
+ 	# Ignore errors to work around finalization issues in older compilers
+ 	- cd ada/gen_il; ./gen_il-main
+ 	$(fsrcdir)/../move-if-change ada/gen_il/seinfo_tables.ads ada/seinfo_tables.ads
+@@ -46,7 +46,7 @@ ada/stamp-snames : ada/snames.ads-tmpl a
+ 	-$(MKDIR) ada/bldtools/snamest
+ 	$(RM) $(addprefix ada/bldtools/snamest/,$(notdir $^))
+ 	$(CP) $^ ada/bldtools/snamest
+-	cd ada/bldtools/snamest; gnatmake -q xsnamest ; ./xsnamest
++	cd ada/bldtools/snamest; gnatmake -v xsnamest ; ./xsnamest
+ 	$(fsrcdir)/../move-if-change ada/bldtools/snamest/snames.ns ada/snames.ads
+ 	$(fsrcdir)/../move-if-change ada/bldtools/snamest/snames.nb ada/snames.adb
+ 	$(fsrcdir)/../move-if-change ada/bldtools/snamest/snames.nh ada/snames.h
+Index: b/src/gcc/ada/gcc-interface/Makefile.in
+===================================================================
+--- a/src/gcc/ada/gcc-interface/Makefile.in
++++ b/src/gcc/ada/gcc-interface/Makefile.in
+@@ -616,7 +616,7 @@ OSCONS_EXTRACT=$(GCC_FOR_ADA_RTS) $(GNAT
+ 	-$(MKDIR) ./bldtools/oscons
+ 	$(RM) $(addprefix ./bldtools/oscons/,$(notdir $^))
+ 	$(CP) $^ ./bldtools/oscons
+-	(cd ./bldtools/oscons ; gnatmake -q xoscons)
++	(cd ./bldtools/oscons ; gnatmake -v xoscons)
+ 
+ $(RTSDIR)/s-oscons.ads: ../stamp-gnatlib1-$(RTSDIR) s-oscons-tmplt.c gsocket.h ./bldtools/oscons/xoscons
+ 	$(RM) $(RTSDIR)/s-oscons-tmplt.i $(RTSDIR)/s-oscons-tmplt.s

@@ -1,0 +1,56 @@
+# DP: Fix PR jit/87808.
+
+--- a/src/gcc/jit/Make-lang.in
++++ b/src/gcc/jit/Make-lang.in
+@@ -136,6 +136,9 @@ ifneq (,$(findstring mingw,$(target)))
+ jit_OBJS += jit/jit-w32.o
+ endif
+ 
++CFLAGS-jit/jit-playback.o += \
++	-DFALLBACK_GCC_EXEC_PREFIX=\"$(libdir)/gcc/$(target_subdir)/$(version)\"
++
+ # Use strict warnings for this front end.
+ jit-warn = $(STRICT_WARN)
+ 
+--- a/src/gcc/jit/jit-playback.cc
++++ b/src/gcc/jit/jit-playback.cc
+@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.
+ #include "gcc.h"
+ #include "diagnostic.h"
+ #include "stmt.h"
++#include "file-find.h"
+ 
+ #include "jit-playback.h"
+ #include "jit-result.h"
+@@ -3058,7 +3059,31 @@ void
+ playback::context::
+ invoke_embedded_driver (const vec <char *> *argvec)
+ {
++  static char* gcc_driver_file = NULL;
++
+   JIT_LOG_SCOPE (get_logger ());
++
++  /* process_command(), uses make_relative_prefix(), searches PATH
++     for the external driver, which might not be found.  In this case
++     fall back to the configured default.  */
++#ifdef FALLBACK_GCC_EXEC_PREFIX
++  if (gcc_driver_file == NULL && ::getenv ("GCC_EXEC_PREFIX") == NULL)
++    {
++      struct path_prefix path = { 0, 0, "exec" };
++
++      prefix_from_env ("PATH", &path);
++      gcc_driver_file = find_a_file (&path, gcc_driver_name, X_OK);
++      if (gcc_driver_file == NULL)
++        {
++	  char *str = concat ("GCC_EXEC_PREFIX=",
++			      FALLBACK_GCC_EXEC_PREFIX, NULL);
++	  ::putenv (str);
++	  log ("gcc driver %s not found, using fallback GCC_EXEC_PREFIX=%s",
++	       gcc_driver_name, FALLBACK_GCC_EXEC_PREFIX);
++        }
++    }
++#endif
++
+   driver d (true, /* can_finalize */
+ 	    false); /* debug */
+   int result = d.main (argvec->length (),

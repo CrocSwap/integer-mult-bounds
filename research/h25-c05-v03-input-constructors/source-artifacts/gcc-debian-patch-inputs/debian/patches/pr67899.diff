@@ -1,0 +1,31 @@
+# DP: Proposed patch for PR sanitizer/67899
+
+Index: b/src/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+===================================================================
+--- a/src/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
++++ b/src/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+@@ -606,11 +606,10 @@ namespace __sanitizer {
+ #else
+     __sanitizer_sigset_t sa_mask;
+ #ifndef __mips__
+-#if defined(__sparc__)
+-    unsigned long sa_flags;
+-#else
+-    int sa_flags;
++#if defined(__sparc__) && defined(__arch64__)
++    int __pad;
+ #endif
++    int sa_flags;
+ #endif
+ #endif
+ #if SANITIZER_LINUX
+@@ -640,7 +639,8 @@ namespace __sanitizer {
+       void (*handler)(int signo);
+       void (*sigaction)(int signo, void *info, void *ctx);
+     };
+-    unsigned long sa_flags;
++    int __pad;
++    int sa_flags;
+     void (*sa_restorer)(void);
+     __sanitizer_kernel_sigset_t sa_mask;
+   };

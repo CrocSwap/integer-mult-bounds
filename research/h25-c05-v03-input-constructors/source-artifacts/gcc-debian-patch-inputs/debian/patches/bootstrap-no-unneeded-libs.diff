@@ -1,0 +1,30 @@
+# DP: For bootstrap builds, don't build unneeded libstdc++ things
+# DP: (debug library, PCH headers).
+
+# Please read ada-changes-in-autogen-output.diff about src/Makefile.[def|tpl].
+
+--- a/src/Makefile.tpl
++++ b/src/Makefile.tpl
+@@ -1060,7 +1060,9 @@
+ 	  --target=[+target_alias+] $${srcdiroption} [+ IF prev +]\
+ 	  --with-build-libsubdir=$(HOST_SUBDIR) [+ ENDIF prev +]\
+ 	  $(STAGE[+id+]_CONFIGURE_FLAGS)[+ IF extra_configure_flags +] \
+-	  [+extra_configure_flags+][+ ENDIF extra_configure_flags +]
++	  [+extra_configure_flags+][+ ENDIF extra_configure_flags +] \
++	  [+ IF bootstrap_configure_flags +][+bootstrap_configure_flags+] \
++	  [+ ENDIF bootstrap_configure_flags +]
+ @endif [+prefix+][+module+]-bootstrap
+ [+ ENDFOR bootstrap_stage +]
+ [+ ENDIF bootstrap +]
+--- a/src/Makefile.def
++++ b/src/Makefile.def
+@@ -117,7 +117,8 @@
+ target_modules = { module= libstdc++-v3;
+ 		   bootstrap=true;
+ 		   lib_path=src/.libs;
+-		   raw_cxx=true; };
++		   raw_cxx=true;
++		   bootstrap_configure_flags='--disable-libstdcxx-debug --disable-libstdcxx-pch'; };
+ target_modules = { module= libmudflap; lib_path=.libs; };
+ target_modules = { module= libsanitizer; lib_path=.libs; };
+ target_modules = { module= libssp; lib_path=.libs; };

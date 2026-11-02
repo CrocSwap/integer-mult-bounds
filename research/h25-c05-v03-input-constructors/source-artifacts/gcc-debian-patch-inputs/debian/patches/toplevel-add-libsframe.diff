@@ -1,0 +1,56 @@
+--- a/src/Makefile.def
++++ b/src/Makefile.def
+@@ -458,11 +458,14 @@ dependencies = { module=all-gdbsupport;
+ dependencies = { module=all-gdbsupport; on=all-intl; };
+ 
+ // Host modules specific to binutils.
++// build libsframe before bfd for encoder/decoder support for linking
++// SFrame sections
+ dependencies = { module=configure-bfd; on=configure-libiberty; hard=true; };
+ dependencies = { module=configure-bfd; on=configure-intl; };
+ dependencies = { module=all-bfd; on=all-libiberty; };
+ dependencies = { module=all-bfd; on=all-intl; };
+ dependencies = { module=all-bfd; on=all-zlib; };
++dependencies = { module=all-bfd; on=all-libsframe; };
+ dependencies = { module=configure-opcodes; on=configure-libiberty; hard=true; };
+ dependencies = { module=all-opcodes; on=all-libiberty; };
+ 
+@@ -495,6 +498,10 @@ dependencies = { module=install-strip-li
+ dependencies = { module=install-strip-ld; on=install-strip-bfd; };
+ dependencies = { module=install-strip-ld; on=install-strip-libctf; };
+ 
++// libbfd depends on libsframe
++dependencies = { module=install-bfd; on=install-libsframe; };
++dependencies = { module=install-strip-bfd; on=install-strip-libsframe; };
++
+ // libopcodes depends on libbfd
+ dependencies = { module=configure-opcodes; on=configure-bfd; hard=true; };
+ dependencies = { module=install-opcodes; on=install-bfd; };
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -66337,6 +66337,16 @@ all-stagetrain-bfd: maybe-all-stagetrain
+ all-stagefeedback-bfd: maybe-all-stagefeedback-zlib
+ all-stageautoprofile-bfd: maybe-all-stageautoprofile-zlib
+ all-stageautofeedback-bfd: maybe-all-stageautofeedback-zlib
++all-bfd: maybe-all-libsframe
++all-stage1-bfd: maybe-all-stage1-libsframe
++all-stage2-bfd: maybe-all-stage2-libsframe
++all-stage3-bfd: maybe-all-stage3-libsframe
++all-stage4-bfd: maybe-all-stage4-libsframe
++all-stageprofile-bfd: maybe-all-stageprofile-libsframe
++all-stagetrain-bfd: maybe-all-stagetrain-libsframe
++all-stagefeedback-bfd: maybe-all-stagefeedback-libsframe
++all-stageautoprofile-bfd: maybe-all-stageautoprofile-libsframe
++all-stageautofeedback-bfd: maybe-all-stageautofeedback-libsframe
+ configure-opcodes: configure-libiberty
+ configure-stage1-opcodes: configure-stage1-libiberty
+ configure-stage2-opcodes: configure-stage2-libiberty
+@@ -66475,6 +66485,8 @@ install-ld: maybe-install-libctf
+ install-strip-libctf: maybe-install-strip-bfd
+ install-strip-ld: maybe-install-strip-bfd
+ install-strip-ld: maybe-install-strip-libctf
++install-bfd: maybe-install-libsframe
++install-strip-bfd: maybe-install-strip-libsframe
+ configure-opcodes: configure-bfd
+ configure-stage1-opcodes: configure-stage1-bfd
+ configure-stage2-opcodes: configure-stage2-bfd

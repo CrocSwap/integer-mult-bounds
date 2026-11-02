@@ -1,0 +1,38 @@
+# DP: Don't run the libstdc++-v3 testsuite in thumb mode on armel
+
+Index: testsuite/Makefile.in
+===================================================================
+--- a/src/libstdc++-v3/testsuite/Makefile.in	(revision 156820)
++++ b/src/libstdc++-v3/testsuite/Makefile.in	(working copy)
+@@ -583,6 +583,8 @@
+ 	srcdir=`$(am__cd) $(srcdir) && pwd`; export srcdir; \
+ 	EXPECT=$(EXPECT); export EXPECT; \
+ 	runtest=$(RUNTEST); \
++	runtestflags="`echo '$(RUNTESTFLAGS)' | sed 's/,-marm/-marm/'`"; \
++	case "$$runtestflags" in *\\{\\}) runtestflags=; esac; \
+ 	if [ -z "$$runtest" ]; then runtest=runtest; fi; \
+ 	tool=libstdc++; \
+ 	dirs=; \
+@@ -590,7 +592,7 @@
+ 	  normal0) \
+ 	    if $(SHELL) -c "$$runtest --version" > /dev/null 2>&1; then \
+ 	      $$runtest $(AM_RUNTESTFLAGS) $(RUNTESTDEFAULTFLAGS) \
+-			$(RUNTESTFLAGS) abi.exp; \
++			$$runtestflags abi.exp; \
+ 	    else echo "WARNING: could not find \`runtest'" 1>&2; :;\
+ 	    fi; \
+ 	    dirs="`cd $$srcdir; echo [013-9][0-9]_*/* [abep]*/*`";; \
+@@ -605,11 +607,11 @@
+ 	if $(SHELL) -c "$$runtest --version" > /dev/null 2>&1; then \
+ 	  if [ -n "$$dirs" ]; then \
+ 	    $$runtest $(AM_RUNTESTFLAGS) $(RUNTESTDEFAULTFLAGS) \
+-		    $(RUNTESTFLAGS) \
++		    $$runtestflags \
+ 		    "conformance.exp=`echo $$dirs | sed 's/ /* /g;s/$$/*/'`"; \
+ 	  else \
+ 	    $$runtest $(AM_RUNTESTFLAGS) $(RUNTESTDEFAULTFLAGS) \
+-		    $(RUNTESTFLAGS); \
++		    $$runtestflags; \
+ 	  fi; \
+ 	else echo "WARNING: could not find \`runtest'" 1>&2; :;\
+ 	fi

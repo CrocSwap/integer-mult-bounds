@@ -1,0 +1,26 @@
+--- a/src/gcc/config/arm/t-linux-eabi
++++ b/src/gcc/config/arm/t-linux-eabi
+@@ -24,6 +24,23 @@
+ MULTILIB_OPTIONS	=
+ MULTILIB_DIRNAMES	=
+ 
++ifneq (,$(findstring MULTIARCH_DEFAULTS,$(tm_defines)))
++ifneq (,$(findstring __arm_linux_gnueabi__,$(tm_defines)))
++  MULTILIB_OPTIONS	= mfloat-abi=softfp/mfloat-abi=hard/mfloat-abi=soft
++  MULTILIB_DIRNAMES	= . hf soft-float
++  MULTILIB_EXCEPTIONS	=
++  MULTILIB_MATCHES	= mfloat-abi?hard=mhard-float mfloat-abi?soft=msoft-float
++  MULTILIB_OSDIRNAMES	= ../../lib/arm-linux-gnueabi ../../lib/arm-linux-gnueabihf soft-float
++endif
++ifneq (,$(findstring __arm_linux_gnueabihf__,$(tm_defines)))
++  MULTILIB_OPTIONS	= mfloat-abi=hard/mfloat-abi=softfp/mfloat-abi=soft
++  MULTILIB_DIRNAMES	= . sf soft-float
++  MULTILIB_EXCEPTIONS	=
++  MULTILIB_MATCHES	= mfloat-abi?hard=mhard-float mfloat-abi?soft=msoft-float
++  MULTILIB_OSDIRNAMES	= ../../lib/arm-linux-gnueabihf ../../lib/arm-linux-gnueabi soft-float
++endif
++endif
++
+ #MULTILIB_OPTIONS     += mcpu=fa606te/mcpu=fa626te/mcpu=fmp626/mcpu=fa726te
+ #MULTILIB_DIRNAMES    += fa606te fa626te fmp626 fa726te
+ #MULTILIB_EXCEPTIONS  += *mthumb/*mcpu=fa606te *mthumb/*mcpu=fa626te *mthumb/*mcpu=fmp626 *mthumb/*mcpu=fa726te*

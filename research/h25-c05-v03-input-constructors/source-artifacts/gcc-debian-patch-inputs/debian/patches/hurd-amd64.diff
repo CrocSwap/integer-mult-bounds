@@ -1,0 +1,116 @@
+commit 5707e9db9c398d311defc80c5b7822c9a07ead60
+Author: Samuel Thibault <samuel.thibault@gnu.org>
+Date:   Sat May 6 13:50:36 2023 +0200
+
+    hurd: Add multilib paths for gnu-x86_64
+    
+    We need the multilib paths in gcc to find e.g. glibc crt files on
+    Debian.  This is essentially based on t-linux64 version.
+    
+    gcc/ChangeLog:
+    
+            * config/i386/t-gnu64: New file.
+            * config.gcc [x86_64-*-gnu*]: Add i386/t-gnu64 to
+            tmake_file.
+
+commit c768917402d4cba69a92c737e56e177f5b8ab0df
+Author: Samuel Thibault <samuel.thibault@gnu.org>
+Date:   Sat May 6 13:55:44 2023 +0200
+
+    hurd: Ad default-pie and static-pie support
+    
+    This fixes the Hurd spec in the default-pie case, and adds static-pie
+    support.
+    
+    gcc/ChangeLog:
+    
+            * config/i386/gnu.h: Use PIE_SPEC, add static-pie case.
+            * config/i386/gnu64.h: Use PIE_SPEC, add static-pie case.
+
+--- a/src/gcc/config.gcc
++++ b/src/gcc/config.gcc
+@@ -5828,6 +5828,9 @@ case ${target} in
+ 	visium-*-*)
+ 		target_cpu_default2="TARGET_CPU_$with_cpu"
+ 		;;
++	x86_64-*-gnu*)
++		tmake_file="$tmake_file i386/t-gnu64"
++		;;
+ esac
+ 
+ t=
+--- /dev/null
++++ b/src/gcc/config/i386/t-gnu64
+@@ -0,0 +1,38 @@
++# Copyright (C) 2002-2023 Free Software Foundation, Inc.
++#
++# This file is part of GCC.
++#
++# GCC is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GCC is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++
++# On Debian, Ubuntu and other derivative distributions, the 32bit libraries
++# are found in /lib32 and /usr/lib32, /lib64 and /usr/lib64 are symlinks to
++# /lib and /usr/lib, while other distributions install libraries into /lib64
++# and /usr/lib64.  The LSB does not enforce the use of /lib64 and /usr/lib64,
++# it doesn't tell anything about the 32bit libraries on those systems.  Set
++# MULTILIB_OSDIRNAMES according to what is found on the target.
++
++# To support i386, x86-64 and x32 libraries, the directory structrue
++# should be:
++#
++# 	/lib has i386 libraries.
++# 	/lib64 has x86-64 libraries.
++# 	/libx32 has x32 libraries.
++#
++comma=,
++MULTILIB_OPTIONS    = $(subst $(comma),/,$(TM_MULTILIB_CONFIG))
++MULTILIB_DIRNAMES   = $(patsubst m%, %, $(subst /, ,$(MULTILIB_OPTIONS)))
++MULTILIB_OSDIRNAMES = m64=../lib64$(call if_multiarch,:x86_64-gnu)
++MULTILIB_OSDIRNAMES+= m32=$(if $(wildcard $(shell echo $(SYSTEM_HEADER_DIR))/../../usr/lib32),../lib32,../lib)$(call if_multiarch,:i386-gnu)
++MULTILIB_OSDIRNAMES+= mx32=../libx32$(call if_multiarch,:x86_64-gnux32)
+--- a/src/gcc/config/i386/gnu.h
++++ b/src/gcc/config/i386/gnu.h
+@@ -27,12 +27,12 @@ along with GCC.  If not, see <http://www
+ #undef	STARTFILE_SPEC
+ #if defined HAVE_LD_PIE
+ #define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p|profile:%{static:gcrt0.o%s;:gcrt1.o%s};pie:Scrt1.o%s;static:crt0.o%s;:crt1.o%s}} \
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
++  "%{!shared: %{pg|p|profile:%{static-pie:grcrt0.o%s;static:gcrt0.o%s;:gcrt1.o%s};static-pie:rcrt0.o%s;static:crt0.o%s;" PIE_SPEC ":Scrt1.o%s;:crt1.o%s}} \
++   crti.o%s %{static:crtbeginT.o%s;shared|static-pie|" PIE_SPEC ":crtbeginS.o%s;:crtbegin.o%s}"
+ #else
+ #define STARTFILE_SPEC \
+   "%{!shared: %{pg|p|profile:%{static:gcrt0.o%s;:gcrt1.o%s};static:crt0.o%s;:crt1.o%s}} \
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
++   crti.o%s %{static:crtbeginT.o%s;shared:crtbeginS.o%s;:crtbegin.o%s}"
+ #endif
+ 
+ #ifdef TARGET_LIBC_PROVIDES_SSP
+--- a/src/gcc/config/i386/gnu64.h
++++ b/src/gcc/config/i386/gnu64.h
+@@ -31,10 +31,10 @@ along with GCC.  If not, see <http://www
+ #undef	STARTFILE_SPEC
+ #if defined HAVE_LD_PIE
+ #define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p|profile:%{static:gcrt0.o%s;:gcrt1.o%s};pie:Scrt1.o%s;static:crt0.o%s;:crt1.o%s}} \
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
++  "%{!shared: %{pg|p|profile:%{static-pie:grcrt0.o%s;static:gcrt0.o%s;:gcrt1.o%s};static-pie:rcrt0.o%s;static:crt0.o%s;" PIE_SPEC ":Scrt1.o%s;:crt1.o%s}} \
++   crti.o%s %{static:crtbeginT.o%s;shared|static-pie|" PIE_SPEC ":crtbeginS.o%s;:crtbegin.o%s}"
+ #else
+ #define STARTFILE_SPEC \
+   "%{!shared: %{pg|p|profile:%{static:gcrt0.o%s;:gcrt1.o%s};static:crt0.o%s;:crt1.o%s}} \
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
++   crti.o%s %{static:crtbeginT.o%s;shared|static-pie|" PIE_SPEC ":crtbeginS.o%s;:crtbegin.o%s}"
+ #endif

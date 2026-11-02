@@ -1,0 +1,304 @@
+#! /bin/sh -e
+
+# All lines beginning with `# DPATCH:' are a description of the patch.
+# DP: Description: use -Wno-format on tests that cannot be adjusted other ways.
+# DP: Author: Kees Cook <kees@ubuntu.com>
+# DP: Ubuntu: https://bugs.launchpad.net/bugs/344502
+
+dir=
+if [ $# -eq 3 -a "$2" = '-d' ]; then
+    pdir="-d $3"
+    dir="$3/"
+elif [ $# -ne 1 ]; then
+    echo >&2 "`basename $0`: script expects -patch|-unpatch as argument"
+    exit 1
+fi
+case "$1" in
+    -patch)
+        patch $pdir -f --no-backup-if-mismatch -p1 < $0
+        #cd ${dir}gcc && autoconf
+        ;;
+    -unpatch)
+        patch $pdir -f --no-backup-if-mismatch -R -p1 < $0
+        #rm ${dir}gcc/configure
+        ;;
+    *)
+        echo >&2 "`basename $0`: script expects -patch|-unpatch as argument"
+        exit 1
+esac
+exit 0
+
+---
+ src/gcc/testsuite/c-c++-common/torture/vector-compare-1.c  |    1 +
+ src/gcc/testsuite/g++.dg/abi/pragma-pack1.C                |    2 ++
+ src/gcc/testsuite/g++.dg/abi/regparm1.C                    |    1 +
+ src/gcc/testsuite/g++.dg/cpp0x/constexpr-tuple.C           |    1 +
+ src/gcc/testsuite/g++.dg/torture/pr51436.C                 |    1 +
+ src/gcc/testsuite/g++.old-deja/g++.law/weak.C              |    2 +-
+ src/gcc/testsuite/g++.old-deja/g++.other/std1.C            |    1 +
+ src/gcc/testsuite/gcc.c-torture/execute/vfprintf-chk-1.x   |    5 +++++
+ src/gcc/testsuite/gcc.c-torture/execute/vprintf-chk-1.x    |    5 +++++
+ src/gcc/testsuite/gcc.dg/charset/builtin2.c                |    2 +-
+ src/gcc/testsuite/gcc.dg/format/format.exp                 |    2 +-
+ src/gcc/testsuite/gcc.dg/ipa/ipa-sra-1.c                   |    2 +-
+ src/gcc/testsuite/gcc.dg/lto/20090218-2_0.c                |    2 ++
+ src/gcc/testsuite/gcc.dg/pr30473.c                         |    2 +-
+ src/gcc/testsuite/gcc.dg/pr38902.c                         |    2 +-
+ src/gcc/testsuite/gcc.dg/pr59418.c                         |    2 +-
+ src/gcc/testsuite/gcc.dg/torture/tls/tls-test.c            |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-fprintf-1.c      |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-fprintf-chk-1.c  |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-printf-1.c       |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-printf-chk-1.c   |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vfprintf-1.c     |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vfprintf-chk-1.c |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vprintf-1.c      |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vprintf-chk-1.c  |    2 +-
+ src/gcc/testsuite/gcc.dg/tree-ssa/isolate-4.c              |    2 +-
+ src/gcc/testsuite/objc.dg/torture/strings/const-str-3.m    |    2 +-
+ 28 files changed, 40 insertions(+), 18 deletions(-)
+
+--- /dev/null
++++ b/src/gcc/testsuite/gcc.c-torture/execute/vfprintf-chk-1.x
+@@ -0,0 +1,5 @@
++# Implement "/* { dg-options "-U_FORITFY_SOURCE" } */", due to
++# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=20567
++
++set additional_flags "-U_FORTIFY_SOURCE"
++return 0
+--- /dev/null
++++ b/src/gcc/testsuite/gcc.c-torture/execute/vprintf-chk-1.x
+@@ -0,0 +1,5 @@
++# Implement "/* { dg-options "-U_FORITFY_SOURCE" } */", due to
++# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=20567
++
++set additional_flags "-U_FORTIFY_SOURCE"
++return 0
+--- a/src/gcc/testsuite/gcc.dg/charset/builtin2.c
++++ b/src/gcc/testsuite/gcc.dg/charset/builtin2.c
+@@ -3,7 +3,7 @@
+ 
+ /* { dg-do compile } */
+ /* { dg-require-iconv "IBM1047" } */
+-/* { dg-options "-O2 -fexec-charset=IBM1047" } */
++/* { dg-options "-O2 -fexec-charset=IBM1047 -Wno-format" } */
+ /* { dg-final { scan-assembler-not "printf" } } */
+ /* { dg-final { scan-assembler-not "fprintf" } } */
+ /* { dg-final { scan-assembler-not "sprintf" } } */
+--- a/src/gcc/testsuite/gcc.dg/format/format.exp
++++ b/src/gcc/testsuite/gcc.dg/format/format.exp
+@@ -26,7 +26,7 @@ load_lib gcc-dg.exp
+ load_lib torture-options.exp
+ 
+ torture-init
+-set-torture-options [list { } { -DWIDE } ]
++set-torture-options [list { -Wformat=0 } { -DWIDE -Wformat=0 } ]
+ 
+ dg-init
+ gcc-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] "" ""
+--- a/src/gcc/testsuite/gcc.dg/pr30473.c
++++ b/src/gcc/testsuite/gcc.dg/pr30473.c
+@@ -1,7 +1,7 @@
+ /* PR middle-end/30473 */
+ /* Make sure this doesn't ICE.  */
+ /* { dg-do compile } */
+-/* { dg-options "-O2" } */
++/* { dg-options "-O2 -Wno-format" } */
+ 
+ extern int sprintf (char *, const char *, ...);
+ 
+--- a/src/gcc/testsuite/gcc.dg/pr38902.c
++++ b/src/gcc/testsuite/gcc.dg/pr38902.c
+@@ -1,6 +1,6 @@
+ /* PR target/38902 */
+ /* { dg-do run } */
+-/* { dg-options "-O2 -fstack-protector" } */
++/* { dg-options "-O2 -fstack-protector -Wno-format" } */
+ /* { dg-require-effective-target fstack_protector } */
+ 
+ #ifdef DEBUG
+--- a/src/gcc/testsuite/gcc.dg/pr59418.c
++++ b/src/gcc/testsuite/gcc.dg/pr59418.c
+@@ -2,7 +2,7 @@
+ /* Reported by Ryan Mansfield <rmansfield@qnx.com> */
+ 
+ /* { dg-do compile } */
+-/* { dg-options "-Os -g" } */
++/* { dg-options "-Os -g -Wno-format-zero-length" } */
+ /* { dg-options "-march=armv7-a+fp -mfloat-abi=hard -Os -g" { target { arm*-*-* && { ! arm_thumb1 } } } } */
+ 
+ extern int printf (const char *__format, ...);
+--- a/src/gcc/testsuite/gcc.dg/ipa/ipa-sra-1.c
++++ b/src/gcc/testsuite/gcc.dg/ipa/ipa-sra-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do run } */
+-/* { dg-options "-O2 -fipa-sra -fdump-ipa-sra-details"  } */
++/* { dg-options "-O2 -fipa-sra -fdump-ipa-sra-details -Wformat=0"  } */
+ 
+ struct bovid
+ {
+--- a/src/gcc/testsuite/gcc.dg/lto/20090218-2_0.c
++++ b/src/gcc/testsuite/gcc.dg/lto/20090218-2_0.c
+@@ -1,3 +1,5 @@
++/* { dg-lto-options "-Wno-nonnull" } */
++
+ void set_mem_alias_set ();
+ void emit_push_insn () {
+   set_mem_alias_set ();
+--- a/src/gcc/testsuite/c-c++-common/torture/vector-compare-1.c
++++ b/src/gcc/testsuite/c-c++-common/torture/vector-compare-1.c
+@@ -1,4 +1,5 @@
+ /* { dg-do run } */
++/* { dg-options "-Wformat=0" } */
+ #define vector(elcount, type)  \
+ __attribute__((vector_size((elcount)*sizeof(type)))) type
+ 
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vprintf-chk-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vprintf-chk-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ #include <stdarg.h>
+ 
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vprintf-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vprintf-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ #include <stdarg.h>
+ 
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-printf-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-printf-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ extern int printf (const char *, ...);
+ volatile int vi0, vi1, vi2, vi3, vi4, vi5, vi6, vi7, vi8, vi9, via;
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-printf-chk-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-printf-chk-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ extern int __printf_chk (int, const char *, ...);
+ volatile int vi0, vi1, vi2, vi3, vi4, vi5, vi6, vi7, vi8, vi9, via;
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-fprintf-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-fprintf-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ typedef struct { int i; } FILE;
+ FILE *fp;
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-fprintf-chk-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-fprintf-chk-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ typedef struct { int i; } FILE;
+ FILE *fp;
+--- a/src/gcc/testsuite/gcc.dg/torture/tls/tls-test.c
++++ b/src/gcc/testsuite/gcc.dg/torture/tls/tls-test.c
+@@ -1,7 +1,7 @@
+ /* { dg-do run }  */
+ /* { dg-require-effective-target tls  }  */
+ /* { dg-require-effective-target pthread } */
+-/* { dg-options "-pthread" } */
++/* { dg-options "-pthread -Wformat=0" } */
+ 
+ #include <pthread.h>
+ extern int printf (char *,...);
+--- a/src/gcc/testsuite/objc.dg/torture/strings/const-str-3.m
++++ b/src/gcc/testsuite/objc.dg/torture/strings/const-str-3.m
+@@ -2,7 +2,7 @@
+ /* Developed by Markus Hitter <mah@jump-ing.de>.  */
+ /* { dg-do run } */
+ /* { dg-xfail-run-if "Needs OBJC2 ABI" { *-*-darwin* && { lp64 && { ! objc2 } } } { "-fnext-runtime" } { "" } } */
+-/* { dg-options "-fconstant-string-class=Foo" } */
++/* { dg-options "-fconstant-string-class=Foo -Wno-format-security" } */
+ /* { dg-options "-mno-constant-cfstrings -fconstant-string-class=Foo" { target *-*-darwin* } } */
+ 
+ #include "../../../objc-obj-c++-shared/objc-test-suite-types.h"
+--- a/src/gcc/testsuite/g++.dg/abi/pragma-pack1.C
++++ b/src/gcc/testsuite/g++.dg/abi/pragma-pack1.C
+@@ -1,5 +1,7 @@
+ // PR c++/7046
+ 
++// { dg-options "-Wformat=0" }
++
+ extern "C" int printf (const char *, ...);
+ 
+ #pragma pack(4)
+--- a/src/gcc/testsuite/g++.dg/abi/regparm1.C
++++ b/src/gcc/testsuite/g++.dg/abi/regparm1.C
+@@ -1,6 +1,7 @@
+ // PR c++/29911 (9381)
+ // { dg-do run { target i?86-*-* x86_64-*-* } }
+ // { dg-require-effective-target c++11 }
++// { dg-options "-Wformat=0" }
+ 
+ extern "C" int printf(const char *, ...);
+ 
+--- a/src/gcc/testsuite/g++.dg/cpp0x/constexpr-tuple.C
++++ b/src/gcc/testsuite/g++.dg/cpp0x/constexpr-tuple.C
+@@ -1,5 +1,6 @@
+ // PR c++/53202
+ // { dg-do run { target c++11 } }
++// { dg-options "-Wformat=0" }
+ 
+ #include <tuple>
+ 
+--- a/src/gcc/testsuite/g++.dg/torture/pr51436.C
++++ b/src/gcc/testsuite/g++.dg/torture/pr51436.C
+@@ -1,4 +1,5 @@
+ /* { dg-do compile } */
++/* { dg-options "-Wno-nonnull" } */
+ /* { dg-additional-options "-Wno-return-type" } */
+ 
+ typedef __SIZE_TYPE__ size_t;
+--- a/src/gcc/testsuite/g++.old-deja/g++.law/weak.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.law/weak.C
+@@ -1,6 +1,6 @@
+ // { dg-do link { target i?86-*-linux* i?86-*-gnu* x86_64-*-linux* } }
+ // { dg-require-effective-target static }
+-// { dg-options "-static" }
++// { dg-options "-static -Wno-nonnull" }
+ // Bug: g++ fails to instantiate operator<<.
+ 
+ // libc-5.4.xx has __IO_putc in its static C library, which can conflict
+--- a/src/gcc/testsuite/g++.old-deja/g++.other/std1.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.other/std1.C
+@@ -1,4 +1,5 @@
+ // { dg-do assemble  }
++// { dg-options "-Wno-nonnull" }
+ // Origin: Mark Mitchell <mark@codesourcery.com>
+ 
+ extern "C" int memcmp (const void * __s1,
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vfprintf-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vfprintf-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ #include <stdarg.h>
+ 
+--- a/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vfprintf-chk-1.c
++++ b/src/gcc/testsuite/gcc.dg/tree-ssa/builtin-vfprintf-chk-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -fdump-tree-fab1" } */
++/* { dg-options "-O2 -fdump-tree-fab1 -Wno-format-zero-length" } */
+ 
+ #include <stdarg.h>
+ 

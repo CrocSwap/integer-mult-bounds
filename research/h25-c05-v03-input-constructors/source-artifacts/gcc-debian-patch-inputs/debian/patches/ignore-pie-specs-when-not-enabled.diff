@@ -1,0 +1,56 @@
+# DP: Ignore dpkg's pie specs when pie is not enabled.
+
+Index: b/src/gcc/gcc.c
+===================================================================
+--- a/src/gcc/gcc.c
++++ b/src/gcc/gcc.c
+@@ -3715,6 +3715,36 @@ handle_foffload_option (const char *arg)
+     }
+ }
+ 
++static bool ignore_pie_specs_when_not_enabled(const char *envvar,
++					      const char *specname)
++{
++  const char *envval = secure_getenv(envvar);
++  char *hardening;
++  bool ignore;
++
++  if (strstr (specname, "/pie-compile.specs") == NULL
++      && strstr (specname, "/pie-link.specs") == NULL)
++    return false;
++  if (envval == NULL || strstr (envval, "hardening=") == NULL)
++    return true;
++  ignore = true;
++  hardening = (char *) xmalloc (strlen(envval) + 1);
++  strcpy (hardening, strstr (envval, "hardening="));
++  if (strchr (hardening, ' '))
++    *strchr (hardening, ' ') = '\0';
++  if (strstr(hardening, "+all"))
++    {
++      if (strstr(hardening, "-pie") == NULL)
++	ignore = false;
++    }
++  else if (strstr(hardening, "+pie"))
++    {
++      ignore = false;
++    }
++  free (hardening);
++  return ignore;
++}
++
+ /* Handle a driver option; arguments and return value as for
+    handle_option.  */
+ 
+@@ -3989,6 +4019,12 @@ driver_handle_option (struct gcc_options
+       break;
+ 
+     case OPT_specs_:
++      if (ignore_pie_specs_when_not_enabled("DEB_BUILD_MAINT_OPTIONS", arg)
++	  && ignore_pie_specs_when_not_enabled("DEB_BUILD_OPTIONS", arg))
++	{
++	  inform (0, "pie specs %s ignored when pie is not enabled", arg);
++	  return true;
++	}
+       {
+ 	struct user_specs *user = XNEW (struct user_specs);
+ 

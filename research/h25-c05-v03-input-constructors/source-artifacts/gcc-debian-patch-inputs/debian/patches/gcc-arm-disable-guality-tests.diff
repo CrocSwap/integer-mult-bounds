@@ -1,0 +1,44 @@
+# DP: Don't run some tests from the guality test suite on armhf. These fail
+# DP: on every target, but seem to hang on the buildds occasionally on armhf.
+
+--- a/src/gcc/testsuite/gcc.dg/guality/guality.exp
++++ b/src/gcc/testsuite/gcc.dg/guality/guality.exp
+@@ -93,7 +93,37 @@ if {[check_guality "
+ 	}
+     }
+ 
+-    gcc-dg-runtest [lsort [glob $srcdir/$subdir/*.c]] "" ""
++    # FIXME: these seem to hang on the buildds, and gdb always times out
++    # trying to run them.
++    if { [istarget arm-*-linux-gnueabi*] } {
++	set guality [list]
++	foreach file [lsort [glob $srcdir/$subdir/*.c]] {
++	    switch -glob -- [file tail $file] {
++		pr36728-*.c -
++		pr41616-1.c -
++		pr43051-1.c -
++		pr54200.c   -
++		pr54519-*.c -
++		pr54551.c   -
++		pr54693-2.c -
++		pr54796.c   -
++		pr56154-1.c -
++		pr58791-3.c -
++		pr58791-5.c -
++		pr68860-1.c -
++		pr68860-2.c -
++		pr78726.c   -
++		pr89528.c   -
++		pr90074.c   -
++		pr90716.c { }
++		* { lappend guality $file }
++	    }
++	}
++    } {
++	set guality [lsort [glob $srcdir/$subdir/*.c]]
++    }
++
++    gcc-dg-runtest $guality "" ""
+     gcc-dg-runtest $general "" "-Wc++-compat"
+     set-torture-options \
+ 	[list "-O0" "-Og"] \

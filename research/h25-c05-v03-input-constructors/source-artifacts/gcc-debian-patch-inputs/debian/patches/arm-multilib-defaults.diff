@@ -1,0 +1,88 @@
+# DP: Set MULTILIB_DEFAULTS for ARM multilib builds
+
+--- a/src/gcc/config.gcc
++++ b/src/gcc/config.gcc
+@@ -4342,10 +4342,18 @@ case "${target}" in
+ 		done
+ 
+ 		case "$with_float" in
+-		"" \
+-		| soft | hard | softfp)
++		"")
+ 			# OK
+ 			;;
++		soft)
++			tm_defines="${tm_defines} TARGET_CONFIGURED_FLOAT_ABI=0"
++			;;
++		softfp)
++			tm_defines="${tm_defines} TARGET_CONFIGURED_FLOAT_ABI=1"
++			;;
++		hard)
++			tm_defines="${tm_defines} TARGET_CONFIGURED_FLOAT_ABI=2"
++			;;
+ 		*)
+ 			echo "Unknown floating point type used in --with-float=$with_float" 1>&2
+ 			exit 1
+@@ -4380,6 +4388,9 @@ case "${target}" in
+ 		"" \
+ 		| arm | thumb )
+ 			#OK
++			if test "$with_mode" = thumb; then
++				tm_defines="${tm_defines} TARGET_CONFIGURED_THUMB_MODE=1"
++			fi
+ 			;;
+ 		*)
+ 			echo "Unknown mode used in --with-mode=$with_mode"
+--- a/src/gcc/config/arm/linux-eabi.h
++++ b/src/gcc/config/arm/linux-eabi.h
+@@ -37,7 +37,21 @@
+    target hardware.  If you override this to use the hard-float ABI then
+    change the setting of GLIBC_DYNAMIC_LINKER_DEFAULT as well.  */
+ #undef  TARGET_DEFAULT_FLOAT_ABI
++#ifdef TARGET_CONFIGURED_FLOAT_ABI
++#if TARGET_CONFIGURED_FLOAT_ABI == 2
++#define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_HARD
++#define MULTILIB_DEFAULT_FLOAT_ABI "mfloat-abi=hard"
++#elif TARGET_CONFIGURED_FLOAT_ABI == 1
++#define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_SOFTFP
++#define MULTILIB_DEFAULT_FLOAT_ABI "mfloat-abi=softfp"
++#else
++#define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_SOFT
++#define MULTILIB_DEFAULT_FLOAT_ABI "mfloat-abi=soft"
++#endif
++#else
+ #define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_SOFT
++#define MULTILIB_DEFAULT_FLOAT_ABI "mfloat-abi=soft"
++#endif
+ 
+ /* We default to the "aapcs-linux" ABI so that enums are int-sized by
+    default.  */
+@@ -91,6 +105,28 @@
+ #define MUSL_DYNAMIC_LINKER \
+   "/lib/ld-musl-arm" MUSL_DYNAMIC_LINKER_E "%{mfloat-abi=hard:hf}%{mfdpic:-fdpic}.so.1"
+ 
++/* Set the multilib defaults according the configuration, needed to
++   let gcc -print-multi-dir do the right thing.  */
++
++#if TARGET_BIG_ENDIAN_DEFAULT
++#define MULTILIB_DEFAULT_ENDIAN "mbig-endian"
++#else
++#define MULTILIB_DEFAULT_ENDIAN "mlittle-endian"
++#endif
++
++#ifndef TARGET_CONFIGURED_THUMB_MODE
++#define MULTILIB_DEFAULT_MODE "marm"
++#elif TARGET_CONFIGURED_THUMB_MODE == 1
++#define MULTILIB_DEFAULT_MODE "mthumb"
++#else
++#define MULTILIB_DEFAULT_MODE "marm"
++#endif
++
++#undef  MULTILIB_DEFAULTS
++#define MULTILIB_DEFAULTS \
++	{ MULTILIB_DEFAULT_MODE, MULTILIB_DEFAULT_ENDIAN, \
++	  MULTILIB_DEFAULT_FLOAT_ABI, "mno-thumb-interwork" }
++
+ /* At this point, bpabi.h will have clobbered LINK_SPEC.  We want to
+    use the GNU/Linux version, not the generic BPABI version.  */
+ #undef  LINK_SPEC

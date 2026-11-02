@@ -1,0 +1,114 @@
+From: Ludovic Brenta <lbrenta@debian.org>
+From: Nicolas Boulenguez <nicolas@debian.org>
+Forwarded: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=81087
+Bug-Debian: http://bugs.debian.org/749574
+Description: array index out of range in gnatlink
+ The procedure gnatlink assumes that the Linker_Options.Table contains access
+ values to strings whose 'First index is always 1.  This assumption is wrong
+ for the string returned by function Base_Name.
+ .
+ The wrong indices are not detected because gnatlink is compiled with
+ -gnatp, but the test result is wrong.
+ .
+ The following program normally raises Constraint_Error, prints FALSE
+ if compiled with -gnatp, while the expected result is TRUE.
+ .
+ procedure A is
+    G : constant String (3 .. 5) := "abc";
+ begin
+    Ada.Text_IO.Put_Line (Boolean'Image (G (1 .. 2) = "ab"));
+ end A;
+
+--- a/src/gcc/ada/gnatlink.adb
++++ b/src/gcc/ada/gnatlink.adb
+@@ -238,6 +238,9 @@ procedure Gnatlink is
+    procedure Write_Usage;
+    --  Show user the program options
+ 
++   function Starts_With (Source, Pattern : String) return Boolean;
++   pragma Inline (Starts_With);
++
+    ---------------
+    -- Base_Name --
+    ---------------
+@@ -494,7 +497,7 @@ procedure Gnatlink is
+                   Binder_Options.Table (Binder_Options.Last) :=
+                     Linker_Options.Table (Linker_Options.Last);
+ 
+-               elsif Arg'Length >= 7 and then Arg (1 .. 7) = "--LINK=" then
++               elsif Starts_With (Arg, "--LINK=") then
+                   if Arg'Length = 7 then
+                      Exit_With_Error ("Missing argument for --LINK=");
+                   end if;
+@@ -528,7 +531,7 @@ procedure Gnatlink is
+                      end loop;
+                   end;
+ 
+-               elsif Arg'Length >= 6 and then Arg (1 .. 6) = "--GCC=" then
++               elsif Starts_With (Arg, "--GCC=") then
+                   if Arg'Length = 6 then
+                      Exit_With_Error ("Missing argument for --GCC=");
+                   end if;
+@@ -1255,13 +1258,9 @@ procedure Gnatlink is
+                                          1 .. Linker_Options.Last
+                                        loop
+                                           if Linker_Options.Table (J) /= null
+-                                            and then
+-                                              Linker_Options.Table (J)'Length
+-                                                        > Run_Path_Opt'Length
+-                                            and then
+-                                              Linker_Options.Table (J)
+-                                                (1 .. Run_Path_Opt'Length) =
+-                                                                 Run_Path_Opt
++                                            and then Starts_With
++                                            (Linker_Options.Table (J).all,
++                                             Run_Path_Opt)
+                                           then
+                                              --  We have found an already
+                                              --  specified run_path_option:
+@@ -1378,6 +1377,17 @@ procedure Gnatlink is
+       Status := fclose (Fd);
+    end Process_Binder_File;
+ 
++   ----------------
++   -- StartsWith --
++   ----------------
++
++   function Starts_With (Source, Pattern : String) return Boolean is
++      Last : constant Natural := Source'First + Pattern'Length - 1;
++   begin
++      return Last <= Source'Last
++        and then Pattern = Source (Source'First .. Last);
++   end Starts_With;
++
+    -----------
+    -- Usage --
+    -----------
+@@ -1891,8 +1901,8 @@ begin
+          while J <= Linker_Options.Last loop
+             if Linker_Options.Table (J).all = "-Xlinker"
+               and then J < Linker_Options.Last
+-              and then Linker_Options.Table (J + 1)'Length > 8
+-              and then Linker_Options.Table (J + 1) (1 .. 8) = "--stack="
++              and then Starts_With (Linker_Options.Table (J + 1).all,
++                                    "--stack=")
+             then
+                if Stack_Op then
+                   Linker_Options.Table (J .. Linker_Options.Last - 2) :=
+@@ -1937,13 +1947,9 @@ begin
+             --  Here we just check for a canonical form that matches the
+             --  pragma Linker_Options set in the NT runtime.
+ 
+-            if (Linker_Options.Table (J)'Length > 17
+-                and then Linker_Options.Table (J) (1 .. 17) =
+-                  "-Xlinker --stack=")
+-              or else
+-                (Linker_Options.Table (J)'Length > 12
+-                 and then Linker_Options.Table (J) (1 .. 12) =
+-                       "-Wl,--stack=")
++            if Starts_With (Linker_Options.Table (J).all, "-Xlinker --stack=")
++              or else Starts_With (Linker_Options.Table (J).all,
++                                   "-Wl,--stack=")
+             then
+                if Stack_Op then
+                   Linker_Options.Table (J .. Linker_Options.Last - 1) :=

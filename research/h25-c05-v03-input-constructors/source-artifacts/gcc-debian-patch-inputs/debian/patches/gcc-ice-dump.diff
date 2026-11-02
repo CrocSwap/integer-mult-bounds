@@ -1,0 +1,111 @@
+# DP: For ICEs, dump the preprocessed source file to stderr
+# DP: when in a distro build environment.
+
+--- a/src/gcc/gcc.cc
++++ b/src/gcc/gcc.cc
+@@ -3122,6 +3122,61 @@ access_check (const char *name, int mode
+   return access (name, mode);
+ }
+ 
++/* Check whether options line contains the specified variable, and
++   optionally set to the supplied value */
++
++static bool
++check_options (const char *options, const char *var = nullptr,
++	       const char *val = nullptr)
++{
++  if (!var)
++    return false;
++
++  const char *const var_found = strstr (options, var);
++  if (!var_found)
++    return false;
++
++  if (val)
++    {
++      if (var_found[strlen (var)] != '=')
++	return false;
++
++      const char *var_end = strchr (var_found, ' ');
++      if (!var_end)
++	var_end = strchr (var_found, '\0');
++
++      const char *const val_found = strstr (var_found, val);
++      if (!val_found || val_found > var_end)
++	return false;
++
++      const char c0 = val_found[-1];
++      const char c1 = val_found[strlen (val)];
++      if ((c0 == '=' || c0 == ',') && (c1 == ',' || c1 == ' ' || c1 == '\0'))
++	return true;
++    }
++  else
++    {
++      const char c1 = var_found[strlen (var)];
++      if (c1 == ' ' || c1 == '\0')
++	return true;
++    }
++  return false;
++}
++
++/* Check whether DEB_BUILD_OPTIONS environment variable is set, and
++   that it does not contain the specified exclusion keyword.  */
++
++static bool
++has_deb_build_options (const char *exclude_var = nullptr,
++		       const char *exclude_val = nullptr)
++{
++  const char *const deb_build_options = env.get ("DEB_BUILD_OPTIONS");
++  if (!deb_build_options)
++    return false;
++
++  return !check_options (deb_build_options, exclude_var, exclude_val);
++}
++
+ /* Callback for find_a_file.  Appends the file name to the directory
+    path.  If the resulting file exists in the right mode, return the
+    full pathname to the file.  */
+@@ -3648,9 +3703,10 @@ execute (void)
+ 	    /* For ICEs in cc1, cc1obj, cc1plus see if it is
+ 	       reproducible or not.  */
+ 	    const char *p;
+-	    if (flag_report_bug
+-		&& WEXITSTATUS (status) == ICE_EXIT_CODE
+-		&& i == 0
++	    const bool deb_build_options
++	      = has_deb_build_options ("gcc-ice", "norepro");
++	    if ((flag_report_bug || deb_build_options)
++		&& WEXITSTATUS (status) == ICE_EXIT_CODE && i == 0
+ 		&& (p = strrchr (commands[0].argv[0], DIR_SEPARATOR))
+ 		&& startswith (p + 1, "cc1"))
+ 	      try_generate_repro (commands[0].argv);
+@@ -7908,8 +7964,27 @@ do_report_bug (const char **new_argv, co
+ 
+   if (status == ATTEMPT_STATUS_SUCCESS)
+     {
+-      fnotice (stderr, "Preprocessed source stored into %s file,"
+-	       " please attach this to your bugreport.\n", *out_file);
++      const bool gcc_dump = has_deb_build_options ("gcc-ice", "nodump");
++
++      if (gcc_dump)
++	fnotice (stderr,
++		 "Preprocessed source stored into %s file,"
++		 " please attach this to your bugreport.\n",
++		 *out_file);
++      if (gcc_dump)
++	{
++	  char *cmd = XNEWVEC (char, 50 + strlen (*out_file));
++
++	  sprintf (cmd, "/usr/bin/awk '{print \"%d:\", $0}' %s >&2", getpid (),
++		   *out_file);
++	  fprintf (stderr, "=== BEGIN GCC DUMP ===\n");
++	  fflush (stderr);
++	  system (cmd);
++	  fflush (stderr);
++	  fprintf (stderr, "=== END GCC DUMP ===\n");
++	  fflush (stderr);
++	  free (cmd);
++	}
+       /* Make sure it is not deleted.  */
+       free (*out_file);
+       *out_file = NULL;

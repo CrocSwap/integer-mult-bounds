@@ -1,0 +1,930 @@
+--- a/src/Makefile.def
++++ b/src/Makefile.def
+@@ -72,6 +72,7 @@ host_modules= { module= isl; lib_path=.l
+ 		no_install= true; };
+ host_modules= { module= gold; bootstrap=true; };
+ host_modules= { module= gprof; };
++host_modules= { module= gprofng; };
+ // intl acts on 'host_shared' directly, and does not support --with-pic.
+ host_modules= { module= intl; bootstrap=true; };
+ host_modules= { module= tcl;
+@@ -510,6 +511,16 @@ dependencies = { module=all-gprof; on=al
+ dependencies = { module=all-gprof; on=all-opcodes; };
+ dependencies = { module=all-gprof; on=all-intl; };
+ dependencies = { module=all-gprof; on=all-gas; };
++
++dependencies = { module=configure-gprofng; on=configure-intl; };
++dependencies = { module=all-gprofng; on=all-libiberty; };
++dependencies = { module=all-gprofng; on=all-bfd; };
++dependencies = { module=all-gprofng; on=all-opcodes; };
++dependencies = { module=all-gprofng; on=all-intl; };
++dependencies = { module=all-gprofng; on=all-gas; };
++dependencies = { module=install-gprofng; on=install-opcodes; };
++dependencies = { module=install-gprofng; on=install-bfd; };
++
+ dependencies = { module=configure-ld; on=configure-intl; };
+ dependencies = { module=all-ld; on=all-libiberty; };
+ dependencies = { module=all-ld; on=all-bfd; };
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -1084,6 +1084,7 @@ configure-host:  \
+     maybe-configure-isl \
+     maybe-configure-gold \
+     maybe-configure-gprof \
++    maybe-configure-gprofng \
+     maybe-configure-intl \
+     maybe-configure-tcl \
+     maybe-configure-itcl \
+@@ -1237,6 +1238,7 @@ all-host: maybe-all-isl
+ all-host: maybe-all-gold
+ @endif gold-no-bootstrap
+ all-host: maybe-all-gprof
++all-host: maybe-all-gprofng
+ @if intl-no-bootstrap
+ all-host: maybe-all-intl
+ @endif intl-no-bootstrap
+@@ -1376,6 +1378,7 @@ info-host: maybe-info-mpc
+ info-host: maybe-info-isl
+ info-host: maybe-info-gold
+ info-host: maybe-info-gprof
++info-host: maybe-info-gprofng
+ info-host: maybe-info-intl
+ info-host: maybe-info-tcl
+ info-host: maybe-info-itcl
+@@ -1466,6 +1469,7 @@ dvi-host: maybe-dvi-mpc
+ dvi-host: maybe-dvi-isl
+ dvi-host: maybe-dvi-gold
+ dvi-host: maybe-dvi-gprof
++dvi-host: maybe-dvi-gprofng
+ dvi-host: maybe-dvi-intl
+ dvi-host: maybe-dvi-tcl
+ dvi-host: maybe-dvi-itcl
+@@ -1556,6 +1560,7 @@ pdf-host: maybe-pdf-mpc
+ pdf-host: maybe-pdf-isl
+ pdf-host: maybe-pdf-gold
+ pdf-host: maybe-pdf-gprof
++pdf-host: maybe-pdf-gprofng
+ pdf-host: maybe-pdf-intl
+ pdf-host: maybe-pdf-tcl
+ pdf-host: maybe-pdf-itcl
+@@ -1646,6 +1651,7 @@ html-host: maybe-html-mpc
+ html-host: maybe-html-isl
+ html-host: maybe-html-gold
+ html-host: maybe-html-gprof
++html-host: maybe-html-gprofng
+ html-host: maybe-html-intl
+ html-host: maybe-html-tcl
+ html-host: maybe-html-itcl
+@@ -1736,6 +1742,7 @@ TAGS-host: maybe-TAGS-mpc
+ TAGS-host: maybe-TAGS-isl
+ TAGS-host: maybe-TAGS-gold
+ TAGS-host: maybe-TAGS-gprof
++TAGS-host: maybe-TAGS-gprofng
+ TAGS-host: maybe-TAGS-intl
+ TAGS-host: maybe-TAGS-tcl
+ TAGS-host: maybe-TAGS-itcl
+@@ -1826,6 +1833,7 @@ install-info-host: maybe-install-info-mp
+ install-info-host: maybe-install-info-isl
+ install-info-host: maybe-install-info-gold
+ install-info-host: maybe-install-info-gprof
++install-info-host: maybe-install-info-gprofng
+ install-info-host: maybe-install-info-intl
+ install-info-host: maybe-install-info-tcl
+ install-info-host: maybe-install-info-itcl
+@@ -1916,6 +1924,7 @@ install-dvi-host: maybe-install-dvi-mpc
+ install-dvi-host: maybe-install-dvi-isl
+ install-dvi-host: maybe-install-dvi-gold
+ install-dvi-host: maybe-install-dvi-gprof
++install-dvi-host: maybe-install-dvi-gprofng
+ install-dvi-host: maybe-install-dvi-intl
+ install-dvi-host: maybe-install-dvi-tcl
+ install-dvi-host: maybe-install-dvi-itcl
+@@ -2006,6 +2015,7 @@ install-pdf-host: maybe-install-pdf-mpc
+ install-pdf-host: maybe-install-pdf-isl
+ install-pdf-host: maybe-install-pdf-gold
+ install-pdf-host: maybe-install-pdf-gprof
++install-pdf-host: maybe-install-pdf-gprofng
+ install-pdf-host: maybe-install-pdf-intl
+ install-pdf-host: maybe-install-pdf-tcl
+ install-pdf-host: maybe-install-pdf-itcl
+@@ -2096,6 +2106,7 @@ install-html-host: maybe-install-html-mp
+ install-html-host: maybe-install-html-isl
+ install-html-host: maybe-install-html-gold
+ install-html-host: maybe-install-html-gprof
++install-html-host: maybe-install-html-gprofng
+ install-html-host: maybe-install-html-intl
+ install-html-host: maybe-install-html-tcl
+ install-html-host: maybe-install-html-itcl
+@@ -2186,6 +2197,7 @@ installcheck-host: maybe-installcheck-mp
+ installcheck-host: maybe-installcheck-isl
+ installcheck-host: maybe-installcheck-gold
+ installcheck-host: maybe-installcheck-gprof
++installcheck-host: maybe-installcheck-gprofng
+ installcheck-host: maybe-installcheck-intl
+ installcheck-host: maybe-installcheck-tcl
+ installcheck-host: maybe-installcheck-itcl
+@@ -2276,6 +2288,7 @@ mostlyclean-host: maybe-mostlyclean-mpc
+ mostlyclean-host: maybe-mostlyclean-isl
+ mostlyclean-host: maybe-mostlyclean-gold
+ mostlyclean-host: maybe-mostlyclean-gprof
++mostlyclean-host: maybe-mostlyclean-gprofng
+ mostlyclean-host: maybe-mostlyclean-intl
+ mostlyclean-host: maybe-mostlyclean-tcl
+ mostlyclean-host: maybe-mostlyclean-itcl
+@@ -2366,6 +2379,7 @@ clean-host: maybe-clean-mpc
+ clean-host: maybe-clean-isl
+ clean-host: maybe-clean-gold
+ clean-host: maybe-clean-gprof
++clean-host: maybe-clean-gprofng
+ clean-host: maybe-clean-intl
+ clean-host: maybe-clean-tcl
+ clean-host: maybe-clean-itcl
+@@ -2456,6 +2470,7 @@ distclean-host: maybe-distclean-mpc
+ distclean-host: maybe-distclean-isl
+ distclean-host: maybe-distclean-gold
+ distclean-host: maybe-distclean-gprof
++distclean-host: maybe-distclean-gprofng
+ distclean-host: maybe-distclean-intl
+ distclean-host: maybe-distclean-tcl
+ distclean-host: maybe-distclean-itcl
+@@ -2546,6 +2561,7 @@ maintainer-clean-host: maybe-maintainer-
+ maintainer-clean-host: maybe-maintainer-clean-isl
+ maintainer-clean-host: maybe-maintainer-clean-gold
+ maintainer-clean-host: maybe-maintainer-clean-gprof
++maintainer-clean-host: maybe-maintainer-clean-gprofng
+ maintainer-clean-host: maybe-maintainer-clean-intl
+ maintainer-clean-host: maybe-maintainer-clean-tcl
+ maintainer-clean-host: maybe-maintainer-clean-itcl
+@@ -2694,6 +2710,7 @@ check-host:  \
+     maybe-check-isl \
+     maybe-check-gold \
+     maybe-check-gprof \
++    maybe-check-gprofng \
+     maybe-check-intl \
+     maybe-check-tcl \
+     maybe-check-itcl \
+@@ -2831,6 +2848,7 @@ install-host-nogcc:  \
+     maybe-install-isl \
+     maybe-install-gold \
+     maybe-install-gprof \
++    maybe-install-gprofng \
+     maybe-install-intl \
+     maybe-install-tcl \
+     maybe-install-itcl \
+@@ -2886,6 +2904,7 @@ install-host:  \
+     maybe-install-isl \
+     maybe-install-gold \
+     maybe-install-gprof \
++    maybe-install-gprofng \
+     maybe-install-intl \
+     maybe-install-tcl \
+     maybe-install-itcl \
+@@ -2996,6 +3015,7 @@ install-strip-host:  \
+     maybe-install-strip-isl \
+     maybe-install-strip-gold \
+     maybe-install-strip-gprof \
++    maybe-install-strip-gprofng \
+     maybe-install-strip-intl \
+     maybe-install-strip-tcl \
+     maybe-install-strip-itcl \
+@@ -19287,6 +19307,474 @@ maintainer-clean-gprof:
+ 
+ 
+ 
++.PHONY: configure-gprofng maybe-configure-gprofng
++maybe-configure-gprofng:
++@if gcc-bootstrap
++configure-gprofng: stage_current
++@endif gcc-bootstrap
++@if gprofng
++maybe-configure-gprofng: configure-gprofng
++configure-gprofng: 
++	@: $(MAKE); $(unstage)
++	@r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	test ! -f $(HOST_SUBDIR)/gprofng/Makefile || exit 0; \
++	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/gprofng; \
++	$(HOST_EXPORTS)  \
++	echo Configuring in $(HOST_SUBDIR)/gprofng; \
++	cd "$(HOST_SUBDIR)/gprofng" || exit 1; \
++	case $(srcdir) in \
++	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
++	  *) topdir=`echo $(HOST_SUBDIR)/gprofng/ | \
++		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
++	esac; \
++	module_srcdir=gprofng; \
++	$(SHELL) \
++	  $$s/$$module_srcdir/configure \
++	  --srcdir=$${topdir}/$$module_srcdir \
++	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
++	  --target=${target_alias}  \
++	  || exit 1
++@endif gprofng
++
++
++
++
++
++.PHONY: all-gprofng maybe-all-gprofng
++maybe-all-gprofng:
++@if gcc-bootstrap
++all-gprofng: stage_current
++@endif gcc-bootstrap
++@if gprofng
++TARGET-gprofng=all
++maybe-all-gprofng: all-gprofng
++all-gprofng: configure-gprofng
++	@: $(MAKE); $(unstage)
++	@r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS)  \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_HOST_FLAGS) $(STAGE1_FLAGS_TO_PASS)  \
++		$(TARGET-gprofng))
++@endif gprofng
++
++
++
++
++.PHONY: check-gprofng maybe-check-gprofng
++maybe-check-gprofng:
++@if gprofng
++maybe-check-gprofng: check-gprofng
++
++check-gprofng:
++	@: $(MAKE); $(unstage)
++	@r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS)  \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(FLAGS_TO_PASS)  check)
++
++@endif gprofng
++
++.PHONY: install-gprofng maybe-install-gprofng
++maybe-install-gprofng:
++@if gprofng
++maybe-install-gprofng: install-gprofng
++
++install-gprofng: installdirs
++	@: $(MAKE); $(unstage)
++	@r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(FLAGS_TO_PASS)  install)
++
++@endif gprofng
++
++.PHONY: install-strip-gprofng maybe-install-strip-gprofng
++maybe-install-strip-gprofng:
++@if gprofng
++maybe-install-strip-gprofng: install-strip-gprofng
++
++install-strip-gprofng: installdirs
++	@: $(MAKE); $(unstage)
++	@r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(FLAGS_TO_PASS)  install-strip)
++
++@endif gprofng
++
++# Other targets (info, dvi, pdf, etc.)
++
++.PHONY: maybe-info-gprofng info-gprofng
++maybe-info-gprofng:
++@if gprofng
++maybe-info-gprofng: info-gprofng
++
++info-gprofng: \
++    configure-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing info in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          info) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-dvi-gprofng dvi-gprofng
++maybe-dvi-gprofng:
++@if gprofng
++maybe-dvi-gprofng: dvi-gprofng
++
++dvi-gprofng: \
++    configure-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing dvi in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          dvi) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-pdf-gprofng pdf-gprofng
++maybe-pdf-gprofng:
++@if gprofng
++maybe-pdf-gprofng: pdf-gprofng
++
++pdf-gprofng: \
++    configure-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing pdf in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          pdf) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-html-gprofng html-gprofng
++maybe-html-gprofng:
++@if gprofng
++maybe-html-gprofng: html-gprofng
++
++html-gprofng: \
++    configure-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing html in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          html) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-TAGS-gprofng TAGS-gprofng
++maybe-TAGS-gprofng:
++@if gprofng
++maybe-TAGS-gprofng: TAGS-gprofng
++
++TAGS-gprofng: \
++    configure-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing TAGS in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          TAGS) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-install-info-gprofng install-info-gprofng
++maybe-install-info-gprofng:
++@if gprofng
++maybe-install-info-gprofng: install-info-gprofng
++
++install-info-gprofng: \
++    configure-gprofng \
++    info-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing install-info in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          install-info) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-install-dvi-gprofng install-dvi-gprofng
++maybe-install-dvi-gprofng:
++@if gprofng
++maybe-install-dvi-gprofng: install-dvi-gprofng
++
++install-dvi-gprofng: \
++    configure-gprofng \
++    dvi-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing install-dvi in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          install-dvi) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-install-pdf-gprofng install-pdf-gprofng
++maybe-install-pdf-gprofng:
++@if gprofng
++maybe-install-pdf-gprofng: install-pdf-gprofng
++
++install-pdf-gprofng: \
++    configure-gprofng \
++    pdf-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing install-pdf in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          install-pdf) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-install-html-gprofng install-html-gprofng
++maybe-install-html-gprofng:
++@if gprofng
++maybe-install-html-gprofng: install-html-gprofng
++
++install-html-gprofng: \
++    configure-gprofng \
++    html-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing install-html in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          install-html) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-installcheck-gprofng installcheck-gprofng
++maybe-installcheck-gprofng:
++@if gprofng
++maybe-installcheck-gprofng: installcheck-gprofng
++
++installcheck-gprofng: \
++    configure-gprofng 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing installcheck in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          installcheck) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-mostlyclean-gprofng mostlyclean-gprofng
++maybe-mostlyclean-gprofng:
++@if gprofng
++maybe-mostlyclean-gprofng: mostlyclean-gprofng
++
++mostlyclean-gprofng: 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing mostlyclean in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          mostlyclean) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-clean-gprofng clean-gprofng
++maybe-clean-gprofng:
++@if gprofng
++maybe-clean-gprofng: clean-gprofng
++
++clean-gprofng: 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing clean in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          clean) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-distclean-gprofng distclean-gprofng
++maybe-distclean-gprofng:
++@if gprofng
++maybe-distclean-gprofng: distclean-gprofng
++
++distclean-gprofng: 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing distclean in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          distclean) \
++	  || exit 1
++
++@endif gprofng
++
++.PHONY: maybe-maintainer-clean-gprofng maintainer-clean-gprofng
++maybe-maintainer-clean-gprofng:
++@if gprofng
++maybe-maintainer-clean-gprofng: maintainer-clean-gprofng
++
++maintainer-clean-gprofng: 
++	@: $(MAKE); $(unstage)
++	@[ -f ./gprofng/Makefile ] || exit 0; \
++	r=`${PWD_COMMAND}`; export r; \
++	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
++	$(HOST_EXPORTS) \
++	for flag in $(EXTRA_HOST_FLAGS) ; do \
++	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
++	done; \
++	echo "Doing maintainer-clean in gprofng"; \
++	(cd $(HOST_SUBDIR)/gprofng && \
++	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
++	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
++	          "RANLIB=$${RANLIB}" \
++	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
++	          maintainer-clean) \
++	  || exit 1
++
++@endif gprofng
++
++
++
+ .PHONY: configure-intl maybe-configure-intl
+ maybe-configure-intl:
+ @if gcc-bootstrap
+@@ -66049,6 +66537,8 @@ all-stagetrain-gas: maybe-all-stagetrain
+ all-stagefeedback-gas: maybe-all-stagefeedback-intl
+ all-stageautoprofile-gas: maybe-all-stageautoprofile-intl
+ all-stageautofeedback-gas: maybe-all-stageautofeedback-intl
++install-gprofng: maybe-install-opcodes
++install-gprofng: maybe-install-bfd
+ configure-ld: maybe-configure-intl
+ configure-stage1-ld: maybe-configure-stage1-intl
+ configure-stage2-ld: maybe-configure-stage2-intl
+@@ -66489,6 +66979,7 @@ configure-gdb: stage_last
+ configure-gdbserver: stage_last
+ configure-gdbsupport: stage_last
+ configure-gprof: stage_last
++configure-gprofng: stage_last
+ configure-sid: stage_last
+ configure-sim: stage_last
+ configure-fastjar: stage_last
+@@ -66523,6 +67014,12 @@ all-gprof: maybe-all-bfd
+ all-gprof: maybe-all-opcodes
+ all-gprof: maybe-all-intl
+ all-gprof: maybe-all-gas
++configure-gprofng: maybe-configure-intl
++all-gprofng: maybe-all-libiberty
++all-gprofng: maybe-all-bfd
++all-gprofng: maybe-all-opcodes
++all-gprofng: maybe-all-intl
++all-gprofng: maybe-all-gas
+ all-sid: maybe-all-libiberty
+ all-sid: maybe-all-bfd
+ all-sid: maybe-all-opcodes
+--- a/src/configure.ac
++++ b/src/configure.ac
+@@ -401,6 +401,20 @@ case "${ENABLE_LD}" in
+     ;;
+ esac
+ 
++AC_ARG_ENABLE(gprofng,
++[AS_HELP_STRING([[--enable-gprofng[=ARG]]],
++		[build gprofng @<:@ARG={yes,no}@:>@])],
++enable_gprofng=$enableval,
++enable_gprofng=yes)
++if test "$enable_gprofng" = "yes"; then
++  case "${target}" in
++    x86_64-*-linux* | i?86-*-linux* | aarch64-*-linux*)
++    configdirs="$configdirs gprofng"
++    ;;
++  esac
++fi
++
++
+ # PR gas/19109
+ # Decide the default method for compressing debug sections.
+ # Provide a configure time option to override our default.
+--- /dev/null
++++ b/src/include/collectorAPI.h
+@@ -0,0 +1,73 @@
++/* Copyright (C) 2021-2023 Free Software Foundation, Inc.
++   Contributed by Oracle.
++
++   This file is part of GNU Binutils.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3, or (at your option)
++   any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, 51 Franklin Street - Fifth Floor, Boston,
++   MA 02110-1301, USA.  */
++
++#ifndef _COLLECTORAPI_H
++#define _COLLECTORAPI_H
++
++/* This file contains function prototypes for the user-callable API
++   routines in libcollector.  */
++
++#include <pthread.h>
++
++#ifdef __cplusplus
++extern "C"
++{
++#endif
++  /* Routine to record a sample in the experiment.  */
++  extern void collector_sample (const char *name);
++
++  /* Routine to suspend data collection during an experiment.  */
++  extern void collector_pause (void);
++
++  /* Routine to resume data collection during an experiment.  */
++  extern void collector_resume (void);
++
++  /* Routine to suspend per-thread data collection during an experiment.  */
++  extern void collector_thread_pause (pthread_t tid);
++
++  /* Routine to resume per-thread data collection during an experiment.  */
++  extern void collector_thread_resume (pthread_t tid);
++
++  /* Routine to close the experiment, and stop all data collection.  */
++  extern void  collector_terminate_expt (void);
++
++  typedef struct
++  {
++    unsigned int offset;
++    unsigned int lineno;
++  } Lineno;
++
++  /* Routines to let libcollector know about dynamically loaded functions.  */
++  extern void collector_func_load (const char *name, const char *alias,
++				   const char *sourcename, void *vaddr,
++				   int size, int lntsize, Lineno *lntable);
++
++  extern void collector_func_unload (void *vaddr);
++
++#ifdef NEED_COLLECTOR_MODULE
++  extern void collector_module_load (const char *modulename, void *vaddr);
++  extern void collector_module_unload (void *vaddr);
++#endif
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _COLLECTORAPI_H */
+--- /dev/null
++++ b/src/include/libcollector.h
+@@ -0,0 +1,89 @@
++/* Copyright (C) 2021-2023 Free Software Foundation, Inc.
++   Contributed by Oracle.
++
++   This file is part of GNU Binutils.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3, or (at your option)
++   any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, 51 Franklin Street - Fifth Floor, Boston,
++   MA 02110-1301, USA.  */
++
++#ifndef _LIBCOLLECTOR_H
++#define _LIBCOLLECTOR_H
++
++typedef struct
++{
++  unsigned int offset;
++  unsigned int lineno;
++} Lineno;
++
++#ifdef __cplusplus
++extern "C"
++{
++#endif
++
++  /* This file contains function prototypes for the user-callable API
++     routines in libcollector for C and C++ codes.  */
++
++  /* Routine to record a sample in the experiment.  */
++  void collector_sample (char *name);
++
++  /* Routine to suspend data collection during an experiment.  */
++  void collector_pause (void);
++
++  /* Routine to resume data collection during an experiment.  */
++  void collector_resume (void);
++
++  /* Routine to suspend per-thread data collection during an experiment.  */
++  void collector_thread_pause (unsigned int tid);
++
++  /* Routine to resume per-thread data collection during an experiment.  */
++  void collector_thread_resume (unsigned int tid);
++
++  /* Routine to close the experiment, and stop all data collection.  */
++  void collector_terminate_expt (void);
++
++  /* Routines to let libcollector know about a dynamically loaded function.  */
++  void collector_func_load (char *name, char *alias, char *sourcename,
++			  void *vaddr, int size, int lntsize, Lineno *lntable);
++  void collector_func_unload (void *vaddr);
++
++  /* Define the weak symbols for the API.  */
++  void collector_sample () __attribute__ ((weak));
++  void collector_pause () __attribute__ ((weak));
++  void collector_resume () __attribute__ ((weak));
++  void collector_thread_pause () __attribute__ ((weak));
++  void collector_thread_resume () __attribute__ ((weak));
++  void collector_terminate_expt () __attribute__ ((weak));
++  void collector_func_load () __attribute__ ((weak));
++  void collector_func_unload () __attribute__ ((weak));
++
++#ifdef __cplusplus
++}
++#endif
++
++/* Define the macros that actually get inserted in the caller's code.  */
++#define collector_sample(x)	(collector_sample ? collector_sample(x), 0 : 0)
++#define collector_pause()	(collector_pause ? collector_pause(), 0 : 0)
++#define collector_resume()	(collector_resume ? collector_resume(),0 : 0 
++#define collector_thread_pause(tid) \
++	(collector_thread_pause ? collector_thread_pause(tid), 0 : 0)
++#define collector_thread_resume(tid) \
++	(collector_thread_resume ? collector_thread_resume(tid), 0 : 0)
++#define collector_terminate_expt() \
++	(collector_terminate_expt ? collector_terminate_expt(), 0 : 0)
++#define collector_func_load(x0,x1,x2,x3,x4,x5,x6) \
++	collector_func_load ? collector_func_load(x0,x1,x2,x3,x4,x5,x6), 0 : 0)
++#define collector_func_unload(x) \
++	(collector_func_unload ? collector_func_unload(x), 0 : 0)
++#endif /* _LIBCOLLECTOR_H */
+--- /dev/null
++++ b/src/include/libfcollector.h
+@@ -0,0 +1,42 @@
++! Copyright (C) 2021-2023 Free Software Foundation, Inc.
++! Contributed by Oracle.
++!
++! This file is part of GNU Binutils.
++!
++! This program is free software; you can redistribute it and/or modify
++! it under the terms of the GNU General Public License as published by
++! the Free Software Foundation; either version 3, or (at your option)
++! any later version.
++!
++! This program is distributed in the hope that it will be useful,
++! but WITHOUT ANY WARRANTY; without even the implied warranty of
++! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++! GNU General Public License for more details.
++!
++! You should have received a copy of the GNU General Public License
++! along with this program; if not, write to the Free Software
++! Foundation, 51 Franklin Street - Fifth Floor, Boston,
++! MA 02110-1301, USA.
++!
++! Developer Sampling Collector interface include file
++
++        interface
++
++        ! Routine to record a sample in the experiment.
++        subroutine collector_sample(name)
++        character(len=*), intent(in) :: name
++        end subroutine
++
++        ! Routine to suspend data collection during an experiment.
++        subroutine collector_pause()
++        end subroutine
++
++        ! Routine to resume data collection during an experiment.
++        subroutine collector_resume()
++        end subroutine
++
++        ! Routine to stop all data collection and close the experiment.
++        subroutine collector_terminate_expt()
++        end subroutine
++
++        end interface

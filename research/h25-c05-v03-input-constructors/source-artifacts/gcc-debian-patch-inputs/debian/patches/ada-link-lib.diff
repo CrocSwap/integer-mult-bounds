@@ -1,0 +1,158 @@
+Description: adapt libgnat build for Debian
+ Don't include a runtime link path (-rpath), when linking binaries.
+ .
+ Build the shared libraries on hppa-linux (see #786692 below).
+ TODO: ask the reporter (no porterbox) to attempt a rebuild without this
+ chunk, now that we diverge less from upstream.
+ .
+ Instead of building libada as a target library only, build it as
+ both a host and, if different, target library.
+ .
+ Compile with -gnatn for efficiency.
+ Double-check the link since Debian moves some symbols.
+ .
+ Autogen should refresh src/Makefile.in from src/Makefile.{def,tpl}
+ at build time, but we do not want to Build-Depend: guile.
+ # export QUILT_PATCHES=debian/patches
+ # quilt pop $this.diff
+ # quilt add src/Makefile.in
+ # (cd src && autogen Makefile.def)
+ # quilt refresh --no-timestamps --no-index -pab
+ # quilt push -a
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=786692
+Forwarded: not-needed
+Author: Ludovic Brenta <lbrenta@debian.org>
+Author: Nicolas Boulenguez <nicolas@debian.org>
+Author: Matthias Klose <doko@debian.org>
+
+--- a/src/gcc/ada/gcc-interface/config-lang.in
++++ b/src/gcc/ada/gcc-interface/config-lang.in
+@@ -44,7 +44,7 @@ if test "x$cross_compiling/$build/$host"
+ fi
+ 
+ target_libs="target-libada"
+-lang_dirs="gnattools"
++lang_dirs="libada gnattools"
+ 
+ # Ada is not enabled by default for the time being.
+ build_by_default=no
+--- a/src/gcc/ada/link.c
++++ b/src/gcc/ada/link.c
+@@ -107,9 +107,9 @@ const char *__gnat_default_libgcc_subdir
+    || defined (__NetBSD__) || defined (__OpenBSD__) \
+    || defined (__QNX__)
+ const char *__gnat_object_file_option = "-Wl,@";
+-const char *__gnat_run_path_option = "-Wl,-rpath,";
+-char __gnat_shared_libgnat_default = STATIC;
+-char __gnat_shared_libgcc_default = STATIC;
++const char *__gnat_run_path_option = "";
++char __gnat_shared_libgnat_default = SHARED;
++char __gnat_shared_libgcc_default = SHARED;
+ int __gnat_link_max = 8192;
+ unsigned char __gnat_objlist_file_supported = 1;
+ const char *__gnat_object_library_extension = ".a";
+@@ -129,9 +129,9 @@ const char *__gnat_default_libgcc_subdir
+ 
+ #elif defined (__linux__) || defined (__GLIBC__)
+ const char *__gnat_object_file_option = "-Wl,@";
+-const char *__gnat_run_path_option = "-Wl,-rpath,";
+-char __gnat_shared_libgnat_default = STATIC;
+-char __gnat_shared_libgcc_default = STATIC;
++const char *__gnat_run_path_option = "";
++char __gnat_shared_libgnat_default = SHARED;
++char __gnat_shared_libgcc_default = SHARED;
+ int __gnat_link_max = 8192;
+ unsigned char __gnat_objlist_file_supported = 1;
+ const char *__gnat_object_library_extension = ".a";
+--- a/src/libada/Makefile.in
++++ b/src/libada/Makefile.in
+@@ -79,10 +79,11 @@ ADA_RTS_DIR=$(GCC_DIR)/ada/rts$(subst /,
+ # by recursive make invocations in gcc/ada/Makefile.in
+ LIBADA_FLAGS_TO_PASS = \
+         "MAKEOVERRIDES=" \
+-        "LDFLAGS=$(LDFLAGS)" \
++        "LDFLAGS=$(LDFLAGS) -Wl,--no-allow-shlib-undefined \
++          -Wl,--no-copy-dt-needed-entries -Wl,--no-undefined" \
+         "LN_S=$(LN_S)" \
+         "SHELL=$(SHELL)" \
+-        "GNATLIBFLAGS=$(GNATLIBFLAGS) $(MULTIFLAGS)" \
++        "GNATLIBFLAGS=$(GNATLIBFLAGS) $(MULTIFLAGS) -gnatn" \
+         "GNATLIBCFLAGS=$(GNATLIBCFLAGS) $(MULTIFLAGS)" \
+         "GNATLIBCFLAGS_FOR_C=$(GNATLIBCFLAGS_FOR_C) $(MULTIFLAGS)" \
+         "PICFLAG_FOR_TARGET=$(PICFLAG)" \
+--- a/src/Makefile.def
++++ b/src/Makefile.def
+@@ -393,6 +393,7 @@ dependencies = { module=all-libcpp; on=a
+ 
+ dependencies = { module=all-fixincludes; on=all-libiberty; };
+ 
++dependencies = { module=all-target-libada; on=all-gcc; };
+ dependencies = { module=all-gnattools; on=all-target-libada; };
+ dependencies = { module=all-gnattools; on=all-target-libstdc++-v3; };
+ 
+--- a/src/configure.ac
++++ b/src/configure.ac
+@@ -142,6 +142,11 @@ host_libs="intl libiberty opcodes bfd re
+ # If --enable-gold is used, "gold" may replace "ld".
+ host_tools="texinfo flex bison binutils gas ld fixincludes gcc cgen sid sim gdb gdbserver gprof etc expect dejagnu m4 utils guile fastjar gnattools libcc1 gm2tools gotools c++tools"
+ 
++case "${target}" in
++  hppa64-*linux*) ;;
++  *) target_libiberty="target-libiberty";;
++esac
++
+ # these libraries are built for the target environment, and are built after
+ # the host libraries and the host tools (which may be a cross compiler)
+ # Note that libiberty is not a target library.
+@@ -161,6 +166,7 @@ target_libraries="target-libgcc \
+ 		target-libffi \
+ 		target-libobjc \
+ 		target-libada \
++		${target_libiberty} \
+ 		target-libgm2 \
+ 		target-libgo \
+ 		target-libphobos \
+--- a/src/gcc/ada/gcc-interface/Make-lang.in
++++ b/src/gcc/ada/gcc-interface/Make-lang.in
+@@ -43,7 +43,7 @@ RMDIR = rm -rf
+ 
+ 
+ # Extra flags to pass to recursive makes.
+-COMMON_ADAFLAGS= -gnatpg
++COMMON_ADAFLAGS= -gnatpgn
+ ifeq ($(TREECHECKING),)
+ CHECKING_ADAFLAGS=
+ else
+@@ -266,7 +266,9 @@ GCC_LINKERFLAGS = $(filter-out -Werror -
+ GCC_LDFLAGS = $(filter-out -static-libgcc, $(LDFLAGS))
+ else
+ # Strip -Werror during linking for the LTO bootstrap
+-GCC_LINKERFLAGS = $(filter-out -Werror, $(ALL_LINKERFLAGS))
++GCC_LINKERFLAGS = $(filter-out -Werror, $(ALL_LINKERFLAGS)) \
++  -Wl,--no-allow-shlib-undefined -Wl,--no-copy-dt-needed-entries \
++  -Wl,--no-undefined
+ GCC_LDFLAGS = $(LDFLAGS)
+ endif
+ 
+--- a/src/gcc/testsuite/lib/gnat.exp
++++ b/src/gcc/testsuite/lib/gnat.exp
+@@ -115,6 +115,7 @@ proc gnat_target_compile { source dest t
+     global TOOL_OPTIONS
+     global gnat_target_current
+     global TEST_ALWAYS_FLAGS
++    global ld_library_path
+ 
+     # dg-require-effective-target tests must be compiled as C.
+     if [ string match "*.c" $source ] then {
+@@ -144,6 +145,11 @@ proc gnat_target_compile { source dest t
+ 	# Always log so compilations can be repeated manually.
+ 	verbose -log "ADA_INCLUDE_PATH=$rtsdir/adainclude"
+ 	verbose -log "ADA_OBJECTS_PATH=$rtsdir/adainclude"
++
++	if { ! [ string match "*/libada/adalib*" $ld_library_path ] } {
++	    append ld_library_path ":$rtsdir/adalib"
++	    set_ld_library_path_env_vars
++	}
+     }
+ 
+     lappend options "compiler=$GNAT_UNDER_TEST -q -f"

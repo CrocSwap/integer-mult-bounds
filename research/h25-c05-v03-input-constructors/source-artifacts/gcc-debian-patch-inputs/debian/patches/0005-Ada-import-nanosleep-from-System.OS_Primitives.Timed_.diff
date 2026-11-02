@@ -1,0 +1,61 @@
+From: Nicolas Boulenguez <nicolas@debian.org>
+Subject: Ada: import nanosleep from System.OS_Primitives.Timed_Delay
+Bug-Debian: https://bugs.debian.org/1067453
+
+It improves readability to import this C function in the file where it
+is actually used.
+
+This patch is only applied as a prerequisite for
+0006-Ada-select-64-bits-time-functions-from-GNU-libc-when-.diff.
+
+--- a/src/gcc/ada/libgnat/s-optide.adb
++++ b/src/gcc/ada/libgnat/s-optide.adb
+@@ -36,6 +36,13 @@ procedure Timed_Delay
+   (Time : Duration;
+    Mode : Integer)
+ is
++
++   function nanosleep (rqtp, rmtp : not null access C_Time.timespec)
++                      return Integer
++     with Import,
++          Convention => C,
++          External_Name => "nanosleep";
++
+    Request    : aliased C_Time.timespec;
+    Remaind    : aliased C_Time.timespec;
+    Rel_Time   : Duration;
+--- a/src/gcc/ada/libgnat/s-osprim__posix.adb
++++ b/src/gcc/ada/libgnat/s-osprim__posix.adb
+@@ -34,15 +34,6 @@ with System.C_Time;
+ 
+ package body System.OS_Primitives is
+ 
+-   --  ??? These definitions are duplicated from System.OS_Interface
+-   --  because we don't want to depend on any package. Consider removing
+-   --  these declarations in System.OS_Interface and move these ones in
+-   --  the spec.
+-
+-   function nanosleep (rqtp, rmtp : not null access C_Time.timespec)
+-                      return Integer;
+-   pragma Import (C, nanosleep, "nanosleep");
+-
+    -----------
+    -- Clock --
+    -----------
+--- a/src/gcc/ada/libgnat/s-osprim__posix2008.adb
++++ b/src/gcc/ada/libgnat/s-osprim__posix2008.adb
+@@ -39,14 +39,6 @@ package body System.OS_Primitives is
+ 
+    subtype int is System.CRTL.int;
+ 
+-   --  ??? These definitions are duplicated from System.OS_Interface because
+-   --  we don't want to depend on any package. Consider removing these
+-   --  declarations in System.OS_Interface and move these ones to the spec.
+-
+-   function nanosleep (rqtp, rmtp : not null access C_Time.timespec)
+-                      return Integer;
+-   pragma Import (C, nanosleep, "nanosleep");
+-
+    -----------
+    -- Clock --
+    -----------

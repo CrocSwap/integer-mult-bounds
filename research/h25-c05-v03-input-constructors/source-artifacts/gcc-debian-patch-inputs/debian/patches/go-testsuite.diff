@@ -1,0 +1,19 @@
+# DP: Skip Go testcase on AArch64 which hangs on the buildds.
+
+--- a/src/gcc/testsuite/go.test/go-test.exp
++++ b/src/gcc/testsuite/go.test/go-test.exp
+@@ -460,6 +460,14 @@ proc go-gc-tests { } {
+ 	    continue
+ 	}
+ 
++	# Hangs on the buildds
++	if { [istarget "aarch64*-*-*"] } {
++	    if { [file tail $test] == "pprof.go" } {
++		untested $test
++		continue
++	    }
++	}
++
+ 	if { [file tail $test] == "init1.go" } {
+ 	    # This tests whether GC runs during init, which for gccgo
+ 	    # it currently does not.

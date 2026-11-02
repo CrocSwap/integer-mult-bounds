@@ -1,0 +1,58 @@
+# DP: Fix PR target/113030, taken from the trunk
+
+From 41caf6b0d603408a829b37f7f7fb09d64d814d48 Mon Sep 17 00:00:00 2001
+From: Andrew Pinski <quic_apinski@quicinc.com>
+Date: Sat, 20 Jan 2024 23:12:31 -0800
+Subject: [PATCH] arm: Fix parsecpu.awk for aliases [PR113030]
+
+So the problem here is the 2 functions check_cpu and check_arch use
+the wrong variable to check if an alias is valid for that cpu/arch.
+check_cpu uses cpu_optaliases instead of cpu_opt_alias. cpu_optaliases
+is an array of index'ed by the cpuname that contains all of the valid aliases
+for that cpu but cpu_opt_alias is an double index array which is index'ed
+by cpuname and the alias which provides what is the alias for that option.
+Similar thing happens for check_arch and arch_optaliases vs arch_optaliases.
+
+Tested by running:
+```
+awk -f config/arm/parsecpu.awk -v cmd="chkarch armv7-a+simd" config/arm/arm-cpus.in
+awk -f config/arm/parsecpu.awk -v cmd="chkarch armv7-a+neon" config/arm/arm-cpus.in
+awk -f config/arm/parsecpu.awk -v cmd="chkarch armv7-a+neon-vfpv3" config/arm/arm-cpus.in
+```
+And they don't return error back.
+
+gcc/ChangeLog:
+
+	PR target/113030
+	* config/arm/parsecpu.awk (check_cpu): Use cpu_opt_alias
+	instead of cpu_optaliases.
+	(check_arch): Use arch_opt_alias instead of arch_optaliases.
+
+Signed-off-by: Andrew Pinski <quic_apinski@quicinc.com>
+---
+ gcc/config/arm/parsecpu.awk | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/src/gcc/config/arm/parsecpu.awk
++++ b/src/gcc/config/arm/parsecpu.awk
+@@ -529,7 +529,7 @@ function check_cpu (name) {
+ 
+     for (n = 2; n <= exts; n++) {
+ 	if (!((cpu_name, extensions[n]) in cpu_opt_remove)	\
+-	    && !((cpu_name, extensions[n]) in cpu_optaliases)) {
++	    && !((cpu_name, extensions[n]) in cpu_opt_alias)) {
+ 	    return "error"
+ 	}
+     }
+@@ -552,7 +552,7 @@ function check_arch (name) {
+ 
+     for (n = 2; n <= exts; n++) {
+ 	if (!((extensions[1], extensions[n]) in arch_opt_remove)	\
+-	    && !((extensions[1], extensions[n]) in arch_optaliases)) {
++	    && !((extensions[1], extensions[n]) in arch_opt_alias)) {
+ 	    return "error"
+ 	}
+     }
+-- 
+2.39.3
+
