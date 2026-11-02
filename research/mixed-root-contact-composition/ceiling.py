@@ -6,7 +6,7 @@ this claim. All arithmetic in this checker uses rational intervals.
 """
 from fractions import Fraction as Q
 
-CEILING=Q('.00328623')
+CEILING=Q('.00328621476572836015146310')
 BIT_CAP=Q('.0034')
 TAIL=100
 

@@ -20,7 +20,7 @@ ROOT = HERE.parents[1]
 PREVIOUS = ROOT/'research/mixed-root-source-composition'
 CONTACT = 'research/p104-contact-block-contraction/'
 LIFT = 'research/p104-shared-carrier-lifts/'
-STATUS = 'PASS_MIXED_ROOT_CONTACT_COMPOSITION_KAPPA_00328620'
+STATUS = 'PASS_MIXED_ROOT_CONTACT_COMPOSITION_KAPPA_00328621476572836015146308'
 
 
 def need(ok, message):
@@ -139,6 +139,7 @@ def run():
         controls = controller.controls(caller)
         price = load(HERE/'pricing.py', 'contact_root_price')
         ceiling = load(HERE/'ceiling.py', 'contact_root_ceiling')
+        optimality = load(HERE/'optimality.py', 'contact_root_optimality')
         print('PASS exact source reconstruction, root, normalization and complete caller', flush=True)
         with support.checkers() as (L, frozen):
             old, contact, local = L.replay(old_word), L.replay(contact_word), L.replay(native_word)
@@ -189,6 +190,7 @@ def run():
                  'All eighteen productive target debits')
             E = load(frozen/'research/higher-moment-strictification/verify.py', 'contact_root_comparison')
             fixed_ceiling = ceiling.run(local, E, read(original/'ROOT.json'))
+            optimum = optimality.run(local, E, read(original/'ROOT.json'), bound, fixed_ceiling)
             old_margin = E.moment(old_targets, 1-price.KAPPA)[1]-E.moment(old_paid, 1-price.KAPPA)[0]
             need(old_margin < 0, 'The previous source fails at the new complete claim')
             contact_targets, contact_paid = controller.formula_invoice(contact)
@@ -201,7 +203,7 @@ def run():
             for pin in manifest['files']+lift_manifest['files']:
                 data = (root/pin['path']).read_bytes()
                 controls['damaged_'+pin['path']] = reject(lambda data=data, pin=pin: authenticate(bytes([data[0]^1])+data[1:], pin))
-            print('PASS both prices, complete compiler and outer ledger, source controls and all-size ceiling', flush=True)
+            print('PASS both prices, complete compiler and outer ledger, source controls and exact raw family limit', flush=True)
         return price.encode({'status': STATUS, 'source_head': lift_manifest['source_head'],
             'contact_source_head': manifest['source_head'],
             'root_source': old_manifest['root_head'], 'native_events': len(native_word['program']),
@@ -209,6 +211,7 @@ def run():
             'local': local, 'paid_delta': pd, 'target_delta': td, 'columns': columns,
             'lift_paid_delta': lift_pd, 'lift_target_delta': lift_td,
             'native': native, 'physical': maps, 'price': bound, 'fixed_root_ceiling': fixed_ceiling,
+            'raw_optimality': optimum,
             'prior_source_margin_upper': old_margin, 'controls': controls,
             'immediate_source_margin_upper': contact_margin,
             'gain_over_pr6375': price.KAPPA-Q('.00315120'),

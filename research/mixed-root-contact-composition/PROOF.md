@@ -1,6 +1,6 @@
 # Complete composition with the contact and shared-carrier sources
 
-The conditional claim is kappa 0.00328620. The final source is PR6375 at
+The conditional claim is kappa 0.00328621476572836015146308. The final source is PR6375 at
 `247b5c319b9f58fe9ee61dbf80697f8a9a429831`. It uses PR6372 at
 `b556600ffe14be72406b03a47c661f3c7f1aff06`. The root and all four binary
 children remain unchanged. This proof retains the five assumptions
@@ -76,18 +76,18 @@ Paid rank mass is 184,980 and productive rank mass is 185,740. Their
 difference is 760. All 17 thin queries, 14 paired whole idles, two
 individual whole idles and 20 ordinary normalizations remain charged.
 
-Two rational moment engines check the claim and tested saving 0.003286205.
-The strict raw crossing is in
-`(0.00328621476572, 0.00328621476573)`. The native word has 17,768 events.
-The source price with the same caller is strictly negative at the new
-claim. Completion, the compiler integer grid, ordinary work, all 54
+Two rational moment engines check the tested saving
+0.003286214765728360151463085 and both endpoints of the strict raw bracket
+`(0.00328621476572836015146309, 0.00328621476572836015146310)`. The native word has 17,768 events.
+Both earlier sources, PR6353 and PR6372, have a strictly negative
+margin with this caller at the new claim. Completion, the compiler integer grid, ordinary work, all 54
 strict and four functional outer conditions are recomputed. The BIT
 admission remains 0.0034. `RESULT.json` records the exact crossing and
 all completion and compiler parameters.
 The source ordinary allowance is 129,670 scalar units plus 5,379,000
 route units. It is below the retained 10^7 local budget. The complete
 caller ordinary bound remains 248,152,864, below 10^9. The compiler
-logarithm power is 1100 and its threshold is 2^70855400000000. These
+logarithm power is 2100. `RESULT.json` gives its exact threshold. These
 large constants do not establish a practical speedup.
 
 The price and ceiling programs are exact declared adaptations of the
@@ -97,11 +97,19 @@ No interval inequality or native check is weakened.
 
 ## What is now maximized
 
-The exact binary-tree recurrence is unchanged. With the new native
-profile, rational interval enumeration below total size 100 and the
-concave decreasing tail prove the ceiling 0.00328623 for all positive
-binary child sizes and shapes of the fixed root. The complete claim
-is 0.00000003 below that ceiling.
+The [exact optimum proof](OPTIMALITY.md) identifies the raw family limit
+as the unique zero of the complete signed invoice. All alternative child
+size profiles lose at the lower bracket endpoint. All 11 seven-leaf tree
+histograms are compared across the bracket. The all-size tail excludes
+all larger totals. Thus the 7,2,2,7 profile attains the largest raw crossing
+in the stated family, not merely the best point found in a bounded search.
+
+The complete conditional claim is between 1e-26 and 2e-26 below that
+crossing. Completion uses power 1920, reserve 1e-29 and the exact tail
+4*(31/32)^1920. The older block bound is too loose at this precision.
+The source, caller and signed bill are unchanged. At the raw crossing,
+paid and productive moments are equal; this strict funding argument does
+not certify equality. More digits are not a new construction gain.
 
 The separate `mixed-projector-root-headroom` proof shows that every
 six-field, seven-query root with four full stages and at most two extra
@@ -112,9 +120,11 @@ applies to that whole family with PR6375 as the fixed source.
 This does not maximize all possible callers or integer-multiplication
 algorithms. More idles, changed query counts or field counts, coupled
 queries, changed child contracts and changed sources remain outside the
-ceiling. The last source composition adds 0.00000036, or 0.0109561 percent,
-over the preceding local 0.00328584 result. The full mixed-root contribution is about 4.28408 percent
-above PR6375's published complete claim.
+ceiling. The last source composition added 0.00000036, or 0.0109561 percent,
+over the preceding local 0.00328584 result. This parameter refinement adds
+about 0.000449325 percent over 0.00328620 with the same invoice. The full
+mixed-root contribution is about 4.28455 percent above PR6375's published
+complete claim. These are different comparisons.
 
 ## Verification and attribution
 

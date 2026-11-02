@@ -11,9 +11,9 @@ from collections import Counter
 from fractions import Fraction as Q
 from controller import formula_invoice, need
 
-KAPPA = Q('0.00328620')
-TESTED = Q('0.003286205')
-PREVIOUS = Q('0.00328584')
+KAPPA = Q('0.00328621476572836015146308')
+TESTED = Q('0.003286214765728360151463085')
+PREVIOUS = Q('0.00328620')
 
 
 def encode(value):
@@ -63,7 +63,7 @@ def run(local, native, word, physical, L):
     def margin(k):
         a, b = E.moment(T, 1-k), E.moment(P, 1-k)
         return a[0]-b[1], a[1]-b[0]
-    low, high, grid = 0, 10**12, 10**14
+    low, high, grid = 0, 10**24, 10**26
     while high-low > 1:
         middle = (low+high)//2
         if margin(Q(middle, grid))[0] > 0:
@@ -81,8 +81,19 @@ def run(local, native, word, physical, L):
         derivative_upper -= count*(a if count >= 0 else b)
     need(derivative_upper < 0, 'Unique raw crossing below the BIT cap')
     need(margin(lower)[0] > 0 and margin(upper)[1] < 0, 'Strict rational crossing enclosure')
-    need(PREVIOUS < KAPPA < TESTED < lower, 'The composed source improves the fixed root claim')
-    t, offset, power, cutoff, floor = 1-TESTED, Q(1, 7), 1024, 12, 13
+    endpoints = {}
+    for label, k in [('lower', lower), ('upper', upper)]:
+        tl, th = other.moment(T, k)
+        pl, ph = other.moment(P, k)
+        second = (tl-ph, th-pl)
+        first = margin(k)
+        need(max(first[0], second[0]) <= min(first[1], second[1]),
+             'Both rational engines agree at the raw endpoint')
+        need(second[0] > 0 if label == 'lower' else second[1] < 0,
+             'The second engine certifies both raw endpoint signs')
+        endpoints[label] = {'first': E.display(first), 'second': E.display(second)}
+    need(PREVIOUS < KAPPA < TESTED < lower, 'The claim and tested saving are below the raw crossing')
+    t, offset, power, cutoff, floor = 1-TESTED, Q(1, 7), 1920, 12, 13
     target, paid = E.moment(T, t), E.moment(P, t)
     tl, th = other.moment(T, TESTED)
     pl, ph = other.moment(P, TESTED)
@@ -91,12 +102,15 @@ def run(local, native, word, physical, L):
     alpha = E.divide(paid, target)
     gamma = E.divide(E.moment(P, t+offset), E.mul(E.power(cutoff, offset), target))
     delta = E.divide((Q(sum(T.values())*floor),)*2, E.mul(E.power(cutoff, TESTED), target))
-    reserve, decay = Q(1, 10**12), Q(31, 32)
+    reserve, decay = Q(1, 10**29), Q(31, 32)
     need(alpha[1] < 1-reserve and gamma[1] < decay and delta[1] < decay, 'All charged tail ratios')
-    need(decay**128 < Q(1, 16), 'Both tail decay blocks')
-    normalized = 1/(1+power*reserve)+Q(4, 2**32)
+    need(power % 128 == 0 and decay**128 < Q(1, 16), 'The previous block estimate applies')
+    coarse_tail = 4*Q(1, 16)**(power//128)
+    need(1/(1+power*reserve)+coarse_tail > 1, 'The coarse tail bound cannot fund this claim')
+    exact_tail = 4*decay**power
+    normalized = 1/(1+power*reserve)+exact_tail
     need(normalized < 1 and cutoff**64 < floor**63, 'Completion, splitting and rounding')
-    theta, logarithm_power = Q(63, 64), 1100
+    theta, logarithm_power = Q(63, 64), 2100
     # Keep each exponential inside the retained engine's proved domain.
     half = E.power(145, Q(power, 2)*TESTED)
     factor = E.mul(half, half)
@@ -147,15 +161,18 @@ def run(local, native, word, physical, L):
     need(old_completion[0] > 1, 'The old completion cutoff does not fund the new inventory')
     bad = outer_module.ledger(dict(params, bit_saving=Q('.0027')))
     need(any(x <= 0 for x in bad['strict_checks'].values()), 'Insufficient BIT saving rejected')
-    return encode({'kappa': KAPPA, 'kappa_decimal': '0.00328620', 'previous_fixed_root': PREVIOUS,
+    return encode({'kappa': KAPPA, 'kappa_decimal': '0.00328621476572836015146308', 'previous_fixed_root': PREVIOUS,
+                   'refinement_kind': 'Same complete invoice; finer strictification and compiler parameters.',
                    'gain': KAPPA-PREVIOUS, 'relative_gain_percent': 100*(KAPPA/PREVIOUS-1),
                    'raw_root_interval': [lower, upper], 'raw_headroom': [lower-KAPPA, upper-KAPPA],
+                   'raw_endpoint_margins': endpoints,
                    'derivative_upper': derivative_upper, 'margin_at_previous': E.display(margin(PREVIOUS)),
                    'targets': T, 'paid': P, 'productive_fields': sum(T.values()), 'paid_calls': sum(P.values()),
                    'rank_mass_surplus': 760, 'full_forward_calls': 18, 'thin_queries': 17,
                    'whole_idle_jobs': 3120, 'strictification': {
                        'tested': TESTED, 'power': power, 'cutoff': cutoff, 'floor': floor,
-                       'tail_offset': offset, 'reserve': reserve, 'tail_decay': decay, 'tail_block': 128,
+                       'tail_offset': offset, 'reserve': reserve, 'tail_decay': decay,
+                       'exact_tail_upper': exact_tail, 'coarse_tail_upper': coarse_tail,
                        'alpha': E.display(alpha), 'gamma': E.display(gamma), 'delta': E.display(delta),
                        'normalized_paid_upper': normalized},
                    'compiler': {'theta': theta, 'logarithm_power': logarithm_power, 'eta': E.display(eta),
@@ -168,4 +185,5 @@ def run(local, native, word, physical, L):
                                     'paid_rank_mass': sum(r*n for r, n in P.items())},
                    'ordinary_BIT': bit, 'outer': outer,
                    'negative_controls': {'old_completion': 'Cutoff16 and floor17 give a ratio above one.',
-                                         'old_BIT': 'An outer inequality fails at BIT saving0.0027.'}})
+                                         'old_BIT': 'An outer inequality fails at BIT saving0.0027.',
+                                         'coarse_tail': 'The block tail bound cannot fund this near-limit claim.'}})

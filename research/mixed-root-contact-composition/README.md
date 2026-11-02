@@ -1,12 +1,13 @@
-# Conditional kappa 0.00328620 from the mixed root and PR6375
+# Conditional kappa 0.00328621476572836015146308 from the mixed root and PR6375
 
 This result is local under the donor publication hold. No branch push
 or PR has been made.
 
 This is the final source composition in the mixed-root contribution.
-It claims **kappa 0.00328620**, about **4.28408 percent above PR6375's
-0.00315120**. The last composition adds 0.00000036 over the local
-0.00328584 result. Most of the complete gain comes from the new caller;
+It claims **kappa 0.00328621476572836015146308**, about **4.28455 percent above PR6375's
+0.00315120**. The last source composition added 0.00000036 over the local
+0.00328584 result. The final parameter refinement adds about 1.47657e-8
+over 0.00328620 with the same complete invoice. Most of the complete gain comes from the new caller;
 the native source changes retain their credit in PR6375, PR6372 and PR6353.
 
 The fixed caller has four binary children of sizes 7,2,2,7, 18 native
@@ -32,7 +33,9 @@ acceptance is claimed.
    complete result in `RESULT.json`.
 4. The [headroom proof](../mixed-projector-root-headroom/PROOF.md)
    classifies every minimum-idle root in this six-field family. With
-   the new source, the all-size ceiling is recalculated at 0.00328623.
+   the new source, the [exact raw optimum](OPTIMALITY.md) lies in
+   (0.00328621476572836015146309, 0.00328621476572836015146310). The complete claim is
+   less than 2e-26 below it; exact equality has no strict certificate here.
    It also includes a separate reverse replay of all formal coefficients
    of the actual 570-event caller.
 
@@ -58,8 +61,9 @@ The exact PR6375 head is
 are also pinned and declared. No network fetch or separate-branch Git
 object is needed by the direct replay. All earlier source archives stay intact.
 
-See [publication evidence](../mixed-root-source-composition/PUBLICATION.md)
-for executed checks and their limits. Source receipts retain the status
+See [current validation](VALIDATION.md) for executed checks and their
+limits. The [earlier publication receipt](../mixed-root-source-composition/PUBLICATION.md)
+remains a historical checkpoint. Source receipts retain the status
 at the time they were made; publication does not alter frozen evidence.
 
 ## Open next questions
