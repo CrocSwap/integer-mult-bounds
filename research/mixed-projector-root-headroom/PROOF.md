@@ -39,7 +39,10 @@ ABCD, AB, CD, empty, B, C.
 ```
 
 It has two rank-two endpoint stages and two rank-three interior stages.
-Thus its complete price is the price of the existing mixed root. No
+Thus its recursive paid/productive price pattern is that of the existing
+mixed root. This does not give a uniform ordinary-operation budget over
+all scalar bases. Omitting further ordinary costs only favors a competing
+root, so the recursive price still gives a valid exclusion. No
 positive binary child sizes or binary tree shapes reach 0.00328554 under
 the fixed PR6353 source and the admitted saving range through 0.0034.
 
@@ -271,7 +274,6 @@ exactly the six output supports in the theorem. Different allowable site
 locations, the free parameter r, and different scalar bases cannot change
 this price pattern.
 
-The free parameter is real, not just a redundant case in the exclusion.
 There is an explicit positive algebraic family for every r!=0. With
 w_0=e_0+u_6, set
 
