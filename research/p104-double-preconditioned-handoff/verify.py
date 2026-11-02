@@ -2,7 +2,7 @@
 """Verify the new 22-ADD, 232-unit handoff; write no files.
 
 This contribution was produced by Nick Petalas. Apache-2.0.
-Predecessor executables are authenticated and used only on the new word.
+Predecessor code is authenticated; only the new word receives full replay.
 """
 from copy import deepcopy
 from fractions import Fraction as Q

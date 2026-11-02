@@ -19,8 +19,8 @@ has four entries. Both registered commands have 120-second timeouts.
 Managed Python and `Fraction` allocate during execution. This is a documented
 deviation from fixed allocation; the finite dimensions, event counts and
 coefficient domain bound the live state. No fixed-memory implementation or
-measured peak allocation is claimed. The code holds at most one mutated word
-per control and releases its reference before the next iteration.
+measured peak allocation is claimed. One mutated word is replayed per control;
+the finite input sizes also bound temporary copies.
 
 Authenticated predecessor code is compiled directly from bytes into three
 explicit module names. This deliberate dynamic-loading deviation avoids stale
