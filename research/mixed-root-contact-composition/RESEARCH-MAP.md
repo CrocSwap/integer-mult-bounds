@@ -22,12 +22,26 @@ The final parameter refinement adds about 0.000449325 percent over
 0.00328620; it changes no construction or invoice. These are different
 comparisons. None is a wall-clock speedup.
 
-The earlier PR5580 event-contact change was a small published result on
-the older native line. It is historical context, not the source of the
-four-percent caller gain. Later native work, including retained-operand
-descent, input lifts and joint output contractions, remains attributed
-in the retained source notices. The present diff does not repeat those
-published investigations.
+## Earlier published work from this investigation
+
+These checkpoints precede the new mixed root. Their linked packages
+remain the evidence for their own results. They are not new files or
+extra gains in this contribution. The source notices also retain the
+native advances from other investigations.
+
+| Checkpoint | Result | Useful step retained here |
+| --- | --- | --- |
+| [PR5580](https://github.com/CrocSwap/integer-mult-bounds/pull/5580), head `6efa248cf456d6101d757e9d09ba29711d18a13a` | Conditional kappa 0.00308189 | One contact replaces two rank-three transports by ranks two and four, with fixed targets |
+| [PR5751](https://github.com/CrocSwap/integer-mult-bounds/pull/5751), head `8483f9a679d06c1e270141dbc686a7e76e7a7522` | Conditional kappa 0.00311301600 | Paid intermediate meetings create 23 independent helper splits; all 27 added local queries are charged |
+| [PR5786](https://github.com/CrocSwap/integer-mult-bounds/pull/5786), head `6b936acd68a7e0f9062037900f0fe9bc4b6fdd25` | Conditional kappa 0.00312265044 | Three asynchronous helper exchanges use a retained buffer and four paid subdivisions |
+| [PR6171](https://github.com/CrocSwap/integer-mult-bounds/pull/6171), head `343232cdf5273d1f77569de390f0977b46916644` | Scoped all-width proof; no kappa | With fixed repeated public and productive boundaries, one coordinate flag and concavity reduce the contact-graph price to one copy |
+| [PR6350](https://github.com/CrocSwap/integer-mult-bounds/pull/6350), head `466c812fe729ed540265eeaeabc5e4a71d3440c5` | Conditional kappa 0.00314980 | Complete composition of PR6349 input lifts and the PR6348 binary query tree, with four helper debits at each of 19 calls |
+
+PR6171 credits Cinna Davis's PR5140 Clifford projection inequality.
+Its theorem excludes changed scalar words, variable productive boundaries
+and fixed internal operator equations. It is not a P104 optimum. PR6350
+keeps both source constructions unchanged. These distinctions explain why
+the later mixed-root caller is a new route rather than another contact edit.
 
 ## Review the positive result in this order
 
@@ -55,8 +69,8 @@ published investigations.
 | Result | Evidence | Limit |
 | --- | --- | --- |
 | Exact raw optimum and strict approach | [OPTIMALITY.md](OPTIMALITY.md) | Fixed PR6375 source and classified root family; no endpoint-equality certificate |
-| Minimum-idle family classification | [PROOF.md](../mixed-projector-root-headroom/PROOF.md) | Six fields, seven square-zero queries, four full stages, at most two extra whole idles |
-| General rank-two restriction and six-field idle floors | Same proof | Stated commuting scalar model; no universal lower bound for other interfaces |
+| Minimum-idle family classification | [PROOF.md](../mixed-projector-root-headroom/PROOF.md) | S on all six outputs; scalar bases independent of S and stages; seven square-zero queries, four distinct independent forward full stages, at most two extra whole idles |
+| General rank-two restriction and six-field idle floors | Same proof | Stated constant scalar model; no universal lower bound for other interfaces |
 | All-width normalization and its tensor counterexample | Same proof and exact replay | Uses the actual binary translation relation q squared equals X |
 | Separate reverse caller | [caller_reverse.py](../mixed-projector-root-headroom/caller_reverse.py) | Formal endpoint; native maps, price and compiler remain separate checks |
 | Extra central-free fields give no price gain | [EXTENSIONS.md](../mixed-projector-root-headroom/EXTENSIONS.md) | Exactly r+1 square-zero queries on r active fields; paid idles |
@@ -70,6 +84,36 @@ complete-kappa table. A new recursive precision and recovery construction
 must pay its remaining costs before that number can support a kappa claim.
 
 ## Other research retained as bounded evidence
+
+The earlier source-word work is retained in the
+[canonical finding](https://github.com/CrocSwap/integer-mult-bounds/discussions/5600#discussioncomment-19209322)
+and local research records. It includes the following results and limits.
+
+| Route | Result and scope |
+| --- | --- |
+| Retirement and query replacement | 20,327 anchor evaluations found no qualifying gain on the stated PR5684 source; finite search only |
+| Coupled boundaries and changed scalar stops | Nine apparent protected-block repairs lose an arbitrary public input; exact null witnesses reject them, as detailed below |
+| Coupled frame searches | Two-copy lines and heights, single Clifford directions and 25 plane models found no gain in their rounded models; no exact global price lower bound |
+| Unpaired six-field and residual-query callers | Exact formal endpoints exist, but their proposed complete prices lose; a residual query prevents the proposed whole-idle merge |
+| Full suppliers at internal binary nodes | Numerical search through 150 stages keeps the published binary tree; no all-size exclusion |
+| Causal public and transposed prefixes | Four feasible public-prefix words lose; none of 712 constructed transposed candidates has feasible frames |
+| Owned terminal prefixes | All 16 modular endpoint survivors fail the frame constraints; six reserved-role variants were excluded from the search |
+| Private historical reconstruction and capture | No cheaper reconstruction at 24 unprotected owned moves; 135 intermediate hyperplanes fail membership; the general modular search is not a rational impossibility proof |
+| Ten-term decoder | One factorization and orientation has copied-rank cost 72 on P104; other orientations and complete physical implementations remain open |
+
+For the nine changed-word failures, the sources are PR6167 at
+`564a076b113621a93edc4e39968ee4e4a8c9caf0` and PR6169 at
+`66f4d2d7f8269fb058c3759c019e677516891082`. Each changed 22,704-event
+scalar word sends a nonzero public input vector to zero, although the
+required target does not. With e_j the public coordinate vectors, the
+inputs are `2e173-2e469-2e471+4e549-e703-e704` for case 0,
+`e585-e769` for cases 1 through 7, and `e585` for case 8. Invertible
+entrance and exit bases preserve rank, so they cannot repair these nine
+words. The retained `replay_null.py` checks the exact edits and vectors
+on all 799 scalar coordinates, with a live-input rejection control.
+This is a source-specific rejection, not a full native or compiler check.
+The old local archive and receipt remain separate; they are not inputs
+to the new registered kappa replay. Other changes to the word remain open.
 
 The [original search note](../mixed-projector-query-root/SEARCH.md)
 records the finite basis catalogue, child-size discovery, structured
@@ -103,6 +147,29 @@ replays; raw exploratory logs are kept separate from acceptance evidence.
   query counts, or a new child interface with a full invoice.
 - Find an affordable border recovery and prove its recursive precision
   transfer in the actual chronological compiler.
+
+## Adjacent work at the final review
+
+The review read the following open PR descriptions and exact heads. These
+are scope and attribution checks, not reviews of their mathematical proofs.
+None of their code is imported into this result.
+
+- Nick Petalas's [PR6391](https://github.com/CrocSwap/integer-mult-bounds/pull/6391),
+  head `e384ae7181f085f92d21e3578976e3231c76e26d`, prices signed idle
+  completion for ABC,ABC,AB,AB,BC,BC. It credits the released overlapping
+  AB/BC proposal from this investigation. It supplies no operator word.
+  Its three-stage target differs from this four-stage mixed root.
+- Nick Petalas's [PR6384](https://github.com/CrocSwap/integer-mult-bounds/pull/6384),
+  head `9a8eac9de8bf60cd573edbb6ea835e0febd49e89`, gives a source-rank
+  sensitive mirror criterion for a conditional capped-flow compiler,
+  with a critical-root corollary for its stated contracts. It does not
+  certify this native source at k*. The nonattainment statement here
+  concerns this package's strict completion argument, not every compiler.
+- Nick Petalas's [PR6390](https://github.com/CrocSwap/integer-mult-bounds/pull/6390),
+  head `f9e68f40b0da7236a7fad415f7172218c0666d27`, sharpens the direct
+  higher-moment split coefficient. It may reduce completion constants.
+  The conservative tail used here remains fully charged and strict;
+  a sharper split coefficient does not change this raw signed invoice.
 
 No selected-frontier change, merge, closure, branch push or PR opening
 is part of this local contribution. Prepared by Ali Romman with

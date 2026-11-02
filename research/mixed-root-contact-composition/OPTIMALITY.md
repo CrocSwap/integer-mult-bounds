@@ -23,20 +23,26 @@ rule. The earlier mixed-root construction supplies the four-percent gain.
 ## Scope
 
 Fix the exact PR6375 source and its complete helper interface. Consider
-the classified six-field, seven-query roots with four independent full
-stages and at most two extra whole idles. Permit every positive binary
+the classified six-field, seven-query roots with four independent forward
+full stages at distinct sites and at most two extra whole idles. Every
+output must contain the central involution S. Scalar bases must be
+independent of S and all stage variables. Permit every positive binary
 child size and every binary tree shape. The
 [classification proof](../mixed-projector-root-headroom/PROOF.md) reduces
 every such root to the same priced output pattern. The saving range is
 0 <= k <= 0.0034, as in the retained BIT admission.
 `SOURCES.json` pins the exact classification proof at local commit
-`a49f6a743daf86797e576abd900e6b3d4b0dbd09`. Its structural statement
+`e87c230f231441e2b53dec846ae9496c8c8d5121`. Its structural statement
 does not depend on the native source price.
 
 This is the exact raw limit in that domain. It does not bound changed
 sources, more costly roots, different queries, different child contracts
 or all multiplication algorithms. The five inherited framework assumptions
 remain. Exact equality at k* has no complete strict certificate here.
+The family comparison fixes the recursive paid/productive invoice. It
+does not assert equal ordinary-operation costs for all scalar bases.
+Omitting extra ordinary work favors competitors and preserves the upper
+bound. The complete ordinary budget is checked for the actual chosen word.
 
 ## The signed invoice
 
@@ -96,8 +102,7 @@ There are 11 distinct internal-node histograms for seven-leaf binary
 trees. The selected histogram is {2:3, 3:1, 4:1, 7:1}. Different planar
 trees can have this same histogram and bill; no unique tree shape is
 claimed. The two-leaf tree has only one histogram. Thus the selected
-child sizes 7,2,2,7 and their tree bills maximize the margin throughout
-the bracket.
+tree bills are optimal at those sizes.
 
 These comparisons extend in the required direction. The checker proves
 L' > 0 on the admitted range. Each H(r), r>1, decreases with k. The
@@ -108,6 +113,17 @@ these increasing tree costs is increasing. Thus a competing profile
 that loses at the lower endpoint also loses at every larger admitted k.
 The interval comparison of all 11 histograms retains their signed
 differences; it does not subtract two separately rounded optima.
+
+To prove dominance across the bracket, one further comparison is needed.
+The selected margin becomes negative above its zero, so negativity of
+the alternatives alone does not prove that it is larger there. Since
+F decreases, F(upper)/104 bounds the selected per-port margin from below
+throughout the bracket. Each competing margin is bounded from above
+by its bound at the lower endpoint. The replay compares these rational
+bounds directly, including the infinite tail below, and proves a gap
+greater than 0.00004433 per port. Together with the histogram comparisons,
+this proves that sizes 7,2,2,7 and their selected tree bills maximize the
+margin throughout the bracket.
 
 For N>=100, concavity gives the bound
 

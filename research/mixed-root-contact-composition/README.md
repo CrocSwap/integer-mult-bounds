@@ -40,8 +40,10 @@ acceptance is claimed.
    of the actual 570-event caller.
 
 The new structural proof is supplementary evidence, not another kappa
-increment. It permits arbitrary scalar bases and all binary child sizes
-and shapes, but excludes roots with more idles or a different interface.
+increment. It permits arbitrary constant scalar bases and all binary
+child sizes and shapes. All six outputs must contain S, and the bases
+must be independent of S and all stage variables. Roots with mixed
+central endpoints, more idles or a different interface are excluded.
 
 ## Replay
 
@@ -61,8 +63,9 @@ The exact PR6375 head is
 are also pinned and declared. No network fetch or separate-branch Git
 object is needed by the direct replay. All earlier source archives stay intact.
 
-See [current validation](VALIDATION.md) for executed checks and their
-limits. The [earlier publication receipt](../mixed-root-source-composition/PUBLICATION.md)
+See the [final author review](REVIEW.md) for repaired proof gaps and
+research coverage, and [current validation](VALIDATION.md) for executed
+checks and their limits. The [earlier publication receipt](../mixed-root-source-composition/PUBLICATION.md)
 remains a historical checkpoint. Source receipts retain the status
 at the time they were made; publication does not alter frozen evidence.
 

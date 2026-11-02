@@ -84,6 +84,13 @@ def run(local, E, root, price, ceiling):
     tail_derivative = 8*(1-lower)*(h[801][1]/801+h[401][1]/401)-(native-1)
     need(tail_upper < 0 and tail_derivative < 0,
          'Every total at least 100 already loses at the lower endpoint')
+    # The selected margin can be negative above its zero. Negative
+    # competitor margins alone would not prove dominance there.
+    selected_lower = margin(upper)[0]/104
+    competitor_upper = max(other_totals, other_split, tail_upper)
+    profile_gap = selected_lower-competitor_upper
+    need(profile_gap > 0,
+         'The selected profile dominates every other size profile throughout the bracket')
 
     # Distinct tree shapes with the same node-size histogram have the same
     # invoice. Enumerate histograms, including every split, through size seven.
@@ -127,9 +134,12 @@ def run(local, E, root, price, ceiling):
             'other_nine_leaf_split_margin_upper': str(other_split),
             'lower_endpoint_tail_margin_upper': str(tail_upper),
             'lower_endpoint_tail_derivative_upper': str(tail_derivative),
+            'selected_per_port_margin_lower_on_bracket': str(selected_lower),
+            'other_size_profile_margin_upper_on_bracket': str(competitor_upper),
+            'minimum_size_profile_margin_gap': str(profile_gap),
             'seven_leaf_histograms': len(histograms[7]), 'selected_seven_leaf_histogram': dict(selected),
             'minimum_alternative_tree_cost_gap': str(min(gaps)),
             'uniform_tail_gamma_upper': str(gamma_upper), 'uniform_tail_delta_upper': str(delta_upper),
             'certified_kappa_distance_upper': str(upper-Q(price['kappa'])),
             'statement': 'The exact family raw-funding supremum is the unique zero of the displayed signed invoice. At that zero the raw paid and productive moments are equal, so the strict compiler does not certify equality.',
-            'scope': 'Fixed PR6375 source; the classified minimum-idle root family; every positive binary child size and binary tree shape; admitted saving range through .0034.'}
+            'scope': 'Fixed PR6375 source; six fields with S on every output, constant scalar bases independent of S and all stage variables, seven square-zero queries, four distinct independent forward full stages and at most two extra whole idles; every positive binary child size and binary tree shape; admitted saving range through .0034.'}

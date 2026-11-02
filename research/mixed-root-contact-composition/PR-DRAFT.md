@@ -14,8 +14,8 @@ This contribution changes the complete caller and gives conditional
 **kappa 0.00328621476572836015146308**, up from **0.00315120** in the pinned
 [PR6375](https://github.com/CrocSwap/integer-mult-bounds/pull/6375).
 The increase is about **0.00013501476573, or 4.28455 percent**. The selected record
-is unchanged. This is an exponent-saving result under five inherited
-framework assumptions, not a measured runtime speedup.
+is unchanged. The conditional time bound is O(n (log n)^(1-kappa))
+under five inherited framework assumptions. No runtime speedup is measured.
 
 The new six-field root combines four binary query suppliers. It permits
 full stage projectors of ranks 2,3,3,2 and pays both additional whole
@@ -65,9 +65,10 @@ small final increment is a separate four-percent construction gain.
 
 The contribution includes exact results beyond the construction:
 
-- A classification of every six-field, seven-query independent-stage
-  root with four full stages and at most two extra whole idles. It
-  retains all scalar bases and the full nonzero endpoint parameter,
+- A classification of six-field, seven-query roots with S on every
+  output, four independent forward full stages at distinct sites and
+  at most two extra whole idles. It permits all scalar bases independent
+  of S and the stage variables, and the full nonzero endpoint parameter,
   including its exceptional value. Every such root has the same price
   pattern. The exact raw optimum is the unique zero of the displayed
   signed invoice. All positive binary child sizes and shapes are covered;
@@ -77,8 +78,10 @@ The contribution includes exact results beyond the construction:
   At the limit, paid and productive moments are equal. This strict
   funding argument cannot certify equality; more digits are not a new
   construction step.
-- An active-space reduction proves that arbitrary extra outputs without
-  the central transform do not evade the shortest-query price limit.
+- An active-space reduction proves that extra outputs without the
+  central transform do not evade the shortest-query price limit when
+  there are exactly r+1 square-zero queries on r active fields. This
+  does not cover seven queries on four active and two inactive fields.
 - All seven rank-four fifth-stage extensions that retain the two
   rank-two endpoints and two rank-three stages lose for every positive
   binary child size and shape. An exact dynamic program and a concave
@@ -103,6 +106,11 @@ Start with `research/mixed-projector-query-root/PROOF.md` for the root
 and global normalization. Then read this package's `PROOF.md` and
 `RESULT.json` for the final native composition and complete price. Read
 `OPTIMALITY.md` for the exact family limit and strict approach to it.
+The research map, `research/mixed-root-contact-composition/RESEARCH-MAP.md`,
+also links the earlier published
+contact, helper and tensor results from this investigation. It records
+the nine exact null-input rejections and the bounded routes that failed.
+They are historical evidence, not extra increments in the new result.
 The intermediate `mixed-root-source-composition` package retains the
 PR6353 result and complete source closure. The `mixed-projector-root-headroom`
 package supplies the structural proof, a separate reverse caller engine,
@@ -121,6 +129,15 @@ Two rational moment engines agree at the tested saving and both raw
 bracket endpoints. Completion, the compiler, ordinary
 costs and all 54 strict plus four functional outer predicates pass.
 There are 43 rejecting source, invoice and semantic controls.
+
+The final author review added a direct rational comparison between the
+selected profile's lower bound and every competing profile's upper
+bound across the raw bracket. The strict gap exceeds 0.00004433 per
+port. It also made the central-output and constant-basis hypotheses
+explicit. These repairs change no source, invoice or kappa.
+The final author review,
+`research/mixed-root-contact-composition/REVIEW.md`, gives the proof audit
+and its limits.
 
 The separate caller engine checks 4,624 formal polynomials across all
 four central characters and rejects seven controls. It does not import
@@ -151,6 +168,9 @@ Open PRs and active Discussions were checked. The
 [canonical investigation](https://github.com/CrocSwap/integer-mult-bounds/discussions/5600#discussioncomment-19209322)
 records the local publication hold and released reservation. Adjacent
 supplier audits and native-word construction are separate work.
+The research map records the new adjacent PR6391 overlapping-stage
+invoice and PR6384/6390 compiler lemmas, with source credit and scope.
+Their code and unreviewed claims are not used as premises here.
 
 New root, normalization, source composition, proofs and replays: Ali
 Romman with substantial OpenAI Codex assistance; no subagents. PR6375

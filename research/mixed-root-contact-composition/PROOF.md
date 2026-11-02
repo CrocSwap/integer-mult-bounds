@@ -25,7 +25,7 @@ with Claude Opus 5.5 assistance. The replay checks every changed input.
 No new owned label or lifetime is added by these lifts.
 
 The source has 770 independent public inputs, 29 owned labels, 43 owned
-lifetimes and peak ownership 13. Both new owned lifetimes are charged.
+lifetimes and peak ownership 13. Both lifetimes added by PR6372 are charged.
 The replay checks all 799 scalar columns and 638,401 separate reverse
 coefficients, absolute native phases and all 7,488 caller contacts.
 The 562 independent helpers at each native call remain separate from
@@ -112,15 +112,19 @@ paid and productive moments are equal; this strict funding argument does
 not certify equality. More digits are not a new construction gain.
 
 The separate `mixed-projector-root-headroom` proof shows that every
-six-field, seven-query root with four full stages and at most two extra
-whole idles has this same priced output pattern. Its structural argument
+six-field, seven-query root in its stated class has this same priced
+output pattern. The class requires S on all six outputs, scalar bases
+independent of S and all stage variables, four independent forward full
+stages at distinct sites, and at most two extra whole idles. Its argument
 does not depend on the native profile. The recalculated ceiling therefore
 applies to that whole family with PR6375 as the fixed source.
 
 This does not maximize all possible callers or integer-multiplication
 algorithms. More idles, changed query counts or field counts, coupled
 queries, changed child contracts and changed sources remain outside the
-ceiling. The last source composition added 0.00000036, or 0.0109561 percent,
+ceiling. Variable-dependent bases and mixed central endpoints are also
+outside this classification. The last source composition added
+0.00000036, or 0.0109561 percent,
 over the preceding local 0.00328584 result. This parameter refinement adds
 about 0.000449325 percent over 0.00328620 with the same invoice. The full
 mixed-root contribution is about 4.28455 percent above PR6375's published
