@@ -1,4 +1,4 @@
-# Local validation
+# Author validation
 
 Environment: CPython 3.12.13, Clang 22.1.3, macOS 26.6.1 arm64.
 The canonical base is `7c49fe32c55de02c2c873655c804b16e4c3fef0a`.
@@ -32,17 +32,19 @@ word, native checks and price are unchanged.
 
 The committed-byte and executable-mode preflight passes for all 30 package
 and input files. The official exporter includes all fifteen declared inputs.
-The prepublication standalone export passes normally and with `-O`, with empty PATH,
+The publication export at scientific commit
+`8ef9ad236fc7eac157aada146caa5c8394e301de` passes normally and with `-O`, with empty PATH,
 no Git and OS-enforced write protection. A write probe rejects. Both runs
 preserve all 31 exported files and all 40 path modes. Elapsed times are
-106.740 seconds normally and 54.273 seconds with optimization.
+105.752 seconds normally and 53.224 seconds with optimization.
 
 Actual corruptions of the retained source word, retained basis code, live
 caller code and price literal reject in both modes. The source-code failures
 occur during authentication, before those damaged files can be imported.
 These eight checks are separate from the 32 registered controls.
 
-No hosted CI or independent scientific review was requested. The optional
+This record covers author checks. The PR reports hosted CI separately.
+No independent scientific review is included. The optional
 source-history preflight stops because the checkout is shallow. Full history
 was not fetched. All declared pin commits are in the visible local ancestry;
 the cold export supplies a separate Git-free reproduction check. The five
