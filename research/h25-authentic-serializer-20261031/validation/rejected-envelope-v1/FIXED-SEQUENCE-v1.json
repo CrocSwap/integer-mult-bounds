@@ -1,0 +1,182 @@
+{
+  "schema": "o03-fixed-sequence-source-v1",
+  "sequence": [
+    {
+      "argv": [
+        "--output-root",
+        "{output_root}",
+        "--receipt",
+        "{receipt}",
+        "--runtime-manifest",
+        "{runtime_manifest}",
+        "--runtime-sha256",
+        "{runtime_sha256}"
+      ],
+      "entry": "envelope/observer_controls.py",
+      "id": "observer-controls",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": false,
+      "optimization": 0,
+      "receipt_predicates": {
+        "case_count": 6,
+        "ordered_cases": [
+          "bounded-child-allocation",
+          "concurrent-parent-child-allocation",
+          "short-lived-child",
+          "timeout-kill-reap",
+          "tracked-orphan-cleanup",
+          "sampled-cap-kill-reap"
+        ],
+        "status": "PASS"
+      }
+    },
+    {
+      "argv": [
+        "--output-root",
+        "{output_root}",
+        "--receipt",
+        "{receipt}"
+      ],
+      "entry": "envelope/loader_controls.py",
+      "id": "loader-controls-normal",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": false,
+      "optimization": 0,
+      "receipt_predicates": {
+        "count": 39,
+        "optimize": 0,
+        "status": "LOADER_CONTROLS_PASS"
+      }
+    },
+    {
+      "argv": [
+        "--output-root",
+        "{output_root}",
+        "--receipt",
+        "{receipt}"
+      ],
+      "entry": "consumer/run_controls.py",
+      "id": "consumer-controls-normal",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": false,
+      "optimization": 0,
+      "receipt_predicates": {
+        "new_case_count": 15,
+        "old_case_count": 70,
+        "optimization": 0,
+        "status": "CONSUMER_CONTROLS_RETURNED"
+      }
+    },
+    {
+      "argv": [
+        "--output-root",
+        "{output_root}",
+        "--receipt",
+        "{receipt}"
+      ],
+      "entry": "envelope/loader_controls.py",
+      "id": "loader-controls-O",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": false,
+      "optimization": 1,
+      "receipt_predicates": {
+        "count": 39,
+        "optimize": 1,
+        "status": "LOADER_CONTROLS_PASS"
+      }
+    },
+    {
+      "argv": [
+        "--output-root",
+        "{output_root}",
+        "--receipt",
+        "{receipt}"
+      ],
+      "entry": "consumer/run_controls.py",
+      "id": "consumer-controls-O",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": false,
+      "optimization": 1,
+      "receipt_predicates": {
+        "new_case_count": 15,
+        "old_case_count": 70,
+        "optimization": 1,
+        "status": "CONSUMER_CONTROLS_RETURNED"
+      }
+    },
+    {
+      "argv": [
+        "--arm",
+        "baseline",
+        "--input-root",
+        "{input_root}",
+        "--custody-json",
+        "{custody_json}",
+        "--output-root",
+        "{output_root}",
+        "--receipt",
+        "{receipt}"
+      ],
+      "entry": "consumer/full_consumer.py",
+      "id": "baseline-first",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": true,
+      "optimization": 0,
+      "receipt_predicates": {
+        "arm": "baseline",
+        "optimization": 0,
+        "status": "COMPLETE_RETAINED_VALUE_SERIALIZATION_RETURNED"
+      }
+    },
+    {
+      "argv": [
+        "--arm",
+        "candidate",
+        "--input-root",
+        "{input_root}",
+        "--custody-json",
+        "{custody_json}",
+        "--output-root",
+        "{output_root}",
+        "--receipt",
+        "{receipt}"
+      ],
+      "entry": "consumer/full_consumer.py",
+      "id": "candidate-first",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": true,
+      "optimization": 0,
+      "receipt_predicates": {
+        "arm": "candidate",
+        "optimization": 0,
+        "status": "COMPLETE_RETAINED_VALUE_SERIALIZATION_RETURNED"
+      }
+    },
+    {
+      "argv": [
+        "--input-root",
+        "{input_root}",
+        "--custody-json",
+        "{custody_json}",
+        "--baseline-root",
+        "{baseline_root}",
+        "--candidate-root",
+        "{candidate_root}",
+        "--baseline-receipt",
+        "{baseline_receipt}",
+        "--candidate-receipt",
+        "{candidate_receipt}",
+        "--report",
+        "{receipt}"
+      ],
+      "entry": "consumer/validate_outputs.py",
+      "id": "independent-validation",
+      "must_be_absent_after": [],
+      "needs_authentic_inputs": true,
+      "optimization": 0,
+      "receipt_predicates": {
+        "status": "COMPLETE_OUTPUTS_VALIDATED"
+      }
+    }
+  ]
+}
