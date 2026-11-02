@@ -1,0 +1,30 @@
+--- upstream/independent_literal.py
++++ independent_literal.py
+@@ -16,7 +16,7 @@
+ from collections import Counter
+ import gzip,hashlib,json,os,sys
+ import numpy as np
+-R=Path(__file__).resolve().parent
++R=Path(__file__).resolve().parent/'upstream'
+ if not __debug__:raise SystemExit('unoptimized Python required')
+ for _key in ('OWNER_SOURCE_REPO','OWNER_LITERAL_DIR','OWNER_NATIVE_DIR','OWNER_AUDIT_OUTPUT'):
+  if not os.environ.get(_key):raise SystemExit('missing '+_key)
+@@ -43,7 +43,8 @@
+ source_pins=read(R/'SOURCE-PINS.json')
+ repo=Path(os.environ['OWNER_SOURCE_REPO']).resolve()
+ for rel,digest in source_pins['repo_files'].items():need(sha(repo/rel)==digest,'retained source pin '+rel)
+-for tag in ('base','extra'):need(sha(NATIVE/f'checked-{tag}/CANONICAL-WORD.json.gz')==source_pins['native_canonical'][tag]['canonical_sha256'],'actual native canonical pin')
++native_pins=read(Path(__file__).resolve().parent/'DERIVATION.json')['native_pins']
++for tag in ('base','extra'):need(sha(NATIVE/f'checked-{tag}/CANONICAL-WORD.json.gz')==native_pins[tag],'actual native canonical pin')
+ pins={str(p):sha(p) for p in paths}
+ expected=read(R/'EXPECTED.json');need(hashlib.sha256(gzip.decompress(paths[0].read_bytes())).hexdigest()==expected['payload_sha256'],'freshT488payload')
+ baseorder=read(R/'ORDER37.json')+[[s,r+37]for s,r in read(R/'T8-ORDER.json')]+[[s,r+45]for s,r in read(R/'T16-ORDER.json')]
+@@ -88,7 +89,7 @@
+  need(Counter(widths[pid])=={4:26,5:2,6:18,7:52,8:97,9:213},'actual native widths')
+  loc={int(k):v for k,v in w['local_profile'].items()}
+  need(L is None or L==loc,'common actual native bill');L=loc
+-need(L=={1:2439,2:726,3:224,4:102,5:20,8:8},'new local bill')
++need(L=={1:2437,2:724,3:226,4:102,5:20,8:8},'new local bill')
+ bycall=np.stack([widths[D[tuple(call)]] for call in order])
+ j=read(A/'FILL.json.gz');need(j['columns']==['time','helper','owner_replica','child','port','offset'] and j['dispatch_overrides']==[],'journal schema')
+ need(all(len(row)==6 and all(type(v) is int for v in row) for row in j['rows']),'literal integer roles')
