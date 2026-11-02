@@ -1,0 +1,94 @@
+ifneq ($(vafilt_defined),1)
+  $(error rules.defs must be included before rules.sonames)
+endif
+
+ifeq (,$(wildcard debian/soname-cache))
+  SONAME_VARS := $(shell \
+	cache=debian/soname-cache; \
+	rm -f $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libstdc++-v3/acinclude.m4`; \
+	echo CXX_SONAME=$$v >> $$cache; \
+	v=`awk -F= '/^VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libobjc/configure.ac`; \
+	echo OBJC_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libgfortran/libtool-version | cut -d: -f1`; \
+	echo FORTRAN_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libssp/libtool-version | cut -d: -f1`; \
+	echo SSP_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libffi/libtool-version | cut -d: -f1`; \
+	echo FFI_SONAME=$$v >> $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libgomp/configure.ac`; \
+	echo GOMP_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libsanitizer/asan/libtool-version | cut -d: -f1`; \
+	echo ASAN_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libsanitizer/lsan/libtool-version | cut -d: -f1`; \
+	echo LSAN_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libsanitizer/tsan/libtool-version | cut -d: -f1`; \
+	echo TSAN_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libsanitizer/ubsan/libtool-version | cut -d: -f1`; \
+	echo UBSAN_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libsanitizer/hwasan/libtool-version | cut -d: -f1`; \
+	echo HWASAN_SONAME=$$v >> $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libatomic/configure.ac`; \
+        v=1; \
+	echo ATOMIC_SONAME=$$v >> $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libbacktrace/configure.ac`; \
+	echo BTRACE_SONAME=$$v >> $$cache; \
+	v=`tail -1 $(srcdir)/libquadmath/libtool-version | cut -d: -f1`; \
+	  echo QUADMATH_SONAME=$$v >> $$cache; \
+	v=`grep '[^_]Library_Version.*:' $(srcdir)/gcc/ada/gnatvsn.ads \
+		| sed -e 's/.*"\([^"]*\)".*/\1/'`; \
+	echo GNAT_SONAME=$$v >> $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libgo/configure.ac`; \
+	echo GO_SONAME=$$v >> $$cache; \
+	echo ITM_SONAME=1 >> $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libvtv/configure.ac`; \
+	v=0; \
+	echo VTV_SONAME=$$v >> $$cache; \
+	echo CC1_SONAME=0 >> $$cache; \
+	echo GCCJIT_SONAME=0 >> $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libphobos/configure.ac`; \
+	echo GPHOBOS_SONAME=$$v >> $$cache; \
+	echo GDRUNTIME_SONAME=$$v >> $$cache; \
+	v=`awk -F= '/^libtool_VERSION/ {split($$2,v,":"); print v[1]}' \
+		$(srcdir)/libgm2/configure.ac`; \
+	echo GM2_SONAME=$$v >> $$cache; \
+	cat $$cache)
+else
+  SONAME_VARS := $(shell cat debian/soname-cache)
+endif
+CXX_SONAME	= $(call vafilt,$(SONAME_VARS),CXX_SONAME)
+OBJC_SONAME	= $(call vafilt,$(SONAME_VARS),OBJC_SONAME)
+FORTRAN_SONAME	= $(call vafilt,$(SONAME_VARS),FORTRAN_SONAME)
+SSP_SONAME	= $(call vafilt,$(SONAME_VARS),SSP_SONAME)
+FFI_SONAME	= $(call vafilt,$(SONAME_VARS),FFI_SONAME)
+GOMP_SONAME	= $(call vafilt,$(SONAME_VARS),GOMP_SONAME)
+ATOMIC_SONAME	= $(call vafilt,$(SONAME_VARS),ATOMIC_SONAME)
+BTRACE_SONAME	= $(call vafilt,$(SONAME_VARS),BTRACE_SONAME)
+ASAN_SONAME	= $(call vafilt,$(SONAME_VARS),ASAN_SONAME)
+LSAN_SONAME	= $(call vafilt,$(SONAME_VARS),LSAN_SONAME)
+TSAN_SONAME	= $(call vafilt,$(SONAME_VARS),TSAN_SONAME)
+UBSAN_SONAME	= $(call vafilt,$(SONAME_VARS),UBSAN_SONAME)
+VTV_SONAME	= $(call vafilt,$(SONAME_VARS),VTV_SONAME)
+CILKRTS_SONAME	= $(call vafilt,$(SONAME_VARS),CILKRTS_SONAME)
+QUADMATH_SONAME	= $(call vafilt,$(SONAME_VARS),QUADMATH_SONAME)
+GNAT_SONAME	= $(call vafilt,$(SONAME_VARS),GNAT_SONAME)
+GO_SONAME	= $(call vafilt,$(SONAME_VARS),GO_SONAME)
+ITM_SONAME	= $(call vafilt,$(SONAME_VARS),ITM_SONAME)
+CC1_SONAME	= $(call vafilt,$(SONAME_VARS),CC1_SONAME)
+GCCJIT_SONAME	= $(call vafilt,$(SONAME_VARS),GCCJIT_SONAME)
+GPHOBOS_SONAME	= $(call vafilt,$(SONAME_VARS),GPHOBOS_SONAME)
+GDRUNTIME_SONAME= $(call vafilt,$(SONAME_VARS),GDRUNTIME_SONAME)
+GM2_SONAME	= $(call vafilt,$(SONAME_VARS),GM2_SONAME)
+HWASAN_SONAME	= $(call vafilt,$(SONAME_VARS),HWASAN_SONAME)
+
+# alias
+GFORTRAN_SONAME = $(FORTRAN_SONAME)
+STDC++_SONAME = $(CXX_SONAME)
