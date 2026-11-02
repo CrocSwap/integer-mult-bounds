@@ -1,0 +1,495 @@
+/* Bootstrap-only loader evidence, never used by field_id.
+ * This is not a loader or global-provider authentication replacement. Root
+ * authenticates these original builtin entries and the admitted process/OS
+ * closure before use. After maps(), Root must authenticate actual inventory,
+ * all requested definitions/winners/versions and every permitted OS IFUNC
+ * resolver/result family BEFORE snapshot() invokes dlsym/dlvsym.
+ * No named dlopen, dlclose, new namespace, or Python callback is introduced.
+ * Main handle is deliberately retained through process exit, including errors.
+ */
+#ifndef H25_FIELD_LOADER_SNAPSHOT_V1_H
+#define H25_FIELD_LOADER_SNAPSHOT_V1_H
+
+#include <dlfcn.h>
+#include <link.h>
+#include <elf.h>
+
+#define H25_MAP_CAP 128
+#define H25_MAP_NAME_CAP 1024
+#define H25_PHDR_CAP 64
+#define H25_SEGMENT_CAP 32
+#define H25_SYMBOL_CAP 512
+#define H25_SYMBOL_NAME_CAP 256
+_Static_assert(RTLD_NOW == 2 && RTLD_LOCAL == 0 && LM_ID_BASE == 0,
+               "loader flag and base-namespace profile");
+
+typedef struct {
+    uint64_t lo, hi;
+    unsigned int flags;
+} H25LoadSegment;
+typedef struct {
+    uint64_t base, phdr;
+    char name[H25_MAP_NAME_CAP];
+    size_t segment_count;
+    H25LoadSegment segments[H25_SEGMENT_CAP];
+} H25MapRecord;
+typedef struct {
+    size_t count;
+    unsigned long long adds, subs;
+    int failed;
+    H25MapRecord maps[H25_MAP_CAP];
+} H25MapSnapshot;
+typedef struct {
+    const char *name, *version;
+    int weak, requested_type;
+    uint64_t address, provider_base;
+    const char *provider_name;
+    int has_address_symbol, address_symbol_type;
+    uint64_t address_symbol_address;
+} H25SymbolResult;
+_Static_assert(sizeof(H25LoadSegment) == 24, "loader segment storage profile");
+_Static_assert(sizeof(H25MapRecord) == 1816, "loader map storage profile");
+_Static_assert(sizeof(H25MapSnapshot) == 232480, "loader snapshot storage profile");
+_Static_assert(sizeof(H25SymbolResult) == 64, "loader symbol storage profile");
+
+/* All storage is local to this ELF. There are no Python roots here. Static
+ * bounded buffers avoid unbounded loader callbacks or large C stack frames.
+ * Serialized bootstrap and no concurrent load mutation are inherited gates. */
+static H25MapSnapshot h25_loader_baseline, h25_loader_before, h25_loader_after;
+static H25SymbolResult h25_loader_symbols[H25_SYMBOL_CAP];
+static void *h25_loader_main_handle;
+static int h25_loader_maps_attempted, h25_loader_maps_ready;
+static int h25_loader_symbols_attempted;
+
+static int
+h25_loader_error(const char *message)
+{
+    PyErr_SetString(PyExc_RuntimeError, message);
+    return -1;
+}
+
+static int
+h25_loader_copy_name(char *to, const char *from)
+{
+    if (!from)
+        return -1;
+    for (size_t i = 0; i < H25_MAP_NAME_CAP; ++i) {
+        unsigned char c = (unsigned char)from[i];
+        if (c > 127)
+            return -1;
+        to[i] = (char)c;
+        if (c == 0)
+            return 0;
+    }
+    return -1;
+}
+
+/* Only called by authenticated libc dl_iterate_phdr, never by Python. */
+static int
+h25_loader_collect(struct dl_phdr_info *info, size_t size, void *opaque)
+{
+    H25MapSnapshot *out = (H25MapSnapshot *)opaque;
+    if (size < offsetof(struct dl_phdr_info, dlpi_subs) + sizeof(info->dlpi_subs) ||
+        out->count >= H25_MAP_CAP || !info->dlpi_phdr ||
+        info->dlpi_phnum == 0 || info->dlpi_phnum > H25_PHDR_CAP) {
+        out->failed = 1;
+        return 1;
+    }
+    if (!out->count) {
+        out->adds = info->dlpi_adds;
+        out->subs = info->dlpi_subs;
+    }
+    else if (out->adds != info->dlpi_adds || out->subs != info->dlpi_subs) {
+        out->failed = 1;
+        return 1;
+    }
+    H25MapRecord *record = &out->maps[out->count];
+    record->base = (uint64_t)info->dlpi_addr;
+    record->phdr = (uint64_t)(uintptr_t)info->dlpi_phdr;
+    record->segment_count = 0;
+    if (h25_loader_copy_name(record->name, info->dlpi_name) < 0) {
+        out->failed = 1;
+        return 1;
+    }
+    for (size_t i = 0; i < info->dlpi_phnum; ++i) {
+        const ElfW(Phdr) *p = &info->dlpi_phdr[i];
+        if (p->p_type != PT_LOAD)
+            continue;
+        if (!p->p_memsz || p->p_filesz > p->p_memsz ||
+            record->segment_count >= H25_SEGMENT_CAP ||
+            p->p_vaddr > UINT64_MAX - record->base ||
+            p->p_memsz > UINT64_MAX - (record->base + p->p_vaddr) ||
+            (p->p_flags & ~(PF_R | PF_W | PF_X))) {
+            out->failed = 1;
+            return 1;
+        }
+        H25LoadSegment *segment = &record->segments[record->segment_count++];
+        segment->lo = record->base + p->p_vaddr;
+        segment->hi = segment->lo + p->p_memsz;
+        segment->flags = p->p_flags;
+    }
+    if (!record->segment_count) {
+        out->failed = 1;
+        return 1;
+    }
+    ++out->count;
+    return 0;
+}
+
+static int
+h25_loader_take_maps(H25MapSnapshot *out)
+{
+    out->count = 0;
+    out->adds = out->subs = 0;
+    out->failed = 0;
+    int result = dl_iterate_phdr(h25_loader_collect, out);
+    if (result || out->failed || !out->count)
+        return h25_loader_error("Native loader map bounds/profile rejected");
+    return 0;
+}
+
+static int
+h25_loader_same_maps(const H25MapSnapshot *a, const H25MapSnapshot *b)
+{
+    if (a->count != b->count || a->adds != b->adds || a->subs != b->subs)
+        return 0;
+    for (size_t i = 0; i < a->count; ++i) {
+        const H25MapRecord *x = &a->maps[i], *y = &b->maps[i];
+        if (x->base != y->base || x->phdr != y->phdr ||
+            x->segment_count != y->segment_count || strcmp(x->name, y->name))
+            return 0;
+        for (size_t j = 0; j < x->segment_count; ++j) {
+            if (x->segments[j].lo != y->segments[j].lo ||
+                x->segments[j].hi != y->segments[j].hi ||
+                x->segments[j].flags != y->segments[j].flags)
+                return 0;
+        }
+    }
+    return 1;
+}
+
+static int
+h25_loader_module_check(PyObject *module)
+{
+    if (!PyModule_CheckExact(module) || PyModule_GetDef(module) != &probe_module)
+        return h25_loader_error("Loader helper requires original production owner");
+    ProbeState *state = (ProbeState *)PyModule_GetState(module);
+    if (!state || !state->initialized || !state->armed || !PyGILState_Check() ||
+        Py_Version != (unsigned long)PY_VERSION_HEX || state->interpreter_id != 0 ||
+        PyInterpreterState_GetID(PyThreadState_GetInterpreter(PyThreadState_Get())) != 0)
+        return h25_loader_error("Loader helper requires admitted active bootstrap");
+    /* Original provider.guard already authenticated all original slots. Do not
+     * increment or repurpose the six original entries' metadata counters. */
+    return 0;
+}
+
+static int
+h25_loader_namespace(void)
+{
+    Lmid_t namespace_id = (Lmid_t)-1;
+    struct link_map *main_map = NULL;
+    if (!h25_loader_main_handle ||
+        dlinfo(h25_loader_main_handle, RTLD_DI_LMID, &namespace_id) != 0 ||
+        namespace_id != LM_ID_BASE ||
+        dlinfo(h25_loader_main_handle, RTLD_DI_LINKMAP, &main_map) != 0 ||
+        !main_map || main_map->l_prev || !main_map->l_name || main_map->l_name[0])
+        return h25_loader_error("Loader helper requires base main-program handle");
+    if (!h25_loader_before.count ||
+        h25_loader_before.maps[0].base != (uint64_t)main_map->l_addr ||
+        h25_loader_before.maps[0].name[0])
+        return h25_loader_error("Loader enumeration is not the admitted base namespace");
+    return 0;
+}
+
+static PyObject *
+h25_loader_maps_tuple(const H25MapSnapshot *snapshot)
+{
+    PyObject *maps = PyTuple_New((Py_ssize_t)snapshot->count);
+    if (!maps)
+        return NULL;
+    for (size_t i = 0; i < snapshot->count; ++i) {
+        const H25MapRecord *record = &snapshot->maps[i];
+        PyObject *segments = PyTuple_New((Py_ssize_t)record->segment_count);
+        if (!segments) {
+            Py_DECREF(maps);
+            return NULL;
+        }
+        for (size_t j = 0; j < record->segment_count; ++j) {
+            const H25LoadSegment *s = &record->segments[j];
+            PyObject *segment = Py_BuildValue("(KKI)",
+                (unsigned long long)s->lo, (unsigned long long)s->hi, s->flags);
+            if (!segment) {
+                Py_DECREF(segments);
+                Py_DECREF(maps);
+                return NULL;
+            }
+            PyTuple_SET_ITEM(segments, (Py_ssize_t)j, segment);
+        }
+        PyObject *item = Py_BuildValue("(KKsO)",
+            (unsigned long long)record->base, (unsigned long long)record->phdr,
+            record->name, segments);
+        Py_DECREF(segments);
+        if (!item) {
+            Py_DECREF(maps);
+            return NULL;
+        }
+        PyTuple_SET_ITEM(maps, (Py_ssize_t)i, item);
+    }
+    return maps;
+}
+
+static PyObject *
+h25_loader_symbol_tuple(PyObject *requests, Py_ssize_t count)
+{
+    PyObject *results = PyTuple_New(count);
+    if (!results)
+        return NULL;
+    for (Py_ssize_t i = 0; i < count; ++i) {
+        H25SymbolResult *r = &h25_loader_symbols[i];
+        PyObject *request = PyTuple_GET_ITEM(requests, i);
+        PyObject *provider = PyUnicode_FromString(r->provider_name ? r->provider_name : "");
+        PyObject *address_type = r->has_address_symbol ? PyLong_FromLong(r->address_symbol_type) : Py_NewRef(Py_None);
+        PyObject *symbol_address = r->has_address_symbol ? PyLong_FromUnsignedLongLong(r->address_symbol_address) : Py_NewRef(Py_None);
+        if (!provider || !address_type || !symbol_address) {
+            Py_XDECREF(provider); Py_XDECREF(address_type); Py_XDECREF(symbol_address);
+            Py_DECREF(results);
+            return NULL;
+        }
+        PyObject *item = Py_BuildValue("(OOOOKKOOO)",
+            PyTuple_GET_ITEM(request, 0), PyTuple_GET_ITEM(request, 1),
+            PyTuple_GET_ITEM(request, 2), PyTuple_GET_ITEM(request, 3),
+            (unsigned long long)r->address, (unsigned long long)r->provider_base,
+            provider, address_type, symbol_address);
+        Py_DECREF(provider); Py_DECREF(address_type); Py_DECREF(symbol_address);
+        if (!item) {
+            Py_DECREF(results);
+            return NULL;
+        }
+        PyTuple_SET_ITEM(results, i, item);
+    }
+    return results;
+}
+
+static PyObject *
+h25_loader_result(PyObject *requests, Py_ssize_t count)
+{
+    PyObject *before = h25_loader_maps_tuple(&h25_loader_before);
+    if (!before)
+        return NULL;
+    PyObject *after = h25_loader_maps_tuple(&h25_loader_after);
+    if (!after) {
+        Py_DECREF(before);
+        return NULL;
+    }
+    PyObject *symbols = h25_loader_symbol_tuple(requests, count);
+    if (!symbols) {
+        Py_DECREF(before); Py_DECREF(after);
+        return NULL;
+    }
+    PyObject *result = Py_BuildValue("{s:s,s:i,s:i,s:s,s:O,s:O,s:O}",
+        "schema", "h25-native-provider-snapshot-v1", "namespace", 0, "flags", 2,
+        "scope", "retained-main-handle", "maps_before", before, "maps_after", after,
+        "symbol_results", symbols);
+    Py_DECREF(before); Py_DECREF(after); Py_DECREF(symbols);
+    return result;
+}
+
+static PyObject *
+probe_field_loader_maps(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    if (h25_loader_module_check(module) < 0)
+        return NULL;
+    if (h25_loader_maps_attempted) {
+        h25_loader_error("Loader map capture is single-use");
+        return NULL;
+    }
+    h25_loader_maps_attempted = 1;
+    if (h25_loader_take_maps(&h25_loader_before) < 0)
+        return NULL;
+    /* glibc 2.39 dlfcn/dlopen.c selects BASE for NULL; dl-open.c names
+     * the main link map's searchlist as global scope. The existing main map
+     * is returned; no pathname/dependency load or scope promotion is asked.
+     * No dlclose occurs, even on error. Root must bill the retained handle. */
+    h25_loader_main_handle = dlopen(NULL, RTLD_NOW | RTLD_LOCAL);
+    if (!h25_loader_main_handle) {
+        h25_loader_error("Retained main-program handle unavailable");
+        return NULL;
+    }
+    if (h25_loader_namespace() < 0 || h25_loader_take_maps(&h25_loader_after) < 0)
+        return NULL;
+    if (!h25_loader_same_maps(&h25_loader_before, &h25_loader_after)) {
+        h25_loader_error("Main-program handle changed loaded maps");
+        return NULL;
+    }
+    h25_loader_baseline = h25_loader_after;
+    PyObject *result = h25_loader_result(NULL, 0);
+    if (result)
+        h25_loader_maps_ready = 1;
+    return result;
+}
+
+static int
+h25_loader_ascii(PyObject *value, const char **out)
+{
+    if (!PyUnicode_CheckExact(value) || !PyUnicode_IS_ASCII(value) ||
+        PyUnicode_GET_LENGTH(value) <= 0 ||
+        PyUnicode_GET_LENGTH(value) >= H25_SYMBOL_NAME_CAP)
+        return h25_loader_error("Loader request name/version is not bounded exact ASCII");
+    const char *data = (const char *)PyUnicode_1BYTE_DATA(value);
+    for (Py_ssize_t i = 0; i < PyUnicode_GET_LENGTH(value); ++i) {
+        if (!data[i])
+            return h25_loader_error("Loader request name/version contains NUL");
+    }
+    *out = data;
+    return 0;
+}
+
+static int
+h25_loader_requests(PyObject *requests, Py_ssize_t *count)
+{
+    if (!PyTuple_CheckExact(requests) || PyTuple_GET_SIZE(requests) > H25_SYMBOL_CAP)
+        return h25_loader_error("Loader requests require bounded exact tuple");
+    *count = PyTuple_GET_SIZE(requests);
+    for (Py_ssize_t i = 0; i < *count; ++i) {
+        PyObject *request = PyTuple_GET_ITEM(requests, i);
+        if (!PyTuple_CheckExact(request) || PyTuple_GET_SIZE(request) != 4 ||
+            !PyBool_Check(PyTuple_GET_ITEM(request, 2)) ||
+            !PyLong_CheckExact(PyTuple_GET_ITEM(request, 3)))
+            return h25_loader_error("Loader request schema changed");
+        H25SymbolResult *r = &h25_loader_symbols[i];
+        r->name = r->version = r->provider_name = NULL;
+        r->address = r->provider_base = r->address_symbol_address = 0;
+        r->has_address_symbol = r->address_symbol_type = 0;
+        if (h25_loader_ascii(PyTuple_GET_ITEM(request, 0), &r->name) < 0)
+            return -1;
+        PyObject *version = PyTuple_GET_ITEM(request, 1);
+        if (version != Py_None && h25_loader_ascii(version, &r->version) < 0)
+            return -1;
+        r->weak = PyTuple_GET_ITEM(request, 2) == Py_True;
+        long symbol_type = PyLong_AsLong(PyTuple_GET_ITEM(request, 3));
+        if (symbol_type == -1 && PyErr_Occurred())
+            return -1;
+        if (symbol_type != STT_NOTYPE && symbol_type != STT_OBJECT && symbol_type != STT_FUNC)
+            return h25_loader_error("Loader request rejects unsupported import symbol kind");
+        r->requested_type = (int)symbol_type;
+        for (Py_ssize_t j = 0; j < i; ++j) {
+            H25SymbolResult *previous = &h25_loader_symbols[j];
+            if (!strcmp(r->name, previous->name) &&
+                ((!r->version && !previous->version) ||
+                 (r->version && previous->version && !strcmp(r->version, previous->version))))
+                return h25_loader_error("Loader requests contain duplicate symbol/version");
+        }
+    }
+    return 0;
+}
+
+static int
+h25_loader_resolve(H25SymbolResult *result)
+{
+    (void)dlerror();
+    /* Never RTLD_DEFAULT: that would use the ordinary caller DSO's local
+     * scope as well. The retained main handle searches the source-admitted
+     * base global scope. OS IFUNC authorization precedes this call in Root. */
+    void *address = result->version ?
+        dlvsym(h25_loader_main_handle, result->name, result->version) :
+        dlsym(h25_loader_main_handle, result->name);
+    const char *error = dlerror();
+    if (!address) {
+        if (!result->weak)
+            return h25_loader_error("Required strong global symbol did not resolve");
+        if (!error)
+            return h25_loader_error("Resolved null symbol is outside unresolved-weak profile");
+        /* Explicit unresolved weak zero. Root must match its admitted weak
+         * outcome. A strong symbol is never silently converted to weak zero. */
+        return 0;
+    }
+    if (error)
+        return h25_loader_error("Loader symbol resolution returned inconsistent error");
+    Dl_info info;
+    struct link_map *map = NULL;
+    if (!dladdr1(address, &info, (void **)&map, RTLD_DL_LINKMAP) || !map || !map->l_name)
+        return h25_loader_error("Resolved symbol has no admitted native provider map");
+    size_t found = H25_MAP_CAP;
+    for (size_t i = 0; i < h25_loader_before.count; ++i) {
+        H25MapRecord *candidate = &h25_loader_before.maps[i];
+        if (candidate->base == (uint64_t)map->l_addr && !strcmp(candidate->name, map->l_name)) {
+            if (found != H25_MAP_CAP)
+                return h25_loader_error("Resolved symbol provider map is ambiguous");
+            found = i;
+        }
+    }
+    if (found == H25_MAP_CAP)
+        return h25_loader_error("Resolved symbol provider is absent from captured maps");
+    H25MapRecord *provider = &h25_loader_before.maps[found];
+    uint64_t location = (uint64_t)(uintptr_t)address;
+    int in_segment = 0;
+    for (size_t i = 0; i < provider->segment_count; ++i) {
+        if (location >= provider->segments[i].lo && location < provider->segments[i].hi)
+            in_segment = 1;
+    }
+    if (!in_segment)
+        return h25_loader_error("Resolved symbol is outside provider PT_LOAD ranges");
+    result->address = location;
+    result->provider_base = provider->base;
+    result->provider_name = provider->name;
+    const ElfW(Sym) *address_symbol = NULL;
+    if (dladdr1(address, &info, (void **)&address_symbol, RTLD_DL_SYMENT) &&
+        address_symbol && info.dli_saddr) {
+        result->has_address_symbol = 1;
+        result->address_symbol_type = ELF64_ST_TYPE(address_symbol->st_info);
+        result->address_symbol_address = (uint64_t)(uintptr_t)info.dli_saddr;
+    }
+    /* This last metadata describes only a nearest address symbol, potentially
+     * absent for hidden IFUNC implementation code. It is not a definition,
+     * resolver, binding or symbol-version assertion. */
+    return 0;
+}
+
+static void
+h25_loader_forget_request_pointers(void)
+{
+    /* Request strings are borrowed only during the call, never retained. */
+    for (size_t i = 0; i < H25_SYMBOL_CAP; ++i) {
+        h25_loader_symbols[i].name = NULL;
+        h25_loader_symbols[i].version = NULL;
+        h25_loader_symbols[i].provider_name = NULL;
+    }
+}
+
+static PyObject *
+probe_field_loader_snapshot(PyObject *module, PyObject *requests)
+{
+    if (h25_loader_module_check(module) < 0)
+        return NULL;
+    if (!h25_loader_maps_ready || h25_loader_symbols_attempted) {
+        h25_loader_error("Loader symbol capture requires successful maps and one attempt");
+        return NULL;
+    }
+    h25_loader_symbols_attempted = 1;
+    Py_ssize_t count = 0;
+    PyObject *result = NULL;
+    if (h25_loader_requests(requests, &count) < 0 ||
+        h25_loader_take_maps(&h25_loader_before) < 0 || h25_loader_namespace() < 0)
+        goto done;
+    if (!h25_loader_same_maps(&h25_loader_baseline, &h25_loader_before)) {
+        h25_loader_error("Loaded map history changed before symbol resolution");
+        goto done;
+    }
+    for (Py_ssize_t i = 0; i < count; ++i) {
+        if (h25_loader_resolve(&h25_loader_symbols[i]) < 0)
+            goto done;
+    }
+    if (h25_loader_take_maps(&h25_loader_after) < 0)
+        goto done;
+    if (!h25_loader_same_maps(&h25_loader_before, &h25_loader_after)) {
+        h25_loader_error("Symbol resolution changed loaded maps");
+        goto done;
+    }
+    result = h25_loader_result(requests, count);
+done:
+    h25_loader_forget_request_pointers();
+    return result;
+}
+
+#endif

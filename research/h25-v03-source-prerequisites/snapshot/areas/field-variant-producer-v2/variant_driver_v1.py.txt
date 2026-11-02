@@ -1,0 +1,819 @@
+#!/usr/bin/env python3
+"""Build-only two-role negative producer; unconfigured source draft.
+
+Original f5 Root/API4, initial five and cold authority are retained. No image
+is loaded. Parent source/native/process/resource/whole-caller gates stay open.
+"""
+from __future__ import annotations
+
+# Actual source-authenticated root injects these three values before driver exec.
+# Capture them before importing any candidate, scientific, or orchestration code.
+_CAPTURED_BOOTSTRAP_ROOT = bootstrap_root
+_CAPTURED_BOOTSTRAP_CAPABILITY = bootstrap_capability
+_CAPTURED_BOOTSTRAP_API = bootstrap_api
+if type(_CAPTURED_BOOTSTRAP_API) is not tuple or len(_CAPTURED_BOOTSTRAP_API) != 4:
+    raise RuntimeError('Driver requires the parent-sealed exact four-entry bootstrap API')
+_INITIAL_ROOT_IDENTITY = _CAPTURED_BOOTSTRAP_API[0]()
+if (type(_CAPTURED_BOOTSTRAP_ROOT) is not _CAPTURED_BOOTSTRAP_ROOT.ModuleType or
+        any(type(entry) is not _CAPTURED_BOOTSTRAP_ROOT.FunctionType or
+            entry.__globals__ is not _CAPTURED_BOOTSTRAP_ROOT.__dict__
+            for entry in _CAPTURED_BOOTSTRAP_API)):
+    raise RuntimeError('Driver bootstrap API is not bound to the actual root namespace')
+
+# SOURCE-ONLY: configuring these literals requires a separately reviewed successor.
+VARIANT_CONFIGURATION = None
+VARIANT_SOURCE_REVIEW = None
+VARIANT_STAGE_ADMISSION = None
+VARIANT_NATIVE_PROFILE = None
+VARIANT_HEADER_ADMISSION = None
+VARIANT_COMMAND_ADMISSION = None
+VARIANT_FUNDING = None
+VARIANT_EXECUTION = None
+if any(value is None for value in (VARIANT_CONFIGURATION, VARIANT_SOURCE_REVIEW,
+        VARIANT_STAGE_ADMISSION, VARIANT_NATIVE_PROFILE, VARIANT_HEADER_ADMISSION,
+        VARIANT_COMMAND_ADMISSION, VARIANT_FUNDING, VARIANT_EXECUTION)):
+    raise RuntimeError('Negative variant producer is unconfigured; execution withheld')
+
+# Allocated before the first protected I/O. Slots never recycle an error.
+# [first delivered primary, first secondary, quarantined, pending open, owned FD]
+_VARIANT_IO = [None, None, False, False, None]
+_VARIANT_RETURNS = [None, None]
+_VARIANT_TERMINAL_ERROR = [None]
+_VARIANT_USED = [False, False]
+_VARIANT_WIRE_LIMIT = 1048576
+
+
+_VARIANT_POSIX_NAMES = ('open', 'read', 'fstat', 'close', 'write', 'fsync', 'mkdir')
+_VARIANT_POSIX = tuple(_CAPTURED_BOOTSTRAP_ROOT.posix.__dict__[name] for name in _VARIANT_POSIX_NAMES)
+_VARIANT_READ_FLAGS = (_CAPTURED_BOOTSTRAP_ROOT.posix.O_RDONLY |
+    _CAPTURED_BOOTSTRAP_ROOT.posix.O_NOFOLLOW | _CAPTURED_BOOTSTRAP_ROOT.posix.O_CLOEXEC)
+_VARIANT_WRITE_FLAGS = (_CAPTURED_BOOTSTRAP_ROOT.posix.O_WRONLY |
+    _CAPTURED_BOOTSTRAP_ROOT.posix.O_CREAT | _CAPTURED_BOOTSTRAP_ROOT.posix.O_EXCL |
+    _CAPTURED_BOOTSTRAP_ROOT.posix.O_NOFOLLOW | _CAPTURED_BOOTSTRAP_ROOT.posix.O_CLOEXEC)
+
+
+def _vops():
+    _CAPTURED_BOOTSTRAP_API[0]()
+    root = _CAPTURED_BOOTSTRAP_ROOT
+    module = root.posix
+    for name, function in zip(_VARIANT_POSIX_NAMES, _VARIANT_POSIX):
+        if (type(function) is not root.BuiltinFunctionType or function.__self__ is not module or
+                function.__name__ != name or module.__dict__.get(name) is not function):
+            raise RuntimeError('Variant original POSIX primitive differs')
+    if (_VARIANT_POSIX[0] is not root._OPEN or _VARIANT_POSIX[1] is not root._READ or
+            _VARIANT_POSIX[2] is not root._FSTAT or _VARIANT_POSIX[3] is not root._CLOSE):
+        raise RuntimeError('Variant POSIX original Root aliases differ')
+    return _VARIANT_POSIX
+
+
+def _vsame(left, right):
+    """Bounded exact native tree equality; no coercion or foreign callbacks.
+
+    The existing producer/receiver JSON domain is integer-only: floats, including
+    finite floats, remain rejected. Bytes are supported only as exact byte leaves.
+    Dictionary field sets are unordered; list and tuple order and kind are exact.
+    The caller cannot supply the private budget or a comparison callback.
+    """
+    budget = [0, 0, 0]  # paired nodes, both-side text, both-side bytes
+
+    def walk(a, b, depth):
+        budget[0] += 1
+        if depth > 24 or budget[0] > 65536:
+            return False
+        kind = type(a)
+        if kind is not type(b):
+            return False
+        if a is None:
+            return True
+        if kind is bool:
+            return a is b
+        if kind is int:
+            if not -(1 << 64) <= a < (1 << 64) or not -(1 << 64) <= b < (1 << 64):
+                return False
+            return a == b
+        if kind is str:
+            if len(a) > 8192 or len(b) > 8192:
+                return False
+            budget[1] += len(a) + len(b)
+            if budget[1] > 1048576:
+                return False
+            return a == b
+        if kind is bytes:
+            if len(a) > 8388608 or len(b) > 8388608:
+                return False
+            budget[2] += len(a) + len(b)
+            if budget[2] > 33554432:
+                return False
+            return a == b
+        if kind is list or kind is tuple:
+            if len(a) > 1024 or len(b) > 1024 or len(a) != len(b):
+                return False
+            index = 0
+            while index < len(a):
+                if not walk(a[index], b[index], depth + 1):
+                    return False
+                index += 1
+            return True
+        if kind is dict:
+            if len(a) > 1024 or len(b) > 1024 or len(a) != len(b):
+                return False
+            # Complete both key-domain walks before membership or lookup. Exact
+            # str keys use native hashing/equality; no unknown key gets hashed.
+            for key in a:
+                if type(key) is not str or len(key) > 8192:
+                    return False
+                budget[1] += len(key)
+                if budget[1] > 1048576:
+                    return False
+            for key in b:
+                if type(key) is not str or len(key) > 8192:
+                    return False
+                budget[1] += len(key)
+                if budget[1] > 1048576:
+                    return False
+            for key in a:
+                if key not in b:
+                    return False
+                if not walk(a[key], b[key], depth + 1):
+                    return False
+            return True
+        # Includes float, all subclasses, user objects and callable values.
+        return False
+
+    return walk(left, right, 0)
+
+
+def _vplain(value, depth=0, budget=None):
+    # Exact native values only. No repr/str of unknown objects or error objects.
+    if budget is None:
+        budget = [0, 0]
+    budget[0] += 1
+    if depth > 24 or budget[0] > 65536:
+        raise RuntimeError('Variant raw object bound exceeded')
+    if value is None or type(value) is bool:
+        return value
+    if type(value) is int:
+        if not -(1 << 64) <= value < (1 << 64):
+            raise RuntimeError('Variant integer bound exceeded')
+        return value
+    if type(value) is str:
+        budget[1] += len(value)
+        if len(value) > 8192 or budget[1] > 524288:
+            raise RuntimeError('Variant string bound exceeded')
+        return value
+    if type(value) in (list, tuple):
+        if len(value) > 1024:
+            raise RuntimeError('Variant sequence bound exceeded')
+        return [_vplain(item, depth + 1, budget) for item in value]
+    if type(value) is dict:
+        if len(value) > 1024:
+            raise RuntimeError('Variant mapping bound exceeded')
+        for key in value:
+            if type(key) is not str:
+                raise RuntimeError('Variant foreign mapping key')
+            _vplain(key, depth + 1, budget)
+        return {key: _vplain(value[key], depth + 1, budget) for key in value}
+    raise RuntimeError('Variant foreign raw value')
+
+
+def _vencode(value):
+    # Before cold capture no imports are added. Exact strings are escaped as ASCII JSON.
+    value = _vplain(value)
+    def emit(item):
+        if item is None:
+            return 'null'
+        if type(item) is bool:
+            return 'true' if item else 'false'
+        if type(item) is int:
+            return str(item)
+        if type(item) is str:
+            parts = ['"']
+            for c in item:
+                if c == '"':
+                    parts.append('\\"')
+                elif c == '\\':
+                    parts.append('\\\\')
+                elif ord(c) < 32 or ord(c) >= 127:
+                    code = ord(c)
+                    if code <= 65535:
+                        parts.append('\\u%04x' % code)
+                    else:
+                        code -= 65536
+                        parts.append('\\u%04x\\u%04x' % (55296 + (code >> 10), 56320 + (code & 1023)))
+                else:
+                    parts.append(c)
+            parts.append('"')
+            return ''.join(parts)
+        if type(item) is list:
+            return '[' + ','.join(emit(x) for x in item) + ']'
+        return '{' + ','.join(emit(k) + ':' + emit(item[k]) for k in sorted(item)) + '}'
+    result = (emit(value) + '\n').encode('ascii')
+    if len(result) > _VARIANT_WIRE_LIMIT:
+        raise RuntimeError('Variant wire bound exceeded')
+    return result
+
+
+def _vwrite(path, raw):
+    # Pending-open quarantine covers an unreturned possible descriptor. It does
+    # not prove release; parent process teardown must close an uncertain FD.
+    state = _VARIANT_IO
+    if state[2] or state[3] or state[4] is not None:
+        raise RuntimeError('Variant I/O quarantined')
+    if type(raw) is not bytes or len(raw) > _VARIANT_WIRE_LIMIT:
+        raise RuntimeError('Variant write bound differs')
+    ops = _vops()
+    open0, write0, sync0, close0 = ops[0], ops[4], ops[5], ops[3]
+    flags = _VARIANT_WRITE_FLAGS
+    primary = secondary = None
+    try:
+        state[3] = True
+        state[4] = open0(path, flags, 0o600)
+        state[3] = False
+        offset = calls = 0
+        while offset < len(raw):
+            if calls >= 4096:
+                raise RuntimeError('Variant write call bound exceeded')
+            count = write0(state[4], raw[offset:offset + 65536])
+            if type(count) is not int or count <= 0:
+                raise RuntimeError('Variant write made no progress')
+            offset += count
+            calls += 1
+        sync0(state[4])
+    except BaseException as error:
+        # Inline first bind before any allocating helper/call/formatting.
+        primary = error
+        state[0] = error
+        state[2] = True
+    finally:
+        if state[4] is not None:
+            descriptor = state[4]
+            state[4] = None
+            try:
+                close0(descriptor)
+            except BaseException as error:
+                secondary = error
+                state[1] = error
+                state[2] = True
+    if primary is not None:
+        raise primary
+    if secondary is not None:
+        raise secondary
+
+
+def _vraw(path, value):
+    # Caller roots the returned object before entering this allocating encoder.
+    _vwrite(path, _vencode(value))
+
+
+def _vread(path, limit):
+    state = _VARIANT_IO
+    if state[2] or state[3] or state[4] is not None:
+        raise RuntimeError('Variant I/O quarantined')
+    if type(limit) is not int or not 0 < limit <= 67108864:
+        raise RuntimeError('Variant read bound differs')
+    ops = _vops()
+    open0, read0, stat0, close0 = ops[0], ops[1], ops[2], ops[3]
+    primary = secondary = None
+    result = before = after = None
+    try:
+        state[3] = True
+        state[4] = open0(path, _VARIANT_READ_FLAGS)
+        state[3] = False
+        before = stat0(state[4])
+        if before.st_mode & 0o170000 != 0o100000 or before.st_size > limit:
+            raise RuntimeError('Variant file type or size differs')
+        blocks, total, calls = [], 0, 0
+        while True:
+            if calls >= 4096:
+                raise RuntimeError('Variant read call bound exceeded')
+            block = read0(state[4], min(65536, limit + 1 - total))
+            calls += 1
+            if not block:
+                break
+            blocks.append(block)
+            total += len(block)
+            if total > limit:
+                raise RuntimeError('Variant file grew past bound')
+        after = stat0(state[4])
+        if ((before.st_dev, before.st_ino, before.st_mode, before.st_size,
+             before.st_mtime_ns, before.st_ctime_ns) !=
+            (after.st_dev, after.st_ino, after.st_mode, after.st_size,
+             after.st_mtime_ns, after.st_ctime_ns) or total != after.st_size):
+            raise RuntimeError('Variant file changed during read')
+        result = b''.join(blocks)
+    except BaseException as error:
+        primary = error
+        state[0] = error
+        state[2] = True
+    finally:
+        if state[4] is not None:
+            descriptor = state[4]
+            state[4] = None
+            try:
+                close0(descriptor)
+            except BaseException as error:
+                secondary = error
+                state[1] = error
+                state[2] = True
+    if primary is not None:
+        raise primary
+    if secondary is not None:
+        raise secondary
+    return result, after
+
+
+def _vstdout(raw):
+    # Descriptor 1 is borrowed from the owning parent and is never closed here.
+    # receipt.json already exists before this terminal mirror is attempted.
+    state = _VARIANT_IO
+    if state[2] or state[3] or state[4] is not None:
+        raise RuntimeError('Variant stdout after I/O quarantine')
+    if type(raw) is not bytes or len(raw) > _VARIANT_WIRE_LIMIT:
+        raise RuntimeError('Variant stdout bound differs')
+    write0 = _vops()[4]
+    try:
+        offset = calls = 0
+        while offset < len(raw):
+            if calls >= 4096:
+                raise RuntimeError('Variant stdout call bound exceeded')
+            count = write0(1, raw[offset:offset + 65536])
+            if type(count) is not int or count <= 0:
+                raise RuntimeError('Variant stdout made no progress')
+            offset += count
+            calls += 1
+    except BaseException as error:
+        state[0] = error
+        state[2] = True
+        raise
+
+
+# Accepted helper/control sources and parent-inspected native dependency tuple.
+# These are static expected pins; finite and full execution gates remain closed.
+EXPECTED_BOOTSTRAP_ROOT_SHA256 = 'f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0'
+NATIVE_TCB_HELPER_SHA256 = '865943df5cfdbf9383362d7fb2b76c6d0fd895cf0a0e20d550a26b579606b5d7'
+NATIVE_TCB_CONTROLS_SHA256 = '63b1804caa7f89915662a1424f788c3becad13520e1f63212a338fb45aaa2c5a'
+NATIVE_TCB_EXPECTED_FILES = (('/usr/bin/python3.12', 'e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f', 8020928),
+ ('/usr/lib/python3.12/lib-dynload/_hashlib.cpython-312-x86_64-linux-gnu.so',
+  '8dc6cda6dd9495b95a2bfb5b26e8cf06b72f36dc0213d958b9277a958287f0fe',
+  64368),
+ ('/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2',
+  'c20a2dc8917c755f02b94049356320fe1f62ac7d9f8994731f807d9df39302da',
+  236616),
+ ('/usr/lib/x86_64-linux-gnu/libc.so.6',
+  '3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf',
+  2129424),
+ ('/usr/lib/x86_64-linux-gnu/libcrypto.so.3',
+  '6866ed711dab8927e1bf82bf1cd30e828bdfc34f3cc1e83b1c9eb01ce6c37d9a',
+  5309400),
+ ('/usr/lib/x86_64-linux-gnu/libexpat.so.1.9.1',
+  '286682ecbc5e59a638963b1a4e6351e65eb32fcf4bdcb9cb7569b6a61fe06a8d',
+  186624),
+ ('/usr/lib/x86_64-linux-gnu/libm.so.6',
+  'fce00b6f25f459cf4ae0b7fae4257909a1a8a86f9149e7c029a5d617baf1ccd0',
+  952616),
+ ('/usr/lib/x86_64-linux-gnu/libz.so.1.3',
+  'f61677c7bdb7c2aa2a243ea781bfd16afcb361cede7b4ef76127a9d8eb9a5242',
+  113000))
+NATIVE_TCB_EXPECTED_HASHLIB_ORIGIN = '/usr/lib/python3.12/lib-dynload/_hashlib.cpython-312-x86_64-linux-gnu.so'
+
+
+def _initial_native_tcb():
+    root, api = _CAPTURED_BOOTSTRAP_ROOT, _CAPTURED_BOOTSTRAP_API
+    if (type(EXPECTED_BOOTSTRAP_ROOT_SHA256) is not str or
+            _INITIAL_ROOT_IDENTITY != EXPECTED_BOOTSTRAP_ROOT_SHA256 or
+            type(NATIVE_TCB_HELPER_SHA256) is not str or len(NATIVE_TCB_HELPER_SHA256) != 64 or
+            type(NATIVE_TCB_EXPECTED_FILES) is not tuple or
+            type(NATIVE_TCB_EXPECTED_HASHLIB_ORIGIN) is not str):
+        raise RuntimeError('Initial native TCB source and expected dependency tuple are not configured')
+    helper_path = __file__.rsplit('/', 2)[0] + '/areas/cache-validity/probe-native/native_tcb_v1.py'
+    api[0]()
+    digest, _, source = root._hash_regular(helper_path, 262144, True)
+    if digest != NATIVE_TCB_HELPER_SHA256:
+        raise RuntimeError('Initial native TCB helper source differs')
+    helper = root.ModuleType('_h25_initial_native_tcb')
+    namespace = helper.__dict__
+    namespace.update({'__file__': helper_path, '__builtins__': root.builtins.__dict__})
+    api[0]()
+    code = root._COMPILE(source, helper_path, 'exec', dont_inherit=True, optimize=root._OPTIMIZE)
+    api[0]()
+    root._EXEC(code, namespace)
+    api[0]()
+    receipt = namespace['verify_native_tcb'](root, api, NATIVE_TCB_EXPECTED_FILES,
+                                               NATIVE_TCB_EXPECTED_HASHLIB_ORIGIN)
+    if type(NATIVE_TCB_CONTROLS_SHA256) is not str or len(NATIVE_TCB_CONTROLS_SHA256) != 64:
+        raise RuntimeError('Initial native TCB control source pin is not configured')
+    control_path = __file__.rsplit('/', 2)[0] + '/areas/cache-validity/probe-native/native_tcb_controls_v1.py'
+    api[0]()
+    digest, _, control_source = root._hash_regular(control_path, 262144, True)
+    if digest != NATIVE_TCB_CONTROLS_SHA256:
+        raise RuntimeError('Initial native TCB controls source differs')
+    control_namespace = {'__name__': '_h25_initial_native_tcb_controls', '__file__': control_path,
+                         '__builtins__': root.builtins.__dict__}
+    api[0]()
+    control_code = root._COMPILE(control_source, control_path, 'exec', dont_inherit=True, optimize=root._OPTIMIZE)
+    api[0]()
+    root._EXEC(control_code, control_namespace)
+    argv = root.sys.argv
+    if (type(argv) is not list or any(type(arg) is not str for arg in argv) or
+            argv.count('--output') != 1 or argv.index('--output') + 1 >= len(argv)):
+        raise RuntimeError('Early TCB controls require the unique parent --output argument')
+    output = argv[argv.index('--output') + 1]
+    stage_root = __file__.rsplit('/', 2)[0]
+    if (not output.startswith('/') or output.endswith('/') or
+            any(part in ('', '.', '..') for part in output.split('/')[1:]) or
+            output == stage_root or output.startswith(stage_root + '/')):
+        raise RuntimeError('Early TCB controls require a canonical absolute output outside the stage')
+    # Parent owns an existing nonsymlink output parent. mkdir is exclusive:
+    # a preexisting output, file, or symlink is rejected before any fixture write.
+    api[0]()
+    root.posix.mkdir(output, 0o700)
+    _vraw(output + '/initial-tcb.raw.json', receipt)
+    control_directory = output + '/initial-tcb-controls'
+    root.posix.mkdir(control_directory, 0o700)
+    api[0]()
+    controls = control_namespace['run_controls'](
+        helper, root, api, NATIVE_TCB_EXPECTED_FILES, NATIVE_TCB_EXPECTED_HASHLIB_ORIGIN, control_directory)
+    _vraw(output + '/initial-controls.raw.json', controls)
+    if (controls.get('schema') != 'h25-native-tcb-controls-v1' or
+            controls.get('expected_records') != 5 or len(controls.get('records', [])) != 5 or
+            controls.get('scientific_calls') != 0 or controls.get('probe_native_imports') != 0):
+        raise RuntimeError('Initial native TCB control census differs')
+    controls['status'] = 'NATIVE_INITIAL_TCB_CONTROLS_PASS'
+    api[0]()
+    restoration = namespace['verify_native_tcb'](
+        root, api, NATIVE_TCB_EXPECTED_FILES, NATIVE_TCB_EXPECTED_HASHLIB_ORIGIN)
+    _vraw(output + '/initial-restoration.raw.json', restoration)
+    if (type(restoration) is not dict or
+            restoration.get('status') != 'MATCHED_DECLARED_INITIAL_NATIVE_FILES' or
+            restoration.get('declared_file_count') != len(NATIVE_TCB_EXPECTED_FILES) or
+            restoration.get('probe_private_abi_access') is not False):
+        raise RuntimeError('Initial native TCB restoration corroboration differs')
+    return receipt, controls, output
+
+
+# Child outer wall/CPU/RSS includes this entire initial trust check.
+# It assumes the declared trusted OS/native startup; it does not prove itself.
+try:
+    INITIAL_NATIVE_TCB_RECEIPT, INITIAL_NATIVE_TCB_CONTROLS, _INITIAL_OUTPUT = _initial_native_tcb()
+except BaseException as _variant_bootstrap_error:
+    _VARIANT_TERMINAL_ERROR[0] = _variant_bootstrap_error
+    raise
+
+# This independent bootstrap support captures the initial system-stdlib
+# continuity boundary before any adapter or scientific module is exposed.
+# No late candidate-created snapshot is accepted as initial authentication.
+COLD_AUTHORITY_SHA256 = '2a941111bdfd91037dfcbc5552aced004809240a7e2b43bfbce39fb35798af39'
+
+
+def _initial_cold_authority():
+    root, cap, api = (_CAPTURED_BOOTSTRAP_ROOT, _CAPTURED_BOOTSTRAP_CAPABILITY,
+                      _CAPTURED_BOOTSTRAP_API)
+    if type(COLD_AUTHORITY_SHA256) is not str or len(COLD_AUTHORITY_SHA256) != 64:
+        raise RuntimeError('Initial cold authority source pin is not configured')
+    source_path = __file__.rsplit('/', 2)[0] + '/areas/cache-validity/cold_authority_v7.py'
+    api[0]()
+    digest, _, source = root._hash_regular(source_path, 1048576, True)
+    if digest != COLD_AUTHORITY_SHA256:
+        raise RuntimeError('Initial cold authority source differs')
+    module = root.ModuleType('_h25_initial_cold_authority')
+    namespace = module.__dict__
+    namespace.update({'__file__': source_path, '__builtins__': root.builtins.__dict__})
+    api[0]()
+    code = root._COMPILE(source, source_path, 'exec', dont_inherit=True, optimize=root._OPTIMIZE)
+    api[0]()
+    root._EXEC(code, namespace)
+    # The actual source bytes have just executed under the admitted initial
+    # interpreter/system-stdlib premise. Capture precedes every candidate import.
+    api[0]()
+    authority = namespace['capture_authority'](root, cap, api)
+    if (type(authority) is not tuple or len(authority) != 7 or
+            any(type(entry) is not root.FunctionType for entry in authority)):
+        raise RuntimeError('Initial cold authority must expose the sealed seven-entry tuple')
+    # Read fresh transport exactly once, before any candidate exposure.
+    transport = root.FunctionType.__dict__['__dict__'].__get__(authority[0], root.FunctionType)
+    descriptor = transport['_h25_caller_descriptor']
+    if type(descriptor) is not tuple or len(descriptor) != 6 or descriptor[1] is not authority:
+        raise RuntimeError('Initial cold authority caller descriptor differs')
+    return authority, descriptor
+
+
+import importlib
+import typing
+try:
+    _INITIAL_COLD_AUTHORITY, _INITIAL_COLD_CALLER_DESCRIPTOR = _initial_cold_authority()
+except BaseException as _variant_bootstrap_error:
+    _VARIANT_TERMINAL_ERROR[0] = _variant_bootstrap_error
+    raise
+
+import time
+START_WALL = time.perf_counter()
+import argparse
+from contextlib import redirect_stdout
+from fractions import Fraction
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import resource
+import runpy
+import shutil
+import stat
+import sys
+
+sys.dont_write_bytecode = True
+# Independent source pins are literal final-stage configuration. These modules
+# are admitted by the pre-exposure authority, including their live helper code.
+# Driver/source identity does not depend on a hash of itself.
+EARLY_INTEGRATION_SOURCE_PINS = ({'adapters': ('integration/adapters.py', 'f7ca7f4f03ac63c1a95ba42f06149543211566de5e29f487a3dc4d08c5ee9b94'), 'cold_build_evidence': ('integration/cold_build_evidence.py', 'aa0a315110e031e19291970c9611fe5e0f91465fa20eaec51e81186099563f78'), 'native_packet': ('integration/native_packet.py', '6adbcd1dfeb77fb6da7ee8f725796b1bfdbf0a4f397ef23f3a266a6b89d55892'), 'data_adapters': ('integration/data_adapters.py', 'c00c9c215d0b81a91dd5dffddacfd2225c4bc40fe3ba43c7b93677bb686591cc'), 'guarded_adapters_v4': ('integration/guarded_adapters_v4.py', '5579fe0838d8c6acf63834990269479c6c32024a1662846ed0a075c25d13954c'), '_h25_data_cache': ('areas/cache-validity/cache_contract_v8.py', '133c55e269b354542f86a2a1099f48cff052293d06da310f98b7cb33cb85258f')}
+
+
+
+
+
+
+)
+_INITIAL_INTEGRATION_MODULES = {}
+_INITIAL_INTEGRATION_HANDLES = {}
+for _entry_name, (_entry_relative, _entry_digest) in EARLY_INTEGRATION_SOURCE_PINS.items():
+    if type(_entry_digest) is not str or len(_entry_digest) != 64:
+        raise RuntimeError('Early integration source pin is not configured: ' + _entry_name)
+    # BEGIN evaluated dispatch arguments scientific_driver:195
+    _ca_args = (__file__.rsplit('/', 2)[0] + '/' + _entry_relative, _entry_digest, _entry_name)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments scientific_driver:195
+    # BEGIN caller admission scientific_driver:195
+    _ca_desc = _INITIAL_COLD_CALLER_DESCRIPTOR
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if _INITIAL_COLD_AUTHORITY is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission scientific_driver:195
+    _entry_module, _entry_handle = _ca_dispatch(0, *_ca_args, **_ca_kwargs)
+    if type(_entry_module) is not _CAPTURED_BOOTSTRAP_ROOT.ModuleType or sys.modules.get(_entry_name) is not _entry_module:
+        raise RuntimeError('Early integration module registry identity differs: ' + _entry_name)
+    _INITIAL_INTEGRATION_MODULES[_entry_name] = _entry_module
+    _INITIAL_INTEGRATION_HANDLES[_entry_name] = _entry_handle
+adapters = _INITIAL_INTEGRATION_MODULES['adapters']
+native_packet = _INITIAL_INTEGRATION_MODULES['native_packet']
+data_adapters = _INITIAL_INTEGRATION_MODULES['data_adapters']
+guarded_adapters_v4 = _INITIAL_INTEGRATION_MODULES['guarded_adapters_v4']
+
+# This is a build-only descendant of the original driver prefix. Never call
+# native_packet.prepare, api[2], create_dynamic, exec_dynamic or a fixture loader.
+
+def _vdispatch(index, *args, **kwargs):
+    _ca_desc = _INITIAL_COLD_CALLER_DESCRIPTOR
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if _INITIAL_COLD_AUTHORITY is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    return _ca_dispatch(index, *args, **kwargs)
+
+
+def _vinvoke(name, export, *args):
+    # Current source identity is rechecked immediately before guarded invoke.
+    handle = _INITIAL_INTEGRATION_HANDLES[name]
+    _vdispatch(6, handle)
+    return _vdispatch(1, handle, export, *args)
+
+
+def _vfile(path, bound):
+    raw, info = _vread(path, bound)
+    row = {'sha256': hashlib.sha256(raw).hexdigest(), 'bytes': len(raw),
+           'mode': info.st_mode & 0o7777,
+           'identity': {'device': info.st_dev, 'inode': info.st_ino,
+             'mode': info.st_mode, 'links': info.st_nlink, 'uid': info.st_uid,
+             'gid': info.st_gid, 'size': info.st_size,
+             'mtime_ns': info.st_mtime_ns, 'ctime_ns': info.st_ctime_ns}}
+    return raw, row
+
+
+def _vcustody(plan):
+    # All expected files are independently frozen source/header/compiler/link
+    # closure, including full system header/search/macro/specs witness inputs.
+    # This loop observes bytes; it cannot invent closure completeness.
+    rows, total = [], 0
+    for entry in plan['source_files']:
+        raw, current = _vfile(entry['path'], 67108864)
+        total += len(raw)
+        if total > 268435456:
+            raise RuntimeError('Variant custody aggregate byte bound exceeded')
+        rows.append({'path': entry['path'], **current})
+    return rows
+
+
+def _vcheck_custody(observed, expected):
+    if (not _vsame(len(observed), len(expected))):
+        raise RuntimeError('Variant source inventory differs')
+    for row, fixed in zip(observed, expected):
+        if ((not _vsame(row['path'], fixed['path'])) or (not _vsame(row['sha256'], fixed['sha256'])) or
+                (not _vsame(row['bytes'], fixed['bytes'])) or (not _vsame(row['mode'], fixed['mode']))):
+            raise RuntimeError('Variant current source closure differs')
+
+
+def _vroot(path):
+    counters = _CAPTURED_BOOTSTRAP_API[3](_CAPTURED_BOOTSTRAP_CAPABILITY)
+    _vraw(path, counters)
+    expected = ('load_calls', 'native_creations', 'native_execs', 'activation_attempts',
+                'successful_bindings', 'deactivation_attempts', 'cleanup_failures',
+                'control_module_creations')
+    if (type(counters) is not dict or (not _vsame(tuple(sorted(counters)), tuple(sorted(expected)))) or
+            any(type(counters[k]) is not int or (not _vsame(counters[k], 0)) for k in expected)):
+        raise RuntimeError('Build-only Root event counters differ')
+    return counters
+
+
+_VARIANT_SOURCE_PINS = {
+    'pyinit_failure': ('7656cd37503986459c4133643372fec13d3e5ad5553881f0bf0343a9a3e11abd', 17354),
+    'exec_failure': ('f5066831bd812e7e88fb971ba0e7ca86dbef91fc40a1a68c17b040ce474cd880', 17040)}
+
+
+def _vcheck_literal_sources(plan):
+    stage = __file__.rsplit('/', 2)[0]
+    if any(not 32 <= ord(c) < 127 for c in stage):
+        raise RuntimeError('Variant stage path alphabet differs')
+    rows = {row['path']: row for row in plan['source_files']}
+    if (not _vsame(len(rows), len(plan['source_files']))):
+        raise RuntimeError('Variant duplicate closure input')
+    for role in plan['roles']:
+        name = role['role']
+        source_path = stage + '/areas/field-negative-variants-v1/' + name + '/dict_probe_fields_v1.c'
+        header_pin = _VARIANT_SOURCE_PINS[name]
+        expected = {
+            'dict_probe_fields_v1.c': ('e0188999d41a9ab26e8d3d5c37b18b2238b3af21b1db90895f01f7be76d50b65', 17806),
+            'field_service_v1.h': header_pin,
+            'field_loader_snapshot_v1.h': ('bf7ab049cea89c0a882b279e35b1383ac8f99b66aa4b9b8e1ca22eb9c24c5a8d', 19495)}
+        if (not _vsame(role['source_path'], source_path)):
+            raise RuntimeError('Variant source role path differs')
+        for filename, (digest, size) in expected.items():
+            row = role['source'] if filename.endswith('.c') else role['source_headers'][filename]
+            if (not _vsame(row, {'sha256': digest, 'bytes': size, 'mode': 292})):
+                raise RuntimeError('Variant reviewed source/header differs')
+            fixed = rows[source_path.rsplit('/', 1)[0] + '/' + filename]
+            if any((not _vsame(fixed[key], row[key])) for key in ('sha256', 'bytes', 'mode')):
+                raise RuntimeError('Variant role file omitted from closure')
+    if (not _vsame(plan['additional_source_pins'], [['sealed_elf_profile_v2', 'integration/sealed_elf_profile_v2.py',
+            '89ed8c777e6b72af2d6a3595037e7e92385924c6087d88010a27192633391016']])):
+        raise RuntimeError('Variant original ELF parser source pin differs')
+    if (not _vsame(plan['include'], '/usr/include/python3.12')):
+        raise RuntimeError('Variant original Python include differs')
+
+
+def _variant_main():
+    plan = _vplain(VARIANT_CONFIGURATION)
+    if ((not _vsame(len(plan['roles']), 2)) or
+            (not _vsame([row['role'] for row in plan['roles']], ['pyinit_failure', 'exec_failure'])) or
+            not 1 <= len(plan['source_files']) <= 512):
+        raise RuntimeError('Variant literal configuration differs')
+    output = _INITIAL_OUTPUT
+    if any(not 32 <= ord(c) < 127 for c in output):
+        raise RuntimeError('Variant output path alphabet differs')
+    argv = sys.argv[1:]
+    if ((not _vsame(len(argv), 6)) or (not _vsame(argv[0], '--output')) or (not _vsame(argv[2], '--generation')) or
+            (not _vsame(argv[4], '--launch-nonce')) or (not _vsame(argv[1], output)) or
+            not 1 <= len(argv[3]) <= 96 or (not _vsame(len(argv[5]), 64)) or
+            any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in argv[3]) or
+            any(c not in '0123456789abcdef' for c in argv[5])):
+        raise RuntimeError('Variant exact parent launch arguments differ')
+    binding = {'mode': 'optimized' if sys.flags.optimize else 'normal',
+               'generation': argv[3], 'launch_nonce': argv[5]}
+    _vcheck_literal_sources(plan)
+
+    for name, relative, digest in plan['additional_source_pins']:
+        module, handle = _vdispatch(0, __file__.rsplit('/', 2)[0] + '/' + relative, digest, name)
+        if type(module) is not _CAPTURED_BOOTSTRAP_ROOT.ModuleType or sys.modules.get(name) is not module:
+            raise RuntimeError('Variant additional module identity differs')
+        _INITIAL_INTEGRATION_MODULES[name] = module
+        _INITIAL_INTEGRATION_HANDLES[name] = handle
+    packet = {'bootstrap_root': _CAPTURED_BOOTSTRAP_ROOT,
+              'bootstrap_capability': _CAPTURED_BOOTSTRAP_CAPABILITY,
+              'bootstrap_api': _CAPTURED_BOOTSTRAP_API, 'late_started': False}
+    _vinvoke('native_packet', '_fresh', packet)
+    root_before = _vroot(output + '/root-before.raw.json')
+    preflight_before = _vinvoke('native_packet', '_preflight', packet)
+    _vraw(output + '/preflight-before.raw.json', preflight_before)
+    if (not _vsame(_vplain(preflight_before), plan['expected_preflight'])):
+        raise RuntimeError('Variant original preflight differs')
+    dependencies = _vinvoke('native_packet', '_dependencies')
+    # Dependencies preserved in custody raw, before comparing its original rows.
+    custody_before = _vcustody(plan)
+    _vraw(output + '/custody-before.raw.json', {'files': custody_before, 'original_dependencies': dependencies})
+    _vcheck_custody(custody_before, plan['source_files'])
+    if (not _vsame(_vplain(dependencies), plan['expected_dependencies'])):
+        raise RuntimeError('Variant original compiler dependencies differ')
+    builds = []
+    for index in (0, 1):
+        row = plan['roles'][index]
+        # Consume before mkdir/launch. Every exception stops this entire process;
+        # neither role can retry and the second cannot follow a first failure.
+        if _VARIANT_USED[index]:
+            raise RuntimeError('Variant build role already consumed')
+        _VARIANT_USED[index] = True
+        directory = output + '/' + row['role']
+        _vops()[6](directory, 0o700)
+        target = directory + '/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so'
+        command = ['/usr/bin/x86_64-linux-gnu-gcc-13', '-nostartfiles', '-shared',
+                   '-fPIC', '-O3', '-std=c11', '-Wall', '-Wextra', '-Werror',
+                   '-I' + plan['include'], row['source_path'], '-o', target]
+        context = {'source': row['source'], 'source_name': 'dict_probe_fields_v1.c',
+                   'no_cached_binary': True, 'module_name': '_h25_dict_probe', 'target': target,
+                   'source_headers': row['source_headers'],
+                   'system_header_admission_sha256': plan['system_header_admission_sha256'],
+                   'negative_variant_role': row['role']}
+        # Original unchanged cold_build_evidence.run through original authority.
+        # Its earlier internal failures are NOT covered by this outer handler.
+        _VARIANT_RETURNS[index] = _vinvoke('cold_build_evidence', 'run',
+                                         command, directory, 'control', 15, context)
+        _vraw(directory + '/helper-return.raw.json', _VARIANT_RETURNS[index])
+        returned = _VARIANT_RETURNS[index]
+        if ((not _vsame(returned['returncode'], 0)) or returned['direct_child_reaped'] is not True or
+                (not _vsame(returned['status'], 'EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY'))):
+            raise RuntimeError('Variant cold helper did not complete successfully')
+        binary, binary_row = _vfile(target, 8388608)
+        build = {'schema': 'h25-negative-variant-build-v1', 'role': row['role'],
+                 'status': 'EXIT0_RAW_CAPTURED_PENDING_FINAL_CUSTODY',
+                 'helper_name': 'control', 'command': command, 'context': context,
+                 'path': target, 'binary': binary_row,
+                 'command_sha256': hashlib.sha256(_vencode({'argv': command})).hexdigest(),
+                 'original_helper_sha256': EARLY_INTEGRATION_SOURCE_PINS['cold_build_evidence'][1],
+                 'negative_only': True, 'loaded': False}
+        build_raw = _vencode(build)
+        _vwrite(directory + '/build.json', build_raw)
+        policy = dict(row['static_policy'])
+        if policy['build_receipt_sha256'] is not None:
+            raise RuntimeError('Variant actual receipt binding must not be prelearned')
+        policy['build_receipt_sha256'] = hashlib.sha256(build_raw).hexdigest()
+        # Tuple fields are source literals; conversion is structural, not a
+        # learned expectation. All other static policy fields stay independent.
+        for key in ('expected_exports', 'needed', 'required_local_functions', 'required_local_objects'):
+            policy[key] = tuple(policy[key])
+        policy['pointer_slots'] = tuple(tuple(x) for x in policy['pointer_slots'])
+        policy['method_tables'] = tuple({'symbol': x['symbol'], 'entries': tuple(tuple(y) for y in x['entries'])}
+                                        for x in policy['method_tables'])
+        parsed = _vinvoke('sealed_elf_profile_v2', 'admit_service_elf',
+                          binary, binary_row['sha256'], policy)
+        _vraw(directory + '/elf.raw.json', parsed)
+        # ELF parser already checks its static policy; no candidate image loads.
+        builds.append({'role': row['role'], 'build_receipt_sha256': hashlib.sha256(build_raw).hexdigest(),
+                       'output_sha256': binary_row['sha256'], 'elf_sha256': hashlib.sha256(_vencode(parsed)).hexdigest()})
+    preflight_after = _vinvoke('native_packet', '_preflight', packet)
+    _vraw(output + '/preflight-after.raw.json', preflight_after)
+    dependencies_after = _vinvoke('native_packet', '_dependencies')
+    custody_after = _vcustody(plan)
+    _vraw(output + '/custody-after.raw.json', {'files': custody_after, 'original_dependencies': dependencies_after})
+    _vcheck_custody(custody_after, plan['source_files'])
+    if ((not _vsame(_vplain(preflight_after), plan['expected_preflight'])) or
+            (not _vsame(_vplain(dependencies_after), plan['expected_dependencies'])) or
+            (not _vsame(custody_after, custody_before))):
+        raise RuntimeError('Variant final source/runtime custody differs')
+    root_after = _vroot(output + '/root-after.raw.json')
+    _vinvoke('native_packet', '_fresh', packet)
+    final = {'schema': 'h25-negative-variant-producer-v1',
+             'status': 'TWO_BUILDS_RAW_AND_SOURCE_CAPTURED', 'producer_role': 'failure_variants',
+             'binding': binding,
+             'process_id': os.getpid(), 'builds': builds,
+             'helper_names': ['control', 'control'], 'consumed_roles': list(_VARIANT_USED),
+             'root_before': root_before, 'root_after': root_after,
+             'negative_only': True, 'candidate_loads': 0, 'parent_completion': None,
+             'domain_closed': None, 'failure_helper_qualification': None}
+    final_raw = _vencode(final)
+    _vwrite(output + '/receipt.json', final_raw)
+    _vstdout(final_raw)
+
+
+# First bound outer failure remains rooted. No str/repr/annotation/secondary
+# serialization occurs here; raw partial files remain for the owning parent.
+try:
+    _variant_main()
+except BaseException as _variant_error:
+    _VARIANT_TERMINAL_ERROR[0] = _variant_error
+    raise
