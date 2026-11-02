@@ -92,10 +92,18 @@ ceiling. It does not limit a changed root, native source or query interface.
 
 ## Scope and open next questions
 
-This is a composition increment of 0.0255733 percent over the previous
-local claim. It is not the requested large breakthrough. It does not prove
-global optimality, a practical speedup, all five framework assumptions or
-independent scientific acceptance. The selected frontier stays unchanged.
+This composition adds 0.0255733 percent over the previous local root.
+The complete contribution, including that new root, is 4.28303 percent
+above PR6353. The composition increment and the full caller gain are
+separate comparisons. Neither proves global optimality, a practical
+speedup, all five framework assumptions or independent scientific
+acceptance. The selected frontier stays unchanged.
+
+The companion `mixed-projector-root-headroom/PROOF.md` extends the same
+0.00328554 ceiling to every six-field, seven-query root with four full
+stages and at most two extra whole idles. It retains arbitrary scalar
+bases and the free endpoint parameter. The numeric ceiling here is
+unchanged; the companion proves the larger domain where it applies.
 
 The next review should check the exact source closure and all 18 productive
 debits before it checks the outer inequalities. A larger construction must

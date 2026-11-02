@@ -33,8 +33,12 @@ multiplier are not materialized. Author replay and hosted CI do not replace
 independent scientific review or formal-kernel acceptance. No global
 optimum or practical runtime improvement is claimed.
 
-The result remains local under the donor's publication hold. No push, PR
-or hosted CI is claimed.
+The [final source composition](../mixed-root-contact-composition/README.md)
+gives 0.00328584 after the PR6353 and PR6372 source changes. This package retains
+the separate root construction and its original source for review. The
+[headroom proof](../mixed-projector-root-headroom/PROOF.md) now classifies
+the full minimum-idle family. Historical validation receipts retain the
+publication status at the time they were made.
 
 ## Open next questions
 

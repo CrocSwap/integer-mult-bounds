@@ -1,22 +1,45 @@
-# Local root and source composition
+# Conditional kappa 0.00328551 from the mixed root and contracted source
 
-The complete conditional bound is **kappa 0.00328551**. The previous local
-bound was 0.00328467. The new gain is 0.0255733 percent. This does not meet
-the requested one-percent improvement over that local result.
+The complete conditional bound is **kappa 0.00328551**, an increase of
+**0.00013494 (4.28303 percent)** over PR6353's 0.00315057. The new caller
+supplies most of this gain. The final source composition adds 0.0255733
+percent over the preceding local root at 0.00328467. These comparisons
+are separate; the full gain is not attributed to the composition step.
 
 This package combines the current mixed-projector root with PR6353's nine
 native output contractions. It keeps the root, all four child trees and all
 570 caller events unchanged. Each of the 18 native calls uses the contracted
 source, with every productive target debit included.
 
+The subsequent [PR6372 composition](../mixed-root-contact-composition/README.md)
+is the final result in this contribution, at **0.00328584**. This package
+retains the exact intermediate result and source closure for review.
+
 The exact raw crossing is in
 `(0.00328552920257, 0.00328552920258)`. The full replay passes at the claim
 above and tested saving 0.003285515. There are 67,096 paid jobs and 13,652
 independent productive fields. The complete rank-mass surplus remains 760.
 
-This result is local only. No PR, push or selected-frontier change is made.
 The five inherited framework assumptions remain. The checks are author
-checks; independent scientific review and hosted replay remain open.
+checks; independent scientific review remains open. The selected frontier
+stays unchanged. Historical validation receipts retain their original
+local-publication status. Current publication evidence is recorded in
+`PUBLICATION.md`.
+
+## Review path and proved headroom
+
+1. The [root proof](../mixed-projector-query-root/PROOF.md) defines the
+   global normalization, projectors and literal 570-event caller. Its
+   source is PR6349. That package proves the separate 0.00328467 result.
+2. [This composition proof](PROOF.md) binds the root to PR6353, including
+   all 18 copies of its paid change and productive target debits. It
+   supplies the final 0.00328551 result and complete source archive.
+3. The [headroom proof](../mixed-projector-root-headroom/PROOF.md) classifies
+   every six-field, seven-query root with four full stages and at most
+   two extra whole idles. The ceiling 0.00328554 applies to this entire
+   class, with arbitrary scalar bases and all binary child sizes and shapes.
+   It also proves new idle lower bounds for more full stages. This is
+   supplementary proof, not an additional kappa increment.
 
 ## Replay
 
@@ -53,8 +76,8 @@ Apache-2.0. See `PROOF.md` for the complete scope.
 
 - Can an independent reviewer confirm the source and root composition,
   including all target debits and the physical native contacts?
-- Can a different root or source give a material gain? The fixed-root
-  ceiling has now been checked for the contracted source: no positive
-  integer child sizes or binary tree shapes reach 0.00328554. This claim
-  is within 0.00000003 of that ceiling. The proof does not cover other
-  roots or sources. Numerical discovery does not establish a global optimum.
+- Can a root outside the classified minimum-idle family or a different
+  source give a material gain? The complete claim is within 0.00000003
+  of that family's ceiling. More idles, different query counts and
+  changed child interfaces remain possible routes. Numerical discovery
+  does not establish a global optimum.
