@@ -1,0 +1,359 @@
+"""Exact-source Unit13 AT_RANDOM producer-event checker; no original execution.
+
+Pure byte/text and integer-only static DATA. Semantic analysis deliberately has
+no source authentication authority. Production APIs require every literal pin.
+Neither API observes an exec or grants memory/handoff/ownership/admission facts.
+"""
+from __future__ import annotations
+import hashlib
+import json
+import re
+
+FILE_CAP=1048576
+TOTAL_CAP=8388608
+RECORD_CAP=1048576
+NODE_CAP=8192
+DEPTH_CAP=24
+CONTAINER_CAP=256
+INT_MIN=-(1<<126)
+INT_MAX=(1<<126)-1
+SOURCE_PINS={'GPL2_license': (1, 18600, '8780e78a1a737e127f25a65f6d95269bffd36158dc261114de7859b490bfc5aa'), 'assessment': (2, 3169, '535759b7943bc89895af7746f20f7b8933ab7a9efcfb35a27c86d1a4a9b57244'), 'config': (3, 308206, '8da949fb637f675c8a1170a2bfc5f029b2642f54e0efe8dbb54ca95c6324cf8d'), 'exec_after_ELF': (4, 50792, '4eb89b8d5d23050d9a9741f73979fe95fc083b897b2744f08fd395da62f4a698'), 'existing_OS_supplement': (5, 3847, 'c7c44aaea13b24bbc0fc5b3a0a98d9c2f774edb28846027c12e1874965d7c199'), 'generic_auxvec': (6, 1834, '8dadb9bdd5f00bbcbb6439086f5a9d429b4eff457a61b11ce08941d1dd8d60fa'), 'native_asm_elf': (7, 12164, '59b9c134388114d4b5bd489cc7f278ca5b1e3a3619e908361c09b233eca9fce1'), 'native_tcb_original': (8, 11353, '865943df5cfdbf9383362d7fb2b76c6d0fd895cf0a0e20d550a26b579606b5d7'), 'new_elf_definition': (9, 3037, 'ca735899fd2c19c7d387f6a361d54878b3feff287ab025295f215f606e9f5e3e'), 'new_header_acquisition': (10, 1406, '2a57b91b37492b721fbdbc0fcca10aaedf403f00369d9b78bfd8ae1dc27f780b'), 'official_exact_tag': (11, 15884, '28bd3a67da1dcee4bf0f87d3b52dd4d755bb0b34677769876afc90a1890a7ecb'), 'original_domain': (12, 23942, 'a51264289803b4b17bb262f2460ddd4ed72500aaa21e5eb80fa2db4583689361'), 'package_facts': (13, 1741, 'd942241a0e6c6a639cc0b864f3d45ca16d68949f2766e5c936f5095db6a71256'), 'plan': (14, 4152, '569cb1720fd0b8f300bf9e6cecbda3d7c2f97a3721c2072835e9678df61a6bbf'), 'pro14': (15, 9191, 'e3bba7ac28c412bf908958413edac163f12195c89128852a12e1917ad916084a'), 'pro14_critical_review': (16, 16074, 'bd61034f05893493003a632067710781f3298c57d2a226e7c85d0cd7ccbb9512'), 'producer': (17, 58558, '1939cf7c82077d1a0793777be7ca0e11985750cbaff8c342ce2b2e4647c50102'), 'provider_boundary_review': (18, 24374, '0d91b34b3fc68a33dffccbafc313bc473a55028e9a6b66a7b6ee89e65e08efe4'), 'rng_provider': (19, 53564, '260c4030164fa73c27e55b21f28ec1f4dfc126cc80ab6aa56482223aa3534a8f'), 'source_association': (20, 49189, 'bb5f27c46542968f8404c279db3a05351a7e2851c09114325b75c07a31b1e992'), 'syscall_note': (21, 1258, '8e378ab93586eb55135d3bc119cce787f7324f48394777d00c34fa3d0be3303f'), 'uapi_elf': (22, 19317, '15613d116a6c77c4826036740dd5023c6a7779c776acd3ac7a1a661fe7432b3c'), 'unit12_index': (23, 18743, '1022b415e1a85962e18e84484beae918fbce6ff51431fe28cc752ffb73179940'), 'x86_auxvec': (24, 571, '7e50a100bacd7bd784538466bba53e931bdfc4f13f855258c77665f932368d8d')}
+
+class FormatError(ValueError):
+    def __init__(self,code):self.code=code;super().__init__(code)
+
+class SourcePinError(ValueError):
+    def __init__(self,code):self.code=code;super().__init__(code)
+
+class SemanticError(ValueError):
+    def __init__(self,code):self.code=code;super().__init__(code)
+
+
+def need(condition,code,kind=SemanticError):
+    if condition is not True:raise kind(code)
+
+
+def integer(value,low=INT_MIN,high=INT_MAX):
+    need(type(value) is int and low<=value<=high,'exact_bounded_integer',FormatError)
+
+
+def plain(value):
+    nodes=text=0
+    def walk(item,depth):
+        nonlocal nodes,text
+        nodes+=1;need(nodes<=NODE_CAP and depth<=DEPTH_CAP,'wire_nodes_depth',FormatError)
+        kind=type(item)
+        if kind is int:integer(item);return
+        if kind is list:
+            need(len(item)<=CONTAINER_CAP,'wire_sequence_bound',FormatError)
+            for child in item:walk(child,depth+1)
+            return
+        need(kind is dict and len(item)<=CONTAINER_CAP,'integer_only_wire_type',FormatError)
+        for key,child in item.items():
+            need(type(key) is str and 0<len(key)<=8192 and key.isascii(),'wire_key',FormatError)
+            text+=len(key);need(text<=524288,'wire_text_bound',FormatError)
+            walk(child,depth+1)
+    walk(value,0)
+
+
+def canonical(value):
+    plain(value)
+    raw=(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False)+'\n').encode('ascii')
+    need(len(raw)<=RECORD_CAP,'wire_raw_bound',FormatError);return raw
+
+
+def decode(raw):
+    need(type(raw) is bytes and 0<len(raw)<=RECORD_CAP,'wire_raw_type_bound',FormatError)
+    def pairs(rows):
+        need(len(rows)<=CONTAINER_CAP,'wire_object_bound',FormatError);result={}
+        for key,value in rows:
+            need(type(key) is str and key not in result,'wire_duplicate_key',FormatError);result[key]=value
+        return result
+    def bad(value):raise FormatError('wire_noninteger')
+    try:value=json.loads(raw,object_pairs_hook=pairs,parse_float=bad,parse_constant=bad)
+    except (UnicodeError,json.JSONDecodeError,RecursionError,ValueError) as error:
+        if type(error) is FormatError:raise
+        raise FormatError('wire_json_invalid') from error
+    plain(value);need(canonical(value)==raw,'wire_not_canonical',FormatError);return value
+
+
+def source_map(bundle):
+    need(type(bundle) is dict,'source_map_type',FormatError)
+    need(len(bundle)==len(SOURCE_PINS),'source_role_cardinality',FormatError)
+    need(all(type(k) is str for k in bundle),'source_key_type',FormatError)
+    need(set(bundle)==set(SOURCE_PINS),'source_role_set',FormatError)
+    total=0
+    for raw in bundle.values():
+        need(type(raw) is bytes and 0<len(raw)<=FILE_CAP,'source_byte_type_bound',FormatError);total+=len(raw)
+    need(total<=TOTAL_CAP,'source_aggregate_bound',FormatError)
+
+
+def authenticate_sources(bundle):
+    source_map(bundle)
+    for role,(_,size,digest) in SOURCE_PINS.items():
+        raw=bundle[role]
+        need(len(raw)==size and hashlib.sha256(raw).hexdigest()==digest,'literal_source_pin:'+role,SourcePinError)
+    return None
+
+
+def tokens(raw):
+    """Bounded C-token projection: comments/literals are opaque; never compile C.
+
+    This is exact-source argument support, not a generic C/preprocessor proof.
+    Production source identity fixes the complete surrounding control context.
+    """
+    need(type(raw) is bytes and len(raw)<=FILE_CAP,'token_raw_bound',FormatError)
+    try:text=raw.decode('utf-8')
+    except UnicodeError as error:raise SemanticError('source_encoding') from error
+    result=[];i=0;n=len(text)
+    while i<n:
+        c=text[i]
+        if c.isspace():i+=1;continue
+        if text.startswith('\\\n',i):i+=2;continue
+        if text.startswith('/*',i):
+            j=text.find('*/',i+2);need(j>=0,'unterminated_comment');i=j+2;continue
+        if text.startswith('//',i):
+            j=text.find('\n',i+2);i=n if j<0 else j+1;continue
+        if c in ('"',"'"):
+            quote=c;j=i+1
+            while j<n:
+                if text[j]=='\\':j+=2;continue
+                if text[j]==quote:break
+                j+=1
+            need(j<n,'unterminated_literal');result.append(text[i:j+1]);i=j+1
+        elif c.isascii() and (c.isalpha() or c=='_'):
+            j=i+1
+            while j<n and text[j].isascii() and (text[j].isalnum() or text[j]=='_'):j+=1
+            result.append(text[i:j]);i=j
+        elif c.isascii() and c.isdigit():
+            j=i+1
+            while j<n and text[j].isascii() and (text[j].isalnum() or text[j] in '._'):j+=1
+            result.append(text[i:j]);i=j
+        else:
+            need(c.isascii(),'unsupported_source_token')
+            operator=next((op for op in ('>>=','<<=','...','++','--','->','+=','-=','==','!=','<=','>=','&&','||','<<','>>','##','&=','|=','*=','/=') if text.startswith(op,i)),c)
+            result.append(operator);i+=len(operator)
+        need(len(result)<=200000,'source_token_bound')
+    return result
+
+
+def positions(sequence,pattern):
+    return [i for i in range(len(sequence)-len(pattern)+1) if sequence[i:i+len(pattern)]==pattern]
+
+
+def once(sequence,pattern,code):
+    found=positions(sequence,pattern);need(len(found)==1,code);return found[0]
+
+
+def balanced(sequence,start,opening='(',closing=')'):
+    need(start<len(sequence) and sequence[start]==opening,'expected_balanced_open')
+    depth=0
+    for i in range(start,len(sequence)):
+        if sequence[i]==opening:depth+=1
+        elif sequence[i]==closing:
+            depth-=1
+            if depth==0:return i
+    raise SemanticError('unbalanced_source')
+
+
+def function_body(sequence,name):
+    matches=[]
+    for i in positions(sequence,[name,'(']):
+        end=balanced(sequence,i+1)
+        if end+1<len(sequence) and sequence[end+1]=='{':
+            finish=balanced(sequence,end+1,'{','}');matches.append(sequence[end+2:finish])
+    need(len(matches)==1,'source_function:'+name);return matches[0]
+
+
+def arguments(sequence,opening):
+    finish=balanced(sequence,opening);args=[];start=opening+1;depth=0
+    for i in range(start,finish):
+        token=sequence[i]
+        if token in ('(','[','{'):depth+=1
+        elif token in (')',']','}'):depth-=1
+        elif token==',' and depth==0:args.append(sequence[start:i]);start=i+1
+    args.append(sequence[start:finish]);return args,finish
+
+
+def size_expression(expression,array_bytes):
+    if expression==['sizeof','(','k_rand_bytes',')']:return array_bytes
+    if len(expression)==1 and expression[0].isdigit():return int(expression[0])
+    raise SemanticError('unsupported_length_expression')
+
+
+def copy_if(body,destination):
+    found=[]
+    for i in positions(body,['if','(']):
+        finish=balanced(body,i+1);condition=body[i+2:finish]
+        if 'copy_to_user' not in condition:continue
+        at=condition.index('copy_to_user')
+        if at+1>=len(condition) or condition[at+1]!='(':continue
+        args,end=arguments(condition,at+1)
+        if args and args[0]==destination:found.append((i,finish,condition,args,end))
+    need(len(found)==1,'copy_destination_binding')
+    i,finish,condition,args,end=found[0]
+    need(condition[0]=='copy_to_user' and end==len(condition)-1,'copy_nonzero_guard')
+    need(body[finish+1:finish+5]==['return','-','EFAULT',';'],'copy_nonzero_EFAULT')
+    return i,args,finish
+
+
+def digest_words(raw):
+    digest=hashlib.sha256(raw).digest()
+    return [int.from_bytes(digest[i:i+4],'big') for i in range(0,32,4)]
+
+
+def analyze_sources(bundle):
+    """PURE semantic projection, deliberately not source authentication.
+
+    Inert mutation controls reach these relations without checksum rejection.
+    Acceptance here alone is neither source identity nor arbitrary-C correctness.
+    """
+    source_map(bundle)
+    producer=tokens(bundle['producer']);body=function_body(producer,'create_elf_tables')
+    declaration=once(body,['unsigned','char','k_rand_bytes','['],'kernel_array_declaration')
+    need(body[declaration+5:declaration+7]==[']',';'],'kernel_array_shape')
+    number=body[declaration+4];need(number.isdigit(),'kernel_array_length');array_bytes=int(number)
+    need(array_bytes==16,'kernel_array_length')
+    generation=[]
+    for i in range(len(body)-2):
+        if body[i+1]!='(' or not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*',body[i]):continue
+        args,end=arguments(body,i+1)
+        if len(args)==2 and args[0]==['k_rand_bytes'] and body[end+1:end+2]==[';']:generation.append((i,body[i],args))
+    need(len(generation)==1,'generation_binding')
+    gpos,provider,gargs=generation[0]
+    need(provider=='get_random_bytes','generation_provider')
+    requested=size_expression(gargs[1],array_bytes);need(requested==array_bytes==16,'generation_length')
+    alloc=once(body,['u_rand_bytes','=','(','elf_addr_t','__user','*',')','STACK_ALLOC','('],'allocation_binding')
+    allocargs,allocend=arguments(body,alloc+8)
+    need(allocargs[0]==['p'] and len(allocargs)==2,'allocation_cursor')
+    need(size_expression(allocargs[1],array_bytes)==16 and body[allocend+1:allocend+2]==[';'],'allocation_length')
+    need(len(positions(producer,['#','define','STACK_ALLOC','(','sp',',','len',')','(','sp','-=','len',')']))>0,'downward_unsigned_allocation')
+    cpos,cargs,cend=copy_if(body,['u_rand_bytes'])
+    need(len(cargs)==3 and cargs[1]==['k_rand_bytes'],'copy_source_binding')
+    copied=size_expression(cargs[2],array_bytes);need(copied==requested==16,'copy_length')
+    kpos=once(body,['NEW_AUX_ENT','(','AT_RANDOM',','],'tag_binding')
+    kargs,kend=arguments(body,kpos+1)
+    need(kargs==[['AT_RANDOM'],['(','elf_addr_t',')','(','unsigned','long',')','u_rand_bytes']],'tag_destination_conversion')
+    need(len(positions(body,['#','define','NEW_AUX_ENT','(','id',',','val',')','do','{','*','elf_info','++','=','id',';','*','elf_info','++','=','val',';','}','while','(','0',')']))>0,'ordered_saved_auxv_stores')
+    upos,uargs,uend=copy_if(body,['sp'])
+    need(uargs==[['sp'],['mm','->','saved_auxv'],['ei_index','*','sizeof','(','elf_addr_t',')']],'user_auxv_source_length')
+    need(body[uend+5:uend+8]==['return','0',';'],'local_return_zero')
+    need(gpos<alloc<cpos<kpos<upos,'producer_event_order')
+    once(body,['elf_info','=','(','elf_addr_t','*',')','mm','->','saved_auxv',';'],'saved_auxv_base')
+    once(body,['ei_index','=','elf_info','-','(','elf_addr_t','*',')','mm','->','saved_auxv',';'],'auxv_length_expression')
+    once(body,['elf_info','+=','2',';'],'auxv_NULL_cursor')
+    for error in ('EINTR','EFAULT','EINVAL'):
+        need(len(positions(body[kend+1:upos],['return','-',error,';']))>0,'later_failure:'+error)
+    aux=tokens(bundle['generic_auxvec']);once(aux,['#','define','AT_RANDOM','25'],'AT_RANDOM_tag25')
+    alias=tokens(bundle['new_elf_definition']);once(alias,['#','define','elf_addr_t','Elf64_Off'],'native_elf_alias')
+    once(alias,['#','if','ELF_CLASS','==','ELFCLASS32'],'elf_class_selection')
+    uapi=tokens(bundle['uapi_elf']);once(uapi,['typedef','__u64','Elf64_Off',';'],'native_u64_alias')
+    asm=tokens(bundle['native_asm_elf']);once(asm,['#','define','ELF_CLASS','ELFCLASS64'],'native_class64')
+    rng=function_body(tokens(bundle['rng_provider']),'get_random_bytes')
+    need(rng==['_get_random_bytes','(','buf',',','len',')',';'],'named_provider_dispatch')
+    ex=tokens(bundle['exec_after_ELF'])
+    once(ex,['trace_sched_process_exec','(','current',',','old_pid',',','bprm',')',';'],'later_exec_trace')
+    once(ex,['ptrace_event','(','PTRACE_EVENT_EXEC',',','old_vpid',')',';'],'later_exec_ptrace')
+    config=bundle['config'].splitlines()
+    for line in (b'CONFIG_64BIT=y',b'CONFIG_X86_64=y'):need(line in config,'associated_native_config')
+    need(not any(line==b'CONFIG_STACK_GROWSUP=y' for line in config),'selected_stack_direction')
+    # These are source-derived MODEL role identities, never actual addresses.
+    profile={'version':1,'sources':[[SOURCE_PINS[role][0],len(bundle[role]),digest_words(bundle[role])] for role in sorted(SOURCE_PINS)],
+        'abi':[8,64,64,64,64],
+        'G':[1,1,array_bytes,requested],
+        'A':[1,10,2,16,64],
+        'C':[2,1,2,copied,1,1],
+        'K':[25,2,64,64,1,2],
+        'U':[2,3,4,1,8,1,2],
+        'requirements':[1,2,3,4,5,6,7,8],
+        'store_order':[1,2],
+        'branch_rules':[[1,3,1],[2,15,7],[3,7,7],[4,7,7],[5,7,7],[6,15,15]]}
+    plain(profile);return profile
+
+
+def _profile(profile):
+    plain(profile)
+    need(type(profile) is dict,'profile_type',FormatError)
+    expected={'version','sources','abi','G','A','C','K','U','requirements','store_order','branch_rules'}
+    need(set(profile)==expected,'profile_fields',FormatError)
+    need(profile['version']==1 and profile['abi']==[8,64,64,64,64],'profile_native_abi')
+    need(profile['G']==[1,1,16,16] and profile['A']==[1,10,2,16,64],'profile_generation_allocation')
+    need(profile['C']==[2,1,2,16,1,1],'profile_copy')
+    need(profile['K']==[25,2,64,64,1,2] and profile['store_order']==[1,2],'profile_tag')
+    need(profile['U']==[2,3,4,1,8,1,2],'profile_user_auxv')
+    need(profile['requirements']==list(range(1,9)),'profile_requirements')
+    need(profile['branch_rules']==[[1,3,1],[2,15,7],[3,7,7],[4,7,7],[5,7,7],[6,15,15]],'profile_branch_rules')
+    need(type(profile['sources']) is list and len(profile['sources'])==len(SOURCE_PINS),'profile_source_rows')
+    for index,row in enumerate(profile['sources'],1):
+        need(type(row) is list and len(row)==3 and row[0]==index,'profile_source_id')
+        integer(row[1],1,FILE_CAP);need(type(row[2]) is list and len(row[2])==8,'profile_source_digest')
+        for word in row[2]:integer(word,0,(1<<32)-1)
+
+
+def check_relations(profile,witness):
+    """Conditional static relation checking; callers cannot mint authentication."""
+    _profile(profile);plain(witness)
+    need(type(witness) is dict and set(witness)==set(profile),'witness_fields',FormatError)
+    _profile(witness)
+    for key in profile:need(witness[key]==profile[key],'witness_relation:'+key)
+    return {'relation_version':1,'requirements':list(range(1,9))}
+
+
+def make_witness(bundle):
+    authenticate_sources(bundle);profile=analyze_sources(bundle)
+    check_relations(profile,profile);return canonical(profile)
+
+
+def check_witness(bundle,raw):
+    authenticate_sources(bundle);profile=analyze_sources(bundle);witness=decode(raw)
+    return check_relations(profile,witness)
+
+
+def computed_destination(q,width=64,length=16):
+    integer(q,0,(1<<64)-1);integer(width,64,64);integer(length,16,16)
+    return (q-length)%(1<<width)  # Numeric expression only; NO owned-range result.
+
+
+def check_event_prefix(profile,events):
+    """Synthetic normal-return/store MODEL projection, never an actual observer.
+
+    Omitted in-flight operations may already have partial side effects. A
+    prefix may end anywhere. K phase1 alone does not complete the pair.
+    Failure IDs1/2 denote seed/U EFAULT branches;3/4/5 denote later pre-U
+    EINTR/EFAULT/EINVAL source branches. They are not numerical errno values.
+    """
+    _profile(profile);plain(events)
+    need(type(events) is list and len(events)<=64,'event_projection_bound',FormatError)
+    state=0;reached=completed=0;branch=0;terminal=False;seed_residual=None;user_residual=None
+    for row in events:
+        need(type(row) is list and len(row)>0,'event_row',FormatError)
+        need(not terminal,'event_after_terminal')
+        kind=row[0]
+        if kind==1:
+            need(row==[1,1,1,16] and state==0,'event_generation_relation')
+            state=1;reached|=1;completed|=1
+        elif kind==2:
+            need(len(row)==6 and row[:5]==[2,2,1,2,16] and state==1,'event_seed_copy_relation')
+            integer(row[5],0,16);seed_residual=row[5];state=2;reached|=2
+            if seed_residual==0:completed|=2
+        elif kind==3:
+            need(len(row)==6 and row[:5]==[3,25,2,64,64],'event_tag_pointer_width')
+            need(seed_residual==0,'event_tag_after_failed_copy')
+            if row[5]==1:need(state==2,'event_tag_store_order');state=3;reached|=4
+            elif row[5]==2:need(state==3,'event_value_store_order');state=4;completed|=4
+            else:raise SemanticError('event_tag_phase')
+        elif kind==4:
+            need(len(row)==7 and row[:6]==[4,2,3,4,1,8] and state==4,'event_user_auxv_relation')
+            integer(row[6],0,RECORD_CAP);user_residual=row[6];state=5;reached|=8
+            if user_residual==0:completed|=8
+        elif kind==5:
+            need(len(row)==2,'event_failure_shape',FormatError);branch=row[1]
+            if branch==1:need(state==2 and seed_residual is not None and seed_residual!=0,'event_seed_EFAULT_guard')
+            elif branch==2:need(state==5 and user_residual is not None and user_residual!=0,'event_user_EFAULT_guard')
+            elif branch in (3,4,5):need(state==4,'event_later_preU_failure')
+            else:raise SemanticError('event_unknown_failure_branch')
+            terminal=True
+        elif kind==6:
+            need(row==[6] and state==5 and user_residual==0,'event_local_return_guard');branch=6;terminal=True
+        else:raise SemanticError('event_unknown_kind')
+    return {'reached_mask':reached,'completed_mask':completed,'local_branch':branch,'requirements':list(range(1,9))}
