@@ -3,8 +3,11 @@
 With the original PR6353 source, the complete conditional result is
 **kappa 0.00328551**. This companion
 proves that its ceiling **0.00328554** covers every six-field, seven-query
-root with four full stages and at most two extra whole idle jobs, with
-arbitrary scalar bases and all positive binary child sizes and shapes.
+root in the following class: all six outputs contain the central
+involution, four independent forward stages act at distinct sites,
+and at most two extra whole idle jobs are paid. Scalar bases are arbitrary
+but independent of the central and stage variables. All positive binary
+child sizes and shapes are permitted.
 The native source stays fixed at PR6353. This is a new structural result,
 not a further kappa increment.
 
@@ -58,7 +61,9 @@ The selected frontier stays unchanged.
 The [extension proof](EXTENSIONS.md) adds two results. A shortest-query
 root with extra outputs that omit the central transform reduces to its
 active fields; their additional productive price cannot exceed their paid
-idles. Also, every rank-four fifth-stage extension that retains the two
+idles. This result requires exactly r+1 queries on r active fields. It
+does not cover seven queries on four active fields. Also, every rank-four
+fifth-stage extension that retains the two
 rank-two endpoints and two rank-three stages loses for all positive binary
 child sizes and shapes. All seven possible masks are covered. The proof
 uses integer dynamic programming below total 100 and a concave bound for

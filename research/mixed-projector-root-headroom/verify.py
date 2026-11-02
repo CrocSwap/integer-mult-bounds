@@ -285,7 +285,7 @@ def structural_checks():
             'shared_LR_line_determinants': shared, 'idle_lower_by_full_count': lower,
             'positive_family': 'An explicit invertible root for every nonzero r, with sites 0,1,5,6 and the classified masks.',
             'parameter_ring': 'Q[r,r^-1]; r is not fixed to -1',
-            'scope': 'Shortest rank-one queries; commuting ordinary scalar coefficients; characteristic zero for the six-field classification.'}
+            'scope': 'Shortest rank-one square-zero queries; every output contains S; scalar bases independent of S and the independent forward stage variables; characteristic zero for the six-field classification.'}
 
 
 def normalization_checks():
@@ -422,7 +422,7 @@ def run():
             'separate_reverse_caller': caller,
             'inherited_complete_claim': '0.00328551', 'broader_family_ceiling': '0.00328554',
             'ceiling_evidence': 'Authenticated composition receipt and its separately registered full replay; no price engine is replaced here.',
-            'ceiling_scope': 'Every six-field seven-query root with four full stages and at most two extra whole idles, all positive binary child sizes and shapes, fixed PR6353 source.',
+            'ceiling_scope': 'Six-field seven-query roots with S on every output, constant scalar bases independent of S and all stage variables, four distinct independent forward full stages and at most two extra whole idles; all positive binary child sizes and shapes; fixed PR6353 source.',
             'new_kappa_increment': False, 'selected_frontier_changed': False}
 
 

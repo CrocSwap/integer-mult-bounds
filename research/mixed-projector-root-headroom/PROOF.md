@@ -6,14 +6,30 @@ does not add a new kappa increment. It proves that the ceiling 0.00328554
 applies to a larger class than the fixed root in the source package.
 
 Work over a commutative field of characteristic zero, unless stated
-otherwise. All ordinary coefficients commute with the central involution
-S and with the independent stage variables. There are six arbitrary main
+otherwise. The scalar basis coefficients are independent of the central
+involution S and all stage variables; they commute with these operators.
+There are six arbitrary main
 fields, seven rank-one square-zero queries, four full child suppliers,
 and at most two extra whole idle jobs at the root. Each child can be any
 positive-size binary tree from PR6348, with the PR6353 native source.
 There is no initialized extra main field. A full stage acts once on each
 field in its projector image. Every field beyond its native two-field
 query plane needs one charged whole idle of that same stage product.
+
+The required endpoint, after constant entrance and exit changes, is
+
+```text
+S diag(product_i D_i^epsilon_ji),     epsilon_ji in {0,1}.
+```
+
+Every one of the six outputs contains S. Each stage variable D_i is
+independent and occurs only at its own full site. The constant boundary
+changes are independent of S and the D_i. Thus at D_i=1 the endpoint
+is S I_6. These assumptions define the independent Gaussian endpoint
+used below. Commutation alone does not imply coefficient independence.
+The complete-field normalization is a separate ordinary wrapper. Its
+translation X=q^2 supplies S=lambda*q; it does not make the root's
+scalar bases depend on S or on a stage variable.
 
 **Theorem.** Every such root with an independent Gaussian endpoint has,
 up to stage and output names, the output supports
@@ -30,7 +46,11 @@ the fixed PR6353 source and the admitted saving range through 0.0034.
 The claim 0.00328551 is 0.00000003 below this ceiling. More
 idles, more queries, different field counts, different query or source
 interfaces, and noncommuting ordinary coefficients are outside this
-theorem. In particular, this is not a global optimum for kappa.
+theorem. So are stage-dependent or S-dependent scalar bases and outputs
+that omit S. For example, a six-field seven-query endpoint with central
+part diag(-I_4,+I_2) is not covered. The separate active-space extension
+uses exactly r+1 queries for r active fields, so it does not cover that
+seven-query example either. This is not a global optimum for kappa.
 
 ## 1. Why the normal form and projector tests apply
 

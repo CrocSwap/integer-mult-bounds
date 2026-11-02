@@ -9,8 +9,12 @@ is a global optimum for kappa.
 
 Let the central endpoint at S=-1 be J=diag(-I_r,+I_s), where r>=2 is even.
 Permit any number s of arbitrary extra inputs. Use exactly r+1 rank-one
-square-zero queries. Keep independent forward stage variables, scalar
-coefficients that commute with them, and an independent Gaussian endpoint.
+square-zero queries. Keep independent forward stage variables and scalar
+bases independent of S and those variables. The coefficients commute
+with these operators. Require the endpoint
+diag(S I_r,I_s) diag(product_i D_i^epsilon_ji), with epsilon_ji in {0,1},
+after constant boundary changes independent of S and the D_i. Each stage
+acts only at its own full site.
 Each stage dimension outside its two-field query plane has a paid whole
 idle. No helper output is consumed. Under this contract, the extra outputs
 without S cannot improve the signed price over the r active fields alone.
@@ -67,7 +71,9 @@ their ordinary costs only makes this price comparison more favorable.
 For r=6, an extension with two active extra idles is consequently subject
 to the existing minimum-idle ceiling. Extra paid inactive fields do not
 evade it. More than r+1 queries, consumed helpers, a different idle
-contract, or coefficients that do not commute remain outside this proof.
+contract, or variable-dependent coefficients remain outside this proof.
+In particular, seven queries on four active and two inactive fields
+are outside the theorem: r+1 would be five queries in that case.
 
 The replay checks eight exact coupled examples and their reversed
 transposes. Their queries do act on the inactive inputs, and their cross
