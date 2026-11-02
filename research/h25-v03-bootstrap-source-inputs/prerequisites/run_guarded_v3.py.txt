@@ -1,0 +1,314 @@
+#!/usr/bin/env python3
+"""Parent-only immutable-stage runner; explicit clean no-site launch, fixed hash seed."""
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+
+HERE = Path(__file__).resolve().parent
+TIMEOUT = 180
+RSS_CAP = 1024 ** 3
+OUTPUT_CAP = 2 * 1024 ** 2
+TOTAL_CAP = 2400
+LOG_CHUNK_BYTES = 64 * 1024
+USAGE_METADATA_CAP = 16 * 1024
+
+# This is a trusted parent launch contract, not Python self-authentication or -I.
+# -P suppresses unsafe path insertion; -S/-s prevent site and user-site loading.
+# Unlike -I, this preserves the explicitly whitelisted fixed hash seed.
+LAUNCH_FLAGS = ('-S', '-s', '-P', '-B')
+LAUNCH_ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0',
+              'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC',
+              'PYTHONDONTWRITEBYTECODE': '1'}
+
+
+def require_trusted_launch():
+    if not (sys.flags.no_site == 1 and sys.flags.no_user_site == 1 and
+            sys.flags.safe_path and sys.flags.dont_write_bytecode == 1 and
+            sys.flags.ignore_environment == 0 and sys.flags.isolated == 0 and
+            sys.flags.hash_randomization == 0):
+        raise ValueError('Explicit no-site/safe-path parent launch required')
+    if dict(os.environ) != LAUNCH_ENV:
+        raise ValueError('Exact clean parent environment required')
+    if sys.executable != '/usr/bin/python3.12':
+        raise ValueError('Absolute admitted interpreter required')
+    if tuple(sys.path) != ('/usr/lib/python312.zip', '/usr/lib/python3.12',
+                           '/usr/lib/python3.12/lib-dynload'):
+        raise ValueError('Unadmitted ordered initial Python search path')
+    return {'contract': 'trusted-clean-nosite-safe-path-fixedseed-v1',
+            'no_site': sys.flags.no_site, 'no_user_site': sys.flags.no_user_site,
+            'safe_path': bool(sys.flags.safe_path),
+            'ignore_environment': sys.flags.ignore_environment,
+            'isolated': sys.flags.isolated, 'hash_seed_environment': '0',
+            'hash_randomization': sys.flags.hash_randomization,
+            'initial_sys_path': list(sys.path), 'environment': dict(os.environ),
+            'trust_boundary': 'Authenticated parent launcher, OS, interpreter and system stdlib before this module; no Python self-authentication claim'}
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def inventory(stage):
+    rows = {}
+    for path in sorted(stage.rglob('*')):
+        if path.is_symlink():
+            raise ValueError('Symlink in immutable stage')
+        if path.is_file() and path.name != 'STAGE.json':
+            rows[str(path.relative_to(stage))] = {
+                'sha256': digest(path.read_bytes()),
+                'mode': path.stat().st_mode & 0o777,
+            }
+    return rows
+
+
+def group_rss(group):
+    total = 0
+    for path in Path('/proc').iterdir():
+        if not path.name.isdigit():
+            continue
+        try:
+            raw = (path / 'stat').read_text()
+            fields = raw[raw.rfind(')') + 2:].split()
+            if int(fields[2]) == group:
+                total += int(fields[21]) * os.sysconf('SC_PAGE_SIZE')
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            pass
+    return total
+
+
+def log_identity(value):
+    """Exclude atime: our own read may change it."""
+    return (value.st_dev, value.st_ino, value.st_mode, value.st_size,
+            value.st_mtime_ns, value.st_ctime_ns)
+
+
+def stream_log(path):
+    """Hash a finite snapshot in bounded memory, failing closed on file drift.
+
+    A stable record covers every byte of the retained file. An unstable record
+    describes only the bytes actually hashed and cannot support a PASS. Reading
+    at most the initial length also prevents a growing file prolonging hashing.
+    """
+    path_before = path.stat(follow_symlinks=False)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb', buffering=0) as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError('Retained log must be a regular file')
+        hasher = hashlib.sha256()
+        count = 0
+        while count < before.st_size:
+            block = stream.read(min(LOG_CHUNK_BYTES, before.st_size - count))
+            if not block:
+                break
+            hasher.update(block)
+            count += len(block)
+        after = os.fstat(stream.fileno())
+    path_after = path.stat(follow_symlinks=False)
+    stable = (log_identity(path_before) == log_identity(before) ==
+              log_identity(after) == log_identity(path_after) and
+              count == before.st_size)
+    return {'sha256': hasher.hexdigest(), 'bytes': count,
+            'snapshot_bytes': before.st_size, 'final_bytes': path_after.st_size,
+            'stable': stable}
+
+
+def finalize_logs(folder, stop):
+    """Check sizes before any log read, stream complete stable evidence, recheck."""
+    paths = [folder / 'stdout.txt', folder / 'stderr.txt']
+    before = [path.stat(follow_symlinks=False) for path in paths]
+    cap_seen = 'process_monitor' if stop == 'output_cap' else None
+    if max(value.st_size for value in before) > OUTPUT_CAP:
+        stop = stop or 'output_cap'
+        cap_seen = cap_seen or 'before_stream_hash'
+    records = [stream_log(path) for path in paths]
+    final = [path.stat(follow_symlinks=False) for path in paths]
+    if max(value.st_size for value in final) > OUTPUT_CAP:
+        stop = stop or 'output_cap'
+        cap_seen = cap_seen or 'after_stream_hash'
+    for initial, record, ending in zip(before, records, final):
+        record['final_bytes'] = ending.st_size
+        record['stable'] = (record['stable'] and
+                            log_identity(initial) == log_identity(ending) and
+                            record['bytes'] == ending.st_size)
+    if not all(record['stable'] for record in records):
+        stop = stop or 'output_changed_during_hash'
+    return records[0], records[1], stop, cap_seen
+
+
+def read_usage(path):
+    """The time tool's small diagnostic must not reintroduce an unbounded read."""
+    if not path.exists():
+        return None, False
+    size = path.stat().st_size
+    if size > USAGE_METADATA_CAP:
+        return {'raw_omitted': True, 'bytes': size}, True
+    with path.open('rb') as stream:
+        raw = stream.read(USAGE_METADATA_CAP + 1)
+    if len(raw) > USAGE_METADATA_CAP or path.stat().st_size > USAGE_METADATA_CAP:
+        return {'raw_omitted': True, 'bytes': path.stat().st_size}, True
+    try:
+        return json.loads(raw), False
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {'raw': raw.decode('utf-8', errors='replace')}, False
+
+
+def main():
+    launch = require_trusted_launch()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('stage')
+    parser.add_argument('job')
+    parser.add_argument('label')
+    args = parser.parse_args()
+    for value in (args.stage, args.job, args.label):
+        if not value or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value):
+            raise ValueError('Simple immutable stage/job/run names required')
+    runner_start = time.monotonic()
+    runner_usage_start = resource.getrusage(resource.RUSAGE_SELF)
+    (HERE / 'runtime').mkdir(exist_ok=True)
+    # A single parent owns this round; never wait behind another scientific run.
+    with (HERE / 'runtime/science.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        stage = HERE / 'stages' / args.stage
+        stage_raw = (stage / 'STAGE.json').read_bytes()
+        declared = json.loads(stage_raw)
+        before = inventory(stage)
+        if before != declared['files']:
+            raise ValueError('Stage bytes/modes differ from declared closure')
+        jobs = json.loads((stage / 'JOBS.json').read_bytes())
+        job = jobs[args.job]
+        phase_raw = (HERE / 'control/EXECUTION-PHASE.json').read_bytes()
+        phase = json.loads(phase_raw)
+        cap = phase['aggregate_cap_seconds']
+        if type(cap) is not int or cap not in (600, TOTAL_CAP):
+            raise ValueError('Unrecognized parent budget phase')
+        runs = HERE / 'runtime/runs'
+        runs.mkdir(exist_ok=True)
+        spent = 0.0
+        for run in runs.iterdir():
+            if not run.is_dir():
+                continue
+            receipt_path = run / 'receipt.json'
+            if not receipt_path.exists():
+                raise ValueError('Unclosed prior attempt: preserve and reconcile before another run')
+            prior = json.loads(receipt_path.read_bytes())
+            spent += prior.get('runner_wall_seconds', prior['wall_seconds'])
+        if spent >= cap:
+            raise ValueError('Aggregate budget consumed')
+        if 'entry' in job:
+            entry = job['entry']
+            if (type(entry) is not str or entry != 'integration/predecessor_entry.py' or
+                    'bootstrap' in job or entry not in declared['files'] or
+                    (stage / entry).is_symlink() or
+                    (stage / entry).resolve() != stage.resolve() / entry):
+                raise ValueError('Entry must be the declared canonical predecessor file without bootstrap')
+        folder = runs / args.label
+        folder.mkdir()
+        runner_before = Path(__file__).read_bytes()
+        if digest(runner_before) != declared['runner_sha256']:
+            raise ValueError('Actual runner differs from frozen runner source')
+        fraction_path = Path('/usr/lib/python3.12/fractions.py')
+        fractions_before = fraction_path.read_bytes()
+        env = dict(LAUNCH_ENV)
+        command = ['/usr/bin/python3.12', *LAUNCH_FLAGS]
+        if job.get('optimized', False):
+            command.append('-O')
+        if 'entry' in job:
+            command.append(str(stage / entry))
+        else:
+            command.append(str(stage / 'integration/full_driver.py'))
+        if 'bootstrap' in job:
+            bootstrap = job['bootstrap']
+            if type(bootstrap) is not dict or set(bootstrap) != {'provider', 'driver'}:
+                raise ValueError('Exact bootstrap map required')
+            for relative in bootstrap.values():
+                if (type(relative) is not str or relative not in declared['files'] or
+                        Path(relative).is_absolute() or '..' in Path(relative).parts or
+                        Path(relative).parent != Path('integration')):
+                    raise ValueError('Bootstrap source must be a declared integration file')
+            command.extend(['--root-sha256', declared['files']['integration/full_driver.py']['sha256'],
+                            '--provider', str(stage / bootstrap['provider']),
+                            declared['files'][bootstrap['provider']]['sha256'],
+                            '--driver', str(stage / bootstrap['driver']),
+                            declared['files'][bootstrap['driver']]['sha256'],
+                            '--integration', str(stage / 'integration'), '--'])
+        command.extend(['--output', str(folder / 'science'), '--lanes', job['lanes']])
+        if job.get('finite_only', False):
+            command.append('--finite-only')
+        usage = folder / 'usage.json'
+        timed = ['/usr/bin/time', '-f', '{"user_seconds":%U,"system_seconds":%S,"kernel_max_rss_kib":%M,"exit":%x}', '-o', str(usage), '--', *command]
+        started = {'command': command, 'parent_launch': launch, 'stage_sha256': digest(stage_raw),
+                   'runner_sha256': digest(runner_before), 'fractions_sha256': digest(fractions_before),
+                   'budget_phase_sha256': digest(phase_raw), 'spent_before_seconds': spent,
+                   'phase_cap_seconds': cap, 'job': args.job, 'label': args.label}
+        (folder / 'START.json').write_text(json.dumps(started, indent=2, sort_keys=True) + '\n')
+        start = time.monotonic()
+        stop = None
+        peak = 0
+        with (folder / 'stdout.txt').open('wb') as out, (folder / 'stderr.txt').open('wb') as err:
+            process = subprocess.Popen(timed, cwd=stage, env=env, stdout=out, stderr=err, start_new_session=True)
+            try:
+                while process.poll() is None:
+                    peak = max(peak, group_rss(process.pid))
+                    if peak > RSS_CAP:
+                        stop = 'sampled_group_rss_cap'
+                    elif time.monotonic() - runner_start > min(TIMEOUT, cap - spent):
+                        stop = 'wall_or_aggregate_cap'
+                    elif max((folder / 'stdout.txt').stat().st_size, (folder / 'stderr.txt').stat().st_size) > OUTPUT_CAP:
+                        stop = 'output_cap'
+                    if stop:
+                        os.killpg(process.pid, signal.SIGKILL)
+                        break
+                    time.sleep(0.05)
+                code = process.wait()
+            finally:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+        elapsed = time.monotonic() - start
+        stdout, stderr, stop, cap_seen = finalize_logs(folder, stop)
+        measurement, oversized_usage = read_usage(usage)
+        if oversized_usage:
+            stop = stop or 'usage_metadata_cap'
+        unchanged = (inventory(stage) == before and (stage / 'STAGE.json').read_bytes() == stage_raw and
+                     Path(__file__).read_bytes() == runner_before and fraction_path.read_bytes() == fractions_before)
+        runner_elapsed = time.monotonic() - runner_start
+        runner_usage_end = resource.getrusage(resource.RUSAGE_SELF)
+        if runner_elapsed > min(TIMEOUT, cap - spent):
+            stop = stop or 'wall_or_aggregate_cap'
+        if runner_usage_end.ru_maxrss * 1024 > RSS_CAP:
+            stop = stop or 'runner_rss_cap'
+        receipt = dict(started, exit=code, wall_seconds=elapsed, usage=measurement,
+                       termination=stop, sampled_process_group_rss_bytes=peak,
+                       source_bytes_and_modes_unchanged=unchanged,
+                       stdout_sha256=stdout['sha256'], stdout_bytes=stdout['bytes'],
+                       stderr_sha256=stderr['sha256'], stderr_bytes=stderr['bytes'],
+                       stdout_final_bytes=stdout['final_bytes'], stderr_final_bytes=stderr['final_bytes'],
+                       retained_log_bytes_stable=stdout['stable'] and stderr['stable'],
+                       output_cap_observed_at=cap_seen, log_read_chunk_bytes=LOG_CHUNK_BYTES,
+                       runner_wall_seconds=runner_elapsed,
+                       runner_user_seconds=runner_usage_end.ru_utime - runner_usage_start.ru_utime,
+                       runner_system_seconds=runner_usage_end.ru_stime - runner_usage_start.ru_stime,
+                       runner_lifetime_max_rss_kib=runner_usage_end.ru_maxrss,
+                       python=sys.version, platform=platform.platform(),
+                       status='PASS' if code == 0 and stop is None and stderr['bytes'] == 0 and unchanged else 'STOP')
+        (folder / 'receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+        print(json.dumps(receipt, sort_keys=True), flush=True)
+        if receipt['status'] != 'PASS':
+            raise SystemExit(1)
+
+
+if __name__ == '__main__':
+    main()
