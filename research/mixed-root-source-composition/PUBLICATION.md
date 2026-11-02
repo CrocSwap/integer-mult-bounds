@@ -1,4 +1,8 @@
-# Publication verification
+# Local verification and publication hold
+
+The donor instructed this chat not to open the PR. This branch has not
+been pushed and no PR has been opened. Keep the contribution local until
+the donor gives new publication instructions. Hosted CI has not run.
 
 The final complete conditional claim is 0.00328584, about 4.28358 percent
 above PR6372 at 0.00315087. The final source composition adds 0.0100441

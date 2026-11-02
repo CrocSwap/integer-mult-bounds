@@ -1,5 +1,8 @@
 # Conditional kappa 0.00328584 from the mixed root and PR6372
 
+This result is local under the donor publication hold. No branch push
+or PR has been made.
+
 This is the final source composition in the mixed-root contribution.
 It claims **kappa 0.00328584**, about **4.28358 percent above PR6372's
 0.00315087**. The last composition adds 0.00000033 over the local
