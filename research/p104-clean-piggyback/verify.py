@@ -68,6 +68,8 @@ def reject(action):
 def run():
     authenticate()
     builder = load(HERE/'construct.py','clean_transport_construct')
+    origin = next(x for x in read(HERE/'SOURCES.json')['files'] if x['path'] == 'research/p104-shared-carrier-lifts/WORD.json.gz')
+    need(sha256((HERE/'inputs/pr6375-WORD.json.gz').read_bytes()).hexdigest() == origin['sha256'], 'Vendored source equals exact upstream Git object')
     source = read(HERE/'inputs/pr6375-WORD.json.gz')
     word = builder.construct(source)
     need(word == read(HERE/'WORD.json.gz'), 'Every regenerated scientific word field')
