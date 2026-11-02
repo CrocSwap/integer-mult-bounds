@@ -60,8 +60,10 @@ claims in the linked proof files.
 
 The proof audit is distinct from the finite replay. Exact matrix checks
 corroborate the written quantified arguments; they do not replace them.
-The two price engines and separate reverse caller are implementations
-by the same author, not independent human review.
+The price engines retain their predecessor authors' credit. This review
+runs them as author-side checks. The separate reverse caller is another
+implementation by the contribution's author. These runs do not constitute
+independent human review.
 
 ## Research and attribution audit
 
