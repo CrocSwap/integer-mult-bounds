@@ -1,0 +1,51 @@
+Description: link libgnat with libatomic on armel
+ TODO: check if #861734 is reproducible nowadays.
+ .
+ debian/rules.patch applies this when DEB_TARGET_ARCH is armel.
+ The condition in src/gcc/ada/gcc-interface/Makefile.in could be
+ refined to exclude armhf, but the artificial dependency on libatomic
+ in src/Makefile.def would remain.
+ .
+ Autogen should refresh src/Makefile.in from src/Makefile.{def,tpl}
+ at build time, but we do not want to Build-Depend: guile.
+ # export QUILT_PATCHES=debian/patches
+ # quilt pop $this.diff
+ # quilt add src/Makefile.in
+ # (cd src && autogen Makefile.def)
+ # quilt refresh --no-timestamps --no-index -pab
+ # quilt push -a
+Bug-Debian: https://bugs.debian.org/861734
+Author: Matthias Klose <doko@debian.org>
+Author: Nicolas Boulenguez <nicolas@debian.org>
+
+--- a/src/gcc/ada/Makefile.rtl
++++ b/src/gcc/ada/Makefile.rtl
+@@ -2213,6 +2213,7 @@ endif
+ 
+ # ARM linux, GNU eabi
+ ifeq ($(strip $(filter-out arm% linux-gnueabi%,$(target_cpu) $(target_os))),)
++  MISCLIB = ../../../$(target_alias)/libatomic/.libs/libatomic.so
+   LIBGNAT_TARGET_PAIRS = \
+   a-intnam.ads<libgnarl/a-intnam__linux.ads \
+   s-inmaop.adb<libgnarl/s-inmaop__posix.adb \
+--- a/src/Makefile.def
++++ b/src/Makefile.def
+@@ -397,6 +397,8 @@ dependencies = { module=all-target-libad
+ dependencies = { module=all-gnattools; on=all-target-libada; };
+ dependencies = { module=all-gnattools; on=all-target-libstdc++-v3; };
+ 
++dependencies = { module=all-target-libada; on=all-target-libatomic; };
++
+ // Depending on the specific configuration, the LTO plugin will either use the
+ // generic libiberty build or the specific build for linker plugins.
+ dependencies = { module=all-lto-plugin; on=all-libiberty; };
+--- a/src/gcc/ada/gcc-interface/Makefile.in
++++ b/src/gcc/ada/gcc-interface/Makefile.in
+@@ -709,6 +709,7 @@ gnatlib-shared-default:
+ 		$(GNATRTL_TASKING_OBJS) \
+ 		$(SO_OPTS)libgnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
+ 		libgnat$(hyphen)$(LIBRARY_VERSION).so \
++		$(MISCLIB) \
+ 		$(THREADSLIB)
+ 	cd $(RTSDIR); $(LN_S) libgnat$(hyphen)$(LIBRARY_VERSION)$(soext) \
+ 		libgnat$(soext)

@@ -1,0 +1,379 @@
+# DP: Add empty distro and hardening specs
+
+--- a/src/gcc/gcc.cc
++++ b/src/gcc/gcc.cc
+@@ -27,6 +27,11 @@ CC recognizes how to compile each input
+ Once it knows which kind of compilation to perform, the procedure for
+ compilation is specified by a string called a "spec".  */
+ 
++/* Inject some default compilation flags which are used as the default.
++   Done by the packaging build system.  Should that be done in the headers
++   gcc/config/<arch>/*.h instead?  */
++#include "distro-defaults.h"
++
+ #define INCLUDE_STRING
+ #include "config.h"
+ #include "system.h"
+@@ -443,6 +448,7 @@ static const char *greater_than_spec_fun
+ static const char *debug_level_greater_than_spec_func (int, const char **);
+ static const char *dwarf_version_greater_than_spec_func (int, const char **);
+ static const char *find_fortran_preinclude_file (int, const char **);
++static const char *get_pkg_metadata_spec_func (int, const char **);
+ static char *convert_white_space (char *);
+ static char *quote_spec (char *);
+ static char *quote_spec_arg (char *);
+@@ -971,6 +977,121 @@ proper position among the other output f
+ #define LINK_GCC_C_SEQUENCE_SPEC "%G %{!nolibc:%L %G}"
+ #endif
+ 
++/* Generate full unwind information covering all program points.
++   Only needed for some architectures.  */
++#ifndef ASYNC_UNWIND_SPEC
++# ifdef DIST_DEFAULT_ASYNC_UNWIND
++#  define ASYNC_UNWIND_SPEC "%{!fno-asynchronous-unwind-tables:-fasynchronous-unwind-tables}"
++# else
++#  define ASYNC_UNWIND_SPEC ""
++# endif
++#endif
++
++/* Turn on stack protector.
++ */
++#ifndef SSP_DEFAULT_SPEC
++# ifdef DIST_DEFAULT_SSP
++#   ifdef DIST_DEFAULT_SSP_STRONG
++#    define SSP_DEFAULT_SPEC " %{!fno-stack-protector:%{!fstack-protector-explicit:%{!fstack-protector-all:%{!ffreestanding:%{!nostdlib:%{!fstack-protector:-fstack-protector-strong}}}}}}"
++#   else
++#    define SSP_DEFAULT_SPEC " %{!fno-stack-protector:%{!fstack-protector-explicit:%{!fstack-protector-all:%{!ffreestanding:%{!nostdlib:-fstack-protector}}}}}"
++#   endif
++# else
++#  define SSP_DEFAULT_SPEC ""
++# endif
++#endif
++
++/* Turn on -Wformat -Wformat-security by  default for C, C++,
++   ObjC, ObjC++.  */
++#ifndef FORMAT_SECURITY_SPEC
++# ifdef DIST_DEFAULT_FORMAT_SECURITY
++#  define FORMAT_SECURITY_SPEC " %{!Wformat:%{!Wformat=2:%{!Wformat=0:%{!Wall:-Wformat} %{!Wno-format-security:-Wformat-security}}}}"
++# else
++#  define FORMAT_SECURITY_SPEC ""
++# endif
++#endif
++
++/* Enable -fstack-clash-protection by default. Only available
++   on some targets.  */
++#ifndef STACK_CLASH_SPEC
++# ifdef DIST_DEFAULT_STACK_CLASH
++#  define STACK_CLASH_SPEC " %{!fno-stack-clash-protection:-fstack-clash-protection}"
++# else
++#  define STACK_CLASH_SPEC ""
++# endif
++#endif
++
++/* Enable code instrumentation of control-flow transfers.
++   Available on x86 and x86_64.  */
++#ifndef CF_PROTECTION_SPEC
++# ifdef DIST_DEFAULT_CF_PROTECTION
++#  define CF_PROTECTION_SPEC " %{!m16:%{!m32:%{!fcf-protection*:%{!fno-cf-protection:-fcf-protection}}}}"
++# else
++#  define CF_PROTECTION_SPEC ""
++# endif
++#endif
++
++/* Enable -D_TIME_BITS=64, only available on some 32bit targets.  */
++#ifndef TIMET64_SPEC
++# ifdef DIST_DEFAULT_TIMET64
++#  define TIMET64_SPEC " %{!m16:%{!m64:%{!D_DISTRO_EVADE_TIME_BITS:%{!D_TIME_BITS=*:%{!U_TIME_BITS:-D_TIME_BITS=64%{!D_FILE_OFFSET_BITS=*:%{!U_FILE_OFFSET_BITS: -D_FILE_OFFSET_BITS=64}}}}}}}"
++# else
++#  define TIMET64_SPEC ""
++# endif
++#endif
++
++/* Enable -D_FORTIFY_SOURCE=    */
++#ifndef FORTIFY_SOURCE_SPEC
++# ifdef DIST_DEFAULT_FORTIFY_SOURCE
++#  define FORTIFY_SOURCE_SPEC " %{!O0:%{O*:%{!D_FORTIFY_SOURCE=*:%{!U_FORTIFY_SOURCE:-D_FORTIFY_SOURCE=" DIST_DEFAULT_FORTIFY_SOURCE_S "}}}}"
++# else
++#  define FORTIFY_SOURCE_SPEC ""
++# endif
++#endif
++
++#ifndef BIND_NOW_SPEC
++# if defined(DIST_DEFAULT_BIND_NOW) && !defined(ACCEL_COMPILER)
++#  define BIND_NOW_SPEC " -z now"
++# else
++#  define BIND_NOW_SPEC ""
++# endif
++#endif
++
++#ifndef RELRO_SPEC
++# ifdef DIST_DEFAULT_RELRO
++#  define RELRO_SPEC " -z relro "
++# else
++#  define RELRO_SPEC ""
++# endif
++#endif
++
++#ifndef PKG_METADATA_SPEC
++# ifdef DIST_DEFAULT_PKG_METADATA_SPEC
++#  define PKG_METADATA_SPEC " %:get-pkg-metadata() "
++# else
++#  define PKG_METADATA_SPEC ""
++# endif
++#endif
++
++/* Don't enable any of those for the offload compilers,
++   unsupported.  */
++#if !defined(DISTRO_DEFAULT_CPP_SPEC) && !defined(ACCEL_COMPILER)
++# define DISTRO_DEFAULT_CPP_SPEC TIMET64_SPEC FORTIFY_SOURCE_SPEC
++#else
++# define DISTRO_DEFAULT_CPP_SPEC ""
++#endif
++#if !defined(DISTRO_DEFAULT_SPEC) && !defined(ACCEL_COMPILER)
++# define DISTRO_DEFAULT_SPEC ASYNC_UNWIND_SPEC SSP_DEFAULT_SPEC \
++		FORMAT_SECURITY_SPEC STACK_CLASH_SPEC CF_PROTECTION_SPEC
++#else
++# define DISTRO_DEFAULT_SPEC ""
++#endif
++#if !defined(DISTRO_DEFAULT_LINK_SPEC) && !defined(ACCEL_COMPILER)
++# define DISTRO_DEFAULT_LINK_SPEC RELRO_SPEC PKG_METADATA_SPEC
++#else
++# define DISTRO_DEFAULT_LINK_SPEC ""
++#endif
++
+ #ifndef LINK_SSP_SPEC
+ #ifdef TARGET_LIBC_PROVIDES_SSP
+ #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \
+@@ -1027,7 +1148,7 @@ proper position among the other output f
+ #ifndef LINK_PIE_SPEC
+ #ifdef HAVE_LD_PIE
+ #ifndef LD_PIE_SPEC
+-#define LD_PIE_SPEC "-pie"
++#define LD_PIE_SPEC "-pie" BIND_NOW_SPEC
+ #endif
+ #else
+ #define LD_PIE_SPEC ""
+@@ -1144,6 +1265,7 @@ proper position among the other output f
+    "%{flto|flto=*:%<fcompare-debug*} \
+     %{flto} %{fno-lto} %{flto=*} %l " LINK_PIE_SPEC \
+    "%{fuse-ld=*:-fuse-ld=%*} " LINK_COMPRESS_DEBUG_SPEC \
++    DISTRO_DEFAULT_LINK_SPEC \
+    "%X %{o*} %{e*} %{N} %{n} %{r}\
+     %{s} %{t} %{u*} %{z} %{Z} %{!nostdlib:%{!r:%{!nostartfiles:%S}}} \
+     %{static|no-pie|static-pie:} %@{L*} %(mfwrap) %(link_libgcc) " \
+@@ -1184,6 +1306,8 @@ static const char *cpp_spec = CPP_SPEC;
+ static const char *cc1_spec = CC1_SPEC OS_CC1_SPEC;
+ static const char *cc1plus_spec = CC1PLUS_SPEC;
+ static const char *link_gcc_c_sequence_spec = LINK_GCC_C_SEQUENCE_SPEC;
++static const char *distro_default_cpp_spec = DISTRO_DEFAULT_CPP_SPEC;
++static const char *distro_default_spec = DISTRO_DEFAULT_SPEC;
+ static const char *link_ssp_spec = LINK_SSP_SPEC;
+ static const char *asm_spec = ASM_SPEC;
+ static const char *asm_final_spec = ASM_FINAL_SPEC;
+@@ -1242,7 +1366,7 @@ static const char *cpp_options =
+ "%(cpp_unique_options) %1 %{m*} %{std*&ansi&trigraphs} %{W*&pedantic*} %{w}\
+  %{f*} %{g*:%{%:debug-level-gt(0):%{g*}\
+  %{!fno-working-directory:-fworking-directory}}} %{O*}\
+- %{undef} %{save-temps*:-fpch-preprocess}";
++ %{undef} %{save-temps*:-fpch-preprocess} %(distro_defaults_cpp) %(distro_defaults)";
+ 
+ /* Pass -d* flags, possibly modifying -dumpdir, -dumpbase et al.
+ 
+@@ -1436,9 +1560,9 @@ static const struct compiler default_com
+       %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+ 	  %(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+ 	    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
+-	  %(cc1_options)}\
++	  %(cc1_options) %(distro_defaults_cpp) %(distro_defaults)}\
+       %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
+-	  cc1 %(cpp_unique_options) %(cc1_options)}}}\
++	  cc1 %(cpp_unique_options) %(distro_defaults_cpp) %(cc1_options) %(distro_defaults)}}}\
+       %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 1},
+   {"-",
+    "%{!E:%e-E or -x required when input is from standard input}\
+@@ -1452,18 +1576,18 @@ static const struct compiler default_com
+ 	  %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+ 		%(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+ 		    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
+-			%(cc1_options)\
++			%(cc1_options) %(distro_defaults_cpp) %(distro_defaults)\
+ 			%{!fsyntax-only:%{!S:-o %g.s} \
+ 			    %{!fdump-ada-spec*:%{!o*:--output-pch %i.gch}\
+ 					       %W{o*:--output-pch %*}}%V}}\
+ 	  %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
+-		cc1 %(cpp_unique_options) %(cc1_options)\
++		cc1 %(cpp_unique_options) %(distro_defaults_cpp) %(cc1_options) %(distro_defaults)\
+ 		    %{!fsyntax-only:%{!S:-o %g.s} \
+ 		        %{!fdump-ada-spec*:%{!o*:--output-pch %i.gch}\
+ 					   %W{o*:--output-pch %*}}%V}}}}}}}", 0, 0, 0},
+   {".i", "@cpp-output", 0, 0, 0},
+   {"@cpp-output",
+-   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
++   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {".s", "@assembler", 0, 0, 0},
+   {"@assembler",
+    "%{!M:%{!MM:%{!E:%{!S:as %(asm_debug) %(asm_options) %i %A }}}}", 0, 0, 0},
+@@ -1695,6 +1819,8 @@ static struct spec_list static_specs[] =
+   INIT_STATIC_SPEC ("cc1_options",		&cc1_options),
+   INIT_STATIC_SPEC ("cc1plus",			&cc1plus_spec),
+   INIT_STATIC_SPEC ("link_gcc_c_sequence",	&link_gcc_c_sequence_spec),
++  INIT_STATIC_SPEC ("distro_defaults",		&distro_default_spec),
++  INIT_STATIC_SPEC ("distro_defaults_cpp",	&distro_default_cpp_spec),
+   INIT_STATIC_SPEC ("link_ssp",			&link_ssp_spec),
+   INIT_STATIC_SPEC ("endfile",			&endfile_spec),
+   INIT_STATIC_SPEC ("link",			&link_spec),
+@@ -1768,6 +1894,7 @@ static const struct spec_function static
+   { "debug-level-gt",		debug_level_greater_than_spec_func },
+   { "dwarf-version-gt",		dwarf_version_greater_than_spec_func },
+   { "fortran-preinclude-file",	find_fortran_preinclude_file},
++  { "get-pkg-metadata",         get_pkg_metadata_spec_func },
+ #ifdef EXTRA_SPEC_FUNCTIONS
+   EXTRA_SPEC_FUNCTIONS
+ #endif
+@@ -10191,6 +10318,33 @@ getenv_spec_function (int argc, const ch
+ 
+   return result;
+ }
++
++/* get-pkg-metadata built-in spec function.
++
++   Returns an --package-metadata option, built from the environment variable
++   ELF_PACKAGE_METADATA.
++    - Do not construct an option, if NO_PKG_METADATA is defined.
++    - If the environment variable is undefined, don't build that option.  */
++
++static const char *
++get_pkg_metadata_spec_func (int argc ATTRIBUTE_UNUSED, const char **argv ATTRIBUTE_UNUSED)
++{
++  const char *option = "--package-metadata=%s";
++  const char *pkg_metadata = env.get ("ELF_PACKAGE_METADATA");
++  const char *no_pkg_metadata = env.get ("NO_PACKAGE_METADATA");
++  char *result;
++
++  if (no_pkg_metadata)
++    return NULL;
++
++  if (!pkg_metadata)
++    return NULL;
++
++  result = XNEWVAR (char, strlen(option) + strlen(pkg_metadata));
++  sprintf (result, option, pkg_metadata);
++
++  return result;
++}
+ 
+ /* if-exists built-in spec function.
+ 
+--- a/src/gcc/cp/lang-specs.h
++++ b/src/gcc/cp/lang-specs.h
+@@ -51,7 +51,7 @@ along with GCC; see the file COPYING3.
+       " 	   %{save-temps*:%b.ii} %{!save-temps*:%g.ii}}"
+       "  %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}"
+       "  %{fmodules-ts:-fmodule-header %{fpreprocessed:-fdirectives-only}}"
+-      "  %(cc1_options) %2"
++      "  %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2"
+       "  %{!fsyntax-only:"
+       "    %{!S:-o %g.s%V}"
+       "    %{!fmodule-*:%{!fmodules-*:%{!fdump-ada-spec*:"
+@@ -72,7 +72,7 @@ along with GCC; see the file COPYING3.
+       "  %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}"
+       "  %{fmodules-ts:-fmodule-header=system"
+       "    %{fpreprocessed:-fdirectives-only}}"
+-      "  %(cc1_options) %2"
++      "	 %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2"
+       "  %{!fsyntax-only:"
+       "    %{!S:-o %g.s%V}"
+       "    %{!fmodule-*:%{!fmodules-*:%{!fdump-ada-spec*:"
+@@ -92,7 +92,7 @@ along with GCC; see the file COPYING3.
+       " 	   %{save-temps*:%b.ii} %{!save-temps*:%g.ii}}"
+       "  %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}"
+       "  %{fmodules-ts:-fmodule-header=user %{fpreprocessed:-fdirectives-only}}"
+-      "  %(cc1_options) %2"
++      "  %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2"
+       "  %{!fsyntax-only:"
+       "    %{!S:-o %g.s%V}"
+       "    %{!fmodule-*:%{!fmodules-*:%{!fdump-ada-spec*:"
+@@ -107,7 +107,7 @@ along with GCC; see the file COPYING3.
+       "  cc1plus %{save-temps*|no-integrated-cpp:-fpreprocessed"
+       " 	   %{save-temps*:%b.ii} %{!save-temps*:%g.ii}}"
+       "  %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}"
+-      "  %(cc1_options) %2"
++      "  %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2"
+       "  %{!fsyntax-only:"
+       "    %{fmodule-only:%{!S:-o %g.s%V}}"
+       "    %{!fmodule-only:%(invoke_as)}}"
+@@ -116,7 +116,7 @@ along with GCC; see the file COPYING3.
+   {".ii", "@c++-cpp-output", 0, 0, 0},
+   {"@c++-cpp-output",
+       "%{!E:%{!M:%{!MM:"
+-      "  cc1plus -fpreprocessed %i %(cc1_options) %2"
++      "  cc1plus -fpreprocessed %i %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2"
+       "  %{!fsyntax-only:"
+       "    %{fmodule-only:%{!S:-o %g.s%V}}"
+       "    %{!fmodule-only:%{!fmodule-header*:%(invoke_as)}}}"
+--- a/src/gcc/objc/lang-specs.h
++++ b/src/gcc/objc/lang-specs.h
+@@ -29,9 +29,9 @@ along with GCC; see the file COPYING3.
+ 	%{traditional|traditional-cpp:\
+ %eGNU Objective C no longer supports traditional compilation}\
+ 	%{save-temps*|no-integrated-cpp:cc1obj -E %(cpp_options) -o %{save-temps*:%b.mi} %{!save-temps*:%g.mi} \n\
+-	    cc1obj -fpreprocessed %{save-temps*:%b.mi} %{!save-temps*:%g.mi} %(cc1_options) %{print-objc-runtime-info} %{gen-decls}}\
++	    cc1obj -fpreprocessed %{save-temps*:%b.mi} %{!save-temps*:%g.mi} %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %{print-objc-runtime-info} %{gen-decls}}\
+ 	%{!save-temps*:%{!no-integrated-cpp:\
+-	    cc1obj %(cpp_unique_options) %(cc1_options) %{print-objc-runtime-info} %{gen-decls}}}\
++	    cc1obj %(cpp_unique_options) %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %{print-objc-runtime-info} %{gen-decls}}}\
+         %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objective-c-header",
+      "%{E|M|MM:cc1obj -E %{traditional|traditional-cpp:-traditional-cpp}\
+@@ -40,7 +40,7 @@ along with GCC; see the file COPYING3.
+ 	%{traditional|traditional-cpp:\
+ %eGNU Objective C no longer supports traditional compilation}\
+ 	%{save-temps*|no-integrated-cpp:cc1obj -E %(cpp_options) -o %{save-temps*:%b.mi} %{!save-temps*:%g.mi} \n\
+-	    cc1obj -fpreprocessed %b.mi %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++	    cc1obj -fpreprocessed %b.mi %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %{print-objc-runtime-info} %{gen-decls}\
+                         -o %g.s %{!o*:--output-pch %i.gch}\
+                         %W{o*:--output-pch %*}%V}\
+ 	%{!save-temps*:%{!no-integrated-cpp:\
+@@ -49,9 +49,9 @@ along with GCC; see the file COPYING3.
+                         %W{o*:--output-pch %*}%V}}}}}", 0, 0, 0},
+   {".mi", "@objective-c-cpp-output", 0, 0, 0},
+   {"@objective-c-cpp-output",
+-     "%{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++     "%{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %{print-objc-runtime-info} %{gen-decls}\
+ 			     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objc-cpp-output",
+       "%nobjc-cpp-output is deprecated; please use objective-c-cpp-output instead\n\
+-       %{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++       %{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %{print-objc-runtime-info} %{gen-decls}\
+ 			     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+--- a/src/gcc/objcp/lang-specs.h
++++ b/src/gcc/objcp/lang-specs.h
+@@ -36,7 +36,7 @@ along with GCC; see the file COPYING3.
+ 		%(cpp_options) %2 -o %{save-temps*:%b.mii} %{!save-temps*:%g.mii} \n}\
+       cc1objplus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.mii} %{!save-temps*:%g.mii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2\
+         -o %g.s %{!o*:--output-pch %i.gch} %W{o*:--output-pch %*}%V}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {"@objective-c++",
+@@ -46,16 +46,16 @@ along with GCC; see the file COPYING3.
+ 		%(cpp_options) %2 -o %{save-temps*:%b.mii} %{!save-temps*:%g.mii} \n}\
+       cc1objplus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.mii} %{!save-temps*:%g.mii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2\
+        %{!fsyntax-only:%(invoke_as)}}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {".mii", "@objective-c++-cpp-output", 0, 0, 0},
+   {"@objective-c++-cpp-output",
+    "%{!M:%{!MM:%{!E:\
+-    cc1objplus -fpreprocessed %i %(cc1_options) %2\
++    cc1objplus -fpreprocessed %i %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2\
+     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objc++-cpp-output",
+    "%nobjc++-cpp-output is deprecated; please use objective-c++-cpp-output instead\n\
+     %{!M:%{!MM:%{!E:\
+-    cc1objplus -fpreprocessed %i %(cc1_options) %2\
++    cc1objplus -fpreprocessed %i %(distro_defaults_cpp) %(cc1_options) %(distro_defaults) %2\
+     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},

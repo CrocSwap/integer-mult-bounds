@@ -1,0 +1,114 @@
+Description: set ALI timestamps from SOURCE_DATE_EPOCH if available.
+ When the SOURCE_DATE_EPOCH environment variable is set,
+ replace timestamps more recent than its value with its value
+ when writing Ada Library Information (ALI) files.
+ This allow reproducible builds from generated or patched Ada sources.
+ https://reproducible-builds.org/specs/source-date-epoch/
+ .
+ Also see debian/ada/test_ada_source_date_epoch.sh.
+Author: Nicolas Boulenguez <nicolas@debian.org>
+
+--- a/src/gcc/ada/osint.adb
++++ b/src/gcc/ada/osint.adb
+@@ -64,6 +64,10 @@ package body Osint is
+    --  Used in Locate_File as a fake directory when Name is already an
+    --  absolute path.
+ 
++   Source_Date_Epoch : OS_Time := Invalid_Time;
++   --  Set at startup by the Initialize procedure.
++   --  See the specification of the File_Time_Stamp functions.
++
+    -------------------------------------
+    -- Use of Name_Find and Name_Enter --
+    -------------------------------------
+@@ -1126,8 +1130,14 @@ package body Osint is
+    is
+       function Internal (N : C_File_Name; A : System.Address) return OS_Time;
+       pragma Import (C, Internal, "__gnat_file_time_name_attr");
++      T : OS_Time := Internal (Name, Attr.all'Address);
+    begin
+-      return Internal (Name, Attr.all'Address);
++      if Source_Date_Epoch /= Invalid_Time and then T /= Invalid_Time
++        and then Source_Date_Epoch < T
++      then
++         T := Source_Date_Epoch;
++      end if;
++      return T;
+    end File_Time_Stamp;
+ 
+    function File_Time_Stamp
+@@ -1150,6 +1160,7 @@ package body Osint is
+    ----------------
+ 
+    function File_Stamp (Name : File_Name_Type) return Time_Stamp_Type is
++      T : OS_Time;
+    begin
+       if Name = No_File then
+          return Empty_Time_Stamp;
+@@ -1161,9 +1172,13 @@ package body Osint is
+       --  not exist, and OS_Time_To_GNAT_Time will convert this value to
+       --  Empty_Time_Stamp. Therefore we do not need to first test whether
+       --  the file actually exists, which saves a system call.
+-
+-      return OS_Time_To_GNAT_Time
+-               (File_Time_Stamp (Name_Buffer (1 .. Name_Len)));
++      T := File_Time_Stamp (Name_Buffer (1 .. Name_Len));
++      if Source_Date_Epoch /= Invalid_Time and then T /= Invalid_Time
++        and then Source_Date_Epoch < T
++      then
++         T := Source_Date_Epoch;
++      end if;
++      return OS_Time_To_GNAT_Time (T);
+    end File_Stamp;
+ 
+    function File_Stamp (Name : Path_Name_Type) return Time_Stamp_Type is
+@@ -3261,4 +3276,27 @@ begin
+       Osint.Initialize;
+    end Initialization;
+ 
++   Set_Source_Date_Epoch : declare
++      Env_Var : String_Access := Getenv ("SOURCE_DATE_EPOCH");
++      Epoch   : Long_Long_Integer range 0 .. Long_Long_Integer'Last := 0;
++      Digit   : Long_Long_Integer range 0 .. 9;
++   begin
++      if 0 < Env_Var.all'Length then
++         --  Calling System.Val_LLI breaks the bootstrap sequence.
++         for C of Env_Var.all loop
++            if C not in '0' .. '9' then
++               goto Finally;
++            end if;
++            Digit := Character'Pos (C) - Character'Pos ('0');
++            if (Long_Long_Integer'Last - Digit) / 10 < Epoch then
++               goto Finally;
++            end if;
++            Epoch := Epoch * 10 + Digit;
++         end loop;
++         Source_Date_Epoch := To_Ada (Epoch);
++      end if;
++      <<Finally>>
++      Free (Env_Var);
++   end Set_Source_Date_Epoch;
++
+ end Osint;
+--- a/src/gcc/ada/osint.ads
++++ b/src/gcc/ada/osint.ads
+@@ -196,6 +196,7 @@ package Osint is
+    --  information in order to locate it. If the source file cannot be opened,
+    --  or Name = No_File, and all blank time stamp is returned (this is not an
+    --  error situation).
++   --  Handles SOURCE_DATE_EPOCH like File_Time_Stamp functions below.
+ 
+    function File_Stamp (Name : Path_Name_Type) return Time_Stamp_Type;
+    --  Same as above for a path name
+@@ -303,6 +304,11 @@ package Osint is
+      (Name : Path_Name_Type;
+       Attr : access File_Attributes) return Time_Stamp_Type;
+    --  Return the time stamp of the file
++   --  If the SOURCE_DATE_EPOCH environment variable exists and represents
++   --  an OS_Type value, any more recent file time stamp is truncated.
++   --  This ensures that gnat1 writes deterministic .ali files even in
++   --  the presence of patched or generated sources.  See
++   --  https://reproducible-builds.org/specs/source-date-epoch.
+ 
+    function Is_Readable_File
+      (Name : C_File_Name;

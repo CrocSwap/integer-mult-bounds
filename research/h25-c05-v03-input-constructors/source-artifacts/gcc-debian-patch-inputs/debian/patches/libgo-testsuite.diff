@@ -1,0 +1,66 @@
+# DP: Only run the libgo testsuite for flags configured in RUNTESTFLAGS
+
+--- a/src/libgo/Makefile.am
++++ b/src/libgo/Makefile.am
+@@ -922,7 +922,7 @@ BUILDGOX = \
+ 	$(SHELL) $(srcdir)/mvifdiff.sh $@.tmp `echo $@ | sed -e 's/s-gox/gox/'`
+ 
+ GOTESTFLAGS =
+-GOBENCH = 
++GOBENCH =
+ 
+ # Check a package.
+ CHECK = \
+@@ -943,6 +943,12 @@ CHECK = \
+ 	$(MKDIR_P) $(@D); \
+ 	rm -f $@-testsum $@-testlog; \
+ 	files=`$(SHELL) $(srcdir)/match.sh --goarch=$(GOARCH) --goos=$(GOOS) --srcdir=$(srcdir)/go/$(@D) --extrafiles="$(extra_go_files_$(subst .,_,$(subst /,_,$(@D))))" $(matchargs_$(subst /,_,$(@D)))`; \
++	run_check=yes; \
++	MULTILIBDIR="$(MULTILIBDIR)"; \
++	case "$$MULTILIBDIR" in /64|/x32) \
++	  echo "$$RUNTESTFLAGS" | grep -q "$${MULTILIBDIR\#/*}" || run_check=; \
++	esac; \
++	if test "$$run_check" = "yes"; then \
+ 	if test "$(USE_DEJAGNU)" = "yes"; then \
+ 	  $(SHELL) $(srcdir)/testsuite/gotest --goarch=$(GOARCH) --goos=$(GOOS) --dejagnu=yes --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --pkgpath="$(@D)" --pkgfiles="$$files" --testname="$(@D)" $(GOTESTFLAGS); \
+ 	elif test "$(GOBENCH)" != ""; then \
+@@ -958,6 +964,7 @@ CHECK = \
+ 	    echo "FAIL: $(@D)" > $@-testsum; \
+ 	    exit 1; \
+ 	  fi; \
++	fi; \
+ 	fi
+ 
+ # Build all packages before checking any.
+--- a/src/libgo/Makefile.in
++++ b/src/libgo/Makefile.in
+@@ -1043,7 +1043,7 @@ BUILDGOX = \
+ 	$(SHELL) $(srcdir)/mvifdiff.sh $@.tmp `echo $@ | sed -e 's/s-gox/gox/'`
+ 
+ GOTESTFLAGS = 
+-GOBENCH = 
++GOBENCH =
+ 
+ # Check a package.
+ CHECK = \
+@@ -1064,6 +1064,12 @@ CHECK = \
+ 	$(MKDIR_P) $(@D); \
+ 	rm -f $@-testsum $@-testlog; \
+ 	files=`$(SHELL) $(srcdir)/match.sh --goarch=$(GOARCH) --goos=$(GOOS) --srcdir=$(srcdir)/go/$(@D) --extrafiles="$(extra_go_files_$(subst .,_,$(subst /,_,$(@D))))" $(matchargs_$(subst /,_,$(@D)))`; \
++	run_check=yes; \
++	MULTILIBDIR="$(MULTILIBDIR)"; \
++	case "$$MULTILIBDIR" in /64|/x32) \
++	  echo "$$RUNTESTFLAGS" | grep -q "$${MULTILIBDIR\#/*}" || run_check=; \
++	esac; \
++	if test "$$run_check" = "yes"; then \
+ 	if test "$(USE_DEJAGNU)" = "yes"; then \
+ 	  $(SHELL) $(srcdir)/testsuite/gotest --goarch=$(GOARCH) --goos=$(GOOS) --dejagnu=yes --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --pkgpath="$(@D)" --pkgfiles="$$files" --testname="$(@D)" $(GOTESTFLAGS); \
+ 	elif test "$(GOBENCH)" != ""; then \
+@@ -1079,6 +1085,7 @@ CHECK = \
+ 	    echo "FAIL: $(@D)" > $@-testsum; \
+ 	    exit 1; \
+ 	  fi; \
++	fi; \
+ 	fi
+ 
+ 

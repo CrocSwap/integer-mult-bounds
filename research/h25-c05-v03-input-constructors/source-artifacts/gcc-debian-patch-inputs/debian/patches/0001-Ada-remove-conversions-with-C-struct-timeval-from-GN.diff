@@ -1,0 +1,135 @@
+From 0f091cc96b343275ecbe94d1c79fd5559b494b8b Mon Sep 17 00:00:00 2001
+From: Nicolas Boulenguez <nicolas.boulenguez@free.fr>
+Date: Fri, 5 Apr 2024 16:51:54 +0200
+Subject: [PATCH 1/8] Ada: remove conversions with C struct timeval from
+ GNAT.Calendar
+Bug-Debian: https://bugs.debian.org/1067453
+
+---
+ gcc/ada/doc/gnat_rm/the_gnat_library.rst |  2 -
+ gcc/ada/libgnat/g-calend.adb             | 58 ------------------------
+ gcc/ada/libgnat/g-calend.ads             | 18 --------
+ 3 files changed, 78 deletions(-)
+
+--- a/src/gcc/ada/doc/gnat_rm/the_gnat_library.rst
++++ b/src/gcc/ada/doc/gnat_rm/the_gnat_library.rst
+@@ -674,8 +674,6 @@ Machine-specific implementations are ava
+ 
+ Extends the facilities provided by ``Ada.Calendar`` to include handling
+ of days of the week, an extended ``Split`` and ``Time_Of`` capability.
+-Also provides conversion of ``Ada.Calendar.Time`` values to and from the
+-C ``timeval`` format.
+ 
+ .. _`GNAT.Calendar.Time_IO_(g-catiio.ads)`:
+ 
+--- a/src/gcc/ada/libgnat/g-calend.adb
++++ b/src/gcc/ada/libgnat/g-calend.adb
+@@ -29,11 +29,8 @@
+ --                                                                          --
+ ------------------------------------------------------------------------------
+ 
+-with Interfaces.C.Extensions;
+-
+ package body GNAT.Calendar is
+    use Ada.Calendar;
+-   use Interfaces;
+ 
+    -----------------
+    -- Day_In_Year --
+@@ -328,61 +325,6 @@ package body GNAT.Calendar is
+            Time_Zone    => 0);
+    end Time_Of_At_Locale;
+ 
+-   -----------------
+-   -- To_Duration --
+-   -----------------
+-
+-   function To_Duration (T : not null access timeval) return Duration is
+-
+-      procedure timeval_to_duration
+-        (T    : not null access timeval;
+-         sec  : not null access C.Extensions.long_long;
+-         usec : not null access C.long);
+-      pragma Import (C, timeval_to_duration, "__gnat_timeval_to_duration");
+-
+-      Micro : constant := 10**6;
+-      sec   : aliased C.Extensions.long_long;
+-      usec  : aliased C.long;
+-
+-   begin
+-      timeval_to_duration (T, sec'Access, usec'Access);
+-      pragma Annotate (CodePeer, Modified, sec);
+-      pragma Annotate (CodePeer, Modified, usec);
+-
+-      return Duration (sec) + Duration (usec) / Micro;
+-   end To_Duration;
+-
+-   ----------------
+-   -- To_Timeval --
+-   ----------------
+-
+-   function To_Timeval (D : Duration) return timeval is
+-
+-      procedure duration_to_timeval
+-        (Sec  : C.Extensions.long_long;
+-         Usec : C.long;
+-         T : not null access timeval);
+-      pragma Import (C, duration_to_timeval, "__gnat_duration_to_timeval");
+-
+-      Micro  : constant := 10**6;
+-      Result : aliased timeval;
+-      sec    : C.Extensions.long_long;
+-      usec   : C.long;
+-
+-   begin
+-      if D = 0.0 then
+-         sec  := 0;
+-         usec := 0;
+-      else
+-         sec  := C.Extensions.long_long (D - 0.5);
+-         usec := C.long ((D - Duration (sec)) * Micro - 0.5);
+-      end if;
+-
+-      duration_to_timeval (sec, usec, Result'Access);
+-
+-      return Result;
+-   end To_Timeval;
+-
+    ------------------
+    -- Week_In_Year --
+    ------------------
+--- a/src/gcc/ada/libgnat/g-calend.ads
++++ b/src/gcc/ada/libgnat/g-calend.ads
+@@ -40,7 +40,6 @@
+ --  Day_Of_Week, Day_In_Year and Week_In_Year.
+ 
+ with Ada.Calendar.Formatting;
+-with Interfaces.C;
+ 
+ package GNAT.Calendar is
+ 
+@@ -145,24 +144,7 @@ package GNAT.Calendar is
+    --  Return the week number as defined in ISO 8601 along with the year in
+    --  which the week occurs.
+ 
+-   --  C timeval conversion
+-
+-   --  C timeval represent a duration (used in Select for example). This
+-   --  structure is composed of a number of seconds and a number of micro
+-   --  seconds. The timeval structure is not exposed here because its
+-   --  definition is target dependent. Interface to C programs is done via a
+-   --  pointer to timeval structure.
+-
+-   type timeval is private;
+-
+-   function To_Duration (T : not null access timeval) return Duration;
+-   function To_Timeval  (D : Duration) return timeval;
+-
+ private
+-   --  This is a dummy declaration that should be the largest possible timeval
+-   --  structure of all supported targets.
+-
+-   type timeval is array (1 .. 3) of Interfaces.C.long;
+ 
+    function Julian_Day
+      (Year  : Ada.Calendar.Year_Number;

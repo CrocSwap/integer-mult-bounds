@@ -1,0 +1,21 @@
+See https://git.alpinelinux.org/aports/commit/?id=d307f133de1f8a9993ab0d6fd51176b9373df4c3
+and https://www.openwall.com/lists/musl/2014/11/05/3
+
+--- a/src/gcc/gcc.cc
++++ b/src/gcc/gcc.cc
+@@ -1085,8 +1085,15 @@ proper position among the other output f
+ 
+ #ifndef LINK_SSP_SPEC
+ #ifdef TARGET_LIBC_PROVIDES_SSP
++#if DEFAULT_LIBC == LIBC_MUSL
++/* When linking without -fstack-protector-something but including objects that
++   were built with -fstack-protector-something, calls to __stack_chk_fail_local
++   can be emitted. Thus -lssp_nonshared must be linked unconditionally.  */
++#define LINK_SSP_SPEC "-lssp_nonshared"
++#else
+ #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \
+ 		       "|fstack-protector-strong|fstack-protector-explicit:}"
++#endif
+ #else
+ #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \
+ 		       "|fstack-protector-strong|fstack-protector-explicit" \

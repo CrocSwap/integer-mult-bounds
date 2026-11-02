@@ -1,0 +1,57 @@
+# DP: Fix the linker error when creating an xcc for ia64
+
+---
+ gcc/config/ia64/fde-glibc.c     |    3 +++
+ gcc/config/ia64/unwind-ia64.c   |    3 ++-
+ gcc/unwind-compat.c             |    2 ++
+ gcc/unwind-generic.h            |    2 ++
+ 6 files changed, 14 insertions(+), 1 deletions(-)
+
+--- a/src/libgcc/config/ia64/unwind-ia64.c
++++ b/src/libgcc/config/ia64/unwind-ia64.c
+@@ -26,6 +26,7 @@
+    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+    <http://www.gnu.org/licenses/>.  */
+ 
++#ifndef inhibit_libc
+ #include "tconfig.h"
+ #include "tsystem.h"
+ #include "coretypes.h"
+@@ -2467,3 +2468,4 @@ alias (_Unwind_SetIP);
+ #endif
+ 
+ #endif
++#endif
+--- a/src/libgcc/unwind-compat.c
++++ b/src/libgcc/unwind-compat.c
+@@ -23,6 +23,7 @@
+    <http://www.gnu.org/licenses/>.  */
+ 
+ #if defined (USE_GAS_SYMVER) && defined (USE_LIBUNWIND_EXCEPTIONS)
++#ifndef inhibit_libc
+ #include "tconfig.h"
+ #include "tsystem.h"
+ #include "unwind.h"
+@@ -207,3 +208,4 @@ _Unwind_SetIP (struct _Unwind_Context *c
+ }
+ symver (_Unwind_SetIP, GCC_3.0);
+ #endif
++#endif
+--- a/src/libgcc/unwind-generic.h
++++ b/src/libgcc/unwind-generic.h
+@@ -221,6 +221,7 @@ _Unwind_SjLj_Resume_or_Rethrow (struct _
+    compatible with the standard ABI for IA-64, we inline these.  */
+ 
+ #ifdef __ia64__
++#ifndef inhibit_libc
+ static inline _Unwind_Ptr
+ _Unwind_GetDataRelBase (struct _Unwind_Context *_C)
+ {
+@@ -237,6 +238,7 @@ _Unwind_GetTextRelBase (struct _Unwind_C
+ 
+ /* @@@ Retrieve the Backing Store Pointer of the given context.  */
+ extern _Unwind_Word _Unwind_GetBSP (struct _Unwind_Context *);
++#endif /* inhibit_libc */
+ #else
+ extern _Unwind_Ptr _Unwind_GetDataRelBase (struct _Unwind_Context *);
+ extern _Unwind_Ptr _Unwind_GetTextRelBase (struct _Unwind_Context *);

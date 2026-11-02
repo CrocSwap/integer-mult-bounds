@@ -1,0 +1,27 @@
+# DP: ARM hard/soft float multilib support
+
+Index: b/src/gcc/config/arm/t-linux-eabi
+===================================================================
+--- a/src/gcc/config/arm/t-linux-eabi
++++ b/src/gcc/config/arm/t-linux-eabi
+@@ -27,6 +27,20 @@ MULTILIB_REUSE		=
+ MULTILIB_MATCHES	=
+ MULTILIB_REQUIRED	=
+ 
++ifeq ($(with_float),hard)
++MULTILIB_OPTIONS	= mfloat-abi=soft/mfloat-abi=hard
++MULTILIB_DIRNAMES	= sf hf
++MULTILIB_EXCEPTIONS	=
++MULTILIB_MATCHES	= mfloat-abi?hard=mhard-float mfloat-abi?soft=msoft-float mfloat-abi?soft=mfloat-abi?softfp
++MULTILIB_OSDIRNAMES	= ../libsf:arm-linux-gnueabi ../lib:arm-linux-gnueabihf
++else
++MULTILIB_OPTIONS	= mfloat-abi=soft/mfloat-abi=hard
++MULTILIB_DIRNAMES	= sf hf
++MULTILIB_EXCEPTIONS	=
++MULTILIB_MATCHES	= mfloat-abi?hard=mhard-float mfloat-abi?soft=msoft-float mfloat-abi?soft=mfloat-abi?softfp
++MULTILIB_OSDIRNAMES	= ../lib:arm-linux-gnueabi ../libhf:arm-linux-gnueabihf
++endif
++
+ #MULTILIB_OPTIONS     += mcpu=fa606te/mcpu=fa626te/mcpu=fmp626/mcpu=fa726te
+ #MULTILIB_DIRNAMES    += fa606te fa626te fmp626 fa726te
+ #MULTILIB_EXCEPTIONS  += *mthumb/*mcpu=fa606te *mthumb/*mcpu=fa626te *mthumb/*mcpu=fmp626 *mthumb/*mcpu=fa726te*

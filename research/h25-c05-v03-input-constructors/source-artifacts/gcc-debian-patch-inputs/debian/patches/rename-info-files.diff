@@ -1,0 +1,661 @@
+# DP: Allow transformations on info file names. Reference the
+# DP: transformed info file names in the texinfo files.
+
+
+2004-02-17  Matthias Klose  <doko@debian.org>
+
+gcc/ChangeLog:
+	* Makefile.in: Allow transformations on info file names.
+	Define MAKEINFODEFS, macros to pass transformated info file
+	names to makeinfo.
+	* doc/cpp.texi: Use macros defined in MAKEINFODEFS for references.
+	* doc/cppinternals.texi: Likewise.
+	* doc/extend.texi: Likewise.
+	* doc/gcc.texi: Likewise.
+	* doc/gccint.texi: Likewise.
+	* doc/invoke.texi: Likewise.
+	* doc/libgcc.texi: Likewise.
+	* doc/makefile.texi: Likewise.
+	* doc/passes.texi: Likewise.
+	* doc/sourcebuild.texi: Likewise.
+	* doc/standards.texi: Likewise.
+	* doc/trouble.texi: Likewise.
+
+gcc/fortran/ChangeLog:
+	* Make-lang.in: Allow transformations on info file names.
+	Pass macros of transformated info file defined in MAKEINFODEFS
+	names to makeinfo.
+	* gfortran.texi: Use macros defined in MAKEINFODEFS for references.
+
+--- a/src/gcc/fortran/gfortran.texi
++++ b/src/gcc/fortran/gfortran.texi
+@@ -101,7 +101,7 @@ Texts being (a) (see below), and with th
+ @ifinfo
+ @dircategory Software development
+ @direntry
+-* gfortran: (gfortran).                  The GNU Fortran Compiler.
++* @value{fngfortran}: (@value{fngfortran}).                  The GNU Fortran Compiler.
+ @end direntry
+ This file documents the use and the internals of
+ the GNU Fortran compiler, (@command{gfortran}).
+--- a/src/gcc/fortran/Make-lang.in
++++ b/src/gcc/fortran/Make-lang.in
+@@ -116,7 +116,9 @@ fortran.tags: force
+ 	cd $(srcdir)/fortran; $(ETAGS) -o TAGS.sub *.cc *.h; \
+ 	$(ETAGS) --include TAGS.sub --include ../TAGS.sub
+ 
+-fortran.info: doc/gfortran.info doc/gfc-internals.info
++INFO_FORTRAN_NAME = $(shell echo gfortran|sed '$(program_transform_name)')
++INFO_FORTRAN_I_NAME = $(shell echo gfc-internals|sed '$(program_transform_name)')
++fortran.info: doc/$(INFO_FORTRAN_NAME).info doc/$(INFO_FORTRAN_I_NAME).info
+ 
+ F95_DVIFILES = doc/gfortran.dvi
+ 
+@@ -199,10 +201,10 @@ GFORTRAN_TEXI = \
+   $(srcdir)/doc/include/gcc-common.texi \
+   gcc-vers.texi
+ 
+-doc/gfortran.info: $(GFORTRAN_TEXI)
++doc/$(INFO_FORTRAN_NAME).info: $(GFORTRAN_TEXI)
+ 	if [ x$(BUILD_INFO) = xinfo ]; then \
+ 	  rm -f doc/gfortran.info-*; \
+-	  $(MAKEINFO) -I $(srcdir)/doc/include -I $(srcdir)/fortran \
++	  $(MAKEINFO) $(MAKEINFODEFS) -I $(srcdir)/doc/include -I $(srcdir)/fortran \
+ 	    -o $@ $<; \
+ 	else true; fi
+ 
+@@ -230,7 +232,7 @@ GFC_INTERNALS_TEXI = \
+   $(srcdir)/doc/include/gcc-common.texi \
+   gcc-vers.texi
+ 
+-doc/gfc-internals.info: $(GFC_INTERNALS_TEXI)
++doc/$(INFO_FORTRAN_I_NAME).info: $(GFC_INTERNALS_TEXI)
+ 	if [ x$(BUILD_INFO) = xinfo ]; then \
+ 	  rm -f doc/gfc-internals.info-*; \
+ 	  $(MAKEINFO) -I $(srcdir)/doc/include -I $(srcdir)/fortran \
+@@ -267,7 +269,7 @@ fortran.install-common: install-finclude
+ 
+ fortran.install-plugin:
+ 
+-fortran.install-info: $(DESTDIR)$(infodir)/gfortran.info
++fortran.install-info: $(DESTDIR)$(infodir)/$(INFO_FORTRAN_NAME).info
+ 
+ fortran.install-man: $(DESTDIR)$(man1dir)/$(GFORTRAN_INSTALL_NAME)$(man1ext)
+ 
+@@ -285,7 +287,7 @@ fortran.uninstall:
+ 	rm -rf $(DESTDIR)$(bindir)/$(GFORTRAN_INSTALL_NAME)$(exeext); \
+ 	rm -rf $(DESTDIR)$(man1dir)/$(GFORTRAN_INSTALL_NAME)$(man1ext); \
+ 	rm -rf $(DESTDIR)$(bindir)/$(GFORTRAN_TARGET_INSTALL_NAME)$(exeext); \
+-	rm -rf $(DESTDIR)$(infodir)/gfortran.info*
++	rm -rf $(DESTDIR)$(infodir)/$(INFO_FORTRAN_NAME).info*
+ 
+ #
+ # Clean hooks:
+--- a/src/gcc/Makefile.in
++++ b/src/gcc/Makefile.in
+@@ -3335,8 +3335,31 @@ install-no-fixedincludes:
+ 
+ doc: $(BUILD_INFO) $(GENERATED_MANPAGES)
+ 
+-INFOFILES = doc/cpp.info doc/gcc.info doc/gccint.info \
+-            doc/gccinstall.info doc/cppinternals.info
++INFO_CPP_NAME = $(shell echo cpp|sed '$(program_transform_name)')
++INFO_GCC_NAME = $(shell echo gcc|sed '$(program_transform_name)')
++INFO_GXX_NAME = $(shell echo g++|sed '$(program_transform_name)')
++INFO_GCCINT_NAME = $(shell echo gccint|sed '$(program_transform_name)')
++INFO_GCCINSTALL_NAME = $(shell echo gccinstall|sed '$(program_transform_name)')
++INFO_CPPINT_NAME = $(shell echo cppinternals|sed '$(program_transform_name)')
++
++INFO_FORTRAN_NAME = $(shell echo gfortran|sed '$(program_transform_name)')
++INFO_GCCGO_NAME = $(shell echo gccgo|sed '$(program_transform_name)')
++
++INFOFILES = doc/$(INFO_CPP_NAME).info doc/$(INFO_GCC_NAME).info \
++            doc/$(INFO_GCCINT_NAME).info \
++            doc/$(INFO_GCCINSTALL_NAME).info doc/$(INFO_CPPINT_NAME).info
++
++MAKEINFODEFS = -D 'fncpp $(INFO_CPP_NAME)' \
++               -D 'fngcc $(INFO_GCC_NAME)' \
++               -D 'fngcov $(INFO_GCC_NAME)' \
++               -D 'fngcovtool $(INFO_GCC_NAME)' \
++               -D 'fngcovdump $(INFO_GCC_NAME)' \
++               -D 'fngxx $(INFO_GXX_NAME)' \
++               -D 'fngccint $(INFO_GCCINT_NAME)' \
++               -D 'fngccinstall $(INFO_GCCINSTALL_NAME)' \
++               -D 'fncppint $(INFO_CPPINT_NAME)' \
++               -D 'fngfortran $(INFO_FORTRAN_NAME)' \
++               -D 'fngccgo $(INFO_GCCGO_NAME)'
+ 
+ info: $(INFOFILES) lang.info @GENINSRC@ srcinfo lang.srcinfo
+ 
+@@ -3384,7 +3407,20 @@ gcc-vers.texi: $(BASEVER) $(DEVPHASE)
+ 	if [ -n "$(PKGVERSION)" ]; then \
+ 	  echo "@set VERSION_PACKAGE $(PKGVERSION)" >> $@T; \
+ 	fi
+-	echo "@set BUGURL $(BUGURL_TEXI)" >> $@T; \
++	echo "@set BUGURL $(BUGURL_TEXI)" >> $@T
++	( \
++	  echo '@set fncpp $(INFO_CPP_NAME)'; \
++	  echo '@set fngcc $(INFO_GCC_NAME)'; \
++	  echo '@set fngcov $(INFO_GCC_NAME)'; \
++	  echo '@set fngcovtool $(INFO_GCC_NAME)'; \
++	  echo '@set fngcovdump $(INFO_GCC_NAME)'; \
++	  echo '@set fngxx $(INFO_GXX_NAME)'; \
++	  echo '@set fngccint $(INFO_GCCINT_NAME)'; \
++	  echo '@set fngccinstall $(INFO_GCCINSTALL_NAME)'; \
++	  echo '@set fncppint $(INFO_CPPINT_NAME)'; \
++	  echo '@set fngfortran $(INFO_FORTRAN_NAME)'; \
++	  echo '@set fngccgo $(INFO_GCCGO_NAME)'; \
++	) >> $@T
+ 	mv -f $@T $@
+ 
+ 
+@@ -3392,21 +3428,41 @@ gcc-vers.texi: $(BASEVER) $(DEVPHASE)
+ # patterns.  To use them, put each of the specific targets with its
+ # specific dependencies but no build commands.
+ 
+-doc/cpp.info: $(TEXI_CPP_FILES)
+-doc/gcc.info: $(TEXI_GCC_FILES)
+-doc/gccint.info: $(TEXI_GCCINT_FILES)
+-doc/cppinternals.info: $(TEXI_CPPINT_FILES)
+-
++# Generic entry to handle info files, which are not renamed (currently Ada)
+ doc/%.info: %.texi
+ 	if [ x$(BUILD_INFO) = xinfo ]; then \
+ 		$(MAKEINFO) $(MAKEINFOFLAGS) -I . -I $(gcc_docdir) \
+ 			-I $(gcc_docdir)/include -o $@ $<; \
+ 	fi
+ 
++doc/$(INFO_CPP_NAME).info: $(TEXI_CPP_FILES)
++	if [ x$(BUILD_INFO) = xinfo ]; then \
++		$(MAKEINFO) $(MAKEINFOFLAGS) $(MAKEINFODEFS) -I $(gcc_docdir) \
++			-I $(gcc_docdir)/include -o $@ $<; \
++	fi
++
++doc/$(INFO_GCC_NAME).info: $(TEXI_GCC_FILES)
++	if [ x$(BUILD_INFO) = xinfo ]; then \
++		$(MAKEINFO) $(MAKEINFOFLAGS) $(MAKEINFODEFS) -I $(gcc_docdir) \
++			-I $(gcc_docdir)/include -o $@ $<; \
++	fi
++
++doc/$(INFO_GCCINT_NAME).info: $(TEXI_GCCINT_FILES)
++	if [ x$(BUILD_INFO) = xinfo ]; then \
++		$(MAKEINFO) $(MAKEINFOFLAGS) $(MAKEINFODEFS) -I $(gcc_docdir) \
++			-I $(gcc_docdir)/include -o $@ $<; \
++	fi
++
++doc/$(INFO_CPPINT_NAME).info: $(TEXI_CPPINT_FILES)
++	if [ x$(BUILD_INFO) = xinfo ]; then \
++		$(MAKEINFO) $(MAKEINFOFLAGS) $(MAKEINFODEFS) -I $(gcc_docdir) \
++			-I $(gcc_docdir)/include -o $@ $<; \
++	fi
++
+ # Duplicate entry to handle renaming of gccinstall.info
+-doc/gccinstall.info: $(TEXI_GCCINSTALL_FILES)
++doc/$(INFO_GCCINSTALL_NAME).info: $(TEXI_GCCINSTALL_FILES)
+ 	if [ x$(BUILD_INFO) = xinfo ]; then \
+-		$(MAKEINFO) $(MAKEINFOFLAGS) -I $(gcc_docdir) \
++		$(MAKEINFO) $(MAKEINFOFLAGS) $(MAKEINFODEFS) -I $(gcc_docdir) \
+ 			-I $(gcc_docdir)/include -o $@ $<; \
+ 	fi
+ 
+@@ -3810,11 +3866,11 @@ install-driver: installdirs xgcc$(exeext
+ # $(INSTALL_DATA) might be a relative pathname, so we can't cd into srcdir
+ # to do the install.
+ install-info:: doc installdirs \
+-	$(DESTDIR)$(infodir)/cpp.info \
+-	$(DESTDIR)$(infodir)/gcc.info \
+-	$(DESTDIR)$(infodir)/cppinternals.info \
+-	$(DESTDIR)$(infodir)/gccinstall.info \
+-	$(DESTDIR)$(infodir)/gccint.info \
++	$(DESTDIR)$(infodir)/$(INFO_CPP_NAME).info \
++	$(DESTDIR)$(infodir)/$(INFO_GCC_NAME).info \
++	$(DESTDIR)$(infodir)/$(INFO_CPPINT_NAME).info \
++	$(DESTDIR)$(infodir)/$(INFO_GCCINSTALL_NAME).info \
++	$(DESTDIR)$(infodir)/$(INFO_GCCINT_NAME).info \
+ 	lang.install-info
+ 
+ $(DESTDIR)$(infodir)/%.info: doc/%.info installdirs
+@@ -4053,8 +4109,11 @@ uninstall: lang.uninstall
+ 	-rm -rf $(DESTDIR)$(bindir)/$(GCOV_INSTALL_NAME)$(exeext)
+ 	-rm -rf $(DESTDIR)$(man1dir)/$(GCC_INSTALL_NAME)$(man1ext)
+ 	-rm -rf $(DESTDIR)$(man1dir)/cpp$(man1ext)
+-	-rm -f $(DESTDIR)$(infodir)/cpp.info* $(DESTDIR)$(infodir)/gcc.info*
+-	-rm -f $(DESTDIR)$(infodir)/cppinternals.info* $(DESTDIR)$(infodir)/gccint.info*
++	-rm -f $(DESTDIR)$(infodir)/$(INFO_CPP_NAME).info*
++	-rm -f $(DESTDIR)$(infodir)/$(INFO_GCC_NAME).info*
++	-rm -f $(DESTDIR)$(infodir)/$(INFO_CPPINT_NAME).info*
++	-rm -f $(DESTDIR)$(infodir)/$(INFO_GCCINT_NAME).info*
++	-rm -f $(DESTDIR)$(infodir)/$(INFO_GCCINSTALL_NAME).info*
+ 	for i in ar nm ranlib ; do \
+ 	  install_name=`echo gcc-$$i|sed '$(program_transform_name)'`$(exeext) ;\
+ 	  target_install_name=$(target_noncanonical)-`echo gcc-$$i|sed '$(program_transform_name)'`$(exeext) ; \
+--- a/src/gcc/ada/gnat-style.texi
++++ b/src/gcc/ada/gnat-style.texi
+@@ -12,7 +12,7 @@
+ @finalout
+ @dircategory GNU Ada Tools 
+ @direntry
+-* gnat-style: (gnat-style.info). gnat-style
++* gnat-style: (gnat-style-13).      GNAT Coding Style
+ @end direntry
+ 
+ @c %**end of header
+--- a/src/gcc/ada/gnat_rm.texi
++++ b/src/gcc/ada/gnat_rm.texi
+@@ -12,7 +12,7 @@
+ @finalout
+ @dircategory GNU Ada Tools 
+ @direntry
+-* gnat_rm: (gnat_rm.info). gnat_rm
++* GNAT Reference Manual: (gnat_rm-13).  Reference Manual for GNU Ada tools.
+ @end direntry
+ 
+ @c %**end of header
+--- a/src/gcc/doc/invoke.texi
++++ b/src/gcc/doc/invoke.texi
+@@ -17737,7 +17737,7 @@ One of the standard libraries bypassed b
+ @option{-nodefaultlibs} is @file{libgcc.a}, a library of internal subroutines
+ which GCC uses to overcome shortcomings of particular machines, or special
+ needs for some languages.
+-(@xref{Interface,,Interfacing to GCC Output,gccint,GNU Compiler
++(@xref{Interface,,Interfacing to GCC Output,@value{fngccint},GNU Compiler
+ Collection (GCC) Internals},
+ for more discussion of @file{libgcc.a}.)
+ In most cases, you need @file{libgcc.a} even when you want to avoid
+@@ -17746,7 +17746,7 @@ or @option{-nodefaultlibs} you should us
+ This ensures that you have no unresolved references to internal GCC
+ library subroutines.
+ (An example of such an internal subroutine is @code{__main}, used to ensure C++
+-constructors are called; @pxref{Collect2,,@code{collect2}, gccint,
++constructors are called; @pxref{Collect2,,@code{collect2}, @value{fngccint},
+ GNU Compiler Collection (GCC) Internals}.)
+ 
+ @opindex nostdlib++
+@@ -35202,7 +35202,7 @@ Note that you can also specify places to
+ @option{-B}, @option{-I} and @option{-L} (@pxref{Directory Options}).  These
+ take precedence over places specified using environment variables, which
+ in turn take precedence over those specified by the configuration of GCC@.
+-@xref{Driver,, Controlling the Compilation Driver @file{gcc}, gccint,
++@xref{Driver,, Controlling the Compilation Driver @file{gcc}, @value{fngccint},
+ GNU Compiler Collection (GCC) Internals}.
+ 
+ @table @env
+@@ -35382,7 +35382,7 @@ the headers it contains change.
+ 
+ A precompiled header file is searched for when @code{#include} is
+ seen in the compilation.  As it searches for the included file
+-(@pxref{Search Path,,Search Path,cpp,The C Preprocessor}) the
++(@pxref{Search Path,,Search Path,@value{fncpp},The C Preprocessor}) the
+ compiler looks for a precompiled header in each directory just before it
+ looks for the include file in that directory.  The name searched for is
+ the name specified in the @code{#include} with @samp{.gch} appended.  If
+--- a/src/gcc/doc/extend.texi
++++ b/src/gcc/doc/extend.texi
+@@ -24639,7 +24639,7 @@ want to write code that checks whether t
+ test for the GNU compiler the same way as for C programs: check for a
+ predefined macro @code{__GNUC__}.  You can also use @code{__GNUG__} to
+ test specifically for GNU C++ (@pxref{Common Predefined Macros,,
+-Predefined Macros,cpp,The GNU C Preprocessor}).
++Predefined Macros,@value{fncpp},The GNU C Preprocessor}).
+ 
+ @menu
+ * C++ Volatiles::       What constitutes an access to a volatile object.
+--- a/src/gcc/doc/standards.texi
++++ b/src/gcc/doc/standards.texi
+@@ -332,5 +332,5 @@ specification, described at @uref{https:
+ GNAT Reference Manual}, for information on standard
+ conformance and compatibility of the Ada compiler.
+ 
+-@xref{Standards,,Standards, gfortran, The GNU Fortran Compiler}, for details
++@xref{Standards,,Standards, @value{fngfortran}, The GNU Fortran Compiler}, for details
+ of standards supported by GNU Fortran.
+--- a/src/gcc/doc/libgcc.texi
++++ b/src/gcc/doc/libgcc.texi
+@@ -24,7 +24,7 @@ that needs them.
+ GCC will also generate calls to C library routines, such as
+ @code{memcpy} and @code{memset}, in some cases.  The set of routines
+ that GCC may possibly use is documented in @ref{Other
+-Builtins,,,gcc, Using the GNU Compiler Collection (GCC)}.
++Builtins,,,@value{fngcc}, Using the GNU Compiler Collection (GCC)}.
+ 
+ These routines take arguments and return values of a specific machine
+ mode, not a specific C type.  @xref{Machine Modes}, for an explanation
+--- a/src/gcc/doc/gccint.texi
++++ b/src/gcc/doc/gccint.texi
+@@ -49,7 +49,7 @@ Texts being (a) (see below), and with th
+ @ifnottex
+ @dircategory Software development
+ @direntry
+-* gccint: (gccint).            Internals of the GNU Compiler Collection.
++* @value{fngccint}: (@value{fngccint}).            Internals of the GNU Compiler Collection.
+ @end direntry
+ This file documents the internals of the GNU compilers.
+ @sp 1
+@@ -81,7 +81,7 @@ write front ends for new languages.  It
+ @value{VERSION_PACKAGE}
+ @end ifset
+ version @value{version-GCC}.  The use of the GNU compilers is documented in a
+-separate manual.  @xref{Top,, Introduction, gcc, Using the GNU
++separate manual.  @xref{Top,, Introduction, @value{fngcc}, Using the GNU
+ Compiler Collection (GCC)}.
+ 
+ This manual is mainly a reference manual rather than a tutorial.  It
+--- a/src/gcc/doc/cpp.texi
++++ b/src/gcc/doc/cpp.texi
+@@ -50,7 +50,7 @@ This manual contains no Invariant Sectio
+ @ifinfo
+ @dircategory Software development
+ @direntry
+-* Cpp: (cpp).                  The GNU C preprocessor.
++* @value{fncpp}: (@value{fncpp}).                  The GNU C preprocessor.
+ @end direntry
+ @end ifinfo
+ 
+--- a/src/gcc/doc/gcc.texi
++++ b/src/gcc/doc/gcc.texi
+@@ -135,7 +135,7 @@ version @value{version-GCC}.
+ The internals of the GNU compilers, including how to port them to new
+ targets and some information about how to write front ends for new
+ languages, are documented in a separate manual.  @xref{Top,,
+-Introduction, gccint, GNU Compiler Collection (GCC) Internals}.
++Introduction, @value{fngccint}, GNU Compiler Collection (GCC) Internals}.
+ 
+ @menu
+ * G++ and GCC::     You can compile C or C++ programs.
+--- a/src/gcc/doc/install.texi
++++ b/src/gcc/doc/install.texi
+@@ -89,7 +89,7 @@ Free Documentation License}''.
+ @end ifinfo
+ @dircategory Software development
+ @direntry
+-* gccinstall: (gccinstall).    Installing the GNU Compiler Collection.
++* @value{fngccinstall}: (@value{fngccinstall}).    Installing the GNU Compiler Collection.
+ @end direntry
+ 
+ @c Part 3 Titlepage and Copyright
+--- a/src/gcc/doc/cppinternals.texi
++++ b/src/gcc/doc/cppinternals.texi
+@@ -7,7 +7,7 @@
+ @ifinfo
+ @dircategory Software development
+ @direntry
+-* Cpplib: (cppinternals).      Cpplib internals.
++* @value{fncppint}: (@value{fncppint}).      Cpplib internals.
+ @end direntry
+ @end ifinfo
+ 
+--- a/src/libgomp/libgomp.texi
++++ b/src/libgomp/libgomp.texi
+@@ -31,7 +31,7 @@ texts being (a) (see below), and with th
+ @ifinfo
+ @dircategory GNU Libraries
+ @direntry
+-* libgomp: (libgomp).          GNU Offloading and Multi Processing Runtime Library.
++* @value{fnlibgomp}: (@value{fnlibgomp}).          GNU Offloading and Multi Processing Runtime Library.
+ @end direntry
+ 
+ This manual documents libgomp, the GNU Offloading and Multi Processing
+--- a/src/libgomp/Makefile.in
++++ b/src/libgomp/Makefile.in
+@@ -613,7 +613,8 @@ info_TEXINFOS = libgomp.texi
+ 
+ # AM_CONDITIONAL on configure check ACX_CHECK_PROG_VER([MAKEINFO])
+ @BUILD_INFO_TRUE@STAMP_BUILD_INFO = stamp-build-info
+-CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO)
++INFO_LIBGOMP_NAME = $(shell echo libgomp|sed '$(program_transform_name)')
++CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO) $(INFO_LIBGOMP_NAME).info
+ MAINTAINERCLEANFILES = $(srcdir)/libgomp.info
+ MULTISRCTOP = 
+ MULTIBUILDTOP = 
+@@ -1393,15 +1394,16 @@ env.lo: libgomp_f.h
+ env.o: libgomp_f.h
+ 
+ all-local: $(STAMP_GENINSRC)
+-
+-stamp-geninsrc: libgomp.info
+-	cp -p $(top_builddir)/libgomp.info $(srcdir)/libgomp.info
++stamp-geninsrc: $(INFO_LIBGOMP_NAME).info
++	cp -p $(top_builddir)/$(INFO_LIBGOMP_NAME).info $(srcdir)/libgomp.info
+ 	@touch $@
+ 
+-libgomp.info: $(STAMP_BUILD_INFO)
++libgomp.info: $(INFO_LIBGOMP_NAME).info
++	[ "$(INFO_LIBGOMP_NAME).info" = libgomp.info ] || cp $(INFO_LIBGOMP_NAME).info libgomp.info
++$(INFO_LIBGOMP_NAME).info: $(STAMP_BUILD_INFO)
+ 
+ stamp-build-info: libgomp.texi
+-	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libgomp.info $(srcdir)/libgomp.texi
++	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -D 'fnlibgomp $(INFO_LIBGOMP_NAME)' -I $(srcdir) -o $(INFO_LIBGOMP_NAME).info $(srcdir)/libgomp.texi
+ 	@touch $@
+ 
+ # target overrides
+--- a/src/libgomp/Makefile.am
++++ b/src/libgomp/Makefile.am
+@@ -129,14 +129,16 @@ endif
+ 
+ all-local: $(STAMP_GENINSRC)
+ 
+-stamp-geninsrc: libgomp.info
+-	cp -p $(top_builddir)/libgomp.info $(srcdir)/libgomp.info
++stamp-geninsrc: $(INFO_LIBGOMP_NAME).info
++	cp -p $(top_builddir)/$(INFO_LIBGOMP_NAME).info $(srcdir)/libgomp.info
+ 	@touch $@
+ 
+-libgomp.info: $(STAMP_BUILD_INFO)
++libgomp.info: $(INFO_LIBGOMP_NAME).info
++	[ "$(INFO_LIBGOMP_NAME).info = libgomp.info ] || cp $(INFO_LIBGOMP_NAME).info libgomp.info
++$(INFO_LIBGOMP_NAME).info: $(STAMP_BUILD_INFO)
+ 
+ stamp-build-info: libgomp.texi
+-	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libgomp.info $(srcdir)/libgomp.texi
++	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -D 'fnlibgomp $(INFO_LIBGOMP_NAME)' -I $(srcdir) -o $(INFO_LIBGOMP_NAME).info $(srcdir)/libgomp.texi
+ 	@touch $@
+ 
+ 
+--- a/src/libitm/libitm.texi
++++ b/src/libitm/libitm.texi
+@@ -20,7 +20,7 @@ Free Documentation License''.
+ @ifinfo
+ @dircategory GNU Libraries
+ @direntry
+-* libitm: (libitm).                    GNU Transactional Memory Library
++* @value{fnlibitm}: (@value{fnlibitm}).                    GNU Transactional Memory Library
+ @end direntry
+ 
+ This manual documents the GNU Transactional Memory Library.
+--- a/src/libitm/Makefile.am
++++ b/src/libitm/Makefile.am
+@@ -107,14 +107,17 @@ endif
+ 
+ all-local: $(STAMP_GENINSRC)
+ 
+-stamp-geninsrc: libitm.info
+-	cp -p $(top_builddir)/libitm.info $(srcdir)/libitm.info
++INFO_LIBITM_NAME = $(shell echo libitm|sed '$(program_transform_name)')
++stamp-geninsrc: $(INFO_LIBITM_NAME).info
++	cp -p $(top_builddir)/$(INFO_LIBITM_NAME).info $(srcdir)/libitm.info
+ 	@touch $@
+ 
+-libitm.info: $(STAMP_BUILD_INFO)
++libitm.info: $(INFO_LIBITM_NAME).info
++	[ $(INFO_LIBITM_NAME).info = libitm.info ] || cp $(INFO_LIBITM_NAME).info libitm.info
++$(INFO_LIBITM_NAME).info: $(STAMP_BUILD_INFO)
+ 
+ stamp-build-info: libitm.texi
+-	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libitm.info $(srcdir)/libitm.texi
++	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -D 'fnlibitm $(INFO_LIBITM_NAME)'-o $(INFO_LIBITM_NAME).info $(srcdir)/libitm.texi
+ 	@touch $@
+ 
+ 
+--- a/src/libitm/Makefile.in
++++ b/src/libitm/Makefile.in
+@@ -1186,14 +1186,17 @@ vpath % $(strip $(search_path))
+ 
+ all-local: $(STAMP_GENINSRC)
+ 
+-stamp-geninsrc: libitm.info
+-	cp -p $(top_builddir)/libitm.info $(srcdir)/libitm.info
++INFO_LIBITM_NAME = $(shell echo libitm|sed '$(program_transform_name)')
++stamp-geninsrc: $(INFO_LIBITM_NAME).info
++	cp -p $(top_builddir)/$(INFO_LIBITM_NAME).info $(srcdir)/libitm.info
+ 	@touch $@
+ 
+-libitm.info: $(STAMP_BUILD_INFO)
++libitm.info: $(INFO_LIBITM_NAME).info
++	[ $(INFO_LIBITM_NAME).info = libitm.info ] || cp $(INFO_LIBITM_NAME).info libitm.info
++$(INFO_LIBITM_NAME).info: $(STAMP_BUILD_INFO)
+ 
+ stamp-build-info: libitm.texi
+-	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libitm.info $(srcdir)/libitm.texi
++	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -D 'fnlibitm $(INFO_LIBITM_NAME)' -o $(INFO_LIBITM_NAME).info $(srcdir)/libitm.texi
+ 	@touch $@
+ 
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+--- a/src/gcc/go/Make-lang.in
++++ b/src/gcc/go/Make-lang.in
+@@ -95,10 +95,11 @@ GO_TEXI_FILES = \
+ 	$(gcc_docdir)/include/gcc-common.texi \
+ 	gcc-vers.texi
+ 
+-doc/gccgo.info: $(GO_TEXI_FILES)
++INFO_GCCGO_NAME = $(shell echo gccgo|sed '$(program_transform_name)')
++doc/$(INFO_GCCGO_NAME).info: $(GO_TEXI_FILES)
+ 	if test "x$(BUILD_INFO)" = xinfo; then \
+-	  rm -f doc/gccgo.info*; \
+-	  $(MAKEINFO) $(MAKEINFOFLAGS) -I $(gcc_docdir) \
++	  rm -f doc/$(INFO_GCCGO_NAME).info*; \
++	  $(MAKEINFO) $(MAKEINFOFLAGS) $(MAKEINFODEFS) -I $(gcc_docdir) \
+ 		-I $(gcc_docdir)/include -o $@ $<; \
+ 	else true; fi
+ 
+@@ -124,7 +125,7 @@ gccgo.pod: go/gccgo.texi
+ go.all.cross: gccgo-cross$(exeext)
+ go.start.encap: gccgo$(exeext)
+ go.rest.encap:
+-go.info: doc/gccgo.info
++go.info: doc/$(INFO_GCCGO_NAME).info
+ go.dvi: doc/gccgo.dvi
+ go.pdf: doc/gccgo.pdf
+ go.html: $(build_htmldir)/go/index.html
+@@ -163,7 +164,7 @@ go.install-common: installdirs
+ 
+ go.install-plugin:
+ 
+-go.install-info: $(DESTDIR)$(infodir)/gccgo.info
++go.install-info: $(DESTDIR)$(infodir)/$(INFO_GCCGO_NAME).info
+ 
+ go.install-pdf: doc/gccgo.pdf
+ 	@$(NORMAL_INSTALL)
+@@ -203,7 +204,7 @@ go.uninstall:
+ 	rm -rf $(DESTDIR)$(bindir)/$(GCCGO_INSTALL_NAME)$(exeext)
+ 	rm -rf $(DESTDIR)$(man1dir)/$(GCCGO_INSTALL_NAME)$(man1ext)
+ 	rm -rf $(DESTDIR)$(bindir)/$(GCCGO_TARGET_INSTALL_NAME)$(exeext)
+-	rm -rf $(DESTDIR)$(infodir)/gccgo.info*
++	rm -rf $(DESTDIR)$(infodir)/$(INFO_GCCGO_NAME).info*
+ 
+ # Clean hooks.
+ 
+--- a/src/gcc/go/gccgo.texi
++++ b/src/gcc/go/gccgo.texi
+@@ -50,7 +50,7 @@ man page gfdl(7).
+ @format
+ @dircategory Software development
+ @direntry
+-* Gccgo: (gccgo).           A GCC-based compiler for the Go language
++* @value{fngccgo}: (@value{fngccgo}).           A GCC-based compiler for the Go language
+ @end direntry
+ @end format
+ 
+@@ -124,7 +124,7 @@ and the Info entries for @file{gccgo} an
+ 
+ The @command{gccgo} command is a frontend to @command{gcc} and
+ supports many of the same options.  @xref{Option Summary, , Option
+-Summary, gcc, Using the GNU Compiler Collection (GCC)}.  This manual
++Summary, @value{fngcc}, Using the GNU Compiler Collection (GCC)}.  This manual
+ only documents the options specific to @command{gccgo}.
+ 
+ The @command{gccgo} command may be used to compile Go source code into
+--- a/src/libquadmath/libquadmath.texi
++++ b/src/libquadmath/libquadmath.texi
+@@ -25,7 +25,7 @@ copy and modify this GNU manual.
+ @ifinfo
+ @dircategory GNU Libraries
+ @direntry
+-* libquadmath: (libquadmath).                  GCC Quad-Precision Math Library
++* @value{fnlibquadmath}: (@value{fnlibquadmath}).                  GCC Quad-Precision Math Library
+ @end direntry
+ 
+ This manual documents the GCC Quad-Precision Math Library API.
+--- a/src/libquadmath/Makefile.am
++++ b/src/libquadmath/Makefile.am
+@@ -134,16 +134,18 @@ STAMP_BUILD_INFO =
+ endif
+ 
+ 
+-stamp-geninsrc: libquadmath.info
+-	cp -p $(top_builddir)/libquadmath.info $(srcdir)/libquadmath.info
++INFO_LIBQMATH_NAME = $(shell echo libquadmath|sed '$(program_transform_name)')
++
++stamp-geninsrc: $(INFO_LIBQMATH_NAME).info
++	cp -p $(top_builddir)/$(INFO_LIBQMATH_NAME).info $(srcdir)/libquadmath.info
+ 	@touch $@
+ 
+ stamp-build-info: libquadmath.texi $(libquadmath_TEXINFOS)
+-	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libquadmath.info $(srcdir)/libquadmath.texi
++	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o $(INFO_LIBQMATH_NAME).info $(srcdir)/libquadmath.texi
+ 	@touch $@
+ 
+-CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO)
+-MAINTAINERCLEANFILES = $(srcdir)/libquadmath.info
++CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO) $(INFO_LIBQMATH_NAME).info
++MAINTAINERCLEANFILES = $(srcdir)/$(INFO_LIBQMATH_NAME).info
+ 
+ endif BUILD_LIBQUADMATH
+ 
+--- a/src/libquadmath/Makefile.in
++++ b/src/libquadmath/Makefile.in
+@@ -283,7 +283,8 @@ AM_V_texidevnull = $(am__v_texidevnull_@
+ am__v_texidevnull_ = $(am__v_texidevnull_@AM_DEFAULT_V@)
+ am__v_texidevnull_0 = > /dev/null
+ am__v_texidevnull_1 = 
+-INFO_DEPS = libquadmath.info
++INFO_LIBQMATH_NAME = $(shell echo libquadmath|sed '$(program_transform_name)')
++INFO_DEPS = $(INFO_LIBQMATH_NAME).info
+ am__TEXINFO_TEX_DIR = $(srcdir)/../gcc/doc/include
+ DVIS = libquadmath.dvi
+ PDFS = libquadmath.pdf
+@@ -552,8 +553,8 @@ AUTOMAKE_OPTIONS = foreign info-in-build
+ 
+ # AM_CONDITIONAL on configure check ACX_CHECK_PROG_VER([MAKEINFO])
+ @BUILD_INFO_TRUE@@BUILD_LIBQUADMATH_TRUE@STAMP_BUILD_INFO = stamp-build-info
+-@BUILD_LIBQUADMATH_TRUE@CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO)
+-@BUILD_LIBQUADMATH_TRUE@MAINTAINERCLEANFILES = $(srcdir)/libquadmath.info
++@BUILD_LIBQUADMATH_TRUE@CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO) $(INFO_LIBQMATH_NAME).info
++@BUILD_LIBQUADMATH_TRUE@MAINTAINERCLEANFILES = $(srcdir)/$(INFO_LIBQMATH_NAME).info
+ 
+ # Automake Documentation:
+ # If your package has Texinfo files in many directories, you can use the
+@@ -1434,19 +1435,19 @@ uninstall-am: uninstall-dvi-am uninstall
+ @BUILD_LIBQUADMATH_TRUE@@LIBQUAD_USE_SYMVER_SUN_TRUE@@LIBQUAD_USE_SYMVER_TRUE@	   sed 's,\([^/ 	]*\)\.l\([ao]\),.libs/\1.\2,g'` \
+ @BUILD_LIBQUADMATH_TRUE@@LIBQUAD_USE_SYMVER_SUN_TRUE@@LIBQUAD_USE_SYMVER_TRUE@	 > $@ || (rm -f $@ ; exit 1)
+ 
+-@BUILD_LIBQUADMATH_TRUE@stamp-geninsrc: libquadmath.info
+-@BUILD_LIBQUADMATH_TRUE@	cp -p $(top_builddir)/libquadmath.info $(srcdir)/libquadmath.info
++@BUILD_LIBQUADMATH_TRUE@stamp-geninsrc: $(INFO_LIBQMATH_NAME).info
++@BUILD_LIBQUADMATH_TRUE@	cp -p $(top_builddir)/$(INFO_LIBQMATH_NAME).info $(srcdir)/$(INFO_LIBQMATH_NAME).info
+ @BUILD_LIBQUADMATH_TRUE@	@touch $@
+ 
+ @BUILD_LIBQUADMATH_TRUE@stamp-build-info: libquadmath.texi $(libquadmath_TEXINFOS)
+-@BUILD_LIBQUADMATH_TRUE@	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libquadmath.info $(srcdir)/libquadmath.texi
++@BUILD_LIBQUADMATH_TRUE@	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o $(INFO_LIBQMATH_NAME).info $(srcdir)/libquadmath.texi
+ @BUILD_LIBQUADMATH_TRUE@	@touch $@
+ 
+ all-local: $(ALL_LOCAL_DEPS)
+ 
+ # Unconditionally override this target, so that automake's definition
+ # does not wrongly interfere.
+-libquadmath.info: $(STAMP_BUILD_INFO)
++$(INFO_LIBQMATH_NAME).info: $(STAMP_BUILD_INFO)
+ 
+ libquadmath-vers.texi:
+ 	echo "@set BUGURL $(REPORT_BUGS_TEXI)" > $@

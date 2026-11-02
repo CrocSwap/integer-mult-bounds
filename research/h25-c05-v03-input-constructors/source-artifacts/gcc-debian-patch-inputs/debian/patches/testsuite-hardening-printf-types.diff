@@ -1,0 +1,667 @@
+# DP: Description: adjust/standardize printf types to avoid -Wformat warnings.
+# DP: Author: Kees Cook <kees@ubuntu.com>
+# DP: Ubuntu: https://bugs.launchpad.net/bugs/344502
+
+Index: b/src/gcc/testsuite/g++.dg/ext/align1.C
+===================================================================
+--- a/src/gcc/testsuite/g++.dg/ext/align1.C
++++ b/src/gcc/testsuite/g++.dg/ext/align1.C
+@@ -16,6 +16,7 @@ float f1 __attribute__ ((aligned));
+ int
+ main (void)
+ {
+-  printf ("%d %d\n", __alignof (a1), __alignof (f1));
++  // "%td" is not allowed by ISO C++, so use %p with a void * cast
++  printf ("%p %p\n", (void*)__alignof (a1), (void*)__alignof (f1));
+   return (__alignof (a1) < __alignof (f1));
+ }
+Index: b/src/gcc/testsuite/g++.old-deja/g++.law/operators28.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.law/operators28.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.law/operators28.C
+@@ -14,7 +14,8 @@ void* new_test::operator new(size_t sz,
+ {
+   void *p;
+ 
+-  printf("%d %d %d\n", sz, count, type);
++  // ISO C++ does not support format size modifier "z", so use a cast
++  printf("%u %d %d\n", (unsigned int)sz, count, type);
+ 
+   p = new char[sz * count];
+   ((new_test *)p)->type = type;
+Index: b/src/gcc/testsuite/gcc.dg/torture/matrix-2.c
+===================================================================
+--- a/src/gcc/testsuite/gcc.dg/torture/matrix-2.c
++++ b/src/gcc/testsuite/gcc.dg/torture/matrix-2.c
+@@ -42,7 +42,7 @@ main (int argc, char **argv)
+     }
+   for (i = 0; i < ARCHnodes; i++)
+     for (j = 0; j < 3; j++)
+-      printf ("%x\n",vel[i][j]);
++      printf ("%p\n",vel[i][j]);
+       /*if (i!=1 || j!=1)*/
+       /*if (i==1 && j==1)
+         continue;
+@@ -82,14 +82,14 @@ mem_init (void)
+       for (j = 0; j < 3; j++)
+ 	{
+ 	  vel[i][j] = (int *) malloc (ARCHnodes1 * sizeof (int));
+-          printf ("%x %d %d\n",vel[i][j], ARCHnodes1, sizeof (int));
++          printf ("%p %d %d\n",vel[i][j], ARCHnodes1, (int)sizeof (int));
+ 	}
+     }
+    for (i = 0; i < ARCHnodes; i++)
+     {
+       for (j = 0; j < 3; j++)
+         {
+-          printf ("%x\n",vel[i][j]);
++          printf ("%p\n",vel[i][j]);
+         }
+     }
+ 
+@@ -98,7 +98,7 @@ mem_init (void)
+     {
+       for (j = 0; j < 3; j++)
+ 	{
+-	  printf ("%x\n",vel[i][j]);
++	  printf ("%p\n",vel[i][j]);
+           /*for (k = 0; k < ARCHnodes1; k++)
+ 	    {
+ 	      vel[i][j][k] = d;
+Index: b/src/gcc/testsuite/gcc.dg/packed-vla.c
+===================================================================
+--- a/src/gcc/testsuite/gcc.dg/packed-vla.c
++++ b/src/gcc/testsuite/gcc.dg/packed-vla.c
+@@ -18,8 +18,8 @@ int func(int levels)
+     int			b[4];
+   } __attribute__ ((__packed__)) foo;
+ 
+-  printf("foo %d\n", sizeof(foo));
+-  printf("bar %d\n", sizeof(bar));
++  printf("foo %d\n", (int)sizeof(foo));
++  printf("bar %d\n", (int)sizeof(bar));
+ 
+   if (sizeof (foo) != sizeof (bar))
+     abort ();
+Index: b/src/gcc/testsuite/g++.dg/opt/alias2.C
+===================================================================
+--- a/src/gcc/testsuite/g++.dg/opt/alias2.C
++++ b/src/gcc/testsuite/g++.dg/opt/alias2.C
+@@ -30,14 +30,14 @@ public:
+ 
+ 
+ _Deque_base::~_Deque_base() {
+-  printf ("bb %x %x\n", this, *_M_start._M_node);
++  printf ("bb %p %x\n", this, *_M_start._M_node);
+ }
+ 
+ void
+ _Deque_base::_M_initialize_map()
+ {
+   yy = 0x123;
+-  printf ("aa %x %x\n", this, yy);
++  printf ("aa %p %x\n", this, yy);
+ 
+   _M_start._M_node = &yy;
+   _M_start._M_cur = yy;
+Index: b/src/gcc/testsuite/g++.old-deja/g++.abi/vbase1.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.abi/vbase1.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.abi/vbase1.C
+@@ -33,7 +33,7 @@ struct VBase
+   void Offset () const
+   {
+     printf ("VBase\n");
+-    printf ("  VBase::member %d\n", &this->VBase::member - (int *)this);
++    printf ("  VBase::member %d\n", (int)(&this->VBase::member - (int *)this));
+   }
+ };
+ 
+@@ -55,8 +55,8 @@ struct VDerived : virtual VBase
+   void Offset () const
+   {
+     printf ("VDerived\n");
+-    printf ("  VBase::member %d\n", &this->VBase::member - (int *)this);
+-    printf ("  VDerived::member %d\n", &this->VDerived::member - (int *)this);
++    printf ("  VBase::member %d\n", (int)(&this->VBase::member - (int *)this));
++    printf ("  VDerived::member %d\n", (int)(&this->VDerived::member - (int *)this));
+   }
+ };
+ struct B : virtual VBase
+@@ -65,8 +65,8 @@ struct B : virtual VBase
+   void Offset () const
+   {
+     printf ("B\n");
+-    printf ("  VBase::member %d\n", &this->VBase::member - (int *)this);
+-    printf ("  B::member %d\n", &this->B::member - (int *)this);
++    printf ("  VBase::member %d\n", (int)(&this->VBase::member - (int *)this));
++    printf ("  B::member %d\n", (int)(&this->B::member - (int *)this));
+   }
+ };
+ struct MostDerived : B, virtual VDerived
+@@ -75,10 +75,10 @@ struct MostDerived : B, virtual VDerived
+   void Offset () const
+   {
+     printf ("MostDerived\n");
+-    printf ("  VBase::member %d\n", &this->VBase::member - (int *)this);
+-    printf ("  B::member %d\n", &this->B::member - (int *)this);
+-    printf ("  VDerived::member %d\n", &this->VDerived::member - (int *)this);
+-    printf ("  MostDerived::member %d\n", &this->MostDerived::member - (int *)this);
++    printf ("  VBase::member %d\n", (int)(&this->VBase::member - (int *)this));
++    printf ("  B::member %d\n", (int)(&this->B::member - (int *)this));
++    printf ("  VDerived::member %d\n", (int)(&this->VDerived::member - (int *)this));
++    printf ("  MostDerived::member %d\n", (int)(&this->MostDerived::member - (int *)this));
+   }
+ };
+ 
+@@ -95,10 +95,10 @@ int main ()
+     if (ctorVDerived != &dum.VDerived::member)
+       return 24;
+     
+-    printf ("  VBase::member %d\n", &dum.VBase::member - this_);
+-    printf ("  B::member %d\n", &dum.B::member - this_);
+-    printf ("  VDerived::member %d\n", &dum.VDerived::member - this_);
+-    printf ("  MostDerived::member %d\n", &dum.MostDerived::member - this_);
++    printf ("  VBase::member %d\n", (int)(&dum.VBase::member - this_));
++    printf ("  B::member %d\n", (int)(&dum.B::member - this_));
++    printf ("  VDerived::member %d\n", (int)(&dum.VDerived::member - this_));
++    printf ("  MostDerived::member %d\n", (int)(&dum.MostDerived::member - this_));
+     dum.MostDerived::Offset ();
+     dum.B::Offset ();
+     dum.VDerived::Offset ();
+Index: b/src/gcc/testsuite/g++.old-deja/g++.brendan/template8.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.brendan/template8.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.brendan/template8.C
+@@ -15,6 +15,6 @@ int main(){
+ 	
+ 	Double_alignt<20000> heap;
+ 
+-	printf(" &heap.array[0] = %d, &heap.for_alignt = %d\n", &heap.array[0], &heap.for_alignt);
++	printf(" &heap.array[0] = %p, &heap.for_alignt = %p\n", (void*)&heap.array[0], (void*)&heap.for_alignt);
+ 
+ }
+Index: b/src/gcc/testsuite/g++.old-deja/g++.eh/ptr1.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.eh/ptr1.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.eh/ptr1.C
+@@ -16,7 +16,7 @@ int main()
+   }
+ 
+   catch (E *&e) {
+-    printf ("address of e is 0x%lx\n", (__SIZE_TYPE__)e);
++    printf ("address of e is %p\n", (void *)e);
+     return !((__SIZE_TYPE__)e != 5 && e->x == 5);
+   }
+   return 2;
+Index: b/src/gcc/testsuite/g++.old-deja/g++.jason/access23.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.jason/access23.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.jason/access23.C
+@@ -42,19 +42,19 @@ public:
+   void DoSomething() {
+     PUB_A = 0;
+     Foo::A = 0;
+-    printf("%x\n",pX);  
++    printf("%p\n",pX);  
+     Foo::PUB.A = 0;
+-    printf("%x\n",PUB.pX);  
++    printf("%p\n",PUB.pX);  
+     B = 0;			
+-    printf("%x\n",Foo::pY);  
++    printf("%p\n",Foo::pY);  
+     PRT_A = 0;
+     PRT.B = 0;		
+-    printf("%x\n",Foo::PRT.pY);	
++    printf("%p\n",Foo::PRT.pY);	
+     PRV_A = 0;			// { dg-error "" } 
+     Foo::C = 0;			// { dg-error "" } 
+-    printf("%x\n",pZ);  	// { dg-error "" } 
++    printf("%p\n",pZ);  	// { dg-error "" } 
+     Foo::PRV.C = 0;		// { dg-error "" } 
+-    printf("%x\n",PRV.pZ); 	// { dg-error "" } 
++    printf("%p\n",PRV.pZ); 	// { dg-error "" } 
+   }
+ };
+ 
+@@ -64,17 +64,17 @@ int main()
+ 
+   a.PUB_A = 0;
+   a.A = 0;
+-  printf("%x\n",a.pX);  
++  printf("%p\n",a.pX);  
+   a.PRT_A = 0;			// { dg-error "" } 
+   a.B = 0;			// { dg-error "" } 
+-  printf("%x\n",a.pY);  	// { dg-error "" } 
++  printf("%p\n",a.pY);  	// { dg-error "" } 
+   a.PRV_A = 0;			// { dg-error "" } 
+   a.C = 0;			// { dg-error "" } 
+-  printf("%x\n",a.pZ);  	// { dg-error "" } 
++  printf("%p\n",a.pZ);  	// { dg-error "" } 
+   a.PUB.A = 0;
+-  printf("%x\n",a.PUB.pX);  
++  printf("%p\n",a.PUB.pX);  
+   a.PRT.B = 0;			// { dg-error "" } 
+-  printf("%x\n",a.PRT.pY);  	// { dg-error "" } 
++  printf("%p\n",a.PRT.pY);  	// { dg-error "" } 
+   a.PRV.C = 0;			// { dg-error "" } 
+-  printf("%x\n",a.PRV.pZ);  	// { dg-error "" } 
++  printf("%p\n",a.PRV.pZ);  	// { dg-error "" } 
+ }
+Index: b/src/gcc/testsuite/g++.old-deja/g++.law/cvt8.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.law/cvt8.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.law/cvt8.C
+@@ -20,12 +20,12 @@ struct B {
+ B::operator const A&() const {
+         static A a;
+         a.i = i;
+-        printf("convert B to A at %x\n", &a);
++        printf("convert B to A at %p\n", (void*)&a);
+         return a;
+ }
+ 
+ void f(A &a) { // { dg-message "" } in passing argument
+-        printf("A at %x is %d\n", &a, a.i);
++  printf("A at %p is %d\n", (void*)&a, a.i);
+ }
+ 
+ int main() {
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/net35.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/net35.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/net35.C
+@@ -17,10 +17,10 @@ public:
+ 
+ int main() {
+   C c;
+-  printf("&c.x = %x\n", &c.x);
+-  printf("&c.B1::x = %x\n", &c.B1::x);
+-  printf("&c.B2::x = %x\n", &c.B2::x);
+-  printf("&c.A::x = %x\n", &c.A::x);
++  printf("&c.x = %p\n", (void*)&c.x);
++  printf("&c.B1::x = %p\n", (void*)&c.B1::x);
++  printf("&c.B2::x = %p\n", (void*)&c.B2::x);
++  printf("&c.A::x = %p\n", (void*)&c.A::x);
+   if (&c.x != &c.B1::x
+       || &c.x != &c.B2::x
+       || &c.x != &c.A::x)
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/offset1.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/offset1.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/offset1.C
+@@ -6,7 +6,7 @@ int fail = 0;
+ class Foo {
+ public:
+    virtual void setName() {
+-     printf("Foo at %x\n", this);
++     printf("Foo at %p\n", (void*)this);
+      if (vp != (void*)this)
+        fail = 1;
+    }
+@@ -15,7 +15,7 @@ public:
+ class Bar : public Foo {
+ public:
+   virtual void init(int argc, char **argv) {
+-    printf("Bar's Foo at %x\n", (Foo*)this);
++    printf("Bar's Foo at %p\n", (void*)(Foo*)this);
+     vp = (void*)(Foo*)this;
+     setName();
+   }
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p12306.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p12306.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p12306.C
+@@ -18,7 +18,7 @@ public:
+     if (ptr2 != &(*this).slist)
+       fail = 6;
+ 
+-    if (0) printf("at %x %x\n", (RWSlistIterator*)this, &(*this).slist);
++    if (0) printf("at %p %p\n", (void*)(RWSlistIterator*)this, (void*)&(*this).slist);
+   }
+ };
+ 
+@@ -54,14 +54,14 @@ Sim_Event_Manager::Sim_Event_Manager ()
+ void Sim_Event_Manager::post_event () {
+   ptr1 = (RWSlistIterator*)&last_posted_event_position_;
+   ptr2 = &((RWSlistIterator*)&last_posted_event_position_)->slist;
+-  if (0) printf("at %x %x\n", (RWSlistIterator*)&last_posted_event_position_,
+-		&((RWSlistIterator*)&last_posted_event_position_)->slist);
++  if (0) printf("at %p %p\n", (void*)(RWSlistIterator*)&last_posted_event_position_,
++		(void*)&((RWSlistIterator*)&last_posted_event_position_)->slist);
+   if (ptr1 != (RWSlistIterator*)&last_posted_event_position_)
+     fail = 1;
+   if (ptr2 != &((RWSlistIterator&)last_posted_event_position_).slist)
+     fail = 2;
+-  if (0) printf("at %x ?%x\n", (RWSlistIterator*)&last_posted_event_position_,
+-		&((RWSlistIterator&)last_posted_event_position_).slist);
++  if (0) printf("at %p ?%p\n", (void*)(RWSlistIterator*)&last_posted_event_position_,
++		(void*)&((RWSlistIterator&)last_posted_event_position_).slist);
+   if (ptr1 != (RWSlistIterator*)&last_posted_event_position_)
+     fail = 3;
+   if (ptr2 != &((RWSlistIterator&)last_posted_event_position_).slist)
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p3579.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p3579.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p3579.C
+@@ -7,26 +7,26 @@ int num_x;
+ 
+ class Y {
+ public:
+-  Y () { printf("Y()            this: %x\n", this); }
+-  ~Y () { printf("~Y()           this: %x\n", this); }
++  Y () { printf("Y()            this: %p\n", (void*)this); }
++  ~Y () { printf("~Y()           this: %p\n", (void*)this); }
+ };
+ 
+ class X {
+ public:
+   X () {
+     ++num_x;
+-    printf("X()            this: %x\n", this);
++    printf("X()            this: %p\n", (void*)this);
+     Y y;
+     *this = (X) y;
+   }
+ 
+-  X (const Y & yy) { printf("X(const Y&)    this: %x\n", this); ++num_x; }
++  X (const Y & yy) { printf("X(const Y&)    this: %p\n", (void*)this); ++num_x; }
+   X & operator = (const X & xx) {
+-    printf("X.op=(X&)      this: %x\n", this);
++    printf("X.op=(X&)      this: %p\n", (void*)this);
+     return *this;
+   }
+ 
+-  ~X () { printf("~X()           this: %x\n", this); --num_x; }
++  ~X () { printf("~X()           this: %p\n", (void*)this); --num_x; }
+ };
+ 
+ int main (int, char **) {
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p3708a.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p3708a.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p3708a.C
+@@ -38,7 +38,7 @@ public:
+   virtual void xx(int doit) {
+     --num;
+     if (ptr != this)
+-      printf("FAIL\n%x != %x\n", ptr, this);
++      printf("FAIL\n%p != %p\n", ptr, (void*)this);
+     printf ("C is destructed.\n");
+     B::xx (0);
+     if (doit) A::xx (1);
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p3708b.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p3708b.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p3708b.C
+@@ -48,7 +48,7 @@ public:
+   virtual void xx(int doit) {
+     --num;
+     if (ptr != this) {
+-      printf("FAIL\n%x != %x\n", ptr, this);
++      printf("FAIL\n%p != %p\n", ptr, (void*)this);
+       exit(1);
+     }
+     printf ("D is destructed.\n");
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p3708.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p3708.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p3708.C
+@@ -38,7 +38,7 @@ public:
+   virtual void xx(int doit) {
+     --num;
+     if (ptr != this)
+-      printf("FAIL\n%x != %x\n", ptr, this);
++      printf("FAIL\n%p != %p\n", ptr, (void*)this);
+     printf ("C is destructed.\n");
+     B::xx (0);
+     if (doit) A::xx (1);
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p646.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p646.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p646.C
+@@ -35,20 +35,20 @@ int foo::si = 0;
+ foo::foo ()
+ {
+   si++;
+-  printf ("new foo @ 0x%x; now %d foos\n", this, si);
++  printf ("new foo @ %p; now %d foos\n", (void*)this, si);
+ }
+ 
+ foo::foo (const foo &other)
+ {
+   si++;
+-  printf ("another foo @ 0x%x; now %d foos\n", this, si);
++  printf ("another foo @ %p; now %d foos\n", (void*)this, si);
+   *this = other;
+ }
+ 
+ foo::~foo ()
+ {
+   si--;
+-  printf ("deleted foo @ 0x%x; now %d foos\n", this, si);
++  printf ("deleted foo @ %p; now %d foos\n", (void*)this, si);
+ }
+ 
+ int
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p710.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p710.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p710.C
+@@ -30,7 +30,7 @@ class B
+    virtual ~B() {}
+    void operator delete(void*,size_t s)
+   {
+-      printf("B::delete() %d\n",s);
++      printf("B::delete() %u\n",(unsigned int)s);
+    }
+    void operator delete(void*){}
+ };
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/p789a.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/p789a.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/p789a.C
+@@ -13,10 +13,10 @@ struct foo
+   int x;
+   foo () {
+     x = count++;
+-    printf("this %d = %x\n", x, (void *)this);
++    printf("this %d = %p\n", x, (void *)this);
+   }
+   virtual ~foo () {
+-    printf("this %d = %x\n", x, (void *)this);
++    printf("this %d = %p\n", x, (void *)this);
+     --count;
+   }
+ };
+@@ -31,7 +31,7 @@ int main ()
+       {
+ 	for (int j = 0; j < 3; j++)
+ 	  {
+-	    printf("&a[%d][%d] = %x\n", i, j, (void *)&array[i][j]);
++	    printf("&a[%d][%d] = %p\n", i, j, (void *)&array[i][j]);
+ 	  }
+       }
+       // The count should be nine, if not, fail the test.
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/pmf2.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/pmf2.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/pmf2.C
+@@ -42,7 +42,7 @@ B_table b;
+ bar jar;
+ 
+ int main() {
+-  printf("ptr to B_table=%x, ptr to A_table=%x\n",&b,(A_table*)&b);
++  printf("ptr to B_table=%p, ptr to A_table=%p\n",(void*)&b,(void*)(A_table*)&b);
+   B_table::B_ti_fn z = &B_table::func1;
+   int j = 1;
+   jar.call_fn_fn1(j,(void *)&z);
+Index: b/src/gcc/testsuite/g++.old-deja/g++.mike/temp.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.mike/temp.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.mike/temp.C
+@@ -7,11 +7,11 @@ class T {
+ public:
+   T() {
+     i = 1;
+-    printf("T() at %x\n", this);
++    printf("T() at %p\n", (void*)this);
+   }
+   T(const T& o) {
+     i = o.i;
+-    printf("T(const T&) at %x <-- %x\n", this, &o);
++    printf("T(const T&) at %p <-- %p\n", (void*)this, (void*)&o);
+   }
+   T operator +(const T& o) {
+     T r;
+@@ -21,7 +21,7 @@ public:
+   operator int () {
+     return i;
+   }
+-  ~T() { printf("~T() at %x\n", this); }
++  ~T() { printf("~T() at %p\n", (void*)this); }
+ } s, b;
+ 
+ int foo() { return getenv("TEST") == 0; }
+Index: b/src/gcc/testsuite/g++.old-deja/g++.other/temporary1.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.other/temporary1.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.other/temporary1.C
+@@ -5,16 +5,16 @@ int c, d;
+ class Foo 
+ {
+ public:
+-   Foo() { printf("Foo() 0x%08lx\n", (__SIZE_TYPE__)this); ++c; }
+-   Foo(Foo const &) { printf("Foo(Foo const &) 0x%08lx\n", (__SIZE_TYPE__)this); }
+-   ~Foo() { printf("~Foo() 0x%08lx\n", (__SIZE_TYPE__)this); ++d; }
++   Foo() { printf("Foo() %p\n", (void*)this); ++c; }
++   Foo(Foo const &) { printf("Foo(Foo const &) %p\n", (void*)this); }
++   ~Foo() { printf("~Foo() %p\n", (void*)this); ++d; }
+ };
+ 
+ // Bar creates constructs a temporary Foo() as a default
+ class Bar 
+ {
+ public:
+-   Bar(Foo const & = Foo()) { printf("Bar(Foo const &) 0x%08lx\n", (__SIZE_TYPE__)this); }
++   Bar(Foo const & = Foo()) { printf("Bar(Foo const &) %p\n", (void*)this); }
+ };
+ 
+ void fakeRef(Bar *)
+Index: b/src/gcc/testsuite/g++.old-deja/g++.other/virtual8.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.other/virtual8.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.other/virtual8.C
+@@ -4,7 +4,7 @@ extern "C" int printf (const char*, ...)
+ struct A
+ {
+   virtual void f () {
+-    printf ("%x\n", this);
++    printf ("%p\n", (void*)this);
+   }
+ };
+ 
+Index: b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp23.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp23.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp23.C
+@@ -13,7 +13,7 @@ struct S
+ 
+   template <class U>
+   void f(U u)
+-  { printf ("In S::f(U)\nsizeof(U) == %d\n", sizeof(u)); }
++  { printf ("In S::f(U)\nsizeof(U) == %d\n", (int)sizeof(u)); }
+ 
+   int c[16];
+ };
+Index: b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
+@@ -13,7 +13,7 @@ struct S
+ 
+   template <class U>
+   void f(U u)
+-  { printf ("In S::f(U)\nsizeof(U) == %d\n", sizeof(u)); }
++  { printf ("In S::f(U)\nsizeof(U) == %d\n", (int)sizeof(u)); }
+ 
+   int c[16];
+ };
+Index: b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp25.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp25.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp25.C
+@@ -6,7 +6,7 @@ template <class X>
+ struct S
+ {
+   template <class U>
+-  void f(U u) { printf ("%d\n", sizeof (U)); }
++  void f(U u) { printf ("%d\n", (int)sizeof (U)); }
+ 
+   int i[4];
+ };
+Index: b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp26.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp26.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp26.C
+@@ -16,7 +16,7 @@ template <class X>
+ template <class U>
+ void S<X>::f(U u)
+ {
+-  printf ("%d\n", sizeof (U));
++  printf ("%d\n", (int)sizeof (U));
+ }
+ 
+ 
+Index: b/src/gcc/testsuite/g++.old-deja/g++.pt/t39.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.pt/t39.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.pt/t39.C
+@@ -10,9 +10,9 @@ struct frob {
+ 
+ template <class T>
+ void frob<T>::print () {
+-  printf ("this = %08x\n", this);
+-  printf (" ptr = %08x\n", ptr);
+-  printf (" values = %x %x %x ...\n", ptr[0], ptr[1], ptr[2]);
++  printf ("this = %p\n", (void*)this);
++  printf (" ptr = %p\n", (void*)ptr);
++  printf (" values = %x %x %x ...\n", (int)ptr[0], (int)ptr[1], (int)ptr[2]);
+ }
+ 
+   static int x[10];
+Index: b/src/gcc/testsuite/g++.old-deja/g++.robertl/eb17.C
+===================================================================
+--- a/src/gcc/testsuite/g++.old-deja/g++.robertl/eb17.C
++++ b/src/gcc/testsuite/g++.old-deja/g++.robertl/eb17.C
+@@ -44,15 +44,15 @@ int main()
+     A * a = new B;
+     B * b = dynamic_cast<B *>(a);
+ 
+-    printf("%p\n",b);                // (*2*)
++    printf("%p\n",(void*)b);                // (*2*)
+     b->print();
+ 
+     a = b;
+-    printf("%p\n",a);
++    printf("%p\n",(void*)a);
+     a->print();
+ 
+     a = a->clone();
+-    printf("%p\n",a);
++    printf("%p\n",(void*)a);
+     a->print();                      // (*1*)
+ 
+     return 0;
+Index: b/src/gcc/testsuite/gcc.dg/pch/inline-4.c
+===================================================================
+--- a/src/gcc/testsuite/gcc.dg/pch/inline-4.c
++++ b/src/gcc/testsuite/gcc.dg/pch/inline-4.c
+@@ -1,6 +1,6 @@
+ #include "inline-4.h"
+ extern int printf (const char *, ...);
+ int main(void) {
+-  printf (getstring());
++  printf ("%s", getstring());
+   return 0;
+ }

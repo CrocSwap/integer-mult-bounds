@@ -1,0 +1,16 @@
+--- a/src/gcc/config/i386/t-gnu64	2023-05-06 22:43:39.395795420 +0200
++++ b/src/gcc/config/i386/t-gnu64	2023-05-06 22:43:39.395795420 +0200
+@@ -36,3 +36,13 @@
+ MULTILIB_OSDIRNAMES = m64=../lib64$(call if_multiarch,:x86_64-gnu)
+ MULTILIB_OSDIRNAMES+= m32=$(if $(wildcard $(shell echo $(SYSTEM_HEADER_DIR))/../../usr/lib32),../lib32,../lib)$(call if_multiarch,:i386-gnu)
+ MULTILIB_OSDIRNAMES+= mx32=../libx32$(call if_multiarch,:x86_64-gnux32)
++
++ifneq (,$(findstring x86_64,$(target)))
++  ifneq (,$(findstring biarchx32.h,$(tm_include_list)))
++  MULTIARCH_DIRNAME = $(call if_multiarch,x86_64-gnux32)
++  else
++  MULTIARCH_DIRNAME = $(call if_multiarch,x86_64-gnu)
++  endif
++else
++  MULTIARCH_DIRNAME = $(call if_multiarch,i386-gnu)
++endif

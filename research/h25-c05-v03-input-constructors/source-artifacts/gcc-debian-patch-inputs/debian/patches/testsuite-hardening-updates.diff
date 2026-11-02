@@ -1,0 +1,84 @@
+# DP: Fix some gcc and g++ testcases to pass with hardening defaults
+
+---
+ src/gcc/testsuite/c-c++-common/asan/strncpy-overflow-1.c     |    2 +-
+ src/gcc/testsuite/g++.dg/asan/asan_test.C                    |    2 +-
+ src/gcc/testsuite/g++.dg/asan/interception-malloc-test-1.C   |    2 +-
+ src/gcc/testsuite/g++.dg/fstack-protector-strong.C           |    2 +-
+ src/gcc/testsuite/gcc.c-torture/execute/memset-1.c           |    1 -
+ src/gcc/testsuite/gcc.c-torture/execute/memset-1.x           |    5 +++++
+ src/gcc/testsuite/gcc.dg/fstack-protector-strong.c           |    2 +-
+ src/gcc/testsuite/gcc.dg/stack-usage-1.c                     |    2 +-
+ src/gcc/testsuite/gcc.dg/superblock.c                        |    2 +-
+ src/gcc/testsuite/gcc.target/i386/sw-1.c                     |    2 +-
+ 11 files changed, 14 insertions(+), 10 deletions(-)
+
+--- a/src/gcc/testsuite/g++.dg/asan/asan_test.C
++++ b/src/gcc/testsuite/g++.dg/asan/asan_test.C
+@@ -2,7 +2,7 @@
+ // { dg-skip-if "" { *-*-* } { "*" } { "-O2" } }
+ // { dg-skip-if "" { *-*-* } { "-flto" } { "" } }
+ // { dg-additional-sources "asan_globals_test-wrapper.cc" }
+-// { dg-options "-std=c++11 -fsanitize=address -fno-builtin -Wall -Werror -Wno-alloc-size-larger-than -Wno-array-bounds -Wno-stringop-overflow -Wno-stringop-overread -g -DASAN_UAR=0 -DASAN_HAS_EXCEPTIONS=1 -DASAN_HAS_BLACKLIST=0 -DSANITIZER_USE_DEJAGNU_GTEST=1 -lasan -lpthread" }
++// { dg-options "-std=c++11 -fsanitize=address -fno-builtin -Wall -Werror -Wno-alloc-size-larger-than -Wno-array-bounds -Wno-stringop-overflow -Wno-stringop-overread  -Wno-unused-result -g -DASAN_UAR=0 -DASAN_HAS_EXCEPTIONS=1 -DASAN_HAS_BLACKLIST=0 -DSANITIZER_USE_DEJAGNU_GTEST=1 -lasan -lpthread" }
+ // { dg-additional-options "-ldl" { target { ! *-*-freebsd* } } }
+ // { dg-additional-options "-DASAN_NEEDS_SEGV=1" { target { ! arm*-*-* } } }
+ // { dg-additional-options "-DASAN_LOW_MEMORY=1 -DASAN_NEEDS_SEGV=0" { target arm*-*-* } }
+--- a/src/gcc/testsuite/g++.dg/asan/interception-malloc-test-1.C
++++ b/src/gcc/testsuite/g++.dg/asan/interception-malloc-test-1.C
+@@ -1,7 +1,7 @@
+ // ASan interceptor can be accessed with __interceptor_ prefix.
+ 
+ // { dg-do run { target *-*-linux* *-*-freebsd* } }
+-// { dg-options "-fno-builtin-free" }
++// { dg-options "-fno-builtin-free -Wno-unused-result" }
+ // { dg-additional-options "-D__NO_INLINE__" { target { *-*-linux-gnu *-*-freebsd* } } }
+ // { dg-shouldfail "asan" }
+ 
+--- a/src/gcc/testsuite/gcc.c-torture/execute/memset-1.c
++++ b/src/gcc/testsuite/gcc.c-torture/execute/memset-1.c
+@@ -1,3 +1,5 @@
++/* { dg-prune-output ".*warning: memset used with constant zero length parameter.*" } */
++
+ /* Copyright (C) 2002  Free Software Foundation.
+ 
+    Test memset with various combinations of pointer alignments and lengths to
+--- a/src/gcc/testsuite/c-c++-common/asan/strncpy-overflow-1.c
++++ b/src/gcc/testsuite/c-c++-common/asan/strncpy-overflow-1.c
+@@ -1,5 +1,5 @@
+ /* { dg-do run } */
+-/* { dg-options "-fno-builtin-malloc -fno-builtin-strncpy" } */
++/* { dg-options "-fno-builtin-malloc -fno-builtin-strncpy -U_FORTIFY_SOURCE" } */
+ /* { dg-additional-options "-D_FORTIFY_SOURCE=0 -gdwarf-3" { target *-*-darwin* } } */
+ /* { dg-shouldfail "asan" } */
+ 
+--- a/src/gcc/testsuite/gcc.dg/fstack-protector-strong.c
++++ b/src/gcc/testsuite/gcc.dg/fstack-protector-strong.c
+@@ -1,7 +1,7 @@
+ /* Test that stack protection is done on chosen functions. */
+ 
+ /* { dg-do compile { target i?86-*-* x86_64-*-* rs6000-*-* s390x-*-* } } */
+-/* { dg-options "-O2 -fstack-protector-strong" } */
++/* { dg-options "-O2 -fstack-protector-strong -U_FORTIFY_SOURCE" } */
+ 
+ /* This test checks the presence of __stack_chk_fail function in assembler.
+  * Compiler generates _stack_chk_fail_local (wrapper) calls instead for PIC.
+--- a/src/gcc/testsuite/g++.dg/fstack-protector-strong.C
++++ b/src/gcc/testsuite/g++.dg/fstack-protector-strong.C
+@@ -1,7 +1,7 @@
+ /* Test that stack protection is done on chosen functions. */
+ 
+ /* { dg-do compile { target i?86-*-* x86_64-*-* } } */
+-/* { dg-options "-O2 -fstack-protector-strong" } */
++/* { dg-options "-O2 -fstack-protector-strong -U_FORTIFY_SOURCE" } */
+ 
+ /* This test checks the presence of __stack_chk_fail function in assembler.
+  * Compiler generates _stack_chk_fail_local (wrapper) calls instead for PIC.
+--- /dev/null
++++ b/src/gcc/testsuite/gcc.c-torture/execute/memset-1.x
+@@ -0,0 +1,5 @@
++# Implement "/* { dg-options "-U_FORITFY_SOURCE" } */", due to
++# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=20567
++
++set additional_flags "-U_FORTIFY_SOURCE"
++return 0

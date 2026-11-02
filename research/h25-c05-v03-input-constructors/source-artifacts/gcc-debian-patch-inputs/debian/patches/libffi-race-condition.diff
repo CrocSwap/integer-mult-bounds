@@ -1,0 +1,33 @@
+From 48d2e46528fb6e621d95a7fa194069fd136b712d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Stefan=20B=C3=BChler?= <buehler@cert.uni-stuttgart.de>
+Date: Wed, 7 Sep 2016 15:49:48 +0200
+Subject: [PATCH 1/2] dlmmap_locked always needs locking as it always modifies
+ execsize
+
+---
+ src/closures.c | 13 ++++---------
+ 1 file changed, 4 insertions(+), 9 deletions(-)
+
+--- a/src/libffi/src/closures.c
++++ b/src/libffi/src/closures.c
+@@ -897,16 +897,11 @@ dlmmap (void *start, size_t length, int
+ 	 MREMAP_DUP and prot at this point.  */
+     }
+ 
+-  if (execsize == 0 || execfd == -1)
+-    {
+-      pthread_mutex_lock (&open_temp_exec_file_mutex);
+-      ptr = dlmmap_locked (start, length, prot, flags, offset);
+-      pthread_mutex_unlock (&open_temp_exec_file_mutex);
++  pthread_mutex_lock (&open_temp_exec_file_mutex);
++  ptr = dlmmap_locked (start, length, prot, flags, offset);
++  pthread_mutex_unlock (&open_temp_exec_file_mutex);
+ 
+-      return ptr;
+-    }
+-
+-  return dlmmap_locked (start, length, prot, flags, offset);
++  return ptr;
+ }
+ 
+ /* Release memory at the given address, as well as the corresponding

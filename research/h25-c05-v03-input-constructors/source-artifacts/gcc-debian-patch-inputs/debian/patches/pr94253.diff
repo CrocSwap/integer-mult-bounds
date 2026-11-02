@@ -1,0 +1,48 @@
+commit 50e1e417b5cc68a6fd280e0a67c5c4eba524b70b
+Author: Richard Sandiford <richard.sandiford@arm.com>
+Date:   Sun Mar 22 18:51:48 2020 +0000
+
+    rs6000: Allow FPRs to change between SDmode and DDmode [PR94254]
+    
+    g:497498c878d48754318e486428e2aa30854020b9 caused lra to cycle
+    on some SDmode reloads for power6.  As explained in more detail
+    in the PR comments, the problem was a conflict between two target
+    hooks: rs6000_secondary_memory_needed_mode required SDmode FPR
+    reloads to use DDmode memory (rightly, since using SDmode memory
+    wouldn't make progress) but rs6000_can_change_mode_class didn't
+    allow FPRs to change from SDmode to DDmode.  Previously lra
+    ignored that and changed the mode anyway.
+    
+    From what Segher says, it sounds like the "from_size < 8 || to_size < 8"
+    check is mostly there for SF<->64-bit subregs, and that SDmode is stored
+    in the way that target-independent code expects.  This patch therefore
+    allows SD<->DD changes.
+    
+    I wondered about checking for SD<->64-bit changes instead, but that
+    seemed like an unnecessary generalisation for this stage.
+    
+    2020-03-23  Richard Sandiford  <richard.sandiford@arm.com>
+    
+    gcc/
+            PR target/94254
+            * config/rs6000/rs6000.c (rs6000_can_change_mode_class): Allow
+            FPRs to change between SDmode and DDmode.
+
+--- a/src/gcc/config/rs6000/rs6000.cc
++++ b/src/gcc/config/rs6000/rs6000.cc
+@@ -13399,6 +13399,15 @@ rs6000_can_change_mode_class (machine_mo
+ 	      || (to == SDmode && from == DDmode))
+ 	    return true;
+ 
++	  /* Allow SD<->DD changes, since SDmode values are stored in
++	     the low half of the DDmode, just like target-independent
++	     code expects.  We need to allow at least SD->DD since
++	     rs6000_secondary_memory_needed_mode asks for that change
++	     to be made for SD reloads.  */
++	  if ((to == DDmode && from == SDmode)
++	      || (to == SDmode && from == DDmode))
++	    return true;
++
+ 	  if (from_size < 8 || to_size < 8)
+ 	    return false;
+ 

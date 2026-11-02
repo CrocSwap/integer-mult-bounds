@@ -1,0 +1,72 @@
+# DP: Build zlib in any case to have a fall back for missing libz multilibs
+
+--- a/src/libphobos/configure.ac
++++ b/src/libphobos/configure.ac
+@@ -142,6 +142,7 @@ DRUNTIME_LIBRARIES_BACKTRACE
+ DRUNTIME_LIBRARIES_DLOPEN
+ DRUNTIME_LIBRARIES_ZLIB
+ DRUNTIME_INSTALL_DIRECTORIES
++dnl fake change to regenerate the configure file
+ 
+ # Add dependencies for libgphobos.spec file
+ SPEC_PHOBOS_DEPS="$LIBS"
+--- a/src/libphobos/m4/druntime/libraries.m4
++++ b/src/libphobos/m4/druntime/libraries.m4
+@@ -52,19 +52,45 @@ AC_DEFUN([DRUNTIME_LIBRARIES_ZLIB],
+ [
+   AC_ARG_WITH(target-system-zlib,
+     AS_HELP_STRING([--with-target-system-zlib],
+-                   [use installed libz (default: no)]))
++                   [use installed libz (default: no)]),
++     [system_zlib=yes],[system_zlib=no])
+ 
+-  system_zlib=false
+-  AS_IF([test "x$with_target_system_zlib" = "xyes"], [
+-    AC_CHECK_LIB([z], [deflate], [
+-      system_zlib=yes
+-    ], [
+-      AC_MSG_ERROR([System zlib not found])
+-    ])
+-  ], [
+-    AC_MSG_CHECKING([for zlib])
+-    AC_MSG_RESULT([just compiled])
+-  ])
++  AC_MSG_CHECKING([for system zlib])
++  save_LIBS=$LIBS
++  LIBS="$LIBS -lz"
++  dnl the link test is not good enough for ARM32 multilib detection,
++  dnl first check to link, then to run
++  AC_LANG_PUSH(C)
++  AC_LINK_IFELSE(
++    [AC_LANG_PROGRAM([#include <zlib.h>],[gzopen("none", "rb")])],
++    [
++      AC_RUN_IFELSE([AC_LANG_SOURCE([[
++        #include <zlib.h>
++        int main() {
++          gzFile file = gzopen("none", "rb");
++          return 0;
++        }
++        ]])],
++        [system_zlib_found=yes],
++        [system_zlib_found=no],
++        dnl no system zlib for cross builds ...
++        [system_zlib_found=no]
++      )
++    ],
++    [system_zlib_found=no])
++  if test x$system_zlib = xyes; then
++    if test x$system_zlib_found = xyes; then
++      AC_MSG_RESULT([found])
++    else
++      LIBS=$save_LIBS
++      AC_MSG_RESULT([not found, disabled])
++      system_zlib=no
++    fi
++  else
++    LIBS=$save_LIBS
++    AC_MSG_RESULT([not enabled])
++  fi
++  AC_LANG_POP
+ 
+   AM_CONDITIONAL([DRUNTIME_ZLIB_SYSTEM], [test "$with_target_system_zlib" = yes])
+ ])

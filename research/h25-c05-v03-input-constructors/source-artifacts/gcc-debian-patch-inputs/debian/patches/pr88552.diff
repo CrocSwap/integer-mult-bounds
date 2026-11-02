@@ -1,0 +1,52 @@
+From ff8f45d20f9ea6acc99442ad29212d177f58e8fe Mon Sep 17 00:00:00 2001
+From: Harald Anlauf <anlauf@gmx.de>
+Date: Thu, 1 Jun 2023 23:04:30 +0200
+Subject: [PATCH] Fortran: force error on bad KIND specifier [PR88552]
+
+gcc/fortran/ChangeLog:
+
+	PR fortran/88552
+	* decl.cc (gfc_match_kind_spec): Use error path on missing right
+	parenthesis.
+	(gfc_match_decl_type_spec): Use error return when an error occurred
+	during matching a KIND specifier.
+
+gcc/testsuite/ChangeLog:
+
+	PR fortran/88552
+	* gfortran.dg/pr88552.f90: New test.
+---
+ gcc/fortran/decl.cc                   | 4 ++++
+ gcc/testsuite/gfortran.dg/pr88552.f90 | 6 ++++++
+ 2 files changed, 10 insertions(+)
+ create mode 100644 gcc/testsuite/gfortran.dg/pr88552.f90
+
+--- a/src/gcc/fortran/decl.cc
++++ b/src/gcc/fortran/decl.cc
+@@ -3383,6 +3383,7 @@ close_brackets:
+       else
+ 	gfc_error ("Missing right parenthesis at %C");
+       m = MATCH_ERROR;
++      goto no_match;
+     }
+   else
+      /* All tests passed.  */
+@@ -4720,6 +4721,9 @@ get_kind:
+     }
+ 
+   m = gfc_match_kind_spec (ts, false);
++  if (m == MATCH_ERROR)
++    return MATCH_ERROR;
++
+   if (m == MATCH_NO && ts->type != BT_CHARACTER)
+     {
+       m = gfc_match_old_kind_spec (ts);
+--- /dev/null
++++ b/src/gcc/testsuite/gfortran.dg/pr88552.f90
+@@ -0,0 +1,6 @@
++! { dg-do compile }
++! PR fortran/88552
++! Contributed by G.Steinmetz
++
++integer(len((c)) :: n   ! { dg-error "must be CHARACTER" }
++end

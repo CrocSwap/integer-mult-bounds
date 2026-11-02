@@ -1,0 +1,23 @@
+# DP: ASan: move allocator base to avoid conflict with high-entropy ASLR for x86-64 Linux
+# DP: https://github.com/llvm/llvm-project/commit/fb77ca05ffb4f8e666878f2f6718a9fb4d686839
+
+--- a/src/libsanitizer/asan/asan_allocator.h
++++ b/src/libsanitizer/asan/asan_allocator.h
+@@ -143,11 +143,15 @@ typedef DefaultSizeClassMap SizeClassMap;
+ const uptr kAllocatorSpace = ~(uptr)0;
+ const uptr kAllocatorSize  =  0x8000000000ULL;  // 500G
+ typedef DefaultSizeClassMap SizeClassMap;
+-# else
++#  elif SANITIZER_APPLE
+ const uptr kAllocatorSpace = 0x600000000000ULL;
+ const uptr kAllocatorSize  =  0x40000000000ULL;  // 4T.
+ typedef DefaultSizeClassMap SizeClassMap;
+-# endif
++#  else
++const uptr kAllocatorSpace = 0x500000000000ULL;
++const uptr kAllocatorSize = 0x40000000000ULL;  // 4T.
++typedef DefaultSizeClassMap SizeClassMap;
++#  endif
+ template <typename AddressSpaceViewTy>
+ struct AP64 {  // Allocator64 parameters. Deliberately using a short name.
+   static const uptr kSpaceBeg = kAllocatorSpace;

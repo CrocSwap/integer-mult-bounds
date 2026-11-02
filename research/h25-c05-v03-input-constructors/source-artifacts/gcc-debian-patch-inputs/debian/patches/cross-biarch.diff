@@ -1,0 +1,89 @@
+# DP: Fix the location of target's libs in cross-build for biarch
+
+--- a/src/config-ml.in
++++ b/src/config-ml.in
+@@ -533,7 +533,13 @@ multi-do:
+ 	    else \
+ 	      if [ -d ../$${dir}/$${lib} ]; then \
+ 		flags=`echo $$i | sed -e 's/^[^;]*;//' -e 's/@/ -/g'`; \
+-		if (cd ../$${dir}/$${lib}; $(MAKE) $(FLAGS_TO_PASS) \
++		libsuffix_="$${dir}"; \
++		if [ "$${dir}" = "n32" ]; then libsuffix_=32; fi; \
++		if [ -n "$$($${compiler} -v 2>&1 |grep '^Target: mips')" ] && [ "$${dir}" = "32" ]; then libsuffix_=o32; fi; \
++		if (cd ../$${dir}/$${lib}; $(MAKE) $(subst \
++				-B$(build_tooldir)/lib/, \
++				-B$(build_tooldir)/lib$${libsuffix_}/, \
++				$(FLAGS_TO_PASS)) \
+ 				CFLAGS="$(CFLAGS) $${flags}" \
+ 				CCASFLAGS="$(CCASFLAGS) $${flags}" \
+ 				FCFLAGS="$(FCFLAGS) $${flags}" \
+@@ -786,6 +792,15 @@ if [ -n "${multidirs}" ] && [ -z "${ml_n
+ 	GOC_=$GOC' '
+ 	GDC_=$GDC' '
+     else
++	if [ "${ml_dir}" = "." ]; then
++		FILTER_="s!X\\(.*\\)!\\1!p"
++	elif [ "${ml_dir}" = "n32" ]; then # mips n32 -> lib32
++		FILTER_="s!X\\(.*\\)/!\\132/!p"
++	elif [ "${ml_dir}" = "32" ] && [ "$(echo ${host} |grep '^mips')" ]; then # mips o32 -> libo32
++		FILTER_="s!X\\(.*\\)/!\\1o32/!p"
++	else
++		FILTER_="s!X\\(.*\\)/!\\1${ml_dir}/!p"
++	fi
+ 	# Create a regular expression that matches any string as long
+ 	# as ML_POPDIR.
+ 	popdir_rx=`echo "${ML_POPDIR}" | sed 's,.,.,g'`
+@@ -794,6 +809,8 @@ if [ -n "${multidirs}" ] && [ -z "${ml_n
+ 	  case $arg in
+ 	  -[BIL]"${ML_POPDIR}"/*)
+ 	    CC_="${CC_}"`echo "X${arg}" | sed -n "s/X\\(-[BIL]${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X-[BIL]${popdir_rx}\\(.*\\)/\1/p"`' ' ;;
++	  -B*/lib/)
++	    CC_="${CC_}"`echo "X${arg}" | sed -n "$FILTER_"`' ' ;;
+ 	  "${ML_POPDIR}"/*)
+ 	    CC_="${CC_}"`echo "X${arg}" | sed -n "s/X\\(${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
+ 	  *)
+@@ -806,6 +823,8 @@ if [ -n "${multidirs}" ] && [ -z "${ml_n
+ 	  case $arg in
+ 	  -[BIL]"${ML_POPDIR}"/*)
+ 	    CXX_="${CXX_}"`echo "X${arg}" | sed -n "s/X\\(-[BIL]${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X-[BIL]${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
++	  -B*/lib/)
++	    CXX_="${CXX_}"`echo "X${arg}" | sed -n "$FILTER_"`' ' ;;
+ 	  "${ML_POPDIR}"/*)
+ 	    CXX_="${CXX_}"`echo "X${arg}" | sed -n "s/X\\(${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
+ 	  *)
+@@ -818,6 +837,8 @@ if [ -n "${multidirs}" ] && [ -z "${ml_n
+ 	  case $arg in
+ 	  -[BIL]"${ML_POPDIR}"/*)
+ 	    F77_="${F77_}"`echo "X${arg}" | sed -n "s/X\\(-[BIL]${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X-[BIL]${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
++	  -B*/lib/)
++	    F77_="${F77_}"`echo "X${arg}" | sed -n "$FILTER_"`' ' ;;
+ 	  "${ML_POPDIR}"/*)
+ 	    F77_="${F77_}"`echo "X${arg}" | sed -n "s/X\\(${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
+ 	  *)
+@@ -830,6 +851,8 @@ if [ -n "${multidirs}" ] && [ -z "${ml_n
+ 	  case $arg in
+ 	  -[BIL]"${ML_POPDIR}"/*)
+ 	    GFORTRAN_="${GFORTRAN_}"`echo "X${arg}" | sed -n "s/X\\(-[BIL]${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X-[BIL]${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
++	  -B*/lib/)
++	    GFORTRAN_="${GFORTRAN_}"`echo "X${arg}" | sed -n "$FILTER_"`' ' ;;
+ 	  "${ML_POPDIR}"/*)
+ 	    GFORTRAN_="${GFORTRAN_}"`echo "X${arg}" | sed -n "s/X\\(${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
+ 	  *)
+@@ -842,6 +865,8 @@ if [ -n "${multidirs}" ] && [ -z "${ml_n
+ 	  case $arg in
+ 	  -[BIL]"${ML_POPDIR}"/*)
+ 	    GOC_="${GOC_}"`echo "X${arg}" | sed -n "s/X\\(-[BIL]${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X-[BIL]${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
++	  -B*/lib/)
++	    GOC_="${GOC_}"`echo "X${arg}" | sed -n "$FILTER_"`' ' ;;
+ 	  "${ML_POPDIR}"/*)
+ 	    GOC_="${GOC_}"`echo "X${arg}" | sed -n "s/X\\(${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
+ 	  *)
+@@ -854,6 +879,8 @@ if [ -n "${multidirs}" ] && [ -z "${ml_n
+ 	  case $arg in
+ 	  -[BIL]"${ML_POPDIR}"/*)
+ 	    GDC_="${GDC_}"`echo "X${arg}" | sed -n "s/X\\(-[BIL]${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X-[BIL]${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
++	  -B*/lib/)
++	    GDC_="${GDC_}"`echo "X${arg}" | sed -n "$FILTER_"`' ' ;;
+ 	  "${ML_POPDIR}"/*)
+ 	    GDC_="${GDC_}"`echo "X${arg}" | sed -n "s/X\\(${popdir_rx}\\).*/\\1/p"`/${ml_dir}`echo "X${arg}" | sed -n "s/X${popdir_rx}\\(.*\\)/\\1/p"`' ' ;;
+ 	  *)
