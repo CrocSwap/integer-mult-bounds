@@ -1,0 +1,72 @@
+"""Export the single reviewed-window repair without overwriting v1 evidence."""
+from pathlib import Path
+import hashlib
+import json
+import re
+import sys
+BASE=Path(__file__).parent
+sys.path.insert(0,str(BASE))
+import compile_binding_v1 as new
+import test_compile_binding_v1 as fixtures
+
+
+def sha(data):return hashlib.sha256(data).hexdigest()
+
+
+def main():
+    old_receipt=(BASE/'v1-frozen/RECEIPT-v1.json').read_bytes()
+    if sha(old_receipt)!='d0f9198a5fa8115ebe0454fe625bda5a224ac4af83de91f15931b65882663fa8':
+        raise ValueError('v1 preserved receipt identity differs')
+    old=json.loads(old_receipt)
+    retained=[]
+    for row in old['artifacts']:
+        path=BASE/'v1-frozen'/Path(row['path']).name
+        data=path.read_bytes()
+        if len(data)!=row['bytes'] or sha(data)!=row['sha256']:raise ValueError('v1 preservation differs')
+        retained.append({'original_path':row['path'],'retained_path':str(path),'sha256':row['sha256'],'bytes':row['bytes']})
+    sources=fixtures.corpus()
+    rules=new.authenticate_source_rules(sources)
+    plan,config,launches=fixtures.fixture()
+    pr,pp=fixtures.raw(plan);cr,cp=fixtures.raw(config)
+    example=new.construct_original_compile_pair(sources,parent_plan_raw=pr,parent_plan_sha256=pp,
+        variant_configuration_raw=cr,variant_configuration_sha256=cp,compiler_launches=launches)
+    (BASE/'SOURCE-RULES-v2.json').write_bytes(new.canonical(rules))
+    (BASE/'FRESH-EXAMPLE-v2.json').write_bytes(new.canonical({'fixture_only':True,'parent_projection':plan,
+        'variant_projection':config,'proposed_compiler_launches':launches,'derived_binding':example}))
+    logs=[]
+    for mode,name in [('normal','TEST-RESULTS-v2-normal.txt'),('optimized','TEST-RESULTS-v2-optimized.txt')]:
+        raw=(BASE/name).read_bytes()
+        if not re.search(rb'Ran 28 tests.*\n\nOK\s*$',raw,re.S):raise ValueError('repaired tests not passing')
+        logs.append({'mode':mode,'path':str(BASE/name),'sha256':sha(raw),'methods':28,'status':'PASS'})
+    derivation=json.loads((BASE/'v1-frozen/DERIVATION-v1.json').read_bytes())
+    derivation['schema']='unit03-original-compile-binding-derivation-v2'
+    derivation['validation']={'fresh_pure_test_methods':28,'modes':logs,'status':'PASS',
+        'original_modules_imported':False,'original_code_executed':False,'compiler_executed':False}
+    derivation['repair']={'window_count':1,'opened_utc':'2026-11-02T09:29:41.072522Z',
+        'deadline_utc':'2026-11-02T09:44:41.072522Z','code_frozen_for_review_utc':'2026-11-02T09:36:42Z',
+        'cause':'independent source review found unvalidated launch equality could invoke caller callbacks and accept forged paths/labels',
+        'correction':'exact outer/key/container/scalar validation and exact bytes/str environment normalization before all launch comparisons; source keys exact str before set/lookup',
+        'declared_closure_correction':'all declared rows checked for absolute spelling, digest, exact int bytes0..64MiB/mode0..0o7777, <=512rows, aggregate<=256MiB',
+        'adversarial_controls':'raising/toggling equality, str/key/container/int subclasses rejected without callbacks; native bytes ASCII/duplicates checked',
+        'v1_receipt_sha256':sha(old_receipt),'v1_preserved_files':retained}
+    derivation['bounds_scope']={'actual_authenticated_source_bytes':sum(len(x) for x in sources.values()),
+        'actual_authenticated_source_files':3,'source_corpus_file_cap':new.CAPS['file_bytes'],
+        'source_corpus_aggregate_cap':new.CAPS['capture_bytes'],'declared_closure_rows_cap':512,
+        'declared_closure_file_bytes_cap':new.CAPS['file_bytes'],'declared_closure_aggregate_bytes_cap':new.CAPS['capture_bytes'],
+        'declared_budget_fit_is_not_actual_capture_or_source_currentness':True}
+    (BASE/'DERIVATION-v2.json').write_bytes(new.canonical(derivation))
+    admission=json.loads((BASE/'v1-frozen/OPEN-ADMISSION-v1.json').read_bytes())
+    admission['schema']='unit03-compile-binding-open-admission-v2'
+    admission['exact_plain_projection_validation_implemented']=True
+    admission['declared_closure_metadata_budget_checks_implemented']=True
+    admission['independent_delta_review']='requested; review result is external to this constructor export'
+    (BASE/'OPEN-ADMISSION-v2.json').write_bytes(new.canonical(admission))
+    repair={'schema':'unit03-single-window-binding-repair-v2',**derivation['repair'],
+        'new_implementation_sha256':sha((BASE/'compile_binding_v1.py').read_bytes()),'validation':logs,
+        'new_source_inputs':False,'original_execution':False,'full_C05':False,'full_V03':False}
+    (BASE/'REPAIR-v2.json').write_bytes(new.canonical(repair))
+    print(json.dumps({'new_implementation_sha256':repair['new_implementation_sha256'],'tests':'28 normal and -O PASS',
+        'v1_preserved_artifacts':len(retained)+1,'single_repair_window':True},indent=2))
+
+
+if __name__=='__main__':main()
