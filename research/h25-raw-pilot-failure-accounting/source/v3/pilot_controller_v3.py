@@ -1,0 +1,661 @@
+"""SOURCE ONLY until an exact parent launch/admission is independently authorized.
+
+A RAW_UNQUALIFIED eight-job probe controller, not a C05 reporter/parser.
+Required CLI digests/authority come from the separately reviewed parent command.
+They authenticate that honest operation's selected records, not a hostile caller.
+No default authority, shell=True, original-module import or original C input.
+"""
+from pathlib import Path
+import argparse
+import datetime
+import hashlib
+import json
+import os
+import re
+import resource
+import selectors
+import signal
+import stat
+import subprocess
+import sys
+import time
+
+SCHEMA = 'h25-raw-unqualified-pilot-admission-v3'
+ORDER = ('C00', 'C01', 'T1', 'T2', 'T3', 'B5', 'T4', 'T5')
+ENV6 = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+        'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+GCC = '/usr/bin/x86_64-linux-gnu-gcc-13'
+GCC_SHA = '1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26'
+EXPECTED_P = ('/home/d3lerium/.codex/.chatgpt-projects/'
+              'g-p-6ad5817fd84881918865926b6fd51453/outputs/'
+              'c05-v03-completion-20261102T055710Z/qualification-pilot-v2-run-v1/probe')
+LIMITS = {'whole_seconds': 150, 'gcc_seconds': 10, 'calibration_seconds': 5,
+          'stream_bytes': 1048576, 'child_fsize_bytes': 16777216,
+          'sampled_memory_bytes': 1073741824, 'parallel_jobs': 1}
+PROBE = b'#error H25_REPORTER_PROBE_MUST_NOT_COMPILE_71\n'
+OVERLAY = b'*cc1:\n-DH25_REPORTER_OVERLAY_71=71\n\n'
+CC1_STUB = b"#!/bin/sh\nprintf '%s\\n' H25_UNEXPECTED_CC1_EXECUTION_71\nexit 97\n"
+COLLECT_STUB = b"#!/bin/sh\nprintf '%s\\n' H25_UNEXPECTED_COLLECT2_EXECUTION_71\nexit 98\n"
+CC1_MARKER = b'H25_UNEXPECTED_CC1_EXECUTION_71\n'
+COLLECT_MARKER = b'H25_UNEXPECTED_COLLECT2_EXECUTION_71\n'
+FIXTURE_SPEC = {'probe.c': (PROBE, 0o444), 'overlay.specs': (OVERLAY, 0o444),
+                'B-prefix/cc1': (CC1_STUB, 0o555),
+                'B-prefix/collect2': (COLLECT_STUB, 0o555)}
+HEX = re.compile(r'[0-9a-f]{64}\Z')
+SAFE_ID = re.compile(r'[A-Za-z0-9_.-]{1,80}\Z')
+
+
+class Refusal(RuntimeError):
+    pass
+
+
+class Deadline(Refusal):
+    pass
+
+
+class OperationStop(Refusal):
+    def __init__(self, record):
+        self.record = record
+        super().__init__('retained primary/secondary failure; see record')
+
+
+class Failures:
+    """First observed failure stays primary; later errors/unknowns are retained."""
+    def __init__(self):
+        self.items = []
+
+    def add(self, stage, exc=None, unknown=None):
+        if isinstance(exc, OperationStop):
+            for item in exc.record.get('failures', []):
+                copy = dict(item)
+                copy['primary'] = not self.items
+                self.items.append(copy)
+            return
+        try:
+            description = type(exc).__name__ + ': ' + str(exc)[:256] if exc is not None else unknown
+        except BaseException:
+            description = '<exception formatting failed; primary stage remains recorded>'
+        self.items.append({'stage': stage, 'error': description,
+                           'unknown': unknown, 'primary': not self.items})
+
+    def view(self):
+        return {'primary_error': self.items[0] if self.items else None,
+                'secondary_errors': self.items[1:], 'failures': self.items[:]}
+
+
+def guarded(stage, action, failures, deadline=None):
+    if deadline is not None and time.monotonic() >= deadline:
+        failures.add(stage, unknown='fixed cleanup tail exhausted; operation not attempted')
+        return None
+    try:
+        return action()
+    except BaseException as exc:
+        failures.add(stage, exc)
+        return None
+
+
+def parent_fallback(record, failures):
+    """One bounded stderr receipt attempt; not a durability guarantee."""
+    summary = {k: record.get(k) for k in ('job', 'status', 'returncode',
+               'elapsed_seconds', 'stream_bytes', 'stream_sha256', 'cleanup')}
+    if isinstance(summary.get('cleanup'), dict):
+        summary['cleanup'] = {k: summary['cleanup'].get(k) for k in
+                              ('signals', 'direct_child_reaped', 'residual_group')}
+    summary.update(failures.view())
+    summary.update(status='RAW_UNQUALIFIED_ACCOUNTING_OR_OPERATION_STOP',
+                   full_C05=False, full_V03=False, reporter_qualified=False,
+                   intended_complete_emission=False, costs='OPEN_NOT_ZERO')
+    try:
+        raw = json.dumps(summary, sort_keys=True).encode() + b'\n'
+        need(len(raw) <= 32768, 'bounded parent receipt exceeded; no silent error-list truncation')
+        write_all(2, raw)
+    except BaseException as exc:
+        failures.add('parent_stderr_fallback', exc)
+
+
+def need(value, reason):
+    if not value:
+        raise Refusal(reason)
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def pairs(items):
+    out = {}
+    for key, value in items:
+        need(key not in out, 'duplicate JSON key')
+        out[key] = value
+    return out
+
+
+def json_bytes(data):
+    need(type(data) is bytes and len(data) <= 1048576, 'JSON byte bound')
+    try:
+        value = json.loads(data.decode('utf-8'), object_pairs_hook=pairs)
+    except (ValueError, UnicodeError) as exc:
+        raise Refusal('invalid JSON') from exc
+    need(type(value) is dict, 'JSON must be object')
+    return value
+
+
+def canonical(path):
+    need(type(path) is str and path.startswith('/') and len(path) <= 4096,
+         'absolute path required')
+    need(re.fullmatch(r'/[A-Za-z0-9_./-]+', path) is not None, 'path alphabet')
+    need(not path.endswith('/') and all(x not in ('', '.', '..')
+         for x in path.split('/')[1:]), 'noncanonical path')
+    return path
+
+
+def read_bounded(path, limit):
+    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        before = os.fstat(fd)
+        need(stat.S_ISREG(before.st_mode), 'input not regular')
+        need(0 <= before.st_size <= limit, 'input size bound')
+        chunks, total = [], 0
+        while True:
+            block = os.read(fd, min(65536, limit + 1 - total))
+            if not block:
+                break
+            total += len(block)
+            need(total <= limit, 'input grew past bound')
+            chunks.append(block)
+        after = os.fstat(fd)
+        need(stable_stat(before) == stable_stat(after) and total == after.st_size,
+             'input changed while reading')
+        return b''.join(chunks)
+    finally:
+        os.close(fd)
+
+
+def stable_stat(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def path_facts(path):
+    """Endpoint identity observations; not a namespace/lifetime theorem."""
+    canonical(path)
+    current, rows = '', []
+    for part in path.split('/')[1:]:
+        current += '/' + part
+        item = os.lstat(current)
+        row = {'path': current, 'dev': item.st_dev, 'ino': item.st_ino,
+               'mode': item.st_mode, 'uid': item.st_uid, 'gid': item.st_gid}
+        if stat.S_ISLNK(item.st_mode):
+            row.update(target=os.readlink(current), size=item.st_size,
+                       mtime_ns=item.st_mtime_ns, ctime_ns=item.st_ctime_ns)
+        elif not stat.S_ISDIR(item.st_mode):
+            row.update(size=item.st_size, mtime_ns=item.st_mtime_ns,
+                       ctime_ns=item.st_ctime_ns)
+        rows.append(row)
+    return rows
+
+
+def fixture_manifest():
+    return {name: {'bytes': len(body), 'sha256': digest(body), 'mode': mode}
+            for name, (body, mode) in FIXTURE_SPEC.items()}
+
+
+def jobs(probe_root):
+    p = canonical(probe_root)
+    common = [GCC, '-nostartfiles', '-shared', '-fPIC', '-O3', '-std=c11',
+              '-Wall', '-Wextra', '-Werror', '-I/usr/include/python3.12',
+              p + '/probe.c', '-o', p + '/probe.so']
+    return [('C00', [p + '/B-prefix/cc1'], 5),
+            ('C01', [p + '/B-prefix/collect2'], 5),
+            ('T1', common + ['-###'], 10),
+            ('T2', common + ['-B' + p + '/B-prefix/', '-###'], 10),
+            ('T3', common + ['-B' + p + '/B-prefix/', '-print-search-dirs'], 10),
+            ('B5', [GCC, '-dumpspecs'], 10),
+            ('T4', [GCC, '-specs=' + p + '/overlay.specs', '-dumpspecs'], 10),
+            ('T5', common + ['-specs=' + p + '/overlay.specs', '-###'], 10)]
+
+
+def validate_authority(admission, raw, token, expected_admission,
+                       expected_token, authority):
+    need(type(expected_admission) is str and HEX.fullmatch(expected_admission),
+         'missing/wrong admission digest in parent command')
+    need(type(expected_token) is str and HEX.fullmatch(expected_token),
+         'missing/wrong token digest in parent command')
+    need(type(authority) is str and 1 <= len(authority) <= 4096,
+         'missing authority ref in parent command')
+    need(digest(raw) == expected_admission, 'admission hash mismatch')
+    need(type(token) is bytes and 32 <= len(token) <= 256, 'token byte bound')
+    need(digest(token) == expected_token, 'queue token mismatch')
+    need(admission.get('authority_ref') == authority, 'authority ref mismatch')
+    need(admission.get('queue_token_sha256') == expected_token,
+         'admission token pin mismatch')
+
+
+def validate_shape(a):
+    required = {'schema', 'status', 'authority_ref', 'queue_id',
+                'queue_token_sha256', 'controller_sha256', 'pilot_sha256',
+                'probe_root', 'controller_cwd', 'child_cwd', 'child_env',
+                'file_pins', 'context_pins', 'fixtures', 'jobs', 'limits',
+                'funding_ledger_ref', 'source_review_ref', 'command_review_ref',
+                'context_review_ref', 'expires_utc', 'full_C05', 'full_V03'}
+    need(set(a) == required, 'admission fields differ')
+    need(a['schema'] == SCHEMA and a['status'] == 'RAW_UNQUALIFIED_DATA_ONLY',
+         'admission status/schema')
+    need(a['full_C05'] is False and a['full_V03'] is False, 'qualification claim')
+    for key in ('authority_ref', 'funding_ledger_ref', 'source_review_ref',
+                'command_review_ref', 'context_review_ref'):
+        need(type(a[key]) is str and 1 <= len(a[key]) <= 4096, 'pending ' + key)
+    for key in ('queue_token_sha256', 'controller_sha256', 'pilot_sha256'):
+        need(type(a[key]) is str and HEX.fullmatch(a[key]), 'pending ' + key)
+    need(type(a['queue_id']) is str and SAFE_ID.fullmatch(a['queue_id']),
+         'queue id')
+    need(a['probe_root'] == EXPECTED_P, 'wrong probe root')
+    canonical(a['controller_cwd'])
+    need(a['child_cwd'] == str(Path(EXPECTED_P).parent / 'cwd'), 'wrong probe cwd')
+    need(a['child_env'] == ENV6, 'wrong child environment')
+    need(a['jobs'] == list(ORDER), 'wrong/extra/reordered jobs')
+    need(a['limits'] == LIMITS and a['fixtures'] == fixture_manifest(),
+         'limits/fixture pins differ')
+    need(type(a['file_pins']) is list and 2 <= len(a['file_pins']) <= 64,
+         'binary closure pins pending/bound')
+    names, roles = set(), set()
+    for row in a['file_pins']:
+        need(type(row) is dict and set(row) ==
+             {'role', 'path', 'realpath', 'bytes', 'sha256', 'mode'}, 'file pin shape')
+        canonical(row['path']); canonical(row['realpath'])
+        need(row['path'] not in names, 'duplicate file pin')
+        names.add(row['path']); roles.add(row['role'])
+        need(type(row['role']) is str and 1 <= len(row['role']) <= 80, 'pin role')
+        need(type(row['bytes']) is int and 0 < row['bytes'] <= 67108864,
+             'file pin byte bound')
+        need(type(row['mode']) is int and 0 <= row['mode'] <= 0o7777, 'file mode')
+        need(type(row['sha256']) is str and HEX.fullmatch(row['sha256']), 'file SHA')
+        if row['role'] == 'gcc':
+            need(row['path'] == GCC and row['sha256'] == GCC_SHA and
+                 row['bytes'] == 1023032, 'wrong nominated gcc')
+        if row['role'] == 'shell':
+            need(row['path'] == '/bin/sh', 'wrong stub interpreter')
+    need({'gcc', 'shell'} <= roles, 'gcc/shell closure missing')
+    need(sum(x['role'] == 'gcc' for x in a['file_pins']) == 1 and
+         sum(x['role'] == 'shell' for x in a['file_pins']) == 1, 'ambiguous role')
+    expected_paths = names | {a['controller_cwd'], str(Path(EXPECTED_P).parent),
+                              EXPECTED_P, a['child_cwd'], EXPECTED_P + '/B-prefix'} | {
+                                  EXPECTED_P + '/' + n for n in FIXTURE_SPEC}
+    need(type(a['context_pins']) is dict and set(a['context_pins']) == expected_paths,
+         'context pin domain differs')
+    for path, rows in a['context_pins'].items():
+        canonical(path)
+        need(type(rows) is list and 1 <= len(rows) <= 128 and
+             all(type(x) is dict for x in rows), 'context placeholders')
+    try:
+        expiry = datetime.datetime.fromisoformat(a['expires_utc'])
+        need(expiry.tzinfo is not None, 'expiry needs timezone')
+    except (ValueError, TypeError) as exc:
+        raise Refusal('expiry pending/invalid') from exc
+    return expiry
+
+
+def preflight(a, pilot_path):
+    expiry = validate_shape(a)
+    need(datetime.datetime.now(datetime.timezone.utc) < expiry, 'expired admission')
+    need(os.getcwd() == a['controller_cwd'], 'controller actual cwd mismatch')
+    need(dict(os.environ) == ENV6, 'controller actual environment mismatch')
+    need(digest(read_bounded(str(Path(__file__).resolve()), 40960)) ==
+         a['controller_sha256'], 'controller source pin mismatch')
+    need(digest(read_bounded(pilot_path, 1048576)) == a['pilot_sha256'],
+         'PILOT pin mismatch')
+    observed = []
+    for row in a['file_pins']:
+        real = os.path.realpath(row['path'])
+        need(real == row['realpath'], 'file alias resolution changed')
+        data = read_bounded(real, 67108864)
+        info = os.stat(real, follow_symlinks=False)
+        need(len(data) == row['bytes'] and digest(data) == row['sha256'] and
+             stat.S_IMODE(info.st_mode) == row['mode'], 'binary closure changed')
+        observed.append({'path': row['path'], 'realpath': real,
+                         'sha256': digest(data), 'stat': list(stable_stat(info))})
+    for path, expected in a['context_pins'].items():
+        need(path_facts(path) == expected, 'context identity changed: ' + path)
+    return observed
+
+
+def write_all(fd, body):
+    while body:
+        count = os.write(fd, body)
+        need(count > 0, 'short/failed writer')
+        body = body[count:]
+
+
+def exclusive(path, mode=0o600):
+    return os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                   os.O_CLOEXEC | os.O_NOFOLLOW, mode)
+
+
+class Ledger:
+    def __init__(self, path):
+        self.fd = exclusive(path)
+        self.index, self.previous = 0, '0' * 64
+        self.close_attempted = False
+        self.write_failed = False
+
+    def add(self, kind, **values):
+        need(not self.write_failed, 'ledger writer quarantined after prior failure')
+        row = {'index': self.index, 'previous_sha256': self.previous,
+               'kind': kind, 'monotonic': time.monotonic(), **values}
+        raw = json.dumps(row, sort_keys=True, separators=(',', ':')).encode() + b'\n'
+        need(len(raw) <= 1048576, 'ledger row bound')
+        try:
+            write_all(self.fd, raw)
+            os.fsync(self.fd)
+        except BaseException:
+            self.write_failed = True
+            raise
+        self.previous = digest(raw); self.index += 1
+
+    def close(self):
+        need(not self.close_attempted, 'ledger close already attempted; no blind retry')
+        self.close_attempted = True
+        failures = Failures()
+        guarded('ledger.fsync', lambda: os.fsync(self.fd), failures)
+        guarded('ledger.close_fd', lambda: os.close(self.fd), failures)
+        if failures.items:
+            raise OperationStop({'scope': 'ledger-close', **failures.view()})
+
+
+def check_probe(p):
+    for name, (body, mode) in FIXTURE_SPEC.items():
+        need(read_bounded(str(p / name), 4096) == body, 'fixture content changed')
+        need(stat.S_IMODE(os.lstat(p / name).st_mode) == mode, 'fixture mode changed')
+    for path in (p, p / 'B-prefix', p / 'raw', p.parent / 'cwd'):
+        info = os.lstat(path)
+        need(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid() and
+             stat.S_IMODE(info.st_mode) == 0o700, 'probe directory changed')
+    need(not os.path.lexists(p / 'probe.so'), 'unexpected probe output created')
+
+
+def child_limits():
+    resource.setrlimit(resource.RLIMIT_FSIZE, (16777216, 16777216))
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+
+
+def sampled_rss(pid, check_children=True):
+    """Known direct-child samples only; not a hard peak/containment proof."""
+    try:
+        with open('/proc/' + str(pid) + '/status', 'rb') as stream:
+            raw = stream.read(65537)
+        need(len(raw) <= 65536, 'proc status bound')
+        rss = 0
+        for line in raw.splitlines():
+            if line.startswith(b'VmRSS:'):
+                fields = line.split()
+                need(len(fields) == 3 and fields[2] == b'kB', 'RSS format')
+                rss = int(fields[1]) * 1024
+        if check_children:
+            with open('/proc/' + str(pid) + '/task/' + str(pid) + '/children', 'rb') as stream:
+                children = stream.read(4097)
+            need(len(children) <= 4096 and not children.strip(),
+                 'unexpected/unknown child descendants')
+        return rss
+    except FileNotFoundError:
+        return 0
+
+
+def group_exists(pid):
+    try:
+        os.killpg(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+
+
+def cleanup(proc, deadline):
+    """Each signal/wait/observation is guarded; failures never suppress next step."""
+    failures, sent = Failures(), []
+    if proc is None:
+        failures.add('spawn_identity', unknown='Popen did not return; child state unknown')
+        return {'direct_child_reaped': False, 'residual_group': None,
+                **failures.view()}
+    for sig, grace in ((signal.SIGTERM, 0.25), (signal.SIGKILL, 0.75)):
+        def send(sig=sig):
+            try:
+                os.killpg(proc.pid, sig)
+                sent.append(int(sig))
+            except ProcessLookupError:
+                pass
+        guarded('process_group_signal_' + str(int(sig)), send, failures, deadline)
+        end = min(deadline, time.monotonic() + grace)
+        while time.monotonic() < end:
+            guarded('poll_during_cleanup', lambda: proc.poll(), failures, deadline)
+            exists = guarded('group_observation', lambda: group_exists(proc.pid), failures, deadline)
+            if exists is False:
+                break
+            guarded('cleanup_grace', lambda: time.sleep(0.01), failures, deadline)
+            if failures.items:
+                break
+    reaped = guarded('direct_child_wait',
+                     lambda: proc.wait(timeout=max(0.001, min(0.2, deadline-time.monotonic()))),
+                     failures, deadline)
+    residual = guarded('residual_group_observation', lambda: group_exists(proc.pid), failures, deadline)
+    return {'signals': sent, 'direct_child_reaped': reaped is not None,
+            'residual_group': residual, **failures.view()}
+
+
+def raw_hypotheses(job_id, stdout, stderr, p, baseline):
+    """Unqualified byte relations, never argv parsing or consumer conclusions."""
+    result = {'interpretation': 'RAW_UNQUALIFIED_OBSERVED_RELATIONS_ONLY'}
+    if job_id in ('T1', 'T2', 'T5'):
+        result['probe_path_observed'] = str(p / 'probe.c').encode() in stderr
+    if job_id == 'T2':
+        result['chosen_cc1_path_observed'] = str(p / 'B-prefix/cc1').encode() in stderr
+        result['chosen_collect2_path_observed'] = str(p / 'B-prefix/collect2').encode() in stderr
+        result['names_are_unqualified_hypotheses'] = True
+    if job_id == 'T3':
+        result['chosen_B_prefix_observed'] = (str(p / 'B-prefix') + '/').encode() in stdout
+        result['leading_equals_substring_observed'] = b': =' in stdout
+    if job_id == 'T4':
+        result['observed_stdout_equal_B5'] = stdout == baseline
+        result['empty_outputs_can_compare_equal'] = True
+    if job_id == 'T5':
+        result['planned_marker_bytes_observed'] = b'-DH25_REPORTER_OVERLAY_71=71' in stderr
+    return result
+
+
+def expected_outcome(job_id, returncode, stdout, stderr):
+    if job_id == 'C00':
+        need(returncode == 97 and stdout == CC1_MARKER and stderr == b'',
+             'C00 calibration outcome mismatch')
+    elif job_id == 'C01':
+        need(returncode == 98 and stdout == COLLECT_MARKER and stderr == b'',
+             'C01 calibration outcome mismatch')
+    else:
+        need(returncode == 0, 'unexpected nonzero/signal outcome')
+        need(CC1_MARKER not in stdout + stderr and COLLECT_MARKER not in stdout + stderr,
+             'unexpected stub execution marker')
+        need(b'H25_REPORTER_PROBE_MUST_NOT_COMPILE_71' not in stdout + stderr,
+             'unexpected probe compilation diagnostic')
+
+
+def capture_job(job_id, argv, seconds, p, a, ledger, whole_deadline):
+    proc = None
+    handles = {'stdout': None, 'stderr': None}
+    streams = {'stdout': None, 'stderr': None}
+    totals, hashes = {}, {}
+    selector = None
+    began = time.monotonic()
+    job_deadline = min(began + seconds, whole_deadline - 2.0)
+    failures = Failures()
+    peak, eof, cleanup_record = 0, set(), None
+    try:
+        need(job_deadline > began, 'no job/cleanup interval')
+        selector = selectors.DefaultSelector()
+        for name in ('stdout', 'stderr'):
+            handles[name] = exclusive(p / 'raw' / (job_id + '.' + name + '.raw'))
+            totals[name] = 0; hashes[name] = hashlib.sha256()
+        ledger.add('SPAWN_ENTERED', job=job_id, argv=argv, seconds=seconds,
+                   cwd=a['child_cwd'], env=a['child_env'])
+        proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, cwd=a['child_cwd'], env=ENV6,
+                                shell=False, close_fds=True, start_new_session=True,
+                                preexec_fn=child_limits)
+        # Own returned handles BEFORE any fallible ledger/selector operation.
+        streams['stdout'] = proc.stdout
+        streams['stderr'] = proc.stderr
+        ledger.add('SPAWN_RETURNED', job=job_id, pid=proc.pid)
+        for name, stream in streams.items():
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ, name)
+        while selector.get_map() or proc.poll() is None:
+            need(time.monotonic() < job_deadline, 'job deadline')
+            rss = sampled_rss(proc.pid) + sampled_rss(os.getpid(), False)
+            peak = max(peak, rss)
+            need(rss <= LIMITS['sampled_memory_bytes'], 'sampled RSS ceiling')
+            for key, _ in selector.select(timeout=min(0.05, max(0, job_deadline-time.monotonic()))):
+                name = key.data
+                capacity = LIMITS['stream_bytes'] + 1 - totals[name]
+                need(capacity > 0, 'stream cap+1 reached')
+                block = os.read(key.fileobj.fileno(), min(65536, capacity))
+                if not block:
+                    selector.unregister(key.fileobj); eof.add(name)
+                    continue
+                write_all(handles[name], block)
+                hashes[name].update(block); totals[name] += len(block)
+                need(totals[name] <= LIMITS['stream_bytes'], 'stream exceeds cap')
+        proc.wait(timeout=max(0.001, job_deadline-time.monotonic()))
+        need(eof == {'stdout', 'stderr'}, 'observed raw EOF missing')
+    except BaseException as exc:
+        failures.add('capture', exc)
+    finally:
+        tail = min(whole_deadline, time.monotonic() + 1.5)
+        cleanup_record = guarded('process_cleanup', lambda: cleanup(proc, tail), failures, tail)
+        if isinstance(cleanup_record, dict):
+            for item in cleanup_record.get('failures', []):
+                item = dict(item)
+                item['primary'] = not failures.items
+                failures.items.append(item)
+            if cleanup_record.get('direct_child_reaped') is not True or cleanup_record.get('residual_group') is not False:
+                failures.add('cleanup_status', unknown='direct child/group cleanup incomplete or unknown')
+        if selector is not None:
+            guarded('selector.close', lambda: selector.close(), failures, tail)
+        for name, stream in streams.items():
+            if stream is not None:
+                guarded(name + '.pipe.close', lambda stream=stream: stream.close(), failures, tail)
+        for name, fd in handles.items():
+            if fd is not None:
+                guarded(name + '.raw.fsync', lambda fd=fd: os.fsync(fd), failures, tail)
+                guarded(name + '.raw.close', lambda fd=fd: os.close(fd), failures, tail)
+    if time.monotonic() > whole_deadline:
+        failures.add('whole_deadline', unknown='whole job budget exceeded')
+    result = {'job': job_id, 'elapsed_seconds': time.monotonic()-began,
+              'returncode': None if proc is None else proc.returncode,
+              'capture_error': failures.view()['primary_error'], 'observed_eof': sorted(eof),
+              'stream_bytes': totals, 'stream_sha256': {k: v.hexdigest() for k,v in hashes.items()},
+              'sampled_controller_plus_child_peak_rss_bytes': peak, 'cleanup': cleanup_record,
+              'intended_complete_emission': False, 'reporter_qualified': False,
+              'consumer_bridge_qualified': False, 'full_C05': False, 'full_V03': False,
+              **failures.view()}
+    guarded('JOB_CAPTURE_TERMINAL.ledger_add',
+            lambda: ledger.add('JOB_CAPTURE_TERMINAL', **result), failures, whole_deadline)
+    if failures.items:
+        parent_fallback(result, failures)
+        result.update(failures.view())
+        raise OperationStop(result)
+    return result
+
+
+def close_accounting(ledger, failures, deadline):
+    if ledger is not None:
+        guarded('QUEUE_FINALIZATION_ATTEMPT.ledger_add',
+                lambda: ledger.add('QUEUE_FINALIZATION_ATTEMPT',
+                    status='RAW_DATA_DONE_OR_STOP_PENDING_LEDGER_CLOSE',
+                    failures=failures.view(), full_C05=False, full_V03=False),
+                failures, deadline)
+        guarded('ledger.close', lambda: ledger.close(), failures, deadline)
+    return not failures.items
+
+
+def alarm_handler(signum, frame):
+    raise Deadline('controller whole-job deadline')
+
+
+def main(argv=None):
+    began = time.monotonic()
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ('admission', 'admission-sha256', 'queue-token-file',
+                 'queue-token-sha256', 'authority-ref', 'pilot'):
+        parser.add_argument('--' + name, required=True)
+    args = parser.parse_args(argv)
+    old_handler = signal.signal(signal.SIGALRM, alarm_handler)
+    signal.setitimer(signal.ITIMER_REAL, 148.0)
+    ledger, status = None, 'REFUSED_BEFORE_QUEUE'
+    failures = Failures()
+    deadline = began + 150.0
+    try:
+        raw = read_bounded(canonical(args.admission), 1048576)
+        token = read_bounded(canonical(args.queue_token_file), 256)
+        a = json_bytes(raw)
+        validate_authority(a, raw, token, args.admission_sha256,
+                           args.queue_token_sha256, args.authority_ref)
+        preflight(a, canonical(args.pilot))
+        need(not os.path.lexists(Path(EXPECTED_P) / 'raw') and
+             not os.path.lexists(Path(EXPECTED_P) / 'actual-ledger.jsonl'),
+             'capture/ledger already exists')
+        claim = Path(EXPECTED_P).parent / ('.' + a['queue_id'] + '.claimed')
+        claim_fd = exclusive(claim)
+        try:
+            write_all(claim_fd, (args.admission_sha256 + '\n').encode()); os.fsync(claim_fd)
+        finally:
+            os.close(claim_fd)
+        p = Path(EXPECTED_P)
+        os.mkdir(p / 'raw', 0o700)
+        check_probe(p)
+        ledger = Ledger(p / 'actual-ledger.jsonl')
+        ledger.add('QUEUE_OPENED', queue=a['queue_id'], admission_sha256=args.admission_sha256,
+                   authority_ref=args.authority_ref, qualification='RAW_UNQUALIFIED',
+                   original_B1_B4='WITHHELD', original_credit=0)
+        status, baseline = 'STOPPED', None
+        for job_id, command, seconds in jobs(EXPECTED_P):
+            need(time.monotonic() < deadline - 2.0, 'no funded cleanup tail')
+            before = preflight(a, args.pilot); check_probe(p)
+            ledger.add('PRE_JOB_IDENTITIES', job=job_id, files=before)
+            result = capture_job(job_id, command, seconds, p, a, ledger, deadline)
+            stdout = read_bounded(str(p / 'raw' / (job_id + '.stdout.raw')), 1048577)
+            stderr = read_bounded(str(p / 'raw' / (job_id + '.stderr.raw')), 1048577)
+            after = preflight(a, args.pilot); check_probe(p)
+            need(before == after, 'pre/post file identities changed')
+            ledger.add('POST_JOB_IDENTITIES', job=job_id, files=after)
+            expected_outcome(job_id, result['returncode'], stdout, stderr)
+            if job_id == 'B5':
+                baseline = stdout
+            if job_id == 'T4':
+                need(baseline is not None, 'B5 reference missing')
+            ledger.add('RAW_RELATIONS', job=job_id,
+                       observations=raw_hypotheses(job_id, stdout, stderr, p, baseline),
+                       interpretation='UNQUALIFIED', full_C05=False, full_V03=False)
+        need(time.monotonic() <= deadline, 'whole-job budget exceeded')
+        status = 'RAW_UNQUALIFIED_DATA_DRAINED_PENDING_ACCOUNTING'
+    except BaseException as exc:
+        failures.add('main_operation', exc)
+    finally:
+        # Keep the timer installed while accounting is attempted. Every action
+        # is guarded independently, so no close/error can replace the primary.
+        close_accounting(ledger, failures, deadline)
+        guarded('timer_disarm', lambda: signal.setitimer(signal.ITIMER_REAL, 0), failures)
+        guarded('alarm_handler_restore', lambda: signal.signal(signal.SIGALRM, old_handler), failures)
+    record = {'status': status, 'elapsed_seconds': time.monotonic()-began,
+              'original_B1_B4': 'WITHHELD', 'reporter_qualified': False,
+              'intended_complete_emission': False, 'full_C05': False, 'full_V03': False}
+    if time.monotonic() > deadline:
+        failures.add('main_whole_deadline', unknown='whole controller budget exceeded')
+    if failures.items:
+        parent_fallback(record, failures)
+        return 2
+    record['status'] = 'RAW_UNQUALIFIED_QUEUE_COMPLETED_ACCOUNTING_CLOSED'
+    guarded('parent_stdout_receipt', lambda: print(json.dumps(record), flush=True), failures)
+    if failures.items:
+        parent_fallback(record, failures)
+        return 2
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
