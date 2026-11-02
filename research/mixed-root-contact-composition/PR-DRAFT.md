@@ -126,7 +126,11 @@ The separate caller engine checks 4,624 formal polynomials across all
 four central characters and rejects seven controls. It does not import
 the original caller replay. These are separate implementations by the
 same author, not independent human review. `VALIDATION.md` records the
-committed exports, isolated replay and transport controls.
+committed exports, isolated replay and transport controls. Four extra
+isolated processes reject a damaged archive, the excluded endpoint used
+as a feasible claim, the loose completion tail, and a missing root query
+charge. The price mutations also change their adapter declarations, so
+they reach the mathematical checks.
 
 Hosted CI has not run for this local branch. Independent scientific
 review and formal-kernel acceptance remain open. The assumptions are
