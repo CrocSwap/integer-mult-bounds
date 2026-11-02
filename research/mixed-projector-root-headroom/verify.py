@@ -324,6 +324,51 @@ def normalization_checks():
             'scope': 'The polynomial identity proves all widths; the address enumeration is a finite control.'}
 
 
+def central_free_checks():
+    """Check coupled examples for the active-space reduction in EXTENSIONS.md."""
+    examples = []
+    for active in (2, 4, 6, 8):
+        us, vs, _ = canonical(active)
+        for inactive in (1, 3):
+            size = active+inactive
+            extended_u = [u+[[Q(0)] for _ in range(inactive)] for u in us]
+            extended_v = [v[0]+[Q(j+2) for j in range(inactive)] for v in vs]
+            matrices = [mul(u, [v]) for u, v in zip(extended_u, extended_v)]
+            endpoint = eye(size)
+            for matrix in matrices:
+                need(rank(matrix) == 1 and rank(mul(matrix, matrix)) == 0,
+                     'Every coupled example has rank-one square-zero queries')
+                endpoint = mul(add(eye(size), matrix, -2), endpoint)
+            expected = [[Q((-1 if i < active else 1) if i == j else 0)
+                         for j in range(size)] for i in range(size)]
+            need(endpoint == expected, 'The coupled inactive inputs cancel at the endpoint')
+            U = hcat(*extended_u)
+            V = extended_v
+            need(rank(U) == active and rank(V) == active+1,
+                 'The column-contained example need not have contained query rows')
+            G = mul(V, U)
+            lower = [[G[i][j] if i > j else Q(0) for j in range(active+1)]
+                     for i in range(active+1)]
+            Z = add(add(eye(active+1), lower, 2), G, -1)
+            need(rank(Z) == 1 and all(Z[i][i] == 1 for i in range(active+1)),
+                 'The compressed shortest tuple has a rank-one defect')
+            dual = eye(size)
+            for matrix in reversed(matrices):
+                dual = mul(add(eye(size), transpose(matrix), -2), dual)
+            need(dual == expected, 'Reverse transpose gives the row-contained case')
+            need(any(matrices[0][i][j] for i in range(active) for j in range(active, size)),
+                 'An individual query need not preserve the inactive eigenspace')
+            examples.append({'active_fields': active, 'inactive_fields': inactive,
+                             'query_count': active+1, 'ranks_U_V': [rank(U), rank(V)]})
+    # Compression is not a homomorphism without the one-sided containment.
+    a, b = eye(3), eye(3)
+    a[0][2], b[2][0] = 1, 1
+    need(mul(a, b)[0][0] != 1, 'Unrestricted cross-block cancellation cannot be compressed')
+    return {'coupled_examples': examples, 'dual_examples': len(examples),
+            'claim': 'r+1 square-zero queries with endpoint diag(-I_r,+I_s) reduce to an r-field shortest tuple; extra central-free outputs have no positive signed price.',
+            'scope': 'The rank proof and tariff argument in EXTENSIONS.md are quantified. These exact examples are controls, not the universal proof.'}
+
+
 def read_inputs():
     sources = json.loads((HERE/'SOURCES.json').read_text())
     out = {}
@@ -331,7 +376,8 @@ def read_inputs():
         if pin['usage'] == 'input':
             data = (ROOT/pin['path']).read_bytes()
             need(sha256(data).hexdigest() == pin['sha256'], 'Exact input bytes: '+pin['path'])
-            out[pin['path']] = json.loads(data)
+            if pin['path'].endswith('.json'):
+                out[pin['path']] = json.loads(data)
     return out
 
 
@@ -351,8 +397,28 @@ def run():
     reverse = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(reverse)
     caller = reverse.run(data['research/mixed-projector-query-root/CONTROLLER.json'])
+    def module(path, name):
+        spec = importlib.util.spec_from_file_location(name, path)
+        loaded = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(loaded)
+        return loaded
+    E = module(ROOT/'research/higher-moment-strictification/verify.py', 'headroom_intervals')
+    next_cost = module(HERE/'next_cost_ceiling.py', 'headroom_next_cost')
+    extension_price = next_cost.run(receipt['local'], E, Q('.00328554'))
+    boundary = module(HERE/'boundary_modules.py', 'headroom_boundary_modules')
+    current = data['research/mixed-root-contact-composition/RESULT.json']
+    saving = Q(current['price']['kappa_decimal'])
+    need(saving == Q('.00328620'), 'Exact latest complete composition claim')
+    latest_extension = next_cost.run(current['local'], E, saving)
+    boundary_price = module(HERE/'boundary_prices.py', 'headroom_boundary_prices')
     return {'status': 'PASS_MIXED_ROOT_MINIMUM_IDLE_CLASSIFICATION',
             'structure': structural_checks(), 'normalization': normalization_checks(),
+            'central_free_extension': central_free_checks(),
+            'rank_four_extension_price': extension_price,
+            'boundary_modules': boundary.run(sys.modules[__name__]),
+            'latest_source_extensions': {'source_head': current['source_head'],
+                                         'rank_four_extension_price': latest_extension,
+                                         'boundary_prices': boundary_price.run(current['local'], E, saving)},
             'separate_reverse_caller': caller,
             'inherited_complete_claim': '0.00328551', 'broader_family_ceiling': '0.00328554',
             'ceiling_evidence': 'Authenticated composition receipt and its separately registered full replay; no price engine is replaced here.',
