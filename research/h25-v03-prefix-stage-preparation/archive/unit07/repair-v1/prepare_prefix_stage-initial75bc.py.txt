@@ -1,0 +1,590 @@
+"""Conditional Unit06 authenticated entry. No original project imports at load.
+
+T0 is the original trusted first-launcher/OS/interpreter/system-stdlib premise.
+Source selection does not create source, native, C05/C07, funding or runtime
+admission. Do not call main except in a separately admitted genuine instance.
+"""
+from __future__ import annotations
+import ast
+import builtins
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+import types
+
+FILE_CAP=64*1024*1024
+TOTAL_CAP=256*1024*1024
+RECORD_CAP=1024*1024
+MAX_ROWS=8192
+IDENTITY_KEYS=('device','inode','mode','links','uid','gid','size','mtime_ns','ctime_ns')
+ENV={'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8','LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+SYSTEM_PATH=('/usr/lib/python312.zip','/usr/lib/python3.12','/usr/lib/python3.12/lib-dynload')
+
+
+class Stop(RuntimeError):pass
+
+
+def need(condition,message):
+    if condition is not True:raise Stop(message)
+
+
+def plain(value):
+    nodes=text=0
+    def walk(item,depth):
+        nonlocal nodes,text
+        nodes+=1
+        need(depth<=24 and nodes<=65536,'plain structure bound')
+        kind=type(item)
+        if item is None or kind is bool:return
+        if kind is int:need(-(1<<127)<=item<(1<<127),'integer bound');return
+        if kind is str:
+            text+=len(item);need(len(item)<=8192 and text<=524288,'text bound');return
+        need(kind is list or kind is dict,'exact plain value required')
+        need(len(item)<=MAX_ROWS,'container bound')
+        if kind is list:
+            for child in item:walk(child,depth+1)
+        else:
+            for key,child in item.items():
+                need(type(key) is str,'exact string key required');walk(key,depth+1);walk(child,depth+1)
+    walk(value,0)
+
+
+def canonical(value,cap=RECORD_CAP):
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'exact record cap')
+    plain(value)
+    raw=(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False)+'\n').encode('ascii')
+    need(len(raw)<=cap,'canonical record cap');return raw
+
+
+def decode(raw,cap=RECORD_CAP):
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'exact decode cap')
+    need(type(raw) is bytes and len(raw)<=cap,'raw record cap/type')
+    def pairs(rows):
+        result={}
+        for key,value in rows:
+            need(key not in result,'duplicate JSON key');result[key]=value
+        return result
+    def bad(token):raise Stop('non-integer JSON number')
+    value=json.loads(raw,object_pairs_hook=pairs,parse_float=bad,parse_constant=bad)
+    plain(value);return value
+
+
+def path_text(value):
+    need(type(value) is str and 1<len(value)<=4096 and value.startswith('/') and all(32<=ord(c)<127 for c in value),'absolute bounded printable ASCII path required')
+    need(len(value.split('/'))-1<=64,'path component bound')
+    need(all(part not in ('','.','..') for part in value.split('/')[1:]),'canonical path spelling required')
+    return value
+
+
+def identity(info):
+    return dict(zip(IDENTITY_KEYS,(info.st_dev,info.st_ino,info.st_mode,info.st_nlink,info.st_uid,info.st_gid,info.st_size,info.st_mtime_ns,info.st_ctime_ns)))
+
+
+def validate_blob(pin,cap=FILE_CAP):
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'exact blob cap')
+    need(type(pin) is dict and all(type(k) is str for k in pin),'exact blob map')
+    need(set(pin)=={'path','sha256','bytes','identity'},'exact blob fields')
+    path_text(pin['path'])
+    digest=pin['sha256'];need(type(digest) is str and len(digest)==64 and all(c in '0123456789abcdef' for c in digest),'digest shape')
+    need(type(pin['bytes']) is int and 0<=pin['bytes']<=cap,'blob byte bound')
+    row=pin['identity'];need(type(row) is dict and all(type(k) is str for k in row) and set(row)==set(IDENTITY_KEYS),'identity fields')
+    need(all(type(row[k]) is int and 0<=row[k]<(1<<127) for k in IDENTITY_KEYS),'identity integer fields')
+    need(row['inode']>0 and row['size']==pin['bytes'] and stat.S_ISREG(row['mode']) and row['links']==1,'regular single-link identity')
+
+
+class Owner:
+    """New T0-side retained failure state, never an original capability."""
+    def __init__(self):
+        self.primary=None;self.secondary=[];self.pending=False;self.quarantined=False
+        self.busy=False;self.burned=False;self.fd_slots=[];self.captures=[];self.total_bytes=0
+        self.read_calls=0;self.write_calls=0
+        self.last_block=None;self.last_raw=None;self.modules={};self.published=[];self.executed=[]
+        self.phase='NEW';self.result=None
+    def ready(self):
+        if self.primary is not None:raise self.primary
+        need(not self.quarantined and not self.pending and not self.busy,'owner terminal/uncertain')
+    def fail(self,error):
+        if self.primary is None:self.primary=error
+        elif error is not self.primary:self.secondary.append(error)
+        self.quarantined=True
+        return self.primary
+
+
+def _retained_read(path,expected_sha256,cap,owner,expected_pin=None):
+    """Actual descriptor-bound read. Returned source bytes are never reopened for exec."""
+    need(type(owner) is Owner,'actual local owner required');owner.ready();path_text(path)
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'read cap')
+    if expected_sha256 is not None:
+        need(type(expected_sha256) is str and len(expected_sha256)==64 and all(c in '0123456789abcdef' for c in expected_sha256),'prior digest')
+    if expected_pin is not None:validate_blob(expected_pin,cap);need(expected_pin['path']==path and expected_pin['sha256']==expected_sha256,'prior pin path/digest')
+    record={'path':path,'chunks':[],'raw':None,'observed':None,'read_calls':0};owner.captures.append(record)
+    owner.fd_slots.append(None);slot=len(owner.fd_slots)-1;primary=None;owner.busy=True
+    try:
+        before=identity(os.stat(path,follow_symlinks=False))
+        need(stat.S_ISREG(before['mode']) and before['links']==1 and before['size']<=cap,'source kind/link/size')
+        owner.pending=True
+        owner.fd_slots[slot]=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        owner.pending=False
+        opened=identity(os.fstat(owner.fd_slots[slot]));need(before==opened,'source open drift')
+        if expected_pin is not None:need(opened==expected_pin['identity'],'source installed identity differs')
+        count=0
+        while count<opened['size']:
+            need(record['read_calls']<8192,'read call bound');record['read_calls']+=1;owner.read_calls+=1
+            owner.last_block=os.read(owner.fd_slots[slot],min(65536,opened['size']-count))
+            need(type(owner.last_block) is bytes and bool(owner.last_block),'short source read')
+            count+=len(owner.last_block);owner.total_bytes+=len(owner.last_block)
+            need(count<=cap and owner.total_bytes<=TOTAL_CAP,'retained aggregate byte cap')
+            record['chunks'].append(owner.last_block)
+        owner.last_raw=b''.join(record['chunks']);record['raw']=owner.last_raw
+        after_fd=identity(os.fstat(owner.fd_slots[slot]));after_path=identity(os.stat(path,follow_symlinks=False))
+        row={'path':path,'sha256':hashlib.sha256(record['raw']).hexdigest(),'bytes':count,'identity':after_fd}
+        record['observed']=row
+        need(opened==after_fd==after_path and count==opened['size'],'source read/path drift')
+        need(expected_sha256 is None or row['sha256']==expected_sha256,'source prior digest differs')
+        if expected_pin is not None:need(row==expected_pin,'source complete installed pin differs')
+        return row,record['raw']
+    except BaseException as error:
+        primary=owner.fail(error);raise primary
+    finally:
+        fd=owner.fd_slots[slot];owner.fd_slots[slot]=None
+        if fd is not None:
+            try:os.close(fd)
+            except BaseException as error:
+                retained=owner.fail(error)
+                if primary is None:raise retained
+        owner.busy=False
+
+
+def retained_read(path,expected_sha256,cap,owner,expected_pin=None):
+    need(type(expected_sha256) is str and len(expected_sha256)==64 and all(c in '0123456789abcdef' for c in expected_sha256),'prior digest required')
+    return _retained_read(path,expected_sha256,cap,owner,expected_pin)
+
+
+def retain_regular(pin,cap,owner):
+    validate_blob(pin,cap)
+    return retained_read(pin['path'],pin['sha256'],cap,owner,pin)
+
+
+def observe_regular(path,cap,owner):
+    """Observe installed bytes/identity; this does not approve their source."""
+    return _retained_read(path,None,cap,owner)
+
+
+def write_exclusive(path,raw,mode,owner):
+    need(type(owner) is Owner,'actual local owner required');owner.ready();path_text(path)
+    need(type(raw) is bytes and len(raw)<=FILE_CAP and type(mode) is int and 0<=mode<=0o7777,'exclusive output bounds')
+    owner.fd_slots.append(None);slot=len(owner.fd_slots)-1;primary=None;owner.busy=True
+    try:
+        owner.pending=True
+        owner.fd_slots[slot]=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
+        owner.pending=False
+        offset=0;calls=0;call_cap=4096 if len(raw)<=RECORD_CAP else 8192
+        while offset<len(raw):
+            need(calls<call_cap,'write call bound');calls+=1;owner.write_calls+=1
+            count=os.write(owner.fd_slots[slot],raw[offset:]);need(type(count) is int and 0<count<=len(raw)-offset,'write progress');offset+=count
+        os.fchmod(owner.fd_slots[slot],mode);os.fsync(owner.fd_slots[slot])
+    except BaseException as error:
+        primary=owner.fail(error);raise primary
+    finally:
+        fd=owner.fd_slots[slot];owner.fd_slots[slot]=None
+        if fd is not None:
+            try:os.close(fd)
+            except BaseException as error:
+                retained=owner.fail(error)
+                if primary is None:raise retained
+        owner.busy=False
+    return observe_regular(path,FILE_CAP,owner)[0]
+
+# UNIT06_T0_SUPPORT_END
+
+# Unit07 successor: exact NEW helper prefix above; original Unit06 untouched.
+PROJECT_PINS={'epoch_schema_v5': ('b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a', 30668), 'h25_parent_supervisor': ('cfb09a18dd10b597cc6d5a8139ee769bef679bc44ae029329755e3d97b055075', 23047), 'v03_integrated_constructor_v2': ('a80a60b390bc60e9bc434b79cda5ae6db88e4f0c6c7436de9adfe1f48a2045b1', 6111), 'v03_source_refusal_observer_v1': ('abf25690d3bee4a9783ee504567c29f7fb47da670e0ec95f57cb5944bf57264f', 14205), 'epoch_copy_v5': ('4f459d0336d59975df787c24373e18dad4044c3a24137392e890115f811b3211', 82957), 'group01_original_predicates_v1': ('fb9e6e11b39b76ab8652c546fd76c06d662ea4116376abcc2a6267bb4783dbfd', 23224), 'parent_domain_v1': ('a51264289803b4b17bb262f2460ddd4ed72500aaa21e5eb80fa2db4583689361', 23942), 'v03_prefix_derivation_v1': ('1ed813148c10d5fbd3cd6781d51eca650a347eda7a6323f581d740e6ea9cb6e2', 3830), 'epoch_stop_v5': ('5b10c9d72dd0e646652a73b6ffe9ba870762d6bc2f7432bc6b06571a1b7d2a6f', 8205), 'original_build_provenance_v5': ('bd5ffd9a1c221e0945527fc8fa8d0ad4eb36b9a8884503451c1b6b12d00007ea', 16024), 'parent_closure_v1': ('a15424f14baa3d484fe04bfbe7e449c32561c866dbaca2c1b5f646dfb377ed1f', 13463), 'epoch_parent_v5': ('058059912144863a4b2bfe4fc9ffc5233b4ab20ee5a7355bde66f4d3f6f28712', 26833), 'group01_evidence_v1': ('05ec6a63c57340ba929aea1fab71b096efc143e099346640f6def41310bd3e25', 15610), 'parent_completion_v1': ('d4ee1b7ce4a42b73261984ffb1b9ceb5bb0165223e04a253588f83b99f6981a5', 54168), 'v03_prefix_supervisor_v1': ('f97b07d4a5f461d4134a2bdf4cfcc28da12acc7e7144c18f6cc0a017cdee86f6', 36954)}
+
+SOURCE_CATEGORIES={'parent','root','provider','driver','project','system_headers','compiler_link','oracle','stage'}
+ENTRY_PIN=('b783c6812a6295069456cfb4187d4e09bb7acbcb20fffd76e0c10267f90c1201',21857)
+SUPERVISOR_PIN=('cfb09a18dd10b597cc6d5a8139ee769bef679bc44ae029329755e3d97b055075',23047)
+TCB_PIN=('610492b3fc06baa0560175edc3ba27057de00d00b8fd3d58dbe55e5a371c042a',4935)
+RUNNER_PIN=('bd882e3dadb1b6aeaa63ee824f1a1c58f8ef2546b6840a2bffa46885a184d3eb',15493)
+ROOT_SHA='f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0'
+PROVIDER_SHA='9cbb7368f89e71d1e6cc46db5dc77efed3e03ed2a801c98c88fe316e4d9f3ef2'
+VARIANT_SHA='cdb1479253358508088f8aa0e1e92e6c75ffcc127e54552698598a02de061254'
+QUEUE_SHA='1348a7b4d7cc1f9fef556f5e0abdaf04411a998afdcd574d7812c76ab37dcf68'
+FALSE_FIELDS=('production_completion','full_c05','full_v03','runtime_qualified','enclosing_parent_exit_observed')
+GATE_FIELDS={'SOURCE_REVIEW':('review_sha256',),'STAGE_APPROVAL':('stage_review_sha256',),'COMMAND_APPROVAL':('command_review_sha256',),'FUNDING':('reservation_sha256',),'EXECUTION_APPROVAL':('external_launch_policy_sha256',),'COPY_CONFIGURATION':('leaf_policy_sha256','configuration_sha256','scandir_release_premise_sha256'),'COPY_EXECUTION_APPROVAL':('external_launch_policy_sha256',),'COPY_FUNDING':('reservation_sha256',)}
+PREPARATIONS=[]  # Retains failed attempts and their raw errors, FDs and bytes.
+_PREPARATION_USED=[False]
+
+
+def exact(value,keys):
+    need(type(value) is dict and all(type(k) is str for k in value),'exact dictionary keys')
+    need(set(value)==set(keys),'exact record fields')
+
+
+def integer(value,low,high):need(type(value) is int and low<=value<=high,'exact bounded integer')
+
+
+def digest(value):need(type(value) is str and len(value)==64 and all(c in '0123456789abcdef' for c in value),'exact digest')
+
+
+def simple(value,lower=False,queue=False):
+    alphabet='abcdefghijklmnopqrstuvwxyz0123456789' if queue else ('abcdefghijklmnopqrstuvwxyz0123456789-' if lower else 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_')
+    need(type(value) is str and 1<=len(value)<=96 and all(c in alphabet for c in value),'safe bounded name')
+
+
+def original_plain(value):
+    """Exact original wire bounds, in addition to the NEW request envelope."""
+    nodes=text=0
+    def walk(item,depth):
+        nonlocal nodes,text
+        nodes+=1;need(nodes<=8192 and depth<=24,'original wire nodes/depth')
+        kind=type(item)
+        if item is None or kind is bool:return
+        if kind is int:integer(item,-(1<<127),(1<<127)-1);return
+        if kind is str:
+            text+=len(item);need(len(item)<=8192 and text<=524288,'original wire text');return
+        need(kind is dict or kind is list,'original exact plain type')
+        need(len(item)<=256,'original container bound')
+        if kind is list:
+            for child in item:walk(child,depth+1)
+        else:
+            for key,child in item.items():
+                need(type(key) is str,'original exact key');walk(key,depth+1);walk(child,depth+1)
+    walk(value,0)
+
+
+def original_record(value):original_plain(value);return canonical(value)
+
+
+def make_preparation_owner():
+    owner=Owner();owner.phase='PREPARATION_NEW';owner.directories={};owner.created=[]
+    owner.writes=[];owner.copy_attempts=0;owner.directory_opens=0;owner.directory_creates=0
+    owner.stat_calls=0;owner.scandir_calls=0;owner.entry_count=0;owner.generated_bytes=0
+    owner.outputs={};owner.request=None;owner.partial_result=None;owner.cleanup_done=False
+    PREPARATIONS.append(owner);return owner
+
+
+def _close_slot(owner,slot):
+    fd=owner.fd_slots[slot];owner.fd_slots[slot]=None
+    if fd is not None:
+        try:os.close(fd)
+        except BaseException as error:owner.fail(error)
+
+
+def close_preparation(owner):
+    """Consume all owned handles once; a close failure never replaces primary."""
+    if owner.cleanup_done:return
+    owner.cleanup_done=True
+    for slot in range(len(owner.fd_slots)-1,-1,-1):_close_slot(owner,slot)
+
+
+def _open_directory(owner,path,parent_fd=None,name=None):
+    owner.ready();need(owner.directory_opens<16384,'directory open bound')
+    owner.directory_opens+=1;owner.fd_slots.append(None);slot=len(owner.fd_slots)-1
+    owner.pending=True
+    try:
+        owner.fd_slots[slot]=os.open(path if parent_fd is None else name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent_fd)
+        owner.pending=False
+        info=os.fstat(owner.fd_slots[slot]);owner.stat_calls+=1
+        need(stat.S_ISDIR(info.st_mode),'actual directory required')
+        return slot
+    except BaseException as error:raise owner.fail(error)
+
+
+def open_existing_directory(owner,path):
+    """Walk from actual slash, retaining each lookup context; no inode FD cache."""
+    path_text(path)
+    slot=_open_directory(owner,'/')
+    spelling=''
+    for name in path.split('/')[1:]:
+        spelling+='/'+name
+        slot=_open_directory(owner,spelling,owner.fd_slots[slot],name)
+    owner.directories[path]=slot;return slot
+
+
+def make_directory(owner,parent_path,name):
+    owner.ready();simple(name) if '/' not in name else need(False,'single directory basename')
+    need(parent_path in owner.directories,'actual retained destination parent')
+    need(owner.directory_creates<16384,'directory create bound');owner.directory_creates+=1
+    path=parent_path+'/'+name;fd=owner.fd_slots[owner.directories[parent_path]]
+    owner.created.append({'path':path,'kind':'directory','attempted':True,'created':False})
+    try:
+        os.mkdir(name,0o700,dir_fd=fd);owner.created[-1]['created']=True
+        slot=_open_directory(owner,path,fd,name);owner.directories[path]=slot
+        return path
+    except BaseException as error:raise owner.fail(error)
+
+
+def _owned_read(owner,parent_path,name,path,cap):
+    """One descriptor-relative readback through the actual installed parent."""
+    owner.ready();integer(cap,0,FILE_CAP);parent=owner.fd_slots[owner.directories[parent_path]]
+    record={'path':path,'chunks':[],'raw':None,'observed':None,'read_calls':0,'relative_parent':parent_path}
+    owner.captures.append(record);owner.fd_slots.append(None);slot=len(owner.fd_slots)-1
+    primary=None;owner.busy=True
+    try:
+        owner.pending=True
+        owner.fd_slots[slot]=os.open(name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=parent)
+        owner.pending=False
+        before=identity(os.fstat(owner.fd_slots[slot]));owner.stat_calls+=1
+        need(stat.S_ISREG(before['mode']) and before['links']==1 and before['size']<=cap,'installed regular single-link bound')
+        count=0
+        while count<before['size']:
+            need(record['read_calls']<8192,'read call bound');record['read_calls']+=1;owner.read_calls+=1
+            owner.last_block=os.read(owner.fd_slots[slot],min(65536,before['size']-count))
+            need(type(owner.last_block) is bytes and 0<len(owner.last_block)<=before['size']-count,'installed read progress')
+            record['chunks'].append(owner.last_block);count+=len(owner.last_block);owner.total_bytes+=len(owner.last_block)
+            need(owner.total_bytes<=TOTAL_CAP,'aggregate retained bytes')
+        record['raw']=b''.join(record['chunks']);owner.last_raw=record['raw']
+        after=identity(os.fstat(owner.fd_slots[slot]));named=identity(os.stat(name,dir_fd=parent,follow_symlinks=False));owner.stat_calls+=2
+        record['observed']={'path':path,'sha256':hashlib.sha256(record['raw']).hexdigest(),'bytes':count,'identity':after}
+        need(before==after==named and count==after['size'],'installed readback identity drift')
+        return record['observed'],record['raw']
+    except BaseException as error:primary=owner.fail(error);raise primary
+    finally:
+        _close_slot(owner,slot);owner.busy=False
+        if primary is None and owner.primary is not None:raise owner.primary
+
+
+def install_file(owner,parent_path,name,raw,mode=0o444,copy=False):
+    owner.ready();need(type(name) is str and name not in ('','.','..') and '/' not in name,'single file basename')
+    need(type(raw) is bytes and len(raw)<=FILE_CAP,'bounded exact installed bytes');integer(mode,0,0o7777)
+    need(parent_path in owner.directories,'retained actual destination directory')
+    need(len(owner.writes)<8192,'installation row bound')
+    if copy:
+        need(owner.copy_attempts<41,'private copy attempt bound');owner.copy_attempts+=1
+    path=parent_path+'/'+name;path_text(path);parent=owner.fd_slots[owner.directories[parent_path]]
+    record={'path':path,'raw':raw,'mode':mode,'write_calls':0,'bytes_written':0,'attempted':True,'created':False,'observed':None}
+    owner.writes.append(record);owner.fd_slots.append(None);slot=len(owner.fd_slots)-1;primary=None;owner.busy=True
+    try:
+        owner.pending=True
+        owner.fd_slots[slot]=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=parent)
+        owner.pending=False;record['created']=True;owner.created.append({'path':path,'kind':'file','created':True})
+        cap=4096 if len(raw)<=RECORD_CAP else 8192
+        while record['bytes_written']<len(raw):
+            need(record['write_calls']<cap,'write call bound');record['write_calls']+=1;owner.write_calls+=1
+            offset=record['bytes_written'];count=os.write(owner.fd_slots[slot],raw[offset:])
+            need(type(count) is int and 0<count<=len(raw)-offset,'write progress');record['bytes_written']+=count
+        os.fchmod(owner.fd_slots[slot],mode);os.fsync(owner.fd_slots[slot])
+        record['final_identity']=identity(os.fstat(owner.fd_slots[slot]));owner.stat_calls+=1
+        need(record['final_identity']['links']==1,'new file alias appeared')
+    except BaseException as error:primary=owner.fail(error);raise primary
+    finally:
+        _close_slot(owner,slot);owner.busy=False
+        if primary is None and owner.primary is not None:raise owner.primary
+    pin,observed=_owned_read(owner,parent_path,name,path,FILE_CAP)
+    need(observed==raw and pin['identity']==record['final_identity'],'installed bytes/final chmod identity differ')
+    record['observed']=pin;owner.outputs[path]=pin;return pin
+
+
+def install_record(owner,parent_path,name,value):
+    raw=original_record(value);owner.generated_bytes+=len(raw);owner.total_bytes+=len(raw)
+    need(owner.total_bytes<=TOTAL_CAP,'generated plus retained aggregate bytes')
+    return install_file(owner,parent_path,name,raw)
+
+
+def verify_source(owner,pin,expected=None,cap=FILE_CAP):
+    validate_blob(pin,cap)
+    if expected is not None:need((pin['sha256'],pin['bytes'])==expected,'fixed source bytes differ')
+    return retain_regular(pin,cap,owner)
+
+
+def source_row(pin,category):
+    return {'category':category,'path':pin['path'],'sha256':pin['sha256'],'bytes':pin['bytes'],'mode':pin['identity']['mode']&0o7777}
+
+
+def validate_source_rows(rows):
+    need(type(rows) is list and 1<=len(rows)<=8191,'parent inner row bound')
+    paths=set();categories=set();total=0
+    for row in rows:
+        exact(row,('category','path','sha256','bytes','mode'));need(type(row['category']) is str and row['category'] in SOURCE_CATEGORIES,'actual source category')
+        path_text(row['path']);digest(row['sha256']);integer(row['bytes'],1,FILE_CAP);integer(row['mode'],0,0o7777)
+        need(row['path'] not in paths,'duplicate source path');paths.add(row['path']);categories.add(row['category']);total+=row['bytes']
+    need(categories==SOURCE_CATEGORIES and total<=TOTAL_CAP,'complete category set/declared aggregate bound')
+
+
+def reconcile_rows(base,derived):
+    rows={row['path']:dict(row) for row in base}
+    for row in derived:
+        if row['path'] in rows:
+            prior=rows[row['path']];need(all(prior[k]==row[k] for k in ('path','sha256','bytes','mode')),'same path inconsistent metadata')
+        else:rows[row['path']]=dict(row)
+    result=list(rows.values());validate_source_rows(result);return result
+
+
+def validate_expectation(value):
+    exact(value,('outcome','exception_type','message','terminal_function','v03_discriminator','compiler_launches','candidate_image_loads','complete_raw_and_owned_terminal_required'))
+    need(type(value['v03_discriminator']) is bool and type(value['compiler_launches']) is int and value['compiler_launches']==0 and type(value['candidate_image_loads']) is int and value['candidate_image_loads']==0 and value['complete_raw_and_owned_terminal_required'] is True,'prefix expectation scope')
+    if value['outcome']=='PREFIX_RETURN':need(value['exception_type'] is None and value['message'] is None and value['terminal_function'] is None,'positive expectation');return
+    need(value['outcome']=='EXACT_SOURCE_REFUSAL' and value['exception_type']=='RuntimeError','source refusal outcome')
+    if value['terminal_function']=='_vcheck_literal_sources':need(value['message'] in ('Variant source role path differs','Variant reviewed source/header differs','Variant role file omitted from closure'),'literal refusal site');return
+    need(value['terminal_function']=='_v03_original_input_prefix' and (value['message']=='Variant literal configuration differs' or (value['message']=='Variant original preflight differs' and value['v03_discriminator'] is False)),'original preflight refusal site')
+
+
+def validate_request(request):
+    plain(request)
+    exact(request,('schema','canonical_root','queue','stage','job','label','mode','lanes','finite_only','entry_source','receiver_sources','caller_source','supervisor_source','native_tcb_source','runner_source','original_variant','child','parent_source_rows','admissions','session_seconds','source_closure_admission_sha256','outer_policy'))
+    need(request['schema']=='unit07-prefix-preparation-v1','request schema');path_text(request['canonical_root'])
+    for key in ('stage','job','label'):simple(request[key])
+    simple(request['queue'],queue=True)
+    need(type(request['mode']) is str and request['mode'] in ('normal','optimized'),'exact mode')
+    need(type(request['lanes']) is str and 1<=len(request['lanes'])<=8192 and type(request['finite_only']) is bool,'lanes/finite-only')
+    integer(request['session_seconds'],1,600);digest(request['source_closure_admission_sha256'])
+    exact(request['outer_policy'],('shared_seconds','root_seconds','root_address_space_bytes','root_rss_sum_bytes'))
+    for key,high in (('shared_seconds',600),('root_seconds',190),('root_address_space_bytes',1024**3),('root_rss_sum_bytes',1024**3)):integer(request['outer_policy'][key],1,high)
+    for name,expected in (('entry_source',ENTRY_PIN),('supervisor_source',SUPERVISOR_PIN),('native_tcb_source',TCB_PIN),('runner_source',RUNNER_PIN),('original_variant',(VARIANT_SHA,41337))):
+        validate_blob(request[name]);need((request[name]['sha256'],request[name]['bytes'])==expected,'original fixed source pin')
+    validate_blob(request['caller_source'])
+    need(request['caller_source']['path'].endswith('/run_queue4_prefix_v2.py'),'new caller basename')
+    exact(request['receiver_sources'],PROJECT_PINS)
+    for name,pin in request['receiver_sources'].items():validate_blob(pin);need((pin['sha256'],pin['bytes'])==PROJECT_PINS[name],'exact retained graph pin')
+    validate_source_rows(request['parent_source_rows'])
+    exact(request['admissions'],GATE_FIELDS)
+    for key,fields in GATE_FIELDS.items():
+        exact(request['admissions'][key],fields)
+        for value in request['admissions'][key].values():digest(value)
+    child=request['child']
+    exact(child,('stage_directory','stage_manifest','stage_directories','root_source','driver_source','gate_values','expectation','id','generation','launch_nonce','root_seconds','address_space_bytes','rss_bytes'))
+    path_text(child['stage_directory']);simple(child['id'],lower=True);simple(child['generation'],lower=True);digest(child['launch_nonce'])
+    integer(child['root_seconds'],1,180);integer(child['address_space_bytes'],1,1024**3);integer(child['rss_bytes'],1,1024**3)
+    for key in ('stage_manifest','root_source','driver_source','gate_values'):validate_blob(child[key],RECORD_CAP)
+    integration=child['stage_directory']+'/integration'
+    need(child['stage_manifest']['path']==child['stage_directory']+'/STAGE.json','child manifest path')
+    need(child['root_source']['path']==integration+'/full_driver.py' and (child['root_source']['sha256'],child['root_source']['bytes'])==(ROOT_SHA,38851),'genuine Root source')
+    need(child['driver_source']['path']==integration+'/v03_control_driver_v1.py' and 0<child['driver_source']['bytes']<=262144,'configured driver source')
+    need(type(child['stage_directories']) is list and len(child['stage_directories'])<=16384,'child directory inventory')
+    for rel in child['stage_directories']:
+        need(type(rel) is str and rel and not rel.startswith('/') and all(p not in ('','.','..') for p in rel.split('/')),'relative stage directory')
+    need(child['stage_directories']==sorted(set(child['stage_directories'])),'sorted unique child directories')
+    validate_expectation(child['expectation'])
+    root=request['canonical_root'];need(request['runner_source']['path']==root+'/run_guarded_v3.py','canonical actual runner')
+    paths={'Sb':root+'/stages/'+request['stage'],'packet':root+'/control/'+request['queue']+'-packet','K':root+'/control/'+request['queue']+'-private'}
+    for path in paths.values():path_text(path)
+    sc=child['stage_directory']
+    for path in paths.values():need(sc!=path and not sc.startswith(path+'/') and not path.startswith(sc+'/'),'child separate from new owned roots')
+    excluded={paths['Sb']+'/data/PREFIX-PLAN.json',paths['Sb']+'/integration/PREFIX-BOOTSTRAP.json',paths['Sb']+'/STAGE.json'}
+    need(all(row['path'] not in excluded and not any(row['path']==p or row['path'].startswith(p+'/') for p in paths.values()) for row in request['parent_source_rows']),'base contains destination/backedge')
+    return paths
+
+
+def census_child(owner,child,base_pins):
+    manifest_raw=verify_source(owner,child['stage_manifest'],cap=RECORD_CAP)[1];declared=decode(manifest_raw)
+    need(type(declared) is dict and type(declared.get('files')) is dict,'child declared file inventory')
+    root=child['stage_directory'];stack=[('',root)];files=[];directories=[]
+    while stack:
+        relative,current=stack.pop();slot=open_existing_directory(owner,current);fd=owner.fd_slots[slot]
+        before=identity(os.fstat(fd));owner.stat_calls+=1
+        need(not before['mode']&0o222,'child immutable directory mode')
+        iterator=None;primary=None;owner.pending=True
+        try:
+            owner.scandir_calls+=1;need(owner.scandir_calls<=16384,'scandir bound');iterator=os.scandir(fd);owner.pending=False
+            for entry in iterator:
+                owner.entry_count+=1;need(owner.entry_count<=16384,'child census entry bound')
+                name=entry.name;need(type(name) is str and name not in ('','.','..') and '/' not in name,'actual child basename')
+                rel=name if not relative else relative+'/'+name
+                info=entry.stat(follow_symlinks=False);owner.stat_calls+=1
+                if stat.S_ISDIR(info.st_mode):directories.append(rel);stack.append((rel,current+'/'+name))
+                elif stat.S_ISREG(info.st_mode):files.append(rel)
+                else:raise Stop('child symlink/special entry')
+        except BaseException as error:primary=owner.fail(error);raise primary
+        finally:
+            if iterator is not None:
+                old=iterator;iterator=None
+                try:old.close()
+                except BaseException as error:
+                    owner.fail(error)
+                    if primary is None:raise owner.primary
+        after=identity(os.fstat(fd));owner.stat_calls+=1
+        need(all(before[k]==after[k] for k in ('device','inode','mode','mtime_ns','ctime_ns')),'child directory drift')
+    need(sorted(files)==sorted(list(declared['files'])+['STAGE.json']) and sorted(directories)==child['stage_directories'],'actual child census differs')
+    for rel,metadata in declared['files'].items():
+        need(type(rel) is str and not rel.startswith('/') and all(p not in ('','.','..') for p in rel.split('/')),'child relative file')
+        pin=base_pins.get(root+'/'+rel);need(pin is not None,'child file omitted from genuine source rows')
+        need(metadata=={'sha256':pin['sha256'],'mode':pin['identity']['mode']&0o7777},'child declared row differs')
+    return declared
+
+
+def construct_command(child,mode,output):
+    integration=child['stage_directory']+'/integration'
+    return ['/usr/bin/python3.12','-S','-s','-P','-B']+(['-O'] if mode=='optimized' else [])+[integration+'/full_driver.py','--root-sha256',ROOT_SHA,'--provider',integration+'/probe_binding_v3.py',PROVIDER_SHA,'--driver',child['driver_source']['path'],child['driver_source']['sha256'],'--integration',integration,'--','--output',output,'--generation',child['generation'],'--launch-nonce',child['launch_nonce']]
+
+
+def operation_bill(owner):
+    return {'read_calls':owner.read_calls,'write_calls':owner.write_calls,'retained_and_generated_bytes':owner.total_bytes,'generated_bytes':owner.generated_bytes,'private_copy_attempts':owner.copy_attempts,'directory_opens':owner.directory_opens,'directory_creates':owner.directory_creates,'stat_calls':owner.stat_calls,'scandir_calls':owner.scandir_calls,'child_entries':owner.entry_count,'installed_files':len(owner.writes),'final_fit':'OPEN_NOT_ZERO'}
+
+
+def _prepare(request,owner):
+    owner.request=request;owner.phase='VALIDATING';paths=validate_request(request);root=request['canonical_root'];child=request['child']
+    raw_sources={}
+    for key in ('entry_source','caller_source','supervisor_source','native_tcb_source','runner_source','original_variant'):
+        raw_sources[key]=verify_source(owner,request[key])[1]
+    receiver_raw={name:verify_source(owner,pin,PROJECT_PINS[name])[1] for name,pin in request['receiver_sources'].items()}
+    base_pins={}
+    for row in request['parent_source_rows']:
+        pin,raw=retained_read(row['path'],row['sha256'],FILE_CAP,owner)
+        need(pin['bytes']==row['bytes'] and pin['identity']['mode']&0o7777==row['mode'],'base source actual size/mode differs');base_pins[row['path']]=pin
+    for key in ('root_source','driver_source','gate_values'):verify_source(owner,child[key],cap=RECORD_CAP)
+    provider=base_pins.get(child['stage_directory']+'/integration/probe_binding_v3.py')
+    need(provider is not None and provider['sha256']==PROVIDER_SHA,'genuine provider omitted/differs')
+    census_child(owner,child,base_pins)
+    owner.phase='OWNING_DESTINATIONS'
+    for existing in (root+'/stages',root+'/control'):open_existing_directory(owner,existing)
+    sb=make_directory(owner,root+'/stages',request['stage']);packet=make_directory(owner,root+'/control',request['queue']+'-packet');private=make_directory(owner,root+'/control',request['queue']+'-private')
+    integration=make_directory(owner,sb,'integration');receivers=make_directory(owner,sb,'receivers');data=make_directory(owner,sb,'data')
+    runtime=make_directory(owner,private,'runtime');control=make_directory(owner,private,'control')
+    canonical_pairs=set()
+    for name in ('parent-queue.lock','science.lock'):
+        pin,_=observe_regular(root+'/runtime/'+name,RECORD_CAP,owner);canonical_pairs.add((pin['identity']['device'],pin['identity']['inode']))
+    private_locks=[]
+    for name in ('parent-queue.lock','science.lock'):
+        pin=install_file(owner,runtime,name,b'',0o600);pair=(pin['identity']['device'],pin['identity']['inode'])
+        need(pair not in canonical_pairs,'private lock aliases canonical/other private lock');canonical_pairs.add(pair);private_locks.append(pin)
+    tcb=install_file(owner,control,'NATIVE-INITIAL-TCB-v1.json',raw_sources['native_tcb_source'],copy=True)
+    entry=install_file(owner,integration,'predecessor_entry.py',raw_sources['entry_source'],copy=True)
+    receiver_policy={name:install_file(owner,receivers,name+'.py',receiver_raw[name],copy=True) for name in PROJECT_PINS}
+    original=install_file(owner,data,'variant_driver_v1.py.txt',raw_sources['original_variant'],copy=True)
+    caller=install_file(owner,packet,'run_queue4_prefix_v2.py',raw_sources['caller_source'],copy=True)
+    supervisor=install_file(owner,packet,'supervisor.py',raw_sources['supervisor_source'],copy=True)
+    readiness=install_record(owner,packet,'SOURCE-READINESS.json',{'files':{'run_queue4_prefix_v2.py':{'sha256':caller['sha256'],'bytes':caller['bytes']},'supervisor.py':{'sha256':supervisor['sha256'],'bytes':supervisor['bytes']}}})
+    policy=install_record(owner,data,'RECEIVER-POLICY.json',receiver_policy)
+    session=root+'/runtime/runs/'+request['label']+'/science';output=session+'/producer-output'
+    actual=[source_row(pin,'project') for pin in (entry,original,policy,caller,supervisor,readiness,tcb,*receiver_policy.values())]
+    actual += [source_row(child[key],'root' if key=='root_source' else 'driver' if key=='driver_source' else 'project') for key in ('root_source','driver_source','gate_values')]
+    actual += [source_row(request['runner_source'],'project'),source_row(child['stage_manifest'],'stage')]
+    rows=reconcile_rows(request['parent_source_rows'],actual)
+    case={key:child[key] for key in ('id','generation','launch_nonce','stage_directory','stage_manifest','stage_directories','root_seconds','address_space_bytes','rss_bytes','root_source','driver_source','gate_values','expectation')}
+    case.update(output=output,command=construct_command(child,request['mode'],output))
+    q={'schema':'h25-v03-prefix-parent-plan-v1','mode':request['mode'],'round_root':private,'session_directory':session,'session_seconds':request['session_seconds'],'source_closure_admission_sha256':request['source_closure_admission_sha256'],'source_files':rows,'case':case}
+    owner.phase='WRITING_ACYCLIC_METADATA';plan=install_record(owner,data,'PREFIX-PLAN.json',q)
+    plan_pair=(plan['identity']['device'],plan['identity']['inode']);need(all((p['identity']['device'],p['identity']['inode'])!=plan_pair for p in tuple(base_pins.values())+tuple(owner.outputs.values()) if p is not plan),'outer plan inode aliases input')
+    configuration={'plan':plan,'receiver_policy':policy,'checker_source':receiver_policy['v03_prefix_supervisor_v1'],'original_variant':original}
+    gates={'v03_prefix_supervisor_v1':dict(CONFIGURATION=configuration,**{key:request['admissions'][key] for key in ('SOURCE_REVIEW','STAGE_APPROVAL','COMMAND_APPROVAL','FUNDING','EXECUTION_APPROVAL')}),'epoch_copy_v5':{key:request['admissions'][key] for key in ('COPY_CONFIGURATION','COPY_EXECUTION_APPROVAL','COPY_FUNDING')}}
+    manifest=install_record(owner,integration,'PREFIX-BOOTSTRAP.json',{'schema':'unit06-bootstrap-manifest-v1','mode':request['mode'],'lanes':request['lanes'],'finite_only':request['finite_only'],'session_directory':session,'canonical_root':root,'receiver_policy':policy,'outer_plan':plan,'private_locks':private_locks,'gates':gates})
+    jobs=install_record(owner,sb,'JOBS.json',{request['job']:{'entry':'integration/predecessor_entry.py','lanes':request['lanes'],'finite_only':request['finite_only'],'optimized':request['mode']=='optimized'}})
+    inventory={path[len(sb)+1:]:{'sha256':pin['sha256'],'mode':pin['identity']['mode']&0o777} for path,pin in owner.outputs.items() if path.startswith(sb+'/')}
+    need(all(part.split('/')[-1]!='STAGE.json' for part in inventory),'nested excluded stage manifest')
+    stage=install_record(owner,sb,'STAGE.json',{'files':inventory,'runner_sha256':request['runner_source']['sha256']})
+    config=install_record(owner,root+'/control',request['queue']+'-CONFIG.json',{'queue':request['queue'],'cases':[{'stage':request['stage'],'job':request['job'],'label':request['label'],'stage_sha256':stage['sha256'],'science_status':'PREFIX_OBSERVATION_DATA','science_fields':{key:False for key in FALSE_FIELDS}}]})
+    outer_policy=install_record(owner,root+'/control',request['queue']+'-POLICY.json',dict(queue=request['queue'],**request['outer_policy']))
+    selection_value={'schema':'unit06-prior-caller-selection-v1','root':root,'config':config,'policy':outer_policy,'source_packet':readiness,'entry':entry,'stages':[{'stage':request['stage'],'manifest':stage,'entry':entry,'bootstrap':manifest,'jobs':jobs,'excluded_stage_manifests':[]}],'queue_sha256':QUEUE_SHA,'runner_sha256':request['runner_source']['sha256']}
+    selection=install_record(owner,root+'/control',request['queue']+'-SELECTION.json',selection_value)
+    for path in sorted(owner.directories,key=lambda p:p.count('/'),reverse=True):
+        if path==sb or path.startswith(sb+'/') or path==packet:
+            fd=owner.fd_slots[owner.directories[path]];os.fchmod(fd,0o555);os.fsync(fd)
+    # Final endpoint reads are real and charged; they do not prove C07 intervals.
+    for pin in tuple(owner.outputs.values()):
+        parent,name=pin['path'].rsplit('/',1);final,_=_owned_read(owner,parent,name,pin['path'],FILE_CAP);need(final==pin,'final installed endpoint differs')
+    result={'schema':'unit07-preparation-data-v1','selection':selection,'stage':stage,'bootstrap':manifest,'receiver_policy':policy,'outer_plan':plan,'source_packet':readiness,'caller':caller,'private_root':private,'operation_bill':operation_bill(owner),'requires_independent_approval':True,**{key:False for key in FALSE_FIELDS},'c07_interval_proved':False,'source_admission':False,'funding_admission':False}
+    owner.partial_result=result;owner.phase='PREPARED_DATA';return result
+
+
+def prepare_prefix_stage(request):
+    """One actual preparation attempt; failed owner remains in PREPARATIONS."""
+    need(_PREPARATION_USED[0] is False,'one public preparation attempt per fresh process');_PREPARATION_USED[0]=True
+    owner=make_preparation_owner();owner.burned=True;primary=None
+    try:return _prepare(request,owner)
+    except BaseException as error:primary=owner.fail(error);raise primary
+    finally:
+        close_preparation(owner)
+        if primary is None and owner.primary is not None:raise owner.primary
