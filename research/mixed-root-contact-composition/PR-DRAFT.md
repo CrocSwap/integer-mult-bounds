@@ -6,14 +6,14 @@ unchanged. Refresh main and overlap before any later submission.
 
 Proposed title:
 
-**Conditional kappa 0.00328620: mixed projector root (+4.284% over PR6375) and exact family limits**
+**Conditional kappa 0.00328621476572836015146308 (+4.28455% over PR6375) and exact family limit**
 
 ---
 
 This contribution changes the complete caller and gives conditional
-**kappa 0.00328620**, up from **0.00315120** in the pinned
+**kappa 0.00328621476572836015146308**, up from **0.00315120** in the pinned
 [PR6375](https://github.com/CrocSwap/integer-mult-bounds/pull/6375).
-The increase is **0.00013500, or 4.28408 percent**. The selected record
+The increase is about **0.00013501476573, or 4.28455 percent**. The selected record
 is unchanged. This is an exponent-saving result under five inherited
 framework assumptions, not a measured runtime speedup.
 
@@ -34,8 +34,9 @@ outside tensor powers. They include every normalization and basis change.
 
 | Quantity | Final mixed-root composition |
 | --- | ---: |
-| Conditional kappa | 0.00328620 |
-| Strict raw crossing | (0.00328621476572, 0.00328621476573) |
+| Conditional kappa | 0.00328621476572836015146308 |
+| Strict raw crossing | (0.00328621476572836015146309, 0.00328621476572836015146310) |
+| Distance below exact raw limit | Between 1e-26 and 2e-26 |
 | Native source events | 17,768 |
 | Native calls / caller events | 18 / 570 |
 | Main fields per port / ports | 34 / 104 |
@@ -55,7 +56,9 @@ are checked. The exact predecessor files and notices are retained.
 
 The root supplies most of the full gain. The last source composition
 adds only **0.00000036 (0.0109561 percent)** over the immediately preceding
-local result 0.00328584. It is not a separate 4.28 percent advance.
+local result 0.00328584. The final parameter refinement adds about
+**0.000449325 percent** over 0.00328620 with the same invoice. Neither
+small final increment is a separate four-percent construction gain.
 `RESEARCH-MAP.md` records the full local progression and source credit.
 
 ## How far the technique was pushed
@@ -66,8 +69,14 @@ The contribution includes exact results beyond the construction:
   root with four full stages and at most two extra whole idles. It
   retains all scalar bases and the full nonzero endpoint parameter,
   including its exceptional value. Every such root has the same price
-  pattern. All positive binary child sizes and shapes have a ceiling
-  of **0.00328623** with the pinned final source.
+  pattern. The exact raw optimum is the unique zero of the displayed
+  signed invoice. All positive binary child sizes and shapes are covered;
+  every competing size profile and all 11 seven-leaf tree histograms
+  are checked. The winning sizes are 7,2,2,7. The complete claim is
+  **less than 2e-26 below this raw limit** with the pinned final source.
+  At the limit, paid and productive moments are equal. This strict
+  funding argument cannot certify equality; more digits are not a new
+  construction step.
 - An active-space reduction proves that arbitrary extra outputs without
   the central transform do not evade the shortest-query price limit.
 - All seven rank-four fifth-stage extensions that retain the two
@@ -92,7 +101,8 @@ is claimed.
 
 Start with `research/mixed-projector-query-root/PROOF.md` for the root
 and global normalization. Then read this package's `PROOF.md` and
-`RESULT.json` for the final native composition and complete price.
+`RESULT.json` for the final native composition and complete price. Read
+`OPTIMALITY.md` for the exact family limit and strict approach to it.
 The intermediate `mixed-root-source-composition` package retains the
 PR6353 result and complete source closure. The `mixed-projector-root-headroom`
 package supplies the structural proof, a separate reverse caller engine,
@@ -107,7 +117,8 @@ The registered commands use only Python 3.12 and its standard library.
 Normal and optimized replay pass for both changed packages. The complete
 composition checks all 799 native columns, 638,401 separate reverse
 coefficients, absolute native phases and 7,488 physical caller contacts.
-Two rational moment engines agree. Completion, the compiler, ordinary
+Two rational moment engines agree at the tested saving and both raw
+bracket endpoints. Completion, the compiler, ordinary
 costs and all 54 strict plus four functional outer predicates pass.
 There are 43 rejecting source, invoice and semantic controls.
 
@@ -124,7 +135,9 @@ review and formal-kernel acceptance remain open. The assumptions are
 materialized. The separate [PR6376 scalar audit](https://github.com/CrocSwap/integer-mult-bounds/pull/6376)
 checks the earlier PR6372 boundary only. Its forward CLEAR rows are
 nonzero; neither that audit nor this composition discharges the inherited
-owned_erasure premise. The compiler threshold is 2^70855400000000.
+owned_erasure premise. The final near-limit refinement uses tensor power
+1920, reserve 1e-29 and logarithm power 2100. Its compiler threshold is
+`2^317427600000000000000000000000000`. These constants are theoretical.
 
 ## Coordination and credit
 

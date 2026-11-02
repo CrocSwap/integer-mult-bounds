@@ -13,11 +13,14 @@ mechanism from another PR is credited to that PR, not claimed as new here.
 | PR6353 composition, commit 24f03629f | 0.00328551 | Nine native output contractions, with all productive debits |
 | PR6372 composition, commit 7c71f5999 | 0.00328584 | Two more source contractions at all 18 calls |
 | PR6375 composition, commit 3e6d2b839 | 0.00328620 | Six shared-carrier input lifts at all 18 calls |
+| Exact raw-limit refinement | 0.00328621476572836015146308 | Same invoice; exact optimum proof, tighter completion and compiler parameters |
 
-The final caller gain over the pinned PR6375 claim 0.00315120 is
-4.284082 percent. The increase from the first local mixed root is about
-0.195134 percent. The final composition alone adds 0.0109561 percent.
-These are different comparisons. None is a wall-clock speedup.
+The final caller gain over the pinned PR6375 claim 0.00315120 is about
+4.284551 percent. The increase from the first local mixed root is about
+0.195584 percent. The last source composition added 0.0109561 percent.
+The final parameter refinement adds about 0.000449325 percent over
+0.00328620; it changes no construction or invoice. These are different
+comparisons. None is a wall-clock speedup.
 
 The earlier PR5580 event-contact change was a small published result on
 the older native line. It is historical context, not the source of the
@@ -39,7 +42,10 @@ published investigations.
 4. [Final composition](PROOF.md). Check both source reconstructions,
    all six changed helper inputs, every productive debit and all 18
    copies of each source change before reading the scalar moments.
-5. [Final receipt](RESULT.json). Check native phases and physical
+5. [Exact raw limit](OPTIMALITY.md). Check the signed invoice, all-size
+   comparisons and every competing seven-leaf tree histogram. The complete
+   point is less than 2e-26 below the raw limit; equality is not certified.
+6. [Final receipt](RESULT.json). Check native phases and physical
    contacts, both price engines, ordinary costs, completion, compiler
    and all outer inequalities. Read [validation](VALIDATION.md) for
    what was actually run.
@@ -48,6 +54,7 @@ published investigations.
 
 | Result | Evidence | Limit |
 | --- | --- | --- |
+| Exact raw optimum and strict approach | [OPTIMALITY.md](OPTIMALITY.md) | Fixed PR6375 source and classified root family; no endpoint-equality certificate |
 | Minimum-idle family classification | [PROOF.md](../mixed-projector-root-headroom/PROOF.md) | Six fields, seven square-zero queries, four full stages, at most two extra whole idles |
 | General rank-two restriction and six-field idle floors | Same proof | Stated commuting scalar model; no universal lower bound for other interfaces |
 | All-width normalization and its tensor counterexample | Same proof and exact replay | Uses the actual binary translation relation q squared equals X |

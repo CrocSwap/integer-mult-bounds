@@ -9,8 +9,10 @@ The native source stays fixed at PR6353. This is a new structural result,
 not a further kappa increment.
 
 The [final source composition](../mixed-root-contact-composition/README.md)
-raises the complete claim to 0.00328620 and recalculates the same family's
-ceiling at 0.00328623. The classification itself does not depend on the
+refines the complete claim to 0.00328621476572836015146308 with the
+same invoice. Its [exact raw optimum](../mixed-root-contact-composition/OPTIMALITY.md)
+is less than 2e-26 above that claim. The former exclusion bound
+0.00328623 is replaced by the exact raw limit. The classification itself does not depend on the
 native source profile. This package retains the first source-bound price
 example in its exact receipt.
 

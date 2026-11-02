@@ -12,7 +12,7 @@ native output contractions. It keeps the root, all four child trees and all
 source, with every productive target debit included.
 
 The subsequent [final source composition](../mixed-root-contact-composition/README.md)
-is the final result in this contribution, at **0.00328620**. This package
+is the final result in this contribution, at **0.00328621476572836015146308**. This package
 retains the exact intermediate result and source closure for review.
 
 The exact raw crossing is in

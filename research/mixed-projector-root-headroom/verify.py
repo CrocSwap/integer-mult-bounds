@@ -408,7 +408,7 @@ def run():
     boundary = module(HERE/'boundary_modules.py', 'headroom_boundary_modules')
     current = data['research/mixed-root-contact-composition/RESULT.json']
     saving = Q(current['price']['kappa_decimal'])
-    need(saving == Q('.00328620'), 'Exact latest complete composition claim')
+    need(saving == Q('.00328621476572836015146308'), 'Exact latest complete composition claim')
     latest_extension = next_cost.run(current['local'], E, saving)
     boundary_price = module(HERE/'boundary_prices.py', 'headroom_boundary_prices')
     return {'status': 'PASS_MIXED_ROOT_MINIMUM_IDLE_CLASSIFICATION',

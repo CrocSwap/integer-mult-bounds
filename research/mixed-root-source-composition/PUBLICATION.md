@@ -1,4 +1,4 @@
-The current result is **0.00328620**. See the [current validation](../mixed-root-contact-composition/VALIDATION.md) and [local PR draft](../mixed-root-contact-composition/PR-DRAFT.md). The older scientific receipts below remain unchanged.
+The current result is **0.00328621476572836015146308**. See the [current validation](../mixed-root-contact-composition/VALIDATION.md) and [local PR draft](../mixed-root-contact-composition/PR-DRAFT.md). The older scientific receipts below remain unchanged.
 
 # Earlier verification checkpoint and publication hold
 

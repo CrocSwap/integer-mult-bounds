@@ -1,7 +1,7 @@
 # Helper consumption and a five-call border
 
 These are exact module results. They do not increase the complete kappa.
-The source-bound prices use the final PR6375 composition at 0.00328620.
+The source-bound prices use the final PR6375 composition at 0.00328621476572836015146308.
 The native caller and recursive precision transfer for these changed
 interfaces have not been constructed.
 

@@ -1,4 +1,8 @@
-# Local validation of the final contribution
+The evidence below covers the earlier 0.00328620 checkpoint. The current
+[raw-limit refinement](OPTIMALITY.md) has a new scientific commit and needs
+its own export receipt. Do not apply these old export hashes to new code.
+
+# Earlier local validation checkpoint
 
 The publication hold is active. The branch has not been pushed and no PR
 has been opened. The local draft is PR-DRAFT.md. The complete conditional
