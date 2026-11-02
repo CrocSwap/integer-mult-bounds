@@ -1,0 +1,41 @@
+# Exact AT_RANDOM producer-event argument
+
+This is the deliberately smaller Unit13 proposition selected by PLAN569cb172... and claim clarification81ca27af..., under the original applicable OS/loader premise. It is not Pro14's proposed handoff-memory theorem. Every execution prefix is taken from the exact source/actual launch mechanism independently of this witness, including failed and interrupted prefixes. The proof states conditional facts about reached source events; it does not define permitted executions as those already satisfying the desired conclusion.
+
+Source identity is separate from the semantic argument. Production checking requires every literal pin in the frozen24-input packet08811bbb.... Inert text mutation controls deliberately call the semantic analyzer without that identity gate. Ordinary original F/source occurrences remain separately required. Source digests in this witness neither replace those rows nor prove completeness/currentness.
+
+## Named interfaces and representation
+
+The applicable original OS/loader premise supplies the operational semantics of the genuine named kernel RNG and user-copy interfaces. At get_random_bytes(buffer,n), normal return supplies n bytes to that live kernel buffer; no entropy quality, independence, statistical or cryptographic claim is used. At copy_to_user(dst,src,n), the genuine copy interface preserves these arguments and returns a residual: zero means completed logical transfer, nonzero may leave partial side effects. The source's boolean guard uses only zero versus nonzero. We do not infer an exact copied prefix, write order, atomic snapshot, exclusive writer or retained memory value.
+
+The selected native Linux/GNU x86_64 interface has8-bit bytes,64-bit pointer/unsigned long/__u64, and its flat-address integer/pointer conversion semantics preserve the address word through the casts used here. Equal widths alone would not establish this implementation-defined conversion. Native asm/elf.h selects ELFCLASS64; exact include/linux/elf.h57 aliases elf_addr_t to Elf64_Off; uapi/linux/elf.h20 aliases Elf64_Off to __u64. This is a conditional native interface meaning, not a source-flag proof of a current host or a new ABI admission. The associated config and source commit do not establish an actual future kernel/executable instance.
+
+Ordinary well-defined local C object/pointer execution is included in the genuine kernel/OS interface premise. In particular, k_rand_bytes is the live local unsigned char[16] object, and the saved_auxv cursor operations refer to their actual local objects where reached in well-defined executions. This argument does not prove saved_auxv capacity, user-stack ownership or whole-kernel memory safety from the source hashes.
+
+## Local derivation
+
+G: binfmt_elf179 declares unsigned char k_rand_bytes[16]. At226 the call get_random_bytes(k_rand_bytes,sizeof(k_rand_bytes)) passes that same object and16 C bytes. Under the declared normal-return provider semantics these are the bytes subsequently supplied as the source of C. Prefixes interrupted before normal return acquire no completed-G claim and no actual seed is recorded.
+
+A: the seed destination is set at227-228 by casting STACK_ALLOC(p,sizeof(k_rand_bytes)) to elf_addr_t __user*. For the selected downward macro152, the unsigned cursor expression is p-=16. If q denotes its previous64-bit unsigned value, the resulting numeric word is d=(q-16) modulo2^64. This equality does not imply q>=16, nonwrap, canonicality, a writable mapping or actual ownership. A nonwrapping owned-stack corollary would additionally require q>=16, d+16=q as mathematical integers, the entire [d,q) range inside this invocation's live writable initial-stack mapping, applicable native conversion and actual lifecycle/subject evidence. No witness value discharges those conditions.
+
+C: at229 the source requests copy_to_user(u_rand_bytes,k_rand_bytes,sizeof(k_rand_bytes)): destination is exactly A's computed pointer, source exactly G's local object and length exactly16. Nonzero residual immediately reaches the source return-EFAULT at230 before K or U. It can already have caused partial writes. Zero permits continuation and denotes only completed logical transfer under the named copy contract. It does not imply memory equality at copy-return time in the presence of another permitted writer.
+
+K: if control reaches266, NEW_AUX_ENT(AT_RANDOM,(elf_addr_t)(unsigned long)u_rand_bytes) writes tag25 (auxvec.h31) and the same destination word through the declared native flat-address conversion. Macro235-239 makes TWO ordered stores, id then value, advancing elf_info. A prefix can stop between them; no atomic-pair claim follows. A complete K event is both ordered stores. It does not imply a consumer read, stable pointee, completed table or constructor success.
+
+The following entries and terminating zero-fill advance the local saved_auxv construction. At298 the cursor advances by two AT_NULL words; at300 ei_index is the pointer difference from saved_auxv. This proof needs no fabricated whole-auxv size. It retains the source expression, not an independently guessed numeric table length. No new whole-auxv catalogue is claimed.
+
+U: if control reaches361, its separate transfer request has source mm->saved_auxv, destination current sp, and length ei_index*sizeof(elf_addr_t), with native element width8 bytes under the declared ABI. Nonzero residual returns-EFAULT at362; zero permits local return0 at363. A failure or interruption here does not erase G/C or the earlier kernel stores, and does not imply table completion, seed-memory preservation or handoff. The local source/argument relation is the claim; no persistent memory equality of the source/table is inferred.
+
+## Prefixes and later failures
+
+Earlier platform/base-platform failures can prevent G altogether. Between K and U, the source can return-EINTR on the mmap lock, -EFAULT on VMA/user-write failures, or -EINVAL on argument/environment string-length checks. These are source branch labels; the witness does not guess numerical errno definitions. Each preserves earlier reached events and prevents the later U event. In-flight provider/copy operations may have no normal-return row in a model projection; that absence never proves absence of partial side effects.
+
+After local return0 the ELF loader still finalizes state/registers and returns from its handler. Exact exec.c1741-1742 invokes trace_sched_process_exec and ptrace_event afterward. Original OS integrity permits named legitimate OS behavior; it is not by itself a no-writer/no-tracer lease. Even a prefix with G,C,K,U and local return0 therefore proves no handoff memory snapshot. A model in which a later authorized write changes a previously transferred byte preserves every producer-event relation while refuting a proposed persistent/handoff equality. This asserts no actual tracer, corruption or later write was observed.
+
+## Witness and checking boundary
+
+The bounded canonical witness is a STATIC argument record, not an actual future transcript. Fixed keys contain only exact bounded integers/lists/maps: source IDs and eight32-bit digest words, source-derived lengths and role IDs, native representation parameters, ordered-store relation, source-expression IDs and finite control-flow obligations. It contains no seed bytes, actual addresses, admission flags, self-hash or learned expected ELF answer. Required premise/obligation IDs name conditions, not their satisfaction.
+
+A separate pure model-prefix checker validates normal-return G/C/U records, two K phases and source-labelled failure/return branches. Model objects2/3/4 mean computed destination/saved_auxv/user-table identities, never actual addresses or owned spans. Arbitrary interruption is represented by stopping a prefix; no future event is awarded. This model is an argument control, not an observer.
+
+Future actual provider/subject/native ABI, mapping/stack/namespace/descriptor and lifetime facts, genuine original admissions, C07, fixed ELF expectations, complete input coverage and all physical/final-tail costs remain outside this component. Full C05/full V03 remain false, original credit and43.5% remain unchanged, and costs are OPEN_NOT_ZERO.

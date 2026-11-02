@@ -1,0 +1,9 @@
+# Unit13 pre-P1 availability and conditional claim
+
+Inputs: frozen source packet08811bbb1d4b8cb384c166a27f33226c976604eeb2be1f27d3cbb1402cd424fc, including exact3037B elf.h ca735899fd2c19c7d387f6a361d54878b3feff287ab025295f215f606e9f5e3e. No further source definition is requested for this conditional event claim; no implementation/tests yet.
+
+For every execution prefix of selected binfmt_elf.c under applicable original genuine OS/loader semantics: G226 requests16 bytes into local k_rand_bytes[16]; C227-230 requests transfer from that SAME object to the STACK_ALLOC-computed destination with SAME length. Normal copy zero denotes logical transfer completion; nonzero may leave partial writes and immediately returns-EFAULT before K/U. K266, if reached, writes AT_RANDOM=25 and the numeric destination via NEW_AUX_ENT's two ordered stores. U361, if reached, separately requests transfer of mm->saved_auxv to sp for ei_index*sizeof(elf_addr_t); its failure does not erase earlier events or grant constructor/handoff success. Interrupted prefixes acquire no future event.
+
+Named boundaries: genuine kernel get_random_bytes normal-return semantics; genuine copy_to_user residual/transfer semantics; native Linux/GNU x86_64 flat-address pointer/integer conversion semantics plus8-bit byte/64-bit unsignedlong,pointer,__u64. Width alone does NOT prove the implementation-defined roundtrip. Exact alias: elf_addr_t=Elf64_Off=__u64. At allocation d=(q-16) modulo2^64; no invented q>=16 or owned/canonical/nonwrapping span. Those require separate actual context/range/lifetime evidence.
+
+No atomic/instant/persistent memory equality, complete-table claim, handoff equality or actual-instance/admission flag. Later exec.c1741-1742 trace/ptrace events remain relevant. No seed values, recursive RNG proof, wholeK/C05/V03, original credit or physical-fit claim. OPEN_NOT_ZERO. Parent P1 release still required.

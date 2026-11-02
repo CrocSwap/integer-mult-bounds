@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""Independent Unit13 controls for NEW source/event checker only.
+Clear1nsight/ChrisR; substantial OpenAI Codex/Sol Max assistance.
+Apache-2.0 for this new harness; referenced source licenses remain unchanged.
+No original/kernel code is imported or executed.
+"""
+import argparse
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import sys
+
+MAX_SOURCE_BYTES = 1048576
+MAX_BUNDLE_BYTES = 24 * MAX_SOURCE_BYTES
+PINS_SHA256 = '08811bbb1d4b8cb384c166a27f33226c976604eeb2be1f27d3cbb1402cd424fc'
+FIXTURES_SHA256 = '71606e0ab2273ad5fa21eef1635ef9ddb45f528d3bfc7a2b015532912d07a58b'
+RELEASE_SHA256 = '67fa7c2794460ca8bceb75c1496f6c2056a5c79d05e6d0bf64e83fa93ab208d6'
+CALLBACKS = []
+
+
+def need(value, message):
+    if not value:
+        raise RuntimeError(message)
+
+
+def read_bounded(path, expected=None):
+    need(not path.is_symlink() and path.is_file(), 'regular nonlink input required')
+    with path.open('rb') as stream:
+        blob = stream.read(MAX_SOURCE_BYTES + 1)
+    need(len(blob) <= MAX_SOURCE_BYTES, 'input exceeds source reader bound')
+    if expected is not None:
+        need(hashlib.sha256(blob).hexdigest() == expected, 'frozen input pin differs: ' + path.name)
+    return blob
+
+
+def load_new_checker(path, expected):
+    need(len(expected) == 64 and all(c in '0123456789abcdef' for c in expected),
+         'explicit final NEW checker SHA256 required')
+    read_bounded(path, expected)
+    name = '_unit13_independent_new_checker'
+    need(name not in sys.modules, 'checker module name already occupied')
+    spec = importlib.util.spec_from_file_location(name, path)
+    need(spec is not None and spec.loader is not None, 'new checker loader unavailable')
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_bundle(pins, workspace, bundle_dir):
+    rows = pins['input_pins']
+    need(type(rows) is dict and len(rows) == 24, 'fixed24 source roles required')
+    result = {}
+    total = 0
+    for role, row in rows.items():
+        need(type(role) is str and role and '/' not in role and '..' not in role,
+             'source role spelling differs')
+        if bundle_dir is None:
+            path = Path(row['path'])
+            path = path if path.is_absolute() else workspace / path
+            need(path.is_relative_to(workspace), 'source outside declared workspace')
+            need('outputs/h25-bookkeeping-swarm-20261028/runtime/runs' not in str(path),
+                 'protected runtime source forbidden')
+        else:
+            path = bundle_dir / (role + '.data')
+        blob = read_bounded(path, row['sha256'])
+        need(len(blob) == row['size_bytes'], 'source size differs')
+        total += len(blob)
+        need(total <= MAX_BUNDLE_BYTES, 'source bundle exceeds reader bound')
+        result[role] = blob
+    return result
+
+
+def semantic_rejection(module, call, label):
+    try:
+        call()
+    except module.SemanticError as error:
+        code = error.code
+        need(type(code) in (str, int) and type(code) is not bool and bool(str(code)),
+             'semantic error lacks a bounded reason code')
+        return str(code)
+    except BaseException as error:
+        raise RuntimeError(label + ': expected semantic rejection, got ' + type(error).__name__) from error
+    raise RuntimeError(label + ': semantic counterexample accepted')
+
+
+def tripwire(*unused, **kwargs):
+    CALLBACKS.append('unexpected user callback')
+    raise RuntimeError('forbidden callback dispatched')
+
+
+class TrapDict(dict):
+    __iter__ = tripwire
+    __getitem__ = tripwire
+    items = tripwire
+    keys = tripwire
+
+
+class TrapList(list):
+    __iter__ = tripwire
+    __getitem__ = tripwire
+
+
+class TrapStr(str):
+    __hash__ = str.__hash__
+    __eq__ = tripwire
+
+
+def type_rejection(module, call, label):
+    CALLBACKS.clear()
+    try:
+        call()
+    except (module.FormatError, module.SemanticError, module.SourcePinError):
+        need(not CALLBACKS, label + ': callback before rejection')
+        return
+    except BaseException as error:
+        raise RuntimeError(label + ': wrong failure ' + type(error).__name__) from error
+    raise RuntimeError(label + ': nonexact type accepted')
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--module', type=Path, required=True)
+    parser.add_argument('--module-sha256', required=True)
+    parser.add_argument('--workspace', type=Path, required=True)
+    parser.add_argument('--unit', type=Path, default=Path(__file__).resolve().parent.parent)
+    parser.add_argument('--bundle-dir', type=Path)
+    args = parser.parse_args()
+    unit = args.unit.resolve()
+    workspace = args.workspace.resolve()
+    read_bounded(unit / 'SOURCE-IMPLEMENTATION-RELEASE-v1.json', RELEASE_SHA256)
+    pins = json.loads(read_bounded(unit / 'input/SOURCE-AVAILABILITY-v1.json', PINS_SHA256))
+    fixtures = json.loads(read_bounded(Path(__file__).resolve().parent / 'SEMANTIC-FIXTURES-v1.json', FIXTURES_SHA256))
+    bundle = load_bundle(pins, workspace, args.bundle_dir)
+    module = load_new_checker(args.module.resolve(), args.module_sha256)
+    module.authenticate_sources(bundle)
+    profile = module.analyze_sources(bundle)
+    witness = module.make_witness(bundle)
+    need(type(witness) is bytes and len(witness) <= MAX_SOURCE_BYTES, 'bounded witness bytes required')
+    module.check_witness(bundle, witness)
+    decoded = json.loads(witness)
+    module.check_relations(profile, decoded)
+    decisions = []
+    for case in fixtures['event_cases']:
+        label = case['id']
+        if case['accept']:
+            module.check_event_prefix(profile, case['events'])
+            decisions.append({'id': label, 'accepted': True, 'expected': True})
+        else:
+            code = semantic_rejection(module, lambda c=case: module.check_event_prefix(profile, c['events']), label)
+            decisions.append({'id': label, 'accepted': False, 'expected': False, 'semantic_code': code})
+    mutants = []
+    for case in fixtures['source_mutations']:
+        original = bundle[case['role']]
+        needle = case['needle'].encode('utf-8')
+        need(original.count(needle) == 1, 'independent source mutation must have one exact site: ' + case['id'])
+        changed = dict(bundle)
+        changed[case['role']] = original.replace(needle, case['replacement'].encode('utf-8'), 1)
+        code = semantic_rejection(module, lambda b=changed: module.analyze_sources(b), case['id'])
+        mutants.append({'id': case['id'], 'semantic_code': code,
+                        'mutant_sha256': hashlib.sha256(changed[case['role']]).hexdigest(),
+                        'pin_layer_bypassed_intentionally': True})
+    arithmetic = []
+    for case in fixtures['arithmetic_cases']:
+        actual = module.computed_destination(case['cursor'], width=case['width'], length=case['length'])
+        need(type(actual) is int and actual == case['expected'], 'independent modular arithmetic differs: ' + case['id'])
+        arithmetic.append({'id': case['id'], 'computed': actual, 'expected': case['expected'],
+                           'actual_owned_span_asserted': False})
+    type_rejection(module, lambda: module.authenticate_sources(TrapDict(bundle)), 'dict subclass')
+    bad_keys = {k: v for k, v in bundle.items() if k != 'producer'}
+    bad_keys[TrapStr('producer')] = bundle['producer']
+    type_rejection(module, lambda: module.analyze_sources(bad_keys), 'str subclass key')
+    type_rejection(module, lambda: module.check_event_prefix(profile, TrapList([])), 'list subclass')
+    print(json.dumps({'schema': 'unit13-independent-semantic-results-v1',
+        'status': 'PASS_INDEPENDENT_MODEL_AND_SOURCE_RELATIONS_ONLY',
+        'optimized': bool(sys.flags.optimize), 'checker_sha256': args.module_sha256,
+        'fixtures_sha256': FIXTURES_SHA256, 'input_pins_sha256': PINS_SHA256,
+        'witness_sha256': hashlib.sha256(witness).hexdigest(), 'witness_bytes': len(witness),
+        'event_cases': decisions, 'source_mutants': mutants, 'arithmetic_cases': arithmetic,
+        'exact_type_callback_controls': 3, 'original_code_executed': False,
+        'actual_runtime_or_owned_stack_admitted': False, 'seed_bytes_fabricated': False,
+        'memory_snapshot_or_handoff_equality_claimed': False,
+        'full_C05': False, 'full_V03': False, 'outside_costs': 'OPEN_NOT_ZERO'}, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()
