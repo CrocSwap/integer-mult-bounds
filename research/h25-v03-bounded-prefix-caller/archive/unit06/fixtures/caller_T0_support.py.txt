@@ -1,0 +1,198 @@
+"""Conditional Unit06 authenticated entry. No original project imports at load.
+
+T0 is the original trusted first-launcher/OS/interpreter/system-stdlib premise.
+Source selection does not create source, native, C05/C07, funding or runtime
+admission. Do not call main except in a separately admitted genuine instance.
+"""
+from __future__ import annotations
+import ast
+import builtins
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+import types
+
+FILE_CAP=64*1024*1024
+TOTAL_CAP=256*1024*1024
+RECORD_CAP=1024*1024
+MAX_ROWS=8192
+IDENTITY_KEYS=('device','inode','mode','links','uid','gid','size','mtime_ns','ctime_ns')
+ENV={'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8','LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+SYSTEM_PATH=('/usr/lib/python312.zip','/usr/lib/python3.12','/usr/lib/python3.12/lib-dynload')
+
+
+class Stop(RuntimeError):pass
+
+
+def need(condition,message):
+    if condition is not True:raise Stop(message)
+
+
+def plain(value):
+    nodes=text=0
+    def walk(item,depth):
+        nonlocal nodes,text
+        nodes+=1
+        need(depth<=24 and nodes<=65536,'plain structure bound')
+        kind=type(item)
+        if item is None or kind is bool:return
+        if kind is int:need(-(1<<127)<=item<(1<<127),'integer bound');return
+        if kind is str:
+            text+=len(item);need(len(item)<=8192 and text<=524288,'text bound');return
+        need(kind is list or kind is dict,'exact plain value required')
+        need(len(item)<=MAX_ROWS,'container bound')
+        if kind is list:
+            for child in item:walk(child,depth+1)
+        else:
+            for key,child in item.items():
+                need(type(key) is str,'exact string key required');walk(key,depth+1);walk(child,depth+1)
+    walk(value,0)
+
+
+def canonical(value,cap=RECORD_CAP):
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'exact record cap')
+    plain(value)
+    raw=(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False)+'\n').encode('ascii')
+    need(len(raw)<=cap,'canonical record cap');return raw
+
+
+def decode(raw,cap=RECORD_CAP):
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'exact decode cap')
+    need(type(raw) is bytes and len(raw)<=cap,'raw record cap/type')
+    def pairs(rows):
+        result={}
+        for key,value in rows:
+            need(key not in result,'duplicate JSON key');result[key]=value
+        return result
+    def bad(token):raise Stop('non-integer JSON number')
+    value=json.loads(raw,object_pairs_hook=pairs,parse_float=bad,parse_constant=bad)
+    plain(value);return value
+
+
+def path_text(value):
+    need(type(value) is str and 1<len(value)<=4096 and value.startswith('/') and all(32<=ord(c)<127 for c in value),'absolute bounded printable ASCII path required')
+    need(len(value.split('/'))-1<=64,'path component bound')
+    need(all(part not in ('','.','..') for part in value.split('/')[1:]),'canonical path spelling required')
+    return value
+
+
+def identity(info):
+    return dict(zip(IDENTITY_KEYS,(info.st_dev,info.st_ino,info.st_mode,info.st_nlink,info.st_uid,info.st_gid,info.st_size,info.st_mtime_ns,info.st_ctime_ns)))
+
+
+def validate_blob(pin,cap=FILE_CAP):
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'exact blob cap')
+    need(type(pin) is dict and all(type(k) is str for k in pin),'exact blob map')
+    need(set(pin)=={'path','sha256','bytes','identity'},'exact blob fields')
+    path_text(pin['path'])
+    digest=pin['sha256'];need(type(digest) is str and len(digest)==64 and all(c in '0123456789abcdef' for c in digest),'digest shape')
+    need(type(pin['bytes']) is int and 0<=pin['bytes']<=cap,'blob byte bound')
+    row=pin['identity'];need(type(row) is dict and all(type(k) is str for k in row) and set(row)==set(IDENTITY_KEYS),'identity fields')
+    need(all(type(row[k]) is int and 0<=row[k]<(1<<127) for k in IDENTITY_KEYS),'identity integer fields')
+    need(row['inode']>0 and row['size']==pin['bytes'] and stat.S_ISREG(row['mode']) and row['links']==1,'regular single-link identity')
+
+
+class Owner:
+    """New T0-side retained failure state, never an original capability."""
+    def __init__(self):
+        self.primary=None;self.secondary=[];self.pending=False;self.quarantined=False
+        self.busy=False;self.burned=False;self.fd_slots=[];self.captures=[];self.total_bytes=0
+        self.last_block=None;self.last_raw=None;self.modules={};self.published=[];self.executed=[]
+        self.phase='NEW';self.result=None
+    def ready(self):
+        if self.primary is not None:raise self.primary
+        need(not self.quarantined and not self.pending and not self.busy,'owner terminal/uncertain')
+    def fail(self,error):
+        if self.primary is None:self.primary=error
+        elif error is not self.primary:self.secondary.append(error)
+        self.quarantined=True
+        return self.primary
+
+
+def _retained_read(path,expected_sha256,cap,owner,expected_pin=None):
+    """Actual descriptor-bound read. Returned source bytes are never reopened for exec."""
+    need(type(owner) is Owner,'actual local owner required');owner.ready();path_text(path)
+    need(type(cap) is int and 0<=cap<=FILE_CAP,'read cap')
+    if expected_sha256 is not None:
+        need(type(expected_sha256) is str and len(expected_sha256)==64 and all(c in '0123456789abcdef' for c in expected_sha256),'prior digest')
+    if expected_pin is not None:validate_blob(expected_pin,cap);need(expected_pin['path']==path and expected_pin['sha256']==expected_sha256,'prior pin path/digest')
+    record={'path':path,'chunks':[],'raw':None,'observed':None};owner.captures.append(record)
+    owner.fd_slots.append(None);slot=len(owner.fd_slots)-1;primary=None;owner.busy=True
+    try:
+        before=identity(os.stat(path,follow_symlinks=False))
+        need(stat.S_ISREG(before['mode']) and before['links']==1 and before['size']<=cap,'source kind/link/size')
+        owner.pending=True
+        owner.fd_slots[slot]=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        owner.pending=False
+        opened=identity(os.fstat(owner.fd_slots[slot]));need(before==opened,'source open drift')
+        if expected_pin is not None:need(opened==expected_pin['identity'],'source installed identity differs')
+        count=0
+        while count<opened['size']:
+            owner.last_block=os.read(owner.fd_slots[slot],min(65536,opened['size']-count))
+            need(type(owner.last_block) is bytes and bool(owner.last_block),'short source read')
+            count+=len(owner.last_block);owner.total_bytes+=len(owner.last_block)
+            need(count<=cap and owner.total_bytes<=TOTAL_CAP,'retained aggregate byte cap')
+            record['chunks'].append(owner.last_block)
+        owner.last_raw=b''.join(record['chunks']);record['raw']=owner.last_raw
+        after_fd=identity(os.fstat(owner.fd_slots[slot]));after_path=identity(os.stat(path,follow_symlinks=False))
+        row={'path':path,'sha256':hashlib.sha256(record['raw']).hexdigest(),'bytes':count,'identity':after_fd}
+        record['observed']=row
+        need(opened==after_fd==after_path and count==opened['size'],'source read/path drift')
+        need(expected_sha256 is None or row['sha256']==expected_sha256,'source prior digest differs')
+        if expected_pin is not None:need(row==expected_pin,'source complete installed pin differs')
+        return row,record['raw']
+    except BaseException as error:
+        primary=owner.fail(error);raise primary
+    finally:
+        fd=owner.fd_slots[slot];owner.fd_slots[slot]=None
+        if fd is not None:
+            try:os.close(fd)
+            except BaseException as error:
+                retained=owner.fail(error)
+                if primary is None:raise retained
+        owner.busy=False
+
+
+def retained_read(path,expected_sha256,cap,owner,expected_pin=None):
+    need(type(expected_sha256) is str and len(expected_sha256)==64 and all(c in '0123456789abcdef' for c in expected_sha256),'prior digest required')
+    return _retained_read(path,expected_sha256,cap,owner,expected_pin)
+
+
+def retain_regular(pin,cap,owner):
+    validate_blob(pin,cap)
+    return retained_read(pin['path'],pin['sha256'],cap,owner,pin)
+
+
+def observe_regular(path,cap,owner):
+    """Observe installed bytes/identity; this does not approve their source."""
+    return _retained_read(path,None,cap,owner)
+
+
+def write_exclusive(path,raw,mode,owner):
+    need(type(owner) is Owner,'actual local owner required');owner.ready();path_text(path)
+    need(type(raw) is bytes and len(raw)<=FILE_CAP and type(mode) is int and 0<=mode<=0o7777,'exclusive output bounds')
+    owner.fd_slots.append(None);slot=len(owner.fd_slots)-1;primary=None;owner.busy=True
+    try:
+        owner.pending=True
+        owner.fd_slots[slot]=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
+        owner.pending=False
+        offset=0
+        while offset<len(raw):
+            count=os.write(owner.fd_slots[slot],raw[offset:]);need(type(count) is int and 0<count<=len(raw)-offset,'write progress');offset+=count
+        os.fchmod(owner.fd_slots[slot],mode);os.fsync(owner.fd_slots[slot])
+    except BaseException as error:
+        primary=owner.fail(error);raise primary
+    finally:
+        fd=owner.fd_slots[slot];owner.fd_slots[slot]=None
+        if fd is not None:
+            try:os.close(fd)
+            except BaseException as error:
+                retained=owner.fail(error)
+                if primary is None:raise retained
+        owner.busy=False
+    return observe_regular(path,FILE_CAP,owner)[0]
+
+# UNIT06_T0_SUPPORT_END
