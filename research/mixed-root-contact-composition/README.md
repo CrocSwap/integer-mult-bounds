@@ -1,13 +1,13 @@
-# Conditional kappa 0.00328584 from the mixed root and PR6372
+# Conditional kappa 0.00328620 from the mixed root and PR6375
 
 This result is local under the donor publication hold. No branch push
 or PR has been made.
 
 This is the final source composition in the mixed-root contribution.
-It claims **kappa 0.00328584**, about **4.28358 percent above PR6372's
-0.00315087**. The last composition adds 0.00000033 over the local
-0.00328551 result. Most of the complete gain comes from the new caller;
-the native source changes retain their credit in PR6372 and PR6353.
+It claims **kappa 0.00328620**, about **4.28408 percent above PR6375's
+0.00315120**. The last composition adds 0.00000036 over the local
+0.00328584 result. Most of the complete gain comes from the new caller;
+the native source changes retain their credit in PR6375, PR6372 and PR6353.
 
 The fixed caller has four binary children of sizes 7,2,2,7, 18 native
 calls, 34 main fields per port and 570 literal events. It pays all native
@@ -27,12 +27,12 @@ acceptance is claimed.
 2. The [PR6353 composition](../mixed-root-source-composition/PROOF.md)
    gives the complete intermediate claim 0.00328551 and retains the
    complete executable source closure.
-3. [This proof](PROOF.md) consumes the exact published PR6372 word. It
+3. [This proof](PROOF.md) consumes the exact published PR6375 word. It
    charges all 18 copies of the new signed change and checks the final
    complete result in `RESULT.json`.
 4. The [headroom proof](../mixed-projector-root-headroom/PROOF.md)
    classifies every minimum-idle root in this six-field family. With
-   the new source, the all-size ceiling is recalculated at 0.00328587.
+   the new source, the all-size ceiling is recalculated at 0.00328623.
    It also includes a separate reverse replay of all formal coefficients
    of the actual 570-event caller.
 
@@ -50,12 +50,13 @@ python3 -I -B research/mixed-root-contact-composition/verify.py
 python3 -I -O -B research/mixed-root-contact-composition/verify.py
 ```
 
-The exact PR6372 head is
-`b556600ffe14be72406b03a47c661f3c7f1aff06`. Its eight retained files are in
-`contact-source.tar`, with original path, commit, Git blob and SHA256 in
-`CONTACT-INPUTS.json`. The six live files from the preceding composition
+The exact PR6375 head is
+`247b5c319b9f58fe9ee61dbf80697f8a9a429831`. Its seven retained files are in
+`lift-source.tar`, with original path, commit, Git blob and SHA256 in
+`LIFT-INPUTS.json`. The eight exact PR6372 files remain in
+`contact-source.tar`, bound by `CONTACT-INPUTS.json`. The six live files from the preceding composition
 are also pinned and declared. No network fetch or separate-branch Git
-object is needed by the direct replay. Both source archives stay intact.
+object is needed by the direct replay. All earlier source archives stay intact.
 
 See [publication evidence](../mixed-root-source-composition/PUBLICATION.md)
 for executed checks and their limits. Source receipts retain the status
@@ -65,7 +66,7 @@ at the time they were made; publication does not alter frozen evidence.
 
 - Independently review the mixed-root identity, the global normalization
   and the complete native-to-caller binding.
-- Check all target debits from PR6353 and PR6372 before reviewing the
+- Check all target debits from PR6353 and PR6375 before reviewing the
   moment and compiler calculations. They occur at all 18 native calls.
 - Review the free-parameter classification. A larger root gain must
   leave the proved minimum-idle family or change the fixed source.

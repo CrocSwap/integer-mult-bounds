@@ -11,9 +11,9 @@ from collections import Counter
 from fractions import Fraction as Q
 from controller import formula_invoice, need
 
-KAPPA = Q('0.00328584')
-TESTED = Q('0.003285845')
-PREVIOUS = Q('0.00328551')
+KAPPA = Q('0.00328620')
+TESTED = Q('0.003286205')
+PREVIOUS = Q('0.00328584')
 
 
 def encode(value):
@@ -50,7 +50,7 @@ def assemble(local, native, word, physical):
     need(idle == physical['whole_idle_jobs'], 'All paired and individual whole idle jobs')
     need((targets, paid) == formula_invoice(local), 'Independent tree and emitted-event counts')
     need((counts['LOCAL'], counts['QUERY'], counts['IDLE']) == (18, 17, 14) and counts['IDLE_ONE'] == 2 and counts['LAMBDA'] == 20, 'Complete caller census')
-    need((sum(targets.values()), sum(paid.values())) == (13652, 67096), 'All independent fields and paid calls')
+    need((sum(targets.values()), sum(paid.values())) == (13652, 67150), 'All independent fields and paid calls')
     need(sum(r*n for r, n in targets.items())-sum(r*n for r, n in paid.items()) == 760, 'Complete rank-mass surplus')
     need((max(targets), max(paid)) == (145, 56), 'Maximum target and paid ranks')
     return targets, paid, counts
@@ -147,7 +147,7 @@ def run(local, native, word, physical, L):
     need(old_completion[0] > 1, 'The old completion cutoff does not fund the new inventory')
     bad = outer_module.ledger(dict(params, bit_saving=Q('.0027')))
     need(any(x <= 0 for x in bad['strict_checks'].values()), 'Insufficient BIT saving rejected')
-    return encode({'kappa': KAPPA, 'kappa_decimal': '0.00328584', 'previous_fixed_root': PREVIOUS,
+    return encode({'kappa': KAPPA, 'kappa_decimal': '0.00328620', 'previous_fixed_root': PREVIOUS,
                    'gain': KAPPA-PREVIOUS, 'relative_gain_percent': 100*(KAPPA/PREVIOUS-1),
                    'raw_root_interval': [lower, upper], 'raw_headroom': [lower-KAPPA, upper-KAPPA],
                    'derivative_upper': derivative_upper, 'margin_at_previous': E.display(margin(PREVIOUS)),

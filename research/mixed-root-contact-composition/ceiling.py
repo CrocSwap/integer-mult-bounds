@@ -6,7 +6,7 @@ this claim. All arithmetic in this checker uses rational intervals.
 """
 from fractions import Fraction as Q
 
-CEILING=Q('.00328587')
+CEILING=Q('.00328623')
 BIT_CAP=Q('.0034')
 TAIL=100
 
@@ -62,4 +62,4 @@ def run(local,E,root):
             'admitted_saving_cap':str(BIT_CAP),'native_derivative_lower':str(derivative_lower),
             'finite_pair_checks':len(margins),'finite_margin_upper':str(finite_upper),
             'tail_margin_upper':str(tail_upper),'tail_derivative_upper':str(derivative_upper),
-            'scope':'All positive integer child sizes and all binary tree shapes for this fixed root and PR6372 source.'}
+            'scope':'All positive integer child sizes and all binary tree shapes for this fixed root and PR6375 source.'}

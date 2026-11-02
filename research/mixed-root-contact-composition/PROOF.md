@@ -1,6 +1,7 @@
-# Complete composition with the contact-block source
+# Complete composition with the contact and shared-carrier sources
 
-The conditional claim is kappa 0.00328584. The source is PR6372 at
+The conditional claim is kappa 0.00328620. The final source is PR6375 at
+`247b5c319b9f58fe9ee61dbf80697f8a9a429831`. It uses PR6372 at
 `b556600ffe14be72406b03a47c661f3c7f1aff06`. The root and all four binary
 children remain unchanged. This proof retains the five assumptions
 native_all_columns, owned_erasure, compiler, precision_tape and
@@ -12,7 +13,16 @@ The complete retained PR6353 word and basis constructor are byte-equal
 to the two inputs retained by PR6372. The new constructor rebuilds the
 published PR6372 word and rational witness. The only changed public
 output frames are helpers 224 and 227. Both move to frame 245. The main
-interface, public inputs, native frames and caller word stay unchanged.
+interface, native frames and caller word stay unchanged.
+
+Next, the exact shared-carrier constructor and LIFTS.json from PR6375
+rebuild its published word from the authenticated PR6372 input. Only six
+initial frames change: helpers 520 and 655 start at frame 106, while
+544, 671, 472 and 624 start at frame 105. Their first-destination delivery
+and final restoration use three shared carrier rows. The complete final
+frames are unchanged. This source construction is by DreamingOfClouds,
+with Claude Opus 5.5 assistance. The replay checks every changed input.
+No new owned label or lifetime is added by these lifts.
 
 The source has 770 independent public inputs, 29 owned labels, 43 owned
 lifetimes and peak ownership 13. Both new owned lifetimes are charged.
@@ -51,20 +61,30 @@ gain belong to PR6372. The present contribution binds them to the mixed
 root and checks the complete result. There are exactly 18 copies of both
 changes. Omitting either productive debit is rejected.
 
-The complete caller has 67,096 paid jobs and 13,652 productive fields.
-Paid rank mass is 185,088 and productive rank mass is 185,848. Their
+The shared-carrier step then changes the per-call paid bill by
+6H1-3H3+3H4-3H5 and the productive bill by 6H8-6H9. Both changes
+occur at all 18 calls. Unlike the contact contraction, this source change
+is not positive for every concave tariff. Its signed gain is zero at
+linear cost and negative for some smaller powers. The two interval
+engines check the actual exponent used here. All six entrance reversions,
+a missing delivery, a missing restoration and a wrong response sign are
+rejected. These lifts receive their source credit; they are not a new
+root construction.
+
+The complete caller has 67,150 paid jobs and 13,652 productive fields.
+Paid rank mass is 184,980 and productive rank mass is 185,740. Their
 difference is 760. All 17 thin queries, 14 paired whole idles, two
 individual whole idles and 20 ordinary normalizations remain charged.
 
-Two rational moment engines check the claim and tested saving 0.003285845.
+Two rational moment engines check the claim and tested saving 0.003286205.
 The strict raw crossing is in
-`(0.00328585433547, 0.00328585433548)`. The native word has 17,757 events.
+`(0.00328621476572, 0.00328621476573)`. The native word has 17,768 events.
 The source price with the same caller is strictly negative at the new
 claim. Completion, the compiler integer grid, ordinary work, all 54
 strict and four functional outer conditions are recomputed. The BIT
 admission remains 0.0034. `RESULT.json` records the exact crossing and
 all completion and compiler parameters.
-The source ordinary allowance is 129,618 scalar units plus 5,376,000
+The source ordinary allowance is 129,670 scalar units plus 5,379,000
 route units. It is below the retained 10^7 local budget. The complete
 caller ordinary bound remains 248,152,864, below 10^9. The compiler
 logarithm power is 1100 and its threshold is 2^70855400000000. These
@@ -79,7 +99,7 @@ No interval inequality or native check is weakened.
 
 The exact binary-tree recurrence is unchanged. With the new native
 profile, rational interval enumeration below total size 100 and the
-concave decreasing tail prove the ceiling 0.00328587 for all positive
+concave decreasing tail prove the ceiling 0.00328623 for all positive
 binary child sizes and shapes of the fixed root. The complete claim
 is less than 0.00000003 below that ceiling.
 
@@ -87,14 +107,14 @@ The separate `mixed-projector-root-headroom` proof shows that every
 six-field, seven-query root with four full stages and at most two extra
 whole idles has this same priced output pattern. Its structural argument
 does not depend on the native profile. The recalculated ceiling therefore
-applies to that whole family with PR6372 as the fixed source.
+applies to that whole family with PR6375 as the fixed source.
 
 This does not maximize all possible callers or integer-multiplication
 algorithms. More idles, changed query counts or field counts, coupled
 queries, changed child contracts and changed sources remain outside the
-ceiling. The last source composition is a small gain over the preceding
-local result. The full mixed-root contribution is about 4.28358 percent
-above PR6372's published complete claim.
+ceiling. The last source composition adds 0.00000036, or 0.0109561 percent,
+over the preceding local 0.00328584 result. The full mixed-root contribution is about 4.28408 percent
+above PR6375's published complete claim.
 
 ## Verification and attribution
 
@@ -111,6 +131,6 @@ acceptance and the five framework assumptions remain open. The selected
 frontier is unchanged.
 
 The root, binary query module, source contractions and native/compiler/BIT
-engines retain their predecessor credit. The exact PR6372 notice and all
-prior source notices are retained. New composition: Ali Romman with
+engines retain their predecessor credit. The exact PR6372 and PR6375 notices and all
+prior source notices are retained in the two source archives. New composition: Ali Romman with
 substantial OpenAI Codex assistance; no subagents. Apache-2.0.
