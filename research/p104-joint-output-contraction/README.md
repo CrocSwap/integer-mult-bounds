@@ -91,9 +91,10 @@ Author checks do not supply that independent review.
 
 A different departure basis might permit more output contractions. Start
 with a live overlap check, one pinned helper subspace and a literal word.
-The further bounded screen on this word found no additional accepted
-contraction. It is not a global obstruction. Any new direction needs all
-native corrections and a complete price before it supports another kappa.
+An exploratory local-only screen found no additional accepted contraction.
+Its search log is not included here, and it supplies no obstruction claim.
+Any new direction needs all native corrections and a complete price before
+it supports another kappa.
 
 ## Credit
 

@@ -88,7 +88,8 @@ full history was not fetched. All source pins use the canonical base, which
 the raw scientific commit records as its direct parent. No side-branch pin
 is required. This parent check is not reported as a full-history pass.
 
-The final validation-record commit changes this file only. All scientific
-code, witness, word, source pins and result bytes are unchanged from the
-sealed replay. Hosted CI remains separate from these local checks and from
-independent scientific acceptance.
+The validation-record commit changes this file only. A later documentation
+clarification labels the follow-up screen as local-only and unbundled.
+All scientific code, witness, word, source pins and result bytes are unchanged
+from the sealed replay. Hosted CI remains separate from these local checks
+and from independent scientific acceptance.

@@ -264,6 +264,7 @@ changed. The gain is small and does not meet the donor's breakthrough target.
 An independent review should first check the joint anchor identity and the
 paid response insertion, then trace each of the nine target debits through
 the fixed caller. A larger gain needs a new exact source construction or a
-new caller contract. A further bounded contraction screen found no accepted
-extension; it does not prove optimality. See TASK.json for the first steps,
-the required live overlap check and the remaining obligations.
+new caller contract. An exploratory local-only contraction screen found no
+accepted extension. Its search log is not included here, and no obstruction
+or optimality claim depends on it. See TASK.json for the first steps, the
+required live overlap check and the remaining obligations.
