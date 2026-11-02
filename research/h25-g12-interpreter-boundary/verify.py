@@ -27,12 +27,13 @@ def acquisition(descriptor, fail_conversion):
     """C acquisition has succeeded; model only the Python integer conversion.
 
     0..256 are cached in the inspected source. No actual descriptor exists.
+    A returned integer still needs separate ownership registration.
     """
     need(type(descriptor) is int and descriptor >= 0, 'descriptor domain')
     need(not fail_conversion or descriptor >= 257,
          'no allocation site at cached positive integer conversion')
     return {'kernel_acquired': True,
-            'python_registered': not fail_conversion,
+            'python_returned': not fail_conversion,
             'pending': 'M' if fail_conversion else None}
 
 
@@ -128,7 +129,7 @@ def verify_transitions():
     for fd, fail, expected in [(3, False, True), (257, False, True),
                                (257, True, False)]:
         state = acquisition(fd, fail)
-        need(state['kernel_acquired'] and state['python_registered'] is expected,
+        need(state['kernel_acquired'] and state['python_returned'] is expected,
              'acquisition witness/control')
         need(state['pending'] == ('M' if fail else None), 'conversion exception')
         cases.append({'kind': 'acquisition', 'fd': fd, 'failure': fail, **state})
