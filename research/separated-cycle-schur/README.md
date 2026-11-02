@@ -156,7 +156,7 @@ The verifier has no recursion or generated code. Loops are bounded by fixed
 case ranges, n<=256, or permutations of at most eight vertices. Rational
 matrices have size at most nine. Functions remain below 60 lines. Python's
 managed integer and Fraction arithmetic is a fixed-allocation deviation.
-Live graph storage has at most 256 bitset rows; rational elimination has
+Each graph has at most 256 bitset rows; rational elimination has
 two 9-by-9 matrices; permutations are streamed. Fixed finite inputs bound
 integer sizes and allocation lifetime. Larger domains require fresh
 capacity analysis. Warning-strict normal/optimized execution and repository
