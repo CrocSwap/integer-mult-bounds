@@ -1,10 +1,12 @@
-# Local verification and publication hold
+The current result is **0.00328620**. See the [current validation](../mixed-root-contact-composition/VALIDATION.md) and [local PR draft](../mixed-root-contact-composition/PR-DRAFT.md). The older scientific receipts below remain unchanged.
+
+# Earlier verification checkpoint and publication hold
 
 The donor instructed this chat not to open the PR. This branch has not
 been pushed and no PR has been opened. Keep the contribution local until
 the donor gives new publication instructions. Hosted CI has not run.
 
-The final complete conditional claim is 0.00328584, about 4.28358 percent
+At this earlier checkpoint the complete conditional claim was 0.00328584, about 4.28358 percent
 above PR6372 at 0.00315087. The final source composition adds 0.0100441
 percent over the previous local 0.00328551 result. The original mixed-root
 construction supplies most of the full gain. The structural proof adds
@@ -60,8 +62,7 @@ all retained candidate margins are negative, but their upper bounds
 remain positive. No global search exclusion follows.
 
 Hosted CI and independent scientific review are separate gates. Hosted
-replay is pending at this publication checkpoint; its current status is
-reported on the PR. Independent scientific acceptance is not claimed.
+replay was not run at this checkpoint. No PR exists for this branch. Independent scientific acceptance is not claimed.
 No merge, closure or selected-frontier change is authorized or performed.
 
 ## Committed exports and isolated replays

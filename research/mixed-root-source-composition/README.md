@@ -11,8 +11,8 @@ native output contractions. It keeps the root, all four child trees and all
 570 caller events unchanged. Each of the 18 native calls uses the contracted
 source, with every productive target debit included.
 
-The subsequent [PR6372 composition](../mixed-root-contact-composition/README.md)
-is the final result in this contribution, at **0.00328584**. This package
+The subsequent [final source composition](../mixed-root-contact-composition/README.md)
+is the final result in this contribution, at **0.00328620**. This package
 retains the exact intermediate result and source closure for review.
 
 The exact raw crossing is in

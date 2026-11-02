@@ -101,7 +101,7 @@ The exact binary-tree recurrence is unchanged. With the new native
 profile, rational interval enumeration below total size 100 and the
 concave decreasing tail prove the ceiling 0.00328623 for all positive
 binary child sizes and shapes of the fixed root. The complete claim
-is less than 0.00000003 below that ceiling.
+is 0.00000003 below that ceiling.
 
 The separate `mixed-projector-root-headroom` proof shows that every
 six-field, seven-query root with four full stages and at most two extra
@@ -128,7 +128,10 @@ again by reverse output functionals at all four central characters.
 
 All checks are author checks. Independent scientific review, formal-kernel
 acceptance and the five framework assumptions remain open. The selected
-frontier is unchanged.
+frontier is unchanged. The separate [PR6376 scalar audit](https://github.com/CrocSwap/integer-mult-bounds/pull/6376)
+checks the earlier PR6372 boundary only. Its forward CLEAR rows are
+nonzero; neither that audit nor this composition discharges the inherited
+owned_erasure premise.
 
 The root, binary query module, source contractions and native/compiler/BIT
 engines retain their predecessor credit. The exact PR6372 and PR6375 notices and all

@@ -1,6 +1,7 @@
 # The minimum-idle mixed root and its limits
 
-The complete conditional result remains kappa **0.00328551**. This note
+The first source-bound instance has conditional kappa **0.00328551**
+with PR6353. This note
 does not add a new kappa increment. It proves that the ceiling 0.00328554
 applies to a larger class than the fixed root in the source package.
 
@@ -26,7 +27,7 @@ Thus its complete price is the price of the existing mixed root. No
 positive binary child sizes or binary tree shapes reach 0.00328554 under
 the fixed PR6353 source and the admitted saving range through 0.0034.
 
-The claim 0.00328551 is less than 0.00000003 below this ceiling. More
+The claim 0.00328551 is 0.00000003 below this ceiling. More
 idles, more queries, different field counts, different query or source
 interfaces, and noncommuting ordinary coefficients are outside this
 theorem. In particular, this is not a global optimum for kappa.

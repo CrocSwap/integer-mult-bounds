@@ -34,7 +34,7 @@ independent scientific review or formal-kernel acceptance. No global
 optimum or practical runtime improvement is claimed.
 
 The [final source composition](../mixed-root-contact-composition/README.md)
-gives 0.00328584 after the PR6353 and PR6372 source changes. This package retains
+gives 0.00328620 after the PR6353, PR6372 and PR6375 source changes. This package retains
 the separate root construction and its original source for review. The
 [headroom proof](../mixed-projector-root-headroom/PROOF.md) now classifies
 the full minimum-idle family. Historical validation receipts retain the

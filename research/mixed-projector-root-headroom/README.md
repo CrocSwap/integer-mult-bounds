@@ -1,6 +1,7 @@
 # How far the minimum-idle mixed root can go
 
-The complete conditional result is **kappa 0.00328551**. This companion
+With the original PR6353 source, the complete conditional result is
+**kappa 0.00328551**. This companion
 proves that its ceiling **0.00328554** covers every six-field, seven-query
 root with four full stages and at most two extra whole idle jobs, with
 arbitrary scalar bases and all positive binary child sizes and shapes.

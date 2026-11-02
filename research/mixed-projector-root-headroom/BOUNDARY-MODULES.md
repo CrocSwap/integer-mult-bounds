@@ -73,8 +73,9 @@ The exact endpoint is
 W(e)=S diag(ABC,A,B,C)+(1-S)(-e C E_03+e^2 E_12).
 ```
 
-Put E(e)=diag(e,1,e^2,e^2). Each factor is
-E(e)^(-1) R_i(1) E(e), so one global scalar wrapper gives this family.
+Put R_i(e)=u_i v_i and E(e)=diag(e,1,e^2,e^2). Each rank-one matrix
+satisfies R_i(e)=E(e)^(-1) R_i(1) E(e). The stage projectors commute
+with E(e), so one global scalar wrapper gives this family.
 The wrapper is undefined at e=0. At every permitted nonzero e, two
 off-diagonal entries remain. The diagonal limit is not an exact caller.
 
