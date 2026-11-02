@@ -1,0 +1,39 @@
+{
+  "schema": "independent-v3-combined-fault-oracles-v1",
+  "frozen_utc": "2026-11-02T21:42:54.139437+00:00",
+  "status": "DESIGN_ONLY_BEFORE_REPAIR_BODY_READ_NO_EXECUTION",
+  "baseline_controller_sha256": "5c70a4d70fa3f10fda380277e5369f07238816de8486cdc3accbdf30fdb7f6a9",
+  "oracles": [
+    {
+      "case": "capture_primary_then_multiple_cleanup_faults",
+      "fault": "Cap/primary read error, then selector close, both stream close, raw fsync/close failures.",
+      "oracle": "Original primary remains identified; every owned cleanup attempted; all secondary failures retained in terminal or explicit fallback/unknown record; queue stops."
+    },
+    {
+      "case": "returned_pipes_then_SPAWN_RETURNED_ledger_fault",
+      "fault": "Fake Popen returns both fake streams; following ledger.add raises.",
+      "oracle": "Both returned pipe closes and owned cleanup attempted even though stream registration has not begun. No real process/kill/proc action."
+    },
+    {
+      "case": "fsync_failure_still_closes_fd",
+      "fault": "Ledger/raw fsync fails with an owned fake/temporary fd.",
+      "oracle": "Explicit close still attempted; secondary does not replace prior primary; no cleanup skipped."
+    },
+    {
+      "case": "failed_job_then_final_ledger_close_fault",
+      "fault": "Earlier job/capture failure then ledger.close fails.",
+      "oracle": "Failure disposition retains earlier primary plus final secondary; never returns successful queue status or zero/complete-tail bill."
+    },
+    {
+      "case": "nominal_jobs_then_final_close_fault",
+      "fault": "All fake outcomes expected, then finalization fails.",
+      "oracle": "Final external disposition is failure/unknown finalization, never successful queue completion despite earlier provisional events."
+    },
+    {
+      "case": "preflight_or_authority_refusal",
+      "fault": "Missing or mismatched external parent reference/source/context.",
+      "oracle": "No Popen, no original path activity; only declared synthetic local operations."
+    }
+  ],
+  "isolation": "Separate root grant required for any tests. All subprocesses, proc/PID/group operations, resource setters and production-context mutation mocked; temporary test files only. Literal first/secondary fault labels and external event counters are independent of production success fields."
+}

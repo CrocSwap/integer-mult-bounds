@@ -1,0 +1,29 @@
+# RAW_UNQUALIFIED reporter pilot v2 — SOURCE ONLY
+
+This successor preserves CASE-v1 and its review. It contains **no execution grant**. Controller and synthetic tests are authored but have not been imported, compiled or run. Independent source review comes before any new synthetic testing; separate native source/command/context/funding and one-queue authority comes later.
+
+The original D2 remains the two unchanged variant -nostartfiles builds, with six role occurrences and no positive-triple union. This pilot uses **Gamma_probe only**: concrete P=`/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/qualification-pilot-v2-run-v1/probe`, sibling C0=`/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/qualification-pilot-v2-run-v1/cwd`, ENV6. No original stage/C/native/Root/native-TCB target is executed to learn whether -### works. Original B1–B4 are WITHHELD, never replaced by probe commands or counted as performed. B5 is explicitly synthetic-context builtin output.
+
+## Fixed order, outcomes and held meanings
+
+Eight jobs, exactly: **C00,C01,T1,T2,T3,B5,T4,T5**. C00 requires exact exit97/stdout marker/empty stderr; C01 exact exit98/stdout marker/empty stderr. These are the only allowed nonzero outcomes. Every other launch/capture/nonzero/signal/deadline/identity/fixture/output/cleanup error stops the queue and preserves evidence.
+
+Six GCC diagnostics have10s caps; two calibrations have5s caps:70s per-job ceiling total. The outer whole pilot remains150s, including80s shared controller/setup/capture/dispatch/cleanup remainder. Historical94.550533479+150=244.550533479 fits the existing600s tranche/2400s outer policy arithmetically, but is not a funding allocation or measurement. No missing jobs or old40s allowance is silently spent. The1GiB bound remains sampled; stream cap1MiB with retained cap+1 detection and child regular-file FSIZE16MiB serve different roles. Original180s maximum/caps/denominators stay unchanged.
+
+T1/T2 test owned invalid-C planning; T3 records a chosen-B-prefix/leading-equals relation; B5 precedes T4 in the same probe context; T5 records a planned overlay marker. T2's configured names remain unqualified source-default/installed-binding hypotheses, not a prerequisite that must be proved before authorized DATA collection. These relations are record-only, not qualified default/selection/macro facts. Marker absence is not global no-execution proof. Two empty/truncated outputs can compare equal. Raw EOF means only observed receiver bytes; intended complete emission, installed reporter fidelity and every Q-to-D/whole-C05 inference remain false/HOLD.
+
+## Admission and ownership
+
+The parent has prepared run-root/P/B-prefix/sibling C0 and four exact v1 fixture files. It must not precreate raw/ledger/queue claim. The controller exclusively creates P/raw, P/actual-ledger.jsonl, run-root/.<queue_id>.claimed and unique raw stream files. It never recreates fixtures, overwrites, deletes or retries.
+
+`ADMISSION.schema-v2.json` gives exact fields and path_facts format. Required CLI admission/token digests and authority ref come from an independently reviewed exact parent launch; the admission cross-pins final controller/PILOT hashes, authority, serial queue, limits, fixtures, actual context and file identities. Missing/null/wrong fields REFUSE before Popen. This check assumes an honest reviewed parent command; it does not authenticate a hostile caller or create authority from JSON. There is no baked-empty-anchor/source-edit cycle. Actual ADMISSION/token/launch remain uncreated/ungranted here.
+
+Context/file identities are checked before queue and before/after every job. They do not establish immutable lifetime, namespace completeness, actual original C0 continuity or selected loader closure. The passive4-file identity packet and prepared-context record are useful exact DATA inputs, not application conformance. Controller uses only stdlib and fixed generated probe commands, no shell=True or original imports. Child resource limits are new reviewed source rather than execution of the old helper.
+
+The controller uses internal148s alarm plus bounded process-group TERM/KILL/direct-child wait attempts, with residual/unknown cleanup stopping. A separately reviewed parent outer150s guard must include interpreter dispatch/import/setup and potentially blocking I/O. No hard realtime/kernel containment or escaped-descendant theorem is claimed. Actual launched attempts/errors and elapsed/raw capture/status/cleanup are append-logged; unknown spawn/writer evidence stays unknown, never zero-cost.
+
+## Source and test status
+
+`pilot_controller_v2.py` is below40KiB. `test_pilot_controller_v2.py` is below20KiB and contains17 synthetic methods with independently fixed literals and owned-temp fixtures. Proposed future tests import only the new controller, with Popen/proc/cleanup replaced for capture testing; no installed binary/original execution is part of those tests. Neither source file was imported/run/compiled here. The remaining release steps are independent source review, separately authorized new synthetic tests, and a genuine final admission/launch/context/funding/outer-guard review. No test success automatically releases native work.
+
+PILOT-v2.json specifies exact commands, fixture bytes/hashes, expected and held assertions, resource accounting and input provenance. All original C05 complements, C02/C06/C07, baseline/V03/native/receiver/funding and current configured admissions remain unqualified. Full C05/full V03 false;43.5 and zero added original credit unchanged; all costs OPEN_NOT_ZERO. ChrisR/Clear1nsight, source/predecessor credit and substantial Pro/Codex/GPT-6.1 Sol Max assistance are preserved.
