@@ -1,0 +1,100 @@
+#! /usr/bin/make -f
+# -*- makefile -*-
+# Build rules for gcc (>= 2.95) and gcc-snapshot
+# Targets found in this makefile:
+#	- unpack tarballs
+#	- patch sources
+#	- (re)create the control file
+#	- create a debian/rules.parameters file, which is included
+#	  by debian/rules2
+# All other targets are passed to the debian/rules2 file
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+unexport LANG LC_ALL LC_CTYPE LC_COLLATE LC_TIME LC_NUMERIC LC_MESSAGES
+
+default: build
+
+include debian/rules.defs
+include debian/rules.unpack
+include debian/rules.patch
+
+control: $(control_dependencies)
+	@echo "Build environment: derivative=$(derivative), release=$(distrelease)"
+	-mkdir -p $(stampdir)
+	$(MAKE) -f debian/rules.conf $@
+
+configure: control $(unpack_stamp) $(patch_stamp)
+	$(MAKE) -f debian/rules2 $@
+
+pre-build:
+# no backport support for these releases ..., keep conditionals for
+# Debian: jessie stretch buster bullseye ...
+# UBuntu: precise trusty xenial bionic focal groovy hirsute ...
+ifneq (,$(filter $(distrelease),lenny squeeze wheezy hardy lucid))
+	@echo explicitely fail the build for $(distribution)/$(distrelease) on $(DEB_TARGET_ARCH).
+	@echo no bug report required. please figure out the back port yourself.
+	false
+endif
+#ifeq ($(PKGSOURCE),gcc-13)
+#  ifneq (,$(findstring native, $(build_type)))
+#    ifneq (,$(findstring mips, $(TARGET_ALIAS)))
+#	@echo "native compiler for $(TARGET_ALIAS) not built from this source."
+#	@echo "See https://lists.debian.org/debian-gcc/2021/05/msg00011.html"
+#	false
+#    endif
+#  endif
+#endif
+
+build: pre-build control
+	$(MAKE) $(NJOBS) -f debian/rules2 $@
+build-arch: pre-build control
+	$(MAKE) $(NJOBS) -f debian/rules2 $@
+build-indep: pre-build control
+	DEB_BUILD_OPTIONS="$(DEB_BUILD_OPTIONS) nostrap nohppa64 nonvptx nocheck nopgo nolto" \
+	    $(MAKE) $(NJOBS) -f debian/rules2 $@
+
+check: $(check_stamp)
+$(check_stamp): $(build_stamp)
+	$(MAKE) -f debian/rules2 $@
+
+clean:
+	rm -rf $(stampdir)
+# remove temporary dirs used for unpacking
+	rm -rf $(gcc_srcdir) $(gdc_srcdir) $(newlib_srcdir) $(binutils_srcdir)
+	-$(MAKE) -f debian/rules2 $@
+	rm -rf $(srcdir)* $(builddir)* debian/tmp* html
+	rm -f bootstrap-* test-protocol* first-move-stamp
+	rm -f debian/*.tmp
+	rm -f debian/soname-cache
+	find debian -name '.#*' | xargs -r rm -f
+	rm -f $(series_file)*
+	rm -rf .pc
+	dh_clean
+
+install:
+	$(MAKE) -f debian/rules2 $@
+
+html-docs doxygen-docs update-doxygen-docs update-ada-files xxx:
+	$(MAKE) -f debian/rules2 $@
+
+binary-arch binary:
+	$(MAKE) -f debian/rules2 $@
+
+binary-indep:
+	DEB_BUILD_OPTIONS="$(DEB_BUILD_OPTIONS) nostrap nohppa64 nonvptx nocheck nopgo nolto" \
+	    $(MAKE) -f debian/rules2 $@
+
+source diff:
+	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
+
+release:
+	foo=$(shell basename $(CURDIR)); \
+		if [ "$$foo" != "gcc-3.4" ]; then \
+			find -name CVS -o -name .cvsignore -o -name '.#*' | \
+				xargs rm -rf; \
+		fi
+
+.NOTPARALLEL:
+.PHONY: build clean binary-indep binary-arch binary release

@@ -1,0 +1,1482 @@
+# -*- makefile -*-
+# rules.conf
+#	- used to build debian/control and debian/rules.parameters
+#	- assumes unpacked sources
+
+include debian/rules.defs
+include debian/rules.sonames
+
+ifneq (,$(findstring gcc-toolchain, $(PKGSOURCE)))
+include $(binutils_srcdir)/debian/rules.defs
+endif
+
+# manual ...
+ifeq ($(DEB_TARGET_GNU_CPU), $(findstring $(DEB_TARGET_GNU_CPU),hppa m68k))
+  ifeq ($(DEB_TARGET_ARCH),m68k)
+    GCC_SONAME := 2
+  endif
+  ifeq ($(DEB_TARGET_ARCH),hppa)
+    GCC_SONAME := 4
+  endif
+else
+  GCC_SONAME := 1
+endif
+DEB_LIBGCC_SOVERSION := $(DEB_SOVERSION)
+DEB_LIBGCC_VERSION := $(DEB_VERSION)
+
+_soname_map = gcc-s=$(GCC_SONAME) gcc=$(GCC_SONAME) stdc++=$(CXX_SONAME) \
+	gomp=$(GOMP_SONAME) ssp=$(SSP_SONAME) gfortran=$(FORTRAN_SONAME) \
+	itm=$(ITM_SONAME) objc=$(OBJC_SONAME) quadmath=$(QUADMATH_SONAME) \
+	go=$(GO_SONAME) backtrace=$(BTRACE_SONAME) \
+	atomic=$(ATOMIC_SONAME) asan=$(ASAN_SONAME) lsan=$(LSAN_SONAME) \
+	tsan=$(TSAN_SONAME) ubsan=$(UBSAN_SONAME) hwasan=$(HWASAN_SONAME) \
+	vtv=$(VTV_SONAME) gm2=$(GM2_SONAME) \
+	gphobos=$(GPHOBOS_SONAME)
+_soname = $(patsubst $(1)=%,%,$(filter $(1)=%,$(_soname_map)))
+
+rel_on_dev := $(if $(cross_lib_arch),>=,=)
+# $(call _lib_name,<name>,<biarch>,<ext>)
+_lib_name = $(subst $(SPACE),, \
+  lib$(2)$(1) \
+  $(if $(filter dev,$(3)),,$(call _soname,$(1))) \
+  $(if $(or $(filter $(3),dev),$(and $(filter $(3),dbg),$(filter $(1),stdc++))),-$(BASE_VERSION)) \
+  $(if $(3),-$(3))$(LS)$(AQ))
+# $(call _lib_vers,<ext>,<vers>) 
+_lib_vers = ($(if $(filter $(1),dev),$(rel_on_dev),>=) $(2))
+
+# Helper to generate biarch/triarch dependencies.
+# For example, $(eval $(call gen_multilib_deps,gomp)) will create the
+# libgompbiarch variable, and make it contains the libgompbiarch{32,64,n32}
+# variables if biarch{32,64,n32} is set to yes.
+
+define gen_multilib_deps
+  lib$1biarch64$2  := $(call _lib_name,$(1),64,$(2)) $(call _lib_vers,$(2),$(3))
+  lib$1biarch32$2  := $(call _lib_name,$(1),32,$(2)) $(call _lib_vers,$(2),$(3))
+  lib$1biarchn32$2 := $(call _lib_name,$(1),n32,$(2)) $(call _lib_vers,$(2),$(3))
+  lib$1biarchx32$2 := $(call _lib_name,$(1),x32,$(2)) $(call _lib_vers,$(2),$(3))
+  lib$1biarchhf$2  := $(call _lib_name,$(1),hf,$(2)) $(call _lib_vers,$(2),$(3))
+  lib$1biarchsf$2  := $(call _lib_name,$(1),sf,$(2)) $(call _lib_vers,$(2),$(3))
+  ifeq ($$(biarch64),yes)
+    lib$1biarch$2 := $$(lib$1biarch64$2)
+  endif
+  ifeq ($$(biarch32),yes)
+    ifeq ($$(biarch64),yes)
+      lib$1biarch$2 := $$(lib$1biarch64$2), $$(lib$1biarch32$2)
+    else
+      lib$1biarch$2 := $$(lib$1biarch32$2)
+    endif
+  endif
+  ifeq ($$(biarchx32),yes)
+    ifeq ($$(biarch64),yes)
+      lib$1biarch$2 := $$(lib$1biarch64$2), $$(lib$1biarchx32$2)
+    else ifeq ($$(biarch32),yes)
+      lib$1biarch$2 := $$(lib$1biarch32$2), $$(lib$1biarchx32$2)
+    else
+      lib$1biarch$2 := $$(lib$1biarchx32$2)
+    endif
+  endif
+  ifeq ($$(biarchn32),yes)
+    ifeq ($$(biarch64),yes)
+      lib$1biarch$2 := $$(lib$1biarch64$2), $$(lib$1biarchn32$2)
+    else ifeq ($$(biarch32),yes)
+      lib$1biarch$2 := $$(lib$1biarch32$2), $$(lib$1biarchn32$2)
+    else
+      lib$1biarch$2 := $$(lib$1biarchn32$2)
+    endif
+  endif
+  ifeq ($$(biarchhf),yes)
+    lib$1biarch$2 := $$(lib$1biarchhf$2) | $(call _lib_name,$(1),hf,$(2))
+  endif
+  ifeq ($$(biarchsf),yes)
+    lib$1biarch$2 := $$(lib$1biarchsf$2) | $(call _lib_name,$(1),sf,$(2))
+  endif
+endef
+ifeq ($(with_shared_libgcc),yes)
+  LIBGCC_DEP := libgcc-s$(GCC_SONAME)$(LS)$(AQ) (>= $${gcc:Version})
+  $(eval $(call gen_multilib_deps,gcc-s,,$$$${gcc:Version}))
+endif
+LIBGCC_DEV_DEP := libgcc-$(BASE_VERSION)-dev$(LS)$(AQ) ($(rel_on_dev) $${gcc:Version})
+$(foreach x,stdc++ gomp ssp gfortran itm objc atomic asan lsan ubsan hwasan quadmath go vtv, \
+	$(eval $(call gen_multilib_deps,$(x),,$$$${gcc:Version})))
+$(foreach x,gcc gcc-s stdc++ gfortran objc go gphobos, \
+	$(eval $(call gen_multilib_deps,$(x),dev,$$$${gcc:Version})))
+$(foreach x,gcc gcc-s stdc++ gfortran objc go gphobos, \
+	$(eval $(call gen_multilib_deps,$(x),dbg,$$$${gcc:Version})))
+
+# Helper to generate _no_archs variables.
+# For example, $(eval $(call gen_no_archs,go)) will create the go_no_archs
+# variable, using the go_no_cpu and go_no_systems variables.
+define gen_no_archs
+  $1_no_archs :=
+  ifneq (,$$($1_no_cpus))
+    $1_no_archs += $$(foreach cpu,$$(filter-out i386 amd64 alpha arm,$$($1_no_cpus)),!$$(cpu))
+    ifneq (,$$(filter i386,$$($1_no_cpus)))
+      $1_no_archs += !i386 !hurd-i386 !kfreebsd-i386
+    endif
+    ifneq (,$$(filter amd64,$$($1_no_cpus)))
+      $1_no_archs += !amd64 !hurd-amd64 !kfreebsd-amd64
+    endif
+    ifneq (,$$(filter alpha,$$($1_no_cpus)))
+      $1_no_archs += !alpha !hurd-alpha
+    endif
+    ifneq (,$$(filter arm,$$($1_no_cpus)))
+      $1_no_archs += !arm !armel !armhf
+    endif
+    ifneq (,$$(strip $3))
+      $1_no_systems_tmp := $$(subst $$(SPACE)gnu$$(SPACE),$$(SPACE)hurd-gnu$$(SPACE),$$(SPACE)$3$$(SPACE))
+      $1_no_archs += $$(foreach cpu,$$($1_no_cpus),$$(foreach system,$$($1_no_systems_tmp),!$$(subst gnu,$$(cpu),$$(system))))
+    endif
+  endif
+  ifneq (,$$($1_no_systems))
+    $1_no_systems_tmp := $$(subst $$(SPACE)gnu$$(SPACE),$$(SPACE)hurd-gnu$$(SPACE),$$(SPACE)$$($1_no_systems)$$(SPACE))
+    $1_no_archs += $$(foreach system,$$($1_no_systems_tmp),$$(foreach cpu,$2,!$$(subst gnu,$$(cpu),$$(system))))
+  endif
+  $1_no_archs := $$(strip $$($1_no_archs))
+endef
+base_deb_cpus := amd64 i386
+base_deb_systems :=
+$(foreach x,ada d fortran go m2 rs libgphobos libgc check locale,$(eval $(call gen_no_archs,$(x),$(base_deb_cpus),$(base_deb_systems))))
+linux_no_archs := !hurd-any !kfreebsd-any
+
+GCC_VERSION := $(strip $(shell cat $(firstword $(wildcard $(srcdir)/gcc/FULL-VER $(srcdir)/gcc/BASE-VER))))
+NEXT_GCC_VERSION := $(shell echo $(GCC_VERSION) | \
+	awk -F. '{OFS="."; $$2 += 1; $$3=0; print}')
+GCC_MAJOR_VERSION := $(shell echo $(GCC_VERSION)   | sed -r 's/([0-9])\.[0-9]\.[0-9]/\1/')
+GCC_MINOR_VERSION := $(shell echo $(GCC_VERSION)   | sed -r 's/[0-9]\.([0-9])\.[0-9]/\1/')
+GCC_RELEASE_VERSION := $(shell echo $(GCC_VERSION) | sed -r 's/[0-9]\.[0-9]\.([0-9])/\1/')
+NEXT_GCC_MAJOR_VERSION := $(shell expr $(echo $(GCC_MAJOR_VERSION)) + 1)
+NEXT_GCC_MINOR_VERSION := $(shell expr $(echo $(GCC_MINOR_VERSION)) + 1)
+NEXT_GCC_RELEASE_VERSION := $(shell expr $(echo $(GCC_MAJOR_VERSION)) + 1)
+
+ifeq ($(single_package),yes)
+  BASE_VERSION := $(shell echo $(GCC_VERSION) | sed -e 's/\([0-9]*\).*/\1/')
+endif
+
+GCC_SOURCE_VERSION := $(shell echo $(DEB_VERSION) | sed 's/-.*//')
+NEXT_GCC_SOURCE_VERSION := $(shell echo $(GCC_SOURCE_VERSION) | \
+	awk -F. '{OFS="."; $$2 += 1; $$3=0; print}')
+
+MAINTAINER = Debian GCC Maintainers <debian-gcc@lists.debian.org>
+ifeq ($(distribution),Ubuntu)
+  ifneq (,$(findstring $(PKGSOURCE),gnat gdc))
+    MAINTAINER = Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
+  else
+    MAINTAINER = Ubuntu Core developers <ubuntu-devel-discuss@lists.ubuntu.com>
+  endif
+endif
+
+UPLOADERS = Matthias Klose <doko@debian.org>
+ifneq (,$(findstring $(PKGSOURCE),gnat))
+  UPLOADERS = Ludovic Brenta <lbrenta@debian.org>
+endif
+ifneq (,$(findstring $(PKGSOURCE),gdc))
+  UPLOADERS = Iain Buclaw <ibuclaw@ubuntu.com>, Matthias Klose <doko@debian.org>
+endif
+
+DPKGV = 1.14.15
+ifeq ($(with_multiarch_lib),yes)
+  DPKGV = 1.16.0~ubuntu4
+endif
+ifeq ($(multiarch_stage1),yes)
+  DPKGV = 1.16.0~ubuntu4
+endif
+ifeq (,$(filter $(distrelease), precise trusty))
+  DPKGV = 1.17.14
+endif
+DPKG_BUILD_DEP = dpkg-dev (>= $(DPKGV)),
+
+ifeq ($(DEB_HOST_ARCH),$(DEB_TARGET_ARCH))
+  TARGET_QUAL = :$(DEB_TARGET_ARCH)
+endif
+
+ifneq (,$(filter $(distrelease), precise trusty xenial))
+  LOCALES = locales
+else
+  LOCALES = locales-all
+endif
+
+# The binutils version needed.
+# The oldest suitable versions for the various platforms can be found in
+# INSTALL/specific.html ; we take a tighter dependency if possible to be on
+# the safe side (something like newest( version in stable, versions for the
+# various platforms in INSTALL/specific.html) ).
+# We need binutils (>= 2.19.1) for a new dwarf unwind expression opcode.
+# See http://gcc.gnu.org/ml/gcc-patches/2008-09/msg01713.html
+ifeq ($(trunk_build),yes)
+  BINUTILSBDV = 2.23
+else
+  BINUTILSBDV = 2.22
+  ifneq (,$(filter $(distrelease),precise))
+    BINUTILSBDV = 2.22-6~
+  else ifneq (,$(filter $(distrelease),trusty))
+    BINUTILSBDV = 2.24-5~
+  else ifneq (,$(filter $(distrelease),jessie))
+    BINUTILSBDV = 2.25-7~
+  else ifneq (,$(filter $(distrelease),xenial))
+    BINUTILSBDV = 2.26.1
+  else ifneq (,$(filter $(distrelease),stretch))
+    BINUTILSBDV = 2.28
+  else ifneq (,$(filter $(distrelease),bionic))
+    BINUTILSBDV = 2.30
+  else ifneq (,$(filter $(distrelease),buster focal))
+    BINUTILSBDV = 2.34
+  else ifneq (,$(filter $(distrelease),groovy))
+    BINUTILSBDV = 2.35
+  else ifneq (,$(filter $(distrelease),bullseye))
+    BINUTILSBDV = 2.35.2
+  else ifneq (,$(filter $(distrelease),hirsute))
+    BINUTILSBDV = 2.36
+  else ifneq (,$(filter $(distrelease),jammy))
+    BINUTILSBDV = 2.38
+  else
+    BINUTILSBDV = 2.39
+  endif
+endif
+ifeq ($(DEB_CROSS),yes)
+  ifneq (,$(filter $(distrelease),stretch jessie precise trusty xenial))
+    BINUTILS_BUILD_DEP = binutils$(TS)$(NT) (>= $(BINUTILSBDV)), binutils-multiarch$(NT) (>= $(BINUTILSBDV))
+  else
+    BINUTILS_BUILD_DEP = binutils$(TS)$(NT) (>= $(BINUTILSBDV)), debhelper (>= 10.10.6~)
+  endif
+  BINUTILSV := $(shell dpkg -l binutils$(TS) \
+			| awk '/^ii/{print $$3;exit}' | sed 's/-.*//')
+else
+  BINUTILS_BUILD_DEP = binutils$(NT) (>= $(BINUTILSBDV))
+  ifneq (,$(findstring cross-build-,$(build_type)))
+    BINUTILSV := $(shell dpkg -l binutils$(TS) \
+			| awk '/^ii/{print $$3;exit}' | sed 's/-.*//')
+  else
+    BINUTILSV := $(shell dpkg -l binutils binutils-multiarch \
+			| awk '/^ii/{print $$3;exit}' | sed 's/-.*//')
+  endif
+endif
+ifneq (,$(filter $(build_type), build-native cross-build-native))
+  ifeq (,$(filter gccgo% gnat%, $(PKGSOURCE)))
+    BINUTILS_BUILD_DEP += , $(binutils_hppa64)$(NT) (>= $(BINUTILSBDV)) [$(hppa64_archs)]
+  endif
+endif
+ifeq (,$(BINUTILSV))
+  BINUTILSV := $(BINUTILSBDV)
+endif
+# gcc/configure.ac enables some features based on the binutils version. The most
+# recently checked binutils version is 2.36 for GCC 14.  For now it is safe to
+# derive the binutils runtime dependency from the binutils build dependency.
+BINUTILSV := $(BINUTILSBDV)
+
+# libc-dev dependencies
+libc_ver := 2.23
+libc_dev_ver := $(libc_ver)
+kfreebsd_libc_dev_ver := 2.25
+ifeq ($(with_multiarch_lib),yes)
+  ifeq ($(derivative),Debian)
+    libc_dev_ver := 2.23-1~
+  else
+    libc_dev_ver := 2.13-0ubuntu6
+  endif
+endif
+# first set LIBC_DEP/LIBC_DEV_DEP for native builds only
+ifeq ($(DEB_TARGET_ARCH_OS),linux)
+  LIBC_DEP = $(if $(filter alpha ia64, $(DEB_TARGET_ARCH)),libc6.1,libc6)
+  ifneq (,$(findstring musl-linux-,$(DEB_TARGET_ARCH)))
+    LIBC_DEP = musl
+    libc_ver = 0.9
+    libc_dev_ver = 0.9
+  endif
+else ifeq ($(DEB_TARGET_ARCH_OS),hurd)
+  LIBC_DEP = libc0.3
+else ifeq ($(DEB_TARGET_ARCH_OS),kfreebsd)
+  LIBC_DEP = libc0.1
+  libc_dev_ver := $(kfreebsd_libc_dev_ver)
+else ifeq ($(DEB_TARGET_ARCH),uclibc)
+  LIBC_DEP = libuclibc
+endif
+LIBC_DEV_DEP := $(LIBC_DEP)-dev
+
+# this is about Debian archs name, *NOT* GNU target triplet
+biarch_deb_map := \
+	i386=amd64 amd64=i386 \
+	mips=mips64 mipsel=mips64el \
+	mipsn32=mips mipsn32el=mipsel \
+	mips64=mips mips64el=mipsel \
+	mipsr6=mips64r6 mipsr6el=mips64r6el \
+	mipsn32r6=mipsr6 mipsn32r6el=mipsr6el \
+	mips64r6=mipsr6 mips64r6el=mipsr6el \
+	powerpc=ppc64 ppc64=powerpc \
+	sparc=sparc64 sparc64=sparc\
+	s390=s390x s390x=s390 \
+	kfreebsd-amd64=i386 \
+	armel=armhf \
+	armhf=armel
+biarch_deb_arch := $(patsubst $(DEB_TARGET_ARCH)=%,%, \
+	$(filter $(DEB_TARGET_ARCH)=%,$(biarch_deb_map)))
+
+LIBC_BIARCH_DEP :=
+LIBC_BIARCH_DEV_DEP :=
+ifneq (,$(findstring yes,$(biarch64) $(biarch32) $(biarchn32) $(biarchx32)$(biarchhf)$(biarchsf)))
+  LIBC_BIARCH_DEP := $${shlibs:Depends}
+  LIBC_BIARCH_DEV_DEP := $(LIBC_DEV_DEP)-$(biarch_deb_arch)$(LS)$(AQ) (>= $(libc_dev_ver))
+  # amd64, x32, i386
+  ifneq (,$(findstring $(DEB_TARGET_ARCH),amd64 x32 i386))
+  ifeq ($(biarch64)$(biarch32),yesyes)
+    LIBC_BIARCH_DEV_DEP := $(LIBC_DEV_DEP)-amd64$(LS)$(AQ) (>= $(libc_dev_ver)),
+    LIBC_BIARCH_DEV_DEP += $(LIBC_DEV_DEP)-i386$(LS)$(AQ) (>= $(libc_dev_ver))
+  endif
+  ifeq ($(biarch64)$(biarchx32),yesyes)
+    LIBC_BIARCH_DEV_DEP := $(LIBC_DEV_DEP)-amd64$(LS)$(AQ) (>= $(libc_dev_ver)),
+    LIBC_BIARCH_DEV_DEP += $(LIBC_DEV_DEP)-x32$(LS)$(AQ) (>= $(libc_dev_ver))
+  endif
+  ifeq ($(biarch32)$(biarchx32),yesyes)
+    LIBC_BIARCH_DEV_DEP := $(LIBC_DEV_DEP)-i386$(LS)$(AQ) (>= $(libc_dev_ver)),
+    LIBC_BIARCH_DEV_DEP += $(LIBC_DEV_DEP)-x32$(LS)$(AQ) (>= $(libc_dev_ver))
+  endif
+  endif
+  # mips*
+  ifneq (,$(findstring mips, $(DEB_TARGET_ARCH)))
+  ifeq ($(biarchn32)$(biarch32),yesyes)
+      LIBC_BIARCH_DEV_DEP := libc6-dev-mips32$(LS)$(AQ) (>= $(libc_dev_ver)),
+      LIBC_BIARCH_DEV_DEP += libc6-dev-mipsn32$(LS)$(AQ) (>= $(libc_dev_ver))
+  endif
+  ifeq ($(biarch64)$(biarch32),yesyes)
+      triarch := $(COMMA)$(SPACE)
+      LIBC_BIARCH_DEV_DEP := libc6-dev-mips32$(LS)$(AQ) (>= $(libc_dev_ver)),
+      LIBC_BIARCH_DEV_DEP += libc6-dev-mips64$(LS)$(AQ) (>= $(libc_dev_ver))
+  endif
+  ifeq ($(biarchn32)$(biarch64),yesyes)
+      triarch := $(COMMA)$(SPACE)
+      LIBC_BIARCH_DEV_DEP := libc6-dev-mips64$(LS)$(AQ) (>= $(libc_dev_ver)),
+      LIBC_BIARCH_DEV_DEP += libc6-dev-mipsn32$(LS)$(AQ) (>= $(libc_dev_ver))
+  endif
+  endif
+
+  ifeq ($(biarchhf),yes)
+    LIBC_BIARCH_DEP := $(LIBC_DEP)-$(biarch_deb_arch)$(LS)$(AQ) (>= $(libc_dev_ver))
+    LIBC_BIARCH_DEP += | $(LIBC_DEP)-$(biarch_deb_arch)$(LS)$(AQ)
+    LIBC_BIARCH_DEV_DEP += | $(LIBC_DEV_DEP)-$(biarch_deb_arch)$(LS)$(AQ)
+  endif
+  ifeq ($(biarchsf),yes)
+    LIBC_BIARCH_DEP := $(LIBC_DEP)-$(biarch_deb_arch)$(LS)$(AQ) (>= $(libc_dev_ver))
+    LIBC_BIARCH_DEP += | $(LIBC_DEP)-$(biarch_deb_arch)$(LS)$(AQ)
+    LIBC_BIARCH_DEV_DEP += | $(LIBC_DEV_DEP)-$(biarch_deb_arch)$(LS)$(AQ)
+  endif
+endif
+
+# now add the cross suffix and required version
+LIBC_DEP := $(LIBC_DEP)$(LS)$(AQ)
+LIBC_DEV_DEP := $(LIBC_DEV_DEP)$(LS)$(AQ) (>= $(libc_dev_ver))
+
+ifneq (,$(filter $(build_type), build-native cross-build-native))
+  LIBC_DBG_DEP = libc6.1-dbg [alpha ia64] | libc0.3-dbg [hurd-amd64 hurd-i386] | libc0.1-dbg [kfreebsd-amd64 kfreebsd-i386] | libc6-dbg,
+endif
+
+# TODO: make this automatic, there must be a better way to define LIBC_DEP.
+ifneq ($(DEB_CROSS),yes)
+  LIBC_BUILD_DEP = libc6.1-dev (>= $(libc_dev_ver)) [alpha ia64] | libc0.3-dev (>= $(libc_dev_ver)) [hurd-amd64 hurd-i386] | libc0.1-dev (>= $(kfreebsd_libc_dev_ver)) [kfreebsd-amd64 kfreebsd-i386] | libc6-dev (>= $(libc_dev_ver))
+  LIBC_BIARCH_BUILD_DEP = \
+	libc6-dev-amd64 [i386 x32], \
+	libc6-dev-sparc64 [sparc], \
+	libc6-dev-sparc [sparc64], \
+	$(if $(findstring s390x, $(biarch32archs)), libc6-dev-s390 [s390x]$(COMMA)) \
+	libc6-dev-s390x [s390], \
+	libc6-dev-i386 [amd64 x32], \
+	libc6-dev-powerpc [ppc64], \
+	libc6-dev-ppc64 [powerpc], \
+	libc0.1-dev-i386 [kfreebsd-amd64], \
+	lib32gcc-s1 [amd64 ppc64 kfreebsd-amd64 mipsn32 mipsn32el mips64 mips64el$(if $(findstring s390x, $(biarch32archs)),s390x) sparc64 x32], \
+	libn32gcc-s1 [mips mipsel mips64 mips64el], \
+	lib64gcc-s1 [i386 mips mipsel mipsn32 mipsn32el powerpc sparc s390 x32], \
+	libc6-dev-mips64 [mips mipsel mipsn32 mipsn32el], \
+	libc6-dev-mipsn32 [mips mipsel mips64 mips64el], \
+	libc6-dev-mips32 [mipsn32 mipsn32el mips64 mips64el],
+  ifeq (yes,$(MIPS_R6_ENABLED))
+    LIBC_BIARCH_BUILD_DEP = \
+	libc6-dev-amd64 [i386 x32], \
+	libc6-dev-sparc64 [sparc], \
+	libc6-dev-sparc [sparc64], \
+	$(if $(findstring s390x, $(biarch32archs)), libc6-dev-s390 [s390x]$(COMMA)) \
+	libc6-dev-s390x [s390], \
+	libc6-dev-i386 [amd64 x32], \
+	libc6-dev-powerpc [ppc64], \
+	libc6-dev-ppc64 [powerpc], \
+	libc0.1-dev-i386 [kfreebsd-amd64], \
+	lib32gcc-s1 [amd64 ppc64 kfreebsd-amd64 mipsn32 mipsn32el mips64 mips64el mipsn32r6 mipsn32r6el mips64r6 mips64r6el$(if $(findstring s390x, $(biarch32archs)), s390x) sparc64 x32], \
+	libn32gcc-s1 [mips mipsel mips64 mips64el mipsr6 mipsr6el mips64r6 mips64r6el], \
+	lib64gcc-s1 [i386 mips mipsel mipsn32 mipsn32el mipsr6 mipsr6el mipsn32r6 mipsn32r6el powerpc sparc s390 x32], \
+	libc6-dev-mips64 [mips mipsel mipsn32 mipsn32el mipsr6 mipsr6el mipsn32r6 mipsn32r6el], \
+	libc6-dev-mipsn32 [mips mipsel mips64 mips64el mipsr6 mipsr6el mips64r6 mips64r6el], \
+	libc6-dev-mips32 [mipsn32 mipsn32el mips64 mips64el mipsn32r6 mipsn32r6el mips64r6 mips64r6el],
+  endif
+  ifneq (,$(findstring amd64,$(biarchx32archs)))
+    LIBC_BIARCH_BUILD_DEP += libc6-dev-x32 [amd64 i386], libx32gcc-s1 [amd64 i386],
+  endif
+  ifneq (,$(findstring armel,$(biarchhfarchs)))
+    LIBC_BIARCH_BUILD_DEP += libc6-dev-armhf [armel], libhfgcc-s1 [armel],
+  endif
+  ifneq (,$(findstring armhf,$(biarchsfarchs)))
+    LIBC_BIARCH_BUILD_DEP += libc6-dev-armel [armhf], libsfgcc-s1 [armhf],
+  endif
+  # FIXME: needed for backports
+  #LIBC_BIARCH_BUILD_DEP := $(subst gcc-s,gcc,$(LIBC_BIARCH_BUILD_DEP))
+else
+  LIBC_BUILD_DEP = $(LIBC_DEV_DEP),
+  ifneq ($(LIBC_BIARCH_DEV_DEP),)
+    LIBC_BIARCH_BUILD_DEP = $(LIBC_BIARCH_DEV_DEP),
+  else
+    LIBC_BIARCH_BUILD_DEP =
+  endif
+endif
+
+# needed for the include/asm symlink to run the testsuite for
+# non default multilibs
+ifneq (,$(multilib_archs))
+  GCC_MULTILIB_BUILD_DEP = g++-multilib [$(multilib_archs)]$(pf_ncross),
+endif
+
+LIBUNWIND_DEV_DEP := libunwind8-dev$(LS)$(AQ)
+LIBUNWIND_BUILD_DEP := $(LIBUNWIND_DEV_DEP) [ia64],
+LIBATOMIC_OPS_BUILD_DEP := libatomic-ops-dev$(LS) [ia64],
+ifneq ($(DEB_TARGET_ARCH),ia64)
+  LIBUNWIND_DEV_DEP := # nothing
+else ifneq (,$(filter $(DEB_STAGE),stage1 stage2))
+  LIBUNWIND_DEV_DEP := # nothing
+endif
+
+GMP_BUILD_DEP = libgmp-dev (>= 2:5.0.1~),
+MPFR_BUILD_DEP = libmpfr-dev (>= 3.0.0-9~),
+
+ISL_BUILD_DEP = libisl-dev,
+ifeq (,$(filter $(distrelease), jessie stretch precise trusty xenial bionic))
+  ISL_BUILD_DEP = libisl-dev (>= 0.20),
+endif
+
+ifneq (,$(filter $(distrelease), precise))
+  MPC_BUILD_DEP = libmpc-dev,
+else
+  MPC_BUILD_DEP = libmpc-dev (>= 1.0),
+endif
+
+SOURCE_BUILD_DEP :=
+ifeq (,$(findstring gcc,$(PKGSOURCE)))
+  SOURCE_BUILD_DEP := gcc-$(BASE_VERSION)-source (>= $(GCC_SOURCE_VERSION)), gcc-$(BASE_VERSION)-source (<< $(NEXT_GCC_SOURCE_VERSION)),
+endif
+
+ifneq (,$(filter $(distrelease), precise))
+  CHECK_BUILD_DEP := dejagnu$(if $(check_no_archs), [$(check_no_archs)]),
+else
+  CHECK_BUILD_DEP := dejagnu$(if $(check_no_archs),  [$(check_no_archs)]) <!nocheck>,
+endif
+
+AUTO_BUILD_DEP := m4, libtool,
+autoconf_version = 2.69
+ifneq (,$(filter $(distrelease),stretch buster trusty xenial bionic focal groovy))
+  autoconf_version =
+endif
+AUTO_BUILD_DEP += autoconf$(autoconf_version),
+
+ifeq (,$(filter $(distrelease), precise trusty))
+  SDT_BUILD_DEP = systemtap-sdt-dev [linux-any],
+endif
+
+# ensure that the common libs, built from the next GCC version are available
+ifeq ($(PKGSOURCE),gcc-$(BASE_VERSION))
+  ifneq ($(with_common_libs),yes)
+    BASE_BUILD_DEP = gcc-14-base,
+  endif
+endif
+
+ifeq (,$(filter $(distrelease), precise))
+  OFFLOAD_BUILD_DEP += nvptx-tools [$(nvptx_archs)],
+endif
+
+ifeq ($(with_offload_gcn),yes)
+  ifeq ($(gcn_tools_llvm_version),tools)
+    LLVM_DEP = amdgcn-tools [$(gcn_archs)],
+  else
+    LLVM_DEP = llvm-$(gcn_tools_llvm_version)$(if $(pkg_llvm_ver), (>= $(pkg_llvm_ver))) [$(gcn_archs)], \
+	lld-$(gcn_tools_llvm_version)$(if $(pkg_llvm_ver), (>= $(pkg_llvm_ver))) [$(gcn_archs)],
+  endif
+  OFFLOAD_BUILD_DEP += $(LLVM_DEP)
+endif
+
+PHOBOS_BUILD_DEP = lib32z1-dev [amd64 kfreebsd-amd64], lib64z1-dev [i386],
+ifeq ($(derivative),Ubuntu)
+  ifeq (,$(filter $(distrelease),precise))
+    PHOBOS_BUILD_DEP += libx32z1-dev [amd64 kfreebsd-amd64 i386],
+  endif
+endif
+PHOBOS_BUILD_DEP += unzip <!nocheck>,
+
+ifeq ($(with_m2),yes)
+  GM2_BUILD_DEP = python3:any,
+endif
+
+ifeq ($(usage_stats),yes)
+  ifeq (,$(no_usage_archs))
+    USAGE_BUILD_DEP = python3:any, python3-psutil, python3-matplotlib,
+  else
+    USAGE_BUILD_DEP = python3:any, \
+      python3-psutil [$(foreach a,$(no_usage_archs),!$(a))], \
+      python3-matplotlib [$(foreach a,$(no_usage_archs),!$(a))],
+  endif
+endif
+
+ifneq (,$(filter $(distrelease),precise trusty))
+  DEBHELPER_BUILD_DEP = debhelper (>= 9),
+else
+  DEBHELPER_BUILD_DEP = debhelper (>= 9.20141010),
+endif
+
+PKGCONF_BUILD_DEP = pkgconf,
+ifneq (,$(filter $(distrelease),wheezy jessie stretch buster bullseye bookworm precise trusty xenial bionic focal jammy))
+  PKGCONF_BUILD_DEP = pkg-config,
+endif
+
+ifneq ($(DEB_CROSS),yes)
+# all archs for which to create b-d's
+any_archs := alpha amd64 armel armhf arm64 i386 loong64 mips mipsel mips64 mips64el mipsn32 powerpc ppc64 ppc64el m68k riscv64 sh4 sparc64 s390x x32
+ifeq (,$(filter $(distrelease), jessie stretch buster precise xenial bionic))
+  any_archs := $(filter-out mips, $(any_archs))
+endif
+ifeq (yes,$(MIPS_R6_ENABLED))
+  any_archs +=  mipsn32el mipsr6 mipsr6el mips64r6 mips64r6el mipsn32r6 mipsn32r6el
+endif
+ifeq (,$(filter $(DEB_HOST_ARCH),$(any_archs)))
+any_archs += $(DEB_HOST_ARCH)
+endif
+
+arch_gnutype_map := $(foreach a,$(any_archs),$(a)=$(shell CC=true dpkg-architecture -f -a$(a) -qDEB_HOST_GNU_TYPE))
+_gnu_type = $(subst $1=,,$(filter $1=%,$(arch_gnutype_map)))
+_gnu_suffix = -$(subst _,-,$(call _gnu_type,$1))
+
+ifneq (,$(filter $(distrelease),precise trusty))
+  TARGET_TOOL_BUILD_DEP = bash, # non-empty line
+  pf_cross =
+  pf_ncross =
+else
+  TARGET_TOOL_BUILD_DEP = \
+	g++-$(BASE_VERSION)-for-host <cross>, \
+	gobjc-$(BASE_VERSION)-for-host [!avr] <cross>, \
+	gfortran-$(BASE_VERSION)-for-host <cross>, \
+	gdc-$(BASE_VERSION)-for-host [!s390 !sh4] <cross>, \
+	gccgo-$(BASE_VERSION)-for-host [!hppa !m68k !sh4] <cross>, \
+	gnat-$(BASE_VERSION)-for-host [!m68k] <cross>, \
+	gm2-$(BASE_VERSION)-for-host $(if $(m2_no_archs),[$(m2_no_archs)] )<cross>,
+  pf_cross = $(SPACE)<cross>
+  pf_ncross = $(SPACE)<!cross>
+  NT = :native
+endif
+
+LIBSTDCXX_BUILD_INDEP = doxygen (>= 1.7.2) <!nodoc>, graphviz (>= 2.2) <!nodoc>, \
+	ghostscript <!nodoc>, texlive-latex-base <!nodoc>, xsltproc <!nodoc>, \
+	libxml2-utils <!nodoc>, docbook-xsl-ns <!nodoc>,
+
+GO_BUILD_DEP := netbase,
+
+# try to build with itself, or with the last version
+ifneq (,$(filter $(distrelease), precise))
+  gnat_build_dep :=
+else ifneq (,$(filter $(distrelease), jessie))
+  gnat_build_dep := gnat-4.9$(NT) [$(ada_no_archs)], g++-4.9$(NT)
+else ifneq (,$(filter $(distrelease), precise))
+  gnat_build_dep := gnat-6$(NT) [$(ada_no_archs)], g++-6$(NT)
+else ifneq (,$(filter $(distrelease), trusty xenial))
+  gnat_build_dep := gnat-5$(NT) [$(ada_no_archs)], g++-5$(NT)
+else ifneq (,$(filter $(distrelease), stretch))
+  gnat_build_dep := gnat-6$(NT) [$(ada_no_archs) !x32], g++-7 [x32], gnat-7 [x32], g++-6$(NT)
+else ifneq (,$(filter $(distrelease), buster))
+  gnat_build_dep := gnat-8$(NT) [$(ada_no_archs)], g++-8$(NT)
+else ifneq (,$(filter $(distrelease), bionic focal))
+  gnat_build_dep := gnat-11$(NT) [$(ada_no_archs)], g++-11$(NT)
+  gdc_build_dep := gdc-11$(NT)
+else ifneq (,$(filter $(distrelease), bullseye hirsute jammy))
+  gnat_build_dep := gnat-11$(NT) [$(ada_no_archs) !alpha !m68k], g++-11$(NT), gnat-12 [alpha m68k], g++-12$(NT) [alpha m68k]
+  gdc_build_dep := gdc-11$(NT) [$(d_no_archs)]
+else ifneq (,$(filter $(distrelease), impish))
+  gnat_build_dep := gnat-11$(NT) [$(ada_no_archs)], g++-11$(NT)
+  gdc_build_dep := gdc-11$(NT) [$(d_no_archs)]
+else ifneq (,$(filter $(distrelease), bookworm))
+  gnat_build_dep := gnat-12$(NT) [$(ada_no_archs)], g++-12$(NT)
+  gdc_build_dep := gdc-12$(NT) [$(d_no_archs)]
+else
+  gnat_build_dep := gnat-13$(NT) [$(ada_no_archs)], g++-13$(NT)
+  gdc_build_dep := gdc-13$(NT) [$(d_no_archs)]
+endif
+ifneq (,$(filter $(DEB_STAGE),stage1 stage2))
+  gnat_build_dep :=
+  gdc_build_dep :=
+endif
+
+ifeq ($(PKGSOURCE),gcc-$(BASE_VERSION))
+  ifneq ($(with_separate_gnat),yes)
+    # Build gnat as part of the combined gcc-x.y source package.  Do not fail
+    # if gnat is not present on unsupported architectures; the build scripts
+    # will not use gnat anyway.
+    GNAT_BUILD_DEP := $(gnat_build_dep),
+  endif
+  GDC_BUILD_DEP := $(gdc_build_dep),
+else ifeq ($(single_package),yes)
+  # Ditto, as part of the gcc-snapshot package.
+  GNAT_BUILD_DEP := $(gnat_build_dep),
+  GDC_BUILD_DEP := $(gdc_build_dep),
+else ifeq ($(PKGSOURCE),gnat-$(BASE_VERSION))
+  # Special source package just for gnat. Fail early if gnat is not present,
+  # rather than waste CPU cycles and fail later.
+  # Bootstrap step needs a gnatgcc symbolic link.
+  GNAT_BUILD_DEP := $(gnat_build_dep),
+  GNAT_BUILD_DEP += $(SOURCE_BUILD_DEP)
+  GDC_BUILD_DEP :=
+  GO_BUILD_DEP :=
+else ifeq ($(PKGSOURCE),gdc-$(BASE_VERSION))
+  # Special source package just for gdc.
+  GNAT_BUILD_DEP :=
+  GDC_BUILD_DEP := $(SOURCE_BUILD_DEP)
+  GO_BUILD_DEP :=
+else ifeq ($(PKGSOURCE),gccgo-$(BASE_VERSION))
+  # Special source package just for gccgo.
+  GNAT_BUILD_DEP :=
+  GDC_BUILD_DEP := $(SOURCE_BUILD_DEP)
+endif
+
+
+else
+# build cross compiler
+  CROSS_BUILD_DEP := libc6-dev$(cross_lib_arch),
+ifneq (,$(findstring cross-build-,$(build_type)))
+  CROSS_BUILD_DEP += zlib1g-dev$(cross_lib_arch), libmpfr-dev$(cross_lib_arch),
+endif
+  SOURCE_BUILD_DEP :=
+  ifeq (,$(findstring gcc,$(PKGSOURCE)))
+    SOURCE_BUILD_DEP := gcc-$(BASE_VERSION)-source (>= $(GCC_SOURCE_VERSION)), gcc-$(BASE_VERSION)-source (<< $(NEXT_GCC_SOURCE_VERSION)),
+  endif
+  GNAT_BUILD_DEP := gnat-$(BASE_VERSION),
+  ifneq (,$(filter !$(DEB_TARGET_ARCH),$(ada_no_archs)))
+    GNAT_BUILD_DEP :=
+  endif
+  GDC_BUILD_DEP := gdc-$(BASE_VERSION),
+  ifneq (,$(filter !$(DEB_TARGET_ARCH),$(d_no_archs)))
+    GDC_BUILD_DEP :=
+  endif
+  ifeq (yes_,$(with_m2)_$(filter !$(DEB_TARGET_ARCH),$(m2_no_archs)))
+    GM2_BUILD_DEP += gm2-$(BASE_VERSION),
+  endif
+  arch_gnutype_map = $(DEB_TARGET_ARCH)=$(TARGET_ALIAS)
+endif # cross compiler
+
+BASE_BREAKS := gnat (<< 7)
+# these would need proper updates, and are only needed for upgrades
+ifneq (,$(filter $(distrelease),stretch jessie trusty xenial bionic))
+  BASE_BREAKS :=
+endif
+
+# FIXME: can these be dropped? In the end the libgcc_s.so.1 remained in the same location.
+ifneq (,$(filter $(DEB_HOST_ARCH), arm64 s390x sparc64))
+  ifeq (,$(filter $(distrelease), jessie stretch buster trusty xenial bionic))
+    LIBGCC_BREAKS := libgcc-9-dev (<< 9.2.1-26), libgcc-8-dev (<< 8.3.0-27), libgcc-7-dev (<< 7.5.0-4),
+  endif
+endif
+ifneq (,$(filter $(distrelease),sid bullseye focal))
+  LIBGCC_BREAKS += cryptsetup-initramfs (<< 2:2.2.2-3~), 
+endif
+
+# The numeric part of the gcc version number (x.yy.zz)
+NEXT_GCC_VERSION := $(shell echo $(GCC_VERSION) | \
+		awk -F. '{OFS="."; if (NF==2) $$3=1; else $$NF += 1; print}')
+# first version with a new path component in gcc_lib_dir (i.e. GCC_VERSION
+# or TARGET_ALIAS changes), or last version available for all architectures
+DEB_GCC_SOFT_VERSION := 13
+DEB_GNAT_SOFT_VERSION := 13
+
+ifeq ($(with_d),yes)
+  GDC_VERSION := $(BASE_VERSION)
+  DEB_GDC_VERSION := $(DEB_VERSION)
+endif
+
+ifeq ($(with_m2),yes)
+  GM2_VERSION := $(BASE_VERSION)
+  DEB_GM2_VERSION := $(DEB_VERSION)
+endif
+
+# semiautomatic ...
+DEB_SOVERSION		:= $(DEB_VERSION)
+DEB_SOVERSION		:= 5
+DEB_SOEVERSION		:= $(EPOCH):5
+DEB_STDCXX_SOVERSION	:= 5
+DEB_GOMP_SOVERSION	:= $(DEB_SOVERSION)
+
+DEB_GCC_VERSION := $(DEB_VERSION)
+
+DEB_GNAT_VERSION := $(DEB_VERSION)
+ifeq ($(with_separate_gnat),yes)
+  ifeq ($(PKGSOURCE),gnat-$(BASE_VERSION))
+    DEB_GCC_VERSION := $(DEB_GCC_SOFT_VERSION)
+  endif
+endif
+
+GNAT_VERSION := $(BASE_VERSION)
+
+LIBGNAT_DEP :=
+ifeq ($(with_libgnat),yes)
+  LIBGNAT_DEP := libgnat-$(GNAT_VERSION)$(LS)$(AQ) (>= $${gcc:Version})
+endif
+
+pkg_ver := -$(BASE_VERSION)
+
+ctrl_flags = \
+	-DBINUTILSV=$(BINUTILSV) \
+	-DBINUTILSBDV=$(BINUTILSBDV) \
+	-DSRCNAME=$(PKGSOURCE) \
+	-D__$(DEB_TARGET_GNU_CPU)__ \
+	-DARCH=$(DEB_TARGET_ARCH) \
+	-DDIST=$(distribution) \
+	-DLOCALES=$(LOCALES) \
+
+ctrl_flags += \
+	-DLIBC_DEV_DEP="$(LIBC_DEV_DEP)" \
+	-DLIBC_BIARCH_BUILD_DEP="$(LIBC_BIARCH_BUILD_DEP)" \
+	-DLIBC_DBG_DEP="$(LIBC_DBG_DEP)" \
+	-DBASE_BUILD_DEP="$(BASE_BUILD_DEP)" \
+	-DFORTRAN_BUILD_DEP="$(FORTRAN_BUILD_DEP)" \
+	-DGNAT_BUILD_DEP="$(GNAT_BUILD_DEP)" \
+	-DGO_BUILD_DEP="$(GO_BUILD_DEP)" \
+	-DLIBSTDCXX_BUILD_INDEP="$(LIBSTDCXX_BUILD_INDEP)" \
+	-DGDC_BUILD_DEP="$(GDC_BUILD_DEP)" \
+	-DBINUTILS_BUILD_DEP="$(BINUTILS_BUILD_DEP)" \
+	-DLIBC_BUILD_DEP="$(LIBC_BUILD_DEP)" \
+	-DCHECK_BUILD_DEP="$(CHECK_BUILD_DEP)" \
+	-DAUTO_BUILD_DEP="$(AUTO_BUILD_DEP)" \
+	-DSDT_BUILD_DEP="$(SDT_BUILD_DEP)" \
+	-DISL_BUILD_DEP="$(ISL_BUILD_DEP)" \
+	-DGMP_BUILD_DEP="$(GMP_BUILD_DEP)" \
+	-DMPFR_BUILD_DEP="$(MPFR_BUILD_DEP)" \
+	-DMPC_BUILD_DEP="$(MPC_BUILD_DEP)" \
+	-DDEBHELPER_BUILD_DEP="$(DEBHELPER_BUILD_DEP)" \
+	-DPKGCONF_BUILD_DEP="$(PKGCONF_BUILD_DEP)" \
+	-DDPKG_BUILD_DEP="$(DPKG_BUILD_DEP)" \
+	-DSOURCE_BUILD_DEP="$(SOURCE_BUILD_DEP)" \
+	-DCROSS_BUILD_DEP="$(CROSS_BUILD_DEP)" \
+	-DGCC_MULTILIB_BUILD_DEP='$(GCC_MULTILIB_BUILD_DEP)' \
+	-DTARGET_TOOL_BUILD_DEP='$(TARGET_TOOL_BUILD_DEP)' \
+	-DPHOBOS_BUILD_DEP="$(PHOBOS_BUILD_DEP)" \
+	-DGM2_BUILD_DEP="$(GM2_BUILD_DEP)" \
+	-DOFFLOAD_BUILD_DEP="$(OFFLOAD_BUILD_DEP)" \
+	-DUSAGE_BUILD_DEP="$(USAGE_BUILD_DEP)" \
+	-DLLVM_DEP="$(LLVM_DEP)" \
+	-DARCH_GNUTYPE_MAP="$(arch_gnutype_map)" \
+	-DMULTILIB_ARCHS="$(multilib_archs)" \
+	-DTP=$(TP) \
+	-DTS=$(TS) \
+	-DLS=$(LS) \
+	-DAQ=$(AQ) \
+	-DNT=$(NT)
+
+ifeq ($(DEB_CROSS),yes)
+  ctrl_flags += \
+	-DTARGET=$(DEB_TARGET_ARCH) \
+	-DLIBUNWIND_BUILD_DEP="$(LIBUNWIND_BUILD_DEP)" \
+	-DLIBATOMIC_OPS_BUILD_DEP="$(LIBATOMIC_OPS_BUILD_DEP)"
+  ifeq ($(DEB_STAGE),rtlibs)
+    ctrl_flags += -DCROSS_ARCH=$(DEB_TARGET_ARCH)
+  endif
+else
+  # add '-DPRI=optional' to ctrl_flags if this is not the default compiler
+  # ctrl_flags += \
+  #     -DPRI=optional
+endif
+
+ifeq ($(with_base_only),yes)
+  ctrl_flags += \
+	-DBASE_ONLY=yes
+endif
+
+ifeq ($(with_multiarch_lib),yes)
+  ctrl_flags += \
+	-DMULTIARCH=yes
+endif
+
+ctrl_flags += -DBUILD_DEP_FOR_BINUTILS="$(if $(filter yes, $(with_binutils)),$(bd_binutils_only))"
+
+control: control-file readme-bugs-file parameters-file symbols-files copyright-file substvars-file versioned-files check-versions
+
+# stage1 and stage2 compilers are only C
+ifneq (,$(filter $(DEB_STAGE),stage1 stage2))
+  languages = c
+  addons = gccbase cdev plugindev
+  ifeq ($(with_gcclbase),yes)
+    addons += gcclbase
+  endif
+  ifeq ($(multilib),yes)
+    addons += multilib
+  endif
+  addons += $(if $(findstring armel,$(biarchhfarchs)),armml)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),armml)
+  addons += $(if $(findstring amd64,$(biarchx32archs)),x32dev)
+  ifeq ($(DEB_STAGE),stage2)
+    addons += libgcc
+    ifeq ($(multilib),yes)
+      addons += lib32gcc lib64gcc libn32gcc
+      addons += $(if $(findstring amd64,$(biarchx32archs)),libx32gcc)
+      addons += $(if $(findstring armel,$(biarchhfarchs)),libhfgcc)
+      addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfgcc)
+    endif
+  else
+    LIBC_BIARCH_DEV_DEP :=
+  endif
+else
+languages = c c++ fortran objc objpp
+ifeq ($(DEB_STAGE),rtlibs)
+  ifeq (,$(filter libgfortran, $(with_rtlibs)))
+    languages := $(filter-out fortran, $(languages))
+  endif
+  ifeq (,$(filter libobjc, $(with_rtlibs)))
+    languages := $(filter-out objc objpp, $(languages))
+  endif
+endif
+ifeq ($(with_dbg),yes)
+    addons += libdbg
+endif
+ifeq ($(with_gccbase),yes)
+    addons += gccbase
+endif
+ifeq ($(with_gcclbase),yes)
+  addons += gcclbase
+endif
+ifneq ($(DEB_STAGE),rtlibs)
+  addons += cdev c++dev source multilib
+  ifeq ($(build_type),build-native)
+    addons += testresults
+  endif
+  ifneq (,$(filter fortran, $(languages)))
+      addons += fdev
+  endif
+  ifneq (,$(filter objc, $(languages)))
+      addons += objcdev
+  endif
+  ifneq (,$(filter objpp, $(languages)))
+      addons += objppdev
+  endif
+  addons += plugindev
+endif
+addons += $(if $(findstring armel,$(biarchhfarchs)),armml)
+addons += $(if $(findstring armhf,$(biarchsfarchs)),armml)
+addons += $(if $(findstring amd64,$(biarchx32archs)),x32dev)
+ifeq ($(with_libgcc),yes)
+  addons += libgcc lib4gcc lib32gcc lib64gcc libn32gcc
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32gcc)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfgcc)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfgcc)
+  ifeq ($(with_libcompatgcc),yes)
+    addons += libcompatgcc
+  endif
+endif
+ifeq ($(with_libcxx),yes)
+  addons += libcxx lib32cxx lib64cxx libn32cxx
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32cxx)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfcxx)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfcxx)
+endif
+addons += $(if $(findstring amd64,$(biarchx32archs)),libx32dbgcxx)
+addons += $(if $(findstring armel,$(biarchhfarchs)),libhfdbgcxx)
+addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfdbgcxx)
+ifeq ($(with_libgfortran),yes)
+  addons += libgfortran lib32gfortran lib64gfortran libn32gfortran
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32gfortran)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfgfortran)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfgfortran)
+endif
+ifeq ($(with_libobjc),yes)
+  addons += libobjc lib32objc lib64objc libn32objc
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32objc)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfobjc)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfobjc)
+endif
+ifeq ($(with_libgomp),yes)
+  addons += libgomp lib32gomp lib64gomp libn32gomp
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32gomp)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfgomp)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfgomp)
+endif
+ifeq ($(with_libitm),yes)
+  addons += libitm lib32itm lib64itm libn32itm
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32itm)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfitm)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfitm)
+endif
+ifeq ($(with_libatomic),yes)
+  addons += libatomic lib32atomic lib64atomic libn32atomic
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32atomic)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfatomic)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfatomic)
+endif
+ifeq ($(with_libbacktrace),yes)
+  addons += libbtrace lib32btrace lib64btrace libn32btrace
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32btrace)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfbtrace)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfbtrace)
+endif
+ifeq ($(with_libasan),yes)
+  addons += libasan lib32asan lib64asan libn32asan
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32asan)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfasan)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfasan)
+endif
+ifeq ($(with_liblsan),yes)
+  addons += liblsan
+  ifneq (,$(filter $(distrelease),lunar jammy focal))
+    addons += lib32lsan lib64lsan libn32lsan
+    addons += $(if $(findstring amd64,$(biarchx32archs)),libx32lsan)
+    #addons += $(if $(findstring armel,$(biarchhfarchs)),libhflsan)
+    #addons += $(if $(findstring armhf,$(biarchsfarchs)),libsflsan)
+  endif
+endif
+ifeq ($(with_libtsan),yes)
+  addons += libtsan
+  addons += libtsan #lib32tsan lib64tsan libn32tsan
+  #addons += $(if $(findstring amd64,$(biarchx32archs)),libx32tsan)
+  #addons += $(if $(findstring armel,$(biarchhfarchs)),libhftsan)
+  #addons += $(if $(findstring armhf,$(biarchsfarchs)),libsftsan)
+endif
+ifeq ($(with_libubsan),yes)
+  addons += libubsan lib32ubsan lib64ubsan libn32ubsan
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32ubsan)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfubsan)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfubsan)
+endif
+#ifeq ($(with_libhwasan),yes)
+  addons += libhwasan
+#endif
+ifeq ($(with_vtv),yes)
+  addons += libvtv lib32vtv lib64vtv #libn32vtv
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32vtv)
+  #addons += $(if $(findstring armel,$(biarchhfarchs)),libhfvtv)
+  #addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfvtv)
+endif
+ifeq ($(with_libqmath),yes)
+  addons += libqmath lib32qmath lib64qmath libn32qmath
+  addons += $(if $(findstring amd64,$(biarchx32archs)),libx32qmath)
+  addons += $(if $(findstring armel,$(biarchhfarchs)),libhfqmath)
+  addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfqmath)
+endif
+ifeq ($(with_jit),yes)
+  addons += jit
+endif
+ifeq ($(with_libgccjit),yes)
+  addons += libjit
+endif
+ifeq ($(with_offload_nvptx),yes)
+  addons += olnvptx gompnvptx
+endif
+ifeq ($(with_offload_gcn),yes)
+  addons += olgcn gompgcn
+endif
+ifeq ($(with_offload_hsa),yes)
+  addons += olhsa gomphsa
+endif
+ifeq ($(with_libcc1),yes)
+  addons += libcc1
+endif
+ifeq ($(with_d),yes)
+  languages += d
+  ifeq ($(with_libphobos),yes)
+    addons += libphobos libn32phobos
+    addons += $(if $(findstring amd64,$(biarchx32archs)),libx32phobos)
+  endif
+  ifeq ($(with_libphobosdev),yes)
+    addons += libdevphobos libdevn32phobos
+    addons += $(if $(findstring amd64,$(biarchx32archs)),libdevx32phobos)
+  endif
+endif
+ifeq ($(with_go),yes)
+  addons += ggo godev
+  ifeq ($(with_libgo),yes)
+    addons += libggo lib32ggo lib64ggo libn32ggo
+    addons += $(if $(findstring amd64,$(biarchx32archs)),libx32ggo)
+  endif
+endif
+ifeq ($(with_m2),yes)
+  languages += m2
+  addons += libdevgm2
+  ifeq ($(with_libgm2),yes)
+    addons += libgm2 # lib32gm2 lib64gm2 libn32gm2
+    #addons += $(if $(findstring amd64,$(biarchx32archs)),libx32gm2)
+  endif
+endif
+ifeq ($(with_rs),yes)
+  languages += rust
+  #addons += libdevgrs
+  #ifeq ($(with_libgrs),yes)
+  #  addons += libgrs # lib32gm2 lib64gm2 libn32gm2
+  #  #addons += $(if $(findstring amd64,$(biarchx32archs)),libx32gm2)
+  #endif
+endif
+ifeq ($(with_ada),yes)
+  languages += ada
+  addons += libgnat libs # libgmath libnof lib64gnat ssp
+  ifeq ($(with_gnatsjlj),yes)
+    addons += adasjlj
+  endif
+endif
+
+  ifneq ($(DEB_CROSS),yes)
+  endif # DEB_CROSS
+  ifeq ($(with_separate_libgo),yes)
+    ifeq ($(PKGSOURCE),gcc-$(BASE_VERSION))
+      languages := $(filter-out go,$(languages))
+      addons := $(filter-out ggo godev libggo lib64ggo lib32ggo libn32ggo libx32ggo,$(addons))
+    endif
+    ifeq ($(PKGSOURCE),gccgo-$(BASE_VERSION))
+      languages = go
+      addons = ggo godev libggo lib64ggo lib32ggo libn32ggo gccbase multilib
+      addons += $(if $(findstring amd64,$(biarchx32archs)),libx32ggo)
+      ifeq ($(with_standalone_go),yes)
+        addons += libgcc lib4gcc lib32gcc lib64gcc libn32gcc
+        addons += $(if $(findstring amd64,$(biarchx32archs)),libx32gcc)
+        addons += $(if $(findstring armel,$(biarchhfarchs)),libhfgcc)
+        addons += $(if $(findstring armhf,$(biarchsfarchs)),libsfgcc)
+        ifeq ($(with_libcc1),yes)
+          addons += libcc1
+        endif
+      endif
+    endif
+  endif
+  ifeq ($(with_standalone_go),yes)
+    ifeq ($(PKGSOURCE),gccgo-$(BASE_VERSION))
+      ctrl_flags += -DSTANDALONEGO
+    endif
+  endif
+  ifeq ($(with_separate_gnat),yes)
+    ifeq ($(PKGSOURCE),gcc-$(BASE_VERSION))
+      languages := $(filter-out ada,$(languages))
+      addons := $(filter-out libgnat adasjlj,$(addons))
+    endif
+    ifeq ($(PKGSOURCE),gnat-$(BASE_VERSION))
+      languages = ada
+      addons = gnatbase libgnat
+    endif
+  endif
+  ifeq ($(with_separate_gdc),yes)
+    ifeq ($(PKGSOURCE),gcc-$(BASE_VERSION))
+      languages := $(filter-out d,$(languages))
+    endif
+    ifeq ($(PKGSOURCE),gdc-$(BASE_VERSION))
+      languages = d
+      addons = 
+      ifeq ($(with_libphobos),yes)
+        addons += libphobos
+      endif
+      ifeq ($(with_libphobosdev),yes)
+        addons += libdevphobos
+      endif
+    endif
+  endif
+  ifneq ($(DEB_CROSS),yes) # no docs for cross compilers
+  ifneq ($(GFDL_INVARIANT_FREE),yes)
+    addons += gfdldoc
+  endif
+  endif
+endif # not stage
+
+control-file:
+	echo "addons: $(addons)"; \
+	m4 $(ctrl_flags) \
+	  -DPV=$(pkg_ver) \
+	  -DCXX_SO=$(CXX_SONAME) \
+	  -DGCC_SO=$(GCC_SONAME) \
+	  -DOBJC_SO=$(OBJC_SONAME) \
+	  -DFORTRAN_SO=$(FORTRAN_SONAME) \
+	  -DGNAT_SO=$(GNAT_SONAME) \
+	  -DGNAT_V=$(GNAT_VERSION) \
+	  -DPHOBOS_V=$(GPHOBOS_SONAME) \
+	  -DGM2_V=$(GM2_SONAME) \
+	  -DGDRUNTIME_V=$(GDRUNTIME_SONAME) \
+	  -DGOMP_SO=$(GOMP_SONAME) \
+	  -DITM_SO=$(ITM_SONAME) \
+	  -DATOMIC_SO=$(ATOMIC_SONAME) \
+	  -DBTRACE_SO=$(BTRACE_SONAME) \
+	  -DASAN_SO=$(ASAN_SONAME) \
+	  -DLSAN_SO=$(LSAN_SONAME) \
+	  -DTSAN_SO=$(TSAN_SONAME) \
+	  -DUBSAN_SO=$(UBSAN_SONAME) \
+	  -DHWASAN_SO=$(HWASAN_SONAME) \
+	  -DVTV_SO=$(VTV_SONAME) \
+	  -DQMATH_SO=$(QUADMATH_SONAME) \
+	  -DSSP_SO=$(SSP_SONAME) \
+	  -DGO_SO=$(GO_SONAME) \
+	  -DCC1_SO=$(CC1_SONAME) \
+	  -DGCCJIT_SO=$(GCCJIT_SONAME) \
+	  -Denabled_languages="$(languages) $(addons)" \
+	  -Dada_no_archs="$(ada_no_archs)" \
+	  -Dfortran_no_archs="$(fortran_no_archs)" \
+	  -Dgo_no_archs="$(go_no_archs)" \
+	  -Dd_no_archs="$(d_no_archs)" \
+	  -Dm2_no_archs="$(m2_no_archs)" \
+	  -Drs_no_archs="$(rs_no_archs)" \
+	  -Dlibgc_no_archs="$(libgc_no_archs)" \
+	  -Dlibphobos_archs="$(phobos_archs)" \
+	  -Dlibphobos_no_archs="$(phobos_no_archs)" \
+	  -Dcheck_no_archs="$(check_no_archs)" \
+	  -Dlocale_no_archs="$(locale_no_archs)" \
+	  -Dlinux_gnu_archs="$(linux_gnu_archs)" \
+	  -Dbiarch32_archs="$(strip $(subst /, ,$(biarch32archs)))" \
+	  -Dbiarch64_archs="$(strip $(subst /, ,$(biarch64archs)))" \
+	  -Dbiarchn32_archs="$(strip $(subst /, ,$(biarchn32archs)))" \
+	  -Dbiarchx32_archs="$(strip $(subst /, ,$(biarchx32archs)))" \
+	  -Dbiarchhf_archs="$(strip $(subst /, ,$(biarchhfarchs)))" \
+	  -Dbiarchsf_archs="$(strip $(subst /, ,$(biarchsfarchs)))" \
+	  -Dnvptx_archs="$(nvptx_archs)" \
+	  -Dgcn_archs="$(gcn_archs)" \
+	  -Dadd_built_using=$(add_built_using) \
+	  -DGCC_PORTS_BUILD=$(GCC_PORTS_BUILD) \
+	  $(if $(findstring build-native, $(build_type)), \
+	    $(if $(filter $(distrelease),jessie stretch buster xenial bionic focal),,-DLIBGCCPROTECTED=1)) \
+		debian/control.m4 > debian/control.tmp2
+	uniq debian/control.tmp2 | grep -v '^  *, *$$' | sed -E '/^Build/s/ *, +/, /g;/^  /s/, +/, /g;/^  /s/ *,/,/g; s/ +$$//' \
+		$(if $(filter yes, $(with_base_only)), | awk '/^$$/ {if (p) exit; else p=1; } {print}') \
+		> debian/control.tmp
+	rm -f debian/control.tmp2
+	[ -e debian/control ] \
+	  && cmp -s debian/control debian/control.tmp \
+	  && rm -f debian/control.tmp && exit 0; \
+	  mv debian/control.tmp debian/control; touch $(control_stamp)
+
+readme-bugs-file:
+	m4 -DDIST=$(distribution) -DSRCNAME=$(PKGSOURCE) \
+		debian/README.Bugs.m4 > debian/README.Bugs
+
+copyright-file:
+	rm -f debian/copyright
+	if echo $(SOURCE_VERSION) | grep -E ^'[0-9][0-9]*\.[0-9]-[0-9]{8}' ; \
+		then SVN_BRANCH="trunk" ; \
+	else \
+		SVN_BRANCH="gcc-$(subst .,_,$(BASE_VERSION))-branch" ; \
+	fi ; \
+	sed debian/copyright.in		\
+		-e "s/@BV@/$(BASE_VERSION)/g"		\
+		-e "s/@SVN_BRANCH@/$$SVN_BRANCH/g"	\
+		> debian/copyright
+
+substvars-file: control-file
+	rm -f debian/substvars.local.tmp
+	( \
+		echo 'libgcc:Version=$(DEB_GCC_VERSION)'; \
+		echo 'gcc:Version=$(DEB_GCC_VERSION)'; \
+		echo 'gcc:EpochVersion=$(DEB_EVERSION)'; \
+		echo 'gcc:SoftVersion=$(DEB_GCC_SOFT_VERSION)'; \
+		echo 'gdc:Version=$(DEB_GDC_VERSION)'; \
+		echo 'gm2:Version=$(DEB_GM2_VERSION)'; \
+		echo 'gnat:Version=$(DEB_GNAT_VERSION)'; \
+		echo 'gnat:SoftVersion=$(DEB_GNAT_SOFT_VERSION)'; \
+		echo 'binutils:Version=$(BINUTILSV)'; \
+		echo 'dep:libgcc=$(LIBGCC_DEP)'; \
+		echo 'dep:libgccdev=$(LIBGCC_DEV_DEP)'; \
+		echo 'dep:libgccbiarch=$(libgcc-sbiarch)'; \
+		echo 'dep:libgccbiarchdev=$(libgccbiarchdev)'; \
+		echo 'dep:libc=$(LIBC_DEP) (>= $(libc_ver))'; \
+		echo 'dep:libcdev=$(LIBC_DEV_DEP)'; \
+		echo 'dep:libcbiarch=$(LIBC_BIARCH_DEP)'; \
+		echo 'dep:libcbiarchdev=$(LIBC_BIARCH_DEV_DEP)'; \
+		echo 'dep:libunwinddev=$(LIBUNWIND_DEV_DEP)'; \
+		echo 'dep:libcxxbiarchdev=$(libstdc++biarchdev)'; \
+		echo 'dep:libcxxbiarchdbg=$(libstdc++biarchdbg)'; \
+		echo 'dep:libgnat=$(LIBGNAT_DEP)'; \
+		echo 'base:Breaks=$(BASE_BREAKS)'; \
+		echo 'libgcc:Breaks=$(LIBGCC_BREAKS)'; \
+		echo 'target:suffix=-$(subst _,-,$(TARGET_ALIAS))'; \
+	) > debian/substvars.local.tmp
+ifneq (,$(filter $(DEB_TARGET_ARCH), $(multilib_archs)))
+	( \
+		echo 'gcc:multilib=gcc-$(BASE_VERSION)-multilib$(TS)'; \
+		echo 'gxx:multilib=g++-$(BASE_VERSION)-multilib$(TS)'; \
+		echo 'gobjc:multilib=gobjc-$(BASE_VERSION)-multilib$(TS)'; \
+		echo 'gobjcxx:multilib=gobjc++-$(BASE_VERSION)-multilib$(TS)'; \
+		echo 'gfortran:multilib=gfortran-$(BASE_VERSION)-multilib$(TS)'; \
+	) >> debian/substvars.local.tmp
+endif
+ifeq ($(with_gold),yes)
+	echo 'dep:gold=binutils-gold (>= $(BINUTILSV))' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_libssp),yes)
+	echo 'dep:libssp=libssp$(SSP_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_gomp),yes)
+	echo 'dep:libgomp=libgomp$(GOMP_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_itm),yes)
+	echo 'dep:libitm=libitm$(ITM_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_atomic),yes)
+	echo 'dep:libatomic=libatomic$(ATOMIC_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_libbacktrace),yes)
+	echo 'dep:libbacktrace=libbtrace$(BTRACE_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_asan),yes)
+	echo 'dep:libasan=libasan$(ASAN_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_lsan),yes)
+	echo 'dep:liblsan=liblsan$(LSAN_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_tsan),yes)
+	echo 'dep:libtsan=libtsan$(TSAN_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_ubsan),yes)
+	echo 'dep:libubsan=libubsan$(UBSAN_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_hwasan),yes)
+	echo 'dep:libhwasan=libhwasan$(HWASAN_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_vtv),yes)
+	echo 'dep:libvtv=libvtv$(VTV_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_qmath),yes)
+	echo 'dep:libqmath=libquadmath$(QUADMATH_SONAME)$(LS)$(AQ) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(distribution),Debian)
+	echo 'dep:libx32z=$(if $(filter $(distribution), Debian),,libx32z1-dev)' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(multilib),yes)
+	echo 'dep:libgfortranbiarchdev=$(libgfortranbiarchdev)' \
+		>> debian/substvars.local.tmp
+	echo 'dep:libobjcbiarchdev=$(libobjcbiarchdev)' \
+		>> debian/substvars.local.tmp
+  ifeq ($(with_phobos),yes)
+	echo 'dep:libphobosbiarchdev=$(libgphobosbiarchdev)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_libssp),yes)
+	echo 'dep:libsspbiarch=$(libsspbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_gomp),yes)
+	echo 'dep:libgompbiarch=$(libgompbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_itm),yes)
+	echo 'dep:libitmbiarch=$(libitmbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_atomic),yes)
+	echo 'dep:libatomicbiarch=$(libatomicbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_libbacktrace),yes)
+	echo 'dep:libbtracebiarch=$(libbtracebiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_asan),yes)
+	echo 'dep:libasanbiarch=$(libasanbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_lsan),yes)
+	#echo 'dep:liblsanbiarch=$(liblsanbiarch)' \
+	#	>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_tsan),yes)
+	#echo 'dep:libtsanbiarch=$(libtsanbiarch)' \
+	#	>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_ubsan),yes)
+	echo 'dep:libubsanbiarch=$(libubsanbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_hwasan),yes)
+    # amd64 hwasan not available for 32/x32
+    ifeq ($(DEB_TARGET_ARCH),amd64)
+    else
+	echo 'dep:libhwasanbiarch=$(libhwasanbiarch)' \
+		>> debian/substvars.local.tmp
+    endif
+  endif
+  ifeq ($(with_vtv),yes)
+	echo 'dep:libvtvbiarch=$(libvtvbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_qmath),yes)
+	echo 'dep:libqmathbiarch=$(libquadmathbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_go),yes)
+	echo 'dep:libgobiarchdev=$(libgobiarchdev)' \
+		>> debian/substvars.local.tmp
+	echo 'dep:libgobiarch=$(libgobiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+endif
+ifeq ($(DEB_CROSS),yes)
+	echo 'dep:gdccross=gdc$(pkg_ver) (>= $(DEB_GCC_SOFT_VERSION))' \
+		>> debian/substvars.local.tmp
+endif
+ifeq ($(with_phobos),yes)
+	echo 'dep:phobosdev=libgphobos$(pkg_ver)-dev$(LS)$(AQ) (>= $(DEB_GCC_SOFT_VERSION))' \
+		>> debian/substvars.local.tmp
+  ifeq ($(DEB_CROSS),yes)
+	: # FIXME: make the cross gdc aware of both include paths
+	echo 'dep:gdccross=gdc$(pkg_ver) (>= $(DEB_GCC_SOFT_VERSION))' \
+		>> debian/substvars.local.tmp
+  endif
+  ifeq ($(with_libphobosdev),yes)
+	echo 'dep:libphobosbiarchdev=$(libgphobosbiarchdev)' \
+		>> debian/substvars.local.tmp
+	echo 'dep:libphobosbiarch=$(libgphobosbiarch)' \
+		>> debian/substvars.local.tmp
+  endif
+endif
+ifeq ($(with_cc1),yes)
+  ifneq (,$(findstring build-cross, $(build_type)))
+	echo 'dep:libcc1=libcc1-$(CC1_SONAME) (>= $${gcc:SoftVersion})' \
+		>> debian/substvars.local.tmp
+  else
+	echo 'dep:libcc1=libcc1-$(CC1_SONAME) (>= $${gcc:Version})' \
+		>> debian/substvars.local.tmp
+  endif
+endif
+ifeq ($(DEB_HOST_ARCH),hppa)
+	echo 'dep:prctl=prctl' >> debian/substvars.local.tmp
+endif
+ifeq ($(derivative)-$(DEB_HOST_ARCH),Debian-amd64)
+	echo 'confl:lib32=libc6-i386 (<< 2.9-22)' >> debian/substvars.local.tmp
+endif
+ifeq ($(with_multiarch_lib),yes)
+	echo 'multiarch:breaks=gcc-4.3 (<< 4.3.6-1), gcc-4.4 (<< 4.4.6-4), gcc-4.5 (<< 4.5.3-2)' >> debian/substvars.local.tmp
+endif
+	echo 'golang:Conflicts=golang-go (<< 2:1.3.3-1ubuntu2)' >> debian/substvars.local.tmp
+ifeq ($(add_built_using),yes)
+	echo "Built-Using=$(shell dpkg-query -f '$${source:Package} (= $${source:Version}), ' -W gcc$(pkg_ver)-source)" \
+	>> debian/substvars.local.tmp
+endif
+	v=`sed -n '/^#define MOD_VERSION/s/.* "\([0-9]*\)"/\1/p' \
+		$(srcdir)/gcc/fortran/module.cc`; \
+	echo "fortran:mod-version=gfortran-mod-$$v" >> debian/substvars.local.tmp
+
+	[ -e debian/substvars.local ] \
+	  && cmp -s debian/substvars.local debian/substvars.local.tmp \
+	  && rm -f debian/substvars.local.tmp && exit 0; \
+	  mv debian/substvars.local.tmp debian/substvars.local; \
+	  touch $(control_stamp)
+
+parameters-file:
+	rm -f debian/rules.parameters.tmp
+	( \
+		echo '# configuration parameters taken from upstream source files'; \
+		echo 'GCC_VERSION	:= $(GCC_VERSION)'; \
+		echo 'NEXT_GCC_VERSION	:= $(NEXT_GCC_VERSION)'; \
+		echo 'BASE_VERSION	:= $(BASE_VERSION)'; \
+		echo 'SOURCE_VERSION	:= $(SOURCE_VERSION)'; \
+		echo 'DEB_VERSION	:= $(DEB_VERSION)'; \
+		echo 'DEB_EVERSION	:= $(DEB_EVERSION)'; \
+		echo 'DEB_GDC_VERSION	:= $(DEB_GDC_VERSION)'; \
+		echo 'DEB_SOVERSION	:= $(DEB_SOVERSION)'; \
+		echo 'DEB_SOEVERSION	:= $(DEB_SOEVERSION)'; \
+		echo 'DEB_LIBGCC_SOVERSION	:= $(DEB_LIBGCC_SOVERSION)'; \
+		echo 'DEB_LIBGCC_VERSION	:= $(DEB_LIBGCC_VERSION)'; \
+		echo 'DEB_STDCXX_SOVERSION	:= $(DEB_STDCXX_SOVERSION)'; \
+		echo 'DEB_GOMP_SOVERSION	:= $(DEB_GOMP_SOVERSION)'; \
+		echo 'GCC_SONAME	:= $(GCC_SONAME)'; \
+		echo 'CXX_SONAME	:= $(CXX_SONAME)'; \
+		echo 'FORTRAN_SONAME	:= $(FORTRAN_SONAME)'; \
+		echo 'OBJC_SONAME	:= $(OBJC_SONAME)'; \
+		echo 'GDC_VERSION	:= $(GDC_VERSION)'; \
+		echo 'GNAT_VERSION	:= $(GNAT_VERSION)'; \
+		echo 'GNAT_SONAME	:= $(GNAT_SONAME)'; \
+		echo 'FFI_SONAME	:= $(FFI_SONAME)'; \
+		echo 'SSP_SONAME	:= $(SSP_SONAME)'; \
+		echo 'GOMP_SONAME	:= $(GOMP_SONAME)'; \
+		echo 'ITM_SONAME	:= $(ITM_SONAME)'; \
+		echo 'ATOMIC_SONAME	:= $(ATOMIC_SONAME)'; \
+		echo 'BTRACE_SONAME	:= $(BTRACE_SONAME)'; \
+		echo 'ASAN_SONAME	:= $(ASAN_SONAME)'; \
+		echo 'LSAN_SONAME	:= $(LSAN_SONAME)'; \
+		echo 'TSAN_SONAME	:= $(TSAN_SONAME)'; \
+		echo 'UBSAN_SONAME	:= $(UBSAN_SONAME)'; \
+		echo 'HWASAN_SONAME	:= $(HWASAN_SONAME)'; \
+		echo 'VTV_SONAME	:= $(VTV_SONAME)'; \
+		echo 'QUADMATH_SONAME	:= $(QUADMATH_SONAME)'; \
+		echo 'GO_SONAME		:= $(GO_SONAME)'; \
+		echo 'CC1_SONAME	:= $(CC1_SONAME)'; \
+		echo 'GCCJIT_SONAME	:= $(GCCJIT_SONAME)'; \
+		echo 'GPHOBOS_SONAME	:= $(GPHOBOS_SONAME)'; \
+		echo 'GDRUNTIME_SONAME	:= $(GDRUNTIME_SONAME)'; \
+		echo 'GM2_SONAME	:= $(GM2_SONAME)'; \
+		echo 'LIBC_DEP		:= $(LIBC_DEP)'; \
+	) > debian/rules.parameters.tmp
+	[ -e debian/rules.parameters ] \
+	  && cmp -s debian/rules.parameters debian/rules.parameters.tmp \
+	  && rm -f debian/rules.parameters.tmp && exit 0; \
+	  mv debian/rules.parameters.tmp debian/rules.parameters; \
+	  touch $(control_stamp)
+
+symbols-files: control-file
+ifeq ($(DEB_CROSS),yes)
+  ifneq ($(DEB_STAGE),rtlibs)
+	test -n "$(LS)"
+	set -e; \
+	for p in $$(dh_listpackages -i | grep '^lib'); do \
+	  p=$${p%$(LS)}; \
+	  if [ -f debian/$$p.symbols.$(DEB_TARGET_ARCH) ]; then \
+	    f=debian/$$p.symbols.$(DEB_TARGET_ARCH); \
+	  elif [ -f debian/$$p.symbols ]; then \
+	    f=debian/$$p.symbols; \
+	  else \
+	    continue; \
+	  fi; \
+	  link=debian/$$p$(LS).symbols; \
+	  if [ -L $$link ]; then \
+	    echo >&2 "removing left over symbols file link: $$link"; \
+	    rm -f $$link; \
+	  fi; \
+	  ln -s $$f $$link; \
+	done
+  endif
+endif
+
+versioned-files:
+	fs=`echo debian/*BV* debian/*CXX* debian/*LC* | sort -u`; \
+	for f in $$fs; do \
+	  [ -f $$f ] || echo "CANNOT FIND $$f"; \
+	  [ -f $$f ] || continue; \
+	  if [ -z "$(DEB_CROSS)" ]; then case "$$f" in *-CR*) continue; esac; fi; \
+	  f2=$$(echo $$f \
+		| sed 's/BV/$(BASE_VERSION)/;s/CXX/$(CXX_SONAME)/;s/LC/$(GCC_SONAME)/;s/-CRB/$(cross_bin_arch)/;s/\.in$$//'); \
+	  sed -e 's/@BV@/$(BASE_VERSION)/g' \
+	      -e 's/@CXX@/$(CXX_SONAME)/g' \
+	      -e 's/@LC@/$(GCC_SONAME)/g' \
+	      -e 's/@SRC@/$(PKGSOURCE)/g' \
+	      -e 's/@GFDL@/$(if $(filter yes,$(GFDL_INVARIANT_FREE)),#)/g' \
+	      -e 's/@gcc_priority@/$(subst .,,$(BASE_VERSION))/g' \
+	      -e 's/@TARGET@/$(DEB_TARGET_GNU_TYPE)/g' \
+	      -e 's/@TARGET_QUAL@/$(TARGET_QUAL)/g' \
+	    $$f > $$f2; \
+	  touch -r $$f $$f2; \
+	done
+	for t in ar nm ranlib; do \
+	  sed "s/@BV@/$(BASE_VERSION)/g;s/@TOOL@/$$t/g" \
+	    debian/gcc-XX-BV.1 > debian/gcc-$$t-$(BASE_VERSION).1; \
+	done
+
+# don't encode versioned build dependencies in the control file, but check
+# these here instead.
+check-versions:
+	v=$$(dpkg-query -l dpkg-dev | awk '/^.i/ {print $$3}'); \
+	if dpkg --compare-versions "$$v" lt "$(DPKGV)"; then \
+	  echo "dpkg-dev (>= $(DPKGV)) required, found $$v"; \
+	  exit 1; \
+	fi
+	v=$$(dpkg-query -l binutils binutils-multiarch 2>/dev/null | awk '/^.i/ {print $$3;exit}'); \
+	if dpkg --compare-versions "$$v" lt "$(BINUTILSBDV)"; then \
+	  echo "binutils (>= $(BINUTILSBDV)) required, found $$v"; \
+	  exit 1; \
+	fi
+
+.PRECIOUS: $(stampdir)/%-stamp
