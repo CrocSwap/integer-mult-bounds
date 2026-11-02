@@ -27,8 +27,9 @@ separate reverse caller also passed both modes. Adding the reverse engine
 first changed the expected receipt; the stale receipt was rejected. After
 regeneration, the full registered headroom replay passed.
 
-The final PR6372 composition passed a direct complete replay. Registered
-normal and optimized verification is in progress before publication.
+The final PR6372 composition passed a direct complete replay and both
+registered normal and optimized commands. All four packages passed their
+registered scientific checks in this publication session.
 The final receipt has all 799 native columns, 638401 separate reverse
 coefficients, all native phases, 7488 physical caller contacts, both
 rational prices, the compiler, 54 strict and four functional outer checks,
@@ -54,6 +55,36 @@ bounds. The next-cost-level search has seven time-limited integer runs;
 all retained candidate margins are negative, but their upper bounds
 remain positive. No global search exclusion follows.
 
-Hosted CI and independent scientific review are separate gates. Publication
-receipts will be appended after committed-byte and sealed export checks.
+Hosted CI and independent scientific review are separate gates. Hosted
+replay is pending at this publication checkpoint; its current status is
+reported on the PR. Independent scientific acceptance is not claimed.
 No merge, closure or selected-frontier change is authorized or performed.
+
+## Committed exports and isolated replays
+
+Scientific commit: `7c71f599984e53993fd2d5e8bd832193b8a09fd5`.
+All four packages passed metadata, source pins and committed-byte checks.
+The two new packages were exported with the official exporter from this
+commit and passed its exact inventory and hash check.
+
+| Package | Export SHA256 | Sealed optimized replay |
+| --- | --- | --- |
+| mixed-projector-root-headroom | `7a27326b98fd7ede2716de311b4828a8cf302f11eeafe58d00e2ff126d751062` | passed, 0.91 seconds |
+| mixed-root-contact-composition | `aebe48e545fd9bbf37442e7b1f46c84e523b7ad4a628ad62fe991025cbc98b07` | passed, 64.89 seconds |
+
+The OS denied network access, live-checkout reads and export writes.
+Separate probes confirmed each denial with PermissionError. PATH was
+empty and Git was absent. All 15 and 21 exported files, including the
+export receipts, kept their bytes and modes. The original root and
+PR6353 composition retain their earlier sealed receipts; their scientific
+code and result bytes are unchanged.
+
+Three separate optimized-process controls were rejected: a damaged PR6372
+archive, a changed kappa literal and an incorrect Laurent-parameter inverse.
+`PUBLICATION.json` retains these results and the registered log hashes.
+The following commit adds only this verification record.
+
+Reproduce the committed export with the package exporter described in
+`docs/research/package-export.md`, using the scientific commit above.
+Run the documented direct verifier from the checked export. The generic
+registered runner needs Git provenance; the direct exported replay does not.
