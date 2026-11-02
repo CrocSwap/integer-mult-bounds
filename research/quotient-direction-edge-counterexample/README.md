@@ -3,7 +3,8 @@
 A six-line rational configuration has six distinct projective directions in
 **each** factor family, exact minimum binary pairing cost **6**, and maximum
 acyclic edge count **9**. Collapsing proportional `q` directions therefore
-leaves a false lower bound. This answers Open next question 1 of
+leaves a false lower bound. This refutes the repair proposed as the first step in
+Open next question 1 of
 [Aaron Wang's PR2340](https://github.com/CrocSwap/integer-mult-bounds/pull/2340).
 
 Claim type: a finite counterexample with an exact scoped proof and exhaustive
@@ -190,6 +191,7 @@ rank-sensitive constraint for that changed graph; direction collapsing alone
 is insufficient. PR2334 already rules out unrestricted selected-edge bounds
 when repeated directions are allowed, so that predecessor must be retained.
 A proof or a new counterexample for the combined restrictions remains absent.
+PR2340's broader request for the strongest rank-aware replacement remains open.
 This package stops at the first explicit quotient-repair counterexample.
 
 ## Provenance and credit
