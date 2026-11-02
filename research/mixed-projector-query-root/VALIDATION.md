@@ -1,5 +1,50 @@
 # Validation record
 
+## Current local .00328467 revision
+
+The rank 2,3,3,2 root has passed its complete author build. The result covers
+all 570 caller events, 1,156 caller coefficients, 799 source input columns,
+the separate 638,401-coefficient transpose, native absolute phases and all
+7,488 physical contacts. Both rational price engines, the completion,
+compiler, 54 strict outer predicates and four functional predicates pass.
+The complete ordinary-work upper bound is 248,152,864, below 10^9.
+
+The exact raw crossing is strictly in
+(.00328468791927,.00328468791928). The claimed saving is .00328467.
+The complete invoice has 66,988 paid jobs, 13,652 productive fields and rank
+surplus 760. No new owned field is added. Every emitted rational scalar is
+dyadic and has magnitude at most five.
+
+The all-size fixed-root ceiling uses a separate rational dynamic program.
+It checks 4,851 binary splits and 4,656 pair totals below 100 leaves. A
+negative decreasing bound covers all larger totals. A separate derivative
+bound above 42 proves monotonicity throughout the retained BIT range.
+Changing a root mask is rejected before the ceiling calculation.
+
+The first complete registered normal and optimized runs passed. The final
+ceiling adds the explicit saving-range monotonicity check and a wrong-root
+control. The final registered normal and optimized replays also passed with
+those checks. Sealed-export and committed-byte checks are still pending for
+this revision.
+No previous revision's transport receipt is transferred to these bytes.
+
+Discovery also replayed all 695 retained modular support patterns with a
+separate NumPy implementation. This checks the retained representatives,
+not a second complete 241,886,080-basis enumeration or a global optimum.
+
+Canonical main was refreshed and remains
+7c49fe32c55de02c2c873655c804b16e4c3fef0a. Live PR and adjacent Discussion
+checks found separate PR6353 audits and no new overlapping root claim.
+The selected record SHA256 is still
+9b8d0eea95b3bf0dfcb7938a732a6439b87a2685dec2a5ab9e525b3b34debbfa.
+
+The five framework assumptions remain. The uniform word and rounded
+multiplier are not materialized. Hosted CI, independent scientific review
+and full source-history ancestry are not claimed. The local publication
+hold remains in effect; no push or PR has occurred.
+
+# Earlier local .00327980 checkpoint
+
 This file records author checks. Independent scientific review and hosted CI
 are separate checks. Do not infer their completion from a local pass.
 

@@ -14,7 +14,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 LIFT = ROOT/'research/p104-native-input-lifting'
 TREE = ROOT/'research/balanced-query-tree'
-STATUS = 'PASS_MIXED_PROJECTOR_QUERY_ROOT_KAPPA_00327980'
+STATUS = 'PASS_MIXED_PROJECTOR_QUERY_ROOT_KAPPA_00328467'
 
 
 def need(ok, message):
@@ -52,6 +52,7 @@ def run():
     module = load(HERE/'module_check.py', 'mixed_root_module')
     physical = load(HERE/'physical.py', 'mixed_root_physical')
     price = load(HERE/'pricing.py', 'mixed_root_price')
+    ceiling = load(HERE/'ceiling.py', 'mixed_root_ceiling')
     support = load(LIFT/'support.py', 'support')
     constructor = load(LIFT/'construct.py', 'mixed_source_constructor')
     lift_checks = load(LIFT/'verify.py', 'mixed_source_checks')
@@ -79,11 +80,21 @@ def run():
         need(maps['full_calls'] == 18 and maps['physical_contacts'] == 7488, 'Every native contact')
         print('PASS native absolute phases, whole idles and physical caller', flush=True)
         result_price = price.run(local, native, word, maps, L)
+        intervals = L.load(L.ROOT/'research/higher-moment-strictification/verify.py', 'mixed_ceiling_intervals')
+        fixed_ceiling = ceiling.run(local, intervals, read(HERE/'ROOT.json'))
+        bad_root = read(HERE/'ROOT.json')
+        bad_root['masks'][3][0] = 1
+        try:
+            ceiling.run(local, intervals, bad_root)
+        except ValueError as error:
+            controls['changed_ceiling_root'] = str(error)
+        else:
+            raise ValueError('A changed root entered the fixed-root ceiling')
         print('PASS complete invoice, both rational price engines, compiler and outer predicates', flush=True)
     return price.encode({'status':STATUS, 'source_inputs':sources, 'root':root_check,
                          'binary_module':binary_check, 'caller':caller,
                          'local':local, 'lifted_directions':directions, 'columns':columns,
-                         'native':native, 'physical':maps, 'price':result_price,
+                         'native':native, 'physical':maps, 'price':result_price, 'fixed_root_ceiling':fixed_ceiling,
                          'negative_controls':controls,
                          'assumptions':['native_all_columns','owned_erasure','compiler',
                                         'precision_tape','analytic_recovery'],

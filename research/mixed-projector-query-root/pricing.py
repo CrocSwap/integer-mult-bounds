@@ -10,8 +10,8 @@ from collections import Counter
 from fractions import Fraction as Q
 from controller import formula_invoice, need
 
-KAPPA = Q('0.00327980')
-TESTED = Q('0.003279805')
+KAPPA = Q('0.00328467')
+TESTED = Q('0.003284675')
 PREVIOUS = Q('0.00315057')
 
 
@@ -48,10 +48,10 @@ def assemble(local, native, word, physical):
     need(main == physical['main_targets'], 'All main target phases and ranks')
     need(idle == physical['whole_idle_jobs'], 'All paired and individual whole idle jobs')
     need((targets, paid) == formula_invoice(local), 'Independent tree and emitted-event counts')
-    need((counts['LOCAL'], counts['QUERY'], counts['IDLE']) == (18, 17, 14) and counts['IDLE_ONE'] == 3 and counts['LAMBDA'] == 20, 'Complete caller census')
-    need((sum(targets.values()), sum(paid.values())) == (13652, 67092), 'All independent fields and paid calls')
+    need((counts['LOCAL'], counts['QUERY'], counts['IDLE']) == (18, 17, 14) and counts['IDLE_ONE'] == 2 and counts['LAMBDA'] == 20, 'Complete caller census')
+    need((sum(targets.values()), sum(paid.values())) == (13652, 66988), 'All independent fields and paid calls')
     need(sum(r*n for r, n in targets.items())-sum(r*n for r, n in paid.items()) == 760, 'Complete rank-mass surplus')
-    need((max(targets), max(paid)) == (145, 64), 'Maximum target and paid ranks')
+    need((max(targets), max(paid)) == (145, 56), 'Maximum target and paid ranks')
     return targets, paid, counts
 
 
@@ -125,6 +125,9 @@ def run(local, native, word, physical, L):
     raw = 18*10**7 + 17*1664 + 32*34*104*len(word['events']) + 34*104*(26+1000)
     need(all(abs(Q(e[-1])) <= 16 for e in word['events'] if e[0] in ('ADD', 'SCALE')),
          'Every emitted scalar coefficient has the declared growth bound')
+    need(all(Q(e[-1]).denominator & (Q(e[-1]).denominator-1) == 0
+             for e in word['events'] if e[0] in ('ADD', 'SCALE')),
+         'Every emitted rational scalar is dyadic')
     need(raw < 10**9, 'Complete ordinary-work budget')
     bit = L.read(L.ROOT/'research/query-thinned-controllers/RESULT.json')['ordinary_BIT']
     atom = Q(bit['atom'])
@@ -143,13 +146,13 @@ def run(local, native, word, physical, L):
     need(old_completion[0] > 1, 'The old completion cutoff does not fund the new inventory')
     bad = outer_module.ledger(dict(params, bit_saving=Q('.0027')))
     need(any(x <= 0 for x in bad['strict_checks'].values()), 'Insufficient BIT saving rejected')
-    return encode({'kappa': KAPPA, 'kappa_decimal': '0.00327980', 'previous_pr6353': PREVIOUS,
+    return encode({'kappa': KAPPA, 'kappa_decimal': '0.00328467', 'previous_pr6353': PREVIOUS,
                    'gain': KAPPA-PREVIOUS, 'relative_gain_percent': 100*(KAPPA/PREVIOUS-1),
                    'raw_root_interval': [lower, upper], 'raw_headroom': [lower-KAPPA, upper-KAPPA],
                    'derivative_upper': derivative_upper, 'margin_at_previous': E.display(margin(PREVIOUS)),
                    'targets': T, 'paid': P, 'productive_fields': sum(T.values()), 'paid_calls': sum(P.values()),
                    'rank_mass_surplus': 760, 'full_forward_calls': 18, 'thin_queries': 17,
-                   'whole_idle_jobs': 3224, 'strictification': {
+                   'whole_idle_jobs': 3120, 'strictification': {
                        'tested': TESTED, 'power': power, 'cutoff': cutoff, 'floor': floor,
                        'tail_offset': offset, 'reserve': reserve, 'tail_decay': decay, 'tail_block': 128,
                        'alpha': E.display(alpha), 'gamma': E.display(gamma), 'delta': E.display(delta),

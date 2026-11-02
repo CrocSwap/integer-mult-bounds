@@ -136,7 +136,7 @@ def run():
                  'Tensoring the one-column normalization is rejected')
             wrong_tensor_rejected = True
         tensor_columns += size
-    return {'fields':n,'full_sites':4,'thin_sites':3,'stage_ranks':[2,3,4,2],
+    return {'fields':n,'full_sites':4,'thin_sites':3,'stage_ranks':[2,3,3,2],
             'polynomial_coefficients':2*16*n*n,'gaussian_characters':4,
             'actual_tensor_gaussian_columns':tensor_columns,
             'wrong_tensor_normalization_rejected':wrong_tensor_rejected,

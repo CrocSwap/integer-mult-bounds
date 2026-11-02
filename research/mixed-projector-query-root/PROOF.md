@@ -1,12 +1,12 @@
 # A mixed projector root for independent Gaussian outputs
 
 This construction changes the caller. It keeps the complete PR6349 native
-source. Four binary query suppliers, with 7, 2, 1 and 8 native leaves, enter
-a six-field root. The root has three thin queries and three individual
+source. Four binary query suppliers, with 7, 2, 2 and 7 native leaves, enter
+a six-field root. The root has three thin queries and two individual
 whole idle jobs. It gives six independent Gaussian outputs. The child
 suppliers give another 28 independent main outputs.
 
-The conditional claim is kappa 0.00327980. The five inherited framework
+The conditional claim is kappa 0.00328467. The five inherited framework
 assumptions remain. This is not an unconditional multiplication theorem,
 a materialized uniform word or an independent scientific review.
 
@@ -64,15 +64,15 @@ Each R_i is square-zero and has rank one. Direct exact multiplication gives
 ```
 
 `ROOT.json` specifies an invertible rational basis F, four stage projectors
-P_i, and their native two-field bases C_i. Full sites are 0, 1, 4 and 6.
-Sites 2, 3 and 5 are thin. In F coordinates the four projector masks are
+P_i, and their native two-field bases C_i. Full sites are 0, 1, 5 and 6.
+Sites 2, 3 and 4 are thin. In F coordinates the four projector masks are
 
 | Site | Output coordinates in the stage | Rank | Native leaves | Extra whole idles |
 | --- | --- | ---: | ---: | --- |
-| 0 | 0,2 | 2 | 7 | none |
-| 1 | 0,1,2 | 3 | 2 | one H16 |
-| 4 | 0,3,4,5 | 4 | 1 | two H8 |
-| 6 | 0,3 | 2 | 8 | none |
+| 0 | 0,1 | 2 | 7 | none |
+| 1 | 0,1,5 | 3 | 2 | one H16 |
+| 5 | 0,2,4 | 3 | 2 | one H16 |
+| 6 | 0,2 | 2 | 7 | none |
 
 The exact checker verifies P_i^2=P_i, P_i R_i=R_i P_i=R_i and pairwise
 commutation of the four P_i. It also verifies that P_i commutes with the
@@ -91,10 +91,10 @@ Apply F at entry and F^-1 at exit. Apply lambda^-1 to all six root outputs.
 Their independent stage supports are
 
 ```text
-ABCD, B, AB, CD, C, C.
+ABCD, AB, CD, empty, C, B.
 ```
 
-For child sizes 7,2,1,8, the six Gaussian ranks are 145,17,73,73,9,9.
+For child sizes 7,2,2,7, the six Gaussian ranks are 145,73,73,1,17,17.
 No root input is owned or initialized. The scalar basis maps are invertible.
 
 ## 3. Binary children and full endpoint
@@ -105,10 +105,10 @@ It returns another query supplier and two independent Gaussian outputs.
 Its separate Laurent checker is replayed here under its source hash.
 
 The four child trees have 18 native leaves and 14 binary nodes. Their node
-size counts are {2:8,3:1,4:3,7:1,8:1}. The root adds three thin queries.
+size counts are {2:8,3:2,4:2,7:2}. The root adds three thin queries.
 The complete caller has 34 main fields per port, 18 distinct native stages,
-17 thin queries, 14 paired whole idles and three individual whole idles.
-Its 543 literal instructions include all basis maps and 20 normalizations.
+17 thin queries, 14 paired whole idles and two individual whole idles.
+Its 570 literal instructions include all basis maps and 20 normalizations.
 
 The full replay uses exact coefficients in Q(i)[Q,D_1,...,D_18]/(Q^4-1).
 It checks all 1,156 input/output entries. Stage variables remain distinct.
@@ -129,16 +129,16 @@ receives its complete arbitrary-input, dense-transpose and native replay.
 
 ## 4. Complete price and outer transfer
 
-The complete invoice has 67,092 paid jobs and 13,652 productive jobs.
-Paid rank mass is 188,668; productive rank mass is 189,428. The surplus is
-760. The maximum target rank is 145 and maximum paid rank is 64. The
+The complete invoice has 66,988 paid jobs and 13,652 productive jobs.
+Paid rank mass is 185,340; productive rank mass is 186,100. The surplus is
+760. The maximum target rank is 145 and maximum paid rank is 56. The
 emitted-event count agrees with a separate fixed-tree and root count.
 
-The strict raw crossing is in (0.00327981076011,0.00327981076012), between
+The strict raw crossing is in (0.00328468791927,0.00328468791928), between
 adjacent points on the 10^-14 grid. `RESULT.json` records both rational
 moment engines, completion, compiler and outer ledger. The claim is
-0.00327980; the tested
-saving is 0.003279805. The completion uses power 1024, cutoff 12, floor 13,
+0.00328467; the tested
+saving is 0.003284675. The completion uses power 1024, cutoff 12, floor 13,
 offset 1/7, reserve 10^-12 and decay 31/32. The logarithm power is 1100.
 All local native, route and scalar costs remain charged. The new caller
 uses a conservative 32 real scalar units per field per instruction,
@@ -151,11 +151,61 @@ source is PR6349; it does not consume PR6353's output-contracted word.
 The source-relative gain is from the new caller, not new digits of an old
 crossing. PR6353 and PR6350 retain their separate construction credit.
 
-The child-size discovery checked every tuple from 1 through 40 for this
-fixed four-site root, at two floating trial savings. It selected 7,2,1,8.
-That bounded search is not an exact optimality certificate or a search of
-all root bases. The published bound depends only on the exact chosen word
-and its complete rational replay.
+The basis search checked 241,886,080 bounded bases modulo 65521. It found
+695 support patterns. Floating searches selected the rank 2,3,3,2 pattern.
+The exact rational checker then verified the chosen basis and every stage
+coefficient. This finite search does not prove a global basis optimum.
+The new child-size search selected 7,2,2,7. Section 5 gives an exact ceiling
+for all binary children of this fixed root.
+
+## 5. A ceiling for every binary child size of this root
+
+This statement keeps the root and the PR6349 native source fixed. It permits
+all positive integer child sizes and all binary tree shapes. Let H(r)=r^t,
+t=1-kappa, and let L be the native paid-minus-helper moment per port.
+Let C(n) be the minimum binary-node cost for n leaves. Then
+
+```text
+C(1)=0,
+C(n)=min_{1 <= a < n} (C(a)+C(n-a)+2H(8n)+1-2H(8n+1)).
+```
+
+For a pair with total n, the best root contribution is
+
+```text
+G(n)=max_{1 <= b < n}
+     (H(8n+1)-n L-C(n-b)-C(b)+H(8b+1)-H(8b)).
+```
+
+For four positive children, with pair totals x and y, the complete margin
+per port is H(8(x+y)+1)+G(x)+G(y)-2. The two pairs contain all root outputs,
+three thin queries, both individual idles and every binary-node job.
+
+At kappa .00328469, `ceiling.py` uses rational outward intervals. It checks
+all 4,851 binary splits below 100 leaves and all 4,656 root pair choices with
+four through 99 leaves. Every margin upper bound is strictly negative.
+
+For larger totals f, concavity gives C(n) >= -(n-1) and
+H(8b+1)-H(8b) <= H(9)-H(8). Jensen's inequality gives the upper bound
+
+```text
+B(f)=H(8f+1)+2H(4f+1)-f(L-1)+2(H(9)-H(8))-6.
+```
+
+The checker proves B(100)<0 and B'(100)<0 with rational intervals. Since
+t is strictly between zero and one, B' decreases. Thus B(f)<0 for every
+real f>=100. No larger binary tree is omitted.
+
+The native deficit L has strictly positive derivative throughout
+0<=kappa<=.0034. The checker proves this with an interval lower bound above
+42. Each binary-node cost increases with kappa, while each positive H term
+and each increment H(r+1)-H(r) decreases. Thus every root margin decreases
+throughout the retained BIT admission range. Failure at .00328469 also
+excludes every larger saving in that range.
+
+This fixed root cannot reach .00328469 with the retained native source.
+The claim .00328467 is within .00000002 of that ceiling. This is a scoped
+ceiling, not a bound for other roots, source words or query interfaces.
 
 ## Scope and open next questions
 
@@ -166,7 +216,7 @@ and rounded multiplier are not materialized. No global optimality or
 practical speedup is claimed. The selected frontier stays unchanged.
 
 An independent reviewer should first check the global-field normalization,
-the charged rank-three and rank-four projectors, and input independence.
+the two charged rank-three projectors, and input independence.
 Then replay the exact source and complete invoice. A later improvement can
 change this root or combine it with a verified source, but must include
 every changed productive debit, ordinary operation and compiler cost.

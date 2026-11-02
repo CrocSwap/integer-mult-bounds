@@ -27,7 +27,11 @@ def construct():
         a = matrix(rows)
         ops = []
         for j in range(6):
-            k = next(k for k in range(j, 6) if a[k][j])
+            # A unit in the dyadic ring keeps every emitted scale dyadic.
+            pivots = [k for k in range(j, 6) if a[k][j]
+                      and abs(a[k][j].numerator) & (abs(a[k][j].numerator)-1) == 0]
+            need(pivots, 'Each declared basis has a dyadic unit pivot')
+            k = pivots[0]
             if k != j:
                 a[j], a[k] = a[k], a[j]
                 ops.append(['SWAP', j, k])
@@ -119,7 +123,7 @@ def construct():
     need(stage == 18 and next_role == 34, 'Complete mixed-root dimensions')
     diagonal = [[targets[r][0], 0]+[int(s in targets[r][1]) for s in range(1, stage+1)]
                 for r in range(next_role)]
-    return {'schema': 'mixed-projector-query-root/1', 'roles': next_role,
+    return {'schema': 'mixed-projector-query-root/2', 'roles': next_role,
             'stages': stage, 'ambient_rank': 9+8*stage, 'nodes': nodes,
             'events': events, 'diagonal': diagonal}
 
@@ -203,14 +207,13 @@ def formula_invoice(local):
     targets = Counter({r: 18*n for r,n in local['helpers'].items()})
     paid = Counter({r: 18*n for r,n in local['paid'].items()})
     paid[1] += 17*104
-    # Four child trees: 7, 2, 1 and 8 leaves.
-    for size, count in {2:8, 3:1, 4:3, 7:1, 8:1}.items():
+    # Four child trees: 7, 2, 2 and 7 leaves.
+    for size, count in {2:8, 3:2, 4:2, 7:2}.items():
         targets[1+8*size] += 208*count
         paid[8*size] += 208*count
-    for rank,count in {145:1,17:1,73:2,9:2}.items():
+    for rank,count in {145:1,73:2,1:1,17:2}.items():
         targets[rank] += 104*count
-    paid[16] += 104
-    paid[8] += 208
+    paid[16] += 208
     return targets, paid
 
 
