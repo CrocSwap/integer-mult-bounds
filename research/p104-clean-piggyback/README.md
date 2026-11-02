@@ -73,8 +73,12 @@ No selected-frontier update, unconditional theorem, physical execution of the
 full rounded multiplier or attainment of κ=.005 is asserted.
 
 Base canonical main7c49fe32c55de02c2c873655c804b16e4c3fef0a, priority revision8.
-Live PR/discussion checks found PR6375 as the latest comparable numerical
-claim examined. Bounded/non-atomic coverage is not an exhaustive novelty proof.
+At the final refresh, newly opened PR6398 claims a stronger whole conditional
+bound about .003286215 through a different caller on the same native source.
+That claim was not independently replayed here. Our native change is distinct,
+but this nineteen-call composition is no longer the largest published claim.
+Composition with that caller remains a separate, unverified next step.
+Bounded/non-atomic coverage is not an exhaustive novelty proof.
 The stronger two-source merge experiment is excluded from this package.
 
 ## Open next questions
