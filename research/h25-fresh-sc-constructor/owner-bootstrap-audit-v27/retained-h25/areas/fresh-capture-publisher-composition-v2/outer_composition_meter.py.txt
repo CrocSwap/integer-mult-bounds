@@ -1,0 +1,575 @@
+"""SOURCE ONLY: actual direct-child meter around the full capture composition.
+START precedes preparation and CPU baseline; END follows native wait and known
+descriptor cleanup attempts. All nested windows are diagnostics, not additions.
+The selected two-second administrative debit is not measured physical time.
+Whole concurrent descendant forest RSS/CPU/native cleanup and startup/final
+publication are explicitly OPEN: parent plus direct child is insufficient.
+No previous no-payload source acceptance qualifies this new payload route."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+ROOT = W / 'outputs/h25-data-handling-20261028'
+NAME = 'IndependentPrefixDATAComposedV1'
+EVIDENCE = ROOT / 'validation' / (NAME + '-OUTER-INCOMPLETE')
+GRANT = ROOT / 'control/IndependentPrefixDATAComposedV1-OUTER-ACTUAL-GRANT.json'
+AUTHORIZATION = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/control/FRESH-METERED-ROUND-AUTHORIZATION-v1.json')
+AUTH_PIN = {'bytes':1996,'sha256':'28bc04ad98151cf6a52607e4271b4dcbcbd645d0c8c538a35bc37e3d5194d50f'}
+PROBE = ROOT / 'control/IndependentPrefixDATAComposedV1-CAPTURE-BOOTSTRAP.py'
+ENV = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8',
+       'LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+FLAGS = ('-S','-s','-P','-B')
+INITIAL_PATH = ('/usr/lib/python312.zip','/usr/lib/python3.12','/usr/lib/python3.12/lib-dynload')
+MEMORY, STREAM_CAP = 1073741824, 2097152
+ADMIN_POLICY = 'startup-and-final-publication-two-second-administrative-debit-v1'
+ADMIN_POLICY_DEBIT_SECONDS = 2
+OUTER_ACTOR_BINDING = [None]
+FIRST, SECONDARY, IO_UNKNOWN = [None], [None] * 32, [False]
+SLOTS = [[None, 'FREE', None, False] for unused in range(32)]
+START, END, ARMED = [None], [None], [False]
+CHILD, POPEN_PENDING, WAIT_RETURNED = [None], [False], [False]
+PEAK_SAMPLED_PARENT_CHILD_RSS = [None]
+CLEANUP_RETURNCODE, MARKER_PHASE = [None], ['NOT_ENTERED']
+
+class AdapterStop(RuntimeError):
+    pass
+
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+    elif error is not FIRST[0]:
+        for index in range(32):
+            if SECONDARY[index] is error:
+                break
+            if SECONDARY[index] is None:
+                SECONDARY[index] = error
+                break
+        else:
+            IO_UNKNOWN[0] = True
+    return FIRST[0]
+
+
+def need(value, message):
+    if not value:
+        raise AdapterStop(message)
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_uid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                       ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+
+
+def sha_value(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact sha256 required')
+
+
+def error_data():
+    def item(error):
+        if error is None:
+            return None
+        frames, tb = [], error.__traceback__
+        while tb is not None and len(frames) < 32:
+            frames.append({'file': tb.tb_frame.f_code.co_filename, 'line': tb.tb_lineno,
+                           'function': tb.tb_frame.f_code.co_name})
+            tb = tb.tb_next
+        return {'type': type(error).__name__, 'frames': frames}
+    return {'first': item(FIRST[0]), 'secondary': [item(e) for e in SECONDARY if e is not None],
+            'IO_unknown': IO_UNKNOWN[0], 'actual_exception_objects_retained_until_exit': True}
+
+
+def acquire(path, flags=0, directory=False):
+    need(not IO_UNKNOWN[0], 'unknown IO blocks new acquisition')
+    slot = next(s for s in SLOTS if s[1] in ('FREE','CLOSED'))
+    slot[:] = [None, 'PENDING', str(path), directory]
+    try:
+        slot[0] = os.scandir(path) if directory else os.open(path, flags | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        slot[1] = 'OWNED'
+        return slot
+    except BaseException as error:
+        IO_UNKNOWN[0] = True
+        remember(error)
+        raise
+
+
+def close(slot):
+    need(slot[1] == 'OWNED', 'known owned close only; no retry')
+    slot[1] = 'CLOSING'
+    try:
+        slot[0].close() if slot[3] else os.close(slot[0])
+    except BaseException as error:
+        slot[1] = 'CLOSE_UNKNOWN'
+        IO_UNKNOWN[0] = True
+        remember(error)
+        raise
+    slot[1] = 'CLOSED'
+
+
+def names(path, cap):
+    slot, values = acquire(path, directory=True), []
+    try:
+        for item in slot[0]:
+            need(len(values) < cap, 'directory member cap')
+            values.append(item.name)
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'directory close unknown')
+    return values
+
+
+def read_fd(slot, cap, proc=False):
+    before = os.fstat(slot[0])
+    if not proc:
+        need(stat.S_ISREG(before.st_mode) and before.st_uid in (0,os.getuid()) and
+             before.st_nlink == 1 and before.st_size <= cap, 'stable regular owner/link/size')
+        need(identity(Path(slot[2]).lstat()) == identity(before), 'descriptor/path differs')
+        os.lseek(slot[0], 0, os.SEEK_SET)
+    chunks, count = [], 0
+    while True:
+        block = os.read(slot[0], min(65536,cap + 1 - count))
+        if not block:
+            break
+        chunks.append(block)
+        count += len(block)
+        need(count <= cap, 'read cap')
+    raw = b''.join(chunks)
+    if not proc:
+        need(count == before.st_size and identity(os.fstat(slot[0])) == identity(before) ==
+             identity(Path(slot[2]).lstat()), 'stable descriptor/path changed')
+    return raw
+
+
+def stable_source(path, expected):
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical source path')
+    before = path.lstat()
+    need(stat.S_IMODE(before.st_mode) == 0o444, 'frozen source mode')
+    slot = acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        need(identity(before) == identity(os.fstat(slot[0])), 'source opened identity')
+        raw = read_fd(slot, expected['bytes'])
+        need(len(raw) == expected['bytes'] and hashlib.sha256(raw).hexdigest() == expected['sha256'], 'source pin')
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'source close unknown')
+    return raw
+
+
+def metadata(path, cap=8192):
+    slot = acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        raw = read_fd(slot, cap, proc=True)
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'metadata close unknown')
+    return raw
+
+
+def process(pid):
+    raw = metadata('/proc/' + str(pid) + '/stat')
+    end = raw.rfind(b') ')
+    need(end >= 0 and raw.split(b' ',1)[0] == str(pid).encode('ascii'), 'process stat syntax/pid')
+    fields = raw[end + 2:].split()
+    return {'pid':pid,'ppid':int(fields[1]),'pgid':int(fields[2]),'sid':int(fields[3]),
+            'start_ticks':int(fields[19]),'rss_bytes':int(fields[21])*os.sysconf('SC_PAGE_SIZE')}
+
+
+def sample_memory(birth=None):
+    parent = process(os.getpid())
+    total = parent['rss_bytes']
+    if birth is not None:
+        current = process(CHILD[0].pid)  # Native child is still unreaped; no PID reuse.
+        need(all(current[k] == birth[k] for k in ('pid','ppid','pgid','sid','start_ticks')),
+             'owned child generation/session changed')
+        total += current['rss_bytes']
+    PEAK_SAMPLED_PARENT_CHILD_RSS[0] = total if PEAK_SAMPLED_PARENT_CHILD_RSS[0] is None else max(PEAK_SAMPLED_PARENT_CHILD_RSS[0],total)
+    need(total <= MEMORY, 'sampled parent plus owned-child RSS cap')
+
+
+def clean_launch():
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3,12) and sys.base_prefix == '/usr', 'selected interpreter')
+    need(sys.flags.optimize == 0 and sys.flags.no_site == sys.flags.no_user_site ==
+         sys.flags.dont_write_bytecode == 1 and sys.flags.safe_path and
+         sys.flags.ignore_environment == sys.flags.isolated == sys.flags.hash_randomization == 0 and
+         tuple(sys.path) == INITIAL_PATH and dict(os.environ) == ENV and os.getcwd() == str(W), 'clean launch')
+    need(len(names('/proc/self/task',2)) == 1 and signal.getitimer(signal.ITIMER_REAL) == (0.0,0.0) and
+         signal.getsignal(signal.SIGALRM) == signal.SIG_DFL and
+         signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL, 'single thread/default signal owners')
+    status = dict(line.split(':',1) for line in metadata('/proc/self/status',65536).decode('ascii').splitlines() if ':' in line)
+    need(int(status['Umask'].strip(),8) == 0o077, 'umask0077')
+    for fd in (1,2):
+        st = os.fstat(fd)
+        need(stat.S_ISREG(st.st_mode) and stat.S_IMODE(st.st_mode) == 0o600 and
+             st.st_uid == os.getuid() and st.st_nlink == 1, 'captured0600 current-owner streams')
+
+
+def lower_limit(kind, ceiling):
+    soft, hard = resource.getrlimit(kind)
+    bound = min(ceiling,hard) if hard != resource.RLIM_INFINITY else ceiling
+    if soft != resource.RLIM_INFINITY:
+        bound = min(bound,soft)
+    resource.setrlimit(kind,(bound,bound))
+
+
+def strict_json(raw):
+    def pairs(rows):
+        value = {}
+        for key,item in rows:
+            need(key not in value, 'duplicate JSON key')
+            value[key] = item
+        return value
+    def constant(value):
+        raise AdapterStop('nonfinite JSON')
+    return json.loads(raw.decode('ascii'),object_pairs_hook=pairs,parse_constant=constant)
+
+
+def write_owned(slot, raw):
+    need(type(raw) is bytes and len(raw) <= 65536, 'retained metadata cap')
+    at = 0
+    while at < len(raw):
+        count = os.write(slot[0],raw[at:])
+        need(type(count) is int and 0 < count <= len(raw)-at, 'owned write progress')
+        at += count
+    os.fsync(slot[0])
+
+
+def fresh(path):
+    need(path.parent.resolve(strict=True) == path.parent, 'canonical fresh parent')
+    slot = acquire(path,os.O_RDWR | os.O_CREAT | os.O_EXCL)
+    st = os.fstat(slot[0])
+    need(stat.S_ISREG(st.st_mode) and st.st_uid == os.getuid() and st.st_nlink == 1 and
+         stat.S_IMODE(st.st_mode) == 0o600 and st.st_size == 0, 'fresh exclusive0600 file')
+    return slot
+
+
+def sync_directory(path):
+    slot = acquire(path,os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(slot[0])
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'directory sync close unknown')
+
+
+def seal(slot):
+    os.fsync(slot[0])
+    raw = read_fd(slot,STREAM_CAP)
+    os.fchmod(slot[0],0o400)
+    os.fsync(slot[0])
+    return raw,{'path':slot[2],'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'mode':0o400}
+
+
+def stop_owned_child():
+    child = CHILD[0]
+    if child is not None and not WAIT_RETURNED[0]:
+        try:
+            child.kill()  # Only genuine strongly held Popen; no JSON/PID rehydration.
+        except BaseException as secondary:
+            IO_UNKNOWN[0] = True
+            remember(secondary)
+        try:
+            result = child.wait(timeout=2)
+            need(type(result) is int and result == child.returncode, 'actual cleanup wait')
+            CLEANUP_RETURNCODE[0] = result
+            WAIT_RETURNED[0] = True
+        except BaseException as secondary:
+            IO_UNKNOWN[0] = True
+            remember(secondary)
+
+
+def _outer_actor_data(value):
+    """Bounded exact builtin DATA before key hashing, equality or JSON copy.
+
+    Exact dict/list iteration reads native entries only. Keys are first checked
+    by type before length or any use as hashed keys. Parent cycles use is-only
+    identity scans, without id/audit calls, object equality or foreign methods.
+    Ordinary selected-pristine builtin/OS and single-role stability premises
+    remain external; this is not hostile concurrent mutation protection.
+    """
+    nodes, text, parents = [0], [0], []
+
+    def node_charge():
+        nodes[0] += 1
+        need(nodes[0] <= 256, 'outer actor DATA node bound')
+
+    def text_charge(count):
+        text[0] += count
+        need(text[0] <= 4096, 'outer actor DATA total text bound')
+
+    def visit(node, depth):
+        need(depth <= 16, 'outer actor DATA depth bound')
+        node_charge()
+        kind = type(node)
+        if kind is dict or kind is list:
+            # No `in`, equality, hashing, repr, or id on caller containers.
+            for parent in parents:
+                need(node is not parent, 'outer actor DATA cycle')
+            if kind is dict:
+                need(len(node) <= 32, 'outer actor DATA dict bound')
+                # Complete key-type pass before recursive values or schema sets.
+                # Iteration of an exact dict never rehashes its stored keys.
+                for key in node:
+                    need(type(key) is str, 'outer actor DATA exact string key')
+                    need(0 < len(key) <= 128, 'outer actor DATA key length')
+                    node_charge()
+                    text_charge(len(key))
+            else:
+                need(len(node) <= 64, 'outer actor DATA list bound')
+            parents.append(node)
+            try:
+                if kind is dict:
+                    for child in dict.values(node):
+                        visit(child, depth + 1)
+                else:
+                    for child in node:
+                        visit(child, depth + 1)
+            finally:
+                parents.pop()
+        elif kind is str:
+            need(len(node) <= 4096, 'outer actor DATA string bound')
+            text_charge(len(node))
+        elif kind is int:
+            need(-(1 << 63) <= node < (1 << 63), 'outer actor DATA integer bound')
+        elif kind is bool or node is None:
+            pass
+        else:
+            # Floats/nonfinite, subclasses, functions, bytes, tuples and all
+            # unknown objects are rejected without asking them to convert.
+            need(False, 'outer actor DATA exact scalar/container type')
+
+    visit(value, 0)
+
+
+def bind_outer_actor(value):
+    # Fixed authenticated source-private parent only; no native authority from DATA.
+    need(OUTER_ACTOR_BINDING[0] is None,'one exact outer actor binding')
+    _outer_actor_data(value)  # Before set/key hashing, equality, canonical or JSON.
+    need(type(value) is dict and set(value) == {'capture_bootstrap_pin','capture_source_pin',
+        'source_policy_pin','resource_policy_pin','current_profile_pin','complete_delivery_scope_sha256',
+        'body_reservation_ns','cleanup_reservation_ns'},
+        'complete fixed full-capture binding')
+    copied = strict_json(canonical(value))
+    for key in ('capture_bootstrap_pin','capture_source_pin','source_policy_pin',
+                'resource_policy_pin','current_profile_pin'):
+        row = copied[key]
+        need(type(row) is dict and set(row) == {'path','bytes','sha256','mode'} and
+             type(row['path']) is str and type(row['bytes']) is int and 0 < row['bytes'] <= 131072 and
+             type(row['mode']) is int and row['mode'] == 0o444,'actual immutable configured input pin')
+        sha_value(row['sha256'])
+    need(copied['capture_bootstrap_pin']['path'] == str(PROBE),'fixed bootstrap path, no arbitrary target port')
+    sha_value(copied['complete_delivery_scope_sha256'])
+    need(type(copied['body_reservation_ns']) is int and 0 < copied['body_reservation_ns'] <= 180_000_000_000 and
+         type(copied['cleanup_reservation_ns']) is int and
+         0 < copied['cleanup_reservation_ns'] < copied['body_reservation_ns'],
+         'same current whole-body reservation, no old frontier arithmetic')
+    OUTER_ACTOR_BINDING[0] = copied
+
+
+def run(source_sha,source_bytes,grant_sha,grant_bytes):
+    status, captures, child_birth, usage_before, usage_after = 'STOP',[],None,None,None
+    raw_pins, native_returncode, final_probe = [],None,None
+    try:
+        START[0] = time.monotonic_ns()
+        usage_before = (resource.getrusage(resource.RUSAGE_SELF),resource.getrusage(resource.RUSAGE_CHILDREN))
+        need(OUTER_ACTOR_BINDING[0] is not None,'full capture actor/current manual profile not configured')
+        actor = OUTER_ACTOR_BINDING[0]
+        probe_pin = actor['capture_bootstrap_pin']
+        clean_launch()
+        ARMED[0] = True
+        lower_limit(resource.RLIMIT_AS,MEMORY)
+        lower_limit(resource.RLIMIT_FSIZE,STREAM_CAP)
+        sample_memory()
+        need(metadata('/proc/self/task/'+str(os.getpid())+'/children').strip() == b'', 'no prior live children')
+        for digest_value in (source_sha,grant_sha):
+            sha_value(digest_value)
+        need(type(source_bytes) is int and 0 < source_bytes <= 131072 and
+             type(grant_bytes) is int and 0 < grant_bytes <= 65536, 'source/grant byte bounds')
+        stable_source(Path(__file__).absolute(),{'bytes':source_bytes,'sha256':source_sha})
+        stable_source(PROBE,probe_pin)
+        for key in ('capture_source_pin','source_policy_pin','resource_policy_pin','current_profile_pin'):
+            row = actor[key]
+            stable_source(Path(row['path']),row)
+        stable_source(AUTHORIZATION,AUTH_PIN)
+        grant = strict_json(stable_source(GRANT,{'bytes':grant_bytes,'sha256':grant_sha}))
+        expected_grant = {'schema':'fresh-composed-outer-meter-grant-v1',
+            'source_sha256':source_sha,'source_bytes':source_bytes,'probe_sha256':probe_pin['sha256'],
+            'authorization_sha256':AUTH_PIN['sha256'],'allow_one_attempt':True,
+            'operation':'FULL_SIX_CAPTURE_CONTROLLER_FEE','command_seconds':180,
+            'body_reservation_ns':actor['body_reservation_ns'],
+            'cleanup_reservation_ns':actor['cleanup_reservation_ns'],
+            'capture_source_sha256':actor['capture_source_pin']['sha256'],
+            'source_policy_sha256':actor['source_policy_pin']['sha256'],
+            'resource_policy_sha256':actor['resource_policy_pin']['sha256'],
+            'current_profile_sha256':actor['current_profile_pin']['sha256'],
+            'complete_delivery_scope_sha256':actor['complete_delivery_scope_sha256'],
+            'sampled_parent_child_memory_bytes':MEMORY,'administrative_tail_policy':ADMIN_POLICY,
+            'administrative_tail_debit_seconds':ADMIN_POLICY_DEBIT_SECONDS}
+        need(type(grant) is dict and set(grant) == set(expected_grant) and
+             all(type(grant[k]) is type(v) and grant[k] == v for k,v in expected_grant.items()),
+             'separate exact parent command/funding grant')
+        parent = EVIDENCE.parent
+        st = parent.lstat()
+        need(parent.resolve(strict=True) == parent and stat.S_ISDIR(st.st_mode) and
+             st.st_uid == os.getuid() and not stat.S_IMODE(st.st_mode) & 0o022, 'owned canonical evidence parent')
+        MARKER_PHASE[0] = 'CREATE_PENDING'
+        os.mkdir(EVIDENCE,0o700)  # Persistent one-use incomplete marker itself; never removed.
+        MARKER_PHASE[0] = 'DIRECTORY_RETURNED'
+        sync_directory(parent)
+        start_slot = fresh(EVIDENCE/'START.json')
+        start_raw = canonical({'schema':'fresh-owner-meter-incomplete-v1','start_monotonic_ns':START[0],
+            'source_sha256':source_sha,'probe_sha256':probe_pin['sha256'],'actual_grant_sha256':grant_sha,
+            'future_operation_blocked_until_separate_adjudication':True})
+        write_owned(start_slot,start_raw)
+        need(read_fd(start_slot,65536) == start_raw, 'START full byte readback')
+        close(start_slot)
+        sync_directory(EVIDENCE)
+        MARKER_PHASE[0] = 'DURABLE_START_BEFORE_PROBE'
+        captures = [fresh(EVIDENCE/name) for name in ('capture.stdout.raw','capture.stderr.raw')]
+        sync_directory(EVIDENCE)
+        remaining = (actor['body_reservation_ns']-actor['cleanup_reservation_ns']-(time.monotonic_ns()-START[0]))/1e9
+        need(remaining > 0, 'body preparation exhausted before child; no dispatch')
+        POPEN_PENDING[0] = True
+        CHILD[0] = subprocess.Popen(['/usr/bin/python3.12',*FLAGS,str(PROBE),
+            probe_pin['sha256'],str(probe_pin['bytes'])],cwd=W,env=dict(ENV),stdin=subprocess.DEVNULL,
+            stdout=captures[0][0],stderr=captures[1][0],close_fds=True,start_new_session=True)
+        POPEN_PENDING[0] = False
+        child_birth = process(CHILD[0].pid)
+        need(child_birth['ppid'] == os.getpid() and child_birth['pgid'] == child_birth['pid'] ==
+             child_birth['sid'], 'genuine owned child parent/session')
+        while not WAIT_RETURNED[0]:
+            sample_memory(child_birth)
+            remaining = (actor['body_reservation_ns']-actor['cleanup_reservation_ns']-(time.monotonic_ns()-START[0]))/1e9
+            need(remaining > 0, 'body deadline: stop owned child, no retry')
+            for slot in captures:
+                need(os.fstat(slot[0]).st_size <= STREAM_CAP, 'child stream cap')
+            try:
+                native_returncode = CHILD[0].wait(timeout=min(0.05,remaining))
+                WAIT_RETURNED[0] = True
+            except subprocess.TimeoutExpired:
+                pass
+        need(type(native_returncode) is int and CHILD[0].returncode == native_returncode, 'actual native wait')
+        raw_values = []
+        for slot in captures:
+            raw,pin = seal(slot)
+            raw_values.append(raw)
+            raw_pins.append(pin)
+        need(native_returncode == 0,'full capture actor failed; actual descendants remain independently owned')
+        need(raw_values[1] == b'', 'unexpected child stderr retained as bytes')
+        raw_lines = raw_values[0].splitlines()
+        need(1 <= len(raw_lines) <= 8 and all(0 < len(line) <= 65536 for line in raw_lines), 'probe journal bounds')
+        rows = [strict_json(line) for line in raw_lines]
+        need(all(type(row) is dict for row in rows), 'probe journal objects')
+        final_probe = rows[-1]
+        need(final_probe.get('schema') == 'fresh-composed-capture-terminal-v1' and
+             final_probe.get('body_status') == 'CAPTURE_AND_RETAINED_DATA_READY' and
+             final_probe.get('native_waits_all_returned') is True and
+             final_probe.get('native_waits_do_not_prove_full_descendant_disposal') is True and
+             final_probe.get('unknown_IO_or_wait') is False and
+             final_probe.get('first_error_present') is False and
+             final_probe.get('all_costs_settled') is False and
+             final_probe.get('complete_outer_body_observed_here') is False,
+             'fixed source-bound retained capture observation only; not whole-tree/native proof')
+        sample_memory()
+        status = 'OBSERVATION_VALIDATED'
+    except BaseException as error:
+        remember(error)
+        if POPEN_PENDING[0]:
+            IO_UNKNOWN[0] = True
+    finally:
+        stop_owned_child()
+        for slot in SLOTS:
+            if slot[1] == 'OWNED':
+                try:
+                    close(slot)
+                except BaseException as secondary:
+                    remember(secondary)
+        try:
+            usage_after = (resource.getrusage(resource.RUSAGE_SELF),resource.getrusage(resource.RUSAGE_CHILDREN))
+        except BaseException as secondary:
+            remember(secondary)
+        try:
+            END[0] = time.monotonic_ns()
+            need(type(START[0]) is int and type(END[0]) is int and 0 <= START[0] <= END[0], 'real body endpoints')
+            need(END[0]-START[0] <= actor['body_reservation_ns'] <= 180_000_000_000,
+                 'observed actual body reservation/180 exceeded; retained debt, no retry')
+        except BaseException as secondary:
+            remember(secondary)
+    if FIRST[0] is not None or IO_UNKNOWN[0]:
+        status = 'STOP'
+    record = {'schema':'fresh-composed-outer-body-observation-v1','body_status':status,
+        'start_monotonic_ns':START[0],'end_after_owned_cleanup_monotonic_ns':END[0],
+        'body_elapsed_ns':END[0]-START[0] if type(START[0]) is int and type(END[0]) is int and END[0]>=START[0] else None,
+        'native_returncode_observed':native_returncode,'owned_wait_returned':WAIT_RETURNED[0],
+        'cleanup_native_returncode_observed':CLEANUP_RETURNCODE[0],
+        'Popen_construction_pending':POPEN_PENDING[0],'errors':error_data(),'raw_pins':raw_pins,
+        'peak_sampled_parent_plus_unreaped_child_RSS_bytes':PEAK_SAMPLED_PARENT_CHILD_RSS[0],
+        'rusage_self_and_reaped_children_before_after':[
+            [[u.ru_utime,u.ru_stime,u.ru_maxrss] for u in values] if values is not None else None
+            for values in (usage_before,usage_after)],
+        'rusage_scope':'after genuine START before preparation to after cleanup attempts before END; raw self/reaped-child values only, no whole concurrent forest CPU/RSS claim',
+        'administrative_tail_policy':ADMIN_POLICY,'administrative_policy_debit_seconds':ADMIN_POLICY_DEBIT_SECONDS,
+        'policy_debit_is_not_observed_duration_or_physical_upper_bound':True,
+        'outer_startup_and_final_publication_physical_boundary':'OPEN_NOT_ZERO',
+        'persistent_incomplete_marker_path':str(EVIDENCE),'marker_phase_observed':MARKER_PHASE[0],
+        'all_costs_settled':False,'successor_clearance_granted':False,'whole_goal_physical_cap_proved':False,
+         'whole_concurrent_descendant_forest_RSS_CPU_and_cleanup_observed':False,
+         'direct_child_wait_is_not_full_forest_disposal':True,
+         'nested_ACTIVE_capture_fee_clock_windows_additive':False,
+         'genuine_external_native_provider_result_required':True,
+         'full_scope_runtime_qualified':False}
+    if ARMED[0]:
+        try:
+            raw = canonical(record)
+            need(len(raw) <= 65536, 'final body observation cap')
+            at = 0
+            while at < len(raw):
+                count = os.write(1,raw[at:])
+                need(type(count) is int and 0 < count <= len(raw)-at, 'final record write progress')
+                at += count
+            os.fsync(1)
+        except BaseException as secondary:
+            remember(secondary)  # No retry; native outer capture records nonzero/uncertainty.
+    return 0 if status == 'OBSERVATION_VALIDATED' and FIRST[0] is None and not IO_UNKNOWN[0] else 78
+
+
+if __name__ == '__main__':
+    need(len(sys.argv) == 5, 'exact source SHA/bytes and actual grant SHA/bytes arguments')
+    sys.exit(run(sys.argv[1],int(sys.argv[2]),sys.argv[3],int(sys.argv[4])))

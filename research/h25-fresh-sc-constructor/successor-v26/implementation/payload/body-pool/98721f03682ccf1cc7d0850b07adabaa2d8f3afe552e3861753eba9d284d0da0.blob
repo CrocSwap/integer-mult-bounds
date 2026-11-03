@@ -1,0 +1,216 @@
+\section{Introduction}
+
+Sch\"onhage and Strassen proved in 1971 that two $n$-bit integers can
+be multiplied in $O(n\log n\log\log n)$ time on a multitape Turing
+machine, and proposed $n\log n$ as the optimal order of growth
+\cite[Section~1]{SchonhageStrassen1971}. After a sequence of improvements,
+Harvey and van der Hoeven reached the unconditional $O(n\log n)$ upper
+bound~\cite{HarveyHoeven2021}. We obtain a strict power saving in the
+logarithmic factor, in the same fixed finite-tape model. The algorithm
+uses linear combinations of intermediate data to reduce the cost of
+both address rearrangement and Fourier-transform layers.
+
+For a binary string $x$ of length $n$, let $\operatorname{val}(x)$ be
+its nonnegative integer value, with the leftmost bit most significant.
+For $0\le z<2^k$, let $\operatorname{bin}_k(z)$ denote its binary
+representation padded on the left to length $k$. We consider exact
+multiplication: on input $x\#y$, with $x,y\in\{0,1\}^n$, the output
+must be $\operatorname{bin}_{2n}(\operatorname{val}(x)\operatorname{val}(y))$.
+Write $\lg n=\max\{\lceil\log_2 n\rceil,1\}$.
+
+\begin{theorem}\label{thm:main}
+There is one deterministic Turing machine $A$, with a fixed finite
+alphabet and a fixed finite number of one-dimensional tapes, that
+computes this exact product for every $n\ge1$ and every pair of $n$-bit
+inputs. Its worst-case running time satisfies
+\[
+ T_A(n)=O\!\left(n(\lg n)^{1-\kappa}\right),
+ \qquad \kappa=2^{-182}.
+\]
+\end{theorem}
+
+The bound is asymptotic through all input lengths. The constants and
+thresholds in the construction are extremely large; the algorithm is
+intended to establish a bit-complexity bound. The theorem refutes an
+eventual $\Omega(n\log n)$ lower bound for every fixed multiplication
+machine in this model.
+
+\subsection{The two tape operations}
+
+Splitting the inputs into radix digits reduces multiplication to
+convolution of short integer coefficients. Our starting point is the
+Gaussian-resampling reduction of Harvey and van der Hoeven
+\cite{HarveyHoeven2021}: it replaces the Fourier transforms needed for
+this convolution by multidimensional transforms whose axis lengths are
+powers of two. After a further conversion to convolution, one coordinate
+is stored as the coefficient list of a polynomial modulo $y^r+1$, with $r$ a power of two. Powers of $y$ then
+serve as roots of unity in the remaining axes, and multiplication by
+such a root is a signed shift of the coefficient list. These are the
+synthetic polynomial transforms of Nussbaumer and Quandalle and
+Nussbaumer~\cite{NussbaumerQuandalle1978,Nussbaumer1980}.
+
+In this representation, the transform calculation consists of address
+rearrangements, signed shifts, and two-point butterfly operations.
+Scanning an array of $\Theta(n)$ stored bits at each of
+$\Theta(\log n)$ transform levels already costs $\Theta(n\log n)$.
+We therefore need savings in both movement and arithmetic. Two tape
+procedures supply them; in both bounds, $V$ denotes the stored bit volume.
+
+The first procedure interchanges two disjoint contiguous address fields
+of $u$ bits in an array whose addresses form a complete Cartesian
+product. Its cost is $O(Vu^\tau)$ for a fixed $\tau<1$.
+Although its final effect is an exact permutation, its intermediate
+steps form pointwise XOR combinations of data. The final permutation is
+exact for arbitrary initial auxiliary values.
+
+The second procedure applies
+\[
+ H_0(u,v)=\bigl((u+v)/2,(u-v)/2\bigr)
+\]
+simultaneously on selected coordinate bits of the numerical arrays.
+Each record is a polynomial with complex fixed-point coefficients, and
+$H_0$ acts coefficientwise. On the layouts used in the multiplication
+algorithm, one selects the same bit position in each of at most $d$
+equal-width address chunks, and the cost is $O(Vd^{\lambda'})$ for a
+fixed $\lambda'<1$. Intermediate values are exact Gaussian dyadics,
+whose real and imaginary parts have power-of-two denominators. A single
+truncation follows the completed contractive layer.
+Section~\ref{sec:tape-interchange} proves the address bound, and
+Section~\ref{sec:fast-butterfly-layers} gives the numerical layout,
+precision hypotheses, and layer bound.
+
+\subsection{Linear networks and the recursive saving}
+
+Each procedure arises from its own fixed linear network that exchanges two
+banks of values, with prescribed signs, and restores every auxiliary
+value. A wire's fixed place in the network is called its role. To use
+the network on an array, regard a row as the complete ordered suffix,
+including all active address fields, at a fixed prefix and row index.
+Distribute rows cyclically among the $W$ roles, padding the row count
+for each prefix to a multiple of $W$. Let $V$ now denote the node volume
+after padding. All role streams have the same local address set and each
+contains $V/W$ bits. A scalar gate is then applied
+pointwise to matching addresses on the roles that it touches.
+
+The representation of a role's array may change along the network.
+At a source, gate, or sink $v$, choose an invertible linear operator
+$D_v$ on the space of arrays indexed by the common address set. We call $D_v$ its frame: the stored
+array is $D_vg$ when the logical array is $g$. All incidences of one
+gate have the same frame. Along an edge from $u$ to $v$, the operator
+$D_vD_u^{-1}$ changes the stored array from $D_ug$ to $D_vg$.
+At a pointwise linear gate $G$, the common frame commutes with the gate:
+\[
+ G(D_vg_1,\ldots,D_vg_t)=D_vG(g_1,\ldots,g_t).
+\]
+The supplied input needs no preliminary change of frame: its logical
+interpretation is defined by applying the inverse input frame. Thus the
+intermediate frames cancel, and a route from input role $w$ to output
+role $\rho(w)$ applies
+$D_{\mathrm{sink}(\rho(w))}D_{\mathrm{source}(w)}^{-1}$, together with
+its prescribed scalar sign. Undoing the role exchange and those signs
+leaves the endpoint operator on every role array, including the roles
+that carried auxiliary scalar values.
+
+For the bit procedure, that endpoint operator is an address shear:
+two fields, written as vectors $H,D$ over a common residue ring, are
+updated by $(H,D)\mapsto(H+D,D)$. Two further linear-cost address
+updates complete their interchange. For the numerical procedure, the
+endpoint operator becomes the simultaneous $H_0$ layer after diagonal
+phase operations and a dyadic scale. The intermediate frames are chosen
+so that every edge can be implemented by smaller calls to the same
+procedure.
+
+The finite construction in Section~\ref{sec:finite-networks} attaches
+subspaces of a fixed $m$-dimensional space to its gates and terminals.
+The subspaces at adjacent vertices are nested. Their dimension changes
+count the smaller operations needed on an edge, with an additional
+source contribution in the bit construction. The construction uses
+three-element subsets: gather and scatter create coefficients depending
+on intersection size, and auxiliary wires cancel the unwanted
+coefficients. Orthogonality of the corresponding indicator vectors permits
+the subspace assignments. The decisive property is that the total
+number $s$ of smaller calls satisfies $s<Wm$.
+
+A recursive call at parameter $mf$ therefore uses $s$ calls at parameter
+$f$, each on a stream of volume $V/W$. The parameter counts field
+digits for address interchange and selected axes for a numerical layer.
+After dividing cost by volume, multiplying the parameter by $m$
+increases the recursive contribution by $s/W<m$. This strict inequality
+is the source of the power saving. The later tape and arithmetic
+estimates preserve it, including the work of changing numerical address
+coordinates. Those changes are implemented by whole-chunk moves and
+controlled shifts, followed by a deterministic correction of the
+explicitly identified exceptional addresses.
+
+\subsection{From transforms to the exact product}
+
+The remaining proof places these procedures inside the multiplication
+reduction and accounts for every change of representation.
+First, the radix-digit coefficient list is placed on a product of
+distinct prime cyclic axes by a Chinese-remainder map that preserves
+convolution. Section~\ref{sec:assembly} implements this map through
+triangular controlled shifts and charged axis moves. Gaussian
+resampling then expresses each source Fourier transform through a
+power-of-two tensor transform. Section~\ref{sec:resampling} retains the
+source and target coordinate permutations in the transform identity,
+so they need not be executed as separate full sorts.
+
+Next, Bluestein's chirp identity converts the middle transform,
+including its target permutation, into normalized cyclic convolution.
+A phase twist changes the last cyclic coordinate into a polynomial
+modulo $y^r+1$; its negative wrap gives precisely the original cyclic
+wrap after the twist is removed. Sections~\ref{sec:synthetic-layouts}
+and~\ref{sec:exact-ring-products} compute convolution on the remaining
+axes over this polynomial ring. The two forward synthetic transforms
+retain the same frequency order through their pointwise product, and
+the opposite transform consumes that order. Their polynomial products
+use signed packing and the established $O(n\log n)$ multiplier as an
+ordinary subroutine.
+
+Finally, the source permutation retained during resampling cancels
+across the two forward source transforms, their pointwise product,
+and the opposite-sign transform. Section~\ref{sec:assembly} removes
+the known normalizations and digit scales, proves that the recovered
+coefficient error is strictly below $1/2$, and propagates carries to
+obtain the exact binary product. A compatible choice of rational
+parameters makes all terms in its cost table fit Theorem~\ref{thm:main}.
+Figure~\ref{fig:multiplication-flow} summarizes these reductions.
+
+\begin{figure}[ht]
+\centering
+\input{figures/multiplication-flow.tex}
+\caption{The reductions connecting the tape procedures to multiplication.
+The arrows describe changes of problem and representation. Fast address
+interchanges organize the layouts, and simultaneous butterfly layers
+accelerate the synthetic transforms. Solving the final polynomial-ring
+convolution evaluates the transforms needed in the preceding stages.
+Known rescalings, rounding, and carry propagation then recover the exact
+integer product.}
+\label{fig:multiplication-flow}
+\end{figure}
+
+\subsection{Other arithmetic operations}
+
+\begin{corollary}[Exact division and integer square root]
+\label{cor:exact-arithmetic}
+There are deterministic machines with fixed finite alphabets and fixed
+finite numbers of one-dimensional tapes performing the following tasks
+in $O(n(\lg n)^{1-\kappa})$ worst-case time, for every $n\ge1$. For
+$x,y\in\{0,1\}^n$, put $a=\operatorname{val}(x)$ and
+$b=\operatorname{val}(y)$. If $b>0$, the division machine takes $x\#y$
+and returns $\operatorname{bin}_n(q)\#\operatorname{bin}_n(r)$, where
+$q=\lfloor a/b\rfloor$ and $r=a-bq$. The square-root machine takes $x$
+and returns $\operatorname{bin}_n(\lfloor\sqrt a\rfloor)$.
+Leading zeroes are allowed, and $\kappa$ is as in
+Theorem~\ref{thm:main}.
+\end{corollary}
+
+The classical Newton reductions described by
+Brent~\cite[Lemmas 2.1--2.4]{Brent1976} compute reciprocal and
+square-root approximations at geometrically increasing precisions.
+Their multiplication costs are bounded by a geometric sum controlled by
+the last precision, and exact remainder and square tests recover the
+required integer answers. Section~\ref{sec:exact-arithmetic-proof}
+gives the complete fixed-tape implementation.
+
+\input{sections/01-history.tex}

@@ -1,0 +1,352 @@
+{
+  "analysis_kind": "AST_TEXT_JSON_ONLY_NO_RECOVERED_SOURCE_EXECUTION",
+  "binding_guards": {
+    "constraint": "Every key must equal the real module __name__; __file__ must equal the independently configured source pin; every configured source record must bind module name and source hash. A string-only alias is not qualification.",
+    "identity": {
+      "bytes": 17807,
+      "observed_mode": "0o444",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v2/orchestration_closure_v2.py",
+      "sha256": "33094d0445e30005f9372dfd123557913109714850df8e18514493413b5f32ff"
+    },
+    "semantic_spans": [
+      {
+        "end_line": 215,
+        "start_line": 183,
+        "text": "    callable argument.  Every received module must be listed in the policy.\n    \"\"\"\n    schema.owner_state(error_owner)\n    schema.need(_TYPE(modules) is dict and 1 <= _LEN(modules) <= MAX_MODULES and\n                _TYPE(source_policy) is dict, 'finite receiver module map required')\n    for name in modules:\n        schema.text(name, 128)\n    for name in source_policy:\n        schema.text(name, 128)\n    schema.need(set(modules) == set(source_policy), 'exact receiver closure differs')\n    expected_gates = dict(_configuration_profile(configuration_profile))\n    schema.exact(configured_sources, tuple(modules))\n    schema.need('policy_parent_domain_v1' in modules, 'configured policy receiver absent')\n    records = []\n    for name in sorted(modules):\n        module = modules[name]\n        namespace = _namespace(module)\n        pin = source_policy[name]\n        schema.blob(pin)\n        raw = copying.read_verified(pin, schema.FILE_BYTES, error_owner=error_owner)\n        schema.need(namespace.get('__name__') == name and namespace.get('__file__') == pin['path'],\n                    'original receiving module origin differs')\n        inverse_record = configured_sources[name]\n        schema.need(inverse_record['module'] == name and inverse_record['configured_sha256'] == pin['sha256'],\n                    'configured closure source pin differs')\n        configured_literals = configured_inverse.verify_configured_source(raw, inverse_record)\n        tree = ast.parse(raw, filename=pin['path'])\n        compiled = _COMPILE(raw, pin['path'], 'exec', dont_inherit=True, optimize=sys.flags.optimize)\n        compiled_codes = {}\n        _codes(compiled, compiled_codes)\n        functions, classes, literals, imports = [], [], [], []\n        configured = []\n        for node in tree.body:"
+      }
+    ]
+  },
+  "callee": {
+    "all_custom_imports_already_in_parent_required": true,
+    "functions": [
+      {
+        "end_line": 40,
+        "line": 22,
+        "name": "_admit_control_transport",
+        "signature": "control_transport"
+      },
+      {
+        "end_line": 78,
+        "line": 43,
+        "name": "run_all",
+        "signature": "field_control_transport, authority_source, authority_digest, root, capability, api, compile0, exec0, elf_module, mode"
+      },
+      {
+        "end_line": 104,
+        "line": 81,
+        "name": "validate_all",
+        "signature": "receipt, mode"
+      }
+    ],
+    "identity": {
+      "bytes": 6394,
+      "observed_mode": "0o664",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/integration-drafts/native-fields-v1/controls/run_controls_v1.py",
+      "sha256": "519813f0aca56dfd083449940446e8e719b37b70a3ba195d0eab7d7ae6437bcc"
+    },
+    "imports": [
+      {
+        "line": 2,
+        "module": "types",
+        "names": [
+          "FunctionType",
+          "CellType"
+        ]
+      },
+      {
+        "alias": "native",
+        "line": 3,
+        "module": "native_field_controls_v1"
+      },
+      {
+        "alias": "transport",
+        "line": 4,
+        "module": "transport_controls_v1"
+      },
+      {
+        "alias": "collector",
+        "line": 5,
+        "module": "collector_controls_v1"
+      },
+      {
+        "alias": "elf",
+        "line": 6,
+        "module": "elf_controls_v1"
+      },
+      {
+        "alias": "providers",
+        "line": 7,
+        "module": "provider_controls_v1"
+      },
+      {
+        "alias": "models",
+        "line": 8,
+        "module": "loader_model_controls_v1"
+      },
+      {
+        "line": 9,
+        "module": "receipt_contract_v1",
+        "names": [
+          "need",
+          "validate"
+        ]
+      }
+    ],
+    "literal_contract": {
+      "GROUPS": [
+        "native",
+        "transport",
+        "collector",
+        "elf",
+        "providers"
+      ],
+      "MAX_CONTEXTS": 41,
+      "NORMAL_MODEL_COUNT": 33,
+      "NORMAL_NONMODEL_COUNT": 169,
+      "OPTIMIZED_MODEL_COUNT": 33,
+      "OPTIMIZED_NONMODEL_COUNT": 169,
+      "SCHEMA": "h25-indexed-field-additive-controls-v1",
+      "STATUS": "SOURCE_CONTROL_OBSERVATIONS_COMPLETE_RUNTIME_GATE_OPEN"
+    },
+    "semantic_spans": [
+      {
+        "end_line": 19,
+        "start_line": 11,
+        "text": "SCHEMA = 'h25-indexed-field-additive-controls-v1'\nSTATUS = 'SOURCE_CONTROL_OBSERVATIONS_COMPLETE_RUNTIME_GATE_OPEN'\nNORMAL_NONMODEL_COUNT = 169\nOPTIMIZED_NONMODEL_COUNT = 169\nNORMAL_MODEL_COUNT = 33\nOPTIMIZED_MODEL_COUNT = 33\nMAX_CONTEXTS = 41  # native15 + transport14 + collector12; module cap64\nGROUPS = ('native', 'transport', 'collector', 'elf', 'providers')\nMODULES = (native, transport, collector, elf, providers)"
+      },
+      {
+        "end_line": 40,
+        "start_line": 22,
+        "text": "def _admit_control_transport(control_transport):\n    need(type(control_transport) is tuple and len(control_transport) == 2, 'control transport exact shape')\n    functions, records = control_transport\n    need(type(functions) is tuple and len(functions) == 3 and type(records) is tuple and len(records) == 3,\n         'control transport function census')\n    getters = tuple(FunctionType.__dict__[name].__get__ for name in native.FIELDS)\n    cell_get = CellType.__dict__['cell_contents'].__get__\n    for target, captured in zip(functions, records):\n        need(type(captured) is tuple and len(captured) == 3 and target is captured[0] and\n             type(target) is FunctionType and type(captured[1]) is tuple and len(captured[1]) == 7 and\n             type(captured[2]) is tuple, 'control transport original target')\n        for getter, expected in zip(getters, captured[1]):\n            need(id(getter(target, FunctionType)) == id(expected), 'control transport original environment')\n        need(captured[1][3] is None and captured[1][4] is None, 'control transport source defaults')\n        for cell, expected in captured[2]:\n            try: actual_id = id(cell_get(cell, CellType))\n            except ValueError: raise RuntimeError('control transport original closure empty') from None\n            need(actual_id == id(expected), 'control transport original closure')\n    return functions"
+      },
+      {
+        "end_line": 78,
+        "start_line": 43,
+        "text": "def run_all(field_control_transport, authority_source, authority_digest, root, capability,\n            api, compile0, exec0, elf_module, mode):\n    need(type(mode) is str and mode in ('normal', 'optimized'), 'control exact mode')\n    functions = _admit_control_transport(field_control_transport)\n    original_new, original_transport, original_models = functions\n    # Caller authenticates original Root functions before every later factory\n    # call. No late module attribute can replace the actual captured targets.\n    made = [0]\n    def new_fixture():\n        _admit_control_transport(field_control_transport)\n        made[0] += 1\n        need(made[0] <= MAX_CONTEXTS, 'aggregate native fixture bound')\n        return original_new()\n    def new_transport():\n        _admit_control_transport(field_control_transport)\n        made[0] += 1\n        need(made[0] <= MAX_CONTEXTS, 'aggregate native fixture bound')\n        return original_transport()\n    receipts = {}\n    receipts['native'] = native.run_native_field_controls(new_fixture, mode)\n    receipts['transport'] = transport.run_transport_controls(new_transport, mode)\n    receipts['collector'] = collector.run_collector_controls(new_transport, authority_source,\n        authority_digest, root, capability, api, compile0, exec0, mode)\n    receipts['elf'] = elf.run_static_elf_controls(elf_module.admit_service_elf, elf_module.ELFAdmissionError, mode)\n    receipts['providers'] = providers.run_provider_controls(elf_module.admit_service_elf,\n        elf_module.admit_loaded_maps, elf_module.provider_requests,\n        elf_module.admit_runtime_provider_map, elf_module.ELFAdmissionError, mode)\n    _admit_control_transport(field_control_transport)\n    model = models.run_loader_model_controls(original_models(), mode)\n    result = {'schema': SCHEMA, 'status': STATUS, 'mode': mode,\n              'nonmodel_observed_count': sum(r['case_count'] for r in receipts.values()),\n              'model_observed_count': model['observations']['case_count'],\n              'native_fixture_contexts': made[0], 'groups': receipts, 'root_model': model,\n              'kernel_capability_qualified': False, 'full_finite_union_qualified': False,\n              'required_guarded_cases_status': 'REQUIRED_NOT_EXECUTED_BY_THIS_ENTRY'}\n    return validate_all(result, mode)"
+      },
+      {
+        "end_line": 104,
+        "start_line": 81,
+        "text": "def validate_all(receipt, mode):\n    need(type(receipt) is dict and set(receipt) == {'schema', 'status', 'mode',\n      'nonmodel_observed_count', 'model_observed_count', 'native_fixture_contexts', 'groups',\n      'root_model', 'kernel_capability_qualified', 'full_finite_union_qualified', 'required_guarded_cases_status'},\n      'aggregate exact receipt keys')\n    need(receipt['schema'] == SCHEMA and receipt['status'] == STATUS and receipt['mode'] == mode,\n         'aggregate status/mode')\n    need(receipt['kernel_capability_qualified'] is False and receipt['full_finite_union_qualified'] is False and\n         receipt['required_guarded_cases_status'] == 'REQUIRED_NOT_EXECUTED_BY_THIS_ENTRY',\n         'source controls cannot substitute for guarded runtime qualification')\n    need(type(receipt['groups']) is dict and tuple(receipt['groups']) == GROUPS, 'aggregate exact group order')\n    for name, module in zip(GROUPS, MODULES):\n        literal = module.NORMAL_CASE_COUNT if mode == 'normal' else module.OPTIMIZED_CASE_COUNT\n        validate(receipt['groups'][name], module.CASE_IDS, literal, module.expectations(), mode)\n    models.validate_model_receipt(receipt['root_model'], mode)\n    nonmodel = NORMAL_NONMODEL_COUNT if mode == 'normal' else OPTIMIZED_NONMODEL_COUNT\n    model = NORMAL_MODEL_COUNT if mode == 'normal' else OPTIMIZED_MODEL_COUNT\n    need(type(receipt['nonmodel_observed_count']) is int and receipt['nonmodel_observed_count'] == nonmodel and\n         type(receipt['model_observed_count']) is int and receipt['model_observed_count'] == model and\n         receipt['root_model']['observations']['case_count'] == model,\n         'aggregate literal counts')\n    need(type(receipt['native_fixture_contexts']) is int and receipt['native_fixture_contexts'] == MAX_CONTEXTS,\n         'aggregate actual context count')\n    return receipt"
+      }
+    ]
+  },
+  "caller": {
+    "identity": {
+      "bytes": 38307,
+      "observed_mode": "0o444",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v2/parent_orchestration_v2.py",
+      "sha256": "72bbb41a1e0fdf360f152bab4d6c049c1c406647ce60c1ff2da309873b2d30d3"
+    },
+    "required_key_has_real_dependency": true,
+    "semantic_spans": [
+      {
+        "end_line": 52,
+        "start_line": 47,
+        "text": "RUNTIME_MODULES = parent.REQUIRED_MODULES + ('persistent_replay_v1', 'replay_receiver_closure_v1',\n 'policy_parent_domain_v1', 'policy_process_domain_v1', 'policy_receiver_closure_v1',\n 'negative_parent_v2', 'negative_receiver_closure_v2', 'negative_process_domain_v2',\n 'negative_observation_v2', 'typed_codec_v2', 'negative_wide_codec_v2', 'run_controls_v1', 'inert_byte_v2', 'parent_orchestration_v2', 'observation_codec_v2',\n 'owned_root_v2', 'full_caller_receiver_v2', 'supplemental_receivers_v2', 'fixture_parent_v2',\n 'orchestration_closure_v2', 'configured_inverse_v2', 'bootstrap_bindings_v2', 'fixture_elf_v1', 'component_control_validation_v1')"
+      },
+      {
+        "end_line": 250,
+        "start_line": 227,
+        "text": "def make_orchestrator(original_receivers, binding_context):\n    state = None\n    try:\n        bindings.verify_bindings(binding_context)\n        _gate()\n        schema.need(not _ORCHESTRATORS and _SHARED['primary'][0] is None and _SHARED['quarantine'][0] is False,\n                    'one live complete attempt; no reconstruction or new IDs after failure')\n        errors = schema.make_error_owner()\n        state = {'pid': _GETPID(), 'phase': 'CONSTRUCTING', 'errors': errors, 'native': schema.owner_state(errors),\n            'configuration_raw': evidence.encode(CONFIGURATION), 'binding_context': binding_context, 'receivers': None, 'modules': original_receivers,\n            'replay': None, 'schedule': None, 'schedule_raw': None, 'actions': {}, 'order': [], 'next': 0,\n            'mode_states': {}, 'observations': [], 'native_actuals': [], 'pending': [None], 'primary': [None],\n            'normal_authority': None, 'optimized_consumed': False, 'finite_complete': {}, 'full_results': []}\n        token = object(); _ORCHESTRATORS.append((token, state))\n        _fresh(state)\n        source_policy = _read(state, CONFIGURATION['receiver_policy'])\n        schema.exact(original_receivers, RUNTIME_MODULES); schema.exact(source_policy, RUNTIME_MODULES)\n        schema.need(original_receivers['parent_orchestration_v2'] is sys.modules[__name__] and\n                    original_receivers['parent_completion_v1'] is parent and\n                    original_receivers['persistent_replay_v1'] is replay and\n                    original_receivers['epoch_parent_v5'] is epoch, 'actual original module identity differs')\n        state['receivers'] = closure.bind_receivers(original_receivers, source_policy, errors,\n                                                  CONFIGURATION['policy_configuration_profile'],\n                                                  _read(state, CONFIGURATION['configured_sources']))"
+      },
+      {
+        "end_line": 432,
+        "start_line": 421,
+        "text": "def commit_original_exports(owner):\n    state = _state(owner)\n    try:\n        mode, action, slots = _next(state, 'exports', 'five-original')\n        _burn(state, mode, action, {'parent_plan': state['schedule']['modes'][mode]['parent_plan'],\n            'export_directory': state['schedule']['modes'][mode]['export_directory']}, 'parent_completion_v1', 'commit_exports')\n        actual = parent.commit_exports(slots['parent'])\n        slots['exports'] = actual\n        # The original negative owner requires already committed exports.\n        slots['negative'] = negative.make_negative_parent(slots['parent'],\n            {name: state['modules'][name] for name in negative.REQUIRED_MODULES})\n        negative.register_fixture_claims(slots['negative'], slots['fixtures'])"
+      },
+      {
+        "end_line": 451,
+        "start_line": 441,
+        "text": "def run_negative_group(owner, group):\n    state = _state(owner)\n    try:\n        mode, action, slots = _next(state, 'negative', group)\n        actual_row = negative.planned_action(slots['negative'], group)\n        schema.need(actual_row['generation'] == action['generation'], 'actual negative generation differs')\n        _burn(state, mode, action, {'negative_plan': state['schedule']['modes'][mode]['negative_plan'], 'group': group, 'row': actual_row},\n              'negative_parent_v2', 'take_negative_observation')\n        joined = negative.run_negative(slots['negative'], group)\n        actual = negative.take_negative_observation(slots['negative'], joined)\n        return _capture(state, mode, action, actual, actual['raw_pins'])"
+      }
+    ]
+  },
+  "consumer": {
+    "identity": {
+      "bytes": 19353,
+      "observed_mode": "0o664",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-negative-child-runtime-v2/negative_observation_v2.py",
+      "sha256": "8289c2c4059dd31959cafed81df3211ca6c72584a9d018d86cc91d4fd0cd2a30"
+    },
+    "preexisting_source_pin": {
+      "bytes": 19353,
+      "disposition": "partial negative source; author error, no readiness or review",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-negative-child-runtime-v2/negative_observation_v2.py",
+      "sha256": "8289c2c4059dd31959cafed81df3211ca6c72584a9d018d86cc91d4fd0cd2a30"
+    },
+    "relevant_ast": [
+      {
+        "end_line": 13,
+        "kind": "Import",
+        "line": 13,
+        "source": "import run_controls_v1 as controls"
+      },
+      {
+        "end_line": 265,
+        "kind": "Call",
+        "line": 265,
+        "source": "controls.validate_all(result,launch['mode'])"
+      }
+    ],
+    "semantic_spans": [
+      {
+        "end_line": 17,
+        "start_line": 13,
+        "text": "import run_controls_v1 as controls\nimport restoration_contract_v1 as restoration\nimport inert_byte_v2 as inert\n\nGROUPS = ('02','03','04','07','08','09','10','11','12','13','14','15','16')"
+      },
+      {
+        "end_line": 30,
+        "start_line": 20,
+        "text": "ERRORS = {\n '08':('Field complete source-controlled native import history differs','original-history-before-ordinary',0,0,0,(0,0)),\n '09':('unexpected/missing loaded map','original-loaded-maps',0,0,0,(1,0)),\n '10':('unexpected/missing loaded map','original-loaded-maps',0,0,0,(1,0)),\n '11':('Loaded map history changed before symbol resolution','original-symbols-history-before-resolution',0,0,0,(1,1)),\n '12':('h25-negative-original-import-audit','create_dynamic',1,0,0,(1,1)),\n '13':('H25 negative pyinit fixture: deliberate failure after module definition initialization','create_dynamic',1,0,0,(1,1)),\n '14':('H25 negative exec fixture: deliberate failure after original initialization','exec_dynamic',1,1,0,(1,1)),\n '15':('Field binding requires exact original primitive packet','first-native-bind',1,1,1,(1,1)),\n '16':('h25-negative-original-import-interruption','create_dynamic',1,0,0,(1,1)),\n}"
+      },
+      {
+        "end_line": 185,
+        "start_line": 179,
+        "text": "def validate_owned_negative(raw,launch,row,terminal,receivers,error_owner):\n    rows = frames(raw)\n    group = launch['group'];schema.choice(group,GROUPS)\n    start = _one(rows,'START')\n    schema.need(type(start) is tuple and len(start) == 6 and wire.equal(start[0],launch) and\n                start[1] == row['source_configuration_sha256'] and start[2] == schema.sha(schema.canonical(launch)) and\n                type(start[4]) is int and start[4] == terminal['root'][0] and start[5] == ROOT_SHA256,"
+      },
+      {
+        "end_line": 218,
+        "start_line": 211,
+        "text": "    if group in ERRORS:\n        message,site,loads,execs,binds,helpers = ERRORS[group]\n        schema.need(codec.equal(_one(rows,'target-site'),(group,site,loads,execs,binds,helpers)) and\n                    end[6:12] == ('TARGET_RAISED',site,loads,execs,binds,helpers),'negative original first-stop/call census')\n        _native_trace(_one(rows,'target-error'),message,row,group)\n        _before(rows,'target-error','target-site')\n        if group in ('08','09','10','11'):\n            _absent(rows,('loader-entered','selected-static-elf','service-create-return','service-exec-return','actual-abi','actual-bound-status'))"
+      },
+      {
+        "end_line": 266,
+        "start_line": 239,
+        "text": "                    codec.equal(_one(rows,'actual-bound-status'),(1,1,0,1,0)) and\n                    codec.equal(_one(rows,'terminal-service-status'),(1,3,0,1,0)),\n                    'negative actual ABI/bind/terminal lifecycle')\n        if group in ('02','03','04'):\n            schema.need(end[6] == 'PRIVATE_MUTATION_OBSERVED' and end[12] == 1,'negative exact one real post-mutation entry')\n            entry = _one(rows,'actual-entry-after-mutation')\n            schema.need(type(entry) is tuple and len(entry) == 3 and type(entry[0]) is int and\n                        type(entry[1]) is int and entry[0] == entry[1] and type(entry[2]) is int and entry[2] == 1,\n                        'negative original getter/id entry oracle')\n            production = next(copy for copy in claim['copies'] if copy['role'] == 'production')\n            if group in ('02','03'):\n                original = copying.read_verified(production['source'],schema.FILE_BYTES,error_owner=error_owner)\n                proof = inert.derive(original,production['source']['sha256'])\n                schema.need(codec.equal(_one(rows,'inert-byte-proof'),proof),'negative independent original byte layout proof')\n                actual = _one(rows,'same-size-mutation')\n                schema.need(actual[0] == group and type(actual[1]) is int and actual[1] == 1 and codec.equal(actual[2],proof) and\n                            actual[3][:3] == actual[4][:3] and actual[3][6] == actual[4][6] == len(original),\n                            'negative actual same-size same-inode single-byte write')\n                changed = original[:proof['offset']]+proof['replacement_byte']+original[proof['offset']+1:]\n                modified = _one(rows,'actual-mutated-file')\n                schema.need(modified[0] == len(original) and modified[1] == schema.sha(changed),'negative complete changed file hash')\n                if group == '03':_one(rows,'actual-hardlink')\n            else:_one(rows,'path-replacement')\n        else:\n            schema.need(end[6] == 'FULL202_OBSERVED','negative full202 completion phase')\n            result = _one(rows,'full202-original-return')\n            controls.validate_all(result,launch['mode'])\n            schema.need(codec.equal(_one(rows,'full202-actual-fixtures'),(41,41)),'negative complete actual fixture census')"
+      },
+      {
+        "end_line": 274,
+        "start_line": 267,
+        "text": "    counters = _one(rows,'root-terminal-counters')\n    schema.need(type(counters) is dict and all(type(value) is int for value in counters.values()),'negative actual original counters')\n    schema.need(counters['load_calls'] == (0 if group == '08' else 1) and\n                counters['control_module_creations'] == (1 if group == '08' else 0),\n                'negative actual original Root load/control count')\n    return ('h25-negative-source-bound-validation-v2',group,launch['mode'],schema.sha(raw),len(rows),end,\n            history,169 if group == '07' else 0,33 if group == '07' else 0,\n            'ELF41_66_76_AND_OTHER_NATIVE24_REQUIREMENTS_NOT_INFERRED')"
+      }
+    ],
+    "static_branch_analysis": {
+      "error_groups": [
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16"
+      ],
+      "groups": [
+        "02",
+        "03",
+        "04",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16"
+      ],
+      "interpretation": "A structurally reachable branch for original group07 invokes validate_all with the original aggregate, requires full202 completion and actual fixture tuple(41,41). This is source reachability evidence, not actual execution.",
+      "remaining_full202_branch_group": [
+        "07"
+      ],
+      "successful_mutation_groups": [
+        "02",
+        "03",
+        "04"
+      ]
+    }
+  },
+  "created_utc": "2026-11-03T14:33:50.341892Z",
+  "intermediate_negative_owner": {
+    "identity": {
+      "bytes": 51769,
+      "observed_mode": "0o664",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-negative-child-runtime-v2/negative_parent_v2.py",
+      "sha256": "425ca634a163a7ba6948dffdaacc89f97ee222cfbefc8ea303adbbb2c5afbbed"
+    },
+    "preexisting_source_pin": {
+      "bytes": 51769,
+      "disposition": "partial negative source; author error, no readiness or review",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-negative-child-runtime-v2/negative_parent_v2.py",
+      "sha256": "425ca634a163a7ba6948dffdaacc89f97ee222cfbefc8ea303adbbb2c5afbbed"
+    },
+    "semantic_spans": [
+      {
+        "end_line": 24,
+        "start_line": 19,
+        "text": "import negative_receiver_closure_v2 as closure\nimport negative_process_domain_v2 as domain\nimport typed_codec_v2 as codec\nimport epoch_parent_v5 as epoch\nimport negative_observation_v2 as observation\nimport fixture_parent_v2 as fixtures"
+      },
+      {
+        "end_line": 43,
+        "start_line": 39,
+        "text": "REQUIRED_MODULES = parent.REQUIRED_MODULES + ('negative_parent_v2', 'negative_receiver_closure_v2',\n                                            'negative_process_domain_v2', 'typed_codec_v2',\n    'negative_observation_v2','negative_wide_codec_v2','run_controls_v1','inert_byte_v2','fixture_parent_v2','owned_root_v2')\nGATES = ('SOURCE_REVIEW','RUNTIME_CONFIGURATION','KERNEL_CONFIGURATION','REPLAY_CONFIGURATION',\n         'STAGE_APPROVAL','COMMAND_APPROVAL','FUNDING','EXECUTION_APPROVAL')"
+      },
+      {
+        "end_line": 230,
+        "start_line": 220,
+        "text": "        policy = evidence.decode(copying.read_verified(state['receiver_pin'], schema.RECORD_BYTES, error_owner=errors))\n        old_policy = evidence.decode(copying.read_verified(original['configuration']['receiver_policy'],\n            schema.RECORD_BYTES, error_owner=errors))\n        schema.need(type(original_receivers) is dict and set(policy) == set(REQUIRED_MODULES) == set(original_receivers),\n                    'negative exact concrete receiving source inventory differs')\n        for record in original_closure._packet(original['receivers'])[1]:\n            name, module = record[0], record[1]\n            schema.need(original_receivers[name] is module and policy[name] == old_policy[name],\n                        'negative receiver must preserve every original module/object/pin')\n        state['receivers'] = closure.bind_receivers(original_receivers, policy, errors)\n        schema.need(closure.receiver(state['receivers'], 'negative_parent_v2', 'run_group05') is run_group05 and"
+      },
+      {
+        "end_line": 807,
+        "start_line": 782,
+        "text": "    candidates = (state['soname'],) if soname else tuple(state['runs'].values())\n    matches = tuple(run for run in candidates if run is not None and joined is run['token'])\n    schema.need(type(joined) is object and len(matches) == 1,'negative actual owner-private joined token required')\n    run = matches[0]\n    schema.need(run['phase'] == 'JOINED' and state['phase'] == 'NATIVE_JOINED','negative observation replay/order')\n    run['phase'] = 'RECEIVER_CONSUMED'\n    row = state['plan']['soname'] if soname else state['plan']['native'][run['group']]\n    copying.verify(run['launch_pin'],schema.RECORD_BYTES,error_owner=state['parent']['errors'])\n    schema.need(run['raw'][1] == b'','negative raw stderr must be retained empty for acceptance')\n    parsed = observation.validate_owned_negative(run['raw'][0],run['launch_context'],row,\n        run['terminal'],state['receivers'],state['parent']['errors'])\n    native = ('h25-owned-negative-observation-v2',state['plan']['parent_epoch_id'],state['mode'],run['group'],\n        row['generation'],row['launch_nonce'],tuple(run['raw_pins']),run['launch_pin'],run['custody'],\n        run['terminal'],parsed,'ONE_CHILD_EXPECTED_SOURCE_BOUND_OBSERVATION','FULL24_UNION_NOT_ADMITTED')\n    encoded = codec.encode(native,NATIVE_MAX_RAW)\n    run['observation'] = (native,encoded)\n    run['phase'] = 'OBSERVED'\n    state['phase'] = 'READY'\n    _guard(state)\n    return native,encoded\n\n\ndef take_negative_observation(owner,joined):\n    state = _owner(owner)\n    try:\n        return _take_native(state,joined,False)"
+      }
+    ]
+  },
+  "minimal_dependency_chain": [
+    "Authenticate and review unchanged original v1 source at this exact historical pin together with existing57module source graph and bootstrap contracts.",
+    "Preserve actual original Group07 receiver call and v1 receipt/count/fixture checks.",
+    "Only after independently reviewed genuinely changed source/control plan and explicit guarded runtime authority, complete unchanged S06.03 checklist separately normal then optimized.",
+    "C05/V03 remain open until all unchanged original obligations and complete accounting pass."
+  ],
+  "old_round_reopened": false,
+  "original_acceptance_credit_added": 0,
+  "original_source_mutated": false,
+  "runtime_credit_added": 0,
+  "runtime_module_count": {
+    "matches_exact_v2_template_keys": true,
+    "orchestrator_additions": 24,
+    "parent_required": 33,
+    "removed_modules": [],
+    "total": 57,
+    "unique": 57
+  },
+  "schema": "run-controls-v1-source-call-contract-v1",
+  "source_prerequisite_only": true,
+  "v5_comparison": {
+    "disposition": "INCOMPATIBLE_AS_V1_SUBSTITUTE",
+    "identity": {
+      "bytes": 26939,
+      "observed_mode": "0o444",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/integration-drafts/native-fields-v1/controls/run_controls_v5.py",
+      "sha256": "0e6c8a82c4902f2de707b1ceb1eb19932cd5607645bfb0cdd08c1eef715946aa"
+    },
+    "preexisting_source_pin": {
+      "bytes": 26939,
+      "disposition": "preserved original reference",
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/integration-drafts/native-fields-v1/controls/run_controls_v5.py",
+      "sha256": "0e6c8a82c4902f2de707b1ceb1eb19932cd5607645bfb0cdd08c1eef715946aa"
+    },
+    "reason": "v1 validates the 169 nonmodel +33 model original aggregate and exact11keys; v5 validates a four-key durable envelope containing a v5 aggregate279+66 and group evidence. Reusing the function name or MAX_CONTEXTS41 would change the original oracle.",
+    "semantic_spans": [
+      {
+        "end_line": 36,
+        "start_line": 24,
+        "text": "SCHEMA = 'h25-indexed-field-additive-controls-v5'\nSTATUS = 'SOURCE_CONTROL_OBSERVATIONS_COMPLETE_RUNTIME_GATE_OPEN'\nDELIVERY_SCHEMA = 'h25-indexed-field-durable-control-delivery-v5'\nNORMAL_NONMODEL_COUNT = 279\nOPTIMIZED_NONMODEL_COUNT = 279\nNORMAL_MODEL_COUNT = 66\nOPTIMIZED_MODEL_COUNT = 66\nAUTHENTIC_FIXTURE_COUNT = 78\nPURE_PREDICATE_COUNT = 201\nMAX_CONTEXTS = 41\nLEGACY_GROUPS = ('native', 'transport', 'collector', 'elf', 'providers')\nGROUPS = LEGACY_GROUPS + ('elf_extended',)\nMODULES = (native, transport, collector, elf, providers, extension)"
+      },
+      {
+        "end_line": 80,
+        "start_line": 61,
+        "text": "def validate_aggregate(receipt, mode):\n    need(type(mode) is str and mode in ('normal', 'optimized'), 'aggregate exact mode')\n    need(type(receipt) is dict and set(receipt) == {'schema', 'status', 'mode',\n        'nonmodel_observed_count', 'authentic_fixture_observed_count', 'pure_predicate_observed_count',\n        'model_observed_count', 'root_model_observed_count', 'sink_close_model_observed_count', 'projection_model_observed_count',\n        'native_fixture_contexts', 'groups', 'pure_v2', 'root_model', 'sink_close_model', 'projection_model',\n        'kernel_capability_qualified', 'full_finite_union_qualified', 'all_202_obligations_covered',\n        'required_guarded_cases_status', 'old_group_order_preserved', 'model_provenance_separately_reported'},\n        'aggregate v5 exact receipt keys')\n    need(receipt['schema'] == SCHEMA and receipt['status'] == STATUS and receipt['mode'] == mode,\n         'aggregate v5 status/mode')\n    for key in ('kernel_capability_qualified', 'full_finite_union_qualified', 'all_202_obligations_covered'):\n        need(receipt[key] is False, 'aggregate v5 cannot qualify open runtime/ELF obligations')\n    need(receipt['required_guarded_cases_status'] == 'REQUIRED_NOT_EXECUTED_BY_THIS_ENTRY' and\n         receipt['old_group_order_preserved'] is True and receipt['model_provenance_separately_reported'] is True,\n         'aggregate v5 retained scope and ordering')\n    need(type(receipt['groups']) is dict and tuple(receipt['groups']) == GROUPS, 'aggregate v5 exact group order')\n    for name, module in zip(LEGACY_GROUPS, MODULES[:5]):\n        literal = module.NORMAL_CASE_COUNT if mode == 'normal' else module.OPTIMIZED_CASE_COUNT\n        validate(receipt['groups'][name], module.CASE_IDS, literal, module.expectations(), mode)"
+      },
+      {
+        "end_line": 400,
+        "start_line": 388,
+        "text": "def validate_all(receipt, mode):\n    need(type(receipt) is dict and set(receipt) == {'schema', 'mode', 'aggregate', 'group_evidence'} and\n         receipt['schema'] == DELIVERY_SCHEMA and receipt['mode'] == mode, 'full v5 delivery envelope')\n    validate_aggregate(receipt['aggregate'], mode)\n    delivery = receipt['group_evidence']\n    need(type(delivery) is dict and set(delivery) == {'schema', 'completed_groups', 'expected_groups', 'raw_pins',\n        'validation_pins', 'stop_pin', 'reserved_bytes', 'directory_closed', 'directory_close_attempted',\n        'directory_close_outcome', 'directory_close_error_present'}, 'full v5 group evidence keys')\n    need(delivery['schema'] == evidence.SCHEMA and delivery['completed_groups'] == delivery['expected_groups'] == 10 and\n         type(delivery['completed_groups']) is int and type(delivery['expected_groups']) is int and\n         delivery['directory_closed'] is True and delivery['directory_close_attempted'] is True and\n         delivery['directory_close_outcome'] == 'CONFIRMED' and delivery['directory_close_error_present'] is False and\n         delivery['stop_pin'] is None and"
+      }
+    ]
+  }
+}

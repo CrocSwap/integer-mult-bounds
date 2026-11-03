@@ -1,0 +1,131 @@
+Decision: take A—complete the existing constructor’s joined source proposal
+
+The newly recovered bytes make the requested SOURCE prerequisite credibly completable in this window. Adapt PR6588’s existing full-proposal gate, bind separate proposed normal/`-O` plans, and prepare the exact payload through the existing constructor. Keep every runtime-admission claim false.
+
+B remains a useful fallback if the joined review or preparation fails, but an immutable body pool and plans alone do not complete the requested prepared-stage result. C is not justified merely by absent runtime capabilities: an ordinary preparation owner can construct inert files without impersonating the original authority or proving C07.
+
+This is conditional on the checks below. It is not a finding that the new259-row proposal has already passed them.
+
+1. Input and premise audit
+
+I accessed the exact-head constructor, payload manifest, selection, compatibility record, retained caller and validation wrapper at PR6588 head 6460b7e9022c503b6c2d7c732cc362160646b208. I also checked the public PR metadata: PR6587 and PR6588 match the nominated heads and remain draft, unmerged contributions. That verifies the published source basis, not the reported local executions or new recovered bytes.
+
+The run_controls_v1.py recovery, its template-to-consumer association, the20 newly verified payloads and their independent review receipts remain reported local evidence. Their exact bytes must enter the local reviewer’s frozen inventory before the new proposal is accepted.
+
+The supplied v1 consumer excerpt supports the consequential binding: Group07 invokes the169+33 validator and requires41contexts. Substituting v5 would change that contract. The outer57, parent33 and replay36 maps belong to different interfaces; the resolved distinction should remain explicit in the compatibility record, without reopening the earlier count objection.
+
+I found two concrete implementation considerations beyond removing FULL_SOURCE_HOLD:
+
+validate_request checks every installed row’s bytes but currently permits unused extra body-pool entries.
+The published fixture wrapper sets a 1MiB file-size limit, which cannot write the required16,995,263-byte gzip payload. The new preparation plan needs a separately reviewed limit within the unchanged64MiB per-file ceiling. This changes the fixture wrapper’s preparation envelope, not the original compiler/helper contract. 
+Constructor; 
+reviewed wrapper.
+2. One connected patch
+
+Keep this work in the existing h25-fresh-sc-constructor package. Preserve the API:
+
+Plain text
+prepare_full_stage(request, verified_body_pool, preparation_owner)
+finish_preparation(preparation_owner)
+abort_preparation(preparation_owner)
+A. Freeze the complete payload and compatibility successor
+
+Produce MANIFEST-v2.json by preserving the258 existing occurrences, updating the20 availability/provenance records from the reviewed byte evidence, and adding the required owner/run_controls_v1.py occurrence. Reject a duplicate destination. Remove the unresolved-row entry only after the new row, body and historical pin chain agree.
+
+Keep gzip bodies opaque. Neither their installation nor a matching hash accepts their internal scientific content.
+
+Update CALLER-COMPATIBILITY-v1.json to a reviewed successor that incorporates:
+
+the exact v1 template pin and negative_observation_v2 consumer;
+the unchanged57-name caller map;
+the three separate closure interfaces;
+the already reviewed two replay digest changes.
+
+Do not alter caller, parent, domain or closure bodies merely to refresh their pins. Preserve the distinction between source compatibility and outstanding runtime admission. 
+Existing compatibility record.
+
+The published manifest totals20,490,473bytes. Adding the reported6394-byte source yields:
+
+Proposed installation measure	Derived value
+File occurrences/destinations	259, subject to uniqueness check
+Total occurrence bytes	20,496,867
+Largest file	16,995,263
+Constructor slot calculation	558, if directory structure otherwise stays unchanged
+
+These are manifest-derived figures, not independent verification of the local bodies or a complete C05 inventory. Check the final canonical record size, constructor tree/text limits and actual stage inventory separately. 
+Existing manifest.
+
+B. Bind two concrete proposed mode plans
+
+Replace the shared-session selection with a successor containing distinct proposed normal and optimised sessions and export directories. Derive each producer’s evidence/output paths from its mode’s session, preserving:
+
+Group01 before failure_variants;
+the exact Root/provider/full-driver selections;
+integration/variant_driver_v1.py;
+the variant’s two ordered unchanged compiler commands;
+Group01’s separate three-build obligation.
+
+Fix generation and nonce values as proposed DATA, explicitly neither issued nor reserved. Recompute every dependent command and plan binding. Later issuance of different values requires a newly checked binding; it cannot silently promote this proposal.
+
+The existing caller validates a richer orchestration schedule, including additional plans, action coverage and replay relationships. Therefore label these artefacts concrete two-mode producer source plans, not an admitted complete runtime schedule. Preserve the remaining caller obligations explicitly. 
+Selection; 
+retained caller.
+
+Update the forbidden runtime-name/path checks for the concrete mode plans. Never precreate their sessions, exports, producer outputs, scientific directories, step prefixes or journals.
+
+C. Make the minimal constructor and wrapper changes
+
+In fresh_sc.py:
+
+Replace the three full-proposal binding digests with the independently reviewed successor digests.
+Set FULL_SOURCE_HOLD=() only as part of that joined change.
+For FULL_ORIGINAL_PROPOSAL, require body-pool keys to equal exactly the set of hashes referenced by installed manifest rows. Preserve separate occurrences even when their content hashes coincide.
+Update runtime-creation exclusions to match the frozen selection.
+Preserve the existing ownership, direct primary-error storage, quarantine, exclusive I/O, readback and finish/abort machinery.
+
+Adapt the existing reviewed wrapper rather than adding another equivalent runner. It must authenticate the actual compatibility and selection files, not merely trust their digest strings in a request. It must also bind the held preparation parent plus stage_name to the reviewed proposed stage location; the current three-digest check alone does not establish that destination relationship.
+
+Review a new preparation file-size limit sufficient for the largest opaque body and no greater than64MiB. Keep separate raw-output limits and the unchanged aggregate/resource boundaries.
+
+Finally, accept terminal preparation success only after finish_preparation succeeds and external final checks complete. The constructor returns its prepared-stage result before final owner closure; that intermediate return cannot certify successful finalisation. 
+Exact constructor.
+
+3. Independent review and changed controls
+
+Freeze the implementation, body inventory, proposal records, cold-copy inventory and independent expected outcomes before any new execution. Retain the17 predecessor fault controls and their narrower results by reference; do not rerun them.
+
+Review these new discriminators:
+
+Changed case	Required result
+Exact full259-row proposal and opaque bodies	Complete inert installation, exact readback, successful finish; all admission claims false
+Old binding or merely cleared HOLD	Refusal before destination acquisition
+Missing/wrong v1, v5 substitution, missing/wrong opaque payload	Refusal; no occurrence dropped
+Extra manifest occurrence or extra body-pool entry	Refusal
+Mode/session/export/output collision or inconsistent derived command	Refusal by the plan validator, not just an incidental stale-hash failure
+Actual preparation destination differs from frozen proposed stage	Refusal before acquisition
+Admission claim changed, or proposed nonce represented as issued	Refusal
+Final close, external inventory or ledger failure after prepared return	Retained incomplete result; no PASS or subsequent launch
+
+The reviewer must fix each mutation’s independent expected refusal and ordering. Exercise only new source/preparation code; no original definitions may be imported or extracted for execution.
+
+Use the existing serial wrapper structure with an external finally that records the final source/cold-copy/output inventories and ledger disposition even when its internal postchecks are bypassed. Preserve partials and exact failure evidence. A failed external capture is incomplete, not inferred success.
+
+4. Joined SOURCE-prerequisite exit
+
+A can honestly close the five-part joined result only when all of the following are independently accepted:
+
+Selected caller closure: required logical modules resolve to exact retained bodies, including the v1 consumer binding.
+Version compatibility: selected caller/parent/closure/replay interfaces agree without unsupported repinning.
+Payload and source plans: all259 required occurrences are bound, and separate concrete normal/`-O` producer plans preserve command and creation ownership.
+Non-admitting preparation: the reviewed full-proposal operation actually installs, verifies and successfully finalises that payload.
+Whole-result review: the frozen source, independent oracle, changed-control observations, final inventories and non-admission claims agree.
+
+No indispensable unavailable source fact is established by the present packet that necessarily prevents those exits. An unexpected selected import, unresolved interface, missing body or unsupported plan predicate would falsify that conclusion and stop the attempt.
+
+What cannot close here is original S06.03, C07 lifetime/currentness, full C05, authentic V03, or the real F4/A4 and two-mode runtime profiles. The259-row preparation is not evidence that the complete compiler/header/specs/linker/library witness fits the original child inventory.
+
+5. Deadline and credit rule
+
+Use the existing deadline without renewal: freeze by 02:00 AEDT on4November (15:00UTC3November), review by02:06, stop by02:11:55. If the joined snapshot or preparation envelope cannot be accepted by review time, retain the completed immutable pool/plans as a partial source result, with the exact failed exit named. Do not describe B as completed preparation.
+
+Selected work item: implement and review the minimal PR6588 full-proposal successor, then perform its specifically reviewed259-occurrence inert preparation and finalisation. Preserve licences and predecessor attribution. Original activity credit remains zero;43.5%,22/49 and stagnation remain unchanged.

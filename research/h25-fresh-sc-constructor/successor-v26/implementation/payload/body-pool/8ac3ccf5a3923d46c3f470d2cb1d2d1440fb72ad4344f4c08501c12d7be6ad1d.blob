@@ -1,0 +1,1831 @@
+"""Parent-queued independent uncached-reference controls for cache_contract_v8.
+
+No work runs on import. References retain unchanged Checks methods, receive
+separate labels and use a fresh exact verdict dict for ordinary requests. The
+stored-value-finalizer control uses a separate reference-only dict whose literal
+membership probe reports a miss, forcing unchanged original arithmetic while
+retaining the old value for replacement/finalizer semantics. Its followups again
+use fresh exact dicts. No source/candidate mutable answers are shared.
+
+The unchanged v3 bounded reference suite remains a separately required run.
+This v7 consumer suite carries forward its 30-case/74-request scientific core,
+and adds explicitly versioned native-domain checks. Different-hash foreign keys
+and values may qualify under the pinned no-comparison/no-decref proof; this is
+not silently asserted equivalent to v3's conservative whole-dictionary fallback.
+The author performs source/AST work only; parent owns all native build/execution.
+"""
+from __future__ import annotations
+
+import builtins
+import dis
+import sys
+import hashlib
+import json
+import weakref
+from types import SimpleNamespace
+
+V8_SOURCE_DRAFT = False
+V7_DECLARED_TRANSCRIPT_RECORDS = 143
+V8_DECLARED_TRANSCRIPT_RECORDS = 155
+
+_TYPE, _STR, _BOOL = type, str, bool
+_ERROR = RuntimeError
+
+
+def _need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def _capture(action):
+    try:
+        result = action()
+    except Exception as error:
+        return ("error", _TYPE(error).__name__, _STR(error))
+    return ("return", _TYPE(result).__name__, result)
+
+
+def _checks(module, height=4):
+    return module.Checks(SimpleNamespace(h=height))
+
+
+def run_controls(backend, native, adapter, extension_path, expected_extension_sha256,
+                 *, bootstrap_root, bootstrap_capability, bootstrap_api, factory_environment,
+                 cold_authority, cold_caller_descriptor, cache_handle, backend_handle,
+                 row_handle, row_producer_handle):
+    _need(not V8_SOURCE_DRAFT, "V7 control source draft is not executable")
+    _need(type(cold_authority) is tuple and len(cold_authority) == 7,
+          "V7 controls require the initial source-closed authority")
+    def invoke(name, *args, **kwargs):
+        # V8_CALLER_GATE_BEGIN cache_controls_v8.py:6
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # V8_CALLER_GATE_END cache_controls_v8.py:6
+        return _ca_dispatch(1, cache_handle, name, *args, **kwargs)
+    def load_source(name):
+        # V8_CALLER_GATE_BEGIN cache_controls_v8.py:7
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # V8_CALLER_GATE_END cache_controls_v8.py:7
+        return _ca_dispatch(1, backend_handle, "load_source", name)
+    reference = load_source("_h25_cache_reference_v7")
+    candidate = load_source("_h25_cache_candidate_v7")
+    # V8_CALLER_GATE_BEGIN cache_controls_v8.py:1
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # V8_CALLER_GATE_END cache_controls_v8.py:1
+    _ca_dispatch(1, backend_handle, "guard_module", reference)
+    prepared = invoke("prepare_cache_contract", candidate, extension_path, expected_extension_sha256,
+        bootstrap_root=bootstrap_root, bootstrap_capability=bootstrap_capability, bootstrap_api=bootstrap_api,
+        factory_environment=factory_environment)
+    candidate.Checks.residual_ok = prepared["residual_ok"]
+    candidate.Checks.label_ok = prepared["label_ok"]
+    original_guard = backend.RuntimeGuard
+
+    def bind_prepared(scientific, prepared_owner):
+        # V8_CALLER_GATE_BEGIN cache_controls_v8.py:8
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # V8_CALLER_GATE_END cache_controls_v8.py:8
+        row_helper = _ca_dispatch(1, row_handle, "make_row_interner")
+        cache_guard = invoke("compose_runtime_guard", original_guard, prepared_owner)
+        # V8_CALLER_GATE_BEGIN cache_controls_v8.py:9
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # V8_CALLER_GATE_END cache_controls_v8.py:9
+        row_guard = _ca_dispatch(1, row_handle, "make_cache_runtime_guard", cache_guard, row_helper)
+        rank_rows = []
+        # V8_CALLER_GATE_BEGIN cache_controls_v8.py:10
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # V8_CALLER_GATE_END cache_controls_v8.py:10
+        _ca_dispatch(5, backend_handle, row_guard)
+        try:
+            bound = invoke("bind_cache_backend", backend, scientific, native, prepared_owner,
+                           factory_environment, row_producer_handle=row_producer_handle,
+                           row_handle=row_handle, rank_row_intern=row_helper,
+                           final_guard=row_guard, rank_calls=rank_rows)
+        finally:
+            # V8_CALLER_GATE_BEGIN cache_controls_v8.py:13
+            _ca_desc = cold_caller_descriptor
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # V8_CALLER_GATE_END cache_controls_v8.py:13
+            _ca_dispatch(5, backend_handle, original_guard)
+        return bound, row_helper, row_guard, rank_rows
+
+    binding, row_helper, final_row_guard, rank_observations = bind_prepared(candidate, prepared)
+    owner = prepared["owner"]
+    transcript = hashlib.sha256()
+    transcript_record_count = 0
+    counts = {"requests": 0, "cases": 0, "binding_rejections": 0,
+              "tamper_rejections": 0, "unsupported_rejections": 0,
+              "source_admission_rejections": 0}
+
+    def record(tag, value):
+        nonlocal transcript_record_count
+        transcript.update(json.dumps((tag, value), sort_keys=True, separators=(",", ":")).encode("ascii") + b"\n")
+        transcript_record_count += 1
+
+    def case(tag, make, edits=()):
+        # make runs twice, and may create per-instance callbacks and event logs.
+        ref_log, new_log = [], []
+        ref_checks, ref_method, ref_args = make(reference, ref_log)
+        new_checks, new_method, new_args = make(candidate, new_log)
+        results = []
+        for index, edit in enumerate((None,) + tuple(edits)):
+            if edit is not None:
+                edit(reference, ref_checks, ref_args, ref_log)
+                edit(candidate, new_checks, new_args, new_log)
+            ref_log.clear(); new_log.clear()
+            ref_checks.verdicts = {}  # literal unchanged original, uncached
+            expected = _capture(lambda: getattr(ref_checks, ref_method)(*ref_args))
+            actual = _capture(lambda: getattr(new_checks, new_method)(*new_args))
+            _need(actual == expected, tag + " exact return/error differs at request " + str(index))
+            _need(new_log == ref_log, tag + " callback order differs at request " + str(index))
+            record((tag, index), (actual, new_log))
+            counts["requests"] += 1
+            results.append(actual)
+        counts["cases"] += 1
+        return results, new_checks, new_args
+
+    def residual(module, log):
+        return _checks(module), "residual_ok", [module.Label([1]), module.Label([1])]
+
+    def label(module, log):
+        return _checks(module), "label_ok", [module.Label([1])]
+
+    def unchanged(module, checks, args, log):
+        pass
+
+    def stale_basis(module, checks, args, log):
+        args[0].basis = {2: 2}
+
+    outcomes, _, _ = case("stale-basis-smallest", residual, (stale_basis, unchanged))
+    _need(outcomes == [("return", "bool", True), ("return", "bool", False), ("return", "bool", False)],
+          "Discriminating stale-basis outcome changed")
+
+    def in_place(module, checks, args, log):
+        args[0].basis.clear(); args[0].basis[2] = 2
+
+    case("in-place-basis", residual, (in_place, unchanged))
+
+    def dim(module, checks, args, log):
+        args[0].dim = 99
+
+    case("stale-dimension", residual, (dim, unchanged))
+
+    def key(module, checks, args, log):
+        args[0].key = (2,)
+
+    case("stale-key", residual, (key, unchanged))
+
+    def consistent(module, checks, args, log):
+        args[0].basis, args[0].key, args[0].dim = {2: 2}, (2,), 1
+
+    def restore(module, checks, args, log):
+        args[0].basis, args[0].key, args[0].dim = {1: 1}, (1,), 1
+
+    case("canonical-change-and-restoration", residual, (consistent, restore, unchanged))
+
+    def alias(module, log):
+        checks, method, args = residual(module, log)
+        args[1].basis = args[0].basis
+        return checks, method, args
+
+    case("basis-alias", alias, (in_place, unchanged))
+
+    def malformed_pivot(module, checks, args, log):
+        args[1].basis = {2: 1}
+
+    case("pivot-key-collision", residual, (malformed_pivot, unchanged))
+
+    def reordered(module, log):
+        return _checks(module), "residual_ok", [module.Label([1]), module.Label([1, 2])]
+
+    def reverse(module, checks, args, log):
+        args[1].basis = dict(reversed(tuple(args[1].basis.items())))
+
+    hits = owner.receipt["authorized_hits"]
+    native_before = dict(binding["counters"])
+    case("canonical-insertion-order", reordered, (reverse, unchanged))
+    _need(owner.receipt["authorized_hits"] - hits == 2, "Equivalent canonical bases lost original cache hits")
+    _need(binding["counters"]["complement_native"] - native_before["complement_native"] == 1,
+          "Canonical insertion-order control repeated native arithmetic")
+
+    def empty(module, log):
+        return _checks(module), "residual_ok", [module.Label([]), module.Label([])]
+
+    case("empty-bases", empty, (unchanged,))
+
+    def wide(module, log):
+        return _checks(module), "residual_ok", [module.Label([1 << 100]), module.Label([1 << 100])]
+
+    before = binding["counters"]["complement_fallback"]
+    case("wide-int-native-fallback", wide, (unchanged,))
+    _need(binding["counters"]["complement_fallback"] - before == 1,
+          "Wide exact integers did not retain the one literal native fallback")
+
+    def everything_stale(module, checks, args, log):
+        checks.everything.basis = {1: 1, 2: 6}
+
+    outcomes, _, _ = case("everything-stale", label, (everything_stale, unchanged))
+    _need(outcomes[0] == ("return", "bool", True) and outcomes[1:] == [("return", "bool", False)] * 2,
+          "Changed everything did not invalidate the label verdict")
+
+    def everything_replace(module, checks, args, log):
+        checks.everything = module.Label([1, 6])
+
+    case("everything-replaced", label, (everything_replace, unchanged))
+
+    def height(module, checks, args, log):
+        checks.h += 1
+
+    case("checks-height", residual, (height, unchanged))
+
+    def circuit(module, checks, args, log):
+        checks.c = SimpleNamespace(h=checks.h)
+
+    case("checks-circuit-identity", residual, (circuit, unchanged))
+
+    def remove_public(module, checks, args, log):
+        checks.verdicts.clear()
+
+    def replace_public(module, checks, args, log):
+        checks.verdicts = {(args[0].key, args[1].key): False}
+
+    case("public-delete", residual, (remove_public, unchanged))
+    case("public-rebind-injection", residual, (replace_public, unchanged))
+
+    def cold_injection(module, log):
+        checks, method, args = residual(module, log)
+        args[0] = module.Label([2])
+        checks.verdicts[(args[0].key, args[1].key)] = True
+        return checks, method, args
+
+    outcomes, _, _ = case("cold-public-injection", cold_injection)
+    _need(outcomes == [("return", "bool", False)], "Cold public injected PASS escaped")
+
+    def callback_basis(module, log):
+        class Basis(dict):
+            def values(self):
+                log.append("basis.values")
+                return super().values()
+            def items(self):
+                log.append("basis.items")
+                return super().items()
+        checks, method, args = residual(module, log)
+        args[0].basis = Basis(args[0].basis)
+        return checks, method, args
+
+    case("callback-basis", callback_basis, (unchanged,))
+
+    def callback_key(module, log):
+        class Key(tuple):
+            def __hash__(self):
+                log.append("key.hash")
+                return tuple.__hash__(self)
+        checks, method, args = residual(module, log)
+        args[0].key = Key(args[0].key)
+        return checks, method, args
+
+    case("callback-key-hash", callback_key, (unchanged,))
+
+    def int_subclass(module, log):
+        class Vector(int):
+            def __and__(self, other):
+                log.append("vector.and")
+                return int.__and__(self, other)
+        checks, method, args = residual(module, log)
+        args[0].basis = {1: Vector(1)}
+        return checks, method, args
+
+    case("callback-integer", int_subclass, (unchanged,))
+
+    def bool_vector(module, log):
+        checks, method, args = residual(module, log)
+        args[0].basis = {1: True}
+        return checks, method, args
+
+    case("bool-vector-type", bool_vector, (unchanged,))
+
+    def override(module, log):
+        checks, method, args = label(module, log)
+        def nondegenerate():
+            log.append("instance.nondegenerate")
+            return []
+        args[0].nondegenerate = nondegenerate
+        return checks, method, args
+
+    outcomes, _, _ = case("instance-method-list-return", override, (unchanged,))
+    _need(all(item == ("return", "list", []) for item in outcomes), "Literal short-circuit result type changed")
+
+    def subclass(module, log):
+        class SubLabel(module.Label):
+            def contains(self, other):
+                log.append("subclass.contains")
+                return super().contains(other)
+        checks, method, args = residual(module, log)
+        args[1] = SubLabel([1])
+        return checks, method, args
+
+    case("label-subclass", subclass, (unchanged,))
+
+    def unhashable(module, log):
+        checks, method, args = residual(module, log)
+        args[0].key = []
+        return checks, method, args
+
+    case("unhashable-key", unhashable)
+
+    for attribute in ("key", "basis", "dim"):
+        def missing(module, log, attribute=attribute):
+            checks, method, args = residual(module, log)
+            delattr(args[0], attribute)
+            return checks, method, args
+        case("missing-label-" + attribute, missing)
+
+    # Preserve error priority when both the original key and verdicts are absent.
+    ref, new = _checks(reference), _checks(candidate)
+    left_ref, right_ref = reference.Label([1]), reference.Label([1])
+    left_new, right_new = candidate.Label([1]), candidate.Label([1])
+    del ref.verdicts; del new.verdicts
+    del left_ref.key; del left_new.key
+    expected = _capture(lambda: ref.residual_ok(left_ref, right_ref))
+    actual = _capture(lambda: new.residual_ok(left_new, right_new))
+    _need(actual == expected and "key" in actual[2], "Missing verdicts preempted original key error")
+    record("missing-key-and-verdicts", actual); counts["requests"] += 1
+    left_ref.key = left_new.key = (1,)
+    expected = _capture(lambda: ref.residual_ok(left_ref, right_ref))
+    actual = _capture(lambda: new.residual_ok(left_new, right_new))
+    _need(actual == expected and "verdicts" in actual[2], "Missing verdicts lost literal error")
+    record("missing-verdicts", actual); counts["requests"] += 1
+
+    ref, new = _checks(reference), _checks(candidate)
+    del ref.everything; del new.everything
+    expected = _capture(lambda: ref.label_ok(reference.Label([1])))
+    actual = _capture(lambda: new.label_ok(candidate.Label([1])))
+    _need(actual == expected, "Missing everything lost literal error")
+    record("missing-everything", actual); counts["requests"] += 1
+
+    # Authorized public value tampering fails before an exposed stale result.
+    checks = _checks(candidate)
+    small, big = candidate.Label([2]), candidate.Label([1])
+    _need(checks.residual_ok(small, big) is False, "Tamper prime must be False")
+    checks.verdicts[(small.key, big.key)] = True
+    actual = _capture(lambda: checks.residual_ok(small, big))
+    _need(actual == ("error", "RuntimeError", "Cache verdict authority changed"),
+          "Tampered authorized PASS was not rejected")
+    counts["tamper_rejections"] += 1; record("authorized-value-tamper", actual)
+
+    # Independent cold mutate-then-restore controls. Equality is dispatched by
+    # the ORIGINAL public dictionary operations. Inspecting the immediate opcode
+    # makes mutation depend on membership versus store, never on assumed probe
+    # counts (CPython can visit a colliding slot more than once per operation).
+    def transient_env(module):
+        checks = _checks(module)
+        small, big = module.Label([2]), module.Label([1])
+        wanted_hash = hash((small.key, big.key))
+        log = []
+        class Foreign:
+            def __hash__(self):
+                return wanted_hash
+            def __eq__(self, other):
+                frame = sys._getframe(1)
+                operation = dis.opname[frame.f_code.co_code[frame.f_lasti]]
+                log.append(operation)
+                if operation == "CONTAINS_OP":
+                    small.basis = {1: 1}  # temporary inclusion, literal result True
+                elif operation == "STORE_SUBSCR":
+                    small.basis = {2: 2}  # canonical original non-inclusion restored
+                return False
+        foreign = Foreign()
+        checks.verdicts[foreign] = False
+        return checks, small, big, foreign, log
+
+    ref, ref_small, ref_big, ref_foreign, ref_log = transient_env(reference)
+    new, new_small, new_big, new_foreign, new_log = transient_env(candidate)
+    expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+    actual = _capture(lambda: new.residual_ok(new_small, new_big))
+    _need(expected == actual == ("return", "bool", True),
+          "Cold collision did not exercise a transient literal PASS")
+    _need(ref_log == new_log and "CONTAINS_OP" in new_log and "STORE_SUBSCR" in new_log,
+          "Foreign public-key callbacks gained or lost literal dictionary operations")
+    _need(ref_small.basis == new_small.basis == {2: 2},
+          "Cold collision failed to restore the canonical entry basis")
+    state = owner._lookup_state(new)
+    _need(state is not None and not state.authority,
+          "Transient foreign-key computation acquired cache authority")
+    record("cold-foreign-key-transient-pass", (actual, new_log))
+    del ref.verdicts[ref_foreign]; del new.verdicts[new_foreign]
+    ref_log.clear(); new_log.clear()
+    for index in range(2):
+        ref.verdicts = {}  # independent unchanged original, explicitly uncached
+        expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+        actual = _capture(lambda: new.residual_ok(new_small, new_big))
+        _need(expected == actual == ("return", "bool", False),
+              "Removed foreign key exposed a stale transient PASS")
+        _need(not ref_log and not new_log, "Clean followup unexpectedly invoked foreign keys")
+        record(("cold-foreign-key-clean-followup", index), actual)
+    counts["cases"] += 1; counts["requests"] += 3
+
+    # Preserve the earlier persistent-mutation control under the stricter v2
+    # contract: presence of the foreign key now causes uncached fallback rather
+    # than trying to authorize a hit and only rejecting at exit.
+    checks = _checks(candidate)
+    small, big = candidate.Label([1]), candidate.Label([1])
+    _need(checks.residual_ok(small, big) is True, "Persistent-collision prime failed")
+    key = (small.key, big.key)
+    wanted_hash = hash(key)
+    armed, persistent_log = [False], []
+    class PersistentForeign:
+        def __hash__(self):
+            return wanted_hash
+        def __eq__(self, other):
+            if armed[0]:
+                persistent_log.append("foreign-key.eq")
+                small.basis = {2: 2}
+            return False
+    checks.verdicts.clear()
+    checks.verdicts[PersistentForeign()] = False
+    checks.verdicts[key] = True
+    armed[0] = True
+    actual = _capture(lambda: checks.residual_ok(small, big))
+    oracle_checks = _checks(reference)
+    oracle_small, oracle_big = reference.Label([1]), reference.Label([1])
+    oracle_small.basis = {2: 2}
+    expected = _capture(lambda: oracle_checks.residual_ok(oracle_small, oracle_big))
+    _need(expected == actual == ("return", "bool", False) and persistent_log,
+          "Persistent foreign-key mutation returned old PASS")
+    _need(not owner._lookup_state(checks).authority, "Persistent collision retained authority")
+    record("persistent-public-key-mutation-fallback", actual)
+    counts["cases"] += 1; counts["requests"] += 1
+
+    # Stored old-value __del__ runs AFTER original RHS arithmetic and BEFORE
+    # original final lookup. No old value reference may survive in the fixture
+    # caller: the dictionary itself must own its final strong reference.
+    def finalizer_env(module, *, force_reference_miss):
+        checks = _checks(module)
+        small, big = module.Label([2]), module.Label([1])
+        key, events = (small.key, big.key), []
+        if force_reference_miss:
+            class UncachedReferenceDict(dict):
+                def __contains__(self, requested):
+                    dict.__contains__(self, requested)
+                    return False
+            checks.verdicts = UncachedReferenceDict()
+        class OverwriteOnDelete:
+            __slots__ = ("mapping", "key", "events")
+            def __init__(self, mapping, requested, calls):
+                self.mapping, self.key, self.events = mapping, requested, calls
+            def __del__(self):
+                self.events.append("old-value.__del__")
+                self.mapping[self.key] = True
+        checks.verdicts[key] = OverwriteOnDelete(checks.verdicts, key, events)
+        return checks, small, big, events
+
+    ref, ref_small, ref_big, ref_events = finalizer_env(reference, force_reference_miss=True)
+    new, new_small, new_big, new_events = finalizer_env(candidate, force_reference_miss=False)
+    expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+    actual = _capture(lambda: new.residual_ok(new_small, new_big))
+    _need(expected == actual == ("return", "bool", True),
+          "Old-value finalizer did not alter the original final lookup")
+    _need(ref_events == new_events == ["old-value.__del__"],
+          "Old-value replacement finalizer event order changed")
+    _need(ref_small.basis == new_small.basis == {2: 2},
+          "Finalizer fixture unexpectedly changed canonical operands")
+    state = owner._lookup_state(new)
+    _need(state is not None and not state.authority,
+          "Old-value finalizer result acquired cache authority")
+    record("cold-stored-value-finalizer-pass", (actual, new_events))
+    for index in range(2):
+        ref.verdicts = {}  # independent unchanged original, explicitly uncached
+        expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+        actual = _capture(lambda: new.residual_ok(new_small, new_big))
+        _need(expected == actual == ("return", "bool", False),
+              "Clean followup reused a stale finalizer-produced PASS")
+        _need(ref_events == new_events == ["old-value.__del__"],
+              "Clean followup repeated the destroyed old-value callback")
+        record(("stored-value-finalizer-clean-followup", index), actual)
+    counts["cases"] += 1; counts["requests"] += 3
+
+    class OtherMapping(dict):
+        pass
+    checks = _checks(candidate); checks.verdicts = OtherMapping()
+    actual = _capture(lambda: checks.residual_ok(candidate.Label([1]), candidate.Label([1])))
+    _need(actual[:2] == ("error", "RuntimeError") and "verdict mapping" in actual[2],
+          "Custom verdict mapping was not explicitly rejected")
+    counts["unsupported_rejections"] += 1; record("custom-verdict-map", actual)
+    class OtherChecks(candidate.Checks):
+        pass
+    checks = OtherChecks(SimpleNamespace(h=4))
+    actual = _capture(lambda: prepared["residual_ok"](checks, candidate.Label([1]), candidate.Label([1])))
+    _need(actual[:2] == ("error", "RuntimeError") and "Checks" in actual[2],
+          "Custom Checks was not explicitly rejected")
+    counts["unsupported_rejections"] += 1; record("custom-Checks", actual)
+
+    # Every environment mutation is tested after an actual authorized hit.
+    checks = _checks(candidate); small, big = candidate.Label([1]), candidate.Label([1])
+    def request():
+        return prepared["residual_ok"](checks, small, big)
+    _need(request() is True and request() is True, "Runtime controls failed to prime hit")
+    def drift(tag, target, attribute, replacement):
+        previous = getattr(target, attribute)
+        before = dict(binding["counters"])
+        setattr(target, attribute, replacement)
+        try:
+            actual = _capture(request)
+        finally:
+            setattr(target, attribute, previous)
+        _need(actual[:2] == ("error", "RuntimeError"), tag + " did not reject before cached return")
+        _need(dict(binding["counters"]) == before, tag + " executed arithmetic after drift")
+        binding["runtime_guard"].check()
+        record(tag, actual); counts["binding_rejections"] += 1
+
+    def bad(*args, **kwargs):
+        raise _ERROR("modified callable ran")
+    drift("odd-global", candidate, "odd", bad)
+    drift("odd-code", candidate.odd, "__code__", bad.__code__)
+    drift("odd-defaults", candidate.odd, "__defaults__", (False,))
+    drift("odd-any-builtin", builtins, "any", bad)
+    drift("rank-global", candidate, "rank", bad)
+    drift("Label-contains", candidate.Label, "contains", bad)
+    drift("Checks-label-ok", candidate.Checks, "label_ok", bad)
+    drift("Checks-residual-code", candidate.Checks.residual_ok, "__defaults__", (False,))
+    drift("native-complement", native, "complement", bad)
+    drift("native-gram", native, "gram_rank", bad)
+    candidate.any = bad
+    try:
+        actual = _capture(request)
+    finally:
+        del candidate.any
+    _need(actual[:2] == ("error", "RuntimeError"), "Source any shadow did not reject hit")
+    record("source-any-shadow", actual); counts["binding_rejections"] += 1
+
+    # Callback fallback may mutate a source binding after entry; exit must reject.
+    checks = _checks(candidate); small, big = candidate.Label([1]), candidate.Label([1])
+    old_odd = candidate.odd
+    log = []
+    def changes_environment(other):
+        log.append("contains")
+        candidate.odd = bad
+        return False
+    big.contains = changes_environment
+    try:
+        actual = _capture(lambda: checks.residual_ok(small, big))
+    finally:
+        candidate.odd = old_odd
+    _need(actual[:2] == ("error", "RuntimeError") and log == ["contains"],
+          "Callback source drift escaped the exit guard")
+    state = owner._lookup_state(checks)
+    _need(state is not None and not state.authority, "Callback drift retained authority")
+    record("callback-runtime-drift", actual); counts["binding_rejections"] += 1
+
+    untouched = load_source("_h25_cache_admission_control_v7")
+    actual = _capture(lambda: invoke("prepare_cache_contract", 
+        untouched, extension_path, expected_extension_sha256, source_sha256="0" * 64,
+        bootstrap_root=bootstrap_root, bootstrap_capability=bootstrap_capability, bootstrap_api=bootstrap_api,
+        factory_environment=factory_environment))
+    _need(actual[:2] == ("error", "RuntimeError"), "Wrong source pin was admitted")
+    record("wrong-source-pin", actual); counts["source_admission_rejections"] += 1
+    untouched.Checks.residual_ok = bad
+    actual = _capture(lambda: invoke("prepare_cache_contract", 
+        untouched, extension_path, expected_extension_sha256,
+        bootstrap_root=bootstrap_root, bootstrap_capability=bootstrap_capability, bootstrap_api=bootstrap_api,
+        factory_environment=factory_environment))
+    _need(actual[:2] == ("error", "RuntimeError"), "Changed original Checks source was admitted")
+    record("changed-original-Checks", actual); counts["source_admission_rejections"] += 1
+
+    # V5 domain is explicit: fresh probe metadata, not global public census.
+    native_cases = []
+
+    def mark_native(name, detail, *, revision="v4"):
+        native_cases.append(name)
+        record(("native-" + revision, name), detail)
+
+    # Initial empty dictionaries must admit the first result. Falling back once
+    # would add a later recomputation and violate the frozen observation counts.
+    clean = _checks(candidate)
+    clean_small, clean_big = candidate.Label([1]), candidate.Label([1])
+    before = dict(binding["counters"])
+    hits_before = owner.receipt["authorized_hits"]
+    probe_before = (owner.receipt["probe_entry_calls"], owner.receipt["probe_exit_calls"])
+    _need(clean.residual_ok(clean_small, clean_big) is True and
+          clean.residual_ok(clean_small, clean_big) is True,
+          "Native empty-first-result semantic failure")
+    _need(binding["counters"]["complement_native"] - before["complement_native"] == 1 and
+          owner.receipt["authorized_hits"] - hits_before == 1,
+          "Native empty-table bootstrap repeated original arithmetic")
+    _need(owner.receipt["probe_entry_calls"] - probe_before[0] == 2 and
+          owner.receipt["probe_exit_calls"] - probe_before[1] == 2,
+          "Native empty and repeated request did not each inspect both boundaries")
+    mark_native("empty-first-result-authority", {"requests": 2, "complement_native": 1,
+                                                "hits": 1, "entry_probes": 2, "exit_probes": 2})
+
+    def offhash_env(module, *, with_value_finalizer):
+        checks = _checks(module)
+        small, big = module.Label([1]), module.Label([1])
+        query = (small.key, big.key)
+        query_hash = hash(query)
+        events = []
+        if not with_value_finalizer:
+            foreign_hash = -2 if query_hash != -2 else -3
+            class ForeignDifferentHash:
+                def __hash__(self):
+                    events.append("foreign.hash")
+                    return foreign_hash
+                def __eq__(self, other):
+                    events.append("foreign.eq")
+                    raise AssertionError("Different stored hash must not compare")
+            checks.verdicts[ForeignDifferentHash()] = False
+            events.clear()
+        else:
+            class OffhashValue:
+                __slots__ = ("events",)
+                def __init__(self, calls):
+                    self.events = calls
+                def __del__(self):
+                    self.events.append("offhash-value.__del__")
+            # Five general-table entries fill the pinned 8-slot table's usable
+            # capacity. Original insertion of our sixth distinct key resizes.
+            index = 10
+            while len(checks.verdicts) < 5:
+                key = ((index,), (index + 100,))
+                index += 1
+                if hash(key) == query_hash:
+                    continue
+                checks.verdicts[key] = OffhashValue(events) if not checks.verdicts else False
+        retained_key = next(iter(checks.verdicts)) if with_value_finalizer else None
+        return checks, small, big, events, retained_key
+
+    for with_value_finalizer, name in ((False, "offhash-foreign-key"), (True, "offhash-value-resize")):
+        ref, rs, rb, re, retained_ref_key = offhash_env(reference, with_value_finalizer=with_value_finalizer)
+        new, ns, nb, ne, retained_new_key = offhash_env(candidate, with_value_finalizer=with_value_finalizer)
+        before = dict(binding["counters"])
+        old_size = dict.__sizeof__(new.verdicts)
+        expected = _capture(lambda: ref.residual_ok(rs, rb))
+        actual = _capture(lambda: new.residual_ok(ns, nb))
+        _need(expected == actual == ("return", "bool", True) and re == ne == [],
+              "Offhash foreign data changed original semantics or invoked a callback")
+        state = owner._lookup_state(new)
+        _need(state is not None and len(state.authority) == 1,
+              "V5 admitted different-hash domain failed to retain first authority")
+        if with_value_finalizer:
+            _need(dict.__sizeof__(new.verdicts) > old_size,
+                  "Offhash-value control did not cross original resize boundary")
+        # Reference checks the same arithmetic freshly; no shared public state.
+        ref.verdicts = {} if not with_value_finalizer else ref.verdicts
+        if with_value_finalizer:
+            # Keep the old value alive in its own mapping; deleting only the
+            # exact request key forces the independent source to recompute.
+            del ref.verdicts[(rs.key, rb.key)]
+        expected = _capture(lambda: ref.residual_ok(rs, rb))
+        actual = _capture(lambda: new.residual_ok(ns, nb))
+        _need(expected == actual == ("return", "bool", True) and re == ne == [],
+              "Offhash foreign data changed the clean repeated result")
+        _need(binding["counters"]["complement_native"] - before["complement_native"] == 1,
+              "Offhash domain duplicated native scientific arithmetic")
+        # Outside both complete admitted requests: retain only the exact keys,
+        # never a second reference to either value, then test actual release.
+        if with_value_finalizer:
+            del ref.verdicts[retained_ref_key]
+            _need(re == ["offhash-value.__del__"] and ne == [],
+                  "Reference offhash value was leaked or cross-shared")
+            del new.verdicts[retained_new_key]
+            _need(re == ne == ["offhash-value.__del__"],
+                  "Candidate offhash value was leaked or finalized repeatedly")
+        mark_native(name, {"requests": 2, "complement_native": 1,
+                           "original_resize": with_value_finalizer,
+                           "during_request_callback_events": [],
+                           "later_reference_events": list(re), "later_candidate_events": list(ne)})
+
+    # Actual production-native P20: all public keys/values are exact and no
+    # callbacks or fault hooks intervene. Derive one fixed query's bounded
+    # unsigned-64 perturb prefix; do not search or reroll if the shape differs.
+    probe_cap, table_size = 4096, 8192
+    probe_mask, unsigned_mask = table_size - 1, (1 << 64) - 1
+    query = ((1,), (1,))
+    query_hash = hash(query)
+    perturb = query_hash & unsigned_mask
+    slot = perturb & probe_mask
+    first_slots = set()
+    for visit in range(probe_cap):
+        if visit == probe_cap - 1:
+            _need(slot not in first_slots, "Fixed P20 final probe slot is not new")
+        else:
+            first_slots.add(slot)
+        perturb >>= 5
+        slot = (slot * 5 + perturb + 1) & probe_mask
+    collider_count = len(first_slots)
+    _need(2730 < collider_count <= 4095 and collider_count + 1 <= 5461,
+          "P20 fixed dictionary does not have the pinned 8192-slot size")
+    _need(sys.hash_info.width == 64 and sys.hash_info.modulus == (1 << 61) - 1,
+          "P20 integer-hash profile differs")
+
+    def cap_boundary_env(module):
+        checks = _checks(module)
+        small, big = module.Label([1]), module.Label([1])
+        for index in range(1, collider_count + 1):
+            key = ((1 + index * sys.hash_info.modulus,), (1,))
+            _need(hash(key) == query_hash, "P20 exact collision constructor differs")
+            checks.verdicts[key] = False
+        _need(len(checks.verdicts) == collider_count and query not in checks.verdicts,
+              "P20 query was not a fresh missing public key")
+        return checks, small, big
+
+    cap_ref, cap_rs, cap_rb = cap_boundary_env(reference)
+    cap_new, cap_ns, cap_nb = cap_boundary_env(candidate)
+    cap_size = dict.__sizeof__(cap_new.verdicts)
+    before = dict(binding["counters"])
+    before_cache = dict(owner.receipt)
+    before_probe = owner.probe_counters()
+    expected = _capture(lambda: cap_ref.residual_ok(cap_rs, cap_rb))
+    actual = _capture(lambda: cap_new.residual_ok(cap_ns, cap_nb))
+    after_probe = owner.probe_counters()
+    _need(expected == ("return", "bool", True) and
+          actual == ("error", "RuntimeError", "Cache probe unsupported at exit"),
+          "P20 did not reach the actual native unsupported-exit branch")
+    _need(cap_new.verdicts[query] is cap_ref.verdicts[query] is True and
+          len(cap_new.verdicts) == len(cap_ref.verdicts) == collider_count + 1 and
+          dict.__sizeof__(cap_new.verdicts) == cap_size,
+          "P20 original insertion/result changed or unexpectedly resized")
+    state = owner._lookup_state(cap_new)
+    _need(state is not None and not state.authority and
+          owner.receipt["authorized_results"] == before_cache["authorized_results"] and
+          owner.receipt["authorized_hits"] == before_cache["authorized_hits"],
+          "P20 committed private authority after unsupported exit")
+    for field, delta in (("requests", 1), ("eligible_requests", 1),
+                         ("probe_entry_calls", 1), ("probe_exit_calls", 1),
+                         ("probe_safe_observations", 1), ("probe_unsupported_observations", 1),
+                         ("probe_exit_rejections", 1), ("uncached_requests", 0)):
+        _need(owner.receipt[field] - before_cache[field] == delta,
+              "P20 cache branch/count differs: " + field)
+    for field, delta in (("calls", 2), ("safe", 1), ("unsupported", 1),
+                         ("budget", 1), ("slots", 2 * probe_cap),
+                         ("hash_calls", 2), ("matching_entries", 2 * probe_cap - 1),
+                         ("shape_items", 5 * (2 * probe_cap + 1))):
+        _need(after_probe[field] - before_probe[field] == delta,
+              "P20 native production probe/count differs: " + field)
+    _need(binding["counters"]["complement_native"] - before["complement_native"] == 1,
+          "P20 skipped or reran original native arithmetic")
+    mark_native("eligible-native-exit-unsupported", {
+        "reference_requests": 1, "candidate_requests": 1, "complement_native": 1,
+        "colliders_per_mapping": collider_count, "prefix_steps": probe_cap,
+        "probe_slots": 2 * probe_cap, "probe_shape_items": 5 * (2 * probe_cap + 1),
+        "actual": actual, "authority_entries": 0,
+        "public_insertion_completed": True, "arithmetic_reruns": 0}, revision="v5")
+
+    # The provider class/functions are source bound, not just duck-typed hooks.
+    for name, target, field, replacement in (
+            ("provider-function-binding", owner.probe_provider, "validate_binding", bad),
+            ("binding-inspect-code", owner.probe_inspect.__func__, "__code__", bad.__code__),
+            ("binding-inspect-defaults", owner.probe_inspect.__func__, "__defaults__", (False,))):
+        previous = getattr(target, field)
+        before = dict(binding["counters"])
+        setattr(target, field, replacement)
+        try:
+            actual = _capture(lambda: clean.residual_ok(clean_small, clean_big))
+        finally:
+            setattr(target, field, previous)
+        _need(actual[:2] == ("error", "RuntimeError") and dict(binding["counters"]) == before,
+              "Native provider drift escaped before original arithmetic")
+        binding["runtime_guard"].check()
+        mark_native(name, actual)
+
+    # V6 controls retain all v5 records in their original relative order.
+    # These rows are added separately; no new source-derived total is returned
+    # as an observed count. Every successful record() increments that count.
+    v6_cases = []
+
+    def mark_v6(name, detail):
+        v6_cases.append(name)
+        record(("native-v6", name), detail)
+
+    # Unsupported contains callbacks remain intentional between guards. A True
+    # result reaches the real derived complement wrapper, whose light guard
+    # must reject the mutation BEFORE any arithmetic or observer action.
+    unused_method = candidate.Checks.label_ok
+    unused_cell = unused_method.__closure__[unused_method.__code__.co_freevars.index("_h25_cache_owner")]
+    callback_mutations = (
+        ("contains-true-odd", candidate, "odd", bad),
+        ("contains-true-Checks", candidate, "Checks", type("ForeignChecks", (), {})),
+        ("contains-true-defaults", unused_method, "__defaults__", (False,)),
+        ("contains-true-closure", unused_cell, "cell_contents", object()),
+        ("contains-true-builtin-any", builtins, "any", bad))
+    for name, target, field, replacement in callback_mutations:
+        current_checks = _checks(candidate)
+        current_small, current_big = candidate.Label([1]), candidate.Label([1])
+        events = []
+        previous = getattr(target, field)
+        before = dict(binding["counters"])
+        def mutating_contains(other):
+            events.append("contains")
+            setattr(target, field, replacement)
+            return True
+        current_big.contains = mutating_contains
+        try:
+            actual = _capture(lambda: current_checks.residual_ok(current_small, current_big))
+        finally:
+            setattr(target, field, previous)
+        state = owner._lookup_state(current_checks)
+        _need(actual[:2] == ("error", "RuntimeError") and events == ["contains"] and
+              dict(binding["counters"]) == before and state is not None and not state.authority,
+              name + " escaped the actual backend callback before arithmetic")
+        binding["runtime_guard"].check()
+        mark_v6(name, {"actual": actual, "callback_events": events,
+                       "arithmetic_delta": 0, "authority_entries": 0})
+
+    def sample_function(value=None):
+        return value
+    expected = invoke("_record", sample_function)
+    conflicting = list(expected)
+    conflicting[4] = ()
+    observations = {}
+    try:
+        _need(invoke("_observed_fresh", expected, observations) is True and
+              invoke("_observed_fresh", tuple(conflicting), observations) is False and
+              len(observations) == 1,
+              "Collector collapsed independent expected records into a shared PASS")
+    finally:
+        observations.clear()
+    mark_v6("independent-expected-conflict", {"function_observations": 1,
+                                              "comparisons": 2, "second_rejected": True})
+
+    # A constant of a foreign type must never reach its equality method while
+    # authenticating code. Keep this separate from executable source admission.
+    comparisons = []
+    class ForeignConstant:
+        def __eq__(self, other):
+            comparisons.append("equality")
+            raise _ERROR("foreign constant equality ran")
+    altered_code = sample_function.__code__.replace(
+        co_consts=(ForeignConstant(),) + sample_function.__code__.co_consts[1:])
+    _need(invoke("_code_equal", altered_code, sample_function.__code__) is False and not comparisons,
+          "Code authentication invoked foreign constant equality")
+    altered_code = None
+    mark_v6("foreign-code-constant", {"equality_callbacks": 0, "rejected": True})
+
+    # A retained error must not retain an observed replacement default. The
+    # old independently captured expected record remains, which is intentional.
+    released = []
+    class ForeignDefault:
+        def __del__(self):
+            released.append("default-released")
+    replacement_default = ForeignDefault()
+    default_ref = weakref.ref(replacement_default)
+    old_defaults = candidate.odd.__defaults__
+    candidate.odd.__defaults__ = (replacement_default,)
+    held_default_error = None
+    try:
+        binding["runtime_guard"].check()
+    except RuntimeError as error:
+        held_default_error = error
+    finally:
+        candidate.odd.__defaults__ = old_defaults
+    del replacement_default
+    _need(held_default_error is not None and default_ref() is None and
+          released == ["default-released"],
+          "Guard traceback retained an observed foreign default")
+    traceback = held_default_error.__traceback__
+    while traceback is not None:
+        if traceback.tb_frame.f_code.co_name in ("check", "check_backend"):
+            _need(traceback.tb_frame.f_locals.get("observations") in (None, {}),
+                  "Failed guard retained a scalar observation table")
+        traceback = traceback.tb_next
+    binding["runtime_guard"].check()
+    mark_v6("foreign-default-error-cleanup", {"retained_error": True,
+                                              "released_before_error_disposal": True,
+                                              "observation_tables_empty": True})
+
+    # Exact dict alone is insufficient: a non-string key may compare against a
+    # known name. Admission must reject before the first named base lookup and
+    # release the temporary iterator/key even while the error remains alive.
+    key_events = []
+    class ForeignName:
+        def __hash__(self):
+            return hash("odd")
+        def __eq__(self, other):
+            key_events.append("equality")
+            return False
+        def __del__(self):
+            key_events.append("name-released")
+    replacement_name = ForeignName()
+    name_ref = weakref.ref(replacement_name)
+    candidate.__dict__[replacement_name] = True
+    key_events.clear()
+    held_name_error = None
+    before = dict(binding["counters"])
+    try:
+        binding["runtime_guard"].check_backend()
+    except RuntimeError as error:
+        held_name_error = error
+    _need(held_name_error is not None and not key_events and dict(binding["counters"]) == before,
+          "Foreign namespace key reached equality/arithmetic before rejection")
+    del candidate.__dict__[replacement_name]
+    key_events.clear()  # deletion is an explicit separate literal operation
+    del replacement_name
+    _need(name_ref() is None and key_events == ["name-released"],
+          "Guard error retained an observed foreign namespace key")
+    binding["runtime_guard"].check()
+    mark_v6("foreign-namespace-key-cleanup", {"guard_equality_callbacks": 0,
+                                             "retained_error": True,
+                                             "released_after_explicit_removal": True})
+
+    # Collector authentication is its own pre-use obligation. Modifying a
+    # module-level helper must fail before that helper can inspect any function
+    # or call the deliberately bad replacement.
+    for name, target, field, replacement in (
+            ("collector-binding", adapter, "_observed_fresh", bad),
+            ("collector-code", adapter._observed_fresh, "__code__", bad.__code__),
+            ("collector-defaults", adapter._observed_fresh, "__defaults__", (False,))):
+        previous = getattr(target, field)
+        before = dict(binding["counters"])
+        setattr(target, field, replacement)
+        try:
+            actual = _capture(binding["runtime_guard"].check_backend)
+        finally:
+            setattr(target, field, previous)
+        _need(actual[:2] == ("error", "RuntimeError") and "cache collector" in actual[2] and
+              "modified callable ran" not in actual[2] and dict(binding["counters"]) == before,
+              name + " reached the modified collector")
+        binding["runtime_guard"].check()
+        mark_v6(name, {"actual": actual, "modified_callable_calls": 0})
+
+    # Even rejection cleanup must use the captured dict.clear primitive: a
+    # malicious key colliding with the global _CLEAR name must not be compared.
+    collector_key_events = []
+    class ForeignCollectorName:
+        def __hash__(self):
+            return hash("_CLEAR")
+        def __eq__(self, other):
+            collector_key_events.append("equality")
+            return False
+        def __del__(self):
+            collector_key_events.append("collector-name-released")
+    collector_key = ForeignCollectorName()
+    collector_ref = weakref.ref(collector_key)
+    adapter.__dict__[collector_key] = True
+    collector_key_events.clear()
+    held_collector_error = None
+    try:
+        binding["runtime_guard"].check_backend()
+    except RuntimeError as error:
+        held_collector_error = error
+    _need(held_collector_error is not None and not collector_key_events,
+          "Collector rejection or finally cleanup invoked foreign-key equality")
+    del adapter.__dict__[collector_key]
+    collector_key_events.clear()
+    del collector_key
+    _need(collector_ref() is None and collector_key_events == ["collector-name-released"],
+          "Collector exception retained a foreign lookup key")
+    binding["runtime_guard"].check()
+    mark_v6("collector-key-domain-cleanup", {"guard_equality_callbacks": 0,
+                                            "retained_error": True,
+                                            "released_after_explicit_removal": True})
+
+    # The early cold record must reject later stdlib code/descriptor drift
+    # without invoking it. These are rejected preconditions, not admitted cold
+    # intervals; restore every mutation before another binding is attempted.
+    old_runtime_guard = backend.RuntimeGuard
+    # V8_CALLER_GATE_BEGIN cache_controls_v8.py:2
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # V8_CALLER_GATE_END cache_controls_v8.py:2
+    _ca_dispatch(5, backend_handle, final_row_guard)
+    try:
+        original_parse_code = adapter.ast.parse.__code__
+        adapter.ast.parse.__code__ = bad.__code__
+        try:
+            changed_parse = _capture(lambda: invoke("_check_factory_environment", 
+                factory_environment, backend, final_row_guard))
+        finally:
+            adapter.ast.parse.__code__ = original_parse_code
+        _need(changed_parse[:2] == ("error", "RuntimeError") and
+              "modified callable ran" not in changed_parse[2],
+              "Cold factory invoked a changed AST parser")
+        mark_v6("cold-parser-code-rejection", {"actual": changed_parse,
+                                               "modified_callable_calls": 0})
+        descriptor_events = []
+        class ForeignMethodDescriptor:
+            def __get__(self, instance, owner_class):
+                descriptor_events.append("descriptor")
+                raise _ERROR("foreign pathlib descriptor ran")
+        method_owner = next(row[0] for row in factory_environment.stdlib_method_owners
+                            if row[2] == "read_bytes")
+        original_method = method_owner.__dict__["read_bytes"]
+        setattr(method_owner, "read_bytes", ForeignMethodDescriptor())
+        try:
+            changed_descriptor = _capture(lambda: invoke("_check_factory_environment", 
+                factory_environment, backend, final_row_guard))
+        finally:
+            setattr(method_owner, "read_bytes", original_method)
+        _need(changed_descriptor[:2] == ("error", "RuntimeError") and not descriptor_events,
+              "Cold factory invoked a replacement pathlib descriptor")
+        mark_v6("cold-pathlib-descriptor-rejection", {"actual": changed_descriptor,
+                                                      "descriptor_calls": 0})
+        invoke("_check_factory_environment", factory_environment, backend, final_row_guard)
+    finally:
+        # V8_CALLER_GATE_BEGIN cache_controls_v8.py:11
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # V8_CALLER_GATE_END cache_controls_v8.py:11
+        _ca_dispatch(5, backend_handle, old_runtime_guard)
+
+    # Same invocation failure order remains base first, then scientific cache
+    # checks. A successful guard is not a transferable PASS to the next one.
+    old_rank, old_odd = candidate.rank, candidate.odd
+    candidate.rank = bad
+    candidate.odd = bad
+    try:
+        first_light = _capture(binding["runtime_guard"].check_backend)
+        first_full = _capture(binding["runtime_guard"].check)
+    finally:
+        candidate.rank, candidate.odd = old_rank, old_odd
+    _need(first_light == first_full == ("error", "RuntimeError", "Runtime drift: source helper rank"),
+          "Guard split changed the first base failure")
+    binding["runtime_guard"].check_backend()
+    candidate.odd = bad
+    try:
+        next_light = _capture(binding["runtime_guard"].check_backend)
+    finally:
+        candidate.odd = old_odd
+    _need(next_light[:2] == ("error", "RuntimeError"),
+          "Earlier successful guard authorized a later changed invocation")
+    binding["runtime_guard"].check()
+    mark_v6("fresh-invocations-and-first-failure", {"light": first_light, "full": first_full,
+                                                  "later_drift_rejected": True})
+
+    # Provider state is not used by the backend-only guard. Its standalone full
+    # guard remains independently authoritative. No arithmetic is needed here.
+    old_validate = owner.probe_provider.validate_binding
+    owner.probe_provider.validate_binding = bad
+    try:
+        backend_only = _capture(binding["runtime_guard"].check_backend)
+        direct_full = _capture(binding["runtime_guard"].check)
+    finally:
+        owner.probe_provider.validate_binding = old_validate
+    _need(backend_only == ("return", "NoneType", None) and
+          direct_full[:2] == ("error", "RuntimeError"),
+          "Backend/full guard boundaries lost their distinct source obligations")
+    binding["runtime_guard"].check()
+    mark_v6("deep-state-retained-at-full-boundary", {"backend_only": backend_only,
+                                                   "full_rejected": direct_full})
+
+    # V7 adds source-bound cold-entry and concrete full/light composition rows.
+    # Every row appends an observed record; the declared census is checked below.
+    v7_cases = []
+
+    def mark_v7(name, detail):
+        v7_cases.append(name)
+        record(("native-v7", name), detail)
+
+    runtime = binding["runtime_guard"]
+    trace_entries = object.__getattribute__(runtime, "__dict__").get("_h25_entries", ())
+    _need(type(trace_entries) is tuple and len(trace_entries) > 0,
+          "V7 control backend must include the actual original P2 and trace stack")
+    trace_owner = trace_entries[0][0]
+    _need(type(trace_owner) is adapter.ModuleType and trace_owner is not native,
+          "V7 first-error controls require the distinct actual trace encoder owner")
+
+    # Compare to the unchanged composed base on this same private runtime. The
+    # injected drift concerns public modules, never private guard-instance state.
+    class ChangedModule(adapter.ModuleType):
+        pass
+
+    for label, later_owner in (("source-before-native", native),
+                               ("source-before-trace", trace_owner)):
+        old_rank, old_class = candidate.rank, later_owner.__class__
+        before = dict(binding["counters"])
+        candidate.rank = bad
+        later_owner.__class__ = ChangedModule
+        try:
+            baseline_error = _capture(lambda: original_guard.check(runtime))
+            full_error = _capture(runtime.check)
+            light_error = _capture(runtime.check_backend)
+        finally:
+            candidate.rank, later_owner.__class__ = old_rank, old_class
+        _need(baseline_error == full_error == light_error ==
+              ("error", "RuntimeError", "Runtime drift: source helper rank") and
+              dict(binding["counters"]) == before,
+              "V7 changed the original source/native/trace first error")
+        runtime.check()
+        mark_v7(label, {"baseline": baseline_error, "full": full_error,
+                        "light": light_error, "arithmetic_delta": 0})
+
+    old_len, old_native_class = builtins.len, native.__class__
+    before = dict(binding["counters"])
+    builtins.len, native.__class__ = bad, ChangedModule
+    try:
+        baseline_error = _capture(lambda: original_guard.check(runtime))
+        full_error = _capture(runtime.check)
+        light_error = _capture(runtime.check_backend)
+    finally:
+        builtins.len, native.__class__ = old_len, old_native_class
+    _need(baseline_error == full_error == light_error ==
+          ("error", "RuntimeError", "Runtime drift: builtin lookup len") and
+          dict(binding["counters"]) == before,
+          "V7 eager admission changed the original builtin/native first error")
+    runtime.check()
+    mark_v7("builtin-before-native", {"baseline": baseline_error, "full": full_error,
+                                      "light": light_error, "arithmetic_delta": 0})
+
+    # A source shadow still fails before the first builtin named lookup. The
+    # foreign builtin key is an intentional unsupported precondition, not an
+    # admitted callback. Retaining both errors may not retain that foreign key.
+    builtin_events = []
+    class ForeignBuiltinName:
+        def __hash__(self):
+            return hash("all")
+        def __eq__(self, other):
+            builtin_events.append("equality")
+            return False
+        def __del__(self):
+            builtin_events.append("builtin-name-released")
+    builtin_key = ForeignBuiltinName()
+    builtin_ref = weakref.ref(builtin_key)
+    builtins.__dict__[builtin_key] = True
+    builtin_events.clear()
+    candidate.all = bad
+    try:
+        shadow_full = _capture(runtime.check)
+        shadow_light = _capture(runtime.check_backend)
+    finally:
+        del candidate.all
+    _need(shadow_full == shadow_light ==
+          ("error", "RuntimeError", "Runtime drift: builtin lookup all") and not builtin_events,
+          "V7 scanned builtin values/domain before the original shadow short circuit")
+    held_builtin_errors = []
+    for action in (runtime.check, runtime.check_backend):
+        try:
+            action()
+        except RuntimeError as error:
+            held_builtin_errors.append(error)
+    _need(len(held_builtin_errors) == 2 and not builtin_events and
+          all("builtin lookup key domain" in str(error) for error in held_builtin_errors),
+          "V7 builtin key gate missed a full/light path or called foreign equality")
+    del builtins.__dict__[builtin_key]
+    builtin_events.clear()
+    del builtin_key
+    _need(builtin_ref() is None and builtin_events == ["builtin-name-released"],
+          "V7 full/light exception retained the foreign builtin key")
+    runtime.check()
+    mark_v7("builtin-shadow-and-key-cleanup", {
+        "shadow_full": shadow_full, "shadow_light": shadow_light,
+        "full_and_light_key_rejections": 2, "retained_errors": True,
+        "foreign_equality_callbacks": 0, "released_before_error_disposal": True})
+
+    # Actual source-owned row helper remains present at both full and callback
+    # boundaries. This changes only a public function's calling environment.
+    previous_defaults = row_helper.__defaults__
+    row_helper.__defaults__ = (False,)
+    before = dict(binding["counters"])
+    try:
+        row_full = _capture(runtime.check)
+        row_light = _capture(runtime.check_backend)
+    finally:
+        row_helper.__defaults__ = previous_defaults
+    _need(row_full == row_light ==
+          ("error", "RuntimeError", "Runtime drift: rank observation function environment") and
+          dict(binding["counters"]) == before,
+          "V7 final row obligations were absent from a full/light path")
+    runtime.check()
+    mark_v7("row-calling-environment-full-and-light", {
+        "full": row_full, "light": row_light, "arithmetic_delta": 0})
+
+    # V8_CALLER_GATE_BEGIN cache_controls_v8.py:12
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # V8_CALLER_GATE_END cache_controls_v8.py:12
+    row_module = _ca_dispatch(6, row_handle)[0]
+    row_events = []
+    class ForeignRowName:
+        def __hash__(self):
+            return hash("_TYPE")
+        def __eq__(self, other):
+            row_events.append("equality")
+            return False
+        def __del__(self):
+            row_events.append("row-name-released")
+    row_key = ForeignRowName()
+    row_ref = weakref.ref(row_key)
+    row_module.__dict__[row_key] = True
+    row_events.clear()
+    old_rank = candidate.rank
+    candidate.rank = bad
+    try:
+        first_full = _capture(runtime.check)
+        first_light = _capture(runtime.check_backend)
+    finally:
+        candidate.rank = old_rank
+    _need(first_full == first_light ==
+          ("error", "RuntimeError", "Runtime drift: source helper rank") and not row_events,
+          "V7 row admission moved ahead of the original base first error")
+    held_row_errors = []
+    for action in (runtime.check, runtime.check_backend):
+        try:
+            action()
+        except RuntimeError as error:
+            held_row_errors.append(error)
+    _need(len(held_row_errors) == 2 and not row_events and
+          all("rank observation namespace key domain" in str(error) for error in held_row_errors),
+          "V7 row namespace gate missed a full/light path or invoked foreign equality")
+    del row_module.__dict__[row_key]
+    row_events.clear()
+    del row_key
+    _need(row_ref() is None and row_events == ["row-name-released"],
+          "V7 final row error retained an observed foreign key")
+    runtime.check()
+    mark_v7("row-key-first-error-and-cleanup", {
+        "earlier_full": first_full, "earlier_light": first_light,
+        "full_and_light_key_rejections": 2, "retained_errors": True,
+        "foreign_equality_callbacks": 0, "released_before_error_disposal": True})
+
+    # Verify concrete observation representation after an actual native call,
+    # paying an independent unchanged-source reference with its own Label data.
+    ref_label, actual_label = reference.Label([1, 2]), candidate.Label([1, 2])
+    expected_rank_result = _capture(ref_label.nondegenerate)
+    before_gram, before_rows = binding["counters"]["gram_native"], len(rank_observations)
+    actual_rank_result = _capture(actual_label.nondegenerate)
+    _need(actual_rank_result == expected_rank_result and
+          binding["counters"]["gram_native"] == before_gram + 1 and
+          len(rank_observations) == before_rows + 1 and
+          type(rank_observations[-1]) is tuple and len(rank_observations[-1]) == 2 and
+          type(rank_observations[-1][0]) is tuple and
+          all(type(value) is int for value in rank_observations[-1][0]) and
+          type(rank_observations[-1][1]) is int,
+          "V7 row-derived bind lost its actual native observation or exact result")
+    mark_v7("actual-row-native-observation", {
+        "reference": expected_rank_result, "candidate": actual_rank_result,
+        "native_delta": 1, "ordered_rank_row": rank_observations[-1],
+        "public_bind_unchanged": backend.bind is factory_environment.bind})
+
+    # One fresh owner pays all PRE-BIND negatives. Every rejected call must
+    # leave it unbound; no arbitrary subclass or changed virtual method may be
+    # snapshotted as authority merely because it is supplied to the factory.
+    prebind_source = load_source("_h25_cache_prebind_v7")
+    prebind_prepared = invoke("prepare_cache_contract", prebind_source, extension_path,
+        expected_extension_sha256, bootstrap_root=bootstrap_root,
+        bootstrap_capability=bootstrap_capability, bootstrap_api=bootstrap_api,
+        factory_environment=factory_environment)
+    prebind_owner = prebind_prepared["owner"]
+    prebind_source.Checks.residual_ok = prebind_prepared["residual_ok"]
+    prebind_source.Checks.label_ok = prebind_prepared["label_ok"]
+    # V8_CALLER_GATE_BEGIN cache_controls_v8.py:3
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # V8_CALLER_GATE_END cache_controls_v8.py:3
+    prebind_rows = _ca_dispatch(1, row_handle, "make_row_interner")
+    prebind_cache = invoke("compose_runtime_guard", original_guard, prebind_prepared)
+    # V8_CALLER_GATE_BEGIN cache_controls_v8.py:4
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # V8_CALLER_GATE_END cache_controls_v8.py:4
+    prebind_final = _ca_dispatch(1, row_handle, "make_cache_runtime_guard", prebind_cache, prebind_rows)
+
+    def rejected_bind():
+        return invoke("bind_cache_backend", backend, prebind_source, native, prebind_prepared,
+                      factory_environment, row_producer_handle=row_producer_handle,
+                      row_handle=row_handle, rank_row_intern=prebind_rows, final_guard=prebind_final,
+                      rank_calls=[])
+
+    # V8_CALLER_GATE_BEGIN cache_controls_v8.py:5
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # V8_CALLER_GATE_END cache_controls_v8.py:5
+    _ca_dispatch(5, backend_handle, prebind_final)
+    try:
+        for helper_name in ("_code_named", "_check_factory_environment"):
+            helper = getattr(adapter, helper_name)
+            for kind in ("code", "defaults", "globals"):
+                old_code, old_defaults = helper.__code__, helper.__defaults__
+                if kind == "code":
+                    helper.__code__ = bad.__code__
+                elif kind == "defaults":
+                    helper.__defaults__ = (False,)
+                else:
+                    changed_globals = dict(helper.__globals__)
+                    changed_globals["_TYPE"] = bad
+                    forged = adapter.FunctionType(helper.__code__, changed_globals,
+                                                  helper.__name__, helper.__defaults__, helper.__closure__)
+                    forged.__kwdefaults__ = helper.__kwdefaults__
+                    setattr(adapter, helper_name, forged)
+                try:
+                    rejected = _capture(rejected_bind)
+                finally:
+                    helper.__code__, helper.__defaults__ = old_code, old_defaults
+                    setattr(adapter, helper_name, helper)
+                _need(rejected[:2] == ("error", "RuntimeError") and
+                      "modified callable ran" not in rejected[2] and prebind_owner.runtime is None,
+                      "V7 entered a changed cold helper/validator before authentication")
+                mark_v7("cold-" + helper_name + "-" + kind, {
+                    "actual": rejected, "modified_callable_marker_seen": False,
+                    "pre_use_proof": "sealed-entry source order plus rejection",
+                    "constructor_entered": False})
+
+        for method_name, cell_name in (("__init__", "base_init"),
+                                       ("check", "base_check"),
+                                       ("check_backend", "base_backend_check")):
+            method = prebind_final.__dict__[method_name]
+            for kind in ("code", "defaults", "closure"):
+                old_code, old_defaults = method.__code__, method.__defaults__
+                cell = old_cell = None
+                if kind == "code":
+                    # A distinct code identity with unchanged behavior is enough
+                    # to detect illegal late capture without running bad bytecode.
+                    method.__code__ = method.__code__.replace(co_name="changed_" + method_name)
+                elif kind == "defaults":
+                    method.__defaults__ = (False,)
+                else:
+                    cell = method.__closure__[method.__code__.co_freevars.index(cell_name)]
+                    old_cell, cell.cell_contents = cell.cell_contents, bad
+                try:
+                    rejected = _capture(rejected_bind)
+                finally:
+                    method.__code__, method.__defaults__ = old_code, old_defaults
+                    if cell is not None:
+                        cell.cell_contents = old_cell
+                _need(rejected[:2] == ("error", "RuntimeError") and prebind_owner.runtime is None,
+                      "V7 accepted a changed final class before the first virtual check")
+                mark_v7("final-class-" + method_name + "-" + kind, {
+                    "actual": rejected, "constructor_entered": False,
+                    "first_virtual_check_entered": False})
+        class ForeignFinal(prebind_final):
+            pass
+        def reject_unregistered_final():
+            # V8_CALLER_GATE_BEGIN cache_controls_v8.py:14
+            _ca_desc = cold_caller_descriptor
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # V8_CALLER_GATE_END cache_controls_v8.py:14
+            return _ca_dispatch(5, backend_handle, ForeignFinal)
+        rejected_subclass = _capture(reject_unregistered_final)
+        _need(rejected_subclass[:2] == ("error", "RuntimeError") and
+              backend.RuntimeGuard is prebind_final and prebind_owner.runtime is None,
+              "V7 admitted an arbitrary final guard subclass")
+        mark_v7("unregistered-final-subclass", {
+            "actual": rejected_subclass, "installed_guard_unchanged": True})
+        # The same unchanged, source-owned final product now binds once. This
+        # ensures negative controls did not merely rely on an unusable owner.
+        prebind_result = rejected_bind()
+        _need(prebind_owner.runtime is prebind_result["runtime_guard"] and
+              type(prebind_owner.runtime) is prebind_final,
+              "Restored final guard did not perform its first real binding")
+        prebind_result["runtime_guard"].check_backend()
+        prebind_result["runtime_guard"].check()
+        mark_v7("restored-final-class-binds", {"exact_registered_final_class": True,
+                                               "full_and_light_checks": True})
+    finally:
+        try:
+            # V8_CALLER_GATE_BEGIN cache_controls_v8.py:15
+            _ca_desc = cold_caller_descriptor
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if cold_authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # V8_CALLER_GATE_END cache_controls_v8.py:15
+            _ca_dispatch(5, backend_handle, original_guard)
+        finally:
+            prebind_receipt = prebind_owner.teardown()
+    _need(prebind_receipt["probe_closed"] is True and prebind_receipt["teardowns"] == 1,
+          "V7 pre-bind control owner did not close exactly once")
+
+    # V8_REAL_CALLER_CONTROLS_BEGIN
+    # Real caller paths complement the separate authority-wide helper suite.
+    # Source ordering proves pre-use admission; receipts record actual errors
+    # and counters, not an invented count of executed replacement instructions.
+    v8_cases = []
+
+    def mark_v8(name, detail):
+        v8_cases.append(name)
+        record(("native-v8", name), detail)
+
+    actual_cold_dispatcher = cold_caller_descriptor[2]
+    actual_runtime_dispatcher = owner.collector_descriptor[2]
+    actual_runtime_collector = owner.collector_guard
+    for target_name, target in (("cold-dispatcher", actual_cold_dispatcher),
+                                ("runtime-dispatcher", actual_runtime_dispatcher),
+                                ("runtime-collector", actual_runtime_collector)):
+        for mutation in ("code", "defaults", "kwdefaults", "closure"):
+            old_code, old_defaults, old_keywords = target.__code__, target.__defaults__, target.__kwdefaults__
+            changed_cell = old_cell_value = None
+            before = dict(binding["counters"])
+            if mutation == "code":
+                target.__code__ = old_code.replace(co_name="v8_changed_" + target_name.replace("-", "_"))
+            elif mutation == "defaults":
+                target.__defaults__ = (False,)
+            elif mutation == "kwdefaults":
+                target.__kwdefaults__ = {"v8_changed_keyword": False}
+            else:
+                _need(type(target.__closure__) is tuple and len(target.__closure__) > 0,
+                      "Actual V8 caller target lacks the declared closure fixture")
+                changed_cell = target.__closure__[0]
+                old_cell_value = changed_cell.cell_contents
+                changed_cell.cell_contents = object()
+            try:
+                if target_name == "cold-dispatcher":
+                    # invoke is the actual source control entry used throughout
+                    # the preserved suite; its inline gate runs before dispatch.
+                    rejected = [_capture(lambda: invoke("_record", sample_function))]
+                else:
+                    # Both real final-row paths enter the actual cache class,
+                    # whose already-admitted frame checks the child dispatcher.
+                    rejected = [_capture(binding["runtime_guard"].check),
+                                _capture(binding["runtime_guard"].check_backend)]
+            finally:
+                target.__code__, target.__defaults__, target.__kwdefaults__ = old_code, old_defaults, old_keywords
+                if changed_cell is not None:
+                    changed_cell.cell_contents = old_cell_value
+            _need(all(item[:2] == ("error", "RuntimeError") for item in rejected) and
+                  dict(binding["counters"]) == before,
+                  "V8 actual caller allowed changed authority dispatch metadata")
+            if target_name == "cold-dispatcher":
+                _need("Cold authority caller dispatcher" in rejected[0][2],
+                      "V8 cold rejection was not at the inline caller boundary")
+            elif target_name == "runtime-dispatcher":
+                _need(all("Runtime drift: cache collector dispatcher" in item[2] for item in rejected),
+                      "V8 runtime dispatcher reached execution before caller admission")
+            else:
+                expected_message = (
+                    "Runtime drift: cache collector caller: target closure value differs"
+                    if mutation == "closure" else
+                    "Runtime drift: cache collector caller: target function environment differs")
+                expected_rejection = ("error", "RuntimeError", expected_message)
+                _need(rejected[0] == expected_rejection and rejected[1] == expected_rejection,
+                      "V9 full/light collector rejection did not originate before target entry")
+            binding["runtime_guard"].check()
+            mark_v8(target_name + "-" + mutation, {
+                "actual_rejections": rejected, "arithmetic_delta": 0,
+                "path": "actual control invoke" if target_name == "cold-dispatcher" else "actual full and light runtime guards",
+                "pre_use_proof": "literal caller gate and primitive-only dispatcher source ordering",
+                "metadata_restored_before_followup": True})
+    # V8_REAL_CALLER_CONTROLS_END
+
+    # Loading the same file creates independent native module state. Closing the
+    # first owner must not disarm the second owner or reuse its admission state.
+    other = load_source("_h25_cache_other_probe_module_v7")
+    other_prepared = invoke("prepare_cache_contract", other, extension_path, expected_extension_sha256,
+        bootstrap_root=bootstrap_root, bootstrap_capability=bootstrap_capability, bootstrap_api=bootstrap_api,
+        factory_environment=factory_environment)
+    other.Checks.residual_ok = other_prepared["residual_ok"]
+    other.Checks.label_ok = other_prepared["label_ok"]
+    other_binding, other_row_helper, other_row_guard, other_rank_rows = bind_prepared(other, other_prepared)
+    other_checks = _checks(other)
+    other_small, other_big = other.Label([1]), other.Label([1])
+    _need(other_checks.residual_ok(other_small, other_big) is True,
+          "Independent native module failed initial request")
+    binding["runtime_guard"].check()
+    receipt = owner.teardown()
+    _need(receipt["current_authority_entries"] == 0 and not owner.states and receipt["probe_closed"] is True,
+          "Cache/native teardown retained active state")
+    closed = _capture(binding["runtime_guard"].check)
+    _need(closed[:2] == ("error", "RuntimeError"), "Closed native binding remained admitted")
+    closed_backend = _capture(binding["runtime_guard"].check_backend)
+    _need(closed_backend[:2] == ("error", "RuntimeError"),
+          "Closed cache owner remained usable through backend guard")
+    mark_v6("closed-owner-backend-rejection", {"full": closed, "backend": closed_backend})
+    other_binding["runtime_guard"].check()
+    _need(other_checks.residual_ok(other_small, other_big) is True,
+          "Closing one owner affected another native module")
+    other_receipt = other_prepared["owner"].teardown()
+    _need(other_receipt["probe_closed"] is True and other_receipt["teardowns"] == 1,
+          "Second native owner cleanup incomplete")
+    mark_native("isolated-module-close", {"first_closed_rejection": closed,
+                                          "second_owner_unchanged": True})
+
+    # Two fresh provider/native owners exercise terminal failures without a
+    # scientific request or fabricated native counters. They deliberately alter
+    # a public native binding, keeping captured cleanup entries untouched.
+    teardown_failures = []
+    for failure_kind in ("validation", "attempted-native-accounting"):
+        failing = load_source("_h25_cache_teardown_" + failure_kind.replace("-", "_") + "_v7")
+        failing_prepared = invoke("prepare_cache_contract", failing, extension_path, expected_extension_sha256,
+            bootstrap_root=bootstrap_root, bootstrap_capability=bootstrap_capability, bootstrap_api=bootstrap_api,
+        factory_environment=factory_environment)
+        failing_owner = failing_prepared["owner"]
+        provider = failing_owner.probe_provider
+        probe_binding = failing_owner.probe_binding
+        registered = provider._OWNERS[id(probe_binding)]
+        native_module, native_entries = registered[1], registered[2]
+        original_check = native_module.check
+        native_before_failure = failing_owner.probe_counters()
+        native_module.check = bad
+        if failure_kind == "attempted-native-accounting":
+            try:
+                attempted = _capture(lambda: failing_owner._probe_safe({}, ((1,), (1,))))
+            finally:
+                native_module.check = original_check
+            _need(attempted[:2] == ("error", "RuntimeError") and
+                  failing_owner.receipt["probe_entry_calls"] == 1 and
+                  failing_owner.probe_counters()["calls"] == native_before_failure["calls"] == 0,
+                  "Failed actual provider inspection did not preserve attempted/native mismatch")
+        caught = None
+        try:
+            failing_owner.teardown()
+        except Exception as error:
+            caught = error
+        finally:
+            native_module.check = original_check
+        stop = failing_owner.teardown_stop
+        _need(caught is not None and caught is failing_owner.teardown_primary_error and
+              _TYPE(caught) is RuntimeError and _TYPE(stop) is dict and stop["status"] == "STOP",
+              "Teardown replaced or hid its original primary failure")
+        _need(failing_owner.probe_closed is True and not failing_owner.states and
+              id(probe_binding) not in provider._OWNERS and
+              failing_owner.receipt["teardowns"] == 1 and stop["close_attempted"] is True and
+              stop["owner_terminal"] is True,
+              "Rejected teardown skipped disarm/registry release/terminal state")
+        disarmed = _capture(native_entries[1])
+        _need(disarmed == ("error", "RuntimeError", "Probe is not authenticated and active"),
+              "Captured actual native check did not observe disarmed module")
+        if failure_kind == "validation":
+            _need(stop["stage"] == "validation" and stop["native_counters_available"] is False and
+                  stop["native_probe"] is None and stop["observed_probe_calls"] is None and
+                  stop["attempted_minus_native"] is None and stop["expected_probe_calls"] == 0 and
+                  caught.__cause__ is failing_owner.teardown_close_error and
+                  failing_owner.teardown_close_error is not None,
+                  "Validation/close failures lost primary identity or fabricated native counts")
+        else:
+            _need(stop["stage"] == "accounting" and stop["native_counters_available"] is True and
+                  stop["expected_probe_calls"] == 1 and stop["observed_probe_calls"] == 0 and
+                  stop["attempted_minus_native"] == 1 and stop["close_error"] is None,
+                  "Attempted/native mismatch was repaired or hidden during teardown")
+        teardown_failures.append(stop)
+        mark_native("teardown-" + failure_kind + "-rejection",
+                    {"stop": stop, "disarmed": disarmed, "primary_identity_preserved": True},
+                    revision="v5")
+    _need(native_cases == ["empty-first-result-authority", "offhash-foreign-key", "offhash-value-resize",
+                           "eligible-native-exit-unsupported",
+                           "provider-function-binding", "binding-inspect-code", "binding-inspect-defaults",
+                           "isolated-module-close", "teardown-validation-rejection",
+                           "teardown-attempted-native-accounting-rejection"],
+          "Exact v5 consumer control census changed")
+    _need(len(v7_cases) == 24 and transcript_record_count - len(v8_cases) == V7_DECLARED_TRANSCRIPT_RECORDS,
+          "V7 observed transcript census differs from the separately declared source census")
+    _need(len(v8_cases) == 12 and transcript_record_count == V8_DECLARED_TRANSCRIPT_RECORDS,
+          "V8 actual caller-control transcript census differs")
+    return {"status": "PASS", "counts": counts, "transcript_sha256": transcript.hexdigest(),
+            "transcript_record_count": transcript_record_count,
+            "native_consumer_cases": native_cases, "native_consumer_case_count": 10,
+            "v6_consumer_cases": v6_cases, "v6_consumer_case_count": len(v6_cases),
+            "v7_consumer_cases": v7_cases, "v7_consumer_case_count": len(v7_cases),
+            "v7_prebind_native_owner": prebind_receipt,
+            "v8_caller_cases": v8_cases, "v8_caller_case_count": len(v8_cases),
+            "backend_binding_derivation": owner.binding_derivation,
+            "expected_teardown_stop_evidence": teardown_failures,
+            "second_native_owner": other_receipt,
+            "candidate_cache": receipt, "candidate_native": dict(binding["counters"]),
+            "reference": "separate unchanged original module; fresh exact dictionaries except independent forced-miss old-value-finalizer fixture",
+            "no_shared_labels_snapshots_or_answers": True,
+            "full_caller_and_normal_O_gates_required_separately": True,
+            "native_profile_layout_controls_and_v3_reference_required_separately": True,
+            "full_caller_cost_feasibility_and_exact_coverage_gate_closed": True}

@@ -1,0 +1,433 @@
+"""Fixed role-entry source transport; SOURCE ONLY, no command grant.
+
+The external exact fresh-interpreter launcher/OS/source-custody selection is
+this component's trust root. This is the original explicitly selected operating
+TCB, NOT a universal loaded-image proof. Immutable bootstrap source reads take
+place before the future global EX and must be admitted as startup work. Registry,
+head, opening-corpus and historical marker reads belong to the later real owner.
+Only strict permission/evidence DATA enters the two APIs; no caller module,
+callable, code path, target or source image is loaded. Final interpreter DATA
+transport/CLI/source-profile/current operational authority remain unconfigured.
+Literal selection loads complete C2 into its OWN actual private globals,
+plus current F3/A3 and fixed publisher/consumer modules. Publisher alone opens
+its owner; fresh controller entry opens its own NEW owner and calls actual C2.
+Scoped source acceptance is not runtime/profile/adoption or command permission.
+"""
+import builtins
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import stat
+import sys
+from types import ModuleType, FunctionType
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/h25-data-handling-20261028'
+ENV = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8',
+       'LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+INITIAL_PATH = ('/usr/lib/python312.zip','/usr/lib/python3.12','/usr/lib/python3.12/lib-dynload')
+FIRST, SECONDARY, IO_UNKNOWN = [None], [None] * 32, [False]
+SLOTS = [[None, 'FREE', None, False] for unused in range(32)]
+RETAINED = []
+USED = [False]
+CONTROLLER = R / 'areas/fresh-controller-composition-v2/composed_controller.py'
+CONTROLLER_PIN = {'bytes':81343,'sha256':'c88736fce81d737ae13ac1bf47500dc9d72920bd4910efe1b49074797d6e3231'}
+FUNDING = R / 'areas/fresh-round-provenance-bridge-v1/funding_current.py'
+ACTIVE = R / 'areas/fresh-round-provenance-bridge-v1/active_current.py'
+# Exact frozen source selection; source acceptance and operational admission
+# remain separate, and this component creates no command permission.
+SELECTED = {'funding': {'bytes': 61942, 'sha256': '6d4489fa1b2602f0b5e9c93deefb988aa597db9c73dc686d1538de32e4b05b4a'}, 'active': {'bytes': 49454, 'sha256': '32959cae22ab82df40d3ad9bf1014c752121d2f88a258bb36bb0fe221f7e6124'}}
+
+
+class AdapterStop(RuntimeError):
+    pass
+
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+    elif error is not FIRST[0]:
+        for index in range(32):
+            if SECONDARY[index] is error:
+                break
+            if SECONDARY[index] is None:
+                SECONDARY[index] = error
+                break
+        else:
+            IO_UNKNOWN[0] = True
+    return FIRST[0]
+
+
+def need(value, message):
+    if not value:
+        raise AdapterStop(message)
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_uid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def acquire(path, flags=0, directory=False):
+    need(not IO_UNKNOWN[0], 'unknown IO blocks new acquisition')
+    slot = next(s for s in SLOTS if s[1] in ('FREE','CLOSED'))
+    slot[:] = [None, 'PENDING', str(path), directory]
+    try:
+        slot[0] = os.scandir(path) if directory else os.open(path, flags | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        slot[1] = 'OWNED'
+        return slot
+    except BaseException as error:
+        IO_UNKNOWN[0] = True
+        remember(error)
+        raise
+
+
+def close(slot):
+    need(slot[1] == 'OWNED', 'known owned close only; no retry')
+    slot[1] = 'CLOSING'
+    try:
+        slot[0].close() if slot[3] else os.close(slot[0])
+    except BaseException as error:
+        slot[1] = 'CLOSE_UNKNOWN'
+        IO_UNKNOWN[0] = True
+        remember(error)
+        raise
+    slot[1] = 'CLOSED'
+
+
+def names(path, cap):
+    slot, values = acquire(path, directory=True), []
+    try:
+        for item in slot[0]:
+            need(len(values) < cap, 'directory member cap')
+            values.append(item.name)
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'directory close unknown')
+    return values
+
+
+def read_fd(slot, cap, proc=False):
+    before = os.fstat(slot[0])
+    if not proc:
+        need(stat.S_ISREG(before.st_mode) and before.st_uid in (0,os.getuid()) and
+             before.st_nlink == 1 and before.st_size <= cap, 'stable regular owner/link/size')
+        need(identity(Path(slot[2]).lstat()) == identity(before), 'descriptor/path differs')
+        os.lseek(slot[0], 0, os.SEEK_SET)
+    chunks, count = [], 0
+    while True:
+        block = os.read(slot[0], min(65536,cap + 1 - count))
+        if not block:
+            break
+        chunks.append(block)
+        count += len(block)
+        need(count <= cap, 'read cap')
+    raw = b''.join(chunks)
+    if not proc:
+        need(count == before.st_size and identity(os.fstat(slot[0])) == identity(before) ==
+             identity(Path(slot[2]).lstat()), 'stable descriptor/path changed')
+    return raw
+
+
+def stable_source(path, expected):
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical source path')
+    before = path.lstat()
+    need(stat.S_IMODE(before.st_mode) == 0o444, 'frozen source mode')
+    slot = acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        need(identity(before) == identity(os.fstat(slot[0])), 'source opened identity')
+        raw = read_fd(slot, expected['bytes'])
+        need(len(raw) == expected['bytes'] and hashlib.sha256(raw).hexdigest() == expected['sha256'], 'source pin')
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'source close unknown')
+    return raw
+
+
+def metadata(path, cap=8192):
+    slot = acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        raw = read_fd(slot, cap, proc=True)
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'metadata close unknown')
+    return raw
+
+
+def process(pid):
+    raw = metadata('/proc/' + str(pid) + '/stat')
+    end = raw.rfind(b') ')
+    need(end >= 0 and raw.split(b' ',1)[0] == str(pid).encode('ascii'), 'process stat syntax/pid')
+    fields = raw[end + 2:].split()
+    return {'pid':pid,'ppid':int(fields[1]),'pgid':int(fields[2]),'sid':int(fields[3]),
+            'start_ticks':int(fields[19]),'rss_bytes':int(fields[21])*os.sysconf('SC_PAGE_SIZE')}
+
+
+def clean_launch():
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3,12) and sys.base_prefix == '/usr', 'selected interpreter')
+    need(sys.flags.optimize == 0 and sys.flags.no_site == sys.flags.no_user_site ==
+         sys.flags.dont_write_bytecode == 1 and sys.flags.safe_path and
+         sys.flags.ignore_environment == sys.flags.isolated == sys.flags.hash_randomization == 0 and
+         tuple(sys.path) == INITIAL_PATH and dict(os.environ) == ENV and os.getcwd() == str(W), 'clean launch')
+    need(len(names('/proc/self/task',2)) == 1 and signal.getitimer(signal.ITIMER_REAL) == (0.0,0.0) and
+         signal.getsignal(signal.SIGALRM) == signal.SIG_DFL and
+         signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL, 'single thread/default signal owners')
+    status = dict(line.split(':',1) for line in metadata('/proc/self/status',65536).decode('ascii').splitlines() if ':' in line)
+    need(int(status['Umask'].strip(),8) == 0o077, 'umask0077')
+    for fd in (1,2):
+        st = os.fstat(fd)
+        need(stat.S_ISREG(st.st_mode) and stat.S_IMODE(st.st_mode) == 0o600 and
+             st.st_uid == os.getuid() and st.st_nlink == 1, 'captured0600 current-owner streams')
+
+
+FIXED_LEAVES = {'publisher': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-capture-publisher-composition-v2/publisher.py', 'bytes': 38233, 'sha256': 'b4a28c6b021cf14caca90b3f19f6229d08624b134cd8947121df22c9be7ce99e', 'mode': 292}, 'supervisor': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-round-consumer-integration-v2/fresh_supervisor.py', 'bytes': 44563, 'sha256': '7b3304eaf4884e3029df5095e2b0950c18d1544ad21431a07c033b85e53bd4f7', 'mode': 292}, 'queue': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-controller-composition-v2/composed_queue.py', 'bytes': 11034, 'sha256': 'b817d15f9f3ee610b531f2b0967fdc31bc8ae86b68d73cd4c79c1c8ec0ccb2ac', 'mode': 292}, 'wrapper': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-controller-composition-v2/composed_wrapper.py', 'bytes': 5505, 'sha256': '4294b874f4495e19a743650039121efc93f6ad10f4a335bb98ceb9c52162c866', 'mode': 292}, 'envelope': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/integration/source_packet_envelope_v2.py', 'bytes': 6677, 'sha256': 'afb4f72c36bad015fdf23221a00a4730387a5e8df4999b14a4d1614ee135c84a', 'mode': 292}}
+FIXED_EVIDENCE_SOURCES = {'capture': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-capture-publisher-composition-v2/capture.py', 'bytes': 31989, 'sha256': '898ca082568aa6feb509b908d06689e5c7816b8701181c18bf2e39a2646481b8', 'mode': 292}, 'fee': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-capture-publisher-composition-v2/retained_fee.py', 'bytes': 13600, 'sha256': '49ce7d5b68dba4702ed0b18ed035793d422261238879f3d75e4cb5f68a0139ef', 'mode': 292}, 'outer': {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-capture-publisher-composition-v2/outer_composition_meter.py', 'bytes': 26946, 'sha256': '625bfe93d00d86779bf9191949c7856bdf2c73d0a3d1124975cf882553fca4da', 'mode': 292}}
+HANDOFF_PATH = R / 'control/fresh-metered-round-v1/_handoff-intents/IndependentPrefixDATAComposedV1.json'
+PROSPECTIVE_BOOTSTRAPS = {
+    'capture_bootstrap':R/'control/IndependentPrefixDATAComposedV1-CAPTURE-ENTRY.py',
+    'publisher_bootstrap':R/'control/IndependentPrefixDATAComposedV1-PUBLISHER-ENTRY.py',
+    'controller_bootstrap':R/'control/IndependentPrefixDATAComposedV1-CONTROLLER-ENTRY.py'}
+# These three fixed interpreter DATA-transport sources are NOT authored here.
+# Their paths are constraints, never fabricated source pins or authority.
+ROLE_STATE = {'phase':'NEW','ctx':None,'C_entered':False,'release_entered':False,'native_result':None}
+
+def _load_fixed_sources():
+    """Actual source-private modules only; this function NEVER opens an owner.
+
+    Reuses the accepted startup prefix; the old bind_api/factory/acquire tail
+    is deliberately absent. Publisher.run owns its own single acquisition.
+    """
+    need(USED[0] is False, 'one startup attempt, including failed source load')
+    USED[0] = True  # Before fallible startup: no replay after partial module load.
+    need(SELECTED is not None, 'final reviewed current source bindings unconfigured')
+    clean_launch()
+    need(FIRST[0] is None and IO_UNKNOWN[0] is False and
+         all(s[1] in ('FREE', 'CLOSED') for s in SLOTS), 'known closed startup transport')
+    name = 'h25_composed_fixed_private_controller_v1'
+    need(name not in sys.modules, 'private controller module name already used')
+    raw = stable_source(CONTROLLER, CONTROLLER_PIN)
+    controller = ModuleType(name)
+    controller.__dict__.update(__file__=str(CONTROLLER), __name__=name,
+        __package__=None, __spec__=None, __builtins__=builtins)
+    sys.modules[name] = controller
+    RETAINED.append((controller, raw))  # Retain even if compile/top-level load fails.
+    exec(compile(raw, str(CONTROLLER), 'exec', dont_inherit=True), controller.__dict__)
+    # This is actual source-private identity, not ModuleType/attribute imitation.
+    # Original top-level creates controller.IO but never calls old run_owned/main.
+    C = controller
+    need(C.FIRST[0] is None and C.IO_UNKNOWN[0] is False and
+         C.SOFT_DEADLINE[0] is None and C.ACTIVE_CASE[0] is None and
+         not C.RETAINED_MODULES and
+         all(s[1] in ('FREE', 'CLOSED') for s in C.IO.slots), 'pristine original controller state')
+    funding, fp = C.load_source(FUNDING, SELECTED['funding'],
+                               'h25_composed_fixed_private_funding_v1')
+    active, ap = C.load_source(ACTIVE, SELECTED['active'],
+                              'h25_composed_fixed_private_active_v1')
+    RETAINED.append((funding, active, fp, ap))
+    launch = C.clean_launch()  # Original task/signal/umask/stdio/process contract.
+    need(C.FIRST[0] is None and C.IO_UNKNOWN[0] is False and
+         all(s[1] in ('FREE', 'CLOSED') for s in C.IO.slots), 'known closed source loading before owner bind')
+    modules = {'C':C,'F':funding,'A':active}
+    for key in ('publisher','supervisor','queue','wrapper','envelope'):
+        row = FIXED_LEAVES[key]
+        module, observed = C.load_source(Path(row['path']),row,'h25_composed_fixed_private_'+key+'_v1')
+        modules[key] = module
+        RETAINED.append((module,observed))
+    expected = {'C':('run_composed','actual_context_ports','clean_launch','load_source'),
+        'F':('plain','pin','metadata_decode','snapshot_round','assess_round'),
+        'A':('bind_api',),'publisher':('bind_sources','composition_binding','run','main','_failure_diagnostic_entry'),
+        'supervisor':('bind_active_run_root',),'queue':('main','validate'),
+        'wrapper':('source_packet',),'envelope':('snapshot',)}
+    for key,names_expected in expected.items():
+        module = modules[key]
+        need(type(module) is ModuleType,'actual internally loaded module')
+        for name_expected in names_expected:
+            fn = module.__dict__.get(name_expected)
+            need(type(fn) is FunctionType and fn.__globals__ is module.__dict__ and
+                 fn.__code__.co_filename == module.__file__,'actual fixed module/function identity')
+    need(C.FIRST[0] is None and C.IO_UNKNOWN[0] is False and
+         all(s[1] in ('FREE','CLOSED') for s in C.IO.slots),'known closed fixed source load')
+    RETAINED.append((modules,launch))
+    return modules
+
+
+def _fixed_contract(modules,contract,role):
+    """No source selector, module object, callable or native owner in DATA."""
+    C,F,A,P = (modules[key] for key in ('C','F','A','publisher'))
+    F.plain(contract)
+    P.bind_sources(C,F,A,contract)  # Strict deep DATA copy; opens NO lease.
+    C0,F0,A0,cfg = P.composition_binding(role)
+    need(C0 is C and F0 is F and A0 is A,'same actual source-private modules')
+    expected = {'C':dict(CONTROLLER_PIN,path=str(CONTROLLER),mode=0o444),
+        'F':dict(SELECTED['funding'],path=str(FUNDING),mode=0o444),
+        'A':dict(SELECTED['active'],path=str(ACTIVE),mode=0o444),
+        'publisher':FIXED_LEAVES['publisher'],**FIXED_EVIDENCE_SOURCES}
+    for key,row in expected.items():
+        actual = cfg['source_pins'][key]
+        need(type(actual) is dict and actual == row,'literal current source selection; no old alias or easier actor')
+    for key,path in PROSPECTIVE_BOOTSTRAPS.items():
+        need(cfg['source_pins'][key]['path'] == str(path),'fixed future bootstrap path, no arbitrary target')
+    need(cfg['approved_opening']['funding_source_sha256'] == SELECTED['funding']['sha256'],
+         'actual F3 opening selection, not historical opening balance')
+    return cfg
+
+
+def _module_first(module):
+    # Actual loaded-module error object, not a serialized exception proxy.
+    errors = module.__dict__.get('FIRST')
+    if type(errors) is list and len(errors) > 0 and errors[0] is not None:
+        remember(errors[0])
+
+
+def publisher_entry(contract):
+    """Fixed source APIs only; publisher.run owns the ONLY publisher acquire.
+
+    Actual fixed interpreter/permissions-DATA delivery/CLI/grant/profile is an
+    external unconfigured seam. None or an invalid template cannot authorize.
+    """
+    modules = None
+    ROLE_STATE['phase'] = 'PUBLISHER_SOURCE_LOADING'
+    try:
+        modules = _load_fixed_sources()
+        cfg = _fixed_contract(modules,contract,'PUBLISHER')
+        P = modules['publisher']
+        ROLE_STATE['phase'] = 'PUBLISHER_RUN_ENTERED'
+        # Do not call old open_fixed_publisher, A.bind_api or a factory here.
+        # Accepted P.run binds/creates/owns/releases its genuine private ctx.
+        need(type(sys.argv) is list and len(sys.argv) == 3 and all(type(x) is str for x in sys.argv) and
+             sys.argv[1] == '--source-sha256' and sys.argv[2] == FIXED_LEAVES['publisher']['sha256'],
+             'genuine publisher caller must satisfy unchanged original three-argument CLI')
+        need(sys.argv == cfg['publisher_argv'][5:],'actual publisher argv differs from selected fixed caller')
+        result = P._failure_diagnostic_entry()  # Unchanged actual argv; main -> run, one acquire.
+        _module_first(modules['C']); _module_first(P)
+        need(type(result) is int and result == 78,'publisher exec unexpectedly returned success')
+        ROLE_STATE['native_result'] = result
+        ROLE_STATE['phase'] = 'PUBLISHER_RETURNED_STOP_NO_RETRY'
+        return result
+    except BaseException as error:
+        if modules is not None:
+            _module_first(modules['C']); _module_first(modules['publisher'])
+        remember(error)
+        ROLE_STATE['phase'] = 'PUBLISHER_FAILED_NO_RETRY'
+        return 78
+    # No release in this entry: only P owns that acquisition/close attempt.
+
+
+def _handoff_metadata(F,cfg,expected):
+    """Fixed metadata-only pre-EX observation; registry/head reads wait for EX.
+
+    Expected pin/head are evidence from the separately admitted fixed input
+    transport. Hash/JSON never supplies native ownership or payload authority.
+    """
+    F.pin(expected)
+    need(expected['path'] == str(HANDOFF_PATH) and expected['mode'] == 0o444 and
+         0 < expected['bytes'] <= 131072,'fixed bounded handoff evidence')
+    before = HANDOFF_PATH.lstat()
+    need(before.st_uid == os.getuid(),'current-owner handoff metadata')
+    raw = stable_source(HANDOFF_PATH,expected)
+    intent = F.decode(raw)
+    F.exact(intent,('schema','source_role','destination_role','request','start','start_pin',
+                    'head_pin','baseline_registry_pin','protocol_anchor_ns','native_capability_transferred'))
+    need(intent['schema'] == 'fresh-active-handoff-intent-v1' and intent['source_role'] == 'PUBLISHER' and
+         intent['destination_role'] == 'CONTROLLER' and intent['native_capability_transferred'] is False,
+         'handoff DATA role/transfer boundary')
+    need(intent['head_pin'] == cfg['expected_head_pin'] and intent['request'] == cfg['request'] and
+         intent['start']['pre_entry_provenance'] == cfg['manual_entry']['provenance'],
+         'same exact current head/request/original manual operation evidence')
+    return intent
+
+
+def controller_entry(contract,approved_handoff_pin):
+    """Fresh process/new EX, native context adopted once and passed SAME to C2.
+
+    The evidence port must supply exact postpublication expected HEAD/handoff
+    pin. It cannot use the publisher's pre-begin HEAD or reconstruct an owner.
+    """
+    modules,ctx,ports = None,None,None
+    c_entered = False
+    ROLE_STATE['phase'] = 'CONTROLLER_SOURCE_LOADING'
+    try:
+        modules = _load_fixed_sources()
+        cfg = _fixed_contract(modules,contract,'CONTROLLER')
+        C,F,A = (modules[key] for key in ('C','F','A'))
+        need(type(sys.argv) is list and all(type(x) is str for x in sys.argv) and
+             sys.argv == cfg['controller_argv'][5:],'actual controller argv differs from selected fixed caller')
+        _handoff_metadata(F,cfg,approved_handoff_pin)
+        factory = A.bind_api(C,F,role='CONTROLLER',expected_head_pin=cfg['expected_head_pin'],
+            approved_handoff_pin=approved_handoff_pin,approved_opening=cfg['approved_opening'],
+            approved_manual_entry=cfg['manual_entry'])
+        RETAINED.append(factory)  # BEFORE fallible acquire; unreturned ctx is not proof of no FD.
+        ROLE_STATE['phase'] = 'CONTROLLER_ACQUIRE_ENTERED'
+        ctx = factory()  # ONE genuine NEW GlobalLease/EX after publisher known release/exec.
+        ROLE_STATE['ctx'] = ctx; RETAINED.append(ctx)
+        ports = C.actual_context_ports(A,ctx)
+        ROLE_STATE['phase'] = 'CONTROLLER_HELD_BEFORE_ADOPTION'
+        ports('adopt_handoff')  # Independent real IO/EX/head/manual/current-opening revalidation.
+        binding = ports('current_binding')
+        need(binding['request'] == cfg['request'],'same actual pending operation')
+        start_pin = binding['start']['pre_entry_provenance']['original_start_pin']
+        start_row,start_raw = C.IO.read(Path(start_pin['path']),65536,start_pin['mode'],start_pin,True)
+        start = F.metadata_decode(start_raw)
+        need(start['schema'] == 'fresh-owner-meter-incomplete-v1' and
+             type(start['start_monotonic_ns']) is int and start['start_monotonic_ns'] >= 0,
+             'genuine original enclosing START, not local ACTIVE anchor')
+        args = (C,A,modules['supervisor'],modules['wrapper'],modules['queue'],modules['envelope'],
+                ctx,start['start_monotonic_ns'],
+                {'path':str(R/'control/IndependentPrefixDATAComposedV1-PLAN.json'),
+                 'bytes':cfg['plan_pin']['bytes'],'sha256':cfg['plan_pin']['sha256']},
+                {'path':str(R/'control/IndependentPrefixDATAComposedV1-ADMISSION.json'),
+                 'bytes':cfg['admission_pin']['bytes'],'sha256':cfg['admission_pin']['sha256']})
+        run = C.__dict__['run_composed']
+        need(type(run) is FunctionType and run.__globals__ is C.__dict__,'same actual complete C2 body')
+        ROLE_STATE['phase'] = 'C2_ENTERED_RELEASE_AUTHORITY'; ROLE_STATE['C_entered'] = True
+        c_entered = True
+        result = run(*args)  # C2 holds actual ctx; C2 alone attempts release after entry.
+        _module_first(C)
+        need(type(result) is int and result in (0,1),'genuine C2 return code required')
+        ROLE_STATE['native_result'] = result
+        ROLE_STATE['phase'] = 'C2_RETURNED_NOT_WHOLE_COST_SETTLED'
+        return result
+    except BaseException as error:
+        if modules is not None:
+            _module_first(modules['C'])
+        remember(error)
+        ROLE_STATE['phase'] = 'CONTROLLER_FAILED_NO_RETRY'
+        return 78
+    finally:
+        if ctx is not None and not c_entered:
+            if ports is not None:
+                ROLE_STATE['release_entered'] = True
+                try:
+                    ports('release')  # Actual private A3 one-close path, no numeric FD replay.
+                except BaseException as secondary:
+                    remember(secondary)
+            else:
+                ROLE_STATE['phase'] = 'OWNED_CONTEXT_PORT_UNKNOWN_EXTERNAL_TEARDOWN'
+        # After C2 entry never release again: C2 may already have closed it.
+        # Actual ctx/factory/errors remain rooted if cleanup or return is unknown.
+
+
+if __name__ == '__main__':
+    # No interpreter DATA transport/CLI is implemented or granted by this API component.
+    raise SystemExit(78)

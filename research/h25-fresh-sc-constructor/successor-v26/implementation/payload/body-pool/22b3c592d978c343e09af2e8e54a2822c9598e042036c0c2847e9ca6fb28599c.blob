@@ -1,0 +1,537 @@
+"""Parent-queued independent uncached-reference controls for cache_contract_v3.
+
+No work runs on import. References retain unchanged Checks methods, receive
+separate labels and use a fresh exact verdict dict for ordinary requests. The
+stored-value-finalizer control uses a separate reference-only dict whose literal
+membership probe reports a miss, forcing unchanged original arithmetic while
+retaining the old value for replacement/finalizer semantics. Its followups again
+use fresh exact dicts. No source/candidate mutable answers are shared.
+
+Source-derived v3 census: cases=30, differential requests=74, binding rejections=12,
+tamper rejections=1, unsupported rejections=2, source admission rejections=2;
+91 ordered transcript records. These are expectations, never execution evidence.
+"""
+from __future__ import annotations
+
+import builtins
+import dis
+import sys
+import hashlib
+import json
+from types import SimpleNamespace
+
+_TYPE, _STR, _BOOL = type, str, bool
+_ERROR = RuntimeError
+
+
+def _need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def _capture(action):
+    try:
+        result = action()
+    except Exception as error:
+        return ("error", _TYPE(error).__name__, _STR(error))
+    return ("return", _TYPE(result).__name__, result)
+
+
+def _checks(module, height=4):
+    return module.Checks(SimpleNamespace(h=height))
+
+
+def run_controls(backend, native, adapter):
+    reference = backend.load_source("_h25_cache_reference_v3")
+    candidate = backend.load_source("_h25_cache_candidate_v3")
+    backend.guard_module(reference)
+    prepared = adapter.prepare_cache_contract(candidate)
+    candidate.Checks.residual_ok = prepared["residual_ok"]
+    candidate.Checks.label_ok = prepared["label_ok"]
+    original_guard = backend.RuntimeGuard
+    try:
+        backend.RuntimeGuard = adapter.compose_runtime_guard(original_guard, prepared)
+        binding = backend.bind(candidate, native)
+    finally:
+        backend.RuntimeGuard = original_guard
+    owner = prepared["owner"]
+    transcript = hashlib.sha256()
+    counts = {"requests": 0, "cases": 0, "binding_rejections": 0,
+              "tamper_rejections": 0, "unsupported_rejections": 0,
+              "source_admission_rejections": 0}
+
+    def record(tag, value):
+        transcript.update(json.dumps((tag, value), sort_keys=True, separators=(",", ":")).encode("ascii") + b"\n")
+
+    def case(tag, make, edits=()):
+        # make runs twice, and may create per-instance callbacks and event logs.
+        ref_log, new_log = [], []
+        ref_checks, ref_method, ref_args = make(reference, ref_log)
+        new_checks, new_method, new_args = make(candidate, new_log)
+        results = []
+        for index, edit in enumerate((None,) + tuple(edits)):
+            if edit is not None:
+                edit(reference, ref_checks, ref_args, ref_log)
+                edit(candidate, new_checks, new_args, new_log)
+            ref_log.clear(); new_log.clear()
+            ref_checks.verdicts = {}  # literal unchanged original, uncached
+            expected = _capture(lambda: getattr(ref_checks, ref_method)(*ref_args))
+            actual = _capture(lambda: getattr(new_checks, new_method)(*new_args))
+            _need(actual == expected, tag + " exact return/error differs at request " + str(index))
+            _need(new_log == ref_log, tag + " callback order differs at request " + str(index))
+            record((tag, index), (actual, new_log))
+            counts["requests"] += 1
+            results.append(actual)
+        counts["cases"] += 1
+        return results, new_checks, new_args
+
+    def residual(module, log):
+        return _checks(module), "residual_ok", [module.Label([1]), module.Label([1])]
+
+    def label(module, log):
+        return _checks(module), "label_ok", [module.Label([1])]
+
+    def unchanged(module, checks, args, log):
+        pass
+
+    def stale_basis(module, checks, args, log):
+        args[0].basis = {2: 2}
+
+    outcomes, _, _ = case("stale-basis-smallest", residual, (stale_basis, unchanged))
+    _need(outcomes == [("return", "bool", True), ("return", "bool", False), ("return", "bool", False)],
+          "Discriminating stale-basis outcome changed")
+
+    def in_place(module, checks, args, log):
+        args[0].basis.clear(); args[0].basis[2] = 2
+
+    case("in-place-basis", residual, (in_place, unchanged))
+
+    def dim(module, checks, args, log):
+        args[0].dim = 99
+
+    case("stale-dimension", residual, (dim, unchanged))
+
+    def key(module, checks, args, log):
+        args[0].key = (2,)
+
+    case("stale-key", residual, (key, unchanged))
+
+    def consistent(module, checks, args, log):
+        args[0].basis, args[0].key, args[0].dim = {2: 2}, (2,), 1
+
+    def restore(module, checks, args, log):
+        args[0].basis, args[0].key, args[0].dim = {1: 1}, (1,), 1
+
+    case("canonical-change-and-restoration", residual, (consistent, restore, unchanged))
+
+    def alias(module, log):
+        checks, method, args = residual(module, log)
+        args[1].basis = args[0].basis
+        return checks, method, args
+
+    case("basis-alias", alias, (in_place, unchanged))
+
+    def malformed_pivot(module, checks, args, log):
+        args[1].basis = {2: 1}
+
+    case("pivot-key-collision", residual, (malformed_pivot, unchanged))
+
+    def reordered(module, log):
+        return _checks(module), "residual_ok", [module.Label([1]), module.Label([1, 2])]
+
+    def reverse(module, checks, args, log):
+        args[1].basis = dict(reversed(tuple(args[1].basis.items())))
+
+    hits = owner.receipt["authorized_hits"]
+    native_before = dict(binding["counters"])
+    case("canonical-insertion-order", reordered, (reverse, unchanged))
+    _need(owner.receipt["authorized_hits"] - hits == 2, "Equivalent canonical bases lost original cache hits")
+    _need(binding["counters"]["complement_native"] - native_before["complement_native"] == 1,
+          "Canonical insertion-order control repeated native arithmetic")
+
+    def empty(module, log):
+        return _checks(module), "residual_ok", [module.Label([]), module.Label([])]
+
+    case("empty-bases", empty, (unchanged,))
+
+    def wide(module, log):
+        return _checks(module), "residual_ok", [module.Label([1 << 100]), module.Label([1 << 100])]
+
+    before = binding["counters"]["complement_fallback"]
+    case("wide-int-native-fallback", wide, (unchanged,))
+    _need(binding["counters"]["complement_fallback"] - before == 1,
+          "Wide exact integers did not retain the one literal native fallback")
+
+    def everything_stale(module, checks, args, log):
+        checks.everything.basis = {1: 1, 2: 6}
+
+    outcomes, _, _ = case("everything-stale", label, (everything_stale, unchanged))
+    _need(outcomes[0] == ("return", "bool", True) and outcomes[1:] == [("return", "bool", False)] * 2,
+          "Changed everything did not invalidate the label verdict")
+
+    def everything_replace(module, checks, args, log):
+        checks.everything = module.Label([1, 6])
+
+    case("everything-replaced", label, (everything_replace, unchanged))
+
+    def height(module, checks, args, log):
+        checks.h += 1
+
+    case("checks-height", residual, (height, unchanged))
+
+    def circuit(module, checks, args, log):
+        checks.c = SimpleNamespace(h=checks.h)
+
+    case("checks-circuit-identity", residual, (circuit, unchanged))
+
+    def remove_public(module, checks, args, log):
+        checks.verdicts.clear()
+
+    def replace_public(module, checks, args, log):
+        checks.verdicts = {(args[0].key, args[1].key): False}
+
+    case("public-delete", residual, (remove_public, unchanged))
+    case("public-rebind-injection", residual, (replace_public, unchanged))
+
+    def cold_injection(module, log):
+        checks, method, args = residual(module, log)
+        args[0] = module.Label([2])
+        checks.verdicts[(args[0].key, args[1].key)] = True
+        return checks, method, args
+
+    outcomes, _, _ = case("cold-public-injection", cold_injection)
+    _need(outcomes == [("return", "bool", False)], "Cold public injected PASS escaped")
+
+    def callback_basis(module, log):
+        class Basis(dict):
+            def values(self):
+                log.append("basis.values")
+                return super().values()
+            def items(self):
+                log.append("basis.items")
+                return super().items()
+        checks, method, args = residual(module, log)
+        args[0].basis = Basis(args[0].basis)
+        return checks, method, args
+
+    case("callback-basis", callback_basis, (unchanged,))
+
+    def callback_key(module, log):
+        class Key(tuple):
+            def __hash__(self):
+                log.append("key.hash")
+                return tuple.__hash__(self)
+        checks, method, args = residual(module, log)
+        args[0].key = Key(args[0].key)
+        return checks, method, args
+
+    case("callback-key-hash", callback_key, (unchanged,))
+
+    def int_subclass(module, log):
+        class Vector(int):
+            def __and__(self, other):
+                log.append("vector.and")
+                return int.__and__(self, other)
+        checks, method, args = residual(module, log)
+        args[0].basis = {1: Vector(1)}
+        return checks, method, args
+
+    case("callback-integer", int_subclass, (unchanged,))
+
+    def bool_vector(module, log):
+        checks, method, args = residual(module, log)
+        args[0].basis = {1: True}
+        return checks, method, args
+
+    case("bool-vector-type", bool_vector, (unchanged,))
+
+    def override(module, log):
+        checks, method, args = label(module, log)
+        def nondegenerate():
+            log.append("instance.nondegenerate")
+            return []
+        args[0].nondegenerate = nondegenerate
+        return checks, method, args
+
+    outcomes, _, _ = case("instance-method-list-return", override, (unchanged,))
+    _need(all(item == ("return", "list", []) for item in outcomes), "Literal short-circuit result type changed")
+
+    def subclass(module, log):
+        class SubLabel(module.Label):
+            def contains(self, other):
+                log.append("subclass.contains")
+                return super().contains(other)
+        checks, method, args = residual(module, log)
+        args[1] = SubLabel([1])
+        return checks, method, args
+
+    case("label-subclass", subclass, (unchanged,))
+
+    def unhashable(module, log):
+        checks, method, args = residual(module, log)
+        args[0].key = []
+        return checks, method, args
+
+    case("unhashable-key", unhashable)
+
+    for attribute in ("key", "basis", "dim"):
+        def missing(module, log, attribute=attribute):
+            checks, method, args = residual(module, log)
+            delattr(args[0], attribute)
+            return checks, method, args
+        case("missing-label-" + attribute, missing)
+
+    # Preserve error priority when both the original key and verdicts are absent.
+    ref, new = _checks(reference), _checks(candidate)
+    left_ref, right_ref = reference.Label([1]), reference.Label([1])
+    left_new, right_new = candidate.Label([1]), candidate.Label([1])
+    del ref.verdicts; del new.verdicts
+    del left_ref.key; del left_new.key
+    expected = _capture(lambda: ref.residual_ok(left_ref, right_ref))
+    actual = _capture(lambda: new.residual_ok(left_new, right_new))
+    _need(actual == expected and "key" in actual[2], "Missing verdicts preempted original key error")
+    record("missing-key-and-verdicts", actual); counts["requests"] += 1
+    left_ref.key = left_new.key = (1,)
+    expected = _capture(lambda: ref.residual_ok(left_ref, right_ref))
+    actual = _capture(lambda: new.residual_ok(left_new, right_new))
+    _need(actual == expected and "verdicts" in actual[2], "Missing verdicts lost literal error")
+    record("missing-verdicts", actual); counts["requests"] += 1
+
+    ref, new = _checks(reference), _checks(candidate)
+    del ref.everything; del new.everything
+    expected = _capture(lambda: ref.label_ok(reference.Label([1])))
+    actual = _capture(lambda: new.label_ok(candidate.Label([1])))
+    _need(actual == expected, "Missing everything lost literal error")
+    record("missing-everything", actual); counts["requests"] += 1
+
+    # Authorized public value tampering fails before an exposed stale result.
+    checks = _checks(candidate)
+    small, big = candidate.Label([2]), candidate.Label([1])
+    _need(checks.residual_ok(small, big) is False, "Tamper prime must be False")
+    checks.verdicts[(small.key, big.key)] = True
+    actual = _capture(lambda: checks.residual_ok(small, big))
+    _need(actual == ("error", "RuntimeError", "Cache verdict authority changed"),
+          "Tampered authorized PASS was not rejected")
+    counts["tamper_rejections"] += 1; record("authorized-value-tamper", actual)
+
+    # Independent cold mutate-then-restore controls. Equality is dispatched by
+    # the ORIGINAL public dictionary operations. Inspecting the immediate opcode
+    # makes mutation depend on membership versus store, never on assumed probe
+    # counts (CPython can visit a colliding slot more than once per operation).
+    def transient_env(module):
+        checks = _checks(module)
+        small, big = module.Label([2]), module.Label([1])
+        wanted_hash = hash((small.key, big.key))
+        log = []
+        class Foreign:
+            def __hash__(self):
+                return wanted_hash
+            def __eq__(self, other):
+                frame = sys._getframe(1)
+                operation = dis.opname[frame.f_code.co_code[frame.f_lasti]]
+                log.append(operation)
+                if operation == "CONTAINS_OP":
+                    small.basis = {1: 1}  # temporary inclusion, literal result True
+                elif operation == "STORE_SUBSCR":
+                    small.basis = {2: 2}  # canonical original non-inclusion restored
+                return False
+        foreign = Foreign()
+        checks.verdicts[foreign] = False
+        return checks, small, big, foreign, log
+
+    ref, ref_small, ref_big, ref_foreign, ref_log = transient_env(reference)
+    new, new_small, new_big, new_foreign, new_log = transient_env(candidate)
+    expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+    actual = _capture(lambda: new.residual_ok(new_small, new_big))
+    _need(expected == actual == ("return", "bool", True),
+          "Cold collision did not exercise a transient literal PASS")
+    _need(ref_log == new_log and "CONTAINS_OP" in new_log and "STORE_SUBSCR" in new_log,
+          "Foreign public-key callbacks gained or lost literal dictionary operations")
+    _need(ref_small.basis == new_small.basis == {2: 2},
+          "Cold collision failed to restore the canonical entry basis")
+    state = owner._lookup_state(new)
+    _need(state is not None and not state.authority,
+          "Transient foreign-key computation acquired cache authority")
+    record("cold-foreign-key-transient-pass", (actual, new_log))
+    del ref.verdicts[ref_foreign]; del new.verdicts[new_foreign]
+    ref_log.clear(); new_log.clear()
+    for index in range(2):
+        ref.verdicts = {}  # independent unchanged original, explicitly uncached
+        expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+        actual = _capture(lambda: new.residual_ok(new_small, new_big))
+        _need(expected == actual == ("return", "bool", False),
+              "Removed foreign key exposed a stale transient PASS")
+        _need(not ref_log and not new_log, "Clean followup unexpectedly invoked foreign keys")
+        record(("cold-foreign-key-clean-followup", index), actual)
+    counts["cases"] += 1; counts["requests"] += 3
+
+    # Preserve the earlier persistent-mutation control under the stricter v2
+    # contract: presence of the foreign key now causes uncached fallback rather
+    # than trying to authorize a hit and only rejecting at exit.
+    checks = _checks(candidate)
+    small, big = candidate.Label([1]), candidate.Label([1])
+    _need(checks.residual_ok(small, big) is True, "Persistent-collision prime failed")
+    key = (small.key, big.key)
+    wanted_hash = hash(key)
+    armed, persistent_log = [False], []
+    class PersistentForeign:
+        def __hash__(self):
+            return wanted_hash
+        def __eq__(self, other):
+            if armed[0]:
+                persistent_log.append("foreign-key.eq")
+                small.basis = {2: 2}
+            return False
+    checks.verdicts.clear()
+    checks.verdicts[PersistentForeign()] = False
+    checks.verdicts[key] = True
+    armed[0] = True
+    actual = _capture(lambda: checks.residual_ok(small, big))
+    oracle_checks = _checks(reference)
+    oracle_small, oracle_big = reference.Label([1]), reference.Label([1])
+    oracle_small.basis = {2: 2}
+    expected = _capture(lambda: oracle_checks.residual_ok(oracle_small, oracle_big))
+    _need(expected == actual == ("return", "bool", False) and persistent_log,
+          "Persistent foreign-key mutation returned old PASS")
+    _need(not owner._lookup_state(checks).authority, "Persistent collision retained authority")
+    record("persistent-public-key-mutation-fallback", actual)
+    counts["cases"] += 1; counts["requests"] += 1
+
+    # Stored old-value __del__ runs AFTER original RHS arithmetic and BEFORE
+    # original final lookup. No old value reference may survive in the fixture
+    # caller: the dictionary itself must own its final strong reference.
+    def finalizer_env(module, *, force_reference_miss):
+        checks = _checks(module)
+        small, big = module.Label([2]), module.Label([1])
+        key, events = (small.key, big.key), []
+        if force_reference_miss:
+            class UncachedReferenceDict(dict):
+                def __contains__(self, requested):
+                    dict.__contains__(self, requested)
+                    return False
+            checks.verdicts = UncachedReferenceDict()
+        class OverwriteOnDelete:
+            __slots__ = ("mapping", "key", "events")
+            def __init__(self, mapping, requested, calls):
+                self.mapping, self.key, self.events = mapping, requested, calls
+            def __del__(self):
+                self.events.append("old-value.__del__")
+                self.mapping[self.key] = True
+        checks.verdicts[key] = OverwriteOnDelete(checks.verdicts, key, events)
+        return checks, small, big, events
+
+    ref, ref_small, ref_big, ref_events = finalizer_env(reference, force_reference_miss=True)
+    new, new_small, new_big, new_events = finalizer_env(candidate, force_reference_miss=False)
+    expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+    actual = _capture(lambda: new.residual_ok(new_small, new_big))
+    _need(expected == actual == ("return", "bool", True),
+          "Old-value finalizer did not alter the original final lookup")
+    _need(ref_events == new_events == ["old-value.__del__"],
+          "Old-value replacement finalizer event order changed")
+    _need(ref_small.basis == new_small.basis == {2: 2},
+          "Finalizer fixture unexpectedly changed canonical operands")
+    state = owner._lookup_state(new)
+    _need(state is not None and not state.authority,
+          "Old-value finalizer result acquired cache authority")
+    record("cold-stored-value-finalizer-pass", (actual, new_events))
+    for index in range(2):
+        ref.verdicts = {}  # independent unchanged original, explicitly uncached
+        expected = _capture(lambda: ref.residual_ok(ref_small, ref_big))
+        actual = _capture(lambda: new.residual_ok(new_small, new_big))
+        _need(expected == actual == ("return", "bool", False),
+              "Clean followup reused a stale finalizer-produced PASS")
+        _need(ref_events == new_events == ["old-value.__del__"],
+              "Clean followup repeated the destroyed old-value callback")
+        record(("stored-value-finalizer-clean-followup", index), actual)
+    counts["cases"] += 1; counts["requests"] += 3
+
+    class OtherMapping(dict):
+        pass
+    checks = _checks(candidate); checks.verdicts = OtherMapping()
+    actual = _capture(lambda: checks.residual_ok(candidate.Label([1]), candidate.Label([1])))
+    _need(actual[:2] == ("error", "RuntimeError") and "verdict mapping" in actual[2],
+          "Custom verdict mapping was not explicitly rejected")
+    counts["unsupported_rejections"] += 1; record("custom-verdict-map", actual)
+    class OtherChecks(candidate.Checks):
+        pass
+    checks = OtherChecks(SimpleNamespace(h=4))
+    actual = _capture(lambda: prepared["residual_ok"](checks, candidate.Label([1]), candidate.Label([1])))
+    _need(actual[:2] == ("error", "RuntimeError") and "Checks" in actual[2],
+          "Custom Checks was not explicitly rejected")
+    counts["unsupported_rejections"] += 1; record("custom-Checks", actual)
+
+    # Every environment mutation is tested after an actual authorized hit.
+    checks = _checks(candidate); small, big = candidate.Label([1]), candidate.Label([1])
+    def request():
+        return prepared["residual_ok"](checks, small, big)
+    _need(request() is True and request() is True, "Runtime controls failed to prime hit")
+    def drift(tag, target, attribute, replacement):
+        previous = getattr(target, attribute)
+        before = dict(binding["counters"])
+        setattr(target, attribute, replacement)
+        try:
+            actual = _capture(request)
+        finally:
+            setattr(target, attribute, previous)
+        _need(actual[:2] == ("error", "RuntimeError"), tag + " did not reject before cached return")
+        _need(dict(binding["counters"]) == before, tag + " executed arithmetic after drift")
+        binding["runtime_guard"].check()
+        record(tag, actual); counts["binding_rejections"] += 1
+
+    def bad(*args, **kwargs):
+        raise _ERROR("modified callable ran")
+    drift("odd-global", candidate, "odd", bad)
+    drift("odd-code", candidate.odd, "__code__", bad.__code__)
+    drift("odd-defaults", candidate.odd, "__defaults__", (False,))
+    drift("odd-any-builtin", builtins, "any", bad)
+    drift("rank-global", candidate, "rank", bad)
+    drift("Label-contains", candidate.Label, "contains", bad)
+    drift("Checks-label-ok", candidate.Checks, "label_ok", bad)
+    drift("Checks-residual-code", candidate.Checks.residual_ok, "__defaults__", (False,))
+    drift("native-complement", native, "complement", bad)
+    drift("native-gram", native, "gram_rank", bad)
+    candidate.any = bad
+    try:
+        actual = _capture(request)
+    finally:
+        del candidate.any
+    _need(actual[:2] == ("error", "RuntimeError"), "Source any shadow did not reject hit")
+    record("source-any-shadow", actual); counts["binding_rejections"] += 1
+
+    # Callback fallback may mutate a source binding after entry; exit must reject.
+    checks = _checks(candidate); small, big = candidate.Label([1]), candidate.Label([1])
+    old_odd = candidate.odd
+    log = []
+    def changes_environment(other):
+        log.append("contains")
+        candidate.odd = bad
+        return False
+    big.contains = changes_environment
+    try:
+        actual = _capture(lambda: checks.residual_ok(small, big))
+    finally:
+        candidate.odd = old_odd
+    _need(actual[:2] == ("error", "RuntimeError") and log == ["contains"],
+          "Callback source drift escaped the exit guard")
+    state = owner._lookup_state(checks)
+    _need(state is not None and not state.authority, "Callback drift retained authority")
+    record("callback-runtime-drift", actual); counts["binding_rejections"] += 1
+
+    untouched = backend.load_source("_h25_cache_admission_control_v3")
+    actual = _capture(lambda: adapter.prepare_cache_contract(untouched, "0" * 64))
+    _need(actual[:2] == ("error", "RuntimeError"), "Wrong source pin was admitted")
+    record("wrong-source-pin", actual); counts["source_admission_rejections"] += 1
+    untouched.Checks.residual_ok = bad
+    actual = _capture(lambda: adapter.prepare_cache_contract(untouched))
+    _need(actual[:2] == ("error", "RuntimeError"), "Changed original Checks source was admitted")
+    record("changed-original-Checks", actual); counts["source_admission_rejections"] += 1
+
+    binding["runtime_guard"].check()
+    receipt = owner.teardown()
+    _need(receipt["current_authority_entries"] == 0 and not owner.states, "Cache teardown retained state")
+    return {"status": "PASS", "counts": counts, "transcript_sha256": transcript.hexdigest(),
+            "candidate_cache": receipt, "candidate_native": dict(binding["counters"]),
+            "reference": "separate unchanged original module; fresh exact dictionaries except independent forced-miss old-value-finalizer fixture",
+            "no_shared_labels_snapshots_or_answers": True,
+            "full_caller_and_normal_O_gates_required_separately": True,
+            "public_key_scan_requires_source_cost_feasibility_before_full_run": True}

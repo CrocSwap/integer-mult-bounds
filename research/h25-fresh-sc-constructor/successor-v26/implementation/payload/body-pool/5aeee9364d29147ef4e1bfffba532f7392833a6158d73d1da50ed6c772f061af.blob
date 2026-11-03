@@ -1,0 +1,175 @@
+"""Private, reversible native-success observation derivation for the closed factory.
+
+The trusted early token must authenticate this module, every helper calling
+record and the admitted stdlib environment before invoking this producer. This
+module cannot establish its own initial trust. It returns a private function;
+public backend.bind is never assigned. No rank arithmetic or answer is cached.
+"""
+import ast
+import copy
+import hashlib
+import sys
+from types import CodeType, FunctionType
+
+ORIGINAL_SHA256 = "e473c38245c3668715b5a78dfe980b2fe3ed0d0c9b8c97c666fbae6ecf1fffd5"
+_TYPE, _LEN, _TUPLE = type, len, tuple
+_INT, _BOOL, _STR, _BYTES = int, bool, str, bytes
+_OBJECT_GET = object.__getattribute__
+_COMPILE, _ERROR = compile, RuntimeError
+
+
+def _need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def _constant_equal(actual, expected):
+    """Bounded source-code comparison never calls a foreign constant's equality."""
+    try:
+        if _TYPE(actual) is not _TYPE(expected):
+            return False
+        kind = _TYPE(actual)
+        if actual is None or actual is Ellipsis:
+            return actual is expected
+        if kind is _INT or kind is _BOOL or kind is _STR or kind is _BYTES:
+            return actual == expected
+        if kind is _TUPLE:
+            if _LEN(actual) != _LEN(expected):
+                return False
+            for index in range(_LEN(actual)):
+                if not _constant_equal(actual[index], expected[index]):
+                    return False
+            return True
+        if kind is CodeType:
+            return _code_equal(actual, expected)
+        return False
+    finally:
+        actual = expected = kind = None
+
+
+def _code_equal(actual, expected):
+    try:
+        if _TYPE(actual) is not CodeType or _TYPE(expected) is not CodeType:
+            return False
+        for field in ("co_argcount", "co_posonlyargcount", "co_kwonlyargcount",
+                      "co_nlocals", "co_stacksize", "co_flags", "co_code",
+                      "co_names", "co_varnames", "co_freevars", "co_cellvars",
+                      "co_exceptiontable", "co_linetable", "co_firstlineno",
+                      "co_filename", "co_name", "co_qualname", "co_consts"):
+            if not _constant_equal(_OBJECT_GET(actual, field), _OBJECT_GET(expected, field)):
+                return False
+        return True
+    finally:
+        actual = expected = None
+
+
+def _named(code, name):
+    values = [value for value in code.co_consts
+              if _TYPE(value) is CodeType and value.co_name == name]
+    _need(_LEN(values) == 1, "Row producer expected one source function: " + name)
+    return values[0]
+
+
+def derive_row_bind(original, source_bytes):
+    """Return (private row bind, scalar receipt, (AST node, futures)) privately.
+
+    Caller supplies its source-authenticated original bind and immutable source
+    bytes. The added positional parameter/default is the original row-sharing
+    interface. Its derived defaults tuple is intentionally new; the following
+    two-callback factory must preserve that exact tuple and calling environment.
+    The ephemeral AST packet is consumed and cleared by that factory. It is
+    never part of a serialized receipt; restored compiled code authenticates it.
+    """
+    _need(_TYPE(original) is FunctionType and _TYPE(source_bytes) is _BYTES,
+          "Row producer requires an exact function and source bytes")
+    _need(hashlib.sha256(source_bytes).hexdigest() == ORIGINAL_SHA256,
+          "Row producer original source pin differs")
+    filename = original.__code__.co_filename
+    _need(_TYPE(filename) is _STR and original.__closure__ is None and
+          original.__kwdefaults__ is None and _TYPE(original.__defaults__) is _TUPLE and
+          _LEN(original.__defaults__) == 2 and
+          original.__defaults__[0] is None and original.__defaults__[1] is None,
+          "Row producer original signature environment differs")
+    expected = _named(_COMPILE(source_bytes, filename, "exec", dont_inherit=True,
+                               optimize=sys.flags.optimize), "bind")
+    _need(_code_equal(original.__code__, expected),
+          "Row producer original calling code differs from pinned source")
+    parsed = ast.parse(source_bytes, filename=filename)
+    matches = [node for node in parsed.body if _TYPE(node) is ast.FunctionDef and node.name == "bind"]
+    _need(_LEN(matches) == 1, "Row producer original bind is not unique")
+    original_node = matches[0]
+    node = copy.deepcopy(original_node)
+    _need(not node.args.posonlyargs and not node.args.kwonlyargs and
+          node.args.vararg is None and node.args.kwarg is None and
+          [arg.arg for arg in node.args.args] == ["module", "native", "rank_calls", "complement_trace"] and
+          _LEN(node.args.defaults) == 2,
+          "Row producer original AST signature differs")
+    node.args.args.append(ast.arg(arg="rank_row_intern"))
+    node.args.defaults.append(ast.Constant(None))
+    target = ast.parse("rank_calls.append((rows, rank))").body[0]
+    target_dump = ast.dump(target, include_attributes=False)
+    replacement = ast.parse("observed_rows = rows if rank_row_intern is None else rank_row_intern(rows)\nrank_calls.append((observed_rows, rank))").body
+    replacement_dump = [ast.dump(item, include_attributes=False) for item in replacement]
+    count = 0
+    for parent in ast.walk(node):
+        for field, values in ast.iter_fields(parent):
+            if _TYPE(values) is not list:
+                continue
+            rewritten = []
+            for child in values:
+                if _TYPE(child) is ast.Expr and ast.dump(child, include_attributes=False) == target_dump:
+                    for item in copy.deepcopy(replacement):
+                        ast.copy_location(item, child)
+                        rewritten.append(item)
+                    count += 1
+                else:
+                    rewritten.append(child)
+            setattr(parent, field, rewritten)
+    _need(count == 1, "Row producer must replace exactly one native-success observer")
+    restored = copy.deepcopy(node)
+    restored.args.args.pop()
+    restored.args.defaults.pop()
+    restore_count = 0
+    original_target = next(item for item in ast.walk(original_node)
+                           if _TYPE(item) is ast.Expr and
+                           ast.dump(item, include_attributes=False) == target_dump)
+    for parent in ast.walk(restored):
+        for field, values in ast.iter_fields(parent):
+            if _TYPE(values) is not list:
+                continue
+            rewritten, index = [], 0
+            while index < _LEN(values):
+                if (index + 1 < _LEN(values) and
+                        [ast.dump(values[index], include_attributes=False),
+                         ast.dump(values[index + 1], include_attributes=False)] == replacement_dump):
+                    rewritten.append(copy.deepcopy(original_target))
+                    index += 2
+                    restore_count += 1
+                else:
+                    rewritten.append(values[index])
+                    index += 1
+            setattr(parent, field, rewritten)
+    _need(restore_count == 1 and
+          ast.dump(restored, include_attributes=False) == ast.dump(original_node, include_attributes=False),
+          "Row producer changed more than the admitted observer and parameter")
+    future = [copy.deepcopy(statement) for statement in parsed.body
+              if _TYPE(statement) is ast.ImportFrom and statement.module == "__future__"]
+    restored_tree = ast.fix_missing_locations(ast.Module(body=copy.deepcopy(future) + [restored], type_ignores=[]))
+    restored_code = _named(_COMPILE(restored_tree, filename, "exec", dont_inherit=True,
+                                    optimize=sys.flags.optimize), "bind")
+    _need(_code_equal(restored_code, original.__code__),
+          "Row producer reversed compiled calling code differs")
+    tree = ast.fix_missing_locations(ast.Module(body=future + [node], type_ignores=[]))
+    code = _named(_COMPILE(tree, filename, "exec", dont_inherit=True,
+                           optimize=sys.flags.optimize), "bind")
+    defaults = original.__defaults__ + (None,)
+    clone = FunctionType(code, original.__globals__, original.__name__, defaults, original.__closure__)
+    clone.__kwdefaults__ = original.__kwdefaults__
+    _need(clone.__globals__ is original.__globals__ and
+          clone.__builtins__ is original.__builtins__ and clone.__defaults__ is defaults and
+          clone.__kwdefaults__ is original.__kwdefaults__ and clone.__closure__ is original.__closure__,
+          "Row producer changed original dispatch ownership")
+    return clone, {"status": "PRIVATE_SOURCE_DERIVED", "original_sha256": ORIGINAL_SHA256,
+                   "replacement_count": count, "restored_ast_identical": True,
+                   "restored_code_identical": True, "public_bind_replaced": False,
+                   "arithmetic_and_fallback_unchanged": True}, (node, future)

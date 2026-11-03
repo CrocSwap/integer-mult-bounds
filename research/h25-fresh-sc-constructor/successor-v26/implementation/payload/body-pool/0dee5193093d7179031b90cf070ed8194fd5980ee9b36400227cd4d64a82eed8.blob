@@ -1,0 +1,243 @@
+"""Bounded H=8 composition of actual candidate installation and guard order.
+
+Parent queue only. The production writer is created with its unchanged H25
+EXPECTED; it is never repinned or used to publish H8 data. Seventy independent
+serializer controls cover finite writes; full H25 serialization remains gated.
+"""
+import hashlib
+from pathlib import Path
+import sys
+
+import adapters
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _extensions(prototype):
+    state = dict(prototype)
+    state['selected'] = set(prototype['selected'])
+    state['controls'] = {}
+    state['set_binding'] = None
+    return state
+
+
+def _witness(circuit, checks, code):
+    return {
+        'support': circuit.support, 'args': circuit.args, 'kind': circuit.kind,
+        'active': sorted(circuit.active),
+        'pieces': [(target, node, (coefficient.numerator, coefficient.denominator))
+                   for target, node, coefficient in circuit.pieces],
+        'labels': [(key, list(label.basis.items()), label.dim, label.key)
+                   for key, label in checks.cache.items()],
+        'code': {'roles': code['roles'], 'gates': code['gates'],
+                 'sources': list(code['sources'].items()), 'outputs': list(code['outputs'].items())},
+    }
+
+
+def run_controls(api, prototype, original_extensions, native, comparison, phases, output):
+    """Run exactly one reference and one candidate graph in fresh instances."""
+    output = Path(output)
+    need(not output.exists(), 'Fresh composition evidence directory required')
+    output.mkdir(parents=True)
+    outcomes, owned_modules = {}, []
+    primary_failure = False
+    try:
+        for arm in ('baseline', 'candidate'):
+            state = api.isolated_state(prototype, arm)
+            backend, backend_handle = api._authority_backend(prototype, 'composition_' + arm)
+            state['backend_handle'] = backend_handle
+            state['factory_environment'] = api.capture_factory_environment(state, backend, backend_handle)
+            name = backend.__name__
+            owned_modules.append((name, backend))
+            # Recreate the same original P2 and trace layers through authenticated
+            # source producers, registering each exact class before installation.
+            # BEGIN evaluated dispatch arguments composition_controls:57
+            _ca_args = (prototype['setup_handle'], 'trace_entries', prototype['authority'], original_extensions)
+            _ca_kwargs = {'cold_caller_descriptor': prototype['cold_caller_descriptor']}
+            # END evaluated dispatch arguments composition_controls:57
+            # BEGIN caller admission composition_controls:57
+            _ca_desc = prototype['cold_caller_descriptor']
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if prototype['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # END caller admission composition_controls:57
+            actual_trace_entries = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+            # BEGIN evaluated dispatch arguments composition_controls:60
+            _ca_args = (prototype['setup_handle'], 'compose_guard_stack', prototype['authority'], backend, backend_handle, original_extensions['authority_handles']['guard_adapter'], prototype['adapters_handle'], actual_trace_entries)
+            _ca_kwargs = {'cold_caller_descriptor': prototype['cold_caller_descriptor']}
+            # END evaluated dispatch arguments composition_controls:60
+            # BEGIN caller admission composition_controls:60
+            _ca_desc = prototype['cold_caller_descriptor']
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if prototype['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # END caller admission composition_controls:60
+            _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+            # BEGIN evaluated dispatch arguments composition_controls:65
+            _ca_args = (backend_handle, 'load_source', '_h25_data_composition_source_' + arm)
+            _ca_kwargs = {}
+            # END evaluated dispatch arguments composition_controls:65
+            # BEGIN caller admission composition_controls:65
+            _ca_desc = prototype['cold_caller_descriptor']
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if prototype['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # END caller admission composition_controls:65
+            module = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+            extensions = _extensions(original_extensions)
+            trace = original_extensions['trace_type'](module.Label)
+            rank_calls = []
+            api.install_circuit(state, extensions, module, comparison)
+            prefix = 'composition_' + arm + '_'
+            for owner, attribute, phase in (
+                    (module.ComplexSideCircuit, '__init__', 'construction'),
+                    (module.Checks, '__init__', 'checks_initialization'),
+                    (module.Checks, 'verify_map', 'verify_map'),
+                    (module.Checks, 'verify_labels', 'verify_labels'),
+                    (module, 'compile_roles', 'compile_roles'),
+                    (module, 'verify_role_frames', 'verify_role_frames')):
+                phases.wrap(owner, attribute, prefix + phase)
+            binding = api.bind_native(state, backend, module, native, rank_calls, trace)
+            api.seal(state)
+            adapters.seal(extensions)
+            need(extensions['set_binding']['owner']._fresh(), 'Composition original P1 environment changed')
+            if arm == 'candidate':
+                state['construction_binding']['owner'].arm_finite(8, retire=True)
+            adapters.arm(extensions)
+            try:
+                circuit = module.ComplexSideCircuit(8)
+                need(circuit.h == 8 and len(circuit.triples) == 56 and
+                     len(circuit.support) <= 20000 and len(circuit.pieces) <= 20000,
+                     'Composition graph exceeded its declared H8 boundary')
+                checks = module.Checks(circuit)
+                map_result = checks.verify_map()
+                labels_result = checks.verify_labels()
+                code = module.compile_roles(circuit)
+                need(code['roles'] <= 20000, 'Composition roles exceeded its declared bound')
+                roles_result = module.verify_role_frames(circuit, checks, code)
+                # Assert expressions disappear under -O. These calls remain
+                # explicit so both modes exercise the composed cache/native path.
+                small, big = module.Label([1]), module.Label([1, 2])
+                explicit = [checks.label_ok(small), checks.label_ok(small),
+                            checks.residual_ok(small, big), checks.residual_ok(small, big)]
+                need(all(type(value) is bool and value for value in explicit),
+                     'Composition explicit cache requests changed')
+            finally:
+                adapters.disarm(extensions)
+            binding['runtime_guard'].check()
+            need(len(rank_calls) <= 20000 and trace.receipt()['calls'] <= 100000,
+                 'Composition observation count exceeded its bound')
+            result = {'circuit': circuit.stats(), 'side_map': map_result,
+                      'labels': labels_result, 'role_frames': roles_result,
+                      'explicit_cache_requests': explicit}
+            witness = _witness(circuit, checks, code)
+            raw = {
+                'result.json': comparison.canonical(result),
+                'witness.json': comparison.canonical(witness),
+                'rank-trace.json': comparison.canonical(rank_calls),
+                'complements.json': comparison.canonical(trace.receipt()),
+            }
+            need(sum(len(value) for value in raw.values()) <= 16 * 1024 * 1024,
+                 'Composition retained bytes exceeded per-arm bound')
+            directory = output / arm
+            directory.mkdir()
+            for filename, value in raw.items():
+                (directory / filename).write_bytes(value)
+            p1_receipt = dict(extensions['set_binding']['receipt'])
+            need(p1_receipt['fast_admissions'] == 1 and p1_receipt['fallback_calls'] == 0 and
+                 p1_receipt['private_operand_sets_constructed'] == 56,
+                 'Composition lost the original P1 admitted path')
+            construction_receipt, cache_receipt = None, None
+            if arm == 'candidate':
+                binding['runtime_guard'].check()
+                construction_receipt = state['construction_binding']['owner'].finish()
+                cache_receipt = api.teardown_cache(state)
+                need(cache_receipt['teardowns'] == 1 and cache_receipt['current_authority_entries'] == 0 and
+                     cache_receipt['requests'] >= 4 and cache_receipt['authorized_hits'] >= 2,
+                     'Composition cache request/cleanup gate failed')
+                need(api._runtime_images(state['writer_handle']) == state['runtime_before'],
+                     'Composition actual JSON runtime files changed')
+            outcomes[arm] = {'bytes': raw, 'native_calls': dict(binding['counters']),
+                             'rank_events': len(rank_calls), 'complements': trace.receipt(),
+                             'p1': p1_receipt, 'construction': construction_receipt,
+                             'cache_validity': cache_receipt}
+        left, right = outcomes['baseline'], outcomes['candidate']
+        need(left['bytes'] == right['bytes'], 'Combined H8 result/witness/ordered observations differ')
+        need(left['native_calls'] == right['native_calls'], 'Combined H8 native call coverage differs')
+        file_rows = {name: {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+                     for name, raw in left['bytes'].items()}
+        receipt = {'status': 'BOUNDED_COMBINED_COMPOSITION_PASS', 'height': 8,
+                   'optimized': sys.flags.optimize, 'arms': ['baseline', 'candidate'],
+                   'files': file_rows, 'native_calls': right['native_calls'],
+                   'rank_events': right['rank_events'], 'complements': right['complements'],
+                   'reference_p1': left['p1'], 'candidate_p1': right['p1'],
+                   'construction': right['construction'], 'cache_validity': right['cache_validity'],
+                   'production_writer_expected_unchanged': True,
+                   'production_writer_executed': False, 'full_h25_gate_passed': False,
+                   'declared_retained_bytes_per_arm': 16 * 1024 * 1024,
+                   'authority_backend_module_lifetime': 'process-exit',
+                   'authority_backend_registry_names': [name for name, _ in owned_modules]}
+        (output / 'receipt.json').write_bytes(comparison.canonical(receipt) + b'\n')
+        return receipt
+    except BaseException:
+        primary_failure = True
+        raise
+    finally:
+        cleanup_errors = api.cleanup_owned(prototype)
+        # These source modules/handles belong to the original cold authority.
+        # Its later factory checks authenticate their registry slots, so retain
+        # them until process exit. Native owners are still closed above. The
+        # additional module/handle lifetime is part of the complete cost bill.
+        for name, module in owned_modules:
+            if sys.modules.get(name) is not module and not primary_failure:
+                raise RuntimeError('Composition backend registry ownership changed')
+        if cleanup_errors and not primary_failure:
+            raise RuntimeError('Composition native cleanup failed; retained STOP diagnostics required')

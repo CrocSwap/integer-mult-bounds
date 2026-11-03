@@ -1,0 +1,202 @@
+"""Initial native TCB corroboration, before other driver imports or native builds.
+
+No imports. The parent authenticates this source and the expected native closure
+before launch, then calls after its captured sealed root guard. Native hashing,
+POSIX, OS/loader integrity and the closed bootstrap interval are explicit trust
+premises, not established by this check. The existing217file probe audit remains
+separate. This receipt is never a scientific verdict or reusable private-ABI PASS.
+"""
+_MAX_FILES = 32
+_MAX_FILE_BYTES = 67108864
+_MAX_TOTAL_FILE_BYTES = 268435456
+_MAX_MAP_BYTES = 524288
+_MAX_MAP_LINES = 4096
+_MAX_LINE_BYTES = 8192
+_MAX_EXEC_MAPS = 256
+_CHUNK = 1048576
+
+
+def _need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _native_ops(root, api):
+    _need(type(api) is tuple and len(api) == 4, 'Native TCB requires sealed bootstrap API')
+    root_sha = api[0]()
+    namespace = root.__dict__
+    posix = namespace['posix']
+    native_hash_module = namespace['_hashlib']
+    function = namespace['_SHA256']
+    builtin_type = namespace['BuiltinFunctionType']
+    module_type = namespace['ModuleType']
+    _need(type(posix) is module_type and type(native_hash_module) is module_type,
+          'Native TCB module type differs')
+    _need(type(function) is builtin_type and function.__self__ is native_hash_module and
+          function.__name__ == 'openssl_sha256' and
+          native_hash_module.__dict__.get('openssl_sha256') is function,
+          'Native TCB hash function owner differs')
+    functions = {}
+    for alias, name in (('open', 'open'), ('read', 'read'), ('fstat', 'fstat'),
+                        ('close', 'close'), ('major', 'major'), ('minor', 'minor'), ('getpid', 'getpid')):
+        value = posix.__dict__.get(name)
+        _need(type(value) is builtin_type and value.__self__ is posix and value.__name__ == name,
+              'Native TCB POSIX primitive owner differs: ' + name)
+        functions[alias] = value
+    _need(functions['open'] is namespace['_OPEN'] and functions['read'] is namespace['_READ'] and
+          functions['fstat'] is namespace['_FSTAT'] and functions['close'] is namespace['_CLOSE'],
+          'Native TCB primitive differs from pristine root')
+    functions.update({'sha256': function, 'flags': namespace['_FLAGS'], 'posix': posix,
+                      'hash_module': native_hash_module, 'root_sha256': root_sha})
+    return functions
+
+
+def _expected_inventory(expected_files, expected_hashlib_origin):
+    _need(type(expected_files) is tuple and 1 <= len(expected_files) <= _MAX_FILES,
+          'Native TCB expected file inventory type/count differs')
+    _need(type(expected_hashlib_origin) is str, 'Native TCB expected hashlib origin type differs')
+    inventory = {}
+    total = 0
+    for row in expected_files:
+        _need(type(row) is tuple and len(row) == 3, 'Native TCB expected row shape differs')
+        path, digest, size = row
+        _need(type(path) is str and path.startswith('/') and len(path) <= 4096 and
+              all(32 < ord(character) < 127 for character in path) and
+              path not in inventory and not path.endswith(' (deleted)'),
+              'Native TCB expected canonical path differs')
+        _need(type(digest) is str and len(digest) == 64 and
+              all(character in '0123456789abcdef' for character in digest),
+              'Native TCB expected digest differs')
+        _need(type(size) is int and 0 < size <= _MAX_FILE_BYTES,
+              'Native TCB expected size differs')
+        total += size
+        _need(total <= _MAX_TOTAL_FILE_BYTES, 'Native TCB expected total bytes exceed bound')
+        inventory[path] = (digest, size)
+    _need(expected_hashlib_origin in inventory, 'Native TCB hashlib origin is undeclared')
+    return inventory, total
+
+
+def _read_maps(ops):
+    descriptor = ops['open']('/proc/self/maps', ops['flags'])
+    try:
+        info = ops['fstat'](descriptor)
+        _need((info.st_mode & 0o170000) == 0o100000, 'Native TCB maps pseudo-file type differs')
+        parts, count = [], 0
+        while True:
+            block = ops['read'](descriptor, min(65536, _MAX_MAP_BYTES + 1 - count))
+            if not block:
+                break
+            count += len(block)
+            _need(count <= _MAX_MAP_BYTES, 'Native TCB maps byte bound exceeded')
+            parts.append(block)
+        raw = b''.join(parts)
+    finally:
+        ops['close'](descriptor)
+    lines = raw.splitlines()
+    _need(len(lines) <= _MAX_MAP_LINES, 'Native TCB maps line bound exceeded')
+    executable = []
+    for line in lines:
+        _need(len(line) <= _MAX_LINE_BYTES, 'Native TCB maps line byte bound exceeded')
+        fields = line.split(None, 5)
+        _need(len(fields) >= 5, 'Native TCB maps row shape differs')
+        address, permissions, offset, device, inode_text = fields[:5]
+        _need(len(permissions) == 4, 'Native TCB map permissions shape differs')
+        if permissions[2:3] != b'x':
+            continue
+        inode = int(inode_text, 10)
+        if inode == 0:
+            continue  # anonymous/kernel executable mappings belong to explicit OS TCB
+        _need(len(fields) == 6 and fields[5].startswith(b'/') and
+              not fields[5].endswith(b' (deleted)'), 'Native TCB executable map path differs')
+        path = fields[5].decode('ascii')
+        span, pair = address.split(b'-'), device.split(b':')
+        _need(len(span) == 2 and len(pair) == 2, 'Native TCB map address/device shape differs')
+        start, end = int(span[0], 16), int(span[1], 16)
+        _need(0 <= start < end < (1 << 64), 'Native TCB map address bounds differ')
+        row = (path, int(pair[0], 16), int(pair[1], 16), inode,
+               start, end, int(offset, 16), permissions.decode('ascii'))
+        executable.append(row)
+        _need(len(executable) <= _MAX_EXEC_MAPS, 'Native TCB executable map count exceeded')
+    _need(executable, 'Native TCB no file-backed executable mappings observed')
+    return tuple(sorted(executable)), len(raw), ops['sha256'](raw).hexdigest()
+
+
+def _fingerprint(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _hash_file(ops, path, expected_digest, expected_size):
+    """Production uses only freshly captured native ops; controls may separately
+    instrument this internal reader on an exclusively created temporary file."""
+    descriptor = ops['open'](path, ops['flags'])
+    try:
+        before = ops['fstat'](descriptor)
+        _need((before.st_mode & 0o170000) == 0o100000 and before.st_size == expected_size,
+              'Native TCB regular-file type/size differs: ' + path)
+        digest, count = ops['sha256'](), 0
+        while True:
+            block = ops['read'](descriptor, min(_CHUNK, expected_size + 1 - count))
+            if not block:
+                break
+            count += len(block)
+            _need(count <= expected_size, 'Native TCB file grew during hashing: ' + path)
+            digest.update(block)
+        after = ops['fstat'](descriptor)
+        _need(_fingerprint(before) == _fingerprint(after) and count == expected_size,
+              'Native TCB file changed during hashing: ' + path)
+        actual = digest.hexdigest()
+        _need(actual == expected_digest, 'Native TCB file digest differs: ' + path)
+        return {'path': path, 'expected_sha256': expected_digest, 'observed_sha256': actual,
+                'expected_bytes': expected_size, 'observed_bytes': count,
+                'device': after.st_dev, 'device_major': ops['major'](after.st_dev),
+                'device_minor': ops['minor'](after.st_dev), 'inode': after.st_ino,
+                'mode': after.st_mode, 'mtime_ns': after.st_mtime_ns, 'ctime_ns': after.st_ctime_ns}
+    finally:
+        ops['close'](descriptor)
+
+
+def verify_native_tcb(bootstrap_root, bootstrap_api, expected_files, expected_hashlib_origin):
+    """Corroborate the parent's declared initial native file closure, freshly."""
+    ops = _native_ops(bootstrap_root, bootstrap_api)
+    inventory, expected_total = _expected_inventory(expected_files, expected_hashlib_origin)
+    native_hash_module = ops['hash_module']
+    origin = native_hash_module.__dict__.get('__file__')
+    _need(type(origin) is str and origin == expected_hashlib_origin,
+          'Native TCB actual hashlib origin differs')
+    mappings_before, maps_before_bytes, maps_before_sha = _read_maps(ops)
+    mapped_paths = {row[0] for row in mappings_before}
+    _need(mapped_paths == set(inventory), 'Native TCB declared/executable mapped file closure differs')
+    files = []
+    for path, expected_digest, expected_size in expected_files:
+        observed = _hash_file(ops, path, expected_digest, expected_size)
+        current = tuple(row for row in mappings_before if row[0] == path)
+        _need(current and all(row[1] == observed['device_major'] and
+                             row[2] == observed['device_minor'] and row[3] == observed['inode']
+                             for row in current), 'Native TCB mapped/current file identity differs: ' + path)
+        observed['executable_mapping_count'] = len(current)
+        observed['executable_mappings'] = [
+            {'start': hex(row[4]), 'end': hex(row[5]), 'offset': row[6], 'permissions': row[7]}
+            for row in current]
+        files.append(observed)
+    mappings_after, maps_after_bytes, maps_after_sha = _read_maps(ops)
+    _need(mappings_after == mappings_before, 'Native TCB executable mappings changed during audit')
+    final_ops = _native_ops(bootstrap_root, bootstrap_api)
+    _need(final_ops['hash_module'] is native_hash_module and final_ops['sha256'] is ops['sha256'] and
+          native_hash_module.__dict__.get('__file__') == origin and
+          final_ops['root_sha256'] == ops['root_sha256'], 'Native TCB root/hash provenance changed')
+    for name in ('open', 'read', 'fstat', 'close', 'major', 'minor', 'getpid'):
+        _need(final_ops[name] is ops[name], 'Native TCB captured primitive drifted: ' + name)
+    return {'schema': 'h25-initial-native-tcb-v1', 'status': 'MATCHED_DECLARED_INITIAL_NATIVE_FILES',
+            'root_source_sha256': ops['root_sha256'], 'pid': ops['getpid'](),
+            'hashlib_origin': origin, 'hashlib_module_id': id(native_hash_module),
+            'hash_function_id': id(ops['sha256']), 'hash_function_name': 'openssl_sha256',
+            'hash_function_owned_by_root_module': True, 'files': files,
+            'declared_file_count': len(files), 'expected_total_file_bytes': expected_total,
+            'observed_total_file_bytes': sum(row['observed_bytes'] for row in files),
+            'executable_mapping_count': len(mappings_before),
+            'maps_before_bytes': maps_before_bytes, 'maps_after_bytes': maps_after_bytes,
+            'maps_before_sha256': maps_before_sha, 'maps_after_sha256': maps_after_sha,
+            'executable_mappings_stable': True, 'probe_private_abi_access': False,
+            'scientific_admission': False, 'reusable_pass': False,
+            'trust_boundary': 'Parent-authenticated fresh startup and declared native/OS/loader primitives; corroboration does not self-prove hostile-OS or compromised-hash integrity.',
+            'kernel_anonymous_executable_maps': 'Excluded from declared native file closure; remain in explicit OS trust boundary.'}

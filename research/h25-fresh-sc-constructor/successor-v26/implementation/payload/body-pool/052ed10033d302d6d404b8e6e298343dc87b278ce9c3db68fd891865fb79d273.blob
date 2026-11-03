@@ -1,0 +1,295 @@
+"""Additional SOURCE-ONLY metadata controls; parent execution remains closed.
+
+Run alongside, never instead of, the unchanged bootstrap/direct/cache unions.
+Run before the unchanged late audit-hook control, which stays last in process.
+No fixture function below is a scientific caller and no native extension loads.
+"""
+import gc
+from types import FunctionType, ModuleType
+
+
+def _need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _rejection(operation):
+    try:
+        operation()
+    except RuntimeError as error:
+        return error
+    raise RuntimeError('Expected metadata rejection')
+
+
+def run_metadata_controls(root, capability, api, provider_sha256):
+    provider = api[1](capability, provider_sha256)
+    before = api[3](capability)
+    # Capture only after sealed root/provider authentication. These controls
+    # intentionally exercise private collectors; production callers never do.
+    new_scope = root._scope_factory_gate(root._NEW_SCOPE)
+    root_record, root_fresh = root._function_record, root._function_fresh
+    provider_record, provider_fresh = provider._function_record, provider._function_fresh
+    records = []
+
+    def fixture(value=None):
+        return None
+
+    def other_fixture():
+        return 1
+
+    expected = root_record(fixture)
+    duplicate = root_record(fixture)
+    observations = new_scope()
+    try:
+        _need(root_fresh(expected, observations), 'First independent record rejected')
+        first = observations[5]()
+        _need(root_fresh(duplicate, observations), 'Second independent record rejected')
+        second = observations[5]()
+        _need(second['actual_reads'] == first['actual_reads'] and
+              second['reused_reads'] > first['reused_reads'], 'Scalar observations were not reused')
+        conflicting = list(duplicate)
+        conflicting[1] = other_fixture.__code__
+        _need(not root_fresh(tuple(conflicting), observations), 'Conflicting expected record was merged')
+        records.append({'case': 'M01-independent-records-and-conflict',
+                        'first': first, 'second': second, 'conflicting_record_rejected': True})
+    finally:
+        observations[6]()
+    _need(not observations[5]()['live'] and observations[5]()['retained_scalar_cells'] == 0,
+          'Successful scope retained observations')
+    _need('already disposed' in str(_rejection(lambda: observations[0](fixture, '__code__'))),
+          'Disposed scope remained usable')
+    records.append({'case': 'M02-success-disposal-and-use-after-close', 'retained_scalar_cells': 0})
+
+    prior_defaults = fixture.__defaults__
+    fixture.__defaults__ = ('changed',)
+    try:
+        observations = new_scope()
+        try:
+            _need(not root_fresh(expected, observations), 'A new invocation reused an old observation')
+        finally:
+            observations[6]()
+    finally:
+        fixture.__defaults__ = prior_defaults
+    records.append({'case': 'M03-distinct-invocation-observes-drift', 'rejected': True})
+
+    def keyword_fixture(*, item='original-value-for-equality'):
+        return None
+
+    root_keyword = root_record(keyword_fixture)
+    provider_keyword = provider_record(keyword_fixture)
+    old_keyword = keyword_fixture.__kwdefaults__['item']
+    equal_keyword = bytearray(old_keyword, 'utf-8').decode('utf-8')
+    _need(equal_keyword == old_keyword and equal_keyword is not old_keyword,
+          'Keyword fixture lacks distinct equal values')
+    keyword_fixture.__kwdefaults__['item'] = equal_keyword
+    observations = new_scope()
+    try:
+        _need(root_fresh(root_keyword, observations), 'Root structural keyword policy changed')
+        _need(not provider_fresh(provider_keyword, observations), 'Provider keyword identity policy weakened')
+    finally:
+        observations[6]()
+        keyword_fixture.__kwdefaults__['item'] = old_keyword
+    records.append({'case': 'M04-root-structural-provider-identity',
+                    'root_accepts_equal': True, 'provider_rejects_distinct': True})
+
+    def make_cell(value):
+        def closure_fixture():
+            return value
+        return closure_fixture
+
+    closure_fixture = make_cell(object())
+    cell_record = root_record(closure_fixture)
+    cell = closure_fixture.__closure__[0]
+    saved_cell = cell.cell_contents
+    del cell.cell_contents
+    observations = new_scope()
+    try:
+        _need(not root_fresh(cell_record, observations), 'Empty closure cell was accepted')
+        _need(observations[3](cell) == (False, 0), 'Empty cell lacks controlled scalar metadata')
+    finally:
+        observations[6]()
+        cell.cell_contents = saved_cell
+    records.append({'case': 'M05-empty-cell-scalar-rejection', 'rejected': True})
+
+    foreign_events = {'equal': 0, 'finalized': 0}
+    collision_hash = hash('guard_key')
+
+    class ForeignKey:
+        def __hash__(self):
+            return collision_hash
+
+        def __eq__(self, other):
+            foreign_events['equal'] += 1
+            raise RuntimeError('Foreign key equality must not execute in a guard')
+
+        def __del__(self):
+            foreign_events['finalized'] += 1
+
+    foreign = ForeignKey()
+    namespace = {foreign: True}
+    observations = new_scope()
+    primary = None
+    try:
+        _need(observations[2](namespace, 'guard_key', None) == -1,
+              'Foreign key domain did not reject before named lookup')
+        raise RuntimeError('Retained caller rejection after foreign-key observation')
+    except RuntimeError as error:
+        primary = error
+    finally:
+        observations[6]()
+    namespace.clear()
+    del foreign
+    gc.collect()
+    _need(foreign_events == {'equal': 0, 'finalized': 1} and primary is not None,
+          'Foreign key callback or traceback retention occurred')
+    _need(observations[5]()['retained_scalar_cells'] == 0, 'Failure scope retained scalar observations')
+    records.append({'case': 'M06-colliding-key-failure-finalizer',
+                    'equality_calls': 0, 'finalized_with_primary_retained': 1})
+
+    # A namespace value can be finalizable even though its key is exact str.
+    # Restore the original binding, then retain the rejection traceback while
+    # proving that no current-state value survives in new observation frames.
+    value_events = {'finalized': 0}
+
+    class ForeignValue:
+        def __del__(self):
+            value_events['finalized'] += 1
+
+    saved_hash = root._SHA256
+    alien = ForeignValue()
+    root._SHA256 = alien
+    try:
+        primary_value = _rejection(api[0])
+    finally:
+        root._SHA256 = saved_hash
+    del alien
+    gc.collect()
+    _need(value_events['finalized'] == 1 and primary_value is not None,
+          'Root rejection traceback retained a newly observed foreign value')
+    records.append({'case': 'M07-root-value-failure-finalizer', 'finalized_with_primary_retained': 1})
+
+    saved_provider_hash = provider._SHA256
+    alien = ForeignValue()
+    provider._SHA256 = alien
+    try:
+        primary_provider = _rejection(lambda: api[1](capability, provider_sha256))
+    finally:
+        provider._SHA256 = saved_provider_hash
+    del alien
+    gc.collect()
+    _need(value_events['finalized'] == 2 and primary_provider is not None,
+          'Provider rejection traceback retained a newly observed foreign value')
+    records.append({'case': 'M08-provider-value-failure-finalizer', 'finalized_with_primary_retained': 1})
+
+    collector = root._NEW_SCOPE
+    original_code = collector.__code__
+    collector.__code__ = original_code.replace(co_filename=original_code.co_filename + ':control')
+    try:
+        message = str(_rejection(api[0]))
+        _need('Metadata collector calling environment changed' in message,
+              'Collector code was not rejected by its pre-invocation authenticator')
+    finally:
+        collector.__code__ = original_code
+    records.append({'case': 'M09-collector-code-before-invocation', 'rejected': True})
+
+    for case, attribute, replacement in (
+            ('M10-collector-defaults-before-invocation', '__defaults__', (None,)),
+            ('M11-collector-keywords-before-invocation', '__kwdefaults__', {'unused': None})):
+        prior = getattr(collector, attribute)
+        setattr(collector, attribute, replacement)
+        try:
+            message = str(_rejection(api[0]))
+            _need('Metadata collector calling environment changed' in message,
+                  'Collector default mutation reached invocation')
+        finally:
+            setattr(collector, attribute, prior)
+        records.append({'case': case, 'rejected': True})
+
+    # Direct cell mutation is a deliberate collector-authentication negative;
+    # it is not permission to introspect or corrupt private production guards.
+    collector_cell = collector.__closure__[0]
+    prior_cell = collector_cell.cell_contents
+    collector_cell.cell_contents = object()
+    try:
+        message = str(_rejection(api[0]))
+        _need('Metadata collector closure value changed' in message,
+              'Collector closure mutation reached invocation')
+    finally:
+        collector_cell.cell_contents = prior_cell
+    records.append({'case': 'M12-collector-closure-before-invocation', 'rejected': True})
+
+    saved_read, saved_hash = root._READ, root._SHA256
+    root._READ = object()
+    root._SHA256 = object()
+    try:
+        message = str(_rejection(api[0]))
+        _need(message == 'Bootstrap/provider global changed: _READ',
+              'Original ordered namespace rejection changed')
+    finally:
+        root._READ, root._SHA256 = saved_read, saved_hash
+    records.append({'case': 'M13-first-original-namespace-error', 'first': '_READ'})
+
+    # Successful foreign-value observation also must not retain the value after
+    # the owning namespace removes it and the scope has returned/been disposed.
+    alien = ForeignValue()
+    ordinary = {'value': alien}
+    observations = new_scope()
+    try:
+        _need(observations[2](ordinary, 'value', None) == id(alien), 'Value identity observation differs')
+    finally:
+        observations[6]()
+    ordinary.clear()
+    del alien
+    gc.collect()
+    _need(value_events['finalized'] == 3, 'Successful scalar scope retained a foreign value')
+    records.append({'case': 'M14-success-value-finalizer', 'finalized_after_close': 1})
+
+    def lookup_fixture():
+        return guard_key
+
+    fixture_namespace = {'guard_key': None, '__builtins__': fixture.__builtins__}
+    lookup = FunctionType(lookup_fixture.__code__, fixture_namespace)
+    ordered_record = list(root_record(lookup))
+    ordered_record[1] = other_fixture.__code__
+    del fixture_namespace['guard_key']
+    lazy_foreign = ForeignKey()
+    fixture_namespace[lazy_foreign] = True
+    observations = new_scope()
+    try:
+        _need(not root_fresh(tuple(ordered_record), observations), 'Earlier code mismatch was lost')
+        lazy = observations[5]()
+        _need(lazy['actual_reads'] == 1 and lazy['key_domain_scans'] == 0 and
+              foreign_events['equal'] == 0, 'A later metadata field was observed before code rejection')
+    finally:
+        observations[6]()
+        fixture_namespace.clear()
+    del lazy_foreign
+    gc.collect()
+    _need(foreign_events['finalized'] == 2, 'Lazy failure path retained a foreign key')
+    records.append({'case': 'M15-lazy-first-error-before-later-dictionary',
+                    'actual_reads': 1, 'key_domain_scans': 0, 'equality_calls': 0})
+
+    module_events = {'attribute_calls': 0}
+
+    class ModuleTrap(ModuleType):
+        def __getattribute__(self, name):
+            module_events['attribute_calls'] += 1
+            raise RuntimeError('Changed module dispatch must not execute')
+
+    provider.__class__ = ModuleTrap
+    try:
+        message = str(_rejection(lambda: api[1](capability, provider_sha256)))
+        _need(message == 'Bootstrap provider namespace owner differs' and
+              module_events['attribute_calls'] == 0, 'Provider exact-type gate followed changed dispatch')
+    finally:
+        ModuleType.__setattr__(provider, '__class__', ModuleType)
+    records.append({'case': 'M16-provider-module-shape-before-descriptor', 'attribute_calls': 0})
+
+    after = api[3](capability)
+    _need(after == before, 'Metadata controls changed native lifecycle counters')
+    _need(len(records) == 16, 'Metadata control transcript census differs')
+    return {'schema': 'h25-native-metadata-controls-v3', 'records': records,
+            'expected_records': 16, 'observed_record_count': len(records),
+            'native_lifecycle_before': before, 'native_lifecycle_after': after,
+            'scientific_calls': 0, 'native_creations': 0, 'native_checks': 0,
+            'native_inspections': 0, 'status': 'PASS'}

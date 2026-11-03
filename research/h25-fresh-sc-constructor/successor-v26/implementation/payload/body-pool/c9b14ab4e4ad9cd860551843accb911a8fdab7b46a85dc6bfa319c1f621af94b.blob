@@ -1,0 +1,472 @@
+"""Bounded source-bound controls; parent runner alone imports/executes these.
+
+No scientific module is imported at module import. run_controls receives the
+trusted parent backend/adapters. Reference and candidate graphs are constructed
+independently. Direct exact_add_for_controls exercises only explicitly exact
+fixtures; callback-bearing fixtures use the ordinary dispatcher, never that
+conditional-domain test entry. Full H25 bytes and resource observations remain
+parent-owned gates in CONTROL-BILL.json.
+"""
+from __future__ import annotations
+
+import gc
+import signal
+import sys
+import threading
+from types import FunctionType
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def typed(value):
+    kind = type(value)
+    if isinstance(value, dict):
+        return (kind.__name__, tuple((typed(key), typed(item)) for key, item in dict.items(value)))
+    if isinstance(value, (list, tuple)):
+        return (kind.__name__, tuple(typed(item) for item in value))
+    if kind is set:
+        return ("set", tuple(sorted(value)))
+    if kind.__name__ == "Fraction":
+        return ("Fraction", value.numerator, value.denominator)
+    if isinstance(value, int):
+        return (kind.__name__, int(value))
+    if hasattr(value, "tag"):
+        return (kind.__name__, value.tag)
+    return (kind.__name__, value)
+
+
+def outcome(action):
+    try:
+        return ("value", typed(action()))
+    except Exception as error:
+        return ("error", type(error).__name__, typed(error.args))
+
+
+def graph(c, include_lookup=True):
+    return typed({name: value for name, value in c.__dict__.items() if include_lookup or name != "lookup"})
+
+
+def tiny(module):
+    c = object.__new__(module.ComplexSideCircuit)
+    c.support = [0, 1 << 80, 1 << 121, 1 << 162, 1 << 203]
+    c.args = [None] * 5
+    c.kind = [None] + ["in"] * 4
+    c.lookup = {}
+    return c
+
+
+def private_state(binding):
+    """Independent targeted corruption fixture, not a production API.
+
+    Inspect closures read-only to locate the private state object, then let the
+    named negative fixture alter exactly one binding. No source gets modified.
+    """
+    pending = [binding["owner"].restore_for_add.__func__]
+    seen = set()
+    while pending:
+        function = pending.pop()
+        if id(function) in seen:
+            continue
+        seen.add(id(function))
+        need(len(seen) <= 64, "Control closure inspection exceeds bound")
+        for cell in function.__closure__ or ():
+            value = cell.cell_contents
+            if type(value) is dict and "snapshot_anchor" in value and "constructing" in value:
+                return value
+            if type(value) is FunctionType:
+                pending.append(value)
+    raise RuntimeError("Control could not locate construction state")
+
+
+def run_controls(backend, set_adapter, construction_adapter):
+    rows = []
+    oracle = backend.load_source("_h25_construction_control_reference")
+    sequence = 0
+
+    def source():
+        nonlocal sequence
+        sequence += 1
+        return backend.load_source("_h25_construction_control_candidate_" + str(sequence))
+
+    def installed(*, capture=None, compose=False):
+        module = source()
+        p1 = set_adapter.bind_verify_map(module) if compose else None
+        result = construction_adapter.bind_construction(module)
+        if compose:
+            module.Checks.verify_map = p1["verify_map"]
+            checks_init = module.Checks.__init__
+            capture_checks = p1["owner"].capture_checks
+            def observed_checks(self, *args, **kwargs):
+                checks_init(self, *args, **kwargs)
+                capture_checks(self)
+            module.Checks.__init__ = observed_checks
+            capture = p1["owner"].capture_c
+        module.ComplexSideCircuit.add = result["add"]
+        module.ComplexSideCircuit.__init__ = result["wrap_constructor"](result["original_init"], capture)
+        result["owner"].seal()
+        if p1 is not None:
+            p1["owner"].seal()
+        return module, result, p1
+
+    def record(name, **details):
+        rows.append(dict(name=name, status="PASS", **details))
+
+    def rejected(name, action, prefix="Construction"):
+        observed = outcome(action)
+        need(observed[0] == "error" and observed[1] == "RuntimeError" and
+             observed[2][1] and observed[2][1][0][1].startswith(prefix), "Missing expected rejection: " + name)
+        record(name, rejection=observed[2][1][0][1])
+
+    # Exact constructor paths exercise the actual installed fast dispatcher.
+    for h in (8, 9):
+        module, result, _ = installed()
+        result["owner"].arm_finite(h, retire=False)
+        left = oracle.ComplexSideCircuit(h)
+        right = module.ComplexSideCircuit(h)
+        need(graph(left) == graph(right), "Complete constructor state differs")
+        receipt = result["owner"].finish(require_retired=False)
+        need(receipt["fast_add_calls"] > 0 and receipt["fallback_add_calls"] == 0 and
+             receipt["novel_nodes"] == len(right.lookup), "Constructor did not exercise exact union reuse")
+        for (kind, mask), node in right.lookup.items():
+            need(mask is right.support[node], "Constructor duplicated an admitted union object")
+        record("complete-constructor-h" + str(h), indexed_nodes=len(right.lookup),
+               fast_add_calls=receipt["fast_add_calls"], duplicate_hits=receipt["duplicate_hits"])
+
+    # A narrow direct entry isolates the source-derived expression rewrite.
+    module, result, _ = installed()
+    left, right = tiny(oracle), tiny(module)
+    literal = oracle.ComplexSideCircuit.add
+    variant = result["exact_add_for_controls"]
+    steps = [(0, 1, "d0"), (2, 0, "d0"), (0, 0, "d0"), (1, 2, "d0"),
+             (2, 1, "d0"), (1, 2, "d2"), (3, 4, "d0"), (5, 7, "d0"),
+             (1, 3, "d0"), (2, 4, "d0"), (9, 10, "d0")]
+    for index, args in enumerate(steps):
+        expected = outcome(lambda args=args: literal(left, *args))
+        actual = outcome(lambda args=args: variant(right, *args))
+        need(actual == expected and graph(right) == graph(left), "Exact add operation differs")
+        record("exact-add-" + str(index), outcome=actual[0])
+    need(right.lookup[("d0", right.support[1] | right.support[2])] !=
+         right.lookup[("d2", right.support[1] | right.support[2])], "Kinds were collapsed")
+    need(len(right.support) == 11, "Different decomposition failed to reuse its existing node")
+    for (kind, mask), node in right.lookup.items():
+        need(mask is right.support[node], "Exact add did not reuse the immutable mask")
+    expected = outcome(lambda: literal(left, 1, 1, "d0"))
+    actual = outcome(lambda: variant(right, 1, 1, "d0"))
+    need(actual == expected and graph(left) == graph(right), "Overlap assertion differs in this optimization mode")
+    record("overlap-assertion-matching-mode", outcome=actual[0])
+
+    # Ordinary dispatcher has literal callback/type/error semantics.
+    for name, a, b, kind in (("negative-index", -1, 1, "d0"), ("index-outside", 9999, 1, "d0"),
+                            ("none-index", None, 1, "d0"), ("float-index", 1.5, 1, "d0"),
+                            ("bool-index", True, 2, "d0"), ("unhashable-kind", 1, 2, [])):
+        left, right = tiny(oracle), tiny(module)
+        need(outcome(lambda: literal(left, a, b, kind)) == outcome(lambda: result["add"](right, a, b, kind)) and
+             graph(left) == graph(right), "Generic invalid input differs: " + name)
+        record(name)
+
+    class Mask(int):
+        def __new__(cls, value, events):
+            obj = int.__new__(cls, value)
+            obj.events = events
+            return obj
+        def __and__(self, other):
+            self.events.append("and")
+            return int.__and__(self, other)
+        def __or__(self, other):
+            self.events.append("or")
+            return int.__or__(self, other)
+    class Index:
+        tag = "index-1"
+        def __init__(self, events):
+            self.events = events
+        def __bool__(self):
+            self.events.append("bool")
+            return True
+        def __index__(self):
+            self.events.append("index")
+            return 1
+    class Kind:
+        tag = "kind"
+        def __init__(self, events):
+            self.events = events
+        def __hash__(self):
+            self.events.append("hash")
+            return 1
+        def __eq__(self, other):
+            self.events.append("eq")
+            return type(other) is Kind
+    class Support(list):
+        def __init__(self, values, events):
+            super().__init__(values)
+            self.events = events
+        def __getitem__(self, key):
+            self.events.append("getitem")
+            return super().__getitem__(key)
+        def append(self, value):
+            self.events.append("append")
+            return super().append(value)
+    class Lookup(dict):
+        def __init__(self, events):
+            super().__init__()
+            self.events = events
+        def get(self, key, default=None):
+            self.events.append("get")
+            return super().get(key, default)
+        def __setitem__(self, key, value):
+            self.events.append("setitem")
+            return super().__setitem__(key, value)
+
+    for name in ("mask-callback", "index-callback", "kind-callback", "support-callback", "lookup-callback"):
+        events = ([], [])
+        circuits = (tiny(oracle), tiny(module))
+        calls = []
+        for circuit, log in zip(circuits, events):
+            a, b, kind = 1, 2, "d0"
+            if name == "mask-callback": circuit.support[1] = Mask(circuit.support[1], log)
+            if name == "index-callback": a = Index(log)
+            if name == "kind-callback": kind = Kind(log)
+            if name == "support-callback": circuit.support = Support(circuit.support, log)
+            if name == "lookup-callback": circuit.lookup = Lookup(log)
+            calls.append((circuit, a, b, kind))
+        expected = outcome(lambda: literal(*calls[0]))
+        expected_events = list(events[0])
+        actual = outcome(lambda: result["add"](*calls[1]))
+        actual_events = list(events[1])
+        need(actual == expected and actual_events == expected_events and expected_events,
+             "Callback behavior/order differs: " + name)
+        need(graph(circuits[0]) == graph(circuits[1]), "Callback graph state differs: " + name)
+        if name == "mask-callback":
+            need(expected_events.count("or") == 2, "Mask fixture missed original repeated union")
+        record(name, callbacks=expected_events)
+
+    # Ordinary constructors are never retired, including a second API use.
+    left = oracle.ComplexSideCircuit(8)
+    right = module.ComplexSideCircuit(8)
+    need(graph(left) == graph(right) and right.lookup, "Unarmed constructor changed index")
+    for circuit, call in ((left, literal), (right, result["add"])):
+        call(circuit, 1, 2, "d0")
+    need(graph(left) == graph(right), "Unarmed incremental construction differs")
+    record("unarmed-construction-remains-incremental")
+
+    # Retirement preserves all graph fields and exactly snapshots every key.
+    module, result, _ = installed()
+    result["owner"].arm_finite(8, retire=True)
+    left = oracle.ComplexSideCircuit(8)
+    right = module.ComplexSideCircuit(8)
+    state = private_state(result)
+    snapshot = state["snapshot"]
+    lookup = right.lookup
+    need(not lookup and snapshot[1] is lookup and graph(left, False) == graph(right, False),
+         "Retirement changed graph state or dictionary identity")
+    original_entries = list(left.lookup.items())
+    need(tuple((snapshot[2][i], snapshot[3][i], snapshot[4][i]) for i in range(len(snapshot[4]))) ==
+         tuple((key[0], key[1], node) for key, node in original_entries), "Exact original snapshot differs")
+    inactive = [node for _, node in original_entries if node not in left.active]
+    need(inactive and all(node in snapshot[4] for node in inactive), "Inactive construction nodes were not covered")
+    result["owner"].finish()
+    record("retired-complete-index-and-private-snapshot", nodes=len(snapshot[4]), inactive=len(inactive))
+    args = left.args[original_entries[0][1]]
+    expected = outcome(lambda: literal(left, *args, left.kind[original_entries[0][1]]))
+    actual = outcome(lambda: result["add"](right, *args, left.kind[original_entries[0][1]]))
+    need(actual == expected and right.lookup is lookup and graph(left) == graph(right), "Resume did not restore original mapping")
+    need(result["receipt"]()["restorations"] == 1, "Resume restoration count differs")
+    rejected("resumed-run-loses-frozen-tail-qualification", result["owner"].finish)
+    record("resumed-duplicate-restores-same-dictionary")
+
+    # Reinitialization must restore the original table before literal __init__
+    # can replace it. Compare successful and rejecting source paths independently
+    # in both interpreter modes, including any surviving original table alias.
+    for dimension in (8, 9, 7):
+        module, result, _ = installed()
+        result["owner"].arm_finite(8, retire=True)
+        left = oracle.ComplexSideCircuit(8)
+        right = module.ComplexSideCircuit(8)
+        left_old_lookup, right_old_lookup = left.lookup, right.lookup
+        expected = outcome(lambda: oracle.ComplexSideCircuit.__init__(left, dimension))
+        actual = outcome(lambda: module.ComplexSideCircuit.__init__(right, dimension))
+        need(actual == expected and graph(left) == graph(right),
+             "Retired object literal reinitialization differs")
+        need(typed(left_old_lookup) == typed(right_old_lookup),
+             "Reinitialization did not restore the original table contents")
+        need((left.lookup is left_old_lookup) == (right.lookup is right_old_lookup),
+             "Reinitialization changed original table replacement behavior")
+        state = private_state(result)
+        receipt = result["receipt"]()
+        need(state["snapshot"] is None and state["snapshot_anchor"] is None and
+             state["retired_circuit"] is None and receipt["restorations"] == 1 and
+             receipt["resumed"] and receipt["constructors_fallback"] == 1,
+             "Reinitialization retained retirement or reused private construction")
+        rejected("reinitialized-run-loses-qualification-h" + str(dimension), result["owner"].finish)
+        record("retired-object-literal-reinitialization-h" + str(dimension), outcome=actual[0])
+
+    # Graph mutations must never become a substitute for original index entries.
+    module, result, _ = installed()
+    result["owner"].arm_finite(8, retire=True)
+    left = oracle.ComplexSideCircuit(8)
+    right = module.ComplexSideCircuit(8)
+    for circuit in (left, right):
+        circuit.support[1] = 1 << 1000
+        circuit.args[1] = (0, 0)
+        circuit.kind[1] = "modified-input"
+    need(outcome(lambda: literal(left, 1, 2, "d0")) == outcome(lambda: result["add"](right, 1, 2, "d0")) and
+         graph(left) == graph(right), "Restoration reconstructed from mutated graph arrays")
+    record("resumption-restores-original-index-after-graph-edits")
+
+    for name in ("lookup-entry-mutation", "lookup-replacement", "snapshot-binding", "double-finalize", "wrong-finalizer"):
+        module, result, _ = installed()
+        result["owner"].arm_finite(8, retire=True)
+        circuit = module.ComplexSideCircuit(8)
+        if name == "lookup-entry-mutation":
+            circuit.lookup[("d0", 1)] = 7
+            action = lambda: result["add"](circuit, 1, 2, "d0")
+        elif name == "lookup-replacement":
+            circuit.lookup = {}
+            action = lambda: result["add"](circuit, 1, 2, "d0")
+        elif name == "snapshot-binding":
+            state = private_state(result)
+            original = state["snapshot"]
+            state["snapshot"] = tuple(list(original))
+            action = lambda: result["add"](circuit, 1, 2, "d0")
+        elif name == "double-finalize":
+            action = lambda: result["owner"].finalize(circuit)
+        else:
+            action = lambda: result["owner"].finalize(object.__new__(module.ComplexSideCircuit))
+        before = len(circuit.support)
+        rejected(name, action)
+        need(len(circuit.support) == before, "Rejected phase drift executed an addition")
+
+    # Concrete source and wrapper freshness controls.
+    altered = source()
+    altered.ComplexSideCircuit.add = lambda *args: 0
+    rejected("factory-rejects-changed-original-add", lambda: construction_adapter.bind_construction(altered))
+    altered = source()
+    altered.len = len
+    rejected("factory-rejects-source-builtin-shadow", lambda: construction_adapter.bind_construction(altered))
+    module, result, _ = installed()
+    module.ComplexSideCircuit.add = lambda *args: 0
+    rejected("seal-rejects-late-add-replacement", result["owner"].arm_cli)
+    module, result, _ = installed()
+    result["owner"].arm_finite(8, retire=True)
+    rejected("scope-cannot-be-rearmed", result["owner"].arm_cli)
+
+    # Known hooks deny private admission and are restored even on failure.
+    for hook in ("trace", "profile", "gc", "thread", "signal", "monitoring"):
+        module, result, _ = installed()
+        result["owner"].arm_finite(8, retire=True)
+        previous_trace, previous_profile = sys.gettrace(), sys.getprofile()
+        previous_signal = signal.getsignal(signal.SIGUSR1)
+        event = threading.Event()
+        thread = None
+        monitoring = getattr(sys, "monitoring", None)
+        tool = None
+        def quiet_trace(frame, event_name, arg):
+            return quiet_trace
+        def quiet_gc(phase, info):
+            return None
+        def quiet_signal(number, frame):
+            return None
+        try:
+            if hook == "trace": sys.settrace(quiet_trace)
+            elif hook == "profile": sys.setprofile(quiet_trace)
+            elif hook == "gc": gc.callbacks.append(quiet_gc)
+            elif hook == "thread":
+                thread = threading.Thread(target=event.wait)
+                thread.start()
+            elif hook == "signal": signal.signal(signal.SIGUSR1, quiet_signal)
+            else:
+                need(monitoring is not None, "Pinned runtime lacks monitoring hook control")
+                tool = next((number for number in range(6) if monitoring.get_tool(number) is None), None)
+                need(tool is not None, "No free monitoring tool for bounded control")
+                monitoring.use_tool_id(tool, "h25-construction-finite-control")
+            circuit = module.ComplexSideCircuit(8)
+        finally:
+            sys.settrace(previous_trace)
+            sys.setprofile(previous_profile)
+            if hook == "gc" and quiet_gc in gc.callbacks: gc.callbacks.remove(quiet_gc)
+            if thread is not None:
+                event.set()
+                thread.join(timeout=5)
+                need(not thread.is_alive(), "Finite hook thread did not terminate")
+            if hook == "signal": signal.signal(signal.SIGUSR1, previous_signal)
+            if tool is not None: monitoring.free_tool_id(tool)
+        need(circuit.lookup and result["receipt"]()["constructors_admitted"] == 0 and
+             result["receipt"]()["finalizations"] == 0, "Hook-bearing constructor was optimized")
+        need(graph(circuit) == graph(oracle.ComplexSideCircuit(8)), "Hook fallback changed constructor")
+        record("hook-bearing-constructor-" + hook)
+
+    # Invalid h never consumes the trusted constructor scope or retires state.
+    module, result, _ = installed()
+    result["owner"].arm_finite(8, retire=True)
+    if __debug__:
+        need(outcome(lambda: module.ComplexSideCircuit(7)) == outcome(lambda: oracle.ComplexSideCircuit(7)),
+             "Invalid constructor assertion differs")
+        need(result["receipt"]()["finalizations"] == 0, "Failed original constructor retired state")
+        record("invalid-dimension-original-assertion")
+
+    # Corrupt the index at the trusted observation boundary; reject before clear.
+    captured = []
+    def damage_index(circuit):
+        captured.append(circuit)
+        circuit.lookup.pop(next(iter(circuit.lookup)))
+    module, result, _ = installed(capture=damage_index)
+    result["owner"].arm_finite(8, retire=True)
+    rejected("malformed-complete-index-before-clear", lambda: module.ComplexSideCircuit(8))
+    need(captured and captured[0].lookup and result["receipt"]()["finalizations"] == 0,
+         "Malformed finalization cleared the index")
+
+    # Generic subclass dispatch and a list of callable-shape drifts.
+    module, result, _ = installed()
+    reference_subclass = type("ReferenceCircuitSubclass", (oracle.ComplexSideCircuit,), {})
+    candidate_subclass = type("CandidateCircuitSubclass", (module.ComplexSideCircuit,), {})
+    left = object.__new__(reference_subclass)
+    right = object.__new__(candidate_subclass)
+    left.__dict__.update(tiny(oracle).__dict__)
+    right.__dict__.update(tiny(module).__dict__)
+    need(outcome(lambda: literal(left, 1, 2, "d0")) == outcome(lambda: result["add"](right, 1, 2, "d0")) and
+         graph(left) == graph(right), "Subclass fallback changed")
+    record("generic-subclass-add-fallback")
+    for name in ("defaults", "code", "helper", "descriptor"):
+        altered = source()
+        if name == "defaults": altered.ComplexSideCircuit.add.__defaults__ = ("d0",)
+        elif name == "code": altered.ComplexSideCircuit.add.__code__ = (lambda *args: 0).__code__
+        elif name == "helper": altered.subsets = lambda *args: []
+        else: altered.ComplexSideCircuit.__getattribute__ = lambda self, key: object.__getattribute__(self, key)
+        rejected("factory-rejects-original-" + name, lambda: construction_adapter.bind_construction(altered))
+    module, result, _ = installed()
+    # Changing default bindings requires no illegal closure-shape assignment.
+    result["add"].__defaults__ = ("d0",)
+    rejected("owner-rejects-changed-wrapper-defaults", result["owner"].arm_cli)
+
+    # Restore also precedes construction resumed through a public helper.
+    module, result, _ = installed()
+    result["owner"].arm_finite(8, retire=True)
+    left = oracle.ComplexSideCircuit(8)
+    right = module.ComplexSideCircuit(8)
+    need(outcome(lambda: left.total([1, 2], "d0")) == outcome(lambda: right.total([1, 2], "d0")) and
+         graph(left) == graph(right), "Construction helper bypassed restoration")
+    record("public-total-helper-restores-before-add")
+
+    # The actual P1 order is exercised, not asserted from independent factories.
+    module, result, p1 = installed(compose=True)
+    result["owner"].arm_finite(8, retire=True)
+    p1["owner"].arm_cli()
+    try:
+        circuit = module.ComplexSideCircuit(8)
+        checks = module.Checks(circuit)
+        observed = checks.verify_map()
+        expected = oracle.Checks(oracle.ComplexSideCircuit(8)).verify_map()
+        need(typed(observed) == typed(expected), "P1/construction composed map changed")
+        need(p1["receipt"]["fast_admissions"] == 1 and p1["receipt"]["fallback_calls"] == 0,
+             "P1 constructor capture/sealing order did not admit the real path")
+        result["owner"].finish()
+    finally:
+        p1["owner"].disarm_cli()
+    record("p1-original-authentication-and-final-wrapper-composition")
+
+    return {"schema": "h25-construction-controls-v2", "status": "PASS", "controls": rows,
+            "cases": len(rows), "independent_reference_module": oracle.__name__,
+            "optimized": not __debug__, "fresh_candidate_modules": sequence,
+            "full_h25_and_resource_gates": "Parent-owned; not established by these finite controls"}

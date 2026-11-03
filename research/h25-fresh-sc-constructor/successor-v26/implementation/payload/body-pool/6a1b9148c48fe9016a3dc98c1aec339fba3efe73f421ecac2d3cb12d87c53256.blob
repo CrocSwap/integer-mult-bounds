@@ -1,0 +1,78 @@
+{
+  "both_new_arms_use_original_native_C_mode": true,
+  "derived_driver_sha256": "5b963a5f108b334a627e68001c80b9843fb300c7394693e72f34ce0a6050e6f1",
+  "exact_inverse_restores_original_bytes": true,
+  "old_controls_and_observer_reference_unmodified": true,
+  "patches": [
+    {
+      "new": "import adapters\nROUND = Path(__file__).resolve().parent.parent\nHERE = ROUND / \"baseline\"\nREFERENCE_DRIVER_SHA = \"0d976d2eb6b845f20d4a3396591a806f966688b88693cd6a5f8a0c9e48925e36\"",
+      "old": "HERE = Path(__file__).resolve().parent"
+    },
+    {
+      "new": "parser.add_argument(\"--frozen-root\", type=Path, default=HERE / \"frozen\")",
+      "old": "parser.add_argument(\"--frozen-root\", type=Path, required=True)"
+    },
+    {
+      "new": "parser.add_argument(\"--reference\", type=Path, default=HERE / \"reference/certificates/complex-network.json\")",
+      "old": "parser.add_argument(\"--reference\", type=Path, required=True, help=\"Pinned original complex-network.json file\")"
+    },
+    {
+      "new": "parser.add_argument(\"--lanes\", choices=(\"none\", \"sets\", \"guards\", \"trace\", \"all\"), required=True)\n    parser.add_argument(\"--finite-only\", action=\"store_true\")",
+      "old": "parser.add_argument(\"--mode\", choices=(\"profile\", \"baseline\", \"candidate\"), required=True)"
+    },
+    {
+      "new": "parser.add_argument(\"--anchor\", type=Path, default=HERE / \"anchor.json\")",
+      "old": "parser.add_argument(\"--anchor\", type=Path, help=\"Frozen anchor.json emitted by the one profile run\")"
+    },
+    {
+      "new": "args = parser.parse_args()\n    args.mode = \"candidate\"  # Every new arm starts from the original native C configuration.\n    need(args.finite_only or sys.flags.optimize == 0, \"Every full-caller mode requires original assertions\")",
+      "old": "args = parser.parse_args()\n    need(sys.flags.optimize == 0, \"Every full-caller mode requires original assertions\")"
+    },
+    {
+      "new": "driver_before = Path(__file__).read_bytes()\n    new_custody_before = adapters.custody(ROUND, args.lanes)\n    reference_driver_before = (HERE / \"full_driver.py\").read_bytes()\n    need(sha(reference_driver_before) == REFERENCE_DRIVER_SHA, \"Reference driver pin changed\")",
+      "old": "driver_before = Path(__file__).read_bytes()"
+    },
+    {
+      "new": "expected_anchor.get(\"driver_sha256\") == REFERENCE_DRIVER_SHA",
+      "old": "expected_anchor.get(\"driver_sha256\") == sha(driver_before)"
+    },
+    {
+      "new": "extensions = phases.call(\"new_adapter_preparation\", adapters.prepare, ROUND, backend, native, output, args.lanes, phases)\n        finite = phases.call(\"all_native_finite_independent_controls\", importlib.import_module(\"finite_controls\").run_controls, native)\n        phases.call(\"all_new_controls\", adapters.run_controls, extensions, backend, native, phases)",
+      "old": "finite = phases.call(\"all_native_finite_independent_controls\", importlib.import_module(\"finite_controls\").run_controls, native)"
+    },
+    {
+      "new": "    if args.finite_only:\n        need(inventory(frozen, pins) == frozen_before and inventory(HERE / \"engine\", ENGINE_PINS) == engine_before, \"Finite immutable source custody changed\")\n        need(inventory(runtime, pins) == runtime_before and inventory(engine, ENGINE_PINS) == copied_engine_before, \"Finite copied source custody changed\")\n        need(adapters.custody(ROUND, args.lanes) == new_custody_before, \"Finite new source custody changed\")\n        result = {\"status\": \"H25_BOOKKEEPING_FINITE_PASS\", \"lanes\": args.lanes,\n                  \"optimized\": sys.flags.optimize, \"original_controls\": finite,\n                  \"new_controls\": extensions[\"controls\"], \"new_source_custody\": new_custody_before,\n                  \"driver_sha256\": sha(driver_before),\n                  \"reference_driver_sha256\": REFERENCE_DRIVER_SHA, \"phases\": phases.rows}\n        (output / \"receipt.json\").write_text(json.dumps(result, indent=2, sort_keys=True) + \"\\n\")\n        print(json.dumps(result, sort_keys=True))\n        return\n\n    circuit_module = phases.call(\"cold_complex_module_load\", backend.load_source, \"complex_circuit\")",
+      "old": "    circuit_module = phases.call(\"cold_complex_module_load\", backend.load_source, \"complex_circuit\")"
+    },
+    {
+      "new": "complement = extensions[\"trace_type\"](circuit_module.Label)\n    phases.call(\"private_set_adapter_installation\", adapters.install_set, extensions, circuit_module)",
+      "old": "complement = backend.ComplementTrace(circuit_module.Label)"
+    },
+    {
+      "new": "    phases.call(\"private_set_lease_sealing\", adapters.seal, extensions)\n    caller = runtime / \"scripts/complex_network.py\"",
+      "old": "    caller = runtime / \"scripts/complex_network.py\""
+    },
+    {
+      "new": "    try:\n        adapters.arm(extensions)\n        sys.argv = [str(caller)]",
+      "old": "    try:\n        sys.argv = [str(caller)]"
+    },
+    {
+      "new": "    finally:\n        sys.argv = old_argv\n        adapters.disarm(extensions)",
+      "old": "    finally:\n        sys.argv = old_argv"
+    },
+    {
+      "new": "\"driver_sha256\": REFERENCE_DRIVER_SHA, \"engine_pins\": ENGINE_PINS, \"science\": science",
+      "old": "\"driver_sha256\": sha(driver_before), \"engine_pins\": ENGINE_PINS, \"science\": science"
+    },
+    {
+      "new": "        \"mode\": args.mode, \"lanes\": args.lanes, \"bookkeeping\": adapters.receipt(extensions),\n        \"reference_driver_sha256\": REFERENCE_DRIVER_SHA,\n        \"science\": science, \"base_commit\": BASE, \"native_predecessor_pr\": 5995,",
+      "old": "        \"mode\": args.mode, \"science\": science, \"base_commit\": BASE, \"native_predecessor_pr\": 5929,"
+    },
+    {
+      "new": "    need(adapters.custody(ROUND, args.lanes) == new_custody_before, \"New source custody changed\")\n    receipt = {\n        \"new_source_custody\": new_custody_before,\n        \"status\":",
+      "old": "    receipt = {\n        \"status\":"
+    }
+  ],
+  "reference_driver_sha256": "0d976d2eb6b845f20d4a3396591a806f966688b88693cd6a5f8a0c9e48925e36",
+  "source_only_derivation_no_scientific_execution": true
+}

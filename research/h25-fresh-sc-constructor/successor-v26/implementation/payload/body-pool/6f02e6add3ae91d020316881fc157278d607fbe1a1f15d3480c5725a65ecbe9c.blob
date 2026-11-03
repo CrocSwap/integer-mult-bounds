@@ -1,0 +1,504 @@
+"""Source-derived verdict wrappers with current-data and live-runtime authority.
+
+Parent-owned installation only. No scientific module imports, arithmetic
+replacement, immutable Label replacement or shared reference answers. Generic
+Label data may use literal uncached expressions; custom Checks/verdict mappings
+are rejected. Serial stability is the existing native backend contract.
+
+V3 also requires exact bool public values before authority. A nonbool old value
+can run __del__ when original assignment overwrites it, changing the bool seen by
+the original final lookup. Such requests retain literal uncached behavior but
+cannot authorize that callback-altered result. This all-public O(K+Q) reference
+remains closed to full-caller execution pending source cost feasibility.
+"""
+from __future__ import annotations
+
+import _thread
+import ast
+import builtins
+import copy
+import gc
+import hashlib
+from pathlib import Path
+import sys
+from types import CodeType, FunctionType, GetSetDescriptorType, ModuleType
+
+SOURCE_SHA256 = "d623617f7c5cb3189580883a8ab30c0bd3832688ae3f1f0c1f881bbbbff8e0c1"
+_TYPE, _OBJECT, _DICT, _TUPLE, _INT, _STR, _BOOL = type, object, dict, tuple, int, str, bool
+_LEN, _SORTED, _ID, _COMPILE = len, sorted, id, compile
+_GET, _ITEMS, _CLEAR = dict.get, dict.items, dict.clear
+_OBJGET, _TYPEGET = object.__getattribute__, type.__getattribute__
+_ERROR, _BASE_ERROR = RuntimeError, BaseException
+_BUILTINS = builtins.__dict__
+_ANY = _BUILTINS["any"]
+_GETTRACE, _GETPROFILE, _THREADCOUNT = sys.gettrace, sys.getprofile, _thread._count
+_MISSING = object()
+
+
+def _need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def _record(function):
+    _need(_TYPE(function) is FunctionType, "Cache contract requires ordinary functions")
+    closure = function.__closure__
+    return (function, function.__code__, function.__globals__, function.__builtins__,
+            function.__defaults__, function.__kwdefaults__, closure,
+            () if closure is None else _TUPLE((cell, cell.cell_contents) for cell in closure))
+
+
+def _fresh(record):
+    function, code, namespace, builtins_owner, defaults, kwdefaults, closure, cells = record
+    if not (function.__code__ is code and function.__globals__ is namespace and
+            function.__builtins__ is builtins_owner and function.__defaults__ is defaults and
+            function.__kwdefaults__ is kwdefaults and function.__closure__ is closure):
+        return False
+    for cell, value in cells:
+        try:
+            if cell.cell_contents is not value:
+                return False
+        except ValueError:
+            return False
+    return True
+
+
+def _ordinary(cls):
+    if _TYPE(cls) is not _TYPE or _TYPEGET(cls, "__mro__") != (cls, _OBJECT):
+        return False
+    members = _TYPEGET(cls, "__dict__")
+    if "__getattr__" in members or _TYPEGET(cls, "__getattribute__") is not _OBJECT.__getattribute__:
+        return False
+    if _TYPEGET(cls, "__new__") is not _OBJECT.__new__:
+        return False
+    for name in ("__dict__", "__weakref__"):
+        descriptor = members.get(name)
+        if _TYPE(descriptor) is not GetSetDescriptorType or descriptor.__objclass__ is not cls:
+            return False
+    return True
+
+
+def _plain_fields(instance, cls):
+    if _TYPE(instance) is not cls:
+        return None
+    namespace = _OBJGET(instance, "__dict__")
+    if _TYPE(namespace) is not _DICT:
+        return None
+    # Validate before string-key lookup: injected custom keys could otherwise
+    # invoke equality against an ordinary field name.
+    for name in namespace:
+        if _TYPE(name) is not _STR:
+            return None
+    return namespace
+
+
+def _canonical(instance, label):
+    """Current exact data, never Label.key alone; no custom operand dispatch."""
+    namespace = _plain_fields(instance, label)
+    if namespace is None or _LEN(namespace) != 3:
+        return None
+    basis = _GET(namespace, "basis", _MISSING)
+    dim = _GET(namespace, "dim", _MISSING)
+    key = _GET(namespace, "key", _MISSING)
+    if _TYPE(basis) is not _DICT or _TYPE(dim) is not _INT or _TYPE(key) is not _TUPLE:
+        return None
+    if dim != _LEN(basis) or _LEN(key) != dim:
+        return None
+    for value in key:
+        if _TYPE(value) is not _INT:
+            return None
+    pivots = 0
+    values = []
+    for pivot, value in _ITEMS(basis):
+        if _TYPE(pivot) is not _INT or _TYPE(value) is not _INT:
+            return None
+        if pivot <= 0 or pivot & (pivot - 1) or value <= 0 or value & -value != pivot:
+            return None
+        pivots |= pivot
+        values.append(value)
+    for pivot, value in _ITEMS(basis):
+        if value & pivots != pivot:
+            return None
+    if _TUPLE(_SORTED(values)) != key:
+        return None
+    # key is now an exact immutable representation of the canonical mapping.
+    return key
+
+
+def _hooks_clear():
+    """Known hook exclusion, not a promise against signals/finalizers/threads."""
+    if _GETTRACE() is not None or _GETPROFILE() is not None or _THREADCOUNT() != 0:
+        return False
+    callbacks = gc.callbacks
+    if _TYPE(callbacks) is not list or _LEN(callbacks):
+        return False
+    monitoring = getattr(sys, "monitoring", None)
+    if monitoring is not None:
+        for tool in range(6):
+            if monitoring.get_tool(tool) is not None:
+                return False
+    return True
+
+
+class _State:
+    __slots__ = ("checks", "mapping", "authority")
+
+    def __init__(self, checks, mapping):
+        self.checks, self.mapping, self.authority = checks, mapping, {}
+
+
+class _Ticket:
+    __slots__ = ("state", "signature", "c", "h", "hit", "expected")
+
+    def __init__(self, state, signature, circuit, height):
+        self.state, self.signature, self.c, self.h = state, signature, circuit, height
+        self.hit, self.expected = False, _MISSING
+
+
+class _Owner:
+    def __init__(self, module, source_records, class_names):
+        self.module, self.namespace = module, module.__dict__
+        self.checks_class, self.label = self.namespace["Checks"], self.namespace["Label"]
+        self.source_records, self.class_names = source_records, class_names
+        self.odd = self.namespace["odd"]
+        self.runtime = None
+        self.methods = {}
+        self.method_records = ()
+        self.states = {}
+        self.receipt = {"schema": "h25-cache-contract-v3", "source_sha256": SOURCE_SHA256,
+                        "requests": 0, "entry_checks": 0, "exit_checks": 0,
+                        "public_key_scans": 0, "public_keys_examined": 0,
+                        "public_key_components_examined": 0, "unsafe_public_entry_requests": 0,
+                        "public_values_examined": 0,
+                        "snapshots": 0, "eligible_requests": 0, "uncached_requests": 0,
+                        "authorized_hits": 0, "authorized_results": 0,
+                        "invalidations": 0, "peak_authority_entries": 0,
+                        "current_authority_entries": 0, "teardowns": 0}
+
+    def _clear(self, state):
+        count = _LEN(state.authority)
+        if count:
+            _CLEAR(state.authority)
+            self.receipt["current_authority_entries"] -= count
+            self.receipt["invalidations"] += 1
+
+    def _lookup_state(self, checks):
+        state = _GET(self.states, _ID(checks))
+        if state is not None and state.checks is checks:
+            return state
+        return None
+
+    def enter(self, checks):
+        _need(self.runtime is not None, "Cache contract runtime is not attached")
+        self.runtime.check()
+        self.receipt["entry_checks"] += 1
+        self.receipt["requests"] += 1
+        # Do not read verdicts/everything/key here. Original key errors precede
+        # original verdict access errors; custom Checks itself is unsupported.
+        _need(_plain_fields(checks, self.checks_class) is not None,
+              "Unsupported cache contract Checks dispatch or fields")
+        return checks
+
+    def _data(self, checks, key, operands, kind):
+        self.receipt["snapshots"] += 1
+        namespace = _plain_fields(checks, self.checks_class)
+        if namespace is None:
+            return None
+        circuit, height = _GET(namespace, "c", _MISSING), _GET(namespace, "h", _MISSING)
+        if circuit is _MISSING or _TYPE(height) is not _INT:
+            return None
+        keys = []
+        for operand in operands:
+            value = _canonical(operand, self.label)
+            if value is None:
+                return None
+            keys.append(value)
+        if kind == "label":
+            everything = _GET(namespace, "everything", _MISSING)
+            whole_key = _canonical(everything, self.label)
+            if whole_key is None or _TYPE(key) is not _TUPLE or key != ("label", keys[0]):
+                return None
+            signature = (kind, keys[0], whole_key)
+        else:
+            if _TYPE(key) is not _TUPLE or key != (keys[0], keys[1]):
+                return None
+            signature = (kind, keys[0], keys[1])
+        return signature, circuit, height
+
+    def _entries_safe(self, mapping):
+        """Admit callback-free keys AND exact bool values; deliberately O(K+Q).
+
+        Foreign keys can mutate arithmetic through equality. A nonbool stored
+        value can mutate the final lookup through __del__ during replacement.
+        Entry/exit operand equality alone excludes neither case. Inspect types
+        only; never hash/compare foreign keys, invoke values, or retain answers.
+        """
+        self.receipt["public_key_scans"] += 1
+        for key, value in _ITEMS(mapping):
+            self.receipt["public_keys_examined"] += 1
+            self.receipt["public_values_examined"] += 1
+            if _TYPE(value) is not _BOOL:
+                return False
+            if _TYPE(key) is not _TUPLE or _LEN(key) != 2:
+                return False
+            first, second = key
+            if _TYPE(first) is _STR:
+                if first != "label":
+                    return False
+                parts = (second,)
+            else:
+                parts = (first, second)
+            for part in parts:
+                if _TYPE(part) is not _TUPLE:
+                    return False
+                for value in part:
+                    self.receipt["public_key_components_examined"] += 1
+                    if _TYPE(value) is not _INT:
+                        return False
+        return True
+
+    def prepare(self, checks, key, operands, kind):
+        namespace = _plain_fields(checks, self.checks_class)
+        _need(namespace is not None, "Unsupported cache contract Checks fields")
+        mapping = _GET(namespace, "verdicts", _MISSING)
+        state = self._lookup_state(checks)
+        if mapping is _MISSING:
+            if state is not None:
+                self._clear(state)
+            self.receipt["uncached_requests"] += 1
+            return None  # original `self.verdicts` raises at its original site
+        _need(_TYPE(mapping) is _DICT, "Unsupported cache contract verdict mapping")
+        if state is None or state.mapping is not mapping:
+            if state is not None:
+                self._clear(state)
+            state = _State(checks, mapping)
+            self.states[_ID(checks)] = state
+        public_safe = self._entries_safe(mapping)
+        if not public_safe:
+            self.receipt["unsafe_public_entry_requests"] += 1
+        data = self._data(checks, key, operands, kind) if public_safe and _hooks_clear() else None
+        if data is None:
+            self._clear(state)  # no hash/equality involving unsupported key
+            self.receipt["uncached_requests"] += 1
+            return None
+        self.receipt["eligible_requests"] += 1
+        signature, circuit, height = data
+        return _Ticket(state, signature, circuit, height)
+
+    def reuse(self, ticket, key):
+        if ticket is None:
+            return False
+        record = _GET(ticket.state.authority, key)
+        if record is None:
+            return False
+        signature, circuit, height, result = record
+        if signature != ticket.signature or circuit is not ticket.c or height != ticket.h:
+            return False
+        ticket.hit, ticket.expected = True, result
+        return True
+
+    def finish(self, checks, key, operands, kind, ticket, result):
+        self.runtime.check()
+        self.receipt["exit_checks"] += 1
+        if ticket is None:
+            state = self._lookup_state(checks)
+            if state is not None:
+                self._clear(state)  # callbacks may have made reentrant requests
+            return result
+        namespace = _plain_fields(checks, self.checks_class)
+        same_mapping = namespace is not None and _GET(namespace, "verdicts", _MISSING) is ticket.state.mapping
+        public_safe = same_mapping and self._entries_safe(ticket.state.mapping)
+        data = self._data(checks, key, operands, kind) if public_safe and _hooks_clear() else None
+        if (not same_mapping or
+                data is None or data[0] != ticket.signature or
+                data[1] is not ticket.c or data[2] != ticket.h):
+            self._clear(ticket.state)
+            raise _ERROR("Cache data changed during request")
+        if ticket.hit and result is not ticket.expected:
+            self._clear(ticket.state)
+            raise _ERROR("Cache verdict authority changed")
+        if _TYPE(result) is not _BOOL:
+            self._clear(ticket.state)
+            return result
+        if ticket.hit:
+            self.receipt["authorized_hits"] += 1
+        authority = ticket.state.authority
+        if key not in authority:
+            self.receipt["current_authority_entries"] += 1
+            count = self.receipt["current_authority_entries"]
+            if count > self.receipt["peak_authority_entries"]:
+                self.receipt["peak_authority_entries"] = count
+        authority[key] = (ticket.signature, ticket.c, ticket.h, result)
+        self.receipt["authorized_results"] += 1
+        return result
+
+    def abort(self, checks):
+        state = self._lookup_state(checks)
+        if state is not None:
+            self._clear(state)
+
+    def teardown(self):
+        for state in self.states.values():
+            self._clear(state)
+        _CLEAR(self.states)
+        self.receipt["teardowns"] += 1
+        return _DICT(self.receipt)
+
+
+def _code_named(code, name):
+    for item in code.co_consts:
+        if _TYPE(item) is CodeType and item.co_name == name:
+            return item
+    raise _ERROR("Cache contract expected source code was absent: " + name)
+
+
+def _authenticate(function, expected, namespace):
+    _need(_TYPE(function) is FunctionType and function.__globals__ is namespace and
+          function.__builtins__ is _BUILTINS and function.__closure__ is None and
+          function.__defaults__ is None and function.__kwdefaults__ is None and
+          function.__code__ == expected, "Cache contract original source authentication failed")
+    return _record(function)
+
+
+def _generate(module, original_ast, owner, kind):
+    """Retain literal key/membership/body/store/return subtrees unchanged."""
+    original = copy.deepcopy(original_ast)
+    body = original.body
+    _need(_LEN(body) == 4 and _TYPE(body[0]) is ast.Expr and
+          _TYPE(body[1]) is ast.Assign and _TYPE(body[2]) is ast.If and
+          _TYPE(body[3]) is ast.Return, "Cache contract original method AST shape changed")
+    original_dump = ast.dump(original, include_attributes=False)
+    operands = "(lab,)" if kind == "label" else "(small, big)"
+    template = ast.parse('''
+def _factory(_h25_cache_owner, _h25_cache_error):
+    def _method(self):
+        _h25_cache_checks = _h25_cache_owner.enter(self)
+        try:
+            _H25_KEY
+            _h25_cache_ticket = _h25_cache_owner.prepare(self, key, OPERANDS, KIND)
+            _H25_IF
+            _h25_cache_result = _H25_RETURN
+            return _h25_cache_owner.finish(self, key, OPERANDS, KIND,
+                                          _h25_cache_ticket, _h25_cache_result)
+        except _h25_cache_error:
+            _h25_cache_owner.abort(_h25_cache_checks)
+            raise
+    return _method
+''')
+    factory = template.body[0]
+    method = factory.body[0]
+    method.name, method.args = original.name, original.args
+    method.body.insert(0, body[0])
+    factory.body[1].value.id = original.name
+    guarded = method.body[2]
+    guarded.body[0] = body[1]
+    original_if = body[2]
+    original_if.test = ast.BoolOp(op=ast.Or(), values=[original_if.test,
+        ast.UnaryOp(op=ast.Not(), operand=ast.parse(
+            "_h25_cache_owner.reuse(_h25_cache_ticket, key)", mode="eval").body)])
+    guarded.body[2] = original_if
+    guarded.body[3].value = body[3].value
+
+    class Replace(ast.NodeTransformer):
+        def visit_Name(self, node):
+            if node.id == "OPERANDS":
+                return ast.copy_location(ast.parse(operands, mode="eval").body, node)
+            if node.id == "KIND":
+                return ast.copy_location(ast.Constant(value=kind), node)
+            return node
+
+    Replace().visit(template)
+    ast.fix_missing_locations(template)
+    compiled = _COMPILE(template, "<h25-cache-contract-v3>", "exec", dont_inherit=True,
+                        optimize=sys.flags.optimize)
+    # FunctionType avoids adding even temporary globals to the scientific module.
+    make = FunctionType(_code_named(compiled, "_factory"), module.__dict__)
+    generated = make(owner, _BASE_ERROR)
+    _need(ast.dump(original_ast, include_attributes=False) == original_dump,
+          "Cache contract generator mutated the original AST")
+    return generated
+
+
+def prepare_cache_contract(module, source_sha256=SOURCE_SHA256):
+    """Return methods/owner; parent installs only after original P1 admission."""
+    _need(_TYPE(module) is ModuleType, "Cache contract requires an exact source module")
+    namespace = module.__dict__
+    path = Path(namespace["__file__"])
+    raw = path.read_bytes()
+    _need(source_sha256 == SOURCE_SHA256 and hashlib.sha256(raw).hexdigest() == SOURCE_SHA256,
+          "Cache contract scientific source differs")
+    _need(_GET(namespace, "__builtins__") is _BUILTINS and "any" not in namespace and
+          _GET(_BUILTINS, "any") is _ANY, "Cache contract odd calling environment differs")
+    compiled = _COMPILE(raw, str(path), "exec", dont_inherit=True, optimize=sys.flags.optimize)
+    records = [_authenticate(namespace["odd"], _code_named(compiled, "odd"), namespace)]
+    checks = namespace["Checks"]
+    _need(_ordinary(checks) and _ordinary(namespace["Label"]), "Cache contract original class dispatch differs")
+    members = _TYPEGET(checks, "__dict__")
+    expected_names = {"__module__", "__doc__", "__dict__", "__weakref__"}
+    for code in _code_named(compiled, "Checks").co_consts:
+        if _TYPE(code) is CodeType:
+            expected_names.add(code.co_name)
+            records.append(_authenticate(members.get(code.co_name), code, namespace))
+    _need(set(members) == expected_names, "Cache contract original Checks members differ")
+    parsed = ast.parse(raw, filename=str(path))
+    checks_ast = next(item for item in parsed.body if _TYPE(item) is ast.ClassDef and item.name == "Checks")
+    owner = _Owner(module, _TUPLE(records), frozenset(expected_names))
+    for name, kind in (("residual_ok", "residual"), ("label_ok", "label")):
+        method = next(item for item in checks_ast.body if _TYPE(item) is ast.FunctionDef and item.name == name)
+        owner.methods[name] = _generate(module, method, owner, kind)
+    owner.method_records = _TUPLE(_record(value) for value in owner.methods.values())
+    return {"residual_ok": owner.methods["residual_ok"], "label_ok": owner.methods["label_ok"],
+            "owner": owner, "receipt": owner.receipt}
+
+
+def compose_runtime_guard(base, prepared):
+    """Initialize cache owner before final native/Label guard capture.
+
+    Install all Checks phase wrappers before backend.bind. Seal P1 afterward.
+    This is a factory for one isolated candidate module, not a global registry.
+    """
+    owner = prepared["owner"]
+
+    class CacheRuntimeGuard(base):
+        def __init__(self, module, label, native, original_functions):
+            _need(module is owner.module and label is owner.label and owner.runtime is None,
+                  "Cache guard owner differs or was already attached")
+            _need(_ordinary(owner.checks_class), "Cache guard Checks class dispatch differs")
+            members = _TYPEGET(owner.checks_class, "__dict__")
+            _need(frozenset(members) == owner.class_names,
+                  "Cache guard Checks member names differ")
+            for name, method in owner.methods.items():
+                _need(members.get(name) is method, "Cache guard prepared method was not installed")
+            for record in owner.source_records + owner.method_records:
+                _need(_fresh(record), "Cache guard source changed before capture")
+            _need(_GET(owner.namespace, "odd") is owner.odd and "any" not in owner.namespace and
+                  _GET(_BUILTINS, "any") is _ANY, "Cache guard odd environment changed before capture")
+            self._cache_class_mro = _TYPEGET(owner.checks_class, "__mro__")
+            self._cache_class_items = _TUPLE(members.items())
+            functions = [value for _, value in self._cache_class_items if _TYPE(value) is FunctionType]
+            self._cache_functions = owner.source_records + owner.method_records + _TUPLE(_record(f) for f in functions)
+            owner.runtime = self
+            # owner state and every wrapper closure now have final identities.
+            base.__init__(self, module, label, native, original_functions)
+
+        def check(self):
+            base.check(self)
+            if not (_TYPE(owner.module) is ModuleType and owner.module.__dict__ is owner.namespace and
+                    _GET(owner.namespace, "Checks") is owner.checks_class and
+                    _GET(owner.namespace, "odd") is owner.odd and "any" not in owner.namespace and
+                    _GET(_BUILTINS, "any") is _ANY):
+                raise _ERROR("Runtime drift: cache source or odd lookup")
+            if not (_TYPE(owner.checks_class) is _TYPE and
+                    _TYPEGET(owner.checks_class, "__mro__") is self._cache_class_mro):
+                raise _ERROR("Runtime drift: cache Checks dispatch")
+            members = _TYPEGET(owner.checks_class, "__dict__")
+            if _LEN(members) != _LEN(self._cache_class_items):
+                raise _ERROR("Runtime drift: cache Checks members")
+            for name, value in self._cache_class_items:
+                if members.get(name) is not value:
+                    raise _ERROR("Runtime drift: cache Checks member " + name)
+            for record in self._cache_functions:
+                if not _fresh(record):
+                    raise _ERROR("Runtime drift: cache function calling environment")
+
+    return CacheRuntimeGuard

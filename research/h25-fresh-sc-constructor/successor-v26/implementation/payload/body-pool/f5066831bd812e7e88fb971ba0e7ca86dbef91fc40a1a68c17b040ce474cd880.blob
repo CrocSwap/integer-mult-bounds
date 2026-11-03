@@ -1,0 +1,423 @@
+/* Additive indexed field transport. SOURCE ONLY; no runtime admission.
+ * Original getter/id semantics: CPython 3.12.3 descrobject.c, funcobject.c,
+ * bltinmodule.c; attribution/license remain in the unchanged probe sources.
+ * No function-field structure access and no address-derived field IDs.
+ */
+#ifndef H25_FIELD_SERVICE_V1_H
+#define H25_FIELD_SERVICE_V1_H
+
+#define H25_FIELD_MAGIC UINT64_C(0x4832354649454c44)
+#define H25_FIELD_COUNT 7
+/* Concrete source-fixed pointer-table profile consumed by the separate ELF
+ * parser. These become compiler gates, not evidence of a current binary. */
+_Static_assert(sizeof(PyMethodDef) == 32, "field method table entry size");
+_Static_assert(sizeof(PyModuleDef) == 104, "field module definition size");
+_Static_assert(sizeof(PyModuleDef_Slot) == 16, "field module slot size");
+_Static_assert(offsetof(PyModuleDef, m_traverse) == 80, "module traverse offset");
+_Static_assert(offsetof(PyModuleDef, m_clear) == 88, "module clear offset");
+_Static_assert(offsetof(PyModuleDef, m_free) == 96, "module free offset");
+_Static_assert(offsetof(PyTypeObject, tp_dealloc) == 48, "context dealloc offset");
+_Static_assert(offsetof(PyTypeObject, tp_traverse) == 184, "context traverse offset");
+_Static_assert(offsetof(PyTypeObject, tp_clear) == 192, "context clear offset");
+enum {
+    H25_FIELD_UNBOUND = 0, H25_FIELD_BOUND = 1, H25_FIELD_CLOSING = 2,
+    H25_FIELD_CLOSED = 3, H25_FIELD_FAILED = 4
+};
+
+typedef struct {
+    uint64_t magic;
+    int initialized, phase, bind_attempted, clear_pending, close_authorized;
+    int64_t interpreter_id;
+    Py_ssize_t active;
+    /* These are the only persistent Python roots. No targets or observations. */
+    PyObject *getters[H25_FIELD_COUNT];
+    PyObject *id0, *function_type, *close_token;
+} H25FieldState;
+
+typedef struct {
+    PyObject_HEAD
+    H25FieldState state;
+} H25FieldContext;
+_Static_assert(sizeof(H25FieldState) == 128, "field primitive state size");
+_Static_assert(sizeof(H25FieldContext) == 144, "field fixture allocation size");
+
+static struct PyModuleDef h25_field_module;
+static PyTypeObject h25_field_context_type;
+static unsigned int h25_field_context_created;
+static int h25_field_exec_attempted;
+#define H25_FIELD_CONTEXT_CAP 64u
+
+static H25FieldState *
+h25_field_raw_state(PyObject *owner)
+{
+    if (Py_IS_TYPE(owner, &h25_field_context_type))
+        return &((H25FieldContext *)owner)->state;
+    if (PyModule_CheckExact(owner) && PyModule_GetDef(owner) == &h25_field_module)
+        return (H25FieldState *)PyModule_GetState(owner);
+    return NULL;
+}
+
+/* Clear each slot before decref. The token is an exact plain object, and the
+ * other roots are original builtin primitives, so cleanup adds no candidate
+ * finalizer. Keep token after logical close for authenticated idempotence. */
+static void
+h25_field_drop_roots(H25FieldState *state, int drop_token)
+{
+    for (int i = 0; i < H25_FIELD_COUNT; ++i)
+        Py_CLEAR(state->getters[i]);
+    Py_CLEAR(state->id0);
+    Py_CLEAR(state->function_type);
+    if (drop_token)
+        Py_CLEAR(state->close_token);
+}
+
+static H25FieldState *
+h25_field_state(PyObject *module)
+{
+    H25FieldState *state = h25_field_raw_state(module);
+    if (!state) {
+        PyErr_SetString(PyExc_RuntimeError, "Field service owner changed");
+        return NULL;
+    }
+    if (!state || !state->initialized || state->magic != H25_FIELD_MAGIC ||
+        !PyGILState_Check() || Py_Version != (unsigned long)PY_VERSION_HEX ||
+        state->interpreter_id != 0 ||
+        PyInterpreterState_GetID(PyThreadState_GetInterpreter(PyThreadState_Get())) != state->interpreter_id ||
+        state->active < 0 || state->phase < H25_FIELD_UNBOUND ||
+        state->phase > H25_FIELD_FAILED) {
+        PyErr_SetString(PyExc_RuntimeError, "Field service native state unavailable");
+        return NULL;
+    }
+    return state;
+}
+
+static PyObject *
+h25_field_bind(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
+{
+    H25FieldState *state = h25_field_state(module);
+    if (!state)
+        return NULL;
+    if (state->bind_attempted || state->phase != H25_FIELD_UNBOUND ||
+        state->active || state->clear_pending) {
+        PyErr_SetString(PyExc_RuntimeError, "Field primitive binding is single-use");
+        return NULL;
+    }
+    /* Failed first binding is terminal; there is no partial registration. */
+    state->bind_attempted = 1;
+    state->phase = H25_FIELD_FAILED;
+    if (nargs != 4 || !PyTuple_CheckExact(args[0]) ||
+        PyTuple_GET_SIZE(args[0]) != H25_FIELD_COUNT ||
+        !PyCFunction_CheckExact(args[1]) ||
+        PyCFunction_GET_FLAGS(args[1]) != METH_O ||
+        args[2] != (PyObject *)&PyFunction_Type ||
+        !Py_IS_TYPE(args[3], &PyBaseObject_Type)) {
+        PyErr_SetString(PyExc_TypeError, "Field binding requires exact original primitive packet");
+        return NULL;
+    }
+    for (int i = 0; i < H25_FIELD_COUNT; ++i) {
+        if (!Py_IS_TYPE(PyTuple_GET_ITEM(args[0], i), &_PyMethodWrapper_Type)) {
+            PyErr_SetString(PyExc_TypeError, "Field getter must be an original bound method-wrapper");
+            return NULL;
+        }
+    }
+    /* Root authenticates each object's identity and descriptor ownership before
+     * this call. The native type checks above are not substitute provenance. */
+    for (int i = 0; i < H25_FIELD_COUNT; ++i)
+        state->getters[i] = Py_NewRef(PyTuple_GET_ITEM(args[0], i));
+    state->id0 = Py_NewRef(args[1]);
+    state->function_type = Py_NewRef(args[2]);
+    state->close_token = Py_NewRef(args[3]);
+    state->phase = H25_FIELD_BOUND;
+    Py_RETURN_NONE;
+}
+
+static void
+h25_field_leave(H25FieldState *state)
+{
+    /* Each successful enter has exactly one leave, with the GIL continuously
+     * held apart from original getter/id callbacks' own behavior. */
+    --state->active;
+    if (state->active == 0) {
+        if (state->clear_pending) {
+            state->phase = H25_FIELD_FAILED;
+            h25_field_drop_roots(state, 1);
+        }
+        else if (state->phase == H25_FIELD_CLOSING) {
+            state->phase = H25_FIELD_CLOSED;
+            h25_field_drop_roots(state, 0);
+        }
+    }
+}
+
+static PyObject *
+h25_field_id(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
+{
+    H25FieldState *state = h25_field_state(module);
+    if (!state)
+        return NULL;
+    if (nargs != 2 || !PyFunction_Check(args[0]) || !PyLong_CheckExact(args[1])) {
+        PyErr_SetString(PyExc_TypeError, "field_id requires exact function and integer index");
+        return NULL;
+    }
+    long index = PyLong_AsLong(args[1]);
+    if (index == -1 && PyErr_Occurred())
+        return NULL;
+    if (index < 0 || index >= H25_FIELD_COUNT) {
+        PyErr_SetString(PyExc_IndexError, "field_id index must be in 0..6");
+        return NULL;
+    }
+    if ((state->phase == H25_FIELD_CLOSING || state->phase == H25_FIELD_CLOSED) &&
+        state->close_authorized && state->close_token && !state->clear_pending) {
+        /* Exact None can never be an original builtin id result. Root must
+         * independently witness legitimate CLOSING/CLOSED before fallback. */
+        Py_RETURN_NONE;
+    }
+    if (state->phase != H25_FIELD_BOUND || state->clear_pending ||
+        !state->bind_attempted || state->close_authorized || !state->close_token ||
+        !state->getters[index] || !state->id0 ||
+        state->function_type != (PyObject *)&PyFunction_Type) {
+        PyErr_SetString(PyExc_RuntimeError, "Field service is not bound and active");
+        return NULL;
+    }
+    if (state->active == PY_SSIZE_T_MAX) {
+        PyErr_SetString(PyExc_OverflowError, "Field service active-call bound exhausted");
+        return NULL;
+    }
+    /* Acquire every call root before the first observable field event. Neither
+     * a legitimate close nor GC clear may release state while active != 0. */
+    PyObject *owner = Py_NewRef(module);
+    PyObject *getter = Py_NewRef(state->getters[index]);
+    PyObject *id0 = Py_NewRef(state->id0);
+    PyObject *function_type = Py_NewRef(state->function_type);
+    ++state->active;
+    PyObject *getter_args[2] = {args[0], function_type};
+    PyObject *temporary = PyObject_Vectorcall(getter, getter_args, 2, NULL);
+    PyObject *result = NULL;
+    PyObject *error = NULL;
+    if (temporary) {
+        /* The original builtin id is invoked even after a legitimate close
+         * inside the getter. No direct field read, pointer-ID shortcut, retry
+         * or other field lookup occurs here. */
+        result = PyObject_CallOneArg(id0, temporary);
+        if (!result)
+            error = PyErr_GetRaisedException();
+        /* This is the original expression's temporary-release point. An id
+         * audit may have detached the field, making this its last reference.
+         * Its finalizer must run BEFORE return/Python's expected comparison. */
+        Py_DECREF(temporary);
+    }
+    else {
+        error = PyErr_GetRaisedException();
+    }
+    h25_field_leave(state);
+    Py_DECREF(function_type);
+    Py_DECREF(id0);
+    Py_DECREF(getter);
+    /* No state access after owner DECREF. */
+    Py_DECREF(owner);
+    if (!result)
+        PyErr_SetRaisedException(error);
+    return result;
+}
+
+static PyObject *
+h25_field_close(PyObject *module, PyObject *token)
+{
+    H25FieldState *state = h25_field_state(module);
+    if (!state)
+        return NULL;
+    if (!state->close_token || token != state->close_token || state->clear_pending ||
+        (state->phase != H25_FIELD_BOUND && state->phase != H25_FIELD_CLOSING &&
+         state->phase != H25_FIELD_CLOSED)) {
+        PyErr_SetString(PyExc_RuntimeError, "Field close lacks the original owner token");
+        return NULL;
+    }
+    state->close_authorized = 1;
+    state->phase = state->active ? H25_FIELD_CLOSING : H25_FIELD_CLOSED;
+    if (!state->active)
+        h25_field_drop_roots(state, 0);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+h25_field_status(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    H25FieldState *state = h25_field_state(module);
+    if (!state)
+        return NULL;
+    return Py_BuildValue("(iiniL)", 1, state->phase, state->active,
+                         state->bind_attempted, (long long)state->interpreter_id);
+}
+
+static PyObject *
+h25_field_abi(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    if (!h25_field_state(module))
+        return NULL;
+    return Py_BuildValue("(iiiii)", 1, H25_FIELD_COUNT, PY_VERSION_HEX,
+                         (int)sizeof(void *), 2);
+}
+
+static int
+h25_field_traverse(PyObject *module, visitproc visit, void *arg)
+{
+    H25FieldState *state = h25_field_raw_state(module);
+    if (!state)
+        return 0;
+    for (int i = 0; i < H25_FIELD_COUNT; ++i)
+        Py_VISIT(state->getters[i]);
+    Py_VISIT(state->id0);
+    Py_VISIT(state->function_type);
+    Py_VISIT(state->close_token);
+    return 0;
+}
+
+static int
+h25_field_clear(PyObject *module)
+{
+    H25FieldState *state = h25_field_raw_state(module);
+    if (!state)
+        return 0;
+    state->clear_pending = 1;
+    state->phase = H25_FIELD_FAILED;
+    if (!state->active)
+        h25_field_drop_roots(state, 1);
+    return 0;
+}
+
+static void
+h25_field_free(void *module)
+{
+    /* An active call owns a strong module reference, so module deallocation
+     * cannot occur during that call. clear remains separately safe/deferred. */
+    (void)h25_field_clear((PyObject *)module);
+    H25FieldState *state = h25_field_raw_state((PyObject *)module);
+    if (state)
+        state->magic = 0;
+}
+
+static void
+h25_field_context_dealloc(PyObject *context)
+{
+    /* An active field owns its context just as it owns the primary module. */
+    PyObject_GC_UnTrack(context);
+    (void)h25_field_clear(context);
+    ((H25FieldContext *)context)->state.magic = 0;
+    PyObject_GC_Del(context);
+}
+
+static PyObject *
+h25_field_new_context(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    if (!PyModule_CheckExact(module) || PyModule_GetDef(module) != &h25_field_module ||
+        !h25_field_state(module)) {
+        if (!PyErr_Occurred())
+            PyErr_SetString(PyExc_RuntimeError, "Field context factory requires original service module");
+        return NULL;
+    }
+    if (h25_field_context_created >= H25_FIELD_CONTEXT_CAP) {
+        PyErr_SetString(PyExc_OverflowError, "Field fixture context bound exhausted");
+        return NULL;
+    }
+    /* Count attempts, including allocation failure; no silent fixture retry. */
+    ++h25_field_context_created;
+    H25FieldContext *context = PyObject_GC_New(H25FieldContext, &h25_field_context_type);
+    if (!context)
+        return NULL;
+    context->state = (H25FieldState){0};
+    context->state.magic = H25_FIELD_MAGIC;
+    context->state.interpreter_id = 0;
+    context->state.initialized = 1;
+    context->state.phase = H25_FIELD_UNBOUND;
+    PyObject_GC_Track(context);
+    return (PyObject *)context;
+}
+
+static int
+h25_field_exec(PyObject *module)
+{
+    H25FieldState *state = (H25FieldState *)PyModule_GetState(module);
+    if (!state)
+        return -1;
+    if (h25_field_exec_attempted || state->initialized || !PyGILState_Check() ||
+        Py_Version != (unsigned long)PY_VERSION_HEX) {
+        PyErr_SetString(PyExc_ImportError, "Field service initialization profile rejected");
+        return -1;
+    }
+    h25_field_exec_attempted = 1;
+    int64_t interpreter_id =
+        PyInterpreterState_GetID(PyThreadState_GetInterpreter(PyThreadState_Get()));
+    if (interpreter_id != 0) {
+        PyErr_SetString(PyExc_ImportError, "Field service requires the original main interpreter");
+        return -1;
+    }
+    if (PyType_Ready(&h25_field_context_type) < 0)
+        return -1;
+    state->magic = H25_FIELD_MAGIC;
+    state->interpreter_id = interpreter_id;
+    state->initialized = 1;
+    state->phase = H25_FIELD_UNBOUND;
+    /* H25_NEGATIVE_FIXTURE_EXEC_V1: the original successful initialization
+     * prefix and every earlier error return remain unchanged. Only this
+     * separate paid fixture replaces the original success endpoint.
+     */
+    PyErr_SetString(PyExc_RuntimeError,
+                    "H25 negative exec fixture: deliberate failure after original initialization");
+    return -1;
+}
+
+static PyMethodDef h25_field_methods[] = {
+    {"field_id", (PyCFunction)(void(*)(void))h25_field_id, METH_FASTCALL, "One original getter/id event pair, with original temporary disposal."},
+    {"_bind_fields", (PyCFunction)(void(*)(void))h25_field_bind, METH_FASTCALL, "Bind the authenticated original primitive packet exactly once."},
+    {"_close_fields", h25_field_close, METH_O, "Logical close with original private token; active field completes once."},
+    {"_field_status", h25_field_status, METH_NOARGS, "Native phase and active count; no target observations."},
+    {"_field_abi", h25_field_abi, METH_NOARGS, "Immutable indexed-field interface profile."},
+    {"_new_field_context", h25_field_new_context, METH_NOARGS, "Create one independently bound fixture context in this same image."},
+    {NULL, NULL, 0, NULL}
+};
+/* Separate table deliberately omits the factory: fixtures cannot manufacture
+ * other fixtures or reach mutable module storage. Methods remain native
+ * immutable PyCFunction objects strongly owning their actual context. */
+static PyMethodDef h25_field_context_methods[] = {
+    {"field_id", (PyCFunction)(void(*)(void))h25_field_id, METH_FASTCALL, "One original getter/id event pair, with original temporary disposal."},
+    {"_bind_fields", (PyCFunction)(void(*)(void))h25_field_bind, METH_FASTCALL, "Bind the authenticated original primitive packet exactly once."},
+    {"_close_fields", h25_field_close, METH_O, "Logical close with original private token; active field completes once."},
+    {"_field_status", h25_field_status, METH_NOARGS, "Native phase and active count; no target observations."},
+    {"_field_abi", h25_field_abi, METH_NOARGS, "Immutable indexed-field interface profile."},
+    {NULL, NULL, 0, NULL}
+};
+static PyTypeObject h25_field_context_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "_h25_field_service_v1._FieldContext",
+    .tp_basicsize = sizeof(H25FieldContext),
+    .tp_dealloc = h25_field_context_dealloc,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_DISALLOW_INSTANTIATION,
+    .tp_traverse = h25_field_traverse,
+    .tp_clear = h25_field_clear,
+    .tp_methods = h25_field_context_methods,
+    .tp_doc = "One-shot fixture primitive owner; no dictionary, target roots or reload."
+};
+static PyModuleDef_Slot h25_field_slots[] = {
+    {Py_mod_exec, h25_field_exec},
+    {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+    {0, NULL}
+};
+static struct PyModuleDef h25_field_module = {
+    PyModuleDef_HEAD_INIT,
+    "_h25_field_service_v1",
+    "Source-bound indexed original-primitive transport without target retention.",
+    sizeof(H25FieldState),
+    h25_field_methods,
+    h25_field_slots,
+    h25_field_traverse, h25_field_clear, h25_field_free
+};
+PyMODINIT_FUNC
+PyInit__h25_field_service_v1(void)
+{
+    return PyModuleDef_Init(&h25_field_module);
+}
+
+#endif

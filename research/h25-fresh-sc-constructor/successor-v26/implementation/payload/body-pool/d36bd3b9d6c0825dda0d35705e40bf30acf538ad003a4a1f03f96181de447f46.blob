@@ -1,0 +1,257 @@
+"""Finite metadata-only controls, executed exclusively by the parent runner.
+
+No scientific imports at module scope. This source supplements, never replaces,
+actual derived inventory/wrapper and full independent native caller controls.
+"""
+import hashlib
+import io
+import json
+from pathlib import Path
+
+_TYPE, _LEN, _TUPLE, _STR, _ERROR = type, len, tuple, str, RuntimeError
+
+
+def need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii')
+
+
+def capture(action):
+    try:
+        value = action()
+    except Exception as error:
+        return ('error', _TYPE(error).__name__, _STR(error))
+    return ('value', _TYPE(value).__name__, value)
+
+
+def _table(interner):
+    # Control-only introspection; production exports no mutable-state reference.
+    for name, cell in zip(interner.__code__.co_freevars, interner.__closure__):
+        if name == 'table':
+            return cell.cell_contents
+    raise _ERROR('Missing control table cell')
+
+
+def run_row_controls(module):
+    interner = module.make_row_interner()
+    first = _TUPLE([1 << 40, 3, 9])
+    fresh = _TUPLE([1 << 40, 3, 9])
+    need(first is not fresh, 'Control must construct fresh tuples')
+    need(interner(first) is first and interner(fresh) is first, 'Equal immutable rows did not reuse')
+    # Different fresh results deliberately accompany equal metadata: the helper
+    # never receives the result and cannot use a previous result for this event.
+    literal, observed = [], []
+    for index, values in enumerate(((), (0,), (1,), (1 << 63,), ((1 << 64) - 1,), (2, 1), (2, 1), (1, 2))):
+        rows = _TUPLE(list(values))
+        literal.append((rows, index))
+        observed.append((interner(rows), index))
+    need(_TYPE(observed) is list and canonical(observed) == canonical(literal), 'Ordered events/types changed')
+    need(_LEN(observed) == _LEN(literal) and
+         _LEN({rows for rows, _ in observed}) == _LEN({rows for rows, _ in literal}), 'Event census changed')
+    need(observed[5][0] is observed[6][0] and observed[5][1] != observed[6][1], 'Result accidentally reused')
+    callbacks = []
+
+    class Hostile:
+        def __iter__(self): callbacks.append('iter'); raise ValueError('unexpected callback')
+        def __len__(self): callbacks.append('len'); raise ValueError('unexpected callback')
+        def __hash__(self): callbacks.append('hash'); raise ValueError('unexpected callback')
+        def __eq__(self, other): callbacks.append('eq'); raise ValueError('unexpected callback')
+
+    class TupleSubclass(tuple):
+        def __iter__(self): callbacks.append('tuple_iter'); raise ValueError('unexpected callback')
+        def __len__(self): callbacks.append('tuple_len'); raise ValueError('unexpected callback')
+        def __hash__(self): callbacks.append('tuple_hash'); raise ValueError('unexpected callback')
+
+    class IntSubclass(int):
+        def __hash__(self): callbacks.append('int_hash'); raise ValueError('unexpected callback')
+        def __eq__(self, other): callbacks.append('int_eq'); raise ValueError('unexpected callback')
+        def __lt__(self, other): callbacks.append('int_lt'); raise ValueError('unexpected callback')
+        def __gt__(self, other): callbacks.append('int_gt'); raise ValueError('unexpected callback')
+
+    unsupported = [[], Hostile(), TupleSubclass((1,)), (True,), (IntSubclass(1),),
+                   (Hostile(),), (-1,), (1 << 64,), _TUPLE(range(65))]
+    for value in unsupported:
+        need(interner(value) is value, 'Unsupported input changed identity')
+    need(callbacks == [], 'Unsupported admission invoked a callback')
+    table = _table(interner)
+    for damaged in (None, Hostile(), (Hostile(), 3, 9), (IntSubclass(1 << 40), 3, 9),
+                    _TUPLE([0, 3, 9]), _TUPLE([1 << 40])):
+        table[first] = damaged
+        current = _TUPLE([1 << 40, 3, 9])
+        need(interner(current) is current, 'Damaged metadata changed fresh rows')
+    need(callbacks == [], 'Damaged-value validation invoked callback')
+    bounded = module.make_row_interner()
+    first_bound = None
+    for number in range(4096):
+        current = _TUPLE([number])
+        retained = bounded(current)
+        need(retained is current, 'New eligible row changed unexpectedly')
+        if number == 0:
+            first_bound = current
+    beyond = _TUPLE([4096])
+    need(bounded(beyond) is beyond and _LEN(_table(bounded)) == 4096, 'Metadata cap failed')
+    need(bounded(_TUPLE([0])) is first_bound, 'Existing entry stopped reusing at cap')
+    isolated = module.make_row_interner()
+    separate = _TUPLE([0])
+    need(isolated(separate) is separate and _table(isolated) is not _table(bounded), 'Caller tables shared')
+    return {'status': 'ROW_METADATA_CONTROLS_PASS', 'event_fixture_count': _LEN(literal),
+            'unsupported_cases': _LEN(unsupported), 'table_cap_tested': 4096,
+            'callback_events': callbacks, 'scientific_arithmetic': 'not exercised by metadata-only controls'}
+
+
+def run_guard_controls(module):
+    base_calls = []
+
+    class Base:
+        def __init__(self, source, label, native, original_functions):
+            self.check()
+        def check(self):
+            base_calls.append('base')
+
+    helper = module.make_row_interner()
+    Guard = module.make_runtime_guard(Base, helper)
+    guard = Guard(None, None, None, [])
+    failures = []
+
+    def patch_attribute(owner, name, replacement):
+        original = getattr(owner, name)
+        before = _LEN(base_calls)
+        setattr(owner, name, replacement)
+        try:
+            outcome = capture(guard.check)
+        finally:
+            setattr(owner, name, original)
+        need(outcome[0] == 'error' and _LEN(base_calls) == before + 1, 'Freshness mutation accepted or skipped base')
+        failures.append((name, outcome[1], outcome[2]))
+        guard.check()
+
+    patch_attribute(helper, '__code__', helper.__code__.replace(co_name='changed_observation_code'))
+    patch_attribute(helper, '__defaults__', (object(),))
+    patch_attribute(helper, '__kwdefaults__', {'unused': object()})
+    for name in ('_LEN', '_GET', '_MAX_ENTRIES', 'make_row_interner', 'make_runtime_guard'):
+        patch_attribute(module, name, object())
+    # These are actual builtin dictionary entries, independently of captured
+    # globals. Controls use frozen handles while the temporary mutation exists.
+    for name in ('len', 'int'):
+        namespace = module._BUILTINS
+        original = namespace[name]
+        namespace[name] = object()
+        try:
+            outcome = capture(guard.check)
+        finally:
+            namespace[name] = original
+        need(outcome[0] == 'error', 'Actual builtin binding drift accepted')
+        failures.append(('builtin/' + name, outcome[1], outcome[2]))
+        guard.check()
+    for name, cell in zip(helper.__code__.co_freevars, helper.__closure__):
+        original = cell.cell_contents
+        cell.cell_contents = object()
+        try:
+            outcome = capture(guard.check)
+        finally:
+            cell.cell_contents = original
+        need(outcome[0] == 'error', 'Closure identity drift accepted: ' + name)
+        failures.append(('cell/' + name, outcome[1], outcome[2]))
+        guard.check()
+    # Baseline semantics propagate an empty-cell ValueError. Preserve that rather
+    # than disguising it as a different new error from the observation extension.
+    cell = helper.__closure__[0]
+    original = cell.cell_contents
+    del cell.cell_contents
+    try:
+        outcome = capture(guard.check)
+    finally:
+        cell.cell_contents = original
+    need(outcome[:2] == ('error', 'ValueError'), 'Empty-cell error type changed')
+    failures.append(('empty-cell', outcome[1], outcome[2]))
+    guard.check()
+    need(capture(lambda: module.make_runtime_guard(Base, lambda rows: rows))[0] == 'error',
+         'Unrelated helper admitted')
+    for attribute, changed in (('__defaults__', (object(),)), ('__kwdefaults__', {'unused': object()})):
+        changed_helper = module.make_row_interner()
+        setattr(changed_helper, attribute, changed)
+        need(capture(lambda: module.make_runtime_guard(Base, changed_helper))[0] == 'error',
+             'Changed initial defaults admitted')
+    used_helper = module.make_row_interner()
+    used_helper((1,))
+    need(capture(lambda: module.make_runtime_guard(Base, used_helper))[0] == 'error',
+         'Nonempty pre-capture metadata table admitted')
+    forged = module.make_row_interner()
+    for name, cell in zip(forged.__code__.co_freevars, forged.__closure__):
+        if name == 'length':
+            cell.cell_contents = lambda value: 0
+    need(capture(lambda: module.make_runtime_guard(Base, forged))[0] == 'error',
+         'Same-code changed initial dependency admitted')
+    return {'status': 'OBSERVATION_GUARD_CONTROLS_PASS', 'mutations': failures,
+            'base_check_calls': _LEN(base_calls), 'actual_native_binding_controls_still_required': True}
+
+
+def run_digest_controls(module, scratch):
+    scratch = Path(scratch)
+    need(not scratch.exists(), 'Fresh digest fixture directory required')
+    scratch.mkdir(parents=True)
+    raw = b'\x00\xff\n' + b'x' * (2 * 1024 * 1024 + 17)
+    expected = hashlib.sha256(raw).hexdigest()
+    path = scratch / 'binary.bin'
+    path.write_bytes(raw)
+    opens, requests = [], []
+
+    class Reader(io.BytesIO):
+        def read(self, size=-1):
+            requests.append(size)
+            return super().read(size)
+
+    class ObservedPath:
+        def open(self, mode):
+            opens.append(mode)
+            return Reader(raw)
+
+    calls = []
+    original_sha = module.hashlib.sha256
+
+    def counted_sha(*args, **kwargs):
+        calls.append(_LEN(args[0]) if args else 0)
+        return original_sha(*args, **kwargs)
+
+    module.hashlib.sha256 = counted_sha
+    try:
+        snapshot = module.DigestSnapshot()
+        need(snapshot.record_file('payload.bin', ObservedPath()) == expected, 'Stream digest differs')
+        code_expected, stage_expected = expected, expected
+        need(snapshot.observed('payload.bin') == code_expected, 'CODE comparison failed')
+        need(snapshot.observed('payload.bin') == stage_expected, 'STAGE comparison failed')
+        need(_LEN(calls) == 1 and opens == ['rb'], 'Same observation hashed/read twice')
+        need(snapshot.observed('payload.bin') != '0' * 64, 'Independent wrong CODE would pass')
+        need(snapshot.observed('payload.bin') != 'f' * 64, 'Independent wrong STAGE would pass')
+        need(capture(lambda: snapshot.record_file('payload.bin', ObservedPath()))[:2] ==
+             ('error', 'ValueError'), 'Repeated observation silently reused')
+        need(opens == ['rb'], 'Duplicate registration read another version')
+        empty = snapshot.record_bytes('empty', b'')
+        need(empty == original_sha(b'').hexdigest(), 'Empty bytes digest changed')
+        need(snapshot.record_bytes('manifest', b'{"x":1}') == original_sha(b'{"x":1}').hexdigest(),
+             'Already-read bytes digest changed')
+    finally:
+        module.hashlib.sha256 = original_sha
+    need(requests and all(size == 1024 * 1024 for size in requests), 'Stream read was unbounded')
+    fresh = module.DigestSnapshot()
+    before = fresh.record_file('binary', path)
+    path.write_bytes(b'changed')
+    after = module.DigestSnapshot().record_file('binary', path)
+    need(before == expected and after != before, 'Cross-invocation digest reused')
+    invalid = capture(lambda: module.DigestSnapshot().record_bytes('bad', bytearray(b'x')))
+    need(invalid[:2] == ('error', 'TypeError'), 'Mutable bytes admitted')
+    return {'status': 'DIGEST_SNAPSHOT_CONTROLS_PASS', 'declared_fixture_bytes': _LEN(raw),
+            'stream_request_bytes': requests, 'same_snapshot_sha_calls': _LEN(calls),
+            'read_once_same_snapshot': True, 'fresh_after_mutation': True,
+            'actual_inventory_wrapper_path_mode_census_controls_still_required': True}
+
+
+def run_controls(row_module, digest_module, scratch):
+    return {'status': 'AREA6_METADATA_HELPER_CONTROLS_PASS',
+            'rows': run_row_controls(row_module), 'guard': run_guard_controls(row_module),
+            'digests': run_digest_controls(digest_module, scratch),
+            'full_original_controls_and_independent_caller_still_required': True}

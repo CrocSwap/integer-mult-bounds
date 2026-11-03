@@ -1,0 +1,289 @@
+"""Additive caller/authority controls; SOURCE ONLY, not yet executed.
+
+Run after admitted producer products exist, before final binding and late audit.
+All predecessor controls remain required. Group counts are fixed; each group's
+helper census comes from the original admitted records or authenticated source.
+"""
+import gc
+from types import FunctionType, ModuleType
+
+
+def run_controls(authority, cold_caller_descriptor, module_handles, product_cases):
+    if type(module_handles) is not tuple or not module_handles or type(product_cases) is not tuple:
+        raise RuntimeError('Authority controls require explicit module/product tuples')
+    records = []
+
+    def call_checked(operations, descriptor, index, *args, **kwargs):
+        # This local frame is constructed from the already authenticated control
+        # source. The admission is inline; no mutable validator is called first.
+        p = descriptor[5]
+        type0, function_type, id0 = p[0], p[1], p[2]
+        error0, value_error0, zip0 = p[7], p[8], p[18]
+        dispatch, expected = descriptor[2], descriptor[3]
+        if operations is not descriptor[1] or dispatch is not expected[0] or type0(dispatch) is not function_type:
+            raise error0('Cold authority caller dispatcher identity differs')
+        for (name, getter), value in zip0(p[4], expected[1:7]):
+            if id0(getter(dispatch, function_type)) != id0(value):
+                raise error0('Cold authority caller dispatcher environment differs')
+        if expected[4] is not None or expected[5] is not None or expected[7]:
+            raise error0('Cold authority caller dispatcher defaults contract differs')
+        for cell, value in expected[8]:
+            try:
+                observed_id = id0(p[6](cell, p[5]))
+            except value_error0:
+                raise error0('Cold authority caller dispatcher cell became empty') from None
+            if observed_id != id0(value):
+                raise error0('Cold authority caller dispatcher cell differs')
+        return dispatch(index, *args, **kwargs)
+
+    def rejected(operation):
+        try:
+            operation()
+        except RuntimeError as error:
+            return error
+        raise RuntimeError('Expected before-use authority rejection')
+
+    def function_cases(function, operation, label, descriptor, expected_record, target_prefix, dispatcher=False):
+        # Derive the complete oracle from the ORIGINAL descriptor before any
+        # mutation. Shared closure cells can fail the caller gate first.
+        type0, text0, error0 = descriptor[5][0], descriptor[5][11], descriptor[5][7]
+        if expected_record[0] is not function:
+            raise error0('Authority control original target record differs')
+        original_cells = expected_record[8]
+        dispatcher_cells = descriptor[3][8]
+        first_cell = original_cells[0][0] if original_cells else None
+        shared_cell = bool(original_cells) and any(first_cell is cell for cell, value in dispatcher_cells)
+        environment_message = ('Cold authority caller dispatcher environment differs' if dispatcher
+                               else target_prefix + ': target function environment differs')
+        closure_message = ('Cold authority caller dispatcher cell differs' if dispatcher or shared_cell
+                           else target_prefix + ': target closure value differs')
+        expected_type_name = error0.__module__ + '.' + error0.__qualname__
+        provenance = {
+            'derived_before_mutation': True,
+            'descriptor_schema': descriptor[0],
+            'record_kind': 'dispatcher_record' if dispatcher else 'target_records',
+            'record_target_identity_checked': True,
+            'target_label': label,
+            'target_prefix': target_prefix,
+            'closure_cell_index': 0 if original_cells else None,
+            'closure_aliases_dispatcher': shared_cell,
+        }
+
+        def before_use_row(field, expected_message):
+            error = None
+            try:
+                error = rejected(operation)
+                observed_type = type0(error)
+                # Reject a subclass before invoking an overridden __str__.
+                if observed_type is not error0:
+                    raise error0('Authority control rejection type differs: ' + label + ':' + field)
+                observed_message = text0(error)
+                if observed_message != expected_message:
+                    raise error0('Authority control rejection provenance differs: ' + label + ':' + field)
+                return {'case': label + ':' + field, 'rejection': observed_message,
+                        'expected_exception_type': expected_type_name,
+                        'observed_exception_type': observed_type.__module__ + '.' + observed_type.__qualname__,
+                        'expected_rejection': expected_message,
+                        'before_use_provenance': provenance}
+            finally:
+                error = None
+                observed_type = None
+
+        result = []
+        original = function.__code__
+        function.__code__ = original.replace(co_filename=original.co_filename + ':authority-negative')
+        try:
+            result.append(before_use_row('code', environment_message))
+        finally:
+            function.__code__ = original
+        original = function.__defaults__
+        function.__defaults__ = (object(),)
+        try:
+            result.append(before_use_row('defaults', environment_message))
+        finally:
+            function.__defaults__ = original
+        original = function.__kwdefaults__
+        function.__kwdefaults__ = {'authority_control_only': None}
+        try:
+            result.append(before_use_row('keywords', environment_message))
+        finally:
+            function.__kwdefaults__ = original
+        if function.__closure__:
+            cell = function.__closure__[0]
+            original = cell.cell_contents
+            cell.cell_contents = object()
+            try:
+                result.append(before_use_row('closure', closure_message))
+            finally:
+                cell.cell_contents = original
+        return result
+
+    def declared_functions(module):
+        # This census is after source(handle) has authenticated the module;
+        # it is control targeting, never product/provenance registration.
+        namespace = ModuleType.__dict__['__dict__'].__get__(module, ModuleType)
+        result, seen = [], set()
+        name = namespace['__name__']
+        for field, value in tuple(namespace.items()):
+            if type(value) is FunctionType and value.__globals__ is namespace:
+                if id(value) not in seen:
+                    seen.add(id(value)); result.append((field, value))
+            elif type(value) is type and type.__getattribute__(value, '__module__') == name:
+                members = type.__getattribute__(value, '__dict__')
+                for member, function in tuple(members.items()):
+                    if type(function) is property:
+                        for accessor in ('fget', 'fset', 'fdel'):
+                            target = object.__getattribute__(function, accessor)
+                            if type(target) is FunctionType and id(target) not in seen:
+                                seen.add(id(target)); result.append((field + '.' + member + '.' + accessor, target))
+                        continue
+                    if type(function) in (staticmethod, classmethod):
+                        function = object.__getattribute__(function, '__func__')
+                    if type(function) is FunctionType and id(function) not in seen:
+                        seen.add(id(function)); result.append((field + '.' + member, function))
+        return tuple(result)
+
+    def product_functions(product):
+        pending, result, seen = [], [], set()
+        if type(product) is FunctionType:
+            pending.append(product)
+        elif type(product) is type:
+            for cls in type.__getattribute__(product, '__mro__'):
+                if type(cls) is not type:
+                    raise RuntimeError('Product control metaclass differs')
+                for value in tuple(type.__getattribute__(cls, '__dict__').values()):
+                    if type(value) is property:
+                        for accessor in ('fget', 'fset', 'fdel'):
+                            target = object.__getattribute__(value, accessor)
+                            if type(target) is FunctionType:
+                                pending.append(target)
+                        continue
+                    if type(value) in (staticmethod, classmethod):
+                        value = object.__getattribute__(value, '__func__')
+                    if type(value) is FunctionType:
+                        pending.append(value)
+        while pending:
+            function = pending.pop()
+            if id(function) in seen:
+                continue
+            seen.add(id(function)); result.append(function)
+            for cell in function.__closure__ or ():
+                value = cell.cell_contents
+                if type(value) is FunctionType:
+                    pending.append(value)
+        return tuple(result)
+
+    # No source target runs in this group. The first metadata gate must reject
+    # before source(), check(), product validation, or a missing export can run.
+    entry_rows = []
+    expected_entry_cases = sum(3 + bool(row[6]) for row in cold_caller_descriptor[4])
+    for number, row in enumerate(cold_caller_descriptor[4]):
+        entry_rows.extend(function_cases(row[0], lambda: call_checked(authority, cold_caller_descriptor, 2),
+                                         'authority-function-' + str(number), cold_caller_descriptor, row, 'Cold authority caller'))
+    if len(entry_rows) != expected_entry_cases:
+        raise RuntimeError('Authority function field census differs')
+    records.append({'case': 'A1-authority-entry-and-helper-fields', 'expected_cases': expected_entry_cases,
+                    'observed_cases': len(entry_rows), 'rows': entry_rows})
+
+    dispatcher_rows = function_cases(cold_caller_descriptor[2],
+                                     lambda: call_checked(authority, cold_caller_descriptor, 2), 'dispatcher',
+                                     cold_caller_descriptor, cold_caller_descriptor[3], 'Cold authority caller', True)
+    if len(dispatcher_rows) != 4:
+        raise RuntimeError('Dispatcher control census differs')
+    records.append({'case': 'A2-caller-dispatcher-fields', 'expected_cases': 4,
+                    'observed_cases': len(dispatcher_rows), 'rows': dispatcher_rows})
+
+    module_rows, expected_module_cases, first_module = [], 0, None
+    for label, handle in module_handles:
+        module, path, digest, raw = call_checked(authority, cold_caller_descriptor, 6, handle)
+        targets = declared_functions(module)
+        if first_module is None:
+            first_module = (module, handle, targets)
+        expected_module_cases += len(targets)
+        for field, function in targets:
+            original = function.__code__
+            function.__code__ = original.replace(co_filename=original.co_filename + ':module-negative')
+            try:
+                error = rejected(lambda: call_checked(authority, cold_caller_descriptor, 1,
+                                                       handle, '__authority_unreachable_export__'))
+                if 'export is not an owned source function' in str(error):
+                    raise RuntimeError('Changed module helper reached export selection')
+                module_rows.append({'case': label + ':' + field, 'rejection': str(error)})
+            finally:
+                function.__code__ = original
+    if len(module_rows) != expected_module_cases:
+        raise RuntimeError('Module helper mutation census differs')
+    records.append({'case': 'A3-every-owned-module-helper', 'expected_cases': expected_module_cases,
+                    'observed_cases': len(module_rows), 'rows': module_rows})
+
+    product_rows, expected_product_cases = [], 0
+    for label, product, handle, export, args, kwargs in product_cases:
+        call_checked(authority, cold_caller_descriptor, 4, product, handle, export, args, kwargs)
+        targets = product_functions(product)
+        expected_product_cases += len(targets)
+        for function in targets:
+            original = function.__code__
+            function.__code__ = original.replace(co_filename=original.co_filename + ':product-negative')
+            try:
+                error = rejected(lambda: call_checked(authority, cold_caller_descriptor, 4,
+                                                       product, handle, export, args, kwargs))
+                product_rows.append({'case': label + ':' + function.__qualname__, 'rejection': str(error)})
+            finally:
+                function.__code__ = original
+    if len(product_rows) != expected_product_cases:
+        raise RuntimeError('Product helper mutation census differs')
+    records.append({'case': 'A4-registered-product-methods-and-closure-helpers',
+                    'expected_cases': expected_product_cases, 'observed_cases': len(product_rows), 'rows': product_rows})
+
+    module, handle, targets = first_module
+    if not targets:
+        raise RuntimeError('Foreign-key control requires a source helper binding')
+    field = targets[0][0].split('.')[0]
+    namespace = ModuleType.__dict__['__dict__'].__get__(module, ModuleType)
+    original = namespace[field]
+    collision_hash, events = hash(field), {'equal': 0, 'finalized': 0}
+    class ForeignKey:
+        def __hash__(self):
+            return collision_hash
+        def __eq__(self, other):
+            events['equal'] += 1
+            raise RuntimeError('Foreign key equality must not execute')
+        def __del__(self):
+            events['finalized'] += 1
+    foreign = ForeignKey()
+    del namespace[field]
+    namespace[foreign] = original
+    try:
+        retained_error = rejected(lambda: call_checked(authority, cold_caller_descriptor, 2, handle))
+    finally:
+        del namespace[foreign]
+        namespace[field] = original
+    del foreign
+    gc.collect()
+    if events != {'equal': 0, 'finalized': 1} or retained_error is None:
+        raise RuntimeError('Foreign-key callback or retained-traceback lifetime differs')
+    records.append({'case': 'A5-foreign-key-failure-disposal', 'expected_cases': 1, 'observed_cases': 1,
+                    'equality_calls': 0, 'finalized_with_error_retained': 1})
+
+    collector, child = call_checked(authority, cold_caller_descriptor, 3, module_handles[0][1])
+    if child[1][0] is not collector or len(child[1]) != 1:
+        raise RuntimeError('Runtime child descriptor identity differs')
+    runtime_rows = function_cases(child[2], lambda: call_checked(child[1], child, 0), 'runtime-dispatcher',
+                                  child, child[3], 'Runtime drift: cache collector caller', True)
+    expected_runtime_cases = 4 + sum(3 + bool(row[6]) for row in child[4])
+    for number, row in enumerate(child[4]):
+        runtime_rows.extend(function_cases(row[0], lambda: call_checked(child[1], child, 0),
+                                           'runtime-function-' + str(number), child, row, 'Runtime drift: cache collector caller'))
+    if len(runtime_rows) != expected_runtime_cases:
+        raise RuntimeError('Runtime helper mutation census differs')
+    records.append({'case': 'A6-runtime-child-dispatcher-and-helper-fields',
+                    'expected_cases': expected_runtime_cases, 'observed_cases': len(runtime_rows), 'rows': runtime_rows})
+
+    call_checked(authority, cold_caller_descriptor, 2)
+    if len(records) != 6:
+        raise RuntimeError('Authority grouped control census differs')
+    return {'schema': 'h25-cold-authority-controls-v7', 'status': 'PASS', 'records': records,
+            'expected_records': 6, 'observed_record_count': len(records),
+            'expected_subcases': sum(row['expected_cases'] for row in records),
+            'observed_subcases': sum(row['observed_cases'] for row in records),
+            'scientific_calls': 0, 'native_private_calls': 0}
