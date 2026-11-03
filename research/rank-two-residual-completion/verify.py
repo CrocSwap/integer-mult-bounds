@@ -226,9 +226,11 @@ def run():
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp)
             shutil.copytree(ROOT / 'inputs', dest / 'inputs')
+            (dest / 'inputs').chmod(0o700)
             shutil.copyfile(ROOT / 'ORIGINS.json', dest / 'ORIGINS.json')
             shutil.copyfile(ROOT / 'completion.py', dest / 'completion.py')
             path = dest / row['local']
+            path.chmod(0o600)
             path.write_bytes(path.read_bytes() + b'\n# source mutation\n')
             try:
                 runpy.run_path(str(dest / 'completion.py'))
