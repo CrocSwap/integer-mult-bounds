@@ -43,11 +43,12 @@ From the repository root, with CPython 3.12 and the standard library only:
 ```sh
 python3.12 -B scripts/research_package.py --package research/braid-3214-shortest-words
 python3.12 -B research/braid-3214-shortest-words/verify.py        # F2 and F3, about 11 s
-python3.12 -B research/braid-3214-shortest-words/verify.py 5      # optional F5 census
+python3.12 -B research/braid-3214-shortest-words/verify.py 5      # optional, not claimed
 ```
 
-The registered check prints `PASS_BRAID_3214_SHORTEST_WORDS`. The F5 run is
-opt-in because its search is much longer; see the PR body for its local result.
+The registered check prints `PASS_BRAID_3214_SHORTEST_WORDS`. Larger primes
+are an opt-in run with a much longer search; no completed run beyond F3 is
+claimed.
 
 ## Scope and remaining obligations
 

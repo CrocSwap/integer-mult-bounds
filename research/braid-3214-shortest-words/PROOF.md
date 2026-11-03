@@ -65,9 +65,10 @@ position, so each parametrization is injective, and distinct label patterns
 give disjoint families. Over F_q the families contain exactly
 4n^3+12n^2 distinct words, n=q(q+1).
 
-**(b) Finite fields F2, F3 (and F5 on request).** Every six-factor word equal to
+**(b) Finite fields F2 and F3.** Every six-factor word equal to
 [w] lies in one of the sixteen families. So the number of shortest words is
-1296 over F2, 8640 over F3 and 118800 over F5, in each case 4n^3+12n^2.
+1296 over F2 and 8640 over F3, in both cases 4n^3+12n^2. The verifier
+accepts other primes as an opt-in run; no such run is claimed here.
 
 **Corollary (every field).** Every tight two-factor suffix allowed by the
 PR6642 peel table extends to a shortest word. The suffix r(P') r(P) occurs in
@@ -122,7 +123,7 @@ families. Its size is checked against 4n^3+12n^2.
 
 ## Limits
 
-Completeness is proved only over the enumerated prime fields. Spectator
+Completeness is proved only over F2 and F3. Spectator
 elimination (JoyboyBrian PR4765), the length bound and the defect (PR6642,
 PR6449) are inherited and not replayed. Scalar conjugation is algebraic, not a
 physical basis change. No caller, tape, precision, stock or compiler cost is
