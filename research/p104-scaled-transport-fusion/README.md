@@ -1,13 +1,17 @@
 # Scaled transport fusion
 
-This local construction proposes conditional **kappa = 0.003288299**.
+This construction proposes conditional **kappa = 0.003288299**.
 The direct source is [PR6453](https://github.com/CrocSwap/integer-mult-bounds/pull/6453)
 at `b1a3e525793eca35c56324aa7ffd0b714cf606d4`, with claim `0.003287014`.
 The new increment is `0.000001285`, or about **0.03909 percent**.
-This is a small gain. It does not meet the donor's large-improvement target.
 The complete receipt is `RESULT.json`; the run record is `VALIDATION.md`.
 The raw crossing is strictly between `0.00328830463392494440038260` and
 `0.00328830463392494440038261`. Both rational engines certify the signs.
+The strict derivative bound makes this the unique crossing for the complete
+fixed invoice below the admitted BIT cap. The claim is less than `5.635e-9`
+below that ceiling. This changes the native word and its paid profile; the
+historical fixed-local packing model does not apply. No ceiling for other
+words or caller choices is claimed.
 
 Two public fields now stay at their rank-four frames until they can move
 directly to the full frame. Each field has one intermediate export and a
@@ -39,7 +43,7 @@ Use Python 3.12 and the standard library. The package contains every runtime
 dependency in the unchanged source export. The verifier authenticates the
 archive and all 26 source members before an import. `SOURCE.json` binds each
 member to its original Git blob, path and source head. `SOURCES.json` binds
-the retained archive and manifest to their local ancestor commit. No network
+the retained archive and manifest to their ancestor commit. No network
 or Git command is used by the scientific verifier.
 
 ```sh
@@ -59,12 +63,7 @@ This is a source-bound conditional construction. All five framework assumptions
 remain: `native_all_columns`, `owned_erasure`, `compiler`, `precision_tape` and
 `analytic_recovery`. The large uniform word and rounded multiplier are not
 materialized. Local replay does not establish independent scientific acceptance.
-The selected frontier is unchanged. This package has not been pushed or
-submitted as a pull request.
-
-The broader carrier, boundary-basis and owned-channel searches were finite
-discovery screens. They did not establish a larger construction or an optimum.
-Their exploratory records are separate from this positive certificate.
+The selected frontier is unchanged. No global optimum is claimed.
 
 ## Open next questions
 

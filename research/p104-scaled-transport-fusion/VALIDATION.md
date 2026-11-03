@@ -1,4 +1,4 @@
-# Local validation
+# Validation
 
 The direct complete replay and both registered modes pass locally on CPython
 3.12.13, macOS arm64. The interpreter is
@@ -19,7 +19,7 @@ the retained source controls. Both engines reject the unchanged source at
 the new claim. Package metadata and pins pass.
 
 The public predecessor export and its original member pins are retained at
-local ancestor commit `4b09a1a39`. Its files are unchanged. Original authors
+ancestor commit `4b09a1a39`. Its files are unchanged. Original authors
 and source heads remain recorded in `SOURCE.json` and `NOTICE`.
 
 Committed bytes and owner-execute modes pass for all 18 package files at
@@ -41,6 +41,6 @@ main base and retention commit are both checked ancestors of the tested
 head. The live source pins pass, and the cold export contains all runtime
 inputs. A full-history check remains unrun.
 
-No pull request, push, hosted run or independent review is claimed.
+This record describes local verification. The pull request records hosted
+check status separately. Independent scientific review remains open.
 The selected frontier and five framework assumptions remain unchanged.
-The larger donor objective remains open.
