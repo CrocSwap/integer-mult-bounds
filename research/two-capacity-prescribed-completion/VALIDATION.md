@@ -60,3 +60,10 @@ source access, basis and delivery, a paid physical/compiler invoice and all
 five framework assumptions remain separate obligations. No new kappa or
 selected-frontier change is claimed. See README.md for predecessor credit and
 the precise open questions.
+
+Prepublication overlap correction: PR6533 already gives general finite-field
+counts for arbitrary simultaneous targets and fixed images. README and TASK
+now distinguish that earlier exponential construction from this closed two-
+target all-field feasibility test. Original scientific files/receipts, the
+first commit and export are preserved. No fresh scientific conclusion is
+inferred from the PR6533 source review.

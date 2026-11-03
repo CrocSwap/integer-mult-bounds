@@ -100,6 +100,19 @@ byte-pinned. The 478-open-PR cache, current1166claims and bounded all-state
 prescribed-map/nonnested searches were checked. The separate6471 flag-defect
 and binary symplectic rank-two claims concern different contracts. Hidden/
 unpublished work, arbitrary diffs and sparse historical notes remain unknown.
+The submission refresh found Ali Romman's [PR6533](https://github.com/CrocSwap/integer-mult-bounds/pull/6533),
+head efa89adc2c71f1ef57228111639e1c8fc48393e3. Its earlier claim and
+finite-field theorem already cover arbitrary simultaneous targets, all matrix
+ranks and fixed images through exponential affine/kernel-lattice counting.
+Its documented next question asks for a faster restricted nonnested criterion.
+This result supplies a closed seven-test criterion for TWO targets over EVERY
+field, including infinite fields, with a direct quotient-lifting proof. It does
+not claim the first nonnested completion result or a new general count. The
+finite existence checks overlap the general finite-field scope of PR6533; no
+PR6533 program or receipt is imported, executed or used as expected output.
+The original 478-body snapshot and then-current Hub view missed this adjacent
+advance claim; the prepublication refresh caught it. The scientific inputs,
+code and receipts remain frozen; this is a documentation/credit correction.
 The formal-interface card is explicitly changed to this algebraic side lemma;
 no Lean or selected-assumption discharge is claimed.
 
@@ -109,15 +122,17 @@ for the one-capacity contract; Cao Yifan/intqwq/4610 for native-map caller
 context; Nick Petalas/4919, codyw912/4735, Cinna Davis, Dugongue, zxv,
 Jacob Alan Sussman and the retained native/compiler lineage. Quotient spaces,
 linear lifting and basis extension are classical. Exact original notices remain.
-Separate AI implementation/review is not independent human acceptance.
+Ali Romman/PR6533 retains the earlier general finite-field counting and
+fixed-image compression result. Separate AI implementation/review is not independent human acceptance.
 
 ## Open next questions
 
-- Count every completion over finite fields for arbitrary two-target instances.
-  The criterion decides existence; the nested product formula cannot simply
-  be reused. Fix the coupled map and lifting freedoms before counting.
+- Derive a two-target count formula avoiding the general kernel-lattice census.
+  PR6533 already counts every finite-field completion by a general exponential
+  method. Fix the coupled map and lifting freedoms to seek a simpler formula.
 - Determine what additional compatibility is needed for three nonnested targets.
-  A third target can couple the choices left free here. Begin with one explicit
+  PR6533 covers finite-field counting, but no closed all-field criterion is
+  supplied here. A third target can couple choices left free here. Begin with one explicit
   arrangement and a discriminating obstruction; this theorem does not cover it.
 - Bind one actual shared native operator and all its source/image conditions.
   Symplectic constraints, absolute phases, causal access, dirty restoration,
