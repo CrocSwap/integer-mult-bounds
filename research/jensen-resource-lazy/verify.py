@@ -163,7 +163,7 @@ def custody_controls() -> list[str]:
                  ("expected/qualification.json", "complete package inventory"))
     with tempfile.TemporaryDirectory(prefix="jensen-lazy-controls-") as temporary:
         root = Path(temporary) / "retained source with spaces"
-        shutil.copytree(ENTRY.SOURCE, root)
+        shutil.copytree(ENTRY.SOURCE, root, copy_function=shutil.copyfile)
         for name, expected in mutations:
             path = root / name
             old = path.read_bytes() if path.exists() else None
