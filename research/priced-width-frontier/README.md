@@ -31,7 +31,7 @@ From the repository root with CPython 3.12 and its standard library:
 python3.12 -B scripts/research_package.py --package research/priced-width-frontier
 ```
 
-The registered command runs normal and optimized scientific checks, a two-cut census and private-copy mutation checks. In an extracted package the three scripts also run directly with `python3.12 -I -B`. The two independent price computations are the residue solver and an amount-by-amount oracle. Literal count-vector enumeration and charged shear executions provide additional checks. [Exact cases and schedules](RESULT.json) · [Census](CENSUS.json) · [Reproduction details](VALIDATION.md)
+The registered command runs normal and optimized scientific checks, a two-cut census, a literal source recount and private-copy mutation checks. In an extracted package the four entry-point scripts also run directly with `python3.12 -I -B`. The two independent price computations are the residue solver and an amount-by-amount oracle. Literal count-vector enumeration and charged shear executions provide additional checks. [Exact cases and schedules](RESULT.json) · [Census](CENSUS.json) · [Reproduction details](VALIDATION.md)
 
 ## Scope, source and credit
 

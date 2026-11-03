@@ -14,6 +14,7 @@ The universal result is the written proof. The finite corroboration uses exact i
 | Large common period | 12 prime-width menus, 197 anchor classes | Period and first floor 7,420,738,134,810. Fourteen large targets were checked using quotient-and-remainder schedules without enumerating the whole period |
 | Retained rank-12 compiler | Both compiled widths on each positive child cut | Two independent billing methods agree through all 3,920 feasible replications and on the two exact records. Five rank-eight fee pairs exercise both sides of the price threshold and equality |
 | Recursive unit fees | Positive program invocations in both historical libraries | The literal rank-eight traversals visited 3,639 and 13,928,545 invocations. The full child bills at the rank-12 parent agreed through all 3,920 feasible replications |
+| Independent source recount | Retained literal paid paths and ordered target words at ranks 3–12 | Rebuilt both child libraries, all 515 parent cuts and both complete price frontiers. The compressed compiler entry points were disabled. The menu solver was never imported |
 
 ## How the checks differ
 
@@ -31,11 +32,12 @@ From the repository root:
 python3.12 -I -W error -B research/priced-width-frontier/verify.py
 python3.12 -I -O -W error -B research/priced-width-frontier/verify.py
 python3.12 -I -W error -B research/priced-width-frontier/census.py
+python3.12 -I -W error -B research/priced-width-frontier/literal_source_check.py
 python3.12 -I -W error -B research/priced-width-frontier/audit_mutations.py
 python3.12 -B scripts/research_package.py --package research/priced-width-frontier
 ```
 
-The expected markers are `PASS_PRICED_WIDTH_FRONTIER`, `PASS_PRICED_WIDTH_CENSUS`, `PASS_PRICED_WIDTH_MUTATIONS` and `PASS_REGISTERED_RESEARCH_PACKAGE`. The first two scientific commands emit identical full receipts. The fault audit first requires an unchanged private copy to pass in both modes, then changes one input or implementation decision at a time and requires its named failure under both Python modes. Faults include accepting price ties as records, applying a tail formula before its cutoff, ignoring a parent width, treating gcd reachability as cheap fill, pooling rank-12 cuts and dropping actual charges. All temporary copies are separate from the published input tree.
+The literal paid-path recount emits `PASS_PRICED_WIDTH_LITERAL_SOURCE`. The other expected markers are `PASS_PRICED_WIDTH_FRONTIER`, `PASS_PRICED_WIDTH_CENSUS`, `PASS_PRICED_WIDTH_MUTATIONS` and `PASS_REGISTERED_RESEARCH_PACKAGE`. The first two scientific commands emit identical full receipts. The fault audit first requires an unchanged private copy to pass in both modes, then changes one input or implementation decision at a time and requires its named failure under both Python modes. Faults include accepting price ties as records, applying a tail formula before its cutoff, ignoring a parent width, treating gcd reachability as cheap fill, pooling rank-12 cuts and dropping actual charges. All temporary copies are separate from the published input tree.
 
 The package checker also provides a full-history publication check:
 
