@@ -89,6 +89,15 @@ locally named validation functions as targets, a bounded rule-9 deviation.
 Warning-strict development-mode normal and optimized runs supply runtime
 diagnostics. Explicit exception checks remain enabled under optimization.
 
+These deviations cover only this one-shot verifier. A port to a runtime that
+forbids allocation must replace its managed containers with fixed buffers.
+The remaining method dispatch has exactly two algebra targets, `Ring` and
+`Pair`, both exercised by the literal product checks. A public oracle accepting
+other algebra implementations would need a new input and dispatch contract.
+No separate linter is installed; AST inspection checks function sizes and the
+registered Python diagnostics are warning-strict. No shared build settings
+are changed.
+
 ## Credit and overlap
 
 Main predecessor: Armin Pourshafeie / apoursh,
