@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-import find_overlap as overlap
+import find_source_overlap as overlap
 sys.path.pop(0)
 
 
@@ -36,9 +36,8 @@ class IntakeTests(unittest.TestCase):
             cache.write_text(raw, encoding="utf-8")
             output = io.StringIO()
             with (patch.object(overlap, "ROOT", Path(tmp) / "empty-repo"),
-                  patch.object(overlap, "local_coverage", return_value=({}, [])),
                   patch.object(overlap, "gh_json", side_effect=AssertionError("network")),
-                  patch.object(sys, "argv", ["find_overlap.py", "--offline", "--json",
+                  patch.object(sys, "argv", ["find_source_overlap.py", "--offline", "--json",
                                              "--cache", str(cache), *arguments]),
                   contextlib.redirect_stdout(output)):
                 overlap.main()
@@ -107,6 +106,36 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(overlap.filter_pulls([normalized], "petalas", cutoff), [])
         self.assertIsNone(overlap.pull_records([[dict(raw, user=None)]])[0]["author"])
 
+    def test_new_cli_does_not_mutate_the_legacy_reader(self):
+        names = ("pull_records", "remote_snapshot", "search", "atomic_json")
+        functions = [getattr(overlap.legacy, name) for name in names]
+        self.run_report([pull(1)], ["--reference", "6537", "--pr-author", "petalas"])
+        self.assertEqual(functions, [getattr(overlap.legacy, name) for name in names])
+        raw = {"number": 7, "title": "A lead", "html_url": "url", "head": {"sha": "a" * 40},
+               "state": "open", "updated_at": overlap.now(), "user": {"login": "petalas"},
+               "created_at": overlap.now()}
+        self.assertNotIn("author", overlap.legacy.pull_records([[raw]])[0])
+        self.assertNotIn("created_at", overlap.legacy.pull_records([[raw]])[0])
+
+    def test_refresh_failure_preserves_cached_bytes_and_in_memory_evidence(self):
+        for failure in ("fetch", "publication"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as tmp:
+                cache = Path(tmp) / "cache.json"
+                old = {"fetched_at": overlap.now(), "complete_pagination": True, "records": [pull(1)]}
+                raw = json.dumps({"schema_version": 1, "repository": overlap.REPO,
+                                  "sources": {"open_prs": old}})
+                cache.write_text(raw, encoding="utf-8")
+                new = {"number": 2, "title": "New", "html_url": "url", "head": {"sha": "c" * 40},
+                       "state": "open", "updated_at": overlap.now()}
+                fetch_error = overlap.subprocess.CalledProcessError(1, ["gh"], stderr="later page failed")
+                with (patch.object(overlap, "gh_json", side_effect=fetch_error if failure == "fetch" else None,
+                                   return_value=[[new]]),
+                      patch.object(overlap.legacy, "atomic_json", side_effect=OSError("write failed"))):
+                    snapshot, warnings = overlap.remote_snapshot(cache, refresh=True)
+                self.assertEqual(cache.read_text(encoding="utf-8"), raw)
+                self.assertEqual(snapshot["sources"]["open_prs"], old)
+                self.assertTrue(any("refresh failed" in warning for warning in warnings))
+
     def test_fresh_legacy_cache_refreshes_pr_metadata_without_refetching_discussions(self):
         with tempfile.TemporaryDirectory() as tmp:
             cache = Path(tmp) / "cache.json"
@@ -120,7 +149,7 @@ class IntakeTests(unittest.TestCase):
                    "state": "open", "updated_at": overlap.now(), "created_at": overlap.now(),
                    "user": {"login": "petalas"}}
             with (patch.object(overlap, "gh_json", return_value=[[raw]]) as fetch,
-                  patch.object(overlap, "fetch_discussions", side_effect=AssertionError("discussion refetch"))):
+                  patch.object(overlap.legacy, "fetch_discussions", side_effect=AssertionError("discussion refetch"))):
                 snapshot, warnings = overlap.remote_snapshot(cache, need_pr_metadata=True)
             self.assertEqual(fetch.call_count, 1)
             self.assertEqual(warnings, [])

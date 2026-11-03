@@ -122,11 +122,11 @@ Each card supplies a first-step command, expected evidence, a next experiment,
 its connection to the bottleneck, allowed variations and scope-change triggers.
 
 Before taking a source's next question, query its issue/PR identifier directly
-in the overlap body corpus. Author and creation-date filters can isolate an
-account's recent contributions without relying on GitHub's indexed body search:
+in the dedicated PR body intake command. Author and creation-date filters can
+isolate an account's recent contributions without GitHub's indexed body search:
 
 ```sh
-python3 -B scripts/find_overlap.py --reference 6537 --pr-author petalas \
+python3 -B scripts/find_source_overlap.py --reference 6537 --pr-author petalas \
   --created-since 2026-10-27 --include-closed --cache /tmp/source-overlap.json
 ```
 
@@ -134,8 +134,8 @@ Use the actual source number, login and UTC cutoff. `--reference` is repeatable
 and excludes decimal/hash substring hits; ordinary positional terms retain
 literal substring semantics. Author/date filters search only PR titles and
 bodies. `--include-closed` adds a separately paginated closed/merged corpus.
-Default searches are unchanged. Online queries refresh legacy PR caches that
-lack author/creation metadata; offline queries requiring missing metadata fail
+The existing `find_overlap.py` CLI is unchanged. Online intake queries refresh
+PR caches that lack author/creation metadata; offline queries with missing metadata fail
 explicitly rather than reporting no matches. Filtered results are leads, not
 evidence of semantic novelty, and do not replace live claim checks.
 

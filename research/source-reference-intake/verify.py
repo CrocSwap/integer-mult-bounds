@@ -30,7 +30,7 @@ def main():
     elapsed = time.perf_counter() - started
     print(result.stdout + result.stderr, end="")
     if args.write is not None:
-        inputs = ["scripts/find_overlap.py", "scripts/research_package.py",
+        inputs = ["scripts/find_source_overlap.py", "scripts/find_overlap.py", "scripts/research_package.py",
                   *sorted(str(path.relative_to(root)) for path in
                           (root / "tests").glob("test_research_overlap_*.py"))]
         evidence = {"claim_type": "workflow tooling with behavioral regression evidence",
