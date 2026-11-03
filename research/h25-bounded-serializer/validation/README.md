@@ -1,0 +1,9 @@
+# Retained finite validation
+
+These are verbatim retained evidence from five one-use operations: the first pre-import STOP, its single independently reviewed repair, then 70 normal controls, 70 optimized controls, one baseline consumer and one candidate consumer. Read reviews/PUBLIC-OUTCOME-v2.md for the independently accepted current disposition. F5 and F6 pass; F7 remains partial and no performance gain is demonstrated.
+
+Each *-raw.json stores every regular retained file under exactly one original run root as a UTF-8 string, original relative path, byte length and SHA256. Encoding each string as UTF-8 recovers the exact original bytes, including empty files. This representation avoids hundreds of separate tiny files while retaining all raw evidence; no target decoder or scientific helper was run to prepare it. Original absolute paths remain historical provenance. No previous protected run tree was read.
+
+The execution source, source/stage manifests, guarded command proposals, admissions, ledgers, GNU time output, runtime custody evidence and failure/review history are preserved. Component source bytes are in ../component. Source references and manifests retain their original local paths, so replay on another host requires a newly reviewed path mapping, runtime pin inventory, immutable stage and resource admission. These historical runtime pins do not attest another machine. Do not run a copied command with stale absolute paths. Git does not preserve 0444/0555 stage modes.
+
+The reference/candidate artifact pair totals 9417 bytes. It is a finite fixture, not a representative complete H25 witness. No hosted executable replay hook is added. Hosted planning success is separate from these local retained results. Preparation, independent validation/readback and final metadata-publication physical costs remain OPEN_NOT_ZERO. Policy charges are not a measured complete physical total. No historical timing gap was removed.

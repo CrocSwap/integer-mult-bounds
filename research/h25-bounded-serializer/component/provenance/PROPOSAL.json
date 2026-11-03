@@ -1,0 +1,89 @@
+{
+  "schema": "h25-data-handling-proposal-v1",
+  "area": 3,
+  "status": "AWAITING_SOURCE_ADMISSION_NO_IMPLEMENTATION",
+  "title": "Exact-schema bounded batches through the original CPython C JSON encoder",
+  "baseline": {
+    "publication_commit": "e05aad954689d0ee21baff19b4674f1fcb2e838f",
+    "stage": "outputs/h25-bookkeeping-swarm-20261028/stages/v4",
+    "stage_sha256_from_parent_plan": "558eebbc1dc65e42bbcb3ffd9973f8bc86641a3539493ecc1d53d8077c39cdbc",
+    "source_hashes": {
+      "integration/full_driver.py": "5b963a5f108b334a627e68001c80b9843fb300c7394693e72f34ce0a6050e6f1",
+      "baseline/engine/compare_side_verifier.py": "6e507bb0c7e00d090a60289fddb6c55e90c946d0850c42c3c5e3e15c27604a68",
+      "baseline/engine/source/complex_circuit.py": "d623617f7c5cb3189580883a8ab30c0bd3832688ae3f1f0c1f881bbbbff8e0c1"
+    },
+    "historical_artifacts": {
+      "result": {"bytes": 527, "sha256": "342e99212b12e518902ae9598613f5484113bacee8747c27a13b58a4b1d3986c"},
+      "witness": {"bytes": 58143622, "sha256": "4b170c1dbfc33c7cb141a2284c6fd69eac7b6d100971d3e9ee625502b5893f82"},
+      "rank_trace": {"bytes": 2674272, "sha256": "85006ca332bbc57c2ba9fd06f61a0281d4cee600c9f3b449342379bf2aedec8f"}
+    },
+    "historical_c1_serialization_wall_seconds": 1.2042208680068143,
+    "historical_c1_kernel_max_rss_kib": 453852,
+    "evidence_boundary": "Historical bounded receipt reads only; no candidate measurements and no independent reconstruction in this lane"
+  },
+  "primary_sources": {
+    "local_json_encoder": {"path": "/usr/lib/python3.12/json/encoder.py", "sha256": "af7bd40a0d0d0a3e726a9b4b3a2a543019f6ab97a340d0162a9c29ca9da97869"},
+    "local_json_init": {"path": "/usr/lib/python3.12/json/__init__.py", "sha256": "d5d41e2c29049515d295d81a6d40b4890fbec8d8482cfb401630f8ef2f77e4d5"},
+    "local_pathlib": {"path": "/usr/lib/python3.12/pathlib.py", "sha256": "b43e134bf7479759838b4ecec3d78e0e67fdfde2d671c5c2d7886a47da93885d"},
+    "local_patchlevel": {"path": "/usr/include/python3.12/patchlevel.h", "sha256": "f2f4800f05108bef77f6164484aba437b86b81e34744cbb5378f7bb2ccc69414", "version": "3.12.3"},
+    "cpython_release": "https://github.com/python/cpython/commit/f6650f9ad73359051f3e558c2431a109bc016664",
+    "cpython_json_c": "https://github.com/python/cpython/blob/f6650f9ad73359051f3e558c2431a109bc016664/Modules/_json.c",
+    "cpython_json_c_evidence_lines": ["1189-1215 one complete Unicode writer result", "1309-1313 Python integer repr", "1479-1494 sorted dict items", "1526-1590 ordered sequence encoding"],
+    "runtime_boundary": "Upstream source explains mechanism; it is not attestation of the distro's compiled _json binary. Parent must bind/authenticate actual runtime dependencies before execution."
+  },
+  "source_research_failure": {
+    "command": "bounded curl download of CPython release source to lane reference directory",
+    "exit_code": 6,
+    "stderr": "curl: (6) Could not resolve host: raw.githubusercontent.com",
+    "resolution": "No command retry; used read-only web primary source plus exact release commit. No fetched source bytes or source hash claimed."
+  },
+  "domain": {
+    "primary": "Frozen exact witness schema, exact builtin containers/scalars, no cycles, depth <=32, bounded per-record encoded upper bound",
+    "integer_policy": "No fixed-word integer restriction; original Python decimal conversion and int max-str-digits behavior retained",
+    "fallback": "Before IO, invoke separately retained untouched original write_scientific with original arguments for any unadmitted domain",
+    "bounded_memory_scope": "Admitted path only; original fallback can retain original full allocations",
+    "concurrency": "Source-checked frozen single-thread caller; arbitrary concurrent mutation is outside admitted domain"
+  },
+  "batching": {
+    "max_rows": 1024,
+    "max_encoded_upper_bound_bytes": 1048576,
+    "max_depth": 32,
+    "copy_buffer_bytes": 1048576,
+    "canonical_options": {"sort_keys": true, "separators": [",", ":"], "ensure_ascii": true},
+    "implementation": "Exact list batches encoded by ordinary json.dumps C path; only outer array brackets omitted via memoryview and commas inserted between batches",
+    "key_order": ["active", "args", "code", "kind", "labels", "pieces", "support"],
+    "code_key_order": ["gates", "outputs", "roles", "sources"],
+    "estimators": {"int": "bit_length*30103//100000+2", "str": "12*len+2", "float": 32, "containers": "sum recursive child bounds plus punctuation"}
+  },
+  "interfaces": {
+    "writer": "make_writer(reference_write_scientific,reference_canonical,expected,require,...)->writer(output,result,witness,rank_calls)",
+    "rank": "Exact builtin list remains unchanged; rows may be interned immutable exact tuples; no new interface",
+    "reference": "Separate original module/function/process; never rebind original writer or canonical encoder",
+    "integration": "Parent selects candidate writer at existing side serialization phase; eager witness construction initially unchanged",
+    "observations": "Return original receipt only; separate bounded operational receipt preserves scientific stdout/schema"
+  },
+  "output_contract": {
+    "serialization_order": ["result", "witness", "rank_trace"],
+    "acceptance": "Compute original rank counts and entire EXPECTED comparison after all three staged encodings, before any final file changes",
+    "final_order": ["result.json", "witness.json", "rank-trace.json"],
+    "publication": "Bounded copy into original wb final sinks, preserving completed files and failing prefix; no atomic rename",
+    "failure_evidence": "Retain private partial stage and bounded failure manifest; retain any visible partial final; cleanup errors cannot mask original error",
+    "success_cleanup": "Remove only this call's private stage after all final writes close successfully",
+    "declared_differences": ["Added staging IO failures", "Different final syscall grouping and possibly different OS failure prefix length", "Short-write behavior must receive explicit source-review disposition before implementation"]
+  },
+  "reserve_mechanisms": [
+    {"name": "Python JSONEncoder.iterencode", "status": "RESERVE", "reason": "Bounded chunks but Python per-token work may regress; no timing performed"},
+    {"name": "C encoder iterencode(_one_shot=True) on whole witness", "status": "REJECTED", "reason": "CPython source returns one complete Unicode object"},
+    {"name": "Lazy labels/pieces projection", "status": "DEFERRED_AFTER_FIRST_MEMORY_RESULT", "reason": "Avoids secondary lists but changes eager conversion order; needs separate owner/descriptor/failure contract"},
+    {"name": "Custom native bounded serializer", "status": "RESERVE", "reason": "Adds cold compilation, integer/escaping/sorting parity and binding obligations"},
+    {"name": "Stage mmap passed to original Path.write_bytes", "status": "RESERVE_ONLY", "reason": "Preserves single final write but mapped pages can charge whole-file RSS"}
+  ],
+  "required_before_implementation": ["Parent source admission", "Independent reviewer approval of explicit final-write/short-write boundary", "Actual runtime/source closure binding"],
+  "execution_owner": "Parent serial guarded queue after log-fix gate",
+  "new_scientific_runs": 0,
+  "new_compilations": 0,
+  "new_measurements": 0,
+  "performance_claim": null,
+  "cost_and_controls": "COST-CONTROLS.json",
+  "owned_future_files": ["bounded_serialization.py", "serialization_controls.py"]
+}
