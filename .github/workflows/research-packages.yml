@@ -26,8 +26,35 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          fetch-depth: 0
+          # Planning compares the event base and HEAD; replay has its own full checkout.
+          # Manual dispatch retains arbitrary revision/ref support.
+          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && '0' || '2' }}
           persist-credentials: false
+      - name: Fetch exact automated review base
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before || inputs.base }}
+          GIT_NO_REPLACE_OBJECTS: '1'
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          if [[ ! "$REVIEW_BASE" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]; then
+            echo '::error::Automated review base must be a complete commit ID'
+            exit 1
+          fi
+          # An all-zero push base keeps the existing all-tracked selection.
+          if [[ "$REVIEW_BASE" =~ ^0+$ ]]; then
+            exit 0
+          fi
+          if ! git cat-file -e "${REVIEW_BASE}^{commit}" 2>/dev/null; then
+            git -c maintenance.auto=false -c gc.auto=0 fetch \
+              --no-tags --no-recurse-submodules --depth=1 origin "$REVIEW_BASE"
+          fi
+          resolved_base="$(git rev-parse --verify --end-of-options "${REVIEW_BASE}^{commit}")"
+          if [[ "$resolved_base" != "$REVIEW_BASE" ]]; then
+            echo '::error::Fetched review base differs from the event commit'
+            exit 1
+          fi
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.12'
@@ -50,3 +77,4 @@ jobs:
     uses: ./.github/workflows/research-package-batch.yml
     with:
       packages: ${{ toJSON(matrix.packages) }}
+
