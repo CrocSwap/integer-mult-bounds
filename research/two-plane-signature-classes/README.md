@@ -89,7 +89,7 @@ python3.12 scripts/research_package.py --package research/two-plane-signature-cl
 Each verifier run takes a few seconds and prints
 `PASS_TWO_PLANE_SIGNATURE_CLASSES`. It recomputes `RESULT.json` and
 `WITNESSES.json` and compares their bytes. `--write` regenerates both. `--extended`
-adds the F_7 enumeration (about a minute) and compares nothing.
+adds the F_7 enumeration (about 13 seconds) and compares nothing.
 
 The verifier also binds to two committed PR3997 files by SHA256: its
 `TERNARY-SCREEN.txt` (the 439 recorded signature codes) and its `RESULT.json` (the
