@@ -58,6 +58,16 @@ independent human review or proof-kernel verification is claimed.
 The all-dimension proof reduces to the explicit finite GL3 base certificate;
 it is not an extrapolation from sampled address sizes.
 
+## Hosted validation record
+
+The first [hosted run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/41558037028)
+failed before package selection. The unchanged onboarding test
+`test_success_and_malformed_reply_stop_ready_descendant` read an empty
+`child-ready` file and raised `ValueError`. The package replay did not run.
+GitHub rejected a job retry because the contributor lacks repository admin
+rights. This record does not turn that failed run into a scientific pass.
+Local normal and optimized package checks passed as stated above.
+
 ## Open next questions
 
 Apply the complete selected-middle and off-subgroup equations to one
