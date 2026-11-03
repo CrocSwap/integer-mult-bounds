@@ -29,7 +29,14 @@ def pair(x, y, seed, inverse=False):
 
 def phase(z, p):
     a, b = z
-    return ((a, b), (-b, a), (-a, -b), (b, -a))[p % 4]
+    p %= 4
+    if p == 0:
+        return a, b
+    if p == 1:
+        return -b, a
+    if p == 2:
+        return -a, -b
+    return b, -a
 
 
 def route(recipe):
