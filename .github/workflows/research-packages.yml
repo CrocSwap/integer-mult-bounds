@@ -55,6 +55,38 @@ jobs:
             echo '::error::Fetched review base differs from the event commit'
             exit 1
           fi
+      - name: Fetch pinned onboarding source commits
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          # Original package snapshot and its immutable historical source base.
+          # tests/test_research_descendant_source_roles.py retains these inputs.
+          HELPER_SOURCE_COMMITS: >-
+            20ecf2891d80b5acf18d980b2164fb44ea7faa90
+            6f100d4bb5083f8c35d96fd95a539811c62f245c
+          GIT_NO_REPLACE_OBJECTS: '1'
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          read -r -a source_commits <<< "$HELPER_SOURCE_COMMITS"
+          if [[ "${#source_commits[@]}" -eq 0 ]]; then
+            echo '::error::Onboarding source commit inventory is empty'
+            exit 1
+          fi
+          for source_commit in "${source_commits[@]}"; do
+            if [[ ! "$source_commit" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ || "$source_commit" =~ ^0+$ ]]; then
+              echo '::error::Onboarding source must be a complete nonzero commit ID'
+              exit 1
+            fi
+            if ! git cat-file -e "${source_commit}^{commit}" 2>/dev/null; then
+              git -c maintenance.auto=false -c gc.auto=0 fetch \
+                --no-tags --no-recurse-submodules --depth=1 origin "$source_commit"
+            fi
+            resolved_source="$(git rev-parse --verify --end-of-options "${source_commit}^{commit}")"
+            if [[ "$resolved_source" != "$source_commit" ]]; then
+              echo '::error::Fetched onboarding source differs from its pinned commit'
+              exit 1
+            fi
+          done
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.12'

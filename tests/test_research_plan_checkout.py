@@ -1,4 +1,6 @@
 """Exercise the workflow's actual exact-base step using local shallow Git fixtures."""
+import ast
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -16,14 +18,15 @@ ROOT = Path(__file__).resolve().parents[1]
 PLAN_WORKFLOW = '.github/workflows/research-packages.yml'
 BATCH_WORKFLOW = '.github/workflows/research-package-batch.yml'
 STEP_NAME = 'Fetch exact automated review base'
+HISTORY_STEP_NAME = 'Fetch pinned onboarding source commits'
 DEPTH_EXPRESSION = "${{ github.event_name == 'workflow_dispatch' && '0' || '2' }}"
 BASE_EXPRESSION = '${{ github.event.pull_request.base.sha || github.event.before || inputs.base }}'
 
 
-def fetch_step():
+def fetch_step(name=STEP_NAME):
     """Extract this simple actual run block, as the existing CI drift tests do."""
     text = (ROOT / PLAN_WORKFLOW).read_text(encoding='utf-8')
-    marker = '      - name: ' + STEP_NAME + '\n'
+    marker = '      - name: ' + name + '\n'
     if text.count(marker) != 1:
         raise ValueError('expected one exact automated review-base step')
     body = text.split(marker, 1)[1].split('\n      - ', 1)[0]
@@ -37,9 +40,9 @@ def fetch_step():
     return header, textwrap.dedent('\n'.join(lines)) + '\n'
 
 
-def step_environment(base):
+def step_environment(base, name=STEP_NAME):
     """Use the literal security settings from the step being exercised."""
-    header, _ = fetch_step()
+    header, _ = fetch_step(name)
     env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
     env.update(GIT_ALLOW_PROTOCOL='file', GIT_CONFIG_NOSYSTEM='1',
                GIT_CONFIG_GLOBAL=os.devnull, REVIEW_BASE=base)
@@ -312,6 +315,102 @@ class PlanCheckoutGitTests(unittest.TestCase):
                 path.write_bytes(path.read_bytes() + b'\n# changed shared control\n')
                 self.commit(self.checkout)
                 self.assertEqual(self.selected(self.checkout, base), ['research/alpha', 'research/beta'])
+
+
+    def history_fixture(self):
+        self.write(self.writer, 'history/input.py', b'original historical source\n')
+        source = self.commit(self.writer)
+        blob = self.git(self.writer, 'rev-parse', source + ':history/input.py').stdout.strip()
+        manifest = {'base_commit': source, 'files': [{'path': 'history/input.py', 'git_blob': blob}]}
+        self.write(self.writer, 'history/input.py', b'changed current source\n')
+        self.write(self.writer, 'history/SOURCES.json', json.dumps(manifest).encode())
+        publication = self.commit(self.writer)
+        for index in range(2):
+            self.write(self.writer, 'history/later.txt', str(index).encode())
+            self.commit(self.writer)
+        self.git(self.writer, 'push', '-q', 'origin', 'HEAD:refs/heads/main')
+        return self.clone('history-shallow', depth=2), [publication, source], blob
+
+    def run_history_step(self, root, pins, succeeds=True):
+        entered = self.temporary_root / 'history-suite-entered'
+        entered.unlink(missing_ok=True)
+        env = step_environment(self.head, HISTORY_STEP_NAME)
+        # Substitute only declared SHA inventory DATA; execute the unchanged actual body.
+        env['HELPER_SOURCE_COMMITS'] = ' '.join(pins)
+        env['HISTORY_STEP_SOURCE'] = fetch_step(HISTORY_STEP_NAME)[1]
+        env['HISTORY_SUITE_ENTERED'] = str(entered)
+        driver = 'bash --noprofile --norc -e -o pipefail -c "$HISTORY_STEP_SOURCE"\n'
+        driver += ': > "$HISTORY_SUITE_ENTERED"\n'
+        before = self.git(root, 'rev-parse', 'HEAD').stdout
+        result = subprocess.run(['bash', '--noprofile', '--norc', '-e', '-o', 'pipefail',
+                                 '-c', driver], cwd=root, env=env, capture_output=True,
+                                text=True, timeout=20)
+        self.assertEqual(result.returncode == 0, succeeds, result.stderr + result.stdout)
+        self.assertEqual(entered.exists(), succeeds)
+        self.assertEqual(self.git(root, 'rev-parse', 'HEAD').stdout, before)
+        return result
+
+    def test_history_step_fetches_both_missing_commits_and_original_source_blob(self):
+        root, pins, blob = self.history_fixture()
+        for pin in pins:
+            self.assertNotEqual(self.git(root, 'cat-file', '-e', pin, check=False).returncode, 0)
+        self.run_history_step(root, pins)
+        original = json.loads(self.git(root, 'show', pins[0] + ':history/SOURCES.json').stdout)
+        self.assertEqual(original['base_commit'], pins[1])
+        self.assertEqual(self.git(root, 'rev-parse', pins[1] + ':history/input.py').stdout.strip(), blob)
+        self.assertEqual(self.git(root, 'cat-file', 'blob', blob).stdout, 'original historical source\n')
+        self.assertEqual(self.git(root, 'show', 'HEAD:history/input.py').stdout, 'changed current source\n')
+        refs = self.git(root, 'for-each-ref', '--format=%(refname)').stdout.splitlines()
+        self.assertNotIn('refs/remotes/origin/alternate', refs)
+        self.assertNotIn('refs/tags/fixture-base', refs)
+
+    def test_history_existing_commits_need_no_remote(self):
+        self.unavailable_origin(self.checkout)
+        self.run_history_step(self.checkout, [self.middle, self.head])
+
+    def test_history_partial_available_inventory_stops_before_onboarding_on_fetch_failure(self):
+        root, pins, _ = self.history_fixture()
+        self.git(root, 'fetch', '--no-tags', '--no-recurse-submodules', '--depth=1', 'origin', pins[0])
+        self.unavailable_origin(root)
+        self.run_history_step(root, pins, succeeds=False)
+
+    def test_history_bad_inventory_and_missing_commit_never_enter_onboarding(self):
+        for pins in ([], ['0' * 40], ['A' * 40], ['--upload-pack=evil'],
+                     ['f' * 40], [self.middle, 'f' * 40]):
+            with self.subTest(pins=pins):
+                self.run_history_step(self.checkout, pins, succeeds=False)
+
+    def test_history_raw_replacement_cannot_supply_missing_commit_authority(self):
+        root, pins, _ = self.history_fixture()
+        self.git(root, 'fetch', '--no-tags', '--no-recurse-submodules', '--depth=1', 'origin', pins[1])
+        self.assertNotEqual(self.git(root, 'cat-file', '-e', pins[0], check=False).returncode, 0)
+        head = self.git(root, 'rev-parse', 'HEAD').stdout.strip()
+        self.git(root, 'update-ref', 'refs/replace/' + pins[0], head)
+        self.assertEqual(self.git(root, 'cat-file', '-t', pins[0]).stdout.strip(), 'commit')
+        self.unavailable_origin(root)
+        self.run_history_step(root, pins, succeeds=False)
+
+    def test_inline_history_inventory_tracks_actual_onboarding_test_and_sources(self):
+        source = (ROOT / 'tests/test_research_descendant_source_roles.py').read_text(encoding='utf-8')
+        constants = {}
+        for node in ast.parse(source).body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target = node.targets[0]
+                if isinstance(target, ast.Name) and target.id in ('ORIGINAL', 'PACKAGE'):
+                    constants[target.id] = ast.literal_eval(node.value)
+        manifest = json.loads((ROOT / constants['PACKAGE'] / 'SOURCES.json').read_bytes())
+        header, body = fetch_step(HISTORY_STEP_NAME)
+        declared = re.findall(r'^            ([0-9a-f]{40}|[0-9a-f]{64})$', header, re.M)
+        self.assertEqual(declared, [constants['ORIGINAL'], manifest['base_commit']])
+        self.assertEqual(len(set(declared)), 2)
+        self.assertTrue(all(row.get('pin') in (None, 'base_commit:' + row['path'])
+                            for row in manifest['files']), 'new head pins need a reviewed history inventory')
+        self.assertIn("        if: github.event_name != 'workflow_dispatch'\n", header)
+        self.assertEqual(step_environment(self.head, HISTORY_STEP_NAME)['GIT_NO_REPLACE_OBJECTS'], '1')
+        self.assertIn('--no-tags --no-recurse-submodules --depth=1 origin "$source_commit"', body)
+        workflow = (ROOT / PLAN_WORKFLOW).read_text(encoding='utf-8')
+        self.assertLess(workflow.index('      - name: ' + HISTORY_STEP_NAME),
+                        workflow.index('      - name: Onboarding helper tests'))
 
 
 if __name__ == '__main__':
