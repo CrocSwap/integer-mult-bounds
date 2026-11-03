@@ -16,6 +16,12 @@ Mihir Srivastava's work. Their source hashes are pinned in SOURCES.json. This
 proof concerns replacement of `explicit_file` only. Underlying scientific and
 source-binding claims are cited inputs, not new audit results.
 
+Arham Tahir's PR2793 separately reuses already resolved paths in the later
+primary-proof membership pass. That prior optimization is retained as credit.
+The present proof and implementation leave that pass untouched and concern
+shared directories in the explicit-file traversal. Neither predecessor
+candidate performance nor scientific correctness is rechecked here.
+
 ## Original acceptance predicate
 
 For components p1 through pk, the original `explicit_file` checks canonical

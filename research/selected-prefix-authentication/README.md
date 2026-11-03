@@ -106,6 +106,14 @@ files. Prefix memoization and filesystem path facts are classical. The new
 contribution is this bounded adapter, equivalence argument, controls and
 complete-command improvement. Existing credits remain unchanged.
 
+Arham Tahir / Arham-Tahir64's merged [PR2793](https://github.com/CrocSwap/integer-mult-bounds/pull/2793)
+already reuses resolved inventory paths in the later primary-proof membership
+pass. That opt-in result is credited prior work. This adapter leaves that
+membership pass untouched and instead shares directory checks inside the
+explicit-file traversal. No comparison against, composition with or replay
+of the earlier candidate is claimed. Its package is cited as prior evidence,
+not made into this contribution's deliverable.
+
 The replay-runtime card is refined to this measured authentication bottleneck.
 Live PRs, recent handoffs, account work, reservations, merged searches and main
 README searches were checked. The overlap helper covered 555 open PRs and
