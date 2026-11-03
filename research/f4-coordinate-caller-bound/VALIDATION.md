@@ -30,5 +30,25 @@ exhaustion, Lean, Docker, or predecessor scientific suite was run. Those
 checks are not needed to reject the explicitly declared optimistic bill,
 but this rejection does not admit a supplier or prove a global ceiling.
 
-Committed-byte and standalone export results are recorded below after
-their checks finish. Hosted CI is separate from these author-side checks.
+Scientific commit: `fe9d549cadae2dc005880f8ff2728dcfe148d5e2`.
+The ten-file committed-byte and owner-execute-mode check passed. The
+official exporter and its offline integrity check also passed.
+
+The export then passed both direct modes with no Git directory,
+`PATH=/nonexistent`, read-only files and read-only directories. All eleven
+exported files, including the export receipt, kept their hashes and modes.
+The normal run took about 2.25 seconds; the optimized run took about 2.60
+seconds. These are local check durations, not speed claims.
+
+Before making the export read-only, two actual file mutations were tested.
+Appending an executable failure to the interval source was rejected by its
+hash check before execution. Replacing the first coordinate-clique index
+with an off-support ray was rejected by the support check. Both files were
+restored exactly before the two successful sealed replays.
+
+The final documentation commit changes only this validation record after
+the scientific replay. Scientific code, witnesses, expected values, and
+source pins remain byte-identical to the scientific commit. The base is a
+verified ancestor. Full-history preflight was not run because the checkout
+is shallow. No cached unmerged commit is needed by the direct verifier.
+Hosted CI remains separate and was not run before publication.
