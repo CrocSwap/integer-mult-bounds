@@ -23,4 +23,14 @@ No full native replay, all-width physical proof, source numerical-root/tail/oute
 
 ## Export and committed-byte checks
 
-Publication preflights and a clean Git-free read-only export replay are recorded after the first scientific commit. They test source availability and portability of this package, separately from its mathematical scope. The final publication commit and remote CI state are reported in the contribution PR; local success does not imply hosted success or maintainer acceptance.
+At commit `28929ae5b3bb575c0bb423d26d98d6f878ab8dd3`, these commands passed:
+
+```sh
+python3 -B scripts/check_research_commit.py --package research/pr6551-retirement-audit --check-source-history
+python3 -B scripts/export_research_package.py export --package research/pr6551-retirement-audit --ref 28929ae5b3bb575c0bb423d26d98d6f878ab8dd3 --output /tmp/retirement-audit.tar
+python3 -B scripts/export_research_package.py check /tmp/retirement-audit.tar
+```
+
+The preflight compared all 47 committed files and confirmed the declared base-history dependency. The export contains those files plus its integrity metadata. Normal and optimized direct replays then passed from the read-only export with no Git metadata and an empty PATH, in 0.533343 and 0.646604 seconds. Both returned the exact committed scientific receipt; all 48 file hashes and modes were unchanged. [evidence/cold-runs.json](evidence/cold-runs.json) records exact actual paths/commands and [cold-normal.log](evidence/cold-normal.log) / [cold-optimized.log](evidence/cold-optimized.log) retain complete outputs. The commands above substitute a portable temporary output path for that record's local path.
+
+The final evidence commit adds only validation/overlap records and logs. The checkers, frozen inputs and RESULT retain the hashes reviewed in FINAL-REVIEW.md. Publication repeats the byte/history preflight and export replay on that actual final commit. Remote CI is reported separately in the contribution PR; local success does not imply hosted success or maintainer acceptance.
