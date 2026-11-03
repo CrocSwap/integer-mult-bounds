@@ -88,39 +88,50 @@ def price_floor(steps):
 
 # ---------------------------------------------------------------- 1. cover numbers
 
+COVER_SEARCH_STEP_LIMIT = 60_000_000   # measured need: 5,403,753 steps (nine points), 41,511,450 (ten)
+
+
 def count_covers(size):
     """Number of subsets P of F_2^5 with 0 in P, |P| = size and P + P = F_2^5.
 
-    Exhaustive depth-first search over increasing element choices.  Adding an element to a
-    k-point set creates k new pairs; pairs that repeat an earlier difference are 'waste'.
-    A cover needs 31 distinct nonzero differences, so waste can never exceed
-    C(size, 2) - 31; the cut is exact, not heuristic."""
+    Exhaustive depth-first search with an explicit stack (no recursion), over increasing
+    element choices.  Adding an element to a k-point set creates k new pairs; pairs that
+    repeat an earlier difference are 'waste'.  A cover needs 31 distinct nonzero
+    differences, so waste can never exceed C(size, 2) - 31; the cut is exact, not heuristic."""
     allowed = size * (size - 1) // 2 - NMASK
     if allowed < 0:
         return 0
     covers = 0
-
-    def extend(chosen, seen, start, waste):
-        nonlocal covers
+    chosen = [0]
+    seen_at = [0]        # differences covered by chosen[:k]
+    waste_at = [0]
+    next_try = [1]       # next candidate element for the node chosen[:k]
+    for _ in range(COVER_SEARCH_STEP_LIMIT):
+        if not chosen:
+            return covers
         k = len(chosen)
-        if k == size:
-            if seen == FULLBITS:
+        x = next_try[-1]
+        if k == size or x > NMASK:
+            if k == size and seen_at[-1] == FULLBITS:
                 covers += 1
-            return
-        for x in range(start, NMASK + 1):
-            fresh = 0
-            for p in chosen:
-                bit = 1 << (x ^ p)
-                if not (seen & bit) and not (fresh & bit):
-                    fresh |= bit
-            nwaste = waste + k - fresh.bit_count()
-            if nwaste <= allowed:
-                chosen.append(x)
-                extend(chosen, seen | fresh, x + 1, nwaste)
-                chosen.pop()
-
-    extend([0], 0, 1, 0)
-    return covers
+            chosen.pop()
+            seen_at.pop()
+            waste_at.pop()
+            next_try.pop()
+            continue
+        next_try[-1] = x + 1
+        fresh = 0
+        for p in chosen:
+            bit = 1 << (x ^ p)
+            if not (seen_at[-1] & bit) and not (fresh & bit):
+                fresh |= bit
+        waste = waste_at[-1] + k - fresh.bit_count()
+        if waste <= allowed:
+            chosen.append(x)
+            seen_at.append(seen_at[-1] | fresh)
+            waste_at.append(waste)
+            next_try.append(x + 1)
+    raise SystemExit("FAIL cover search exceeded its step limit")
 
 
 def affine_normal_form_counts():
@@ -159,22 +170,24 @@ def check_cover_numbers():
 
 # ---------------------------------------------------------------- 2. pairing census
 
-def matchings(positions):
-    if not positions:
-        yield []
-        return
-    first = positions[0]
-    for i in range(1, len(positions)):
-        rest = positions[1:i] + positions[i + 1:]
-        for tail in matchings(rest):
-            yield [(first, positions[i])] + tail
+def matchings(n):
+    """All perfect matchings of the positions 0..n-1, each as a tuple of pairs (explicit stack)."""
+    stack = [((), tuple(range(n)))]
+    while stack:
+        part, rest = stack.pop()
+        if not rest:
+            yield part
+            continue
+        first = rest[0]
+        for i in range(1, len(rest)):
+            stack.append((part + ((first, rest[i]),), rest[1:i] + rest[i + 1:]))
 
 
 def check_pairing_census():
     histogram = {}
     best_missing = NMASK
     total = 0
-    for matching in matchings(list(range(10))):
+    for matching in matchings(10):
         word = [0] * 10
         for label, (a, b) in enumerate(matching):
             word[a] = word[b] = 1 << label
@@ -192,24 +205,22 @@ def check_pairing_census():
 # ---------------------------------------------------------------- 3. one weight-5 step
 
 def multiset_words(counts):
-    """All distinct sequences containing label j exactly counts[j] times."""
-    left = list(counts)
-    length = sum(left)
-    word = []
-
-    def rec():
-        if len(word) == length:
-            yield tuple(word)
+    """All distinct sequences containing label j exactly counts[j] times, in lexicographic
+    order, by repeated next-permutation steps (no recursion)."""
+    word = [j for j, c in enumerate(counts) for _ in range(c)]
+    n = len(word)
+    while True:
+        yield tuple(word)
+        i = n - 2
+        while i >= 0 and word[i] >= word[i + 1]:
+            i -= 1
+        if i < 0:
             return
-        for j in range(len(left)):
-            if left[j]:
-                left[j] -= 1
-                word.append(j)
-                yield from rec()
-                word.pop()
-                left[j] += 1
-
-    yield from rec()
+        j = n - 1
+        while word[j] <= word[i]:
+            j -= 1
+        word[i], word[j] = word[j], word[i]
+        word[i + 1:] = reversed(word[i + 1:])
 
 
 def check_one_weight5_census():
@@ -228,11 +239,7 @@ def check_one_weight5_census():
     words = 0
     best = 0
     for pattern in sorted(patterns):
-        seen = set()
-        for perm_counts in {tuple(p) for p in _label_assignments(pattern)}:
-            if perm_counts in seen:
-                continue
-            seen.add(perm_counts)
+        for perm_counts in sorted(_label_assignments(pattern)):
             for word in multiset_words(perm_counts):
                 words += 1
                 point = 0

@@ -143,6 +143,11 @@ weight5_witness=(72,78) no_new_kappa`.
   under the stated reductions. No proof assistant was run; independent human and formal
   proof-kernel review are unclaimed.
 * Weights 3 and 4 are not given an analogue of Theorem 2 here.
+* Verifier discipline: no recursion, and every loop has an explicit finite bound. The cover
+  search enforces a 60,000,000-step limit against the 5,403,753 and 41,511,450 steps it
+  uses for nine and ten points. Python allocates integers and containers while it runs;
+  that managed-runtime deviation is confined to these bounded searches (explicit stacks of
+  depth at most 10 and a streamed 115,920-word census).
 
 ## Open next questions
 
