@@ -169,6 +169,26 @@ def source_bytes(path, expected):
     return raw
 
 
+def child_cap(native_per_port_lower, kappa, cap):
+    upper = (2*Q(power(8*(cap+1), kappa)[1]-power(8*cap, kappa)[0], UNIT)
+             -native_per_port_lower+1)
+    need(upper < 0, 'The universal child increment must be negative')
+    return {'kappa_from': str(kappa), 'child_cap': cap, 'increment_upper': str(upper)}
+
+
+def general_child_caps(results):
+    base = Q(results[1]['native_cost_lower'])
+    k0 = Q(results[1]['kappa'])
+    derivative = min(Q(row['native_derivative_lower']) for row in results)
+    rows = []
+    for kappa, cap in [(k0, 22), (Q('.003288299')*Q(101, 100), 21)]:
+        native_lower = (base+derivative*(kappa-k0))/104
+        rows.append(child_cap(native_lower, kappa, cap))
+    reject(lambda: child_cap(Q(0), k0, 22), 'a free native word in the child cap')
+    return {'scope': 'Any root with fresh stage incidence and charged whole idles; raw budget only',
+            'tiers': rows, 'extra_negative_controls': 1}
+
+
 def run_case(spec):
     raw = source_bytes(HERE/'input'/spec['word'], spec['sha256'])
     w = json.loads(gzip.decompress(raw))
@@ -214,7 +234,8 @@ def run():
     need(Q(results[0]['native_cost_lower']) > Q(results[1]['native_cost_lower']),
          'The latest bound must also cover the earlier source by monotonicity')
     return {'status': 'PASS_EXACT_MONOTONE_FRAME_CALLER_EXCLUSION',
-            'mixed_source_ceiling': results[1]['kappa'], 'cases': results}
+            'mixed_source_ceiling': results[1]['kappa'], 'cases': results,
+            'general_child_caps': general_child_caps(results)}
 
 
 

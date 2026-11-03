@@ -9,6 +9,14 @@ allowed native variant at each leaf. Thus this class has less than
 **0.143 percent** headroom over PR6529's reported 0.003288299.
 At the 0.003293 ceiling, different leaves can also use different source words.
 
+A second result applies to **any root in the stated fresh-stage billing
+model**, not only this fixed root. Its favorable raw-budget search needs at
+most **22 leaves per binary child** for kappa>=0.003293, or **21 leaves** at
+the current one-percent target 0.00332118199. The proof gives a bound on each
+child increment, with no bound on the number of root fields or full sites.
+This converts an unbounded child-size search into a finite one. It does not
+provide a new root or a positive invoice. See `PROOF.md`, Section 6.
+
 The proof keeps the scalar events, contact equalities, public forward moves,
 owned reverse moves and main boundaries. It permits all binary subspaces at
 all contacts, including new subspaces absent from the source. Helper input

@@ -10,7 +10,7 @@ session; the selected cold replay was not run.
 The exact direct normal and optimized replays passed under CPython 3.15.2.
 The registered normal and optimized replays passed under CPython 3.12.13 on
 macOS arm64, using only the standard library. They check both source systems,
-the original signed invoices, fourteen rejection controls, both positive
+the original signed invoices, fifteen rejection controls, both positive
 source callers, every finite caller case and both analytic tails.
 
 Five separate optimized-process corruptions were rejected: one byte in each
@@ -29,7 +29,10 @@ integrity check passed. Both CPython 3.12.13 replays passed in a read-only,
 Git-free export with an empty PATH. The normal and optimized outputs were
 identical. All 26 export files retained their bytes and modes. The stdout
 SHA256 was `f47fdb60a7fb046e9aedabfe421da9f169f4cbaa331cc26360723cb3c8f35179`.
-Only this validation prose changed after that export.
+That export covered the original frame and fixed-root certificate.
+The later Section 6 addendum gives the universal 22/21-leaf caps, including
+coupled sites. Its updated receipt and both registered modes passed under
+CPython 3.12.13. A new committed export will be checked for that addendum.
 The checkout is shallow. Full-history ancestry is not claimed. Every pending
 predecessor byte required by the proof is retained and checked directly.
 

@@ -221,7 +221,76 @@ decreases through kappa=.0034. The exclusions extend from their tested
 ceilings to that cap, even if one chooses a different tree or frame
 assignment at each kappa.
 
-## 6. Interpretation and limits
+## 6. A child-size cap for any fresh-stage root
+
+The next bound does not fix the PR6398 root. Fix any root with m full sites.
+Site i receives a binary child of size n_i. Its stage occurs on r_i output
+fields, where r_i>=2. Each occurrence contributes rank 8*n_i. Each output is
+a product of distinct fresh stages and has a fixed additional rank d_j>=0.
+The root pays exactly r_i-2 additional whole idles H(8*n_i) for that site.
+Its other query charges do not depend on the child sizes. This includes a
+root with paid overwrite queries and a root with ordinary thin shears.
+
+Use the uniform lower bound L on the native paid-minus-helper cost per port.
+Its favorable raw margin has the form
+
+```text
+F(n)=sum_j H(d_j+8 sum_(i in M_j) n_i)
+     -sum_i [(r_i-2)H(8*n_i)+n_i L+C(n_i)]-fixed_query_cost.
+```
+
+There are r_i sets M_j that contain i. For any such output its current rank
+is at least 8*n_i. By concavity, its increase when n_i increases by one is
+at most Delta_i=H(8*(n_i+1))-H(8*n_i). The r_i output increases, minus the
+r_i-2 idle increases, are therefore at most 2*Delta_i. This cancellation
+is why the bound does not depend on root size, masks or projector ranks.
+
+For every n>=1, `C(n+1)-C(n)>=-1`. To prove this, take a minimum-cost binary
+tree on n+1 leaves and delete one leaf. Delete its parent and attach its
+sibling in the parent's place. The removed parent cost is at least -1.
+Every remaining ancestor loses one leaf, so its cost can only decrease:
+`2H(8v)+1-2H(8v+1)` increases with v by concavity. The pruned tree is a legal
+n-leaf tree and has cost at least C(n). This proves the claim for every n,
+without a bound on tree size.
+
+It follows that, for any fixed values of the other children,
+
+```text
+F(...,n_i+1,...)-F(...,n_i,...)
+    <= 2[H(8*(n_i+1))-H(8*n_i)]-L+1.
+```
+
+The right-hand side decreases with n_i. At kappa=.003293, the exact native
+lower bound from Section 4 makes it less than -0.0004245 at n_i=22.
+Thus any child larger than 22 can be reduced to 22 with a strict increase
+in the favorable raw margin. This can be done one child at a time.
+
+The sign is unchanged for a coupled site with a_i main pairs. Such a site
+has native and child charge `a_i*(n_i L+C(n_i))` and idle charge
+`(r_i-2*a_i)H(8*n_i)`. Its increment bound is a_i times the displayed bound.
+Thus the same caps apply at every coupled width with this complete bill.
+
+At the one-percent comparison target
+`.003288299*101/100=.00332118199`, use the native lower bound at .003293
+plus the smaller of the two uniform derivative bounds times the increment
+in kappa. The same expression is less than -0.0018422 at n_i=21. Thus 21
+is a sufficient child cap at this target. No minimality is claimed for
+either cap. Since H(r+8)-H(r) decreases with kappa for r>=8, and the native
+deficit increases, each cap remains valid up to the retained .0034 cap.
+
+The result concerns a favorable raw-budget relaxation. The lower native
+bound need not be attained by an actual variant. A positive complete caller
+would have a positive raw margin, hence a positive value in this relaxation.
+If every capped case has nonpositive relaxed margin, no larger child can
+repair it. The statement does not compare the ordinary or compiler costs
+of two positive constructions. It does not cover repeated or noncommuting
+stage factors, partial-stage idles or a different binary child contract.
+
+The source words, helpers, normalization and binary module remain credited
+to their original authors. The general per-child cancellation and pruning
+bound are the additional cost consequence proved here.
+
+## 7. Interpretation and limits
 
 The latest source comparison is PR6529's reported conditional .003288299.
 The ratio `.003293/.003288299-1` is less than .00143. Thus the whole stated
