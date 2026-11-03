@@ -1,0 +1,436 @@
+#!/usr/bin/env python3
+"""Independent local-transport compatibility oracle; no workflow activation.
+
+Uses unchanged pinned repository validators and Git, an existing dependency.
+Credit the retained repository tooling contributors and actions/checkout.
+Substantial OpenAI Codex assistance. Apache-2.0.
+"""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import signal
+import stat
+import subprocess
+import sys
+import tempfile
+
+
+ROOT = Path(__file__).resolve().parent
+PIN_SHA = "7ac2f10158440cc95f332061edb9e506be753e4f685b924b71075510d5f53351"
+CASE_SHA = "db099a682f1364077881ff620954ae60b5ffa373a3ac73d1de8c190405acea24"
+PACKAGE = "research/fixture"
+CATALOGUE = "docs/research/agent-task-catalog.json"
+OLD_PATH = "history/oracle-deleted.txt"
+GIT = shutil.which("git")
+LOG = []
+COMMON = ("source_manifest_sha256", "case_manifest_sha256", "semantics")
+SEMANTIC_KEYS = {"all_refs_equal", "all_commits_equal", "all_trees_equal", "head_bytes_modes_equal",
+                 "filtered_old_source_initially_missing", "filtered_obsolete_initially_missing",
+                 "online_metadata_accepted", "online_old_source_hydrated", "offline_unhydrated_metadata_rejected",
+                 "offline_hydrated_metadata_accepted", "offline_hydrated_history_modes_accepted",
+                 "shallow_history_rejected", "foreign_ancestry_rejected", "working_bytes_rejected",
+                 "owner_execute_rejected", "unstaged_diff_rejected", "staged_diff_rejected"}
+
+
+def require(value, message):
+    if not value:
+        raise ValueError(message)
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def unique(pairs):
+    result = {}
+    for key, value in pairs:
+        require(key not in result, "duplicate JSON key: " + key)
+        result[key] = value
+    return result
+
+
+def reject_number(token):
+    raise ValueError("noninteger JSON number forbidden: " + token)
+
+
+def parse(raw):
+    return json.loads(raw, object_pairs_hook=unique,
+                      parse_float=reject_number, parse_constant=reject_number)
+
+
+def validate_receipt(value, own):
+    require(type(value) is dict, "receipt must be object")
+    expected = set(COMMON) | {"schema_version", "code_sha256"}
+    if own:
+        expected |= {"diagnostics", "git_version"}
+    require(set(value) == expected, "receipt keys must match schema v1")
+    require(type(value["schema_version"]) is int and value["schema_version"] == 1,
+            "receipt schema_version must be integer 1")
+    for key in ("source_manifest_sha256", "case_manifest_sha256", "code_sha256"):
+        item = value[key]
+        require(type(item) is str and len(item) == 64 and all(c in "0123456789abcdef" for c in item),
+                "receipt digest must be lowercase hexadecimal: " + key)
+    semantics = value["semantics"]
+    require(type(semantics) is dict and set(semantics) == SEMANTIC_KEYS,
+            "receipt semantics must contain exactly the 17 fields")
+    require(all(type(item) is bool for item in semantics.values()),
+            "receipt semantic values must be booleans")
+    if own:
+        require(type(value["diagnostics"]) is dict, "receipt diagnostics must be object")
+        require(type(value["git_version"]) is str and bool(value["git_version"]),
+                "receipt git_version must be nonempty string")
+
+
+def kill_command_group(process):
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    elif process.poll() is None:
+        process.kill()
+
+
+def bounded_communicate(process, payload, timeout):
+    try:
+        out, err = process.communicate(payload, timeout=timeout)
+        return out, err, False
+    except subprocess.TimeoutExpired as first:
+        kill_command_group(process)
+        try:
+            out, err = process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.stdout.close()
+            process.stderr.close()
+            process.wait(timeout=5)
+            out, err = first.output or b"", first.stderr or b""
+        return out, err, True
+
+
+def encoded(value):
+    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
+
+
+def write(path, raw):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+
+
+def blob(raw):
+    return hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+
+
+def authenticate():
+    raw = (ROOT / "SOURCE-PINS.json").read_bytes()
+    require(sha(raw) == PIN_SHA, "source manifest changed")
+    manifest = parse(raw)
+    require(len(manifest["files"]) == 12, "twelve source objects required")
+    for entry in manifest["files"]:
+        data = (ROOT / entry["local_path"]).read_bytes()
+        require(len(data) == entry["bytes"] and sha(data) == entry["sha256"],
+                "frozen source bytes changed")
+        require(blob(data) == entry["git_blob"], "frozen source Git blob changed")
+    case_raw = (ROOT / "CASES.json").read_bytes()
+    require(sha(case_raw) == CASE_SHA, "case manifest changed")
+    require(parse(case_raw)["workflows_modified"] is False, "prototype scope changed")
+    require(GIT is not None, "Git is an explicit required dependency")
+
+
+def command(cwd, argv, expected=0, data=None, timeout=30):
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith("GIT_")}
+    environment.update({"GIT_ALLOW_PROTOCOL": "file", "GIT_TERMINAL_PROMPT": "0",
+                        "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+                        "GIT_AUTHOR_DATE": "2001-02-03T04:05:06+0000",
+                        "GIT_COMMITTER_DATE": "2001-02-03T04:05:06+0000"})
+    payload = data.encode() if isinstance(data, str) else data
+    process = subprocess.Popen(argv, cwd=cwd, env=environment, stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               start_new_session=os.name == "posix")
+    out, err, timed_out = bounded_communicate(process, payload, timeout)
+    record = {"cwd": str(cwd), "argv": list(argv), "returncode": process.returncode,
+              "stdout": out.decode("utf-8", errors="replace"),
+              "stderr": err.decode("utf-8", errors="replace"), "timed_out": timed_out,
+              "stdout_sha256": sha(out), "stdout_bytes": len(out)}
+    LOG.append(record)
+    require(not timed_out, "command timeout: " + canonical(record))
+    require(expected is None or process.returncode == expected,
+            "unexpected command status: " + canonical(record))
+    return record
+
+
+def git(root, *args, expected=0, data=None):
+    argv = [GIT, "-c", "gc.auto=0", "-c", "maintenance.auto=false",
+            "-c", "core.hooksPath=/dev/null", "-c", "protocol.file.allow=always", *args]
+    return command(root, argv, expected, data)
+
+
+def configure(root):
+    for key, value in {"user.name": "Independent Fixture", "user.email": "fixture@example.invalid",
+                       "core.autocrlf": "false", "core.filemode": "true",
+                       "commit.gpgsign": "false", "gc.auto": "0",
+                       "maintenance.auto": "false"}.items():
+        git(root, "config", key, value)
+
+
+def commit(root, message):
+    git(root, "add", ".")
+    git(root, "commit", "-qm", message)
+    return git(root, "rev-parse", "HEAD")["stdout"].strip()
+
+
+def fixture_base(seed):
+    git(seed, "init", "-q", "-b", "main")
+    configure(seed)
+    for name in ("research_package.py", "check_research_commit.py"):
+        write(seed / "scripts" / name, (ROOT / "inputs" / name).read_bytes())
+    card = {"id": "fixture", "question": "Independent local acquisition fixture"}
+    catalogue = encoded({"tracks": [{"tasks": [card]}]})
+    source = bytes((17 * index + 3) % 251 for index in range(257))
+    obsolete = bytes((7 * index + 1) % 251 for index in range(65536))
+    write(seed / CATALOGUE, catalogue)
+    write(seed / OLD_PATH, source)
+    write(seed / "history/obsolete.bin", obsolete)
+    base = commit(seed, "independent fixture base")
+    return {"base": base, "card": card, "catalogue": catalogue,
+            "source": source, "obsolete": obsolete}
+
+
+def fixture_refs(seed, info):
+    tree = git(seed, "rev-parse", info["base"] + "^{tree}")["stdout"].strip()
+    foreign = git(seed, "commit-tree", tree, data="independent orphan history\n")["stdout"].strip()
+    git(seed, "update-ref", "refs/tags/archive", foreign)
+    write(seed / "side-only.bin", bytes((11 * index + 2) % 251 for index in range(32768)))
+    side = commit(seed, "independent side branch")
+    git(seed, "update-ref", "refs/heads/side", side)
+    git(seed, "reset", "--hard", info["base"])
+    info["foreign"] = foreign
+
+
+def publish_fixture(seed, info):
+    for name in (OLD_PATH, "history/obsolete.bin"):
+        (seed / name).unlink()
+    write(seed / CATALOGUE, encoded({"tracks": [{"tasks": [{"id": "fixture", "question": "Changed HEAD card"}]}]}))
+    task = {"schema_version": 1, "scope_status": "changed", "actual_scope": "Local acquisition compatibility",
+            "scope_change_reason": "Independent bounded transport fixture", "bottleneck_link": "CI acquisition",
+            "stop_rule": "One finite local fixture", "evidence": "Exact validator statuses", "author": "Fixture",
+            "ai_assistance": "OpenAI Codex", "outcome": "completed", "open_questions": [],
+            "no_open_questions_reason": "Synthetic bounded fixture", "base_commit": info["base"],
+            "task_id": "fixture", "original_card": info["card"]}
+    rows = [{"path": path, "usage": "provenance", "git_blob": blob(raw), "sha256": sha(raw)}
+            for path, raw in ((CATALOGUE, info["catalogue"]), (OLD_PATH, info["source"]))]
+    sources = {"schema_version": 1, "base_commit": info["base"], "files": rows}
+    verify = {"schema_version": 1, "status": "ready", "python": "3.12", "requirements": [],
+              "inputs": [PACKAGE + "/probe.py"], "commands": [{"argv": ["{python}", "-I", "-B", PACKAGE + "/probe.py"],
+              "checks": "Synthetic marker replay", "timeout_seconds": 10}]}
+    for name, value in (("TASK.json", task), ("SOURCES.json", sources), ("VERIFY.json", verify)):
+        write(seed / PACKAGE / name, encoded(value))
+    write(seed / PACKAGE / "README.md", b"Fixture\n\n## Open next questions\n\nBounded test only.\n")
+    write(seed / PACKAGE / "probe.py", b"print('PASS_INDEPENDENT_FIXTURE')\n")
+    (seed / PACKAGE / "probe.py").chmod(0o755)
+    info["head"] = commit(seed, "independent fixture publication")
+    git(seed, "update-ref", "refs/pull/79/merge", info["head"])
+
+
+def make_origin(directory):
+    seed = directory / "seed"
+    seed.mkdir()
+    info = fixture_base(seed)
+    fixture_refs(seed, info)
+    publish_fixture(seed, info)
+    origin = directory / "origin.git"
+    git(directory, "init", "--bare", "-q", str(origin))
+    git(origin, "config", "uploadpack.allowFilter", "true")
+    git(origin, "config", "uploadpack.allowAnySHA1InWant", "true")
+    git(seed, "push", "-q", "--mirror", origin.as_uri())
+    info["origin"] = origin.as_uri()
+    return info
+
+
+def acquire(directory, name, info, filtered):
+    client = directory / name
+    client.mkdir()
+    git(client, "init", "-q", "-b", "main")
+    configure(client)
+    git(client, "remote", "add", "origin", info["origin"])
+    options = ["--filter=blob:none"] if filtered else []
+    git(client, "fetch", "--force", "--prune", "--no-recurse-submodules", *options, "origin",
+        "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*",
+        "+refs/pull/79/merge:refs/remotes/pull/79/merge")
+    git(client, "checkout", "--detach", "--force", info["head"])
+    require(not (client / ".git/objects/info/alternates").exists(), "alternates would invalidate residency")
+    require(git(client, "rev-parse", "--is-shallow-repository")["stdout"].strip() == "false",
+            "main acquisition unexpectedly shallow")
+    return client
+
+
+def inventory(client):
+    # Enumerate resident ODB objects; never name a missing object for inspection.
+    output = git(client, "cat-file", "--batch-all-objects", "--batch-check=%(objectname) %(objecttype)")["stdout"]
+    return dict(line.split() for line in output.splitlines())
+
+
+def head_inventory(client):
+    output = git(client, "ls-tree", "-rz", "--full-tree", "HEAD")["stdout"]
+    result = []
+    for record in output.split("\0"):
+        if record:
+            header, name = record.split("\t", 1)
+            mode, kind, object_id = header.split()
+            require(kind == "blob", "unexpected HEAD object kind")
+            path = client / name
+            result.append([name, sha(path.read_bytes()), bool(path.stat().st_mode & stat.S_IXUSR), mode, object_id])
+    return sorted(result)
+
+
+def metadata(client):
+    return command(client, [sys.executable, "-E", "-s", "-B", str(client / "scripts/research_package.py"),
+                           "--package", PACKAGE, "--check-only"], None, timeout=60)
+
+
+def history_modes(client):
+    return command(client, [sys.executable, "-E", "-s", "-B", str(client / "scripts/check_research_commit.py"),
+                           "--package", PACKAGE, "--check-source-history", "--check-modes"], None, timeout=60)
+
+
+def rejected(result, reason):
+    return result["returncode"] != 0 and reason in (result["stdout"] + result["stderr"])
+
+
+def offline(client, directory):
+    git(client, "remote", "set-url", "origin", (directory / "unavailable.git").as_uri())
+
+
+def hydrate(client, info):
+    git(client, "remote", "set-url", "origin", info["origin"])
+    for path, raw in ((OLD_PATH, info["source"]), (CATALOGUE, info["catalogue"])):
+        observed = git(client, "show", info["base"] + ":" + path)
+        require(observed["stdout_sha256"] == sha(raw) and observed["stdout_bytes"] == len(raw),
+                "explicit declared-source hydration changed bytes")
+
+
+def negative_guards(client, info):
+    shallow = client / ".git/shallow"
+    shallow.write_text(info["base"] + "\n")
+    shallow_result = history_modes(client)
+    shallow.unlink()
+    sources_path = client / PACKAGE / "SOURCES.json"
+    sources = parse(sources_path.read_bytes())
+    sources["files"][1]["pin"] = "head:" + info["foreign"] + ":" + OLD_PATH
+    sources_path.write_bytes(encoded(sources))
+    commit(client, "foreign source control")
+    foreign_result = history_modes(client)
+    git(client, "reset", "--hard", info["head"])
+    probe = client / PACKAGE / "probe.py"
+    probe.chmod(0o644)
+    mode_result = history_modes(client)
+    probe.chmod(0o755)
+    probe.write_bytes(probe.read_bytes() + b"# deliberate working drift\n")
+    bytes_result = history_modes(client)
+    unstaged = git(client, "diff", "--exit-code", expected=None)
+    git(client, "add", PACKAGE + "/probe.py")
+    staged = git(client, "diff", "--cached", "--exit-code", expected=None)
+    git(client, "reset", "--hard", info["head"])
+    return {"shallow_history_rejected": rejected(shallow_result, "requires full Git history"),
+            "foreign_ancestry_rejected": rejected(foreign_result, "not an ancestor"),
+            "working_bytes_rejected": rejected(bytes_result, "working/commit bytes differ"),
+            "owner_execute_rejected": rejected(mode_result, "executable mode differs"),
+            "unstaged_diff_rejected": unstaged["returncode"] == 1,
+            "staged_diff_rejected": staged["returncode"] == 1}
+
+
+def experiment(directory):
+    info = make_origin(directory)
+    full = acquire(directory, "full", info, False)
+    online_client = acquire(directory, "filtered-online", info, True)
+    separate = acquire(directory, "filtered-separate", info, True)
+    complete, filtered = inventory(full), inventory(online_client)
+    refs = lambda client: sorted(git(client, "show-ref")["stdout"].splitlines())
+    objects = lambda values, kind: sorted(key for key, value in values.items() if value == kind)
+    semantics = {"all_refs_equal": refs(full) == refs(online_client),
+                 "all_commits_equal": objects(complete, "commit") == objects(filtered, "commit"),
+                 "all_trees_equal": objects(complete, "tree") == objects(filtered, "tree"),
+                 "head_bytes_modes_equal": head_inventory(full) == head_inventory(online_client),
+                 "filtered_old_source_initially_missing": blob(info["source"]) not in filtered,
+                 "filtered_obsolete_initially_missing": blob(info["obsolete"]) not in filtered}
+    offline(full, directory)
+    require(metadata(full)["returncode"] == 0, "full offline baseline metadata failed")
+    online_result = metadata(online_client)
+    semantics["online_metadata_accepted"] = online_result["returncode"] == 0
+    semantics["online_old_source_hydrated"] = blob(info["source"]) in inventory(online_client)
+    require(blob(info["source"]) not in inventory(separate), "separate old source already hydrated")
+    offline(separate, directory)
+    semantics["offline_unhydrated_metadata_rejected"] = rejected(metadata(separate), "missing or non-blob Git source")
+    hydrate(separate, info)
+    offline(separate, directory)
+    semantics["offline_hydrated_metadata_accepted"] = metadata(separate)["returncode"] == 0
+    semantics["offline_hydrated_history_modes_accepted"] = history_modes(separate)["returncode"] == 0
+    semantics.update(negative_guards(separate, info))
+    require(git(separate, "diff", "--exit-code")["returncode"] == 0, "final worktree drift")
+    require(git(separate, "diff", "--cached", "--exit-code")["returncode"] == 0, "final index drift")
+    require(all(type(value) is bool for value in semantics.values()), "semantic values must be booleans")
+    required = [value for key, value in semantics.items() if not key.startswith("online_")]
+    require(all(required), "required compatibility/control failed: " + canonical(semantics))
+    size = sum(path.stat().st_size for path in directory.rglob("*") if path.is_file())
+    require(size < 52428800, "fixture exceeds fifty MiB")
+    return semantics, {"base": info["base"], "head": info["head"], "foreign": info["foreign"],
+                       "resident_full_objects": len(complete), "resident_filtered_objects": len(filtered),
+                       "fixture_bytes": size, "online_status": online_result["returncode"],
+                       "online_stderr": online_result["stderr"], "commands": list(LOG)}
+
+
+def generate():
+    authenticate()
+    with tempfile.TemporaryDirectory(prefix="ci-filter-independent-") as temporary:
+        semantics, diagnostics = experiment(Path(temporary))
+    return {"schema_version": 1, "source_manifest_sha256": PIN_SHA, "case_manifest_sha256": CASE_SHA,
+            "semantics": semantics, "diagnostics": diagnostics,
+            "git_version": command(ROOT, [GIT, "--version"])["stdout"].strip(),
+            "code_sha256": sha(Path(__file__).read_bytes())}
+
+
+def compare(receipt, other, other_is_own=False):
+    validate_receipt(receipt, True)
+    validate_receipt(other, other_is_own)
+    for key in COMMON:
+        require(key in other and canonical(receipt[key]) == canonical(other[key]),
+                "independent receipt mismatch: " + key)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--write-first", type=Path)
+    parser.add_argument("--check-primary", type=Path)
+    args = parser.parse_args()
+    require(not (args.write_first and args.check_primary), "first receipt must remain blind")
+    receipt = generate()
+    validate_receipt(receipt, True)
+    if args.write_first:
+        with args.write_first.open("x") as stream:
+            json.dump(receipt, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+    else:
+        frozen = parse((ROOT / "ORACLE.json").read_bytes())
+        compare(receipt, frozen, True)
+        require(frozen["code_sha256"] == receipt["code_sha256"], "oracle code changed")
+    if args.check_primary:
+        compare(receipt, parse(args.check_primary.read_bytes()))
+        print("PASS_ACTUAL_PRIMARY_FILTER_SEMANTICS")
+    print("PASS_CI_BLOB_FILTER_ORACLE " + canonical(receipt["semantics"]))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print("FAIL_CI_BLOB_FILTER_ORACLE: " + str(error), file=sys.stderr)
+        print(json.dumps({"commands_before_failure": LOG}, sort_keys=True), file=sys.stderr)
+        sys.exit(1)
