@@ -1,4 +1,4 @@
-"""Authenticate frozen inputs and run three isolated audit checks. Apache-2.0.
+"""Check frozen-input integrity and run independent audit checks. Apache-2.0.
 DLamdata with substantial OpenAI Codex assistance.
 """
 import hashlib
@@ -17,7 +17,7 @@ def need(ok, message):
         raise ValueError(message)
 
 
-def authenticate(root=HERE):
+def check_retained_integrity(root=HERE):
     record = json.loads((root/'RETAINED.json').read_bytes())
     seen = set()
     for item in record['files']:
@@ -44,7 +44,7 @@ def load(name):
 
 
 def run():
-    authenticated = authenticate()
+    integrity_count = check_retained_integrity()
     # These are audit modules, never retained predecessor Python modules.
     with tempfile.TemporaryDirectory(prefix='retirement-audit-') as temporary:
         old_prefix = sys.pycache_prefix
@@ -52,6 +52,13 @@ def run():
         try:
             caller = load('caller').run()
             accounting = load('accounting').run(HERE/'source/pr6545', HERE/'source/pr6551')
+            pricing = load('pricing_binding').run(HERE/'source/pr6545/pricing.py',
+                                                 HERE/'source/pr6551/pricing.py')
+            # Evaluation of the explicitly bound SOURCE tariff, not a proof
+            # that its physical per-operation allowances are valid.
+            ordinary = {name: 18*10**7 + 17*1664 + 32*35*104*caller[name]['events']
+                        + 35*104*(26+1000) for name in ('old', 'new')}
+            need(ordinary == {'old': 254699248, 'new': 254932208}, 'declared ordinary arithmetic')
             command = [sys.executable, '-I', '-B', '-X', 'pycache_prefix='+str(Path(temporary)/'oracle-cache')]
             if sys.flags.optimize:
                 command.append('-O')
@@ -62,8 +69,9 @@ def run():
         finally:
             sys.pycache_prefix = old_prefix
     return {'status': 'PASS_PR6551_INDEPENDENT_RETIREMENT_AUDIT',
-            'authenticated_files': authenticated, 'caller': caller,
+            'integrity_checked_files': integrity_count, 'caller': caller,
             'accounting': accounting, 'four_fiber_cut': oracle,
+            'pricing_source_binding': pricing, 'declared_ordinary_bounds': ordinary,
             'scope': 'Exact finite caller identities and complete Gaussian invoice delta; no supplier admission or new kappa.'}
 
 

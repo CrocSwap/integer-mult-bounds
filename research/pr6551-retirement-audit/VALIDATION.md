@@ -1,4 +1,6 @@
-# Validation and source coverage
+# Historical validation and source coverage
+
+This record describes the original audit through `13e880a734cc03f2a52c82a412a9a0e6ac2b1f0c`. The committed 47-file export receipts below concern `28929ae5b3bb575c0bb423d26d98d6f878ab8dd3`, not the later 53-file snapshot. The RESULT hash and 22-control count are historical. See [FOLLOWUP-VALIDATION.md](FOLLOWUP-VALIDATION.md) for the expanded audit and current source bindings, and [EXTERNAL-REVIEW.md](EXTERNAL-REVIEW.md) for Claude's reported final-SHA checks.
 
 Environment: CPython 3.12.14, Linux x86_64/glibc 2.41; standard library only. Canonical base `7c49fe32c55de02c2c873655c804b16e4c3fef0a`, priority revision 8, selected PR6030. The activated environment's installed NumPy/SymPy/SciPy are not used by this package. Upstream was refreshed before packaging and remained identical.
 
@@ -13,7 +15,7 @@ Both exit 0. The registered command runs both normal and optimized scientific re
 
 The deterministic [RESULT.json](RESULT.json) has SHA256 `f872cfe53b831e904cae956abb81138efb1ce735ace664fcfdca53592da98364`. It contains both complete 1,225-coefficient caller checks, the separate four-fiber cut certificate, event/tree accounting, native archive identity and all 22 semantic negative controls. Neither source constructors nor predecessor scientific verifiers are imported or executed. Accounting reads the retained native word only for source identity, 104 ports, 562 public helpers, 3,456 paid jobs per native invocation, and cancellation of the same 18 calls.
 
-Three external optimized corruption runs also exit nonzero as required: changed caller source, changed native archive byte, and changed expected receipt. Their exact rejection reasons are in [evidence/external-corruptions.json](evidence/external-corruptions.json). Source corruption fails authentication; changing only the expected receipt fails the independent recomputation comparison.
+Three external optimized corruption runs also exit nonzero as required: changed caller source, changed native archive byte, and changed expected receipt. Their exact rejection reasons are in [evidence/external-corruptions.json](evidence/external-corruptions.json). Source corruption fails local integrity checking; changing only the expected receipt fails the independent recomputation comparison.
 
 Early package validation rejected a nonstandard outcome label and the capitalization/heading of the open-questions section. Both metadata issues were corrected before the successful registered run; no scientific result changed. The internal review also corrected a next-step source link to the exact public candidate pricing file. [REVIEW.md](REVIEW.md) records the mathematical review and shared assumptions; the final integration review is retained alongside it.
 
@@ -33,4 +35,4 @@ python3 -B scripts/export_research_package.py check /tmp/retirement-audit.tar
 
 The preflight compared all 47 committed files and confirmed the declared base-history dependency. The export contains those files plus its integrity metadata. Normal and optimized direct replays then passed from the read-only export with no Git metadata and an empty PATH, in 0.533343 and 0.646604 seconds. Both returned the exact committed scientific receipt; all 48 file hashes and modes were unchanged. [evidence/cold-runs.json](evidence/cold-runs.json) records exact actual paths/commands and [cold-normal.log](evidence/cold-normal.log) / [cold-optimized.log](evidence/cold-optimized.log) retain complete outputs. The commands above substitute a portable temporary output path for that record's local path.
 
-The final evidence commit adds only validation/overlap records and logs. The checkers, frozen inputs and RESULT retain the hashes reviewed in FINAL-REVIEW.md. Publication repeats the byte/history preflight and export replay on that actual final commit. Remote CI is reported separately in the contribution PR; local success does not imply hosted success or maintainer acceptance.
+Later original-audit commits added validation/overlap records and logs without changing its scientific code or RESULT. FINAL-REVIEW.md is a historical snapshot: its VALIDATION.md hash predates those documentation edits. The original lead and Claude separately reported checks on the final 53-file commit, but the committed receipts in this section remain the 47-file receipts; they must not be presented as final-head receipts. Remote CI is reported separately in the contribution PR; local success does not imply hosted success or maintainer acceptance.
