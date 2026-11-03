@@ -9,6 +9,7 @@ from copy import deepcopy
 import gzip
 from hashlib import sha256
 import importlib.util
+import io
 import json
 from pathlib import Path
 import shutil
@@ -16,12 +17,28 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/export_selected_invoice.py"
 SPEC = importlib.util.spec_from_file_location("selected_invoice", SCRIPT)
 M = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(M)
+
+
+class InvoiceOutputTests(unittest.TestCase):
+    def test_stdout_bytes_ignore_text_encoding_and_newline_policy(self):
+        invoice = {"paid": {"1": 2}, "targets": {"2": 1}}
+        expected = b'{\n  "paid": {\n    "1": 2\n  },\n  "targets": {\n    "2": 1\n  }\n}\n'
+        for encoding, newline in (("utf-8", "\n"), ("utf-8", "\r\n"), ("utf-16", "\n")):
+            with self.subTest(encoding=encoding, newline=newline), io.BytesIO() as raw:
+                with io.TextIOWrapper(raw, encoding=encoding, newline=newline) as output:
+                    with patch.object(M, "export", return_value=(invoice, {})), \
+                            patch.object(sys, "argv", [str(SCRIPT)]), \
+                            patch.object(sys, "stdout", output):
+                        self.assertEqual(M.main(), 0)
+                    output.flush()
+                    self.assertEqual(raw.getvalue(), expected)
 
 
 class SelectedInvoiceTests(unittest.TestCase):
@@ -130,14 +147,15 @@ class SelectedInvoiceTests(unittest.TestCase):
             evidence = root / "evidence.json"
             command = [sys.executable, "-I", "-O", "-B", str(SCRIPT), "--root", str(root),
                        "--evidence", str(evidence)]
-            run = subprocess.run(command, text=True, capture_output=True)
+            # Keep actual transport bytes: text=True hides Windows CRLF output.
+            run = subprocess.run(command, capture_output=True)
             self.assertEqual(run.returncode, 0, run.stderr)
             self.assertEqual(json.loads(run.stdout), self.invoice)
             self.assertEqual(json.loads(evidence.read_bytes())["components"], self.components)
             self.assertEqual(json.loads(evidence.read_bytes())["invoice_sha256"],
-                             sha256(run.stdout.encode("utf-8")).hexdigest())
+                             sha256(run.stdout).hexdigest())
             invoice_path = root / "invoice.json"
-            invoice_path.write_text(run.stdout, encoding="utf-8")
+            invoice_path.write_bytes(run.stdout)
             compare = subprocess.run([sys.executable, "-I", "-B",
                 str(ROOT / "scripts/compare_recursive_invoices.py"), str(invoice_path), str(invoice_path)],
                 capture_output=True, text=True)
