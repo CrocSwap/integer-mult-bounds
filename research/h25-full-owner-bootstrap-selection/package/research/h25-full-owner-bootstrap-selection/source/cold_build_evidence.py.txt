@@ -1,0 +1,312 @@
+"""Retained evidence for only the three new native metadata compilations.
+
+The parent owns the outer process group, RSS guard and termination/join. Failure
+snapshots are provisional while descendants can retain the raw-log descriptors.
+No session or process group is created here. This module never runs on import.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import subprocess
+import time
+from types import BuiltinFunctionType, FunctionType
+
+OPERATIONAL_LOG_BYTES = 2 * 1024 * 1024
+CHILD_FILE_BYTES = 16 * 1024 * 1024
+READ_CHUNK_BYTES = 65536
+PREVIEW_BYTES = 512
+RECEIPT_BYTES = 65536
+POLL_SECONDS = 0.02
+
+
+class ColdBuildOutputLimit(RuntimeError):
+    pass
+
+
+def _need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _fingerprint(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _write_all(descriptor, raw):
+    offset = 0
+    while offset < len(raw):
+        written = os.write(descriptor, raw[offset:])
+        _need(written > 0, 'Cold build evidence write made no progress')
+        offset += written
+
+
+def _encode(record):
+    raw = json.dumps(record, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii') + b'\n'
+    _need(len(raw) <= RECEIPT_BYTES, 'Cold build attempt receipt exceeded its declared bound')
+    return raw
+
+
+def _record(journal_descriptor, attempt_path, record):
+    """Append intent first; atomic latest receipt cannot erase prior intent."""
+    raw = _encode(record)
+    _write_all(journal_descriptor, raw)
+    os.fsync(journal_descriptor)
+    temporary = str(attempt_path) + '.pending'
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+    try:
+        _write_all(descriptor, raw)
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    os.replace(temporary, attempt_path)
+
+
+def _secondary_notice(error, phase, attempt_path):
+    """Bounded independent outer-stderr evidence when local evidence I/O fails."""
+    try:
+        message = str(error)
+        record = {'schema': 'h25-cold-build-secondary-error-v1', 'phase': phase,
+                  'attempt_path': str(attempt_path), 'type': type(error).__name__,
+                  'message_prefix': message[:1024], 'message_truncated': len(message) > 1024}
+        _write_all(2, _encode(record))
+    except BaseException:
+        # A broken outer stderr cannot be repaired inside this failed process.
+        pass
+
+
+def _one_thread():
+    """Bounded actual task census, not threading.enumerate or a remembered PASS."""
+    tasks = []
+    with os.scandir('/proc/self/task') as entries:
+        for entry in entries:
+            tasks.append(entry.name)
+            _need(len(tasks) <= 1, 'Cold build preexec requires exactly one live process task')
+    expected = str(os.getpid())
+    _need(tasks == [expected], 'Cold build preexec task identity differs')
+    return {'process_id': os.getpid(), 'task_ids': [int(expected)], 'task_count': 1}
+
+
+def _limit_callback():
+    """Capture one builtin and immutable values; this changes the child only."""
+    setter, getter = resource.setrlimit, resource.getrlimit
+    for entry, name in ((setter, 'setrlimit'), (getter, 'getrlimit')):
+        _need(type(entry) is BuiltinFunctionType and entry.__self__ is resource and entry.__name__ == name,
+              'Cold build resource primitive owner differs')
+    resource_id = resource.RLIMIT_FSIZE
+    _need(type(resource_id) is int and resource_id == 1, 'Cold build Linux RLIMIT_FSIZE differs')
+    original = getter(resource_id)
+    _need(type(original) is tuple and len(original) == 2 and
+          all(type(value) is int and (value == resource.RLIM_INFINITY or value >= CHILD_FILE_BYTES)
+              for value in original), 'Existing file limit is below the declared child cap')
+    limits = (CHILD_FILE_BYTES, CHILD_FILE_BYTES)
+
+    def apply_child_limit():
+        setter(resource_id, limits)
+
+    captured = (apply_child_limit.__code__, apply_child_limit.__defaults__,
+                apply_child_limit.__kwdefaults__,
+                tuple(cell.cell_contents for cell in apply_child_limit.__closure__))
+    _need(apply_child_limit.__code__.co_names == () and
+          apply_child_limit.__code__.co_freevars == ('limits', 'resource_id', 'setter'),
+          'Cold build preexec closure unexpectedly reads globals')
+    return apply_child_limit, captured, original
+
+
+def _check_limit_callback(callback, captured):
+    _need(type(callback) is FunctionType and callback.__code__ is captured[0] and
+          callback.__defaults__ is captured[1] is None and callback.__kwdefaults__ is captured[2] is None and
+          len(callback.__closure__) == len(captured[3]) and
+          all(cell.cell_contents is expected for cell, expected in zip(callback.__closure__, captured[3])),
+          'Cold build preexec closure changed before fork')
+    limits, resource_id, setter = captured[3]
+    _need(type(limits) is tuple and limits == (CHILD_FILE_BYTES, CHILD_FILE_BYTES) and
+          type(resource_id) is int and resource_id == resource.RLIMIT_FSIZE == 1 and
+          type(setter) is BuiltinFunctionType and setter is resource.setrlimit and
+          setter.__self__ is resource and setter.__name__ == 'setrlimit',
+          'Cold build captured native resource setter changed')
+
+
+def _snapshot(path, writer_descriptor, *, success):
+    """At most 2 MiB hashed and 512 bytes previewed, even for a failed writer."""
+    descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        before = os.fstat(descriptor)
+        writer = os.fstat(writer_descriptor)
+        _need((before.st_dev, before.st_ino) == (writer.st_dev, writer.st_ino) and
+              (before.st_mode & 0o170000) == 0o100000, 'Cold build raw log ownership differs')
+        remaining = min(before.st_size, OPERATIONAL_LOG_BYTES)
+        digest, count, preview = hashlib.sha256(), 0, b''
+        while remaining:
+            block = os.read(descriptor, min(READ_CHUNK_BYTES, remaining))
+            if not block:
+                break
+            digest.update(block)
+            count += len(block)
+            remaining -= len(block)
+            if len(preview) < PREVIEW_BYTES:
+                preview += block[:PREVIEW_BYTES - len(preview)]
+        after = os.fstat(descriptor)
+        stable = _fingerprint(before) == _fingerprint(after)
+        if success:
+            _need(before.st_size <= OPERATIONAL_LOG_BYTES and stable and count == before.st_size,
+                  'Completed compiler log is oversized, short or changed while hashed')
+        return {'path': str(path), 'bytes_before': before.st_size, 'bytes_after': after.st_size,
+                'prefix_bytes_hashed': count, 'prefix_sha256': digest.hexdigest(),
+                'preview_bytes': len(preview), 'preview_utf8': preview.decode('utf-8', errors='replace'),
+                'stable_during_snapshot': stable,
+                'complete_file_sha256': digest.hexdigest() if success else None,
+                'raw_finality': ('DIRECT_CHILD_EXIT0_AND_STABLE_COMPLETED_LOG' if success else
+                                 'PROVISIONAL_UNTIL_OUTER_PROCESS_GROUP_TERMINATED_AND_JOINED'),
+                'operational_threshold_bytes': OPERATIONAL_LOG_BYTES,
+                'child_inherited_hard_file_limit_bytes': CHILD_FILE_BYTES}
+    finally:
+        os.close(descriptor)
+
+
+def run(command, directory, name, timeout_seconds, context):
+    """Run a single pinned compiler or separately approved bounded toy command.
+
+    Failure never kills or declares descendants joined. It records available raw
+    prefixes and raises the original exception for the outer guard to terminate
+    and join the complete existing process group. Native compilation sources and
+    binary custody are checked independently by native_packet.prepare.
+    """
+    _need(type(command) is list and 1 <= len(command) <= 64 and
+          all(type(value) is str and len(value) <= 8192 for value in command) and
+          command[0].startswith('/'), 'Cold build command must be bounded with absolute executable')
+    _need(type(timeout_seconds) in (int, float) and 0 < timeout_seconds <= 15,
+          'Cold build timeout is outside its declared bound')
+    _need(type(name) is str and name in ('production', 'watcher', 'bounds', 'control'),
+          'Cold build evidence name differs')
+    directory = Path(directory)
+    _need(directory.is_absolute() and directory.is_dir() and not directory.is_symlink(),
+          'Cold build evidence directory must be existing absolute regular directory')
+    stdout_path, stderr_path = directory / (name + '.stdout.raw'), directory / (name + '.stderr.raw')
+    attempt_path, journal_path = directory / (name + '.attempt.json'), directory / (name + '.attempt.jsonl')
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW
+    journal = os.open(journal_path, flags, 0o600)
+    stdout = stderr = None
+    process = None
+    phase, spawn_entered, spawn_returned = 'prelaunch', False, False
+    primary_in_flight = False
+    record = {'schema': 'h25-cold-build-attempt-v1', 'status': 'PRELAUNCH_INTENT',
+              'command': list(command), 'timeout_seconds': timeout_seconds, 'context': context,
+              'stdout_path': str(stdout_path), 'stderr_path': str(stderr_path),
+              'attempt_path': str(attempt_path), 'journal_path': str(journal_path),
+              'process_group_policy': 'INHERIT_OUTER_GROUP_NO_NEW_SESSION',
+              'operational_log_threshold_bytes': OPERATIONAL_LOG_BYTES,
+              'child_only_inherited_hard_file_limit_bytes': CHILD_FILE_BYTES,
+              'returncode': None, 'process_id': None, 'direct_child_reaped': None,
+              'spawn_entered': False, 'spawn_returned': False,
+              'descendant_termination_joined': False,
+              'failure_log_hashes_final': False}
+    try:
+        # Files and durable intent exist before any subprocess operation.
+        stdout = os.open(stdout_path, flags, 0o600)
+        stderr = os.open(stderr_path, flags, 0o600)
+        _record(journal, attempt_path, record)
+        callback, captured, original_limits = _limit_callback()
+        record['parent_file_limits_before'] = list(original_limits)
+        record['preexec_code_sha256'] = hashlib.sha256(callback.__code__.co_code).hexdigest()
+        _check_limit_callback(callback, captured)
+        record['single_thread_before_spawn'] = _one_thread()
+        # No callbacks, imports, thread starts or mutable configuration operations
+        # occur between this actual census/closure check and the subprocess call.
+        phase, spawn_entered = 'spawn', True
+        started = time.monotonic()
+        process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                                   close_fds=True, start_new_session=False, preexec_fn=callback)
+        spawn_returned = True
+        record.update(status='STARTED', process_id=process.pid, spawn_entered=True, spawn_returned=True)
+        _record(journal, attempt_path, record)
+        phase = 'wait'
+        while True:
+            code = process.poll()
+            sizes = (os.fstat(stdout).st_size, os.fstat(stderr).st_size)
+            if max(sizes) > OPERATIONAL_LOG_BYTES:
+                raise ColdBuildOutputLimit('Compiler raw log exceeded the 2 MiB operational threshold')
+            if code is not None:
+                code = process.wait()  # actual completed wait, never an invented returncode
+                record.update(returncode=code, direct_child_reaped=True)
+                break
+            remaining = timeout_seconds - (time.monotonic() - started)
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(command, timeout_seconds)
+            time.sleep(min(POLL_SECONDS, remaining))
+        if code != 0:
+            raise subprocess.CalledProcessError(code, command)
+        phase = 'success_log_snapshot'
+        os.fsync(stdout)
+        os.fsync(stderr)
+        logs = {'stdout': _snapshot(stdout_path, stdout, success=True),
+                'stderr': _snapshot(stderr_path, stderr, success=True)}
+        _need(resource.getrlimit(resource.RLIMIT_FSIZE) == original_limits,
+              'Compiler child limit changed the parent process limits')
+        record.update(status='EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY', logs=logs,
+                      parent_file_limits_after=list(resource.getrlimit(resource.RLIMIT_FSIZE)),
+                      failure_log_hashes_final=False)
+        _record(journal, attempt_path, record)
+        return record
+    except BaseException as primary_error:
+        primary_in_flight = True
+        # Metadata is secondary; it must never erase or replace a launch/wait error.
+        try:
+            code = None if process is None else process.poll()
+            record.update(status=('TIMEOUT' if isinstance(primary_error, subprocess.TimeoutExpired) else
+                                  'NONZERO_EXIT' if isinstance(primary_error, subprocess.CalledProcessError) else
+                                  'LOG_LIMIT' if isinstance(primary_error, ColdBuildOutputLimit) else
+                                  'STARTUP_FAILURE' if phase == 'spawn' else
+                                  'PRELAUNCH_REJECTION' if phase == 'prelaunch' else 'EVIDENCE_FAILURE'),
+                          failure_phase=phase, spawn_entered=spawn_entered, spawn_returned=spawn_returned,
+                          returncode=code, direct_child_reaped=(code is not None if process is not None else None),
+                          error={'type': type(primary_error).__name__, 'message': str(primary_error)},
+                          timeout_output_policy='RAW_FILES_RETAINED_NO_PIPE_CAPTURE',
+                          descendant_termination_joined=False, failure_log_hashes_final=False)
+            logs = {}
+            for key, path, descriptor in (('stdout', stdout_path, stdout), ('stderr', stderr_path, stderr)):
+                if descriptor is not None:
+                    try:
+                        logs[key] = _snapshot(path, descriptor, success=False)
+                    except BaseException as snapshot_error:
+                        logs[key] = {'path': str(path), 'complete_file_sha256': None,
+                                     'raw_finality': 'PROVISIONAL_UNTIL_OUTER_PROCESS_GROUP_TERMINATED_AND_JOINED',
+                                     'snapshot_error': {'type': type(snapshot_error).__name__,
+                                                        'message': str(snapshot_error)}}
+            record['logs'] = logs
+            _record(journal, attempt_path, record)
+        except BaseException as evidence_error:
+            # PRELAUNCH_INTENT/STARTED journal and raw files remain independent.
+            _secondary_notice(evidence_error, 'failure-evidence', attempt_path)
+        raise
+    finally:
+        close_errors = []
+        for descriptor in (stdout, stderr):
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except OSError as close_error:
+                    close_errors.append(close_error)
+                    _secondary_notice(close_error, 'raw-log-parent-close', attempt_path)
+        if close_errors:
+            try:
+                record.update(prior_status=record.get('status'), status='EVIDENCE_FAILURE',
+                              failure_phase='raw-log-parent-close',
+                              close_errors=[{'type': type(error).__name__, 'message': str(error)}
+                                            for error in close_errors],
+                              failure_log_hashes_final=False)
+                for row in record.get('logs', {}).values():
+                    row['complete_file_sha256'] = None
+                    row['raw_finality'] = 'PROVISIONAL_UNTIL_OUTER_PROCESS_GROUP_TERMINATED_AND_JOINED'
+                _record(journal, attempt_path, record)
+            except BaseException as evidence_error:
+                _secondary_notice(evidence_error, 'close-evidence', attempt_path)
+        try:
+            os.close(journal)
+        except OSError as close_error:
+            close_errors.append(close_error)
+            _secondary_notice(close_error, 'journal-parent-close', attempt_path)
+        if close_errors and not primary_in_flight:
+            raise close_errors[0]
