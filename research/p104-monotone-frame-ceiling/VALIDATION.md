@@ -23,8 +23,13 @@ The source models and four duals were discovered with NumPy 2.5.4 and SciPy
 by the exact verifier. `discover.py` is an optional numerical helper; its
 output remains provisional until the exact verifier checks it.
 
-Metadata and exact source pins passed. Publication-byte, official-export and
-sealed replay results will be added after the scientific files are committed.
+Metadata, exact source pins and all 25 committed file bytes and modes passed
+at `6053794e49861d7c46bb4aee8ef34606633658c9`. The official export and its
+integrity check passed. Both CPython 3.12.13 replays passed in a read-only,
+Git-free export with an empty PATH. The normal and optimized outputs were
+identical. All 26 export files retained their bytes and modes. The stdout
+SHA256 was `f47fdb60a7fb046e9aedabfe421da9f169f4cbaa331cc26360723cb3c8f35179`.
+Only this validation prose changed after that export.
 The checkout is shallow. Full-history ancestry is not claimed. Every pending
 predecessor byte required by the proof is retained and checked directly.
 
