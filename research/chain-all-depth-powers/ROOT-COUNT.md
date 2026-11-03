@@ -7,8 +7,9 @@ classes. The total number of primitive length-75 words is a separate count.
 
 Here orders dividing 15 are 1, 3, 5 and 15. Orders 3 and 15 fail at a proper
 interval of length three. For order 5 the shorter block has three copies of
-each letter. The shift is 3^5=3 modulo 15. Only c=3,8,13 admit a root,
-with respective residues 0,1,2 modulo 3. The two exact methods below give
+each letter. The shift is 3^5=3 modulo 15. Only c=3,8,13 pass the target
+congruence, selecting shorter residues 0,1,2 modulo 3. The two groupings
+below and an uncompressed enumeration give
 
 ```text
 W_5(3,0), W_5(3,1), W_5(3,2) = 4,697,520, 0, 0.
@@ -74,3 +75,20 @@ of all 113,400 ten-letter words. These engines are separate implementations
 with the same assisted author and Python integer runtime. The small root
 census is a finite exact computation. The general theorem supplies its use
 at the larger modulus.
+
+## Literal cross-check
+
+The optional [single-file Java program](literal/LiteralQuintic.java) traverses
+the full balanced prefix tree. From each prefix it tries each label with
+remaining capacity exactly once. Each push applies its complete shear to
+the integer dirty-basis matrix. On return, subtracting the same source row
+restores the prefix matrix. At a leaf the singletons are fixed by balance;
+the program tests the nine other proper intervals and reads the top entry.
+It finishes with the identity matrix after undoing all pushes. Every full
+word has a unique prefix path.
+
+For n=3 it visited 492,911,196 prefixes including the empty prefix and all
+168,168,000 full words. It independently returned (4,697,520,0,0). The
+n=2 walk visited 326,011 prefixes and 113,400 full words. The empty
+nonzero-target entries agree with the earlier depth-five length bounds.
+[Observed output and source hash](literal/RESULT.json) · [PR #4281](https://github.com/CrocSwap/integer-mult-bounds/pull/4281)

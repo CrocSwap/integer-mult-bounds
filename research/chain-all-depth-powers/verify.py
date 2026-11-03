@@ -131,10 +131,25 @@ def build():
     check(order_bound(5, 20, 4) == 10, "sharp nonunit order bound")
     check(order_bound(5, 50, 10) == 25 and order_bound(5, 50, 5) == 5,
           "full prime-power target congruence")
+    quintic = small_quintic_rows()
+    literal = recorded_literal(quintic)
     return dict(status="PASS_CHAIN_ALL_DEPTH_POWERS", retained_sources=pins,
-                divisor_grid=compare_divisors(), zero_spectra=zero_spectra(), quintic=small_quintic_rows(),
+                divisor_grid=compare_divisors(), zero_spectra=zero_spectra(), quintic=quintic,
+                literal_receipt=literal,
                 coefficients=grid, census=corpus, examples=examples_checked,
                 credited_witnesses=witness_checks)
+
+
+def recorded_literal(quintic):
+    receipt = json.loads((HERE / "literal/RESULT.json").read_text(encoding="utf-8"))
+    digest = sha256((HERE / "literal/LiteralQuintic.java").read_bytes()).hexdigest()
+    check(digest == receipt["source_sha256"], "literal JVM source hash")
+    check([item["n"] for item in receipt["rows"]] == [2, 3], "literal JVM domains")
+    for item in receipt["rows"]:
+        independent = quintic[str(item["n"])]["gaps"]
+        check(item["row"] == independent["row"] and item["leaves"] == independent["all_words"],
+              "literal JVM receipt differs from independent counters")
+    return dict(source_sha256=digest, rows=receipt["rows"])
 
 
 def main():

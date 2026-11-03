@@ -130,6 +130,10 @@ The first formula counts stabilizing pairs and divides by group size. For the
 second, each word of maximal repetition e contributes to F_d exactly when
 d|e. These are transforms of the underlying literal counts W_L. [PR #6080](https://github.com/CrocSwap/integer-mult-bounds/pull/6080)
 
+At L=3 the only proper-level prime gate is at 2. The cubic term of #6080
+agrees with (3) by (1) and (2). At L=4 the proper gates are at 2 and 3;
+the shift is always zero. This recovers the depth-four reduction in #6652.
+
 ## 3. One divisor for every arithmetically eligible order
 
 Let R be the product of the **distinct** primes ℓ|m with ℓ≤L. Start with
@@ -240,7 +244,8 @@ Repeating it five times gives m=35 and c=5+7^5=12 modulo 35. The resulting
 dirty basis input with noncommuting two-coordinate maps. [PR #4281](https://github.com/CrocSwap/integer-mult-bounds/pull/4281)
 
 At modulus 15, equation (4) reduces *all* nonprimitive depth-five targets
-to a single three-residue row at modulus 3. Two complete counts give
+to a single three-residue row at modulus 3. Two independent groupings
+and a literal enumeration give
 4,697,520 words of least period 15 at target 3, forming 313,168 shorter
 classes. Every other target has zero nonprimitive words. [Finite certificate](ROOT-COUNT.md)
 

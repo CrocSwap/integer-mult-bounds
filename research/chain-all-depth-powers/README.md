@@ -27,7 +27,7 @@ Three consequences make the rule concrete.
   block gives a 175-letter unit-target word of least period 35 at m=35,c=12.
 - Of all length-75 correct words at L=5,m=15, exactly 4,697,520 have a
   shorter period. All have c=3 and form 313,168 classes of period 15.
-  Two complete, separately implemented counts of the small root row
+  Two different groupings and a literal traversal of the small root row
   establish the number. [Numerical certificate](ROOT-COUNT.md)
 
 The proof also gives a closed divisor D whose divisors are exactly the
@@ -52,6 +52,18 @@ contains `PASS_CHAIN_ALL_DEPTH_POWERS`, the recomputed [EXPECTED.json](EXPECTED.
 data and every package file's SHA-256. The fault-injection command uses
 temporary private copies. See [validation](VALIDATION.md) for the observed
 environment and publication checks.
+
+An optional single-file program with its own direct evaluator enumerates
+every balanced word at n=2 and n=3. From the repository root with a JDK
+supporting single-file source launch (tested with OpenJDK 21), run
+
+```sh
+java -Xmx128m research/chain-all-depth-powers/literal/LiteralQuintic.java
+```
+
+The registered Python replay checks the retained Java source hash and both
+recorded rows. The command above performs the actual JVM enumeration.
+[Literal receipt](literal/RESULT.json)
 
 ## Evidence and limits
 
@@ -82,9 +94,11 @@ environment and publication checks.
 
 The finite evidence supports a written proof for all depths, moduli and
 targets in the balanced unsigned model. W at larger roots remains an input
-to the counting transform. The engines share the same assisted author and
-Python integer semantics. Physical routing, precision, supplier prices and
-independent mathematical review have separate obligations.
+to the counting transform. The two grouped counters use Python integers.
+The literal walk uses Java integers for interval counts bounded by 3^5
+and long counters for visits. All three implementations have the same
+assisted author. Physical routing, precision, supplier prices and independent
+mathematical review have separate obligations.
 
 The largest half-word search in the registered verifier has 5^8 lexical
 candidates. The largest gap-weight matrix has 220² entries. Full enumeration
@@ -102,7 +116,10 @@ its 945 pairings. Canonical base `7c49fe32c55de02c2c873655c804b16e4c3fef0a`,
 priority revision 8. [Task](TASK.json) · [Overlap coverage](OVERLAP.json)
 
 Nick Petalas supplied the depth-four law, the depth-five witnesses and the
-unbalanced depth-six example. SHIN09-git's depth-three work supplied the
+unbalanced depth-six example. His earlier depth-three census supplies the
+positive-control row (270,24,0). [PR #6037](https://github.com/CrocSwap/integer-mult-bounds/pull/6037)
+
+SHIN09-git's depth-three work supplied the
 cyclic fixed-point formulation. The earlier complete-call model credits
 Ross Richardson's #943/#934 lineage. The depth-four source note at
 `e364eeb19e5268967189ed12aa4813ee73edf3dc` is retained byte-for-byte in
