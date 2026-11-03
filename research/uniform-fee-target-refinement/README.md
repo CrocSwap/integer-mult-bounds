@@ -20,6 +20,37 @@ This covers the invoice tariff φ(r) = r^t with t = 1−C, 0 < t < 1, and the ca
 tariffs min(r, K) of the concave-order comparator. Write
 S(k) = (R mod k)·φ(⌈R/k⌉) + (k − R mod k)·φ(⌊R/k⌋) for the balanced k-split.
 
+## Predecessors and the new part
+
+Ali Romman's [#5769](https://github.com/CrocSwap/integer-mult-bounds/pull/5769)
+defines the fee-charged target-partition contract used here, with a finite
+optimizer for an explicit menu of piece ranks and fees. Merged
+[#5909](https://github.com/CrocSwap/integer-mult-bounds/pull/5909) (Nick
+Petalas) specializes that contract to the power tariff at exponent 99/100, with
+one paid rank-one child charged for each resulting piece. It proves, using
+concavity, Jensen's inequality and integer balancing, that a profitable
+partition exists exactly when R ≥ 288, with witness 96+96+96. That rank-288
+threshold is #5909's result and is not claimed here.
+
+This package adds the following:
+
+- the closed form of items 1–3 for every nondecreasing concave tariff with
+  φ(0) = 0 and every uniform fee c ≥ 0;
+- concavity of the balanced credit in the piece count, via the perspective of
+  the interpolant;
+- the halving test of item 4;
+- certified thresholds at the selected exponent for fees of one paid rank-q
+  job, q ∈ {1, 2, 4, 8}.
+
+**Fee normalization.** #5909 charges one fee per resulting piece, which is k
+fees. This package charges one fee per piece after the first, which is k − 1
+fees. The two credit changes differ by the constant −c. Items 1–3 therefore
+apply to #5909's model with the same optimal balanced partition and the same
+k*. The halving test does not apply: with k fees, a three-part split can pay
+while halving does not, as #5909's first witness 96+96+96 shows. This package's
+verifier evaluates only the selected exponent, not 99/100. It does not compute
+#5909's quantity, so there is no number to compare.
+
 ## Theorem
 
 1. For each k, the balanced partition maximizes Σ φ(r_i) among all k-part
@@ -85,7 +116,7 @@ illustration. They are not a claim about the actual binding supplier's
 normalization, any actual helper target, or the legality of any split.
 Independence, chronological availability, native delivery, restoration,
 and caller costs remain separate obligations. A nonuniform fee menu needs the
-existing target-partition optimizer or a separate argument.
+#5769 target-partition optimizer or a separate argument.
 
 ## Reproduction
 
@@ -123,9 +154,11 @@ the all-R statement rests on the written argument.
 
 ## Credit
 
-The theorem, proof, verifier and threshold table were produced by Nick Petalas.
-The signed mixed-target invoice model, the concave-order comparator and the
-target-partition optimizer that motivated the uniform-fee question are by zxv
-and Ali Romman, as credited in `docs/research/recursive-invoice-preflight.md`
-and `docs/research/target-partition-optimization.md`. Karamata's inequality and
-the concavity of perspective functions are classical. Apache-2.0.
+The general theorem, its proof, the verifier and the selected-exponent
+threshold table were produced by Nick Petalas. Predecessors: Ali Romman's
+#5769 fee-charged target-partition contract and optimizer, which is the object
+generalized here, and #5909's unit-fee threshold at exponent 99/100, which is a
+special case (up to the fee normalization above). The signed mixed-target
+invoice model and the concave-order comparator are by zxv, as credited in
+`docs/research/recursive-invoice-preflight.md`. Karamata's inequality and the
+concavity of perspective functions are classical. Apache-2.0.
