@@ -1,0 +1,514 @@
+"""Concrete bounded receiver for actual build-only negative producer files.
+
+SOURCE ONLY. The original owning parent supplies independent launch expectations
+and reads fixed paths under its own nofollow/identity/terminal custody. No callback,
+child JSON capability, existing PASS, or child-supplied expectation is accepted.
+"""
+VALIDATION_CONFIGURATION = None
+VALIDATION_SOURCE_REVIEW = None
+VALIDATION_EXECUTION = None
+VALIDATION_FUNDING = None
+if (VALIDATION_CONFIGURATION is None or VALIDATION_SOURCE_REVIEW is None or
+        VALIDATION_EXECUTION is None or VALIDATION_FUNDING is None):
+    raise RuntimeError('Variant receiver is unconfigured; import and execution withheld')
+
+import hashlib
+import json
+import sealed_elf_profile_v2 as elf
+
+ROOT_SHA256 = 'f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0'
+HELPER_SHA256 = 'aa0a315110e031e19291970c9611fe5e0f91465fa20eaec51e81186099563f78'
+ELF_SHA256 = '89ed8c777e6b72af2d6a3595037e7e92385924c6087d88010a27192633391016'
+ROLES = ('pyinit_failure', 'exec_failure')
+BINDING_KEYS = ('mode', 'generation', 'launch_nonce')
+COUNTERS = ('load_calls', 'native_creations', 'native_execs', 'activation_attempts',
+    'successful_bindings', 'deactivation_attempts', 'cleanup_failures', 'control_module_creations')
+ROLE_FILES = ('control.attempt.json', 'control.attempt.jsonl', 'control.stdout.raw',
+    'control.stderr.raw', 'helper-return.raw.json', 'build.json',
+    '_h25_dict_probe.cpython-312-x86_64-linux-gnu.so', 'elf.raw.json')
+RAW_INVENTORY = ('initial-tcb.raw.json', 'initial-controls.raw.json',
+    'initial-restoration.raw.json', 'root-before.raw.json', 'preflight-before.raw.json',
+    'custody-before.raw.json') + tuple(role + '/' + name for role in ROLES for name in ROLE_FILES) + (
+    'preflight-after.raw.json', 'custody-after.raw.json', 'root-after.raw.json', 'receipt.json')
+PRELAUNCH_KEYS = ('schema', 'status', 'command', 'timeout_seconds', 'context',
+    'stdout_path', 'stderr_path', 'attempt_path', 'journal_path', 'process_group_policy',
+    'operational_log_threshold_bytes', 'child_only_inherited_hard_file_limit_bytes',
+    'returncode', 'process_id', 'direct_child_reaped', 'spawn_entered', 'spawn_returned',
+    'descendant_termination_joined', 'failure_log_hashes_final')
+STARTED_KEYS = PRELAUNCH_KEYS + ('parent_file_limits_before', 'preexec_code_sha256', 'single_thread_before_spawn')
+FINAL_KEYS = STARTED_KEYS + ('logs', 'parent_file_limits_after')
+LOG_KEYS = ('path', 'bytes_before', 'bytes_after', 'prefix_bytes_hashed', 'prefix_sha256',
+    'preview_bytes', 'preview_utf8', 'stable_during_snapshot', 'complete_file_sha256',
+    'raw_finality', 'operational_threshold_bytes', 'child_inherited_hard_file_limit_bytes')
+SOURCE_KEYS = ('sha256', 'bytes', 'mode')
+PROFILE_KEYS = ('source_manifest_sha256', 'project_headers_sha256', 'system_headers_sha256',
+    'compiler_link_sha256', 'link_profile_sha256')
+
+
+def _same(left, right):
+    """Bounded exact native tree equality; no coercion or foreign callbacks.
+
+    The existing producer/receiver JSON domain is integer-only: floats, including
+    finite floats, remain rejected. Bytes are supported only as exact byte leaves.
+    Dictionary field sets are unordered; list and tuple order and kind are exact.
+    The caller cannot supply the private budget or a comparison callback.
+    """
+    budget = [0, 0, 0]  # paired nodes, both-side text, both-side bytes
+
+    def walk(a, b, depth):
+        budget[0] += 1
+        if depth > 24 or budget[0] > 65536:
+            return False
+        kind = type(a)
+        if kind is not type(b):
+            return False
+        if a is None:
+            return True
+        if kind is bool:
+            return a is b
+        if kind is int:
+            if not -(1 << 64) <= a < (1 << 64) or not -(1 << 64) <= b < (1 << 64):
+                return False
+            return a == b
+        if kind is str:
+            if len(a) > 8192 or len(b) > 8192:
+                return False
+            budget[1] += len(a) + len(b)
+            if budget[1] > 1048576:
+                return False
+            return a == b
+        if kind is bytes:
+            if len(a) > 8388608 or len(b) > 8388608:
+                return False
+            budget[2] += len(a) + len(b)
+            if budget[2] > 33554432:
+                return False
+            return a == b
+        if kind is list or kind is tuple:
+            if len(a) > 1024 or len(b) > 1024 or len(a) != len(b):
+                return False
+            index = 0
+            while index < len(a):
+                if not walk(a[index], b[index], depth + 1):
+                    return False
+                index += 1
+            return True
+        if kind is dict:
+            if len(a) > 1024 or len(b) > 1024 or len(a) != len(b):
+                return False
+            # Complete both key-domain walks before membership or lookup. Exact
+            # str keys use native hashing/equality; no unknown key gets hashed.
+            for key in a:
+                if type(key) is not str or len(key) > 8192:
+                    return False
+                budget[1] += len(key)
+                if budget[1] > 1048576:
+                    return False
+            for key in b:
+                if type(key) is not str or len(key) > 8192:
+                    return False
+                budget[1] += len(key)
+                if budget[1] > 1048576:
+                    return False
+            for key in a:
+                if key not in b:
+                    return False
+                if not walk(a[key], b[key], depth + 1):
+                    return False
+            return True
+        # Includes float, all subclasses, user objects and callable values.
+        return False
+
+    return walk(left, right, 0)
+
+
+def need(condition, message):
+    if condition is not True:
+        raise RuntimeError(message)
+
+
+def exact(value, keys):
+    need(type(value) is dict and len(value) <= 1024, 'exact record required')
+    for key in value:
+        need(type(key) is str and len(key) <= 8192, 'foreign record key')
+    need((_same(len(value), len(keys))) and all(key in keys for key in value), 'record key census differs')
+
+
+def plain(value, depth=0, budget=None):
+    if budget is None:
+        budget = [0, 0]
+    budget[0] += 1
+    need(depth <= 24 and budget[0] <= 65536, 'plain tree bound exceeded')
+    if value is None or type(value) is bool:
+        return value
+    if type(value) is int:
+        need(-(1 << 64) <= value < (1 << 64), 'plain integer bound exceeded')
+        return value
+    if type(value) is str:
+        budget[1] += len(value)
+        need(len(value) <= 8192 and budget[1] <= 524288, 'plain text bound exceeded')
+        return value
+    if type(value) is list:
+        need(len(value) <= 1024, 'plain list bound exceeded')
+        return [plain(x, depth + 1, budget) for x in value]
+    need(type(value) is dict and len(value) <= 1024, 'plain exact container required')
+    for key in value:
+        need(type(key) is str, 'plain foreign key')
+        plain(key, depth + 1, budget)
+    return {key: plain(value[key], depth + 1, budget) for key in value}
+
+
+def pairs(items):
+    result = {}
+    for key, value in items:
+        need(type(key) is str and key not in result, 'duplicate JSON key')
+        result[key] = value
+    return result
+
+
+def reject_number(value):
+    raise RuntimeError('noninteger JSON number is forbidden')
+
+
+def decode(raw, limit=1048576):
+    need(type(raw) is bytes and len(raw) <= limit, 'raw record byte bound exceeded')
+    return plain(json.loads(raw.decode('ascii'), object_pairs_hook=pairs,
+                            parse_float=reject_number, parse_constant=reject_number))
+
+
+def digest(value):
+    need(type(value) is str and (_same(len(value), 64)) and all(c in '0123456789abcdef' for c in value),
+         'digest differs')
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def canonical(value):
+    return (json.dumps(plain(value), sort_keys=True, separators=(',', ':'), ensure_ascii=True) + '\n').encode('ascii')
+
+
+def source_row(row):
+    exact(row, SOURCE_KEYS)
+    digest(row['sha256'])
+    need(type(row['bytes']) is int and 0 <= row['bytes'] <= 67108864 and
+         type(row['mode']) is int and 0 <= row['mode'] <= 4095, 'source row bounds differ')
+
+
+def tcb(receipt, expected_files, origin, producer_pid):
+    need((_same(receipt.get('schema'), 'h25-initial-native-tcb-v1')) and
+         (_same(receipt.get('status'), 'MATCHED_DECLARED_INITIAL_NATIVE_FILES')), 'TCB receipt tag differs')
+    for key, value in (('probe_private_abi_access', False), ('reusable_pass', False),
+                       ('scientific_admission', False), ('executable_mappings_stable', True),
+                       ('hash_function_owned_by_root_module', True)):
+        need(receipt.get(key) is value, 'TCB boundary differs')
+    need((_same(receipt.get('root_source_sha256'), ROOT_SHA256)) and (_same(receipt.get('hashlib_origin'), origin)) and
+         type(receipt.get('pid')) is int and (_same(receipt['pid'], producer_pid)), 'TCB producer identity differs')
+    need(type(receipt.get('declared_file_count')) is int and
+         (_same(receipt['declared_file_count'], len(expected_files))), 'TCB literal file census differs')
+    files = receipt.get('files')
+    need(type(files) is list and (_same(len(files), len(expected_files))), 'TCB observed file census differs')
+    for row, fixed in zip(files, expected_files):
+        need((_same(row['path'], fixed[0])) and (_same(row['observed_sha256'], row['expected_sha256']) and _same(row['expected_sha256'], fixed[1])) and
+             type(row['observed_bytes']) is int and type(row['expected_bytes']) is int and
+             (_same(row['observed_bytes'], row['expected_bytes']) and _same(row['expected_bytes'], fixed[2])) and
+             type(row['executable_mapping_count']) is int and row['executable_mapping_count'] > 0,
+             'TCB fixed native file differs')
+    total = sum(row[2] for row in expected_files)
+    need(type(receipt.get('expected_total_file_bytes')) is int and
+         type(receipt.get('observed_total_file_bytes')) is int and
+         (_same(receipt['expected_total_file_bytes'], receipt['observed_total_file_bytes']) and _same(receipt['observed_total_file_bytes'], total)),
+         'TCB total bytes differ')
+
+
+def initial(raw, expected):
+    first = decode(raw['initial-tcb.raw.json'])
+    controls = decode(raw['initial-controls.raw.json'])
+    restored = decode(raw['initial-restoration.raw.json'])
+    exact(controls, ('schema', 'records', 'expected_records', 'scientific_calls', 'probe_native_imports'))
+    need((_same(controls['schema'], 'h25-native-tcb-controls-v1')) and type(controls['expected_records']) is int and
+         (_same(controls['expected_records'], 5)) and type(controls['scientific_calls']) is int and
+         (_same(controls['scientific_calls'], 0)) and type(controls['probe_native_imports']) is int and
+         (_same(controls['probe_native_imports'], 0)), 'initial five controls scope differs')
+    rows = controls['records']
+    need(type(rows) is list and (_same(len(rows), 5)), 'initial five count differs')
+    names = ('TCB-positive-initial-native-closure', 'TCB-wrong-file-digest',
+        'TCB-missing-declared-map', 'TCB-root-hash-alias', 'TCB-isolated-reader-file-drift')
+    need((_same([row['case'] for row in rows], list(names))), 'initial five order differs')
+    for row, fragment in zip(rows[1:], ('file digest differs', 'mapped file closure differs',
+                                      'Bootstrap/provider global changed', 'file changed during hashing')):
+        need(type(row.get('rejection')) is str and fragment in row['rejection'], 'original rejection differs')
+    need(rows[3]['corrupt_function_executed'] is False and rows[4]['system_native_files_mutated'] is False,
+         'initial control side effect boundary differs')
+    for record in (first, rows[0]['receipt'], restored):
+        tcb(record, expected['initial_expected_files'], expected['hashlib_origin'], expected['producer_process_id'])
+    for key in ('pid', 'hashlib_module_id', 'hash_function_id'):
+        need(type(first[key]) is int and (_same(first[key], restored[key])), 'fresh restoration continuity differs')
+
+
+def event(row, kind, expected, role, compiler_pid):
+    exact(row, PRELAUNCH_KEYS if (_same(kind, 'PRELAUNCH_INTENT')) else STARTED_KEYS if (_same(kind, 'STARTED')) else FINAL_KEYS)
+    need((_same(row['schema'], 'h25-cold-build-attempt-v1')) and (_same(row['status'], kind)) and
+         (_same(row['process_group_policy'], 'INHERIT_OUTER_GROUP_NO_NEW_SESSION')), 'original event tag differs')
+    need((_same(row['command'], role['command'])) and (_same(row['context'], role['context'])) and
+         type(row['timeout_seconds']) is int and (_same(row['timeout_seconds'], 15)),
+         'original helper invocation differs')
+    directory = expected['output'] + '/' + role['role']
+    for name in ('stdout', 'stderr', 'attempt', 'journal'):
+        filename = 'control.' + {'stdout': 'stdout.raw', 'stderr': 'stderr.raw',
+            'attempt': 'attempt.json', 'journal': 'attempt.jsonl'}[name]
+        need((_same(row[name + '_path'], directory + '/' + filename)), 'original raw path differs')
+    need(type(row['operational_log_threshold_bytes']) is int and (_same(row['operational_log_threshold_bytes'], 2097152)) and
+         type(row['child_only_inherited_hard_file_limit_bytes']) is int and
+         (_same(row['child_only_inherited_hard_file_limit_bytes'], 16777216)) and
+         row['descendant_termination_joined'] is False and row['failure_log_hashes_final'] is False,
+         'original bounds or outer authority differ')
+    if (_same(kind, 'PRELAUNCH_INTENT')):
+        need(row['returncode'] is None and row['process_id'] is None and row['direct_child_reaped'] is None and
+             row['spawn_entered'] is False and row['spawn_returned'] is False, 'prelaunch fields differ')
+        return
+    need(type(row['process_id']) is int and (_same(row['process_id'], compiler_pid)) and compiler_pid > 0 and
+         row['spawn_entered'] is True and row['spawn_returned'] is True, 'compiler spawn fields differ')
+    need((_same(row['parent_file_limits_before'], expected['parent_file_limits'])) and
+         (_same(row['preexec_code_sha256'], expected['preexec_code_sha256'])), 'inherited limits or preexec source differ')
+    census = row['single_thread_before_spawn']
+    exact(census, ('process_id', 'task_ids', 'task_count'))
+    pid = expected['producer_process_id']
+    need(type(census['process_id']) is int and (_same(census['process_id'], pid)) and
+         type(census['task_count']) is int and (_same(census['task_count'], 1)) and
+         (_same(census['task_ids'], [pid])) and type(census['task_ids'][0]) is int, 'producer census differs')
+    if (_same(kind, 'STARTED')):
+        need(row['returncode'] is None and row['direct_child_reaped'] is None, 'started completion differs')
+    else:
+        need(type(row['returncode']) is int and (_same(row['returncode'], 0)) and row['direct_child_reaped'] is True and
+             (_same(row['parent_file_limits_after'], expected['parent_file_limits'])), 'compiler completion differs')
+
+
+def policy_for(row, build_raw):
+    policy = dict(row['static_policy'])
+    need(policy['build_receipt_sha256'] is None, 'actual build receipt binding was prelearned')
+    policy['build_receipt_sha256'] = sha(build_raw)
+    for key in ('expected_exports', 'needed', 'required_local_functions', 'required_local_objects'):
+        policy[key] = tuple(policy[key])
+    policy['pointer_slots'] = tuple(tuple(x) for x in policy['pointer_slots'])
+    policy['method_tables'] = tuple({'symbol': x['symbol'], 'entries': tuple(tuple(y) for y in x['entries'])}
+                                    for x in policy['method_tables'])
+    return policy
+
+
+def build(raw, expected, role):
+    prefix = role['role'] + '/'
+    attempt = decode(raw[prefix + 'control.attempt.json'], 65536)
+    returned = decode(raw[prefix + 'helper-return.raw.json'])
+    journal_raw = raw[prefix + 'control.attempt.jsonl']
+    need(len(journal_raw) <= 196608 and journal_raw.endswith(b'\n'), 'original journal bound or tail differs')
+    lines = journal_raw.splitlines()
+    need((_same(len(lines), 3)), 'original successful journal must contain exactly three events')
+    journal = [decode(line, 65536) for line in lines]
+    compiler_pid = attempt['process_id']
+    for record, kind in zip(journal, ('PRELAUNCH_INTENT', 'STARTED', 'EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY')):
+        event(record, kind, expected, role, compiler_pid)
+    event(attempt, 'EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY', expected, role, compiler_pid)
+    need((_same(attempt, journal[-1]) and _same(journal[-1], returned)), 'actual return/attempt/journal differ')
+    exact(attempt['logs'], ('stdout', 'stderr'))
+    for name in ('stdout', 'stderr'):
+        data = raw[prefix + 'control.' + name + '.raw']
+        need(len(data) <= 2097152, 'original log bound exceeded')
+        log = attempt['logs'][name]
+        exact(log, LOG_KEYS)
+        for key in ('bytes_before', 'bytes_after', 'prefix_bytes_hashed'):
+            need(type(log[key]) is int and (_same(log[key], len(data))), 'actual log length differs')
+        need((_same(log['prefix_sha256'], log['complete_file_sha256']) and _same(log['complete_file_sha256'], sha(data))) and
+             (_same(log['path'], attempt[name + '_path'])) and log['stable_during_snapshot'] is True and
+             (_same(log['raw_finality'], 'DIRECT_CHILD_EXIT0_AND_STABLE_COMPLETED_LOG')) and
+             type(log['preview_bytes']) is int and (_same(log['preview_bytes'], min(len(data), 512))) and
+             (_same(log['preview_utf8'], data[:512].decode('utf-8', errors='replace'))) and
+             (_same(log['operational_threshold_bytes'], 2097152)) and
+             (_same(log['child_inherited_hard_file_limit_bytes'], 16777216)), 'original log observation differs')
+    receipt_raw = raw[prefix + 'build.json']
+    receipt = decode(receipt_raw)
+    exact(receipt, ('schema', 'role', 'status', 'helper_name', 'command', 'context', 'path', 'binary',
+                    'command_sha256', 'original_helper_sha256', 'negative_only', 'loaded'))
+    need((_same(receipt['schema'], 'h25-negative-variant-build-v1')) and (_same(receipt['role'], role['role'])) and
+         (_same(receipt['status'], 'EXIT0_RAW_CAPTURED_PENDING_FINAL_CUSTODY')) and (_same(receipt['helper_name'], 'control')) and
+         (_same(receipt['command'], role['command'])) and (_same(receipt['context'], role['context'])) and
+         (_same(receipt['path'], role['context']['target'])) and (_same(receipt['original_helper_sha256'], HELPER_SHA256)) and
+         receipt['negative_only'] is True and receipt['loaded'] is False, 'variant receipt source/role differs')
+    need((_same(receipt['command_sha256'], sha(canonical({'argv': role['command']})))),
+         'variant command pin differs')
+    binary = raw[prefix + '_h25_dict_probe.cpython-312-x86_64-linux-gnu.so']
+    exact(receipt['binary'], ('sha256', 'bytes', 'mode', 'identity'))
+    identity = receipt['binary']['identity']
+    exact(identity, ('device', 'inode', 'mode', 'links', 'uid', 'gid', 'size', 'mtime_ns', 'ctime_ns'))
+    need(all(type(x) is int and 0 <= x < (1 << 64) for x in identity.values()) and
+         (_same(identity['mode'] & 0o170000, 0o100000)) and (_same(identity['size'], len(binary))) and
+         type(receipt['binary']['mode']) is int and (_same(receipt['binary']['mode'], identity['mode'] & 0o7777)),
+         'child binary identity observation shape differs')
+    need((_same(receipt['binary']['sha256'], sha(binary))) and type(receipt['binary']['bytes']) is int and
+         (_same(receipt['binary']['bytes'], len(binary))), 'actual negative output bytes differ')
+    # Direct pinned pure parser, called on each actual output. This establishes
+    # static observations only, not a provider/loader/runtime/bootstrap admission.
+    parsed = elf.admit_service_elf(binary, sha(binary), policy_for(role, receipt_raw))
+    need((_same(decode(raw[prefix + 'elf.raw.json']), plain_json(parsed))), 'producer ELF observation differs')
+    return {'role': role['role'], 'build_receipt_sha256': sha(receipt_raw),
+            'output_sha256': sha(binary), 'elf_sha256': sha(raw[prefix + 'elf.raw.json'])}
+
+
+def plain_json(value):
+    # ELF returns exact tuples as well as lists. JSON normalization remains data.
+    if type(value) is tuple:
+        return [plain_json(x) for x in value]
+    if type(value) is list:
+        return [plain_json(x) for x in value]
+    if type(value) is dict:
+        return {k: plain_json(v) for k, v in value.items()}
+    return value
+
+
+def literal_sources(role, plan, stage):
+    source_path = stage + '/areas/field-negative-variants-v1/' + role['role'] + '/dict_probe_fields_v1.c'
+    need((_same(role['source_path'], source_path)) and (_same(plan['include'], '/usr/include/python3.12')),
+         'literal source path/include differs')
+    pins = {
+        'dict_probe_fields_v1.c': ('e0188999d41a9ab26e8d3d5c37b18b2238b3af21b1db90895f01f7be76d50b65', 17806),
+        'field_loader_snapshot_v1.h': ('bf7ab049cea89c0a882b279e35b1383ac8f99b66aa4b9b8e1ca22eb9c24c5a8d', 19495),
+        'field_service_v1.h': (('7656cd37503986459c4133643372fec13d3e5ad5553881f0bf0343a9a3e11abd', 17354)
+                              if (_same(role['role'], 'pyinit_failure')) else
+                              ('f5066831bd812e7e88fb971ba0e7ca86dbef91fc40a1a68c17b040ce474cd880', 17040))}
+    inventory = {row['path']: row for row in plan['source_files']}
+    need((_same(len(inventory), len(plan['source_files']))), 'duplicate source closure path')
+    for filename, (digest_value, size) in pins.items():
+        row = role['source'] if filename.endswith('.c') else role['source_headers'][filename]
+        need((_same(row, {'sha256': digest_value, 'bytes': size, 'mode': 292})), 'reviewed role source/header pin differs')
+        fixed = inventory[source_path.rsplit('/', 1)[0] + '/' + filename]
+        need(all((_same(fixed[key], row[key])) for key in SOURCE_KEYS), 'literal role omitted from current closure')
+
+
+def validate_variant_producer(raw_files: dict, expected_plan: dict) -> dict:
+    need(all(gate is not None for gate in (VALIDATION_CONFIGURATION, VALIDATION_SOURCE_REVIEW,
+        VALIDATION_EXECUTION, VALIDATION_FUNDING)), 'variant receiver execution gates are unset')
+    # Authenticate this receiver/parser module through the parent's source-owned
+    # admission before this call; source bytes cannot authenticate their caller.
+    exact(raw_files, RAW_INVENTORY)
+    total = 0
+    for key in RAW_INVENTORY:
+        data = raw_files[key]
+        need(type(data) is bytes, 'raw inventory value must be exact bytes')
+        limit = 8388608 if key.endswith('.so') else 2097152 if key.endswith('.raw') else 1048576
+        need(len(data) <= limit, 'raw inventory file bound exceeded')
+        total += len(data)
+    need(total <= 33554432, 'raw inventory aggregate bound exceeded')
+    expected = plain(expected_plan)
+    exact(expected, ('producer_process_id', 'configuration', 'preexec_code_sha256',
+                     'parent_file_limits', 'initial_expected_files', 'hashlib_origin',
+                     'binding', 'output', 'stage_root', 'raw_file_names'))
+    need(type(expected['producer_process_id']) is int and 0 < expected['producer_process_id'] < (1 << 31),
+         'independent producer PID differs')
+    need((_same(expected['raw_file_names'], list(RAW_INVENTORY))), 'independent raw inventory order differs')
+    plan = expected['configuration']
+    exact(plan, ('roles', 'source_files', 'additional_source_pins', 'include',
+        'expected_preflight', 'expected_dependencies', 'system_header_admission_sha256'))
+    digest(expected['preexec_code_sha256'])
+    digest(plan['system_header_admission_sha256'])
+    limits = expected['parent_file_limits']
+    need(type(limits) is list and (_same(len(limits), 2)) and all(type(x) is int and
+         ((_same(x, -1)) or 16777216 <= x < (1 << 64)) for x in limits), 'independent file limits differ')
+    need(((_same(limits[0], -1)) and (_same(limits[1], -1))) or
+         ((not _same(limits[0], -1)) and ((_same(limits[1], -1)) or limits[0] <= limits[1])), 'file limit order differs')
+    for path in (expected['output'], expected['stage_root']):
+        need(type(path) is str and path.startswith('/') and len(path) <= 4096 and
+             all(32 <= ord(c) < 127 for c in path) and all(x not in ('', '.', '..') for x in path.split('/')[1:]), 'independent absolute origin differs')
+    need(type(plan['roles']) is list and (_same(len(plan['roles']), 2)) and
+         type(plan['source_files']) is list and 1 <= len(plan['source_files']) <= 512,
+         'independent configuration inventory bounds differ')
+    for row in plan['source_files']:
+        exact(row, ('path', 'sha256', 'bytes', 'mode'))
+        need(type(row['path']) is str and row['path'].startswith('/') and len(row['path']) <= 4096 and
+             all(x not in ('', '.', '..') for x in row['path'].split('/')[1:]), 'source absolute path differs')
+        source_row({key: row[key] for key in SOURCE_KEYS})
+    for row in expected['initial_expected_files']:
+        need(type(row) is list and (_same(len(row), 3)) and type(row[0]) is str and row[0].startswith('/') and
+             type(row[2]) is int and row[2] > 0, 'initial native literal file row differs')
+        digest(row[1])
+    exact(expected['binding'], BINDING_KEYS)
+    need(expected['binding']['mode'] in ('normal', 'optimized') and
+         (_same([row['role'] for row in plan['roles']], list(ROLES))), 'independent role/mode differs')
+    generation = expected['binding']['generation']
+    need(type(generation) is str and 1 <= len(generation) <= 96 and
+         all(c in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in generation), 'generation label differs')
+    digest(expected['binding']['launch_nonce'])
+    for role in plan['roles']:
+        exact(role, ('role', 'source_path', 'source', 'source_headers', 'static_policy', 'profile'))
+        source_row(role['source'])
+        exact(role['source_headers'], ('field_service_v1.h', 'field_loader_snapshot_v1.h'))
+        for row in role['source_headers'].values():
+            source_row(row)
+        exact(role['profile'], PROFILE_KEYS)
+        for value in role['profile'].values():
+            digest(value)
+        need((_same(role['profile']['source_manifest_sha256'], role['static_policy']['source_closure_sha256'])) and
+             (_same(role['profile']['compiler_link_sha256'], role['static_policy']['compiler_closure_sha256'])) and
+             (_same(role['profile']['link_profile_sha256'], role['static_policy']['link_profile_sha256'])),
+             'independent static profile closure binding differs')
+        expected_command = ['/usr/bin/x86_64-linux-gnu-gcc-13', '-nostartfiles', '-shared', '-fPIC',
+            '-O3', '-std=c11', '-Wall', '-Wextra', '-Werror', '-I' + plan['include'], role['source_path'],
+            '-o', expected['output'] + '/' + role['role'] + '/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so']
+        role['command'] = expected_command
+        role['context'] = {'source': role['source'],
+            'source_name': 'dict_probe_fields_v1.c', 'no_cached_binary': True, 'module_name': '_h25_dict_probe',
+            'target': expected_command[-1], 'source_headers': role['source_headers'],
+            'system_header_admission_sha256': plan['system_header_admission_sha256'],
+            'negative_variant_role': role['role']}
+        literal_sources(role, plan, expected['stage_root'])
+    need((_same(plan['additional_source_pins'], [['sealed_elf_profile_v2', 'integration/sealed_elf_profile_v2.py', ELF_SHA256]])),
+         'independent ELF source pin differs')
+    initial(raw_files, expected)
+    for name in ('root-before.raw.json', 'root-after.raw.json'):
+        counters = decode(raw_files[name])
+        exact(counters, COUNTERS)
+        need(all(type(counters[key]) is int and (_same(counters[key], 0)) for key in COUNTERS), 'Root native event occurred')
+    for name in ('preflight-before.raw.json', 'preflight-after.raw.json'):
+        need((_same(decode(raw_files[name]), plan['expected_preflight'])), 'original fresh preflight differs')
+    before = decode(raw_files['custody-before.raw.json'])
+    after = decode(raw_files['custody-after.raw.json'])
+    exact(before, ('files', 'original_dependencies'))
+    exact(after, ('files', 'original_dependencies'))
+    need((_same(before, after)) and (_same(before['original_dependencies'], plan['expected_dependencies'])), 'complete custody changed')
+    need((_same(len(before['files']), len(plan['source_files']))), 'source custody census differs')
+    for row, fixed in zip(before['files'], plan['source_files']):
+        exact(row, ('path', 'sha256', 'bytes', 'mode', 'identity'))
+        source_row({key: row[key] for key in SOURCE_KEYS})
+        exact(row['identity'], ('device', 'inode', 'mode', 'links', 'uid', 'gid', 'size', 'mtime_ns', 'ctime_ns'))
+        need(all(type(x) is int and 0 <= x < (1 << 64) for x in row['identity'].values()),
+             'child source identity observation shape differs')
+        need(all((_same(row[key], fixed[key])) for key in ('path', 'sha256', 'bytes', 'mode')), 'source custody pin differs')
+    summaries = [build(raw_files, expected, role) for role in plan['roles']]
+    final = decode(raw_files['receipt.json'])
+    exact(final, ('schema', 'status', 'producer_role', 'binding', 'process_id', 'builds', 'helper_names',
+        'consumed_roles', 'root_before', 'root_after', 'negative_only', 'candidate_loads',
+        'parent_completion', 'domain_closed', 'failure_helper_qualification'))
+    need((_same(final['schema'], 'h25-negative-variant-producer-v1')) and
+         (_same(final['status'], 'TWO_BUILDS_RAW_AND_SOURCE_CAPTURED')) and (_same(final['producer_role'], 'failure_variants')) and
+         (_same(final['binding'], expected['binding'])) and
+         type(final['process_id']) is int and (_same(final['process_id'], expected['producer_process_id'])) and
+         (_same(final['builds'], summaries)) and (_same(final['helper_names'], ['control', 'control'])) and
+         (_same(final['consumed_roles'], [True, True])) and all(type(x) is bool for x in final['consumed_roles']) and
+         final['negative_only'] is True and type(final['candidate_loads']) is int and (_same(final['candidate_loads'], 0)) and
+         final['parent_completion'] is None and final['domain_closed'] is None and
+         final['failure_helper_qualification'] is None, 'final producer binding differs')
+    need((_same(final['root_before'], decode(raw_files['root-before.raw.json']))) and
+         (_same(final['root_after'], decode(raw_files['root-after.raw.json']))), 'final Root counters differ')
+    build_rows = []
+    for role in plan['roles']:
+        prefix = role['role'] + '/'
+        build_rows.append({'role': role['role'], 'command_sha256': sha(canonical({'argv': role['command']})),
+            'profile': role['profile'], 'files': {
+                'original_output': prefix + '_h25_dict_probe.cpython-312-x86_64-linux-gnu.so',
+                'original_receipt': prefix + 'build.json', 'attempt': prefix + 'control.attempt.json',
+                'journal': prefix + 'control.attempt.jsonl', 'stdout': prefix + 'control.stdout.raw',
+                'stderr': prefix + 'control.stderr.raw'}})
+    raw_groups = [name for name in RAW_INVENTORY if name.endswith('.raw.json')]
+    return {'schema': 'h25-negative-variant-data-authentication-v1', 'raw_result_relative': 'receipt.json',
+            'raw_group_relatives': raw_groups, 'builds': build_rows,
+            'zero_candidate_loads': True, 'not_runtime_authority': True}
