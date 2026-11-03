@@ -18,13 +18,18 @@ The exact parent wrapper pins all28 implementation files, independent ordered or
 
 Child wall.165753153/.267221805seconds,CPU.075114/.192279seconds. Conservativeceil-per-child debit2seconds; supplementalcombined115.890533479,canonicalhistorical94.550533479 unchanged. Wrapper/copy/hash,source/Pro/agents/review,network/publication/finalmetadata physical costsOPEN_NOT_ZERO. No new budget; no original/native/compiler/decoder/target/policy operation or old-control rerun.
 
-For a fresh authorized checkout after reading exact review constraints:
+For an authorized reproduction, first read the exact review constraints. The committed validation captures are evidence and already occupy exclusive output names. Create a new retained workspace containing only the reviewed implementation, independent oracle, wrapper and execution inventory; leave all committed captures untouched:
 
 ```sh
-python3 -B research/h25-fresh-sc-constructor/validation/run_reviewed_constructor.py
+task_repro="$(mktemp -d)"
+cp -a research/h25-fresh-sc-constructor/implementation "$task_repro/implementation"
+mkdir "$task_repro/review" "$task_repro/validation"
+cp research/h25-fresh-sc-constructor/review/CONTROL-ORACLE-v1.json "$task_repro/review/"
+cp research/h25-fresh-sc-constructor/validation/run_reviewed_constructor.py research/h25-fresh-sc-constructor/validation/EXECUTION-INVENTORY-v1.json "$task_repro/validation/"
+python3 -B "$task_repro/validation/run_reviewed_constructor.py"
 ```
 
-Fresh cold/capture names are mandatory. Existing evidence is never deleted/overwritten to rerun. Captures,partial fixture files and original POSIX modes/emptydirectories are retained in validation/FIXTURE-TREE-v1.json; Git records regular/executable flags, not POSIX0444. There is no VERIFY/TASK replay registration; hosted plan/onboarding is archival metadata, not original/scientific execution. Independent AI source/plan/raw reviews are retained; no human/kernel certification is claimed.
+This is a suggested reproduction recipe, not a command rerun for this documentation correction. The wrapper retains the new workspace's captures and fixtures. Fresh cold/capture names are mandatory. Existing evidence is never deleted/overwritten to rerun. Captures,partial fixture files and original POSIX modes/emptydirectories are retained in validation/FIXTURE-TREE-v1.json; Git records regular/executable flags, not POSIX0444. There is no VERIFY/TASK replay registration; hosted plan/onboarding is archival metadata, not original/scientific execution. Independent AI source/plan/raw reviews are retained; no human/kernel certification is claimed.
 
 ## Open next questions
 
