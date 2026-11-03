@@ -32,7 +32,12 @@ SHA256 was `f47fdb60a7fb046e9aedabfe421da9f169f4cbaa331cc26360723cb3c8f35179`.
 That export covered the original frame and fixed-root certificate.
 The later Section 6 addendum gives the universal 22/21-leaf caps, including
 coupled sites. Its updated receipt and both registered modes passed under
-CPython 3.12.13. A new committed export will be checked for that addendum.
+CPython 3.12.13. The addendum at `f94fc3f2e2c53bdd629a38d0a4b8a962829d43ea` passed
+committed-byte and official-export checks. Both new read-only, Git-free,
+empty-PATH replays passed with all 26 export files unchanged. Their common
+stdout SHA256 is `b159444b16c37da899d040aca79f594acd8503da6c4ab5519a85da5c3f75ae50`.
+The five separate optimized-process corruption controls passed again.
+Only README scope wording and this validation prose changed afterward.
 The checkout is shallow. Full-history ancestry is not claimed. Every pending
 predecessor byte required by the proof is retained and checked directly.
 

@@ -11,7 +11,7 @@ At the 0.003293 ceiling, different leaves can also use different source words.
 
 A second result applies to **any root in the stated fresh-stage billing
 model**, not only this fixed root. Its favorable raw-budget search needs at
-most **22 leaves per binary child** for kappa>=0.003293, or **21 leaves** at
+most **22 leaves per binary child** for 0.003293<=kappa<=0.0034, or **21 leaves** at
 the current one-percent target 0.00332118199. The proof gives a bound on each
 child increment, with no bound on the number of root fields or full sites.
 This converts an unbounded child-size search into a finite one. It does not
