@@ -1,0 +1,108 @@
+{
+  "schema": "literal-use-manual-expectations-v1",
+  "status": "DESIGNED_NOT_RUN",
+  "common_ELF_fixture": {
+    "total_bytes": 1024,
+    "ELF_ident": "7f454c46020101000000000000000000",
+    "e_type": 2,
+    "e_machine": 62,
+    "e_version": 1,
+    "e_entry": "0x400100",
+    "e_phoff": 64,
+    "e_ehsize": 64,
+    "e_phentsize": 56,
+    "e_phnum": 1,
+    "e_shoff": 0,
+    "e_shnum": 0,
+    "PT_LOAD": {
+      "p_offset": 256,
+      "p_vaddr": "0x400000",
+      "p_filesz": 768,
+      "p_memsz": 768,
+      "p_flags": 5,
+      "p_align": 256
+    },
+    "literal_offset": 640,
+    "literal_hex": "2f7573722f6c6962657865632f6763632f00",
+    "all_other_bytes": "zero unless a control overrides"
+  },
+  "controls": [
+    {
+      "id": "S01",
+      "code_offset": 512,
+      "code_hex": "488d3d790000004889fec3",
+      "manual_expected": "literalVA0x400180; LEA candidatePC0x400100 length7; if independent ISA/boundary rules are checked from entry, RDI=0x400180 at0x400107 and RSI=0x400180 at0x40010a after MOV. Locator itself does not validate this lemma."
+    },
+    {
+      "id": "S02",
+      "code_offset": 512,
+      "code_hex": "48be8001400000000000c3",
+      "manual_expected": "MOV RSI,imm64 constructs0x400180; confirms absolute locator route, no RIP-only restriction."
+    },
+    {
+      "id": "S03",
+      "code_offset": 512,
+      "code_hex": "be80014000c3",
+      "manual_expected": "MOV ESI,imm32 zero-extends to RSI=0x400180; boundary/ISA independent, candidate-only output."
+    },
+    {
+      "id": "S04",
+      "code_offset": 512,
+      "code_hex": "48b8488d3d7700000000c3",
+      "manual_expected": "LEA-looking bytes at0x202 point arithmetically at0x400180 but lie inside MOV imm64 beginning0x200. Locator may emit candidate; independent boundary check MUST reject instruction claim at0x202."
+    },
+    {
+      "id": "S05",
+      "code_offset": 512,
+      "code_hex": "c3",
+      "manual_expected": "Dead/unreferenced literal; no named code-reference pattern. Must return partial/no-discovery, never unused/not-operative/native-prefix proof."
+    },
+    {
+      "id": "S06",
+      "code_offset": 512,
+      "code_hex": "488d3d790000004889fe31f6c3",
+      "manual_expected": "After XOR ESI,ESI RSI=0 at0x40010c, so proposed later use RSI=literal is false. Locator hit is insufficient."
+    },
+    {
+      "id": "S07",
+      "mutation": "Make PT_LOAD p_filesz=0x180, p_memsz=0x300, literal remains at0x280",
+      "manual_expected": "Literal is no longer file-backed by the segment; reject mapping, never substitute zero-fill."
+    },
+    {
+      "id": "S08",
+      "mutation": "Two PT_LOAD entries both contain literal file span but assign different VAs",
+      "manual_expected": "Ambiguous mapping STOP, not choose-first."
+    },
+    {
+      "id": "S09",
+      "mutation": "Shift literal content or its expected span by one byte",
+      "manual_expected": "Exact literal mismatch STOP even if nearby bytes look similar."
+    },
+    {
+      "id": "S10",
+      "mutation": "Nine distinct direct named reference candidates in executable file bytes",
+      "manual_expected": "Candidate cap8 => STOP_CANDIDATE_CAP with first8 retained/overflow true; no reroll or raise."
+    },
+    {
+      "id": "S11",
+      "mutation": "Valid defined FUNC symbol/FDE points at logger-only reference or unreachable branch",
+      "manual_expected": "No source-role/D applicability acceptance. Metadata is a candidate boundary, not entry/reachability proof."
+    },
+    {
+      "id": "S12",
+      "mutation": "Relevant RELA/REL/RELR alters literal/slot/instruction or IFUNC/unknown-width effect is unresolved",
+      "manual_expected": "Relocation-effect/entry-frame STOP; helper descriptor validation cannot claim semantic relocation audit."
+    },
+    {
+      "id": "S13",
+      "mutation": "Value carried across unqualified private call/aliased store before nominated use",
+      "manual_expected": "Local lemma STOP unless exact effect is independently proved; no automatic callee-saved ABI assumption."
+    },
+    {
+      "id": "S14",
+      "mutation": "ET_DYN fixture with symbolic load bias beta",
+      "manual_expected": "Keep L_beta=beta+L; no actual address from linkVA alone; absolute immediates/slots need actual relocation treatment."
+    }
+  ],
+  "builder_and_test_release": "Future separately reviewed stdlib fixture constructor/test harness must realize these literal fields/bytes independently, not call the extractor to choose expected results. No builder/test executed here. Parser synthetic controls must pass under a separate explicit source/test grant before actual B inspection. These finite controls do not qualify actual GCC semantics."
+}
