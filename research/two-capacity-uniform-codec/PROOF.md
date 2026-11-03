@@ -148,8 +148,12 @@ Our direct oracle implementation uses O(n^4) field operations for basis
 calculations and O(n^2) integer products/divisions in the formula. The
 field-operation bound allows a separate linear solve for every mapped basis
 vector. It is not a bit-complexity bound. Every count is at most
-|GL_n(F_q)|<q^(n^2), so count integers have O(n^2 log q) bits. Reconstruction
-of standard columns takes O(n^4) further field operations. The fair-bit
+|GL_n(F_q)|≤q^(n^2), with equality in the latter bound only at n=0, where
+there is one empty isomorphism. For n≥1 the zero matrix is singular, so the
+inequality is strict. Count integers therefore have O(1+n^2 log q) bits,
+recovering O(n^2 log q) for n≥1. At n=0, the unique rank is zero and the
+M=1 sampling case in Sections 2 and 3 already applies. Reconstruction of
+standard columns takes O(n^4) further field operations. The fair-bit
 recurrence uses O(b) arithmetic steps on integers smaller than 2M, followed
 by one unrank call on success.
 
