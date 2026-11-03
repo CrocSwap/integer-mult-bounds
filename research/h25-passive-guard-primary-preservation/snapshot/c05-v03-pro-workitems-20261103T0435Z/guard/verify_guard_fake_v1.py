@@ -1,0 +1,382 @@
+"""UNEXECUTED by author. Parent-only, separately admitted AST-definition fakes.
+
+Only complete named definitions are extracted. No candidate import/top-level/CLI
+or source-window execution. All candidate system/process/path/signal boundaries
+are inert tokens. Fourteen independent scope-review cases; RED witnesses retained.
+"""
+import ast
+import builtins
+import hashlib
+import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+ROOT=Path(__file__).resolve().parent
+SOURCE=ROOT/'parent_passive_supervisor_v4.py'
+HELPER=ROOT/'passive_image_candidates_v3.py'
+PREDECESSOR=ROOT.parents[1]/'c05-v03-completion-20261102T055710Z'/'driver-libexec-property-slice-v1'/'repair-v2'/'parent_passive_supervisor_v3.py'
+OLD_HELPER=PREDECESSOR.parent/'passive_image_candidates_v2.py'
+REFERENCE=ROOT/'reference-g12-parent-v3.py.txt'
+SOURCE_SHA='355c10dbe920373e25a3ebb080d771c9388abe6f5e5e8db5b69b1cea8cd025cd'
+HELPER_SHA='8ba6eaaa43916cb38002c50231c6309afd0e1b5e58dc72658be10f4ab6c4626d'
+PREDECESSOR_SHA='2a9581442b8cd6802f45c7ae4c523165fa19297f7fe1d8c616c74f65da9b628a'
+REFERENCE_SHA='8b6b196c50d616e12d7966ea35bf6d65fd799a18556f362a7e17d2b1273a8bb8'
+NAMES=('Stop','need','digest','RawErrors','acquire','close_slot','read_pin','Guard','bind_window','main')
+ROWS=[]
+
+def require(ok, message):
+    if not ok: raise RuntimeError(message)
+
+def capture(operation):
+    try: operation()
+    except BaseException as error: return error
+    raise RuntimeError('expected raw exception was not raised')
+
+def bound_text(path, expected):
+    raw=path.read_bytes()
+    require(hashlib.sha256(raw).hexdigest()==expected,'source identity mismatch')
+    return raw.decode('utf-8')
+
+def definitions(text, names, namespace):
+    tree=ast.parse(text)
+    found={node.name:node for node in tree.body if isinstance(node,(ast.FunctionDef,ast.ClassDef))}
+    require(all(name in found for name in names),'complete definition absent')
+    # Only named complete definitions; imports, global assignments, __main__,
+    # decorators and defaults with ambient calls are never run accidentally.
+    selected=[found[name] for name in names]
+    for node in selected:
+        require(not node.decorator_list,'unreviewed decorator')
+    env={'__builtins__':builtins.__dict__}
+    env.update(namespace)
+    module=ast.Module(body=selected,type_ignores=[])
+    exec(compile(module,'<exact complete source definitions / inert fakes>','exec'),env)
+    return env
+
+class Poison(Exception):
+    calls=0
+    def __str__(self):
+        type(self).calls+=1
+        raise RuntimeError('formatter must not be called')
+    def __repr__(self):
+        type(self).calls+=1
+        raise RuntimeError('formatter must not be called')
+
+class TokenPath:
+    def __init__(self,value): self.value=str(value)
+    def __truediv__(self,value): return TokenPath(self.value+'/'+str(value))
+    def __str__(self): return self.value
+    def is_absolute(self): return True
+    def stat(self): return SimpleNamespace(st_size=3)
+    def read_text(self): return '' if self.value.endswith('children') else '0 1'
+    def read_bytes(self): raise RuntimeError('fake path byte read not admitted')
+    def mkdir(self,**kwargs): raise RuntimeError('fake main must fail before directory creation')
+
+class TokenOS:
+    O_RDONLY=0; O_CLOEXEC=1; O_NOFOLLOW=2; O_WRONLY=4; O_CREAT=8; O_EXCL=16; O_RDWR=32
+    def __init__(self):
+        self.events=[]; self.next=500; self.blocks={}; self.close_errors={}
+        self.fstat_error=None; self.write_plan=[]; self.close_observer=None
+    def open(self,path,*args):
+        self.next+=1; token=self.next
+        self.events.append(('open',token)); self.blocks[token]=[b'abc',b'']
+        return token
+    def fstat(self,fd):
+        if self.fstat_error is not None: raise self.fstat_error
+        return SimpleNamespace(st_dev=1,st_ino=fd,st_mode=0,st_size=3,
+                               st_mtime_ns=0,st_ctime_ns=0,st_uid=1000)
+    def read(self,fd,count):
+        self.events.append(('read',fd))
+        blocks=self.blocks.get(fd)
+        return blocks.pop(0) if blocks else b''
+    def write(self,fd,data):
+        self.events.append(('write',fd))
+        if self.write_plan:
+            item=self.write_plan.pop(0)
+            if isinstance(item,BaseException): raise item
+            return item
+        return len(data)
+    def close(self,fd):
+        if self.close_observer is not None: self.close_observer(fd)
+        self.events.append(('close',fd))
+        if fd in self.close_errors: raise self.close_errors[fd]
+    def lseek(self,*args): return 0
+    def pidfd_open(self,pid,flags):
+        self.events.append(('pidfd',pid)); return 1500+pid
+    def set_blocking(self,*args): return None
+    def killpg(self,*args): self.events.append(('killpg',args[0]))
+    def getpid(self): return 1
+    def getuid(self): return 1000
+    def sysconf(self,name): return 4096
+
+class Clock:
+    def __init__(self): self.value=0
+    def monotonic(self): self.value+=0.001; return self.value
+    def time(self): return 0
+
+class TokenStream:
+    def __init__(self,fixture,label,fd): self.fixture=fixture; self.label=label; self.fd=fd
+    def fileno(self): return self.fd
+    def close(self):
+        self.fixture.events.append(('stream-close',self.label))
+        error=self.fixture.stream_errors.get(self.label)
+        if error is not None: raise error
+
+class TokenProcess:
+    pid=3; returncode=0
+    def __init__(self,fixture):
+        self.fixture=fixture
+        self.stdout=TokenStream(fixture,'stdout',701)
+        self.stderr=TokenStream(fixture,'stderr',702)
+    def wait(self,**kwargs): return 0
+    def poll(self): return 0
+
+class TokenSelector:
+    def __init__(self,fixture):
+        self.fixture=fixture; fixture.selector_count+=1; self.ordinal=fixture.selector_count; self.rows={}
+    def register(self,obj,event,data=None):
+        fd=obj if type(obj) is int else obj.fileno()
+        self.rows[fd]=SimpleNamespace(fd=fd,fileobj=obj,data=data)
+    def unregister(self,obj):
+        fd=obj if type(obj) is int else obj.fileno()
+        del self.rows[fd]
+    def get_map(self): return self.rows
+    def select(self,timeout): return [(row,1) for row in list(self.rows.values())]
+    def close(self):
+        self.fixture.events.append(('selector-close',self.ordinal))
+        error=self.fixture.selector_errors.get(self.ordinal)
+        if error is not None: raise error
+
+class Fixture:
+    def __init__(self):
+        self.os=TokenOS(); self.clock=Clock(); self.events=[]; self.stream_errors={}; self.selector_errors={}
+        self.selector_count=0; self.spawn_error=None; self.disarm_error=None; self.json_calls=0
+    def popen(self,*args,**kwargs):
+        self.events.append(('launch',1))
+        if self.spawn_error is not None: raise self.spawn_error
+        return TokenProcess(self)
+    def setitimer(self,which,seconds):
+        self.events.append(('timer',seconds))
+        if seconds==0 and self.disarm_error is not None: raise self.disarm_error
+    def namespace(self):
+        def forbidden(*args,**kwargs): raise RuntimeError('unreviewed fake boundary called')
+        def loads(raw):
+            self.json_calls+=1
+            raise RuntimeError('main must fail before JSON body')
+        parser=SimpleNamespace(add_argument=lambda *a,**k:None,
+                               parse_args=lambda:SimpleNamespace(admission='/FAKE/admission',
+                                      admission_sha256=hashlib.sha256(b'abc').hexdigest(),token='token123'))
+        signals=SimpleNamespace(SIGTERM=15,SIGKILL=9,SIGALRM=14,SIGINT=2,ITIMER_REAL=0,
+                                signal=lambda *a:None,setitimer=self.setitimer,
+                                pidfd_send_signal=lambda *a:None)
+        return {'os':self.os,'time':self.clock,'hashlib':hashlib,
+                'Path':TokenPath,'HERE':TokenPath('/FAKE'),'__file__':'/FAKE/guard.py',
+                'RAW_ERROR_CAP':4096,'KNOWN_CAP':128,'RAW_CAP':786432,'TOTAL_CAP':1048576,'RESERVE':262144,
+                'MEM_CAP':1073741824,'TOOLS':{'/FAKE/tool':(3,hashlib.sha256(b'abc').hexdigest())},
+                'TARGET':'/FAKE/target','TARGET_SHA':'0'*64,'HELPER':TokenPath('/FAKE/helper'),
+                'HELPER_SHA':HELPER_SHA,'HELPER_SIZE':12983,'OPERATION_ADMITTED':True,
+                'stat':SimpleNamespace(S_ISREG=lambda mode:True),
+                'selectors':SimpleNamespace(DefaultSelector=lambda:TokenSelector(self),EVENT_READ=1),
+                'subprocess':SimpleNamespace(Popen=self.popen,DEVNULL=-3,PIPE=-1,
+                                             TimeoutExpired=type('TokenTimeout',(Exception,),{})),
+                'signal':signals,'proc_identity':lambda pid:(10+pid,1,pid,pid),
+                'argparse':SimpleNamespace(ArgumentParser=lambda:parser),'re':__import__('re'),
+                'fcntl':SimpleNamespace(flock=forbidden,LOCK_EX=1,LOCK_NB=2),
+                'json':SimpleNamespace(loads=loads,dumps=forbidden),'sys':SimpleNamespace(stderr=forbidden)}
+    def env(self,text): return definitions(text,NAMES,self.namespace())
+    def guard(self,env): return env['Guard'](TokenPath('/FAKE/out'),0,0)
+
+
+def raw_frame(error, raw_type):
+    tb=error.__traceback__
+    while tb is not None:
+        candidate=tb.tb_frame.f_locals.get('errors')
+        if isinstance(candidate,raw_type): return candidate
+        tb=tb.tb_next
+    raise RuntimeError('raw state absent from actual caller traceback')
+
+def body_failure(errors,error):
+    try: raise error
+    except BaseException as caught: errors.capture(caught)
+    return errors.first[1]
+
+def record(name,details=None): ROWS.append({'id':name,'status':'PASS_FAKE_ONLY','details':details})
+
+def main():
+    source=bound_text(SOURCE,SOURCE_SHA)
+    predecessor=bound_text(PREDECESSOR,PREDECESSOR_SHA)
+    helper=bound_text(HELPER,HELPER_SHA)
+    reference=bound_text(REFERENCE,REFERENCE_SHA)
+    old_helper=OLD_HELPER.read_text()
+    require(helper.split('def main():',1)[0]==old_helper.split('def main():',1)[0],
+            'pure locator body/data drift; prior23 controls cannot transfer')
+
+    # F01 independent original oracle, exact read_pin plus selected locator main.
+    f=Fixture(); env=f.env(source); errors=env['RawErrors'](); owner=[None,None]
+    A=ValueError('A'); B=OSError('B'); f.os.fstat_error=A; f.os.close_errors[501]=B
+    first_tb_seen=[None]
+    def observe_root(fd): first_tb_seen[0]=errors.first[1]
+    f.os.close_observer=observe_root
+    actual=capture(lambda:env['read_pin']('/FAKE/input',3,'ignored',errors,owner))
+    require(actual is A and errors.first[0] is A and errors.first[1] is not None and
+            errors.first[1] is first_tb_seen[0] and errors.errors[0] is B and
+            f.os.events.count(('close',501))==1,'F01 read identity/order')
+    oldf=Fixture(); oldf.os.fstat_error=A; oldf.os.close_errors[501]=B
+    oldenv=definitions(predecessor,('Stop','need','digest','read_pin'),oldf.namespace())
+    require(capture(lambda:oldenv['read_pin']('/FAKE/input',3,'ignored')) is B,'F01 predecessor negative lost')
+    helperf=Fixture(); helperf.os.fstat_error=A; helperf.os.close_errors[501]=B
+    helper_ns=helperf.namespace(); helper_ns.update(EXPECTED_PATH='/FAKE/input',EXPECTED_SIZE=3,
+                                                 EXPECTED_SHA='ignored',MAX_INPUT=3)
+    helperenv=definitions(helper,('Stop','need','main'),helper_ns)
+    helper_actual=capture(helperenv['main'])
+    require(helper_actual is A,'F01 actual helper main replaced A')
+    helper_tb=helper_actual.__traceback__
+    while helper_tb is not None and 'secondary' not in helper_tb.tb_frame.f_locals: helper_tb=helper_tb.tb_next
+    require(helper_tb is not None and helper_tb.tb_frame.f_locals['secondary'][0] is B,
+            'F01 helper raw secondary absent')
+    record('F01')
+
+    # F02 write progress + ENOSPC A / EIO B; old actual write still refutes it.
+    f=Fixture(); env=f.env(source); g=f.guard(env); A=OSError('ENOSPC'); B=OSError('EIO')
+    f.os.write_plan=[1,A]; f.os.close_errors[501]=B
+    require(capture(lambda:g.write('part',b'abc',raw=True)) is A and g.total==1 and g.raw==1 and
+            g.errors.errors[0] is B and f.os.events.count(('close',501))==1,'F02 write primary/progress')
+    oldf=Fixture(); oldenv=definitions(predecessor,('Stop','need','Guard'),oldf.namespace())
+    oldg=oldenv['Guard'](TokenPath('/FAKE/out'),0,0); oldf.os.write_plan=[1,A]; oldf.os.close_errors[501]=B
+    require(capture(lambda:oldg.write('part',b'abc',raw=True)) is B,'F02 predecessor negative lost')
+    record('F02')
+
+    # F03/F04 complete actual cleanup; raw B,C identities, no formatted oracle.
+    for prior in (True,False):
+        f=Fixture(); env=f.env(source); g=f.guard(env); p=TokenProcess(f)
+        g.child=p; g.process_owner[:]=['KNOWN',p]
+        g.pipe_owners[0][:]=['KNOWN',p.stdout]; g.pipe_owners[1][:]=['KNOWN',p.stderr]
+        A=ValueError('A'); B=OSError('B'); C=OSError('C'); f.stream_errors={'stdout':B,'stderr':C}
+        first_tb=body_failure(g.errors,A) if prior else None
+        actual=capture(g.cleanup)
+        require(actual is (A if prior else B),'F03/F04 same outward primary')
+        expected=[B,C] if prior else [C]
+        require([g.errors.errors[i] for i in range(g.errors.count)]==expected,
+                'F03/F04 ordered raw secondaries')
+        require(f.events.count(('stream-close','stdout'))==1 and f.events.count(('stream-close','stderr'))==1,
+                'F03/F04 independent closes')
+        if prior: require(g.errors.first[1] is first_tb,'F03 first traceback root replaced')
+        capture(g.cleanup)
+        require(f.events.count(('stream-close','stdout'))==1,'F03/F04 blind retry')
+        require(capture(lambda:g.run('next',['/FAKE/tool'],1,(3,3))) is (A if prior else B)
+                and not any(row[0]=='launch' for row in f.events),'F03/F04 later launch')
+        record('F03' if prior else 'F04')
+
+    # F05 complete run: selector B must not skip independent toolfd C.
+    f=Fixture(); env=f.env(source); g=f.guard(env); B=OSError('selector B'); C=OSError('tool C')
+    f.selector_errors[1]=B; f.os.close_errors[501]=C
+    actual=capture(lambda:g.run('one',['/FAKE/tool'],1,(3,3)))
+    require(actual is B and g.errors.errors[0] is C and f.os.events.count(('close',501))==1,
+            'F05 independent selector/tool close')
+    require(not g.steps[0]['capture_complete'],'F05 capture incorrectly successful')
+    record('F05')
+
+    # F06 actual register: returned pidfd rooted before failing observation.
+    f=Fixture(); env=f.env(source); g=f.guard(env); A=PermissionError('post-return A')
+    def denied(pid): raise A
+    env['proc_identity']=denied
+    require(capture(lambda:g.register(3,13)) is A and g.pidfd_owners[0][0]=='RETIRED' and
+            f.os.events.count(('close',1503))==1,'F06 returned-owner gap')
+    record('F06')
+
+    # F07 complete actual run with ambiguous Popen pre-return failure.
+    f=Fixture(); env=f.env(source); g=f.guard(env); A=OSError('uncertain spawn'); f.spawn_error=A
+    require(capture(lambda:g.run('one',['/FAKE/tool'],1,(3,3))) is A,'F07 outward identity')
+    require(g.process_owner[0]=='PENDING' and g.process_owner[1] is None and g.errors.quarantined,
+            'F07 pending owner erased')
+    require(not any(row[0]=='write' for row in f.os.events) and f.os.events.count(('close',501))==1,
+            'F07 new I/O or missing known close')
+    require(capture(lambda:g.run('two',['/FAKE/tool'],1,(3,3))) is A and
+            len([row for row in f.events if row[0]=='launch'])==1,'F07 subsequent launch')
+    record('F07')
+
+    # F08 numeric owner removed before ambiguous close; no retry.
+    f=Fixture(); env=f.env(source); errors=env['RawErrors'](); slot=['KNOWN',901]; B=OSError('ambiguous')
+    f.os.close_errors[901]=B
+    def retired(fd): require(slot[0]=='RETIRED' and slot[1] is None,'F08 numeric owner still live')
+    f.os.close_observer=retired
+    env['close_slot'](slot,errors); env['close_slot'](slot,errors)
+    require(errors.first[0] is B and errors.quarantined and f.os.events==[('close',901)],'F08 retry')
+    record('F08')
+
+    # F09 actual selected main over exact read_pin; str/repr poison never called.
+    f=Fixture(); env=f.env(source); A=Poison(); f.os.fstat_error=A; Poison.calls=0
+    actual=capture(env['main']); errors=raw_frame(actual,env['RawErrors'])
+    require(actual is A and errors.first[0] is A and errors.first[1] is not None and
+            Poison.calls==0 and f.json_calls==0,'F09 raw main/formatting boundary')
+    record('F09')
+
+    # F10 cleanup-only fault on successful complete actual run, no next payload.
+    f=Fixture(); env=f.env(source); g=f.guard(env); B=OSError('pipe close'); f.stream_errors['stdout']=B
+    require(capture(lambda:g.run('one',['/FAKE/tool'],1,(3,3))) is B and
+            not g.steps[0]['capture_complete'],'F10 cleanup-only success')
+    require(capture(lambda:g.run('two',['/FAKE/tool'],1,(3,3))) is B and
+            len([row for row in f.events if row[0]=='launch'])==1 and
+            len([row for row in f.os.events if row[0]=='open'])==1,'F10 next launch/publication')
+    record('F10')
+
+    # F11 source-fixed known-owner bound and conservative independent-site count.
+    f=Fixture(); env=f.env(source); g=f.guard(env); errors=g.errors
+    require(len(g.pidfd_owners)==128 and len(errors.errors)==4096,'F11 preallocated capacity')
+    arrays=(errors.first,errors.errors,errors.tracebacks)
+    first_tb=body_failure(errors,ValueError('A')); B=OSError('B')
+    maximum=2*128+2*128+2+1+1+128+2+2+6+20
+    require(maximum<4096,'F11 finite close-site bound exceeds cells')
+    for unused in range(maximum): errors.capture(B)
+    require(errors.first is arrays[0] and errors.errors is arrays[1] and errors.tracebacks is arrays[2]
+            and errors.first[1] is first_tb and errors.count==maximum,'F11 raw storage changed')
+    record('F11',{'conditional_secondary_site_bound':maximum,'capacity':4096,
+                  'no_universal_allocation_claim':True})
+
+    # F12 exact6346 helper RED ledger/snapshot/recording counterexamples.
+    red=[]
+    for fault in ('ledger','snapshot','record'):
+        attempts=[]; A=ValueError('A'); allocation=MemoryError('retained stronger witness')
+        B=OSError('close B')
+        def close(fd): attempts.append(fd); raise B
+        env=definitions(reference,('_RawG12Errors','_close_known_descriptors','_finally_close_known'),
+                        {'os':SimpleNamespace(close=close),'sys':sys})
+        def bad(*args): raise allocation
+        if fault=='ledger': env['_RawG12Errors']=bad
+        elif fault=='snapshot': env['tuple']=bad
+        else: env['_RawG12Errors']=type('BadRecorder',(),{'append':lambda self,value:bad()})
+        def witness():
+            try: raise A
+            finally: env['_finally_close_known']([901,902,903],[])
+        actual=capture(witness)
+        require(actual is allocation and actual is not A and attempts==([903] if fault=='record' else []),
+                'F12 retained RED counterexample changed')
+        red.append({'fault':fault,'status':'RED_RETAINED_STRONGER_CONTRACT','close_attempts':attempts})
+    record('F12',red)
+
+    # F13 unfaulted actual read/write/run; no spurious quarantine or credit.
+    f=Fixture(); env=f.env(source); errors=env['RawErrors'](); owner=[None,None]
+    result=env['read_pin']('/FAKE/input',3,hashlib.sha256(b'abc').hexdigest(),errors,owner)
+    require(result[0]==501 and result[1]==b'abc' and owner[0]=='KNOWN','F13 read/owner transfer')
+    env['close_slot'](owner,errors)
+    g=f.guard(env); g.write('raw',b'abc',raw=True)
+    require(g.raw==3 and g.total==3 and g.errors.first[0] is None and not g.errors.quarantined,'F13 write')
+    f=Fixture(); env=f.env(source); g=f.guard(env)
+    require(g.run('one',['/FAKE/tool'],1,(3,3))==b'' and g.steps[0]['capture_complete'] and
+            not g.errors.quarantined,'F13 actual run success baseline')
+    record('F13')
+
+    # F14 outer actual main itself faults after nested A is protected. No JSON.
+    f=Fixture(); env=f.env(source); A=ValueError('A'); B=OSError('close B'); C=OSError('outer timer C')
+    f.os.fstat_error=A; f.os.close_errors[501]=B; f.disarm_error=C
+    actual=capture(env['main']); errors=raw_frame(actual,env['RawErrors'])
+    require(actual is A and errors.first[0] is A and errors.errors[0] is B and errors.errors[1] is C
+            and f.json_calls==0 and len([row for row in f.os.events if row[0]=='open'])==1,
+            'F14 outer finalization replaced A or continued publication')
+    record('F14')
+    require(len(ROWS)==14 and len({row['id'] for row in ROWS})==14,'fourteen independent cases changed')
+    print(json.dumps({'status':'PASS_BOUNDED_FAKE_ONLY','cases':ROWS,'source_sha256':SOURCE_SHA,
+                      'helper_sha256':HELPER_SHA,'actual_operation':False,'original_credit':0,
+                      'full_C05':False,'full_V03':False,'costs':'OPEN_NOT_ZERO'},sort_keys=True))
+
+if __name__=='__main__': main()
