@@ -1,0 +1,5 @@
+Apache-2.0. Prepared for Chris R / Clear1nsight with substantial OpenAI Codex / Sol Max and ChatGPT Pro assistance.
+
+Retain unpaidmoon / Cursor Grok PR #6339 at 608ad23adc6c01264c8195daf7f18e29c17464a7; Clear1nsight PR #6346 abff67b31fa781e950c82d95eccb6f168950943c, PR #6347 59140439e7f791876159e2f3838f1dead2e54953, PR #6351 1e9db2d08be4551ffe0bcfc573574851530eb4ca; PR #6434 edc2820ba023b804ef1351a88e2fe31bf8d489dd and PR #6476 44749c3a6ddc8cde48c5aa83073f6794e3546b00. Retain Douglas R. Colkitt and all inherited lineage, including PR6321/6029/5864 and their source notices/AI disclosures. Predecessor authorship or approval of this successor is not claimed.
+
+The two original repair-v2 sources and reference-g12-parent-v3.py.txt are INERT REFERENCE SOURCE. They may be read as text by the exact separately approved fake AST harness. They must not be imported or invoked as guard/helper CLIs. The dated publication adapter changes notices and dependent byte pins only; see adapter/ADAPTER.diff and ADAPTER.json.
