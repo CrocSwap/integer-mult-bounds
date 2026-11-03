@@ -28,8 +28,30 @@ SHA256, a false Git blob and an omitted archive member. The candidate receipt
 contains 13 endpoint and invoice rejection controls, in addition to the
 unchanged source controls and analytic rejection checks.
 
-Committed-byte checks, export and read-only Git-free replay are pending at
-this draft stage. Hosted CI and independent scientific review are also pending.
+Scientific commit: `6f779707dfddcece2e964f627cbd0df6d11bf41c`. Its parent is
+canonical main `7c49fe32c55de02c2c873655c804b16e4c3fef0a`. All 17 committed
+package files pass byte and executable-mode comparison. The official export
+passes integrity and declared-input checks:
+
+```sh
+python3.12 -B scripts/check_research_commit.py --package research/retirement-rebalanced-query-tree --check-modes
+python3.12 -B scripts/export_research_package.py export --package research/retirement-rebalanced-query-tree --ref 6f779707dfddcece2e964f627cbd0df6d11bf41c --output /tmp/rebalanced-tree.tar
+python3.12 -B scripts/export_research_package.py check /tmp/rebalanced-tree.tar --check-inputs
+```
+
+Both direct normal and optimized verifiers passed from that export with
+all files read-only, no Git metadata and an empty PATH. The interpreter was
+invoked by its absolute path from outside the export. All 18 files, including
+the export manifest, kept their hashes and read-only modes after both runs.
+This record was then updated; the scientific files were not changed.
+
+Four source authentication controls also passed on CPython 3.12.13. The
+original 23 outer source files were checked against the exact PR6545 Git
+objects before their archive was made. Nested native and replay sources
+authenticate through their unchanged source manifests on every run.
+
+At this local validation freeze, hosted CI and independent scientific review
+are pending. The PR records the later hosted status separately.
 
 The checkout is shallow. The optional full-history preflight is not claimed.
 The selected record has SHA256
