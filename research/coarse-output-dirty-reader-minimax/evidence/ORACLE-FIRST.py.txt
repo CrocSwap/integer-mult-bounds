@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Independent Fraction oracle for the fixed coarse-output four-call ABI.
+
+Ali Romman PR1135 supplies the four-call/residue predecessor; Nick Petalas
+PR6666 supplies the exact-dyadic comparison. Neither predecessor program is
+imported or executed. Written with substantial OpenAI Codex assistance.
+Apache-2.0. This finite oracle is not a proof-kernel or supplier admission.
+"""
+
+import argparse
+from collections import Counter
+from fractions import Fraction
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+
+ROOT = Path(__file__).resolve().parent
+PIN_SHA = "96d9bdd4983b6c0a71b86e4dae34f594988679872f29901bdf3469dcfd80b661"
+CASES_SHA = "41e66cd094ae56a5148b81cdce8218651e5e04a42aa1e9caff4c4bce71c21b90"
+BITS = list(range(9))
+BOUNDS = [0, 1, 2, 3, 7, 16, 31]
+OFFSETS = list(range(-3, 4))
+Y0 = -2
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def integer(value, name):
+    require(type(value) is int, name + " must be an integer, not bool")
+    return value
+
+
+def load_inputs():
+    raw = (ROOT / "SOURCE-PINS.json").read_bytes()
+    require(digest(raw) == PIN_SHA, "source manifest changed")
+    manifest = json.loads(raw)
+    require(type(manifest) is dict and manifest.get("schema_version") == 1,
+            "invalid source manifest")
+    require(len(manifest["files"]) == 4, "four inert sources required")
+    expected = {"inputs/1135-PROOF.md", "inputs/1135-README.md",
+                "inputs/6666-PROOF.md", "inputs/6666-README.md"}
+    require({f["local_path"] for f in manifest["files"]} == expected,
+            "source path set changed")
+    for entry in manifest["files"]:
+        data = (ROOT / entry["local_path"]).read_bytes()
+        require(len(data) == entry["bytes"], "source byte count changed")
+        require(digest(data) == entry["sha256"], "source digest changed")
+        blob = b"blob " + str(len(data)).encode() + b"\0" + data
+        require(hashlib.sha1(blob).hexdigest() == entry["git_blob"],
+                "source Git blob changed")
+    case_raw = (ROOT / "CASES.json").read_bytes()
+    require(digest(case_raw) == CASES_SHA, "case descriptor changed")
+    cases = json.loads(case_raw)
+    require(cases["helper_fractional_bits"] == BITS, "bit domain changed")
+    require(cases["source_bounds"] == BOUNDS, "bound domain changed")
+    require(cases["lift_offsets"] == OFFSETS, "lift domain changed")
+    require(integer(cases["initial_destination"], "initial destination") == Y0,
+            "dirty destination changed")
+    return manifest
+
+
+def nearest(value):
+    require(type(value) is Fraction, "Fraction rounder input required")
+    quotient, remainder = divmod(value.numerator, value.denominator)
+    return quotient + int(2 * remainder >= value.denominator)
+
+
+def observe(helper, modulus):
+    return nearest(Fraction(3 * helper, modulus))
+
+
+def execute(x, helper, destination, coefficient, modulus):
+    state = [x, helper, destination]
+    state[1] += coefficient * state[0]
+    state[2] += observe(state[1], modulus)
+    state[1] -= coefficient * state[0]
+    state[2] -= observe(state[1], modulus)
+    return state
+
+
+def reverse(state, coefficient, modulus):
+    result = list(state)
+    result[2] += observe(result[1], modulus)
+    result[1] += coefficient * result[0]
+    result[2] -= observe(result[1], modulus)
+    result[1] -= coefficient * result[0]
+    return result
+
+
+def row_check(bits, bound, coefficient):
+    modulus = 2 ** bits
+    histogram = Counter()
+    witnesses = {}
+    visits = 0
+    for helper in range(modulus):
+        for x in range(-bound, bound + 1):
+            start = [x, helper, Y0]
+            final = execute(*start, coefficient, modulus)
+            require(final[:2] == start[:2], "source/helper restoration failed")
+            require(reverse(final, coefficient, modulus) == start,
+                    "literal reverse word failed")
+            error = final[2] - Y0 - x
+            histogram[error] += 1
+            if error not in witnesses:
+                witnesses[error] = [helper, x]
+            visits += 1
+    low, high = min(histogram), max(histogram)
+    maximum = max(abs(low), abs(high))
+    expected = (abs(3 * coefficient - modulus) * bound + modulus - 1) // modulus
+    require(maximum == expected, "mixed-grid bound disagrees with execution")
+    return {"b": bits, "M": modulus, "B": bound, "a": coefficient,
+            "cases": visits, "error_histogram": sorted(map(list, histogram.items())),
+            "min_error": low, "max_error": high, "max_abs_error": maximum,
+            "min_witness": witnesses[low], "max_witness": witnesses[high],
+            "bound": expected}
+
+
+def minimum_check(bits, bound, rows):
+    modulus = 2 ** bits
+    value = min(row["max_abs_error"] for row in rows)
+    expected = (bound + modulus - 1) // modulus
+    nearest_a = (modulus + 1) // 3
+    nearest_row = next(row for row in rows if row["a"] == nearest_a)
+    require(value == expected, "finite-window minimum mismatch")
+    require(nearest_row["max_abs_error"] == value, "nearest lift not attaining")
+    return {"b": bits, "M": modulus, "B": bound, "window_min_error": value,
+            "theorem_min_error": expected, "nearest_a": nearest_a,
+            "nearest_error": nearest_row["max_abs_error"],
+            "minimizing_a_list_in_window": [row["a"] for row in rows
+                                            if row["max_abs_error"] == value]}
+
+
+def negative_period_probes():
+    checks = 0
+    destination_checks = 0
+    for bits in BITS:
+        modulus = 2 ** bits
+        coefficient = (modulus + 1) // 3
+        for phase in range(modulus):
+            for period in [-7, -2, 0, 3]:
+                helper = phase + period * modulus
+                for x in [-31, -1, 0, 1, 31]:
+                    reference = execute(x, phase, Y0, coefficient, modulus)
+                    actual = execute(x, helper, Y0, coefficient, modulus)
+                    require(actual[2] == reference[2], "helper periodicity failed")
+                    require(actual[:2] == [x, helper], "signed helper not restored")
+                    checks += 1
+                    for destination in [-10**60, 0, 10**60]:
+                        moved = execute(x, helper, destination, coefficient, modulus)
+                        require(moved[2] - destination == actual[2] - Y0,
+                                "destination covariance failed")
+                        require(reverse(moved, coefficient, modulus) ==
+                                [x, helper, destination], "large dirty inverse failed")
+                        destination_checks += 1
+    return {"helper_period_cases": checks,
+            "destination_translation_cases": destination_checks,
+            "period_multiples": [-7, -2, 0, 3],
+            "source_inputs": [-31, -1, 0, 1, 31],
+            "dirty_destinations": [-10**60, 0, 10**60]}
+
+
+def rejects_integer_bool():
+    try:
+        integer(True, "control")
+    except ValueError:
+        return True
+    return False
+
+
+def semantic_controls():
+    controls = {}
+    half = Fraction(1, 2)
+    controls["negative_round_is_not_inverse"] = nearest(-half) != -nearest(half)
+    controls["ties_plus_infinity_not_even"] = nearest(half) != round(half)
+    controls["truncate_is_not_nearest"] = int(Fraction(3, 2)) != nearest(Fraction(3, 2))
+    start = [1, 1, 5]
+    one = [start[0], start[1], start[2] + observe(start[1], 2)]
+    one[2] += nearest(Fraction(-3 * one[1], 2))
+    controls["independently_rounded_inverse_fails"] = one != start
+    omitted = [1, 0, Y0]
+    omitted[1] += 1
+    omitted[2] += observe(omitted[1], 2)
+    omitted[2] -= observe(omitted[1], 2)
+    controls["omitted_helper_cleanup_fails"] = omitted[1] != 0
+    fine_error = abs(Fraction(3, 2) - 1)
+    coarse_error = abs(execute(1, 0, Y0, 1, 2)[2] - Y0 - 1)
+    controls["co_refined_output_is_different"] = fine_error != coarse_error
+    controls["wrong_lift_changes_response"] = execute(1, 0, Y0, 2, 2) != execute(1, 0, Y0, 1, 2)
+    controls["b_zero_reader_is_exact_integer"] = observe(-7, 1) == -21
+    controls["boolean_integer_rejected"] = rejects_integer_bool()
+    require(all(type(value) is bool and value for value in controls.values()),
+            "semantic discriminator did not distinguish")
+    return controls
+
+
+def generate():
+    load_inputs()
+    rows = []
+    minima = []
+    for bits in BITS:
+        modulus = 2 ** bits
+        for bound in BOUNDS:
+            group = [row_check(bits, bound, modulus // 3 + offset)
+                     for offset in OFFSETS]
+            rows.extend(group)
+            minima.append(minimum_check(bits, bound, group))
+    visits = sum(row["cases"] for row in rows)
+    require(len(rows) == 441 and len(minima) == 63 and visits == 454279,
+            "finite domain shape changed")
+    return {"schema_version": 1, "source_manifest_sha256": PIN_SHA,
+            "cases_sha256": CASES_SHA, "rows": rows, "minima": minima,
+            "negative_period_checks": negative_period_probes(),
+            "controls": semantic_controls(),
+            "counts": {"rows": len(rows), "minima": len(minima),
+                       "literal_forward_and_reverse_cases": visits},
+            "code_sha256": digest(Path(__file__).read_bytes())}
+
+
+def compare_primary(receipt, path):
+    primary = json.loads(path.read_text())
+    require(type(primary) is dict, "primary receipt must be an object")
+    for key in ["source_manifest_sha256", "rows", "minima"]:
+        require(key in primary, "missing primary field: " + key)
+        require(canonical(primary[key]) == canonical(receipt[key]),
+                "independent primary data mismatch: " + key)
+    return {"primary_data_only": str(path), "rows": len(receipt["rows"]),
+            "minima": len(receipt["minima"]),
+            "complete_signed_histograms_and_extrema_witnesses": True}
+
+
+def arguments():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--write-first", type=Path,
+                        help="explicit first receipt destination; must not exist")
+    parser.add_argument("--check-primary", type=Path,
+                        help="data-only comparison, allowed after blind first seals")
+    return parser.parse_args()
+
+
+def main():
+    args = arguments()
+    require(not (args.write_first and args.check_primary),
+            "first receipt must be blind to primary data")
+    receipt = generate()
+    if args.write_first:
+        with args.write_first.open("x") as output:
+            json.dump(receipt, output, indent=2, sort_keys=True)
+            output.write("\n")
+    else:
+        frozen = json.loads((ROOT / "ORACLE.json").read_text())
+        require(canonical(frozen) == canonical(receipt), "frozen oracle receipt mismatch")
+    if args.check_primary:
+        print(json.dumps(compare_primary(receipt, args.check_primary), sort_keys=True))
+    print("PASS_COARSE_OUTPUT_DIRTY_READER_ORACLE rows=441 minima=63 visits=454279")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, OSError, KeyError, TypeError, StopIteration) as error:
+        print("FAIL_COARSE_OUTPUT_DIRTY_READER_ORACLE: " + str(error), file=sys.stderr)
+        sys.exit(1)
