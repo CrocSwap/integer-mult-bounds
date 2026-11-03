@@ -33,6 +33,8 @@ def unique_json_keys(pairs):
 
 def bundle_relative_path(name):
     canonical_relative_path(name)
+    # PAX headers can preserve NULs that no filesystem path can represent.
+    require('\x00' not in name, 'NUL in export path: ' + repr(name))
     # A POSIX-relative name such as C:/file or C:file can discard the extraction
     # directory on Windows. Apply the bundle policy on every producer/check host.
     require(not ntpath.splitdrive(name)[0], 'drive-qualified export path: ' + name)
