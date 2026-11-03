@@ -72,9 +72,12 @@ are not the receipt archived by PR #6551. Relative to that unmodified receipt
 (sha256 `13639e4770964ded237b79d72ad517448de269b34d724beaa70757dbe0be6fe2`),
 the PR #6621 archive already contains the same native merge delta as the
 public candidate. The compare gate therefore still sees only the retirement
-delta. The rewritten raw-root interval lies strictly above the unmodified
-interval and strictly above the kappa string the file still prints
-(`0.0032960328802045143` against `0.0032939463709531903`).
+delta. The rewritten raw-root lower endpoint
+`164801644010225711532641/50000000000000000000000000`
+lies strictly above the unmodified upper endpoint
+`82348659273829759207423/25000000000000000000000000`
+and strictly above the kappa string the file still prints,
+`164697/50000000`.
 
 PR #6551's own public histogram really does differ from its own archived
 predecessor by the retirement delta. The same numerical gate on PR #6621 does
