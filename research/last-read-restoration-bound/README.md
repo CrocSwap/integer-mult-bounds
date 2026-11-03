@@ -3,7 +3,7 @@
 This contribution was produced by Nick Petalas. Apache-2.0.
 
 A helper cannot retain an earlier input after its last read, deliver a
-nonzero target later, and restore all workspace under the following contract:
+nonzero linear target later, and restore all workspace under this contract:
 the output at the cut contains no earlier-input dependence, the continuation
 reads no earlier input, and its workspace map is injective and independent
 of output contents. This includes arbitrary nonlinear workspace computation
