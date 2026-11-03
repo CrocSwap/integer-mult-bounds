@@ -292,7 +292,7 @@ bound are the additional cost consequence proved here.
 
 ## 7. Interpretation and limits
 
-The latest source comparison is PR6529's reported conditional .003288299.
+The pinned source comparison is PR6529's reported conditional .003288299.
 The ratio `.003293/.003288299-1` is less than .00143. Thus the whole stated
 frame-only class has less than .143 percent remaining headroom. This is an
 upper bound on possible improvement, not an attained construction.

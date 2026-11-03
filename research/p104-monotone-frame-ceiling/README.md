@@ -12,7 +12,7 @@ At the 0.003293 ceiling, different leaves can also use different source words.
 A second result applies to **any root in the stated fresh-stage billing
 model**, not only this fixed root. Its favorable raw-budget search needs at
 most **22 leaves per binary child** for 0.003293<=kappa<=0.0034, or **21 leaves** at
-the current one-percent target 0.00332118199. The proof gives a bound on each
+the pinned PR6529 one-percent target 0.00332118199. The proof gives a bound on each
 child increment, with no bound on the number of root fields or full sites.
 This converts an unbounded child-size search into a finite one. It does not
 provide a new root or a positive invoice. See `PROOF.md`, Section 6.
@@ -95,4 +95,7 @@ The canonical investigation is [Discussion5593, comment19362959](https://github.
 Main, priority 8 and selected6030 were checked before work and at each pivot.
 The general coframe, period-six caller, source-word and intermediate-retirement
 claims were kept separate. The overlap snapshot cannot cover unpublished work.
-The user's requested large complete kappa improvement remains unmet.
+The newer [PR6545](https://github.com/CrocSwap/integer-mult-bounds/pull/6545)
+reports 0.00329394 by changing the caller boundary. It is outside the fixed-root
+ceiling here. Applicability of Section 6 to that new caller needs a separate
+invoice check. The user's requested large complete kappa improvement remains unmet.
