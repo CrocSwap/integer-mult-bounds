@@ -18,7 +18,13 @@ engines, the exact dual pairs and basis maps, two rational price engines,
 the compiler and all outer predicates. No source receipt is used in place
 of these checks. The source result must also match its frozen complete receipt.
 
-Committed-byte checks, isolated export checks and hosted CI are pending.
+The committed-byte and file-mode checks passed. The official package export
+passed its integrity and declared-input checks. Both normal and optimized
+replays passed from a read-only export without Git or executables on PATH.
+All 39 retained source files match their pinned Git objects. The selected
+result file has SHA256
+`9b8d0eea95b3bf0dfcb7938a732a6439b87a2685dec2a5ab9e525b3b34debbfa`.
+Hosted CI is pending.
 The optional full-history preflight is not claimed in this shallow checkout.
 No independent scientific review is claimed. The five source framework
 assumptions remain. The selected frontier is unchanged.
