@@ -27,9 +27,16 @@ order of operations; it is not an actual caller counterexample.
 
 Each completed ADD/SCALE has one scalar-class defect; LOCAL has two native
 output defects; QUERY has one; each updated idle output has one. Normalizer
-LAMBDA uses four half-field operations. Its error columns have squared
+LAMBDA has the grouped completed-defect premise at most (9/2)e_s in the
+abstract all-Q propagation. For a translation-pair-compatible normalizer,
+where Q² is the pair swap, the literal four half-field operations justify
+that premise. Their error columns have squared
 Euclidean norms 1, 2, 1, 1 for either sign, giving (3+sqrt2)e_s < (9/2)e_s. These
-are independent error sites, not a free exact normalizer. Exact SWAP/Q_POWER
+are independent error sites, not a free exact normalizer. Arbitrary Q^4=I
+alone does not guarantee this equal-half representation: H=C,Q=i already
+cannot have a nonzero equal-half split. The abstract theorem therefore
+assumes the grouped defect bound, rather than claiming an all-Q four-operation
+realization. Exact SWAP/Q_POWER
 have no defect in this contract.
 
 For zero-based event t, final defect contribution is the suffix **after** that
@@ -48,7 +55,10 @@ check the same output, yielding 307. Every injected defect has magnitude at
 most1; all normalizer defects are0. Scaling by e gives307e>256e. Together these
 bounds show g9 suffices and g8 fails for the stated abstract contract. They do
 not assert943/2 is the exact real optimum or that actual rounding realizes
-those signs.
+those signs. If a pair-compatible model is required, the scalar lower witness
+embeds in the constant Q=1 sector of a four-cycle on C^4, with all D_j=I and
+zero normalizer errors. This is a linear embedding of the existing witness,
+not a new numerical experiment.
 
 ## Intermediate and physical obligations
 

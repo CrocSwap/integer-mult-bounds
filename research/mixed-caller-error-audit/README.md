@@ -62,9 +62,12 @@ The oracle separately checks C4 reduction and rejects a corrupted source byte.
 Each field is an arbitrary complex Hilbert space. Q and the stages must be
 pairwise commuting unitaries, Q^4=I. Errors are bounded in the field 2-norm,
 relative to the exact operation on the actual approximate input. Errors can
-be adaptive and need not cancel. SWAP and Q_POWER are exact. Four ordinary
-normalizer defects are charged explicitly. These are premises, not validated
-properties of an actual native backend.
+be adaptive and need not cancel. SWAP and Q_POWER are exact. For a normalizer compatible with translation pairs
+(Q² acts as the pair swap), the literal four-operation calculation gives a completed defect at
+most (9/2)e_s. The abstract propagation for arbitrary fourth-order Q assumes
+that completed-normalizer bound explicitly; Q^4=I alone does not supply a
+four-operation pair realization. These are premises, not validated properties
+of an actual native backend.
 
 No coordinate count, actual rounding implementation, native interior range,
 finite tape layout, precision price, owned erasure, accelerated supplier or

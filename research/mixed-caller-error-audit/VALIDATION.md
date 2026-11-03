@@ -45,3 +45,12 @@ hosted CI. These execution checks do not prove independent human acceptance,
 formal-kernel correctness, physical rounding or supplier admission. The
 selected baseline is source-binding orientation only; the selected supplier
 was not replayed. All five framework assumptions remain.
+
+Final proof-scope review separated two premises: the literal four-operation
+normalizer derivation requires translation-pair compatibility (Q² is the
+pair swap); abstract propagation for arbitrary Q^4=I instead assumes a
+completed-normalizer defect at most(9/2)e_s. Q^4=I alone does not construct
+the pair representation. This clarification changes no source input, code,
+receipt, polynomial recurrence or numerical constant. The scalar lower
+witness can be embedded in a four-cycle constant sector when a compatible
+pair model is required. This is a conditional audit, not an all-Q backend.
