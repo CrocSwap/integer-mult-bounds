@@ -1,0 +1,123 @@
+"""Planned pre-activation negatives; do not run before parent native/control gate.
+
+The late audit case must be the final native/scientific control in its process:
+its disabled audit hook remains installed. It deliberately violates the admitted
+bootstrap interval and must not be interpreted as a supported production case.
+"""
+import builtins
+import sys
+from types import FunctionType
+
+
+def _need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _expect_runtime(operation):
+    try:
+        operation()
+    except RuntimeError as error:
+        return str(error)
+    raise RuntimeError('Expected bootstrap RuntimeError rejection')
+
+
+def run_preload_controls(root, capability, api, extension_path, extension_sha256, provider_sha256):
+    _need(type(api) is tuple and len(api) == 4 and all(type(item) is FunctionType for item in api),
+          'Source-bound sealed bootstrap API differs')
+    provider = api[1](capability, provider_sha256)
+    records = []
+    def fail_if_called(*args, **kwargs):
+        raise RuntimeError('Mutated dependency must never be executed')
+    def mutation(case, owner, name, replacement, operation):
+        prior = getattr(owner, name)
+        before = api[3](capability)
+        setattr(owner, name, replacement)
+        try:
+            message = _expect_runtime(operation)
+        finally:
+            setattr(owner, name, prior)
+        after = api[3](capability)
+        _need(after['native_creations'] == before['native_creations'] and
+              after['activation_attempts'] == before['activation_attempts'],
+              case + ': corrupted pre-load input reached native lifecycle')
+        _need('Mutated dependency must never be executed' not in message,
+              case + ': rejection came from executing the corrupt dependency')
+        records.append({'case': case, 'native_creations': 0, 'activation_attempts': 0,
+                        'rejection': message})
+    def load():
+        return api[2](capability, extension_path, extension_sha256)
+    mutations = (
+        ('B01-root-hash-alias', root, '_SHA256', fail_if_called),
+        ('B01-native-hash-owner', root._hashlib, 'openssl_sha256', fail_if_called),
+        ('B01-root-read-alias', root, '_READ', fail_if_called),
+        ('B01-native-read-owner', root.posix, 'read', fail_if_called),
+        ('B01-provider-hash-alias', provider, '_SHA256', fail_if_called),
+        ('B01-provider-hash-code', provider._hash_regular, '__code__', fail_if_called.__code__),
+        ('B01-provider-hash-defaults', provider._hash_regular, '__defaults__', ('changed',)),
+        ('B01-provider-hash-kwdefaults', provider._hash_regular, '__kwdefaults__', {'unexpected': []}),
+        ('B01-provider-loader-binding', provider, '_ROOT_CREATE', fail_if_called),
+        ('B01-native-create-alias', root, '_CREATE_DYNAMIC', fail_if_called),
+        ('B01-native-create-owner', root._imp, 'create_dynamic', fail_if_called),
+        ('B01-native-exec-owner', root._imp, 'exec_dynamic', fail_if_called),
+        ('B01-spec-constructor-code', root._NativeSpec.__init__, '__code__', fail_if_called.__code__),
+        ('B01-spec-slot-descriptor', root._NativeSpec, 'name', property(lambda self: 'spoof')),
+        ('B01-effective-builtin-len', builtins, 'len', fail_if_called),
+        ('B01-effective-builtin-min', builtins, 'min', fail_if_called),
+        ('B01-checker-code', root._function_fresh, '__code__', fail_if_called.__code__),
+        ('B01-late-module-loader-rebind', root, 'load_probe', fail_if_called),
+    )
+    for case, owner, name, replacement in mutations:
+        mutation(case, owner, name, replacement, load)
+    mutation('B01-late-validator-code', root.validate_capability, '__code__', fail_if_called.__code__,
+             lambda: api[1](capability, provider_sha256))
+    before = api[3](capability)
+    fabricated = object.__new__(root.BootstrapCapability)
+    rejection = _expect_runtime(lambda: api[1](fabricated, provider_sha256))
+    after = api[3](capability)
+    _need(before == after, 'Fabricated capability changed lifecycle counters')
+    records.append({'case': 'B01-unregistered-capability', 'native_creations': 0,
+                    'activation_attempts': 0, 'rejection': rejection})
+    rejection = _expect_runtime(lambda: api[1](capability, '0' * 64))
+    _need(api[3](capability) == after, 'Wrong provider pin changed lifecycle counters')
+    records.append({'case': 'B01-wrong-provider-pin', 'native_creations': 0,
+                    'activation_attempts': 0, 'rejection': rejection})
+    return {'schema': 'h25-bootstrap-preload-controls-v2', 'records': records,
+            'expected_records': 21, 'scientific_calls': 0}
+
+
+def run_late_control_last(root, capability, api, extension_path, extension_sha256, provider_sha256):
+    """Last control in process; no subsequent scientific/native qualification."""
+    provider = api[1](capability, provider_sha256)
+    _need(not provider._OWNERS, 'Late bootstrap control requires no live provider bindings')
+    original_hash = root._hashlib.openssl_sha256
+    before = api[3](capability)
+    state = {'armed': True, 'events': 0}
+    def fail_if_called(*args, **kwargs):
+        raise RuntimeError('Mutated post-create hash must never execute')
+    def audit(event, arguments):
+        if state['armed'] and event == 'import' and arguments[0] == '_h25_dict_probe':
+            state['armed'] = False
+            state['events'] += 1
+            root._hashlib.openssl_sha256 = fail_if_called
+    sys.addaudithook(audit)
+    try:
+        rejection = _expect_runtime(lambda: api[2](capability, extension_path, extension_sha256))
+    finally:
+        state['armed'] = False
+        root._hashlib.openssl_sha256 = original_hash
+    after = api[3](capability)
+    delta = {name: after[name] - before[name] for name in before}
+    _need(state['events'] == 1 and delta['native_creations'] == 1 and
+          delta['native_execs'] == 0 and delta['activation_attempts'] == 0 and
+          delta['successful_bindings'] == 0 and delta['deactivation_attempts'] == 1,
+          'Late preactivation corruption lifecycle differs')
+    _need(delta['cleanup_failures'] in (0, 1) and not provider._OWNERS and
+          id(capability) not in root._LOADS, 'Late corruption did not release lifecycle ownership')
+    _need('Mutated post-create hash must never execute' not in rejection,
+          'Late rejection consumed corrupted hash primitive')
+    return {'schema': 'h25-bootstrap-late-control-v2', 'records': [
+        {'case': 'B01-post-create-before-exec-corruption', 'delta': delta,
+         'audit_events': state['events'], 'rejection': rejection,
+         'cleanup_note': 'A never-executed native module may reject disarm because m_state is absent; secondary count retained, activation remains zero.'}],
+        'scientific_calls': 0, 'must_exit_after_reporting': True}

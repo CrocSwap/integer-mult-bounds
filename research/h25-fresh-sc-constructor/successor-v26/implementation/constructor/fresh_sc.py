@@ -1,0 +1,390 @@
+"""New non-admitting fresh-stage construction; originals are never imported.
+
+Operation ordering adapts PR6374, not its implementation, failure recorder,
+prefix request, or execution path. C11 and finite slot/primitive availability
+remain premises. A preparation owner is ordinary local state, never an epoch,
+authority, receiver or C07 lease. The enclosing caller must retain this owner.
+"""
+import hashlib
+import json
+import os
+import stat
+import plan_validator
+
+FILE_CAP = 64 * 1024 * 1024
+TOTAL_CAP = 256 * 1024 * 1024
+RECORD_CAP = 1024 * 1024
+MAX_ROWS = 8192
+MAX_SLOTS = 16384
+FULL_PROPOSAL_BINDING = {
+    'manifest_sha256': 'fc9d7289f6d39020984b0fbae2737abda94e657a4d750bcbdfc90cbb0e298062',
+    'compatibility_sha256': 'c93f9fe47cc7575c86cc3ccf2f92b6d213461ce7e28daea39137171fdeaac737',
+    'selection_sha256': 'f84ffd9e494ed669602683f845fa5f2f76cfbe74308ed7631719227eb9f1ddec'}
+FULL_SOURCE_HOLD = ()
+RUNTIME_NAMES = list(plan_validator.RUNTIME_NAMES)
+CLAIMS = {'runtime_admission': False, 'C07': False, 'full_C05': False,
+          'full_V03': False, 'original_credit': 0}
+ROW_KEYS = {'occurrence_id', 'logical_name', 'recovered_path',
+            'installed_relative_path', 'sha256', 'bytes', 'mode',
+            'producer_role', 'pin_provenance', 'availability', 'required'}
+REQUEST_KEYS = {'schema', 'subject_kind', 'stage_name', 'manifest_sha256',
+                'manifest', 'compatibility_sha256', 'selection_sha256',
+                'forbidden_runtime_names', 'claims'}
+
+
+def need(value, message):
+    if value is not True:
+        raise ValueError(message)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'),
+                      ensure_ascii=True, allow_nan=False).encode('ascii') + b'\n'
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def exact(value, keys):
+    need(type(value) is dict and all(type(k) is str for k in value)
+         and set(value) == keys, 'exact fields')
+
+
+def pin(value):
+    need(type(value) is str and len(value) == 64
+         and all(c in '0123456789abcdef' for c in value), 'digest')
+
+
+def relative(value):
+    need(type(value) is str and 0 < len(value) <= 8192, 'relative path type')
+    parts = value.split('/')
+    need(all(p not in ('', '.', '..') and len(p) <= 255
+             and all(32 <= ord(c) < 127 for c in p) for p in parts), 'relative path')
+    return parts
+
+
+def plain(value):
+    # Preparation DATA envelope, not an original admission record. Original
+    # receiver/wire limits are unchanged and are not manufactured here.
+    budget = [0, 0]
+    def visit(x, depth):
+        budget[0] += 1
+        need(depth <= 24 and budget[0] <= 8192, 'wire node/depth bound')
+        if x is None or type(x) is bool:
+            return
+        if type(x) is int:
+            need(-(1 << 127) <= x < (1 << 127), 'wire integer')
+            return
+        if type(x) is str:
+            budget[1] += len(x)
+            need(len(x) <= 8192 and budget[1] <= 524288, 'wire text')
+            return
+        need(type(x) in (dict, list) and len(x) <= 8192, 'wire type/container')
+        if type(x) is dict:
+            for k, item in x.items():
+                need(type(k) is str, 'wire key')
+                visit(k, depth + 1)
+                visit(item, depth + 1)
+        else:
+            for item in x:
+                visit(item, depth + 1)
+    visit(value, 0)
+
+
+class PreparationOwner:
+    """Adopts root_fd without I/O. finish/abort consumes known FDs once.
+
+    ops is an explicit NEW owned-fixture fault seam. Full proposals require os.
+    All error/FD slots exist before any operation can acquire a new resource.
+    """
+    def __init__(self, root_fd, ops=os):
+        need(type(root_fd) is int and root_fd >= 0, 'root FD')
+        self.primary = [None]
+        self.secondary = [None] * MAX_SLOTS
+        self.secondary_count = [0]
+        self.secondary_overflow = [False]
+        self.pending = [False]
+        self.quarantine = [False]
+        self.closed = [False]
+        self.used = [False]
+        self.fds = [None] * MAX_SLOTS
+        self.fds[0] = root_fd
+        self.next_slot = [1]
+        self.close_attempted = [False] * MAX_SLOTS
+        self.close_confirmed = [False] * MAX_SLOTS
+        self.ops = ops
+        self.lineage = None
+        self.creation_lineage = None
+        self.result = None
+        self.full_proposal = None
+
+
+def _secondary(owner, error):
+    index = owner.secondary_count[0]
+    if index < MAX_SLOTS:
+        owner.secondary[index] = error
+        owner.secondary_count[0] = index + 1
+    else:
+        owner.secondary_overflow[0] = True
+
+
+def _retire_close(owner, slot):
+    fd = owner.fds[slot]
+    if fd is not None:
+        # Retire ownership before close. A raised close is never retried.
+        owner.fds[slot] = None
+        owner.close_attempted[slot] = True
+        try:
+            owner.ops.close(fd)
+            owner.close_confirmed[slot] = True
+        except BaseException as error:
+            # First delivered primary stored directly before optional recording.
+            if owner.primary[0] is None:
+                owner.primary[0] = error
+            elif error is not owner.primary[0]:
+                index = owner.secondary_count[0]
+                if index < MAX_SLOTS:
+                    owner.secondary[index] = error
+                    owner.secondary_count[0] = index + 1
+                else:
+                    owner.secondary_overflow[0] = True
+            owner.quarantine[0] = True
+
+
+def finish_preparation(owner):
+    need(type(owner) is PreparationOwner, 'preparation owner')
+    if not owner.closed[0]:
+        owner.closed[0] = True
+        for slot in range(owner.next_slot[0] - 1, -1, -1):
+            _retire_close(owner, slot)
+    if owner.primary[0] is not None:
+        raise owner.primary[0]
+    need(not owner.pending[0], 'uncertain acquisition requires enclosing teardown')
+
+
+abort_preparation = finish_preparation
+
+
+def _acquire(owner, name, flags, mode, parent):
+    slot = owner.next_slot[0]
+    need(slot < MAX_SLOTS, 'FD slot bound')
+    owner.next_slot[0] = slot + 1
+    owner.pending[0] = True
+    owner.fds[slot] = owner.ops.open(name, flags, mode, dir_fd=parent)
+    owner.pending[0] = False
+    return slot
+
+
+def _identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def validate_request(request, verified_body_pool):
+    # No filesystem operations in validation. Missing future/native bytes are
+    # not read, fabricated, dropped, or substituted by an availability label.
+    exact(request, REQUEST_KEYS)
+    plain(request)
+    need(request['schema'] == 'fresh-sc-request-v1', 'request schema')
+    need(request['subject_kind'] in ('OWNED_FIXTURE', 'FULL_ORIGINAL_PROPOSAL'), 'subject')
+    need(type(request['claims']) is dict
+         and canonical(request['claims']) == canonical(CLAIMS), 'non-admission claims')
+    need(len(relative(request['stage_name'])) == 1, 'single fresh stage name')
+    for name in ('manifest_sha256', 'compatibility_sha256', 'selection_sha256'):
+        pin(request[name])
+    if request['subject_kind'] == 'FULL_ORIGINAL_PROPOSAL':
+        need(FULL_SOURCE_HOLD == (), 'joined full source prerequisites remain HOLD')
+        need(type(FULL_PROPOSAL_BINDING) is dict
+             and {k: request[k] for k in ('manifest_sha256', 'compatibility_sha256',
+                                          'selection_sha256')} == FULL_PROPOSAL_BINDING,
+             'exact independently reviewed full proposal binding required')
+    rows = request['manifest']
+    need(type(rows) is list and 1 <= len(rows) <= MAX_ROWS, 'manifest rows')
+    need(len(canonical(rows)) <= RECORD_CAP
+         and digest(canonical(rows)) == request['manifest_sha256'], 'manifest binding')
+    banned = request['forbidden_runtime_names']
+    need(type(banned) is list and banned == RUNTIME_NAMES, 'runtime creation ownership')
+    for name in banned:
+        need(len(relative(name)) == 1, 'runtime basename')
+    need(request['stage_name'] not in banned, 'stage is runtime-owned')
+    need(type(verified_body_pool) is dict
+         and all(type(k) is str and type(v) is bytes for k, v in verified_body_pool.items()), 'body pool')
+    files, paths, ids, directories, total = [], set(), set(), set(), 0
+    for row in rows:
+        exact(row, ROW_KEYS)
+        need(type(row['required']) is bool, 'required bool')
+        for key in ('occurrence_id', 'logical_name', 'producer_role', 'availability'):
+            need(type(row[key]) is str and 0 < len(row[key]) <= 8192, 'row text')
+        need(row['occurrence_id'] not in ids, 'duplicate occurrence')
+        ids.add(row['occurrence_id'])
+        pin(row['sha256'])
+        need(type(row['bytes']) is int and 0 <= row['bytes'] <= FILE_CAP, 'row bytes')
+        need(type(row['mode']) is int and 0 <= row['mode'] <= 0o777, 'row mode')
+        need(row['recovered_path'] is None or type(row['recovered_path']) is str, 'provenance path')
+        if row['installed_relative_path'] is None:
+            need(row['required'] is False, 'mandatory row without installation path')
+            continue
+        parts = relative(row['installed_relative_path'])
+        path = '/'.join(parts)
+        need(parts[0] not in banned and path not in paths, 'duplicate/runtime destination')
+        paths.add(path)
+        for i in range(1, len(parts)):
+            directories.add('/'.join(parts[:i]))
+        need(row['sha256'] in verified_body_pool, 'missing mandatory body bytes')
+        body = verified_body_pool[row['sha256']]
+        need(len(body) == row['bytes'] and digest(body) == row['sha256'], 'body pin mismatch')
+        total += len(body)
+        need(total <= TOTAL_CAP, 'aggregate body bytes')
+        files.append((path, body, row['mode'], row['occurrence_id']))
+    if request['subject_kind'] == 'FULL_ORIGINAL_PROPOSAL':
+        need(set(verified_body_pool) == {row['sha256'] for row in rows
+             if row['installed_relative_path'] is not None}, 'exact referenced body-pool hash set')
+    need(not (paths & directories), 'file/directory alias')
+    need(len(directories) + 2 * len(files) + 2 <= MAX_SLOTS, 'FD lineage bound')
+    return files, sorted(directories, key=lambda s: (s.count('/'), s))
+
+
+
+def bind_full_preparation(owner, request, compatibility_raw, selection_raw, mode):
+    """Authenticate ACTUAL records and bind ordinary held-parent proposal DATA.
+
+    Caller reads the files; no file I/O or authority issuance happens here.
+    The constructor checks the held FD's identity before destination acquisition.
+    """
+    need(type(owner) is PreparationOwner and not owner.used[0]
+         and not owner.closed[0] and owner.full_proposal is None, 'fresh full binding owner')
+    need(type(compatibility_raw) is bytes and type(selection_raw) is bytes, 'actual proposal record bytes')
+    need(digest(compatibility_raw) == FULL_PROPOSAL_BINDING['compatibility_sha256']
+         and digest(selection_raw) == FULL_PROPOSAL_BINDING['selection_sha256'], 'actual successor records')
+    compatibility = json.loads(compatibility_raw)
+    selection = json.loads(selection_raw)
+    need(type(compatibility) is dict and compatibility.get('claims') == CLAIMS, 'compatibility non-admission claims')
+    plan_validator.validate_source_plans(selection, request['manifest'])
+    need(mode in ('normal', 'optimized'), 'preparation mode')
+    approved = selection['approved_preparation']
+    need(request['stage_name'] == approved['stage_name'], 'actual stage_name mismatch')
+    need({k: request[k] for k in FULL_PROPOSAL_BINDING} == FULL_PROPOSAL_BINDING,
+         'joined successor binding')
+    owner.full_proposal = {'binding': dict(FULL_PROPOSAL_BINDING), 'mode': mode,
+                           'parent': approved['parents'][mode],
+                           'destination': approved['destinations'][mode],
+                           'stage_name': approved['stage_name']}
+
+
+def prepare_full_stage(request, verified_body_pool, preparation_owner):
+    owner = preparation_owner
+    need(type(owner) is PreparationOwner, 'ordinary preparation owner required')
+    if owner.primary[0] is not None:
+        raise owner.primary[0]
+    need(not owner.used[0] and not owner.closed[0] and not owner.pending[0]
+         and not owner.quarantine[0], 'failed/used preparation owner')
+    owner.used[0] = True
+    try:
+        files, directories = validate_request(request, verified_body_pool)
+        need(request['subject_kind'] == 'OWNED_FIXTURE' or owner.ops is os, 'fixture backend on full proposal')
+        # Allocate every retained creation/write/read record before stage I/O.
+        records = [{'path': p, 'raw': b, 'mode': m, 'occurrence_id': ident,
+                    'creation_attempted': False, 'created': False,
+                    'written': 0, 'readback': None, 'identity': None}
+                   for p, b, m, ident in files]
+        owner.lineage = records
+        created = [{'path': p, 'attempted': False, 'created': False}
+                   for p in [request['stage_name']] + directories]
+        owner.creation_lineage = created
+        root = owner.fds[0]
+        held = owner.ops.fstat(root)
+        need(stat.S_ISDIR(held.st_mode), 'held parent directory')
+        if request['subject_kind'] == 'FULL_ORIGINAL_PROPOSAL':
+            proposal = owner.full_proposal
+            need(type(proposal) is dict and proposal['binding'] == FULL_PROPOSAL_BINDING,
+                 'full owner requires joined actual-record binding')
+            need(proposal['mode'] in ('normal', 'optimized')
+                 and proposal['parent'] == plan_validator.ROUND + '/validation/preparation-' + proposal['mode']
+                 and proposal['stage_name'] == 'full-stage', 'frozen ordinary owner destination')
+            need(request['stage_name'] == proposal['stage_name']
+                 and proposal['parent'] + '/' + request['stage_name'] == proposal['destination'],
+                 'actual parent/stage_name relationship')
+            named = os.stat(proposal['parent'], follow_symlinks=False)
+            need(stat.S_ISDIR(named.st_mode) and (held.st_dev, held.st_ino) == (named.st_dev, named.st_ino),
+                 'actual held preparation parent mismatch')
+        name = request['stage_name']
+        created[0]['attempted'] = True
+        owner.ops.mkdir(name, 0o700, dir_fd=root)
+        created[0]['created'] = True
+        stage_slot = _acquire(owner, name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, 0, root)
+        parents = {'': owner.fds[stage_slot]}
+        for directory_index, path in enumerate(directories, 1):
+            parent, unused, name = path.rpartition('/')
+            created[directory_index]['attempted'] = True
+            owner.ops.mkdir(name, 0o700, dir_fd=parents[parent])
+            created[directory_index]['created'] = True
+            slot = _acquire(owner, name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, 0, parents[parent])
+            parents[path] = owner.fds[slot]
+        inodes = set()
+        for record in records:
+            parent, unused, name = record['path'].rpartition('/')
+            parent_fd = parents[parent]
+            record['creation_attempted'] = True
+            slot = _acquire(owner, name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, parent_fd)
+            record['created'] = True
+            fd = owner.fds[slot]
+            calls = 0
+            while record['written'] < len(record['raw']):
+                calls += 1
+                need(calls <= 8192, 'positive short-write bound')
+                offset = record['written']
+                count = owner.ops.write(fd, record['raw'][offset:])
+                need(type(count) is int and 0 < count <= len(record['raw']) - offset, 'write progress')
+                record['written'] += count
+            owner.ops.fchmod(fd, record['mode'])
+            owner.ops.fsync(fd)
+            final = _identity(owner.ops.fstat(fd))
+            need(stat.S_ISREG(final[2]) and final[3] == 1 and final[4] == len(record['raw']), 'installed regular identity')
+            need(stat.S_IMODE(final[2]) == record['mode'], 'installed exact mode')
+            need(final[:2] not in inodes, 'aliased installed inode')
+            inodes.add(final[:2])
+            record['identity'] = final
+            _retire_close(owner, slot)
+            if owner.primary[0] is not None:
+                raise owner.primary[0]
+            read_slot = _acquire(owner, name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC, 0, parent_fd)
+            read_fd = owner.fds[read_slot]
+            need(_identity(owner.ops.fstat(read_fd)) == final, 'readback open identity')
+            chunks, count, calls = [], 0, 0
+            while count < len(record['raw']):
+                calls += 1
+                need(calls <= 8192, 'readback call bound')
+                block = owner.ops.read(read_fd, min(65536, len(record['raw']) - count))
+                need(type(block) is bytes and 0 < len(block) <= len(record['raw']) - count, 'readback progress')
+                chunks.append(block)
+                count += len(block)
+            record['readback'] = b''.join(chunks)
+            need(record['readback'] == record['raw'], 'independent readback bytes')
+            need(_identity(owner.ops.fstat(read_fd)) == final
+                 and _identity(owner.ops.stat(name, dir_fd=parent_fd, follow_symlinks=False)) == final,
+                 'readback named identity')
+            _retire_close(owner, read_slot)
+            if owner.primary[0] is not None:
+                raise owner.primary[0]
+        owner.result = {'status': 'INERT_FRESH_STAGE_PREPARED_ONLY',
+                        'stage_name': request['stage_name'],
+                        'installed_occurrences': len(records),
+                        'manifest_sha256': request['manifest_sha256'],
+                        'claims': dict(CLAIMS), 'C07_lease': False}
+        return owner.result
+    except BaseException as error:
+        # Direct protected first store: no errors.capture/fail/formatting first.
+        if owner.primary[0] is None:
+            owner.primary[0] = error
+        elif error is not owner.primary[0]:
+            index = owner.secondary_count[0]
+            if index < MAX_SLOTS:
+                owner.secondary[index] = error
+                owner.secondary_count[0] = index + 1
+            else:
+                owner.secondary_overflow[0] = True
+        owner.quarantine[0] = True
+        # Known FDs remain rooted until explicit finish/abort. No retries,
+        # deletion or reconstruction. Pending acquisition requires teardown.
+        raise owner.primary[0]

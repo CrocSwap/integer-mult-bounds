@@ -1,0 +1,606 @@
+"""Source-owned setup for the original bookkeeping adapters under the V8 caller protocol.
+
+The old adapters.py remains byte-for-byte unchanged. This wrapper preserves its
+setup order, cold encoder build, selected controls and original native/trace/P1
+operations. Only module loading and exact returned guard-class installation use
+the early source authority. It must itself be loaded and invoked by that token.
+"""
+import adapters
+
+
+def _need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _load(authority, cold_caller_descriptor, root, relative, name, source_custody, *, kind='module'):
+    _need(type(relative) is str and relative in source_custody,
+          'Guarded setup source is absent from the frozen custody map')
+    row = source_custody[relative]
+    _need(type(row) is dict and type(row.get('sha256')) is str,
+          'Guarded setup source pin is not configured')
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:22
+    _ca_args = (str(root / relative), row['sha256'], name)
+    _ca_kwargs = {'kind': kind}
+    # END evaluated dispatch arguments guarded_adapters_v4:22
+    # BEGIN caller admission guarded_adapters_v4:22
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:22
+    return _ca_dispatch(0, *_ca_args, **_ca_kwargs)
+
+
+def trace_entries(authority, extensions, *, cold_caller_descriptor):
+    """Admit the original registered trace-class product before a later factory."""
+    _need({'guards', 'trace'} <= extensions['selected'] and
+          'guard_adapter' in extensions['authority_handles'] and
+          'trace_adapter' in extensions['authority_handles'],
+          'The final V7 control union requires the actual P2 and trace base')
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:31
+    _ca_args = (extensions['authority_backend_handle'],)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:31
+    # BEGIN caller admission guarded_adapters_v4:31
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:31
+    original_backend = _ca_dispatch(6, *_ca_args, **_ca_kwargs)[0]
+    trace_type = extensions['trace_type']
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:33
+    _ca_args = (trace_type, extensions['authority_handles']['trace_adapter'], 'make_trace_type', (original_backend, extensions['encoder']), {})
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:33
+    # BEGIN caller admission guarded_adapters_v4:33
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:33
+    _ca_dispatch(4, *_ca_args, **_ca_kwargs)
+    _need(type(trace_type) is type, 'Trace producer returned a different metaclass')
+    members = type.__getattribute__(trace_type, '__dict__')
+    _need('_h25_native_entries' in members, 'Actual trace native-entry tuple is absent')
+    entries = members['_h25_native_entries']
+    _need(type(entries) is tuple and all(type(item) is tuple and len(item) == 3 for item in entries),
+          'Actual trace native-entry tuple shape differs')
+    return entries
+
+
+def compose_guard_stack(authority, backend, backend_handle, guard_handle,
+                        adapters_handle, trace_entries, *, cold_caller_descriptor):
+    """Register the original exact P2 and trace classes before cache composition."""
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:47
+    _ca_args = (backend_handle,)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:47
+    # BEGIN caller admission guarded_adapters_v4:47
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:47
+    _ca_dispatch(2, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:48
+    _ca_args = (guard_handle, 'make_runtime_guard', backend)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:48
+    # BEGIN caller admission guarded_adapters_v4:48
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:48
+    guard = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:49
+    _ca_args = (backend_handle, guard)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:49
+    # BEGIN caller admission guarded_adapters_v4:49
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:49
+    _ca_dispatch(5, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:50
+    _ca_args = (backend_handle,)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:50
+    # BEGIN caller admission guarded_adapters_v4:50
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:50
+    _ca_dispatch(2, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:51
+    _ca_args = (adapters_handle, 'extra_guard_type', guard, backend, trace_entries)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:51
+    # BEGIN caller admission guarded_adapters_v4:51
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:51
+    extended = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments guarded_adapters_v4:52
+    _ca_args = (backend_handle, extended)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments guarded_adapters_v4:52
+    # BEGIN caller admission guarded_adapters_v4:52
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission guarded_adapters_v4:52
+    _ca_dispatch(5, *_ca_args, **_ca_kwargs)
+    return None
+
+
+def prepare(root, backend, backend_handle, native, output, lanes, phases,
+            authority, adapters_handle, source_custody, *, cold_caller_descriptor):
+    """The original prepare sequence with source-authenticated class producers."""
+    selected = set() if lanes == 'none' else ({'sets', 'guards', 'trace'} if lanes == 'all' else {lanes})
+    if not selected <= {'sets', 'guards', 'trace'}:
+        raise RuntimeError('Unsupported frozen lane selection')
+    state = {'selected': selected, 'controls': {}, 'trace_type': backend.ComplementTrace,
+             'set_binding': None, 'encoder_build': None, 'encoder': None,
+             'authority': authority, 'authority_adapters_handle': adapters_handle,
+             'cold_caller_descriptor': cold_caller_descriptor,
+             'authority_backend_handle': backend_handle, 'authority_handles': {},
+             'authority_product_cases': []}
+    handles = state['authority_handles']
+    if 'guards' in selected:
+        state['guard_adapter'], handles['guard_adapter'] = _load(
+            authority, cold_caller_descriptor, root, 'priorities/runtime-guards/guard_candidate.py',
+            '_h25_guard_candidate', source_custody)
+        state['guard_controls'], handles['guard_controls'] = _load(
+            authority, cold_caller_descriptor, root, 'priorities/runtime-guards/guard_controls.py',
+            '_h25_guard_controls', source_custody)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:76
+        _ca_args = (backend_handle,)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:76
+        # BEGIN caller admission guarded_adapters_v4:76
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:76
+        original_source = _ca_dispatch(6, *_ca_args, **_ca_kwargs)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:77
+        _ca_args = (original_source[1], original_source[2], '_h25_reference_backend')
+        _ca_kwargs = {'kind': 'backend'}
+        # END evaluated dispatch arguments guarded_adapters_v4:77
+        # BEGIN caller admission guarded_adapters_v4:77
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:77
+        state['reference_backend'], handles['reference_backend'] = _ca_dispatch(0, *_ca_args, **_ca_kwargs)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:79
+        _ca_args = (backend_handle,)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:79
+        # BEGIN caller admission guarded_adapters_v4:79
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:79
+        _ca_dispatch(2, *_ca_args, **_ca_kwargs)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:80
+        _ca_args = (handles['guard_adapter'], 'make_runtime_guard', backend)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:80
+        # BEGIN caller admission guarded_adapters_v4:80
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:80
+        guard = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:81
+        _ca_args = (backend_handle, guard)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:81
+        # BEGIN caller admission guarded_adapters_v4:81
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:81
+        _ca_dispatch(5, *_ca_args, **_ca_kwargs)
+        state['authority_product_cases'].append(
+            ('original-p2-guard', guard, handles['guard_adapter'], 'make_runtime_guard', (backend,), {}))
+    if 'trace' in selected:
+        directory = root / 'priorities/trace-encoding'
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:87
+        _ca_args = (adapters_handle, 'build_encoder', directory / 'trace_encoder.c', output / 'trace-cold-build')
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:87
+        # BEGIN caller admission guarded_adapters_v4:87
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:87
+        encoder, build = phases.call('trace_cold_compile_link_load', _ca_dispatch, 1, *_ca_args, **_ca_kwargs)
+        adapter, handles['trace_adapter'] = _load(
+            authority, cold_caller_descriptor, root, 'priorities/trace-encoding/trace_adapter.py',
+            'trace_adapter', source_custody)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:92
+        _ca_args = (backend_handle,)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:92
+        # BEGIN caller admission guarded_adapters_v4:92
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:92
+        _ca_dispatch(2, *_ca_args, **_ca_kwargs)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:93
+        _ca_args = (handles['trace_adapter'], 'make_trace_type', backend, encoder)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:93
+        # BEGIN caller admission guarded_adapters_v4:93
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:93
+        trace_type = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+        state['authority_product_cases'].append(
+            ('original-trace-class', trace_type, handles['trace_adapter'], 'make_trace_type', (backend, encoder), {}))
+        trace_controls, handles['trace_controls'] = _load(
+            authority, cold_caller_descriptor, root, 'priorities/trace-encoding/trace_controls.py',
+            '_h25_trace_controls', source_custody)
+        state.update(encoder=encoder, encoder_build=build, trace_type=trace_type,
+                     trace_controls=trace_controls)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:101
+        _ca_args = (backend_handle,)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:101
+        # BEGIN caller admission guarded_adapters_v4:101
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:101
+        _ca_dispatch(2, *_ca_args, **_ca_kwargs)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:102
+        _ca_args = (adapters_handle, 'extra_guard_type', backend.RuntimeGuard, backend, trace_type._h25_native_entries)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:102
+        # BEGIN caller admission guarded_adapters_v4:102
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:102
+        extended = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+        # BEGIN evaluated dispatch arguments guarded_adapters_v4:104
+        _ca_args = (backend_handle, extended)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments guarded_adapters_v4:104
+        # BEGIN caller admission guarded_adapters_v4:104
+        _ca_desc = cold_caller_descriptor
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission guarded_adapters_v4:104
+        _ca_dispatch(5, *_ca_args, **_ca_kwargs)
+    if 'sets' in selected:
+        state['set_adapter'], handles['set_adapter'] = _load(
+            authority, cold_caller_descriptor, root, 'priorities/set-reuse/set_reuse.py', 'set_reuse', source_custody)
+        state['set_controls'], handles['set_controls'] = _load(
+            authority, cold_caller_descriptor, root, 'priorities/set-reuse/finite_set_controls.py',
+            '_h25_set_controls', source_custody)
+    return state

@@ -1,3 +1,13 @@
+# Current v26 source prerequisite archive and historical constructor evidence
+
+The current successor is [successor-v26](successor-v26/README.md). Independent whole-result review accepted five of five joined SOURCE prerequisite exits: selected caller closure, version compatibility, payload/source plans, non-admitting preparation, and whole-result review. One guarded run observed 22 new controls per mode (44 observations) and two exact inert stages, each containing 259 files/38 directories/20,496,867 bytes. All 57 source owners and 259 payload occurrences have retained opaque bodies and exact source bindings. See [the reviewed result](successor-v26/review/WHOLE-RESULT-v26-v1.json) and [the closed-round record](successor-v26/reports/ROUND-CLOSE-v1.json).
+
+This is a source prerequisite result. Original progress remains 43.5% (22 of 49 activities), with zero added credit; runtime admission, C07, full C05/full V03 and original S06.03 remain open. The reviewed absolute preparation destinations and output names are retained and no-retry. Another execution root requires a newly reviewed binding; use only the archive-integrity instructions in the successor README. Complete physical costs remain OPEN_NOT_ZERO.
+
+The earlier 17-case/34-observation evidence below is historical and was not rerun. Its original implementation, review and validation files are preserved unchanged. The next section retains the preceding README bytes verbatim, including its historical missing-source/payload HOLD and then-current ledger values; those statements describe that earlier checkpoint. The separately versioned successor supplies the current scoped source result without rewriting the earlier evidence.
+
+## Historical v25 README retained verbatim
+
 # Non-admitting fresh-Sc constructor and joined caller/payload source
 
 This archive implements a NEW prepare_full_stage(request,verified_body_pool,preparation_owner) and ordinary PreparationOwner, with explicit finish/abort. It validates before destination acquisition, creates fresh descriptor-relative paths exclusively, accounts for positive short writes, checks final modes and independently reads back exact bytes. Direct protected first-error storage precedes optional recording; known ownership retires before close, independent closes continue, uncertain acquisition quarantines, and all partials remain retained. This preparation owner is not an original epoch capability or C07 lease.

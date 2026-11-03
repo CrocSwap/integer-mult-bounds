@@ -1,0 +1,44 @@
+"""Invocation-owned digest records; independent manifests compare independently.
+
+A fresh table belongs inside each authentication call. Recording always reads or
+hashes current supplied bytes and rejects duplicate names. Lookup performs no
+validation and carries no saved PASS. Copy/load/before/after boundaries create
+fresh tables or use their unchanged readers. No module-global cache exists.
+"""
+import hashlib
+
+_BLOCK_BYTES = 1024 * 1024
+
+
+class DigestSnapshot:
+    """At most one observed digest per logical file in one authentication call."""
+    __slots__ = ('_digests',)
+
+    def __init__(self):
+        self._digests = {}
+
+    def record_bytes(self, name, raw):
+        if type(name) is not str or type(raw) is not bytes:
+            raise TypeError('Digest snapshot requires exact name/bytes')
+        if name in self._digests:
+            raise ValueError('Digest snapshot name already observed: ' + name)
+        value = hashlib.sha256(raw).hexdigest()
+        self._digests[name] = value
+        return value
+
+    def record_file(self, name, path):
+        if type(name) is not str:
+            raise TypeError('Digest snapshot requires exact name')
+        if name in self._digests:
+            raise ValueError('Digest snapshot name already observed: ' + name)
+        hasher = hashlib.sha256()
+        with path.open('rb') as stream:
+            for block in iter(lambda: stream.read(_BLOCK_BYTES), b''):
+                hasher.update(block)
+        value = hasher.hexdigest()
+        self._digests[name] = value
+        return value
+
+    def observed(self, name):
+        """Return bytes' digest, never an expected-manifest validation result."""
+        return self._digests[name]

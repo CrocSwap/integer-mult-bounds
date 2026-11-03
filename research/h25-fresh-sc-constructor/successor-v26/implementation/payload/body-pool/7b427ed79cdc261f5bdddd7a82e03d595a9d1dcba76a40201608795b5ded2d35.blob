@@ -1,0 +1,115 @@
+"""Parent-executed bound native/reference controls; no scientific import here.
+
+Parent supplies fresh isolated already-bound modules and exact list collectors.
+The candidate binding must contain the final helper and extended guard; these
+controls never install or patch a production binding except reversible drift
+fixtures, which are restored before the next check.
+"""
+import json
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii')
+
+
+def capture(action):
+    try:
+        value = action()
+    except Exception as error:
+        return ('error', type(error).__name__, str(error))
+    return ('value', type(value).__name__, value)
+
+
+def make_label(env, basis):
+    label = object.__new__(env['module'].Label)
+    label.basis = basis
+    return label
+
+
+def snapshot(env):
+    return dict(env['binding']['counters']), canonical(env['rank_calls'])
+
+
+def run_bound_controls(reference, candidate, intern_rows):
+    """Each env has module, binding (backend.bind return), and rank_calls keys."""
+    need(reference['module'] is not candidate['module'], 'Independent source modules required')
+    need(type(reference['rank_calls']) is list and type(candidate['rank_calls']) is list and
+         reference['rank_calls'] is not candidate['rank_calls'], 'Independent exact list collectors required')
+    need(not reference['rank_calls'] and not candidate['rank_calls'], 'Fresh bound controls required')
+    need(snapshot(reference) == snapshot(candidate), 'Initial binding state differs')
+    matrices = [(), (0,), (1,), (1, 2), (3, 5, 6), (1 << 63,),
+                tuple(1 << index for index in range(64))]
+    outcomes = []
+    for values in matrices:
+        for repeat in range(2):
+            left = make_label(reference, {index: value for index, value in enumerate(values)})
+            right = make_label(candidate, {index: value for index, value in enumerate(values)})
+            result_left, result_right = capture(left.nondegenerate), capture(right.nondegenerate)
+            need(result_left == result_right and result_right[:2] == ('value', 'bool'), 'Native return/type differs')
+            need(snapshot(reference) == snapshot(candidate), 'Native ordered events/counters differ')
+            outcomes.append(('native', len(values), repeat, result_right))
+    need(candidate['rank_calls'][4][0] is candidate['rank_calls'][5][0], 'Native retained-row reuse absent')
+    need(candidate['binding']['counters']['gram_native'] == 2 * len(matrices), 'Fresh native call count differs')
+    for values in ((1 << 100,), tuple(1 << index for index in range(65))):
+        left = make_label(reference, {index: value for index, value in enumerate(values)})
+        right = make_label(candidate, {index: value for index, value in enumerate(values)})
+        result_left, result_right = capture(left.nondegenerate), capture(right.nondegenerate)
+        need(result_left == result_right and snapshot(reference) == snapshot(candidate), 'Wide fallback changed')
+        outcomes.append(('wide-fallback', len(values), result_right))
+    callbacks_left, callbacks_right = [], []
+
+    def callback_basis(log, failure):
+        class ProbeBasis:
+            def values(self):
+                log.append('basis.values')
+                if failure:
+                    raise ValueError('rank fallback sentinel')
+                return [1, 2]
+        return ProbeBasis()
+
+    for failure in (False, True):
+        left = make_label(reference, callback_basis(callbacks_left, failure))
+        right = make_label(candidate, callback_basis(callbacks_right, failure))
+        result_left, result_right = capture(left.nondegenerate), capture(right.nondegenerate)
+        need(result_left == result_right and snapshot(reference) == snapshot(candidate) and
+             callbacks_left == callbacks_right, 'Callback fallback/error prefix differs')
+        outcomes.append(('callback-fallback', failure, result_right))
+    # Mutations must stop before arithmetic, counters, records or custom hooks.
+    probe = make_label(candidate, {0: 1})
+    before = snapshot(candidate)
+    old_code = intern_rows.__code__
+    intern_rows.__code__ = old_code.replace(co_name='mutated_rank_observer')
+    try:
+        rejected_helper = capture(probe.nondegenerate)
+    finally:
+        intern_rows.__code__ = old_code
+    need(rejected_helper[0] == 'error' and snapshot(candidate) == before, 'Helper drift reached scientific work')
+    candidate['binding']['runtime_guard'].check()
+    native = candidate['binding']['runtime_guard'].native
+    old_native = native.__dict__['gram_rank']
+    callbacks = []
+
+    def forbidden_native(*args):
+        callbacks.append('replaced native called')
+        raise RuntimeError('must not execute')
+
+    native.__dict__['gram_rank'] = forbidden_native
+    try:
+        rejected_native = capture(probe.nondegenerate)
+    finally:
+        native.__dict__['gram_rank'] = old_native
+    need(rejected_native[0] == 'error' and snapshot(candidate) == before and not callbacks,
+         'Native drift reached scientific work')
+    candidate['binding']['runtime_guard'].check()
+    return {'status': 'NATIVE_OBSERVATION_DIFFERENTIAL_CONTROLS_PASS',
+            'outcomes': outcomes, 'callbacks': callbacks_left,
+            'counters': dict(candidate['binding']['counters']),
+            'rank_events': len(candidate['rank_calls']),
+            'rank_fixture_bytes': len(canonical(candidate['rank_calls'])),
+            'helper_drift': rejected_helper, 'native_drift': rejected_native,
+            'full_independent_caller_and_original_finite_controls_still_required': True}

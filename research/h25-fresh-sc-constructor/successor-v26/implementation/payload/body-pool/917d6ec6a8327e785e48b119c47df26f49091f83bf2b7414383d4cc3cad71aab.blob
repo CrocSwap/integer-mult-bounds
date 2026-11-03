@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "lane": "P3",
+  "status": "SOURCE_DERIVED_PROPOSAL_NOT_MEASURED",
+  "authorization_update": "Repeated-call reduction explicitly added to PLAN.md; no inter-call buffering",
+  "baseline_head": "4f4159820c37f01d245784d1186bd51fcbc8ebb6",
+  "evidence": {
+    "observer": "engine/native_backend.py ComplementTrace.before/after/receipt; e473c38245c3668715b5a78dfe980b2fe3ed0d0c9b8c97c666fbae6ecf1fffd5",
+    "json_dumps": "/usr/lib/python3.12/json/__init__.py; d5d41e2c29049515d295d81a6d40b4890fbec8d8482cfb401630f8ef2f77e4d5",
+    "json_encoder": "/usr/lib/python3.12/json/encoder.py; af7bd40a0d0d0a3e726a9b4b3a2a543019f6ab97a340d0162a9c29ca9da97869",
+    "native_admission": "engine/native_gf2.c read_vectors/complement; e9c3c9194a08718bd1575c1cf08c6c6772d3b644c2e274c25a84a1f9249d06cc",
+    "N": 238685,
+    "N_source": "Frozen full anchor and driver expected successful complement-native count; not rerun",
+    "new_fast_lane_coverage": "All N expected from existing native admission: nonnegative uint64 inputs, k+n<=64, exact list of uint64 output, call index<N. Parent must confirm, not assume measured coverage."
+  },
+  "symbols": {"k": "len(us)", "n": "len(vs)", "o": "len(output) or 0 for None", "N": "successful full complement records"},
+  "counting_rules": [
+    "Counts are source-level operations or named function entries, not instruction counts, allocations measured by an allocator, or timings",
+    "Do not add nested constructor dispatch, __init__ frames and their internal C API work as independent total call savings",
+    "Dictionary literals are construction operations, not Python dict() calls",
+    "Python-to-C transitions listed below are explicit source call sites; internal C operations are separately classified",
+    "Fallback pays the attempted native admission plus unchanged serializer work; removed counts apply only to admitted records",
+    "No result, PASS receipt or mutable answer is cached across calls"
+  ],
+  "removed_per_admitted_record": [
+    {"operation": "result dictionary literal", "before": 1, "after": 0, "total_if_N_admitted": 238685, "kind": "construction removed"},
+    {"operation": "record dictionary literal", "before": 1, "after": 0, "total_if_N_admitted": 238685, "kind": "construction removed"},
+    {"operation": "json.dumps Python function entry", "before": 1, "after": 0, "total_if_N_admitted": 238685, "kind": "Python dispatch removed"},
+    {"operation": "JSONEncoder instance construction", "before": 1, "after": 0, "total_if_N_admitted": 238685, "kind": "constructor removed", "why": "Explicit separators and sort_keys bypass dumps cached default encoder"},
+    {"operation": "JSONEncoder.__init__ Python entry", "before": 1, "after": 0, "kind": "constructor's nested Python frame removed; do not add to constructor as a second construction"},
+    {"operation": "JSONEncoder.encode Python entry", "before": 1, "after": 0, "kind": "Python dispatch removed"},
+    {"operation": "JSONEncoder.iterencode Python entry", "before": 1, "after": 0, "kind": "Python dispatch removed"},
+    {"operation": "JSON markers dictionary literal", "before": 1, "after": 0, "kind": "general serializer bookkeeping removed", "scope": "ordinary check_circular=True path"},
+    {"operation": "c_make_encoder callable construction", "before": 1, "after": 0, "kind": "explicit Python-to-C constructor call removed", "scope": "ordinary CPython _json accelerator present"},
+    {"operation": "_iterencode(record,0) C callable", "before": 1, "after": 0, "kind": "general C encoding entry replaced by bounded native entry"},
+    {"operation": "str.join(chunks)", "before": 1, "after": 0, "kind": "explicit Python-to-C join call removed"},
+    {"operation": "str.encode('ascii')", "before": 1, "after": 0, "kind": "explicit Python-to-C conversion call removed"},
+    {"operation": "encoded bytes + newline", "before": 1, "after": 0, "kind": "bytes concatenation operation removed, not a separate Python function call"}
+  ],
+  "small_summary": {
+    "record_result_literal_dict_constructions_removed_if_N_admitted": 477370,
+    "named_json_python_frames_removed_per_admitted_record": 4,
+    "named_json_python_frames": ["dumps", "JSONEncoder.__init__", "JSONEncoder.encode", "JSONEncoder.iterencode"],
+    "named_json_python_frames_removed_if_N_admitted": 954740,
+    "replacement_native_entries_if_N_admitted": 238685,
+    "warning": "These are not a wall/CPU speed ratio or a complete C transition census"
+  },
+  "retained_per_record": [
+    {"operation": "ComplementTrace.before", "count": 1, "reason": "snapshot before arithmetic"},
+    {"operation": "object.__getattribute__(instance,'__dict__')", "count": 2, "reason": "exact Label instance storage"},
+    {"operation": "dict.get(instance,'basis')", "count": 2, "reason": "same basis resolution"},
+    {"operation": "dict.values(basis)", "count": 2, "reason": "insertion order snapshot"},
+    {"operation": "tuple(dict_values)", "count": 2, "reason": "private immutable vector snapshots"},
+    {"operation": "us+vs tuple operation", "count": 1, "reason": "unchanged original integer validation; allocation may be elided by CPython for empties"},
+    {"operation": "(us,vs) return tuple", "count": 1, "reason": "unchanged before/after interface"},
+    {"operation": "before require calls", "count": 4, "reason": "same exact Label/dict/integer checks"},
+    {"operation": "before type calls", "count_formula": "6+k+n", "reason": "successful exact supported domain"},
+    {"operation": "before all(generator)", "count": 1, "reason": "all vector type checks retained"},
+    {"operation": "ComplementTrace.after", "count": 1, "reason": "same completion boundary"},
+    {"operation": "after output validation", "count_formula": "one require, one all, and 1+o type calls for list output; none for None", "reason": "original errors and order preserved"},
+    {"operation": "existing hasher.update(encoded)", "count": 1, "full_count": 238685, "reason": "immediate exact observable prefix and failure boundary"},
+    {"operation": "len(encoded)", "count": 1, "reason": "original byte counter expression"},
+    {"operation": "bytes increment", "count": 1, "reason": "after hash, before count increment"},
+    {"operation": "count increment", "count": 1, "reason": "same completed-record boundary"},
+    {"operation": "receipt() and hasher.hexdigest()", "count": "at each existing observation, including arbitrary intermediate observations", "reason": "never deferred or cached"}
+  ],
+  "replacement_and_new_per_record": [
+    {"operation": "encode_record(call,us,vs,output)", "count": 1, "kind": "one checked native entry replacing general Python serializer path"},
+    {"operation": "exact C integer conversion", "count_formula": "1+k+n+o on admitted records", "kind": "new explicit PyLong_AsUnsignedLongLong C API work; decimal rendering work retained/moved into specialized C", "standalone_upper_bound": 193, "full_native_domain_upper_bound": 129},
+    {"operation": "exact container/type/length admission", "count_formula": "constant container checks plus 1+k+n+o exact integer checks", "kind": "new safety work, not removed validation"},
+    {"operation": "decimal rendering", "count_formula": "1+k+n+o integers", "kind": "work moved to specialized C, not deduplicated values"},
+    {"operation": "checked ASCII buffer append", "count_formula": "depends on digits/vector lengths", "kind": "new bounded implementation of retained canonical bytes"},
+    {"operation": "final exact bytes allocation/copy", "count": 1, "kind": "replacement allocation; no zero-copy claim"},
+    {"operation": "native argument marshalling", "count": "one four-argument call", "kind": "new overhead", "preferred_calling_convention": "METH_FASTCALL uses the existing argument pointer array; avoid creating a dedicated VARARGS tuple", "if_varargs_chosen": "Charge one argument tuple/conversion path; do not claim tuple removal for this boundary"},
+    {"operation": "native owner/entry freshness", "count": "every original runtime.check boundary that can reach the encoder; exact integrated records determined by parent", "kind": "new live check, never cached PASS", "full_original_guard_boundaries": 298644, "note": "If added to general native_items, the encoder entry is checked on Gram calls too; count that retained overhead"}
+  ],
+  "reuse_classification": {
+    "true_deduplication": "No semantic checks or repeated record observations deduplicated",
+    "value_reuse": "Existing before snapshots passed directly; no extra tuple/list copy for encoder; no cross-record values cached",
+    "batching": "Only fields within one record serialized in a single native call; no inter-call batching",
+    "work_moved_to_C": "Exact integer admission/conversion, decimal rendering and fixed-schema bytes composition",
+    "work_removed": "Python object graph, general serializer setup, Unicode-to-ASCII conversion and newline copy"
+  },
+  "setup_and_validation_costs_paid": [
+    "fresh native build or additional compilation unit in combined build",
+    "cold extension load and callable/source checks",
+    "trace factory binding before runtime closure capture",
+    "new native owner/entry guard records and checks",
+    "all old finite controls plus exact per-record/prefix/fallback/failure controls",
+    "source custody and complete retained witness/receipt validation",
+    "failed attempts and private build/runtime cleanup"
+  ],
+  "source_validity": [
+    "Existing full native admission implies exact uint64 vectors and bounded sizes; snapshot tuples retain the exact values before arithmetic",
+    "Output validation remains literal before native encoding",
+    "All successful records immediately update the original hasher, byte count and call count in their original order",
+    "Any unsupported type, sign, width or length takes literal JSON fallback without truncation or altered output checks",
+    "No mutable answers or PASS receipts are shared across calls/backends/processes",
+    "Parent must confirm every proposed removed call by finite/full correctness and bounded diagnostic evidence before a performance claim"
+  ],
+  "primary_calling_convention_source": "https://docs.python.org/3.12/c-api/structures.html#c.METH_FASTCALL",
+  "execution": "No compiler, scientific import, corpus decoding or numerical execution in this task"
+}

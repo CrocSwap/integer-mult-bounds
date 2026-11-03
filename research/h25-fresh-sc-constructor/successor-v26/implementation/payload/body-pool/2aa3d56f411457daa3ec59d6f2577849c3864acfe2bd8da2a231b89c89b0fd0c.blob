@@ -1,0 +1,121 @@
+"""Bounded immutable row metadata for an authenticated native-only observer.
+
+This module neither imports science nor computes/caches rank. Parent integration
+calls the helper after fresh native arithmetic, immediately before the existing
+exact-list append. Unsupported inputs return by identity without callbacks.
+"""
+import builtins
+from types import CodeType, FunctionType
+
+_TYPE, _TUPLE, _INT, _LEN, _DICT = type, tuple, int, len, dict
+_GET, _OBJECT, _ERROR = dict.get, object, RuntimeError
+_BUILTINS = builtins.__dict__
+_MAX_ROWS, _MAX_VALUE, _MAX_ENTRIES = 64, (1 << 64) - 1, 4096
+
+
+def make_row_interner():
+    """Return one private bounded metadata table's row function.
+
+    All callable dependencies are captured before the caller's RuntimeGuard.
+    The closure dictionary is mutable metadata; keys are only admitted tuples.
+    No public reference to its state is exposed. Arbitrary external mutation of
+    its keys through introspection is outside the sealed caller contract.
+    """
+    exact_type, exact_tuple, exact_int = _TYPE, _TUPLE, _INT
+    length, get = _LEN, _GET
+    max_rows, max_value, max_entries = _MAX_ROWS, _MAX_VALUE, _MAX_ENTRIES
+    table = _DICT()
+    missing = _OBJECT()
+
+    def intern_rows(rows):
+        if exact_type(rows) is not exact_tuple or length(rows) > max_rows:
+            return rows
+        for value in rows:
+            if exact_type(value) is not exact_int or value < 0 or value > max_value:
+                return rows
+        retained = get(table, rows, missing)
+        if retained is missing:
+            if length(table) < max_entries:
+                table[rows] = rows
+            return rows
+        # Validate retained values before any equality that might call hooks.
+        # A damaged value cannot replace a fresh observation with another one.
+        if exact_type(retained) is not exact_tuple or length(retained) != length(rows):
+            return rows
+        for value in retained:
+            if exact_type(value) is not exact_int:
+                return rows
+        return retained if retained == rows else rows
+
+    return intern_rows
+
+
+def make_runtime_guard(base, intern_rows):
+    """Extend an already-finalized guard class before backend.bind captures it.
+
+    Parent supplies the identical intern_rows function to the derived bind. The
+    base constructor calls self.check(); all new records are captured here first.
+    Every original guard boundary therefore also checks helper freshness. The
+    module dictionary's actual bindings are checked, not merely its identity.
+    """
+    exact_type, function_type, code_type = _TYPE, FunctionType, CodeType
+    exact_tuple, get, error = _TUPLE, _GET, _ERROR
+    namespace = make_row_interner.__globals__
+    expected_code = None
+    for constant in make_row_interner.__code__.co_consts:
+        if exact_type(constant) is code_type and constant.co_name == 'intern_rows':
+            expected_code = constant
+    if not (exact_type(intern_rows) is function_type and
+            intern_rows.__globals__ is namespace and
+            intern_rows.__builtins__ is _BUILTINS and
+            intern_rows.__defaults__ is None and intern_rows.__kwdefaults__ is None and
+            intern_rows.__code__ is expected_code):
+        raise error('Rank observation helper admission failed')
+    closure = intern_rows.__closure__
+    cells = () if closure is None else exact_tuple((cell, cell.cell_contents) for cell in closure)
+    initial = _DICT(zip(intern_rows.__code__.co_freevars, (value for _, value in cells)))
+    expected = {'exact_type': _TYPE, 'exact_tuple': _TUPLE, 'exact_int': _INT,
+                'length': _LEN, 'get': _GET, 'max_rows': _MAX_ROWS,
+                'max_value': _MAX_VALUE, 'max_entries': _MAX_ENTRIES}
+    if not (_LEN(initial) == _LEN(expected) + 2 and
+            exact_type(get(initial, 'table')) is _DICT and
+            _LEN(initial['table']) == 0 and exact_type(get(initial, 'missing')) is _OBJECT):
+        raise error('Rank observation helper initial state changed')
+    for name, value in expected.items():
+        if get(initial, name) is not value:
+            raise error('Rank observation helper initial binding changed: ' + name)
+    record = (intern_rows.__code__, intern_rows.__globals__, intern_rows.__builtins__,
+              intern_rows.__defaults__, intern_rows.__kwdefaults__, closure, cells)
+    names = ('_TYPE', '_TUPLE', '_INT', '_LEN', '_DICT', '_GET', '_OBJECT', '_ERROR',
+             '_BUILTINS', '_MAX_ROWS', '_MAX_VALUE', '_MAX_ENTRIES',
+             'CodeType', 'FunctionType', 'make_row_interner', 'make_runtime_guard', '__builtins__')
+    bindings = exact_tuple((name, namespace[name]) for name in names)
+    builtin_names = ('type', 'tuple', 'int', 'len', 'dict', 'object', 'RuntimeError')
+    builtins_namespace = _BUILTINS
+    builtin_bindings = exact_tuple((name, builtins_namespace[name]) for name in builtin_names)
+    base_check, base_init = base.check, base.__init__
+
+    class RankObservationGuard(base):
+        def __init__(self, module, label, native, original_functions):
+            base_init(self, module, label, native, original_functions)
+
+        def check(self):
+            # Preserve all base checks, their order, and first failure text.
+            base_check(self)
+            for name, value in bindings:
+                if get(namespace, name) is not value:
+                    raise error('Runtime drift: rank observation dependency ' + name)
+            for name, value in builtin_bindings:
+                if get(builtins_namespace, name) is not value:
+                    raise error('Runtime drift: rank observation builtin ' + name)
+            code, globals_dict, effective_builtins, defaults, kwdefaults, expected_closure, expected_cells = record
+            if not (intern_rows.__code__ is code and intern_rows.__globals__ is globals_dict and
+                    intern_rows.__builtins__ is effective_builtins and
+                    intern_rows.__defaults__ is defaults and intern_rows.__kwdefaults__ is kwdefaults and
+                    intern_rows.__closure__ is expected_closure):
+                raise error('Runtime drift: rank observation function environment')
+            for cell, value in expected_cells:
+                if cell.cell_contents is not value:
+                    raise error('Runtime drift: rank observation closure')
+
+    return RankObservationGuard

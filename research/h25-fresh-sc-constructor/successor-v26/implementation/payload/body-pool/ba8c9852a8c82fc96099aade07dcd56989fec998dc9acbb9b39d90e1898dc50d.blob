@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "lane": "P3",
+  "title": "Stateless bounded native canonical complement-record encoder",
+  "status": "SOURCE_RESEARCH_READY_FOR_REVIEW_IMPLEMENTATION_NOT_AUTHORIZED",
+  "ownership": "outputs/h25-bookkeeping-swarm-20261028/priorities/trace-encoding/**",
+  "baseline": {
+    "pr": 5995,
+    "head": "4f4159820c37f01d245784d1186bd51fcbc8ebb6",
+    "arm": "native C with every existing control",
+    "package": "outputs/gf2-full-network-20261028/publication-repo/research/gf2-full-network",
+    "code_manifest_sha256": "0ce6a3c120fc4f8f7ab98f044b3d7a72ce72310972c3846a4835bfc01e16a0d7",
+    "inspected_sha256": {
+      "engine/native_backend.py": "e473c38245c3668715b5a78dfe980b2fe3ed0d0c9b8c97c666fbae6ecf1fffd5",
+      "engine/finite_controls.py": "df989a831aac43cc1af95169dad8c64a7548760e6e1f96976da996703f2c8f7a",
+      "engine/native_gf2.c": "e9c3c9194a08718bd1575c1cf08c6c6772d3b644c2e274c25a84a1f9249d06cc",
+      "full_driver.py": "0d976d2eb6b845f20d4a3396591a806f966688b88693cd6a5f8a0c9e48925e36",
+      "anchor.json": "bbe53360088e1d7183a9801d3954bd723f580cb283d2f8dd0bb7a54ebb80c298"
+    },
+    "frozen_source_sha256": {
+      "complex_circuit.py": "d623617f7c5cb3189580883a8ab30c0bd3832688ae3f1f0c1f881bbbbff8e0c1",
+      "complex_network.py": "0da395e67ac04fa213494e71012c1b19b544596d34cdce5a3b172b1fb6af5f1b"
+    },
+    "existing_stream": {
+      "calls": 238685,
+      "canonical_stream_bytes": 55839507,
+      "sha256": "7dec2bf33303c37e1c699609e83768d61df7e19104d34a26a148f66d5ccc4838",
+      "schema": "v2-jsonl:call,us,vs,result(type=list+values or type=None); ordered exact integer vectors",
+      "evidence_kind": "existing frozen anchor, not measured in this lane"
+    }
+  },
+  "current_guidance": {
+    "commit": "19fdb086ea96af9a9f87936a2b888e10af4ed810",
+    "priority_revision": 8,
+    "live_overlap_owner": "parent control/UPSTREAM-REFRESH.json and Chrome workflow"
+  },
+  "primary": {
+    "mechanism": "Replace only after's record serialization expression with stateless native bytes encoding on exact bounded values; fallback uses original expression",
+    "before": "Unchanged exact Label/dict/int checks; snapshot big then small into ordered tuples before arithmetic",
+    "adapter": "Parent injects make_trace_type(backend, native_encoder_module) before bind; construct final trace instance and closure values before RuntimeGuard captures them",
+    "native_interface": "encode_record(call, us, vs, output) -> exact bytes including newline | NotImplemented; NULL only for genuine Python errors",
+    "fast_domain": {
+      "call": "exact int in [0, 2**64-1]",
+      "us": "exact tuple, 0..64 entries, each exact int in [0, 2**64-1]",
+      "vs": "exact tuple, 0..64 entries, each exact int in [0, 2**64-1]",
+      "output": "None or exact list, 0..64 entries, each exact int in [0, 2**64-1]"
+    },
+    "fallback": "Any unsupported count, vector shape, length, exact type, negative sign or width returns NotImplemented without callbacks or state mutation; after retains the original output validation, builds original result/record dictionaries and calls the original json.dumps(...sort_keys=True,separators=(',',':'),ensure_ascii=True).encode('ascii') + newline expression",
+    "order": ["unpack inputs", "original output validation", "encode complete record", "existing hasher.update(encoded)", "existing bytes += len(encoded)", "existing count += 1"],
+    "canonical_key_order": {"record": ["call", "result", "us", "vs"], "list_result": ["type", "values"], "none_result": ["type"]},
+    "runtime_admission": "Frozen ordinary CPython 3.12 JSON runtime; serial calls without mutation within call. No claim of arbitrary JSON monkeypatch equivalence. Native entry replacement is checked at the live guard boundary.",
+    "binding_requirement": "Parent extends native ownership/entry freshness records before RuntimeGuard construction. Separate extension requires additional owner and callable checks; combined module requires encoder in native_items. Never alter captured wrapper closure identities afterward.",
+    "memory": "8192-byte checked per-call stack buffer, one immutable bytes allocation/copy, no shared scratch, no retained input/output refs, GIL held while accessing exact container borrowed refs",
+    "conversion": "PyLong_CheckExact before PyLong_AsUnsignedLongLong; check PyErr_Occurred, clear only OverflowError for fallback, propagate other errors; no mask conversion or double conversion",
+    "digit_rendering": "Unsigned division/remainder decimal rendering; fixed ASCII punctuation/literals and final LF; locale independent",
+    "parent_integration_choice": "Separate _trace_encoding extension with charged cold build, or parent-owned merge of encoder fragment into combined native module; lane does not edit existing native_gf2.c"
+  },
+  "private_future_files": ["trace_encoder.c", "trace_adapter.py", "trace_controls.py", "ADAPTER.md"],
+  "unchanged": [
+    "All original arithmetic and independent checks",
+    "before snapshot timing and exact integer vectors",
+    "original after unpacking and output validation",
+    "output object identity and no output mutation",
+    "immediate SHA256 update with identical complete bytes",
+    "hash/counters/receipt visibility after each successful record",
+    "original counter update and partial-failure ordering",
+    "all full witnesses, rank traces and complete receipts",
+    "arbitrary-width and sign behavior through JSON fallback"
+  ],
+  "removed_hot_path_work": [
+    "result dictionary allocation",
+    "record dictionary allocation",
+    "json.dumps keyword dispatch and per-call JSONEncoder construction",
+    "general JSON container dispatch/sorted keys for fixed schema",
+    "intermediate unicode result and ASCII encoding",
+    "newline bytes concatenation"
+  ],
+  "retained_costs": ["tuple snapshots", "exact-output Python validation", "all old runtime/native checks", "all canonical bytes", "one immediate original SHA256 update", "original counters/receipt", "all old controls", "full frozen caller and witnesses"],
+  "new_costs": ["native-call dispatch", "exact-type/length admission", "checked integer conversion", "decimal rendering and checked buffer append", "one bytes allocation/copy", "native encoder entry freshness", "source custody", "cold compile/link/load", "new finite/failure controls", "failure retention and private build cleanup"],
+  "cost_status": "Unknown until parent serial complete runs; unknown is not zero; no component or 15-percent gain claimed",
+  "alternatives": [
+    {"name": "Cross-call buffering", "disposition": "REJECT_SOURCE_CONTRACT", "reason": "Public hash prefixes and hash-update failure boundaries are immediate"},
+    {"name": "Drop or delay before snapshots", "disposition": "REJECT_SOURCE_CONTRACT", "reason": "Breaks ordered alias snapshots before arithmetic"},
+    {"name": "Cache a JSONEncoder", "disposition": "RESERVE_ONLY", "reason": "Smaller implementation but retains dictionaries/unicode/ASCII/newline and general C encoder work; only execute after new discriminating evidence"},
+    {"name": "Custom native SHA or checksum", "disposition": "REJECT_SCOPE", "reason": "SHA already native; target is Python bookkeeping, and checksum change prohibited"}
+  ],
+  "controls": {
+    "old": ["All finite_controls.run_controls including independent dense oracle", "7 original trace pairs", "4 original trace negatives", "arbitrary-width arithmetic fallback", "all existing runtime-drift rejections"],
+    "new_bytes_and_prefix": ["Exact literal JSON bytes including LF per record", "empty list versus None", "input and output order permutations", "decimal digit transitions", "uint64 maximum", "negative values", "2**64 and 2**100", "64 versus 65 entries", "wide decimal digit-limit success/error", "every receipt and hasher.copy() prefix"],
+    "new_boundaries": ["bool and int/list/tuple subclasses", "malformed inputs unpacking", "invalid output exact types/values", "basis mutation after before", "output mutation after after", "custom input shape fallback without early callbacks", "failing hasher update before and after its own state mutation", "counter failure after successful hash update", "native-entry mutation before arithmetic", "fallback sentinel followed by valid call has no stale error", "no retained aliases/references"],
+    "modes": ["normal finite", "optimized finite", "assertion-on full caller"],
+    "failure_comparison": "Compare exception type/message, hasher prefix, byte count and call count at the same boundary; do not reduce to success-only final digest"
+  },
+  "hazards": [
+    "Fixed buffer must have checked append and a proved all-admitted-domain bound; never expose partial bytes",
+    "UINT64_MAX is also an error sentinel from conversion, so the error indicator is mandatory",
+    "PyTuple/List item references are borrowed; retain GIL and own container reference during access",
+    "Fall back instead of truncating wide or negative values",
+    "JSON digit-limit failure belongs to original fallback and must remain visible",
+    "Avoid delayed counters, hash buffering or replacing hasher object",
+    "Never mutate original frozen source or captured wrapper cells after binding",
+    "Separate native owner/entry checks and compile costs may erase serialization savings",
+    "Do not broaden claims to arbitrary mutation of json/backend/process memory",
+    "Make only fresh private build/runtime directories writable for cleanup"
+  ],
+  "primary_sources": [
+    {"url": "https://docs.python.org/3.12/library/json.html", "use": "sort_keys, compact separators, ASCII and unicode output contract"},
+    {"url": "https://docs.python.org/3.12/c-api/long.html", "use": "exact types, overflow/error indicators, no mask conversion"},
+    {"url": "https://docs.python.org/3.12/c-api/bytes.html", "use": "bytes allocation and buffer ownership"},
+    {"url": "https://docs.python.org/3.12/c-api/tuple.html", "use": "exact tuples and borrowed item references"},
+    {"url": "https://docs.python.org/3.12/c-api/list.html", "use": "exact lists and borrowed item references"},
+    {"url": "https://docs.python.org/3.12/library/hashlib.html", "use": "prefix exposure, GIL threshold and existing native SHA implementations"}
+  ],
+  "inspected_local_stdlib": {
+    "/usr/lib/python3.12/json/__init__.py": "d5d41e2c29049515d295d81a6d40b4890fbec8d8482cfb401630f8ef2f77e4d5",
+    "/usr/lib/python3.12/json/encoder.py": "af7bd40a0d0d0a3e726a9b4b3a2a543019f6ab97a340d0162a9c29ca9da97869"
+  },
+  "discriminating_next_test": "After parent and independent design gate: one parent cold compile and exact byte/prefix/failure finite comparison; if correct, one complete native-baseline/candidate pilot including all new costs and old controls. No lane-owned run.",
+  "stage_actions_performed": ["source reads", "bounded primary documentation reads", "file SHA256 reads", "write these two proposal documents"],
+  "stage_actions_not_performed": ["implementation", "scientific imports", "compilers", "numerical runs", "corpus generation/decoding", "Git mutations", "browser writes", "delegation"]
+}

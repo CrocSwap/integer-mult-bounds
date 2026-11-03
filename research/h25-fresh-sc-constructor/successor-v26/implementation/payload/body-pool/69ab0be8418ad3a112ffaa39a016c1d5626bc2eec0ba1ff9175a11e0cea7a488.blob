@@ -1,0 +1,708 @@
+"""UNCONFIGURED SOURCE ONLY: owned policy launch, exec barrier and terminal receiver.
+
+The authenticated original parent imports/configures this exact closure. No
+caller process, descriptor, receipt, status, callback or completion is accepted.
+This is a component of its enclosing reservation, never another outer runner.
+Kernel exec/FD and CPython terminal semantics remain separate UNADOPTED gates.
+"""
+import ast
+import os
+import resource
+import signal
+import subprocess
+import time
+import epoch_schema_v5 as schema
+import epoch_copy_v5 as copying
+import group01_evidence_v1 as evidence
+import parent_closure_v1 as closure
+import parent_completion_v1 as parent
+import policy_process_domain_v1 as domain
+import policy_receiver_closure_v1 as policy_closure
+
+CONFIGURATION = None
+SOURCE_REVIEW = None
+RUNTIME_PROFILE = None
+KERNEL_EXEC_PROFILE = None
+PHASED_FD_CONTRACT = None
+TERMINAL_STATUS_CONTRACT = None
+REPLAY_BINDING = None
+STAGE_APPROVAL = None
+COMMAND_APPROVAL = None
+FUNDING = None
+EXECUTION_APPROVAL = None
+
+ROLES = ('S0_NNP_FLAGS19', 'S1_FILTER_FLAGS3', 'S2_FILTER_FLAGS19')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+BPF_HEX = ('2000000004000000150001003e0000c00600000000000080'
+           '200000000000000045000001000000400600000000000080'
+           '150000033f01000020000000180000004500000110000000'
+           '0600000001000500060000000000ff7f')
+COUNTERS = ('load_calls', 'native_creations', 'native_execs', 'activation_attempts',
+            'successful_bindings', 'deactivation_attempts', 'cleanup_failures',
+            'control_module_creations')
+_TYPE, _LEN = type, len
+_OPEN, _READ, _PREAD, _WRITE, _CLOSE = os.open, os.read, os.pread, os.write, os.close
+_PIPE, _FSTAT, _STAT, _SCANDIR = os.pipe2, os.fstat, os.stat, os.scandir
+_SET_BLOCKING = os.set_blocking
+_POPEN, _CLOCK, _SLEEP = subprocess.Popen, time.monotonic, time.sleep
+_OWNERS = []
+REQUIRED_POLICY_MODULES = parent.REQUIRED_MODULES + (
+    'policy_parent_domain_v1', 'policy_process_domain_v1', 'policy_receiver_closure_v1')
+# Two original 64KiB generation budgets plus each 25-byte incomplete literal.
+RAW_LIMIT = 131122
+PROC_LIMIT = 65536
+
+
+def _gate():
+    schema.exact(CONFIGURATION, ('normal', 'optimized', 'receiver_policy'))
+    for pin in CONFIGURATION.values():
+        schema.blob(pin, schema.RECORD_BYTES)
+    for value, label in ((SOURCE_REVIEW, 'SOURCE_REVIEW'), (RUNTIME_PROFILE, 'RUNTIME_PROFILE'),
+        (KERNEL_EXEC_PROFILE, 'KERNEL_EXEC_PROFILE'), (PHASED_FD_CONTRACT, 'PHASED_FD_CONTRACT'),
+        (TERMINAL_STATUS_CONTRACT, 'TERMINAL_STATUS_CONTRACT'), (REPLAY_BINDING, 'REPLAY_BINDING'),
+        (STAGE_APPROVAL, 'STAGE_APPROVAL'), (COMMAND_APPROVAL, 'COMMAND_APPROVAL'),
+        (FUNDING, 'FUNDING'), (EXECUTION_APPROVAL, 'EXECUTION_APPROVAL')):
+        schema.need(_TYPE(value) is tuple and _LEN(value) == 2 and _TYPE(value[0]) is str and value[0] == label,
+                    'policy domain exact external gate absent')
+        schema.digest(value[1])
+
+
+def _owner(token):
+    schema.need(_TYPE(token) is object, 'exact policy owner required')
+    for known, state in _OWNERS:
+        if token is known:
+            return state
+    raise schema.EpochStop('unknown policy owner')
+
+
+def _guard(state):
+    _gate()
+    parent._guard(state['parent'])
+    policy_closure.check_receivers(state['receivers'])
+    schema.need(policy_closure.receiver(state['receivers'], 'policy_parent_domain_v1', 'run_policy') is run_policy and
+                policy_closure.receiver(state['receivers'], 'policy_process_domain_v1', 'create_policy_domain') is
+                domain.create_policy_domain, 'actual fixed policy receiver closure differs')
+    schema.need(CONFIGURATION['receiver_policy'] == state['receiver_pin'], 'policy receiver pin changed')
+    copying.verify(state['receiver_pin'], error_owner=state['parent']['errors'])
+    schema.need(state['phase'] != 'STOP' and state['parent']['phase'] in
+                ('READY', 'PRODUCERS_ACCEPTED', 'EXPORTED'), 'policy parent phase differs')
+    schema.need(CONFIGURATION[state['mode']] == state['plan_pin'], 'policy plan pin changed')
+    copying.verify(state['plan_pin'], error_owner=state['parent']['errors'])
+    schema.need(schema.canonical(state['plan']) == state['plan_raw'], 'policy private plan changed')
+    schema.need((_OPEN, _READ, _PREAD, _WRITE, _CLOSE, _PIPE, _FSTAT, _STAT, _SCANDIR,
+                 _SET_BLOCKING, _POPEN, _CLOCK, _SLEEP) ==
+                (os.open, os.read, os.pread, os.write, os.close, os.pipe2, os.fstat, os.stat,
+                 os.scandir, os.set_blocking, subprocess.Popen, time.monotonic, time.sleep),
+                'policy original primitive bindings changed')
+
+
+def _validate_plan(plan, original):
+    schema.exact(plan, ('schema', 'mode', 'epoch', 'parent_epoch_id', 'parent_plan_sha256',
+        'roles', 'source_files', 'stage_directory', 'stage_manifest', 'stage_directories',
+        'profile_sha256', 'session_directory', 'configuration_profile'))
+    schema.need(plan['schema'] == 'h25-policy-parent-domain-plan-v2' and
+                plan['mode'] == original['plan']['mode'], 'policy mode or schema differs')
+    schema.digest(plan['epoch'])
+    schema.digest(plan['profile_sha256'])
+    # Expected gate data comes from this independently pinned parent plan,
+    # never from the current module namespace or a child observation.
+    policy_closure._configuration_profile(plan['configuration_profile'])
+    schema.need(_TYPE(plan['parent_epoch_id']) is str and plan['parent_epoch_id'] ==
+                original['plan']['epoch_id'] and plan['parent_plan_sha256'] ==
+                original['configuration']['plan']['sha256'], 'policy original parent/epoch binding differs')
+    schema.digest(plan['parent_plan_sha256'])
+    schema.path(plan['session_directory'])
+    schema.path(plan['stage_directory'])
+    schema.blob(plan['stage_manifest'], schema.RECORD_BYTES)
+    schema.need(plan['session_directory'].startswith(original['plan']['session_directory'] + '/'),
+                'policy evidence must stay in original owned parent session')
+    schema.exact(plan['roles'], ROLES)
+    tokens, generations = set(), set()
+    for role in ROLES:
+        row = plan['roles'][role]
+        schema.exact(row, ('token', 'generation', 'context_sha256', 'helper_path', 'helper_sha256',
+            'root_path', 'root_sha256', 'provider_path', 'provider_sha256', 'preflight_schema',
+            'initial_status', 'expected_denial', 'root_seconds', 'rss_bytes', 'address_space_bytes'))
+        for key in ('token', 'generation', 'context_sha256', 'helper_sha256', 'root_sha256', 'provider_sha256'):
+            schema.digest(row[key])
+        schema.need(row['token'] not in tokens and row['generation'] not in generations,
+                    'policy token or generation replay in fixed plan')
+        tokens.add(row['token'])
+        generations.add(row['generation'])
+        for key in ('helper_path', 'root_path', 'provider_path'):
+            schema.path(row[key])
+            schema.need(row[key].startswith(plan['stage_directory'] + '/'), 'policy source outside exact stage')
+        schema.text(row['preflight_schema'], 128)
+        status = row['initial_status']
+        schema.need(_TYPE(status) is list and _LEN(status) == 5 and
+                    all(_TYPE(x) is int for x in status) and status[0] == 1 and
+                    status[1] in (0, 1) and status[2] in (0, 2) and
+                    0 <= status[3] <= 4096 and status[4] == 0, 'initial policy status profile differs')
+        denial = row['expected_denial']
+        schema.need(_TYPE(denial) is list and _LEN(denial) == 5 and
+                    _TYPE(denial[0]) is str and denial[0] == 'PermissionError' and
+                    _TYPE(denial[1]) is int and denial[1] == 1 and
+                    _TYPE(denial[2]) is list and _LEN(denial[2]) == 2 and
+                    _TYPE(denial[2][0]) is int and denial[2][0] == 1 and
+                    _TYPE(denial[2][1]) is str and 0 < _LEN(denial[2][1]) <= 4096 and
+                    denial[3] is None and denial[4] is None, 'independent native denial profile absent')
+        schema.integer(row['root_seconds'], 1, 180)
+        schema.integer(row['rss_bytes'], 1, 1024 ** 3)
+        schema.integer(row['address_space_bytes'], 1, 1024 ** 3)
+    by_path = {x['path']: x for x in plan['source_files']}
+    for row in plan['roles'].values():
+        for kind in ('helper', 'root', 'provider'):
+            schema.need(row[kind + '_path'] in by_path and
+                        by_path[row[kind + '_path']]['sha256'] == row[kind + '_sha256'],
+                        'fixed policy source missing from complete source inventory')
+
+
+def make_policy_parent(original_parent, original_receivers):
+    """Bind a registered original owner before any policy launch; no C prerequisite."""
+    _gate()
+    original = parent._state(original_parent)
+    try:
+        parent._guard(original)
+        schema.need(_LEN(_OWNERS) < 2 and not any(x['mode'] == original['plan']['mode'] for _, x in _OWNERS),
+                    'one policy owner per mode, no reconstruction')
+        token = object()
+        state = {'parent': original, 'mode': original['plan']['mode'], 'phase': 'CONSTRUCTING',
+                 'next': 0, 'runs': [], 'primary': [None], 'plan_pin': None, 'plan': None, 'plan_raw': None,
+                 'receiver_pin': None, 'receivers': None}
+        _OWNERS.append((token, state))
+    except BaseException as error:
+        if original['unknown_owner']['primary'][0] is None:
+            original['unknown_owner']['primary'][0] = error
+        raise
+    try:
+        state['plan_pin'] = schema.plain_copy(CONFIGURATION[state['mode']])
+        raw = copying.read_verified(state['plan_pin'], schema.RECORD_BYTES, error_owner=original['errors'])
+        state['plan'] = evidence.decode(raw)
+        _validate_plan(state['plan'], original)
+        for unused, prior in _OWNERS[:-1]:
+            for key in ('token', 'generation'):
+                schema.need(not {x[key] for x in state['plan']['roles'].values()} &
+                            {x[key] for x in prior['plan']['roles'].values()},
+                            'cross-mode policy token/generation replay')
+        state['plan_raw'] = schema.canonical(state['plan'])
+        state['receiver_pin'] = schema.plain_copy(CONFIGURATION['receiver_policy'])
+        receiver_policy = evidence.decode(copying.read_verified(state['receiver_pin'],
+            schema.RECORD_BYTES, error_owner=original['errors']))
+        old_policy = evidence.decode(copying.read_verified(original['configuration']['receiver_policy'],
+            schema.RECORD_BYTES, error_owner=original['errors']))
+        schema.need(_TYPE(receiver_policy) is dict and set(receiver_policy) == set(REQUIRED_POLICY_MODULES) and
+                    _TYPE(original_receivers) is dict and set(original_receivers) == set(REQUIRED_POLICY_MODULES),
+                    'exact policy receiver inventory differs')
+        for record in closure._packet(original['receivers'])[1]:
+            name, module = record[0], record[1]
+            schema.need(original_receivers[name] is module and receiver_policy[name] == old_policy[name],
+                        'original33 module object/source binding changed')
+        state['receivers'] = policy_closure.bind_receivers(original_receivers, receiver_policy, original['errors'],
+            state['plan']['configuration_profile'])
+        state['phase'] = 'READY'
+        _guard(state)
+        return token
+    except BaseException as error:
+        state['primary'][0] = error
+        if original['unknown_owner']['primary'][0] is None:
+            original['unknown_owner']['primary'][0] = error
+        state['phase'] = 'STOP'
+        raise
+
+
+def _fresh(run):
+    unknown = run['owner']['parent']['unknown_owner']
+    domain.refresh_unknown_owner(unknown)
+    schema.need(not unknown['pending'][0] and not unknown['quarantine'][0] and
+                not unknown['iterator_uncertain'][0], 'policy unresolved acquisition prohibits I/O')
+    return unknown
+
+
+def _read_proc(run, path):
+    unknown = _fresh(run)
+    descriptor, primary = None, None
+    try:
+        unknown['pending'][0] = True
+        descriptor = _OPEN(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        unknown['pending'][0] = False
+        raw = _READ(descriptor, PROC_LIMIT + 1)
+        schema.need(_TYPE(raw) is bytes and _LEN(raw) <= PROC_LIMIT, 'policy proc bound exceeded')
+        return raw
+    except BaseException as error:
+        primary = error
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        unknown['quarantine'][0] = True
+        raise
+    finally:
+        if descriptor is not None:
+            owned = descriptor
+            descriptor = None
+            try:
+                _CLOSE(owned)
+            except BaseException as error:
+                if unknown['primary'][0] is None:
+                    unknown['primary'][0] = error
+                unknown['quarantine'][0] = True
+                run['errors'][0] = error
+                if primary is None:
+                    raise
+
+
+def _fd_census(run, helper):
+    unknown = _fresh(run)
+    path = '/proc/' + str(run['process'].pid) + '/fd'
+    iterator, primary = None, None
+    names = []
+    try:
+        unknown['pending'][0] = True
+        iterator = _SCANDIR(path)
+        unknown['pending'][0] = False
+        for entry in iterator:
+            schema.need(_LEN(names) < 8 and _TYPE(entry.name) is str and entry.name.isdecimal(),
+                        'policy descriptor census overflow or name differs')
+            names.append(entry.name)
+    except BaseException as error:
+        primary = error
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        unknown['quarantine'][0] = True
+        unknown['iterator_uncertain'][0] = True
+        raise
+    finally:
+        if iterator is not None:
+            owned = iterator
+            iterator = None
+            try:
+                owned.close()
+            except BaseException as error:
+                if unknown['primary'][0] is None:
+                    unknown['primary'][0] = error
+                unknown['quarantine'][0] = True
+                unknown['iterator_uncertain'][0] = True
+                run['errors'][1] = error
+                if primary is None:
+                    raise
+    expected = {'0': run['identities'][2], '1': run['identities'][4], '2': run['identities'][5]}
+    if helper:
+        expected[str(run['barrier_number'])] = run['identities'][1]
+    schema.need(sorted(names) == sorted(expected), 'live descriptor set differs from exact phase')
+    rows = []
+    for name in sorted(expected):
+        info = _STAT(path + '/' + name, follow_symlinks=True)
+        schema.need((info.st_dev, info.st_ino, info.st_mode) == expected[name], 'owned pipe/log inode differs')
+        raw = _read_proc(run, '/proc/' + str(run['process'].pid) + '/fdinfo/' + name)
+        fields = {}
+        for line in raw.decode('ascii').splitlines():
+            key, separator, value = line.partition(':')
+            if separator:
+                schema.need(key not in fields, 'duplicate fdinfo field')
+                fields[key] = value.strip()
+        flags = int(fields['flags'], 8)
+        schema.need(flags & os.O_ACCMODE == (os.O_RDONLY if name == '0' else
+                    os.O_WRONLY if helper and name == str(run['barrier_number']) else os.O_RDWR),
+                    'policy descriptor access direction differs')
+        if helper and name == str(run['barrier_number']):
+            schema.need(flags & os.O_CLOEXEC != 0, 'held helper barrier lost CLOEXEC')
+        else:
+            schema.need(flags & os.O_CLOEXEC == 0, 'standard descriptor cannot vanish at the fixed exec')
+        rows.append((name, expected[name], flags, raw))
+    return tuple(rows)
+
+
+def _same(actual, expected):
+    if _TYPE(actual) is not _TYPE(expected):
+        return False
+    if _TYPE(actual) is tuple:
+        return _LEN(actual) == _LEN(expected) and all(_same(a, b) for a, b in zip(actual, expected))
+    return actual == expected
+
+
+def _live_profile(run, command):
+    """Parent observations supplement, never replace, the fixed helper/Root checks."""
+    prefix = '/proc/' + str(run['process'].pid)
+    argv = _read_proc(run, prefix + '/cmdline')
+    environment = _read_proc(run, prefix + '/environ')
+    schema.need(argv == b'\0'.join(x.encode() for x in command) + b'\0' and
+                environment.endswith(b'\0') and sorted(environment[:-1].split(b'\0')) ==
+                sorted(k.encode() + b'=' + v.encode() for k, v in ENV.items()),
+                'held process actual command/environment differs')
+    executable = _STAT(prefix + '/exe', follow_symlinks=True)
+    matches = [row for row in run['sources_before'] if row['path'] == '/usr/bin/python3.12']
+    schema.need(_LEN(matches) == 1, 'exact interpreter missing from complete source inventory')
+    identity = matches[0]['identity']
+    schema.need((executable.st_dev, executable.st_ino, executable.st_mode) ==
+                (identity['device'], identity['inode'], identity['mode']), 'held executable identity differs')
+    cwd, expected_cwd = _STAT(prefix + '/cwd', follow_symlinks=True), _STAT(
+        run['owner']['plan']['stage_directory'], follow_symlinks=False)
+    schema.need((cwd.st_dev, cwd.st_ino, cwd.st_mode) ==
+                (expected_cwd.st_dev, expected_cwd.st_ino, expected_cwd.st_mode), 'held cwd identity differs')
+    status = _read_proc(run, prefix + '/status')
+    keys = ('Threads', 'NoNewPrivs', 'Seccomp', 'Seccomp_filters', 'TracerPid')
+    fields = {}
+    for line in status.decode('ascii').splitlines():
+        key, separator, value = line.partition(':')
+        if separator and key in keys:
+            schema.need(key not in fields, 'held status has duplicate field')
+            fields[key] = int(value.strip())
+    before = run['row']['initial_status']
+    s0 = run['role'] == ROLES[0]
+    expected = (1, 1, before[2] if s0 else 2, before[3] + (not s0), 0)
+    schema.need(set(fields) == set(keys) and tuple(fields[key] for key in keys) == expected,
+                'parent observed held policy status differs')
+    return (argv, environment, (executable.st_dev, executable.st_ino, executable.st_mode),
+            (cwd.st_dev, cwd.st_ino, cwd.st_mode), status)
+
+
+def _records(raw):
+    # Pread observes the parent's already-written raw log, before any parse.
+    schema.need(_TYPE(raw) is bytes and _LEN(raw) <= RAW_LIMIT, 'combined original generation stdout bound exceeded')
+    if raw and not raw.endswith(b'\n'):
+        return None
+    lines = raw.splitlines()
+    schema.need(_LEN(lines) <= 18 and all(0 < _LEN(line) <= 16384 for line in lines), 'raw row bound differs')
+    result = []
+    for line in lines:
+        tree = ast.parse(line.decode('ascii'), mode='eval')
+        stack, count = [(tree, 0)], 0
+        while stack:
+            node, depth = stack.pop()
+            count += 1
+            schema.need(count <= 4096 and depth <= 32 and _TYPE(node) in
+                        (ast.Expression, ast.Tuple, ast.Constant, ast.UnaryOp, ast.USub, ast.Load),
+                        'policy raw syntax outside bounded literal tuple domain')
+            if _TYPE(node) is ast.Constant:
+                schema.need(_TYPE(node.value) in (str, bytes, int, bool, type(None)), 'raw scalar type differs')
+            stack.extend((child, depth + 1) for child in ast.iter_child_nodes(node))
+        row = ast.literal_eval(tree)
+        schema.need(_TYPE(row) is tuple and _LEN(row) == 9, 'exact nine-field policy row required')
+        result.append(row)
+    return tuple(result)
+
+
+def _prefix(run, include_root):
+    state, row, role = run['owner'], run['row'], run['role']
+    before = tuple(row['initial_status'])
+    after = (1, 1, before[2] if role == ROLES[0] else 2, before[3] + (role != ROLES[0]), 0)
+    def record(event, data):
+        return ('h25-policy-raw-v1', event, row['token'], state['plan']['epoch'], state['mode'],
+                role, row['generation'], row['context_sha256'], data)
+    result = [record('helper-start', (row['helper_sha256'], row['root_sha256'], run['helper_argv'], before)),
+              record('nnp-return', (0, 0))]
+    if role != ROLES[0]:
+        result.append(record('filter-return', (BPF_HEX, 0, 0, before)))
+    result.append(record('exec-intent', (run['root_command'],
+        tuple(sorted((k.encode(), v.encode()) for k, v in ENV.items())),
+        row['root_sha256'], row['helper_sha256'], after)))
+    if include_root:
+        result.append(record('root-start', (row['root_sha256'], row['helper_sha256'],
+            run['root_argv'], after, row['root_sha256'], row['preflight_schema'])))
+    return tuple(result)
+
+
+def _tick(run, terminal_allowed=False):
+    schema.need(_CLOCK() <= run['deadline'], 'policy complete role deadline exceeded')
+    unused, current = domain.observe(run['domain'])
+    run['peak_rss'] = max(run['peak_rss'], sum(row[6] for row in current))
+    schema.need(run['peak_rss'] <= run['row']['rss_bytes'], 'policy owned RSS sum exceeded')
+    schema.need(all(_FSTAT(run['fds'][i]).st_size <= schema.LOG_BYTES for i in (4, 5)),
+                'policy ordinary stdout/stderr bound exceeded')
+    result = domain.poll_owned(run['domain'])
+    if not terminal_allowed:
+        schema.need(result is None and _LEN(current) == 1 and current[0][0] == run['process'].pid,
+                    'policy live held process or exclusive child domain differs')
+    return result
+
+
+def _held_prefix(run, root):
+    expected = _prefix(run, root)
+    while True:
+        _tick(run)
+        raw = _PREAD(run['fds'][4], RAW_LIMIT + 1, 0)
+        rows = _records(raw)
+        if rows is not None:
+            schema.need(_LEN(rows) <= _LEN(expected) and _same(rows, expected[:_LEN(rows)]),
+                        'held policy prefix is extra, reordered or inconsistent')
+            if _LEN(rows) == _LEN(expected):
+                return raw
+        _SLEEP(0.01)
+
+
+def _close_slot(run, index):
+    fd = run['fds'][index]
+    if fd is None or run['close_attempted'][index]:
+        return
+    run['close_attempted'][index] = True
+    try:
+        _CLOSE(fd)
+        run['close_confirmed'][index] = True
+    except BaseException as error:
+        unknown = run['owner']['parent']['unknown_owner']
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        unknown['quarantine'][0] = True
+        run['close_errors'][index] = error
+        raise
+
+
+def _release(run, slot, byte):
+    schema.need(run['release_attempted'][slot] is False, 'policy release replay')
+    run['release_attempted'][slot] = True
+    count = _WRITE(run['fds'][3], byte)
+    schema.need(_TYPE(count) is int and count == 1, 'policy one-shot release incomplete')
+    run['release_returned'][slot] = True
+
+
+def run_policy(owner, role):
+    """Launch exactly one source-fixed helper and return an opaque joined token."""
+    state = _owner(owner)
+    unknown = state['parent']['unknown_owner']
+    try:
+        _guard(state)
+        schema.need(_TYPE(role) is str and state['phase'] == 'READY' and state['next'] < 3 and
+                    role == ROLES[state['next']], 'policy fixed role order, prior failure or replay')
+        token = object()
+        run = {'owner': state, 'token': token, 'role': role, 'row': state['plan']['roles'][role],
+            'phase': 'RESERVED', 'fds': [None] * 6, 'pipe_returns': [None] * 2,
+            'close_attempted': [False] * 6, 'close_confirmed': [False] * 6,
+            'close_errors': [None] * 6, 'errors': [None] * 8, 'primary': [None],
+            'domain': None, 'process': None, 'identities': None, 'release_attempted': [False] * 2,
+            'release_returned': [False] * 2, 'barrier_eof': False, 'peak_rss': 0,
+            'began': _CLOCK(), 'terminal': None, 'helper_census': None, 'root_census': None,
+            'helper_prefix': None, 'root_prefix': None, 'stdout': None, 'stderr': None}
+        state['runs'].append(run)
+        state['next'] += 1  # consume before any preparation/native acquisition
+        state['phase'] = 'RUNNING'
+        original, row = state['parent'], run['row']
+        unknown = original['unknown_owner']
+    except BaseException as error:
+        if state['primary'][0] is None:
+            state['primary'][0] = error
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        if _TYPE(error) is MemoryError:
+            unknown['quarantine'][0] = True
+        state['phase'] = 'STOP'
+        raise
+    primary, cleanup = None, None
+    alarm_installed, old_handler = False, None
+    try:
+        run['deadline'] = min(run['began'] + row['root_seconds'],
+                              original['shared_deadline'] - domain.CLEANUP_SECONDS)
+        schema.need(_CLOCK() < run['deadline'], 'no policy cleanup reservation remains')
+        run['sources_before'] = parent._snapshot_sources(state['plan'], original['errors'])
+        run['stage_before'] = parent._stage(state['plan'], original['errors'], original)
+        run['domain'] = domain.create_policy_domain(unknown)
+        # One tuple return can hide TWO descriptors on native boxing failure.
+        # pending remains set until both authentic returned ints are rooted.
+        for pair_index in range(2):
+            _fresh(run)
+            unknown['pending'][0] = True
+            run['pipe_returns'][pair_index] = _PIPE(os.O_CLOEXEC | (os.O_NONBLOCK if pair_index == 0 else 0))
+            pair = run['pipe_returns'][pair_index]
+            run['fds'][pair_index * 2] = pair[0]
+            run['fds'][pair_index * 2 + 1] = pair[1]
+            unknown['pending'][0] = False
+        _SET_BLOCKING(run['fds'][3], False)
+        directory = state['plan']['session_directory'] + '/' + role
+        os.mkdir(directory, 0o700)
+        run['directory'] = directory
+        for index, name in ((4, 'stdout.raw'), (5, 'stderr.raw')):
+            _fresh(run)
+            unknown['pending'][0] = True
+            run['fds'][index] = _OPEN(directory + '/' + name,
+                os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+            unknown['pending'][0] = False
+        infos = tuple(_FSTAT(fd) for fd in run['fds'])
+        schema.need(all(_TYPE(fd) is int and 3 <= fd <= 65535 for fd in run['fds']) and
+                    _LEN(set(run['fds'])) == 6, 'policy fresh descriptor ownership differs')
+        run['identities'] = tuple((x.st_dev, x.st_ino, x.st_mode) for x in infos)
+        run['barrier_number'] = run['fds'][1]
+        schema.integer(run['barrier_number'], 3, 65535)
+        flags = ('/usr/bin/python3.12', '-S', '-s', '-P', '-B') + (('-O',) if state['mode'] == 'optimized' else ())
+        run['helper_argv'] = (row['helper_path'], '--policy-launch', row['token'], '--helper-sha256',
+            row['helper_sha256'], '--root-sha256', row['root_sha256'], '--exec-barrier-fd', str(run['barrier_number']))
+        run['root_argv'] = (row['root_path'], '--policy-launch', row['token'], '--root-sha256',
+                            row['root_sha256'], '--helper-sha256', row['helper_sha256'])
+        run['root_command'] = flags + run['root_argv']
+        command = flags + run['helper_argv']
+        setter, kind, limits = resource.setrlimit, resource.RLIMIT_AS, (row['address_space_bytes'],) * 2
+        def child_limit():
+            setter(kind, limits)
+        schema.need(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), 'existing timer cannot be replaced')
+        old_handler = signal.getsignal(signal.SIGALRM)
+        signal.signal(signal.SIGALRM, parent._alarm)
+        alarm_installed = True
+        signal.setitimer(signal.ITIMER_REAL, max(0.000001, run['deadline'] - _CLOCK()))
+        run['process'] = _POPEN(command, cwd=state['plan']['stage_directory'], env=dict(ENV),
+            stdin=run['fds'][2], stdout=run['fds'][4], stderr=run['fds'][5], close_fds=True,
+            pass_fds=(run['fds'][1],), start_new_session=True, preexec_fn=child_limit)
+        _close_slot(run, 1)  # sole remaining writer is in the owned helper
+        _close_slot(run, 2)  # child owns its dup at stdin0; no parent reader
+        run['root'] = domain.adopt_popen(run['domain'], run['process'])
+        run['helper_prefix'] = _held_prefix(run, False)
+        run['helper_census'] = _fd_census(run, True)
+        run['helper_profile'] = _live_profile(run, command)
+        _guard(state)
+        _release(run, 0, b'H')
+        while True:
+            _tick(run)
+            try:
+                barrier = _READ(run['fds'][0], 1)
+            except BlockingIOError:
+                _SLEEP(0.01)
+                continue
+            schema.need(barrier == b'', 'barrier data is not exec EOF')
+            run['barrier_eof'] = True
+            break
+        run['root_prefix'] = _held_prefix(run, True)
+        run['root_census'] = _fd_census(run, False)
+        run['root_profile'] = _live_profile(run, run['root_command'])
+        schema.need(parent._snapshot_sources(state['plan'], original['errors']) == run['sources_before'],
+                    'source identity changed across actual exec')
+        _guard(state)
+        _tick(run)  # owned live process after EOF AND the held Root census
+        _release(run, 1, b'R')
+        while _tick(run, True) is None:
+            _SLEEP(0.01)
+        run['stdout'] = _PREAD(run['fds'][4], RAW_LIMIT + 1, 0)
+        run['stderr'] = _PREAD(run['fds'][5], schema.LOG_BYTES + 1, 0)
+        schema.need(_LEN(run['stdout']) <= RAW_LIMIT and _LEN(run['stderr']) <= schema.LOG_BYTES,
+                    'terminal raw bounds exceeded')
+    except BaseException as error:
+        run['primary'][0] = error
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        primary = unknown['primary'][0]
+        if unknown['pending'][0] or unknown['iterator_uncertain'][0] or _TYPE(error) is MemoryError:
+            unknown['quarantine'][0] = True
+        state['phase'] = 'STOP'
+        raise primary
+    finally:
+        if alarm_installed:
+            try:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                signal.signal(signal.SIGALRM, old_handler)
+            except BaseException as error:
+                run['errors'][2] = error
+                cleanup = error
+        if run['domain'] is not None:
+            try:
+                domain.finish_domain(run['domain'])
+            except BaseException as error:
+                run['errors'][3] = error
+                if cleanup is None:
+                    cleanup = error
+        for index in range(6):
+            try:
+                _close_slot(run, index)
+            except BaseException as error:
+                if cleanup is None:
+                    cleanup = error
+        if cleanup is not None:
+            state['phase'] = 'STOP'
+            if unknown['primary'][0] is None:
+                unknown['primary'][0] = cleanup
+            if primary is None:
+                raise cleanup
+    try:
+        schema.need(all(run['close_attempted']) and all(run['close_confirmed']) and
+                    all(run['release_returned']) and run['barrier_eof'], 'policy transport ownership incomplete')
+        run['terminal'] = domain.policy_terminal_facts(run['domain'], role)
+        schema.need(parent._snapshot_sources(state['plan'], original['errors']) == run['sources_before'] and
+                    parent._stage(state['plan'], original['errors'], original) == run['stage_before'],
+                    'terminal source/stage custody differs')
+        run['phase'], state['phase'] = 'JOINED', 'JOINED'
+        _guard(state)
+        return token
+    except BaseException as error:
+        run['primary'][0] = error
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        state['phase'] = 'STOP'
+        raise
+
+
+def take_policy_observation(owner, joined):
+    """Consume our actual owned run once; never mint an epoch/Group06 completion."""
+    state = _owner(owner)
+    unknown = state['parent']['unknown_owner']
+    try:
+        _guard(state)
+        schema.need(_TYPE(joined) is object and state['phase'] == 'JOINED', 'policy join required')
+        matches = [run for run in state['runs'] if run['token'] is joined]
+        schema.need(_LEN(matches) == 1 and matches[0]['phase'] == 'JOINED', 'policy joined capability replay')
+        run = matches[0]
+        run['phase'] = 'CONSUMED'
+    except BaseException as error:
+        if state['primary'][0] is None:
+            state['primary'][0] = error
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        if _TYPE(error) is MemoryError:
+            unknown['quarantine'][0] = True
+        state['phase'] = 'STOP'
+        raise
+    try:
+        schema.need(domain.policy_terminal_facts(run['domain'], run['role']) == run['terminal'],
+                    'actual owned terminal facts changed')
+        pins = tuple(copying.inspect(run['directory'] + '/' + name, schema.LOG_BYTES,
+            error_owner=state['parent']['errors']) for name in ('stdout.raw', 'stderr.raw'))
+        raw = tuple(copying.read_verified(pin, schema.LOG_BYTES,
+            error_owner=state['parent']['errors']) for pin in pins)
+        schema.need(raw == (run['stdout'], run['stderr']), 'current raw bytes differ after owned closure')
+        rows = _records(raw[0])
+        prefix = _prefix(run, True)
+        schema.need(rows is not None and _LEN(rows) == _LEN(prefix) + 2 and
+                    _same(rows[:_LEN(prefix)], prefix), 'complete exact policy row order differs')
+        result, complete = rows[-2:]
+        envelope = prefix[-1][:1] + ('capability-result',) + prefix[-1][2:8]
+        schema.need(_same(result[:8], envelope) and _TYPE(result[8]) is tuple and _LEN(result[8]) == 11,
+                    'exact capability-result envelope differs')
+        name, flags, fd, error, cleanup, io, loads, imports, counts, images, attempts = result[8]
+        role = run['role']
+        schema.need(_same((name, flags), ('h25-policy-selectivity-v1', 3) if role == ROLES[1] else
+                    ('h25-field-image-v1', 19)) and cleanup is None and
+                    _same((loads, imports, counts, images, attempts),
+                          ((), (), tuple((key, 0) for key in COUNTERS), 0, 0)),
+                    'original name/flags/cleanup or zero loader histories/counts differ')
+        if role == ROLES[2]:
+            d = run['row']['expected_denial']
+            schema.need(fd is None and _same(error, (d[0], d[1], tuple(d[2]), d[3], d[4])) and
+                        _same(io, (None, True, None, False)), 'exact original S2 native denial/custody differs')
+            disposition = 'EXPECTED_NATIVE_DENIAL'
+        else:
+            schema.need(_TYPE(fd) is int and fd >= 0 and error is None and
+                        _same(io, (None, False, fd, False)), 'positive genuine returned/closed descriptor differs')
+            disposition = 'CAPABILITY_RETURNED'
+        schema.need(_same(complete, prefix[-1][:1] + ('root-complete',) + prefix[-1][2:8] +
+                    (('FINAL_CHECKS_COMPLETE', disposition),)), 'final complete record differs')
+        schema.need(parent._snapshot_sources(state['plan'], state['parent']['errors']) == run['sources_before'] and
+                    parent._stage(state['plan'], state['parent']['errors'], state['parent']) == run['stage_before'],
+                    'current receiver source/stage custody differs')
+        _guard(state)
+        schema.need(_CLOCK() <= run['began'] + run['row']['root_seconds'], 'policy receiver tail exceeds role bound')
+        state['phase'] = 'READY' if state['next'] < 3 else 'COMPLETE'
+        return {'schema': 'h25-owned-policy-domain-observation-v1', 'role': role,
+            'mode': state['mode'], 'token': run['row']['token'], 'generation': run['row']['generation'],
+            'context_sha256': run['row']['context_sha256'], 'terminal': run['terminal'],
+            'raw_pins': pins, 'helper_census': run['helper_census'], 'root_census': run['root_census'],
+            'helper_profile': run['helper_profile'], 'root_profile': run['root_profile'],
+            'release_attempted': tuple(run['release_attempted']),
+            'release_returned': tuple(run['release_returned']), 'barrier_eof': run['barrier_eof'],
+            'semantic_label': 'CONDITIONAL_ON_SEPARATELY_ADMITTED_KERNEL_RUNTIME_STATUS_CONTRACTS',
+            'epoch_completion_minted': False, 'full_case_or_full_caller_admission': False}
+    except BaseException as error:
+        run['primary'][0] = error
+        unknown = state['parent']['unknown_owner']
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        state['phase'] = 'STOP'
+        raise
+
+
+def stop_evidence(owner):
+    state = _owner(owner)
+    return state['primary'], tuple((run['primary'], run['errors'], run['close_errors'])
+                                  for run in state['runs'])

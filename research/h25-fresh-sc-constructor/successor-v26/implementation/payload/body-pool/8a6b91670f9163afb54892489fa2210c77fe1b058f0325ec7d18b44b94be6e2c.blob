@@ -1,0 +1,493 @@
+\section{Resampling with the permutations left in the transform}
+\label{sec:resampling}
+
+The transform lengths needed for the integer product are pairwise coprime,
+whereas the synthetic transforms use powers of two. Gaussian resampling
+connects these two shapes. Its usual implementation sorts twice on each
+coordinate. We retain both permutations in the transform formula and
+compute that formula directly. This section proves the resulting interface,
+including its tape cost when the number of coordinates grows.
+
+For an integer $q\geq 1$, write
+\[
+ (F_q u)_k=\frac1q\sum_{j=0}^{q-1}u_j e^{-2\pi i jk/q},
+ \qquad
+ (F_q^+ u)_k=\frac1q\sum_{j=0}^{q-1}u_j e^{2\pi i jk/q}.
+\]
+All subscripts on a vector of length $q$ are taken modulo $q$.
+The vector norm is the maximum modulus of its coordinates. All operator
+norms are induced by this norm: $\|L\|=\sup_{\|u\|\leq1}\|Lu\|$.
+Each normalized Fourier transform above is a contraction, since each
+output averages inputs multiplied by complex numbers of modulus one. Coordinate
+permutations preserve the norm.
+For an integer precision $p\geq1$, put
+\[
+ \mathbb D_p=\{2^{-p}(a+ib):a,b\in\mathbb Z,\ a^2+b^2\leq 2^{2p}\}.
+\]
+For storage between completed scalar routines, put $w_{\rm c}=p+2$.
+Represent $2^{-p}(a+ib)\in\mathbb D_p$ by a signed $w_{\rm c}$-bit
+two's-complement word for $a$, followed by one for $b$, with each word
+written most significant bit first. A coordinate list is the
+concatenation of these fixed-length records in its stated order. Since
+$|a|,|b|\leq2^p<2^{w_{\rm c}-1}$, this format includes both signs of
+every permitted numerator, including $-2^p$ and $2^p$.
+An approximation $\widetilde L:\mathbb D_p^a\to\mathbb D_p^b$
+to a linear contraction $L:\mathbb C^a\to\mathbb C^b$ has error $E$
+if $2^p\|\widetilde L u-Lu\|<E$ for every input in $\mathbb D_p^a$.
+The approximation itself need not be linear. Composing such algorithms
+adds their errors: at each step, insert the exact map at the computed
+input and use its contraction bound on the accumulated input error.
+
+We use the established $O(N\log N)$ integer multiplier of
+Harvey and van der Hoeven~\cite[Theorem~1.1]{HarveyHoeven2021}
+for the shorter integer records that occur below. We also use their
+Lemma~2.12: for integer precision $p>100$ and integers $k>1$, $0\leq j<k$,
+one can compute $\widetilde\zeta\in\mathbb D_p$ with
+$2^p|\widetilde\zeta-e^{2\pi i j/k}|<2$ in time
+$O(\max(p,\log k)^{1+\delta})$, for every fixed $0<\delta<1/8$.
+Throughout this section, numbered citations to that paper refer to its
+author-hosted 45-page manuscript.
+
+\subsection{The one-dimensional interface}
+
+\begin{lemma}[Resampling without executing the two permutations]
+\label{lem:no-sort-resampling}
+Fix $0<\delta<1/8$. Let $p>100$, $2\leq s<t<2^p$ and $2\leq\alpha<\sqrt p$
+be integers, with $\gcd(s,t)=1$ and
+\[
+ \theta:=t/s-1>p/\alpha^4.
+\]
+Define coordinate permutations by
+\[
+ (P_su)_j=u_{tj},\qquad (P_tv)_k=v_{-sk}.
+\]
+There are linear contractions $A:\mathbb C^s\to\mathbb C^t$ and
+$B_0:\mathbb C^t\to\mathbb C^s$ satisfying
+\begin{equation}
+ P_sF_s=2^{2\alpha^2}B_0P_tF_tA.
+ \label{eq:no-sort-one-dimensional}
+\end{equation}
+There are fixed multitape algorithms for approximations
+$\widetilde A:\mathbb D_p^s\to\mathbb D_p^t$ and
+$\widetilde B_0:\mathbb D_p^t\to\mathbb D_p^s$, each with error less
+than $p^2$ and time
+\[
+ O(tp^{3/2+\delta}\alpha).
+\]
+The constant is uniform in $p,s,t,\alpha$. Inputs and outputs use the
+scalar component format above and occur in increasing coordinate order.
+\end{lemma}
+
+\begin{proof}
+The Gaussian resampling argument uses two maps
+$\mathsf S,\mathsf T:\mathbb C^s\to\mathbb C^t$. For $0\leq k<t$, they are
+\[
+ (\mathsf S u)_k=\frac1\alpha\sum_{j\in\mathbb Z}
+ e^{-\pi\alpha^{-2}(j-sk/t)^2}u_j,
+ \qquad
+ (\mathsf T u)_k=\sum_{j\in\mathbb Z}
+ e^{-\pi\alpha^2(tj/s-k)^2}u_j.
+\]
+Both sums converge absolutely. For $0\leq j<s$, define
+\[
+ q_j=\left\lfloor\frac{tj}{s}+\frac12\right\rfloor,
+ \qquad \beta_j=\frac{tj}{s}-q_j.
+\]
+Thus $q_j$ is an integer nearest to $tj/s$, with ties rounded upward.
+Let $C:\mathbb C^t\to\mathbb C^s$ select these coordinates, and let
+$\mathsf D:\mathbb C^s\to\mathbb C^s$ be the diagonal map
+\[
+ (Cv)_j=v_{q_j},\qquad
+ (\mathsf D u)_j=e^{\pi\alpha^2\beta_j^2}u_j.
+\]
+Set $N=C\mathsf T\mathsf D$. In $(Nu)_j$, the summand with index $j$
+is exactly $u_j$: the factor in $\mathsf D$ cancels the Gaussian factor
+at the selected coordinate $q_j$. The other summands form $((N-I)u)_j$.
+The exact Gaussian identity and inverse estimate proved in
+\cite[Theorem~4.2 and Lemma~4.6]{HarveyHoeven2021} give
+\begin{equation}
+ \mathsf T P_sF_s=P_tF_t\mathsf S,
+ \qquad
+ \|N-I\|<2.01e^{-\pi\alpha^2\theta/2}<2^{-\alpha^2\theta}.
+ \label{eq:gaussian-public-facts}
+\end{equation}
+The first identity uses the negative Fourier sign in our definition of
+$F_q$; its right-hand permutation is consequently multiplication of the
+frequency by $-s$. Since $\alpha^2<p$ and $\theta>p/\alpha^4$, we have
+$\alpha^2\theta>p/\alpha^2>1$. Thus $\|N-I\|<1/2$, so $N$ is invertible
+by the Neumann series. Put
+\[
+ \mathsf S'=\mathsf S/2,\qquad
+ \mathsf J'=N^{-1}/2,\qquad
+ \mathsf D'=2^{-(2\alpha^2-2)}\mathsf D.
+\]
+The proof of Proposition~4.7(i) in the cited paper gives
+\[
+ \|\mathsf S'\|<\frac34,\qquad
+ \|\mathsf J'\|<\frac78,\qquad
+ \|\mathsf D'\|<1.
+\]
+Now set $A=\mathsf S'$ and $B_0=\mathsf D'\mathsf J'C$.
+Because $\|C\|=1$, both are contractions. The diagonal map $\mathsf D$
+is invertible, and $C\mathsf T=N\mathsf D^{-1}$, so
+\[
+ (\mathsf D N^{-1}C)\mathsf T
+ =\mathsf D N^{-1}(N\mathsf D^{-1})=I.
+\]
+Applying this left inverse to the first identity in
+\eqref{eq:gaussian-public-facts} gives
+$\mathsf D N^{-1}CP_tF_t\mathsf S=P_sF_s$. The normalizations in
+$\mathsf D'$, $\mathsf J'$, and $\mathsf S'$ have product
+$2^{-(2\alpha^2-2)}2^{-1}2^{-1}=2^{-2\alpha^2}$. Hence
+\[
+ B_0P_tF_tA
+ =2^{-2\alpha^2}\mathsf D N^{-1}CP_tF_t\mathsf S
+ =2^{-2\alpha^2}P_sF_s,
+\]
+which is \eqref{eq:no-sort-one-dimensional}.
+
+\paragraph{Ordered numerical maps.}
+Lemmas~4.8, 4.9 and 4.12 of
+\cite{HarveyHoeven2021} supply the following algorithms. Their inputs
+and outputs are in increasing coordinate order, and every output is in
+the disk grid. The record conversions and tape movement needed to use
+these routines in our format are accounted for below. Their numerical
+guarantees are
+\[
+\begin{array}{c|c|c}
+ \text{map}&\text{error bound}&\text{time bound}\\ \hline
+ \widetilde{\mathsf S}'&16p&O(tp^{3/2+\delta}\alpha)\\
+ \widetilde{\mathsf J}'&3p^2/4&O(tp^{3/2+\delta}\alpha)\\
+ \widetilde{\mathsf D}'&4&O(tp^{1+\delta}).
+\end{array}
+\]
+For $C$, observe that $q_0=0$, $q_{s-1}<t$, and $q_{j+1}>q_j$,
+because $t/s>1$. Thus $C$ selects an ordered subsequence. A forward scan,
+with the current input coordinate stored on a work tape, copies a record
+exactly when that coordinate equals the next $q_j$.
+
+The selected indices can themselves be generated in order using only
+$O(p)$ work per index. Precompute $t=hs+\rho$ with $0\leq\rho<s$.
+Start with $f_0=e_0=0$, and maintain
+$tj=sf_j+e_j$ with $0\leq e_j<s$. At index $j$, first use
+$q_j=f_j+\mathbf1_{2e_j\geq s}$. If $j<s-1$, after copying that record
+form the values for index $j+1$ by
+\[
+ c_j=\mathbf1_{e_j+\rho\geq s},\qquad
+ e_{j+1}=e_j+\rho-c_js,\qquad
+ f_{j+1}=f_j+h+c_j.
+\]
+Here $e_j+\rho<2s$, so $c_j$ is the only possible carry; the displayed
+update gives $t(j+1)=sf_{j+1}+e_{j+1}$. All these counters have $O(p)$
+bits. Elementary division computes $h,\rho$ in
+$O((\log t)^2)=O(tp)$ time. The record scan and its coordinate counter
+also cost $O(tp)$, so $C$ takes $O(tp)$ time with zero numerical error.
+
+Consequently we may take
+\[
+ \widetilde A=\widetilde{\mathsf S}',
+ \qquad
+ \widetilde B_0=\widetilde{\mathsf D}'\,
+                    \widetilde{\mathsf J}'\,C.
+\]
+Contraction of the exact maps yields errors less than $16p<p^2$ and
+$4+3p^2/4<p^2$, respectively. The costs add to the claimed bound.
+
+The original proof of Proposition~4.7(ii) implements
+$B=P_s^{-1}\mathsf D'\mathsf J'CP_t$. Its two label-and-sort operations
+implement $P_t$ and $P_s^{-1}$, each costing $O(tp\log t)$.
+In \eqref{eq:no-sort-one-dimensional} these permutations remain in the
+transform identity. The algorithms for $A$ and $B_0$ use $C$ and the
+three quoted arithmetic maps, with all their original truncations.
+
+\paragraph{Record conversion and tape movement.}
+We specify how these scalar records meet the cited numerical interfaces.
+Sections~2.1--2.2 of the cited paper use standard binary integers, represent
+$2^{-p}(a+ib)\in\mathbb D_p$ by the exact integer pair $(a,b)$ with $p$
+known, and store vectors as ordered coordinate lists. The cited
+exponential and Gaussian routines return grid values in this
+representation. Their computed numerator pairs are exact representations
+of the approximations; the numerical errors remain those stated for the
+approximated analytic maps. The source leaves the sign code, digit order,
+padding and field boundaries open, so we make a concrete choice when
+implementing its constructive algorithms.
+
+At each scalar input or output boundary of a cited routine, use one sign
+symbol, the ordinary binary magnitude in most-significant-bit-first order,
+and a fixed separator for
+each integer. Use one zero digit and the nonnegative sign for zero, put
+the real field before the imaginary field, and concatenate pairs in
+coordinate order. Each grid numerator magnitude has at most $p+1$ digits.
+To convert one field to our $w_{\rm c}$-bit word, buffer its magnitude, right-align
+it in a zero-filled block of that width, and, for a negative sign,
+complement the block and add one from right to left. Copy the block from
+left to right to the output. The inverse conversion reads one complete
+$w_{\rm c}$-bit word, remembers its leading sign, complements and adds
+one if negative, and emits the signed magnitude after removing leading
+zeroes. In both directions the represented integer is unchanged.
+
+A unary ruler of $w_{\rm c}$ cells is prepared once per call by starting
+with an empty ruler and reading the binary digits of $p$ from most to least
+significant, successively doubling the current unary prefix
+and appending one cell when the next digit is one, then adding two cells.
+This takes $O(p)$ time. Reusing the ruler, a constant
+number of sweeps of the current field and work blocks performs each
+conversion, including head returns and cleanup, in $O(p)$ time on fixed
+tapes. Separators identify the next source field, and the ruler identifies
+the next fixed-width word; the input head finishes after the consumed
+field and the output head after the appended field. The inverse adapter
+supplies the Gaussian input vectors, and the forward adapter formats their
+outputs. Lemma~2.12 instead receives the ordinary binary integers $j,k$
+and needs only the output adapter. These value-preserving conversions add
+no error. On the Gaussian line lengths $s<t$, their
+$O((s+t)p)=O(tp)$ work, and their $O(p)$ work per exponential output,
+are included in the stated bounds.
+
+The remaining tape movement inside the quoted algorithms also has the
+claimed bound. The $\mathsf S'$ procedure uses a consecutive periodic input
+window of radius $\lceil\sqrt p\rceil\alpha$ for each output. Visiting
+these $O(p)$-bit records costs $O(tp\sqrt p\alpha)$ tape steps.
+Remark~4.10 in the cited paper charges the extra jumps at the cyclic
+boundary by the same bound.
+
+The Neumann evaluation also keeps its computed records bounded.
+Put $E=N-I$ and $k=\lceil p/(\alpha^2\theta)\rceil$. Under the present
+hypotheses, Lemma~4.11 gives, for every $z\in\mathbb D_p^s$,
+\[
+ \widetilde E z\in\mathbb D_p^s,\qquad
+ 2^p\|\widetilde E z-Ez\|<p/3.
+\]
+Its proof establishes the rounded output bound
+\[
+ \|\widetilde E z\|<0.42\|z\|+(p/3)2^{-p}<1.
+\]
+For $u\in\mathbb D_p^s$, Lemma~4.12 rounds the real and imaginary parts
+of each coordinate of $u/2$ toward zero at precision $p$, obtaining
+$\widetilde v^{(0)}\in\mathbb D_p^s$. It then computes
+$\widetilde v^{(j)}=\widetilde E\widetilde v^{(j-1)}$
+for $1\leq j<k$. Induction therefore keeps every iterate in
+$\mathbb D_p^s$. The approximation is
+$\widetilde{\mathsf J}'u=\sum_{j=0}^{k-1}(-1)^j\widetilde v^{(j)}$.
+Since $k\leq\alpha^2+1<p+1$, each component of any signed partial
+numerator sum has magnitude at most $k2^p$ and needs
+$p+\lceil\log_2(k+1)\rceil+O(1)=O(p)$ bits. Inside one $\widetilde E$
+row, the $2m$ disk-grid summands of Lemma~4.11 likewise need
+$p+\lceil\log_2(2m+1)\rceil+O(1)=O(p)$ accumulator bits, where
+$m=\lceil\sqrt p/(2\alpha)\rceil$. These partial sums are accumulated
+exactly on separate tapes; only completed iterates are fed into
+$\widetilde E$.
+
+The window of radius $m$ in one $\widetilde E$ call has tape movement
+cost $O(tp(1+\sqrt p/\alpha))$, including the analogous boundary
+accounting. The exact row additions cost $O(smp)$, within this bound.
+The $k-1$ calls therefore spend
+\[
+ O\bigl((\alpha^2+1)tp(1+\sqrt p/\alpha)\bigr)
+ =O(tp\sqrt p\alpha)
+\]
+on these scans and additions, using $2\leq\alpha<\sqrt p$.
+For either Gaussian procedure, if a window
+radius $w$ satisfies $s\leq2w$, then $O(1+w/s)$ traversals of the period
+cost $O((s+w)p)=O(wp)$ per output. This also covers windows longer than
+one period. The current iterate, next iterate, and running sum use a
+fixed number of tapes holding $O(p)$-bit records. Outer accumulation
+costs $O(ksp)=O(tp\alpha^2)$, within $O(tp\sqrt p\alpha)$.
+All truncations are those of the cited algorithms, and the tape count
+and constants remain uniform in the parameters.
+\end{proof}
+
+\subsection{Growing dimension and the padded array}
+
+For the tensor product, apply the one-dimensional maps to one coordinate
+line at a time. The chunk-swap algorithm supplies the movement of the
+physical axis fields, including its cost when the number of axes grows.
+
+\begin{lemma}[Tensor interface]
+\label{lem:tensor-resampling}
+Suppose every pair $(s_i,t_i)$, $1\leq i\leq d$, satisfies
+Lemma~\ref{lem:no-sort-resampling} with the same $p,\alpha,\delta$.
+Put $T=\prod_i t_i$, $\gamma=2d\alpha^2$, and
+\[
+ R=\bigotimes_iP_{s_i},\quad Q=\bigotimes_iP_{t_i},\quad
+ \mathcal A=\bigotimes_i A_i,\quad
+ \mathcal B_0=\bigotimes_i B_{0,i}.
+\]
+Then
+\begin{equation}
+ RF_{\boldsymbol s}
+   =2^\gamma\mathcal B_0QF_{\boldsymbol t}\mathcal A,
+ \qquad F_{\boldsymbol q}:=\bigotimes_iF_{q_i}.
+ \label{eq:no-sort-tensor}
+\end{equation}
+Also write $F_{\boldsymbol q}^+=\bigotimes_iF_{q_i}^+$.
+Both $\mathcal A$ and $\mathcal B_0$ are contractions. The linewise
+implementations of $\mathcal A$ and $\mathcal B_0$ each have error
+less than $dp^2$. The total time spent in the
+one-dimensional algorithms for both maps is
+$O(dTp^{3/2+\delta}\alpha)$, with a constant independent of $d$.
+
+If each $t_i\in\{r/2,r\}$ with $r=2^\ell$, the array is kept in the
+full padded box of $T$ entries, and each entry occupies $O(p)$ bits,
+then exposing and restoring all the lines costs
+\[
+ O\bigl(Tp\,d^2(1+\ell^\tau)\bigr)
+\]
+using the equal-width chunk-swap bound $O(Vu^\tau)$ and the fixed-digit
+movement primitive. Any fixed polynomial in $p$ of setup per line is
+negligible compared with $Tp$ when $r$ grows faster than every such
+polynomial and $d$ is polynomially bounded in $p$.
+\end{lemma}
+
+\begin{proof}
+Tensoring \eqref{eq:no-sort-one-dimensional} proves
+\eqref{eq:no-sort-tensor}. To implement $\mathcal A$, first embed its
+input in the padded box by writing zero outside
+$\prod_i[0,s_i)$. Expand the axes one at a time. After the axes in a set
+$I$ have been expanded, the valid entries have coordinate ranges
+$[0,t_i)$ for $i\in I$ and $[0,s_i)$ otherwise; every other entry is
+zero. Expose the next axis $i$ as the innermost address field. On a line
+whose other coordinates are valid, read its first $s_i$ values and apply
+$\widetilde A_i$, then write the resulting $t_i$ values. On every other
+line write $t_i$ zeros. The new valid set is the one for $I\cup\{i\}$.
+
+For compression, start with all coordinates in $[0,t_i)$ valid.
+After a set $J$ of axes has been compressed, validity means
+$j_h<s_h$ for $h\in J$ and $j_h<t_h$ otherwise. For the next axis $i$,
+apply $\widetilde B_{0,i}$ to each $t_i$-line whose other coordinates
+are valid. Write its $s_i$ outputs followed by $t_i-s_i$ zeros.
+A line invalid on another coordinate is already zero; consume it and
+write a zero line without calling $\widetilde B_{0,i}$. The box therefore
+keeps its full size, and the new valid set is the one for $J\cup\{i\}$.
+
+For a fixed axis, the exact map acts independently on its valid lines
+and is zero on the other lines. Taking the maximum over the line norms
+shows that this axis map is a contraction; taking the maximum of the
+line errors gives an error less than $p^2$ for the whole axis.
+Composing the $d$ axis maps gives error less than $dp^2$.
+At most $T/t_i$ lines invoke the one-dimensional algorithm for axis $i$,
+so their cost is bounded by
+\[
+ \sum_{i=1}^d\frac{T}{t_i}
+           O(t_i p^{3/2+\delta}\alpha)
+   =O(dTp^{3/2+\delta}\alpha).
+\]
+Initial padding costs $O(Tp)$, and scanning and zeroing the remaining
+lines costs $O(Tp)$ per axis. Both are within the same bound.
+All calls reuse one fixed collection of work
+tapes. Loop indices and the growing shape descriptor reside on tapes;
+they are not extra heads.
+
+The descriptor records which coordinate each physical address field
+holds. Thus moving fields changes their positions, but not the validity
+conditions above. To move an axis past its neighbor, interchange their
+$\ell$-bit or $(\ell-1)$-bit address fields. Equal widths use
+Lemma~\ref{lem:chunk-swap}. For unequal widths, write the longer field as
+a leading bit $e$ followed by $\ell-1$ bits. If it comes first, the order
+is $e\,x\,y$, with $x,y$ of equal width. Interchange $x,y$, then move $e$
+between them, obtaining $y\,e\,x$. If the longer field comes second,
+first move its leading bit left of the shorter field, then interchange
+the two equal-width pieces. The bit move uses
+Lemma~\ref{lem:elementary-streams}. Each adjacent interchange therefore
+costs $O(Tp(1+\ell^\tau))$. Exposing and restoring one axis needs
+$O(d)$ adjacent interchanges, hence all axes need $O(d^2)$. These are
+exact permutations of the padded box, so they change neither norms nor
+errors.
+
+Since $t_i\geq r/2$, each tensor map invokes at most
+$\sum_iT/t_i\leq2dT/r$ lines. For any fixed setup degree $c$, work
+$O(p^c)$ per line totals $O(dTp^c/r)=o(Tp)$: after division by $Tp$,
+the ratio is $O(dp^{c-1}/r)$, which tends to zero under the stated growth
+assumptions. This estimate includes local descriptor copying, validity
+tests per line, and preparing line boundaries.
+\end{proof}
+
+\subsection{The middle transform and the final permutation}
+
+The factor $QF_{\boldsymbol t}$ in \eqref{eq:no-sort-tensor} can be
+computed from a cyclic convolution and two pointwise phase
+multiplications. The chirp identity below performs the frequency change
+in $Q$ without applying $Q$ as a separate permutation of the array.
+The second identity shows how the
+retained source permutation $R$ cancels when computing a convolution.
+Here $*$ denotes
+cyclic convolution on the product of the coordinate groups and a dot
+denotes coordinatewise multiplication.
+
+\begin{lemma}[Chirp and permutation cancellation]
+\label{lem:chirp-permutation}
+With $R,Q,s_i,t_i$ as in Lemma~\ref{lem:tensor-resampling},
+assume every $t_i$ is even. For $\boldsymbol j\in\mathbb Z^d$, define
+\[
+ a_{\boldsymbol j}
+ =\exp\left(-\pi i\sum_{i=1}^d\frac{s_i j_i^2}{t_i}\right).
+\]
+Then $a$ has period $t_i$ in coordinate $i$, and
+\begin{equation}
+ QF_{\boldsymbol t}u
+ =\overline a\mathbin{\cdot}
+       \frac{a*(\overline a\mathbin{\cdot}u)}{T}.
+ \label{eq:permuted-chirp}
+\end{equation}
+If $S=\prod_i s_i$, then
+\begin{equation}
+ (RF_{\boldsymbol s}^+)
+   \bigl[(RF_{\boldsymbol s}u)\mathbin{\cdot}
+         (RF_{\boldsymbol s}v)\bigr]
+ =\frac{u*v}{S^2}.
+ \label{eq:source-permutation-cancel}
+\end{equation}
+Complex conjugation of the input and output of an algorithm for
+$RF_{\boldsymbol s}$ gives an algorithm for $RF_{\boldsymbol s}^+$.
+\end{lemma}
+
+\begin{proof}
+Replacing $j_i$ by $j_i+t_i$ changes the exponent defining $a$ by
+$-\pi i s_i(2j_i+t_i)$, an integral multiple of $2\pi i$.
+The coefficient of $u_{\boldsymbol k}$ in the right side of
+\eqref{eq:permuted-chirp} is
+\[
+ \frac1T\overline a_{\boldsymbol j}
+               a_{\boldsymbol j-\boldsymbol k}
+               \overline a_{\boldsymbol k}
+ =\frac1T\exp\left(2\pi i\sum_i
+                       \frac{s_i j_i k_i}{t_i}\right).
+\]
+This is precisely the coefficient in $QF_{\boldsymbol t}$, because
+$Q$ reads frequency $(-s_i j_i)_i$ from the negative-sign transform.
+
+For a unit $c$ modulo $q$, let $(R_cz)_j=z_{cj}$. Substituting $h=ck$
+in the Fourier sum gives
+\[
+ (F_q^+R_cz)_j
+ =\frac1q\sum_{h=0}^{q-1}z_h e^{2\pi i h c^{-1}j/q}
+ =(R_c^{-1}F_q^+z)_j.
+\]
+Each $t_i$ is a unit modulo $s_i$, so tensoring this identity gives
+$F_{\boldsymbol s}^+R=R^{-1}F_{\boldsymbol s}^+$ and hence
+$RF_{\boldsymbol s}^+R=F_{\boldsymbol s}^+$. Also
+$(RF_{\boldsymbol s}u)\mathbin{\cdot}(RF_{\boldsymbol s}v)
+=R(F_{\boldsymbol s}u\mathbin{\cdot}F_{\boldsymbol s}v)$,
+because a coordinate permutation commutes with pointwise products.
+Therefore
+\[
+ RF_{\boldsymbol s}^+\bigl[R(F_{\boldsymbol s}u\mathbin{\cdot}
+                                       F_{\boldsymbol s}v)\bigr]
+ =F_{\boldsymbol s}^+(F_{\boldsymbol s}u\mathbin{\cdot}
+                                       F_{\boldsymbol s}v).
+\]
+The normalized convolution rule is
+$F_{\boldsymbol s}(u*v)=S(F_{\boldsymbol s}u)\mathbin{\cdot}
+(F_{\boldsymbol s}v)$, while
+$F_{\boldsymbol s}^+F_{\boldsymbol s}=I/S$. The two normalizations give
+\[
+ F_{\boldsymbol s}^+
+   (F_{\boldsymbol s}u\mathbin{\cdot}F_{\boldsymbol s}v)
+ =\frac1S F_{\boldsymbol s}^+F_{\boldsymbol s}(u*v)
+ =\frac{u*v}{S^2},
+\]
+proving \eqref{eq:source-permutation-cancel}. Finally, conjugation
+changes the negative Fourier sign to the positive one and commutes with
+the real permutation $R$. It preserves both the disk grid and the norm,
+so conjugating the input and output also preserves an algorithm's error
+bound.
+\end{proof}

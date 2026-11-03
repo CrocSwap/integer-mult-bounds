@@ -1,0 +1,303 @@
+"""Source-only direct controls. Parent must approve/build/authenticate before use.
+
+run_controls consumes one fresh authenticated binding, closes it, and returns
+ordered factual records. It imports no candidate/scientific/native module.
+Watcher and bounds modules are separate authenticated test fixtures supplied by
+parent. Consumer arithmetic/exception observations live in cache_controls_v4.py.
+"""
+from __future__ import annotations
+
+import sys
+
+
+class _Foreign:
+    def __init__(self, stored_hash, events):
+        self.current_hash = stored_hash
+        self.events = events
+
+    def __hash__(self):
+        self.events.append("hash")
+        return self.current_hash
+
+    def __eq__(self, other):
+        self.events.append("equality")
+        return False
+
+
+class _TruthValue:
+    def __init__(self, events):
+        self.events = events
+
+    def __bool__(self):
+        self.events.append("truth")
+        raise RuntimeError("metadata must not invoke truth")
+
+
+class _TupleSubclass(tuple):
+    def __hash__(self):
+        raise RuntimeError("metadata must reject tuple subclass before hashing")
+
+
+class _IntSubclass(int):
+    def __hash__(self):
+        raise RuntimeError("metadata must reject int subclass before hashing")
+
+
+class _StrSubclass(str):
+    def __hash__(self):
+        raise RuntimeError("metadata must reject str subclass before hashing")
+
+
+def _require(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _raises_runtime(operation):
+    try:
+        operation()
+    except RuntimeError:
+        return
+    raise RuntimeError("Expected explicit RuntimeError rejection")
+
+
+def run_disarmed_controls(native):
+    """Parent supplies independently authenticated raw, never-armed module."""
+    profile = native.profile()
+    _require(type(profile) is tuple and profile[0] == 2, "Disarmed public profile")
+    _raises_runtime(lambda: native.inspect({}, ((0,), ())))
+    _raises_runtime(native.check)
+    _raises_runtime(native.counters)
+    return [{"case": "P21-disarmed-private-access", "private_access": False}]
+
+
+def run_bounds_controls(bounds_fixture):
+    """Execute actual included C primitives in isolated local test storage."""
+    result = bounds_fixture.bounds()
+    expected = (True, True, True, True)
+    _require(type(result) is tuple and result == expected and
+             all(type(item) is bool for item in result), "Native primitive boundary controls")
+    return [{"case": "P14-P22-isolated-C-bounds", "saturating_counter": True,
+             "shape_exact_boundary": True, "signed_indices": [1, 2, 4],
+             "production_state_mutated": False}]
+
+
+def run_controls(provider, binding, watcher):
+    """Fresh direct metadata controls, with native watcher and explicit teardown.
+
+    Every check calls the real binding once. Operations that mutate a dictionary
+    are setup/control actions between observations, never watcher callbacks.
+    """
+    provider.validate_binding(binding)
+    initial = binding.counters()
+    _require(initial["calls"] == 0 and initial["counter_overflow"] == 0,
+             "Direct control binding must be fresh")
+    records = []
+    request_count = 0
+
+    def inspect(case, mapping, key, expected, events=None):
+        nonlocal request_count
+        before = binding.counters()
+        event_before = tuple(events) if events is not None else ()
+        result = binding.inspect(mapping, key)
+        request_count += 1
+        after = binding.counters()
+        _require(result is expected, case + ": metadata classification differs")
+        _require(after["calls"] - before["calls"] == 1 and after["counter_overflow"] == 0,
+                 case + ": inspection accounting differs")
+        _require(after["slots"] - before["slots"] <= 4096 and
+                 after["shape_items"] - before["shape_items"] <= 262144,
+                 case + ": bounded work exceeded")
+        if events is not None:
+            _require(tuple(events) == event_before, case + ": added foreign dispatch")
+        delta = {name: after[name] - before[name] for name in
+                 ("slots", "shape_items", "hash_calls", "matching_entries", "budget")}
+        records.append({"case": case, "safe": result is True, "delta": delta})
+        return delta
+
+    query = ((0,), ())
+    modulus = sys.hash_info.modulus
+    _require(modulus == (1 << 61) - 1, "Authenticated hash modulus differs")
+    query_hash = hash(query)
+    empty = {}
+    delta = inspect("P01-empty-singleton", empty, query, True)
+    _require(delta["slots"] == 1 and delta["matching_entries"] == 0,
+             "Empty singleton must inspect one index and no entries")
+    empty[query] = False
+    inspect("P02-hit-false", empty, query, True)
+    empty[query] = True
+    inspect("P02-hit-true", empty, query, True)
+    inspect("P02-absent", empty, ((1,), ()), True)
+    empty.clear()
+    inspect("P01-cleared-singleton", empty, query, True)
+
+    class DictSubclass(dict):
+        pass
+    class SplitOwner:
+        pass
+    split_owner = SplitOwner()
+    split_owner.value = False
+    inspect("P01-nonexact", DictSubclass(), query, NotImplemented)
+    inspect("P01-unicode-nonempty", {"a": False}, query, NotImplemented)
+    unicode_deleted = {"a": False}
+    del unicode_deleted["a"]
+    inspect("P01-unicode-deleted-empty", unicode_deleted, query, NotImplemented)
+    inspect("P01-split", split_owner.__dict__, query, NotImplemented)
+
+    events = []
+    foreign = _Foreign(query_hash, events)
+    before_hit = {foreign: False, query: True}
+    events.clear()
+    inspect("P03-samehash-before-hit", before_hit, query, NotImplemented, events)
+    after_hit = {query: True, foreign: False}
+    events.clear()
+    inspect("P04-samehash-after-hit", after_hit, query, NotImplemented, events)
+    foreign.current_hash = query_hash ^ 8
+    inspect("P06-changed-currenthash-stored-collision", after_hit, query, NotImplemented, events)
+    offhash = _Foreign(query_hash ^ 8, events)
+    offhash_map = {offhash: _TruthValue(events)}
+    events.clear()
+    inspect("P05-offhash-same-initial-slot", offhash_map, query, True, events)
+    offhash_outside = _Foreign(query_hash ^ 1, events)
+    outside_map = {offhash_outside: _TruthValue(events)}
+    events.clear()
+    inspect("P05-offhash-different-initial-slot", outside_map, query, True, events)
+
+    exact_collision = ((modulus,), ())
+    _require(exact_collision != query and hash(exact_collision) == query_hash,
+             "Exact collision setup differs")
+    canonical = {query: True, exact_collision: False}
+    delta = inspect("P08-all-exact-collisions", canonical, query, True)
+    _require(delta["matching_entries"] >= 2, "Probe stopped at query hit")
+    canonical[exact_collision] = _TruthValue(events)
+    inspect("V01-nonbool-after-hit", canonical, query, NotImplemented, events)
+    nonbool = {query: _TruthValue(events)}
+    inspect("V01-nonbool-query-value", nonbool, query, NotImplemented, events)
+    nonbool[query] = False
+    inspect("V01-restored-exact-bool", nonbool, query, True, events)
+
+    holes = {query: True, exact_collision: False}
+    del holes[query]
+    inspect("P09-dummy-before-collision", holes, query, True)
+    holes[query] = True
+    holes.popitem()
+    inspect("P09-popitem-hole", holes, query, True)
+    for label, mapping in (("copy", holes.copy()), ("rebuilt", dict(holes.items()))):
+        inspect("P09-" + label, mapping, query, True)
+    foreign.current_hash = query_hash
+    dummy_foreign = {query: True, foreign: False}
+    del dummy_foreign[query]
+    events.clear()
+    inspect("P09-dummy-before-foreign", dummy_foreign, query, NotImplemented, events)
+
+    resize_map = {((index,), ()): False for index in range(1, 6)}
+    inspect("P10-resize-entry", resize_map, query, True)
+    resize_map[query] = False
+    inspect("P10-resize-exit", resize_map, query, True)
+    foreign.current_hash = query_hash
+    blocked_resize = {foreign: False}
+    blocked_resize.update({((index,), ()): False for index in range(1, 5)})
+    events.clear()
+    inspect("P11-resize-samehash-blocked", blocked_resize, query, NotImplemented, events)
+
+    negative_key = next((((index,), ()) for index in range(-128, 128)
+                         if hash(((index,), ())) < 0), None)
+    _require(negative_key is not None, "Finite negative-hash fixture unavailable")
+    inspect("P12-negative-hash", {negative_key: False}, negative_key, True)
+    for size, width in ((1, 1), (86, 2), (21846, 4)):
+        mapping = {((index,), ()): False for index in range(size)}
+        inspect("P13-width-" + str(width), mapping, ((size - 1,), ()), True)
+        _require(binding.counters()["widths_seen"] & width, "Expected signed-index width unseen")
+
+    shape_limit = (tuple(0 for _ in range(262144 - 3)), ())
+    delta = inspect("P14-shape-exact-cap", {}, shape_limit, True)
+    _require(delta["shape_items"] == 262144 and delta["hash_calls"] == 1,
+             "Exact shape cap did not admit fully checked query")
+    shape_over = (shape_limit[0] + (0,), ())
+    delta = inspect("P14-shape-over-cap", {}, shape_over, NotImplemented)
+    _require(delta["shape_items"] == 262144 and delta["hash_calls"] == 0,
+             "Shape overflow must reject before query hashing")
+    del shape_limit, shape_over
+    for size, expected in ((4000, True), (4096, NotImplemented)):
+        mapping = {((index * modulus,), ()): False for index in range(size)}
+        delta = inspect("P14-probe-collisions-" + str(size), mapping, query, expected)
+        if expected is NotImplemented:
+            _require(delta["slots"] == 4096 and delta["budget"] == 1,
+                     "Probe cap must reject without partial admission")
+        else:
+            _require(delta["slots"] < 4096, "Below-cap collision fixture unexpectedly exhausted cap")
+
+    malformed = ([], (), ((),), ((), (), ()), (True, ()), ((True,), ()),
+                 ((_IntSubclass(0),), ()), _TupleSubclass(((), ())),
+                 (_TupleSubclass(()), ()), ("wrong", ()), (_StrSubclass("label"), ()),
+                 (((0,),), ()), ((), (None,)))
+    for index, key in enumerate(malformed):
+        delta = inspect("P15-malformed-" + str(index), {}, key, NotImplemented)
+        _require(delta["hash_calls"] == 0, "Unsupported query reached added hash")
+    class StoredTupleSubclass(tuple):
+        def __hash__(self):
+            events.append("stored-tuple-hash")
+            return query_hash
+    class StoredIntSubclass(int):
+        def __hash__(self):
+            events.append("stored-int-hash")
+            return 0
+    class StoredStrSubclass(str):
+        def __hash__(self):
+            events.append("stored-str-hash")
+            return hash("label")
+    stored_shapes = ((StoredTupleSubclass(query), query),
+                     (((StoredIntSubclass(0),), ()), query),
+                     (((False,), ()), query),
+                     ((StoredStrSubclass("label"), ()), ("label", ())))
+    for index, (key, lookup) in enumerate(stored_shapes):
+        mapping = {key: False}
+        _require(hash(key) == hash(lookup), "Stored-shape collision fixture differs")
+        events.clear()
+        inspect("P15-stored-malformed-" + str(index), mapping, lookup, NotImplemented, events)
+    for index, key in enumerate((((), ()), ((-1, -(1 << 2048), 1 << 8192), ()),
+                                 ("label", ()), ("label", (-(1 << 4096),)))):
+        inspect("P16-exact-shape-" + str(index), {key: False}, key, True)
+
+    watched = {}
+    watcher.attach(watched)
+    try:
+        before = watcher.counts()
+        inspect("P17-V03-watched-empty", watched, query, NotImplemented)
+        _require(watcher.counts() == before, "Inspection generated watcher events")
+        watched[query] = False
+        after_insert = watcher.counts()
+        _require(after_insert["added"] - before["added"] == 1,
+                 "Original insert watcher event lost")
+        inspect("P17-V03-watched-general", watched, query, NotImplemented)
+        _require(watcher.counts() == after_insert, "General inspection generated watcher events")
+        watched[query] = True
+        after_replace = watcher.counts()
+        _require(after_replace["modified"] - after_insert["modified"] == 1 and
+                 after_replace["overflow"] == 0, "Original replacement watcher event lost")
+    finally:
+        watcher.detach()
+    inspect("P17-detached-general", watched, query, True)
+
+    _raises_runtime(provider.ProbeBinding)
+    fabricated = object.__new__(provider.ProbeBinding)
+    _raises_runtime(lambda: provider.validate_binding(fabricated))
+    original_defaults = provider._hash_regular.__defaults__
+    before = binding.counters()["calls"]
+    provider._hash_regular.__defaults__ = ("explicit-control-drift",)
+    try:
+        _raises_runtime(lambda: binding.inspect({}, query))
+    finally:
+        provider._hash_regular.__defaults__ = original_defaults
+    _require(binding.counters()["calls"] == before, "P19 drift reached private inspection")
+    records.append({"case": "P19-provider-defaults-and-ownership", "rejected_before_inspection": True})
+    final = binding.counters()
+    _require(final["calls"] == request_count and final["counter_overflow"] == 0,
+             "Complete direct inspection census differs")
+    binding.close()
+    _raises_runtime(binding.check)
+    _raises_runtime(lambda: provider.validate_binding(binding))
+    records.append({"case": "P22-close", "closed_owner_rejected": True})
+    return {"schema": "h25-native-direct-control-results-v1", "records": records,
+            "inspection_calls": request_count, "final_counters": final,
+            "scientific_imports": 0, "scientific_arithmetic_calls": 0}

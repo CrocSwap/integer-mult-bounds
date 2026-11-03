@@ -1,0 +1,48 @@
+\section{A consequence for matrix transposition}
+\label{sec:transposition}
+
+For positive integers $n_1,n_2,b$, a row-major $n_1\times n_2$ array
+of $b$-bit strings stores
+entry $(i,j)$, where $0\le i<n_1$ and $0\le j<n_2$, at position
+$n_2i+j$; transposition places this string at position $n_1j+i$.
+Harvey and van der Hoeven prove that any multiplication machine with
+worst-case cost $M(m)$ yields a fixed multitape transposition machine with
+cost~\cite[Corollary~6.2]{HarveyHoeven2025}
+\[
+O\!\left(M(m)+m\lg\lg\max(n_1,n_2)\right),
+ \qquad n_1n_2b\le m.
+\]
+The cited transposition interface receives $m$ as well as $n_1,n_2,b$
+and the matrix stream~\cite[Section~1.1]{HarveyHoeven2025}. For the
+matrix problem defined here, compute $m=n_1n_2b$ from the three binary
+descriptors and supply all four parameters. The four descriptors have total length
+$O(\log(2m))$, and the two schoolbook products that compute $m$ cost
+$O(\log^2(2m))=O(m)$ steps.
+
+The cited multiplication interface likewise receives $m$ explicitly
+and two nonnegative operands smaller than $2^m$; it uses standard binary
+representations of the operands and product. On each such call, read the
+supplied $m$ and form two words
+of exactly $m$ bits, most significant bit first, by adding leading zeroes.
+Feed their $x\#y$ concatenation to Theorem~\ref{thm:main}. Its final
+output pass writes the $2m$-bit product consecutively. Scan this block
+to remove leading zeroes, emitting one $0$ bit if every bit is zero.
+This fixes a canonical binary representation of the product.
+If a tape orientation requires reversal, read the stored word backward
+while writing it forward on a spare tape. Padding, normalization, and
+copying therefore cost $O(m)$ steps on a fixed number of tapes.
+
+Suppose the multiplication bound is $O(m(\lg m)^{1-\kappa})$ for a
+fixed $0<\kappa<1$.  Positivity of the dimensions and entry width gives
+$\max(n_1,n_2)\le n_1n_2b\le m$.  Hence
+\[
+ \lg\lg\max(n_1,n_2)\le\lg\lg m
+   =o((\lg m)^{1-\kappa}).
+\]
+The final relation uses $1-\kappa>0$; the bounded cases are absorbed
+using the stated convention for $\lg$.  Thus the cited transposition
+cost is $O(m(\lg m)^{1-\kappa})$.  Taking $m=n_1n_2b$ expresses this
+bound in matrix bits. In particular, an
+$n\times n$ binary matrix can be transposed in
+$O(n^2(\lg n)^{1-\kappa})$ time. Dimensions equal to one cause no
+exception, since our convention gives $\lg1=1$.
