@@ -63,6 +63,8 @@ def pull_records(pages):
     return [{"kind": "pr", "number": pr["number"], "title": pr["title"],
              "body": pr.get("body") or "", "url": pr["html_url"],
              "head": pr["head"]["sha"], "base": pr.get("base", {}).get("sha"),
+             "author": (pr.get("user") or {}).get("login"),
+             "created_at": pr.get("created_at"),
              "updated_at": pr["updated_at"],
              "draft": pr.get("draft", False), "state": pr["state"]}
             for page in pages for pr in page]
@@ -279,8 +281,13 @@ def validate_cached_source(source, name):
     return stamp
 
 
+def has_pr_metadata(source):
+    """Schema-1 legacy rows lack the author/creation fields required by filters."""
+    return all(row.get("author") and row.get("created_at") for row in source["records"])
+
+
 def remote_snapshot(cache, offline=False, refresh=False, max_age=300, need_files=False,
-                    include_closed=False):
+                    include_closed=False, need_pr_metadata=False):
     warnings = []
     try:
         snapshot = json.loads(cache.read_text(encoding="utf-8"))
@@ -316,6 +323,8 @@ def remote_snapshot(cache, offline=False, refresh=False, max_age=300, need_files
                 sources.pop(name, None)
                 cached = None
         fresh = cached is not None and age is not None and 0 <= age <= max_age
+        if need_pr_metadata and name in ("open_prs", "closed_prs") and cached:
+            fresh = fresh and has_pr_metadata(cached)
         if need_files and name in ("pr_files", "open_prs") and cached:
             # Old schema-1 caches omitted endpoints. Refresh only affected sources;
             # offline/failed refreshes retain the evidence with explicit warnings.
@@ -467,10 +476,57 @@ def search(records, terms, all_terms=False, reference_terms=()):
     return sorted(matches, key=lambda r: (-r["score"], r["kind"], r["title"], r.get("url", "")))
 
 
-def main():
+def reference_number(value):
+    if not re.fullmatch(r"[1-9][0-9]{0,9}", value):
+        raise argparse.ArgumentTypeError("reference must be a positive ASCII issue/PR number")
+    return value
+
+
+def creation_cutoff(value):
+    try:
+        if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+            raise ValueError("expected YYYY-MM-DD")
+        return datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("creation cutoff must be a valid YYYY-MM-DD UTC date") from exc
+
+
+def filter_pulls(records, author=None, created_since=None):
+    """Reject unknown filter metadata rather than silently omit a possible lead."""
+    selected, unknown = [], []
+    for row in records:
+        login, stamp = row.get("author"), row.get("created_at")
+        created = None
+        if created_since is not None and isinstance(stamp, str):
+            try:
+                created = datetime.fromisoformat(stamp)
+            except ValueError:
+                pass
+        if ((author is not None and (not isinstance(login, str) or not login))
+                or (created_since is not None and (created is None or created.tzinfo is None))):
+            unknown.append(row["number"])
+            continue
+        if author is not None and login.lower() != author.lower():
+            continue
+        if created_since is not None and created < created_since:
+            continue
+        selected.append(row)
+    if unknown:
+        examples = ", ".join(str(number) for number in sorted(unknown)[:20])
+        raise ValueError(f"PR filter metadata unavailable for {len(unknown)} records ({examples}); "
+                         "refresh the cache or inspect an unfiltered report; unknown is not no overlap")
+    return selected
+
+
+def parse_arguments():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("terms", nargs="*", help="literal case-insensitive terms; quote multiword phrases")
     ap.add_argument("--task", help="add the named catalogue card's overlap terms")
+    ap.add_argument("--reference", action="append", type=reference_number, default=[],
+                    metavar="NUMBER", help="match an issue/PR identifier, not decimal or hash substrings; repeatable")
+    ap.add_argument("--pr-author", metavar="LOGIN", help="search PR bodies only, restricted to this GitHub login")
+    ap.add_argument("--created-since", type=creation_cutoff, metavar="YYYY-MM-DD",
+                    help="search PR bodies only, created on/after this UTC date; not their update date")
     ap.add_argument("--path", action="append", default=[], metavar="PATTERN",
                     help="match open PRs by case-sensitive Git path glob or substring; spaces are literal; repeatable")
     ap.add_argument("--offline", action="store_true")
@@ -487,8 +543,19 @@ def main():
         ap.error("use nonnegative max-age, positive limit, and either offline or refresh")
     if args.include_closed and args.path:
         ap.error("--include-closed searches titles/bodies only; omit --path (its index covers open PRs)")
+    pr_filters = args.pr_author is not None or args.created_since is not None
+    if args.pr_author is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", args.pr_author):
+        ap.error("--pr-author requires a GitHub login, not @me or a search expression")
+    if pr_filters and args.path:
+        ap.error("PR author/creation filters search titles/bodies only; omit --path")
     if args.cache.resolve().is_relative_to(ROOT.resolve()):
         ap.error("keep the cache outside the repository")
+    return ap, args
+
+
+def main():
+    ap, args = parse_arguments()
+    pr_filters = args.pr_author is not None or args.created_since is not None
     terms = list(args.terms)
     explicit_terms = {term.strip().lower() for term in args.terms}
     reference_terms = []
@@ -510,15 +577,18 @@ def main():
             parts = PurePosixPath(point).parts
             if len(parts) >= 3 and parts[0] == "research":
                 terms.append(parts[1])
+    terms.extend(args.reference)
+    reference_terms = list(dict.fromkeys([*reference_terms, *args.reference]))
     if not any(t.strip() for t in terms) and not args.path:
-        ap.error("provide terms, --task or --path")
+        ap.error("provide terms, --task, --reference or --path")
     patterns = list(args.path)
     if any(not p for p in patterns):
         ap.error("--path must not be empty")
     local = local_records(ROOT)
     local_status, local_warnings = local_coverage(ROOT, local)
     snapshot, warnings = remote_snapshot(args.cache, args.offline, args.refresh, args.max_age,
-                                         need_files=bool(patterns), include_closed=args.include_closed)
+                                         need_files=bool(patterns), include_closed=args.include_closed,
+                                         need_pr_metadata=pr_filters)
     warnings = local_warnings + warnings
     records = list(local) + pull_corpus(snapshot, args.include_closed)
     coverage = {"local": local_status}
@@ -530,6 +600,12 @@ def main():
             if name == "discussions":
                 records.extend(source["records"])
             coverage[name]["records"] = len(source["records"])
+    if pr_filters:
+        try:
+            records = filter_pulls(pull_corpus(snapshot, args.include_closed),
+                                   args.pr_author, args.created_since)
+        except ValueError as exc:
+            ap.error(str(exc))
     path_matches = []
     if patterns:
         source = snapshot["sources"].get("pr_files")
@@ -580,6 +656,18 @@ def main():
                          "it does not certify HEAD contents or historical coverage. "
                          "No code diffs or arbitrary package files are searched. Recheck relevant heads before submission."),
               "matches_total": len(matches), "matches": matches[:args.limit]}
+    if pr_filters:
+        report["pr_filters"] = {"author": args.pr_author,
+                                "created_since": args.created_since.isoformat() if args.created_since else None,
+                                "scope": "PR titles and bodies only; local notes and Discussions excluded",
+                                "records_after_filter": len(records)}
+        report["limits"] = ("Author/creation filters search the declared PR title/body corpora only. "
+                            "Local notes and Discussions are excluded. "
+                            + ("Closed/merged PRs are included with separate coverage timestamps. "
+                               if args.include_closed else "Closed/merged PRs are not included; use --include-closed. ")
+                            + "Creation dates are not update dates. Unknown filter metadata is an error. "
+                            "Snapshots are not atomic; no diffs or semantic equivalence are checked. "
+                            "Matches are overlap leads, not a novelty certificate.")
     if patterns:
         report["path_patterns"] = patterns
         report["path_limits"] = ("Path matching covers the changed file paths GitHub reports for open PRs, "
@@ -606,7 +694,10 @@ def main():
         local_summary["unsearched_head_paths_count"] = None if omitted is None else len(omitted)
         print("Coverage: " + json.dumps({**coverage, "local": local_summary}))
         if reference_terms:
-            print("Task references (identifier matching): " + ", ".join(reference_terms))
+            label = "References" if args.reference else "Task references"
+            print(label + " (identifier matching): " + ", ".join(reference_terms))
+        if pr_filters:
+            print("PR filters: " + json.dumps(report["pr_filters"]))
         print(report["limits"])
         if patterns:
             print(report["path_limits"])
