@@ -54,3 +54,6 @@ the pair representation. This clarification changes no source input, code,
 receipt, polynomial recurrence or numerical constant. The scalar lower
 witness can be embedded in a four-cycle constant sector when a compatible
 pair model is required. This is a conditional audit, not an all-Q backend.
+The partial-normalizer36M+16982e internal bound is likewise restricted to
+the pair-compatible four-operation realization; a grouped completed defect
+bound alone supplies no arbitrary-Q internal range guarantee.

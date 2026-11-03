@@ -66,7 +66,9 @@ The prefix envelope18 bounds ideal boundary signals. The source argument uses
 the exact diagonal unitary endpoint U and invertibility: S_t=U P_t^-1, so
 P_t U^-1 maps the final error to the intermediate error with norm at most18.
 Applying the final budget to only the errors before t gives the source bound
-18M+8487e. Partial normalizers give the conservative36M+16982e bound. Native
+18M+8487e. For the pair-compatible four-operation realization only, partial normalizers
+give the conservative36M+16982e bound. A grouped completed-LAMBDA defect
+premise alone gives no arbitrary-Q internal-normalizer bound. Native
 interiors remain outside these premises. We do not infer their ranges, widths,
 coordinate errors, memory access, precision tariff or cleanup.
 
