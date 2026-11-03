@@ -1,0 +1,305 @@
+#!/usr/bin/env python3
+"""Bounded local Git probe of unchanged source-reader hydration; workflows untouched."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parent
+SOURCE_HASH = '7ac2f10158440cc95f332061edb9e506be753e4f685b924b71075510d5f53351'
+CASE_HASH = 'db099a682f1364077881ff620954ae60b5ffa373a3ac73d1de8c190405acea24'
+PACKAGE = 'research/fixture'
+CARD = {'id': 'fixture', 'question': 'Read the declared old source exactly.'}
+ENV = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+ENV.update({'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull,
+            'GIT_ALLOW_PROTOCOL': 'file', 'GIT_TERMINAL_PROMPT': '0',
+            'GIT_AUTHOR_NAME': 'Fixture', 'GIT_AUTHOR_EMAIL': 'fixture@example.invalid',
+            'GIT_COMMITTER_NAME': 'Fixture', 'GIT_COMMITTER_EMAIL': 'fixture@example.invalid',
+            'GIT_AUTHOR_DATE': '2001-01-01T00:00:00+0000',
+            'GIT_COMMITTER_DATE': '2001-01-01T00:00:00+0000'})
+LOG = []
+
+
+def require(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def unique(pairs):
+    result = {}
+    for key, value in pairs:
+        require(key not in result, 'duplicate JSON key: ' + key)
+        result[key] = value
+    return result
+
+
+def bad_number(value):
+    raise ValueError('nonfinite JSON number: ' + value)
+
+
+def load(path):
+    return json.loads(path.read_text(), object_pairs_hook=unique, parse_constant=bad_number)
+
+
+def typed_equal(a, b):
+    if type(a) is not type(b):
+        return False
+    if isinstance(a, dict):
+        return a.keys() == b.keys() and all(typed_equal(a[k], b[k]) for k in a)
+    if isinstance(a, list):
+        return len(a) == len(b) and all(typed_equal(x, y) for x, y in zip(a, b))
+    return a == b
+
+
+def command(root, argv, timeout=30):
+    process = subprocess.Popen(argv, cwd=root, env=ENV, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, start_new_session=(os.name == 'posix'))
+    try:
+        out, err = process.communicate(timeout=timeout)
+    finally:
+        if os.name == 'posix':
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        elif process.poll() is None:
+            process.kill()
+        process.wait(timeout=10)
+    LOG.append({'argv': [str(x) for x in argv], 'returncode': process.returncode,
+                'stdout': out.decode('utf-8', 'replace'), 'stderr': err.decode('utf-8', 'replace')})
+    return process.returncode, out, err
+
+
+def git(root, *args):
+    code, out, err = command(root, ['git', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', *args])
+    require(code == 0, 'Git failed: ' + ' '.join(args) + ': ' + err.decode('utf-8', 'replace'))
+    return out
+
+
+def write(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data if isinstance(data, bytes) else data.encode())
+
+
+def json_write(path, value):
+    write(path, json.dumps(value, indent=2, sort_keys=True) + '\n')
+
+
+def authenticate():
+    require(os.name == 'posix', 'fixture mode/process-group checks require POSIX')
+    require(sha((ROOT / 'SOURCE-PINS.json').read_bytes()) == SOURCE_HASH, 'source manifest')
+    require(sha((ROOT / 'CASES.json').read_bytes()) == CASE_HASH, 'case manifest')
+    for row in load(ROOT / 'SOURCE-PINS.json')['files']:
+        path = (ROOT / row['local_path']).resolve()
+        require(path.parent == (ROOT / 'inputs').resolve(), 'source containment')
+        raw = path.read_bytes()
+        require(len(raw) == row['bytes'] and sha(raw) == row['sha256'], 'source bytes/hash')
+        require(hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+                == row['git_blob'], 'source Git blob')
+
+
+def source_row(path, data):
+    return {'path': path, 'usage': 'provenance', 'sha256': sha(data),
+            'git_blob': hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()}
+
+
+def make_origin(directory):
+    origin = directory / 'origin'; origin.mkdir(); git(origin, 'init', '-q')
+    git(origin, 'config', 'uploadpack.allowFilter', 'true')
+    git(origin, 'config', 'uploadpack.allowAnySHA1InWant', 'true')
+    git(origin, 'config', 'core.autocrlf', 'false')
+    old = bytes((73 * i + 19) % 256 for i in range(257))
+    catalog = json.dumps({'tracks': [{'tasks': [CARD]}]}).encode()
+    write(origin / 'historical-source.bin', old)
+    write(origin / 'obsolete.bin', bytes(range(256)) * 256)
+    write(origin / 'docs/research/agent-task-catalog.json', catalog)
+    for name in ['research_package.py', 'check_research_commit.py']:
+        write(origin / 'scripts' / name, (ROOT / 'inputs' / name).read_bytes())
+    git(origin, 'add', '.'); git(origin, 'commit', '-qm', 'base')
+    base = git(origin, 'rev-parse', 'HEAD').decode().strip()
+    git(origin, 'checkout', '-qb', 'side')
+    write(origin / 'separate-ref.bin', bytes(range(256)) * 128)
+    git(origin, 'add', '.'); git(origin, 'commit', '-qm', 'side')
+    side = git(origin, 'rev-parse', 'HEAD').decode().strip()
+    git(origin, 'checkout', '-qb', 'main', base)
+    git(origin, 'rm', '-q', 'historical-source.bin', 'obsolete.bin')
+    fixture_metadata(origin, base, old, catalog)
+    git(origin, 'add', '.'); git(origin, 'commit', '-qm', 'publication')
+    head = git(origin, 'rev-parse', 'HEAD').decode().strip()
+    git(origin, 'tag', '-am', 'retained tag', 'fixture-tag', base)
+    git(origin, 'update-ref', 'refs/pull/1/merge', head)
+    old_oid = source_row('historical-source.bin', old)['git_blob']
+    obsolete = git(origin, 'rev-parse', base + ':obsolete.bin').decode().strip()
+    return origin, {'base': base, 'head': head, 'side': side, 'old': old_oid, 'obsolete': obsolete}
+
+
+def fixture_metadata(origin, base, old, catalog):
+    task = {'schema_version': 1, 'task_id': 'fixture', 'base_commit': base,
+            'scope_status': 'unchanged', 'actual_scope': CARD['question'], 'original_card': CARD,
+            'bottleneck_link': 'Synthetic source-reader transport fixture.', 'stop_rule': 'One fixed fixture.',
+            'outcome': 'completed', 'evidence': 'Synthetic exact bytes.', 'author': 'Fixture',
+            'ai_assistance': 'OpenAI Codex', 'open_questions': [], 'no_open_questions_reason': 'Fixed fixture only.'}
+    rows = [source_row('docs/research/agent-task-catalog.json', catalog), source_row('historical-source.bin', old)]
+    json_write(origin / PACKAGE / 'TASK.json', task)
+    json_write(origin / PACKAGE / 'SOURCES.json', {'schema_version': 1, 'base_commit': base, 'files': rows})
+    json_write(origin / PACKAGE / 'VERIFY.json', {'schema_version': 1, 'status': 'ready', 'python': '3.12',
+               'requirements': [], 'inputs': [], 'commands': [{'argv': ['{python}', '-c', 'print("FIXTURE_REPLAY")'],
+               'timeout_seconds': 10, 'checks': 'Bounded synthetic registered command.'}]})
+    write(origin / PACKAGE / 'README.md', '# Fixture\n\n## Open next questions\n\nFixed transport fixture.\n')
+    write(origin / PACKAGE / 'input.txt', 'publication bytes\n')
+    write(origin / PACKAGE / 'run.sh', '#!/bin/sh\nexit 0\n')
+    (origin / PACKAGE / 'run.sh').chmod(0o755)
+
+
+def acquire(directory, name, origin, head, filtered):
+    root = directory / name; root.mkdir(); git(root, 'init', '-q')
+    git(root, 'remote', 'add', 'origin', origin.as_uri())
+    git(root, 'config', 'maintenance.auto', 'false'); git(root, 'config', 'gc.auto', '0')
+    args = ['fetch', '--no-tags', '--prune', '--no-recurse-submodules']
+    if filtered:
+        args.append('--filter=blob:none')
+    git(root, *args, 'origin', '+refs/heads/*:refs/remotes/origin/*', '+refs/tags/*:refs/tags/*',
+        '+' + head + ':refs/remotes/pull/1/merge')
+    git(root, 'checkout', '--force', '--detach', 'refs/remotes/pull/1/merge')
+    require(git(root, 'rev-parse', '--is-shallow-repository').strip() == b'false', 'full ancestry')
+    require(not (root / '.git/objects/info/alternates').exists(), 'no alternates')
+    return root
+
+
+def resident(root):
+    # Enumerate only stored objects; never name a missing promised object here.
+    raw = git(root, 'cat-file', '--batch-all-objects', '--batch-check=%(objectname) %(objecttype)')
+    return {row.split()[0].decode() for row in raw.splitlines()}
+
+
+def metadata(root):
+    return command(root, [sys.executable, '-I', '-W', 'error', '-B',
+                           'scripts/research_package.py', '--package', PACKAGE, '--check-only'], 60)
+
+
+def history_modes(root):
+    return command(root, [sys.executable, '-I', '-W', 'error', '-B',
+                           'scripts/check_research_commit.py', '--package', PACKAGE,
+                           '--check-source-history', '--check-modes'], 60)
+
+
+def offline(root):
+    git(root, 'remote', 'set-url', 'origin', 'file:///nonexistent/disabled-fixture-origin')
+
+
+def head_inventory(root):
+    tree = git(root, 'ls-tree', '-r', '-z', 'HEAD')
+    inventory = []
+    for row in tree.split(b'\0'):
+        if not row:
+            continue
+        header, name = row.split(b'\t', 1); path = root / os.fsdecode(name)
+        inventory.append([header.decode(), os.fsdecode(name), sha(path.read_bytes()), bool(path.stat().st_mode & 0o100)])
+    return inventory
+
+
+def equal_history(full, filtered):
+    refs = lambda root: git(root, 'for-each-ref', '--format=%(refname) %(objectname)')
+    commits = lambda root: set(git(root, 'rev-list', '--all').splitlines())
+    trees = lambda root: set(git(root, 'log', '--all', '--format=%T').splitlines())
+    return {'all_refs_equal': refs(full) == refs(filtered), 'all_commits_equal': commits(full) == commits(filtered),
+            'all_trees_equal': trees(full) == trees(filtered),
+            'head_bytes_modes_equal': head_inventory(full) == head_inventory(filtered)}
+
+
+def rejection_controls(root, ids):
+    result = {}
+    path = root / PACKAGE / 'input.txt'; original = path.read_bytes(); path.write_bytes(original + b'drift')
+    result['working_bytes_rejected'] = history_modes(root)[0] != 0
+    result['unstaged_diff_rejected'] = command(root, ['git', 'diff', '--exit-code'])[0] != 0
+    path.write_bytes(original)
+    executable = root / PACKAGE / 'run.sh'; executable.chmod(0o644)
+    result['owner_execute_rejected'] = history_modes(root)[0] != 0; executable.chmod(0o755)
+    git(root, 'update-index', '--chmod=-x', PACKAGE + '/run.sh')
+    result['staged_diff_rejected'] = command(root, ['git', 'diff', '--cached', '--exit-code'])[0] != 0
+    git(root, 'reset', '-q', 'HEAD', '--', PACKAGE + '/run.sh')
+    write(root / '.git/shallow', ids['base'] + '\n')
+    result['shallow_history_rejected'] = history_modes(root)[0] != 0; (root / '.git/shallow').unlink()
+    source = root / PACKAGE / 'SOURCES.json'; original = source.read_bytes(); data = load(source)
+    data['files'][1]['pin'] = 'head:' + ids['side'] + ':historical-source.bin'
+    json_write(source, data); git(root, 'add', PACKAGE + '/SOURCES.json'); git(root, 'commit', '-qm', 'foreign pin')
+    result['foreign_ancestry_rejected'] = history_modes(root)[0] != 0
+    git(root, 'checkout', '--force', '--detach', ids['head'])
+    require(all(result.values()), 'negative control did not reject')
+    return result
+
+
+def experiment(directory):
+    origin, ids = make_origin(directory)
+    full = acquire(directory, 'full', origin, ids['head'], False)
+    filtered = acquire(directory, 'filtered', origin, ids['head'], True)
+    semantic = equal_history(full, filtered)
+    before = resident(filtered)
+    semantic['filtered_old_source_initially_missing'] = ids['old'] not in before
+    semantic['filtered_obsolete_initially_missing'] = ids['obsolete'] not in before
+    require(ids['old'] in resident(full), 'full baseline contains old source')
+    require(metadata(full)[0] == 0, 'full baseline metadata')
+    # FIRST unknown probe: do not explicitly look up the old object before this.
+    automatic = metadata(filtered)
+    semantic['online_metadata_accepted'] = automatic[0] == 0
+    semantic['online_old_source_hydrated'] = ids['old'] in resident(filtered)
+    control = acquire(directory, 'separate-control', origin, ids['head'], True)
+    require(ids['old'] not in resident(control), 'separate client remains unhydrated')
+    offline(control); semantic['offline_unhydrated_metadata_rejected'] = metadata(control)[0] != 0
+    git(control, 'remote', 'set-url', 'origin', origin.as_uri())
+    git(control, 'show', ids['base'] + ':historical-source.bin')
+    require(ids['old'] in resident(control), 'declared manual source hydration')
+    offline(control)
+    semantic['offline_hydrated_metadata_accepted'] = metadata(control)[0] == 0
+    semantic['offline_hydrated_history_modes_accepted'] = history_modes(control)[0] == 0
+    semantic.update(rejection_controls(control, ids))
+    required = {k: v for k, v in semantic.items() if k not in ['online_metadata_accepted', 'online_old_source_hydrated']}
+    require(all(required.values()), 'fixture compatibility/control prerequisites')
+    size = sum(p.stat().st_size for p in directory.rglob('*') if p.is_file())
+    require(size < 50 * 1024 * 1024, 'fixture byte ceiling')
+    return semantic, {'fixture_bytes': size, 'resident_before': len(before), 'online_returncode': automatic[0]}
+
+
+def compute():
+    authenticate()
+    version = command(ROOT, ['git', '--version'])[1].decode().strip()
+    with tempfile.TemporaryDirectory(prefix='ci-blob-compat-') as temporary:
+        semantic, diagnostics = experiment(Path(temporary))
+    result = {'schema_version': 1, 'source_manifest_sha256': SOURCE_HASH,
+              'case_manifest_sha256': CASE_HASH, 'code_sha256': sha(Path(__file__).read_bytes()), 'semantics': semantic}
+    return result, {'git_version': version, **diagnostics}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--emit', type=Path); parser.add_argument('--artifact', type=Path, default=ROOT / 'RESULT.json')
+    parser.add_argument('--trace', type=Path)
+    args = parser.parse_args()
+    try:
+        result, diagnostics = compute()
+        if args.emit:
+            json_write(args.emit, result)
+        else:
+            require(typed_equal(load(args.artifact), result), 'strict retained receipt mismatch')
+        print(json.dumps({'status': 'pass', 'semantics': result['semantics'], 'diagnostics': diagnostics}, sort_keys=True))
+    finally:
+        if args.trace:
+            json_write(args.trace, LOG)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ValueError, OSError, TypeError, KeyError, subprocess.SubprocessError) as error:
+        print('FAIL: ' + str(error), file=sys.stderr)
+        raise SystemExit(1) from error
