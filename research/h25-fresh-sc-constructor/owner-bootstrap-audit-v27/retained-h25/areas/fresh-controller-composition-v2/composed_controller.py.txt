@@ -1,0 +1,1426 @@
+"""SOURCE ONLY owning parent for exact selected-prefix serialized DATA.
+
+No privilege/capability is reconstructed from a plan/receipt.  The historical
+lease below is acquired by this process using open/flock and kept through final
+original-domain custody and known accounting.  Actual execution needs a separate
+exact command/admission review.  No universal hard-timeout/native-fault theorem.
+"""
+import argparse
+import builtins
+import fcntl
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+from types import ModuleType, MethodType, FunctionType
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+ROOT = W / 'outputs/h25-data-handling-20261028'
+HISTORICAL_LOCK = W / 'outputs/h25-bookkeeping-swarm-20261028/runtime/science.lock'
+PACKET = ROOT / 'execution-guards/build-log-queue-v2'
+PACKET_SHA = '1ad9a7d536f59743df8ef7626c65c6e02fb68955a651cb927e471276ec44d416'
+ENVELOPE_SHA = 'afb4f72c36bad015fdf23221a00a4730387a5e8df4999b14a4d1614ee135c84a'
+PREDECESSOR_WRAPPER_SHA = 'ea4c07337ccc1865accfd1b1fe485d51057a04a49e4bfb5f10cc36dc92b5f9a8'
+PREDECESSOR_QUEUE_SHA = '1348a7b4d7cc1f9fef556f5e0abdaf04411a998afdcd574d7812c76ab37dcf68'
+PREDECESSOR_STAGE_SHA = 'afe1075579faed2093a885911a3558039c6a394e887705e99e85822e5eb6be5a'
+TCB_SHA = 'f34d4fb2e96924ae54de33c476d4adc1ee085fa1a072e166c64dd34bd0c25467'
+CLOCK_PREMISES_SHA = '0763b173d623030d3d740f6eea0676cf48a1b97d58c7f7f8c88d6e49a4b74882'
+NAME = 'IndependentPrefixDATAComposedV1'
+BARRIER = ROOT / 'validation/IndependentPrefixDATAComposedV1-EXECUTION-BARRIER'
+QUARANTINE = ROOT / 'runtime/fresh-metered-round-v1/controller-quarantines/IndependentPrefixDATAComposedV1'
+STAGE = ROOT / 'stages/independent-prefix-data-composed-v1'
+EXTERNAL_BASE = W / 'outputs/h25-independent-prefix-data-composed-v1'
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+INITIAL_PATH = ('/usr/lib/python312.zip', '/usr/lib/python3.12', '/usr/lib/python3.12/lib-dynload')
+SOURCE_ONLY_FIELDS = ('qualified', 'full99_fit', 'full52prefix_qualification',
+                     'runtime_profile_qualified', 'native_identity_proved',
+                     'fullcaller_admitted', 'fullscience', 'gain',
+                     'execution_grant_created', 'all_costs_settled', 'native_fault_totality_qualified')
+FIRST = [None]
+SECONDARY = [None] * 32
+IO_UNKNOWN = [False]
+RETAINED_MODULES = []
+
+ELIGIBILITY_PATH = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-successor-eligibility-v1/historical_eligibility.py')
+ELIGIBILITY_PIN = {'bytes':8682,'sha256':'bb60f3e93979fd43993a8655d3a3a82e23d74e361f7560857f975fc970607a63'}
+ELIGIBILITY = [None]
+PREDECESSOR_SUCCESSOR_ACTIVE = ('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/IndependentPrefixDATASuccessorV1-EXECUTION-BARRIER','/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/runs/IndependentPrefixDATASuccessorV1-EXECUTION-QUARANTINE')
+SUCCESSOR_ACTIVE = (*PREDECESSOR_SUCCESSOR_ACTIVE, str(BARRIER), str(QUARANTINE))
+SOFT_DEADLINE = [None]
+ACTIVE_CASE = [None]
+INPUT_ORDER = ('artifact', 'stdout', 'metadata', 'root_receipt')
+
+
+class AdapterStop(RuntimeError):
+    pass
+
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+    elif error is not FIRST[0]:
+        for index in range(32):
+            if SECONDARY[index] is error:
+                break
+            if SECONDARY[index] is None:
+                SECONDARY[index] = error
+                break
+        else:
+            IO_UNKNOWN[0] = True
+    return FIRST[0]
+
+
+def checkpoint():
+    if IO_UNKNOWN[0]:
+        raise AdapterStop('uncertain IO; process teardown required, no new acquisition')
+    if SOFT_DEADLINE[0] is not None and time.monotonic() > SOFT_DEADLINE[0]:
+        raise AdapterStop('owning-parent soft allowance crossed; cleanup remains paid')
+    if ACTIVE_CASE[0] is not None:
+        ACTIVE_CASE[0].check()
+    if resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024 > 1073741824:
+        raise AdapterStop('owning-parent observed RSS cap')
+
+
+class OwnedIO:
+    """Fixed direct-handle slots; ordinary POSIX under selected operating TCB."""
+    def __init__(self):
+        self.slots = [[None, 'FREE', None] for unused in range(16)]
+
+    def acquire(self, path, flags, mode=0o600, directory=False):
+        checkpoint()
+        slot = next(row for row in self.slots if row[1] in ('FREE', 'CLOSED'))
+        slot[0], slot[2], slot[1] = None, directory, 'PENDING'
+        try:
+            slot[0] = os.scandir(path) if directory else os.open(path, flags, mode)
+            slot[1] = 'OWNED'
+            return slot
+        except BaseException as error:
+            IO_UNKNOWN[0] = True
+            remember(error)
+            raise
+
+    def close(self, slot):
+        if slot[1] != 'OWNED':
+            IO_UNKNOWN[0] = True
+            raise AdapterStop('handle close not known/replay')
+        slot[1] = 'CLOSING'
+        try:
+            slot[0].close() if slot[2] else os.close(slot[0])
+        except BaseException as error:
+            IO_UNKNOWN[0] = True
+            remember(error)
+            raise
+        slot[1] = 'CLOSED'
+
+    def names(self, path, cap=8192):
+        names, primary, slot = [], None, None
+        try:
+            slot = self.acquire(path, 0, directory=True)
+            for entry in slot[0]:
+                checkpoint()
+                if len(names) >= cap:
+                    raise AdapterStop('directory census cap')
+                names.append(entry.name)
+        except BaseException as error:
+            primary = remember(error)
+        finally:
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    primary = remember(error)
+        if primary is not None:
+            raise primary
+        return names
+
+    def read(self, path, cap, mode=None, expected=None, materialize=False, proc=False):
+        checkpoint()
+        path = Path(path)
+        if not proc:
+            need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical source/input/output path')
+        before = path.lstat()
+        if not proc:
+            need(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and
+                 before.st_uid in (0, os.getuid()) and before.st_size <= cap and
+                 (mode is None or stat.S_IMODE(before.st_mode) == mode), 'regular stable file precondition')
+        pieces, count, hasher, slot, primary = [], 0, hashlib.sha256(), None, None
+        try:
+            slot = self.acquire(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+            if not proc:
+                need(identity(os.fstat(slot[0])) == identity(before), 'opened stable file differs')
+            while True:
+                checkpoint()
+                block = os.read(slot[0], min(65536, cap + 1 - count))
+                if not block:
+                    break
+                count += len(block)
+                need(count <= cap, 'file read cap')
+                hasher.update(block)
+                if materialize:
+                    pieces.append(block)
+            if not proc:
+                need(identity(os.fstat(slot[0])) == identity(before) and count == before.st_size,
+                     'stable descriptor changed')
+        except BaseException as error:
+            primary = remember(error)
+        finally:
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    primary = remember(error)
+        if primary is not None:
+            raise primary
+        if not proc:
+            need(identity(path.lstat()) == identity(before), 'stable path changed')
+        row = {'path': str(path), 'bytes': count, 'sha256': hasher.hexdigest(),
+               'mode': stat.S_IMODE(before.st_mode), 'uid': before.st_uid,
+               'nlink': before.st_nlink, 'identity': list(identity(before))}
+        if expected is not None:
+            need(type(expected['bytes']) is int and row['bytes'] == expected['bytes'] and
+                 row['sha256'] == expected['sha256'], 'fixed file bytes/hash differs')
+        return row, b''.join(pieces) if materialize else None
+
+    def write(self, path, value, cap=4194304):
+        checkpoint()
+        path = Path(path)
+        need(path.is_absolute() and path.parent.resolve(strict=True) == path.parent, 'canonical retained evidence parent')
+        raw, slot, primary, offset = canonical(value), None, None, 0
+        need(len(raw) <= cap, 'retained JSON evidence cap')
+        try:
+            slot = self.acquire(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC)
+            while offset < len(raw):
+                n = os.write(slot[0], raw[offset:offset + 65536])
+                need(type(n) is int and 0 < n <= min(65536, len(raw) - offset), 'retained short write')
+                offset += n
+            os.fsync(slot[0])
+        except BaseException as error:
+            primary = remember(error)
+        finally:
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    primary = remember(error)
+        if primary is not None:
+            raise primary
+        return self.read(path, cap, 0o600, {'bytes': len(raw), 'sha256': digest(raw)})[0]
+
+
+IO = OwnedIO()
+
+
+# Exact accepted DATA-verifier source spans, recontextualized under this owner.
+FILE_CAPS = {'RAW-artifact.typed': 16777216, 'RAW-stdout.typed': 2097152,
+             'RAW-metadata.json': 65536, 'RAW-root_receipt.json': 65536,
+             'observations.jsonl': 4194304, 'receipt.json': 1048576}
+
+
+OUTCOME_FALSE_FLAGS = ('complete99case_qualification', 'full52prefix_qualification',
+                       'current_runtime_profile_qualified', 'native_header_FFI_fullcaller_admission',
+                       'native_identity_proved', 'fullscience', 'gain', 'controls_waived')
+
+
+FALSE_FLAGS = ('full99_fit', 'full52prefix_qualification', 'runtime_profile_qualified',
+               'native_identity_proved', 'fullcaller_admitted', 'fullscience', 'gain',
+               'execution_grant_created', 'all_costs_settled', 'native_fault_totality_qualified')
+
+
+def need(value, message):
+    if not value:
+        raise AdapterStop(message)
+
+
+def exact(value, keys):
+    need(type(value) is dict and set(value) == set(keys), 'exact DATA object keys differ')
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def sha_value(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact sha256 required')
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                       ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+
+
+def json_data(raw, cap):
+    """Bounded file/line before JSON parsing; post-parse node/type checks.
+
+    json.loads allocations and recursion precede postchecks; outer 1GiB/180s
+    supervision remains mandatory. This is not a proved successful-fit bound.
+    """
+    need(type(raw) is bytes and 0 < len(raw) <= cap, 'JSON byte cap')
+    def pairs(rows):
+        out = {}
+        for key, value in rows:
+            checkpoint()
+            need(type(key) is str and key not in out, 'duplicate or foreign JSON key')
+            out[key] = value
+        return out
+    def constant(value):
+        raise AdapterStop('nonfinite JSON constant')
+    checkpoint()
+    value = json.loads(raw.decode('ascii'), object_pairs_hook=pairs, parse_constant=constant)
+    checkpoint()
+    nodes = [0]
+    def walk(item, depth):
+        checkpoint()
+        nodes[0] += 1
+        need(nodes[0] <= 200000 and depth <= 32, 'JSON nodes/depth')
+        kind = type(item)
+        if item is None or kind is bool:
+            return
+        if kind is int:
+            need(item.bit_length() <= 128, 'JSON integer bound')
+        elif kind is float:
+            need(math.isfinite(item), 'JSON finite float')
+        elif kind is str:
+            need(len(item) <= 1048576, 'JSON string bound')
+        elif kind in (dict, list):
+            need(len(item) <= 16384, 'JSON collection bound')
+            if kind is dict:
+                for key, child in item.items():
+                    checkpoint()
+                    need(type(key) is str and len(key) <= 65536, 'JSON key bound')
+                    walk(child, depth + 1)
+            else:
+                for child in item:
+                    checkpoint()
+                    walk(child, depth + 1)
+        else:
+            raise AdapterStop('foreign JSON type')
+    walk(value, 0)
+    return value
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_uid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def verify_journal(raw, inputs, inventory, mode, outcome):
+    """DATA journal only; never decode the typed input or invoke an oracle again."""
+    need(raw.endswith(b'\n'), 'journal lacks final newline')
+    lines = raw.splitlines()
+    need(len(lines) == len(INPUT_ORDER) + 2 * len(inventory) + 1, 'complete journal inventory differs')
+    position = 0
+    for name in INPUT_ORDER:
+        checkpoint()
+        observed = json_data(lines[position], 1048576)
+        position += 1
+        exact(observed, ('kind', 'name', 'bytes', 'sha256', 'mode'))
+        expected = inputs[name]
+        need(observed['kind'] == 'INPUT_RAW_BEFORE_ORACLE' and observed['name'] == name and
+             type(observed['bytes']) is int and observed['bytes'] == expected['bytes'] and
+             observed['sha256'] == expected['sha256'] and observed['mode'] == mode,
+             'input RAW-before-oracle journal differs')
+    for control in inventory:
+        checkpoint()
+        first = json_data(lines[position], 1048576)
+        second = json_data(lines[position + 1], 1048576)
+        position += 2
+        exact(first, ('kind', 'name', 'scope', 'raw_hex', 'raw_bytes', 'raw_sha256', 'expected_code'))
+        exact(second, ('kind', 'name', 'code'))
+        need(first['kind'] == 'CONTROL_RAW_BEFORE_ORACLE' and first['name'] == control['name'] and
+             first['scope'] == control['scope'] and first['expected_code'] == control['expected_code'] and
+             second['kind'] == 'CONTROL_OBSERVED' and second['name'] == control['name'] and
+             second['code'] == control['expected_code'], 'literal RAW/order/observed code differs')
+        hx = first['raw_hex']
+        need(type(first['raw_bytes']) is int and 0 <= first['raw_bytes'] <= 131072 and
+             type(hx) is str and len(hx) == first['raw_bytes'] * 2 and
+             all(c in '0123456789abcdef' for c in hx), 'observed RAW hex type/length')
+        sha_value(first['raw_sha256'])
+        # Observed transport consistency only. Fixture identity is source/body-pinned;
+        # expected code/value checks stay independently fixed, never learned here.
+        need(digest(bytes.fromhex(hx)) == first['raw_sha256'], 'observed RAW transport digest differs')
+    final = json_data(lines[position], 1048576)
+    exact(final, ('kind', 'outcome'))
+    need(final['kind'] == 'SEMANTIC_OBSERVATION' and canonical(final['outcome']) == canonical(outcome),
+         'complete semantic observation cross-binding differs')
+
+
+def verify_external(directory, spec, inputs, mode, binding):
+    before = external_census(directory)
+    manifest, material = {}, {}
+    for name, cap in FILE_CAPS.items():
+        checkpoint()
+        row, raw = stable_blob(directory / name, cap, 0o600,
+                               materialize=name in ('receipt.json', 'observations.jsonl'))
+        manifest[name] = row
+        if raw is not None:
+            material[name] = raw
+    need(sum(row['bytes'] for row in manifest.values()) <= spec['external_total_cap_bytes'],
+         'external aggregate byte cap')
+    for name in INPUT_ORDER:
+        checkpoint()
+        filename = 'RAW-' + name + ('.typed' if name in ('artifact', 'stdout') else '.json')
+        expected, observed = inputs['inputs'][mode][name], manifest[filename]
+        need(type(expected['bytes']) is int and expected['bytes'] == observed['bytes'] and
+             expected['sha256'] == observed['sha256'], 'external RAW copy differs from fixed input')
+    receipt = json_data(material['receipt.json'], FILE_CAPS['receipt.json'])
+    exact(receipt, ('schema', 'status', 'mode', 'source_sha256', 'contract_sha256',
+                    *FALSE_FLAGS, 'controls_completed', 'outcome',
+                    'observed_internal_wall_before_receipt_seconds',
+                    'observed_internal_CPU_before_receipt_seconds', 'internal_receipt_and_cleanup_tail_excluded'))
+    for key in ('observed_internal_wall_before_receipt_seconds',
+                'observed_internal_CPU_before_receipt_seconds'):
+        checkpoint()
+        need(type(receipt[key]) in (int, float) and math.isfinite(receipt[key]) and
+             receipt[key] >= 0, 'internal DATA timing type/value')
+    need(receipt['internal_receipt_and_cleanup_tail_excluded'] is True, 'internal receipt timing scope differs')
+    need(type(receipt) is dict and receipt.get('schema') == 'independent-exact-prefix-DATA-outcome-v2' and
+         receipt.get('status') == 'EXACT_PREFIX_SERIALIZED_DATA_OBSERVED' and
+         receipt.get('mode') == mode and receipt.get('source_sha256') == binding['decoder']['sha256'] and
+         receipt.get('contract_sha256') == binding['input_contract']['sha256'],
+         'external DATA receipt source/status/mode differs')
+    for key in FALSE_FLAGS:
+        checkpoint()
+        need(receipt.get(key) is False, 'qualified/native/science/gain flag is not exactly false')
+    required = [row['name'] for row in spec['control_inventory']]
+    need(type(receipt.get('controls_completed')) is list and
+         all(type(name) is str for name in receipt['controls_completed']) and
+         receipt['controls_completed'] == required, 'all required literal controls not completed in order')
+    outcome = receipt.get('outcome')
+    exact(outcome, ('decision', 'scope', 'mode', 'journal_rows', 'independent_documents',
+                    'independent_decoded_bytes', 'independent_nodes', 'documents',
+                    'trusted_source_lifetime_proof_separate', *OUTCOME_FALSE_FLAGS))
+    need(outcome['trusted_source_lifetime_proof_separate'] is True, 'source lifetime premise scope differs')
+    for key in ('independent_documents', 'independent_decoded_bytes', 'independent_nodes'):
+        checkpoint()
+        need(type(outcome[key]) is int and outcome[key] >= 0, 'DATA outcome counter type')
+    need(type(outcome) is dict and outcome.get('decision') == receipt['status'] and
+         outcome.get('mode') == mode, 'semantic DATA outcome mode/status differs')
+    for key in OUTCOME_FALSE_FLAGS:
+        checkpoint()
+        need(outcome.get(key) is False, 'semantic qualified/native/science flag is not exactly false')
+    verify_journal(material['observations.jsonl'], inputs['inputs'][mode],
+                   spec['control_inventory'], mode, outcome)
+    # Distinct final freshness boundary: no cached PASS across changes.
+    for name, cap in FILE_CAPS.items():
+        checkpoint()
+        final, unused = stable_blob(directory / name, cap, 0o600)
+        need(final == manifest[name], 'external final stable bytes/identity changed')
+    need(external_census(directory) == before, 'external final directory/membership changed')
+    return {'schema': 'independent-prefix-external-DATA-manifest-v1',
+            'directory': str(directory), 'directory_identity': list(before),
+            'files': manifest, 'file_count': len(manifest),
+            'total_bytes': sum(row['bytes'] for row in manifest.values()),
+            'external_receipt_sha256': manifest['receipt.json']['sha256']}, required
+
+ADAPTER_SUCCESS_KEYS = ('schema', 'status', 'mode', 'optimized', 'job', 'label', 'lanes', 'finite_only', 'source_review_sha256', 'adapter_contract', 'decoder_sha256', 'input_contract_sha256', 'control_inventory_sha256', 'qualified', 'full99_fit', 'full52prefix_qualification', 'runtime_profile_qualified', 'native_identity_proved', 'fullcaller_admitted', 'fullscience', 'gain', 'execution_grant_created', 'all_costs_settled', 'native_fault_totality_qualified', 'fixture_byte_independence', 'decoder', 'decoder_control_inventory', 'input_contract', 'controls_completed', 'all_required_controls_observed', 'external_manifest', 'external_manifest_sha256', 'external_receipt')
+
+
+
+def stable_blob(path, cap, mode, expected=None, materialize=False):
+    return IO.read(path, cap, mode, expected, materialize)
+
+
+def read_json(path, cap=4194304, mode=None, expected=None):
+    row, raw = IO.read(path, cap, mode, expected, True)
+    return json_data(raw, cap), row
+
+
+def external_census(directory):
+    before = private_directory(directory)
+    names = IO.names(directory, 6)
+    need(len(names) == len(FILE_CAPS) and set(names) == set(FILE_CAPS), 'exact external six-file census')
+    need(private_directory(directory) == before, 'external directory changed')
+    return before
+
+
+def private_directory(path):
+    checkpoint()
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'private canonical directory')
+    info = path.lstat()
+    need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o700 and
+         info.st_uid == os.getuid(), 'private owner0700 directory')
+    return identity(info)
+
+
+def metadata(path, cap=65536):
+    return IO.read(Path(path), cap, materialize=True, proc=True)[1]
+
+
+def process(pid):
+    raw = metadata('/proc/' + str(pid) + '/stat', 8192)
+    end = raw.rfind(b') ')
+    need(end >= 0, 'process stat syntax')
+    fields = raw[end + 2:].split()
+    return {'pid': pid, 'ppid': int(fields[1]), 'pgid': int(fields[2]), 'sid': int(fields[3]),
+            'start_ticks': int(fields[19]), 'rss_bytes': int(fields[21]) * os.sysconf('SC_PAGE_SIZE')}
+
+
+class GlobalLease:
+    """This process's real FD, never supplied in JSON or passed to children."""
+    def __init__(self):
+        self.fd, self.phase, self.birth, self.lock_info = None, 'NEW', None, None
+
+    def acquire(self):
+        self.phase = 'OPEN_PENDING'
+        try:
+            self.fd = os.open(HISTORICAL_LOCK, os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
+            self.phase = 'OPEN_RETURNED'
+            fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.phase = 'EX_HELD'
+            self.birth = process(os.getpid())
+            self.lock_info = self.verify()
+        except BaseException as error:
+            remember(error)
+            raise
+        return self
+
+    def verify(self):
+        need(self.phase == 'EX_HELD' and type(self.fd) is int, 'actual global FD is not held')
+        actual = os.fstat(self.fd)
+        need(stat.S_ISREG(actual.st_mode) and actual.st_uid == os.getuid() and actual.st_nlink == 1 and
+             HISTORICAL_LOCK.resolve(strict=True) == HISTORICAL_LOCK and
+             identity(HISTORICAL_LOCK.lstat()) == identity(actual), 'global lock canonical inode/owner differs')
+        need(fcntl.fcntl(self.fd, fcntl.F_GETFD) & fcntl.FD_CLOEXEC, 'global FD must close on exec')
+        info = metadata('/proc/self/fdinfo/' + str(self.fd), 16384).decode('ascii')
+        fields = dict(line.split(':', 1) for line in info.splitlines() if ':' in line)
+        need(int(fields['ino'].strip()) == actual.st_ino and
+             any('FLOCK' in line and 'WRITE' in line and (' ' + str(os.getpid()) + ' ') in line
+                 for line in info.splitlines() if line.startswith('lock:')), 'actual held EX flock fdinfo missing')
+        current = process(os.getpid())
+        if self.birth is not None:
+            need(current['pid'] == self.birth['pid'] and current['start_ticks'] == self.birth['start_ticks'],
+                 'global lease process generation changed')
+        return {'path': str(HISTORICAL_LOCK), 'fd_number_observed': self.fd,
+                'fstat': list(identity(actual)), 'fdinfo': info, 'parent': current,
+                'source_acquired_here': True, 'FD_CLOEXEC': True,
+                'not_JSON_or_native_memory_authority': True}
+
+    def close(self):
+        if self.fd is None:
+            return
+        self.phase = 'CLOSE_ENTERED'
+        try:
+            os.close(self.fd)  # Only release point; no unlock/duplicate/SCM transfer.
+        except BaseException as error:
+            self.phase = 'CLOSE_UNKNOWN'
+            IO_UNKNOWN[0] = True
+            remember(error)
+            raise
+        self.phase = 'CLOSE_RETURNED'
+
+
+def load_source(path, expected, module_name):
+    row, raw = IO.read(path, 2097152, 0o444, expected, True)
+    need(module_name not in sys.modules, 'parent module name already loaded')
+    module = ModuleType(module_name)
+    module.__dict__.update(__file__=str(path), __name__=module_name, __package__=None,
+                           __spec__=None, __builtins__=builtins)
+    sys.modules[module_name] = module
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), module.__dict__)
+    RETAINED_MODULES.append(module)
+    return module, row
+
+
+def clean_launch():
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3, 12) and sys.base_prefix == '/usr', 'actual selected interpreter/prefix')
+    need(sys.flags.optimize == 0 and sys.flags.no_site == sys.flags.no_user_site ==
+         sys.flags.dont_write_bytecode == 1 and sys.flags.safe_path and
+         sys.flags.ignore_environment == sys.flags.isolated == sys.flags.hash_randomization == 0 and
+         tuple(sys.path) == INITIAL_PATH and dict(os.environ) == ENV, 'clean owning-parent launch differs')
+    need(os.getcwd() == str(W), 'exact parent working directory')
+    need(len(IO.names('/proc/self/task', 2)) == 1 and
+         signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0) and
+         signal.getsignal(signal.SIGALRM) == signal.SIG_DFL,
+         'single-task/no prior alarm or incompatible SIGALRM owner required')
+    status = metadata('/proc/self/status').decode('ascii')
+    values = dict(line.split(':', 1) for line in status.splitlines() if ':' in line)
+    need(int(values['Umask'].strip(), 8) == 0o077, 'actual inherited umask must be0077')
+    streams = {}
+    for fd in (1, 2):
+        info = os.fstat(fd)
+        need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600 and
+             info.st_uid == os.getuid() and info.st_nlink == 1, 'captured regular0600 stdout/stderr')
+        streams[str(fd)] = list(identity(info))
+    return {'actual_parent': process(os.getpid()), 'sys_base_prefix': sys.base_prefix,
+            'environment': dict(os.environ), 'initial_path': list(sys.path), 'stdio': streams,
+            'umask_observed': 0o077, 'prior_SIGALRM_handler': 'SIG_DFL',
+            'operating_TCB_not_loaded_image_proof': True}
+
+
+def add_expectation(pins, path, expected):
+    # Independent expected manifests remain separate even for the same pathname.
+    if path not in pins:
+        pins[path] = []
+    pins[path].append(expected)
+
+
+def snapshot_domain(pins):
+    result = {}
+    for path, expectations in pins.items():
+        checkpoint()
+        row = IO.read(Path(path), max(1, max(item['bytes'] for item in expectations)))[0]
+        for expected in expectations:
+            checkpoint()
+            need(row['bytes'] == expected['bytes'] and row['sha256'] == expected['sha256'] and
+                 row['mode'] == expected['mode'], 'independent source/input expected pin differs')
+        result[path] = row
+    return result
+
+
+def writer_probe(pins):
+    """Actual bounded observations under cooperative closed-world lease premise.
+
+    Not an atomic all-host proof. Same-UID churn/permission/unknown IO fails closed;
+    root/admin/hostile actors and mount/namespace replacement need external scope.
+    """
+    protected = {(row['identity'][0], row['identity'][1]) for row in pins.values()}
+    observations, aliases = [], []
+    for name in IO.names('/proc', 65536):
+        checkpoint()
+        if not name.isdecimal():
+            continue
+        path = Path('/proc') / name
+        info = path.stat()
+        if info.st_uid != os.getuid():
+            continue
+        before = process(int(name))
+        fd_hash, fd_count = hashlib.sha256(), 0
+        for descriptor in IO.names(path / 'fd', 4096):
+            checkpoint()
+            fdpath = path / 'fd' / descriptor
+            try:
+                st = fdpath.stat()
+            except FileNotFoundError:
+                # No descriptor was acquired by stat. In particular our closed
+                # census/metadata FDs can disappear; this is not release proof.
+                fd_hash.update(canonical({'fd': descriptor, 'observation': 'FD_LINK_ABSENT_AT_STAT'}))
+                continue
+            data = metadata(path / 'fdinfo' / descriptor, 16384).decode('ascii')
+            fields = dict(line.split(':', 1) for line in data.splitlines() if ':' in line)
+            flags = int(fields['flags'].strip(), 8)
+            row = {'fd': descriptor, 'dev': st.st_dev, 'ino': st.st_ino, 'flags': flags}
+            fd_hash.update(canonical(row));fd_count += 1
+            if (st.st_dev, st.st_ino) in protected and flags & os.O_ACCMODE != os.O_RDONLY:
+                aliases.append({'pid': int(name), 'birth': before['start_ticks'], 'fd': descriptor, 'inode': row})
+        maps = metadata(path / 'maps', 2097152).decode('utf-8', 'strict')
+        for line in maps.splitlines():
+            checkpoint()
+            fields = line.split(None, 5)
+            if len(fields) < 5 or fields[4] == '0':
+                continue
+            devparts = fields[3].split(':')
+            dev = os.makedev(int(devparts[0], 16), int(devparts[1], 16))
+            if 'w' in fields[1] and 's' in fields[1] and (dev, int(fields[4])) in protected:
+                aliases.append({'pid': int(name), 'birth': before['start_ticks'], 'writable_shared_map': line[:4096]})
+        after = process(int(name))
+        need(before['start_ticks'] == after['start_ticks'], 'process generation churn during writer probe')
+        observations.append({'before': before, 'after': after, 'FD_count': fd_count,
+                             'FD_census_sha256': fd_hash.hexdigest(), 'maps_sha256': digest(maps.encode())})
+        need(len(observations) <= 8192, 'same-UID process census cap')
+    need(not aliases, 'writable original/source-domain alias found')
+    return {'processes': observations, 'writable_aliases': aliases,
+            'atomic_or_hostile_writer_exclusion_proved': False,
+            'requires_reviewed_registered_writer_and_admin_exclusion_premise': True}
+
+
+def stage_check(expected_sha):
+    value, pin = read_json(STAGE / 'STAGE.json', 1048576, 0o444)
+    need(pin['sha256'] == expected_sha, 'actual installed stage manifest differs')
+    rows = {}
+    for relative, expected in value['files'].items():
+        path = STAGE / relative
+        row, unused = IO.read(path, 1048576, expected['mode'])
+        need(row['sha256'] == expected['sha256'], 'actual stage payload differs')
+        rows[relative] = row
+    need(set(IO.names(STAGE, 3)) == {'STAGE.json', 'JOBS.json', 'integration'} and
+         set(IO.names(STAGE / 'integration', 5)) ==
+         {'full_driver.py', 'decode_prefix.py', 'INPUT-CONTRACT.json', 'ADAPTER-CONTRACT.json'}, 'actual stage census differs')
+    need(stat.S_IMODE(STAGE.stat().st_mode) == stat.S_IMODE((STAGE / 'integration').stat().st_mode) == 0o555,
+         'actual stage directories not0555')
+    jobs, unused = read_json(STAGE / 'JOBS.json', 65536, 0o444)
+    need(jobs == {'normal': {'optimized': False, 'lanes': 'DATAaudit', 'finite_only': True},
+                  'optimized': {'optimized': True, 'lanes': 'DATAaudit', 'finite_only': True}}, 'actual exact jobs differ')
+    return {'manifest': pin, 'files': rows}
+
+
+def strict_data(case, inputs, adapter_spec, binding, nested_root):
+    mode = case['job']
+    path = nested_root / case['label'] / 'science/receipt.json'
+    actual, pin = read_json(path, 65536, 0o600)
+    exact(actual, ADAPTER_SUCCESS_KEYS)
+    need(actual['schema'] == 'independent-prefix-generic-runner-adapter-outcome-v1' and
+         actual['status'] == 'EXACT_PREFIX_SERIALIZED_DATA_OBSERVED' and
+         actual['mode'] == actual['job'] == mode and actual['label'] == case['label'] and
+         type(actual['optimized']) is bool and actual['optimized'] == (mode == 'optimized') and
+         actual['finite_only'] is True and actual['lanes'] == 'DATAaudit', 'strict actual mode/job/status differs')
+    for key in SOURCE_ONLY_FIELDS:
+        checkpoint()
+        need(actual[key] is False, 'strict false DATA qualification field differs')
+    need(type(actual['controls_completed']) is int and actual['controls_completed'] == len(adapter_spec['control_inventory']) and
+         actual['all_required_controls_observed'] is True, 'complete actual DATA controls differ')
+    need(actual['source_review_sha256'] == adapter_spec['source_review_sha256'] and
+         actual['decoder_sha256'] == binding['decoder']['sha256'] and
+         actual['input_contract_sha256'] == binding['input_contract']['sha256'] and
+         actual['control_inventory_sha256'] == binding['control_inventory_sha256'] and
+         actual['fixture_byte_independence'] == 'REVIEWED_GENERATOR_SOURCE_WITH_OBSERVED_RAW_TRANSPORT', 'actual source/independence differs')
+    for key, filename in [('decoder', 'decode_prefix.py'), ('input_contract', 'INPUT-CONTRACT.json'),
+                          ('adapter_contract', 'ADAPTER-CONTRACT.json')]:
+        checkpoint()
+        expected_row, unused = IO.read(STAGE / 'integration' / filename, 1048576, 0o444)
+        need(canonical(actual[key]) == canonical(expected_row), 'actual child source row changed')
+    expected_row, unused = IO.read(Path(adapter_spec['decoder_inventory']['path']), 1048576, 0o444,
+                                  adapter_spec['decoder_inventory'])
+    need(canonical(actual['decoder_control_inventory']) == canonical(expected_row), 'actual inventory source row differs')
+    directory = Path(adapter_spec['modes'][mode]['external_output'])
+    manifest, required = verify_external(directory, adapter_spec, inputs, mode, binding)
+    need(canonical(actual['external_manifest']) == canonical(manifest) and
+         actual['external_manifest_sha256'] == digest(canonical(manifest)) and
+         canonical(actual['external_receipt']) == canonical(manifest['files']['receipt.json']), 'strict actual complete external manifest differs')
+    need(IO.read(path, 65536, 0o600)[0] == pin, 'small receipt changed across strict verification')
+    return {'schema': 'strict-parent-DATA-observation-v1', 'mode': mode, 'receipt': pin,
+            'external_manifest': manifest, 'complete_required_names': required,
+            'native_identity_proved': False, 'fullscience': False, 'gain': False}
+
+
+class CaseBudget:
+    """Original case_begin through retained validation; no hard-fault theorem."""
+    def __init__(self):
+        self.begin, self.deadline, self.case = None, None, None
+        self.active = False
+
+    def start(self, begin, case):
+        need(not self.active and type(begin) is float and math.isfinite(begin) and
+             0 <= time.monotonic() - begin < 180, 'actual original case start absent/expired')
+        need(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0) and
+             signal.getsignal(signal.SIGALRM) == signal.SIG_DFL,
+             'case cannot borrow alarm or replace incompatible signal owner')
+        self.begin, self.deadline, self.case = begin, begin + 180, case
+        self.active = True
+        ACTIVE_CASE[0] = self
+        self.check()
+
+    def check(self):
+        need(self.active and time.monotonic() < self.deadline, 'complete case180 exhausted')
+
+    def close(self):
+        if self.active:
+            self.active = False
+            ACTIVE_CASE[0] = None
+
+    def original_metric(self, case):
+        # Separate paid read of original measurement, never cached validate PASS.
+        path = ROOT / 'validation/attempts' / NAME / (case['label'] + '.gate.json')
+        row, pin = read_json(path, 4194304, 0o600)
+        seconds = row['parent_command_wall_seconds_through_validation']
+        need(type(seconds) in (int, float) and math.isfinite(seconds) and 0 <= seconds <= 180,
+             'actual original complete-case measurement exceeds180; no next Root')
+        return {'case': case['label'], 'original_complete_seconds': seconds, 'gate': pin}
+
+
+class ActualRootResults:
+    """Retain genuine run_root return objects, not restored Root capabilities."""
+    def __init__(self, held_run_root, clock, case_bill):
+        self.original, self.clock, self.bill = held_run_root, clock, case_bill
+        self.results, self.entered, self.next = [None, None], [False, False], 0
+
+    def run_root(self, root, case, evidence, seconds, shared_deadline,
+                 as_bytes=201326592, rss_bytes=201326592):
+        index = self.next
+        need(index < 2 and case['job'] == ('normal', 'optimized')[index] and
+             self.clock.active and self.clock.case == case, 'real root call order/clock')
+        self.clock.check()
+        deadline = min(shared_deadline, self.clock.deadline)
+        row = self.bill[case['job']]
+        validation_tail = (row['validation_ns']+row['closing_ns'])/1000000000
+        allowance = min(seconds,row['root_ns']/1000000000,deadline-time.monotonic()-2-validation_tail)
+        need(0 < allowance <= 180, 'no actual case allowance with reserved cleanup')
+        self.next += 1
+        self.entered[index] = True
+        try:
+            self.clock.check()
+            self.results[index] = self.original(root, case, evidence, allowance, deadline,
+                                                as_bytes, rss_bytes)
+        except BaseException as error:
+            remember(error)
+            raise
+        # Retain actual return BEFORE cooperative post-return deadline check.
+        self.clock.check()
+        return self.results[index]  # Same actual object returned unchanged.
+
+
+class StrictQueueFacade:
+    """Explicit transport; held derivative validator executes once per actual case."""
+    def __init__(self, queue, proxy, lease, supervisor, pins, before, inputs, spec, binding, evidence, clock):
+        self.queue, self.proxy, self.lease, self.s = queue, proxy, lease, supervisor
+        self.pins, self.before, self.inputs, self.spec = pins, before, inputs, spec
+        self.binding, self.evidence, self.clock = binding, evidence, clock
+        self.original_validate, self.original_main_code = queue.validate, queue.main.__code__
+        self.nested_root = proxy.evidence
+        self.validated, self.observations, self.case_metrics = [], [], []
+
+    def run(self, command, **kwargs):
+        frame, local = None, None
+        try:
+            # Explicit read-only CPython frame boundary, no JSON clock/capability.
+            frame = sys._getframe(1)
+            need(frame.f_code is self.original_main_code, 'caller is not held original queue.main')
+            local = frame.f_locals
+            case = local['case']
+            need(local['command'] is command and case == self.proxy.cases[self.proxy.next],
+                 'actual original caller case/command differs')
+            begin = local['case_begin']
+            frame, local = None, None  # Release transient references before any IO/Root.
+            self.clock.start(begin, case)
+            if self.validated:
+                self.case_metrics.append(self.clock.original_metric(self.proxy.cases[self.proxy.next - 1]))
+            self.lease.verify()
+            checkpoint()
+            need(self.proxy.next == len(self.validated), 'previous real Root has not passed strict validation')
+            need(snapshot_domain(self.pins) == self.before, 'before-Root original/source custody changed')
+            writer_probe(self.before)
+            checkpoint()
+            result = self.proxy.run(command, **kwargs)
+            checkpoint()  # Opaque original proxy has returned; no parent alarm.
+            return result
+        except BaseException as error:
+            remember(error)  # BEFORE unchanged queue.main finally may fail later.
+            try:
+                self.clock.close()
+            except BaseException as secondary:
+                remember(secondary)
+            raise
+        finally:
+            frame, local = None, None
+
+    def validate(self, case):
+        try:
+            # Original queue already rejected nonzero/stderr before this call.
+            checkpoint()  # Immediately before opaque held original validator.
+            row = self.original_validate(case,self.nested_root,self.s.RUNNER_PATH)  # Sole actual validator call.
+            checkpoint()
+            self.lease.verify()
+            folder = self.proxy.evidence / (case['label']+'-supervision')
+            supervision, unused = read_json(folder / 'SUPERVISION.json', 4194304, 0o600)
+            cleanup = supervision['cleanup']
+            need(supervision['returncode'] == 0 and supervision['failure'] is None and
+                 cleanup['complete'] is True and cleanup['group_empty_proved'] is True and
+                 cleanup['remaining'] == [] and cleanup['observed_after_root_exit'] == [] and
+                 cleanup['reaped_adopted'] == [] and not self.s.children_now(), 'actual owned cleanup not complete')
+            data = strict_data(case, self.inputs, self.spec, self.binding, self.nested_root)
+            need(snapshot_domain(self.pins) == self.before, 'post-Root original/source custody changed')
+            writers = writer_probe(self.before)
+            self.lease.verify()
+            checkpoint()
+            record = {'queue_original_row': row, 'strict_DATA': data, 'writers': writers,
+                      'global_lease': self.lease.lock_info, 'cleanup': cleanup,
+                      'actual_original_case_begin': self.clock.begin, 'case_deadline': self.clock.deadline}
+            pin = IO.write(self.evidence / (case['job'] + '-STRICT.json'), record)
+            checkpoint()  # Full strict record retained before success.
+            self.observations.append(record)
+            self.validated.append(case['job'])
+            row['strict_parent_DATA_receipt'] = pin
+            return row
+        except BaseException as error:
+            remember(error)  # Includes original_validate and each strict check.
+            raise
+        finally:
+            try:
+                self.clock.close()
+            except BaseException as secondary:
+                remember(secondary)
+                raise
+
+
+def retain_queue_failure(error, queue):
+    """Keep actual native context; classify only held queue body traceback.
+
+    No ambient sys.exception or trace hook. No universal recovery claim for
+    underlying caught errors. Existing facade first object always keeps priority.
+    """
+    chain, item = [], error
+    while item is not None and all(item is not held for held in chain) and len(chain) < 32:
+        chain.append(item)
+        item = item.__context__
+    if item is not None:
+        IO_UNKNOWN[0] = True
+    if FIRST[0] is None:
+        for candidate in reversed(chain):
+            tb = candidate.__traceback__
+            while tb is not None:
+                # Exact pinned original queue body's try/except, not its finally.
+                if tb.tb_frame.f_code is queue.main.__code__ and 124 <= tb.tb_lineno <= 157:
+                    remember(candidate)
+                    break
+                tb = tb.tb_next
+            if FIRST[0] is not None:
+                break
+    remember(error)
+    for candidate in chain:
+        remember(candidate)
+        if candidate.__cause__ is not None:
+            remember(candidate.__cause__)
+
+
+def safe_custody_state(root_results, supervisor, lease):
+    """Actual entered/results/cleanup/children observations, no restored owner."""
+    need(lease.phase == 'EX_HELD' and type(lease.fd) is int and not IO_UNKNOWN[0],
+         'held known lease/IO required for custody')
+    lease.verify()
+    rows = []
+    if root_results is not None:
+        for index, entered in enumerate(root_results.entered):
+            if not entered:
+                continue
+            actual = root_results.results[index]
+            need(type(actual) is dict, 'entered real Root has no actual returned cleanup record')
+            cleanup = actual['cleanup']
+            need(cleanup['complete'] is True and cleanup['group_empty_proved'] is True and
+                 cleanup['remaining'] == [], 'actual Root cleanup is incomplete/unknown')
+            rows.append({'index': index, 'actual_cleanup': cleanup,
+                         'actual_captured_root': actual['captured_root'], 'actual_status': actual['status']})
+    if supervisor is not None:
+        need(not supervisor.children_now(), 'actual children prevent safe final custody')
+    else:
+        need(metadata('/proc/self/task/' + str(os.getpid()) + '/children').strip() == b'',
+             'no-Root actual parent children observation is not empty')
+    return {'safe_under_selected_operating_TCB': True, 'actual_roots': rows,
+            'no_Root_entered': not rows, 'live_owner_reconstructed': False}
+
+
+
+def error_data():
+    def item(error):
+        if error is None:
+            return None
+        frames, tb = [], error.__traceback__
+        while tb is not None and len(frames) < 32:
+            frames.append({'file': tb.tb_frame.f_code.co_filename, 'line': tb.tb_lineno,
+                           'function': tb.tb_frame.f_code.co_name})
+            tb = tb.tb_next
+        return {'type': type(error).__name__, 'frames': frames}
+    return {'first': item(FIRST[0]), 'secondary': [item(e) for e in SECONDARY if e is not None],
+            'IO_unknown': IO_UNKNOWN[0], 'actual_exception_objects_retained_until_exit': True}
+
+
+
+def successor_guard(lease):
+    lease.verify()  # Real current GlobalLease; never the metadata probe record.
+    if ELIGIBILITY[0] is None:
+        ELIGIBILITY[0], unused = load_source(ELIGIBILITY_PATH,ELIGIBILITY_PIN,
+                                          'exact_successor_historical_eligibility_v1')
+    value = ELIGIBILITY[0].full_snapshot(
+        lambda path, row: IO.read(Path(path),row['bytes'],row['mode'],row,True)[1],
+        lambda path, cap: IO.names(Path(path),cap),SUCCESSOR_ACTIVE)
+    lease.verify()
+    return value
+
+class ExecutionBarrier:
+    """Persistent closed-one-parent barrier; never a claim of orphan disposal."""
+    def __init__(self):
+        self.slot, self.phase = None, 'NEW'
+        self.parent_slots = [None, None]
+
+    def prepare(self, lease):
+        private_directory(QUARANTINE.parent)  # Admitted initializer owns fresh sibling namespace.
+        successor_guard(lease)  # Exact history rechecked under this actual EX before NEW marker.
+        need(not os.path.lexists(ROOT/'validation'/(NAME+'-SEALED-ONE-PARENT')), 'own sealed oneuse marker already exists')
+        self.phase = 'PREPARING'
+        need(ROOT.resolve(strict=True) == ROOT and (ROOT / 'validation').resolve(strict=True) == ROOT / 'validation' and
+             QUARANTINE.parent.resolve(strict=True) == QUARANTINE.parent, 'canonical retained namespaces')
+        for index, directory in enumerate((BARRIER.parent, QUARANTINE.parent)):
+            self.parent_slots[index] = IO.acquire(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        BARRIER.mkdir(mode=0o700)
+        IO.write(BARRIER / 'START.json', {'kind': 'persistent_execution_quarantine',
+                 'source_owner': lease.verify(), 'future_actual_operation_prohibited_until_resolution': True,
+                 'not_an_attempt_PASS_or_runtime_qualification': True})
+        self.slot = IO.acquire(BARRIER / 'details.jsonl', os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                               os.O_NOFOLLOW | os.O_CLOEXEC)
+        for parent_slot in self.parent_slots:
+            os.fsync(parent_slot[0])
+        self.phase = 'PREPARED'
+
+    def quarantine(self):
+        # No new FD or original-domain read is needed. Keep first evidence if
+        # allocation/write/fsync/rename fails; PREPARED is itself a blocking state.
+        self.phase = 'QUARANTINED'
+        if self.slot is not None and self.slot[1] == 'OWNED':
+            try:
+                raw = canonical({'status': 'EXECUTION_QUARANTINED', 'errors': error_data(),
+                      'future_actual_operation_prohibited': True,
+                      'unknown_remaining_writers_not_disposed_by_lock_release': True,
+                      'external_actual_teardown_and_ownership_resolution_required': True})
+                offset = 0
+                while offset < len(raw):
+                    n = os.write(self.slot[0], raw[offset:offset + 65536])
+                    need(type(n) is int and n > 0, 'quarantine detail write')
+                    offset += n
+                os.fsync(self.slot[0])
+            except BaseException as error:
+                remember(error)
+        try:
+            if not QUARANTINE.exists():
+                source = BARRIER if BARRIER.exists() else ROOT / 'validation' / (NAME + '-SEALED-ONE-PARENT')
+                os.rename(source, QUARANTINE)  # Unclosed run: unchanged budget/runner refuse future roots.
+            for parent_slot in self.parent_slots:
+                if parent_slot is not None and parent_slot[1] == 'OWNED':
+                    os.fsync(parent_slot[0])
+        except BaseException as error:
+            remember(error)  # Remaining canonical BARRIER still blocks registered parent admission.
+        self.close()
+
+    def seal_success(self):
+        need(not IO_UNKNOWN[0], 'barrier ownership unknown; cannot seal success')
+        os.rename(BARRIER, ROOT / 'validation' / (NAME + '-SEALED-ONE-PARENT'))
+        for parent_slot in self.parent_slots:
+            if parent_slot is not None and parent_slot[1] == 'OWNED':
+                os.fsync(parent_slot[0])
+        self.close()
+        need(not IO_UNKNOWN[0], 'barrier close unknown; cannot seal success')
+        self.phase = 'SEALED_SUCCESS'
+
+    def close(self):
+        for slot in (self.slot, *self.parent_slots):
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    IO.close(slot)
+                except BaseException as error:
+                    remember(error)
+
+
+
+def exact_pin(value):
+    need(type(value) is dict and len(value) == 3 and all(type(k) is str for k in value),
+         'exact builtin pin keys before hashing')
+    exact(value,('path','bytes','sha256'))
+    need(type(value['path']) is str and Path(value['path']).is_absolute() and
+         type(value['bytes']) is int and 0 < value['bytes'] <= 2097152,'bounded fixed pin DATA')
+    sha_value(value['sha256'])
+
+
+def complete_bill(plan,approval,request):
+    """Mechanical declared-bill binding, never a physical profile proof.
+
+    A separately selected independently accepted complete-work profile and
+    exact parent command/admission are indispensable external prerequisites.
+    """
+    value,pin = read_json(Path(plan['whole_body_bill_pin']['path']),1048576,0o444,plan['whole_body_bill_pin'])
+    exact(value,('schema','selected_packet_sha256','queue_sha256','stage_sha256','complete_work_review_sha256',
+                 'startup_preflight_ns','cases','controller_final_ns','outer_post_controller_ns','whole_command_ns'))
+    need(value['schema'] == 'fresh-composed-whole-command-bill-v1' and
+         value['selected_packet_sha256'] == plan['selected_packet_pin']['sha256'] and
+         value['queue_sha256'] == plan['queue_pin']['sha256'] and value['stage_sha256'] == plan['stage_sha256'] and
+         value['complete_work_review_sha256'] == plan['complete_work_review_pin']['sha256'], 'exact complete source/work bill binding')
+    read_json(Path(plan['complete_work_review_pin']['path']),1048576,0o444,plan['complete_work_review_pin'])
+    exact(value['cases'],('normal','optimized'))
+    total = 0
+    for key in ('startup_preflight_ns','controller_final_ns','outer_post_controller_ns'):
+        need(type(value[key]) is int and 0 < value[key] <= 180000000000,'positive exact wholebody term')
+        total += value[key]
+    for mode in ('normal','optimized'):
+        row=value['cases'][mode];exact(row,('root_ns','validation_ns','guard_ns','cleanup_ns','closing_ns'))
+        for key in row:
+            need(type(row[key]) is int and 0 <= row[key] <= 180000000000,'exact nonoverlapping case bill term')
+            total += row[key]
+        need(row['root_ns'] > 0 and row['validation_ns'] > 0 and row['cleanup_ns'] >= 2000000000,
+             'full actual root+validation+cleanup pricing required')
+    need(type(value['whole_command_ns']) is int and total == value['whole_command_ns'] <= request['body_reservation_ns'] <= 180000000000,
+         'complete declared command, not two180 roots or old420 arithmetic')
+    # Every case term is INSIDE queue.main, including its prologue/footer
+    # allocated to case guard/closing terms. All nonqueue work is below.
+    outside_declared_ns = value['startup_preflight_ns']+value['controller_final_ns']+value['outer_post_controller_ns']
+    need(outside_declared_ns <= 30000000000, 'declared complete nonqueue/outside30 scope exceeded')
+    need(total-outside_declared_ns <= 390000000000, 'declared queue390 scope exceeded')
+    value['outside_declared_ns'] = outside_declared_ns
+    value['queue_declared_ns'] = total-outside_declared_ns
+    value['remaining_before_queue_ns'] = total-value['startup_preflight_ns']
+    return value
+
+
+def actual_context_ports(active_module,ctx):
+    """Fixed safe dispatch consistency; loaded source authentication is external."""
+    cls = type(ctx)
+    need(type(cls) is type, 'ordinary exact private context class')
+    mro = type.__getattribute__(cls,'__mro__')
+    need(len(mro) == 2 and mro[0] is cls and mro[1] is object, 'direct private context class')
+    namespace = type.__getattribute__(cls,'__dict__')
+    keys = tuple(namespace)
+    need(all(type(k) is str for k in keys), 'exact context class keys')
+    image = {k:namespace[k] for k in keys}
+    methods = ('initialize','refresh_opening','current_binding','begin','native_lease_for_controller',
+               'check','release_for_exec','adopt_handoff','publish_reviewed_close','release')
+    need(set(image) == {'__module__','__doc__','__slots__','__new__'} | set(methods) and
+         type(image.get('__slots__')) is tuple and image['__slots__'] == () and
+         type(image['__new__']) is staticmethod and type(image['__new__'].__func__) is FunctionType and
+         image['__new__'].__func__.__globals__ is active_module.__dict__, 'fixed empty-slotted A2 context layout')
+    need(all(type(image[name]) is FunctionType and image[name].__globals__ is active_module.__dict__
+             for name in methods), 'source-private actual context methods')
+    def call(name,*args):
+        current = type.__getattribute__(cls,'__dict__');current_keys = tuple(current)
+        need(all(type(k) is str for k in current_keys) and set(current_keys) == set(image) and
+             all(current[k] is image[k] for k in current_keys), 'no context method/special-hook substitution')
+        now = type.__getattribute__(cls,'__mro__')
+        need(len(now) == 2 and now[0] is cls and now[1] is object, 'unchanged context ancestry')
+        return image[name](ctx,*args)  # Actual A2 rec() still enforces private identity/role.
+    return call
+
+
+def run_composed(actual_C, actual_A, supervisor, wrapper, queue, envelope, ctx, whole_body_begin_ns, plan_pin, admission_pin):
+    started = None  # Local diagnostic; never replaces genuine wholeouter START.
+    lease, queue_lock, keeper = None, None, None
+    release_owner = None
+    barrier = ExecutionBarrier()
+    evidence, initial, facade, plan, initial_packet = None, None, None, None, None
+    final_custody, root_results, packet_envelope = None, None, None
+    pins, before, safe_state = None, None, None
+    clock, queue_span = CaseBudget(), [None, None]
+    resource_scope_observation = None
+    result, primary, queue_lock_pending = {'status': 'STOP'}, None, False
+    try:
+        need(type(actual_C) is ModuleType and actual_C.__dict__ is globals(), 'actual complete selected controller module')
+        need(all(type(m) is ModuleType for m in (actual_A,supervisor,wrapper,queue,envelope)), 'actual authenticated selected modules')
+        ctx_call = actual_context_ports(actual_A,ctx)
+        release_owner = lambda:ctx_call('release')  # Fixed actual A2 method, retained before fallible getter.
+        started = time.monotonic()
+        need(type(whole_body_begin_ns) is int and 0 <= whole_body_begin_ns <= time.monotonic_ns(),
+             'genuine outer START ns source binding required')
+        exact_pin(plan_pin); exact_pin(admission_pin)
+        args = argparse.Namespace(plan=Path(plan_pin['path']),plan_bytes=plan_pin['bytes'],plan_sha256=plan_pin['sha256'],
+                                  admission=Path(admission_pin['path']),admission_bytes=admission_pin['bytes'],
+                                  admission_sha256=admission_pin['sha256'],source_sha256=None)
+        lease = ctx_call('native_lease_for_controller',actual_C)  # A2 native guards, SAME lease, no second acquire.
+        binding = ctx_call('current_binding')
+        request = binding['request']
+        need(type(request['body_reservation_ns']) is int and 0 < request['body_reservation_ns'] <= 180000000000,
+             'complete current outer reservation<=180s, not two independent180s grants')
+        successor_guard(lease)  # Own actual acquire precedes exact history, no inherited lease.
+        barrier.prepare(lease)  # Persistent incomplete-parent marker precedes preflight.
+        original_start_pin = binding['start']['pre_entry_provenance']['original_start_pin']
+        original_start,original_start_observation = read_json(Path(original_start_pin['path']),65536,original_start_pin['mode'],original_start_pin)
+        need(original_start['schema'] == 'fresh-owner-meter-incomplete-v1' and
+             type(original_start['start_monotonic_ns']) is int and
+             original_start['start_monotonic_ns'] == whole_body_begin_ns,
+             'genuine original manual START differs; ACTIVE local anchor is not wholeouter start')
+        # Complete-case180 is retained. One actual enclosing180s command,
+        # both complete cases, all setup/finalization/tails require a new full bill.
+        launch = clean_launch()
+        need(args.plan.parent == ROOT / 'control' and args.admission.parent == ROOT / 'control',
+             'plan/admission must be actual frozen round control paths')
+        plan, plan_pin = read_json(args.plan, 2097152, 0o444,
+                                   {'bytes': args.plan_bytes, 'sha256': args.plan_sha256})
+        need(plan['schema'] == 'fresh-composed-controller-plan-v1' and plan['queue_name'] == NAME and
+             plan['root'] == str(ROOT) and plan['operating_TCB_sha256'] == TCB_SHA and
+             plan['case_clock_premises_sha256'] == CLOCK_PREMISES_SHA, 'exact parent plan differs')
+        approval, approval_pin = read_json(args.admission, 1048576, 0o444,
+                                          {'bytes': args.admission_bytes, 'sha256': args.admission_sha256})
+        need(approval['schema'] == 'fresh-composed-controller-admission-v1' and
+             approval['grants_execution'] is True and approval['plan_sha256'] == plan_pin['sha256'] and
+             approval['controller_source_sha256'] == plan['controller_source']['sha256'] and
+             approval['operating_TCB_sha256'] == TCB_SHA and
+             approval['case_clock_premises_sha256'] == CLOCK_PREMISES_SHA and
+             approval['closed_registered_writer_scope_admitted'] is True and
+             approval['no_admin_replacement_or_alias_or_interposition'] is True and
+             type(approval['complete_case_seconds']) is int and approval['complete_case_seconds'] == 180 and
+             approval['selected_packet_sha256'] == plan['selected_packet_pin']['sha256'] and
+             approval['whole_body_bill_sha256'] == plan['whole_body_bill_pin']['sha256'] and
+             approval['complete_work_review_sha256'] == plan['complete_work_review_pin']['sha256'] and
+             approval['resource_and_funding_scope_admitted'] is True,
+             'separate actual command/profile/funding/closed-world admission absent')
+        need(original_start['source_sha256'] == plan['outer_meter_source_sha256'], 'actual enclosing meter source binding differs')
+        args.source_sha256 = plan['controller_source']['sha256']
+        IO.read(Path(__file__).absolute(),2097152,0o444,plan['controller_source'])
+        profile,profile_pin = read_json(Path(plan['derived_role_profile_pin']['path']),1048576,0o444,plan['derived_role_profile_pin'])
+        need(approval['derived_role_profile_sha256'] == profile_pin['sha256'] and
+             profile['controller_source_sha256'] == args.source_sha256 and
+             profile['selected_packet_sha256'] == plan['selected_packet_pin']['sha256'] and
+             profile['actual_loaded_image_proof'] is False, 'fresh derived C/source/closure role profile absent')
+        bill = complete_bill(plan,approval,request)
+        whole_deadline_ns = whole_body_begin_ns + request['body_reservation_ns']
+        need(time.monotonic_ns()+bill['remaining_before_queue_ns'] <= whole_deadline_ns,
+             'wholeouter preparation/startup and remaining complete work do not fit')
+        ctx_call('check',bill['remaining_before_queue_ns'],0)
+        tcb, tcb_pin = read_json(ROOT / 'control/INDEPENDENT-DATA-OPERATING-TCB-SELECTION-v1.json', 65536, 0o444)
+        need(tcb_pin['sha256'] == TCB_SHA and tcb['actual_loaded_image_proof'] is False, 'role-bound operating TCB selection changed')
+        clock_scope, clock_pin = read_json(ROOT / 'control/INDEPENDENT-DATA-CASE-CLOCK-PREMISES-v1.json',
+                                           65536, 0o444, plan['case_clock_premises_pin'])
+        need(clock_pin['sha256'] == CLOCK_PREMISES_SHA and clock_scope['grants_execution'] is False and
+             clock_scope['existing_operating_TCB_selection']['sha256'] == TCB_SHA,
+             'additive exact clock role premises changed')
+        for catalog in plan['required_absent_catalogs']:
+            need(not os.path.lexists(catalog), 'present locale catalog needs separate source review')
+        evidence = ROOT / 'validation' / (NAME + '-OWNED')
+        need(not evidence.exists(), 'owning parent evidence already attempted')
+        for path in plan['fresh_absent_paths']:
+            need(not os.path.lexists(path), 'declared once-only path already exists')
+        if not EXTERNAL_BASE.exists():
+            need(EXTERNAL_BASE.parent.resolve(strict=True) == EXTERNAL_BASE.parent, 'external parent ancestry')
+            os.mkdir(EXTERNAL_BASE, 0o700)
+        private_directory(EXTERNAL_BASE)
+        evidence.mkdir(mode=0o700)
+        IO.write(evidence / 'GLOBAL-LEASE.json', lease.verify())
+        IO.write(evidence / 'LAUNCH.json', {'launch': launch, 'plan': plan_pin, 'external_admission': approval_pin,
+                 'source_selection_is_conditional_not_native_proof': True})
+        actual_stage = stage_check(plan['stage_sha256'])
+        config, config_pin = read_json(Path(plan['queue_path']), 1048576, 0o444, plan['queue_pin'])
+        policy, policy_pin = read_json(Path(plan['policy_path']), 65536, 0o444, plan['policy_pin'])
+        need(config['queue'] == NAME and [x['job'] for x in config['cases']] == ['normal', 'optimized'] and
+             [x['label'] for x in config['cases']] == [NAME+'N',NAME+'O'] and
+             all(x['stage'] == STAGE.name and x['stage_sha256'] == plan['stage_sha256'] for x in config['cases']) and
+             policy == {'queue': NAME, 'root_seconds': 180,
+                        'root_address_space_bytes': 1073741824, 'root_rss_sum_bytes': 1073741824}, 'exact two-root queue/policy differs')
+        inputs, unused = read_json(STAGE / 'integration/INPUT-CONTRACT.json', 1048576, 0o444)
+        spec, unused = read_json(STAGE / 'integration/ADAPTER-CONTRACT.json', 1048576, 0o444)
+        pins = {}
+        for path,row in ELIGIBILITY[0].PINS.items():
+            add_expectation(pins,path,row)  # All exact history remains protected through final custody.
+        add_expectation(pins,str(ELIGIBILITY_PATH),dict(ELIGIBILITY_PIN,mode=0o444))
+        for row in binding['start']['pre_entry_provenance'].values():
+            if type(row) is dict and set(row) == {'path','bytes','sha256','mode'}:
+                add_expectation(pins,row['path'],row)
+        add_expectation(pins,original_start_observation['path'],original_start_observation)
+        for source in (plan['source_pins'], inputs['source_pins']):
+            for path, row in source.items():
+                add_expectation(pins, path, row)
+        for mode in ('normal', 'optimized'):
+            for row in inputs['inputs'][mode].values():
+                add_expectation(pins, row['path'], row)
+        add_expectation(pins, spec['decoder_inventory']['path'], spec['decoder_inventory'])
+        for relative, row in actual_stage['files'].items():
+            add_expectation(pins, str(STAGE / relative), row)
+        add_expectation(pins, str(STAGE / 'STAGE.json'), actual_stage['manifest'])
+        add_expectation(pins, str(args.plan), plan_pin)
+        add_expectation(pins, str(args.admission), approval_pin)
+        before = snapshot_domain(pins)
+        IO.write(evidence / 'PREFLIGHT-CUSTODY.json', {'files': before, 'writers': writer_probe(before), 'stage': actual_stage})
+        IO.read(Path(envelope.__file__),2097152,0o444,plan['envelope_pin'])
+        initial_packet, wrapper_bytes = envelope.snapshot(PACKET, PACKET_SHA, 'run_queue4_subreaper.py')
+        for module,key,names in ((wrapper,'wrapper_pin',('source_packet',)),
+                                 (supervisor,'supervisor_pin',('bind_active_run_root','launch_contract','packet_unchanged')),
+                                 (queue,'queue_source_pin',('main','validate')),
+                                 (envelope,'envelope_pin',('snapshot',))):
+            need(all(type(module.__dict__.get(name)) is FunctionType and
+                     module.__dict__[name].__globals__ is module.__dict__ for name in names),
+                 'actual selected component functions, no copied method attachment')
+            IO.read(Path(module.__file__),2097152,0o444,plan[key])
+        required_sources = {str(Path(__file__).absolute()),str(Path(actual_A.__file__)),str(Path(supervisor.__file__)),
+            str(Path(wrapper.__file__)),str(Path(queue.__file__)),str(Path(envelope.__file__)),str(supervisor.RUNNER_PATH),
+            str(ELIGIBILITY_PATH),plan['funding_source_pin']['path']}
+        need(set(plan['selected_sources']) == required_sources and
+             plan['funding_source_pin']['sha256'] == actual_A.FUNDING_SHA and
+             approval['active_source_sha256'] == plan['selected_sources'][str(Path(actual_A.__file__))]['sha256'] and
+             approval['funding_source_sha256'] == plan['funding_source_pin']['sha256'],
+             'complete selected actual source-role closure differs; no source-plan hash cycle')
+        packet_envelope = wrapper.source_packet(actual_C,plan['selected_packet_pin'],plan['selected_sources'])
+        supervisor.launch_contract()
+        queue_lock_pending = True
+        queue_lock = supervisor.parent_lock(ROOT)
+        queue_lock_pending = False
+        initial = ctx_call('current_binding')  # DATA correlation; actual owner remains private ctx.
+        need(canonical(initial) == canonical(binding), 'same actual own pending START/head and reservation')
+        bound_consumer = supervisor.bind_active_run_root(actual_A,actual_C,ctx,
+            whole_body_begin_ns=whole_body_begin_ns,case_contracts=[{'case':{k:case[k] for k in
+                ('stage','job','label','stage_sha256')},'validation_allowance_ns':bill['cases'][case['job']]['validation_ns'],
+                'body_closing_allowance_ns':bill['cases'][case['job']]['closing_ns']} for case in config['cases']])
+        subreaper, keeper = supervisor.install_subreaper(ROOT)
+        IO.write(evidence / 'PARENT-SUBREAPER.json', subreaper)
+        need(queue.ROOT == ROOT and queue.subprocess is subprocess, 'original generic queue initial globals differ')
+        outer_label = supervisor.nested_label(request['label'])
+        supervision = supervisor.NESTED_BASE / outer_label
+        began_queue = time.monotonic()
+        remaining = sum(sum(row.values()) for row in bill['cases'].values())+bill['controller_final_ns']+bill['outer_post_controller_ns']
+        need(time.monotonic_ns()+remaining <= whole_deadline_ns, 'complete two-case work+validation+cleanup+final/tail no longer fits')
+        ctx_call('check',remaining,0)
+        deadline = (whole_deadline_ns-bill['outer_post_controller_ns']-bill['controller_final_ns'])/1000000000
+        root_results = ActualRootResults(bound_consumer.run_root,clock,bill['cases'])
+        proxy = wrapper.RootProxy(supervisor,bound_consumer,root_results.run_root,ROOT,config['cases'],supervision,policy,deadline)
+        facade = StrictQueueFacade(queue, proxy, lease, supervisor, pins, before, inputs, spec,
+                                   plan['strict_binding'], evidence, clock)
+        try:
+            queue_span[0] = time.monotonic()
+            try:
+                queue.main(Path(plan['queue_path']),supervision,supervisor.RUNNER_PATH,facade)
+            except BaseException as error:
+                retain_queue_failure(error,queue)
+                raise
+            finally:
+                queue_span[1] = time.monotonic()
+        finally:
+            try:
+                clock.close()
+            except BaseException as secondary:
+                remember(secondary)
+        need(facade.validated == ['normal', 'optimized'] and proxy.next == 2 and not supervisor.children_now(),
+             'actual serial complete DATA/cleanup order absent')
+        facade.case_metrics.append(clock.original_metric(config['cases'][-1]))
+        need(len(facade.case_metrics) == 2, 'both actual original complete-case metrics required')
+        result = {'schema': 'exact-owned-prefix-DATA-parent-v1', 'status': 'OWNED_DATA_QUEUE_AND_CUSTODY_OBSERVED',
+                  'actual_stage_sha256': plan['stage_sha256'], 'normal_optimized_strict_completed': True,
+                  'all179_literal_controls_per_mode_observed_by_strict_receipts': True,
+                  'selected3_prefix_DATA_only': True, 'Python27_ports_executed_here': False,
+                  'full52_314_controls_executed_here': False, 'global_lease_acquired_here': True,
+                  'loaded_native_identity_proved': False, 'native_fault_totality_qualified': False,
+                  'full52_qualified': False, 'full99_qualified': False, 'fullscience': False, 'gain': False,
+                  'all_costs_settled': False, 'final_parent_exit_and_no_quarantine_required': True,
+                  'no_universal_whole_parent_hard_timeout_claim': True}
+    except BaseException as error:
+        primary = remember(error)
+    finally:
+        # All original-domain reads and known accounting stay BEFORE lease.close.
+        # An uncertain failed Root has no reconstructed domain/capability here.
+        if queue_lock_pending:
+            IO_UNKNOWN[0] = True
+        try:
+            clock.close()
+        except BaseException as error:
+            primary = remember(error)
+        # Inherited postcustody on success AND known-safe failure, held-FD.
+        # Separate failures retained; IO ambiguity prohibits all further reads.
+        custody = {'status': 'UNVERIFIED', 'checks': {}}
+        try:
+            safe_state = safe_custody_state(root_results, supervisor, lease)
+        except BaseException as error:
+            primary = remember(error)
+        if safe_state is not None:
+            if envelope is not None and initial_packet is not None and not IO_UNKNOWN[0]:
+                try:
+                    after_packet, unused = envelope.snapshot(PACKET, PACKET_SHA, 'run_queue4_subreaper.py')
+                    need(after_packet == initial_packet, 'before/after unchanged packet custody differs')
+                    custody['checks']['envelope'] = after_packet
+                except BaseException as error:
+                    primary = remember(error)
+            if supervisor is not None and packet_envelope is not None and not IO_UNKNOWN[0]:
+                try:
+                    supervisor.packet_unchanged(PACKET, packet_envelope)
+                    custody['checks']['wrapper_packet_unchanged'] = True
+                except BaseException as error:
+                    primary = remember(error)
+            if pins is not None and before is not None and not IO_UNKNOWN[0]:
+                try:
+                    custody['files'] = snapshot_domain(pins)
+                    need(custody['files'] == before, 'final original/source domain custody differs')
+                    custody['writers'] = writer_probe(before)
+                    custody['global_lease'] = lease.verify()
+                    custody['checks']['source_input_config_policy'] = True
+                except BaseException as error:
+                    primary = remember(error)
+            if (all(custody['checks'].get(key) is not None for key in
+                    ('envelope', 'wrapper_packet_unchanged', 'source_input_config_policy')) and
+                    not IO_UNKNOWN[0]):
+                custody['status'] = 'FINAL_CUSTODY_OBSERVED'
+                final_custody = custody
+        unsafe_root = safe_state is None
+        if unsafe_root:
+            result['final_custody_unverified_external_teardown_required'] = True
+        if final_custody is None:
+            result['status'] = 'STOP'
+            if primary is None:
+                primary = remember(AdapterStop('final inherited custody unverified'))
+        # Preserve original dynamic queue390/outside30 scopes alongside whole180.
+        # This is a local timing guard, never a financial residual or full tail.
+        try:
+            sample = time.monotonic()  # Genuine local guard observation only.
+            need(type(sample) is float and math.isfinite(sample), 'actual resource guard endpoint unavailable')
+            if started is not None:
+                need(type(started) is float and math.isfinite(started) and sample >= started,
+                     'actual controller local timing origin differs')
+                if queue_span[0] is not None and queue_span[1] is not None:
+                    need(all(type(v) is float and math.isfinite(v) for v in queue_span) and
+                         started <= queue_span[0] <= queue_span[1] <= sample,
+                         'actual ordered queue timing endpoints differ')
+                    queue_seconds = queue_span[1]-queue_span[0]
+                    outside_seconds = (sample-started)-queue_seconds
+                    need(outside_seconds >= 0, 'nonqueue interval unknown; no zero clamp')
+                    resource_scope_observation = {'scope':'controller_local_start_through_guard_sample',
+                        'start':started,'queue_span':list(queue_span),'sample':sample,
+                        'queue_seconds':queue_seconds,'outside_seconds':outside_seconds,
+                        'complete_outer_body':False,'financial_charge':False}
+                    if queue_seconds > 390 or outside_seconds > 30:
+                        primary = remember(AdapterStop('separate queue/outside scope crossed; costs retained'))
+                elif queue_span[0] is None and queue_span[1] is None:
+                    # Queue was never entered: all known local elapsed is outside.
+                    # None remains None; no zero queue duration/endpoint is invented.
+                    outside_seconds = sample-started
+                    resource_scope_observation = {'scope':'early_failure_before_queue_entry',
+                        'start':started,'queue_span':list(queue_span),'sample':sample,
+                        'queue_seconds':None,'outside_seconds':outside_seconds,
+                        'complete_outer_body':False,'financial_charge':False}
+                    if outside_seconds > 30:
+                        primary = remember(AdapterStop('separate queue/outside scope crossed; costs retained'))
+                else:
+                    raise AdapterStop('actual queue timing endpoint unknown; no duration invented')
+            else:
+                need(FIRST[0] is not None, 'controller local timing origin unavailable')
+            if queue_span[0] is not None and queue_span[1] is not None:
+                if time.monotonic_ns()+bill['outer_post_controller_ns'] > whole_deadline_ns:
+                    primary = remember(AdapterStop('wholeouter controller+reserved tail scope crossed; actual costs retained'))
+        except BaseException as error:
+            primary = remember(error)  # Actual first error survives guard/clock failures.
+        if FIRST[0] is not None:
+            primary = FIRST[0]
+            result['status'] = 'STOP'
+        if initial is not None and evidence is not None and lease is not None and not IO_UNKNOWN[0]:
+            try:
+                observed_ns = time.monotonic_ns()
+                need(observed_ns >= whole_body_begin_ns, 'genuine partial controller observation endpoint')
+                known = {'schema':'fresh-composed-controller-observation-v1','status':result['status'],
+                    'current_binding':initial,'actual_body_begin_ns':whole_body_begin_ns,
+                    'observed_ns':observed_ns,'partial_elapsed_ns':observed_ns-whole_body_begin_ns,
+                    'clock_scope':'genuine_outer_START_through_this_sample_before_final_records_seal_release_exit',
+                    'whole_outer_body_complete':False,'financial_receipt_created':False,'all_costs_settled':False,
+                    'unsafe_root_cleanup':unsafe_root,'final_original_custody':final_custody,
+                    'custody_attempts':custody,'actual_cleanup_safety':safe_state,'queue_span':queue_span,
+                    'resource_scope_observation':resource_scope_observation,
+                    'complete_case_metrics':None if facade is None else facade.case_metrics,
+                    'actual_returned_root_records':None if root_results is None else root_results.results,
+                    'actual_root_entries':None if root_results is None else root_results.entered,
+                    'root_metadata_is_observation_not_live_ownership_authority':True,
+                    'errors':error_data(),'held_global_lease_at_observation':lease.verify(),
+                    'original_domain_reads_end_before_global_release':True,'execution_permission':False}
+                IO.write(evidence/'ACCOUNTING.json',known)
+                IO.write(evidence/'PARENT.json',dict(result,errors=error_data(),
+                    schema='fresh-composed-controller-observation-v1',whole_outer_body_complete=False,
+                    known_accounting=False,financial_receipt_created=False,all_costs_settled=False,
+                    final_custody_completed=final_custody is not None,unsafe_root_cleanup=unsafe_root))
+            except BaseException as error:
+                primary = remember(error)
+        if queue_lock is not None:
+            try:
+                queue_lock.close()  # Actual retained parent-queue owner, one attempt.
+            except BaseException as error:
+                primary = remember(error)
+                IO_UNKNOWN[0] = True
+        if FIRST[0] is not None:
+            primary = FIRST[0]
+        if primary is not None or IO_UNKNOWN[0]:
+            if barrier.phase in ('PREPARING', 'PREPARED', 'SEALED_SUCCESS'):
+                barrier.quarantine()
+        elif barrier.phase == 'PREPARED':
+            try:
+                barrier.seal_success()
+            except BaseException as error:
+                primary = remember(error)
+                barrier.quarantine()
+        try:
+            need(release_owner is not None, 'private release method unavailable; external actual teardown required')
+            release_owner()  # Actual A2 disposes its private acquired/partial state once, even if getter did not return.
+        except BaseException as error:
+            primary = remember(error)
+            # Metadata-only activation after close uncertainty; no original reads.
+            # A sealed result cannot override this persistent execution quarantine.
+            barrier.quarantine()
+    # No original-domain/source reads after actual A2 release. Retained records
+    # are partial observations only. Real enclosing meter/native completion and
+    # a separate actual CLOSER/review are required; no financial CLOSE is minted.
+    return 1 if primary is not None else 0
+
+
