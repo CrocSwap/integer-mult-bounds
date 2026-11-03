@@ -1,0 +1,31 @@
+--- plan/passive_image_candidates_v1.py
++++ repair-v2/passive_image_candidates_v2.py
+@@ -68,14 +68,24 @@
+     def unique_va(off, size):
+         rows = map_file(off, size)
+         need(len(rows) == 1, 'ambiguous/unmapped file span')
+-        return rows[0]['vaddr'] + off - rows[0]['offset']
++        va = rows[0]['vaddr'] + off - rows[0]['offset']
++        need(map_va(va, size) == off, 'file/virtual reverse mapping differs')
++        return va
+     def map_va(va, size):
+         rows = [x for x in loads if x['vaddr'] <= va and va+size <= x['vaddr']+x['filesz']]
+         need(len(rows) == 1, 'ambiguous/zero-fill/unmapped virtual span')
+-        return rows[0]['offset'] + va - rows[0]['vaddr']
++        row = rows[0]
++        # Reject even partial competing memory mappings, including zero-fill.
++        # A distinct file span mapping over any requested VA is not unique.
++        need(not any(x is not row and max(va, x['vaddr']) <
++                     min(va+size, x['vaddr']+x['memsz']) for x in loads),
++             'overlapping virtual mapping')
++        return row['offset'] + va - row['vaddr']
+     if entry:
+-        entry_off = map_va(entry,1)
+-        need(any(x['flags'] & 1 for x in map_file(entry_off,1)), 'entry outside executable file bytes')
++        map_va(entry, 1)
++        entry_rows = [x for x in loads if x['vaddr'] <= entry < x['vaddr']+x['filesz']]
++        need(len(entry_rows) == 1 and entry_rows[0]['flags'] & 1,
++             'entry outside exact executable VA mapping')
+     span(literal_offset, len(LITERAL), len(data))
+     need(data[literal_offset:literal_offset+len(LITERAL)] == LITERAL, 'literal bytes differ')
+     L = unique_va(literal_offset, len(LITERAL))

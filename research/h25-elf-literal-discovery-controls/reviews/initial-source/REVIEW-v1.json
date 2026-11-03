@@ -1,0 +1,156 @@
+{
+  "schema": "literal-use-initial-source-controls-resource-review-v1",
+  "started_utc": "2026-11-02T23:38:50Z",
+  "fixed_review_stop_utc": "2026-11-02T23:50:50Z",
+  "frozen_utc": "2026-11-02T23:44:41.107632+00:00",
+  "disposition": "REJECT_INITIAL_HELPER_MAPPING_CHECKS; HOLD_FULL_P1_PENDING_REPAIRED_SOURCE_AND_EXECUTABLE_CONTROLS_CAPTURE_GUARD; NO_EXECUTION_GRANT",
+  "inputs": [
+    {
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/driver-libexec-property-slice-v1/plan/passive_image_candidates_v1.py",
+      "bytes": 11272,
+      "sha256": "c9044f4926cbcc880eb17b579b2cd6e323f1657bf6b6463138fc0b4310fe4b04"
+    },
+    {
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/driver-libexec-property-slice-v1/plan/OPERATION-v1.json",
+      "bytes": 14775,
+      "sha256": "d39ee50b70ec49ef81be61a3ccdb439fb5d22eb6eac5e2808c2b67ff25d352fd"
+    },
+    {
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/driver-libexec-property-slice-v1/plan/OPERATION-v1.md",
+      "bytes": 4229,
+      "sha256": "68255ebb4e3136441d132e2a012c7f86308ab90cf7ce6d56f00befffbd0f3df1"
+    },
+    {
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/driver-libexec-property-slice-v1/plan/MANUAL-CONTROLS-v1.json",
+      "bytes": 4663,
+      "sha256": "22eff45dfe65dcaf4f4c9ffd1963ee4a4bc07d5128de3960259215e0b8a9a446"
+    },
+    {
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/driver-libexec-property-slice-v1/plan/FREEZE-v1.json",
+      "bytes": 1924,
+      "sha256": "585c4a50407be565b13c808d58fbad3f60e17ff070c58bf0c1d8fd3aebfe84ff"
+    },
+    {
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/driver-libexec-property-slice-v1/ROUND-PLAN-v1.json",
+      "bytes": 3248,
+      "sha256": "5b8136541234a49aff9cc2b17e6916377be47581ae86831b86dcdb3d78aedc73"
+    },
+    {
+      "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-completion-20261102T055710Z/driver-libexec-property-slice-v1/TOOL-PINS-v1.json",
+      "bytes": 2251,
+      "sha256": "bcbaa66123875decdfe2781f249e8ec13bf2b023dd390eda1481e48b97a18830"
+    }
+  ],
+  "preservation": "Before consequential findings, exact initial reviewed source/plan/manual/freeze bytes were copied into owned initial-reviewed-v1/*.txt; helper11272B/c9044f4926cbcc880eb17b579b2cd6e323f1657bf6b6463138fc0b4310fe4b04. No original or other-agent file modified. Initial review does not assume forthcoming successor fixes pass.",
+  "review_scope": "Complete initial helper source and14 manual expectation cases, proposed argv, image-coherence and resource/ownership fields. No execution/import/compile/tests or actual binary/ELF/decoder operation. An executable capture/controller or test builder was not supplied in this initial packet.",
+  "findings": [
+    {
+      "id": "M01",
+      "status": "REPAIR_REQUIRED",
+      "anchor": "passive_image_candidates_v1.py:66-81",
+      "finding": "unique_va checks only file-span uniqueness. It does not check that another PT_LOAD maps different bytes or a zero-fill memory tail over the resulting virtual literal span. Therefore the advertised ambiguous image mapping STOP is incomplete.",
+      "counterexample": {
+        "base": "Manual1KiB S01 metadata model, inspect(data,literal_offset=640).",
+        "load0": {
+          "offset": 256,
+          "vaddr": "0x400000",
+          "filesz": 768,
+          "memsz": 768,
+          "flags": 5,
+          "align": 256
+        },
+        "load1": {
+          "offset": 768,
+          "vaddr": "0x400180",
+          "filesz": 18,
+          "memsz": 18,
+          "flags": 4,
+          "align": 1
+        },
+        "explanation": "Literal file640..658 belongs only to load0, so unique_va returns0x400180. Both loads cover the corresponding virtual span, with different file bytes. Entry is unchanged. Current helper can return candidate localisation despite virtual ambiguity."
+      },
+      "smallest_correction": "For each accepted file-to-VA span, verify unique consistent reverse VA coverage of the whole span, considering competing file-backed and relevant memory/zero-fill overlap, not only identical file offsets. Reject ambiguity. This is a source mapping check, not a requirement to prove ISA semantics."
+    },
+    {
+      "id": "M02",
+      "status": "REPAIR_REQUIRED",
+      "anchor": "passive_image_candidates_v1.py:76-78",
+      "finding": "Entry VA is mapped to a file offset, then executable permission is tested on any LOAD covering that offset. An executable file alias at a different VA can incorrectly bless a non-executable entry mapping.",
+      "counterexample": {
+        "base": "Manual1KiB metadata fixture with two PHDRs.",
+        "load0": {
+          "offset": 256,
+          "vaddr": "0x400000",
+          "filesz": 768,
+          "memsz": 768,
+          "flags": 4,
+          "align": 256
+        },
+        "load1": {
+          "offset": 512,
+          "vaddr": "0x500000",
+          "filesz": 1,
+          "memsz": 1,
+          "flags": 5,
+          "align": 1
+        },
+        "entry": "0x400100",
+        "explanation": "The unique entry VA maps through non-X load0 to file512. map_file(512,1) also contains executable load1 at another VA, so any(PF_X) passes. Literal640 is mapped only by load0; this is separate from M01."
+      },
+      "smallest_correction": "Check PF_X on the actual unique entry-VA-covering LOAD, not on file-offset aliases. Reject competing relevant virtual coverage."
+    },
+    {
+      "id": "G01",
+      "status": "P1_INPUT_MISSING",
+      "anchor": "OPERATION-v1.json native_commands_proposed_only/resource_proposal;helper main201-232",
+      "finding": "The helper neither launches tools nor enforces one parent queue/lock, whole60s, stream/aggregate capture, process cleanup or final failure accounting. Proposed commands contain placeholders and are not an executable reviewed capture guard. Manual controls explicitly await a future builder/test source.",
+      "smallest_correction": "Supply and independently review a small exact parent executable guard and exact synthetic control source, with actual fixed commands/tool pins/FD passing, per-command caps, shared output/status reservations, deadline/cleanup and failure retention. Parent may use trusted ordinary readonly tools; no general-purpose/universal GNU proof is required."
+    },
+    {
+      "id": "G02",
+      "status": "EXPLICIT_PARENT_STOP_GATE_REQUIRED",
+      "anchor": "passive_image_candidates_v1.py:190,218-232",
+      "finding": "Candidate overflow returns JSON status STOP_CANDIDATE_CAP but main exits0 after printing. Exit-only gating would continue decoders after a cap STOP.",
+      "smallest_correction": "Either source successor makes the cap outcome nonzero, or the exact parent guard parses the authenticated structured helper result and stops on that status before any later command. Do not infer runtime stopping from manual S10 alone."
+    }
+  ],
+  "counterexample_scope": "The mapping examples use the expressly specified bounded synthetic metadata model. They are counterexamples to advertised parser checks, not assertions that they are kernel-loadable images or that the pinned actual GCC contains a defect. No fixture/helper was executed.",
+  "accepted_narrow_source_properties": [
+    "Main opens only the nominated installed driver read-only, authenticates exact full size/hash before inspect, and invokes no subprocess/imported original/target execution.",
+    "Input<=2MiB, PHDR<=128, SHDR<=512, dynamic<=4096B and dynamic relocation descriptors<=196608B; report<=65536B. Unsupported formats generally fail rather than expand scope.",
+    "Reference locators are explicitly candidate-only; they can match interior immediates/preceding-prefix ambiguities. All relocation-effect/boundary/role/D/certificate/fullC05 flags remain false.",
+    "RIP-relative, absolute immediate and raw-address slot forms are finite predeclared locators; combined cap8 and deterministic order can conservatively stop before a useful use. No-hit is not unused-literal proof.",
+    "The plan distinguishes authoritative B from potentially changed FD decoder inputs and requires raw-window comparison before using tool data. No full image copy/memfd or target load is authorized.",
+    "Fourteen manual cases are designed, not executed; S01-S10/S14 cover locator/mapping/bias bounds, while S11-S13 require semantic/role/effect treatment the helper does not implement. Do not call those semantic controls passed by a pattern helper."
+  ],
+  "resource_review": {
+    "status": "DESIGN_ARITHMETIC_PLAUSIBLE_ENFORCEMENT_NOT_SUPPLIED",
+    "whole_seconds": 60,
+    "allocations_sum_seconds": 60,
+    "maximum_payload_launches": 10,
+    "raw_specific_sum_bytes": 475136,
+    "reserved_report_certificate_terminal_bytes": 262144,
+    "specific_raw_plus_reserve_bytes": 737280,
+    "aggregate_ceiling_bytes": 1048576,
+    "combined_raw_ceiling_bytes": 786432,
+    "maximum_stream_bytes": 196608,
+    "certificate_bytes": 65536,
+    "conditions": "Specific per-tool stream ceilings and global shared retention must both be enforced; count cap+1/failure/terminal/times/report/certificate/duplicates. A full B retained copy would violate this plan, so B is the explicit input reference only. Per-command<=180 and sampled1GiB remain original upper bounds, not hard peak guarantees. Timers/locks/cleanup/actual current funding require executable review, not prose.",
+    "costs": "Canonical94.550533479 unchanged; supplemental98.950533479 reported, proposed60 would give158.950533479 only after a genuine current-ledger grant. All physical/outside costs OPEN_NOT_ZERO. No allocation or measurements created by this review."
+  },
+  "next_operation": "Parent has declared one bounded repair-v2 source window23:42:23..23:52:23 within the fixed round. Preserve this rejection. Review the actual frozen successor helper, regression/control source and concrete capture guard in a separate explicit delta assignment; do not assume repair success or execute anything from this initial review. No second repair/reroll or old-unit/native-pilot reopening follows.",
+  "preserved": {
+    "P1_accepted": false,
+    "P3_accepted": false,
+    "full_C05": false,
+    "full_V03": false,
+    "field_qualified": false,
+    "target_or_query_grant": false,
+    "original_completion_percent": 43.5,
+    "original_credit_added": 0,
+    "physical_costs": "OPEN_NOT_ZERO",
+    "initial_no_progress_stop_unchanged": "2026-11-02T23:57:51.401519Z",
+    "round_hard_stop_unchanged": "2026-11-03T00:12:51.401519Z"
+  },
+  "activity": "Passive source/JSON/hash/manual-hex/arithmetic reasoning and owned review snapshots/reports only. No candidate import, AST execution/compile, test/helper/decoder/disassembly/ELF/target/native/compiler/process/network/policy activity or protected-runtime read. Successor v2 source not reviewed in this initial disposition."
+}
