@@ -1,0 +1,24 @@
+--- outputs/f4-a4-manual-integration-20261104T0343Z/control/single-repair-before/manual_meter_v1.py	2026-11-04 15:07:56.189929319 +1100
++++ outputs/f4-a4-manual-integration-20261104T0343Z/package/implementation/manual_meter_v1.py	2026-11-04 15:12:21.510514411 +1100
+@@ -460,12 +460,12 @@
+ def _run(operation, profile, action, role, self_pin=None):
+     # This is the first operation at actual run entry, before reading a plan or
+     # fallible preparation. Source startup/import costs remain OPEN_NOT_ZERO.
+-    START[0] = time.monotonic_ns()
+     loader,loaded,ctx,start_pin,reservation,command = None,None,None,None,None,None
+     name,cleanup_known,result,status = None,False,None,'STOP'
+     snapshot_pin = None
+     owner_attempted = False
+     try:
++        START[0] = time.monotonic_ns()
+         need(USED[0] is False,'one manual attempt including failed preparation')
+         USED[0] = True
+         if type(operation) is str:
+@@ -603,6 +603,7 @@
+     except BaseException as error:
+         if FIRST[0] is None:
+             FIRST[0] = error  # Before fallible reporting or cleanup bookkeeping.
++        USED[0] = True  # Failed first clock also consumes the one local attempt.
+         remember(error)
+     finally:
+         if loaded is not None:

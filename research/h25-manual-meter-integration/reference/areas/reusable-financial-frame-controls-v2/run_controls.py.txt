@@ -1,0 +1,202 @@
+"""Dormant fixed two-child DATA driver, SOURCE ONLY. No native authority.
+
+The mere presence of pins or a private pure module grants no execution. The
+parent must separately admit this exact child under the enclosing one-use
+meter/source/review/profile. This file creates no grant, marker or record.
+"""
+import builtins
+import copy
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+from types import ModuleType, FunctionType
+
+FUNDING_PATH = Path(__file__).absolute()
+PACKET = FUNDING_PATH.parent
+BINDING_PATH = PACKET / 'SOURCE-BINDING.json'
+_IMPORT = builtins.__import__
+class HarnessFailure(RuntimeError):
+    pass
+
+
+def need(condition, message):
+    if condition is not True:
+        raise HarnessFailure(message)
+
+
+def identity(info):
+    return (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_nlink,
+            info.st_size,info.st_mtime_ns,info.st_ctime_ns)
+
+
+def read_exact(path, size, sha):
+    need(type(size) is int and 0 < size <= 8388608 and type(sha) is str and
+         len(sha) == 64 and all(c in '0123456789abcdef' for c in sha), 'fixed read pin')
+    need(type(path) is type(FUNDING_PATH) and path.is_absolute() and
+         path.resolve(strict=True) == path, 'exact frozen source path')
+    before = path.lstat()
+    need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == 0o444 and
+         before.st_uid in (0,os.getuid()) and before.st_nlink == 1 and before.st_size == size,
+         'frozen regular owner/link/size')
+    fd,primary,secondary,raw = None,None,None,None
+    try:
+        fd = os.open(path,os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        need(identity(os.fstat(fd)) == identity(before), 'opened fixed source identity')
+        parts,count = [],0
+        while True:
+            chunk = os.read(fd,min(65536,size+1-count))
+            if not chunk:
+                break
+            count += len(chunk)
+            need(count <= size, 'fixed source read cap')
+            parts.append(chunk)
+        raw = b''.join(parts)
+        need(count == size and identity(os.fstat(fd)) == identity(before) == identity(path.lstat()) and
+             hashlib.sha256(raw).hexdigest() == sha, 'fixed source bytes and final identity')
+    except BaseException as error:
+        primary = error
+    finally:
+        if fd is not None:
+            try:
+                os.close(fd)  # Exactly one attempt; no retry/reconstruction.
+            except BaseException as error:
+                secondary = error
+    if primary is not None:
+        raise primary
+    if secondary is not None:
+        raise secondary
+    return raw
+
+
+
+def selected_import(name, globals=None, locals=None, fromlist=(), level=0):
+    allowed = ('builtins','copy','hashlib','json','os','pathlib','stat','sys','types')
+    need(type(name) is str and level == 0 and name in allowed, 'fixed stdlib source imports only')
+    need(fromlist in (None,(),('Path',),('ModuleType','FunctionType')), 'fixed stdlib import forms')
+    return _IMPORT(name, globals, locals, fromlist, level)
+
+
+def load_pure_source(pin, name):
+    need(type(pin) is dict and set(pin) == {'path','bytes','sha256','mode'} and pin['mode'] == 0o444,
+         'fixed pure source pin')
+    source = read_exact(Path(pin['path']), pin['bytes'], pin['sha256'])
+    module = ModuleType(name)
+    b = dict(vars(builtins))
+    b['__import__'] = selected_import
+    module.__dict__.update(__file__=pin['path'], __package__=None, __spec__=None, __builtins__=b)
+    # Future separately admitted pure source loading only. This private module
+    # is never passed to A4, OwnedIO, Context, factories or native lease APIs.
+    exec(compile(source,pin['path'],'exec',dont_inherit=True,optimize=0),module.__dict__)
+    return module
+
+
+def read_json_pin(pin):
+    need(type(pin) is dict and set(pin) == {'path','bytes','sha256','mode'} and pin['mode'] == 0o444,
+         'fixed DATA pin')
+    return json.loads(read_exact(Path(pin['path']),pin['bytes'],pin['sha256']).decode('ascii'))
+
+
+
+def final_observations(rows, cases, hooks):
+    # Inputs are the actual returned validation rows, exact executed inventory
+    # and the SAME source-private control module's cumulative callback log.
+    # No expected golden/exit/native scalar supplies these observations.
+    need(type(rows) is list and type(cases) is list and 0 < len(cases) <= 256 and
+         type(hooks) is list, 'exact actual final observation inputs')
+    unexpected_callbacks = len(hooks)
+    all_literal_expectations_checked = (len(rows) == len(cases) and
+        all(type(row) is dict and type(case) is dict and
+            type(row.get('id')) is str and type(case.get('id')) is str and
+            row['id'] == case['id'] and row.get('literal_expectation_checked') is True
+            for row, case in zip(rows, cases)))
+    return {'unexpected_callbacks': unexpected_callbacks,
+            'all_literal_expectations_checked': all_literal_expectations_checked}
+
+def main():
+    need(len(sys.argv) == 6 and sys.flags.isolated == 1 and sys.flags.optimize == 0 and
+         sys.flags.no_site == 1 and sys.flags.no_user_site == 1 and sys.flags.dont_write_bytecode == 1,
+         'exact original isolated child flags and fixed argument count')
+    read_exact(FUNDING_PATH,int(sys.argv[2]),sys.argv[1])
+    group = sys.argv[3]
+    need(group in ('LEGACY135','FRAME_DATA'), 'exact one predeclared DATA group')
+    binding = json.loads(read_exact(BINDING_PATH,int(sys.argv[5]),sys.argv[4]).decode('ascii'))
+    need(binding['schema'] == 'reusable-financial-control-source-binding-v1' and
+         binding['status'] == 'SOURCE_PINNED_REVIEW_REQUIRED', 'unconfigured binding denies before target load')
+    need(binding['execution_permission'] is False and binding['native_ownership_qualified'] is False,
+         'source binding grants no authority')
+    funding = load_pure_source(binding['target'], 'selected_f4_financial_pure_data')
+    legacy_fixtures = read_json_pin(binding['legacy_fixtures'])
+    expected = read_json_pin(binding['expected_groups'])['artifacts'][group]
+    if group == 'LEGACY135':
+        controls = load_pure_source(binding['legacy_controls'], 'selected_legacy135_control_bodies')
+        # Explicit source-version trace-only adaptation, never edits originals.
+        trace = binding['legacy_trace_transform']
+        controls.need(trace['status'] == 'STATIC_EXACT_F4_CALLSITES_PINNED', 'unconfigured legacy trace seam')
+        transformed = copy.deepcopy(legacy_fixtures)
+        for case in transformed['cases']:
+            for field in ('expected_target_trace','expected_family_trace'):
+                if field in case:
+                    key = 'legacy' if field == 'expected_target_trace' else 'family'
+                    case[field]['file'] = trace[key]['file']
+                    case[field]['function'] = trace[key]['function']
+                    case[field]['line'] = trace[key]['line']
+        rows = controls.run_legacy_controls(funding,transformed,trace)
+        executed_cases = transformed['cases']
+        fixture_sha = binding['legacy_fixtures']['sha256']
+        controls.need(controls.HOOKS == [], 'no legacy hook reset or callback')
+        compare = controls.exact_equal
+    else:
+        controls = load_pure_source(binding['frame_controls'], 'selected_independent_financial_data_controls')
+        fixtures = read_json_pin(binding['frame_fixtures'])
+        rows = controls.run_frame_controls(funding,fixtures,legacy_fixtures)
+        executed_cases = fixtures['cases']
+        fixture_sha = binding['frame_fixtures']['sha256']
+        controls.need(controls.HOOKS == [], 'no frame hook reset or callback')
+        compare = controls.exact
+    observed = final_observations(rows, executed_cases, controls.HOOKS)
+    need(observed['unexpected_callbacks'] == 0 and
+         observed['all_literal_expectations_checked'] is True, 'actual final observations required')
+    result = {'schema':'reusable-financial-controls-result-v1','group_id':group,
+              'case_count':len(rows),'case_results':rows,'target_sha256':binding['target']['sha256'],
+              'fixtures_sha256':fixture_sha,'native_ownership_qualified':False,
+              'currentness_qualified':False,'execution_permission':False,'physical_total_ns':None,
+              'old_complete_total_ns':None,'physical_boundary':'OPEN_NOT_ZERO',
+              'all_costs_settled':False,'gain':False,
+              'unexpected_callbacks':observed['unexpected_callbacks'],
+              'all_literal_expectations_checked':observed['all_literal_expectations_checked'],
+              'A01_shadow_lane_qualified':False,'ACTIVE_same_owner_qualified':False,
+              'CPC_controls_included':False,
+              'F3_independent_source_acceptance_supplied_by_this_harness':False,
+              'actual_caller_or_whole_union_qualified':False,'actual_fit_proved':False,
+              'historical_controls_inherited_for_F3':False,'physical_native_oracle_rows_qualified':0,
+              'physical_refresh_qualified':False,'physical_snapshot_qualified':False,
+              'runtime_or_profile_qualified':False,'science_or_Root_permission':False}
+    if group == 'LEGACY135':
+        static = read_json_pin(binding['legacy_static_contract'])
+        original = read_json_pin(binding['original_legacy_golden'])
+        need(type(static) is dict and set(static) == {'schema','original_golden_pin',
+             'original_fixture_pin','scope','control_groups','coverage25_source_contract'} and
+             static['schema'] == 'reusable-financial-exact-legacy-static-contract-v2',
+             'exact immutable relocated static contract')
+        compare(static['original_golden_pin'],binding['original_legacy_golden'])
+        compare(static['original_fixture_pin'],binding['legacy_fixtures'])
+        for field in ('scope','control_groups','coverage25_source_contract'):
+            compare(static[field],original[field])
+        compare(static['coverage25_source_contract'],legacy_fixtures['coverage25'])
+        result['legacy_static_contract_pin'] = dict(binding['legacy_static_contract'])
+    compare(result,expected)
+    raw = (json.dumps(result,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('ascii')
+    need(0 < len(raw) <= 32768, 'unchanged complete raw group cap')
+    at = 0
+    while at < len(raw):
+        n = os.write(1,raw[at:])
+        need(type(n) is int and 0 < n <= len(raw)-at, 'stdout progress')
+        at += n
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

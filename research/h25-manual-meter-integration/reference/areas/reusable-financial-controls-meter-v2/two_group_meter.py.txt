@@ -1,0 +1,781 @@
+"""SOURCE ONLY fixed sequential pure-DATA group owner; no actual command grant here.
+
+Body interval starts at run entry, after interpreter/import/argument startup.
+It ends after actual child wait, raw validation and owned-descriptor cleanup.
+Startup and final record projection/write/fsync/exit lie outside that interval.
+The separately named two-second administrative debit is NOT measured duration,
+a physical upper bound or proof of the 2400-second physical total. The physical
+publication boundary remains open. No historical timing gap is reconstructed.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+ROOT = W / 'outputs/h25-data-handling-20261028'
+NAME = 'ReusableFinancialPureDataBatchV1'
+EVIDENCE = ROOT / 'validation' / (NAME + '-OUTER-INCOMPLETE')
+GRANT = ROOT / 'control/REUSABLE-FINANCIAL-PURE-DATA-BATCH-v1-ACTUAL-GRANT.json'
+AUTHORIZATION = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/control/FRESH-METERED-ROUND-AUTHORIZATION-v1.json')
+AUTH_PIN = {'bytes':1996,'sha256':'28bc04ad98151cf6a52607e4271b4dcbcbd645d0c8c538a35bc37e3d5194d50f'}
+ENV = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8',
+       'LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+FLAGS = ('-S','-s','-P','-B')
+INITIAL_PATH = ('/usr/lib/python312.zip','/usr/lib/python3.12','/usr/lib/python3.12/lib-dynload')
+MEMORY, STREAM_CAP = 1073741824, 2097152
+ADMIN_POLICY = 'startup-and-final-publication-two-second-administrative-debit-v1'
+ADMIN_POLICY_DEBIT_SECONDS = 2
+FIRST, SECONDARY, IO_UNKNOWN = [None], [None] * 32, [False]
+SLOTS = [[None, 'FREE', None, False] for unused in range(32)]
+START, END, ARMED = [None], [None], [False]
+CHILD, POPEN_PENDING, WAIT_RETURNED = [None], [False], [False]
+PEAK_SAMPLED_PARENT_CHILD_RSS = [None]
+CLEANUP_RETURNCODE, MARKER_PHASE = [None], ['NOT_ENTERED']
+
+class AdapterStop(RuntimeError):
+    pass
+
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+    elif error is not FIRST[0]:
+        for index in range(32):
+            if SECONDARY[index] is error:
+                break
+            if SECONDARY[index] is None:
+                SECONDARY[index] = error
+                break
+        else:
+            IO_UNKNOWN[0] = True
+    return FIRST[0]
+
+
+def need(value, message):
+    if not value:
+        raise AdapterStop(message)
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_uid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                       ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+
+
+def sha_value(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact sha256 required')
+
+
+def error_data():
+    def item(error):
+        if error is None:
+            return None
+        frames, tb = [], error.__traceback__
+        while tb is not None and len(frames) < 32:
+            frames.append({'file': tb.tb_frame.f_code.co_filename, 'line': tb.tb_lineno,
+                           'function': tb.tb_frame.f_code.co_name})
+            tb = tb.tb_next
+        return {'type': type(error).__name__, 'frames': frames}
+    return {'first': item(FIRST[0]), 'secondary': [item(e) for e in SECONDARY if e is not None],
+            'IO_unknown': IO_UNKNOWN[0], 'actual_exception_objects_retained_until_exit': True}
+
+
+def acquire(path, flags=0, directory=False):
+    need(not IO_UNKNOWN[0], 'unknown IO blocks new acquisition')
+    slot = next(s for s in SLOTS if s[1] in ('FREE','CLOSED'))
+    slot[:] = [None, 'PENDING', str(path), directory]
+    try:
+        slot[0] = os.scandir(path) if directory else os.open(path, flags | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        slot[1] = 'OWNED'
+        return slot
+    except BaseException as error:
+        IO_UNKNOWN[0] = True
+        remember(error)
+        raise
+
+
+def close(slot):
+    need(slot[1] == 'OWNED', 'known owned close only; no retry')
+    slot[1] = 'CLOSING'
+    try:
+        slot[0].close() if slot[3] else os.close(slot[0])
+    except BaseException as error:
+        slot[1] = 'CLOSE_UNKNOWN'
+        IO_UNKNOWN[0] = True
+        remember(error)
+        raise
+    slot[1] = 'CLOSED'
+
+
+def names(path, cap):
+    slot, values = acquire(path, directory=True), []
+    try:
+        for item in slot[0]:
+            need(len(values) < cap, 'directory member cap')
+            values.append(item.name)
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'directory close unknown')
+    return values
+
+
+def read_fd(slot, cap, proc=False):
+    before = os.fstat(slot[0])
+    if not proc:
+        need(stat.S_ISREG(before.st_mode) and before.st_uid in (0,os.getuid()) and
+             before.st_nlink == 1 and before.st_size <= cap, 'stable regular owner/link/size')
+        need(identity(Path(slot[2]).lstat()) == identity(before), 'descriptor/path differs')
+        os.lseek(slot[0], 0, os.SEEK_SET)
+    chunks, count = [], 0
+    while True:
+        block = os.read(slot[0], min(65536,cap + 1 - count))
+        if not block:
+            break
+        chunks.append(block)
+        count += len(block)
+        need(count <= cap, 'read cap')
+    raw = b''.join(chunks)
+    if not proc:
+        need(count == before.st_size and identity(os.fstat(slot[0])) == identity(before) ==
+             identity(Path(slot[2]).lstat()), 'stable descriptor/path changed')
+    return raw
+
+
+def stable_source(path, expected):
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical source path')
+    before = path.lstat()
+    need(stat.S_IMODE(before.st_mode) == 0o444, 'frozen source mode')
+    slot = acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        need(identity(before) == identity(os.fstat(slot[0])), 'source opened identity')
+        raw = read_fd(slot, expected['bytes'])
+        need(len(raw) == expected['bytes'] and hashlib.sha256(raw).hexdigest() == expected['sha256'], 'source pin')
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'source close unknown')
+    return raw
+
+
+def metadata(path, cap=8192):
+    slot = acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        raw = read_fd(slot, cap, proc=True)
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'metadata close unknown')
+    return raw
+
+
+def process(pid):
+    raw = metadata('/proc/' + str(pid) + '/stat')
+    end = raw.rfind(b') ')
+    need(end >= 0 and raw.split(b' ',1)[0] == str(pid).encode('ascii'), 'process stat syntax/pid')
+    fields = raw[end + 2:].split()
+    return {'pid':pid,'ppid':int(fields[1]),'pgid':int(fields[2]),'sid':int(fields[3]),
+            'start_ticks':int(fields[19]),'rss_bytes':int(fields[21])*os.sysconf('SC_PAGE_SIZE')}
+
+
+def sample_memory(birth=None):
+    parent = process(os.getpid())
+    total = parent['rss_bytes']
+    if birth is not None:
+        current = process(CHILD[0].pid)  # Native child is still unreaped; no PID reuse.
+        need(all(current[k] == birth[k] for k in ('pid','ppid','pgid','sid','start_ticks')),
+             'owned child generation/session changed')
+        total += current['rss_bytes']
+    PEAK_SAMPLED_PARENT_CHILD_RSS[0] = total if PEAK_SAMPLED_PARENT_CHILD_RSS[0] is None else max(PEAK_SAMPLED_PARENT_CHILD_RSS[0],total)
+    need(total <= MEMORY, 'sampled parent plus owned-child RSS cap')
+
+
+def clean_launch():
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3,12) and sys.base_prefix == '/usr', 'selected interpreter')
+    need(sys.flags.optimize == 0 and sys.flags.no_site == sys.flags.no_user_site ==
+         sys.flags.dont_write_bytecode == 1 and sys.flags.safe_path and
+         sys.flags.ignore_environment == sys.flags.isolated == sys.flags.hash_randomization == 0 and
+         tuple(sys.path) == INITIAL_PATH and dict(os.environ) == ENV and os.getcwd() == str(W), 'clean launch')
+    need(len(names('/proc/self/task',2)) == 1 and signal.getitimer(signal.ITIMER_REAL) == (0.0,0.0) and
+         signal.getsignal(signal.SIGALRM) == signal.SIG_DFL and
+         signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL, 'single thread/default signal owners')
+    status = dict(line.split(':',1) for line in metadata('/proc/self/status',65536).decode('ascii').splitlines() if ':' in line)
+    need(int(status['Umask'].strip(),8) == 0o077, 'umask0077')
+    for fd in (1,2):
+        st = os.fstat(fd)
+        need(stat.S_ISREG(st.st_mode) and stat.S_IMODE(st.st_mode) == 0o600 and
+             st.st_uid == os.getuid() and st.st_nlink == 1, 'captured0600 current-owner streams')
+
+
+def lower_limit(kind, ceiling):
+    soft, hard = resource.getrlimit(kind)
+    bound = min(ceiling,hard) if hard != resource.RLIM_INFINITY else ceiling
+    if soft != resource.RLIM_INFINITY:
+        bound = min(bound,soft)
+    resource.setrlimit(kind,(bound,bound))
+
+
+def strict_json(raw):
+    def pairs(rows):
+        value = {}
+        for key,item in rows:
+            need(key not in value, 'duplicate JSON key')
+            value[key] = item
+        return value
+    def constant(value):
+        raise AdapterStop('nonfinite JSON')
+    return json.loads(raw.decode('ascii'),object_pairs_hook=pairs,parse_constant=constant)
+
+
+def write_owned(slot, raw):
+    need(type(raw) is bytes and len(raw) <= 65536, 'retained metadata cap')
+    at = 0
+    while at < len(raw):
+        count = os.write(slot[0],raw[at:])
+        need(type(count) is int and 0 < count <= len(raw)-at, 'owned write progress')
+        at += count
+    os.fsync(slot[0])
+
+
+def fresh(path):
+    need(path.parent.resolve(strict=True) == path.parent, 'canonical fresh parent')
+    slot = acquire(path,os.O_RDWR | os.O_CREAT | os.O_EXCL)
+    st = os.fstat(slot[0])
+    need(stat.S_ISREG(st.st_mode) and st.st_uid == os.getuid() and st.st_nlink == 1 and
+         stat.S_IMODE(st.st_mode) == 0o600 and st.st_size == 0, 'fresh exclusive0600 file')
+    return slot
+
+
+def sync_directory(path):
+    slot = acquire(path,os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(slot[0])
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        try:
+            close(slot)
+        except BaseException as secondary:
+            remember(secondary)
+    need(not IO_UNKNOWN[0], 'directory sync close unknown')
+
+
+def seal(slot):
+    os.fsync(slot[0])
+    raw = read_fd(slot,STREAM_CAP)
+    os.fchmod(slot[0],0o400)
+    os.fsync(slot[0])
+    return raw,{'path':slot[2],'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'mode':0o400}
+
+
+def stop_owned_child():
+    child = CHILD[0]
+    if child is not None and not WAIT_RETURNED[0]:
+        try:
+            child.kill()  # Only genuine strongly held Popen; no JSON/PID rehydration.
+        except BaseException as secondary:
+            IO_UNKNOWN[0] = True
+            remember(secondary)
+        try:
+            result = child.wait(timeout=2)
+            need(type(result) is int and result == child.returncode, 'actual cleanup wait')
+            CLEANUP_RETURNCODE[0] = result
+            WAIT_RETURNED[0] = True
+        except BaseException as secondary:
+            IO_UNKNOWN[0] = True
+            remember(secondary)
+
+
+
+
+def exact_data_result(actual, expected):
+    need(type(actual) is type(expected), 'exact fixed DATA result type')
+    if type(expected) is dict:
+        need(all(type(k) is str for k in actual) and set(actual) == set(expected), 'fixed DATA result keys')
+        for key in expected:
+            exact_data_result(actual[key],expected[key])
+    elif type(expected) is list:
+        need(len(actual) == len(expected), 'fixed DATA result list length')
+        for first,second in zip(actual,expected):
+            exact_data_result(first,second)
+    else:
+        need(type(expected) in (str,int,bool,type(None)) and actual == expected, 'fixed DATA result value')
+
+
+# Fixed child interface, not runtime configuration or execution permission.
+CONTROL_AREA = ROOT / 'areas/reusable-financial-frame-controls-v1'
+HARNESS = CONTROL_AREA / 'run_controls.py'
+BINDING = CONTROL_AREA / 'SOURCE-BINDING.json'
+EXPECTED_GROUPS = CONTROL_AREA / 'EXPECTED-GROUPS.json'
+HARNESS_INTERFACE = CONTROL_AREA / 'HARNESS-INTERFACE.json'
+HARNESS_INTERFACE_PIN = {'bytes':4025,'sha256':'0fbab52cf32c931ee795583ccaa3cd89994ccbf071d7b4640adb19b5e6aa077b'}
+GROUP_IDS = ('LEGACY135', 'FRAME_DATA')
+LEGACY_FIXTURES = ROOT / 'areas/current-opening-control-harness-v3/FIXTURES.json'
+LEGACY_FIXTURE_PIN = {'bytes':4691479,'sha256':'7304a69cac784be787abfb592712ee3c60a34a7944bc7010c240e8c0c40b9e79'}
+RECORDS = ROOT / 'control/prospective-financial-v1/entries' / NAME
+RETAINED_CHILDREN = []  # Strong genuine Popen objects, including every returned wait.
+# Final literal source pins/counts/golden and inventory paths require a separately
+# frozen/reviewed configured successor. None is not a fake hash or live authority.
+CONFIGURED = None
+
+
+def run(source_sha,source_bytes,grant_sha,grant_bytes):
+    status, usage_before, usage_after = 'STOP',None,None
+    groups = []
+    active_group, child_group, group_slot, group_pin = None,None,None,None
+    start_pin, command_pin, reservation_pin, permission_pin = None,None,None,None
+    native_returncode, scalar_group = None,None
+    capture_links, active_capture_links, close_observed = None,None,None
+    try:
+        START[0] = time.monotonic_ns()
+        usage_before = (resource.getrusage(resource.RUSAGE_SELF),resource.getrusage(resource.RUSAGE_CHILDREN))
+        capture_links = []  # Private actual slot lifetimes; never serialized as authority.
+        active_capture_links = []
+
+        def close_observed(slot):
+            link = next((value for value in capture_links if value[1] and value[0] is slot),None)
+            try:
+                close(slot)  # Original known-owned native close, exactly one attempt.
+            finally:
+                if link is not None:
+                    # Snapshot at this close boundary, BEFORE any slot can be reused.
+                    link[2]['capture_close_phases'][link[3]] = slot[1]
+                    link[1] = False  # Terminal lifetime, including CLOSE_UNKNOWN.
+
+        groups = [{'group_id':name,'phase':'NOT_STARTED','semantic_status':'UNREVIEWED',
+            'Popen_returned':False,'Popen_construction_pending':False,'native_child_started':False,
+            'native_returncode_observed':None,'owned_wait_returned':False,
+            'cleanup_native_returncode_observed':None,'capture_close_phases':[],
+            'raw_pins':[],'observed_count':None,'phase_at_failure':None} for name in GROUP_IDS]
+        need(CONFIGURED is not None, 'unconfigured immutable F4/control bindings; no child or record entry')
+        need(type(CONFIGURED) is dict and set(CONFIGURED) ==
+             {'harness_pin','binding_pin','expected_groups_pin','target_sha256','read_set','groups'},
+             'exact source-private configured bindings')
+        clean_launch()
+        ARMED[0] = True
+        lower_limit(resource.RLIMIT_AS,MEMORY)
+        lower_limit(resource.RLIMIT_FSIZE,STREAM_CAP)
+        sample_memory()
+        need(metadata('/proc/self/task/'+str(os.getpid())+'/children').strip() == b'', 'no prior live children')
+        for value in (source_sha,grant_sha,CONFIGURED['target_sha256']):
+            sha_value(value)
+        need(type(source_bytes) is int and 0 < source_bytes <= 131072 and
+             type(grant_bytes) is int and 0 < grant_bytes <= 65536, 'source/grant byte bounds')
+        self_path = Path(__file__).absolute()
+        stable_source(self_path,{'bytes':source_bytes,'sha256':source_sha})
+        stable_source(HARNESS_INTERFACE,HARNESS_INTERFACE_PIN)
+        for key,cap in (('harness_pin',131072),('binding_pin',131072),('expected_groups_pin',131072)):
+            value = CONFIGURED[key]
+            need(type(value) is dict and set(value) == {'bytes','sha256'} and
+                 type(value['bytes']) is int and 0 < value['bytes'] <= cap, 'fixed configured input pin')
+            sha_value(value['sha256'])
+        stable_source(HARNESS,CONFIGURED['harness_pin'])
+        binding_raw = stable_source(BINDING,CONFIGURED['binding_pin'])
+        binding = strict_json(binding_raw)
+        need(type(binding) is dict and binding.get('status') == 'SOURCE_PINNED_REVIEW_REQUIRED',
+             'unconfigured child binding is not a target source pin')
+        read_set = CONFIGURED['read_set']
+        need(type(read_set) is tuple and 0 < len(read_set) <= 16, 'bounded fixed source read set')
+        read_paths = set()
+        for path,pin_value in read_set:
+            need(type(path) is type(ROOT) and path.is_relative_to(ROOT/'areas') and
+                 path not in read_paths and type(pin_value) is dict and set(pin_value) == {'bytes','sha256'} and
+                 type(pin_value['bytes']) is int and 0 < pin_value['bytes'] <= 8388608,
+                 'exact immutable source/fixture paths, not runtime records')
+            sha_value(pin_value['sha256']); read_paths.add(path)
+            stable_source(path,pin_value)
+        need(any(pin_value['sha256'] == CONFIGURED['target_sha256'] for path,pin_value in read_set),
+             'fixed F4 target belongs to prevalidated source set')
+        expected_document = strict_json(stable_source(EXPECTED_GROUPS,CONFIGURED['expected_groups_pin']))
+        need(type(expected_document) is dict and type(expected_document.get('artifacts')) is dict and
+             set(expected_document['artifacts']) == set(GROUP_IDS), 'two independent fixed expected artifacts')
+        declared = CONFIGURED['groups']
+        need(type(declared) is tuple and len(declared) == 2, 'exactly two immutable group contracts')
+        legacy_fixture = strict_json(stable_source(LEGACY_FIXTURES,LEGACY_FIXTURE_PIN))
+        need(type(legacy_fixture) is dict and type(legacy_fixture.get('cases')) is list and
+             len(legacy_fixture['cases']) == 135, 'all original135 legacy fixtures retained')
+        legacy_ids = [case['id'] for case in legacy_fixture['cases']]
+        need(all(type(value) is str for value in legacy_ids) and len(set(legacy_ids)) == 135,
+             'original135 unique ordered legacy identities')
+        expected_values = []
+        for index,name in enumerate(GROUP_IDS):
+            group = declared[index]
+            need(type(group) is dict and set(group) == {'group_id','golden_pin','inventory_pin','expected_count'} and
+                 group['group_id'] == name and type(group['expected_count']) is int and
+                 0 < group['expected_count'] <= 1024, 'fixed ordered group identity/count')
+            for role,cap in (('golden_pin',32768),('inventory_pin',131072)):
+                value = group[role]
+                need(type(value) is dict and set(value) == {'path','bytes','sha256','mode'} and
+                     type(value['path']) is str and Path(value['path']).is_relative_to(CONTROL_AREA) and
+                     type(value['bytes']) is int and 0 < value['bytes'] <= cap and
+                     type(value['mode']) is int and value['mode'] == 0o444, 'fixed independent golden/inventory pin')
+                sha_value(value['sha256'])
+                stable_source(Path(value['path']),{'bytes':value['bytes'],'sha256':value['sha256']})
+            expected = expected_document['artifacts'][name]
+            need(type(expected) is dict and expected.get('schema') == 'reusable-financial-controls-result-v1' and
+                 expected.get('group_id') == name and type(expected.get('case_count')) is int and
+                 expected['case_count'] == group['expected_count'] and type(expected.get('case_results')) is list and
+                 len(expected['case_results']) == group['expected_count'] and
+                 expected.get('target_sha256') == CONFIGURED['target_sha256'], 'complete fixed expected group')
+            if name == 'LEGACY135':
+                need(group['expected_count'] == 135 and [row['id'] for row in expected['case_results']] == legacy_ids,
+                     'no omitted/replaced/reordered legacy135 case')
+            raw_expected = canonical(expected)
+            need(0 < len(raw_expected) <= 32768 and
+                 len(raw_expected) == group['golden_pin']['bytes'] and
+                 hashlib.sha256(raw_expected).hexdigest() == group['golden_pin']['sha256'],
+                 'each expected child artifact is its own immutable bounded golden')
+            expected_values.append(expected)
+            groups[index].update(golden_pin=group['golden_pin'],inventory_pin=group['inventory_pin'],expected_count=group['expected_count'])
+        stable_source(AUTHORIZATION,AUTH_PIN)
+        grant = strict_json(stable_source(GRANT,{'bytes':grant_bytes,'sha256':grant_sha}))
+        need(type(grant) is dict, 'exact parent grant object')
+        for key,basename in (('command_pin','COMMAND.json'),('reservation_pin','RESERVATION.json'),
+                             ('permission_pin','PERMISSION.json')):
+            value = grant[key]
+            need(type(value) is dict and set(value) == {'path','bytes','sha256','mode'} and
+                 value['path'] == str(RECORDS/basename) and type(value['bytes']) is int and
+                 0 < value['bytes'] <= 131072 and type(value['mode']) is int and value['mode'] == 0o444,
+                 'original parent financial pre-entry record pin, never native authority')
+            sha_value(value['sha256'])
+        command_pin, reservation_pin, permission_pin = (grant[k] for k in ('command_pin','reservation_pin','permission_pin'))
+        expected_grant = {'schema':'reusable-financial-two-group-meter-grant-v1',
+            'attempt_id':NAME,'source_sha256':source_sha,'source_bytes':source_bytes,
+            'harness_sha256':CONFIGURED['harness_pin']['sha256'],'binding_sha256':CONFIGURED['binding_pin']['sha256'],
+            'expected_groups_sha256':CONFIGURED['expected_groups_pin']['sha256'],
+            'target_sha256':CONFIGURED['target_sha256'],'authorization_sha256':AUTH_PIN['sha256'],
+            'allow_one_attempt':True,'operation':'TWO_SEQUENTIAL_FINANCIAL_PURE_DATA_GROUPS_ONLY',
+            'command_seconds':180,'sampled_parent_child_memory_bytes':MEMORY,
+            'administrative_tail_policy':ADMIN_POLICY,'administrative_tail_debit_seconds':ADMIN_POLICY_DEBIT_SECONDS,
+            'command_pin':command_pin,'reservation_pin':reservation_pin,'permission_pin':permission_pin,
+            'declared_result_groups':list(declared)}
+        exact_data_result(grant,expected_grant)
+        records = []
+        for value in (command_pin,reservation_pin,permission_pin):
+            records.append(strict_json(stable_source(Path(value['path']),{'bytes':value['bytes'],'sha256':value['sha256']})))
+        command,reservation,permission = records
+        need(command['schema'] == 'fresh-financial-command-v1' and reservation['schema'] == 'fresh-financial-reservation-v1' and
+             permission['schema'] == 'fresh-financial-permission-v1' and
+             all(type(value['attempt_id']) is str and value['attempt_id'] == NAME for value in records),
+             'original frame schemas and same one-use entry')
+        exact_data_result(command['declared_result_groups'],list(declared))
+        need(command['operation_class'] == permission['operation_class'] == 'PURE_DATA_TEST' and
+             command['permission_pin'] == permission_pin and reservation['command_pin'] == command_pin and
+             reservation['permission_pin'] == permission_pin and permission['allow_one_attempt'] is True and
+             reservation['no_automatic_retry'] is True and
+             type(permission['body_reservation_ns']) is int and permission['body_reservation_ns'] == 180_000_000_000 and
+             type(permission['admin_policy_ns']) is int and permission['admin_policy_ns'] == 2_000_000_000,
+             'separate actual parent funding/permission; no financial self-grant')
+        entry_info = RECORDS.lstat()
+        need(RECORDS.resolve(strict=True) == RECORDS and stat.S_ISDIR(entry_info.st_mode) and
+             entry_info.st_uid == os.getuid() and stat.S_IMODE(entry_info.st_mode) == 0o700,
+             'precreated canonical parent-manual entry directory')
+        body_path = RECORDS/'METER_BODY.json'
+        body_info = os.fstat(1)
+        need(body_path.resolve(strict=True) == body_path and identity(body_path.lstat()) == identity(body_info) and
+             body_info.st_size == 0, 'stdout is exact exclusive planned original METER_BODY descriptor')
+        parent = EVIDENCE.parent
+        st = parent.lstat()
+        need(parent.resolve(strict=True) == parent and stat.S_ISDIR(st.st_mode) and
+             st.st_uid == os.getuid() and not stat.S_IMODE(st.st_mode) & 0o022, 'owned canonical evidence parent')
+        MARKER_PHASE[0] = 'CREATE_PENDING'
+        os.mkdir(EVIDENCE,0o700)
+        MARKER_PHASE[0] = 'DIRECTORY_RETURNED'
+        sync_directory(parent)
+        start_slot = fresh(RECORDS/'METER_START.json')
+        start_raw = canonical({'schema':'fresh-financial-meter-start-v1','attempt_id':NAME,
+            'command_pin':command_pin,'reservation_pin':reservation_pin,'permission_pin':permission_pin,
+            'meter_source_pin':{'path':str(self_path),'bytes':source_bytes,'sha256':source_sha,'mode':0o444},
+            'body_begin_ns':START[0],'body_scope':'RUN_ENTRY_THROUGH_OWNED_CLEANUP_V1'})
+        write_owned(start_slot,start_raw)
+        need(read_fd(start_slot,65536) == start_raw, 'START full byte readback')
+        os.fchmod(start_slot[0],0o444); os.fsync(start_slot[0])
+        need(stat.S_IMODE(os.fstat(start_slot[0]).st_mode) == 0o444 and
+             identity((RECORDS/'METER_START.json').lstat()) == identity(os.fstat(start_slot[0])) and
+             read_fd(start_slot,65536) == start_raw, 'original START immutable mode/identity/readback')
+        start_pin = {'path':str(RECORDS/'METER_START.json'),'bytes':len(start_raw),
+                     'sha256':hashlib.sha256(start_raw).hexdigest(),'mode':0o444}
+        close(start_slot)
+        sync_directory(RECORDS)  # Actual original START containing directory.
+        sync_directory(EVIDENCE)
+        MARKER_PHASE[0] = 'DURABLE_START_BEFORE_GROUPS'
+        group_slot = fresh(EVIDENCE/'GROUP-OBSERVATIONS.json')
+        sync_directory(EVIDENCE)
+        for index,name in enumerate(GROUP_IDS):
+            active_group = groups[index]
+            need(FIRST[0] is None and not IO_UNKNOWN[0] and not POPEN_PENDING[0] and
+                 (CHILD[0] is None or WAIT_RETURNED[0]), 'prior child known reaped before next group')
+            need(metadata('/proc/self/task/'+str(os.getpid())+'/children').strip() == b'',
+                 'no overlapping live child at group boundary')
+            active_group['phase'] = 'PREPARING'
+            active_group['golden_pin'] = declared[index]['golden_pin']
+            active_group['inventory_pin'] = declared[index]['inventory_pin']
+            active_group['expected_count'] = declared[index]['expected_count']
+            active_group['capture_paths'] = [str(EVIDENCE/(name+suffix)) for suffix in ('.stdout.raw','.stderr.raw')]
+            active_group['capture_close_phases'] = ['NOT_ACQUIRED','NOT_ACQUIRED']
+            # Allocate the observation links before any capture acquisition. Each
+            # link binds only an actual returned/pending current helper slot.
+            active_capture_links = [[None,False,active_group,position,path]
+                for position,path in enumerate(active_group['capture_paths'])]
+            capture_links.extend(active_capture_links)
+            captures = []
+            for link in active_capture_links:
+                try:
+                    slot = fresh(Path(link[4]))
+                except BaseException as error:
+                    remember(error)
+                    active_group['capture_close_phases'][link[3]] = 'ACQUIRE_UNKNOWN'
+                    try:
+                        # Immediate failure observation, before any close/reuse;
+                        # original acquire stores path/phase before its OS call.
+                        slot = next((value for value in SLOTS if value[2] == link[4] and
+                            value[1] in ('OWNED','PENDING')),None)
+                        if slot is None:
+                            active_group['capture_close_phases'][link[3]] = 'NOT_ACQUIRED'
+                        else:
+                            link[0],link[1] = slot,slot[1] == 'OWNED'
+                            active_group['capture_close_phases'][link[3]] = slot[1]
+                    except BaseException as secondary:
+                        IO_UNKNOWN[0] = True
+                        remember(secondary)
+                    raise
+                link[0],link[1] = slot,True
+                active_group['capture_close_phases'][link[3]] = slot[1]
+                captures.append(slot)
+            sync_directory(EVIDENCE)
+            remaining = 178 - (time.monotonic_ns()-START[0])/1e9
+            need(remaining > 0, 'shared enclosing body preparation exhausted; no next dispatch')
+            child_group = active_group
+            CHILD[0],WAIT_RETURNED[0],CLEANUP_RETURNCODE[0] = None,False,None
+            POPEN_PENDING[0] = True
+            active_group['phase'] = 'POPEN_PENDING'
+            active_group['Popen_construction_pending'] = True
+            active_group['native_child_started'] = None
+            CHILD[0] = subprocess.Popen(['/usr/bin/python3.12','-I',*FLAGS,str(HARNESS),
+                CONFIGURED['harness_pin']['sha256'],str(CONFIGURED['harness_pin']['bytes']),name,
+                CONFIGURED['binding_pin']['sha256'],str(CONFIGURED['binding_pin']['bytes'])],
+                cwd=W,env=dict(ENV),stdin=subprocess.DEVNULL,stdout=captures[0][0],stderr=captures[1][0],
+                close_fds=True,start_new_session=True)
+            POPEN_PENDING[0] = False
+            active_group['Popen_construction_pending'] = False
+            active_group['Popen_returned'],active_group['native_child_started'] = True,True
+            RETAINED_CHILDREN.append(CHILD[0])
+            active_group['phase'] = 'CHILD_RETURNED'
+            birth = process(CHILD[0].pid)
+            need(birth['ppid'] == os.getpid() and birth['pgid'] == birth['pid'] == birth['sid'],
+                 'genuine owned child parent/session')
+            while not WAIT_RETURNED[0]:
+                sample_memory(birth)
+                remaining = 178 - (time.monotonic_ns()-START[0])/1e9
+                need(remaining > 0, 'shared body deadline: stop owned current child, no retry')
+                for slot in captures:
+                    need(os.fstat(slot[0]).st_size <= STREAM_CAP, 'child stream cap')
+                try:
+                    result = CHILD[0].wait(timeout=min(0.05,remaining))
+                    WAIT_RETURNED[0] = True
+                    need(type(result) is int and CHILD[0].returncode == result, 'actual native group wait')
+                    native_returncode,scalar_group = result,name
+                    active_group['native_returncode_observed'] = result
+                    active_group['owned_wait_returned'] = True
+                except subprocess.TimeoutExpired:
+                    pass
+            active_group['phase'] = 'WAIT_RETURNED'
+            raw_values = []
+            for slot in captures:
+                raw,pin_value = seal(slot)
+                raw_values.append(raw); active_group['raw_pins'].append(pin_value)
+            need(active_group['native_returncode_observed'] == 0, 'pure DATA group failed; stop batch')
+            need(raw_values[1] == b'', 'unexpected group stderr retained')
+            raw_lines = raw_values[0].splitlines()
+            need(len(raw_lines) == 1 and raw_values[0].endswith(b'\n') and
+                 0 < len(raw_values[0]) <= 32768, 'one bounded complete group artifact; unchanged limit')
+            observed = strict_json(raw_lines[0])
+            exact_data_result(observed,expected_values[index])
+            need(raw_values[0] == canonical(expected_values[index]), 'exact immutable per-group golden bytes')
+            active_group['observed_count'] = observed['case_count']
+            for slot in captures:
+                close_observed(slot)
+            active_group['semantic_status'],active_group['phase'] = 'PASS','RESULT_VALIDATED'
+            sample_memory()
+        # Retain old source pre/post checks, now covering every exact fixed input.
+        stable_source(self_path,{'bytes':source_bytes,'sha256':source_sha})
+        stable_source(HARNESS,CONFIGURED['harness_pin']); stable_source(BINDING,CONFIGURED['binding_pin'])
+        stable_source(EXPECTED_GROUPS,CONFIGURED['expected_groups_pin'])
+        stable_source(LEGACY_FIXTURES,LEGACY_FIXTURE_PIN)
+        for path,pin_value in read_set:
+            stable_source(path,pin_value)
+        status = 'OBSERVATION_VALIDATED'
+    except BaseException as error:
+        remember(error)
+        if active_group is not None:
+            active_group['phase_at_failure'] = active_group['phase']
+            active_group['phase'] = 'FAILED'
+            active_group['semantic_status'] = 'FAIL'
+        if POPEN_PENDING[0]:
+            IO_UNKNOWN[0] = True
+    finally:
+        stop_owned_child()
+        try:
+            if child_group is not None and child_group is active_group:
+                active_group['Popen_construction_pending'] = POPEN_PENDING[0]
+                active_group['owned_wait_returned'] = WAIT_RETURNED[0]
+                active_group['cleanup_native_returncode_observed'] = CLEANUP_RETURNCODE[0]
+                if type(CLEANUP_RETURNCODE[0]) is int:
+                    native_returncode,scalar_group = CLEANUP_RETURNCODE[0],active_group['group_id']
+        except BaseException as secondary:
+            remember(secondary)
+        try:
+            # Preserve partial failed raw streams only through known still-owned FDs
+            # after a known wait (or known no-child prelaunch). Never retry a close,
+            # reconstruct a numeric FD, or seal a stream with an uncertain writer.
+            if (active_group is not None and 'capture_paths' in active_group and not POPEN_PENDING[0] and
+                    (child_group is not active_group or WAIT_RETURNED[0])):
+                pinned_paths = {value['path'] for value in active_group['raw_pins']}
+                for link in active_capture_links:
+                    path,slot = link[4],link[0]
+                    if link[1] and slot is not None and slot[1] == 'OWNED' and path not in pinned_paths:
+                        try:
+                            raw,pin_value = seal(slot)
+                            active_group['raw_pins'].append(pin_value)
+                        except BaseException as secondary:
+                            remember(secondary)
+        except BaseException as secondary:
+            remember(secondary)
+        for slot in SLOTS:
+            if slot is not group_slot and slot[1] == 'OWNED':
+                try:
+                    need(close_observed is not None, 'no capture observer or current managed acquisition established')
+                    close_observed(slot)
+                except BaseException as secondary:
+                    remember(secondary)
+        if group_slot is not None and group_slot[1] == 'OWNED':
+            try:
+                group_raw = canonical({'schema':'original-two-group-observations-v1','attempt_id':NAME,
+                    'scalar_exit_scope':'LAST_ACTUALLY_STARTED_CHILD_GENUINE_WAIT_ONLY_NOT_AGGREGATE',
+                    'group_order':list(GROUP_IDS),'groups':groups,'errors_before_artifact_publication':error_data(),
+                    'no_fullforest_native_profile_or_permission':True})
+                write_owned(group_slot,group_raw)
+                sealed,group_pin = seal(group_slot)
+                need(sealed == group_raw, 'original full group artifact readback')
+            except BaseException as secondary:
+                remember(secondary)
+            finally:
+                if group_slot[1] == 'OWNED':
+                    try:
+                        close(group_slot)
+                    except BaseException as secondary:
+                        remember(secondary)
+        try:
+            usage_after = (resource.getrusage(resource.RUSAGE_SELF),resource.getrusage(resource.RUSAGE_CHILDREN))
+        except BaseException as secondary:
+            remember(secondary)
+        try:
+            END[0] = time.monotonic_ns()
+            need(type(START[0]) is int and type(END[0]) is int and 0 <= START[0] <= END[0], 'real enclosing body endpoints')
+            need(END[0]-START[0] <= 180_000_000_000, 'single complete enclosing body180 exceeded')
+        except BaseException as secondary:
+            remember(secondary)
+    if FIRST[0] is not None or IO_UNKNOWN[0]:
+        status = 'STOP'
+    body_known, body_record = False,None
+    try:
+        body_known = type(START[0]) is int and type(END[0]) is int and END[0] >= START[0] >= 0
+        started = [group for group in groups if group['Popen_returned']]
+        pending = POPEN_PENDING[0] or any(group['Popen_construction_pending'] for group in groups)
+        all_waited = not pending and all(group['owned_wait_returned'] for group in started)
+        cleanup_known = not IO_UNKNOWN[0] and all_waited and all(slot[1] in ('FREE','CLOSED') for slot in SLOTS)
+        body_record = None
+        if start_pin is not None:
+            body_record = {'schema':'fresh-financial-meter-body-v1','attempt_id':NAME,
+                'command_pin':command_pin,'reservation_pin':reservation_pin,'meter_start_pin':start_pin,
+                'body':{'state':'KNOWN' if body_known else 'UNKNOWN','begin_ns':START[0],
+                        'end_ns':END[0] if body_known else None,'elapsed_ns':END[0]-START[0] if body_known else None},
+                'owned_cleanup':'KNOWN_CLOSED' if cleanup_known else 'UNKNOWN',
+                'owned_wait':('KNOWN_RETURNED' if started else 'NO_CHILD') if all_waited else 'UNKNOWN',
+                'child_exit':native_returncode if not pending else None,
+                'resource_observations':{'peak_sampled_rss_bytes':PEAK_SAMPLED_PARENT_CHILD_RSS[0],
+                                         'limit_bytes':MEMORY,'scope':'SAMPLED_ONLY'},
+                'errors':{'first':type(FIRST[0]).__name__ if FIRST[0] is not None else None,
+                          'secondary':[type(e).__name__ for e in SECONDARY if e is not None],'io_unknown':IO_UNKNOWN[0]},
+                'body_scope':'RUN_ENTRY_THROUGH_OWNED_CLEANUP_V1','physical_boundary':'OPEN_NOT_ZERO'}
+    except BaseException as secondary:
+        remember(secondary)
+        status = 'STOP'
+    # Original stdout body and separate stderr observation are retained by the
+    # authenticated parent writer. No terminal/adjudication/HEAD is manufactured.
+    if ARMED[0] and body_record is not None:
+        try:
+            raw = canonical(body_record)
+            need(len(raw) <= 65536, 'original METER_BODY observation cap')
+            at = 0
+            while at < len(raw):
+                count = os.write(1,raw[at:]); need(type(count) is int and 0 < count <= len(raw)-at, 'body write progress')
+                at += count
+            os.fsync(1)
+        except BaseException as secondary:
+            remember(secondary)
+    if FIRST[0] is not None or IO_UNKNOWN[0]:
+        status = 'STOP'
+    if ARMED[0]:
+        try:
+            detail = {'schema':'original-two-group-producer-detail-v1','attempt_id':NAME,'body_status':status,
+                'body_begin_ns':START[0],'body_end_after_owned_cleanup_ns':END[0],
+                'body_elapsed_ns':END[0]-START[0] if body_known else None,'meter_start_pin':start_pin,
+                'group_artifact_pin':group_pin,'group_artifact_close_returned':group_slot is not None and group_slot[1] == 'CLOSED',
+                'groups':groups,'last_genuine_wait_group':scalar_group,'last_genuine_wait_return':native_returncode,
+                'child_exit_is_last_actual_wait_not_aggregate':True,'overall_status_not_inferred_from_child_exit':True,
+                'errors_after_body_publication':error_data(),
+                'rusage_self_and_reaped_children_before_after':[
+                    [[u.ru_utime,u.ru_stime,u.ru_maxrss] for u in values] if values is not None else None
+                    for values in (usage_before,usage_after)],
+                'rusage_scope':'run-entry baseline through both sequential groups and owned artifact cleanup; cumulative raw counters, no peak sum',
+                'peak_sampled_parent_plus_current_unreaped_child_RSS_bytes':PEAK_SAMPLED_PARENT_CHILD_RSS[0],
+                'no_descendant_fullforest_or_A4_native_scope_qualified':True,'administrative_tail_policy':ADMIN_POLICY,
+                'administrative_policy_debit_seconds':ADMIN_POLICY_DEBIT_SECONDS,
+                'policy_debit_is_not_observed_duration_or_physical_upper_bound':True,
+                'outer_startup_and_final_publication_physical_boundary':'OPEN_NOT_ZERO',
+                'persistent_incomplete_marker_path':str(EVIDENCE),'marker_phase_observed':MARKER_PHASE[0],
+                'all_costs_settled':False,'execution_permission':False,'gain':False}
+            raw = canonical(detail); need(len(raw) <= 65536, 'original producer detail cap')
+            at = 0
+            while at < len(raw):
+                count = os.write(2,raw[at:]); need(type(count) is int and 0 < count <= len(raw)-at, 'detail write progress')
+                at += count
+            os.fsync(2)
+        except BaseException as secondary:
+            remember(secondary)
+    return 0 if status == 'OBSERVATION_VALIDATED' and FIRST[0] is None and not IO_UNKNOWN[0] else 78
+
+
+if __name__ == '__main__':
+    need(len(sys.argv) == 5, 'exact source SHA/bytes and actual grant SHA/bytes arguments')
+    sys.exit(run(sys.argv[1],int(sys.argv[2]),sys.argv[3],int(sys.argv[4])))
