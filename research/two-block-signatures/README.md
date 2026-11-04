@@ -13,6 +13,8 @@ A signature records which blocks a message uses on input and which blocks read i
 
 In the middle row the basis entries are restricted. The rational inverse can use other coefficients. An exact weighted census accounts for 28,836,612,000 invertible zero-one matrices. [Restricted coefficient census](ZERO-ONE.md)
 
+Although these three sets have different sizes, one additive tariff shared across the six messages gives at most two distinct minimum prices. Either adjacent pair can tie. [Why the three minima cannot all be distinct](ZERO-ONE.md#why-the-three-minima-cannot-all-be-distinct)
+
 ## What determines a signature
 
 A nonzero determinant supplies simultaneous pivots for both blocks. After row-basis changes inside each block, the matrix consists of two identity diagonal blocks and two rectangular off-diagonal blocks. Six exclusive message types force the side on which they pivot. Messages using both blocks on input and output fill the leftover positions. The row and column support requirements then give an exact test and a direct witness with entries 0, 1 and −1 over the rationals. A small parity obstruction accounts for the entire binary deficit. Fields of characteristic two with more than two elements realize the full ordinary set. [Classification and proof](PROOF.md)

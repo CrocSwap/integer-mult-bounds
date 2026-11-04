@@ -12,6 +12,7 @@ sys.path.insert(0,str(PACKAGE))
 from algebra import inverse, masks
 from construction_check import need
 from signatures import TYPES, Profile, multiplicity
+from tariffs import three_domains
 
 
 def primitive(values):
@@ -159,12 +160,15 @@ def build():
     binary = {tuple(r["counts"]) for r in stored if r["binary"] is not None}
     ordinary = {tuple(r["counts"]) for r in stored}
     need(binary < set(hist) < ordinary, "zero-one coefficient domain nesting")
+    prior = json.loads((PACKAGE/"PRICE-CERTIFICATES.json").read_bytes())
+    dependencies = json.loads((PACKAGE/"THREE-PRICES.json").read_bytes())
+    prices = three_domains(binary,set(hist),ordinary,prior,dependencies)
     rows = []
     for key,total in sorted(hist.items()):
         per,rem = divmod(total,multiplicity(Profile(*key).symbols()))
         need(per>0 and rem == 0, "zero-one labeling multiplicity")
         rows.append(dict(counts=list(key),matrices_per_label=per,matrix=mats[key]))
-    return dict(four_port=small,six_port=six,profiles=rows)
+    return dict(four_port=small,six_port=six,three_domain_prices=prices,profiles=rows)
 
 
 if __name__ == "__main__":

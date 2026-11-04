@@ -37,6 +37,7 @@ DATA_FAULTS = [
     ("perturb convex weights", "PRICE-CERTIFICATES.json", PRIMARY, "convex combination differs from profile"),
     ("erase signed matrix entry", "SIX-PORTS.json", PRIMARY, "stored witness certificate differs"),
     ("inflate ternary multiplicity", "SIX-PORTS.json", CENSUS, "stored per-label multiplicity differs"),
+    ("perturb price dependence", "THREE-PRICES.json", "zero_one_census.py", "price differences do not cancel"),
 ]
 
 
@@ -48,6 +49,8 @@ def change_data(name, original):
         next(row for row in data if "mixture" in row)["mixture"][0]["weight"] += 1
     elif name == "erase signed matrix entry":
         data[0]["rational"][0] = "......"
+    elif name == "perturb price dependence":
+        data[0]["terms"][0][0] += 1
     else:
         data[0]["pairs_per_label_F2_F3"][1] += 1
     return json.dumps(data).encode()

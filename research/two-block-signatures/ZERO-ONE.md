@@ -12,3 +12,13 @@ The word “binary” in Gonzalo Mier's #3990 refers to **coefficients restricte
 As a separate control, literal integer cofactors on all 65,536 four-port matrices reproduce the entire four-port profile histogram, including all 22,560 invertible matrices and all 391 labeled codes. The six-port total of invertible matrices is a previously published figure. The distinct question here is their block source/reader distribution. [Živković, *Classification of small (0,1) matrices*](https://arxiv.org/abs/math/0511636) · [Dai, Kim and Kim, Table 1](https://archive.ymsc.tsinghua.edu.cn/pacm_download/21/59-2008Invertibility_probability_of_binary_matrices.pdf)
 
 The zero-one graph witnesses for all feasible two-element-field signatures have odd determinant. In those pivot charts the masks depend on which rows and columns are zero, so the integer matrices retain their signatures over the rationals. The six-port restricted alphabet thus adds 1,740 labeled signatures to the binary-field set and leaves 1,440 ordinary signatures unrealized. The strict positive-tariff example in the main proof is attained with zero-one entries over the rationals.
+
+## Why the three minima cannot all be distinct
+
+Fix one additive seven-type price vector shared by all six messages. Let O, Z and B denote the ordinary, rational zero-one and binary-field profile sets. They are nested, so the minima are weakly increasing in this order. **At least two adjacent minima agree**, for every real price vector in this six-port model.
+
+If both gaps were strict, some profile x outside Z would beat every profile in Z, and some profile y in Z but outside B would beat every profile in B. Each must also beat all of B. The nine convex-mixture certificates from [PRICE-CERTIFICATES.json](PRICE-CERTIFICATES.json) exclude those profiles from either role. This leaves five possible x and seven possible y.
+
+For each of the 35 pairs, [THREE-PRICES.json](THREE-PRICES.json) gives positive integer weights on differences of the form z−x with z in Z, or b−y with b in B. The weighted sum is the zero vector. Under the two proposed strict price gaps each of its terms would have strictly positive dot product with the common price, which is impossible. The verifier checks the domains, signs, all seven coordinate sums and coverage of the 35 pairs. Numerical linear programming found the weights; exact integer arithmetic certifies them.
+
+Either single gap can occur. In seven-type order, prices (3,3,3,1,2,2,2) yield minima (10,10,11), while (2,3,1,2,3,1,2) yield (8,9,9). This finite conclusion concerns the same price table at every label. Message-dependent nonmonotone tariffs are outside its scope.

@@ -54,6 +54,40 @@ def parity_family():
     return rows
 
 
+def three_domains(binary, zero, ordinary, price_certificates, dependencies):
+    """Certify that a common additive tariff cannot have two strict gaps."""
+    check_certificates(price_certificates)
+    separated = {tuple(r["counts"]) for r in price_certificates if "prices" in r}
+    pairs = {(x,y) for x in separated-zero for y in separated & zero}
+    seen = set()
+    for row in dependencies:
+        x,y = tuple(row["x"]),tuple(row["y"])
+        if (x,y) not in pairs or (x,y) in seen or not row["terms"]:
+            raise ValueError("price comparison pair")
+        seen.add((x,y))
+        total = [0]*7
+        for weight,tag,profile in row["terms"]:
+            vector = tuple(profile)
+            if type(weight) is not int or weight <= 0 or tag not in ("Z","B"):
+                raise ValueError("price dependence term")
+            choices, target = (zero,x) if tag == "Z" else (binary,y)
+            if vector not in choices:
+                raise ValueError("price dependence domain")
+            for i in range(7):
+                total[i] += weight*(vector[i]-target[i])
+        if any(total):
+            raise ValueError("price differences do not cancel")
+    if seen != pairs or len(pairs) != 35:
+        raise ValueError("incomplete strict-gap comparison")
+    examples = []
+    for fees, expected in [((3,3,3,1,2,2,2),[10,10,11]), ((2,3,1,2,3,1,2),[8,9,9])]:
+        actual = [min(dot(fees,r) for r in choices) for choices in (ordinary,zero,binary)]
+        if actual != expected:
+            raise ValueError("three-domain price example")
+        examples.append(actual)
+    return dict(candidate_pairs=len(pairs), examples=examples)
+
+
 def literal_prices(codes, binary_codes, p, n):
     """Exhaust all actual six-port signatures for label-dependent monotone fees."""
     receipts = []
