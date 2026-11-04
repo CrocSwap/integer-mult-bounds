@@ -21,10 +21,14 @@ had these SHA256 hashes:
 | File | SHA256 |
 |---|---|
 | `PROOF.md` | `d29091eb12b4ccd3f5acb389634a858af3beb0dc78865613bb7bd68c9440c6d0` |
-| `table.json` | `0967790b0b33bb359035a95a0e87439c70039c9d71bfcff08e58fd57f35c3666` |
-| `EXTERNAL.json` | `5d42bddef1752055648ae91466b53d242f0ae355177e4ca6cdcb9e23cb4adb97` |
+| `table.json` | `388d617a76e345774a8768f32a6a9bc6e94b87f9c8a5cf6712a95a5a3a945fcd` |
+| `EXTERNAL.json` | `eb64deffd68787fe12df7b745d98f3139f77c5ab7ecd41a86bd832db0c7ebe0a` |
 | `verify.py` | `3e77a06c572d85fe4169eafc827752f41760b40953d4166073a5c6d5842e6e2d` |
 | `extract_tex.py` | `1a0b50f638b470df06c3b1f83afddcd5d75f3116de084a2aaaf5263d1ec296ec` |
+
+The table and external-manifest hashes above use the final LF publication
+bytes. Normalizing their Windows CRLF line endings changed no data; the
+exact checks were rerun on the normalized files.
 
 Subsequent changes to these files require checking their mathematical relevance;
 this receipt is not a blanket approval of later revisions.

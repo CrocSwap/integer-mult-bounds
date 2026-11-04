@@ -105,6 +105,11 @@ dependency, dense tensor matrix, network or predecessor program is needed.
 The PR records the publication commit and actual export/preflight results;
 this avoids a self-referential commit hash inside the package.
 
+The initial publication preflight detected Git's CRLF-to-LF conversion of
+new JSON files. The package was normalized to LF, its table hash and review
+receipt were updated, and the full registered replay plus both article
+parsers passed again. Mathematical table entries and proof text did not change.
+
 ## Limits and remaining obligations
 
 The written proof establishes the all-width theorem using classical
