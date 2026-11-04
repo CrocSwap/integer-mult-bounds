@@ -14,6 +14,7 @@ In the smallest example here with five guards, take the rows `(1,a)` for all fiv
 | Every binary common-image family of at least two guards beats its product; complete affine flats of rank at least three do so over all fields | [Last-coordinate bound](PROOF.md) · [Full-flat checks](FULL-FLATS.json) |
 | Every named mask has the same law in each uniform determinant class, including uniform special-linear headers | [Counting proof](PROOF.md) · [Literal checks](LITERAL-GL.json) |
 | Complete matches for every subset of all normalized covectors in dimension three over the fields of orders two, three and four | [Affine-plane census](AFFINE-PLANES.json) |
+| Larger checks at the dimension-three sign reversal and the ternary quartet boundary | [Optional censuses](EXTRA-CENSUSES.json) · [Reproduction](VALIDATION.md) |
 
 One practical consequence concerns estimates for a caller that batches several tests on the same header. Even knowing every pair exactly leaves room for the all-pass probability to fall on the opposite side of the independence prediction. A physical caller, its price, an improved multiplication bound and a formal proof-kernel check are outside this result.
 

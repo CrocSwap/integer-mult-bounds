@@ -6,6 +6,7 @@ The seven commands registered in VERIFY.json use Python 3.12 and its standard li
 | --- | --- |
 | Algebra and raw prefixes | 248 pencil specializations, 28 binary predecessor comparisons, 42 independent triples and 668 exact-mask size cases. A second method retains each actual prefix and its current column span in 36 small cases. Repeated rows and mixed dependencies are included. |
 | Dimension and size signs | 232 field-order/pencil-size windows, compared with direct rational arithmetic at 18,560 dimensions. The scaled boundary integers are floors obtained by integer division. Further examples bound the dimension and family-size crossovers through field order 4096. |
+| Recounting the crossings | Eleven raw-prefix calculations give the actual passing-tuple count and orbit denominator at the main boundaries. These include dimensions 60 and 61 over the four-element field and both the dependent and independent triples at dimension 61. They avoid enumerating the enormous groups at those dimensions. |
 | Full affine flats | 32 finite comparisons of a separate binomial formula with the lattice sum. Seventeen field orders have exact thresholds for the sufficient last-coordinate condition. |
 | Independent triples | A conditional sampling bound covers the infinite tail. The 17 remaining field/dimension pairs have exact ratios from both the lattice formula and a direct count of noncollinear points in coordinate boxes. [Certificates](TRIPLE-CERTIFICATES.json) |
 | Smallest possible field order | Five ternary quartet cases below the analytic dimension cutoff are recounted with raw prefixes, including an independent four-row case. [Exact values](TERNARY-FOUR.json) |
@@ -34,3 +35,9 @@ python3.12 -I -W error -B audit_mutations.py
 ```
 
 The compact hashes and histograms are retained in [literal fixtures](LITERAL-GL.json), [the four-element pencil](GL4-ORDER3.json) and [the full planes](AFFINE-PLANES.json). The formula checks and exact integer brackets are in [the primary result](RESULT.json), [the sign windows](SIGN-WINDOWS.json), [the scaling examples](ASYMPTOTICS.json) and [the full-flat examples](FULL-FLATS.json). Runtime uses no predecessor code or network input.
+
+## Optional larger censuses
+
+Run `python3.12 -I -W error -B extra_censuses.py` from the package directory. The full five-direction pencil passes on exactly 99,200 of the 1,488,000 headers in `GL_3(F_5)`, giving `1/15 > (441/775)^5`. This literally checks the opposite sign to the dimension-two case.
+
+Over the ternary field, the program traverses 1,516,320 invertible four-dimensional headers modulo the 16 free left diagonal scalings. These classes account for all 24,261,120 headers. The initial image vector has four nonzero entries. All 64 named subsets of six directions agree with the rank formula. The three quartet counts from SMALL-FIELDS.md at dimension four are 1,166,400, 1,660,608 and 1,499,712. [Larger census fixtures](EXTRA-CENSUSES.json)

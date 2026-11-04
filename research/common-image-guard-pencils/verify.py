@@ -8,6 +8,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from checks import controls, scientific_result, sign_rows
+from extra_censuses import check_retained
 from flat_check import flat_examples
 from headers import census
 from laws import full_flat, universal_positive_size
@@ -65,6 +66,7 @@ def main():
         raise ValueError("unknown mode")
     result = scientific_result()
     signs = sign_rows()
+    check_retained()
     frozen("RESULT.json", result)
     frozen("SIGN-WINDOWS.json", signs)
     frozen("ASYMPTOTICS.json", brackets())
@@ -75,6 +77,7 @@ def main():
     frozen("TERNARY-FOUR.json", quartets)
     print(json.dumps(dict(status="PASS_COMMON_IMAGE_GUARD_LAW",sources=n,
                           prefix_cases=len(result["raw_prefix_cases"]),
+                          crossing_prefix_cases=len(result["crossing_prefix_cases"]),
                           triple_exceptions=sum(len(x["exceptions"]) for x in triples),
                           ternary_quartets=len(quartets["exceptions"]),
                           formula_checks=result["finite_formula_checks"],

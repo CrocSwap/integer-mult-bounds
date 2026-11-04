@@ -124,6 +124,29 @@ def sign_rows():
     return dict(windows=windows, finite_comparisons=comparisons, boundary_certificates=coeffs)
 
 
+def crossing_prefixes():
+    """Recount the boundary dimensions by raw transitions, without inversion."""
+    cases = [(5, 5, m, "pencil") for m in (2, 3, 4, 5)]
+    cases += [(4, 3, m, "pencil") for m in (60, 61)]
+    cases += [(4, 4, m, "pencil") for m in (8, 9)]
+    cases += [(7, 7, m, "pencil") for m in (2, 3)]
+    cases += [(4, 3, 61, "independent")]
+    rows = []
+    for q, k, m, family in cases:
+        field = Field(q)
+        forms = independent(k) if family == "independent" else [(1, a) for a in range(k)]
+        rank = len(forms[0])
+        passing = prefix_count(field, forms, m)
+        total = orbit_size(q, rank, m)
+        actual = Fraction(passing, total)
+        expected = independent_triple(q, m) if family == "independent" else pencil(q, k, m)
+        require(actual == expected, "raw crossing count")
+        ratio = actual/marginal(q, m)**k
+        rows.append(dict(q=q, k=k, m=m, family=family, passing_tuples=passing,
+                         orbit=total, ratio_floor_1e8=ratio.numerator*10**8//ratio.denominator))
+    return rows
+
+
 def scientific_result():
     controls()
     a = independent_triple(4, 61)/marginal(4, 61)**3
@@ -132,4 +155,5 @@ def scientific_result():
     return dict(five_direction_GL2_F5=[str(pencil(5, k, 2)) for k in range(1, 6)],
                 opposite_triples_q4_m61=dict(independent_floor_1e8=a.numerator*10**8//a.denominator,
                                               pencil_floor_1e8=b.numerator*10**8//b.denominator),
-                finite_formula_checks=formula_rows(), raw_prefix_cases=prefix_rows())
+                finite_formula_checks=formula_rows(), raw_prefix_cases=prefix_rows(),
+                crossing_prefix_cases=crossing_prefixes())
