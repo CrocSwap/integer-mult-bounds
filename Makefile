@@ -564,6 +564,16 @@ recycled-bit-full-verify:
 verify-recycled-bit: recycled-bit-full-verify
 	python3 -m unittest discover -s tests -p 'test_recycled_bit_integration.py' -v
 
+# Literal PR442 invocation: ordinary pinned Lake build, source checks and audits.
+.PHONY: formal-pr442-verify
+LAKE ?= lake
+formal-pr442-verify:
+	python3 research/lean-multi-host-source/check_sources.py
+	python3 research/lean-multi-host-source/test_flat_data.py
+	python3 research/lean-multi-host-source/test_verifier_stack.py
+	python3 research/lean-multi-host-source/verify.py --lake "$(LAKE)" --receipt /tmp/pr442-lean421-fresh.json
+	python3 research/lean-external-review/verify_package.py --build-receipt /tmp/pr442-lean421-fresh.json
+	git diff --exit-code
 .PHONY: frontier596-verify
 frontier596-verify: selected-record-check
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier596.XXXXXX"); \

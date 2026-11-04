@@ -79,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [historical, gaussian, matrix]
+        package: [historical, gaussian, matrix, pr442]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -96,5 +96,22 @@ jobs:
         if: matrix.package == 'historical'
         working-directory: formal/lean
         run: lake exe cache get
+      - name: Install pinned PR442 extraction dependencies
+        if: matrix.package == 'pr442'
+        run: python3 -m pip install -r research/lean-external-review/requirements.txt
+      - name: Fetch pinned PR442 Mathlib build cache
+        if: matrix.package == 'pr442'
+        working-directory: research/lean-multi-host-source
+        run: >-
+          lake exe cache get Mathlib.Data.Matrix.Mul
+          Mathlib.Algebra.BigOperators.Fin Mathlib.Tactic.FieldSimp
+          Mathlib.Tactic.Ring Mathlib.Tactic.NormNum
       - name: Check formal package and theorem axiom dependencies
         run: make formal-${{ matrix.package }}-verify
+      - name: Preserve PR442 build receipt
+        if: always() && matrix.package == 'pr442'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr442-lean421-receipt
+          path: /tmp/pr442-lean421-fresh.json
+          if-no-files-found: warn
