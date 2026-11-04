@@ -78,3 +78,33 @@ was run. The same five framework assumptions, including native lifting,
 movement/precision/tape rates and analytic recovery, remain explicit.
 CI and archive integration, if obtained later, are separate from scientific
 admission.
+
+## Supplemental independent application evidence
+
+The original full primary and logical checks above are unchanged; they were
+not rerun locally for this supplemental source-bound audit. The new files are
+application/, frozen before integration. Normal and optimized executions of
+application/delta_physical.py passed read-only with empty PATH in8.25s and
+8.04s, with identical output. The default uses only HERE-relative inputs and
+the standard library; no Git/network/source implementation is imported.
+Optional source_chain.py normal/optimized checks also passed, reading only
+the original pinned containers and executing no retained source code.
+
+The new application receipt independently matches all7,488 main contacts,
+original6702 physical-interface positive control, full idle/target histograms,
+owned/chart chronology, common-idle packets, literal cut ownership, and the
+complete66,956-paid/13,774-productive invoice. The14,400-slot map is explicitly
+a conservative construction compatible with the published raw W+O envelope,
+not a literal allocator trace. Internal2,939 maps,800 scalar native columns,
+full completion/compiler/outer checks and the five framework assumptions are
+not newly proved or replayed by this checker. See application/COVERAGE.md,
+application/APPLICATION.json, application/SOURCE-CHAIN.json,
+application/VALIDATION.json and application/FILES.json for exact
+source, method, attribution and execution boundaries. These are author-side
+checks, not external review or scientific admission.
+
+The registered addition keeps all original command arguments and scientific
+code. The two primary timeout allowances are535s each (previously590s),
+so the declared total remains exactly1200s after adding the two60s application
+checks; the existing logical checks retain5s each. The observed original
+full checks were105.73s/108.31s locally. No mathematical check was removed.

@@ -223,6 +223,47 @@ Finally, the retained ordinary/admitted BIT record and all 54 strict plus4
 functional outer inequalities are recomputed at the new saving. No old
 tail rejection, ordinary-work constant or selected result is silently reused.
 
+## 7. Separate physical application and ownership checks
+
+The supplemental application/delta_physical.py is a separately written,
+source-bound checker of the actual caller interface. A commuting positive
+Gaussian C_v has Fourier multiplier i^(v dot z mod2). Modulo4 this exponent
+has Boolean degree at most2, so direct values at zero, coordinate vectors
+and pairs determine its complete absolute phase. The checker uses those
+parity evaluations, not the retained physical.py or its phase routine, to
+reconstruct ordinary translations and inverse contacts. The original6702
+physical subset is an exact positive control; all7,488 new contacts and
+complete idle/target histograms match. This is not a fresh check of the
+2,939 internal native maps or the800 scalar native columns.
+
+For the literal common-idle application, the actual shared basis sends R1
+and R2 to E01 and -E10 and both projectors to the same rank4 subspace.
+Unretired events86..163 never read or write either packet2/3; event164 pays
+two independent rank40 jobs on their union of fresh axes. The individual
+D idle is one rank32 job per port. Literal ownership binds cut353 and
+handoff362: fresh original field34 is untouched until event363, while the
+retired pivot4 has only its final ordinary Lambda at583 afterward. The
+existing separate all-input Laurent certificate supplies the dual identities
+and global endpoint identity; this supplement does not replace that proof.
+
+A chronological scan of the unchanged18,577-event source checks every owned
+INIT/MOVE/scalar/CLEAR, common charts, strict flag nesting, all public chart
+returns and the sole COPY's actual known-zero target. It does not require
+zero before CLEAR. An explicit integer map reserves all35*104 main fields,
+18*563 independent helpers,18*29 distinct native owned-label banks and104
+sequential query streams, a conservative14,400 slots. This is a new allocation
+construction, not a verified emitted tape/compiler assignment. Reserving
+all raw lifetimes would give W+O=13,774+18*47+17*104=16,388, which already
+falls under Section6's stated finite constant definition. This compatibility
+does not establish the physical allocator, clean stock, query-cleanup trace,
+precision or production descriptor premises. Every productive target and
+paid request is recounted, giving the same66956/13774 complete bill.
+
+The coverage table distinguishes these new checks, the retained original
+source replay, and the still-unreviewed finite/native and all-size application
+edges. It neither closes the five framework assumptions nor records external
+scientific acceptance.
+
 ## Open next questions and scope
 
 Independent scientific review should first inspect the common idle bank

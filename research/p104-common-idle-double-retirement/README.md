@@ -68,6 +68,31 @@ regenerates only the new RESULT.json; ordinary replay is read-only. The
 retained source files and their expected receipts are never regenerated or
 weakened. [VALIDATION.md](VALIDATION.md) records the actual executions.
 
+## Independent caller-application supplement
+
+[application/COVERAGE.md](application/COVERAGE.md) records the exact coverage
+and remaining native-lineage obligations relative to the selected6030 review.
+The separate standard-library implementation imports no author replay,
+native, physical or pricing engine. It independently checks all7,488 caller
+contact phases and inverse translations, the original6702 physical positive
+control, the fused two-packet idle and single IDLE_ONE, the literal353/362
+ownership boundary, chronological native flags/lifetimes and the full event
+invoice. Its global-Lambda control keeps scalar coefficients outside tensors.
+
+The two added registered normal/optimized commands read only bundled inputs
+and run without Git or network. Their empty-PATH executions are recorded in
+application/VALIDATION.json. The optional source_chain.py authenticates the
+original17 source files and nested native-word container without executing
+source code. No historical full native suite is rerun by this supplement.
+
+The14,400-slot integer field map is a new conservative construction, not an
+exported literal machine/compiler allocation. It fits the published raw
+W+O=16,388 lifetime envelope by definition; clean stock, movement and physical
+production allocation remain inherited interfaces. The2,939 internal native
+maps and800 native scalar columns are not newly replayed by this checker.
+All evidence is author-side; the five assumptions, external application
+review and selected-frontier status are unchanged.
+
 ## Scope and predecessor credit
 
 The inherited assumptions are `native_all_columns`, `owned_erasure`,
