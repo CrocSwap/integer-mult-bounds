@@ -11,6 +11,7 @@ from example_check import collect as examples
 from families import collect as family_certificates, endpoint
 from literal import identity_pass, reduce_matrix
 from monomial import flat_rows
+from named_masks import collect as named_masks
 from orbit_oracle import normalize, orbit_weight
 from reduction import collect as reduction
 from settlement import Field, add_row, partition, ternary_extra
@@ -73,13 +74,16 @@ def main():
     endpoints=family_certificates()
     decisions=reduction()
     shortest=examples()
+    masks=named_masks()
     for name,value in [("PARTITIONS.json",reports),("ORDERS.json",orders),("TERNARY.json",ternary),
                        ("WITNESSES.json",constructions()),("PRICE-ENVELOPE.json",endpoints),
                        ("REDUCTION.json",decisions),("EXAMPLES.json",shortest)]:
         frozen(name,value)
+    frozen("PERMUTATION-MASKS.json",masks)
     print(json.dumps(dict(status="PASS_MONOMIAL_GUARD_SETTLEMENT",sources=count,
                           zero_sums=sum(r["scalar_cases"] for r in reports),
                           order_subsets=sum(r["named_subsets"] for r in orders),
+                          higher_dim_subsets=sum(r["named_subsets"] for r in masks),
                           shortest_examples=[r["minimum"] for r in shortest],envelope_cases=len(endpoints),
                           reduction_cases=sum(r["no"]+r["yes"] for r in decisions))))
 
