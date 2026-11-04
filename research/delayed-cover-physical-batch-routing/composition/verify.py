@@ -91,22 +91,25 @@ def hardware_packet(tape):
     return [4*raw[i]+2*raw[i+1]+raw[i+2]for i in range(0,len(raw),3)]
 
 
-def expected(bits, low, repeats, block, child_repeats, depth):
+def expected(bits, low, repeats, block, child_repeats, depth, high_multiplier=1):
     banks=[[bits[(a*low+l)*block+r]for a in range(repeats)for r in range(block)]for l in range(low)]
     if depth:
         for bank in (0,1):
             child=banks[bank]
-            banks[bank]=[1-x if (i//block)%low==0 else x for i,x in enumerate(child)]
-            s.need(len(child)==child_repeats*low*block,'unequal child fixture shape')
+            child_block=high_multiplier*block
+            banks[bank]=[1-x if (i//child_block)%low==0 else x for i,x in enumerate(child)]
+            s.need(len(child)==child_repeats*low*child_block,'unequal child fixture shape')
     return [banks[l][a*block+r]for a in range(repeats)for l in range(low)for r in range(block)]
 
 
-def fixture(low, child_a, block, bits, prefix=0, depth=1, cycles=1):
+def fixture(low, child_a, block, bits, prefix=0, depth=1, cycles=1, high_multiplier=1):
     """All extents enter through tapes; the test oracle alone sees integers."""
-    parent_a=low*child_a
+    s.need(type(high_multiplier) is int and high_multiplier>=1,
+           'positive physical high multiplier fixture')
+    parent_a=low*high_multiplier*child_a
     s.need(len(bits)==parent_a*low*block,'full arbitrary input')
     counts=s.Counts()
-    payloads=[ChargedTape([1]*prefix, counts=counts)for _ in range(16)]
+    payloads=[ChargedTape([1]*prefix, counts=counts)for _ in range(max(16,low+8))]
     control=ChargedTape([0]*prefix,s.BASE,counts)
     phase=ChargedTape([],s.BASE,counts)
     relays=[ChargedTape([],s.BASE,counts)for _ in range(4)]
@@ -117,7 +120,7 @@ def fixture(low, child_a, block, bits, prefix=0, depth=1, cycles=1):
     for role,n in ((p['repeats_input'],parent_a),(p['block_input'],block)):
         load_symbols(payloads[role],descriptor(n),logical_head=1)
     load_symbols(relays[1],descriptor(child_a),marker=s.BASE)
-    load_symbols(relays[2],descriptor(block),marker=s.BASE)
+    load_symbols(relays[2],descriptor(high_multiplier*block),marker=s.BASE)
     for _ in range(depth):s.emit(dt,1)
     C.origin(dt,s.BASE)
     all_tapes=payloads+[control,phase]+relays+[dt]
@@ -150,12 +153,12 @@ def fixture(low, child_a, block, bits, prefix=0, depth=1, cycles=1):
         for t,(old,head,end)in zip(stack.payloads,snapshots):
             s.need(t.cells[:end]==old and t.head==head,'pop restores every parked parent byte and head')
             t.guard=None
-        observations.append({'parent_bytes':sum(x[2]for x in snapshots),'fixed_payloads':16})
+        observations.append({'parent_bytes':sum(x[2]for x in snapshots),'fixed_payloads':len(stack.payloads)})
         return result
     s.Stack.push,s.Stack.pop=observed_push,observed_pop
     try:
         sizes=[]
-        wanted=expected(bits,low,parent_a,block,child_a,depth)
+        wanted=expected(bits,low,parent_a,block,child_a,depth,high_multiplier)
         for _ in range(cycles):
             pipe.run()
             got=hardware_packet(payloads[p['output']])
@@ -186,12 +189,18 @@ def fixture(low, child_a, block, bits, prefix=0, depth=1, cycles=1):
         s.Stack.push,s.Stack.pop=original_push,original_pop
     s.need(identities==tuple(map(id,all_tapes)),'fixed physical tape identities')
     actions=counts.total-begin
-    return {'L':low,'parent_A':parent_a,'child_A':child_a,'R':block,'volume':len(bits),
+    receipt={'L':low,'parent_A':parent_a,'child_A':child_a,'R':block,'volume':len(bits),
             'depth_descriptor':depth,'cycles':cycles,'physical_tapes':len(all_tapes),
             'child_returns':len(observations),'physical_actions':actions,
             'visited_cells':sum(len(t.visited)for t in all_tapes),
             'retained_backing':sizes[-1],
             'parent_preservation_checks':len(observations),'output_sha256':sha256(bytes(wanted)).hexdigest()}
+    # Preserve all original H=1 receipts byte-for-byte as JSON values.
+    if high_multiplier!=1 or low>3:
+        s.need(block%high_multiplier==0,'j=0 parent high-address factor')
+        receipt.update({'high_multiplier':high_multiplier,'R_body':block//high_multiplier,
+                        'child_R':high_multiplier*block})
+    return receipt
 
 
 def authenticate():
@@ -267,10 +276,40 @@ def check():
         for bits in [[0]*n,[1]*n,[int(i%3==0)for i in range(n)]]:
             cases.append(fixture(low,a,r,bits,prefix=prefix,cycles=2))
     cases.append(fixture(2,1,1,[1,0,0,1],prefix=11,depth=0))
-    return {'schema':'physical-router-stack-composition/1','status':'PASS_PHYSICAL_ROUTER_CODEC_STACK_BOUNDARY',
+    # Genuine high-address edges: A_parent=L*H*A_child and R_child=H*R.
+    # No runtime change or host reinterpretation feeds the physical program:
+    # these two different descriptors are copied through the real grant tapes.
+    high_controls=[]
+    for low,high,a,body,prefix in [(2,2,1,1,5),(3,3,1,1,17),(4,3,1,1,29),(9,1,1,1,31)]:
+        r=high*body  # Actual j=0 parent block H*R_body.
+        n=low*low*high*a*r
+        bits=[int((i*i+3*i+1)%7<3)for i in range(n)]
+        # Independent pointwise root-address oracle. The physical program
+        # receives no coordinates or host indexing result from this check.
+        correct=[];wrong=[]
+        for ap in range(low*high*a):
+            ac,tail=divmod(ap,low*high);lc,hc=divmod(tail,high)
+            for lp in range(low):
+                for rp in range(r):
+                    rc=hc*r+rp
+                    s.need(ap*r+rp==(ac*low+lc)*(high*r)+rc,
+                           'same-address ancestor/high/body identity')
+                    bit=bits[(ap*low+lp)*r+rp]
+                    correct.append(1-bit if lp<2 and lc==0 else bit)
+                    wrong.append(1-bit if lp<2 and ap%low==0 else bit)
+        s.need(correct==expected(bits,low,low*high*a,r,a,1,high),
+               'independent same-address high-factor oracle')
+        if high>1:
+            s.need(correct!=wrong,'same-volume old-block oracle must differ')
+            high_controls.append({'L':low,'H':high,'R_parent':r,'R_child':high*r,
+                                  'R_body':body,'D':2,'j':0,'address_positions':n,
+                                  'old_R_parent_child_index_rejected':True})
+        cases.append(fixture(low,a,r,bits,prefix=prefix,cycles=2,high_multiplier=high))
+    return {'schema':'physical-router-stack-high-composition/1','status':'PASS_PHYSICAL_ROUTER_CODEC_STACK_BOUNDARY',
             'cases':cases,'codec_control':codec,'negative_controls':negative_controls(),
+            'high_address_controls':high_controls,
             'total_physical_actions':sum(c['physical_actions']for c in cases),
-            'runtime_tapes':23,'grammar':'At most one unequal child edge; two sequential sibling calls; literal router tables; bit-complement leaf.',
+            'runtime_tapes':sorted(set(c['physical_tapes']for c in cases)),'grammar':'At most one unequal child edge with A_parent=L*H*A_child and R_child=H*R; two sequential sibling calls; literal router tables; bit-complement leaf.',
             'scope':'Actual read/write/unit-step physical execution and exact finite controls. No all-selected production grammar, Gaussian child, descriptor generator, old-BIT space binding, physical supplier or kappa claim.'}
 
 

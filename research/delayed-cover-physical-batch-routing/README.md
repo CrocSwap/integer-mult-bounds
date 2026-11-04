@@ -26,6 +26,9 @@ The physical suspension/return composition is included separately with its own
 explicit semantic leaf and production limits. Its changed child output is saved
 before destructive pop, then installed in the parent address order. It does not
 substitute a saved original input for the returned child data.
+It preserves the real H>1 child-shape update, with A_parent=L*H*A_child and
+R_child=H*R_parent. Its fixed compiled inventory is K+7 tapes,
+K=max(16,L+8); the original small cases use23 and the L9 control uses24.
 
 Reproduce with Python3.12 and its standard library:
 
@@ -34,8 +37,9 @@ python3.12 -B scripts/research_package.py --package research/delayed-cover-physi
 ```
 
 The registered checks cover normal and optimized modes. They authenticate exact
-source bytes and compare frozen scientific receipts. All generic source pins
-refer to the canonical base commit; standalone scientific checks need no network
+source bytes and compare frozen scientific receipts. Sixteen generic source pins
+refer to the canonical base and one to the reachable first submission;
+standalone scientific checks need no network
 or Git checkout. Small executions corroborate the written theorem; they do not
 prove the entire multiplication theorem or establish external scientific adoption.
 

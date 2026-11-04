@@ -155,13 +155,26 @@ the Gaussian child, weight evaluator or old-BIT primitive. A composed physical
 fixture must distinguish those interfaces from its named semantic leaf.
 
 `composition/PROOF.md` and its actual physical program supply one such
-source-bound composition for fixed L=2 or3 on23 tapes. Binary child-shape grants
+source-bound composition for each fixed L, with K=max(16,L+8) payload tapes
+and seven control/relay/grant tapes. Binary child-shape grants
 and a zero/one-edge unary descriptor are physical inputs. Two sequential sibling
 calls execute the unchanged router tables through a stateless three-bit codec,
 park actual parent packets, and save changed child outputs before destructive
 pop. The semantic leaf complements bits and is explicitly not a Gaussian child.
-This is a parameterized one-edge interface argument with29 exact fixtures,
-including all sixteen four-bit root inputs; it does not claim an arbitrary-depth
+The child grants obey A_parent=L*H*A_child and R_child=H*R_parent.
+For the actual two-level source edge R_parent=H*R_body and
+R_child=H^2*R_body. The exact identity, with
+a_parent=(a_child*L+l_child)*H+h_child and
+r_child=h_child*R_parent+r_parent, is
+
+    a_parent*R_parent+r_parent
+      =(a_child*L+l_child)*R_child+r_child.
+
+Thus the child retains both high fields and every ancestor/body bit; matching
+volumes alone would be insufficient. A child and its parent both split only
+when D>=j+2. The finite evidence has33 exact fixtures,
+including all sixteen four-bit root inputs, real H2/H3 shape changes and an
+L9 case with24 tapes and return slot16. It does not claim an arbitrary-depth
 production traversal or a free generated-descriptor evaluator.
 
 ## Evidence and remaining obligations

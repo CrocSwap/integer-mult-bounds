@@ -1,4 +1,4 @@
-"""Physical router/codec/continuation composition on 23 fixed tapes.
+"""Physical router/codec/continuation composition on K+7 fixed tapes.
 
 The runtime below observes only scanned symbols and uses read/write/unit-move.
 Its router PC ranges over a fixed finite microtable. No runtime algorithm reads
@@ -152,21 +152,23 @@ def complement_bank(tape):
 class Pipeline:
     """Fixed one-edge grammar with two child calls and physical grant tapes.
 
-    Sixteen payload tapes, one control tape, one resume-descriptor tape,
+    K=max(16,L+8) payload tapes, one control tape, one resume-descriptor tape,
     four BASE tapes (input relay, child-A grant, child-R grant, output relay),
     and one unary-depth input. The child grant descriptors are read-only inputs.
     L is a compile-time constant. No tape is allocated during an invocation.
     """
     def __init__(self, low_types, payloads, control, descriptor, relays, depth):
         self.p = router.ports(low_types)
-        s.need(self.p['count'] <= 10 and len(payloads) == 16, 'fixed L2/L3 ABI')
+        s.need(len(payloads) == max(16,low_types+8), 'fixed compiled payload ABI')
+        self.return_slot = len(payloads)-1
+        s.need(self.return_slot >= self.p['count'], 'distinct empty return role')
         s.need(len(relays) == 4, 'fixed relay and grant ABI')
         self.payloads, self.control = tuple(payloads), control
         self.descriptor, self.relays, self.depth = descriptor, tuple(relays), depth
         self.views = tuple(CodedTape(t) for t in payloads[:self.p['count']])
         self.split = router.build(low_types)
         self.merge = router.build(low_types, merge=True)
-        self.present = (True,) * self.p['count'] + (False,) * (16-self.p['count'])
+        self.present = (True,) * self.p['count'] + (False,) * (len(payloads)-self.p['count'])
 
     def child(self, bank):
         """bank is one of two statically compiled call sites, not an address."""
@@ -191,9 +193,9 @@ class Pipeline:
         complement_bank(self.payloads[0])
         execute(self.merge, self.views)
         # The original bridge saves all child output before retire/pop. The
-        # target role15 was really empty in the parked parent.
+        # target return role was really empty in the parked parent.
         returned.return_output(self.payloads, self.control, self.descriptor,
-                               self.relays[3], p['output'], 15)
+                               self.relays[3], p['output'], self.return_slot)
         s.need(self.descriptor.read() == 1, 'physical resume phase')
         s.emit(self.descriptor, s.BLANK)
         s.need(self.descriptor.read() == s.BLANK, 'one-bit resume phase')
@@ -201,8 +203,8 @@ class Pipeline:
         # The occupied parent bank is replaced only after its child result is
         # protected and the parent segment has been physically restored.
         returned.retire(self.payloads[bank])
-        copy_binary(self.payloads[15], self.payloads[bank])
-        returned.retire(self.payloads[15])
+        copy_binary(self.payloads[self.return_slot], self.payloads[bank])
+        returned.retire(self.payloads[self.return_slot])
         coded_input_origin(self.payloads[bank])
 
     def run(self):
