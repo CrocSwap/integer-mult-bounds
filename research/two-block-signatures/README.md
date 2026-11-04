@@ -7,8 +7,11 @@ A signature records which blocks a message uses on input and which blocks read i
 | Two blocks of three ports | Up to relabeling messages | Labeled signatures |
 | --- | ---: | ---: |
 | Rational, generic or any field with more than two elements | 188 | 33,727 |
+| Zero-one entries with rational inversion | 179 | 32,287 |
 | Two-element field | 167 | 30,547 |
-| Difference | 21 | 3,180 |
+| Ordinary minus two-element field | 21 | 3,180 |
+
+In the middle row the basis entries are restricted. The rational inverse can use other coefficients. An exact weighted census accounts for 28,836,612,000 invertible zero-one matrices. [Restricted coefficient census](ZERO-ONE.md)
 
 ## What determines a signature
 

@@ -26,6 +26,10 @@ FAULTS = [
     ("omit monomial orbit weight", "ternary_oracle.py", "total[key] += weight*count", "total[key] += count", CENSUS, "ternary total pair count"),
     ("omit doubly saturated patterns", "counts.py", " + both(p)*both(q)", " + 0", PRIMARY, "ordinary count formula differs"),
     ("miss one odd side", "counts.py", '"binary one B":odd_side(q,p)', '"binary one B":0', PRIMARY, "exception count formula differs"),
+    ("drop coefficient basis multiplicity", "zero_one_census.py", "hist[key] += weight*bases[upper]*number",
+     "hist[key] += weight", "zero_one_census.py", "zero-one literal four-port census"),
+    ("reduce rational complement modulo two", "zero_one_census.py", "if not sum(c*lower[j] for j,c in dual):",
+     "if not sum(c*lower[j] for j,c in dual) % 2:", "zero_one_census.py", "zero-one literal four-port census"),
     ("corrupt prior source", "source/6691-PROOF.md", "## Lemma 1:", "## Altered lemma:", PRIMARY, "retained source hash"),
 ]
 DATA_FAULTS = [
@@ -75,7 +79,7 @@ def audit():
                 dest = root/f.relative_to(PACKAGE)
                 dest.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copyfile(f,dest)
-        for entry in (PRIMARY,CENSUS):
+        for entry in (PRIMARY,CENSUS,"zero_one_census.py"):
             positives = []
             for opt in (False,True):
                 proc = invoke(root,entry,opt)
@@ -92,7 +96,7 @@ def audit():
         for name,filename,entry,why in DATA_FAULTS:
             raw = (root/filename).read_bytes()
             results.append(test_fault(root,name,filename,raw,change_data(name,raw),entry,why))
-    return dict(status="PASS_TWO_BLOCK_MUTATIONS", positive_controls=4, rejected_probes=2*len(results), faults=results)
+    return dict(status="PASS_TWO_BLOCK_MUTATIONS", positive_controls=6, rejected_probes=2*len(results), faults=results)
 
 
 if __name__ == "__main__":
