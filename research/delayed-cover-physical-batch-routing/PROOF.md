@@ -141,9 +141,10 @@ for every allowed w,D,j,T,R_body, not an inference from small-field tests.
 
 Consequently this supplies a literal O(V_parent) fixed-port routing macro and
 local O(V_parent) visited-space bound for the specific split/return edge left
-abstract in PR5829. It consumes valid binary extents; constructing those extents,
-evaluating generated weights, and executing right-matchers/fallbacks are separate
-source-bound routines. None is declared free by this theorem. The address map,
+abstract in PR5829. It consumes valid binary extents. The successor below now
+constructs one edge's child extents from physical parent A/H/R headers. Producing
+the root/common headers, evaluating numerical ancestor weights, and executing
+right-matchers/fallbacks remain separate source-bound routines; none is free. The address map,
 fresh-cylinder theorem, volume divisor L, ancestor-weight independence and
 geometric active-chain argument remain predecessor results.
 
@@ -177,6 +178,48 @@ including all sixteen four-bit root inputs, real H2/H3 shape changes and an
 L9 case with24 tapes and return slot16. It does not claim an arbitrary-depth
 production traversal or a free generated-descriptor evaluator.
 
+## Literal child-shape production and its physical connection
+
+`shape/PROOF.md` supplies the separate all-size induction and full local bill
+for a nine-tape finite program on physical positive canonical binary inputs
+A=A_parent,H,R=R_parent, with A divisible by fixed L*H. It emits exactly
+A_child=A/(L*H) and R_child=H*R, preserves all source headers and heads, and
+erases every unary/conversion guide and marker. Neither grant is supplied by
+host multiplication/division. Their copies are owned storage, never productive
+credit. The arithmetic is standard; the new result is this exact physical ABI
+and source-bound connection, not a generic binary-counter theorem.
+
+The direct `linked_split(L)` is one literal finite table: the descriptor table
+jumps to the statically relocated unchanged router table. Its source is ONE
+complete parent split bank of A*R=V_parent/L bits, not the full parent source.
+It reuses physically erased producer scratch and consumes the two generated
+binary grants. Including actual grant/copy consumers, the coarse proof bounds
+are1000V_parent transitions and100V_parent local visited cells, plus retained
+entry backing. They cover setup, all guide returns and actual erasure, and are
+not a new supplier invoice. The inherited source address identity above retains
+every high, ancestor and body coordinate at its original parent address.
+
+`shape/bridge.py` replaces the previously supplied grant packets in one actual
+root-before-stack fixture. It executes the literal producer through the retained
+stateless3-bit codec, physically erases coded scratch and resets the grant
+packet heads to the existing copy ABI. Its fixed inventory is K+12 tapes:
+the existing K+7, one readonly common-H header and four producer scratch tapes.
+The GL1(F3),B2,w2,D2,j0,T=R_body=1 case has L4,H3,A_parent12,R_parent3,
+root volume144 and child volume36. Both child grants are generated physically;
+two sequential changed child outputs are saved before pop and restored to
+occupied parent banks. The complete fixture checks all original source/A/R/H
+bytes and heads, both parked-parent restorations, all owned packet/scratch
+erasure and charged output/grant consumption. Its leaf still complements bits.
+It neither executes a Gaussian child nor emits an arbitrary-depth grammar.
+
+The common H remains physical input. This successor does not generate it from
+(q,N,w), compute the final root reserve, or evaluate numerical ancestor weights.
+Existing selected-binary-control and R437 physical arithmetic retain their
+credit. The inherited full-chart/Good/Pair evaluator work and all preparation
+charges remain explicit; merely preserving a shape header does not compute a
+high-ancestor-dependent weight. `shape/PROOF.md` states those inherited bills
+and the exact remaining edge.
+
 ## Evidence and remaining obligations
 
 The read-only checker authenticates all retained source bytes, executes both
@@ -192,8 +235,15 @@ The separately written interpreter in `independent/` checks198 split/merge
 cases and256 counter cases without executing the producer's Machine/Tape
 classes, together with an independent static review of the unbounded proof.
 
-Open next questions are the production descriptor/weight evaluator, the actual
-route and fallback local-space applications, the full compiled dispatcher and
-its precision/owned-child return. All five project assumptions remain retained.
+The shape verifier adds twelve arithmetic/linked cases, four semantic rejection
+controls and the one complete actual codec/stack fixture. Its independent literal
+walker checks256 grant cases and32 direct child splits plus rejection controls
+without invoking the producer Machine/Tape classes. Eight registered commands
+run these and the retained checks as ten scientific replays. These finite cases
+support, rather than replace, the quantified loop proofs.
+
+Open next questions are common-H/root-header production, numerical ancestor
+weights and deeper descriptor lifetimes, the actual route and fallback local-space
+applications, the full compiled dispatcher and its precision/owned-child return. All five project assumptions remain retained.
 There is no new kappa, paid-profile change, selected-frontier update, complete
 multiplier or scientific-admission claim in this package.
