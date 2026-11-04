@@ -1,4 +1,4 @@
-"""Small exact controls of the written uniform prefix rank-budget theorem.
+"""Small exact controls of the all-even-n uniform prefix rank-budget theorem.
 
 thu-nmrc with substantial OpenAI Codex assistance, Apache-2.0.
 Canonical query normal form and scalar triangle barrier: Ali Romman.
@@ -69,7 +69,7 @@ def stable(v):
     if isinstance(v,dict):return {str(k):stable(x)for k,x in v.items()}
     if isinstance(v,list):return [stable(x)for x in v]
     return v
-def check():
+def prior_n4_controls():
     sources=json.loads((HERE/'SOURCES.json').read_text())
     for source in sources['sources']:
         raw=(HERE/source['copy']).read_bytes()
@@ -157,8 +157,137 @@ def check():
             'mutation_control':'Dropping the sharp middle charged direction breaks actualcompatibility.',
             'scope':'Written dimension proof establishes allq; finite rational controls corroborate. No native physicalphase, callerinvoice, kappa, externalreview or scientificacceptance claim.',
             'credit':'Scalar barrier/basic rank lemma and complete coupled normalform retain AliRomman/source credit. New prefix stage-rank budget and bounded controls: thu-nmrc with substantial OpenAI Codex assistance.'}
+def row_prefix(n,i):return [[Q(j<=i)for j in range(n)]]
+def row_tail(n,i):return [[Q(j>i)for j in range(n)]]
+def column(n,i):return [[Q(j==i)]for j in range(n)]
+def alt_column(n,i):return [[Q((-1)**j if j<=i else 0)]for j in range(n)]
+def sharp_basis(n):
+    need(n>=4 and n%2==0,'Even dimension for sharp basis')
+    H=zero(n,n);first=[[1,1,0,0],[1,2,1,0],[1,2,2,0]]
+    for j,c in enumerate(first):
+        for i,x in enumerate(c):H[i][j]=x
+    for j in range(3,n):
+        for i,x in enumerate([0,1,1,1]):H[i][j]=x
+    for j in range(3,n-1):H[j+1][j]=1;H[j+1][n-1]=-(-1)**(j+1)
+    return H
+def formal_commutator_identity():
+    # Ordered free words: no matrix variables are commuted.
+    def product(a,b):
+        out={}
+        for x,s in a.items():
+            for y,t in b.items():out[x+y]=out.get(x+y,0)+s*t
+        return {k:v for k,v in out.items()if v}
+    def plus(*parts):
+        out={}
+        for a,m in parts:
+            for k,v in a.items():out[k]=out.get(k,0)+m*v
+        return {k:v for k,v in out.items()if v}
+    def comm(a,b):return plus((product(a,b),1),(product(b,a),-1))
+    ei={('Ei',):1};ej={('Ej',):1};fi={('Fi',):1};fj={('Fj',):1};pi=plus((ei,1),(fi,1));pj=plus((ej,1),(fj,1))
+    need(not plus((comm(ei,ej),1),(comm(pi,pj),-1),(comm(pi,fj),1),(comm(fi,ej),1)),
+         'Exact ordered identity [Ei,Ej]=[Pi,Pj]-[Pi,Fj]-[Fi,Ej]')
+def check():
+    prior=prior_n4_controls();formal_commutator_identity();fixtures=[]
+    for n,q in [(4,1),(4,2),(6,1),(6,2),(6,3),(8,1),(8,2),(10,1),(12,1)]:
+        us,vs=canonical(n,q);bs=prefixes(us,vs);d=n*q;I=eye(d)
+        need(bs[-1]==scale(I,-1),'Complete shortest source tuple')
+        odds={};even_count=0;endpoint_closures=0
+        for i in range(n):
+            ai=tensor(alt_column(n,i),q);ei=us[i];hall=tensor([[1]*n],q)
+            J=tensor([[Q(a==b)*(1 if a>i else-1)for b in range(n)]for a in range(n)],q)
+            need(bs[i]==add(J,mm(ai,hall),2),'Uniform closed prefix formula')
+            if i%2==0 and i:
+                A=blockcols([ei,ai]);C=blockrows([tensor(row_prefix(n,i-1),q),tensor(row_tail(n,i),q)])
+                need(rank(A)==rank(C)==2*q and mm(C,A)==zero(2*q,2*q),'Every even interior full stage costs4q')
+                even_count+=1
+            if i%2:
+                hi=tensor(row_prefix(n,i),q);vi=vs[i];E=add(mm(ei,hi),mm(ai,vi))
+                A=blockcols([ei,ai]);C=blockrows([hi,vi])
+                need(mm(C,A)==eye(2*q),'Odd minimal closure has nondegenerate pairing')
+                need(mm(E,E)==E and rank(E)==2*q,'Uniform minimal odd projector')
+                Ri=mm(ei,vi);need(mm(E,Ri)==mm(Ri,E)==Ri and mm(E,bs[i])==mm(bs[i],E),'Odd compatibility and prefix invariance')
+                need(mm(bs[i],ei)==add(scale(ei,-1),ai,2)and mm(vi,bs[i])==add(scale(vi,-1),hi,2),'Odd closure forces Ei below every admissible Pi')
+                odds[i]=E
+                far=([0]if i>=3 else[])+([n]if i<=n-3 else[])
+                need(far,'Every odd site has at least one far endpoint')
+                for j in far:
+                        Aend=blockcols([us[j],mm(E,us[j])]);Cend=blockrows([vs[j],mm(vs[j],E)])
+                        need(rank(Aend)==rank(Cend)==2*q and mm(Cend,Aend)==zero(2*q,2*q),'Far endpoint zero-pair closure for every odd site')
+                        endpoint_closures+=1
+        pair_count=0
+        for i,j in combinations(odds,2):
+            ai=tensor(alt_column(n,i),q);aj=tensor(alt_column(n,j),q);hi=tensor(row_prefix(n,i),q)
+            tj=tensor(add([[int(k==j)for k in range(n)]],row_tail(n,j)),q)
+            need(mm(odds[i],odds[j])==scale(mm(ai,tj),-1),'Uniform ordered EiEj formula')
+            need(mm(odds[j],odds[i])==mm(add(us[j],aj),hi),'Uniform ordered EjEi formula')
+            need(rank(add(mm(odds[i],odds[j]),mm(odds[j],odds[i]),-1))==2*q,'Every two odd minimal projectors have commutatorrank2q')
+            pair_count+=1
+        H0=sharp_basis(n);H=tensor(H0,q);Hi=inverse(H)
+        # Exact unimodular column-reduction recipe, with no determinant inference.
+        reduced=[r.copy()for r in H0]
+        for j in range(3,n-1):
+            w=(-1)**(j+1)
+            for a in range(n):reduced[a][n-1]+=w*reduced[a][j]
+        for j in range(3,n-1):
+            for a in range(n):reduced[a][j]-=reduced[a][n-1]
+        order=[0,1,2,n-1,*range(3,n-1)];reduced=[[r[j]for j in order]for r in reduced]
+        expected=zero(n,n);H4=[[1,1,1,0],[1,2,2,1],[0,1,2,1],[0,0,0,1]]
+        for a in range(n):
+            for b in range(n):expected[a][b]=H4[a][b]if a<4 and b<4 else Q(a==b)if a>=4 and b>=4 else Q(0)
+        need(reduced==expected,'Uniform unimodular all-n sharp basis reduction')
+        uu=[mm(H,u)for u in us];vv=[mm(v,Hi)for v in vs];bb=prefixes(uu,vv)
+        ps={i:(axis,tensor([[Q(a==b and a<4 and mask>>a&1)for b in range(n)]for a in range(n)],q))
+            for axis,(i,mask)in enumerate([(0,3),(1,7),(n,9)])}
+        need(bb[-1]==scale(I,-1),'All-n sharp full query product')
+        for u,v in zip(uu,vv):
+            R=mm(u,v);need(rank(R)==q and mm(R,R)==zero(d,d),'All sharp queries rankq and square-zero')
+        for i,(axis,P)in ps.items():
+            R=mm(uu[i],vv[i]);need(mm(P,R)==mm(R,P)==R and mm(P,bb[i])==mm(bb[i],P),'All-n sharp actualprefix and compatibility')
+        need([rank(P)for _,P in ps.values()]==[2*q,3*q,2*q],'All-n sharp rank budget7q')
+        for (_,P),(_,Qp)in combinations(ps.values(),2):need(mm(P,Qp)==mm(Qp,P),'All-n sharp selectedprojectors commute')
+        plus=stage_word(uu,vv,ps,False);minus=stage_word(uu,vv,ps,True);wanted={}
+        for block in range(n):
+            mask=[(1,1,1),(1,1,0),(0,1,0),(0,0,1)][block]if block<4 else(0,0,0)
+            A=wanted.setdefault(mask,zero(d,d))
+            for t in range(q):A[block*q+t][block*q+t]=1
+        need(plus==wanted and minus=={k:scale(v,-1)for k,v in wanted.items()},'Literal all-n three-independent-stage endpoint')
+        fixtures.append({'n':n,'q':q,'even_interior_rank4q_controls':even_count,'odd_minimal_projectors':len(odds),
+                         'odd_commutator_rank2q_controls':pair_count,'far_endpoint_closures':endpoint_closures,
+                         'sharp_projector_ranks':[2*q,3*q,2*q],'sharp_fullsites':[0,1,n],
+                         'nonzero_endpoint_monomials':len(wanted),'matrix_entry_positions':d*d,
+                         'sharp_endpoint':'S diag(ABC,AB,B,C,I_(n-4)) tensor Iq','unimodular_basis':True})
+    # Concrete n6 next-gate witness; the extra four arrays are independent,
+    # with zero stage selectors, rather than initialized zero data.
+    c=json.loads((HERE/'inputs/LOCAL13.json').read_text());U=[[Q(x)for x in r]for r in c['U']];V=[[Q(x)for x in r]for r in c['V']]
+    P=[[Q(x)for x in r]for r in c['projectors'][2]]
+    Uordered=blockcols([[[r[2],r[3]]for r in U],[[r[4],r[5]]for r in U],[[-r[0],-r[1]]for r in U]])
+    Vordered=blockrows([V[2:4],V[4:6],scale(V[0:2],-1)])
+    z=[[Q(x)]for x in[1,0,0,0,1,0]];payload=mm(Uordered,z)
+    need(mm(P,payload)==zero(8,1)and mm(Vordered[2:4],P)==Vordered[2:4],'N6 target lost source combination')
+    U12=Uordered+zero(4,6);V12=[r+[Q(0)]*4 for r in Vordered];P12=zero(12,12)
+    for a in range(8):
+        for b in range(8):P12[a][b]=P[a][b]
+    need(rank(U12)==rank(V12)==6 and rank(P12)==5,'Four additional independent zero-selector coordinates')
+    need(nonzero(mm(U12,z))and mm(P12,mm(U12,z))==zero(12,1)and mm(V12[2:4],P12)==V12[2:4],
+         'Literal12-dimensional target prefix obstruction with nonzero payload')
+    cu,cv=canonical(6,2);B=prefixes(cu,cv)[3];Uc=blockcols([cu[0],cu[3],cu[6]])
+    need(mm(cv[3],mm(Uc,z))==zero(2,1),'Own-query compatibility alone does not expose n6 obstruction')
+    need(mm(cv[3],mm(B,mm(Uc,z)))==[[Q(2)],[Q(0)]],'Actual n6 prefix exposes forbidden response2e0')
+    # Check the endpoint-defect numerical implication; written two cases
+    # e>=q and e<=q prove every nonnegative real/integer parameter.
+    for q in range(1,129):
+        for e in range(3*q+1):need(e+max(0,2*q-2*e)>=q,'One far endpoint defect inequality implies totalextra>=q')
+    return {'schema':'all-even-coupled-prefix-stage-rank-budget/1','status':'PASS_EXACT_CONTROLS_FOR_ALL_EVEN_WRITTEN_THEOREM',
+            'theorem':'Every even n>=4 and q>=1, characteristic!=2: any three pairwisecommuting compatible full projectors with actualprefixcommutation in a shortest n+1-query tuple have totalrank>=7q; sharp.',
+            'fixtures':fixtures,'prior_n4_controls':prior,'freeword_commutator_identity':True,
+            'endpoint_defect_inequality_q_controls':128,
+            'n6_local13_next_gate':{'target_P_endpoints_payload_zero':True,'source_zerothmoment':[0,0],'source_firstprefixmoment':[2,0],
+                                  'verdict':'No prefix-compatible embedding of this fixed local model with four extra independent zero-selector coordinates.'},
+            'scope':'Written uniform proof establishes alln/allq; finite exact controls corroborate. No physicalnative, paidprice, kappa, externalreview or scientificacceptance claim.',
+            'credit':'Ali Romman scalar obstruction/forcedoddclosure/basicranklemma/completecouplednormalform and all-length fixed alternating-interior/curvature/lowrankcommutator tools retained; prior PR6717 n4 result retained. New arbitrary3 mixedrank7q all-even application via extra-rank and endpoint-leakage combination, with explicit alln attainment: thu-nmrc with substantial OpenAI Codex assistance.'}
+
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--write',action='store_true');a=p.parse_args();result=check();path=HERE/'RESULT.json'
     if a.write:path.write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
     else:need(result==json.loads(path.read_text()),'Frozen controls')
-    print(json.dumps({'status':result['status'],'sharp_controls':len(result['sharp_controls']),'local13_prefix':result['missing_prefix_control']['prefix_commutator_ranks']},sort_keys=True))
+    print(json.dumps({'status':result['status'],'all_even_fixtures':len(result['fixtures']),'n6_local13':result['n6_local13_next_gate']['verdict']},sort_keys=True))

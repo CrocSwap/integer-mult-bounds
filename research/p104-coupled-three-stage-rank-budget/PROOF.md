@@ -1,302 +1,399 @@
-# A sharp 7q stage-rank budget for five-query coupled roots
+# A sharp all-even coupled stage-rank budget
 
 Prepared by **thu-nmrc with substantial OpenAI Codex assistance**.
-Apache-2.0. This is an algebraic rank-budget result, with no native caller,
-cost, kappa, or scientific-acceptance claim.
+Apache-2.0. This is a coefficient-space rank theorem, with no physical
+native module, paid invoice, kappa increment, or scientific-acceptance claim.
 
-## 1. Statement and relation to the predecessor
+## 1. Statement and precise contribution
 
-Work over a commutative field K of characteristic different from two.
-Let q>=1, and let R0,...,R4 be rank-q square-zero operators on a
-4q-dimensional space E, with
+Let K be a commutative field of characteristic different from two.
+Let n>=4 be even and q>=1. On an nq-dimensional space let
+R0,...,Rn be rank-q square-zero operators such that
 
-    (I-2R4)(I-2R3)(I-2R2)(I-2R1)(I-2R0) = -I.
+    (I-2Rn) ... (I-2R0) = -I.
 
-Write T_i=I-2R_i and B_i=T_i ... T0. At three distinct full sites take
-idempotents P_i, of otherwise unrestricted ranks r_i, such that
+Write T_i=I-2R_i and B_i=T_i ... T0. At three distinct selected sites
+let P_i be idempotents satisfying
 
-    P_i R_i=R_i P_i=R_i,       [P_i,B_i]=0.
+    P_i R_i = R_i P_i = R_i,       [P_i,B_i]=0.
 
-Suppose the three selected P_i commute pairwise. These are the normalized
-projector and actual chronological-prefix conditions of the predecessor.
-The rank of a full stage is allowed to exceed the native minimum 2q.
+Suppose the three selected P_i commute pairwise. Their ranks may exceed
+the minimum2q; no rank-minimality assumption is made.
 
-**Theorem. The sum of the three full-stage ranks is at least 7q. This
-bound is attained for every q.** If site2 is selected, the sum is at
-least8q instead.
+**Theorem. The sum of the three selected ranks is at least7q. The bound
+is attained for every even n>=4 and every positive q.**
 
-A second statement used in the proof holds for every even n>=4: in an
-n+1-query shortest tuple on nq fields, any such commuting full triple
-that includes the endpoint-adjacent pair (0,1) or (n-1,n) has rank sum
-at least7q. For n>4 this note does not prove the same bound for all other
-triples.
+These are normalized ordinary coefficient-space operators in the shortest
+query contract. The nq inputs are independent. No initialized extra main
+input or discarded independent input is allowed. Arbitrary constant
+ordinary basis changes mixing all nq coordinates are permitted through
+the common normalization. Internal q-by-q coefficient blocks need not
+commute. The prefix in the hypothesis is the actual complete chronological
+query prefix, rather than merely the query at that site.
 
-Ali Romman's PR6398, section2 of
-`mixed-projector-root-headroom/PROOF.md`, already gives the scalar q=1
-local triangle obstruction and its all-even-n scope. For q=1, the
-inequality7 follows from that result and integrality; it is not new here.
-The source's image/row rank inequality and complete shortest-query normal
-forms are also retained. The contribution here is the uniform **coupled
-mixed-rank budget under the actual prefix conditions**, and the distinction
-between that contract and compatibility alone. No scalar triangle,
-canonical Gram, Mantel bound, or basic rank inequality is claimed as new.
+This extends the n=4 result in PR6717. Ali Romman's PR6398 section2 already
+proves the scalar local commuting-triangle obstruction for every evenn;
+the scalar rank-sum-seven consequence is old. Its section3 supplies the
+image/row rank inequality and the forced minimal odd projector
+`A(CA)^(-1)C`, including scalar six-field closure tables. The complete
+scalar and coupled shortest-query normal forms are also predecessor
+results. Ali Romman's `alternating-caller-closure/PROOF.md` further treats
+the fixed minimal odd interior at every evenn and everyq, with explicit
+projector blocks, total curvature and a generic low-rank commutator
+correction bound. Those all-length fixed-interior tools are retained as
+well. None of those mechanisms is claimed as new here.
 
-The exact predecessor files, including all original notices, are copied
-in `inputs/` and pinned by commit, Git blob and SHA256 in `SOURCES.json`.
-There are no initialized or discarded main work fields in this contract.
-An ordinary common normalization may mix all nq coordinates; the proof
-does not assume that internal q-by-q coefficient blocks commute.
+The contribution is the **uniform all-even-n, all-q quantitative bound on
+extra stage dimensions**, using odd-projector commutators and a rank-defect
+estimate at a far endpoint, together with a literal all-n attaining word.
+The generic low-rank commutator estimate itself is an inherited tool;
+the new scope is its arbitrary-three mixed-rank threshold application
+combined with endpoint leakage, rather than a fixed-interior exclusion.
+The proof does not infer arbitrary coupled projectors by tensoring scalar
+classifications. The q=2 rank13 compatibility-only example is retained
+as a failed-prefix control, with its distinct contract made explicit.
 
-## 2. Retained Gram normal form and three elementary rank facts
+Original source files and notices are included unchanged in `inputs/`.
+`SOURCES.json` pins their commits, Git blobs and SHA256 values, including
+the exact published PR6717 proof.
 
-Factor R_i=U_i V_i, with U_i of size nq by q, V_i of size q by nq,
-and V_i U_i=0. The retained complete coupled normal form gives
+## 2. Retained normal form and rank lemma
+
+Factor each query as R_i=U_i V_i, with U_i of size nq byq, V_i of sizeq
+by nq and V_i U_i=0. The retained complete coupled normal form gives
 
     V_i U_j = sign(i-j) I_q,       i != j.
 
-For clarity, its algebraic field scope uses only the following operations.
-Concatenate U_i,V_i into U,V; put G=VU and let L be its strict block-lower
-part. Chronological expansion gives
+Here is the source argument needed to specify its field scope. Concatenate
+the factors into U,V; put G=VU and let L be its strict block-lower part.
+Chronological expansion gives
 
     product_i (I-2R_i) = I-2U(I+2L)^(-1)V.
 
-The endpoint implies U(I+2L)^(-1)V=I. Thus `(I+2L)^(-1)VU` is a
-rank-nq projector, and Z=I+2L-G has rankq and diagonal blocks I_q.
-Write Z=AB with inner dimensionq. Each A_i B_i=I_q implies
-B_i=A_i^(-1). Replacing U_i by U_i A_i and V_i by A_i^(-1)V_i leaves
-R_i unchanged and gives the displayed Gram. No matrix blocks are
-interchanged. This is predecessor material; this portion works in
-characteristic different from two as well as characteristic zero.
+Thus U(I+2L)^(-1)V=I. The matrix `(I+2L)^(-1)VU` is a rank-nq
+projector, so Z=I+2L-G has rankq and diagonal blocks I_q. Write Z=AB
+with inner dimensionq. Each A_i B_i=I_q makes both square blocks
+invertible. Replacing U_i by U_i A_i and V_i by A_i^(-1)V_i gives the
+displayed Gram. No matrix blocks are commuted. The leading even skew
+sign matrix is invertible, yielding a common basis in which the full
+tuple is the scalar canonical tuple tensored with I_q:
 
-Every even principal skew sign matrix has determinant one. A leading
-2-by-2 Schur elimination leaves the smaller matrix unchanged, so this
-follows by induction. Consequently every n selected U blocks are
-independent, and every n selected V blocks are independent. For n>=4,
-any selected triple has
+    u_i=e_i (0<=i<n),          u_n=(-1,1,-1,1,...),
+    (v_i)_j=sign(i-j),         R_i^can=(u_i v_i) tensor I_q.
 
-    rank(U_a,U_b,U_c) = rank((V_a;V_b;V_c)) = 3q,
-    rank((V_a;V_b;V_c)(U_a,U_b,U_c)) = 2q.             (1)
+These source operations use only inverses of2 and invertible field
+matrices, so this portion works in characteristic different from two.
 
-Compatibility of P_i implies P_i U_i=U_i and V_i P_i=V_i.
-Let E_i=im(P_i). We will use these three rank facts.
+We also retain the basic image/row inequality. If an idempotent P contains
+a column space A of dimensiona, supports a row space C of dimensionc,
+and their pairing has rankg, then
 
-**Single compatibility.** Any idempotent P compatible with a rank-q
-square-zero R=UV has rank at least2q. Indeed U has image dimensionq,
-V restricted to im(P) has rankq, and im(U) lies in its kernel. More
-generally, the predecessor's image/row inequality is
+    rank(P) >= a+c-g.                                      (1)
 
-    rank(P) >= a+c-g,                                  (2)
+Indeed the row map on im(P) has rank at leastc, and its kernel contains
+an (a-g)-dimensional subspace of A. In particular a projector compatible
+with a rank-q square-zero query has rank at least2q.
 
-when P contains a column space of dimensiona, supports a row space of
-dimensionc, and their pairing has rankg. This follows by counting the
-kernel of that row map on im(P).
+All subsequent calculations take place in the canonical common basis.
+They are unchanged by conjugating back to the original ordinary frames.
+The symbol tensor I_q refers to coupling of coefficient ports, not to a
+physical column-width or Gaussian phase lift.
 
-**Cross intersection.** If P_i,P_j commute, their product projects onto
-E_i intersect E_j. The invertible cross Gram block V_i U_j factors through
-this product, so
+## 3. Uniform chronological prefixes
 
-    dim(E_i intersect E_j) >= q.                       (3)
+For i<n define the following scalar vectors and rows of lengthn:
 
-If both P_i,P_j are compatible with the *same* rank-q square-zero query,
-their product is also compatible with that query; single compatibility
-then improves the right-hand side of (3) to2q.
+    a_i=(1,-1,1,...,(-1)^i,0,...,0)^T,
+    h=(1,...,1),
+    h_i=(1,...,1,0,...,0),       with ones through indexi,
+    tail_i=(0,...,0,1,...,1),    with ones after indexi,
+    v_i=h_(i-1)-tail_i,         h_(-1)=0,
+    J_i=diag(-I_(i+1), I_(n-i-1)).
 
-**Three-image dimension.** Put W=E_a+E_b+E_c. The three U blocks in (1)
-map into W with rank3q. The three V blocks restrict to W with rank3q:
-they vanish on the common zero eigenspace, which is a complement to W
-because the selected projectors commute. Their product has rank2q.
-The rank inequality for their product therefore gives
+The scalar prefix has the exact closed form
 
-    dimW >= 3q+3q-2q = 4q.                             (4)
+    B_i = J_i+2a_i h,       0<=i<n.                       (2)
 
-These facts apply to arbitrary coupled blocks, not only tensor products
-of scalar choices.
+For example, if (2) holds at i-1, then
+`v_i B_(i-1)=e_i^T-(-1)^i h`. Multiplication by I-2e_i v_i changes
+J_(i-1) to J_i and a_(i-1) to a_i. The initial step is the same identity
+with B_(-1)=I. This proves (2) by induction. The final full prefix is
+B_n=-I by the query endpoint. At widthq, tensor every displayed scalar
+coefficient-space matrix with I_q.
 
-## 3. Prefix conditions double one intersection
+## 4. Every even interior full site costs at least4q
 
-Here is the key promotion from compatibility to an actual prefix condition.
-Suppose P is compatible with R_a and commutes with another query R_b.
-The commutation preserves im(U_b), so P U_b=U_b C for a q-by-q map C.
-Since V_a P=V_a and V_a U_b is invertible,
+Let i be even with2<=i<=n-2. Formula (2) gives
 
-    V_a U_b C = V_a P U_b = V_a U_b
+    B_i e_i=-e_i+2a_i,
+    v_i B_i=-h_(i-1)-tail_i.
 
-implies C=I. The equality P U_b V_b=U_b V_b P and injectivity of U_b
-then give V_b P=V_b. Thus **P is compatible with R_b as well**.
+If P_i is compatible and commutes with B_i, its image contains
+`A=span(e_i,a_i)` and its row space contains
+`C=span(h_(i-1),tail_i)`. Both spaces have dimension2. Their pairing is
+zero: the tail misses both columns, and the even alternating prefix has
+sum zero before indexi. Their coupled dimensions are2q and2q. Equation
+(1) therefore gives
 
-For the first adjacent pair, compatibility makes P1 commute with T1.
-The condition [P1,B1=T1 T0]=0 therefore implies [P1,T0]=0 and hence
-[P1,R0]=0. The preceding argument shows that P1 is compatible with R0.
-Since P0 is already compatible with R0, and P0,P1 commute,
+    rank(P_i) >= 4q.                                     (3)
 
-    dim(E0 intersect E1) >= 2q.                        (5)
+Any selected triple containing such a site already has rank sum at
+least8q, since every other compatible projector has rank at least2q.
+It remains to treat odd interior sites and the two endpoints.
 
-No rank-minimality or nesting assumption was used. In particular the
-argument remains valid if all three ranks exceed2q by small amounts.
+## 5. Forced minimal odd projectors and extra dimensions
 
-At the other end, B_(n-1)=-T_n^(-1). The condition
-[P_(n-1),B_(n-1)]=0 gives [P_(n-1),R_n]=0. The same argument shows
-that P_(n-1) is compatible with R_n, so
+For odd i, define the scalar rank-two projector
 
-    dim(E_(n-1) intersect E_n) >= 2q.                  (6)
+    E_i=e_i h_i+a_i v_i.
 
-This is where the chronological prefix hypothesis is essential.
+Put A_i=(e_i,a_i) and C_i=(h_i;v_i). Since
+`C_i A_i=I2`, E_i=A_i C_i is an idempotent of rank2. This is the
+uniform expression for the predecessor's forced odd minimal projector.
+The all-length fixed odd projector and explicit block mechanism is also
+retained from `alternating-caller-closure`; this formula is not claimed
+as a newly discovered minimal projector.
 
-## 4. Boundary-pair rank budget
+Formula (2) gives
 
-Consider a selected triple including one of the boundary pairs in (5)
-or (6), and call its members a,b,c with
-dim(E_a intersect E_b)>=2q. Equation (3) gives
-dim(E_a intersect E_c)>=q. Hence
+    B_i e_i=-e_i+2a_i,       v_i B_i=2h_i-v_i.
 
-    dim(E_a+E_b) <= r_a+r_b-2q,
-    dimW <= r_a+r_b+r_c-3q.
+Thus compatibility and prefix commutation force P_i to contain A_i and
+support C_i. Consequently, after tensoring with I_q,
 
-Together with (4), this proves
+    P_i E_i=E_i P_i=E_i,
+    F_i=P_i-E_i is an idempotent,
+    rank(F_i)=e_i^extra := rank(P_i)-2q >=0.                (4)
 
-    r_a+r_b+r_c >= 7q.                                (7)
+To avoid confusion, e_i without a superscript continues to mean the
+standard basis column; an extra dimension is denoted by e_i^extra.
+The minimal projector itself commutes with B_i: on A_i and C_i the
+prefix acts through the same matrix `[[-1,0],[2,-1]]`.
 
-Equivalently, in the simultaneous zero/one eigenspace decomposition let
-c be the common intersection dimension, a_ij the pair-only dimensions,
-and b_i the single-only dimensions. If R is the rank sum, then
+### Two odd sites force at leastq extra dimensions
 
-    R-dimW = t_ab+t_ac+a_bc,
-    t_ab>=2q,       t_ac>=q,       a_bc>=0.
+For odd i<j put `t_j=e_j^T+tail_j`. Direct ordered multiplication gives
 
-This dimension identity gives the same bound. It does not replace an
-arbitrary subspace lattice by a distributive one; the commuting
-projectors supply that decomposition.
+    E_i E_j = -a_i t_j,
+    E_j E_i = (e_j+a_j) h_i.                              (5)
 
-## 5. The middle site on four blocks costs at least4q
+The two columns a_i and e_j+a_j are independent: the second has a
+nonzero coordinate between i+1 and j-1, while the first has none.
+The rows t_j and h_i are nonzero with disjoint supports. Therefore
 
-Use the retained canonical n=4 scalar tuple, where
+    rank([E_i,E_j])=2                 in the scalar form,
+    rank([E_i,E_j])=2q                at coupled widthq.   (6)
 
-    u2=e2,             v2=(1,1,0,-1).
+Since P_i,P_j commute, the following identity retains every matrix order:
 
-Direct multiplication gives
+    [E_i,E_j] = -[P_i,F_j]-[F_i,E_j].
 
-    B2 = [ 1  2  2  2]
-         [-2 -3 -2 -2]
-         [ 2  2  1  2]
-         [ 0  0  0  1],
-    B2 u2=(2,-2,1,0),     v2 B2=(-1,-1,0,-1).
+Each commutator with F has rank at most twice rank(F). Hence
 
-In characteristic different from two, the invariant column and row spaces
-contain respectively
+    2q <= 2(e_i^extra+e_j^extra),
+    e_i^extra+e_j^extra >= q.                             (7)
 
-    A=span(e2, (1,-1,0,0)),
-    C=span((1,1,0,0), (0,0,0,1)).
+Any selected triple with two odd interior sites therefore has rank sum
+at least7q. This argument permits fully noncommuting internal block
+coefficients; no exchange of E_i,F_j or other matrices has occurred.
 
-Both have dimension2 and C A=0. At coupled widthq they are tensored
-with I_q; their dimensions are2q,2q and their pairing remains zero.
-Any P2 compatible with R2 and commuting with B2 contains A and supports
-C. Equation (2) gives rank(P2)>=4q. The argument is invariant under
-the ordinary common basis that produced the canonical tuple.
+## 6. A sole odd site leaks extra rank to a far endpoint
 
-If the selected triple includes site2, the other two ranks are at least
-2q each, so its sum is at least8q. Otherwise its three sites lie in
-{0,1,3,4}. Every three-element subset of this set contains (0,1) or
-(3,4), so (7) applies. This proves the theorem at **every positive q**.
-No enumeration of bounded coefficients, matrix widths, or query tuples
-establishes the universal statement.
+The remaining selected triple consists of the two endpoints0,n and one
+odd interior sitei. Write P=E_i+F, with rank(F)=e. At least one endpoint
+has the following zero-paired closure under E_i.
 
-## 6. Sharpness with a literal independent-stage endpoint
+For the left endpoint, if i>=3, canonical substitution gives
 
-The following q=1 control supplies equality and an exact formal endpoint.
-In the canonical n=4 tuple write
+    E_i u0=e_i+a_i,       v0 E_i=-(e_i^T+tail_i).
 
-    u_i=e_i (i=0,1,2,3),       u4=(-1,1,-1,1),
-    (v_i)_j=sign(i-j).
+The columns `(u0,E_i u0)` and rows `(v0;v0 E_i)` both have rank2,
+and their pairing is zero. The ranks use a coordinate strictly between
+0 andi, which exists because i>=3.
 
-Conjugate the five queries by the unimodular ordinary matrix
+For the right endpoint, if i<=n-3, substitution gives
 
-    H = [1 1 1 0]
-        [1 2 2 1]
-        [0 1 2 1]
-        [0 0 0 1].
+    E_i u_n=-a_i,        v_n E_i=h_i.
 
-At sites0,1,4 use diagonal projectors with masks3,7,9:
+The columns `(u_n,-a_i)` and rows `(h;h_i)` both have rank2 and pairing
+zero. The ranks use a coordinate afteri. Since n>=4 andi is odd, at
+least one of i>=3 and i<=n-3 holds. Thus a **far endpoint always exists**,
+including i=1 and i=n-1. At widthq the two closure spaces have dimensions
+2q,2q and still have zero pairing.
 
-    P0=diag(1,1,0,0),
-    P1=diag(1,1,1,0),
-    P4=diag(1,0,0,1).
+Let Q be the selected far-endpoint projector and write its query factors
+as U,V. It is compatible, so QU=U and VQ=V. Since Q commutes with P,
 
-The selected columns and rows are
+    (I-Q)E_i U = -(I-Q)F U,
+    V E_i(I-Q) = -V F(I-Q).                              (8)
 
-    u0=(1,1,0,0),     v0=(1,-1,0,0),
-    u1=(1,2,1,0),     v1=(1,0,-1,0),
-    u4=(-1,0,0,1),    v4=(1,0,0,1).
+The right sides have rank at moste. For the column closure
+`A=span(U,E_i U)`, equation (8) implies
 
-They have the required canonical cross Gram and independent triple
-columns and rows. The projectors commute, have ranks(2,3,2), and are
-compatible. P1 contains both query planes R0,R1, so it commutes with
-B1. The two endpoint prefix conditions are automatic. The full
-five-query product is -I4 by conjugation of the canonical tuple.
+    dim(A intersect im(Q)) >= 2q-e.
 
-Make sites2,3 thin. Give the full sites independent central stage
-variables A,B,C and act there by
+For the row closure `C=span(V,V E_i)`, it similarly implies
+
+    dim(C intersect row(Q)) >= 2q-e.
+
+The inherited zero pairing C A=0 persists on these subspaces. Applying
+(1) to Q gives the quantitative rank-defect bound
+
+    rank(Q) >= 4q-2e.                                    (9)
+
+This bound is for arbitrary Q and P of the given ranks, not scalar
+projector classifications tensored with I_q. It follows from ranks of
+the actual leakage maps in (8).
+
+Write rank(Q)=2q+f. Compatibility also gives f>=0. Therefore
+
+    f >= max(0,2q-2e),
+    e+f >= e+max(0,2q-2e) >= q.                         (10)
+
+The last step has two elementary cases: if e>=q it is immediate;
+if e<=q, the left side is at least2q-e>=q. The third selected projector
+has rank at least2q. This proves the total rank bound7q in the sole-odd
+case without a separate boundary-pair or nesting argument.
+
+The cases (3), (7), and (10) exhaust all triples: without even interior
+sites, a triple either has at least two odd interior sites or consists
+of both endpoints and one odd interior site. The theorem is proved for
+every evenn>=4 and everyq>=1.
+
+## 7. Exact all-n attainment
+
+Here is one ordinary unimodular basis giving equality, rather than a
+finite search for small dimensions. In the first four coordinates define
+
+    c0=(1,1,0,0),     c1=(1,2,1,0),
+    c2=(1,2,2,0),     t=(0,1,1,1).
+
+Let H have first four entries of columns0,1,2 equal to c0,c1,c2;
+every columnj>=3 has first four entries t. In the remaining coordinates,
+for3<=j<=n-2 let columnj have the unit entry in rowj+1, and let the last
+column have the negative alternating sum
+
+    -sum_(j=3)^(n-2) (-1)^(j+1) e_(j+1).
+
+All other extra entries are zero. There are n-4 terms in this sum, an
+even number. Add their indicated alternating columns to the last column:
+its extra entries cancel and its first four entries remain t. Subtract
+this last column from each columnj=3,...,n-2. After an even column
+permutation, the result is
+
+    H4 direct-sum I_(n-4),
+    H4=[[1,1,1,0],[1,2,2,1],[0,1,2,1],[0,0,0,1]].
+
+H4 has determinant1, so H has determinant1 over the integers. In
+particular this is valid over every allowed field.
+
+Conjugate all n+1 canonical query matrices by H. The selected sites0,1,n
+then have the same columns and rows in the first four coordinates as
+the prior n=4 attaining control:
+
+    u0=(1,1,0,0),      v0=(1,-1,0,0),
+    u1=(1,2,1,0),      v1=(1,0,-1,0),
+    u_n=(-1,0,0,1),    v_n=(1,0,0,1),
+
+with zeros elsewhere. The remaining coordinates of these selected
+columns and rows vanish by the alternating-column construction. Put
+
+    P0=diag(1,1,0,0,0,...),
+    P1=diag(1,1,1,0,0,...),
+    Pn=diag(1,0,0,1,0,...).
+
+Their ranks are(2,3,2). They commute and are compatible. P1 supports
+both R0,R1, so it commutes with B1; the endpoint prefix conditions are
+automatic. Make all other sites thin. Give the selected stages three
+independent central variables A,B,C and use their literal full-site
+operators
 
     (I+(D_i-1)P_i)(I+(S-1)R_i),       S^2=I.
 
-At S=+1 the literal chronological word is
-diag(ABC,AB,B,C); at S=-1 it is its negative. Because2 is invertible,
-these two character equalities establish the full formal S^2=I identity
+At S=+1 the full chronological word equals
+`diag(ABC,AB,B,C,I_(n-4))`. At S=-1 it is its negative, using the
+prefix conditions and the full shortest-query endpoint. Since2 is
+invertible, these two characters establish the exact formal identity
 
-    S diag(ABC,AB,B,C).
+    S diag(ABC,AB,B,C,I_(n-4)).                           (11)
 
-Tensoring every coefficient-space matrix with I_q gives ranks
-(2q,3q,2q), all prefix conditions, and the same stage masks at everyq.
-This is an explicit algebraic attainment control, not a priced physical
-native module. It earns no central phase, helper return, or caller credit
-by itself. No scalar attainment mechanism is claimed as new.
+Tensoring these coefficient-space matrices with I_q proves attainment
+with ranks(2q,3q,2q) for everyq. All nq input fields remain arbitrary
+and independent. A zero stage selector on an extra coordinate means
+that the stage does not act there; it does **not** initialize that input
+to zero. Such extra outputs receive the central factor S in (11).
 
-## 7. Why compatibility alone gives the wrong answer
+This is an abstract exact query/stage word. It supplies no physical
+native routing, absolute Gaussian phase, helper interface, operation
+allowance, or price by itself. No scalar attainment mechanism is claimed
+as new; the all-n extension is included as a sharpness construction.
 
-The included `inputs/LOCAL13.json` is an exact rational n=4,q=2 shortest
-tuple with three commuting compatible projectors of ranks(4,4,5).
-It has eight independent input coordinates, both selected U/V ranks6,
-all five square-zero query ranks2, and product-I8. Its rank sum13 is
-below7q=14. All these facts are replayed by the small verifier.
+## 8. Failed-prefix controls and the n=6 next gate
 
-Its prefix commutator ranks are(0,4,4), so it does not satisfy the
-theorem's prefix hypothesis. This necessary control prevents treating a
-local Gram/compatibility construction as an actual independent-stage
-endpoint. The predecessor's scalar barrier and the exact rank-2q
-triangle extension remain unchanged. The rank13 tuple is used here only
-as a failed-prefix control; it supplies no native or price improvement.
+The frozen rational q=2 compatibility-only tuple in
+`inputs/LOCAL13.json` has three commuting projectors of ranks(4,4,5),
+both selected U/V ranks6, and a full five-query product-I8. Its prefix
+commutator ranks are(0,4,4). Thus compatibility without the actual
+prefix hypothesis genuinely permits a rank sum below7q.
 
-## 8. Verification and limits
+There is also a direct next-gate check at n=6. Cyclically order its
+three local queries as old(1,2,0) and apply factor signs(1,1,-1), so
+their canonical chronological sites are0,3,6 and the rank5 projector
+is the middle one. With x=(1,0), the actual target local data have
 
-Run `python3.12 -I -B verify.py` and
-`python3.12 -I -B -O verify.py`. The default is read-only; `--write`
-authors RESULT.json. The standard-library checker authenticates every
-included predecessor source and notice, checks the formal dimension
-identity, rebuilds the middle-site rank spaces and sharp family at
-q=1,2,3,4, multiplies the literal multivariate stage words at both central
-characters, and independently replays the rank13 failed-prefix tuple.
-Deleting the sharp middle's charged extra direction breaks an actual
-compatibility equation. The uniform theorem follows from the proof,
-not these finite controls.
+    P_middle (U0+U6)x=0.
 
-The hypotheses are nq independent fields, exactly n+1 rank-q square-zero
-queries, ordinary constant normalization over a commutative field,
-projector compatibility, selected pairwise commutation, and actual
-chronological prefix commutation. Extra query calls, initialized or
-discarded inputs, other query ranks, stage-dependent scalar maps and
-omitting S on selected outputs change the contract. Arbitrary separated
-frame commutation before normalization is not the stated hypothesis.
+But the canonical seven-query source has
 
-The note does not prove a general all-n rank-sum bound for triples away
-from the boundary, the open general noncommuting-projector thin bound,
-a physical phase identity, a native supplier, a full invoice, a kappa
-increment, or an integer-multiplication theorem. It does not discharge
-the repository's inherited framework assumptions. These are AI-assisted
-author checks and an independently discussed proof, not human review or
+    V3 B3 U0=I2,        V3 B3 U6=I2,
+    V3 B3(U0+U6)x=2x !=0.
+
+If P_middle commuted with B3, and V3 P_middle=V3, the last expression
+would equal `V3 B3 P_middle(U0+U6)x=0`, a contradiction. Adding four
+extra independent coordinates with zero selected-stage projectors
+does not change this equation. This source-prefix invariant blocks
+all completion choices for that fixed local model before a GL search.
+It is not inferred from a scalar-history span or from the old n=4
+adjacency lemma. The universal theorem above separately covers all
+rank13 candidates satisfying its full hypotheses, not only this model.
+
+## 9. Verification and limits
+
+`python3.12 -I -B verify.py` and
+`python3.12 -I -B -O verify.py` are read-only standard-library checks.
+`--write` authors the receipt. The verifier authenticates every included
+source byte and notice; retains the prior n=4 sharp and failed-prefix
+controls; checks the uniform prefix, odd projector, ordered product and
+far-endpoint closure formulas; checks an ordered free-word commutator
+identity; and verifies the all-n attaining word by literal multiplication
+with three independent stage variables at S=+1,-1. The finite fixtures
+are n=4,6,8,10,12 with several coupled widths, includingq=3. They
+corroborate conventions. The proof, rather than a finite grid, supplies
+alln/allq and the characteristic scope.
+
+The hypothesis is a shortest n+1-query tuple with rank-q square-zero
+queries, nq independent fields, ordinary constant normalization,
+selected compatibility, actual prefix commutation and selected pairwise
+commutation. More query calls, different query ranks, initialized or
+discarded main fields, stage-dependent ordinary maps, or different
+central/output conditions change the model. Arbitrary pre-normalization
+frame commutation is not the hypothesis. No general noncommuting-stage
+thin-call bound is proved.
+
+This theorem gives a coefficient-space stage-dimension inventory, not
+a minimum number of physical Gaussian calls or a cost lower bound for
+every implementation. There is no native supplier, complete invoice,
+kappa increment, integer-multiplication theorem, discharge of the
+inherited framework assumptions, or frontier selection in this note.
+These are AI-assisted author proofs and checks, not human review or
 proof-kernel verification.
 
-Ali Romman's scalar obstruction, image/row rank method and coupled
-normal form retain their original credit, including Cinna Davis's
-query/controller lineage and all retained contributors. All copied
-original notices remain unchanged. New uniform prefix-conditioned
-mixed-rank argument and bounded controls: thu-nmrc with substantial
-OpenAI Codex assistance. Apache-2.0.
+Ali Romman's scalar obstruction, forced minimal odd projector/closure
+method, image/row rank lemma, complete coupled normal form, and
+all-length fixed alternating-interior/curvature/low-rank commutator tools retain
+their original credit, including Cinna Davis's query/controller lineage
+and all retained contributors. The prior n=4 result in PR6717 remains
+credited to thu-nmrc with substantial OpenAI Codex assistance. New
+uniform extra-rank commutator/leakage extension and all-n sharp controls:
+thu-nmrc with substantial OpenAI Codex assistance. All copied original
+notices remain unchanged. Apache-2.0.
