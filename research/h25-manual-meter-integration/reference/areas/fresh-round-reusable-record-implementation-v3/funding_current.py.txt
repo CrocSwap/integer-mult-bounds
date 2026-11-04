@@ -1,0 +1,1999 @@
+"""SOURCE ONLY: fresh-round data ledger; no legacy scan, clock, or native grant.
+
+Caller must authenticate this code/registry, hold the real selected global EX
+lease, exclude competing registered writers, and provide the unchanged owned
+IO implementation. Snapshot custody is scoped to those admitted premises.
+Every entry is one NONOVERLAPPING OUTER guarded command. Its actual complete
+body includes all nested execution/cleanup; nested diagnostics are not added.
+This module cannot authenticate native handles or physical cleanup from DATA.
+"""
+import hashlib
+import json
+import os
+import stat
+from pathlib import Path
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/h25-data-handling-20261028'
+CONTROL = R / 'control/fresh-metered-round-v1'
+DOMAIN = R / 'runtime/fresh-metered-round-v1/attempts'
+ROUND_ID = 'fresh-metered-round-v1'
+AUTHORIZATION_SHA256 = '28bc04ad98151cf6a52607e4271b4dcbcbd645d0c8c538a35bc37e3d5194d50f'
+NS = 1000000000
+BODY_LIMIT_NS = 180 * NS
+INITIAL_NS, TOTAL_NS = 600 * NS, 2400 * NS
+RSS_LIMIT = 1073741824
+MAX_ENTRIES, META_CAP = 128, 131072
+MAX_VALUE = (1 << 63) - 1
+
+
+class FundingError(ValueError):
+    """Stop; preserve evidence. A missing number never becomes a zero receipt."""
+
+
+def need(condition, message):
+    if condition is not True:
+        raise FundingError(message)
+
+
+def plain(value, depth=0):
+    need(depth <= 16, 'metadata depth cap')
+    t = type(value)
+    if t is dict:
+        need(len(value) <= 2 * MAX_ENTRIES, 'object cap')
+        for k, v in value.items():
+            need(type(k) is str and len(k) <= 128, 'exact string key')
+            plain(v, depth + 1)
+    elif t is list:
+        need(len(value) <= 2 * MAX_ENTRIES, 'array cap')
+        for v in value:
+            plain(v, depth + 1)
+    elif t is str:
+        need(len(value) <= META_CAP, 'bounded metadata wire/string cap')
+    elif t is int:
+        need(0 <= value <= MAX_VALUE, 'bounded exact integer data')
+    else:
+        need(value is None or t is bool, 'only exact JSON integer/bool/null data')
+
+
+def exact(value, keys):
+    need(type(value) is dict and set(value) == set(keys), 'exact object fields')
+
+
+def uint(value):
+    need(type(value) is int and 0 <= value <= MAX_VALUE, 'bounded exact integer, not bool/float')
+    return value
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and all(c in '0123456789abcdef' for c in value), 'sha256')
+    return value
+
+
+def label(value):
+    need(type(value) is str and 1 <= len(value) <= 64 and
+         all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value), 'simple label')
+    return value
+
+
+def pin(value):
+    plain(value)
+    exact(value, ('path', 'bytes', 'sha256', 'mode'))
+    need(type(value['path']) is str and Path(value['path']).is_absolute(), 'absolute pin path')
+    uint(value['bytes']); digest(value['sha256'])
+    need(type(value['mode']) is int and value['mode'] in (0o444, 0o600), 'immutable control or private record mode')
+    need(value['bytes'] <= META_CAP, 'metadata byte cap')
+    return value
+
+
+def pairs(items):
+    result = {}
+    for k, v in items:
+        need(k not in result, 'duplicate JSON key')
+        result[k] = v
+    return result
+
+
+def forbidden_number(unused):
+    raise FundingError('JSON floating/nonfinite number forbidden')
+
+
+def decode(raw):
+    need(type(raw) is bytes and 0 < len(raw) <= META_CAP, 'bounded exact bytes')
+    obj = json.loads(raw.decode('utf-8'), object_pairs_hook=pairs,
+                     parse_float=forbidden_number, parse_constant=forbidden_number)
+    plain(obj)
+    return obj
+
+
+def registry(raw):
+    obj = decode(raw)
+    exact(obj, ('schema', 'round_id', 'authorization_sha256', 'opening_pin',
+                'predecessor_sha256', 'phase', 'phase_release_sha256', 'policies', 'events'))
+    need(obj['schema'] == 'fresh-round-registry-v2' and obj['round_id'] == ROUND_ID and
+         obj['authorization_sha256'] == AUTHORIZATION_SHA256, 'selected new round only')
+    pin(obj['opening_pin']); need(obj['opening_pin']['mode'] == 0o444, 'immutable selected opening')
+    if obj['predecessor_sha256'] is not None:
+        digest(obj['predecessor_sha256'])
+    need(obj['phase'] in ('INITIAL', 'FULL'), 'phase')
+    need((obj['phase'] == 'INITIAL' and obj['phase_release_sha256'] is None) or
+         (obj['phase'] == 'FULL' and type(obj['phase_release_sha256']) is str), 'explicit phase release')
+    if obj['phase'] == 'FULL':
+        digest(obj['phase_release_sha256'])
+    need(type(obj['policies']) is list and type(obj['events']) is list, 'bounded arrays')
+    need(len(obj['events']) <= 2 * MAX_ENTRIES, 'event cap')
+    policies, starts, closes = {}, {}, {}
+    for p in obj['policies']:
+        pin(p)
+        need(Path(p['path']).parent == CONTROL and p['mode'] == 0o444 and
+             p['sha256'] not in policies, 'selected distinct policy pin')
+        policies[p['sha256']] = p
+    for event in obj['events']:
+        exact(event, ('kind', 'label', 'pin'))
+        name = label(event['label']); p = pin(event['pin'])
+        need(p['mode'] == 0o600, 'private START/receipt')
+        if event['kind'] == 'REGISTER':
+            need(name not in starts and len(starts) < MAX_ENTRIES, 'one register, no reused/seed label')
+            need(p['path'] == str(DOMAIN / name / 'START.json'), 'only new START')
+            starts[name] = p
+        elif event['kind'] == 'CLOSE':
+            need(name in starts and name not in closes, 'close once after register')
+            need(p['path'] == str(DOMAIN / name / 'receipt.json'), 'only new receipt')
+            closes[name] = p
+        else:
+            raise FundingError('unexpected event')
+    return obj, policies, starts, closes
+
+
+def _require_append_only_f3(previous_raw, current_raw, opening_transition=None):
+    old, _, _, _ = registry(previous_raw)
+    new, _, _, _ = registry(current_raw)
+    need(new['predecessor_sha256'] == hashlib.sha256(previous_raw).hexdigest(), 'genuine prior registry image pin')
+    need(new['events'][:len(old['events'])] == old['events'] and
+         new['policies'][:len(old['policies'])] == old['policies'], 'prior rows immutable, never deleted or repriced')
+    need(old['phase'] == new['phase'] or (old['phase'] == 'INITIAL' and new['phase'] == 'FULL'), 'no phase rollback')
+    if old['phase'] == new['phase']:
+        need(old['phase_release_sha256'] == new['phase_release_sha256'], 'phase authority unchanged')
+    if old['opening_pin'] != new['opening_pin']:
+        plain(opening_transition)
+        exact(opening_transition, ('previous', 'current', 'records'))
+        need(old['events'] == new['events'] and old['policies'] == new['policies'] and
+             old['phase'] == new['phase'] and old['phase_release_sha256'] == new['phase_release_sha256'],
+             'opening-only refresh, preserve events/prices/phase')
+        _, _, starts, closes = registry(previous_raw)
+        need(set(starts) == set(closes) == set(opening_transition['records']), 'all formal records CLOSED before refresh')
+        need(opening_transition['previous']['opening_pin'] == old['opening_pin'] and
+             opening_transition['current']['opening_pin'] == new['opening_pin'], 'exact old/new opening evidence')
+        require_opening_append(opening_transition['previous'], opening_transition['current'])
+        validate_opening_partition(opening_transition['current'], old, opening_transition['records'])
+    else:
+        need(opening_transition is None, 'no unrelated transition proof')
+    return True
+
+
+def directory_identity(io, path, owner_uid):
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical new directory')
+    st = path.lstat()
+    need(stat.S_ISDIR(st.st_mode) and st.st_uid == owner_uid and
+         stat.S_IMODE(st.st_mode) == 0o700, 'private current-owner directory')
+    return (st.st_dev, st.st_ino, st.st_mode, st.st_nlink, st.st_uid,
+            st.st_mtime_ns, st.st_ctime_ns)
+
+
+def read_pinned(io, expected, owner_uid):
+    pin(expected)
+    row, raw = io.read(Path(expected['path']), META_CAP, mode=expected['mode'],
+                       expected={'bytes': expected['bytes'], 'sha256': expected['sha256']}, materialize=True)
+    need(type(raw) is bytes and row['uid'] == owner_uid and row['nlink'] == 1 and
+         row['mode'] == expected['mode'] and row['bytes'] == expected['bytes'] and
+         row['sha256'] == expected['sha256'] and len(raw) == expected['bytes'] and
+         hashlib.sha256(raw).hexdigest() == expected['sha256'], 'actual owned stable file differs')
+    return row, raw
+
+
+def snapshot_round(io, registry_pin, owner_uid):
+    """Future actual-IO operation; caller owns native lease, not any JSON flag.
+
+    Failures propagate: do not retry, silently skip entries, or create receipts.
+    io.names and io.read must be the reviewed actual OwnedIO methods; read must
+    retain canonical/lstat/open/fstat/post-path and known-close guarantees.
+    """
+    # The caller authenticates exact type(io), original source hash and module
+    # instance; this function does not turn an arbitrary reader into authority.
+    # It audits NEW admission only. It grants no in-flight/pending exemption.
+    uint(owner_uid); plain(registry_pin); pin(registry_pin)
+    rp = Path(registry_pin['path'])
+    middle = rp.name[len('REGISTRY-'):-len('.json')]
+    need(rp.parent == CONTROL and rp.name.startswith('REGISTRY-') and rp.name.endswith('.json') and
+         len(middle) == 6 and all(c in '0123456789' for c in middle) and
+         registry_pin['mode'] == 0o444, 'explicit new hash-selected registry file')
+    seen = []
+    def take(p):
+        row, raw = read_pinned(io, p, owner_uid)
+        seen.append((p, row, raw))
+        return raw
+    raw_registry = take(registry_pin)
+    reg, policy_pins, starts, closes = registry(raw_registry)
+    opening_snapshot = read_opening(io, reg['opening_pin'], owner_uid)
+    before = directory_identity(io, DOMAIN, owner_uid)
+    names = io.names(DOMAIN, MAX_ENTRIES + 1)
+    need(type(names) is list and all(type(n) is str for n in names) and
+         len(names) == len(set(names)) and set(names) == set(starts), 'every new entry exactly registered')
+    records, directories = {}, {}
+    for name in sorted(starts):
+        folder = DOMAIN / name
+        identity = directory_identity(io, folder, owner_uid)
+        members = io.names(folder, 3)
+        expected_members = {'START.json', 'receipt.json'} if name in closes else {'START.json'}
+        need(type(members) is list and len(members) == len(set(members)) and
+             set(members) == expected_members, 'exact new entry completeness; no hidden/missing receipt')
+        start = decode(take(starts[name]))
+        receipt = decode(take(closes[name])) if name in closes else None
+        directories[name] = (identity, expected_members)
+        records[name] = {'start': start, 'receipt': receipt}
+    policies = {k: decode(take(p)) for k, p in policy_pins.items()}
+    for p, row, raw in seen:
+        after_row, after_raw = read_pinned(io, p, owner_uid)
+        need(after_raw == raw and after_row == row, 'full pre/post immutable snapshot')
+    for name, (identity, members) in directories.items():
+        need(directory_identity(io, DOMAIN / name, owner_uid) == identity and
+             set(io.names(DOMAIN / name, 3)) == members, 'new entry directory/census changed')
+    need(directory_identity(io, DOMAIN, owner_uid) == before and
+         set(io.names(DOMAIN, MAX_ENTRIES + 1)) == set(names), 'new round census changed')
+    opening_after = read_opening(io, reg['opening_pin'], owner_uid)
+    need(opening_after == opening_snapshot, 'whole snapshot opening remains current and unchanged')
+    validate_opening_partition(opening_snapshot, reg, records)
+    return {'schema': 'fresh-round-owned-snapshot-v2', 'registry': reg,
+            'registry_pin': registry_pin, 'records': records, 'policies': policies,
+            'opening_snapshot': opening_snapshot}
+
+
+def _assess_round_f3(snapshot, request):
+    """Pure DATA assessment. Eligibility is NOT permission/native qualification."""
+    plain(snapshot); plain(request)
+    exact(snapshot, ('schema', 'registry', 'registry_pin', 'records', 'policies',
+                     'opening_snapshot'))
+    exact(request, ('schema', 'round_id', 'label', 'command_sha256',
+                    'body_reservation_ns', 'policy_sha256', 'phase_release_sha256'))
+    need(snapshot['schema'] == 'fresh-round-owned-snapshot-v2' and
+         request['schema'] == 'fresh-round-request-v1' and request['round_id'] == ROUND_ID,
+         'new round data only')
+    opening = opening_evidence(snapshot['opening_snapshot'])
+    need(snapshot['opening_snapshot']['opening_pin'] == snapshot['registry']['opening_pin'], 'selected opening snapshot')
+    reg = snapshot['registry']
+    # Revalidate exact registry shape and event semantics for direct DATA callers.
+    _, policy_pins, starts, closes = registry((json.dumps(reg, separators=(',', ':')) + '\n').encode('utf-8'))
+    need(set(snapshot['records']) == set(starts) and set(snapshot['policies']) == set(policy_pins), 'snapshot closed domain')
+    need(request['phase_release_sha256'] == reg['phase_release_sha256'], 'separately authorized phase binding')
+    cap = INITIAL_NS if reg['phase'] == 'INITIAL' else TOTAL_NS
+    policies = snapshot['policies']
+    for key, p in policies.items():
+        exact(p, ('schema', 'round_id', 'command_sha256', 'administrative_debit_ns',
+                  'scope', 'adoption_sha256', 'claims_physical_upper_bound'))
+        need(p['schema'] == 'fresh-round-admin-policy-v1' and p['round_id'] == ROUND_ID and
+             p['scope'] == 'STARTUP_AND_FINAL_METADATA_PUBLICATION_ONLY' and
+             p['claims_physical_upper_bound'] is False, 'admin convention never body/cleanup cover')
+        digest(p['command_sha256']); digest(p['adoption_sha256']); uint(p['administrative_debit_ns'])
+    opening = validate_opening_partition(snapshot['opening_snapshot'], reg, snapshot['records'])
+    body, admin, reserved, unknown, blockers, commands, open_tails = (
+        opening['manual_body_ns'], opening['manual_admin_ns'], 0, [], list(opening['blockers']),
+        set(opening['manual_command_sha256s']), [])
+    for name in starts:
+        bundle = snapshot['records'][name]
+        exact(bundle, ('start', 'receipt'))
+        s, r = bundle['start'], bundle['receipt']
+        exact(s, ('schema', 'round_id', 'label', 'command_sha256', 'body_reservation_ns', 'policy_sha256', 'pre_entry_provenance'))
+        validate_pre_entry_provenance(s['pre_entry_provenance'], name, s['command_sha256'], s['body_reservation_ns'])
+        need(s['schema'] == 'fresh-round-start-v1' and s['round_id'] == ROUND_ID and s['label'] == name, 'START binding')
+        cmd = digest(s['command_sha256']); digest(s['policy_sha256'])
+        need(name not in opening['manual_entry_ids'] and cmd not in commands and
+             s['policy_sha256'] in policies, 'no imported/formal duplicate/reroll or undeclared policy')
+        commands.add(cmd); p = policies[s['policy_sha256']]
+        need(p['command_sha256'] == cmd and 0 < uint(s['body_reservation_ns']) <= BODY_LIMIT_NS, 'per-command body reservation')
+        fee = uint(p['administrative_debit_ns'])
+        if r is None:
+            need(name not in closes, 'CLOSE without receipt')
+            reserved += s['body_reservation_ns'] + fee
+            unknown.append(name); blockers.append(name + ':MISSING_NEW_RECEIPT')
+            continue
+        need(name in closes, 'unregistered new receipt')
+        exact(r, ('schema', 'round_id', 'label', 'start_sha256', 'outcome', 'body_elapsed_ns',
+                  'administrative_debit_ns', 'body_begin_ns', 'body_end_ns', 'body_fully_observed', 'cleanup_known', 'custody_complete',
+                  'nested_entries_complete', 'uncertainty', 'peak_sampled_rss_bytes', 'tail_state',
+                  'independent_outcome_review_sha256'))
+        need(r['schema'] == 'fresh-round-receipt-v1' and r['round_id'] == ROUND_ID and
+             r['label'] == name and r['start_sha256'] == starts[name]['sha256'] and
+             r['outcome'] in ('PASS', 'STOP') and uint(r['administrative_debit_ns']) == fee, 'receipt identity/fee')
+        for k in ('body_begin_ns', 'body_end_ns'):
+            if r[k] is not None:
+                uint(r[k])
+        admin += fee  # Failure fees and measured failure bodies are retained in full.
+        if r['body_elapsed_ns'] is None:
+            unknown.append(name); blockers.append(name + ':UNPRICED_BODY')
+            reserved += s['body_reservation_ns']
+        else:
+            elapsed = uint(r['body_elapsed_ns'])
+            need(type(r['body_begin_ns']) is int and type(r['body_end_ns']) is int and
+                 r['body_end_ns'] >= r['body_begin_ns'] and
+                 r['body_end_ns'] - r['body_begin_ns'] == elapsed, 'exact own body endpoints/difference')
+            body += elapsed
+            if elapsed > BODY_LIMIT_NS or elapsed > s['body_reservation_ns']:
+                blockers.append(name + ':BODY_RESERVATION_OR180_EXCEEDED')
+        for k in ('body_fully_observed', 'cleanup_known', 'custody_complete', 'nested_entries_complete'):
+            need(type(r[k]) is bool, 'exact boolean qualification')
+            if r[k] is not True:
+                blockers.append(name + ':' + k.upper())
+        need(type(r['uncertainty']) is list and all(type(x) is str for x in r['uncertainty']), 'uncertainty list')
+        if r['uncertainty']:
+            blockers.append(name + ':UNRESOLVED_UNCERTAINTY')
+        if r['peak_sampled_rss_bytes'] is None:
+            blockers.append(name + ':UNKNOWN_SAMPLED_RSS')
+        elif uint(r['peak_sampled_rss_bytes']) > RSS_LIMIT:
+            blockers.append(name + ':SAMPLED_RSS_EXCEEDED')
+        need(r['tail_state'] in ('COMPLETE', 'ADMIN_ONLY_OPEN', 'UNKNOWN'), 'tail state')
+        if r['tail_state'] == 'UNKNOWN':
+            blockers.append(name + ':UNKNOWN_NONADMIN_TAIL')
+        elif r['tail_state'] == 'ADMIN_ONLY_OPEN':
+            open_tails.append(name)
+        digest(r['independent_outcome_review_sha256'])
+    label(request['label']); cmd = digest(request['command_sha256'])
+    need(request['label'] not in starts and request['label'] not in opening['manual_entry_ids'] and cmd not in commands, 'one use, no automatic retry')
+    need(request['policy_sha256'] in policies, 'request separately adopted policy absent')
+    policy = policies[request['policy_sha256']]
+    need(policy['command_sha256'] == cmd, 'request exact policy/command')
+    wanted_body = uint(request['body_reservation_ns'])
+    need(0 < wanted_body <= BODY_LIMIT_NS, 'requested body <=180s; actual fit remains separate')
+    wanted = wanted_body + policy['administrative_debit_ns']
+    charged = body + admin
+    remaining = cap - charged - reserved  # No clipping, no unknown-body zero receipt.
+    if remaining < wanted:
+        blockers.append('INSUFFICIENT_POLICY_ALLOWANCE')
+    return {'schema': 'fresh-round-funding-assessment-v1', 'round_id': ROUND_ID,
+            'funding_data_eligible_only': not blockers, 'blockers': blockers,
+            'cap_ns': cap, 'known_observed_body_ns': body, 'administrative_policy_ns': admin,
+            'known_policy_charged_ns': charged, 'outstanding_reservation_ns': reserved,
+            'unpriced_new_entries': unknown, 'remaining_policy_ns': remaining,
+            'requested_reservation_ns': wanted, 'new_admin_only_open_tail_entries': open_tails,
+            'opening_physical_tail_open': True, 'complete_physical_total_ns': None,
+            'old_historical_total_ns': None, 'all_costs_settled': False,
+            'native_ownership_or_cleanup_authenticated': False, 'execution_permission': False,
+            'command_resource_profile_or_economic_fit_proved': False}
+
+
+# Closed immutable historical DATA. No imported row is a retrospective START.
+OPENING_LIMIT = 32
+CORPUS_LIMIT = 2 * 1024 * 1024
+ADMIN_NS = 2 * NS
+
+
+def metadata_decode(raw):
+    need(type(raw) is bytes and 0 < len(raw) <= META_CAP, 'bounded exact metadata bytes')
+    # Legacy diagnostic floats are retained as lexical strings, NEVER charges.
+    value = json.loads(raw.decode('utf-8'), object_pairs_hook=pairs,
+                       parse_float=lambda text: text, parse_constant=forbidden_number)
+    metadata_plain(value)
+    return value
+
+
+def metadata_plain(value, depth=0):
+    need(depth <= 16, 'metadata depth')
+    t = type(value)
+    if t is dict:
+        need(len(value) <= 256, 'metadata object bound')
+        for k, v in value.items():
+            need(type(k) is str and len(k) <= 128, 'metadata key')
+            metadata_plain(v, depth + 1)
+    elif t is list:
+        need(len(value) <= 256, 'metadata array bound')
+        for v in value:
+            metadata_plain(v, depth + 1)
+    elif t is str:
+        need(len(value) <= META_CAP, 'metadata string bound')
+    elif t is int:
+        need(-MAX_VALUE <= value <= MAX_VALUE, 'bounded reported metadata integer')
+    else:
+        need(value is None or t is bool, 'exact metadata builtin types')
+
+
+def select(value, path):
+    need(type(path) is list and 1 <= len(path) <= 8 and all(type(k) is str for k in path), 'literal field path')
+    for key in path:
+        need(type(value) is dict and key in value, 'original metadata field absent')
+        value = value[key]
+    return value
+
+
+def seconds_ns(value):
+    need(type(value) is str and value.count('.') <= 1, 'canonical decimal seconds string')
+    parts = value.split('.')
+    whole = parts[0]
+    need(whole == '0' or (whole and whole[0] in '123456789' and all(c in '0123456789' for c in whole)), 'canonical whole seconds')
+    fraction = parts[1] if len(parts) == 2 else ''
+    need(len(fraction) <= 9 and all(c in '0123456789' for c in fraction), 'integer-ns decimal precision')
+    return uint(int(whole) * NS + (int(fraction.ljust(9, '0')) if fraction else 0))
+
+
+def origin_ref(file_record):
+    return {'path': str(Path(file_record['origin_path']).relative_to(R)), 'sha256': file_record['sha256']}
+
+
+PARENT_MANUAL_FAMILY = 'PARENT_MANUAL_PURE_DATA_V1'
+PARENT_MANUAL_SHAPES = {'registration': ('INITIAL_remaining_after_reservation_ns', 'START_provenance', 'actual_grant', 'admin_policy_ns', 'attempt_number', 'authority', 'before_state', 'body_reservation_ns', 'command_string_sha256', 'created_utc', 'entry_id', 'exact_candidate', 'formal_registry_REGISTER_created', 'independent_source_command_review', 'no_automatic_retry', 'old_historical_total_ns', 'original_manual_reservation_before_native_entry', 'policy_adoption', 'policy_committed_before_ns', 'policy_committed_plus_reservation_ns', 'schema', 'whole_physical_total_ns'), 'cost': ('DATA_cases_executed', 'F01_branch_checks_in_actual_case_results', 'Popen_construction_pending', 'actual_child_native_exit_code', 'actual_parent_native_tool_exit_code', 'administrative_policy_debit_ns', 'administrative_policy_debit_seconds', 'all_costs_settled', 'attempt_number', 'body_begin_ns', 'body_end_ns', 'body_status', 'child_raw_pins', 'complete_caller_validation', 'complete_new_physical_total_ns', 'created_utc', 'entry_id', 'errors', 'final_physical_publication', 'following_command_granted', 'golden_raw_bytes_exact', 'historical_complete_total_ns', 'independent_actual_outcome_review_pending', 'lifetime_highwater_is_not_body_peak', 'measured_gain', 'native_tool_result', 'no_descendant_payload_by_selected_source', 'observed_body_elapsed_ns', 'observed_body_seconds', 'original_meter_START', 'original_pre_entry', 'outer_observation', 'outer_stderr', 'owned_wait_returned', 'parent_lifetime_maxrss_KiB_before_after', 'physical_or_ACTIVE_or_A01_runtime_qualified', 'policy_charged_ns', 'policy_charged_seconds', 'provider_wall_is_not_complete_body_or_wholephysical_clock', 'provider_wall_seconds', 'raw_rusage_before_after', 'reservation', 'routine_cleanup_invocation_returncode', 'routine_cleanup_null_means_not_invoked_after_successful_native_wait', 'rusage_scope', 'sampled_parent_plus_child_RSS_bytes', 'schema', 'selected_DATA_child_cleanup_known', 'static_raw_coverage_contract_note', 'unexpected_callbacks'), 'native': ('chunk_id', 'wall_time_seconds', 'exit_code', 'original_token_count', 'output'), 'review': ('actual_F01_traces', 'actual_reviewed_outcome_accepted', 'blocking_findings', 'cost', 'coverage', 'findings', 'inputs', 'later_execution_granted', 'native_and_start_chain', 'ownership', 'parent_state_arithmetic', 'performance_gain', 'positive_case_evidence', 'remaining_successor_conditions', 'reviewer_created_or_modified_source_raw_control_files', 'schema', 'science_or_Root_permission', 'status', 'verification'), 'candidate': ('actual_execution_granted', 'actual_grant_file_created', 'actual_grant_path', 'administrative_policy_ns', 'body_ns_reserved', 'current_parent_state', 'cwd', 'exact_shell_command', 'exclusive_capture_directory', 'final_physical_publication', 'genuine_native_tool_result_required', 'grant_bytes', 'grant_exact_object', 'grant_sha256', 'meter_marker', 'no_accepted_existing_terminal_object_or_manual_native_fields', 'policy_proposal', 'provider', 'schema', 'source_packet'), 'pre_entry': ('actual_grant_sha256', 'before_state_sha256', 'capture_directory', 'created_utc', 'entry_id', 'exact_candidate_sha256', 'execution_started', 'meter_START_expected_path', 'native_terminal_claimed', 'original_enclosing_command_sha256', 'original_manual_metadata_not_a_genuine_native_clock', 'reservation', 'schema'), 'meter_start': ('actual_grant_sha256', 'future_operation_blocked_until_separate_adjudication', 'probe_sha256', 'schema', 'source_sha256', 'start_monotonic_ns'), 'policy_adoption': ('actor_custody_scope', 'authority', 'compile_wording', 'created_utc', 'current_manual_preentry_provenance_required', 'current_parent_state', 'decision', 'exact_candidate', 'final_physical_publication', 'future_all_costs_settled', 'genuine_native_tool_result_required', 'historical_gap_unchanged', 'independent_source_and_command_review', 'next_opening_must_import_actual_operation_once', 'no_old_source_grant_or_marker_reuse', 'policy_proposal', 'profile_selection', 'schema', 'scientific_Root_native_owner_or_formal_registry_permission'), 'actual_grant': ('administrative_tail_debit_seconds', 'administrative_tail_policy', 'allow_one_attempt', 'authorization_sha256', 'command_seconds', 'expected_result_sha256', 'fixture_sha256', 'funding_source_sha256', 'operation', 'probe_sha256', 'sampled_parent_child_memory_bytes', 'schema', 'source_bytes', 'source_sha256')}
+PARENT_MANUAL_SCHEMAS = {'registration': 'h25-current-opening-pure-DATA-attempt003-manual-reservation-v1', 'cost': 'h25-fresh-round-observed-pureDATA-body-cost-v1', 'review': 'h25-independent-current-opening-control-outcome-review-v1', 'candidate': 'h25-current-opening-pure-DATA-exact-command-candidate-v1', 'pre_entry': 'h25-pureDATA-original-preentry-v1', 'meter_start': 'fresh-owner-meter-incomplete-v1', 'policy_adoption': 'h25-parent-current-opening-pure-DATA-policy-adoption-v1', 'actual_grant': 'current-opening-f2-pure-data-meter-grant-v1'}
+PARENT_MANUAL_SELECTORS = {'cost_body': ['observed_body_elapsed_ns'], 'cost_admin': ['administrative_policy_debit_ns'], 'cost_admin_multiplier': 1, 'registration_admin': ['admin_policy_ns'], 'registration_admin_multiplier': 1, 'registration_candidate': ['exact_candidate'], 'registration_preentry': ['original_manual_reservation_before_native_entry'], 'registration_preentry_value': True, 'registration_body_cap': ['body_reservation_ns'], 'registration_cap_multiplier': 1, 'review_begin': ['cost', 'body_begin_ns'], 'review_end': ['cost', 'body_end_after_owned_cleanup_ns'], 'review_body': ['cost', 'observed_body_elapsed_ns'], 'review_admin': ['cost', 'nominal_admin_ns'], 'review_admin_multiplier': 1, 'review_native_exit': ['native_and_start_chain', 'tool_native_exit']}
+
+def review_pin_rows(review):
+    """Closed native-tool family review inputs; still retained DATA, not authority."""
+    values = review['inputs']
+    need(type(values) is dict and 1 <= len(values) <= 256, 'typed closed review input pin map')
+    result = []
+    for key, value in values.items():
+        need(type(key) is str, 'review pin key')
+        exact(value, ('path', 'bytes', 'sha256', 'mode'))
+        need(type(value['path']) is str and Path(value['path']).is_absolute(), 'review original absolute pin')
+        uint(value['bytes']); digest(value['sha256']); uint(value['mode'])
+        need(value['mode'] <= 0o777, 'review original mode metadata')
+        result.append(value)
+    return result
+
+
+def parent_manual_evidence(desc, docs, row, command):
+    """Explicit retained schema family; never synthesize fields inside genuine Tool.
+
+    Command binding comes from original reservation/PRE-ENTRY/candidate/cost and
+    independently accepted review. Flat Tool has no command or native capability.
+    Actual loaded source/parent review authenticity/current IO/EX remain external.
+    """
+    need(row['provenance_family'] == PARENT_MANUAL_FAMILY and
+         row['kind'] == 'ORIGINAL_MANUAL_OPERATION', 'closed original manual record family')
+    refs = row['original_provenance']
+    exact(refs, ('pre_entry', 'meter_start', 'policy_adoption', 'actual_grant', 'before_state'))
+    need(all(type(name) is str and name in docs for name in refs.values()), 'original corpus role references')
+    names = {key: row[key] for key in ('registration', 'cost', 'native', 'review', 'candidate')}
+    names.update(refs)
+    need(len(set(names.values())) == len(names), 'distinct original provenance roles, no alias')
+    objects = {key: docs[name] for key, name in names.items()}
+    for key, keys in PARENT_MANUAL_SHAPES.items():
+        exact(objects[key], keys)
+        if key != 'native':
+            need(type(objects[key]['schema']) is str and objects[key]['schema'] == PARENT_MANUAL_SCHEMAS[key],
+                 'explicit closed original schema family')
+    registration, cost, native, review, candidate = (objects[k] for k in ('registration', 'cost', 'native', 'review', 'candidate'))
+    pre, start, adoption, grant, before = (objects[k] for k in ('pre_entry', 'meter_start', 'policy_adoption', 'actual_grant', 'before_state'))
+    def ref(key):
+        return origin_ref(desc['files'][names[key]])
+    def original_pin(key):
+        item = desc['files'][names[key]]
+        return {'path': item['origin_path'], 'bytes': item['bytes'], 'sha256': item['sha256'], 'mode': item['origin_mode']}
+    pins = review_pin_rows(review)
+    for key in ('registration', 'cost', 'native', 'candidate', 'pre_entry', 'meter_start', 'policy_adoption', 'actual_grant', 'before_state'):
+        need(any(p == original_pin(key) for p in pins), 'independent review binds complete original provenance role')
+    name = row['entry_id']; shell = digest(row['exact_shell_sha256'])
+    need(type(registration['entry_id']) is str and registration['entry_id'] == name and
+         type(cost['entry_id']) is str and cost['entry_id'] == name and
+         type(pre['entry_id']) is str and pre['entry_id'] == name, 'exact original manual entry identities')
+    need(row['selectors'] == PARENT_MANUAL_SELECTORS, 'closed family field paths; no arbitrary zero or review selection')
+    need(registration['exact_candidate'] == ref('candidate') and registration['actual_grant'] == ref('actual_grant') and
+         registration['policy_adoption'] == ref('policy_adoption') and registration['before_state'] == ref('before_state') and
+         cost['reservation'] == ref('registration') and cost['native_tool_result'] == ref('native') and
+         cost['original_pre_entry'] == ref('pre_entry') and cost['original_meter_START'] == ref('meter_start'),
+         'original reservation/cost/native and pre-entry links')
+    need(registration['original_manual_reservation_before_native_entry'] is True and
+         registration['formal_registry_REGISTER_created'] is False and registration['no_automatic_retry'] is True and
+         pre['execution_started'] is False and pre['native_terminal_claimed'] is False and
+         pre['original_manual_metadata_not_a_genuine_native_clock'] is True and
+         pre['reservation'] == ref('registration'), 'genuine original pre-entry metadata, never retrospective formal ticket')
+    need(pre['exact_candidate_sha256'] == command and pre['original_enclosing_command_sha256'] == shell and
+         registration['command_string_sha256'] == shell and pre['actual_grant_sha256'] == ref('actual_grant')['sha256'] and
+         pre['before_state_sha256'] == ref('before_state')['sha256'] and
+         pre['meter_START_expected_path'] == original_pin('meter_start')['path'], 'candidate/shell/pre-entry/START lineage')
+    need(adoption['exact_candidate'] == ref('candidate') and adoption['current_parent_state'] == ref('before_state') and
+         adoption['authority'] == registration['authority'] == origin_ref(desc['files'][desc['authorization_file']]) and
+         adoption['decision'] == 'ADOPT_EXACT_ONE_USE_NORMAL_PURE_DATA_SCOPE_ONLY' and
+         adoption['current_manual_preentry_provenance_required'] is True and
+         adoption['scientific_Root_native_owner_or_formal_registry_permission'] is False and
+         adoption['next_opening_must_import_actual_operation_once'] is True and
+         adoption['no_old_source_grant_or_marker_reuse'] is True, 'original limited policy adoption, not new permission')
+    need(candidate['grant_sha256'] == ref('actual_grant')['sha256'] and
+         uint(candidate['grant_bytes']) == desc['files'][names['actual_grant']]['bytes'] and
+         candidate['grant_exact_object'] == grant and candidate['current_parent_state'] == ref('before_state') and
+         candidate['actual_grant_path'] == original_pin('actual_grant')['path'] and
+         candidate['genuine_native_tool_result_required'] is True and
+         candidate['no_accepted_existing_terminal_object_or_manual_native_fields'] is True,
+         'original candidate and actual limited grant bytes')
+    need(grant['authorization_sha256'] == AUTHORIZATION_SHA256 and grant['allow_one_attempt'] is True and
+         uint(grant['command_seconds']) * NS == BODY_LIMIT_NS and
+         uint(grant['administrative_tail_debit_seconds']) * NS == ADMIN_NS and
+         uint(grant['sampled_parent_child_memory_bytes']) == RSS_LIMIT and
+         grant['operation'] == 'CURRENT_OPENING_F2_PURE_DATA_CONTROLS_ONLY', 'original exact limited manual operation')
+    for key in ('probe_sha256', 'source_sha256'):
+        digest(grant[key]); need(start[key] == grant[key], 'original durable START source/probe pin')
+    digest(grant['funding_source_sha256']); digest(grant['fixture_sha256']); digest(grant['expected_result_sha256'])
+    for key in ('source_sha256', 'probe_sha256', 'funding_source_sha256', 'fixture_sha256', 'expected_result_sha256'):
+        need(any(p['sha256'] == grant[key] for p in pins), 'review binds original selected source/probe/fixture/result hash')
+    need(any(p['sha256'] == grant['source_sha256'] and p['bytes'] == uint(grant['source_bytes']) for p in pins),
+         'review binds original meter source byte count')
+    need(start['actual_grant_sha256'] == ref('actual_grant')['sha256'] and
+         uint(start['start_monotonic_ns']) == uint(cost['body_begin_ns']) and
+         start['future_operation_blocked_until_separate_adjudication'] is True,
+         'genuine original meter START interval, not formal START')
+    need(type(native['exit_code']) is int and -MAX_VALUE <= native['exit_code'] <= MAX_VALUE,
+         'flat genuine tool exact native exit, not bool')
+    need(type(native['chunk_id']) is str and 1 <= len(native['chunk_id']) <= 64 and
+         type(native['output']) is str and type(native['original_token_count']) is int and native['original_token_count'] >= 0,
+         'closed genuine tool result metadata')
+    wait = native['wall_time_seconds']
+    need((type(wait) is int and wait >= 0) or
+         (type(wait) is str and 0 < len(wait) <= 64 and wait.count('.') <= 1 and
+          all(c in '0123456789.' for c in wait) and any(c in '0123456789' for c in wait)),
+         'reported provider wait DATA only; never added to body')
+    chain = review['native_and_start_chain']
+    need(type(chain) is dict and type(chain['tool_native_exit']) is int and
+         type(chain['child_native_exit']) is int and type(cost['actual_parent_native_tool_exit_code']) is int and
+         type(cost['actual_child_native_exit_code']) is int and
+         native['exit_code'] == chain['tool_native_exit'] == cost['actual_parent_native_tool_exit_code'] and
+         chain['child_native_exit'] == cost['actual_child_native_exit_code'] and
+         native['chunk_id'] == chain['tool_chunk_id'] and chain['exact_shell_sha256'] == shell and
+         chain['actual_grant_sha256'] == ref('actual_grant')['sha256'] and
+         uint(chain['START_run_entry_ns']) == uint(start['start_monotonic_ns']),
+         'reviewed actual flat Tool/candidate/pre-entry/START correlation, not Tool command field')
+    need(type(registration['attempt_number']) is int and type(cost['attempt_number']) is int and
+         1 <= uint(registration['attempt_number']) <= OPENING_LIMIT and
+         registration['attempt_number'] == cost['attempt_number'] and
+         uint(registration['policy_committed_before_ns']) == seconds_ns(before['policy_charged_seconds_total']) and
+         uint(registration['policy_committed_plus_reservation_ns']) == uint(registration['policy_committed_before_ns']) + BODY_LIMIT_NS + ADMIN_NS,
+         'original manual reservation economic lineage')
+    need(uint(registration['INITIAL_remaining_after_reservation_ns']) == INITIAL_NS - uint(registration['policy_committed_plus_reservation_ns']) and
+         uint(candidate['body_ns_reserved']) == BODY_LIMIT_NS and uint(candidate['administrative_policy_ns']) == ADMIN_NS,
+         'exact original manual reservation and candidate allowance')
+    need(type(review['status']) is str and review['status'] == 'ACCEPT_ACTUAL_72_FIXED_F2_PURE_DATA_CONTROLS_AND_SCOPED_COST_ONLY' and
+         review['actual_reviewed_outcome_accepted'] is True and review['blocking_findings'] == [] and
+         review['later_execution_granted'] is False and review['science_or_Root_permission'] is False,
+         'accepted independently reviewed limited closed DATA outcome')
+    need(uint(cost['DATA_cases_executed']) == uint(review['coverage']['actual_pure_DATA_cases_independently_accepted']) == 72 and
+         uint(cost['unexpected_callbacks']) == 0 and cost['golden_raw_bytes_exact'] is True,
+         'original fixed pureDATA result metadata, no new F3 runtime qualification')
+    need(cost['body_status'] == 'OBSERVATION_VALIDATED' and cost['all_costs_settled'] is False and
+         cost['owned_wait_returned'] is True and cost['selected_DATA_child_cleanup_known'] is True and
+         cost['Popen_construction_pending'] is False and chain['owned_wait_returned'] is True and
+         chain['Popen_construction_pending'] is False and chain['FIRST'] is None and chain['IO_unknown'] is False and
+         chain['secondary'] == [], 'closed selected body/child cleanup; unknown fails, never admin fill')
+    exact(cost['errors'], ('IO_unknown', 'actual_exception_objects_retained_until_exit', 'first', 'secondary'))
+    need(cost['errors']['IO_unknown'] is False and cost['errors']['first'] is None and cost['errors']['secondary'] == [] and
+         cost['errors']['actual_exception_objects_retained_until_exit'] is True, 'no uncertain original child or IO')
+    need(uint(review['cost']['body_begin_ns']) == uint(cost['body_begin_ns']) and
+         uint(review['cost']['body_end_after_owned_cleanup_ns']) == uint(cost['body_end_ns']) and
+         cost['provider_wall_seconds'] == native['wall_time_seconds'] == review['cost']['provider_wall_seconds'],
+         'same reviewed original endpoints and diagnostic Tool wait, never an added interval')
+    need(uint(cost['body_end_ns']) - uint(cost['body_begin_ns']) == uint(cost['observed_body_elapsed_ns']) and
+         uint(cost['policy_charged_ns']) == uint(cost['observed_body_elapsed_ns']) + ADMIN_NS and
+         uint(review['cost']['policy_charged_ns']) == uint(cost['policy_charged_ns']) and
+         uint(cost['sampled_parent_plus_child_RSS_bytes']) <= RSS_LIMIT and
+         review['cost']['sampled_limit_passed'] is True,
+         'exact observed body/policy and selected sampled limit, never complete profile')
+    need(seconds_ns(cost['observed_body_seconds']) == uint(cost['observed_body_elapsed_ns']) and
+         seconds_ns(review['cost']['observed_body_seconds']) == uint(cost['observed_body_elapsed_ns']) and
+         uint(cost['administrative_policy_debit_seconds']) * NS == ADMIN_NS and
+         uint(review['cost']['sampled_parent_plus_owned_unreaped_child_RSS_bytes']) == uint(cost['sampled_parent_plus_child_RSS_bytes']) and
+         uint(review['cost']['selected_sample_limit_bytes']) == RSS_LIMIT and
+         review['cost']['sampled_limit_is_continuous_or_wholeprocess_memory_qualification'] is False,
+         'consistent exact units and limited sampled metadata scope')
+    need(cost['complete_new_physical_total_ns'] is None and cost['historical_complete_total_ns'] is None and
+         cost['final_physical_publication'] == 'OPEN_NOT_ZERO' and
+         cost['physical_or_ACTIVE_or_A01_runtime_qualified'] is False and
+         cost['complete_caller_validation'] is False and cost['following_command_granted'] is False and
+         review['cost']['complete_new_physical_total_ns'] is None and review['cost']['old_complete_total_ns'] is None and
+         review['cost']['physical_publication_boundary'] == 'OPEN_NOT_ZERO' and review['cost']['all_costs_settled'] is False,
+         'old/new physical unknown, no native/currentness/permission inheritance')
+    return native['exit_code'], pins
+
+
+def _opening_evidence_f3(snapshot):
+    """Pure strict DATA revalidation, never native ownership/custody proof."""
+    plain(snapshot)
+    exact(snapshot, ('schema', 'opening_pin', 'descriptor_wire', 'corpus_wires'))
+    need(snapshot['schema'] == 'fresh-current-opening-snapshot-v1', 'opening snapshot')
+    op = pin(snapshot['opening_pin'])
+    need(op['mode'] == 0o444 and type(snapshot['descriptor_wire']) is str and type(snapshot['corpus_wires']) is dict, 'immutable opening DATA')
+    raw = snapshot['descriptor_wire'].encode('utf-8')
+    need(len(raw) == op['bytes'] and hashlib.sha256(raw).hexdigest() == op['sha256'], 'opening wire pin')
+    desc = decode(raw)
+    exact(desc, ('schema', 'round_id', 'authorization_sha256', 'previous_opening_sha256', 'corpus_directory',
+                 'authorization_file', 'state_file', 'selection_file', 'files', 'observations', 'expected_totals',
+                 'physical_total_ns', 'old_complete_total_ns', 'physical_final_boundary'))
+    need(desc['schema'] in ('fresh-current-opening-corpus-v1', 'fresh-current-opening-corpus-v2') and desc['round_id'] == ROUND_ID and
+         desc['authorization_sha256'] == AUTHORIZATION_SHA256 and desc['corpus_directory'] == 'corpus' and
+         desc['physical_total_ns'] is None and desc['old_complete_total_ns'] is None and
+         desc['physical_final_boundary'] == 'OPEN_NOT_ZERO', 'selected opening scope')
+    if desc['previous_opening_sha256'] is not None:
+        digest(desc['previous_opening_sha256'])
+    need(type(desc['files']) is dict and set(snapshot['corpus_wires']) == set(desc['files']) and
+         len(desc['files']) <= 8 * OPENING_LIMIT, 'closed corpus census')
+    docs, total, origins = {}, 0, set()
+    for name, item in desc['files'].items():
+        need(type(name) is str and name.endswith('.json') and '..' not in name and
+             all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.' for c in name), 'literal corpus name')
+        exact(item, ('bytes', 'sha256', 'origin_path', 'origin_mode'))
+        uint(item['bytes']); digest(item['sha256'])
+        need(type(item['origin_path']) is str and Path(item['origin_path']).is_relative_to(R) and
+             '..' not in Path(item['origin_path']).parts and item['origin_path'] not in origins and
+             type(item['origin_mode']) is int and item['origin_mode'] in (0o400, 0o444, 0o600), 'original evidence pin')
+        origins.add(item['origin_path'])
+        wire = snapshot['corpus_wires'][name]
+        need(type(wire) is str, 'literal original JSON wire')
+        data = wire.encode('utf-8'); total += len(data)
+        need(total <= CORPUS_LIMIT and len(data) == item['bytes'] and hashlib.sha256(data).hexdigest() == item['sha256'], 'complete original corpus bytes')
+        docs[name] = metadata_decode(data)
+    auth, state, selected = (docs[desc[k]] for k in ('authorization_file', 'state_file', 'selection_file'))
+    need(desc['files'][desc['authorization_file']]['sha256'] == AUTHORIZATION_SHA256 and
+         auth['limits']['total_guarded_seconds'] == 2400 and auth['limits']['initial_feasibility_seconds'] == 600 and
+         auth['limits']['per_command_seconds'] == 180 and auth['limits']['sampled_memory_bytes'] == RSS_LIMIT,
+         'unchanged financial/resource limits')
+    need(type(desc['observations']) is list and 0 < len(desc['observations']) <= OPENING_LIMIT, 'bounded accepted operations')
+    views, ids, commands, shells, pairs_seen, regs, natives = [], set(), set(), set(), [], [], []
+    state_pairs_seen, parent_family_seen = [], False
+    body = admin = 0
+    for row in desc['observations']:
+        parent_family = type(row) is dict and 'provenance_family' in row
+        row_keys = ('kind', 'entry_id', 'registration', 'cost', 'native', 'review', 'review_status',
+                    'command_sha256', 'formal_start_sha256', 'formal_receipt_sha256', 'selectors', 'closed_checks', 'candidate', 'exact_shell_sha256')
+        if parent_family:
+            need(desc['schema'] == 'fresh-current-opening-corpus-v2' and
+                 type(row['provenance_family']) is str and row['provenance_family'] == PARENT_MANUAL_FAMILY,
+                 'explicit descriptor/new closed family only')
+            exact(row, row_keys + ('provenance_family', 'original_provenance'))
+            parent_family_seen = True
+        else:
+            exact(row, row_keys)  # Original legacy row shape remains exact; no shape-based upgrade.
+        name = label(row['entry_id']); command = digest(row['command_sha256'])
+        need(name not in ids and command not in commands, 'import each original identity/command once')
+        ids.add(name); commands.add(command)
+        registration, cost, native, review = (docs[row[k]] for k in ('registration', 'cost', 'native', 'review'))
+        if parent_family:
+            parent_exit, parent_review_pins = parent_manual_evidence(desc, docs, row, command)
+        else:
+            need(registration['attempt_id'] == name and cost['attempt_id'] == name and
+                 cost['reservation'] == origin_ref(desc['files'][row['registration']]) and
+                 cost['native_tool_result'] == origin_ref(desc['files'][row['native']]), 'original pre-entry/outcome link')
+        candidate = docs[row['candidate']]
+        need(desc['files'][row['candidate']]['sha256'] == command and
+             type(candidate['exact_shell_command']) is str and
+             hashlib.sha256(candidate['exact_shell_command'].encode('utf-8')).hexdigest() == row['exact_shell_sha256'] and
+             row['exact_shell_sha256'] not in shells, 'candidate document versus distinct exact shell identity')
+        shells.add(row['exact_shell_sha256'])
+        q = row['selectors']
+        exact(q, ('cost_body', 'cost_admin', 'cost_admin_multiplier', 'registration_admin', 'registration_admin_multiplier',
+                  'registration_candidate', 'registration_preentry', 'registration_preentry_value', 'registration_body_cap',
+                  'registration_cap_multiplier', 'review_begin', 'review_end', 'review_body', 'review_admin',
+                  'review_admin_multiplier', 'review_native_exit'))
+        for key in ('cost_admin_multiplier', 'registration_admin_multiplier', 'registration_cap_multiplier', 'review_admin_multiplier'):
+            need(type(q[key]) is int and q[key] in (1, NS), 'declared exact integer unit')
+        need(type(q['registration_preentry_value']) is bool and
+             select(registration, q['registration_preentry']) is q['registration_preentry_value'], 'original pre-entry reserved state')
+        if parent_family:
+            need(select(registration, q['registration_candidate']) == origin_ref(desc['files'][row['candidate']]),
+                 'original exact parent candidate correlation; genuine Tool has no command field')
+        else:
+            need(select(registration, q['registration_candidate'])['sha256'] == command and
+                 native['exact_command_candidate_sha256'] == command, 'original exact command correlation')
+        elapsed = uint(select(cost, q['cost_body']))
+        debit = uint(select(cost, q['cost_admin'])) * q['cost_admin_multiplier']
+        begin, end = uint(select(review, q['review_begin'])), uint(select(review, q['review_end']))
+        need(end >= begin and end - begin == elapsed == uint(select(review, q['review_body'])) and
+             debit == ADMIN_NS and
+             uint(select(registration, q['registration_admin'])) * q['registration_admin_multiplier'] == debit and
+             uint(select(registration, q['registration_body_cap'])) * q['registration_cap_multiplier'] == BODY_LIMIT_NS and
+             uint(select(review, q['review_admin'])) * q['review_admin_multiplier'] == debit,
+             'actual observed body and separate admin units')
+        selected_review_exit = select(review, q['review_native_exit'])
+        reported_native_exit = parent_exit if parent_family else native['actual_tool_result']['exit_code']
+        need(type(reported_native_exit) is int and
+             type(selected_review_exit) is int and
+             reported_native_exit == selected_review_exit and
+             review['status'] == row['review_status'] and type(row['review_status']) is str and
+             row['review_status'].startswith('ACCEPT_') and cost['all_costs_settled'] is False,
+             'genuine retained native result / accepted scoped review')
+        need(seconds_ns(cost['policy_charged_seconds']) == elapsed + debit, 'cost row exact policy amount')
+        if parent_family:
+            review_pins = parent_review_pins
+        else:
+            review_pins = review['input_pins']
+            review_pins = review_pins if type(review_pins) is list else list(review_pins.values())
+        for key in ('registration', 'cost', 'native'):
+            expected = desc['files'][row[key]]
+            need(any(type(p) is dict and p.get('path') == expected['origin_path'] and
+                     p.get('sha256') == expected['sha256'] and p.get('bytes') == expected['bytes'] for p in review_pins),
+                 'review binds each original provenance file')
+        if row['kind'] == 'ORIGINAL_MANUAL_OPERATION':
+            need(row['formal_start_sha256'] is None and row['formal_receipt_sha256'] is None, 'not a fabricated formal entry')
+        else:
+            need(row['kind'] == 'ALREADY_REGISTERED_OPERATION', 'immutable charge partition')
+            digest(row['formal_start_sha256']); digest(row['formal_receipt_sha256'])
+        blockers = []
+        if elapsed > BODY_LIMIT_NS:
+            blockers.append(name + ':IMPORTED_BODY180_EXCEEDED')
+        need(type(row['closed_checks']) is list and 1 <= len(row['closed_checks']) <= 16, 'explicit scoped closure checks')
+        documents = {'review': review, 'cost': cost, 'registration': registration, 'native': native}
+        for check in row['closed_checks']:
+            exact(check, ('document', 'path', 'expected'))
+            need(check['document'] in documents and (type(check['expected']) is bool or check['expected'] is None), 'closed condition literal')
+            actual = select(documents[check['document']], check['path'])
+            if type(actual) is not type(check['expected']) or actual != check['expected']:
+                blockers.append(name + ':IMPORTED_UNCLOSED_CONDITION')
+        pair = {'cost': origin_ref(desc['files'][row['cost']]), 'independent_outcome_review': origin_ref(desc['files'][row['review']])}
+        pairs_seen.append(pair)
+        state_pairs_seen.append({'cost': pair['cost'], 'independent_review': pair['independent_outcome_review']} if parent_family else pair)
+        regs.append(origin_ref(desc['files'][row['registration']])); natives.append(origin_ref(desc['files'][row['native']]))
+        views.append({'kind': row['kind'], 'entry_id': name, 'command_sha256': command, 'exact_shell_sha256': row['exact_shell_sha256'], 'body_ns': elapsed,
+                      'admin_ns': debit, 'blockers': blockers, 'formal_start_sha256': row['formal_start_sha256'], 'formal_receipt_sha256': row['formal_receipt_sha256']})
+        body += elapsed; admin += debit
+    if parent_family_seen:
+        need(state['schema'] == 'h25-fresh-metered-round-parent-state-v5' and
+             selected['schema'] == 'h25-current-bootstrap-opening-source-inputs-v2', 'closed parent state/selection schema variants')
+    need(state['accepted_attempts'] == state_pairs_seen and pairs_seen == selected['observations'] and
+         selected['pre_entry_registrations'] == regs and selected['genuine_native_results'] == natives and
+         selected['current_parent_state'] == origin_ref(desc['files'][desc['state_file']]), 'no accepted operation/provenance omitted')
+    need(type(state['guarded_attempts']) is int and state['guarded_attempts'] == len(views) and
+         state['observed_body_elapsed_ns_total'] == body and type(state['observed_body_elapsed_ns_total']) is int and
+         type(state['administrative_policy_debit_seconds_total']) is int and
+         state['administrative_policy_debit_seconds_total'] * NS == admin and
+         seconds_ns(state['policy_charged_seconds_total']) == body + admin and
+         selected['body_ns'] == body and selected['administrative_policy_ns'] == admin and
+         selected['policy_total_ns'] == body + admin and
+         state['complete_new_physical_total_seconds'] is None and state['old_complete_total_seconds'] is None and
+         state['physical_publication_boundary'] == 'OPEN_NOT_ZERO' and state['all_costs_settled'] is False,
+         'current complete selected corpus totals, never physical total')
+    exact(desc['expected_totals'], ('body_ns', 'administrative_ns', 'policy_ns', 'operations'))
+    for amount in desc['expected_totals'].values():
+        uint(amount)
+    need(desc['expected_totals'] == {'body_ns': body, 'administrative_ns': admin, 'policy_ns': body + admin, 'operations': len(views)}, 'independent literal expected totals')
+    manual = [v for v in views if v['kind'] == 'ORIGINAL_MANUAL_OPERATION']
+    return {'descriptor': desc, 'state_sha256': desc['files'][desc['state_file']]['sha256'], 'views': views,
+            'manual_body_ns': sum(v['body_ns'] for v in manual), 'manual_admin_ns': sum(v['admin_ns'] for v in manual),
+            'manual_entry_ids': [v['entry_id'] for v in manual], 'manual_command_sha256s': [v['command_sha256'] for v in manual],
+            'registry_rows': [v for v in views if v['kind'] == 'ALREADY_REGISTERED_OPERATION'],
+            'parent_body_ns': body, 'parent_admin_ns': admin,
+            'blockers': [reason for v in views for reason in v['blockers']]}
+
+
+def _read_opening_f3(io, opening_pin, owner_uid):
+    """Actual source-authenticated OwnedIO boundary, not arbitrary reader authority."""
+    pin(opening_pin); need(opening_pin['mode'] == 0o444, 'frozen selected opening')
+    row, raw = read_pinned(io, opening_pin, owner_uid)
+    desc = decode(raw); folder = Path(opening_pin['path']).parent / 'corpus'
+    need(folder.resolve(strict=True) == folder, 'canonical corpus directory')
+    before = folder.lstat()
+    need(stat.S_ISDIR(before.st_mode) and before.st_uid == owner_uid and stat.S_IMODE(before.st_mode) == 0o555, 'immutable current-owner corpus')
+    names = io.names(folder, 8 * OPENING_LIMIT + 1)
+    need(type(names) is list and all(type(n) is str for n in names) and
+         len(names) == len(set(names)) and set(names) == set(desc['files']), 'exact complete corpus census')
+    wires, observed = {}, []
+    for name in sorted(names):
+        item = desc['files'][name]
+        need(type(name) is str and '/' not in name and '..' not in name, 'corpus basename')
+        p = {'path': str(folder / name), 'bytes': item['bytes'], 'sha256': item['sha256'], 'mode': 0o444}
+        actual, data = read_pinned(io, p, owner_uid); wires[name] = data.decode('utf-8'); observed.append((p, actual, data))
+    snapshot = {'schema': 'fresh-current-opening-snapshot-v1', 'opening_pin': opening_pin,
+                'descriptor_wire': raw.decode('utf-8'), 'corpus_wires': wires}
+    opening_evidence(snapshot)
+    for p, actual, data in observed:
+        after_row, after = read_pinned(io, p, owner_uid)
+        need(after_row == actual and after == data, 'immutable corpus pre/post custody')
+    after_row, after = read_pinned(io, opening_pin, owner_uid)
+    directory_after = folder.lstat()
+    need(after_row == row and after == raw and
+         (directory_after.st_dev, directory_after.st_ino, directory_after.st_mode, directory_after.st_uid,
+          directory_after.st_mtime_ns, directory_after.st_ctime_ns) ==
+         (before.st_dev, before.st_ino, before.st_mode, before.st_uid, before.st_mtime_ns, before.st_ctime_ns) and
+         set(io.names(folder, 8 * OPENING_LIMIT + 1)) == set(names), 'opening/corpus current custody')
+    return snapshot
+
+
+def _require_opening_append_f3(previous, current):
+    a, b = opening_evidence(previous), opening_evidence(current)
+    old, new = a['descriptor'], b['descriptor']
+    need(new['previous_opening_sha256'] == previous['opening_pin']['sha256'] and
+         new['observations'][:len(old['observations'])] == old['observations'] and
+         all(new['files'].get(k) == v for k, v in old['files'].items()) and
+         new['authorization_sha256'] == old['authorization_sha256'], 'opening immutable prefix; no omission/reprice/reclassification')
+    return True
+
+
+def _validate_opening_partition_f3(opening, reg, records):
+    evidence = opening_evidence(opening)
+    _, _, starts, closes = registry((json.dumps(reg, separators=(',', ':')) + '\n').encode('utf-8'))
+    formal_commands = set()
+    for name, bundle in records.items():
+        s = bundle['start']; command = digest(s['command_sha256']); formal_commands.add(command)
+        need(name not in evidence['manual_entry_ids'] and command not in evidence['manual_command_sha256s'], 'manual/formal charges disjoint')
+    for v in evidence['registry_rows']:
+        name = v['entry_id']
+        need(name in starts and name in closes and starts[name]['sha256'] == v['formal_start_sha256'] and
+             closes[name]['sha256'] == v['formal_receipt_sha256'] and records[name]['receipt'] is not None,
+             'state formal partition bound to actual registered closed records')
+        receipt = records[name]['receipt']
+        need(records[name]['start']['command_sha256'] == v['command_sha256'] and
+             receipt['body_elapsed_ns'] == v['body_ns'] and receipt['administrative_debit_ns'] == v['admin_ns'], 'formal body charged once by registry')
+    return evidence
+
+
+def validate_opening_binding(io, binding, owner_uid):
+    plain(binding)
+    exact(binding, ('schema', 'opening_pin', 'adoption_pin', 'funding_source_sha256'))
+    need(binding['schema'] == 'fresh-current-opening-binding-v1', 'current opening binding')
+    digest(binding['funding_source_sha256']); snapshot = read_opening(io, binding['opening_pin'], owner_uid)
+    evidence = opening_evidence(snapshot); _, raw = read_pinned(io, binding['adoption_pin'], owner_uid)
+    adoption = decode(raw)
+    exact(adoption, ('schema', 'opening_sha256', 'state_sha256', 'manual_body_ns', 'manual_admin_ns',
+                     'operations', 'authorization_sha256', 'funding_source_sha256', 'authority_scope'))
+    for key in ('manual_body_ns', 'manual_admin_ns', 'operations'):
+        uint(adoption[key])
+    need(adoption == {'schema': 'fresh-current-opening-adoption-v1', 'opening_sha256': binding['opening_pin']['sha256'],
+         'state_sha256': evidence['state_sha256'], 'manual_body_ns': evidence['manual_body_ns'],
+         'manual_admin_ns': evidence['manual_admin_ns'], 'operations': len(evidence['views']),
+         'authorization_sha256': AUTHORIZATION_SHA256, 'funding_source_sha256': binding['funding_source_sha256'],
+         'authority_scope': 'OPENING_DATA_SELECTION_ONLY_NOT_OPERATIONAL_GRANT'}, 'selected current opening adoption; not native grant')
+    return snapshot
+
+
+def initial_registry(opening_pin, policy_pins, phase='INITIAL', phase_release_sha256=None):
+    plain(opening_pin); plain(policy_pins); plain(phase); plain(phase_release_sha256)
+    obj = {'schema': 'fresh-round-registry-v2', 'round_id': ROUND_ID, 'authorization_sha256': AUTHORIZATION_SHA256,
+           'opening_pin': opening_pin, 'predecessor_sha256': None, 'phase': phase,
+           'phase_release_sha256': phase_release_sha256, 'policies': policy_pins, 'events': []}
+    raw = (json.dumps(obj, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8'); registry(raw)
+    return raw
+
+
+
+def validate_pre_entry_provenance(value, name, command, reservation_ns):
+    plain(value)
+    exact(value, ('schema', 'entry_id', 'command_sha256', 'body_reservation_ns', 'registration_pin', 'original_start_pin', 'pending_manifest_pin'))
+    need(value['schema'] == 'fresh-original-preentry-provenance-v1' and value['entry_id'] == name and
+         value['command_sha256'] == command and type(value['body_reservation_ns']) is int and
+         value['body_reservation_ns'] == reservation_ns, 'same genuine enclosing manual/formal operation')
+    for key in ('registration_pin', 'original_start_pin', 'pending_manifest_pin'):
+        pin(value[key])
+    return True
+
+
+# Prospective fixed financial frame. Original F3 bodies above are unchanged.
+FIN_ROOT = R / 'control/prospective-financial-v1'
+FIN_ENTRIES = FIN_ROOT / 'entries'
+FIN_HEAD = FIN_ROOT / 'HEAD.json'
+FIN_LIMITS = {'INITIAL_ns': 600000000000, 'TOTAL_ns': 2400000000000, 'admin_policy_ns': 2000000000, 'body_ns': 180000000000, 'sampled_memory_bytes': 1073741824}
+FRAME_RECORDS = {'COMMAND': {'keys': ['schema', 'attempt_id', 'operation_class', 'settlement_route', 'exact_shell_command', 'exact_shell_sha256', 'permission_pin', 'source_packet_pin', 'operating_profile_pin', 'review_contract_pin', 'result_contract_pin', 'declared_inventory_pin', 'declared_result_groups', 'limits', 'metadata_close_intent'], 'schema': 'fresh-financial-command-v1'}, 'ENTRY_MANIFEST': {'keys': ['schema', 'attempt_id', 'command_pin', 'reservation_pin', 'pre_entry_pin', 'meter_start_pin', 'meter_body_pin', 'native_chain_pin', 'financial_adjudication_pin', 'settlement_route', 'formal_start_pin', 'formal_receipt_pin', 'phase'], 'schema': 'fresh-financial-entry-manifest-v1'}, 'FINANCIAL_ADJUDICATION': {'keys': ['schema', 'attempt_id', 'command_pin', 'reservation_pin', 'permission_pin', 'meter_start_pin', 'meter_body_pin', 'native_chain_pin', 'source_packet_pin', 'review_contract_pin', 'detail_review_pin', 'result_groups', 'financial_status', 'body_outcome', 'accepted_body_ns', 'admin_policy_ns', 'known_policy_ns', 'cleanup_status', 'resource_status', 'tail_status', 'scope_flags'], 'schema': 'fresh-independent-financial-adjudication-v1'}, 'METER_BODY': {'keys': ['schema', 'attempt_id', 'command_pin', 'reservation_pin', 'meter_start_pin', 'body', 'owned_cleanup', 'owned_wait', 'child_exit', 'resource_observations', 'errors', 'body_scope', 'physical_boundary'], 'schema': 'fresh-financial-meter-body-v1'}, 'METER_START': {'keys': ['schema', 'attempt_id', 'command_pin', 'reservation_pin', 'permission_pin', 'meter_source_pin', 'body_begin_ns', 'body_scope'], 'schema': 'fresh-financial-meter-start-v1'}, 'NATIVE_CHAIN': {'keys': ['schema', 'attempt_id', 'command_pin', 'reservation_pin', 'calls'], 'schema': 'fresh-financial-native-chain-v1'}, 'OPENING': {'keys': ['schema', 'round_id', 'authorization_sha256', 'legacy_base_pin', 'frame_contract_pin', 'suffix_state_pin', 'previous_opening_sha256', 'expected_totals', 'physical_total_ns', 'old_complete_total_ns', 'physical_final_boundary'], 'schema': 'fresh-current-financial-opening-v1'}, 'PERMISSION': {'keys': ['schema', 'attempt_id', 'round_id', 'operation_class', 'body_reservation_ns', 'admin_policy_ns', 'source_packet_pin', 'operating_profile_pin', 'review_contract_pin', 'round_authorization_pin', 'allow_one_attempt'], 'schema': 'fresh-financial-permission-v1'}, 'PRE_ENTRY': {'keys': ['schema', 'attempt_id', 'command_pin', 'reservation_pin', 'permission_pin', 'expected_meter_start_path', 'expected_native_chain_path', 'execution_started', 'provider_request_pin'], 'schema': 'fresh-financial-pre-entry-v1'}, 'RESERVATION': {'keys': ['schema', 'attempt_id', 'command_pin', 'permission_pin', 'policy_adoption_pin', 'before_closed_state_pin', 'body_reservation_ns', 'admin_policy_ns', 'policy_reserved_before_ns', 'policy_reserved_after_ns', 'settlement_route', 'no_automatic_retry'], 'schema': 'fresh-financial-reservation-v1'}, 'STATE': {'keys': ['schema', 'round_id', 'legacy_base_pin', 'generation', 'previous_state_sha256', 'ordered_entries', 'known_body_ns', 'admin_policy_ns', 'known_policy_ns', 'unsettled_entries', 'physical_total_ns', 'old_complete_total_ns', 'physical_boundary', 'metadata_close_events'], 'schema': 'fresh-current-financial-state-v1'}}
+FRAME_FLAGS = ('execution_granted', 'native_identity_proved', 'currentness_qualified', 'profile_qualified', 'fullcaller_admitted', 'science_admitted', 'gain', 'all_costs_settled')
+LEGACY_BASE_PIN = {'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-round-provenance-bridge-v1/OPENING.json', 'bytes': 17679, 'sha256': '8e492dcbb9610ab74d57b19203fd4a5658a634dac151ac37863ab402258e5243', 'mode': 292}
+FIN_MAX_FILES, FIN_MAX_BYTES, FIN_MAX_NODES = 4096, 16777216, 200000
+FIN_PHASES = ('RESERVED','STARTED','OBSERVED_AWAIT_REVIEW','CLOSED_KNOWN','OPEN_UNCERTAIN','FORMAL_AWAIT_CLOSE')
+
+def frame_need(condition, code):
+    if condition is not True:
+        raise FundingError('FRAME:' + code)
+
+
+def financial_plain(value, counter=None, depth=0):
+    if counter is None:
+        counter = [0]
+    counter[0] += 1
+    frame_need(counter[0] <= FIN_MAX_NODES and depth <= 16, 'TYPE')
+    t = type(value)
+    if t is dict:
+        keys = tuple(dict.__iter__(value))
+        frame_need(len(keys) <= FIN_MAX_FILES and all(type(k) is str and len(k) <= 4096 for k in keys), 'TYPE')
+        for k in keys:
+            financial_plain(value[k], counter, depth + 1)
+    elif t is list:
+        frame_need(len(value) <= FIN_MAX_FILES, 'TYPE')
+        for item in value:
+            financial_plain(item, counter, depth + 1)
+    elif t is str:
+        frame_need(len(value) <= META_CAP, 'TYPE')
+    elif t is int:
+        frame_need(-MAX_VALUE <= value <= MAX_VALUE, 'TYPE')
+    else:
+        frame_need(value is None or t is bool, 'TYPE')
+
+
+def fx(value, keys):
+    frame_need(type(value) is dict, 'TYPE')
+    actual=tuple(dict.__iter__(value))
+    frame_need(all(type(k) is str for k in actual), 'TYPE')
+    frame_need(set(actual) == set(keys), 'SCHEMA')
+
+
+def fu(value):
+    frame_need(type(value) is int and 0 <= value <= MAX_VALUE, 'TYPE')
+    return value
+
+
+def fsigned(value):
+    frame_need(type(value) is int and -MAX_VALUE <= value <= MAX_VALUE, 'TYPE')
+    return value
+
+
+def fdigest(value):
+    frame_need(type(value) is str and len(value) == 64 and all(c in '0123456789abcdef' for c in value), 'TYPE')
+    return value
+
+
+def flabel(value):
+    frame_need(type(value) is str and 1 <= len(value) <= 64 and
+               all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value), 'TYPE')
+    return value
+
+
+def fp(value, raw=False):
+    financial_plain(value)
+    fx(value, ('path','bytes','sha256','mode'))
+    frame_need(type(value['path']) is str, 'TYPE')
+    path = Path(value['path'])
+    frame_need(path.is_absolute() and str(path)==value['path'] and path.is_relative_to(R) and '..' not in path.parts, 'PIN')
+    fu(value['bytes']); fdigest(value['sha256'])
+    frame_need(type(value['mode']) is int and value['mode'] in ((0o400,0o444,0o600) if raw else (0o444,0o600)), 'TYPE')
+    frame_need(raw or value['bytes'] <= META_CAP, 'PIN')
+    return value
+
+
+def maybe_pin(value, raw=False):
+    if value is not None:
+        fp(value, raw)
+
+
+def financial_decode(raw):
+    frame_need(type(raw) is bytes and 0 < len(raw) <= META_CAP, 'TYPE')
+    # Exact original F3 lexical diagnostic policy. No float becomes a charge.
+    value = metadata_decode(raw)
+    financial_plain(value)
+    return value
+
+
+def _limits(value):
+    fx(value, FIN_LIMITS)
+    frame_need(all(type(value[k]) is int and value[k] == v for k,v in FIN_LIMITS.items()), 'CORRELATION')
+
+
+def _groups(value, observed=False):
+    frame_need(type(value) is list and len(value) <= 64, 'TYPE')
+    ids = set()
+    for item in value:
+        keys = ('group_id','golden_pin','inventory_pin','expected_count')
+        fx(item, keys + (('raw_pin','observed_count','semantic_status') if observed else ()))
+        name = flabel(item['group_id']); frame_need(name not in ids, 'CORRELATION'); ids.add(name)
+        fp(item['golden_pin'], True); fp(item['inventory_pin'], True); fu(item['expected_count'])
+        if observed:
+            maybe_pin(item['raw_pin'], True); fu(item['observed_count'])
+            frame_need(type(item['semantic_status']) is str and item['semantic_status'] in ('PASS','FAIL','UNREVIEWED'), 'TYPE')
+            if item['semantic_status'] == 'PASS':
+                frame_need(item['raw_pin'] is not None and item['raw_pin']['sha256'] == item['golden_pin']['sha256'] and
+                           item['raw_pin']['bytes'] == item['golden_pin']['bytes'] and
+                           item['observed_count'] == item['expected_count'], 'CORRELATION')
+
+
+def _close_intent(value):
+    if value is None:
+        return
+    fx(value, ('target_id','formal_start_pin','baseline_registry_pin','current_registry_pin',
+               'native_chain_pin','meter_body_pin','financial_adjudication_pin','receipt_pin','review_pin'))
+    flabel(value['target_id'])
+    for k in value:
+        if k != 'target_id':
+            fp(value[k])
+
+
+def validate_original_record(kind, obj):
+    financial_plain(obj)
+    frame_need(type(kind) is str and kind in FRAME_RECORDS, 'SCHEMA')
+    spec = FRAME_RECORDS[kind]; fx(obj, spec['keys'])
+    frame_need(type(obj['schema']) is str and obj['schema'] == spec['schema'], 'SCHEMA')
+    if 'attempt_id' in obj:
+        flabel(obj['attempt_id'])
+    if 'round_id' in obj:
+        frame_need(obj['round_id'] == ROUND_ID, 'CORRELATION')
+    for key,value in obj.items():
+        if key.endswith('_pin'):
+            optional = (kind=='ENTRY_MANIFEST' and key in ('meter_start_pin','meter_body_pin','native_chain_pin','financial_adjudication_pin','formal_start_pin','formal_receipt_pin')) or (kind=='FINANCIAL_ADJUDICATION' and obj['financial_status']=='OPEN_UNCERTAIN' and key in ('meter_start_pin','meter_body_pin','native_chain_pin'))
+            if value is not None or not optional:
+                fp(value, key in ('provider_request_pin',))
+    if 'operation_class' in obj:
+        frame_need(type(obj['operation_class']) is str and obj['operation_class'] in
+                   ('PURE_DATA_TEST','METADATA_INITIALIZER','METADATA_CLOSER','DATA_CONTROLLER'), 'TYPE')
+    if 'settlement_route' in obj:
+        frame_need(type(obj['settlement_route']) is str and obj['settlement_route'] in ('MANUAL_ONLY','FORMAL_OUTER'), 'TYPE')
+    if kind == 'PERMISSION':
+        frame_need(0 < fu(obj['body_reservation_ns']) <= BODY_LIMIT_NS and fu(obj['admin_policy_ns']) == ADMIN_NS and
+                   obj['allow_one_attempt'] is True, 'CORRELATION')
+    elif kind == 'COMMAND':
+        frame_need(type(obj['exact_shell_command']) is str and 0 < len(obj['exact_shell_command']) <= META_CAP and
+                   hashlib.sha256(obj['exact_shell_command'].encode('utf-8')).hexdigest() == fdigest(obj['exact_shell_sha256']), 'CORRELATION')
+        _limits(obj['limits']); _groups(obj['declared_result_groups']); _close_intent(obj['metadata_close_intent'])
+        frame_need((obj['operation_class'] == 'METADATA_CLOSER') is (obj['metadata_close_intent'] is not None), 'CORRELATION')
+        if obj['operation_class'] in ('PURE_DATA_TEST','METADATA_INITIALIZER','METADATA_CLOSER'):
+            frame_need(obj['settlement_route'] == 'MANUAL_ONLY', 'CORRELATION')
+    elif kind == 'RESERVATION':
+        frame_need(0 < fu(obj['body_reservation_ns']) <= BODY_LIMIT_NS and fu(obj['admin_policy_ns']) == ADMIN_NS and
+                   obj['no_automatic_retry'] is True, 'CORRELATION')
+        frame_need(fu(obj['policy_reserved_after_ns']) == fu(obj['policy_reserved_before_ns']) + obj['body_reservation_ns'] + ADMIN_NS, 'CORRELATION')
+    elif kind == 'PRE_ENTRY':
+        frame_need(obj['execution_started'] is False and type(obj['expected_meter_start_path']) is str and
+                   type(obj['expected_native_chain_path']) is str, 'TYPE')
+    elif kind == 'METER_START':
+        fu(obj['body_begin_ns']); frame_need(obj['body_scope'] == 'RUN_ENTRY_THROUGH_OWNED_CLEANUP_V1', 'CORRELATION')
+    elif kind == 'METER_BODY':
+        b = obj['body']; fx(b, ('state','begin_ns','end_ns','elapsed_ns'))
+        frame_need(type(b['state']) is str and b['state'] in ('KNOWN','UNKNOWN'), 'TYPE')
+        if b['state'] == 'KNOWN':
+            frame_need(fu(b['end_ns']) >= fu(b['begin_ns']) and fu(b['elapsed_ns']) == b['end_ns'] - b['begin_ns'], 'CORRELATION')
+        else:
+            frame_need(b['end_ns'] is None and b['elapsed_ns'] is None, 'CORRELATION')
+            if b['begin_ns'] is not None: fu(b['begin_ns'])
+        frame_need(type(obj['owned_cleanup']) is str and obj['owned_cleanup'] in ('KNOWN_CLOSED','UNKNOWN') and
+                   type(obj['owned_wait']) is str and obj['owned_wait'] in ('KNOWN_RETURNED','NO_CHILD','UNKNOWN'), 'TYPE')
+        if obj['child_exit'] is not None: fsigned(obj['child_exit'])
+        frame_need(obj['owned_wait'] != 'KNOWN_RETURNED' or obj['child_exit'] is not None, 'CORRELATION')
+        frame_need(obj['owned_wait'] != 'NO_CHILD' or obj['child_exit'] is None, 'CORRELATION')
+        q=obj['resource_observations']; fx(q, ('peak_sampled_rss_bytes','limit_bytes','scope'))
+        if q['peak_sampled_rss_bytes'] is not None: fu(q['peak_sampled_rss_bytes'])
+        frame_need(type(q['limit_bytes']) is int and q['limit_bytes'] == RSS_LIMIT and q['scope'] == 'SAMPLED_ONLY', 'CORRELATION')
+        e=obj['errors']; fx(e, ('first','secondary','io_unknown'))
+        frame_need((e['first'] is None or type(e['first']) is str) and type(e['secondary']) is list and len(e['secondary']) <= 32 and
+                   all(type(x) is str for x in e['secondary']) and type(e['io_unknown']) is bool, 'TYPE')
+        frame_need(obj['body_scope'] == 'RUN_ENTRY_THROUGH_OWNED_CLEANUP_V1' and obj['physical_boundary'] == 'OPEN_NOT_ZERO', 'CORRELATION')
+    elif kind == 'NATIVE_CHAIN':
+        frame_need(type(obj['calls']) is list and len(obj['calls']) <= 64, 'TYPE')
+        for i,c in enumerate(obj['calls']):
+            fx(c, ('ordinal','tool','request_pin','original_tool_result_pin'))
+            frame_need(type(c['ordinal']) is int and c['ordinal'] == i and type(c['tool']) is str and
+                       c['tool'] == ('exec_command' if i == 0 else 'write_stdin'), 'CORRELATION')
+            fp(c['request_pin'], True); maybe_pin(c['original_tool_result_pin'], True)
+    elif kind == 'FINANCIAL_ADJUDICATION':
+        _groups(obj['result_groups'], True)
+        frame_need(type(obj['financial_status']) is str and obj['financial_status'] in ('CLOSED_KNOWN','OPEN_UNCERTAIN') and
+                   type(obj['body_outcome']) is str and obj['body_outcome'] in ('SUCCEEDED','FAILED','UNKNOWN'), 'TYPE')
+        if obj['accepted_body_ns'] is not None: fu(obj['accepted_body_ns'])
+        if obj['known_policy_ns'] is not None: fu(obj['known_policy_ns'])
+        frame_need(fu(obj['admin_policy_ns']) == ADMIN_NS and type(obj['cleanup_status']) is str and
+                   obj['cleanup_status'] in ('KNOWN_CLOSED','UNKNOWN') and type(obj['resource_status']) is str and
+                   obj['resource_status'] in ('WITHIN_SAMPLED_LIMIT','EXCEEDED','UNKNOWN') and type(obj['tail_status']) is str and
+                   obj['tail_status'] in ('ADMIN_ONLY_OPEN','UNKNOWN_NONADMIN'), 'TYPE')
+        fx(obj['scope_flags'], FRAME_FLAGS); frame_need(all(v is False for v in obj['scope_flags'].values()), 'CORRELATION')
+    elif kind == 'ENTRY_MANIFEST':
+        frame_need(type(obj['phase']) is str and obj['phase'] in FIN_PHASES, 'TYPE')
+        for k in ('command_pin','reservation_pin','pre_entry_pin'): fp(obj[k])
+        if obj['settlement_route'] == 'MANUAL_ONLY':
+            frame_need(obj['formal_start_pin'] is None and obj['formal_receipt_pin'] is None, 'CORRELATION')
+    elif kind == 'STATE':
+        frame_need(obj['legacy_base_pin'] == LEGACY_BASE_PIN, 'PIN'); fu(obj['generation'])
+        if obj['previous_state_sha256'] is not None: fdigest(obj['previous_state_sha256'])
+        frame_need(type(obj['ordered_entries']) is list and len(obj['ordered_entries']) <= 29 and
+                   type(obj['unsettled_entries']) is list and all(type(x) is str for x in obj['unsettled_entries']), 'TYPE')
+        for x in obj['ordered_entries']: fp(x)
+        for k in ('known_body_ns','admin_policy_ns','known_policy_ns'): fu(obj[k])
+        frame_need(type(obj['metadata_close_events']) is list and len(obj['metadata_close_events']) <= 128, 'TYPE')
+        for e in obj['metadata_close_events']:
+            fx(e, ('closer_id','target_id','phase','intent_pin','formal_head_pin','financial_state_pin','receipt_pin'))
+            flabel(e['closer_id']); flabel(e['target_id'])
+            frame_need(e['phase'] in ('INTENT','FORMAL_COMMITTED','FINANCIAL_COMMITTED'), 'TYPE')
+            for k in ('intent_pin','formal_head_pin','financial_state_pin','receipt_pin'): maybe_pin(e[k])
+        frame_need(obj['physical_total_ns'] is None and obj['old_complete_total_ns'] is None and obj['physical_boundary'] == 'OPEN_NOT_ZERO', 'CORRELATION')
+    elif kind == 'OPENING':
+        frame_need(obj['authorization_sha256'] == AUTHORIZATION_SHA256 and obj['legacy_base_pin'] == LEGACY_BASE_PIN, 'PIN')
+        if obj['previous_opening_sha256'] is not None: fdigest(obj['previous_opening_sha256'])
+        fx(obj['expected_totals'], ('body_ns','admin_policy_ns','known_policy_ns','operations'))
+        for x in obj['expected_totals'].values(): fu(x)
+        frame_need(obj['physical_total_ns'] is None and obj['old_complete_total_ns'] is None and obj['physical_final_boundary'] == 'OPEN_NOT_ZERO', 'CORRELATION')
+    return obj
+
+
+def _tool_request(obj, tool, command, session):
+    financial_plain(obj)
+    if tool == 'exec_command':
+        allowed=('cmd','workdir','login','shell','tty','yield_time_ms','max_output_tokens','sandbox_permissions','justification','prefix_rule')
+        frame_need(type(obj) is dict and set(obj) <= set(allowed) and 'cmd' in obj and 'workdir' in obj, 'SCHEMA')
+        frame_need(type(obj['cmd']) is str and obj['cmd'] == command['exact_shell_command'] and obj['workdir'] == str(W), 'CORRELATION')
+        for k in ('login','tty'):
+            if k in obj: frame_need(type(obj[k]) is bool, 'TYPE')
+        for k in ('yield_time_ms','max_output_tokens'):
+            if k in obj: fu(obj[k])
+        for k in ('shell','sandbox_permissions','justification'):
+            if k in obj: frame_need(type(obj[k]) is str, 'TYPE')
+        if 'prefix_rule' in obj: frame_need(type(obj['prefix_rule']) is list and len(obj['prefix_rule']) <= 16 and all(type(x) is str for x in obj['prefix_rule']), 'TYPE')
+    else:
+        frame_need(type(obj) is dict and set(obj) <= {'session_id','chars','yield_time_ms','max_output_tokens'} and 'session_id' in obj, 'SCHEMA')
+        frame_need(type(obj['session_id']) is int and obj['session_id'] == session, 'CORRELATION')
+        if 'chars' in obj: frame_need(type(obj['chars']) is str and len(obj['chars']) <= 4096, 'TYPE')
+        for k in ('yield_time_ms','max_output_tokens'):
+            if k in obj: fu(obj[k])
+
+
+def _native_result(obj, session):
+    # Unknown API shapes stay unresolved. Original raw Tool is never changed.
+    if type(obj) is not dict or not {'output','wall_time_seconds'} <= set(obj) or not set(obj) <= {'output','wall_time_seconds','chunk_id','original_token_count','session_id','exit_code'}:
+        return 'UNKNOWN', session, None
+    if type(obj['output']) is not str: return 'UNKNOWN', session, None
+    wait=obj['wall_time_seconds']
+    if not ((type(wait) is int and wait >= 0) or (type(wait) is str and 0 < len(wait) <= 64 and wait.count('.') <= 1 and all(c in '0123456789.' for c in wait) and any(c in '0123456789' for c in wait))):
+        return 'UNKNOWN', session, None
+    if 'chunk_id' in obj and (type(obj['chunk_id']) is not str or not 1 <= len(obj['chunk_id']) <= 64): return 'UNKNOWN', session, None
+    if 'original_token_count' in obj and (type(obj['original_token_count']) is not int or obj['original_token_count'] < 0): return 'UNKNOWN', session, None
+    if obj.get('exit_code') is not None:
+        if type(obj['exit_code']) is not int or not -MAX_VALUE <= obj['exit_code'] <= MAX_VALUE: return 'UNKNOWN', session, None
+        if 'session_id' in obj:
+            if type(obj['session_id']) is not int or obj['session_id'] < 0 or (session is not None and obj['session_id'] != session): return 'UNKNOWN', session, None
+            session=obj['session_id']
+        return 'TERMINAL', session, obj['exit_code']
+    if type(obj.get('session_id')) is not int or obj['session_id'] < 0: return 'UNKNOWN', session, None
+    if session is not None and obj['session_id'] != session: return 'UNKNOWN', session, None
+    return 'RUNNING', obj['session_id'], None
+
+
+def _wire_pin(path, wire, mode):
+    raw=wire.encode('utf-8')
+    return {'path':str(path),'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'mode':mode}
+
+
+def _manifest_successor(a, b):
+    frame_need(a['attempt_id'] == b['attempt_id'] and a['settlement_route'] == b['settlement_route'], 'APPEND')
+    for k in ('command_pin','reservation_pin','pre_entry_pin','meter_start_pin','meter_body_pin','formal_start_pin'):
+        frame_need(a[k] is None or a[k] == b[k], 'APPEND')
+    for k in ('formal_receipt_pin',):
+        frame_need(a[k] is None or a[k] == b[k], 'APPEND')
+    frame_need(a['native_chain_pin'] is None or b['native_chain_pin'] is not None, 'APPEND')
+    frame_need(a['financial_adjudication_pin'] is None or b['financial_adjudication_pin'] is not None, 'APPEND')
+    if a['phase'] in ('CLOSED_KNOWN','FORMAL_AWAIT_CLOSE'):
+        frame_need(a['financial_adjudication_pin']==b['financial_adjudication_pin'] and a['native_chain_pin']==b['native_chain_pin'], 'APPEND')
+    allowed={'RESERVED':FIN_PHASES,'STARTED':('STARTED','OBSERVED_AWAIT_REVIEW','OPEN_UNCERTAIN','FORMAL_AWAIT_CLOSE','CLOSED_KNOWN'),
+             'OBSERVED_AWAIT_REVIEW':('OBSERVED_AWAIT_REVIEW','OPEN_UNCERTAIN','FORMAL_AWAIT_CLOSE','CLOSED_KNOWN'),
+             'OPEN_UNCERTAIN':('OPEN_UNCERTAIN','OBSERVED_AWAIT_REVIEW','FORMAL_AWAIT_CLOSE','CLOSED_KNOWN'),
+             'FORMAL_AWAIT_CLOSE':('FORMAL_AWAIT_CLOSE','CLOSED_KNOWN','OPEN_UNCERTAIN'),'CLOSED_KNOWN':('CLOSED_KNOWN',)}
+    frame_need(b['phase'] in allowed[a['phase']], 'APPEND')
+    frame_need(a['phase'] != 'CLOSED_KNOWN' or a == b, 'APPEND')
+    frame_need(a['phase'] != 'FORMAL_AWAIT_CLOSE' or b['phase'] in ('FORMAL_AWAIT_CLOSE','CLOSED_KNOWN','OPEN_UNCERTAIN'), 'APPEND')
+
+
+def _financial_docs(snapshot):
+    financial_plain(snapshot)
+    fx(snapshot, ('schema','opening_pin','opening_wire','legacy_snapshot','wires','head_pin','head_wire','census'))
+    frame_need(snapshot['schema'] == 'fresh-financial-snapshot-v1', 'SCHEMA')
+    fp(snapshot['opening_pin']); fp(snapshot['head_pin'])
+    frame_need(type(snapshot['wires']) is dict and len(snapshot['wires']) <= FIN_MAX_FILES and type(snapshot['census']) is dict, 'TYPE')
+    total=0; docs={}; rawwires=snapshot['wires']; parsed_nodes=[0]
+    for path,wire in rawwires.items():
+        frame_need(type(path) is str and type(wire) is str, 'TYPE')
+        raw=wire.encode('utf-8'); total+=len(raw)
+        frame_need(len(raw) <= META_CAP and total <= FIN_MAX_BYTES, 'TYPE')
+        value=financial_decode(raw) if raw else None
+        financial_plain(value, parsed_nodes); docs[path]=value
+    used=set()
+    def take(p):
+        fp(p, True); frame_need(p['bytes'] <= META_CAP, 'PIN'); path=p['path']; frame_need(path in rawwires, 'PIN')
+        wire=rawwires[path]; frame_need(_wire_pin(path,wire,p['mode']) == p, 'PIN'); used.add(path)
+        return docs[path]
+    frame_need(snapshot['opening_wire'] == rawwires.get(snapshot['opening_pin']['path']) and
+               snapshot['head_wire'] == rawwires.get(snapshot['head_pin']['path']), 'PIN')
+    take.__dict__['wires']=rawwires
+    take.__dict__['used']=used
+    return docs,take,used
+
+
+def _entry_financial_view(manifest_pin, manifest, take, legacy):
+    validate_original_record('ENTRY_MANIFEST', manifest)
+    name=manifest['attempt_id']; folder=FIN_ENTRIES/name
+    frame_need(Path(manifest_pin['path']).parent == folder, 'PIN')
+    record_pins={}; values={}
+    mapping={'command':'COMMAND','reservation':'RESERVATION','pre_entry':'PRE_ENTRY','meter_start':'METER_START',
+             'meter_body':'METER_BODY','native_chain':'NATIVE_CHAIN','financial_adjudication':'FINANCIAL_ADJUDICATION'}
+    for key,kind in mapping.items():
+        p=manifest[key+'_pin']; record_pins[key]=p
+        if p is None:
+            values[key]=None
+        else:
+            frame_need(Path(p['path']).parent == folder, 'PIN')
+            if key in ('meter_start','meter_body'):
+                frame_need(p['path']==str(folder/(kind+'.json')), 'CORRELATION')
+            values[key]=validate_original_record(kind, take(p))
+            frame_need(values[key]['attempt_id'] == name, 'CORRELATION')
+    command,reservation,pre=(values[k] for k in ('command','reservation','pre_entry'))
+    if command['metadata_close_intent'] is not None:
+        take(command['metadata_close_intent']['receipt_pin'])
+    permission=validate_original_record('PERMISSION',take(command['permission_pin'])); record_pins['permission']=command['permission_pin']
+    frame_need(Path(command['permission_pin']['path']).parent == folder and permission['attempt_id'] == name, 'CORRELATION')
+    cp=manifest['command_pin']; rp=manifest['reservation_pin']
+    frame_need(reservation['command_pin'] == pre['command_pin'] == cp and pre['reservation_pin'] == rp and
+               permission['operation_class'] == command['operation_class'] and
+               reservation['permission_pin'] == pre['permission_pin'] == command['permission_pin'], 'CORRELATION')
+    frame_need(manifest['settlement_route'] == command['settlement_route'] == reservation['settlement_route'] and
+               permission['body_reservation_ns'] == reservation['body_reservation_ns'] and permission['admin_policy_ns'] == reservation['admin_policy_ns'], 'CORRELATION')
+    for key in ('source_packet_pin','operating_profile_pin','review_contract_pin'):
+        frame_need(permission[key] == command[key], 'CORRELATION')
+    authfile=legacy['descriptor']['files'][legacy['descriptor']['authorization_file']]
+    frame_need(permission['round_authorization_pin'] == {'path':authfile['origin_path'],'bytes':authfile['bytes'],'sha256':authfile['sha256'],'mode':authfile['origin_mode']}, 'PIN')
+    _tool_request(take(pre['provider_request_pin']), 'exec_command', command, None)
+    start,body,chain,adj=(values[k] for k in ('meter_start','meter_body','native_chain','financial_adjudication'))
+    for obj in (start,body,chain,adj):
+        if obj is not None:
+            frame_need(obj['command_pin'] == cp and obj['reservation_pin'] == rp, 'CORRELATION')
+    if start is not None:
+        frame_need(start['permission_pin'] == command['permission_pin'] and pre['expected_meter_start_path'] == manifest['meter_start_pin']['path'], 'CORRELATION')
+    if body is not None:
+        frame_need(start is not None and body['meter_start_pin'] == manifest['meter_start_pin'], 'CORRELATION')
+        frame_need(body['body']['begin_ns'] is None or body['body']['begin_ns'] == start['body_begin_ns'], 'CORRELATION')
+    slot_path=str(folder/'METER_BODY.json')
+    slot_wire=take.__dict__.get('wires',{}).get(slot_path)
+    if body is None and slot_wire=='' and start is not None:
+        frame_need(manifest['phase'] in ('RESERVED','STARTED'), 'CORRELATION')
+        take.__dict__['used'].add(slot_path)
+    terminal=False; terminal_exit=None; session=None
+    if chain is not None:
+        frame_need(pre['expected_native_chain_path'] == manifest['native_chain_pin']['path'], 'CORRELATION')
+        for i,call in enumerate(chain['calls']):
+            frame_need(not terminal, 'CORRELATION')
+            request=take(call['request_pin']); _tool_request(request,call['tool'],command,session)
+            if i==0: frame_need(call['request_pin'] == pre['provider_request_pin'], 'CORRELATION')
+            result_pin=call['original_tool_result_pin']
+            if result_pin is None or result_pin['bytes'] > META_CAP:
+                break  # Original opaque missing/oversize result remains unresolved.
+            result=take(result_pin)
+            status,session,terminal_exit=_native_result(result,session)
+            if status=='UNKNOWN': break
+            terminal=status=='TERMINAL'
+    blockers=[]; unknown=[]
+    elapsed=body['body']['elapsed_ns'] if body is not None and body['body']['state']=='KNOWN' else None
+    closure_known=(elapsed is not None and terminal and body['owned_cleanup']=='KNOWN_CLOSED' and
+                   body['owned_wait'] in ('KNOWN_RETURNED','NO_CHILD') and body['errors']['io_unknown'] is False)
+    if elapsed is None: unknown.append('BODY_UNKNOWN')
+    if not terminal: unknown.append('NATIVE_TERMINAL_MISSING')
+    if body is None or body['owned_cleanup']!='KNOWN_CLOSED' or body['owned_wait']=='UNKNOWN' or body['errors']['io_unknown']:
+        unknown.append('OWNED_CLEANUP_UNKNOWN')
+    rss=body['resource_observations']['peak_sampled_rss_bytes'] if body is not None else None
+    if rss is None: unknown.append('SAMPLED_RSS_UNKNOWN')
+    elif rss>RSS_LIMIT: blockers.append(name+':SAMPLED_RSS_EXCEEDED')
+    if elapsed is not None and (elapsed>BODY_LIMIT_NS or elapsed>reservation['body_reservation_ns']): blockers.append(name+':BODY_RESERVATION_OR180_EXCEEDED')
+    charge=None; adjudicated=False
+    if adj is not None:
+        for key in ('permission_pin','source_packet_pin','review_contract_pin'):
+            frame_need(adj[key] == command[key], 'CORRELATION')
+        frame_need(adj['meter_start_pin'] == manifest['meter_start_pin'] and adj['meter_body_pin'] == manifest['meter_body_pin'] and
+                   adj['native_chain_pin'] == manifest['native_chain_pin'], 'CORRELATION')
+        frame_need(len(adj['result_groups']) == len(command['declared_result_groups']), 'CORRELATION')
+        for expected,observed in zip(command['declared_result_groups'],adj['result_groups']):
+            frame_need(all(observed[k] == expected[k] for k in ('group_id','golden_pin','inventory_pin','expected_count')), 'CORRELATION')
+        if adj['financial_status']=='CLOSED_KNOWN':
+            frame_need(closure_known and rss is not None and adj['cleanup_status']=='KNOWN_CLOSED' and
+                       adj['tail_status']=='ADMIN_ONLY_OPEN' and adj['body_outcome'] in ('SUCCEEDED','FAILED') and
+                       adj['accepted_body_ns'] == elapsed and adj['known_policy_ns'] == elapsed+ADMIN_NS, 'CORRELATION')
+            expected_resource='EXCEEDED' if rss>RSS_LIMIT or elapsed>BODY_LIMIT_NS else 'WITHIN_SAMPLED_LIMIT'
+            frame_need(adj['resource_status'] == expected_resource, 'CORRELATION')
+            if adj['body_outcome']=='SUCCEEDED':
+                frame_need(terminal_exit==0 and body['child_exit'] in (None,0) and body['errors']['first'] is None and body['errors']['secondary']==[] and
+                           all(g['semantic_status']=='PASS' for g in adj['result_groups']), 'CORRELATION')
+            charge=elapsed+ADMIN_NS; adjudicated=True
+        else:
+            unknown.append('ADJUDICATION_OPEN')
+    else:
+        unknown.append('REVIEW_MISSING')
+    phase=manifest['phase']
+    if phase in ('CLOSED_KNOWN','FORMAL_AWAIT_CLOSE'):
+        frame_need(adjudicated, 'CORRELATION')
+    if phase=='CLOSED_KNOWN' and manifest['settlement_route']=='FORMAL_OUTER':
+        frame_need(manifest['formal_start_pin'] is not None and manifest['formal_receipt_pin'] is not None, 'CORRELATION')
+    if manifest['settlement_route']=='FORMAL_OUTER' and manifest['formal_start_pin'] is not None:
+        formal_start=take(manifest['formal_start_pin'])
+        _formal_start(formal_start,name,cp['sha256'],reservation['body_reservation_ns'],rp,manifest['meter_start_pin'])
+        frame_need(formal_start['label']==name and formal_start['command_sha256']==cp['sha256'] and
+                   formal_start['body_reservation_ns']==reservation['body_reservation_ns'], 'CORRELATION')
+        if manifest['formal_receipt_pin'] is not None:
+            receipt=take(manifest['formal_receipt_pin'])
+            if elapsed is not None and body is not None:
+                _formal_receipt(receipt,manifest['formal_start_pin'],name,elapsed,body['body']['begin_ns'],body['body']['end_ns'])
+            frame_need(adjudicated and receipt['label']==name and
+                       receipt['start_sha256']==manifest['formal_start_pin']['sha256'] and receipt['body_elapsed_ns']==elapsed and
+                       receipt['administrative_debit_ns']==ADMIN_NS, 'CORRELATION')
+    unknown=list(dict.fromkeys(unknown))
+    kind='ORIGINAL_MANUAL_OPERATION' if manifest['settlement_route']=='MANUAL_ONLY' else 'ALREADY_REGISTERED_OPERATION'
+    return {'entry_id':name,'command_sha256':cp['sha256'],'exact_shell_sha256':command['exact_shell_sha256'],
+            'kind':kind,'body_ns':elapsed,'admin_ns':ADMIN_NS,'blockers':blockers,
+            'formal_start_sha256':manifest['formal_start_pin']['sha256'] if manifest['formal_start_pin'] is not None else None,
+            'formal_receipt_sha256':manifest['formal_receipt_pin']['sha256'] if manifest['formal_receipt_pin'] is not None else None,
+            'phase':phase,'settlement_route':manifest['settlement_route'],
+            'reservation_ns':reservation['body_reservation_ns']+ADMIN_NS,'known_charge_ns':charge,
+            'command':command,'reservation':reservation,'pre_entry':pre,'meter_start':start,'meter_body':body,
+            'native_chain':chain,'adjudication':adj,'manifest_pin':manifest_pin,'record_pins':record_pins,
+            'terminal_exit':terminal_exit,'terminal_known':terminal,'_unknown':unknown}
+
+
+def financial_evidence(snapshot):
+    docs,take,used=_financial_docs(snapshot)
+    op=validate_original_record('OPENING',take(snapshot['opening_pin']))
+    frame_need(snapshot['legacy_snapshot']['opening_pin'] == LEGACY_BASE_PIN, 'PIN')
+    legacy=_opening_evidence_f3(snapshot['legacy_snapshot'])
+    frame_need(len(legacy['views'])==3 and len(legacy['descriptor']['files'])==24, 'PIN')
+    frame=take(op['frame_contract_pin']); fx(frame, ('schema','family','limits','legacy_base_pin'))
+    frame_need(frame['schema']=='fresh-financial-frame-contract-v1' and frame['family']=='PROSPECTIVE_FINANCIAL_FRAME_V1' and frame['legacy_base_pin']==LEGACY_BASE_PIN, 'SCHEMA'); _limits(frame['limits'])
+    head=take(snapshot['head_pin']); fx(head, ('schema','generation','state_pin','opening_pin','previous_head_sha256'))
+    frame_need(head['schema']=='fresh-financial-head-v1' and type(head['generation']) is int and 0<=head['generation']<=256 and
+               head['opening_pin']==snapshot['opening_pin'] and head['state_pin']==op['suffix_state_pin'] and
+               snapshot['head_pin']['path']==str(FIN_HEAD) and snapshot['head_pin']['mode']==0o600, 'CORRELATION')
+    gen=head['generation']; states=[]; old_heads=[]; openings=[]
+    def pathdoc(path, mode):
+        path=str(path); frame_need(path in snapshot['wires'], 'PIN'); return take(_wire_pin(path,snapshot['wires'][path],mode))
+    for g in range(gen+1):
+        st=validate_original_record('STATE',pathdoc(FIN_ROOT/('STATE-%06d.json'%g),0o444))
+        ho=pathdoc(FIN_ROOT/('HEAD-%06d.json'%g),0o600); fx(ho, ('schema','generation','state_pin','opening_pin','previous_head_sha256'))
+        opening=validate_original_record('OPENING',pathdoc(FIN_ROOT/('OPENING-%06d.json'%g),0o444))
+        frame_need(st['generation']==g and type(st['generation']) is int and ho['generation']==g and type(ho['generation']) is int and
+                   ho['schema']=='fresh-financial-head-v1' and ho['state_pin']==_wire_pin(FIN_ROOT/('STATE-%06d.json'%g),snapshot['wires'][str(FIN_ROOT/('STATE-%06d.json'%g))],0o444) and
+                   ho['opening_pin']==_wire_pin(FIN_ROOT/('OPENING-%06d.json'%g),snapshot['wires'][str(FIN_ROOT/('OPENING-%06d.json'%g))],0o444) and
+                   opening['suffix_state_pin']==ho['state_pin'] and opening['frame_contract_pin']==op['frame_contract_pin'], 'APPEND')
+        if g==0:
+            frame_need(st['previous_state_sha256'] is None and ho['previous_head_sha256'] is None and opening['previous_opening_sha256'] is None, 'APPEND')
+        else:
+            frame_need(st['previous_state_sha256']==_wire_pin(FIN_ROOT/('STATE-%06d.json'%(g-1)),snapshot['wires'][str(FIN_ROOT/('STATE-%06d.json'%(g-1)))],0o444)['sha256'] and
+                       ho['previous_head_sha256']==_wire_pin(FIN_ROOT/('HEAD-%06d.json'%(g-1)),snapshot['wires'][str(FIN_ROOT/('HEAD-%06d.json'%(g-1)))],0o600)['sha256'] and
+                       opening['previous_opening_sha256']==old_heads[-1]['opening_pin']['sha256'], 'APPEND')
+        states.append(st); old_heads.append(ho); openings.append(opening)
+    frame_need(head==old_heads[-1] and op==openings[-1], 'CORRELATION')
+    all_manifests={}; versions={}; current_entries={}; ids=set(legacy['manual_entry_ids']); commands=set(legacy['manual_command_sha256s']); shells={v['exact_shell_sha256'] for v in legacy['views']}
+    for path,obj in docs.items():
+        if Path(path).parent.parent == FIN_ENTRIES and Path(path).name.startswith('ENTRY-') and Path(path).name.endswith('.json'):
+            m=validate_original_record('ENTRY_MANIFEST',obj); folder=FIN_ENTRIES/m['attempt_id']; actual=Path(path)
+            frame_need(actual.parent==folder and actual.name.startswith('ENTRY-') and actual.name.endswith('.json') and len(actual.name)==17 and
+                       all(c in '0123456789' for c in actual.name[6:12]), 'CENSUS')
+            index=int(actual.name[6:12]); versions.setdefault(m['attempt_id'],{})[index]=path
+            all_manifests[path]=_entry_financial_view(_wire_pin(path,snapshot['wires'][path],0o444),m,take,legacy); used.add(path)
+    for name,history in versions.items():
+        frame_need(set(history)==set(range(len(history))), 'APPEND')
+        frame_need(docs[history[0]]['phase']=='RESERVED', 'APPEND')
+        for i in range(1,len(history)):
+            _manifest_successor(docs[history[i-1]],docs[history[i]])
+            av,bv=all_manifests[history[i-1]],all_manifests[history[i]]
+            frame_need(av['known_charge_ns'] is None or (av['known_charge_ns']==bv['known_charge_ns'] and av['record_pins']['financial_adjudication']==bv['record_pins']['financial_adjudication']), 'APPEND')
+            if av['native_chain'] is not None and bv['native_chain'] is not None:
+                oldcalls,newcalls=av['native_chain']['calls'],bv['native_chain']['calls']
+                frame_need(len(newcalls)>=len(oldcalls), 'APPEND')
+                for j,oc in enumerate(oldcalls):
+                    nc=newcalls[j]; frame_need(all(oc[k]==nc[k] for k in ('ordinal','tool','request_pin')) and
+                        (oc['original_tool_result_pin'] is None or oc['original_tool_result_pin']==nc['original_tool_result_pin']), 'APPEND')
+    previous_entries={}
+    for g,state in enumerate(states):
+        entries={}
+        for mp in state['ordered_entries']:
+            frame_need(mp['path'] in all_manifests and _wire_pin(mp['path'],snapshot['wires'][mp['path']],mp['mode'])==mp, 'PIN')
+            view=all_manifests[mp['path']]; name=view['entry_id']; frame_need(name not in entries, 'CORRELATION'); entries[name]=view
+        if g:
+            frame_need(list(entries)[:len(previous_entries)]==list(previous_entries), 'APPEND')
+            for name,prev in previous_entries.items(): _manifest_successor(docs[prev['manifest_pin']['path']],docs[entries[name]['manifest_pin']['path']])
+            frame_need(state['metadata_close_events'][:len(states[g-1]['metadata_close_events'])]==states[g-1]['metadata_close_events'], 'APPEND')
+        body=legacy['parent_body_ns']+sum(v['body_ns'] for v in entries.values() if v['body_ns'] is not None)
+        admin=legacy['parent_admin_ns']+ADMIN_NS*len(entries)
+        pending=[n for n,v in entries.items() if v['phase']!='CLOSED_KNOWN']
+        frame_need(state['known_body_ns']==body and state['admin_policy_ns']==admin and state['known_policy_ns']==body+admin and
+                   state['unsettled_entries']==pending and openings[g]['expected_totals']=={'body_ns':body,'admin_policy_ns':admin,'known_policy_ns':body+admin,'operations':3+len(entries)}, 'CORRELATION')
+        previous_entries=entries
+    current_entries=previous_entries
+    frame_need(set(current_entries)==set(versions) and all(current_entries[n]['manifest_pin']['path']==versions[n][len(versions[n])-1] for n in current_entries), 'CENSUS')
+    for name,v in current_entries.items():
+        frame_need(name not in ids and v['command_sha256'] not in commands and v['exact_shell_sha256'] not in shells, 'CORRELATION')
+        ids.add(name); commands.add(v['command_sha256']); shells.add(v['exact_shell_sha256'])
+        prior=v['reservation']['before_closed_state_pin']
+        legacy_state=legacy['descriptor']['files'][legacy['descriptor']['state_file']]
+        if prior['sha256']==legacy_state['sha256']:
+            before_enc=legacy['parent_body_ns']+legacy['parent_admin_ns']
+            frame_need(prior=={'path':legacy_state['origin_path'],'bytes':legacy_state['bytes'],'sha256':legacy_state['sha256'],'mode':legacy_state['origin_mode']}, 'PIN')
+        else:
+            before=take(prior); frame_need(before['schema']==FRAME_RECORDS['STATE']['schema'] and before['generation']<gen and
+                                         name not in [all_manifests[x['path']]['entry_id'] for x in before['ordered_entries']], 'CORRELATION')
+            pv=[all_manifests[x['path']] for x in before['ordered_entries']]
+            before_enc=legacy['parent_body_ns']+legacy['parent_admin_ns']+sum(x['known_charge_ns'] if x['phase']=='CLOSED_KNOWN' else max(x['reservation_ns'],x['known_charge_ns'] if x['known_charge_ns'] is not None else (x['body_ns']+ADMIN_NS if x['body_ns'] is not None else 0)) for x in pv)
+        frame_need(v['reservation']['policy_reserved_before_ns']==before_enc, 'CORRELATION')
+    root_members=['HEAD.json','entries']+[prefix+('%06d.json'%g) for g in range(gen+1) for prefix in ('HEAD-','STATE-','OPENING-')]
+    if Path(op['frame_contract_pin']['path']).parent == FIN_ROOT:
+        root_members.append(Path(op['frame_contract_pin']['path']).name)
+    frame_need(snapshot['census'].get(str(FIN_ROOT))==sorted(root_members) and
+               snapshot['census'].get(str(FIN_ENTRIES))==sorted(current_entries), 'CENSUS')
+    for name in current_entries:
+        expected=sorted(Path(path).name for path in snapshot['wires'] if Path(path).parent==FIN_ENTRIES/name)
+        frame_need(snapshot['census'].get(str(FIN_ENTRIES/name))==expected, 'CENSUS')
+    frame_need(set(snapshot['census'])=={str(FIN_ROOT),str(FIN_ENTRIES)}|{str(FIN_ENTRIES/n) for n in current_entries}, 'CENSUS')
+    ranks={}; linked_commits={}
+    for event in states[-1]['metadata_close_events']:
+        closer,target_id=event['closer_id'],event['target_id']; frame_need(closer!=target_id and closer in current_entries and target_id in current_entries,'CORRELATION')
+        cv,tv=current_entries[closer],current_entries[target_id]
+        frame_need(cv['command']['operation_class']=='METADATA_CLOSER' and cv['settlement_route']=='MANUAL_ONLY' and
+                   cv['command']['metadata_close_intent']['target_id']==target_id and tv['settlement_route']=='FORMAL_OUTER','CORRELATION')
+        rank={'INTENT':0,'FORMAL_COMMITTED':1,'FINANCIAL_COMMITTED':2}[event['phase']]; pair=(closer,target_id)
+        frame_need(pair not in ranks or rank>ranks[pair],'APPEND'); ranks[pair]=rank
+        frame_need(event['intent_pin'] is not None,'CORRELATION'); journal=take(event['intent_pin'])
+        fx(journal,('schema','closer_id','target_id','own_command_pin','target_start_pin','expected_financial_head_pin','expected_formal_head_pin','receipt_pin','review_pin'))
+        intent=cv['command']['metadata_close_intent']
+        frame_need(journal['schema']=='fresh-metadata-close-intent-v1' and journal['closer_id']==closer and journal['target_id']==target_id and
+                   journal['own_command_pin']==cv['record_pins']['command'] and journal['target_start_pin']==intent['formal_start_pin'] and
+                   journal['receipt_pin']==intent['receipt_pin'] and journal['review_pin']==intent['review_pin'],'CORRELATION')
+        expected_fin=journal['expected_financial_head_pin']; fp(expected_fin); fp(journal['expected_formal_head_pin'])
+        matches=[g for g in range(gen) if expected_fin['sha256']==_wire_pin(FIN_ROOT/('HEAD-%06d.json'%g),snapshot['wires'][str(FIN_ROOT/('HEAD-%06d.json'%g))],0o600)['sha256']]
+        frame_need(expected_fin['path']==str(FIN_HEAD) and len(matches)==1,'CORRELATION')
+        original_head_wire=snapshot['wires'][str(FIN_ROOT/('HEAD-%06d.json'%matches[0]))]
+        frame_need(expected_fin==_wire_pin(FIN_HEAD,original_head_wire,0o600),'CORRELATION')
+        expected_prior_head=old_heads[matches[0]]
+        if rank>=1:
+            frame_need(event['formal_head_pin'] is not None and event['receipt_pin'] is not None,'CORRELATION')
+            formal_head=take(event['formal_head_pin']); fx(formal_head,('schema','sequence','registry_pin','previous_head_sha256'))
+            frame_need(formal_head['schema']=='fresh-active-head-v1' and formal_head['previous_head_sha256']==journal['expected_formal_head_pin']['sha256'],'CORRELATION')
+            raw_registry=snapshot['wires'].get(formal_head['registry_pin']['path']); frame_need(type(raw_registry) is str,'PIN')
+            formal_reg=take(formal_head['registry_pin']); parsed_formal,_,fst,fcl=registry(raw_registry.encode())
+            frame_need(type(formal_head['sequence']) is int and 0<formal_head['sequence']<=2*MAX_ENTRIES and
+                       formal_head['registry_pin']['path']==str(CONTROL/('REGISTRY-%06d.json'%formal_head['sequence'])) and
+                       formal_head['registry_pin']['mode']==0o444 and
+                       event['formal_head_pin']['path']==str(CONTROL/'_registry-heads'/('HEAD-%06d.json'%formal_head['sequence'])) and
+                       event['formal_head_pin']['mode']==0o600 and
+                       parsed_formal['predecessor_sha256']==intent['current_registry_pin']['sha256'] and
+                       parsed_formal['events'][-1:]==[{'kind':'CLOSE','label':target_id,'pin':event['receipt_pin']}], 'CORRELATION')
+            frame_need(target_id in fst and target_id in fcl and fst[target_id]==intent['formal_start_pin'] and fcl[target_id]==event['receipt_pin'] and
+                       event['receipt_pin']['sha256']==intent['receipt_pin']['sha256'] and event['receipt_pin']['bytes']==intent['receipt_pin']['bytes'],'CORRELATION')
+            take(event['receipt_pin'])
+        if rank==2:
+            frame_need(event['financial_state_pin'] is not None and tv['phase']=='CLOSED_KNOWN' and tv['formal_receipt_sha256']==event['receipt_pin']['sha256'],'CORRELATION')
+            prior_state=take(event['financial_state_pin']); frame_need(event['financial_state_pin']==expected_prior_head['state_pin'] and prior_state['schema']==FRAME_RECORDS['STATE']['schema'] and prior_state['generation']<gen,'CORRELATION')
+            prior_entries={all_manifests[mp['path']]['entry_id']:all_manifests[mp['path']] for mp in prior_state['ordered_entries']}
+            frame_need(target_id in prior_entries and closer in prior_entries and target_id not in linked_commits, 'CORRELATION')
+            pt,pc=prior_entries[target_id],prior_entries[closer]
+            frame_need(pt['settlement_route']=='FORMAL_OUTER' and pt['phase']=='FORMAL_AWAIT_CLOSE' and
+                       pt['known_charge_ns'] is not None and not pt['_unknown'] and not pt['blockers'] and
+                       pc['settlement_route']=='MANUAL_ONLY' and pc['command']['operation_class']=='METADATA_CLOSER' and
+                       pc['phase'] in ('RESERVED','STARTED') and pc['meter_start'] is not None and
+                       pc['meter_body'] is None and pc['adjudication'] is None and not pc['terminal_known'] and
+                       pc['command']==cv['command'] and pc['reservation']==cv['reservation'] and
+                       pc['meter_start']==cv['meter_start'], 'CORRELATION')
+            frame_need(all(v['phase']=='CLOSED_KNOWN' and not v['_unknown'] and not v['blockers']
+                           for n,v in prior_entries.items() if n not in (closer,target_id)), 'CORRELATION')
+            for key,role in (('native_chain_pin','native_chain'),('meter_body_pin','meter_body'),('financial_adjudication_pin','financial_adjudication')):
+                frame_need(intent[key]==pt['record_pins'][role]==tv['record_pins'][role], 'CORRELATION')
+            frame_need(docs[pt['manifest_pin']['path']]['formal_start_pin']==intent['formal_start_pin'] and
+                       intent['formal_start_pin']['sha256']==pt['formal_start_sha256']==tv['formal_start_sha256'] and
+                       docs[tv['manifest_pin']['path']]['formal_receipt_pin']==event['receipt_pin'] and
+                       pc['meter_start']['body_begin_ns']>=pt['meter_body']['body']['end_ns'], 'CORRELATION')
+            target_body=pt['meter_body']['body']
+            _formal_receipt(take(event['receipt_pin']),intent['formal_start_pin'],target_id,pt['body_ns'],
+                            target_body['begin_ns'],target_body['end_ns'],intent['review_pin'])
+            linked_commits[target_id]=event
+    # The reservation may leave pending only in a state that already contains
+    # this exact verified link. Ordinary evidence/candidate/NEW inherit it.
+    for state in states:
+        for mp in state['ordered_entries']:
+            view=all_manifests[mp['path']]
+            if view['settlement_route']=='FORMAL_OUTER' and view['phase']=='CLOSED_KNOWN':
+                frame_need(view['entry_id'] in linked_commits and
+                           linked_commits[view['entry_id']] in state['metadata_close_events'] and
+                           linked_commits[view['entry_id']]['receipt_pin']==docs[mp['path']]['formal_receipt_pin'], 'CORRELATION')
+    for path,obj in docs.items():
+        if type(obj) is dict and obj.get('schema')=='fresh-current-manual-pending-v1':
+            fx(obj,('schema','closed_state_sha256','operations')); fdigest(obj['closed_state_sha256'])
+            frame_need(type(obj['operations']) is list and len(obj['operations'])==1,'CORRELATION')
+            item=obj['operations'][0]; fx(item,('entry_id','command_sha256','body_reservation_ns','registration_pin','original_start_pin'))
+            name=item['entry_id']; frame_need(type(name) is str and name in current_entries,'CORRELATION'); v=current_entries[name]
+            frame_need(item['command_sha256']==v['command_sha256'] and item['body_reservation_ns']==v['reservation']['body_reservation_ns'] and
+                       item['registration_pin']==v['record_pins']['reservation'] and item['original_start_pin']==v['record_pins']['meter_start'] and
+                       obj['closed_state_sha256']==v['reservation']['before_closed_state_pin']['sha256'],'CORRELATION')
+            used.add(path)
+    frame_need(used==set(snapshot['wires']), 'CENSUS')
+    pending=[n for n,v in current_entries.items() if v['phase']!='CLOSED_KNOWN']; unknown=[n for n,v in current_entries.items() if v['_unknown']]
+    blockers=list(legacy['blockers'])
+    for n,v in current_entries.items():
+        blockers.extend(v['blockers'])
+        if n in pending: blockers.append(n+':PENDING')
+        if n in unknown: blockers.append(n+':UNKNOWN')
+    views=list(legacy['views'])+[{k:x for k,x in v.items() if k!='_unknown'} for v in current_entries.values()]
+    manual=[v for v in current_entries.values() if v['settlement_route']=='MANUAL_ONLY' and v['phase']=='CLOSED_KNOWN']
+    formal=[v for v in current_entries.values() if v['settlement_route']=='FORMAL_OUTER']
+    closed=legacy['parent_body_ns']+legacy['parent_admin_ns']+sum(v['known_charge_ns'] for v in current_entries.values() if v['phase']=='CLOSED_KNOWN')
+    enc=closed+sum(max(v['reservation_ns'],v['known_charge_ns'] if v['known_charge_ns'] is not None else (v['body_ns']+ADMIN_NS if v['body_ns'] is not None else 0)) for v in current_entries.values() if v['phase']!='CLOSED_KNOWN')
+    result={'descriptor':op,'state_sha256':op['suffix_state_pin']['sha256'],'views':views,
+            'manual_body_ns':legacy['manual_body_ns']+sum(v['body_ns'] for v in manual),
+            'manual_admin_ns':legacy['manual_admin_ns']+ADMIN_NS*len(manual),
+            'manual_entry_ids':legacy['manual_entry_ids']+[v['entry_id'] for v in manual],
+            'manual_command_sha256s':legacy['manual_command_sha256s']+[v['command_sha256'] for v in manual],
+            'registry_rows':legacy['registry_rows']+[{k:x for k,x in v.items() if k!='_unknown'} for v in formal],
+            'parent_body_ns':states[-1]['known_body_ns'],'parent_admin_ns':states[-1]['admin_policy_ns'],'blockers':blockers,
+            'entries':{n:{k:x for k,x in v.items() if k!='_unknown'} for n,v in current_entries.items()},
+            'pending':pending,'unknown':unknown,'head_pin':snapshot['head_pin'],'state_pin':op['suffix_state_pin'],
+            'opening_pin':snapshot['opening_pin'],'closed_policy_ns':closed,'reported_body_ns':states[-1]['known_body_ns'],
+            'registered_admin_ns':states[-1]['admin_policy_ns'],'encumbered_policy_ns':enc}
+    return result
+
+
+def _formal_receipt(receipt, start_pin, name, elapsed, begin, end, review_pin=None):
+    keys=('schema','round_id','label','start_sha256','outcome','body_elapsed_ns','administrative_debit_ns',
+          'body_begin_ns','body_end_ns','body_fully_observed','cleanup_known','custody_complete',
+          'nested_entries_complete','uncertainty','peak_sampled_rss_bytes','tail_state','independent_outcome_review_sha256')
+    financial_plain(receipt); fx(receipt,keys)
+    frame_need(receipt['schema']=='fresh-round-receipt-v1' and receipt['round_id']==ROUND_ID and
+               receipt['label']==name and receipt['start_sha256']==start_pin['sha256'] and
+               receipt['outcome'] in ('PASS','STOP') and fu(receipt['administrative_debit_ns'])==ADMIN_NS, 'CORRELATION')
+    frame_need(type(receipt['body_elapsed_ns']) is int and receipt['body_elapsed_ns']==elapsed and
+               type(receipt['body_begin_ns']) is int and receipt['body_begin_ns']==begin and
+               type(receipt['body_end_ns']) is int and receipt['body_end_ns']==end and end>=begin and end-begin==elapsed, 'CORRELATION')
+    frame_need(all(receipt[k] is True for k in ('body_fully_observed','cleanup_known','custody_complete','nested_entries_complete')) and
+               receipt['uncertainty']==[] and type(receipt['peak_sampled_rss_bytes']) is int and
+               0<=receipt['peak_sampled_rss_bytes']<=RSS_LIMIT and receipt['tail_state'] in ('COMPLETE','ADMIN_ONLY_OPEN'), 'CORRELATION')
+    fdigest(receipt['independent_outcome_review_sha256'])
+    if review_pin is not None:
+        frame_need(receipt['independent_outcome_review_sha256']==review_pin['sha256'], 'CORRELATION')
+
+
+def assess_enclosing_manual(snapshot, own_request, mode, target_intent=None):
+    return _assess_enclosing_manual_cap(snapshot,own_request,mode,target_intent,INITIAL_NS)
+
+
+def _assess_enclosing_manual_cap(snapshot, own_request, mode, target_intent, cap):
+    financial_plain(own_request); financial_plain(target_intent)
+    fx(own_request, ('label','command_sha256','policy_sha256','body_reservation_ns'))
+    flabel(own_request['label']); fdigest(own_request['command_sha256']); fdigest(own_request['policy_sha256']); fu(own_request['body_reservation_ns'])
+    frame_need(type(mode) is str and mode in ('INITIALIZE_ONLY','PAYLOAD_PRELUDE','CLOSE_ONLY'), 'MODE')
+    frame_need(type(cap) is int and cap in (INITIAL_NS,TOTAL_NS), 'TYPE')
+    e=financial_evidence(snapshot); entries=e['entries']; own_id=own_request['label']
+    frame_need(own_id in entries, 'CORRELATION'); own=entries[own_id]
+    frame_need(own['command_sha256']==own_request['command_sha256'] and
+               own['reservation']['policy_adoption_pin']['sha256']==own_request['policy_sha256'] and
+               own['reservation']['body_reservation_ns']==own_request['body_reservation_ns'], 'CORRELATION')
+    blockers=[]; target=None; target_id=None
+    # This is deliberately only a financial view. Actual A4 private context
+    # supplies its real lineage, IO/EX and live process checks before using it.
+    if not (own['phase'] in ('RESERVED','STARTED') and own['meter_start'] is not None and
+            own['meter_body'] is None and own['adjudication'] is None):
+        blockers.append('OWN_NOT_LIVE_ENCLOSING_OPERATION')
+    if snapshot['wires'].get(str(FIN_ENTRIES/own_id/'METER_BODY.json'))!='':
+        blockers.append('OWN_INFLIGHT_SLOT_MISSING_OR_PARTIAL')
+    expected_class={'INITIALIZE_ONLY':'METADATA_INITIALIZER','CLOSE_ONLY':'METADATA_CLOSER','PAYLOAD_PRELUDE':'DATA_CONTROLLER'}[mode]
+    if own['command']['operation_class']!=expected_class: blockers.append('OWN_OPERATION_CLASS')
+    if own['terminal_known']: blockers.append('OWN_ALREADY_TERMINAL')
+    if own['native_chain'] is not None:
+        sid=None
+        for call in own['native_chain']['calls']:
+            pp=call['original_tool_result_pin']
+            if pp is None: break  # Original current observation may still be waiting.
+            if pp['bytes']>META_CAP or pp['path'] not in snapshot['wires']:
+                blockers.append('OWN_NATIVE_UNCERTAIN'); break
+            original=financial_decode(snapshot['wires'][pp['path']].encode()) if snapshot['wires'][pp['path']] else None
+            status,sid,exit_value=_native_result(original,sid)
+            if status=='UNKNOWN': blockers.append('OWN_NATIVE_UNCERTAIN'); break
+            if status=='TERMINAL': blockers.append('OWN_ALREADY_TERMINAL'); break
+
+    if mode!='PAYLOAD_PRELUDE' and own['settlement_route']!='MANUAL_ONLY': blockers.append('OWN_PARTITION')
+    if mode=='PAYLOAD_PRELUDE' and own['settlement_route']!='FORMAL_OUTER': blockers.append('OWN_PARTITION')
+    if mode=='CLOSE_ONLY':
+        _close_intent(target_intent)
+        frame_need(target_intent is not None and target_intent==own['command']['metadata_close_intent'], 'CORRELATION')
+        target_id=target_intent['target_id']; frame_need(target_id!=own_id and target_id in entries, 'CORRELATION'); target=entries[target_id]
+        if not (target['settlement_route']=='FORMAL_OUTER' and target['phase'] in ('FORMAL_AWAIT_CLOSE','CLOSED_KNOWN') and
+                target['known_charge_ns'] is not None and target_id not in e['unknown'] and not target['blockers']):
+            blockers.append('TARGET_NOT_KNOWN_CLOSEABLE')
+        for key,role in (('native_chain_pin','native_chain'),('meter_body_pin','meter_body'),('financial_adjudication_pin','financial_adjudication')):
+            frame_need(target_intent[key]==target['record_pins'][role], 'CORRELATION')
+        frame_need(target_intent['formal_start_pin']['sha256']==target['formal_start_sha256'], 'CORRELATION')
+        docs, take, used=_financial_docs(snapshot)
+        receipt=take(target_intent['receipt_pin'])
+        if target['body_ns'] is not None and target['meter_body'] is not None:
+            body=target['meter_body']['body']
+            _formal_receipt(receipt,target_intent['formal_start_pin'],target_id,target['body_ns'],body['begin_ns'],body['end_ns'],target_intent['review_pin'])
+            if own['meter_start'] is not None and own['meter_start']['body_begin_ns']<body['end_ns']:
+                blockers.append('TARGET_NOT_PRIOR_INTERVAL')
+        else:
+            blockers.append('TARGET_BODY_UNKNOWN')
+        if target['phase']=='CLOSED_KNOWN':
+            state=take(e['state_pin'])
+            if not any(x['closer_id']==own_id and x['target_id']==target_id and x['phase']=='FINANCIAL_COMMITTED' and x['receipt_pin'] is not None and x['receipt_pin']['sha256']==target_intent['receipt_pin']['sha256'] and x['receipt_pin']['bytes']==target_intent['receipt_pin']['bytes'] for x in state['metadata_close_events']):
+                blockers.append('TARGET_COMMIT_NOT_LINKED')
+    else:
+        frame_need(target_intent is None and own['command']['metadata_close_intent'] is None, 'CORRELATION')
+    allowed={own_id}|({target_id} if target_id is not None else set())
+    for name in e['pending']:
+        if name not in allowed: blockers.append(name+':OTHER_PENDING')
+    for name in e['unknown']:
+        if name!=own_id: blockers.append(name+':UNKNOWN')
+    for name,v in entries.items():
+        blockers.extend(v['blockers'])
+    if e['encumbered_policy_ns']>cap: blockers.append('INSUFFICIENT_POLICY_ALLOWANCE')
+    return {'schema':'fresh-enclosing-financial-assessment-v1','own_id':own_id,'target_id':target_id,'cap_ns':cap,
+            'encumbered_policy_ns':e['encumbered_policy_ns'],'own_reservation_ns':own['reservation_ns'],
+            'target_reservation_ns':target['reservation_ns'] if target is not None else None,
+            'target_charge_ns':target['known_charge_ns'] if target is not None else None,
+            'blockers':list(dict.fromkeys(blockers)),'financial_data_eligible_only':not blockers,
+            'native_ownership_authenticated':False,'execution_permission':False}
+
+
+def require_financial_state_append(previous_snapshot,current_snapshot):
+    a=financial_evidence(previous_snapshot); b=financial_evidence(current_snapshot)
+    frame_need(a['descriptor']['legacy_base_pin']==b['descriptor']['legacy_base_pin']==LEGACY_BASE_PIN, 'APPEND')
+    frame_need(b['descriptor']['previous_opening_sha256']==a['opening_pin']['sha256'], 'APPEND')
+    frame_need(list(b['entries'])[:len(a['entries'])]==list(a['entries']), 'APPEND')
+    for name,x in a['entries'].items():
+        y=b['entries'][name]
+        _manifest_successor(financial_decode(previous_snapshot['wires'][x['manifest_pin']['path']].encode()),
+                            financial_decode(current_snapshot['wires'][y['manifest_pin']['path']].encode()))
+        frame_need(x['known_charge_ns'] is None or (x['known_charge_ns']==y['known_charge_ns'] and x['record_pins']['financial_adjudication']==y['record_pins']['financial_adjudication']), 'APPEND')
+    return True
+
+
+def opening_evidence(snapshot):
+    # Exact builtin gate before selecting a parser; no caller callbacks.
+    frame_need(type(snapshot) is dict, 'TYPE')
+    keys=tuple(dict.__iter__(snapshot)); frame_need(all(type(k) is str for k in keys), 'TYPE')
+    if type(snapshot.get('schema')) is str and snapshot['schema']=='fresh-financial-snapshot-v1':
+        return financial_evidence(snapshot)
+    if type(snapshot.get('schema')) is str and snapshot['schema']=='fresh-financial-history-view-v1':
+        financial_plain(snapshot); fx(snapshot,('schema','opening_pin','complete_snapshot'))
+        return _financial_history_evidence(snapshot['complete_snapshot'],snapshot['opening_pin'])
+    return _opening_evidence_f3(snapshot)
+
+
+
+def _financial_schema(value):
+    # Reject non-string dictionary keys before lookup can hash/compare them.
+    if type(value) is not dict:
+        return None
+    keys=tuple(dict.__iter__(value))
+    frame_need(all(type(k) is str for k in keys), 'TYPE')
+    schema=dict.get(value,'schema')
+    return schema if type(schema) is str else None
+
+
+def require_opening_append(previous,current):
+    a=_financial_schema(previous) in ('fresh-financial-snapshot-v1','fresh-financial-history-view-v1')
+    b=_financial_schema(current)=='fresh-financial-snapshot-v1'
+    if not a and not b:
+        return _require_opening_append_f3(previous,current)
+    financial_plain(previous); financial_plain(current)
+    if not a and b:
+        frame_need(previous['opening_pin']==LEGACY_BASE_PIN and current['legacy_snapshot']==previous, 'APPEND')
+        _opening_evidence_f3(previous); financial_evidence(current); return True
+    frame_need(a and b, 'APPEND')
+    if previous.get('schema')=='fresh-financial-history-view-v1':
+        prior=_financial_history_evidence(current,previous['opening_pin'])
+        frame_need(prior['descriptor']['legacy_base_pin']==LEGACY_BASE_PIN, 'APPEND')
+        return True
+    return require_financial_state_append(previous,current)
+
+
+def validate_opening_partition(opening,reg,records):
+    if _financial_schema(opening) not in ('fresh-financial-snapshot-v1','fresh-financial-history-view-v1'):
+        return _validate_opening_partition_f3(opening,reg,records)
+    e=opening_evidence(opening); financial_plain(reg); financial_plain(records)
+    _,_,starts,closes=registry(canonical_financial(reg))
+    manual_ids=set(e['manual_entry_ids']); manual_commands=set(e['manual_command_sha256s'])
+    expected_formal={}
+    for row in e['registry_rows']:
+        name=row['entry_id']; frame_need(name not in expected_formal, 'CORRELATION')
+        if row['formal_start_sha256'] is None:
+            # Legitimate prelude is visible and pending, but not yet registered.
+            frame_need(row['phase'] in ('RESERVED','STARTED') and row['meter_body'] is None and
+                       row['adjudication'] is None and row['formal_receipt_sha256'] is None and
+                       name not in starts and name not in records, 'CORRELATION')
+        else:
+            expected_formal[name]=row
+    frame_need(set(starts)==set(records)==set(expected_formal), 'CORRELATION')
+    complete=opening['complete_snapshot'] if opening['schema']=='fresh-financial-history-view-v1' else opening
+    for name,bundle in records.items():
+        fx(bundle,('start','receipt')); row=expected_formal[name]
+        manifest=financial_decode(complete['wires'][row['manifest_pin']['path']].encode())
+        original_start=financial_decode(complete['wires'][manifest['formal_start_pin']['path']].encode())
+        frame_need(bundle['start']==original_start and name not in manual_ids and
+                   bundle['start']['command_sha256'] not in manual_commands, 'CORRELATION')
+        if row['phase']=='CLOSED_KNOWN':
+            original_receipt=financial_decode(complete['wires'][manifest['formal_receipt_pin']['path']].encode())
+            frame_need(bundle['receipt']==original_receipt, 'CORRELATION')
+        else:
+            frame_need(bundle['receipt'] is None, 'CORRELATION')
+    for row in e['registry_rows']:
+        name=row['entry_id']
+        if row['phase']=='CLOSED_KNOWN':
+            frame_need(name in starts and name in closes and name in records and records[name]['receipt'] is not None and
+                       starts[name]['sha256']==row['formal_start_sha256'] and closes[name]['sha256']==row['formal_receipt_sha256'], 'CORRELATION')
+            receipt=records[name]['receipt']; body=row['meter_body']['body']
+            _formal_receipt(receipt,starts[name],name,row['body_ns'],body['begin_ns'],body['end_ns'])
+        elif row['formal_start_sha256'] is not None:
+            frame_need(name in starts and starts[name]['sha256']==row['formal_start_sha256'] and name not in closes, 'CORRELATION')
+    return e
+
+
+def canonical_financial(value):
+    financial_plain(value)
+    return (json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('utf-8')
+
+
+def assess_round(snapshot,request):
+    if type(snapshot) is dict:
+        keys=tuple(dict.__iter__(snapshot)); frame_need(all(type(k) is str for k in keys), 'TYPE')
+    selected_schema=_financial_schema(dict.get(snapshot,'opening_snapshot')) if type(snapshot) is dict else None
+    if selected_schema=='fresh-financial-history-view-v1':
+        financial_plain(snapshot); financial_plain(request)
+        return {'schema':'fresh-round-funding-assessment-v2','funding_data_eligible_only':False,'blockers':['STALE_FINANCIAL_OPENING'],'remaining_policy_ns':None,'execution_permission':False,'all_costs_settled':False}
+    if selected_schema!='fresh-financial-snapshot-v1':
+        return _assess_round_f3(snapshot,request)
+    financial_plain(snapshot); financial_plain(request)
+    fx(snapshot,('schema','registry','registry_pin','records','policies','opening_snapshot'))
+    fx(request,('schema','round_id','label','command_sha256','body_reservation_ns','policy_sha256','phase_release_sha256'))
+    frame_need(snapshot['schema']=='fresh-round-owned-snapshot-v2' and request['schema']=='fresh-round-request-v1' and request['round_id']==ROUND_ID, 'SCHEMA')
+    e=validate_opening_partition(snapshot['opening_snapshot'],snapshot['registry'],snapshot['records'])
+    reg,policy_pins,starts,closes=registry(canonical_financial(snapshot['registry']))
+    frame_need(request['phase_release_sha256']==reg['phase_release_sha256'] and snapshot['opening_snapshot']['opening_pin']==reg['opening_pin'] and
+               set(snapshot['policies'])==set(policy_pins) and set(snapshot['records'])==set(starts), 'CORRELATION')
+    cap=INITIAL_NS if reg['phase']=='INITIAL' else TOTAL_NS
+    flabel(request['label']); fdigest(request['command_sha256']); fdigest(request['policy_sha256'])
+    all_ids={v['entry_id'] for v in e['views']}; all_cmds={v['command_sha256'] for v in e['views']}
+    frame_need(request['label'] not in all_ids and request['label'] not in starts and request['command_sha256'] not in all_cmds and
+               all(request['command_sha256']!=x['start']['command_sha256'] for x in snapshot['records'].values()), 'CORRELATION')
+    frame_need(request['policy_sha256'] in snapshot['policies'], 'CORRELATION')
+    for key,p in snapshot['policies'].items():
+        fx(p,('schema','round_id','command_sha256','administrative_debit_ns','scope','adoption_sha256','claims_physical_upper_bound'))
+        frame_need(p['schema']=='fresh-round-admin-policy-v1' and p['round_id']==ROUND_ID and p['scope']=='STARTUP_AND_FINAL_METADATA_PUBLICATION_ONLY' and
+                   p['claims_physical_upper_bound'] is False and fu(p['administrative_debit_ns'])==ADMIN_NS, 'CORRELATION')
+        fdigest(p['command_sha256']); fdigest(p['adoption_sha256'])
+    policy=snapshot['policies'][request['policy_sha256']]
+    frame_need(policy['command_sha256']==request['command_sha256'] and 0<fu(request['body_reservation_ns'])<=BODY_LIMIT_NS, 'CORRELATION')
+    blockers=list(e['blockers']); reserved=0; body=e['manual_body_ns']; admin=e['manual_admin_ns']
+    formal_commands=set(e['manual_command_sha256s'])
+    for name,bundle in snapshot['records'].items():
+        fx(bundle,('start','receipt')); st=bundle['start']
+        fx(st,('schema','round_id','label','command_sha256','body_reservation_ns','policy_sha256','pre_entry_provenance'))
+        frame_need(st['schema']=='fresh-round-start-v1' and st['round_id']==ROUND_ID and st['label']==name, 'CORRELATION')
+        fdigest(st['command_sha256']); fdigest(st['policy_sha256'])
+        frame_need(st['command_sha256'] not in formal_commands and st['policy_sha256'] in snapshot['policies'], 'CORRELATION')
+        formal_commands.add(st['command_sha256']); p=snapshot['policies'][st['policy_sha256']]
+        frame_need(p['command_sha256']==st['command_sha256'] and 0<fu(st['body_reservation_ns'])<=BODY_LIMIT_NS, 'CORRELATION')
+        validate_pre_entry_provenance(st['pre_entry_provenance'],name,st['command_sha256'],st['body_reservation_ns'])
+        rc=bundle['receipt']
+        if rc is None:
+            frame_need(name not in closes, 'CORRELATION')
+            blockers.append(name+':MISSING_NEW_RECEIPT'); reserved+=fu(st['body_reservation_ns'])+ADMIN_NS
+        else:
+            frame_need(name in closes, 'CORRELATION')
+            _formal_receipt(rc,starts[name],name,fu(rc['body_elapsed_ns']),fu(rc['body_begin_ns']),fu(rc['body_end_ns']))
+            body+=rc['body_elapsed_ns']; admin+=ADMIN_NS
+            if rc['body_elapsed_ns']>st['body_reservation_ns'] or rc['body_elapsed_ns']>BODY_LIMIT_NS: blockers.append(name+':BODY180_EXCEEDED')
+    requested=fu(request['body_reservation_ns'])+ADMIN_NS
+    remaining=cap-body-admin-reserved
+    if remaining<requested: blockers.append('INSUFFICIENT_POLICY_ALLOWANCE')
+    if e['pending'] or e['unknown']: remaining=None
+    return {'schema':'fresh-round-funding-assessment-v2','round_id':ROUND_ID,'funding_data_eligible_only':not blockers,
+            'blockers':list(dict.fromkeys(blockers)),'cap_ns':cap,'known_observed_body_ns':body,'administrative_policy_ns':admin,
+            'known_policy_charged_ns':body+admin,'outstanding_reservation_ns':reserved,
+            'unpriced_new_entries':list(e['pending']),'remaining_policy_ns':remaining,'requested_reservation_ns':requested,
+            'new_admin_only_open_tail_entries':[],'opening_physical_tail_open':True,'complete_physical_total_ns':None,
+            'old_historical_total_ns':None,'all_costs_settled':False,'native_ownership_or_cleanup_authenticated':False,
+            'execution_permission':False,'command_resource_profile_or_economic_fit_proved':False}
+
+
+def _financial_directory(path,owner_uid):
+    frame_need(path.is_absolute() and path.resolve(strict=True)==path, 'PIN')
+    st=path.lstat()
+    frame_need(stat.S_ISDIR(st.st_mode) and st.st_uid==owner_uid and stat.S_IMODE(st.st_mode) in (0o700,0o555), 'PIN')
+    return (st.st_dev,st.st_ino,st.st_mode,st.st_uid,st.st_mtime_ns,st.st_ctime_ns)
+
+
+def read_financial_opening(io,opening_pin,owner_uid):
+    # Caller authenticates actual original OwnedIO and holds genuine EX. This
+    # method does not turn a duck reader/module/hash into that authority.
+    fp(opening_pin); frame_need(type(owner_uid) is int, 'TYPE')
+    wires={}; observed={}; modes={}; census={}; dirs={}; total=[0]
+    def grab(path, expected=None, mode=None):
+        path=Path(path); frame_need(path.is_relative_to(R) and '..' not in path.parts, 'PIN')
+        if str(path) in wires:
+            if expected is not None: frame_need(_wire_pin(path,wires[str(path)],expected['mode'])==expected and modes[str(path)]==expected['mode'], 'PIN')
+            return financial_decode(wires[str(path)].encode())
+        row,raw=io.read(path,META_CAP,mode,expected,True)
+        frame_need(row['uid']==owner_uid and row['mode'] in (0o400,0o444,0o600), 'PIN')
+        total[0]+=len(raw); frame_need(len(wires)<FIN_MAX_FILES and total[0]<=FIN_MAX_BYTES, 'TYPE')
+        wire=raw.decode('utf-8'); wires[str(path)]=wire; observed[str(path)]=(row,raw); modes[str(path)]=row['mode']
+        if expected is not None: frame_need(_wire_pin(path,wire,expected['mode'])==expected and row['mode']==expected['mode'], 'PIN')
+        return financial_decode(raw) if raw else None
+    def directory(path):
+        path=Path(path); before=_financial_directory(path,owner_uid); names=io.names(path,FIN_MAX_FILES+1)
+        frame_need(type(names) is list and all(type(n) is str for n in names) and len(names)==len(set(names)), 'CENSUS')
+        dirs[str(path)]=before; census[str(path)]=sorted(names); return sorted(names)
+    rootnames=directory(FIN_ROOT); names=directory(FIN_ENTRIES)
+    for n in rootnames:
+        if n=='entries': continue
+        frame_need('/' not in n and n.endswith('.json'), 'CENSUS'); grab(FIN_ROOT/n,mode=0o600 if n=='HEAD.json' or n.startswith('HEAD-') else 0o444)
+    for name in names:
+        flabel(name); members=directory(FIN_ENTRIES/name)
+        for n in members:
+            frame_need('/' not in n and n.endswith('.json'), 'CENSUS')
+            grab(FIN_ENTRIES/name/n,mode=0o444 if n.startswith('ENTRY-') else None)
+    requested_pin=opening_pin
+    actual_head=financial_decode(wires[str(FIN_HEAD)].encode())
+    fx(actual_head,('schema','generation','state_pin','opening_pin','previous_head_sha256'))
+    opening_pin=actual_head['opening_pin']
+    op=grab(opening_pin['path'],opening_pin)
+    validate_original_record('OPENING',op)
+    grab(op['frame_contract_pin']['path'],op['frame_contract_pin'])
+    # Follow only source-fixed financial roles, never opaque payload/source files.
+    changed=True
+    while changed:
+        changed=False
+        for path,wire in list(wires.items()):
+            obj=financial_decode(wire.encode()) if wire else None
+            if type(obj) is not dict: continue
+            targets=[]; schema=obj.get('schema')
+            if schema==FRAME_RECORDS['ENTRY_MANIFEST']['schema']:
+                targets=[obj[k] for k in ('command_pin','reservation_pin','pre_entry_pin','meter_start_pin','meter_body_pin','native_chain_pin','financial_adjudication_pin','formal_start_pin','formal_receipt_pin') if obj[k] is not None]
+            elif schema==FRAME_RECORDS['COMMAND']['schema']:
+                targets=[obj['permission_pin']]
+                if obj['metadata_close_intent'] is not None: targets.append(obj['metadata_close_intent']['receipt_pin'])
+            elif schema==FRAME_RECORDS['PRE_ENTRY']['schema']:
+                targets=[obj['provider_request_pin']]
+            elif schema==FRAME_RECORDS['STATE']['schema']:
+                targets=[pp for e in obj['metadata_close_events'] for k in ('intent_pin','formal_head_pin','financial_state_pin','receipt_pin') for pp in (e[k],) if pp is not None]
+            elif schema=='fresh-active-head-v1':
+                targets=[obj['registry_pin']]
+            elif schema==FRAME_RECORDS['NATIVE_CHAIN']['schema']:
+                targets=[v for c in obj['calls'] for k in ('request_pin','original_tool_result_pin') for v in (c[k],) if v is not None and v['bytes']<=META_CAP]
+            for pp in targets:
+                fp(pp,True)
+                if pp['path'] not in wires:
+                    grab(pp['path'],pp); changed=True
+                else:
+                    frame_need(modes[pp['path']]==pp['mode'], 'PIN')
+    legacy=_read_opening_f3(io,LEGACY_BASE_PIN,owner_uid)
+    frame_need(str(FIN_HEAD) in wires, 'PIN')
+    head_pin=_wire_pin(FIN_HEAD,wires[str(FIN_HEAD)],0o600)
+    result={'schema':'fresh-financial-snapshot-v1','opening_pin':opening_pin,'opening_wire':wires[opening_pin['path']],
+            'legacy_snapshot':legacy,'wires':wires,'head_pin':head_pin,'head_wire':wires[str(FIN_HEAD)],'census':census}
+    financial_evidence(result)
+    for path,(row,raw) in observed.items():
+        after,again=io.read(Path(path),META_CAP,row['mode'],{'bytes':row['bytes'],'sha256':row['sha256']},True)
+        frame_need(after==row and again==raw, 'PIN')
+    for path,before in dirs.items():
+        frame_need(_financial_directory(Path(path),owner_uid)==before and sorted(io.names(Path(path),FIN_MAX_FILES+1))==census[path], 'CENSUS')
+    frame_need(_read_opening_f3(io,LEGACY_BASE_PIN,owner_uid)==legacy, 'PIN')
+    if requested_pin != opening_pin:
+        _financial_history_evidence(result,requested_pin)
+        return {'schema':'fresh-financial-history-view-v1','opening_pin':requested_pin,'complete_snapshot':result}
+    return result
+
+
+def read_opening(io,opening_pin,owner_uid):
+    # Added dispatch read is paid; original legacy reader body stays byte exact.
+    row,raw=read_pinned(io,opening_pin,owner_uid)
+    desc=decode(raw)
+    if desc.get('schema')=='fresh-current-financial-opening-v1':
+        return read_financial_opening(io,opening_pin,owner_uid)
+    return _read_opening_f3(io,opening_pin,owner_uid)
+
+def _financial_history_evidence(current_snapshot,requested_pin):
+    current=financial_evidence(current_snapshot); fp(requested_pin)
+    frame_need(requested_pin['path'] in current_snapshot['wires'] and
+               _wire_pin(requested_pin['path'],current_snapshot['wires'][requested_pin['path']],requested_pin['mode'])==requested_pin, 'PIN')
+    descriptor=validate_original_record('OPENING',financial_decode(current_snapshot['wires'][requested_pin['path']].encode()))
+    docs,take,used=_financial_docs(current_snapshot); state=take(descriptor['suffix_state_pin'])
+    legacy=_opening_evidence_f3(current_snapshot['legacy_snapshot']); entries={}
+    for mp in state['ordered_entries']:
+        manifest=take(mp); view=_entry_financial_view(mp,manifest,take,legacy); entries[view['entry_id']]=view
+    manual=[v for v in entries.values() if v['phase']=='CLOSED_KNOWN' and v['settlement_route']=='MANUAL_ONLY']
+    result=dict(current)
+    result.update({'descriptor':descriptor,'state_sha256':descriptor['suffix_state_pin']['sha256'],'state_pin':descriptor['suffix_state_pin'],
+                   'opening_pin':requested_pin,'views':legacy['views']+[{k:x for k,x in v.items() if k!='_unknown'} for v in entries.values()],
+                   'manual_body_ns':legacy['manual_body_ns']+sum(v['body_ns'] for v in manual),
+                   'manual_admin_ns':legacy['manual_admin_ns']+len(manual)*ADMIN_NS,
+                   'manual_entry_ids':legacy['manual_entry_ids']+[v['entry_id'] for v in manual],
+                   'manual_command_sha256s':legacy['manual_command_sha256s']+[v['command_sha256'] for v in manual],
+                   'registry_rows':legacy['registry_rows']+[{k:x for k,x in v.items() if k!='_unknown'} for v in entries.values() if v['settlement_route']=='FORMAL_OUTER'],
+                   'entries':{n:{k:x for k,x in v.items() if k!='_unknown'} for n,v in entries.items()},
+                   'blockers':list(current['blockers'])+['STALE_FINANCIAL_OPENING']})
+    return result
+
+
+def require_append_only(previous_raw,current_raw,opening_transition=None):
+    if type(opening_transition) is dict:
+        keys=tuple(dict.__iter__(opening_transition)); frame_need(all(type(k) is str for k in keys), 'TYPE')
+    selected_schema=_financial_schema(dict.get(opening_transition,'current')) if type(opening_transition) is dict else None
+    if selected_schema!='fresh-financial-snapshot-v1':
+        return _require_append_only_f3(previous_raw,current_raw,opening_transition)
+    financial_plain(opening_transition); fx(opening_transition,('previous','current','records'))
+    old,_,starts,closes=registry(previous_raw); new,_,_,_=registry(current_raw)
+    frame_need(new['predecessor_sha256']==hashlib.sha256(previous_raw).hexdigest() and old['events']==new['events'] and
+               old['policies']==new['policies'] and old['phase']==new['phase'] and old['phase_release_sha256']==new['phase_release_sha256'], 'APPEND')
+    frame_need(set(starts)==set(closes)==set(opening_transition['records']) and
+               opening_transition['previous']['opening_pin']==old['opening_pin'] and opening_transition['current']['opening_pin']==new['opening_pin'], 'APPEND')
+    require_opening_append(opening_transition['previous'],opening_transition['current'])
+    validate_opening_partition(opening_transition['current'],old,opening_transition['records'])
+    return True
+
+
+def verify_financial_candidate(io,candidate,owner_uid,expected_head_pin=None):
+    """Verify all existing originals before actual owner-only publication.
+
+    Candidate control images are proposed DATA, not current head observations.
+    Current entry/source custody and actual native EX must be supplied by A4.
+    Only the fixed next generation control files may be absent physically.
+    """
+    e=financial_evidence(candidate); financial_plain(expected_head_pin)
+    head=financial_decode(candidate['head_wire'].encode()); g=head['generation']
+    staged={str(FIN_HEAD),str(FIN_ROOT/('HEAD-%06d.json'%g)),str(FIN_ROOT/('STATE-%06d.json'%g)),str(FIN_ROOT/('OPENING-%06d.json'%g))}
+    if expected_head_pin is None:
+        frame_need(g==0 and not FIN_HEAD.exists() and not FIN_HEAD.is_symlink(), 'APPEND')
+    else:
+        fp(expected_head_pin); row,raw=read_pinned(io,expected_head_pin,owner_uid)
+        before=financial_decode(raw)
+        frame_need(expected_head_pin['path']==str(FIN_HEAD) and g==before['generation']+1 and head['previous_head_sha256']==expected_head_pin['sha256'], 'APPEND')
+        prior=_financial_history_evidence(candidate,before['opening_pin'])
+        frame_need(candidate['wires'].get(str(FIN_ROOT/('HEAD-%06d.json'%before['generation'])))==raw.decode('utf-8'), 'APPEND')
+    observed=[]; mode_index={}
+    def collect(obj):
+        if type(obj) is dict:
+            if set(obj)=={'path','bytes','sha256','mode'}:
+                mode_index.setdefault(obj['path'],[]).append(obj['mode'])
+            for value in obj.values(): collect(value)
+        elif type(obj) is list:
+            for value in obj: collect(value)
+    for text in candidate['wires'].values():
+        if text: collect(financial_decode(text.encode()))
+    for path,wire in candidate['wires'].items():
+        if path in staged: continue
+        mode=0o600 if not wire or (Path(path).parent==FIN_ROOT and Path(path).name.startswith('HEAD-')) else 0o444
+        wanted_modes=mode_index.get(path,[])
+        if wanted_modes:
+            frame_need(all(x==wanted_modes[0] for x in wanted_modes), 'PIN'); mode=wanted_modes[0]
+        p=_wire_pin(path,wire,mode); row,raw=_read_frame_pin(io,p,owner_uid)
+        frame_need(raw.decode('utf-8')==wire, 'PIN'); observed.append((p,row,raw))
+    for directory,names in candidate['census'].items():
+        path=Path(directory)
+        if path.exists(): _financial_directory(path,owner_uid)
+        actual=sorted(io.names(path,FIN_MAX_FILES+1)) if path.exists() else []
+        expected=sorted(n for n in names if (str(path/n) not in staged or (path==FIN_ROOT and n=='HEAD.json' and expected_head_pin is not None)) and not (path==FIN_ROOT and n=='entries' and not FIN_ENTRIES.exists()))
+        frame_need(actual==expected, 'CENSUS')
+    frame_need(_read_opening_f3(io,LEGACY_BASE_PIN,owner_uid)==candidate['legacy_snapshot'], 'PIN')
+    for p,row,raw in observed:
+        again,bytes_again=_read_frame_pin(io,p,owner_uid); frame_need(again==row and bytes_again==raw,'PIN')
+    return e
+
+def _read_frame_pin(io,p,owner_uid):
+    fp(p,True); frame_need(p['bytes']<=META_CAP, 'PIN')
+    row,raw=io.read(Path(p['path']),META_CAP,p['mode'],{'bytes':p['bytes'],'sha256':p['sha256']},True)
+    frame_need(type(raw) is bytes and row['uid']==owner_uid and row['nlink']==1 and row['mode']==p['mode'] and
+               len(raw)==p['bytes'] and hashlib.sha256(raw).hexdigest()==p['sha256'], 'PIN')
+    return row,raw
+
+
+def financial_commit_candidate(snapshot,own_id,target_id,receipt_pin,formal_head_pin,intent_pin):
+    """Pure staged DATA only. Actual A4 owns all validation/publication authority."""
+    flabel(own_id); flabel(target_id)  # Exact builtin gates before hashing/equality/path use.
+    e=financial_evidence(snapshot); frame_need(own_id in e['entries'] and target_id in e['entries'] and own_id!=target_id,'CORRELATION')
+    own,target=e['entries'][own_id],e['entries'][target_id]
+    frame_need(own['command']['operation_class']=='METADATA_CLOSER' and own['command']['metadata_close_intent']['target_id']==target_id and
+               target['phase']=='FORMAL_AWAIT_CLOSE' and target['known_charge_ns'] is not None,'CORRELATION')
+    for pp in (receipt_pin,formal_head_pin,intent_pin): fp(pp)
+    result=json.loads(json.dumps(snapshot))
+    financial_plain(result)
+    wires=result['wires']; old_head=financial_decode(result['head_wire'].encode()); g=old_head['generation']+1
+    old_manifest=financial_decode(wires[target['manifest_pin']['path']].encode())
+    index=int(Path(target['manifest_pin']['path']).name[6:12])+1
+    manifest=dict(old_manifest,phase='CLOSED_KNOWN',formal_receipt_pin=receipt_pin)
+    mp_path=FIN_ENTRIES/target_id/('ENTRY-%06d.json'%index); mp_wire=canonical_financial(manifest).decode(); mp=_wire_pin(mp_path,mp_wire,0o444)
+    wires[str(mp_path)]=mp_wire; result['census'][str(mp_path.parent)].append(mp_path.name); result['census'][str(mp_path.parent)].sort()
+    state=financial_decode(wires[e['state_pin']['path']].encode())
+    state['generation']=g; state['previous_state_sha256']=e['state_pin']['sha256']
+    state['ordered_entries']=[mp if pp==target['manifest_pin'] else pp for pp in state['ordered_entries']]
+    state['unsettled_entries']=[n for n in state['unsettled_entries'] if n!=target_id]
+    state['metadata_close_events'].append({'closer_id':own_id,'target_id':target_id,'phase':'FINANCIAL_COMMITTED','intent_pin':intent_pin,
+        'formal_head_pin':formal_head_pin,'financial_state_pin':e['state_pin'],'receipt_pin':receipt_pin})
+    spath=FIN_ROOT/('STATE-%06d.json'%g); swire=canonical_financial(state).decode(); sp=_wire_pin(spath,swire,0o444); wires[str(spath)]=swire
+    opening=dict(e['descriptor'],suffix_state_pin=sp,previous_opening_sha256=e['opening_pin']['sha256'])
+    opath=FIN_ROOT/('OPENING-%06d.json'%g); owire=canonical_financial(opening).decode(); op=_wire_pin(opath,owire,0o444); wires[str(opath)]=owire
+    head={'schema':'fresh-financial-head-v1','generation':g,'state_pin':sp,'opening_pin':op,'previous_head_sha256':e['head_pin']['sha256']}
+    hwire=canonical_financial(head).decode(); hpath=FIN_ROOT/('HEAD-%06d.json'%g); wires[str(hpath)]=hwire; wires[str(FIN_HEAD)]=hwire
+    result['head_pin']=_wire_pin(FIN_HEAD,hwire,0o600); result['head_wire']=hwire; result['opening_pin']=op; result['opening_wire']=owire
+    result['census'][str(FIN_ROOT)]+= [spath.name,opath.name,hpath.name]; result['census'][str(FIN_ROOT)].sort()
+    # New exact original receipt/journal wires must be supplied from actual A4
+    # readback before validation; this helper never fabricates their contents.
+    return result
+
+def _formal_start(value,name,command,body_reservation,registration_pin,original_start_pin):
+    financial_plain(value)
+    fx(value,('schema','round_id','label','command_sha256','body_reservation_ns','policy_sha256','pre_entry_provenance'))
+    frame_need(value['schema']=='fresh-round-start-v1' and value['round_id']==ROUND_ID and value['label']==name and
+               value['command_sha256']==command and type(value['body_reservation_ns']) is int and value['body_reservation_ns']==body_reservation, 'CORRELATION')
+    fdigest(value['policy_sha256'])
+    validate_pre_entry_provenance(value['pre_entry_provenance'],name,command,body_reservation)
+    frame_need(value['pre_entry_provenance']['registration_pin']==registration_pin and
+               value['pre_entry_provenance']['original_start_pin']==original_start_pin,'CORRELATION')

@@ -1,0 +1,857 @@
+"""SOURCE ONLY: fresh-round data ledger; no legacy scan, clock, or native grant.
+
+Caller must authenticate this code/registry, hold the real selected global EX
+lease, exclude competing registered writers, and provide the unchanged owned
+IO implementation. Snapshot custody is scoped to those admitted premises.
+Every entry is one NONOVERLAPPING OUTER guarded command. Its actual complete
+body includes all nested execution/cleanup; nested diagnostics are not added.
+This module cannot authenticate native handles or physical cleanup from DATA.
+"""
+import hashlib
+import json
+import os
+import stat
+from pathlib import Path
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/h25-data-handling-20261028'
+CONTROL = R / 'control/fresh-metered-round-v1'
+DOMAIN = R / 'runtime/fresh-metered-round-v1/attempts'
+ROUND_ID = 'fresh-metered-round-v1'
+AUTHORIZATION_SHA256 = '28bc04ad98151cf6a52607e4271b4dcbcbd645d0c8c538a35bc37e3d5194d50f'
+NS = 1000000000
+BODY_LIMIT_NS = 180 * NS
+INITIAL_NS, TOTAL_NS = 600 * NS, 2400 * NS
+RSS_LIMIT = 1073741824
+MAX_ENTRIES, META_CAP = 128, 131072
+MAX_VALUE = (1 << 63) - 1
+
+
+class FundingError(ValueError):
+    """Stop; preserve evidence. A missing number never becomes a zero receipt."""
+
+
+def need(condition, message):
+    if condition is not True:
+        raise FundingError(message)
+
+
+def plain(value, depth=0):
+    need(depth <= 16, 'metadata depth cap')
+    t = type(value)
+    if t is dict:
+        need(len(value) <= 2 * MAX_ENTRIES, 'object cap')
+        for k, v in value.items():
+            need(type(k) is str and len(k) <= 128, 'exact string key')
+            plain(v, depth + 1)
+    elif t is list:
+        need(len(value) <= 2 * MAX_ENTRIES, 'array cap')
+        for v in value:
+            plain(v, depth + 1)
+    elif t is str:
+        need(len(value) <= META_CAP, 'bounded metadata wire/string cap')
+    elif t is int:
+        need(0 <= value <= MAX_VALUE, 'bounded exact integer data')
+    else:
+        need(value is None or t is bool, 'only exact JSON integer/bool/null data')
+
+
+def exact(value, keys):
+    need(type(value) is dict and set(value) == set(keys), 'exact object fields')
+
+
+def uint(value):
+    need(type(value) is int and 0 <= value <= MAX_VALUE, 'bounded exact integer, not bool/float')
+    return value
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and all(c in '0123456789abcdef' for c in value), 'sha256')
+    return value
+
+
+def label(value):
+    need(type(value) is str and 1 <= len(value) <= 64 and
+         all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value), 'simple label')
+    return value
+
+
+def pin(value):
+    plain(value)
+    exact(value, ('path', 'bytes', 'sha256', 'mode'))
+    need(type(value['path']) is str and Path(value['path']).is_absolute(), 'absolute pin path')
+    uint(value['bytes']); digest(value['sha256'])
+    need(type(value['mode']) is int and value['mode'] in (0o444, 0o600), 'immutable control or private record mode')
+    need(value['bytes'] <= META_CAP, 'metadata byte cap')
+    return value
+
+
+def pairs(items):
+    result = {}
+    for k, v in items:
+        need(k not in result, 'duplicate JSON key')
+        result[k] = v
+    return result
+
+
+def forbidden_number(unused):
+    raise FundingError('JSON floating/nonfinite number forbidden')
+
+
+def decode(raw):
+    need(type(raw) is bytes and 0 < len(raw) <= META_CAP, 'bounded exact bytes')
+    obj = json.loads(raw.decode('utf-8'), object_pairs_hook=pairs,
+                     parse_float=forbidden_number, parse_constant=forbidden_number)
+    plain(obj)
+    return obj
+
+
+def registry(raw):
+    obj = decode(raw)
+    exact(obj, ('schema', 'round_id', 'authorization_sha256', 'opening_pin',
+                'predecessor_sha256', 'phase', 'phase_release_sha256', 'policies', 'events'))
+    need(obj['schema'] == 'fresh-round-registry-v2' and obj['round_id'] == ROUND_ID and
+         obj['authorization_sha256'] == AUTHORIZATION_SHA256, 'selected new round only')
+    pin(obj['opening_pin']); need(obj['opening_pin']['mode'] == 0o444, 'immutable selected opening')
+    if obj['predecessor_sha256'] is not None:
+        digest(obj['predecessor_sha256'])
+    need(obj['phase'] in ('INITIAL', 'FULL'), 'phase')
+    need((obj['phase'] == 'INITIAL' and obj['phase_release_sha256'] is None) or
+         (obj['phase'] == 'FULL' and type(obj['phase_release_sha256']) is str), 'explicit phase release')
+    if obj['phase'] == 'FULL':
+        digest(obj['phase_release_sha256'])
+    need(type(obj['policies']) is list and type(obj['events']) is list, 'bounded arrays')
+    need(len(obj['events']) <= 2 * MAX_ENTRIES, 'event cap')
+    policies, starts, closes = {}, {}, {}
+    for p in obj['policies']:
+        pin(p)
+        need(Path(p['path']).parent == CONTROL and p['mode'] == 0o444 and
+             p['sha256'] not in policies, 'selected distinct policy pin')
+        policies[p['sha256']] = p
+    for event in obj['events']:
+        exact(event, ('kind', 'label', 'pin'))
+        name = label(event['label']); p = pin(event['pin'])
+        need(p['mode'] == 0o600, 'private START/receipt')
+        if event['kind'] == 'REGISTER':
+            need(name not in starts and len(starts) < MAX_ENTRIES, 'one register, no reused/seed label')
+            need(p['path'] == str(DOMAIN / name / 'START.json'), 'only new START')
+            starts[name] = p
+        elif event['kind'] == 'CLOSE':
+            need(name in starts and name not in closes, 'close once after register')
+            need(p['path'] == str(DOMAIN / name / 'receipt.json'), 'only new receipt')
+            closes[name] = p
+        else:
+            raise FundingError('unexpected event')
+    return obj, policies, starts, closes
+
+
+def require_append_only(previous_raw, current_raw, opening_transition=None):
+    old, _, _, _ = registry(previous_raw)
+    new, _, _, _ = registry(current_raw)
+    need(new['predecessor_sha256'] == hashlib.sha256(previous_raw).hexdigest(), 'genuine prior registry image pin')
+    need(new['events'][:len(old['events'])] == old['events'] and
+         new['policies'][:len(old['policies'])] == old['policies'], 'prior rows immutable, never deleted or repriced')
+    need(old['phase'] == new['phase'] or (old['phase'] == 'INITIAL' and new['phase'] == 'FULL'), 'no phase rollback')
+    if old['phase'] == new['phase']:
+        need(old['phase_release_sha256'] == new['phase_release_sha256'], 'phase authority unchanged')
+    if old['opening_pin'] != new['opening_pin']:
+        plain(opening_transition)
+        exact(opening_transition, ('previous', 'current', 'records'))
+        need(old['events'] == new['events'] and old['policies'] == new['policies'] and
+             old['phase'] == new['phase'] and old['phase_release_sha256'] == new['phase_release_sha256'],
+             'opening-only refresh, preserve events/prices/phase')
+        _, _, starts, closes = registry(previous_raw)
+        need(set(starts) == set(closes) == set(opening_transition['records']), 'all formal records CLOSED before refresh')
+        need(opening_transition['previous']['opening_pin'] == old['opening_pin'] and
+             opening_transition['current']['opening_pin'] == new['opening_pin'], 'exact old/new opening evidence')
+        require_opening_append(opening_transition['previous'], opening_transition['current'])
+        validate_opening_partition(opening_transition['current'], old, opening_transition['records'])
+    else:
+        need(opening_transition is None, 'no unrelated transition proof')
+    return True
+
+
+def directory_identity(io, path, owner_uid):
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical new directory')
+    st = path.lstat()
+    need(stat.S_ISDIR(st.st_mode) and st.st_uid == owner_uid and
+         stat.S_IMODE(st.st_mode) == 0o700, 'private current-owner directory')
+    return (st.st_dev, st.st_ino, st.st_mode, st.st_nlink, st.st_uid,
+            st.st_mtime_ns, st.st_ctime_ns)
+
+
+def read_pinned(io, expected, owner_uid):
+    pin(expected)
+    row, raw = io.read(Path(expected['path']), META_CAP, mode=expected['mode'],
+                       expected={'bytes': expected['bytes'], 'sha256': expected['sha256']}, materialize=True)
+    need(type(raw) is bytes and row['uid'] == owner_uid and row['nlink'] == 1 and
+         row['mode'] == expected['mode'] and row['bytes'] == expected['bytes'] and
+         row['sha256'] == expected['sha256'] and len(raw) == expected['bytes'] and
+         hashlib.sha256(raw).hexdigest() == expected['sha256'], 'actual owned stable file differs')
+    return row, raw
+
+
+def snapshot_round(io, registry_pin, owner_uid):
+    """Future actual-IO operation; caller owns native lease, not any JSON flag.
+
+    Failures propagate: do not retry, silently skip entries, or create receipts.
+    io.names and io.read must be the reviewed actual OwnedIO methods; read must
+    retain canonical/lstat/open/fstat/post-path and known-close guarantees.
+    """
+    # The caller authenticates exact type(io), original source hash and module
+    # instance; this function does not turn an arbitrary reader into authority.
+    # It audits NEW admission only. It grants no in-flight/pending exemption.
+    uint(owner_uid); plain(registry_pin); pin(registry_pin)
+    rp = Path(registry_pin['path'])
+    middle = rp.name[len('REGISTRY-'):-len('.json')]
+    need(rp.parent == CONTROL and rp.name.startswith('REGISTRY-') and rp.name.endswith('.json') and
+         len(middle) == 6 and all(c in '0123456789' for c in middle) and
+         registry_pin['mode'] == 0o444, 'explicit new hash-selected registry file')
+    seen = []
+    def take(p):
+        row, raw = read_pinned(io, p, owner_uid)
+        seen.append((p, row, raw))
+        return raw
+    raw_registry = take(registry_pin)
+    reg, policy_pins, starts, closes = registry(raw_registry)
+    opening_snapshot = read_opening(io, reg['opening_pin'], owner_uid)
+    before = directory_identity(io, DOMAIN, owner_uid)
+    names = io.names(DOMAIN, MAX_ENTRIES + 1)
+    need(type(names) is list and all(type(n) is str for n in names) and
+         len(names) == len(set(names)) and set(names) == set(starts), 'every new entry exactly registered')
+    records, directories = {}, {}
+    for name in sorted(starts):
+        folder = DOMAIN / name
+        identity = directory_identity(io, folder, owner_uid)
+        members = io.names(folder, 3)
+        expected_members = {'START.json', 'receipt.json'} if name in closes else {'START.json'}
+        need(type(members) is list and len(members) == len(set(members)) and
+             set(members) == expected_members, 'exact new entry completeness; no hidden/missing receipt')
+        start = decode(take(starts[name]))
+        receipt = decode(take(closes[name])) if name in closes else None
+        directories[name] = (identity, expected_members)
+        records[name] = {'start': start, 'receipt': receipt}
+    policies = {k: decode(take(p)) for k, p in policy_pins.items()}
+    for p, row, raw in seen:
+        after_row, after_raw = read_pinned(io, p, owner_uid)
+        need(after_raw == raw and after_row == row, 'full pre/post immutable snapshot')
+    for name, (identity, members) in directories.items():
+        need(directory_identity(io, DOMAIN / name, owner_uid) == identity and
+             set(io.names(DOMAIN / name, 3)) == members, 'new entry directory/census changed')
+    need(directory_identity(io, DOMAIN, owner_uid) == before and
+         set(io.names(DOMAIN, MAX_ENTRIES + 1)) == set(names), 'new round census changed')
+    opening_after = read_opening(io, reg['opening_pin'], owner_uid)
+    need(opening_after == opening_snapshot, 'whole snapshot opening remains current and unchanged')
+    validate_opening_partition(opening_snapshot, reg, records)
+    return {'schema': 'fresh-round-owned-snapshot-v2', 'registry': reg,
+            'registry_pin': registry_pin, 'records': records, 'policies': policies,
+            'opening_snapshot': opening_snapshot}
+
+
+def assess_round(snapshot, request):
+    """Pure DATA assessment. Eligibility is NOT permission/native qualification."""
+    plain(snapshot); plain(request)
+    exact(snapshot, ('schema', 'registry', 'registry_pin', 'records', 'policies',
+                     'opening_snapshot'))
+    exact(request, ('schema', 'round_id', 'label', 'command_sha256',
+                    'body_reservation_ns', 'policy_sha256', 'phase_release_sha256'))
+    need(snapshot['schema'] == 'fresh-round-owned-snapshot-v2' and
+         request['schema'] == 'fresh-round-request-v1' and request['round_id'] == ROUND_ID,
+         'new round data only')
+    opening = opening_evidence(snapshot['opening_snapshot'])
+    need(snapshot['opening_snapshot']['opening_pin'] == snapshot['registry']['opening_pin'], 'selected opening snapshot')
+    reg = snapshot['registry']
+    # Revalidate exact registry shape and event semantics for direct DATA callers.
+    _, policy_pins, starts, closes = registry((json.dumps(reg, separators=(',', ':')) + '\n').encode('utf-8'))
+    need(set(snapshot['records']) == set(starts) and set(snapshot['policies']) == set(policy_pins), 'snapshot closed domain')
+    need(request['phase_release_sha256'] == reg['phase_release_sha256'], 'separately authorized phase binding')
+    cap = INITIAL_NS if reg['phase'] == 'INITIAL' else TOTAL_NS
+    policies = snapshot['policies']
+    for key, p in policies.items():
+        exact(p, ('schema', 'round_id', 'command_sha256', 'administrative_debit_ns',
+                  'scope', 'adoption_sha256', 'claims_physical_upper_bound'))
+        need(p['schema'] == 'fresh-round-admin-policy-v1' and p['round_id'] == ROUND_ID and
+             p['scope'] == 'STARTUP_AND_FINAL_METADATA_PUBLICATION_ONLY' and
+             p['claims_physical_upper_bound'] is False, 'admin convention never body/cleanup cover')
+        digest(p['command_sha256']); digest(p['adoption_sha256']); uint(p['administrative_debit_ns'])
+    opening = validate_opening_partition(snapshot['opening_snapshot'], reg, snapshot['records'])
+    body, admin, reserved, unknown, blockers, commands, open_tails = (
+        opening['manual_body_ns'], opening['manual_admin_ns'], 0, [], list(opening['blockers']),
+        set(opening['manual_command_sha256s']), [])
+    for name in starts:
+        bundle = snapshot['records'][name]
+        exact(bundle, ('start', 'receipt'))
+        s, r = bundle['start'], bundle['receipt']
+        exact(s, ('schema', 'round_id', 'label', 'command_sha256', 'body_reservation_ns', 'policy_sha256', 'pre_entry_provenance'))
+        validate_pre_entry_provenance(s['pre_entry_provenance'], name, s['command_sha256'], s['body_reservation_ns'])
+        need(s['schema'] == 'fresh-round-start-v1' and s['round_id'] == ROUND_ID and s['label'] == name, 'START binding')
+        cmd = digest(s['command_sha256']); digest(s['policy_sha256'])
+        need(name not in opening['manual_entry_ids'] and cmd not in commands and
+             s['policy_sha256'] in policies, 'no imported/formal duplicate/reroll or undeclared policy')
+        commands.add(cmd); p = policies[s['policy_sha256']]
+        need(p['command_sha256'] == cmd and 0 < uint(s['body_reservation_ns']) <= BODY_LIMIT_NS, 'per-command body reservation')
+        fee = uint(p['administrative_debit_ns'])
+        if r is None:
+            need(name not in closes, 'CLOSE without receipt')
+            reserved += s['body_reservation_ns'] + fee
+            unknown.append(name); blockers.append(name + ':MISSING_NEW_RECEIPT')
+            continue
+        need(name in closes, 'unregistered new receipt')
+        exact(r, ('schema', 'round_id', 'label', 'start_sha256', 'outcome', 'body_elapsed_ns',
+                  'administrative_debit_ns', 'body_begin_ns', 'body_end_ns', 'body_fully_observed', 'cleanup_known', 'custody_complete',
+                  'nested_entries_complete', 'uncertainty', 'peak_sampled_rss_bytes', 'tail_state',
+                  'independent_outcome_review_sha256'))
+        need(r['schema'] == 'fresh-round-receipt-v1' and r['round_id'] == ROUND_ID and
+             r['label'] == name and r['start_sha256'] == starts[name]['sha256'] and
+             r['outcome'] in ('PASS', 'STOP') and uint(r['administrative_debit_ns']) == fee, 'receipt identity/fee')
+        for k in ('body_begin_ns', 'body_end_ns'):
+            if r[k] is not None:
+                uint(r[k])
+        admin += fee  # Failure fees and measured failure bodies are retained in full.
+        if r['body_elapsed_ns'] is None:
+            unknown.append(name); blockers.append(name + ':UNPRICED_BODY')
+            reserved += s['body_reservation_ns']
+        else:
+            elapsed = uint(r['body_elapsed_ns'])
+            need(type(r['body_begin_ns']) is int and type(r['body_end_ns']) is int and
+                 r['body_end_ns'] >= r['body_begin_ns'] and
+                 r['body_end_ns'] - r['body_begin_ns'] == elapsed, 'exact own body endpoints/difference')
+            body += elapsed
+            if elapsed > BODY_LIMIT_NS or elapsed > s['body_reservation_ns']:
+                blockers.append(name + ':BODY_RESERVATION_OR180_EXCEEDED')
+        for k in ('body_fully_observed', 'cleanup_known', 'custody_complete', 'nested_entries_complete'):
+            need(type(r[k]) is bool, 'exact boolean qualification')
+            if r[k] is not True:
+                blockers.append(name + ':' + k.upper())
+        need(type(r['uncertainty']) is list and all(type(x) is str for x in r['uncertainty']), 'uncertainty list')
+        if r['uncertainty']:
+            blockers.append(name + ':UNRESOLVED_UNCERTAINTY')
+        if r['peak_sampled_rss_bytes'] is None:
+            blockers.append(name + ':UNKNOWN_SAMPLED_RSS')
+        elif uint(r['peak_sampled_rss_bytes']) > RSS_LIMIT:
+            blockers.append(name + ':SAMPLED_RSS_EXCEEDED')
+        need(r['tail_state'] in ('COMPLETE', 'ADMIN_ONLY_OPEN', 'UNKNOWN'), 'tail state')
+        if r['tail_state'] == 'UNKNOWN':
+            blockers.append(name + ':UNKNOWN_NONADMIN_TAIL')
+        elif r['tail_state'] == 'ADMIN_ONLY_OPEN':
+            open_tails.append(name)
+        digest(r['independent_outcome_review_sha256'])
+    label(request['label']); cmd = digest(request['command_sha256'])
+    need(request['label'] not in starts and request['label'] not in opening['manual_entry_ids'] and cmd not in commands, 'one use, no automatic retry')
+    need(request['policy_sha256'] in policies, 'request separately adopted policy absent')
+    policy = policies[request['policy_sha256']]
+    need(policy['command_sha256'] == cmd, 'request exact policy/command')
+    wanted_body = uint(request['body_reservation_ns'])
+    need(0 < wanted_body <= BODY_LIMIT_NS, 'requested body <=180s; actual fit remains separate')
+    wanted = wanted_body + policy['administrative_debit_ns']
+    charged = body + admin
+    remaining = cap - charged - reserved  # No clipping, no unknown-body zero receipt.
+    if remaining < wanted:
+        blockers.append('INSUFFICIENT_POLICY_ALLOWANCE')
+    return {'schema': 'fresh-round-funding-assessment-v1', 'round_id': ROUND_ID,
+            'funding_data_eligible_only': not blockers, 'blockers': blockers,
+            'cap_ns': cap, 'known_observed_body_ns': body, 'administrative_policy_ns': admin,
+            'known_policy_charged_ns': charged, 'outstanding_reservation_ns': reserved,
+            'unpriced_new_entries': unknown, 'remaining_policy_ns': remaining,
+            'requested_reservation_ns': wanted, 'new_admin_only_open_tail_entries': open_tails,
+            'opening_physical_tail_open': True, 'complete_physical_total_ns': None,
+            'old_historical_total_ns': None, 'all_costs_settled': False,
+            'native_ownership_or_cleanup_authenticated': False, 'execution_permission': False,
+            'command_resource_profile_or_economic_fit_proved': False}
+
+
+# Closed immutable historical DATA. No imported row is a retrospective START.
+OPENING_LIMIT = 32
+CORPUS_LIMIT = 2 * 1024 * 1024
+ADMIN_NS = 2 * NS
+
+
+def metadata_decode(raw):
+    need(type(raw) is bytes and 0 < len(raw) <= META_CAP, 'bounded exact metadata bytes')
+    # Legacy diagnostic floats are retained as lexical strings, NEVER charges.
+    value = json.loads(raw.decode('utf-8'), object_pairs_hook=pairs,
+                       parse_float=lambda text: text, parse_constant=forbidden_number)
+    metadata_plain(value)
+    return value
+
+
+def metadata_plain(value, depth=0):
+    need(depth <= 16, 'metadata depth')
+    t = type(value)
+    if t is dict:
+        need(len(value) <= 256, 'metadata object bound')
+        for k, v in value.items():
+            need(type(k) is str and len(k) <= 128, 'metadata key')
+            metadata_plain(v, depth + 1)
+    elif t is list:
+        need(len(value) <= 256, 'metadata array bound')
+        for v in value:
+            metadata_plain(v, depth + 1)
+    elif t is str:
+        need(len(value) <= META_CAP, 'metadata string bound')
+    elif t is int:
+        need(-MAX_VALUE <= value <= MAX_VALUE, 'bounded reported metadata integer')
+    else:
+        need(value is None or t is bool, 'exact metadata builtin types')
+
+
+def select(value, path):
+    need(type(path) is list and 1 <= len(path) <= 8 and all(type(k) is str for k in path), 'literal field path')
+    for key in path:
+        need(type(value) is dict and key in value, 'original metadata field absent')
+        value = value[key]
+    return value
+
+
+def seconds_ns(value):
+    need(type(value) is str and value.count('.') <= 1, 'canonical decimal seconds string')
+    parts = value.split('.')
+    whole = parts[0]
+    need(whole == '0' or (whole and whole[0] in '123456789' and all(c in '0123456789' for c in whole)), 'canonical whole seconds')
+    fraction = parts[1] if len(parts) == 2 else ''
+    need(len(fraction) <= 9 and all(c in '0123456789' for c in fraction), 'integer-ns decimal precision')
+    return uint(int(whole) * NS + (int(fraction.ljust(9, '0')) if fraction else 0))
+
+
+def origin_ref(file_record):
+    return {'path': str(Path(file_record['origin_path']).relative_to(R)), 'sha256': file_record['sha256']}
+
+
+PARENT_MANUAL_FAMILY = 'PARENT_MANUAL_PURE_DATA_V1'
+PARENT_MANUAL_SHAPES = {'registration': ('INITIAL_remaining_after_reservation_ns', 'START_provenance', 'actual_grant', 'admin_policy_ns', 'attempt_number', 'authority', 'before_state', 'body_reservation_ns', 'command_string_sha256', 'created_utc', 'entry_id', 'exact_candidate', 'formal_registry_REGISTER_created', 'independent_source_command_review', 'no_automatic_retry', 'old_historical_total_ns', 'original_manual_reservation_before_native_entry', 'policy_adoption', 'policy_committed_before_ns', 'policy_committed_plus_reservation_ns', 'schema', 'whole_physical_total_ns'), 'cost': ('DATA_cases_executed', 'F01_branch_checks_in_actual_case_results', 'Popen_construction_pending', 'actual_child_native_exit_code', 'actual_parent_native_tool_exit_code', 'administrative_policy_debit_ns', 'administrative_policy_debit_seconds', 'all_costs_settled', 'attempt_number', 'body_begin_ns', 'body_end_ns', 'body_status', 'child_raw_pins', 'complete_caller_validation', 'complete_new_physical_total_ns', 'created_utc', 'entry_id', 'errors', 'final_physical_publication', 'following_command_granted', 'golden_raw_bytes_exact', 'historical_complete_total_ns', 'independent_actual_outcome_review_pending', 'lifetime_highwater_is_not_body_peak', 'measured_gain', 'native_tool_result', 'no_descendant_payload_by_selected_source', 'observed_body_elapsed_ns', 'observed_body_seconds', 'original_meter_START', 'original_pre_entry', 'outer_observation', 'outer_stderr', 'owned_wait_returned', 'parent_lifetime_maxrss_KiB_before_after', 'physical_or_ACTIVE_or_A01_runtime_qualified', 'policy_charged_ns', 'policy_charged_seconds', 'provider_wall_is_not_complete_body_or_wholephysical_clock', 'provider_wall_seconds', 'raw_rusage_before_after', 'reservation', 'routine_cleanup_invocation_returncode', 'routine_cleanup_null_means_not_invoked_after_successful_native_wait', 'rusage_scope', 'sampled_parent_plus_child_RSS_bytes', 'schema', 'selected_DATA_child_cleanup_known', 'static_raw_coverage_contract_note', 'unexpected_callbacks'), 'native': ('chunk_id', 'wall_time_seconds', 'exit_code', 'original_token_count', 'output'), 'review': ('actual_F01_traces', 'actual_reviewed_outcome_accepted', 'blocking_findings', 'cost', 'coverage', 'findings', 'inputs', 'later_execution_granted', 'native_and_start_chain', 'ownership', 'parent_state_arithmetic', 'performance_gain', 'positive_case_evidence', 'remaining_successor_conditions', 'reviewer_created_or_modified_source_raw_control_files', 'schema', 'science_or_Root_permission', 'status', 'verification'), 'candidate': ('actual_execution_granted', 'actual_grant_file_created', 'actual_grant_path', 'administrative_policy_ns', 'body_ns_reserved', 'current_parent_state', 'cwd', 'exact_shell_command', 'exclusive_capture_directory', 'final_physical_publication', 'genuine_native_tool_result_required', 'grant_bytes', 'grant_exact_object', 'grant_sha256', 'meter_marker', 'no_accepted_existing_terminal_object_or_manual_native_fields', 'policy_proposal', 'provider', 'schema', 'source_packet'), 'pre_entry': ('actual_grant_sha256', 'before_state_sha256', 'capture_directory', 'created_utc', 'entry_id', 'exact_candidate_sha256', 'execution_started', 'meter_START_expected_path', 'native_terminal_claimed', 'original_enclosing_command_sha256', 'original_manual_metadata_not_a_genuine_native_clock', 'reservation', 'schema'), 'meter_start': ('actual_grant_sha256', 'future_operation_blocked_until_separate_adjudication', 'probe_sha256', 'schema', 'source_sha256', 'start_monotonic_ns'), 'policy_adoption': ('actor_custody_scope', 'authority', 'compile_wording', 'created_utc', 'current_manual_preentry_provenance_required', 'current_parent_state', 'decision', 'exact_candidate', 'final_physical_publication', 'future_all_costs_settled', 'genuine_native_tool_result_required', 'historical_gap_unchanged', 'independent_source_and_command_review', 'next_opening_must_import_actual_operation_once', 'no_old_source_grant_or_marker_reuse', 'policy_proposal', 'profile_selection', 'schema', 'scientific_Root_native_owner_or_formal_registry_permission'), 'actual_grant': ('administrative_tail_debit_seconds', 'administrative_tail_policy', 'allow_one_attempt', 'authorization_sha256', 'command_seconds', 'expected_result_sha256', 'fixture_sha256', 'funding_source_sha256', 'operation', 'probe_sha256', 'sampled_parent_child_memory_bytes', 'schema', 'source_bytes', 'source_sha256')}
+PARENT_MANUAL_SCHEMAS = {'registration': 'h25-current-opening-pure-DATA-attempt003-manual-reservation-v1', 'cost': 'h25-fresh-round-observed-pureDATA-body-cost-v1', 'review': 'h25-independent-current-opening-control-outcome-review-v1', 'candidate': 'h25-current-opening-pure-DATA-exact-command-candidate-v1', 'pre_entry': 'h25-pureDATA-original-preentry-v1', 'meter_start': 'fresh-owner-meter-incomplete-v1', 'policy_adoption': 'h25-parent-current-opening-pure-DATA-policy-adoption-v1', 'actual_grant': 'current-opening-f2-pure-data-meter-grant-v1'}
+PARENT_MANUAL_SELECTORS = {'cost_body': ['observed_body_elapsed_ns'], 'cost_admin': ['administrative_policy_debit_ns'], 'cost_admin_multiplier': 1, 'registration_admin': ['admin_policy_ns'], 'registration_admin_multiplier': 1, 'registration_candidate': ['exact_candidate'], 'registration_preentry': ['original_manual_reservation_before_native_entry'], 'registration_preentry_value': True, 'registration_body_cap': ['body_reservation_ns'], 'registration_cap_multiplier': 1, 'review_begin': ['cost', 'body_begin_ns'], 'review_end': ['cost', 'body_end_after_owned_cleanup_ns'], 'review_body': ['cost', 'observed_body_elapsed_ns'], 'review_admin': ['cost', 'nominal_admin_ns'], 'review_admin_multiplier': 1, 'review_native_exit': ['native_and_start_chain', 'tool_native_exit']}
+
+def review_pin_rows(review):
+    """Closed native-tool family review inputs; still retained DATA, not authority."""
+    values = review['inputs']
+    need(type(values) is dict and 1 <= len(values) <= 256, 'typed closed review input pin map')
+    result = []
+    for key, value in values.items():
+        need(type(key) is str, 'review pin key')
+        exact(value, ('path', 'bytes', 'sha256', 'mode'))
+        need(type(value['path']) is str and Path(value['path']).is_absolute(), 'review original absolute pin')
+        uint(value['bytes']); digest(value['sha256']); uint(value['mode'])
+        need(value['mode'] <= 0o777, 'review original mode metadata')
+        result.append(value)
+    return result
+
+
+def parent_manual_evidence(desc, docs, row, command):
+    """Explicit retained schema family; never synthesize fields inside genuine Tool.
+
+    Command binding comes from original reservation/PRE-ENTRY/candidate/cost and
+    independently accepted review. Flat Tool has no command or native capability.
+    Actual loaded source/parent review authenticity/current IO/EX remain external.
+    """
+    need(row['provenance_family'] == PARENT_MANUAL_FAMILY and
+         row['kind'] == 'ORIGINAL_MANUAL_OPERATION', 'closed original manual record family')
+    refs = row['original_provenance']
+    exact(refs, ('pre_entry', 'meter_start', 'policy_adoption', 'actual_grant', 'before_state'))
+    need(all(type(name) is str and name in docs for name in refs.values()), 'original corpus role references')
+    names = {key: row[key] for key in ('registration', 'cost', 'native', 'review', 'candidate')}
+    names.update(refs)
+    need(len(set(names.values())) == len(names), 'distinct original provenance roles, no alias')
+    objects = {key: docs[name] for key, name in names.items()}
+    for key, keys in PARENT_MANUAL_SHAPES.items():
+        exact(objects[key], keys)
+        if key != 'native':
+            need(type(objects[key]['schema']) is str and objects[key]['schema'] == PARENT_MANUAL_SCHEMAS[key],
+                 'explicit closed original schema family')
+    registration, cost, native, review, candidate = (objects[k] for k in ('registration', 'cost', 'native', 'review', 'candidate'))
+    pre, start, adoption, grant, before = (objects[k] for k in ('pre_entry', 'meter_start', 'policy_adoption', 'actual_grant', 'before_state'))
+    def ref(key):
+        return origin_ref(desc['files'][names[key]])
+    def original_pin(key):
+        item = desc['files'][names[key]]
+        return {'path': item['origin_path'], 'bytes': item['bytes'], 'sha256': item['sha256'], 'mode': item['origin_mode']}
+    pins = review_pin_rows(review)
+    for key in ('registration', 'cost', 'native', 'candidate', 'pre_entry', 'meter_start', 'policy_adoption', 'actual_grant', 'before_state'):
+        need(any(p == original_pin(key) for p in pins), 'independent review binds complete original provenance role')
+    name = row['entry_id']; shell = digest(row['exact_shell_sha256'])
+    need(type(registration['entry_id']) is str and registration['entry_id'] == name and
+         type(cost['entry_id']) is str and cost['entry_id'] == name and
+         type(pre['entry_id']) is str and pre['entry_id'] == name, 'exact original manual entry identities')
+    need(row['selectors'] == PARENT_MANUAL_SELECTORS, 'closed family field paths; no arbitrary zero or review selection')
+    need(registration['exact_candidate'] == ref('candidate') and registration['actual_grant'] == ref('actual_grant') and
+         registration['policy_adoption'] == ref('policy_adoption') and registration['before_state'] == ref('before_state') and
+         cost['reservation'] == ref('registration') and cost['native_tool_result'] == ref('native') and
+         cost['original_pre_entry'] == ref('pre_entry') and cost['original_meter_START'] == ref('meter_start'),
+         'original reservation/cost/native and pre-entry links')
+    need(registration['original_manual_reservation_before_native_entry'] is True and
+         registration['formal_registry_REGISTER_created'] is False and registration['no_automatic_retry'] is True and
+         pre['execution_started'] is False and pre['native_terminal_claimed'] is False and
+         pre['original_manual_metadata_not_a_genuine_native_clock'] is True and
+         pre['reservation'] == ref('registration'), 'genuine original pre-entry metadata, never retrospective formal ticket')
+    need(pre['exact_candidate_sha256'] == command and pre['original_enclosing_command_sha256'] == shell and
+         registration['command_string_sha256'] == shell and pre['actual_grant_sha256'] == ref('actual_grant')['sha256'] and
+         pre['before_state_sha256'] == ref('before_state')['sha256'] and
+         pre['meter_START_expected_path'] == original_pin('meter_start')['path'], 'candidate/shell/pre-entry/START lineage')
+    need(adoption['exact_candidate'] == ref('candidate') and adoption['current_parent_state'] == ref('before_state') and
+         adoption['authority'] == registration['authority'] == origin_ref(desc['files'][desc['authorization_file']]) and
+         adoption['decision'] == 'ADOPT_EXACT_ONE_USE_NORMAL_PURE_DATA_SCOPE_ONLY' and
+         adoption['current_manual_preentry_provenance_required'] is True and
+         adoption['scientific_Root_native_owner_or_formal_registry_permission'] is False and
+         adoption['next_opening_must_import_actual_operation_once'] is True and
+         adoption['no_old_source_grant_or_marker_reuse'] is True, 'original limited policy adoption, not new permission')
+    need(candidate['grant_sha256'] == ref('actual_grant')['sha256'] and
+         uint(candidate['grant_bytes']) == desc['files'][names['actual_grant']]['bytes'] and
+         candidate['grant_exact_object'] == grant and candidate['current_parent_state'] == ref('before_state') and
+         candidate['actual_grant_path'] == original_pin('actual_grant')['path'] and
+         candidate['genuine_native_tool_result_required'] is True and
+         candidate['no_accepted_existing_terminal_object_or_manual_native_fields'] is True,
+         'original candidate and actual limited grant bytes')
+    need(grant['authorization_sha256'] == AUTHORIZATION_SHA256 and grant['allow_one_attempt'] is True and
+         uint(grant['command_seconds']) * NS == BODY_LIMIT_NS and
+         uint(grant['administrative_tail_debit_seconds']) * NS == ADMIN_NS and
+         uint(grant['sampled_parent_child_memory_bytes']) == RSS_LIMIT and
+         grant['operation'] == 'CURRENT_OPENING_F2_PURE_DATA_CONTROLS_ONLY', 'original exact limited manual operation')
+    for key in ('probe_sha256', 'source_sha256'):
+        digest(grant[key]); need(start[key] == grant[key], 'original durable START source/probe pin')
+    digest(grant['funding_source_sha256']); digest(grant['fixture_sha256']); digest(grant['expected_result_sha256'])
+    for key in ('source_sha256', 'probe_sha256', 'funding_source_sha256', 'fixture_sha256', 'expected_result_sha256'):
+        need(any(p['sha256'] == grant[key] for p in pins), 'review binds original selected source/probe/fixture/result hash')
+    need(any(p['sha256'] == grant['source_sha256'] and p['bytes'] == uint(grant['source_bytes']) for p in pins),
+         'review binds original meter source byte count')
+    need(start['actual_grant_sha256'] == ref('actual_grant')['sha256'] and
+         uint(start['start_monotonic_ns']) == uint(cost['body_begin_ns']) and
+         start['future_operation_blocked_until_separate_adjudication'] is True,
+         'genuine original meter START interval, not formal START')
+    need(type(native['exit_code']) is int and -MAX_VALUE <= native['exit_code'] <= MAX_VALUE,
+         'flat genuine tool exact native exit, not bool')
+    need(type(native['chunk_id']) is str and 1 <= len(native['chunk_id']) <= 64 and
+         type(native['output']) is str and type(native['original_token_count']) is int and native['original_token_count'] >= 0,
+         'closed genuine tool result metadata')
+    wait = native['wall_time_seconds']
+    need((type(wait) is int and wait >= 0) or
+         (type(wait) is str and 0 < len(wait) <= 64 and wait.count('.') <= 1 and
+          all(c in '0123456789.' for c in wait) and any(c in '0123456789' for c in wait)),
+         'reported provider wait DATA only; never added to body')
+    chain = review['native_and_start_chain']
+    need(type(chain) is dict and type(chain['tool_native_exit']) is int and
+         type(chain['child_native_exit']) is int and type(cost['actual_parent_native_tool_exit_code']) is int and
+         type(cost['actual_child_native_exit_code']) is int and
+         native['exit_code'] == chain['tool_native_exit'] == cost['actual_parent_native_tool_exit_code'] and
+         chain['child_native_exit'] == cost['actual_child_native_exit_code'] and
+         native['chunk_id'] == chain['tool_chunk_id'] and chain['exact_shell_sha256'] == shell and
+         chain['actual_grant_sha256'] == ref('actual_grant')['sha256'] and
+         uint(chain['START_run_entry_ns']) == uint(start['start_monotonic_ns']),
+         'reviewed actual flat Tool/candidate/pre-entry/START correlation, not Tool command field')
+    need(type(registration['attempt_number']) is int and type(cost['attempt_number']) is int and
+         1 <= uint(registration['attempt_number']) <= OPENING_LIMIT and
+         registration['attempt_number'] == cost['attempt_number'] and
+         uint(registration['policy_committed_before_ns']) == seconds_ns(before['policy_charged_seconds_total']) and
+         uint(registration['policy_committed_plus_reservation_ns']) == uint(registration['policy_committed_before_ns']) + BODY_LIMIT_NS + ADMIN_NS,
+         'original manual reservation economic lineage')
+    need(uint(registration['INITIAL_remaining_after_reservation_ns']) == INITIAL_NS - uint(registration['policy_committed_plus_reservation_ns']) and
+         uint(candidate['body_ns_reserved']) == BODY_LIMIT_NS and uint(candidate['administrative_policy_ns']) == ADMIN_NS,
+         'exact original manual reservation and candidate allowance')
+    need(type(review['status']) is str and review['status'] == 'ACCEPT_ACTUAL_72_FIXED_F2_PURE_DATA_CONTROLS_AND_SCOPED_COST_ONLY' and
+         review['actual_reviewed_outcome_accepted'] is True and review['blocking_findings'] == [] and
+         review['later_execution_granted'] is False and review['science_or_Root_permission'] is False,
+         'accepted independently reviewed limited closed DATA outcome')
+    need(uint(cost['DATA_cases_executed']) == uint(review['coverage']['actual_pure_DATA_cases_independently_accepted']) == 72 and
+         uint(cost['unexpected_callbacks']) == 0 and cost['golden_raw_bytes_exact'] is True,
+         'original fixed pureDATA result metadata, no new F3 runtime qualification')
+    need(cost['body_status'] == 'OBSERVATION_VALIDATED' and cost['all_costs_settled'] is False and
+         cost['owned_wait_returned'] is True and cost['selected_DATA_child_cleanup_known'] is True and
+         cost['Popen_construction_pending'] is False and chain['owned_wait_returned'] is True and
+         chain['Popen_construction_pending'] is False and chain['FIRST'] is None and chain['IO_unknown'] is False and
+         chain['secondary'] == [], 'closed selected body/child cleanup; unknown fails, never admin fill')
+    exact(cost['errors'], ('IO_unknown', 'actual_exception_objects_retained_until_exit', 'first', 'secondary'))
+    need(cost['errors']['IO_unknown'] is False and cost['errors']['first'] is None and cost['errors']['secondary'] == [] and
+         cost['errors']['actual_exception_objects_retained_until_exit'] is True, 'no uncertain original child or IO')
+    need(uint(review['cost']['body_begin_ns']) == uint(cost['body_begin_ns']) and
+         uint(review['cost']['body_end_after_owned_cleanup_ns']) == uint(cost['body_end_ns']) and
+         cost['provider_wall_seconds'] == native['wall_time_seconds'] == review['cost']['provider_wall_seconds'],
+         'same reviewed original endpoints and diagnostic Tool wait, never an added interval')
+    need(uint(cost['body_end_ns']) - uint(cost['body_begin_ns']) == uint(cost['observed_body_elapsed_ns']) and
+         uint(cost['policy_charged_ns']) == uint(cost['observed_body_elapsed_ns']) + ADMIN_NS and
+         uint(review['cost']['policy_charged_ns']) == uint(cost['policy_charged_ns']) and
+         uint(cost['sampled_parent_plus_child_RSS_bytes']) <= RSS_LIMIT and
+         review['cost']['sampled_limit_passed'] is True,
+         'exact observed body/policy and selected sampled limit, never complete profile')
+    need(seconds_ns(cost['observed_body_seconds']) == uint(cost['observed_body_elapsed_ns']) and
+         seconds_ns(review['cost']['observed_body_seconds']) == uint(cost['observed_body_elapsed_ns']) and
+         uint(cost['administrative_policy_debit_seconds']) * NS == ADMIN_NS and
+         uint(review['cost']['sampled_parent_plus_owned_unreaped_child_RSS_bytes']) == uint(cost['sampled_parent_plus_child_RSS_bytes']) and
+         uint(review['cost']['selected_sample_limit_bytes']) == RSS_LIMIT and
+         review['cost']['sampled_limit_is_continuous_or_wholeprocess_memory_qualification'] is False,
+         'consistent exact units and limited sampled metadata scope')
+    need(cost['complete_new_physical_total_ns'] is None and cost['historical_complete_total_ns'] is None and
+         cost['final_physical_publication'] == 'OPEN_NOT_ZERO' and
+         cost['physical_or_ACTIVE_or_A01_runtime_qualified'] is False and
+         cost['complete_caller_validation'] is False and cost['following_command_granted'] is False and
+         review['cost']['complete_new_physical_total_ns'] is None and review['cost']['old_complete_total_ns'] is None and
+         review['cost']['physical_publication_boundary'] == 'OPEN_NOT_ZERO' and review['cost']['all_costs_settled'] is False,
+         'old/new physical unknown, no native/currentness/permission inheritance')
+    return native['exit_code'], pins
+
+
+def opening_evidence(snapshot):
+    """Pure strict DATA revalidation, never native ownership/custody proof."""
+    plain(snapshot)
+    exact(snapshot, ('schema', 'opening_pin', 'descriptor_wire', 'corpus_wires'))
+    need(snapshot['schema'] == 'fresh-current-opening-snapshot-v1', 'opening snapshot')
+    op = pin(snapshot['opening_pin'])
+    need(op['mode'] == 0o444 and type(snapshot['descriptor_wire']) is str and type(snapshot['corpus_wires']) is dict, 'immutable opening DATA')
+    raw = snapshot['descriptor_wire'].encode('utf-8')
+    need(len(raw) == op['bytes'] and hashlib.sha256(raw).hexdigest() == op['sha256'], 'opening wire pin')
+    desc = decode(raw)
+    exact(desc, ('schema', 'round_id', 'authorization_sha256', 'previous_opening_sha256', 'corpus_directory',
+                 'authorization_file', 'state_file', 'selection_file', 'files', 'observations', 'expected_totals',
+                 'physical_total_ns', 'old_complete_total_ns', 'physical_final_boundary'))
+    need(desc['schema'] in ('fresh-current-opening-corpus-v1', 'fresh-current-opening-corpus-v2') and desc['round_id'] == ROUND_ID and
+         desc['authorization_sha256'] == AUTHORIZATION_SHA256 and desc['corpus_directory'] == 'corpus' and
+         desc['physical_total_ns'] is None and desc['old_complete_total_ns'] is None and
+         desc['physical_final_boundary'] == 'OPEN_NOT_ZERO', 'selected opening scope')
+    if desc['previous_opening_sha256'] is not None:
+        digest(desc['previous_opening_sha256'])
+    need(type(desc['files']) is dict and set(snapshot['corpus_wires']) == set(desc['files']) and
+         len(desc['files']) <= 8 * OPENING_LIMIT, 'closed corpus census')
+    docs, total, origins = {}, 0, set()
+    for name, item in desc['files'].items():
+        need(type(name) is str and name.endswith('.json') and '..' not in name and
+             all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.' for c in name), 'literal corpus name')
+        exact(item, ('bytes', 'sha256', 'origin_path', 'origin_mode'))
+        uint(item['bytes']); digest(item['sha256'])
+        need(type(item['origin_path']) is str and Path(item['origin_path']).is_relative_to(R) and
+             '..' not in Path(item['origin_path']).parts and item['origin_path'] not in origins and
+             type(item['origin_mode']) is int and item['origin_mode'] in (0o400, 0o444, 0o600), 'original evidence pin')
+        origins.add(item['origin_path'])
+        wire = snapshot['corpus_wires'][name]
+        need(type(wire) is str, 'literal original JSON wire')
+        data = wire.encode('utf-8'); total += len(data)
+        need(total <= CORPUS_LIMIT and len(data) == item['bytes'] and hashlib.sha256(data).hexdigest() == item['sha256'], 'complete original corpus bytes')
+        docs[name] = metadata_decode(data)
+    auth, state, selected = (docs[desc[k]] for k in ('authorization_file', 'state_file', 'selection_file'))
+    need(desc['files'][desc['authorization_file']]['sha256'] == AUTHORIZATION_SHA256 and
+         auth['limits']['total_guarded_seconds'] == 2400 and auth['limits']['initial_feasibility_seconds'] == 600 and
+         auth['limits']['per_command_seconds'] == 180 and auth['limits']['sampled_memory_bytes'] == RSS_LIMIT,
+         'unchanged financial/resource limits')
+    need(type(desc['observations']) is list and 0 < len(desc['observations']) <= OPENING_LIMIT, 'bounded accepted operations')
+    views, ids, commands, shells, pairs_seen, regs, natives = [], set(), set(), set(), [], [], []
+    state_pairs_seen, parent_family_seen = [], False
+    body = admin = 0
+    for row in desc['observations']:
+        parent_family = type(row) is dict and 'provenance_family' in row
+        row_keys = ('kind', 'entry_id', 'registration', 'cost', 'native', 'review', 'review_status',
+                    'command_sha256', 'formal_start_sha256', 'formal_receipt_sha256', 'selectors', 'closed_checks', 'candidate', 'exact_shell_sha256')
+        if parent_family:
+            need(desc['schema'] == 'fresh-current-opening-corpus-v2' and
+                 type(row['provenance_family']) is str and row['provenance_family'] == PARENT_MANUAL_FAMILY,
+                 'explicit descriptor/new closed family only')
+            exact(row, row_keys + ('provenance_family', 'original_provenance'))
+            parent_family_seen = True
+        else:
+            exact(row, row_keys)  # Original legacy row shape remains exact; no shape-based upgrade.
+        name = label(row['entry_id']); command = digest(row['command_sha256'])
+        need(name not in ids and command not in commands, 'import each original identity/command once')
+        ids.add(name); commands.add(command)
+        registration, cost, native, review = (docs[row[k]] for k in ('registration', 'cost', 'native', 'review'))
+        if parent_family:
+            parent_exit, parent_review_pins = parent_manual_evidence(desc, docs, row, command)
+        else:
+            need(registration['attempt_id'] == name and cost['attempt_id'] == name and
+                 cost['reservation'] == origin_ref(desc['files'][row['registration']]) and
+                 cost['native_tool_result'] == origin_ref(desc['files'][row['native']]), 'original pre-entry/outcome link')
+        candidate = docs[row['candidate']]
+        need(desc['files'][row['candidate']]['sha256'] == command and
+             type(candidate['exact_shell_command']) is str and
+             hashlib.sha256(candidate['exact_shell_command'].encode('utf-8')).hexdigest() == row['exact_shell_sha256'] and
+             row['exact_shell_sha256'] not in shells, 'candidate document versus distinct exact shell identity')
+        shells.add(row['exact_shell_sha256'])
+        q = row['selectors']
+        exact(q, ('cost_body', 'cost_admin', 'cost_admin_multiplier', 'registration_admin', 'registration_admin_multiplier',
+                  'registration_candidate', 'registration_preentry', 'registration_preentry_value', 'registration_body_cap',
+                  'registration_cap_multiplier', 'review_begin', 'review_end', 'review_body', 'review_admin',
+                  'review_admin_multiplier', 'review_native_exit'))
+        for key in ('cost_admin_multiplier', 'registration_admin_multiplier', 'registration_cap_multiplier', 'review_admin_multiplier'):
+            need(type(q[key]) is int and q[key] in (1, NS), 'declared exact integer unit')
+        need(type(q['registration_preentry_value']) is bool and
+             select(registration, q['registration_preentry']) is q['registration_preentry_value'], 'original pre-entry reserved state')
+        if parent_family:
+            need(select(registration, q['registration_candidate']) == origin_ref(desc['files'][row['candidate']]),
+                 'original exact parent candidate correlation; genuine Tool has no command field')
+        else:
+            need(select(registration, q['registration_candidate'])['sha256'] == command and
+                 native['exact_command_candidate_sha256'] == command, 'original exact command correlation')
+        elapsed = uint(select(cost, q['cost_body']))
+        debit = uint(select(cost, q['cost_admin'])) * q['cost_admin_multiplier']
+        begin, end = uint(select(review, q['review_begin'])), uint(select(review, q['review_end']))
+        need(end >= begin and end - begin == elapsed == uint(select(review, q['review_body'])) and
+             debit == ADMIN_NS and
+             uint(select(registration, q['registration_admin'])) * q['registration_admin_multiplier'] == debit and
+             uint(select(registration, q['registration_body_cap'])) * q['registration_cap_multiplier'] == BODY_LIMIT_NS and
+             uint(select(review, q['review_admin'])) * q['review_admin_multiplier'] == debit,
+             'actual observed body and separate admin units')
+        selected_review_exit = select(review, q['review_native_exit'])
+        reported_native_exit = parent_exit if parent_family else native['actual_tool_result']['exit_code']
+        need(type(reported_native_exit) is int and
+             type(selected_review_exit) is int and
+             reported_native_exit == selected_review_exit and
+             review['status'] == row['review_status'] and type(row['review_status']) is str and
+             row['review_status'].startswith('ACCEPT_') and cost['all_costs_settled'] is False,
+             'genuine retained native result / accepted scoped review')
+        need(seconds_ns(cost['policy_charged_seconds']) == elapsed + debit, 'cost row exact policy amount')
+        if parent_family:
+            review_pins = parent_review_pins
+        else:
+            review_pins = review['input_pins']
+            review_pins = review_pins if type(review_pins) is list else list(review_pins.values())
+        for key in ('registration', 'cost', 'native'):
+            expected = desc['files'][row[key]]
+            need(any(type(p) is dict and p.get('path') == expected['origin_path'] and
+                     p.get('sha256') == expected['sha256'] and p.get('bytes') == expected['bytes'] for p in review_pins),
+                 'review binds each original provenance file')
+        if row['kind'] == 'ORIGINAL_MANUAL_OPERATION':
+            need(row['formal_start_sha256'] is None and row['formal_receipt_sha256'] is None, 'not a fabricated formal entry')
+        else:
+            need(row['kind'] == 'ALREADY_REGISTERED_OPERATION', 'immutable charge partition')
+            digest(row['formal_start_sha256']); digest(row['formal_receipt_sha256'])
+        blockers = []
+        if elapsed > BODY_LIMIT_NS:
+            blockers.append(name + ':IMPORTED_BODY180_EXCEEDED')
+        need(type(row['closed_checks']) is list and 1 <= len(row['closed_checks']) <= 16, 'explicit scoped closure checks')
+        documents = {'review': review, 'cost': cost, 'registration': registration, 'native': native}
+        for check in row['closed_checks']:
+            exact(check, ('document', 'path', 'expected'))
+            need(check['document'] in documents and (type(check['expected']) is bool or check['expected'] is None), 'closed condition literal')
+            actual = select(documents[check['document']], check['path'])
+            if type(actual) is not type(check['expected']) or actual != check['expected']:
+                blockers.append(name + ':IMPORTED_UNCLOSED_CONDITION')
+        pair = {'cost': origin_ref(desc['files'][row['cost']]), 'independent_outcome_review': origin_ref(desc['files'][row['review']])}
+        pairs_seen.append(pair)
+        state_pairs_seen.append({'cost': pair['cost'], 'independent_review': pair['independent_outcome_review']} if parent_family else pair)
+        regs.append(origin_ref(desc['files'][row['registration']])); natives.append(origin_ref(desc['files'][row['native']]))
+        views.append({'kind': row['kind'], 'entry_id': name, 'command_sha256': command, 'exact_shell_sha256': row['exact_shell_sha256'], 'body_ns': elapsed,
+                      'admin_ns': debit, 'blockers': blockers, 'formal_start_sha256': row['formal_start_sha256'], 'formal_receipt_sha256': row['formal_receipt_sha256']})
+        body += elapsed; admin += debit
+    if parent_family_seen:
+        need(state['schema'] == 'h25-fresh-metered-round-parent-state-v5' and
+             selected['schema'] == 'h25-current-bootstrap-opening-source-inputs-v2', 'closed parent state/selection schema variants')
+    need(state['accepted_attempts'] == state_pairs_seen and pairs_seen == selected['observations'] and
+         selected['pre_entry_registrations'] == regs and selected['genuine_native_results'] == natives and
+         selected['current_parent_state'] == origin_ref(desc['files'][desc['state_file']]), 'no accepted operation/provenance omitted')
+    need(type(state['guarded_attempts']) is int and state['guarded_attempts'] == len(views) and
+         state['observed_body_elapsed_ns_total'] == body and type(state['observed_body_elapsed_ns_total']) is int and
+         type(state['administrative_policy_debit_seconds_total']) is int and
+         state['administrative_policy_debit_seconds_total'] * NS == admin and
+         seconds_ns(state['policy_charged_seconds_total']) == body + admin and
+         selected['body_ns'] == body and selected['administrative_policy_ns'] == admin and
+         selected['policy_total_ns'] == body + admin and
+         state['complete_new_physical_total_seconds'] is None and state['old_complete_total_seconds'] is None and
+         state['physical_publication_boundary'] == 'OPEN_NOT_ZERO' and state['all_costs_settled'] is False,
+         'current complete selected corpus totals, never physical total')
+    exact(desc['expected_totals'], ('body_ns', 'administrative_ns', 'policy_ns', 'operations'))
+    for amount in desc['expected_totals'].values():
+        uint(amount)
+    need(desc['expected_totals'] == {'body_ns': body, 'administrative_ns': admin, 'policy_ns': body + admin, 'operations': len(views)}, 'independent literal expected totals')
+    manual = [v for v in views if v['kind'] == 'ORIGINAL_MANUAL_OPERATION']
+    return {'descriptor': desc, 'state_sha256': desc['files'][desc['state_file']]['sha256'], 'views': views,
+            'manual_body_ns': sum(v['body_ns'] for v in manual), 'manual_admin_ns': sum(v['admin_ns'] for v in manual),
+            'manual_entry_ids': [v['entry_id'] for v in manual], 'manual_command_sha256s': [v['command_sha256'] for v in manual],
+            'registry_rows': [v for v in views if v['kind'] == 'ALREADY_REGISTERED_OPERATION'],
+            'parent_body_ns': body, 'parent_admin_ns': admin,
+            'blockers': [reason for v in views for reason in v['blockers']]}
+
+
+def read_opening(io, opening_pin, owner_uid):
+    """Actual source-authenticated OwnedIO boundary, not arbitrary reader authority."""
+    pin(opening_pin); need(opening_pin['mode'] == 0o444, 'frozen selected opening')
+    row, raw = read_pinned(io, opening_pin, owner_uid)
+    desc = decode(raw); folder = Path(opening_pin['path']).parent / 'corpus'
+    need(folder.resolve(strict=True) == folder, 'canonical corpus directory')
+    before = folder.lstat()
+    need(stat.S_ISDIR(before.st_mode) and before.st_uid == owner_uid and stat.S_IMODE(before.st_mode) == 0o555, 'immutable current-owner corpus')
+    names = io.names(folder, 8 * OPENING_LIMIT + 1)
+    need(type(names) is list and all(type(n) is str for n in names) and
+         len(names) == len(set(names)) and set(names) == set(desc['files']), 'exact complete corpus census')
+    wires, observed = {}, []
+    for name in sorted(names):
+        item = desc['files'][name]
+        need(type(name) is str and '/' not in name and '..' not in name, 'corpus basename')
+        p = {'path': str(folder / name), 'bytes': item['bytes'], 'sha256': item['sha256'], 'mode': 0o444}
+        actual, data = read_pinned(io, p, owner_uid); wires[name] = data.decode('utf-8'); observed.append((p, actual, data))
+    snapshot = {'schema': 'fresh-current-opening-snapshot-v1', 'opening_pin': opening_pin,
+                'descriptor_wire': raw.decode('utf-8'), 'corpus_wires': wires}
+    opening_evidence(snapshot)
+    for p, actual, data in observed:
+        after_row, after = read_pinned(io, p, owner_uid)
+        need(after_row == actual and after == data, 'immutable corpus pre/post custody')
+    after_row, after = read_pinned(io, opening_pin, owner_uid)
+    directory_after = folder.lstat()
+    need(after_row == row and after == raw and
+         (directory_after.st_dev, directory_after.st_ino, directory_after.st_mode, directory_after.st_uid,
+          directory_after.st_mtime_ns, directory_after.st_ctime_ns) ==
+         (before.st_dev, before.st_ino, before.st_mode, before.st_uid, before.st_mtime_ns, before.st_ctime_ns) and
+         set(io.names(folder, 8 * OPENING_LIMIT + 1)) == set(names), 'opening/corpus current custody')
+    return snapshot
+
+
+def require_opening_append(previous, current):
+    a, b = opening_evidence(previous), opening_evidence(current)
+    old, new = a['descriptor'], b['descriptor']
+    need(new['previous_opening_sha256'] == previous['opening_pin']['sha256'] and
+         new['observations'][:len(old['observations'])] == old['observations'] and
+         all(new['files'].get(k) == v for k, v in old['files'].items()) and
+         new['authorization_sha256'] == old['authorization_sha256'], 'opening immutable prefix; no omission/reprice/reclassification')
+    return True
+
+
+def validate_opening_partition(opening, reg, records):
+    evidence = opening_evidence(opening)
+    _, _, starts, closes = registry((json.dumps(reg, separators=(',', ':')) + '\n').encode('utf-8'))
+    formal_commands = set()
+    for name, bundle in records.items():
+        s = bundle['start']; command = digest(s['command_sha256']); formal_commands.add(command)
+        need(name not in evidence['manual_entry_ids'] and command not in evidence['manual_command_sha256s'], 'manual/formal charges disjoint')
+    for v in evidence['registry_rows']:
+        name = v['entry_id']
+        need(name in starts and name in closes and starts[name]['sha256'] == v['formal_start_sha256'] and
+             closes[name]['sha256'] == v['formal_receipt_sha256'] and records[name]['receipt'] is not None,
+             'state formal partition bound to actual registered closed records')
+        receipt = records[name]['receipt']
+        need(records[name]['start']['command_sha256'] == v['command_sha256'] and
+             receipt['body_elapsed_ns'] == v['body_ns'] and receipt['administrative_debit_ns'] == v['admin_ns'], 'formal body charged once by registry')
+    return evidence
+
+
+def validate_opening_binding(io, binding, owner_uid):
+    plain(binding)
+    exact(binding, ('schema', 'opening_pin', 'adoption_pin', 'funding_source_sha256'))
+    need(binding['schema'] == 'fresh-current-opening-binding-v1', 'current opening binding')
+    digest(binding['funding_source_sha256']); snapshot = read_opening(io, binding['opening_pin'], owner_uid)
+    evidence = opening_evidence(snapshot); _, raw = read_pinned(io, binding['adoption_pin'], owner_uid)
+    adoption = decode(raw)
+    exact(adoption, ('schema', 'opening_sha256', 'state_sha256', 'manual_body_ns', 'manual_admin_ns',
+                     'operations', 'authorization_sha256', 'funding_source_sha256', 'authority_scope'))
+    for key in ('manual_body_ns', 'manual_admin_ns', 'operations'):
+        uint(adoption[key])
+    need(adoption == {'schema': 'fresh-current-opening-adoption-v1', 'opening_sha256': binding['opening_pin']['sha256'],
+         'state_sha256': evidence['state_sha256'], 'manual_body_ns': evidence['manual_body_ns'],
+         'manual_admin_ns': evidence['manual_admin_ns'], 'operations': len(evidence['views']),
+         'authorization_sha256': AUTHORIZATION_SHA256, 'funding_source_sha256': binding['funding_source_sha256'],
+         'authority_scope': 'OPENING_DATA_SELECTION_ONLY_NOT_OPERATIONAL_GRANT'}, 'selected current opening adoption; not native grant')
+    return snapshot
+
+
+def initial_registry(opening_pin, policy_pins, phase='INITIAL', phase_release_sha256=None):
+    plain(opening_pin); plain(policy_pins); plain(phase); plain(phase_release_sha256)
+    obj = {'schema': 'fresh-round-registry-v2', 'round_id': ROUND_ID, 'authorization_sha256': AUTHORIZATION_SHA256,
+           'opening_pin': opening_pin, 'predecessor_sha256': None, 'phase': phase,
+           'phase_release_sha256': phase_release_sha256, 'policies': policy_pins, 'events': []}
+    raw = (json.dumps(obj, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8'); registry(raw)
+    return raw
+
+
+
+def validate_pre_entry_provenance(value, name, command, reservation_ns):
+    plain(value)
+    exact(value, ('schema', 'entry_id', 'command_sha256', 'body_reservation_ns', 'registration_pin', 'original_start_pin', 'pending_manifest_pin'))
+    need(value['schema'] == 'fresh-original-preentry-provenance-v1' and value['entry_id'] == name and
+         value['command_sha256'] == command and type(value['body_reservation_ns']) is int and
+         value['body_reservation_ns'] == reservation_ns, 'same genuine enclosing manual/formal operation')
+    for key in ('registration_pin', 'original_start_pin', 'pending_manifest_pin'):
+        pin(value[key])
+    return True
