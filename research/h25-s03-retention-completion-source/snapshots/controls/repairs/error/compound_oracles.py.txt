@@ -1,0 +1,265 @@
+"""UNEXECUTED B4 actual-function controls; parent exact admission required.
+
+The parent supplies the actual exact-loaded error_custody and native_io modules.
+No source AST extraction, production capability, project import, native operation
+or control runs on importing this file. OS ports below are bounded fakes.
+"""
+import errno
+
+
+def check(value, message):
+    if not value:
+        raise AssertionError(message)
+
+
+def delivered(error):
+    try:
+        raise error
+    except BaseException as actual:
+        return BaseException.__traceback__.__get__(actual, BaseException)
+
+
+def slot(errors, custody, kind, error, traceback=None):
+    result=errors.reserve(custody,kind)
+    result.actual=error
+    result.traceback=delivered(error) if traceback is None else traceback
+    result.occupied=True
+    return result
+
+
+def compound(errors, reuse):
+    """E/Q/X plus a hypothetical R: prove R is never called after Q."""
+    all_errors=[ValueError('E'),MemoryError('Q'),OSError(errno.ENOSPC,'X')]
+    if reuse=='E=Q':all_errors[1]=all_errors[0]
+    elif reuse=='Q=X':all_errors[2]=all_errors[1]
+    elif reuse=='E=X':all_errors[2]=all_errors[0]
+    elif reuse=='E=Q=X':all_errors[1]=all_errors[2]=all_errors[0]
+    primary,journal_error,export_error=all_errors
+    forbidden=OSError(errno.EIO,'R must never be delivered')
+    later_export=OSError(errno.EIO,'second export must never occur')
+    custody=errors.new_custody()
+    first=slot(errors,custody,'PRIMARY',primary)
+    primary_tb=first.traceback
+    record_calls=[]
+    write_calls=[]
+    original_record,original_write=errors.record,errors.os.write
+    def record(value,observation):
+        record_calls.append(observation)
+        raise journal_error if len(record_calls)==1 else forbidden
+    def write(fd,raw):
+        write_calls.append((fd,len(raw)))
+        raise export_error if len(write_calls)==1 else later_export
+    errors.record=record
+    errors.os.write=write
+    try:
+        errors.commit(custody,first,primary=True)
+        q_tb=custody.retention_tb
+        check(custody.primary is primary and custody.primary_tb is primary_tb,'E original object and traceback')
+        check(custody.retention_failure is journal_error and q_tb is not None,'Q raw first object/traceback')
+        check(custody.journal_failure.actual is journal_error and custody.journal_failure.traceback is q_tb,'designated Q slot')
+        check(errors.export(custody) is False,'compound export fails honestly')
+        x_tb=custody.export_failure_tb
+        check(custody.export_failed is export_error and x_tb is not None,'X raw first object/traceback')
+        check(custody.saturation_slot.actual is export_error and custody.saturation_slot.traceback is x_tb,'designated X slot')
+        check(custody.retention_failure is journal_error and custody.retention_tb is q_tb,'X cannot replace Q')
+        check(len(record_calls)==1,'R recorder not invoked after Q')
+        check(errors.export(custody) is False and len(write_calls)==1,'failed export not retried')
+        check(custody.export_failure_tb is x_tb and custody.retention_tb is q_tb,'repeated export preserves both raw tracebacks')
+        secondary=ValueError('designated secondary after disabled journal')
+        retained=errors.retain(custody,'SECONDARY',secondary)
+        external=errors.RawSlot()
+        external.kind='EXTERNAL_PREHELD_SECONDARY'
+        external.actual=ValueError('external raw secondary')
+        external.traceback=delivered(external.actual)
+        external.occupied=True
+        errors.commit(custody,external)
+        check(len(record_calls)==1,'later raw captures never retry failed optional recorder')
+        raw=custody.raw_slots[:custody.raw_used]
+        check(raw[:3]==[first,custody.journal_failure,custody.saturation_slot],'E/Q/X designated raw order')
+        check(raw[-2] is retained and raw[-1] is external,'all later designated raw slots remain strongly held')
+        check(custody.primary is primary and custody.primary_tb is primary_tb,'compound final primary unchanged')
+        check(custody.journal_state=='FAILED' and custody.incomplete,'journal failure explicit incomplete STOP')
+        observed=errors.snapshot(custody)
+        check(observed['retention_failure_id']==id(journal_error),'snapshot identifies first Q')
+        check(observed['all_designated_raw_slots_retained'],'bounded raw table complete for this control')
+        if reuse!='distinct':
+            check(primary_tb is first.traceback and q_tb is custody.journal_failure.traceback and x_tb is custody.saturation_slot.traceback,'same-object throws retain their own original traceback pointers')
+    finally:
+        errors.record,errors.os.write=original_record,original_write
+
+
+def healthy_export_record_failure(errors):
+    primary=ValueError('E')
+    export_error=OSError(errno.ENOSPC,'X')
+    record_error=MemoryError('R first healthy-journal failure')
+    custody=errors.new_custody()
+    first=slot(errors,custody,'PRIMARY',primary)
+    errors.commit(custody,first)
+    calls=[]
+    writes=[]
+    old_record,old_write=errors.record,errors.os.write
+    def record(value,observation):
+        calls.append(observation)
+        raise record_error
+    def write(fd,raw):
+        writes.append(fd)
+        raise export_error
+    errors.record,errors.os.write=record,write
+    try:
+        check(errors.export(custody) is False,'healthy export X/R STOP')
+        record_tb=custody.retention_tb
+        check(custody.primary is primary and custody.primary_tb is first.traceback,'healthy E retained')
+        check(custody.export_failed is export_error and custody.retention_failure is record_error,'observed X and R both retained')
+        check(custody.journal_failure.traceback is record_tb and record_tb is not None,'R original traceback')
+        check(custody.raw_slots[:custody.raw_used]==[first,custody.saturation_slot,custody.journal_failure],'healthy E/X/R raw order')
+        check(errors.export(custody) is False and len(calls)==1 and len(writes)==1,'no retry after observed X/R')
+    finally:
+        errors.record,errors.os.write=old_record,old_write
+
+
+def same_object_observation_semantics(errors):
+    custody=errors.new_custody()
+    actual=ValueError('same actual object')
+    first=slot(errors,custody,'LEXICAL',actual)
+    errors.commit(custody,first)
+    duplicate=slot(errors,custody,'DESIGNATED_SAME_OBSERVATION',actual,first.traceback)
+    errors.commit(custody,duplicate)
+    second=slot(errors,custody,'NEW_THROW_SAME_OBJECT',actual)
+    check(second.traceback is not first.traceback,'independently delivered second traceback')
+    errors.commit(custody,second)
+    check(custody.events==(first,second),'same actual + distinct traceback is distinct observation')
+    check(first.sequence==duplicate.sequence and second.sequence!=first.sequence,'journal caught-observation ordinals')
+    check([row.raw_sequence for row in custody.raw_slots[:custody.raw_used]]==[1,2,3],'every designated raw capture has its own ordinal')
+    check(custody.primary is actual and custody.primary_tb is first.traceback,'same-object second throw cannot rewrite first traceback')
+    # Successful DATA observations are never collapsed by small/singleton identity.
+    first_data=errors.retain(custody,'RETURN_ONE',None)
+    second_data=errors.retain(custody,'RETURN_TWO',None)
+    check(first_data.sequence!=second_data.sequence,'distinct DATA returns remain distinct observations')
+
+
+def record_cap_export_semantics(errors):
+    custody=errors.new_custody(capacity=16)
+    primary=ValueError('E')
+    first=slot(errors,custody,'PRIMARY',primary)
+    errors.commit(custody,first)
+    # Fill the ACTUAL fixed observation table through actual record(), with
+    # distinct preheld slots. This does not replace its append implementation.
+    held=[]
+    for index in range(len(custody.ordered)-1):
+        row=errors.RawSlot()
+        row.kind='CAP_FILL'
+        row.actual=ValueError(index)
+        row.occupied=True
+        held.append(row)
+        errors.record(custody,row)
+    full=custody.ordered_used
+    overflow=errors.RawSlot()
+    overflow.kind='PREHELD_OVERFLOW'
+    overflow.actual=ValueError('overflow')
+    overflow.occupied=True
+    errors.commit(custody,overflow)
+    check(custody.incomplete and custody.journal_state=='SATURATED','record cap explicit incomplete')
+    check(custody.raw_overflow is overflow,'first raw overflow remains strongly held')
+    forbidden=MemoryError('R must not run for capped journal')
+    export_error=OSError(errno.ENOSPC,'X after cap')
+    calls=[]
+    writes=[]
+    old_record,old_write=errors.record,errors.os.write
+    def record(value,observation):
+        calls.append(observation)
+        raise forbidden
+    def write(fd,raw):
+        writes.append(fd)
+        raise export_error
+    errors.record,errors.os.write=record,write
+    try:
+        later=errors.retain(custody,'RESERVED_AFTER_CAP',ValueError('later'))
+        check(errors.export(custody) is False,'capped export honest STOP')
+        check(not calls and writes==[2],'capped journal does not invoke R')
+        check(custody.ordered_used==full and custody.primary is primary,'cap cannot append or replace E')
+        check(custody.export_failed is export_error,'X after cap designated raw retained')
+        check(later.actual is not None and custody.raw_overflow is overflow,'occupied and overflow raw refs are preserved')
+        check(errors.snapshot(custody)['all_designated_raw_slots_retained'] is False,'capacity gap never reported complete')
+    finally:
+        errors.record,errors.os.write=old_record,old_write
+
+
+def native_close_compound(errors,native_io):
+    check(native_io._ERRORS is errors,'actual exact helper/native module join')
+    custody=errors.new_custody()
+    context=native_io.new_context('compound-known-closes',custody)
+    primary=ValueError('E')
+    journal_error=MemoryError('Q native recorder')
+    forbidden=MemoryError('R must not be invoked')
+    first_close=OSError(errno.EIO,'close12')
+    second_close=OSError(errno.EIO,'close11')
+    export_error=OSError(errno.ENOSPC,'X')
+    opened=[]
+    closed=[]
+    record_calls=[]
+    write_calls=[]
+    primary_tb=delivered(primary)
+    old_open,old_close=native_io._OPEN,native_io._CLOSE
+    old_record,old_write=errors.record,errors.os.write
+    def acquire(*args,**kwargs):
+        fd=10+len(opened)
+        opened.append(fd)
+        return fd
+    def close(fd):
+        closed.append(fd)
+        if fd==12:raise first_close
+        if fd==11:raise second_close
+    def record(value,observation):
+        record_calls.append(observation)
+        raise journal_error if len(record_calls)==1 else forbidden
+    def write(fd,raw):
+        write_calls.append(fd)
+        raise export_error
+    native_io._OPEN,native_io._CLOSE=acquire,close
+    try:
+        for _ in range(3):native_io.acquire(context,'fake',0,'known-fd')
+        errors.record,errors.os.write=record,write
+        native_io.capture(context,primary,'BODY','source-owner')
+        q_tb=context.journal_fault.traceback
+        native_io.cleanup_known(context)
+        check(closed==[12,11,10],'every distinct known FD close attempted once')
+        check([row.close_error for row in context.close_order[:context.close_used]]==[first_close,second_close],'raw native close secondaries ordered')
+        check([row.close_sequence for row in context.close_order[:context.close_used]]==[1,2],'native close ordinals independent of failed journal')
+        check(context.primary is primary and context.primary_tb is primary_tb
+              and context.journal_fault.actual is journal_error,'native E object/original traceback and Q retained')
+        check(len(record_calls)==1,'known close continuation never retries failed native journal')
+        check(errors.export(custody) is False,'native incomplete journal/export STOP')
+        check(len(record_calls)==1 and write_calls==[2],'export cannot invoke R after native incomplete state')
+        check(context.journal_fault.traceback is q_tb and custody.export_failed is export_error,'native Q traceback and X preserved')
+        native_io.cleanup_known(context)
+        check(closed==[12,11,10],'uncertain known close never retried')
+    finally:
+        native_io._OPEN,native_io._CLOSE=old_open,old_close
+        errors.record,errors.os.write=old_record,old_write
+
+
+_FAILURES=[]
+_TRACEBACKS=[]
+
+def run_actual_b4_controls(errors,native_io):
+    cases=[('compound_'+reuse,lambda reuse=reuse:compound(errors,reuse))
+           for reuse in ('distinct','E=Q','Q=X','E=X','E=Q=X')]
+    cases.extend((('healthy_export_record_failure',lambda:healthy_export_record_failure(errors)),
+                  ('same_object_observation_semantics',lambda:same_object_observation_semantics(errors)),
+                  ('record_cap_export_semantics',lambda:record_cap_export_semantics(errors)),
+                  ('native_close_compound',lambda:native_close_compound(errors,native_io))))
+    outcomes=[]
+    failures=[None]*len(cases)
+    tracebacks=[None]*len(cases)
+    for index,(name,case) in enumerate(cases):
+        try:case()
+        except BaseException as error:
+            failures[index]=error
+            tracebacks[index]=BaseException.__traceback__.__get__(error,BaseException)
+            outcomes.append(dict(case=name,status='FAIL',actual_id=id(error)))
+        else:outcomes.append(dict(case=name,status='PASS'))
+    global _FAILURES,_TRACEBACKS
+    _FAILURES,_TRACEBACKS=failures,tracebacks
+    return dict(schema='s03-B4-actual-function-controls-v1',status='PASS' if all(row['status']=='PASS' for row in outcomes) else 'FAIL',
+                cases=outcomes,all_cases_attempted=True,actual_function_bodies=True,source_port_fakes=True,
+                native_runtime_or_authority_claimed=False,assert_statement_count=0)

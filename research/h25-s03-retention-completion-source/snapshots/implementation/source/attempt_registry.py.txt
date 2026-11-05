@@ -1,0 +1,487 @@
+"""Same-owner monotone attempted/writer registry for the prospective source union.
+
+Actual handles and errors remain here, never reconstructed from serialized DATA.
+The registered-writer seal is a source closure prerequisite, not physical death
+proof: the authenticated guardian must separately attest actual native closure.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+from contextlib import contextmanager
+from types import FunctionType
+
+REQUIRED_WRITERS = ('attempt', 'intent', 'runner', 'native-usage', 'native-child',
+                    'supervision', 'proxy', 'queue', 'strict', 'serialized-DATA',
+                    'stop-supplement', 'reconcile')
+STATUSES = ('PASS', 'STOP', 'NONZERO', 'INTERRUPTED')
+
+
+def need(value, message):
+    if not value:
+        raise RuntimeError(message)
+
+
+def _private_dirs(path):
+    if path.exists():
+        st = path.lstat()
+        need(path.resolve(strict=True) == path and stat.S_ISDIR(st.st_mode) and
+             st.st_uid == os.getuid() and stat.S_IMODE(st.st_mode) == 0o700,
+             'canonical owned private directory0700')
+        return
+    if not path.parent.exists():
+        _private_dirs(path.parent)
+    need(path.parent.resolve(strict=True) == path.parent and not path.is_symlink(), 'canonical fresh parent')
+    os.mkdir(path, 0o700)
+
+
+class Attempt:
+    __slots__ = ('registry', 'layout', 'identity', 'label', 'phase', 'status', 'required',
+                 'resources', 'uncertain', 'error', 'traceback', 'terminal_written', 'owned_dirs')
+    def __init__(self, registry, layout, ordinal):
+        self.registry, self.layout, self.label = registry, layout, layout.label
+        self.identity = 'actual-attempt:%d:%s' % (ordinal, layout.label)
+        self.phase, self.status = 'RESERVED', None
+        self.required = {name: False for name in REQUIRED_WRITERS}
+        self.resources, self.uncertain = [], []
+        self.error, self.traceback, self.terminal_written = None, None, False
+        self.owned_dirs={}
+
+
+class AttemptRegistry:
+    __slots__ = ('layout', '_owner', '_phase', '_attempts', '_errors', '_overflow', '_source_created', '_closure', '_guardian', '_guardian_closure', '_guardian_code', '_issuer_ports', '_source_identity', '_selection_state', '_active_attempt')
+    def __init__(self, layout, owner_context):
+        need(owner_context is not None, 'actual source-private owner context')
+        self.layout, self._owner, self._phase = layout, owner_context, 'OPEN'
+        self._attempts, self._errors = {}, [None] * 32
+        self._overflow, self._source_created, self._closure = None, False, None
+        self._guardian, self._guardian_closure, self._guardian_code = None,None,None
+        self._issuer_ports = None
+        self._source_identity,self._selection_state=None,'ABSENCE_NOT_YET_VALIDATED'
+        self._active_attempt=None
+    @property
+    def owner_context(self):
+        return self._owner
+    @property
+    def phase(self):
+        return self._phase
+    def remember(self, error):
+        for item in self._errors:
+            if item is error:
+                return error
+        for i, item in enumerate(self._errors):
+            if item is None:
+                self._errors[i] = error
+                return error
+        if self._overflow is None:
+            self._overflow = error
+        self._phase = 'QUARANTINED'
+        return error
+    def quarantine(self,error=None):
+        if error is not None:
+            self.remember(error)
+        self._phase='QUARANTINED'
+    def capture_error(self, attempt, error):
+        # This is a raw reference operation, not a formatter or serialized proxy.
+        if attempt.error is None:
+            attempt.error = error
+        if attempt.error is error and attempt.traceback is None:
+            attempt.traceback = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+        self.remember(error)
+        return attempt.error
+    def primary_for(self, attempt):
+        need(type(attempt) is Attempt and attempt.registry is self, 'actual attempt raw error owner')
+        return attempt.error
+    def fd_pending(self, attempt, role):
+        return self._resource(attempt,role,'pidfd')
+    def fd_acquired(self, ticket, fd):
+        need(ticket['state'] == 'PENDING' and type(fd) is int and fd >= 0, 'known actual fd acquisition')
+        ticket['object'],ticket['state'] = fd,'OWNED'
+    def fd_not_entered(self, ticket):
+        need(ticket['state'] == 'PENDING', 'known failed native fd open')
+        ticket['state'] = 'NOT_ENTERED'
+    def fd_unknown(self, ticket, error):
+        ticket['primary'],ticket['state'] = error,'UNKNOWN'
+        self.remember(error)
+    def fd_close(self, ticket):
+        need(ticket['state'] == 'OWNED' and type(ticket['object']) is int, 'known distinct fd close owner')
+        fd,ticket['object'],ticket['state'],ticket['close_attempted'] = ticket['object'],None,'CLOSING',True
+        try:
+            os.close(fd)
+        except BaseException as error:
+            ticket['secondary'],ticket['state'] = error,'UNKNOWN'
+            self.remember(error)
+            raise
+        ticket['state'] = 'CLOSED'
+    def assert_mutable(self):
+        need(self._phase in ('OPEN', 'DRAINING'), 'source writers consumed or quarantined')
+    def assert_open(self, attempt, launch=False):
+        self.assert_mutable()
+        need(type(attempt) is Attempt and attempt.registry is self and self._attempts.get(attempt.label) is attempt,
+             'same actual private attempt')
+        need(attempt.status is None, 'attempt terminal consumed all writer permits')
+        if launch:
+            need(self._phase == 'OPEN', 'no launch after source drain')
+        return attempt
+    def _dir_identity(self,path):
+        st=path.lstat()
+        need(path.resolve(strict=True)==path and stat.S_ISDIR(st.st_mode) and
+             st.st_uid==os.getuid() and stat.S_IMODE(st.st_mode)==0o700,
+             'canonical owned source directory0700')
+        return (st.st_dev,st.st_ino,st.st_mode,st.st_uid)
+    def _create_owned_case_dir(self,attempt,path):
+        # Every native create is exclusive. A pre-existing unrecorded directory
+        # is foreign to this token even if its owner/mode happen to match.
+        need(path not in attempt.owned_dirs and not path.exists() and not path.is_symlink(),
+             'no adoption of pre-existing case directory')
+        os.mkdir(path,0o700)
+        attempt.owned_dirs[path]=self._dir_identity(path)
+    def _verify_owned_source(self):
+        need(self._source_created and self._selection_state=='OWNED_CREATED' and
+             self._source_identity is not None and self._dir_identity(self.layout.source)==self._source_identity,
+             'only exact source root created by this registry may be finalized or sealed')
+    def reserve_attempt(self, case):
+        need(self._phase=='OPEN','new attempts only before drain')
+        case_label=case if type(case) is str else case['label']
+        need(case_label not in self._attempts,'no retry or duplicate actual attempt')
+        row=self.layout.case(case_label)
+        token=Attempt(self,row,len(self._attempts)+1)
+        self._attempts[case_label]=token  # Strong actual entry precedes creation/clock.
+        try:
+            if not self._source_created:
+                if self.layout.source.exists() or self.layout.source.is_symlink():
+                    self._selection_state='PERMANENT_NO_ADOPTION_FOREIGN_ROOT'
+                    self._phase='QUARANTINED'
+                    raise RuntimeError('prospective source already exists; no adoption or finalizer writes')
+                self._selection_state='ABSENCE_VALIDATED_CREATION_PENDING'
+                _private_dirs(self.layout.source)
+                self._source_created=True
+                self._source_identity=self._dir_identity(self.layout.source)
+                self._selection_state='OWNED_CREATED'
+            self._verify_owned_source()
+            self._create_owned_case_dir(token,row.case_root)
+            for path in (row.attempt_root,row.intent_path.parent,row.supervision_root,row.queue_root,row.validation_root):
+                self._create_owned_case_dir(token,path)
+            self.write_json(token,'attempt',row.attempt_root/'START.json',{
+                'schema':'h25-real-attempt-start-v1','label':token.label,'attempt_identity':token.identity,
+                'phase':'RESERVED_BEFORE_PREPARATION','runner_completion_claimed':False,
+                'native_capability':False,'execution_permission':False})
+            token.phase='ENTERED'
+            return token
+        except BaseException as error:
+            token.error=error  # Strong original before any recording/classification.
+            token.traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            try:
+                self.capture_error(token,error)
+                if self._selection_state!='OWNED_CREATED' or self._source_identity is None:
+                    token.phase='PERMANENT_NO_ADOPTION_SOURCE_NOT_OWNED'
+                    self._phase='QUARANTINED'
+                elif any(path.exists() and path not in token.owned_dirs for path in
+                        (row.case_root,row.attempt_root,row.intent_path.parent,row.supervision_root,row.queue_root,row.validation_root)):
+                    token.phase='PERMANENT_NO_ADOPTION_FOREIGN_CASE_DIRECTORY'
+                    self._phase='QUARANTINED'
+                else:
+                    token.phase='CREATION_FAILED_KNOWN_CLOSED' if all(r['state'] in ('CLOSED','NOT_ENTERED') for r in token.resources) else 'CREATION_FAILED_UNKNOWN_HOLDER'
+                    if any(r['state'] in ('UNKNOWN','PENDING','CLOSING') for r in token.resources):
+                        token.uncertain.append('attempt creation has actual uncertain holder')
+            except BaseException as secondary:
+                if self._overflow is None:
+                    self._overflow=secondary  # Strong secondary before helper.
+                token.phase='PERMANENT_NO_ADOPTION_CLASSIFICATION_INCOMPLETE'
+                self._phase='QUARANTINED'
+                try:
+                    self.remember(secondary)
+                except BaseException:
+                    pass
+            raise BaseException.with_traceback(error,token.traceback)
+    def retire_unentered(self,attempt):
+        self.assert_open(attempt)
+        processes=[r for r in attempt.resources if r['kind']=='process']
+        if any(r['entry_entered'] for r in processes):
+            return
+        for row in attempt.resources:
+            if row['kind'] in ('process','native-holder') and row['state']=='PENDING' and row['entry_entered'] is False:
+                row['state']='NOT_ENTERED'
+                row['wait_known']=row['aliases_closed']=True
+    def prepare_finalizer_dirs(self,attempt):
+        self.assert_open(attempt)
+        self._verify_owned_source()
+        for path in (attempt.layout.case_root,attempt.layout.attempt_root,attempt.layout.intent_path.parent,
+                     attempt.layout.supervision_root,attempt.layout.queue_root,attempt.layout.validation_root):
+            if path in attempt.owned_dirs:
+                need(self._dir_identity(path)==attempt.owned_dirs[path],'same actual case directory inode')
+            else:
+                self._create_owned_case_dir(attempt,path)
+    reserve_actual_attempt = reserve_attempt
+    def attempt(self, label):
+        need(type(label) is str and label in self._attempts, 'actually entered attempt only')
+        return self._attempts[label]
+    def require_writer(self, attempt, role):
+        self.assert_open(attempt)
+        need(type(role) is str and role in attempt.required, 'finite required writer')
+        need(attempt.required[role] is False, 'writer requirement not already consumed')
+    def required_writer_closed(self, attempt, role):
+        self.assert_open(attempt)
+        need(role in attempt.required and attempt.required[role] is False, 'one closure per finite required writer')
+        attempt.required[role] = True
+    def mark_uncertain(self, attempt, reason):
+        self.assert_open(attempt)
+        need(type(reason) is str and len(reason) <= 2048, 'bounded uncertainty reason')
+        if len(attempt.uncertain)>=32:
+            self._phase='QUARANTINED'
+            raise RuntimeError('bounded uncertainty ledger saturated')
+        attempt.uncertain.append(reason)
+    def _resource(self, attempt, role, kind, path=None):
+        self.assert_open(attempt, launch=kind == 'process')
+        need(type(role) is str and 0 < len(role) <= 128 and len(attempt.resources) < 256, 'finite holder census')
+        if path is not None:
+            need(type(path) is type(self.layout.source) and path.is_relative_to(attempt.layout.case_root),
+                 'registered per-case source path')
+        row = {'attempt':attempt,'role': role, 'kind': kind, 'path': path, 'state': 'PENDING', 'object': None,
+               'returncode': None, 'wait_known': False, 'aliases_closed': False,
+               'primary':None,'primary_traceback':None,'secondary':None,'close_attempted':False,
+               'native_generation':None,'entry_entered':False}
+        attempt.resources.append(row)
+        return row
+    def synchronous_writer(self,attempt,role,path):
+        row=self._resource(attempt,role,'writer-permit',path)
+        row['state']='OWNED'
+        return row
+    @contextmanager
+    def writer(self, attempt, role, path):
+        row = self._resource(attempt, role, 'writer-permit', path)
+        row['state'] = 'OWNED'
+        try:
+            yield row
+        except BaseException as error:
+            row['primary'] = error  # Direct raw custody BEFORE any helper/formatting.
+            row['state'] = 'UNKNOWN'  # Synchronous helper failure does not prove its FD close.
+            try:
+                self.remember(error)
+            except BaseException as recording_error:
+                row['secondary'] = recording_error
+            raise
+        else:
+            row['state'] = 'CLOSED'
+    @contextmanager
+    def open_writer(self, attempt, role, path, mode='xb'):
+        need(mode == 'xb', 'exclusive binary source writer')
+        row = self._resource(attempt, role, 'file', path)
+        stream, primary, secondary, primary_traceback = None,None,None,None
+        try:
+            stream = path.open(mode)
+            row['object'], row['state'] = stream, 'OWNED'
+            yield stream
+        except BaseException as error:
+            primary = error  # Raw primary retained before any helper.
+            primary_traceback = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            row['primary'], row['primary_traceback'] = primary, primary_traceback
+            if stream is None:
+                row['state'] = 'UNKNOWN'
+            try:
+                self.remember(primary)
+            except BaseException as recording_error:
+                secondary = recording_error
+                row['secondary'] = secondary
+        finally:
+            if stream is not None:
+                row['state'] = 'CLOSING'
+                row['close_attempted'] = True
+                closing_stream, stream = stream, None  # Retire local ownership BEFORE one close.
+                row['object'] = None
+                try:
+                    closing_stream.close()
+                except BaseException as close_error:
+                    secondary = close_error  # Direct actual secondary BEFORE recording helper.
+                    row['secondary'], row['state'] = secondary, 'UNKNOWN'
+                    try:
+                        self.remember(secondary)
+                    except BaseException:
+                        pass  # Raw close object already occupies its preallocated resource slot.
+                else:
+                    row['state'] = 'CLOSED'
+        if primary is not None:
+            raise BaseException.with_traceback(primary,primary_traceback)
+        if secondary is not None:
+            raise secondary
+    def write_bytes(self, attempt, role, path, raw):
+        self.assert_open(attempt)  # BEFORE allocation/format/open.
+        need(type(raw) is bytes and len(raw) <= 4194304, 'bounded exact source bytes')
+        with self.open_writer(attempt, role, path) as stream:
+            offset = 0
+            while offset < len(raw):
+                count = stream.write(raw[offset:offset + 65536])
+                need(type(count) is int and count > 0, 'complete source write')
+                offset += count
+            stream.flush()
+            os.fsync(stream.fileno())
+        return {'path': str(path), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+    def write_json(self, attempt, role, path, value):
+        self.assert_open(attempt)
+        raw = (json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+        return self.write_bytes(attempt, role, path, raw)
+    def birth(self, attempt, role):
+        return self._resource(attempt, role, 'process')
+    def birth_entered(self, ticket):
+        need(ticket['state']=='PENDING' and ticket['entry_entered'] is False,'one native entry latch')
+        self._active_attempt=ticket['attempt']
+        ticket['entry_entered'] = True
+    def born(self, ticket, process):
+        need(ticket['state'] == 'PENDING' and process is not None, 'same actual returned Popen')
+        ticket['object'], ticket['state'] = process, 'OWNED'
+    def birth_failed(self, ticket, error, known_not_entered=False):
+        self.remember(error)
+        need(ticket['state'] == 'PENDING', 'pending launch only')
+        need(known_not_entered is not True or ticket['entry_entered'] is False,'native entered birth cannot become not-entered')
+        ticket['state'] = 'NOT_ENTERED' if known_not_entered is True else 'UNKNOWN'
+        ticket['wait_known'] = ticket['aliases_closed'] = known_not_entered is True
+    def waited(self, ticket, returncode):
+        need(ticket['state'] == 'OWNED' and type(returncode) is int and
+             self._issuer_call('wait_state',ticket['object'])=='COMMITTED' and
+             self._issuer_call('returncode',ticket['object'])==returncode, 'genuine original committed wait only')
+        ticket['wait_known'], ticket['returncode'] = True, returncode
+    def holder_closed(self, ticket):
+        need(ticket['state'] == 'OWNED' and ticket['wait_known'] is True, 'wait before aliases closure')
+        ticket['aliases_closed'], ticket['state'], ticket['object'] = True, 'CLOSED', None
+    def finish_attempt(self, attempt, status, error=None):
+        self.assert_open(attempt)
+        need(status in STATUSES, 'honest actual terminal class')
+        if error is not None:
+            self.capture_error(attempt,error)
+        closed = (not attempt.uncertain and all(r['state'] in ('CLOSED','NOT_ENTERED') for r in attempt.resources) and
+                  all(done for role,done in attempt.required.items() if role != 'attempt'))
+        need(status != 'PASS' or (closed and attempt.error is None), 'PASS requires complete writer closure and no actual error')
+        receipt = attempt.layout.runner_root / 'receipt.json'
+        value = {'schema': 'h25-real-attempt-terminal-v1', 'label': attempt.label,
+                 'attempt_identity': attempt.identity, 'status': status,
+                 'phase': 'ALL_REQUIRED_PER_CASE_WRITERS_CLOSED' if closed else 'UNRESOLVED_WRITER_CLOSURE', 'runner_receipt_present': receipt.exists(),
+                 'runner_completion_claimed': status == 'PASS' and receipt.exists(),
+                 'error_type': None if attempt.error is None else 'opaque-caught-exception',
+                 'native_capability': False, 'execution_permission': False}
+        self.write_json(attempt, 'attempt', attempt.layout.attempt_root / 'TERMINAL.json', value)
+        attempt.required['attempt'] = True
+        attempt.terminal_written, attempt.status, attempt.phase = True, status, 'TERMINAL' if closed else 'TERMINAL_UNCLOSED'
+    def begin_drain(self):
+        need(self._phase == 'OPEN', 'one irreversible source drain')
+        self._phase = 'DRAINING'
+    def bind_guardian(self, actual_guardian, fixed_source_closure_function):
+        need(self._phase == 'OPEN' and self._guardian is None and not self._attempts,
+             'one fixed guardian bridge before any source attempt')
+        fn = fixed_source_closure_function
+        selected = str(Path(__file__).absolute().parent.parent / 'retention/production_issuer.py')
+        need(type(fn) is FunctionType and fn.__name__ == 'guardian_writer_closure' and
+             fn.__code__.co_filename == selected and fn.__globals__.get('__file__') == selected and
+             fn.__globals__.get('guardian_writer_closure') is fn and actual_guardian is not None,
+             'actual authenticated source-fixed issuer bridge; no callback from DATA or lambda')
+        ports = {}
+        for name in ('spawn','started','poll','returncode','wait_blocked','wait_state','pid'):
+            port = fn.__globals__.get(name)
+            need(type(port) is FunctionType and port.__globals__ is fn.__globals__ and
+                 port.__code__.co_filename == selected, 'exact original issuer source port')
+            ports[name] = (port,port.__code__)
+        self._issuer_ports = ports
+        self._guardian, self._guardian_closure, self._guardian_code = actual_guardian,fn,fn.__code__
+    def _issuer_call(self, name, *args, **kwargs):
+        need(self._issuer_ports is not None and name in self._issuer_ports, 'bound fixed original issuer port')
+        fn,code = self._issuer_ports[name]
+        need(fn.__code__ is code and fn.__globals__.get(name) is fn and
+             self._guardian_closure.__globals__ is fn.__globals__, 'unchanged original source port')
+        return fn(*args,**kwargs)
+    def spawn_root(self, command, **kwargs):
+        need(self._phase == 'OPEN', 'no native launch after drain/seal')
+        attempt=self._active_attempt
+        try:
+            return self._issuer_call('spawn',command,**kwargs)
+        except BaseException as error:
+            if attempt.error is None:
+                attempt.error=error  # Direct actual slot BEFORE unwind/finalizer/helper.
+                attempt.traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            try:
+                self.capture_error(attempt,error)
+            except BaseException as secondary:
+                if self._overflow is None:
+                    self._overflow=secondary
+                self._phase='QUARANTINED'
+            raise BaseException.with_traceback(error,BaseException.__dict__['__traceback__'].__get__(error,BaseException))
+    def started_root(self, process, observed):
+        return self._issuer_call('started',process,observed)
+    def poll_root(self, process):
+        attempt=self._active_attempt
+        try:
+            return self._issuer_call('poll',process)
+        except BaseException as error:
+            if attempt.error is None:
+                attempt.error=error  # Direct actual slot BEFORE unwind/finalizer/helper.
+                attempt.traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            try:
+                self.capture_error(attempt,error)
+            except BaseException as secondary:
+                if self._overflow is None:
+                    self._overflow=secondary
+                self._phase='QUARANTINED'
+            raise BaseException.with_traceback(error,BaseException.__dict__['__traceback__'].__get__(error,BaseException))
+    def root_returncode(self, process):
+        return self._issuer_call('returncode',process)
+    def native_holder(self, attempt, role):
+        return self._resource(attempt,role,'native-holder')
+    def native_holder_born(self, ticket, process):
+        need(ticket['state']=='PENDING','one real native holder entry')
+        self._issuer_call('pid',process)  # Actual registered Popen object identity.
+        ticket['object'],ticket['state'] = process,'OWNED'
+    def native_holder_closed(self, ticket):
+        process = ticket['object']
+        need(ticket['state']=='OWNED' and self._issuer_call('wait_state',process)=='COMMITTED' and
+             type(self._issuer_call('returncode',process)) is int,
+             'genuine original terminal wait before native holder closure')
+        ticket['wait_known'],ticket['aliases_closed'],ticket['state'],ticket['object'] = True,True,'CLOSED',None
+    def seal(self, owner_context, guardian_closed=None):
+        need(guardian_closed is None, 'caller-supplied seal callbacks are forbidden')
+        need(owner_context is self._owner and self._phase == 'DRAINING', 'same actual owner and monotone seal')
+        self._verify_owned_source()
+        need(self._attempts and self._overflow is None, 'nonempty complete attempts and bounded errors')
+        for attempt in self._attempts.values():
+            need(attempt.terminal_written and attempt.status in STATUSES and not attempt.uncertain and
+                 all(attempt.required.values()) and all(row['state'] in ('CLOSED', 'NOT_ENTERED') for row in attempt.resources),
+                 'every actual source writer and required terminal closed')
+        fn = self._guardian_closure
+        need(type(fn) is FunctionType and fn.__code__ is self._guardian_code and
+             fn.__globals__.get('guardian_writer_closure') is fn and self._guardian is not None,
+             'unchanged fixed actual native closure bridge')
+        self._phase = 'SEALING'  # Irreversible; no writes/launches on guardian error.
+        need(fn(self,self._guardian) is True, 'authenticated G writers_closed+seal ACK required')
+        domain = self.domain()
+        self._closure = {'schema': 'h25-source-writer-closure-v1', 'phase': 'SEALED',
+                         'source_root': str(self.layout.source), 'actual_attempts': list(self._attempts),
+                         'all_required_writers_closed': True, 'domain': domain,
+                         'physical_death_proof_claimed_by_registry': False}
+        self._phase = 'SEALED'
+        return self._closure
+    def snapshot(self):
+        return {'schema': 'h25-actual-attempt-registry-v1', 'phase': self._phase,
+                'source_root': str(self.layout.source), 'selection_state':self._selection_state, 'attempts': [
+                    {'label': a.label, 'identity': a.identity, 'phase': a.phase, 'status': a.status,
+                     'required': dict(a.required), 'uncertain': list(a.uncertain),
+                     'resources': [{'role': r['role'], 'kind': r['kind'],
+                                    'path': None if r['path'] is None else str(r['path']),
+                                    'state': r['state'], 'entry_entered':r['entry_entered'], 'native_generation':r['native_generation'], 'wait_known': r['wait_known'],
+                                    'aliases_closed': r['aliases_closed'], 'returncode': r['returncode']}
+                                   for r in a.resources]} for a in self._attempts.values()]}
+    def domain(self):
+        runs = []
+        for a in self._attempts.values():
+            need(a.terminal_written and a.status in STATUSES, 'only genuine completed actual attempts')
+            canonical = a.layout.runner_root / 'receipt.json'
+            runs.append({'run': a.label, 'terminal_status': a.status,
+                         'terminal_receipts': ['attempt/TERMINAL.json'],
+                         'layout': a.layout.relative_map(), 'attempt_state': a.phase,
+                         'canonical_receipt': 'runner/receipt.json' if canonical.exists() else None})
+        root_files = []
+        if self.layout.source.exists():
+            for p in sorted(self.layout.source.iterdir()):
+                if not stat.S_ISDIR(p.lstat().st_mode):
+                    root_files.append(p.name)
+                else:
+                    need(p.name in self._attempts,'unregistered source-root directory cannot be omitted')
+        return {'schema': 'h25-completed-source-domain-v2', 'source_root': str(self.layout.source),
+                'scope': 'complete-actual-attempt-union', 'root_files': root_files, 'runs': runs}

@@ -1,0 +1,125 @@
+"""Unexecuted changed-code DATA controls; parent alone may admit execution.
+
+Every OS/socket/poll/time effect is a counted synthetic object. The oracle is
+the separately created first/secondary exception identity and exact effect
+sequence, not an answer computed by the implementation. No process/FD/network
+or original campaign is created. This file is not itself an execution receipt.
+"""
+from pathlib import Path
+import array
+import hashlib
+import json
+import struct
+from types import ModuleType, SimpleNamespace
+
+SOURCE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z/implementation/bootstrap/guardian_channel.py')
+
+
+def case(source_raw, early_failure):
+    module = ModuleType('_s03_synthetic_guardian_error_control')
+    module.__dict__['__name__'] = module.__name__
+    exec(compile(source_raw,str(SOURCE),'exec',dont_inherit=True),module.__dict__)
+    effects = []
+    E, F = RuntimeError('synthetic-first-send'), RuntimeError('synthetic-pidfd-close')
+    real_socket = module.socket
+    constants = {name:getattr(real_socket,name) for name in
+        ('AF_UNIX','SOCK_SEQPACKET','SOL_SOCKET','SO_TYPE','SO_PEERCRED',
+         'SO_PASSCRED','SCM_CREDENTIALS','SCM_RIGHTS','MSG_CMSG_CLOEXEC')}
+    class FakeSocket:
+        family = real_socket.AF_UNIX
+        def __init__(self, fd):
+            self.fd = fd
+        def getsockopt(self, level, kind, maximum=None):
+            if kind == real_socket.SO_TYPE:
+                return real_socket.SOCK_SEQPACKET
+            assert kind == real_socket.SO_PEERCRED
+            return struct.pack('3i',50,1000,1000)
+        def setblocking(self, value):
+            assert value is False
+        def setsockopt(self, *args):
+            effects.append(('setsockopt',self.fd))
+        def sendmsg(self, parts, ancillary):
+            effects.append(('send',self.fd))
+            if early_failure:
+                raise E
+            assert len(parts) == 1 and len(parts[0]) == 256
+            return 256
+        def recvmsg(self, *args):
+            effects.append(('receive',self.fd))
+            ack = module.WIRE.pack(module.MAGIC,1,module.REGISTER|0x80000000,
+                1,1,50,0,100,200,10_000_000_000,bytes(32),bytes(32),bytes(136))
+            return ack, [(real_socket.SOL_SOCKET,real_socket.SCM_CREDENTIALS,
+                         struct.pack('3i',50,1000,1000)),
+                        (real_socket.SOL_SOCKET,real_socket.SCM_RIGHTS,array.array('i',[202]).tobytes())],0,None
+        def detach(self):
+            effects.append(('detach',self.fd))
+            return self.fd
+        def close(self):
+            effects.append(('socket-close',self.fd))
+    class FakePoll:
+        def register(self, *args):
+            pass
+        def modify(self, *args):
+            pass
+        def poll(self, unused):
+            return [(198,module.select.POLLIN|module.select.POLLOUT)]
+    def native_close(fd):
+        effects.append(('close',fd))
+        if fd == 601:
+            raise F
+    def native_dup(old,new,*,inheritable):
+        assert inheritable is False
+        effects.append(('dup',old,new))
+        return new
+    module.os = SimpleNamespace(getpid=lambda:42,getppid=lambda:40,getuid=lambda:1000,
+        getgid=lambda:1000,pidfd_open=lambda pid,flags:601,close=native_close,dup2=native_dup)
+    module.time = SimpleNamespace(monotonic_ns=lambda:1_000_000_000)
+    module.socket = SimpleNamespace(**constants,socket=lambda *,fileno:FakeSocket(fileno),
+        CMSG_SPACE=real_socket.CMSG_SPACE)
+    module.select = SimpleNamespace(POLLIN=1,POLLOUT=4,poll=FakePoll)
+    channel = object.__new__(module.GuardianChannel)
+    channel._sock = FakeSocket(198)
+    channel._pid,channel._uid,channel._role = 42,1000,1
+    channel._source,channel._attempt = bytes(32),'synthetic-attempt'
+    channel._start_pin = {'sha256':'0'*64}
+    channel._start_ns,channel._gpid,channel._deadline = 100,50,10_000_000_000
+    channel._seq,channel._phase = 0,'REGISTER_PENDING'
+    channel._first,channel._first_tb = None,None
+    channel._secondary = [[None,None] for unused in range(16)]
+    channel._unknown,channel._closed,channel._registered = False,False,False
+    module._LIVE[channel] = (42,channel._attempt,channel._start_pin)
+    observed = None
+    try:
+        channel._exchange(module.REGISTER,self_pidfd=True)
+    except BaseException as actual:
+        observed = actual
+    wanted = E if early_failure else F
+    assert observed is wanted and channel._first is wanted and channel._first_tb is not None
+    assert channel._unknown is True
+    assert [item for item in effects if item[0] == 'close'] == (
+        [('close',601)] if early_failure else [('close',198),('close',601)])
+    if early_failure:
+        assert any(row[0] is F and row[1] is not None for row in channel._secondary)
+    before = tuple(effects)
+    again = None
+    try:
+        channel._check()
+    except BaseException as actual:
+        again = actual
+    assert again is wanted and tuple(effects) == before
+    return {'case':'EARLIER_E_THEN_CLOSE_F' if early_failure else 'ACK_THEN_CLOSE_F',
+            'original_actual_identity_preserved':True,'actual_traceback_held':True,
+            'ACK_returned':False,'one_pidfd_close_attempt':True,'native_effects':0,
+            'synthetic_effect_count':len(effects)}
+
+
+def main():
+    raw = SOURCE.read_bytes()  # Source only, never protected payload or runtime.
+    results = [case(raw,False),case(raw,True)]
+    return {'schema':'s03-guardian-error-synthetic-DATA-control-result-v1',
+        'source_sha256':hashlib.sha256(raw).hexdigest(),'source_bytes':len(raw),
+        'results':results,'original_or_native_execution':False,'execution_permission':False}
+
+
+if __name__ == '__main__':
+    print(json.dumps(main(),sort_keys=True))

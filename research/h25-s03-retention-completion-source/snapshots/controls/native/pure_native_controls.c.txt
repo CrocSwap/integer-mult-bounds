@@ -1,0 +1,25 @@
+/* Parent-only pure C control entry. No guardian entry, process, /proc, cgroup,
+ * native target, archive, compiler or control execution is admitted by source.
+ * Exact parent command must separately admit building and this entry. */
+#define main S03_UNEXECUTED_GUARDIAN_MAIN
+#include "../../implementation/native/retention_guardian.c"
+#undef main
+static unsigned failures;
+static void control(bool ok,const char*name){if(!ok){failures++;fprintf(stderr,"FAIL %s\n",name);}}
+static bool parse_literal(const char*text){struct document d={0};size_t n=strlen(text);if(n>MAX_JSON)return false;memcpy(d.raw,text,n);d.bytes=n;int root=js(&d,0);ws(&d);return root==0&&d.pos==n;}
+int main(void){
+ char h[65];digest("",0,h);control(!strcmp(h,"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),"independent SHA empty");
+ digest("abc",3,h);control(!strcmp(h,"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"),"independent SHA abc");
+ control(parse_literal("{\"s\":\"a\\u0062c\",\"n\":9223372036854775807,\"yes\":true,\"nil\":null,\"a\":[0,false,{}]}"),"bounded ordinary strict DATA");
+ control(!parse_literal("{\"x\":1,\"x\":2}"),"literal duplicate key");
+ control(!parse_literal("{\"x\":1,\"\\u0078\":2}"),"escaped duplicate key");
+ control(!parse_literal("{\"x\":NaN}"),"nonfinite rejected");
+ control(!parse_literal("{\"x\":1.0}"),"float rejected");
+ control(!parse_literal("{\"x\":01}"),"leading zero rejected");
+ control(!parse_literal("{\"x\":9223372036854775808}"),"integer overflow rejected");
+ control(!parse_literal("{\"x\":false}trailing"),"trailing JSON rejected");
+ unsigned char b[256]={0};memcpy(b,"S03Gv1\0\0",8);w32(b+8,1);w32(b+12,0x80000005);w64(b+32,UINT64_C(0x0102030405060708));
+ static const unsigned char endian[]={1,2,3,4,5,6,7,8};control(!memcmp(b+32,endian,8)&&r64(b+32)==UINT64_C(0x0102030405060708),"literal network-endian clock");
+ control(r32(b+8)==1&&r32(b+12)==0x80000005&&sizeof b==256,"literal bounded packet fields");
+ return failures?1:0;
+}

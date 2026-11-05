@@ -1,0 +1,126 @@
+"""Whole-source C2->Root and actual B-entry resource DATA controls.
+
+Parent-only exact admission. All native/resource/FFI/signal/process ports used
+by B are explicit inert counted fixtures supplied before whole-module loading.
+No AST definitions are extracted and no real fork, limit, FFI or exit is called.
+"""
+import argparse
+import builtins
+import hashlib
+import json
+from pathlib import Path
+from types import ModuleType, SimpleNamespace as NS
+
+R=Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z')
+MANIFEST=R/'implementation/bindings/SOURCE-MANIFEST-v2.json'
+M=1024*1024
+
+
+def need(ok,text):
+    if ok is not True:raise RuntimeError(text)
+
+
+def load(key,manifest,imports=None):
+    row=manifest['source_pins'][key];raw=Path(row['path']).read_bytes()
+    need(len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256'],'exact whole source pin')
+    module=ModuleType('_s03_actual_resource_control_'+key)
+    original=builtins.__import__;ports={} if imports is None else imports
+    def importer(name,globals=None,locals=None,fromlist=(),level=0):
+        if level==0 and name in ports:return ports[name]
+        return original(name,globals,locals,fromlist,level)
+    private=dict(vars(builtins));private['__import__']=importer
+    module.__dict__.update(__file__=row['path'],__name__=module.__name__,__builtins__=private)
+    exec(compile(raw,row['path'],'exec',dont_inherit=True),module.__dict__)
+    return module
+
+
+class Limits:
+    RLIMIT_AS=9;RLIMIT_FSIZE=1;RLIM_INFINITY=-1
+    def __init__(self,as_limits,events,readback_fault=False):
+        self.as_limits=as_limits;self.fs=(2*M,512*M);self.events=events;self.fault=readback_fault;self.as_sets=0
+    def getrlimit(self,kind):
+        self.events.append(('getlimit',kind))
+        if kind==self.RLIMIT_FSIZE:return self.fs
+        return (0,0) if self.fault and self.as_sets else self.as_limits
+    def setrlimit(self,kind,value):
+        self.events.append(('setlimit',kind,value))
+        old=self.fs if kind==self.RLIMIT_FSIZE else self.as_limits
+        need(old[1]==-1 or value[1]<=old[1],'fixture independently refuses privileged hard raise')
+        if kind==self.RLIMIT_FSIZE:self.fs=value
+        else:self.as_limits=value;self.as_sets+=1
+
+
+class ExitObservation(BaseException):
+    pass
+
+
+def actual_borrower(manifest,inherited,configured,expected,readback_fault=False):
+    events=[];limits=Limits(inherited,events,readback_fault)
+    def close(fd):events.append(('close',fd))
+    def exit_port(code):
+        events.append(('exit',code));raise ExitObservation(code)
+    native=NS(fork=lambda:None,waitpid=lambda *a:None,_exit=exit_port,
+        close=close,getppid=lambda:77,dup2=lambda *a,**k:events.append(('dup',a)),
+        set_blocking=lambda *a:events.append(('blocking',a)),write=lambda fd,raw:len(raw))
+    def prctl(*args):events.append(('prctl',args));return 0
+    fake_ctypes=NS(CDLL=lambda *a,**k:NS(prctl=prctl),c_int=int,c_ulong=int,c_void_p=object,
+                   cast=lambda *a:NS(value=12345))
+    cap=object();cfg={'resources':{'address_space_bytes':configured}}
+    authority=NS(fork_returned=lambda t,value:events.append(('actual-fork-return',value)),
+        borrowed_arguments=lambda actual:(cfg,501,'a'*64),joined_binding=lambda actual:NS(lease_fd=501))
+    errors=NS(new_custody=lambda:object(),retain=lambda *a,**k:None,export=lambda *a:True)
+    def consumer(actual,**kwargs):
+        need(actual is cap,'same source-private fixture capability')
+        need(limits.as_limits==expected,'independent expected AS before first consumer dispatch')
+        events.append(('CONSUMER',limits.as_limits))
+        return {'status':'PASS_PENDING_PARENT_READBACK','one_shot_id':'synthetic','expected_root_sha256':'b'*64}
+    actual_consumer=NS(run_as_fork_borrower=consumer,
+        canonical=lambda v:(json.dumps(v,sort_keys=True)+'\n').encode('ascii'))
+    signals=NS(SIGKILL=9,SIGALRM=14,SIG_DFL=0,ITIMER_REAL=0,
+        signal=lambda *a:events.append(('signal',a)),setitimer=lambda *a:events.append(('timer',a)))
+    module=load('fork_borrower',manifest,{'ctypes':fake_ctypes,'os':native,'resource':limits,
+        'signal':signals,'time':NS(monotonic_ns=lambda:100),
+        'parent_authority':authority,'error_custody':errors,'actual_consumer':actual_consumer})
+    ticket={'parent_pid':77,'capability':cap};slots=NS(unknown=False,finish=lambda:events.append(('slots-finished',)))
+    observed=None
+    try:module.enter_actual_fork_borrower(ticket,[201],[202],slots,10_000)
+    except BaseException as error:observed=error
+    if readback_fault:
+        need(type(observed) is RuntimeError and not any(row[0]=='CONSUMER' for row in events),
+             'actual B-entry readback failure blocks consumer')
+    else:
+        need(type(observed) is ExitObservation and observed.args==(0,), 'actual full B entry finishes once through inert exit')
+        need(ticket['installed_address_space_limits']==expected and ticket['configured_address_space_bytes']==configured,
+             'actual source ticket records configured and installed distinct limits')
+        need(sum(row[0]=='CONSUMER' for row in events)==1 and sum(row[0]=='exit' for row in events)==1,
+             'one source dispatch and one source exit')
+        need(events.index(('setlimit',9,expected)) < next(i for i,row in enumerate(events) if row[0]=='CONSUMER'),
+             'actual limit installation before actual consumer call')
+    return {'inherited':list(inherited),'configured':configured,'expected':list(expected),
+            'readback_fault':readback_fault,'status':'PASS','native_effects':0}
+
+
+def run(manifest):
+    entry=load('controller_bootstrap',manifest);supervisor=load('supervisor',manifest)
+    cases=[]
+    for inherited,wanted in [((-1,-1),(256*M,256*M)),((128*M,128*M),(128*M,128*M)),
+                             ((64*M,128*M),(64*M,128*M))]:
+        events=[];port=Limits(inherited,events)
+        actual=entry.install_c2_as_limit(port)
+        need(actual==wanted,'independent actual C2 tuple')
+        root=supervisor.root_address_space_limits(actual,1024*M,-1)
+        need(root==wanted,'actual C2->Root source helper cannot raise inherited hard cap')
+        cases.append({'case':'ACTUAL_C2_TO_ROOT_LIMIT_BOUNDARY','inherited':list(inherited),'actual':list(root),'status':'PASS'})
+    cases.extend(actual_borrower(manifest,*row) for row in
+        [((128*M,128*M),256*M,(128*M,128*M)),((64*M,128*M),256*M,(64*M,128*M)),
+         ((128*M,128*M),32*M,(32*M,32*M)),((256*M,256*M),256*M,(256*M,256*M))])
+    cases.append(actual_borrower(manifest,(128*M,128*M),64*M,(64*M,64*M),True))
+    return {'schema':'s03-whole-source-inherited-AS-boundary-result-v1','status':'PASS','cases':cases,
+        'scope':'Actual whole C2 entry limiter, actual Root selection function, actual complete borrower entry with explicit inert native/FFI/resource ports',
+        'real_native_effects':0,'original_financial_owner_created':False,'execution_permission':False}
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser(allow_abbrev=False);p.add_argument('--manifest-bytes',type=int,required=True);p.add_argument('--manifest-sha256',required=True);a=p.parse_args()
+    raw=MANIFEST.read_bytes();need(len(raw)==a.manifest_bytes and hashlib.sha256(raw).hexdigest()==a.manifest_sha256,'exact admitted manifest')
+    print(json.dumps(run(json.loads(raw)),sort_keys=True))

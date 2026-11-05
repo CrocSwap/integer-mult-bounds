@@ -1,0 +1,172 @@
+"""Independent literal first-error/DATA controls. UNEXECUTED source only.
+Parent must separately admit exact cold candidate/loader/control/command pins.
+These controls call actual supplied modules; no project import or work on import.
+"""
+
+def _check(condition, label):
+    if not condition:
+        raise RuntimeError(label)
+
+
+def _tb(error):
+    return BaseException.__traceback__.__get__(error, BaseException)
+
+
+def _outward(action, expected, label):
+    try:
+        action()
+    except BaseException as actual:
+        _check(actual is expected, label + ": exact first actual exception")
+    else:
+        raise RuntimeError(label + ": first exception was not raised")
+
+
+def _first_q(errors, custody):
+    q = MemoryError("literal first optional-record Q")
+    calls = []
+    old_record = errors.record
+    def failing_record(value, slot):
+        calls.append(slot)
+        raise q
+    errors.record = failing_record
+    try:
+        data = object()
+        data_slot = errors.retain(custody, "DATA", data, primary=False)
+    finally:
+        errors.record = old_record
+    _check(len(calls) == 1, "one first journal call")
+    _check(data_slot.actual is data and data_slot.occupied, "DATA raw capture survives Q")
+    _check(custody.journal_failure.actual is q and custody.retention_failure is q,
+           "first Q has both raw and first journal references")
+    return q, custody.journal_failure.traceback
+
+
+def no_prior_E_helper_outward_Q(errors, native):
+    custody = errors.new_custody()
+    q, qtb = _first_q(errors, custody)
+    _check(custody.primary is q and custody.primary_tb is qtb,
+           "first exception Q becomes primary when DATA had no E")
+    later = ValueError("later wrapper E")
+    errors.retain(custody, "LATER_WRAPPER", later, primary=True)
+    _check(custody.primary is q and custody.primary_tb is qtb,
+           "later wrapper cannot replace first Q")
+    _outward(lambda: errors.raise_primary(custody), q, "helper outward first Q")
+    _check(custody.primary_tb is qtb and custody.retention_tb is qtb,
+           "outward re-raise cannot mutate held first Q traceback")
+
+
+def shared_native_stop_preserves_Q(errors, native):
+    custody = errors.new_custody()
+    ctx = native.new_context("first-Q-shared-stop", custody)
+    q, qtb = _first_q(errors, custody)
+    _outward(lambda: native.stop_if_failed(ctx), q, "native stop outward first Q")
+    _check(custody.primary is q and custody.primary_tb is qtb,
+           "native stop preserves source-owned first Q traceback")
+
+
+def shared_native_finish_preserves_Q(errors, native):
+    custody = errors.new_custody()
+    ctx = native.new_context("first-Q-shared-finish", custody)
+    q, qtb = _first_q(errors, custody)
+    _outward(lambda: native.finish(ctx), q, "native finish outward first Q")
+    _check(custody.primary is q and custody.primary_tb is qtb,
+           "native finish preserves first Q traceback")
+
+
+def shared_native_later_capture_preserves_Q(errors, native):
+    custody = errors.new_custody()
+    ctx = native.new_context("first-Q-shared-later", custody)
+    q, qtb = _first_q(errors, custody)
+    later = ValueError("later native wrapper E")
+    native.capture(ctx, later, "BODY", "later-wrapper")
+    _outward(lambda: native.stop_if_failed(ctx), q, "native later wrapper outward first Q")
+    _check(custody.primary is q and custody.primary_tb is qtb,
+           "later native capture cannot replace held Q")
+
+
+def successful_leaf_cannot_hide_first_Q(errors, native):
+    custody = errors.new_custody()
+    ctx = native.new_context("first-Q-shared-leaf", custody)
+    old_process = native._PROCESS
+    retained = []
+    def body():
+        q, qtb = _first_q(errors, custody)
+        retained.append((q, qtb))
+        return None
+    native._PROCESS = ctx
+    try:
+        guarded = native.owning_leaf(body)
+        try:
+            guarded()
+        except BaseException as actual:
+            _check(bool(retained) and actual is retained[0][0],
+                   "successful leaf outward first Q identity")
+        else:
+            raise RuntimeError("successful leaf returned despite first caught Q")
+        _check(custody.primary_tb is retained[0][1], "leaf original Q traceback retained")
+    finally:
+        native._PROCESS = old_process
+
+
+def foreign_DATA_class_and_metaclass_traps(errors, native):
+    callbacks = []
+    class Meta(type):
+        def __getattribute__(cls, name):
+            if name in ("__mro__", "__bases__", "__class__"):
+                callbacks.append(("meta-getattribute", name))
+                raise RuntimeError("foreign metaclass attribute callback")
+            return type.__getattribute__(cls, name)
+        def __eq__(cls, other):
+            callbacks.append(("meta-equality", None))
+            raise RuntimeError("foreign metaclass equality callback")
+    class Data(metaclass=Meta):
+        def __getattribute__(self, name):
+            if name == "__class__":
+                callbacks.append(("data-class", name))
+                raise RuntimeError("foreign DATA class callback")
+            return object.__getattribute__(self, name)
+        def __str__(self):
+            callbacks.append(("data-str", None))
+            raise RuntimeError("foreign DATA formatting callback")
+        def __repr__(self):
+            callbacks.append(("data-repr", None))
+            raise RuntimeError("foreign DATA formatting callback")
+        def __eq__(self, other):
+            callbacks.append(("data-equality", None))
+            raise RuntimeError("foreign DATA equality callback")
+    actual = Data()
+    custody = errors.new_custody()
+    first = errors.retain(custody, "DATA", actual, primary=False)
+    second = errors.retain(custody, "DATA", actual, primary=False)
+    _check(callbacks == [], "classification and journaling cannot call foreign DATA/type")
+    _check(first.actual is actual and second.actual is actual,
+           "same actual DATA references are retained")
+    _check(first.traceback is None and second.traceback is None,
+           "DATA is not classified as exception by foreign __class__")
+    _check(first.sequence > 0 and second.sequence > first.sequence,
+           "DATA observations remain distinct")
+    _check(custody.primary is None and not custody.incomplete,
+           "ordinary foreign DATA retention has no invented error")
+
+
+CONTROL_FAILURES = []
+
+def run_first_error_data_controls(errors, native):
+    cases = (no_prior_E_helper_outward_Q, shared_native_stop_preserves_Q,
+             shared_native_finish_preserves_Q, shared_native_later_capture_preserves_Q,
+             successful_leaf_cannot_hide_first_Q, foreign_DATA_class_and_metaclass_traps)
+    outcomes, failures = [], [None] * len(cases)
+    for index, case in enumerate(cases):
+        try:
+            case(errors, native)
+        except BaseException as actual:
+            failures[index] = actual
+            outcomes.append(dict(case=case.__name__, status="FAIL", actual_id=id(actual)))
+        else:
+            outcomes.append(dict(case=case.__name__, status="PASS"))
+    global CONTROL_FAILURES
+    CONTROL_FAILURES = failures
+    return dict(schema="s03-independent-first-error-DATA-controls-v1",
+                status="PASS" if all(row["status"] == "PASS" for row in outcomes) else "FAIL",
+                cases=outcomes, all_cases_attempted=True, actual_module_bodies=True,
+                no_filesystem_native_archive_authority=True, assert_statement_count=0)

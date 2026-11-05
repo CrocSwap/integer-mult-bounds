@@ -1,0 +1,206 @@
+"""Unexecuted finite changed-code DATA controls, parent-only exact admission.
+
+This harness extracts only named pure definitions from frozen source ASTs. It
+never imports a candidate module, calls fork/prctl/wait, opens a project lock,
+reads a scientific root, or creates/decodes an archive. Fake native returns are
+explicit local control inputs and establish no genuine runtime authority.
+"""
+import argparse
+import ast
+import copy
+import hashlib
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+
+class Refused(RuntimeError):
+    pass
+
+
+def need(value, reason):
+    if value is not True:
+        raise Refused(reason)
+
+
+def exact(value, keys):
+    need(type(value) is dict and set(value) == set(keys), 'EXACT_FIELDS')
+
+
+def definition(path, sha256, names, namespace):
+    raw = path.read_bytes()
+    need(hashlib.sha256(raw).hexdigest() == sha256, 'FROZEN_SOURCE_PIN')
+    tree = ast.parse(raw, filename=str(path))
+    selected = [node for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in names]
+    need(len(selected) == len(names), 'EXACT_NAMED_DEFINITIONS')
+    # Compiling these definitions has no top-level candidate/native execution.
+    exec(compile(ast.Module(body=selected, type_ignores=[]), str(path), 'exec'), namespace)
+    return namespace
+
+
+def literal_bill():
+    # Independently authored arithmetic: outside10 + two complete50 = whole110.
+    return dict(schema='fresh-composed-guardian-whole-command-bill-v2',
+        selected_packet_sha256='1'*64,queue_sha256='2'*64,stage_sha256='3'*64,
+        complete_work_review_sha256='4'*64,g_pre_m_ns=1_000_000_000,
+        startup_preflight_ns=1_000_000_000,retention_prepare_seal_ns=1_000_000_000,
+        retention_borrower_ns=1_000_000_000,retention_parent_readback_ns=1_000_000_000,
+        controller_final_release_ns=1_000_000_000,k_capture_fee_tail_ns=1_000_000_000,
+        m_body_tail_ns=1_000_000_000,g_terminal_tail_ns=2_000_000_000,
+        cases={mode:dict(root_ns=45_000_000_000,validation_ns=1_000_000_000,
+            guard_ns=1_000_000_000,cleanup_ns=2_000_000_000,closing_ns=1_000_000_000)
+            for mode in ('normal','optimized')},whole_command_ns=110_000_000_000)
+
+
+def run(manifest):
+    observed = []
+    def case(name, operation, expected_refusal=None):
+        try:
+            result = operation()
+        except BaseException as error:
+            if expected_refusal is None or type(error) is not Refused:
+                raise
+            need(error.args == (expected_refusal,), 'EXPECTED_FIRST_REFUSAL:' + name)
+            observed.append(dict(case=name,status='PASS_EXPECTED_REFUSAL',reason=expected_refusal))
+        else:
+            need(expected_refusal is None, 'MISSING_EXPECTED_REFUSAL:' + name)
+            observed.append(dict(case=name,status='PASS_LITERAL_EXPECTATION',result=result))
+
+    pins = manifest['sources']
+    c = pins['controller']
+    fake_bill = [None]
+    plan = dict(whole_body_bill_pin=dict(path='/literal/BILL.json'),
+        selected_packet_pin=dict(sha256='1'*64),queue_pin=dict(sha256='2'*64),
+        stage_sha256='3'*64,complete_work_review_pin=dict(path='/literal/REVIEW.json',sha256='4'*64))
+    def read_json(path, cap, mode, expected):
+        return (copy.deepcopy(fake_bill[0]) if str(path) == '/literal/BILL.json' else {}, {})
+    ns = dict(Path=Path,need=need,exact=exact,read_json=read_json)
+    definition(Path(c['path']),c['sha256'],{'complete_bill'},ns)
+    def bill_check(value, reservation=180_000_000_000):
+        fake_bill[0] = value
+        return ns['complete_bill'](plan,{},dict(body_reservation_ns=reservation))
+    def positive_bill():
+        row = bill_check(literal_bill(),110_000_000_000)
+        need(row['outside_declared_ns'] == 10_000_000_000 and
+             row['queue_declared_ns'] == 100_000_000_000 and
+             row['controller_final_ns'] == 4_000_000_000 and
+             row['outer_post_controller_ns'] == 4_000_000_000,
+             'INDEPENDENT_LITERAL_BILL_TOTALS')
+        return {'outside':10,'queue':100,'whole':110}
+    case('C13_BILL_FULL_POSITIVE',positive_bill)
+    row = literal_bill();row['g_terminal_tail_ns']=23_000_000_000;row['whole_command_ns']=131_000_000_000
+    case('C13_OUTSIDE31_WHOLE131',lambda:bill_check(row),
+         'separate declared outside30/queue390 retained')
+    row_missing = literal_bill();del row_missing['retention_parent_readback_ns']
+    case('C13_OMITTED_PARENT_READBACK',lambda:bill_check(row_missing),'EXACT_FIELDS')
+    old = literal_bill();old['schema']='fresh-composed-whole-command-bill-v1'
+    case('C13_OLD_CHEAPER_BILL',lambda:bill_check(old),'full joined source/work/command bill binding')
+    too_large = literal_bill();too_large['whole_command_ns']=109_000_000_000
+    case('C13_NONPARTITIONED_BILL',lambda:bill_check(too_large),
+         'same genuine original whole180 reservation')
+    queue391 = literal_bill()
+    queue391['cases']['normal']['root_ns']=180_000_000_000
+    queue391['cases']['optimized']['root_ns']=180_000_000_000
+    queue391['cases']['normal']['guard_ns']=23_000_000_000
+    queue391['cases']['optimized']['guard_ns']=0
+    queue391['whole_command_ns']=401_000_000_000
+    case('C13_QUEUE_BOUND_INDEPENDENT',lambda:bill_check(queue391),
+         'separate declared outside30/queue390 retained')
+
+    now = [3_000_000_000]
+    state = dict(whole_begin_ns=1_000_000_000,whole_deadline_ns=111_000_000_000,
+                 queue_native_ns=[None,None],queue_exited=False,last_observation=None)
+    guard = dict(_JOINED_RUN=state,time=SimpleNamespace(monotonic_ns=lambda:now[0]),need=need)
+    definition(Path(c['path']),c['sha256'],{'joined_budget_checkpoint'},guard)
+    def prequeue():
+        guard['joined_budget_checkpoint'](108_000_000_000,8_000_000_000)
+        need(state['last_observation']['outside_ns'] == 2_000_000_000,
+             'QUEUE_RESERVE_IS_NOT_NONQUEUE_RESERVE')
+        return {'whole_reserved':108,'nonqueue_reserved':8,'elapsed_outside':2}
+    case('C13_PREQUEUE_WHOLE108_OUTSIDE8',prequeue)
+    now[0]=132_000_000_000;state['whole_deadline_ns']=181_000_000_000
+    state['queue_native_ns']=[2_000_000_000,102_000_000_000];state['queue_exited']=True
+    case('C13_DYNAMIC_OUTSIDE31_WHOLE131',lambda:guard['joined_budget_checkpoint'](),
+         'dynamic full outside30 including retention/release/tails exhausted')
+    now[0]=12_000_000_000;state['queue_native_ns']=[2_000_000_000,None]
+    case('C13_UNKNOWN_QUEUE_END_IS_UNKNOWN',lambda:guard['joined_budget_checkpoint'](),
+         'native queue endpoint unknown after queue exit; outside remains unknown')
+    state['queue_native_ns']=[2_000_000_000,8_000_000_000]
+    state['whole_deadline_ns']=13_000_000_000
+    case('C13_RESERVED_NATIVE_TAIL',lambda:guard['joined_budget_checkpoint'](2_000_000_000),
+         'whole180 including reserved tails exhausted')
+
+    b = pins['borrower']
+    closes, first = [], OSError(5,'literal injected close')
+    def close(fd):
+        closes.append(fd)
+        if fd == 11:
+            raise first
+    local = dict(need=need,_LIVE=[],os=SimpleNamespace(close=close))
+    definition(Path(b['path']),b['sha256'],{'Slots'},local)
+    def close_fault():
+        slots=local['Slots']()
+        slots.acquire(lambda:11);slots.acquire(lambda:12)
+        slots.finish();slots.finish()
+        need(closes == [11,12] and slots.primary is first and slots.unknown is True
+             and slots.rows[0][1]=='UNCERTAIN' and slots.rows[1][1]=='CLOSED',
+             'ONE_CLOSE_EACH_AND_RAW_FIRST')
+        return {'close_calls':[11,12],'uncertain_not_retried':True}
+    case('C12_DISTINCT_KNOWN_CLOSES_AFTER_ERROR',close_fault)
+    acquire_error = OSError(24,'literal injected acquire')
+    def acquire_fault():
+        slots=local['Slots']()
+        def fail():raise acquire_error
+        try:slots.acquire(fail)
+        except OSError as error:need(error is acquire_error,'ACTUAL_ACQUIRE_IDENTITY')
+        entered=[]
+        try:slots.acquire(lambda:entered.append('UNSAFE'))
+        except Refused:pass
+        slots.finish()
+        need(not entered and slots.primary is acquire_error and slots.rows[0][1]=='UNCERTAIN',
+             'AMBIGUOUS_ACQUIRE_BLOCKS_NEW_NATIVE_ENTRY')
+        return {'new_native_entry':False}
+    case('C12_ACQUIRE_UNCERTAINTY',acquire_fault)
+
+    class ExitObserved(BaseException):
+        pass
+    for phase in ('first-close198','prctl','getppid','dup2','known-close','limits',
+                  'custody-allocation','consumer','raw-export'):
+        injected=RuntimeError('literal '+phase)
+        events=[];ticket={}
+        def entry(*unused):raise injected
+        def terminal(code):
+            events.append(code)
+            raise ExitObserved()
+        child=dict(enter_actual_fork_borrower=entry,_EXIT=terminal)
+        definition(Path(b['path']),b['sha256'],{'_child_only'},child)
+        def verify_child():
+            try:child['_child_only'](ticket,None,None,None,1)
+            except ExitObserved:pass
+            need(events == [126] and ticket['actual_child_entry_error'] is injected
+                 and ticket['actual_child_entry_traceback'] is not None,
+                 'ALL_CHILD_FAILURES_EXIT_WITHOUT_PARENT_CLEANUP')
+            return {'terminal_called_once':True,'parent_cleanup_called':False}
+        case('C11_CHILD_ONLY_'+phase,verify_child)
+    return observed
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--manifest',type=Path,required=True)
+    parser.add_argument('--manifest-sha256',required=True)
+    args=parser.parse_args()
+    raw=args.manifest.read_bytes()
+    need(len(raw)<=1048576 and hashlib.sha256(raw).hexdigest()==args.manifest_sha256,
+         'EXTERNAL_EXACT_CONTROL_MANIFEST')
+    manifest=json.loads(raw)
+    need(manifest['schema']=='s03-connected-control-sources-v1','CONTROL_SOURCE_SCHEMA')
+    rows=run(manifest)
+    print(json.dumps(dict(schema='s03-connected-pure-control-result-v1',status='PASS',
+        controls=rows,count=len(rows),genuine_native_execution=False,
+        original_activity_credit=0,full_original_C01_C17_completed=False),sort_keys=True))
+
+
+if __name__=='__main__':
+    main()
