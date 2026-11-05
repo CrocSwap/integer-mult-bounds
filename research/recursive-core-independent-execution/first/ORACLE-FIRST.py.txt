@@ -1,0 +1,459 @@
+#!/usr/bin/env python3
+"""Independent dense execution and original-index XOR oracle; shared constructor."""
+import argparse
+import gzip
+import hashlib
+import importlib.util
+import io
+import json
+from pathlib import Path
+import sys
+
+PINS = {
+    'CONTRACT.json': '3290f65dcdb7f7eae7d4ec741ec128d67822512a20b4977b30c84c7ce1f35035',
+    'CASES.json': '03d89ab4df0a679f3cbde69143a80ec65c07eb0186db6027d16344fef4b4e3d0',
+    'SOURCE-PINS.json': '46ef2331b7a636e025978d5fd9f5e638b375d28f1b1438699c8fbb8ed43b12dc',
+}
+
+
+def need(value, why):
+    if not value:
+        raise ValueError(why)
+
+
+class Semantic(ValueError):
+    """A completed actual semantic predicate failed, not a resource/parser gate."""
+
+
+def semantic_need(value, why):
+    if not value:
+        raise Semantic(why)
+
+
+hard_need = need
+
+
+def canonical(obj):
+    return (json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=True) + '\n').encode('ascii')
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def unique(items):
+    result = {}
+    for key, value in items:
+        need(key not in result, 'duplicate JSON key')
+        result[key] = value
+    return result
+
+
+def nofloat(value):
+    raise ValueError('noninteger JSON number')
+
+
+def load_json(data):
+    return json.loads(data, object_pairs_hook=unique, parse_float=nofloat, parse_constant=nofloat)
+
+
+def integer_tree(obj):
+    if isinstance(obj, bool):
+        raise ValueError('boolean in integer source data')
+    if isinstance(obj, dict):
+        for val in obj.values():
+            integer_tree(val)
+    elif isinstance(obj, list):
+        for val in obj:
+            integer_tree(val)
+
+
+def authenticate(root):
+    metas = {}
+    for name, expected in PINS.items():
+        raw = (root / name).read_bytes()
+        need(digest(raw) == expected, 'metadata hash: ' + name)
+        metas[name] = load_json(raw)
+    pins = metas['SOURCE-PINS.json']
+    need(pins['objects'] == 14 and len(pins['sources']) == 14, 'source manifest count')
+    sources = {}
+    for rec in pins['sources']:
+        raw = (root / rec['local_path']).read_bytes()
+        need(len(raw) == rec['bytes'], 'source length')
+        need(digest(raw) == rec['sha256'], 'source SHA256')
+        blob = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+        need(blob == rec['git_blob'], 'source Git blob')
+        sources[rec['local_path']] = digest(raw)
+    # No imported source executes until every inert and constructor input authenticates.
+    with gzip.GzipFile(fileobj=io.BytesIO((root / 'inputs/TABLE.json.gz').read_bytes())) as stream:
+        raw = stream.read(8388608 + 1)
+    need(len(raw) <= 8388608, 'expanded table size')
+    table = load_json(raw)
+    integer_tree(table)
+    spec = importlib.util.spec_from_file_location('retained_recursive_constructor', root / 'source/recursive.py')
+    need(spec is not None and spec.loader is not None, 'constructor loader')
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    program, metadata = module.build(4, 3, 1)
+    built = load_json(json.dumps({'program': {'tapes': program.tapes, 'entry': program.entry,
+                                             'instructions': program.instructions}, 'metadata': metadata}))
+    retained = {'program': table['program'], 'metadata': table['metadata']}
+    need(built == retained, 'entire constructed table differs')
+    need(table['program']['tapes'] == 25 and metadata['payloads'] == 16, 'table roles')
+    return table['program'], metadata, sources, metas['CASES.json'], digest(canonical(retained))
+
+
+class DenseTape:
+    """A fixed bounded byte array; support and visits are independent bookkeeping."""
+    def __init__(self, cells, head):
+        self.data = bytearray(50018)
+        self.live = set()
+        self.seen = bytearray(40009)
+        self.head = head
+        for pos, symbol in cells.items():
+            self.data[pos + 8] = symbol
+            if symbol:
+                self.live.add(pos)
+
+    def get(self, pos):
+        need(-8 <= pos <= 50001, 'dense address range')
+        return self.data[pos + 8]
+
+    def visit(self, pos):
+        need(-8 <= pos <= 40000, 'visited address range')
+        self.seen[pos + 8] = 1
+
+    def put(self, pos, symbol):
+        self.data[pos + 8] = symbol
+        if symbol:
+            self.live.add(pos)
+        else:
+            self.live.discard(pos)
+
+    def cells(self):
+        return [[pos, self.data[pos + 8]] for pos in sorted(self.live)]
+
+    def visits(self):
+        return [index - 8 for index, seen in enumerate(self.seen) if seen]
+
+    def state(self):
+        return {'head': self.head, 'cells': self.cells()}
+
+
+def binary(value):
+    need(type(value) is int and value > 0, 'positive encoded integer')
+    bits = []
+    while value:
+        bits.append(4 if value & 1 else 3)
+        value //= 2
+    return [1] + bits + [2]
+
+
+def encoded(symbols):
+    result = []
+    for symbol in symbols:
+        need(type(symbol) is int and 0 <= symbol <= 6, 'logical alphabet')
+        result.extend(4 if symbol & (1 << bit) else 3 for bit in (2, 1, 0))
+    return result
+
+
+def packet_bits(bits):
+    return [1] + [3 + bit for bit in bits] + [2]
+
+
+def decode(tape, start=None):
+    need = semantic_need
+    if start is None:
+        marker = tape.head
+        while tape.get(marker) not in (1, 2):
+            marker -= 1
+            need(marker >= -8, 'missing segment marker')
+        start = marker + 1
+    values = []
+    for offset in range(0, 30000, 3):
+        value = 0
+        for j in range(3):
+            symbol = tape.get(start + offset + j)
+            need(symbol in (3, 4), 'malformed encoded packet')
+            value = 2 * value + (symbol == 4)
+        need(value <= 6, 'logical alphabet')
+        values.append(value)
+        if value == 2:
+            need(values[0] == 1 and len(values) >= 3, 'packet endpoints')
+            need(all(item in (3, 4) for item in values[1:-1]), 'packet digits')
+            return [item - 3 for item in values[1:-1]]
+    raise RuntimeError('packet length cap')
+
+
+def number(tape):
+    bits = decode(tape)
+    semantic_need(bits and bits[-1] == 1, 'noncanonical positive integer')
+    return sum(bit << index for index, bit in enumerate(bits))
+
+
+def index_mask_output(bits, L, A, R, H, depth):
+    """Trace each ORIGINAL input index, never recursively transform a bit vector."""
+    result = []
+    for original, bit in enumerate(bits):
+        index, a_size, r_size, remaining = original, A, R, depth
+        while True:
+            high = index // (L * r_size)
+            low = (index // r_size) % L
+            residue = index % r_size
+            need(high < a_size, 'expected index domain')
+            if remaining == 0:
+                flip = low == 0
+                break
+            if low not in (0, 1):
+                flip = False
+                break
+            need(a_size % (L * H) == 0, 'expected child divisibility')
+            index = high * r_size + residue
+            a_size //= L * H
+            r_size *= H
+            remaining -= 1
+        result.append(bit ^ int(flip))
+    return result
+
+
+def initialise(case, meta):
+    L, q, N = case['L'], case['q'], case['N']
+    w, depth, pref = case['w'], case['d'], case['prefix']
+    H = q ** (N * N * (w - 1))
+    A = case['T'] * (L * H) ** depth
+    R = H * case['R_body']
+    volume = L * A * R
+    bits = [int((i * i + 5 * i + 3) % 11 < 5) for i in range(volume)]
+    cells, heads = [], [pref + 1] * 25
+    for role in range(25):
+        row = {-2: 4, -1: 3, 50000: 3, 50001: 4}
+        row.update({p: 4 if p % 2 == 0 else 3 for p in range(pref)})
+        row[pref] = 1 if role < meta['payloads'] else 2
+        cells.append(row)
+    ports = meta['ports']
+    initial_packets = {ports['source']: packet_bits(bits), ports['repeats_input']: binary(A),
+                       ports['block_input']: binary(R), meta['width']: binary(w)}
+    for role, logical in initial_packets.items():
+        for offset, symbol in enumerate(encoded(logical), pref + 1):
+            cells[role][offset] = symbol
+        heads[role] = pref + 4
+    for j in range(depth):
+        cells[meta['depth']][pref + 1 + j] = 4
+    tapes = [DenseTape(row, head) for row, head in zip(cells, heads)]
+    return tapes, cells, heads, bits, H, A, R
+
+
+def run_case(case, instructions, entry, meta):
+    need = semantic_need
+    tapes, initial, initial_heads, bits, H, A, R = initialise(case, meta)
+    ports, events = meta['ports'], meta['events']
+    pref, origin = case['prefix'], case['prefix'] + 1
+    K, L = meta['payloads'], meta['L']
+    protected = [set([-2, -1, 50000, 50001]) | set(range(pref + 1)) for _ in tapes]
+    for role in (ports['source'], ports['repeats_input'], ports['block_input']):
+        protected[role].update(initial[role])
+    readonly = {meta['width'], meta['depth']}
+    nodes, grants, returns, stack = [], [], [], []
+
+    def snapshot():
+        return {'payload': [tapes[i].state() for i in range(K)],
+                'control': tapes[meta['control']].state(), 'phase': tapes[meta['phase']].state()}
+
+    def depth():
+        value = tapes[meta['depth']].head - origin
+        need(0 <= value <= case['d'], 'actual depth head')
+        return value
+
+    def observe(pc):
+        if pc == events['node_entry']:
+            aa = number(tapes[ports['repeats_input']])
+            rr = number(tapes[ports['block_input']])
+            hh = number(tapes[meta['high']])
+            source = decode(tapes[ports['source']])
+            need(hh == H and len(source) == L * aa * rr, 'node dimensions')
+            nodes.append({'depth': depth(), 'A': aa, 'R': rr, 'H': hh, 'source_bits': source})
+        for site in (0, 1):
+            if pc == events['grant_ready_' + str(site)]:
+                aa = number(tapes[ports['repeats_input']])
+                rr = number(tapes[ports['block_input']])
+                hh = number(tapes[meta['high']])
+                ca, cr = number(tapes[meta['grant_A']]), number(tapes[meta['grant_R']])
+                bank = decode(tapes[ports['banks'][site]])
+                need(hh == H and aa % (L * hh) == 0, 'grant divisibility')
+                need(ca == aa // (L * hh) and cr == hh * rr and len(bank) == aa * rr,
+                     'actual child grant')
+                source = decode(tapes[ports['source']])
+                expected_bank = [source[(high * L + site) * rr + r]
+                                 for high in range(aa) for r in range(rr)]
+                need(bank == expected_bank, 'actual selected bank')
+                grants.append({'depth': depth(), 'site': site, 'A': aa, 'R': rr, 'H': hh,
+                               'child_A': ca, 'child_R': cr, 'bank_bits': bank})
+        if pc == events['push_begin']:
+            phase = tapes[meta['phase']].get(origin)
+            need(phase in (3, 4), 'parent phase')
+            stack.append({'state': snapshot(), 'depth': depth(), 'site': phase - 3,
+                          'child_output': None, 'protected': False})
+        if pc == events['save_child_output']:
+            need(stack, 'save without parent')
+            need(stack[-1]['child_output'] is None, 'duplicate child save')
+            stack[-1]['child_output'] = decode(tapes[ports['output']])
+        if pc == events['retire_child']:
+            need(stack and stack[-1]['child_output'] is not None, 'unprotected child output')
+            relay = decode(tapes[meta['output_relay']], origin)
+            need(relay == stack[-1]['child_output'], 'output protection before retirement')
+            stack[-1]['protected'] = True
+        if pc == events['pop_end']:
+            need(stack, 'pop without parent')
+            frame = stack.pop()
+            need(frame['protected'], 'pop without protected output')
+            after = snapshot()
+            need(after == frame['state'], 'parent state not restored')
+            need(depth() == frame['depth'] + 1, 'return depth before left move')
+            returns.append({'depth': frame['depth'], 'site': frame['site'],
+                            'before_sha256': digest(canonical(frame['state'])),
+                            'after_sha256': digest(canonical(after)),
+                            'output_bits': frame['child_output']})
+
+    pc, steps = entry, 0
+    while True:
+        hard_need(0 <= pc < len(instructions), 'program counter')
+        hard_need(steps < 5000000, 'step cap')
+        observe(pc)
+        ins = instructions[pc]
+        hard_need(isinstance(ins, list) and ins, 'instruction shape')
+        opcode = ins[0]
+        steps += 1
+        if opcode == 'goto':
+            hard_need(len(ins) == 2 and type(ins[1]) is int, 'goto shape')
+            pc = ins[1]
+        elif opcode == 'halt':
+            hard_need(len(ins) == 1, 'halt shape')
+            break
+        elif opcode == 'reject':
+            raise Semantic('literal reject')
+        elif opcode in ('branch', 'write', 'move'):
+            role = ins[1]
+            hard_need(type(role) is int and 0 <= role < len(tapes), 'tape role')
+            tape = tapes[role]
+            tape.visit(tape.head)
+            if opcode == 'branch':
+                hard_need(len(ins) == 4, 'branch shape')
+                symbol, target = tape.get(tape.head), ins[3]
+                keys = set()
+                for key, destination in ins[2]:
+                    hard_need(type(key) is int and key not in keys and 0 <= key <= 6,
+                         'branch alphabet')
+                    keys.add(key)
+                    if key == symbol:
+                        target = destination
+                hard_need(type(target) is int, 'branch target')
+                pc = target
+            elif opcode == 'write':
+                hard_need(len(ins) == 3 and type(ins[2]) is int and 0 <= ins[2] <= 6, 'write shape')
+                need(role not in readonly and tape.head not in protected[role], 'protected write attempt')
+                tape.put(tape.head, ins[2])
+                pc += 1
+            else:
+                hard_need(len(ins) == 3 and type(ins[2]) is int and ins[2] in (-1, 1), 'move shape')
+                tape.head += ins[2]
+                tape.visit(tape.head)
+                pc += 1
+        else:
+            raise ValueError('unknown opcode')
+    need(not stack, 'unconsumed call frames')
+    expected = index_mask_output(bits, L, A, R, H, case['d'])
+    actual = decode(tapes[ports['output']], origin)
+    need(actual == expected, 'entire output differs')
+    expected_cells = [dict(row) for row in initial]
+    out = ports['output']
+    for pos, symbol in enumerate(encoded(packet_bits(expected)), origin):
+        expected_cells[out][pos] = symbol
+    expected_heads = initial_heads[:]
+    expected_heads[out] = origin + 3
+    need([t.head for t in tapes] == expected_heads, 'final heads')
+    need([t.cells() for t in tapes] == [[[p, v] for p, v in sorted(row.items())] for row in expected_cells],
+         'entire endpoint cells or cleanup')
+    visits = [t.visits() for t in tapes]
+    backing = sum(len(set(row) | set(seen)) for row, seen in zip(initial, visits))
+    return {'id': case['id'], 'H': H, 'A': A, 'R': R, 'volume': len(bits), 'steps': steps,
+            'node_entries': nodes, 'grants': grants, 'returns': returns,
+            'final': {'heads': [t.head for t in tapes], 'cells': [t.cells() for t in tapes],
+                      'visits': visits, 'retained_backing': backing}}
+
+
+def mutate(original, identifier, meta):
+    rows = load_json(json.dumps(original))
+    ev = meta['events']
+    if identifier == 'skip_output_protection':
+        rows[ev['save_child_output']] = ['goto', ev['retire_child']]
+    elif identifier == 'omit_return_depth_left':
+        at = ev['pop_end']
+        need(rows[at] == ['move', meta['depth'], -1], 'depth mutation site')
+        rows[at] = ['goto', at + 1]
+    elif identifier in ('wrong_H_one_edge', 'wrong_H_two_edges'):
+        edits = 0
+        for at in range(ev['grant_site_0'], ev['push_begin']):
+            if rows[at][0] in ('branch', 'write', 'move') and rows[at][1] == meta['high']:
+                rows[at][1] = meta['ports']['block_input']
+                edits += 1
+        need(edits > 0, 'high mutation empty')
+    elif identifier == 'swapped_return_phase':
+        sites = [at for at in range(ev['pop_end'] + 1, len(rows))
+                 if rows[at][0] == 'branch' and rows[at][1] == meta['phase']
+                 and {item[0] for item in rows[at][2]} == {3, 4}]
+        need(len(sites) == 1, 'phase mutation site')
+        at = sites[0]
+        pairs = rows[at][2]
+        rows[at][2] = [[pairs[0][0], pairs[1][1]], [pairs[1][0], pairs[0][1]]]
+    else:
+        raise ValueError('unknown control')
+    return rows
+
+
+def certificate(root):
+    program, meta, sources, cases, table_hash = authenticate(root)
+    instructions = program['instructions']
+    healthy = [run_case(case, instructions, program['entry'], meta) for case in cases['healthy']]
+    controls = []
+    by_id = {case['id']: case for case in cases['healthy']}
+    for control in cases['controls']:
+        modified = mutate(instructions, control['id'], meta)
+        try:
+            run_case(by_id[control['case']], modified, program['entry'], meta)
+            accepted = True
+        except Semantic:
+            accepted = False
+        need(accepted == control['accepted'], 'control outcome: ' + control['id'])
+        controls.append({'id': control['id'], 'accepted': accepted,
+                         'failure_gate': 'none' if accepted else 'semantic_rejected'})
+    return {'schema': 'recursive-core-independent-execution/1', 'sources': sources,
+            'table': {'tapes': program['tapes'], 'instructions': len(instructions),
+                      'entry': program['entry'], 'sha256': table_hash},
+            'cases': healthy, 'controls': controls}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--package-root', type=Path, default=Path(__file__).resolve().parent)
+    ap.add_argument('--certificate-out', type=Path)
+    ap.add_argument('--check', type=Path)
+    args = ap.parse_args()
+    need(not (args.certificate_out and args.check), 'choose output or check')
+    actual = canonical(certificate(args.package_root))
+    if args.certificate_out:
+        args.certificate_out.write_bytes(actual)
+    else:
+        retained = args.check or (args.package_root / 'ORACLE.json')
+        raw = retained.read_bytes()
+        load_json(raw)
+        need(raw == actual, 'entire certificate bytes differ')
+    print('PASS recursive-core dense oracle ' + digest(actual))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ValueError, RuntimeError, OSError, KeyError, TypeError, IndexError, UnicodeError) as exc:
+        print('FAIL ' + str(exc), file=sys.stderr)
+        raise SystemExit(1)
