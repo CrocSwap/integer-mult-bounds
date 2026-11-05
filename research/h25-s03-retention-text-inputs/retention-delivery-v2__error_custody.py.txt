@@ -1,0 +1,176 @@
+"""Bounded source-owned strong references before error formatting or oracle work.
+Dedicated-child globals retain actual objects through termination. Parent must
+retain exported RAW plus complete child stdout/stderr and terminal guard receipt.
+"""
+import json
+import os
+from plain_boundary import need, plain_copy, fd_number
+
+_LIMIT = 256
+_EXPORTED_BYTES = 0
+_EXPORT_CAP = 2097152
+_LIVE = []
+_REVIEWED_SOURCE_TYPES = ()
+_NATIVE = (OSError, FileNotFoundError, PermissionError, FileExistsError,
+           NotADirectoryError, IsADirectoryError, BlockingIOError, InterruptedError,
+           BrokenPipeError, TimeoutError, ValueError, TypeError, RuntimeError,
+           MemoryError, KeyboardInterrupt, UnicodeEncodeError, UnicodeDecodeError, AttributeError)
+
+
+class Custody:
+    __slots__ = ("events", "primary", "secondaries", "export_fd", "export_failed", "retention_failure", "serial")
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("custody is source-owned")
+
+
+def new_custody(export_fd=None):
+    if export_fd is not None:
+        fd_number(export_fd)
+    need(len(_LIVE) < _LIMIT, "custody lifetime slot cap")
+    value = object.__new__(Custody)
+    value.events, value.primary, value.secondaries = [], None, []
+    value.export_fd, value.export_failed, value.retention_failure, value.serial = export_fd, None, None, len(_LIVE) + 1
+    _LIVE.append(value)  # strong reference intentionally survives the call
+    return value
+
+
+def owned(value):
+    need(type(value) is Custody and any(value is entry for entry in _LIVE), "unowned custody")
+    need(type(value.events) is list and len(value.events) <= 32
+         and type(value.secondaries) is list and len(value.secondaries) <= 32,
+         "custody native slot/container shape")
+    need(type(value.serial) is int and any(value is entry and value.serial == index + 1
+         for index, entry in enumerate(_LIVE)), "custody source serial identity")
+    if value.export_fd is not None:
+        fd_number(value.export_fd)
+    for row in list.__iter__(value.events):
+        need(type(row) is dict, "custody native event shape")
+        for key in dict.__iter__(row):
+            need(type(key) is str, "custody exact event key")
+        need(set(row) == {"kind","actual","actual_id","actual_type_id"}, "custody exact event fields")
+        need(type(row["kind"]) is str and len(row["kind"]) <= 128
+             and type(row["actual_id"]) is int and row["actual_id"] == id(row["actual"])
+             and type(row["actual_type_id"]) is int and row["actual_type_id"] == id(type(row["actual"])),
+             "custody actual identity fields")
+    return value
+
+
+def retain(value, kind, actual, primary=False):
+    value = owned(value)
+    need(type(kind) is str and len(kind) <= 128 and type(primary) is bool, "custody event fields")
+    need(len(value.events) < 32, "custody event cap")
+    event = dict(kind=kind, actual=actual, actual_id=id(actual), actual_type_id=id(type(actual)))
+    value.events.append(event)  # actual strong ref precedes every projection
+    if primary and value.primary is None:
+        value.primary = actual
+    elif type(actual) is not type(None) and isinstance_native_exception(actual):
+        value.secondaries.append(actual)
+    return event
+
+
+def isinstance_native_exception(error):
+    return any(type(error) is cls for cls in _NATIVE) or any(
+        type(row) is tuple and len(row) == 2 and type(error) is row[0]
+        and row[1] == "5c60009c9ba1dd9eab5ba85b859ae3ca43b36ed1675100e824a801c9f04804f7"
+        for row in _REVIEWED_SOURCE_TYPES)
+
+
+def error_native_value(value):
+    """Native bytes in errno/filename/args are exact hex DATA, never a codec."""
+    nodes = 0
+    def visit(item, depth):
+        nonlocal nodes
+        nodes += 1
+        need(nodes <= 256 and depth <= 8, "native error value cap")
+        kind = type(item)
+        if kind is bytes:
+            need(len(item) <= 8192, "native error bytes cap")
+            return {"exact_bytes_hex": bytes.hex(item)}
+        if kind is tuple or kind is list:
+            need(len(item) <= 256, "native error container cap")
+            return [visit(part,depth+1) for part in item]
+        if kind is dict:
+            need(len(item) <= 256, "native error mapping cap")
+            out = {}
+            for key, part in dict.items(item):
+                need(type(key) is str, "native error exact key")
+                out[key] = visit(part,depth+1)
+            return out
+        return plain_copy(item, max_nodes=256, max_depth=8, max_text=32768)
+    return plain_copy(visit(value,0), max_nodes=512, max_depth=12, max_text=65536)
+
+
+def error_data(error, custody=None):
+    """No foreign exception attribute, str, repr, add_note or equality callback."""
+    result = dict(actual_id=id(error), actual_type_id=id(type(error)))
+    if not isinstance_native_exception(error):
+        result["foreign_exception_unformatted"] = True
+        return result
+    result["native_type"] = type(error).__name__
+    args = BaseException.args.__get__(error, type(error))
+    try:
+        need(type(args) is tuple and len(args) <= 16, "native error args cap")
+        result["args"] = error_native_value(args)
+        if any(type(error) is cls for cls in _NATIVE[:10]):
+            for key in ("errno", "strerror", "filename", "filename2"):
+                descriptor = type.__getattribute__(OSError, "__dict__")[key]
+                field = descriptor.__get__(error, type(error))
+                result[key] = error_native_value(field)
+            message = OSError.__str__(error)
+        else:
+            message = BaseException.__str__(error)
+        need(type(message) is str and len(message) <= 16384, "native error message cap")
+        result["message"] = plain_copy(message, max_nodes=1, max_depth=1, max_text=32768)
+    except BaseException as projection_error:
+        # Keep actual source exception; do not inspect a foreign formatting fault.
+        if custody is not None and len(owned(custody).events) < 32:
+            retain(custody, "ERROR_PROJECTION_FAILURE", projection_error)
+        result["projection_unavailable"] = True
+        result["projection_error_id"] = id(projection_error)
+    return result
+
+
+def snapshot(value):
+    value = owned(value)
+    events = []
+    for row in tuple(value.events):
+        projection = dict(kind=row["kind"], actual_id=row["actual_id"], actual_type_id=row["actual_type_id"])
+        if "RETURN" in row["kind"] or "NATIVE" in row["kind"]:
+            try:
+                projection["native_observation"] = plain_copy(row["actual"], max_nodes=4096,
+                                                              max_depth=16, max_text=65536)
+            except BaseException as capture_error:
+                if len(value.events) < 32:
+                    retain(value, "NATIVE_PROJECTION_FAILURE", capture_error)
+                projection["foreign_or_unbounded_return_unformatted"] = True
+        else:
+            projection["error"] = error_data(row["actual"], value)
+        events.append(projection)
+    return dict(schema="h25-actual-error-custody-v2", serial=value.serial,
+                primary_id=None if value.primary is None else id(value.primary), events=events,
+                strong_references_retained=True, export_failed_id=None if value.export_failed is None else id(value.export_failed))
+
+
+def export(value):
+    """Bounded exact-byte RAW before independent oracle; never replace primary."""
+    global _EXPORTED_BYTES
+    value = owned(value)
+    try:
+        raw = (json.dumps(snapshot(value), sort_keys=True, separators=(",", ":")) + "\n").encode("ascii")
+        need(len(raw) <= 1048576 and _EXPORTED_BYTES + len(raw) <= _EXPORT_CAP, "custody RAW byte cap")
+        fd = 2 if value.export_fd is None else fd_number(value.export_fd)
+        view = memoryview(raw)
+        while view:
+            count = os.write(fd, view)
+            need(type(count) is int and 0 < count <= len(view), "custody RAW write progress")
+            _EXPORTED_BYTES += count
+            view = view[count:]
+    except BaseException as error:
+        value.export_failed = error  # strong reference BEFORE any formatting
+        try:
+            if len(value.events) < 32:
+                retain(value, "RAW_EXPORT_FAILURE", error)
+        except BaseException as retention_error:
+            value.retention_failure = retention_error  # also retained, unformatted
+        return False
+    return True
