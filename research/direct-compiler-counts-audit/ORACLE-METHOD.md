@@ -1,0 +1,25 @@
+# B13 S1 oracle method, before first execution
+
+I authored only the package oracle.py and this note. No current peer code/result was read. No scientific source/own module was imported, compiled to bytecode, run or tested. A permitted syntax-only ast.parse inspection at20:52:11UTC succeeded:21functions, maximum37lines, no assert nodes; this neither imported the module nor evaluated its mathematics and is not a scientific first. Exact source/proof/raw-data exposure from historical B12 work is retained; no fresh blind/source-unexposed or independent end-to-end claim is made.
+
+## Reused flow mathematics and independent consumer recurrence
+
+The local expected flow explicitly adapts my historical B12S9 factorial-multiset/signed-pair oracle (pure SHA388e5a539e463fb6ddedfc1882e8a397a84cf410192da33a8a50f613fe97ca84). The method is reused inline, not imported as an undeclared runtime dependency. Target multisets are enumerated completely, weighted by a factorial quotient and inventory powers. Ordered paid support words retain multiplicity as exact products. For a nonterminal pair with z=rho*c(a), parent presence is k*z<=cap and child presence r*z<=cap. Child-only pairs are fresh sources; parent-only pairs are exits; both cancel. Root demand and every terminal paid rank are added separately. Sources/exits are not net-cancelled at equal ranks. Default-height recipes depend only on cap, allowing an immutable recipe cache per case. This is not the source's per-b minimum/capped recursive enumeration.
+
+The compiler model is newly written around normalized exact Fractions, rather than replaying source integer-copy accumulation. Define each normalized record v_n=V_n/B_n. For full source count S_n, child multiplicity q_e and local record b_n,
+
+`v_n=(b_n+sum_e q_e*v_e)/S_n`.
+
+Local leaves are zero, local units/columns are the independently expected flow values, and local slots are S_n+exit_count+(W+P)*local_units. Base normalized leaves equal rank; other records are zero, including rank0. Width is the cumulative product B_n=B_(n-1)*S_n. The four normalized rational arrays are advanced from smaller ranks; only afterward is each whole integer recovered as B_n*v_n, with an explicit denominator-one check. Child weights combine equal ranks by addition, not deduplication, and source rank n retains its zero-complement occurrence in S_n. Nested divisibility and complete expanded mass/unit/slot bounds are supplemental checks, not substitutes for full output comparison.
+
+All five arrays retain every rank0..maximum as lowercase unprefixed hex, in fixed case order. The summary matches the source field definitions, including zero's empty-byte bigint hash, outward floor-plus-one10^-18 Fraction strings and the exact default Cmax envelope. The99-percent boolean is computed by normalized Fraction comparison; because the recovered leaf count is an integer, it agrees with comparison against floor(99*B_n*n/100).
+
+## Runtime and byte contract
+
+Only standard-library imports are used; source Flow/compiler/verify and peer engines are never imported. Six source size/SHA/Git pins and literal CASES/SOURCE-PINS hashes are checked on every invocation. Raw case dictionaries are bound to the pinned original strictification profile, not completed tensor data. Default and --reference recompute and compare entire canonical bytes; this detects duplicate keys, type substitutions, schema/case/array omissions and noncanonical encodings without a permissive parsed-equality baseline. --emit prints only canonical packet bytes and is not itself validation. CLI modes are mutually exclusive and unknown options reject.
+
+Four fixed maxima are606,50,16,20; no extension to3025 or other policies is made. Arrays/packets, elapsed time and memory remain unknown before root's sealed serial first. Forecast is below128MiB/120seconds for these bounded cases, using only paid support words and tiny target multisets. No native matrices, source top-level verifier/finite_flows/literal/approximate recurrence, large theorem checker, Lean/Docker, paid compute or selected full replay is invoked. Root owns first execution/seals/actual-source consumer/controls. Any failure must be preserved; this note asserts no PASS or packet value in advance.
+
+Ready code is11,990bytes, SHA2569f7851eb61775e7c42576ab3fc38ce6fc4a6b99e36f5cd73d1cb537f4476984e. Literal runtime metadata pins are CASES ce0152497423d200f0e2c8b83b9efce992c95c92743e238cd5a060306bf329a0 and SOURCE-PINS f2031ec3b25d187bd924037b63e46943c4d19ece39175e2c58327d7a4f0e59ed. Proposed first is the root's bounded serial Python3.12.14 -I -B oracle.py --emit, with stdout preserved as the entire first packet. No first output exists in this note.
+
+Source construction/count laws remain zxv's/PR4436; Sussman and retained whole-integer matching/mirror/compiler lineage retain credit. Historical B12S9/S10 and finite width/interface predecessors are not new results here. This is source-aware OpenAI Codex-assisted finite expected-model work, not a formal/all-n/native/physical/analytic/supplier or kappa/frontier admission.
