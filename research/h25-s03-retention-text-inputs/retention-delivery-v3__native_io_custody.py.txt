@@ -1,0 +1,300 @@
+"""Source-owned bounded metadata FD ownership. No native execution on import.
+Unknown close outcome retires that slot before one close, quarantines the context,
+and retains remaining known children. No uncertain close is retried.
+"""
+import os
+import stat
+
+_OPEN=os.open
+_CLOSE=os.close
+_READ=os.read
+_FSTAT=os.fstat
+
+_LIVE = []
+_ERRORS = None
+_MAX_CONTEXTS = 512
+_MAX_FDS = 128
+_MAX_ERRORS = 32
+
+
+class Context:
+    __slots__ = ("site","slots","events","used","primary","quarantine","finished","errors","export_failure","cleanup_policy")
+    def __new__(cls,*args,**kwargs):
+        raise TypeError("metadata custody is source-owned")
+
+
+def need(value,reason):
+    if not value:
+        raise ValueError(reason)
+
+
+def new_context(site,errors=None):
+    need(type(site) is str and len(site)<=128,"metadata custody exact site")
+    need(len(_LIVE)<_MAX_CONTEXTS,"metadata custody context cap")
+    if _ERRORS is not None:
+        errors=_ERRORS.new_custody() if errors is None else _ERRORS.owned(errors)
+    else:
+        need(errors is None,"custody backend unavailable before authenticated bootstrap")
+    ctx=object.__new__(Context)
+    ctx.site=site
+    # Allocate slots before the first open/read/close. No acquired child depends
+    # on a subsequent list append or replacement of the prior owner's variable.
+    ctx.slots=[dict(fd=None,status="UNUSED",close_attempts=0,site="",close_error=None) for _ in range(_MAX_FDS)]
+    ctx.events=[dict(actual=None,kind="",site="") for _ in range(_MAX_ERRORS)]
+    ctx.used=0;ctx.primary=None;ctx.quarantine=False;ctx.finished=False
+    ctx.errors=errors;ctx.export_failure=None;ctx.cleanup_policy="retain-known"
+    _LIVE.append(ctx)
+    return ctx
+
+
+def owned(ctx):
+    need(type(ctx) is Context and any(ctx is value for value in _LIVE),"unowned metadata context")
+    need(type(ctx.slots) is list and len(ctx.slots)==_MAX_FDS
+         and type(ctx.events) is list and len(ctx.events)==_MAX_ERRORS
+         and type(ctx.used) is int and 0<=ctx.used<=_MAX_ERRORS
+         and type(ctx.quarantine) is bool and type(ctx.finished) is bool
+         and type(ctx.cleanup_policy) is str and type(ctx.site) is str and len(ctx.site)<=128,
+         "metadata context native shape")
+    if _ERRORS is not None and ctx.errors is not None:_ERRORS.owned(ctx.errors)
+    allowed={"UNUSED","ACQUIRING","UNACQUIRED","UNKNOWN_RETURN","OWNED","UNCERTAIN","CLOSED",
+             "RETAINED_KNOWN","RETAINED_ALIAS","RETAINED_UNCLASSIFIED"}
+    for row in list.__iter__(ctx.slots):
+        need(type(row) is dict,"metadata exact slot record")
+        for key in dict.__iter__(row):need(type(key) is str,"metadata exact slot key")
+        need(set(row)=={"fd","status","close_attempts","site","close_error"},"metadata exact slot fields")
+        need(type(row["status"]) is str and row["status"] in allowed
+             and type(row["close_attempts"]) is int and row["close_attempts"] in (0,1)
+             and type(row["site"]) is str and len(row["site"])<=256,"metadata native slot state")
+        if row["status"] in ("OWNED","UNCERTAIN","CLOSED","RETAINED_KNOWN","RETAINED_ALIAS"):
+            need(type(row["fd"]) is int and row["fd"]>=0,"metadata exact recorded FD")
+    for row in ctx.events[:ctx.used]:
+        need(type(row) is dict,"metadata exact event record")
+        for key in dict.__iter__(row):need(type(key) is str,"metadata exact event key")
+        need(set(row)=={"actual","kind","site"} and type(row["kind"]) is str
+             and type(row["site"]) is str,"metadata native event state")
+    return ctx
+
+
+def capture(ctx,error,kind,site):
+    ctx=owned(ctx)
+    need(type(kind) is str and len(kind)<=64 and type(site) is str and len(site)<=256,"metadata capture exact labels")
+    # The first assignment retains the actual object before projection/export.
+    if ctx.primary is None:
+        ctx.primary=error
+        role="PRIMARY_"+kind
+    else:
+        role="SECONDARY_"+kind
+    if ctx.used<_MAX_ERRORS:
+        row=ctx.events[ctx.used]
+        row["actual"]=error
+        row["kind"]=role
+        row["site"]=site
+        ctx.used+=1
+    if _ERRORS is not None and ctx.errors is not None:
+        try:
+            _ERRORS.retain(ctx.errors,role,error,primary=ctx.errors.primary is None)
+        except BaseException as retention_error:
+            ctx.export_failure=retention_error
+    return error
+
+
+def state_data(ctx):
+    ctx=owned(ctx)
+    return dict(schema="h25-metadata-FD-state-v3",site=ctx.site,quarantine=ctx.quarantine,
+        finished=ctx.finished,cleanup_policy=ctx.cleanup_policy,acquisition_quarantine=ctx.quarantine,primary_id=None if ctx.primary is None else id(ctx.primary),
+        descriptors=[dict(slot=index,fd=row["fd"] if type(row["fd"]) is int else None,
+            actual_fd_id=None if row["fd"] is None else id(row["fd"]),status=row["status"],
+            close_attempts=row["close_attempts"],site=row["site"],
+            close_error_id=None if row["close_error"] is None else id(row["close_error"]))
+            for index,row in enumerate(ctx.slots) if row["status"]!="UNUSED"],
+        errors=[dict(actual_id=id(row["actual"]),kind=row["kind"],site=row["site"])
+                for row in ctx.events[:ctx.used]],
+        backend_pending=_ERRORS is None or ctx.errors is None,export_failure_id=None if ctx.export_failure is None else id(ctx.export_failure))
+
+
+def publish(ctx):
+    ctx=owned(ctx)
+    if _ERRORS is None or ctx.errors is None:
+        return False  # Actual refs/state persist in _LIVE; startup limit explicit.
+    try:
+        _ERRORS.retain(ctx.errors,"ACTUAL_NATIVE_DESCRIPTOR_STATE",state_data(ctx))
+        return _ERRORS.export(ctx.errors)
+    except BaseException as error:
+        ctx.export_failure=error
+        return False
+
+
+def adopt_pending(ctx,errors):
+    """Attach authenticated already-loaded backend; no FD access/reacquisition."""
+    ctx=owned(ctx)
+    need(_ERRORS is not None and ctx.errors is None,"metadata pending backend transition")
+    errors=_ERRORS.owned(errors)
+    ctx.errors=errors
+    for row in ctx.events[:ctx.used]:
+        _ERRORS.retain(errors,row["kind"],row["actual"],primary=errors.primary is None)
+    return publish(ctx)
+
+
+def stop_if_failed(ctx):
+    ctx=owned(ctx)
+    if ctx.primary is not None:
+        raise ctx.primary
+    need(not ctx.quarantine and not ctx.finished,"metadata context unavailable")
+    return ctx
+
+
+def descriptor(ctx,index):
+    ctx=owned(ctx)
+    need(type(index) is int and 0<=index<_MAX_FDS,"metadata exact slot")
+    row=ctx.slots[index]
+    need(type(row) is dict and row["status"]=="OWNED" and type(row["fd"]) is int
+         and row["fd"]>=0,"metadata descriptor not known-owned")
+    return row["fd"]
+
+
+def acquire(ctx,path,flags,site,parent=None,mode=0o600):
+    ctx=stop_if_failed(ctx)
+    need(type(path) is str and 0<len(path)<=4096 and type(flags) is int
+         and type(site) is str and len(site)<=128 and type(mode) is int and 0<=mode<=0o777,
+         "metadata open native arguments")
+    need(parent is None or type(parent) is int,"metadata exact parent slot")
+    free=next((i for i,row in enumerate(ctx.slots) if row["status"]=="UNUSED"),None)
+    need(free is not None,"metadata descriptor slot cap")
+    row=ctx.slots[free];row["status"]="ACQUIRING";row["site"]=site
+    try:
+        fd=_OPEN(path,flags,mode) if parent is None else _OPEN(path,flags,mode,dir_fd=descriptor(ctx,parent))
+    except BaseException as error:
+        row["status"]="UNACQUIRED"
+        capture(ctx,error,"OPEN",site)
+        raise
+    row["fd"]=fd  # acquired result owned BEFORE old close or later validation
+    if type(fd) is not int or fd<0:
+        row["status"]="UNKNOWN_RETURN";ctx.quarantine=True
+        error=ValueError("metadata open returned nonnative FD")
+        capture(ctx,error,"OPEN_RETURN",site)
+        raise error
+    row["status"]="OWNED"
+    return free
+
+
+def close_slot(ctx,index,site,allow_distinct_known=False):
+    ctx=owned(ctx)
+    need(type(index) is int and 0<=index<_MAX_FDS and type(site) is str and len(site)<=256
+         and type(allow_distinct_known) is bool,"metadata close exact slot/site/policy")
+    row=ctx.slots[index]
+    if row["status"]=="RETAINED_KNOWN" and allow_distinct_known:
+        row["status"]="OWNED"
+    if row["status"]!="OWNED":
+        return False  # Never retry closed/uncertain/retained/unknown slots.
+    if ctx.quarantine:
+        if not allow_distinct_known:
+            row["status"]="RETAINED_KNOWN"
+            return False
+        if any(other["status"]=="UNKNOWN_RETURN" for other in ctx.slots):
+            row["status"]="RETAINED_UNCLASSIFIED"
+            return False
+        if any(other["status"]=="UNCERTAIN" and other["fd"]==row["fd"] for other in ctx.slots):
+            row["status"]="RETAINED_ALIAS"
+            return False
+    fd=descriptor(ctx,index)
+    row["status"]="UNCERTAIN";row["close_attempts"]=1;row["site"]=site
+    try:
+        _CLOSE(fd)
+    except BaseException as error:
+        row["close_error"]=error  # preallocated slot holds each exact secondary
+        ctx.quarantine=True
+        capture(ctx,error,"CLOSE",site)
+        return False
+    row["status"]="CLOSED"
+    return True
+
+
+def cleanup(ctx):
+    ctx=owned(ctx)
+    if ctx.finished:
+        return
+    # Reverse acquired slots. Any ambiguous close stops ALL native cleanup;
+    # remaining children are retained, not forgotten or speculatively closed.
+    for index in range(_MAX_FDS-1,-1,-1):
+        if ctx.slots[index]["status"]=="OWNED":
+            close_slot(ctx,index,"cleanup:"+ctx.site)
+    ctx.finished=True
+
+
+def cleanup_known(ctx):
+    """Explicit opt-in: dispose proven distinct known OS fds, not library handles.
+    Acquisition stays quarantined. Unknown/uncertain slots never retried. This
+    policy is for separately reviewed callers; V3 readers use retain-known.
+    """
+    ctx=owned(ctx)
+    ctx.cleanup_policy="distinct-known-os-fds"
+    for index in range(_MAX_FDS-1,-1,-1):
+        if ctx.slots[index]["status"] in ("OWNED","RETAINED_KNOWN"):
+            close_slot(ctx,index,"known-cleanup:"+ctx.site,allow_distinct_known=True)
+    ctx.finished=True
+    if ctx.primary is not None or ctx.quarantine:publish(ctx)
+    return state_data(ctx)
+
+
+def finish(ctx):
+    ctx=owned(ctx)
+    cleanup(ctx)
+    if ctx.primary is not None or ctx.quarantine:
+        publish(ctx)
+    if ctx.primary is not None:
+        raise ctx.primary
+
+
+def directory(ctx,path):
+    need(type(path) is str and path.startswith("/") and len(path)<=4096
+         and os.path.normpath(path)==path,"metadata normalized directory")
+    parts=path.split("/")[1:]
+    need(len(parts)<=64,"metadata directory component cap")
+    current=acquire(ctx,"/",os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,"directory-root")
+    for part in parts:
+        if part:
+            child=acquire(ctx,part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,"directory-child",current)
+            # child is already in ctx.slots. Mark old uncertain before close.
+            if not close_slot(ctx,current,"directory-transition-close"):
+                stop_if_failed(ctx)
+            current=child
+    return current
+
+
+def read(ctx,index,count,site):
+    ctx=stop_if_failed(ctx)
+    need(type(count) is int and 0<count<=1048577,"metadata read count")
+    try:
+        block=_READ(descriptor(ctx,index),count)
+    except BaseException as error:
+        capture(ctx,error,"READ",site)
+        raise
+    need(type(block) is bytes,"metadata native read bytes")
+    return block
+
+
+def source_bytes(path,maximum=1048576,errors=None,site="source-bytes"):
+    need(type(path) is str and path.startswith("/") and os.path.normpath(path)==path
+         and len(path)<=4096 and type(maximum) is int and 0<maximum<=1048576,
+         "metadata source path/byte cap")
+    ctx=new_context(site,errors)
+    try:
+        parent=directory(ctx,os.path.dirname(path))
+        leaf=acquire(ctx,os.path.basename(path),os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,"source-leaf-open",parent)
+        info=_FSTAT(descriptor(ctx,leaf))
+        need(stat.S_ISREG(info.st_mode) and info.st_nlink==1 and 0<=info.st_size<=maximum,
+             "subprocess source type/size/link")
+        raw=bytearray()
+        while len(raw)<=maximum:
+            block=read(ctx,leaf,min(65536,maximum+1-len(raw)),"source-leaf-read")
+            if not block:break
+            raw.extend(block)
+        after=_FSTAT(descriptor(ctx,leaf))
+        need(len(raw)==info.st_size and (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns)
+             ==(after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns),"subprocess source changed")
+        return bytes(raw)
+    except BaseException as error:
+        if ctx.primary is not error:capture(ctx,error,"SOURCE",site)
+        raise
+    finally:
+        finish(ctx)

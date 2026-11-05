@@ -1,0 +1,34 @@
+"""Authenticated unchanged V2 source references; no source reads on import.
+Initial bootstrap metadata I/O uses standalone descriptor custody. If loading the
+error backend itself fails, actual objects/FD states stay in native_io._LIVE;
+full typed error export is unavailable and startup remains explicitly unadmitted.
+"""
+import hashlib
+import os
+import sys
+import types
+import native_io_custody as native_io
+
+REFERENCE_ROOT = '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/retention-delivery-v2'
+PINS = {'plain_boundary.py': '770cfd843187fc3dd081fdb09800039483406522fcfc0f6bdac4cffda43a10e6', 'error_custody.py': 'f44fddb1c1ea346779483ef846d494c1d87749deeac29733e1c29116d19e66b6', 'control_bodies.py': '358cef9315269e64eeeeea6e736a1ccab17284d6001cd9304b1429b842bf5b18'}
+_CACHE = {}
+
+
+def load(name):
+    native_io.need(type(name) is str and name in PINS,"fixed V2 source reference")
+    if name in _CACHE:return _CACHE[name]
+    raw=native_io.source_bytes(REFERENCE_ROOT+"/"+name,site="reuse-v2:"+name)
+    native_io.need(hashlib.sha256(raw).hexdigest()==PINS[name],"V2 external source pin changed")
+    module=types.ModuleType("_h25_retention_v2_"+name[:-3])
+    module.__file__=REFERENCE_ROOT+"/"+name
+    # Exact checked bytes only; no pyc, second file read or public source selector.
+    exec(compile(raw,module.__file__,"exec"),module.__dict__)
+    _CACHE[name]=module
+    if name=="error_custody.py":
+        native_io._ERRORS=module
+        # If a genuine surrounding bootstrap later loads this backend after a
+        # retained startup fault, only attach/export; never reacquire or close.
+        for ctx in tuple(native_io._LIVE):
+            if ctx.errors is None and ctx.primary is not None:
+                native_io.adopt_pending(ctx,module.new_custody())
+    return module
