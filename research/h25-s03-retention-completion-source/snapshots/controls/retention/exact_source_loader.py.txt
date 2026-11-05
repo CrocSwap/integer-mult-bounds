@@ -1,0 +1,44 @@
+"""UNEXECUTED isolated actual changed-source loader for parent admitted controls.
+
+Call load_control_sources only after independent source/control GO and parent
+exact admission. Reading this file or importing it runs no project import, file
+operation, source execution or control. No production capability is issued.
+"""
+import builtins
+import hashlib
+from pathlib import Path
+import types
+
+SOURCE_NAMES=('plain_boundary.py','error_custody.py','native_io_custody.py','archive.py','oracle.py')
+
+
+def load_control_sources(source_root,exact_pins):
+    root=Path(source_root)
+    if set(exact_pins)!=set(SOURCE_NAMES):
+        raise ValueError('exact complete changed source pins required')
+    raws={}
+    for name in SOURCE_NAMES:
+        path=root/name
+        raw=path.read_bytes()
+        if len(raw)>1048576 or hashlib.sha256(raw).hexdigest()!=exact_pins[name]:
+            raise ValueError('changed control source pin mismatch')
+        raws[name]=raw
+    loaded={}
+    original_import=builtins.__import__
+    def source_import(name,globals=None,locals=None,fromlist=(),level=0):
+        key=name+'.py'
+        if level==0 and key in raws:
+            return load(key)
+        return original_import(name,globals,locals,fromlist,level)
+    def load(name):
+        if name in loaded:return loaded[name]
+        module=types.ModuleType('_s03_control_'+name[:-3])
+        module.__file__=str(root/name)
+        local_builtins=dict(vars(builtins))
+        local_builtins['__import__']=source_import
+        module.__dict__['__builtins__']=local_builtins
+        loaded[name]=module
+        exec(compile(raws[name],module.__file__,'exec'),module.__dict__)
+        return module
+    for name in SOURCE_NAMES:load(name)
+    return tuple(loaded[name] for name in ('archive.py','oracle.py','native_io_custody.py','error_custody.py'))

@@ -1,0 +1,47 @@
+"""UNEXECUTED C04/C06 grammar controls; no FS/native/project imports here."""
+
+def _check(value,message):
+    if not value:raise AssertionError(message)
+
+
+def run_domain_oracles(consumer):
+    """Parent supplies changed actual consumer; tests only domain grammar."""
+    cfg=dict(source_root='/new/source',purpose='postrun',limits=dict(max_runs=128),
+             inventory=dict(sha256='1'*64),domain=dict(sha256='2'*64),
+             writer_lease=dict(protocol_sha256='3'*64))
+    closure=dict(schema='h25-parent-run-closure-v1',source_root='/new/source',
+                 inventory_sha256='1'*64,domain_sha256='2'*64,lease_protocol_sha256='3'*64,
+                 all_producers_enrolled=True,inventory_collected_under_held_lease=True,
+                 all_measured_processes_reaped=True,all_terminal_receipts_final=True,
+                 all_raw_streams_closed=True,no_future_writes_under_lease=True,
+                 purpose='postrun',attempt_ids=['N'])
+    layout={name:name for name in ('attempt','runner','intent','supervision','queue','validation','serialized-DATA')}
+    row=dict(run='N',terminal_status='STOP',terminal_receipts=['attempt/TERMINAL.json'],
+             layout=layout,attempt_state='TERMINAL',canonical_receipt=None)
+    domain=dict(schema='h25-completed-source-domain-v2',source_root='/new/source',
+                scope='complete-actual-attempt-union',root_files=['actual-root.raw'],runs=[row])
+    inventory=dict(entries=[dict(path='N',kind='dir'),dict(path='N/attempt',kind='dir'),
+                            dict(path='N/attempt/TERMINAL.json',kind='file'),
+                            dict(path='actual-root.raw',kind='file')])
+    original=consumer.validate_config
+    consumer.validate_config=lambda value:value  # Grammar-only source port.
+    outcomes=[]
+    def check_case(name,mutate,accept):
+        local_inventory=consumer.plain_copy(inventory)
+        local_domain=consumer.plain_copy(domain)
+        mutate(local_inventory,local_domain)
+        observed=None
+        try:consumer.validate_domain(cfg,local_inventory,local_domain,closure)
+        except BaseException as error:observed=error
+        _check((observed is None)==accept,name)
+        outcomes.append(dict(case=name,status='PASS'))
+    try:
+        check_case('known_prelaunch_STOP_missing_owner_START_and_runner_receipt',lambda i,d:None,True)
+        check_case('omitted_actual_root_file',lambda i,d:d.update(root_files=[]),False)
+        check_case('extra_empty_direct_case_not_in_entered_union',lambda i,d:i['entries'].append(dict(path='O',kind='dir')),False)
+        check_case('missing_canonical_receipt_not_synthesized',lambda i,d:d['runs'][0].update(canonical_receipt='runner/receipt.json'),False)
+        check_case('PASS_without_actual_runner_receipt_refused',lambda i,d:d['runs'][0].update(terminal_status='PASS'),False)
+        check_case('unregistered_case_sibling_refused',lambda i,d:i['entries'].append(dict(path='N/foreign-empty',kind='dir')),False)
+    finally:consumer.validate_config=original
+    return dict(schema='s03-domain-changed-source-controls-v1',status='PASS',cases=outcomes,
+                grammar_only=True,source_census_and_authority_claimed=False,assert_statement_count=0)

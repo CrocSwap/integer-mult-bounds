@@ -1,0 +1,356 @@
+"""UNEXECUTED changed-code fault oracles. Parent exact admission is required.
+
+The parent supplies the actual changed source modules. All file/process/native
+ports exercised below are replaced by bounded fake functions, and selected
+errors/effect lists are independent oracles. Importing this file runs no control.
+These source-port controls make no kernel/native/currentness/fit claim.
+"""
+from contextlib import contextmanager
+import errno
+import json
+from types import SimpleNamespace
+
+def _check(condition,message='independent fault oracle failed'):
+    if not condition:
+        raise AssertionError(message)
+
+
+def _identity(action, expected):
+    observed = None
+    try:
+        action()
+    except BaseException as error:
+        observed = error
+    _check(observed is expected, ('actual outward object differs', id(observed), id(expected)))
+
+def _contains_traceback(current, target):
+    while current is not None:
+        if current is target:
+            return True
+        current = current.tb_next
+    return False
+
+@contextmanager
+def _ports(native_io, errors, **overrides):
+    saved = {name: getattr(native_io, name) for name in ('_OPEN', '_CLOSE', '_READ', '_WRITE', '_DUP', '_NATIVE', '_PROCESS')}
+    native_io._PROCESS = native_io.new_context('independent-fake-control', errors.new_custody())
+    native_io._NATIVE = dict(native_io._NATIVE)
+    try:
+        for name, value in overrides.items():
+            if name in native_io._NATIVE:
+                native_io._NATIVE[name] = value
+            else:
+                setattr(native_io, name, value)
+        yield native_io._PROCESS
+    finally:
+        for name, value in saved.items():
+            setattr(native_io, name, value)
+
+def _sequential_open(calls, first=10):
+
+    def acquire(path, flags, mode=511, **kwargs):
+        returned = first + len(calls)
+        calls.append((path, returned, kwargs.get('dir_fd')))
+        return returned
+    return acquire
+
+def expected_missing_is_success(archive, oracle, native_io, errors):
+    opened, closed = ([], [])
+
+    def absent_stat(*args, **kwargs):
+        raise FileNotFoundError(errno.ENOENT, 'controlled absent')
+    with _ports(native_io, errors, _OPEN=_sequential_open(opened), _CLOSE=closed.append, stat=absent_stat) as ctx:
+        archive.absent('/fresh')
+        _check(ctx.primary is None and (not ctx.quarantine), 'independent fault oracle failed')
+        _check([row[1] for row in opened] == [10] and closed == [10], 'independent fault oracle failed')
+
+def non_enoent_is_failure(archive, oracle, native_io, errors):
+    chosen = FileNotFoundError(errno.EACCES, 'same class, wrong native errno')
+    closed = []
+
+    def bad_stat(*args, **kwargs):
+        raise chosen
+    with _ports(native_io, errors, _OPEN=lambda *a, **k: 10, _CLOSE=closed.append, stat=bad_stat) as ctx:
+        _identity(lambda: archive.absent('/fresh'), chosen)
+        _check(ctx.primary is chosen and closed == [10], 'independent fault oracle failed')
+
+def acquired_child_survives_old_close_fault(archive, oracle, native_io, errors):
+    fault = OSError(errno.EIO, 'old directory close')
+    opened, closed = ([], [])
+
+    def close(fd):
+        closed.append(fd)
+        if fd == 10:
+            raise fault
+    with _ports(native_io, errors, _OPEN=_sequential_open(opened), _CLOSE=close) as ctx:
+        _identity(lambda: archive.dirfd('/a'), fault)
+        _check(closed == [10, 11] and len(opened) == 2, 'independent fault oracle failed')
+        _check(all((row.close_attempts == 1 for row in ctx.slots if row.fd in (10, 11))), 'independent fault oracle failed')
+        _check(any((row.fd == 10 and row.status == 'UNCERTAIN' for row in ctx.slots)), 'independent fault oracle failed')
+
+def publication_second_parent_failure_closes_first(archive, oracle, native_io, errors):
+    fault = OSError(errno.EMFILE, 'second destination ancestry')
+    opened, closed = ([], [])
+    roots = 0
+
+    def acquire(path, flags, mode=511, **kwargs):
+        nonlocal roots
+        if path == '/':
+            roots += 1
+            if roots == 2:
+                raise fault
+        fd = 10 + len(opened)
+        opened.append((path, fd))
+        return fd
+    with _ports(native_io, errors, _OPEN=acquire, _CLOSE=closed.append):
+        _identity(lambda: archive.publish('/a/.stage', '/a/out'), fault)
+        _check(closed == [10, 11] and len(opened) == 2, 'independent fault oracle failed')
+
+def ancestry_fstat_failure_closes_first_open(archive, oracle, native_io, errors):
+    fault = OSError(errno.EIO, 'initial ancestry fstat')
+    closed = []
+
+    def fstat(fd):
+        raise fault
+    with _ports(native_io, errors, _OPEN=lambda *a, **k: 10, _CLOSE=closed.append, fstat=fstat):
+        _identity(lambda: archive.disjoint('/source', '/destination'), fault)
+        _check(closed == [10], 'independent fault oracle failed')
+
+def nonnative_body_error_precedes_two_closes(archive, oracle, native_io, errors):
+    primary = ValueError('independently selected pure body failure')
+    first = OSError(errno.EIO, 'leaf close')
+    second = OSError(errno.EIO, 'parent close')
+    opened, closed = ([], [])
+    old_need = archive.need
+
+    def validation(value, reason):
+        if not value:
+            raise primary
+
+    def close(fd):
+        closed.append(fd)
+        if fd == 12:
+            raise first
+        if fd == 11:
+            raise second
+    archive.need = validation
+    try:
+        with _ports(native_io, errors, _OPEN=_sequential_open(opened), _CLOSE=close, _WRITE=lambda fd, raw: 0, fsync=lambda fd: None) as ctx:
+            _identity(lambda: archive.write_new('/parent/file', b'x'), primary)
+            _check(ctx.primary is primary and _contains_traceback(primary.__traceback__, ctx.primary_tb), 'independent fault oracle failed')
+            _check(closed == [10, 12, 11], 'independent fault oracle failed')
+            secondary = [row.actual for row in ctx.errors.events if row.actual is first or row.actual is second]
+            _check(secondary == [first, second], 'independent fault oracle failed')
+            sequence = [row.sequence for row in ctx.errors.events if row.actual is first or row.actual is second]
+            _check(sequence == sorted(sequence) and len(set(sequence)) == 2, 'independent fault oracle failed')
+    finally:
+        archive.need = old_need
+
+def oracle_validation_precedes_close(archive, oracle, native_io, errors):
+    primary = ValueError('oracle pure validation')
+    secondary = OSError(errno.EIO, 'oracle root close')
+    opened, closed = ([], [])
+    old_demand = oracle.demand
+
+    def demand(value, reason):
+        if not value:
+            raise primary
+
+    def close(fd):
+        closed.append(fd)
+        if fd == 11:
+            raise secondary
+
+    def bad_info(fd):
+        return SimpleNamespace(st_mode=16832 | 2048)
+    oracle.demand = demand
+    try:
+        with _ports(native_io, errors, _OPEN=_sequential_open(opened), _CLOSE=close, fstat=bad_info) as ctx:
+            _identity(lambda: oracle.collect('/source'), primary)
+            _check(ctx.primary is primary and closed == [10, 11], 'independent fault oracle failed')
+            _check(any((row.actual is secondary for row in ctx.errors.events)), 'independent fault oracle failed')
+    finally:
+        oracle.demand = old_demand
+
+def distinct_known_closes_continue_after_error(archive, oracle, native_io, errors):
+    first = OSError(errno.EIO, 'close12')
+    second = OSError(errno.EIO, 'close11')
+    opened, closed = ([], [])
+
+    def close(fd):
+        closed.append(fd)
+        if fd == 12:
+            raise first
+        if fd == 11:
+            raise second
+    with _ports(native_io, errors, _OPEN=_sequential_open(opened), _CLOSE=close) as ctx:
+        for _ in range(3):
+            native_io.open_fd('/fake', 0)
+        native_io.cleanup(ctx)
+        _check(closed == [12, 11, 10] and ctx.primary is first, 'independent fault oracle failed')
+        _check([row.actual for row in ctx.errors.events] == [first, second], 'independent fault oracle failed')
+        native_io.close_fd(12)
+        _check(closed == [12, 11, 10], 'independent fault oracle failed')
+
+def quarantine_refuses_read_and_retry(archive, oracle, native_io, errors):
+    chosen = OSError(errno.EIO, 'uncertain close')
+    opened, closed, reads = ([], [], [])
+
+    def close(fd):
+        closed.append(fd)
+        if fd == 11:
+            raise chosen
+
+    def read(fd, count):
+        reads.append(fd)
+        return b'x'
+    with _ports(native_io, errors, _OPEN=_sequential_open(opened), _CLOSE=close, _READ=read) as ctx:
+        native_io.open_fd('/fake', 0)
+        native_io.open_fd('/fake', 0)
+        native_io.close_fd(11)
+        _identity(lambda: native_io.read_fd(10, 1), chosen)
+        native_io.cleanup(ctx)
+        _check(closed == [11, 10] and (not reads), 'independent fault oracle failed')
+
+def optional_journal_failure_does_not_skip_known_closes(archive,oracle,native_io,errors):
+    close_fault=OSError(errno.EIO,'known close12')
+    second_close_fault=OSError(errno.EIO,'known close11')
+    journal_fault=MemoryError('optional event export')
+    later_journal_fault=MemoryError('forbidden journal retry')
+    opened,closed,journal_calls=[],[],[]
+    original=errors.record
+    def record(value,slot):
+        journal_calls.append(slot)
+        raise journal_fault if len(journal_calls)==1 else later_journal_fault
+    def close(fd):
+        closed.append(fd)
+        if fd==12:raise close_fault
+        if fd==11:raise second_close_fault
+    with _ports(native_io,errors,_OPEN=_sequential_open(opened),_CLOSE=close) as ctx:
+        for _ in range(3):native_io.open_fd('/fake',0)
+        errors.record=record
+        try:native_io.cleanup(ctx)
+        finally:errors.record=original
+        _check(closed==[12,11,10] and ctx.primary is close_fault,'all known closes and original primary')
+        _check(ctx.journal_fault.actual is journal_fault and ctx.errors.incomplete,'first journal fault retained')
+        _check(len(journal_calls)==1,'failed optional journal never retried')
+        raw_rows=ctx.close_order[:ctx.close_used]
+        _check([row.close_error for row in raw_rows]==[close_fault,second_close_fault],'raw close secondary order precedes optional journal')
+        _check([row.close_sequence for row in raw_rows]==[1,2],'independent raw close ordinals')
+
+
+def generic_saturation_preserves_distinct_fd_finalizers(archive, oracle, native_io, errors):
+    fault = OSError(errno.EIO, 'close under generic saturation')
+    opened, closed = ([], [])
+
+    def close(fd):
+        closed.append(fd)
+        if fd == 11:
+            raise fault
+    with _ports(native_io, errors, _OPEN=_sequential_open(opened), _CLOSE=close) as ctx:
+        native_io.open_fd('/fake', 0)
+        native_io.open_fd('/fake', 0)
+        for row in ctx.errors.slots:
+            row.occupied = True
+        ctx.errors.incomplete = True
+        native_io.cleanup(ctx)
+        _check(closed == [11, 10] and ctx.primary is fault and ctx.errors.incomplete, 'independent fault oracle failed')
+        _check(any((row.close_raw.actual is fault for row in ctx.slots)), 'independent fault oracle failed')
+
+def failed_export_is_once_and_preserves_raw(archive, oracle, native_io, errors):
+    primary = ValueError('primary')
+    export_fault = OSError(errno.EIO, 'export')
+    later_fault = OSError(errno.EIO, 'forbidden second export')
+    custody = errors.new_custody()
+    errors.retain(custody, 'PRIMARY', primary, primary=True)
+    calls = []
+    old_write = errors.os.write
+
+    def write(fd, raw):
+        calls.append(fd)
+        raise export_fault if len(calls) == 1 else later_fault
+    errors.os.write = write
+    try:
+        _check(errors.export(custody) is False, 'independent fault oracle failed')
+        _check(errors.export(custody) is False, 'independent fault oracle failed')
+        _check(calls == [2] and custody.primary is primary, 'independent fault oracle failed')
+        _check(custody.export_failed is export_fault, 'independent fault oracle failed')
+        _check(custody.saturation_slot.actual is export_fault, 'independent fault oracle failed')
+        _check(not any((row.actual is later_fault for row in custody.events)), 'independent fault oracle failed')
+    finally:
+        errors.os.write = old_write
+
+def operation_body_and_accounting_identity(archive, oracle, native_io, errors):
+
+    class BadString(ValueError):
+
+        def __str__(self):
+            raise AssertionError('primary formatting is forbidden')
+    primary = BadString('body')
+    usage_fault = OSError(errno.EIO, 'rusage')
+    clock_fault = OSError(errno.EIO, 'clock')
+    receipt_fault = OSError(errno.ENOSPC, 'RESULT')
+    saved = (archive.new_dir, archive.write_new, archive.resource.getrusage, archive.time.monotonic)
+    calls = []
+    usages = clocks = 0
+
+    def usage(who):
+        nonlocal usages
+        usages += 1
+        if usages == 2:
+            raise usage_fault
+        return SimpleNamespace(ru_utime=0.0, ru_stime=0.0, ru_maxrss=1)
+
+    def clock():
+        nonlocal clocks
+        clocks += 1
+        if clocks == 2:
+            raise clock_fault
+        return 0.0
+
+    def write(path, raw, **kwargs):
+        calls.append(path)
+        if path.endswith('/RESULT.json'):
+            raise receipt_fault
+    archive.new_dir = lambda path: None
+    archive.write_new = write
+    archive.resource.getrusage = usage
+    archive.time.monotonic = clock
+
+    def body():
+        with archive.operation('create', '/attempt'):
+            raise primary
+    try:
+        with _ports(native_io, errors) as ctx:
+            _identity(body, primary)
+            _check(calls == ['/attempt/START.json', '/attempt/RESULT.json'], 'independent fault oracle failed')
+            ordered = [row.actual for row in ctx.errors.events if row.actual in (usage_fault, clock_fault, receipt_fault)]
+            _check(ordered == [usage_fault, clock_fault, receipt_fault], 'independent fault oracle failed')
+            _check(ctx.primary is primary, 'independent fault oracle failed')
+    finally:
+        archive.new_dir, archive.write_new, archive.resource.getrusage, archive.time.monotonic = saved
+
+def run_fault_oracles(archive, oracle, native_io, errors):
+    cases = (expected_missing_is_success, non_enoent_is_failure, acquired_child_survives_old_close_fault, publication_second_parent_failure_closes_first, ancestry_fstat_failure_closes_first_open, nonnative_body_error_precedes_two_closes, oracle_validation_precedes_close, distinct_known_closes_continue_after_error, quarantine_refuses_read_and_retry, optional_journal_failure_does_not_skip_known_closes, generic_saturation_preserves_distinct_fd_finalizers, failed_export_is_once_and_preserves_raw, operation_body_and_accounting_identity)
+    outcomes=[]
+    actual_failures=[None]*len(cases)
+    actual_tracebacks=[None]*len(cases)
+    for index,case in enumerate(cases):
+        try:
+            case(archive,oracle,native_io,errors)
+        except BaseException as error:
+            actual_failures[index]=error
+            actual_tracebacks[index]=error.__traceback__
+            outcomes.append(dict(case=case.__name__,status='FAIL',actual_id=id(error)))
+        else:
+            outcomes.append(dict(case=case.__name__,status='PASS'))
+    global _CONTROL_FAILURES,_CONTROL_TRACEBACKS
+    _CONTROL_FAILURES=actual_failures
+    _CONTROL_TRACEBACKS=actual_tracebacks
+    return dict(schema='s03-retention-changed-code-fault-oracles-v1',
+                status='PASS' if all(row['status']=='PASS' for row in outcomes) else 'FAIL',
+                cases=outcomes,source_port_controls_only=True,kernel_native_currentness_fit=False,
+                all_cases_attempted=True,assert_statement_count=0)
+
+_CONTROL_FAILURES=[]
+_CONTROL_TRACEBACKS=[]

@@ -1,0 +1,699 @@
+/* S03 native enclosing guardian. SOURCE ONLY, never an execution admission.
+ * Selected Linux x86_64/glibc ABI; no fallback to fork-then-migrate, supplied
+ * cgroup descriptor, service, privilege, shell or embedded Python owner.
+ * G stays outside D. All original covered parents/workers live inside D.
+ * G loss has no automatic-kill theorem and never produces a terminal PASS.
+ */
+#define _GNU_SOURCE
+#include "guardian_protocol.h"
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <linux/magic.h>
+#include <linux/sched.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/statfs.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/sysmacros.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
+#if !defined(__x86_64__) || !defined(SYS_clone3) || !defined(SYS_pidfd_open) || !defined(SYS_pidfd_send_signal)
+#error Selected guardian ABI requires Linux x86_64 clone3 and pidfd syscalls
+#endif
+#define NS UINT64_C(1000000000)
+#define OUTSIDE (UINT64_C(30)*NS)
+#define QUEUE (UINT64_C(390)*NS)
+#define WHOLE (UINT64_C(180)*NS)
+#define H UINT64_C(536870912)
+#define STREAM UINT64_C(2097152)
+#define MAX_JSON 131072
+#define TOKENS 4096
+#define MAX_FD 256
+#define ERRORS 128
+#define FRESH_MODE 0600
+
+struct error_slot { int number; const char *site; };
+static struct error_slot errors[ERRORS];
+static size_t error_count;
+static bool incomplete, io_unknown, birth_unknown, seal_done, retiring;
+static uint64_t gstart, whole_deadline, cleanup_reserve, retention_deadline;
+static uint64_t queue_begin, queue_end, g_pre_m_end, last_observed;
+static int control_g=-1, control_child=-1, domain_fd=-1, delegation_fd=-1;
+static int freeze_fd=-1, kill_fd=-1, events_fd=-1, procs_fd=-1;
+static int start_dir=-1, admin_dir=-1, control_dir=-1;
+static pid_t m_pid=-1; static int m_pidfd=-1; static bool m_waited;
+static int m_status; static struct rusage m_usage,g_usage_before,g_usage_after;
+static uid_t owner;
+static char guardian_source_sha[65], grant_sha[65], probe_sha[65];
+static char admin_path[PATH_MAX], evidence_path[PATH_MAX], config_path[PATH_MAX];
+static volatile sig_atomic_t interrupted;
+
+enum fd_state { FD_FREE, FD_PENDING, FD_OWNED, FD_RETIRED, FD_CLOSED, FD_UNCERTAIN };
+struct fd_slot { int fd; enum fd_state state; const char *site; };
+static struct fd_slot fds[MAX_FD];
+static void fail(const char *site) {
+ int e=errno ? errno : EPROTO;
+ if(error_count<ERRORS) errors[error_count++]=(struct error_slot){e,site};
+ else incomplete=true;
+ incomplete=true;
+}
+static bool need(bool ok,const char *site) { if(!ok){errno=EPROTO;fail(site);} return ok; }
+static int pending(const char *site) {
+ for(int i=0;i<MAX_FD;i++) if((fds[i].state==FD_FREE||fds[i].state==FD_CLOSED)){ fds[i]=(struct fd_slot){-1,FD_PENDING,site};return i; }
+ errno=EMFILE; fail("fd-slot-capacity"); io_unknown=true; return -1;
+}
+static int held(int slot,int fd) {
+ if(slot<0) return -1;
+ if(fd<0){fds[slot].state=FD_UNCERTAIN;io_unknown=true;fail(fds[slot].site);return -1;}
+ fds[slot].fd=fd;fds[slot].state=FD_OWNED;return fd;
+}
+static bool close_known(int fd) {
+ if(fd<0)return true;
+ for(int i=0;i<MAX_FD;i++)if(fds[i].fd==fd&&fds[i].state==FD_OWNED){
+  fds[i].state=FD_RETIRED; /* retire numeric ownership before one native close */
+  if(close(fd)<0){fds[i].state=FD_UNCERTAIN;io_unknown=true;fail("close-once");return false;}
+  fds[i].state=FD_CLOSED;return true;
+ }
+ errno=EBADF;fail("close-unowned-or-retry");io_unknown=true;return false;
+}
+static void close_all(void) {
+ for(int i=0;i<MAX_FD;i++)if(fds[i].state==FD_OWNED)close_known(fds[i].fd);
+}
+static uint64_t now(void) {
+ struct timespec t;if(clock_gettime(CLOCK_MONOTONIC,&t)<0){fail("clock");return 0;}
+ return (uint64_t)t.tv_sec*NS+(uint64_t)t.tv_nsec;
+}
+static bool budget(uint64_t reserve) {
+ uint64_t n=now();if(!n||n<gstart||n>=whole_deadline||whole_deadline-n<=reserve){fail("whole-deadline");return false;}
+ uint64_t queued=queue_begin ? ((queue_end ? queue_end:n)-queue_begin):0;
+ if(queued>QUEUE){fail("queue-deadline");return false;}
+ uint64_t elapsed=n-gstart;
+ if(queued>elapsed){fail("queue-enclosure");return false;}
+ if(elapsed-queued>=OUTSIDE||OUTSIDE-(elapsed-queued)<=reserve){fail("outside-deadline");return false;}
+ return !interrupted;
+}
+static int remaining_ms(uint64_t end) {
+ uint64_t n=now();if(!n||n>=end)return 0;uint64_t v=(end-n+999999)/1000000;return v>25?25:(int)v;
+}
+static bool bounded_poll(int fd,short events,uint64_t end) {
+ while(budget(0)){int ms=remaining_ms(end);if(ms<=0)return false;
+  struct pollfd p={fd,events,0};int r=poll(&p,1,ms);
+  if(r<0){if(errno==EINTR)continue;fail("poll");return false;}
+  if(r&&p.revents&(POLLERR|POLLNVAL)){fail("poll-error");return false;}
+  if(r&&p.revents&(events|POLLHUP))return true;
+ }return false;
+}
+static void caught(int sig){interrupted=sig;}
+
+/* Local SHA256 fixes the native parsing/START source closure: no external
+ * process, dynamic crypto callback, EVP provider or script is loaded. */
+struct sha { uint32_t h[8]; uint64_t n; size_t used; unsigned char b[64]; };
+static uint32_t rr(uint32_t x,unsigned n){return (x>>n)|(x<<(32-n));}
+static const uint32_t sk[64]={
+0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2};
+static void sha_block(struct sha*s,const unsigned char*b){uint32_t w[64];
+ for(int i=0;i<16;i++)w[i]=(uint32_t)b[i*4]<<24|(uint32_t)b[i*4+1]<<16|(uint32_t)b[i*4+2]<<8|b[i*4+3];
+ for(int i=16;i<64;i++){uint32_t x=w[i-15],y=w[i-2];w[i]=(rr(x,7)^rr(x,18)^(x>>3))+w[i-16]+w[i-7]+(rr(y,17)^rr(y,19)^(y>>10));}
+ uint32_t a=s->h[0],b0=s->h[1],c=s->h[2],d=s->h[3],e=s->h[4],f=s->h[5],g=s->h[6],h=s->h[7];
+ for(int i=0;i<64;i++){uint32_t t=h+(rr(e,6)^rr(e,11)^rr(e,25))+((e&f)^(~e&g))+sk[i]+w[i];
+ uint32_t t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&b0)^(a&c)^(b0&c));h=g;g=f;f=e;e=d+t;d=c;c=b0;b0=a;a=t+t2;}
+ s->h[0]+=a;s->h[1]+=b0;s->h[2]+=c;s->h[3]+=d;s->h[4]+=e;s->h[5]+=f;s->h[6]+=g;s->h[7]+=h;
+}
+static void sha_init(struct sha*s){*s=(struct sha){{0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19},0,0,{0}};}
+static void sha_add(struct sha*s,const void*ptr,size_t n){const unsigned char*p=ptr;s->n+=n;
+ while(n){size_t a=64-s->used;if(a>n)a=n;memcpy(s->b+s->used,p,a);s->used+=a;p+=a;n-=a;if(s->used==64){sha_block(s,s->b);s->used=0;}}}
+static void sha_done(struct sha*s,char out[65]){uint64_t bits=s->n*8;s->b[s->used++]=128;
+ if(s->used>56){memset(s->b+s->used,0,64-s->used);sha_block(s,s->b);s->used=0;}
+ memset(s->b+s->used,0,56-s->used);for(int i=0;i<8;i++)s->b[63-i]=(unsigned char)(bits>>(8*i));sha_block(s,s->b);
+ static const char x[]="0123456789abcdef";for(int i=0;i<32;i++){unsigned v=(s->h[i/4]>>(24-8*(i%4)))&255;out[i*2]=x[v>>4];out[i*2+1]=x[v&15];}out[64]=0;}
+static void digest(const void*p,size_t n,char out[65]){struct sha s;sha_init(&s);sha_add(&s,p,n);sha_done(&s,out);}
+static bool hex64(const char*s){if(strlen(s)!=64)return false;for(int i=0;i<64;i++)if(!strchr("0123456789abcdef",s[i]))return false;return true;}
+static bool hexbytes(const char*s,unsigned char*out){if(!hex64(s))return false;for(int i=0;i<32;i++){char t[3]={s[2*i],s[2*i+1],0};out[i]=(unsigned char)strtoul(t,0,16);}return true;}
+
+/* Strict finite JSON tree. Exact object keys, duplicate-key rejection, bounded
+ * depth/nodes, ASCII strings and signed-63-bit integers. No float/nonfinite,
+ * polymorphic values, parser extensions or caller-selected code. */
+enum jt { J_OBJ,J_ARR,J_STR,J_INT,J_TRUE,J_FALSE,J_NULL };
+struct token { enum jt kind; int start,end,next,children; int64_t integer; };
+struct document { char raw[MAX_JSON+1]; size_t bytes,pos; struct token t[TOKENS]; int used; };
+static struct document cfg,grant;
+static void ws(struct document*d){while(d->pos<d->bytes&&strchr(" \n\r\t",d->raw[d->pos]))d->pos++;}
+static int js(struct document*d,int depth);
+static bool strdecode(struct document*d,int t,char*out,size_t cap){
+ if(t<0||d->t[t].kind!=J_STR||cap==0)return false;size_t n=0;
+ for(int p=d->t[t].start+1;p<d->t[t].end-1;p++){unsigned char c=d->raw[p];
+ if(c=='\\'){c=d->raw[++p];if(c=='u'){if(p+4>=d->t[t].end)return false;unsigned v=0;for(int k=0;k<4;k++){char z=d->raw[++p];if(!isxdigit((unsigned char)z))return false;v=v*16+(z<='9'?z-'0':(tolower(z)-'a'+10));}if(v<32||v>126)return false;c=(unsigned char)v;}
+ else if(c=='n')c='\n';else if(c=='r')c='\r';else if(c=='t')c='\t';else if(c=='b')c='\b';else if(c=='f')c='\f';else if(c!='"'&&c!='\\'&&c!='/')return false;}
+ if(n+1>=cap)return false;out[n++]=(char)c;
+ }out[n]=0;return true;
+}
+static bool keyeq(struct document*d,int a,int b){char x[256],y[256];return strdecode(d,a,x,sizeof x)&&strdecode(d,b,y,sizeof y)&&!strcmp(x,y);}
+static int js(struct document*d,int depth){ws(d);if(depth>16||d->used>=TOKENS||d->pos>=d->bytes)return -1;
+ int t=d->used++;struct token*n=&d->t[t];*n=(struct token){.start=(int)d->pos,.next=-1};char c=d->raw[d->pos++];
+ if(c=='{'||c=='['){n->kind=c=='{'?J_OBJ:J_ARR;ws(d);if(d->pos<d->bytes&&d->raw[d->pos]==(c=='{'?'}':']'))d->pos++;
+ else while(true){int key=-1;if(c=='{'){key=js(d,depth+1);if(key<0||d->t[key].kind!=J_STR)return -1;
+  for(int p=t+1;p<key;){if(keyeq(d,p,key))return -1;p=d->t[d->t[p].next].next;}
+  ws(d);if(d->raw[d->pos++]!=':')return -1;}
+ int child=js(d,depth+1);if(child<0)return -1;n->children++;ws(d);char z=d->raw[d->pos++];if(z==(c=='{'?'}':']'))break;if(z!=',')return -1;}
+ }else if(c=='"'){n->kind=J_STR;bool ended=false;while(d->pos<d->bytes){unsigned char z=d->raw[d->pos++];if(z=='"'){ended=true;break;}if(z<32||z>126)return -1;if(z=='\\'){if(d->pos>=d->bytes)return -1;char e=d->raw[d->pos++];if(e=='u'){for(int k=0;k<4;k++)if(d->pos>=d->bytes||!isxdigit((unsigned char)d->raw[d->pos++]))return -1;}else if(!strchr("\"\\/bfnrt",e))return -1;}}if(!ended)return -1;
+ }else if(c=='t'&&d->pos+3<=d->bytes&&!memcmp(d->raw+d->pos,"rue",3)){n->kind=J_TRUE;d->pos+=3;}
+ else if(c=='f'&&d->pos+4<=d->bytes&&!memcmp(d->raw+d->pos,"alse",4)){n->kind=J_FALSE;d->pos+=4;}
+ else if(c=='n'&&d->pos+3<=d->bytes&&!memcmp(d->raw+d->pos,"ull",3)){n->kind=J_NULL;d->pos+=3;}
+ else if(c=='-'||isdigit((unsigned char)c)){n->kind=J_INT;size_t a=(size_t)n->start;if(c=='-'){if(d->pos>=d->bytes||!isdigit((unsigned char)d->raw[d->pos]))return -1;d->pos++;}
+  if(d->raw[a+(c=='-')]=='0'&&d->pos<d->bytes&&isdigit((unsigned char)d->raw[d->pos]))return -1;
+  while(d->pos<d->bytes&&isdigit((unsigned char)d->raw[d->pos]))d->pos++;
+  if(d->pos-a>20)return -1;char tmp[24];memcpy(tmp,d->raw+a,d->pos-a);tmp[d->pos-a]=0;errno=0;char*end;n->integer=strtoll(tmp,&end,10);if(errno||*end)return -1;
+ }else return -1;
+ n->end=(int)d->pos;n->next=d->used;return t;
+}
+static int member(struct document*d,int obj,const char*name){if(obj<0||d->t[obj].kind!=J_OBJ)return -1;
+ for(int p=obj+1;p<d->t[obj].next;){char key[256];if(!strdecode(d,p,key,sizeof key))return -1;int v=d->t[p].next;if(!strcmp(key,name))return v;p=d->t[v].next;}return -1;}
+static bool exact(struct document*d,int obj,const char*const*names,size_t n){if(obj<0||d->t[obj].kind!=J_OBJ||d->t[obj].children!=(int)n)return false;for(size_t i=0;i<n;i++)if(member(d,obj,names[i])<0)return false;return true;}
+static bool text_is(struct document*d,int obj,const char*k,const char*v){char b[PATH_MAX];return strdecode(d,member(d,obj,k),b,sizeof b)&&!strcmp(b,v);}
+static bool number(struct document*d,int obj,const char*k,uint64_t*out){int t=member(d,obj,k);if(t<0||d->t[t].kind!=J_INT||d->t[t].integer<0)return false;*out=(uint64_t)d->t[t].integer;return true;}
+static bool string(struct document*d,int obj,const char*k,char*out,size_t n){return strdecode(d,member(d,obj,k),out,n);}
+static bool boolean(struct document*d,int obj,const char*k,bool b){int t=member(d,obj,k);return t>=0&&d->t[t].kind==(b?J_TRUE:J_FALSE);}
+
+/* No-follow walk checks every ancestor; supplied paths are read-only DATA.
+ * Only fresh selected administration/delegation children are created. */
+static int open_path(const char*path,int flags,mode_t mode){
+ if(io_unknown){errno=EIO;fail("new-open-after-IO-uncertainty");return -1;}
+ if(!need(path[0]=='/'&&strlen(path)<PATH_MAX&&!strstr(path,"//")&&(strlen(path)==1||path[strlen(path)-1]!='/'),"absolute-path"))return -1;
+ int si=pending("path-root");if(si<0)return -1;int dir=held(si,open("/",O_RDONLY|O_DIRECTORY|O_CLOEXEC));if(dir<0)return -1;
+ char copy[PATH_MAX];strcpy(copy,path+1);char*save=NULL;char*p=strtok_r(copy,"/",&save);
+ while(p){if(!need(strcmp(p,".")&&strcmp(p,"..")&&strlen(p)<=NAME_MAX,"path-component")){close_known(dir);return -1;}
+  char*next=strtok_r(NULL,"/",&save);int slot=pending("path-openat");
+  if(slot<0||io_unknown){close_known(dir);return -1;}int fd=held(slot,openat(dir,p,(next?O_RDONLY|O_DIRECTORY:flags)|O_NOFOLLOW|O_CLOEXEC,mode));
+  close_known(dir);if(fd<0||io_unknown)return -1;dir=fd;p=next;
+ }return dir;
+}
+static bool same_stat(const struct stat*a,const struct stat*b){return a->st_dev==b->st_dev&&a->st_ino==b->st_ino&&a->st_mode==b->st_mode&&a->st_uid==b->st_uid&&a->st_nlink==b->st_nlink&&a->st_size==b->st_size&&a->st_mtim.tv_sec==b->st_mtim.tv_sec&&a->st_mtim.tv_nsec==b->st_mtim.tv_nsec&&a->st_ctim.tv_sec==b->st_ctim.tv_sec&&a->st_ctim.tv_nsec==b->st_ctim.tv_nsec;}
+static bool read_fd_bounded(int fd,char*out,size_t cap,size_t*bytes,bool regular){
+ struct stat a,b;if(fstat(fd,&a)<0){fail("read-fstat");return false;}
+ if(regular&&!need(S_ISREG(a.st_mode)&&a.st_nlink==1&&(a.st_uid==0||a.st_uid==owner)&&a.st_size>=0&&(uint64_t)a.st_size<=cap,"read-regular"))return false;
+ if(lseek(fd,0,SEEK_SET)<0){fail("read-seek");return false;}size_t at=0;
+ while(at<=cap){ssize_t n=read(fd,out+at,cap+1-at);if(n<0){if(errno==EINTR)continue;fail("read");return false;}if(!n)break;at+=(size_t)n;if(at>cap){fail("read-cap");return false;}}
+ out[at]=0;*bytes=at;if(fstat(fd,&b)<0){fail("read-fstat-after");return false;}
+ return !regular||need(same_stat(&a,&b)&&(uint64_t)a.st_size==at,"read-stability");
+}
+static bool pinned_document(const char*path,const char*sha,uint64_t bytes,struct document*d){
+ if(!need(bytes>0&&bytes<=MAX_JSON&&hex64(sha),"pin-bound"))return false;
+ int fd=open_path(path,O_RDONLY|O_NONBLOCK,0);if(fd<0)return false;struct stat st;bool ok=fstat(fd,&st)==0&&S_ISREG(st.st_mode)&&(st.st_mode&0777)==0444;
+ size_t got=0;if(ok)ok=read_fd_bounded(fd,d->raw,MAX_JSON,&got,true);char actual[65];digest(d->raw,got,actual);
+ ok=need(ok&&got==bytes&&!strcmp(actual,sha),"immutable-pin");close_known(fd);if(!ok||io_unknown)return false;
+ d->bytes=got;d->pos=0;d->used=0;int root=js(d,0);ws(d);return need(root==0&&d->pos==d->bytes&&d->t[0].kind==J_OBJ,"strict-json");
+}
+static bool pinned_raw(int obj){const char*keys[]={"path","bytes","sha256","mode"};
+ char path[PATH_MAX],sha[65];uint64_t bytes,mode;
+ if(!need(exact(&cfg,obj,keys,4)&&string(&cfg,obj,"path",path,sizeof path)&&string(&cfg,obj,"sha256",sha,sizeof sha)&&number(&cfg,obj,"bytes",&bytes)&&number(&cfg,obj,"mode",&mode)&&mode==0444&&bytes>0&&bytes<=MAX_JSON,"configured-pin-schema"))return false;
+ static char raw[MAX_JSON+1];int fd=open_path(path,O_RDONLY|O_NONBLOCK,0);if(fd<0)return false;size_t got=0;struct stat st;
+ bool ok=fstat(fd,&st)==0&&(st.st_mode&0777)==0444&&read_fd_bounded(fd,raw,MAX_JSON,&got,true);char actual[65];digest(raw,got,actual);
+ ok=need(ok&&got==bytes&&!strcmp(actual,sha),"configured-source-pin");close_known(fd);return ok&&!io_unknown;
+}
+struct output { char raw[MAX_JSON+1];size_t used;bool ok; };
+static void out(struct output*b,const char*fmt,...){if(!b->ok)return;va_list a;va_start(a,fmt);int n=vsnprintf(b->raw+b->used,sizeof b->raw-b->used,fmt,a);va_end(a);if(n<0||(size_t)n>=sizeof b->raw-b->used){b->ok=false;fail("output-cap");return;}b->used+=(size_t)n;}
+static void fragment(struct output*b,struct document*d,int t){if(t<0){b->ok=false;fail("missing-fragment");return;}int n=d->t[t].end-d->t[t].start;out(b,"%.*s",n,d->raw+d->t[t].start);}
+static void quoted(struct output*b,const char*s){out(b,"\"");for(;*s;s++){unsigned char c=*s;if(c=='"'||c=='\\')out(b,"\\%c",c);else if(c<32||c>126)out(b,"\\u%04x",c);else out(b,"%c",c);}out(b,"\"");}
+static bool write_all(int fd,const char*p,size_t n){size_t at=0;while(at<n){if(!budget(0))return false;ssize_t k=write(fd,p+at,n-at);if(k<0){if(errno==EINTR)continue;fail("write");return false;}if(!need(k>0,"write-progress"))return false;at+=(size_t)k;}return true;}
+static int new_dir_at(int dir,const char*name){if(!need(name[0]&&strlen(name)<=NAME_MAX&&!strchr(name,'/')&&strcmp(name,".")&&strcmp(name,".."),"fresh-dir-name"))return -1;
+ if(mkdirat(dir,name,0700)<0){fail("mkdir-exclusive");return -1;}if(fsync(dir)<0){fail("mkdir-parent-fsync");return -1;}int slot=pending("fresh-dir-open");if(slot<0)return -1;int fd=held(slot,openat(dir,name,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC));if(fd<0)return -1;return fd;}
+static int create_path_dir(const char*path){char parent[PATH_MAX];strcpy(parent,path);char*slash=strrchr(parent,'/');if(!slash||slash==parent){fail("fresh-parent");return -1;}*slash=0;int d=open_path(parent,O_RDONLY|O_DIRECTORY,0);if(d<0)return -1;struct stat st;if(fstat(d,&st)<0||!need(S_ISDIR(st.st_mode)&&st.st_uid==owner&&!(st.st_mode&0022),"owned-fresh-parent")){close_known(d);return -1;}int r=new_dir_at(d,slash+1);close_known(d);return r;}
+static bool publish_at(int dir,const char*name,const char*full,struct output*b,struct output*pin){
+ if(!need(b->ok&&b->used>0&&b->used<=65536,"metadata-output-bound"))return false;
+ int slot=pending("publish-open");if(slot<0)return false;int fd=held(slot,openat(dir,name,O_RDWR|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600));if(fd<0)return false;
+ bool ok=write_all(fd,b->raw,b->used);if(ok&&fsync(fd)<0){fail("publish-fsync");ok=false;}
+ if(ok&&fchmod(fd,0444)<0){fail("publish-mode");ok=false;}if(ok&&fsync(fd)<0){fail("publish-mode-sync");ok=false;}
+ char raw[65537];size_t got=0;struct stat a,p;
+ if(ok)ok=read_fd_bounded(fd,raw,65536,&got,true)&&got==b->used&&!memcmp(raw,b->raw,got);
+ if(ok)ok=fstat(fd,&a)==0&&fstatat(dir,name,&p,AT_SYMLINK_NOFOLLOW)==0&&same_stat(&a,&p)&&(a.st_mode&0777)==0444;
+ if(!need(ok,"publish-full-readback"))ok=false;char sha[65];digest(b->raw,b->used,sha);
+ if(!close_known(fd))ok=false;if(fsync(dir)<0){fail("publish-dir-sync");ok=false;}
+ if(ok&&pin){*pin=(struct output){.ok=true};out(pin,"{\"path\":");quoted(pin,full);out(pin,",\"bytes\":%zu,\"sha256\":\"%s\",\"mode\":292}",b->used,sha);}
+ return ok&&!io_unknown;
+}
+static struct output start_pin,pending_pin,role_pins[5];
+static int outer,manual,requests,role_sources,role_argv;
+static char attempt[129],candidate_sha[65];
+static uint64_t body_reservation;
+static const char *role_name(unsigned role){static const char*n[]={"","M","K","P","C2","Root","B","Fee"};return role<=7?n[role]:"INVALID";}
+static bool equal_fragment(struct document*a,int x,struct document*b,int y){
+ if(x<0||y<0||a->t[x].kind!=b->t[y].kind)return false;
+ if(a->t[x].kind==J_STR){char p[PATH_MAX],q[PATH_MAX];return strdecode(a,x,p,sizeof p)&&strdecode(b,y,q,sizeof q)&&!strcmp(p,q);}
+ if(a->t[x].kind==J_INT)return a->t[x].integer==b->t[y].integer;
+ if(a->t[x].kind==J_TRUE||a->t[x].kind==J_FALSE||a->t[x].kind==J_NULL)return true;
+ return false;
+}
+static bool validate_config_and_grant(const char *grant_path,uint64_t grant_bytes){
+ const char*keys[]={"schema","attempt_id","evidence_root","admin_root","delegation_path","domain_name","pre_m_pin","inner_meter_pin","outer_actor","manual_entry","candidate_document_sha256","role_source_pins","role_argv"};
+ if(!need(exact(&cfg,0,keys,13)&&text_is(&cfg,0,"schema","s03-guardian-config-v1")&&string(&cfg,0,"attempt_id",attempt,sizeof attempt)&&string(&cfg,0,"candidate_document_sha256",candidate_sha,sizeof candidate_sha)&&hex64(candidate_sha)&&string(&cfg,0,"evidence_root",evidence_path,sizeof evidence_path)&&string(&cfg,0,"admin_root",admin_path,sizeof admin_path),"config-exact"))return false;
+ outer=member(&cfg,0,"outer_actor");manual=member(&cfg,0,"manual_entry");requests=member(&cfg,manual,"request");role_sources=member(&cfg,0,"role_source_pins");role_argv=member(&cfg,0,"role_argv");
+ const char*ak[]={"capture_bootstrap_pin","capture_source_pin","source_policy_pin","resource_policy_pin","current_profile_pin","complete_delivery_scope_sha256","body_reservation_ns","cleanup_reservation_ns"};
+ const char*mk[]={"request","closed_state_pin","registration_pin","registration_checks"};
+ if(!need(exact(&cfg,outer,ak,8)&&exact(&cfg,manual,mk,4)&&number(&cfg,outer,"body_reservation_ns",&body_reservation)&&body_reservation>0&&body_reservation<=WHOLE&&number(&cfg,outer,"cleanup_reservation_ns",&cleanup_reserve)&&cleanup_reserve>0&&cleanup_reserve<body_reservation&&text_is(&cfg,requests,"label",attempt),"same-original-reservation"))return false;
+ uint64_t req_body;if(!need(number(&cfg,requests,"body_reservation_ns",&req_body)&&req_body==body_reservation,"request-body-exact"))return false;
+ whole_deadline=gstart+body_reservation;
+ for(size_t i=0;i<5;i++)if(!pinned_raw(member(&cfg,outer,ak[i])))return false;
+ if(!pinned_raw(member(&cfg,0,"pre_m_pin"))||!pinned_raw(member(&cfg,0,"inner_meter_pin")))return false;
+ const char*roles[]={"M","K","P","C2","Root","B","Fee"};
+ if(!need(exact(&cfg,role_sources,roles,7),"finite-role-source-set"))return false;
+ for(size_t i=0;i<7;i++)if(!pinned_raw(member(&cfg,role_sources,roles[i])))return false;
+ char auth_path[]= "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/control/FRESH-METERED-ROUND-AUTHORIZATION-v1.json";
+ static struct document auth;
+ if(!pinned_document(auth_path,"28bc04ad98151cf6a52607e4271b4dcbcbd645d0c8c538a35bc37e3d5194d50f",1996,&auth))return false;
+ if(!pinned_document(grant_path,grant_sha,grant_bytes,&grant))return false;
+ const char*gk[]={"schema","source_sha256","source_bytes","probe_sha256","authorization_sha256","allow_one_attempt","operation","command_seconds","body_reservation_ns","cleanup_reservation_ns","capture_source_sha256","source_policy_sha256","resource_policy_sha256","current_profile_sha256","complete_delivery_scope_sha256","sampled_parent_child_memory_bytes","administrative_tail_policy","administrative_tail_debit_seconds"};
+ uint64_t seconds,memory,admin,gb,gc;
+ if(!need(exact(&grant,0,gk,18)&&text_is(&grant,0,"schema","fresh-composed-outer-meter-grant-v1")&&text_is(&grant,0,"source_sha256",guardian_source_sha)&&text_is(&grant,0,"authorization_sha256","28bc04ad98151cf6a52607e4271b4dcbcbd645d0c8c538a35bc37e3d5194d50f")&&boolean(&grant,0,"allow_one_attempt",true)&&text_is(&grant,0,"operation","FULL_SIX_CAPTURE_CONTROLLER_FEE")&&number(&grant,0,"command_seconds",&seconds)&&seconds==180&&number(&grant,0,"body_reservation_ns",&gb)&&gb==body_reservation&&number(&grant,0,"cleanup_reservation_ns",&gc)&&gc==cleanup_reserve&&number(&grant,0,"sampled_parent_child_memory_bytes",&memory)&&memory==1073741824&&number(&grant,0,"administrative_tail_debit_seconds",&admin)&&admin==2&&text_is(&grant,0,"administrative_tail_policy","startup-and-final-publication-two-second-administrative-debit-v1"),"original-FULL-SIX-grant"))return false;
+ const char*grant_fields[]={"probe_sha256","capture_source_sha256","source_policy_sha256","resource_policy_sha256","current_profile_sha256"};
+ for(size_t i=0;i<5;i++)if(!need(equal_fragment(&grant,member(&grant,0,grant_fields[i]),&cfg,member(&cfg,member(&cfg,outer,ak[i]),"sha256")),"grant-original-source-correlation"))return false;
+ if(!need(equal_fragment(&grant,member(&grant,0,"complete_delivery_scope_sha256"),&cfg,member(&cfg,outer,"complete_delivery_scope_sha256")),"complete-delivery-scope"))return false;
+ if(!string(&grant,0,"probe_sha256",probe_sha,sizeof probe_sha))return false;
+ return budget(cleanup_reserve);
+}
+static bool publish_original_start(void){
+ /* Both fresh roots are selected before producer creation. Any creation error
+  * leaves persistent partial evidence; no reuse, rollback or second attempt. */
+ admin_dir=create_path_dir(admin_path);if(admin_dir<0)return false;
+ control_dir=new_dir_at(admin_dir,"control");if(control_dir<0)return false;
+ start_dir=create_path_dir(evidence_path);if(start_dir<0)return false;
+ struct output b={.ok=true};out(&b,"{\"schema\":\"fresh-owner-meter-incomplete-v1\",\"start_monotonic_ns\":%"PRIu64",\"source_sha256\":\"%s\",\"probe_sha256\":\"%s\",\"actual_grant_sha256\":\"%s\",\"future_operation_blocked_until_separate_adjudication\":true}\n",gstart,guardian_source_sha,probe_sha,grant_sha);
+ char path[PATH_MAX];if(snprintf(path,sizeof path,"%s/START.json",evidence_path)>=(int)sizeof path){fail("start-path-cap");return false;}
+ return publish_at(start_dir,"START.json",path,&b,&start_pin);
+}
+static bool check_manual_registration(void){
+ int reg=member(&cfg,manual,"registration_pin");char path[PATH_MAX],sha[65];uint64_t bytes,mode;
+ const char*k[]={"path","bytes","sha256","mode"};
+ if(!need(exact(&cfg,reg,k,4)&&string(&cfg,reg,"path",path,sizeof path)&&string(&cfg,reg,"sha256",sha,sizeof sha)&&number(&cfg,reg,"bytes",&bytes)&&number(&cfg,reg,"mode",&mode)&&(mode==0600||mode==0444),"registration-pin"))return false;
+ /* Original private registration mode0600 or immutable control0444 is retained. */
+ static struct document d;int fd=open_path(path,O_RDONLY|O_NONBLOCK,0);if(fd<0)return false;size_t got=0;struct stat st;
+ bool ok=fstat(fd,&st)==0&&(st.st_mode&0777)==mode&&read_fd_bounded(fd,d.raw,MAX_JSON,&got,true);char actual[65];digest(d.raw,got,actual);close_known(fd);
+ if(!need(ok&&got==bytes&&!strcmp(actual,sha),"original-registration-readback"))return false;d.bytes=got;d.pos=0;d.used=0;int root=js(&d,0);ws(&d);
+ if(!need(root==0&&d.pos==d.bytes&&text_is(&d,0,"attempt_id",attempt),"original-registration-attempt"))return false;
+ int checks=member(&cfg,manual,"registration_checks");if(!need(checks>=0&&cfg.t[checks].kind==J_ARR&&cfg.t[checks].children>=1&&cfg.t[checks].children<=16,"registration-check-count"))return false;
+ for(int p=checks+1;p<cfg.t[checks].next;p=cfg.t[p].next){const char*ck[]={"path","expected"};if(!need(exact(&cfg,p,ck,2),"registration-check-shape"))return false;
+ int paths=member(&cfg,p,"path"),actual_t=0;if(!need(paths>=0&&cfg.t[paths].kind==J_ARR&&cfg.t[paths].children>0&&cfg.t[paths].children<=16,"registration-select-path"))return false;
+ for(int q=paths+1;q<cfg.t[paths].next;q=cfg.t[q].next){char name[256];if(!strdecode(&cfg,q,name,sizeof name)){fail("registration-path-key");return false;}actual_t=member(&d,actual_t,name);if(actual_t<0){fail("registration-path-missing");return false;}}
+ if(!need(equal_fragment(&cfg,member(&cfg,p,"expected"),&d,actual_t),"registration-original-correlation"))return false;
+ }
+ return !io_unknown;
+}
+static bool build_current_manual_binding(void){
+ if(!check_manual_registration())return false;
+ int reg=member(&cfg,manual,"registration_pin"),closed=member(&cfg,manual,"closed_state_pin");
+ char closed_sha[65],command[65];if(!need(string(&cfg,closed,"sha256",closed_sha,sizeof closed_sha)&&hex64(closed_sha)&&string(&cfg,requests,"command_sha256",command,sizeof command)&&!strcmp(command,candidate_sha),"candidate-request-correlation"))return false;
+ struct output b={.ok=true};out(&b,"{\"schema\":\"fresh-current-manual-pending-v1\",\"closed_state_sha256\":\"%s\",\"operations\":[{\"entry_id\":",closed_sha);quoted(&b,attempt);out(&b,",\"command_sha256\":\"%s\",\"body_reservation_ns\":%"PRIu64",\"registration_pin\":",command,body_reservation);fragment(&b,&cfg,reg);out(&b,",\"original_start_pin\":%s}]}\n",start_pin.raw);
+ char path[PATH_MAX];snprintf(path,sizeof path,"%s/control/CURRENT-MANUAL-PENDING.json",admin_path);
+ if(!publish_at(control_dir,"CURRENT-MANUAL-PENDING.json",path,&b,&pending_pin))return false;
+ struct output provenance={.ok=true};out(&provenance,"{\"schema\":\"fresh-original-preentry-provenance-v1\",\"entry_id\":");quoted(&provenance,attempt);out(&provenance,",\"command_sha256\":\"%s\",\"body_reservation_ns\":%"PRIu64",\"registration_pin\":",command,body_reservation);fragment(&provenance,&cfg,reg);out(&provenance,",\"original_start_pin\":%s,\"pending_manifest_pin\":%s}",start_pin.raw,pending_pin.raw);
+ for(unsigned r=1;r<=4;r++){b=(struct output){.ok=true};out(&b,"{\"schema\":\"fresh-active-manual-entry-binding-v1\",\"request\":");fragment(&b,&cfg,requests);out(&b,",\"provenance\":%s,\"closed_state_pin\":",provenance.raw);fragment(&b,&cfg,closed);out(&b,",\"registration_checks\":");fragment(&b,&cfg,member(&cfg,manual,"registration_checks"));out(&b,",\"start_checks\":[");
+ const char*names[]={"schema","source_sha256","probe_sha256","actual_grant_sha256","future_operation_blocked_until_separate_adjudication","start_monotonic_ns"};
+ for(unsigned i=0;i<6;i++){if(i)out(&b,",");out(&b,"{\"path\":[\"%s\"],\"expected\":",names[i]);if(i==0)quoted(&b,"fresh-owner-meter-incomplete-v1");if(i==1)quoted(&b,guardian_source_sha);if(i==2)quoted(&b,probe_sha);if(i==3)quoted(&b,grant_sha);if(i==4)out(&b,"true");if(i==5)out(&b,"%"PRIu64,gstart);out(&b,"}");}out(&b,"]}\n");
+ char name[64];snprintf(name,sizeof name,"%s-RUNTIME.json",role_name(r));snprintf(path,sizeof path,"%s/control/%s",admin_path,name);if(!publish_at(control_dir,name,path,&b,&role_pins[r]))return false;
+ }
+ b=(struct output){.ok=true};out(&b,"{\"schema\":\"s03-guardian-runtime-v1\",\"attempt_id\":");quoted(&b,attempt);out(&b,",\"original_start_pin\":%s,\"guardian_pid\":%ld,\"whole_deadline_ns\":%"PRIu64",\"role_binding_pins\":{",start_pin.raw,(long)getpid(),whole_deadline);
+ for(unsigned r=1;r<=4;r++){if(r>1)out(&b,",");out(&b,"\"%s\":%s",role_name(r),role_pins[r].raw);}out(&b,"}}\n");snprintf(path,sizeof path,"%s/control/G-RUNTIME.json",admin_path);
+ return publish_at(control_dir,"G-RUNTIME.json",path,&b,NULL);
+}
+struct lifecycle {
+ pid_t pid,ppid;unsigned role;uint32_t seq;uint64_t ticks;int pidfd,channel;
+ bool registered,closed,writers_closed,birth_pending,wait_closed,expected_exec;
+ unsigned pending_role;pid_t known_child;unsigned char source[32],pending_source[32],seal[32];
+};
+static struct lifecycle lives[G_MAX_ROLES];static unsigned life_count;
+static uint32_t r32(const unsigned char*p){uint32_t v;memcpy(&v,p,4);return ntohl(v);}
+static uint64_t r64(const unsigned char*p){return (uint64_t)r32(p)<<32|r32(p+4);}
+static void w32(unsigned char*p,uint32_t v){v=htonl(v);memcpy(p,&v,4);}
+static void w64(unsigned char*p,uint64_t v){w32(p,(uint32_t)(v>>32));w32(p+4,(uint32_t)v);}
+static bool pidfd_alive(int fd){struct pollfd p={fd,POLLIN,0};int r=poll(&p,1,0);if(r<0){fail("pidfd-poll");return false;}return r==0;}
+static bool proc_identity(pid_t pid,pid_t *ppid,uint64_t*ticks){char path[128],raw[8194];size_t n=0;snprintf(path,sizeof path,"/proc/%ld/stat",(long)pid);int fd=open_path(path,O_RDONLY|O_NONBLOCK,0);if(fd<0)return false;bool ok=read_fd_bounded(fd,raw,8192,&n,false);close_known(fd);if(!ok)return false;
+ char*end=strrchr(raw,')');if(!need(end&&end[1]==' ',"proc-stat-syntax"))return false;
+ char*save=NULL;char*z=strtok_r(end+2," ", &save);unsigned field=3;bool a=false,b=false;
+ while(z){if(field==4){errno=0;char*e;long v=strtol(z,&e,10);if(errno||*e||v<=0||v>INT_MAX)return false;*ppid=(pid_t)v;a=true;}
+ if(field==22){errno=0;char*e;unsigned long long v=strtoull(z,&e,10);if(errno||*e)return false;*ticks=v;b=true;break;}field++;z=strtok_r(NULL," ",&save);}
+ return need(a&&b,"proc-identity-fields");
+}
+static bool pidfd_target_matches(int fd,pid_t pid){char path[128],raw[4098];size_t n=0;snprintf(path,sizeof path,"/proc/self/fdinfo/%d",fd);int q=open_path(path,O_RDONLY|O_NONBLOCK,0);if(q<0)return false;bool ok=read_fd_bounded(q,raw,4096,&n,false);close_known(q);if(!ok)return false;
+ char*save=NULL;char*line=strtok_r(raw,"\n",&save);int matches=0;while(line){if(!strncmp(line,"Pid:",4)){errno=0;char*e;long v=strtol(line+4,&e,10);while(*e==' '||*e=='\t')e++;if(!errno&&!*e&&v==pid)matches++;}line=strtok_r(NULL,"\n",&save);}return need(matches==1,"real-pidfd-unreaped-native-pid");
+}
+static bool pidfd_matches(int fd,pid_t pid){return pidfd_target_matches(fd,pid)&&need(pidfd_alive(fd),"live-self-pidfd-required");}
+static bool members(pid_t*out,unsigned*count){char raw[32770];size_t n=0;if(io_unknown||!read_fd_bounded(procs_fd,raw,32768,&n,false))return false;unsigned used=0;char*save=NULL;char*z=strtok_r(raw,"\n",&save);
+ while(z){if(!need(used<G_MAX_MEMBERS,"member-cap"))return false;errno=0;char*e;long p=strtol(z,&e,10);if(!need(!errno&&!*e&&p>0&&p<=INT_MAX,"member-pid"))return false;for(unsigned i=0;i<used;i++)if(!need(out[i]!=p,"duplicate-member"))return false;out[used++]=(pid_t)p;z=strtok_r(NULL,"\n",&save);}*count=used;return true;
+}
+static bool in_domain(pid_t pid){pid_t p[G_MAX_MEMBERS];unsigned n;if(!members(p,&n))return false;for(unsigned i=0;i<n;i++)if(p[i]==pid)return true;return false;}
+static struct lifecycle*by_pid(pid_t pid){for(unsigned i=0;i<life_count;i++)if(lives[i].pid==pid)return &lives[i];return NULL;}
+static struct lifecycle*new_life(pid_t pid,unsigned role){if(!need(life_count<G_MAX_ROLES&&!by_pid(pid),"role-registry-cap-unique"))return NULL;struct lifecycle*r=&lives[life_count++];*r=(struct lifecycle){.pid=pid,.role=role,.pidfd=-1,.channel=-1};return r;}
+static bool cgroup_value(const char*key,unsigned long*wanted){char raw[4098];size_t n;if(!read_fd_bounded(events_fd,raw,4096,&n,false))return false;char*save=NULL;char*l=strtok_r(raw,"\n",&save);bool found=false;
+ while(l){char k[32],tail;unsigned long v;if(sscanf(l,"%31s %lu %c",k,&v,&tail)!=2){fail("cgroup-events-grammar");return false;}if(!strcmp(k,key)){if(found){fail("duplicate-cgroup-event");return false;}*wanted=v;found=true;}l=strtok_r(NULL,"\n",&save);}return need(found,"required-cgroup-event");
+}
+static bool kernel_write(int fd,const char*s){size_t n=strlen(s);if(lseek(fd,0,SEEK_SET)<0){fail("kernel-write-seek");return false;}return write_all(fd,s,n);}
+static bool acquire_domain(void){char path[PATH_MAX],name[NAME_MAX+1];if(!need(string(&cfg,0,"delegation_path",path,sizeof path)&&string(&cfg,0,"domain_name",name,sizeof name)&&name[0]&&strcmp(name,".")&&strcmp(name,"..")&&!strchr(name,'/'),"delegation-selected"))return false;
+ delegation_fd=open_path(path,O_RDONLY|O_DIRECTORY,0);if(delegation_fd<0)return false;struct statfs fs;struct stat st;
+ if(fstatfs(delegation_fd,&fs)<0||fstat(delegation_fd,&st)<0||!need((unsigned long)fs.f_type==CGROUP2_SUPER_MAGIC&&st.st_uid==owner&&!(st.st_mode&0022),"existing-suitable-delegation"))return false;
+ /* cgroup2 is a kernel control filesystem: no regular-file fsync/durability
+  * inference is made for mkdir. Persistent financial START lives separately A.
+  * Retain actual directory ownership before any metadata projection. */
+ int domain_slot=pending("kernel-domain-open");if(domain_slot<0)return false;
+ if(mkdirat(delegation_fd,name,0700)<0){fds[domain_slot].state=FD_FREE;fail("kernel-domain-mkdir-exclusive");return false;}
+ domain_fd=held(domain_slot,openat(delegation_fd,name,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC));if(domain_fd<0)return false;
+ struct statfs domain_fs;struct stat domain_st;
+ if(fstatfs(domain_fd,&domain_fs)<0||fstat(domain_fd,&domain_st)<0){fail("kernel-domain-descriptor");return false;}
+ if(!need((unsigned long)domain_fs.f_type==CGROUP2_SUPER_MAGIC&&S_ISDIR(domain_st.st_mode)&&domain_st.st_uid==owner,"kernel-domain-identity"))return false;
+ int slot=pending("domain-freeze");if(slot<0||io_unknown)return false;freeze_fd=held(slot,openat(domain_fd,"cgroup.freeze",O_WRONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK));
+ slot=pending("domain-kill");if(slot<0||io_unknown)return false;kill_fd=held(slot,openat(domain_fd,"cgroup.kill",O_WRONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK));
+ slot=pending("domain-events");if(slot<0||io_unknown)return false;events_fd=held(slot,openat(domain_fd,"cgroup.events",O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK));
+ slot=pending("domain-procs");if(slot<0||io_unknown)return false;procs_fd=held(slot,openat(domain_fd,"cgroup.procs",O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK));
+ if(freeze_fd<0||kill_fd<0||events_fd<0||procs_fd<0)return false;
+ pid_t p[G_MAX_MEMBERS];unsigned n;unsigned long pop;
+ if(!members(p,&n)||!cgroup_value("populated",&pop)||!need(n==0&&pop==0,"fresh-empty-D-before-birth"))return false;
+ /* Required native API refusal occurs before M birth; no runtime probe result
+  * is assumed by authoring this source. */
+ slot=pending("prebirth-self-pidfd");if(slot<0)return false;int self=held(slot,(int)syscall(SYS_pidfd_open,getpid(),0));if(self<0)return false;
+ bool ok=pidfd_matches(self,getpid());close_known(self);if(!ok)return false;
+ int pair[2];int sa=pending("initial-control-G"),sb=pending("initial-control-M");if(sa<0||sb<0)return false;if(socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK,0,pair)<0){held(sa,-1);held(sb,-1);return false;}
+ control_g=held(sa,pair[0]);control_child=held(sb,pair[1]);int yes=1;
+ if(setsockopt(control_g,SOL_SOCKET,SO_PASSCRED,&yes,sizeof yes)<0||setsockopt(control_child,SOL_SOCKET,SO_PASSCRED,&yes,sizeof yes)<0){fail("control-passcred");return false;}
+ if(prctl(PR_SET_CHILD_SUBREAPER,1,0,0,0)<0){fail("native-subreaper");return false;}
+ return budget(cleanup_reserve)&&!io_unknown;
+}
+static bool send_ack(int channel,const unsigned char*request,bool ok,int transfer,uint64_t deadline){unsigned char raw[G_WIRE_BYTES]={0};memcpy(raw,G_MAGIC,8);w32(raw+8,1);w32(raw+12,r32(request+12)|G_ACK);w32(raw+16,r32(request+16));w32(raw+20,r32(request+20));w32(raw+24,(uint32_t)getpid());w32(raw+28,ok?0:1);w64(raw+32,gstart);w64(raw+40,now());w64(raw+48,deadline);memcpy(raw+56,request+56,64);
+ struct iovec iov={raw,sizeof raw};unsigned char ancillary[CMSG_SPACE(sizeof(int))];struct msghdr msg={.msg_iov=&iov,.msg_iovlen=1};
+ if(transfer>=0){memset(ancillary,0,sizeof ancillary);msg.msg_control=ancillary;msg.msg_controllen=sizeof ancillary;struct cmsghdr*c=CMSG_FIRSTHDR(&msg);c->cmsg_level=SOL_SOCKET;c->cmsg_type=SCM_RIGHTS;c->cmsg_len=CMSG_LEN(sizeof(int));memcpy(CMSG_DATA(c),&transfer,sizeof transfer);}
+ while(budget(0)){ssize_t n=sendmsg(channel,&msg,MSG_NOSIGNAL);if(n==(ssize_t)sizeof raw)return true;if(n<0&&(errno==EAGAIN||errno==EINTR)){if(!bounded_poll(channel,POLLOUT,whole_deadline))break;continue;}fail("control-sendmsg");break;}return false;
+}
+static uint64_t effective_deadline(uint64_t configured){uint64_t n=now(),q=queue_begin?((queue_end?queue_end:n)-queue_begin):0;
+ if(!n||n<gstart||q>n-gstart||n-gstart-q>=OUTSIDE)return 0;
+ uint64_t outside_end=n+(OUTSIDE-(n-gstart-q));uint64_t end=whole_deadline<outside_end?whole_deadline:outside_end;
+ if(end<=cleanup_reserve||end-cleanup_reserve<=n)return 0;end-=cleanup_reserve;
+ uint64_t cap=n+UINT64_C(175)*NS;if(configured&&configured<cap)cap=configured;if(cap<end)end=cap;return end;
+}
+static bool all_source_closed(void){for(unsigned i=0;i<life_count;i++){struct lifecycle*r=&lives[i];if(r->birth_pending||(!r->closed&&!r->writers_closed))return false;}return true;}
+static bool check_seal(struct lifecycle*c,const unsigned char hash[32]){
+ if(!need(c->role==ROLE_C2&&!seal_done&&!c->birth_pending&&all_source_closed()&&!memcmp(c->seal,hash,32),"seal-source-phase"))return false;
+ if(!kernel_write(freeze_fd,"1\n"))return false;uint64_t end=effective_deadline(0);bool frozen=false;
+ while(end&&budget(cleanup_reserve)&&now()<end){unsigned long value;if(!cgroup_value("frozen",&value))break;if(value==1){frozen=true;break;}struct pollfd p={events_fd,POLLPRI,0};if(poll(&p,1,remaining_ms(end))<0&&errno!=EINTR){fail("freeze-wait");break;}}
+ if(!need(frozen,"actual-frozen-ack"))return false;
+ pid_t current[G_MAX_MEMBERS];unsigned count;if(!members(current,&count))return false;
+ for(unsigned i=0;i<count;i++){struct lifecycle*r=by_pid(current[i]);if(!need(r&&r->registered&&!r->closed&&r->writers_closed&&!r->birth_pending&&(r->role==ROLE_M||r->role==ROLE_K||r->role==ROLE_C2)&&pidfd_alive(r->pidfd),"frozen-survivor-closed-admin-only"))return false;
+ pid_t pp;uint64_t ticks;if(!proc_identity(r->pid,&pp,&ticks)||!need(pp==r->ppid&&ticks==r->ticks,"frozen-native-generation"))return false;
+ }
+ for(unsigned i=0;i<life_count;i++){struct lifecycle*r=&lives[i];if(!r->closed&&!pidfd_alive(r->pidfd)){fail("unclosed-dead-role-at-seal");return false;}if((r->role==ROLE_ROOT||r->role==ROLE_B)&&!r->closed){fail("producer-survivor-at-seal");return false;}}
+ memcpy(c->seal,hash,32);seal_done=true;
+ /* The lasting seal is irreversible source phase, not thaw or frozen state. */
+ return kernel_write(freeze_fd,"0\n")&&budget(cleanup_reserve);
+}
+static bool handle_control(int channel){
+ unsigned char raw[G_WIRE_BYTES]={0};union {struct cmsghdr align;unsigned char bytes[CMSG_SPACE(sizeof(struct ucred))+CMSG_SPACE(sizeof(int)*2)];} ancillary;
+ /* Reserve every possible received-FD holder before recvmsg can acquire it.
+  * An unexpected/extra delivered descriptor is still retained and closed once. */
+ int recv_slots[2]={pending("recv-rights-slot-1"),pending("recv-rights-slot-2")};
+ if(recv_slots[0]<0||recv_slots[1]<0)return false;
+ int received_fds[2]={-1,-1};unsigned received_count=0;
+ struct iovec io={raw,sizeof raw};struct msghdr msg={.msg_iov=&io,.msg_iovlen=1,.msg_control=ancillary.bytes,.msg_controllen=sizeof ancillary.bytes};
+ ssize_t got=recvmsg(channel,&msg,MSG_DONTWAIT|MSG_CMSG_CLOEXEC);
+ if(got<0){fds[recv_slots[0]].state=fds[recv_slots[1]].state=FD_FREE;if(errno==EAGAIN||errno==EINTR)return true;fail("control-recvmsg");return false;}
+ struct ucred creds={0};int received=-1;unsigned cc=0,rights=0;bool unexpected=false;
+ for(struct cmsghdr*c=CMSG_FIRSTHDR(&msg);c;c=CMSG_NXTHDR(&msg,c)){
+ if(c->cmsg_level!=SOL_SOCKET){unexpected=true;continue;}
+ if(c->cmsg_type==SCM_CREDENTIALS&&c->cmsg_len==CMSG_LEN(sizeof creds)){memcpy(&creds,CMSG_DATA(c),sizeof creds);cc++;}
+ else if(c->cmsg_type==SCM_RIGHTS&&c->cmsg_len>=CMSG_LEN(0)){
+  size_t bytes=c->cmsg_len-CMSG_LEN(0);if(bytes%sizeof(int)){unexpected=true;continue;}
+  unsigned amount=(unsigned)(bytes/sizeof(int));rights+=amount;
+  for(unsigned j=0;j<amount;j++){int fd;memcpy(&fd,(unsigned char*)CMSG_DATA(c)+j*sizeof(int),sizeof fd);
+   if(received_count<2){received_fds[received_count]=held(recv_slots[received_count],fd);received_count++;}
+   else {io_unknown=true;unexpected=true;fail("SCM-rights-beyond-preheld-cap");}
+  }
+ }else unexpected=true;
+ }
+ for(unsigned j=received_count;j<2;j++)fds[recv_slots[j]].state=FD_FREE;
+ if(received_count)received=received_fds[0];
+ bool envelope=need(got==G_WIRE_BYTES&&!(msg.msg_flags&(MSG_TRUNC|MSG_CTRUNC)),"control-exact-packet");
+ unsigned role=r32(raw+16),op=r32(raw+12);uint32_t seq=r32(raw+20);uint64_t child_pid=r64(raw+32);unsigned child_role=r32(raw+28);bool pad=true;for(unsigned i=120;i<G_WIRE_BYTES;i++)if(raw[i])pad=false;
+ bool ok=need(envelope&&!memcmp(raw,G_MAGIC,8)&&r32(raw+8)==1&&role>=1&&role<=4&&op>=1&&op<=CONTINUE&&seq>0&&cc==1&&!unexpected&&creds.uid==owner&&creds.gid==getgid()&&pad,"control-schema-creds");
+ bool fd_needed=op==REGISTER||op==CHILD_KNOWN;ok=need(ok&&rights==(fd_needed?1U:0U),"control-exact-rights")&&ok;
+ struct lifecycle*r=by_pid(creds.pid);int new_peer=-1;
+ if(ok&&op==REGISTER){
+  unsigned char selected[32];char selected_sha[65];int pin=member(&cfg,role_sources,role_name(role));
+  ok=need(string(&cfg,pin,"sha256",selected_sha,sizeof selected_sha)&&hexbytes(selected_sha,selected)&&!memcmp(raw+88,selected,32)&&pidfd_matches(received,creds.pid),"registered-source-native-lifetime");
+  pid_t pp=0;uint64_t ticks=0;if(ok)ok=proc_identity(creds.pid,&pp,&ticks)&&need((uint32_t)pp==r32(raw+24)&&in_domain(creds.pid),"registered-parent-domain");
+  if(ok&&r&&r->role==ROLE_P&&role==ROLE_C2){ok=need(r->expected_exec&&r->registered&&r->channel==channel&&seq==1&&ticks==r->ticks,"expected-P-to-C2-same-generation");if(ok){close_known(r->pidfd);r->pidfd=received;received=-1;r->role=ROLE_C2;r->expected_exec=false;r->seq=0;}}
+  else if(ok){
+   struct lifecycle*parent=by_pid(pp);
+   if(role==ROLE_M){ok=need(r&&r->pid==m_pid&&pp==getpid()&&r->pidfd==m_pidfd&&!r->registered&&channel==control_g,"genuine-clone3-M");}
+   else ok=need(!r&&parent&&parent->registered&&parent->birth_pending&&parent->pending_role==role&&!memcmp(parent->pending_source,selected,32)&&parent->channel==channel,"genuine-parent-pending-birth");
+   if(ok&&!r)r=new_life(creds.pid,role);
+   if(ok&&r){if(role!=ROLE_M){r->pidfd=received;received=-1;parent->birth_pending=false;parent->known_child=creds.pid;}else {close_known(received);received=-1;}r->ppid=pp;r->ticks=ticks;}
+  }
+  if(ok&&r){int pair[2],a=pending("role-private-G"),b=pending("role-private-peer");if(a<0||b<0){ok=false;}else if(socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK,0,pair)<0){held(a,-1);held(b,-1);ok=false;}else{int own=held(a,pair[0]);new_peer=held(b,pair[1]);int yes=1;if(setsockopt(own,SOL_SOCKET,SO_PASSCRED,&yes,sizeof yes)<0||setsockopt(new_peer,SOL_SOCKET,SO_PASSCRED,&yes,sizeof yes)<0){fail("role-private-passcred");ok=false;}else{r->channel=own;r->registered=true;r->seq=seq;memcpy(r->source,selected,32);}}}
+ }else if(ok){ok=need(r&&r->registered&&!r->closed&&r->role==role&&r->channel==channel&&seq==r->seq+1&&!memcmp(raw+88,r->source,32)&&pidfd_alive(r->pidfd),"own-private-lifecycle-sequence");if(ok)r->seq=seq;
+  if(ok&&op==SPAWN_PENDING){ok=need(!r->birth_pending&&(child_role>=1&&child_role<=7)&&(!seal_done||child_role==ROLE_B||child_role==ROLE_FEE)&&((role==ROLE_M&&child_role==ROLE_K)||(role==ROLE_K&&(child_role==ROLE_P||child_role==ROLE_FEE))||(role==ROLE_C2&&(child_role==ROLE_ROOT||child_role==ROLE_B))),"source-selected-birth-edge");if(ok){char sha[65];unsigned char selected[32];int pin=member(&cfg,role_sources,role_name(child_role));ok=need(string(&cfg,pin,"sha256",sha,sizeof sha)&&hexbytes(sha,selected)&&!memcmp(raw+56,selected,32),"fixed-child-selected-source");if(ok){r->birth_pending=true;r->pending_role=child_role;memcpy(r->pending_source,raw+56,32);}}}
+  else if(ok&&op==CHILD_KNOWN){ok=need(r->birth_pending&&r->pending_role==child_role&&(child_role==ROLE_ROOT||child_role==ROLE_B||child_role==ROLE_FEE)&&child_pid>0&&child_pid<=INT_MAX&&pidfd_target_matches(received,(pid_t)child_pid)&&(!pidfd_alive(received)||in_domain((pid_t)child_pid)),"parent-known-child-pidfd");pid_t pp;uint64_t ticks;if(ok)ok=proc_identity((pid_t)child_pid,&pp,&ticks)&&need(pp==r->pid,"known-child-real-parent");if(ok){struct lifecycle*k=new_life((pid_t)child_pid,child_role);if(!k)ok=false;else{k->pidfd=received;received=-1;k->ppid=pp;k->ticks=ticks;memcpy(k->source,r->pending_source,32);r->birth_pending=false;r->known_child=k->pid;}}}
+  else if(ok&&op==WRITERS_CLOSED){ok=need(!r->birth_pending&&!r->writers_closed,"writers-closed-once");if(ok){r->writers_closed=true;memcpy(r->seal,raw+56,32);}}
+  else if(ok&&op==SEAL)ok=check_seal(r,raw+56);
+  else if(ok&&op==QUEUE_BEGIN){ok=need(role==ROLE_C2&&!queue_begin&&!queue_end&&!seal_done,"queue-begin-once");if(ok)queue_begin=now();}
+  else if(ok&&op==QUEUE_END){ok=need(role==ROLE_C2&&queue_begin&&!queue_end&&!seal_done,"queue-end-once");if(ok)queue_end=now();}
+  else if(ok&&op==RETENTION_BEGIN){ok=need(role==ROLE_C2&&seal_done&&queue_end&&!retention_deadline,"retention-enter-once");if(ok){retention_deadline=effective_deadline(r64(raw+48));ok=need(retention_deadline>now(),"retention-positive-remaining");}}
+  else if(ok&&op==ROLE_CLOSED){pid_t target=child_pid?(pid_t)child_pid:r->pid;struct lifecycle*k=by_pid(target);ok=need(k&&((k==r&&!k->closed&&child_role==role)||(k!=r&&k->ppid==r->pid&&k->role==child_role&&!k->wait_closed&&!pidfd_alive(k->pidfd)))&&!r->birth_pending,"actual-wait-known-close-boundary");if(ok){k->closed=true;k->writers_closed=true;if(k!=r){k->wait_closed=true;close_known(k->pidfd);}}}
+  else if(ok&&op==RETIRE){retiring=true;incomplete=true;}
+  else if(ok&&op==EXEC_EXPECT){ok=need(role==ROLE_P&&!r->expected_exec&&!seal_done,"P-exec-transition-once");if(ok)r->expected_exec=true;}
+  else if(ok&&op==CONTINUE){ok=need(!r->birth_pending,"no-parent-read-during-child-register");}
+ }
+ uint64_t end=retention_deadline?retention_deadline:effective_deadline(0);
+ bool sent=send_ack(channel,raw,ok,new_peer,end);if(new_peer>=0)close_known(new_peer);if(received>=0)close_known(received);for(unsigned j=1;j<received_count;j++)if(received_fds[j]>=0)close_known(received_fds[j]);
+ if(!ok||!sent){incomplete=true;retiring=true;return false;}return true;
+}
+#define S03_NATIVE_INHERITED_LIMITS_V1 1
+static rlim_t inherited_limit_cap(struct rlimit prior,rlim_t ceiling){
+ rlim_t bound=ceiling;
+ if(prior.rlim_cur!=RLIM_INFINITY&&prior.rlim_cur<bound)bound=prior.rlim_cur;
+ if(prior.rlim_max!=RLIM_INFINITY&&prior.rlim_max<bound)bound=prior.rlim_max;
+ return bound;
+}
+static struct rlimit m_child_as,m_child_fs;
+static bool m_child_limits_prepared;
+static int m_out=-1,m_err=-1;
+static bool capture_new(const char*name,int*value){int s=pending("native-M-capture");if(s<0)return false;*value=held(s,openat(start_dir,name,O_RDWR|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600));if(*value<0)return false;struct stat st;return need(fstat(*value,&st)==0&&S_ISREG(st.st_mode)&&st.st_uid==owner&&st.st_nlink==1&&(st.st_mode&0777)==0600&&st.st_size==0,"fresh-native-M-capture");}
+static bool launch_pre_m(void){
+ int a=member(&cfg,role_argv,"M");if(!need(a>=0&&cfg.t[a].kind==J_ARR&&cfg.t[a].children>=6&&cfg.t[a].children<=64,"fixed-M-argv-count"))return false;
+ static char storage[64][4097];static char*argv[65];int count=0;
+ for(int p=a+1;p<cfg.t[a].next;p=cfg.t[p].next){if(!strdecode(&cfg,p,storage[count],sizeof storage[count])){fail("fixed-M-argv-string");return false;}argv[count]=storage[count];count++;}argv[count]=NULL;
+ char pre_m_path[PATH_MAX];if(!need(string(&cfg,member(&cfg,0,"pre_m_pin"),"path",pre_m_path,sizeof pre_m_path)&&!strcmp(argv[0],"/usr/bin/python3.12")&&!strcmp(argv[1],"-S")&&!strcmp(argv[2],"-s")&&!strcmp(argv[3],"-P")&&!strcmp(argv[4],"-B")&&!strcmp(argv[5],pre_m_path),"fixed-M-exec-not-arbitrary"))return false;
+ /* Preserve lower inherited AS before M birth; never attempt to raise a
+  * lower hard bound. Hard FSIZE H is the selected archive prerequisite and
+  * is checked before clone3 rather than attempted as a privileged raise. */
+ struct rlimit prior_as,prior_fs;
+ if(getrlimit(RLIMIT_AS,&prior_as)<0){fail("pre-M-AS-inherited-limit");return false;}
+ if(getrlimit(RLIMIT_FSIZE,&prior_fs)<0){fail("pre-M-FSIZE-inherited-limit");return false;}
+ if(!need(prior_fs.rlim_max==RLIM_INFINITY||prior_fs.rlim_max>=H,"pre-M-required-FSIZE-hard-H-unavailable"))return false;
+ rlim_t as_bound=inherited_limit_cap(prior_as,1073741824);
+ m_child_as=(struct rlimit){as_bound,as_bound};
+ rlim_t fs_soft=inherited_limit_cap(prior_fs,STREAM);
+ m_child_fs=(struct rlimit){fs_soft,H};m_child_limits_prepared=true;
+ if(!capture_new("inner_meter.stdout.raw",&m_out)||!capture_new("inner_meter.stderr.raw",&m_err)||!budget(cleanup_reserve))return false;
+ int slot=pending("clone3-M-pidfd");if(slot<0)return false;int child_handle=-1;
+ struct clone_args ca={.flags=CLONE_INTO_CGROUP|CLONE_PIDFD,.pidfd=(uint64_t)(uintptr_t)&child_handle,.exit_signal=SIGCHLD,.cgroup=(uint64_t)domain_fd};
+ birth_unknown=true;long result=syscall(SYS_clone3,&ca,sizeof ca);
+ if(result<0){fds[slot].state=FD_UNCERTAIN;fail("clone3-prebirth-refusal");return false;}
+ if(result==0){
+  /* Fixed native child. No postbirth migration, shell or Python rawclone.
+   * All admin, cgroup and financial descriptors are absent after exec. */
+  if(dup2(control_child,G_FD)<0||dup2(m_out,1)<0||dup2(m_err,2)<0)_exit(126);
+  int nul=open("/dev/null",O_RDONLY|O_CLOEXEC);if(nul<0||dup2(nul,0)<0)_exit(126);
+  if(fcntl(G_FD,F_SETFD,0)<0)_exit(126);
+  for(int i=3;i<65536;i++)if(i!=G_FD)close(i);
+  if(setrlimit(RLIMIT_FSIZE,&m_child_fs)<0||setrlimit(RLIMIT_AS,&m_child_as)<0||setsid()<0||chdir("/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453")<0)_exit(126);
+  char*env[]={"PATH=/usr/bin:/bin","PYTHONHASHSEED=0","LANG=C.UTF-8","LC_ALL=C.UTF-8","TZ=UTC","PYTHONDONTWRITEBYTECODE=1",NULL};
+  execve(argv[0],argv,env);_exit(126);
+ }
+ /* Actual returned native PID and pidfd are retained before any projection. */
+ m_pid=(pid_t)result;m_pidfd=held(slot,child_handle);birth_unknown=false;g_pre_m_end=now();
+ if(m_pidfd<0)return false;struct lifecycle*r=new_life(m_pid,ROLE_M);if(!r)return false;r->pidfd=m_pidfd;
+ if(!proc_identity(m_pid,&r->ppid,&r->ticks)||!need(r->ppid==getpid()&&pidfd_matches(m_pidfd,m_pid)&&in_domain(m_pid),"clone3-native-generation-in-D"))return false;
+ close_known(control_child);control_child=-1;return budget(cleanup_reserve);
+}
+static bool reap_nonblocking(void){
+ for(unsigned tries=0;tries<G_MAX_MEMBERS;tries++){int status;struct rusage usage;pid_t pid=wait4(-1,&status,WNOHANG,&usage);
+ if(pid==0)return true;if(pid<0){if(errno==EINTR)continue;if(errno==ECHILD)return true;fail("native-wait4");return false;}
+ struct lifecycle*r=by_pid(pid);
+ if(pid==m_pid){m_waited=true;m_status=status;m_usage=usage;if(!WIFEXITED(status)||WEXITSTATUS(status)!=0){fail("M-native-nonzero");retiring=true;}}
+ if(r){if(!r->closed){fail("covered-role-died-before-own-close");retiring=true;}r->wait_closed=true;}
+ /* A subreaper may adopt descendants not already returned to their source
+  * owner. Native wait is retained as a separate physical observation; its
+  * existence never repairs missing C2 writer closure or missing original data. */
+ if(!r){fail("adopted-unreconciled-native-child");retiring=true;}
+ }
+ fail("bounded-reap-cap");return false;
+}
+static bool monitor_lifetimes(void){
+ for(unsigned i=0;i<life_count;i++){struct lifecycle*r=&lives[i];if(r->closed)continue;
+ if(r->pidfd>=0&&!pidfd_alive(r->pidfd)){
+  /* Root/Fee/B are genuinely waited by their live source parent; their exit
+   * alone is not a failure/closure proof. Covered control-parent death before
+   * its source-owned close boundary is always terminal retirement. */
+  if(r->role<=ROLE_C2){fail("covered-control-role-death");retiring=true;return false;}
+ }}return true;
+}
+static bool capture_bounds(void){struct stat a,b;if(fstat(m_out,&a)<0||fstat(m_err,&b)<0){fail("M-capture-stat");return false;}return need(a.st_size>=0&&b.st_size>=0&&(uint64_t)a.st_size<=STREAM&&(uint64_t)b.st_size<=STREAM,"M-capture-cap");}
+static bool dispatch_loop(void){
+ while(!m_waited&&!retiring&&budget(cleanup_reserve)){
+  struct pollfd pollers[G_MAX_ROLES+1];unsigned n=0;pollers[n++]=(struct pollfd){control_g,POLLIN,0};
+  for(unsigned i=0;i<life_count;i++){struct lifecycle*r=&lives[i];if(r->registered&&!r->closed&&r->channel>=0)pollers[n++]=(struct pollfd){r->channel,POLLIN,0};}
+  int count=poll(pollers,n,25);if(count<0&&errno!=EINTR){fail("guardian-dispatch-poll");retiring=true;break;}
+  for(unsigned i=0;i<n;i++)if(pollers[i].revents&POLLIN)if(!handle_control(pollers[i].fd)){retiring=true;break;}
+  if(!reap_nonblocking()||!monitor_lifetimes()||!capture_bounds()){retiring=true;break;}
+ }
+ return m_waited&&!retiring&&!incomplete;
+}
+static bool retire_domain(void){
+ /* A kill write, recursive populated=0, native direct/adopted waits and known
+  * descriptor closure are four separate obligations. No unbounded wait. */
+ bool killed=false,empty=false,waits=false;
+ if(kill_fd>=0){ssize_t n=write(kill_fd,"1\n",2);killed=n==2;if(!killed)fail("domain-kill-once");}
+ uint64_t end=whole_deadline;
+ while(killed&&now()<end&&budget(0)){
+  unsigned long pop;if(!cgroup_value("populated",&pop))break;
+  if(!reap_nonblocking())break;
+  if(pop==0){empty=true;int status;struct rusage u;pid_t p=wait4(-1,&status,WNOHANG,&u);
+   if(p<0&&errno==ECHILD){waits=true;break;}if(p==0){/* empty cgroup but native wait transition still pending */}
+   else if(p>0){if(p==m_pid){m_waited=true;m_status=status;m_usage=u;if(!WIFEXITED(status)||WEXITSTATUS(status)!=0){fail("M-native-retirement-nonzero");retiring=true;}}else {fail("retirement-extra-native-wait");}}
+   else if(errno!=EINTR){fail("retirement-final-wait");break;}
+  }
+  struct pollfd p={events_fd,POLLPRI,0};int ms=remaining_ms(end);if(ms<=0)break;if(poll(&p,1,ms)<0&&errno!=EINTR){fail("retirement-events-wait");break;}
+ }
+ if(!need(killed,"domain-kill-observed"))incomplete=true;
+ if(!need(empty,"domain-population-empty-observed"))incomplete=true;
+ if(!need(waits,"genuine-direct-and-adopted-waits-complete"))incomplete=true;
+ return killed&&empty&&waits;
+}
+static bool final_domain_empty(void){
+ if(!need(m_waited&&WIFEXITED(m_status)&&WEXITSTATUS(m_status)==0,"M-final-native-zero-required"))return false;
+ for(unsigned i=0;i<life_count;i++)if(!need(lives[i].closed&&lives[i].wait_closed&&!lives[i].birth_pending,"all-native-source-lifetimes-closed-and-waited"))return false;
+ unsigned long pop;pid_t p[G_MAX_MEMBERS];unsigned n;
+ if(!cgroup_value("populated",&pop)||!members(p,&n)||!need(pop==0&&n==0&&m_waited,"normal-whole-D-empty-and-M-wait"))return false;
+ int status;struct rusage u;pid_t child=wait4(-1,&status,WNOHANG,&u);
+ return need(child<0&&errno==ECHILD,"normal-no-unwaited-adopted-children");
+}
+static bool seal_native_capture(int fd,const char*name,struct output*pin){
+ struct stat a;
+ if(fstat(fd,&a)<0){fail("final-M-capture-fstat");return false;}
+ if(!need(S_ISREG(a.st_mode)&&a.st_uid==owner&&a.st_nlink==1&&a.st_size>=0&&(uint64_t)a.st_size<=STREAM,"final-M-capture-cap-owner-link"))return false;
+ if(fsync(fd)<0||fchmod(fd,0444)<0||fsync(fd)<0){fail("final-M-capture-sync-mode");return false;}
+ struct sha sh;sha_init(&sh);char block[65536];if(lseek(fd,0,SEEK_SET)<0){fail("capture-seek");return false;}size_t total=0;
+ while(true){if(!budget(0))return false;ssize_t n=read(fd,block,sizeof block);if(n<0){if(errno==EINTR)continue;fail("capture-readback");return false;}if(!n)break;total+=(size_t)n;if(total>STREAM){fail("capture-readback-cap");return false;}sha_add(&sh,block,(size_t)n);}
+ char hash[65];sha_done(&sh,hash);struct stat b,path;
+ if(fstat(fd,&b)<0){fail("capture-final-fstat");return false;}
+ if(fstatat(start_dir,name,&path,AT_SYMLINK_NOFOLLOW)<0){fail("capture-final-path-stat");return false;}
+ if(!need(same_stat(&b,&path)&&S_ISREG(b.st_mode)&&b.st_uid==owner&&b.st_nlink==1&&(b.st_mode&0777)==0444&&b.st_size==(off_t)total,"capture-full-path-readback"))return false;
+ char full[PATH_MAX];int path_bytes=snprintf(full,sizeof full,"%s/%s",evidence_path,name);
+ if(!need(path_bytes>0&&(size_t)path_bytes<sizeof full,"capture-pin-path-cap"))return false;
+ *pin=(struct output){.ok=true};out(pin,"{\"path\":");quoted(pin,full);out(pin,",\"bytes\":%zu,\"sha256\":\"%s\",\"mode\":292}",total,hash);
+ return pin->ok;
+}
+static void emit_provisional_body(bool physical_closed){
+ struct output stdout_pin={.ok=true},stderr_pin={.ok=true};
+ if(m_out>=0)seal_native_capture(m_out,"inner_meter.stdout.raw",&stdout_pin);
+ if(m_err>=0)seal_native_capture(m_err,"inner_meter.stderr.raw",&stderr_pin);
+ /* Close all nonterminal resources before the last observed endpoint. FD1/2
+  * belong to the genuine original native caller and are closed only after
+  * terminal serialization/write/fsync; failures have no retry. */
+ close_all();if(getrusage(RUSAGE_SELF,&g_usage_after)<0)fail("G-final-self-rusage");last_observed=now();
+ uint64_t elapsed=(last_observed>=gstart)?last_observed-gstart:0;
+ uint64_t queue_ns=queue_begin&&queue_end&&queue_end>=queue_begin?queue_end-queue_begin:0;
+ bool queue_known=queue_begin&&queue_end&&queue_end>=queue_begin&&queue_ns<=QUEUE;
+ bool outside_known=queue_known&&elapsed>=queue_ns;
+ bool fit=outside_known&&elapsed-queue_ns<=OUTSIDE&&elapsed<=body_reservation;
+ struct output b={.ok=true};out(&b,"{\"schema\":\"fresh-composed-guardian-provisional-body-v1\",\"bill_schema\":\"fresh-composed-guardian-whole-command-bill-v2\",\"status\":\"%s\",\"clock_scope\":\"PROVISIONAL_G_ENTRY_THROUGH_LAST_OBSERVED_OWNED_CLEANUP\",\"original_start_monotonic_ns\":%"PRIu64",\"last_observed_after_owned_cleanup_ns\":%"PRIu64",\"observed_enclosing_elapsed_ns\":%"PRIu64",\"g_pre_m_ns\":%"PRIu64",\"queue_span_ns\":",physical_closed&&!incomplete&&fit?"PROVISIONAL_OBSERVED_NOT_ADMITTED":"STOP_OR_INCOMPLETE",gstart,last_observed,elapsed,g_pre_m_end>=gstart?g_pre_m_end-gstart:0);
+ if(queue_known)out(&b,"%"PRIu64,queue_ns);else out(&b,"null");out(&b,",\"outside_ns_through_last_observed\":");if(outside_known)out(&b,"%"PRIu64,elapsed-queue_ns);else out(&b,"null");
+ out(&b,",\"whole_reservation_ns\":%"PRIu64",\"reserved_positive_terminal_ns\":%"PRIu64",\"native_M_wait_returned\":%s,\"native_M_wait_status\":%d,\"physical_domain_retirement_observed\":%s,\"IO_unknown\":%s,\"birth_unknown\":%s,\"native_loader_pre_entry_tail\":\"OPEN_NOT_ZERO\",\"g_projection_close_exit_tail\":\"OPEN_NOT_ZERO\",\"all_costs_settled\":false,\"future_operation_blocked_until_separate_adjudication\":true,\"current_native_or_kernel_PASS\":false,\"whole_forest_fit_admitted\":false,\"retention_source_adopted\":false,\"raw_self_and_reaped_M_usage\":{\"M_user_seconds\":%ld,\"M_user_microseconds\":%ld,\"M_system_seconds\":%ld,\"M_system_microseconds\":%ld,\"M_maxrss_KiB\":%ld},\"errors\":[",body_reservation,cleanup_reserve,m_waited?"true":"false",m_status,physical_closed?"true":"false",io_unknown?"true":"false",birth_unknown?"true":"false",(long)m_usage.ru_utime.tv_sec,(long)m_usage.ru_utime.tv_usec,(long)m_usage.ru_stime.tv_sec,(long)m_usage.ru_stime.tv_usec,m_usage.ru_maxrss);
+ for(size_t i=0;i<error_count;i++){if(i)out(&b,",");out(&b,"{\"errno\":%d,\"site\":",errors[i].number);quoted(&b,errors[i].site);out(&b,"}");}out(&b,"],\"M_child_pre_exec_limit_request\":");
+ if(m_child_limits_prepared)out(&b,"{\"AS_soft_bytes\":%"PRIu64",\"AS_hard_bytes\":%"PRIu64",\"FSIZE_soft_bytes\":%"PRIu64",\"FSIZE_hard_bytes\":%"PRIu64",\"tuple_scope\":\"computed_from_G_inherited_limits_before_clone3_not_runtime_fit\"}",(uint64_t)m_child_as.rlim_cur,(uint64_t)m_child_as.rlim_max,(uint64_t)m_child_fs.rlim_cur,(uint64_t)m_child_fs.rlim_max);
+ else out(&b,"null");out(&b,",\"G_self_rusage_user_usec_before\":%"PRIu64",\"G_self_rusage_system_usec_before\":%"PRIu64",\"G_self_rusage_user_usec_after\":%"PRIu64",\"G_self_rusage_system_usec_after\":%"PRIu64",\"native_G_CPU_is_concurrent_and_not_added_to_wall\":true,\"raw_capture_pins\":[",(uint64_t)g_usage_before.ru_utime.tv_sec*1000000+(uint64_t)g_usage_before.ru_utime.tv_usec,(uint64_t)g_usage_before.ru_stime.tv_sec*1000000+(uint64_t)g_usage_before.ru_stime.tv_usec,(uint64_t)g_usage_after.ru_utime.tv_sec*1000000+(uint64_t)g_usage_after.ru_utime.tv_usec,(uint64_t)g_usage_after.ru_stime.tv_sec*1000000+(uint64_t)g_usage_after.ru_stime.tv_usec);if(stdout_pin.used)out(&b,"%s",stdout_pin.raw);else out(&b,"null");out(&b,",");if(stderr_pin.used)out(&b,"%s",stderr_pin.raw);else out(&b,"null");out(&b,"]}\n");
+ if(b.ok&&budget(0)){bool ok=write_all(1,b.raw,b.used);if(ok&&fsync(1)<0){fail("terminal-stdout-fsync");ok=false;}if(!ok)incomplete=true;}
+ else incomplete=true;
+ /* Original caller must observe exit and re-read complete actual capture.
+  * No self-produced record can supply completed native exit or financial CLOSE. */
+ if(close(1)<0){fail("terminal-stdout-close-once");io_unknown=true;}
+ if(close(2)<0){fail("terminal-stderr-close-once");io_unknown=true;}
+}
+
+/* Initial native FD census is bounded and excludes inherited control or cgroup
+ * descriptors. Linux getdents64 is selected directly, with no directory-library
+ * ownership adapter or hidden finalizer. */
+struct g_dirent64 { uint64_t ino; int64_t off; unsigned short reclen; unsigned char type; char name[]; };
+static bool initial_fd_census(void){
+ int fd=open_path("/proc/self/fd",O_RDONLY|O_DIRECTORY|O_NONBLOCK,0);if(fd<0)return false;
+ unsigned entries=0;bool seen[3]={false,false,false},done=false;unsigned char raw[8192] __attribute__((aligned(8)));
+ for(unsigned reads=0;reads<4;reads++){
+  long n=syscall(SYS_getdents64,fd,raw,sizeof raw);if(n<0){fail("entry-fd-getdents");break;}if(!n){done=true;break;}
+  size_t at=0;while(at<(size_t)n){struct g_dirent64*d=(struct g_dirent64*)(void*)(raw+at);
+   if(!need(d->reclen>=20&&at+d->reclen<=(size_t)n&&memchr(d->name,0,d->reclen-19),"entry-fd-dirent")){close_known(fd);return false;}
+   if(strcmp(d->name,".")&&strcmp(d->name,"..")){if(!need(++entries<=4,"entry-fd-count")){close_known(fd);return false;}
+    errno=0;char*end;long value=strtol(d->name,&end,10);if(!need(!errno&&!*end&&value>=0&&value<=INT_MAX&&(value<=2||value==fd),"only-original-caller-stdio")){close_known(fd);return false;}
+    if(value<=2)seen[value]=true;
+   }at+=d->reclen;
+  }
+ }
+ bool ok=need(done&&entries==4&&seen[0]&&seen[1]&&seen[2],"complete-initial-fd-census");close_known(fd);return ok&&!io_unknown;
+}
+static bool native_entry_profile(void){
+ owner=geteuid();if(!initial_fd_census())return false;struct stat input;if(fstat(0,&input)<0){fail("native-stdin-fstat");return false;}if(!need(S_ISCHR(input.st_mode)&&major(input.st_rdev)==1&&minor(input.st_rdev)==3,"selected-dev-null-stdin"))return false;
+ if(!need(getuid()==owner&&getgid()==getegid()&&owner!=0,"no-privilege-native-entry"))return false;
+ const char *native_captures[]={"", "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z/runtime/native-caller/IndependentPrefixDATAComposedV1/G.stdout.raw", "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z/runtime/native-caller/IndependentPrefixDATAComposedV1/G.stderr.raw"};
+ for(int fd=1;fd<=2;fd++){struct stat st,path_st;
+  if(fstat(fd,&st)<0){fail("native-caller-capture-fstat");return false;}
+  if(!need(S_ISREG(st.st_mode)&&st.st_nlink==1&&st.st_uid==owner&&(st.st_mode&0777)==0600&&st.st_size==0,"genuine-fresh-native-caller-capture"))return false;
+  int selected=open_path(native_captures[fd],O_RDONLY|O_NONBLOCK,0);if(selected<0)return false;
+  bool equal=fstat(selected,&path_st)==0&&same_stat(&st,&path_st);close_known(selected);
+  if(!need(equal&&!io_unknown,"exact-planned-native-caller-path-and-OFD-file"))return false;
+ }
+ struct sigaction a={.sa_handler=caught};sigemptyset(&a.sa_mask);if(sigaction(SIGINT,&a,NULL)<0||sigaction(SIGTERM,&a,NULL)<0||sigaction(SIGHUP,&a,NULL)<0){fail("native-signal-owner");return false;}
+ mode_t old=umask(0077);return need(old==0077,"native-umask0077");
+}
+int main(int argc,char**argv){
+ /* First sample is before profile, parsing, grant/source reads, domain loading
+  * and all reached acquisition. Native loader/startup before main stays OPEN. */
+ gstart=now();if(getrusage(RUSAGE_SELF,&g_usage_before)<0)fail("G-entry-self-rusage");whole_deadline=gstart+WHOLE;body_reservation=WHOLE;cleanup_reserve=NS;
+ bool ok=native_entry_profile();const char*source_path=NULL,*grant_path=NULL;uint64_t config_bytes=0,source_bytes=0,grant_bytes=0;char config_sha[65]={0};
+ if(argc!=13){fail("exact-native-argv");ok=false;}
+ if(ok){/* positional pins have one exact fixed original native caller */
+  if(strcmp(argv[1],"--config")||strcmp(argv[5],"--source")||strcmp(argv[9],"--grant")){fail("exact-native-pin-switches");ok=false;}
+  else{snprintf(config_path,sizeof config_path,"%s",argv[2]);snprintf(config_sha,sizeof config_sha,"%s",argv[3]);source_path=argv[6];snprintf(guardian_source_sha,sizeof guardian_source_sha,"%s",argv[7]);grant_path=argv[10];snprintf(grant_sha,sizeof grant_sha,"%s",argv[11]);char*end;errno=0;config_bytes=strtoull(argv[4],&end,10);if(errno||*end)ok=false;source_bytes=strtoull(argv[8],&end,10);if(errno||*end)ok=false;grant_bytes=strtoull(argv[12],&end,10);if(errno||*end)ok=false;}
+ }
+ if(ok)ok=pinned_document(config_path,config_sha,config_bytes,&cfg);
+ if(ok){static char source[MAX_JSON+1];int fd=open_path(source_path,O_RDONLY|O_NONBLOCK,0);size_t n=0;struct stat st;bool readok=fd>=0&&fstat(fd,&st)==0&&(st.st_mode&0777)==0444&&read_fd_bounded(fd,source,MAX_JSON,&n,true);char actual[65];digest(source,n,actual);if(fd>=0)close_known(fd);ok=need(readok&&n==source_bytes&&hex64(guardian_source_sha)&&!strcmp(actual,guardian_source_sha),"frozen-native-G-source-subject");}
+ if(ok)ok=validate_config_and_grant(grant_path,grant_bytes);
+ if(ok){uint64_t declared_source;if(!number(&grant,0,"source_bytes",&declared_source)||declared_source!=source_bytes){fail("grant-G-source-bytes");ok=false;}}
+ if(ok)ok=publish_original_start();
+ if(ok)ok=build_current_manual_binding();
+ if(ok)ok=acquire_domain();
+ if(ok)ok=launch_pre_m();
+ if(ok)ok=dispatch_loop();
+ bool physical=false;
+ if(domain_fd>=0){if(!ok||retiring||incomplete||!m_waited)physical=retire_domain();else physical=final_domain_empty();}
+ if(!physical)incomplete=true;
+ emit_provisional_body(physical);
+ return ok&&physical&&m_waited&&WIFEXITED(m_status)&&WEXITSTATUS(m_status)==0&&!incomplete&&!io_unknown&&!birth_unknown?0:78;
+}

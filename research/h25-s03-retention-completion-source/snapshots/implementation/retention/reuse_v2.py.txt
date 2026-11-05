@@ -1,0 +1,28 @@
+"""Exact source lineage and fixed local source loader; no historical runtime IO.
+
+V2 predecessor pins remain provenance only. Current source pins are literal and
+bound acyclically after the helper sources freeze. This module issues no parent,
+lease, execution or source-reading authority.
+"""
+import hashlib
+import os
+import sys
+import types
+import native_io_custody as native_io
+
+REFERENCE_ROOT=os.path.dirname(os.path.abspath(__file__))
+PREDECESSOR_PINS={'plain_boundary.py': '770cfd843187fc3dd081fdb09800039483406522fcfc0f6bdac4cffda43a10e6', 'error_custody.py': 'c7e41fa55dd6cc05979005a73c540bcf1c1ae283655e08069f00ed8ebe4b10d9'}
+PINS={'plain_boundary.py': '770cfd843187fc3dd081fdb09800039483406522fcfc0f6bdac4cffda43a10e6', 'error_custody.py': 'd6bfe3c418845cf20fa6bf05673ca13a22e2c4d472243e5f46aa68c1ec4d3912'}
+_CACHE={}
+
+def load(name):
+    native_io.need(type(name) is str and name in PINS,"fixed source-owned local reference")
+    if name in _CACHE:return _CACHE[name]
+    raw=native_io.source_bytes(REFERENCE_ROOT+"/"+name,site="joined-reference:"+name)
+    native_io.need(hashlib.sha256(raw).hexdigest()==PINS[name],"joined source pin changed")
+    module=types.ModuleType("_h25_joined_reference_"+name[:-3])
+    module.__file__=REFERENCE_ROOT+"/"+name
+    module.__dict__["__builtins__"]=__builtins__
+    exec(compile(raw,module.__file__,"exec"),module.__dict__)
+    _CACHE[name]=module
+    return module

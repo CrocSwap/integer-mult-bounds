@@ -1,0 +1,121 @@
+/* Parent-only actual native-function boundary control. Source author did not
+ * compile or run this entry. Requires exact parent admission and guarded ledger.
+ * The original guardian main is renamed and NEVER called; no process, /proc,
+ * cgroup, archive, decoder, native workload, financial owner or network path is
+ * reached. Only fresh bounded control files below this repair's validation dir
+ * are created, read, chmodded, fsynced and closed. Every artifact is retained.
+ * S03_B3_SUBJECT may select the exact frozen predecessor in a separately pinned
+ * negative build; default selects the repaired actual source, never an extract.
+ */
+#define _GNU_SOURCE
+#include <sys/stat.h>
+static int boundary_fstat(int fd,struct stat *value);
+#define fstat boundary_fstat
+#define main S03_UNEXECUTED_GUARDIAN_MAIN
+#ifndef S03_B3_SUBJECT
+#define S03_B3_SUBJECT "../../../implementation/native/retention_guardian.c"
+#endif
+#include S03_B3_SUBJECT
+#undef main
+#undef fstat
+static int boundary_fault_fd=-1,boundary_mode_fault,boundary_stat_calls;
+static int boundary_fault_errno,boundary_mode_changed;
+static int boundary_fstat(int fd,struct stat *value){
+ if(boundary_mode_fault&&fd==boundary_fault_fd&&++boundary_stat_calls==2){
+  boundary_mode_fault=0;
+  if(fchmod(fd,0400)<0){boundary_fault_errno=errno;return -1;}
+  boundary_mode_changed=1;
+ }
+ return fstat(fd,value);
+}
+static unsigned failures, checks;
+static void control(bool ok,const char*name){checks++;if(!ok){failures++;fprintf(stderr,"FAIL %s\n",name);}}
+static bool parse_literal(const char*text){struct document d={0};size_t n=strlen(text);if(n>MAX_JSON)return false;memcpy(d.raw,text,n);d.bytes=n;int root=js(&d,0);ws(&d);return root==0&&d.pos==n;}
+static int pure_prerequisites(void){
+ char h[65];digest("",0,h);control(!strcmp(h,"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),"independent SHA empty");
+ digest("abc",3,h);control(!strcmp(h,"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"),"independent SHA abc");
+ control(parse_literal("{\"s\":\"a\\u0062c\",\"n\":9223372036854775807,\"yes\":true,\"nil\":null,\"a\":[0,false,{}]}"),"bounded ordinary strict DATA");
+ control(!parse_literal("{\"x\":1,\"x\":2}"),"literal duplicate key");
+ control(!parse_literal("{\"x\":1,\"\\u0078\":2}"),"escaped duplicate key");
+ control(!parse_literal("{\"x\":NaN}"),"nonfinite rejected");
+ control(!parse_literal("{\"x\":1.0}"),"float rejected");
+ control(!parse_literal("{\"x\":01}"),"leading zero rejected");
+ control(!parse_literal("{\"x\":9223372036854775808}"),"integer overflow rejected");
+ control(!parse_literal("{\"x\":false}trailing"),"trailing JSON rejected");
+ unsigned char b[256]={0};memcpy(b,"S03Gv1\0\0",8);w32(b+8,1);w32(b+12,0x80000005);w64(b+32,UINT64_C(0x0102030405060708));
+ static const unsigned char endian[]={1,2,3,4,5,6,7,8};control(!memcmp(b+32,endian,8)&&r64(b+32)==UINT64_C(0x0102030405060708),"literal network-endian clock");
+ control(r32(b+8)==1&&r32(b+12)==0x80000005&&sizeof b==256,"literal bounded packet fields");
+ return failures?1:0;
+}
+
+/* Independent observer: parse the actual returned pin and compare to actual
+ * stat/pread, literal payload bytes and independently known SHA values. It does
+ * not use subject digest(), same_stat(), JSON parser or publication helpers. */
+static bool independent_pin(const struct output*pin,const char*name,int fd,
+                            const char*payload,const char*expected_sha){
+ char path[PATH_MAX],sha[65],wanted[PATH_MAX],bytes[64];size_t n=0;unsigned mode=0;int end=0;
+ int fields=sscanf(pin->raw,"{\"path\":\"%4095[^\"]\",\"bytes\":%zu,\"sha256\":\"%64[0123456789abcdef]\",\"mode\":%u}%n",path,&n,sha,&mode,&end);
+ if(fields!=4||end<0||(size_t)end!=pin->used||n!=strlen(payload)||strcmp(sha,expected_sha))return false;
+ int count=snprintf(wanted,sizeof wanted,"%s/%s",evidence_path,name);
+ if(count<0||(size_t)count>=sizeof wanted||strcmp(path,wanted))return false;
+ struct stat actual,by_name;
+ if(fstatat(start_dir,name,&by_name,AT_SYMLINK_NOFOLLOW)<0||!S_ISREG(by_name.st_mode)||by_name.st_nlink!=1||by_name.st_uid!=getuid()||(by_name.st_mode&0777)!=0444||(by_name.st_mode&0777)!=mode)return false;
+ int oracle=fd;bool own=false;
+ if(oracle<0){oracle=openat(start_dir,name,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);if(oracle<0)return false;own=true;}
+ bool ok=fstat(oracle,&actual)==0&&actual.st_dev==by_name.st_dev&&actual.st_ino==by_name.st_ino&&actual.st_mode==by_name.st_mode&&actual.st_nlink==1&&actual.st_size==(off_t)n;
+ ssize_t got=ok?pread(oracle,bytes,sizeof bytes,0):-1;
+ ok=ok&&got==(ssize_t)n&&!memcmp(bytes,payload,n);
+ if(own&&close(oracle)<0)ok=false;
+ return ok;
+}
+static int actual_capture(const char*name,const char*payload){
+ int fd=-1;if(!capture_new(name,&fd))return -1;
+ if(!write_all(fd,payload,strlen(payload)))return -1;
+ return fd;
+}
+static void reset_observed_error(void){
+ /* Isolated regression scenarios retain their files and known descriptor
+  * holders. This is test state only, never a production retry/clear authority. */
+ error_count=0;incomplete=false;io_unknown=false;
+}
+int main(int argc,char**argv){
+ (void)pure_prerequisites();
+#ifdef S03_NATIVE_INHERITED_LIMITS_V1
+ control(inherited_limit_cap((struct rlimit){RLIM_INFINITY,RLIM_INFINITY},1073741824)==1073741824,"actual pre-M AS helper both infinity caps at1GiB");
+ control(inherited_limit_cap((struct rlimit){1073741824,1073741824},1073741824)==1073741824,"actual pre-M AS helper exact cap unchanged");
+ control(inherited_limit_cap((struct rlimit){134217728,268435456},1073741824)==134217728,"actual pre-M AS helper preserves lower128MiB soft");
+ control(inherited_limit_cap((struct rlimit){16777216,16777216},1073741824)==16777216,"actual pre-M AS helper preserves lower16MiB hard");
+ control(inherited_limit_cap((struct rlimit){0,1073741824},1073741824)==0,"actual pre-M AS helper preserves zero soft");
+ control(inherited_limit_cap((struct rlimit){2147483648ULL,2147483648ULL},1073741824)==1073741824,"actual pre-M AS helper bounds larger tuple");
+#endif
+ if(argc!=2||(strcmp(argv[1],"predecessor")&&strcmp(argv[1],"repaired"))){
+  fprintf(stderr,"fixed predecessor/repaired control label required\n");return 2;
+ }
+ owner=geteuid();gstart=now();whole_deadline=gstart+5*NS;cleanup_reserve=NS;umask(0077);
+ int length=snprintf(evidence_path,sizeof evidence_path,"/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z/validation/native-capture-mode-boundary-%s",argv[1]);
+ if(length<0||(size_t)length>=sizeof evidence_path||mkdir(evidence_path,0700)<0){perror("exclusive control directory");return 2;}
+ start_dir=open_path(evidence_path,O_RDONLY|O_DIRECTORY,0);if(start_dir<0)return 2;
+ struct output pin={.ok=true};int fd=actual_capture("stdout.raw","abc");
+ bool sealed=fd>=0&&seal_native_capture(fd,"stdout.raw",&pin);
+ control(sealed&&independent_pin(&pin,"stdout.raw",fd,"abc","ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"),"actual stdout pin mode equals actual sealed mode444");
+ if(fd>=0)close_known(fd);
+ pin=(struct output){.ok=true};fd=actual_capture("stderr.raw","");
+ sealed=fd>=0&&seal_native_capture(fd,"stderr.raw",&pin);
+ control(sealed&&independent_pin(&pin,"stderr.raw",fd,"","e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),"actual empty stderr pin mode equals actual sealed mode444");
+ if(fd>=0)close_known(fd);
+ struct output metadata={.ok=true};const char*payload="{\"fixture\":\"metadata\"}\n";out(&metadata,"%s",payload);
+ char full[PATH_MAX];snprintf(full,sizeof full,"%s/METADATA.json",evidence_path);pin=(struct output){.ok=true};
+ bool published=publish_at(start_dir,"METADATA.json",full,&metadata,&pin);
+ control(published&&independent_pin(&pin,"METADATA.json",-1,payload,"6d62810e464794dc681b40fbd52912a9f34cd06ab82f7ef0ab24fc9e9423066b"),"related actual metadata publication pin mode equals actual mode444");
+ reset_observed_error();fd=actual_capture("mode-drift.raw","abc");pin=(struct output){.ok=true};
+ boundary_fault_fd=fd;boundary_stat_calls=0;boundary_mode_fault=1;boundary_fault_errno=0;boundary_mode_changed=0;
+ sealed=fd>=0&&seal_native_capture(fd,"mode-drift.raw",&pin);
+ control(fd>=0&&!sealed&&boundary_mode_changed&&!boundary_fault_errno&&incomplete&&error_count==1&&errors[0].number==EPROTO&&!strcmp(errors[0].site,"capture-full-path-readback"),"actual readback mode drift400 rejects and latches incomplete");
+ boundary_mode_fault=0;if(fd>=0)close_known(fd);
+ reset_observed_error();fd=actual_capture("closed-descriptor.raw","abc");pin=(struct output){.ok=true};
+ bool closed=fd>=0&&close_known(fd);sealed=closed&&seal_native_capture(fd,"closed-descriptor.raw",&pin);
+ control(closed&&!sealed&&incomplete&&error_count==1&&errors[0].number==EBADF&&!strcmp(errors[0].site,"final-M-capture-fstat"),"actual initial stat EBADF is retained before ignored seal return");
+ close_all();
+ printf("{\"schema\":\"s03-native-B3-boundary-controls-v1\",\"checks\":%u,\"failures\":%u,\"native_guardian_main_called\":false,\"artifacts_retained\":true}\n",checks,failures);
+ return failures?1:0;
+}

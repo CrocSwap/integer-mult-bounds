@@ -1,0 +1,157 @@
+"""Parent-admitted DATA regression at the actual constructor/entry/C2 seam.
+
+The complete selected source modules are loaded, not extracted AST definitions.
+No financial owner, grant, native process, resource change or payload is issued.
+Only the entry's filesystem transport is replaced by counted in-memory fixture
+bytes. The real constructor, real entry adaptation, real loader pin validator
+and unchanged real C2 exact_pin function supply the exercised source boundary.
+"""
+import argparse
+import builtins
+import copy
+import hashlib
+import json
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/s03-completion-repair-20261105T1139Z'
+MANIFEST = R/'implementation/bindings/SOURCE-MANIFEST-v2.json'
+
+
+def need(ok, message):
+    if ok is not True:
+        raise RuntimeError(message)
+
+
+def canonical(value):
+    return (json.dumps(value,sort_keys=True,separators=(',',':'))+'\n').encode('ascii')
+
+
+def module_source(key, manifest):
+    row = manifest['source_pins'][key]
+    raw = Path(row['path']).read_bytes()
+    need(len(raw) == row['bytes'] and hashlib.sha256(raw).hexdigest() == row['sha256'],
+         'exact whole selected control source')
+    module = ModuleType('_s03_boundary_actual_' + key)
+    module.__dict__.update(__file__=row['path'],__name__=module.__name__,
+        __package__=None,__spec__=None,__builtins__=builtins)
+    exec(compile(raw,row['path'],'exec',dont_inherit=True),module.__dict__)
+    return module, row
+
+
+def fixture(factory, manifest, manifest_pin):
+    blobs = {}
+    def data_pin(name, body=None, mode=0o444):
+        raw = canonical({'synthetic_DATA_only':True,'name':name} if body is None else body)
+        path = str(R/'validation/constructor-entry-DATA-inputs'/name)
+        blobs[path] = raw
+        return {'path':path,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'mode':mode}
+    candidate = data_pin('CANDIDATE.json')
+    pins = {key:data_pin(key+'.json') for key in factory.PIN_FIELDS}
+    request = {'schema':'fresh-round-request-v1','round_id':'fresh-metered-round-v1',
+        'label':factory.NAME,'command_sha256':candidate['sha256'],
+        'body_reservation_ns':110_000_000_000,'policy_sha256':pins['resource_policy_pin']['sha256'],
+        'phase_release_sha256':None}
+    opening = {'schema':'fresh-current-opening-binding-v1','opening_pin':data_pin('OPENING.json'),
+        'adoption_pin':data_pin('ADOPTION.json'),'funding_source_sha256':manifest['source_pins']['F']['sha256']}
+    original = {'schema':'s03-original-issued-role-inputs-v1','candidate_document_pin':candidate,
+        'request':request,'approved_opening':opening,'expected_head_pin':data_pin('HEAD.json',mode=0o600),
+        'phase':'INITIAL','cleanup_reservation_ns':2_000_000_000,
+        'complete_delivery_scope_sha256':hashlib.sha256(b'SYNTHETIC FULL SIX SCOPE').hexdigest(),
+        'pins':pins,'retention':{'schema':'SYNTHETIC_DATA_NOT_A_LIVE_RETENTION_BINDING'},
+        'capture_actual_grant_pin':data_pin('CAPTURE-GRANT-NOT-ISSUED.json'),
+        'original_actual_grant_pin':data_pin('ORIGINAL-GRANT-NOT-ISSUED.json')}
+    original['outer_actor'] = {'capture_bootstrap_pin':manifest['source_pins']['capture_bootstrap'],
+        'capture_source_pin':manifest['source_pins']['capture'],'source_policy_pin':pins['source_policy_pin'],
+        'resource_policy_pin':pins['resource_policy_pin'],'current_profile_pin':pins['current_profile_pin'],
+        'complete_delivery_scope_sha256':original['complete_delivery_scope_sha256'],
+        'body_reservation_ns':request['body_reservation_ns'],
+        'cleanup_reservation_ns':original['cleanup_reservation_ns']}
+    return original, blobs
+
+
+def run(manifest, manifest_pin):
+    factory, fp = module_source('role_contracts',manifest)
+    entry, ep = module_source('controller_bootstrap',manifest)
+    loader, lp = module_source('private_loader',manifest)
+    controller, cp = module_source('C',manifest)
+    original, blobs = fixture(factory,manifest,manifest_pin)
+    original_before = copy.deepcopy(original)
+    contracts = factory.construct(manifest_pin,manifest['source_pins'],original)
+    need(original == original_before, 'actual constructor must not mutate original request/input DATA')
+    cfg = contracts['roles']['CONTROLLER']['actor_contract']
+    need(all(set(cfg[key]) == {'path','bytes','sha256','mode'} and cfg[key]['mode'] == 0o444
+             for key in ('plan_pin','admission_pin')), 'actual constructor supplies original four-field pins')
+    pub = controller.ROOT/'control'
+    args = {'--plan':str(pub/(controller.NAME+'-PLAN.json')),
+            '--admission':str(pub/(controller.NAME+'-ADMISSION.json'))}
+    for key, arg in (('plan_pin','--plan'),('admission_pin','--admission')):
+        blobs[args[arg]] = blobs[cfg[key]['path']]
+    calls = []
+    def read_fixed(path, cap, expected=None, mode=0o444):
+        # Actual loader validator remains in use; the only replaced boundary
+        # is the explicit file transport. No H path or fixture file is opened.
+        loader.pin(expected)
+        need(expected['mode'] == mode == 0o444 and str(path) == expected['path'],
+             'full immutable four-field original input on every actual entry read')
+        raw = blobs[str(path)]
+        need(len(raw) == expected['bytes'] <= cap and hashlib.sha256(raw).hexdigest() == expected['sha256'],
+             'independent fixture bytes/hash')
+        calls.append((str(path),copy.deepcopy(expected)))
+        return raw
+    ports = SimpleNamespace(need=loader.need,read_fixed=read_fixed)
+    plan, admission = entry.authenticate_c2_pins(ports,cfg,args,controller)
+    expected = tuple({'path':args[arg],'bytes':cfg[key]['bytes'],'sha256':cfg[key]['sha256']}
+                     for key,arg in (('plan_pin','--plan'),('admission_pin','--admission')))
+    need((plan,admission) == expected and len(calls) == 4, 'independent literal constructor-to-entry projection')
+    for projected in (plan,admission):
+        need(set(projected) == {'path','bytes','sha256'}, 'original exact three-field public C2 API')
+        controller.exact_pin(projected)
+    need(all(set(row) == {'path','bytes','sha256','mode'} for unused,row in calls),
+         'mode retained through all full authentication reads')
+    # This is the original failure discriminator: unchanged C2 must still
+    # reject the full unprojected constructor pin, preserving its old contract.
+    rejected = False
+    try:
+        controller.exact_pin(dict(cfg['plan_pin'],path=args['--plan']))
+    except controller.AdapterStop:
+        rejected = True
+    need(rejected, 'predecessor four-field mismatch control must remain a refusal')
+    # Independent negative constructor data: weaker pin shape is not repaired
+    # by weakening its input API to the smaller downstream form.
+    weakened = copy.deepcopy(original)
+    weakened['pins']['plan_pin'].pop('mode')
+    refused = False
+    try:
+        factory.construct(manifest_pin,manifest['source_pins'],weakened)
+    except ValueError:
+        refused = True
+    need(refused, 'actual constructor preserves complete immutable source pin requirements')
+    need(factory.R == loader.R == entry.R == R and controller.JOINED_ROOT == R,
+         'actual complete module source literals select new round, never closed predecessor')
+    return {'schema':'s03-real-constructor-entry-C2-boundary-DATA-result-v1',
+        'status':'PASS','source_modules':{'constructor':fp,'entry':ep,'loader':lp,'controller':cp},
+        'cases':[{'case':'ACTUAL_CONSTRUCTOR_4_TO_AUTHENTICATED_ENTRY_3_TO_UNCHANGED_C2','status':'PASS'},
+                 {'case':'PREDECESSOR_UNPROJECTED_4_STILL_REFUSED_BY_C2','status':'PASS'},
+                 {'case':'CONSTRUCTOR_WEAKENED_3_INPUT_STILL_REFUSED','status':'PASS'},
+                 {'case':'NEW_ROUND_ACTUAL_MODULE_ROOT_ASSOCIATION','status':'PASS'}],
+        'full_authentication_read_calls':len(calls),'original_financial_owner_created':False,
+        'OS_or_resource_effects':0,'runtime_authority_issued':False,'execution_permission':False,
+        'scope':'Full actual source modules and real function boundaries; explicit counted synthetic file transport. No runtime/private-context/native/fit proof.'}
+
+
+def main():
+    parser=argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument('--manifest-bytes',type=int,required=True)
+    parser.add_argument('--manifest-sha256',required=True)
+    args=parser.parse_args()
+    raw=MANIFEST.read_bytes()
+    need(len(raw)==args.manifest_bytes and hashlib.sha256(raw).hexdigest()==args.manifest_sha256,
+         'exact parent-admitted final manifest')
+    manifest=json.loads(raw)
+    return run(manifest,{'path':str(MANIFEST),'bytes':len(raw),'sha256':args.manifest_sha256,'mode':0o444})
+
+
+if __name__ == '__main__':
+    print(json.dumps(main(),sort_keys=True))
