@@ -1,0 +1,45 @@
+# Exact finite contract and evidence boundary
+
+The source table is the current PR6719 recursive/core table for L=4,q=3,N=1. Its five-module construction closure is `recursive.py`, shape `producer.py`, and retained `router.py`, `counters.py`, `machine.py`. Before loading any source, authenticate all fourteen listed raw source objects and the three frozen metadata files. Construct once per process and require equality of the entire original program and metadata after the declared JSON normalization. The raw original table and complete packet are separate byte/provenance objects. Both first processes authenticated every object and matched the entire20897-instruction/25-tape original program plus metadata. The normalized table packet SHA256 is25f310685f3465e329f6fdfbf4de4954f7d2eca2bbde78ff3d9ee7ee083e404f.
+
+### Literal execution
+
+The table alphabet is branch, write, unit move, goto, halt and reject. Every instruction, including final HALT, costs one transition. Branch reads one scanned symbol and selects the literal explicit/default target; write and move fall through to PC+1; goto selects its fixed target. Branch/write visit the current head; move visits both endpoints; visits persist after erasure. Retained backing additionally includes all initial nonblank positions, even unvisited spectator cells. A dedicated semantic rejection is distinct from a parser bug, timeout, address cap or arbitrary exception.
+
+The prepared input has actual LEFT/BASE delimiters, three-bit logical-symbol encoding, canonical binary headers and raw unary depth. Logical blank000 consists of three nonblank physical digits. Positions through each root prefix/marker and far guards50000/50001 are immutable. Root source/A/R packets and entire width/depth tapes are write-protected, including idempotent writes; copied descendants beyond their owned markers may be changed. Final equality checks all actual tape maps and heads, not merely decoded output values or sparse support size. The source constructor does not prepare this entry, and this audit does not price its preparation.
+
+### Expected endpoint
+
+Write H=3^(w-1), A0=(4H)^d, R0=H and V0=4A0R0. A split bank l contains the parent indices `(4a+l)R+r`. For an internal node, the child descriptors are `A_child=A/(4H)` and `R_child=HR`. The complete child index is `a_child*4+l_child` together with the new inner coordinate `hR+r`; the identity
+
+`a_parent=(4*a_child+l_child)*H+h`
+
+`a_parent*R+r=(4*a_child+l_child)*(H*R)+h*R+r`
+
+preserves the whole parent bank, including earlier ancestor/body coordinates. At a leaf, complement bank0 and leave the other banks unchanged. At an internal node, transform complete banks0 and1 with the same rule, then merge all four banks. The two expected-output methods are separate implementations of this credited semantic target, not part of the executed table. The sparse recursive-vector primary and dense original-index oracle both checked every actual output bit, all four complete endpoints and all actual observer rows. Their entire392273-byte first packets agree, SHAd41ee0c061414355b94aa082c7e44f79508b6b63942cf1bdd489f544bd40514b.
+
+### Actual frame observations
+
+Read-only observation happens before the recorded event instruction. Node observations decode actual source/A/R/H and unary depth. Grant observations decode the actual current frame and both child grants, require the exact divisor/product and compare the selected complete bank. All bit fields retain literal bit lists.
+
+At push entry, capture every K payload map/head and complete control/phase map/head. At pop exit, compare actual restored maps and heads with that snapshot before computing digests; restored depth is checked separately. Capture actual changed child output before retirement, require its complete copy in the global relay before destruction, and consume the matching snapshot/output at return. The root endpoint requires empty observer stacks, exact borrowed inputs/heads, exact encoded owned output, and blankness/head restoration of every other owned body. A host snapshot is evidence only: it supplies no program continuation or restored data.
+
+### Controls and limits
+
+Five ordered table controls are fixed before the first run: skip output protection; omit RETURN's depth-left move; wire grant H to current R in a depth-one case; apply that same wrong wire at depth two; swap restored phase targets. The first, second, fourth and fifth must fail intended dispatcher/observer/endpoint checks. The depth-one wrong-H case must pass all the healthy checks, since R0=H and there is no grandchild grant. At depth two the true child has A=12,R=9,H=3, so using current R instead of H cannot produce its next valid grant. This is a controlled relaxation of a source premise, not a source counterexample. Both actual first runtimes rejected all four specified semantic mutants and accepted the one-edge wrong-H positive control through all healthy checks. Generic exceptions/caps do not count as semantic rejection.
+
+Frozen resource gates are five million transitions/case, 180 seconds/process, an8MiB expanded-table bound and visited positions in[-8,40000]; peak128MiB was a forecast; first measured RSS was53035008bytes(primary) and56377344bytes(oracle), with1.164s and1.917s elapsed onPython3.12.14. Host-specific observations do not prove universal resource bounds. Far spectators remain retained support outside the permitted visited interval. Preserve any failed first attempt or exceeded gate; do not change the domain or relabel a corrected run as an unchanged first.
+
+### What finite agreement would establish
+
+After actual completion, two engines can corroborate the complete emitted-table endpoint, input restoration, frame observations and physical backing on these four inputs. Their complete packets must be compared, including all bit lists and cell/head/visit data, not just summaries. Their constructor dependency is shared, and finite execution does not prove the general source theorem. The earlier source-aware written review and the author's general theorem remain separately scoped predecessors. Native arbitrary-array implementation, universal compiler/cost claims, numerical semantics, actual outer caller and all five selected assumptions are not supplied here.
+
+## Observed evidence and preserved correction
+
+The four healthy transition counts, charging actual HALT, are3920,113359,1426487,787049 (total2330815), with retained backing446,2556,24053,17604. Actual observations contain14nodeentries,10grants and10returns; every full bit list, final cell map, head and persistent visited position is in both retained packets. These are finite literal-machine transition/backing measurements, not a complete physical or paid supplier invoice. Initialization, shared construction and external observer work are outside the table transition counts and are not assigned zero cost.
+
+Original first code hashes are81fe817444ac435262a82999b031df8c17a682023b3c063c602e80784cd0e2ad(primary) and86326975f4e7c6e857439df021a16d3da76a89ade30b463b3e01b8a5847ead68(oracle). Both code/data sets were sealed before either execution; no peer result/code was read by the authors until both first runs completed. The source-aware constructor dependency and the coordinator's earlier inert source/initializer reading are disclosed; no source-unexposed discovery is claimed. A pre-first schema clarification specified literal bit lists, preserving the original common metadata. An unexecuted oracle draft with overly broad error classification and unbounded gzip expansion was preserved and corrected before either first.
+
+Post-first crossreview found that the oracle guard covered populated negative-prefix cells but omitted initially blank positions−8..−3. Actual healthy visits are all>=7, so this did not affect the retained four first traces. The public oracle adds exactly `tape.head > pref` to its write predicate, protecting every position<=prefix, including idempotent BLANK writes. Public oracle SHA2565f6c7bbe0def1d9ffc84d70a0eb9fb1b0b8ca58d28e64e72ec8f90cf850bb2ef. Its normal/optimized whole-packet replays preserve the exact392273bytes; these are labelled post-first corrected checks, not relabelled first runs. Four targeted actual dispatcher programs attempting idempotent BLANK writes at−3,−8,0,7 reject specifically at the protection gate. Original first code/packets and correction receipts are retained separately.
+
+The original40CLI rejection checks and20additional corrected-oracle checks cover missing/malformed/noncanonical packets, changed steps/nodebits/finalcells/visits/control outcomes and altered source/contract bytes. They are verification checks, not further independent mathematical discoveries. Registered normal/optimized commands recompute the complete actual packet rather than checking status flags. See FIRST-RUNS.json, POST-FIRST-GUARD-CORRECTION.json, CLI-REJECTIONS*.json and NEGATIVE-PREFIX-CONTROLS.json. Final registered/cold/archive/publication checks are documented in VALIDATION.md.
