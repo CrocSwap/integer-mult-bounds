@@ -4,8 +4,9 @@ This note derives the scalar/basis implication. Two separately sealed external
 engines now compute the actual prefix equations, literal word alignment and
 complete final diagonal. Their complete 21,141-byte certificates agree; see
 `BLIND-FIRST-COMPARISON.json`. The formal LOCAL contract remains inherited.
-No result receipt, independent.py or verify.py was read; no source/new scientific
-program was imported, compiled or executed. The authorized scalars.py,
+The source-aware written-derivation role read no result receipt, independent.py
+or verify.py and did not run source or new scientific engines. The coordinator
+separately executed the two sealed new engines reported below. The authorized scalars.py,
 algebra.py and caller.py were exposed as inert text solely for the exact
 instruction/ring contract; caller.py contains construction/replay/control
 definitions, so this exposure is disclosed rather than called fully blind.
