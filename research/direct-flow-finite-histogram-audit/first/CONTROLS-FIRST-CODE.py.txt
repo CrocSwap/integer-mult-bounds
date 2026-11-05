@@ -1,0 +1,116 @@
+"""Six frozen actual-code mutations, compared with the complete healthy case."""
+import json
+from pathlib import Path
+
+REFERENCE_FILE = 'CONTROLS-FIRST.json'
+
+MUTANTS = (
+    ('actualsource_unsafe_empty_batch_prune', 'revival16',
+     '                batch = self.units(depth, rho)\n',
+     '                batch = self.units(depth, rho)\n                if not batch:\n                    continue\n'),
+    ('actualsource_terminal_output_cap', 'raw121',
+     '                    if depth == self.G:\n',
+     '                    if depth == self.G:\n                        if new_rho > self.cap:\n                            continue\n'),
+    ('actualsource_paid_multiplicity_drop', 'raw121',
+     '                    copies = paths*repetitions\n',
+     '                    copies = paths\n'),
+    ('actualsource_multinomial_comb_drop', 'multiplicity18',
+     'weight*comb(remaining, count)*w**count', 'weight*w**count'),
+    ('actualsource_zero_complement_denominator_drop', 'raw121',
+     "'source_count': sum(sources.values())", "'source_count': sum(v for s,v in sources.items() if s < self.n)"),
+    ('actualsource_boundary_histogram_drop', 'partial50',
+     "'boundary_exits': boundary", "'boundary_exits': Counter()"),
+)
+
+
+def build_packet(contract, raw_inventory):
+    import importlib.util
+    base = Path(__file__).resolve().parent
+    spec = importlib.util.spec_from_file_location('_local_source_eval', base/'source_eval.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    invoke = module.invoke
+    text = (base/'inputs/flow.py.txt').read_text()
+    healthy = json.loads((base/'FIRST.json').read_text())['cases']
+    cases = {x['id']: x for x in contract['cases']}
+    if set(healthy) != set(cases):
+        raise ValueError('healthy case set drift')
+    for case_id, case in cases.items():
+        if invoke(case, raw_inventory, text) != healthy[case_id]:
+            raise ValueError('complete healthy baseline drift: '+case_id)
+    result = []
+    for name, case_id, before, after in MUTANTS:
+        if text.count(before) != 1:
+            raise RuntimeError('mutation site not unique: '+name)
+        altered = text.replace(before, after, 1)
+        try:
+            actual = invoke(cases[case_id], raw_inventory, altered)
+        except ValueError as error:
+            result.append({'control': name, 'case': case_id, 'outcome': 'source_guard_rejected', 'message': str(error)})
+            if name in (MUTANTS[0][0], MUTANTS[4][0], MUTANTS[5][0]):
+                raise RuntimeError('control intended to bypass scalar guards did not do so: '+name)
+            continue
+        differences = [k for k in sorted(actual) if actual[k] != healthy[case_id][k]]
+        if not differences:
+            raise RuntimeError('actual mutant escaped whole-case comparison: '+name)
+        mass = lambda h: sum(k*v for k,v in h)
+        balanced = mass(actual['sources'])-mass(actual['exits']) == actual['rank_one_surplus']*actual['column_mass']
+        if name == MUTANTS[0][0] and not balanced:
+            raise RuntimeError('empty-batch control did not retain the scalar identity')
+        result.append({'control': name, 'case': case_id, 'outcome': 'whole_case_changed', 'changed_fields': differences, 'rank_one_identity_still_holds': balanced, 'mutated_case': actual})
+    return {'schema': 'finite-flow-actual-mutation-audit/1', 'controls': result}
+
+
+# Shared coordinator-authored byte/CLI wrapper; not an independent math model.
+def _run_cli():
+    import argparse
+    import hashlib
+    import json
+    from pathlib import Path
+    base = Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(description='Complete finite flow certificate')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--emit', type=Path)
+    mode.add_argument('--check', action='store_true')
+    args = parser.parse_args()
+    contract_raw = (base / 'CONTRACT.json').read_bytes()
+    if hashlib.sha256(contract_raw).hexdigest() != '4fc49527e728be80abaa4c5f7f0bd62da30afaea70b71be2c77b8457136da1f1':
+        raise ValueError('contract byte drift')
+    pins_raw = (base / 'SOURCE-PINS.json').read_bytes()
+    if hashlib.sha256(pins_raw).hexdigest() != 'a533c5c9513470c2294c3b6217caf052eca63ce568a075d35e5f6c2251358812':
+        raise ValueError('source manifest byte drift')
+    for row in json.loads(pins_raw)['objects']:
+        data = (base / row['local_path']).read_bytes()
+        blob = hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+        if len(data) != row['bytes'] or hashlib.sha256(data).hexdigest() != row['sha256'] or blob != row['git_blob']:
+            raise ValueError('source byte drift: '+row['local_path'])
+    # These fixed mathematical inputs cannot be replaced by changing pin metadata.
+    if hashlib.sha256((base/'inputs/flow.py.txt').read_bytes()).hexdigest() != '460f0b0262d7b6880973f46240b3fff1e9f04601fa1d658dda18688b1e26575a':
+        raise ValueError('canonical flow drift')
+    raw = (base/'inputs/p7-RESULT.json.txt').read_bytes()
+    if hashlib.sha256(raw).hexdigest() != '9b814be97e3b45fcc28eafa8a65694897a7387f71a14d44796c6aadf303d7fab':
+        raise ValueError('raw inventory drift')
+    contract, inventory = json.loads(contract_raw), json.loads(raw)
+    if 'build_packet' in globals():
+        packet = build_packet(contract, inventory)
+    else:
+        packet = {'schema': contract['schema'], 'cases': build_cases(contract, inventory)}
+    encoded = json.dumps(packet, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii')+b'\n'
+    if args.emit is not None:
+        if args.emit.exists():
+            raise ValueError('refusing to replace first packet')
+        args.emit.write_bytes(encoded)
+    else:
+        reference = base / globals().get('REFERENCE_FILE', 'FIRST.json')
+        if encoded != reference.read_bytes():
+            raise ValueError('complete packet mismatch')
+    print('PASS_COMPLETE_FINITE_FLOW', hashlib.sha256(encoded).hexdigest(), len(encoded))
+
+
+if __name__ == '__main__':
+    try:
+        _run_cli()
+    except (ValueError, OSError) as error:
+        import sys
+        print('FAIL_COMPLETE_FINITE_FLOW', error, file=sys.stderr)
+        raise SystemExit(1)
