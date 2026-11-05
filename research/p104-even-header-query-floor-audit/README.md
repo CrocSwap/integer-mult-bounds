@@ -1,0 +1,17 @@
+# Even-header query floor: external source-bound audit
+
+PR6726's existing 33-query floor remains valid when free ordinary normalizers depend evenly on q², including the literal lambda gates. This package spells out the sector proof and independently checks the exact scalar-header specialization of its 606-event, 34-input caller. It claims an external qualification and application audit, not discovery of the floor.
+
+Set all 18 body symbols to one in Q(i)[q]/(q4-1). The raw endpoint is 32 q^-1 diagonal entries plus two identities on arbitrary original inputs. For r>=1 odd target directions, invertible even ordinary gates and one-row paid odd shears imply M>=r+1; r=0 has floor zero. Both theta sectors of the literal word have even-part rank trace 34 -> 34 -> 33 -> ... -> 2, matching its 33 queries. The written proof handles the universal class; finite replay establishes this source application.
+
+The separately sealed direct A/B and four-character engines produced the same complete 56,434-byte certificate, SHA256 `f9203bdcf39e4f14bd85520d564c9412ad1d8b4835e9863935cf7f4ee72742ff`: 4,624 final Gaussian cells, 132 before/after ranks, complete census and four actual changed-word controls. Sixty actual CLI corruptions were rejected under normal and optimized Python. No source scientific program was executed. Coordinator/oracle-author historical exposure to inert source definitions is disclosed in [PROOF.md](PROOF.md); these are code-disjoint, source-aware checks.
+
+Run Python3.12 `primary.py` and `oracle.py` from any working directory; each recomputes and byte-compares its entire actual retained certificate. VERIFY.json registers both normal and optimized runs, no dependencies, each bounded180s. SOURCE-PINS.json binds eight retained source objects (87,033 bytes) to zxv's [PR6726](https://github.com/CrocSwap/integer-mult-bounds/pull/6726), head435bbe91fb28cb1d7a569ca70c6c4e9eb302d486. The instruction contract and proof state the exact formal assumptions.
+
+Credit: Matarener's [PR6114](https://github.com/CrocSwap/integer-mult-bounds/pull/6114) parity-rank method and [PR6120](https://github.com/CrocSwap/integer-mult-bounds/pull/6120) boundary repair; Cinna Davis's GLOBAL/parity lineage; zxv's PR6726 word, floor and author checks; thu-nmrc, DreamingOfClouds, Ali Romman, Rohan Arun, ChaloupeMusic, Jacob Alan Sussman and retained native/caller contributors in the source notices. The separate PR6733 second-fragment audit is predecessor context and is not counted again. Substantial OpenAI Codex assistance; separate AI implementation authors and source-aware reviews; no human or proof-kernel acceptance.
+
+The bound excludes free odd ordinary controls, prephased/initialized/discarded input axes and paid primitives that can alter several rows at once. Full physical/native action, absolute native phase, complete invoice, ownership/erasure, compiler/precision/tape, analytic recovery and all five selected framework assumptions remain open. Selected6030, kappa781451/250000000 and frontier are unchanged. See [TASK.json](TASK.json), [PROOF.md](PROOF.md) and retained notices. Apache-2.0.
+
+## Open next questions
+
+Can a concrete changed caller bind every actual native port and absolute phase to a complete paid/ordinary invoice? Pin the native source and caller schedule, then audit a complete interface implication; scalar-header correctness alone cannot supply it. Native all-columns, owned erasure, compiler, precision tape and analytic recovery remain separate obligations. No work is reserved by this handoff.
