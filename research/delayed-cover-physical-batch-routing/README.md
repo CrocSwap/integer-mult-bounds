@@ -1,88 +1,94 @@
-# Physical split and return for delayed-cover batches
+# Literal delayed-cover routing and recursive shape production
 
-For every fixed low-type count L>=2, two finite programs on L+7 tapes split
-an arbitrary stream indexed by (a,l,r) into its L complete banks and merge
-arbitrary returned banks into the original address order. Positive extents
-A,R arrive as binary tape data. The running programs use only local symbol
-branches, writes and unit moves. They preserve inputs, return every head,
-erase scratch and its markers, and use at most94V transitions and13V visited
-cells, where V=A*L*R. Previously visited backing is retained in the space bill.
+This package physically implements delayed-cover split/return, root shape
+production and on-path child descriptors in a fixed-width recursive grammar.
+The new program receives positive binary T, R_body and w, unary depth d and
+an arbitrary complete payload. A,R,H start blank. Literal tape instructions
+produce
 
-This physically implements the exact child-batch boundary left as a reference
-address map in Ali Romman's PR5829. With its actual parameters, the runtime
-block includes every fresh high matrix, ancestor high field and body spectator;
-the child volume remains V/L. No input is dropped and no copied output earns
-new productive credit. The address map, cover, ancestor-weight rule and
-geometric allocator are predecessor results.
+    H=q^(N*N*(w-1)), A0=T*(L*H)^d, R0=H*R_body,
+    A_child=A_parent/(L*H), R_child=H*R_parent.
 
-[PROOF.md](PROOF.md) supplies the unbounded induction, exact action/space ledgers
-and source application. `core/` contains the new router, complete fixture tables,
-unchanged David Arias PR2776 machine/counter sources, authenticated predecessor
-documents and read-only exact controls. `independent/` contains a separately
-written transition interpreter and static proof review; it does not execute the
-producer's Machine/Tape classes. Both implementations are author-side evidence.
+Every child produces its own next grants from its live frame before suspension. One finite
+instruction table controls split, two statically named child sites, physical
+suspension, protected output-before-pop and merge at every finite depth.
+No runtime host arithmetic, decoded descriptor, host recursion, callback or
+per-depth tape allocation supplies these operations. The leaf complements bits;
+an ordinary BIT/Gaussian supplier remains a separate obligation.
 
-The physical suspension/return composition is included separately with its own
-explicit semantic leaf and production limits. Its changed child output is saved
-before destructive pop, then installed in the parent address order. It does not
-substitute a saved original input for the returned child data.
-It preserves the real H>1 child-shape update, with A_parent=L*H*A_child and
-R_child=H*R_parent. Its fixed compiled inventory is K+7 tapes,
-K=max(16,L+8); the original small cases use23 and the L9 control uses24.
+For L=4,q=3,N=1, the complete natural-root program has 31,821 instructions on
+27 fixed tapes, independent of width/depth. From T=R_body=1,w=2,d=2 it generates
+root A144/R3/H3 and executes seven actual nodes and six physical returns:
 
-The successor in `shape/` removes the two supplied child-shape grants at one
-root-before-stack boundary. A literal nine-tape table reads physical binary
-parent A, common H and parent R, generates A_child=A/(L*H) and R_child=H*R,
-and erases its conversion work. Its directly linked table then runs the actual
-child router on ONE parent bank, whose volume is V/L. A real L4/H3 GL1(F3)
-case feeds those encoded grants through the retained codec, two physical child
-continuations and return-before-pop. It uses K+12=28 fixed tapes, preserves the
-root A/R and H headers, and pays all owned grant/copy/scratch consumption.
-The bit-complement leaf remains explicit. Generating H from width, numerical
-ancestor weights and arbitrary-depth production traversal remain open.
+    (A,R,V)=(144,3,1728) -> (12,9,432) -> (1,27,108).
 
-This is source-bound physical glue. The standard binary arithmetic and prior
-Good/Pair/ancestor descriptor evaluators retain their predecessor authorship.
-`shape-independent/` contains a separately written literal transition walker;
-it executes the producer's emitted tables without its Machine/Tape classes.
-It checks256 descriptor cases and32 direct child splits with separate exact
-oracles and rejection controls. All these reviews and checks are author-side.
+This case uses 1,449,116 microtransitions and 23,807 visited cells. Original
+input bytes and heads survive; generated root/child grants, guides, relays,
+control and scratch are physically erased. Erased backing stays charged.
+The same table runs four natural-root cases. Five actual instruction faults
+reject; the stale-H fault passes one edge and fails at grandchildren.
 
-Reproduce with Python3.12 and its standard library:
+[recursion/root/PROOF.md](recursion/root/PROOF.md) proves root production and its
+O_template(V0) setup/cleanup bound by geometric growth, including d=0. The exact
+retained [recursive core proof](recursion/core/PROOF.md) supplies the all-depth
+address/return induction and actual occurrence-sum time/geometric active-chain
+space bill. For the two sites, sum_nodes V_node=V0*sum_(j=0..d)(2/L)^j.
+These are scoped written proofs, not conclusions inferred from finite tests.
+The full tree is not assigned the isolated router's 94V bound.
+
+## Retained stages and provenance
+
+The original [PROOF.md](PROOF.md), core/, independent/, composition/, shape/
+and shape-independent/ remain exact earlier stages. Their one-edge limits and
+ten-replay description refer to those stages. The isolated split/merge still
+has L+7 tapes and bounds 94V time/13V visited cells. The separate router/shape
+walkers retain their original coverage; they are not a second interpreter for
+the new recursion.
+
+recursion/core and recursion/root retain exact frozen production packets,
+tables, receipts and FILES manifests. The root packet contains the complete
+unchanged core; only two declared instruction links change in its linked table.
+The new recursive builder/root prefix are authored in this publication. Eight
+retained inputs have actual 3bad Git-tree/blob pins, in addition to the original
+thirty generic source pins. recursion/CUSTODY.json authenticates the two new artifact
+manifests; a private seal is not a historical source or scientific admission.
+recursion/REVIEW.json records separate author-side static/source/proof review
+and targeted controls. Historical pending-review fields in frozen packets are
+preserved; the later review does not rewrite their evidence.
+
+PR5829 by Ali Romman supplies whole-high addresses, V/L contraction and allocator
+lineage. PR2776 by David Arias supplies the finite machine/counter/assembler.
+Retained stack, codec and protected-return sources keep their original credit.
+Generic arithmetic, Good/Pair/ancestor evaluators and geometric sums retain
+predecessor credit; the new result is this source-bound literal connection.
+
+## Reproduction and limits
+
+Python3.12, standard library only:
 
 ```sh
 python3.12 -B scripts/research_package.py --package research/delayed-cover-physical-batch-routing
 ```
 
-The registered checks cover normal and optimized modes. They authenticate exact
-source bytes and compare frozen scientific receipts. The original six registered
-commands remain unchanged; two mode-specific `shape_checks.py` hooks each run
-the shape verifier and its separate walker sequentially. Thus eight registered
-commands execute ten scientific replays. Twenty generic source pins refer to
-the canonical base and ten to reachable own-ancestor source objects; the original
-seventeen pins remain intact. The seventeen shape input copies are also bound
-explicitly. Standalone scientific checks need no network or Git checkout. Small executions corroborate the written theorem; they do not
-prove the entire multiplication theorem or establish external scientific adoption.
+Eight registered commands execute fourteen scientific replays in normal and
+optimized modes. The first six commands are unchanged. Each shape_checks driver
+retains the original two checks, then runs the authenticated recursive core and
+natural-root checks. Standalone scientific checks need no Git or network and are
+read-only by default. Verification orchestration is outside the literal runtime.
 
-The boundary consumes valid binary headers and distinct owned ports. Child
-A/R grant production from parent A/H/R is implemented for one edge. Root extent
-and H-from-width production, full numerical ancestor-weight evaluation, deeper
-descriptor lifetimes, right-route/fallback machinery, Gaussian children and
-numerical precision remain separate source obligations.
-All five project assumptions retain their status. There is no new kappa,
-paid-profile improvement or selected-frontier change.
+Outer integer-input T/w/depth production, numerical ancestor weights, actual
+BIT/Gaussian leaves, final-template route/fallback/stock and precision remain
+separate interfaces. The actual final template keeps its own call multiplicity
+and complete bill. All five project assumptions remain. No new paid profile,
+kappa, selected-frontier change or external scientific acceptance is claimed.
 
 ## Open next questions
 
-- Generate the common H/root headers from their actual production descriptor,
-  bind the charged ancestor-weight evaluator to full exposed-header ports, and
-  preserve those descriptors through a genuinely deeper suspension/return.
-- Complete the route/fallback, Gaussian-child and numerical-return applications
-  before considering a whole framework-assumption discharge.
+- Bind one exact numerical ancestor-weight or ordinary BIT source obligation to
+  this recursive skeleton, with actual ports, ownership and complete pricing.
+- Produce an outer descriptor or final-template route/precision interface before
+  considering a whole framework-assumption discharge. TASK.json records blockers.
 
-First steps and blockers are recorded in TASK.json. Credit
-remains with Ali Romman for the batch geometry and allocator lineage, David Arias
-for the literal machine/counter and stream implementation lineage, and the retained
-segment/codec/output-return authors for physical suspension. The new source-bound
-physical lowering was prepared for thu-nmrc with substantial OpenAI Codex and
-parallel-agent assistance. Original notices are retained. Apache-2.0.
+Prepared for thu-nmrc with substantial OpenAI Codex and parallel-agent assistance.
+The separate reviews are author-side AI-assisted evidence. Original notices
+remain exact. Apache-2.0.
