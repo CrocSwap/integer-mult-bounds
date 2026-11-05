@@ -1,0 +1,5 @@
+# Qualifications preserved in the assembled proof
+
+Original WIDTH-PROOF-DRAFT remains in sessionreceipts. Before scientific freeze, the coordinator clarified two points in assembledPROOF: bitlength normalization must also use a base2 logarithm in the denominator (otherwise a1/ln2conversion remains); and all-N arithmetic-guard/recurrence correctness is under ideal sufficient exact-integer resources, not a promise that a fixed Python host can allocate/serialize/finish everyN. No numerical/source/compiler/kernel run or physical resource claim is made.
+
+The assembled proof also includes the independently sealed adversarial writtencontrols and the actual fully expanded caller-count derivation from the separate code review. Originalnotes are unchanged. The finite/source upper bounds and counts retain source authorship; the added result is the fixed old-policy uniform lower/product/floor analysis, not an optimal or allcompiler lower bound, exact asymptotic coefficient, dispute of prior finitevalues or normalizedleafsaving obstruction.
