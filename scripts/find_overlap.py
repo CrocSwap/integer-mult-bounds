@@ -399,12 +399,17 @@ def local_coverage(root, records):
             if not entry:
                 continue
             metadata, path = entry.split("\t", 1)
-            mode, kind, _ = metadata.split()
-            parts = PurePosixPath(path).parts
+            # Git tree paths already have canonical slash-separated components.
+            # Filter before parsing metadata; most entries are nested vendor or
+            # evidence files, outside this deliberately shallow note inventory.
+            parts = path.split("/")
             in_scope = (path == "docs/research/pr-ledger.md"
                         or (len(parts) == 3 and parts[0] == "research"
                             and parts[2] in ("README.md", "TASK.json")))
-            if in_scope and kind == "blob" and mode in ("100644", "100755"):
+            if not in_scope:
+                continue
+            mode, kind, _ = metadata.split()
+            if kind == "blob" and mode in ("100644", "100755"):
                 expected.add(path)
     except (OSError, subprocess.SubprocessError, ValueError) as exc:
         return coverage, ["local: HEAD note inventory unavailable; local coverage is unknown. "
