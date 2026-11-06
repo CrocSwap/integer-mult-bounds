@@ -1,0 +1,152 @@
+--- predecessor/implementation/native/science_view_entry.c
++++ candidate/implementation/native/science_view_entry.c
+@@ -19,6 +19,7 @@
+ #include <linux/sched.h>
+ #include <linux/seccomp.h>
+ #include <linux/securebits.h>
++#include <sched.h>
+ #include <signal.h>
+ #include <stdbool.h>
+ #include <stddef.h>
+@@ -40,6 +41,9 @@
+ #error The entry is the reviewed native LP64 x86-64 ABI only
+ #endif
+ _Static_assert(sizeof(void *) == 8 && sizeof(long) == 8, "LP64 required");
++#if !defined(SYS_fsopen) || !defined(SYS_fsconfig)
++#error Selected Linux x86-64 build headers must declare fsopen and fsconfig syscall numbers
++#endif
+ 
+ /* Selected v6.12 UAPI shapes, intentionally independent of libc header age. */
+ struct sv_mount_attr { uint64_t attr_set, attr_clr, propagation, userns_fd; };
+@@ -52,6 +56,10 @@
+ #define SV_MOVE_TO_EMPTY 0x40U
+ #define SV_MOUNT_RDONLY UINT64_C(1)
+ #define SV_MOUNT_NOSUID UINT64_C(2)
++/* Linux-v6.12 include/uapi/linux/mount.h values. Local names avoid requiring
++ * mutually varying libc/kernel mount-header enum definitions in one TU. */
++#define SV_FSOPEN_CLOEXEC 1U
++#define SV_FSCONFIG_CMD_CREATE 6U
+ #define SV_FS_EXEC (UINT64_C(1)<<0)
+ #define SV_FS_WRITE (UINT64_C(1)<<1)
+ #define SV_FS_READ (UINT64_C(1)<<2)
+@@ -87,6 +95,7 @@
+ static bool uncertain, error_overflow, user_entered, mount_entered;
+ static bool root_private, root_readonly, artifact_attached, usage_attached;
+ static bool landlocked, filtered;
++static bool dispatch_attempted, dispatch_created, dispatch_context_closed;
+ static uid_t uid;
+ static gid_t gid;
+ static int stdin_status_flags;
+@@ -358,6 +367,34 @@
+     mount_entered=true;
+     if(mount(NULL,"/",NULL,MS_REC|MS_PRIVATE,NULL)<0)return failed("recursive-private-root");
+     root_private=true;return true;
++}
++static bool create_private_binfmt_dispatch(void) {
++    /* The selected operating TCB is Linux-v6.12 CONFIG_BINFMT_MISC=y with
++     * successful built-in filesystem registration. This is a precise source
++     * selection, never a supplied flag or host-support claim: get_fs_type must
++     * find the registered implementation without request_module. Actual image
++     * association is a separate mandatory parent admission before execution.
++     *
++     * In our fresh user namespace bm_fill_super initializes an empty list and
++     * publishes user_ns->binfmt_misc. No fsmount/visible mount is constructed.
++     * Closing this unattached context drops its superblock, not that namespace
++     * instance. It continues to shadow every ancestor handler until userns
++     * destruction; later creation/registration/import is denied by lockdown.
++     */
++    if(!require(user_entered&&mount_entered&&root_private&&!dispatch_attempted&&
++        !root_readonly&&!landlocked&&!filtered,"once-private-dispatch-before-view-and-lockdown"))return false;
++    int slot=reserve("private-binfmt-fsopen");if(slot<0)return false;
++    dispatch_attempted=true;
++    int context=acquired(slot,syscall(SYS_fsopen,"binfmt_misc",SV_FSOPEN_CLOEXEC));
++    if(context<0)return false;
++    bool created=true;
++    if(syscall(SYS_fsconfig,context,SV_FSCONFIG_CMD_CREATE,NULL,NULL,0)<0) {
++        /* Save the actual create errno BEFORE the once-close can replace it. */
++        created=failed("private-binfmt-fsconfig-create");
++    } else dispatch_created=true;
++    bool closed=close_once(context);
++    if(closed)dispatch_context_closed=true;
++    return created&&closed&&!uncertain;
+ }
+ static int clone_mount(int fd,const char *site) {
+     int slot=reserve(site);if(slot<0)return -1;
+@@ -614,9 +651,10 @@
+     char out[SV_REPORT_CAP];size_t used=0;
+ #define APPEND(...) do { int amount=snprintf(out+used,sizeof out-used,__VA_ARGS__); \
+     if(amount<0||(size_t)amount>=sizeof out-used){uncertain=true;goto emit;} used+=(size_t)amount; } while(0)
+-    APPEND("{\"schema\":\"h25-native-view-setup-failure-v1\",\"exit\":78,\"science_started\":false,\"uncertain\":%s,\"error_overflow\":%s,\"user_entered\":%s,\"mount_entered\":%s,\"root_private\":%s,\"root_readonly\":%s,\"artifact_attached\":%s,\"usage_attached\":%s,\"landlocked\":%s,\"filtered\":%s,\"errors\":[",
++    APPEND("{\"schema\":\"h25-native-view-setup-failure-v1\",\"exit\":78,\"science_started\":false,\"uncertain\":%s,\"error_overflow\":%s,\"user_entered\":%s,\"mount_entered\":%s,\"root_private\":%s,\"root_readonly\":%s,\"artifact_attached\":%s,\"usage_attached\":%s,\"landlocked\":%s,\"filtered\":%s,\"private_dispatch_attempted\":%s,\"private_dispatch_created\":%s,\"private_dispatch_context_closed\":%s,\"errors\":[",
+         uncertain?"true":"false",error_overflow?"true":"false",user_entered?"true":"false",mount_entered?"true":"false",
+-        root_private?"true":"false",root_readonly?"true":"false",artifact_attached?"true":"false",usage_attached?"true":"false",landlocked?"true":"false",filtered?"true":"false");
++        root_private?"true":"false",root_readonly?"true":"false",artifact_attached?"true":"false",usage_attached?"true":"false",landlocked?"true":"false",filtered?"true":"false",
++        dispatch_attempted?"true":"false",dispatch_created?"true":"false",dispatch_context_closed?"true":"false");
+     for(size_t i=0;i<error_count;i++)APPEND("%s{\"site\":\"%s\",\"errno\":%d}",i?",":"",errors[i].site,errors[i].number);
+     APPEND("],\"resources\":[");
+     for(size_t i=0;i<fd_count;i++)APPEND("%s{\"site\":\"%s\",\"fd\":%d,\"state\":%d}",i?",":"",fds[i].site,fds[i].fd,(int)fds[i].state);
+@@ -661,7 +699,7 @@
+      * stdin is explicitly reestablished by make_view; pipes retain only the
+      * selected relay-writer authority. */
+     close_all();if(uncertain||error_count)okay=false;
+-    if(okay)okay=enter_namespaces()&&make_view(argv)&&drop_privilege()&&install_landlock();
++    if(okay)okay=enter_namespaces()&&create_private_binfmt_dispatch()&&make_view(argv)&&drop_privilege()&&install_landlock();
+     close_all();if(uncertain||error_count)okay=false;
+     if(okay)okay=fd_census();
+     /* Re-open authenticated time in the FINAL view for a second stable hash;
+--- predecessor/implementation/native/VIEW-ENTRY-CONTRACT-v1.md
++++ candidate/implementation/native/VIEW-ENTRY-CONTRACT-v1.md
+@@ -37,7 +37,7 @@
+ 1. Check actual unprivileged equal real/effective/saved UID and GID, empty initial capability sets, genuine proc superblock, exactly one native task and no direct child. The authenticated fresh launch plus the entry's absence of any task-creation call supplies the no-prior-descendant premise. `/dev/null` stdin must be read-only with native major/minor1:3. Stdout/stderr must be distinct blocking FIFO write ends with CLOEXEC clear, not regular captures or sockets.
+ 2. Install and read back the explicit Linux-v6.12 core profile `(1,1)`. An inherited hard CORE below1 refuses before science. This special value suppresses pipe core-handler dispatch in the selected source and is below the file core minimum. Unlike CORE=0, it is not an assumption that pipe handlers obey the ordinary file limit. Final seccomp denies every setrlimit CORE change and every prlimit CORE mutation, including lowering it to0; a NULL-new-limit query remains available. Preservation of required original fault-control observations under this profile is a named Q fact.
+ 3. `unshare(CLONE_NEWUSER)`; write one mapping `uid uid 1`; write `deny` to setgroups before the one mapping `gid gid 1`; check the same numeric IDs. The underlying UID/GID are preserved. Other IDs, supplementary-group representations and named ACL values are not claimed to have unchanged user-namespace representations. No setgroups call clears the original kernel supplementary group list.
+-4. `unshare(CLONE_NEWNS)` copies the original mount tree and remaps root/cwd. Do not create a PID namespace, pivot_root, chroot, session, process group or child. Set recursive private propagation.
++4. `unshare(CLONE_NEWNS)` copies the original mount tree and remaps root/cwd. Do not create a PID namespace, pivot_root, chroot, session, process group or child. Set recursive private propagation. Before `make_view`, capability drop, descendants or exec, reserve one FD birth, actually call `fsopen("binfmt_misc",FSOPEN_CLOEXEC)`, immediately acquire the returned descriptor, then call `fsconfig(fd,FSCONFIG_CMD_CREATE,NULL,NULL,0)` once. Record any actual create errno before the one close attempt. Close the context before progressing; any create/close failure stops setup, including uncertain close. No `fsmount`, visible registry mount, host registry change or helper is used.
+ 5. Resolve and validate writable clone sources **in the copied namespace**, then create detached nonrecursive `open_tree(CLONE|CLOEXEC|AT_EMPTY_PATH)` clones of exactly the empty artifact parent and exact usage file. Add NOSUID to each; no preexisting stricter flag is cleared.
+ 6. On the copied root, `mount_setattr(AT_EMPTY_PATH|AT_RECURSIVE)` adds RDONLY|NOSUID. Attach the two detached clones by exact O_PATH/owned directory target handles with move_mount EMPTY_PATH flags. No writable clone of a capture directory, cwd, source tree or administration tree is made. The parent-created science leaf stays absent for the unchanged scientific exclusive mkdir.
+ 7. Re-resolve cwd through the final view, check root, cwd, artifact and usage backing identities, and restore that exact cwd. Reopen the same genuine `/dev/null` through the final read-only view, explicitly retire/once-close the old FD0, then dup the new handle to0 without an implicit close. Read back same backing device/inode/rdev/type/mode, namespace-aware ownership, O_RDONLY, original NONBLOCK status and CLOEXEC clear. A failed old-FD close is uncertain and stops setup; it is never retried or declared complete. Close every other setup/directory/mount FD once. Descendants have not yet been created.
+@@ -70,6 +70,7 @@
+ | Entry/time image and proc/census descriptors | Entry pending->acquired->once-close; raw syscall errors ordered; no external library finalizer | Source-defined close states plus actual process exit; failure projection is non-success |
+ | User/mount namespace and mapping writes | Entry creates no descendant; records each completed irreversible stage and every failed syscall | Kernel releases remaining namespace references on actual waited process exit; no self-issued release receipt |
+ | Detached clones | Entry owns actual open_tree FDs; partial attach remains recorded; all known FD closes attempted once | Actual process exit releases the private mount namespace; no unmount/rollback retry |
++| Private binary-format context/instance | Entry reserves/acquires one real fs-context FD, creates once, saves create error before close error and retires/closes once before view; no context retry or mount | Context close releases its superblock; the empty per-user-namespace instance remains until namespace destruction. Failed create may have published before a later LSM failure, so actual process/userns retirement is required and no original optimised-refusal classification is allowed |
+ | Artifact and usage backing objects | Original runner/registry owns retained paths; entry exposes only exact pinned objects | Original retained-tree registry/oracle/archive custody; entry never unlinks or repairs them |
+ | Landlock ruleset/path FDs | Entry source-owned; mandatory restriction failure prevents exec; close error is uncertain | Once-close states and external exit; restrictions inherited only after successful restrict_self |
+ | Final filter/exec | Entry installs mandatory filter and execs exact original observer prefix | Actual outer child launch/wait/streams and complete receiver, never a pre-exit native success marker |
+@@ -81,7 +82,13 @@
+ 
+ The following are outside this source's self-authentication and must be genuine original parent/profile facts: (a) the fresh trusted runner and this actual loaded native image/loader with a clean initial environment and no prior descendant; (b) selected Linux-v6.12 semantics, or source-reviewed equivalent, and actual namespace/mount/Landlock/seccomp support; (c) a bounded stable mount topology with no unreviewed automount, remote/delegated filesystem or kernel service effect bypass; (d) exact original EX ownership/no external mutation across object validation, mount setup and final pathname exec; (e) original full native/interpreter/compiler/library/source association without trusting compiler behavior; (f) actual G domain placement before birth, owner survival and retirement; (g) selected self resource/fault-control compatibility, including CORE(1,1); (h) enclosing budget/cost coverage for every reached setup, failure and terminal tail. An argv pin, JSON hash or native failure flag establishes none of these facts on its own.
+ 
+-One concrete loader premise within (b,c,e) is **no reachable preopened/delegated binfmt interpreter that reintroduces an old mount reference**. Linux-v6.12 binfmt_misc can inherit ancestor handlers, and an F registration uses `file_clone_open` on its previously opened interpreter. A child could select the registered format under broad execute permission; merely closing user FDs and denying mount syscalls would not remove that kernel-held file. An executable exposed through the resulting `/proc/self/exe` may therefore require an additional old-reference argument. A sufficient source profile has no enabled reachable F/delegated handler and uses the selected ordinary ELF/script loaders, with their opens through the final view. If registrations are present, their exact ownership, accessible old references and consequences need source analysis; their harmlessness is not inferred from compiler trust. This entry has not probed registrations, disables no host handler and makes no current-host absence claim. The existing native/image association must establish this fact or leave the view unadmitted.
++The former ancestor-binfmt absence premise is replaced by an **implemented entry owner**. Linux-v6.12 `load_binfmt_misc` stops at the first non-NULL per-user-namespace instance; `bm_fill_super` allocates an empty entries list and publishes it in the freshly created user namespace. Actual fsopen/fsconfig CREATE reaches this callback without attaching a visible mount. Its context close invokes `put_fs_context` and deactivates the superblock; `bm_put_super` drops its userns reference but does not erase the namespace's instance. Consequently the empty instance continues shadowing every ancestor F/preopened interpreter until userns destruction. No descendant exists during setup; all descendants inherit the final namespace and policy. Later fsopen/fsconfig/fsmount/fspick, namespace/mount changes and descriptor import are denied. Existing ancestor registry paths stay read-only with no Landlock write rule; the new empty registry has no visible mount at all.
++
++The selected native interface profile explicitly requires **Linux v6.12 CONFIG_BINFMT_MISC=y and successful built-in filesystem registration**. `get_fs_type` must find that exact already-registered implementation before reaching its request_module branch. This is an operating source/configuration selection whose genuine installed-image association belongs to the parent before execution; neither this document nor profile DATA proves it current. No available/compatible boolean, host probe, module request, host-handler disable or trusted compiler is substituted. Build headers must supply native x86-64 SYS_fsopen/SYS_fsconfig; local prefixed UAPI constants retain v6.12 values FSOPEN_CLOEXEC=1 and FSCONFIG_CMD_CREATE=6 without mixing libc/kernel enum definitions. `<sched.h>` explicitly declares GNU `unshare`.
++
++Publication is not assumed atomic with the whole fsconfig syscall: vfs_get_tree/bm_fill_super can publish before a later security_sb_kern_mount failure. The entry records `private_dispatch_created=true` only after a successful return; false is **not an assertion that no partial instance exists**. Both a failed create and a failed/uncertain close remain paid setup failures before science, with actual raw errno order and namespace/process teardown obligations. They cannot count as the original optimised refusal. A successful private instance closes the old-reference confinement edge only. The separate finite original-exec/fault/LSM/topology proof must show that shadowing handlers preserves every required GNU-time, Python, compiler/helper, script and failed-exec observation; if an original required case relies on a misc handler, whole acceptance remains blocked. Actual current kernel/image support, numerical fit and execution admission remain later.
++
++The exact successful-path FD bound is27 lifetime registry births, increased from26 by this one context; cap96 is unchanged, leaving69 slots. The ordered birth groups are startup census/stdin/task/children4; entry/self/time3; ID-map writes3; private context1; artifact/usage/cwd3; detached clones2; copied root/final cwd2; final devnull/dup0 two; Landlock ruleset/root/artifact/usage/devnull5; final census1; final time image1. The context closes before any view handles, so peak stays13 tracked live FDs, or15 actual including the unregistered stdout/stderr writer endpoints. On failure no later acquisition is attempted. At the maximum view/Landlock point at most12 setup FDs require close plus one primary error, so the existing48-error capacity covers that13-error bound; context create+close has at most two errors in original order. FD0/pipe release and all namespace publication/retirement costs remain in the enclosing attempt and are not declared free.
+ 
+ The joined Q_sigma proof must separately map copied source attributes, default ACL/creation ancestors, executable/library attributes, original negative fixtures and within-invocation custody metadata to actual consumers for every required case. It must preserve the original outer C2 retention listxattr refusal on every retained root/file/directory. Same backing inode or source bytes do not prove that an ACL copied by CPython in the one-ID namespace is unchanged; an omitted consequential ACL can erase an original retention refusal. Nonempty attributes require consequence analysis. Entry contains no synthetic refusal or absence-of-xattrs assertion. Current attributes, current kernel/native images, original negative-case preservation, complete source acceptance and execution GO remain unissued by this native component.
+ 
+@@ -97,4 +104,5 @@
+ - [Linux v6.12 clone implementation](https://github.com/torvalds/linux/blob/v6.12/kernel/fork.c): SYSCALL_DEFINE0 fork/vfork and lower_32_bits in legacy clone.
+ - [Linux v6.12 coredump](https://github.com/torvalds/linux/blob/v6.12/fs/coredump.c): limit==1 aborts pipe dispatch before usermodehelper; file dispatch enforces min_coredump.
+ - [Linux v6.12 binfmt_misc](https://github.com/torvalds/linux/blob/v6.12/fs/binfmt_misc.c): load_binfmt_misc ancestor lookup, MISC_FMT_OPEN_FILE/file_clone_open and F registration; [exec implementation](https://github.com/torvalds/linux/blob/v6.12/fs/exec.c) retains the actual interpreter execution/custody obligation.
++- [Linux v6.12 fsopen/fsconfig](https://github.com/torvalds/linux/blob/v6.12/fs/fsopen.c), [context release](https://github.com/torvalds/linux/blob/v6.12/fs/fs_context.c), [filesystem registration lookup](https://github.com/torvalds/linux/blob/v6.12/fs/filesystems.c), [mount UAPI](https://github.com/torvalds/linux/blob/v6.12/include/uapi/linux/mount.h), and [user namespace destruction](https://github.com/torvalds/linux/blob/v6.12/kernel/user_namespace.c) support the actual private-dispatch construction, exact builtin selection and remaining lifetime edge.
+ - [Linux v6.12 open metadata](https://github.com/torvalds/linux/blob/v6.12/fs/open.c), [utimes](https://github.com/torvalds/linux/blob/v6.12/fs/utimes.c), [xattr](https://github.com/torvalds/linux/blob/v6.12/fs/xattr.c) and [POSIX ACL](https://github.com/torvalds/linux/blob/v6.12/fs/posix_acl.c): mount-write and namespace representation dependencies.
+--- predecessor/implementation/bindings/profiles/native.json
++++ candidate/implementation/bindings/profiles/native.json
+@@ -9,7 +9,12 @@
+     "G survives covered role deaths then wholeD retirement; killrequest/frozen/membership/populationempty/waits/FDclose are distinct conjunctions",
+     "G loss/unknown leaves persistent incomplete and no fresh selected operation/retention success",
+     "SourceSHA corroborates original external actualentry association; installed nativeimage/current runtime identity not proved by sourcehash",
+-    "Science entry source, actual built image/source association, original time image, namespace/LL ABI6/seccomp semantics and finite observation Q require independently qualified current input; authoring grants no execution"
++    "Science entry source, actual built image/source association, original time image, namespace/LL ABI6/seccomp semantics and finite observation Q require independently qualified current input; authoring grants no execution",
++    "Selected native dispatch source profile: Linux v6.12 CONFIG_BINFMT_MISC=y, successful built-in init_misc_binfmt/register_filesystem registration of the exact binfmt_misc implementation before this entry; get_fs_type resolves the already registered built-in without request_module, not a supplied available or compatible flag and not an observed host fact",
++    "After fresh same-ID user/private mount namespaces, actual entry reserves/acquires one fsopen(binfmt_misc,FSOPEN_CLOEXEC) context, calls fsconfig(FSCONFIG_CMD_CREATE) once, records raw create errno before one close, and closes before view/capability drop/descendants; no fsmount or visible registry mount",
++    "Linux v6.12 bm_fill_super publishes the fresh user namespace empty binfmt_misc instance; the unattached context may close while that instance shadows ancestor handlers through namespace lifetime; any failed create may have partial publication, remains paid setup failure before science and requires actual namespace/process retirement",
++    "Final inherited seccomp denies fsopen/fsconfig/fsmount/fspick/mount APIs and descriptor import; no new registry mount is exposed and copied ancestor registry paths have neither mount-write nor Landlock write authority; required original exec/CORE/LSM/topology preservation needs the separate finite consequence proof",
++    "Native source headers: GNU sched.h supplies unshare declaration; LP64 x86-64 SYS_fsopen/SYS_fsconfig syscall numbers required at build, v6.12 local UAPI FSOPEN_CLOEXEC=1 and FSCONFIG_CMD_CREATE=6; no compiler or native execution implied"
+   ],
+   "runtime_admission": "UNISSUED",
+   "schema": "s03-source-operating-profile-v1",
