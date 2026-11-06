@@ -151,10 +151,18 @@ bounds constrain the replay, not hostile-filesystem behavior or all memory use.
 
 ## Open next questions
 
-- Apply N to one source-bound fully charged inventory that still uses
-  strictification. Reuse its exact moment enclosures and retain completion,
-  native/compiler/physical premises, and the complete outer consumer before
-  claiming a smaller sufficient tensor power or compiler rank.
+The [selected #6030 joint application](https://github.com/CubeJerry/integer-mult-bounds/blob/223ea940b604c1f8a2bd28093618628ba4a113a4/research/selected6030-smaller-compiler/JOINT-PROOF.md)
+now supplies one source-bound numerical application with the complete splitting,
+completion, compiler and outer accounting retained. It pins this theorem at
+`a0ef8b7ae2592202247b15da453ce42598863a26`. That application is a follow-up,
+not a proof or replay dependency of this theorem package; its inherited native,
+physical and compiler obligations remain explicit.
+
+- Apply N to further source-bound fully charged inventories that still use
+  strictification. Reuse their exact moment enclosures and retain completion
+  and the complete outer consumer. Identify the actual native, physical and
+  compiler obligations that remain at each caller; a smaller sufficient rank
+  does not discharge them.
 - Characterize adjacent-quotient transitions more explicitly. Start by comparing
   the two optimized candidates for a fixed rational t as sigma varies. The
   present theorem is exact without a universal tie or transition classification.
